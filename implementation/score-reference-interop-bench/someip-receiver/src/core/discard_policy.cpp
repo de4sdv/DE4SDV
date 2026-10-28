@@ -2,50 +2,54 @@
 
 namespace de4sdv::someip_receiver {
 
-const char* ToText(PhaseCause cause) noexcept {
-  switch (cause) {
-    case PhaseCause::kSubscriptionAcknowledged:
-      return "subscription_acknowledged";
-    case PhaseCause::kClientConnected:
-      return "client_connected";
-  }
-  return "unknown";
-}
-
 const char* ToText(FrameVerdict verdict) noexcept {
   switch (verdict) {
     case FrameVerdict::kDeliver:
       return "delivered";
-    case FrameVerdict::kDropSequenceNotIncreasing:
-      return "sequence_not_increasing";
+    case FrameVerdict::kDropFieldNotPositive:
+      return "field_not_positive";
     case FrameVerdict::kDropOlderThanPhase:
       return "older_than_phase";
+    case FrameVerdict::kDropCopyInPhase:
+      return "copy_in_phase";
   }
   return "unknown";
 }
 
-ProvisionalDiscardPolicy::ProvisionalDiscardPolicy(std::int64_t clock_offset_bound_ns)
-    : clock_offset_bound_ns_{clock_offset_bound_ns < 0 ? 0 : clock_offset_bound_ns} {}
-
-void ProvisionalDiscardPolicy::OnPhaseStart(PhaseCause cause, std::int64_t realtime_ns) {
-  in_phase_ = true;
-  phase_start_realtime_ns_ = realtime_ns;
-  if (cause == PhaseCause::kClientConnected) {
-    last_delivered_sequence_ = 0;  // the new client has received no frame
-  }
+void PhaseStartDiscardPolicy::ClearMemory() noexcept {
+  served_next_ = 0;
+  served_count_ = 0;
 }
 
-FrameVerdict ProvisionalDiscardPolicy::Admit(const FrameFields& frame) {
-  if (!in_phase_) {
+void PhaseStartDiscardPolicy::OnPhaseStart(std::int64_t realtime_ns) {
+  in_phase_ = true;
+  phase_start_realtime_ns_ = realtime_ns;
+  ClearMemory();
+}
+
+void PhaseStartDiscardPolicy::OnPhaseEnd() {
+  in_phase_ = false;
+  ClearMemory();
+}
+
+FrameVerdict PhaseStartDiscardPolicy::Admit(const FrameFields& frame) {
+  if (frame.sequence == 0U || frame.frame_timestamp_ns <= 0) {
+    return FrameVerdict::kDropFieldNotPositive;
+  }
+  if (!in_phase_ || frame.frame_timestamp_ns < phase_start_realtime_ns_ - kPhaseStartMarginNs) {
     return FrameVerdict::kDropOlderThanPhase;
   }
-  if (frame.sequence <= last_delivered_sequence_) {
-    return FrameVerdict::kDropSequenceNotIncreasing;
+  for (std::size_t index = 0; index < served_count_; ++index) {
+    const FrameFields& served = served_[index];
+    if (served.sequence == frame.sequence && served.frame_timestamp_ns == frame.frame_timestamp_ns) {
+      return FrameVerdict::kDropCopyInPhase;
+    }
   }
-  if (frame.frame_timestamp_ns < phase_start_realtime_ns_ - clock_offset_bound_ns_) {
-    return FrameVerdict::kDropOlderThanPhase;
+  served_[served_next_] = frame;  // the ring forgets the oldest served frame
+  served_next_ = (served_next_ + 1U) % kCopyMemoryFrames;
+  if (served_count_ < kCopyMemoryFrames) {
+    ++served_count_;
   }
-  last_delivered_sequence_ = frame.sequence;
   return FrameVerdict::kDeliver;
 }
 

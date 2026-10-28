@@ -2,21 +2,21 @@
 #
 # For the eng or userdebug image of the bench only: seclabel u:r:su:s0, with
 # SELinux permissive as on the INC-AEBS-010 bench. A product form needs its
-# own domain. The server address is the host end of cvd-ebr. Set
-# --clock-offset-bound-ms from the host-guest clock offset that the guest
-# preflight measures, before a run of record.
-service de4sdv_someip_receiver /system/bin/de4sdv_someip_receiver --server-address 192.168.98.1 --clock-offset-bound-ms 100 --status-period-s 10
+# own domain. The server address is the host end of cvd-ebr. The service is
+# not oneshot, so init restarts the receiver when it exits.
+#
+# The ingress reads its frame server from two properties. The port is set
+# here. The receiver sets the host property itself once its loopback server
+# listens (--announce-property), and the host property starts the ingress
+# (de4sdv_aebs_ingress.rc). So the ingress starts only after the receiver
+# listens; the ingress exits when nothing listens.
+service de4sdv_someip_receiver /system/bin/de4sdv_someip_receiver --server-address 192.168.98.1 --status-period-s 10 --announce-property de4sdv.aebs.frame_server.host=127.0.0.1
     class late_start
     user system
     group inet
     seclabel u:r:su:s0
     disabled
 
-# The HMI ingress reads its frame server from these two properties; the host
-# property also starts the ingress (de4sdv_aebs_ingress.rc), so it is set last.
 on property:sys.boot_completed=1
     setprop de4sdv.aebs.frame_server.port 4731
     start de4sdv_someip_receiver
-
-on property:init.svc.de4sdv_someip_receiver=running
-    setprop de4sdv.aebs.frame_server.host 127.0.0.1

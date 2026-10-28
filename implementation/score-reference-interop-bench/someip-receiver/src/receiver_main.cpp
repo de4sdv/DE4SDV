@@ -33,6 +33,7 @@
 
 #ifdef __ANDROID__
 #include <android/log.h>
+#include <sys/system_properties.h>
 #endif
 
 #include "de4sdv_someip_receiver/discard_policy.hpp"
@@ -52,9 +53,10 @@ using de4sdv::someip_receiver::kNanosecondsPerMillisecond;
 using de4sdv::someip_receiver::kNoDeadline;
 using de4sdv::someip_receiver::LogRecord;
 using de4sdv::someip_receiver::ParseOptions;
-using de4sdv::someip_receiver::ProvisionalDiscardPolicy;
+using de4sdv::someip_receiver::PhaseStartDiscardPolicy;
 using de4sdv::someip_receiver::ReceiverCore;
 using de4sdv::someip_receiver::ReceiverOptions;
+using de4sdv::someip_receiver::SplitProperty;
 using de4sdv::someip_receiver::StartRecord;
 using de4sdv::someip_receiver::SubscriptionTransport;
 using de4sdv::someip_receiver::Usage;
@@ -286,7 +288,6 @@ class Shell final : public SubscriptionTransport, public FrameSink {
     core_->OnTick(Now());
   }
 
-  std::uint64_t clients_rejected_busy() const noexcept { return clients_rejected_busy_; }
   std::uint64_t client_bytes_ignored() const noexcept { return client_bytes_ignored_; }
 
  private:
@@ -375,16 +376,15 @@ class Shell final : public SubscriptionTransport, public FrameSink {
     if (fd < 0) {
       return;
     }
-    if (client_fd_ >= 0) {
-      ++clients_rejected_busy_;
-      ::close(fd);  // one client only
-      log_.Log(Now(), LogRecord{"client_rejected"}.Text("reason", "busy"));
+    // One client only: the core refuses a second one, logs it, and the shell
+    // closes it. A refused client is not served and starts no phase.
+    if (!core_->OnClientAccepted(Now())) {
+      ::close(fd);
       return;
     }
     const int one = 1;
     ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
     client_fd_ = fd;
-    core_->OnClientConnected(Now());
   }
 
   void ReadClient() {
@@ -414,7 +414,6 @@ class Shell final : public SubscriptionTransport, public FrameSink {
   bool tcp_connected_{false};
   std::uint64_t tcp_generation_{0};
   int pending_connect_errno_{0};
-  std::uint64_t clients_rejected_busy_{0};
   std::uint64_t client_bytes_ignored_{0};
   std::vector<std::uint8_t> buffer_ = std::vector<std::uint8_t>(65536);
 };
@@ -442,7 +441,7 @@ int main(int argc, char** argv) {
   std::signal(SIGPIPE, SIG_IGN);
 
   LineLog log;
-  ProvisionalDiscardPolicy policy{options.clock_offset_bound_ns};
+  PhaseStartDiscardPolicy policy;
   Shell shell{options, log};
   std::string error;
   if (!shell.OpenListener(&error)) {
@@ -458,15 +457,25 @@ int main(int argc, char** argv) {
   shell.Attach(&core);
   log.Log(Now(), StartRecord(options, policy.Name(), static_cast<std::int64_t>(::getpid()))
                      .Text("multicast_membership", multicast_result));
+  if (!options.announce_property.empty()) {
+    // The loopback server listens now, so the ingress may start (it exits when nothing listens).
+    std::string name;
+    std::string value;
+    SplitProperty(options.announce_property, &name, &value);
+#ifdef __ANDROID__
+    const int result = __system_property_set(name.c_str(), value.c_str());
+    log.Log(Now(), LogRecord{"property_announced"}.Text("name", name).Text("value", value).Bool("ok", result == 0));
+#else
+    log.Log(Now(), LogRecord{"property_not_announced"}.Text("name", name).Text("reason", "not Android"));
+#endif
+  }
 
   std::int64_t next_status_ns = Now().monotonic_ns + options.status_period_ns;
   while (g_stop_requested == 0) {
     shell.Turn(next_status_ns);
     const Clock now = Now();
     if (now.monotonic_ns >= next_status_ns) {
-      log.Log(now, core.Status("status")
-                       .Unsigned("clients_rejected_busy", shell.clients_rejected_busy())
-                       .Unsigned("client_bytes_ignored", shell.client_bytes_ignored()));
+      log.Log(now, core.Status("status").Unsigned("client_bytes_ignored", shell.client_bytes_ignored()));
       next_status_ns += options.status_period_ns;
       if (next_status_ns <= now.monotonic_ns) {
         next_status_ns = now.monotonic_ns + options.status_period_ns;
@@ -476,9 +485,7 @@ int main(int argc, char** argv) {
   const Clock stop = Now();
   log.Log(stop, LogRecord{"stop_requested"});
   core.Stop(stop);
-  log.Log(Now(), core.Status("final_status")
-                     .Unsigned("clients_rejected_busy", shell.clients_rejected_busy())
-                     .Unsigned("client_bytes_ignored", shell.client_bytes_ignored()));
+  log.Log(Now(), core.Status("final_status").Unsigned("client_bytes_ignored", shell.client_bytes_ignored()));
   log.Log(Now(), LogRecord{"exit"}.Signed("code", 0));
   return 0;
 }

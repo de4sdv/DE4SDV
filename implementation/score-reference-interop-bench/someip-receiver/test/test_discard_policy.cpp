@@ -1,7 +1,6 @@
-// Unit tests of the provisional discard policy of the pure receiver core:
-// a frame is delivered only if its sequence is greater than the last one
-// delivered to the current loopback client and its frame_timestamp_ns is
-// not older than the phase start minus the clock-offset bound.
+// Unit tests of the discard rule in a subscription phase
+// (receiverSubscriptionPhaseDiscardRule): the 20 ms margin before the phase
+// start, the copy check, the positive fields, and no filter on order.
 
 #include <gtest/gtest.h>
 
@@ -13,93 +12,101 @@ namespace {
 
 using de4sdv::someip_receiver::FrameFields;
 using de4sdv::someip_receiver::FrameVerdict;
-using de4sdv::someip_receiver::PhaseCause;
-using de4sdv::someip_receiver::ProvisionalDiscardPolicy;
+using de4sdv::someip_receiver::PhaseStartDiscardPolicy;
 
 constexpr std::int64_t kMs = 1'000'000;
-constexpr std::int64_t kBound = 50 * kMs;
 constexpr std::int64_t kStart = 1'793'116'443'934'013'818;
 
 FrameFields Frame(std::uint64_t sequence, std::int64_t timestamp_ns) { return FrameFields{sequence, timestamp_ns}; }
 
-ProvisionalDiscardPolicy InPhase(PhaseCause cause = PhaseCause::kClientConnected) {
-  ProvisionalDiscardPolicy policy{kBound};
-  policy.OnPhaseStart(cause, kStart);
+PhaseStartDiscardPolicy InPhase(std::int64_t start = kStart) {
+  PhaseStartDiscardPolicy policy;
+  policy.OnPhaseStart(start);
   return policy;
 }
 
-TEST(ProvisionalDiscardPolicy, NoFrameIsDeliveredBeforeAPhaseStarts) {
-  ProvisionalDiscardPolicy policy{kBound};
-  EXPECT_FALSE(policy.in_phase());
+TEST(PhaseStartDiscardPolicy, MarginIsTwentyMilliseconds) {
+  auto policy = InPhase();
+  EXPECT_EQ(policy.Admit(Frame(1, kStart - 19 * kMs)), FrameVerdict::kDeliver);
+  EXPECT_EQ(policy.Admit(Frame(2, kStart - 21 * kMs)), FrameVerdict::kDropOlderThanPhase);
+  EXPECT_EQ(policy.Admit(Frame(3, kStart - 20 * kMs)), FrameVerdict::kDeliver);
+  EXPECT_EQ(policy.Admit(Frame(4, kStart - 20 * kMs - 1)), FrameVerdict::kDropOlderThanPhase);
+}
+
+TEST(PhaseStartDiscardPolicy, OlderFrameThatIsNoCopyPasses) {
+  auto policy = InPhase();
+  EXPECT_EQ(policy.Admit(Frame(10, kStart + 100 * kMs)), FrameVerdict::kDeliver);
+  // Older by sequence and by stamp, but produced in the phase and never served.
+  EXPECT_EQ(policy.Admit(Frame(9, kStart + 50 * kMs)), FrameVerdict::kDeliver);
+  EXPECT_EQ(policy.Admit(Frame(8, kStart)), FrameVerdict::kDeliver);
+}
+
+TEST(PhaseStartDiscardPolicy, CopyHasTheSameSequenceAndStamp) {
+  auto policy = InPhase();
+  EXPECT_EQ(policy.Admit(Frame(5, kStart + 1 * kMs)), FrameVerdict::kDeliver);
+  EXPECT_EQ(policy.Admit(Frame(5, kStart + 1 * kMs)), FrameVerdict::kDropCopyInPhase);
+  // Same sequence, other stamp (a restarted source): no copy.
+  EXPECT_EQ(policy.Admit(Frame(5, kStart + 2 * kMs)), FrameVerdict::kDeliver);
+  // Same stamp, other sequence: no copy.
+  EXPECT_EQ(policy.Admit(Frame(6, kStart + 1 * kMs)), FrameVerdict::kDeliver);
+}
+
+TEST(PhaseStartDiscardPolicy, FieldsMustBePositive) {
+  auto policy = InPhase();
+  EXPECT_EQ(policy.Admit(Frame(0, kStart)), FrameVerdict::kDropFieldNotPositive);
+  EXPECT_EQ(policy.Admit(Frame(1, 0)), FrameVerdict::kDropFieldNotPositive);
+  EXPECT_EQ(policy.Admit(Frame(1, -5)), FrameVerdict::kDropFieldNotPositive);
+  EXPECT_EQ(policy.Admit(Frame(1, kStart)), FrameVerdict::kDeliver);
+}
+
+TEST(PhaseStartDiscardPolicy, NoFrameIsServedOutsideAPhase) {
+  PhaseStartDiscardPolicy policy;
   EXPECT_EQ(policy.Admit(Frame(1, kStart)), FrameVerdict::kDropOlderThanPhase);
+  policy.OnPhaseStart(kStart);
+  policy.OnPhaseEnd();
+  EXPECT_FALSE(policy.in_phase());
+  EXPECT_EQ(policy.Admit(Frame(2, kStart + 1 * kMs)), FrameVerdict::kDropOlderThanPhase);
 }
 
-TEST(ProvisionalDiscardPolicy, TheBoundIsInclusive) {
+TEST(PhaseStartDiscardPolicy, CopyMemoryBelongsToOnePhase) {
   auto policy = InPhase();
-  EXPECT_EQ(policy.Admit(Frame(1, kStart - kBound - 1)), FrameVerdict::kDropOlderThanPhase);
-  EXPECT_EQ(policy.Admit(Frame(2, kStart - kBound)), FrameVerdict::kDeliver);
-  EXPECT_EQ(policy.Admit(Frame(3, kStart + 10 * kMs)), FrameVerdict::kDeliver);
+  EXPECT_EQ(policy.Admit(Frame(7, kStart + 5 * kMs)), FrameVerdict::kDeliver);
+  policy.OnPhaseEnd();
+  // A new phase that starts 10 ms later: the frame lies in its margin and was
+  // not served in this phase, so it passes (the band of GAP-MW-045).
+  policy.OnPhaseStart(kStart + 10 * kMs);
+  EXPECT_EQ(policy.served_in_memory(), 0U);
+  EXPECT_EQ(policy.Admit(Frame(7, kStart + 5 * kMs)), FrameVerdict::kDeliver);
 }
 
-TEST(ProvisionalDiscardPolicy, ZeroBoundDropsEveryFrameBeforeThePhaseStart) {
-  ProvisionalDiscardPolicy policy{0};
-  policy.OnPhaseStart(PhaseCause::kSubscriptionAcknowledged, kStart);
-  EXPECT_EQ(policy.Admit(Frame(1, kStart - 1)), FrameVerdict::kDropOlderThanPhase);
-  EXPECT_EQ(policy.Admit(Frame(2, kStart)), FrameVerdict::kDeliver);
-}
-
-TEST(ProvisionalDiscardPolicy, SequenceMustIncrease) {
+TEST(PhaseStartDiscardPolicy, StoredFramesOfARestartInThePhaseAreCopiesOrLate) {
   auto policy = InPhase();
-  EXPECT_EQ(policy.Admit(Frame(5, kStart)), FrameVerdict::kDeliver);
-  EXPECT_EQ(policy.Admit(Frame(5, kStart + kMs)), FrameVerdict::kDropSequenceNotIncreasing);
-  EXPECT_EQ(policy.Admit(Frame(4, kStart + 2 * kMs)), FrameVerdict::kDropSequenceNotIncreasing);
-  EXPECT_EQ(policy.Admit(Frame(7, kStart + 3 * kMs)), FrameVerdict::kDeliver);
-  EXPECT_EQ(policy.last_delivered_sequence(), 7U);
-}
-
-TEST(ProvisionalDiscardPolicy, SequenceZeroIsNeverDelivered) {
-  auto policy = InPhase();
-  EXPECT_EQ(policy.Admit(Frame(0, kStart)), FrameVerdict::kDropSequenceNotIncreasing);
-}
-
-TEST(ProvisionalDiscardPolicy, StoredFramesAfterANewSubscriptionAreDropped) {
-  auto policy = InPhase(PhaseCause::kClientConnected);
-  EXPECT_EQ(policy.Admit(Frame(40, kStart + 100 * kMs)), FrameVerdict::kDeliver);
-  // The subscription is lost and acknowledged again 5 s later; the layer then
-  // sends nine frames that it stored about 4 s before the new phase.
-  const std::int64_t resubscribed = kStart + 5000 * kMs;
-  policy.OnPhaseStart(PhaseCause::kSubscriptionAcknowledged, resubscribed);
-  for (std::uint64_t sequence = 42; sequence <= 50; ++sequence) {
-    const std::int64_t produced = resubscribed - 4100 * kMs + static_cast<std::int64_t>(sequence - 42) * 100 * kMs;
-    EXPECT_EQ(policy.Admit(Frame(sequence, produced)), FrameVerdict::kDropOlderThanPhase) << sequence;
+  for (std::uint64_t sequence = 1; sequence <= 30; ++sequence) {
+    ASSERT_EQ(policy.Admit(Frame(sequence, kStart + static_cast<std::int64_t>(sequence) * 100 * kMs)),
+              FrameVerdict::kDeliver);
   }
-  EXPECT_EQ(policy.Admit(Frame(51, resubscribed + 10 * kMs)), FrameVerdict::kDeliver);
+  // gatewayd restarts in the phase; its first read returns the 10 newest
+  // stored frames: 23 to 30 were served, 31 and 32 came while it was down.
+  for (std::uint64_t sequence = 23; sequence <= 30; ++sequence) {
+    EXPECT_EQ(policy.Admit(Frame(sequence, kStart + static_cast<std::int64_t>(sequence) * 100 * kMs)),
+              FrameVerdict::kDropCopyInPhase)
+        << sequence;
+  }
+  EXPECT_EQ(policy.Admit(Frame(31, kStart + 3100 * kMs)), FrameVerdict::kDeliver);
+  EXPECT_EQ(policy.Admit(Frame(32, kStart + 3200 * kMs)), FrameVerdict::kDeliver);
 }
 
-TEST(ProvisionalDiscardPolicy, NewSubscriptionKeepsTheFloorOfTheSameClient) {
-  auto policy = InPhase(PhaseCause::kClientConnected);
-  EXPECT_EQ(policy.Admit(Frame(10, kStart)), FrameVerdict::kDeliver);
-  const std::int64_t resubscribed = kStart + 1000 * kMs;
-  policy.OnPhaseStart(PhaseCause::kSubscriptionAcknowledged, resubscribed);
-  // A frame already delivered comes again with a fresh timestamp: still a duplicate.
-  EXPECT_EQ(policy.Admit(Frame(10, resubscribed)), FrameVerdict::kDropSequenceNotIncreasing);
-  EXPECT_EQ(policy.Admit(Frame(11, resubscribed - kBound - 1)), FrameVerdict::kDropOlderThanPhase);
-  EXPECT_EQ(policy.Admit(Frame(12, resubscribed)), FrameVerdict::kDeliver);
-}
-
-TEST(ProvisionalDiscardPolicy, NewClientResetsTheFloor) {
-  auto policy = InPhase(PhaseCause::kClientConnected);
-  EXPECT_EQ(policy.Admit(Frame(100, kStart)), FrameVerdict::kDeliver);
-  const std::int64_t reconnected = kStart + 2000 * kMs;
-  policy.OnPhaseStart(PhaseCause::kClientConnected, reconnected);
-  EXPECT_EQ(policy.last_delivered_sequence(), 0U);
-  EXPECT_EQ(policy.Admit(Frame(99, reconnected - kBound - 1)), FrameVerdict::kDropOlderThanPhase);
-  EXPECT_EQ(policy.Admit(Frame(3, reconnected)), FrameVerdict::kDeliver);
-}
-
-TEST(ProvisionalDiscardPolicy, NegativeTimestampIsOlderThanAnyPhase) {
+TEST(PhaseStartDiscardPolicy, CopyMemoryKeepsTheFortyFramesServedLast) {
   auto policy = InPhase();
-  EXPECT_EQ(policy.Admit(Frame(1, INT64_MIN)), FrameVerdict::kDropOlderThanPhase);
+  for (std::uint64_t sequence = 1; sequence <= 100; ++sequence) {
+    ASSERT_EQ(policy.Admit(Frame(sequence, kStart + static_cast<std::int64_t>(sequence) * kMs)),
+              FrameVerdict::kDeliver);
+  }
+  EXPECT_EQ(policy.served_in_memory(), PhaseStartDiscardPolicy::kCopyMemoryFrames);
+  EXPECT_EQ(policy.Admit(Frame(61, kStart + 61 * kMs)), FrameVerdict::kDropCopyInPhase);
+  EXPECT_EQ(policy.Admit(Frame(100, kStart + 100 * kMs)), FrameVerdict::kDropCopyInPhase);
+  // Frame 60 left the memory: a repeat of it now passes.
+  EXPECT_EQ(policy.Admit(Frame(60, kStart + 60 * kMs)), FrameVerdict::kDeliver);
 }
 
 }  // namespace

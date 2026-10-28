@@ -348,22 +348,42 @@ What the receiver does:
 - Every frame ends delivered or dropped with one reason, and a counter per
   reason shows it. The start line repeats the whole configuration.
 
-The discard rule is a separate component (`FrameDiscardPolicy`). The final
-rule comes with the revision of the phase-8 model. Until then the receiver
-uses this provisional rule:
+The discard rule is a separate component (`FrameDiscardPolicy`). It is
+`receiverSubscriptionPhaseDiscardRule` of the phase-8 realization model:
 
-- A subscription phase starts at each SubscribeEventgroupAck after a
-  not-subscribed state and at each new client connection.
-- In a phase, the receiver delivers a frame only if its `sequence` is greater
-  than that of the last frame delivered to the current client, and its
-  `frame_timestamp_ns` is not older than the phase start minus the
-  clock-offset bound.
-- A new client resets that floor to 0; a new subscription with the same
-  client keeps it. So a frame never reaches the same client twice.
+- A subscription phase holds while the receiver is subscribed at someipd and
+  the ingress is its only loopback client. The phase starts when the second
+  of the two conditions starts to hold, and ends when one of them ends. The
+  receiver takes the phase start from its own `CLOCK_REALTIME`, the clock
+  with which the frame assembler stamps `frame_timestamp_ns` on the host.
+- The receiver is not subscribed at its start. A Nack, the loss of the TCP
+  connection to someipd, a StopOffer, or the end of the TTL of the last
+  acknowledged subscription ends the subscription. The next Ack starts it
+  again; the Ack of a renewal changes nothing.
+- A second client is refused while one is connected. It is not served and
+  starts no phase.
+- Outside a phase, the receiver reads every frame and drops it.
+- In a phase, it serves a frame unchanged only if its `frame_timestamp_ns`
+  is not earlier than the phase start less 20 ms, the bound of ASM-MW-030,
+  and the frame is no copy of a frame served in this phase. A copy has the
+  same `sequence` and the same `frame_timestamp_ns`. The rule does not
+  filter on sequence order, so a test of REQ-MW-014 still sees each gap and
+  each change of order.
+- It drops a frame whose `sequence` or `frame_timestamp_ns` has no positive
+  value.
 
-The clock-offset bound has no default. In CI, both namespaces share one
-clock, so the runs use 0 ms. On the bench VM, the guest preflight measures
-the host-guest offset first, and the bound follows from it.
+The copy memory keeps the 40 frames served last in the phase. A copy comes
+only from the stored frames that a new subscription in the host half reads
+after a restart during the phase (GAP-MW-039). A stored frame is still in a
+sample slot, and each of the two LoLa hops of the frame path has 20 slots:
+the adapter's frame event and gatewayd's bridged service. So a copy repeats
+one of the 20 newest frames of its hop, and 40 frames cover both hops. The
+receiver logs each phase start and end, and each dropped frame with its
+reason.
+
+The receiver sets the ingress host property itself once its loopback server
+listens (`--announce-property`, Android only), because the ingress exits when
+nothing listens. The init script sets the port property.
 
 Build and test the receiver with CMake and GTest (Ubuntu: `libgtest-dev`):
 
@@ -374,8 +394,9 @@ ninja -C build/someip-receiver && build/someip-receiver/de4sdv_someip_receiver_t
 
 `Android.bp` builds the same sources as a native binary (liblog only) with
 `de4sdv_someip_receiver.rc`, an init script for the eng or userdebug image:
-`seclabel u:r:su:s0`, and the ingress properties
-`de4sdv.aebs.frame_server.host=127.0.0.1` and `de4sdv.aebs.frame_server.port=4731`.
+`seclabel u:r:su:s0`, a service that init restarts, the ingress property
+`de4sdv.aebs.frame_server.port=4731`, and
+`de4sdv.aebs.frame_server.host=127.0.0.1` through the receiver.
 
 ### Runs against the real someipd
 
@@ -405,13 +426,20 @@ Each case starts a fresh stack:
 | `identity` | 200 frames reach the client byte for byte, in order, with the 2044-byte frames |
 | `resubscribe` | after a receiver restart by SIGTERM, one by SIGKILL, a restart of the gateway pair and a 5 s link outage, the receiver subscribes again and delivery resumes; no frame comes twice; every drop has a reason |
 | `no_client` | frames without a client are dropped and not queued; the client receives no frame produced before it connected |
-| `stored_samples` | frames that the layer stored before the subscription are counted, and the rule drops them |
+| `stored_samples` | frames go into the adapter before gatewayd starts; then gatewayd restarts beside the running someipd in the phase (a stimulus outside the operating rules), so that its stored frames repeat served frames; then the gateway pair restarts. Per step, the stored frames are counted, and the rule drops the copies and the frames older than the new phase |
 | `ttl_renewal` | without multicast offers, the receiver renews its subscription over five TTLs, without a lapse or a gap |
 
 `src/de4sdv_score_bench/someip_receiver_interop.py` evaluates the raw records
 of each case. A case also fails on a "Failed to subscribe" line of gatewayd,
-on LoLa shared memory that the adapter, gatewayd and someipd do not share, and
-on any frame at the client that is not byte-identical to a source frame.
+on LoLa shared memory that the adapter, gatewayd and someipd do not share, on
+any frame at the client that is not byte-identical to a source frame, on a
+frame served outside a phase or older than its phase start less 20 ms, and on
+a copy served in a phase. The results list the phase starts of each case. A
+frame that the AEBS stack produced in the 20 ms before a phase start (the
+band of GAP-MW-045) is reported, not failed.
+
+Both namespaces share the clock of one kernel, so ASM-MW-030 holds in these
+runs by construction. They do not measure a host-guest clock offset.
 
 ### Claim boundary of the receiver runs
 
@@ -420,8 +448,8 @@ runners. They are not evidence of record, they verify no requirement, and
 every result stays draft until independent review.
 
 Shown by a passing run: the receiver's interoperation over a veth pair with
-the someipd and gatewayd of the bundle, on Linux, with the provisional
-discard rule. Not shown: the Android build of the receiver, the AAOS SDV
-guest, the Cuttlefish network, the HMI ingress, the clock offset of a real
-guest, and any timing of record. No safety, cybersecurity, compliance or
-certification claim is made.
+the someipd and gatewayd of the bundle, on Linux, with the discard rule of
+the model, on one clock. Not shown: the Android build of the receiver, the
+AAOS SDV guest, the Cuttlefish network, the HMI ingress, the clock offset of
+a real guest (ASM-MW-030), and any timing of record. No safety,
+cybersecurity, compliance or certification claim is made.
