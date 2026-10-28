@@ -22,10 +22,14 @@ raw records in <out>/<case>/):
   stopped, both started again, the adapter kept) and a link outage of the
   guest end longer than the subscription TTL;
 - no_client: frames while no client is connected, then the client;
-- stored_samples: frames into the adapter before gatewayd starts, then
-  gatewayd and the subscription; then gatewayd restarted beside the running
-  someipd in the phase (a stimulus outside the operating rules, so that the
-  stored frames repeat served frames), then a restart of the gateway pair;
+- stored_samples: in the order of the stored-sample cases of the gateway
+  spike, with the source paused at each step so that the newest frames stay
+  in the sample slots: frames into the adapter, then gatewayd and the
+  subscription, then the source again (frames from before the phase arrive
+  in the phase); then gatewayd restarted beside the running someipd in the
+  phase, a stimulus outside the operating rules (stored frames repeat served
+  frames); then a restart of the gateway pair (stored frames from before the
+  new phase);
 - ttl_renewal: the unicast fallback only (no multicast membership) over
   five TTLs.
 
@@ -137,6 +141,7 @@ class Stack:
                                    "clocks": "both namespaces share the clock of one kernel"}}
         self.receiver_count = 0
         self.go_file = self.out / "go"
+        self.pause_file = self.out / "pause"
 
     # -- timeline
     def note(self, what: str, **fields) -> dict:
@@ -224,8 +229,8 @@ class Stack:
     def start_source(self, frames: int) -> None:
         self.start("frame_source", HOST_NS, [sys.executable, str(BENCH / "scripts" / "visualization_frame_source.py"),
                                              "--port", str(FRAME_PORT), "--frames", str(frames), "--period-ms", "100",
-                                             "--go-file", str(self.go_file), "--log", str(self.out / "source.jsonl"),
-                                             "--stream-dir", str(self.out)])
+                                             "--go-file", str(self.go_file), "--pause-file", str(self.pause_file),
+                                             "--log", str(self.out / "source.jsonl"), "--stream-dir", str(self.out)])
         self.wait("frame_source", "listening", 10.0, json_event=True)
 
     def ros_env(self) -> dict[str, str]:
@@ -268,6 +273,15 @@ class Stack:
     def go(self) -> None:
         self.go_file.write_text("")
         self.note("go")
+
+    def pause(self) -> None:
+        self.pause_file.write_text("")
+        self.note("pause source")
+        time.sleep(0.3)  # the frame in flight passes
+
+    def resume(self) -> None:
+        self.pause_file.unlink(missing_ok=True)
+        self.note("resume source")
 
     def disturbance(self, kind: str, start: dict, expects_resubscription: bool = True, **fields) -> None:
         self.timeline["disturbances"].append({"kind": kind, "start_realtime_ns": start["realtime_ns"],
@@ -437,39 +451,65 @@ def case_no_client(stack: Stack) -> None:
 
 
 def pair_restart(stack: Stack, receiver: str, gatewayd: str, someipd: str, new_gatewayd: str,
-                 new_someipd: str) -> None:
-    """gatewayd killed, someipd stopped, both started again (operating rule OR-2); the adapter keeps running."""
+                 new_someipd: str, *, paused: bool = False) -> None:
+    """gatewayd killed, someipd stopped, both started again (operating rule OR-2); the adapter keeps running.
+
+    With paused, the source is held until the receiver subscribed again, so that
+    the stored frames of the new subscriptions in the host half arrive in the new
+    phase.
+    """
     before = stack.subscribed_count(receiver)
     start = stack.note("disturbance gateway_pair_restart")
     stack.stop(gatewayd, signal.SIGKILL)
     stack.stop(someipd, signal.SIGTERM)
     stack.start_someipd(new_someipd)
     stack.start_gatewayd(new_gatewayd, someipd=new_someipd)
+    if paused:
+        stack.wait(new_gatewayd, GATEWAYD_FOUND, 20.0)
+        stack.wait_count(receiver, '"event":"subscribed"', before + 1, 20.0)
+        time.sleep(1.0)
+        stack.disturbance("gateway_pair_restart", start)
+        stack.resume()
+        time.sleep(3.0)
+        return
     stack.disturbance("gateway_pair_restart", start)
     _recover(stack, receiver, before)
 
 
 def case_stored_samples(stack: Stack) -> None:
     receiver = bring_up(stack, gatewayd=False, frames=0)
+    # (a) Frames from before the phase, in the phase. The adapter keeps the
+    # newest frames in its 20 sample slots while the source is paused.
+    # gatewayd reads up to 10 of them at the first notification after its
+    # subscription, so the stored frames reach the receiver after it has
+    # subscribed, when the source sends again.
     stack.go()
-    time.sleep(5.0)  # frames go into the adapter's sample slots; no gatewayd subscribes yet
+    time.sleep(3.0)
+    stack.pause()
     stack.start_gatewayd()
     stack.wait("gatewayd", GATEWAYD_FOUND, 20.0)
     stack.wait_count(receiver, '"event":"subscribed"', 1, 20.0)
     stack.shared_memory_snapshot()
-    time.sleep(4.0)
-    # gatewayd alone, beside the running someipd: the receiver stays subscribed,
-    # so its phase goes on, and the stored frames of gatewayd's new
-    # subscription repeat frames that the receiver served in the phase.
+    time.sleep(1.0)
+    stack.resume()
+    time.sleep(3.0)
+    # (b) Copies in the phase: gatewayd alone, beside the running someipd. The
+    # receiver stays subscribed, so its phase goes on, and the stored frames of
+    # gatewayd's new subscription repeat frames that the receiver served.
+    stack.pause()
     start = stack.note("disturbance gatewayd_restart")
     stack.stop("gatewayd", signal.SIGKILL)
     time.sleep(1.0)
     stack.start_gatewayd("gatewayd-2")
     stack.wait("gatewayd-2", GATEWAYD_FOUND, 20.0)
+    time.sleep(1.0)
     stack.disturbance("gatewayd_restart", start, expects_resubscription=False)
-    time.sleep(4.0)
-    # The gateway pair: a new subscription, so the stored frames are older than the new phase.
-    pair_restart(stack, receiver, "gatewayd-2", "someipd", "gatewayd-3", "someipd-2")
+    stack.resume()
+    time.sleep(3.0)
+    # (a) again at a resubscription: the gateway pair, so the stored frames are
+    # older than the new phase.
+    stack.pause()
+    pair_restart(stack, receiver, "gatewayd-2", "someipd", "gatewayd-3", "someipd-2", paused=True)
 
 
 def case_ttl_renewal(stack: Stack) -> None:
@@ -493,13 +533,18 @@ def summarize(results: dict[str, dict]) -> str:
     for case, result in results.items():
         metrics = result.get("metrics", {})
         keys = ("frames_produced", "frames_byte_identical", "frames_at_client", "duplicates_at_client",
-                "band_frames", "dropped_no_client", "stored_frames_dropped", "repeats_on_link", "acked_window_s",
-                "largest_ack_gap_s", "nacks_before_first_ack")
+                "band_frames", "dropped_no_client", "dropped_older_than_phase", "dropped_copy_in_phase",
+                "older_frame_age_s", "repeats_on_link", "acked_window_s", "largest_ack_gap_s",
+                "nacks_before_first_ack")
         data = "; ".join(f"{key} {metrics[key]}" for key in keys if key in metrics)
         drops = {reason: count for reason, count in metrics.get("drops_by_reason", {}).items() if count}
         phases = Counter(phase["cause"] for phase in metrics.get("phases", []))
         data += f"; drops {drops or 'none'}; phase starts {dict(phases)}"
         lines.append(f"| {case} | {result['outcome']} | {data} |")
+        for step in metrics.get("steps", []):
+            lines.append(f"| | | step {step['step']}: dropped {step['stored_dropped'] or 'none'}, older on the link "
+                         f"{step['older_on_link']}, repeats on the link {step['repeats_on_link']}, served "
+                         f"{step['served']} |")
         if result.get("reasons"):
             lines.append(f"| | | reasons: {'; '.join(result['reasons'])} |")
     return "\n".join(lines) + "\n"

@@ -406,9 +406,9 @@ only from the stored frames that a new subscription in the host half reads
 after a restart during the phase (GAP-MW-039). A stored frame is still in a
 sample slot, and each of the two LoLa hops of the frame path has 20 slots:
 the adapter's frame event and gatewayd's bridged service. So a copy repeats
-one of the 20 newest frames of its hop, and 40 frames cover both hops. The
-receiver logs each phase start and end, and each dropped frame with its
-reason.
+one of the 20 newest frames of its hop, and 40 frames cover both hops. A
+copy of a frame that left the memory would pass. The receiver logs each phase
+start and end, and each dropped frame with its reason.
 
 The receiver sets the ingress host property itself once its loopback server
 listens (`--announce-property`, Android only), because the ingress exits when
@@ -455,8 +455,8 @@ Each case starts a fresh stack:
 | `identity` | 200 frames reach the client byte for byte, in order, with the 2044-byte frames |
 | `resubscribe` | after a receiver restart by SIGTERM, one by SIGKILL, a restart of the gateway pair and a 5 s link outage, the receiver subscribes again and delivery resumes; no frame comes twice; every drop has a reason |
 | `no_client` | frames without a client are dropped and not queued; the client receives no frame produced before it connected |
-| `stored_samples` | frames go into the adapter before gatewayd starts; then gatewayd restarts beside the running someipd in the phase (a stimulus outside the operating rules), so that its stored frames repeat served frames; then the gateway pair restarts. Per step, the stored frames are counted, and the rule drops the copies and the frames older than the new phase |
-| `ttl_renewal` | without multicast offers, the receiver renews its subscription over five TTLs, without a lapse or a gap |
+| `stored_samples` | in the order of the stored-sample cases of the gateway spike, with the source paused at each step so that the newest frames stay in the sample slots: frames into the adapter, then gatewayd and the subscription, then the source again (frames from before the phase arrive in it); then gatewayd restarted beside the running someipd in the phase, a stimulus outside the operating rules (stored frames repeat served frames); then a restart of the gateway pair. The case passes only when both checks of the rule acted: a frame older than its phase start less 20 ms dropped in a phase, and a copy dropped in a phase |
+| `ttl_renewal` | without multicast offers, the receiver renews its subscription over five TTLs, without a lapse or a gap. someipd answers a subscription that comes before its first offer with a Nack, as it does for the vsomeip client; the case counts these as `nacks_before_first_ack` and fails only on a Nack after the first Ack |
 
 `src/de4sdv_score_bench/someip_receiver_interop.py` evaluates the raw records
 of each case. A case also fails on a "Failed to subscribe" line of gatewayd,

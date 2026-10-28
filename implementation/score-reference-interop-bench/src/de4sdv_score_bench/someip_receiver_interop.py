@@ -577,10 +577,13 @@ def evaluate_no_client(records: CaseRecords) -> dict[str, Any]:
 def evaluate_stored_samples(records: CaseRecords) -> dict[str, Any]:
     """Stored frames after new subscriptions in the host half: counted per step and dropped.
 
-    The steps: the first subscription with a late gatewayd, a gatewayd restart
-    beside a running someipd in a phase (stored frames that repeat served
-    frames are copies), and a restart of the gateway pair (stored frames are
-    older than the new phase).
+    The steps, each with the source paused so that the newest frames stay in
+    the sample slots: the first subscription with a late gatewayd (frames from
+    before the phase arrive in it), a gatewayd restart beside a running
+    someipd in a phase (stored frames repeat served frames: copies), and a
+    restart of the gateway pair (frames from before the new phase). The case
+    passes only when both checks of the rule acted on real stored frames: a
+    frame older than its phase start less the margin, and a copy.
     """
     verdict = Verdict()
     check_common(records, verdict)
@@ -593,9 +596,8 @@ def evaluate_stored_samples(records: CaseRecords) -> dict[str, Any]:
     if not phases:
         return verdict.result()
     disturbances = records.timeline.get("disturbances", [])
-    steps = [{"kind": "late_gatewayd_first_subscription", "start_realtime_ns": 0,
-              "end_realtime_ns": phases[0].start_realtime_ns}] + list(disturbances)
-    total_stored = 0
+    steps = [{"kind": "late_gatewayd_first_subscription", "start_realtime_ns": 0}] + list(disturbances)
+    link = _link_notifications(records)
     report = []
     for index, step in enumerate(steps):
         start = step["start_realtime_ns"]
@@ -603,25 +605,43 @@ def evaluate_stored_samples(records: CaseRecords) -> dict[str, Any]:
                else records.timeline.get("stop_realtime_ns", 2 ** 63))
         lines = [f for f in run.frames if start <= f["realtime_ns"] < end]
         stored = [f for f in lines if f.get("verdict") in STORED_FRAME_VERDICTS]
-        total_stored += len(stored)
+        # Independent view of the link: notifications whose frame is older
+        # than the receiver's phase start in force, less the margin, and
+        # repeats of an earlier notification.
+        seen: set[str] = set()
+        older_on_link = 0
+        repeats_on_link = 0
+        for ts_ns, payload in link:
+            digest = hashlib.sha256(payload).hexdigest()
+            repeat = digest in seen
+            seen.add(digest)
+            if not start <= ts_ns < end:
+                continue
+            repeats_on_link += int(repeat)
+            ok, fields = read_payload(payload)
+            in_force = [p for p in phases if p.start_realtime_ns <= ts_ns]
+            if ok and fields is not None and in_force and \
+                    fields.frame_timestamp_ns < in_force[-1].start_realtime_ns - run.margin_ns:
+                older_on_link += 1
         report.append({"step": step["kind"], "stored_dropped": dict(Counter(f["verdict"] for f in stored)),
+                       "older_on_link": older_on_link, "repeats_on_link": repeats_on_link,
                        "served": sum(1 for f in lines if f.get("verdict") == "delivered")})
     verdict.metrics["steps"] = report
-    verdict.metrics["stored_frames_dropped"] = total_stored
+    older = [f for f in run.frames if f.get("verdict") == "older_than_phase"]
+    copies = [f for f in run.frames if f.get("verdict") == "copy_in_phase"]
+    verdict.metrics["stored_frames_dropped"] = len(older) + len(copies)
+    verdict.metrics["dropped_older_than_phase"] = len(older)
+    verdict.metrics["dropped_copy_in_phase"] = len(copies)
+    if older:
+        ages = [(run.phase_at(f["monotonic_ns"]).start_realtime_ns - f["frame_timestamp_ns"]) / SECOND_NS
+                for f in older if run.phase_at(f["monotonic_ns"]) is not None]
+        if ages:
+            verdict.metrics["older_frame_age_s"] = {"min": round(min(ages), 3), "max": round(max(ages), 3)}
     _check_disturbances(records, verdict, planned=2)
-    # Independent count from the link: a stored frame of a restart repeats an
-    # earlier notification byte for byte.
-    link = _link_notifications(records)
-    seen: set[str] = set()
-    repeats = 0
-    for _ts_ns, payload in link:
-        digest = hashlib.sha256(payload).hexdigest()
-        if digest in seen:
-            repeats += 1
-        seen.add(digest)
-    verdict.metrics["repeats_on_link"] = repeats  # the duplicate check shows that none reached the client twice
-    verdict.check("stored_frames_arrived", total_stored > 0 or repeats > 0,
-                  "no stored frame arrived after a new subscription: the rule was not exercised", MISSING)
+    verdict.check("frames_from_before_the_phase_dropped_in_a_phase", bool(older),
+                  "no frame from before its phase arrived in a phase: check (a) of the rule did not act", MISSING)
+    verdict.check("copies_dropped_in_a_phase", bool(copies),
+                  "no copy of a served frame arrived in a phase: check (b) of the rule did not act", MISSING)
     return verdict.result()
 
 
