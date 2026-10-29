@@ -16,7 +16,7 @@
   <path d="M 18,52 H 3264 A 6,6 0 0 1 3270,58 V 2202 A 6,6 0 0 1 3264,2208 H 18 A 6,6 0 0 1 12,2202 V 58 A 6,6 0 0 1 18,52 Z" fill="none" stroke="#1045A0" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1834,88 H 2127 L 2139,100 V 208 H 1834 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 2127,88 L 2127,100 L 2139,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
-  <path d="M 362,1377 H 700 V 1922 H 362 V 1377 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 362,1377 H 700 V 1946 H 362 V 1377 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1485,88 H 1803 L 1815,100 V 192 H 1485 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 1803,88 L 1803,100 L 1815,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
   <path d="M 2216,969 H 2588 V 1169 H 2216 V 969 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -73,7 +73,7 @@
   <path d="M 2802,88 H 3135 V 266 H 2802 V 88 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1179,285 H 1560 L 1572,297 V 485 H 1179 V 285 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 1560,285 L 1560,297 L 1572,297 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
-  <path d="M 28,1585 H 343 V 1715 H 28 V 1585 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 28,1597 H 343 V 1727 H 28 V 1597 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 34,285 H 373 A 6,6 0 0 1 379,291 V 452 A 6,6 0 0 1 373,458 H 34 A 6,6 0 0 1 28,452 V 291 A 6,6 0 0 1 34,285 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 362,1377 H 700 V 1413 H 362 V 1377 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2216,969 H 2588 V 1005 H 2216 V 969 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -114,15 +114,15 @@
   <path d="M 1591,285 H 1981 V 321 H 1591 V 285 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 398,285 H 750 V 321 H 398 V 285 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2802,88 H 3135 V 124 H 2802 V 88 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 28,1585 H 343 V 1621 H 28 V 1585 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 28,1597 H 343 V 1633 H 28 V 1597 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 34,285 H 373 A 6,6 0 0 1 379,291 V 321 H 28 V 291 A 6,6 0 0 1 34,285 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1834,88 H 2127 L 2139,100 V 208 H 1834 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 2127,88 L 2127,100 L 2139,100 Z" fill="none" stroke="none"/>
   <path d="M 2127,88 L 2127,100 L 2139,100" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="362,1413 700,1413" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="362,1627 700,1627" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="362,1745 700,1745" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 362,1377 H 700 V 1922 H 362 V 1377 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="362,1651 700,1651" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="362,1769 700,1769" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 362,1377 H 700 V 1946 H 362 V 1377 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1485,88 H 1803 L 1815,100 V 192 H 1485 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1803,88 L 1803,100 L 1815,100 Z" fill="none" stroke="none"/>
   <path d="M 1803,88 L 1803,100 L 1815,100" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -261,8 +261,8 @@
   <path d="M 1179,285 H 1560 L 1572,297 V 485 H 1179 V 285 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1560,285 L 1560,297 L 1572,297 Z" fill="none" stroke="none"/>
   <path d="M 1560,285 L 1560,297 L 1572,297" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,1621 343,1621" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 28,1585 H 343 V 1715 H 28 V 1585 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="28,1633 343,1633" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 28,1597 H 343 V 1727 H 28 V 1597 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,321 379,321" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,355 379,355" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,401 379,401" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -303,7 +303,7 @@
   <polyline points="2931,1270.3 2935.125,1270.3 2935.125,1077 2942.688,1077" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="2197,885.9 2201.125,885.9 2201.125,1061 2208.688,1061" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="2196,1069.1 2208.688,1069.1" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="343,1650.3 354.688,1650.3" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="343,1662.3 354.688,1662.3" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="2197,1246.3 2201.125,1246.3 2201.125,1077 2208.688,1077" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 2022,366 H 2022 V 366 H 2022 V 366 Z" fill="none"/>
   <polyline points="2248,377.5 2012,377.5 2012,366 2022,366" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -372,7 +372,7 @@
   <g transform="translate(2216,1069.1) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4 Z" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
-  <g transform="translate(362,1650.3) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+  <g transform="translate(362,1662.3) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4 Z" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
   <g transform="translate(2216,1077) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
@@ -402,36 +402,38 @@
   <text x="370" y="1511" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">operating system of osPlatform. With KVM, the main side is the KVM</tspan></text>
   <text x="370" y="1523" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">host: its operating system hosts the hypervisor and is not a guest of</tspan></text>
   <text x="370" y="1535" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">it. The guest side is a second execution domain under the</tspan></text>
-  <text x="370" y="1547" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">hypervisor, with guestOSPlatform and guestMiddleware.</tspan></text>
-  <text x="370" y="1559" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The middleware variation is the middleware that the vehicle</tspan></text>
-  <text x="370" y="1571" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application integrates with through the adapter. Eclipse S-CORE and</tspan></text>
-  <text x="370" y="1583" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">AUTOSAR Adaptive run on the main side. An AAOS SDV partner runs in</tspan></text>
-  <text x="370" y="1595" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the guest (constraint C009 of the feature model), so the androidSDV</tspan></text>
-  <text x="370" y="1607" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">variant refers to the AAOS SDV of the guest and adds no second</tspan></text>
-  <text x="370" y="1619" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">instance.</tspan></text>
-  <text x="531" y="1637.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">parts</tspan></text>
-  <text x="370" y="1653" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">vehicleApplication : VehicleApplicationLayer</tspan></text>
-  <text x="370" y="1665" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">middleware : MiddlewareLayer</tspan></text>
-  <text x="370" y="1677" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">applicationMiddlewareAdapter : ApplicationMiddlewareAdapterLayer</tspan></text>
-  <text x="370" y="1689" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">osPlatform : OSPlatformLayer</tspan></text>
-  <text x="370" y="1701" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">hypervisor : HypervisorLayer</tspan></text>
-  <text x="370" y="1713" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">guestOSPlatform : OSPlatformLayer</tspan></text>
-  <text x="370" y="1725" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">guestMiddleware : MiddlewareLayer</tspan></text>
-  <text x="370" y="1737" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">hardware : HardwareLayer</tspan></text>
-  <text x="531" y="1755.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">features</tspan></text>
-  <text x="370" y="1771" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Inter-layer boundary interfaces.</tspan></text>
-  <text x="370" y="1783" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Each boundary is a bidirectional interface between adjacent layers.</tspan></text>
-  <text x="370" y="1795" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The contracts at these boundaries are what DE4SDV models; the</tspan></text>
-  <text x="370" y="1807" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">concrete realizations either conform or don't.</tspan></text>
-  <text x="370" y="1819" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The middleware-to-OS boundary, per side. Eclipse S-CORE and AUTOSAR</tspan></text>
-  <text x="370" y="1831" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Adaptive run on the main-side OS. The guest middleware runs on the</tspan></text>
-  <text x="370" y="1843" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">guest OS; the AAOS SDV partner is that guest middleware, so it has</tspan></text>
-  <text x="370" y="1855" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">no boundary to the main-side OS.</tspan></text>
-  <text x="370" y="1867" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Only the guest OS is connected to the guest port. The main-side OS is</tspan></text>
-  <text x="370" y="1879" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">not: with KVM it hosts the hypervisor; with ACRN it runs in a VM too</tspan></text>
-  <text x="370" y="1891" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(ACRNHypervisor), and with QVM its relation is left to the</tspan></text>
-  <text x="370" y="1903" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">realization. The stack does not model these main-side relations as</tspan></text>
-  <text x="370" y="1915" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">connections.</tspan></text>
+  <text x="370" y="1547" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">hypervisor, with guestOSPlatform and guestMiddleware. It is a guest</tspan></text>
+  <text x="370" y="1559" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">partition of one or more VMs. How many VMs it holds, and which image</tspan></text>
+  <text x="370" y="1571" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">each one runs, are realization choices (ADR 0025).</tspan></text>
+  <text x="370" y="1583" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The middleware variation is the middleware that the vehicle</tspan></text>
+  <text x="370" y="1595" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">application integrates with through the adapter. Eclipse S-CORE and</tspan></text>
+  <text x="370" y="1607" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">AUTOSAR Adaptive run on the main side. An AAOS SDV partner runs in</tspan></text>
+  <text x="370" y="1619" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the guest (constraint C009 of the feature model), so the androidSDV</tspan></text>
+  <text x="370" y="1631" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">variant refers to the AAOS SDV of the guest and adds no second</tspan></text>
+  <text x="370" y="1643" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">instance.</tspan></text>
+  <text x="531" y="1661.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">parts</tspan></text>
+  <text x="370" y="1677" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">vehicleApplication : VehicleApplicationLayer</tspan></text>
+  <text x="370" y="1689" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">middleware : MiddlewareLayer</tspan></text>
+  <text x="370" y="1701" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">applicationMiddlewareAdapter : ApplicationMiddlewareAdapterLayer</tspan></text>
+  <text x="370" y="1713" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">osPlatform : OSPlatformLayer</tspan></text>
+  <text x="370" y="1725" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">hypervisor : HypervisorLayer</tspan></text>
+  <text x="370" y="1737" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">guestOSPlatform : OSPlatformLayer</tspan></text>
+  <text x="370" y="1749" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">guestMiddleware : MiddlewareLayer</tspan></text>
+  <text x="370" y="1761" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">hardware : HardwareLayer</tspan></text>
+  <text x="531" y="1779.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">features</tspan></text>
+  <text x="370" y="1795" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Inter-layer boundary interfaces.</tspan></text>
+  <text x="370" y="1807" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Each boundary is a bidirectional interface between adjacent layers.</tspan></text>
+  <text x="370" y="1819" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The contracts at these boundaries are what DE4SDV models; the</tspan></text>
+  <text x="370" y="1831" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">concrete realizations either conform or don't.</tspan></text>
+  <text x="370" y="1843" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">The middleware-to-OS boundary, per side. Eclipse S-CORE and AUTOSAR</tspan></text>
+  <text x="370" y="1855" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Adaptive run on the main-side OS. The guest middleware runs on the</tspan></text>
+  <text x="370" y="1867" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">guest OS; the AAOS SDV partner is that guest middleware, so it has</tspan></text>
+  <text x="370" y="1879" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">no boundary to the main-side OS.</tspan></text>
+  <text x="370" y="1891" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Only the guest OS is connected to the guest port. The main-side OS is</tspan></text>
+  <text x="370" y="1903" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">not: with KVM it hosts the hypervisor; with ACRN it runs in a VM too</tspan></text>
+  <text x="370" y="1915" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(ACRNHypervisor), and with QVM its relation is left to the</tspan></text>
+  <text x="370" y="1927" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">realization. The stack does not model these main-side relations as</tspan></text>
+  <text x="370" y="1939" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">connections.</tspan></text>
   <text x="1650" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«comment»</tspan></text>
   <text x="1493" y="120" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">──────────────────────────────────────────</tspan></text>
   <text x="1493" y="136" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Layer abstractions</tspan></text>
@@ -927,15 +929,15 @@
   <text x="1187" y="445" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  model-based-product-line-engineering/feature-models/sdv_product_line.sysml</tspan></text>
   <text x="1187" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  model-based-product-line-engineering/feature-configurations/</tspan></text>
   <text x="1187" y="477" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">  model-based-product-line-engineering/product-models/</tspan></text>
-  <text x="185.5" y="1597" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
-  <text x="185.5" y="1613" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">ConfiguredSDVVariant :&gt; SDVPlatformStack</tspan></text>
-  <text x="185.5" y="1631.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="36" y="1647" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">A configured member product of the SDV product line.</tspan></text>
-  <text x="36" y="1659" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Selects one variant from each variation, subject to the</tspan></text>
-  <text x="36" y="1671" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">constraints of the PLEML feature model.</tspan></text>
-  <text x="36" y="1683" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Concrete configured variants are generated by the PLE configurator</tspan></text>
-  <text x="36" y="1695" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(tools/configure_variant.py) from the receipts of the PLEML feature</tspan></text>
-  <text x="36" y="1707" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">configurations.</tspan></text>
+  <text x="185.5" y="1609" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part def»</tspan></text>
+  <text x="185.5" y="1625" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">ConfiguredSDVVariant :&gt; SDVPlatformStack</tspan></text>
+  <text x="185.5" y="1643.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="36" y="1659" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">A configured member product of the SDV product line.</tspan></text>
+  <text x="36" y="1671" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Selects one variant from each variation, subject to the</tspan></text>
+  <text x="36" y="1683" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">constraints of the PLEML feature model.</tspan></text>
+  <text x="36" y="1695" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Concrete configured variants are generated by the PLE configurator</tspan></text>
+  <text x="36" y="1707" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(tools/configure_variant.py) from the receipts of the PLEML feature</tspan></text>
+  <text x="36" y="1719" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">configurations.</tspan></text>
   <text x="203.5" y="297" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
   <text x="203.5" y="313" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">physicalStructureConcern : PhysicalStructureConcern</tspan></text>
   <text x="203.5" y="331.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>

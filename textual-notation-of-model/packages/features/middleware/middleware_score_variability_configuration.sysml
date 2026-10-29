@@ -42,16 +42,25 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * application in the guest.
      *
      * One instance and one owner per layer. The platform stack composes the
-     * selected Eclipse S-CORE middleware and the derived Autoware-to-S-CORE
-     * adapter. The integration layer only refers to its S-CORE services and
-     * to its adapter (phase 8). One binding makes the S-CORE services of the
-     * layer the same thing as the selected middleware. The other binding
-     * makes the adapter of the layer the same thing as the derived adapter.
-     * So the platform stack is the only owner of both. The other parts of
-     * the layer are no platform layers. The guest side is the guest
-     * operating system and the guest middleware of the platform stack. So
-     * the product has no second Android or AAOS SDV instance. For the same
-     * reason it does not compose SCORETwoDomainPhysicalSystem.
+     * selected Eclipse S-CORE middleware, the derived Autoware-to-S-CORE
+     * adapter, the guest middleware and the guest operating system. The
+     * integration layer only refers to its S-CORE services, to its adapter,
+     * to the SDV Core of the guest and to the SDV Gateway on IVI (phase 8).
+     * Two bindings make the S-CORE services and the adapter of the layer the
+     * same things as the selected middleware and the derived adapter. Two
+     * more make the SDV Core the same thing as the guest middleware, and its
+     * platform software the same thing as the guest operating system. The
+     * AAOS-integrated configured member has the same two bindings. So the
+     * platform stack is the only owner of each. The platform stack models
+     * the guest middleware as one layer, with no feature for the gateway of
+     * the IVI VM. So this product leaves the layer's reference to the SDV
+     * Gateway on IVI unbound, and phase 8 binds it to the gateway of the IVI
+     * VM. The other
+     * parts of the layer are no platform layers. The guest side is the guest
+     * operating system and the guest middleware of the platform stack: in
+     * phase 8, a guest partition of two VMs (ADR 0025). So the product has
+     * no second Android or AAOS SDV instance. For the same reason it does
+     * not compose SCORETwoDomainPhysicalSystem.
      *
      * No shared asset implements the HMI display, so no feature binding
      * resolves the hmiDisplay selection. The projection lists it among the
@@ -68,6 +77,10 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
       bind integrationLayer.scoreServices = platformStack.middleware;
     binding adapterBoundToDerivedAdapter
       bind integrationLayer.adapter = platformStack.applicationMiddlewareAdapter;
+    binding sdvCoreBoundToGuestMiddleware
+      bind integrationLayer.sdvCore = platformStack.guestMiddleware;
+    binding platformSoftwareBoundToGuestOperatingSystem
+      bind integrationLayer.sdvCore.platformSoftware = platformStack.guestOSPlatform;
   }
 
   part <'MW-CONFIG-002'> configuredProduct : MiddlewareAutowareSCOREConfiguredProduct {
@@ -85,15 +98,19 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * Evidence that binds MW-CONFIG-002 also records the receipt SHA-256 it
      * ran against.
      *
-     * The guest side is the display-capable sdv_ivi_cf guest image of
-     * INC-AEBS-010 (phase 8, hmiGuest). The SOME/IP receiver of phase 8
-     * runs in that guest. For the bench, it is provisioned on the existing
-     * image; a guest image built with the receiver stays open (GAP-MW-038).
+     * The guest side holds two VMs (phase 8, ADR 0025). The headless
+     * sdv_core_cf SDV Core VM runs the SOME/IP broker (sdvCoreGuest). The
+     * display-capable sdv_ivi_cf IVI VM of INC-AEBS-010 runs the HMI
+     * (hmiGuest). The IVI frame relay of phase 8 runs in the IVI VM. For the
+     * bench, both images come from one android17-release revision. The
+     * SOME/IP mapping and the stack configuration go into the SDV Core image
+     * when it is built, and the relay is provisioned on the IVI image. An IVI
+     * image built with the relay stays open (GAP-MW-038).
      *
      * Configuration evidence only. This usage proves no provider, transport,
      * gateway, adapter or HMI behavior and no requirement satisfaction.
      */
-    attribute receiptSha256 : ScalarValues::String = "fe6c208e9515417082c7db6ab30e10bd465b857cb7b3979d652c9ae93790ab1f";
+    attribute receiptSha256 : ScalarValues::String = "cd37335df3f204f67e5d4dd2403e4e790ebed63f5655b1077e9eed69c6fe2ea2";
   }
 
   dependency configuredIntegrationLayerTrace
@@ -115,6 +132,8 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
    * product. Its main side is Linux with Eclipse S-CORE, and it is also the
    * KVM host. Its guest side is Android with the AAOS SDV middleware.
    * The AAOS-integrated member MW-CONFIG-001 has the same guest side. The
+   * VM layout of the guest side is realization content of phase 8, and it
+   * differs: one VM in MW-CONFIG-001, two in MW-CONFIG-002 (ADR 0025). The
    * admission of the S-CORE product is not part of this gap. It stays a
    * phase-12 decision.
    */
@@ -156,9 +175,10 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * owner per platform layer. It holds the platform-stack projection and
      * the realization of the integration layer. The S-CORE services of the
      * layer are the selected middleware, and its adapter is the derived
-     * adapter; the platform stack owns both. Phase 10 then verifies one
-     * product. This concern is about assembled assets, not the variation
-     * space.
+     * adapter. The SDV Core of the layer is the guest middleware, and its
+     * platform software is the guest operating system. The platform stack
+     * owns all four. Phase 10 then verifies one product. This concern is
+     * about assembled assets, not the variation space.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
@@ -203,11 +223,14 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
       frame scoreMiddlewareProductModelAssemblyConcern;
     }
     doc /*
-     * The configured product, its two parts and the two bindings. The
-     * S-CORE services and the adapter of the integration layer are
-     * references. The bindings make them the same things as the selected
-     * middleware and the derived adapter of the platform stack, their only
-     * owner. The view filters out the phase-8 allocations. They target the
+     * The configured product, its two parts and the four bindings. The
+     * S-CORE services, the adapter and the SDV Core of the integration layer
+     * are references. The bindings make them the same things as the
+     * selected middleware, the derived adapter and the guest middleware of
+     * the platform stack, their only owner. A fourth binding makes the
+     * platform software of the SDV Core the guest operating system of the
+     * stack. The view filters out the phase-8
+     * allocations. They target the
      * adapter feature of the realization definition, so every usage of that
      * definition carries them, this product included.
      */
@@ -216,6 +239,8 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
     expose MiddlewareAutowareSCOREConfiguredProduct::integrationLayer;
     expose MiddlewareAutowareSCOREConfiguredProduct::scoreServicesBoundToSelectedMiddleware;
     expose MiddlewareAutowareSCOREConfiguredProduct::adapterBoundToDerivedAdapter;
+    expose MiddlewareAutowareSCOREConfiguredProduct::sdvCoreBoundToGuestMiddleware;
+    expose MiddlewareAutowareSCOREConfiguredProduct::platformSoftwareBoundToGuestOperatingSystem;
     filter not (@ SysML::AllocationUsage);
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
