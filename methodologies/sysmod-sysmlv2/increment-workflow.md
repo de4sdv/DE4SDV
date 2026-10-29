@@ -342,34 +342,73 @@ These method rules apply to every increment:
     judge the model only. The pull request, its review and the rendered
     diagrams are judged outside the model. CI checks the diagrams and each
     folder's `VIEWS.md`, and review judges the rest.
-16. **Variability and the baseline decision (phases 9 and 12).** These two
-    steps have no executable check yet. The kernel types what they declare
-    (owner decisions of 2026-10-28), and their checks are a later method
-    change:
-    - **Phase 9.** The main output is `configuredProducts[1..*]`, typed by
-      the kernel class `ProductLineConfiguredProduct`. The ontology
-      relationship `configuredBy` maps a configured product onto the PLEML
-      feature configuration whose product-model projection it composes. No
-      configured product of an increment specializes the class yet.
-      `variationPoints[0..*]` stays untyped: a native variation point has no
-      selector. A slice may configure a member from existing variability,
-      and shared variation points live in shared-asset packages.
-    - **Phase 12.** The baseline decision is typed by
-      `IncrementBaselineDecision`, a specialization of the framing step's
-      `IncrementLifecycleDecision`, and its disposition by
-      `LifecycleDisposition` (`accepted`, `deferred`, `invalidated`). The
-      typing identifies the baseline decision, never a name. The framing
-      check counts the lifecycle decisions of the increment's own package,
-      so a baseline decision there also counts for phase 0. An
-      `IncrementGap` can state a disposition of the same type, but no owner
-      or next action. Convention: the record of a resolved gap leaves the
-      model, so every `IncrementGap` in scope is an open gap. A disposition
-      cannot say "resolved", and `invalidated` does not mean "fixed". The
-      baseline register and the status of an architecture decision record
-      are repository text, which the evaluation does not read.
-
-    Review judges both steps, and their exits stay `BLOCKED` with
-    `CONTRACT_UNAVAILABLE`, never passed.
+16. **Variability and the baseline decision (phases 9 and 12).** The
+    kernel types what these steps declare (owner decisions of 2026-10-28
+    and 2026-10-29), and all their checks block:
+    - **Phase 9.** The increment declares at least one configured product
+      (`configuredProducts[1..*]`, typed by `ProductLineConfiguredProduct`),
+      and exactly one feature configuration configures each
+      (`configuredByOneConfiguration`). The check applies the derivation rule
+      of the ontology relationship `configuredBy`. A configuration
+      configures a configured product when one of its effective part
+      usages is typed by the part definition of that configuration's
+      product-model projection, or by a specialization of it. The effective
+      usages are its own and the inherited ones that it does not redefine.
+      A usage is typed by its own typing. A redefining usage without a type
+      of its own keeps the type of the feature it redefines, transitively,
+      as the serializer writes no typing for it. A redefining usage whose
+      own type falls in a projection lineage also keeps the projection type
+      it redefines: a specialization is configured by the same
+      configuration, so a redefinition into another configuration's
+      projection counts both and fails. An own type outside every projection
+      hides the projection it redefines, and a general of a projection part
+      definition, such as its owner, never counts. The configuration's
+      `ProductModelProjectionName` annotation names that part definition,
+      and the derivation binds it by validated identity: metatype, name,
+      generated document and owner, never the name alone. No
+      configuration, or more than one, fails. A configuration can configure
+      more than one configured product.
+    - **Phase 9, System 2.** A specialization that adds System 2
+      instrumentation, such as INC-AEBS-010's test article, inherits the
+      projection part and counts for the phase 9 of its own increment. It
+      never becomes a member: membership is never inferred from
+      specializing a member definition.
+    - **Phase 9, boundaries.** The derivation reads the source documents
+      and the external references of an export. An evaluation over the
+      API has neither, so there the check is `INDETERMINATE` with the
+      method-side marker `evaluation-input:export-documents`. It is listed
+      under `method_side_blockers`, never as `next` and never as authoring
+      work, and the phase-9 exit stays `BLOCKED`. The Method Check of a
+      pull request evaluates the export of its head.
+      `variationPoints[0..*]` and `physicalElements[0..*]` stay untyped and
+      unchecked: a native variation point has no selector.
+    - **Phase 12.** The increment has exactly one baseline decision, typed
+      by `IncrementBaselineDecision`, and it states its disposition, a
+      literal of `LifecycleDisposition` (`accepted`, `deferred`,
+      `invalidated`). Each open gap (`IncrementGap`) states the
+      disposition that the baseline decision gives it
+      (`dispositionStated`). An increment without a gap has none to state.
+      Each record states its own disposition: one feature that redefines
+      the kernel's `disposition` of a holder in the record's own type
+      lineage, with exactly one value, a literal that `LifecycleDisposition`
+      itself owns. A value that only a definition
+      sets does not count, and neither does a literal of a specialization.
+      The typing identifies the baseline decision, never a name: a `BL-`
+      short name does not make one.
+    - **Phase 12, resolved gaps.** The record of a resolved gap leaves the
+      model, so every `IncrementGap` in scope is open. A disposition
+      cannot say "resolved", and `invalidated` does not mean "fixed". A
+      resolved gap whose record stays counts as open: without a
+      disposition, it fails like any open gap. The baseline register and the status of an architecture
+      decision record are repository text, which the evaluation does not
+      read.
+    - **Phase 0.** The baseline decision specializes the framing step's
+      `IncrementLifecycleDecision`, but it is never the framing decision.
+      The framing count leaves out its lineage by typing, through the
+      validated kernel bindings, wherever it is declared.
+    - **Left to review.** Whether the disposition is right, and how V&V
+      evidence supports the baseline decision: the step declares no
+      relationship to evidence.
 
 [`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)
 models this workflow in the style of the SYSMOD default process. The
@@ -383,8 +422,7 @@ The checks of these rules are `MethodCheck` metadata inside the step
 definitions, one check per rule clause, each about the step parameter it
 constrains. The check identifier names the evaluation, an unknown identifier
 fails closed, and `advisory = true` marks the advisory checks. Every step
-carries checks except variability and configuration (phase 9) and the
-baseline decision (phase 12); rule 16 says why. The physical-architecture
+carries checks; rule 16 gives those of phases 9 and 12. The physical-architecture
 step also checks rule 13. The phase-2 checks of rule 9 are about the
 operational context, the parameter through which they reach it. They read the
 story's use cases from there. Rule 11 is a report over the whole scope, not a

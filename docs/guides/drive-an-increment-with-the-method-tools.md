@@ -132,11 +132,12 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   lines after `then:` are what its check needs besides it. In
   `phase_contract`, `parameter_element_id` is the element id of that step
   parameter.
-- **Coverage.** Every step of the workflow carries checks except variability
-  and configuration (phase 9) and the baseline decision (phase 12). The
-  kernel types what those two declare, and their checks are not there yet
-  ([rule 16](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model)).
-  `phase_contract`
+- **Coverage.** Every step of the workflow carries checks; those of
+  variability and configuration (phase 9) and of the baseline decision
+  (phase 12) are in
+  [rule 16](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model).
+  A charter can name another workflow, whose steps need not all carry
+  checks. `phase_contract`
   lists every step in `steps`, with its phase, documentation, inputs and
   outputs (name, kind, type, multiplicity) and its checks; a step without
   checks has the coverage "no executable checks at this revision". In
@@ -318,6 +319,51 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   model only. The pull request, its review and the rendered diagrams are
   judged outside the model: CI checks the diagrams and each folder's
   `VIEWS.md`.
+- **Configured product (phase 9).** The increment declares at least one
+  configured product (`incrementHasConfiguredProduct`), and exactly one
+  feature configuration configures each
+  (`configuredByOneConfiguration`). A configuration configures it when one
+  of its part usages, its own or inherited and not redefined, is typed by
+  the part definition of that configuration's product-model projection, or
+  by a specialization of it. A redefining part without a type of its own
+  keeps the type it redefines. A redefinition typed into another
+  configuration's projection keeps both and fails. The derivation binds
+  that part definition by validated identity, never by its name alone. A test article that
+  specializes a configured member counts through the part it inherits and
+  never becomes a member. Over the API the derivation lacks the source
+  documents and the external references of an export. There the check is
+  method side (`evaluation-input:export-documents`): it is listed under
+  `method_side_blockers`, never as `next`, and phase 9 stays `BLOCKED`. The
+  Method Check of a pull request evaluates it on the export. So:
+
+  ```sysml
+  part def <ConfiguredProduct> :> ProductLineConfiguredProduct {
+    part platformStack : <GeneratedProjection>;
+  }
+  part <configuredProduct> : <ConfiguredProduct>;
+  ```
+
+- **Baseline decision (phase 12).** The increment has exactly one baseline
+  decision, typed by `IncrementBaselineDecision`, and it states its
+  disposition (`baselineDecisionStatesDisposition`). Each open gap states
+  the disposition that the baseline decision gives it
+  (`openGapStatesDisposition`). A disposition is a literal of
+  `LifecycleDisposition`: `accepted`, `deferred` or `invalidated`. Each
+  record states its own, by a redefinition of `disposition` with one value;
+  a value that only its definition sets does not count. The record of a
+  resolved gap leaves the model, so every gap in scope is open.
+  The phase-0 count of framing decisions leaves the baseline decision out.
+  So:
+
+  ```sysml
+  part <baselineDecision> : IncrementBaselineDecision {
+    attribute :>> disposition = LifecycleDisposition::accepted;
+  }
+  part <gap> : IncrementGap {
+    attribute :>> disposition = LifecycleDisposition::deferred;
+  }
+  ```
+
 - **Method side versus model.** Some inputs only a method or kernel change can
   supply, for example a declaration without a validated kernel identity or a
   relation without a SysML mapping. Those checks are listed under

@@ -207,8 +207,9 @@ rest (the shape and the advisory checks are rule 13 of the
 Variation points, feature configurations, and product-model
 applicability. Feature models become SysML v2 packages with variation
 points and configuration expressions. This is a significant DE4SDV
-extension. Review judges this step: it has no executable check (rule 16 of
-the [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
+extension. The increment declares at least one configured product, and
+exactly one feature configuration configures each (rule 16 of the
+[increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 
 ### Phase 10 — V&V and evidence
 
@@ -234,8 +235,9 @@ The pull request and its review stay outside the model.
 ### Phase 12 — Baseline and next slice
 
 Baseline decision, open issues, next increment scope. Feed lessons
-back to System 3. Review judges this step: it has no executable check (rule
-16 of the [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
+back to System 3. The increment has one baseline decision that states its
+disposition, and each open gap states its disposition (rule 16 of the
+[increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 
 ## Viewpoint flow per phase
 
