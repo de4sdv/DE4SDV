@@ -352,6 +352,10 @@ def test_the_relay_code_uses_the_margin_and_the_copy_window_of_the_model() -> No
 def test_the_relay_repeats_the_ingress_trigger_only_until_its_first_client() -> None:
     doc = _named_part_doc(PHYSICAL.read_text(encoding="utf-8"), "iviFrameRelay")
     for statement in ("It does so at each of its own starts, once its loopback server listens.",
+                      # The host property is a second start of the ingress (relay review R8).
+                      "Before the trigger, at each start, the relay sets the ingress's frame-server host property to "
+                      "127.0.0.1. Setting that property also starts the ingress (ingress/de4sdv_aebs_ingress.rc:9-13 "
+                      "of the INC-AEBS-010 bench).",
                       "So until the first client of the current relay process connects, the relay repeats the "
                       "trigger at a fixed interval, a fixed number of times at most.",
                       "After that first client, it never triggers the ingress again."):
@@ -367,10 +371,18 @@ def test_the_relay_subscribes_through_the_gateway_and_removes_the_broker_wrapper
                       "Each message holds the SOME/IP payload of one frame event in the broker's wrapper for "
                       "INTERPRET_AS_BYTES: a protobuf message with one bytes field "
                       "(some_ip/broker_agent_comms/src/translator/broker_translator.rs:248-262).",
-                      # The strict parse of the wrapper (technical review R10).
-                      "The relay parses the wrapper strictly. The outer varint must equal the size that remains. "
-                      "Exactly one field must follow: field 1 of wire type 2 (0x0A), whose length equals the rest, "
-                      "with no other byte.",
+                      # The strict parse of the wrapper (technical review R10), in the form of the broker's real
+                      # slots: a zero-filled slot of the message size around the message (relay review R2).
+                      "The relay parses the wrapper strictly. Each slot that it reads has the publication's message "
+                      "size. The outer varint gives the length of the message that follows it, and that message must "
+                      "fit in the slot. The message must hold exactly one field: field 1 of wire type 2 (0x0A), whose "
+                      "length equals the rest of the message. Both varints must be in their shortest form. Every byte "
+                      "of the slot after the message must be zero: the broker writes the message into a zero-filled "
+                      "buffer of the slot size (some_ip/broker_agent_comms/src/translator/broker_translator.rs:266-279). "
+                      "Anything else is malformed, and the relay drops it with a reason of its own. Design data, not "
+                      "evidence of record: in the feasibility run, each of the 14038 messages that the IVI probe "
+                      "recorded had this shape in a slot of 4101 bytes, and Data Tunnel carried each slot whole. No run "
+                      "recorded the bytes of a slot after its message in the IVI VM (ASM-MW-032).",
                       "Then it forwards a payload only when the payload's own length prefix matches the payload length",
                       "The broker subscribes to someipd whether an IVI subscriber exists or not "
                       "(some_ip/broker_agent_comms/src/pubsub/pubsub_handler.rs:764-923).",
@@ -400,7 +412,9 @@ def test_the_relay_subscribes_through_the_gateway_and_removes_the_broker_wrapper
                       "de4sdv-score-aebs-signal-frame."):
         assert statement in doc, statement
     assert "FLAG_FETCHLASTMESSAGE" not in doc, "the relay never asks for the last message before its subscription"
-    for gone in ("about 0.5 s", "no message comes for 1 s", "android14-release", "which someipd enforces"):
+    for gone in ("about 0.5 s", "no message comes for 1 s", "android14-release", "which someipd enforces",
+                 # The literal form would drop every real slot: the message is shorter than its slot (relay review R2).
+                 "The outer varint must equal the size that remains."):
         assert gone not in doc, gone
     # The relay's input carries the wrapped topic; its behavior unwraps it (technical review R11).
     relay = _braced(PHYSICAL.read_text(encoding="utf-8"), r"\bpart iviFrameRelay : PhysicalAllocationElement \{")
@@ -555,6 +569,8 @@ def test_the_host_isolation_is_an_obligation_with_an_open_gap() -> None:
                  "with the remote endpoint of the frame service pinned to 192.168.98.1, so that an SD message from "
                  "the IVI VM cannot redirect the subscription",
                  "(5) provision the relay for the IVI VM:",
+                 # The ingress defaults its host to another address (relay review R8).
+                 "set the ingress's frame-server host property to 127.0.0.1 and its port property to 4731;",
                  "install exactly one ACL file for the relay's subject before the IVI VM boots",
                  # The sport list counts the clients of the frame assembler; only dport names a client process
                  # (form review S-R4 of phase 10).
@@ -745,6 +761,10 @@ def test_asm_mw_032_assumes_order_and_bytes_on_the_aaos_sdv_hops() -> None:
     assumption = _part_doc(text, "ASM-MW-032")
     assert "REQ-MW-014 and REQ-MW-015 rely on this on the AAOS SDV hops." in assumption
     assert "check this assumption end to end" in assumption
+    # The hops keep the whole slot, the zero fill after the wrapped payload included (relay review R2).
+    assert ("They keep each slot unchanged: the payload inside the broker's wrapper and the zero fill after it."
+            in assumption), assumption
+    assert "They keep each payload unchanged inside the broker's wrapper." not in assumption, assumption
     assert re.findall(r"\bdependency (\w+)\s+from asmAAOSSDVPathKeepsOrderAndBytes\s+to ([\w:]+);", text) == [
         ("aaosSdvPathAssumedForSDVCore", "scoreTwoDomainPhysicalSystem::integrationLayer::sdvCore"),
         ("aaosSdvPathAssumedForSDVGateway", "scoreTwoDomainPhysicalSystem::integrationLayer::sdvGateway"),
