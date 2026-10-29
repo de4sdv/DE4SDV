@@ -250,12 +250,14 @@ PARAMETERS = {
 
 @pytest.mark.parametrize("step", sorted(PARAMETERS))
 def test_the_steps_of_phases_9_and_12_type_their_outputs_by_the_new_classes(step):
-    """The types only: no check is about these parameters yet, so the steps stay
-    unchecked until a later method change adds the checks."""
+    """The types of the step parameters. The checks of phases 9 and 12 are about the
+    typed outputs only (``tests/test_increment_workflow.py`` locks them): never about
+    ``variationPoints`` or ``physicalElements``, which stay untyped."""
     body = strip_comments(braced_body(_text(WORKFLOW), f"action def {step}"))
     found = re.findall(r"\b(in|out)\s+(\w+)\s+(\w+)(\[[^\]]*\])?\s*(?::\s*(\w+))?\s*;", body)
     assert found == PARAMETERS[step]
-    assert "MethodCheck" not in body
+    about = set(re.findall(r"\bMethodCheck\s+about\s+(\w+)", body))
+    assert about == {name for _direction, _kind, name, _bounds, typed in found if typed and name != "charter"}
     code = strip_comments(_text(WORKFLOW))
     assert code.count("private import DE4SDV_ProductLine::ProductLineConfiguredProduct;") == 1
 

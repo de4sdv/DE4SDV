@@ -125,12 +125,19 @@ def _definitions(code: str) -> list[tuple[str, list[str], int, int]]:
     return found
 
 
+#: What a member's product definition may specialize besides its member: the kernel class of a configured
+#: product (phase 9), which makes no member (owner decision of 2026-10-29).
+CONFIGURED_PRODUCT = "ProductLineConfiguredProduct"
+
+
 def _definition_body(code: str, name: str, supertype: str) -> str:
-    """The braced body of the one ``part def <name>`` of ``code``, which specializes exactly ``supertype``."""
+    """The braced body of the one ``part def <name>`` of ``code``, which specializes exactly ``supertype``,
+    and possibly the kernel's configured product besides."""
     matches = [definition for definition in _definitions(code) if definition[0] == name]
     assert len(matches) == 1, f"expected one part def {name}, found {len(matches)}"
     _, generals, start, end = matches[0]
-    assert generals == [supertype], f"part def {name} specializes {generals}, not {supertype}"
+    assert generals in ([supertype], [supertype, CONFIGURED_PRODUCT]), (
+        f"part def {name} specializes {generals}, not {supertype}")
     assert end > start, f"part def {name} has no body"
     return code[start : end + 1]
 

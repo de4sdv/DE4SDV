@@ -28,12 +28,19 @@ package DE4SDV_MiddlewareVariabilityConfiguration {
     doc /* INC-MW-009: middleware variability and configured AAOS SDV member. */
   }
 
-  part def MiddlewareAutowareAAOSSDVConfiguredMember :> DE4SDV_AEBSProductLineScope::AAOSIntegratedAutowareAEBSReferenceMember {
+  part def MiddlewareAutowareAAOSSDVConfiguredMember :> DE4SDV_AEBSProductLineScope::AAOSIntegratedAutowareAEBSReferenceMember, ProductLineConfiguredProduct {
     doc /*
      * Product-level assembly controlled by its feature configuration (the
      * PLEML restatement of the Phase 9 BoF) and deterministic generated
      * platform-stack projection. The local parts compose accepted
      * shared assets; they do not independently choose platform variants.
+     *
+     * Configuration management note (owner decision of 2026-10-29): the
+     * definition also specializes the kernel's ProductLineConfiguredProduct,
+     * the configured product of phase 9. The change adds no part, binding or
+     * selection. It makes this configured member, and each specialization of
+     * it such as the INC-AEBS-010 test article, a configured product that the
+     * phase-9 check reads. A specialization does not become a member.
      *
      * One instance and one owner per layer (owner decisions of 2026-10-23
      * and 2026-10-25). The platform stack owns the derived Autoware-to-AAOS

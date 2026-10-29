@@ -68,6 +68,7 @@ from __future__ import annotations
 import functools
 from dataclasses import dataclass, field, replace
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, Mapping
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
@@ -188,7 +189,36 @@ def _scoped_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext, *,
         kind = spec.subject_selector[len(KIND_PREFIX):]
         return [element for element in elements if str(view.element(element).get("@type")) == kind], []
     types = view.index.specializations(spec.subject_selector)
-    return [element for element in elements if view.index.typed_by(element) & types], []
+    excluded = excluded_lineage(view, spec.subject_selector)
+    return [element for element in elements
+            if (typed := view.index.typed_by(element)) & types and not typed & excluded], []
+
+
+#: Ontology class -> the classes whose lineage a parameter typed by it does not count. A baseline decision
+#: (phase 12) specializes the lifecycle decision, but it is never the framing decision of phase 0 (owner
+#: decision of 2026-10-29): the exclusion is structural, by typing, never by the package that holds it.
+EXCLUDED_LINEAGES: Mapping[str, tuple[str, ...]] = MappingProxyType({
+    "IncrementLifecycleDecision": ("IncrementBaselineDecision",),
+})
+
+
+def excluded_lineage(view: Any, selector: str) -> frozenset[str]:
+    """The definitions whose usages a parameter typed by ``selector`` does not count: the lineage of each
+    class that :data:`EXCLUDED_LINEAGES` excludes from the class of ``selector``, both resolved through
+    the validated kernel bindings. An unbound class excludes nothing, so the count stays strict."""
+    excluded: set[str] = set()
+    for general, specifics in EXCLUDED_LINEAGES.items():
+        try:
+            if view.kernel_element(general) != selector:
+                continue
+        except IdentityNotFoundError:
+            continue
+        for specific in specifics:
+            try:
+                excluded |= view.index.specializations(view.kernel_element(specific))
+            except IdentityNotFoundError:
+                continue
+    return frozenset(excluded)
 
 
 def allocation_rows_entering(view: ModelView, definition: str) -> list[tuple[str, Mapping[str, Any]]]:
