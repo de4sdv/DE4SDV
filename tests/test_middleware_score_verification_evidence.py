@@ -9,7 +9,9 @@ record of the closed INC-MW-010 slice and adds the receipt digest, the model rev
 and the two S-CORE commits of ASM-MW-021; the closed slice is unchanged. GAP-MW-044
 keeps the System 2 test environment open and ends on the verification system.
 VC-MW-017 inspects the ROS 2 (DDS) and network configuration of the host that the
-criteria of REQ-MW-016 name; VC-MW-018 needs only its HMI-path configurations.
+criteria of REQ-MW-016 name; VC-MW-018 needs only its HMI-path configurations. The
+cases follow the broker path of phase 8 (ADR 0025): the IVI frame relay in the IVI
+VM, the SOME/IP broker with its stack in the SDV Core VM, and no SOME/IP receiver.
 
 These are lexical source guards; licensed Syside validates the model in CI, and the
 Method Check evaluates the phase-10 checks. Comments and string literals are blanked
@@ -302,32 +304,95 @@ def _usage_doc(case: str) -> str:
     return _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"), header))
 
 
-def test_the_isolation_case_inspects_the_host_and_probes_the_dds_ports_from_each_guest_domain() -> None:
-    """REQ-MW-016 asks for DDS ports that no guest domain reaches: VC-MW-017 inspects the configuration that does
-    it and probes the ports at run time, with a control on someipd (owner decision of 2026-10-28)."""
-    definition = _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"),
-                                     r"\bverification\s+def\s+NoApplicationDataFromHMIGuestVerification\s*\{"))
+def _definition_doc(definition: str) -> str:
+    """The flattened doc of the verification definition ``definition``."""
+    return _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"),
+                               rf"\bverification\s+def\s+{definition}\s*\{{"))
+
+
+def test_the_cases_follow_the_broker_path_of_phase_8() -> None:
+    """The SOME/IP receiver left the product path (ADR 0025, decision 7): the cases name the IVI frame relay, and the
+    SDV Core VM where the guest holds the broker."""
+    text = SLICE.read_text(encoding="utf-8")
+    assert not re.search(r"SOME/IP\s+receiver|\breceiver's\b", text), "the slice still names the SOME/IP receiver"
+    for definition in ("AEBSSignalSourceOrderVerification", "AEBSSignalProvenanceVerification",
+                       "NoApplicationDataFromHMIGuestVerification", "NoEmergencyCommandOnMiddlewareVerification",
+                       "UnsubscribedFrameDiscardVerification"):
+        assert "IVI frame relay" in _definition_doc(definition), definition
+    for case in ("VC-MW-015", "VC-MW-017"):
+        needs = _usage_doc(case)
+        for name in ("SDV Core VM", "IVI VM", "IVI frame relay"):
+            assert name in needs, (case, name)
+    gap = _flat_doc(_raw_body(text, r"\bpart\s+<'GAP-MW-044'>\s*\w+\s*:\s*IncrementGap\s*\{"))
+    assert ("The SDV Core VM is built with the DE4SDV SOME/IP mapping and stack configuration, and the IVI VM runs "
+            "the IVI frame relay (GAP-MW-038).") in gap, gap
+
+
+def test_the_source_order_case_records_every_phase_end() -> None:
+    """A phase end that the layer causes while the ingress stays connected is a delivery failure; no phase end in
+    the AEBS event lets the run pass (relaySubscriptionPhaseDiscardRule)."""
+    case = _definition_doc("AEBSSignalSourceOrderVerification")
+    for statement in ("collectData also records every start and end of a subscription phase of the relay, with its "
+                      "cause, from the relay's log.",
+                      "A phase end that the layer causes while the ingress stays connected is a delivery failure of "
+                      "the layer (relaySubscriptionPhaseDiscardRule).",
+                      "The layer causes it by the relay's timeout, PublicationDestroyed or Disconnected.",
+                      "If such a phase end falls in the AEBS event, the outcome is failObservedBehavior.",
+                      "the ingress disconnects in the event, another client holds the stream of the frame assembler, "
+                      "or ASM-MW-030 does not hold.",
+                      "So no phase end in the AEBS event lets the run pass.",
+                      "A DATA_LOSS of the relay in the event is a sequence gap.",
+                      "The check is ss -H -t -n -p state established '( sport = :4721 )'.",
+                      "So the path has carried many cycles of SD offers and renewals before the event (GAP-MW-047).",
+                      "So the case also checks the order part of ASM-MW-032 end to end, on the AAOS SDV hops."):
+        assert statement in case, statement
+
+
+def test_the_provenance_case_checks_the_bytes_and_the_sd_offer_from_the_ivi_vm() -> None:
+    case = _definition_doc("AEBSSignalProvenanceVerification")
+    for statement in ("So the case also checks the byte part of ASM-MW-032 end to end, through the wrapper of the "
+                      "broker.",
+                      "An SD message from the IVI VM must not redirect the subscription of the stack in the SDV Core "
+                      "VM to another provider (phase 8).",
+                      "If neither exists, the run sends no such offer, and the record names the residual for "
+                      "REQ-MW-015 under GAP-MW-012, as phase 8 allows."):
+        assert statement in case, statement
+
+
+def test_the_isolation_case_inspects_the_host_and_probes_from_both_vms() -> None:
+    """REQ-MW-016: the DE4SDV configurations of the AAOS SDV elements for the first finding, and the host
+    configuration of GAP-MW-046 with a probe from both VMs over every interface for the second (owner decisions of
+    2026-10-28 and 2026-10-29)."""
+    definition = _definition_doc("NoApplicationDataFromHMIGuestVerification")
     for statement in ("Inspection of REQ-MW-016, with a runtime probe for its second finding.",
                       "the configuration of each element of the layer.",
                       "These elements are the S-CORE services, the adapter, gatewayd, someipd, the health proxy node "
-                      "and the SOME/IP receiver.",
-                      "the ROS 2 environment of each ROS 2 process on the Linux host, with the DDS configuration that "
-                      "it names, and the host configuration that makes the DDS ports unreachable from the guest "
-                      "domains, such as its firewall rules.",
+                      "and the IVI frame relay.",
+                      "For the first finding, the artifacts also include the configuration that DE4SDV authors for "
+                      "the AAOS SDV elements.",
+                      "The first is the DE4SDV SOME/IP mapping of the broker, with its VSIDL type and catalog.",
+                      "The second is the DE4SDV stack configuration of the SDV Core VM.",
+                      "The third is the authorization entries of the broker's publication and of the relay's "
+                      "subscription.",
+                      "The mapping must map only the frame event, and the stack configuration must offer no SOME/IP "
+                      "service.",
+                      "By owner decision of 2026-10-29, that configuration drops UDP 30150-30151 and 30160-30401, and "
+                      "TCP 4721, on every interface except lo, in an inet input chain.",
+                      "The configuration records its two parameters, ROS_DOMAIN_ID 91 and MaxAutoParticipantIndex 120.",
                       "For the ROS 2 processes outside the layer, it records whether ASM-MW-031 holds on the member.",
-                      "While the layer runs, collectData also runs a reachability probe from each guest domain of the "
-                      "layer, in three steps:",
+                      "While the layer runs, collectData also runs a reachability probe from each VM of the guest "
+                      "domain. These VMs are the SDV Core VM and the IVI VM.",
                       "It lists the sockets that the ROS 2 processes of the host have bound (ss -ulnp, IPv4 and IPv6, "
                       "unicast and multicast).",
-                      "It lists every other host listener bound to an address that the guest domain reaches, port "
-                      "4721 of the frame assembler among them, and every host address that the guest domain reaches.",
-                      "It sends marked datagrams to each listed DDS socket, and it tries a connection to each listed "
-                      "TCP listener. It observes the delivery on the host: a capture on the guest-facing interface, "
-                      "and the counters of the isolation rule.",
-                      "It runs a positive control with the same method, against a control socket that the host "
-                      "exposes on INADDR_ANY or with the isolation off for a control window. The same observation "
-                      "must show the delivery.",
-                      "The SOME/IP ports of someipd stay the control of the network path.",
+                      "It lists every host address that the VM reaches: 192.168.98.1, the host end of the buried "
+                      "network of each VM, and any other cvd-* bridge address.",
+                      "It does so over each interface of the VM: eth1, buried_eth0, the VLAN interfaces, and wlan if "
+                      "present.",
+                      "The same observation must show the delivery.",
+                      "From the SDV Core VM, the SOME/IP ports of someipd stay the control of the network path.",
+                      "The IVI VM must not reach them, also with the source address 192.168.98.3.",
+                      "That hardening serves REQ-MW-015 and REQ-MW-019, not these criteria, so processData does not "
+                      "judge it here.",
                       "A reachable DDS port of an element of the layer fails the case, whatever the control or "
                       "ASM-MW-031 show.",
                       "If the control fails, an unreachable result shows nothing, and the outcome is "
@@ -336,44 +401,72 @@ def test_the_isolation_case_inspects_the_host_and_probes_the_dds_ports_from_each
                       "outcome is inconclusiveMissingEvidence.",
                       "A reachable port 4721 is a finding against ASM-MW-029, not against these criteria."):
         assert statement in definition, statement
-    assert "does not inspect them" not in definition, "the criteria name the host's ROS 2 and DDS configuration"
+    assert "such as its firewall rules" not in definition, "the owner chose the host configuration"
     needs = _usage_doc("VC-MW-017")
-    assert needs.startswith("Not started. Bench: the Linux host with the layer running and each guest domain of the "
-                            "layer up, with a reachability probe in each; someipd serves the guest domain that the HMI "
-                            "path enters."), needs[:200]
+    assert needs.startswith("Not started. Bench: the Linux host with the layer running, and the SDV Core VM and the "
+                            "IVI VM up with a reachability probe in each. someipd serves the SDV Core VM."), needs[:200]
     for statement in ("The positive control needs a control socket that the host exposes on INADDR_ANY, or a control "
                       "window with the isolation off.",
+                      "It needs the DE4SDV SOME/IP mapping, the DE4SDV stack configuration and the authorization "
+                      "entries.",
                       "For ROS 2 (DDS), it needs the Launch Manager configuration and the launch configuration of the "
                       "member on the Linux host.",
-                      "It also needs the DDS configuration of the Linux host and the host configuration that makes "
-                      "the DDS ports and port 4721 unreachable from the guest domains (GAP-MW-046)."):
+                      "It needs the host configuration of GAP-MW-046 too, which makes the DDS ports and port 4721 "
+                      "unreachable from the guest domain."):
         assert statement in needs, statement
-    # Phase 8 models one guest so far; the bench of the case names no guest machine until phase 8 does.
-    for machine in ("SDV Core VM", "IVI VM", "broker"):
-        assert machine not in needs, machine
     gap = _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"),
                               r"\bpart\s+<'GAP-MW-044'>\s*\w+\s*:\s*IncrementGap\s*\{"))
     assert ("The inspection cases VC-MW-018 and VC-MW-021 need no run. They need the configurations and the wiring "
             "that the execution slices author. VC-MW-017 needs them too, and a run for its reachability probe from "
-            "each guest domain of the layer.") in gap, gap
+            "both VMs of the guest.") in gap, gap
 
 
-def test_the_slice_header_names_its_three_exceptions_to_the_preflight_rule() -> None:
-    """Preflight checks verify no requirement, apart from the three that a case holds."""
+def test_the_discard_case_runs_the_four_conditions() -> None:
+    """REQ-MW-019 in the guest of ADR 0025 and after a pair restart in the host half; the bench recovery of
+    GAP-MW-048 is manual and bench only, with no availability claim."""
+    case = _definition_doc("UnsubscribedFrameDiscardVerification")
+    for statement in ("It runs four conditions.",
+                      "- the HMI application down;",
+                      "- the IVI VM down, with a reboot;",
+                      "- the SDV Core VM down: a death of the SOME/IP broker or of its stack, with the bench recovery "
+                      "of GAP-MW-048.",
+                      "The operator reboots the SDV Core VM by hand, for the bench only;",
+                      "- a restart of gatewayd and someipd as a pair (gatewayPairRestartGuardRail).",
+                      "It records how long the HMI shows stale. No criterion applies to that time, and no availability "
+                      "claim is made (GAP-MW-048).",
+                      "For the fourth condition, it records the latency of PublicationDestroyed and the time to the new "
+                      "publication. It records both on the host clock and on the IVI VM clock corrected by the "
+                      "measured offset.",
+                      "The run applies the clock controls of ASM-MW-030 and records them.",
+                      "The new subscription is the start of a subscription phase of the IVI frame relay, as phase 8 "
+                      "defines it (relaySubscriptionPhaseDiscardRule).",
+                      "For REQ-MW-014, a phase end that the layer causes is a delivery failure (VC-MW-015). For "
+                      "REQ-MW-019, the new phase is the current subscription."):
+        assert statement in case, statement
+
+
+def test_the_slice_header_names_the_steps_that_verify_a_requirement() -> None:
+    """Preflight checks verify no requirement, apart from the steps that a case holds."""
     (header,) = re.findall(r"\A/\*(.*?)\*/", SLICE.read_text(encoding="utf-8"), re.DOTALL)
     flat = " ".join(" ".join(re.sub(r"^\s*\*\s?", "", line) for line in header.splitlines()).split())
-    exceptions = ("The adapter restart is a test condition of VC-MW-014.",
-                  "The clock offset shows whether ASM-MW-030 holds, which the criteria of REQ-MW-019 need, so "
-                  "VC-MW-020 records it.",
-                  "VC-MW-017 inspects the ROS 2 environment of each ROS 2 process on the host, for the DDS criteria of "
-                  "REQ-MW-016.")
-    assert "They verify no requirement, so no case of this slice holds them. Three exceptions apply. " in flat, flat
-    for exception in exceptions:
-        assert exception in flat, exception
+    assert ("They verify no requirement, so no case of this slice holds them. Where a check verifies a requirement, "
+            "the case of that requirement holds it as a step:") in flat, flat
+    for step in ("- VC-MW-014: the adapter restart;",
+                 "- VC-MW-015: every phase end of the relay, its DATA_LOSS counts and the client check of the frame "
+                 "assembler. It also holds the SD offers and renewals of a long session;",
+                 "- VC-MW-016: the SD offer from the IVI VM that must not redirect the subscription of the stack;",
+                 "- VC-MW-017: the ROS 2 environment of each ROS 2 process on the host, the host configuration of "
+                 "GAP-MW-046 and the probe from both VMs;",
+                 "- VC-MW-020: the clock controls of ASM-MW-030, the bench recovery of GAP-MW-048, and the latency of "
+                 "PublicationDestroyed after a pair restart on corrected clocks."):
+        assert step in flat, step
 
 
 def test_the_emergency_command_case_needs_only_the_hmi_path_configurations_of_vc_mw_017() -> None:
     """VC-MW-018 needs no ROS 2 (DDS) or network configuration of the host."""
     needs = _usage_doc("VC-MW-018")
-    assert "the mw::com, gateway, vsomeip and receiver configurations that VC-MW-017 needs" in needs, needs
+    assert "the mw::com, gateway, vsomeip, relay and DE4SDV guest configurations that VC-MW-017 needs" in needs, needs
     assert "and the configurations that VC-MW-017 needs" not in needs, needs
+    case = _definition_doc("NoEmergencyCommandOnMiddlewareVerification")
+    assert ("In the guest domain, these are the IVI frame relay and the configuration that DE4SDV authors for the AAOS "
+            "SDV elements.") in case, case
