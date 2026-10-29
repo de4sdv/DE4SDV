@@ -24,8 +24,9 @@ HOST, CORE, IVI = "192.168.98.1", "192.168.98.3", "192.168.98.118"
 T = 1_793_000_000_000_000_000
 
 
-def _sd(ts, src, dst, entries, options=()):
-    return ts, b.udp_datagram(src, dst, b.SD_PORT, b.SD_PORT, b.sd_message(entries, list(options)))
+def _sd(ts, src, dst, entries, options=(), src_port=None):
+    return ts, b.udp_datagram(src, dst, src_port if src_port is not None else b.SD_PORT, b.SD_PORT,
+                              b.sd_message(entries, list(options)))
 
 
 def _capture(tmp_path, records):
@@ -58,6 +59,19 @@ def test_the_provider_after_a_spoofed_offer_stays_the_host(tmp_path):
     found = sd.offer_and_provider(sd.sd_entries(_capture(tmp_path, records)))
     assert found["offer_time_ns"] == T + 1_000 and found["offer_src"] == IVI
     assert found["providers_after"] == [HOST]
+
+
+def test_the_offer_source_port_is_read(tmp_path):
+    # Review R43: the reader keeps the SD datagram's source port, so the
+    # evaluator can tell a valid offer (from 30490) from an ignored one.
+    from_sd_port = _sd(T, IVI, CORE, [b.sd_entry(b.SD_OFFER, 0x4DEE, 1, options=1)],
+                       [b.sd_ipv4_endpoint(IVI, 30509)])
+    from_ephemeral = _sd(T + 1, IVI, CORE, [b.sd_entry(b.SD_OFFER, 0x4DEE, 1, options=1)],
+                         [b.sd_ipv4_endpoint(IVI, 30509)], src_port=45678)
+    entries = sd.sd_entries(_capture(tmp_path, [from_sd_port, from_ephemeral]))
+    assert [e.src_port for e in entries] == [b.SD_PORT, 45678]
+    assert sd.offer_and_provider([entries[0]])["offer_src_port"] == b.SD_PORT
+    assert sd.offer_and_provider([entries[1]])["offer_src_port"] == 45678
 
 
 def test_a_redirected_subscription_names_the_ivi(tmp_path):

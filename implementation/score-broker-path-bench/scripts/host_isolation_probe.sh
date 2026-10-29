@@ -1,33 +1,59 @@
 #!/usr/bin/env bash
 # Reachability check of REQ-MW-016's second finding: confirm the host DDS ports
 # and port 4721 stay unreachable from every guest domain. Defensive
-# verification of isolation with standard tools. It records artifacts for the
-# evaluator (de4sdv_broker_path_bench.probe); the evaluator, not this script,
-# returns the verdict. A pass means the probes did NOT reach the host.
+# verification of isolation. It records artifacts for the evaluator
+# (de4sdv_broker_path_bench.probe); the evaluator, not this script, returns the
+# verdict. A pass means the probes did NOT reach the host.
 #
 #   host_isolation_probe.sh run <out-dir>   list, probe from both VMs over every interface, record
+#   host_isolation_probe.sh render-probe <ns> <iface> <src> <addr> <port> <marker>   print the guest UDP command
+#   host_isolation_probe.sh render-tcp   <ns> <iface> <src> <addr> <port> <marker>   print the guest TCP command
+#
+# The probes use the bench sender (de4sdv_probe_send), not nc: it pins the
+# egress device (SO_BINDTODEVICE), the source address and the source port, sends
+# one datagram or does one timed TCP connect, and exits with the errno. So each
+# probe really leaves on its named interface whatever the route says (review
+# R41) and never loops (reviews R39, R40). A namespaced probe runs the sender
+# inside the namespace (review R42). Coverage is derived by the evaluator from
+# the captured attempts, so a pair the sender could not leave on is a gap, not a
+# self-reported probe (reviews R41, B3).
 #
 # Reachability is judged as #448 asks: a capture on the guest-facing interface
-# and the counters of the isolation rule (both). A probe reached when its
-# marker was captured on the host AND the drop counter did not take it;
-# dropped when the counter moved; unknown when the send failed or nothing
-# arrived. The pre-netfilter capture over-counts (it sees dropped datagrams
-# too), so the counter decides reached vs dropped. Without a readable table
-# the probe cannot judge, so it records that and the run is inconclusive. The
-# positive control uses the same capture observation and must also arrive at
-# the bench's own socket. It assumes launch_two_vms.sh is up and
-# host_isolation_firewall.sh add is in place.
+# AND the counters of the isolation rule. reached = captured and the counter
+# did not take it; dropped = captured and the counter moved; unknown = the send
+# failed or nothing arrived. The pre-netfilter capture over-counts, so the
+# counter decides reached vs dropped. Without a readable table the probe cannot
+# judge, so the run is inconclusive. The positive control uses the same capture
+# observation and must also arrive at the bench's own socket. It assumes
+# launch_two_vms.sh is up and host_isolation_firewall.sh add is in place.
 set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/bench_env.sh"
-OUT="${2:?usage: $0 run <out-dir>}"; mkdir -p "$OUT"
-: "${CONTROL_PORT:=39999}"       # a host port with no drop rule, for the positive control
-: "${PROBE_SEND_TIMEOUT:=2}"     # seconds; every guest send is wrapped in it (review R27)
+: "${PROBE_SENDER:=de4sdv_probe_send}"   # the guest sender (pushed in S1 beside the relay)
+: "${CONTROL_PORT:=39999}"               # a host port with no drop rule, for the positive control
+: "${PROBE_SEND_TIMEOUT:=2}"             # seconds; a guest send that hangs is killed by this outer timeout
+: "${PROBE_TCP_TIMEOUT_MS:=1000}"        # the sender's own TCP connect timeout
 TABLE_INET="de4sdv_bench"
 SCAN=(python3 -m de4sdv_broker_path_bench.hostscan)
 export PYTHONPATH="$HERE/../src${PYTHONPATH:+:$PYTHONPATH}"
 
 guest_cmd() { local serial="$1"; shift; "$ADB" -s "$serial" shell "$@"; }
+
+# --- the guest commands (rendered so a test can check the namespace prefix) ---
+# A namespaced probe runs the sender inside the namespace (review R42); the
+# marker is fed on stdin from the guest shell. `ns` is "-" for the root netns.
+remote_probe_cmd() {  # ns iface src addr port marker
+  local ns="$1" iface="$2" src="$3" addr="$4" port="$5" marker="$6" prefix=""
+  [ "$ns" != "-" ] && prefix="ip netns exec $ns "
+  printf "echo -n '%s' | timeout %s %s%s --device %s --source %s --sport 0 --host %s --port %s" \
+    "$marker" "$PROBE_SEND_TIMEOUT" "$prefix" "$PROBE_SENDER" "$iface" "$src" "$addr" "$port"
+}
+remote_tcp_cmd() {  # ns iface src addr port marker
+  local ns="$1" iface="$2" src="$3" addr="$4" port="$5" _marker="$6" prefix=""
+  [ "$ns" != "-" ] && prefix="ip netns exec $ns "
+  printf "timeout %s %s%s --tcp --device %s --source %s --sport 0 --host %s --port %s --timeout-ms %s" \
+    "$PROBE_SEND_TIMEOUT" "$prefix" "$PROBE_SENDER" "$iface" "$src" "$addr" "$port" "$PROBE_TCP_TIMEOUT_MS"
+}
 
 # --- the isolation table and its counters (the validity gate) -----------
 nft_dump() { sudo nft -a list table inet "$TABLE_INET" 2>&1; }
@@ -83,8 +109,6 @@ stop_captures() {
 }
 
 # --- the positive control, by the same capture observation --------------
-# It sends while the captures run; its capture witness is read in
-# finalize_control after the captures have been read (ordering matters).
 CONTROL_MARKER="MARK:control-ivi"
 control_probe() {
   CONTROL_MARKER="MARK:control-ivi-${HOST_ADDR}-${CONTROL_PORT}"
@@ -92,9 +116,16 @@ control_probe() {
   ( timeout 120 "${SCAN[@]}" control-listen --port "$CONTROL_PORT" --out "$OUT/control-received.txt" --seconds 60 \
       >/dev/null 2>&1 & echo $! > "$OUT/.control.pid" ) || true
   sleep 1
-  local before after
+  # The IVI's egress device and source toward the host, from its own routing,
+  # so the control sender binds the real interface (not a foreign source).
+  local route dev src before after
+  route="$(guest_cmd "$IVI_ADB" "ip route get $HOST_ADDR 2>/dev/null" | tr -d '\r')"
+  read -r dev src < <("${SCAN[@]}" route <(printf '%s\n' "$route"))
   before="$(dds_counter)"
-  guest_cmd "$IVI_ADB" "echo -n '$CONTROL_MARKER' | toybox nc -u -w 1 $HOST_ADDR $CONTROL_PORT >/dev/null 2>&1" || true
+  if [ -n "$dev" ] && [ "$dev" != none ] && [ -n "$src" ] && [ "$src" != "-" ]; then
+    guest_cmd "$IVI_ADB" "$(remote_probe_cmd - "$dev" "$src" "$HOST_ADDR" "$CONTROL_PORT" "$CONTROL_MARKER")" \
+      >/dev/null 2>&1 || true
+  fi
   sleep 1
   after="$(dds_counter)"
   [ -f "$OUT/.control.pid" ] && kill "$(cat "$OUT/.control.pid")" 2>/dev/null || true
@@ -127,6 +158,11 @@ dds_ports_expanded() {
   done
 }
 
+counter_moved_json() {
+  local before="$1" after="$2"
+  if [ -n "$before" ] && [ -n "$after" ]; then [ "$after" -gt "$before" ] 2>/dev/null && echo true || echo false; else echo null; fi
+}
+
 probe_guest() {
   local serial="$1" guest="$2"
   "$ADB" connect "$serial" >/dev/null 2>&1 || true
@@ -139,31 +175,26 @@ probe_guest() {
       guest_cmd "$serial" "ip netns exec $ns ip -o link show 2>/dev/null; ip netns exec $ns ip -o -4 addr show 2>/dev/null" 2>/dev/null
     done
   } | tr -d '\r' > "$OUT/guest_inventory_${guest}.txt"
-  local probed_if="" probed_addr="" expected_if
-  # Expected interfaces: the guest's non-lo interfaces that have an IPv4 address
-  # (the IPv4 probe can cover them; IPv6 stays a known limit). Derived from the
-  # inventory, independently of which pairs the probe skips (review R29).
+  # Expected interfaces: the guest's non-lo interfaces with an IPv4 address (the
+  # IPv4 probe covers them; IPv6 is a known limit). Derived from the inventory,
+  # independently of which pairs the probe can leave on (reviews R29, R41).
+  local expected_if
   expected_if="$("${SCAN[@]}" guest-ifaces "$OUT/guest_inventory_${guest}.txt" | awk '$2!="lo" && $3!="-"{print $2}' | sort -u | tr '\n' ' ')"
   : "${PROBE_HOST_ADDRS:=$HOST_EXPECTED_ADDRS}"
   local ns iface src addr port before after moved status connected marker
-  # Probe from the root namespace interfaces and from each VLAN namespace.
+  # Probe from the root-namespace interfaces and from each VLAN namespace. The
+  # sender binds the device, so no route pre-check is needed: a pair it cannot
+  # leave on returns an errno (send_failed), which the evaluator reads as a
+  # coverage gap, not a silent skip (reviews R41, B3).
   while read -r ns iface src; do
     [ -n "$iface" ] || continue
     [ "$iface" = lo ] && continue                  # loopback cannot reach the host segment (review R15/R27)
     [ "$src" = "-" ] && continue                   # an interface with no IPv4 address
-    probed_if="$probed_if $iface"
-    local runner=("$ADB" -s "$serial" shell)
-    [ "$ns" != "-" ] && runner=("$ADB" -s "$serial" shell "ip netns exec $ns")
     for addr in $PROBE_HOST_ADDRS; do
-      case " $probed_addr " in *" $addr "*) : ;; *) probed_addr="$probed_addr $addr" ;; esac
-      # A route check: skip the (interface, address) pair with no route (review R27).
-      if ! "${runner[@]}" "ip route get $addr >/dev/null 2>&1"; then
-        continue
-      fi
       for port in $(dds_ports_expanded); do
         marker="MARK:${guest}-${iface}-${addr}-${port}"
         before="$(dds_counter)"
-        if "${runner[@]}" "echo -n '$marker' | timeout $PROBE_SEND_TIMEOUT toybox nc -s $src -u -w 1 $addr $port >/dev/null 2>&1"; then
+        if guest_cmd "$serial" "$(remote_probe_cmd "$ns" "$iface" "$src" "$addr" "$port" "$marker")" >/dev/null 2>&1; then
           status=sent
         else
           status=send_failed
@@ -173,41 +204,49 @@ probe_guest() {
         printf '{"guest":"%s","interface":"%s","src_addr":"%s","host":"%s","port":%s,"protocol":"udp","marker":"%s","send_status":"%s","counter_moved":%s,"guest_connected":null}\n' \
           "$guest" "$iface" "$src" "$addr" "$port" "$marker" "$status" "$moved" >> "$OUT/attempts.ndjson"
       done
-      # Port 4721 (TCP): nc -z, the guest's own connect result, with the counter.
+      # Port 4721 (TCP): the sender's own timed connect result, with the counter.
       marker="MARK:${guest}-${iface}-${addr}-${FRAME_ASSEMBLER_PORT}"
       before="$(tcp_counter)"
-      if "${runner[@]}" "timeout $PROBE_SEND_TIMEOUT toybox nc -z -s $src -w 1 $addr $FRAME_ASSEMBLER_PORT >/dev/null 2>&1"; then
-        connected=true; status=sent
+      if guest_cmd "$serial" "$(remote_tcp_cmd "$ns" "$iface" "$src" "$addr" "$FRAME_ASSEMBLER_PORT" "$marker")" >/dev/null 2>&1; then
+        connected=true
       else
-        connected=false; status=sent    # a refused/timed-out connect still left the guest; the counter and capture judge it
+        connected=false   # a refused/timed-out connect still left the guest; the counter and capture judge it
       fi
       after="$(tcp_counter)"
       moved="$(counter_moved_json "$before" "$after")"
-      printf '{"guest":"%s","interface":"%s","src_addr":"%s","host":"%s","port":%s,"protocol":"tcp","marker":"%s","send_status":"%s","counter_moved":%s,"guest_connected":%s}\n' \
-        "$guest" "$iface" "$src" "$addr" "$FRAME_ASSEMBLER_PORT" "$marker" "$status" "$moved" "$connected" >> "$OUT/attempts.ndjson"
+      printf '{"guest":"%s","interface":"%s","src_addr":"%s","host":"%s","port":%s,"protocol":"tcp","marker":"%s","send_status":"sent","counter_moved":%s,"guest_connected":%s}\n' \
+        "$guest" "$iface" "$src" "$addr" "$FRAME_ASSEMBLER_PORT" "$marker" "$moved" "$connected" >> "$OUT/attempts.ndjson"
     done
   done < <("${SCAN[@]}" guest-ifaces "$OUT/guest_inventory_${guest}.txt")
-  # shellcheck disable=SC2153
-  COV_GUEST="$guest" COV_PIF="$probed_if" COV_PADDR="$probed_addr" COV_EIF="$expected_if" COV_EADDR="$HOST_EXPECTED_ADDRS" \
+  # The run records only the EXPECTED sets; the evaluator derives the PROBED
+  # sets from the captured attempts (reviews R41, B3).
+  COV_GUEST="$guest" COV_EIF="$expected_if" COV_EADDR="$HOST_EXPECTED_ADDRS" \
     py_json "$OUT/coverage_${guest}.json" <<'PY'
 import json, os, sys
 json.dump({"guest": os.environ["COV_GUEST"],
-           "probed_interfaces": os.environ["COV_PIF"].split(),
-           "probed_host_addresses": os.environ["COV_PADDR"].split(),
            "expected_interfaces": os.environ["COV_EIF"].split(),
            "expected_host_addresses": os.environ["COV_EADDR"].split()}, open(sys.argv[1], "w"), indent=1)
 PY
 }
 
-counter_moved_json() {
-  local before="$1" after="$2"
-  if [ -n "$before" ] && [ -n "$after" ]; then [ "$after" -gt "$before" ] 2>/dev/null && echo true || echo false; else echo null; fi
+asm_mw_031() {
+  # The ROS 2 environment scan reads /proc/<pid>/environ for every ROS 2
+  # process, so it needs root. sudo strips PYTHONPATH, so it runs from src/ with
+  # the module on the default path (review R44). Keep stderr, and record the uid
+  # that ran the scan; the unprivileged fallback gives holds=null for any
+  # process it cannot read.
+  if ( cd "$HERE/../src" && sudo python3 -m de4sdv_broker_path_bench.hostscan asm031 --proc /proc ) \
+       > "$OUT/asm_mw_031.json" 2> "$OUT/asm_mw_031.err"; then
+    echo "scan_uid: 0 (root via sudo)" > "$OUT/asm_mw_031.uid"
+  else
+    ( cd "$HERE/../src" && python3 -m de4sdv_broker_path_bench.hostscan asm031 --proc /proc ) \
+       > "$OUT/asm_mw_031.json" 2>> "$OUT/asm_mw_031.err" || true
+    echo "scan_uid: $(id -u) (unprivileged fallback; an unreadable process gives holds=null)" > "$OUT/asm_mw_031.uid"
+  fi
 }
 
-asm_mw_031() { sudo "${SCAN[@]}" asm031 --proc /proc > "$OUT/asm_mw_031.json" 2>/dev/null || "${SCAN[@]}" asm031 --proc /proc > "$OUT/asm_mw_031.json"; }
-
 run() {
-  require_cmd ss "$ADB" nft tcpdump python3 toybox || true
+  require_cmd ss "$ADB" nft tcpdump python3 || true
   : > "$OUT/attempts.ndjson"
   # The host addresses the probe expects to cover: every cvd-* host address,
   # derived independently of what the probe iterates (review R29).
@@ -238,9 +277,12 @@ json.dump({"per_guest": per_guest}, open(os.path.join(out, "coverage.json"), "w"
 PY
   log "probe artifacts in $OUT; evaluate with: python -m de4sdv_broker_path_bench.run $OUT --case VC-MW-017"
   log "NOTE: the first finding needs an inspection record (inspection.json); the ASM-MW-029 client check is recorded by capture_case.sh."
+  log "NOTE: a full probe covers every DDS port of the set plus 4721 for each (guest, interface, host) pair; a reduced range is a coverage gap."
 }
 
 case "${1:-}" in
-  run) run ;;
-  *) echo "usage: $0 run <out-dir>" >&2; exit 2 ;;
+  run) OUT="${2:?usage: $0 run <out-dir>}"; mkdir -p "$OUT"; run ;;
+  render-probe) remote_probe_cmd "${2:--}" "${3:?iface}" "${4:?src}" "${5:?addr}" "${6:?port}" "${7:?marker}"; echo ;;
+  render-tcp) remote_tcp_cmd "${2:--}" "${3:?iface}" "${4:?src}" "${5:?addr}" "${6:?port}" "${7:?marker}"; echo ;;
+  *) echo "usage: $0 {run <out-dir>|render-probe ...|render-tcp ...}" >&2; exit 2 ;;
 esac

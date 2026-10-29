@@ -166,7 +166,7 @@ def test_vc015_e11_out_of_order_duplicate_fails(tmp_path):
 
 # ------------------------------------------------------------ VC-MW-016
 
-def _vc016(tmp_path, produced, received, sd_offer=None, residual=None):
+def _vc016(tmp_path, produced, received, sd_offer=None, residual=None, sd_capture=None, core_processed=None):
     files = dict(
         produced__pcap=b.pcap(b.stream_records(4721, produced, t0=P0)),
         received__pcap=b.pcap(b.stream_records(4731, received, t0=P0 + 5_000_000)),
@@ -176,7 +176,29 @@ def _vc016(tmp_path, produced, received, sd_offer=None, residual=None):
         files["sd_offer__json"] = sd_offer
     if residual is not None:
         files["residual__json"] = residual
-    return evaluators.load_run(write(tmp_path, **files))
+    run = evaluators.load_run(write(tmp_path, **files))
+    if sd_capture is not None:
+        (run.run_dir / "host-cvd-ebr.pcap").write_bytes(b.pcap(sd_capture))
+    if core_processed is not None:
+        (run.run_dir / "sd_core_processed.json").write_text(json.dumps(core_processed))
+    return run
+
+
+SD_T = P0 + 50_000_000  # the spoofed offer lands inside the produced-frame window
+
+
+def _spoofed_offer_capture(offer_src_port=30490, provider="192.168.98.1"):
+    """A host offer, then a spoofed IVI offer, then the core's subscribe to `provider`."""
+    offer_entry = [b.sd_entry(b.SD_OFFER, 0x4DEE, 1, options=1)]
+    subscribe = [b.sd_entry(b.SD_SUBSCRIBE, 0x4DEE, 1, eventgroup=1, options=1)]
+    return [
+        (P0 - 10_000_000, b.udp_datagram("192.168.98.1", "224.0.0.0", 30490, 30490,
+                                         b.sd_message(offer_entry, [b.sd_ipv4_endpoint("192.168.98.1", 30509)]))),
+        (SD_T, b.udp_datagram("192.168.98.118", "192.168.98.3", offer_src_port, 30490,
+                              b.sd_message(offer_entry, [b.sd_ipv4_endpoint("192.168.98.118", 30509)]))),
+        (SD_T + 2_000_000, b.udp_datagram("192.168.98.3", provider, 30490, 30490,
+                                          b.sd_message(subscribe, [b.sd_ipv4_endpoint("192.168.98.3", 40001)]))),
+    ]
 
 
 def test_vc016_passes_on_identical_bytes_with_a_good_offer(tmp_path):
@@ -209,6 +231,40 @@ def test_vc016_rg_unproduced_received_frame_fails(tmp_path):
     payloads = frames_seq()
     injected = payloads[:3] + [b.frame(999, 9_000_000_000)] + payloads[3:]
     run = _vc016(tmp_path, payloads, injected, sd_offer={"provider_after_offer": "192.168.98.1"})
+    assert evaluators.evaluate_provenance(run).outcome == outcome.FAIL
+
+
+def test_vc016_r43_offer_from_the_sd_port_processed_and_no_redirect_passes(tmp_path):
+    payloads = frames_seq()
+    run = _vc016(tmp_path, payloads, payloads, sd_capture=_spoofed_offer_capture(offer_src_port=30490),
+                 core_processed={"processed": True, "detail": "someipd handled the offer"})
+    assert evaluators.evaluate_provenance(run).outcome == outcome.PASS, evaluators.evaluate_provenance(run).as_dict()
+
+
+def test_vc016_r43_offer_from_an_ephemeral_source_port_is_inconclusive(tmp_path):
+    # send_sd_offer sent from an ephemeral port: the stack ignores it, so it is
+    # not a valid stimulus (R43).
+    payloads = frames_seq()
+    run = _vc016(tmp_path, payloads, payloads, sd_capture=_spoofed_offer_capture(offer_src_port=45678),
+                 core_processed={"processed": True})
+    result = evaluators.evaluate_provenance(run)
+    assert result.outcome == outcome.INCONCLUSIVE
+    assert any("source port" in f.message for f in result.findings)
+
+
+def test_vc016_r43_offer_not_shown_processed_is_inconclusive(tmp_path):
+    payloads = frames_seq()
+    run = _vc016(tmp_path, payloads, payloads, sd_capture=_spoofed_offer_capture(offer_src_port=30490))
+    result = evaluators.evaluate_provenance(run)
+    assert result.outcome == outcome.INCONCLUSIVE
+    assert any("processed" in f.message for f in result.findings)
+
+
+def test_vc016_r43_offer_processed_with_a_redirect_fails(tmp_path):
+    payloads = frames_seq()
+    run = _vc016(tmp_path, payloads, payloads,
+                 sd_capture=_spoofed_offer_capture(offer_src_port=30490, provider="192.168.98.118"),
+                 core_processed={"processed": True})
     assert evaluators.evaluate_provenance(run).outcome == outcome.FAIL
 
 

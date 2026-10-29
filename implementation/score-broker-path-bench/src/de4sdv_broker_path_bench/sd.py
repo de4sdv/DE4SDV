@@ -33,6 +33,8 @@ class SdEntry:
     ts_ns: int
     src: str
     dst: str
+    src_port: int    # the UDP source port of the SD datagram (review R43: a stack ignores an offer not from 30490)
+    dst_port: int
     kind: str
     service: int
     instance: int
@@ -103,8 +105,9 @@ def sd_entries(capture: Capture) -> list[SdEntry]:
             continue
         entries = parse_sd(item.payload)
         for entry in entries or ():
-            found.append(SdEntry(item.ts_ns, item.src, item.dst, entry["kind"], entry["service"], entry["instance"],
-                                 entry["major"], entry["ttl"], entry["eventgroup"], entry["endpoints"]))
+            found.append(SdEntry(item.ts_ns, item.src, item.dst, item.sport, item.dport, entry["kind"],
+                                 entry["service"], entry["instance"], entry["major"], entry["ttl"],
+                                 entry["eventgroup"], entry["endpoints"]))
     return found
 
 
@@ -118,13 +121,14 @@ def offer_and_provider(entries: list[SdEntry], *, service: int = FRAME_SERVICE, 
     """
     offer = next((e for e in entries if e.kind == "offer" and e.service == service and e.instance == instance
                   and e.ttl > 0 and e.src != host), None)
-    result = {"offer_time_ns": None, "offer_src": None, "offer_endpoints": [], "providers_after": [],
-              "subscribes_after": 0, "host_offers": sum(1 for e in entries if e.kind == "offer" and e.src == host
-                                                         and e.service == service)}
+    result = {"offer_time_ns": None, "offer_src": None, "offer_src_port": None, "offer_endpoints": [],
+              "providers_after": [], "subscribes_after": 0,
+              "host_offers": sum(1 for e in entries if e.kind == "offer" and e.src == host and e.service == service)}
     if offer is None:
         return result
     after = [e for e in entries if e.kind == "subscribe" and e.service == service and e.instance == instance
              and e.ttl > 0 and e.src == core and e.ts_ns > offer.ts_ns]
-    result.update(offer_time_ns=offer.ts_ns, offer_src=offer.src, offer_endpoints=offer.endpoints,
+    result.update(offer_time_ns=offer.ts_ns, offer_src=offer.src, offer_src_port=offer.src_port,
+                  offer_endpoints=offer.endpoints,
                   providers_after=sorted({e.dst for e in after}), subscribes_after=len(after))
     return result

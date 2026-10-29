@@ -2,8 +2,10 @@
 # Send one SOME/IP service-discovery offer of the frame service from the IVI VM
 # on the shared bridge segment (VC-MW-016: the SD offer that must not redirect
 # the SDV Core VM's subscription). It builds the SD bytes and sends them with
-# the guest's own nc; the evaluator reads the effect from host-cvd-ebr.pcap.
-# Standard tools only; it never dispatches a workflow and never runs on CI.
+# the bench sender, from the SD source port 30490, so the core's SOME/IP stack
+# does not ignore the message (a stack drops an SD message from any other
+# source port, review R43). The evaluator reads the effect from
+# host-cvd-ebr.pcap. It never dispatches a workflow and never runs on CI.
 #
 #   send_sd_offer.sh send <provider-addr> <reliable-port>   send the offer from the IVI VM
 #   send_sd_offer.sh bytes <provider-addr> <reliable-port>  print the raw SD datagram (for a test)
@@ -14,6 +16,7 @@
 set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/bench_env.sh"
+: "${PROBE_SENDER:=de4sdv_probe_send}"   # the guest sender (binds the SD source port; pushed in S1)
 
 FRAME_SERVICE_HEX=4dee        # service 0x4dee, instance 0x0001 (the overlay's frame service)
 FRAME_INSTANCE_HEX=0001
@@ -53,12 +56,23 @@ case "${1:-}" in
     ;;
   send)
     addr="${2:?usage: $0 send <provider-addr> <reliable-port>}"; port="${3:?reliable port}"
-    require_cmd "$ADB" xxd || true
+    require_cmd "$ADB" || true
     "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
     local_hex="$(_offer_hex "$addr" "$port")"
-    log "sending a spoofed SD offer of service 0x${FRAME_SERVICE_HEX}.${FRAME_INSTANCE_HEX} (provider ${addr}:${port}) from the IVI VM"
-    "$ADB" -s "$IVI_ADB" shell "echo -n '$local_hex' | toybox xxd -r -p | toybox nc -u -w 1 ${SD_GROUP} ${SD_PORT}" \
-      >/dev/null 2>&1 || log "NOTE: the guest send returned non-zero; check nc and xxd on the IVI image"
+    # The IVI's bridge-facing device and source address, from its own routing
+    # toward the host segment, so the sender binds the real interface.
+    route="$("$ADB" -s "$IVI_ADB" shell "ip route get $HOST_ADDR 2>/dev/null" | tr -d '\r')"
+    dev="$(printf '%s\n' "$route" | sed -n 's/.* dev \([^ ]*\).*/\1/p' | head -1)"
+    src="$(printf '%s\n' "$route" | sed -n 's/.* src \([^ ]*\).*/\1/p' | head -1)"
+    if [ -z "$dev" ] || [ -z "$src" ]; then
+      log "ERROR: could not find the IVI's bridge device or source for $HOST_ADDR; cannot send the offer"
+      exit 1
+    fi
+    log "sending a spoofed SD offer of service 0x${FRAME_SERVICE_HEX}.${FRAME_INSTANCE_HEX} (provider ${addr}:${port}) from the IVI VM, source port ${SD_PORT}"
+    # The sender binds the SD source port (${SD_PORT}); the raw bytes are fed on
+    # stdin. A stack ignores an SD message from any other source port (R43).
+    "$ADB" -s "$IVI_ADB" shell "echo -n '$local_hex' | toybox xxd -r -p | $PROBE_SENDER --device $dev --source $src --sport ${SD_PORT} --host ${SD_GROUP} --port ${SD_PORT}" \
+      >/dev/null 2>&1 || log "NOTE: the guest send returned non-zero; check $PROBE_SENDER and xxd on the IVI image"
     ;;
   *) echo "usage: $0 {send|bytes} <provider-addr> <reliable-port>" >&2; exit 2 ;;
 esac

@@ -417,18 +417,36 @@ def evaluate_provenance(run: RunInputs) -> CaseResult:
         result.add("sd-offer", ERROR, "an SD record is not valid JSON")
         return result
     if offer is not None:
-        offer_time_ns = offer.get("offer_time_ns")
-        if offer_time_ns is None:
+        capture_offer_time = offer.get("offer_time_ns")
+        offer_src_port = offer.get("offer_src_port")
+        processed = _load_json(run, "sd_core_processed.json")
+        if processed == "ERROR":
+            result.add("sd-offer", ERROR, "sd_core_processed.json is not valid JSON")
+            return result
+        if capture_offer_time is None:
             result.add("sd-offer", INCONCLUSIVE, "no spoofed SD offer from a non-host sender in the SD capture")
+        elif offer_src_port != sd.SD_PORT:
+            # A SOME/IP stack ignores an SD message whose source port is not the
+            # SD port, so an offer from an ephemeral port is not a valid
+            # stimulus and shows nothing (review R43).
+            result.add("sd-offer", INCONCLUSIVE, f"the spoofed SD offer came from source port {offer_src_port}, not "
+                       f"{sd.SD_PORT}; a SOME/IP stack ignores an SD message from another port, so it is not a valid "
+                       "stimulus")
+        elif not (isinstance(processed, dict) and processed.get("processed") is True):
+            # The offer is from the SD port, but nothing shows the core stack
+            # read it; the no-redirect property is not demonstrated (review R43).
+            result.add("sd-offer", INCONCLUSIVE, "the SD capture holds a spoofed offer from the SD source port, but no "
+                       "record shows the core stack processed it; the no-redirect property is not shown")
         else:
+            offer_time_ns = capture_offer_time
             providers = offer.get("providers_after") or []
             redirected = [p for p in providers if p != "192.168.98.1"]
             if redirected:
                 result.add("sd-redirect", FAIL, f"after the SD offer from the IVI VM the stack subscribed to "
                            f"{redirected}, not 192.168.98.1")
             elif not providers:
-                result.add("sd-offer", INCONCLUSIVE, "an SD offer was seen but no later subscription of the stack, so "
-                           "the provider after the offer is unknown")
+                result.add("sd-offer", INCONCLUSIVE, "an SD offer was seen and processed but no later subscription of "
+                           "the stack, so the provider after the offer is unknown")
     elif isinstance(sd_offer, dict) and sd_offer.get("provider_after_offer") is not None:
         offer_time_ns = sd_offer.get("offer_time_ns")
         provider = sd_offer.get("provider_after_offer")
