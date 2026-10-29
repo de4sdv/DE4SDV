@@ -88,14 +88,20 @@ std::optional<TcpSocketEntry> FindTcpSocket(const std::string& proc_net_tcp, std
       continue;
     }
     char* end = nullptr;
+    const long state = std::strtol(tokens[3].c_str(), &end, 16);
     const long long uid = std::strtoll(tokens[7].c_str(), &end, 10);
     const unsigned long long inode = std::strtoull(tokens[9].c_str(), &end, 10);
     TcpSocketEntry entry;
+    entry.state = static_cast<int>(state);
     entry.uid = static_cast<std::int64_t>(uid);
     entry.inode = static_cast<std::uint64_t>(inode);
     return entry;
   }
   return std::nullopt;
+}
+
+bool UsableTcpEntry(const TcpSocketEntry& entry) noexcept {
+  return entry.state == kTcpEstablished && entry.inode != 0U;
 }
 
 std::optional<std::int64_t> FindSocketOwner(std::uint64_t inode, std::int64_t budget_ns) {
@@ -106,7 +112,8 @@ std::optional<std::int64_t> FindSocketOwner(std::uint64_t inode, std::int64_t bu
     return std::nullopt;
   }
   std::optional<std::int64_t> owner;
-  while (!owner.has_value() && MonotonicNs() < give_up) {
+  bool over_budget = false;
+  while (!owner.has_value() && !over_budget && MonotonicNs() < give_up) {
     const dirent* process = ::readdir(processes);
     if (process == nullptr) {
       break;
@@ -120,6 +127,10 @@ std::optional<std::int64_t> FindSocketOwner(std::uint64_t inode, std::int64_t bu
       continue;  // gone, or not readable for this uid
     }
     while (const dirent* fd = ::readdir(fds)) {
+      if (MonotonicNs() >= give_up) {  // also inside one process with many descriptors
+        over_budget = true;
+        break;
+      }
       if (!IsNumber(fd->d_name)) {
         continue;
       }
@@ -163,9 +174,14 @@ PeerIdentity LookUpLoopbackPeer(int fd, std::int64_t budget_ns) {
   if (!entry.has_value()) {
     return peer;
   }
+  if (!UsableTcpEntry(*entry)) {
+    peer.source = "proc_net_tcp_not_established";  // an orphan names no owner
+    return peer;
+  }
   peer.source = "proc_net_tcp";
   peer.uid_known = true;
   peer.uid = entry->uid;
+  peer.inode = entry->inode;
   if (const auto pid = FindSocketOwner(entry->inode, budget_ns)) {
     peer.pid_known = true;
     peer.pid = *pid;

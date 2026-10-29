@@ -9,8 +9,10 @@
 // thread takes the stop signals: the binder pool and the worker thread start
 // with them blocked. A refused option, among them any option that names a
 // margin or a bound, stops the relay at start with code 2. A lost gateway
-// client (Disconnected, or a failed initComms) ends the relay with code 4:
-// the library allows one client per process, so init starts a new process.
+// client (Disconnected, or a failed initComms) ends the relay with code 4,
+// with std::_Exit and without teardown: the library allows one client per
+// process, so init starts a new process, and the lost client is never
+// deleted.
 
 #include <signal.h>
 #include <unistd.h>
@@ -106,6 +108,14 @@ int main(int argc, char** argv) {
   if (!result.worker_joined) {
     // The worker is still inside a gateway call and uses the shell: end the
     // process without destroying it.
+    std::_Exit(result.exit_code);
+  }
+  if (result.exit_code == de4sdv::ivi_frame_relay::kExitGatewayClientLost) {
+    // The gateway client is lost and its callbacks are still registered with
+    // the worker as their sink. A normal return would destroy the shell, and
+    // the worker with it, before the adapter's destructor deletes the client,
+    // a Client_delete after the loss. So end the process without teardown:
+    // init starts a new one.
     std::_Exit(result.exit_code);
   }
   return result.exit_code;

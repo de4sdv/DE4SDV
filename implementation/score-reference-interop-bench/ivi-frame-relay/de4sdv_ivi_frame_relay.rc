@@ -21,7 +21,7 @@
 # (ingress/main.cpp:144 of the visualization bench), so at each of its
 # starts, after its loopback server listens, the relay sets the host to
 # 127.0.0.1 (--announce-property below). Setting the host also starts the
-# ingress (de4sdv_aebs_ingress.rc:9-10). Then the relay sets
+# ingress (de4sdv_aebs_ingress.rc:9-13). Then the relay sets
 # de4sdv.aebs.ingress.start to 0 and 1. Until its first client connects, it
 # sets 0 and 1 again every 1 s, at most 10 times, because an old ingress can
 # still run or wait for its reap; after the first client it never starts the

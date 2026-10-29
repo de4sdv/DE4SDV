@@ -502,6 +502,7 @@ TEST(RelayCore, TheClientLinesNameThePeerProcess) {
   peer.uid = 1000;
   peer.pid_known = true;
   peer.pid = 4242;
+  peer.inode = 5131252;
   peer.source = "proc_net_tcp";
   ASSERT_TRUE(h.core.OnClientAccepted(h.now, peer));
   const std::string connected = h.log.Last("client_connected");
@@ -509,6 +510,7 @@ TEST(RelayCore, TheClientLinesNameThePeerProcess) {
   EXPECT_TRUE(Has(connected, "\"peer_uid\":1000"));
   EXPECT_TRUE(Has(connected, "\"peer_port\":40001"));
   EXPECT_TRUE(Has(connected, "\"peer_source\":\"proc_net_tcp\""));
+  EXPECT_TRUE(Has(connected, "\"peer_inode\":5131252"));
   PeerIdentity unknown;
   unknown.port = 40002;
   EXPECT_FALSE(h.core.OnClientAccepted(h.now, unknown));

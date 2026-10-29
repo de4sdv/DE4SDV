@@ -289,6 +289,7 @@ LogRecord& Peer(LogRecord& record, const PeerIdentity& peer) {
   return record.Unsigned("peer_port", peer.port)
       .Signed("peer_pid", peer.pid_known ? peer.pid : -1)
       .Signed("peer_uid", peer.uid_known ? peer.uid : -1)
+      .Unsigned("peer_inode", peer.inode)
       .Text("peer_source", peer.source);
 }
 

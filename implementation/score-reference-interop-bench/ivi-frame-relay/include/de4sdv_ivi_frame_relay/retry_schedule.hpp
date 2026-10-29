@@ -15,10 +15,14 @@
 // - if no subscription succeeds within 30 s of its start, the relay core
 //   reports a likely fault of the ACL or of the mapping, and from then on
 //   the relay tries every 10 s;
-// - on Disconnected it creates the gateway client again, with a bounded
-//   retry. The library allows one client per process
-//   (libsdvgatewayclient.h:473-475), so the relay realizes that by ending the
-//   process: init starts it again (gateway_worker.hpp).
+// - the gateway client (owner decision of 2026-10-29, revised 2026-10-29:
+//   the library allows one client per process, libsdvgatewayclient.h:
+//   473-475): after the client has been created, the relay never deletes
+//   and re-creates it. On Disconnected, or when initComms fails after the
+//   client was created, it ends the phase as a layer-caused phase end and
+//   exits with a code of its own, and init starts it again as a new process
+//   (gateway_worker.hpp). In the same process it retries only a creation of
+//   the client that itself failed.
 // The relay's reading, not a value of the model:
 // - the first attempt after each end comes at once;
 // - until the first subscription of the process succeeds, an attempt comes

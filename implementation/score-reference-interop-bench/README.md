@@ -495,7 +495,7 @@ What the relay does:
   relay sets `de4sdv.aebs.frame_server.host` to 127.0.0.1 at each of its
   starts (`--announce-property` in its init file), and the init file sets the
   port property to 4731. Setting the host property also starts the ingress
-  (`de4sdv_aebs_ingress.rc:9-10`), a start that the model does not state yet.
+  (`de4sdv_aebs_ingress.rc:9-13`), as the model states.
 - The clock controls of ASM-MW-030: it logs `CLOCK_REALTIME` minus
   `CLOCK_MONOTONIC` at the start, at each phase start and in each status line,
   and each step of 1 ms or more. For the frames served in a phase it logs the

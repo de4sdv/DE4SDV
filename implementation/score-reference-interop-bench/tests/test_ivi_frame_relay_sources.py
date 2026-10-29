@@ -116,3 +116,14 @@ def test_the_init_file_declares_a_restarted_service_without_a_margin_option():
 def test_the_main_ends_a_process_whose_worker_it_left_behind():
     code = _code(MAIN)
     assert re.search(r"if\s*\(\s*!result\.worker_joined\s*\)\s*\{\s*std::_Exit\(", code)
+
+
+def test_the_main_ends_without_teardown_when_the_gateway_client_is_lost():
+    """A lost client keeps its callbacks registered with the worker; a normal
+    return would destroy the worker before the adapter deletes the client."""
+    code = _code(MAIN)
+    lost = re.search(r"if\s*\(\s*result\.exit_code\s*==\s*(?:de4sdv::ivi_frame_relay::)?kExitGatewayClientLost\s*\)"
+                     r"\s*\{\s*std::_Exit\(\s*result\.exit_code\s*\)\s*;", code)
+    assert lost, "no std::_Exit on the exit code of a lost gateway client"
+    returned = code.index("return result.exit_code;")
+    assert lost.start() < returned, "the main returns before it checks for a lost client"

@@ -20,7 +20,10 @@
 // subscription, so a late callback of an old one is told apart. The library
 // allows one client per process (libsdvgatewayclient.h:473-475), so the
 // adapter never deletes a client to create a new one: it deletes the client
-// only at the stop of the relay.
+// only at a stop of the relay. A lost client (Disconnected, or a failed
+// initComms) is never deleted: the relay then ends its process with
+// std::_Exit, so neither Client_delete nor the destructor of the adapter runs
+// after the loss, and no callback can reach a destroyed sink.
 
 #ifndef DE4SDV_IVI_FRAME_RELAY_SDV_GATEWAY_CLIENT_HPP
 #define DE4SDV_IVI_FRAME_RELAY_SDV_GATEWAY_CLIENT_HPP

@@ -150,7 +150,8 @@ struct PeerIdentity {
   std::int64_t uid{-1};
   bool pid_known{false};
   std::int64_t pid{-1};
-  const char* source{"none"};  // "proc_net_tcp", or "none"
+  std::uint64_t inode{0};      // the inode of the client's socket; 0 when unknown
+  const char* source{"none"};  // "proc_net_tcp", "proc_net_tcp_not_established", or "none"
 };
 
 // Sets a system property, implemented by the shell: on Android with
