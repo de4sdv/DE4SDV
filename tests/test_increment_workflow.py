@@ -63,11 +63,17 @@ CHECKS_BY_STEP = {
         "verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase",
         "verificationCaseHasEvidenceRecordOrStatus",
     },
+    "DefineVariabilityAndConfiguration": {
+        "incrementHasConfiguredProduct", "configuredProductConfiguredByOneConfiguration",
+    },
     "PublishIncrement": {"publishedViewFramesConcern", "publishedViewExposesContent"},
+    "DecideBaselineAndNextSlice": {
+        "incrementHasBaselineDecision", "baselineDecisionStatesDisposition", "openGapStatesDisposition",
+    },
 }
-#: The steps with no executable check: what they declare cannot be checked deterministically (the
-#: guide's coverage section says why). A check added to them is a method decision this test makes visible.
-UNCHECKED_STEPS = {"DefineVariabilityAndConfiguration", "DecideBaselineAndNextSlice"}
+#: The steps with no executable check. Every step has checks now: a step without one is a method decision
+#: this test makes visible.
+UNCHECKED_STEPS: set[str] = set()
 ADVISORY = {
     "expectedArtifactsCoverIncrementContent",
     "needSubjectIsSystemOfInterest",
@@ -96,6 +102,7 @@ CHECK_REGISTRY = {
     "verifiesIncrementRequirement", "verifiedBy", "evidenceRecordOrStatus",
     "framedByViewpoint", "contextSystemOfInterest", "storySubjectBound", "storyActorsBound",
     "featureDeltaOnly", "viewpointFramesConcern", "exposesModelContent",
+    "configuredByOneConfiguration", "dispositionStated",
 }
 
 
@@ -160,7 +167,7 @@ def test_checks_encode_the_accepted_rules_about_step_parameters() -> None:
             assert re.fullmatch(r'"\w+"', fields["check"]), (definition, name)
 
 
-def test_every_step_but_variability_and_baseline_has_checks() -> None:
+def test_every_step_has_checks() -> None:
     steps = {definition for _, _, definition in _steps()}
     assert {definition for definition in steps if not _checks(definition)} == UNCHECKED_STEPS
     assert UNCHECKED_STEPS | set(CHECKS_BY_STEP) == steps

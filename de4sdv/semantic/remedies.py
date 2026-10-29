@@ -903,6 +903,8 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "featureDeltaOnly": lambda request: _feature_delta_only(request),
     "viewpointFramesConcern": lambda request: _viewpoint_frames_concern(request),
     "exposesModelContent": lambda request: _exposes_model_content(request),
+    "configuredByOneConfiguration": lambda request: _configured_by_one_configuration(request),
+    "dispositionStated": lambda request: _disposition_stated(request),
 }
 
 
@@ -1577,3 +1579,73 @@ def check_remedy(view: ModelView, check: str, *, subject: str | None = None, par
 
 
 __all__ = ["Remedy", "SUBJECT_FIRST", "check_remedy", "population_remedy", "subject_declaration"]
+
+
+# ---------------------------------------------------------------------------
+# Configured product (phase 9), baseline decision and open gaps (phase 12)
+
+
+def _projection_note(view: ModelView) -> str:
+    """Which part definitions the configurator generated: the product-model projections a configured product
+    composes, by qualified name."""
+    from .method_checks import configuration_part_definitions
+
+    projections, _problem = configuration_part_definitions(view)
+    names = sorted(view.label(definition) for definition in projections)
+    listed = f": {', '.join(names)}" if names else ""
+    return ("The part is typed by the part definition that the configurator generates from the receipt of its feature "
+            "configuration, in model-based-product-line-engineering/product-models/; the configuration's "
+            f"ProductModelProjectionName annotation names it{listed}. A specialization that adds System 2 "
+            "instrumentation inherits that part and is configured through it.")
+
+
+def _configured_by_one_configuration(request: _Request) -> Remedy:
+    """A configured product that no feature configuration, or more than one, configures: the part that
+    composes its configuration's product-model projection, or one such part only."""
+    from .method_checks import configured_by
+
+    view = request.view
+    lines = _lines(request)
+    if request.subject is None:
+        product = _kernel(view, "ConfiguredProduct")
+        if product is None:
+            return _method_side("the configured product has no validated kernel binding")(request)
+        typed = lines.type(product, "a product that one feature configuration configures")
+        lines.declarations.append(f"part def <ConfiguredProductName> :> {typed};")
+        lines.declarations.append("part <configuredProductName> : <ConfiguredProductName>;")
+        lines.notes.append("Give <ConfiguredProductName> a part that composes its configuration's product-model "
+                           "projection. " + _projection_note(view))
+        where = _where(request)
+        return lines.remedy(f"declare the configured product{' ' + where if where else ''}")
+    target = view.label(request.subject)
+    configurations, usages = configured_by(view, request.subject)
+    if configurations:
+        lines.notes.append(f"{target} composes the projections of {len(configurations)} feature configurations, through "
+                           + ", ".join(f"{view.label(u)} ({view.label(c)})" for c, u in zip(configurations, usages))
+                           + ". Exactly one configuration configures a configured product.")
+        return lines.remedy(f"keep the part of {target} that composes its own configuration's projection, and "
+                            "remove the others")
+    definition = _one_type(view, request.subject)
+    holder = view.label(definition) if definition else target
+    lines.notes.append(_projection_note(view))
+    return lines.remedy(f"in {holder}, add a part typed by the part definition of its feature configuration's "
+                        "product-model projection")
+
+
+def _disposition_stated(request: _Request) -> Remedy:
+    """A baseline decision or an open gap without its disposition: the redefinition that states it."""
+    view = request.view
+    lines = _lines(request)
+    enum = _kernel(view, "LifecycleDisposition")
+    if enum is None:
+        return _method_side("the lifecycle disposition has no validated kernel binding")(request)
+    literals = view.qualified_name(enum) or view.index.name_of(enum) or "LifecycleDisposition"
+    line = "attribute :>> disposition = <disposition>;"
+    lines.notes.append(f"<disposition> is {literals}::accepted, ::deferred or ::invalidated: what the baseline "
+                       "decision does with the result of the increment, or with the open gap. An accepted gap stays "
+                       "open as a known limit; the record of a resolved gap leaves the model instead.")
+    if request.subject is not None:
+        lines.declarations.append(_existing_member(lines, request.subject, line))
+        return lines.remedy(f"state the disposition of {view.label(request.subject)}")
+    lines.declarations.append(_declaration(lines, [line], name=_subject_name(request)))
+    return lines.remedy(f"declare {_parameter_phrase(request)} with its disposition {_where(request)}".rstrip())

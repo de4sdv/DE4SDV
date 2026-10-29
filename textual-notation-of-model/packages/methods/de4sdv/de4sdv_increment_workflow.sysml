@@ -495,11 +495,28 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def DefineVariabilityAndConfiguration :> IncrementStep {
-    doc /* How does this vary across member products or configurations? */
+    doc /* How does this vary across member products or configurations? Rules:
+         * the increment declares at least one configured product, and exactly
+         * one feature configuration configures each. A configuration
+         * configures it when one of its part usages, its own or inherited and
+         * not redefined, is typed by the part definition of that
+         * configuration's product-model projection, bound by validated
+         * identity. A specialization that adds System 2 instrumentation, such
+         * as a test article, is a configured product of its own increment
+         * and never a member. No check reads the variation points yet. */
     attribute :>> phase = MethodPhase::phase9_variabilityConfiguration;
     in part physicalElements[0..*];
     out part variationPoints[0..*];
     out part configuredProducts[1..*] : ProductLineConfiguredProduct;
+
+    metadata incrementHasConfiguredProduct : MethodCheck about configuredProducts {
+      doc /* The increment declares at least one configured product; no runtime or membership claim. */
+      :>> check = "populationMember";
+    }
+    metadata configuredProductConfiguredByOneConfiguration : MethodCheck about configuredProducts {
+      doc /* Exactly one feature configuration configures each configured product of the increment, by the derivation rule of configuredBy; no validity, admission or membership claim. */
+      :>> check = "configuredByOneConfiguration";
+    }
   }
 
   action def PlanVerificationAndEvidence :> IncrementStep {
@@ -550,10 +567,29 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def DecideBaselineAndNextSlice :> IncrementStep {
-    doc /* What is accepted, deferred, or invalidated? */
+    doc /* What is accepted, deferred, or invalidated? Rules: the increment has
+         * exactly one baseline decision, and it states its disposition. Each
+         * open gap of the increment states the disposition that the baseline
+         * decision gives it. The record of a resolved gap leaves the model, so
+         * every gap of the increment is open. The typing identifies the
+         * baseline decision, never a name, and no check reads the baseline
+         * register. */
     attribute :>> phase = MethodPhase::phase12_baselineNextSlice;
     in part charter : IncrementCharter;
     out part baselineDecision : IncrementBaselineDecision;
     out part openGaps[0..*] : IncrementGap;
+
+    metadata incrementHasBaselineDecision : MethodCheck about baselineDecision {
+      doc /* The increment has exactly one baseline decision; the count is the rule, no acceptance claim. */
+      :>> check = "populationMember";
+    }
+    metadata baselineDecisionStatesDisposition : MethodCheck about baselineDecision {
+      doc /* The baseline decision states its disposition (accepted, deferred or invalidated); no acceptance, evidence status or verdict claim. */
+      :>> check = "dispositionStated";
+    }
+    metadata openGapStatesDisposition : MethodCheck about openGaps {
+      doc /* Each open gap of the increment states the disposition that the baseline decision gives it; no claim that the gap is resolved. */
+      :>> check = "dispositionStated";
+    }
   }
 }

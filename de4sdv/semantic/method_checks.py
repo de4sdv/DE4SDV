@@ -1242,6 +1242,152 @@ def _feature_delta_only(view: ModelView, increment: IncrementScope, subject_id: 
 _charter_references_increment.member = INCREMENT_ATTRIBUTE  # type: ignore[attr-defined]
 _charter_applicable_phases.member = PHASES_ATTRIBUTE  # type: ignore[attr-defined]
 _charter_expected_artifacts.member = SCOPE_ATTRIBUTE  # type: ignore[attr-defined]
+# ---------------------------------------------------------------------------
+# Variability and configuration (phase 9)
+# ---------------------------------------------------------------------------
+
+#: The derived relationship whose derivation rule the phase-9 check applies (vocabulary role in the kernel).
+CONFIGURED_BY = "configuredBy"
+#: Why an evaluation without an export cannot derive it.
+EXPORT_DOCUMENTS = "input:export-documents"
+
+
+def configuration_part_definitions(view: ModelView) -> tuple[Mapping[str, tuple[str, ...]], str | None]:
+    """(generated part definition -> the feature configurations whose product-model projection it is; why
+    they cannot be read, or None). The configurations and the projections come from the derivation of the
+    member products (``applies_to_member_product.configuration_projections``): a configuration by the pinned
+    PLEML library, its projection by its ProductModelProjectionName annotation, and the part definition by
+    validated identity (metatype, name, generated document and owner), never by the name alone. It needs
+    the source documents and the external references of an export; an evaluation over the API has neither.
+    Built once per corpus."""
+
+    def build() -> tuple[Mapping[str, tuple[str, ...]], str | None]:
+        if not view.sources or view.external_references is None:
+            return MappingProxyType({}), ("the derivation binds the generated part definitions by their source "
+                                          "documents and reads the export's external references, and this "
+                                          "evaluation has neither (for example over the API)")
+        from de4sdv.sysml_api.product_line_scope import validate_scope_elements
+
+        from .applies_to_member_product import MemberProductError, configuration_projections
+        from .pleml_configuration import PlemlShapeError
+
+        bindings = view.traversal.kernel_bindings
+        if bindings is None:
+            return MappingProxyType({}), "no validated kernel binding index"
+        try:
+            rows = configuration_projections(
+                view.elements, view.sources,
+                kernel_bindings={binding.ontology_class: binding.element_id for binding in bindings.bindings},
+                external_references=view.external_references,
+                governed_scope=validate_scope_elements(view.elements, view.sources))
+        except (MemberProductError, PlemlShapeError, IdentityNotFoundError, ValueError) as error:
+            return MappingProxyType({}), f"the feature configurations cannot be read: {error}"
+        found: dict[str, list[str]] = {}
+        for row in rows:
+            if row["part_definition"]:
+                found.setdefault(str(row["part_definition"]), []).append(str(row["element_id"]))
+        return MappingProxyType({definition: tuple(found[definition]) for definition in found}), None
+
+    return view.index.memo(("configuration-part-definitions",), build)
+
+
+def _redefined_features(view: ModelView, feature: str) -> set[str]:
+    """The features ``feature`` redefines, declared or by the language rule (an implied Redefinition),
+    transitively; subsetting replaces nothing."""
+    found: set[str] = set()
+    frontier = [feature]
+    while frontier:
+        current = frontier.pop()
+        for relationship in view.index.owned_relationships(current, "Redefinition"):
+            for target in reference_ids(relationship.get("redefinedFeature")):
+                if target not in found:
+                    found.add(target)
+                    frontier.append(target)
+    return found
+
+
+def effective_part_usages(view: ModelView, product: str) -> list[str]:
+    """The effective part usages of a configured product: its own part usages, then those of the definitions
+    it is typed by and that they specialize (nearest first), less the inherited usages that a nearer usage
+    redefines."""
+    found: list[str] = []
+    redefined: set[str] = set()
+    for holder in (product, *type_lineage(view, product)):
+        for usage in view.index.owned_members(holder, "PartUsage"):
+            if usage not in found and usage not in redefined:
+                found.append(usage)
+                redefined.update(_redefined_features(view, usage))
+    return [usage for usage in found if usage not in redefined]
+
+
+def configured_by(view: ModelView, product: str) -> tuple[list[str], list[str]]:
+    """(the feature configurations that configure a configured product, the effective part usages through
+    which they do): a configuration configures it when one of its effective part usages is typed by the
+    part definition of that configuration's product-model projection."""
+    projections, _problem = configuration_part_definitions(view)
+    configurations: list[str] = []
+    usages: list[str] = []
+    for usage in effective_part_usages(view, product):
+        for definition in sorted(view.index.typed_by(usage)):
+            for configuration in projections.get(definition, ()):
+                if configuration not in configurations:
+                    configurations.append(configuration)
+                    usages.append(usage)
+    return configurations, usages
+
+
+def _configured_by_one_configuration(view: ModelView, increment: IncrementScope,
+                                     subject_id: str) -> me.PredicateOutcome:
+    """Exactly one feature configuration configures the configured product (the derivation rule of
+    configuredBy): one of its effective part usages, its own or inherited and not redefined, is typed by the
+    part definition of that configuration's product-model projection. A specialization that adds System 2
+    instrumentation is configured through what it inherits; no member follows from it."""
+    name = _name(view, subject_id)
+    _projections, problem = configuration_part_definitions(view)
+    if problem is not None:
+        return indeterminate(EXPORT_DOCUMENTS if problem.startswith("the derivation binds")
+                             else MODEL_WITNESS_PREFIX + CONFIGURED_BY, f"{name}: {problem}")
+    configurations, usages = configured_by(view, subject_id)
+    if len(configurations) == 1:
+        return satisfied(configurations, usages)
+    if not configurations:
+        return violated(f"{name} is configured by no feature configuration: none of its part usages, its own "
+                        "or inherited, is typed by the part definition of a configuration's product-model "
+                        "projection")
+    return violated(f"{name} is configured by {len(configurations)} feature configurations "
+                    f"({', '.join(_name(view, c) for c in configurations)}); exactly one configures a configured "
+                    "product", [f"{_name(view, c)} through {_name(view, u)}" for c, u in zip(configurations, usages)])
+
+
+# ---------------------------------------------------------------------------
+# Baseline decision and open gaps (phase 12)
+# ---------------------------------------------------------------------------
+
+#: The kernel enumeration of a disposition (accepted, deferred, invalidated) and the feature that holds it.
+LIFECYCLE_DISPOSITION = "LifecycleDisposition"
+DISPOSITION_FEATURE = "disposition"
+
+
+def lifecycle_disposition(view: ModelView, subject_id: str) -> str | None:
+    """The literal of the kernel's LifecycleDisposition that the subject's own disposition references, or
+    None. Raises :class:`MethodSideInput` when the enumeration has no validated kernel binding."""
+    enums = kernel_lineage(view, LIFECYCLE_DISPOSITION)
+    literals = [str(leaf.value) for leaf in view.index.feature_values(subject_id, DISPOSITION_FEATURE)
+                if leaf.kind == "reference" and view.index.owner_of(str(leaf.value)) in enums]
+    return literals[0] if literals else None
+
+
+def _disposition_stated(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The baseline decision, or an open gap of the increment, states its disposition: its own
+    ``disposition`` references a literal of the kernel's LifecycleDisposition (accepted, deferred or
+    invalidated). A resolved gap's record leaves the model, so every gap in scope is open."""
+    literal = lifecycle_disposition(view, subject_id)
+    if literal is not None:
+        return satisfied([literal], [subject_id])
+    return violated(f"{_name(view, subject_id)} states no disposition: its disposition references no literal of "
+                    "LifecycleDisposition (accepted, deferred or invalidated)")
+
+
 _expected_artifacts_cover_content.member = SCOPE_ATTRIBUTE  # type: ignore[attr-defined]
 _subject_is_system_of_interest.member = SYSTEM_OF_INTEREST_ATTRIBUTE  # type: ignore[attr-defined]
 _context_system_of_interest.member = CONTEXT_SYSTEM_OF_INTEREST  # type: ignore[attr-defined]
@@ -1281,13 +1427,16 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "featureDeltaOnly": _feature_delta_only,
     "viewpointFramesConcern": _viewpoint_frames_concern,
     "exposesModelContent": _exposes_model_content,
+    "configuredByOneConfiguration": _configured_by_one_configuration,
+    "dispositionStated": _disposition_stated,
 })
 
 #: Check id -> the most distinct targets the check accepts (absent: unbounded).
 CHECK_MAXIMUM: Mapping[str, int] = MappingProxyType({
     check: 1 for check in ("incrementShortName", "charterReferencesIncrement", "ownedByIncrementPackage",
                            "charterOwner", "sourceAttribute", "rationaleAttribute", "oneNativeSubject",
-                           "oneVerificationMethodKind", "successCriteriaAttribute")
+                           "oneVerificationMethodKind", "successCriteriaAttribute", "configuredByOneConfiguration",
+                           "dispositionStated")
 })
 
 

@@ -28,9 +28,10 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization::SCOREMiddlewareIntegrationLayerRealization;
+  private import DE4SDV_ProductLine::ProductLineConfiguredProduct;
   private import Views::*;
 
-  part def MiddlewareAutowareSCOREConfiguredProduct {
+  part def MiddlewareAutowareSCOREConfiguredProduct :> ProductLineConfiguredProduct {
     doc /*
      * The configured product of the Eclipse S-CORE reference configuration.
      * It holds the generated platform-stack projection and the realization of
@@ -70,6 +71,8 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * configuration is not admitted. If the owner admits the member in phase
      * 12, it specializes the new member definition. The AAOS-integrated
      * configured member specializes its member definition in the same way.
+     * It specializes the kernel's ProductLineConfiguredProduct, the
+     * configured product of phase 9 (owner decision of 2026-10-29).
      */
     part platformStack : MiddlewareAutowareSCOREReference;
     part integrationLayer : SCOREMiddlewareIntegrationLayerRealization;
