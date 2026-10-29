@@ -350,6 +350,9 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * - the ingress disconnects in the event;
      * - another client holds the stream of the frame assembler;
      * - ASM-MW-030 does not hold.
+     * If the run's records show a second client on port 4721, the execution
+     * slice records a bench discrepancy before any fail counts against the
+     * layer. Such a client breaks ASM-MW-029, so the run never passes.
      * So no phase end in the AEBS event lets the run pass. So the case also
      * checks the order part of ASM-MW-032 end to end, on the AAOS SDV hops.
      */

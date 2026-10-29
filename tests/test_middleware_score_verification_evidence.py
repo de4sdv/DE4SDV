@@ -353,6 +353,11 @@ def test_the_source_order_case_records_every_phase_end() -> None:
                       "Otherwise the three conditions below make the run inconclusive.",
                       "- the ingress disconnects in the event; - another client holds the stream of the frame "
                       "assembler; - ASM-MW-030 does not hold.",
+                      # A second client can starve the adapter and end the phase by the relay's timeout: a bench
+                      # fault, so a discrepancy record comes first, and the run still never passes.
+                      "If the run's records show a second client on port 4721, the execution slice records a bench "
+                      "discrepancy before any fail counts against the layer. Such a client breaks ASM-MW-029, so the "
+                      "run never passes.",
                       "So no phase end in the AEBS event lets the run pass.",
                       "A DATA_LOSS of the relay in the event is a sequence gap.",
                       # The sport list counts the clients of the frame assembler; only dport names a client process.

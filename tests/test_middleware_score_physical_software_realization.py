@@ -556,9 +556,15 @@ def test_the_host_isolation_is_an_obligation_with_an_open_gap() -> None:
                  "the IVI VM cannot redirect the subscription",
                  "(5) provision the relay for the IVI VM:",
                  "install exactly one ACL file for the relay's subject before the IVI VM boots",
-                 "(7) check on the host with ss -H -t -n -p state established '( sport = :4721 )'",
+                 # The sport list counts the clients of the frame assembler; only dport names a client process
+                 # (form review S-R4 of phase 10).
+                 "(7) check on the host that the adapter is the only client of the frame assembler (ASM-MW-029), in "
+                 "two steps: the list of ss -H -t -n -p state established '( sport = :4721 )' holds exactly one "
+                 "connection, with a loopback address as its peer, and ss -H -t -n -p state established "
+                 "'( dport = :4721 )' names the adapter process for the port of that peer;",
                  "and record every phase end of the relay"):
         assert step in action, step
+    assert "(7) check on the host with ss" not in action, "the one-step client check names no client process"
     assert ("the frame assembler binds 0.0.0.0:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), and the adapter "
             "connects to 127.0.0.1:4721 on the host loopback") in text
     assert "on the host loopback, 127.0.0.1:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35)" not in text, "citation"
