@@ -35,7 +35,11 @@ setup() {
   "${S[@]}" root >/dev/null 2>&1 || true
   _guest "settings put global auto_time 0; settings put global auto_time_zone 0" 2>/dev/null || true
   # Prove the IVI reaches the server from its default network before relying on it
-  # (spike T8 saw TCP to .1 fail via buried_eth0).
+  # (spike T8 saw TCP to .1 fail via buried_eth0). The reachability gate uses the
+  # image's ping; check it exists first, since not every Android image ships it.
+  if [ -z "$(_guest 'command -v toybox ping ping 2>/dev/null' | tr -d '\r')" ]; then
+    log "ERROR: no ping on the IVI image; use another reachability check (an SNTP query to $SNTP_SERVER)"; return 1
+  fi
   if ! _guest "toybox ping -c1 -W2 $SNTP_SERVER >/dev/null 2>&1"; then
     log "ERROR: the IVI VM cannot reach $SNTP_SERVER; add a guest route or fix buried_eth0 routing first"; return 1
   fi
@@ -46,10 +50,27 @@ setup() {
   log "IVI clock set once against $SNTP_SERVER"
   _guest "stop de4sdv_ivi_sntp_slew 2>/dev/null; nohup toybox sntp -a -d -r 6 $SNTP_SERVER >/dev/null 2>&1 &" || true
   log "started an SNTP slew (adjust mode, re-query every 64 s); if the image sntp has no slew, size each session from the drift"
-  # Restart the ingress so its stale-timeout baseline is after the setting
-  # (#448 condition 2). The relay's trigger property re-starts the oneshot ingress.
+  # Restart the ingress so its subscription phase starts after the setting
+  # (#448 condition 2). init ignores `start` for a service that is already
+  # running, so the oneshot ingress must be stopped first; the relay's
+  # ingress-start property then starts a fresh ingress, which the relay accepts
+  # as a new client and logs as a new phase_start (review R37).
+  _guest "stop de4sdv_aebs_ingress" || true
+  local i
+  for i in $(seq 1 15); do
+    [ "$(_guest 'getprop init.svc.de4sdv_aebs_ingress' | tr -d '\r')" = stopped ] && break; sleep 0.5
+  done
   _guest "setprop de4sdv.aebs.ingress.start 0; setprop de4sdv.aebs.ingress.start 1" || true
-  log "restarted the ingress after the clock setting"
+  log "stopped and restarted the ingress after the clock setting; a new relay phase_start must follow"
+  # The relay's logcat tag is a required input (the relay lane owns it; it is
+  # not written into this file, review R23/coupling). With it set, confirm a
+  # new phase_start after the setting.
+  if [ -n "${RELAY_LOGCAT_TAG:-}" ]; then
+    _guest "logcat -d -t 400 ${RELAY_LOGCAT_TAG}:* '*:S' 2>/dev/null | grep -m1 '\"event\":\"phase_start\"'" 2>/dev/null \
+      | tr -d '\r' | sed 's/^/new phase: /' || log "NOTE: no new phase_start seen yet; the ingress may not have reconnected"
+  else
+    log "NOTE: RELAY_LOGCAT_TAG unset; export it to confirm the new phase_start after the setting"
+  fi
 }
 
 measure() {

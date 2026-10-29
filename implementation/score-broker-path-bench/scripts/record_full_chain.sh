@@ -15,7 +15,8 @@
 set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/bench_env.sh"
-OUT="${2:?usage: $0 {start|hmi|stop} <out-dir>}"; mkdir -p "$OUT"
+[ -n "${2:-}" ] || { echo "usage: $0 {start|hmi|stop} <out-dir>" >&2; exit 2; }
+OUT="$2"; mkdir -p "$OUT"
 : "${HOST_STACK_UNITS:=de4sdv-*}"          # the host-half units the run uses (set to the Launch Manager's units)
 : "${APP_TAG:=MainActivity}"               # the HMI app's logcat tag (INC-AEBS-010)
 

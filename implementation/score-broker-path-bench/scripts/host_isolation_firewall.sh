@@ -43,8 +43,13 @@ ports_nft_set() {
 add() {
   require_cmd nft ip bridge || { log "install nftables and iproute2 first"; return 1; }
   local dds; dds="$(ports_nft_set)"
-  # REQ-MW-016: by-interface drop (every interface except lo).
+  # REQ-MW-016: by-interface drop (every interface except lo). The two lines
+  # before the block make the load idempotent: a re-run replaces the table
+  # rather than appending the rules again (nft 1.0.2 has no `destroy`, so
+  # `add table` ensures it exists and `delete table` then clears it; review R4).
   if ! sudo nft -f - <<NFT
+add table inet ${TABLE_INET}
+delete table inet ${TABLE_INET}
 table inet ${TABLE_INET} {
   set dds_domain_udp { type inet_service; flags interval; elements = { ${dds} } }
   chain input {
@@ -66,6 +71,8 @@ NFT
     return 1
   fi
   if ! sudo nft -f - <<NFT
+add table bridge ${TABLE_BRIDGE}
+delete table bridge ${TABLE_BRIDGE}
 table bridge ${TABLE_BRIDGE} {
   chain input {
     type filter hook input priority filter; policy accept;

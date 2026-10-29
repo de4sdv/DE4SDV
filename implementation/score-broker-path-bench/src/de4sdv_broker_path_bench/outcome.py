@@ -2,9 +2,11 @@
 
 The names are the literals of MiddlewareEvidenceOutcome of INC-MW-010
 (middleware_verification_evidence.sysml). The verdict follows
-MapEvidenceOutcomeToVerdict of the same slice: both pass outcomes give pass,
-failObservedBehavior gives fail, errorEvidence gives error, and every other
-outcome gives inconclusive.
+MapEvidenceOutcomeToVerdict of the same slice: the one pass outcome this bench
+emits (passBoundedVerification) gives pass, failObservedBehavior gives fail,
+errorEvidence gives error, and every other outcome gives inconclusive. The
+vocabulary also holds passBoundedValidation, which the verification cases do
+not use.
 
 Precedence (#448, VC-MW-015): a failure dominates only when its evidence does
 not depend on an inconclusive condition. A finding may name the code of a

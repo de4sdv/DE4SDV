@@ -19,7 +19,7 @@ Decision authority: Orkun.
 | Requirements | REQ-MW-014, REQ-MW-015, REQ-MW-016 (two findings), REQ-MW-019 @ main |
 | Verification cases | #448 at `5d14317c`, branch `model/score-phase-10-broker-path` (VC-MW-015 to VC-MW-020 on the broker path). The evaluators follow this head; rebind when it moves |
 | Host half | the S-CORE reference interop bench (`../score-reference-interop-bench`): the adapter, gatewayd, someipd, ASM-MW-021 pins |
-| Relay | #439 at `21882005`, branch `feat/score-someip-receiver`, the IVI frame relay (binary `de4sdv_ivi_frame_relay`, its init file, tag `de4sdv_ivi_frame_relay`, subject `de4sdv.ivi_frame_relay`/`IviFrameRelay`/`default`) |
+| Relay | #439 at `5df6c360`, branch `feat/score-someip-receiver`, the IVI frame relay (binary `de4sdv_ivi_frame_relay`, its init file, tag `de4sdv_ivi_frame_relay`, subject `de4sdv.ivi_frame_relay`/`IviFrameRelay`/`default`); the relay records the bench parses are unchanged at this head |
 | Spike facts | design data only (GAP-MW-038, GAP-MW-039, GAP-MW-047, GAP-MW-048); not evidence of record |
 | System 2 VM | GAP-MW-044: `de4sdv-aaos-build`, n2-standard-16, europe-west4, nested virtualization, from the snapshot of 2026-10-14 |
 
@@ -84,9 +84,14 @@ Both VMs sit on the host bridge `cvd-ebr`; each also has a network of its own
    has died" and from VmHealth. An IVI SD agent or gateway failure needs an IVI
    reboot (`recover_core_vm.sh`, `launch_two_vms.sh reboot-ivi`).
 8. **Evidence of record.** Every script and configuration lives in this repo;
-   the spike's live in `~/.hermes`. Each run records the image digests, the
-   model revision, the S-CORE commits, and the digests of every binary and
-   configuration.
+   the spike's live in `~/.hermes`. `build_sdv_core_image.sh` records the SDV
+   Core image identity on a successful clean build: the resolved manifest
+   digest, the repo status, the `device/google/sdv` diff digest, the build
+   fingerprint, the image hashes and the staged overlay files at their
+   destinations. The IVI image, the relay binary and init digests, the DE4SDV
+   SHA, the S-CORE commits and the boot arguments are not yet recorded by a
+   script; the operator records them from the console until the run manifest
+   (next slice) covers them. This is a known limit, not a pass condition.
 
 ## Verification cases and where they run
 
@@ -101,11 +106,15 @@ Both VMs sit on the host bridge `cvd-ebr`; each also has a network of its own
 The guard-rail checks that phase 8 assigns to phase 10 (the relay's phase
 starts and stored frames, the resubscription behaviour, the copy window, the
 clock steps) are preflight checks of this bench. They verify no requirement,
-so no case of record holds them, and the evaluators record them as
-measurements. The outage, long-session, link-loss, VM-reboot, corrupted-payload
-and malformed-wrapper cases of next-action steps 9 and 10 run in S1 to S3 as
-the preflight of VC-MW-015/016/020 and of the relay's discard rule; where one
-of them verifies a requirement, its case holds it as a step.
+so no case of record holds them. The evaluators record the measurements they
+read off the raw artifacts (the phase count, the judged and band frame counts,
+the clock offsets at start and end, the largest inter-arrival gap); the stored
+frames, the copy window and the per-phase clock steps come from the relay's
+own log, which the operator reviews. The outage, long-session, link-loss,
+VM-reboot, corrupted-payload and malformed-wrapper cases of next-action steps 9
+and 10 run in S1 to S3 as the preflight of VC-MW-015/016/020 and of the relay's
+discard rule; where one of them verifies a requirement, its case holds it as a
+step.
 
 ## Sequence and estimates
 
@@ -158,6 +167,27 @@ No safety, cybersecurity, compliance, certification or homologation statement
 is made. The HMI stays an informational display. Google's reference stack is a
 non-production reference sample; no SOME/IP conformance or AAOS SDV
 compatibility claim is made.
+
+## Known limits
+
+None of these blocks the first VM session; the operator confirms them by hand.
+
+| Step | Status in S1 |
+|---|---|
+| Disk and prune | Manual (the S0 check and Orkun's decision); the build checks a disk floor |
+| Tree identity | Scripted (resolved manifest, repo status, device diff), except the samples clean status before staging |
+| Image inspection (broker descriptor, stack config loaded, no offer from .3, `REMOTE SUBSCRIBE`) | Manual; the SD capture is recorded but not judged |
+| Launch | Core asserted (`ro.boot.sdv.*`, UNLOCKED, SOME/IP on, SD connection); the IVI and SD-agent lines only logged; guest survival manual |
+| IVI authorization | Install and the one-file-per-subject check scripted; the post-boot relay checks only logged |
+| Real frame source | Manual (the host runs the real frame assembler, not a synthetic source) |
+| Clock | Scripted (chrony allow, auto_time off, set and slew, two measurements, the ingress restart); the host-step log and the `ping`/`tcpdump` presence checks assume the image carries them |
+| Captures | Scripted; the kernel drop count is read from the capture tool's exit line, not the pcap |
+| Firewall and probe | Scripted; the bridge-family SOME/IP rule is checked only on the VM (no `nf_tables` bridge family on the build host); the probe is serialized and takes tens of minutes |
+| VLAN 2 Data Tunnel capture | Recorded by `capture_case.sh`, retained for review; the evaluator corroborates the phase start with the loopback accept, not this capture |
+| Spoofed SD offer | Scripted (`send_sd_offer.sh`); the provider after the offer is read from the SD capture |
+| HMI recording | The MONITORING gate is scripted on the app's real line; the MP4 is validated by hand |
+| 2048-byte boundary | Manual (a 2044-byte frame end to end) |
+| Run manifest | Partial: the core image identity is recorded; the IVI image, the relay and init digests, the DE4SDV SHA, the S-CORE commits and the boot arguments are recorded from the console until the next slice adds the full manifest |
 
 ## Handoff
 

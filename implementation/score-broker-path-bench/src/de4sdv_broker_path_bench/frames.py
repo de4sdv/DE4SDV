@@ -240,11 +240,13 @@ def split_frames(stream: TcpStream, connection: int,
         length = struct.unpack("<I", data[index:index + 4])[0]
         end = index + 4 + length
         # A frame whose bytes span a capture discontinuity cannot be read. A
-        # frame that starts exactly at a gap boundary is intact (the gap is
-        # before it), so the check is strict and the resync starts at the gap
-        # offset, not one byte past the bad prefix, so the frame after the gap
-        # is not lost (a frame at a gap is unknown, not a missing delivery).
-        spanned = [gap for gap in gap_offsets if index < gap < end]
+        # gap at the frame's own start offset means the length prefix itself is
+        # post-gap and unreliable, so the check includes the start (index): the
+        # resync then starts at the gap, finds the next real boundary and reads
+        # the frame after the gap where one exists, or reports no resync; it
+        # never trusts the prefix at a gap (review R38). A frame after the gap
+        # is unknown, not a missing delivery.
+        spanned = [gap for gap in gap_offsets if index <= gap < end]
         if not 1 <= length <= max_frame or spanned:
             if spanned:
                 reason = "a capture gap"
@@ -257,8 +259,14 @@ def split_frames(stream: TcpStream, connection: int,
                             + (f"resynchronized at {found}" if found is not None else "no resync"))
             if found is None:
                 return frames, problems
-            index = found
-            continue
+            if found == index:
+                # The real boundary is here: the gap sat before this frame, which
+                # is intact. Drop the gaps at or before it so the resync does not
+                # repeat, and read the frame (the problem is already recorded).
+                gap_offsets = [gap for gap in gap_offsets if gap > index]
+            else:
+                index = found
+                continue
         if end > len(data):
             problems.append(f"incomplete last frame at offset {index} ({len(data) - index} of {4 + length} bytes)")
             break

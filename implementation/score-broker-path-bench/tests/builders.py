@@ -220,3 +220,33 @@ def clock_pcap(offset_ns: int, at_ns: int, marker: int = 0x1234, one_way_ns: int
     response = bytes([0x24]) + bytes(23) + struct.pack(">Q", marker) + _ntp_ts(t2) + _ntp_ts(t2)
     return pcap([(t1, udp_datagram("192.168.98.118", "192.168.98.1", 40000, 123, request)),
                  (t4, udp_datagram("192.168.98.1", "192.168.98.118", 123, 40000, response))])
+
+
+# ------------------------------------------------------------ SOME/IP-SD
+
+SD_PORT = 30490
+SD_OFFER, SD_SUBSCRIBE = 0x01, 0x06
+
+
+def sd_entry(entry_type: int, service: int, instance: int, *, major: int = 1, ttl: int = 3,
+             eventgroup: int | None = None, first_option: int = 0, options: int = 0) -> bytes:
+    """One 16-byte SOME/IP-SD entry: a service entry, or an eventgroup entry when eventgroup is set."""
+    head = struct.pack(">BBBBHHB", entry_type, first_option, 0, (options & 0x0F) << 4, service, instance, major)
+    head += ttl.to_bytes(3, "big")
+    tail = struct.pack(">I", 0) if eventgroup is None else struct.pack(">HH", 0, eventgroup)
+    return head + tail
+
+
+def sd_ipv4_endpoint(address: str, port: int, protocol: int = 0x06) -> bytes:
+    """An IPv4 Endpoint option (type 0x04)."""
+    raw = bytes(int(part) for part in address.split("."))
+    return struct.pack(">HBB", 9, 0x04, 0) + raw + struct.pack(">BBH", 0, protocol, port)
+
+
+def sd_message(entries: list[bytes], options: list[bytes] = (), *, session: int = 1, flags: int = 0xC0) -> bytes:
+    """A SOME/IP-SD message: the SOME/IP header (service 0xFFFF, method 0x8100) and the SD payload."""
+    entries_raw, options_raw = b"".join(entries), b"".join(options)
+    payload = struct.pack(">B3x", flags) + struct.pack(">I", len(entries_raw)) + entries_raw
+    payload += struct.pack(">I", len(options_raw)) + options_raw
+    header = struct.pack(">HHI", 0xFFFF, 0x8100, 8 + len(payload)) + struct.pack(">HHBBBB", 0, session, 1, 1, 2, 0)
+    return header + payload

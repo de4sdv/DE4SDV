@@ -213,14 +213,31 @@ def test_vc016_rg_unproduced_received_frame_fails(tmp_path):
 
 
 # ------------------------------------------------------------ VC-MW-017
+#
+# These cases feed the probe artifacts of the new contract (probe.py): the
+# firewall validity record, the per-probe observation (send status, the
+# capture witness in captured_markers.json, the drop-counter delta) and the
+# control with its capture, counter and delivery. The detailed judgement is
+# in tests/test_probe.py; these cover the outcome mapping of the case.
+
+def _marker(port, guest="ivi", iface="eth1", host="192.168.98.1"):
+    return f"MARK:{guest}-{iface}-{host}-{port}"
+
+
+def _udp_probe(port, *, counter=True, sent="sent", guest="ivi", iface="eth1", host="192.168.98.1"):
+    return {"guest": guest, "interface": iface, "src_addr": "192.168.98.118", "host": host, "port": port,
+            "protocol": "udp", "marker": _marker(port, guest, iface, host), "send_status": sent,
+            "counter_moved": counter, "guest_connected": None}
+
 
 def _vc017(tmp_path, **files):
     base = dict(
-        host_listeners__json=[{"port": 30160, "protocol": "udp", "element_in_layer": True, "element": "adapter"}],
-        probe_attempts__json=[{"guest": "ivi", "interface": "eth1", "host": "192.168.98.1", "port": 30160,
-                               "protocol": "udp", "marker": "ivi-eth1-30160", "result": "sent"}],
-        host_socket_receipts__json={"udp_markers": [], "tcp_connects": []},
-        control__json={"reached": True, "detail": "control arrived"},
+        firewall__json={"inet_table_present": True, "dds_counters_readable": True, "tcp_counters_readable": True},
+        host_listeners__json=[{"address": "0.0.0.0", "port": 30160, "protocol": "udp", "element": "de4sdv_score_ad",
+                               "pid": 11, "element_in_layer": True}],
+        probe_attempts__json=[_udp_probe(30160, counter=True)],
+        captured_markers__json={"udp_markers": [_marker(30160)], "tcp_syns": []},
+        control__json={"captured": True, "counter_moved": False, "delivered": True, "detail": "control arrived"},
         coverage__json={"per_guest": {"ivi": {"expected_interfaces": ["eth1"], "probed_interfaces": ["eth1"],
                                               "expected_host_addresses": ["192.168.98.1"],
                                               "probed_host_addresses": ["192.168.98.1"]}}},
@@ -231,28 +248,36 @@ def _vc017(tmp_path, **files):
     return evaluators.load_run(write(tmp_path, **base))
 
 
-def test_vc017_passes_when_nothing_is_reachable(tmp_path):
+def test_vc017_passes_when_the_firewall_drops_every_probe(tmp_path):
     run = _vc017(tmp_path)
     assert evaluators.evaluate_isolation(run).outcome == outcome.PASS, evaluators.evaluate_isolation(run).as_dict()
 
 
+def test_vc017_no_firewall_table_is_inconclusive(tmp_path):
+    run = _vc017(tmp_path,
+                 firewall__json={"inet_table_present": False, "dds_counters_readable": False,
+                                 "tcp_counters_readable": False},
+                 probe_attempts__json=[_udp_probe(30160, counter=None)],
+                 control__json={"captured": True, "counter_moved": None, "delivered": True, "detail": "no table"})
+    assert evaluators.evaluate_isolation(run).outcome == outcome.INCONCLUSIVE
+
+
 def test_vc017_e12_layer_port_reached_fails_even_if_control_fails(tmp_path):
     run = _vc017(tmp_path,
-                 host_socket_receipts__json={"udp_markers": ["ivi-eth1-30160"], "tcp_connects": []},
-                 control__json={"reached": False, "detail": "control lost"})
+                 probe_attempts__json=[_udp_probe(30160, counter=False)],  # captured, not dropped: reached
+                 control__json={"captured": False, "counter_moved": None, "delivered": False, "detail": "control lost"})
     assert evaluators.evaluate_isolation(run).outcome == outcome.FAIL
 
 
 def test_vc017_e13_only_4721_reached_is_not_a_requirement_failure(tmp_path):
     run = _vc017(
         tmp_path,
-        host_listeners__json=[{"port": 4721, "protocol": "tcp", "element_in_layer": False, "element": "assembler"}],
-        probe_attempts__json=[{"guest": "ivi", "interface": "eth1", "host": "192.168.98.1", "port": 4721,
-                               "protocol": "tcp", "marker": "ivi-eth1-4721", "result": "connected"}],
-        host_socket_receipts__json={"udp_markers": [], "tcp_connects": [{"port": 4721, "guest": "ivi"}]},
-        coverage__json={"per_guest": {"ivi": {"expected_interfaces": ["eth1"], "probed_interfaces": ["eth1"],
-                                              "expected_host_addresses": ["192.168.98.1"],
-                                              "probed_host_addresses": ["192.168.98.1"]}}},
+        host_listeners__json=[{"address": "0.0.0.0", "port": 4721, "protocol": "tcp", "element": "python3",
+                               "pid": 12, "element_in_layer": False}],
+        probe_attempts__json=[{"guest": "ivi", "interface": "eth1", "src_addr": "192.168.98.118",
+                               "host": "192.168.98.1", "port": 4721, "protocol": "tcp", "marker": _marker(4721),
+                               "send_status": "sent", "counter_moved": False, "guest_connected": True}],
+        captured_markers__json={"udp_markers": [], "tcp_syns": [{"host": "192.168.98.1", "port": 4721}]},
     )
     res = evaluators.evaluate_isolation(run)
     assert res.outcome == outcome.PASS
@@ -261,13 +286,10 @@ def test_vc017_e13_only_4721_reached_is_not_a_requirement_failure(tmp_path):
 
 def test_vc017_other_process_reachable_fails_only_when_asm031_holds(tmp_path):
     base = dict(
-        host_listeners__json=[{"port": 30161, "protocol": "udp", "element_in_layer": False, "element": "ros2cli"}],
-        probe_attempts__json=[{"guest": "ivi", "interface": "eth1", "host": "192.168.98.1", "port": 30161,
-                               "protocol": "udp", "marker": "m", "result": "sent"}],
-        host_socket_receipts__json={"udp_markers": ["m"], "tcp_connects": []},
-        coverage__json={"per_guest": {"ivi": {"expected_interfaces": ["eth1"], "probed_interfaces": ["eth1"],
-                                              "expected_host_addresses": ["192.168.98.1"],
-                                              "probed_host_addresses": ["192.168.98.1"]}}},
+        host_listeners__json=[{"address": "0.0.0.0", "port": 30161, "protocol": "udp", "element": "component_conta",
+                               "pid": 13, "element_in_layer": False}],
+        probe_attempts__json=[_udp_probe(30161, counter=False)],  # captured, not dropped: reached
+        captured_markers__json={"udp_markers": [_marker(30161)], "tcp_syns": []},
     )
     holds = _vc017(tmp_path / "a", asm_mw_031__json={"holds": True}, **base)
     assert evaluators.evaluate_isolation(holds).outcome == outcome.FAIL
@@ -276,7 +298,15 @@ def test_vc017_other_process_reachable_fails_only_when_asm031_holds(tmp_path):
 
 
 def test_vc017_control_failure_is_inconclusive(tmp_path):
-    run = _vc017(tmp_path, control__json={"reached": False, "detail": "no control"})
+    run = _vc017(tmp_path, control__json={"captured": False, "counter_moved": None, "delivered": False,
+                                          "detail": "no control"})
+    assert evaluators.evaluate_isolation(run).outcome == outcome.INCONCLUSIVE
+
+
+def test_vc017_control_captured_but_not_delivered_is_inconclusive(tmp_path):
+    # fw_emul_ctrl_blocked: the control was captured and not dropped by the bench rule, but not delivered.
+    run = _vc017(tmp_path, control__json={"captured": True, "counter_moved": False, "delivered": False,
+                                          "detail": "control datagram not delivered"})
     assert evaluators.evaluate_isolation(run).outcome == outcome.INCONCLUSIVE
 
 
@@ -289,11 +319,12 @@ def test_vc017_coverage_gap_is_inconclusive(tmp_path):
 
 def test_vc017_missing_inspection_is_inconclusive(tmp_path):
     run = write(tmp_path,
+                firewall__json={"inet_table_present": True, "dds_counters_readable": True,
+                                "tcp_counters_readable": True},
                 host_listeners__json=[],
-                probe_attempts__json=[{"guest": "ivi", "interface": "eth1", "host": "192.168.98.1", "port": 30160,
-                                       "protocol": "udp", "marker": "m", "result": "sent"}],
-                host_socket_receipts__json={"udp_markers": [], "tcp_connects": []},
-                control__json={"reached": True, "detail": "ok"},
+                probe_attempts__json=[_udp_probe(30160, counter=True)],
+                captured_markers__json={"udp_markers": [_marker(30160)], "tcp_syns": []},
+                control__json={"captured": True, "counter_moved": False, "delivered": True, "detail": "ok"},
                 coverage__json={"per_guest": {"ivi": {"expected_interfaces": ["eth1"], "probed_interfaces": ["eth1"],
                                                       "expected_host_addresses": ["192.168.98.1"],
                                                       "probed_host_addresses": ["192.168.98.1"]}}},
@@ -360,11 +391,22 @@ def test_vc020_rb_raw_comparison_flags_an_offset_hidden_violation(tmp_path):
     assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.FAIL
 
 
-def test_vc020_clock_failure_suppresses_the_violation_to_inconclusive(tmp_path):
-    frame = b.frame(7, T_SUB - 5_000_000_000)  # clearly old, would be a violation
+def test_vc020_clock_failure_suppresses_a_small_violation_to_inconclusive(tmp_path):
+    # A failed ASM-MW-030 (50 ms offset) suppresses a violation that is within the
+    # clock offset plus uncertainty plus 20 ms: it may be only the clock (review R19).
+    frame = b.frame(7, T_SUB - 40_000_000)  # 40 ms before the start, below 20 + 50 + uncertainty
     records = b.stream_records(4731, [frame], t0=T_SUB + 100_000_000)
-    run = _vc020(tmp_path, records, phase_logcat(T_SUB), offset_ns=50_000_000)  # 50 ms offset: ASM-MW-030 fails
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB), offset_ns=50_000_000)  # ASM-MW-030 fails
     assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.INCONCLUSIVE
+
+
+def test_vc020_clock_independent_violation_fails_even_when_asm030_fails(tmp_path):
+    # N-5: a frame produced 5 s before the start is far outside the offset plus
+    # uncertainty plus 20 ms, so it fails whatever ASM-MW-030 shows (review R19).
+    frame = b.frame(7, T_SUB - 5_000_000_000)
+    records = b.stream_records(4731, [frame], t0=T_SUB + 100_000_000)
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB), offset_ns=30_000_000)  # ASM-MW-030 fails
+    assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.FAIL
 
 
 def test_vc020_rw_unnamed_condition_is_inconclusive(tmp_path):
@@ -385,3 +427,162 @@ def test_run_cli_reports_each_case(tmp_path):
           **{"relay-logcat.txt": phase_logcat(P0 - 50_000_000)})
     clocks(tmp_path)
     assert run.main([str(tmp_path), "--case", "VC-MW-015"]) == 0
+
+
+# ------------------------------------------- VC-MW-015/016/020 delta regressions
+# Each is a false pass or false fail the two delta reviews of #450 cited; it is
+# built from real pcap and logcat shapes (builders emit real bytes and lines),
+# not synthesized verdicts, so the judgement is exercised end to end.
+
+
+def test_vc015_r32_layer_caused_phase_end_before_the_event_passes(tmp_path):
+    # E6c: a layer-caused phase end 60 s before the AEBS event is outside it (R32).
+    payloads = frames_seq()
+    early = (b.phase_start_line(P0 - 120_000_000_000, phase=1)
+             + "\n" + b.phase_end_line(P0 - 60_000_000_000, P0 - 120_000_000_000, phase=1, layer_caused=True,
+                                       client_connected=True, cause="timeout")
+             + "\n" + b.phase_start_line(P0 - 50_000_000, phase=2) + "\n")
+    run = _vc015_base(tmp_path, payloads, payloads, logcat=early)
+    assert evaluators.evaluate_source_order(run).outcome == outcome.PASS
+
+
+def test_vc015_r32_data_loss_before_the_event_passes(tmp_path):
+    # E19: a DATA_LOSS 60 s before the event is outside it (R32).
+    payloads = frames_seq()
+    logcat = phase_logcat(P0 - 50_000_000, extra=[b.data_loss_line(P0 - 60_000_000_000)])
+    run = _vc015_base(tmp_path, payloads, payloads, logcat=logcat)
+    assert evaluators.evaluate_source_order(run).outcome == outcome.PASS
+
+
+def test_vc015_r14_frame_in_the_band_before_the_phase_is_not_required(tmp_path):
+    # N-1: frame 3 produced 10 ms before the phase start (in the 20 ms band) and
+    # dropped by the relay is not required (R14).
+    payloads = frames_seq()
+    phase_start = P0 + 210_000_000  # 10 ms after frame 3 (P0 + 200 ms) was produced
+    run = _vc015_base(tmp_path, payloads, payloads[3:], logcat=phase_logcat(phase_start))
+    assert evaluators.evaluate_source_order(run).outcome == outcome.PASS
+
+
+def test_vc015_r35_second_client_in_produced_pcap_is_inconclusive(tmp_path):
+    # E9a: a second :4721 client is visible in produced.pcap though the ss record
+    # says adapter_only; the missing frames are that client's (R35).
+    payloads = frames_seq()
+    adapter = payloads[:3] + payloads[5:]
+    other = payloads[3:5]
+    produced_records = (b.stream_records(4721, adapter, t0=P0, cport=50000)
+                        + b.stream_records(4721, other, t0=P0 + 300_000_000, cport=50009))
+    run = write(
+        tmp_path,
+        produced__pcap=b.pcap(sorted(produced_records)),
+        received__pcap=b.pcap(b.stream_records(4731, adapter, t0=P0 + 5_000_000)),
+        settings__json=settings(),
+        frame_assembler_clients__json={"adapter_only": True},
+        **{"relay-logcat.txt": phase_logcat(P0 - 50_000_000)},
+    )
+    clocks(run)
+    assert evaluators.evaluate_source_order(evaluators.load_run(run)).outcome == outcome.INCONCLUSIVE
+
+
+def test_vc015_r31_mid_stream_capture_with_all_frames_passes(tmp_path):
+    # M1: the guest capture joined the ingress connection mid-stream (the
+    # documented window); no frame of the event is missing (R31).
+    payloads = frames_seq()
+    sender = b.TcpSender("127.0.0.1", "127.0.0.1", 50001, 4731, P0 - 30_000_000)  # no handshake: mid-stream
+    sender.sseq = 77_000
+    records = []
+    for i, payload in enumerate(payloads):
+        data = b.delimited(payload)
+        records.append((P0 + 5_000_000 + i * 100_000_000,
+                        b.tcp_segment("127.0.0.1", "127.0.0.1", 4731, 50001, sender.sseq, 1, b.PSH | b.ACK, data)))
+        sender.sseq += len(data)
+    run = write(
+        tmp_path,
+        produced__pcap=b.pcap(b.stream_records(4721, payloads, t0=P0)),
+        received__pcap=b.pcap(records),
+        settings__json=settings(),
+        frame_assembler_clients__json={"adapter_only": True},
+        **{"relay-logcat.txt": phase_logcat(P0 - 50_000_000)},
+    )
+    clocks(run)
+    assert evaluators.evaluate_source_order(evaluators.load_run(run)).outcome == outcome.PASS
+
+
+def test_vc016_r8b_frames_stop_after_the_offer_fails(tmp_path):
+    # R-S2: frames 1-3 of 6 arrive, then the stack keeps producing but nothing
+    # more arrives; the provider stayed .1 (R8b).
+    payloads = frames_seq()
+    run = _vc016(tmp_path, payloads, payloads[:3], sd_offer={"provider_after_offer": "192.168.98.1"})
+    assert evaluators.evaluate_provenance(run).outcome == outcome.FAIL
+
+
+def test_vc016_r34_empty_offer_record_is_inconclusive(tmp_path):
+    # E17: an sd_offer.json with no provider after the offer is missing evidence (R34).
+    payloads = frames_seq()
+    run = _vc016(tmp_path, payloads, payloads, sd_offer={})
+    assert evaluators.evaluate_provenance(run).outcome == outcome.INCONCLUSIVE
+
+
+def _records_with_gap(payloads, p0):
+    # A received stream of all frames with a 600 ms gap between frame 2 and 3.
+    sender = b.TcpSender("127.0.0.1", "127.0.0.1", 50001, 4731, p0).handshake()
+    for i, payload in enumerate(payloads):
+        step = 600_000_000 if i == 2 else 100_000_000
+        sender.send(b.delimited(payload), step_ns=step)
+    sender.fin()
+    return sender.records
+
+
+def test_vc016_r34_gap_without_an_offer_time_is_inconclusive(tmp_path):
+    # E18: a 600 ms receipt gap with a record that has no offer time: whether it
+    # follows the offer is unknown (R34).
+    payloads = frames_seq()
+    run = write(
+        tmp_path,
+        produced__pcap=b.pcap(b.stream_records(4721, payloads, t0=P0)),
+        received__pcap=b.pcap(_records_with_gap(payloads, P0 + 5_000_000)),
+        settings__json=settings(),
+        sd_offer__json={"provider_after_offer": "192.168.98.1"},
+    )
+    assert evaluators.evaluate_provenance(evaluators.load_run(run)).outcome == outcome.INCONCLUSIVE
+
+
+def test_vc020_r33_capture_accept_later_than_relay_start_fails(tmp_path):
+    # E16: the relay log says the phase started at T0, but the loopback accept is
+    # 200 ms later, and the frame was produced before that accept (R33).
+    frame = b.frame(30, T_SUB + 100_000_000)
+    records = b.stream_records(4731, [frame], t0=T_SUB + 200_000_000)  # accept ~200 ms after the relay start
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB))
+    assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.FAIL
+
+
+def test_vc020_r18_ivi_vm_down_first_phase_is_data(tmp_path):
+    # E15/N-4: condition 2 judges only the phase after the clock setting; a dirty
+    # first phase after the reboot is data, outside the judged scope (R18).
+    p1, p2 = T_SUB, T_SUB + 20_000_000_000
+    bad = [b.frame(1, p1 - 300_000_000)]  # 300 ms older than the first phase start
+    clean = [b.frame(10 + i, p2 + 50_000_000 + i * 100_000_000) for i in range(3)]
+    logcat = (b.phase_start_line(p1, phase=1) + "\n"
+              + b.phase_end_line(p1 + 10_000_000_000, p1, phase=1, layer_caused=False, client_connected=False,
+                                 cause="client_lost") + "\n"
+              + b.phase_start_line(p2, phase=2) + "\n")
+    records = (b.stream_records(4731, bad, t0=p1 + 10_000_000, cport=43001)
+               + b.stream_records(4731, clean, t0=p2 + 40_000_000, cport=43002))
+    run = _vc020(tmp_path, sorted(records), logcat, condition="ivi_vm_down")
+    assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.PASS
+
+
+def test_vc020_r30_clock_step_in_the_unjudged_first_phase_does_not_void(tmp_path):
+    # E15b: the mandated clock setting steps the clock in the first (out-of-scope)
+    # phase; the judged phase 2 is clean (R30).
+    p1, p2 = T_SUB, T_SUB + 20_000_000_000
+    first = [b.frame(1, p1 + 40_000_000)]
+    clean = [b.frame(10 + i, p2 + 50_000_000 + i * 100_000_000) for i in range(3)]
+    logcat = (b.phase_start_line(p1, phase=1) + "\n"
+              + b.clock_step_line(p1 + 5_000_000_000, in_phase=True) + "\n"
+              + b.phase_end_line(p1 + 10_000_000_000, p1, phase=1, layer_caused=False, client_connected=False,
+                                 cause="client_lost", clock_steps=1) + "\n"
+              + b.phase_start_line(p2, phase=2) + "\n")
+    records = (b.stream_records(4731, first, t0=p1 + 30_000_000, cport=44001)
+               + b.stream_records(4731, clean, t0=p2 + 40_000_000, cport=44002))
+    run = _vc020(tmp_path, sorted(records), logcat, condition="ivi_vm_down")
+    assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.PASS

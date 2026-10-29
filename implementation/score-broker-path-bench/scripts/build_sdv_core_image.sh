@@ -18,7 +18,7 @@ OVERLAY="$HERE/../aosp-overlay/core"
 : "${RUN_DIR:=$HERE/../run}"
 : "${SAMPLES:=$AOSP_TOP/system/software_defined_vehicle/samples}"
 : "${BACKUP:=$RUN_DIR/core-image-originals}"
-: "${DISK_FLOOR_GB:=15}"
+: "${DISK_FLOOR_GB:=32}"   # the clean core build peaked near 30 GB in the spike; keep headroom (review R38)
 CATALOG_DIR="$SAMPLES/some_ip/catalog/de4sdv_score"
 BROKER_VSIDL="$SAMPLES/some_ip/catalog/agent/broker.vsidl"
 BROKER_ACL="$SAMPLES/some_ip/config/broker_apex/someip_acl.textproto"
@@ -97,12 +97,16 @@ build() {
     log "ERROR: the SDV Core build failed; no identity record is written"
     return 1
   fi
-  local product_out="$AOSP_TOP/out/target/product/$CORE_PRODUCT" stack_config
+  local product_out="$AOSP_TOP/out/target/product/$CORE_PRODUCT" stack_config manifest_r
   stack_config="$(cat "$RUN_DIR/.stack_config_path" 2>/dev/null)"
+  # The resolved manifest, hashed only when it is non-empty: a failed
+  # `repo manifest -r` must not record the empty-input digest (review R38).
+  manifest_r="$(cd "$AOSP_TOP" && repo manifest -r 2>/dev/null)"
   {
     echo "# SDV Core image build $(date -u +%FT%T.%NZ)"
     echo "target: ${CORE_PRODUCT}-${RELEASE}-${VARIANT}, boot mode UNLOCKED"
-    ( cd "$AOSP_TOP" && repo manifest -r 2>/dev/null | sha256sum | sed 's/^/manifest_r_sha256: /' )
+    if [ -n "$manifest_r" ]; then printf '%s' "$manifest_r" | sha256sum | sed 's/^/manifest_r_sha256: /'
+    else echo "manifest_r_sha256: ERROR repo manifest -r produced nothing"; fi
     ( cd "$AOSP_TOP" && repo status 2>/dev/null | sed 's/^/repo_status: /' | head -40 )
     ( cd "$AOSP_TOP/device/google/sdv" 2>/dev/null && git diff | sha256sum | sed 's/^/device_google_sdv_diff_sha256: /' )
     grep -m1 ro.build.fingerprint "$product_out/system/build.prop" 2>/dev/null \

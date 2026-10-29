@@ -45,6 +45,7 @@ scripts/                 VM scripts, each idempotent and with an undo
   host_isolation_probe.sh     the reachability check of REQ-MW-016, records for the evaluator
   provision_ivi_relay.sh      one ACL per subject + the broker object policy, relay binary and init, reboot
   set_ivi_clock.sh       chrony allow, auto_time off, SNTP set and slew, capture the exchange (ASM-MW-030)
+  send_sd_offer.sh       send a spoofed SOME/IP SD offer from the IVI VM (VC-MW-016)
   capture_case.sh        produce the case artifacts: the :4721 and :4731 streams, the relay log, the ss check, the clocks
   recover_core_vm.sh     death detection (a VmHealth subscriber) and the in-place reboot recovery (GAP-MW-048)
   record_full_chain.sh   the public recording harness (terminals + adb screenrecord)
@@ -52,8 +53,8 @@ scripts/                 VM scripts, each idempotent and with an undo
 aosp-overlay/core/       the SDV Core image overlay (frame type, mapping, stack config, broker ACL)
 aosp-overlay/ivi-acl/    the relay's subscriber ACL and the broker's object policy
 config/run-settings.example.json   the settings the evaluators read
-src/de4sdv_broker_path_bench/       pure evaluators (read the raw artifacts off the VM)
-tests/                   the evaluator unit tests (CI, with synthetic captures)
+src/de4sdv_broker_path_bench/       pure evaluators and the host-side readers (hostscan, sd) the VM scripts call
+tests/                   the evaluator and reader unit tests (CI, from real pcap and ss shapes)
 VM-CHANGE-LOG.md         what each script changes on the VM and how to undo it
 bench-plan.md            the session plan (S1 to S3), VM-hours and cost
 ```
@@ -77,34 +78,36 @@ Each evaluator reads a run directory of raw artifacts and returns an outcome of
 the middleware evidence vocabulary (passBoundedVerification, failObservedBehavior,
 inconclusiveMissingEvidence, blockedTargetRuntime, errorEvidence), mapped to a
 verdict as INC-MW-010 maps it. The independent captures are authoritative; the
-relay's log is the record of its subscription phases, which the captures
-corroborate (a layer-caused phase end in the event is a delivery failure of
-the layer, so the relay log can fail the case). It compares raw clock readings,
-with no offset correction, as the phase-8 rule and the verification case do.
-Precedence follows #448: only a failure whose evidence does not depend on an
-inconclusive condition dominates, so a capture gap or a failed clock bound
-turns a completeness failure into missing evidence, not a fail. It never opens
-a socket and never runs on the VM. It evaluates one condition (one run) at a
-time; a case pass needs every condition the case names.
+relay's log is the record of its subscription phases, which the loopback accept
+of the guest capture corroborates (a layer-caused phase end in the event is a
+delivery failure of the layer, so the relay log can fail the case). It compares
+raw clock readings, with no offset correction, as the phase-8 rule and the
+verification case do. Precedence follows #448: only a failure whose evidence
+does not depend on an inconclusive condition dominates, so a capture gap, a
+second `:4721` client or a failed clock bound turns a completeness failure into
+missing evidence, not a fail. The evaluators never open a socket and never run
+on the VM. Each run is one condition; a case pass needs every condition the
+case names.
 
 ```bash
-python -m de4sdv_broker_path_bench.run <run-dir>            # every supported case
-python -m de4sdv_broker_path_bench.run <run-dir> --case VC-MW-015
+PYTHONPATH=src python -m de4sdv_broker_path_bench.run <run-dir>            # every supported case
+PYTHONPATH=src python -m de4sdv_broker_path_bench.run <run-dir> --case VC-MW-015
 ```
 
 | Case | Requirement | What the evaluator checks from raw artifacts |
 |---|---|---|
-| VC-MW-015 | REQ-MW-014 | every frame produced while the HMI was subscribed reaches it, in order, inter-arrival below 500 ms; a layer-caused phase end or a DATA_LOSS in the event fails; an ingress disconnect, a second `:4721` client, or ASM-MW-030 not holding is inconclusive |
-| VC-MW-016 | REQ-MW-015 | each received frame equals its produced frame byte for byte, with its source kind; a received frame the stack never produced fails; frames must keep arriving after the SD offer, which must not redirect the provider |
-| VC-MW-017 | REQ-MW-016 | second finding: no host DDS port of the layer is reachable from a guest (host-socket receipt, with a positive control and full coverage); a reachable `:4721` is an ASM-MW-029 finding, not a failure; the first finding needs the inspection record |
-| VC-MW-020 | REQ-MW-019 | per condition (HMI down, IVI VM down, SDV Core VM down, pair restart): each frame in a new phase was produced no more than the 20 ms margin before the phase start, compared raw; needs ASM-MW-030 to hold |
+| VC-MW-015 | REQ-MW-014 | every frame produced unambiguously inside a subscription phase (beyond the 20 ms clock band) reaches the HMI, in order, inter-arrival below 500 ms; a layer-caused phase end or a DATA_LOSS inside the AEBS event fails; an ingress disconnect in the event, a second `:4721` client, a capture gap or ASM-MW-030 not holding is inconclusive |
+| VC-MW-016 | REQ-MW-015 | each received frame equals its produced frame byte for byte, with its source kind; a received frame the stack never produced fails; after a spoofed SD offer the provider must stay 192.168.98.1 and the frames must keep arriving; an offer record with no provider is inconclusive |
+| VC-MW-017 | REQ-MW-016 | second finding: no host DDS port of the layer is reachable from a guest, judged by a capture on the guest-facing interface plus the drop-rule counter (reached = captured and not dropped); a positive control by the same observation; without a readable firewall table the run is inconclusive; a reachable `:4721` is an ASM-MW-029 finding, not a failure; the first finding needs the inspection record |
+| VC-MW-020 | REQ-MW-019 | per condition (HMI down, IVI VM down, SDV Core VM down, pair restart): each frame in a new phase was produced no more than the 20 ms margin before the phase start, compared raw; a frame earlier than the start by more than the offset plus its uncertainty plus 20 ms fails whatever the clock shows; the IVI-VM-down condition judges only the phase after the clock setting; needs ASM-MW-030 to hold |
 
 The run directory holds, by convention: `produced.pcap` (host `:4721`),
 `received.pcap` (guest `:4731`), `relay-logcat.txt` (the relay's events, with
 its tag), `clock-start.pcap`, `clock-end.pcap`, `settings.json`,
-`frame_assembler_clients.json` (the ASM-MW-029 `ss` check), and for VC-MW-016
-`sd_offer.json` or `residual.json`, and for VC-MW-017 the probe JSON
-(`host_listeners.json`, `probe_attempts.json`, `host_socket_receipts.json`,
+`frame_assembler_clients.json` (the two-step ASM-MW-029 `ss` check), and for
+VC-MW-016 `host-cvd-ebr.pcap` (the SD capture) or `sd_offer.json`, or
+`residual.json`, and for VC-MW-017 the probe JSON (`firewall.json`,
+`host_listeners.json`, `probe_attempts.json`, `captured_markers.json`,
 `control.json`, `coverage.json`, `asm_mw_031.json`, `inspection.json`). The
 run directory lives outside the repository (or under the git-ignored `run/`),
 and each run records its identity (`core-image-identity.txt` and the manifest
@@ -118,9 +121,12 @@ cases are pinned at #448 `5d14317c` (branch `model/score-phase-10-broker-path`).
 ## Interfaces this bench needs from the other lanes
 
 - **The relay lane** (the IVI frame relay, branch `feat/score-someip-receiver`,
-  #439 at `21882005`): these are required inputs with no defaults, and a script
+  #439 at `5df6c360`): these are required inputs with no defaults, and a script
   fails fast when any is unset.
-  - binary `RELAY_BIN` = `/system/bin/de4sdv_ivi_frame_relay`;
+  - binary `RELAY_BIN` = the relay build output on the host (the cross-built
+    `de4sdv_ivi_frame_relay` executable that the install pushes to
+    `/system/bin/` on the IVI VM); the install checks the host path, not the
+    guest path;
   - init file `RELAY_RC` = `ivi-frame-relay/de4sdv_ivi_frame_relay.rc`;
   - liblog tag `RELAY_LOGCAT_TAG` = `de4sdv_ivi_frame_relay` (set
     `relay_logcat_tag` in the run settings to it);
@@ -148,3 +154,32 @@ and the real IVI HMI display (`adb screenrecord`), started only after MONITORING
 shows. Panes: the host stack and gatewayd/someipd, the SDV Core broker logcat,
 and the relay log. No rendered or stylized footage. An edited cut is labeled
 `publication_cut`; the raw files stay with the evidence.
+
+## Known limits
+
+These stay manual or out of scope for the first VM session; none blocks it.
+
+- **Scripted or manual on the VM.** These steps the scripts record but do not
+  judge, so the operator confirms them by eye in S1: the image inspection (the
+  broker descriptor built, the DE4SDV stack configuration loaded, no SOME/IP
+  offer from 192.168.98.3, the `REMOTE SUBSCRIBE` line); the launch of the SD
+  agent and the guest survival of the operator's shell; the post-boot relay
+  checks; the MP4 of the recording; and the 2048-byte frame boundary.
+- **The bridge-family firewall rule is not executable off the VM.** The
+  SOME/IP bridge-port hardening (`host_isolation_firewall.sh`) sits in an
+  `nf_tables` bridge input chain, which this development host's kernel does not
+  carry, so it is checked only on the VM. It is a recorded design measure, no
+  part of any case's pass condition (#448).
+- **The VLAN 2 Data Tunnel capture is retained, not consumed.** `capture_case.sh`
+  records the cleartext Data Tunnel on VLAN 2, the second corroboration #448
+  names for the subscription start. The VC-MW-020 evaluator corroborates the
+  phase start with the loopback accept of `received.pcap`; it does not yet read
+  the VLAN 2 capture, which stays with the evidence for review.
+- **The probe is serialized and long.** `host_isolation_probe.sh` reads the
+  drop counter around each of the roughly 244 DDS ports, over each interface
+  and host address, from both VMs, so a full probe takes tens of minutes. S1
+  budgets a slot for it; a reduced DDS range shortens a dry run.
+- **ASM-MW-031 needs root over `/proc`.** The host ROS 2 environment scan reads
+  `/proc/<pid>/environ` for every ROS 2 process; a process it cannot read gives
+  inconclusive, so the scan runs as root on the VM. IPv6 reachability is not
+  probed (the DDS sockets bind every address; the IPv4 probe covers them).
