@@ -361,18 +361,41 @@ void RelayCore::OnWorkerEvent(const WorkerEvent& event) {
     case WorkerEventKind::kClientCreate: {
       ++counters_.client_create_attempts;
       LogRecord record{"gateway_client_create"};
-      record.Bool("ok", event.status.ok()).Unsigned("attempt", event.attempt);
+      record.Text("stage", event.note).Bool("ok", event.status.ok()).Unsigned("attempt", event.attempt);
       LogStatus(record, event.status);
       if (event.status.ok()) {
-        has_client_ = true;
         client_ever_created_ = true;
+        has_client_ = std::string{event.note} == "init_comms";
       } else {
         ++counters_.client_create_failures;
         last_failure_ = event.status;
-        last_failure_stage_ = "create_client";
-        record.Signed("next_attempt_in_ns", event.next_attempt_ns - event.at.monotonic_ns);
+        last_failure_stage_ = event.note;
+        if (event.next_attempt_ns != 0) {
+          record.Signed("next_attempt_in_ns", event.next_attempt_ns - event.at.monotonic_ns);
+        }
       }
       log_.Log(event.at, record);
+      return;
+    }
+    case WorkerEventKind::kClientLost: {
+      has_client_ = false;
+      ++counters_.gateway_client_losses;
+      LogRecord record{"gateway_client_lost"};
+      record.Text("stage", event.note);
+      if (std::string{event.note} == "disconnected") {
+        record.Signed("notification_type", event.raw_type);
+      } else {
+        LogStatus(record, event.status);
+      }
+      record.Text("reason", "one client per process (libsdvgatewayclient.h:473-475)")
+          .Signed("exit_code", kExitGatewayClientLost);
+      log_.Log(event.at, record);
+      if (subscribed_) {
+        subscribed_ = false;
+        UpdatePhase(event.at, "gateway_client_lost", client_connected_ && in_phase_);
+      }
+      exit_requested_ = true;
+      exit_code_ = kExitGatewayClientLost;
       return;
     }
     case WorkerEventKind::kClientDestroyed: {
@@ -649,6 +672,7 @@ LogRecord RelayCore::Status(const char* event) const {
       .Unsigned("client_create_attempts", c.client_create_attempts)
       .Unsigned("client_create_failures", c.client_create_failures)
       .Unsigned("clients_destroyed", c.clients_destroyed)
+      .Unsigned("gateway_client_losses", c.gateway_client_losses)
       .Unsigned("subscribe_attempts", c.subscribe_attempts)
       .Unsigned("subscribe_failures", c.subscribe_failures)
       .Unsigned("subscriptions", c.subscriptions)

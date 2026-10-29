@@ -410,7 +410,7 @@ ShellResult RelayShell::Run(const std::function<bool()>& stop_requested) {
   }
 
   std::int64_t next_status_ns = clock_.Now().monotonic_ns + config_.status_period_ns;
-  while (!stop_requested()) {
+  while (!stop_requested() && !core_.exit_requested()) {
     Turn(next_status_ns);
     const Clock now = clock_.Now();
     if (now.monotonic_ns >= next_status_ns) {
@@ -423,7 +423,7 @@ ShellResult RelayShell::Run(const std::function<bool()>& stop_requested) {
   }
 
   const Clock stop = clock_.Now();
-  log_.Log(stop, LogRecord{"stop_requested"});
+  log_.Log(stop, LogRecord{"stop_requested"}.Text("cause", core_.exit_requested() ? "gateway_client_lost" : "signal"));
   core_.Stop(stop);
   worker_.RequestStop();
   const std::int64_t give_up_ns = stop.monotonic_ns + config_.stop_join_timeout_ns;
@@ -433,6 +433,7 @@ ShellResult RelayShell::Run(const std::function<bool()>& stop_requested) {
     DrainMailbox();
   }
   ShellResult result;
+  result.exit_code = core_.exit_code();
   if (worker_done_.load()) {
     worker_thread_.join();
     DrainMailbox();

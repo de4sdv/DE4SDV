@@ -259,14 +259,14 @@ TEST(RelayShell, TheLoopbackServerDoesNotWaitForABlockedGatewayCall) {
   RelayConfig relay;
   relay.gateway_call_stall_ns = 100 * kMs;
   Running r{ShellConfig{}, relay};
-  r.client.BlockCreate();
+  r.client.BlockInitComms();
   r.Start();
-  ASSERT_TRUE(WaitUntil([&] { return r.client.create_waiting(); }));
+  ASSERT_TRUE(WaitUntil([&] { return r.client.init_waiting(); }));
   const int ingress = r.Client();
   ASSERT_TRUE(r.log.WaitFor("client_connected"));
   ASSERT_TRUE(r.log.WaitFor("gateway_call_stalled"));
-  EXPECT_NE(r.log.Last("gateway_call_stalled").find("\"call\":\"create_client\""), std::string::npos);
-  r.client.ReleaseCreate();
+  EXPECT_NE(r.log.Last("gateway_call_stalled").find("\"call\":\"init_comms\""), std::string::npos);
+  r.client.ReleaseInitComms();
   ASSERT_TRUE(r.log.WaitFor("gateway_call_returned"));
   ASSERT_TRUE(r.log.WaitFor("phase_start"));
   const Bytes payload = r.QueueFrame(1);
@@ -274,20 +274,40 @@ TEST(RelayShell, TheLoopbackServerDoesNotWaitForABlockedGatewayCall) {
   EXPECT_TRUE(r.Stop().worker_joined);
 }
 
+TEST(RelayShell, TheRelayEndsTheProcessWithItsCodeWhenTheGatewayClientIsLost) {
+  Running r;
+  r.Start();
+  ASSERT_TRUE(WaitUntil([&] { return r.client.subscribed(); }));
+  const int ingress = r.Client();
+  ASSERT_TRUE(r.log.WaitFor("phase_start"));
+  r.client.Disconnect();
+  // No stop request: the relay ends by itself, so that init starts it again.
+  ASSERT_TRUE(WaitUntil([&] { return r.log.Count("final_status") == 1U; }));
+  r.runner.join();
+  EXPECT_EQ(r.result.exit_code, de4sdv::ivi_frame_relay::kExitGatewayClientLost);
+  EXPECT_TRUE(r.result.worker_joined);
+  EXPECT_NE(r.log.Last("gateway_client_lost").find("\"stage\":\"disconnected\""), std::string::npos);
+  EXPECT_NE(r.log.Last("phase_end").find("\"layer_caused\":true"), std::string::npos);
+  EXPECT_NE(r.log.Last("stop_requested").find("\"cause\":\"gateway_client_lost\""), std::string::npos);
+  EXPECT_TRUE(ClosedByPeer(ingress));
+  EXPECT_EQ(r.client.count("client_new"), 1U);
+  EXPECT_EQ(r.client.count("destroy"), 0U);
+}
+
 TEST(RelayShell, StopLeavesABlockedWorkerBehindAndSaysSo) {
   ShellConfig shell_config;
   shell_config.stop_join_timeout_ns = 50 * kMs;
   Running r{shell_config};
-  r.client.BlockCreate();
+  r.client.BlockInitComms();
   r.Start();
-  ASSERT_TRUE(WaitUntil([&] { return r.client.create_waiting(); }));
+  ASSERT_TRUE(WaitUntil([&] { return r.client.init_waiting(); }));
   const ShellResult result = r.Stop();
   EXPECT_FALSE(result.worker_joined);
   EXPECT_EQ(r.log.Count("gateway_worker_not_joined"), 1U);
-  EXPECT_NE(r.log.Last("gateway_worker_not_joined").find("\"call\":\"create_client\""), std::string::npos);
+  EXPECT_NE(r.log.Last("gateway_worker_not_joined").find("\"call\":\"init_comms\""), std::string::npos);
   EXPECT_EQ(r.log.Count("final_status"), 1U);
   // The process would end here; the test lets the worker finish first.
-  r.client.ReleaseCreate();
+  r.client.ReleaseInitComms();
   ASSERT_TRUE(WaitUntil([&] { return r.shell->worker_done(); }));
 }
 

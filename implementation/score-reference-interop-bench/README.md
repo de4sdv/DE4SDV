@@ -441,10 +441,17 @@ What the relay does:
     subscribes again: every 100 ms for the first 5 s, then every second. The
     first attempt comes at once (the relay's reading, not a value of the
     model);
-  - on Disconnected it ends the subscription, deletes the gateway client and
-    creates it again, with a bounded retry. The schedule of that retry, at
-    once, then every second, and every 10 s once the failures have lasted
-    30 s, is the relay's reading, not a value of the model;
+  - on Disconnected, and when `initComms` fails, it logs
+    `gateway_client_lost` with the stage and the status, ends the phase as a
+    phase end of the layer, and ends the process with code 4. init starts
+    the relay again as a new process, and that start triggers the ingress
+    again. The relay never deletes and re-creates its gateway client (owner
+    decision of 2026-10-29, revised the same day: the library allows one
+    client per process (`libsdvgatewayclient.h:473-475`). The model PR
+    records it). Only an `ASDVGateway_Client_new` that itself failed, which
+    leaves no client, is tried again in the process: every second, and every
+    10 s once the failures have lasted 30 s (the relay's reading, not a
+    value of the model);
   - when no message comes for 3 s it ends the subscription, unsubscribes and
     subscribes again. After three subscriptions in a row that brought no
     message, it waits 5 s before each attempt. That the wait applies after
@@ -514,7 +521,8 @@ one per event: `start`, `gateway_client_create`, `subscribed`,
 `subscribe_failed`, `subscription_ended`, `unsubscribed`,
 `gateway_client_destroyed`, `phase_start`, `phase_end`, `frame` (each drop
 with its reason, and served frames), `data_loss`, `read_failed`,
-`gateway_notification`, `client_connected` and `client_refused` (with
+`gateway_notification`, `gateway_client_lost`, `client_connected` and
+`client_refused` (with
 `peer_pid`, `peer_uid` and `peer_port`), `client_lost`, `ingress_trigger`,
 `ingress_trigger_gave_up`, `clock_step`, `subscription_start_diagnostic`,
 `gateway_call_stalled`, `gateway_call_returned`, `status`, `final_status`. A
@@ -563,7 +571,9 @@ ninja -C build/ivi-frame-relay && build/ivi-frame-relay/de4sdv_ivi_frame_relay_t
 the IVI VM of the bench: `seclabel u:r:su:s0` with SELinux permissive, as on
 the INC-AEBS-010 bench, so a product needs its own SELinux domain
 (GAP-MW-038). The service is not oneshot, so init restarts the relay when it
-exits. The file sets the frame-server port of the ingress to 4731.
+exits. The exit codes: 0 after a stop, 2 for a refused option, 3 when the
+loopback server cannot listen, 4 when the gateway client is lost. The file
+sets the frame-server port of the ingress to 4731.
 
 ### Claim boundary of the relay
 

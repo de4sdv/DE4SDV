@@ -106,38 +106,41 @@ SdvGatewayClient::~SdvGatewayClient() {
   g_sink.store(nullptr);
 }
 
-GatewayResult SdvGatewayClient::Create(std::uint64_t client_generation, const SubjectIdentity& subject,
-                                       GatewayNotificationSink& sink) {
+GatewayResult SdvGatewayClient::NewClient(std::uint64_t client_generation, GatewayNotificationSink& sink,
+                                          bool* created) {
+  *created = false;
   if (client_ != nullptr) {
-    return GatewayResult{kFailedPrecondition, "a client exists"};
+    return GatewayResult{kFailedPrecondition, "a client exists: one client per process"};
   }
   g_sink.store(&sink);
   Status status;
   ASDVGateway_Client* client = nullptr;
-  ASDVGateway_StatusCode_t code = ASDVGateway_Client_new(&client, &status.status);
+  const ASDVGateway_StatusCode_t code = ASDVGateway_Client_new(&client, &status.status);
   if (code != ASDVGateway_StatusCode_OK) {
-    return Result(code, status);
+    return Result(code, status);  // no client: the worker may try again
   }
   if (client == nullptr) {
     return GatewayResult{kInternal, "ASDVGateway_Client_new gave no client"};
   }
-  code = ASDVGateway_Client_setClientNotificationCallback(client, OnClientNotification, Tag(client_generation),
-                                                          &status.status);
-  if (code == ASDVGateway_StatusCode_OK) {
-    ASDVGateway_InitCommsParams_t init{};
-    Fill(subject.package, init.packageName, sizeof(init.packageName));
-    Fill(subject.bundle, init.serviceBundleName, sizeof(init.serviceBundleName));
-    Fill(subject.instance, init.serviceInstanceName, sizeof(init.serviceInstanceName));
-    code = ASDVGateway_Client_initComms(client, &init, &status.status);
-  }
-  if (code != ASDVGateway_StatusCode_OK) {
-    GatewayResult failed = Result(code, status);
-    Status cleanup;
-    (void)ASDVGateway_Client_setClientNotificationCallback(client, nullptr, nullptr, &cleanup.status);
-    (void)ASDVGateway_Client_delete(client, &cleanup.status);
-    return failed;
-  }
+  // The one client of this process, also when the callback fails below.
   client_ = client;
+  *created = true;
+  Status callback;
+  const ASDVGateway_StatusCode_t set = ASDVGateway_Client_setClientNotificationCallback(
+      client_, OnClientNotification, Tag(client_generation), &callback.status);
+  return Result(set, callback);
+}
+
+GatewayResult SdvGatewayClient::InitComms(const SubjectIdentity& subject) {
+  if (client_ == nullptr) {
+    return GatewayResult{kFailedPrecondition, "no client"};
+  }
+  ASDVGateway_InitCommsParams_t init{};
+  Fill(subject.package, init.packageName, sizeof(init.packageName));
+  Fill(subject.bundle, init.serviceBundleName, sizeof(init.serviceBundleName));
+  Fill(subject.instance, init.serviceInstanceName, sizeof(init.serviceInstanceName));
+  Status status;
+  const ASDVGateway_StatusCode_t code = ASDVGateway_Client_initComms(client_, &init, &status.status);
   return Result(code, status);
 }
 

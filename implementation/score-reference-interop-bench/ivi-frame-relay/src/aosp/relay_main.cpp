@@ -8,7 +8,9 @@
 // gateway_worker_not_joined and ends without unsubscribing. Only the main
 // thread takes the stop signals: the binder pool and the worker thread start
 // with them blocked. A refused option, among them any option that names a
-// margin or a bound, stops the relay at start with code 2.
+// margin or a bound, stops the relay at start with code 2. A lost gateway
+// client (Disconnected, or a failed initComms) ends the relay with code 4:
+// the library allows one client per process, so init starts a new process.
 
 #include <signal.h>
 #include <unistd.h>

@@ -35,6 +35,14 @@
 // sum of the drops. Every drop gives a frame line with its reason; a served
 // frame gives one for the first five of a phase, or always with --log-frames.
 //
+// Loss of the gateway client: the library allows one client per process
+// (libsdvgatewayclient.h:473-475). So when the worker reports the client as
+// lost (Disconnected, or a failed initComms), the core logs
+// gateway_client_lost with the stage and the status, ends the phase as a
+// phase end of the layer, and asks the shell to end the process with
+// kExitGatewayClientLost. init starts the relay again as a new process, and
+// that start triggers the ingress again.
+//
 // Start diagnostic: when no subscription has succeeded 30 s after the start,
 // the core logs subscription_start_diagnostic once. A subject without an ACL
 // gets "No publication service unit found", the reply to a missing
@@ -102,6 +110,11 @@ struct RelayConfig {
   // The time after which a gateway call counts as stalled; the tests use less.
   std::int64_t gateway_call_stall_ns{kGatewayCallStallNs};
 };
+
+// The exit code of a process that lost its gateway client; init starts the
+// relay again. Codes 2 (a refused option) and 3 (no loopback server) end a
+// start; 0 is a stop.
+constexpr int kExitGatewayClientLost = 4;
 
 // The largest payload: the 4-byte prefix and a frame of up to 2044 bytes in
 // the 2048-byte sample of the S-CORE frame event.
@@ -191,6 +204,7 @@ struct RelayCounters {
   std::uint64_t client_create_attempts{0};
   std::uint64_t client_create_failures{0};
   std::uint64_t clients_destroyed{0};
+  std::uint64_t gateway_client_losses{0};
   std::uint64_t subscribe_attempts{0};
   std::uint64_t subscribe_failures{0};
   std::uint64_t subscriptions{0};
@@ -225,6 +239,9 @@ class RelayCore final {
   void Stop(const Clock& now);
 
   std::int64_t NextDeadline() const noexcept;
+  // The core asks the shell to end the process: the gateway client is lost.
+  bool exit_requested() const noexcept { return exit_requested_; }
+  int exit_code() const noexcept { return exit_code_; }
   bool subscribed() const noexcept { return subscribed_; }
   bool client_connected() const noexcept { return client_connected_; }
   bool in_phase() const noexcept { return in_phase_; }
@@ -258,6 +275,8 @@ class RelayCore final {
   GatewayCallMonitor* monitor_;
 
   bool started_{false};
+  bool exit_requested_{false};
+  int exit_code_{0};
   Clock start_{};
   bool start_diagnostic_done_{false};
   bool client_ever_created_{false};

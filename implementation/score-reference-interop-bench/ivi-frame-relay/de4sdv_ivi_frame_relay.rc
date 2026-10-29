@@ -4,6 +4,9 @@
 # u:r:su:s0, with SELinux permissive as on the INC-AEBS-010 bench (bench only;
 # a product needs its own SELinux domain, GAP-MW-038). CI does not build this
 # file. The service is not oneshot, so init restarts the relay when it exits.
+# The relay ends with code 4 when it loses its gateway client (Disconnected,
+# or a failed initComms): the library allows one client per process, so a
+# new process is the way to a new client.
 #
 # The relay subscribes, through the SDV Gateway on IVI, to the broker's
 # publication of the frame topic (the defaults of its options), as the

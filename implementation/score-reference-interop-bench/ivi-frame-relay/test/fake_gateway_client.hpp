@@ -3,10 +3,12 @@
 // FakeGatewayClient stands in for the AOSP adapter: it keeps a scripted
 // publication (available or destroyed, with a new id after each restore),
 // returns the queued slots on reads, and sends PublicationDestroyed and
-// Disconnected to the worker like the library's callbacks. It is thread-safe,
-// so the shell tests can drive it from the test thread while the worker
-// thread calls it. It fails the test when a subscribe comes while a
-// subscription is active, because the relay holds one at a time.
+// Disconnected to the worker like the library's callbacks. Like the library,
+// it allows one client per process (libsdvgatewayclient.h:473-475): a second
+// NewClient after one that succeeded fails, also after a Destroy. It is
+// thread-safe, so the shell tests can drive it from the test thread while
+// the worker thread calls it. It fails the test when a subscribe comes while
+// a subscription is active, because the relay holds one at a time.
 
 #ifndef DE4SDV_IVI_FRAME_RELAY_TEST_FAKE_GATEWAY_CLIENT_HPP
 #define DE4SDV_IVI_FRAME_RELAY_TEST_FAKE_GATEWAY_CLIENT_HPP
@@ -150,10 +152,16 @@ class FakeGatewayClient final : public GatewayClient {
   explicit FakeGatewayClient(ManualClock* clock = nullptr) : clock_{clock} {}
 
   // Scripting, from any thread.
-  void FailCreates(int count, GatewayResult result) {
+  // The next count calls of NewClient fail in ASDVGateway_Client_new itself.
+  void FailClientNews(int count, GatewayResult result) {
     const std::lock_guard<std::mutex> lock{mutex_};
     create_failures_ = count;
     create_failure_ = std::move(result);
+  }
+  void FailInitComms(GatewayResult result) {
+    const std::lock_guard<std::mutex> lock{mutex_};
+    init_fails_ = true;
+    init_failure_ = std::move(result);
   }
   void FailSubscribes(int count, GatewayResult result) {
     const std::lock_guard<std::mutex> lock{mutex_};
@@ -241,15 +249,16 @@ class FakeGatewayClient final : public GatewayClient {
       sink->Notify(notification);
     }
   }
-  // Create blocks until ReleaseCreate.
-  void BlockCreate() {
+  // InitComms blocks until ReleaseInitComms, as it did while the SD agent of
+  // the IVI VM could not start.
+  void BlockInitComms() {
     const std::lock_guard<std::mutex> lock{mutex_};
-    create_blocked_ = true;
+    init_blocked_ = true;
   }
-  void ReleaseCreate() {
+  void ReleaseInitComms() {
     {
       const std::lock_guard<std::mutex> lock{mutex_};
-      create_blocked_ = false;
+      init_blocked_ = false;
     }
     released_.notify_all();
   }
@@ -271,9 +280,14 @@ class FakeGatewayClient final : public GatewayClient {
     const std::lock_guard<std::mutex> lock{mutex_};
     return has_client_;
   }
-  bool create_waiting() const {
+  bool init_waiting() const {
     const std::lock_guard<std::mutex> lock{mutex_};
-    return create_waiting_;
+    return init_waiting_;
+  }
+  // NewClient calls after the one client of the process existed.
+  int second_clients() const {
+    const std::lock_guard<std::mutex> lock{mutex_};
+    return second_clients_;
   }
   std::int32_t publication_id() const {
     const std::lock_guard<std::mutex> lock{mutex_};
@@ -305,22 +319,38 @@ class FakeGatewayClient final : public GatewayClient {
   }
 
   // GatewayClient, from the worker.
-  GatewayResult Create(std::uint64_t client_generation, const SubjectIdentity& subject,
-                       GatewayNotificationSink& sink) override {
-    std::unique_lock<std::mutex> lock{mutex_};
-    calls_.emplace_back("create");
-    create_waiting_ = create_blocked_;
-    released_.wait(lock, [this] { return !create_blocked_; });
-    create_waiting_ = false;
+  GatewayResult NewClient(std::uint64_t client_generation, GatewayNotificationSink& sink, bool* created) override {
+    const std::lock_guard<std::mutex> lock{mutex_};
+    calls_.emplace_back("client_new");
     Spend();
-    last_subject_ = subject;
+    *created = false;
+    if (client_new_done_) {
+      ++second_clients_;
+      return GatewayResult{9, "Only a single client can be created per process"};
+    }
     if (create_failures_ > 0) {
       --create_failures_;
       return create_failure_;
     }
-    has_client_ = true;
+    client_new_done_ = true;
+    *created = true;
     client_generation_ = client_generation;
     sink_ = &sink;
+    return GatewayResult{};
+  }
+  GatewayResult InitComms(const SubjectIdentity& subject) override {
+    std::unique_lock<std::mutex> lock{mutex_};
+    calls_.emplace_back("init_comms");
+    EXPECT_TRUE(client_new_done_) << "initComms without a client";
+    init_waiting_ = init_blocked_;
+    released_.wait(lock, [this] { return !init_blocked_; });
+    init_waiting_ = false;
+    Spend();
+    last_subject_ = subject;
+    if (init_fails_) {
+      return init_failure_;
+    }
+    has_client_ = true;
     return GatewayResult{};
   }
   GatewayResult Destroy() override {
@@ -418,12 +448,16 @@ class FakeGatewayClient final : public GatewayClient {
   std::condition_variable released_;
   std::vector<std::string> calls_;
   GatewayNotificationSink* sink_{nullptr};
+  bool client_new_done_{false};
   bool has_client_{false};
   bool subscribed_{false};
   bool publication_available_{true};
   bool publication_kept_{false};
-  bool create_blocked_{false};
-  bool create_waiting_{false};
+  bool init_blocked_{false};
+  bool init_waiting_{false};
+  bool init_fails_{false};
+  GatewayResult init_failure_;
+  int second_clients_{0};
   int create_failures_{0};
   GatewayResult create_failure_;
   int subscribe_failures_{0};

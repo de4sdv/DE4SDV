@@ -17,7 +17,10 @@
 // creates no publication and no RPC server. The callbacks run on the binder
 // thread pool, which the constructor starts; they only hand the notification
 // to the sink. Their user data is the generation of the client or of the
-// subscription, so a late callback of an old one is told apart.
+// subscription, so a late callback of an old one is told apart. The library
+// allows one client per process (libsdvgatewayclient.h:473-475), so the
+// adapter never deletes a client to create a new one: it deletes the client
+// only at the stop of the relay.
 
 #ifndef DE4SDV_IVI_FRAME_RELAY_SDV_GATEWAY_CLIENT_HPP
 #define DE4SDV_IVI_FRAME_RELAY_SDV_GATEWAY_CLIENT_HPP
@@ -35,8 +38,8 @@ class SdvGatewayClient final : public GatewayClient {
   SdvGatewayClient(const SdvGatewayClient&) = delete;
   SdvGatewayClient& operator=(const SdvGatewayClient&) = delete;
 
-  GatewayResult Create(std::uint64_t client_generation, const SubjectIdentity& subject,
-                       GatewayNotificationSink& sink) override;
+  GatewayResult NewClient(std::uint64_t client_generation, GatewayNotificationSink& sink, bool* created) override;
+  GatewayResult InitComms(const SubjectIdentity& subject) override;
   GatewayResult Destroy() override;
   GatewayResult Subscribe(std::uint64_t subscription_generation, const PublicationName& publication,
                           PublicationMetadata* metadata) override;

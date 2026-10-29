@@ -22,6 +22,8 @@ const char* ToText(WorkerEventKind kind) noexcept {
   switch (kind) {
     case WorkerEventKind::kClientCreate:
       return "client_create";
+    case WorkerEventKind::kClientLost:
+      return "client_lost";
     case WorkerEventKind::kClientDestroyed:
       return "client_destroyed";
     case WorkerEventKind::kSubscribed:
@@ -149,9 +151,6 @@ void GatewayWorker::PostNotification(const GatewayNotification& notification, co
 void GatewayWorker::EndSubscription(SubscriptionEnd end, bool unsubscribe, const Clock& now) {
   subscribed_ = false;
   schedule_.OnEnded(end, messages_in_subscription_, now.monotonic_ns);
-  if (end == SubscriptionEnd::kDisconnected) {
-    schedule_.OnClientLost(now.monotonic_ns);
-  }
   next_subscribe_attempt_ns_ = schedule_.FirstAttemptNs(now.monotonic_ns);
   WorkerEvent event;
   event.kind = WorkerEventKind::kSubscriptionEnded;
@@ -190,20 +189,30 @@ void GatewayWorker::DestroyClient(const char* cause) {
   sink_.Post(std::move(event));
 }
 
+void GatewayWorker::LoseClient(const Clock& now, const char* stage, GatewayResult status, std::int32_t raw_type) {
+  client_lost_ = true;
+  has_client_ = false;
+  WorkerEvent event;
+  event.kind = WorkerEventKind::kClientLost;
+  event.at = now;
+  event.note = stage;
+  event.status = std::move(status);
+  event.raw_type = raw_type;
+  sink_.Post(std::move(event));
+}
+
 void GatewayWorker::HandleNotification(const GatewayNotification& notification, const Clock& now) {
   switch (notification.kind) {
     case GatewayNotificationKind::kDisconnected:
-      if (!has_client_ || notification.client_generation != client_generation_) {
+      if (!client_created_ || client_lost_ || notification.client_generation != client_generation_) {
         PostNotification(notification, now, "ignored_not_the_current_client");
         return;
       }
       if (subscribed_) {
         EndSubscription(SubscriptionEnd::kDisconnected, false, now);
-      } else {
-        schedule_.OnClientLost(now.monotonic_ns);
       }
-      DestroyClient("disconnected");
-      next_client_attempt_ns_ = clock_.Now().monotonic_ns;
+      // One client per process: no delete and no new client. The process ends.
+      LoseClient(now, "disconnected", GatewayResult{}, notification.raw_type);
       return;
     case GatewayNotificationKind::kPublicationDestroyed:
       if (!subscribed_ || notification.subscription_generation != subscription_generation_) {
@@ -249,6 +258,9 @@ std::int64_t GatewayWorker::Step() {
   if (stop_requested_.load()) {
     return now.monotonic_ns;
   }
+  if (client_lost_) {
+    return now.monotonic_ns + kNanosecondsPerSecond;  // no further call; the main thread ends the process
+  }
   if (!has_client_) {
     return StepClient(now);
   }
@@ -259,29 +271,52 @@ std::int64_t GatewayWorker::Step() {
 }
 
 std::int64_t GatewayWorker::StepClient(const Clock& now) {
-  if (now.monotonic_ns < next_client_attempt_ns_) {
-    return next_client_attempt_ns_;
+  if (!client_created_) {
+    if (now.monotonic_ns < next_client_attempt_ns_) {
+      return next_client_attempt_ns_;
+    }
+    const std::uint64_t attempt = ++client_attempts_;
+    const std::uint64_t generation = ++client_generation_;
+    bool created = false;
+    GatewayResult result = Call("client_new", [&] { return client_.NewClient(generation, *this, &created); });
+    const Clock after = clock_.Now();
+    WorkerEvent event;
+    event.kind = WorkerEventKind::kClientCreate;
+    event.at = after;
+    event.attempt = attempt;
+    event.note = "client_new";
+    event.status = result;
+    if (!created) {
+      // Client_new itself failed: no client exists, so it may be tried again.
+      next_client_attempt_ns_ = schedule_.NextClientAttemptNs(now.monotonic_ns, after.monotonic_ns);
+      event.next_attempt_ns = next_client_attempt_ns_;
+      sink_.Post(std::move(event));
+      return next_client_attempt_ns_;
+    }
+    client_created_ = true;
+    sink_.Post(std::move(event));
+    if (!result.ok()) {
+      // The client exists, but its callback could not be set: it is lost.
+      LoseClient(after, "client_new_callback", std::move(result), 0);
+      return after.monotonic_ns;
+    }
   }
-  const std::uint64_t attempt = ++client_attempts_;
-  const std::uint64_t generation = ++client_generation_;
-  GatewayResult result = Call("create_client", [&] { return client_.Create(generation, config_.subject, *this); });
+  GatewayResult result = Call("init_comms", [&] { return client_.InitComms(config_.subject); });
   const Clock after = clock_.Now();
   WorkerEvent event;
   event.kind = WorkerEventKind::kClientCreate;
   event.at = after;
-  event.attempt = attempt;
-  if (result.ok()) {
-    has_client_ = true;
-    next_subscribe_attempt_ns_ = std::max(next_subscribe_attempt_ns_, schedule_.FirstAttemptNs(after.monotonic_ns));
-    event.status = std::move(result);
-    sink_.Post(std::move(event));
-    return next_subscribe_attempt_ns_;
-  }
-  next_client_attempt_ns_ = schedule_.NextClientAttemptNs(now.monotonic_ns, after.monotonic_ns);
-  event.status = std::move(result);
-  event.next_attempt_ns = next_client_attempt_ns_;
+  event.attempt = client_attempts_;
+  event.note = "init_comms";
+  event.status = result;
   sink_.Post(std::move(event));
-  return next_client_attempt_ns_;
+  if (!result.ok()) {
+    LoseClient(after, "init_comms", std::move(result), 0);
+    return after.monotonic_ns;
+  }
+  has_client_ = true;
+  next_subscribe_attempt_ns_ = std::max(next_subscribe_attempt_ns_, schedule_.FirstAttemptNs(after.monotonic_ns));
+  return next_subscribe_attempt_ns_;
 }
 
 std::int64_t GatewayWorker::StepSubscribe(const Clock& now) {
@@ -402,7 +437,7 @@ void GatewayWorker::Finish() {
   if (subscribed_) {
     EndSubscription(SubscriptionEnd::kRelayStop, true, now);
   }
-  if (has_client_) {
+  if (client_created_ && !client_lost_) {
     DestroyClient("relay_stop");
   }
 }

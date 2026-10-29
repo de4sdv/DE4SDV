@@ -23,7 +23,7 @@ bool EndedByLayer(SubscriptionEnd end) noexcept {
          end == SubscriptionEnd::kSilenceTimeout;
 }
 
-RetrySchedule::RetrySchedule(std::int64_t start_ns) noexcept : start_ns_{start_ns}, client_window_start_ns_{start_ns} {}
+RetrySchedule::RetrySchedule(std::int64_t start_ns) noexcept : start_ns_{start_ns} {}
 
 void RetrySchedule::OnSubscribed() noexcept { ever_subscribed_ = true; }
 
@@ -36,8 +36,6 @@ void RetrySchedule::OnEnded(SubscriptionEnd end, std::uint64_t messages, std::in
   }
   consecutive_silent_ = messages == 0U ? consecutive_silent_ + 1U : 0U;
 }
-
-void RetrySchedule::OnClientLost(std::int64_t at_ns) noexcept { client_window_start_ns_ = at_ns; }
 
 bool RetrySchedule::BackingOff() const noexcept {
   return ended_ && last_end_ == SubscriptionEnd::kSilenceTimeout &&
@@ -76,7 +74,7 @@ std::int64_t RetrySchedule::NextAttemptNs(std::int64_t attempt_start_ns, std::in
 
 std::int64_t RetrySchedule::NextClientAttemptNs(std::int64_t attempt_start_ns, std::int64_t now_ns) const noexcept {
   const std::int64_t period =
-      attempt_start_ns - client_window_start_ns_ < kClientFastRetryWindowNs ? kRetryPeriodNs : kSlowRetryPeriodNs;
+      attempt_start_ns - start_ns_ < kClientFastRetryWindowNs ? kRetryPeriodNs : kSlowRetryPeriodNs;
   return std::max(attempt_start_ns + period, now_ns);
 }
 

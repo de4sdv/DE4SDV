@@ -28,9 +28,15 @@
 //   overflow shows that messages came, and the next read follows at once;
 // - on PublicationDestroyed of the current subscription it ends the
 //   subscription, unsubscribes and subscribes again;
-// - on Disconnected of the current client it ends the subscription, deletes
-//   the client and creates it again; a notification of an old client or an
-//   old subscription changes nothing;
+// - the library allows one client per process (libsdvgatewayclient.h:
+//   473-475). So the worker calls ASDVGateway_Client_new once with success
+//   and never deletes and re-creates the client. Only a Client_new that
+//   itself failed is tried again, with a bounded wait. On Disconnected of
+//   the current client, and when initComms fails, the worker ends the
+//   subscription, hands on kClientLost and makes no further call: the main
+//   thread ends the process with its own code, and init starts the relay
+//   again as a new process;
+// - a notification of an old subscription changes nothing;
 // - when no message comes for 3 s it ends the subscription, unsubscribes
 //   and subscribes again;
 // - at stop it unsubscribes and deletes the client.
@@ -68,7 +74,8 @@ class ClockSource {
 };
 
 enum class WorkerEventKind : std::uint8_t {
-  kClientCreate,       // an attempt to create the client, ok or failed
+  kClientCreate,       // an attempt of Client_new or of initComms (note), ok or failed
+  kClientLost,         // the client is lost for this process (note: the stage)
   kClientDestroyed,
   kSubscribed,         // a subscription succeeded
   kSubscribeFailed,
@@ -166,6 +173,7 @@ class GatewayWorker final : public GatewayNotificationSink {
   bool stop_requested() const noexcept { return stop_requested_.load(); }
 
   bool has_client() const noexcept { return has_client_; }
+  bool client_lost() const noexcept { return client_lost_; }
   bool subscribed() const noexcept { return subscribed_; }
   const PublicationMetadata& publication() const noexcept { return publication_; }
   const RetrySchedule& schedule() const noexcept { return schedule_; }
@@ -184,6 +192,7 @@ class GatewayWorker final : public GatewayNotificationSink {
   void PostNotification(const GatewayNotification& notification, const Clock& now, const char* note);
   void EndSubscription(SubscriptionEnd end, bool unsubscribe, const Clock& now);
   void DestroyClient(const char* cause);
+  void LoseClient(const Clock& now, const char* stage, GatewayResult status, std::int32_t raw_type);
   std::int64_t StepClient(const Clock& now);
   std::int64_t StepSubscribe(const Clock& now);
   std::int64_t StepRead(const Clock& now, bool data_available);
@@ -202,7 +211,9 @@ class GatewayWorker final : public GatewayNotificationSink {
   std::uint64_t inbox_dropped_{0};
   std::atomic<bool> stop_requested_{false};
 
-  bool has_client_{false};
+  bool client_created_{false};  // Client_new succeeded: the one client of the process
+  bool has_client_{false};      // and initComms too
+  bool client_lost_{false};
   bool subscribed_{false};
   std::uint64_t client_generation_{0};
   std::uint64_t subscription_generation_{0};

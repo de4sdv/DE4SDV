@@ -109,24 +109,12 @@ TEST(RetrySchedule, PublicationDestroyedKeepsItsFastRetriesAfterSilentSubscripti
   EXPECT_EQ(schedule.NextAttemptNs(kT0 + 20 * kS, kT0 + 20 * kS), kT0 + 20 * kS + 100 * kMs);
 }
 
-TEST(RetrySchedule, DisconnectedResubscribesAtOnceAfterTheNewClient) {
-  RetrySchedule schedule{kT0};
-  schedule.OnSubscribed();
-  schedule.OnEnded(SubscriptionEnd::kDisconnected, 10, kT0 + 50 * kS);
-  schedule.OnClientLost(kT0 + 50 * kS);
-  EXPECT_EQ(schedule.FirstAttemptNs(kT0 + 51 * kS), kT0 + 51 * kS);
-  EXPECT_EQ(schedule.NextAttemptNs(kT0 + 51 * kS, kT0 + 51 * kS), kT0 + 52 * kS);
-}
-
 TEST(RetrySchedule, ClientCreationRetriesEverySecondThenEveryTenSeconds) {
   RetrySchedule schedule{kT0};
   EXPECT_EQ(schedule.NextClientAttemptNs(kT0, kT0), kT0 + 1 * kS);
   EXPECT_EQ(schedule.NextClientAttemptNs(kT0 + 29 * kS, kT0 + 29 * kS), kT0 + 30 * kS);
   EXPECT_EQ(schedule.NextClientAttemptNs(kT0 + 30 * kS, kT0 + 30 * kS), kT0 + 40 * kS);
   EXPECT_EQ(kClientFastRetryWindowNs, 30 * kS);
-  // A lost client starts a new window.
-  schedule.OnClientLost(kT0 + 100 * kS);
-  EXPECT_EQ(schedule.NextClientAttemptNs(kT0 + 100 * kS, kT0 + 100 * kS), kT0 + 101 * kS);
 }
 
 TEST(RetrySchedule, OnlyTheLayersEndsAreLayerCaused) {

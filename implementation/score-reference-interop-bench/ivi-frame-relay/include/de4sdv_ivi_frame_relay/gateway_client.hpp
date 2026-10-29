@@ -10,9 +10,9 @@
 // all the rest. The gateway worker (gateway_worker.hpp) makes every call, on
 // its own thread.
 //
-// The interface holds what the relay needs and no more: create a client,
-// subscribe by name with ASDVGATEWAY_SUBSCRIBER_OPTIONS_FLAG_NONE, read,
-// unsubscribe, destroy. It has no call that publishes, offers or calls a
+// The interface holds what the relay needs and no more: create the one
+// client of the process, initialize it, subscribe by name with
+// ASDVGATEWAY_SUBSCRIBER_OPTIONS_FLAG_NONE, read, unsubscribe, destroy. It has no call that publishes, offers or calls a
 // service: the relay sends nothing to the host or the SDV Core VM. Only the
 // SDV Gateway on IVI exchanges subscription control with the SDV Core VM
 // for it.
@@ -114,12 +114,19 @@ class GatewayNotificationSink {
 class GatewayClient {
  public:
   virtual ~GatewayClient() = default;
-  // ASDVGateway_Client_new, the client notification callback, initComms with
-  // the subject. The notifications of this client and of its subscriptions
-  // go to sink. On failure, no client remains.
-  virtual GatewayResult Create(std::uint64_t client_generation, const SubjectIdentity& subject,
-                               GatewayNotificationSink& sink) = 0;
-  // Clears the client notification callback and deletes the client.
+  // ASDVGateway_Client_new and the client notification callback. The
+  // notifications of this client and of its subscriptions go to sink. The
+  // library allows one client per process, also after the first one was
+  // deleted (libsdvgatewayclient.h:473-475). So *created tells whether
+  // ASDVGateway_Client_new succeeded: once it has, the client belongs to this
+  // process for good, also when the result is a failure of the callback, and
+  // the worker never calls NewClient again.
+  virtual GatewayResult NewClient(std::uint64_t client_generation, GatewayNotificationSink& sink,
+                                  bool* created) = 0;
+  // initComms with the subject, on the client of NewClient.
+  virtual GatewayResult InitComms(const SubjectIdentity& subject) = 0;
+  // Clears the client notification callback and deletes the client; only at
+  // the stop of the relay.
   virtual GatewayResult Destroy() = 0;
   // subscribeToPublicationByName with ASDVGATEWAY_SUBSCRIBER_OPTIONS_FLAG_NONE
   // and a notification interval of 0. Fills metadata on success.

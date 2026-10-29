@@ -91,11 +91,14 @@ struct Harness {
 TEST(GatewayWorker, CreatesTheClientAndSubscribesByNameWithFlagNone) {
   Harness h;
   h.RunFor(10 * kMs);
-  ASSERT_GE(h.sink.events.size(), 2U);
+  ASSERT_GE(h.sink.events.size(), 3U);
   EXPECT_EQ(h.sink.events[0].kind, WorkerEventKind::kClientCreate);
+  EXPECT_STREQ(h.sink.events[0].note, "client_new");
   EXPECT_TRUE(h.sink.events[0].status.ok());
-  EXPECT_EQ(h.sink.events[1].kind, WorkerEventKind::kSubscribed);
-  const WorkerEvent& subscribed = h.sink.events[1];
+  EXPECT_EQ(h.sink.events[1].kind, WorkerEventKind::kClientCreate);
+  EXPECT_STREQ(h.sink.events[1].note, "init_comms");
+  EXPECT_EQ(h.sink.events[2].kind, WorkerEventKind::kSubscribed);
+  const WorkerEvent& subscribed = h.sink.events[2];
   EXPECT_EQ(subscribed.publication.subscriber_flags, kSubscriberFlagNone);
   EXPECT_EQ(subscribed.publication.message_size_bytes, kSlotBytes);
   EXPECT_EQ(subscribed.subscription, 1U);
@@ -114,8 +117,8 @@ TEST(GatewayWorker, SubscribedEventCarriesTheTimeTheCallReturned) {
   h.RunFor(20 * kMs);
   const auto subscribed = h.Of(WorkerEventKind::kSubscribed);
   ASSERT_EQ(subscribed.size(), 1U);
-  // create (7 ms), then subscribe (7 ms): the subscription holds from 14 ms.
-  EXPECT_EQ(subscribed[0].at.monotonic_ns - h.start, 14 * kMs);
+  // Client_new, initComms and subscribe, 7 ms each: the subscription holds from 21 ms.
+  EXPECT_EQ(subscribed[0].at.monotonic_ns - h.start, 21 * kMs);
 }
 
 TEST(GatewayWorker, FailedSubscribesCarryTheirStatusAndFollowTheStartSchedule) {
@@ -138,20 +141,42 @@ TEST(GatewayWorker, FailedSubscribesCarryTheirStatusAndFollowTheStartSchedule) {
   EXPECT_FALSE(h.worker.subscribed());
 }
 
-TEST(GatewayWorker, FailedClientCreationIsRetriedWithABoundedWait) {
+TEST(GatewayWorker, AFailedClientNewIsRetriedWithABoundedWait) {
   Harness h;
-  h.client.FailCreates(1000, GatewayResult{14, "SD agent unavailable"});
+  h.client.FailClientNews(1000, GatewayResult{14, "gateway service unavailable"});
   h.RunFor(45 * kSecond);
   const auto creates = h.Of(WorkerEventKind::kClientCreate);
+  // Client_new itself failed, so no client exists and it may be tried again.
   ASSERT_EQ(creates.size(), 32U);
   EXPECT_EQ(creates[1].at.monotonic_ns - h.start, 1 * kSecond);
   EXPECT_EQ(creates[31].at.monotonic_ns - h.start, 40 * kSecond);
-  EXPECT_EQ(creates[0].status.text, "SD agent unavailable");
+  EXPECT_EQ(creates[0].status.text, "gateway service unavailable");
   for (const WorkerEvent& create : creates) {
+    EXPECT_STREQ(create.note, "client_new");
     EXPECT_FALSE(create.status.ok());
     EXPECT_LE(create.next_attempt_ns - create.at.monotonic_ns, 10 * kSecond);
   }
+  EXPECT_EQ(h.client.count("init_comms"), 0U);
   EXPECT_EQ(h.client.count("subscribe"), 0U);
+  EXPECT_FALSE(h.worker.client_lost());
+}
+
+TEST(GatewayWorker, AFailedInitCommsLosesTheClientForTheProcess) {
+  Harness h;
+  // The status of the feasibility run when a second process with the same subject started.
+  h.client.FailInitComms(GatewayResult{13, "Failed to create identity for IviFrameRelay with SD IdentityAgent"});
+  h.RunFor(60 * kSecond);
+  const auto lost = h.Of(WorkerEventKind::kClientLost);
+  ASSERT_EQ(lost.size(), 1U);
+  EXPECT_STREQ(lost[0].note, "init_comms");
+  EXPECT_EQ(lost[0].status.code, 13);
+  EXPECT_TRUE(h.worker.client_lost());
+  // One Client_new and one initComms in the whole minute: no delete, no second client.
+  EXPECT_EQ(h.client.count("client_new"), 1U);
+  EXPECT_EQ(h.client.count("init_comms"), 1U);
+  EXPECT_EQ(h.client.count("destroy"), 0U);
+  EXPECT_EQ(h.client.count("subscribe"), 0U);
+  EXPECT_EQ(h.client.second_clients(), 0);
 }
 
 TEST(GatewayWorker, ReadsHandOnEverySlotInOrderAndUnchanged) {
@@ -347,27 +372,28 @@ TEST(GatewayWorker, LateNotificationsOfOldGenerationsChangeNothing) {
   EXPECT_TRUE(h.Of(WorkerEventKind::kSubscriptionEnded).empty());
 }
 
-TEST(GatewayWorker, DisconnectedDeletesTheClientAndCreatesItAgain) {
+TEST(GatewayWorker, DisconnectedLosesTheClientForTheProcess) {
   Harness h;
   h.RunFor(1 * kMs);
-  h.client.FailCreates(2, GatewayResult{14, "gateway restarting"});
   h.client.Disconnect();
-  h.RunFor(3 * kSecond);
+  h.RunFor(600 * kSecond);  // ten minutes
   const auto ended = h.Of(WorkerEventKind::kSubscriptionEnded);
   ASSERT_EQ(ended.size(), 1U);
   EXPECT_EQ(ended[0].end, SubscriptionEnd::kDisconnected);
-  EXPECT_EQ(h.client.count("unsubscribe:2"), 0U);  // the client is gone
-  EXPECT_EQ(h.client.count("destroy"), 1U);
-  ASSERT_EQ(h.Of(WorkerEventKind::kClientDestroyed).size(), 1U);
-  EXPECT_STREQ(h.Of(WorkerEventKind::kClientDestroyed)[0].note, "disconnected");
-  const auto creates = h.Of(WorkerEventKind::kClientCreate);
-  ASSERT_EQ(creates.size(), 4U);  // the first, two failed, one ok
-  EXPECT_EQ(creates[1].status.text, "gateway restarting");
-  EXPECT_EQ(creates[2].at.monotonic_ns - creates[1].at.monotonic_ns, 1 * kSecond);
-  EXPECT_TRUE(creates[3].status.ok());
-  const auto subscribed = h.Of(WorkerEventKind::kSubscribed);
-  ASSERT_EQ(subscribed.size(), 2U);
-  EXPECT_EQ(subscribed[1].at.monotonic_ns, creates[3].at.monotonic_ns);
+  const auto lost = h.Of(WorkerEventKind::kClientLost);
+  ASSERT_EQ(lost.size(), 1U);
+  EXPECT_STREQ(lost[0].note, "disconnected");
+  EXPECT_EQ(lost[0].raw_type, 3);
+  EXPECT_GT(lost[0].at.monotonic_ns, ended[0].at.monotonic_ns - 1);
+  // No unsubscribe on a gone client, no delete, no second client: the process ends.
+  EXPECT_EQ(h.client.count("unsubscribe:2"), 0U);
+  EXPECT_EQ(h.client.count("destroy"), 0U);
+  EXPECT_EQ(h.client.count("client_new"), 1U);
+  EXPECT_EQ(h.client.second_clients(), 0);
+  EXPECT_EQ(h.client.count("subscribe"), 1U);
+  EXPECT_TRUE(h.worker.client_lost());
+  h.worker.Finish();  // at the exit: nothing to unsubscribe, nothing to delete
+  EXPECT_EQ(h.client.count("destroy"), 0U);
 }
 
 TEST(GatewayWorker, RefusedMetadataIsAFailedAttempt) {

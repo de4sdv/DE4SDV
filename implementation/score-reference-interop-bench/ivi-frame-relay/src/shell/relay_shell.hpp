@@ -171,8 +171,10 @@ class RelayShell final : private FrameSink {
   bool Open(std::string* error);
   std::uint16_t port() const noexcept { return port_; }
   const char* policy_name() const noexcept { return policy_.Name(); }
-  // Runs until stop_requested() is true, then stops the worker. The start
-  // line of the caller comes before; the final status line comes from here.
+  // Runs until stop_requested() is true or the core asks for the exit (the
+  // gateway client is lost), then stops the worker. The start line of the
+  // caller comes before; the final status line comes from here. The exit
+  // code is 0, or kExitGatewayClientLost.
   ShellResult Run(const std::function<bool()>& stop_requested);
   // A copy of the counters; safe from another thread.
   RelayCounters counters() const;

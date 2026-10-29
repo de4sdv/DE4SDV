@@ -16,16 +16,18 @@
 //   reports a likely fault of the ACL or of the mapping, and from then on
 //   the relay tries every 10 s;
 // - on Disconnected it creates the gateway client again, with a bounded
-//   retry.
+//   retry. The library allows one client per process
+//   (libsdvgatewayclient.h:473-475), so the relay realizes that by ending the
+//   process: init starts it again (gateway_worker.hpp).
 // The relay's reading, not a value of the model:
 // - the first attempt after each end comes at once;
 // - until the first subscription of the process succeeds, an attempt comes
 //   every second;
 // - the wait of 5 s applies after the ends by the timeout only, so a
 //   PublicationDestroyed keeps its 100 ms;
-// - the bounded retry of the client: at once, then every second, and every
-//   10 s once the failures have lasted 30 s, so each wait is bounded and the
-//   relay never gives up;
+// - a failed ASDVGateway_Client_new, which leaves no client, is tried again:
+//   every second, and every 10 s once the failures have lasted 30 s from the
+//   start, so each wait is bounded and the relay never gives up;
 // - a period runs from the start of one attempt to the start of the next,
 //   and an attempt that took longer than its period is followed at once.
 
@@ -50,7 +52,7 @@ constexpr std::uint64_t kSilentSubscriptionsBeforeBackOff = 3;
 constexpr std::int64_t kSilentBackOffNs = 5 * kNanosecondsPerSecond;
 constexpr std::int64_t kStartDiagnosticNs = 30 * kNanosecondsPerSecond;
 constexpr std::int64_t kSlowRetryPeriodNs = 10 * kNanosecondsPerSecond;
-// The bounded retry of the client: the relay's reading, not a value of the model.
+// The retry of a failed Client_new: the relay's reading, not a value of the model.
 constexpr std::int64_t kClientFastRetryWindowNs = 30 * kNanosecondsPerSecond;
 
 enum class SubscriptionEnd : std::uint8_t {
@@ -72,8 +74,6 @@ class RetrySchedule {
   void OnSubscribed() noexcept;
   // A subscription ended at at_ns and brought messages messages.
   void OnEnded(SubscriptionEnd end, std::uint64_t messages, std::int64_t at_ns) noexcept;
-  // The client was lost at at_ns: its creation starts a new retry window.
-  void OnClientLost(std::int64_t at_ns) noexcept;
 
   // The first subscribe attempt after an end at at_ns, or after the client
   // was created at at_ns.
@@ -81,7 +81,7 @@ class RetrySchedule {
   // The attempt after a failed one that started at attempt_start_ns and
   // returned at now_ns.
   std::int64_t NextAttemptNs(std::int64_t attempt_start_ns, std::int64_t now_ns) const noexcept;
-  // The client creation after a failed one.
+  // The ASDVGateway_Client_new after a failed one; the window runs from the start.
   std::int64_t NextClientAttemptNs(std::int64_t attempt_start_ns, std::int64_t now_ns) const noexcept;
 
   // The period of a subscribe attempt that starts at attempt_start_ns, and
@@ -102,7 +102,6 @@ class RetrySchedule {
   SubscriptionEnd last_end_{SubscriptionEnd::kRelayStop};
   std::int64_t last_end_ns_{0};
   std::uint64_t consecutive_silent_{0};
-  std::int64_t client_window_start_ns_;
 };
 
 }  // namespace de4sdv::ivi_frame_relay

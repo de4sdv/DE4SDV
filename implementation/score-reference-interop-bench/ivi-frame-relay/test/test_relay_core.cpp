@@ -518,6 +518,27 @@ TEST(RelayCore, TheClientLinesNameThePeerProcess) {
   EXPECT_TRUE(Has(refused, "\"peer_source\":\"none\""));
 }
 
+TEST(RelayCore, AGatewayClientLossEndsThePhaseAndAsksForTheExit) {
+  Harness h;
+  h.Subscribe();
+  h.Connect();
+  WorkerEvent lost = h.Event(WorkerEventKind::kClientLost);
+  lost.note = "init_comms";
+  lost.status = GatewayResult{13, "Failed to create identity"};
+  h.core.OnWorkerEvent(lost);
+  EXPECT_FALSE(h.core.in_phase());
+  const std::string end = h.log.Last("phase_end");
+  EXPECT_TRUE(Has(end, "\"cause\":\"gateway_client_lost\""));
+  EXPECT_TRUE(Has(end, "\"layer_caused\":true"));
+  const std::string line = h.log.Last("gateway_client_lost");
+  EXPECT_TRUE(Has(line, "\"stage\":\"init_comms\""));
+  EXPECT_TRUE(Has(line, "\"status_code\":13"));
+  EXPECT_TRUE(Has(line, "\"exit_code\":4"));
+  EXPECT_TRUE(h.core.exit_requested());
+  EXPECT_EQ(h.core.exit_code(), de4sdv::ivi_frame_relay::kExitGatewayClientLost);
+  EXPECT_EQ(h.core.counters().gateway_client_losses, 1U);
+}
+
 TEST(RelayCore, StopEndsThePhase) {
   Harness h;
   h.Subscribe();
@@ -625,15 +646,16 @@ TEST(RelayCore, StartDiagnosticNamesTheClientWhenNoneWasCreated) {
   Harness h;
   h.core.OnStart(h.now);
   WorkerEvent failed = h.Event(WorkerEventKind::kClientCreate);
-  failed.status = GatewayResult{14, "SD agent unavailable"};
+  failed.status = GatewayResult{14, "gateway service unavailable"};
+  failed.note = "client_new";
   h.core.OnWorkerEvent(failed);
-  h.monitor.Begin("create_client", h.now.monotonic_ns);
+  h.monitor.Begin("client_new", h.now.monotonic_ns);
   h.Advance(30 * kSecond);
   h.core.OnTick(h.now);
   const std::string line = h.log.Last("subscription_start_diagnostic");
   EXPECT_TRUE(Has(line, "\"likely_fault\":\"gateway_client\""));
-  EXPECT_TRUE(Has(line, "\"gateway_call_in_progress\":\"create_client\""));
-  EXPECT_TRUE(Has(line, "\"last_failure_stage\":\"create_client\""));
+  EXPECT_TRUE(Has(line, "\"gateway_call_in_progress\":\"client_new\""));
+  EXPECT_TRUE(Has(line, "\"last_failure_stage\":\"client_new\""));
 }
 
 TEST(RelayCore, NoStartDiagnosticAfterASubscription) {
