@@ -223,9 +223,10 @@ proxy node come with the next steps.
 | `provider/` | Vehicle-speed provider (Bazel overlay) |
 | `config/` | ROS 2 environment and CycloneDDS configuration of the host, mw::com and mw::log configurations, gateway configuration, vsomeip loopback configuration for CI |
 | `launch-manager/` | Launch Manager configuration (lifecycle overlay) |
-| `src/de4sdv_score_bench/` | Pure Python evaluators of the abort matrix, the refused subscription, the startup probe and the soak |
-| `scripts/` | CI build steps (runner only), the runtime facts, the renderer of the Launch Manager configuration and its load check, and the runners |
-| `tests/` | Evaluator unit tests |
+| `src/de4sdv_score_bench/` | Pure Python evaluators of the abort matrix, the refused subscription, the startup probe and the soak, and the VisualizationFrame encoder |
+| `scripts/` | CI build steps (runner only), the runtime facts, the renderer of the Launch Manager configuration and its load check, the runners, and the VisualizationFrame source for plumbing tests of the relay chain |
+| `tests/` | Evaluator unit tests, and the source checks of the IVI frame relay |
+| `ivi-frame-relay/` | DE4SDV IVI frame relay of the AAOS SDV guest: pure core, POSIX shell, gtest suites with a fake gateway client, golden fixtures, the AOSP adapter to libsdvgatewayclient and the main, `Android.bp` and init script (the AOSP parts are not built by CI) |
 
 ## Pure core and its tests
 
@@ -379,4 +380,212 @@ bench VM, the full Autoware graph, the guest side, the SOME/IP crossing to a
 real subscriber, the Launch Manager at run time, the health proxy node, the
 malformed-sample path of rmw_cyclonedds_cpp, a host that keeps the guest
 network off its DDS ports and port 4721 (GAP-MW-046), and the timing of any
-case. No safety, cybersecurity, compliance or certification claim is made.
+case. No safety, cybersecurity, compliance or certification claim is made. The
+relay below has its own claim boundary.
+
+## IVI frame relay of the AAOS SDV guest
+
+The HMI path of this member ends in the IVI VM of the AAOS SDV guest
+(ADR 0025). someipd on the Linux host sends the frame event over SOME/IP to
+the SOME/IP stack of the SDV Core VM. The SOME/IP broker there maps it to a
+topic, and Data Tunnel carries the topic to the IVI VM.
+[`ivi-frame-relay/`](ivi-frame-relay) is the DE4SDV relay at the end of that
+chain. It subscribes to the topic through the SDV Gateway on IVI and serves
+the frames to the unchanged ingress of INC-AEBS-010 on the loopback of the IVI
+VM. It realizes `iviFrameRelay` and `relaySubscriptionPhaseDiscardRule` of
+the phase-8 realization model.
+
+What the relay does:
+
+- It subscribes by name with libsdvgatewayclient, with the subscriber flag
+  `ASDVGATEWAY_SUBSCRIBER_OPTIONS_FLAG_NONE`. By the documented behavior of
+  the library (`libsdvgatewayclient.h:302-316`), it then reads only the
+  messages published after its subscription. CI does not run the library.
+  The default publication is the one of the feasibility run of 2026-10-28
+  (design data): VM `instance1`, package `com.android.sdv.someip`, bundle
+  `SomeIpBroker`, unit `de4sdv-score-aebs-signal-frame`. An option can follow
+  the mapping of phase 10 without a new build. The relay's own subject for
+  `initComms` is `de4sdv.ivi_frame_relay`, bundle `IviFrameRelay`, instance
+  `default` (the relay's reading, not a value of the model). Exactly one ACL
+  file for that subject must be on the IVI VM before it boots.
+- It parses the broker's wrapper in each slot strictly
+  (`broker_wrapper.hpp`, owner decision of 2026-10-29), as the model states
+  it for a slot of fixed size (`iviFrameRelay`): the outer varint gives the
+  message, which must fit in the slot. The message holds exactly one field: field 1 of wire
+  type 2 (tag `0x0A`), whose length equals the rest of the message. Every
+  byte of the slot after the message is zero, as the broker writes it. Each
+  varint is in its shortest form. Each failed check is a drop with its own
+  reason. A `wrapper_fill_not_zero` drop logs the message length, the offset
+  of the first byte that is not zero and its value: no run has yet recorded
+  the bytes of a slot after its message in the IVI VM, so the first session
+  of phase 10 uses frames of variable size and requires
+  `drop_wrapper_fill_not_zero` to stay 0. Then it checks the payload: at most
+  2048 bytes, and its own 4-byte little-endian length prefix must count the
+  bytes after it. So a corrupted payload cannot shift the stream framing of
+  the ingress (GAP-MW-040).
+- It serves each frame unchanged, prefix and frame, on 127.0.0.1:4731 to one
+  client, the ingress. It refuses a second client while one is connected. It
+  keeps the ingress connection open while the publication is unavailable. It
+  sends nothing to the host or to the SDV Core VM: the narrow gateway
+  interface has no call that publishes, offers or calls a service. Only the
+  SDV Gateway on IVI exchanges subscription control with the SDV Core VM for
+  it. That is a design property, not the protection of REQ-MW-016.
+  `client_connected` and `client_refused` name the peer process (its pid,
+  uid and port, from `/proc/net/tcp`), so the bench can check that the client
+  is the ingress. `SO_PEERCRED` gives no credentials on a TCP socket.
+- It keeps one subscription for its lifetime, with or without a client, and
+  holds at most one at a time (owner decision of 2026-10-29). Where a value
+  below is the relay's reading, not a value of the model, it says so:
+  - on PublicationDestroyed it ends the subscription, unsubscribes and
+    subscribes again: every 100 ms for the first 5 s, then every second. The
+    first attempt comes at once (the relay's reading, not a value of the
+    model);
+  - on Disconnected, and when `initComms` fails, it logs
+    `gateway_client_lost` with the stage and the status, ends the phase as a
+    phase end of the layer, and ends the process with code 4. init starts
+    the relay again as a new process, and that start triggers the ingress
+    again. The relay never deletes and re-creates its gateway client (owner
+    decision of 2026-10-29, revised the same day: the library allows one
+    client per process (`libsdvgatewayclient.h:473-475`); the model states
+    it in `iviFrameRelay`). Only an `ASDVGateway_Client_new` that itself failed, which
+    leaves no client, is tried again in the process: every second, and every
+    10 s once the failures have lasted 30 s (the relay's reading, not a
+    value of the model);
+  - when no message comes for 3 s it ends the subscription, unsubscribes and
+    subscribes again. After three subscriptions in a row that brought no
+    message, it waits 5 s before each attempt. That the wait applies after
+    the ends by the timeout only is the relay's reading, not a value of the
+    model;
+  - it logs each failed attempt with its status code and text. If no
+    subscription succeeds within 30 s of its start, it logs
+    `subscription_start_diagnostic` once: a likely fault of the ACL or of the
+    mapping when a client exists, of the gateway client when none was
+    created. From then on it tries every 10 s. Before that, it tries every
+    second (the relay's reading, not a value of the model);
+  - a DATA_LOSS status of a read is a gap (GAP-MW-037): it is counted and
+    logged, and the phase goes on. A DATA_LOSS also counts as a sign of life
+    for the 3 s timer, and the next read follows at once (the relay's
+    reading, not a value of the model).
+- The discard rule: a subscription phase holds while the relay is subscribed
+  and the ingress is its one client. It starts when the second of the two
+  starts to hold, on `CLOCK_REALTIME` of the IVI VM, and ends when one of
+  them ends. Outside a phase the relay reads every slot and drops it. In a
+  phase it drops a frame with a sequence or a `frame_timestamp_ns` that is
+  not positive, a frame older than the phase start less 20 ms (the bound of
+  ASM-MW-030), and a copy of a frame served in the phase. The copy window
+  holds the last 40 frames served (20 + 20 sample slots) and is cleared at
+  each phase start. The margin is fixed: an option that names a margin or a
+  bound stops the relay at start. A frame that the AEBS stack produced in the
+  margin before the phase start can still pass (the band of GAP-MW-045). A
+  phase end by PublicationDestroyed,
+  Disconnected or the timeout while the ingress stays connected is a delivery
+  failure of the layer: its `phase_end` line has `layer_caused` set.
+- The ingress trigger: the ingress is a oneshot service and exits when
+  nothing listens. At each start of the relay, once its loopback server
+  listens, the relay sets the host property of the ingress and then
+  `de4sdv.aebs.ingress.start` to 0 and 1. Until the first client of the
+  process connects, it repeats the trigger every 1 s, at most 10 times, then
+  logs `ingress_trigger_gave_up`. After the first client it never triggers the
+  ingress again, with one case of the relay's reading, not a value of the
+  model: when the relay itself closes the ingress stream after a write stall,
+  it triggers the ingress again in the same way.
+- The host property: the ingress defaults its frame-server host to
+  10.250.0.3 (`ingress/main.cpp:144` of the visualization bench). So the
+  relay sets `de4sdv.aebs.frame_server.host` to 127.0.0.1 at each of its
+  starts (`--announce-property` in its init file), and the init file sets the
+  port property to 4731. Setting the host property also starts the ingress
+  (`de4sdv_aebs_ingress.rc:9-13`), as the model states.
+- The clock controls of ASM-MW-030: it logs `CLOCK_REALTIME` minus
+  `CLOCK_MONOTONIC` at the start, at each phase start and in each status line,
+  and each step of 1 ms or more. For the frames served in a phase it logs the
+  minimum and the maximum of receipt time minus frame timestamp. That minimum
+  bounds the offset from one side only, so it is no bounding control.
+
+Two threads. A worker thread makes every call into the gateway client. The
+main thread runs the loopback server, the ingress connection and the
+decisions on each frame, and never waits for the worker. A library call can
+block (the feasibility runs saw `initComms` block while the SD agent of the
+IVI VM could not start), and it cannot be cancelled. So the main thread
+reports a gateway call that has run for 10 s (`gateway_call_stalled`) and its
+return. Only the main thread takes SIGTERM and SIGINT: the binder pool and
+the worker thread start with them blocked. At stop, the relay ends the phase,
+unsubscribes and deletes the client within 150 ms, inside the 200 ms of
+init's `gentle_kill`, unless the worker is inside a gateway call; then the
+relay logs `gateway_worker_not_joined` and ends without unsubscribing. A stop
+that ends a blocked write to the ingress drops that frame as `relay_stop`, and
+the phase ends with the cause `relay_stop`.
+
+The log lines are JSON objects in liblog with the tag `de4sdv_ivi_frame_relay`,
+one per event: `start`, `gateway_client_create`, `subscribed`,
+`subscribe_failed`, `subscription_ended`, `unsubscribed`,
+`gateway_client_destroyed`, `phase_start`, `phase_end`, `frame` (each drop
+with its reason, and served frames), `data_loss`, `read_failed`,
+`gateway_notification`, `gateway_client_lost`, `client_connected` and
+`client_refused` (with
+`peer_pid`, `peer_uid` and `peer_port`), `client_lost`, `ingress_trigger`,
+`ingress_trigger_gave_up`, `clock_step`, `subscription_start_diagnostic`,
+`gateway_call_stalled`, `gateway_call_returned`, `status`, `final_status`. A
+`frame` line of a wrapper drop also has `message_bytes`, and one of
+`wrapper_fill_not_zero` has `fill_offset` and `fill_value`. Every slot read
+ends in exactly one outcome: `messages_read` equals `frames_delivered` plus
+the sum of the `drop_*` counters.
+
+Frames for plumbing tests:
+[`scripts/visualization_frame_source.py`](scripts/visualization_frame_source.py)
+serves VisualizationFrames with `sequence` from 1, `frame_timestamp_ns` on the
+host's `CLOCK_REALTIME` and sizes that vary up to 2044 bytes. The bench's
+`synthetic_frame_source.py` sends no VisualizationFrame, so the relay drops
+each of its frames as `frame_unreadable`. Cases of record use the frame
+assembler of INC-AEBS-010.
+
+### What CI builds and what phase 10 builds
+
+The gateway client of AOSP (libsdvgatewayclient of android17-release,
+manifest ad156f32) does not build on CI. So the relay keeps it behind a narrow
+interface (`gateway_client.hpp`):
+
+- CI builds and tests, with CMake on ubuntu-22.04, the core and the shell
+  with a fake gateway client: the strict parse, the payload checks, the
+  phase and discard logic, the retry and back-off rules, the gateway worker,
+  the loopback server with real sockets, and the two threads. Four jobs of
+  the workflow do it: `ivi-frame-relay-unit` (g++),
+  `ivi-frame-relay-clang` (clang++), `ivi-frame-relay-sanitizers` (g++ with
+  ASan and UBSan) and `ivi-frame-relay-tsan` (g++ with TSan).
+- The AOSP adapter (`src/aosp/sdv_gateway_client.cpp`), the main
+  (`src/aosp/relay_main.cpp`), `Android.bp` and the init file
+  `de4sdv_ivi_frame_relay.rc` are in the repository, and no CI job builds
+  them. The VM session of phase 10 stages the directory in the AOSP tree of
+  the bench and builds it there, together with the IVI image or for the
+  instance overlay (step 5 of the next action of the mapping record).
+
+Build and test the core and the shell with CMake and GTest (Ubuntu:
+`libgtest-dev`):
+
+```bash
+cmake -S implementation/score-reference-interop-bench/ivi-frame-relay -B build/ivi-frame-relay -G Ninja
+ninja -C build/ivi-frame-relay && build/ivi-frame-relay/de4sdv_ivi_frame_relay_tests
+```
+
+`de4sdv_ivi_frame_relay.rc` is the init file for the eng or userdebug image of
+the IVI VM of the bench: `seclabel u:r:su:s0` with SELinux permissive, as on
+the INC-AEBS-010 bench, so a product needs its own SELinux domain
+(GAP-MW-038). The service is not oneshot, so init restarts the relay when it
+exits. The exit codes: 0 after a stop, 2 for a refused option, 3 when the
+loopback server cannot listen, 4 when the gateway client is lost. The file
+sets the frame-server port of the ingress to 4731.
+
+### Claim boundary of the relay
+
+The CI runs are regression and design data on GitHub-hosted ubuntu-22.04
+runners. They are not evidence of record, they verify no requirement, and
+every result stays draft until independent review.
+
+Shown by a passing run: the core and the shell of the relay on Linux with a
+fake gateway client, with the discard rule and the subscription rules of the
+model and the relay's own readings, not values of the model. Not shown: the
+AOSP build of the relay, the gateway client at run time, the cross-VM
+subscription, the init service and the ACL on the IVI VM, the relay under its
+init user, group and SELinux label, the property service that the ingress
+trigger uses (off Android the setter only logs), the ingress, the clock of a
+real IVI VM (ASM-MW-030), and any timing of record. No safety,
+cybersecurity, compliance or certification claim is made.

@@ -18,6 +18,12 @@
 #   with 11 other ROS 2 processes before or after it, and two controls.
 # - soak: nominal operation with someipd and gatewayd, 600 s on a pull
 #   request, the soak_seconds of a manual run (default 1800 s).
+# - ivi-frame-relay-unit, ivi-frame-relay-clang, ivi-frame-relay-sanitizers,
+#   ivi-frame-relay-tsan: the core and the shell of the DE4SDV IVI frame
+#   relay of the AAOS SDV guest with gtest and a fake gateway client (g++,
+#   clang++, g++ with ASan and UBSan, g++ with TSan). CI has no AOSP tree, so
+#   no job builds the AOSP adapter to libsdvgatewayclient or the main of the
+#   relay; the VM session of phase 10 builds them with Android.bp.
 # Every runtime job sources config/ros_environment.sh of the runtime bundle
 # and records the facts of its runner. Results are CI regression and design
 # data, not evidence of record.
@@ -347,4 +353,95 @@ jobs:
           path: |
             ${{ runner.temp }}/facts
             ${{ runner.temp }}/results
+          retention-days: 30
+
+  # The DE4SDV IVI frame relay of the AAOS SDV guest: its core and its shell
+  # with the fake gateway client, with g++, with clang++, and with g++ under
+  # ASan and UBSan and under TSan (two threads).
+  ivi-frame-relay-unit:
+    name: IVI frame relay build and unit tests (g++)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the relay core and shell and run their unit tests
+        run: |
+          bash "$BENCH_DIR/scripts/ci_build_ivi_frame_relay.sh" g++ "$RUNNER_TEMP/relay-build" "$RUNNER_TEMP/facts" \
+            "$GITHUB_WORKSPACE/$BENCH_DIR"
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/facts/ivi_frame_relay_build_g++.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ivi-frame-relay-build
+          path: ${{ runner.temp }}/facts
+          retention-days: 30
+
+  ivi-frame-relay-clang:
+    name: IVI frame relay build and unit tests (clang++)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the relay core and shell and run their unit tests
+        run: |
+          bash "$BENCH_DIR/scripts/ci_build_ivi_frame_relay.sh" clang++ "$RUNNER_TEMP/relay-build" "$RUNNER_TEMP/facts" \
+            "$GITHUB_WORKSPACE/$BENCH_DIR"
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/facts/ivi_frame_relay_build_clang++.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ivi-frame-relay-build-clang
+          path: ${{ runner.temp }}/facts
+          retention-days: 30
+
+  ivi-frame-relay-sanitizers:
+    name: IVI frame relay unit tests under ASan and UBSan (g++)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the relay with ASan and UBSan and run its unit tests
+        run: |
+          bash "$BENCH_DIR/scripts/ci_build_ivi_frame_relay.sh" g++ "$RUNNER_TEMP/relay-build" "$RUNNER_TEMP/facts" \
+            "$GITHUB_WORKSPACE/$BENCH_DIR" address,undefined
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/facts/ivi_frame_relay_build_g++-address-undefined.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ivi-frame-relay-build-sanitizers
+          path: ${{ runner.temp }}/facts
+          retention-days: 30
+
+  ivi-frame-relay-tsan:
+    name: IVI frame relay unit tests under TSan (g++)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the relay with TSan and run its unit tests
+        run: |
+          bash "$BENCH_DIR/scripts/ci_build_ivi_frame_relay.sh" g++ "$RUNNER_TEMP/relay-build" "$RUNNER_TEMP/facts" \
+            "$GITHUB_WORKSPACE/$BENCH_DIR" thread
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/facts/ivi_frame_relay_build_g++-thread.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ivi-frame-relay-build-tsan
+          path: ${{ runner.temp }}/facts
           retention-days: 30
