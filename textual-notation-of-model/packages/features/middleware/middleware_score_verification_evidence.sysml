@@ -343,7 +343,10 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * falls in the AEBS event, the outcome is failObservedBehavior.
      * A delivery failure that does not depend on the clock fails the run
      * whatever else holds. In the event, such failures are a phase end that
-     * the layer causes, a DATA_LOSS and a change of order. Otherwise the three
+     * the layer causes, a DATA_LOSS and a change of order. An ingress
+     * disconnect that the relay causes is such a delivery failure too, not an
+     * inconclusive condition. The relay causes it by its exit, or by a close
+     * of the stream from port 4731 in the loopback capture. Otherwise the three
      * conditions below make the run inconclusive. In each of them, the run
      * does not meet the condition of the criteria, and the outcome is
      * inconclusiveMissingEvidence:
@@ -633,14 +636,15 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * The run applies the clock controls of ASM-MW-030 and records them.
      * Among them are the two offset measurements, at the start and at the
      * end of the session, each with its uncertainty. If both measurements
-     * exist, processData also checks each frame against a wider limit. The
-     * limit is the 20 ms bound of ASM-MW-030, plus the larger absolute offset
-     * of the two measurements, plus the uncertainty of that measurement. A
-     * frame that the AEBS stack produced more than that limit before the new
-     * subscription is a clock-independent violation. Such a frame fails the
-     * run, whatever else holds. Otherwise, if ASM-MW-030 does not hold in the
-     * run, the run does not show the criteria met. In that case, the outcome
-     * is inconclusiveMissingEvidence.
+     * exist, processData also checks each frame against a wider limit. It
+     * applies that limit only if the relay logged no clock step between the
+     * two measurements. The limit is the 20 ms bound of ASM-MW-030, plus the
+     * larger absolute offset of the two measurements, plus the uncertainty of
+     * that measurement. A frame that the AEBS stack produced more than that
+     * limit before the new subscription is a clock-independent violation.
+     * Such a frame fails the run, whatever else holds. Otherwise, if
+     * ASM-MW-030 does not hold in the run, the run does not show the criteria
+     * met. In that case, the outcome is inconclusiveMissingEvidence.
      * After a reboot of the IVI VM, the relay and the ingress start before the
      * bench can set the clock (GAP-MW-048). So for the second condition, the
      * bench sets the clock after the reboot and then starts the ingress
@@ -657,6 +661,11 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * subscription. They are the relay's phase_start in its log and the
      * accept of the ingress in the loopback capture. It records both times
      * and their difference. A later start can only make the check stricter.
+     * processData also runs the same check with a second start: the time of
+     * the subscription in the Data Tunnel capture. If that check fails and the
+     * first one passes, the outcome is inconclusiveMissingEvidence. In the
+     * third and fourth conditions the ingress stays connected, so only this
+     * check is independent of the relay's record.
      * For REQ-MW-014, a phase end that the layer causes is a delivery failure
      * (VC-MW-015). For REQ-MW-019, the new phase is the current subscription.
      * The SOME/IP hardening of GAP-MW-046 is a recorded design measure

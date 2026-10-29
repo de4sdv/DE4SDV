@@ -428,6 +428,12 @@ def test_the_relay_subscribes_through_the_gateway_and_removes_the_broker_wrapper
                  # The owner answered on 2026-10-29; no placeholder stays.
                  "revised …", "revised ..."):
         assert gone not in doc, gone
+    # No added sentence of the gateway-client bullet may bring back a re-creation of the client (closure check R3).
+    start = doc.index("- Gateway client (owner decision of 2026-10-29")
+    bullet = doc[start:doc.index("- When no message comes for 3 s", start)]
+    rest = bullet.replace("After the client has been created, the relay never deletes and re-creates it.", "", 1)
+    assert rest != bullet, "the bullet keeps its rule against a re-creation"
+    assert not re.search(r"re-?creat|creates? (the client|it) again", rest, re.IGNORECASE), rest
     # The relay's input carries the wrapped topic; its behavior unwraps it (technical review R11).
     relay = _braced(PHYSICAL.read_text(encoding="utf-8"), r"\bpart iviFrameRelay : PhysicalAllocationElement \{")
     assert re.search(r"\bport frameTopicIn : DataTunnelPort \{", relay)

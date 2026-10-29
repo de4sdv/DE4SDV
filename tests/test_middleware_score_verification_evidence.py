@@ -352,8 +352,11 @@ def test_the_source_order_case_records_every_phase_end() -> None:
                       "The layer causes it by the relay's timeout, PublicationDestroyed or Disconnected.",
                       "If such a phase end falls in the AEBS event, the outcome is failObservedBehavior.",
                       "A delivery failure that does not depend on the clock fails the run whatever else holds. In the "
-                      "event, such failures are a phase end that the layer causes, a DATA_LOSS and a change of order. "
-                      "Otherwise the three conditions below make the run inconclusive.",
+                      "event, such failures are a phase end that the layer causes, a DATA_LOSS and a change of order.",
+                      # A relay crash writes no phase end; the stream from port 4731 closes (closure check R2).
+                      "An ingress disconnect that the relay causes is such a delivery failure too, not an inconclusive "
+                      "condition. The relay causes it by its exit, or by a close of the stream from port 4731 in the "
+                      "loopback capture. Otherwise the three conditions below make the run inconclusive.",
                       "- the ingress disconnects in the event; - another client holds the stream of the frame "
                       "assembler; - ASM-MW-030 does not hold.",
                       # A second client can starve the adapter and end the phase by the relay's timeout: a bench
@@ -526,7 +529,10 @@ def test_the_discard_case_runs_the_four_conditions() -> None:
                       "IVI; - the loopback capture, for the accept of the ingress. processData takes the later of two "
                       "times as the start of the new subscription. They are the relay's phase_start in its log and the "
                       "accept of the ingress in the loopback capture. It records both times and their difference. A "
-                      "later start can only make the check stricter.",
+                      "later start can only make the check stricter. processData also runs the same check with a "
+                      "second start: the time of the subscription in the Data Tunnel capture. If that check fails and "
+                      "the first one passes, the outcome is inconclusiveMissingEvidence. In the third and fourth "
+                      "conditions the ingress stays connected, so only this check is independent of the relay's record.",
                       "For REQ-MW-014, a phase end that the layer causes is a delivery failure (VC-MW-015). For "
                       "REQ-MW-019, the new phase is the current subscription.",
                       "The SOME/IP hardening of GAP-MW-046 is a recorded design measure (VC-MW-017). It is no part of "
@@ -534,6 +540,13 @@ def test_the_discard_case_runs_the_four_conditions() -> None:
                       "While GAP-MW-039 is open for a restart of gatewayd alone and for a late start of gatewayd, a "
                       "pass does not close REQ-MW-019."):
         assert statement in case, statement
+    # No added sentence may take an earlier phase start than the later-of-two rule (closure check R3, probe P1).
+    assert not re.search(r"\bthe earlier\b|\bearlier (time|start|of)\b", case), "an earlier start loosens the check"
+
+
+def _sentences(doc: str) -> list[str]:
+    """The sentences of a flattened doc, split where a sentence ends before a capital letter or an action name."""
+    return re.split(r"(?<=[.!?])\s+(?=[A-Z]|collectData|processData|evaluateData)", doc)
 
 
 def test_the_discard_case_fails_a_clock_independent_violation_whatever_else_holds() -> None:
@@ -541,7 +554,9 @@ def test_the_discard_case_fails_a_clock_independent_violation_whatever_else_hold
     uncertainty fails the run, whatever else holds; only otherwise does a failed ASM-MW-030 make it inconclusive."""
     case = _definition_doc("UnsubscribedFrameDiscardVerification")
     rule = ("Among them are the two offset measurements, at the start and at the end of the session, each with its "
-            "uncertainty. If both measurements exist, processData also checks each frame against a wider limit. The "
+            "uncertainty. If both measurements exist, processData also checks each frame against a wider limit. It "
+            # A clock step between the measurements breaks the offset bound (closure check, decision 5).
+            "applies that limit only if the relay logged no clock step between the two measurements. The "
             "limit is the 20 ms bound of ASM-MW-030, plus the larger absolute offset of the two measurements, plus the "
             "uncertainty of that measurement. A frame that the AEBS stack produced more than that limit before the "
             "new subscription is a clock-independent violation. Such a frame fails the run, whatever else holds.")
@@ -550,6 +565,10 @@ def test_the_discard_case_fails_a_clock_independent_violation_whatever_else_hold
     assert rule in case, case
     assert fallback in case, case
     assert case.index(rule) < case.index(fallback), "the clock-independent rule must come before the inconclusive one"
+    # No added sentence may make a clock-independent violation inconclusive (closure check R3, probe P3).
+    for sentence in _sentences(case):
+        if re.search(r"\bsuch a frame\b|clock-independent", sentence, re.IGNORECASE):
+            assert "inconclusive" not in sentence, sentence
     # The bound in the limit is the bound of ASM-MW-030 itself, so the two cannot drift apart.
     (bound,) = re.findall(r"The limit is the (\d+) ms bound of ASM-MW-030", case)
     assumption = _flat_doc(_raw_body(PHYSICAL.read_text(encoding="utf-8"),
