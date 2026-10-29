@@ -169,7 +169,7 @@ package DE4SDV_IncrementWorkflow {
       :>> check = "ownedByIncrementPackage";
     }
     metadata incrementHasLifecycleDecision : MethodCheck about lifecycleDecision {
-      doc /* The increment package owns its lifecycle decision; no decision or acceptance claim. */
+      doc /* The increment package owns its lifecycle decision; a baseline decision of phase 12 does not count. No decision or acceptance claim. */
       :>> check = "ownedByIncrementPackage";
     }
     metadata incrementHasAssumption : MethodCheck about assumptions {
@@ -501,9 +501,11 @@ package DE4SDV_IncrementWorkflow {
          * configures it when one of its part usages, its own or inherited and
          * not redefined, is typed by the part definition of that
          * configuration's product-model projection, bound by validated
-         * identity. A specialization that adds System 2 instrumentation, such
-         * as a test article, is a configured product of its own increment
-         * and never a member. No check reads the variation points yet. */
+         * identity, or by a specialization of it. A redefining part without a
+         * type of its own keeps the type it redefines. A specialization that
+         * adds System 2 instrumentation, such as a test article, is a
+         * configured product of its own increment and never a member. No
+         * check reads the variation points yet. */
     attribute :>> phase = MethodPhase::phase9_variabilityConfiguration;
     in part physicalElements[0..*];
     out part variationPoints[0..*];
@@ -570,10 +572,11 @@ package DE4SDV_IncrementWorkflow {
     doc /* What is accepted, deferred, or invalidated? Rules: the increment has
          * exactly one baseline decision, and it states its disposition. Each
          * open gap of the increment states the disposition that the baseline
-         * decision gives it. The record of a resolved gap leaves the model, so
-         * every gap of the increment is open. The typing identifies the
-         * baseline decision, never a name, and no check reads the baseline
-         * register. */
+         * decision gives it. Each record states its own disposition; a value
+         * that only its definition sets does not count. The record of a
+         * resolved gap leaves the model, so every gap of the increment is
+         * open. The typing identifies the baseline decision, never a name,
+         * and no check reads the baseline register. */
     attribute :>> phase = MethodPhase::phase12_baselineNextSlice;
     in part charter : IncrementCharter;
     out part baselineDecision : IncrementBaselineDecision;

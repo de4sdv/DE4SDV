@@ -136,7 +136,7 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   variability and configuration (phase 9) and of the baseline decision
   (phase 12) are in
   [rule 16](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model).
-  A workflow that an increment declares can still have a step without
+  A charter can name another workflow, whose steps need not all carry
   checks. `phase_contract`
   lists every step in `steps`, with its phase, documentation, inputs and
   outputs (name, kind, type, multiplicity) and its checks; a step without
@@ -324,12 +324,16 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   feature configuration configures each
   (`configuredByOneConfiguration`). A configuration configures it when one
   of its part usages, its own or inherited and not redefined, is typed by
-  the part definition of that configuration's product-model projection. The
-  derivation binds that part definition by validated identity, never by
-  its name alone. A test article that specializes a configured member
-  counts through the part it inherits and never becomes a member. Over the
-  API the derivation lacks the source documents and the external
-  references of an export, so the check is `INDETERMINATE` there. So:
+  the part definition of that configuration's product-model projection, or
+  by a specialization of it. A redefining part without a type of its own
+  keeps the type it redefines. The derivation binds that part definition
+  by validated identity, never by its name alone. A test article that
+  specializes a configured member counts through the part it inherits and
+  never becomes a member. Over the API the derivation lacks the source
+  documents and the external references of an export. There the check is
+  method side (`evaluation-input:export-documents`): it is listed under
+  `method_side_blockers`, never as `next`, and phase 9 stays `BLOCKED`. The
+  Method Check of a pull request evaluates it on the export. So:
 
   ```sysml
   part def <ConfiguredProduct> :> ProductLineConfiguredProduct {
@@ -343,8 +347,10 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   disposition (`baselineDecisionStatesDisposition`). Each open gap states
   the disposition that the baseline decision gives it
   (`openGapStatesDisposition`). A disposition is a literal of
-  `LifecycleDisposition`: `accepted`, `deferred` or `invalidated`. The
-  record of a resolved gap leaves the model, so every gap in scope is open.
+  `LifecycleDisposition`: `accepted`, `deferred` or `invalidated`. Each
+  record states its own, by a redefinition of `disposition` with one value;
+  a value that only its definition sets does not count. The record of a
+  resolved gap leaves the model, so every gap in scope is open.
   The phase-0 count of framing decisions leaves the baseline decision out.
   So:
 

@@ -300,10 +300,10 @@ INC-AEBS-010 was walked this way, push by push
 and INC-MW-011 is being authored the same way
 ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml)).
 
-The scope is deliberately narrow. Today the steps for framing, needs,
-requirements, architecture, and V&V and evidence declare executable checks
-(phases 0, 4 to 8, and 10); the other phases are reported as unchecked, never
-as passed, and rely on review. The architecture phases 6 to 8 check the
+The scope is deliberately narrow. Today every step of the workflow declares
+executable checks, from framing to the baseline decision (phases 0 to 12); a
+phase without checks is reported as unchecked, never as passed, and relies on
+review. The architecture phases 6 to 8 check the
 allocation chain from requirement to function, logical element, and physical
 element. A missing allocation to the next layer blocks the phase exit; among
 requirements only the functional ones block, and the others get an advisory

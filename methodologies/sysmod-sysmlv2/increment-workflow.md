@@ -352,13 +352,16 @@ These method rules apply to every increment:
       of the ontology relationship `configuredBy`. A configuration
       configures a configured product when one of its effective part
       usages is typed by the part definition of that configuration's
-      product-model projection. The effective usages are its own and the
-      inherited ones that it does not redefine. The configuration's
+      product-model projection, or by a specialization of it. The effective
+      usages are its own and the inherited ones that it does not redefine.
+      A usage is typed by its own typing. A redefining usage without a type
+      of its own keeps the type of the feature it redefines, transitively,
+      as the serializer writes no typing for it. The configuration's
       `ProductModelProjectionName` annotation names that part definition,
       and the derivation binds it by validated identity: metatype, name,
-      generated document and owner, never the name alone. None or two
-      configurations fail. A configuration can configure more than one
-      configured product.
+      generated document and owner, never the name alone. No
+      configuration, or more than one, fails. A configuration can configure
+      more than one configured product.
     - **Phase 9, System 2.** A specialization that adds System 2
       instrumentation, such as INC-AEBS-010's test article, inherits the
       projection part and counts for the phase 9 of its own increment. It
@@ -366,7 +369,11 @@ These method rules apply to every increment:
       specializing a member definition.
     - **Phase 9, boundaries.** The derivation reads the source documents
       and the external references of an export. An evaluation over the
-      API has neither, so there the check is `INDETERMINATE`, never a pass.
+      API has neither, so there the check is `INDETERMINATE` with the
+      method-side marker `evaluation-input:export-documents`. It is listed
+      under `method_side_blockers`, never as `next` and never as authoring
+      work, and the phase-9 exit stays `BLOCKED`. The Method Check of a
+      pull request evaluates the export of its head.
       `variationPoints[0..*]` and `physicalElements[0..*]` stay untyped and
       unchecked: a native variation point has no selector.
     - **Phase 12.** The increment has exactly one baseline decision, typed
@@ -375,13 +382,17 @@ These method rules apply to every increment:
       `invalidated`). Each open gap (`IncrementGap`) states the
       disposition that the baseline decision gives it
       (`dispositionStated`). An increment without a gap has none to state.
+      Each record states its own disposition: one feature that redefines
+      the kernel's `disposition`, with exactly one value, a literal that
+      `LifecycleDisposition` itself owns. A value that only a definition
+      sets does not count, and neither does a literal of a specialization.
       The typing identifies the baseline decision, never a name: a `BL-`
       short name does not make one.
     - **Phase 12, resolved gaps.** The record of a resolved gap leaves the
       model, so every `IncrementGap` in scope is open. A disposition
       cannot say "resolved", and `invalidated` does not mean "fixed". A
-      resolved gap whose record stays fails like an open gap without a
-      disposition. The baseline register and the status of an architecture
+      resolved gap whose record stays counts as open: without a
+      disposition, it fails like any open gap. The baseline register and the status of an architecture
       decision record are repository text, which the evaluation does not
       read.
     - **Phase 0.** The baseline decision specializes the framing step's

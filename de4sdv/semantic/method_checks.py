@@ -76,6 +76,7 @@ from .increment_scope import (
     scope_closure,
 )
 from .relation_checks import (
+    EVALUATION_INPUT_PREFIX,
     MODEL_WITNESS_PREFIX,
     SIGNAL_CARRIERS,
     SIGNAL_MAPPING,
@@ -1248,32 +1249,48 @@ _charter_expected_artifacts.member = SCOPE_ATTRIBUTE  # type: ignore[attr-define
 
 #: The derived relationship whose derivation rule the phase-9 check applies (vocabulary role in the kernel).
 CONFIGURED_BY = "configuredBy"
-#: Why an evaluation without an export cannot derive it.
-EXPORT_DOCUMENTS = "input:export-documents"
+#: What an evaluation lacks to derive it: the source documents and external references of an export (an
+#: evaluation over the API has neither), or a validated kernel binding index. Only a change to the
+#: evaluation supplies them, so they are method side (``METHOD_SIDE_PREFIXES``), never authoring work.
+EXPORT_DOCUMENTS = EVALUATION_INPUT_PREFIX + "export-documents"
+KERNEL_BINDING_INDEX = EVALUATION_INPUT_PREFIX + "kernel-binding-index"
+#: The memo key of the derivation. Its value holds only for the inputs :func:`configuration_inputs` names.
+CONFIGURATION_MEMO = "configuration-part-definitions"
 
 
-def configuration_part_definitions(view: ModelView) -> tuple[Mapping[str, tuple[str, ...]], str | None]:
-    """(generated part definition -> the feature configurations whose product-model projection it is; why
-    they cannot be read, or None). The configurations and the projections come from the derivation of the
-    member products (``applies_to_member_product.configuration_projections``): a configuration by the pinned
-    PLEML library, its projection by its ProductModelProjectionName annotation, and the part definition by
-    validated identity (metatype, name, generated document and owner), never by the name alone. It needs
-    the source documents and the external references of an export; an evaluation over the API has neither.
-    Built once per corpus."""
+def configuration_inputs(view: ModelView) -> tuple[Any, ...]:
+    """What the derivation of the configurations reads besides the corpus: the view's source documents,
+    its external references and its kernel binding index. Two views over one element list share their
+    index, so the derived value is bound to these objects."""
+    return (view.sources, view.external_references, view.traversal.kernel_bindings)
+
+
+def configuration_part_definitions(
+    view: ModelView,
+) -> tuple[Mapping[str, tuple[str, ...]], str | None, str | None]:
+    """(generated part definition -> the feature configurations whose product-model projection it is; the
+    marker of what keeps them from being read, or None; why, or None). The configurations and the
+    projections come from the derivation of the member products
+    (``applies_to_member_product.configuration_projections``): a configuration by the pinned PLEML
+    library, its projection by its ProductModelProjectionName annotation, and the part definition by
+    validated identity (metatype, name, generated document and owner), never by the name alone. The
+    derivation needs the source documents and the external references of an export, and a kernel binding
+    index: without them the marker is method side (``evaluation-input:``). A refused derivation is a
+    model witness that cannot be read. Built once per corpus and inputs."""
+    if not view.sources or view.external_references is None:
+        return MappingProxyType({}), EXPORT_DOCUMENTS, (
+            "the derivation of the feature configurations needs the source documents and the external "
+            "references of an export, and this evaluation has neither (an evaluation over the API)")
+    if view.traversal.kernel_bindings is None:
+        return MappingProxyType({}), KERNEL_BINDING_INDEX, "this evaluation has no validated kernel binding index"
 
     def build() -> tuple[Mapping[str, tuple[str, ...]], str | None]:
-        if not view.sources or view.external_references is None:
-            return MappingProxyType({}), ("the derivation binds the generated part definitions by their source "
-                                          "documents and reads the export's external references, and this "
-                                          "evaluation has neither (for example over the API)")
         from de4sdv.sysml_api.product_line_scope import validate_scope_elements
 
         from .applies_to_member_product import MemberProductError, configuration_projections
         from .pleml_configuration import PlemlShapeError
 
         bindings = view.traversal.kernel_bindings
-        if bindings is None:
-            return MappingProxyType({}), "no validated kernel binding index"
         try:
             rows = configuration_projections(
                 view.elements, view.sources,
@@ -1288,21 +1305,27 @@ def configuration_part_definitions(view: ModelView) -> tuple[Mapping[str, tuple[
                 found.setdefault(str(row["part_definition"]), []).append(str(row["element_id"]))
         return MappingProxyType({definition: tuple(found[definition]) for definition in found}), None
 
-    return view.index.memo(("configuration-part-definitions",), build)
+    projections, problem = view.index.memo_bound(CONFIGURATION_MEMO, configuration_inputs(view), build)
+    return projections, (MODEL_WITNESS_PREFIX + CONFIGURED_BY if problem else None), problem
+
+
+def _direct_redefinitions(view: ModelView, feature: str) -> list[str]:
+    """The features ``feature`` redefines directly, declared or by the language rule (an implied
+    Redefinition)."""
+    return [target for relationship in view.index.owned_relationships(feature, "Redefinition")
+            for target in reference_ids(relationship.get("redefinedFeature"))]
 
 
 def _redefined_features(view: ModelView, feature: str) -> set[str]:
-    """The features ``feature`` redefines, declared or by the language rule (an implied Redefinition),
-    transitively; subsetting replaces nothing."""
+    """The features ``feature`` redefines, declared or by the language rule, transitively; subsetting
+    replaces nothing."""
     found: set[str] = set()
     frontier = [feature]
     while frontier:
-        current = frontier.pop()
-        for relationship in view.index.owned_relationships(current, "Redefinition"):
-            for target in reference_ids(relationship.get("redefinedFeature")):
-                if target not in found:
-                    found.add(target)
-                    frontier.append(target)
+        for target in _direct_redefinitions(view, frontier.pop()):
+            if target not in found:
+                found.add(target)
+                frontier.append(target)
     return found
 
 
@@ -1320,40 +1343,88 @@ def effective_part_usages(view: ModelView, product: str) -> list[str]:
     return [usage for usage in found if usage not in redefined]
 
 
+def effective_types(view: ModelView, usage: str) -> set[str]:
+    """The definitions that type a usage: its own typing, else the typing of the features it redefines,
+    transitively. A redefining usage without a type of its own keeps the type of the feature it
+    redefines (the serializer writes no typing for it)."""
+    found: set[str] = set()
+    seen: set[str] = set()
+    frontier = [usage]
+    while frontier:
+        current = frontier.pop(0)
+        if current in seen:
+            continue
+        seen.add(current)
+        own = view.index.typed_by(current)
+        if own:
+            found |= set(own)
+        else:
+            frontier.extend(_direct_redefinitions(view, current))
+    return found
+
+
+def _configurations_of_types(view: ModelView, projections: Mapping[str, tuple[str, ...]],
+                             types: Iterable[str]) -> list[str]:
+    """The configurations whose projection part definition each type is, or specializes."""
+    found: list[str] = []
+    for definition, configurations in projections.items():
+        lineage = view.index.specializations(definition)
+        if any(typed in lineage for typed in types):
+            found.extend(configuration for configuration in configurations if configuration not in found)
+    return found
+
+
 def configured_by(view: ModelView, product: str) -> tuple[list[str], list[str]]:
     """(the feature configurations that configure a configured product, the effective part usages through
-    which they do): a configuration configures it when one of its effective part usages is typed by the
-    part definition of that configuration's product-model projection."""
-    projections, _problem = configuration_part_definitions(view)
+    which they do): a configuration configures it when one of its effective part usages is typed
+    (:func:`effective_types`) by the part definition of that configuration's product-model projection, or
+    by a specialization of it."""
+    projections, _marker, _problem = configuration_part_definitions(view)
     configurations: list[str] = []
     usages: list[str] = []
     for usage in effective_part_usages(view, product):
-        for definition in sorted(view.index.typed_by(usage)):
-            for configuration in projections.get(definition, ()):
-                if configuration not in configurations:
-                    configurations.append(configuration)
-                    usages.append(usage)
+        for configuration in _configurations_of_types(view, projections, sorted(effective_types(view, usage))):
+            if configuration not in configurations:
+                configurations.append(configuration)
+                usages.append(usage)
     return configurations, usages
+
+
+def projection_redefinitions(view: ModelView, product: str) -> list[tuple[str, str]]:
+    """(redefining usage, redefined feature) for each effective part usage of a configured product that
+    replaces a feature typed by a projection with a type that is none: the usage that hides the projection."""
+    projections, _marker, _problem = configuration_part_definitions(view)
+    found = []
+    for usage in effective_part_usages(view, product):
+        if _configurations_of_types(view, projections, effective_types(view, usage)):
+            continue
+        for redefined in sorted(_redefined_features(view, usage)):
+            if _configurations_of_types(view, projections, effective_types(view, redefined)):
+                found.append((usage, redefined))
+    return found
 
 
 def _configured_by_one_configuration(view: ModelView, increment: IncrementScope,
                                      subject_id: str) -> me.PredicateOutcome:
     """Exactly one feature configuration configures the configured product (the derivation rule of
     configuredBy): one of its effective part usages, its own or inherited and not redefined, is typed by the
-    part definition of that configuration's product-model projection. A specialization that adds System 2
-    instrumentation is configured through what it inherits; no member follows from it."""
+    part definition of that configuration's product-model projection or by a specialization of it. A
+    redefining usage without a type of its own keeps the type it redefines. A specialization that adds
+    System 2 instrumentation is configured through what it inherits; no member follows from it. Over the
+    API the derivation lacks the export's documents: method side, never authoring work."""
     name = _name(view, subject_id)
-    _projections, problem = configuration_part_definitions(view)
-    if problem is not None:
-        return indeterminate(EXPORT_DOCUMENTS if problem.startswith("the derivation binds")
-                             else MODEL_WITNESS_PREFIX + CONFIGURED_BY, f"{name}: {problem}")
+    _projections, marker, problem = configuration_part_definitions(view)
+    if marker is not None:
+        return indeterminate(marker, f"{name}: {problem}")
     configurations, usages = configured_by(view, subject_id)
     if len(configurations) == 1:
         return satisfied(configurations, usages)
     if not configurations:
+        hidden = [f"{_name(view, usage)} redefines {_name(view, redefined)} with a type that is no projection's"
+                  for usage, redefined in projection_redefinitions(view, subject_id)]
         return violated(f"{name} is configured by no feature configuration: none of its part usages, its own "
                         "or inherited, is typed by the part definition of a configuration's product-model "
-                        "projection")
+                        "projection, or by a specialization of it", hidden)
     return violated(f"{name} is configured by {len(configurations)} feature configurations "
                     f"({', '.join(_name(view, c) for c in configurations)}); exactly one configures a configured "
                     "product", [f"{_name(view, c)} through {_name(view, u)}" for c, u in zip(configurations, usages)])
@@ -1363,29 +1434,53 @@ def _configured_by_one_configuration(view: ModelView, increment: IncrementScope,
 # Baseline decision and open gaps (phase 12)
 # ---------------------------------------------------------------------------
 
-#: The kernel enumeration of a disposition (accepted, deferred, invalidated) and the feature that holds it.
+#: The kernel enumeration of a disposition (accepted, deferred, invalidated), the feature that holds it, and
+#: the kernel classes whose ``disposition`` a record redefines.
 LIFECYCLE_DISPOSITION = "LifecycleDisposition"
 DISPOSITION_FEATURE = "disposition"
+DISPOSITION_HOLDERS = ("IncrementBaselineDecision", "Gap")
 
 
 def lifecycle_disposition(view: ModelView, subject_id: str) -> str | None:
-    """The literal of the kernel's LifecycleDisposition that the subject's own disposition references, or
-    None. Raises :class:`MethodSideInput` when the enumeration has no validated kernel binding."""
-    enums = kernel_lineage(view, LIFECYCLE_DISPOSITION)
-    literals = [str(leaf.value) for leaf in view.index.feature_values(subject_id, DISPOSITION_FEATURE)
-                if leaf.kind == "reference" and view.index.owner_of(str(leaf.value)) in enums]
-    return literals[0] if literals else None
+    """The literal of the kernel's LifecycleDisposition that the subject's own disposition states, or None.
+    The subject owns exactly one feature that redefines the ``disposition`` of a kernel holder
+    (IncrementBaselineDecision, IncrementGap), and its value is exactly one leaf: a literal that the bound
+    LifecycleDisposition itself owns through a VariantMembership. A value that only a definition sets is
+    not the record's own. Raises :class:`MethodSideInput` when a kernel class has no validated binding."""
+    try:
+        enum = view.kernel_element(LIFECYCLE_DISPOSITION)
+        holders = [view.kernel_element(holder) for holder in DISPOSITION_HOLDERS]
+    except IdentityNotFoundError as error:
+        raise MethodSideInput(f"kernel-binding:{LIFECYCLE_DISPOSITION}",
+                              f"method side: no validated kernel binding for the disposition: {error}")
+    kernel_features = {feature for holder in holders
+                       if (feature := view.index.feature(holder, DISPOSITION_FEATURE)) is not None}
+    own = [feature for feature in view.index.owned_members(subject_id)
+           if kernel_features & _redefined_features(view, feature)]
+    if len(own) != 1:
+        return None
+    leaves = view.index.value_leaves(own[0])
+    if len(leaves) != 1 or leaves[0].kind != "reference":
+        return None
+    literal = str(leaves[0].value)
+    membership = view.element(str((view.element(literal).get("owningRelationship") or {}).get("@id") or ""))
+    if (view.element(literal).get("@type") != "EnumerationUsage"
+            or membership.get("@type") != "VariantMembership"
+            or (membership.get("owningRelatedElement") or {}).get("@id") != enum):
+        return None
+    return literal
 
 
 def _disposition_stated(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
-    """The baseline decision, or an open gap of the increment, states its disposition: its own
-    ``disposition`` references a literal of the kernel's LifecycleDisposition (accepted, deferred or
-    invalidated). A resolved gap's record leaves the model, so every gap in scope is open."""
+    """The baseline decision, or an open gap of the increment, states its own disposition
+    (:func:`lifecycle_disposition`): accepted, deferred or invalidated. A resolved gap's record leaves the
+    model, so every gap in scope is open."""
     literal = lifecycle_disposition(view, subject_id)
     if literal is not None:
         return satisfied([literal], [subject_id])
-    return violated(f"{_name(view, subject_id)} states no disposition: its disposition references no literal of "
-                    "LifecycleDisposition (accepted, deferred or invalidated)")
+    return violated(f"{_name(view, subject_id)} states no disposition of its own: it owns no single redefinition "
+                    "of disposition whose one value is a literal of LifecycleDisposition (accepted, deferred or "
+                    "invalidated)")
 
 
 _expected_artifacts_cover_content.member = SCOPE_ATTRIBUTE  # type: ignore[attr-defined]

@@ -858,10 +858,10 @@ def _verifies(ontology_class: str, what: str) -> Callable[[_Request], Remedy]:
     return build
 
 
-def _method_side(reason: str) -> Callable[[_Request], Remedy]:
+def _method_side(reason: str, supplier: str = "a method or kernel change") -> Callable[[_Request], Remedy]:
     def build(request: _Request) -> Remedy:
         return Remedy(f"nothing to author in the model for {_subject_phrase(request)}: {reason} (method side: only "
-                      "a method or kernel change can supply it)")
+                      f"{supplier} can supply it)")
 
     return build
 
@@ -1590,22 +1590,34 @@ def _projection_note(view: ModelView) -> str:
     composes, by qualified name."""
     from .method_checks import configuration_part_definitions
 
-    projections, _problem = configuration_part_definitions(view)
+    projections, _marker, _problem = configuration_part_definitions(view)
     names = sorted(view.label(definition) for definition in projections)
     listed = f": {', '.join(names)}" if names else ""
     return ("The part is typed by the part definition that the configurator generates from the receipt of its feature "
-            "configuration, in model-based-product-line-engineering/product-models/; the configuration's "
-            f"ProductModelProjectionName annotation names it{listed}. A specialization that adds System 2 "
-            "instrumentation inherits that part and is configured through it.")
+            "configuration, in model-based-product-line-engineering/product-models/, or by a specialization of it; "
+            f"the configuration's ProductModelProjectionName annotation names it{listed}. A specialization that adds "
+            "System 2 instrumentation inherits that part and is configured through it.")
 
 
 def _configured_by_one_configuration(request: _Request) -> Remedy:
     """A configured product that no feature configuration, or more than one, configures: the part that
-    composes its configuration's product-model projection, or one such part only."""
-    from .method_checks import configured_by
+    composes its configuration's product-model projection, or one such part only. When the derivation
+    cannot run, its reason, never authoring work it does not support."""
+    from .method_checks import EXPORT_DOCUMENTS, configuration_part_definitions, configured_by, projection_redefinitions
+    from .relation_checks import METHOD_SIDE_PREFIXES
 
     view = request.view
+    _projections, marker, problem = configuration_part_definitions(view)
+    if marker is not None and marker.startswith(METHOD_SIDE_PREFIXES):
+        reason = problem or marker
+        if marker == EXPORT_DOCUMENTS:
+            reason += "; the Method Check of a pull request evaluates the export of its head"
+        return _method_side(reason, "a change to the evaluation")(request)
     lines = _lines(request)
+    if marker is not None:
+        lines.notes.append("The member-product derivation reads the same feature configurations and refuses the same "
+                           "shapes.")
+        return lines.remedy(f"make the feature configurations readable: {problem}.")
     if request.subject is None:
         product = _kernel(view, "ConfiguredProduct")
         if product is None:
@@ -1624,12 +1636,19 @@ def _configured_by_one_configuration(request: _Request) -> Remedy:
                            + ", ".join(f"{view.label(u)} ({view.label(c)})" for c, u in zip(configurations, usages))
                            + ". Exactly one configuration configures a configured product.")
         return lines.remedy(f"keep the part of {target} that composes its own configuration's projection, and "
-                            "remove the others")
+                            "remove the others.")
+    hidden = projection_redefinitions(view, request.subject)
+    if hidden:
+        usage, redefined = hidden[0]
+        lines.notes.append(_projection_note(view))
+        return lines.remedy(f"{view.label(usage)} redefines {view.label(redefined)}, which composes a projection, with a "
+                            "type that is no projection's part definition: type it by that part definition or a "
+                            "specialization of it, or leave out its type to keep the redefined one.")
     definition = _one_type(view, request.subject)
     holder = view.label(definition) if definition else target
     lines.notes.append(_projection_note(view))
     return lines.remedy(f"in {holder}, add a part typed by the part definition of its feature configuration's "
-                        "product-model projection")
+                        "product-model projection.")
 
 
 def _disposition_stated(request: _Request) -> Remedy:
@@ -1642,7 +1661,8 @@ def _disposition_stated(request: _Request) -> Remedy:
     literals = view.qualified_name(enum) or view.index.name_of(enum) or "LifecycleDisposition"
     line = "attribute :>> disposition = <disposition>;"
     lines.notes.append(f"<disposition> is {literals}::accepted, ::deferred or ::invalidated: what the baseline "
-                       "decision does with the result of the increment, or with the open gap. An accepted gap stays "
+                       "decision does with the result of the increment, or with the open gap. Each record states its "
+                       "own disposition; a value that only its definition sets does not count. An accepted gap stays "
                        "open as a known limit; the record of a resolved gap leaves the model instead.")
     if request.subject is not None:
         lines.declarations.append(_existing_member(lines, request.subject, line))

@@ -30,6 +30,7 @@ import pytest
 from de4sdv.semantic import increment_workflow as workflow_reader, method_evaluator as me
 from de4sdv.semantic.increment_evaluation import evaluate_increment
 from de4sdv.semantic.increment_scope import ModelView
+from de4sdv.semantic import method_checks as mc
 from de4sdv.semantic.method_checks import NAMED_CHECKS, effective_part_usages
 from de4sdv.sysml_api.qualified_names import QualifiedNameIndex
 from increment_model_fixtures import (
@@ -54,7 +55,6 @@ HAS_BASELINE, BASELINE_DISPOSITION = "incrementHasBaselineDecision", "baselineDe
 GAP_DISPOSITION = "openGapStatesDisposition"
 GATES = (HAS_PRODUCT, CONFIGURED_BY, HAS_BASELINE, BASELINE_DISPOSITION, GAP_DISPOSITION)
 PRODUCT_PACKAGE, BASELINE_PACKAGE = "DE4SDV_FixtureVariabilityConfiguration", "DE4SDV_FixtureBaseline"
-MEMO = ("configuration-part-definitions",)
 DISPOSITIONS = ("accepted", "deferred", "invalidated")
 
 
@@ -73,6 +73,12 @@ class Increment:
     gap: dict[str, Any]
     literals: dict[str, dict[str, Any]]
     roots: dict[str, dict[str, Any]]
+    #: The kernel's ``disposition`` feature of IncrementBaselineDecision and of IncrementGap.
+    kernel_dispositions: dict[str, dict[str, Any]]
+
+    def dispose(self, record: dict[str, Any], literal: dict[str, Any], holder: str = "IncrementBaselineDecision"):
+        """``attribute :>> disposition = <literal>;``: the record's own disposition, redefining the kernel's."""
+        return self.builder.attribute(record, "disposition", literal, redefines=self.kernel_dispositions[holder])
 
     @property
     def projections(self) -> dict[str, tuple[str, ...]]:
@@ -91,6 +97,10 @@ def _increment(*, phases=(P0, P9, P12)) -> Increment:
         "ConfiguredProduct", "IncrementBaselineDecision", "IncrementLifecycleDecision", "Gap")}
     b.specializes(roots["IncrementBaselineDecision"], roots["IncrementLifecycleDecision"])
     literals = b.enumeration("LifecycleDisposition", DISPOSITIONS)
+    enum = b.kernel_definition("LifecycleDisposition")
+    kernel_dispositions = {holder: b.usage("AttributeUsage", "disposition", roots[holder], [enum],
+                                           membership="FeatureMembership")
+                           for holder in ("IncrementBaselineDecision", "Gap")}
     b.remove(b.feature_of(scenario.charter, "expectedArtifacts"))
     b.attribute(scenario.charter, "expectedArtifacts", [
         "DE4SDV_FixtureFraming", "DE4SDV_FixtureNeedsRequirements", "DE4SDV_FixtureVerificationEvidence",
@@ -106,9 +116,9 @@ def _increment(*, phases=(P0, P9, P12)) -> Increment:
     product = b.usage("PartUsage", "configuredProduct", package, [product_def])
     baselines = b.package(BASELINE_PACKAGE)
     baseline = b.usage("PartUsage", "baselineDecision", baselines, [roots["IncrementBaselineDecision"]])
-    b.attribute(baseline, "disposition", literals["accepted"])
+    b.attribute(baseline, "disposition", literals["accepted"], redefines=kernel_dispositions["IncrementBaselineDecision"])
     gap = b.usage("PartUsage", "fixtureGap", baselines, [roots["Gap"]])
-    b.attribute(gap, "disposition", literals["deferred"])
+    b.attribute(gap, "disposition", literals["deferred"], redefines=kernel_dispositions["Gap"])
     increment_workflow(b, [
         WorkflowStep("frameIncrement", P0, (P("lifecycleDecision", "IncrementLifecycleDecision", "PartUsage"),), (
             C(FRAMING_DECISION, "ownedByIncrementPackage", "lifecycleDecision"),)),
@@ -124,20 +134,22 @@ def _increment(*, phases=(P0, P9, P12)) -> Increment:
             C(GAP_DISPOSITION, "dispositionStated", "openGaps"))),
     ], charter=scenario.charter)
     return Increment(scenario, b, package, baselines, product_def, product, platform_stack, projection,
-                     configuration, baseline, gap, literals, roots)
+                     configuration, baseline, gap, literals, roots, kernel_dispositions)
 
 
 def _view(increment: Increment, *, projections: dict[str, tuple[str, ...]] | None = None,
-          problem: str | None = None, export: bool = True) -> ModelView:
+          problem: str | None = None, export: bool = True, traversal: Any = None) -> ModelView:
     """The evaluated view. An export's view carries the source documents and the external references; the
     configurations of its feature models are given (``projections``, or the increment's own). Over the API
     the view has neither, and nothing is given."""
     b = increment.builder
+    traversal = traversal or _traversal(b)
     if not export:
-        return ModelView(b.elements, _traversal(b))
-    view = ModelView(b.elements, _traversal(b), sources=b.sources, external_references=())
+        return ModelView(b.elements, traversal)
+    view = ModelView(b.elements, traversal, sources=b.sources, external_references=())
     given = increment.projections if projections is None else projections
-    view.index.memo(MEMO, lambda: (MappingProxyType(given), problem))
+    view.index.memo_bound(mc.CONFIGURATION_MEMO, mc.configuration_inputs(view),
+                          lambda: (MappingProxyType(given), problem))
     return view
 
 
@@ -241,12 +253,15 @@ def test_a_product_that_composes_no_projection_is_configured_by_no_configuration
     assert _verdicts(evaluation, CONFIGURED_BY) == {"configuredProduct": me.VERDICT_FAIL}
     assert any("configured by no feature configuration" in d for d in _diagnostics(evaluation, CONFIGURED_BY))
     assert _phase(evaluation, P9)["phase_exit"] == "BLOCKED"
-    assert _authorable(_blocking(evaluation, CONFIGURED_BY), increment) == []
+    entry = _blocking(evaluation, CONFIGURED_BY)
+    assert "product-model projection. The part is typed" in entry["what_to_author"]  # review R4: a sentence each
+    assert _authorable(entry, increment) == []
 
 
-def test_an_inherited_projection_part_that_a_usage_redefines_no_longer_counts() -> None:
-    """``part :>> platformStack : <other>;`` replaces the inherited usage: the redefined one is no effective
-    usage, and the redefining one is typed by no projection."""
+def test_an_inherited_projection_part_redefined_with_an_unrelated_type_no_longer_counts() -> None:
+    """``part :>> platformStack : <other>;`` with a type that is no projection's part definition: the
+    redefined usage is no effective usage, and the redefining one is typed by no projection. The
+    diagnostic and the remedy name the redefinition (review R4)."""
     increment = _increment()
     b = increment.builder
     b.remove(increment.product)
@@ -259,6 +274,58 @@ def test_an_inherited_projection_part_that_a_usage_redefines_no_longer_counts() 
     b.usage("PartUsage", "testArticle", increment.product_package, [article_def])
     evaluation = _evaluate(increment)
     assert _verdicts(evaluation, CONFIGURED_BY) == {"testArticle": me.VERDICT_FAIL}
+    assert any("FixtureTestArticle::platformStack redefines" in d and "no projection's" in d
+               for d in _diagnostics(evaluation, CONFIGURED_BY))
+    entry = _blocking(evaluation, CONFIGURED_BY)
+    assert "FixtureTestArticle::platformStack redefines" in entry["what_to_author"]
+    assert _authorable(entry, increment) == []
+
+
+def _instrumented_stack(increment: Increment, typed_by: Any) -> None:
+    """The test article redefines the inherited platform stack: ``part :>> platformStack;`` when
+    ``typed_by`` is None, else ``part :>> platformStack : <typed_by>;`` (review R2's mutations)."""
+    b = increment.builder
+    b.remove(increment.product)
+    article_def = b.definition("PartDefinition", "FixtureTestArticle", increment.product_package)
+    b.specializes(article_def, increment.product_def)
+    redefining = b.usage("PartUsage", "platformStack", article_def, [typed_by] if typed_by else [],
+                         membership="FeatureMembership")
+    b.relationship("Redefinition", redefining, redefinedFeature={"@id": increment.platform_stack["@id"]},
+                   redefiningFeature={"@id": redefining["@id"]})
+    b.usage("PartUsage", "testArticle", increment.product_package, [article_def])
+
+
+def test_a_redefinition_without_a_type_of_its_own_keeps_the_projection_it_redefines() -> None:
+    """Review R2: ``part :>> platformStack;`` elaborates the inherited part; the serializer writes no typing
+    for it, so it keeps the type of the feature it redefines, transitively."""
+    increment = _increment()
+    _instrumented_stack(increment, None)
+    assert _verdicts(_evaluate(increment), CONFIGURED_BY) == {"testArticle": me.VERDICT_PASS}
+
+
+def test_a_redefinition_typed_by_a_specialization_of_the_projection_counts() -> None:
+    """Review R2: ``part :>> platformStack : InstrumentedStack;`` where ``InstrumentedStack`` specializes the
+    generated projection: a usage typed by a specialization is typed by the projection (owner decision)."""
+    increment = _increment()
+    b = increment.builder
+    instrumented = b.definition("PartDefinition", "FixtureInstrumentedStack", increment.product_package)
+    b.specializes(instrumented, increment.projection)
+    _instrumented_stack(increment, instrumented)
+    assert _verdicts(_evaluate(increment), CONFIGURED_BY) == {"testArticle": me.VERDICT_PASS}
+
+
+def test_a_type_that_specializes_two_projections_is_configured_twice_and_fails() -> None:
+    increment = _increment()
+    b = increment.builder
+    second = b.definition("PartDefinition", "FixtureSecondProjection", increment.product_package)
+    other = b.usage("PartUsage", "otherConfiguration", increment.product_package)
+    both = b.definition("PartDefinition", "FixtureDoubleStack", increment.product_package)
+    b.specializes(both, increment.projection)
+    b.specializes(both, second)
+    _instrumented_stack(increment, both)
+    evaluation = _evaluate(increment, projections={**increment.projections, second["@id"]: (other["@id"],)})
+    assert _verdicts(evaluation, CONFIGURED_BY) == {"testArticle": me.VERDICT_FAIL}
+    assert any("configured by 2 feature configurations" in d for d in _diagnostics(evaluation, CONFIGURED_BY))
 
 
 def test_two_configurations_configuring_one_product_fail() -> None:
@@ -304,21 +371,68 @@ def test_a_part_typed_by_a_homonym_of_the_projection_is_no_configuration() -> No
     assert _verdicts(evaluation, CONFIGURED_BY) == {"configuredProduct": me.VERDICT_FAIL}
 
 
-def test_over_the_api_the_configurations_cannot_be_derived_and_the_check_is_indeterminate() -> None:
-    """The derivation reads the source documents and the external references of an export; the API view
-    has neither. The check is INDETERMINATE there, never a pass."""
-    evaluation = _evaluate(_increment(), export=False)
+def _method_side_over_the_api(evaluation) -> None:
+    """Review R1: over the API the derivation lacks the export's documents. The check is INDETERMINATE with
+    the method-side marker of an evaluation input: a method-side blocker, never ``next`` and never a gap to
+    author against. Phase 9 stays BLOCKED."""
     unit = _unit(evaluation, CONFIGURED_BY)
     assert (unit.state, unit.verdict) == (me.STATE_INDETERMINATE, None)
-    assert me.INPUT_UNAVAILABLE in unit.reason_codes
+    assert any(item == mc.EXPORT_DOCUMENTS for r in evaluation.canonical.results if r.unit_id == CONFIGURED_BY
+               for item in r.missing)
+    answer = evaluation.next_obligation()
+    assert answer["next"] is None or answer["next"]["gate"] != CONFIGURED_BY
+    assert CONFIGURED_BY in [blocker["gate"] for blocker in answer["method_side_blockers"]]
+    assert CONFIGURED_BY not in {gap["gate"] for gap in evaluation.gaps()["blocking"] if gap["kind"] != "method-side"}
     assert _phase(evaluation, P9)["phase_exit"] == "BLOCKED"
 
 
-def test_a_refused_derivation_leaves_the_check_indeterminate() -> None:
+def test_over_the_api_the_derivation_is_method_side_never_next() -> None:
+    evaluation = _evaluate(_increment(), export=False)
+    _method_side_over_the_api(evaluation)
+    assert evaluation.next_obligation()["next"] is None  # every other gate of the fixture passes
+    (entry,) = [b for b in evaluation.next_obligation()["method_side_blockers"] if b["gate"] == CONFIGURED_BY]
+    assert entry["missing"] == [mc.EXPORT_DOCUMENTS]
+    (gap,) = [g for g in evaluation.gaps()["blocking"] if g["gate"] == CONFIGURED_BY]
+    assert gap["kind"] == "method-side" and not gap.get("what_to_author")  # no authoring work is offered
+
+
+def test_a_missing_kernel_binding_index_is_method_side_too() -> None:
+    view = _view(_increment())
+    stub = type("View", (), {"sources": view.sources, "external_references": view.external_references,
+                             "traversal": type("Traversal", (), {"kernel_bindings": None})(), "index": view.index,
+                             "elements": view.elements})()
+    projections, marker, _problem = mc.configuration_part_definitions(stub)
+    assert (dict(projections), marker) == ({}, mc.KERNEL_BINDING_INDEX)
+    assert marker.startswith(mc.EVALUATION_INPUT_PREFIX)
+
+
+@pytest.mark.parametrize("first", ["export", "api"])
+def test_two_views_over_one_corpus_never_share_the_derivation(first: str) -> None:
+    """Review R3: an export view and an API-shaped view over one element list share one index. The derived
+    configurations hold only for the inputs they were derived from, in either order."""
+    increment = _increment()
+    traversal = _traversal(increment.builder)
+    views = {"export": lambda: _view(increment, traversal=traversal),
+             "api": lambda: _view(increment, export=False, traversal=traversal)}
+    order = [first, "api" if first == "export" else "export"]
+    results = {}
+    for kind in order:
+        view = views[kind]()
+        results[kind] = evaluate_increment(view, increment.scenario.increment_id, revision=REVISION)
+    assert _unit(results["export"], CONFIGURED_BY).verdict == me.VERDICT_PASS
+    _method_side_over_the_api(results["api"])
+
+
+def test_a_refused_derivation_leaves_the_check_indeterminate_and_the_remedy_says_why() -> None:
+    """Review R4: the remedy gives the refusal, never "add a part"."""
     evaluation = _evaluate(_increment(), problem="the feature configurations cannot be read: a shape")
     unit = _unit(evaluation, CONFIGURED_BY)
     assert (unit.state, unit.verdict) == (me.STATE_INDETERMINATE, None)
     assert any("cannot be read" in d for d in _diagnostics(evaluation, CONFIGURED_BY))
+    entry = _blocking(evaluation, CONFIGURED_BY)
+    assert entry["what_to_author"].startswith("make the feature configurations readable: the feature "
+                                              "configurations cannot be read: a shape.")
+    assert "add a part" not in entry["what_to_author"]
 
 
 def test_without_the_pleml_library_the_real_derivation_reads_no_configuration_and_never_passes() -> None:
@@ -349,7 +463,7 @@ def test_two_baseline_decisions_fail_on_population() -> None:
     b = increment.builder
     second = b.usage("PartUsage", "secondBaseline", increment.baseline_package,
                      [increment.roots["IncrementBaselineDecision"]])
-    b.attribute(second, "disposition", increment.literals["deferred"])
+    increment.dispose(second, increment.literals["deferred"])
     assert _population_failure(_unit(_evaluate(increment), HAS_BASELINE))
 
 
@@ -361,7 +475,7 @@ def test_a_baseline_decision_without_a_lifecycle_disposition_fails(value: str) -
     if value == "another enumeration":
         other = b.definition("EnumerationDefinition", "FixtureOutcome", increment.baseline_package)
         literal = b.usage("EnumerationUsage", "accepted", other, membership="VariantMembership")
-        b.attribute(increment.baseline, "disposition", literal)
+        increment.dispose(increment.baseline, literal)
     evaluation = _evaluate(increment)
     assert _verdicts(evaluation, BASELINE_DISPOSITION) == {"baselineDecision": me.VERDICT_FAIL}
     assert any("states no disposition" in d for d in _diagnostics(evaluation, BASELINE_DISPOSITION))
@@ -375,7 +489,7 @@ def test_each_literal_of_the_lifecycle_disposition_states_a_disposition() -> Non
         increment = _increment()
         b = increment.builder
         b.remove(b.feature_of(increment.gap, "disposition"))
-        b.attribute(increment.gap, "disposition", increment.literals[literal])
+        increment.dispose(increment.gap, increment.literals[literal], "Gap")
         assert _verdicts(_evaluate(increment), GAP_DISPOSITION) == {"fixtureGap": me.VERDICT_PASS}, literal
 
 
@@ -432,7 +546,7 @@ def _framing_baseline(increment: Increment) -> dict[str, Any]:
     b = increment.builder
     baseline = b.usage("PartUsage", "framingPackageBaseline", increment.scenario.framing,
                        [increment.roots["IncrementBaselineDecision"]])
-    b.attribute(baseline, "disposition", increment.literals["accepted"])
+    increment.dispose(baseline, increment.literals["accepted"])
     return baseline
 
 
@@ -467,3 +581,103 @@ def test_without_the_structural_exclusion_the_baseline_decision_would_break_phas
     increment = _increment()
     _framing_baseline(increment)
     assert _population_failure(_unit(_evaluate(increment), FRAMING_DECISION))
+
+
+# -- review R5: the record's own disposition, by identity ----------------------------------------
+
+
+def _replace_disposition(increment: Increment, record: dict[str, Any]) -> None:
+    b = increment.builder
+    b.remove(b.feature_of(record, "disposition"))
+
+
+def test_a_disposition_that_only_the_definition_sets_does_not_count() -> None:
+    """Each record states its own disposition: a value set on a local definition is no record's own."""
+    increment = _increment()
+    b = increment.builder
+    b.remove(increment.baseline)
+    local = b.definition("PartDefinition", "FixtureBaselineDecision", increment.baseline_package,
+                         [increment.roots["IncrementBaselineDecision"]])
+    increment.dispose(local, increment.literals["accepted"])
+    b.usage("PartUsage", "localBaseline", increment.baseline_package, [local])
+    evaluation = _evaluate(increment)
+    assert _verdicts(evaluation, BASELINE_DISPOSITION) == {"localBaseline": me.VERDICT_FAIL}
+
+
+def test_a_disposition_that_redefines_nothing_does_not_count() -> None:
+    """``attribute disposition = …;`` without ``:>>`` is no redefinition of the kernel's disposition."""
+    increment = _increment()
+    _replace_disposition(increment, increment.gap)
+    increment.builder.attribute(increment.gap, "disposition", increment.literals["accepted"])
+    assert _verdicts(_evaluate(increment), GAP_DISPOSITION) == {"fixtureGap": me.VERDICT_FAIL}
+
+
+def test_two_dispositions_in_one_value_do_not_count() -> None:
+    """``= (accepted, invalidated)``: exactly one leaf states a disposition."""
+    increment = _increment()
+    _replace_disposition(increment, increment.gap)
+    increment.builder.attribute(increment.gap, "disposition",
+                                [increment.literals["accepted"], increment.literals["invalidated"]],
+                                redefines=increment.kernel_dispositions["Gap"])
+    assert _verdicts(_evaluate(increment), GAP_DISPOSITION) == {"fixtureGap": me.VERDICT_FAIL}
+
+
+def test_a_fourth_literal_through_a_specialization_of_the_enumeration_does_not_count() -> None:
+    """``enum def ReviewDisposition :> LifecycleDisposition { resolved; }``: only the three literals the
+    bound LifecycleDisposition itself owns count (owner decision Q4)."""
+    increment = _increment()
+    b = increment.builder
+    widened = b.definition("EnumerationDefinition", "FixtureReviewDisposition", increment.baseline_package)
+    b.specializes(widened, b.kernel_definition("LifecycleDisposition"))
+    resolved = b.new("EnumerationUsage", name="resolved", source=b.sources[widened["@id"]])
+    b.own(widened, resolved, kind="VariantMembership", member_name="resolved")
+    _replace_disposition(increment, increment.gap)
+    increment.dispose(increment.gap, resolved, "Gap")
+    assert _verdicts(_evaluate(increment), GAP_DISPOSITION) == {"fixtureGap": me.VERDICT_FAIL}
+
+
+def test_a_literal_of_a_homonym_enumeration_does_not_count() -> None:
+    """Review R6 (M5): a literal ``accepted`` of another enumeration named LifecycleDisposition is no
+    literal of the bound kernel enumeration."""
+    increment = _increment()
+    b = increment.builder
+    homonym = b.definition("EnumerationDefinition", "LifecycleDisposition", b.package("DE4SDV_FixtureHomonyms"))
+    accepted = b.new("EnumerationUsage", name="accepted", source=b.sources[homonym["@id"]])
+    b.own(homonym, accepted, kind="VariantMembership", member_name="accepted")
+    _replace_disposition(increment, increment.gap)
+    increment.dispose(increment.gap, accepted, "Gap")
+    assert _verdicts(_evaluate(increment), GAP_DISPOSITION) == {"fixtureGap": me.VERDICT_FAIL}
+
+
+# -- review R6: the phase-0 exclusion is by identity, and only of the baseline lineage -----------------
+
+
+def _retype_framing_decision(increment: Increment, definition: dict[str, Any]) -> None:
+    b = increment.builder
+    (framing,) = [e for e in b.elements if e.get("declaredName") == "fixtureDecision"]
+    b.remove(framing)
+    b.usage("PartUsage", "fixtureDecision", increment.scenario.framing, [definition])
+
+
+def test_a_homonym_baseline_decision_definition_still_counts_as_a_framing_decision() -> None:
+    """M6: a local ``part def IncrementBaselineDecision :> IncrementLifecycleDecision`` is no kernel baseline
+    decision: phase 0 counts it (it is the framing decision here), and phase 12 does not."""
+    increment = _increment()
+    b = increment.builder
+    homonym = b.definition("PartDefinition", "IncrementBaselineDecision", increment.scenario.framing,
+                           [increment.roots["IncrementLifecycleDecision"]])
+    _retype_framing_decision(increment, homonym)
+    evaluation = _evaluate(increment)
+    assert _unit(evaluation, FRAMING_DECISION).verdict == me.VERDICT_PASS
+    assert _verdicts(evaluation, HAS_BASELINE) == {"baselineDecision": me.VERDICT_PASS}
+
+
+def test_a_framing_decision_typed_by_a_local_specialization_still_counts() -> None:
+    """M7: the exclusion drops the baseline lineage only, never another specialization of the lifecycle
+    decision."""
+    increment = _increment()
+    b = increment.builder
+    local = b.definition("PartDefinition", "FixtureFramingDecision", increment.scenario.framing,
+                         [increment.roots["IncrementLifecycleDecision"]])
+    _retype_framing_decision(increment, local)
+    assert _unit(_evaluate(increment), FRAMING_DECISION).verdict == me.VERDICT_PASS
