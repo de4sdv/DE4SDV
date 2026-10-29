@@ -261,6 +261,26 @@ def _classify(attempt: dict, captured: dict, udp_receipts: set, tcp_receipts: se
     return "unknown"       # captured but the counter is unreadable for this probe
 
 
+def _unknown_reasons(unknown: list, captured: dict, table_readable: bool) -> str:
+    """Why each probe that shows nothing does so, counted (for the coverage gap)."""
+    counts: dict[str, int] = {}
+    for attempt in unknown:
+        if not isinstance(attempt, dict) or _as_int(attempt.get("port")) is None:
+            reason = "malformed"
+        elif _loopback_probe(attempt):
+            reason = "from the guest's loopback"
+        elif attempt.get("send_status") != SENT:
+            reason = "not sent"
+        elif not _captured(attempt, captured):
+            reason = "not captured"
+        elif not table_readable:
+            reason = "captured with no readable isolation table"
+        else:
+            reason = "captured with no readable drop counter"
+        counts[reason] = counts.get(reason, 0) + 1
+    return ", ".join(f"{n} {reason}" for reason, n in sorted(counts.items(), key=lambda item: -item[1]))
+
+
 def evaluate_isolation(run_dir: str | Path, *, required_dds_ports: set[int] | None = None) -> IsolationVerdict:
     run_dir = Path(run_dir)
     verdict = IsolationVerdict()
@@ -406,8 +426,9 @@ def evaluate_isolation(run_dir: str | Path, *, required_dds_ports: set[int] | No
                                 "leave the guest, so it shows nothing")
     if verdict.unknown_probes:
         ports = sorted({p for a in verdict.unknown_probes if (p := _as_int(a.get("port"))) is not None})
-        verdict.coverage_gaps.append(f"{len(verdict.unknown_probes)} probes did not arrive at the host, were not "
-                                     f"sent, or are malformed (ports {ports[:8]}); they show nothing")
+        verdict.coverage_gaps.append(f"{len(verdict.unknown_probes)} probes show nothing "
+                                     f"({_unknown_reasons(verdict.unknown_probes, captured, verdict.table_readable)}; "
+                                     f"ports {ports[:8]})")
     if verdict.misattributed_probes:
         sample = verdict.misattributed_probes[0]
         verdict.coverage_gaps.append(

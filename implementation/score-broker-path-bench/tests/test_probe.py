@@ -545,3 +545,15 @@ def test_r41_a_probe_captured_as_named_with_an_unreadable_counter_is_unknown_not
     assert attempt in result.unknown_probes
     assert result.misattributed_probes == []
     assert not any("another interface or source" in gap for gap in result.coverage_gaps)
+
+
+def test_an_unknown_probe_gap_names_its_reason(tmp_path):
+    """A captured probe whose counter could not be read arrived; the gap says why
+    it shows nothing (the counter), not that it never arrived."""
+    unread = udp_attempt(LAYER_PORT, counter=None)
+    unsent = udp_attempt(30150, sent="send_failed", counter=False)
+    lost = udp_attempt(30151, counter=True)
+    run = base(tmp_path, attempts=[unread, unsent, lost], captured_udp=[unread["marker"]])
+    gap = next(g for g in verdict(run).coverage_gaps if "show nothing" in g)
+    assert "1 captured with no readable drop counter" in gap
+    assert "1 not sent" in gap and "1 not captured" in gap
