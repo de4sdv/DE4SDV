@@ -7,8 +7,10 @@
  * change the System 1 AEBS operational story, does not select transport or
  * application technology, and does not presuppose a host browser as the
  * rendering surface. The operational context holds the visualization test
- * system as its system of interest, the instrumented System 1 member that the
- * test system observes, and the actors of the story.
+ * system as its system of interest and the parts around it: the instrumented
+ * System 1 member that the test system observes, the reviewer and the
+ * evidence baseline, and the driver and the vehicle target of the System 1
+ * scenario.
  */
 
 package DE4SDV_AEBSVisualizationOperationalContext {
@@ -79,9 +81,8 @@ package DE4SDV_AEBSVisualizationOperationalContext {
   use case def ObserveAEBSVisualizationOnAAOS
     :> SYSMODSystemUseCaseBase {
     subject visualizationTestSystem : AEBSVisualizationTestSystem;
+    actor instrumentedMember : SubjectVehicle;
     actor reviewer : OpenSourceReviewer;
-    actor driver : Driver;
-    actor vehicleTarget : VehicleTarget;
     actor evidenceBaseline : DE4SDVEvidenceBaseline;
 
     attribute redefines ucMotivation = "Reviewers need to see live AEBS threat and intervention state, with honest provenance, on an actual AAOS SDV display rather than a host-side substitute.";
@@ -102,10 +103,12 @@ package DE4SDV_AEBSVisualizationOperationalContext {
     doc /*
      * The operational context of the visualization test system, the System 2
      * system of interest of INC-AEBS-010. The test system observes the
-     * instrumented member read-only. The actors of the story are the display
-     * reviewer, the observing driver, the scenario vehicle target and the
-     * evidence baseline. This is the operational environment, not a
-     * deployment decomposition.
+     * instrumented member read-only. The actors of the story are the
+     * instrumented member, the display reviewer and the evidence baseline.
+     * The observing driver and the scenario vehicle target act on the
+     * instrumented member, not on the test system, so they are parts of the
+     * context and not actors of the story. This is the operational
+     * environment, not a deployment decomposition.
      */
     part visualizationTestSystem : AEBSVisualizationTestSystem :>> systemOfInterest;
     part instrumentedMember : SubjectVehicle {
@@ -119,9 +122,8 @@ package DE4SDV_AEBSVisualizationOperationalContext {
 
   use case aebsVisualizationStory : ObserveAEBSVisualizationOnAAOS {
     subject visualizationTestSystem = aebsVisualizationOperationalContext::visualizationTestSystem;
+    actor instrumentedMember = aebsVisualizationOperationalContext::instrumentedMember;
     actor reviewer = aebsVisualizationOperationalContext::displayReviewer;
-    actor driver = aebsVisualizationOperationalContext::observingDriver;
-    actor vehicleTarget = aebsVisualizationOperationalContext::scenarioVehicleTarget;
     actor evidenceBaseline = aebsVisualizationOperationalContext::visualizationEvidenceBaseline;
   }
 
