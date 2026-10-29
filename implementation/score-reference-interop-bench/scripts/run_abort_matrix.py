@@ -20,7 +20,6 @@ survives 3 of 3.
 from __future__ import annotations
 
 import argparse
-import json
 import os
 from pathlib import Path
 import sys
@@ -30,21 +29,14 @@ BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "src"))
 
 import bench_runtime as rt  # noqa: E402
-from de4sdv_score_bench.abort_matrix import VARIANTS, evaluate_variant, summarize_matrix  # noqa: E402
-
-BINARIES = {"adapter": "de4sdv_score_adapter", "control": "de4sdv_score_adapter_no_abort_control"}
+from de4sdv_score_bench.abort_matrix import (  # noqa: E402
+    EXECUTABLES, VARIANTS, evaluate_variant, parse_adapter_log, summarize_matrix)
 
 
 def logged_fault_signal(log_text: str, variant: str) -> int | None:
     """The signal that the adapter logged at start for the variant."""
-    for line in log_text.splitlines():
-        if not line.startswith("{"):
-            continue
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError:
-            continue
-        if event.get("event") == "start" and isinstance(event.get("fault_signals"), dict):
+    for event in parse_adapter_log(log_text):
+        if event["event"] == "start" and isinstance(event.get("fault_signals"), dict):
             value = event["fault_signals"].get(variant)
             return value if type(value) is int else None
     return None
@@ -54,7 +46,7 @@ def run_variant(args: argparse.Namespace, role: str, variant: str) -> dict:
     bundle = Path(args.bundle)
     run_dir = Path(args.out) / f"{role}-{variant}"
     run_dir.mkdir(parents=True, exist_ok=True)
-    binary = bundle / "bin" / BINARIES[role]
+    binary = bundle / "bin" / EXECUTABLES[role]
     cleaned: list[str] = []
     rt.clean_lola_state(cleaned)
     env = rt.bench_environment()
@@ -139,11 +131,11 @@ def main() -> int:
         for variant in VARIANTS:
             results.append(run_variant(args, role, variant))
     summary = summarize_matrix(results)
-    adapter_binary = Path(args.bundle) / "bin" / BINARIES["adapter"]
+    adapter_binary = Path(args.bundle) / "bin" / EXECUTABLES["adapter"]
     summary["ros_environment"] = environment
     summary["nm_dynamic_cxa_allocate_exception"] = rt.nm_dynamic_line(adapter_binary, "__cxa_allocate_exception")
     summary["adapter_sha256"] = rt.sha256(adapter_binary)
-    control_binary = Path(args.bundle) / "bin" / BINARIES["control"]
+    control_binary = Path(args.bundle) / "bin" / EXECUTABLES["control"]
     if control_binary.exists():
         summary["control_sha256"] = rt.sha256(control_binary)
     summary["results"] = results

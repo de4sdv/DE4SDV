@@ -1,9 +1,10 @@
 """Tests of the startup probe evaluator of the one-process adapter.
 
-Each case states what it expects: the adapter runs, the adapter of record
-aborts at the override, or (a control of the setup) the adapter does not
-start. A control passes only when the host also ran out of participants for
-the other ROS 2 processes, so the control shows the limit it is about.
+Each case states what it expects: the adapter runs, or (a control of the
+setup) the adapter does not start. A control passes only when the host also
+ran out of participants for the other ROS 2 processes, so the control shows
+the limit it is about. The report names an abort at the override only when
+the core's top frames show it.
 """
 
 from pathlib import Path
@@ -42,9 +43,9 @@ def _record(**changes) -> dict:
 
 
 def _aborted(**changes) -> dict:
-    record = _record(expected="aborts_at_override", peers_before=0, peers_ready=0, peer_velocity_reports=None,
-                     ready=False, survived_hold=False, end_returncode=-6, stop_returncode=None, core=True,
-                     override_check_passed=True)
+    record = _record(case="cyclonedds_bench_environment_with_ros_localhost_only", expected="does_not_start",
+                     peers_before=0, peers_ready=0, peer_velocity_reports=None, ready=False, survived_hold=False,
+                     end_returncode=-6, stop_returncode=None, core=True, override_check_passed=True)
     record.update(changes)
     return record
 
@@ -64,16 +65,20 @@ def test_a_running_case_needs_the_counting_participant_to_receive_velocity_repor
     assert not evaluate_case(_record(peer_velocity_reports=0))["as_expected"]
 
 
-def test_an_abort_at_the_override_is_as_expected_only_with_the_checked_top_frames():
-    assert evaluate_case(_aborted())["as_expected"]
-    evaluation = evaluate_case(_aborted(override_check_passed=False))
-    assert not evaluation["as_expected"]
-    assert evaluation["observed"] == "does_not_start"
+def test_the_report_names_an_abort_at_the_override_only_with_the_checked_top_frames():
+    evaluation = evaluate_case(_aborted())
+    assert evaluation["as_expected"], evaluation["reasons"]
+    assert evaluation["observed"] == "aborts_at_override"
+    assert evaluate_case(_aborted(override_check_passed=False))["observed"] == "does_not_start"
 
 
-def test_a_control_build_that_aborts_where_it_should_run_is_not_as_expected():
-    record = _aborted(expected="runs", binary="de4sdv_score_adapter_no_abort_control")
-    assert not evaluate_case(record)["as_expected"]
+def test_an_adapter_that_aborts_where_it_should_run_is_not_as_expected():
+    assert not evaluate_case(_aborted(expected="runs"))["as_expected"]
+
+
+def test_an_abort_at_the_override_is_no_expectation_of_a_case():
+    evaluation = evaluate_case(_aborted(expected="aborts_at_override"))
+    assert evaluation["reasons"] == ["unknown expectation"]
 
 
 def test_the_default_configuration_control_is_as_expected_when_participants_ran_out():

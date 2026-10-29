@@ -14,7 +14,8 @@
 # - abort-matrix: the REQ-MW-018 matrix (three throws inside a try/catch,
 #   selected by signals, the adapter and a control build without the
 #   override), and the refused speed subscription.
-# - rmw-startup-probe: adapter startup under several ROS 2 middleware setups.
+# - rmw-startup-probe: adapter startup in the ROS 2 environment of the bench,
+#   with 11 other ROS 2 processes before or after it, and two controls.
 # - soak: nominal operation with someipd and gatewayd, 600 s on a pull
 #   request, the soak_seconds of a manual run (default 1800 s).
 # Every runtime job sources config/ros_environment.sh of the runtime bundle

@@ -1,23 +1,22 @@
 """Evaluator of the startup probe of the one-process adapter (design data).
 
-Each case starts the adapter of record or the control build (the same
-sources without baselibs' abort override) under one ROS 2 middleware setup,
-optionally with other ROS 2 participants on the host before or after it, and
-states what it expects:
+Each case starts the adapter under one ROS 2 middleware setup, optionally
+with other ROS 2 participants on the host before or after it, and states
+what it expects:
 
 - ``runs``: the adapter gets ready, stays up for the hold time and stops
   with 0 on SIGTERM; every other participant gets ready; a participant that
   counts the adapter's VelocityReports receives at least one.
-- ``aborts_at_override``: the adapter ends with SIGABRT, and its core shows
-  abort, then ``__cxa_allocate_exception`` at an address in the executable.
 - ``does_not_start``: a control of the setup. The adapter does not get
   ready, however it ends. With other participants, fewer of them get ready
   than were started, so the host ran out of what the setup gives (for
   CycloneDDS without multicast: the participant indices). A control can also
   name a text that the adapter's log must hold, the error of the setup.
 
-A case passes when what happened is what it expects; the probe passes when
-every case passes.
+The report names how the adapter ended: ``aborts_at_override`` when it ended
+with SIGABRT and its core shows abort, then ``__cxa_allocate_exception`` at
+an address in the executable. A case passes when what happened is what it
+expects; the probe passes when every case passes.
 """
 
 from __future__ import annotations
@@ -25,7 +24,7 @@ from __future__ import annotations
 import signal
 from typing import Any
 
-EXPECTATIONS = ("runs", "aborts_at_override", "does_not_start")
+EXPECTATIONS = ("runs", "does_not_start")
 
 _RECORD_KEYS = {
     "case",
