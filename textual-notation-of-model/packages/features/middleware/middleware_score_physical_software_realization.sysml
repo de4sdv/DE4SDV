@@ -1803,12 +1803,14 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    * stack was killed, a new subscription still succeeded but read no
    * message. So the timeout is the event that ends the phase then
    * (GAP-MW-048).
-   * A phase end that the layer causes, by PublicationDestroyed, by
-   * Disconnected or by the timeout, while the ingress stays connected, is a
-   * delivery failure of the layer. It is not an unsubscription of the HMI
-   * application. So the verification of REQ-MW-014 records every phase end.
-   * A phase end during the AEBS event fails the run of REQ-MW-014 or makes
-   * it inconclusive. It never lets the run pass.
+   * A phase end that the layer causes is a phase end by
+   * PublicationDestroyed, by Disconnected or by the timeout, while the
+   * ingress stays connected. For REQ-MW-014 it is a delivery failure of the
+   * layer, not an unsubscription of the HMI application. For REQ-MW-019 the
+   * new phase is the current subscription. So the verification of
+   * REQ-MW-014 records every phase end. A phase end during the AEBS event
+   * fails the run of REQ-MW-014 or makes it inconclusive. It never lets the
+   * run pass.
    * A DATA_LOSS status of a read is a gap (GAP-MW-037). It does not end the
    * phase.
    * The ingress is connected from the time the relay accepts it as the

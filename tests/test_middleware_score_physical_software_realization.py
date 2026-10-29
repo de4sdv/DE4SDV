@@ -229,11 +229,12 @@ def test_the_relay_discard_rule_traces_its_requirements_bound_and_residual() -> 
                       "the notification PublicationDestroyed of the subscription",
                       "no message for 3 s, the relay's own timeout",
                       "saw PublicationDestroyed within about 0.1 s after a restart of someipd",
-                      # A phase end that the layer causes is a delivery failure, never an unsubscription
-                      # (claims review R1).
-                      "while the ingress stays connected, is a delivery failure of the layer. It is not an "
-                      "unsubscription of the HMI application. So the verification of REQ-MW-014 records every phase "
-                      "end.",
+                      # A phase end that the layer causes is a delivery failure for REQ-MW-014, and for REQ-MW-019
+                      # the new phase is the current subscription (claims review R1 of phase 8 and of phase 10).
+                      "A phase end that the layer causes is a phase end by PublicationDestroyed, by Disconnected or "
+                      "by the timeout, while the ingress stays connected. For REQ-MW-014 it is a delivery failure of "
+                      "the layer, not an unsubscription of the HMI application. For REQ-MW-019 the new phase is the "
+                      "current subscription. So the verification of REQ-MW-014 records every phase end.",
                       "It never lets the run pass.",
                       "A DATA_LOSS status of a read is a gap (GAP-MW-037). It does not end the phase.",
                       "So the timeout is the event that ends the phase then (GAP-MW-048).",
@@ -246,8 +247,10 @@ def test_the_relay_discard_rule_traces_its_requirements_bound_and_residual() -> 
                       "after its subscription",
                       "the rule drops no frame that the AEBS stack produced after the phase start"):
         assert statement in rule, statement
-    # The SOME/IP events of the parked receiver no longer define the phase: the broker ends SOME/IP.
-    for gone in ("SubscribeEventgroupAck", "TCP keepalive", "a reboot of someipd"):
+    # The SOME/IP events of the parked receiver no longer define the phase: the broker ends SOME/IP. The unscoped
+    # sentence that read a phase end as no unsubscription for every requirement is gone.
+    for gone in ("SubscribeEventgroupAck", "TCP keepalive", "a reboot of someipd",
+                 "It is not an unsubscription of the HMI application."):
         assert gone not in rule, gone
 
 
@@ -474,9 +477,11 @@ def test_the_adapter_declares_the_fault_injection_interface_that_the_abort_test_
 
 
 def test_vc_mw_020_does_not_close_req_mw_019_while_the_stored_frame_gap_is_open() -> None:
-    """The criteria of REQ-MW-019 declare the margin, so only the stored-frame gap holds a pass back."""
+    """The criteria of REQ-MW-019 declare the margin, so only the stored-frame gap holds a pass back. The case runs
+    the pair restart, so the closure names the two host-half events that it leaves to the preflight checks."""
     case = _verification_def_doc("UnsubscribedFrameDiscardVerification")
-    assert case.endswith("While GAP-MW-039 is open, a pass does not close REQ-MW-019."), case[-200:]
+    assert case.endswith("While GAP-MW-039 is open for a restart of gatewayd alone and for a late start of gatewayd, "
+                         "a pass does not close REQ-MW-019."), case[-200:]
     assert "GAP-MW-045 is open" not in case, "the declared margin no longer holds a pass back"
 
 

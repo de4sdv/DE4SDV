@@ -122,14 +122,14 @@ def _definition(definition: str) -> str:
 
 def _evidence_records(code: str) -> list[str]:
     """The names of the part and item declarations typed by an evidence record, short-named or not."""
-    return re.findall(rf"\b(?:part|item)\s+{SHORT_NAME}(\w+)\s*:\s*(?:ReceiptBoundMiddlewareEvidence|"
+    return re.findall(rf"\b(?:part|item)\s+{SHORT_NAME}(\w*)\s*:\s*(?:ReceiptBoundMiddlewareEvidence|"
                       r"RetainedMiddlewareEvidence)\b", code)
 
 
 def _bench_parts(text: str) -> list[tuple[str, str]]:
     """(``ref `` or empty, name) of each part of the bench definition in ``text``, short-named or not."""
     bench = _code_body(text, r"\bpart\s+def\s+SCOREMiddlewareVerificationBench\s*\{")
-    return re.findall(rf"\b(ref\s+)?part\s+{SHORT_NAME}(\w+)", bench)
+    return re.findall(rf"\b(ref\s+)?part\s+{SHORT_NAME}(\w*)\s*[:;{{]", bench)
 
 
 def test_each_requirement_of_the_increment_is_verified_by_one_case() -> None:
@@ -143,7 +143,9 @@ def test_each_requirement_of_the_increment_is_verified_by_one_case() -> None:
         body = _definition(usages[case][1])
         assert re.findall(r"\bverify\s+(\w+)", body) == [requirement], case
         assert f"verify {requirement} {{ subject integrationLayer = verifiedBench.integrationLayer; }}" in body, case
-    verified = re.findall(r"\bverify\s+(\w+)", _blanked(SLICE.read_text(encoding="utf-8")))
+    code = _blanked(SLICE.read_text(encoding="utf-8"))
+    assert len(re.findall(r"\bverification\s+(?!def\b)", code)) == len(CASES), "a case outside the short-named usages"
+    verified = re.findall(r"\bverify\s+(\w+)", code)
     assert sorted(verified) == sorted(CASES.values()), "a requirement is verified twice, or a case verifies another"
 
 
@@ -314,7 +316,9 @@ def test_the_cases_follow_the_broker_path_of_phase_8() -> None:
     """The SOME/IP receiver left the product path (ADR 0025, decision 7): the cases name the IVI frame relay, and the
     SDV Core VM where the guest holds the broker."""
     text = SLICE.read_text(encoding="utf-8")
-    assert not re.search(r"SOME/IP\s+receiver|\breceiver's\b", text), "the slice still names the SOME/IP receiver"
+    flat = " ".join(" ".join(re.sub(r"^\s*\*\s?", "", line) for line in text.splitlines()).split())
+    assert not re.search(r"SOME/IP receiver|\breceiver's\b|someipReceiver", flat, re.IGNORECASE), (
+        "the slice still names the SOME/IP receiver")
     for definition in ("AEBSSignalSourceOrderVerification", "AEBSSignalProvenanceVerification",
                        "NoApplicationDataFromHMIGuestVerification", "NoEmergencyCommandOnMiddlewareVerification",
                        "UnsubscribedFrameDiscardVerification"):
@@ -330,33 +334,77 @@ def test_the_cases_follow_the_broker_path_of_phase_8() -> None:
 
 def test_the_source_order_case_records_every_phase_end() -> None:
     """A phase end that the layer causes while the ingress stays connected is a delivery failure; no phase end in
-    the AEBS event lets the run pass (relaySubscriptionPhaseDiscardRule)."""
+    the AEBS event lets the run pass (relaySubscriptionPhaseDiscardRule). A delivery failure that does not depend on
+    the clock fails the run whatever else holds; only then do the inconclusive conditions apply."""
     case = _definition_doc("AEBSSignalSourceOrderVerification")
     for statement in ("collectData also records every start and end of a subscription phase of the relay, with its "
                       "cause, from the relay's log.",
+                      "The IVI frame relay delivers them there, on 127.0.0.1:4731 of the IVI VM.",
+                      "Two captures in the IVI VM corroborate each phase start: - a cleartext capture of Data Tunnel "
+                      "on VLAN 2, in the UNLOCKED mode, for the subscription through the SDV Gateway on IVI; - the "
+                      "loopback capture, for the accept of the ingress. The record holds their difference from the "
+                      "relay's log. Where they differ, processData uses the time of the captures.",
                       "A phase end that the layer causes while the ingress stays connected is a delivery failure of "
                       "the layer (relaySubscriptionPhaseDiscardRule).",
                       "The layer causes it by the relay's timeout, PublicationDestroyed or Disconnected.",
                       "If such a phase end falls in the AEBS event, the outcome is failObservedBehavior.",
-                      "the ingress disconnects in the event, another client holds the stream of the frame assembler, "
-                      "or ASM-MW-030 does not hold.",
+                      "A delivery failure that does not depend on the clock fails the run whatever else holds. In the "
+                      "event, such failures are a phase end that the layer causes, a DATA_LOSS and a change of order. "
+                      "Otherwise the three conditions below make the run inconclusive.",
+                      "- the ingress disconnects in the event; - another client holds the stream of the frame "
+                      "assembler; - ASM-MW-030 does not hold.",
                       "So no phase end in the AEBS event lets the run pass.",
                       "A DATA_LOSS of the relay in the event is a sequence gap.",
-                      "The check is ss -H -t -n -p state established '( sport = :4721 )'.",
+                      # The sport list counts the clients of the frame assembler; only dport names a client process.
+                      "The check has two steps: - ss -H -t -n -p state established '( sport = :4721 )' lists the "
+                      "connections that the frame assembler accepted. The list must hold exactly one connection, and "
+                      "its peer must be a loopback address; - ss -H -t -n -p state established '( dport = :4721 )' "
+                      "must name the adapter process for the port of that peer.",
                       "So the path has carried many cycles of SD offers and renewals before the event (GAP-MW-047).",
                       "So the case also checks the order part of ASM-MW-032 end to end, on the AAOS SDV hops."):
         assert statement in case, statement
+    # The list comparison runs in every run, so the inconclusive conditions cannot hide a delivery failure.
+    assert case.index("processData compares the two lists") < case.index("Otherwise the three conditions"), case
+    assert "Otherwise, processData compares" not in case, "the comparison runs only when no condition holds"
+    needs = _usage_doc("VC-MW-015")
+    assert ("The IVI VM runs the IVI frame relay and the HMI application, and it captures its loopback and Data "
+            "Tunnel on VLAN 2.") in needs, needs
 
 
 def test_the_provenance_case_checks_the_bytes_and_the_sd_offer_from_the_ivi_vm() -> None:
+    """A rogue SD offer fails the case if it moves the stack's subscription or stops the frames, not only if a
+    received frame differs; the SOME/IP hardening is recorded, never judged."""
     case = _definition_doc("AEBSSignalProvenanceVerification")
     for statement in ("So the case also checks the byte part of ASM-MW-032 end to end, through the wrapper of the "
                       "broker.",
                       "An SD message from the IVI VM must not redirect the subscription of the stack in the SDV Core "
                       "VM to another provider (phase 8).",
-                      "If neither exists, the run sends no such offer, and the record names the residual for "
-                      "REQ-MW-015 under GAP-MW-012, as phase 8 allows."):
+                      "If the pin or the filter exists, the run sends an SD offer of the frame service from the IVI "
+                      "VM.",
+                      "collectData also records, from the SD captures, the provider that the stack subscribes to "
+                      "after that offer. If that provider is not 192.168.98.1, the outcome is failObservedBehavior.",
+                      "The outcome is also failObservedBehavior if the received frames stop after the offer for the "
+                      "inter-arrival bound of REQ-MW-014 or longer.",
+                      "If neither the pin nor the filter exists, the run sends no such offer. The record then names the "
+                      "residual for REQ-MW-015 under GAP-MW-012, as phase 8 allows.",
+                      "The SOME/IP hardening of GAP-MW-046 lets only the bridge port of the SDV Core VM reach the "
+                      "SOME/IP ports of the host (VC-MW-017). It is a recorded design measure, and no part of the pass "
+                      "condition of this case. The case makes no robustness claim for it (GAP-MW-012)."):
         assert statement in case, statement
+
+
+def test_the_evidence_record_names_the_guest_builds_and_the_unlocked_claim_boundary() -> None:
+    """A guest run names both images, their one revision and their one boot mode; UNLOCKED runs in cleartext."""
+    record = _flat_doc(_raw_body(SLICE.read_text(encoding="utf-8"),
+                                 r"\bitem\s+def\s+ReceiptBoundMiddlewareEvidence\s*:>\s*RetainedMiddlewareEvidence\s*\{"))
+    for statement in ("For a run in the guest, executionEnvironmentIdentity names the builds of the SDV Core image and "
+                      "of the IVI image.",
+                      "It also names their android17-release revision and their boot mode, which must be the same for "
+                      "both (ADR 0025, decision 8).",
+                      "In the UNLOCKED mode, claimBoundary states that the SD mesh and Data Tunnel run as cleartext "
+                      "HTTP/2 (GAP-MW-038).",
+                      "A missing or partial record gives inconclusive, never pass."):
+        assert statement in record, statement
 
 
 def test_the_isolation_case_inspects_the_host_and_probes_from_both_vms() -> None:
@@ -384,24 +432,31 @@ def test_the_isolation_case_inspects_the_host_and_probes_from_both_vms() -> None
                       "domain. These VMs are the SDV Core VM and the IVI VM.",
                       "It lists the sockets that the ROS 2 processes of the host have bound (ss -ulnp, IPv4 and IPv6, "
                       "unicast and multicast).",
-                      "It lists every host address that the VM reaches: 192.168.98.1, the host end of the buried "
-                      "network of each VM, and any other cvd-* bridge address.",
+                      "It lists every host address that the VM reaches. These are 192.168.98.1, the host end of the "
+                      "buried network of each VM, and any other cvd-* bridge address.",
                       "It does so over each interface of the VM: eth1, buried_eth0, the VLAN interfaces, and wlan if "
                       "present.",
                       "The same observation must show the delivery.",
                       "From the SDV Core VM, the SOME/IP ports of someipd stay the control of the network path.",
-                      "The IVI VM must not reach them, also with the source address 192.168.98.3.",
-                      "That hardening serves REQ-MW-015 and REQ-MW-019, not these criteria, so processData does not "
-                      "judge it here.",
+                      # The owner approved the SOME/IP hardening as a design measure, not as a verified property.
+                      "The probe also records the SOME/IP hardening of GAP-MW-046 (owner decision of 2026-10-29).",
+                      "It accepts UDP 30490 and TCP 30509 to the host only from the bridge port of the SDV Core VM. "
+                      "It also matches the address and the MAC address of that VM.",
+                      "It blocks the IVI VM, also with the source address 192.168.98.3.",
+                      "The hardening is a recorded design measure. It is no part of the pass condition of any case, "
+                      "and processData does not judge it. No robustness claim is made for it (GAP-MW-012).",
                       "A reachable DDS port of an element of the layer fails the case, whatever the control or "
                       "ASM-MW-031 show.",
                       "If the control fails, an unreachable result shows nothing, and the outcome is "
                       "inconclusiveMissingEvidence.",
                       "If ASM-MW-031 does not hold, the case shows nothing about the other processes, and for them the "
                       "outcome is inconclusiveMissingEvidence.",
+                      "If no layer port is reachable but ASM-MW-031 does not hold, the outcome is "
+                      "inconclusiveMissingEvidence.",
                       "A reachable port 4721 is a finding against ASM-MW-029, not against these criteria."):
         assert statement in definition, statement
     assert "such as its firewall rules" not in definition, "the owner chose the host configuration"
+    assert not re.search(r"\bserves\b|\bmust not reach\b", definition), "the hardening reads as a verified property"
     needs = _usage_doc("VC-MW-017")
     assert needs.startswith("Not started. Bench: the Linux host with the layer running, and the SDV Core VM and the "
                             "IVI VM up with a reachability probe in each. someipd serves the SDV Core VM."), needs[:200]
@@ -423,7 +478,8 @@ def test_the_isolation_case_inspects_the_host_and_probes_from_both_vms() -> None
 
 def test_the_discard_case_runs_the_four_conditions() -> None:
     """REQ-MW-019 in the guest of ADR 0025 and after a pair restart in the host half; the bench recovery of
-    GAP-MW-048 is manual and bench only, with no availability claim."""
+    GAP-MW-048 is manual and bench only, with no availability claim. After an IVI VM reboot the case judges the phase
+    that starts once the clock is set, and keeps the first phase as data outside the judged scope."""
     case = _definition_doc("UnsubscribedFrameDiscardVerification")
     for statement in ("It runs four conditions.",
                       "- the HMI application down;",
@@ -432,34 +488,62 @@ def test_the_discard_case_runs_the_four_conditions() -> None:
                       "of GAP-MW-048.",
                       "The operator reboots the SDV Core VM by hand, for the bench only;",
                       "- a restart of gatewayd and someipd as a pair (gatewayPairRestartGuardRail).",
+                      "A capture of the relay's stream on 127.0.0.1:4731 of the IVI VM gives them",
+                      "collectData records the death detection: the line \"Critical agent has died\" in the logcat of "
+                      "the SDV Core VM, and VmHealth.",
                       "It records how long the HMI shows stale. No criterion applies to that time, and no availability "
                       "claim is made (GAP-MW-048).",
                       "For the fourth condition, it records the latency of PublicationDestroyed and the time to the new "
                       "publication. It records both on the host clock and on the IVI VM clock corrected by the "
-                      "measured offset.",
+                      "measured offset. No criterion applies to these two times.",
                       "The run applies the clock controls of ASM-MW-030 and records them.",
+                      # The clock procedure after an IVI VM reboot (assurance review R6 and author question 1).
+                      "After a reboot of the IVI VM, the relay and the ingress start before the bench can set the clock "
+                      "(GAP-MW-048).",
+                      "So for the second condition, the bench sets the clock after the reboot and then starts the "
+                      "ingress again.",
+                      "The case judges the phase that starts then.",
+                      "collectData still records the first phase after the reboot, as data. The claimBoundary of the "
+                      "record names that phase as outside the judged scope (GAP-MW-045).",
                       "The new subscription is the start of a subscription phase of the IVI frame relay, as phase 8 "
                       "defines it (relaySubscriptionPhaseDiscardRule).",
+                      "The relay's log shows it. Two captures in the IVI VM corroborate it: - a cleartext capture of "
+                      "Data Tunnel on VLAN 2, in the UNLOCKED mode, for the subscription through the SDV Gateway on "
+                      "IVI; - the loopback capture, for the accept of the ingress. The record holds their difference "
+                      "from the relay's log. Where they differ, processData takes the start of the new subscription "
+                      "from the captures.",
                       "For REQ-MW-014, a phase end that the layer causes is a delivery failure (VC-MW-015). For "
-                      "REQ-MW-019, the new phase is the current subscription."):
+                      "REQ-MW-019, the new phase is the current subscription.",
+                      "The SOME/IP hardening of GAP-MW-046 is a recorded design measure (VC-MW-017). It is no part of "
+                      "the pass condition of this case, and the case makes no robustness claim for it (GAP-MW-012).",
+                      "While GAP-MW-039 is open for a restart of gatewayd alone and for a late start of gatewayd, a "
+                      "pass does not close REQ-MW-019."):
         assert statement in case, statement
 
 
 def test_the_slice_header_names_the_steps_that_verify_a_requirement() -> None:
-    """Preflight checks verify no requirement, apart from the steps that a case holds."""
+    """Preflight checks verify no requirement, apart from the steps that a case holds. The two times that VC-MW-020
+    measures without a criterion are context, not steps."""
     (header,) = re.findall(r"\A/\*(.*?)\*/", SLICE.read_text(encoding="utf-8"), re.DOTALL)
     flat = " ".join(" ".join(re.sub(r"^\s*\*\s?", "", line) for line in header.splitlines()).split())
-    assert ("They verify no requirement, so no case of this slice holds them. Where a check verifies a requirement, "
-            "the case of that requirement holds it as a step:") in flat, flat
+    intro = ("They verify no requirement, so no case of this slice holds them. Where a check verifies a requirement, "
+             "the case of that requirement holds it as a step:")
+    context = ("VC-MW-020 also records two measurements as context, with no criterion: - how long the HMI shows stale "
+               "while the SDV Core VM is down; - the latency of PublicationDestroyed after a pair restart, on corrected "
+               "clocks.")
+    assert intro in flat, flat
+    assert context in flat, flat
+    steps = flat[flat.index(intro) + len(intro):flat.index(context)]
     for step in ("- VC-MW-014: the adapter restart;",
                  "- VC-MW-015: every phase end of the relay, its DATA_LOSS counts and the client check of the frame "
                  "assembler. It also holds the SD offers and renewals of a long session;",
                  "- VC-MW-016: the SD offer from the IVI VM that must not redirect the subscription of the stack;",
                  "- VC-MW-017: the ROS 2 environment of each ROS 2 process on the host, the host configuration of "
                  "GAP-MW-046 and the probe from both VMs;",
-                 "- VC-MW-020: the clock controls of ASM-MW-030, the bench recovery of GAP-MW-048, and the latency of "
-                 "PublicationDestroyed after a pair restart on corrected clocks."):
-        assert step in flat, step
+                 "- VC-MW-020: the clock controls of ASM-MW-030 and the bench recovery of GAP-MW-048."):
+        assert step in steps, step
+    for measurement in ("PublicationDestroyed", "stale"):
+        assert measurement not in steps, f"a measurement without a criterion is listed as a step: {measurement}"
 
 
 def test_the_emergency_command_case_needs_only_the_hmi_path_configurations_of_vc_mw_017() -> None:

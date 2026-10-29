@@ -38,9 +38,12 @@
  *   subscription of the stack;
  * - VC-MW-017: the ROS 2 environment of each ROS 2 process on the host, the
  *   host configuration of GAP-MW-046 and the probe from both VMs;
- * - VC-MW-020: the clock controls of ASM-MW-030, the bench recovery of
- *   GAP-MW-048, and the latency of PublicationDestroyed after a pair restart
- *   on corrected clocks.
+ * - VC-MW-020: the clock controls of ASM-MW-030 and the bench recovery of
+ *   GAP-MW-048.
+ * VC-MW-020 also records two measurements as context, with no criterion:
+ * - how long the HMI shows stale while the SDV Core VM is down;
+ * - the latency of PublicationDestroyed after a pair restart, on corrected
+ *   clocks.
  *
  * The cases reuse the outcome vocabulary and the verdict mapping of
  * INC-MW-010 and edit no closed slice. The evidence record of this slice
@@ -301,8 +304,12 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * controls of ASM-MW-030 allow. So the path has carried many cycles of SD
      * offers and renewals before the event (GAP-MW-047). Before and after
      * the event, the run checks on the host that the adapter is the only
-     * client of the frame assembler (ASM-MW-029). The check is
-     * ss -H -t -n -p state established '( sport = :4721 )'.
+     * client of the frame assembler (ASM-MW-029). The check has two steps:
+     * - ss -H -t -n -p state established '( sport = :4721 )' lists the
+     *   connections that the frame assembler accepted. The list must hold
+     *   exactly one connection, and its peer must be a loopback address;
+     * - ss -H -t -n -p state established '( dport = :4721 )' must name the
+     *   adapter process for the port of that peer.
      * collectData records two frame lists with sequence numbers and times.
      * The first list holds the frames that the AEBS stack produced on the
      * Linux host, as the frame assembler serves them. The second list holds
@@ -313,26 +320,38 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * logs. The unchanged ingress logs sequence numbers only for the frames
      * that it accepts. collectData also records every start and end of a
      * subscription phase of the relay, with its cause, from the relay's log.
-     * It records the relay's DATA_LOSS counts, the SD offers and renewals
-     * that the host captures, and the clock controls of ASM-MW-030.
+     * Two captures in the IVI VM corroborate each phase start:
+     * - a cleartext capture of Data Tunnel on VLAN 2, in the UNLOCKED mode,
+     *   for the subscription through the SDV Gateway on IVI;
+     * - the loopback capture, for the accept of the ingress.
+     * The record holds their difference from the relay's log. Where they
+     * differ, processData uses the time of the captures.
+     * collectData also records the relay's DATA_LOSS counts, the SD offers
+     * and renewals that the host captures, and the clock controls of
+     * ASM-MW-030.
      * processData decodes the produced frames with the frame contract of
      * INC-AEBS-010. If they do not show all four stages, MONITORING,
      * WARNING, INTERVENTION and RELEASED, the run does not meet the condition
      * of the criteria. In that case, the outcome is
-     * inconclusiveMissingEvidence. A phase end that the layer causes while
-     * the ingress stays connected is a delivery failure of the layer
+     * inconclusiveMissingEvidence. processData compares the two lists for
+     * completeness, order and sequence gaps. A DATA_LOSS of the relay in the
+     * event is a sequence gap. It also compares the inter-arrival gaps with
+     * the bound that the criteria state. A phase end that the layer causes
+     * while the ingress stays connected is a delivery failure of the layer
      * (relaySubscriptionPhaseDiscardRule). The layer causes it by the relay's
      * timeout, PublicationDestroyed or Disconnected. If such a phase end
-     * falls in the AEBS event, the outcome is failObservedBehavior. The run
-     * also does not meet the condition of the criteria in three cases: the
-     * ingress disconnects in the event, another client holds the stream of
-     * the frame assembler, or ASM-MW-030 does not hold. In each of them, the
-     * outcome is inconclusiveMissingEvidence. So no phase end in the AEBS
-     * event lets the run pass. Otherwise, processData compares the two lists
-     * for completeness, order and sequence gaps. A DATA_LOSS of the relay in
-     * the event is a sequence gap. It also compares the inter-arrival gaps
-     * with the bound that the criteria state. So the case also checks the
-     * order part of ASM-MW-032 end to end, on the AAOS SDV hops.
+     * falls in the AEBS event, the outcome is failObservedBehavior.
+     * A delivery failure that does not depend on the clock fails the run
+     * whatever else holds. In the event, such failures are a phase end that
+     * the layer causes, a DATA_LOSS and a change of order. Otherwise the three
+     * conditions below make the run inconclusive. In each of them, the run
+     * does not meet the condition of the criteria, and the outcome is
+     * inconclusiveMissingEvidence:
+     * - the ingress disconnects in the event;
+     * - another client holds the stream of the frame assembler;
+     * - ASM-MW-030 does not hold.
+     * So no phase end in the AEBS event lets the run pass. So the case also
+     * checks the order part of ASM-MW-032 end to end, on the AAOS SDV hops.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective aebsSignalSourceOrderObjective {
@@ -375,9 +394,18 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * Core VM for a filter of SD to that address. If the pin or the filter
      * exists, the run sends an SD offer of the frame service from the IVI VM.
      * It sends it on the shared network segment, during the event. The
-     * received frames must still match. If neither exists, the run sends
-     * no such offer, and the record names the residual for REQ-MW-015 under
-     * GAP-MW-012, as phase 8 allows.
+     * received frames must still match. collectData also records, from the
+     * SD captures, the provider that the stack subscribes to after that
+     * offer. If that provider is not 192.168.98.1, the outcome is
+     * failObservedBehavior. The outcome is also failObservedBehavior if the
+     * received frames stop after the offer for the inter-arrival bound of
+     * REQ-MW-014 or longer. If neither the pin nor the filter exists, the run
+     * sends no such offer. The record then names the residual for REQ-MW-015
+     * under GAP-MW-012, as phase 8 allows.
+     * The SOME/IP hardening of GAP-MW-046 lets only the bridge port of the
+     * SDV Core VM reach the SOME/IP ports of the host (VC-MW-017). It is a
+     * recorded design measure, and no part of the pass condition of this
+     * case. The case makes no robustness claim for it (GAP-MW-012).
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective aebsSignalProvenanceObjective {
@@ -434,8 +462,8 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      *   (ss -ulnp, IPv4 and IPv6, unicast and multicast). It lists every
      *   other host listener bound to an address that the VM reaches, port
      *   4721 of the frame assembler among them. It lists every host address
-     *   that the VM reaches: 192.168.98.1, the host end of the buried network
-     *   of each VM, and any other cvd-* bridge address.
+     *   that the VM reaches. These are 192.168.98.1, the host end of the
+     *   buried network of each VM, and any other cvd-* bridge address.
      * - It sends marked datagrams to each listed DDS socket, and it tries a
      *   connection to each listed TCP listener. It does so over each
      *   interface of the VM: eth1, buried_eth0, the VLAN interfaces, and
@@ -447,20 +475,23 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      *   the delivery.
      * From the SDV Core VM, the SOME/IP ports of someipd stay the control of
      * the network path. The probe also records the SOME/IP hardening of
-     * GAP-MW-046. Only the bridge port of the SDV Core VM, with its address
-     * and its MAC address, reaches UDP 30490 and TCP 30509 of the host. The
-     * IVI VM must not reach them, also with the source address 192.168.98.3.
-     * That hardening serves REQ-MW-015 and REQ-MW-019, not these criteria, so
-     * processData does not judge it here. VC-MW-016 checks the SD offer from
-     * the IVI VM.
+     * GAP-MW-046 (owner decision of 2026-10-29). It accepts UDP 30490 and TCP
+     * 30509 to the host only from the bridge port of the SDV Core VM. It also
+     * matches the address and the MAC address of that VM. It blocks the IVI
+     * VM, also with the source address 192.168.98.3. The hardening is a
+     * recorded design measure. It is no part of the pass condition of any
+     * case, and processData does not judge it. No robustness claim is made
+     * for it (GAP-MW-012). VC-MW-016 checks the SD offer from the IVI VM.
      * The record holds the lists, the observations and both controls.
      * processData compares the findings with the criteria. A reachable DDS
      * port of an element of the layer fails the case, whatever the control
      * or ASM-MW-031 show. If the control fails, an unreachable result shows
      * nothing, and the outcome is inconclusiveMissingEvidence. If ASM-MW-031
      * does not hold, the case shows nothing about the other processes, and
-     * for them the outcome is inconclusiveMissingEvidence. A reachable port
-     * 4721 is a finding against ASM-MW-029, not against these criteria.
+     * for them the outcome is inconclusiveMissingEvidence. If no layer port
+     * is reachable but ASM-MW-031 does not hold, the outcome is
+     * inconclusiveMissingEvidence. A reachable port 4721 is a finding against
+     * ASM-MW-029, not against these criteria.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective noApplicationDataFromHMIGuestObjective {
@@ -583,12 +614,13 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * own checks. The capture does not use the relay's and the ingress's own
      * logs.
      * For the third condition, collectData records the death detection: the
-     * line Critical agent has died in the logcat of the SDV Core VM, and
+     * line "Critical agent has died" in the logcat of the SDV Core VM, and
      * VmHealth. It records how long the HMI shows stale. No criterion applies
      * to that time, and no availability claim is made (GAP-MW-048). For the
      * fourth condition, it records the latency of PublicationDestroyed and
      * the time to the new publication. It records both on the host clock and
-     * on the IVI VM clock corrected by the measured offset.
+     * on the IVI VM clock corrected by the measured offset. No criterion
+     * applies to these two times.
      * processData checks each frame that arrives after the new subscription.
      * The AEBS stack must not have produced it more than the bound of
      * ASM-MW-030 before the new subscription. processData takes the
@@ -601,18 +633,29 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * reboot of the IVI VM, the relay and the ingress start before the bench
      * can set the clock (GAP-MW-048). So for the second condition, the bench
      * sets the clock after the reboot and then starts the ingress again. The
-     * case judges the phase that starts then.
+     * case judges the phase that starts then. collectData still records the
+     * first phase after the reboot, as data. The claimBoundary of the record
+     * names that phase as outside the judged scope (GAP-MW-045).
      * The new subscription is the start of a subscription phase of the IVI
      * frame relay, as phase 8 defines it (relaySubscriptionPhaseDiscardRule).
-     * The relay's log and the guest captures show it: the subscription
-     * through the SDV Gateway on IVI, and the accepted loopback client. For
-     * REQ-MW-014, a phase end that the layer causes is a delivery failure
-     * (VC-MW-015). For REQ-MW-019, the new phase is the current subscription.
+     * The relay's log shows it. Two captures in the IVI VM corroborate it:
+     * - a cleartext capture of Data Tunnel on VLAN 2, in the UNLOCKED mode,
+     *   for the subscription through the SDV Gateway on IVI;
+     * - the loopback capture, for the accept of the ingress.
+     * The record holds their difference from the relay's log. Where they
+     * differ, processData takes the start of the new subscription from the
+     * captures. For REQ-MW-014, a phase end that the layer causes is a
+     * delivery failure (VC-MW-015). For REQ-MW-019, the new phase is the
+     * current subscription.
+     * The SOME/IP hardening of GAP-MW-046 is a recorded design measure
+     * (VC-MW-017). It is no part of the pass condition of this case, and the
+     * case makes no robustness claim for it (GAP-MW-012).
      * A pass covers these four conditions only. It does not show the stored
      * frames of every other late or repeated subscription in the host half
      * (GAP-MW-039). Phase 8 discards them at the relay, and the preflight
      * checks of the execution slices test that rule. While GAP-MW-039 is
-     * open, a pass does not close REQ-MW-019.
+     * open for a restart of gatewayd alone and for a late start of gatewayd,
+     * a pass does not close REQ-MW-019.
      */
     subject verifiedBench : SCOREMiddlewareVerificationBench;
     objective unsubscribedFrameDiscardObjective {
@@ -693,7 +736,7 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
   }
 
   verification <'VC-MW-015'> aebsSignalSourceOrderVerification : AEBSSignalSourceOrderVerification {
-    doc /* Not started. Bench: the Linux host and the AAOS SDV guest under KVM, for a session as long as the clock controls of ASM-MW-030 allow. The host runs the Autoware-based AEBS stack, the frame assembler and the layer's host processes, and it captures SOME/IP and SD. The SDV Core VM runs the SOME/IP broker and its stack with the DE4SDV SOME/IP mapping and stack configuration. The IVI VM runs the IVI frame relay and the HMI application. */
+    doc /* Not started. Bench: the Linux host and the AAOS SDV guest under KVM, for a session as long as the clock controls of ASM-MW-030 allow. The host runs the Autoware-based AEBS stack, the frame assembler and the layer's host processes, and it captures SOME/IP and SD. The SDV Core VM runs the SOME/IP broker and its stack with the DE4SDV SOME/IP mapping and stack configuration. The IVI VM runs the IVI frame relay and the HMI application, and it captures its loopback and Data Tunnel on VLAN 2. */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> scoreMiddlewareVerificationBench;
   }
