@@ -23,3 +23,9 @@ configuration or model validation as runtime proof.
   adapter (S-CORE communication and ROS 2), its CI build, the REQ-MW-018
   abort matrix and a soak on GitHub-hosted runners. CI regression and design
   data, not evidence of record.
+- [`score-broker-path-bench`](score-broker-path-bench/README.md)
+  — INC-MW-011 phase 10 AAOS SDV broker path: the two-VM bench scripts (SDV
+  Core image build, two-VM launch, host SD route and isolation firewall, IVI
+  relay provisioning, clock, recovery), the recording harness, and pure
+  evaluators that verdict the HMI-path cases (VC-MW-015/016/017/020) from raw
+  run artifacts. Bench tooling and evaluators, not evidence of record.

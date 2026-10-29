@@ -1,0 +1,22 @@
+// DE4SDV broker-path bench (INC-MW-011 phase 10), bench-only, not a product type.
+//
+// The VSIDL type of the frame topic that the SOME/IP broker publishes in the
+// SDV Core VM. The SOME/IP payload (a 4-byte little-endian length prefix plus
+// one AEBS signal frame of at most 2044 bytes) is carried unchanged in `data`
+// with INTERPRET_AS_BYTES. The bytes field holds the 2048 bytes of the frame
+// bound and not much more; the broker's wrapper adds 5 bytes to a payload of
+// that size, and the maximum message size must hold both. Data Tunnel sends
+// the whole slot, so a larger field costs bandwidth (MAP-MW-SCORE-AEBS-SIGNAL-FRAME).
+syntax = "proto3";
+
+package com.android.sdv.someip;
+
+import "sdv/vsidl/v1/annotations.proto";
+
+message De4sdvScoreAebsSignalFrame {
+  option (.sdv.vsidl.v1.publication) = {
+    message_count : 32
+    model : SINGLE_PUB
+  };
+  bytes data = 1 [ (.sdv.vsidl.v1.variable_type_max_size) = 4096 ];
+}
