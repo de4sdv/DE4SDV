@@ -503,23 +503,31 @@ def test_boundary_problem_statement_remains_a_requirement_definition() -> None:
     )
 
 
+#: The one member IncrementGap holds besides its documentation: the optional
+#: disposition that the baseline decision of phase 12 gives an open gap (owner
+#: decision of 2026-10-28, Q2), with its own documentation.
+GAP_DISPOSITION = "attribute disposition : LifecycleDisposition[0..1] {"
+
+
 def test_boundary_gap_stays_distinct_from_realization_records() -> None:
     file_text = METHOD_CONTEXT.read_text(encoding="utf-8")
     for realization_class in ("MissingRealizationRecord", "BlockedRealizationBranchRecord"):
         assert f"part def {realization_class}" in file_text, realization_class
-    block = _block_to_first_close(file_text, "part def IncrementGap")
-    inner = [line for line in block[1:-1] if line.strip()]
-    assert all(
-        line.strip().startswith("doc /*") and line.strip().endswith("*/")
-        for line in inner
-    )
+    block = _block_with_exact_header(file_text, "part def IncrementGap")
+    inner = [line.strip() for line in block[1:-1] if line.strip()]
+    assert [line for line in inner if not (line.startswith("doc /*") and line.endswith("*/"))] == [
+        GAP_DISPOSITION, "}"]
+    assert len(inner) == 4, inner
 
 
 def test_framing_definitions_are_doc_only() -> None:
     # Documentation only: every framing declaration keeps a single doc
-    # statement and no other members.
+    # statement and no other members. IncrementGap also holds its optional
+    # disposition (GAP_DISPOSITION, checked above).
     file_text = METHOD_CONTEXT.read_text(encoding="utf-8")
     for identity, declaration in FRAMING_DEFINITIONS.items():
+        if identity == "Gap":
+            continue
         block = _block_to_first_close(file_text, declaration)
         inner = [line for line in block[1:-1] if line.strip()]
         assert len(inner) == 1, identity

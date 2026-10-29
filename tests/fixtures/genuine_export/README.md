@@ -16,8 +16,9 @@ cut of the licensed full-model export of one revision, made by
   their targets' signals are read through: the port, item and attribute
   definitions, and the COVESA_VSS signal with its `@VssSignalMetadata`;
 - INC-MW-011's operational-context package in full (`--keep-package`): a
-  SystemContext whose use cases bind their subject and actors, a shape
-  INC-AEBS-010 did not have at the revision of the cut;
+  SystemContext whose six use cases bind their subject and actors.
+  INC-AEBS-010's own operational context, kept in full above, binds its one
+  use case in the same shape since its phase-2 revision;
 - the library attribute bases its content redefines;
 - what those elements reference.
 
