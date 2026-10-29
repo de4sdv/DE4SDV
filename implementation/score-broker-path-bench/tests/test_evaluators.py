@@ -502,13 +502,40 @@ def test_vc017_missing_inspection_is_inconclusive(tmp_path):
 T_SUB = 1_793_000_000_000_000_000  # IVI VM clock of a new subscription, 2026-10
 
 
-def _vc020(tmp_path, received_records, logcat, condition="hmi_down", offset_ns=2_000_000, with_clock=True):
+def _served_frames(received_records) -> list[tuple[int, bytes]]:
+    """(capture time, frame bytes) of each frame the relay served in a received stream (builder records)."""
+    from de4sdv_broker_path_bench.pcap import Packet, decode
+    served = []
+    for ts, raw in sorted(received_records):
+        item = decode(Packet(ts, 1, raw, len(raw)))
+        if item is not None and item.protocol == "tcp" and item.sport == 4731 and len(item.payload) > 4:
+            served.append((ts, item.payload[4:]))
+    return served
+
+
+def _dt_stream(served, open_ns) -> bytes:
+    """A Data Tunnel capture: the IVI agent opens one stream at ``open_ns``; the core carries each served frame."""
+    conn = b.DtConnection(open_ns - 30_000_000).handshake().open_stream(1, open_ns, preface=True).server_settings()
+    for ts, payload in served:
+        conn.data(1, payload, max(ts - 1_000_000, open_ns + 1_000_000))
+    return b.dt_capture([conn])
+
+
+def _vc020(tmp_path, received_records, logcat, condition="hmi_down", offset_ns=2_000_000, with_clock=True,
+           dt="before"):
+    """A VC-MW-020 run. ``dt`` gives its Data Tunnel capture (VC-MW-020's second start): "before" opens the
+    stream 100 ms before the first phase start, so the second check equals the first; None writes none."""
     run = write(tmp_path, received__pcap=b.pcap(received_records),
                 settings__json=settings(condition=condition),
                 **{"relay-logcat.txt": logcat})
     if with_clock:
         (run / "clock-start.pcap").write_bytes(b.clock_pcap(offset_ns, T_SUB - 60_000_000_000, 0x1111))
         (run / "clock-end.pcap").write_bytes(b.clock_pcap(offset_ns, T_SUB + 60_000_000_000, 0x2222))
+    if dt == "before":
+        starts = [int(line.split('"phase_start_realtime_ns":')[1].split(",")[0].rstrip("}"))
+                  for line in logcat.splitlines() if '"event":"phase_start"' in line]
+        open_ns = (min(starts) if starts else T_SUB) - 100_000_000
+        (run / "data-tunnel-vlan2.pcap").write_bytes(_dt_stream(_served_frames(received_records), open_ns))
     return evaluators.load_run(run)
 
 
@@ -953,3 +980,235 @@ def test_vc020_r46_out_of_scope_phase_is_the_first_in_log_order(tmp_path):
     run = _vc020(tmp_path, sorted(records), logcat, condition="ivi_vm_down")
     result = evaluators.evaluate_unsubscribed_discard(run)
     assert result.measurements["first_phase_recorded_as_data"] == {"pid": 1234, "phase": 1}
+
+
+# ------------------------------------------- VC-MW-015: an ingress disconnect the relay causes
+#
+# The merged case text (main 4bcfe628): an ingress disconnect that the relay
+# causes is a delivery failure of the layer, not an inconclusive condition.
+# The relay causes it by its exit (gateway_client_lost, exit code 4) or by a
+# close of the stream from port 4731 in the loopback capture. An ingress that
+# closes its own stream stays an inconclusive condition.
+
+EVENT_T0 = P0 - 150_000_000  # a received stream whose frames and close fall inside the produced span
+
+
+def _received(run, received, *, close, t0=EVENT_T0, extra_records=()):
+    records = b.stream_records(4731, received, t0=t0, close=close) + list(extra_records)
+    (run.run_dir / "received.pcap").write_bytes(b.pcap(sorted(records)))
+
+
+def test_vc015_the_relay_closing_the_ingress_stream_in_the_event_fails(tmp_path):
+    payloads = frames_seq()
+    run = _vc015_base(tmp_path, payloads, payloads, logcat=phase_logcat(P0 - 200_000_000))
+    _received(run, payloads, close="server")
+    result = evaluators.evaluate_source_order(run)
+    assert result.outcome == outcome.FAIL, result.as_dict()
+    assert any(f.code == "ingress-disconnect" and "4731" in f.message for f in result.findings)
+
+
+def test_vc015_the_ingress_closing_its_own_stream_stays_inconclusive(tmp_path):
+    payloads = frames_seq()
+    logcat = phase_logcat(P0 - 200_000_000, P0 + 290_000_000, layer_caused=False, client_connected=False,
+                          cause="client_lost")
+    run = _vc015_base(tmp_path, payloads, payloads, logcat=logcat)
+    _received(run, payloads, close="client")
+    result = evaluators.evaluate_source_order(run)
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert not any(f.code == "ingress-disconnect" for f in result.findings)
+
+
+def test_vc015_a_relay_close_after_the_event_is_not_a_failure(tmp_path):
+    payloads = frames_seq()
+    run = _vc015_base(tmp_path, payloads, payloads, logcat=phase_logcat(P0 - 200_000_000))
+    _received(run, payloads, close="server", t0=P0 + 5_000_000)  # the FIN lands after the produced span
+    result = evaluators.evaluate_source_order(run)
+    assert result.outcome == outcome.PASS, result.as_dict()
+
+
+def test_vc015_the_relay_exit_on_a_lost_gateway_client_in_the_event_fails(tmp_path):
+    payloads = frames_seq()
+    lost = b.logcat_line(P0 + 150_000_000, {"event": "gateway_client_lost", "stage": "disconnected",
+                                            "notification_type": 2, "exit_code": 4})
+    run = _vc015_base(tmp_path, payloads, payloads, logcat=phase_logcat(P0 - 200_000_000, extra=[lost]))
+    result = evaluators.evaluate_source_order(run)
+    assert result.outcome == outcome.FAIL, result.as_dict()
+    assert any(f.code == "relay-exit" and "exit code 4" in f.message for f in result.findings)
+
+
+def test_vc015_a_relay_write_failure_close_in_the_event_fails_not_inconclusive(tmp_path):
+    payloads = frames_seq()
+    logcat = phase_logcat(P0 - 200_000_000, P0 + 290_000_000, layer_caused=False, client_connected=False,
+                          cause="client_write_failed")
+    run = _vc015_base(tmp_path, payloads, payloads, logcat=logcat)
+    result = evaluators.evaluate_source_order(run)
+    assert result.outcome == outcome.FAIL, result.as_dict()
+    assert any(f.code == "ingress-disconnect" and "client_write_failed" in f.message for f in result.findings)
+
+
+def test_vc015_a_refused_second_client_closed_by_the_relay_is_not_an_ingress_disconnect(tmp_path):
+    # The relay refuses a second client and closes it from port 4731; that
+    # connection carried no frames, so it is not the ingress stream.
+    payloads = frames_seq()
+    run = _vc015_base(tmp_path, payloads, payloads, logcat=phase_logcat(P0 - 200_000_000))
+    refused = b.TcpSender("127.0.0.1", "127.0.0.1", 50999, 4731, P0 + 100_000_000).handshake().fin().records
+    _received(run, payloads, close=None, t0=P0 + 5_000_000, extra_records=refused)
+    result = evaluators.evaluate_source_order(run)
+    assert not any(f.code == "ingress-disconnect" for f in result.findings), result.as_dict()
+
+
+def test_vc015_a_second_frame_assembler_client_is_recorded_as_a_bench_discrepancy(tmp_path):
+    payloads = frames_seq()
+    run = _vc015_base(tmp_path, payloads, payloads, logcat=phase_logcat(P0 - 50_000_000), adapter_only=False)
+    result = evaluators.evaluate_source_order(run)
+    assert result.outcome == outcome.INCONCLUSIVE
+    assert "ASM-MW-029" in result.measurements["bench_discrepancy"]
+
+
+# ------------------------------------------- VC-MW-020: the wide limit needs no clock step between the measurements
+#
+# The merged case text (main 4bcfe628): processData applies the
+# clock-independent wide limit only if the relay logged no clock step between
+# the two offset measurements (start and end of the session).
+
+def test_vc020_the_wide_limit_is_not_applied_after_a_clock_step_between_the_measurements(tmp_path):
+    frame = b.frame(7, T_SUB - 5_000_000_000)  # far outside the wide limit, as in N-5
+    records = b.stream_records(4731, [frame], t0=T_SUB + 100_000_000)
+    step = b.clock_step_line(T_SUB - 10_000_000_000, in_phase=False)  # between T_SUB-60 s and T_SUB+60 s
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB, extra=[step]), offset_ns=30_000_000)  # ASM-MW-030 fails
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert result.measurements["wide_limit_applied"] is False
+
+
+def test_vc020_a_clock_step_before_the_first_measurement_keeps_the_wide_limit(tmp_path):
+    # The clock setting itself is a step; it comes before the start measurement.
+    frame = b.frame(7, T_SUB - 5_000_000_000)
+    records = b.stream_records(4731, [frame], t0=T_SUB + 100_000_000)
+    step = b.clock_step_line(T_SUB - 120_000_000_000, in_phase=False)
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB, extra=[step]), offset_ns=30_000_000)
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.outcome == outcome.FAIL, result.as_dict()
+    assert result.measurements["wide_limit_applied"] is True
+
+
+def test_vc020_an_unreadable_logcat_line_is_not_a_clock_step(tmp_path):
+    frame = b.frame(7, T_SUB - 5_000_000_000)
+    records = b.stream_records(4731, [frame], t0=T_SUB + 100_000_000)
+    line = b.logcat_line(T_SUB - 10_000_000_000, {"event": "clock_step", "step_ns": 250_000_000, "in_phase": False})
+    line = line.replace('"realtime_ns":', '"_realtime_ns":')
+    first = line.split()[0]
+    line = line.replace(first, "garbled", 1)  # no logcat time either
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB, extra=[line]), offset_ns=30_000_000)
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    # An unreadable line is no relay event at all, so the wide limit still applies.
+    assert result.measurements["wide_limit_applied"] is True
+
+
+
+# ------------------------------------------- VC-MW-020: the second check, with the Data Tunnel subscription time
+#
+# The merged case text (main 4bcfe628): processData also runs the same check
+# with a second start, the time of the subscription in the Data Tunnel capture.
+# If that check fails and the first one passes, the outcome is
+# inconclusiveMissingEvidence. Coordinator decision: if the time cannot be read
+# the second check cannot run, so the run gives no pass.
+
+def _clean_phase_run(tmp_path, *, dt="before", first_ns=T_SUB + 50_000_000):
+    payloads = [b.frame(i, first_ns + i * 100_000_000) for i in range(1, 4)]
+    records = b.stream_records(4731, payloads, t0=T_SUB + 40_000_000)
+    return _vc020(tmp_path, records, phase_logcat(T_SUB, phase=1), dt=dt), records
+
+
+def test_vc020_the_data_tunnel_stream_opened_before_the_judged_start_passes(tmp_path):
+    run, _records = _clean_phase_run(tmp_path)
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.outcome == outcome.PASS, result.as_dict()
+    start = result.measurements["dt_starts"][0]
+    assert start["dt_start_kind"] == "stream_open" and start["dt_start_ns"] == T_SUB - 100_000_000
+
+
+def test_vc020_a_later_data_tunnel_subscription_that_fails_the_second_check_is_inconclusive(tmp_path):
+    # The relay and the accept say T_SUB; Data Tunnel says the stream opened at
+    # T_SUB + 300 ms. A frame produced at T_SUB + 150 ms passes the first check
+    # and fails the second, so the run shows nothing (inconclusive, not fail).
+    run, records = _clean_phase_run(tmp_path, dt=None)
+    (run.run_dir / "data-tunnel-vlan2.pcap").write_bytes(_dt_stream(_served_frames(records), T_SUB + 300_000_000))
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert any(f.code == "dt-check" for f in result.findings)
+    assert not any(f.outcome == outcome.FAIL for f in result.findings)
+
+
+def test_vc020_without_a_data_tunnel_capture_there_is_no_pass(tmp_path):
+    run, _records = _clean_phase_run(tmp_path, dt=None)
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert any(f.code == "dt-start" and "data-tunnel-vlan2.pcap" in f.message for f in result.findings)
+
+
+def test_vc020_a_data_tunnel_capture_without_the_phase_frames_gives_no_pass(tmp_path):
+    run, _records = _clean_phase_run(tmp_path, dt=None)
+    other = [(T_SUB, b.frame(900, T_SUB))]
+    (run.run_dir / "data-tunnel-vlan2.pcap").write_bytes(_dt_stream(other, T_SUB - 100_000_000))
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert result.measurements["dt_starts"][0]["dt_start_kind"] == "unknown"
+
+
+def _flowing_tunnel(produced, *, from_ns, gap_after_ns=None):
+    """A Data Tunnel capture joined mid-connection: no SYN, no preface, the frames already flowing."""
+    conn = b.DtConnection(from_ns).handshake().open_stream(1, from_ns + 1_000_000, preface=True).server_settings()
+    for frame_ts, payload in produced:
+        at = frame_ts + 5_000_000
+        if gap_after_ns is not None and gap_after_ns[0] <= at < gap_after_ns[1]:
+            continue  # the flow stopped (a resubscription)
+        conn.data(1, payload, at)
+    conn.records = [record for record in conn.records if record[0] > from_ns + 100_000_000]  # joined after the start
+    return b.dt_capture([conn])
+
+
+def _hmi_down_like(tmp_path, *, gap=None):
+    # The Data Tunnel stream started before the capture (as in HMI down: the
+    # relay stays subscribed while the ingress is gone); the frames before the
+    # phase crossed Data Tunnel and were discarded by the relay.
+    produced = [(T_SUB - 2_000_000_000 + i * 100_000_000, b.frame(i, T_SUB - 2_000_000_000 + i * 100_000_000))
+                for i in range(1, 25)]
+    served = [payload for ts, payload in produced if ts >= T_SUB + 50_000_000]
+    records = b.stream_records(4731, served, t0=T_SUB + 40_000_000)
+    run, _ = _vc020(tmp_path, records, phase_logcat(T_SUB, phase=1), dt=None), None
+    (run.run_dir / "produced.pcap").write_bytes(b.pcap(b.stream_records(4721, [p for _t, p in produced],
+                                                                       t0=T_SUB - 2_100_000_000)))
+    (run.run_dir / "data-tunnel-vlan2.pcap").write_bytes(_flowing_tunnel(produced, from_ns=T_SUB - 2_500_000_000,
+                                                                         gap_after_ns=gap))
+    return run
+
+
+def test_vc020_a_mid_connection_capture_with_the_flow_running_through_the_start_passes(tmp_path):
+    # The open time is not in the capture, but the frames flowed on the same
+    # carrier, with no gap of 500 ms, from before the judged start to the
+    # phase's first frame: the subscription started before the judged start,
+    # so the second check cannot fail where the first passes.
+    result = evaluators.evaluate_unsubscribed_discard(_hmi_down_like(tmp_path))
+    assert result.outcome == outcome.PASS, result.as_dict()
+    assert result.measurements["dt_starts"][0]["dt_start_kind"] == "before_judged_start"
+
+
+def test_vc020_a_mid_connection_capture_with_a_flow_gap_before_the_phase_gives_no_pass(tmp_path):
+    # A gap of 500 ms or more before the phase may be a new subscription whose
+    # open time the capture does not hold.
+    result = evaluators.evaluate_unsubscribed_discard(_hmi_down_like(tmp_path, gap=(T_SUB - 600_000_000,
+                                                                                 T_SUB + 40_000_000)))
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert result.measurements["dt_starts"][0]["dt_start_kind"] == "unknown"
+
+
+def test_vc020_a_first_check_failure_still_fails_without_a_data_tunnel_capture(tmp_path):
+    s2 = T_SUB + 30_000_000_000
+    old = b.frame(500, s2 - 2_000_000_000)
+    records = b.stream_records(4731, [old], t0=s2 + 100_000_000)
+    logcat = (phase_logcat(T_SUB, T_SUB + 10_000_000_000, phase=1, layer_caused=False, client_connected=False,
+                           cause="client_lost")
+              + phase_logcat(s2, phase=2))
+    run = _vc020(tmp_path, records, logcat, dt=None)
+    assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.FAIL

@@ -15,6 +15,7 @@ when its condition is inconclusive (outcome.Finding.depends_on).
 Run directory, by convention:
 - produced.pcap  host capture of the frame assembler stream (lo:4721);
 - received.pcap  guest capture of the relay stream (IVI lo:4731);
+- data-tunnel-vlan2.pcap  guest capture of Data Tunnel on VLAN 2 (VC-MW-020's second start);
 - relay-logcat.txt  the IVI logcat with the relay's events;
 - clock-start.pcap, clock-end.pcap  the NTP exchanges of ASM-MW-030;
 - settings.json  the run settings (ports, the relay's logcat tag, condition);
@@ -27,12 +28,16 @@ Run directory, by convention:
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
-from . import clock, frames, probe, relay_log, sd
+from . import clock, dt, frames, probe, relay_log, sd
 from .outcome import BLOCKED, ERROR, FAIL, INCONCLUSIVE, PASS, CaseResult
 from .pcap import PcapError, datagrams, read_pcap, tcp_streams
+
+#: The relay's phase_end causes where the relay itself closed the ingress stream
+#: (its write to the ingress failed, so it closed the socket).
+RELAY_CLOSE_CAUSES = ("client_write_failed",)
 
 DEFAULT_PRODUCED_PORT = 4721
 DEFAULT_RECEIVED_PORT = 4731
@@ -86,6 +91,8 @@ class Capture:
     present: bool
     mid_stream: bool = False
     ended_cleanly: bool = True  # the last stream closed (FIN/RST); False means the capture was cut mid-stream
+    # The first close of each connection that carried frames: (connection, time, by the server port).
+    closes: list = field(default_factory=list)
 
 
 def _read_frames(run: RunInputs, name: str, port: int) -> Capture:
@@ -100,6 +107,7 @@ def _read_frames(run: RunInputs, name: str, port: int) -> Capture:
     had_gap = capture.truncated
     mid_stream = False
     last_stream = None
+    closes = []
     for index, stream in enumerate(tcp_streams(datagrams(capture), port)):
         # A mid-stream join (the capture started while the ingress was already
         # connected, the documented window) is not a loss: it only means the
@@ -113,13 +121,18 @@ def _read_frames(run: RunInputs, name: str, port: int) -> Capture:
             had_gap = True
         collected.extend(stream_frames)
         last_stream = stream
+        # Only a connection that carried frames is the ingress stream; a refused
+        # second client carries none, so its close by the relay is no disconnect.
+        if stream_frames and stream.first_close_ns is not None:
+            closes.append((index, stream.first_close_ns, bool(stream.first_close_by_server)))
     # The capture ended cleanly when its last connection closed (a FIN or RST);
     # a capture cut mid-stream has neither. A truncated end means the guest
     # capture was stopped while the connection was open, so frames the stack
     # produced afterwards are beyond its coverage, not missing (review B1).
     ended_cleanly = bool(last_stream is not None and (last_stream.fin_ns is not None or last_stream.rst_ns is not None))
     collected.sort(key=lambda item: item.delivered_ns)
-    return Capture(collected, had_gap, None, present=True, mid_stream=mid_stream, ended_cleanly=ended_cleanly)
+    return Capture(collected, had_gap, None, present=True, mid_stream=mid_stream, ended_cleanly=ended_cleanly,
+                   closes=closes)
 
 
 def _facts(frame) -> "frames.FrameFacts | None":
@@ -292,14 +305,39 @@ def evaluate_source_order(run: RunInputs) -> CaseResult:
                 result.add("phase-end", FAIL, f"the layer ended a subscription phase (pid {phase.pid}, "
                            f"{phase.number}) by {phase.end_cause!r} while the ingress stayed connected; "
                            "a layer-caused phase end in the event is a delivery failure of the layer")
+            elif phase.client_connected_at_end is False and phase.end_cause in RELAY_CLOSE_CAUSES:
+                # The relay closed the ingress stream itself (VC-MW-015, main
+                # 4bcfe628): a delivery failure of the layer, not inconclusive.
+                result.add("ingress-disconnect", FAIL, f"the relay closed the ingress stream in phase (pid "
+                           f"{phase.pid}, {phase.number}) by {phase.end_cause!r} in the event; an ingress "
+                           "disconnect that the relay causes is a delivery failure of the layer")
             elif phase.client_connected_at_end is False:
                 result.add("delivery_evidence", INCONCLUSIVE, f"the ingress disconnected in phase (pid {phase.pid}, "
                            f"{phase.number}) in the event; the run cannot show source order")
+        # The relay's exit: it ends the process on a lost gateway client
+        # (exit code 4), which closes the ingress stream (VC-MW-015).
+        for event in events:
+            if event.get("event") != "gateway_client_lost":
+                continue
+            when = event.get("realtime_ns")
+            if in_event(when if isinstance(when, int) else event.get("logcat_ns")):
+                result.add("relay-exit", FAIL, f"the relay lost its gateway client in the event and exits (exit code "
+                           f"{event.get('exit_code', 4)}); the ingress disconnect that its exit causes is a delivery "
+                           "failure of the layer")
         for event in relay_log.data_loss_events(events):
             when = event.get("realtime_ns")
             if in_event(when if isinstance(when, int) else event.get("logcat_ns")):
                 result.add("data-loss", FAIL, f"the relay read DATA_LOSS in subscription {event.get('subscription')} "
                            "in the event; a DATA_LOSS in the event is a sequence gap")
+
+    # A close of the ingress stream from the relay's port in the loopback
+    # capture is a disconnect that the relay causes (VC-MW-015), whatever its
+    # log says: it also covers a relay that died without a log line.
+    for connection, close_ns, by_server in received.closes:
+        if by_server and in_event(close_ns):
+            result.add("ingress-disconnect", FAIL, f"the relay closed the ingress stream (connection {connection}) "
+                       f"from port {run.received_port} in the loopback capture in the event; an ingress disconnect "
+                       "that the relay causes is a delivery failure of the layer")
 
     # Order: received sequences must strictly increase (clock-independent).
     received_seq = [facts.sequence for _frame, facts in received_facts if facts.sequence is not None]
@@ -312,6 +350,13 @@ def evaluate_source_order(run: RunInputs) -> CaseResult:
     # (review R6/R7). They share the code the completeness and gap FAILs rest on.
     second_client = _second_client_held_4721(run)
     produced_clients = _count_frame_assembler_clients(run, run.produced_port)
+    if second_client is True or produced_clients > 1:
+        # A second client breaks ASM-MW-029, so the run never passes; the
+        # execution slice records a bench discrepancy before any fail counts
+        # against the layer (VC-MW-015, main 4bcfe628).
+        result.measurements["bench_discrepancy"] = (
+            "a second client of the frame assembler port 4721 (ASM-MW-029 broken); record a bench discrepancy "
+            "before any fail counts against the layer")
     if second_client is True:
         result.add("delivery_evidence", INCONCLUSIVE, "another client held the frame assembler stream (ASM-MW-029), "
                    "so a missing frame may be that client's, not a delivery failure")
@@ -628,6 +673,83 @@ def evaluate_isolation(run: RunInputs) -> CaseResult:
 
 # --- VC-MW-020: REQ-MW-019, discard while unsubscribed --------------------
 
+#: The relay notices a clock step at its next event, at most this long after it.
+RELAY_STEP_DETECTION_NS = 100_000_000
+#: How far before the judged start the bound looks for the frames on Data Tunnel.
+DT_BOUND_LOOKBACK_NS = 3_000_000_000
+
+
+def _dt_start(tunnel, first_frame, judged_start_ns: int, produced: "Capture") -> tuple[str, int | None, str]:
+    """(kind, start, detail) of the Data Tunnel subscription that carried a phase's first frame.
+
+    kind "stream_open": the capture holds the opening HEADERS of the HTTP/2
+    stream that carried the frame; that time is the start. kind
+    "before_judged_start": the capture joined the connection after it opened
+    (so the open time is not in it), but the produced frames flowed on the same
+    carrier with no gap of 500 ms or more from before the judged start to the
+    phase's first frame, so the subscription started before the judged start
+    and the second check cannot fail where the first passes. kind "unknown":
+    neither, so the second check cannot run.
+    """
+    located = tunnel.locate(first_frame.payload)
+    if not located:
+        return "unknown", None, "the Data Tunnel capture does not carry the phase's first frame"
+    carrier = located[0]
+    opened = tunnel.stream_open_ns(carrier)
+    if opened is not None:
+        return "stream_open", opened, "the opening HEADERS of the stream that carried the phase's first frame"
+    first_facts = _facts(first_frame)
+    last_ts = first_facts.frame_timestamp_ns if first_facts is not None else None
+    since = judged_start_ns - DT_BOUND_LOOKBACK_NS
+    window = [frame.payload for frame in produced.frames
+              if (facts := _facts(frame)) is not None and facts.frame_timestamp_ns is not None and last_ts is not None
+              and since <= facts.frame_timestamp_ns <= last_ts]
+    times = [when for when in tunnel.arrivals(carrier, window + [first_frame.payload], since_ns=since - MAX_GAP_NS)
+             if when <= carrier.arrival_ns]
+    gaps = [b - a for a, b in zip(times, times[1:])]
+    if times and times[0] < judged_start_ns and times[-1] == carrier.arrival_ns and all(g < MAX_GAP_NS for g in gaps):
+        return "before_judged_start", None, (f"the capture joined the connection after its start; the frames flowed on "
+                                             f"it from {(judged_start_ns - times[0]) / 1e6:.0f} ms before the judged "
+                                             "start to the phase's first frame with no gap of 500 ms or more")
+    return "unknown", None, ("the capture does not hold the opening of the stream that carried the phase's first "
+                             "frame, and does not show the frames flowing on it through the judged start")
+
+
+
+def _clock_step_between(events: list[dict], all_phases: list, start_ns: int, end_ns: int) -> bool:
+    """Whether the relay logged a clock step between the two offset measurements (guest clock).
+
+    The relay stamps a step with the realtime after it. A forward step after the
+    start measurement is stamped later than it; a backward step after it can be
+    stamped up to its own size earlier. So the window widens by the step size
+    on the low side for a backward step (or one of unknown size, without
+    limit), and by the relay's detection delay on both sides. A step the
+    times cannot place counts as between: it disables the wide limit, which
+    only removes a fail. A phase whose phase_end counts a clock step and that
+    overlaps the window counts too.
+    """
+    for step in relay_log.clock_steps(events):
+        when = step.get("realtime_ns")
+        when = when if isinstance(when, int) else step.get("logcat_ns")
+        if not isinstance(when, int):
+            return True
+        size = step.get("step_ns")
+        if isinstance(size, bool) or not isinstance(size, int):
+            low = None
+        elif size < 0:
+            low = start_ns - (-size) - RELAY_STEP_DETECTION_NS
+        else:
+            low = start_ns - RELAY_STEP_DETECTION_NS
+        if (low is None or when >= low) and when <= end_ns + RELAY_STEP_DETECTION_NS:
+            return True
+    for phase in all_phases:
+        if (phase.clock_steps_in_phase or 0) > 0:
+            phase_end = phase.end_realtime_ns if phase.end_realtime_ns is not None else end_ns
+            if phase.start_realtime_ns <= end_ns and phase_end >= start_ns:
+                return True
+    return False
+
+
 def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
     result = CaseResult("VC-MW-020", run.run_dir.name)
     result.measurements["condition"] = run.condition or "unnamed"
@@ -734,15 +856,22 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
 
     # The clock-independent threshold: a frame earlier than the phase start by
     # more than 20 ms plus the larger absolute offset plus its uncertainty is a
-    # violation whatever ASM-MW-030 shows (review R19).
+    # violation whatever ASM-MW-030 shows (review R19). It applies only if the
+    # relay logged no clock step between the two offset measurements (VC-MW-020,
+    # main 4bcfe628): a step there makes the measured offsets no bound.
     ci_threshold = None
-    if both:
+    wide_limit_applied = False
+    if both and not _clock_step_between(events, all_phases, measurements["start"].measured_at_ns,
+                                        measurements["end"].measured_at_ns):
         larger = max((measurements["start"], measurements["end"]), key=lambda m: abs(m.offset_ns))
         ci_threshold = PHASE_SLOP_NS + abs(larger.offset_ns) + larger.uncertainty_ns
+        wide_limit_applied = True
+    result.measurements["wide_limit_applied"] = wide_limit_applied
 
     # Judge each frame against the phase it arrived in, raw (no offset correction, VC-MW-020 and the rule).
     judged_frames = 0
     seen_phases: set = set()
+    phase_frames: dict = {}
     violations = 0
     clock_independent = 0
     unknown_start = 0
@@ -755,6 +884,7 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
         if phase is None or phase.key not in judged_keys:
             continue  # outside any phase, or in the unjudged first phase: not judged here
         seen_phases.add(phase.key)
+        phase_frames.setdefault(phase.key, []).append(frame)
         if facts.frame_timestamp_ns is None:
             result.add("timestamp", INCONCLUSIVE, f"a frame in phase {phase.key} has no frame timestamp")
             continue
@@ -775,6 +905,48 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
     result.measurements["judged_frames"] = judged_frames
     result.measurements["judged_phases"] = len(seen_phases)
     result.measurements["phase_starts"] = list(phase_starts.values())
+
+    # The second check (VC-MW-020, main 4bcfe628): the same check with the time
+    # of the subscription in the Data Tunnel capture as the start. If it fails
+    # and the first passes, the run is inconclusive. Without a readable time the
+    # second check cannot run, so the run gives no pass (coordinator decision).
+    dt_starts, dt_violations = [], 0
+    dt_path = run.run_dir / "data-tunnel-vlan2.pcap"
+    tunnel = None
+    if not dt_path.exists():
+        result.add("dt-start", INCONCLUSIVE, "no Data Tunnel capture (data-tunnel-vlan2.pcap), so the second check "
+                   "with the Data Tunnel subscription time cannot run; the run gives no pass")
+    else:
+        try:
+            tunnel = dt.read(read_pcap(dt_path))
+        except PcapError as error:
+            result.add("dt-start", ERROR, f"data-tunnel-vlan2.pcap is unreadable: {error}")
+    if tunnel is not None:
+        produced = _read_frames(run, "produced.pcap", run.produced_port)
+        for key in sorted(seen_phases):
+            in_phase = [frame for frame in phase_frames[key] if _facts(frame) is not None]
+            if not in_phase:
+                continue
+            first = min(in_phase, key=lambda frame: frame.delivered_ns)
+            phase = next(item for item in all_phases if item.key == key)
+            start1, _known = judged_start(phase, first.connection)
+            kind, start2, detail = _dt_start(tunnel, first, start1, produced)
+            record = {"pid": phase.pid, "phase": phase.number, "judged_start_ns": start1, "dt_start_kind": kind,
+                      "dt_start_ns": start2, "dt_minus_judged_ns": None if start2 is None else start2 - start1,
+                      "detail": detail}
+            dt_starts.append(record)
+            if kind == "unknown":
+                result.add("dt-start", INCONCLUSIVE, f"phase (pid {phase.pid}, {phase.number}): {detail}; the second "
+                           "check cannot run, so the run gives no pass")
+            elif kind == "stream_open":
+                late = [frame for frame in in_phase if _facts(frame).frame_timestamp_ns is not None
+                        and _facts(frame).frame_timestamp_ns < start2 - PHASE_SLOP_NS]
+                dt_violations += len(late)
+        if dt_violations:
+            result.add("dt-check", INCONCLUSIVE, f"{dt_violations} frames were produced more than 20 ms before the "
+                       "subscription time in the Data Tunnel capture; with that start the check fails, so the run "
+                       "shows nothing (the relay's record and the Data Tunnel capture disagree)")
+    result.measurements["dt_starts"] = dt_starts
     if judged_frames == 0:
         result.add("frames", INCONCLUSIVE, "no frame with a timestamp arrived in a judged phase")
     if unknown_start:

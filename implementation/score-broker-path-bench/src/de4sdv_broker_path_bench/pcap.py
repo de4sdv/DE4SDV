@@ -219,6 +219,8 @@ class TcpStream:
     established_ns: int | None = None
     fin_ns: int | None = None
     rst_ns: int | None = None
+    first_close_ns: int | None = None             # the first FIN or RST of the connection
+    first_close_by_server: bool | None = None     # whether the server port sent it (None: no close seen)
     mid_stream_start: bool = False
     data: bytearray = field(default_factory=bytearray)
     chunks: list[tuple[int, int]] = field(default_factory=list)
@@ -285,6 +287,9 @@ def tcp_streams(items: list[Datagram], server_port: int) -> list[TcpStream]:
             if (stream.synack_ns is not None and stream.established_ns is None
                     and item.tcp_flags & TCP_ACK and not item.tcp_flags & TCP_SYN):
                 stream.established_ns = item.ts_ns
+        if item.tcp_flags & (TCP_FIN | TCP_RST) and stream.first_close_ns is None:
+            stream.first_close_ns = item.ts_ns
+            stream.first_close_by_server = from_server
         if item.tcp_flags & TCP_FIN and stream.fin_ns is None:
             stream.fin_ns = item.ts_ns
         if item.tcp_flags & TCP_RST and stream.rst_ns is None:

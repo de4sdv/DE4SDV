@@ -103,8 +103,15 @@ class TcpSender:
         return self
 
     def fin(self) -> "TcpSender":
+        """The server (relay) closes the stream: a FIN from the server port."""
         self.records.append((self._tick(), tcp_segment(self.server, self.client, self.sport, self.cport,
                                                         self.sseq, self.cseq, FIN | ACK)))
+        return self
+
+    def client_fin(self) -> "TcpSender":
+        """The client (ingress) closes the stream: a FIN from the client port."""
+        self.records.append((self._tick(), tcp_segment(self.client, self.server, self.cport, self.sport,
+                                                        self.cseq, self.sseq, FIN | ACK)))
         return self
 
 
@@ -160,16 +167,23 @@ def delimited(payload: bytes) -> bytes:
 
 
 def stream_records(port: int, payloads, *, t0: int, step: int = 100_000_000, cport: int | None = None,
-                   drop_index: int | None = None, client: str = "127.0.0.1", server: str = "127.0.0.1"):
+                   drop_index: int | None = None, client: str = "127.0.0.1", server: str = "127.0.0.1",
+                   close: str | None = "client"):
     """The pcap records of one length-delimited stream of frames.
 
     ``drop_index`` drops the Nth data segment (the capture missed it); the
-    three handshake records come first.
+    three handshake records come first. ``close`` names who closes the stream
+    at the end: "client" (the ingress, the default: a cleanly closed stream
+    that no relay close ends), "server" (the relay, from its port) or None
+    (the capture is cut while the stream is open).
     """
     sender = TcpSender(client, server, cport or port + 1000, port, t0).handshake()
     for payload in payloads:
         sender.send(delimited(payload), step_ns=step)
-    sender.fin()
+    if close == "server":
+        sender.fin()
+    elif close == "client":
+        sender.client_fin()
     records = sender.records
     if drop_index is not None:
         records = records[:3 + drop_index] + records[4 + drop_index:]
@@ -259,3 +273,74 @@ def sd_message(entries: list[bytes], options: list[bytes] = (), *, session: int 
     payload += struct.pack(">I", len(options_raw)) + options_raw
     header = struct.pack(">HHI", 0xFFFF, 0x8100, 8 + len(payload)) + struct.pack(">HHBBBB", 0, session, 1, 1, 2, 0)
     return header + payload
+
+
+# ------------------------------------------------------------ Data Tunnel on VLAN 2 (cleartext HTTP/2)
+#
+# In the UNLOCKED mode Data Tunnel runs as gRPC over cleartext HTTP/2 on VLAN
+# 2: the IVI VM's agent opens the connection to the SDV Core VM's agent with
+# the HTTP/2 preface and a HEADERS frame per stream, and the core streams the
+# publication's messages back as DATA frames on that stream (design data from
+# the spike's VLAN 2 captures). A message carries the frame bytes as the
+# ingress later receives them, so the evaluator finds a frame by its bytes.
+
+H2_PREFACE = b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
+H2_DATA, H2_HEADERS, H2_SETTINGS = 0x0, 0x1, 0x4
+DT_IVI, DT_CORE = ("192.168.100.4", 7490), ("192.168.100.3", 6335)
+
+
+def h2_frame(frame_type: int, flags: int, stream_id: int, payload: bytes) -> bytes:
+    return len(payload).to_bytes(3, "big") + bytes([frame_type, flags]) + struct.pack(">I", stream_id) + payload
+
+
+def grpc_message(body: bytes) -> bytes:
+    return b"\x00" + struct.pack(">I", len(body)) + body
+
+
+def dt_message(frame_payload: bytes) -> bytes:
+    """A Data Tunnel message: some protobuf framing around the frame bytes (as the slot carries them)."""
+    return grpc_message(b"\x0a\x04topic\x12" + _varint(len(frame_payload) + 4) + delimited(frame_payload))
+
+
+class DtConnection:
+    """One VLAN 2 TCP connection, IVI agent (client) to core agent (server), both directions."""
+
+    def __init__(self, t0_ns: int, *, client=DT_IVI, server=DT_CORE) -> None:
+        self.client, self.server = client, server
+        self.cseq, self.sseq = 7000, 9000
+        self.t = t0_ns
+        self.records: list[tuple[int, bytes]] = []
+
+    def _segment(self, from_client: bool, flags: int, payload: bytes, at_ns: int | None) -> "DtConnection":
+        self.t = at_ns if at_ns is not None else self.t + 1_000_000
+        src, dst = (self.client, self.server) if from_client else (self.server, self.client)
+        seq, ack = (self.cseq, self.sseq) if from_client else (self.sseq, self.cseq)
+        self.records.append((self.t, tcp_segment(src[0], dst[0], src[1], dst[1], seq, ack, flags, payload)))
+        if from_client:
+            self.cseq += len(payload) + (1 if flags & (SYN | FIN) else 0)
+        else:
+            self.sseq += len(payload) + (1 if flags & (SYN | FIN) else 0)
+        return self
+
+    def handshake(self) -> "DtConnection":
+        self._segment(True, SYN, b"", None)
+        self._segment(False, SYN | ACK, b"", None)
+        return self._segment(True, ACK, b"", None)
+
+    def open_stream(self, stream_id: int, at_ns: int | None = None, *, preface: bool = False) -> "DtConnection":
+        """The client's request: the preface and SETTINGS on the first stream, then HEADERS."""
+        head = (H2_PREFACE + h2_frame(H2_SETTINGS, 0, 0, b"")) if preface else b""
+        headers = h2_frame(H2_HEADERS, 0x04, stream_id, b"\x40\x05:path\x0aSdvDtAgent")
+        return self._segment(True, PSH | ACK, head + headers, at_ns)
+
+    def server_settings(self) -> "DtConnection":
+        return self._segment(False, PSH | ACK, h2_frame(H2_SETTINGS, 0, 0, b""), None)
+
+    def data(self, stream_id: int, frame_payload: bytes, at_ns: int) -> "DtConnection":
+        """The core sends one message of the stream, carrying one frame."""
+        return self._segment(False, PSH | ACK, h2_frame(H2_DATA, 0, stream_id, dt_message(frame_payload)), at_ns)
+
+
+def dt_capture(connections: list[DtConnection]) -> bytes:
+    records = sorted(record for connection in connections for record in connection.records)
+    return pcap(records)
