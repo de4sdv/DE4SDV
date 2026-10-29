@@ -18,7 +18,8 @@ Run directory, by convention:
 - relay-logcat.txt  the IVI logcat with the relay's events;
 - clock-start.pcap, clock-end.pcap  the NTP exchanges of ASM-MW-030;
 - settings.json  the run settings (ports, the relay's logcat tag, condition);
-- for VC-MW-016: sd_offer.json or residual.json;
+- for VC-MW-016: host-cvd-ebr.pcap (the SD capture) with sd_core_processed.json
+  (the core stack's log line about the offer), or sd_offer.json or residual.json;
 - for VC-MW-017: the probe artifacts of probe.py;
 - frame_assembler_clients.json  the ss client check of ASM-MW-029 (VC-MW-015).
 """
@@ -441,8 +442,23 @@ def evaluate_provenance(run: RunInputs) -> CaseResult:
         if processed == "ERROR":
             result.add("sd-offer", ERROR, "sd_core_processed.json is not valid JSON")
             return result
+        providers = offer.get("providers_after") or []
+        redirected = [p for p in providers if p != "192.168.98.1"]
+        # The stack's own record (send_sd_offer.sh, review R43): processed only
+        # with status "processed" and the matched line; else ignored or unknown.
+        processed_ok = isinstance(processed, dict) and processed.get("processed") is True \
+            and processed.get("status") == "processed" \
+            and isinstance(processed.get("matched_line"), str) and processed["matched_line"].strip() != ""
+        status = processed.get("status") if isinstance(processed, dict) else None
         if capture_offer_time is None:
             result.add("sd-offer", INCONCLUSIVE, "no spoofed SD offer from a non-host sender in the SD capture")
+        elif redirected:
+            # The core subscribing to another provider after the spoofed offer
+            # shows by itself that the stack took the offer; no log line is
+            # needed, and none may hide this failure.
+            offer_time_ns = capture_offer_time
+            result.add("sd-redirect", FAIL, f"after the SD offer from the IVI VM the stack subscribed to "
+                       f"{redirected}, not 192.168.98.1")
         elif offer_src_port != sd.SD_PORT:
             # A SOME/IP stack ignores an SD message whose source port is not the
             # SD port, so an offer from an ephemeral port is not a valid
@@ -450,19 +466,23 @@ def evaluate_provenance(run: RunInputs) -> CaseResult:
             result.add("sd-offer", INCONCLUSIVE, f"the spoofed SD offer came from source port {offer_src_port}, not "
                        f"{sd.SD_PORT}; a SOME/IP stack ignores an SD message from another port, so it is not a valid "
                        "stimulus")
-        elif not (isinstance(processed, dict) and processed.get("processed") is True):
+        elif not processed_ok:
             # The offer is from the SD port, but nothing shows the core stack
             # read it; the no-redirect property is not demonstrated (review R43).
-            result.add("sd-offer", INCONCLUSIVE, "the SD capture holds a spoofed offer from the SD source port, but no "
-                       "record shows the core stack processed it; the no-redirect property is not shown")
+            if status == "ignored":
+                why = (f"the core stack's log shows it ignored the offer before service discovery "
+                       f"({processed.get('matched_line')!r})")
+            elif status == "unknown":
+                why = "the core stack's log around the offer has no matching line (status unknown)"
+            else:
+                why = "no record (sd_core_processed.json with the matched line) shows the core stack processed it"
+            result.add("sd-offer", INCONCLUSIVE, f"the SD capture holds a spoofed offer from the SD source port, but "
+                       f"{why}; the no-redirect property is not shown")
         else:
             offer_time_ns = capture_offer_time
-            providers = offer.get("providers_after") or []
-            redirected = [p for p in providers if p != "192.168.98.1"]
-            if redirected:
-                result.add("sd-redirect", FAIL, f"after the SD offer from the IVI VM the stack subscribed to "
-                           f"{redirected}, not 192.168.98.1")
-            elif not providers:
+            result.measurements["sd_core_processed"] = {"result": processed.get("result"),
+                                                        "matched_line": processed.get("matched_line")}
+            if not providers:
                 result.add("sd-offer", INCONCLUSIVE, "an SD offer was seen and processed but no later subscription of "
                            "the stack, so the provider after the offer is unknown")
     elif isinstance(sd_offer, dict) and sd_offer.get("provider_after_offer") is not None:
@@ -564,6 +584,8 @@ def evaluate_isolation(run: RunInputs) -> CaseResult:
     result.measurements["isolated_probes"] = verdict.isolated_probes
     result.measurements["asm_mw_031_holds"] = verdict.asm_mw_031_holds
     result.measurements["required_dds_ports"] = verdict.required_dds_ports
+    result.measurements["dds_range"] = verdict.dds_range
+    result.measurements["probed_pairs"] = sum(len(pairs) for pairs in verdict.probed_pairs.values())
 
     # A reachable DDS port of a layer element fails, whatever the control or ASM-MW-031 show.
     for reached in verdict.reached_layer:

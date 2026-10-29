@@ -22,6 +22,7 @@ import sys
 import time
 from pathlib import Path
 
+from . import sd
 from .pcap import PcapError, datagrams, read_pcap
 
 TCP_SYN = 0x02
@@ -205,21 +206,52 @@ def nft_counters(text: str) -> dict:
 _MARKER = re.compile(rb"MARK:[0-9A-Za-z._-]+")
 
 
-def capture_markers(paths: list[str | Path], assembler_port: int = 4721) -> dict:
-    """What the guest-facing captures saw: the UDP markers and the TCP SYNs to the frame assembler.
+def _capture_sources(sources) -> list[tuple[str | None, Path]]:
+    """(host interface, path) of each capture: a (name, path) pair, an ``IFACE=PATH`` token, or a bare path.
+
+    A bare path ``capture-<iface>.pcap`` names its interface; any other bare
+    path has no known interface (its markers then carry ``capture_interface``
+    None, which the evaluator cannot attribute).
+    """
+    found = []
+    for source in sources:
+        if isinstance(source, tuple):
+            found.append((source[0], Path(source[1])))
+            continue
+        text = str(source)
+        if "=" in text and not Path(text).exists():
+            name, _, path = text.partition("=")
+            found.append((name or None, Path(path)))
+            continue
+        match = re.match(r"^capture-(.+)\.pcap$", Path(text).name)
+        found.append((match.group(1) if match else None, Path(text)))
+    return found
+
+
+def capture_markers(sources, assembler_port: int = 4721) -> dict:
+    """What the guest-facing captures saw, and where: the UDP markers and the TCP SYNs to the frame assembler.
 
     The captures are taken on the host, before netfilter, so a datagram the
     isolation rule then drops still appears here. The probe pairs this with
     the drop counter: captured and not dropped is a reach. A UDP marker is the
     ``MARK:...`` string in a datagram's payload; a captured 4721 connection is
     a SYN (no ACK) to the host's 4721.
+
+    For each captured marker and SYN it records the host capture interface,
+    and the source address and source MAC of the frame (review R41), so the
+    evaluator can check that a probe left on the guest interface it names,
+    from the source it names. A frame seen on two host interfaces (a bridge
+    member and its bridge) is kept once per interface. ``sources`` is a list
+    of (interface, path) pairs, ``IFACE=PATH`` tokens or bare paths.
     """
     udp_markers: set[str] = set()
+    udp_captures: list[dict] = []
     tcp_syns: list[dict] = []
-    seen_syn: set[tuple[str, int]] = set()
+    seen_udp: set[tuple] = set()
+    seen_syn: set[tuple] = set()
     problems: list[str] = []
-    for path in paths:
-        if not Path(path).exists():
+    for interface, path in _capture_sources(sources):
+        if not path.exists():
             continue
         try:
             capture = read_pcap(path)
@@ -229,14 +261,23 @@ def capture_markers(paths: list[str | Path], assembler_port: int = 4721) -> dict
         for item in datagrams(capture):
             if item.protocol == "udp":
                 for match in _MARKER.findall(item.payload):
-                    udp_markers.add(match.decode("ascii"))
+                    marker = match.decode("ascii")
+                    udp_markers.add(marker)
+                    key = (marker, interface, item.src, item.src_mac, item.dst, item.sport, item.dport, item.vlans)
+                    if key not in seen_udp:
+                        seen_udp.add(key)
+                        udp_captures.append({"marker": marker, "capture_interface": interface, "src": item.src,
+                                             "src_mac": item.src_mac, "dst": item.dst, "sport": item.sport,
+                                             "dport": item.dport, "vlans": list(item.vlans)})
             elif item.protocol == "tcp" and item.dport == assembler_port \
                     and item.tcp_flags & TCP_SYN and not item.tcp_flags & TCP_ACK:
-                key = (item.dst, item.dport)
+                key = (item.dst, item.dport, item.src, item.sport, item.src_mac, interface)
                 if key not in seen_syn:
                     seen_syn.add(key)
-                    tcp_syns.append({"host": item.dst, "port": item.dport})
-    return {"udp_markers": sorted(udp_markers), "tcp_syns": tcp_syns, "problems": problems}
+                    tcp_syns.append({"host": item.dst, "port": item.dport, "src": item.src, "sport": item.sport,
+                                     "src_mac": item.src_mac, "capture_interface": interface})
+    return {"udp_markers": sorted(udp_markers), "udp_captures": udp_captures, "tcp_syns": tcp_syns,
+            "problems": problems}
 
 
 # ---------------------------------------------------------------- ip
@@ -275,6 +316,34 @@ def parse_guest_inventory(text: str) -> dict[str, dict[str, list[str]]]:
         elif current is not None:
             sections[current].append(line)
     return {name: parse_ip_addr("\n".join(lines)) for name, lines in sections.items()}
+
+
+_MAC = re.compile(r"\blink/ether ([0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5})\b")
+
+
+def parse_guest_macs(text: str) -> dict[str, dict[str, str | None]]:
+    """Namespace to interface to MAC address (``link/ether``), from the probe's sectioned guest listing.
+
+    The probe names each guest interface by name; the host sees the frame's
+    source MAC, so the MAC ties a captured probe to the guest interface it left
+    on (review R41). An interface with no Ethernet address (lo) gives None.
+    """
+    sections: dict[str, dict[str, str | None]] = {}
+    current = None
+    for line in text.splitlines():
+        if line.startswith("# netns:"):
+            current = line[len("# netns:"):].strip()
+            sections.setdefault(current, {})
+            continue
+        if current is None:
+            continue
+        match = _IP_LINE.match(line)
+        if match is None:
+            continue
+        mac = _MAC.search(line)
+        known = sections[current].get(match["name"])
+        sections[current][match["name"]] = known or (mac.group(1).lower() if mac else None)
+    return sections
 
 
 def host_addresses(text: str, pattern: str = "cvd-*") -> list[str]:
@@ -402,6 +471,49 @@ def asm_mw_031(proc_root: str | Path = "/proc", expected: dict | None = None) ->
             "problems": problems}
 
 
+# ---------------------------------------------------------------- the MONITORING gate
+
+_APP_EPOCH = re.compile(r"^\s*(\d+(?:\.\d+)?)\s")
+_NOT_MONITORING = ("intervention=true", "warning=true", "braking=true", "lifecycle=released_verified_stop")
+
+
+def monitoring_gate(logcat_text: str, *, now_epoch_s: float, max_age_s: float) -> dict:
+    """Whether the HMI shows MONITORING now: the app's latest frame line, if fresh (review R26).
+
+    The app logs one ``onGatewayFrame`` line per frame (INC-AEBS-010
+    MainActivity.java). MONITORING is not intervention, not warning, not
+    braking, and lifecycle not released. The latest line decides, and only if
+    it is at most ``max_age_s`` older than the guest clock ``now_epoch_s`` (the
+    guest clock is read to the second, so a line up to one second "ahead" is
+    accepted); an old MONITORING line in the buffer does not open the gate.
+    """
+    latest = None
+    for line in logcat_text.splitlines():
+        if "onGatewayFrame" not in line:
+            continue
+        match = _APP_EPOCH.match(line)
+        if match is None:
+            continue
+        stamp = float(match.group(1))
+        if latest is None or stamp >= latest[0]:
+            latest = (stamp, line.strip())
+    if latest is None:
+        return {"monitoring": False, "line": None, "age_s": None, "max_age_s": max_age_s,
+                "reason": "no timestamped onGatewayFrame line"}
+    stamp, line = latest
+    age = round(now_epoch_s - stamp, 6)
+    record = {"monitoring": False, "line": line, "age_s": age, "max_age_s": max_age_s}
+    if age > max_age_s:
+        record["reason"] = f"the latest frame line is {age} s old, more than {max_age_s} s"
+    elif age < -1.0:
+        record["reason"] = f"the latest frame line is {-age} s ahead of the guest clock"
+    elif any(flag in line for flag in _NOT_MONITORING):
+        record["reason"] = "the latest frame is not MONITORING"
+    else:
+        record.update(monitoring=True, reason="the latest frame is MONITORING and fresh")
+    return record
+
+
 # ---------------------------------------------------------------- control listener
 
 def control_listen(port: int, out: Path, seconds: float) -> int:
@@ -440,8 +552,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--tcp", action="append", default=[])
     p = sub.add_parser("counters", help="the isolation counters of an nft -a list table listing")
     p.add_argument("file")
-    p = sub.add_parser("captured", help="captured_markers.json from the guest-facing capture pcaps")
-    p.add_argument("pcap", nargs="+")
+    p = sub.add_parser("captured", help="captured_markers.json from the guest-facing capture pcaps (IFACE=PATH)")
+    p.add_argument("pcap", nargs="+", help="IFACE=PATH per capture (a bare capture-<iface>.pcap names its interface)")
     p = sub.add_parser("clients", help="one ASM-MW-029 check from the two ss steps, added to the record")
     p.add_argument("--sport", required=True)
     p.add_argument("--dport", required=True)
@@ -451,10 +563,21 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--proc", default="/proc")
     p = sub.add_parser("host-addresses", help="the cvd-* host addresses of an ip -o -4 addr show listing")
     p.add_argument("file")
-    p = sub.add_parser("guest-ifaces", help="namespace, interface and first IPv4 of a guest inventory, one per line")
+    p = sub.add_parser("guest-ifaces", help="namespace, interface, first IPv4 and MAC of a guest inventory, one per line")
     p.add_argument("file")
     p = sub.add_parser("route", help="device and source of an ip route get answer")
     p.add_argument("file")
+    p = sub.add_parser("sd-processed", help="sd_core_processed.json from the SDV Core VM logcat around the offer")
+    p.add_argument("--logcat", required=True)
+    p.add_argument("--since", type=float, required=True, help="the core clock (epoch s) just before the send")
+    p.add_argument("--provider", help="the spoofed offer's provider address")
+    p.add_argument("--processed-pattern", action="append", default=None, metavar="NAME=REGEX")
+    p.add_argument("--ignored-pattern", action="append", default=None, metavar="NAME=REGEX")
+    p.add_argument("--out", required=True)
+    p = sub.add_parser("monitoring", help="the time-bounded MONITORING gate over the app's logcat (exit 1 if shut)")
+    p.add_argument("--logcat", required=True)
+    p.add_argument("--now", type=float, required=True, help="the guest clock (epoch s) when the logcat was read")
+    p.add_argument("--max-age", type=float, default=2.0)
     p = sub.add_parser("control-listen", help="record what the bench's control socket receives")
     p.add_argument("--port", type=int, required=True)
     p.add_argument("--out", required=True)
@@ -473,7 +596,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(nft_counters(read(args.file))))
     elif args.command == "captured":
         found = capture_markers(args.pcap)
-        print(json.dumps({"udp_markers": found["udp_markers"], "tcp_syns": found["tcp_syns"]}, indent=1))
+        print(json.dumps({"udp_markers": found["udp_markers"], "udp_captures": found["udp_captures"],
+                          "tcp_syns": found["tcp_syns"], "problems": found["problems"]}, indent=1))
     elif args.command == "clients":
         check = client_check(read(args.sport), read(args.dport), args.phase)
         record = record_client_check(Path(args.record), check)
@@ -484,13 +608,28 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "host-addresses":
         print("\n".join(host_addresses(read(args.file))))
     elif args.command == "guest-ifaces":
-        for netns, interfaces in parse_guest_inventory(read(args.file)).items():
+        text = read(args.file)
+        macs = parse_guest_macs(text)
+        for netns, interfaces in parse_guest_inventory(text).items():
             for name, addresses in interfaces.items():
                 if name != "lo":
-                    print(f"{netns or '-'} {name} {addresses[0] if addresses else '-'}")
+                    mac = macs.get(netns, {}).get(name)
+                    print(f"{netns or '-'} {name} {addresses[0] if addresses else '-'} {mac or '-'}")
     elif args.command == "route":
         found = route_device(read(args.file))
         print(f"{found[0]} {found[1] or '-'}" if found else "none")
+    elif args.command == "sd-processed":
+        def patterns(items):
+            return None if items is None else [tuple(item.split("=", 1)) for item in items if "=" in item]
+        record = sd.core_offer_record(read(args.logcat), since_epoch_s=args.since, provider=args.provider,
+                                      processed_patterns=patterns(args.processed_pattern),
+                                      ignored_patterns=patterns(args.ignored_pattern))
+        Path(args.out).write_text(json.dumps(record, indent=1) + "\n")
+        print(json.dumps({"status": record["status"], "result": record["result"], "line": record["matched_line"]}))
+    elif args.command == "monitoring":
+        record = monitoring_gate(read(args.logcat), now_epoch_s=args.now, max_age_s=args.max_age)
+        print(json.dumps(record))
+        return 0 if record["monitoring"] else 1
     elif args.command == "control-listen":
         return control_listen(args.port, Path(args.out), args.seconds)
     return 0

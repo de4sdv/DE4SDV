@@ -38,18 +38,35 @@ def firewall(table=True, dds=True, tcp=True):
     return {"inet_table_present": table, "dds_counters_readable": dds, "tcp_counters_readable": tcp}
 
 
-def udp_attempt(port, *, guest="ivi", iface="eth1", src="192.168.98.118", host=HOST, sent="sent", counter=True):
+MAC_IVI, MAC_IVI2, MAC_CORE = "02:00:00:00:00:76", "02:00:00:00:00:77", "02:00:00:00:00:03"
+
+
+def udp_attempt(port, *, guest="ivi", iface="eth1", src="192.168.98.118", host=HOST, sent="sent", counter=True,
+                mac=MAC_IVI):
     marker = f"MARK:{guest}-{iface}-{host}-{port}"
-    return {"guest": guest, "interface": iface, "src_addr": src, "host": host, "port": port, "protocol": "udp",
-            "marker": marker, "send_status": sent, "counter_moved": counter, "guest_connected": None}
+    return {"guest": guest, "netns": "-", "interface": iface, "src_addr": src, "src_mac": mac, "host": host,
+            "port": port, "protocol": "udp", "marker": marker, "send_status": sent, "counter_moved": counter,
+            "guest_connected": None}
 
 
 def tcp_attempt(*, guest="ivi", iface="eth1", src="192.168.98.118", host=HOST, sent="sent", counter=True,
-                connected=True):
+                connected=True, mac=MAC_IVI, sport=28001):
     marker = f"MARK:{guest}-{iface}-{host}-{ASSEMBLER_PORT}"
-    return {"guest": guest, "interface": iface, "src_addr": src, "host": host, "port": ASSEMBLER_PORT,
-            "protocol": "tcp", "marker": marker, "send_status": sent, "counter_moved": counter,
-            "guest_connected": connected}
+    return {"guest": guest, "netns": "-", "interface": iface, "src_addr": src, "src_mac": mac, "host": host,
+            "port": ASSEMBLER_PORT, "sport": sport, "protocol": "tcp", "marker": marker, "send_status": sent,
+            "counter_moved": counter, "guest_connected": connected}
+
+
+def arrival(attempt, *, capture_interface="cvd-ebr", src=None, mac=None):
+    """A captured copy of a probe's datagram (what hostscan records): by default
+    it left on the named guest interface (its MAC) from the named source."""
+    src = src or attempt["src_addr"]
+    mac = attempt["src_mac"] if mac is None else mac
+    if attempt["protocol"] == "tcp":
+        return {"host": attempt["host"], "port": attempt["port"], "src": src, "sport": attempt["sport"],
+                "src_mac": mac, "capture_interface": capture_interface}
+    return {"marker": attempt["marker"], "capture_interface": capture_interface, "src": src, "src_mac": mac,
+            "dst": attempt["host"], "sport": 40000, "dport": attempt["port"], "vlans": []}
 
 
 def listeners(*rows):
@@ -75,12 +92,31 @@ def coverage(expected_if=("eth1",), expected_addr=(HOST,)):
 SMALL_DDS = frozenset({30150, 30151, LAYER_PORT, 30161, OTHER_PORT})
 
 
-def base(run: Path, *, attempts, captured_udp=(), captured_syns=(), listeners_rows=((LAYER_PORT, "de4sdv_score_ad", True),),
-         fw=None, control=None, cov=None, asm=True, inspection=True, **extra):
+def captured_record(attempts, captured_udp=(), captured_syns=(), udp_arrivals=None):
+    """captured_markers.json: each listed marker arrived as named, unless udp_arrivals gives its copies."""
+    by_marker = {a["marker"]: a for a in attempts if isinstance(a, dict) and a.get("protocol") == "udp"}
+    if udp_arrivals is None:
+        udp_arrivals = [arrival(by_marker[m]) for m in captured_udp if m in by_marker]
+    markers = sorted(set(captured_udp) | {c["marker"] for c in udp_arrivals})
+    return {"udp_markers": markers, "udp_captures": list(udp_arrivals), "tcp_syns": list(captured_syns)}
+
+
+def dds_range(domain=probe.DDS_DOMAIN, index=probe.DDS_MAX_PARTICIPANT_INDEX, ports=None):
+    """dds_range.json as the probe script writes it: the domain, the participant index and the ports it probed."""
+    return {"domain": domain, "max_participant_index": index,
+            "ports": list(probe.dds_udp_ports(domain, index) if ports is None else ports)}
+
+
+FULL_RANGE = dds_range()
+
+
+def base(run: Path, *, attempts, captured_udp=(), captured_syns=(), udp_arrivals=None,
+         listeners_rows=((LAYER_PORT, "de4sdv_score_ad", True),),
+         fw=None, control=None, cov=None, asm=True, inspection=True, dds_range_record=FULL_RANGE, **extra):
     files = {
         "firewall__json": fw if fw is not None else firewall(),
         "probe_attempts__json": attempts,
-        "captured_markers__json": {"udp_markers": list(captured_udp), "tcp_syns": list(captured_syns)},
+        "captured_markers__json": captured_record(attempts, captured_udp, captured_syns, udp_arrivals),
         "host_listeners__json": listeners(*listeners_rows),
         "control__json": control if control is not None else {"captured": True, "counter_moved": False,
                                                               "delivered": True, "detail": "ok"},
@@ -89,6 +125,8 @@ def base(run: Path, *, attempts, captured_udp=(), captured_syns=(), listeners_ro
     }
     if inspection:
         files["inspection__json"] = {"no_host_endpoint": True, "inspector": "bench", "artifacts": []}
+    if dds_range_record is not None:
+        files["dds_range__json"] = dds_range_record
     files.update(extra)
     return write(run, **files)
 
@@ -122,8 +160,7 @@ def test_fw_emul_working_firewall_drops_every_probe(tmp_path):
     attempts = [udp_attempt(p, counter=True) for p in (30150, 30151, 30160, 30161, 30162)]
     attempts.append(tcp_attempt(counter=True, connected=False))
     captured = [a["marker"] for a in attempts]  # pre-netfilter capture sees them all
-    run = base(tmp_path, attempts=attempts, captured_udp=captured,
-               captured_syns=[{"host": HOST, "port": ASSEMBLER_PORT}])
+    run = base(tmp_path, attempts=attempts, captured_udp=captured, captured_syns=[arrival(attempts[-1])])
     result = verdict(run)
     assert result.table_readable
     assert result.reached_layer == [] and result.reached_other == [] and result.reached_frame_assembler == []
@@ -185,7 +222,7 @@ def test_a_reachable_other_process_port_fails_only_when_asm031_holds(tmp_path):
 
 def test_a_reachable_4721_is_a_frame_assembler_finding_not_a_layer_finding(tmp_path):
     attempt = tcp_attempt(counter=False, connected=True)
-    run = base(tmp_path, attempts=[attempt], captured_syns=[{"host": HOST, "port": ASSEMBLER_PORT}],
+    run = base(tmp_path, attempts=[attempt], captured_syns=[arrival(attempt)],
                listeners_rows=((ASSEMBLER_PORT, "python3", False),))
     result = verdict(run)
     assert result.reached_layer == [] and result.reached_other == []
@@ -333,3 +370,178 @@ def test_r45_the_required_dds_range_is_recorded(tmp_path):
     run = base(tmp_path, attempts=[attempt], captured_udp=[attempt["marker"]])
     result = probe.evaluate_isolation(run, required_dds_ports={30150, 30151, LAYER_PORT})
     assert result.required_dds_ports == 3
+
+
+# -------------------------------------------------- R41: arrival on the named interface from the named source
+
+H2 = "192.168.97.1"
+
+
+def full_pair(guest, iface, src, mac, host, ports=SMALL_DDS):
+    """Every required port of one (guest, interface, host) pair, dropped and captured as named."""
+    attempts = [udp_attempt(p, guest=guest, iface=iface, src=src, host=host, mac=mac) for p in sorted(ports)]
+    attempts.append(tcp_attempt(guest=guest, iface=iface, src=src, host=host, mac=mac, connected=False))
+    return attempts
+
+
+def two_nic_run(tmp_path, attempts, udp_arrivals, syns, expected_if=("g-ivi", "g-ivi2"), expected_addr=(HOST, H2)):
+    return base(tmp_path, attempts=attempts, udp_arrivals=udp_arrivals, captured_syns=syns,
+                cov=coverage(expected_if=expected_if, expected_addr=expected_addr))
+
+
+def test_r41_a_probe_from_another_source_address_does_not_cover_its_pair(tmp_path):
+    """A probe that arrived from a source the record does not name (a sender that
+    ignored the bound address) is not a probe of its named pair: a coverage gap."""
+    attempts = full_pair("ivi", "eth1", "192.168.98.118", MAC_IVI, HOST)
+    arrivals = [arrival(a, src="192.168.97.118") for a in attempts if a["protocol"] == "udp"]
+    syns = [arrival(attempts[-1], src="192.168.97.118")]
+    run = base(tmp_path, attempts=attempts, udp_arrivals=arrivals, captured_syns=syns)
+    result = verdict(run)
+    assert "eth1" not in result.probed_interfaces.get("ivi", set())
+    assert any("another interface or source" in gap for gap in result.coverage_gaps)
+    assert any("eth1" in gap and HOST in gap for gap in result.coverage_gaps)
+
+
+def test_r41_a_probe_from_another_guest_nic_does_not_cover_its_pair(tmp_path):
+    """The right source address but the MAC of another guest NIC: the probe left on
+    another interface (a sender that honoured the address, not the device)."""
+    attempts = full_pair("ivi", "g-ivi2", "192.168.97.118", MAC_IVI2, HOST)
+    arrivals = [arrival(a, mac=MAC_IVI) for a in attempts if a["protocol"] == "udp"]
+    run = base(tmp_path, attempts=attempts, udp_arrivals=arrivals, captured_syns=[arrival(attempts[-1], mac=MAC_IVI)],
+               cov=coverage(expected_if=("g-ivi2",), expected_addr=(HOST,)))
+    result = verdict(run)
+    assert result.probed_interfaces.get("ivi", set()) == set()
+    assert any("g-ivi2" in gap for gap in result.coverage_gaps)
+
+
+def test_r41_a_capture_with_no_mac_cannot_attribute_the_probe(tmp_path):
+    attempts = full_pair("ivi", "eth1", "192.168.98.118", MAC_IVI, HOST)
+    arrivals = [dict(arrival(a), src_mac=None) for a in attempts if a["protocol"] == "udp"]
+    run = base(tmp_path, attempts=attempts, udp_arrivals=arrivals,
+               captured_syns=[dict(arrival(attempts[-1]), src_mac=None)])
+    assert "eth1" not in verdict(run).probed_interfaces.get("ivi", set())
+
+
+def test_r41_a_misattributed_reach_is_still_a_reach(tmp_path):
+    """Attribution decides coverage, never a reach: a captured, undropped datagram
+    to a layer port fails whatever interface it left on."""
+    attempt = udp_attempt(LAYER_PORT, counter=False)
+    run = base(tmp_path, attempts=[attempt], udp_arrivals=[arrival(attempt, src="192.168.97.118", mac=MAC_IVI2)])
+    assert [a["port"] for a in verdict(run).reached_layer] == [LAYER_PORT]
+
+
+def test_r41_the_reviewers_two_nic_swap_gives_no_pass(tmp_path):
+    """Harness v4 (review R41): the probes named g-ivi2 -> 192.168.98.1 arrived via
+    g-ivi, and those named g-ivi -> 192.168.97.1 arrived via g-ivi2. Neither named
+    pair is covered, so the case cannot pass."""
+    from de4sdv_broker_path_bench import evaluators
+    ok1 = full_pair("ivi", "g-ivi", "192.168.98.118", MAC_IVI, HOST)
+    ok2 = full_pair("ivi", "g-ivi2", "192.168.97.118", MAC_IVI2, H2)
+    swapped_a = full_pair("ivi", "g-ivi2", "192.168.97.118", MAC_IVI2, HOST)
+    swapped_b = full_pair("ivi", "g-ivi", "192.168.98.118", MAC_IVI, H2)
+    attempts = ok1 + ok2 + swapped_a + swapped_b
+    arrivals = [arrival(a) for a in ok1 + ok2 if a["protocol"] == "udp"]
+    arrivals += [arrival(a, src="192.168.98.118", mac=MAC_IVI) for a in swapped_a if a["protocol"] == "udp"]
+    arrivals += [arrival(a, src="192.168.97.118", mac=MAC_IVI2, capture_interface="cvd-wtap")
+                 for a in swapped_b if a["protocol"] == "udp"]
+    syns = [arrival(a) for a in (ok1[-1], ok2[-1])]
+    run = two_nic_run(tmp_path, attempts, arrivals, syns)
+    result = verdict(run)
+    gaps = " | ".join(result.coverage_gaps)
+    assert f"g-ivi2 -> {HOST}" in gaps and f"g-ivi -> {H2}" in gaps
+    case = evaluators.evaluate_isolation(evaluators.load_run(run))
+    assert case.outcome == evaluators.INCONCLUSIVE
+
+
+def test_r41_every_expected_interface_and_address_pair_needs_its_own_probes(tmp_path):
+    """Coverage is the cross product: g-ivi -> HOST and g-ivi2 -> H2 covered does not
+    cover g-ivi -> H2 or g-ivi2 -> HOST (review B3: each pair, not each interface)."""
+    ok1 = full_pair("ivi", "g-ivi", "192.168.98.118", MAC_IVI, HOST)
+    ok2 = full_pair("ivi", "g-ivi2", "192.168.97.118", MAC_IVI2, H2)
+    arrivals = [arrival(a) for a in ok1 + ok2 if a["protocol"] == "udp"]
+    run = two_nic_run(tmp_path, ok1 + ok2, arrivals, [arrival(ok1[-1]), arrival(ok2[-1])])
+    result = verdict(run)
+    assert result.probed_interfaces["ivi"] == {"g-ivi", "g-ivi2"}
+    assert result.probed_host_addresses["ivi"] == {HOST, H2}
+    gaps = " | ".join(result.coverage_gaps)
+    assert f"g-ivi -> {H2}" in gaps and f"g-ivi2 -> {HOST}" in gaps
+
+
+def test_r41_the_full_cross_product_as_named_leaves_no_coverage_gap(tmp_path):
+    pairs = [("g-ivi", "192.168.98.118", MAC_IVI, HOST), ("g-ivi", "192.168.98.118", MAC_IVI, H2),
+             ("g-ivi2", "192.168.97.118", MAC_IVI2, HOST), ("g-ivi2", "192.168.97.118", MAC_IVI2, H2)]
+    attempts, syns = [], []
+    for iface, src, mac, host in pairs:
+        pair = full_pair("ivi", iface, src, mac, host)
+        attempts += pair
+        syns.append(arrival(pair[-1], capture_interface="cvd-wtap" if iface == "g-ivi2" else "cvd-ebr"))
+    arrivals = [arrival(a, capture_interface="cvd-wtap" if a["interface"] == "g-ivi2" else "cvd-ebr")
+                for a in attempts if a["protocol"] == "udp"]
+    run = two_nic_run(tmp_path, attempts, arrivals, syns)
+    result = verdict(run)
+    assert result.coverage_gaps == []
+    assert result.probed_pairs["ivi"][("g-ivi2", HOST)]["host_capture_interfaces"] == ["cvd-wtap"]
+
+
+def test_r41_a_tcp_probe_is_matched_by_its_own_source_port(tmp_path):
+    """Two guests probe the same host :4721; the capture holds only the core's SYN.
+    The IVI's attempt is not shown to have arrived, so it is a gap, not isolated."""
+    core = tcp_attempt(guest="core", iface="eth1", src="192.168.98.3", mac=MAC_CORE, sport=28001, connected=False)
+    ivi = tcp_attempt(guest="ivi", iface="eth1", src="192.168.98.118", mac=MAC_IVI, sport=28002, connected=False)
+    run = base(tmp_path, attempts=[core, ivi], captured_syns=[arrival(core)],
+               listeners_rows=((ASSEMBLER_PORT, "python3", False),))
+    result = verdict(run)
+    assert result.isolated_probes == 1
+    assert ivi in result.unknown_probes
+
+
+# -------------------------------------------------- R45: the DDS range the run used, from its own record
+
+def _one_isolated_run(tmp_path, **kwargs):
+    attempt = udp_attempt(LAYER_PORT, counter=True)
+    return base(tmp_path, attempts=[attempt], captured_udp=[attempt["marker"]], **kwargs)
+
+
+def test_r45_the_range_record_is_read_and_reported(tmp_path):
+    result = verdict(_one_isolated_run(tmp_path))
+    assert result.dds_range == {"domain": 91, "max_participant_index": 120, "ports": 244}
+    assert not any("DDS range" in gap for gap in result.coverage_gaps)
+
+
+def test_r45_a_missing_range_record_is_a_gap(tmp_path):
+    result = verdict(_one_isolated_run(tmp_path, dds_range_record=None))
+    assert any("dds_range.json" in gap for gap in result.coverage_gaps)
+
+
+def test_r45_a_reduced_range_dry_run_is_a_gap(tmp_path):
+    """The harness's index 2 (8 ports) is not the case's range (index 120, 244 ports)."""
+    result = verdict(_one_isolated_run(tmp_path, dds_range_record=dds_range(index=2)))
+    assert any("participant index 2" in gap and "120" in gap for gap in result.coverage_gaps)
+
+
+def test_r45_a_range_record_whose_ports_disagree_with_its_bounds_is_a_gap(tmp_path):
+    ports = probe.dds_udp_ports()[:-1]  # claims index 120 but lists one port fewer
+    result = verdict(_one_isolated_run(tmp_path, dds_range_record=dds_range(ports=ports)))
+    assert any("does not match" in gap for gap in result.coverage_gaps)
+
+
+def test_r45_a_malformed_range_record_is_a_gap(tmp_path):
+    result = verdict(_one_isolated_run(tmp_path, dds_range_record={"domain": "91", "ports": "30150-30401"}))
+    assert any("dds_range.json" in gap for gap in result.coverage_gaps)
+
+
+def test_r45_a_reduced_range_run_cannot_pass_the_case(tmp_path):
+    from de4sdv_broker_path_bench import evaluators
+    run = _one_isolated_run(tmp_path, dds_range_record=dds_range(index=2))
+    case = evaluators.evaluate_isolation(evaluators.load_run(run))
+    assert case.outcome == evaluators.INCONCLUSIVE
+    assert case.measurements["dds_range"]["max_participant_index"] == 2
+
+
+def test_r41_a_probe_captured_as_named_with_an_unreadable_counter_is_unknown_not_misattributed(tmp_path):
+    attempt = udp_attempt(LAYER_PORT, counter=None)
+    run = base(tmp_path, attempts=[attempt], captured_udp=[attempt["marker"]])
+    result = verdict(run)
+    assert attempt in result.unknown_probes
+    assert result.misattributed_probes == []
+    assert not any("another interface or source" in gap for gap in result.coverage_gaps)

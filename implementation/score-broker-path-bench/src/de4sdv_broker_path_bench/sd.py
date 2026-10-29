@@ -13,6 +13,7 @@ provider.
 
 from __future__ import annotations
 
+import re
 import struct
 from dataclasses import dataclass, field
 
@@ -132,3 +133,96 @@ def offer_and_provider(entries: list[SdEntry], *, service: int = FRAME_SERVICE, 
                   offer_endpoints=offer.endpoints,
                   providers_after=sorted({e.dst for e in after}), subscribes_after=len(after))
     return result
+
+
+# ------------------------------------------------------------ R43: the core stack's own record of the offer
+#
+# A SOME/IP stack drops an SD message from a source port other than the SD port
+# before its SD module reads it, so an offer that is ignored there shows
+# nothing about the no-redirect property (review R43). The SDV Core VM's logcat
+# says which happened. The default lines are vsomeip 3.1.37.1's, from the
+# COVESA 3.1.37.1 tag:
+# - service_discovery_impl.cpp, process_offerservice_serviceentry: a secure
+#   service whose offered port is not a secure port gives
+#   "process_offerservice_serviceentry: Ignoring offer of [4dee.0001]"; an
+#   offer the acceptance handler refuses gives "Do not accept offer from
+#   <addr>:<port> reliable=<r>". Either line means the SD module read the
+#   offer and refused it: the stack processed the offer.
+# - routing_manager_impl.cpp, on_message: "Ignored SD message from unknown port
+#   (<port>)" or "Ignored SD message from unknown address." means the message
+#   never reached the SD module: the stack ignored it.
+# The 3.1.37.1 service discovery logs no line of its own when it accepts an
+# offer, so an accepted offer gives "unknown" here (a redirect then shows in
+# the SD capture, which fails the case). The image's copy
+# may carry other lines or another log level; S1 confirms them on the live
+# SDV Core VM, and the patterns are settings (send_sd_offer.sh).
+
+#: (name, regex) of the lines that show the SD module processed the offer.
+#: ``{service}``, ``{instance}`` and ``{provider}`` are filled in.
+DEFAULT_PROCESSED_PATTERNS = (
+    ("secure_service_rejected", r"Ignoring offer of \[{service}\.{instance}\]"),
+    ("acceptance_rejected", r"Do not accept offer from {provider}:\d+"),
+)
+#: (name, regex) of the lines that show the message was dropped before the SD module.
+DEFAULT_IGNORED_PATTERNS = (
+    ("unknown_port", r"Ignored SD message from unknown port \(\d+\)"),
+    ("unknown_address", r"Ignored SD message from unknown address"),
+)
+PATTERN_SOURCE = ("vsomeip 3.1.37.1 (COVESA tag: service_discovery_impl.cpp, routing_manager_impl.cpp); "
+                  "S1 confirms the image's lines")
+
+_EPOCH = re.compile(r"^\s*(\d+(?:\.\d+)?)\s")
+
+
+def _fill(pattern: str, service: int, instance: int, provider: str | None) -> re.Pattern:
+    return re.compile(pattern.format(service=f"{service:04x}", instance=f"{instance:04x}",
+                                     provider=re.escape(provider) if provider else r"\S+"))
+
+
+def core_offer_record(logcat_text: str, *, since_epoch_s: float, provider: str | None = None,
+                      service: int = FRAME_SERVICE, instance: int = FRAME_INSTANCE,
+                      processed_patterns=None, ignored_patterns=None) -> dict:
+    """sd_core_processed.json: whether the SDV Core VM's stack processed or ignored the spoofed offer.
+
+    ``logcat_text`` is the core's logcat with ``-v epoch`` timestamps, taken
+    around the offer; only lines at or after ``since_epoch_s`` (the core clock
+    just before the send) count. A line that names the frame service (a
+    processed pattern) takes precedence over an "ignored" line, which names no
+    service and can come from another sender. No matching line gives status
+    "unknown" (processed None), which keeps VC-MW-016 inconclusive.
+    """
+    processed_patterns = list(DEFAULT_PROCESSED_PATTERNS if processed_patterns is None else processed_patterns)
+    ignored_patterns = list(DEFAULT_IGNORED_PATTERNS if ignored_patterns is None else ignored_patterns)
+    compiled_processed = [(name, _fill(rx, service, instance, provider)) for name, rx in processed_patterns]
+    compiled_ignored = [(name, _fill(rx, service, instance, provider)) for name, rx in ignored_patterns]
+    processed_hits, ignored_hits, in_window = [], [], 0
+    for line in logcat_text.splitlines():
+        match = _EPOCH.match(line)
+        if match is None or float(match.group(1)) < since_epoch_s:
+            continue
+        in_window += 1
+        for name, regex in compiled_processed:
+            if regex.search(line):
+                processed_hits.append((name, line.strip()))
+                break
+        else:
+            for name, regex in compiled_ignored:
+                if regex.search(line):
+                    ignored_hits.append((name, line.strip()))
+                    break
+    record = {"processed": None, "status": "unknown", "result": "no_matching_line", "matched_line": None,
+              "also_seen": [], "since_epoch_s": since_epoch_s, "lines_in_window": in_window,
+              "service": f"{service:04x}.{instance:04x}", "provider": provider,
+              "patterns": {"processed": [list(item) for item in processed_patterns],
+                           "ignored": [list(item) for item in ignored_patterns]},
+              "pattern_source": PATTERN_SOURCE if processed_patterns == list(DEFAULT_PROCESSED_PATTERNS)
+              and ignored_patterns == list(DEFAULT_IGNORED_PATTERNS) else "settings (S1 confirms the image's lines)"}
+    if processed_hits:
+        name, line = processed_hits[0]
+        record.update(processed=True, status="processed", result=name, matched_line=line)
+        record["also_seen"] = [hit[1] for hit in processed_hits[1:] + ignored_hits]
+    elif ignored_hits:
+        name, line = ignored_hits[0]
+        record.update(processed=False, status="ignored", result=name, matched_line=line)
+        record["also_seen"] = [hit[1] for hit in ignored_hits[1:]]
+    return record

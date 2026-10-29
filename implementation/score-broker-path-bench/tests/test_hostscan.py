@@ -203,7 +203,8 @@ def test_capture_reads_udp_markers_and_a_4721_syn(tmp_path):
     found = hs.capture_markers([path])
     assert "MARK:ivi-eth1-192.168.98.1-30160" in found["udp_markers"]
     assert "MARK:core-eth1-192.168.98.1-30150extra" in found["udp_markers"]
-    assert found["tcp_syns"] == [{"host": "192.168.98.1", "port": 4721}]
+    assert [(s["host"], s["port"], s["src"], s["sport"]) for s in found["tcp_syns"]] == \
+        [("192.168.98.1", 4721, "192.168.98.118", 55000)]
 
 
 def test_capture_sees_a_dropped_datagram_too(tmp_path):
@@ -222,3 +223,123 @@ def test_capture_missing_and_unreadable_files_are_tolerated(tmp_path):
     bad.write_bytes(b"\x0a\x0d\x0d\x0a" + b"\x00" * 40)  # pcapng, refused
     found = hs.capture_markers([tmp_path / "missing.pcap", bad])
     assert found["udp_markers"] == [] and found["problems"]
+
+
+# ------------------------------------------------------------------ R41: where each probe arrived
+
+def test_r41_each_captured_marker_records_its_capture_interface_source_and_mac(tmp_path):
+    """Review R41: the capture names, per marker, the host interface it was seen
+    on and the source address and MAC of the frame, so the evaluator can check
+    the probe left on the named guest interface from the named source."""
+    from de4sdv_broker_path_bench import hostscan as hs
+    ebr, wtap = tmp_path / "capture-cvd-ebr.pcap", tmp_path / "capture-cvd-wtap.pcap"
+    ebr.write_bytes(b.pcap([(1, b.udp_datagram("192.168.98.118", "192.168.98.1", 40000, 30160,
+                                               b"MARK:ivi-g-ivi-192.168.98.1-30160", src_mac="02:00:00:00:00:76"))]))
+    wtap.write_bytes(b.pcap([(2, b.udp_datagram("192.168.97.118", "192.168.98.1", 40001, 30160,
+                                                b"MARK:ivi-g-ivi2-192.168.98.1-30160", src_mac="02:00:00:00:00:77",
+                                                vlans=(2,)))]))
+    found = hs.capture_markers([("cvd-ebr", ebr), ("cvd-wtap", wtap)])
+    by_marker = {c["marker"]: c for c in found["udp_captures"]}
+    assert by_marker["MARK:ivi-g-ivi-192.168.98.1-30160"] == {
+        "marker": "MARK:ivi-g-ivi-192.168.98.1-30160", "capture_interface": "cvd-ebr", "src": "192.168.98.118",
+        "src_mac": "02:00:00:00:00:76", "dst": "192.168.98.1", "sport": 40000, "dport": 30160, "vlans": []}
+    assert by_marker["MARK:ivi-g-ivi2-192.168.98.1-30160"]["capture_interface"] == "cvd-wtap"
+    assert by_marker["MARK:ivi-g-ivi2-192.168.98.1-30160"]["src_mac"] == "02:00:00:00:00:77"
+    assert by_marker["MARK:ivi-g-ivi2-192.168.98.1-30160"]["vlans"] == [2]
+    assert sorted(found["udp_markers"]) == sorted(by_marker)
+
+
+def test_r41_one_marker_seen_on_two_host_interfaces_keeps_both_captures(tmp_path):
+    # A frame on a bridge member tap is also seen on the bridge: both are kept.
+    from de4sdv_broker_path_bench import hostscan as hs
+    frame = b.udp_datagram("192.168.98.3", "192.168.98.1", 40000, 30150, b"MARK:core-eth1-192.168.98.1-30150",
+                           src_mac="00:1a:11:e1:cf:01")
+    tap, bridge = tmp_path / "a.pcap", tmp_path / "b.pcap"
+    tap.write_bytes(b.pcap([(1, frame)]))
+    bridge.write_bytes(b.pcap([(1, frame)]))
+    found = hs.capture_markers([("cvd-etap-02", tap), ("cvd-ebr", bridge)])
+    assert sorted(c["capture_interface"] for c in found["udp_captures"]) == ["cvd-ebr", "cvd-etap-02"]
+
+
+def test_r41_a_tcp_syn_records_its_source_port_source_and_mac(tmp_path):
+    """The :4721 probe has no payload marker, so the sender pins a source port per
+    attempt and the capture records it with the source address and MAC."""
+    from de4sdv_broker_path_bench import hostscan as hs
+    path = tmp_path / "capture-cvd-ebr.pcap"
+    syn = b.tcp_segment("192.168.98.3", "192.168.98.1", 28001, 4721, 1000, 0, b.SYN, src_mac="00:1a:11:e1:cf:01")
+    path.write_bytes(b.pcap([(1, syn), (2, syn)]))  # a retransmitted SYN is one record
+    found = hs.capture_markers([("cvd-ebr", path)])
+    assert found["tcp_syns"] == [{"host": "192.168.98.1", "port": 4721, "src": "192.168.98.3", "sport": 28001,
+                                  "src_mac": "00:1a:11:e1:cf:01", "capture_interface": "cvd-ebr"}]
+
+
+def test_r41_the_captured_command_takes_interface_equals_path(tmp_path, capsys):
+    from de4sdv_broker_path_bench import hostscan as hs
+    path = tmp_path / "capture-cvd-ebr.pcap"
+    path.write_bytes(b.pcap([(1, b.udp_datagram("192.168.98.118", "192.168.98.1", 40000, 30160,
+                                               b"MARK:ivi-eth1-192.168.98.1-30160"))]))
+    assert hs.main(["captured", f"cvd-ebr={path}"]) == 0
+    record = json.loads(capsys.readouterr().out)
+    assert record["udp_captures"][0]["capture_interface"] == "cvd-ebr"
+    assert record["udp_markers"] == ["MARK:ivi-eth1-192.168.98.1-30160"]
+
+
+def test_r41_guest_inventory_gives_each_interface_its_mac():
+    macs = hostscan.parse_guest_macs(shapes.GUEST_INVENTORY_IVI)
+    assert macs[""]["eth1"] == "00:1a:11:e1:cf:02"
+    assert macs[""]["buried_eth0"] == "00:1a:11:e1:ce:02"
+    assert macs["sdv_dt_ns"]["sdv_dt"] == "00:1a:11:e1:cf:02"   # a VLAN interface keeps its parent's MAC
+    assert macs[""]["lo"] is None
+
+
+def test_r41_guest_ifaces_prints_the_mac_as_a_fourth_column(tmp_path, capsys):
+    inventory = tmp_path / "inv.txt"
+    inventory.write_text(shapes.GUEST_INVENTORY_IVI)
+    assert hostscan.main(["guest-ifaces", str(inventory)]) == 0
+    lines = {tuple(line.split()[:2]): line.split() for line in capsys.readouterr().out.splitlines()}
+    assert lines[("-", "eth1")] == ["-", "eth1", "192.168.98.118", "00:1a:11:e1:cf:02"]
+    assert lines[("-", "wlan0")] == ["-", "wlan0", "-", "02:00:00:44:55:66"]
+
+
+# ------------------------------------------------------------------ R26: the MONITORING gate, time-bounded
+
+NOW = 1793000100
+
+
+def _app(epoch: float, *, intervention="false", warning="false", braking="false", lifecycle="monitoring") -> str:
+    return (f"{epoch:.6f}  4321  4321 I MainActivity: onGatewayFrame seq=7 intervention={intervention} "
+            f"warning={warning} braking={braking} lifecycle={lifecycle}")
+
+
+def test_r26_a_fresh_monitoring_line_opens_the_gate():
+    record = hostscan.monitoring_gate(_app(NOW - 0.5), now_epoch_s=NOW, max_age_s=2)
+    assert record["monitoring"] is True and record["age_s"] == 0.5
+
+
+def test_r26_a_stale_monitoring_line_keeps_the_gate_shut():
+    # The last 400 lines can hold a MONITORING frame from minutes ago; without a
+    # time bound the old gate passed it (review R26).
+    record = hostscan.monitoring_gate(_app(NOW - 90), now_epoch_s=NOW, max_age_s=2)
+    assert record["monitoring"] is False and "old" in record["reason"]
+
+
+def test_r26_the_latest_line_decides_and_a_non_monitoring_one_shuts_the_gate():
+    text = "\n".join([_app(NOW - 1.0), _app(NOW - 0.2, warning="true")])
+    assert hostscan.monitoring_gate(text, now_epoch_s=NOW, max_age_s=2)["monitoring"] is False
+    text = "\n".join([_app(NOW - 1.0, lifecycle="released_verified_stop"), _app(NOW - 0.2)])
+    assert hostscan.monitoring_gate(text, now_epoch_s=NOW, max_age_s=2)["monitoring"] is True
+
+
+def test_r26_no_frame_line_or_no_timestamp_keeps_the_gate_shut():
+    assert hostscan.monitoring_gate("", now_epoch_s=NOW, max_age_s=2)["monitoring"] is False
+    no_stamp = "I MainActivity: onGatewayFrame seq=7 intervention=false warning=false braking=false"
+    assert hostscan.monitoring_gate(no_stamp, now_epoch_s=NOW, max_age_s=2)["monitoring"] is False
+
+
+def test_r26_the_monitoring_command_exits_nonzero_when_the_gate_is_shut(tmp_path, capsys):
+    logcat = tmp_path / "app.txt"
+    logcat.write_text(_app(NOW - 30) + "\n")
+    assert hostscan.main(["monitoring", "--logcat", str(logcat), "--now", str(NOW), "--max-age", "2"]) == 1
+    assert json.loads(capsys.readouterr().out)["monitoring"] is False
+    logcat.write_text(_app(NOW - 0.3) + "\n")
+    assert hostscan.main(["monitoring", "--logcat", str(logcat), "--now", str(NOW), "--max-age", "2"]) == 0

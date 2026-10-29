@@ -88,6 +88,24 @@ class Datagram:
     tcp_seq: int = 0
     tcp_ack: int = 0
     tcp_flags: int = 0
+    src_mac: str | None = None  # the link-layer source of the frame, where the link type carries one
+
+
+def _mac_text(raw: bytes) -> str:
+    return ":".join(f"{byte:02x}" for byte in raw)
+
+
+def _source_mac(packet: Packet) -> str | None:
+    """The link-layer source address of an Ethernet or Linux cooked frame, else None."""
+    data, link = packet.data, packet.linktype
+    if link == 1 and len(data) >= 12:
+        return _mac_text(data[6:12])
+    if link == 113 and len(data) >= 16:  # SLL v1: address length at 4:6, address at 6:14
+        length = struct.unpack(">H", data[4:6])[0]
+        return _mac_text(data[6:6 + length]) if length == 6 else None
+    if link == 276 and len(data) >= 20:  # SLL v2: address length at 11, address at 12:20
+        return _mac_text(data[12:18]) if data[11] == 6 else None
+    return None
 
 
 def _ipv4_text(raw: bytes) -> str:
@@ -172,10 +190,12 @@ def decode(packet: Packet) -> Datagram | None:
         sport, dport, seq, ack = struct.unpack(">HHII", transport[:12])
         header = (transport[12] >> 4) * 4
         flags = transport[13]
-        return Datagram(packet.ts_ns, "tcp", src, dst, sport, dport, transport[header:], vlans, seq, ack, flags)
+        return Datagram(packet.ts_ns, "tcp", src, dst, sport, dport, transport[header:], vlans, seq, ack, flags,
+                        _source_mac(packet))
     if protocol == 17 and len(transport) >= 8:
         sport, dport, length = struct.unpack(">HHH", transport[:6])
-        return Datagram(packet.ts_ns, "udp", src, dst, sport, dport, transport[8:length], vlans)
+        return Datagram(packet.ts_ns, "udp", src, dst, sport, dport, transport[8:length], vlans,
+                        src_mac=_source_mac(packet))
     return None
 
 

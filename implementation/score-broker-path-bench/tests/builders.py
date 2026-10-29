@@ -31,8 +31,16 @@ def _ipv4(src: str, dst: str, protocol: int, payload: bytes) -> bytes:
     return header + payload
 
 
-def _ethernet(payload: bytes, ethertype: int = 0x0800, vlans: tuple[int, ...] = ()) -> bytes:
-    frame = b"\x02\x00\x00\x00\x00\x02" + b"\x02\x00\x00\x00\x00\x01"
+DEFAULT_SRC_MAC = "02:00:00:00:00:01"
+
+
+def _mac(text: str) -> bytes:
+    return bytes(int(part, 16) for part in text.split(":"))
+
+
+def _ethernet(payload: bytes, ethertype: int = 0x0800, vlans: tuple[int, ...] = (),
+              src_mac: str = DEFAULT_SRC_MAC) -> bytes:
+    frame = b"\x02\x00\x00\x00\x00\x02" + _mac(src_mac)
     for vlan in vlans:
         frame += struct.pack(">HH", 0x8100, vlan)
     frame += struct.pack(">H", ethertype) + payload
@@ -40,14 +48,15 @@ def _ethernet(payload: bytes, ethertype: int = 0x0800, vlans: tuple[int, ...] = 
 
 
 def tcp_segment(src: str, dst: str, sport: int, dport: int, seq: int, ack: int, flags: int,
-                payload: bytes = b"") -> bytes:
+                payload: bytes = b"", src_mac: str = DEFAULT_SRC_MAC) -> bytes:
     header = struct.pack(">HHIIBBHHH", sport, dport, seq, ack, 0x50, flags, 65535, 0, 0)
-    return _ethernet(_ipv4(src, dst, 6, header + payload))
+    return _ethernet(_ipv4(src, dst, 6, header + payload), src_mac=src_mac)
 
 
-def udp_datagram(src: str, dst: str, sport: int, dport: int, payload: bytes, vlans: tuple[int, ...] = ()) -> bytes:
+def udp_datagram(src: str, dst: str, sport: int, dport: int, payload: bytes, vlans: tuple[int, ...] = (),
+                 src_mac: str = DEFAULT_SRC_MAC) -> bytes:
     header = struct.pack(">HHHH", sport, dport, 8 + len(payload), 0)
-    return _ethernet(_ipv4(src, dst, 17, header + payload), vlans=vlans)
+    return _ethernet(_ipv4(src, dst, 17, header + payload), vlans=vlans, src_mac=src_mac)
 
 
 def pcap(records: list[tuple[int, bytes]], linktype: int = LINKTYPE_ETHERNET) -> bytes:

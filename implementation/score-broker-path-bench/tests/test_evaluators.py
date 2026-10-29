@@ -214,6 +214,12 @@ def _vc016(tmp_path, produced, received, sd_offer=None, residual=None, sd_captur
 
 SD_T = P0 + 50_000_000  # the spoofed offer lands inside the produced-frame window
 
+# sd_core_processed.json as send_sd_offer.sh writes it (review R43).
+PROCESSED = {"processed": True, "status": "processed", "result": "secure_service_rejected",
+             "matched_line": "1793000000.400000 812 830 W vsomeip : process_offerservice_serviceentry: "
+                             "Ignoring offer of [4dee.0001]"}
+UNKNOWN = {"processed": None, "status": "unknown", "result": "no_matching_line", "matched_line": None}
+
 
 def _spoofed_offer_capture(offer_src_port=30490, provider="192.168.98.1"):
     """A host offer, then a spoofed IVI offer, then the core's subscribe to `provider`."""
@@ -265,7 +271,7 @@ def test_vc016_rg_unproduced_received_frame_fails(tmp_path):
 def test_vc016_r43_offer_from_the_sd_port_processed_and_no_redirect_passes(tmp_path):
     payloads = frames_seq()
     run = _vc016(tmp_path, payloads, payloads, sd_capture=_spoofed_offer_capture(offer_src_port=30490),
-                 core_processed={"processed": True, "detail": "someipd handled the offer"})
+                 core_processed=PROCESSED)
     assert evaluators.evaluate_provenance(run).outcome == outcome.PASS, evaluators.evaluate_provenance(run).as_dict()
 
 
@@ -274,7 +280,7 @@ def test_vc016_r43_offer_from_an_ephemeral_source_port_is_inconclusive(tmp_path)
     # not a valid stimulus (R43).
     payloads = frames_seq()
     run = _vc016(tmp_path, payloads, payloads, sd_capture=_spoofed_offer_capture(offer_src_port=45678),
-                 core_processed={"processed": True})
+                 core_processed=PROCESSED)
     result = evaluators.evaluate_provenance(run)
     assert result.outcome == outcome.INCONCLUSIVE
     assert any("source port" in f.message for f in result.findings)
@@ -292,8 +298,46 @@ def test_vc016_r43_offer_processed_with_a_redirect_fails(tmp_path):
     payloads = frames_seq()
     run = _vc016(tmp_path, payloads, payloads,
                  sd_capture=_spoofed_offer_capture(offer_src_port=30490, provider="192.168.98.118"),
-                 core_processed={"processed": True})
+                 core_processed=PROCESSED)
     assert evaluators.evaluate_provenance(run).outcome == outcome.FAIL
+
+
+def test_vc016_r43_a_redirect_in_the_capture_fails_even_without_a_processed_record(tmp_path):
+    # The core subscribing to the spoofed provider shows by itself that the stack
+    # took the offer; a missing log line must not hide that failure.
+    payloads = frames_seq()
+    for name, record in (("none", None), ("unknown", UNKNOWN)):
+        run = _vc016(tmp_path / name, payloads, payloads,
+                     sd_capture=_spoofed_offer_capture(offer_src_port=30490, provider="192.168.98.118"),
+                     core_processed=record)
+        assert evaluators.evaluate_provenance(run).outcome == outcome.FAIL, name
+
+
+def test_vc016_r43_an_ignored_offer_is_inconclusive(tmp_path):
+    payloads = frames_seq()
+    ignored = {"processed": False, "status": "ignored", "result": "unknown_port",
+               "matched_line": "1793000000.2 812 830 E vsomeip : Ignored SD message from unknown port (45678)"}
+    run = _vc016(tmp_path, payloads, payloads, sd_capture=_spoofed_offer_capture(offer_src_port=30490),
+                 core_processed=ignored)
+    result = evaluators.evaluate_provenance(run)
+    assert result.outcome == outcome.INCONCLUSIVE
+    assert any("ignored the offer" in f.message for f in result.findings)
+
+
+def test_vc016_r43_an_unknown_record_is_inconclusive(tmp_path):
+    payloads = frames_seq()
+    run = _vc016(tmp_path, payloads, payloads, sd_capture=_spoofed_offer_capture(offer_src_port=30490),
+                 core_processed=UNKNOWN)
+    result = evaluators.evaluate_provenance(run)
+    assert result.outcome == outcome.INCONCLUSIVE
+    assert any("no matching line" in f.message for f in result.findings)
+
+
+def test_vc016_r43_a_bare_processed_flag_without_its_line_is_inconclusive(tmp_path):
+    payloads = frames_seq()
+    run = _vc016(tmp_path, payloads, payloads, sd_capture=_spoofed_offer_capture(offer_src_port=30490),
+                 core_processed={"processed": True})
+    assert evaluators.evaluate_provenance(run).outcome == outcome.INCONCLUSIVE
 
 
 def test_vc016_b1_frames_produced_after_the_guest_capture_ended_are_not_a_stop(tmp_path):
@@ -322,40 +366,54 @@ def _marker(port, guest="ivi", iface="eth1", host="192.168.98.1"):
     return f"{guest}-{iface}-{port}"
 
 
+IVI_MAC = "00:1a:11:e1:cf:02"
+
+
 def _udp_probe(port, *, counter=True, sent="sent", guest="ivi", iface="eth1", host="192.168.98.1"):
-    return {"guest": guest, "interface": iface, "src_addr": "192.168.98.118", "host": host, "port": port,
-            "protocol": "udp", "marker": _marker(port, guest, iface, host), "send_status": sent,
-            "counter_moved": counter, "guest_connected": None}
+    return {"guest": guest, "netns": "-", "interface": iface, "src_addr": "192.168.98.118", "src_mac": IVI_MAC,
+            "host": host, "port": port, "protocol": "udp", "marker": _marker(port, guest, iface, host),
+            "send_status": sent, "counter_moved": counter, "guest_connected": None}
+
+
+def _udp_copy(attempt, capture_interface="cvd-ebr"):
+    # What hostscan records for a captured probe: it left on the named guest
+    # interface (its MAC) from the named source (review R41).
+    return {"marker": attempt["marker"], "capture_interface": capture_interface, "src": attempt["src_addr"],
+            "src_mac": attempt["src_mac"], "dst": attempt["host"], "sport": 40000, "dport": attempt["port"],
+            "vlans": []}
 
 
 def _full_isolation_artifacts(reached_udp=(), connected_4721=False, host="192.168.98.1", guest="ivi", iface="eth1"):
-    """Attempts and captured markers covering the full DDS set plus 4721 for one
-    (guest, host) pair, all isolated unless a port is marked reached (review R45:
-    a pass needs the whole set probed)."""
+    """Attempts and captured copies covering the full DDS set plus 4721 for one
+    (guest, interface, host) pair, all isolated unless a port is marked reached
+    (review R45: a pass needs the whole set probed), each captured as named (R41)."""
     reached = set(reached_udp)
-    attempts, udp_markers = [], []
-    for port in probe.dds_udp_ports():
-        attempts.append(_udp_probe(port, counter=port not in reached, guest=guest, iface=iface, host=host))
-        udp_markers.append(_marker(port, guest, iface, host))
-    attempts.append({"guest": guest, "interface": iface, "src_addr": "192.168.98.118", "host": host,
-                     "port": 4721, "protocol": "tcp", "marker": _marker(4721, guest, iface, host),
-                     "send_status": "sent", "counter_moved": not connected_4721, "guest_connected": connected_4721})
-    return attempts, udp_markers, [{"host": host, "port": 4721}]
+    attempts = [_udp_probe(port, counter=port not in reached, guest=guest, iface=iface, host=host)
+                for port in probe.dds_udp_ports()]
+    captured = {"udp_markers": [a["marker"] for a in attempts], "udp_captures": [_udp_copy(a) for a in attempts]}
+    attempts.append({"guest": guest, "netns": "-", "interface": iface, "src_addr": "192.168.98.118",
+                     "src_mac": IVI_MAC, "host": host, "port": 4721, "sport": 28001, "protocol": "tcp",
+                     "marker": _marker(4721, guest, iface, host), "send_status": "sent",
+                     "counter_moved": not connected_4721, "guest_connected": connected_4721})
+    captured["tcp_syns"] = [{"host": host, "port": 4721, "src": "192.168.98.118", "sport": 28001,
+                             "src_mac": IVI_MAC, "capture_interface": "cvd-ebr"}]
+    return attempts, captured
 
 
 def _vc017(tmp_path, *, reached_udp=(), connected_4721=False, **files):
-    attempts, udp_markers, syns = _full_isolation_artifacts(reached_udp, connected_4721)
+    attempts, captured = _full_isolation_artifacts(reached_udp, connected_4721)
     base = dict(
         firewall__json={"inet_table_present": True, "dds_counters_readable": True, "tcp_counters_readable": True},
         host_listeners__json=[{"address": "0.0.0.0", "port": 30160, "protocol": "udp", "element": "de4sdv_score_ad",
                                "pid": 11, "element_in_layer": True}],
         probe_attempts__json=attempts,
-        captured_markers__json={"udp_markers": udp_markers, "tcp_syns": syns},
+        captured_markers__json=captured,
         control__json={"captured": True, "counter_moved": False, "delivered": True, "detail": "control arrived"},
         coverage__json={"per_guest": {"ivi": {"expected_interfaces": ["eth1"],
                                               "expected_host_addresses": ["192.168.98.1"]}}},
         asm_mw_031__json={"holds": True},
         inspection__json={"no_host_endpoint": True, "inspector": "bench"},
+        dds_range__json={"domain": 91, "max_participant_index": 120, "ports": probe.dds_udp_ports()},
     )
     base.update(files)
     return evaluators.load_run(write(tmp_path, **base))
