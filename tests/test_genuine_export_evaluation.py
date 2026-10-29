@@ -63,16 +63,14 @@ def _evaluated(tmp_path: Path):
     return evaluate_export(export, "INC-AEBS-010")
 
 
-def test_the_frozen_cut_passes_framing_needs_and_requirements_and_next_asks_for_an_operational_context(
-        tmp_path: Path) -> None:
+def test_the_frozen_cut_passes_phases_0_to_8_and_next_asks_for_a_verification_case(tmp_path: Path) -> None:
     """The cut keeps the framing, operational-context, needs-and-requirements, functional, logical and
-    physical packages in full and the other declared packages as package elements only. INC-AEBS-010 has
-    no SystemContext, so the first open blocking check is phase 2's: next asks for an operational
-    context, and phase 2's four checks fail on population. Its common-capability record fails phase 3.
-    Its verification cases are outside the cut: phase 10 finds none, and no requirement is verified. The
-    full export of the same revision shows the same phase-2 and phase-3 gaps and passes phase 10 (Method
-    Check run 40765257237); the phase-10 failure is the cut boundary, not the model. Phase 11 is not
-    declared."""
+    physical packages in full and the other declared packages as package elements only. Since its phase-2
+    and phase-3 revision, INC-AEBS-010 has one SystemContext that holds its test system and the actors of
+    its story, and phase 3 records no common capability: phases 0 to 8 pass. Its verification cases are
+    outside the cut: phase 10 finds none, no requirement is verified, and next asks for a verification case.
+    The full export of the same revision passes phase 10 (Method Check); the phase-10 failure is the cut
+    boundary, not the model. Phase 11 is not declared."""
     snapshot, evaluation = _evaluated(tmp_path)
     assert snapshot.identity_mode == "export-validated-kernel-bindings"
     phases = {phase["phase"]: phase for phase in evaluation.status()["phases"]}
@@ -80,8 +78,8 @@ def test_the_frozen_cut_passes_framing_needs_and_requirements_and_next_asks_for_
             if phase["gates"]} == {
         "phase0_incrementFraming": (me.VERDICT_PASS, 15),
         "phase1_concernFraming": (me.VERDICT_PASS, 2),
-        "phase2_operationalContext": (me.VERDICT_FAIL, 4),
-        "phase3_capabilityClassification": (me.VERDICT_FAIL, 1),
+        "phase2_operationalContext": (me.VERDICT_PASS, 4),
+        "phase3_capabilityClassification": (me.VERDICT_PASS, 1),
         "phase4_needs": (me.VERDICT_PASS, 6),
         "phase5_requirements": (me.VERDICT_PASS, 6),
         "phase6_functionalArchitecture": (me.VERDICT_PASS, 4),
@@ -92,27 +90,54 @@ def test_the_frozen_cut_passes_framing_needs_and_requirements_and_next_asks_for_
     }
     assert phases["phase4_needs"]["applicability"] == "declared"  # an optional [0..1] step
     assert phases["phase9_variabilityConfiguration"]["coverage"] == "no executable checks at this revision"
+    # An untyped parameter is named by its keyword (its metaclass is no model element), and the remedy
+    # says how one verification case is declared.
+    verification = evaluation.next_obligation()["next"]
+    assert (verification["stage"], verification["gate"], verification["kind"]) == (
+        "phase10_vvEvidence", "verificationCaseVerifiesRequirement", "violation")
+    assert [subject["reason_codes"] for subject in verification["subjects"]] == [[me.POPULATION_POLICY_VIOLATION]]
+    assert verification["what_to_author"].startswith(
+        "keep at least 1 verification usage in the increment's packages named in the charter's expectedArtifacts")
+    assert verification["authoring"]["declarations"] == [
+        "verification <name> { objective { verify <requirement of the increment>; } }"]
+    blocking = {gap["gate"]: gap for gap in evaluation.gaps()["blocking"]}
+    assert set(blocking) == {"verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"}
+    assert sorted(s["name"] for s in blocking["requirementVerifiedByVerificationCase"]["subjects"]) == REQUIREMENTS
+
+
+#: INC-AEBS-010's operational-context package, which the cut keeps in full.
+AEBS_CONTEXT = "DE4SDV_AEBSVisualizationOperationalContext"
+
+
+def _drop_typing(export: dict, qualified: str) -> None:
+    """Mutation: remove the one FeatureTyping that the named part usage owns, with its source record."""
+    by_id = {e["@id"]: e for e in export["elements"]}
+    part = by_id[_one(export, qualified, "PartUsage")]
+    (typing,) = [r["@id"] for r in part["ownedRelationship"] if by_id[r["@id"]]["@type"] == "FeatureTyping"]
+    part["ownedRelationship"] = [r for r in part["ownedRelationship"] if r["@id"] != typing]
+    export["elements"] = [e for e in export["elements"] if e["@id"] != typing]
+    export["element_sources"].pop(typing)
+
+
+def test_without_its_operational_context_the_cut_asks_for_one_first(tmp_path: Path) -> None:
+    """Mutation on genuine shapes: INC-AEBS-010's operational context loses its SystemContext typing, so the
+    increment has no SystemContext, as before its phase-2 revision. Phase 2's four checks fail on population,
+    and next asks for an operational context first, with the declaration and the import to author."""
+    export = _cut()
+    _drop_typing(export, f"{AEBS_CONTEXT}::aebsVisualizationOperationalContext")
+    _snapshot, evaluation = _evaluate_cut(tmp_path, export)
+    phases = {phase["phase"]: phase for phase in evaluation.status()["phases"]}
+    assert (phases["phase2_operationalContext"]["conformance_verdict"],
+            len(phases["phase2_operationalContext"]["gates"])) == (me.VERDICT_FAIL, 4)
     step = evaluation.next_obligation()["next"]
     assert (step["stage"], step["gate"], step["kind"]) == (
         "phase2_operationalContext", "incrementHasOperationalContext", "violation")
     assert [subject["reason_codes"] for subject in step["subjects"]] == [[me.POPULATION_POLICY_VIOLATION]]
     assert step["authoring"]["declarations"] == ["part <operationalContextName> : DE4SDV_MethodContext::SystemContext;"]
     assert step["authoring"]["imports"] == ["private import DE4SDV_MethodContext::*;"]
-    # An untyped parameter is named by its keyword (its metaclass is no model element), and the remedy
-    # says how one verification case is declared.
-    verification = evaluation.next_obligation(phase="phase10_vvEvidence")["next"]
-    assert verification["gate"] == "verificationCaseVerifiesRequirement"
-    assert verification["what_to_author"].startswith(
-        "keep at least 1 verification usage in the increment's packages named in the charter's expectedArtifacts")
-    assert verification["authoring"]["declarations"] == [
-        "verification <name> { objective { verify <requirement of the increment>; } }"]
-    blocking = {gap["gate"]: gap for gap in evaluation.gaps()["blocking"]}
-    assert set(blocking) == {
-        "incrementHasOperationalContext", "operationalContextHoldsSystemOfInterest",
-        "storyBindsSubjectToSystemOfInterest", "storyBindsActorsToContextParts", "characteristicIsFeatureDelta",
-        "verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"}
-    assert sorted(s["name"] for s in blocking["requirementVerifiedByVerificationCase"]["subjects"]) == REQUIREMENTS
-    assert [s["name"] for s in blocking["characteristicIsFeatureDelta"]["subjects"]] == ["aebsCapabilityRemainsCommon"]
+    blocking = {gap["gate"] for gap in evaluation.gaps()["blocking"]}
+    assert {"incrementHasOperationalContext", "operationalContextHoldsSystemOfInterest",
+            "storyBindsSubjectToSystemOfInterest", "storyBindsActorsToContextParts"} <= blocking
 
 
 def _verdicts(evaluation, gate: str) -> dict[str, str | None]:
@@ -130,13 +155,28 @@ def test_the_frozen_cut_s_concerns_have_stakeholders_and_are_framed_by_the_viewp
         assert len(verdicts) == 14 and set(verdicts.values()) == {me.VERDICT_PASS}, gate
 
 
-def test_the_frozen_cut_s_classification_keeps_deferred_scope_and_refuses_its_common_capability_record(
+def test_the_frozen_cut_s_classification_keeps_its_deferred_scope_and_records_no_common_capability(
         tmp_path: Path) -> None:
-    """Genuine shapes of phase 3: CLS-AEBS-010-001 records deferred product-line scope (allowed); CLS-AEBS-010-002
-    records the AEBS capability as common, a record rule 10 says a core element never gets."""
+    """Genuine shapes of phase 3: CLS-AEBS-010-001 records deferred product-line scope (allowed). Since its
+    phase-3 revision the increment records no common capability, as rule 10 says."""
     _snapshot, evaluation = _evaluated(tmp_path)
     assert _verdicts(evaluation, "characteristicIsFeatureDelta") == {
-        "visualizationTestSystemClassification": me.VERDICT_PASS, "aebsCapabilityRemainsCommon": me.VERDICT_FAIL}
+        "visualizationTestSystemClassification": me.VERDICT_PASS}
+
+
+def test_a_common_capability_record_in_the_cut_fails_the_feature_delta(tmp_path: Path) -> None:
+    """Mutation on genuine shapes: CLS-AEBS-010-001 retyped by the kernel CommonProductLineCapability is a
+    common-capability record, which rule 10 says a core element never gets."""
+    export = _cut()
+    by_id = {e["@id"]: e for e in export["elements"]}
+    record = by_id[_one(export, "DE4SDV_AEBSVisualizationNeedsRequirements::VisualizationClassification::"
+                                "visualizationTestSystemClassification", "PartUsage")]
+    common = _one(export, "DE4SDV_ProductLine::CommonProductLineCapability", "PartDefinition")
+    (typing,) = [by_id[r["@id"]] for r in record["ownedRelationship"] if by_id[r["@id"]]["@type"] == "FeatureTyping"]
+    typing["type"] = typing["general"] = {"@id": common}
+    _snapshot, evaluation = _evaluate_cut(tmp_path, export)
+    assert _verdicts(evaluation, "characteristicIsFeatureDelta") == {
+        "visualizationTestSystemClassification": me.VERDICT_FAIL}
 
 
 #: INC-MW-011's operational context, which the cut keeps in full for the binding shapes of its story.
@@ -153,8 +193,8 @@ def test_the_frozen_cut_reads_the_story_bindings_of_both_increments_in_their_gen
     """Genuine shapes of phase 2. INC-MW-011's six use cases bind their subject to the integrationLayer that
     redefines its SystemContext's systemOfInterest, and their actors to parts nested in the context, as the
     serializer writes ``= <qualified name>``: a FeatureValue whose FeatureReferenceExpression names the part.
-    INC-AEBS-010's story binds no subject (``subject instrumentedMember;``) and binds its actors to parts of
-    its package, outside any SystemContext."""
+    INC-AEBS-010's story binds its subject to the visualizationTestSystem that redefines its SystemContext's
+    systemOfInterest, and its actors to parts of that context, in the same shapes."""
     _snapshot, evaluation = _evaluated(tmp_path)
     view = evaluation.view
     scope = _package_scope(view, SCORE_CONTEXT)
@@ -170,25 +210,30 @@ def test_the_frozen_cut_reads_the_story_bindings_of_both_increments_in_their_gen
     assert story_subject_problems(view, scope, context) == []
     assert story_actor_problems(view, scope, context) == []
     assert len([a for u in use_cases for a in use_case_parameters(view, u, "ActorMembership")]) == 20
-    aebs_context = "DE4SDV_AEBSVisualizationOperationalContext"
-    aebs = _package_scope(view, aebs_context)
+    aebs = _package_scope(view, AEBS_CONTEXT)
+    (aebs_context,) = [e for e in aebs.scope_elements
+                       if view.label(e) == f"{AEBS_CONTEXT}::aebsVisualizationOperationalContext"]
+    declared, aebs_systems = context_system_of_interest(view, aebs_context)
+    assert view.label(declared) == "DE4SDV_MethodContext::SystemContext::systemOfInterest"
+    aebs_label = f"{AEBS_CONTEXT}::aebsVisualizationOperationalContext"
+    assert [view.label(s) for s in aebs_systems] == [f"{aebs_label}::visualizationTestSystem"]
     (story,) = increment_use_cases(view, aebs)
     (subject,) = use_case_parameters(view, story, "SubjectMembership")
-    assert (view.index.name_of(subject), bound_targets(view, subject)) == ("instrumentedMember", ([], []))
+    assert (view.index.name_of(subject), bound_targets(view, subject)) == ("visualizationTestSystem", (aebs_systems, []))
     # The story's own actors redefine those of its definition by the language rule (an implied
     # Redefinition in the export): the use case has four actors, not eight.
     actors = use_case_parameters(view, story, "ActorMembership")
     assert {view.label(a): [view.label(t) for t in bound_targets(view, a)[0]] for a in actors} == {
-        f"{aebs_context}::aebsVisualizationStory::reviewer": [f"{aebs_context}::displayReviewer"],
-        f"{aebs_context}::aebsVisualizationStory::driver": [f"{aebs_context}::observingDriver"],
-        f"{aebs_context}::aebsVisualizationStory::vehicleTarget": [f"{aebs_context}::scenarioVehicleTarget"],
-        f"{aebs_context}::aebsVisualizationStory::evidenceBaseline": [f"{aebs_context}::visualizationEvidenceBaseline"]}
-    # Each actor is bound to a part its package owns directly, outside any SystemContext: once the increment
-    # declares a context, phase 2 asks to bind them to parts of it.
-    package = view.index.owner_of(story)
+        f"{AEBS_CONTEXT}::aebsVisualizationStory::reviewer": [f"{aebs_label}::displayReviewer"],
+        f"{AEBS_CONTEXT}::aebsVisualizationStory::driver": [f"{aebs_label}::observingDriver"],
+        f"{AEBS_CONTEXT}::aebsVisualizationStory::vehicleTarget": [f"{aebs_label}::scenarioVehicleTarget"],
+        f"{AEBS_CONTEXT}::aebsVisualizationStory::evidenceBaseline": [f"{aebs_label}::visualizationEvidenceBaseline"]}
+    # Each actor is bound to a part that the context owns, around its system of interest.
     for actor in actors:
         (target,) = bound_targets(view, actor)[0]
-        assert view.index.owner_of(target) == package
+        assert view.index.owner_of(target) == aebs_context
+    assert story_subject_problems(view, aebs, aebs_context) == []
+    assert story_actor_problems(view, aebs, aebs_context) == []
 
 
 def test_a_genuine_subject_binding_retargeted_off_the_system_of_interest_is_found(tmp_path: Path) -> None:

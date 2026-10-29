@@ -457,7 +457,7 @@ def test_a_charter_without_a_system_of_interest_leaves_the_context_gate_indeterm
 
 
 def test_an_unbound_story_subject_fails_and_names_the_use_case() -> None:
-    """INC-AEBS-010's shape in the frozen genuine-export cut: ``subject instrumentedMember;``, no value."""
+    """The shape INC-AEBS-010 had before its phase-2 revision: ``subject instrumentedMember;``, no value."""
     story = _story()
     b = story.builder
     (value,) = [r for r in b.elements if r.get("@type") == "FeatureValue"
@@ -550,7 +550,7 @@ def test_an_include_use_case_is_no_use_case_of_the_story() -> None:
 @pytest.mark.parametrize("where", ["package part", "the system of interest", "inside the system of interest",
                                    "the kernel's actors slot", "unbound"])
 def test_an_actor_not_bound_to_a_part_around_the_system_of_interest_fails(where) -> None:
-    """INC-AEBS-010's shape in the frozen genuine-export cut binds its actors to package parts: no part of an
+    """The shape INC-AEBS-010 had before its phase-2 revision binds its actors to package parts: no part of an
     operational context."""
     story = _story()
     b = story.builder

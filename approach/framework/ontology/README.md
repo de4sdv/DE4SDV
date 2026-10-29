@@ -112,3 +112,18 @@ Since the switch of ADR 0022 `FeatureConfiguration` maps to the pinned PLEML
 declaration, `occurrence def FeatureConfiguration` of the pinned library. The ontology `Feature`
 stays `ProductLineFeatureCandidate`: a feature of a PLEML feature model is a
 distinct element, a configurable option of the catalogue.
+
+The configured product, the main output of phase 9, maps to
+`ProductLineConfiguredProduct` in `DE4SDV_ProductLine` (ontology class
+`ConfiguredProduct`). The vocabulary-only relationship `configuredBy` maps it
+onto `FeatureConfiguration`. So the kernel imports no PLEML package: the
+relationship is a DE4SDV derived fact over the product-model projection that
+the configuration generates. The baseline decision of phase 12 maps to
+`IncrementBaselineDecision`, a specialization of `IncrementLifecycleDecision`
+in `DE4SDV_MethodContext`. The enumeration `LifecycleDisposition` (`accepted`,
+`deferred`, `invalidated`) types its disposition and the optional disposition
+of an `IncrementGap`. The typing identifies a baseline decision, never a name.
+No check reads the baseline register, and a disposition is no acceptance
+record. These four identities are method-admitted rows of the kernel-vocabulary
+admission, bound like the other kernel classes
+([ADR 0011](../../../docs/architecture-decisions/0011-import-reviewed-sysml-baseline-into-api.md)).

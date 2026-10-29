@@ -332,6 +332,9 @@ package DE4SDV_MethodContext {
 
   part def IncrementGap {
     doc /* A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden. */
+    attribute disposition : LifecycleDisposition[0..1] {
+      doc /* The disposition that the baseline decision of phase 12 gives the gap while it is open. A gap has no disposition before phase 12. */
+    }
   }
 
   part def IncrementScope {
@@ -344,6 +347,26 @@ package DE4SDV_MethodContext {
 
   part def IncrementLifecycleDecision {
     doc /* A lifecycle decision that an increment supports (accepted, deferred, or invalidated). */
+  }
+
+  part def IncrementBaselineDecision :> IncrementLifecycleDecision {
+    doc /* The lifecycle decision of phase 12: what the baseline of the increment accepts, defers or invalidates. It is not the framing decision of phase 0, which states the decision that the increment is to support. Its disposition states the decision. Its typing identifies it, never a name: a BL identifier in its short name names the record and does not make it a baseline decision. No check reads the baseline register, and the model does not mirror it. No acceptance under de4sdv.acceptance.maintainer-decision.v1, no compliance and no certification claim follows from it. */
+    attribute disposition : LifecycleDisposition {
+      doc /* What the baseline decision does with the result of the increment. */
+    }
+  }
+
+  enum def LifecycleDisposition {
+    doc /* The disposition that a baseline decision gives the result of an increment or an open gap (accepted, deferred, or invalidated). It is no evidence status, no verdict and no acceptance record. */
+    accepted {
+      doc /* The baseline accepts the item for its stated scope. An accepted open gap stays open: the baseline keeps it visible as a known limit. */
+    }
+    deferred {
+      doc /* The baseline moves the item to a later slice or increment. */
+    }
+    invalidated {
+      doc /* The item does not hold, and the baseline withdraws it. */
+    }
   }
 
   part def MissingRealizationRecord {
