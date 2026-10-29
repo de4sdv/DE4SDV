@@ -36,12 +36,12 @@ stamps each VelocityReport from a clock of system time (`RCL_SYSTEM_TIME`),
 not from the node clock. The soak checks the endpoints with
 `ros2 node info`.
 
-With parameter services, any ROS 2 process on the host could abort the
-adapter: for a request that names an undeclared parameter, rclcpp throws and
-catches `ParameterNotDeclaredException` inside the service, and the override
-turns that throw into an abort. The adapter has no parameter services, also
-not in the abort matrix. The health proxy node will start with the same node
-options.
+With parameter services, any ROS 2 process that reaches the host's DDS ports
+could abort the adapter: for a request that names an undeclared parameter,
+rclcpp throws and catches `ParameterNotDeclaredException` inside the service,
+and the override turns that throw into an abort. The adapter has no
+parameter services, also not in the abort matrix. The health proxy node will
+start with the same node options.
 
 One way to abort the adapter stays. rmw_cyclonedds_cpp 1.3.5 takes samples
 of other participants on the `ros_discovery_info` subscription of its

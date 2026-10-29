@@ -6,7 +6,7 @@
 # and disk caches under ~/.cache/de4sdv-bazel, and records the runner facts.
 # Usage: ci_prepare_runner.sh [--runner] <facts-dir>
 set -euo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/runner_only.sh" || exit 2
+source "$(dirname "${BASH_SOURCE[0]:?}")/runner_only.sh" || exit 2
 
 out=${1:?usage: ci_prepare_runner.sh <facts-dir>}
 mkdir -p "$out"

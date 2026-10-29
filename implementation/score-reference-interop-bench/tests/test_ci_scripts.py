@@ -5,7 +5,8 @@ The ci_* scripts may change the host they run on (packages, ~/.bazelrc,
 without GITHUB_ACTIONS=true, and without --runner as the first argument,
 each one refuses at once and changes nothing. The guard is one file,
 scripts/runner_only.sh, that each script sources as its first command after
-set; without that file a script refuses too.
+set; without that file a script refuses too, and so does a script read from
+stdin, which has no path of its own to find the guard by.
 """
 
 import os
@@ -17,7 +18,7 @@ import pytest
 
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 SCRIPTS = sorted(SCRIPTS_DIR.glob("ci_*.sh"))
-GUARD_LINE = 'source "$(dirname "${BASH_SOURCE[0]}")/runner_only.sh" || exit 2'
+GUARD_LINE = 'source "$(dirname "${BASH_SOURCE[0]:?}")/runner_only.sh" || exit 2'
 
 
 def _environment(**changes: str) -> dict[str, str]:
@@ -52,6 +53,16 @@ def test_a_ci_script_without_the_guard_file_refuses_too(script, tmp_path):
     home.mkdir()
     assert _run_off_a_runner(alone, home).returncode == 2
     assert list(home.iterdir()) == []
+
+
+@pytest.mark.parametrize("script", SCRIPTS, ids=lambda path: path.name)
+def test_a_ci_script_read_from_stdin_refuses_also_with_a_guard_file_in_the_working_directory(script, tmp_path):
+    (tmp_path / "runner_only.sh").write_text("# planted: does nothing\n", encoding="utf-8")
+    with script.open("rb") as stdin:
+        completed = subprocess.run(["bash", "-s", str(tmp_path / "facts")], stdin=stdin, cwd=tmp_path,
+                                   env=_environment(HOME=str(tmp_path)), capture_output=True, timeout=30, check=False)
+    assert completed.returncode == 2, completed.stderr
+    assert [path.name for path in tmp_path.iterdir()] == ["runner_only.sh"]
 
 
 @pytest.mark.parametrize("script", SCRIPTS, ids=lambda path: path.name)

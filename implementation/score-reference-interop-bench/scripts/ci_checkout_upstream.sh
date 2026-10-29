@@ -6,7 +6,7 @@
 # No S-CORE file enters the DE4SDV repository: the overlay goes the other way.
 # Usage: ci_checkout_upstream.sh [--runner] <repo-url> <commit> <dest> <facts-dir> <name> [<src-dir>=<dest-subdir> ...]
 set -euo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/runner_only.sh" || exit 2
+source "$(dirname "${BASH_SOURCE[0]:?}")/runner_only.sh" || exit 2
 
 repo=${1:?}
 commit=${2:?}

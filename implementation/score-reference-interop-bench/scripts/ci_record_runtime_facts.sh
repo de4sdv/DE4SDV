@@ -6,7 +6,7 @@
 # of the runtime bundle.
 # Usage: ci_record_runtime_facts.sh [--runner] <facts-dir> <bundle-dir> [<bundle-archive>]
 set -uo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/runner_only.sh" || exit 2
+source "$(dirname "${BASH_SOURCE[0]:?}")/runner_only.sh" || exit 2
 
 out=${1:?usage: ci_record_runtime_facts.sh <facts-dir> <bundle-dir> [<bundle-archive>]}
 bundle=${2:?usage: ci_record_runtime_facts.sh <facts-dir> <bundle-dir> [<bundle-archive>]}

@@ -6,7 +6,7 @@
 # installed versions are recorded.
 # Usage: ci_install_ros.sh [--runner] <facts-dir> <build|runtime>
 set -euo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/runner_only.sh" || exit 2
+source "$(dirname "${BASH_SOURCE[0]:?}")/runner_only.sh" || exit 2
 
 out=${1:?usage: ci_install_ros.sh <facts-dir> <build|runtime>}
 mode=${2:?usage: ci_install_ros.sh <facts-dir> <build|runtime>}

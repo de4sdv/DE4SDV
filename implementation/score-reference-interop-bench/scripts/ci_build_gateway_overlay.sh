@@ -13,7 +13,7 @@
 # the bench (<bundle>), and records the build facts.
 # Usage: ci_build_gateway_overlay.sh [--runner] <gateway-checkout> <facts-dir> <sdk-dir> <bundle-dir> <bench-dir>
 set -euo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/runner_only.sh" || exit 2
+source "$(dirname "${BASH_SOURCE[0]:?}")/runner_only.sh" || exit 2
 
 gw=${1:?}
 out=${2:?}

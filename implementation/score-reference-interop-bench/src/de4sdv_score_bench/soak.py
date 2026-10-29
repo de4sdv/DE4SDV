@@ -102,7 +102,7 @@ _GATEWAYD_NO_SUBSCRIBER = re.compile(
 # The time after someipd's subscription line within which a drop still
 # counts as one before the subscription took effect.
 SUBSCRIPTION_SETTLE_S = 1.0
-_HEX = re.compile(r"^[0-9a-f]+$")
+_HEX = re.compile(r"[0-9a-f]+")
 _FRAME_COUNTERS_ZERO = (
     "frames_allocate_failed",
     "frames_send_failed",
@@ -186,7 +186,7 @@ def _publishable(value: float) -> bool:
 
 
 def _hex_bits(value: Any, digits: int) -> bool:
-    return isinstance(value, str) and len(value) == digits and _HEX.match(value) is not None
+    return isinstance(value, str) and len(value) == digits and _HEX.fullmatch(value) is not None
 
 
 def _records(text: str, key: str, source: str,
@@ -210,8 +210,10 @@ def _provider_samples(text: str) -> tuple[list[tuple[int, str, int]], list[str]]
         and _is_int(record.get("monotonic_ns")) and isinstance(record.get("send"), str)))
     samples = []
     for record in records:
+        if record["send"] != "ok":
+            continue
         value = _double_from_bits(record["bits"])
-        if record["send"] == "ok" and _publishable(value):
+        if _publishable(value):
             samples.append((record["seq"], float32_bits(value / 3.6), record["monotonic_ns"]))
     return samples, errors
 

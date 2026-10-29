@@ -7,7 +7,7 @@
 # The control build without the abort override is built next to it.
 # Usage: ci_build_colcon.sh [--runner] <workspace-dir> <facts-dir> <sdk-dir> <bench-dir> <bundle-dir>
 set -eo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/runner_only.sh" || exit 2
+source "$(dirname "${BASH_SOURCE[0]:?}")/runner_only.sh" || exit 2
 
 ws=${1:?}
 out=${2:?}

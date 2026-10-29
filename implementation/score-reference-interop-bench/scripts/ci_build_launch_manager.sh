@@ -10,7 +10,7 @@
 # bench user as sandbox user and group.
 # Usage: ci_build_launch_manager.sh [--runner] <checkout-dir> <facts-dir> <output-dir> <bench-dir>
 set -euo pipefail
-source "$(dirname "${BASH_SOURCE[0]}")/runner_only.sh" || exit 2
+source "$(dirname "${BASH_SOURCE[0]:?}")/runner_only.sh" || exit 2
 
 lc=${1:?}
 out=${2:?}
