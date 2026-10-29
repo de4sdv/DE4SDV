@@ -681,3 +681,131 @@ def test_a_framing_decision_typed_by_a_local_specialization_still_counts() -> No
                          [increment.roots["IncrementLifecycleDecision"]])
     _retype_framing_decision(increment, local)
     assert _unit(_evaluate(increment), FRAMING_DECISION).verdict == me.VERDICT_PASS
+
+
+# -- the closure check: the limits of the typing rule (R12 to R15) -------------------------------------
+
+
+def _redefine(increment: Increment, owner: dict[str, Any], redefined: dict[str, Any],
+              typed_by: Any = None) -> dict[str, Any]:
+    """``part :>> platformStack [: <typed_by>];`` in ``owner``, redefining ``redefined``."""
+    b = increment.builder
+    usage = b.usage("PartUsage", "platformStack", owner, [typed_by] if typed_by else [], membership="FeatureMembership")
+    b.relationship("Redefinition", usage, redefinedFeature={"@id": redefined["@id"]},
+                   redefiningFeature={"@id": usage["@id"]})
+    return usage
+
+
+def _article(increment: Increment, name: str, general: dict[str, Any]) -> dict[str, Any]:
+    b = increment.builder
+    definition = b.definition("PartDefinition", name, increment.product_package)
+    b.specializes(definition, general)
+    return definition
+
+
+def _other_configuration(increment: Increment) -> tuple[dict[str, Any], dict[str, tuple[str, ...]]]:
+    """A second configuration with its own projection, and a specialization of that projection."""
+    b = increment.builder
+    second = b.definition("PartDefinition", "FixtureSecondProjection", b.package("DE4SDV_FixtureMoreProductModels"))
+    other = b.usage("PartUsage", "otherConfiguration", increment.product_package)
+    instrumented = b.definition("PartDefinition", "FixtureOtherInstrumentedStack", increment.product_package)
+    b.specializes(instrumented, second)
+    return instrumented, {**increment.projections, second["@id"]: (other["@id"],)}
+
+
+def test_a_redefinition_into_another_configurations_projection_counts_both_and_fails() -> None:
+    """R12: ``part :>> platformStack : <a specialization of another projection>;`` keeps the redefined type,
+    so the swap counts two configurations: a specialization is configured by the same configuration."""
+    increment = _increment()
+    b = increment.builder
+    b.remove(increment.product)
+    instrumented, projections = _other_configuration(increment)
+    article = _article(increment, "FixtureTestArticle", increment.product_def)
+    _redefine(increment, article, increment.platform_stack, instrumented)
+    b.usage("PartUsage", "testArticle", increment.product_package, [article])
+    evaluation = _evaluate(increment, projections=projections)
+    assert _verdicts(evaluation, CONFIGURED_BY) == {"testArticle": me.VERDICT_FAIL}
+    assert any("configured by 2 feature configurations" in d for d in _diagnostics(evaluation, CONFIGURED_BY))
+
+
+def test_an_untyped_link_over_a_cross_configuration_redefinition_fails_too() -> None:
+    """R12, chained: an untyped redefinition keeps both configurations of the link it redefines."""
+    increment = _increment()
+    b = increment.builder
+    b.remove(increment.product)
+    instrumented, projections = _other_configuration(increment)
+    article = _article(increment, "FixtureTestArticle", increment.product_def)
+    middle = _redefine(increment, article, increment.platform_stack, instrumented)
+    child = _article(increment, "FixtureTestArticleChild", article)
+    _redefine(increment, child, middle)
+    b.usage("PartUsage", "testArticle", increment.product_package, [child])
+    evaluation = _evaluate(increment, projections=projections)
+    assert _verdicts(evaluation, CONFIGURED_BY) == {"testArticle": me.VERDICT_FAIL}
+    assert any("configured by 2 feature configurations" in d for d in _diagnostics(evaluation, CONFIGURED_BY))
+
+
+def test_an_untyped_link_past_an_unrelated_typed_middle_link_hides_the_projection() -> None:
+    """R13 (M12): the untyped top link keeps the type of the middle link, which is no projection's; it
+    does not reach past it to the projection the middle link hides. The remedy names the middle link (R14)."""
+    increment = _increment()
+    b = increment.builder
+    b.remove(increment.product)
+    unrelated = b.definition("PartDefinition", "FixtureUnrelatedStack", increment.product_package)
+    article = _article(increment, "FixtureTestArticle", increment.product_def)
+    middle = _redefine(increment, article, increment.platform_stack, unrelated)
+    child = _article(increment, "FixtureTestArticleChild", article)
+    _redefine(increment, child, middle)
+    b.usage("PartUsage", "testArticle", increment.product_package, [child])
+    evaluation = _evaluate(increment)
+    assert _verdicts(evaluation, CONFIGURED_BY) == {"testArticle": me.VERDICT_FAIL}
+    assert any("configured by no feature configuration" in d for d in _diagnostics(evaluation, CONFIGURED_BY))
+    entry = _blocking(evaluation, CONFIGURED_BY)
+    assert entry["what_to_author"].startswith(f"{PRODUCT_PACKAGE}::FixtureTestArticle::platformStack redefines")
+    assert "FixtureTestArticleChild::platformStack redefines" not in entry["what_to_author"]
+
+
+def test_an_untyped_link_over_an_untyped_link_keeps_the_projection() -> None:
+    increment = _increment()
+    b = increment.builder
+    b.remove(increment.product)
+    article = _article(increment, "FixtureTestArticle", increment.product_def)
+    middle = _redefine(increment, article, increment.platform_stack)
+    child = _article(increment, "FixtureTestArticleChild", article)
+    _redefine(increment, child, middle)
+    b.usage("PartUsage", "testArticle", increment.product_package, [child])
+    assert _verdicts(_evaluate(increment), CONFIGURED_BY) == {"testArticle": me.VERDICT_PASS}
+
+
+def test_a_part_typed_by_the_owner_of_the_projection_is_configured_by_none() -> None:
+    """R13 (M14): a general of a projection part definition, such as the owner it specializes, never counts,
+    also when it owns exactly one projection."""
+    increment = _increment()
+    b = increment.builder
+    owner = b.definition("PartDefinition", "FixturePlatformStack", increment.product_package)
+    b.specializes(increment.projection, owner)
+    b.remove(increment.platform_stack)
+    b.usage("PartUsage", "platformStack", increment.product_def, [owner], membership="FeatureMembership")
+    evaluation = _evaluate(increment)
+    assert _verdicts(evaluation, CONFIGURED_BY) == {"configuredProduct": me.VERDICT_FAIL}
+
+
+def test_the_derivation_is_never_reused_for_another_views_inputs() -> None:
+    """R13 (M19): two export views over one corpus with other input objects never share the derived
+    configurations: the second view derives its own (none here, without PLEML), never the first's."""
+    increment = _increment()
+    traversal = _traversal(increment.builder)
+    first = _view(increment, traversal=traversal)
+    assert _unit(evaluate_increment(first, increment.scenario.increment_id, revision=REVISION),
+                 CONFIGURED_BY).verdict == me.VERDICT_PASS
+    b = increment.builder
+    second = ModelView(b.elements, traversal, sources=dict(b.sources), external_references=())
+    unit = _unit(evaluate_increment(second, increment.scenario.increment_id, revision=REVISION), CONFIGURED_BY)
+    assert unit.verdict != me.VERDICT_PASS
+
+
+def test_a_gap_whose_disposition_redefines_the_baseline_decisions_feature_does_not_count() -> None:
+    """R15: the redefined kernel disposition belongs to a holder in the record's own type lineage."""
+    increment = _increment()
+    _replace_disposition(increment, increment.gap)
+    increment.dispose(increment.gap, increment.literals["accepted"], "IncrementBaselineDecision")
+    assert _verdicts(_evaluate(increment), GAP_DISPOSITION) == {"fixtureGap": me.VERDICT_FAIL}

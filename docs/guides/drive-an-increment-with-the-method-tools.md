@@ -326,8 +326,9 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   of its part usages, its own or inherited and not redefined, is typed by
   the part definition of that configuration's product-model projection, or
   by a specialization of it. A redefining part without a type of its own
-  keeps the type it redefines. The derivation binds that part definition
-  by validated identity, never by its name alone. A test article that
+  keeps the type it redefines. A redefinition typed into another
+  configuration's projection keeps both and fails. The derivation binds
+  that part definition by validated identity, never by its name alone. A test article that
   specializes a configured member counts through the part it inherits and
   never becomes a member. Over the API the derivation lacks the source
   documents and the external references of an export. There the check is

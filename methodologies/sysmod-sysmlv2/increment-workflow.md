@@ -356,7 +356,13 @@ These method rules apply to every increment:
       usages are its own and the inherited ones that it does not redefine.
       A usage is typed by its own typing. A redefining usage without a type
       of its own keeps the type of the feature it redefines, transitively,
-      as the serializer writes no typing for it. The configuration's
+      as the serializer writes no typing for it. A redefining usage whose
+      own type falls in a projection lineage also keeps the projection type
+      it redefines: a specialization is configured by the same
+      configuration, so a redefinition into another configuration's
+      projection counts both and fails. An own type outside every projection
+      hides the projection it redefines, and a general of a projection part
+      definition, such as its owner, never counts. The configuration's
       `ProductModelProjectionName` annotation names that part definition,
       and the derivation binds it by validated identity: metatype, name,
       generated document and owner, never the name alone. No
@@ -383,8 +389,9 @@ These method rules apply to every increment:
       disposition that the baseline decision gives it
       (`dispositionStated`). An increment without a gap has none to state.
       Each record states its own disposition: one feature that redefines
-      the kernel's `disposition`, with exactly one value, a literal that
-      `LifecycleDisposition` itself owns. A value that only a definition
+      the kernel's `disposition` of a holder in the record's own type
+      lineage, with exactly one value, a literal that `LifecycleDisposition`
+      itself owns. A value that only a definition
       sets does not count, and neither does a literal of a specialization.
       The typing identifies the baseline decision, never a name: a `BL-`
       short name does not make one.

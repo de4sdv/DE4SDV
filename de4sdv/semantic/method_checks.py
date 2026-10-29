@@ -1343,29 +1343,34 @@ def effective_part_usages(view: ModelView, product: str) -> list[str]:
     return [usage for usage in found if usage not in redefined]
 
 
-def effective_types(view: ModelView, usage: str) -> set[str]:
-    """The definitions that type a usage: its own typing, else the typing of the features it redefines,
-    transitively. A redefining usage without a type of its own keeps the type of the feature it
-    redefines (the serializer writes no typing for it)."""
-    found: set[str] = set()
-    seen: set[str] = set()
-    frontier = [usage]
-    while frontier:
-        current = frontier.pop(0)
-        if current in seen:
-            continue
-        seen.add(current)
-        own = view.index.typed_by(current)
-        if own:
-            found |= set(own)
-        else:
-            frontier.extend(_direct_redefinitions(view, current))
-    return found
+def effective_types(view: ModelView, usage: str, _seen: set[str] | None = None) -> set[str]:
+    """The definitions that type a usage for the derivation. A usage without a type of its own keeps the
+    effective types of the features it redefines, transitively: the serializer writes no typing for it. A
+    usage with its own types keeps those, and also the types it redefines when both fall in projection
+    lineages: a redefinition into another configuration's projection then counts both configurations,
+    as the redefining usage keeps the redefined type (a specialization is configured by the same
+    configuration). A type of its own outside every projection hides the projection it redefines."""
+    seen = set() if _seen is None else _seen
+    if usage in seen:
+        return set()
+    seen.add(usage)
+    own = set(view.index.typed_by(usage))
+    inherited: set[str] = set()
+    for redefined in _direct_redefinitions(view, usage):
+        inherited |= effective_types(view, redefined, seen)
+    if not own:
+        return inherited
+    projections, _marker, _problem = configuration_part_definitions(view)
+    if (inherited and _configurations_of_types(view, projections, own)
+            and _configurations_of_types(view, projections, inherited)):
+        return own | inherited
+    return own
 
 
 def _configurations_of_types(view: ModelView, projections: Mapping[str, tuple[str, ...]],
                              types: Iterable[str]) -> list[str]:
-    """The configurations whose projection part definition each type is, or specializes."""
+    """The configurations whose projection part definition each type is, or specializes. A general of a
+    projection part definition, such as its owner, never counts."""
     found: list[str] = []
     for definition, configurations in projections.items():
         lineage = view.index.specializations(definition)
@@ -1390,17 +1395,38 @@ def configured_by(view: ModelView, product: str) -> tuple[list[str], list[str]]:
     return configurations, usages
 
 
+def _nearest_typed_link(view: ModelView, usage: str) -> str | None:
+    """The nearest link of a redefinition chain that has a type of its own: the usage itself, else the
+    nearest feature it redefines (breadth first)."""
+    seen: set[str] = set()
+    frontier = [usage]
+    while frontier:
+        current = frontier.pop(0)
+        if current in seen:
+            continue
+        seen.add(current)
+        if view.index.typed_by(current):
+            return current
+        frontier.extend(_direct_redefinitions(view, current))
+    return None
+
+
 def projection_redefinitions(view: ModelView, product: str) -> list[tuple[str, str]]:
-    """(redefining usage, redefined feature) for each effective part usage of a configured product that
-    replaces a feature typed by a projection with a type that is none: the usage that hides the projection."""
+    """(the link that hides a projection, the redefined feature typed by it) for each effective part usage
+    of a configured product that no configuration types: the nearest link of its redefinition chain with
+    a type of its own outside every projection, and a projection-typed feature that link redefines."""
     projections, _marker, _problem = configuration_part_definitions(view)
     found = []
     for usage in effective_part_usages(view, product):
         if _configurations_of_types(view, projections, effective_types(view, usage)):
             continue
-        for redefined in sorted(_redefined_features(view, usage)):
+        link = _nearest_typed_link(view, usage)
+        if link is None:
+            continue
+        for redefined in sorted(_redefined_features(view, link)):
             if _configurations_of_types(view, projections, effective_types(view, redefined)):
-                found.append((usage, redefined))
+                found.append((link, redefined))
+                break
     return found
 
 
@@ -1444,7 +1470,8 @@ DISPOSITION_HOLDERS = ("IncrementBaselineDecision", "Gap")
 def lifecycle_disposition(view: ModelView, subject_id: str) -> str | None:
     """The literal of the kernel's LifecycleDisposition that the subject's own disposition states, or None.
     The subject owns exactly one feature that redefines the ``disposition`` of a kernel holder
-    (IncrementBaselineDecision, IncrementGap), and its value is exactly one leaf: a literal that the bound
+    (IncrementBaselineDecision, IncrementGap) in its own type lineage, as library attributes do, and its
+    value is exactly one leaf: a literal that the bound
     LifecycleDisposition itself owns through a VariantMembership. A value that only a definition sets is
     not the record's own. Raises :class:`MethodSideInput` when a kernel class has no validated binding."""
     try:
@@ -1453,7 +1480,8 @@ def lifecycle_disposition(view: ModelView, subject_id: str) -> str | None:
     except IdentityNotFoundError as error:
         raise MethodSideInput(f"kernel-binding:{LIFECYCLE_DISPOSITION}",
                               f"method side: no validated kernel binding for the disposition: {error}")
-    kernel_features = {feature for holder in holders
+    lineage = {general for definition in view.index.typed_by(subject_id) for general in view.index.generals(definition)}
+    kernel_features = {feature for holder in holders if holder in lineage
                        if (feature := view.index.feature(holder, DISPOSITION_FEATURE)) is not None}
     own = [feature for feature in view.index.owned_members(subject_id)
            if kernel_features & _redefined_features(view, feature)]
