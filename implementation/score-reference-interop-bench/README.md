@@ -409,10 +409,9 @@ What the relay does:
   `default` (the relay's reading, not a value of the model). Exactly one ACL
   file for that subject must be on the IVI VM before it boots.
 - It parses the broker's wrapper in each slot strictly
-  (`broker_wrapper.hpp`, owner decision of 2026-10-29). How it reads the rule
-  for a slot of fixed size is the relay's reading, not a value of the model,
-  until the model states it: the outer varint gives the message, which must
-  fit in the slot. The message holds exactly one field: field 1 of wire
+  (`broker_wrapper.hpp`, owner decision of 2026-10-29), as the model states
+  it for a slot of fixed size (`iviFrameRelay`): the outer varint gives the
+  message, which must fit in the slot. The message holds exactly one field: field 1 of wire
   type 2 (tag `0x0A`), whose length equals the rest of the message. Every
   byte of the slot after the message is zero, as the broker writes it. Each
   varint is in its shortest form. Each failed check is a drop with its own

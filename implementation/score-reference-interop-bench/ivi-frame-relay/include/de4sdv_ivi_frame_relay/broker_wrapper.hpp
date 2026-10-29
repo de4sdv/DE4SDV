@@ -14,12 +14,9 @@
 // Data Tunnel carries the whole slot, and readAvailableMessages gives the
 // relay slots of messageSizeBytes each.
 //
-// The parse is strict (owner decision of 2026-10-29). The model says that
-// the outer varint must equal the size that remains, that exactly one field
-// follows, field 1 of wire type 2 (0x0A) whose length equals the rest, and
-// that no other byte is there. A slot of the publication has a fixed size, so
-// the relay reads that rule for a slot as follows. This is the relay's
-// reading, not a value of the model, until the model states it:
+// The parse is strict (owner decision of 2026-10-29), and the model states
+// it for a slot of the publication's fixed size (iviFrameRelay of
+// middleware_score_physical_software_realization.sysml):
 // - the outer varint is a valid varint32 in its shortest form; it gives the
 //   length L of the message that follows, and the message must fit in the
 //   slot;
