@@ -447,8 +447,8 @@ What the relay does:
     the relay again as a new process, and that start triggers the ingress
     again. The relay never deletes and re-creates its gateway client (owner
     decision of 2026-10-29, revised the same day: the library allows one
-    client per process (`libsdvgatewayclient.h:473-475`). The model PR
-    records it). Only an `ASDVGateway_Client_new` that itself failed, which
+    client per process (`libsdvgatewayclient.h:473-475`); the model states
+    it in `iviFrameRelay`). Only an `ASDVGateway_Client_new` that itself failed, which
     leaves no client, is tried again in the process: every second, and every
     10 s once the failures have lasted 30 s (the relay's reading, not a
     value of the model);
