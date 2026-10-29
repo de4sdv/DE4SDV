@@ -1,30 +1,36 @@
 #!/usr/bin/env bash
 # Provision the IVI frame relay on the IVI VM before the first case (model
-# next action step 5). The relay binary and its init file come from the relay
-# lane; the bench takes them as inputs (set RELAY_BIN and RELAY_RC). The SD
-# agent reads the ACLs only at its start and exits if a second file names one
-# subject, so this installs exactly one ACL file, then reboots the IVI VM.
+# next action step 5). The relay binary, its init file, its logcat tag and its
+# authz subject come from the relay lane (#439); they are required inputs with
+# no defaults, and the script fails fast when any is unset, so it never
+# provisions the wrong subject or pushes nothing (review R6/R10/R23).
 #
-#   provision_ivi_relay.sh install    one ACL, the relay binary and its init file, port 4731, then a reboot
+#   provision_ivi_relay.sh install    install the ACLs, the binary and init, reboot, and check
 #   provision_ivi_relay.sh remove     remove what install added, then a reboot (the undo)
 #
-# Interfaces the bench needs from the relay lane (named, not assumed):
-#   RELAY_BIN   path to the built relay binary        (default: looks in the IVI product tree)
-#   RELAY_RC    path to the relay's init .rc file      (installed under /system/etc/init)
-#   RELAY_SUBJECT_PACKAGE / RELAY_SUBJECT_BUNDLE   the relay's authz subject (its ACL path)
-#   The relay sets the ingress frame-server port property to 4731 itself; this
-#   script also sets it, so a run records the value whichever sets it first.
-set -u
+# Required (export before running; see the README for #439's values):
+#   RELAY_BIN RELAY_RC RELAY_LOGCAT_TAG
+#   RELAY_SUBJECT_PACKAGE RELAY_SUBJECT_BUNDLE RELAY_SUBJECT_INSTANCE
+#
+# The SD agent reads the ACLs only at its start and exits if a second file
+# names one subject, so this installs exactly one file per subject, across
+# /product, /system and /vendor, then reboots the IVI VM. A cross-VM
+# subscriber also needs the remote broker's object policy, so this installs
+# that too (the feasibility runs did). The relay sets the ingress port and
+# host from its own init file on boot, so this does not setprop them (a plain
+# setprop would not survive the reboot).
+set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/bench_env.sh"
+require_relay_inputs || exit 2
 S=("$ADB" -s "$IVI_ADB")
 ACL_SRC="$HERE/../aosp-overlay/ivi-acl/relay_subscriber.textproto"
-: "${RELAY_SUBJECT_PACKAGE:=org.de4sdv.framerelay}"
-: "${RELAY_SUBJECT_BUNDLE:=FrameRelay}"
-: "${RELAY_BIN:=$AOSP_TOP/out/target/product/$IVI_PRODUCT/system/bin/de4sdv_someip_receiver}"
-: "${RELAY_RC:=}"
-ACL_DIR="/product/etc/sdv_authz_acls/${RELAY_SUBJECT_PACKAGE}"
-ACL_DST="${ACL_DIR}/${RELAY_SUBJECT_BUNDLE}.textproto"
+BROKER_POLICY_SRC="$HERE/../aosp-overlay/ivi-acl/broker_object_policy.textproto"
+SUBJECT_DIR="/product/etc/sdv_authz_acls/${RELAY_SUBJECT_PACKAGE}"
+SUBJECT_DST="${SUBJECT_DIR}/${RELAY_SUBJECT_BUNDLE}.textproto"
+BROKER_DIR="/product/etc/sdv_authz_acls/${BROKER_PACKAGE}"
+BROKER_DST="${BROKER_DIR}/${BROKER_BUNDLE}.textproto"
+ACL_ROOTS="/product/etc/sdv_authz_acls /system/etc/sdv_authz_acls /vendor/etc/sdv_authz_acls /system_ext/etc/sdv_authz_acls"
 
 _wait_boot() {
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
@@ -35,49 +41,63 @@ _wait_boot() {
   done; log "IVI boot timed out"; return 1
 }
 
+_reboot() {
+  "${S[@]}" reboot
+  "${S[@]}" wait-for-disconnect 2>/dev/null || sleep 5
+  _wait_boot
+}
+
+# Exactly one ACL file for a subject across all ACL roots (the SD agent exits
+# on a second file for one subject).
+_one_file_per_subject() {
+  local dupes
+  dupes="$("${S[@]}" shell "find $ACL_ROOTS -name '*.textproto' 2>/dev/null | sed 's#.*/sdv_authz_acls/##' | sort | uniq -d" | tr -d '\r')"
+  if [ -n "$dupes" ]; then log "ERROR: duplicate ACL files for a subject: $dupes"; return 1; fi
+}
+
 install() {
   require_cmd "$ADB" || return 1
+  [ -f "$RELAY_BIN" ] || { log "ERROR: RELAY_BIN not found at $RELAY_BIN"; return 1; }
+  [ -f "$RELAY_RC" ] || { log "ERROR: RELAY_RC not found at $RELAY_RC"; return 1; }
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
   "${S[@]}" root >/dev/null 2>&1 || true; sleep 2; "${S[@]}" wait-for-device
   "${S[@]}" disable-verity >/dev/null 2>&1 || true
-  "${S[@]}" reboot; _wait_boot || return 1
+  _reboot || return 1
   "${S[@]}" root >/dev/null 2>&1 || true; "${S[@]}" remount 2>&1 | tail -1
 
-  # Exactly one ACL file for the relay's subject. Remove any stale sibling in
-  # that subject directory first, so a second file cannot make the SD agent exit.
-  "${S[@]}" shell "mkdir -p '$ACL_DIR'; for f in '$ACL_DIR'/*.textproto; do [ -f \"\$f\" ] && [ \"\$f\" != '$ACL_DST' ] && rm -f \"\$f\"; done" 2>/dev/null || true
-  "${S[@]}" push "$ACL_SRC" "$ACL_DST" 2>&1 | tail -1
-  "${S[@]}" shell "chmod 755 '$ACL_DIR'; chmod 644 '$ACL_DST'"
-  local count; count="$("${S[@]}" shell "ls '$ACL_DIR'/*.textproto 2>/dev/null | wc -l" | tr -d '\r')"
-  [ "$count" = 1 ] || { log "ERROR: $count ACL files for the subject; the SD agent needs exactly one"; return 1; }
+  # Remove any stale sibling in the two subject directories, then install one each.
+  "${S[@]}" shell "mkdir -p '$SUBJECT_DIR' '$BROKER_DIR'"
+  "${S[@]}" shell "for f in '$SUBJECT_DIR'/*.textproto; do [ -f \"\$f\" ] && [ \"\$f\" != '$SUBJECT_DST' ] && rm -f \"\$f\"; done" 2>/dev/null || true
+  "${S[@]}" push "$ACL_SRC" "$SUBJECT_DST" 2>&1 | tail -1
+  "${S[@]}" push "$BROKER_POLICY_SRC" "$BROKER_DST" 2>&1 | tail -1
+  "${S[@]}" shell "chmod 755 '$SUBJECT_DIR' '$BROKER_DIR'; chmod 644 '$SUBJECT_DST' '$BROKER_DST'; sync"
+  _one_file_per_subject || return 1
 
-  # The relay binary and its init file, on the instance overlay for the bench.
-  if [ -f "$RELAY_BIN" ]; then
-    "${S[@]}" push "$RELAY_BIN" /system/bin/ 2>&1 | tail -1
-    "${S[@]}" shell "chmod 755 /system/bin/$(basename "$RELAY_BIN")"
-  else
-    log "WARNING: relay binary not at $RELAY_BIN; set RELAY_BIN (built by the relay lane)"
-  fi
-  if [ -n "$RELAY_RC" ] && [ -f "$RELAY_RC" ]; then
-    "${S[@]}" push "$RELAY_RC" /system/etc/init/ 2>&1 | tail -1
-  else
-    log "NOTE: no RELAY_RC given; the relay's init file must be in the image or set RELAY_RC"
-  fi
+  # The relay binary and its init file.
+  "${S[@]}" push "$RELAY_BIN" /system/bin/ 2>&1 | tail -1
+  "${S[@]}" shell "chmod 755 /system/bin/$(basename "$RELAY_BIN")"
+  "${S[@]}" push "$RELAY_RC" /system/etc/init/ 2>&1 | tail -1
+  "${S[@]}" shell sync
+  log "provisioned; rebooting so the SD agent reads the ACLs and the relay starts (it sets the ingress port and host)"
+  _reboot || return 1
 
-  # The ingress frame-server port (ASM-MW-029); the relay also sets the host to loopback.
-  "${S[@]}" shell "setprop de4sdv.aebs.frame_server.port $RELAY_LOOPBACK_PORT"
-  "${S[@]}" shell "sync"
-  log "provisioned the relay; rebooting so the SD agent reads the one ACL and the relay starts"
-  "${S[@]}" reboot; _wait_boot || return 1
+  # Post-boot checks.
+  "${S[@]}" root >/dev/null 2>&1 || true
+  log "sd_agent=$("${S[@]}" shell pidof sdv_sd_agent_no_vpm | tr -d '\r') gateway=$("${S[@]}" shell pidof sdv_gateway | tr -d '\r')"
+  log "relay init.svc=$("${S[@]}" shell getprop init.svc.$(basename "$RELAY_BIN") | tr -d '\r')"
+  log "frame_server.port=$("${S[@]}" shell getprop de4sdv.aebs.frame_server.port | tr -d '\r') host=$("${S[@]}" shell getprop de4sdv.aebs.frame_server.host | tr -d '\r')"
+  "${S[@]}" shell "ls -Z /system/bin/$(basename "$RELAY_BIN")" | tr -d '\r' | sed 's/^/binary: /'
+  "${S[@]}" shell "logcat -d -t 2000 2>/dev/null | grep -m1 '\"event\":\"subscribed\"'" | tr -d '\r' | sed 's/^/relay: /' \
+    || log "NOTE: no 'subscribed' line yet; the relay's start diagnostic reports an ACL or mapping fault after 30 s"
   log "set the IVI VM clock next: scripts/set_ivi_clock.sh setup"
 }
 
 remove() {
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
   "${S[@]}" root >/dev/null 2>&1 || true; "${S[@]}" remount >/dev/null 2>&1 || true
-  "${S[@]}" shell "rm -f '$ACL_DST' /system/bin/$(basename "$RELAY_BIN") ${RELAY_RC:+/system/etc/init/$(basename "$RELAY_RC")}; rmdir '$ACL_DIR' 2>/dev/null" 2>/dev/null || true
+  "${S[@]}" shell "rm -f '$SUBJECT_DST' '$BROKER_DST' /system/bin/$(basename "$RELAY_BIN") /system/etc/init/$(basename "$RELAY_RC"); rmdir '$SUBJECT_DIR' 2>/dev/null; sync" 2>/dev/null || true
   log "removed the relay provisioning; rebooting"
-  "${S[@]}" reboot; _wait_boot || true
+  _reboot || true
 }
 
 case "${1:-}" in

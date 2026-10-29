@@ -1,9 +1,11 @@
 # VM change log — AAOS SDV broker-path bench (INC-MW-011 phase 10)
 
 Every change the bench scripts make on the System 2 bench VM (GAP-MW-044), and
-how to undo it. The scripts append a dated entry here; the table below is the
-reference of what each change is and its undo. Keep a dated entry per session,
-as the spike's change log did, so a later session can see the VM's state.
+how to undo it. The table below is the reference of what each change is and its
+undo; it is the tracked template. Per-session dated entries are written by the
+scripts to `RUN_DIR/vm-change-log.session.txt` (in the run directory, not this
+tracked file), as the spike's change log did, so a later session can see the
+VM's state without editing a committed file.
 
 The bench runs on the VM only. Nothing in this repository starts, stops or
 reboots the VM, and nothing dispatches a workflow. The operator owns the VM
@@ -16,9 +18,10 @@ power state and the recovery steps.
 | Two guest VMs created (core instance 1, IVI instance 2, UNLOCKED) | `launch_two_vms.sh up` | `launch_two_vms.sh down` |
 | Host route for the SD group on `cvd-ebr` | `host_sd_multicast_route.sh add` | `host_sd_multicast_route.sh remove` |
 | Host isolation firewall (DDS ports + 4721 off the guest; SOME/IP bridge-port rule) | `host_isolation_firewall.sh add` | `host_isolation_firewall.sh remove` |
-| IVI relay provisioning (one ACL, relay binary and init, port 4731, reboot) | `provision_ivi_relay.sh install` | `provision_ivi_relay.sh remove` |
+| IVI relay provisioning (one ACL per subject, broker object policy, relay binary and init, reboot) | `provision_ivi_relay.sh install` | `provision_ivi_relay.sh remove` |
+| Host chrony serves the IVI (`chronyc allow`) | `set_ivi_clock.sh allow` | `set_ivi_clock.sh deny` |
 | IVI VM clock set and slewed; auto_time off | `set_ivi_clock.sh setup` | re-enable `auto_time`, stop the slew (a reboot resets it) |
-| Reachability probe (control listener, tcpdump, nc probes) | `host_isolation_probe.sh run` | self-contained; stops its own observers |
+| Reachability probe (control listener, counter reads, nc probes) | `host_isolation_probe.sh run` | self-contained; stops its own observers |
 | Recording (terminal panes, adb screenrecord) | `record_full_chain.sh` | `record_full_chain.sh stop` |
 | SDV Core VM rebooted in place (recovery) | `recover_core_vm.sh recover` | none needed (in-place reboot) |
 | Everything above | — | `teardown.sh` |

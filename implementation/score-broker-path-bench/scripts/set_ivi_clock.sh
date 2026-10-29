@@ -1,62 +1,83 @@
 #!/usr/bin/env bash
-# Hold ASM-MW-030 on the IVI VM: turn off automatic time, set the clock once
-# against the host chrony with a standard SNTP client, then slew it if the
-# client can, and capture the NTP exchange so the evaluator can measure the
-# offset from the raw packets. No DE4SDV code sets or crafts time; this calls
-# the image's SNTP client (toybox sntp) and captures with tcpdump.
+# Hold ASM-MW-030 on the IVI VM: let the host chrony serve the IVI, turn off
+# automatic time, set the clock once against the host with the image SNTP
+# client, then slew it, and capture the NTP exchange so the evaluator can
+# measure the offset from the raw packets. No DE4SDV code sets or crafts time;
+# this calls the image's toybox sntp and captures with tcpdump.
 #
-#   set_ivi_clock.sh setup                 auto_time off, set the clock once, start a slew if available
-#   set_ivi_clock.sh measure <out.pcap>    capture one NTP query (no setting) for the evaluator
-#   set_ivi_clock.sh drift                 two measures ~minutes apart, print the drift and the session length
-#
-# The measure captures are the clock-start.pcap and clock-end.pcap the
-# evaluator reads (ASM-MW-030).
-set -u
+#   set_ivi_clock.sh allow            add a host chrony allow for the IVI (idempotent)
+#   set_ivi_clock.sh deny             remove the host chrony allow (the undo)
+#   set_ivi_clock.sh setup            auto_time off, prove reachability, set once, start a slew, restart the ingress
+#   set_ivi_clock.sh measure <out>    capture one NTP query (no setting) for the evaluator
+#   set_ivi_clock.sh drift            two measures a session apart; print the drift and the session length
+#   set_ivi_clock.sh host-steps <out> record the host clock steps over the session (ASM-MW-030)
+set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/bench_env.sh"
 S=("$ADB" -s "$IVI_ADB")
+: "${RUN_DIR:=$HERE/../run}"; mkdir -p "$RUN_DIR"
 
 _guest() { "${S[@]}" shell "$@"; }
 
-have_sntp() { _guest "command -v sntp toybox" 2>/dev/null | grep -q .; }
+allow() {
+  require_cmd chronyc || { log "chrony not installed on the host"; return 1; }
+  sudo chronyc allow "${IVI_ADDR}/32" && log "host chrony now serves ${IVI_ADDR}" || { log "chronyc allow failed"; return 1; }
+  : "${RUN_DIR:=$HERE/../run}"; mkdir -p "$RUN_DIR"
+  cat >> "$RUN_DIR/vm-change-log.session.txt" <<EOF
+chrony allow $(date -u +%FT%T.%NZ): host 'chronyc allow ${IVI_ADDR}/32' (IVI queries host chrony for ASM-MW-030); undo 'scripts/set_ivi_clock.sh deny'
+EOF
+}
+
+deny() { sudo chronyc deny "${IVI_ADDR}/32" && log "host chrony no longer serves ${IVI_ADDR}" || true; }
 
 setup() {
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
   "${S[@]}" root >/dev/null 2>&1 || true
   _guest "settings put global auto_time 0; settings put global auto_time_zone 0" 2>/dev/null || true
-  if have_sntp; then
-    # A one-shot set, then an adjust-mode slew if the client has it. A slew
-    # moves CLOCK_REALTIME and CLOCK_MONOTONIC together, so it is no step.
-    _guest "toybox sntp -s -S $SNTP_SERVER 2>&1 | tail -1" || _guest "sntp -s $SNTP_SERVER 2>&1 | tail -1" || true
-    if _guest "toybox sntp --help 2>&1 | grep -q -- -a"; then
-      _guest "start de4sdv_ivi_sntp 2>/dev/null; nohup toybox sntp -a -m 64 $SNTP_SERVER >/dev/null 2>&1 &" || true
-      log "started an SNTP slew against $SNTP_SERVER"
-    else
-      log "the image SNTP client has no slew mode; size each session from the drift (run: $0 drift)"
-    fi
-  else
-    log "no SNTP client in the IVI image; ASM-MW-030 cannot be held, record it as a gap"
-    return 1
+  # Prove the IVI reaches the server from its default network before relying on it
+  # (spike T8 saw TCP to .1 fail via buried_eth0).
+  if ! _guest "toybox ping -c1 -W2 $SNTP_SERVER >/dev/null 2>&1"; then
+    log "ERROR: the IVI VM cannot reach $SNTP_SERVER; add a guest route or fix buried_eth0 routing first"; return 1
   fi
+  # One-shot set, then an adjust-mode slew as a daemon re-querying every 64 s
+  # (-r 6). A slew moves CLOCK_REALTIME and CLOCK_MONOTONIC together, so it is
+  # no step. Check the exit codes (no '| tail', which would hide them).
+  if ! _guest "toybox sntp -s $SNTP_SERVER"; then log "ERROR: toybox sntp -s failed"; return 1; fi
+  log "IVI clock set once against $SNTP_SERVER"
+  _guest "stop de4sdv_ivi_sntp_slew 2>/dev/null; nohup toybox sntp -a -d -r 6 $SNTP_SERVER >/dev/null 2>&1 &" || true
+  log "started an SNTP slew (adjust mode, re-query every 64 s); if the image sntp has no slew, size each session from the drift"
+  # Restart the ingress so its stale-timeout baseline is after the setting
+  # (#448 condition 2). The relay's trigger property re-starts the oneshot ingress.
+  _guest "setprop de4sdv.aebs.ingress.start 0; setprop de4sdv.aebs.ingress.start 1" || true
+  log "restarted the ingress after the clock setting"
 }
 
 measure() {
   local out="${1:?usage: $0 measure <out.pcap>}"
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
   "${S[@]}" root >/dev/null 2>&1 || true
-  # Capture the exchange on the guest, on the guest clock, then run one query.
-  _guest "rm -f /data/local/tmp/clock.pcap; (tcpdump -i any -w /data/local/tmp/clock.pcap 'udp port 123 and host $SNTP_SERVER' >/dev/null 2>&1 &) ; sleep 1; (toybox sntp -q $SNTP_SERVER || sntp $SNTP_SERVER) >/dev/null 2>&1; sleep 1; pkill -f 'tcpdump.*clock.pcap' 2>/dev/null; sync"
+  # Capture on the guest, on the guest clock; record tcpdump's own pid and stop
+  # it by that pid (not pkill -f, which also matches this shell).
+  _guest "rm -f /data/local/tmp/clock.pcap; tcpdump -i any -w /data/local/tmp/clock.pcap 'udp port 123 and host $SNTP_SERVER' >/dev/null 2>&1 & echo \$! > /data/local/tmp/clock.pid; sleep 1; (toybox sntp -q $SNTP_SERVER || true) >/dev/null 2>&1; sleep 1; kill -INT \$(cat /data/local/tmp/clock.pid); for i in \$(seq 1 20); do kill -0 \$(cat /data/local/tmp/clock.pid) 2>/dev/null || break; sleep 0.2; done; sync"
   "${S[@]}" pull /data/local/tmp/clock.pcap "$out" 2>&1 | tail -1
   log "captured one NTP exchange into $out"
 }
 
+host_steps() {
+  local out="${1:?usage: $0 host-steps <out.txt>}"
+  { echo "# host clock steps (ASM-MW-030) $(date -u +%FT%T.%NZ)"
+    journalctl -u chrony -u chronyd --no-hostname 2>/dev/null | grep -i "System clock was stepped" | tail -50
+    python3 -c 'import time;print("realtime_minus_monotonic_ns",int(time.time()*1e9)-time.monotonic_ns())'
+  } >> "$out"
+  log "recorded host clock steps into $out"
+}
+
 drift() {
-  local dir="${RUN_DIR:-$HERE/../run}"; mkdir -p "$dir"
-  measure "$dir/clock-start.pcap"
+  measure "$RUN_DIR/clock-start.pcap"
   log "waiting ${DRIFT_WAIT_S:=840} s to measure the drift (the spike saw about 60 ppm)"
   sleep "${DRIFT_WAIT_S}"
-  measure "$dir/clock-end.pcap"
-  PYTHONPATH="$HERE/../src" python3 - "$dir/clock-start.pcap" "$dir/clock-end.pcap" <<'PY'
+  measure "$RUN_DIR/clock-end.pcap"
+  PYTHONPATH="$HERE/../src" python3 - "$RUN_DIR/clock-start.pcap" "$RUN_DIR/clock-end.pcap" <<'PY'
 import sys
 from de4sdv_broker_path_bench import clock
 from de4sdv_broker_path_bench.pcap import read_pcap
@@ -71,8 +92,11 @@ PY
 }
 
 case "${1:-}" in
+  allow) allow ;;
+  deny) deny ;;
   setup) setup ;;
   measure) shift; measure "$@" ;;
+  host-steps) shift; host_steps "$@" ;;
   drift) drift ;;
-  *) echo "usage: $0 {setup|measure <out.pcap>|drift}" >&2; exit 2 ;;
+  *) echo "usage: $0 {allow|deny|setup|measure <out.pcap>|host-steps <out.txt>|drift}" >&2; exit 2 ;;
 esac

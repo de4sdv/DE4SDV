@@ -73,9 +73,16 @@ bench-plan.md            the session plan (S1 to S3), VM-hours and cost
 Each evaluator reads a run directory of raw artifacts and returns an outcome of
 the middleware evidence vocabulary (passBoundedVerification, failObservedBehavior,
 inconclusiveMissingEvidence, blockedTargetRuntime, errorEvidence), mapped to a
-verdict as INC-MW-010 maps it. It reads the independent captures, not the
-relay's or the ingress's own logs; it reads the relay log only to corroborate.
-It never opens a socket and never runs on the VM.
+verdict as INC-MW-010 maps it. The independent captures are authoritative; the
+relay's log is the record of its subscription phases, which the captures
+corroborate (a layer-caused phase end in the event is a delivery failure of
+the layer, so the relay log can fail the case). It compares raw clock readings,
+with no offset correction, as the phase-8 rule and the verification case do.
+Precedence follows #448: only a failure whose evidence does not depend on an
+inconclusive condition dominates, so a capture gap or a failed clock bound
+turns a completeness failure into missing evidence, not a fail. It never opens
+a socket and never runs on the VM. It evaluates one condition (one run) at a
+time; a case pass needs every condition the case names.
 
 ```bash
 python -m de4sdv_broker_path_bench.run <run-dir>            # every supported case
@@ -84,30 +91,50 @@ python -m de4sdv_broker_path_bench.run <run-dir> --case VC-MW-015
 
 | Case | Requirement | What the evaluator checks from raw artifacts |
 |---|---|---|
-| VC-MW-015 | REQ-MW-014 | every produced frame reaches the HMI, in order, no gap, inter-arrival below 500 ms; a relay phase end during the event is a delivery failure |
-| VC-MW-016 | REQ-MW-015 | each received frame equals its produced frame, byte for byte, with its source kind; no coordinator or display-derived field marked native |
-| VC-MW-017 | REQ-MW-016 (2nd finding) | no isolated host port is reachable from a guest, confirmed against a positive control |
-| VC-MW-020 | REQ-MW-019 | after a new subscription, no frame produced more than the 20 ms margin before it arrives; needs ASM-MW-030 to hold in the run |
+| VC-MW-015 | REQ-MW-014 | every frame produced while the HMI was subscribed reaches it, in order, inter-arrival below 500 ms; a layer-caused phase end or a DATA_LOSS in the event fails; an ingress disconnect, a second `:4721` client, or ASM-MW-030 not holding is inconclusive |
+| VC-MW-016 | REQ-MW-015 | each received frame equals its produced frame byte for byte, with its source kind; a received frame the stack never produced fails; frames must keep arriving after the SD offer, which must not redirect the provider |
+| VC-MW-017 | REQ-MW-016 | second finding: no host DDS port of the layer is reachable from a guest (host-socket receipt, with a positive control and full coverage); a reachable `:4721` is an ASM-MW-029 finding, not a failure; the first finding needs the inspection record |
+| VC-MW-020 | REQ-MW-019 | per condition (HMI down, IVI VM down, SDV Core VM down, pair restart): each frame in a new phase was produced no more than the 20 ms margin before the phase start, compared raw; needs ASM-MW-030 to hold |
 
 The run directory holds, by convention: `produced.pcap` (host `:4721`),
-`received.pcap` (guest `:4731`), `relay-logcat.txt`, `clock-start.pcap`,
-`clock-end.pcap`, `settings.json`, and the probe JSON for VC-MW-017. See
+`received.pcap` (guest `:4731`), `relay-logcat.txt` (the relay's events, with
+its tag), `clock-start.pcap`, `clock-end.pcap`, `settings.json`,
+`frame_assembler_clients.json` (the ASM-MW-029 `ss` check), and for VC-MW-016
+`sd_offer.json` or `residual.json`, and for VC-MW-017 the probe JSON
+(`host_listeners.json`, `probe_attempts.json`, `host_socket_receipts.json`,
+`control.json`, `coverage.json`, `asm_mw_031.json`, `inspection.json`). The
+run directory lives outside the repository (or under the git-ignored `run/`),
+and each run records its identity (`core-image-identity.txt` and the manifest
+of the capture commands). See
 [`config/run-settings.example.json`](config/run-settings.example.json).
 
 The inspection cases VC-MW-018 and VC-MW-021 need no run; they read the
 configurations and the wiring the execution slices author. The verification
-cases themselves are the verification-case slice (branch `model/score-phase-10-broker-path`).
+cases are pinned at #448 `5d14317c` (branch `model/score-phase-10-broker-path`).
 
 ## Interfaces this bench needs from the other lanes
 
-- **The relay lane** (the IVI frame relay, in the receiver branch): the relay
-  binary name (set `RELAY_BIN`), its init file (`RELAY_RC`), its liblog tag
-  (the `relay_logcat_tag` setting), its authz subject package and bundle
-  (`RELAY_SUBJECT_PACKAGE`, `RELAY_SUBJECT_BUNDLE`), and its loopback server on
-  `127.0.0.1:4731`, one client. The bench keeps the relay's service name out
-  of its own committed non-Markdown files so the model guard does not bind to
-  it here.
-- **The verification-case slice** (branch `model/score-phase-10-broker-path`): VC-MW-015, VC-MW-016, VC-MW-017 and
+- **The relay lane** (the IVI frame relay, branch `feat/score-someip-receiver`,
+  #439 at `21882005`): these are required inputs with no defaults, and a script
+  fails fast when any is unset.
+  - binary `RELAY_BIN` = `/system/bin/de4sdv_ivi_frame_relay`;
+  - init file `RELAY_RC` = `ivi-frame-relay/de4sdv_ivi_frame_relay.rc`;
+  - liblog tag `RELAY_LOGCAT_TAG` = `de4sdv_ivi_frame_relay` (set
+    `relay_logcat_tag` in the run settings to it);
+  - authz subject `RELAY_SUBJECT_PACKAGE` = `de4sdv.ivi_frame_relay`,
+    `RELAY_SUBJECT_BUNDLE` = `IviFrameRelay`, `RELAY_SUBJECT_INSTANCE` =
+    `default`;
+  - loopback server on `127.0.0.1:4731`, one client; it sets the ingress port
+    and host from its own init file on boot.
+
+  The binary, the init-service name and the tag are the model-guard marker, so
+  this bench keeps them out of its committed non-Markdown files (they are
+  required inputs, named here only). Once #439 is on main the scripts and the
+  example settings may name them directly; until then the model guard binds to
+  the relay's own header and `.rc`. An S1 preflight compares these values with
+  #439's `.rc`.
+- **The verification-case slice** (#448 `5d14317c`, branch
+  `model/score-phase-10-broker-path`): VC-MW-015, VC-MW-016, VC-MW-017 and
   VC-MW-020 keep their observation point at the IVI loopback and name the
   relay's discard rule. This bench realizes their running side.
 

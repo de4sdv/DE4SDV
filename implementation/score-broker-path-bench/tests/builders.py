@@ -7,6 +7,7 @@ IPv4 + TCP/UDP, the shapes the bench captures.
 
 from __future__ import annotations
 
+import json
 import struct
 
 PCAP_MAGIC_NS = b"\x4d\x3c\xb2\xa1"  # little-endian, nanosecond
@@ -147,3 +148,75 @@ def frame(sequence: int, timestamp_ns: int, *, stage: str = "MONITORING") -> byt
 
 def delimited(payload: bytes) -> bytes:
     return struct.pack("<I", len(payload)) + payload
+
+
+def stream_records(port: int, payloads, *, t0: int, step: int = 100_000_000, cport: int | None = None,
+                   drop_index: int | None = None, client: str = "127.0.0.1", server: str = "127.0.0.1"):
+    """The pcap records of one length-delimited stream of frames.
+
+    ``drop_index`` drops the Nth data segment (the capture missed it); the
+    three handshake records come first.
+    """
+    sender = TcpSender(client, server, cport or port + 1000, port, t0).handshake()
+    for payload in payloads:
+        sender.send(delimited(payload), step_ns=step)
+    sender.fin()
+    records = sender.records
+    if drop_index is not None:
+        records = records[:3 + drop_index] + records[4 + drop_index:]
+    return records
+
+
+# A neutral tag for the tests; the relay lane's real tag is named in the README
+# (Markdown), so this committed file does not carry the model-guard marker.
+RELAY_TAG = "relay_under_test"
+
+
+def logcat_line(ts_ns: int, event: dict, tag: str = RELAY_TAG, pid: int = 1234) -> str:
+    sec, frac = divmod(ts_ns, 1_000_000_000)
+    body = dict(event)
+    body.setdefault("monotonic_ns", ts_ns)
+    body.setdefault("realtime_ns", ts_ns)
+    return f"{sec}.{frac // 1000:06d}  1000  {pid}  1250 I {tag}: {json.dumps(body, separators=(',', ':'))}"
+
+
+def phase_start_line(at_ns: int, phase: int = 1, pid: int = 1234, cause: str = "client_connected") -> str:
+    return logcat_line(at_ns, {"event": "phase_start", "cause": cause, "phase": phase,
+                               "phase_start_realtime_ns": at_ns, "subscription": phase}, pid=pid)
+
+
+def phase_end_line(at_ns: int, start_ns: int, *, phase: int = 1, pid: int = 1234, layer_caused: bool,
+                   client_connected: bool, cause: str, clock_steps: int = 0) -> str:
+    return logcat_line(at_ns, {"event": "phase_end", "cause": cause, "layer_caused": layer_caused,
+                               "client_connected": client_connected, "phase": phase,
+                               "phase_start_realtime_ns": start_ns, "subscription": phase,
+                               "clock_steps_in_phase": clock_steps}, pid=pid)
+
+
+def clock_step_line(at_ns: int, *, in_phase: bool, step_ns: int = 250_000_000, pid: int = 1234) -> str:
+    return logcat_line(at_ns, {"event": "clock_step", "step_ns": step_ns,
+                               "realtime_minus_monotonic_ns": 5, "in_phase": in_phase}, pid=pid)
+
+
+def data_loss_line(at_ns: int, *, subscription: int = 1, pid: int = 1234) -> str:
+    return logcat_line(at_ns, {"event": "data_loss", "subscription": subscription, "data_loss_reads": 1}, pid=pid)
+
+
+_NTP_TO_UNIX_S = 2_208_988_800
+
+
+def _ntp_ts(unix_ns: int) -> bytes:
+    seconds = unix_ns // 1_000_000_000 + _NTP_TO_UNIX_S
+    fraction = (unix_ns % 1_000_000_000) * (1 << 32) // 1_000_000_000
+    return struct.pack(">II", seconds, fraction)
+
+
+def clock_pcap(offset_ns: int, at_ns: int, marker: int = 0x1234, one_way_ns: int = 500_000) -> bytes:
+    """A guest NTP capture with a known offset (guest - host) and symmetric delay."""
+    t1 = at_ns
+    t2 = t1 - offset_ns + one_way_ns
+    t4 = t1 + 2 * one_way_ns
+    request = bytes([0x23]) + bytes(39) + struct.pack(">Q", marker)
+    response = bytes([0x24]) + bytes(23) + struct.pack(">Q", marker) + _ntp_ts(t2) + _ntp_ts(t2)
+    return pcap([(t1, udp_datagram("192.168.98.118", "192.168.98.1", 40000, 123, request)),
+                 (t4, udp_datagram("192.168.98.1", "192.168.98.118", 123, 40000, response))])

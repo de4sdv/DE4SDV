@@ -5,37 +5,36 @@
 #
 #   host_isolation_firewall.sh add      install the rules (idempotent)
 #   host_isolation_firewall.sh remove   remove them (the undo)
-#   host_isolation_firewall.sh show     print the table and its counters
+#   host_isolation_firewall.sh show     print the tables and their counters
 #
-# Two owner-approved rules, in a dedicated nftables table so the undo is one
-# delete:
-# - REQ-MW-016: drop the DDS ports of the host ROS 2 domain and port 4721 of
-#   the frame assembler on every interface except lo. By interface, not by
-#   source address, because each VM also has a network of its own and
-#   CycloneDDS binds its receive sockets to every address (ddsi_udp.c).
-# - REQ-MW-019 and REQ-MW-015 hardening: accept the SOME/IP ports to the host
-#   only from the SDV Core VM's bridge port, matched by its MAC and address;
-#   drop them from every other bridge port. An IP match alone is not enough on
-#   a shared bridge (a guest with root can send from the core's address).
-set -u
+# Two owner-approved rules, each in its own table so the undo is one delete:
+# - REQ-MW-016 (verdict): in an inet input chain, drop the DDS ports of the
+#   host ROS 2 domain and port 4721 of the frame assembler on every interface
+#   except lo. By interface, not by source address: each VM also has a network
+#   of its own, and CycloneDDS binds its receive sockets to every address.
+# - REQ-MW-019 and REQ-MW-015 hardening (recorded design measure, not a pass
+#   condition): in a bridge input chain, accept the SOME/IP ports to the host
+#   only from the SDV Core VM's bridge port, matched by its address and MAC;
+#   drop them from every other bridge port. The host's own traffic goes through
+#   the bridge input hook, not the forward hook, so the rule sits there. An IP
+#   match alone is not enough on a shared bridge, so it also matches the MAC and
+#   pins a static neighbour entry. If the tap or MAC is unknown, the rule is
+#   not installed and the script fails (no silent open).
+set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/bench_env.sh"
-
 ACTION="${1:-show}"
 TABLE_INET="de4sdv_bench"
 TABLE_BRIDGE="de4sdv_bench_bridge"
 
-# The SDV Core VM's tap on the bridge and its MAC: discovered, so the rule
-# binds to the real port. Override CORE_TAP / CORE_MAC to pin them.
 discover_core() {
-  : "${CORE_MAC:=$(ip -br link show 2>/dev/null | awk -v a="$CORE_ADDR" 'NR==0')}"
-  if [ -z "${CORE_TAP:-}" ]; then
-    CORE_TAP="$(bridge fdb show br "$HOST_BRIDGE" 2>/dev/null | awk -v m="${CORE_MAC:-}" '$1==m {print $3; exit}')"
+  : "${CORE_MAC:=$(ip neigh show "$CORE_ADDR" dev "$HOST_BRIDGE" 2>/dev/null | awk '/lladdr/ {for(i=1;i<=NF;i++) if($i=="lladdr") print $(i+1)}')}"
+  if [ -z "${CORE_TAP:-}" ] && [ -n "${CORE_MAC:-}" ]; then
+    CORE_TAP="$(bridge fdb show br "$HOST_BRIDGE" 2>/dev/null | awk -v m="$CORE_MAC" '$1==m {print $3; exit}')"
   fi
 }
 
 ports_nft_set() {
-  # nft interval set elements from dds_udp_port_set (space-separated ranges)
   local out="" p
   for p in $(dds_udp_port_set); do out="${out:+$out, }$p"; done
   echo "$out"
@@ -45,13 +44,9 @@ add() {
   require_cmd nft ip bridge || { log "install nftables and iproute2 first"; return 1; }
   local dds; dds="$(ports_nft_set)"
   # REQ-MW-016: by-interface drop (every interface except lo).
-  sudo nft -f - <<NFT
+  if ! sudo nft -f - <<NFT
 table inet ${TABLE_INET} {
-  set dds_domain_udp {
-    type inet_service
-    flags interval
-    elements = { ${dds} }
-  }
+  set dds_domain_udp { type inet_service; flags interval; elements = { ${dds} } }
   chain input {
     type filter hook input priority filter; policy accept;
     iifname "lo" accept
@@ -60,28 +55,30 @@ table inet ${TABLE_INET} {
   }
 }
 NFT
+  then log "ERROR: installing inet ${TABLE_INET} failed"; return 1; fi
+  sudo nft list table inet ${TABLE_INET} >/dev/null || { log "ERROR: inet ${TABLE_INET} not present after add"; return 1; }
   log "installed inet ${TABLE_INET} (DDS set ${dds}; TCP ${FRAME_ASSEMBLER_PORT})"
 
   discover_core
-  if [ -n "${CORE_TAP:-}" ] && [ -n "${CORE_MAC:-}" ]; then
-    sudo nft -f - <<NFT
+  if [ -z "${CORE_TAP:-}" ] || [ -z "${CORE_MAC:-}" ]; then
+    log "ERROR: the SDV Core VM's tap or MAC is unknown (tap='${CORE_TAP:-}' mac='${CORE_MAC:-}')."
+    log "Bring the core VM up first, or set CORE_TAP and CORE_MAC, then add again. Not installing the SOME/IP rule."
+    return 1
+  fi
+  if ! sudo nft -f - <<NFT
 table bridge ${TABLE_BRIDGE} {
-  chain forward {
-    type filter hook forward priority filter; policy accept;
-    meta ibrname "${HOST_BRIDGE}" iifname "${CORE_TAP}" ether saddr ${CORE_MAC} ip saddr ${CORE_ADDR} ip daddr ${HOST_ADDR} udp dport ${SD_PORT} counter accept comment "SOME/IP SD from the SDV Core VM only"
-    meta ibrname "${HOST_BRIDGE}" iifname "${CORE_TAP}" ether saddr ${CORE_MAC} ip saddr ${CORE_ADDR} ip daddr ${HOST_ADDR} tcp dport ${SOMEIP_RELIABLE_PORT} counter accept comment "SOME/IP event from the SDV Core VM only"
-    ip daddr ${HOST_ADDR} udp dport ${SD_PORT} counter drop comment "SOME/IP SD from any other bridge port"
+  chain input {
+    type filter hook input priority filter; policy accept;
+    iifname "${CORE_TAP}" ether saddr ${CORE_MAC} ip saddr ${CORE_ADDR} ip daddr { ${HOST_ADDR}, ${SD_GROUP} } udp dport ${SD_PORT} counter accept comment "SOME/IP SD from the SDV Core VM only"
+    iifname "${CORE_TAP}" ether saddr ${CORE_MAC} ip saddr ${CORE_ADDR} ip daddr ${HOST_ADDR} tcp dport ${SOMEIP_RELIABLE_PORT} counter accept comment "SOME/IP event from the SDV Core VM only"
+    ip daddr { ${HOST_ADDR}, ${SD_GROUP} } udp dport ${SD_PORT} counter drop comment "SOME/IP SD from any other bridge port"
     ip daddr ${HOST_ADDR} tcp dport ${SOMEIP_RELIABLE_PORT} counter drop comment "SOME/IP event from any other bridge port"
   }
 }
 NFT
-    # Pin the core's MAC so the accept cannot be reached by an ARP answer.
-    sudo ip neigh replace "$CORE_ADDR" lladdr "$CORE_MAC" dev "$HOST_BRIDGE" nud permanent 2>/dev/null || true
-    log "installed bridge ${TABLE_BRIDGE} bound to tap ${CORE_TAP} mac ${CORE_MAC}"
-  else
-    log "WARNING: the SDV Core VM's tap or MAC is unknown; the SOME/IP bridge rule was not installed."
-    log "Set CORE_TAP and CORE_MAC and run add again (the core VM must be up for discovery)."
-  fi
+  then log "ERROR: installing bridge ${TABLE_BRIDGE} failed"; return 1; fi
+  sudo ip neigh replace "$CORE_ADDR" lladdr "$CORE_MAC" dev "$HOST_BRIDGE" nud permanent 2>/dev/null || true
+  log "installed bridge ${TABLE_BRIDGE} bound to tap ${CORE_TAP} mac ${CORE_MAC} (recorded hardening, not a pass condition)"
 }
 
 remove() {
@@ -90,14 +87,9 @@ remove() {
   sudo ip neigh del "$CORE_ADDR" dev "$HOST_BRIDGE" 2>/dev/null || true
 }
 
-show() {
-  sudo nft list table inet ${TABLE_INET} 2>&1 || true
-  sudo nft list table bridge ${TABLE_BRIDGE} 2>&1 || true
-}
-
 case "$ACTION" in
   add) add ;;
   remove) remove ;;
-  show) show ;;
+  show) sudo nft list table inet ${TABLE_INET} 2>&1 || true; sudo nft list table bridge ${TABLE_BRIDGE} 2>&1 || true ;;
   *) echo "usage: $0 {add|remove|show}" >&2; exit 2 ;;
 esac

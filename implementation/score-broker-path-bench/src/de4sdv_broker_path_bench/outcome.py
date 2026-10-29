@@ -5,6 +5,13 @@ The names are the literals of MiddlewareEvidenceOutcome of INC-MW-010
 MapEvidenceOutcomeToVerdict of the same slice: both pass outcomes give pass,
 failObservedBehavior gives fail, errorEvidence gives error, and every other
 outcome gives inconclusive.
+
+Precedence (#448, VC-MW-015): a failure dominates only when its evidence does
+not depend on an inconclusive condition. A finding may name the code of a
+condition it depends on; when that condition is itself inconclusive in the
+same result, the dependent failure is downgraded to inconclusive. So a
+clock-dependent or capture-dependent failure cannot turn missing evidence
+into a fail.
 """
 
 from __future__ import annotations
@@ -19,11 +26,6 @@ BLOCKED = "blockedTargetRuntime"
 ERROR = "errorEvidence"
 
 OUTCOMES = (PASS, FAIL, INCONCLUSIVE, BLOCKED, ERROR)
-
-#: Combination order: the strongest finding decides. Evidence that is itself
-#: wrong (ERROR) makes any other finding unreliable. An observed failure
-#: (FAIL) is not hidden by missing evidence elsewhere.
-_PRECEDENCE = (ERROR, FAIL, BLOCKED, INCONCLUSIVE, PASS)
 
 
 def verdict(outcome: str) -> str:
@@ -41,14 +43,23 @@ def verdict(outcome: str) -> str:
 
 @dataclass(frozen=True)
 class Finding:
-    """One observation of an evaluator and the outcome it forces."""
+    """One observation of an evaluator and the outcome it forces.
+
+    ``depends_on`` names the code of a condition this finding relies on. A
+    FAIL with a ``depends_on`` whose condition is inconclusive in the same
+    result is not a dominating failure; it becomes missing evidence.
+    """
 
     code: str
     outcome: str
     message: str
+    depends_on: str | None = None
 
     def as_dict(self) -> dict[str, str]:
-        return {"code": self.code, "outcome": self.outcome, "message": self.message}
+        out = {"code": self.code, "outcome": self.outcome, "message": self.message}
+        if self.depends_on:
+            out["depends_on"] = self.depends_on
+        return out
 
 
 @dataclass
@@ -60,19 +71,32 @@ class CaseResult:
     findings: list[Finding] = field(default_factory=list)
     measurements: dict[str, Any] = field(default_factory=dict)
 
-    def add(self, code: str, outcome: str, message: str) -> None:
+    def add(self, code: str, outcome: str, message: str, depends_on: str | None = None) -> None:
         if outcome not in OUTCOMES:
             raise ValueError(f"unknown outcome {outcome!r}")
-        self.findings.append(Finding(code, outcome, message))
+        self.findings.append(Finding(code, outcome, message, depends_on))
 
     @property
     def outcome(self) -> str:
-        present = {finding.outcome for finding in self.findings}
-        for candidate in _PRECEDENCE:
-            if candidate in present:
-                return candidate
-        # No finding at all is no evidence of a pass.
-        return INCONCLUSIVE
+        if any(finding.outcome == ERROR for finding in self.findings):
+            return ERROR
+        inconclusive_codes = {finding.code for finding in self.findings if finding.outcome == INCONCLUSIVE}
+        dominating_fail = False
+        suppressed_fail = False
+        for finding in self.findings:
+            if finding.outcome != FAIL:
+                continue
+            if finding.depends_on and finding.depends_on in inconclusive_codes:
+                suppressed_fail = True  # the condition it rests on is itself inconclusive
+            else:
+                dominating_fail = True
+        if dominating_fail:
+            return FAIL
+        if suppressed_fail or any(finding.outcome in (INCONCLUSIVE, BLOCKED) for finding in self.findings):
+            return INCONCLUSIVE
+        if any(finding.outcome == PASS for finding in self.findings):
+            return PASS
+        return INCONCLUSIVE  # no finding at all is no evidence of a pass
 
     def as_dict(self) -> dict[str, Any]:
         return {

@@ -2,14 +2,19 @@
   "_comment": [
     "Example run settings for the evaluators (de4sdv_broker_path_bench.run).",
     "A run writes settings.json into its run directory with the values of that",
-    "run. The evaluators read only these keys; everything else is a raw",
-    "artifact (the pcaps, the logcat, the probe JSON)."
+    "run. The evaluators read only these keys; the new-subscription phase times",
+    "come from the relay's log, not from settings. everything else is a raw",
+    "artifact (the pcaps, the logcat, the probe JSON).",
+    "relay_logcat_tag is the relay lane's liblog tag. Its real value is the",
+    "relay's init-service name (see the README section 'Interfaces this bench",
+    "needs'); it is left as a placeholder here so this committed file does not",
+    "carry the model-guard marker while the relay lane is unmerged.",
+    "condition names which VC-MW-020 condition this run exercises: hmi_down,",
+    "ivi_vm_down, sdv_core_vm_down or pair_restart; a case pass needs all four."
   ],
   "produced_port": 4721,
   "received_port": 4731,
-  "relay_logcat_tag": "SET_TO_THE_RELAY_LANE_LOGCAT_TAG",
+  "relay_logcat_tag": "SEE_README_RELAY_LOGCAT_TAG",
   "sntp_server": "192.168.98.1",
-  "new_subscription_realtime_ns": [
-    "FILL FROM THE GUEST CAPTURE: the IVI VM clock time(s) of the new subscription of VC-MW-020"
-  ]
+  "condition": "hmi_down"
 }

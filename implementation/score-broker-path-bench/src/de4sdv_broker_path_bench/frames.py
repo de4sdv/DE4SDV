@@ -239,12 +239,20 @@ def split_frames(stream: TcpStream, connection: int,
     while index + 4 <= len(data):
         length = struct.unpack("<I", data[index:index + 4])[0]
         end = index + 4 + length
-        # Bytes are missing just before a gap offset, so a frame that starts at
-        # a gap or spans one cannot be read.
-        crosses_gap = any(index <= gap < end for gap in gap_offsets)
-        if not 1 <= length <= max_frame or crosses_gap:
-            reason = "a capture gap" if crosses_gap else f"length prefix {length}"
-            found = resync(data, index + 1, max_frame)
+        # A frame whose bytes span a capture discontinuity cannot be read. A
+        # frame that starts exactly at a gap boundary is intact (the gap is
+        # before it), so the check is strict and the resync starts at the gap
+        # offset, not one byte past the bad prefix, so the frame after the gap
+        # is not lost (a frame at a gap is unknown, not a missing delivery).
+        spanned = [gap for gap in gap_offsets if index < gap < end]
+        if not 1 <= length <= max_frame or spanned:
+            if spanned:
+                reason = "a capture gap"
+                resync_from = spanned[0]
+            else:
+                reason = f"length prefix {length}"
+                resync_from = index + 1
+            found = resync(data, resync_from, max_frame)
             problems.append(f"framing lost at offset {index} ({reason}); "
                             + (f"resynchronized at {found}" if found is not None else "no resync"))
             if found is None:

@@ -1,16 +1,23 @@
 """The IVI frame relay's event lines in a logcat capture.
 
 The bench saves logcat with ``adb logcat -v epoch -v usec``. A relay line is
-one JSON object per event, written with the relay's liblog tag; the run
-settings name that tag. The evaluators read the relay's phase records as
-supporting data and check them against the independent captures.
+one JSON object per event, written with the relay's liblog tag (the run
+settings name that tag; its real value is the relay lane's init-service name,
+given in the README). Each line carries the process id, so a relay restart (a
+new process, phases numbered from 1 again) is told apart by keying every phase
+by (pid, phase).
+
+The evaluators read the relay's phase records as the start and end of each
+subscription phase, corroborated by the captures (#448). They also read the
+clock_step and data_loss events. A phase end that the layer caused while the
+ingress stayed connected is a delivery failure of the layer.
 """
 
 from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable, Iterator
 
 _EPOCH_LINE = re.compile(
@@ -41,7 +48,7 @@ def parse_logcat(lines: Iterable[str]) -> Iterator[LogcatLine]:
 
 
 def relay_events(lines: Iterable[str], tag: str) -> list[dict]:
-    """The relay's JSON events, each with the logcat time added as ``logcat_ns``."""
+    """The relay's JSON events, each with the logcat time and the pid added."""
     events = []
     for line in parse_logcat(lines):
         if line.tag != tag or not line.message.startswith("{"):
@@ -52,58 +59,80 @@ def relay_events(lines: Iterable[str], tag: str) -> list[dict]:
             continue
         if isinstance(event, dict) and isinstance(event.get("event"), str):
             event["logcat_ns"] = line.ts_ns
+            event["pid"] = line.pid
             events.append(event)
     return events
 
 
 @dataclass(frozen=True)
 class Phase:
-    """One subscription phase of the relay (relaySubscriptionPhaseDiscardRule)."""
+    """One subscription phase of the relay (relaySubscriptionPhaseDiscardRule).
 
+    Keyed by (pid, phase): the relay numbers phases from 1 in each process, so
+    the pid tells a restart apart. ``layer_caused`` is true when the layer
+    ended the phase while the ingress stayed connected (a delivery failure of
+    the layer); the relay logs it on the phase_end event.
+    """
+
+    pid: int
     number: int
     start_realtime_ns: int
     start_cause: str
     end_realtime_ns: int | None
     end_cause: str | None
+    layer_caused_end: bool | None
+    client_connected_at_end: bool | None
     clock_steps_in_phase: int | None
+
+    @property
+    def key(self) -> tuple[int, int]:
+        return (self.pid, self.number)
 
 
 def phases(events: list[dict]) -> tuple[list[Phase], list[str]]:
-    """The phases of the relay, and the inconsistencies of its records."""
+    """The phases of the relay, keyed by (pid, phase), and the record problems."""
     problems: list[str] = []
-    started: dict[int, dict] = {}
+    started: dict[tuple[int, int], dict] = {}
     result: list[Phase] = []
     for event in events:
         kind = event.get("event")
         if kind == "phase_start":
             number = event.get("phase")
             start = event.get("phase_start_realtime_ns")
-            if not isinstance(number, int) or not isinstance(start, int):
-                problems.append(f"phase_start without phase number or start time: {event}")
+            pid = event.get("pid")
+            if not isinstance(number, int) or not isinstance(start, int) or not isinstance(pid, int):
+                problems.append(f"phase_start without a phase number, start time or pid: {event}")
                 continue
-            if number in started:
-                problems.append(f"phase {number} started twice")
-            started[number] = event
+            if (pid, number) in started:
+                problems.append(f"phase (pid {pid}, {number}) started twice")
+            started[(pid, number)] = event
         elif kind == "phase_end":
             number = event.get("phase")
-            begin = started.pop(number, None) if isinstance(number, int) else None
+            pid = event.get("pid")
+            begin = started.pop((pid, number), None) if isinstance(number, int) and isinstance(pid, int) else None
             if begin is None:
                 problems.append(f"phase_end without its phase_start: {event}")
                 continue
             if event.get("phase_start_realtime_ns") not in (None, begin["phase_start_realtime_ns"]):
-                problems.append(f"phase {number} ends with another start time than it began with")
+                problems.append(f"phase (pid {pid}, {number}) ends with another start time than it began with")
             end = event.get("realtime_ns")
-            result.append(Phase(number, begin["phase_start_realtime_ns"], str(begin.get("cause", "")),
+            result.append(Phase(pid, number, begin["phase_start_realtime_ns"], str(begin.get("cause", "")),
                                 end if isinstance(end, int) else None, str(event.get("cause", "")),
+                                event.get("layer_caused"), event.get("client_connected"),
                                 event.get("clock_steps_in_phase")))
-    for number, begin in started.items():
-        result.append(Phase(number, begin["phase_start_realtime_ns"], str(begin.get("cause", "")), None, None, None))
+    for (pid, number), begin in started.items():
+        result.append(Phase(pid, number, begin["phase_start_realtime_ns"], str(begin.get("cause", "")),
+                            None, None, None, None, None))
     result.sort(key=lambda phase: phase.start_realtime_ns)
     return result, problems
 
 
 def clock_steps(events: list[dict]) -> list[dict]:
     return [event for event in events if event.get("event") == "clock_step"]
+
+
+def data_loss_events(events: list[dict]) -> list[dict]:
+    return [event for event in events if event.get("event") == "data_loss"]
 
 
 def phase_at(all_phases: list[Phase], realtime_ns: int) -> Phase | None:
@@ -113,3 +142,14 @@ def phase_at(all_phases: list[Phase], realtime_ns: int) -> Phase | None:
                                                        or realtime_ns < phase.end_realtime_ns):
             return phase
     return None
+
+
+def clock_step_in(events: list[dict], start_ns: int, end_ns: int | None) -> bool:
+    """Whether a clock_step fell inside a phase window (voids the run, ASM-MW-030)."""
+    for step in clock_steps(events):
+        when = step.get("realtime_ns")
+        if isinstance(when, int) and when >= start_ns and (end_ns is None or when <= end_ns):
+            return True
+        if step.get("in_phase") is True and end_ns is None:
+            return True
+    return False

@@ -4,10 +4,14 @@
     "The DE4SDV stack configuration of the SDV Core VM. It replaces the reference",
     "stack's /vendor/etc/someip/vsomeip_config.json. It offers no SOME/IP service.",
     "It declares the frame service of someipd as a remote service with its",
-    "reliable endpoint pinned to the host (192.168.98.1), so a service-discovery",
-    "message from the IVI VM cannot redirect the subscription (else filter SD in",
-    "the SDV Core VM to the host, or record the residual under GAP-MW-012).",
-    "The service discovery group stays 224.0.0.0 (GAP-MW-047)."
+    "reliable endpoint set to the host (192.168.98.1). With service discovery",
+    "enabled the per-service unicast alone does not pin the provider: vsomeip",
+    "3.1.37.1 processes an offer of 4dee.0001 from any sender unless the service",
+    "is marked secure. So secure-services and acceptances are meant to keep an",
+    "SD message from the IVI VM from redirecting the subscription; VC-MW-016",
+    "tests it with a spoofed offer. AOSP's vsomeip copy may carry patches, so S1",
+    "verifies the effect; else filter SD in the SDV Core VM to the host, or",
+    "record the residual under GAP-MW-012. The SD group stays 224.0.0.0 (GAP-MW-047)."
   ],
   "unicast": "192.168.98.3",
   "logging": { "level": "info", "console": "true", "dlt": "false" },
@@ -20,6 +24,13 @@
       "reliable": { "port": "30509", "enable-magic-cookies": "false" },
       "events": [ { "event": "0x8001", "is_field": "false", "is_reliable": "true" } ],
       "eventgroups": [ { "eventgroup": "0x0001", "events": [ "0x8001" ] } ]
+    }
+  ],
+  "secure-services": [ { "service": "0x4dee", "instance": "0x0001" } ],
+  "acceptances": [
+    {
+      "address": "192.168.98.1",
+      "reliable": [ { "first": "30509", "last": "30509", "type": "secure" } ]
     }
   ],
   "routing": "SampleStack",

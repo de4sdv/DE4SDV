@@ -1,0 +1,23 @@
+# DE4SDV broker-path bench (INC-MW-011 phase 10), bench-only.
+# The broker's object policy on the IVI VM. The IVI SD agent builds the
+# AuthzGuard of the remote broker unit from this package and bundle's policy,
+# so the deprecated service_units mapping must name the relay as the reader of
+# the frame topic. Every passing spike run installed this alongside the relay's
+# own subject policy; a cross-VM subscriber needs the remote publisher's object
+# policy. The provisioning script installs it at
+# /product/etc/sdv_authz_acls/com.android.sdv.someip/SomeIpBroker.textproto.
+# The reader name is the relay's subject package.bundle (dotted), taken from
+# the relay lane (RELAY_SUBJECT_PACKAGE.RELAY_SUBJECT_BUNDLE); it is not the
+# relay's init-service name.
+subscriber {
+  message: "com.android.sdv.someip.De4sdvScoreAebsSignalFrame"
+  topic: "de4sdv-score-aebs-signal-frame"
+}
+acls {
+  name: "IviFrameRelayReader"
+  include: "de4sdv.ivi_frame_relay.IviFrameRelay"
+}
+service_units {
+  name: "de4sdv-score-aebs-signal-frame"
+  acl_names: "IviFrameRelayReader"
+}
