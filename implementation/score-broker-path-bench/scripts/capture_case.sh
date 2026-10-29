@@ -70,9 +70,9 @@ _start_captures() {
   # Guest: the relay stream on the IVI loopback, captured on the guest.
   "$ADB" -s "$IVI_ADB" shell "rm -f /data/local/tmp/received.pcap; tcpdump -i lo -s0 -U -w /data/local/tmp/received.pcap 'tcp port $RELAY_LOOPBACK_PORT' >/dev/null 2>&1 & echo \$! > /data/local/tmp/received.pid" >/dev/null 2>&1 || true
   # Guest: the cleartext Data Tunnel on VLAN 2, in the sdv_dt_ns namespace, for
-  # the subscription start of VC-MW-020. The VC-MW-020 evaluator takes the later of
-  # the relay's phase start and the loopback accept; this capture is retained
-  # for review (consuming it is a known limit, see the README).
+  # the subscription start of VC-MW-020. The evaluator runs its check a second
+  # time with the subscription time in this capture as the start (the opening
+  # of the stream that carried the phase's frames), so it needs -s0.
   "$ADB" -s "$IVI_ADB" shell "rm -f /data/local/tmp/data-tunnel-vlan2.pcap; ip netns exec sdv_dt_ns tcpdump -i sdv_dt -s0 -U -w /data/local/tmp/data-tunnel-vlan2.pcap >/dev/null 2>&1 & echo \$! > /data/local/tmp/dt.pid" >/dev/null 2>&1 || true
   # Guest: the relay log, streamed from before the event with epoch microseconds.
   ( "$ADB" -s "$IVI_ADB" logcat -v epoch -v usec "$RELAY_LOGCAT_TAG":* "*:S" > "$OUT/relay-logcat.txt" 2>/dev/null & echo "relaylog $!" >> "$OUT/.pids" )
@@ -150,7 +150,7 @@ stop() {
   { echo "captured_at: $(date -u +%FT%T.%NZ)"
     echo "produced: tcpdump -i lo tcp port $FRAME_ASSEMBLER_PORT"
     echo "received: guest tcpdump -i lo tcp port $RELAY_LOOPBACK_PORT"
-    echo "data_tunnel_vlan2: guest ip netns exec sdv_dt_ns tcpdump -i sdv_dt (retained for review; not consumed)"
+    echo "data_tunnel_vlan2: guest ip netns exec sdv_dt_ns tcpdump -i sdv_dt -s0 (VC-MW-020's second start)"
     echo "relay_logcat_tag: $RELAY_LOGCAT_TAG"
     echo "kernel_drops: record 'N packets dropped by kernel' from the capture tool's exit line (-s0 should give 0)"
     echo "ivi_boot_start: ${start_boot:-unknown}"

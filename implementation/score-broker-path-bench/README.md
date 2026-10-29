@@ -127,16 +127,18 @@ it read and a digest of the evaluator sources.
 
 | Case | Requirement | What the evaluator checks from raw artifacts |
 |---|---|---|
-| VC-MW-015 | REQ-MW-014 | every frame produced unambiguously inside a subscription phase (beyond the 20 ms clock band) reaches the HMI, in order, inter-arrival below 500 ms; a layer-caused phase end or a DATA_LOSS inside the AEBS event fails (the event is the span of `produced.pcap`, its first to its last frame timestamp, not the stage sequence); an ingress disconnect in the event, a second `:4721` client, a capture gap or ASM-MW-030 not holding is inconclusive |
+| VC-MW-015 | REQ-MW-014 | every frame produced unambiguously inside a subscription phase (beyond the 20 ms clock band) reaches the HMI, in order, inter-arrival below 500 ms; a layer-caused phase end or a DATA_LOSS inside the AEBS event fails (the event is the span of `produced.pcap`, its first to its last frame timestamp, not the stage sequence); an ingress disconnect that the relay causes in the event fails too: the relay's exit (`gateway_client_lost`, exit code 4), its own close after a write failure, or a close of a frame-carrying stream from port 4731 in `received.pcap`; an ingress that closes its own stream in the event, a second `:4721` client (recorded as a bench discrepancy), a capture gap or ASM-MW-030 not holding is inconclusive |
 | VC-MW-016 | REQ-MW-015 | each received frame equals its produced frame byte for byte, with its source kind; a received frame the stack never produced fails; after a spoofed SD offer the provider must stay 192.168.98.1 and the frames must keep arriving; the spoofed offer must come from the SD source port 30490 and `sd_core_processed.json` must show the core stack processed it (status `processed` with the matched log line), else inconclusive (a stack ignores an SD message from another port); a subscription to another provider after the offer fails even with no log line; an offer record with no provider is inconclusive |
 | VC-MW-017 | REQ-MW-016 | second finding: no host DDS port of the layer is reachable from a guest, judged by a capture on the guest-facing interface plus the drop-rule counter (reached = captured and not dropped; isolated = captured and dropped, so a counter that moved with nothing captured is a gap, not isolated; a recorded host-socket receipt or a completed guest TCP connect also counts as reached); the probes use the bench sender, which pins the egress device, source address and source port, so a probe leaves on its named interface; a probe covers its (guest, interface, host) pair only when the capture shows it arrived from the named source address and the named guest interface's MAC (the `:4721` SYN is found by its pinned source port); each expected pair must cover the full DDS port set of `dds_range.json` (domain 91, index 120) plus 4721, else a gap; a probe that arrived from another interface or source covers nothing but a reach is still a reach; a failed, unsent or malformed probe is a coverage gap; a positive control by the same observation; without a readable firewall table the run is inconclusive; a reachable `:4721` is an ASM-MW-029 finding, not a failure; the first finding needs the inspection record |
-| VC-MW-020 | REQ-MW-019 | per condition (HMI down, IVI VM down, SDV Core VM down, pair restart): each frame in a new phase was produced no more than the 20 ms margin before the judged phase start (the later of the relay's start and the ingress's loopback accept), compared raw; a frame earlier than that start by more than the offset plus its uncertainty plus 20 ms fails whatever the clock shows; the IVI-VM-down condition judges only the phase after the clock setting; a capture gap in `received.pcap`, or a judged connection that the capture joined after the relay's start with no accept, is inconclusive unless a captured frame fails; needs ASM-MW-030 to hold |
+| VC-MW-020 | REQ-MW-019 | per condition (HMI down, IVI VM down, SDV Core VM down, pair restart): each frame in a new phase was produced no more than the 20 ms margin before the judged phase start (the later of the relay's start and the ingress's loopback accept), compared raw; a frame earlier than that start by more than the offset plus its uncertainty plus 20 ms fails whatever the clock shows, but only when the relay logged no clock step between the two offset measurements; the same check runs again with the subscription time in `data-tunnel-vlan2.pcap` as the start, and if it fails while the first passes the run is inconclusive; without that time (no capture, or neither the stream's opening nor a flow from before the judged start in it) the run gives no pass; the IVI-VM-down condition judges only the phase after the clock setting; a capture gap in `received.pcap`, or a judged connection that the capture joined after the relay's start with no accept, is inconclusive unless a captured frame fails; needs ASM-MW-030 to hold |
 
 The run directory holds, by convention: `produced.pcap` (host `:4721`),
 `received.pcap` (guest `:4731`), `relay-logcat.txt` (the relay's events, with
 its tag), `clock-start.pcap`, `clock-end.pcap`, `settings.json`,
 `frame_assembler_clients.json` (the two-step ASM-MW-029 `ss` check),
-`ivi_boot.txt` (the IVI boot identity at the start and the stop), and for
+`ivi_boot.txt` (the IVI boot identity at the start and the stop),
+`data-tunnel-vlan2.pcap` (the cleartext Data Tunnel on VLAN 2, VC-MW-020's
+second start), and for
 VC-MW-016 `host-cvd-ebr.pcap` (the SD capture) with `sd_core_processed.json`
 and `core-logcat-sd-offer.txt`, or `sd_offer.json`, or `residual.json`, and
 for VC-MW-017 the probe JSON (`firewall.json`, `host_listeners.json`,
@@ -271,13 +273,33 @@ passes.
   `nf_tables` bridge input chain, which this development host's kernel does not
   carry, so it is checked only on the VM. It is a recorded design measure, no
   part of any case's pass condition (VC-MW-017, VC-MW-020).
-- **The VLAN 2 Data Tunnel capture is retained, not consumed.** `capture_case.sh`
-  records the cleartext Data Tunnel on VLAN 2, the second capture VC-MW-020 names
-  for the subscription start. The VC-MW-020 evaluator takes the later of the
-  relay's phase start and the loopback accept of `received.pcap`; it does not
-  yet read the VLAN 2 capture, which stays with the evidence for review. The
-  VC-MW-015 evaluator takes its phase windows from the relay log alone; it does
-  not yet apply the capture comparison that VC-MW-015 also names for it.
+- **The Data Tunnel subscription time rests on design data.** VC-MW-020 runs
+  its check a second time with the subscription time in
+  `data-tunnel-vlan2.pcap` as the start. In the UNLOCKED mode Data Tunnel is
+  gRPC over cleartext HTTP/2: the IVI agent opens a stream with a HEADERS
+  frame and the core streams the publication's messages back, each carrying
+  the frame bytes. So the evaluator finds the phase's first frame by its bytes
+  and takes the opening HEADERS of the stream that carried it as the
+  subscription time. The spike's VLAN 2 captures show this framing (truncated
+  at 256 bytes there; the bench captures with `-s0`); S1 confirms it on the
+  bench. The spike also shows the Data Tunnel stream keeps running while no
+  IVI client subscribes, so in the HMI-down and IVI-VM-down conditions the
+  stream opens before the capture starts. Then the evaluator accepts a bound
+  instead: the produced frames flowed on the same carrier, with no gap of
+  500 ms or more, from before the judged start to the phase's first frame, so
+  the subscription started before the judged start and the second check
+  cannot fail where the first passes. Without the opening and without that
+  flow, the time is unknown and the run gives no pass. A gRPC message split
+  across HTTP/2 frames, or a Data Tunnel layout other than this, gives
+  "unknown" (never a pass). The VC-MW-015 evaluator still takes its phase
+  windows from the relay log alone; it does not yet apply the capture
+  comparison that VC-MW-015 also names for it.
+- **A clock step near a measurement disables the wide limit.** The relay
+  stamps a clock step with the realtime after it, so a step that the times
+  cannot place between or outside the two offset measurements counts as
+  between: the wide limit is not applied, which can only remove a fail. The
+  clock setting just before the start measurement (as in `capture_case.sh
+  ivi-vm-down`) can fall in that margin.
 - **The probe is serialized and long.** `host_isolation_probe.sh` reads the
   drop counter around each of the 244 DDS ports plus 4721, for each interface
   and host address, from both VMs. Each probe is one guest command and two
