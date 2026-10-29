@@ -84,6 +84,7 @@ class Capture:
     error: str | None
     present: bool
     mid_stream: bool = False
+    ended_cleanly: bool = True  # the last stream closed (FIN/RST); False means the capture was cut mid-stream
 
 
 def _read_frames(run: RunInputs, name: str, port: int) -> Capture:
@@ -97,6 +98,7 @@ def _read_frames(run: RunInputs, name: str, port: int) -> Capture:
     collected = []
     had_gap = capture.truncated
     mid_stream = False
+    last_stream = None
     for index, stream in enumerate(tcp_streams(datagrams(capture), port)):
         # A mid-stream join (the capture started while the ingress was already
         # connected, the documented window) is not a loss: it only means the
@@ -109,8 +111,14 @@ def _read_frames(run: RunInputs, name: str, port: int) -> Capture:
         if any("capture gap" in problem or "resync" in problem for problem in problems):
             had_gap = True
         collected.extend(stream_frames)
+        last_stream = stream
+    # The capture ended cleanly when its last connection closed (a FIN or RST);
+    # a capture cut mid-stream has neither. A truncated end means the guest
+    # capture was stopped while the connection was open, so frames the stack
+    # produced afterwards are beyond its coverage, not missing (review B1).
+    ended_cleanly = bool(last_stream is not None and (last_stream.fin_ns is not None or last_stream.rst_ns is not None))
     collected.sort(key=lambda item: item.delivered_ns)
-    return Capture(collected, had_gap, None, present=True, mid_stream=mid_stream)
+    return Capture(collected, had_gap, None, present=True, mid_stream=mid_stream, ended_cleanly=ended_cleanly)
 
 
 def _facts(frame) -> "frames.FrameFacts | None":
@@ -350,11 +358,21 @@ def evaluate_source_order(run: RunInputs) -> CaseResult:
     received_ts = [facts.frame_timestamp_ns for _frame, facts in received_facts
                    if facts.frame_timestamp_ns is not None]
     capture_floor = (min(received_ts) - PHASE_SLOP_NS) if (received.mid_stream and received_ts) else None
+    # A guest capture that was cut mid-stream (no clean close) stops before the
+    # stack does: a frame produced after the last captured packet was delivered
+    # but not captured, so it is beyond the capture's coverage and not required.
+    # The ceiling is the last received packet time less the inter-arrival bound
+    # and the 20 ms clock band, mirroring the mid-stream floor (review B1/R31).
+    # A capture that closed cleanly is not trimmed: a stack that keeps producing
+    # past a cleanly ended stream is a genuine stop, judged below.
+    capture_ceiling = (max(frame.delivered_ns for frame in received.frames) - MAX_GAP_NS - PHASE_SLOP_NS) \
+        if (received.frames and not received.ended_cleanly) else None
 
     received_set = set(received_seq)
     required = [facts.sequence for _frame, facts in produced_facts
                 if facts.sequence is not None and (not all_phases or in_a_phase(facts.frame_timestamp_ns or 0))
-                and (capture_floor is None or (facts.frame_timestamp_ns or 0) >= capture_floor)]
+                and (capture_floor is None or (facts.frame_timestamp_ns or 0) >= capture_floor)
+                and (capture_ceiling is None or (facts.frame_timestamp_ns or 0) <= capture_ceiling)]
     result.measurements["band_frames"] = sum(1 for _frame, facts in produced_facts
                                              if all_phases and facts.frame_timestamp_ns is not None
                                              and in_a_band(facts.frame_timestamp_ns) and not in_a_phase(facts.frame_timestamp_ns))
@@ -493,12 +511,20 @@ def evaluate_provenance(run: RunInputs) -> CaseResult:
         last_received_ts = max((facts.frame_timestamp_ns for _frame, facts in received_facts
                                 if facts and facts.frame_timestamp_ns is not None), default=None)
         received_seqs = {facts.sequence for _frame, facts in received_facts if facts and facts.sequence is not None}
+        # A guest capture cut mid-stream (no clean close) does not cover frames
+        # the stack produced after its last packet, so those are not a stop
+        # after the offer (review B1). A cleanly closed stream has no ceiling, so
+        # frames produced past it are a genuine stop.
+        capture_ceiling = (max(frame.delivered_ns for frame in received.frames) - MAX_GAP_NS - PHASE_SLOP_NS) \
+            if not received.ended_cleanly else None
         # The stream stopped: the stack produced frames after the last received
-        # frame (so after the offer, which fell in the event) that never arrived.
+        # frame (so after the offer, which fell in the event) that never arrived,
+        # within the capture's coverage.
         if last_received_ts is not None and not (received.had_gap or produced.had_gap):
             stopped = [facts.sequence for frame in produced.frames
                        if (facts := _facts(frame)) and facts.sequence is not None
                        and facts.frame_timestamp_ns is not None and facts.frame_timestamp_ns > last_received_ts
+                       and (capture_ceiling is None or facts.frame_timestamp_ns <= capture_ceiling)
                        and facts.sequence not in received_seqs]
             if stopped:
                 result.add("sd-stop", FAIL, f"after the SD offer the received frames stopped: {len(stopped)} frames "
@@ -613,8 +639,14 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
     # outside the judged scope (#448, review R18/R30).
     judged = list(all_phases)
     if run.condition == "ivi_vm_down" and len(all_phases) >= 2:
-        first = min(all_phases, key=lambda phase: phase.start_realtime_ns)
-        judged = [phase for phase in all_phases if phase is not first]
+        # The out-of-scope phase is the first the relay logged, by log order and
+        # (pid, phase), not the earliest realtime: a clock step in the first
+        # phase can move realtime back past the next phase start (review R46).
+        first_key = relay_log.first_phase_key(events)
+        first = next((phase for phase in all_phases if phase.key == first_key), None) if first_key else None
+        if first is None:  # no readable phase_start order: fall back to the earliest realtime
+            first = min(all_phases, key=lambda phase: phase.start_realtime_ns)
+        judged = [phase for phase in all_phases if phase.key != first.key]
         result.measurements["first_phase_recorded_as_data"] = {"pid": first.pid, "phase": first.number}
     judged_keys = {phase.key for phase in judged}
 

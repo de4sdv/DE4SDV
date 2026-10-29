@@ -66,15 +66,24 @@ start() {
 stop() {
   "$HERE/set_ivi_clock.sh" measure "$OUT/clock-end.pcap" || true
   _ss_client_check after
-  # Stop the guest captures by their recorded pids, then the host captures.
-  "$ADB" -s "$IVI_ADB" shell "kill -INT \$(cat /data/local/tmp/received.pid 2>/dev/null) \$(cat /data/local/tmp/dt.pid 2>/dev/null) 2>/dev/null; sleep 1; sync" >/dev/null 2>&1 || true
-  "$ADB" -s "$IVI_ADB" pull /data/local/tmp/received.pcap "$OUT/received.pcap" 2>&1 | tail -1 || true
-  "$ADB" -s "$IVI_ADB" pull /data/local/tmp/data-tunnel-vlan2.pcap "$OUT/data-tunnel-vlan2.pcap" 2>&1 | tail -1 || true
+  # Stop the HOST captures first (produced.pcap, the SD capture), then settle at
+  # least a second, then stop the GUEST captures. The guest (received) capture
+  # must outlive the host (produced) capture, or the host stream would record
+  # frames the stack produced after the guest capture ended, a false stop and a
+  # false completeness failure (review B1). The relay-log stream is stopped with
+  # the guest captures, so it covers the whole window.
   if [ -f "$OUT/.pids" ]; then
     while read -r name pid; do
-      case "$name" in relaylog) kill "$pid" 2>/dev/null || true ;; *) sudo kill -INT "$pid" 2>/dev/null || true ;; esac
+      case "$name" in relaylog) : ;; *) sudo kill -INT "$pid" 2>/dev/null || true ;; esac
     done < "$OUT/.pids"
   fi
+  sleep 2
+  "$ADB" -s "$IVI_ADB" shell "kill -INT \$(cat /data/local/tmp/received.pid 2>/dev/null) \$(cat /data/local/tmp/dt.pid 2>/dev/null) 2>/dev/null; sleep 1; sync" >/dev/null 2>&1 || true
+  if [ -f "$OUT/.pids" ]; then
+    while read -r name pid; do [ "$name" = relaylog ] && { kill "$pid" 2>/dev/null || true; }; done < "$OUT/.pids"
+  fi
+  "$ADB" -s "$IVI_ADB" pull /data/local/tmp/received.pcap "$OUT/received.pcap" 2>&1 | tail -1 || true
+  "$ADB" -s "$IVI_ADB" pull /data/local/tmp/data-tunnel-vlan2.pcap "$OUT/data-tunnel-vlan2.pcap" 2>&1 | tail -1 || true
   sleep 1
   for pcap in produced.pcap host-cvd-ebr.pcap; do [ -f "$OUT/$pcap" ] && sudo chown "$USER" "$OUT/$pcap" 2>/dev/null || true; done
   # Record the capture commands for the run manifest. The kernel drop count is

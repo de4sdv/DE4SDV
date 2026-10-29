@@ -86,6 +86,34 @@ def test_vc015_passes_when_every_required_frame_arrives(tmp_path):
         evaluators.evaluate_source_order(run).as_dict()
 
 
+def _truncate_received(run, received):
+    # Rewrite received.pcap as a stream cut mid-connection: no FIN, so the
+    # evaluator reads it as a guest capture stopped early (review B1).
+    (run.run_dir / "received.pcap").write_bytes(b.pcap(b.stream_records(4731, received, t0=P0 + 5_000_000)[:-1]))
+
+
+def test_vc015_b1_frames_produced_after_the_guest_capture_ended_are_not_required(tmp_path):
+    # B1: the guest capture was cut mid-stream (no FIN) after frame 7, so the
+    # stack produced frames 8-12 after the capture ended. They were delivered but
+    # not captured; they are beyond the capture's coverage, so they are not
+    # required and the run still passes.
+    produced = frames_seq(["MONITORING", "WARNING", "INTERVENTION", "RELEASED"] + ["MONITORING"] * 8, base_ns=P0)
+    run = _vc015_base(tmp_path, produced, produced[:7], logcat=phase_logcat(P0 - 50_000_000))
+    _truncate_received(run, produced[:7])
+    assert evaluators.evaluate_source_order(run).outcome == outcome.PASS, \
+        evaluators.evaluate_source_order(run).as_dict()
+
+
+def test_vc015_a_frame_missing_inside_the_capture_coverage_still_fails(tmp_path):
+    # The ceiling trims only the tail: a frame produced well inside the covered
+    # window that never arrived is still a completeness failure.
+    produced = frames_seq(["MONITORING", "WARNING", "INTERVENTION", "RELEASED"] + ["MONITORING"] * 8, base_ns=P0)
+    received = [produced[0]] + produced[2:7]  # frame 2 (early, well inside coverage) is missing
+    run = _vc015_base(tmp_path, produced, received, logcat=phase_logcat(P0 - 50_000_000))
+    _truncate_received(run, received)
+    assert evaluators.evaluate_source_order(run).outcome == outcome.FAIL
+
+
 def test_vc015_e6_layer_caused_phase_end_fails(tmp_path):
     payloads = frames_seq()
     logcat = phase_logcat(P0 - 50_000_000, P0 + 300_000_000, layer_caused=True, cause="timeout")
@@ -266,6 +294,17 @@ def test_vc016_r43_offer_processed_with_a_redirect_fails(tmp_path):
                  sd_capture=_spoofed_offer_capture(offer_src_port=30490, provider="192.168.98.118"),
                  core_processed={"processed": True})
     assert evaluators.evaluate_provenance(run).outcome == outcome.FAIL
+
+
+def test_vc016_b1_frames_produced_after_the_guest_capture_ended_are_not_a_stop(tmp_path):
+    # B1: the guest capture was cut mid-stream (no FIN) after frame 7, so the
+    # stack produced frames 8-12 after the capture ended. They are beyond the
+    # capture's coverage, not a stop after the offer; a clean run passes.
+    produced = frames_seq(["MONITORING", "WARNING", "INTERVENTION", "RELEASED"] + ["MONITORING"] * 8, base_ns=P0)
+    run = _vc016(tmp_path, produced, produced[:7],
+                 sd_offer={"provider_after_offer": "192.168.98.1", "offer_time_ns": P0 + 150_000_000})
+    (run.run_dir / "received.pcap").write_bytes(b.pcap(b.stream_records(4731, produced[:7], t0=P0 + 5_000_000)[:-1]))
+    assert evaluators.evaluate_provenance(run).outcome == outcome.PASS, evaluators.evaluate_provenance(run).as_dict()
 
 
 # ------------------------------------------------------------ VC-MW-017
@@ -840,3 +879,19 @@ def test_r37_no_new_phase_start_is_reported(tmp_path):
     code = relay_log.main(["new-phase-start", "--tag", TAG, "--before", str(tmp_path / "before.txt"),
                            "--after", str(tmp_path / "after.txt")])
     assert code == 1
+
+
+def test_vc020_r46_out_of_scope_phase_is_the_first_in_log_order(tmp_path):
+    # R46: a clock step in the first phase moved realtime back past the second
+    # phase's start, so the earliest-realtime phase is phase 2, but the phase to
+    # record as data is phase 1 (the first the relay logged).
+    p1_start, p2_start = T_SUB + 5_000_000_000, T_SUB  # phase 1 logged first, later realtime
+    logcat = (b.phase_start_line(p1_start, phase=1)
+              + "\n" + b.phase_end_line(p1_start + 2_000_000_000, p1_start, phase=1, layer_caused=False,
+                                        client_connected=False, cause="client_lost")
+              + "\n" + b.phase_start_line(p2_start, phase=2) + "\n")
+    clean = [b.frame(10, p1_start + 2_500_000_000)]
+    records = b.stream_records(4731, clean, t0=p1_start + 2_400_000_000, cport=46001)
+    run = _vc020(tmp_path, sorted(records), logcat, condition="ivi_vm_down")
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.measurements["first_phase_recorded_as_data"] == {"pid": 1234, "phase": 1}

@@ -129,6 +129,19 @@ def phases(events: list[dict]) -> tuple[list[Phase], list[str]]:
     return result, problems
 
 
+def first_phase_key(events: list[dict]) -> tuple[int, int] | None:
+    """The (pid, phase) of the first phase_start in log order, or None when there is none.
+
+    Log order, not the earliest realtime: a clock step can move realtime back
+    past a later phase start (review R46).
+    """
+    for event in events:
+        if event.get("event") == "phase_start" and isinstance(event.get("pid"), int) \
+                and isinstance(event.get("phase"), int):
+            return (event["pid"], event["phase"])
+    return None
+
+
 def clock_steps(events: list[dict]) -> list[dict]:
     return [event for event in events if event.get("event") == "clock_step"]
 
