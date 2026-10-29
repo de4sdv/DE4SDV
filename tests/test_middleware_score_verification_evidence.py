@@ -33,6 +33,7 @@ NEEDS = MIDDLEWARE / "middleware_score_needs_requirements.sysml"
 FRAMING = MIDDLEWARE / "middleware_score_framing.sysml"
 CONFIGURATION = MIDDLEWARE / "middleware_score_variability_configuration.sysml"
 CLOSED_SLICE = MIDDLEWARE / "middleware_verification_evidence.sysml"
+PHYSICAL = MIDDLEWARE / "middleware_score_physical_software_realization.sysml"
 PACKAGE = "DE4SDV_MiddlewareSCOREVerificationEvidence"
 
 #: Case ID -> the kinds a case adds to its requirement's method when it collects. VC-MW-017 adds a runtime
@@ -524,6 +525,27 @@ def test_the_discard_case_runs_the_four_conditions() -> None:
                       "While GAP-MW-039 is open for a restart of gatewayd alone and for a late start of gatewayd, a "
                       "pass does not close REQ-MW-019."):
         assert statement in case, statement
+
+
+def test_the_discard_case_fails_a_clock_independent_violation_whatever_else_holds() -> None:
+    """A frame produced before the new subscription by more than the bound, the larger measured offset and its
+    uncertainty fails the run, whatever else holds; only otherwise does a failed ASM-MW-030 make it inconclusive."""
+    case = _definition_doc("UnsubscribedFrameDiscardVerification")
+    rule = ("Among them are the two offset measurements, at the start and at the end of the session, each with its "
+            "uncertainty. If both measurements exist, processData also checks each frame against a wider limit. The "
+            "limit is the 20 ms bound of ASM-MW-030, plus the larger absolute offset of the two measurements, plus the "
+            "uncertainty of that measurement. A frame that the AEBS stack produced more than that limit before the "
+            "new subscription is a clock-independent violation. Such a frame fails the run, whatever else holds.")
+    fallback = ("Otherwise, if ASM-MW-030 does not hold in the run, the run does not show the criteria met. In that "
+                "case, the outcome is inconclusiveMissingEvidence.")
+    assert rule in case, case
+    assert fallback in case, case
+    assert case.index(rule) < case.index(fallback), "the clock-independent rule must come before the inconclusive one"
+    # The bound in the limit is the bound of ASM-MW-030 itself, so the two cannot drift apart.
+    (bound,) = re.findall(r"The limit is the (\d+) ms bound of ASM-MW-030", case)
+    assumption = _flat_doc(_raw_body(PHYSICAL.read_text(encoding="utf-8"),
+                                     r"\bpart\s+<'ASM-MW-030'>\s*\w+\s*:\s*IncrementAssumption\s*\{"))
+    assert re.findall(r"differ by less than (\d+) ms", assumption) == [bound], (bound, assumption[:200])
 
 
 def test_the_slice_header_names_the_steps_that_verify_a_requirement() -> None:

@@ -506,8 +506,9 @@ def test_vc_mw_020_checks_the_margin_and_the_condition_of_asm_mw_030() -> None:
                       "not have produced it more than the bound of ASM-MW-030 before the new subscription.",
                       "processData takes the production time from the frame timestamp, on the host clock. It takes "
                       "the start of the new subscription from the guest clock.",
-                      "If ASM-MW-030 does not hold in the run, the run does not show the criteria met. In that case, "
-                      "the outcome is inconclusiveMissingEvidence.",
+                      # A clock-independent violation fails the run first (phase-10 verification cases).
+                      "Otherwise, if ASM-MW-030 does not hold in the run, the run does not show the criteria met. In "
+                      "that case, the outcome is inconclusiveMissingEvidence.",
                       "It records the times of the stop and of the new subscription, and the offset between the host "
                       "clock and the guest clock."):
         assert statement in case, statement

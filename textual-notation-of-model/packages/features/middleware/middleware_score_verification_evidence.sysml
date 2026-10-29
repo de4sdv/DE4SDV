@@ -630,15 +630,23 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * production time from the frame timestamp, on the host clock. It takes
      * the start of the new subscription from the guest clock. The guest clock
      * is the clock of the IVI VM, which times the phase start of the relay.
-     * The run applies the clock controls of ASM-MW-030 and records them. If
-     * ASM-MW-030 does not hold in the run, the run does not show the criteria
-     * met. In that case, the outcome is inconclusiveMissingEvidence. After a
-     * reboot of the IVI VM, the relay and the ingress start before the bench
-     * can set the clock (GAP-MW-048). So for the second condition, the bench
-     * sets the clock after the reboot and then starts the ingress again. The
-     * case judges the phase that starts then. collectData still records the
-     * first phase after the reboot, as data. The claimBoundary of the record
-     * names that phase as outside the judged scope (GAP-MW-045).
+     * The run applies the clock controls of ASM-MW-030 and records them.
+     * Among them are the two offset measurements, at the start and at the
+     * end of the session, each with its uncertainty. If both measurements
+     * exist, processData also checks each frame against a wider limit. The
+     * limit is the 20 ms bound of ASM-MW-030, plus the larger absolute offset
+     * of the two measurements, plus the uncertainty of that measurement. A
+     * frame that the AEBS stack produced more than that limit before the new
+     * subscription is a clock-independent violation. Such a frame fails the
+     * run, whatever else holds. Otherwise, if ASM-MW-030 does not hold in the
+     * run, the run does not show the criteria met. In that case, the outcome
+     * is inconclusiveMissingEvidence.
+     * After a reboot of the IVI VM, the relay and the ingress start before the
+     * bench can set the clock (GAP-MW-048). So for the second condition, the
+     * bench sets the clock after the reboot and then starts the ingress
+     * again. The case judges the phase that starts then. collectData still
+     * records the first phase after the reboot, as data. The claimBoundary of
+     * the record names that phase as outside the judged scope (GAP-MW-045).
      * The new subscription is the start of a subscription phase of the IVI
      * frame relay, as phase 8 defines it (relaySubscriptionPhaseDiscardRule).
      * The relay's log shows it. Two captures in the IVI VM corroborate it:
