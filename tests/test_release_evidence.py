@@ -24,6 +24,7 @@ SERVED = {"schema": "de4sdv.served-model/v1", "source_export_sha256": EXPORT_SHA
           "element_count": 2, "content_sha256": CONTENT}
 KB = [{"ontology_class": "Need", "element_id": "e-need", "source_file": "m.sysml",
        "declaration": "part def Need"}]
+DOCUMENTS = "sha256:" + "5" * 64
 
 
 def _parity():
@@ -58,11 +59,13 @@ def _evidence() -> cre.Evidence:
                           "semantic_validation": "passed", "git_commit": HEAD,
                           "sysml_project_id": "p", "sysml_commit_id": "c",
                           "semantic_authority": SAI, "kernel_bindings": KB,
-                          "served_model": dict(SERVED)},
+                          "served_model": dict(SERVED),
+                          "export_documents": {"source_export_sha256": EXPORT_SHA, "content_sha256": DOCUMENTS}},
         semantic_report={"git_commit": HEAD, "source_export_sha256": EXPORT_SHA,
                          "element_count": 2, "semantic_authority": SAI},
         batteries=_batteries(),
         export_content_sha256=CONTENT,
+        export_documents_sha256=DOCUMENTS,
         export_kernel_bindings=[("Need", "e-need", "m.sysml", "part def Need")],
         checkout_semantic_authority=SAI,
         runtime={"startup_check": "passed", "served_model_check": "passed",
@@ -84,7 +87,7 @@ def _failed(evidence):
 def test_agreeing_evidence_passes_every_check():
     results = cre.evaluate(_evidence())
     assert all(r["ok"] for r in results), [r for r in results if not r["ok"]]
-    assert len(results) == 18
+    assert len(results) == 19
 
 
 def _mutated(mutate):
@@ -99,6 +102,10 @@ def _mutated(mutate):
     (lambda e: setattr(e, "export_content_sha256", "sha256:" + "9" * 64), "content digest"),
     (lambda e: e.export["elements"].append({"@id": "e3"}), "content digest"),
     (lambda e: e.binding_document.__setitem__("scope", "candidate"), "binding: v2"),
+    (lambda e: e.binding_document.pop("export_documents"), "export documents"),
+    (lambda e: setattr(e, "export_documents_sha256", "sha256:" + "9" * 64), "export documents"),
+    (lambda e: e.binding_document["export_documents"].update(source_export_sha256="9" * 64),
+     "export documents"),
     (lambda e: setattr(e, "checkout_semantic_authority", dict(SAI, id="sai-" + "9" * 32)),
      "semantic authority"),
     (lambda e: setattr(e, "export_kernel_bindings", [("Need", "other", "m.sysml", "part def Need")]),

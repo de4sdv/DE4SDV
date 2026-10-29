@@ -16,6 +16,10 @@ growth cannot trip it and a count-preserving swap cannot pass it.
   it from the API listing).
 - **Binding.** v2, full-model, validation passed; the kernel bindings
   re-derived from the export alone equal the binding's (ADR 0011).
+- **Export documents.** The binding records the source documents and the
+  external references of this export: the digest recomputed over the export
+  equals the record's, and the record names the export of the served-model
+  record.
 - **Runtime over the export.** The production construction
   (:func:`build_deployment_runtime`: startup check, then a corpus that must be
   the validated export) with the API transport replaced by the export:
@@ -66,6 +70,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from de4sdv.semantic.successor_parity import PARITY_RELATIONS, PARITY_SCHEMA  # noqa: E402
+from de4sdv.sysml_api.export_documents import documents_digest  # noqa: E402
 from de4sdv.sysml_api.repository import SysMLRepository  # noqa: E402
 from de4sdv.sysml_api.revisions import RevisionBinding  # noqa: E402
 from de4sdv.sysml_api.served_model import served_model_digest  # noqa: E402
@@ -115,6 +120,8 @@ class Evidence:
     semantic_report: dict[str, Any]
     batteries: dict[str, dict[str, Any] | None] = field(default_factory=dict)
     export_content_sha256: str = ""
+    #: The digest of the export's own source documents and external references (``documents_digest``).
+    export_documents_sha256: str = ""
     export_kernel_bindings: list[tuple[str, str, str, str]] | None = None
     export_kernel_error: str = ""
     checkout_semantic_authority: dict[str, Any] | None = None
@@ -170,6 +177,15 @@ def evaluate(evidence: Evidence) -> list[dict[str, Any]]:
            and bool(recorded),
            {"binding": len(recorded), "export": None if derived is None else len(derived),
             "error": evidence.export_kernel_error or None})
+
+    documents = binding.get("export_documents") or {}
+    _check(results, "export documents: the binding records this export's source documents and external "
+           "references",
+           bool(evidence.export_documents_sha256)
+           and documents.get("content_sha256") == evidence.export_documents_sha256
+           and documents.get("source_export_sha256") == served.get("source_export_sha256"),
+           {"binding": documents.get("content_sha256"), "binding_export": documents.get("source_export_sha256")},
+           evidence.export_documents_sha256)
 
     runtime = evidence.runtime
     _check(results, "runtime over the export: startup check passed and the corpus is the export",
@@ -286,6 +302,11 @@ def collect(*, export_path: Path, binding_path: Path, semantic_report_path: Path
         batteries={name: _read(path) for name, path in batteries.items()},
     )
     evidence.export_content_sha256 = served_model_digest(elements)
+    try:
+        evidence.export_documents_sha256 = documents_digest(export.get("element_sources") or {},
+                                                            export.get("external_references") or [])
+    except Exception:  # noqa: BLE001 — an unreadable export leaves it empty; the check fails
+        evidence.export_documents_sha256 = ""
     evidence.checkout_semantic_authority = build_model_contract(root).identity.to_dict()
     try:
         snapshot = load_export_snapshot(Path(export_path), None, root=root)
