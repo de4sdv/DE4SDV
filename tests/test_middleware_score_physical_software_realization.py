@@ -397,8 +397,16 @@ def test_the_relay_subscribes_through_the_gateway_and_removes_the_broker_wrapper
                       "On PublicationDestroyed, it ends the old subscription and subscribes again: every 100 ms for "
                       "the first 5 s, then every second.",
                       "PublicationDestroyed came within about 0.1 s after a restart of someipd",
-                      "On Disconnected, it creates the gateway client again, with a bounded retry, and it logs each "
-                      "attempt. Disconnected is an event of the API. The feasibility runs did not see it.",
+                      # One gateway client per process, so the relay exits to recover (relay review R1, option a).
+                      "Gateway client (owner decision of 2026-10-29, revised 2026-10-29: the library allows one client "
+                      "per process). A second creation fails, also after the first client was deleted "
+                      "(sdv_gateway/libsdvgatewayclient/include/libsdvgatewayclient.h:473-475). "
+                      "After the client has been created, the relay never deletes and re-creates it. On Disconnected, "
+                      "or when initComms fails after the client was created, the relay logs gateway_client_lost with "
+                      "the status. It ends the phase as a layer-caused phase end and exits with a code of its own. "
+                      "Init then starts the relay as a new process, which triggers the ingress again. In the same "
+                      "process, the relay retries only a creation of the client that itself failed. Disconnected is an "
+                      "event of the API. The feasibility runs did not see it.",
                       "When no message comes for 3 s, it ends the subscription and subscribes again.",
                       "After three subscriptions in a row that bring no message, it waits 5 s between them.",
                       "It counts each failed subscription and logs it with its status text.",
@@ -414,7 +422,11 @@ def test_the_relay_subscribes_through_the_gateway_and_removes_the_broker_wrapper
     assert "FLAG_FETCHLASTMESSAGE" not in doc, "the relay never asks for the last message before its subscription"
     for gone in ("about 0.5 s", "no message comes for 1 s", "android14-release", "which someipd enforces",
                  # The literal form would drop every real slot: the message is shorter than its slot (relay review R2).
-                 "The outer varint must equal the size that remains."):
+                 "The outer varint must equal the size that remains.",
+                 # A second client in the same process fails (relay review R1).
+                 "creates the gateway client again",
+                 # The owner answered on 2026-10-29; no placeholder stays.
+                 "revised …", "revised ..."):
         assert gone not in doc, gone
     # The relay's input carries the wrapped topic; its behavior unwraps it (technical review R11).
     relay = _braced(PHYSICAL.read_text(encoding="utf-8"), r"\bpart iviFrameRelay : PhysicalAllocationElement \{")
@@ -579,8 +591,14 @@ def test_the_host_isolation_is_an_obligation_with_an_open_gap() -> None:
                  "two steps: the list of ss -H -t -n -p state established '( sport = :4721 )' holds exactly one "
                  "connection, with a loopback address as its peer, and ss -H -t -n -p state established "
                  "'( dport = :4721 )' names the adapter process for the port of that peer;",
-                 "and record every phase end of the relay"):
+                 "and record every phase end of the relay",
+                 # The relay exits to recover its one gateway client (relay review R1, option a).
+                 "a gateway_client_lost exit of the relay with its restart by init and its new trigger of the "
+                 "ingress (iviFrameRelay),"):
         assert step in action, step
+    restart_cases = action[action.index("(9) "):action.index("; (10) ")]
+    assert "a gateway_client_lost exit of the relay with its restart by init and its new trigger of the ingress" in (
+        restart_cases), "the exit to recover the gateway client is a restart case of step 9"
     assert "(7) check on the host with ss" not in action, "the one-step client check names no client process"
     assert ("the frame assembler binds 0.0.0.0:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), and the adapter "
             "connects to 127.0.0.1:4721 on the host loopback") in text
