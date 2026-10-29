@@ -19,6 +19,9 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 OUT="$2"; mkdir -p "$OUT"
 : "${HOST_STACK_UNITS:=de4sdv-*}"          # the host-half units the run uses (set to the Launch Manager's units)
 : "${APP_TAG:=MainActivity}"               # the HMI app's logcat tag (INC-AEBS-010)
+: "${MONITORING_MAX_AGE_S:=2}"             # the latest frame line must be at most this old on the guest clock
+SCAN=(python3 -m de4sdv_broker_path_bench.hostscan)
+export PYTHONPATH="$HERE/../src${PYTHONPATH:+:$PYTHONPATH}"
 
 _rec_pane() {
   local name="$1"; shift
@@ -43,16 +46,19 @@ hmi() {
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
   # The app logs one line per frame (INC-AEBS-010 MainActivity.java): MONITORING
   # is not intervention, not warning, not braking, and lifecycle not released.
-  local line
-  line="$("$ADB" -s "$IVI_ADB" logcat -d -t 400 "${APP_TAG}:I" '*:S' 2>/dev/null | grep 'onGatewayFrame' | tail -1)"
-  log "latest app frame line: ${line:-none}"
-  if [ -z "$line" ] \
-     || echo "$line" | grep -q "intervention=true" \
-     || echo "$line" | grep -q "warning=true" \
-     || echo "$line" | grep -q "braking=true" \
-     || echo "$line" | grep -q "lifecycle=released_verified_stop"; then
-    log "REFUSING: MONITORING is not showing on the HMI yet; start the capture only after it does"; return 1
+  # The latest line decides, and only if it is at most MONITORING_MAX_AGE_S old
+  # on the guest clock (review R26): an old MONITORING line in the buffer does
+  # not open the gate. hostscan monitoring judges it and keeps the record.
+  local now
+  now="$("$ADB" -s "$IVI_ADB" shell "date +%s" 2>/dev/null | tr -d '\r' | head -1)"
+  "$ADB" -s "$IVI_ADB" logcat -d -v epoch -t 400 "${APP_TAG}:I" '*:S' 2>/dev/null | tr -d '\r' > "$OUT/monitoring-gate-logcat.txt"
+  case "$now" in ''|*[!0-9]*) log "REFUSING: could not read the IVI VM clock for the MONITORING gate"; return 1 ;; esac
+  if ! "${SCAN[@]}" monitoring --logcat "$OUT/monitoring-gate-logcat.txt" --now "$now" \
+        --max-age "$MONITORING_MAX_AGE_S" > "$OUT/monitoring-gate.json"; then
+    log "REFUSING: MONITORING is not showing on the HMI now ($(cat "$OUT/monitoring-gate.json")); start the capture only after it does"
+    return 1
   fi
+  log "MONITORING gate: $(cat "$OUT/monitoring-gate.json")"
   "$ADB" -s "$IVI_ADB" shell "screenrecord --bit-rate 8000000 --time-limit 180 /data/local/tmp/hmi.mp4" &
   echo $! > "$OUT/.hmi.pid"
   log "recording the IVI HMI display; run the event now, then: $0 stop $OUT"

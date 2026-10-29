@@ -7,7 +7,8 @@
 #
 #   host_isolation_probe.sh run <out-dir>   list, probe from both VMs over every interface, record
 #   host_isolation_probe.sh render-probe <ns> <iface> <src> <addr> <port> <marker>   print the guest UDP command
-#   host_isolation_probe.sh render-tcp   <ns> <iface> <src> <addr> <port> <marker>   print the guest TCP command
+#   host_isolation_probe.sh render-tcp   <ns> <iface> <src> <addr> <port> <marker> [sport]   print the guest TCP command
+#   host_isolation_probe.sh dds-range <out.json>   write the DDS range the probe iterates (dds_range.json)
 #
 # The probes use the bench sender (de4sdv_probe_send), not nc: it pins the
 # egress device (SO_BINDTODEVICE), the source address and the source port, sends
@@ -16,7 +17,11 @@
 # R41) and never loops (reviews R39, R40). A namespaced probe runs the sender
 # inside the namespace (review R42). Coverage is derived by the evaluator from
 # the captured attempts, so a pair the sender could not leave on is a gap, not a
-# self-reported probe (reviews R41, B3).
+# self-reported probe (reviews R41, B3). Each attempt records the guest
+# interface's MAC (from the guest inventory), and each capture records the host
+# interface, source address and MAC it saw, so the evaluator counts a probe for
+# its pair only when it arrived from the named interface and source (R41). The
+# :4721 probe pins a source port per attempt, which identifies its SYN.
 #
 # Reachability is judged as #448 asks: a capture on the guest-facing interface
 # AND the counters of the isolation rule. reached = captured and the counter
@@ -29,7 +34,9 @@
 set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/bench_env.sh"
-: "${PROBE_SENDER:=de4sdv_probe_send}"   # the guest sender (pushed in S1 beside the relay)
+: "${PROBE_SENDER:=$PROBE_SENDER_GUEST}"  # the guest sender (provision_probe_sender.sh install)
+: "${RUN_DIR:=$HERE/../run}"             # the session run directory with run-manifest.yaml
+: "${PROBE_TCP_SPORT_BASE:=28000}"       # the :4721 probes pin source ports from here, one per attempt
 : "${CONTROL_PORT:=39999}"               # a host port with no drop rule, for the positive control
 : "${PROBE_SEND_TIMEOUT:=2}"             # seconds; a guest send that hangs is killed by this outer timeout
 : "${PROBE_TCP_TIMEOUT_MS:=1000}"        # the sender's own TCP connect timeout
@@ -48,11 +55,44 @@ remote_probe_cmd() {  # ns iface src addr port marker
   printf "echo -n '%s' | timeout %s %s%s --device %s --source %s --sport 0 --host %s --port %s" \
     "$marker" "$PROBE_SEND_TIMEOUT" "$prefix" "$PROBE_SENDER" "$iface" "$src" "$addr" "$port"
 }
-remote_tcp_cmd() {  # ns iface src addr port marker
-  local ns="$1" iface="$2" src="$3" addr="$4" port="$5" _marker="$6" prefix=""
+remote_tcp_cmd() {  # ns iface src addr port marker [sport]
+  local ns="$1" iface="$2" src="$3" addr="$4" port="$5" _marker="$6" sport="${7:-0}" prefix=""
   [ "$ns" != "-" ] && prefix="ip netns exec $ns "
-  printf "timeout %s %s%s --tcp --device %s --source %s --sport 0 --host %s --port %s --timeout-ms %s" \
-    "$PROBE_SEND_TIMEOUT" "$prefix" "$PROBE_SENDER" "$iface" "$src" "$addr" "$port" "$PROBE_TCP_TIMEOUT_MS"
+  printf "timeout %s %s%s --tcp --device %s --source %s --sport %s --host %s --port %s --timeout-ms %s" \
+    "$PROBE_SEND_TIMEOUT" "$prefix" "$PROBE_SENDER" "$iface" "$src" "$sport" "$addr" "$port" "$PROBE_TCP_TIMEOUT_MS"
+}
+
+# --- the sender on both guests, checked against the run manifest ----------
+# provision_probe_sender.sh install pushes the sender and records its sha256 in
+# the run manifest. The probe stops before any probe if a guest lacks it or
+# carries other bytes, and records what it found (probe_sender.json).
+sender_preflight() {
+  local expected core_sha ivi_sha
+  expected="$(run_manifest_sender_sha256 "$RUN_DIR/run-manifest.yaml" 2>/dev/null)"
+  core_sha="$(guest_cmd "$CORE_ADB" "sha256sum $PROBE_SENDER 2>/dev/null" 2>/dev/null | tr -d '\r' | awk '{print $1}')"
+  ivi_sha="$(guest_cmd "$IVI_ADB" "sha256sum $PROBE_SENDER 2>/dev/null" 2>/dev/null | tr -d '\r' | awk '{print $1}')"
+  SENDER_PATH="$PROBE_SENDER" SENDER_EXPECTED="$expected" SENDER_CORE="$core_sha" SENDER_IVI="$ivi_sha" \
+    py_json "$OUT/probe_sender.json" <<'PY'
+import json, os, sys
+expected = os.environ["SENDER_EXPECTED"] or None
+guests = {name: {"path": os.environ["SENDER_PATH"], "sha256": os.environ[key] or None}
+          for name, key in (("core", "SENDER_CORE"), ("ivi", "SENDER_IVI"))}
+ok = bool(expected) and all(g["sha256"] == expected for g in guests.values())
+json.dump({"expected_sha256": expected, "guests": guests, "ok": ok}, open(sys.argv[1], "w"), indent=1)
+sys.exit(0 if ok else 1)
+PY
+}
+
+# --- the DDS range the probe iterates (review R45) ----------------------
+dds_range_record() {
+  local out="$1"
+  DDS_RANGE_PORTS="$(dds_ports_expanded | tr '\n' ' ')" ROS_DOMAIN_ID="$ROS_DOMAIN_ID" \
+    DDS_MAX_PARTICIPANT_INDEX="$DDS_MAX_PARTICIPANT_INDEX" py_json "$out" <<'PY'
+import json, os, sys
+json.dump({"domain": int(os.environ["ROS_DOMAIN_ID"]),
+           "max_participant_index": int(os.environ["DDS_MAX_PARTICIPANT_INDEX"]),
+           "ports": sorted({int(p) for p in os.environ["DDS_RANGE_PORTS"].split()})}, open(sys.argv[1], "w"), indent=1)
+PY
 }
 
 # --- the isolation table and its counters (the validity gate) -----------
@@ -93,7 +133,9 @@ start_captures() {
     ip link show "$iface" >/dev/null 2>&1 || continue
     local pcap="$OUT/capture-$iface.pcap"
     sudo tcpdump -i "$iface" -s0 -U -w "$pcap" "udp or (tcp port $FRAME_ASSEMBLER_PORT)" >/dev/null 2>&1 &
-    echo "$!" >> "$OUT/.capture.pids"; echo "$pcap" >> "$OUT/.capture.files"
+    # Each capture is named by its host interface (IFACE=PATH), so the reader
+    # records where each marker arrived (review R41).
+    echo "$!" >> "$OUT/.capture.pids"; echo "$iface=$pcap" >> "$OUT/.capture.files"
   done
   sleep 1
 }
@@ -103,9 +145,9 @@ stop_captures() {
   if [ -f "$OUT/.capture.pids" ]; then while read -r pid; do sudo kill -INT "$pid" 2>/dev/null || true; done < "$OUT/.capture.pids"; fi
   sleep 1
   local files=(); [ -f "$OUT/.capture.files" ] && mapfile -t files < "$OUT/.capture.files"
-  for f in "${files[@]}"; do [ -f "$f" ] && sudo chown "$USER" "$f" 2>/dev/null || true; done
-  "${SCAN[@]}" captured "${files[@]}" > "$OUT/captured_markers.json" 2>/dev/null \
-    || echo '{"udp_markers": [], "tcp_syns": []}' > "$OUT/captured_markers.json"
+  for f in "${files[@]}"; do [ -f "${f#*=}" ] && sudo chown "$USER" "${f#*=}" 2>/dev/null || true; done
+  "${SCAN[@]}" captured "${files[@]}" > "$OUT/captured_markers.json" 2>"$OUT/captured_markers.err" \
+    || echo '{"udp_markers": [], "udp_captures": [], "tcp_syns": []}' > "$OUT/captured_markers.json"
 }
 
 # --- the positive control, by the same capture observation --------------
@@ -181,12 +223,14 @@ probe_guest() {
   local expected_if
   expected_if="$("${SCAN[@]}" guest-ifaces "$OUT/guest_inventory_${guest}.txt" | awk '$2!="lo" && $3!="-"{print $2}' | sort -u | tr '\n' ' ')"
   : "${PROBE_HOST_ADDRS:=$HOST_EXPECTED_ADDRS}"
-  local ns iface src addr port before after moved status connected marker
+  local ns iface src mac addr port before after moved status connected marker sport
   # Probe from the root-namespace interfaces and from each VLAN namespace. The
   # sender binds the device, so no route pre-check is needed: a pair it cannot
   # leave on returns an errno (send_failed), which the evaluator reads as a
-  # coverage gap, not a silent skip (reviews R41, B3).
-  while read -r ns iface src; do
+  # coverage gap, not a silent skip (reviews R41, B3). Each attempt records the
+  # interface's MAC from the inventory; the evaluator matches it with the
+  # source MAC the host capture saw (R41).
+  while read -r ns iface src mac; do
     [ -n "$iface" ] || continue
     [ "$iface" = lo ] && continue                  # loopback cannot reach the host segment (review R15/R27)
     [ "$src" = "-" ] && continue                   # an interface with no IPv4 address
@@ -201,21 +245,23 @@ probe_guest() {
         fi
         after="$(dds_counter)"
         moved="$(counter_moved_json "$before" "$after")"
-        printf '{"guest":"%s","interface":"%s","src_addr":"%s","host":"%s","port":%s,"protocol":"udp","marker":"%s","send_status":"%s","counter_moved":%s,"guest_connected":null}\n' \
-          "$guest" "$iface" "$src" "$addr" "$port" "$marker" "$status" "$moved" >> "$OUT/attempts.ndjson"
+        printf '{"guest":"%s","netns":"%s","interface":"%s","src_addr":"%s","src_mac":"%s","host":"%s","port":%s,"protocol":"udp","marker":"%s","send_status":"%s","counter_moved":%s,"guest_connected":null}\n' \
+          "$guest" "$ns" "$iface" "$src" "${mac:--}" "$addr" "$port" "$marker" "$status" "$moved" >> "$OUT/attempts.ndjson"
       done
       # Port 4721 (TCP): the sender's own timed connect result, with the counter.
+      # The source port is pinned per attempt, so the capture can find its SYN.
       marker="MARK:${guest}-${iface}-${addr}-${FRAME_ASSEMBLER_PORT}"
+      TCP_SEQ=$(( ${TCP_SEQ:-0} + 1 )); sport=$(( PROBE_TCP_SPORT_BASE + TCP_SEQ ))
       before="$(tcp_counter)"
-      if guest_cmd "$serial" "$(remote_tcp_cmd "$ns" "$iface" "$src" "$addr" "$FRAME_ASSEMBLER_PORT" "$marker")" >/dev/null 2>&1; then
+      if guest_cmd "$serial" "$(remote_tcp_cmd "$ns" "$iface" "$src" "$addr" "$FRAME_ASSEMBLER_PORT" "$marker" "$sport")" >/dev/null 2>&1; then
         connected=true
       else
         connected=false   # a refused/timed-out connect still left the guest; the counter and capture judge it
       fi
       after="$(tcp_counter)"
       moved="$(counter_moved_json "$before" "$after")"
-      printf '{"guest":"%s","interface":"%s","src_addr":"%s","host":"%s","port":%s,"protocol":"tcp","marker":"%s","send_status":"sent","counter_moved":%s,"guest_connected":%s}\n' \
-        "$guest" "$iface" "$src" "$addr" "$FRAME_ASSEMBLER_PORT" "$marker" "$moved" "$connected" >> "$OUT/attempts.ndjson"
+      printf '{"guest":"%s","netns":"%s","interface":"%s","src_addr":"%s","src_mac":"%s","host":"%s","port":%s,"sport":%s,"protocol":"tcp","marker":"%s","send_status":"sent","counter_moved":%s,"guest_connected":%s}\n' \
+        "$guest" "$ns" "$iface" "$src" "${mac:--}" "$addr" "$FRAME_ASSEMBLER_PORT" "$sport" "$marker" "$moved" "$connected" >> "$OUT/attempts.ndjson"
     done
   done < <("${SCAN[@]}" guest-ifaces "$OUT/guest_inventory_${guest}.txt")
   # The run records only the EXPECTED sets; the evaluator derives the PROBED
@@ -254,6 +300,13 @@ run() {
   HOST_EXPECTED_ADDRS="$("${SCAN[@]}" host-addresses "$OUT/host_ip_addr.txt" | tr '\n' ' ')"
   [ -n "${HOST_EXPECTED_ADDRS// }" ] || HOST_EXPECTED_ADDRS="$HOST_ADDR"
   export HOST_EXPECTED_ADDRS
+  # The sender must be on both guests with the bytes the run manifest records;
+  # without it every probe would be a send failure, so stop here.
+  if ! sender_preflight; then
+    log "ERROR: the probe sender is missing on a guest or differs from the run manifest ($OUT/probe_sender.json); run provision_probe_sender.sh install first"
+    return 1
+  fi
+  dds_range_record "$OUT/dds_range.json"
   firewall_record
   host_listeners
   start_captures
@@ -277,12 +330,13 @@ json.dump({"per_guest": per_guest}, open(os.path.join(out, "coverage.json"), "w"
 PY
   log "probe artifacts in $OUT; evaluate with: python -m de4sdv_broker_path_bench.run $OUT --case VC-MW-017"
   log "NOTE: the first finding needs an inspection record (inspection.json); the ASM-MW-029 client check is recorded by capture_case.sh."
-  log "NOTE: a full probe covers every DDS port of the set plus 4721 for each (guest, interface, host) pair; a reduced range is a coverage gap."
+  log "NOTE: a full probe covers every DDS port of the set plus 4721 for each (guest, interface, host) pair; a reduced range is a coverage gap (dds_range.json)."
 }
 
 case "${1:-}" in
   run) OUT="${2:?usage: $0 run <out-dir>}"; mkdir -p "$OUT"; run ;;
   render-probe) remote_probe_cmd "${2:--}" "${3:?iface}" "${4:?src}" "${5:?addr}" "${6:?port}" "${7:?marker}"; echo ;;
-  render-tcp) remote_tcp_cmd "${2:--}" "${3:?iface}" "${4:?src}" "${5:?addr}" "${6:?port}" "${7:?marker}"; echo ;;
-  *) echo "usage: $0 {run <out-dir>|render-probe ...|render-tcp ...}" >&2; exit 2 ;;
+  render-tcp) remote_tcp_cmd "${2:--}" "${3:?iface}" "${4:?src}" "${5:?addr}" "${6:?port}" "${7:?marker}" "${8:-0}"; echo ;;
+  dds-range) dds_range_record "${2:?usage: $0 dds-range <out.json>}" ;;
+  *) echo "usage: $0 {run <out-dir>|render-probe ...|render-tcp ...|dds-range <out.json>}" >&2; exit 2 ;;
 esac

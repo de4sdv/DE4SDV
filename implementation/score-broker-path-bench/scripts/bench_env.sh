@@ -50,6 +50,19 @@ set -u
 : "${FRAME_ASSEMBLER_PORT:=4721}"   # INC-AEBS-010 frame server on the host (ASM-MW-029)
 : "${RELAY_LOOPBACK_PORT:=4731}"    # the IVI frame relay on the IVI VM loopback
 
+# --- the probe sender (de4sdv_probe_send), built in the AOSP tree and pushed to
+#     both guests by provision_probe_sender.sh, which records its sha256 in the
+#     run manifest; the probe and the SD offer run it from this path ---
+: "${PROBE_SENDER_GUEST:=/data/local/tmp/de4sdv_probe_send}"
+
+# The probe sender's sha256 from the run manifest (provision_probe_sender.sh
+# install), or nothing when it was not recorded.
+run_manifest_sender_sha256() {
+  local manifest="${1:?run manifest path}"
+  [ -f "$manifest" ] || return 1
+  awk '/^probe_sender:/{s=1;next} s && /^[^ ]/{s=0} s && $1=="host_sha256:"{print $2; exit}' "$manifest"
+}
+
 # --- the one ROS 2 environment of the host (adapterAbortConditions) ---
 : "${ROS_DOMAIN_ID:=91}"
 : "${DDS_MAX_PARTICIPANT_INDEX:=120}"
