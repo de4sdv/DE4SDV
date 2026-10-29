@@ -1249,9 +1249,10 @@ _charter_expected_artifacts.member = SCOPE_ATTRIBUTE  # type: ignore[attr-define
 
 #: The derived relationship whose derivation rule the phase-9 check applies (vocabulary role in the kernel).
 CONFIGURED_BY = "configuredBy"
-#: What an evaluation lacks to derive it: the source documents and external references of an export (an
-#: evaluation over the API has neither), or a validated kernel binding index. Only a change to the
-#: evaluation supplies them, so they are method side (``METHOD_SIDE_PREFIXES``), never authoring work.
+#: What an evaluation lacks to derive it: the source documents and external references of the export (an
+#: evaluation over an API revision binding that records no export documents has neither), or a validated
+#: kernel binding index. Only a change to the evaluation supplies them, so they are method side
+#: (``METHOD_SIDE_PREFIXES``), never authoring work.
 EXPORT_DOCUMENTS = EVALUATION_INPUT_PREFIX + "export-documents"
 KERNEL_BINDING_INDEX = EVALUATION_INPUT_PREFIX + "kernel-binding-index"
 #: The memo key of the derivation. Its value holds only for the inputs :func:`configuration_inputs` names.
@@ -1274,13 +1275,15 @@ def configuration_part_definitions(
     (``applies_to_member_product.configuration_projections``): a configuration by the pinned PLEML
     library, its projection by its ProductModelProjectionName annotation, and the part definition by
     validated identity (metatype, name, generated document and owner), never by the name alone. The
-    derivation needs the source documents and the external references of an export, and a kernel binding
-    index: without them the marker is method side (``evaluation-input:``). A refused derivation is a
-    model witness that cannot be read. Built once per corpus and inputs."""
+    derivation needs the source documents and the external references of the export, and a kernel binding
+    index. An export view has them; over the API they come from the export documents that the revision
+    binding records. Without them the marker is method side (``evaluation-input:``). A refused derivation
+    is a model witness that cannot be read. Built once per corpus and inputs."""
     if not view.sources or view.external_references is None:
         return MappingProxyType({}), EXPORT_DOCUMENTS, (
             "the derivation of the feature configurations needs the source documents and the external "
-            "references of an export, and this evaluation has neither (an evaluation over the API)")
+            "references of the export, and this evaluation has neither (an evaluation over an API revision "
+            "binding that records no export documents)")
     if view.traversal.kernel_bindings is None:
         return MappingProxyType({}), KERNEL_BINDING_INDEX, "this evaluation has no validated kernel binding index"
 
@@ -1436,8 +1439,9 @@ def _configured_by_one_configuration(view: ModelView, increment: IncrementScope,
     configuredBy): one of its effective part usages, its own or inherited and not redefined, is typed by the
     part definition of that configuration's product-model projection or by a specialization of it. A
     redefining usage without a type of its own keeps the type it redefines. A specialization that adds
-    System 2 instrumentation is configured through what it inherits; no member follows from it. Over the
-    API the derivation lacks the export's documents: method side, never authoring work."""
+    System 2 instrumentation is configured through what it inherits; no member follows from it. Without
+    the export's documents (over an API revision binding that records none) the derivation is method side,
+    never authoring work."""
     name = _name(view, subject_id)
     _projections, marker, problem = configuration_part_definitions(view)
     if marker is not None:

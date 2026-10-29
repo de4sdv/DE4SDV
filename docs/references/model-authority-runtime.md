@@ -103,7 +103,13 @@ unless:
   a corpus only when its content digest is exactly that record's
   (`de4sdv/sysml_api/served_model.py`). This runs when a corpus loads, from
   the API or from a snapshot. A refused snapshot is a miss; a refused API
-  corpus raises `ServedModelMismatchError` on every call.
+  corpus raises `ServedModelMismatchError` on every call. When the binding
+  also records the export documents (`export_documents`: the source document
+  of each element and the external references of the same export,
+  `de4sdv/sysml_api/export_documents.py`), the corpus must hold exactly the
+  elements they list. The method view reads them, so the method checks
+  over the API read the export's documents. A binding without them still
+  starts; the checks that need them are then method side.
 
 `build_deployment_runtime` then assembles the facade over the verified
 contract (`model_authority_runtime.model_facade`) and the services

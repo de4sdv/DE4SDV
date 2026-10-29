@@ -256,6 +256,10 @@ and activation ceremony is retired):
    count and its content digest. The importer writes it only after the
    full-payload read-back found every element of the API listing equal to the
    export (schema padding without a value is ignored; numbers compare by value).
+   The binding also records the `export_documents` of that export: the
+   source document of each element and the references to elements outside
+   the export, which the API listing does not carry. The method checks read
+   them over the API, so the binding is about 11 MB.
 3. **The deployed API.** `http://sysml2-api:9000` inside the compose network.
 4. **One startup check** (`de4sdv/semantic/deployment_runtime.py`). It
    refuses unless all of these hold:
@@ -270,7 +274,9 @@ and activation ceremony is retired):
      model, and no corpus is used unless its content digest is exactly that
      record's. This part runs when the corpus loads (the warm-up). A snapshot
      that is not the export is ignored; an API corpus that is not the export
-     is refused, and every semantic answer is refused with it.
+     is refused, and every semantic answer is refused with it. The corpus
+     must also hold exactly the elements that the binding's export documents
+     list.
 
 Environment. The ask-viewer needs `DE4SDV_APP_GIT_SHA` (the deployed commit;
 `deploy.py` and the Ask deploy workflow set it); the binding path and API URL
