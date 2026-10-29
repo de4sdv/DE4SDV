@@ -343,22 +343,30 @@ These method rules apply to every increment:
     diagrams are judged outside the model. CI checks the diagrams and each
     folder's `VIEWS.md`, and review judges the rest.
 16. **Variability and the baseline decision (phases 9 and 12).** These two
-    steps have no executable check, because what they declare cannot be
-    checked deterministically:
-    - **Phase 9.** Its parameters are untyped `part` usages, so a check
-      would count every part usage of the scope. The kernel has no class
-      for the configured product a phase-9 slice declares, and a native
-      variation point has no selector. The lower bound 1 of
-      `variationPoints` also contradicts accepted phase-9 work. A slice may
-      configure a member from existing variability, and shared variation
-      points live in shared-asset packages.
-    - **Phase 12.** The baseline decision is typed like the framing step's
-      lifecycle decision, which every scope holds. A count would pass on
-      the framing decision alone, and a separate baseline decision would
-      break the multiplicity `[1]`. `IncrementGap` states no disposition,
-      owner or next action. The baseline register and the status of an
-      architecture decision record are repository text, which the
-      evaluation does not read.
+    steps have no executable check yet. The kernel types what they declare
+    (owner decisions of 2026-10-28), and their checks are a later method
+    change:
+    - **Phase 9.** The main output is `configuredProducts[1..*]`, typed by
+      the kernel class `ProductLineConfiguredProduct`. The ontology
+      relationship `configuredBy` maps a configured product onto the PLEML
+      feature configuration whose product-model projection it composes. No
+      configured product of an increment specializes the class yet.
+      `variationPoints[0..*]` stays untyped: a native variation point has no
+      selector. A slice may configure a member from existing variability,
+      and shared variation points live in shared-asset packages.
+    - **Phase 12.** The baseline decision is typed by
+      `IncrementBaselineDecision`, a specialization of the framing step's
+      `IncrementLifecycleDecision`, and its disposition by
+      `LifecycleDisposition` (`accepted`, `deferred`, `invalidated`). The
+      typing identifies the baseline decision, never a name. The framing
+      check counts the lifecycle decisions of the increment's own package,
+      so a baseline decision there also counts for phase 0. An
+      `IncrementGap` can state a disposition of the same type, but no owner
+      or next action. Convention: the record of a resolved gap leaves the
+      model, so every `IncrementGap` in scope is an open gap. A disposition
+      cannot say "resolved", and `invalidated` does not mean "fixed". The
+      baseline register and the status of an architecture decision record
+      are repository text, which the evaluation does not read.
 
     Review judges both steps, and their exits stay `BLOCKED` with
     `CONTRACT_UNAVAILABLE`, never passed.
@@ -396,10 +404,10 @@ result is a conformance, acceptance, or certification claim.
 | 6. Functional architecture | What functions, flows, states, and interfaces are needed? | Conceptual | functional breakdown, interfaces, behavior slices |
 | 7. Logical architecture | What technology-independent logical elements realize the functions? | Conceptual | logical structure, exchanges, allocation/mapping |
 | 8. Physical / software realization | What software, hardware, deployment, or tool elements realize the system design? | Physical | physical/software structure, interfaces, mappings, readiness probes when required |
-| 9. Variability and configuration | How does this vary across member products or configurations? | DE4SDV product-line layer | variation points, feature configurations, applicability |
+| 9. Variability and configuration | How does this vary across member products or configurations? | DE4SDV product-line layer | variation points, feature configurations, configured products, applicability |
 | 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Common / Conceptual | verification cases, validation scenarios, evidence records, open gaps |
 | 11. Publication | What is reviewable now? | DE4SDV workflow | SysML v2, Markdown, YAML, generated views, reports, PR |
-| 12. Baseline and next slice | What is accepted, deferred, or invalidated? | Common | baseline decision, open issues, next increment |
+| 12. Baseline and next slice | What is accepted, deferred, or invalidated? | Common | baseline decision and its disposition, open issues, next increment |
 
 `System architecture` is the umbrella for the architecture of the system and
 its coordinated views; it is not the name of Phase 7. Phases 6 through 8

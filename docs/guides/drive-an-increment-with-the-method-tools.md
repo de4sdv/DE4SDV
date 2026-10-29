@@ -133,8 +133,8 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   `phase_contract`, `parameter_element_id` is the element id of that step
   parameter.
 - **Coverage.** Every step of the workflow carries checks except variability
-  and configuration (phase 9) and the baseline decision (phase 12). What those
-  two declare cannot be checked deterministically
+  and configuration (phase 9) and the baseline decision (phase 12). The
+  kernel types what those two declare, and their checks are not there yet
   ([rule 16](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model)).
   `phase_contract`
   lists every step in `steps`, with its phase, documentation, inputs and

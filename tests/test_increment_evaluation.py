@@ -158,7 +158,7 @@ def test_next_none_says_which_declared_phases_no_check_judges() -> None:
     assert answer["coverage"]["declared_phases_without_executable_checks"] == [P9]
     (block,) = [b for b in evaluation.status()["phases"] if b["phase"] == P9]
     assert (block["coverage"], block["phase_exit"]) == ("no executable checks at this revision", "BLOCKED")
-    assert [output["parameter"] for output in block["outputs"]] == ["variationPoints"]
+    assert [output["parameter"] for output in block["outputs"]] == ["variationPoints", "configuredProducts"]
 
 
 def test_next_takes_the_earliest_open_check_in_workflow_order() -> None:
@@ -318,7 +318,7 @@ def test_a_phase_without_checks_still_lists_what_its_step_declares() -> None:
     (step,) = contract["steps"]
     assert (step["step"], step["executable_checks"], step["coverage"]) == (
         "defineVariabilityAndConfiguration", 0, "no executable checks at this revision")
-    assert [output["parameter"] for output in step["outputs"]] == ["variationPoints"]
+    assert [output["parameter"] for output in step["outputs"]] == ["variationPoints", "configuredProducts"]
     assert step["applicability_resolution"] == "not_applicable"  # the charter declares phases 0, 4, 5 and 10
     assert contract["phases_without_executable_checks"] == [P9]
     whole = evaluation.phase_contract()

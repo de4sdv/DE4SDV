@@ -400,13 +400,22 @@ def test_rule_homes_are_declared_once_and_never_asserted_anywhere():
 
 
 PRODUCT_LINE_DEFINITIONS = {
-    "ProductLine", "SDVProductLine", "ProductLineMemberProduct", "ProductLineCharacteristic",
-    "CommonProductLineCapability", "ProductLineFeatureCandidate", "DeferredProductLineScope",
-    "ProductLineVariantChoice", "DeferredVariantChoice", "DeferredProductLineVariation",
+    "ProductLine", "SDVProductLine", "ProductLineMemberProduct", "ProductLineConfiguredProduct",
+    "ProductLineCharacteristic", "CommonProductLineCapability", "ProductLineFeatureCandidate",
+    "DeferredProductLineScope", "ProductLineVariantChoice", "DeferredVariantChoice", "DeferredProductLineVariation",
 }
+#: The configured product (owner decision of 2026-10-28, Q1) is a selectable class too: a kernel
+#: feature typed by it would hold a configured product, so only its phase-9 exemption may.
 PLE_SELECTABLES = ("ProductLineFeatureCandidate", "CommonProductLineCapability", "ProductLineMemberProduct",
+                   "ProductLineConfiguredProduct",
                    "ProductLineVariantChoice", "DeferredVariantChoice", "ProductLineCharacteristic")
-#: The one kernel feature a selectable product-line class may type: the output
+#: The phase-9 workflow step DefineVariabilityAndConfiguration types its output by the configured
+#: product. The parameter says what kind of element the step produces and selects nothing; the
+#: selections stay in the feature configuration and its projection. The exemption holds only
+#: inside that step's body.
+PHASE9_OUTPUT_EXEMPTION = ("de4sdv_increment_workflow.sysml", "action def DefineVariabilityAndConfiguration",
+                           "out part configuredProducts[1..*] : ProductLineConfiguredProduct;")
+#: A kernel feature a selectable product-line class may type: the output
 #: parameter of the phase-3 workflow step ClassifyCapabilities, which says what
 #: kind of element the step records and selects nothing. It is typed by the
 #: classification base, so its check (featureDeltaOnly) reads every product-line
@@ -422,10 +431,10 @@ def test_kernel_holds_no_configuration_selection_under_any_name():
     from it), never the kernel. The kernel product-line
     definitions are pinned, and no kernel feature is typed by a selectable
     product-line class (a selection record under another name): not with ``:``,
-    ``defined by`` or ``typed by``, and not through an alias. The one exception
-    is the phase-3 step's output parameter (STEP_OUTPUT_EXEMPTION), and only
-    inside that step's body. Import statements type nothing and are not
-    scanned."""
+    ``defined by`` or ``typed by``, and not through an alias. The two exceptions
+    are the output parameters of the phase-3 and phase-9 steps
+    (STEP_OUTPUT_EXEMPTION, PHASE9_OUTPUT_EXEMPTION), each only inside its
+    step's body. Import statements type nothing and are not scanned."""
     active = _active(_text(PRODUCT_LINE))
     assert set(re.findall(r"\bdef\s+(\w+)", active)) == PRODUCT_LINE_DEFINITIONS
     # No reference feature at all in the product-line kernel: selections live outside it.
@@ -438,14 +447,15 @@ def test_kernel_holds_no_configuration_selection_under_any_name():
                       for name in re.findall(r"\balias\s+(\w+)\s+for\s+" + selectable, text)})
     typed = re.compile(r"(?::|\b(?:defined|typed)\s+by)\s*(?:[\w:]*::)?("
                        + "|".join((*PLE_SELECTABLES, *aliases)) + r")\b")
-    file, step, parameter = STEP_OUTPUT_EXEMPTION
-    exempted = 0
+    exempted = {}
     for path, text in texts.items():
-        if path.name == file:
-            body = braced_body(text, step)
-            start = text.index(body, text.index(step))
-            exempted = body.count(parameter)
-            text = text[:start] + body.replace(parameter, " ", 1) + text[start + len(body):]
+        for file, step, parameter in (STEP_OUTPUT_EXEMPTION, PHASE9_OUTPUT_EXEMPTION):
+            if path.name == file:
+                body = braced_body(text, step)
+                start = text.index(body, text.index(step))
+                exempted[step] = body.count(parameter)
+                text = text[:start] + body.replace(parameter, " ", 1) + text[start + len(body):]
         hit = typed.search(text)
         assert not hit, (path.name, hit and hit[0])
-    assert exempted == 1, "the exempted output parameter must appear exactly once, in the ClassifyCapabilities body"
+    assert exempted == {STEP_OUTPUT_EXEMPTION[1]: 1, PHASE9_OUTPUT_EXEMPTION[1]: 1}, (
+        "each exempted output parameter must appear exactly once, in its step's body", exempted)

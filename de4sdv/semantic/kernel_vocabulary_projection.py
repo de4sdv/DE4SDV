@@ -9,9 +9,10 @@ class-definition and native-grounding pairs), the ontology-mapped classes that
 are not register rows (the successor classes and the trace-obligation
 declaration), the new successor predicates
 (``hasValidationScenario``, ``hasRegulatorySource``), the merged retired name
-``validatesFitnessForUse`` and the classes a method pull request admitted after
-the authored ontology's deletion (accounting ``method-admitted``; their rows
-say that no authored-ontology comparison exists for them). It is a separate pair from
+``validatesFitnessForUse`` and the classes and vocabulary-only relationships a
+method pull request admitted after the authored ontology's deletion (accounting
+``method-admitted``; their rows say that no authored-ontology comparison exists
+for them). It is a separate pair from
 ``class-definition-projection.json`` / ``class-definition-profile.json``,
 written by the same generator, ``scripts/generate_definition_projection.py``.
 
@@ -116,9 +117,16 @@ BOUNDARIES = frozenset(
 )
 HOME_FORMS = frozenset({"owned-doc", "named-doc", "vocabulary-role", "retirement-record"})
 ACCOUNTING = frozenset({"retained", "unregistered", "merged", "w6-successor", "method-admitted"})
-#: A class admitted by a method pull request after the authored ontology was
-#: deleted: no register row and no authored-ontology comparison exist for it.
+#: A class or a vocabulary-only relationship admitted by a method pull request
+#: after the authored ontology was deleted: no register row and no
+#: authored-ontology comparison exist for it.
 METHOD_ADMITTED = "method-admitted"
+#: The admission classes a method-admitted row may have: a class definition, or
+#: a vocabulary-only relationship (no mechanics, no traversal).
+METHOD_ADMISSIONS = frozenset({("class", "definition"), ("relationship", "relationship-vocabulary")})
+#: The label of a manifest-held field of a method-admitted row.
+METHOD_ADMITTED_SOURCE = ("admitted by a method pull request after the authored ontology's "
+                          "deletion: no authored-ontology comparison exists")
 SUPPORT = {
     "definition": "vocabulary-only",
     "relationship-vocabulary": "vocabulary-only",
@@ -520,8 +528,8 @@ def _validate_row(row: Any) -> str:
              f"{identity}: register must carry wave and accounting")
     _require((register["wave"] is None) == (register["accounting"] != "retained"),
              f"{identity}: only retained rows carry a register wave")
-    _require(register["accounting"] != METHOD_ADMITTED or (kind == "class" and admission == "definition"),
-             f"{identity}: a method-admitted row is a class definition")
+    _require(register["accounting"] != METHOD_ADMITTED or (kind, admission) in METHOD_ADMISSIONS,
+             f"{identity}: a method-admitted row is a class definition or a vocabulary-only relationship")
     _require(row["boundary"] in BOUNDARIES, f"{identity}: unknown boundary")
     _validate_home(identity, row["home"])
     form = row["home"]["form"]
@@ -825,9 +833,7 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
             "fields (manifest-held: the model does not carry them structurally, so the "
             "reviewed manifest is their authority); file mappings are resolved in the "
             "model by this generator; "
-            + ("admitted by a method pull request after the authored ontology's "
-               "deletion: no authored-ontology comparison exists"
-               if row["register"]["accounting"] == METHOD_ADMITTED else
+            + (METHOD_ADMITTED_SOURCE if row["register"]["accounting"] == METHOD_ADMITTED else
                "authored-ontology parity proven before its deletion: " + PARITY_EVIDENCE)
         )
         projection["grounding"] = ground
@@ -862,7 +868,8 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
                 "domain/range/strength: reviewed admission-manifest fields "
                 "(manifest-held, model-witnessed declaration: the model carries no "
                 "structural domain/range, so the reviewed manifest is their authority); "
-                "authored-ontology parity proven before its deletion: " + PARITY_EVIDENCE
+                + (METHOD_ADMITTED_SOURCE if row["register"]["accounting"] == METHOD_ADMITTED else
+                   "authored-ontology parity proven before its deletion: " + PARITY_EVIDENCE)
             ),
         }
     if "carrier" in row:
