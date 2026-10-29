@@ -21,6 +21,8 @@
  *   - Automotive services (Diagnostics, Configuration, Calibration,
  *     Vehicle Power Mode, User Profile)
  *   - Platform software boundary (GKI, virtualization, networking)
+ *   - SDV Gateway on IVI (the boundary through which an IVI VM reaches SDV
+ *     services; it is on the HMI path of INC-MW-011, ADR 0025)
  *   - Traceability dependencies to AEBS physical realization required boundaries
  *
  * Out of scope:
@@ -28,7 +30,8 @@
  *   - VM image generation, APEX signing, bootloader integration
  *   - Detailed communication protocol schemas (VSIDL definitions, SOME/IP mappings)
  *   - OEM-specific automotive service logic
- *   - SDV Media and SDV IVI (separate VMs, not in the AEBS integration path)
+ *   - SDV Media (a separate VM, not in the AEBS integration path)
+ *   - SDV IVI apart from its SDV Gateway (a separate VM)
  *
  * Relationship to SDV platform stack:
  *   AAOS SDV is a middleware variant (AndroidSDVMiddleware) in the SDV platform
@@ -90,8 +93,12 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
      * run on one SoC, on different SoCs, or communicate across the vehicle
      * network.
      *
-     * One SDV Core VM is the guest side of the SDV platform stack: the guest
-     * operating system and the guest middleware. This boundary refers to the
+     * The guest side of the SDV platform stack, with its guest operating
+     * system and its guest middleware, holds one or more VMs (ADR 0025). An
+     * SDV Core VM runs the services of this boundary. In MW-CONFIG-001 it is
+     * the only VM of the guest side. In MW-CONFIG-002, an IVI VM runs beside
+     * it and reaches its services through the SDV Gateway on IVI
+     * (SDVGatewayOnIVIBoundary). This boundary refers to the
      * guest operating-system content as platformSoftware and does not own it
      * (owner decision of 2026-10-25). A configured product can use this
      * boundary and select the AAOS SDV guest middleware (guestAndroidSDV,
@@ -244,9 +251,41 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
      * SOME/IP interoperability stack for communication with non-SDV
      * automotive systems. Operates over TCP or UDP. Drawn separately
      * from the native SDV communication abstractions because it is an
-     * established automotive protocol, not an SDV-native mechanism.
+     * established automotive protocol, not an SDV-native mechanism. In AAOS
+     * SDV, its SOME/IP broker maps a SOME/IP event to an SDV topic and
+     * publishes the topic into Data Tunnel.
      */
     port someIpPort : SomeIpPort;
+    port topicPublishOut : DataTunnelPort {
+      doc /* The SDV topics that the SOME/IP broker publishes for the SOME/IP events that it maps. */
+    }
+  }
+
+  /* ──────────────────────────────────────────
+   * SDV Gateway on IVI
+   * ────────────────────────────────────────── */
+
+  part def SDVGatewayOnIVIBoundary {
+    doc /*
+     * The SDV Gateway on IVI: the boundary through which IVI applications and
+     * native IVI services reach SDV services. It runs in an IVI VM, not in SDV
+     * Core. In android17-release it is the sdv_gateway service of the IVI
+     * image, which also runs the Data Tunnel agent of that VM
+     * (sdv_ivi_base/sdv.agents.rc:33-35 of device/google/sdv at f4bfa128,
+     * manifest ad156f32). Native services use it through libsdvgatewayclient,
+     * and Java applications through its Java client. A subscriber can
+     * subscribe by name to a Data Tunnel publication of another VM. By default
+     * it then reads only the messages published after its subscription. On
+     * request it can also read the last message published before it
+     * (libsdvgatewayclient/include/libsdvgatewayclient.h:302-316 of
+     * platform/system/software_defined_vehicle/sdv_gateway at c918480a).
+     */
+    port dataTunnelPort : DataTunnelPort {
+      doc /* Data Tunnel topics of this VM and of other VMs. */
+    }
+    port clientPort : DataTunnelPort {
+      doc /* The topics that IVI applications and native IVI services publish or subscribe to through the gateway. */
+    }
   }
 
   /* ──────────────────────────────────────────
@@ -469,7 +508,8 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
      * integration increment. It shows the core services, the communication
      * stack and the automotive services of the AAOS SDV middleware. It also
      * shows the platform software, which the boundary refers to (guest
-     * operating-system content), and the network topology.
+     * operating-system content), the SDV Gateway on IVI and the network
+     * topology.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -492,6 +532,7 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
     expose SDVRPCBoundary;
     expose DataTunnelBoundary;
     expose SomeIpInteropBoundary;
+    expose SDVGatewayOnIVIBoundary;
     expose AutomotiveDiagnosticsBoundary;
     expose AutomotiveConfigurationBoundary;
     expose AutomotiveCalibrationBoundary;

@@ -19,7 +19,7 @@ Reviewers need the AAOS SDV boundary visible for the middleware integration incr
 - **Source:** `aaos_sdv_middleware_boundary.sysml`
 - **Viewpoint:** `selectedPhysicalStructureViewpoint` (`PhysicalStructureDefinitionViewpoint`)
 - **Concern:** `aaosSdvStructureConcern`
-- **Exposes:** `SDVCoreBoundary`, `OrchestratorBoundary`, `ServiceLifecycleManagerBoundary`, `HealthMonitorBoundary`, `UpdateManagerBoundary`, `ConnectivityManagerBoundary`, `VSIDLMiddlewareBoundary`, `ServiceDiscoveryBoundary`, `SDVRPCBoundary`, `DataTunnelBoundary`, `SomeIpInteropBoundary`, `AutomotiveDiagnosticsBoundary`, `AutomotiveConfigurationBoundary`, `AutomotiveCalibrationBoundary`, `VehiclePowerModeBoundary`, `UserProfileBoundary`, `SDVPlatformSoftwareBoundary`, `VehicleNetworkBoundary`
+- **Exposes:** `SDVCoreBoundary`, `OrchestratorBoundary`, `ServiceLifecycleManagerBoundary`, `HealthMonitorBoundary`, `UpdateManagerBoundary`, `ConnectivityManagerBoundary`, `VSIDLMiddlewareBoundary`, `ServiceDiscoveryBoundary`, `SDVRPCBoundary`, `DataTunnelBoundary`, `SomeIpInteropBoundary`, `SDVGatewayOnIVIBoundary`, `AutomotiveDiagnosticsBoundary`, `AutomotiveConfigurationBoundary`, `AutomotiveCalibrationBoundary`, `VehiclePowerModeBoundary`, `UserProfileBoundary`, `SDVPlatformSoftwareBoundary`, `VehicleNetworkBoundary`
 - **Render:** `asTreeDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.

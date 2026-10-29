@@ -60,7 +60,9 @@ package DE4SDV_SDVPlatformStack {
      * operating system of osPlatform. With KVM, the main side is the KVM
      * host: its operating system hosts the hypervisor and is not a guest of
      * it. The guest side is a second execution domain under the
-     * hypervisor, with guestOSPlatform and guestMiddleware.
+     * hypervisor, with guestOSPlatform and guestMiddleware. It is a guest
+     * partition of one or more VMs. How many VMs it holds, and which image
+     * each one runs, are realization choices (ADR 0025).
      *
      * The middleware variation is the middleware that the vehicle
      * application integrates with through the adapter. Eclipse S-CORE and
@@ -113,7 +115,8 @@ package DE4SDV_SDVPlatformStack {
 
     variation part guestOSPlatform : OSPlatformLayer {
       /* The guest side: the operating system of the second execution
-       * domain, under the hypervisor of the SoC. */
+       * domain, under the hypervisor of the SoC. The domain holds one or
+       * more VMs. */
       variant part android : AndroidHLOS;
       variant part none[0]; /* no guest domain */
     }

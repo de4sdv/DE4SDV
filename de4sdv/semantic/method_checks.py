@@ -26,9 +26,18 @@ maps the id to the implementation that decides it for one subject:
   ``signalMappingRecorded`` (a physical element that realizes a logical
   element and exchanges information items through a port has a
   system-to-software signal mapping the increment owns, with complete
-  records) or ``semanticSourceNamed`` (a signal mapping's records state the
+  records), ``semanticSourceNamed`` (a signal mapping's records state the
   semantic source, or its port's item is VSS-typed by the bound VSS signal
-  metadata);
+  metadata), ``framedByViewpoint`` (a viewpoint of a view in a package of
+  the increment frames the concern), ``contextSystemOfInterest`` (the
+  operational context redefines its system of interest with the one the
+  charter declares), ``storySubjectBound`` and ``storyActorsBound`` (each use
+  case of the increment binds its subject to that system of interest and each
+  actor to a part of the context around it), ``featureDeltaOnly`` (a
+  product-line characteristic of the increment is a feature candidate or
+  deferred product-line scope), ``viewpointFramesConcern`` (a view has a
+  viewpoint that frames a concern) or ``exposesModelContent`` (a view, or a
+  view it owns, exposes model content);
 - **relation names**, for example ``derivesRequirementFromNeed``,
   ``hasValidationScenario``, ``verifiedBy`` or ``allocatedTo``: the subject
   reaches targets through that relation (see
@@ -64,6 +73,7 @@ from .increment_scope import (
     applicable_phase_literals,
     declared_artifacts,
     own_increment_definitions,
+    scope_closure,
 )
 from .relation_checks import (
     MODEL_WITNESS_PREFIX,
@@ -77,6 +87,7 @@ from .relation_checks import (
     allocation_ends,
     allocation_hops,
     carried_vss_paths,
+    chained_feature,
     check_relation,
     class_declaration,
     connection_ends,
@@ -84,6 +95,7 @@ from .relation_checks import (
     in_class,
     kernel_lineage,
     mapping_records,
+    member_features,
     membership_members,
     narrowed_features,
     native_allocation_rows,
@@ -91,6 +103,7 @@ from .relation_checks import (
     relation_checks,
     signal_mappings,
     stated_texts,
+    type_lineage,
     ungrounded_allocations,
     unreadable_allocations,
 )
@@ -809,12 +822,429 @@ def _population_member(view: ModelView, increment: IncrementScope, subject_id: s
     return satisfied([subject_id])
 
 
+# ---------------------------------------------------------------------------
+# Concern framing (phase 1) and publication (phase 11): concerns, viewpoints, views
+# ---------------------------------------------------------------------------
+
+
+#: The metaclass of the views the publication step counts (``out view publishedViews``).
+VIEW_KIND = "ViewUsage"
+
+
+def increment_views(view: ModelView, increment: IncrementScope) -> list[str]:
+    """The views the increment's packages own (nested packages included): the population of the
+    publication step's ``publishedViews``, and the views whose viewpoints frame the concerns of phase 1.
+    A view owned by a part or by another view (a matrix view's row view) is none of them."""
+    return [element for element in increment.scope_elements if str(view.element(element).get("@type")) == VIEW_KIND]
+
+
+def view_viewpoints(view: ModelView, subject_id: str) -> list[str]:
+    """The viewpoint usages of a view: its own, then those of the view definitions it is typed by."""
+    found: list[str] = []
+    for holder in (subject_id, *type_lineage(view, subject_id)):
+        found.extend(viewpoint for viewpoint in view.index.owned_members(holder, "ViewpointUsage")
+                     if viewpoint not in found)
+    return found
+
+
+def viewpoint_frames(view: ModelView, viewpoint: str) -> list[tuple[str, str]]:
+    """(concern, framing membership) for each concern a viewpoint usage frames: its own frames, then those
+    of the viewpoint definitions it is typed by, which it inherits. A frame's member is a shadow of the
+    declared concern (``declared_of``)."""
+    found: list[tuple[str, str]] = []
+    for holder in (viewpoint, *type_lineage(view, viewpoint)):
+        for relationship in view.index.owned_relationships(holder, "FramedConcernMembership"):
+            for member in reference_ids(relationship.get("memberElement")):
+                pair = (view.index.declared_of(member), str(relationship.get("@id")))
+                if pair not in found:
+                    found.append(pair)
+    return found
+
+
+def framing_views(view: ModelView, increment: IncrementScope) -> Mapping[str, tuple[tuple[str, str], ...]]:
+    """Concern -> ((view, framing membership), ...): the concerns that a viewpoint of a view frames
+    (:func:`view_viewpoints`, :func:`viewpoint_frames`), for the views the increment's packages own
+    (:func:`increment_views`). Built once per corpus and package set."""
+    packages = tuple(increment.scope_packages)
+
+    def build() -> Mapping[str, tuple[tuple[str, str], ...]]:
+        found: dict[str, list[tuple[str, str]]] = {}
+        for element in increment_views(view, increment):
+            for viewpoint in view_viewpoints(view, element):
+                for concern, membership in viewpoint_frames(view, viewpoint):
+                    bucket = found.setdefault(concern, [])
+                    if (element, membership) not in bucket:
+                        bucket.append((element, membership))
+        return MappingProxyType({concern: tuple(pairs) for concern, pairs in found.items()})
+
+    return view.index.memo(("framing-views", packages), build)
+
+
+def _frames_elsewhere(view: ModelView, concern: str) -> list[str]:
+    """Why the other frames of ``concern`` do not count: a frame owned by no viewpoint (a need or a
+    requirement that frames it), by a viewpoint definition no viewpoint of a view of the increment is typed
+    by, or by a viewpoint of another view."""
+    index = view.index
+    notes: list[str] = []
+    for relationship in index.elements_of_type("FramedConcernMembership"):
+        element = index.element(relationship)
+        if not any(index.declared_of(member) == concern for member in reference_ids(element.get("memberElement"))):
+            continue
+        holder = (reference_ids(element.get("owningRelatedElement")) or [None])[0]
+        if holder is None:
+            continue
+        kind = str(index.element(holder).get("@type"))
+        if kind == "ViewpointDefinition":
+            notes.append(f"the viewpoint definition {_name(view, holder)} frames it, but no viewpoint of a view of "
+                         "the increment is typed by it")
+        elif kind != "ViewpointUsage":
+            notes.append(f"{_name(view, holder)} frames it but is no viewpoint; only a viewpoint, or the viewpoint "
+                         "definition it is typed by, frames a concern for a view")
+        else:
+            notes.append(f"{_name(view, holder)} frames it but is no viewpoint of a view of the increment")
+    return notes
+
+
+def _framed_by_viewpoint(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """A viewpoint of a view of the increment (:func:`increment_views`) frames the concern: the viewpoint
+    usage, or a viewpoint definition it is typed by."""
+    framing = framing_views(view, increment).get(subject_id, ())
+    if framing:
+        return satisfied([found for found, _membership in framing], [membership for _view, membership in framing])
+    return violated(f"{_name(view, subject_id)} is framed by no viewpoint of a view of the increment",
+                    _frames_elsewhere(view, subject_id))
+
+
+def _viewpoint_frames_concern(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The view has a viewpoint, of its own or of its definition, that frames a concern, by its own frame or
+    by a frame of the viewpoint definition it is typed by."""
+    name = _name(view, subject_id)
+    viewpoints = view_viewpoints(view, subject_id)
+    if not viewpoints:
+        return violated(f"{name} has no viewpoint, so no concern governs it")
+    concerns, witnesses = [], []
+    for viewpoint in viewpoints:
+        for concern, membership in viewpoint_frames(view, viewpoint):
+            if concern not in concerns:
+                concerns.append(concern)
+                witnesses.append(membership)
+    if not concerns:
+        return violated(f"{name}'s viewpoint {', '.join(_name(view, v) for v in viewpoints)} frames no concern")
+    return satisfied(concerns, witnesses)
+
+
+#: The relationships through which a view exposes model content.
+EXPOSE_RELATIONSHIPS = ("MembershipExpose", "NamespaceExpose")
+
+
+def owned_views(view: ModelView, subject_id: str) -> list[str]:
+    """The view and the views it owns at any depth (a table or matrix view's row, column and cell views)."""
+    found, frontier = [], [subject_id]
+    while frontier:
+        current = frontier.pop(0)
+        if current in found:
+            continue
+        found.append(current)
+        frontier.extend(view.index.owned_members(current, "ViewUsage"))
+    return found
+
+
+def _exposes_model_content(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The view, or a view it owns at any depth, exposes model content (an ``expose`` of a member or of a
+    namespace). The exposed element is the target; an expose whose element is outside the revision counts
+    as itself."""
+    index = view.index
+    targets, witnesses = [], []
+    for holder in owned_views(view, subject_id):
+        for relationship in index.owned_relationships(holder, *EXPOSE_RELATIONSHIPS):
+            exposed = [member for membership in reference_ids(relationship.get("importedMembership"))
+                       for member in reference_ids(index.element(membership).get("memberElement"))]
+            exposed += reference_ids(relationship.get("importedNamespace"))
+            target = next((found for found in exposed if found in index.by_id), str(relationship.get("@id")))
+            if target not in targets:
+                targets.append(target)
+                witnesses.append(str(relationship.get("@id")))
+    if not targets:
+        return violated(f"{_name(view, subject_id)} exposes no model content, nor does a view it owns")
+    return satisfied(targets, witnesses)
+
+
+# ---------------------------------------------------------------------------
+# Operational context and story (phase 2)
+# ---------------------------------------------------------------------------
+
+#: The feature of a context definition that holds its system of interest (SystemContext::systemOfInterest),
+#: selected by member name on the definition the subject is typed by, as the charter's are.
+CONTEXT_SYSTEM_OF_INTEREST = "systemOfInterest"
+
+
+def context_system_of_interest(view: ModelView, context: str) -> tuple[str | None, list[str]]:
+    """(the systemOfInterest feature the context's nearest definition declares, the features of the
+    context or of its definitions that narrow it, at any depth). The first is None when no definition
+    typing the context declares one."""
+    declared = next((feature for general in type_lineage(view, context)
+                     if (feature := view.index.feature(general, CONTEXT_SYSTEM_OF_INTEREST)) is not None), None)
+    if declared is None:
+        return None, []
+    systems = [feature for feature in member_features(view, context)
+               if feature != declared and declared in narrowed_features(view, feature)]
+    return declared, systems
+
+
+def bound_targets(view: ModelView, feature: str) -> tuple[list[str], list[str]]:
+    """(the usages a feature's own value references, ``= <usage>``, a chain read as its last feature;
+    why a referenced value cannot be read)."""
+    targets, problems = [], []
+    for leaf in view.index.value_leaves(feature):
+        if leaf.kind != "reference":
+            continue
+        try:
+            target = chained_feature(view, str(leaf.value))
+        except IdentityNotFoundError as error:
+            problems.append(f"{_name(view, feature)}: {error}")
+            continue
+        if target in view.index.by_id and target not in targets:
+            targets.append(target)
+    return targets, problems
+
+
+def _system_of_interest_declared(increment: IncrementScope) -> bool:
+    return bool(increment.system_of_interest or increment.system_of_interest_types)
+
+
+def reaches_system_of_interest(view: ModelView, increment: IncrementScope, usage: str) -> bool:
+    """The usage is, narrows or is bound to a usage the charter declares as system of interest, or is
+    typed (itself or through what it narrows) by its definition or a specialization."""
+    usages = set(increment.system_of_interest)
+    types = _lineage_types(view, increment.system_of_interest_types)
+    candidates = [usage, *bound_targets(view, usage)[0]]
+    return any(_usage_reaches(view, candidate, usages, types) for candidate in candidates)
+
+
+def _undeclared_system_of_interest(name: str) -> me.PredicateOutcome:
+    return indeterminate(f"charter:{SYSTEM_OF_INTEREST_ATTRIBUTE}",
+                         f"the charter declares no {SYSTEM_OF_INTEREST_ATTRIBUTE}; the system of interest of {name} "
+                         "cannot be compared with it")
+
+
+def _context_system_of_interest(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """The operational context redefines its systemOfInterest with the system of interest the charter
+    declares: a feature of the context that narrows the systemOfInterest its definition declares is, narrows,
+    or is bound to the declared usage, or is typed by its definition or a specialization."""
+    name = _name(view, subject_id)
+    if not _system_of_interest_declared(increment):
+        return _undeclared_system_of_interest(name)
+    declared, systems = context_system_of_interest(view, subject_id)
+    if declared is None:
+        return indeterminate(MODEL_WITNESS_PREFIX + CONTEXT_SYSTEM_OF_INTEREST,
+                             f"no definition typing {name} declares a {CONTEXT_SYSTEM_OF_INTEREST} feature")
+    if not systems:
+        return violated(f"{name} does not redefine its {CONTEXT_SYSTEM_OF_INTEREST} ({_name(view, declared)})")
+    matched = [system for system in systems if reaches_system_of_interest(view, increment, system)]
+    if not matched:
+        wanted = ", ".join(_name(view, u) for u in (increment.system_of_interest or increment.system_of_interest_types))
+        return violated(f"{name}'s system of interest {', '.join(_name(view, s) for s in systems)} is not the "
+                        f"system of interest the charter declares ({wanted})")
+    return satisfied(matched, witnesses=list(increment.charters) or matched)
+
+
+def increment_use_cases(view: ModelView, increment: IncrementScope) -> list[str]:
+    """The use case usages the increment's packages own at any depth, also in the context or another part:
+    the story. An ``include use case`` is no use case of the story: its metaclass is IncludeUseCaseUsage,
+    and it references the use case it includes."""
+    return [element for element in scope_closure(view, increment)
+            if str(view.element(element).get("@type")) == "UseCaseUsage"]
+
+
+def redefined_parameters(view: ModelView, parameter: str) -> list[str]:
+    """``parameter`` and the parameters it stands for, transitively: those it subsets, redefines or
+    references, and those it redefines by the language rule. The language makes an owned parameter of a
+    use case redefine a parameter of its definition without a declared ``:>>`` (``actor reviewer = ...;``
+    in a use case whose definition declares ``actor reviewer``); the serializer writes that Redefinition
+    as implied, and only implied Redefinitions are read here, no implied subsetting."""
+    found: list[str] = []
+    frontier = [parameter]
+    while frontier:
+        current = frontier.pop(0)
+        if current in found:
+            continue
+        found.append(current)
+        frontier.extend(narrowed_features(view, current)[1:])
+        for relationship in view.index.owned_relationships(current, "Redefinition"):
+            if relationship.get("isImplied"):
+                frontier.extend(reference_ids(relationship.get("redefinedFeature")))
+    return found
+
+
+def use_case_parameters(view: ModelView, use_case: str, membership: str) -> list[str]:
+    """The use case's parameters of one membership kind (``SubjectMembership``, ``ActorMembership``): its
+    own, then those of its definitions (nearest first) that none of the ones before redefines
+    (:func:`redefined_parameters`). A use case has one subject: its own, else its nearest definition's."""
+    found = list(membership_members(view, use_case, membership))
+    for definition in type_lineage(view, use_case):
+        if membership == "SubjectMembership" and found:
+            break
+        narrowed = {target for parameter in found for target in redefined_parameters(view, parameter)}
+        found.extend(parameter for parameter in membership_members(view, definition, membership)
+                     if parameter not in narrowed and parameter not in found)
+    return found
+
+
+def _owned_within(view: ModelView, element: str, roots: set[str]) -> bool:
+    """Whether one of ``roots`` owns ``element`` at any depth (``element`` itself excluded)."""
+    current, seen = view.index.owner_of(element), {element}
+    while current and current not in seen:
+        if current in roots:
+            return True
+        seen.add(current)
+        current = view.index.owner_of(current)
+    return False
+
+
+def _context_systems(view: ModelView, increment: IncrementScope, context: str) -> tuple[list[str], me.PredicateOutcome | None]:
+    """The context's system-of-interest features, or the outcome when the story cannot be judged: no use
+    case (not applicable), or a context that declares no system of interest to bind to."""
+    name = _name(view, context)
+    if not increment_use_cases(view, increment):
+        return [], outcome("not-applicable", diagnostics=(f"the increment's packages own no use case at any depth, "
+                                                          f"so {name} has no story to bind",))
+    declared, systems = context_system_of_interest(view, context)
+    if declared is None:
+        return [], indeterminate(MODEL_WITNESS_PREFIX + CONTEXT_SYSTEM_OF_INTEREST,
+                                 f"no definition typing {name} declares a {CONTEXT_SYSTEM_OF_INTEREST} feature")
+    if not systems:
+        return [], violated(f"{name} does not redefine its {CONTEXT_SYSTEM_OF_INTEREST}, so no use case can bind "
+                            "its subject to it")
+    return systems, None
+
+
+def story_subject_problems(view: ModelView, increment: IncrementScope, context: str) -> list[tuple[str, str]]:
+    """(use case, what is wrong) for each use case of the increment whose subject is not bound to the
+    context's system of interest (a usage that is or narrows one of its system-of-interest features)."""
+    systems = set(context_system_of_interest(view, context)[1])
+    problems: list[tuple[str, str]] = []
+    for use_case in increment_use_cases(view, increment):
+        subjects = use_case_parameters(view, use_case, "SubjectMembership")
+        if not subjects:
+            problems.append((use_case, "declares no subject"))
+            continue
+        targets, unreadable = bound_targets(view, subjects[0])
+        if not targets:
+            problems.append((use_case, f"binds its subject {_name(view, subjects[0])} to no usage"
+                             + (f" that can be read ({'; '.join(unreadable)})" if unreadable else "")))
+        elif not any(systems & set(narrowed_features(view, target)) for target in targets):
+            problems.append((use_case, f"binds its subject to {', '.join(_name(view, t) for t in targets)}, not to "
+                             f"the system of interest of {_name(view, context)}"))
+    return problems
+
+
+def _story_subject_bound(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """Each use case of the increment binds its subject (``subject <name> = <usage>;``) to the operational
+    context's system of interest. A use case has one subject, its own or its definition's."""
+    systems, early = _context_systems(view, increment, subject_id)
+    if early is not None:
+        return early
+    problems = story_subject_problems(view, increment, subject_id)
+    if problems:
+        return violated(f"{len(problems)} use case(s) of the increment do not bind their subject to the system of "
+                        f"interest of {_name(view, subject_id)}",
+                        [f"{_name(view, use_case)} {why}" for use_case, why in problems])
+    return satisfied(increment_use_cases(view, increment), systems)
+
+
+def context_part_owners(view: ModelView, context: str, declared: str | None) -> set[str]:
+    """What may own a part around the system of interest: the context usage and the definitions it is typed
+    by, never the definition that first declares ``systemOfInterest`` (the kernel's SystemContext) or what
+    that definition specializes. Their features (``SystemContext::actors``) are generic slots, no part of
+    this context. The first declaration is the systemOfInterest feature that narrows no other feature."""
+    generic: set[str] = set()
+    if declared is not None:
+        for feature in narrowed_features(view, declared):
+            owner = view.index.owner_of(feature)
+            if owner and len(narrowed_features(view, feature)) == 1:
+                generic.update(view.index.generals(owner))
+    return {context, *type_lineage(view, context)} - generic
+
+
+def story_actor_problems(view: ModelView, increment: IncrementScope, context: str) -> list[tuple[str, str, str]]:
+    """(use case, actor, what is wrong) for each actor of each use case of the increment that is not bound
+    to a part the context owns at any depth, around its system of interest: the part is not one of the
+    context's system-of-interest features, and none of them owns it."""
+    declared, found = context_system_of_interest(view, context)
+    systems = {*found, *([declared] if declared else [])}  # the system of interest, never a part around it
+    roots = context_part_owners(view, context, declared)
+    problems: list[tuple[str, str, str]] = []
+    for use_case in increment_use_cases(view, increment):
+        for actor in use_case_parameters(view, use_case, "ActorMembership"):
+            targets, unreadable = bound_targets(view, actor)
+            if not targets:
+                problems.append((use_case, actor, "is bound to no usage"
+                                 + (f" that can be read ({'; '.join(unreadable)})" if unreadable else "")))
+                continue
+            around = [target for target in targets if _owned_within(view, target, roots)
+                      and not systems & set(narrowed_features(view, target))
+                      and not _owned_within(view, target, systems)]
+            if not around:
+                problems.append((use_case, actor, f"is bound to {', '.join(_name(view, t) for t in targets)}, no "
+                                 f"part of {_name(view, context)} around its system of interest"))
+    return problems
+
+
+def _story_actors_bound(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """Each actor of each use case of the increment is bound (``actor <name> = <part>;``) to a part the
+    operational context owns at any depth, around its system of interest. A use case's actors are its own
+    and those of its definitions that no own actor redefines."""
+    _systems, early = _context_systems(view, increment, subject_id)
+    if early is not None:
+        return early
+    actors = [(use_case, actor) for use_case in increment_use_cases(view, increment)
+              for actor in use_case_parameters(view, use_case, "ActorMembership")]
+    if not actors:
+        return outcome("not-applicable", diagnostics=("no use case of the increment declares an actor",))
+    problems = story_actor_problems(view, increment, subject_id)
+    if problems:
+        return violated(f"{len(problems)} actor(s) of the increment's use cases are not bound to a part of "
+                        f"{_name(view, subject_id)} around its system of interest",
+                        [f"{_name(view, use_case)}: actor {view.index.name_of(actor) or actor} {why}"
+                         for use_case, actor, why in problems])
+    return satisfied([actor for _use_case, actor in actors])
+
+
+# ---------------------------------------------------------------------------
+# Capability classification (phase 3)
+# ---------------------------------------------------------------------------
+
+#: The kernel classes a phase-3 record may be: the feature-model delta, and deferred product-line scope.
+FEATURE_CLASS = "Feature"
+DEFERRED_SCOPE_CLASS = "DeferredProductLineScope"
+COMMON_CAPABILITY_CLASS = "CommonCapability"
+
+
+def _feature_delta_only(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """A product-line characteristic the increment records is a feature candidate (the feature-model
+    delta) or product-line scope it defers (a gap among it). A common-capability record is none: core
+    elements are common by default and get no record. Kernel lineage through validated bindings; an
+    unbound class is method side."""
+    name = _name(view, subject_id)
+    if in_class(view, subject_id, FEATURE_CLASS):
+        return satisfied([subject_id])
+    if in_class(view, subject_id, DEFERRED_SCOPE_CLASS):
+        return satisfied([subject_id], diagnostics=(f"{name} records deferred product-line scope",))
+    if in_class(view, subject_id, COMMON_CAPABILITY_CLASS):
+        return violated(f"{name} records a common capability; core elements are common by default and get no "
+                        "record, so it is no feature-model delta")
+    types = ", ".join(_name(view, t) for t in sorted(view.index.typed_by(subject_id))) or "no type"
+    return violated(f"{name} ({types}) is neither a feature candidate nor deferred product-line scope, so it is no "
+                    "feature-model delta")
+
+
 #: The member each of these checks reads, which a remedy sets (de4sdv.semantic.remedies).
 _charter_references_increment.member = INCREMENT_ATTRIBUTE  # type: ignore[attr-defined]
 _charter_applicable_phases.member = PHASES_ATTRIBUTE  # type: ignore[attr-defined]
 _charter_expected_artifacts.member = SCOPE_ATTRIBUTE  # type: ignore[attr-defined]
 _expected_artifacts_cover_content.member = SCOPE_ATTRIBUTE  # type: ignore[attr-defined]
 _subject_is_system_of_interest.member = SYSTEM_OF_INTEREST_ATTRIBUTE  # type: ignore[attr-defined]
+_context_system_of_interest.member = CONTEXT_SYSTEM_OF_INTEREST  # type: ignore[attr-defined]
 
 
 #: Check id -> implementation (named checks; relation names join per contract).
@@ -844,6 +1274,13 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "populationMember": _population_member,
     "signalMappingRecorded": _signal_mapping_recorded,
     "semanticSourceNamed": _semantic_source_named,
+    "framedByViewpoint": _framed_by_viewpoint,
+    "contextSystemOfInterest": _context_system_of_interest,
+    "storySubjectBound": _story_subject_bound,
+    "storyActorsBound": _story_actors_bound,
+    "featureDeltaOnly": _feature_delta_only,
+    "viewpointFramesConcern": _viewpoint_frames_concern,
+    "exposesModelContent": _exposes_model_content,
 })
 
 #: Check id -> the most distinct targets the check accepts (absent: unbounded).

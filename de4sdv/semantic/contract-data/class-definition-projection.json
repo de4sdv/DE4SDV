@@ -243,7 +243,7 @@
       "semantic_kind": "class",
       "wave": "W2",
       "definition": {
-        "documentation": " A configured product or product variant that belongs to a product line. ",
+        "documentation": " A product variant that belongs to a product line; the configured product of an admitted configuration specializes its definition. ",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_product_line.sysml",
           "declaration": "part def ProductLineMemberProduct",

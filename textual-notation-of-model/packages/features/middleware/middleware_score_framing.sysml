@@ -292,10 +292,12 @@ package DE4SDV_MiddlewareSCOREFraming {
      * ASM-MW-027: The hypervisor is KVM on the Linux host, with the AAOS SDV
      * guest, as in the AAOS-integrated reference member (middleware
      * androidSDV in its Android guest, hypervisor kvm, osPlatform linux);
-     * the INC-AEBS-010 bench ran its HMI in an AAOS SDV Cuttlefish guest. The Linux host is
+     * the INC-AEBS-010 bench ran its HMI in an AAOS SDV Cuttlefish guest. In
+     * this member the AAOS SDV guest holds two VMs, an SDV Core VM and an
+     * IVI VM, with the same feature selections (ADR 0025). The Linux host is
      * both the KVM host and the domain that owns the AEBS emergency
      * intervention command path (ASM-MW-028), so the hypervisor boundary
-     * isolates the informational HMI guest from the host.
+     * isolates the VMs of the informational HMI guest from the host.
      */
   }
   part asmEmergencyCommandPathStaysOnLinuxHost : IncrementAssumption {
@@ -307,7 +309,8 @@ package DE4SDV_MiddlewareSCOREFraming {
      * the brake command path remains direct from the AEB node to the vehicle
      * command gate, not through the adapter). With KVM (ASM-MW-027) the
      * Linux host is both the hypervisor host and the owner of that path, so
-     * the hypervisor boundary isolates the HMI guest from the host. No
+     * the hypervisor boundary isolates the VMs of the HMI guest from the
+     * host. No
      * freedom-from-interference claim is made; REQ-MW-006
      * (reqIsolateSafetyPath, in development) and GAP-MW-029 stay open.
      */
@@ -325,7 +328,9 @@ package DE4SDV_MiddlewareSCOREFraming {
      * GAP-MW-031: The transport that carries the AEBS signals from S-CORE on
      * the Linux host across the domain boundary, through the hypervisor,
      * into the AAOS SDV guest is not selected in this framing slice; the
-     * realization slice selects and pins it.
+     * realization slice selects and pins it. Phase 8 selects it
+     * (hmiTransportSelection): SOME/IP into the SDV Core VM of the guest,
+     * then Data Tunnel to its IVI VM (ADR 0025).
      */
   }
   part gapTwoDomainMemberNotExpressible : IncrementGap {

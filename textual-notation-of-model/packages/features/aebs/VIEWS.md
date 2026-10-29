@@ -593,12 +593,12 @@ Shows how visualization requirements trace to needs and downstream architecture.
 
 ### `aebsVisualizationOperationalContextView`
 
-Reviewers need the visualization observation scenarios, their fail-closed dispositions, and their separation from the unchanged System 1 AEBS story to be visible.
+Reviewers need the operational context of the visualization test system, the visualization observation scenarios, their fail-closed dispositions, and their separation from the unchanged System 1 AEBS story to be visible.
 
 - **Source:** `aebs_visualization_operational_context.sysml`
 - **Viewpoint:** `selectedOperationalViewpoint` (`OperationalContextDefinitionViewpoint`)
 - **Concern:** `visualizationScenarioConcern`
-- **Exposes:** `aebsVisualizationStory`
+- **Exposes:** `aebsVisualizationOperationalContext`, `aebsVisualizationOperationalContext::*`, `aebsVisualizationStory`
 - **Depth:** `1`
 - **Render:** `asTreeDiagram`
 

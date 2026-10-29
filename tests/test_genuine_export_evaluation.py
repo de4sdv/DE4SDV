@@ -22,7 +22,15 @@ from types import SimpleNamespace
 from de4sdv.semantic import method_evaluator as me
 from de4sdv.semantic.export_evaluation import evaluate_export
 from de4sdv.semantic.increment_scope import scope_closure
-from de4sdv.semantic.method_checks import NAMED_CHECKS
+from de4sdv.semantic.method_checks import (
+    NAMED_CHECKS,
+    bound_targets,
+    context_system_of_interest,
+    increment_use_cases,
+    story_actor_problems,
+    story_subject_problems,
+    use_case_parameters,
+)
 from de4sdv.semantic.relation_checks import VSS_SIGNAL_METADATA, carried_vss_paths, signal_mappings
 from de4sdv.semantic.remedies import check_remedy
 from de4sdv.sysml_api.qualified_names import QualifiedNameIndex
@@ -55,42 +63,216 @@ def _evaluated(tmp_path: Path):
     return evaluate_export(export, "INC-AEBS-010")
 
 
-def test_the_frozen_cut_passes_framing_needs_and_requirements_and_next_asks_for_verification_cases(
-        tmp_path: Path) -> None:
-    """The cut keeps the framing, needs-and-requirements, functional, logical and
-    physical packages in full and the other declared packages as package elements
-    only. Its verification cases are therefore outside the cut: phase 10 finds
-    none, so next asks for them and no requirement is verified. The full export of
-    the same revision answers next none (Method Check run 39227136691); this is the
-    cut boundary, not the model."""
+def test_the_frozen_cut_passes_phases_0_to_8_and_next_asks_for_a_verification_case(tmp_path: Path) -> None:
+    """The cut keeps the framing, operational-context, needs-and-requirements, functional, logical and
+    physical packages in full and the other declared packages as package elements only. Since its phase-2
+    and phase-3 revision, INC-AEBS-010 has one SystemContext that holds its test system and the actors of
+    its story, and phase 3 records no common capability: phases 0 to 8 pass. Its verification cases are
+    outside the cut: phase 10 finds none, no requirement is verified, and next asks for a verification case.
+    The full export of the same revision passes phase 10 (Method Check); the phase-10 failure is the cut
+    boundary, not the model. Phase 11 is not declared."""
     snapshot, evaluation = _evaluated(tmp_path)
     assert snapshot.identity_mode == "export-validated-kernel-bindings"
     phases = {phase["phase"]: phase for phase in evaluation.status()["phases"]}
     assert {name: (phase["conformance_verdict"], len(phase["gates"])) for name, phase in phases.items()
             if phase["gates"]} == {
         "phase0_incrementFraming": (me.VERDICT_PASS, 15),
+        "phase1_concernFraming": (me.VERDICT_PASS, 2),
+        "phase2_operationalContext": (me.VERDICT_PASS, 4),
+        "phase3_capabilityClassification": (me.VERDICT_PASS, 1),
         "phase4_needs": (me.VERDICT_PASS, 6),
         "phase5_requirements": (me.VERDICT_PASS, 6),
         "phase6_functionalArchitecture": (me.VERDICT_PASS, 4),
         "phase7_logicalArchitecture": (me.VERDICT_PASS, 2),
         "phase8_physicalRealization": (me.VERDICT_PASS, 4),
         "phase10_vvEvidence": (me.VERDICT_FAIL, 3),
+        "phase11_publication": (me.VERDICT_NOT_APPLICABLE, 2),
     }
     assert phases["phase4_needs"]["applicability"] == "declared"  # an optional [0..1] step
-    step = evaluation.next_obligation()["next"]
-    assert (step["stage"], step["gate"], step["kind"]) == (
-        "phase10_vvEvidence", "verificationCaseVerifiesRequirement", "violation")
-    assert [subject["reason_codes"] for subject in step["subjects"]] == [[me.POPULATION_POLICY_VIOLATION]]
+    assert phases["phase9_variabilityConfiguration"]["coverage"] == "no executable checks at this revision"
     # An untyped parameter is named by its keyword (its metaclass is no model element), and the remedy
     # says how one verification case is declared.
-    assert step["what_to_author"].startswith(
+    verification = evaluation.next_obligation()["next"]
+    assert (verification["stage"], verification["gate"], verification["kind"]) == (
+        "phase10_vvEvidence", "verificationCaseVerifiesRequirement", "violation")
+    assert [subject["reason_codes"] for subject in verification["subjects"]] == [[me.POPULATION_POLICY_VIOLATION]]
+    assert verification["what_to_author"].startswith(
         "keep at least 1 verification usage in the increment's packages named in the charter's expectedArtifacts")
-    assert step["authoring"]["declarations"] == [
+    assert verification["authoring"]["declarations"] == [
         "verification <name> { objective { verify <requirement of the increment>; } }"]
     blocking = {gap["gate"]: gap for gap in evaluation.gaps()["blocking"]}
     assert set(blocking) == {"verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"}
-    assert all(gap["phase"] == "phase10_vvEvidence" for gap in blocking.values())
     assert sorted(s["name"] for s in blocking["requirementVerifiedByVerificationCase"]["subjects"]) == REQUIREMENTS
+
+
+#: INC-AEBS-010's operational-context package, which the cut keeps in full.
+AEBS_CONTEXT = "DE4SDV_AEBSVisualizationOperationalContext"
+
+
+def _drop_typing(export: dict, qualified: str) -> None:
+    """Mutation: remove the one FeatureTyping that the named part usage owns, with its source record."""
+    by_id = {e["@id"]: e for e in export["elements"]}
+    part = by_id[_one(export, qualified, "PartUsage")]
+    (typing,) = [r["@id"] for r in part["ownedRelationship"] if by_id[r["@id"]]["@type"] == "FeatureTyping"]
+    part["ownedRelationship"] = [r for r in part["ownedRelationship"] if r["@id"] != typing]
+    export["elements"] = [e for e in export["elements"] if e["@id"] != typing]
+    export["element_sources"].pop(typing)
+
+
+def test_without_its_operational_context_the_cut_asks_for_one_first(tmp_path: Path) -> None:
+    """Mutation on genuine shapes: INC-AEBS-010's operational context loses its SystemContext typing, so the
+    increment has no SystemContext, as before its phase-2 revision. Phase 2's four checks fail on population,
+    and next asks for an operational context first, with the declaration and the import to author."""
+    export = _cut()
+    _drop_typing(export, f"{AEBS_CONTEXT}::aebsVisualizationOperationalContext")
+    _snapshot, evaluation = _evaluate_cut(tmp_path, export)
+    phases = {phase["phase"]: phase for phase in evaluation.status()["phases"]}
+    assert (phases["phase2_operationalContext"]["conformance_verdict"],
+            len(phases["phase2_operationalContext"]["gates"])) == (me.VERDICT_FAIL, 4)
+    step = evaluation.next_obligation()["next"]
+    assert (step["stage"], step["gate"], step["kind"]) == (
+        "phase2_operationalContext", "incrementHasOperationalContext", "violation")
+    assert [subject["reason_codes"] for subject in step["subjects"]] == [[me.POPULATION_POLICY_VIOLATION]]
+    assert step["authoring"]["declarations"] == ["part <operationalContextName> : DE4SDV_MethodContext::SystemContext;"]
+    assert step["authoring"]["imports"] == ["private import DE4SDV_MethodContext::*;"]
+    blocking = {gap["gate"] for gap in evaluation.gaps()["blocking"]}
+    assert {"incrementHasOperationalContext", "operationalContextHoldsSystemOfInterest",
+            "storyBindsSubjectToSystemOfInterest", "storyBindsActorsToContextParts"} <= blocking
+
+
+def _verdicts(evaluation, gate: str) -> dict[str, str | None]:
+    return {evaluation.view.index.name_of(r.subject_id): r.verdict for r in evaluation.canonical.results
+            if r.unit_id == gate and r.subject_id}
+
+
+def test_the_frozen_cut_s_concerns_have_stakeholders_and_are_framed_by_the_viewpoints_of_its_views(
+        tmp_path: Path) -> None:
+    """Genuine shapes of phase 1: every concern of the kept packages has a native stakeholder member and is
+    framed by the viewpoint of a view of its package (the frame's member is a shadow of the concern)."""
+    _snapshot, evaluation = _evaluated(tmp_path)
+    for gate in ("concernHasStakeholder", "concernFramedByViewpoint"):
+        verdicts = _verdicts(evaluation, gate)
+        assert len(verdicts) == 14 and set(verdicts.values()) == {me.VERDICT_PASS}, gate
+
+
+def test_the_frozen_cut_s_classification_keeps_its_deferred_scope_and_records_no_common_capability(
+        tmp_path: Path) -> None:
+    """Genuine shapes of phase 3: CLS-AEBS-010-001 records deferred product-line scope (allowed). Since its
+    phase-3 revision the increment records no common capability, as rule 10 says."""
+    _snapshot, evaluation = _evaluated(tmp_path)
+    assert _verdicts(evaluation, "characteristicIsFeatureDelta") == {
+        "visualizationTestSystemClassification": me.VERDICT_PASS}
+
+
+def test_a_common_capability_record_in_the_cut_fails_the_feature_delta(tmp_path: Path) -> None:
+    """Mutation on genuine shapes: CLS-AEBS-010-001 retyped by the kernel CommonProductLineCapability is a
+    common-capability record, which rule 10 says a core element never gets."""
+    export = _cut()
+    by_id = {e["@id"]: e for e in export["elements"]}
+    record = by_id[_one(export, "DE4SDV_AEBSVisualizationNeedsRequirements::VisualizationClassification::"
+                                "visualizationTestSystemClassification", "PartUsage")]
+    common = _one(export, "DE4SDV_ProductLine::CommonProductLineCapability", "PartDefinition")
+    (typing,) = [by_id[r["@id"]] for r in record["ownedRelationship"] if by_id[r["@id"]]["@type"] == "FeatureTyping"]
+    typing["type"] = typing["general"] = {"@id": common}
+    _snapshot, evaluation = _evaluate_cut(tmp_path, export)
+    assert _verdicts(evaluation, "characteristicIsFeatureDelta") == {
+        "visualizationTestSystemClassification": me.VERDICT_FAIL}
+
+
+#: INC-MW-011's operational context, which the cut keeps in full for the binding shapes of its story.
+SCORE_CONTEXT = "DE4SDV_MiddlewareSCOREOperationalContext"
+
+
+def _package_scope(view, qualified: str) -> SimpleNamespace:
+    """The scope a charter naming one top-level package gives: the package and what it owns."""
+    (package,) = [p for p in view.index.elements_of_type("Package") if view.label(p) == qualified]
+    return SimpleNamespace(scope_packages=(package,), scope_elements=tuple(view.index.owned_members(package)))
+
+
+def test_the_frozen_cut_reads_the_story_bindings_of_both_increments_in_their_genuine_shapes(tmp_path: Path) -> None:
+    """Genuine shapes of phase 2. INC-MW-011's six use cases bind their subject to the integrationLayer that
+    redefines its SystemContext's systemOfInterest, and their actors to parts nested in the context, as the
+    serializer writes ``= <qualified name>``: a FeatureValue whose FeatureReferenceExpression names the part.
+    INC-AEBS-010's story binds its subject to the visualizationTestSystem that redefines its SystemContext's
+    systemOfInterest, and its actors to parts of that context, in the same shapes."""
+    _snapshot, evaluation = _evaluated(tmp_path)
+    view = evaluation.view
+    scope = _package_scope(view, SCORE_CONTEXT)
+    (context,) = [e for e in scope.scope_elements if view.label(e) == f"{SCORE_CONTEXT}::scoreTwoDomainOperationalContext"]
+    declared, systems = context_system_of_interest(view, context)
+    assert view.label(declared) == "DE4SDV_MethodContext::SystemContext::systemOfInterest"
+    assert [view.label(s) for s in systems] == [f"{SCORE_CONTEXT}::scoreTwoDomainOperationalContext::integrationLayer"]
+    use_cases = increment_use_cases(view, scope)
+    assert len(use_cases) == 6
+    for use_case in use_cases:
+        (subject,) = use_case_parameters(view, use_case, "SubjectMembership")
+        assert bound_targets(view, subject) == (systems, []), view.label(use_case)
+    assert story_subject_problems(view, scope, context) == []
+    assert story_actor_problems(view, scope, context) == []
+    assert len([a for u in use_cases for a in use_case_parameters(view, u, "ActorMembership")]) == 20
+    aebs = _package_scope(view, AEBS_CONTEXT)
+    (aebs_context,) = [e for e in aebs.scope_elements
+                       if view.label(e) == f"{AEBS_CONTEXT}::aebsVisualizationOperationalContext"]
+    declared, aebs_systems = context_system_of_interest(view, aebs_context)
+    assert view.label(declared) == "DE4SDV_MethodContext::SystemContext::systemOfInterest"
+    aebs_label = f"{AEBS_CONTEXT}::aebsVisualizationOperationalContext"
+    assert [view.label(s) for s in aebs_systems] == [f"{aebs_label}::visualizationTestSystem"]
+    (story,) = increment_use_cases(view, aebs)
+    (subject,) = use_case_parameters(view, story, "SubjectMembership")
+    assert (view.index.name_of(subject), bound_targets(view, subject)) == ("visualizationTestSystem", (aebs_systems, []))
+    # The story's own actors redefine those of its definition by the language rule (an implied
+    # Redefinition in the export): the use case has four actors, not eight.
+    actors = use_case_parameters(view, story, "ActorMembership")
+    assert {view.label(a): [view.label(t) for t in bound_targets(view, a)[0]] for a in actors} == {
+        f"{AEBS_CONTEXT}::aebsVisualizationStory::reviewer": [f"{aebs_label}::displayReviewer"],
+        f"{AEBS_CONTEXT}::aebsVisualizationStory::driver": [f"{aebs_label}::observingDriver"],
+        f"{AEBS_CONTEXT}::aebsVisualizationStory::vehicleTarget": [f"{aebs_label}::scenarioVehicleTarget"],
+        f"{AEBS_CONTEXT}::aebsVisualizationStory::evidenceBaseline": [f"{aebs_label}::visualizationEvidenceBaseline"]}
+    # Each actor is bound to a part that the context owns, around its system of interest.
+    for actor in actors:
+        (target,) = bound_targets(view, actor)[0]
+        assert view.index.owner_of(target) == aebs_context
+    assert story_subject_problems(view, aebs, aebs_context) == []
+    assert story_actor_problems(view, aebs, aebs_context) == []
+
+
+def test_a_genuine_subject_binding_retargeted_off_the_system_of_interest_is_found(tmp_path: Path) -> None:
+    """Mutation on genuine shapes: INC-MW-011's speed story binds its subject to the context's driver."""
+    export = _cut()
+    driver = _one(export, f"{SCORE_CONTEXT}::scoreTwoDomainOperationalContext::driver", "PartUsage")
+    subject = _one(export, f"{SCORE_CONTEXT}::carryReferenceVehicleSpeedIntoAutoware::integrationLayer")
+    by_id = {e["@id"]: e for e in export["elements"]}
+    (value,) = [by_id[r["@id"]] for r in by_id[subject]["ownedRelationship"]
+                if by_id[r["@id"]]["@type"] == "FeatureValue"]
+    (expression,) = _ids(value["memberElement"])
+    (membership,) = [by_id[r["@id"]] for r in by_id[expression]["ownedRelationship"]
+                     if by_id[r["@id"]]["@type"] == "Membership"]
+    membership["memberElement"] = {"@id": driver}
+    _snapshot, evaluation = _evaluate_cut(tmp_path, export)
+    view = evaluation.view
+    scope = _package_scope(view, SCORE_CONTEXT)
+    context = _one(export, f"{SCORE_CONTEXT}::scoreTwoDomainOperationalContext", "PartUsage")
+    problems = story_subject_problems(view, scope, context)
+    assert [(view.index.name_of(use_case), why.split(",")[0]) for use_case, why in problems] == [
+        ("carryReferenceVehicleSpeedIntoAutoware",
+         f"binds its subject to {SCORE_CONTEXT}::scoreTwoDomainOperationalContext::driver")]
+
+
+def test_the_frozen_cut_s_matrix_view_exposes_through_its_row_and_column_views(tmp_path: Path) -> None:
+    """Genuine shapes of phase 11 (INC-AEBS-010 does not declare it, so the checks are called directly): the
+    requirement-to-function mapping view owns no expose itself, its row and column views do (the
+    serializer's MembershipExpose); every view of the kept packages has a viewpoint that frames a concern."""
+    _snapshot, evaluation = _evaluated(tmp_path)
+    view = evaluation.view
+    functional = "DE4SDV_AEBSVisualizationFunctionalArchitecture"
+    (matrix,) = [e for e in view.index.elements_of_type("ViewUsage")
+                 if view.label(e) == f"{functional}::aebsVisualizationFunctionRequirementMappingView"]
+    assert not view.index.owned_relationships(matrix, "MembershipExpose", "NamespaceExpose")
+    assert NAMED_CHECKS["exposesModelContent"](view, evaluation.scope, matrix).status == "satisfied"
+    views = [e for e in evaluation.scope.scope_elements if view.index.element(e).get("@type") == "ViewUsage"]
+    assert len(views) >= 10
+    for check in ("viewpointFramesConcern", "exposesModelContent"):
+        assert {NAMED_CHECKS[check](view, evaluation.scope, v).status for v in views} == {"satisfied"}, check
 
 
 def test_the_frozen_cut_traces_its_allocation_chain_through_chained_ends_and_definition_features(

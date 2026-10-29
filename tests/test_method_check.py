@@ -35,6 +35,7 @@ FIRST, SECOND, THIRD, FOURTH = "INC-FIXTURE-001", "INC-FIXTURE-002", "INC-FIXTUR
 FIFTH = "INC-FIXTURE-005"
 P0, P1, P2, P4, P5, P10 = ("phase0_incrementFraming", "phase1_concernFraming", "phase2_operationalContext",
                           "phase4_needs", "phase5_requirements", "phase10_vvEvidence")
+P9, P12 = "phase9_variabilityConfiguration", "phase12_baselineNextSlice"
 
 
 def _gappy(builder: ModelBuilder) -> None:
@@ -69,9 +70,9 @@ def _overpopulated(builder: ModelBuilder) -> None:
 
 
 def _declares_unchecked_phases(builder: ModelBuilder) -> None:
-    """Fifth: complete, and its charter also declares phases 1 and 2, whose steps carry no checks in the cut."""
+    """Fifth: complete, and its charter also declares phases 9 and 12, whose steps carry no checks in the cut."""
     fifth = increment_scenario(builder, increment_id=FIFTH, name="Fifth",
-                               applicable_phases=(P0, P1, P2, P4, P5, P10))
+                               applicable_phases=(P0, P4, P5, P9, P10, P12))
     cut_workflow(fifth)
 
 
@@ -461,10 +462,14 @@ def test_the_summary_names_next_and_the_blocking_gaps_per_increment(tmp_path: Pa
     assert "- Subjects (1): `DE4SDV_FirstNeedsRequirements::need1`" in lines
     assert "**Blocking gaps: 1** (violation: 1)" in lines
     assert "| `needHasStakeholder` | phase4_needs | violation | 1 | `need1` |" in lines
-    assert ("**Phase exits:** phase0_incrementFraming READY (15/15 pass), phase4_needs BLOCKED (4/6 pass), "
-            "phase5_requirements READY (4/6 pass), phase6_functionalArchitecture READY (0/4 pass, 4 not applicable), "
-            "phase7_logicalArchitecture READY (0/2 pass, 2 not applicable), phase8_physicalRealization READY "
-            "(0/4 pass, 4 not applicable), phase10_vvEvidence READY (2/3 pass)") in lines
+    # Review R7: a phase the charter does not declare is "not declared" in the summary, never READY.
+    assert ("**Phase exits:** phase0_incrementFraming READY (15/15 pass), phase1_concernFraming not declared, "
+            "phase2_operationalContext not declared, phase3_capabilityClassification not declared, phase4_needs "
+            "BLOCKED (4/6 pass), phase5_requirements READY (4/6 pass), phase6_functionalArchitecture not declared, "
+            "phase7_logicalArchitecture not declared, phase8_physicalRealization not declared, phase10_vvEvidence "
+            "READY (2/3 pass), phase11_publication not declared") in lines
+    (first,) = [entry for entry in result["increments"] if entry["id"] == FIRST]
+    assert first["phase_exits"]["phase11_publication"] == "READY"  # the report keeps the evaluation's exit
     assert "<details><summary>Advisory notes: 4</summary>" in lines
     assert "| `verificationCaseHasEvidenceRecordOrStatus` | phase10_vvEvidence | method-side | 1 | `firstVerification` |" in lines
     assert f"gh run download 4242 -R de4sdv/DE4SDV -n method-check-{GIT}" in text
@@ -538,20 +543,22 @@ def test_declared_phases_without_executable_checks_are_reported_never_dropped(tm
     assert code == 0, result["errors"]
     (entry,) = result["increments"]
     assert (entry["counts"]["blocking"], entry["next"]) == (0, None)
-    # The evaluated exits only: phases 6 to 8 have checks, not applicable to an increment that does not
-    # declare them.
-    assert list(entry["phase_exits"]) == [P0, P4, P5, "phase6_functionalArchitecture", "phase7_logicalArchitecture",
-                                          "phase8_physicalRealization", P10]
+    # The evaluated exits only: phases 1 to 3, 6 to 8 and 11 have checks, not applicable to an increment that
+    # does not declare them.
+    assert list(entry["phase_exits"]) == [P0, P1, P2, "phase3_capabilityClassification", P4, P5,
+                                          "phase6_functionalArchitecture", "phase7_logicalArchitecture",
+                                          "phase8_physicalRealization", P10, "phase11_publication"]
     assert entry["phases_without_checks"] == [
-        {"phase": P1, "step": "frameConcerns", "outputs": ["stakeholders", "concerns"]},
-        {"phase": P2, "step": "specifyOperationalContext", "outputs": ["operationalContext"]},
+        {"phase": P9, "step": "defineVariabilityAndConfiguration", "outputs": ["variationPoints", "configuredProducts"]},
+        {"phase": P12, "step": "decideBaselineAndNextSlice", "outputs": ["baselineDecision", "openGaps"]},
     ]
     lines = summary.splitlines()
     assert ("**Declared phases without executable checks at this revision** (reported, never evaluated; the "
-            "counts above say nothing about them): phase1_concernFraming (frameConcerns: stakeholders, concerns), "
-            "phase2_operationalContext (specifyOperationalContext: operationalContext)") in lines
+            "counts above say nothing about them): phase9_variabilityConfiguration (defineVariabilityAndConfiguration: "
+            "variationPoints, configuredProducts), phase12_baselineNextSlice (decideBaselineAndNextSlice: "
+            "baselineDecision, openGaps)") in lines
     assert ("**Next:** none. every required gate passes or is not applicable; no executable checks at this revision "
-            "judge the declared phases phase1_concernFraming, phase2_operationalContext") in lines
+            "judge the declared phases phase9_variabilityConfiguration, phase12_baselineNextSlice") in lines
 
 
 def test_an_increment_without_identifier_is_reported_as_not_evaluated(tmp_path: Path, real_reports) -> None:

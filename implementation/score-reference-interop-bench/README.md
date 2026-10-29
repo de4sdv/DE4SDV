@@ -36,12 +36,12 @@ stamps each VelocityReport from a clock of system time (`RCL_SYSTEM_TIME`),
 not from the node clock. The soak checks the endpoints with
 `ros2 node info`.
 
-With parameter services, any ROS 2 process on the host could abort the
-adapter: for a request that names an undeclared parameter, rclcpp throws and
-catches `ParameterNotDeclaredException` inside the service, and the override
-turns that throw into an abort. The adapter has no parameter services, also
-not in the abort matrix. The health proxy node will start with the same node
-options.
+With parameter services, any ROS 2 process that reaches the host's DDS ports
+could abort the adapter: for a request that names an undeclared parameter,
+rclcpp throws and catches `ParameterNotDeclaredException` inside the service,
+and the override turns that throw into an abort. The adapter has no
+parameter services, also not in the abort matrix. The health proxy node will
+start with the same node options.
 
 One way to abort the adapter stays. rmw_cyclonedds_cpp 1.3.5 takes samples
 of other participants on the `ros_discovery_info` subscription of its
@@ -49,9 +49,10 @@ context (rmw_node.cpp:849 and 1261) and on `/parameter_events`. Both go
 through a deserialization that throws and catches (serdata.cpp:383-389).
 With the override linked, one malformed sample from any DDS participant in
 the domain aborts the adapter. That is outside normal operation, and no
-configuration of ROS 2 Humble removes it. With DDS on the loopback, only
-processes on the host can send such a sample. The bench makes no claim about
-it.
+configuration of ROS 2 Humble removes it. Only a process that reaches the
+host's DDS ports can send such a sample; the host must keep these ports off
+the guest network (REQ-MW-016). That host configuration is not authored yet
+(GAP-MW-046). The bench makes no claim about this malformed-sample path.
 
 The adapter follows the three LoLa rules of the model:
 
@@ -81,9 +82,13 @@ cannot count them. The adapter reads at once on the receive handler, and at
 least every 20 ms; the provider of the bench sends every 100 ms.
 
 The INC-AEBS-010 frame server serves its newest client. A second client of
-127.0.0.1:4721 takes the stream from the adapter, and the adapter then gets
-no frame and no end of stream. So the adapter must be the only client of the
-frame server; the soak checks that with `ss -tnp` at each liveness check.
+port 4721 takes the stream from the adapter, and the adapter then gets no
+frame and no end of stream. So the adapter must be the only client of the
+frame server (ASM-MW-029). The frame server binds 0.0.0.0, so the host must
+keep the guest network off port 4721; that host configuration is not
+authored yet (GAP-MW-046). In the soak, the synthetic frame source binds
+127.0.0.1, and `ss -tnp` must show at each liveness check that the adapter
+is its only client.
 
 The adapter withholds a sample whose float32 value is not finite: NaN, +inf
 and -inf (REQ-MW-011), and also a finite value beyond the float32 range,
@@ -116,25 +121,24 @@ ros2 command line tools with their daemon. For a shell it comes from
 runtime jobs source it for every ROS 2 process they start. It sets:
 
 - `RMW_IMPLEMENTATION=rmw_cyclonedds_cpp`. Fast DDS 2.6 throws and catches
-  on its normal startup path in two places: its shared-memory transport
-  opens its port with `open_only` and creates the port in the catch, and its
-  UDP transport catches the error of a port that is taken. In the startup
-  probe the adapter aborted at start with the default transports of Fast DDS
-  (the shared-memory transport), and with a UDP-only profile after another
-  participant (the port probe). With the UDP-only profile as first
-  participant, it started and stopped with 0. `rmw_cyclonedds_cpp` is C++
-  too and showed no throw in the tested setups.
+  on its normal startup path. Under rmw_fastrtps_cpp the adapter aborted at
+  start with the default transports, and with a UDP-only profile after
+  another participant (section "Earlier Fast DDS cases"). The model records
+  the choice (comment `adapterAbortConditions`, GAP-MW-035).
+  `rmw_cyclonedds_cpp` is C++ too and showed no throw in the tested setups.
 - `ROS_DOMAIN_ID=91`, one fixed domain, as the AEBS Autoware benches.
 - `CYCLONEDDS_URI` to [`config/cyclonedds.xml`](config/cyclonedds.xml), the
-  configuration of the AEBS Autoware benches. It keeps DDS on the loopback
-  interface and sets `MaxAutoParticipantIndex` to 120. On the loopback,
-  which has no multicast, CycloneDDS 0.10.5 gives each process an automatic
-  participant index. With the default (`MaxAutoParticipantIndex` 9), at
-  most 9 processes get a participant: a bind at the last index fails too
-  (q_init.c:1609, 1627-1631). The next process gets no participant, so
-  rclcpp throws, and in the adapter that is an abort at start. This file's
-  120 allows 120 processes, more than the bench runs. The startup probe
-  measured 9 of 11 with the default.
+  configuration of the AEBS Autoware benches. It selects the loopback
+  interface for its locators and sends; its receive sockets bind INADDR_ANY
+  (CycloneDDS 0.10.5 ddsi_udp.c:453-456, 479-480). It sets
+  `MaxAutoParticipantIndex` to 120. On the loopback, which has no multicast,
+  CycloneDDS 0.10.5 gives each process an automatic participant index. With
+  the default (`MaxAutoParticipantIndex` 9), at most 9 processes get a
+  participant: a bind at the last index fails too (q_init.c:1609,
+  1627-1631). The next process gets no participant, so rclcpp throws, and in
+  the adapter that is an abort at start. This file's 120 allows 120
+  processes, more than the bench runs. The startup probe measured 9 of 11
+  with the default.
 - No `ROS_LOCALHOST_ONLY`, as the AEBS Autoware benches. With
   `ROS_LOCALHOST_ONLY=1`, rmw_cyclonedds_cpp 1.3.5 adds the address
   127.0.0.1 to the interface that `cyclonedds.xml` selects, and CycloneDDS
@@ -217,7 +221,7 @@ proxy node come with the next steps.
 | `adapter/facade/` | Facade header and its mw::com implementation, Bazel overlay |
 | `adapter/de4sdv_score_adapter/` | ament_cmake package: pure core, adapter executable, control build, unit tests |
 | `provider/` | Vehicle-speed provider (Bazel overlay) |
-| `config/` | ROS 2 environment and CycloneDDS configuration of the host, mw::com and mw::log configurations, gateway configuration, vsomeip loopback configuration for CI, Fast DDS UDP-only profile for the startup probe |
+| `config/` | ROS 2 environment and CycloneDDS configuration of the host, mw::com and mw::log configurations, gateway configuration, vsomeip loopback configuration for CI |
 | `launch-manager/` | Launch Manager configuration (lifecycle overlay) |
 | `src/de4sdv_score_bench/` | Pure Python evaluators of the abort matrix, the refused subscription, the startup probe, the soak and the SOME/IP receiver runs |
 | `scripts/` | CI build steps (runner only), the runtime facts, the renderer of the Launch Manager configuration and its load check, and the runners, also of the SOME/IP receiver runs |
@@ -299,25 +303,49 @@ and ROS 2 environment.
   participant, after 11 others and before 11 others. Two controls must fail:
   the bench configuration without `MaxAutoParticipantIndex` after 11 others,
   and the bench environment with `ROS_LOCALHOST_ONLY=1`, whose log must hold
-  the error of the second interface. Fast DDS runs with its default
-  transports and `ROS_LOCALHOST_ONLY=1`, and with a UDP-only profile; each
-  failing Fast DDS setup also runs with the control build, which must
-  survive it.
+  the error of the second interface.
 
 The runners write raw artifacts (adapter log, provider and observer records,
 backtraces and core mappings) and evaluate them with `src/de4sdv_score_bench`.
 The outcomes use the evidence outcome names of the middleware verification
 model.
 
+### Earlier Fast DDS cases
+
+The startup probe ran five Fast DDS cases to show why the bench runs
+rmw_cyclonedds_cpp. The model records that choice (comment
+`adapterAbortConditions`, GAP-MW-035). So the probe no longer runs these
+cases, and the CI no longer installs Fast DDS. The last two runs with them,
+[40704447008](https://github.com/de4sdv/DE4SDV/actions/runs/40704447008) and
+[40714437918](https://github.com/de4sdv/DE4SDV/actions/runs/40714437918)
+(2026-10-28, ubuntu-22.04 image 20261026.341.1, rmw_fastrtps_cpp 6.2.10,
+Fast DDS 2.6.12), showed the same in each case:
+
+| Fast DDS setup | Build | Result |
+|---|---|---|
+| Default transports, `ROS_LOCALHOST_ONLY=1`, first participant | adapter | Aborted at start, SIGABRT at the override. First named frame below it: `eprosima::fastdds::rtps::SharedMemTransport::CreateInputChannelResource` in `libfastrtps.so.2.6.12` |
+| The same | control build | Ran for the hold time of 30 s and stopped with 0 on SIGTERM |
+| UDP-only profile, first participant | adapter | Ran for the hold time of 30 s and stopped with 0 on SIGTERM |
+| UDP-only profile, after 1 other participant (ready) | adapter | Aborted at start, SIGABRT at the override. First named frame below it: `eprosima::fastdds::rtps::UDPv4Transport::OpenAndBindInputSocket` in `libfastrtps.so.2.6.12` |
+| The same | control build | Ran for the hold time of 30 s and stopped with 0 on SIGTERM |
+
+The shared-memory transport opens its port with `open_only` and creates the
+port in the catch. The UDP transport catches the error of a port that is
+taken. The UDP-only profile had one UDPv4 transport with the interface
+whitelist 127.0.0.1, and no builtin transports. The control build is the
+adapter without the override, so each abort came from the override. The
+artifacts of the two runs expire on 2026-11-27.
+
 ## Bench VM
 
 The `ci_*` scripts are for a disposable CI runner only. They install
 packages, write `~/.bazelrc` and put bazelisk in `/usr/local/bin`, so each
 one refuses to run unless `GITHUB_ACTIONS=true` or its first argument is
-`--runner`. On the shared bench VM that would redirect every Bazel run,
-android-cuttlefish with its large output base among them, and shadow the
-VM's own Bazel. A bench session on the VM takes its own path, and nothing
-goes into `$HOME` or `/usr/local`:
+`--runner` (the guard [`scripts/runner_only.sh`](scripts/runner_only.sh),
+which each one sources first). On the shared bench VM that would redirect
+every Bazel run, android-cuttlefish with its large output base among them,
+and shadow the VM's own Bazel. A bench session on the VM takes its own path,
+and nothing goes into `$HOME` or `/usr/local`:
 
 - Bazel: bazelisk (v1.29.0, checked by digest) in a bench directory, with
   `BAZELISK_HOME` in that directory, and the Bazel options in a bench
@@ -350,9 +378,10 @@ that environment.
 Not shown: any requirement of INC-MW-011 as verified, the behavior on the
 bench VM, the full Autoware graph, the guest side, the SOME/IP crossing to a
 real subscriber, the Launch Manager at run time, the health proxy node, the
-malformed-sample path of rmw_cyclonedds_cpp, and the timing of any case. No
-safety, cybersecurity, compliance or certification claim is made. The
-receiver runs below have their own claim boundary.
+malformed-sample path of rmw_cyclonedds_cpp, a host that keeps the guest
+network off its DDS ports and port 4721 (GAP-MW-046), and the timing of any
+case. No safety, cybersecurity, compliance or certification claim is made. The
+relay below has its own claim boundary.
 
 ## SOME/IP receiver of the AAOS SDV guest
 

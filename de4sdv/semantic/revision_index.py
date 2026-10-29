@@ -375,6 +375,10 @@ class RevisionIndex:
         feature = self.feature(owner, member_name)
         if feature is None:
             return ()
+        return self.value_leaves(feature)
+
+    def value_leaves(self, feature: str) -> tuple[ValueLeaf, ...]:
+        """Decoded value leaves of the feature's own value (``= <expression>``: its FeatureValue)."""
         leaves: list[ValueLeaf] = []
         for relationship in self.owned_relationships(feature, "FeatureValue"):
             for value in reference_ids(relationship.get("memberElement")) or reference_ids(
