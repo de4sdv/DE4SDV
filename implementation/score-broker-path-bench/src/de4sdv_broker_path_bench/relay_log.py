@@ -8,7 +8,9 @@ new process, phases numbered from 1 again) is told apart by keying every phase
 by (pid, phase).
 
 The evaluators read the relay's phase records as the start and end of each
-subscription phase, corroborated by the captures (#448). They also read the
+subscription phase. For VC-MW-020 the judged start is the later of the phase
+start and the loopback accept in the guest capture (#448); VC-MW-015 takes the
+phase windows from this log alone (a known limit). They also read the
 clock_step and data_loss events. A phase end that the layer caused while the
 ingress stayed connected is a delivery failure of the layer.
 """

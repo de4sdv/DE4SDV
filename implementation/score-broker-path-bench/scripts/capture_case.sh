@@ -51,9 +51,9 @@ start() {
   # Guest: the relay stream on the IVI loopback, captured on the guest.
   "$ADB" -s "$IVI_ADB" shell "rm -f /data/local/tmp/received.pcap; tcpdump -i lo -s0 -U -w /data/local/tmp/received.pcap 'tcp port $RELAY_LOOPBACK_PORT' >/dev/null 2>&1 & echo \$! > /data/local/tmp/received.pid" >/dev/null 2>&1 || true
   # Guest: the cleartext Data Tunnel on VLAN 2, in the sdv_dt_ns namespace, for
-  # the subscription corroboration of #448. The evaluator corroborates the
-  # phase start with the loopback accept; this capture is retained for review
-  # (consuming it is a known limit, see the README).
+  # the subscription start of #448. The VC-MW-020 evaluator takes the later of
+  # the relay's phase start and the loopback accept; this capture is retained
+  # for review (consuming it is a known limit, see the README).
   "$ADB" -s "$IVI_ADB" shell "rm -f /data/local/tmp/data-tunnel-vlan2.pcap; ip netns exec sdv_dt_ns tcpdump -i sdv_dt -s0 -U -w /data/local/tmp/data-tunnel-vlan2.pcap >/dev/null 2>&1 & echo \$! > /data/local/tmp/dt.pid" >/dev/null 2>&1 || true
   # Guest: the relay log, streamed from before the event with epoch microseconds.
   ( "$ADB" -s "$IVI_ADB" logcat -v epoch -v usec "$RELAY_LOGCAT_TAG":* "*:S" > "$OUT/relay-logcat.txt" 2>/dev/null & echo "relaylog $!" >> "$OUT/.pids" )
