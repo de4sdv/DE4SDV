@@ -18,11 +18,12 @@
 #   with 11 other ROS 2 processes before or after it, and two controls.
 # - soak: nominal operation with someipd and gatewayd, 600 s on a pull
 #   request, the soak_seconds of a manual run (default 1800 s).
-# - someip-receiver-unit, someip-receiver-clang, someip-receiver-sanitizers:
-#   the DE4SDV minimal SOME/IP receiver of the AAOS SDV guest, its pure core
-#   with gtest (g++, clang++, g++ with ASan and UBSan).
-# - someip-receiver-interop: the receiver against the real someipd with
-#   service discovery on, in a host and a guest network namespace.
+# - ivi-frame-relay-unit, ivi-frame-relay-clang, ivi-frame-relay-sanitizers,
+#   ivi-frame-relay-tsan: the core and the shell of the DE4SDV IVI frame
+#   relay of the AAOS SDV guest with gtest and a fake gateway client (g++,
+#   clang++, g++ with ASan and UBSan, g++ with TSan). CI has no AOSP tree, so
+#   no job builds the AOSP adapter to libsdvgatewayclient or the main of the
+#   relay; the VM session of phase 10 builds them with Android.bp.
 # Every runtime job sources config/ros_environment.sh of the runtime bundle
 # and records the facts of its runner. Results are CI regression and design
 # data, not evidence of record.
@@ -354,131 +355,93 @@ jobs:
             ${{ runner.temp }}/results
           retention-days: 30
 
-  # The DE4SDV minimal SOME/IP receiver of the AAOS SDV guest: its pure core
-  # with gtest (g++ gives the binary of the namespace runs), a second build
-  # with clang++, and the runs against the real someipd of the bundle.
-  someip-receiver-unit:
-    name: SOME/IP receiver build and unit tests (g++)
+  # The DE4SDV IVI frame relay of the AAOS SDV guest: its core and its shell
+  # with the fake gateway client, with g++, with clang++, and with g++ under
+  # ASan and UBSan and under TSan (two threads).
+  ivi-frame-relay-unit:
+    name: IVI frame relay build and unit tests (g++)
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Build the receiver and run its unit tests
+      - name: Build the relay core and shell and run their unit tests
         run: |
-          bash "$BENCH_DIR/scripts/ci_build_someip_receiver.sh" g++ "$RUNNER_TEMP/receiver-build" "$RUNNER_TEMP/facts" \
-            "$GITHUB_WORKSPACE/$BENCH_DIR" "$RUNNER_TEMP/receiver-bin"
+          bash "$BENCH_DIR/scripts/ci_build_ivi_frame_relay.sh" g++ "$RUNNER_TEMP/relay-build" "$RUNNER_TEMP/facts" \
+            "$GITHUB_WORKSPACE/$BENCH_DIR"
       - name: Summary
         if: always()
-        run: cat "$RUNNER_TEMP/facts/someip_receiver_build_g++.md" >> "$GITHUB_STEP_SUMMARY" || true
+        run: cat "$RUNNER_TEMP/facts/ivi_frame_relay_build_g++.md" >> "$GITHUB_STEP_SUMMARY" || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: someip-receiver-build
-          path: |
-            ${{ runner.temp }}/facts
-            ${{ runner.temp }}/receiver-bin
-          retention-days: 30
-
-  someip-receiver-clang:
-    name: SOME/IP receiver build and unit tests (clang++)
-    runs-on: ubuntu-22.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Build the receiver and run its unit tests
-        run: |
-          bash "$BENCH_DIR/scripts/ci_build_someip_receiver.sh" clang++ "$RUNNER_TEMP/receiver-build" "$RUNNER_TEMP/facts" \
-            "$GITHUB_WORKSPACE/$BENCH_DIR" "$RUNNER_TEMP/receiver-bin"
-      - name: Summary
-        if: always()
-        run: cat "$RUNNER_TEMP/facts/someip_receiver_build_clang++.md" >> "$GITHUB_STEP_SUMMARY" || true
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: someip-receiver-build-clang
+          name: ivi-frame-relay-build
           path: ${{ runner.temp }}/facts
           retention-days: 30
 
-  someip-receiver-sanitizers:
-    name: SOME/IP receiver unit tests under ASan and UBSan (g++)
+  ivi-frame-relay-clang:
+    name: IVI frame relay build and unit tests (clang++)
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Build the receiver with ASan and UBSan and run its unit tests
+      - name: Build the relay core and shell and run their unit tests
         run: |
-          bash "$BENCH_DIR/scripts/ci_build_someip_receiver.sh" g++ "$RUNNER_TEMP/receiver-build" "$RUNNER_TEMP/facts" \
-            "$GITHUB_WORKSPACE/$BENCH_DIR" "$RUNNER_TEMP/receiver-bin" address,undefined
+          bash "$BENCH_DIR/scripts/ci_build_ivi_frame_relay.sh" clang++ "$RUNNER_TEMP/relay-build" "$RUNNER_TEMP/facts" \
+            "$GITHUB_WORKSPACE/$BENCH_DIR"
       - name: Summary
         if: always()
-        run: cat "$RUNNER_TEMP/facts/someip_receiver_build_g++-address-undefined.md" >> "$GITHUB_STEP_SUMMARY" || true
+        run: cat "$RUNNER_TEMP/facts/ivi_frame_relay_build_clang++.md" >> "$GITHUB_STEP_SUMMARY" || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: someip-receiver-build-sanitizers
+          name: ivi-frame-relay-build-clang
           path: ${{ runner.temp }}/facts
           retention-days: 30
 
-  someip-receiver-interop:
-    name: SOME/IP receiver against someipd in network namespaces
-    needs: [build, someip-receiver-unit]
+  ivi-frame-relay-sanitizers:
+    name: IVI frame relay unit tests under ASan and UBSan (g++)
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Install ROS 2 Humble from the pinned snapshot
-        run: bash "$BENCH_DIR/scripts/ci_install_ros.sh" "$RUNNER_TEMP/facts" runtime
-      - name: Install the capture tool
+      - name: Build the relay with ASan and UBSan and run its unit tests
         run: |
-          sudo apt-get install -y -q tcpdump
-          dpkg-query -W tcpdump iproute2 util-linux | tee "$RUNNER_TEMP/facts/interop_tools.txt"
-      - uses: actions/download-artifact@v4
-        with:
-          name: runtime-bundle
-          path: ${{ runner.temp }}
-      - uses: actions/download-artifact@v4
-        with:
-          name: someip-receiver-build
-          path: ${{ runner.temp }}/receiver
-      - name: Unpack the bundle and the receiver, send cores to a run directory
-        run: |
-          mkdir -p "$RUNNER_TEMP/bundle" "$RUNNER_TEMP/cores"
-          tar -C "$RUNNER_TEMP/bundle" -xzf "$RUNNER_TEMP/runtime-bundle.tar.gz"
-          sudo sysctl -w kernel.core_pattern="$RUNNER_TEMP/cores/core.%e.%p" | tee "$RUNNER_TEMP/facts/core_pattern.txt"
-          chmod 0755 "$RUNNER_TEMP/receiver/receiver-bin/de4sdv_someip_receiver"
-          sha256sum "$RUNNER_TEMP/receiver/receiver-bin/de4sdv_someip_receiver" | tee "$RUNNER_TEMP/facts/receiver_sha256.txt"
-      - name: Record the runtime facts
-        run: bash "$BENCH_DIR/scripts/ci_record_runtime_facts.sh" "$RUNNER_TEMP/facts" "$RUNNER_TEMP/bundle" "$RUNNER_TEMP/runtime-bundle.tar.gz"
-      - name: Run the receiver cases against someipd
-        run: |
-          set +u
-          source /opt/ros/humble/setup.bash
-          source "$RUNNER_TEMP/bundle/config/ros_environment.sh"
-          set -u
-          python3 -c 'import json, os, sys; json.dump(dict(os.environ), open(sys.argv[1], "w"))' "$RUNNER_TEMP/bench-env.json"
-          sudo python3 "$BENCH_DIR/scripts/run_someip_receiver_interop.py" --bundle "$RUNNER_TEMP/bundle" \
-            --receiver "$RUNNER_TEMP/receiver/receiver-bin/de4sdv_someip_receiver" \
-            --out "$RUNNER_TEMP/results/someip-receiver" --user "$(id -un)" --env-json "$RUNNER_TEMP/bench-env.json" \
-            --core-dir "$RUNNER_TEMP/cores"
+          bash "$BENCH_DIR/scripts/ci_build_ivi_frame_relay.sh" g++ "$RUNNER_TEMP/relay-build" "$RUNNER_TEMP/facts" \
+            "$GITHUB_WORKSPACE/$BENCH_DIR" address,undefined
       - name: Summary
         if: always()
-        run: |
-          sudo chown -R "$(id -u):$(id -g)" "$RUNNER_TEMP/results" "$RUNNER_TEMP/cores" || true
-          ls -la "$RUNNER_TEMP/cores" | tee "$RUNNER_TEMP/facts/interop_cores.txt" || true
-          cat "$RUNNER_TEMP/results/someip-receiver/summary.md" >> "$GITHUB_STEP_SUMMARY" || true
+        run: cat "$RUNNER_TEMP/facts/ivi_frame_relay_build_g++-address-undefined.md" >> "$GITHUB_STEP_SUMMARY" || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: someip-receiver-interop
-          path: |
-            ${{ runner.temp }}/facts
-            ${{ runner.temp }}/results
+          name: ivi-frame-relay-build-sanitizers
+          path: ${{ runner.temp }}/facts
+          retention-days: 30
+
+  ivi-frame-relay-tsan:
+    name: IVI frame relay unit tests under TSan (g++)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Build the relay with TSan and run its unit tests
+        run: |
+          bash "$BENCH_DIR/scripts/ci_build_ivi_frame_relay.sh" g++ "$RUNNER_TEMP/relay-build" "$RUNNER_TEMP/facts" \
+            "$GITHUB_WORKSPACE/$BENCH_DIR" thread
+      - name: Summary
+        if: always()
+        run: cat "$RUNNER_TEMP/facts/ivi_frame_relay_build_g++-thread.md" >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ivi-frame-relay-build-tsan
+          path: ${{ runner.temp }}/facts
           retention-days: 30

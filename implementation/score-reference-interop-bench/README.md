@@ -223,10 +223,10 @@ proxy node come with the next steps.
 | `provider/` | Vehicle-speed provider (Bazel overlay) |
 | `config/` | ROS 2 environment and CycloneDDS configuration of the host, mw::com and mw::log configurations, gateway configuration, vsomeip loopback configuration for CI |
 | `launch-manager/` | Launch Manager configuration (lifecycle overlay) |
-| `src/de4sdv_score_bench/` | Pure Python evaluators of the abort matrix, the refused subscription, the startup probe, the soak and the SOME/IP receiver runs |
-| `scripts/` | CI build steps (runner only), the runtime facts, the renderer of the Launch Manager configuration and its load check, and the runners, also of the SOME/IP receiver runs |
-| `tests/` | Evaluator unit tests |
-| `someip-receiver/` | DE4SDV minimal SOME/IP receiver of the AAOS SDV guest: pure core, POSIX shell, gtest suites, golden fixtures, `Android.bp` and init script (not built by CI) |
+| `src/de4sdv_score_bench/` | Pure Python evaluators of the abort matrix, the refused subscription, the startup probe and the soak |
+| `scripts/` | CI build steps (runner only), the runtime facts, the renderer of the Launch Manager configuration and its load check, and the runners |
+| `tests/` | Evaluator unit tests, and the source checks of the IVI frame relay |
+| `ivi-frame-relay/` | DE4SDV IVI frame relay of the AAOS SDV guest: pure core, POSIX shell, gtest suites with a fake gateway client, golden fixtures, the AOSP adapter to libsdvgatewayclient and the main, `Android.bp` and init script (the AOSP parts are not built by CI) |
 
 ## Pure core and its tests
 
@@ -383,265 +383,150 @@ network off its DDS ports and port 4721 (GAP-MW-046), and the timing of any
 case. No safety, cybersecurity, compliance or certification claim is made. The
 relay below has its own claim boundary.
 
-## SOME/IP receiver of the AAOS SDV guest
+## IVI frame relay of the AAOS SDV guest
 
-The guest needs a SOME/IP client that receives the AEBS signal frames from
-someipd on the Linux host. It hands them to the HMI ingress on the guest
-loopback. [`someip-receiver/`](someip-receiver) is a small DE4SDV receiver
-for this: portable C++17 on POSIX sockets, without Boost and without
-vsomeip. The owner has not yet decided between this receiver and a port of
-vsomeip to AOSP.
+The HMI path of this member ends in the IVI VM of the AAOS SDV guest
+(ADR 0025). someipd on the Linux host sends the frame event over SOME/IP to
+the SOME/IP stack of the SDV Core VM. The SOME/IP broker there maps it to a
+topic, and Data Tunnel carries the topic to the IVI VM.
+[`ivi-frame-relay/`](ivi-frame-relay) is the DE4SDV relay at the end of that
+chain. It subscribes to the topic through the SDV Gateway on IVI and serves
+the frames to the unchanged ingress of INC-AEBS-010 on the loopback of the IVI
+VM. It realizes `iviFrameRelay` and `relaySubscriptionPhaseDiscardRule` of
+the phase-8 realization model.
 
-What the receiver does:
+What the relay does:
 
-- It connects TCP to the reliable endpoint of the frame event, then sends
-  SubscribeEventgroup with an IPv4 endpoint option that names the local end
-  of that connection. It handles Ack and Nack, and renews the subscription
-  every second for a TTL of 3 s. A TTL that ends without an Ack ends the
-  subscription.
-- It listens for offers of the configured server. Without an offer, it
-  tries the configured server every 500 ms (the unicast fallback for a guest
-  that receives no multicast). A StopOffer, a Nack, a closed connection or a
-  reboot of the server ends the connection, and the receiver starts again.
-  A TCP stream that loses its SOME/IP framing also ends the connection.
-- Every SD message takes a new session ID, also a message whose send fails.
-  someipd reads a session ID that does not grow, with the reboot flag set, as
-  a reboot of the receiver and ends its subscription.
-- The receiver sets no TCP keepalive. So a link loss that lasts longer than
-  the TTL ends its subscription when the TTL ends. When the link comes back,
-  someipd sends a Nack only if it no longer holds the TCP connection
-  (service_discovery_impl.cpp:2103-2112 of vsomeip 3.6.1). The receiver then
-  ends the half-open connection. Otherwise someipd acknowledges the
-  subscription. Design data: in the 5 s link outage of `resubscribe`, the
-  receiver log shows `subscription_expired`, then `nack`, `tcp_connected` and
-  `subscribed`.
-- It reassembles SOME/IP over TCP, checks that the 4-byte little-endian
-  length prefix counts the bytes of the frame, and reads `sequence` and
-  `frame_timestamp_ns` with a minimal protobuf wire reader.
-- It serves one client on 127.0.0.1:4731. It forwards each payload unchanged,
-  prefix and frame. It holds no queue: a frame without a client is dropped.
-- Every frame ends delivered or dropped with one reason, and a counter per
-  reason shows it. Every dropped frame gives a log line with its reason, at
-  most at the frame rate; `--log-frames` adds a line per served frame. The
-  start line repeats the whole configuration.
+- It subscribes by name with libsdvgatewayclient, with the subscriber flag
+  `ASDVGATEWAY_SUBSCRIBER_OPTIONS_FLAG_NONE`. So it reads only the messages
+  published after its subscription. The default publication is the one of the
+  feasibility run of 2026-10-28 (design data): VM `instance1`, package
+  `com.android.sdv.someip`, bundle `SomeIpBroker`, unit
+  `de4sdv-score-aebs-signal-frame`. An option can follow the mapping of
+  phase 10 without a new build. The relay's own subject for `initComms` is
+  `de4sdv.ivi_frame_relay`, bundle `IviFrameRelay`, instance `default`.
+  Exactly one ACL file for that subject must be on the IVI VM before it boots.
+- It parses the broker's wrapper in each slot strictly
+  (`broker_wrapper.hpp`). The outer varint gives the message, which must fit
+  in the slot. The message holds exactly one field: field 1 of wire type 2
+  (tag `0x0A`), whose length equals the rest of the message. Every byte of
+  the slot after the message is zero, as the broker writes it. Each varint is
+  in its shortest form. Each failed check is a drop with its own reason.
+  Then it checks the payload: at most 2048 bytes, and its own 4-byte
+  little-endian length prefix must count the bytes after it. So a corrupted
+  payload cannot shift the stream framing of the ingress (GAP-MW-040).
+- It serves each frame unchanged, prefix and frame, on 127.0.0.1:4731 to one
+  client, the ingress. It refuses a second client while one is connected. It
+  keeps the ingress connection open while the publication is unavailable. It
+  sends nothing to the host or to the SDV Core VM: the narrow gateway
+  interface has no call that publishes, offers or calls a service.
+- It keeps one subscription for its lifetime, with or without a client, and
+  holds at most one at a time (owner decision of 2026-10-29):
+  - on PublicationDestroyed it ends the subscription, unsubscribes and
+    subscribes again: at once, then every 100 ms for the first 5 s, then
+    every second;
+  - on Disconnected it ends the subscription, deletes the gateway client and
+    creates it again: at once, then every second, and every 10 s once the
+    failures have lasted 30 s;
+  - when no message comes for 3 s it ends the subscription, unsubscribes and
+    subscribes again. After three subscriptions in a row that brought no
+    message, it waits 5 s before each attempt;
+  - it logs each failed attempt with its status code and text. If no
+    subscription succeeds within 30 s of its start, it logs
+    `subscription_start_diagnostic` once: a likely fault of the ACL or of the
+    mapping when a client exists, of the gateway client when none was
+    created. From then on it tries every 10 s;
+  - a DATA_LOSS status of a read is a gap (GAP-MW-037): it is counted and
+    logged, and the phase goes on.
+- The discard rule: a subscription phase holds while the relay is subscribed
+  and the ingress is its one client. It starts when the second of the two
+  starts to hold, on `CLOCK_REALTIME` of the IVI VM, and ends when one of
+  them ends. Outside a phase the relay reads every slot and drops it. In a
+  phase it drops a frame with a sequence or a `frame_timestamp_ns` that is
+  not positive, a frame older than the phase start less 20 ms (the bound of
+  ASM-MW-030), and a copy of a frame served in the phase. The copy window
+  holds the last 40 frames served (20 + 20 sample slots) and is cleared at
+  each phase start. The margin is fixed: an option that names a margin or a
+  bound stops the relay at start. A phase end by PublicationDestroyed,
+  Disconnected or the timeout while the ingress stays connected is a delivery
+  failure of the layer: its `phase_end` line has `layer_caused` set.
+- The ingress trigger: the ingress is a oneshot service and exits when
+  nothing listens. At each start of the relay, once its loopback server
+  listens, the relay sets the host property of the ingress and then
+  `de4sdv.aebs.ingress.start` to 0 and 1. Until the first client of the
+  process connects, it repeats the trigger every 1 s, at most 10 times, then
+  logs `ingress_trigger_gave_up`. After the first client it never triggers the
+  ingress again.
+- The clock controls of ASM-MW-030: it logs `CLOCK_REALTIME` minus
+  `CLOCK_MONOTONIC` at the start, at each phase start and in each status line,
+  and each step of 1 ms or more. For the frames served in a phase it logs the
+  minimum and the maximum of receipt time minus frame timestamp. That minimum
+  bounds the offset from one side only, so it is no bounding control.
 
-The discard rule is a separate component (`FrameDiscardPolicy`). It is
-`receiverSubscriptionPhaseDiscardRule` of the phase-8 realization model:
+Two threads. A worker thread makes every call into the gateway client. The
+main thread runs the loopback server, the ingress connection and the
+decisions on each frame, and never waits for the worker. A library call can
+block (the feasibility runs saw `initComms` block while the SD agent of the
+IVI VM could not start), and it cannot be cancelled. So the main thread
+reports a gateway call that has run for 10 s (`gateway_call_stalled`) and its
+return. At stop, the relay ends the phase, unsubscribes and deletes the
+client within 150 ms, inside the 200 ms of init's `gentle_kill`.
 
-- A subscription phase holds while the receiver is subscribed at someipd and
-  the ingress is its only loopback client. The phase starts when the second
-  of the two conditions starts to hold, and ends when one of them ends. The
-  receiver takes the phase start from its own `CLOCK_REALTIME`, the clock
-  with which the frame assembler stamps `frame_timestamp_ns` on the host.
-- The receiver is not subscribed at its start. A Nack, the loss of the TCP
-  connection to someipd, a loss of the SOME/IP framing of the TCP stream, a
-  StopOffer, a reboot of someipd, or the end of the TTL of the last
-  acknowledged subscription ends the subscription. The next Ack starts it
-  again; the Ack of a renewal changes nothing.
-- A second client is refused while one is connected. It is not served and
-  starts no phase.
-- Outside a phase, the receiver reads every frame and drops it.
-- In a phase, it serves a frame unchanged only if its `frame_timestamp_ns`
-  is not earlier than the phase start less 20 ms, the bound of ASM-MW-030,
-  and the frame is no copy of a frame served in this phase. A copy has the
-  same `sequence` and the same `frame_timestamp_ns`. The rule does not
-  filter on sequence order, so a test of REQ-MW-014 still sees each gap and
-  each change of order.
-- It drops a frame whose `sequence` or `frame_timestamp_ns` has no positive
-  value.
-- The margin is fixed at 20 ms. No option sets it: the receiver stops at
-  start (exit status 2) on any margin option.
+The log lines are JSON objects in liblog with the tag `de4sdv_ivi_frame_relay`,
+one per event: `start`, `gateway_client_create`, `subscribed`,
+`subscribe_failed`, `subscription_ended`, `unsubscribed`,
+`gateway_client_destroyed`, `phase_start`, `phase_end`, `frame` (each drop
+with its reason, and served frames), `data_loss`, `read_failed`,
+`gateway_notification`, `client_connected`, `client_refused`, `client_lost`,
+`ingress_trigger`, `ingress_trigger_gave_up`, `clock_step`,
+`subscription_start_diagnostic`, `gateway_call_stalled`,
+`gateway_call_returned`, `status`, `final_status`. Every slot read ends in
+exactly one outcome: `messages_read` equals `frames_delivered` plus the sum of
+the `drop_*` counters.
 
-The bound of the copy memory counts sample slots, not reads. A copy comes
-only from the stored frames that a new subscription in the host half reads
-after a restart during the phase (GAP-MW-039). A stored frame is still in a
-sample slot: 20 slots in the adapter's frame event and 20 in gatewayd's
-bridged service. So the memory keeps the 40 frames served last, and each
-phase start clears it. When 12 stored frames arrive after 12 newer ones, a
-memory of 10 or 20 frames serves 12 frames twice, and a memory of 40 frames
-serves none twice (gtest `MemoryOfFortyServesNoStoredFrameTwice`). A copy of
-a frame that left the memory would pass. The receiver logs each phase start
-and end, and each dropped frame with its reason.
+### What CI builds and what phase 10 builds
 
-Clock controls for ASM-MW-030: the start record, each phase start and each
-status record give `CLOCK_REALTIME` less `CLOCK_MONOTONIC`. A slew moves both
-clocks alike, so this difference changes only when the realtime clock is
-stepped or across a suspend. A change of 1 ms or more between two readings
-(at most 100 ms apart) is a clock step. The receiver logs it as
-`clock_step`, and the phase end and the status records count the steps in
-the phase. A served frame in the log has `receipt_minus_frame_ns`, its
-receipt time on the receiver clock less its `frame_timestamp_ns`: every
-frame with `--log-frames`, else the first five of each phase. The phase end
-and the status records give the minimum and the maximum in the phase. The
-minimum bounds the host-guest offset from one side only: a negative minimum
-shows a guest clock behind the host clock by at least that much, and a guest
-clock ahead looks like latency. On the VM, these records and the measured
-host-guest offset show which runs are void: a run is void when the offset is
-not below 20 ms.
+The gateway client of AOSP (libsdvgatewayclient of android17-release,
+manifest ad156f32) does not build on CI. So the relay keeps it behind a narrow
+interface (`gateway_client.hpp`):
 
-The ingress is oneshot: it exits when its connect fails or its stream
-closes, and init does not start it again while it runs or before init has
-reaped it. So the receiver starts the ingress itself. At each of its starts,
-after its loopback server listens, it sets
-`de4sdv.aebs.frame_server.host=127.0.0.1` (`--announce-property`), then
-`de4sdv.aebs.ingress.start` to 0 and then to 1 (`--ingress-start-property`).
-When a receiver starts after the end of an old one, the old ingress can
-still run or wait for init to reap it, and that trigger does nothing. So,
-until the first client of this receiver process connects, the receiver
-repeats the trigger every 1 s, at most 10 times. The old ingress exits when
-the end of the old receiver closes its stream, and init reaps it then; the
-10 s of repeats cover an ingress that is slow to exit and an init that is
-busy, with margin. The VM runs must show the restart. A start of a running
-ingress does nothing, so a repeat is harmless. Each try gives one
-`ingress_trigger` record, and 1 s after the last try without a client the
-receiver logs `ingress_trigger_gave_up`. After the first client, the
-receiver never triggers the ingress again in this process: an ingress that
-exits by itself or that the bench stops stays down (the "HMI application
-down" condition of VC-MW-020 holds). The period and the count are fixed. On
-Linux, the receiver logs the properties and does not set them. The init
-script sets only the port property and no ingress trigger.
+- CI builds and tests, with CMake on ubuntu-22.04, the core and the shell
+  with a fake gateway client: the strict parse, the payload checks, the
+  phase and discard logic, the retry and back-off rules, the gateway worker,
+  the loopback server with real sockets, and the two threads. Four jobs of
+  the workflow do it: `ivi-frame-relay-unit` (g++),
+  `ivi-frame-relay-clang` (clang++), `ivi-frame-relay-sanitizers` (g++ with
+  ASan and UBSan) and `ivi-frame-relay-tsan` (g++ with TSan).
+- The AOSP adapter (`src/aosp/sdv_gateway_client.cpp`), the main
+  (`src/aosp/relay_main.cpp`), `Android.bp` and the init file
+  `de4sdv_ivi_frame_relay.rc` are in the repository, and no CI job builds
+  them. The VM session of phase 10 stages the directory in the AOSP tree of
+  the bench and builds it there, together with the IVI image or for the
+  instance overlay (step 5 of the next action of the mapping record).
 
-Build and test the receiver with CMake and GTest (Ubuntu: `libgtest-dev`):
+Build and test the core and the shell with CMake and GTest (Ubuntu:
+`libgtest-dev`):
 
 ```bash
-cmake -S implementation/score-reference-interop-bench/someip-receiver -B build/someip-receiver -G Ninja
-ninja -C build/someip-receiver && build/someip-receiver/de4sdv_someip_receiver_tests
+cmake -S implementation/score-reference-interop-bench/ivi-frame-relay -B build/ivi-frame-relay -G Ninja
+ninja -C build/ivi-frame-relay && build/ivi-frame-relay/de4sdv_ivi_frame_relay_tests
 ```
 
-`Android.bp` builds the same sources as a native binary (liblog only) with
-`de4sdv_someip_receiver.rc`, an init script for the eng or userdebug image;
-CI does not build either. The init script has `seclabel u:r:su:s0` (bench
-only; a product needs its own SELinux domain, GAP-MW-038), a service that
-init restarts, and the ingress property `de4sdv.aebs.frame_server.port=4731`.
-The receiver sets the host and the ingress start.
+`de4sdv_ivi_frame_relay.rc` is the init file for the eng or userdebug image of
+the IVI VM of the bench: `seclabel u:r:su:s0` with SELinux permissive, as on
+the INC-AEBS-010 bench, so a product needs its own SELinux domain
+(GAP-MW-038). The service is not oneshot, so init restarts the relay when it
+exits. The file sets the frame-server port of the ingress to 4731.
 
-### Runs against the real someipd
+### Claim boundary of the relay
 
-Four jobs of the workflow cover the receiver. `someip-receiver-unit` builds
-it with g++ and runs the gtest suites; this binary goes to the namespace runs.
-`someip-receiver-clang` builds and tests it with clang++.
-`someip-receiver-sanitizers` runs the gtest suites of a g++ build with ASan
-and UBSan; every finding fails the job. The fourth job,
-`someip-receiver-interop`, runs `scripts/run_someip_receiver_interop.py` as root
-with the runtime bundle of the build job. The script creates a "host" and a
-"guest" network namespace, joined by a veth pair, with a route for
-224.0.0.0/4 in both. Every bench process runs as the non-root runner user,
-except the capture (tcpdump runs as root).
-
-- Host namespace: someipd with service discovery on and the unicast address
-  10.250.0.1 (`config/vsomeip_netns_host.json`), gatewayd, the adapter, and
-  `scripts/visualization_frame_source.py`. The source sends VisualizationFrame
-  encodings of 64 to 2044 bytes, because the receiver reads `sequence` and
-  `frame_timestamp_ns`.
-- Guest namespace, with a private `/tmp` and `/dev/shm`: the receiver and
-  `scripts/loopback_frame_recorder.py`, a loopback client that reads the
-  stream as the ingress does and records every frame.
-- A capture of the link on the host end, and a record of the LoLa shared
-  memory files that someipd, gatewayd and the adapter map.
-
-Each case starts a fresh stack, and each case is a gate: the job passes only
-when every case passes; an inconclusive case fails it too.
-
-| Case | What it shows |
-|---|---|
-| `identity` | 200 frames reach the client byte for byte, in order, with the 2044-byte frames |
-| `resubscribe` | after a receiver restart by SIGTERM, one by SIGKILL, a restart of the gateway pair and a 5 s link outage, the receiver subscribes again and delivery resumes; no frame comes twice; every drop has a reason |
-| `no_client` | frames without a client are dropped and not queued; the client receives no frame produced more than 20 ms before it connected |
-| `stored_samples` | in the order of the stored-sample cases of the gateway spike, with the source paused at each step so that the newest frames stay in the sample slots: frames into the adapter, then gatewayd and the subscription, then the source again (frames from before the phase arrive in it); then gatewayd restarted beside the running someipd in the phase, a stimulus outside the operating rules (stored frames repeat served frames); then a restart of the gateway pair. The case passes only when both checks of the rule acted: a frame older than its phase start less 20 ms dropped in a phase, and a copy dropped in a phase |
-| `ttl_renewal` | without multicast offers, the receiver renews its subscription over five TTLs, without a lapse or a gap. someipd answers a subscription that comes before its first offer with a Nack, as it does for the vsomeip client; the case counts these as `nacks_before_first_ack` and fails only on a Nack after the first Ack |
-| `ingress_start` | the client is a oneshot ingress stand-in (`loopback_frame_recorder.py --oneshot`). Only an init stand-in of the runner starts it, on the property records of the receiver, by the rule of init: no start while the ingress runs. (1) The receiver is killed and starts again while its old ingress still runs (the stand-in stays alive 2.5 s after its stream ends): a repeat of the trigger (reason `no_first_client`) starts the new ingress, which receives frames. (2) The bench stops the ingress after the first client of the receiver: no trigger, no start and no client follow. (3) A receiver starts while no ingress can start: it tries 11 times, 1 s apart, and logs `ingress_trigger_gave_up` |
-
-`src/de4sdv_score_bench/someip_receiver_interop.py` evaluates the raw records
-of each case. A case also fails on a "Failed to subscribe" line of gatewayd,
-on LoLa shared memory that the adapter, gatewayd and someipd do not share, on
-any frame at the client that is not byte-identical to a source frame, on a
-frame served outside a phase or older than its phase start less 20 ms, on
-a copy served in a phase, on a receiver run that does not set the ingress
-properties in order after its start record, and on an ingress trigger after
-the first client of a receiver run, a repeat not 1 s after the last try, more
-than 10 repeats, or a give-up before the 10th repeat.
-
-The evaluator also checks the receiver's records against records that the
-receiver does not write: the capture of the link on the host end, the
-client's own log and the runner's timeline. It still reads the frame
-verdicts, the phases and the final status from the receiver's log, and the
-checks below rest on one clock: both namespaces share the clock of one
-kernel, so the capture, the client and the receiver stamp on one time line,
-with a capture slack of 1 ms.
-
-- Its own margin of 20 ms and copy memory of 40 frames; a start record that
-  gives other values fails the case.
-- The end of each receiver against the runner's planned stop: after SIGTERM
-  it must end with 0 and log its final status; a missing final status is
-  accepted only after a planned SIGKILL; a receiver that ends without a
-  planned stop fails the case.
-- Cores: the runner reads `kernel.core_pattern` and the core limit of a bench
-  child, and the case gives an error unless the pattern is a plain path in
-  the core directory of the run and the limit is above 0. A receiver core
-  fails the case. Every other core must be gatewayd's abort at the stop that
-  follows its planned SIGTERM (GAP-MW-041: `TransactionLogNode::Reset` under
-  `~ProxyEvent` or `~LocalServiceInstance`), else the case fails.
-- The current TCP connection: the latest connection of someipd's reliable
-  port to the guest that the capture shows set up before the phase start.
-  The receiver's last `tcp_connected` record must name its port; a receiver
-  run without the record gives an error.
-- Phase starts: let I be the later of the first Ack of someipd (TTL above 0)
-  after the setup of the current connection and after the last record that
-  ended a subscription (a Nack, a StopOffer, a reboot of someipd, a TTL
-  lapse), and the client's connect. The client stamps its connect before and
-  after `connect()`. A phase start must lie at or after the stamp before
-  `connect()`, and at most 10 ms after I, with I taken from the stamp after
-  `connect()` (on two clocks, 10 ms plus the slack). The last Ack must be
-  inside its TTL, and the later of the two must be the logged cause. In the
-  CI runs, the starts lie 10 to 53 us after I, and a start by the client
-  about 1.2 ms after its stamp before `connect()`.
-- Drops: no frame received after I is dropped as outside a phase, and no
-  frame stamped at or after I less 20 ms is dropped as older than the phase.
-  A copy must repeat one of the last 40 frames served in its phase. A frame
-  dropped for its content (malformed notification, payload too large, length
-  prefix, unreadable frame, field not positive) must be malformed in its
-  notification on the link too.
-- Phase ends: each end must lie within 100 ms of an independent record of
-  its cause: a Nack, a StopOffer, a FIN or RST that someipd sent on its
-  reliable port (at or before the end plus 1 ms), a reboot of someipd or the
-  StopSubscribe of the receiver in the capture, the end of the TTL after the
-  last Ack, or the end of the client. The other way round, each of these
-  records strictly inside a phase (also an Ack gap longer than the TTL) must
-  be followed by the end of the phase within 100 ms. A phase that ends on a
-  loss of the SOME/IP framing fails the case.
-
-On the VM, host and guest have two clocks. A run there needs its measured
-ASM-MW-030 bound: the capture slack becomes that bound plus the transit, and
-a two-clock run without a measured bound gives an error. The client records
-then come from the ingress's own log or from a capture inside the guest.
-
-Known limits of these evaluators: they read the frame verdicts, the phases,
-the final status and the TCP records from the receiver's log, and check
-them against the capture, the client and the runner only where the checks
-above say so. A frame that the receiver dropped outside a phase before I, a
-leave record that the capture does not hold (for example a framing loss), and
-the timing of a phase start inside its 10 ms bound are not checked further.
-The netns runs are CI design data; the evidence of record is the run on the
-VM, which needs its own evaluation on two clocks.
-
-A clock step makes the case inconclusive. The results list the phase starts
-of each case. A frame that the AEBS stack produced in the 20 ms before a
-phase start (the band of GAP-MW-045) is reported, not failed.
-
-Both namespaces share the clock of one kernel, so ASM-MW-030 holds in these
-runs by construction. They do not measure a host-guest clock offset.
-
-### Claim boundary of the receiver runs
-
-These runs are CI regression and design data on GitHub-hosted ubuntu-22.04
+The CI runs are regression and design data on GitHub-hosted ubuntu-22.04
 runners. They are not evidence of record, they verify no requirement, and
 every result stays draft until independent review.
 
-Shown by a passing run: the receiver's interoperation over a veth pair with
-the someipd and gatewayd of the bundle, on Linux, with the discard rule of
-the model, on one clock. Not shown: the Android build of the receiver, the
-AAOS SDV guest, the Cuttlefish network, the HMI ingress, the Android property
-service and init (the runs use stand-ins for both), the receiver under its
-init user and SELinux domain (the runs start it with setpriv as a non-root
-user), the clock offset of a real guest (ASM-MW-030), and any timing of
+Shown by a passing run: the core and the shell of the relay on Linux with a
+fake gateway client, with the discard rule and the subscription rules of the
+model. Not shown: the AOSP build of the relay, the gateway client at run
+time, the cross-VM subscription, the init service and the ACL on the IVI VM,
+the ingress, the clock of a real IVI VM (ASM-MW-030), and any timing of
 record. No safety, cybersecurity, compliance or certification claim is made.

@@ -1,0 +1,45 @@
+// DE4SDV IVI frame relay of the AAOS SDV guest (INC-MW-011, ADR 0025).
+//
+// The sources of CMakeLists.txt plus the AOSP adapter to libsdvgatewayclient
+// and the main, as a native binary for /system/bin of the IVI VM with its
+// init script. The DE4SDV CI does not build this module: it has no AOSP tree.
+// It builds and tests the core and the shell with CMake on Linux, with a
+// fake gateway client. The VM session of phase 10 stages this directory in
+// the android17-release tree of the bench (manifest ad156f32) next to the
+// other DE4SDV modules (system/software_defined_vehicle/samples/, as for the
+// visualization bench) and builds it there.
+
+cc_binary {
+    name: "de4sdv_ivi_frame_relay",
+    srcs: [
+        "src/core/broker_wrapper.cpp",
+        "src/core/discard_policy.cpp",
+        "src/core/event_log.cpp",
+        "src/core/frame_fields.cpp",
+        "src/core/gateway_client.cpp",
+        "src/core/gateway_worker.cpp",
+        "src/core/options.cpp",
+        "src/core/relay_core.cpp",
+        "src/core/retry_schedule.cpp",
+        "src/shell/relay_shell.cpp",
+        "src/aosp/sdv_gateway_client.cpp",
+        "src/aosp/relay_main.cpp",
+    ],
+    local_include_dirs: [
+        "include",
+        "src",
+    ],
+    cpp_std: "c++17",
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+    ],
+    shared_libs: [
+        "libsdvgatewayclient",
+        "libbinder_ndk",
+        "liblog",
+    ],
+    init_rc: ["de4sdv_ivi_frame_relay.rc"],
+    owner: "de4sdv",
+}
