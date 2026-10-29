@@ -102,9 +102,10 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * sdv_core_cf SDV Core VM runs the SOME/IP broker (sdvCoreGuest). The
      * display-capable sdv_ivi_cf IVI VM of INC-AEBS-010 runs the HMI
      * (hmiGuest). The IVI frame relay of phase 8 runs in the IVI VM. For the
-     * bench, both images come from one android17-release revision, and the
-     * relay, the SOME/IP mapping and the stack configuration are
-     * provisioned on them. Images built with them stay open (GAP-MW-038).
+     * bench, both images come from one android17-release revision. The
+     * SOME/IP mapping and the stack configuration go into the SDV Core image
+     * when it is built, and the relay is provisioned on the IVI image. An IVI
+     * image built with the relay stays open (GAP-MW-038).
      *
      * Configuration evidence only. This usage proves no provider, transport,
      * gateway, adapter or HMI behavior and no requirement satisfaction.
