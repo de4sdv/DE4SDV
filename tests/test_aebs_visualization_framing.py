@@ -367,13 +367,16 @@ def test_yaml_records_controlled_evidence_dispositions_for_chain() -> None:
         assert disposition in note
 
 
-def test_yaml_classification_keeps_visualization_out_of_bof() -> None:
+def test_framing_keeps_visualization_out_of_bof() -> None:
+    """The framing states the visualization as out of scope for every System 1 feature configuration and
+    bill of features. Phase 3 keeps no classification record: CLS-AEBS-010-001 and CLS-AEBS-010-002 are
+    retired, and the pilot YAML keeps no classification index."""
+    framing = _read(FRAMING)
+    block = re.search(r"part visualizationAsProductFeatureOutOfScope : OutOfScopeItem \{.*?\n  \}", framing, re.S)
+    assert block
+    assert "bill of features" in block.group(0)
     data = yaml.safe_load(_read(PILOT_YAML))
-    classifications = {entry["id"]: entry for entry in data["product_line_classification"]}
-    assert classifications["CLS-AEBS-010-001"]["classification"] == (
-        "system2_engineering_instrumentation"
-    )
-    assert "bill of features" in classifications["CLS-AEBS-010-001"]["rationale"]
+    assert "product_line_classification" not in data
 
 
 def test_decision_distance_requirement_matches_the_hmi_contract() -> None:
