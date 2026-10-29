@@ -24,10 +24,10 @@
   <path d="M 2080,5154 H 2666 A 6,6 0 0 1 2672,5160 V 5403 A 6,6 0 0 1 2666,5409 H 2080 A 6,6 0 0 1 2074,5403 V 5160 A 6,6 0 0 1 2080,5154 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 2080,3592 H 2832 A 6,6 0 0 1 2838,3598 V 3817 A 6,6 0 0 1 2832,3823 H 2080 A 6,6 0 0 1 2074,3817 V 3598 A 6,6 0 0 1 2080,3592 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 3011,479 H 3699 A 6,6 0 0 1 3705,485 V 716 A 6,6 0 0 1 3699,722 H 3011 A 6,6 0 0 1 3005,716 V 485 A 6,6 0 0 1 3011,479 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1536,2041 H 2306 A 6,6 0 0 1 2312,2047 V 2266 A 6,6 0 0 1 2306,2272 H 1536 A 6,6 0 0 1 1530,2266 V 2047 A 6,6 0 0 1 1536,2041 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1536,1779 H 2753 A 6,6 0 0 1 2759,1785 V 2016 A 6,6 0 0 1 2753,2022 H 1536 A 6,6 0 0 1 1530,2016 V 1785 A 6,6 0 0 1 1536,1779 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1536,1529 H 2373 A 6,6 0 0 1 2379,1535 V 1754 A 6,6 0 0 1 2373,1760 H 1536 A 6,6 0 0 1 1530,1754 V 1535 A 6,6 0 0 1 1536,1529 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1536,1266 H 2762 A 6,6 0 0 1 2768,1272 V 1503 A 6,6 0 0 1 2762,1509 H 1536 A 6,6 0 0 1 1530,1503 V 1272 A 6,6 0 0 1 1536,1266 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1536,2316 H 2306 A 6,6 0 0 1 2312,2322 V 2541 A 6,6 0 0 1 2306,2547 H 1536 A 6,6 0 0 1 1530,2541 V 2322 A 6,6 0 0 1 1536,2316 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1536,2053 H 2753 A 6,6 0 0 1 2759,2059 V 2290 A 6,6 0 0 1 2753,2296 H 1536 A 6,6 0 0 1 1530,2290 V 2059 A 6,6 0 0 1 1536,2053 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1536,1803 H 2373 A 6,6 0 0 1 2379,1809 V 2028 A 6,6 0 0 1 2373,2034 H 1536 A 6,6 0 0 1 1530,2028 V 1809 A 6,6 0 0 1 1536,1803 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1536,1541 H 2762 A 6,6 0 0 1 2768,1547 V 1778 A 6,6 0 0 1 2762,1784 H 1536 A 6,6 0 0 1 1530,1778 V 1547 A 6,6 0 0 1 1536,1541 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 2080,3079 H 3852 A 6,6 0 0 1 3858,3085 V 3316 A 6,6 0 0 1 3852,3322 H 2080 A 6,6 0 0 1 2074,3316 V 3085 A 6,6 0 0 1 2080,3079 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 2080,3341 H 3067 A 6,6 0 0 1 3073,3347 V 3566 A 6,6 0 0 1 3067,3572 H 2080 A 6,6 0 0 1 2074,3566 V 3347 A 6,6 0 0 1 2080,3341 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 2080,2829 H 2550 A 6,6 0 0 1 2556,2835 V 3054 A 6,6 0 0 1 2550,3060 H 2080 A 6,6 0 0 1 2074,3054 V 2835 A 6,6 0 0 1 2080,2829 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -36,7 +36,7 @@
   <path d="M 2080,4892 H 3213 A 6,6 0 0 1 3219,4898 V 5129 A 6,6 0 0 1 3213,5135 H 2080 A 6,6 0 0 1 2074,5129 V 4898 A 6,6 0 0 1 2080,4892 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 2080,4367 H 2756 A 6,6 0 0 1 2762,4373 V 4604 A 6,6 0 0 1 2756,4610 H 2080 A 6,6 0 0 1 2074,4604 V 4373 A 6,6 0 0 1 2080,4367 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 2080,4093 H 4028 A 6,6 0 0 1 4034,4099 V 4342 A 6,6 0 0 1 4028,4348 H 2080 A 6,6 0 0 1 2074,4342 V 4099 A 6,6 0 0 1 2080,4093 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1536,2292 H 2618 A 6,6 0 0 1 2624,2298 V 2541 A 6,6 0 0 1 2618,2547 H 1536 A 6,6 0 0 1 1530,2541 V 2298 A 6,6 0 0 1 1536,2292 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1536,1266 H 2618 A 6,6 0 0 1 2624,1272 V 1515 A 6,6 0 0 1 2618,1521 H 1536 A 6,6 0 0 1 1530,1515 V 1272 A 6,6 0 0 1 1536,1266 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1536,741 H 2898 A 6,6 0 0 1 2904,747 V 978 A 6,6 0 0 1 2898,984 H 1536 A 6,6 0 0 1 1530,978 V 747 A 6,6 0 0 1 1536,741 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1536,1004 H 2137 A 6,6 0 0 1 2143,1010 V 1241 A 6,6 0 0 1 2137,1247 H 1536 A 6,6 0 0 1 1530,1241 V 1010 A 6,6 0 0 1 1536,1004 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 4472,112 H 4980 A 6,6 0 0 1 4986,118 V 176 A 6,6 0 0 1 4980,182 H 4472 A 6,6 0 0 1 4466,176 V 118 A 6,6 0 0 1 4472,112 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -54,10 +54,10 @@
   <path d="M 2080,5154 H 2666 A 6,6 0 0 1 2672,5160 V 5190 H 2074 V 5160 A 6,6 0 0 1 2080,5154 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2080,3592 H 2832 A 6,6 0 0 1 2838,3598 V 3628 H 2074 V 3598 A 6,6 0 0 1 2080,3592 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 3011,479 H 3699 A 6,6 0 0 1 3705,485 V 515 H 3005 V 485 A 6,6 0 0 1 3011,479 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1536,2041 H 2306 A 6,6 0 0 1 2312,2047 V 2077 H 1530 V 2047 A 6,6 0 0 1 1536,2041 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1536,1779 H 2753 A 6,6 0 0 1 2759,1785 V 1815 H 1530 V 1785 A 6,6 0 0 1 1536,1779 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1536,1529 H 2373 A 6,6 0 0 1 2379,1535 V 1565 H 1530 V 1535 A 6,6 0 0 1 1536,1529 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1536,1266 H 2762 A 6,6 0 0 1 2768,1272 V 1302 H 1530 V 1272 A 6,6 0 0 1 1536,1266 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1536,2316 H 2306 A 6,6 0 0 1 2312,2322 V 2352 H 1530 V 2322 A 6,6 0 0 1 1536,2316 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1536,2053 H 2753 A 6,6 0 0 1 2759,2059 V 2089 H 1530 V 2059 A 6,6 0 0 1 1536,2053 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1536,1803 H 2373 A 6,6 0 0 1 2379,1809 V 1839 H 1530 V 1809 A 6,6 0 0 1 1536,1803 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1536,1541 H 2762 A 6,6 0 0 1 2768,1547 V 1577 H 1530 V 1547 A 6,6 0 0 1 1536,1541 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2080,3079 H 3852 A 6,6 0 0 1 3858,3085 V 3115 H 2074 V 3085 A 6,6 0 0 1 2080,3079 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2080,3341 H 3067 A 6,6 0 0 1 3073,3347 V 3377 H 2074 V 3347 A 6,6 0 0 1 2080,3341 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2080,2829 H 2550 A 6,6 0 0 1 2556,2835 V 2865 H 2074 V 2835 A 6,6 0 0 1 2080,2829 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -66,7 +66,7 @@
   <path d="M 2080,4892 H 3213 A 6,6 0 0 1 3219,4898 V 4928 H 2074 V 4898 A 6,6 0 0 1 2080,4892 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2080,4367 H 2756 A 6,6 0 0 1 2762,4373 V 4403 H 2074 V 4373 A 6,6 0 0 1 2080,4367 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2080,4093 H 4028 A 6,6 0 0 1 4034,4099 V 4129 H 2074 V 4099 A 6,6 0 0 1 2080,4093 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1536,2292 H 2618 A 6,6 0 0 1 2624,2298 V 2328 H 1530 V 2298 A 6,6 0 0 1 1536,2292 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1536,1266 H 2618 A 6,6 0 0 1 2624,1272 V 1302 H 1530 V 1272 A 6,6 0 0 1 1536,1266 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1536,741 H 2898 A 6,6 0 0 1 2904,747 V 777 H 1530 V 747 A 6,6 0 0 1 1536,741 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1536,1004 H 2137 A 6,6 0 0 1 2143,1010 V 1040 H 1530 V 1010 A 6,6 0 0 1 1536,1004 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 4472,112 H 4980 A 6,6 0 0 1 4986,118 V 148 H 4466 V 118 A 6,6 0 0 1 4472,112 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -130,26 +130,26 @@
   <polyline points="3005,643 3705,643" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="3005,677 3705,677" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 3011,479 H 3699 A 6,6 0 0 1 3705,485 V 716 A 6,6 0 0 1 3699,722 H 3011 A 6,6 0 0 1 3005,716 V 485 A 6,6 0 0 1 3011,479 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,2077 2312,2077" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,2111 2312,2111" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,2193 2312,2193" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,2227 2312,2227" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1536,2041 H 2306 A 6,6 0 0 1 2312,2047 V 2266 A 6,6 0 0 1 2306,2272 H 1536 A 6,6 0 0 1 1530,2266 V 2047 A 6,6 0 0 1 1536,2041 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1815 2759,1815" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1849 2759,1849" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1943 2759,1943" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1977 2759,1977" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1536,1779 H 2753 A 6,6 0 0 1 2759,1785 V 2016 A 6,6 0 0 1 2753,2022 H 1536 A 6,6 0 0 1 1530,2016 V 1785 A 6,6 0 0 1 1536,1779 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1565 2379,1565" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1599 2379,1599" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1681 2379,1681" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1715 2379,1715" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1536,1529 H 2373 A 6,6 0 0 1 2379,1535 V 1754 A 6,6 0 0 1 2373,1760 H 1536 A 6,6 0 0 1 1530,1754 V 1535 A 6,6 0 0 1 1536,1529 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1302 2768,1302" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1336 2768,1336" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1430 2768,1430" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,1464 2768,1464" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1536,1266 H 2762 A 6,6 0 0 1 2768,1272 V 1503 A 6,6 0 0 1 2762,1509 H 1536 A 6,6 0 0 1 1530,1503 V 1272 A 6,6 0 0 1 1536,1266 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,2352 2312,2352" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,2386 2312,2386" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,2468 2312,2468" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,2502 2312,2502" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1536,2316 H 2306 A 6,6 0 0 1 2312,2322 V 2541 A 6,6 0 0 1 2306,2547 H 1536 A 6,6 0 0 1 1530,2541 V 2322 A 6,6 0 0 1 1536,2316 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,2089 2759,2089" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,2123 2759,2123" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,2217 2759,2217" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,2251 2759,2251" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1536,2053 H 2753 A 6,6 0 0 1 2759,2059 V 2290 A 6,6 0 0 1 2753,2296 H 1536 A 6,6 0 0 1 1530,2290 V 2059 A 6,6 0 0 1 1536,2053 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1839 2379,1839" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1873 2379,1873" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1955 2379,1955" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1989 2379,1989" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1536,1803 H 2373 A 6,6 0 0 1 2379,1809 V 2028 A 6,6 0 0 1 2373,2034 H 1536 A 6,6 0 0 1 1530,2028 V 1809 A 6,6 0 0 1 1536,1803 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1577 2768,1577" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1611 2768,1611" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1705 2768,1705" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1739 2768,1739" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1536,1541 H 2762 A 6,6 0 0 1 2768,1547 V 1778 A 6,6 0 0 1 2762,1784 H 1536 A 6,6 0 0 1 1530,1778 V 1547 A 6,6 0 0 1 1536,1541 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="2074,3115 3858,3115" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="2074,3149 3858,3149" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="2074,3243 3858,3243" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -190,11 +190,11 @@
   <polyline points="2074,4269 4034,4269" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="2074,4303 4034,4303" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 2080,4093 H 4028 A 6,6 0 0 1 4034,4099 V 4342 A 6,6 0 0 1 4028,4348 H 2080 A 6,6 0 0 1 2074,4342 V 4099 A 6,6 0 0 1 2080,4093 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,2328 2624,2328" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,2362 2624,2362" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,2468 2624,2468" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1530,2502 2624,2502" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1536,2292 H 2618 A 6,6 0 0 1 2624,2298 V 2541 A 6,6 0 0 1 2618,2547 H 1536 A 6,6 0 0 1 1530,2541 V 2298 A 6,6 0 0 1 1536,2292 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1302 2624,1302" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1336 2624,1336" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1442 2624,1442" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1530,1476 2624,1476" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1536,1266 H 2618 A 6,6 0 0 1 2624,1272 V 1515 A 6,6 0 0 1 2618,1521 H 1536 A 6,6 0 0 1 1530,1515 V 1272 A 6,6 0 0 1 1536,1266 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1530,777 2904,777" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1530,811 2904,811" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1530,905 2904,905" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -272,6 +272,7 @@
   <path d="M 1109,145 L 1109,157 L 1121,157" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="816,933 1528.688,933" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="816,941 1001,941 1001,1125 1528.688,1125" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="816,949 991,949 991,1394 1528.688,1394" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1198,4288 2072.688,4288" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1198,4296 1390,4296 1390,4489 2072.688,4489" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1198,4312 1380,4312 1380,4515 1873,4515 1873,5013 2072.688,5013" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -281,17 +282,16 @@
   <polyline points="1198,3059 1863,3059 1863,3457 2072.688,3457" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1198,2731 1873,2731 1873,3196.5 2072.688,3196.5" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1198,3051 1390,3051 1390,3204.5 2072.688,3204.5" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="816,949 991,949 991,1388 1528.688,1388" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="816,957 981,957 981,1644 1528.688,1644" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="816,965 971,965 971,1901 1528.688,1901" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="816,973 961,973 961,2157 1528.688,2157" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="816,957 981,957 981,1662 1528.688,1662" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="816,965 971,965 971,1919 1528.688,1919" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="816,973 961,973 961,2175 1528.688,2175" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="816,981 951,981 951,2431 1528.688,2431" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="2362,378 2468,378 2468,601 3003.688,601" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1198,3067 1380,3067 1380,3707 2072.688,3707" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1198,4320 1370,4320 1370,4541 1863,4541 1863,5282 2072.688,5282" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1198,3075 1370,3075 1370,3958 2072.688,3958" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1198,4304 1360,4304 1360,4754.5 2072.688,4754.5" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1198,3083 1360,3083 1360,3984 1883,3984 1883,4746.5 2072.688,4746.5" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="816,981 951,981 951,2419 1528.688,2419" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="4999.312,139 5013.875,139 5013.875,106 5122,106" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="4999.312,147 5006,147 5006,134 5580,134" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="4993.312,155 5016,155" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -316,6 +316,9 @@
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
   <g transform="translate(1530,1125) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+    <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
+  </g>
+  <g transform="translate(1530,1394) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
   <g transform="translate(2074,4288) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
@@ -345,16 +348,16 @@
   <g transform="translate(2074,3204.5) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
-  <g transform="translate(1530,1388) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+  <g transform="translate(1530,1662) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
-  <g transform="translate(1530,1644) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+  <g transform="translate(1530,1919) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
-  <g transform="translate(1530,1901) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+  <g transform="translate(1530,2175) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
-  <g transform="translate(1530,2157) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+  <g transform="translate(1530,2431) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
   <g transform="translate(3005,601) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
@@ -373,9 +376,6 @@
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
   <g transform="translate(2074,4746.5) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
-    <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
-  </g>
-  <g transform="translate(1530,2419) rotate(-180) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 13.75,4 L 5.75,0 L 13.75,-4" fill="none" stroke="black" stroke-width="1.5" data-render="stroked"/>
   </g>
   <g transform="translate(4986,139) rotate(0) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
@@ -610,68 +610,68 @@
   <text x="3355" y="687.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
   <text x="3013" y="703" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">The visualization test system shall expose no command path from display, bridge, or transport into Autoware, the AEBS coordinator, or vehicle control.</tspan></text>
   <text x="3013" y="715" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
-  <text x="1921" y="2053" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
-  <text x="1921" y="2069" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqFailClosedFreshness : VisualizationInstrumentRequirementCandidate</tspan></text>
-  <text x="1921" y="2087.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1538" y="2103" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-AEBS-S2-006 System 2 candidate derived from N-AEBS-011.</tspan></text>
-  <text x="1921" y="2121.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
-  <text x="1538" y="2137" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^successCriteria : ScalarValues::String [0..1]</tspan></text>
+  <text x="1921" y="2328" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
+  <text x="1921" y="2344" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqFailClosedFreshness : VisualizationInstrumentRequirementCandidate</tspan></text>
+  <text x="1921" y="2362.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1538" y="2378" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-AEBS-S2-006 System 2 candidate derived from N-AEBS-011.</tspan></text>
+  <text x="1921" y="2396.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
+  <text x="1538" y="2412" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^successCriteria : ScalarValues::String [0..1]</tspan></text>
+  <text x="1538" y="2424" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">status :&gt;&gt; status = ReqStatus::ReadyForReview</tspan></text>
+  <text x="1538" y="2436" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source = "Derived from N-AEBS-011"</tspan></text>
+  <text x="1538" y="2448" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Stale input must suppress threat geometry rather than display it."</tspan></text>
+  <text x="1538" y="2460" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationMethod :&gt;&gt; verificationMethod = "test"</tspan></text>
+  <text x="1921" y="2478.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1538" y="2494" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">visualizationTestSystem :&gt; system2VisualizationInstrument</tspan></text>
+  <text x="1921" y="2512.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1538" y="2528" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">When no valid frame is accepted for the selected bounded timeout, the visualization test system shall suppress threat geometry and present an explicit stale disposition.</tspan></text>
+  <text x="1538" y="2540" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
+  <text x="2144.5" y="2065" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
+  <text x="2144.5" y="2081" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqAvailabilityDisposition : VisualizationInstrumentRequirementCandidate</tspan></text>
+  <text x="2144.5" y="2099.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1538" y="2115" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-AEBS-S2-007 System 2 candidate derived from N-AEBS-011.</tspan></text>
+  <text x="2144.5" y="2133.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
   <text x="1538" y="2149" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">status :&gt;&gt; status = ReqStatus::ReadyForReview</tspan></text>
-  <text x="1538" y="2161" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source = "Derived from N-AEBS-011"</tspan></text>
-  <text x="1538" y="2173" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Stale input must suppress threat geometry rather than display it."</tspan></text>
+  <text x="1538" y="2161" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source = "Derived from N-AEBS-011; success criteria formerly AC-AEBS-S2-006"</tspan></text>
+  <text x="1538" y="2173" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Unavailable sources need an explicit disposition, not silence."</tspan></text>
   <text x="1538" y="2185" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationMethod :&gt;&gt; verificationMethod = "test"</tspan></text>
-  <text x="1921" y="2203.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1538" y="2219" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">visualizationTestSystem :&gt; system2VisualizationInstrument</tspan></text>
-  <text x="1921" y="2237.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1538" y="2253" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">When no valid frame is accepted for the selected bounded timeout, the visualization test system shall suppress threat geometry and present an explicit stale disposition.</tspan></text>
-  <text x="1538" y="2265" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
-  <text x="2144.5" y="1791" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
-  <text x="2144.5" y="1807" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqAvailabilityDisposition : VisualizationInstrumentRequirementCandidate</tspan></text>
-  <text x="2144.5" y="1825.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1538" y="1841" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-AEBS-S2-007 System 2 candidate derived from N-AEBS-011.</tspan></text>
-  <text x="2144.5" y="1859.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
-  <text x="1538" y="1875" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">status :&gt;&gt; status = ReqStatus::ReadyForReview</tspan></text>
-  <text x="1538" y="1887" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source = "Derived from N-AEBS-011; success criteria formerly AC-AEBS-S2-006"</tspan></text>
-  <text x="1538" y="1899" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Unavailable sources need an explicit disposition, not silence."</tspan></text>
-  <text x="1538" y="1911" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationMethod :&gt;&gt; verificationMethod = "test"</tspan></text>
-  <text x="1538" y="1923" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">successCriteria :&gt;&gt; successCriteria =</tspan></text>
-  <text x="1538" y="1935" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "Met when, under deterministic closed-loop frame injection, the unavailable disposition is rendered with live geometry cleared and the health chip identifying the degraded condition whenever no visualization source or service is available or no valid frame has yet arrived."</tspan></text>
-  <text x="2144.5" y="1953.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1538" y="1969" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">visualizationTestSystem :&gt; system2VisualizationInstrument</tspan></text>
-  <text x="2144.5" y="1987.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1538" y="2003" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">When no visualization source or service is available, or before the first valid frame arrives, the visualization test system shall present an explicit unavailable disposition.</tspan></text>
-  <text x="1538" y="2015" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
-  <text x="1954.5" y="1541" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
-  <text x="1954.5" y="1557" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqInvalidRejection : VisualizationInstrumentRequirementCandidate</tspan></text>
-  <text x="1954.5" y="1575.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1538" y="1591" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-AEBS-S2-008 System 2 candidate derived from N-AEBS-011.</tspan></text>
-  <text x="1954.5" y="1609.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
-  <text x="1538" y="1625" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^successCriteria : ScalarValues::String [0..1]</tspan></text>
+  <text x="1538" y="2197" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">successCriteria :&gt;&gt; successCriteria =</tspan></text>
+  <text x="1538" y="2209" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "Met when, under deterministic closed-loop frame injection, the unavailable disposition is rendered with live geometry cleared and the health chip identifying the degraded condition whenever no visualization source or service is available or no valid frame has yet arrived."</tspan></text>
+  <text x="2144.5" y="2227.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1538" y="2243" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">visualizationTestSystem :&gt; system2VisualizationInstrument</tspan></text>
+  <text x="2144.5" y="2261.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1538" y="2277" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">When no visualization source or service is available, or before the first valid frame arrives, the visualization test system shall present an explicit unavailable disposition.</tspan></text>
+  <text x="1538" y="2289" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
+  <text x="1954.5" y="1815" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
+  <text x="1954.5" y="1831" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqInvalidRejection : VisualizationInstrumentRequirementCandidate</tspan></text>
+  <text x="1954.5" y="1849.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1538" y="1865" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-AEBS-S2-008 System 2 candidate derived from N-AEBS-011.</tspan></text>
+  <text x="1954.5" y="1883.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
+  <text x="1538" y="1899" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^successCriteria : ScalarValues::String [0..1]</tspan></text>
+  <text x="1538" y="1911" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">status :&gt;&gt; status = ReqStatus::ReadyForReview</tspan></text>
+  <text x="1538" y="1923" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source = "Derived from N-AEBS-011"</tspan></text>
+  <text x="1538" y="1935" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Malformed frames must be rejected without displaying payload values."</tspan></text>
+  <text x="1538" y="1947" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationMethod :&gt;&gt; verificationMethod = "test"</tspan></text>
+  <text x="1954.5" y="1965.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1538" y="1981" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">visualizationTestSystem :&gt; system2VisualizationInstrument</tspan></text>
+  <text x="1954.5" y="1999.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1538" y="2015" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">The visualization test system shall reject unsupported schema, malformed, non-finite, out-of-range, stale-timestamp, and non-monotonic frames without displaying their payload values.</tspan></text>
+  <text x="1538" y="2027" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
+  <text x="2149" y="1553" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
+  <text x="2149" y="1569" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqRestorationBehavior : VisualizationInstrumentRequirementCandidate</tspan></text>
+  <text x="2149" y="1587.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1538" y="1603" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-AEBS-S2-009 System 2 candidate derived from N-AEBS-011.</tspan></text>
+  <text x="2149" y="1621.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
   <text x="1538" y="1637" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">status :&gt;&gt; status = ReqStatus::ReadyForReview</tspan></text>
-  <text x="1538" y="1649" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source = "Derived from N-AEBS-011"</tspan></text>
-  <text x="1538" y="1661" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Malformed frames must be rejected without displaying payload values."</tspan></text>
+  <text x="1538" y="1649" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source = "Derived from N-AEBS-011; success criteria formerly AC-AEBS-S2-007"</tspan></text>
+  <text x="1538" y="1661" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Recovery must be bounded and observable without application restart."</tspan></text>
   <text x="1538" y="1673" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationMethod :&gt;&gt; verificationMethod = "test"</tspan></text>
-  <text x="1954.5" y="1691.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1538" y="1707" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">visualizationTestSystem :&gt; system2VisualizationInstrument</tspan></text>
-  <text x="1954.5" y="1725.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1538" y="1741" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">The visualization test system shall reject unsupported schema, malformed, non-finite, out-of-range, stale-timestamp, and non-monotonic frames without displaying their payload values.</tspan></text>
-  <text x="1538" y="1753" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
-  <text x="2149" y="1278" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
-  <text x="2149" y="1294" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqRestorationBehavior : VisualizationInstrumentRequirementCandidate</tspan></text>
-  <text x="2149" y="1312.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1538" y="1328" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-AEBS-S2-009 System 2 candidate derived from N-AEBS-011.</tspan></text>
-  <text x="2149" y="1346.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
-  <text x="1538" y="1362" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">status :&gt;&gt; status = ReqStatus::ReadyForReview</tspan></text>
-  <text x="1538" y="1374" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source = "Derived from N-AEBS-011; success criteria formerly AC-AEBS-S2-007"</tspan></text>
-  <text x="1538" y="1386" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Recovery must be bounded and observable without application restart."</tspan></text>
-  <text x="1538" y="1398" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationMethod :&gt;&gt; verificationMethod = "test"</tspan></text>
-  <text x="1538" y="1410" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">successCriteria :&gt;&gt; successCriteria =</tspan></text>
-  <text x="1538" y="1422" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "Met when a retained run shows that, after each failure disposition, the restored indication appears once the consecutive-valid-frame count bound as AO-AEBS-010-006 is reached, stays for the selected bounded duration, and the same application process runs throughout."</tspan></text>
-  <text x="2149" y="1440.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1538" y="1456" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">visualizationTestSystem :&gt; system2VisualizationInstrument</tspan></text>
-  <text x="2149" y="1474.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1538" y="1490" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">After a failure disposition, the visualization test system shall present a bounded restored indication after the selected consecutive-valid-frame criterion is met, without application restart.</tspan></text>
-  <text x="1538" y="1502" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
+  <text x="1538" y="1685" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">successCriteria :&gt;&gt; successCriteria =</tspan></text>
+  <text x="1538" y="1697" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "Met when a retained run shows that, after each failure disposition, the restored indication appears once the consecutive-valid-frame count bound as AO-AEBS-010-006 is reached, stays for the selected bounded duration, and the same application process runs throughout."</tspan></text>
+  <text x="2149" y="1715.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1538" y="1731" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">visualizationTestSystem :&gt; system2VisualizationInstrument</tspan></text>
+  <text x="2149" y="1749.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1538" y="1765" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">After a failure disposition, the visualization test system shall present a bounded restored indication after the selected consecutive-valid-frame criterion is met, without application restart.</tspan></text>
+  <text x="1538" y="1777" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
   <text x="2966" y="3091" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
   <text x="2966" y="3107" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqRealAAOSRendering : VisualizationInstrumentRequirementCandidate</tspan></text>
   <text x="2966" y="3125.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -800,23 +800,23 @@
   <text x="3054" y="4313.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
   <text x="2082" y="4329" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">The visualization test system shall present no native AEB decision distance on its rendered display.</tspan></text>
   <text x="2082" y="4341" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
-  <text x="2077" y="2304" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
-  <text x="2077" y="2320" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqObstacleGeometryExpiry : VisualizationInstrumentRequirementCandidate</tspan></text>
-  <text x="2077" y="2338.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1538" y="2354" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-AEBS-S2-019 System 2 candidate derived from N-AEBS-011.</tspan></text>
-  <text x="2077" y="2372.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
-  <text x="1538" y="2388" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">status :&gt;&gt; status = ReqStatus::ReadyForReview</tspan></text>
-  <text x="1538" y="2400" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source =</tspan></text>
-  <text x="1538" y="2412" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005; success criteria formerly AC-AEBS-S2-005"</tspan></text>
-  <text x="1538" y="2424" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Expired obstacle geometry must not be displayed as current while other fields stay live."</tspan></text>
-  <text x="1538" y="2436" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationMethod :&gt;&gt; verificationMethod = "test"</tspan></text>
-  <text x="1538" y="2448" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">successCriteria :&gt;&gt; successCriteria =</tspan></text>
-  <text x="1538" y="2460" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "Met when the verification take shows the obstacle range, bearing, and points cleared within the receipt-based staleness bound after the filtered obstacle-cloud source stops updating, while the accepted frame sequence continues."</tspan></text>
-  <text x="2077" y="2478.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1538" y="2494" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">visualizationTestSystem :&gt; system2VisualizationInstrument</tspan></text>
-  <text x="2077" y="2512.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1538" y="2528" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">When no filtered obstacle-cloud update has been received within the selected receipt-based staleness bound, the visualization test system shall suppress the display-derived obstacle geometry, including while accepted live frames continue.</tspan></text>
-  <text x="1538" y="2540" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
+  <text x="2077" y="1278" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
+  <text x="2077" y="1294" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqObstacleGeometryExpiry : VisualizationInstrumentRequirementCandidate</tspan></text>
+  <text x="2077" y="1312.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1538" y="1328" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">REQ-AEBS-S2-019 System 2 candidate derived from N-AEBS-011.</tspan></text>
+  <text x="2077" y="1346.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
+  <text x="1538" y="1362" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">status :&gt;&gt; status = ReqStatus::ReadyForReview</tspan></text>
+  <text x="1538" y="1374" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">source :&gt;&gt; source =</tspan></text>
+  <text x="1538" y="1386" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "Derived from N-AEBS-011; obligation formerly stated in AC-AEBS-S2-005; success criteria formerly AC-AEBS-S2-005"</tspan></text>
+  <text x="1538" y="1398" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">rationale :&gt;&gt; rationale = "Expired obstacle geometry must not be displayed as current while other fields stay live."</tspan></text>
+  <text x="1538" y="1410" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationMethod :&gt;&gt; verificationMethod = "test"</tspan></text>
+  <text x="1538" y="1422" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">successCriteria :&gt;&gt; successCriteria =</tspan></text>
+  <text x="1538" y="1434" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "Met when the verification take shows the obstacle range, bearing, and points cleared within the receipt-based staleness bound after the filtered obstacle-cloud source stops updating, while the accepted frame sequence continues."</tspan></text>
+  <text x="2077" y="1452.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1538" y="1468" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">visualizationTestSystem :&gt; system2VisualizationInstrument</tspan></text>
+  <text x="2077" y="1486.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1538" y="1502" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">When no filtered obstacle-cloud update has been received within the selected receipt-based staleness bound, the visualization test system shall suppress the display-derived obstacle geometry, including while accepted live frames continue.</tspan></text>
+  <text x="1538" y="1514" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">statement { language "English" }</tspan></text>
   <text x="2217" y="753" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«requirement»</tspan></text>
   <text x="2217" y="769" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">reqNoFreshDataSubstitution : VisualizationInstrumentRequirementCandidate</tspan></text>
   <text x="2217" y="787.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -854,6 +854,8 @@
   <text x="1464.5" y="874" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqNoFreshDataSubstitution</tspan></text>
   <text x="1196" y="1136" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqNonColorStateCueDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
   <text x="1480" y="1136" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqNonColorStateCue</tspan></text>
+  <text x="1195.5" y="1404" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqObstacleGeometryExpiryDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
+  <text x="1466" y="1404" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqObstacleGeometryExpiry</tspan></text>
   <text x="1625.5" y="4231" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqDecisionDistanceExclusionStatementDerivedFromPreservedSourceProvenance : DerivesFromNeed</tspan></text>
   <text x="1274.5" y="4231" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">needPreservedSourceProvenance</tspan></text>
   <text x="1982.5" y="4231" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqDecisionDistanceExclusionStatement</tspan></text>
@@ -875,14 +877,14 @@
   <text x="1625.5" y="2778" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqRealAAOSRenderingDerivedFromCorrelatableEvidence : DerivesFromNeed</tspan></text>
   <text x="2020.5" y="3171" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqRealAAOSRendering</tspan></text>
   <text x="1626" y="3252" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqRealAAOSRenderingDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed</tspan></text>
-  <text x="1196" y="1398" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqRestorationBehaviorDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
-  <text x="1475.5" y="1398" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqRestorationBehavior</tspan></text>
-  <text x="1196" y="1655" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqInvalidRejectionDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
-  <text x="1485.5" y="1655" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqInvalidRejection</tspan></text>
-  <text x="1196" y="1911" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqAvailabilityDispositionDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
-  <text x="1472.5" y="1911" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqAvailabilityDisposition</tspan></text>
-  <text x="1196" y="2168" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqFailClosedFreshnessDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
-  <text x="1474.5" y="2168" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqFailClosedFreshness</tspan></text>
+  <text x="1196" y="1673" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqRestorationBehaviorDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
+  <text x="1475.5" y="1673" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqRestorationBehavior</tspan></text>
+  <text x="1196" y="1929" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqInvalidRejectionDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
+  <text x="1485.5" y="1929" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqInvalidRejection</tspan></text>
+  <text x="1196" y="2186" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqAvailabilityDispositionDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
+  <text x="1472.5" y="2186" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqAvailabilityDisposition</tspan></text>
+  <text x="1196" y="2442" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqFailClosedFreshnessDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
+  <text x="1474.5" y="2442" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqFailClosedFreshness</tspan></text>
   <text x="2658.5" y="611" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqNonInterferenceDerivedFromNonInterference : DerivesFromNeed</tspan></text>
   <text x="2960.5" y="611" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqNonInterference</tspan></text>
   <text x="1626" y="3718" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqDe4sdvParticipationDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed</tspan></text>
@@ -894,8 +896,6 @@
   <text x="1626" y="4721" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqSourceFidelityDerivedFromPreservedSourceProvenance : DerivesFromNeed</tspan></text>
   <text x="2034" y="4721" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqSourceFidelity</tspan></text>
   <text x="1625.5" y="3994" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqSourceFidelityDerivedFromLiveVisualizationOnAAOS : DerivesFromNeed</tspan></text>
-  <text x="1195.5" y="2430" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqObstacleGeometryExpiryDerivedFromFailClosedDegradation : DerivesFromNeed</tspan></text>
-  <text x="1466" y="2430" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000">reqObstacleGeometryExpiry</tspan></text>
   <text x="4726" y="124" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«connection»</tspan></text>
   <text x="4726" y="140" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">liveVisualizationOnAAOSValidationPlanning : ValidationPlanningAssociation</tspan></text>
   <text x="4726" y="158.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>

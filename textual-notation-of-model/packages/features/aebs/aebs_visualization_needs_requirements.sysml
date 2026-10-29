@@ -38,21 +38,16 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   package VisualizationClassification {
     doc /*
      * Phase 3 records only the feature-model delta of this increment:
-     * feature candidates and the product-line scope that it defers.
+     * feature candidates and the product-line scope that it defers. This
+     * increment adds no feature candidate, so this package holds no record.
+     * Its deferred product-line scope is in the verification-evidence slice.
      * VehicleTargetAEBS stays a common System 1 capability, and this
-     * increment does not change it. A core element is common by default and
-     * gets no record, so this package holds no common-capability record. The
-     * former record CLS-AEBS-010-002 is retired, and its ID is not used
-     * again.
+     * increment does not change it: a core element is common by default and
+     * gets no record. The visualization stays out of every System 1 feature
+     * configuration and bill of features, and the framing states this as an
+     * out-of-scope item. The former records CLS-AEBS-010-001 and
+     * CLS-AEBS-010-002 are retired, and their IDs are not used again.
      */
-    part visualizationTestSystemClassification : DeferredProductLineScope {
-      doc /*
-       * CLS-AEBS-010-001: The AEBS visualization is System 2 engineering and
-       * evidence instrumentation. It is not a product feature, not a common
-       * capability, and must not enter any System 1 feature configuration or
-       * bill of features.
-       */
-    }
   }
 
   package VisualizationNeeds {

@@ -65,18 +65,15 @@ system_layers:
       Reviews that the increment stays bounded, honest about provenance, and
       free of production-HMI overclaim.
 
-# Phase 3 records only the feature-model delta: a core element is common by
-# default and gets no record. CLS-AEBS-010-002 recorded VehicleTargetAEBS as a
-# common capability, so it is retired and never reused. VehicleTargetAEBS
-# stays common, as the doc of the classification package in the model states.
-product_line_classification:
-  - id: CLS-AEBS-010-001
-    label: AEBS visualization
-    classification: system2_engineering_instrumentation
-    rationale: >-
-      The visualization serves demonstration, integration review, and V&V
-      instrumentation. It is not selectable across member products and must
-      stay out of every System 1 bill of features.
+# Phase 3 records only the feature-model delta. This increment adds no feature
+# candidate, and its deferred product-line scope is in the verification-
+# evidence slice, so this file keeps no product-line classification index. A
+# core element is common by default and gets no record. Both former records
+# are retired and never reused: CLS-AEBS-010-001 (the visualization as System 2
+# instrumentation, outside every System 1 bill of features) and
+# CLS-AEBS-010-002 (VehicleTargetAEBS as a common capability). The framing
+# states the first as an out-of-scope item, and the doc of the classification
+# package in the model states the second.
 
 first_slice_scope:
   in_scope:
