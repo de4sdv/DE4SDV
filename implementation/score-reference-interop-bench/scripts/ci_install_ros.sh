@@ -6,16 +6,7 @@
 # installed versions are recorded.
 # Usage: ci_install_ros.sh [--runner] <facts-dir> <build|runtime>
 set -euo pipefail
-# Runner only: the ci_* scripts are written for a disposable CI runner and
-# may change the host (packages, ~/.bazelrc, /usr/local, large build trees).
-# Each one refuses to run elsewhere unless its first argument is --runner.
-# The bench VM has its own path (README, section "Bench VM").
-if [ "${1:-}" = "--runner" ]; then
-  shift
-elif [ "${GITHUB_ACTIONS:-}" != "true" ]; then
-  echo "$(basename "$0"): runs only on a CI runner (GITHUB_ACTIONS=true) or with --runner as the first argument" >&2
-  exit 2
-fi
+source "$(dirname "${BASH_SOURCE[0]:?}")/runner_only.sh" || exit 2
 
 out=${1:?usage: ci_install_ros.sh <facts-dir> <build|runtime>}
 mode=${2:?usage: ci_install_ros.sh <facts-dir> <build|runtime>}
@@ -42,10 +33,10 @@ sudo install -m 0644 "$work/keyring.gpg" "$keyring"
 echo "deb [arch=amd64 signed-by=$keyring] http://snapshots.ros.org/humble/$snapshot_date/ubuntu jammy main" |
   sudo tee /etc/apt/sources.list.d/ros2-snapshot.list
 
-# Both ROS 2 middlewares by name: ros-base asks for one of them only, and
-# rmw_implementation's search for a missing one throws.
-packages=(ros-humble-ros-base ros-humble-rmw-fastrtps-cpp ros-humble-rmw-cyclonedds-cpp
-          ros-humble-autoware-vehicle-msgs)
+# rmw_cyclonedds_cpp by name: rmw_implementation of ros-base asks for one
+# ROS 2 middleware (rmw_fastrtps_cpp, rmw_cyclonedds_cpp or rmw_connextdds),
+# and apt takes the named one, so no Fast DDS is installed.
+packages=(ros-humble-ros-base ros-humble-rmw-cyclonedds-cpp ros-humble-autoware-vehicle-msgs)
 if [ "$mode" = "build" ]; then
   packages+=(ros-humble-ament-cmake-gtest python3-colcon-common-extensions)
 else
@@ -60,6 +51,6 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -o Acquire::Retries=5 --n
   echo "mode: $mode"
   dpkg-query -W 'ros-humble-*' python3-colcon-core python3-colcon-common-extensions gdb 2>/dev/null || true
 } > "$out/ros_packages_${mode}.txt"
-grep -E "ros-humble-(rclcpp|rmw-fastrtps-cpp|rmw-cyclonedds-cpp|fastrtps|cyclonedds|autoware-vehicle-msgs|ros2param)\s" \
+grep -E "ros-humble-(rclcpp|rmw-cyclonedds-cpp|cyclonedds|autoware-vehicle-msgs|ros2param)\s" \
   "$out/ros_packages_${mode}.txt" || true
 rm -rf "$work"

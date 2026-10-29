@@ -4,7 +4,9 @@
   reference interoperability bench (INC-MW-011), the same as the AEBS
   Autoware benches use. ros_environment.sh points CYCLONEDDS_URI to this file.
 
-  - Loopback only, without multicast: discovery goes to the localhost peer.
+  - It selects the loopback interface for its locators and sends; its
+    receive sockets bind INADDR_ANY (CycloneDDS 0.10.5 ddsi_udp.c:453-456,
+    479-480). Without multicast, discovery goes to the localhost peer.
   - Without multicast, each participant needs its own participant index.
     With the CycloneDDS default (MaxAutoParticipantIndex 9), at most 9
     processes on the host get a participant: a bind at the last index fails

@@ -1,11 +1,12 @@
 // Pure core of the AutowareToSCORE adapter: the frame splitter.
 //
-// The INC-AEBS-010 frame assembler serves its frames on 127.0.0.1:4721 as a
-// byte stream: each frame follows a 4-byte little-endian length prefix that
-// counts the frame bytes. The splitter reads the prefix only to find where a
-// frame ends. It hands each frame on unchanged, together with its prefix, as
-// one sample of at most max_sample_bytes (the 2048-byte sample of the
-// gateway's PreSerializedData<2048>). A frame whose sample would be larger is
+// The INC-AEBS-010 frame assembler serves its frames on port 4721 (the
+// adapter connects to 127.0.0.1:4721) as a byte stream: each frame follows a
+// 4-byte little-endian length prefix that counts the frame bytes. The
+// splitter reads the prefix only to find where a frame ends. It hands each
+// frame on unchanged, together with its prefix, as one sample of at most
+// max_sample_bytes (the 2048-byte sample of the gateway's
+// PreSerializedData<2048>). A frame whose sample would be larger is
 // skipped byte for byte and counted; it is never truncated and never shifts
 // the framing of the frames after it (REQ-MW-015). Reset() is called when the
 // stream connection ends, so a frame torn by the end of a connection is never

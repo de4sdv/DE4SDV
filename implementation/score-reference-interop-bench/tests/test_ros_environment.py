@@ -1,9 +1,11 @@
 """Tests of the one ROS 2 environment of the bench host (adapterAbortConditions).
 
 Every ROS 2 process on the host runs with rmw_cyclonedds_cpp, one fixed
-ROS_DOMAIN_ID and one CYCLONEDDS_URI, whose configuration keeps DDS on the
-loopback interface and sets MaxAutoParticipantIndex to at least the number of
-ROS 2 processes. config/ros_environment.sh gives that environment to shells;
+ROS_DOMAIN_ID and one CYCLONEDDS_URI. Its configuration selects the loopback
+interface for its locators and sends; its receive sockets bind INADDR_ANY
+(CycloneDDS 0.10.5 ddsi_udp.c:453-456, 479-480). It sets
+MaxAutoParticipantIndex to at least the number of ROS 2 processes.
+config/ros_environment.sh gives that environment to shells;
 the Launch Manager configuration carries the same values for the adapter and
 the health proxy node, because the Launch Manager passes a component only the
 variables of its configuration.

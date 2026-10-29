@@ -22,6 +22,7 @@ BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "src"))
 
 import bench_runtime as rt  # noqa: E402
+from de4sdv_score_bench.abort_matrix import EXECUTABLES  # noqa: E402
 from de4sdv_score_bench.subscribe_failure import evaluate_subscribe_failure  # noqa: E402
 
 PROVIDER_SAMPLE_SLOTS = 4
@@ -58,7 +59,7 @@ def main() -> int:
          "--values", "36,72", "--period-ms", "100"],
         out / "provider.log", env=env)
     provider.wait_for(rt.json_event_predicate("offered"), 20.0)
-    binary = bundle / "bin" / "de4sdv_score_adapter"
+    binary = bundle / "bin" / EXECUTABLES["adapter"]
     adapter = rt.BenchProcess("adapter", [str(binary), "--mw-com-config",
                                           str(bundle / "config" / "mw_com_config_adapter.json")],
                               out / "adapter.log", env=rt.adapter_environment(bundle, env))
