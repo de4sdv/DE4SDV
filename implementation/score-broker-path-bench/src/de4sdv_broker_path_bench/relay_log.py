@@ -9,7 +9,7 @@ by (pid, phase).
 
 The evaluators read the relay's phase records as the start and end of each
 subscription phase. For VC-MW-020 the judged start is the later of the phase
-start and the loopback accept in the guest capture (#448); VC-MW-015 takes the
+start and the loopback accept in the guest capture (VC-MW-020); VC-MW-015 takes the
 phase windows from this log alone (a known limit). They also read the
 clock_step and data_loss events. A phase end that the layer caused while the
 ingress stayed connected is a delivery failure of the layer.
@@ -174,7 +174,7 @@ def new_phase_starts(before: list[dict], after: list[dict]) -> list[dict]:
     """The phase_start events of ``after`` whose (pid, phase) key ``before`` does not hold.
 
     set_ivi_clock.sh setup restarts the ingress after the clock setting; a new
-    phase_start must follow (#448 condition 2, review R37). The relay's own
+    phase_start must follow (VC-MW-020 condition 2, review R37). The relay's own
     (pid, phase) keys decide what is new, so no clock reading is needed.
     """
     seen = {(event.get("pid"), event.get("phase")) for event in before if event.get("event") == "phase_start"}

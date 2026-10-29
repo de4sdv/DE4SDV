@@ -111,7 +111,7 @@ def test_outcome_precedence_and_verdict() -> None:
 
 def test_outcome_dependent_failure_is_downgraded() -> None:
     # A FAIL that depends on an inconclusive condition (a capture gap, a bad
-    # clock) does not dominate; it becomes missing evidence (#448 precedence).
+    # clock) does not dominate; it becomes missing evidence (VC-MW-015 precedence).
     result = outcome.CaseResult("VC-MW-015", "run")
     result.add("delivery_evidence", outcome.INCONCLUSIVE, "the guest capture has a gap")
     result.add("completeness", outcome.FAIL, "2 frames missing", depends_on="delivery_evidence")

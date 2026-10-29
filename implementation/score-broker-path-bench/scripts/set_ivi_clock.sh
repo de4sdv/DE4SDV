@@ -51,7 +51,7 @@ setup() {
   _guest "stop de4sdv_ivi_sntp_slew 2>/dev/null; nohup toybox sntp -a -d -r 6 $SNTP_SERVER >/dev/null 2>&1 &" || true
   log "started an SNTP slew (adjust mode, re-query every 64 s); if the image sntp has no slew, size each session from the drift"
   # Restart the ingress so its subscription phase starts after the setting
-  # (#448 condition 2). init ignores `start` for a service that is already
+  # (VC-MW-020 condition 2). init ignores `start` for a service that is already
   # running, so the oneshot ingress must be stopped first; the relay's
   # ingress-start property then starts a fresh ingress, which the relay accepts
   # as a new client and logs as a new phase_start (review R37). The relay's

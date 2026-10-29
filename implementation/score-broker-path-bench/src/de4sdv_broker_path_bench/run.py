@@ -8,7 +8,7 @@ with a result per case; it writes no verdict into any record and makes no
 claim beyond the bounded outcome of each evaluator. The exit code is 0 only
 when every requested case gives a pass.
 
-VC-MW-020 runs one condition per run directory, and #448 makes a pass cover
+VC-MW-020 runs one condition per run directory, and its verification case makes a pass cover
 the four conditions. So the reported VC-MW-020 outcome is the case outcome
 over the conditions given: a fail or an error of one condition is the case's;
 a pass needs all four conditions present and passing; anything else is
@@ -28,7 +28,7 @@ from pathlib import Path
 from .evaluators import EVALUATORS, evaluate_unsubscribed_discard, load_run
 from .outcome import ERROR, FAIL, INCONCLUSIVE, PASS, verdict
 
-#: The four conditions of VC-MW-020 (#448).
+#: The four conditions of VC-MW-020 (middleware_score_verification_evidence.sysml).
 VC020_CONDITIONS = ("hmi_down", "ivi_vm_down", "sdv_core_vm_down", "pair_restart")
 
 
@@ -49,7 +49,7 @@ def _evaluator_digest() -> str:
 
 
 def vc020_case(condition_results: list[dict]) -> dict:
-    """The VC-MW-020 case outcome over its condition runs (#448: a pass covers the four conditions)."""
+    """The VC-MW-020 case outcome over its condition runs (a pass covers the four conditions)."""
     conditions: dict[str, dict] = {}
     for result in condition_results:
         name = result.get("measurements", {}).get("condition", "unnamed")

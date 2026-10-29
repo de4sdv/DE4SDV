@@ -79,13 +79,14 @@ run_manifest_sender_sha256() {
 # --- the IVI frame relay (the relay lane owns these; no defaults). A script
 #     that needs them calls require_relay_inputs and fails fast when they are
 #     unset, so the bench never provisions the wrong subject or reads the wrong
-#     logcat tag (review R10/R23). The real values of #439 are in the README.
+#     logcat tag (review R10/R23). The real values of the IVI frame relay
+#     (implementation/score-reference-interop-bench/ivi-frame-relay) are in the README.
 #     RELAY_LOGCAT_TAG and RELAY_BIN are the relay's init-service name, which is
 #     the model-guard marker, so they are not written into this file. ---
 require_relay_inputs() {
   local missing=0 name
   for name in RELAY_BIN RELAY_RC RELAY_LOGCAT_TAG RELAY_SUBJECT_PACKAGE RELAY_SUBJECT_BUNDLE RELAY_SUBJECT_INSTANCE; do
-    if [ -z "${!name:-}" ]; then echo "MISSING required relay input: $name (see the README for #439's values)"; missing=1; fi
+    if [ -z "${!name:-}" ]; then echo "MISSING required relay input: $name (see the README for the relay's values)"; missing=1; fi
   done
   return $missing
 }

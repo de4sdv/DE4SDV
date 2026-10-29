@@ -23,7 +23,7 @@
 # its pair only when it arrived from the named interface and source (R41). The
 # :4721 probe pins a source port per attempt, which identifies its SYN.
 #
-# Reachability is judged as #448 asks: a capture on the guest-facing interface
+# Reachability is judged as VC-MW-017 asks: a capture on the guest-facing interface
 # AND the counters of the isolation rule. reached = captured and the counter
 # did not take it; dropped = captured and the counter moved; unknown = the send
 # failed or nothing arrived. The pre-netfilter capture over-counts, so the

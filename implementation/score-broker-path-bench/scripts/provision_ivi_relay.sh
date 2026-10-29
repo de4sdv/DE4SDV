@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
 # Provision the IVI frame relay on the IVI VM before the first case (model
 # next action step 5). The relay binary, its init file, its logcat tag and its
-# authz subject come from the relay lane (#439); they are required inputs with
+# authz subject come from the IVI frame relay (implementation/score-reference-interop-bench/ivi-frame-relay);
+# they are required inputs with
 # no defaults, and the script fails fast when any is unset, so it never
 # provisions the wrong subject or pushes nothing (review R6/R10/R23).
 #
 #   provision_ivi_relay.sh install    install the ACLs, the binary and init, reboot, and check
 #   provision_ivi_relay.sh remove     remove what install added, then a reboot (the undo)
 #
-# Required (export before running; see the README for #439's values):
+# Required (export before running; see the README for the relay's values):
 #   RELAY_BIN RELAY_RC RELAY_LOGCAT_TAG
 #   RELAY_SUBJECT_PACKAGE RELAY_SUBJECT_BUNDLE RELAY_SUBJECT_INSTANCE
 #

@@ -14,12 +14,12 @@ Decision authority: Orkun.
 
 | Input | Identity |
 |---|---|
-| DE4SDV main | `1d36b55b` (phase 8 broker path, ADR 0025) |
+| DE4SDV main | `4bcfe628` (phase 8 broker path, ADR 0025, and the phase-10 verification cases) |
 | Phase 8 realization | `middleware_score_physical_software_realization.sysml` @ main, with the relay, GAP-MW-045 to GAP-MW-048 and the next action (steps 1 to 11) |
 | Requirements | REQ-MW-014, REQ-MW-015, REQ-MW-016 (two findings), REQ-MW-019 @ main |
-| Verification cases | #448 at `5d14317c`, branch `model/score-phase-10-broker-path` (VC-MW-015 to VC-MW-020 on the broker path). The evaluators follow this head; rebind when it moves |
+| Verification cases | `middleware_score_verification_evidence.sysml` at main `4bcfe628` (VC-MW-015 to VC-MW-020 on the broker path). The evaluators follow this commit; rebind when the file changes on main |
 | Host half | the S-CORE reference interop bench (`../score-reference-interop-bench`): the adapter, gatewayd, someipd, ASM-MW-021 pins |
-| Relay | #439 at `5df6c360`, branch `feat/score-someip-receiver`, the IVI frame relay (binary `de4sdv_ivi_frame_relay`, its init file, tag `de4sdv_ivi_frame_relay`, subject `de4sdv.ivi_frame_relay`/`IviFrameRelay`/`default`); the relay records the bench parses are unchanged at this head |
+| Relay | the IVI frame relay (`implementation/score-reference-interop-bench/ivi-frame-relay`) at `028467e2`, branch `feat/score-someip-receiver`, not yet on main (binary `de4sdv_ivi_frame_relay`, its init file, tag `de4sdv_ivi_frame_relay`, subject `de4sdv.ivi_frame_relay`/`IviFrameRelay`/`default`); the bench parses its phase_start, phase_end, clock_step, data_loss and gateway_client_lost (exit code 4) records at this commit |
 | Spike facts | design data only (GAP-MW-038, GAP-MW-039, GAP-MW-047, GAP-MW-048); not evidence of record |
 | System 2 VM | GAP-MW-044: `de4sdv-aaos-build`, n2-standard-16, europe-west4, nested virtualization, from the snapshot of 2026-10-14 |
 
@@ -93,7 +93,7 @@ Both VMs sit on the host bridge `cvd-ebr`; each also has a network of its own
    relay binary and init file (the relay sets the ingress port 4731 and host
    from its own init file on boot), then an IVI reboot and the post-boot checks
    (`provision_ivi_relay.sh`). The relay inputs are required, with no defaults;
-   an S1 preflight compares them with #439's `.rc`.
+   an S1 preflight compares them with the relay's `.rc` at `028467e2`.
 7. **Recovery (GAP-MW-048).** The SDV Core VM reboots in place, which keeps
    the launch configuration; death is detected from the logcat "Critical agent
    has died" and from VmHealth. An IVI SD agent or gateway failure needs an IVI
@@ -216,7 +216,7 @@ None of these blocks the first VM session; the operator confirms them by hand.
 - Task: plan and build the INC-MW-011 phase-10 broker-path bench.
 - Owner: de4sdv-integration. Reviewers: de4sdv-vv, de4sdv-architect,
   de4sdv-assurance. Decider: Orkun.
-- Input SHA: DE4SDV main `1d36b55b`.
+- Input SHA: DE4SDV main `4bcfe628`.
 - Status: the scripts, the evaluators and this plan are on the branch; nothing
   executed on the VM. Blockers: the relay lane's binary and subject identity;
   the verification-case slice merged or on the execution head; the CI dispatch of the reference bench

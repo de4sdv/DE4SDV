@@ -105,7 +105,8 @@ not known and the phase gives no pass. A capture gap also gives no pass,
 because a lost frame can be an old one. A captured old frame fails in both
 cases. It compares
 raw clock readings, with no offset correction, as the phase-8 rule and the
-verification case do. Precedence follows #448: only a failure whose evidence
+verification case do. Precedence follows the verification cases (`middleware_score_verification_evidence.sysml`):
+only a failure whose evidence
 does not depend on an inconclusive condition dominates, so a capture gap, a
 second `:4721` client or a failed clock bound turns a completeness failure into
 missing evidence, not a fail. The evaluators never open a socket and never run
@@ -165,13 +166,13 @@ What the scripts record about identity, and what they do not:
 
 The inspection cases VC-MW-018 and VC-MW-021 need no run; they read the
 configurations and the wiring the execution slices author. The verification
-cases are pinned at #448 `5d14317c` (branch `model/score-phase-10-broker-path`).
+cases are pinned at main `4bcfe628` (`middleware_score_verification_evidence.sysml`).
 
 ## Interfaces this bench needs from the other lanes
 
-- **The relay lane** (the IVI frame relay, branch `feat/score-someip-receiver`,
-  #439 at `5df6c360`): these are required inputs with no defaults, and a script
-  fails fast when any is unset.
+- **The IVI frame relay** (`implementation/score-reference-interop-bench/ivi-frame-relay`, branch
+  `feat/score-someip-receiver` at `028467e2`, not yet on main): these are
+  required inputs with no defaults, and a script fails fast when any is unset.
   - binary `RELAY_BIN` = the relay build output on the host (the cross-built
     `de4sdv_ivi_frame_relay` executable that the install pushes to
     `/system/bin/` on the IVI VM); the install checks the host path, not the
@@ -187,12 +188,12 @@ cases are pinned at #448 `5d14317c` (branch `model/score-phase-10-broker-path`).
 
   The binary, the init-service name and the tag are the model-guard marker, so
   this bench keeps them out of its committed non-Markdown files (they are
-  required inputs, named here only). Once #439 is on main the scripts and the
+  required inputs, named here only). Once the relay is on main the scripts and the
   example settings may name them directly; until then the model guard binds to
   the relay's own header and `.rc`. An S1 preflight compares these values with
-  #439's `.rc`.
-- **The verification-case slice** (#448 `5d14317c`, branch
-  `model/score-phase-10-broker-path`): VC-MW-015, VC-MW-016, VC-MW-017 and
+  the relay's `.rc` at `028467e2`.
+- **The verification cases** (`middleware_score_verification_evidence.sysml` at main `4bcfe628`):
+  VC-MW-015, VC-MW-016, VC-MW-017 and
   VC-MW-020 keep their observation point at the IVI loopback and name the
   relay's discard rule. This bench realizes their running side.
 
@@ -269,14 +270,14 @@ passes.
   SOME/IP bridge-port hardening (`host_isolation_firewall.sh`) sits in an
   `nf_tables` bridge input chain, which this development host's kernel does not
   carry, so it is checked only on the VM. It is a recorded design measure, no
-  part of any case's pass condition (#448).
+  part of any case's pass condition (VC-MW-017, VC-MW-020).
 - **The VLAN 2 Data Tunnel capture is retained, not consumed.** `capture_case.sh`
-  records the cleartext Data Tunnel on VLAN 2, the second capture #448 names
+  records the cleartext Data Tunnel on VLAN 2, the second capture VC-MW-020 names
   for the subscription start. The VC-MW-020 evaluator takes the later of the
   relay's phase start and the loopback accept of `received.pcap`; it does not
   yet read the VLAN 2 capture, which stays with the evidence for review. The
   VC-MW-015 evaluator takes its phase windows from the relay log alone; it does
-  not yet apply the capture comparison that #448 also names for it.
+  not yet apply the capture comparison that VC-MW-015 also names for it.
 - **The probe is serialized and long.** `host_isolation_probe.sh` reads the
   drop counter around each of the 244 DDS ports plus 4721, for each interface
   and host address, from both VMs. Each probe is one guest command and two

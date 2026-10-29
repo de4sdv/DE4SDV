@@ -128,7 +128,7 @@ def _is_loopback(address: str) -> bool:
 
 
 def client_check(sport_text: str, dport_text: str, phase: str, adapter: str = ADAPTER_PROCESS) -> dict:
-    """The two steps of the ASM-MW-029 client check (#448 VC-MW-015).
+    """The two steps of the ASM-MW-029 client check (VC-MW-015).
 
     Step 1 (``sport = :4721``): the frame assembler holds exactly one
     connection, from a loopback peer. Step 2 (``dport = :4721``): the client
@@ -347,7 +347,7 @@ def parse_guest_macs(text: str) -> dict[str, dict[str, str | None]]:
 
 
 def host_addresses(text: str, pattern: str = "cvd-*") -> list[str]:
-    """Every IPv4 address of a host interface whose name matches ``pattern`` (#448: cvd-* addresses)."""
+    """Every IPv4 address of a host interface whose name matches ``pattern`` (VC-MW-017: cvd-* addresses)."""
     addresses = []
     for name, found in parse_ip_addr(text).items():
         if fnmatch.fnmatch(name, pattern):
@@ -410,7 +410,7 @@ def _max_participant_index(uri: str | None, root: Path) -> tuple[int | None, str
 
 
 def asm_mw_031(proc_root: str | Path = "/proc", expected: dict | None = None) -> dict:
-    """The ROS 2 environment of every ROS 2 process on the host (#448 VC-MW-017, ASM-MW-031).
+    """The ROS 2 environment of every ROS 2 process on the host (VC-MW-017, ASM-MW-031).
 
     A process is a ROS 2 process when its environment names ROS 2 or its maps
     load a ROS 2 or CycloneDDS library. Each one must run the one environment:

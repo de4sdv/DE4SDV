@@ -8,7 +8,7 @@ errorEvidence gives error, and every other outcome gives inconclusive. The
 vocabulary also holds passBoundedValidation, which the verification cases do
 not use.
 
-Precedence (#448, VC-MW-015): a failure dominates only when its evidence does
+Precedence (VC-MW-015): a failure dominates only when its evidence does
 not depend on an inconclusive condition. A finding may name the code of a
 condition it depends on; when that condition is itself inconclusive in the
 same result, the dependent failure is downgraded to inconclusive. So a

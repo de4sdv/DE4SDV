@@ -3,7 +3,7 @@
 The bench captures UDP 30490 on the host bridge (host-cvd-ebr.pcap). The
 capture is promiscuous, so it also holds the unicast SD messages that the
 bridge forwards between the two VMs. This module reads the SD entries of
-that capture and answers two questions of #448 VC-MW-016: when did a sender
+that capture and answers two questions of VC-MW-016: when did a sender
 other than the host offer the frame service (the spoofed offer from the IVI
 VM), and to which provider does the SDV Core VM's stack subscribe after it.
 In SOME/IP-SD a subscriber sends its SubscribeEventgroup to the SD endpoint

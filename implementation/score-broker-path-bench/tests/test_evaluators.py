@@ -1,9 +1,9 @@
 """Regression tests of the evaluators over synthetic run directories.
 
 Each test builds a run directory of raw artifacts and asserts the outcome the
-verification case of #448 (5d14317c) asks for. The cases marked [R...]/[E...]
+verification case (middleware_score_verification_evidence.sysml at main 4bcfe628) asks for. The cases marked [R...]/[E...]
 reproduce the false-pass and fail/inconclusive-swap findings of the two
-independent reviews of PR #450 at 1392e969; each must now give the right
+independent reviews of this bench at 1392e969; each must now give the right
 outcome. The artifacts are the same kinds the bench captures.
 """
 
@@ -549,7 +549,7 @@ def test_vc020_e4_clock_step_in_phase_is_inconclusive(tmp_path):
 def test_vc020_rb_raw_comparison_flags_an_offset_hidden_violation(tmp_path):
     # Frame stamped 30 ms (host clock) before the guest phase start, guest clock +15 ms ahead.
     # Raw comparison (no offset correction) sees 30 ms > 20 ms -> violation. The PR corrected by
-    # the offset and passed; the rule and #448 compare raw.
+    # the offset and passed; the rule and VC-MW-020 compare raw.
     frame = b.frame(7, T_SUB - 30_000_000)
     records = b.stream_records(4731, [frame], t0=T_SUB + 100_000_000)
     run = _vc020(tmp_path, records, phase_logcat(T_SUB), offset_ns=15_000_000)
@@ -597,7 +597,7 @@ def test_run_cli_reports_each_case(tmp_path):
 
 
 # ------------------------------------------- VC-MW-015/016/020 delta regressions
-# Each is a false pass or false fail the two delta reviews of #450 cited; it is
+# Each is a false pass or false fail the two delta reviews of this bench cited; it is
 # built from real pcap and logcat shapes (builders emit real bytes and lines),
 # not synthesized verdicts, so the judgement is exercised end to end.
 
@@ -878,7 +878,7 @@ def _vc020_condition_run(tmp_path, condition, *, stale=False):
 
 def test_run_cli_one_vc020_condition_is_not_a_case_pass(tmp_path, capsys):
     # R-W / assurance R4e: one condition (one run) passing is not a case pass;
-    # #448: a pass covers the four conditions.
+    # VC-MW-020: a pass covers the four conditions.
     from de4sdv_broker_path_bench import run
     run_dir = _vc020_condition_run(tmp_path, "hmi_down")
     code = run.main([str(run_dir), "--case", "VC-MW-020"])

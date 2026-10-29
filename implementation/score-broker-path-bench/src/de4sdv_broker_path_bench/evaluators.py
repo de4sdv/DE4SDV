@@ -3,11 +3,11 @@
 Each evaluator reads a run directory and returns a CaseResult whose outcome is
 of the middleware evidence vocabulary (outcome.py), mapped to a verdict as
 INC-MW-010 maps it. It verifies one requirement and checks the success
-criteria of the verification case of #448, adding no criterion of its own. It
+criteria of its verification case (middleware_score_verification_evidence.sysml), adding no criterion of its own. It
 reads the independent captures and the relay's log; it never opens a socket
 and never runs on the VM.
 
-Precedence (decision of 2026-10-29, #448 VC-MW-015): only a failure whose
+Precedence (decision of 2026-10-29, VC-MW-015): only a failure whose
 evidence does not depend on an inconclusive condition dominates. A
 clock-dependent or capture-dependent failure is downgraded to inconclusive
 when its condition is inconclusive (outcome.Finding.depends_on).
@@ -193,7 +193,7 @@ def _load_json(run: RunInputs, name: str):
 
 
 def _sd_from_capture(run: RunInputs):
-    """The spoofed SD offer and the provider after it, from the host SD capture (#448, VC-MW-016).
+    """The spoofed SD offer and the provider after it, from the host SD capture (VC-MW-016).
 
     None when there is no SD capture; "ERROR" when it cannot be read.
     """
@@ -269,7 +269,7 @@ def evaluate_source_order(run: RunInputs) -> CaseResult:
     result.measurements["relay_phases"] = len(all_phases)
 
     # The AEBS event window, from the produced frames' timestamps (host clock).
-    # A phase end or a DATA_LOSS matters only inside it (#448, review R32).
+    # A phase end or a DATA_LOSS matters only inside it (VC-MW-015, review R32).
     produced_ts = [facts.frame_timestamp_ns for _frame, facts in produced_facts if facts.frame_timestamp_ns is not None]
     event_lo, event_hi = (min(produced_ts), max(produced_ts)) if produced_ts else (None, None)
 
@@ -355,7 +355,7 @@ def evaluate_source_order(run: RunInputs) -> CaseResult:
 
     # When the guest capture joined mid-stream, frames produced before its
     # first complete frame were delivered but not captured, so they are not
-    # required (#448, review R31).
+    # required (VC-MW-015, review R31).
     received_ts = [facts.frame_timestamp_ns for _frame, facts in received_facts
                    if facts.frame_timestamp_ns is not None]
     capture_floor = (min(received_ts) - PHASE_SLOP_NS) if (received.mid_stream and received_ts) else None
@@ -425,7 +425,7 @@ def evaluate_provenance(run: RunInputs) -> CaseResult:
         result.add("event", INCONCLUSIVE, "the produced frames do not show every stage of the event")
 
     # The SD offer: from the host SD capture where present (the authoritative
-    # source, #448), else a recorded sd_offer.json that must name the provider
+    # source, VC-MW-016), else a recorded sd_offer.json that must name the provider
     # and the offer time, else the GAP-MW-012 residual. An empty or partial
     # record is missing evidence, not a pass (review R34).
     offer_time_ns: int | None = None
@@ -658,7 +658,7 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
     # The judged phases. In the IVI-VM-down condition, the clock is set after
     # the reboot and the ingress is started again; the case judges the phase
     # that starts then, and records the first phase after the reboot as data,
-    # outside the judged scope (#448, review R18/R30).
+    # outside the judged scope (VC-MW-020, review R18/R30).
     judged = list(all_phases)
     if run.condition == "ivi_vm_down" and len(all_phases) >= 2:
         # The out-of-scope phase is the first the relay logged, by log order and
@@ -674,7 +674,7 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
 
     # The judged start of a phase is the later of two times: the relay's phase
     # start and the loopback accept of the ingress (received.pcap) on the
-    # connection that carries the frame (#448, decision on review R33). A later
+    # connection that carries the frame (VC-MW-020, decision on review R33). A later
     # start only makes the check stricter: a relay that claims a start before
     # the ingress connected is judged against the accept; in the normal order
     # (accept, then the relay's log line) the later time is the relay's own.
@@ -740,7 +740,7 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
         larger = max((measurements["start"], measurements["end"]), key=lambda m: abs(m.offset_ns))
         ci_threshold = PHASE_SLOP_NS + abs(larger.offset_ns) + larger.uncertainty_ns
 
-    # Judge each frame against the phase it arrived in, raw (no offset correction, #448 and the rule).
+    # Judge each frame against the phase it arrived in, raw (no offset correction, VC-MW-020 and the rule).
     judged_frames = 0
     seen_phases: set = set()
     violations = 0

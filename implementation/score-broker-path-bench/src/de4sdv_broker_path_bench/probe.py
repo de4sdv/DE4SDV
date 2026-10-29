@@ -7,7 +7,7 @@ NOT reach a host port. The probing runs in scripts/host_isolation_probe.sh
 with standard tools; this module reads what those tools recorded and
 classifies each probe. It never opens a socket.
 
-Reachability is judged as #448 asks: a capture on the guest-facing
+Reachability is judged as VC-MW-017 asks: a capture on the guest-facing
 interface and the counters of the isolation rule (both). A probe is:
 
 - reached   when its marker was captured on the host AND the isolation
@@ -67,7 +67,7 @@ from typing import Any
 DDS_DOMAIN = 91
 DDS_MAX_PARTICIPANT_INDEX = 120
 #: Port 4721, the frame assembler of INC-AEBS-010 (ASM-MW-029). A reachable
-#: 4721 is a finding against ASM-MW-029, not against REQ-MW-016 (#448).
+#: 4721 is a finding against ASM-MW-029, not against REQ-MW-016 (VC-MW-017).
 FRAME_ASSEMBLER_PORT = 4721
 
 SENT = "sent"
@@ -332,7 +332,7 @@ def evaluate_isolation(run_dir: str | Path, *, required_dds_ports: set[int] | No
         verdict.coverage_gaps.append(range_gap)
 
     # Validity gate: without a readable isolation table the probe cannot tell a
-    # drop from a delivery, so it cannot judge reachability (#448, R26).
+    # drop from a delivery, so it cannot judge reachability (VC-MW-017, review R26).
     verdict.table_readable = bool(firewall.get("inet_table_present")) and \
         bool(firewall.get("dds_counters_readable")) and bool(firewall.get("tcp_counters_readable"))
     if not verdict.table_readable:

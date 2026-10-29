@@ -298,7 +298,7 @@ def test_a_receipt_for_a_probe_from_the_guest_loopback_is_not_a_reach(tmp_path):
 
 def test_r25_counter_moved_but_not_captured_is_not_isolated(tmp_path):
     """N-6: the drop counter moved in the probe window, but the marker was never
-    captured. #448 asks for the capture AND the counter, so the probe is not
+    captured. VC-MW-017 asks for the capture AND the counter, so the probe is not
     shown to have arrived; it is a coverage gap, not 'isolated'."""
     attempt = udp_attempt(LAYER_PORT, counter=True)
     run = base(tmp_path, attempts=[attempt], captured_udp=[])  # counter moved, nothing captured
