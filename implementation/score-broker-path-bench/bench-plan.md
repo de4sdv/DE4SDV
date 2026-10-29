@@ -59,12 +59,15 @@ Both VMs sit on the host bridge `cvd-ebr`; each also has a network of its own
    bridge port, matched by its MAC and address. The reachability probe runs
    from both VMs over every interface to every host address, with a positive
    control (`host_isolation_firewall.sh`, `host_isolation_probe.sh`). The
-   probes, the control and the spoofed offer use `de4sdv_probe_send`, built on
-   the guest beside the relay and pushed the same way, so each probe pins its
-   egress device, source address and source port. **The first S1 step, ahead
-   of any case run, is a smoke step:** one probe to a dropped DDS port
-   (exit 0, the marker captured on the host, the counter moved), one control
-   (exit 0, captured and delivered) and one SD offer from source port 30490,
+   probes, the control and the spoofed offer use `de4sdv_probe_send`, built in
+   the AOSP tree and pushed to both guests (`provision_probe_sender.sh`), which
+   records its sha256 in the run manifest, so each probe pins its egress
+   device, source address and source port. **The first S1 step, ahead of any
+   case run, is a smoke step:** one probe to a dropped DDS port (exit 0, the
+   marker captured on the host from the named source address and MAC, the
+   counter moved), one control (exit 0, captured and delivered) and one SD
+   offer from source port 30490 with the core stack's log line about it
+   (`sd_core_processed.json`, which confirms the vsomeip lines on the image),
    plus the sudo'd ASM-MW-031 scan. It confirms the guest tooling and the scan
    on the live guests before the long probe.
 4. **Guest-internal SOME/IP.** The stack configuration marks the frame service
@@ -100,10 +103,13 @@ Both VMs sit on the host bridge `cvd-ebr`; each also has a network of its own
    Core image identity on a successful clean build: the resolved manifest
    digest, the repo status, the `device/google/sdv` diff digest, the build
    fingerprint, the image hashes and the staged overlay files at their
-   destinations. The IVI image, the relay binary and init digests, the DE4SDV
-   SHA, the S-CORE commits and the boot arguments are not yet recorded by a
-   script; the operator records them from the console until the run manifest
-   (next slice) covers them. This is a known limit, not a pass condition.
+   destinations. `provision_probe_sender.sh install` records the probe sender's
+   sha256 (host and both guests) in `run/run-manifest.yaml`, and
+   `capture_case.sh stop` records the capture commands and the IVI boot
+   identity per case run. The IVI image, the relay binary and init digests,
+   the DE4SDV SHA, the S-CORE commits and the boot arguments are not yet
+   recorded by a script; the operator records them from the console until the
+   run manifest covers them. This is a known limit, not a pass condition.
 
 ## Verification cases and where they run
 
@@ -194,14 +200,14 @@ None of these blocks the first VM session; the operator confirms them by hand.
 | Real frame source | Manual (the host runs the real frame assembler, not a synthetic source) |
 | Clock | Scripted (chrony allow, auto_time off, set and slew, two measurements, the ingress restart); the host-step log and the `ping`/`tcpdump` presence checks assume the image carries them |
 | New phase after the clock setting | Scripted and VM-only: `set_ivi_clock.sh setup` asserts a new relay phase_start after the ingress restart and fails otherwise; S1 confirms it on the live IVI VM |
-| Captures | Scripted; the host captures are stopped first and the guest captures last, so the received capture outlives the produced capture (review B1); the kernel drop count is read from the capture tool's exit line, not the pcap |
-| Probe sender | Built on the guest in S1 (`aosp-overlay/probe-sender`), pushed like the relay and recorded with its digest; CI only compiles it and exercises it in a namespace. The S1 smoke step confirms it on the live guests |
-| S1 smoke step (first) | Scripted and VM-only, ahead of any case run: one probe, one control and one SD offer with the built sender, checking the exit codes, the captured egress interface and source port, the counter, and the sudo'd ASM-MW-031 scan |
+| Captures | Scripted; the host captures are stopped first and the guest captures last, so the received capture outlives the produced capture (review B1); the kernel drop count is read from the capture tool's exit line, not the pcap; a run whose IVI boot identity changed inside its window fails at stop; the IVI-VM-down condition uses `capture_case.sh ivi-vm-down`, which starts the captures after the reboot |
+| Probe sender | Scripted (`provision_probe_sender.sh build`, `install`): built in the AOSP tree, pushed to both guests, its sha256 checked on each guest and recorded in the run manifest; the probe and the offer stop when it is missing or differs. The Android.bp flags are first checked by this build in S1; CI only compiles the C source and exercises it in a namespace |
+| S1 smoke step (first) | Scripted and VM-only, ahead of any case run: one probe, one control and one SD offer with the built sender, checking the exit codes, the captured egress interface, source address and MAC, the source port, the counter, the core stack's log line about the offer, and the sudo'd ASM-MW-031 scan |
 | Firewall and probe | Scripted; the bridge-family SOME/IP rule is checked only on the VM (no `nf_tables` bridge family on the build host); the probe is serialized and each UDP probe is at least a second, so a full probe over every DDS port, interface and host address takes tens of minutes. A reduced range is a coverage gap, not a pass; S1 measures the probes per second and sizes the slot (the 0.75 h budget does not fit the full cross product) |
 | ASM-MW-031 scan | Scripted and VM-only: the root `/proc` scan runs under `sudo` from `src/`, keeps its stderr and records the uid; an unreadable process gives holds=null |
 | VLAN 2 Data Tunnel capture | Recorded by `capture_case.sh`, retained for review; the VC-MW-020 judged start is the later of the relay's start and the loopback accept, not this capture |
-| Spoofed SD offer | Scripted (`send_sd_offer.sh`), sent from the SD source port 30490 with the sender so the core stack does not ignore it; the provider after the offer is read from the SD capture, and a record must show the core stack processed the offer |
-| HMI recording | The MONITORING gate is scripted on the app's real line; the MP4 is validated by hand |
+| Spoofed SD offer | Scripted (`send_sd_offer.sh send <provider> <port> <run-dir>`), sent from the SD source port 30490 with the sender so the core stack does not ignore it; the step takes the core's logcat around the offer and writes `sd_core_processed.json` (processed, ignored or unknown, with the matched vsomeip 3.1.37.1 line; S1 confirms the lines on the image); the provider after the offer is read from the SD capture |
+| HMI recording | The MONITORING gate is scripted on the app's real line and time-bounded (the latest frame line at most 2 s older than the IVI clock); the MP4 is validated by hand |
 | 2048-byte boundary | Manual (a 2044-byte frame end to end) |
 | Run manifest | Partial: the core image identity is recorded; the IVI image, the relay and init digests, the DE4SDV SHA, the S-CORE commits and the boot arguments are recorded from the console until the next slice adds the full manifest |
 

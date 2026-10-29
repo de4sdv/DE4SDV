@@ -21,7 +21,8 @@ power state and the recovery steps.
 | IVI relay provisioning (one ACL per subject, broker object policy, relay binary and init, reboot) | `provision_ivi_relay.sh install` | `provision_ivi_relay.sh remove` |
 | Host chrony serves the IVI (`chronyc allow`) | `set_ivi_clock.sh allow` | `set_ivi_clock.sh deny` |
 | IVI VM clock set and slewed; auto_time off | `set_ivi_clock.sh setup` | re-enable `auto_time`, stop the slew (a reboot resets it) |
-| Reachability probe (control listener, counter reads, nc probes) | `host_isolation_probe.sh run` | self-contained; stops its own observers |
+| Probe sender staged in the AOSP tree and pushed to both guests (`/data/local/tmp/de4sdv_probe_send`) | `provision_probe_sender.sh build`, `install` | `provision_probe_sender.sh remove` |
+| Reachability probe (control listener, counter reads, sender probes) | `host_isolation_probe.sh run` | self-contained; stops its own observers |
 | Recording (terminal panes, adb screenrecord) | `record_full_chain.sh` | `record_full_chain.sh stop` |
 | SDV Core VM rebooted in place (recovery) | `recover_core_vm.sh recover` | none needed (in-place reboot) |
 | Everything above | — | `teardown.sh` |
