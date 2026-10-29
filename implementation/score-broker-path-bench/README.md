@@ -52,6 +52,7 @@ scripts/                 VM scripts, each idempotent and with an undo
   teardown.sh            undo everything and write a run-dir session log
 aosp-overlay/core/       the SDV Core image overlay (frame type, mapping, stack config, broker ACL)
 aosp-overlay/ivi-acl/    the relay's subscriber ACL and the broker's object policy
+aosp-overlay/probe-sender/  de4sdv_probe_send.c + Android.bp: the probe/offer sender, built on the guest in S1
 config/run-settings.example.json   the settings the evaluators read
 src/de4sdv_broker_path_bench/       pure evaluators and the host-side readers (hostscan, sd) the VM scripts call
 tests/                   the evaluator and reader unit tests (CI, from real pcap and ss shapes)
@@ -65,7 +66,10 @@ bench-plan.md            the session plan (S1 to S3), VM-hours and cost
    stack configuration, clean and recorded. The spike's images are not reused.
 2. `host_sd_multicast_route.sh add`, then `launch_two_vms.sh up`.
 3. `provision_ivi_relay.sh install`, then `set_ivi_clock.sh setup` and `drift`.
-4. `host_isolation_firewall.sh add`, then `host_isolation_probe.sh run <dir>`.
+4. The S1 smoke step first (one probe, one control and one offer with the built
+   `de4sdv_probe_send`, checking the exit codes, the captured egress interface
+   and source port, the counter, and the sudo'd scan), then
+   `host_isolation_firewall.sh add`, then `host_isolation_probe.sh run <dir>`.
 5. The running cases: `capture_case.sh start <dir>`, verify MONITORING, run the
    009D AEBS event, `capture_case.sh stop <dir>`, then evaluate off the VM. It
    produces the host `:4721` stream, the guest `:4731` stream, the relay log,
@@ -113,8 +117,8 @@ it read and a digest of the evaluator sources.
 | Case | Requirement | What the evaluator checks from raw artifacts |
 |---|---|---|
 | VC-MW-015 | REQ-MW-014 | every frame produced unambiguously inside a subscription phase (beyond the 20 ms clock band) reaches the HMI, in order, inter-arrival below 500 ms; a layer-caused phase end or a DATA_LOSS inside the AEBS event fails; an ingress disconnect in the event, a second `:4721` client, a capture gap or ASM-MW-030 not holding is inconclusive |
-| VC-MW-016 | REQ-MW-015 | each received frame equals its produced frame byte for byte, with its source kind; a received frame the stack never produced fails; after a spoofed SD offer the provider must stay 192.168.98.1 and the frames must keep arriving; an offer record with no provider is inconclusive |
-| VC-MW-017 | REQ-MW-016 | second finding: no host DDS port of the layer is reachable from a guest, judged by a capture on the guest-facing interface plus the drop-rule counter (reached = captured and not dropped; a recorded host-socket receipt or a completed guest TCP connect also counts as reached); a failed, unsent or malformed probe is a coverage gap; a positive control by the same observation; without a readable firewall table the run is inconclusive; a reachable `:4721` is an ASM-MW-029 finding, not a failure; the first finding needs the inspection record |
+| VC-MW-016 | REQ-MW-015 | each received frame equals its produced frame byte for byte, with its source kind; a received frame the stack never produced fails; after a spoofed SD offer the provider must stay 192.168.98.1 and the frames must keep arriving; the spoofed offer must come from the SD source port 30490 and a record must show the core stack processed it, else inconclusive (a stack ignores an SD message from another port); an offer record with no provider is inconclusive |
+| VC-MW-017 | REQ-MW-016 | second finding: no host DDS port of the layer is reachable from a guest, judged by a capture on the guest-facing interface plus the drop-rule counter (reached = captured and not dropped; isolated = captured and dropped, so a counter that moved with nothing captured is a gap, not isolated; a recorded host-socket receipt or a completed guest TCP connect also counts as reached); the probes use the bench sender, which pins the egress device, source address and source port, so a probe leaves on its named interface; coverage is derived from the captured attempts, and each probed (guest, interface, host) pair must cover the full DDS port set plus 4721, else a gap; a failed, unsent or malformed probe is a coverage gap; a positive control by the same observation; without a readable firewall table the run is inconclusive; a reachable `:4721` is an ASM-MW-029 finding, not a failure; the first finding needs the inspection record |
 | VC-MW-020 | REQ-MW-019 | per condition (HMI down, IVI VM down, SDV Core VM down, pair restart): each frame in a new phase was produced no more than the 20 ms margin before the judged phase start (the later of the relay's start and the ingress's loopback accept), compared raw; a frame earlier than that start by more than the offset plus its uncertainty plus 20 ms fails whatever the clock shows; the IVI-VM-down condition judges only the phase after the clock setting; a capture gap in `received.pcap`, or a judged connection that the capture joined after the relay's start with no accept, is inconclusive unless a captured frame fails; needs ASM-MW-030 to hold |
 
 The run directory holds, by convention: `produced.pcap` (host `:4721`),
@@ -173,8 +177,18 @@ and the relay log. No rendered or stylized footage. An edited cut is labeled
 
 ## Known limits
 
-These stay manual or out of scope for the first VM session; none blocks it.
+These stay manual or run only on the VM. The guest tooling and the sudo'd scan
+first run on the live guests in the S1 smoke step (the plan's first S1 step),
+before any case run, so none blocks the first session once that smoke step
+passes.
 
+- **The guest sender and the sudo'd scan first run on the VM.** The probes, the
+  control and the spoofed SD offer use `de4sdv_probe_send`, built on the guest
+  in S1 (the `aosp-overlay/probe-sender` Android.bp) and pushed like the relay;
+  CI only compiles it and exercises it in a namespace. The ASM-MW-031 scan runs
+  under `sudo` from `src/`. Both are confirmed in the S1 smoke step: one probe,
+  one control and one offer, checking the exit codes, the captured egress
+  interface and source port, the counter, and the scan.
 - **Scripted or manual on the VM.** These steps the scripts record but do not
   judge, so the operator confirms them by eye in S1: the image inspection (the
   broker descriptor built, the DE4SDV stack configuration loaded, no SOME/IP
@@ -200,9 +214,27 @@ These stay manual or out of scope for the first VM session; none blocks it.
   not yet apply the capture comparison that #448 also names for it.
 - **The probe is serialized and long.** `host_isolation_probe.sh` reads the
   drop counter around each of the roughly 244 DDS ports, over each interface
-  and host address, from both VMs, so a full probe takes tens of minutes. S1
-  budgets a slot for it; a reduced DDS range shortens a dry run.
-- **ASM-MW-031 needs root over `/proc`.** The host ROS 2 environment scan reads
-  `/proc/<pid>/environ` for every ROS 2 process; a process it cannot read gives
-  inconclusive, so the scan runs as root on the VM. IPv6 reachability is not
-  probed (the DDS sockets bind every address; the IPv4 probe covers them).
+  and host address, from both VMs, so a full probe takes tens of minutes, and
+  each UDP probe is at least one second once it binds the device. A reduced DDS
+  range is a coverage gap, not a pass, so a dry run is inconclusive by design;
+  S1 measures the probes per second and sizes the slot from it. The 0.75 h the
+  plan budgets for the firewall and probe does not fit the full cross product,
+  which S1 schedules from the measured rate.
+- **ASM-MW-031 needs root over `/proc`, and `ss -p` runs without sudo.** The
+  host ROS 2 environment scan reads `/proc/<pid>/environ` for every ROS 2
+  process; a process it cannot read gives inconclusive, so the scan runs as
+  root on the VM (it keeps its stderr and records the uid). `ss -p` runs
+  without sudo, so another user's socket shows no owner and a reached layer
+  port then counts as "other" (FAIL if ASM-MW-031 holds, inconclusive if not;
+  never a false pass). IPv6 reachability is not probed (the DDS sockets bind
+  every address; the IPv4 probe covers them). Per-interface egress is pinned by
+  the sender's `SO_BINDTODEVICE`, not by the host route.
+- **The inspection record is written by hand.** `inspection.json` (the first
+  finding) is recorded by the operator; the evaluator reads only its
+  `no_host_endpoint` field.
+- **A genuine stop versus a cut capture.** VC-MW-015 and VC-MW-016 bound at the
+  end of the received capture: a stream cut mid-connection (no clean close) is
+  read as a guest capture stopped early, so frames produced after it are not
+  required; a cleanly closed stream keeps no ceiling, so a real stop still
+  fails. The S1 capture order (host captures stopped first) makes the received
+  capture outlive the produced capture.
