@@ -40,7 +40,8 @@ def test_test_article_specializes_accepted_configured_member() -> None:
 
 
 def test_no_new_product_feature_in_the_product_line_feature_model() -> None:
-    """CLS-AEBS-010-001: the PLEML feature model carries no visualization feature."""
+    """The framing's out-of-scope item visualizationAsProductFeatureOutOfScope: the PLEML feature model
+    carries no visualization feature."""
     text = _read(PRODUCT_LINE_FEATURE_MODEL)
     assert "AEBS" in text  # existing capability entries remain
     assert "visualization" not in text.lower(), "the visualization must not appear as a product-line feature"
