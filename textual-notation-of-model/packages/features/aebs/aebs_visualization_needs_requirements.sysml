@@ -36,18 +36,21 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
   }
 
   package VisualizationClassification {
+    doc /*
+     * Phase 3 records only the feature-model delta of this increment:
+     * feature candidates and the product-line scope that it defers.
+     * VehicleTargetAEBS stays a common System 1 capability, and this
+     * increment does not change it. A core element is common by default and
+     * gets no record, so this package holds no common-capability record. The
+     * former record CLS-AEBS-010-002 is retired, and its ID is not used
+     * again.
+     */
     part visualizationTestSystemClassification : DeferredProductLineScope {
       doc /*
        * CLS-AEBS-010-001: The AEBS visualization is System 2 engineering and
        * evidence instrumentation. It is not a product feature, not a common
        * capability, and must not enter any System 1 feature configuration or
        * bill of features.
-       */
-    }
-    part aebsCapabilityRemainsCommon : CommonProductLineCapability {
-      doc /*
-       * CLS-AEBS-010-002: VehicleTargetAEBS remains a common System 1
-       * capability; this increment changes nothing about that classification.
        */
     }
   }
