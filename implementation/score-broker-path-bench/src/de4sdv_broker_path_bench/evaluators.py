@@ -130,13 +130,20 @@ def _relay(run: RunInputs) -> tuple[list[dict], list, list[str], bool]:
     return events, all_phases, problems, True
 
 
-def _accept_by_connection(run: RunInputs, port: int) -> dict[int, int]:
+@dataclass(frozen=True)
+class _Accept:
+    accept_ns: int | None  # the completed handshake, else the SYN-ACK or the SYN; None when joined mid-stream
+    first_ns: int | None   # the first packet of the connection in the capture
+
+
+def _accept_by_connection(run: RunInputs, port: int) -> dict[int, _Accept]:
     """The loopback accept of the ingress in received.pcap, per connection index.
 
     The accept is the completed handshake (the client's ACK), else the SYN-ACK
     or the SYN where the ACK is not in the capture; a connection the capture
-    joined mid-stream has none. The indices are those of ``_read_frames``
-    (the order of ``tcp_streams``), so a frame's ``connection`` finds its own.
+    joined mid-stream has none, only its first captured packet. The indices
+    are those of ``_read_frames`` (the order of ``tcp_streams``), so a frame's
+    ``connection`` finds its own.
     """
     path = run.run_dir / "received.pcap"
     if not path.exists():
@@ -145,12 +152,8 @@ def _accept_by_connection(run: RunInputs, port: int) -> dict[int, int]:
         capture = read_pcap(path)
     except PcapError:
         return {}
-    accepts: dict[int, int] = {}
-    for index, stream in enumerate(tcp_streams(datagrams(capture), port)):
-        when = stream.established_ns or stream.synack_ns or stream.syn_ns
-        if when is not None:
-            accepts[index] = when
-    return accepts
+    return {index: _Accept(stream.established_ns or stream.synack_ns or stream.syn_ns, stream.first_ns)
+            for index, stream in enumerate(tcp_streams(datagrams(capture), port))}
 
 
 def _clock(run: RunInputs) -> dict:
@@ -578,6 +581,12 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
     if received.error:
         result.add("capture", ERROR, f"received.pcap is unreadable: {received.error}")
         return result
+    if received.had_gap:
+        # A frame lost in the gap may be one produced before the new
+        # subscription, so the captured frames cannot show a clean phase; a
+        # captured violation still fails.
+        result.add("capture-gap", INCONCLUSIVE, "received.pcap has a capture gap, so a frame produced before the "
+                   "new subscription may have reached the HMI unseen")
 
     # The judged phases. In the IVI-VM-down condition, the clock is set after
     # the reboot and the ingress is started again; the case judges the phase
@@ -601,15 +610,27 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
     accepts = _accept_by_connection(run, run.received_port)
     phase_starts: dict[tuple, dict] = {}
 
-    def judged_start(phase, connection: int) -> int:
-        accept = accepts.get(connection)
-        start = phase.start_realtime_ns if accept is None else max(phase.start_realtime_ns, accept)
+    def judged_start(phase, connection: int) -> tuple[int, bool]:
+        """The judged start, and whether it is known (else the relay's start is only a lower bound)."""
+        relay = phase.start_realtime_ns
+        entry = accepts.get(connection)
+        accept = entry.accept_ns if entry is not None else None
+        if accept is not None:
+            start, known = max(relay, accept), True
+        elif entry is not None and entry.first_ns is not None and entry.first_ns <= relay:
+            # Joined mid-stream, but the capture saw this connection before the
+            # relay's start: the accept is earlier still, so the later time is the relay's.
+            start, known = relay, True
+        else:
+            # Joined mid-stream after the relay's start: the accept is not in the
+            # capture, and the capture may have missed the start of the phase.
+            start, known = relay, False
         phase_starts.setdefault((phase.key, connection), {
             "pid": phase.pid, "phase": phase.number, "connection": connection,
-            "relay_start_ns": phase.start_realtime_ns, "accept_ns": accept,
-            "accept_minus_relay_ns": None if accept is None else accept - phase.start_realtime_ns,
-            "judged_start_ns": start})
-        return start
+            "relay_start_ns": relay, "accept_ns": accept,
+            "accept_minus_relay_ns": None if accept is None else accept - relay,
+            "judged_start_ns": start, "judged_start_known": known})
+        return start, known
 
     # ASM-MW-030: start and end offsets hold; a clock step in a JUDGED phase
     # voids only that phase (review R30).
@@ -651,6 +672,7 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
     seen_phases: set = set()
     violations = 0
     clock_independent = 0
+    unknown_start = 0
     for frame in received.frames:
         facts = _facts(frame)
         if facts is None:
@@ -664,11 +686,15 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
             result.add("timestamp", INCONCLUSIVE, f"a frame in phase {phase.key} has no frame timestamp")
             continue
         judged_frames += 1
-        start = judged_start(phase, frame.connection)
+        start, known = judged_start(phase, frame.connection)
         # Raw comparison: production time (host clock) vs the judged start less
-        # the 20 ms margin.
-        if facts.frame_timestamp_ns < start - PHASE_SLOP_NS:
+        # the 20 ms margin. Where the start is only a lower bound, a frame
+        # earlier than it is still a violation; a later frame is not shown clean.
+        violation = facts.frame_timestamp_ns < start - PHASE_SLOP_NS
+        if violation:
             violations += 1
+        elif not known:
+            unknown_start += 1
         # Clock-independent: earlier than the judged start by more than the
         # offset plus its uncertainty plus 20 ms fails whatever the clock shows (R19).
         if ci_threshold is not None and facts.frame_timestamp_ns < start - ci_threshold:
@@ -678,6 +704,9 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
     result.measurements["phase_starts"] = list(phase_starts.values())
     if judged_frames == 0:
         result.add("frames", INCONCLUSIVE, "no frame with a timestamp arrived in a judged phase")
+    if unknown_start:
+        result.add("phase-start", INCONCLUSIVE, f"{unknown_start} frames are on a connection that received.pcap "
+                   "joined after the relay's phase start, with no loopback accept; their judged start is not known")
     if clock_independent:
         result.add("discard", FAIL, f"{clock_independent} frames were produced earlier than the new subscription by "
                    "more than the clock offset plus its uncertainty plus 20 ms; a clock-independent violation")

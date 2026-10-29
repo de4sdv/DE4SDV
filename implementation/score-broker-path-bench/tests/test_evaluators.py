@@ -577,7 +577,51 @@ def test_vc020_r33_records_both_starts_and_their_difference(tmp_path):
     starts = evaluators.evaluate_unsubscribed_discard(run).measurements["phase_starts"]
     assert starts == [{"pid": 1234, "phase": 1, "connection": 0, "relay_start_ns": T_SUB,
                        "accept_ns": T_SUB + 230_000_000, "accept_minus_relay_ns": 230_000_000,
-                       "judged_start_ns": T_SUB + 230_000_000}]
+                       "judged_start_ns": T_SUB + 230_000_000, "judged_start_known": True}]
+
+
+def _mid_stream(items, cport=50002):
+    """A loopback stream the capture joined mid-stream (no handshake): (delivered_ns, frame) pairs."""
+    seq, records = 77_000, []
+    for delivered_ns, payload in items:
+        data = b.delimited(payload)
+        records.append((delivered_ns, b.tcp_segment("127.0.0.1", "127.0.0.1", 4731, cport, seq, 1,
+                                                    b.PSH | b.ACK, data)))
+        seq += len(data)
+    return records
+
+
+def test_vc020_r33_no_accept_and_first_seen_after_the_relay_start_is_inconclusive(tmp_path):
+    # The capture joined the connection after the relay's start: the accept is
+    # not in the capture, and the capture may have missed the start of the
+    # phase, so a frame that looks fresh is no pass.
+    records = _mid_stream([(T_SUB + 100_000_000, b.frame(40, T_SUB + 10_000_000))])
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB))
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert result.measurements["phase_starts"][0]["judged_start_known"] is False
+    assert result.measurements["phase_starts"][0]["accept_ns"] is None
+
+
+def test_vc020_r33_no_accept_still_fails_a_frame_older_than_the_relay_start(tmp_path):
+    # The judged start is never earlier than the relay's start, so a frame far
+    # older than the relay's start fails without the accept.
+    records = _mid_stream([(T_SUB + 100_000_000, b.frame(41, T_SUB - 300_000_000))])
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB))
+    assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.FAIL
+
+
+def test_vc020_r33_no_accept_but_seen_before_the_relay_start_keeps_it(tmp_path):
+    # A new phase on a connection the capture saw before the relay's start: the
+    # accept is earlier than that first packet, so the later time is the relay's.
+    records = _mid_stream([(T_SUB - 200_000_000, b.frame(42, T_SUB - 250_000_000)),  # before the phase: not judged
+                           (T_SUB + 100_000_000, b.frame(43, T_SUB + 50_000_000))])
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB))
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.outcome == outcome.PASS, result.as_dict()
+    assert result.measurements["phase_starts"] == [
+        {"pid": 1234, "phase": 1, "connection": 0, "relay_start_ns": T_SUB, "accept_ns": None,
+         "accept_minus_relay_ns": None, "judged_start_ns": T_SUB, "judged_start_known": True}]
 
 
 def test_vc020_r33_normal_order_keeps_the_relay_start(tmp_path):
@@ -604,6 +648,27 @@ def test_vc020_e3b_frame_within_the_margin_of_the_relay_start_passes(tmp_path):
     run = _vc020(tmp_path, records, phase_logcat(T_SUB), offset_ns=-10_000_000)
     assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.PASS
 
+
+
+def test_vc020_capture_gap_is_no_pass(tmp_path):
+    # G1: received.pcap lost a segment; the lost frame may be one produced before
+    # the new subscription, so clean captured frames are no pass.
+    # Accept at T_SUB - 70 ms; frames produced 10 ms before their delivery at T_SUB + 30, 130, 230 ms.
+    payloads = [b.frame(i, T_SUB - 80_000_000 + i * 100_000_000) for i in range(1, 4)]
+    records = b.stream_records(4731, payloads, t0=T_SUB - 100_000_000, drop_index=1)
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB))
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert "capture-gap" in {finding.code for finding in result.findings}
+
+
+def test_vc020_capture_gap_still_fails_a_captured_old_frame(tmp_path):
+    # A captured frame produced long before the subscription fails whatever the capture lost.
+    payloads = [b.frame(1, T_SUB - 2_000_000_000)] + [b.frame(i, T_SUB - 80_000_000 + i * 100_000_000)
+                                                     for i in range(2, 4)]
+    records = b.stream_records(4731, payloads, t0=T_SUB - 100_000_000, drop_index=2)
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB))
+    assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.FAIL
 
 def test_vc020_r18_ivi_vm_down_first_phase_is_data(tmp_path):
     # E15/N-4: condition 2 judges only the phase after the clock setting; a dirty
