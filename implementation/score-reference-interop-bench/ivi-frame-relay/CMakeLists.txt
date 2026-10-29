@@ -47,7 +47,7 @@ target_include_directories(de4sdv_ivi_frame_relay_core PUBLIC
 target_compile_options(de4sdv_ivi_frame_relay_core PRIVATE ${DE4SDV_WARNINGS})
 target_link_libraries(de4sdv_ivi_frame_relay_core PUBLIC Threads::Threads)
 
-add_library(de4sdv_ivi_frame_relay_shell STATIC src/shell/relay_shell.cpp)
+add_library(de4sdv_ivi_frame_relay_shell STATIC src/shell/peer_identity.cpp src/shell/relay_shell.cpp)
 target_include_directories(de4sdv_ivi_frame_relay_shell PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src>
 )
@@ -63,6 +63,7 @@ add_executable(de4sdv_ivi_frame_relay_tests
   test/test_frame_fields.cpp
   test/test_gateway_worker.cpp
   test/test_options.cpp
+  test/test_peer_identity.cpp
   test/test_relay_core.cpp
   test/test_relay_shell.cpp
   test/test_retry_schedule.cpp

@@ -144,6 +144,29 @@ TEST(BrokerWrapper, FillAfterTheMessageMustBeZero) {
   EXPECT_EQ(Check(slot), WrapperCheck::kFillNotZero);
 }
 
+TEST(BrokerWrapper, FillNotZeroGivesTheMessageLengthTheOffsetAndTheValue) {
+  Bytes slot = WrapLikeBroker(Bytes(8, 0x01), 64);  // L = 10 after a 1-byte outer varint
+  slot[40] = 0x5A;
+  slot[50] = 0x07;
+  const WrapperParse parse = ParseBrokerWrapper(slot.data(), slot.size());
+  ASSERT_EQ(parse.check, WrapperCheck::kFillNotZero);
+  EXPECT_TRUE(parse.message_known);
+  EXPECT_EQ(parse.message_bytes, 10U);
+  EXPECT_EQ(parse.fill_offset, 40U);  // the first non-zero byte
+  EXPECT_EQ(parse.fill_value, 0x5A);
+}
+
+TEST(BrokerWrapper, TheMessageLengthIsKnownOnceTheOuterVarintIsRead) {
+  Bytes slot = WrapLikeBroker(Bytes(8, 0x01), 32);
+  slot[1] = 0x12;
+  const WrapperParse wrong_tag = ParseBrokerWrapper(slot.data(), slot.size());
+  EXPECT_EQ(wrong_tag.check, WrapperCheck::kTagNotBytesField1);
+  EXPECT_TRUE(wrong_tag.message_known);
+  EXPECT_EQ(wrong_tag.message_bytes, 10U);
+  const Bytes truncated{0x80};
+  EXPECT_FALSE(ParseBrokerWrapper(truncated.data(), truncated.size()).message_known);
+}
+
 TEST(BrokerWrapper, ShiftedLengthsThatAgreeStillLeavePayloadBytesInTheFill) {
   // Outer and inner length both 4 too small: the message ends inside the
   // payload, and the rest of the payload is in the fill.

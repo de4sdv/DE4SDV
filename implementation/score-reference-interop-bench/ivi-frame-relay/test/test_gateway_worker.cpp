@@ -35,7 +35,8 @@ using de4sdv::ivi_frame_relay::test::kSecond;
 using de4sdv::ivi_frame_relay::test::kSlotBytes;
 using de4sdv::ivi_frame_relay::test::ManualClock;
 
-const GatewayResult kNoPublication{5, "No publication service unit found"};
+// The status of a refused subscribe in the feasibility runs (no ACL, or no publication).
+const GatewayResult kNoPublication{13, "Status(-8, EX_SERVICE_SPECIFIC): '13: No publication service unit found'"};
 
 WorkerConfig Config() {
   return WorkerConfig{SubjectIdentity{"de4sdv.ivi_frame_relay", "IviFrameRelay", "default"},
@@ -128,8 +129,8 @@ TEST(GatewayWorker, FailedSubscribesCarryTheirStatusAndFollowTheStartSchedule) {
     EXPECT_EQ(failed[index].at.monotonic_ns - h.start, static_cast<std::int64_t>(index) * kSecond) << index;
   }
   EXPECT_EQ(failed[31].at.monotonic_ns - h.start, 40 * kSecond);
-  EXPECT_EQ(failed[0].status.code, 5);
-  EXPECT_EQ(failed[0].status.text, "No publication service unit found");
+  EXPECT_EQ(failed[0].status.code, 13);
+  EXPECT_EQ(failed[0].status.text, kNoPublication.text);
   EXPECT_EQ(failed[0].attempt, 1U);
   EXPECT_STREQ(failed[29].rule, "start");
   EXPECT_STREQ(failed[30].rule, "start_after_diagnostic");
@@ -205,6 +206,33 @@ TEST(GatewayWorker, DataLossIsAGapAndTheSubscriptionGoesOn) {
   EXPECT_TRUE(h.worker.subscribed());
 }
 
+TEST(GatewayWorker, DataLossAfterAReadStallIsASignOfLifeAndTheFreshSlotsAreRead) {
+  Harness h;
+  h.RunFor(1 * kMs);
+  h.client.QueueSlot(FrameSlot(1, 1000));
+  h.RunFor(10 * kMs);
+  // The worker cannot read for 3.3 s (a slow call, or the VM paused); the
+  // queue overflows: the next read gives DATA_LOSS, then fresh slots.
+  h.clock.Advance(3300 * kMs);
+  h.client.QueueDataLoss();
+  h.client.QueueSlot(FrameSlot(40, 4000));
+  h.client.QueueSlot(FrameSlot(41, 4100));
+  h.RunFor(50 * kMs);
+  std::vector<WorkerEventKind> kinds;
+  for (const WorkerEvent& event : h.sink.events) {
+    if (event.kind == WorkerEventKind::kMessage || event.kind == WorkerEventKind::kDataLoss ||
+        event.kind == WorkerEventKind::kSubscriptionEnded) {
+      kinds.push_back(event.kind);
+    }
+  }
+  EXPECT_EQ(kinds, (std::vector<WorkerEventKind>{WorkerEventKind::kMessage, WorkerEventKind::kDataLoss,
+                                                 WorkerEventKind::kMessage, WorkerEventKind::kMessage}));
+  EXPECT_TRUE(h.worker.subscribed());
+  // A DATA_LOSS also restarts the 3 s: no end 2.9 s after it, without messages.
+  h.RunFor(2900 * kMs);
+  EXPECT_TRUE(h.Of(WorkerEventKind::kSubscriptionEnded).empty());
+}
+
 TEST(GatewayWorker, ReadFailureIsHandedOnAndTheSubscriptionGoesOn) {
   Harness h;
   h.RunFor(1 * kMs);
@@ -269,7 +297,8 @@ TEST(GatewayWorker, PublicationDestroyedEndsItAndRetriesEvery100MsUntilTheNewPub
   ASSERT_EQ(failed.size(), 21U);  // 0, 100, ..., 2000 ms after it
   for (std::size_t index = 0; index < failed.size(); ++index) {
     EXPECT_EQ(failed[index].at.monotonic_ns - destroyed, static_cast<std::int64_t>(index) * 100 * kMs) << index;
-    EXPECT_EQ(failed[index].status.text, "No publication service unit found");
+    EXPECT_EQ(failed[index].status.code, kNoPublication.code);
+    EXPECT_EQ(failed[index].status.text, kNoPublication.text);
     EXPECT_STREQ(failed[index].rule, "publication_destroyed_first_5_s");
   }
   h.client.RestorePublication();

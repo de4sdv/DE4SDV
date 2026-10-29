@@ -1,29 +1,33 @@
 // Pure core of the DE4SDV IVI frame relay: when the gateway worker tries
-// again (iviFrameRelay of the phase-8 model, owner decision of 2026-10-29).
+// again.
 //
-// The relay keeps one subscription for its lifetime, with or without a
-// client, and it holds at most one subscription at a time: break before make,
-// because the feasibility runs did not test whether a second subscription
-// adds a stream. A subscription ends on PublicationDestroyed, on Disconnected
-// of the client, or when no message comes for 3 s. The 3 s are above the
-// longest pause of a healthy source: the adapter's reconnect delay of at most
-// 2 s plus one frame period. Then the relay subscribes again:
-// - after PublicationDestroyed: at once, then every 100 ms for the first 5 s,
-//   then every second;
-// - after the 3 s timeout: at once, then every second. After three
-//   subscriptions in a row that brought no message, it waits 5 s before each
-//   attempt;
-// - after Disconnected: once the client exists again, at once, then every
-//   second.
-// Until the first subscription of the process succeeds, the relay tries
-// every second. If none succeeds within 30 s of its start, the relay core
-// reports a likely fault of the ACL or of the mapping, and from then on the
-// relay tries every 10 s.
-// The relay's own choice, not a value of the model: a failed creation of the
-// gateway client is tried again every second, and every 10 s once the
-// failures have lasted 30 s, so each wait is bounded.
-// A period runs from the start of one attempt to the start of the next. An
-// attempt that took longer than its period is followed at once.
+// The rules of the model (iviFrameRelay, owner decision of 2026-10-29):
+// - the relay keeps one subscription for its lifetime, with or without a
+//   client, and holds at most one at a time: break before make, because the
+//   feasibility runs did not test whether a second subscription adds a
+//   stream;
+// - after PublicationDestroyed it subscribes again: every 100 ms for the
+//   first 5 s, then every second;
+// - when no message comes for 3 s it subscribes again. The 3 s are above the
+//   longest pause of a healthy source: the adapter's reconnect delay of at
+//   most 2 s plus one frame period. After three subscriptions in a row that
+//   brought no message, it waits 5 s between them;
+// - if no subscription succeeds within 30 s of its start, the relay core
+//   reports a likely fault of the ACL or of the mapping, and from then on
+//   the relay tries every 10 s;
+// - on Disconnected it creates the gateway client again, with a bounded
+//   retry.
+// The relay's reading, not a value of the model:
+// - the first attempt after each end comes at once;
+// - until the first subscription of the process succeeds, an attempt comes
+//   every second;
+// - the wait of 5 s applies after the ends by the timeout only, so a
+//   PublicationDestroyed keeps its 100 ms;
+// - the bounded retry of the client: at once, then every second, and every
+//   10 s once the failures have lasted 30 s, so each wait is bounded and the
+//   relay never gives up;
+// - a period runs from the start of one attempt to the start of the next,
+//   and an attempt that took longer than its period is followed at once.
 
 #ifndef DE4SDV_IVI_FRAME_RELAY_RETRY_SCHEDULE_HPP
 #define DE4SDV_IVI_FRAME_RELAY_RETRY_SCHEDULE_HPP
@@ -39,12 +43,14 @@ constexpr std::int64_t kNanosecondsPerSecond = 1'000'000'000;
 constexpr std::int64_t kSilenceTimeoutNs = 3 * kNanosecondsPerSecond;
 constexpr std::int64_t kDestroyedRetryPeriodNs = 100 * kNanosecondsPerMillisecond;
 constexpr std::int64_t kDestroyedFastWindowNs = 5 * kNanosecondsPerSecond;
+// "Then every second". Its use before the first subscription and for the
+// client is the relay's reading, not a value of the model.
 constexpr std::int64_t kRetryPeriodNs = 1 * kNanosecondsPerSecond;
 constexpr std::uint64_t kSilentSubscriptionsBeforeBackOff = 3;
 constexpr std::int64_t kSilentBackOffNs = 5 * kNanosecondsPerSecond;
 constexpr std::int64_t kStartDiagnosticNs = 30 * kNanosecondsPerSecond;
 constexpr std::int64_t kSlowRetryPeriodNs = 10 * kNanosecondsPerSecond;
-// The relay's own choice for the creation of the gateway client.
+// The bounded retry of the client: the relay's reading, not a value of the model.
 constexpr std::int64_t kClientFastRetryWindowNs = 30 * kNanosecondsPerSecond;
 
 enum class SubscriptionEnd : std::uint8_t {

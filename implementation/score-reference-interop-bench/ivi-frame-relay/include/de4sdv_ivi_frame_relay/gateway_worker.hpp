@@ -22,7 +22,10 @@
 // - it creates the client and subscribes by name with
 //   ASDVGATEWAY_SUBSCRIBER_OPTIONS_FLAG_NONE, one subscription at a time;
 // - while subscribed it reads every slot and hands it on unparsed; a
-//   DATA_LOSS status is a gap (GAP-MW-037), and its buffer is not used;
+//   DATA_LOSS status is a gap (GAP-MW-037), not the end of a phase, and its
+//   buffer is not used. The relay's reading, not a value of the model: a
+//   DATA_LOSS also counts as a sign of life for the 3 s timer, because an
+//   overflow shows that messages came, and the next read follows at once;
 // - on PublicationDestroyed of the current subscription it ends the
 //   subscription, unsubscribes and subscribes again;
 // - on Disconnected of the current client it ends the subscription, deletes
@@ -50,7 +53,7 @@
 
 namespace de4sdv::ivi_frame_relay {
 
-// The relay's own choices, not values of the model.
+// The relay's reading, not a value of the model.
 constexpr std::int64_t kReadPollPeriodNs = 20 * kNanosecondsPerMillisecond;
 constexpr std::int64_t kGatewayCallStallNs = 10 * kNanosecondsPerSecond;
 constexpr std::size_t kMaxReadSlots = 64;

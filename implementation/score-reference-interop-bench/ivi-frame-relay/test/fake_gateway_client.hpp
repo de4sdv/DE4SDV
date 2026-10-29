@@ -345,7 +345,9 @@ class FakeGatewayClient final : public GatewayClient {
       return subscribe_failure_;
     }
     if (!publication_available_) {
-      return GatewayResult{5, "No publication service unit found"};
+      // The status that the feasibility runs recorded for a missing
+      // publication and for a subject without an ACL.
+      return GatewayResult{13, "Status(-8, EX_SERVICE_SPECIFIC): '13: No publication service unit found'"};
     }
     if (publication_id_ == 0 || !publication_kept_) {
       publication_id_ = ++publications_;

@@ -216,6 +216,11 @@ TEST(RelayShell, ServesTheFramesUnchangedToTheOneClientAndRefusesASecond) {
   const int second = r.Client();
   EXPECT_TRUE(ClosedByPeer(second));
   ASSERT_TRUE(r.log.WaitFor("client_refused"));
+  // Both lines name this test process as the peer.
+  const std::string pid = "\"peer_pid\":" + std::to_string(::getpid());
+  EXPECT_NE(r.log.Last("client_connected").find(pid), std::string::npos) << r.log.Last("client_connected");
+  EXPECT_NE(r.log.Last("client_refused").find(pid), std::string::npos) << r.log.Last("client_refused");
+  EXPECT_NE(r.log.Last("client_connected").find("\"peer_uid\":" + std::to_string(::getuid())), std::string::npos);
   const ShellResult result = r.Stop();
   EXPECT_TRUE(result.worker_joined);
   EXPECT_EQ(r.shell->counters().frames_delivered, 3U);

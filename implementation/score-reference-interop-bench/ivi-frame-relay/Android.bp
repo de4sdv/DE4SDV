@@ -21,6 +21,7 @@ cc_binary {
         "src/core/options.cpp",
         "src/core/relay_core.cpp",
         "src/core/retry_schedule.cpp",
+        "src/shell/peer_identity.cpp",
         "src/shell/relay_shell.cpp",
         "src/aosp/sdv_gateway_client.cpp",
         "src/aosp/relay_main.cpp",

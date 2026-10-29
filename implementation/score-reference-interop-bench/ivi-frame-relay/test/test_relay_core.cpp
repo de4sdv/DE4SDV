@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <utility>
 #include <vector>
@@ -20,12 +21,14 @@ namespace {
 using de4sdv::ivi_frame_relay::Clock;
 using de4sdv::ivi_frame_relay::DropReason;
 using de4sdv::ivi_frame_relay::EventLog;
+using de4sdv::ivi_frame_relay::ForwardResult;
 using de4sdv::ivi_frame_relay::FrameSink;
 using de4sdv::ivi_frame_relay::GatewayCallMonitor;
 using de4sdv::ivi_frame_relay::GatewayNotificationKind;
 using de4sdv::ivi_frame_relay::GatewayResult;
 using de4sdv::ivi_frame_relay::kDropReasonCount;
 using de4sdv::ivi_frame_relay::LogRecord;
+using de4sdv::ivi_frame_relay::PeerIdentity;
 using de4sdv::ivi_frame_relay::PhaseStartDiscardPolicy;
 using de4sdv::ivi_frame_relay::PropertySetter;
 using de4sdv::ivi_frame_relay::RelayConfig;
@@ -46,15 +49,19 @@ using de4sdv::ivi_frame_relay::test::WrapLikeBroker;
 
 class RecordingSink final : public FrameSink {
  public:
-  bool Forward(const std::uint8_t* payload, std::size_t size) override {
+  ForwardResult Forward(const std::uint8_t* payload, std::size_t size) override {
     if (fail) {
-      return false;
+      return ForwardResult::kFailed;
+    }
+    if (stop) {
+      return ForwardResult::kStopped;
     }
     written.emplace_back(payload, payload + size);
-    return true;
+    return ForwardResult::kWritten;
   }
   std::vector<Bytes> written;
   bool fail{false};
+  bool stop{false};
 };
 
 class RecordingLog final : public EventLog {
@@ -261,6 +268,38 @@ TEST(RelayCore, EachMalformedSlotIsDroppedWithItsOwnReason) {
   EXPECT_TRUE(Has(h.log.Last("frame"), "\"verdict\":\"wrapper_fill_not_zero\""));
 }
 
+TEST(RelayCore, AFillDropNamesTheMessageLengthTheOffsetAndTheValue) {
+  Harness h;
+  h.Subscribe();
+  h.Connect();
+  Bytes slot = FrameSlot(1, h.now.realtime_ns);
+  const std::size_t length = slot[0];  // a short frame: a 1-byte outer varint
+  slot[1 + length + 20] = 0x33;
+  h.Slot(slot);
+  const std::string line = h.log.Last("frame");
+  EXPECT_TRUE(Has(line, "\"verdict\":\"wrapper_fill_not_zero\""));
+  EXPECT_TRUE(Has(line, "\"message_bytes\":" + std::to_string(length)));
+  EXPECT_TRUE(Has(line, "\"fill_offset\":" + std::to_string(1 + length + 20)));
+  EXPECT_TRUE(Has(line, "\"fill_value\":51"));
+}
+
+TEST(RelayCore, ExtremeFrameTimestampsAreLoggedWithoutOverflow) {
+  Harness h;
+  const std::int64_t lowest = std::numeric_limits<std::int64_t>::min();
+  const std::int64_t highest = std::numeric_limits<std::int64_t>::max();
+  h.Slot(FrameSlot(1, lowest));  // outside a phase: not_subscribed, fields logged
+  EXPECT_TRUE(Has(h.log.Last("frame"), "\"frame_timestamp_ns\":-9223372036854775808"));
+  EXPECT_FALSE(Has(h.log.Last("frame"), "receipt_minus_frame_ns"));
+  h.Subscribe();
+  h.Connect();
+  h.Slot(FrameSlot(2, lowest));  // in a phase: field_not_positive
+  EXPECT_EQ(h.Drops(DropReason::kFieldNotPositive), 1U);
+  EXPECT_FALSE(Has(h.log.Last("frame"), "receipt_minus_frame_ns"));
+  h.Slot(FrameSlot(3, highest));  // in a phase, positive and newer than the start: served
+  EXPECT_EQ(h.core.counters().frames_delivered, 1U);
+  EXPECT_TRUE(Has(h.log.Last("frame"), "\"receipt_minus_frame_ns\":-"));
+}
+
 TEST(RelayCore, PayloadChecksComeAfterTheWrapper) {
   Harness h;
   h.Subscribe();
@@ -415,6 +454,70 @@ TEST(RelayCore, AFailedWriteDropsTheFrameAndEndsTheClient) {
   EXPECT_TRUE(h.core.in_phase());
 }
 
+TEST(RelayCore, AWriteStallCloseTriggersTheIngressAgainUntilTheNextClient) {
+  RelayConfig config;
+  config.ingress_start_property = "de4sdv.aebs.ingress.start";
+  Harness h{config};
+  h.core.OnListening(h.now);
+  h.Subscribe();
+  h.Connect();
+  const std::uint64_t triggers = h.core.counters().ingress_triggers;
+  h.sink.fail = true;
+  h.Frame(1, 1 * kMs);
+  EXPECT_FALSE(h.core.client_connected());
+  // The relay closed the stream, so the ingress exits: the relay starts it again.
+  EXPECT_EQ(h.core.counters().ingress_triggers, triggers + 1);
+  EXPECT_TRUE(Has(h.log.Last("ingress_trigger"), "\"reason\":\"relay_closed_the_client\""));
+  h.Advance(1 * kSecond);
+  h.core.OnTick(h.now);
+  EXPECT_EQ(h.core.counters().ingress_triggers, triggers + 2);
+  h.sink.fail = false;
+  h.Connect();
+  h.Advance(5 * kSecond);
+  h.core.OnTick(h.now);
+  EXPECT_EQ(h.core.counters().ingress_triggers, triggers + 2);
+}
+
+TEST(RelayCore, AStopDuringABlockedWriteEndsThePhaseAsAStop) {
+  RelayConfig config;
+  config.ingress_start_property = "de4sdv.aebs.ingress.start";
+  Harness h{config};
+  h.core.OnListening(h.now);
+  h.Subscribe();
+  h.Connect();
+  const std::uint64_t triggers = h.core.counters().ingress_triggers;
+  h.sink.stop = true;
+  h.Frame(1, 1 * kMs);
+  EXPECT_EQ(h.Drops(DropReason::kRelayStop), 1U);
+  EXPECT_EQ(h.Drops(DropReason::kClientWriteFailed), 0U);
+  EXPECT_TRUE(Has(h.log.Last("phase_end"), "\"cause\":\"relay_stop\""));
+  EXPECT_EQ(h.core.counters().ingress_triggers, triggers);  // no new start at a stop
+}
+
+TEST(RelayCore, TheClientLinesNameThePeerProcess) {
+  Harness h;
+  PeerIdentity peer;
+  peer.port = 40001;
+  peer.uid_known = true;
+  peer.uid = 1000;
+  peer.pid_known = true;
+  peer.pid = 4242;
+  peer.source = "proc_net_tcp";
+  ASSERT_TRUE(h.core.OnClientAccepted(h.now, peer));
+  const std::string connected = h.log.Last("client_connected");
+  EXPECT_TRUE(Has(connected, "\"peer_pid\":4242"));
+  EXPECT_TRUE(Has(connected, "\"peer_uid\":1000"));
+  EXPECT_TRUE(Has(connected, "\"peer_port\":40001"));
+  EXPECT_TRUE(Has(connected, "\"peer_source\":\"proc_net_tcp\""));
+  PeerIdentity unknown;
+  unknown.port = 40002;
+  EXPECT_FALSE(h.core.OnClientAccepted(h.now, unknown));
+  const std::string refused = h.log.Last("client_refused");
+  EXPECT_TRUE(Has(refused, "\"peer_port\":40002"));
+  EXPECT_TRUE(Has(refused, "\"peer_pid\":-1"));
+  EXPECT_TRUE(Has(refused, "\"peer_source\":\"none\""));
+}
+
 TEST(RelayCore, StopEndsThePhase) {
   Harness h;
   h.Subscribe();
@@ -497,7 +600,7 @@ TEST(RelayCore, StartDiagnosticNamesTheAclOrTheMappingOnceAfterThirtySeconds) {
   h.core.OnWorkerEvent(h.Event(WorkerEventKind::kClientCreate));
   for (int second = 0; second < 30; ++second) {
     WorkerEvent failed = h.Event(WorkerEventKind::kSubscribeFailed);
-    failed.status = GatewayResult{5, "No publication service unit found"};
+    failed.status = GatewayResult{13, "Status(-8, EX_SERVICE_SPECIFIC): '13: No publication service unit found'"};
     failed.attempt = static_cast<std::uint64_t>(second) + 1U;
     h.core.OnWorkerEvent(failed);
     h.Advance(1 * kSecond - 1 * kMs);
@@ -509,7 +612,8 @@ TEST(RelayCore, StartDiagnosticNamesTheAclOrTheMappingOnceAfterThirtySeconds) {
   ASSERT_EQ(h.log.Count("subscription_start_diagnostic"), 1U);
   const std::string line = h.log.Last("subscription_start_diagnostic");
   EXPECT_TRUE(Has(line, "\"likely_fault\":\"acl_or_mapping\""));
-  EXPECT_TRUE(Has(line, "\"status_text\":\"No publication service unit found\""));
+  EXPECT_TRUE(Has(line, "\"status_code\":13"));
+  EXPECT_TRUE(Has(line, "No publication service unit found"));
   EXPECT_TRUE(Has(line, "\"subscribe_failures\":30"));
   EXPECT_TRUE(Has(line, "\"retry_period_ns\":10000000000"));
   h.Advance(30 * kSecond);

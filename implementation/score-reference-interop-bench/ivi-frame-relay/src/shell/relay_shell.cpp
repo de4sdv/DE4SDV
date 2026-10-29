@@ -1,5 +1,7 @@
 #include "shell/relay_shell.hpp"
 
+#include <pthread.h>
+
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -21,6 +23,8 @@
 #include <android/log.h>
 #include <sys/system_properties.h>
 #endif
+
+#include "shell/peer_identity.hpp"
 
 namespace de4sdv::ivi_frame_relay {
 
@@ -51,6 +55,16 @@ int PollTimeoutMs(std::int64_t wait_ns) {
 }
 
 }  // namespace
+
+BlockStopSignals::BlockStopSignals() {
+  sigset_t stop{};
+  sigemptyset(&stop);
+  sigaddset(&stop, SIGTERM);
+  sigaddset(&stop, SIGINT);
+  pthread_sigmask(SIG_BLOCK, &stop, &previous_);
+}
+
+BlockStopSignals::~BlockStopSignals() { pthread_sigmask(SIG_SETMASK, &previous_, nullptr); }
 
 Clock RealClock::Now() {
   Clock best{};
@@ -252,10 +266,11 @@ void RelayShell::WorkerMain() {
   worker_done_.store(true);  // the last access to the shell from this thread
 }
 
-bool RelayShell::Forward(const std::uint8_t* payload, std::size_t size) {
+ForwardResult RelayShell::Forward(const std::uint8_t* payload, std::size_t size) {
   if (client_fd_ < 0) {
-    return false;
+    return ForwardResult::kFailed;
   }
+  bool stopped = false;
   const std::int64_t deadline = ClockNs(CLOCK_MONOTONIC) + config_.client_write_timeout_ns;
   std::size_t written = 0;
   while (written < size) {
@@ -268,7 +283,11 @@ bool RelayShell::Forward(const std::uint8_t* payload, std::size_t size) {
       // A stop request ends the wait: init's gentle_kill gives 200 ms
       // between SIGTERM and SIGKILL, and the write timeout is longer.
       const std::int64_t left = deadline - ClockNs(CLOCK_MONOTONIC);
-      if (left <= 0 || (stop_requested_ != nullptr && (*stop_requested_)())) {
+      if (stop_requested_ != nullptr && (*stop_requested_)()) {
+        stopped = true;
+        break;
+      }
+      if (left <= 0) {
         break;
       }
       pollfd writable{client_fd_, POLLOUT, 0};
@@ -279,10 +298,10 @@ bool RelayShell::Forward(const std::uint8_t* payload, std::size_t size) {
     break;
   }
   if (written == size) {
-    return true;
+    return ForwardResult::kWritten;
   }
   CloseFd(client_fd_);
-  return false;
+  return stopped ? ForwardResult::kStopped : ForwardResult::kFailed;
 }
 
 void RelayShell::DrainMailbox() {
@@ -298,7 +317,8 @@ void RelayShell::Accept() {
   }
   // One client only: the core refuses a second one, logs it, and the shell
   // closes it. A refused client is not served and starts no phase.
-  if (!core_.OnClientAccepted(clock_.Now())) {
+  const PeerIdentity peer = LookUpLoopbackPeer(fd, config_.peer_lookup_budget_ns);
+  if (!core_.OnClientAccepted(clock_.Now(), peer)) {
     ::close(fd);
     return;
   }
@@ -384,7 +404,10 @@ ShellResult RelayShell::Run(const std::function<bool()>& stop_requested) {
   }
   core_.OnListening(clock_.Now());
   worker_.Start();
-  worker_thread_ = std::thread{[this] { WorkerMain(); }};
+  {
+    const BlockStopSignals blocked;  // the worker inherits the blocked mask
+    worker_thread_ = std::thread{[this] { WorkerMain(); }};
+  }
 
   std::int64_t next_status_ns = clock_.Now().monotonic_ns + config_.status_period_ns;
   while (!stop_requested()) {

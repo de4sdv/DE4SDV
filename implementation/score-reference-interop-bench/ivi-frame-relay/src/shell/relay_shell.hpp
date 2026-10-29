@@ -9,7 +9,8 @@
 // loopback server and the ingress connection do not depend on it. The worker
 // hands its events to the main thread through a bounded mailbox; when the
 // mailbox is full, the worker waits for room in slices of 20 ms, and the
-// queue of the publication holds the messages meanwhile. Every wait is a
+// queue of the publication holds the messages meanwhile. The sizes and the
+// waits of the shell are the relay's reading, not values of the model. Every wait is a
 // poll() on a pipe with a timeout of CLOCK_MONOTONIC, so a step of the
 // realtime clock does not change it.
 //
@@ -17,14 +18,16 @@
 // at most 150 ms for it to unsubscribe and delete the client: init's
 // gentle_kill gives 200 ms between SIGTERM and SIGKILL. A worker that is
 // still inside a gateway call then is left behind: the shell logs
-// gateway_worker_not_joined, and the caller must end the process without
-// destroying the shell.
+// gateway_worker_not_joined, and the caller ends the process without
+// destroying the shell and without unsubscribing.
 //
 // The shell builds on Linux and on Android. Only the AOSP build has the
 // gateway client of AOSP; the tests run the shell with a fake client.
 
 #ifndef DE4SDV_IVI_FRAME_RELAY_RELAY_SHELL_HPP
 #define DE4SDV_IVI_FRAME_RELAY_RELAY_SHELL_HPP
+
+#include <signal.h>
 
 #include <atomic>
 #include <cstddef>
@@ -45,6 +48,20 @@
 #include "de4sdv_ivi_frame_relay/relay_core.hpp"
 
 namespace de4sdv::ivi_frame_relay {
+
+// Blocks SIGTERM and SIGINT in the calling thread while it lives, so that the
+// threads it creates (the worker, the binder pool) never take the stop
+// signals: only the main thread handles them.
+class BlockStopSignals final {
+ public:
+  BlockStopSignals();
+  ~BlockStopSignals();
+  BlockStopSignals(const BlockStopSignals&) = delete;
+  BlockStopSignals& operator=(const BlockStopSignals&) = delete;
+
+ private:
+  sigset_t previous_{};
+};
 
 // CLOCK_REALTIME read between two reads of CLOCK_MONOTONIC; the reading with
 // the shortest window, so that a preemption between the reads does not look
@@ -131,6 +148,8 @@ struct ShellConfig {
   std::int64_t status_period_ns{10 * kNanosecondsPerSecond};
   std::int64_t client_write_timeout_ns{500 * kNanosecondsPerMillisecond};
   std::int64_t stop_join_timeout_ns{150 * kNanosecondsPerMillisecond};
+  // The time budget of the /proc scan that finds the peer of a client.
+  std::int64_t peer_lookup_budget_ns{50 * kNanosecondsPerMillisecond};
   std::vector<std::string> announce_properties;
   std::size_t mailbox_capacity{1024};
 };
@@ -162,7 +181,7 @@ class RelayShell final : private FrameSink {
   bool worker_done() const noexcept { return worker_done_.load(); }
 
  private:
-  bool Forward(const std::uint8_t* payload, std::size_t size) override;
+  ForwardResult Forward(const std::uint8_t* payload, std::size_t size) override;
   void WorkerMain();
   void Turn(std::int64_t status_deadline_ns);
   void DrainMailbox();

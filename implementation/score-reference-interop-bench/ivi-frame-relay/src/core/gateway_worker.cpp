@@ -371,7 +371,10 @@ std::int64_t GatewayWorker::StepRead(const Clock& now, bool data_available) {
       event.publication = publication_;
       event.status = std::move(read.status);
       sink_.Post(std::move(event));
-      // Read on at once after one DATA_LOSS; after a second in a row, wait.
+      // The queue overflowed, so messages came: a sign of life for the 3 s
+      // timer, and the fresh messages behind it are read at once. After a
+      // second DATA_LOSS in a row, the next read waits the poll period.
+      last_message_ns_ = current.monotonic_ns;
       next_read_ns_ = last_read_data_loss_ ? current.monotonic_ns + kReadPollPeriodNs : current.monotonic_ns;
     } else if (read.outcome == ReadOutcome::kFailed) {
       WorkerEvent event;

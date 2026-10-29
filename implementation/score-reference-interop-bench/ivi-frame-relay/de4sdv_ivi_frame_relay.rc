@@ -14,17 +14,22 @@
 #
 # The ingress is oneshot: it exits when its connect fails or its stream
 # closes. This file sets only the port of its frame server and no ingress
-# trigger. At each of its starts, after its loopback server listens, the
-# relay sets the host (which de4sdv_aebs_ingress.rc also takes as a start),
-# then de4sdv.aebs.ingress.start to 0 and 1. Until its first client
-# connects, it sets 0 and 1 again every 1 s, at most 10 times, because an old
-# ingress can still run or wait for its reap; after the first client it never
-# starts the ingress again. No option sets the discard rule: its margin is
-# fixed at 20 ms.
+# trigger. The ingress defaults its frame-server host to 10.250.0.3
+# (ingress/main.cpp:144 of the visualization bench), so at each of its
+# starts, after its loopback server listens, the relay sets the host to
+# 127.0.0.1 (--announce-property below). Setting the host also starts the
+# ingress (de4sdv_aebs_ingress.rc:9-10). Then the relay sets
+# de4sdv.aebs.ingress.start to 0 and 1. Until its first client connects, it
+# sets 0 and 1 again every 1 s, at most 10 times, because an old ingress can
+# still run or wait for its reap; after the first client it never starts the
+# ingress again, unless the relay itself closed the ingress stream after a
+# write stall. No option sets the discard rule: its margin is fixed at 20 ms.
 #
 # --log-frames gives a line per served frame (every dropped frame gives its
 # line anyway). gentle_kill: init's stop sends SIGTERM first, so the relay
-# unsubscribes and logs its final status before it exits.
+# unsubscribes and logs its final status before it exits, unless its worker
+# is inside a gateway call; then the relay logs gateway_worker_not_joined and
+# ends without unsubscribing.
 service de4sdv_ivi_frame_relay /system/bin/de4sdv_ivi_frame_relay --status-period-s 10 --log-frames --announce-property de4sdv.aebs.frame_server.host=127.0.0.1 --ingress-start-property de4sdv.aebs.ingress.start
     class late_start
     gentle_kill

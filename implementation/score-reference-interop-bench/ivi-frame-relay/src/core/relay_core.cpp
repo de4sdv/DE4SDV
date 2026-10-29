@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <limits>
+#include <optional>
 #include <string>
 
 #include "de4sdv_ivi_frame_relay/broker_wrapper.hpp"
@@ -11,6 +12,16 @@ namespace de4sdv::ivi_frame_relay {
 namespace {
 
 constexpr const char* kSubscriberFlagName = "ASDVGATEWAY_SUBSCRIBER_OPTIONS_FLAG_NONE";
+
+// a - b, or nothing when it does not fit in 64 bits: a frame may carry any
+// frame_timestamp_ns, also INT64_MIN.
+std::optional<std::int64_t> Difference(std::int64_t a, std::int64_t b) noexcept {
+  std::int64_t result = 0;
+  if (__builtin_sub_overflow(a, b, &result)) {
+    return std::nullopt;
+  }
+  return result;
+}
 
 DropReason WrapperDrop(WrapperCheck check) noexcept {
   switch (check) {
@@ -75,6 +86,8 @@ const char* ToText(DropReason reason) noexcept {
       return "copy_in_phase";
     case DropReason::kClientWriteFailed:
       return "client_write_failed";
+    case DropReason::kRelayStop:
+      return "relay_stop";
   }
   return "unknown";
 }
@@ -129,6 +142,7 @@ void RelayCore::UpdatePhase(const Clock& now, const char* cause, bool layer_caus
     phase_start_realtime_ns_ = std::max(subscribed_since_realtime_ns_, client_since_realtime_ns_);
     phase_clock_steps_ = 0;
     phase_served_ = 0;
+    phase_receipt_known_ = false;
     ++counters_.phases_started;
     policy_.OnPhaseStart(phase_start_realtime_ns_);
     log_.Log(now, LogRecord{"phase_start"}
@@ -154,7 +168,7 @@ void RelayCore::UpdatePhase(const Clock& now, const char* cause, bool layer_caus
         .Unsigned("subscription", subscription_)
         .Unsigned("frames_served", phase_served_)
         .Unsigned("clock_steps_in_phase", phase_clock_steps_);
-    if (phase_served_ > 0U) {
+    if (phase_receipt_known_) {
       record.Signed("receipt_minus_frame_min_ns", phase_receipt_min_ns_)
           .Signed("receipt_minus_frame_max_ns", phase_receipt_max_ns_);
     }
@@ -269,20 +283,55 @@ std::int64_t RelayCore::NextDeadline() const noexcept {
   return deadline;
 }
 
-bool RelayCore::OnClientAccepted(const Clock& now) {
+namespace {
+
+LogRecord& Peer(LogRecord& record, const PeerIdentity& peer) {
+  return record.Unsigned("peer_port", peer.port)
+      .Signed("peer_pid", peer.pid_known ? peer.pid : -1)
+      .Signed("peer_uid", peer.uid_known ? peer.uid : -1)
+      .Text("peer_source", peer.source);
+}
+
+}  // namespace
+
+bool RelayCore::OnClientAccepted(const Clock& now, const PeerIdentity& peer) {
   ObserveClock(now);
   if (client_connected_) {
     ++counters_.clients_refused;
-    log_.Log(now, LogRecord{"client_refused"}.Text("reason", "a client is connected"));
+    LogRecord record{"client_refused"};
+    record.Text("reason", "a client is connected");
+    log_.Log(now, Peer(record, peer));
     return false;
   }
   client_connected_ = true;
   client_since_realtime_ns_ = now.realtime_ns;
   first_client_seen_ = true;  // from now on, no ingress trigger in this process
   ++counters_.clients_accepted;
-  log_.Log(now, LogRecord{"client_connected"}.Bool("subscribed", subscribed_));
+  LogRecord record{"client_connected"};
+  record.Bool("subscribed", subscribed_);
+  log_.Log(now, Peer(record, peer));
   UpdatePhase(now, "client_connected", false);
   return true;
+}
+
+void RelayCore::RearmIngressTrigger(const Clock& now) {
+  if (!listening_) {
+    return;
+  }
+  first_client_seen_ = false;
+  ingress_trigger_gave_up_ = false;
+  ingress_retriggers_ = 0;
+  TriggerIngress(now, "relay_closed_the_client");
+}
+
+void RelayCore::LoseClient(const WorkerEvent& event, const char* reason, const char* cause) {
+  if (!client_connected_) {
+    return;
+  }
+  client_connected_ = false;
+  ++counters_.clients_lost;
+  log_.Log(event.at, LogRecord{"client_lost"}.Text("reason", reason));
+  UpdatePhase(event.at, cause, false);
 }
 
 void RelayCore::OnClientDisconnected(const Clock& now) {
@@ -459,33 +508,40 @@ void RelayCore::OnWorkerEvent(const WorkerEvent& event) {
 }
 
 void RelayCore::LogFrame(const WorkerEvent& event, const char* verdict, std::size_t payload_bytes,
-                         const FrameFields* fields) {
+                         const FrameFields* fields, const WrapperParse* wrapper) {
   LogRecord record{"frame"};
   record.Text("verdict", verdict)
       .Unsigned("subscription", event.subscription)
       .Unsigned("slot_bytes", event.slot.size())
       .Unsigned("payload_bytes", payload_bytes);
+  if (wrapper != nullptr && wrapper->message_known) {
+    record.Unsigned("message_bytes", wrapper->message_bytes);
+  }
+  if (wrapper != nullptr && wrapper->check == WrapperCheck::kFillNotZero) {
+    record.Unsigned("fill_offset", wrapper->fill_offset).Unsigned("fill_value", wrapper->fill_value);
+  }
   if (fields != nullptr) {
-    record.Unsigned("sequence", fields->sequence)
-        .Signed("frame_timestamp_ns", fields->frame_timestamp_ns)
-        .Signed("receipt_minus_frame_ns", event.at.realtime_ns - fields->frame_timestamp_ns);
+    record.Unsigned("sequence", fields->sequence).Signed("frame_timestamp_ns", fields->frame_timestamp_ns);
+    if (const auto receipt_minus_frame = Difference(event.at.realtime_ns, fields->frame_timestamp_ns)) {
+      record.Signed("receipt_minus_frame_ns", *receipt_minus_frame);
+    }
   }
   log_.Log(event.at, record);
 }
 
 void RelayCore::Drop(const WorkerEvent& event, DropReason reason, std::size_t payload_bytes,
-                     const FrameFields* fields) {
+                     const FrameFields* fields, const WrapperParse* wrapper) {
   ++counters_.drops.at(static_cast<std::size_t>(reason));
   // Every drop is logged with its reason, at most at the message rate;
   // --log-frames adds only the line of each served frame.
-  LogFrame(event, ToText(reason), payload_bytes, fields);
+  LogFrame(event, ToText(reason), payload_bytes, fields, wrapper);
 }
 
 void RelayCore::OnMessage(const WorkerEvent& event) {
   ++counters_.messages_read;
   const WrapperParse wrapper = ParseBrokerWrapper(event.slot.data(), event.slot.size());
   if (wrapper.check != WrapperCheck::kOk) {
-    Drop(event, WrapperDrop(wrapper.check), 0, nullptr);
+    Drop(event, WrapperDrop(wrapper.check), 0, nullptr, &wrapper);
     return;
   }
   const std::uint8_t* payload = event.slot.data() + wrapper.payload_offset;
@@ -527,23 +583,28 @@ void RelayCore::OnMessage(const WorkerEvent& event) {
       Drop(event, DropReason::kCopyInPhase, size, &fields);
       return;
   }
-  if (!sink_.Forward(payload, size)) {
-    Drop(event, DropReason::kClientWriteFailed, size, &fields);
-    if (client_connected_) {
-      client_connected_ = false;
-      ++counters_.clients_lost;
-      log_.Log(event.at, LogRecord{"client_lost"}.Text("reason", "write failed"));
-      UpdatePhase(event.at, "client_write_failed", false);
-    }
-    return;
+  switch (sink_.Forward(payload, size)) {
+    case ForwardResult::kWritten:
+      break;
+    case ForwardResult::kFailed:
+      Drop(event, DropReason::kClientWriteFailed, size, &fields);
+      LoseClient(event, "write failed", "client_write_failed");
+      RearmIngressTrigger(event.at);
+      return;
+    case ForwardResult::kStopped:
+      Drop(event, DropReason::kRelayStop, size, &fields);
+      LoseClient(event, "relay stop", "relay_stop");
+      return;
   }
   ++counters_.frames_delivered;
-  const std::int64_t receipt_minus_frame = event.at.realtime_ns - fields.frame_timestamp_ns;
-  if (phase_served_ == 0U || receipt_minus_frame < phase_receipt_min_ns_) {
-    phase_receipt_min_ns_ = receipt_minus_frame;
-  }
-  if (phase_served_ == 0U || receipt_minus_frame > phase_receipt_max_ns_) {
-    phase_receipt_max_ns_ = receipt_minus_frame;
+  if (const auto receipt_minus_frame = Difference(event.at.realtime_ns, fields.frame_timestamp_ns)) {
+    if (!phase_receipt_known_ || *receipt_minus_frame < phase_receipt_min_ns_) {
+      phase_receipt_min_ns_ = *receipt_minus_frame;
+    }
+    if (!phase_receipt_known_ || *receipt_minus_frame > phase_receipt_max_ns_) {
+      phase_receipt_max_ns_ = *receipt_minus_frame;
+    }
+    phase_receipt_known_ = true;
   }
   ++phase_served_;
   if (config_.log_frames || phase_served_ <= kFirstFramesLoggedPerPhase) {
@@ -564,7 +625,7 @@ LogRecord RelayCore::Status(const char* event) const {
       .Unsigned("clock_steps", c.clock_steps);
   if (in_phase_) {
     record.Unsigned("frames_served_in_phase", phase_served_).Unsigned("clock_steps_in_phase", phase_clock_steps_);
-    if (phase_served_ > 0U) {
+    if (phase_receipt_known_) {
       record.Signed("receipt_minus_frame_min_ns", phase_receipt_min_ns_)
           .Signed("receipt_minus_frame_max_ns", phase_receipt_max_ns_);
     }

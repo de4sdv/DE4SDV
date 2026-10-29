@@ -14,19 +14,26 @@
 // Data Tunnel carries the whole slot, and readAvailableMessages gives the
 // relay slots of messageSizeBytes each.
 //
-// The parse is strict (owner decision of 2026-10-29). A slot has a fixed
-// size, so the size that remains after the outer varint is the message that
-// the varint delimits, and the broker's zero fill follows it:
-// - the outer varint is a valid varint32 in its shortest form, and L fits in
-//   the slot after it;
-// - exactly one field follows: field 1 of wire type 2, tag 0x0A;
+// The parse is strict (owner decision of 2026-10-29). The model says that
+// the outer varint must equal the size that remains, that exactly one field
+// follows, field 1 of wire type 2 (0x0A) whose length equals the rest, and
+// that no other byte is there. A slot of the publication has a fixed size, so
+// the relay reads that rule for a slot as follows. This is the relay's
+// reading, not a value of the model, until the model states it:
+// - the outer varint is a valid varint32 in its shortest form; it gives the
+//   length L of the message that follows, and the message must fit in the
+//   slot;
+// - the message holds exactly one field: field 1 of wire type 2, tag 0x0A;
 // - the length of that field, also a shortest varint32, equals the rest of
 //   the message: no other byte follows the field in the message, and the
 //   field does not run past it;
-// - no other byte is in the slot: every byte after the message is zero.
+// - every byte of the slot after the message is zero, as the broker writes
+//   it.
 // Anything else is malformed. The relay drops the slot with the reason of
-// the first check that fails. Only then does the relay check the payload's
-// own length prefix (frame_fields.hpp).
+// the first check that fails. A fill drop logs L, the offset of the first
+// byte that is not zero and its value, because no run has yet recorded the
+// bytes of a slot after its message in the IVI VM. Only then does the relay
+// check the payload's own length prefix (frame_fields.hpp).
 
 #ifndef DE4SDV_IVI_FRAME_RELAY_BROKER_WRAPPER_HPP
 #define DE4SDV_IVI_FRAME_RELAY_BROKER_WRAPPER_HPP
@@ -56,9 +63,14 @@ const char* ToText(WrapperCheck check) noexcept;
 
 struct WrapperParse {
   WrapperCheck check{WrapperCheck::kOk};
-  std::size_t message_bytes{0};   // L
+  // L, once the outer varint is read; also on a later failure, for the drop line.
+  bool message_known{false};
+  std::size_t message_bytes{0};
   std::size_t payload_offset{0};  // from the start of the slot
   std::size_t payload_bytes{0};   // n
+  // kFillNotZero: the first byte after the message that is not zero.
+  std::size_t fill_offset{0};
+  std::uint8_t fill_value{0};
 };
 
 WrapperParse ParseBrokerWrapper(const std::uint8_t* slot, std::size_t slot_bytes) noexcept;

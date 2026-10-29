@@ -5,7 +5,8 @@
 // default, unit de4sdv-score-aebs-signal-frame. Phase 10 sets the mapping,
 // so an option can follow it without a new build. The relay's own subject
 // for initComms, which its ACL names, defaults to de4sdv.ivi_frame_relay,
-// bundle IviFrameRelay, instance default. A name longer than the C API holds
+// bundle IviFrameRelay, instance default (the relay's reading, not a value
+// of the model). A name longer than the C API holds
 // is refused, so the relay never subscribes to a truncated name.
 //
 // No option sets the loopback server (127.0.0.1:4731), the subscriber flag

@@ -65,12 +65,16 @@
 // core repeats the trigger every 1 s, at most 10 times, and logs
 // ingress_trigger_gave_up 1 s after the last try. After the first client,
 // the core never triggers the ingress again in this process: an ingress that
-// exits by itself or is stopped on purpose stays down. Each try gives one
-// log line.
+// exits by itself or is stopped on purpose stays down. One case differs, the
+// relay's reading, not a value of the model: when the relay itself closes the
+// ingress stream after a write stall, the ingress exits because of the relay,
+// so the trigger starts again as after a start of the relay. Each try gives
+// one log line.
 //
 // Gateway calls: the core reports a call of the worker that has run for 10 s
 // (gateway_call_stalled) and its return (gateway_call_returned), from the
-// GatewayCallMonitor. It never waits for the worker.
+// GatewayCallMonitor; the 10 s are the relay's reading, not a value of the
+// model. It never waits for the worker.
 
 #ifndef DE4SDV_IVI_FRAME_RELAY_RELAY_CORE_HPP
 #define DE4SDV_IVI_FRAME_RELAY_RELAY_CORE_HPP
@@ -80,6 +84,7 @@
 #include <cstdint>
 #include <string>
 
+#include "de4sdv_ivi_frame_relay/broker_wrapper.hpp"
 #include "de4sdv_ivi_frame_relay/discard_policy.hpp"
 #include "de4sdv_ivi_frame_relay/event_log.hpp"
 #include "de4sdv_ivi_frame_relay/frame_fields.hpp"
@@ -108,13 +113,31 @@ constexpr std::uint64_t kIngressRetriggerLimit = 10;
 // A repeated read failure gives at most one log line per second.
 constexpr std::int64_t kRepeatedLogPeriodNs = 1 * kNanosecondsPerSecond;
 
+enum class ForwardResult : std::uint8_t {
+  kWritten,
+  kFailed,   // the write failed or stalled past its timeout; the shell closed the client
+  kStopped,  // a stop request ended a blocked write; the shell closed the client
+};
+
 // The loopback client of the HMI ingress, implemented by the shell.
 class FrameSink {
  public:
   virtual ~FrameSink() = default;
-  // Writes the whole payload; false when the write failed and the shell
-  // closed the client.
-  virtual bool Forward(const std::uint8_t* payload, std::size_t size) = 0;
+  // Writes the whole payload or closes the client.
+  virtual ForwardResult Forward(const std::uint8_t* payload, std::size_t size) = 0;
+};
+
+// The process at the other end of a loopback connection, as far as the
+// shell can tell. SO_PEERCRED gives no credentials on a TCP socket, so the
+// shell finds the client's socket in /proc/net/tcp (its uid and inode) and
+// the process that holds that inode in /proc/<pid>/fd.
+struct PeerIdentity {
+  std::uint16_t port{0};  // the client's port on 127.0.0.1
+  bool uid_known{false};
+  std::int64_t uid{-1};
+  bool pid_known{false};
+  std::int64_t pid{-1};
+  const char* source{"none"};  // "proc_net_tcp", or "none"
 };
 
 // Sets a system property, implemented by the shell: on Android with
@@ -144,9 +167,10 @@ enum class DropReason : std::uint8_t {
   kOlderThanPhase,
   kCopyInPhase,
   kClientWriteFailed,
+  kRelayStop,  // a stop request ended the write of this frame
 };
 
-constexpr std::size_t kDropReasonCount = 18;
+constexpr std::size_t kDropReasonCount = 19;
 
 const char* ToText(DropReason reason) noexcept;
 
@@ -191,8 +215,9 @@ class RelayCore final {
   void OnListening(const Clock& now);
   void OnWorkerEvent(const WorkerEvent& event);
   // A loopback client connected. false: another client is connected, so the
-  // shell closes the new one; it is not served and starts no phase.
-  bool OnClientAccepted(const Clock& now);
+  // shell closes the new one; it is not served and starts no phase. Both
+  // lines name the peer process.
+  bool OnClientAccepted(const Clock& now, const PeerIdentity& peer = PeerIdentity{});
   void OnClientDisconnected(const Clock& now);
   void OnTick(const Clock& now);
   // Reads the offset of the two clocks; every event calls it.
@@ -211,11 +236,17 @@ class RelayCore final {
  private:
   void UpdatePhase(const Clock& now, const char* cause, bool layer_caused);
   void OnMessage(const WorkerEvent& event);
-  void Drop(const WorkerEvent& event, DropReason reason, std::size_t payload_bytes, const FrameFields* fields);
-  void LogFrame(const WorkerEvent& event, const char* verdict, std::size_t payload_bytes, const FrameFields* fields);
+  void Drop(const WorkerEvent& event, DropReason reason, std::size_t payload_bytes, const FrameFields* fields,
+            const WrapperParse* wrapper = nullptr);
+  void LogFrame(const WorkerEvent& event, const char* verdict, std::size_t payload_bytes, const FrameFields* fields,
+                const WrapperParse* wrapper = nullptr);
   void LogStatus(LogRecord& record, const GatewayResult& status) const;
   bool IngressTriggerDue() const noexcept;
   void TriggerIngress(const Clock& now, const char* reason);
+  // The relay itself closed the ingress stream, so the ingress exits: the
+  // trigger starts again as after a start of the relay.
+  void RearmIngressTrigger(const Clock& now);
+  void LoseClient(const WorkerEvent& event, const char* reason, const char* cause);
   void CheckStartDiagnostic(const Clock& now);
   void CheckGatewayCalls(const Clock& now);
 
@@ -245,6 +276,7 @@ class RelayCore final {
   std::int64_t phase_start_realtime_ns_{0};
   std::uint64_t phase_clock_steps_{0};
   std::uint64_t phase_served_{0};
+  bool phase_receipt_known_{false};
   std::int64_t phase_receipt_min_ns_{0};
   std::int64_t phase_receipt_max_ns_{0};
 

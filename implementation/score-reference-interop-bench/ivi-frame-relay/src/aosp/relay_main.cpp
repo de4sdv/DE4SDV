@@ -3,17 +3,22 @@
 // It parses the options, starts the AOSP gateway client and runs the shell.
 // Log lines are JSON objects in liblog with the tag de4sdv_ivi_frame_relay.
 // SIGTERM or SIGINT stop the relay: it ends the phase, unsubscribes,
-// deletes the client, writes a final status line and exits 0. A refused
-// option, among them any option that names a margin or a bound, stops the
-// relay at start with code 2.
+// deletes the client, writes a final status line and exits 0, unless the
+// worker is inside a gateway call; then the relay logs
+// gateway_worker_not_joined and ends without unsubscribing. Only the main
+// thread takes the stop signals: the binder pool and the worker thread start
+// with them blocked. A refused option, among them any option that names a
+// margin or a bound, stops the relay at start with code 2.
 
 #include <signal.h>
 #include <unistd.h>
 
+#include <atomic>
 #include <csignal>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -24,6 +29,7 @@
 
 namespace {
 
+using de4sdv::ivi_frame_relay::BlockStopSignals;
 using de4sdv::ivi_frame_relay::LineLog;
 using de4sdv::ivi_frame_relay::LogRecord;
 using de4sdv::ivi_frame_relay::ParseOptions;
@@ -41,9 +47,11 @@ using de4sdv::ivi_frame_relay::WorkerConfig;
 constexpr int kExitUsage = 2;
 constexpr int kExitListenFailed = 3;
 
-volatile std::sig_atomic_t g_stop_requested = 0;
+// A lock-free atomic: safe to set in the handler and to read in the loop.
+std::atomic<int> g_stop_requested{0};
+static_assert(std::atomic<int>::is_always_lock_free, "the stop flag must be lock-free");
 
-void OnStopSignal(int) { g_stop_requested = 1; }
+void OnStopSignal(int) { g_stop_requested.store(1); }
 
 }  // namespace
 
@@ -71,12 +79,16 @@ int main(int argc, char** argv) {
   std::signal(SIGPIPE, SIG_IGN);
 
   SystemProperties properties{log};
-  SdvGatewayClient client;  // starts the binder thread pool for the callbacks
+  std::unique_ptr<SdvGatewayClient> client;
+  {
+    const BlockStopSignals blocked;  // the binder pool inherits the blocked mask
+    client = std::make_unique<SdvGatewayClient>();  // starts the binder thread pool for the callbacks
+  }
   ShellConfig shell_config;
   shell_config.status_period_ns = options.status_period_ns;
   shell_config.client_write_timeout_ns = options.client_write_timeout_ns;
   shell_config.announce_properties = options.announce_properties;
-  RelayShell shell{shell_config, options.relay, WorkerConfig{options.subject, options.publication}, client, log,
+  RelayShell shell{shell_config, options.relay, WorkerConfig{options.subject, options.publication}, *client, log,
                    properties, clock};
   std::string error;
   if (!shell.Open(&error)) {
@@ -87,7 +99,7 @@ int main(int argc, char** argv) {
   const auto started = clock.Now();
   log.Log(started, StartRecord(options, shell.policy_name(), static_cast<std::int64_t>(::getpid()))
                        .Signed("realtime_minus_monotonic_ns", started.realtime_ns - started.monotonic_ns));
-  const ShellResult result = shell.Run([] { return g_stop_requested != 0; });
+  const ShellResult result = shell.Run([] { return g_stop_requested.load() != 0; });
   log.Log(clock.Now(), LogRecord{"exit"}.Signed("code", result.exit_code).Bool("worker_joined", result.worker_joined));
   if (!result.worker_joined) {
     // The worker is still inside a gateway call and uses the shell: end the

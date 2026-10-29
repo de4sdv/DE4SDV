@@ -38,6 +38,13 @@ WrapperParse Failure(WrapperCheck check) noexcept {
   return parse;
 }
 
+WrapperParse Failure(WrapperCheck check, std::size_t message_bytes) noexcept {
+  WrapperParse parse = Failure(check);
+  parse.message_known = true;
+  parse.message_bytes = message_bytes;
+  return parse;
+}
+
 }  // namespace
 
 const char* ToText(WrapperCheck check) noexcept {
@@ -71,33 +78,37 @@ WrapperParse ParseBrokerWrapper(const std::uint8_t* slot, std::size_t slot_bytes
     return Failure(WrapperCheck::kOuterVarintInvalid);
   }
   if (message_bytes > slot_bytes - position) {
-    return Failure(WrapperCheck::kOuterLengthExceedsSlot);
+    return Failure(WrapperCheck::kOuterLengthExceedsSlot, message_bytes);
   }
   if (message_bytes == 0U) {
-    return Failure(WrapperCheck::kFieldMissing);
+    return Failure(WrapperCheck::kFieldMissing, message_bytes);
   }
   const std::size_t message_end = position + message_bytes;
   if (slot[position] != kWrapperBytesFieldTag) {
-    return Failure(WrapperCheck::kTagNotBytesField1);
+    return Failure(WrapperCheck::kTagNotBytesField1, message_bytes);
   }
   ++position;
   std::uint32_t payload_bytes = 0;
   if (!ReadShortestVarint32(slot, message_end, position, payload_bytes)) {
-    return Failure(WrapperCheck::kInnerVarintInvalid);
+    return Failure(WrapperCheck::kInnerVarintInvalid, message_bytes);
   }
   const std::size_t rest = message_end - position;
   if (payload_bytes > rest) {
-    return Failure(WrapperCheck::kFieldExceedsMessage);
+    return Failure(WrapperCheck::kFieldExceedsMessage, message_bytes);
   }
   if (payload_bytes < rest) {
-    return Failure(WrapperCheck::kBytesAfterField);
+    return Failure(WrapperCheck::kBytesAfterField, message_bytes);
   }
   for (std::size_t index = message_end; index < slot_bytes; ++index) {
     if (slot[index] != 0U) {
-      return Failure(WrapperCheck::kFillNotZero);
+      WrapperParse fill = Failure(WrapperCheck::kFillNotZero, message_bytes);
+      fill.fill_offset = index;
+      fill.fill_value = slot[index];
+      return fill;
     }
   }
   WrapperParse parse;
+  parse.message_known = true;
   parse.message_bytes = message_bytes;
   parse.payload_offset = position;
   parse.payload_bytes = payload_bytes;
