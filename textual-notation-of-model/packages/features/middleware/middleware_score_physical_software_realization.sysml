@@ -2053,7 +2053,6 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * not draw the host/guest boundary.
      */
     expose scoreTwoDomainPhysicalSystem::integrationLayer;
-    expose scoreTwoDomainPhysicalSystem::integrationLayer::*;
     expose scoreTwoDomainPhysicalSystem::integrationLayer::**;
     filter not (@ SysML::AllocationUsage);
     attribute depth = -1;
