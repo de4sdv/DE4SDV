@@ -49,8 +49,10 @@ package DE4SDV_SDVProductLineFeatureModel {
                  * grouping feature that holds one alternative group per
                  * layer and side. The main side is the execution domain that
                  * runs the vehicle application. The guest side is a second
-                 * execution domain under the hypervisor, or none. Exactly one
-                 * realization per group, subject to the constraints. */
+                 * execution domain under the hypervisor, or none. It is a
+                 * guest partition of one or more VMs, and the VM layout is
+                 * realization content (ADR 0025). Exactly one realization per
+                 * group, subject to the constraints. */
 
             #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION'> vehicleApplication[1];
             #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE'> autoware[0..1] :> vehicleApplication default null {
@@ -149,8 +151,9 @@ package DE4SDV_SDVProductLineFeatureModel {
 
             #feature occurrence <'F-PLATFORM-GUEST-OS'> guestOperatingSystem[1] {
                 doc /* The operating system of the guest side: a second
-                     * execution domain on the same SoC, under the hypervisor.
-                     * noGuestOperatingSystem selects no guest domain. */
+                     * execution domain on the same SoC, under the hypervisor,
+                     * with one or more VMs. noGuestOperatingSystem selects no
+                     * guest domain. */
             }
             #feature occurrence <'F-PLATFORM-GUEST-OS-ANDROID'> guestAndroid[0..1] :> guestOperatingSystem default null;
             #feature occurrence <'F-PLATFORM-GUEST-OS-NONE'> noGuestOperatingSystem[0..1] :> guestOperatingSystem default null;

@@ -17,8 +17,8 @@
   <path d="M 2028,684 H 2336 V 720 H 2028 V 684 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1566,625 H 2002 A 6,6 0 0 1 2008,631 V 773 A 6,6 0 0 1 2002,779 H 1566 A 6,6 0 0 1 1560,773 V 631 A 6,6 0 0 1 1566,625 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 805,625 H 1136 A 6,6 0 0 1 1142,631 V 936 A 6,6 0 0 1 1136,942 H 805 A 6,6 0 0 1 799,936 V 631 A 6,6 0 0 1 805,625 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 398,351 H 728 A 6,6 0 0 1 734,357 V 499 A 6,6 0 0 1 728,505 H 398 A 6,6 0 0 1 392,499 V 357 A 6,6 0 0 1 398,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 760,351 H 1092 A 6,6 0 0 1 1098,357 V 499 A 6,6 0 0 1 1092,505 H 760 A 6,6 0 0 1 754,499 V 357 A 6,6 0 0 1 760,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 34,351 H 364 A 6,6 0 0 1 370,357 V 499 A 6,6 0 0 1 364,505 H 34 A 6,6 0 0 1 28,499 V 357 A 6,6 0 0 1 34,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 395,351 H 727 A 6,6 0 0 1 733,357 V 499 A 6,6 0 0 1 727,505 H 395 A 6,6 0 0 1 389,499 V 357 A 6,6 0 0 1 395,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 754,962 H 1939 A 6,6 0 0 1 1945,968 V 1072 A 6,6 0 0 1 1939,1078 H 754 A 6,6 0 0 1 748,1072 V 968 A 6,6 0 0 1 754,962 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 386,962 H 729 V 1152 H 386 V 962 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 34,1004 H 361 A 6,6 0 0 1 367,1010 V 1104 A 6,6 0 0 1 361,1110 H 34 A 6,6 0 0 1 28,1104 V 1010 A 6,6 0 0 1 34,1004 Z" fill="#FFFFFF" fill-opacity="1.000"/>
@@ -37,21 +37,21 @@
   <path d="M 2167,201 H 2508 A 6,6 0 0 1 2514,207 V 325 A 6,6 0 0 1 2508,331 H 2167 A 6,6 0 0 1 2161,325 V 207 A 6,6 0 0 1 2167,201 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 34,201 H 372 A 6,6 0 0 1 378,207 V 289 A 6,6 0 0 1 372,295 H 34 A 6,6 0 0 1 28,289 V 207 A 6,6 0 0 1 34,201 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1110,201 H 1429 A 6,6 0 0 1 1435,207 V 313 A 6,6 0 0 1 1429,319 H 1110 A 6,6 0 0 1 1104,313 V 207 A 6,6 0 0 1 1110,201 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1123,351 H 1515 A 6,6 0 0 1 1521,357 V 487 A 6,6 0 0 1 1515,493 H 1123 A 6,6 0 0 1 1117,487 V 357 A 6,6 0 0 1 1123,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1547,351 H 1893 A 6,6 0 0 1 1899,357 V 523 A 6,6 0 0 1 1893,529 H 1547 A 6,6 0 0 1 1541,523 V 357 A 6,6 0 0 1 1547,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1123,351 H 1461 A 6,6 0 0 1 1467,357 V 511 A 6,6 0 0 1 1461,517 H 1123 A 6,6 0 0 1 1117,511 V 357 A 6,6 0 0 1 1123,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1493,351 H 1839 A 6,6 0 0 1 1845,357 V 535 A 6,6 0 0 1 1839,541 H 1493 A 6,6 0 0 1 1487,535 V 357 A 6,6 0 0 1 1493,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1817,201 H 2135 A 6,6 0 0 1 2141,207 V 323 A 6,6 0 0 1 2135,329 H 1817 A 6,6 0 0 1 1811,323 V 207 A 6,6 0 0 1 1817,201 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 34,351 H 367 A 6,6 0 0 1 373,357 V 485 A 6,6 0 0 1 367,491 H 34 A 6,6 0 0 1 28,485 V 357 A 6,6 0 0 1 34,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 758,351 H 1091 A 6,6 0 0 1 1097,357 V 509 A 6,6 0 0 1 1091,515 H 758 A 6,6 0 0 1 752,509 V 357 A 6,6 0 0 1 758,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 34,625 H 382 A 6,6 0 0 1 388,631 V 891 A 6,6 0 0 1 382,897 H 34 A 6,6 0 0 1 28,891 V 631 A 6,6 0 0 1 34,625 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 304,88 H 637 L 649,100 V 144 H 304 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 637,88 L 637,100 L 649,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
   <path d="M 1168,625 H 1535 A 6,6 0 0 1 1541,631 V 922 A 6,6 0 0 1 1535,928 H 1168 A 6,6 0 0 1 1162,922 V 631 A 6,6 0 0 1 1168,625 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1924,351 H 2249 A 6,6 0 0 1 2255,357 V 600 A 6,6 0 0 1 2249,606 H 1924 A 6,6 0 0 1 1918,600 V 357 A 6,6 0 0 1 1924,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1870,351 H 2195 A 6,6 0 0 1 2201,357 V 600 A 6,6 0 0 1 2195,606 H 1870 A 6,6 0 0 1 1864,600 V 357 A 6,6 0 0 1 1870,351 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 413,625 H 774 A 6,6 0 0 1 780,631 V 886 A 6,6 0 0 1 774,892 H 413 A 6,6 0 0 1 407,886 V 631 A 6,6 0 0 1 413,625 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 2028,684 H 2336 V 720 H 2028 V 684 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1566,625 H 2002 A 6,6 0 0 1 2008,631 V 661 H 1560 V 631 A 6,6 0 0 1 1566,625 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 805,625 H 1136 A 6,6 0 0 1 1142,631 V 661 H 799 V 631 A 6,6 0 0 1 805,625 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 398,351 H 728 A 6,6 0 0 1 734,357 V 387 H 392 V 357 A 6,6 0 0 1 398,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 760,351 H 1092 A 6,6 0 0 1 1098,357 V 387 H 754 V 357 A 6,6 0 0 1 760,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 34,351 H 364 A 6,6 0 0 1 370,357 V 387 H 28 V 357 A 6,6 0 0 1 34,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 395,351 H 727 A 6,6 0 0 1 733,357 V 387 H 389 V 357 A 6,6 0 0 1 395,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 754,962 H 1939 A 6,6 0 0 1 1945,968 V 998 H 748 V 968 A 6,6 0 0 1 754,962 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 386,962 H 729 V 998 H 386 V 962 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 34,1004 H 361 A 6,6 0 0 1 367,1010 V 1040 H 28 V 1010 A 6,6 0 0 1 34,1004 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -68,13 +68,13 @@
   <path d="M 2167,201 H 2508 A 6,6 0 0 1 2514,207 V 237 H 2161 V 207 A 6,6 0 0 1 2167,201 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 34,201 H 372 A 6,6 0 0 1 378,207 V 237 H 28 V 207 A 6,6 0 0 1 34,201 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1110,201 H 1429 A 6,6 0 0 1 1435,207 V 237 H 1104 V 207 A 6,6 0 0 1 1110,201 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1123,351 H 1515 A 6,6 0 0 1 1521,357 V 387 H 1117 V 357 A 6,6 0 0 1 1123,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1547,351 H 1893 A 6,6 0 0 1 1899,357 V 387 H 1541 V 357 A 6,6 0 0 1 1547,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1123,351 H 1461 A 6,6 0 0 1 1467,357 V 387 H 1117 V 357 A 6,6 0 0 1 1123,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1493,351 H 1839 A 6,6 0 0 1 1845,357 V 387 H 1487 V 357 A 6,6 0 0 1 1493,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1817,201 H 2135 A 6,6 0 0 1 2141,207 V 237 H 1811 V 207 A 6,6 0 0 1 1817,201 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 34,351 H 367 A 6,6 0 0 1 373,357 V 387 H 28 V 357 A 6,6 0 0 1 34,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 758,351 H 1091 A 6,6 0 0 1 1097,357 V 387 H 752 V 357 A 6,6 0 0 1 758,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 34,625 H 382 A 6,6 0 0 1 388,631 V 661 H 28 V 631 A 6,6 0 0 1 34,625 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1168,625 H 1535 A 6,6 0 0 1 1541,631 V 661 H 1162 V 631 A 6,6 0 0 1 1168,625 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1924,351 H 2249 A 6,6 0 0 1 2255,357 V 387 H 1918 V 357 A 6,6 0 0 1 1924,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1870,351 H 2195 A 6,6 0 0 1 2201,357 V 387 H 1864 V 357 A 6,6 0 0 1 1870,351 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 413,625 H 774 A 6,6 0 0 1 780,631 V 661 H 407 V 631 A 6,6 0 0 1 413,625 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 2028,684 H 2336 V 720 H 2028 V 684 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1560,661 2008,661" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -83,10 +83,10 @@
   <polyline points="799,803 1142,803" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="799,837 1142,837" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 805,625 H 1136 A 6,6 0 0 1 1142,631 V 936 A 6,6 0 0 1 1136,942 H 805 A 6,6 0 0 1 799,936 V 631 A 6,6 0 0 1 805,625 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="392,387 734,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 398,351 H 728 A 6,6 0 0 1 734,357 V 499 A 6,6 0 0 1 728,505 H 398 A 6,6 0 0 1 392,499 V 357 A 6,6 0 0 1 398,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="754,387 1098,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 760,351 H 1092 A 6,6 0 0 1 1098,357 V 499 A 6,6 0 0 1 1092,505 H 760 A 6,6 0 0 1 754,499 V 357 A 6,6 0 0 1 760,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="28,387 370,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 34,351 H 364 A 6,6 0 0 1 370,357 V 499 A 6,6 0 0 1 364,505 H 34 A 6,6 0 0 1 28,499 V 357 A 6,6 0 0 1 34,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="389,387 733,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 395,351 H 727 A 6,6 0 0 1 733,357 V 499 A 6,6 0 0 1 727,505 H 395 A 6,6 0 0 1 389,499 V 357 A 6,6 0 0 1 395,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="748,998 1945,998" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="748,1032 1945,1032" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 754,962 H 1939 A 6,6 0 0 1 1945,968 V 1072 A 6,6 0 0 1 1939,1078 H 754 A 6,6 0 0 1 748,1072 V 968 A 6,6 0 0 1 754,962 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -126,16 +126,16 @@
   <path d="M 34,201 H 372 A 6,6 0 0 1 378,207 V 289 A 6,6 0 0 1 372,295 H 34 A 6,6 0 0 1 28,289 V 207 A 6,6 0 0 1 34,201 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1104,237 1435,237" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1110,201 H 1429 A 6,6 0 0 1 1435,207 V 313 A 6,6 0 0 1 1429,319 H 1110 A 6,6 0 0 1 1104,313 V 207 A 6,6 0 0 1 1110,201 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1117,387 1521,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1123,351 H 1515 A 6,6 0 0 1 1521,357 V 487 A 6,6 0 0 1 1515,493 H 1123 A 6,6 0 0 1 1117,487 V 357 A 6,6 0 0 1 1123,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1541,387 1899,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1547,351 H 1893 A 6,6 0 0 1 1899,357 V 523 A 6,6 0 0 1 1893,529 H 1547 A 6,6 0 0 1 1541,523 V 357 A 6,6 0 0 1 1547,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1117,387 1467,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1123,351 H 1461 A 6,6 0 0 1 1467,357 V 511 A 6,6 0 0 1 1461,517 H 1123 A 6,6 0 0 1 1117,511 V 357 A 6,6 0 0 1 1123,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1487,387 1845,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1493,351 H 1839 A 6,6 0 0 1 1845,357 V 535 A 6,6 0 0 1 1839,541 H 1493 A 6,6 0 0 1 1487,535 V 357 A 6,6 0 0 1 1493,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1811,237 2141,237" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1811,295 2141,295" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1817,201 H 2135 A 6,6 0 0 1 2141,207 V 323 A 6,6 0 0 1 2135,329 H 1817 A 6,6 0 0 1 1811,323 V 207 A 6,6 0 0 1 1817,201 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,387 373,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="28,457 373,457" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 34,351 H 367 A 6,6 0 0 1 373,357 V 485 A 6,6 0 0 1 367,491 H 34 A 6,6 0 0 1 28,485 V 357 A 6,6 0 0 1 34,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="752,387 1097,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="752,481 1097,481" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 758,351 H 1091 A 6,6 0 0 1 1097,357 V 509 A 6,6 0 0 1 1091,515 H 758 A 6,6 0 0 1 752,509 V 357 A 6,6 0 0 1 758,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,661 388,661" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,863 388,863" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 34,625 H 382 A 6,6 0 0 1 388,631 V 891 A 6,6 0 0 1 382,897 H 34 A 6,6 0 0 1 28,891 V 631 A 6,6 0 0 1 34,625 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -147,11 +147,11 @@
   <polyline points="1162,789 1541,789" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1162,847 1541,847" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 1168,625 H 1535 A 6,6 0 0 1 1541,631 V 922 A 6,6 0 0 1 1535,928 H 1168 A 6,6 0 0 1 1162,922 V 631 A 6,6 0 0 1 1168,625 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1918,387 2255,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1918,457 2255,457" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1918,491 2255,491" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1918,549 2255,549" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1924,351 H 2249 A 6,6 0 0 1 2255,357 V 600 A 6,6 0 0 1 2249,606 H 1924 A 6,6 0 0 1 1918,600 V 357 A 6,6 0 0 1 1924,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1864,387 2201,387" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1864,457 2201,457" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1864,491 2201,491" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1864,549 2201,549" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1870,351 H 2195 A 6,6 0 0 1 2201,357 V 600 A 6,6 0 0 1 2195,606 H 1870 A 6,6 0 0 1 1864,600 V 357 A 6,6 0 0 1 1870,351 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="407,661 780,661" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="407,731 780,731" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="407,765 780,765" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -207,28 +207,28 @@
   <text x="807" y="911" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationEngineer : VerificationEngineer</tspan></text>
   <text x="807" y="923" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">maintainer : Maintainer</tspan></text>
   <text x="807" y="935" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reviewer : OpenSourceReviewer</tspan></text>
-  <text x="563" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
-  <text x="563" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">scoreMiddlewareEngineeringQuestion : IncrementEngineeringQuestion</tspan></text>
-  <text x="563" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="400" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Can Eclipse S-CORE, pinned at v0.9.0, realize DE4SDV's middleware</tspan></text>
-  <text x="400" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">integration layer (the six logical components of MiddlewareSystem) on</tspan></text>
-  <text x="400" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host of a two-domain member product, so that the reference</tspan></text>
-  <text x="400" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">vehicle speed reaches Autoware and the AEBS signals of the</tspan></text>
-  <text x="400" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Autoware-based AEBS stack on the Linux host reach the HMI in the AAOS</tspan></text>
-  <text x="400" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">SDV guest through S-CORE communication, with the application</tspan></text>
-  <text x="400" y="485" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">decoupled through the adapter, and which middleware capabilities and</tspan></text>
-  <text x="400" y="497" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">cross-domain paths stay open?</tspan></text>
-  <text x="926" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
-  <text x="926" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">scoreMiddlewareLifecycleDecision : IncrementLifecycleDecision</tspan></text>
-  <text x="926" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="762" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Decide whether Eclipse S-CORE is a viable realization of the middleware</tspan></text>
-  <text x="762" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">feature for the two-domain member product (Autoware on S-CORE on a</tspan></text>
-  <text x="762" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Linux host, with an AAOS SDV HMI guest under a hypervisor), and whether</tspan></text>
-  <text x="762" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">that product can become a declared member product, based on the</tspan></text>
-  <text x="762" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">realization coverage and the runnable proof. Eclipse S-CORE is a</tspan></text>
-  <text x="762" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reference-only alternative in the governed product-line scope</tspan></text>
-  <text x="762" y="485" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(ADR 0014), so declaring the member needs a scope revision that the</tspan></text>
-  <text x="762" y="497" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">owner accepts in an architecture decision record.</tspan></text>
+  <text x="199" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
+  <text x="199" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">scoreMiddlewareEngineeringQuestion : IncrementEngineeringQuestion</tspan></text>
+  <text x="199" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="36" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Can Eclipse S-CORE, pinned at v0.9.0, realize DE4SDV's middleware</tspan></text>
+  <text x="36" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">integration layer (the six logical components of MiddlewareSystem) on</tspan></text>
+  <text x="36" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host of a two-domain member product, so that the reference</tspan></text>
+  <text x="36" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">vehicle speed reaches Autoware and the AEBS signals of the</tspan></text>
+  <text x="36" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Autoware-based AEBS stack on the Linux host reach the HMI in the AAOS</tspan></text>
+  <text x="36" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">SDV guest through S-CORE communication, with the application</tspan></text>
+  <text x="36" y="485" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">decoupled through the adapter, and which middleware capabilities and</tspan></text>
+  <text x="36" y="497" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">cross-domain paths stay open?</tspan></text>
+  <text x="561" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
+  <text x="561" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">scoreMiddlewareLifecycleDecision : IncrementLifecycleDecision</tspan></text>
+  <text x="561" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="397" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Decide whether Eclipse S-CORE is a viable realization of the middleware</tspan></text>
+  <text x="397" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">feature for the two-domain member product (Autoware on S-CORE on a</tspan></text>
+  <text x="397" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Linux host, with an AAOS SDV HMI guest under a hypervisor), and whether</tspan></text>
+  <text x="397" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">that product can become a declared member product, based on the</tspan></text>
+  <text x="397" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">realization coverage and the runnable proof. Eclipse S-CORE is a</tspan></text>
+  <text x="397" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reference-only alternative in the governed product-line scope</tspan></text>
+  <text x="397" y="485" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(ADR 0014), so declaring the member needs a scope revision that the</tspan></text>
+  <text x="397" y="497" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">owner accepts in an architecture decision record.</tspan></text>
   <text x="1346.5" y="974" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
   <text x="1346.5" y="990" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">scoreMiddlewareScope : IncrementScope</tspan></text>
   <text x="1346.5" y="1008.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -414,29 +414,32 @@
   <text x="1112" y="287" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Autoware are both supported. Red Hat AutoSD is the target automotive</tspan></text>
   <text x="1112" y="299" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Linux, proven in a second step: S-CORE builds and tests autosd-x86_64</tspan></text>
   <text x="1112" y="311" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">upstream, and Autoware would run in an Ubuntu container on it.</tspan></text>
-  <text x="1319" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
-  <text x="1319" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">asmKVMHypervisorWithAAOSSDVGuest : IncrementAssumption</tspan></text>
-  <text x="1319" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1292" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
+  <text x="1292" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">asmKVMHypervisorWithAAOSSDVGuest : IncrementAssumption</tspan></text>
+  <text x="1292" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
   <text x="1125" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ASM-MW-027: The hypervisor is KVM on the Linux host, with the AAOS SDV</tspan></text>
   <text x="1125" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">guest, as in the AAOS-integrated reference member (middleware</tspan></text>
   <text x="1125" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">androidSDV in its Android guest, hypervisor kvm, osPlatform linux);</tspan></text>
-  <text x="1125" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the INC-AEBS-010 bench ran its HMI in an AAOS SDV Cuttlefish guest. The Linux host is</tspan></text>
-  <text x="1125" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">both the KVM host and the domain that owns the AEBS emergency</tspan></text>
-  <text x="1125" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">intervention command path (ASM-MW-028), so the hypervisor boundary</tspan></text>
-  <text x="1125" y="485" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">isolates the informational HMI guest from the host.</tspan></text>
-  <text x="1720" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
-  <text x="1720" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">asmEmergencyCommandPathStaysOnLinuxHost : IncrementAssumption</tspan></text>
-  <text x="1720" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1549" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ASM-MW-028: The AEBS emergency intervention command path stays inside</tspan></text>
-  <text x="1549" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host, within the Autoware-based AEBS stack: it is not carried</tspan></text>
-  <text x="1549" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">over S-CORE communication and does not cross the hypervisor boundary</tspan></text>
-  <text x="1549" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">to the AAOS SDV guest. This keeps the middleware baseline (ASM-MW-003:</tspan></text>
-  <text x="1549" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the brake command path remains direct from the AEB node to the vehicle</tspan></text>
-  <text x="1549" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">command gate, not through the adapter). With KVM (ASM-MW-027) the</tspan></text>
-  <text x="1549" y="485" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Linux host is both the hypervisor host and the owner of that path, so</tspan></text>
-  <text x="1549" y="497" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the hypervisor boundary isolates the HMI guest from the host. No</tspan></text>
-  <text x="1549" y="509" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">freedom-from-interference claim is made; REQ-MW-006</tspan></text>
-  <text x="1549" y="521" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(reqIsolateSafetyPath, in development) and GAP-MW-029 stay open.</tspan></text>
+  <text x="1125" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the INC-AEBS-010 bench ran its HMI in an AAOS SDV Cuttlefish guest. In</tspan></text>
+  <text x="1125" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">this member the AAOS SDV guest holds two VMs, an SDV Core VM and an</tspan></text>
+  <text x="1125" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">IVI VM, with the same feature selections (ADR 0025). The Linux host is</tspan></text>
+  <text x="1125" y="485" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">both the KVM host and the domain that owns the AEBS emergency</tspan></text>
+  <text x="1125" y="497" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">intervention command path (ASM-MW-028), so the hypervisor boundary</tspan></text>
+  <text x="1125" y="509" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">isolates the VMs of the informational HMI guest from the host.</tspan></text>
+  <text x="1666" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
+  <text x="1666" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">asmEmergencyCommandPathStaysOnLinuxHost : IncrementAssumption</tspan></text>
+  <text x="1666" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1495" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ASM-MW-028: The AEBS emergency intervention command path stays inside</tspan></text>
+  <text x="1495" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host, within the Autoware-based AEBS stack: it is not carried</tspan></text>
+  <text x="1495" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">over S-CORE communication and does not cross the hypervisor boundary</tspan></text>
+  <text x="1495" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">to the AAOS SDV guest. This keeps the middleware baseline (ASM-MW-003:</tspan></text>
+  <text x="1495" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the brake command path remains direct from the AEB node to the vehicle</tspan></text>
+  <text x="1495" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">command gate, not through the adapter). With KVM (ASM-MW-027) the</tspan></text>
+  <text x="1495" y="485" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Linux host is both the hypervisor host and the owner of that path, so</tspan></text>
+  <text x="1495" y="497" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the hypervisor boundary isolates the VMs of the HMI guest from the</tspan></text>
+  <text x="1495" y="509" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">host. No</tspan></text>
+  <text x="1495" y="521" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">freedom-from-interference claim is made; REQ-MW-006</tspan></text>
+  <text x="1495" y="533" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(reqIsolateSafetyPath, in development) and GAP-MW-029 stay open.</tspan></text>
   <text x="1976" y="213" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
   <text x="1976" y="229" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">gapRealizationCoverageUnknown : IncrementGap</tspan></text>
   <text x="1976" y="247.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -445,15 +448,17 @@
   <text x="1819" y="287" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">realization slice of this increment records the coverage.</tspan></text>
   <text x="1976" y="305.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
   <text x="1819" y="321" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^disposition : LifecycleDisposition [0..1]</tspan></text>
-  <text x="200.5" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
-  <text x="200.5" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">gapHMITransportUnselected : IncrementGap</tspan></text>
-  <text x="200.5" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="36" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">GAP-MW-031: The transport that carries the AEBS signals from S-CORE on</tspan></text>
-  <text x="36" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host across the domain boundary, through the hypervisor,</tspan></text>
-  <text x="36" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">into the AAOS SDV guest is not selected in this framing slice; the</tspan></text>
-  <text x="36" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">realization slice selects and pins it.</tspan></text>
-  <text x="200.5" y="467.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
-  <text x="36" y="483" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^disposition : LifecycleDisposition [0..1]</tspan></text>
+  <text x="924.5" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
+  <text x="924.5" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">gapHMITransportUnselected : IncrementGap</tspan></text>
+  <text x="924.5" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="760" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">GAP-MW-031: The transport that carries the AEBS signals from S-CORE on</tspan></text>
+  <text x="760" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host across the domain boundary, through the hypervisor,</tspan></text>
+  <text x="760" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">into the AAOS SDV guest is not selected in this framing slice; the</tspan></text>
+  <text x="760" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">realization slice selects and pins it. Phase 8 selects it</tspan></text>
+  <text x="760" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(hmiTransportSelection): SOME/IP into the SDV Core VM of the guest,</tspan></text>
+  <text x="760" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">then Data Tunnel to its IVI VM (ADR 0025).</tspan></text>
+  <text x="924.5" y="491.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
+  <text x="760" y="507" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^disposition : LifecycleDisposition [0..1]</tspan></text>
   <text x="208" y="637" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
   <text x="208" y="653" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">gapTwoDomainMemberNotExpressible : IncrementGap</tspan></text>
   <text x="208" y="671.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
@@ -498,23 +503,23 @@
   <text x="1170" y="897" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">feature-model delta), with their variability decisions and deferred</tspan></text>
   <text x="1170" y="909" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">variability decisions. Core elements are common by default and get no</tspan></text>
   <text x="1170" y="921" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">record.</tspan></text>
-  <text x="2086.5" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
-  <text x="2086.5" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">hmiDomainBoundaryConcern : FunctionalInterfaceConcern</tspan></text>
-  <text x="2086.5" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1926" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the HMI path to be one-way and read-only across the</tspan></text>
-  <text x="1926" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">domain and hypervisor boundary: the AEBS signals flow from S-CORE on</tspan></text>
-  <text x="1926" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host into the AAOS SDV guest, and nothing flows back into</tspan></text>
-  <text x="1926" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Autoware application or the middleware.</tspan></text>
-  <text x="2086.5" y="467.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1926" y="483" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
-  <text x="2086.5" y="501.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
-  <text x="1926" y="517" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemArchitect : SystemArchitect</tspan></text>
-  <text x="1926" y="529" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">safetyExpert : SafetyExpert</tspan></text>
-  <text x="1926" y="541" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationEngineer : VerificationEngineer</tspan></text>
-  <text x="2086.5" y="559.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1926" y="575" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the functional boundary ports, signal character,</tspan></text>
-  <text x="1926" y="587" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">direction, producer/consumer mapping, and upstreaming posture</tspan></text>
-  <text x="1926" y="599" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">for DE4SDV candidate VSS extension signals.</tspan></text>
+  <text x="2032.5" y="363" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
+  <text x="2032.5" y="379" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">hmiDomainBoundaryConcern : FunctionalInterfaceConcern</tspan></text>
+  <text x="2032.5" y="397.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1872" y="413" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the HMI path to be one-way and read-only across the</tspan></text>
+  <text x="1872" y="425" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">domain and hypervisor boundary: the AEBS signals flow from S-CORE on</tspan></text>
+  <text x="1872" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host into the AAOS SDV guest, and nothing flows back into</tspan></text>
+  <text x="1872" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Autoware application or the middleware.</tspan></text>
+  <text x="2032.5" y="467.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1872" y="483" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
+  <text x="2032.5" y="501.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
+  <text x="1872" y="517" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemArchitect : SystemArchitect</tspan></text>
+  <text x="1872" y="529" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">safetyExpert : SafetyExpert</tspan></text>
+  <text x="1872" y="541" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationEngineer : VerificationEngineer</tspan></text>
+  <text x="2032.5" y="559.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1872" y="575" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the functional boundary ports, signal character,</tspan></text>
+  <text x="1872" y="587" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">direction, producer/consumer mapping, and upstreaming posture</tspan></text>
+  <text x="1872" y="599" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">for DE4SDV candidate VSS extension signals.</tspan></text>
   <text x="593.5" y="637" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
   <text x="593.5" y="653" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">twoDomainMemberRepresentationConcern : ProductLineConfigurationConcern</tspan></text>
   <text x="593.5" y="671.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>

@@ -3,8 +3,11 @@
 The configured product pairs the platform-stack projection that the configurator
 generates from the receipt with the realization of the middleware integration
 layer. It holds one instance and one owner per platform layer: the layer declares
-its S-CORE services and its adapter as references, and two bindings make them the
-platform stack's parts (owner decision of 2026-10-23). It is no member product
+its S-CORE services, its adapter and the SDV Core of the guest as references, and
+four bindings make them, and the platform software of the SDV Core, the platform
+stack's parts (owner decisions of 2026-10-23 and 2026-10-28, ADR 0025). The
+platform stack has no feature for the SDV Gateway on IVI, so the product leaves
+that reference unbound. It is no member product
 before the phase-12 decision, and MW-CONFIG-002 is bound to the exact receipt.
 Under rule 5 of the increment workflow, the four HMI-path requirements depend on
 the HMI display, declared with the requirements and outside the feature-model and
@@ -148,18 +151,30 @@ def test_the_layer_refers_to_its_s_core_services_and_its_adapter() -> None:
 
 
 def test_the_configured_product_holds_one_instance_and_one_owner_per_platform_layer() -> None:
-    """Two bindings make the layer's references, its S-CORE services and its adapter, the same things as
-    the selected middleware and the derived adapter that the platform stack composes, their only owner.
-    The product body declares exactly two parts and exactly these two bindings."""
+    """Four bindings make the layer's references the same things as the parts that the platform stack composes,
+    their only owner: the S-CORE services, the adapter, the SDV Core as the guest middleware, and its platform
+    software as the guest operating system, as in the AAOS-integrated configured member. The product body declares
+    exactly two parts and exactly these four bindings. The SDV Gateway on IVI has no feature in the platform stack,
+    so its reference stays unbound here, and the doc says so (ADR 0025)."""
     own = _own(_product_body())
     assert re.findall(r"\b(?:ref\s+)?part\s+(\w+)\s*:", own) == ["platformStack", "integrationLayer"]
     assert re.findall(r"\bbinding\s+(\w+)\s+bind\b", own) == [
-        "scoreServicesBoundToSelectedMiddleware", "adapterBoundToDerivedAdapter"]
-    assert len(re.findall(r"\bbind\b", own)) == 2, "a further binding in the product body"
-    assert ("binding scoreServicesBoundToSelectedMiddleware bind "
-            "integrationLayer.scoreServices = platformStack.middleware;") in own
-    assert ("binding adapterBoundToDerivedAdapter bind "
-            "integrationLayer.adapter = platformStack.applicationMiddlewareAdapter;") in own
+        "scoreServicesBoundToSelectedMiddleware", "adapterBoundToDerivedAdapter",
+        "sdvCoreBoundToGuestMiddleware", "platformSoftwareBoundToGuestOperatingSystem"]
+    assert len(re.findall(r"\bbind\b", own)) == 4, "a further binding in the product body"
+    for binding in ("binding scoreServicesBoundToSelectedMiddleware bind "
+                    "integrationLayer.scoreServices = platformStack.middleware;",
+                    "binding adapterBoundToDerivedAdapter bind "
+                    "integrationLayer.adapter = platformStack.applicationMiddlewareAdapter;",
+                    "binding sdvCoreBoundToGuestMiddleware bind "
+                    "integrationLayer.sdvCore = platformStack.guestMiddleware;",
+                    "binding platformSoftwareBoundToGuestOperatingSystem bind "
+                    "integrationLayer.sdvCore.platformSoftware = platformStack.guestOSPlatform;"):
+        assert binding in own, binding
+    assert "integrationLayer.sdvGateway" not in own, "the platform stack has no feature for the SDV Gateway on IVI"
+    doc = " ".join(re.sub(r"^\s*\*\s?", "", line) for line in SLICE.read_text(encoding="utf-8").splitlines())
+    assert ("So this product leaves the layer's reference to the SDV Gateway on IVI unbound, and phase 8 binds it "
+            "to the gateway of the IVI VM.") in " ".join(doc.split())
     code = _code(SLICE)
     for definition in LAYER_DEFINITIONS:
         assert not re.search(_TYPED_BY.format(definition=definition), code), f"the slice types a part by {definition}"
