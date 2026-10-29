@@ -70,6 +70,8 @@ class ExportSnapshot:
     library_bindings: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
     #: Library pin -> why it is unbound.
     library_problems: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    #: The export's references to elements outside it (the serializer's external references).
+    external_references: tuple[Mapping[str, Any], ...] = ()
 
 
 def _contract(root: Path) -> Any:
@@ -93,7 +95,8 @@ def load_export_snapshot(
     digest = hashlib.sha256(raw).hexdigest()
     contract = _contract(root)
     bound, unbound = resolve_library_pins(LIBRARY_PINS, elements, sources)
-    library = {"library_bindings": MappingProxyType(bound), "library_problems": MappingProxyType(unbound)}
+    library = {"library_bindings": MappingProxyType(bound), "library_problems": MappingProxyType(unbound),
+               "external_references": tuple(bundle.external_references)}
     if binding_path is not None:
         document = json.loads(Path(binding_path).read_text(encoding="utf-8"))
         try:
@@ -161,7 +164,8 @@ def export_view(snapshot: ExportSnapshot, *, root: Path = ROOT) -> ModelView:
     )
     traversal = ModelAuthorityTraversal(facade, kernel_bindings=index)
     return ModelView(snapshot.elements, traversal, sources=snapshot.sources,
-                     library_bindings=snapshot.library_bindings, library_problems=snapshot.library_problems)
+                     library_bindings=snapshot.library_bindings, library_problems=snapshot.library_problems,
+                     external_references=snapshot.external_references)
 
 
 def evaluate_export(

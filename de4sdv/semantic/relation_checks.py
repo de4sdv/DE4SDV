@@ -68,8 +68,13 @@ from de4sdv.sysml_api.repository import reference_ids
 from .increment_scope import ModelView
 from .kernel_contract import KernelFileMapping
 
-#: Problem markers of inputs that only a method or kernel change can supply.
-METHOD_SIDE_PREFIXES = ("kernel-binding:", "library-binding:", "governed-relation:", "external-relation:")
+#: Problem marker of an input that the evaluation itself lacks, for example the source documents and the
+#: external references of an export when the evaluation runs over the API. Only a change to the evaluation
+#: supplies it, so it is method side.
+EVALUATION_INPUT_PREFIX = "evaluation-input:"
+#: Problem markers of inputs that only a method, kernel or evaluation change can supply.
+METHOD_SIDE_PREFIXES = ("kernel-binding:", "library-binding:", "governed-relation:", "external-relation:",
+                        EVALUATION_INPUT_PREFIX)
 #: Problem marker of engineering witnesses that exist but cannot be read.
 MODEL_WITNESS_PREFIX = "model-witness:"
 

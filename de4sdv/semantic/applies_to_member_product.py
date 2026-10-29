@@ -159,6 +159,61 @@ def _part_definition(graph: _Graph, name: str, owner: str) -> str | None:
     return found[0] if found else None
 
 
+def _projections(
+    graph: _Graph,
+    elements: Sequence[Mapping[str, Any]],
+    element_sources: Mapping[str, str],
+    *,
+    kernel_bindings: Mapping[str, str],
+    external_references: Iterable[Mapping[str, Any]],
+    library_source: str,
+    governed_scope: Mapping[str, Any] | None,
+) -> list[tuple[Mapping[str, Any], Any, str | None]]:
+    """(configuration, its projection name, the generated part definition or None) for every PLEML
+    feature configuration: the configuration and its name by the evaluator, the part definition by
+    validated identity (:func:`_part_definition`)."""
+    model_sources = sorted({source for source in element_sources.values() if source.startswith(PLEML_ROOTS)})
+    evaluation = pleml_configuration.evaluate(
+        elements, element_sources, model_sources=model_sources, library_source=library_source,
+        external_references=external_references, kernel_bindings=kernel_bindings,
+        governed_scope=governed_scope)
+    found = []
+    for model in evaluation["feature_models"]:
+        configurations = model["configurations"]
+        owner = _projection_owner(graph, model.get("projection")) if configurations else None
+        for configuration in configurations:
+            name = configuration.get("projection_name")
+            definition = _part_definition(graph, name, owner) if isinstance(name, str) and owner else None
+            found.append((configuration, name, definition))
+    return found
+
+
+def configuration_projections(
+    elements: Iterable[Mapping[str, Any]],
+    element_sources: Mapping[str, str],
+    *,
+    kernel_bindings: Mapping[str, str],
+    external_references: Iterable[Mapping[str, Any]] = (),
+    library_source: str = pleml_configuration.LIBRARY_SOURCE,
+    governed_scope: Mapping[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Every PLEML feature configuration of an export or of API objects with their source documents, with
+    the part definition of its product-model projection bound by validated identity (None when no
+    generated product model declares it). The derived ``configuredBy`` fact of a configured product
+    reads it. ``governed_scope`` is the record of the production scope validator, which the evaluator
+    needs to read the feature models' correspondences, as for :func:`member_product_applications`.
+    Raises :class:`MemberProductError` on an ambiguous identity, and the evaluator's ``PlemlShapeError``
+    on a shape it does not accept."""
+    elements = list(elements)
+    graph = _Graph(elements, element_sources)
+    return [{"configuration": configuration["configuration"], "element_id": configuration["element_id"],
+             "valid": configuration["valid"], "projection_name": name, "part_definition": definition}
+            for configuration, name, definition in _projections(
+                graph, elements, element_sources, kernel_bindings=kernel_bindings,
+                external_references=external_references, library_source=library_source,
+                governed_scope=governed_scope)]
+
+
 def member_product_applications(
     elements: Iterable[Mapping[str, Any]],
     element_sources: Mapping[str, str],
@@ -186,43 +241,36 @@ def member_product_applications(
     member_root = kernel_bindings.get(MEMBER_PRODUCT)
     if member_root is None or graph.kind(member_root) != "PartDefinition":
         raise MemberProductError("the kernel class MemberProduct is not bound to a part definition")
-    model_sources = sorted({source for source in element_sources.values() if source.startswith(PLEML_ROOTS)})
-    evaluation = pleml_configuration.evaluate(
-        elements, element_sources, model_sources=model_sources, library_source=library_source,
-        external_references=external_references, kernel_bindings=kernel_bindings,
-        governed_scope=governed_scope)
+    projections = _projections(graph, elements, element_sources, kernel_bindings=kernel_bindings,
+                               external_references=external_references, library_source=library_source,
+                               governed_scope=governed_scope)
     members = [identifier for identifier, element in graph.by_id.items()
                if element.get("@type") == "PartDefinition" and identifier != member_root
                and graph.specializes(identifier, member_root)]
     rows = []
-    for model in evaluation["feature_models"]:
-        configurations = model["configurations"]
-        owner = _projection_owner(graph, model.get("projection")) if configurations else None
-        for configuration in configurations:
-            name = configuration.get("projection_name")
-            definition = _part_definition(graph, name, owner) if isinstance(name, str) and owner else None
-            applied = []
-            if definition is not None:
-                for member in members:
-                    usages = graph.owned_usages_typed_by(member, definition)
-                    if usages:
-                        applied.append({"declared_name": graph.name(member), "element_id": member,
-                                        "source": element_sources.get(member), "usages": sorted(usages)})
-            if len(applied) > 1:
-                raise MemberProductError(
-                    f"the configuration {configuration['configuration']} applies to {len(applied)} member products "
-                    f"({', '.join(sorted(str(item['declared_name']) for item in applied))}); a configuration "
-                    "applies to one member product at most")
-            rows.append({
-                "configuration": configuration["configuration"],
-                "element_id": configuration["element_id"],
-                "source": element_sources.get(configuration["element_id"]),
-                "valid": configuration["valid"],
-                "projection_name": name,
-                "part_definition": None if definition is None else {
-                    "element_id": definition, "source": element_sources.get(definition)},
-                "member_product": applied[0] if applied else None,
-            })
+    for configuration, name, definition in projections:
+        applied = []
+        if definition is not None:
+            for member in members:
+                usages = graph.owned_usages_typed_by(member, definition)
+                if usages:
+                    applied.append({"declared_name": graph.name(member), "element_id": member,
+                                    "source": element_sources.get(member), "usages": sorted(usages)})
+        if len(applied) > 1:
+            raise MemberProductError(
+                f"the configuration {configuration['configuration']} applies to {len(applied)} member products "
+                f"({', '.join(sorted(str(item['declared_name']) for item in applied))}); a configuration "
+                "applies to one member product at most")
+        rows.append({
+            "configuration": configuration["configuration"],
+            "element_id": configuration["element_id"],
+            "source": element_sources.get(configuration["element_id"]),
+            "valid": configuration["valid"],
+            "projection_name": name,
+            "part_definition": None if definition is None else {
+                "element_id": definition, "source": element_sources.get(definition)},
+            "member_product": applied[0] if applied else None,
+        })
     return {
         "schema": SCHEMA,
         "relation": "appliesToMemberProduct",

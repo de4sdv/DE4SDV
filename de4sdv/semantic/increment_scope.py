@@ -109,6 +109,7 @@ class ModelView:
         sources: Mapping[str, str] | None = None,
         library_bindings: Mapping[str, str] | None = None,
         library_problems: Mapping[str, str] | None = None,
+        external_references: Sequence[Mapping[str, Any]] | None = None,
     ) -> None:
         self.elements = elements
         self.traversal = traversal
@@ -116,6 +117,9 @@ class ModelView:
         #: Library pin -> element, bound by the loader's file-mapped rule (an export only).
         self.library_bindings: Mapping[str, str] = library_bindings or {}
         self.library_problems: Mapping[str, str] = library_problems or {}
+        #: The serializer's references to elements outside the corpus (an export only; None over the API).
+        self.external_references: tuple[Mapping[str, Any], ...] | None = (
+            None if external_references is None else tuple(external_references))
         self.index: RevisionIndex = traversal.revision_index(elements)
 
     @property
