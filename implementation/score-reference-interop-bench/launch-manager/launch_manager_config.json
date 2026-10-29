@@ -30,7 +30,7 @@
     },
     "components": {
         "someipd": {
-            "description": "SOME/IP daemon of the gateway. VSOMEIP_CONFIGURATION names the loopback configuration of CI; the configuration toward the guest comes with the SOME/IP receiver.",
+            "description": "SOME/IP daemon of the gateway. VSOMEIP_CONFIGURATION names the loopback configuration of CI; its vsomeip configuration toward the SOME/IP stack of the SDV Core VM, on the KVM guest network, comes in phase 10 (ADR 0025).",
             "component_properties": {
                 "binary_name": "someipd",
                 "process_arguments": [
