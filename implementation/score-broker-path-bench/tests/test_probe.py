@@ -202,3 +202,47 @@ def test_asm031_unknown_with_no_reachable_layer_port_is_still_noted(tmp_path):
     run = base(tmp_path, attempts=[udp_attempt(LAYER_PORT, counter=True)],
                captured_udp=[f"MARK:ivi-eth1-{HOST}-{LAYER_PORT}"], asm=None)
     assert verdict(run).asm_mw_031_holds is None
+
+
+# -------------------------------------------------- unsent probes and receipts
+
+def test_r15_a_run_where_every_send_failed_is_not_a_pass(tmp_path):
+    """R15/R27: a failed send is a coverage gap, never silently skipped; if every
+    probe failed to send, nothing was shown and the run cannot pass."""
+    from de4sdv_broker_path_bench import evaluators
+    attempts = [udp_attempt(p, sent="send_failed", counter=False) for p in (30150, 30151, 30160)]
+    run = base(tmp_path, attempts=attempts, captured_udp=[],
+               listeners_rows=((30150, "de4sdv_score_ad", True), (30151, "de4sdv_score_ad", True),
+                               (LAYER_PORT, "de4sdv_score_ad", True)))
+    result = verdict(run)
+    assert len(result.unknown_probes) == 3
+    case = evaluators.evaluate_isolation(evaluators.load_run(run))
+    assert case.outcome == evaluators.INCONCLUSIVE
+
+
+def test_an_attempt_without_a_send_status_is_unknown_not_skipped(tmp_path):
+    """A malformed probe record (no send_status) shows nothing; it must not let the run pass."""
+    from de4sdv_broker_path_bench import evaluators
+    attempt = udp_attempt(LAYER_PORT, counter=True)
+    del attempt["send_status"]
+    run = base(tmp_path, attempts=[attempt], captured_udp=[attempt["marker"]])
+    assert len(verdict(run).unknown_probes) == 1
+    assert evaluators.evaluate_isolation(evaluators.load_run(run)).outcome == evaluators.INCONCLUSIVE
+
+
+def test_a_host_socket_receipt_of_a_layer_marker_is_a_reach_even_without_a_firewall_record(tmp_path):
+    """A receipt at a host socket is direct reach evidence, independent of the drop counter."""
+    attempt = udp_attempt(LAYER_PORT, counter=None)
+    run = base(tmp_path, attempts=[attempt], captured_udp=[], fw=firewall(table=False, dds=False, tcp=False),
+               host_socket_receipts__json={"udp_markers": [attempt["marker"]], "tcp_connects": []})
+    assert [a["port"] for a in verdict(run).reached_layer] == [LAYER_PORT]
+
+
+def test_a_receipt_for_a_probe_from_the_guest_loopback_is_not_a_reach(tmp_path):
+    """N-3: a datagram from the guest's lo cannot leave the guest; a receipt naming it is inconsistent."""
+    attempt = udp_attempt(LAYER_PORT, iface="lo", src="127.0.0.1", counter=False)
+    run = base(tmp_path, attempts=[attempt], captured_udp=[],
+               host_socket_receipts__json={"udp_markers": [attempt["marker"]], "tcp_connects": []})
+    result = verdict(run)
+    assert result.reached_layer == []
+    assert result.unknown_probes

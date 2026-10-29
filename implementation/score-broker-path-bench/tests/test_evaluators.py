@@ -221,7 +221,10 @@ def test_vc016_rg_unproduced_received_frame_fails(tmp_path):
 # in tests/test_probe.py; these cover the outcome mapping of the case.
 
 def _marker(port, guest="ivi", iface="eth1", host="192.168.98.1"):
-    return f"MARK:{guest}-{iface}-{host}-{port}"
+    # Markers are opaque strings to the evaluator; this keeps the base fixture's
+    # marker form of the earlier rounds ("ivi-eth1-30160"), which the reviewers'
+    # repros build on. The probe script writes "MARK:<guest>-<if>-<addr>-<port>".
+    return f"{guest}-{iface}-{port}"
 
 
 def _udp_probe(port, *, counter=True, sent="sent", guest="ivi", iface="eth1", host="192.168.98.1"):
@@ -586,3 +589,45 @@ def test_vc020_r30_clock_step_in_the_unjudged_first_phase_does_not_void(tmp_path
                + b.stream_records(4731, clean, t0=p2 + 40_000_000, cport=44002))
     run = _vc020(tmp_path, sorted(records), logcat, condition="ivi_vm_down")
     assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.PASS
+
+
+# ------------------------------------------------- VC-MW-020 case over its conditions
+
+def _vc020_condition_run(tmp_path, condition, *, stale=False):
+    first = T_SUB - 5_000_000_000 if stale else T_SUB + 50_000_000
+    payloads = [b.frame(i, first + i * 100_000_000) for i in range(1, 4)]
+    records = b.stream_records(4731, payloads, t0=T_SUB + 40_000_000)
+    return _vc020(tmp_path, records, phase_logcat(T_SUB, phase=1), condition=condition).run_dir
+
+
+def test_run_cli_one_vc020_condition_is_not_a_case_pass(tmp_path, capsys):
+    # R-W / assurance R4e: one condition (one run) passing is not a case pass;
+    # #448: a pass covers the four conditions.
+    from de4sdv_broker_path_bench import run
+    run_dir = _vc020_condition_run(tmp_path, "hmi_down")
+    code = run.main([str(run_dir), "--case", "VC-MW-020"])
+    report = json.loads(capsys.readouterr().out)
+    result = report["results"]["VC-MW-020"]
+    assert code == 1
+    assert result["outcome"] == outcome.INCONCLUSIVE
+    assert result["conditions"]["hmi_down"]["outcome"] == outcome.PASS
+    assert set(result["missing_conditions"]) == {"ivi_vm_down", "sdv_core_vm_down", "pair_restart"}
+
+
+def test_run_cli_vc020_case_passes_only_over_all_four_conditions(tmp_path, capsys):
+    from de4sdv_broker_path_bench import run
+    dirs = [str(_vc020_condition_run(tmp_path / c, c))
+            for c in ("hmi_down", "ivi_vm_down", "sdv_core_vm_down", "pair_restart")]
+    code = run.main(["--vc020-runs", *dirs])
+    result = json.loads(capsys.readouterr().out)["results"]["VC-MW-020"]
+    assert code == 0 and result["outcome"] == outcome.PASS and result["missing_conditions"] == []
+
+
+def test_run_cli_vc020_case_fails_when_one_condition_fails(tmp_path, capsys):
+    from de4sdv_broker_path_bench import run
+    dirs = [str(_vc020_condition_run(tmp_path / c, c, stale=(c == "pair_restart")))
+            for c in ("hmi_down", "ivi_vm_down", "sdv_core_vm_down", "pair_restart")]
+    code = run.main(["--vc020-runs", *dirs])
+    result = json.loads(capsys.readouterr().out)["results"]["VC-MW-020"]
+    assert code == 1 and result["outcome"] == outcome.FAIL
+    assert result["conditions"]["pair_restart"]["outcome"] == outcome.FAIL

@@ -92,13 +92,20 @@ case names.
 ```bash
 PYTHONPATH=src python -m de4sdv_broker_path_bench.run <run-dir>            # every supported case
 PYTHONPATH=src python -m de4sdv_broker_path_bench.run <run-dir> --case VC-MW-015
+# VC-MW-020 over its four condition runs (one run directory per condition):
+PYTHONPATH=src python -m de4sdv_broker_path_bench.run --vc020-runs <hmi-down> <ivi-vm-down> <core-down> <pair-restart>
 ```
+
+On one run directory the reported VC-MW-020 outcome is the case outcome over
+that one condition, so it is never a case pass; each condition's own result
+stays under `conditions`. The report also holds the sha256 of every artifact
+it read and a digest of the evaluator sources.
 
 | Case | Requirement | What the evaluator checks from raw artifacts |
 |---|---|---|
 | VC-MW-015 | REQ-MW-014 | every frame produced unambiguously inside a subscription phase (beyond the 20 ms clock band) reaches the HMI, in order, inter-arrival below 500 ms; a layer-caused phase end or a DATA_LOSS inside the AEBS event fails; an ingress disconnect in the event, a second `:4721` client, a capture gap or ASM-MW-030 not holding is inconclusive |
 | VC-MW-016 | REQ-MW-015 | each received frame equals its produced frame byte for byte, with its source kind; a received frame the stack never produced fails; after a spoofed SD offer the provider must stay 192.168.98.1 and the frames must keep arriving; an offer record with no provider is inconclusive |
-| VC-MW-017 | REQ-MW-016 | second finding: no host DDS port of the layer is reachable from a guest, judged by a capture on the guest-facing interface plus the drop-rule counter (reached = captured and not dropped); a positive control by the same observation; without a readable firewall table the run is inconclusive; a reachable `:4721` is an ASM-MW-029 finding, not a failure; the first finding needs the inspection record |
+| VC-MW-017 | REQ-MW-016 | second finding: no host DDS port of the layer is reachable from a guest, judged by a capture on the guest-facing interface plus the drop-rule counter (reached = captured and not dropped; a recorded host-socket receipt or a completed guest TCP connect also counts as reached); a failed, unsent or malformed probe is a coverage gap; a positive control by the same observation; without a readable firewall table the run is inconclusive; a reachable `:4721` is an ASM-MW-029 finding, not a failure; the first finding needs the inspection record |
 | VC-MW-020 | REQ-MW-019 | per condition (HMI down, IVI VM down, SDV Core VM down, pair restart): each frame in a new phase was produced no more than the 20 ms margin before the phase start, compared raw; a frame earlier than the start by more than the offset plus its uncertainty plus 20 ms fails whatever the clock shows; the IVI-VM-down condition judges only the phase after the clock setting; needs ASM-MW-030 to hold |
 
 The run directory holds, by convention: `produced.pcap` (host `:4721`),

@@ -11,11 +11,14 @@ Reachability is judged as #448 asks: a capture on the guest-facing
 interface and the counters of the isolation rule (both). A probe is:
 
 - reached   when its marker was captured on the host AND the isolation
-            counter did not take it (it arrived and was not dropped);
+            counter did not take it (it arrived and was not dropped), or when
+            a host socket received it, or the guest's own TCP connect
+            completed (direct evidence, which needs no counter);
 - isolated  when the isolation counter took it (dropped);
-- unknown   when the guest send failed, or the marker never arrived at the
-            host (no counter movement and no capture): the datagram was not
-            sent or did not reach the host, so nothing is shown.
+- unknown   when the guest send failed, the record is incomplete or
+            malformed, the probe came from the guest's loopback, or the
+            marker never arrived at the host: nothing is shown, and each such
+            probe is a coverage gap, never silently skipped.
 
 A pre-netfilter capture alone over-counts: it also sees datagrams the rule
 then drops. So the counter decides reached vs dropped. If the isolation
@@ -45,6 +48,9 @@ Run artifacts this module reads (JSON), all written by the probe script:
   the expected sets derived independently of the probed ones.
 - asm_mw_031.json: {holds: bool|null, ...} for the ROS 2 processes.
 - inspection.json (first finding): {no_host_endpoint: bool, ...}.
+- host_socket_receipts.json (optional): {udp_markers, tcp_connects}, what a
+  host socket received where a run records it; the probe script does not
+  write it, so it can only add a reach, never a pass.
 """
 
 from __future__ import annotations
@@ -139,8 +145,31 @@ def _captured(attempt: dict, captured: dict) -> bool:
     return False
 
 
-def _classify(attempt: dict, captured: dict) -> str:
-    """reached | isolated | unknown for one probe, from its observation."""
+def _loopback_probe(attempt: dict) -> bool:
+    """A probe from the guest's loopback: it cannot leave the guest (review R15/R27, N-3)."""
+    source = str(attempt.get("src_addr") or "")
+    return attempt.get("interface") == "lo" or source.startswith("127.") or source == "::1"
+
+
+def _classify(attempt: dict, captured: dict, udp_receipts: set, tcp_receipts: set) -> str:
+    """received | reached | isolated | unknown | invalid for one probe, from its observation.
+
+    received: direct reach evidence (a host socket received the marker, or the
+              guest's own TCP connect completed); it needs no drop counter.
+    reached:  the capture saw the marker and the drop counter did not take it.
+    isolated: the drop counter took it.
+    unknown:  the send failed, the record is incomplete, or nothing arrived;
+              it shows nothing and is a coverage gap, never silently skipped.
+    invalid:  a probe from the guest's loopback, which cannot reach the host.
+    """
+    if _loopback_probe(attempt):
+        return "invalid"
+    if attempt.get("protocol") == "udp" and attempt.get("marker") in udp_receipts:
+        return "received"
+    if attempt.get("protocol") == "tcp" and (
+            (attempt.get("guest"), _as_int(attempt.get("port"))) in tcp_receipts
+            or attempt.get("guest_connected") is True):
+        return "received"
     if attempt.get("send_status") != SENT:
         return "unknown"
     counter_moved = attempt.get("counter_moved")
@@ -164,18 +193,27 @@ def evaluate_isolation(run_dir: str | Path) -> IsolationVerdict:
     coverage = _load(run_dir, "coverage.json", {})
     asm = _load(run_dir, "asm_mw_031.json", None)
     inspection = _load(run_dir, "inspection.json", None)
+    receipts = _load(run_dir, "host_socket_receipts.json", {})
 
     for name, value in (("firewall", firewall), ("host_listeners", listeners), ("probe_attempts", attempts),
-                        ("captured_markers", captured), ("control", control)):
+                        ("captured_markers", captured), ("control", control), ("host_socket_receipts", receipts)):
         if value == "ERROR":
             verdict.errors.append(f"{name}.json is not valid JSON")
     if verdict.errors:
         return verdict
-    firewall = firewall or {}
-    listeners = listeners or []
-    attempts = attempts or []
-    captured = captured or {}
-    control = control or {}
+    firewall = firewall if isinstance(firewall, dict) else {}
+    listeners = listeners if isinstance(listeners, list) else []
+    attempts = attempts if isinstance(attempts, list) else []
+    captured = captured if isinstance(captured, dict) else {}
+    control = control if isinstance(control, dict) else {}
+    receipts = receipts if isinstance(receipts, dict) else {}
+    # A receipt at a host socket, where a run records one, is direct reach
+    # evidence; the probe script does not write one, so this only ever adds a
+    # reach (a fail), never a pass.
+    udp_receipts = {m for m in receipts.get("udp_markers", []) if isinstance(m, str)} \
+        if isinstance(receipts.get("udp_markers"), list) else set()
+    tcp_receipts = {(c.get("guest"), _as_int(c.get("port"))) for c in receipts.get("tcp_connects", [])
+                    if isinstance(c, dict)} if isinstance(receipts.get("tcp_connects"), list) else set()
 
     dds_set = set(dds_udp_ports())
     layer_dds_ports = {_as_int(item.get("port")) for item in listeners
@@ -213,26 +251,33 @@ def evaluate_isolation(run_dir: str | Path) -> IsolationVerdict:
     else:
         verdict.asm_mw_031_holds = None
 
-    # Classify each probe. Only when the table is readable can a reached probe
-    # be told from a dropped one.
+    # Classify each probe. Every probe that is neither isolated nor reached is
+    # unknown and a coverage gap: a failed send, an incomplete or malformed
+    # record, or a probe from the guest's loopback shows nothing, and is never
+    # silently skipped (review R15/R27/R38). Only when the table is readable
+    # can a captured probe be told from a dropped one; a direct receipt needs
+    # no counter.
+    loopback_seen = False
     for attempt in attempts:
         if not isinstance(attempt, dict):
+            verdict.unknown_probes.append({"port": None, "malformed": True})
             continue
         port = _as_int(attempt.get("port"))
         if port is None:
-            continue  # a malformed probe record shows nothing (hostile input, review R38)
-        state = _classify(attempt, captured)
+            verdict.unknown_probes.append(attempt)  # a malformed probe record shows nothing (review R38)
+            continue
+        state = _classify(attempt, captured, udp_receipts, tcp_receipts)
         if state == "isolated":
             verdict.isolated_probes += 1
             continue
-        if state == "unknown":
-            if attempt.get("send_status") == SENT:
-                verdict.unknown_probes.append(attempt)
-            continue
-        # reached
-        if not verdict.table_readable:
+        if state in ("unknown", "invalid"):
+            loopback_seen = loopback_seen or state == "invalid"
             verdict.unknown_probes.append(attempt)
             continue
+        if state == "reached" and not verdict.table_readable:
+            verdict.unknown_probes.append(attempt)
+            continue
+        # reached (capture and counter) or received (direct evidence)
         if port == FRAME_ASSEMBLER_PORT:
             verdict.reached_frame_assembler.append(attempt)
         elif port in layer_dds_ports:
@@ -240,10 +285,13 @@ def evaluate_isolation(run_dir: str | Path) -> IsolationVerdict:
         elif port in dds_set:
             verdict.reached_other.append(attempt)
 
+    if loopback_seen:
+        verdict.problems.append("a probe record names the guest's loopback as its source; such a datagram cannot "
+                                "leave the guest, so it shows nothing")
     if verdict.unknown_probes:
         ports = sorted({p for a in verdict.unknown_probes if (p := _as_int(a.get("port"))) is not None})
-        verdict.coverage_gaps.append(f"{len(verdict.unknown_probes)} probes did not arrive at the host or were not "
-                                     f"sent (ports {ports[:8]}); they show nothing")
+        verdict.coverage_gaps.append(f"{len(verdict.unknown_probes)} probes did not arrive at the host, were not "
+                                     f"sent, or are malformed (ports {ports[:8]}); they show nothing")
 
     # Coverage: every listed socket, host address and interface must be probed.
     if isinstance(coverage, dict) and coverage:
