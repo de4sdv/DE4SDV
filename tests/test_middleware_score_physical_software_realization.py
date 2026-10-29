@@ -374,8 +374,8 @@ def test_the_relay_subscribes_through_the_gateway_and_removes_the_broker_wrapper
                       "from the bench's synthetic frame source",
                       "This rule is the discard that REQ-MW-019 relies on in the guest.",
                       "on 127.0.0.1:4731 of the IVI VM loopback",
-                      # The resubscription (proposed; the owner decides), with the conditions of both reviews.
-                      "Subscription (proposed; the owner decides):",
+                      # The resubscription (owner decision of 2026-10-29), with the conditions of both reviews.
+                      "Subscription (owner decision of 2026-10-29):",
                       "The relay keeps one subscription for its lifetime, with or without a client.",
                       "It runs the gateway client (init, subscribe and read) on a thread of its own, with bounded "
                       "waits. The loopback server and the ingress connection do not depend on that thread.",
@@ -561,9 +561,9 @@ def test_the_host_isolation_is_an_obligation_with_an_open_gap() -> None:
             "feasibility runs of 2026-10-28 (GAP-MW-038)\";") in text, (
         "the frame mapping record lists the isolation gap, the version skew, the restart gap and the AAOS SDV path "
         "assumption")
-    # The proposed host configuration is written by interface (technical review R1), and the SOME/IP rule is
-    # hardening bound to the bridge port of the SDV Core VM (technical review R2); both wait for the owner.
-    for statement in ("Proposed host configuration (proposed; the owner decides): rules by interface, not by source "
+    # The host configuration is written by interface (technical review R1), and the SOME/IP rule is hardening
+    # bound to the bridge port of the SDV Core VM (technical review R2); the owner decided both on 2026-10-29.
+    for statement in ("Host configuration (owner decision of 2026-10-29): rules by interface, not by source "
                       "address.",
                       "drops UDP 30150-30151 and 30160-30401, and TCP 4721, on every interface except lo.",
                       "the bench's ROS_DOMAIN_ID 91 with MaxAutoParticipantIndex 120",
@@ -572,7 +572,7 @@ def test_the_host_isolation_is_an_obligation_with_an_open_gap() -> None:
                       "of the buried network of each VM, and any other cvd-* bridge address).",
                       "The IVI VM can reach the SOME/IP ports of someipd: one routing rule in the guest is enough, so "
                       "the host must not rely on the routing of the guest.",
-                      "Proposed hardening (proposed; the owner decides), for REQ-MW-019 and REQ-MW-015, not for "
+                      "Hardening (owner decision of 2026-10-29), for REQ-MW-019 and REQ-MW-015, not for "
                       "REQ-MW-016:",
                       "accepts UDP 30490 and TCP 30509 to the host only from that bridge port. It also matches ip "
                       "saddr 192.168.98.3 and the MAC address of that VM.",
@@ -741,7 +741,7 @@ def test_asm_mw_032_assumes_order_and_bytes_on_the_aaos_sdv_hops() -> None:
 
 
 def test_gap_mw_048_records_that_nothing_restarts_the_broker_and_its_stack() -> None:
-    """The broker and the stack are oneshot; the bench recovery and the ways out are proposals for the owner."""
+    """The broker and the stack are oneshot; the bench recovery is an owner decision, the ways out are later ones."""
     text = PHYSICAL.read_text(encoding="utf-8")
     assert re.search(r"\bpart <'GAP-MW-048'> gapSOMEIPBrokerAndStackNotRestarted : IncrementGap \{", text)
     holders = [path.name for path in SCORE_SLICES if "<'GAP-MW-048'>" in path.read_text(encoding="utf-8")]
@@ -760,7 +760,7 @@ def test_gap_mw_048_records_that_nothing_restarts_the_broker_and_its_stack() -> 
                       "Detection: for either death, the logcat of the SDV Core VM shows",
                       "So the reboot keeps the launch configuration",
                       "it gives no burst of GAP-MW-039, and one procedure covers both deaths.",
-                      "Bench recovery (proposed; the owner decides): a manual recovery by the operator, for the bench "
+                      "Bench recovery (owner decision of 2026-10-29): a manual recovery by the operator, for the bench "
                       "only.",
                       "No availability claim is made. Phase 10 measures how long the HMI shows stale",
                       "A failure of the SD agent or of sdv_gateway in the IVI VM needs a reboot of the IVI VM",
@@ -771,6 +771,17 @@ def test_gap_mw_048_records_that_nothing_restarts_the_broker_and_its_stack() -> 
         assert statement in gap, statement
     assert re.findall(r"\bdependency (\w+)\s+from gapSOMEIPBrokerAndStackNotRestarted to ([\w:]+);", text) == [
         ("brokerRestartGapOnSDVCoreVM", "scoreTwoDomainPhysicalSystem::sdvCoreGuest")]
+
+
+def test_the_owner_decisions_of_2026_10_29_replace_the_proposals() -> None:
+    """The owner decided the relay's subscription, the host rules and the bench recovery; no proposal is left."""
+    text = PHYSICAL.read_text(encoding="utf-8")
+    assert "(proposed; the owner decides)" not in _flat(text), "a proposal marker is left"
+    assert "Subscription (owner decision of 2026-10-29):" in _named_part_doc(text, "iviFrameRelay")
+    gap = _part_doc(text, "GAP-MW-046")
+    assert "Host configuration (owner decision of 2026-10-29): rules by interface" in gap, gap
+    assert "Hardening (owner decision of 2026-10-29), for REQ-MW-019 and REQ-MW-015" in gap, gap
+    assert "Bench recovery (owner decision of 2026-10-29):" in _part_doc(text, "GAP-MW-048")
 
 
 def _design_data_carriers(text: str) -> list[str]:

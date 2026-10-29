@@ -224,7 +224,8 @@ KNOWN_PRESENTATION_NOTES = {
         "is in the source only. This is an observed render limit in SysIDE "
         "0.10.3; the cause is not documented. A narrower exposure drew three "
         "more of these connections, but it also drew some exposed members "
-        "twice, so it is not published. Domain placement is stated in the "
+        "twice. So the owner chose this exposure (owner decision of "
+        "2026-10-29). Domain placement is stated in the "
         "process docs and the connection names; the view does not draw the "
         "boundaries between the host and the two VMs."
     ),

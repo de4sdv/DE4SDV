@@ -303,7 +303,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * frames from the bench's synthetic frame source, in order. After it
        * removed the wrapper, each frame was equal byte for byte to the frame
        * on the host.
-       * Subscription (proposed; the owner decides):
+       * Subscription (owner decision of 2026-10-29):
        * - The relay keeps one subscription for its lifetime, with or without
        *   a client. An unsubscription would not stop the stream. In the
        *   feasibility runs, the platform sent the topic to the IVI VM for at
@@ -1528,33 +1528,32 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * bench, and the reachability probe of the case that verifies REQ-MW-016
      * checks it. Until then, the isolation
      * that REQ-MW-016 and ASM-MW-029 need is not realized.
-     * Proposed host configuration (proposed; the owner decides): rules by
-     * interface, not by source address. In an inet input chain, the host
-     * drops UDP 30150-30151 and 30160-30401, and TCP 4721, on every interface
-     * except lo. The UDP ports are the DDS ports of the bench's ROS_DOMAIN_ID
-     * 91 with MaxAutoParticipantIndex 120, and the configuration records both
+     * Host configuration (owner decision of 2026-10-29): rules by interface,
+     * not by source address. In an inet input chain, the host drops UDP
+     * 30150-30151 and 30160-30401, and TCP 4721, on every interface except lo.
+     * The UDP ports are the DDS ports of the bench's ROS_DOMAIN_ID 91 with
+     * MaxAutoParticipantIndex 120, and the configuration records both
      * parameters. A rule by source subnet would miss a guest network: each VM
      * also has a network of its own (buried_eth0), and CycloneDDS receives on
      * every address. The reachability probe runs from each VM, over each of
      * its interfaces (eth1, buried_eth0, the VLAN interfaces, and wlan if
-     * present), to each address of the host (192.168.98.1, the host end of
-     * the buried network of each VM, and any other cvd-* bridge address).
+     * present), to each address of the host (192.168.98.1, the host end of the
+     * buried network of each VM, and any other cvd-* bridge address).
      * Design data, not evidence of record: an unreviewed DE4SDV feasibility
      * run on the bench VM (2026-10-28) found layer 3 open on eth1. The IVI
      * VM can reach the SOME/IP ports of someipd: one routing rule in the
      * guest is enough, so the host must not rely on the routing of the
      * guest. No element of the layer in the IVI VM uses SOME/IP.
-     * Proposed hardening (proposed; the owner decides), for REQ-MW-019 and
-     * REQ-MW-015, not for REQ-MW-016: a SOME/IP rule bound to the bridge
-     * port of the SDV Core VM. A rule of the nftables bridge family, or of
-     * br_netfilter with an iifname match, accepts UDP 30490 and TCP 30509 to
-     * the host only from that bridge port. It also matches ip saddr
-     * 192.168.98.3 and the MAC address of that VM. It drops those ports from
-     * every other bridge port, and a static neighbour entry pins that MAC
-     * address. So only the broker subscribes at someipd. An IP match alone
-     * is not enough on a shared bridge: a guest with root can send from
-     * 192.168.98.3. REQ-MW-016 does not need the rule, because someipd has
-     * no receiver for guest data.
+     * Hardening (owner decision of 2026-10-29), for REQ-MW-019 and REQ-MW-015,
+     * not for REQ-MW-016: a SOME/IP rule bound to the bridge port of the SDV
+     * Core VM. A rule of the nftables bridge family, or of br_netfilter with
+     * an iifname match, accepts UDP 30490 and TCP 30509 to the host only from
+     * that bridge port. It also matches ip saddr 192.168.98.3 and the MAC
+     * address of that VM. It drops those ports from every other bridge port,
+     * and a static neighbour entry pins that MAC address. So only the broker
+     * subscribes at someipd. An IP match alone is not enough on a shared
+     * bridge: a guest with root can send from 192.168.98.3. REQ-MW-016 does
+     * not need the rule, because someipd has no receiver for guest data.
      */
   }
   dependency hostPortIsolationGapOnLinuxHost
@@ -1629,7 +1628,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * until the SDV Core VM recovers. The relay ends its phase on its
      * timeout and subscribes again (iviFrameRelay). The HMI shows its stale
      * overlay, as after a failure on the host (GAP-MW-043).
-     * Bench recovery (proposed; the owner decides): a manual recovery by the
+     * Bench recovery (owner decision of 2026-10-29): a manual recovery by the
      * operator, for the bench only. The operator reboots the SDV Core VM, in
      * the guest or by a restart of its cvd group, and not by a new create.
      * So the reboot keeps the launch configuration:
