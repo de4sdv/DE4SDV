@@ -163,6 +163,13 @@ package DE4SDV_AEBSVisualizationFraming {
   part safetyComplianceClaimOutOfScope : OutOfScopeItem {
     doc /* Safety, ASIL, compliance, certification, homologation claims. */
   }
+  part visualizationAsProductFeatureOutOfScope : OutOfScopeItem {
+    doc /*
+     * The AEBS visualization as a product feature or a common capability. It
+     * is System 2 engineering and evidence instrumentation and must not enter
+     * any System 1 feature configuration or bill of features.
+     */
+  }
 
   part asmSystem1Unchanged : IncrementAssumption {
     doc /*
