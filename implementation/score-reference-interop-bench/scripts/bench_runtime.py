@@ -154,13 +154,7 @@ def clean_lola_state(record: list[str]) -> None:
 
 
 # The variables that config/ros_environment.sh sets, and the ones a probe case changes.
-ENVIRONMENT_KEYS = (
-    "RMW_IMPLEMENTATION",
-    "CYCLONEDDS_URI",
-    "ROS_DOMAIN_ID",
-    "ROS_LOCALHOST_ONLY",
-    "FASTRTPS_DEFAULT_PROFILES_FILE",
-)
+ENVIRONMENT_KEYS = ("RMW_IMPLEMENTATION", "CYCLONEDDS_URI", "ROS_DOMAIN_ID", "ROS_LOCALHOST_ONLY")
 
 
 def bench_environment_problems(env: dict[str, str]) -> list[str]:
@@ -178,14 +172,13 @@ def bench_environment_problems(env: dict[str, str]) -> list[str]:
     return problems
 
 
-def bench_environment(extra: dict[str, str] | None = None, remove: tuple[str, ...] = ()) -> dict[str, str]:
-    """The environment of a bench process: the sourced bench environment, changed only by extra and remove."""
+def bench_environment(extra: dict[str, str] | None = None) -> dict[str, str]:
+    """The environment of a bench process: the sourced bench environment, changed only by extra."""
     env = dict(os.environ)
     problems = bench_environment_problems(env)
     if problems:
         raise SystemExit("source /opt/ros/humble/setup.bash and config/ros_environment.sh first: " + "; ".join(problems))
-    for key in ("FASTRTPS_DEFAULT_PROFILES_FILE", "MW_LOG_CONFIG_FILE", *remove):
-        env.pop(key, None)
+    env.pop("MW_LOG_CONFIG_FILE", None)
     env["RCUTILS_LOGGING_BUFFERED_STREAM"] = "0"
     env["PYTHONUNBUFFERED"] = "1"
     if extra:

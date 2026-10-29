@@ -493,6 +493,24 @@ def test_a_malformed_provider_record_is_error_evidence():
     assert _evaluate(provider_log=provider)["outcome"] == "errorEvidence"
 
 
+# The bit patterns are hex digits only: a final newline makes a record malformed, whatever its send result.
+
+@pytest.mark.parametrize("send", ["ok", "failed"])
+def test_provider_bits_with_a_final_newline_are_error_evidence(send):
+    record = {"seq": 7, "bits": "0123456789abcde\n", "monotonic_ns": 5, "send": send}
+    result = _evaluate(provider_log=_provider_log() + json.dumps(record) + "\n")
+    assert result["outcome"] == "errorEvidence"
+    assert any("a provider record is malformed" in reason for reason in result["reasons"])
+
+
+def test_observer_bits_with_a_final_newline_are_error_evidence():
+    lines = _observer_lines(range(FIRST_PUBLISHED, LAST_PUBLISHED + 1))
+    lines[10] = json.dumps(_message(FIRST_PUBLISHED + 10, longitudinal_velocity_bits="4120000\n"))
+    result = _evaluate(observer_log=_observer_log(lines))
+    assert result["outcome"] == "errorEvidence"
+    assert any("an observer record is malformed" in reason for reason in result["reasons"])
+
+
 @pytest.mark.parametrize(
     "mutation",
     [

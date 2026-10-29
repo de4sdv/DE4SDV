@@ -6,16 +6,7 @@
 # and disk caches under ~/.cache/de4sdv-bazel, and records the runner facts.
 # Usage: ci_prepare_runner.sh [--runner] <facts-dir>
 set -euo pipefail
-# Runner only: the ci_* scripts are written for a disposable CI runner and
-# may change the host (packages, ~/.bazelrc, /usr/local, large build trees).
-# Each one refuses to run elsewhere unless its first argument is --runner.
-# The bench VM has its own path (README, section "Bench VM").
-if [ "${1:-}" = "--runner" ]; then
-  shift
-elif [ "${GITHUB_ACTIONS:-}" != "true" ]; then
-  echo "$(basename "$0"): runs only on a CI runner (GITHUB_ACTIONS=true) or with --runner as the first argument" >&2
-  exit 2
-fi
+source "$(dirname "${BASH_SOURCE[0]:?}")/runner_only.sh" || exit 2
 
 out=${1:?usage: ci_prepare_runner.sh <facts-dir>}
 mkdir -p "$out"
