@@ -109,7 +109,7 @@ def _heads(body: str) -> str:
 
 
 def _product_body() -> str:
-    return _body(_code(SLICE), r"\bpart\s+def\s+MiddlewareAutowareSCOREConfiguredProduct\s*\{")
+    return _body(_code(SLICE), r"\bpart\s+def\s+MiddlewareAutowareSCOREConfiguredProduct\s*:>\s*ProductLineConfiguredProduct\s*\{")
 
 
 def _composite_parts_typed_by(body: str, definition: str) -> list[str]:
@@ -181,10 +181,14 @@ def test_the_configured_product_holds_one_instance_and_one_owner_per_platform_la
 
 
 def test_the_configured_product_is_no_member_product_before_phase_12() -> None:
-    """Until the phase-12 decision it specializes no member-product type (tests/test_member_product_projections.py)."""
+    """Until the phase-12 decision it specializes no member-product type (tests/test_member_product_projections.py).
+    It specializes only the kernel's ProductLineConfiguredProduct, the configured product of phase 9 (owner
+    decision of 2026-10-29), which makes no member."""
     code = _code(SLICE)
-    assert re.search(r"\bpart\s+def\s+MiddlewareAutowareSCOREConfiguredProduct\s*\{", code)
-    assert not re.search(r"(?::>(?!>)|\bspecializes\b)", code)
+    assert re.search(r"\bpart\s+def\s+MiddlewareAutowareSCOREConfiguredProduct\s*:>\s*ProductLineConfiguredProduct\s*\{",
+                     code)
+    assert re.findall(r":>(?!>)\s*([\w:]+)", code) == ["ProductLineConfiguredProduct"]
+    assert not re.search(r"\bspecializes\b", code)
     assert "ProductLineMemberProduct" not in code
 
 
