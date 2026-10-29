@@ -17,7 +17,7 @@ cut of the licensed full-model export of one revision, made by
   definitions, and the COVESA_VSS signal with its `@VssSignalMetadata`;
 - INC-MW-011's operational-context package in full (`--keep-package`): a
   SystemContext whose use cases bind their subject and actors, a shape
-  INC-AEBS-010 does not have;
+  INC-AEBS-010 did not have at the revision of the cut;
 - the library attribute bases its content redefines;
 - what those elements reference.
 
