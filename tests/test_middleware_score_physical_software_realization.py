@@ -229,11 +229,12 @@ def test_the_relay_discard_rule_traces_its_requirements_bound_and_residual() -> 
                       "the notification PublicationDestroyed of the subscription",
                       "no message for 3 s, the relay's own timeout",
                       "saw PublicationDestroyed within about 0.1 s after a restart of someipd",
-                      # A phase end that the layer causes is a delivery failure, never an unsubscription
-                      # (claims review R1).
-                      "while the ingress stays connected, is a delivery failure of the layer. It is not an "
-                      "unsubscription of the HMI application. So the verification of REQ-MW-014 records every phase "
-                      "end.",
+                      # A phase end that the layer causes is a delivery failure for REQ-MW-014, and for REQ-MW-019
+                      # the new phase is the current subscription (claims review R1 of phase 8 and of phase 10).
+                      "A phase end that the layer causes is a phase end by PublicationDestroyed, by Disconnected or "
+                      "by the timeout, while the ingress stays connected. For REQ-MW-014 it is a delivery failure of "
+                      "the layer, not an unsubscription of the HMI application. For REQ-MW-019 the new phase is the "
+                      "current subscription. So the verification of REQ-MW-014 records every phase end.",
                       "It never lets the run pass.",
                       "A DATA_LOSS status of a read is a gap (GAP-MW-037). It does not end the phase.",
                       "So the timeout is the event that ends the phase then (GAP-MW-048).",
@@ -246,8 +247,10 @@ def test_the_relay_discard_rule_traces_its_requirements_bound_and_residual() -> 
                       "after its subscription",
                       "the rule drops no frame that the AEBS stack produced after the phase start"):
         assert statement in rule, statement
-    # The SOME/IP events of the parked receiver no longer define the phase: the broker ends SOME/IP.
-    for gone in ("SubscribeEventgroupAck", "TCP keepalive", "a reboot of someipd"):
+    # The SOME/IP events of the parked receiver no longer define the phase: the broker ends SOME/IP. The unscoped
+    # sentence that read a phase end as no unsubscription for every requirement is gone.
+    for gone in ("SubscribeEventgroupAck", "TCP keepalive", "a reboot of someipd",
+                 "It is not an unsubscription of the HMI application."):
         assert gone not in rule, gone
 
 
@@ -349,6 +352,10 @@ def test_the_relay_code_uses_the_margin_and_the_copy_window_of_the_model() -> No
 def test_the_relay_repeats_the_ingress_trigger_only_until_its_first_client() -> None:
     doc = _named_part_doc(PHYSICAL.read_text(encoding="utf-8"), "iviFrameRelay")
     for statement in ("It does so at each of its own starts, once its loopback server listens.",
+                      # The host property is a second start of the ingress (relay review R8).
+                      "Before the trigger, at each start, the relay sets the ingress's frame-server host property to "
+                      "127.0.0.1. Setting that property also starts the ingress (ingress/de4sdv_aebs_ingress.rc:9-13 "
+                      "of the INC-AEBS-010 bench).",
                       "So until the first client of the current relay process connects, the relay repeats the "
                       "trigger at a fixed interval, a fixed number of times at most.",
                       "After that first client, it never triggers the ingress again."):
@@ -364,10 +371,18 @@ def test_the_relay_subscribes_through_the_gateway_and_removes_the_broker_wrapper
                       "Each message holds the SOME/IP payload of one frame event in the broker's wrapper for "
                       "INTERPRET_AS_BYTES: a protobuf message with one bytes field "
                       "(some_ip/broker_agent_comms/src/translator/broker_translator.rs:248-262).",
-                      # The strict parse of the wrapper (technical review R10).
-                      "The relay parses the wrapper strictly. The outer varint must equal the size that remains. "
-                      "Exactly one field must follow: field 1 of wire type 2 (0x0A), whose length equals the rest, "
-                      "with no other byte.",
+                      # The strict parse of the wrapper (technical review R10), in the form of the broker's real
+                      # slots: a zero-filled slot of the message size around the message (relay review R2).
+                      "The relay parses the wrapper strictly. Each slot that it reads has the publication's message "
+                      "size. The outer varint gives the length of the message that follows it, and that message must "
+                      "fit in the slot. The message must hold exactly one field: field 1 of wire type 2 (0x0A), whose "
+                      "length equals the rest of the message. Both varints must be in their shortest form. Every byte "
+                      "of the slot after the message must be zero: the broker writes the message into a zero-filled "
+                      "buffer of the slot size (some_ip/broker_agent_comms/src/translator/broker_translator.rs:266-279). "
+                      "Anything else is malformed, and the relay drops it with a reason of its own. Design data, not "
+                      "evidence of record: in the feasibility run, each of the 14038 messages that the IVI probe "
+                      "recorded had this shape in a slot of 4101 bytes, and Data Tunnel carried each slot whole. No run "
+                      "recorded the bytes of a slot after its message in the IVI VM (ASM-MW-032).",
                       "Then it forwards a payload only when the payload's own length prefix matches the payload length",
                       "The broker subscribes to someipd whether an IVI subscriber exists or not "
                       "(some_ip/broker_agent_comms/src/pubsub/pubsub_handler.rs:764-923).",
@@ -382,8 +397,16 @@ def test_the_relay_subscribes_through_the_gateway_and_removes_the_broker_wrapper
                       "On PublicationDestroyed, it ends the old subscription and subscribes again: every 100 ms for "
                       "the first 5 s, then every second.",
                       "PublicationDestroyed came within about 0.1 s after a restart of someipd",
-                      "On Disconnected, it creates the gateway client again, with a bounded retry, and it logs each "
-                      "attempt. Disconnected is an event of the API. The feasibility runs did not see it.",
+                      # One gateway client per process, so the relay exits to recover (relay review R1, option a).
+                      "Gateway client (owner decision of 2026-10-29, revised 2026-10-29: the library allows one client "
+                      "per process). A second creation fails, also after the first client was deleted "
+                      "(sdv_gateway/libsdvgatewayclient/include/libsdvgatewayclient.h:473-475). "
+                      "After the client has been created, the relay never deletes and re-creates it. On Disconnected, "
+                      "or when initComms fails after the client was created, the relay logs gateway_client_lost with "
+                      "the status. It ends the phase as a layer-caused phase end and exits with a code of its own. "
+                      "Init then starts the relay as a new process, which triggers the ingress again. In the same "
+                      "process, the relay retries only a creation of the client that itself failed. Disconnected is an "
+                      "event of the API. The feasibility runs did not see it.",
                       "When no message comes for 3 s, it ends the subscription and subscribes again.",
                       "After three subscriptions in a row that bring no message, it waits 5 s between them.",
                       "It counts each failed subscription and logs it with its status text.",
@@ -397,8 +420,20 @@ def test_the_relay_subscribes_through_the_gateway_and_removes_the_broker_wrapper
                       "de4sdv-score-aebs-signal-frame."):
         assert statement in doc, statement
     assert "FLAG_FETCHLASTMESSAGE" not in doc, "the relay never asks for the last message before its subscription"
-    for gone in ("about 0.5 s", "no message comes for 1 s", "android14-release", "which someipd enforces"):
+    for gone in ("about 0.5 s", "no message comes for 1 s", "android14-release", "which someipd enforces",
+                 # The literal form would drop every real slot: the message is shorter than its slot (relay review R2).
+                 "The outer varint must equal the size that remains.",
+                 # A second client in the same process fails (relay review R1).
+                 "creates the gateway client again",
+                 # The owner answered on 2026-10-29; no placeholder stays.
+                 "revised …", "revised ..."):
         assert gone not in doc, gone
+    # No added sentence of the gateway-client bullet may bring back a re-creation of the client (closure check R3).
+    start = doc.index("- Gateway client (owner decision of 2026-10-29")
+    bullet = doc[start:doc.index("- When no message comes for 3 s", start)]
+    rest = bullet.replace("After the client has been created, the relay never deletes and re-creates it.", "", 1)
+    assert rest != bullet, "the bullet keeps its rule against a re-creation"
+    assert not re.search(r"re-?creat|creates? (the client|it) again", rest, re.IGNORECASE), rest
     # The relay's input carries the wrapped topic; its behavior unwraps it (technical review R11).
     relay = _braced(PHYSICAL.read_text(encoding="utf-8"), r"\bpart iviFrameRelay : PhysicalAllocationElement \{")
     assert re.search(r"\bport frameTopicIn : DataTunnelPort \{", relay)
@@ -474,9 +509,11 @@ def test_the_adapter_declares_the_fault_injection_interface_that_the_abort_test_
 
 
 def test_vc_mw_020_does_not_close_req_mw_019_while_the_stored_frame_gap_is_open() -> None:
-    """The criteria of REQ-MW-019 declare the margin, so only the stored-frame gap holds a pass back."""
+    """The criteria of REQ-MW-019 declare the margin, so only the stored-frame gap holds a pass back. The case runs
+    the pair restart, so the closure names the two host-half events that it leaves to the preflight checks."""
     case = _verification_def_doc("UnsubscribedFrameDiscardVerification")
-    assert case.endswith("While GAP-MW-039 is open, a pass does not close REQ-MW-019."), case[-200:]
+    assert case.endswith("While GAP-MW-039 is open for a restart of gatewayd alone and for a late start of gatewayd, "
+                         "a pass does not close REQ-MW-019."), case[-200:]
     assert "GAP-MW-045 is open" not in case, "the declared margin no longer holds a pass back"
 
 
@@ -487,8 +524,9 @@ def test_vc_mw_020_checks_the_margin_and_the_condition_of_asm_mw_030() -> None:
                       "not have produced it more than the bound of ASM-MW-030 before the new subscription.",
                       "processData takes the production time from the frame timestamp, on the host clock. It takes "
                       "the start of the new subscription from the guest clock.",
-                      "If ASM-MW-030 does not hold in the run, the run does not show the criteria met. In that case, "
-                      "the outcome is inconclusiveMissingEvidence.",
+                      # A clock-independent violation fails the run first (phase-10 verification cases).
+                      "Otherwise, if ASM-MW-030 does not hold in the run, the run does not show the criteria met. In "
+                      "that case, the outcome is inconclusiveMissingEvidence.",
                       "It records the times of the stop and of the new subscription, and the offset between the host "
                       "clock and the guest clock."):
         assert statement in case, statement
@@ -550,10 +588,24 @@ def test_the_host_isolation_is_an_obligation_with_an_open_gap() -> None:
                  "with the remote endpoint of the frame service pinned to 192.168.98.1, so that an SD message from "
                  "the IVI VM cannot redirect the subscription",
                  "(5) provision the relay for the IVI VM:",
+                 # The ingress defaults its host to another address (relay review R8).
+                 "set the ingress's frame-server host property to 127.0.0.1 and its port property to 4731;",
                  "install exactly one ACL file for the relay's subject before the IVI VM boots",
-                 "(7) check on the host with ss -H -t -n -p state established '( sport = :4721 )'",
-                 "and record every phase end of the relay"):
+                 # The sport list counts the clients of the frame assembler; only dport names a client process
+                 # (form review S-R4 of phase 10).
+                 "(7) check on the host that the adapter is the only client of the frame assembler (ASM-MW-029), in "
+                 "two steps: the list of ss -H -t -n -p state established '( sport = :4721 )' holds exactly one "
+                 "connection, with a loopback address as its peer, and ss -H -t -n -p state established "
+                 "'( dport = :4721 )' names the adapter process for the port of that peer;",
+                 "and record every phase end of the relay",
+                 # The relay exits to recover its one gateway client (relay review R1, option a).
+                 "a gateway_client_lost exit of the relay with its restart by init and its new trigger of the "
+                 "ingress (iviFrameRelay),"):
         assert step in action, step
+    restart_cases = action[action.index("(9) "):action.index("; (10) ")]
+    assert "a gateway_client_lost exit of the relay with its restart by init and its new trigger of the ingress" in (
+        restart_cases), "the exit to recover the gateway client is a restart case of step 9"
+    assert "(7) check on the host with ss" not in action, "the one-step client check names no client process"
     assert ("the frame assembler binds 0.0.0.0:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), and the adapter "
             "connects to 127.0.0.1:4721 on the host loopback") in text
     assert "on the host loopback, 127.0.0.1:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35)" not in text, "citation"
@@ -734,6 +786,10 @@ def test_asm_mw_032_assumes_order_and_bytes_on_the_aaos_sdv_hops() -> None:
     assumption = _part_doc(text, "ASM-MW-032")
     assert "REQ-MW-014 and REQ-MW-015 rely on this on the AAOS SDV hops." in assumption
     assert "check this assumption end to end" in assumption
+    # The hops keep the whole slot, the zero fill after the wrapped payload included (relay review R2).
+    assert ("They keep each slot unchanged: the payload inside the broker's wrapper and the zero fill after it."
+            in assumption), assumption
+    assert "They keep each payload unchanged inside the broker's wrapper." not in assumption, assumption
     assert re.findall(r"\bdependency (\w+)\s+from asmAAOSSDVPathKeepsOrderAndBytes\s+to ([\w:]+);", text) == [
         ("aaosSdvPathAssumedForSDVCore", "scoreTwoDomainPhysicalSystem::integrationLayer::sdvCore"),
         ("aaosSdvPathAssumedForSDVGateway", "scoreTwoDomainPhysicalSystem::integrationLayer::sdvGateway"),
