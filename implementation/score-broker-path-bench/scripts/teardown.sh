@@ -23,12 +23,14 @@ fi
 "$HERE/host_isolation_firewall.sh" remove || true
 "$HERE/host_sd_multicast_route.sh" remove || true
 "$HERE/set_ivi_clock.sh" deny || true
-# 4. Stop and remove both guest VMs.
+# 4. Remove the probe sender from both guests and unstage it from the AOSP tree.
+"$HERE/provision_probe_sender.sh" remove || true
+# 5. Stop and remove both guest VMs.
 "$HERE/launch_two_vms.sh" down || true
-# 5. Revert the SDV Core image overlay (the base image is rebuilt on demand).
+# 6. Revert the SDV Core image overlay (the base image is rebuilt on demand).
 "$HERE/build_sdv_core_image.sh" revert || true
 
 cat >> "$RUN_DIR/vm-change-log.session.txt" <<EOF
-teardown $(date -u +%FT%T.%NZ): stopped recordings; removed relay provisioning, firewall, SD route, chrony allow; stopped and removed $CORE_GROUP and $IVI_GROUP; reverted the SDV Core overlay; kept the run evidence under $RUN_DIR
+teardown $(date -u +%FT%T.%NZ): stopped recordings; removed relay provisioning, firewall, SD route, chrony allow, probe sender; stopped and removed $CORE_GROUP and $IVI_GROUP; reverted the SDV Core overlay; kept the run evidence under $RUN_DIR
 EOF
 log "teardown done; session log in $RUN_DIR/vm-change-log.session.txt"
