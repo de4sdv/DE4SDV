@@ -29,8 +29,10 @@ for the separate application/model identity contract and abuse controls.
   served Git SHA, the deployment-specific SysML project/commit UUIDs, the
   semantic-authority identity (`baseline.semantic_authority`, `sai-…`), the
   served model (`baseline.served_model`: export digest, element count and
-  content digest), deployment timestamp, and read-only/experimental status.
-  `scripts/verify_public_api.py` checks both with a strict shape.
+  content digest), the identity of the export documents the binding records
+  (`baseline.export_documents`: the same fields), deployment timestamp, and
+  read-only/experimental status. `scripts/verify_public_api.py` checks them
+  with a strict shape.
 
 ## What is blocked (by design)
 
@@ -259,7 +261,10 @@ and activation ceremony is retired):
    The binding also records the `export_documents` of that export: the
    source document of each element and the references to elements outside
    the export, which the API listing does not carry. The method checks read
-   them over the API, so the binding is about 11 MB.
+   them over the API, so the binding is about 11 MB. `deploy.py` requires
+   the record to be the privileged import's (the same digest, export and
+   element count) and publishes its identity as
+   `baseline.export_documents` in `deployment-status.json`.
 3. **The deployed API.** `http://sysml2-api:9000` inside the compose network.
 4. **One startup check** (`de4sdv/semantic/deployment_runtime.py`). It
    refuses unless all of these hold:
@@ -290,10 +295,12 @@ Refusal is loud. A refused startup makes `/ask-status.json` report
 `semantic_authority.kind == "invalid"` with the reason, and the viewer then
 answers only on the labeled regex path. The MCP server exits with status 2
 and does not start. `/ask-status.json` reports `startup_check`, the served
-`semantic_authority` (`sai-…`), `served_model` and `served_model_check`. The
-post-deploy verifier (`verify_public_api.py`), the Ask verifier
-(`verify_public_ask.py`) and the scheduled monitor (`monitor_public_ask.py`)
-compare them with `deployment-status.json`. Nothing is declared by hand.
+`semantic_authority` (`sai-…`), `served_model`, `export_documents` and
+`served_model_check`. The post-deploy verifier (`verify_public_api.py`), the
+Ask verifier (`verify_public_ask.py`) and the scheduled monitor
+(`monitor_public_ask.py`) compare them with `deployment-status.json`. The
+post-deploy verifier requires `export_documents`; the other two compare it
+when the status document records it. Nothing is declared by hand.
 
 ## Release
 

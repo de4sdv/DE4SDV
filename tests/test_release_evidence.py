@@ -74,7 +74,10 @@ def _evidence() -> cre.Evidence:
                  "discriminator": {"hop_count": 18, "distinct_sources": 11, "errors": []},
                  "closure_identity": {"result": "EQUAL", "live_only": [], "bound_only": []},
                  "grounding": {"result": "EQUIVALENT", "missing": [], "conflicts": [],
-                               "governed_population": {"definitions": 1, "usages": 1}}},
+                               "governed_population": {"definitions": 1, "usages": 1}},
+                 "method_parity": {"schema": "de4sdv.method-parity/v1", "passed": True, "increments": [
+                     {"increment": "INC-EXAMPLE-001", "phase9_equal": True, "next_equal": True,
+                      "next_compared": True, "passed": True}]}},
         coverage={"residual": [], "residual_declarations": [], "duplicates": [],
                   "kernel_accounting_errors": []},
     )
@@ -87,7 +90,7 @@ def _failed(evidence):
 def test_agreeing_evidence_passes_every_check():
     results = cre.evaluate(_evidence())
     assert all(r["ok"] for r in results), [r for r in results if not r["ok"]]
-    assert len(results) == 19
+    assert len(results) == 20
 
 
 def _mutated(mutate):
@@ -121,6 +124,10 @@ def _mutated(mutate):
      "discriminator: live"),
     (lambda e: e.runtime["grounding"].update(missing=["anchor"]), "VerificationCase"),
     (lambda e: e.coverage.update(residual=["Planted"]), "coverage"),
+    (lambda e: e.runtime["method_parity"].update(passed=False), "method parity"),
+    (lambda e: e.runtime["method_parity"].update(increments=[]), "method parity"),
+    (lambda e: e.runtime.pop("method_parity"), "method parity"),
+    (lambda e: e.runtime.update(method_parity={"passed": False, "error": "RuntimeError: boom"}), "method parity"),
     (lambda e: e.batteries["query_coverage"].update(git_commit="b" * 40), "battery query_coverage"),
     (lambda e: e.batteries["scope_validation"]["revision"].update(sysml_commit_id="x"),
      "battery scope_validation: schema"),

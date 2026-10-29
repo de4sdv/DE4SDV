@@ -109,7 +109,10 @@ unless:
   `de4sdv/sysml_api/export_documents.py`), the corpus must hold exactly the
   elements they list. The method view reads them, so the method checks
   over the API read the export's documents. A binding without them still
-  starts; the checks that need them are then method side.
+  starts; the checks that need them are then method side. The startup
+  report names the record's digest (`export_documents`); the deploy and
+  the public verifiers compare it with the privileged import's record and
+  with `deployment-status.json`.
 
 `build_deployment_runtime` then assembles the facade over the verified
 contract (`model_authority_runtime.model_facade`) and the services

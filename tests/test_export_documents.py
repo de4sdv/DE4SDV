@@ -4,8 +4,9 @@ The API listing carries neither. The importer records both in the revision bindi
 from the export that the served-model record names, after the full-payload read-back. An evaluation over
 the API then reads the export's own documents, never files at the server's checkout. The record is
 lossless: it decodes to exactly the export's element sources and external references, in the export's
-order. Its digest is computed over those decoded values, the same way for an export, so a record equals
-an export's documents exactly when the digests agree. Any change to it is refused.
+order. Its digest covers the schema, the export it names, the element count and those decoded values,
+computed the same way for an export, so a record equals an export's documents exactly when the digests
+agree. Any change to it is refused, an edited label or an unused URI included.
 """
 from __future__ import annotations
 
@@ -54,7 +55,8 @@ def test_the_record_decodes_to_the_exports_own_documents_in_the_exports_order() 
     record = ExportDocuments.from_dict(json.loads(json.dumps(_record().to_dict())))
     assert dict(record.element_sources) == bundle.element_sources
     assert [dict(item) for item in record.external_references] == list(bundle.external_references)
-    assert record.content_sha256 == documents_digest(bundle.element_sources, bundle.external_references)
+    assert record.content_sha256 == documents_digest(bundle.element_sources, bundle.external_references,
+                                                     source_export_sha256=EXPORT_SHA)
     assert record.source_export_sha256 == EXPORT_SHA and record.element_count == len(bundle.elements)
     assert record == _record()
 
@@ -72,13 +74,16 @@ def test_the_serialized_record_names_each_element_once_and_each_uri_once() -> No
 
 def test_the_digest_is_the_same_for_an_export_and_its_record_and_moves_with_any_value() -> None:
     bundle = _bundle()
-    digest = documents_digest(bundle.element_sources, bundle.external_references)
-    moved = {**bundle.element_sources, "typing": "model/b.sysml"}
-    assert documents_digest(moved, bundle.external_references) != digest
-    reordered = list(reversed(bundle.external_references))
-    assert documents_digest(bundle.element_sources, reordered) != digest
-    assert documents_digest(dict(reversed(list(bundle.element_sources.items()))),
-                            bundle.external_references) == digest
+
+    def digest(sources=bundle.element_sources, references=bundle.external_references, export=EXPORT_SHA):
+        return documents_digest(sources, references, source_export_sha256=export)
+
+    assert digest() == _record().content_sha256
+    assert digest(sources={**bundle.element_sources, "typing": "model/b.sysml"}) != digest()
+    assert digest(references=list(reversed(bundle.external_references))) != digest()
+    assert digest(export="f" * 64) != digest()  # the export it names
+    assert digest(sources={k: v for k, v in bundle.element_sources.items() if k != "pkg-b"}) != digest()
+    assert digest(sources=dict(reversed(list(bundle.element_sources.items())))) == digest()
 
 
 def _mutated(mutate):
@@ -97,8 +102,11 @@ def _mutated(mutate):
     lambda v: v["external_references"][0].__setitem__(3, 1 - v["external_references"][0][3]),  # another uri
     lambda v: v["external_references"][0].__setitem__(3, 7),            # no such uri
     lambda v: v["external_references"][0].__setitem__(3, True),         # not an index
+    lambda v: v["external_references"][1].__setitem__(3, True),         # not an index, though True == 1 here
     lambda v: v["external_references"][0].append("extra"),              # another row shape
     lambda v: v["external_reference_uris"].append(LIBRARY),             # a uri twice
+    lambda v: v["external_reference_uris"].append("file:///unused.sysml"),  # a uri no reference uses
+    lambda v: v.__setitem__("source_export_sha256", "f" * 64),          # another export, label edited only
     lambda v: v.__setitem__("element_count", 4),                        # another count
     lambda v: v.__setitem__("content_sha256", "sha256:" + "0" * 64),    # another digest
     lambda v: v.__setitem__("source_export_sha256", "E" * 64),          # not a digest
@@ -167,7 +175,7 @@ def test_a_binding_whose_record_names_another_export_is_refused(served) -> None:
 # -- the importer -----------------------------------------------------------------------------------
 
 
-def _run_import(tmp_path, monkeypatch, *, readback_ids):
+def _run_import(tmp_path, monkeypatch, *, readback_ids, imported_count=None, main=False):
     from scripts import import_sysml_api_baseline as importer
     from de4sdv.sysml_api.ingestion import BaselineImportResult
 
@@ -184,16 +192,23 @@ def _run_import(tmp_path, monkeypatch, *, readback_ids):
     monkeypatch.setattr(importer, "_git_head", lambda: head)
     monkeypatch.setattr(importer.BaselineExportBundle, "load", staticmethod(lambda path: bundle))
     monkeypatch.setattr(importer.BaselineManifest, "discover", staticmethod(lambda root: None))
+    count = len(readback) if imported_count is None else imported_count
     monkeypatch.setattr(importer, "import_baseline", lambda client, b, project_name: BaselineImportResult(
-        project_id="p-1", commit_id="c-1", element_count=len(readback), internal_reference_count=1,
+        project_id="p-1", commit_id="c-1", element_count=count, internal_reference_count=1,
         content_sha256="sha256:" + "c" * 64))
     monkeypatch.setattr(importer.SysMLRepository, "list_elements", lambda self, p, c: readback)
     monkeypatch.setattr(importer, "validate_ontology_bindings", lambda *a, **k: passing)
     monkeypatch.setattr(importer, "cross_check_model_provider", lambda *a, **k: {"classification": "EQUIVALENT"})
     monkeypatch.setattr(importer, "targetless_check", lambda *a, **k: {"passed": True})
-    importer.run_import(api_url="http://api.invalid", export_path=export_path,
-                        binding_path=tmp_path / "binding.json", report_path=tmp_path / "report.json",
-                        project_name="t", git_repository="de4sdv/DE4SDV")
+    if main:
+        monkeypatch.setattr("sys.argv", ["import_sysml_api_baseline.py", "--api-url", "http://api.invalid",
+                                         "--export", str(export_path), "--binding", str(tmp_path / "binding.json"),
+                                         "--report", str(tmp_path / "report.json"), "--project-name", "t"])
+        assert importer.main() == 0
+    else:
+        importer.run_import(api_url="http://api.invalid", export_path=export_path,
+                            binding_path=tmp_path / "binding.json", report_path=tmp_path / "report.json",
+                            project_name="t", git_repository="de4sdv/DE4SDV")
     return hashlib.sha256(export_path.read_bytes()).hexdigest()
 
 
@@ -217,3 +232,24 @@ def test_the_importer_writes_no_binding_when_the_read_back_is_not_the_recorded_c
     with pytest.raises(RuntimeError, match="export documents"):
         _run_import(tmp_path, monkeypatch, readback_ids=["pkg-a", "typing", "subset", "import", "other"])
     assert not (tmp_path / "binding.json").exists()
+
+
+def test_the_importer_writes_no_binding_that_would_not_load(tmp_path, monkeypatch) -> None:
+    """The import reports another element count than the record lists: the binding would be refused when it
+    loads, so the importer refuses to write it."""
+    with pytest.raises(RuntimeError, match="the revision binding does not load"):
+        _run_import(tmp_path, monkeypatch, readback_ids=list(_bundle().element_sources), imported_count=6)
+    assert not (tmp_path / "binding.json").exists()
+
+
+def test_the_importer_prints_a_summary_and_not_the_binding(tmp_path, monkeypatch, capsys) -> None:
+    _run_import(tmp_path, monkeypatch, readback_ids=list(_bundle().element_sources), main=True)
+    printed = capsys.readouterr().out
+    summary = json.loads(printed)
+    binding_bytes = (tmp_path / "binding.json").read_bytes()
+    assert summary["binding_sha256"] == "sha256:" + hashlib.sha256(binding_bytes).hexdigest()
+    record = RevisionBinding.load(tmp_path / "binding.json").export_documents
+    assert summary["export_documents"] == record.summary()
+    assert summary["served_model"]["element_count"] == 5
+    # No record content: neither the per-document id lists nor any element id.
+    assert '"documents"' not in printed and "pkg-a" not in printed and "kernel_bindings" not in summary

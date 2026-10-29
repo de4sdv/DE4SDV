@@ -130,7 +130,7 @@ def load_export_snapshot(
             )
         recorded = binding.export_documents
         if recorded is not None:
-            own = documents_digest(sources, bundle.external_references)
+            own = documents_digest(sources, bundle.external_references, source_export_sha256=digest)
             if recorded.content_sha256 != own:
                 raise ExportEvaluationRefused(
                     f"revision binding records export documents {recorded.content_sha256}; "

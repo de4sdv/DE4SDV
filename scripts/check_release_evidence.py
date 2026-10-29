@@ -29,7 +29,11 @@ growth cannot trip it and a count-preserving swap cannot pass it.
     errors, and its live ``EvidenceContract`` closure equals, by element id,
     the bound members validated from the export;
   - ``VerificationCase`` grounds on the standard library (the decision-13
-    anchors) with nothing missing or conflicting.
+    anchors) with nothing missing or conflicting;
+  - method parity (``de4sdv.semantic.method_parity``): every increment the
+    export declares has, over the runtime service, the export path's phase-9
+    status and ``next``, unless the export's ``next`` is a gate that the API
+    binding withholds (the allocation guard).
 - **Coverage.** The model-projection coverage residual is empty.
 - **Batteries** (when given). Each report names this revision, the binding's
   SysML project/commit and semantic authority, and a served model that passed;
@@ -209,6 +213,14 @@ def evaluate(evidence: Evidence) -> list[dict[str, Any]]:
            grounding.get("result") == "EQUIVALENT" and grounding.get("missing") == []
            and grounding.get("conflicts") == [],
            {key: grounding.get(key) for key in ("result", "governed_population", "missing", "conflicts")})
+    parity = runtime.get("method_parity") or {}
+    _check(results, "method parity: over the runtime service every declared increment has the export path's "
+           "phase 9 and next",
+           parity.get("passed") is True and bool(parity.get("increments")),
+           {"increments": [{key: row.get(key) for key in ("increment", "phase9_equal", "next_equal",
+                                                          "next_compared")}
+                           for row in parity.get("increments") or ()],
+            "error": parity.get("error")})
 
     coverage = evidence.coverage
     _check(results, "coverage: empty residual, no duplicate provider, clean kernel accounting",
@@ -285,7 +297,8 @@ def collect(*, export_path: Path, binding_path: Path, semantic_report_path: Path
     from de4sdv.semantic import runtime_answers as answers
     from de4sdv.semantic import verification_grounding as vg
     from de4sdv.semantic.deployment_runtime import build_deployment_runtime
-    from de4sdv.semantic.export_evaluation import load_export_snapshot
+    from de4sdv.semantic.export_evaluation import export_view, load_export_snapshot
+    from de4sdv.semantic.method_parity import method_parity
     from de4sdv.semantic.model_contract import (
         bound_evidence_contract_closure,
         build_model_contract,
@@ -303,11 +316,13 @@ def collect(*, export_path: Path, binding_path: Path, semantic_report_path: Path
     )
     evidence.export_content_sha256 = served_model_digest(elements)
     try:
-        evidence.export_documents_sha256 = documents_digest(export.get("element_sources") or {},
-                                                            export.get("external_references") or [])
+        evidence.export_documents_sha256 = documents_digest(
+            export.get("element_sources") or {}, export.get("external_references") or [],
+            source_export_sha256=evidence.export_sha256)
     except Exception:  # noqa: BLE001 — an unreadable export leaves it empty; the check fails
         evidence.export_documents_sha256 = ""
     evidence.checkout_semantic_authority = build_model_contract(root).identity.to_dict()
+    snapshot = None
     try:
         snapshot = load_export_snapshot(Path(export_path), None, root=root)
         evidence.export_kernel_bindings = sorted(
@@ -340,6 +355,12 @@ def collect(*, export_path: Path, binding_path: Path, semantic_report_path: Path
         members = validate_closure_members(bound_evidence_contract_closure(root), elements,
                                            bundle.element_sources)
         runtime["closure_identity"] = _closure_identity(service, served_elements, members)
+        try:
+            if snapshot is None:
+                raise RuntimeError("the export snapshot did not load")
+            runtime["method_parity"] = method_parity(service, export_view(snapshot, root=root), snapshot.revision)
+        except Exception as exc:  # noqa: BLE001 — recorded; the parity check fails
+            runtime["method_parity"] = {"passed": False, "error": f"{type(exc).__name__}: {exc}"}
     except Exception as exc:  # noqa: BLE001 — recorded; the runtime checks fail
         runtime["error"] = f"{type(exc).__name__}: {exc}"
     evidence.runtime = runtime

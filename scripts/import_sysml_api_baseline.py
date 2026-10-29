@@ -170,9 +170,20 @@ def run_import(
         served_model=served_model,
         export_documents=export_documents,
     )
-    _write_json(binding_path, binding.to_dict())
+    # The binding is written only when it loads: the invariants of RevisionBinding.from_dict (the export
+    # documents record the export its served model names) hold for what the runtime reads.
+    document = binding.to_dict()
+    try:
+        RevisionBinding.from_dict(json.loads(json.dumps(document)))
+    except ValueError as exc:
+        raise RuntimeError(f"the revision binding does not load: {exc}; report={report_path}") from exc
+    _write_json(binding_path, document)
+    # A summary, never the binding itself: its export documents are about 11 MB.
     return {
-        "binding": binding.to_dict(),
+        "binding": str(binding_path),
+        "binding_sha256": "sha256:" + hashlib.sha256(binding_path.read_bytes()).hexdigest(),
+        "served_model": served_model.to_dict(),
+        "export_documents": export_documents.summary(),
         "semantic_report": str(report_path),
         "kernel_binding_summary": ontology.summary,
         "element_count": imported.element_count,

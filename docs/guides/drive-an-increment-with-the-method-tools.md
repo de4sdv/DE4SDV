@@ -415,19 +415,27 @@ path:
 - the library pins, such as the VSS signal metadata, are bound from those
   documents by the same file-mapped rule.
 
-So the phase-9 checks, and the other checks, give the export path's result
-over the API. Two cases still differ:
+So the phase-9 checks give the export path's result over the API, and so
+do the other checks, except in two cases:
 
 - **A binding without export documents.** A binding that an earlier
   importer wrote has none. Over it, the checks that need them are method
   side (`evaluation-input:export-documents` for phase 9,
   `library-binding:` for a library pin), never `next` and never a pass.
-  The next ingestion and deploy write a binding with them.
-- **The allocation checks of phases 6 to 8.** An API revision binding
-  withholds them while the admission of `allocatedTo` has open obligations
-  (see the allocations above). They are method side there
+  The next ingestion and deploy write a binding with them. A record that
+  does not list the served corpus is never read: the deployed runtime
+  refuses that corpus, and every answer with it.
+- **The checks that read native allocations.** At this revision they are
+  10 gates of phases 6 to 8 in each increment. An API revision binding
+  withholds them while the admission of `allocatedTo` has open
+  obligations (see the allocations above). They are method side there
   (`governed-relation:allocatedTo`), and the Method Check evaluates them on
   the export.
+
+The release evidence of each privileged ingestion checks this on the
+release export (method parity). For each declared increment, phase 9 and
+`next` over the runtime service must equal the export path's. A `next`
+that the allocation guard withholds over the API is not compared.
 
 ## On a pull request
 

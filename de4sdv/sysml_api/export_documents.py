@@ -12,14 +12,15 @@ and the external references keep the export's order:
     {"schema": "de4sdv.export-documents/v1",
      "source_export_sha256": "<64 hex: the export file, as in served_model>",
      "element_count": <the elements the documents list>,
-     "content_sha256": "sha256:<64 hex: documents_digest of the decoded values>",
+     "content_sha256": "sha256:<64 hex: documents_digest of the record>",
      "documents": {"<document path>": ["<element id>", ...]},
      "external_reference_uris": ["<uri>", ...],
      "external_references": [["<source element id>", "<property path>", "<target id>", <uri index>], ...]}
 
-:func:`documents_digest` is computed over the decoded values (element id -> document, and the external
-reference records in order), the same way for an export and for a record. A record equals an export's
-documents exactly when the two digests agree. Loading recomputes the digest and refuses any difference.
+:func:`documents_digest` covers the schema, the export the record names, the element count and the
+decoded values (element id -> document, and the external reference records in order). It is computed the
+same way for an export and for a record, so a record equals an export's documents exactly when the two
+digests agree. Loading recomputes it and refuses any difference, and refuses a URI that no reference uses.
 """
 from __future__ import annotations
 
@@ -41,11 +42,14 @@ _HEX64 = re.compile(r"^[0-9a-f]{64}$")
 _DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 
 
-def documents_digest(element_sources: Mapping[str, str],
-                     external_references: Iterable[Mapping[str, Any]]) -> str:
-    """``sha256:<hex>`` of the canonical JSON of the element sources (by id) and the external references (in
-    order). The same for an export bundle and for the record of its documents."""
-    payload = {"element_sources": {key: element_sources[key] for key in sorted(element_sources)},
+def documents_digest(element_sources: Mapping[str, str], external_references: Iterable[Mapping[str, Any]], *,
+                     source_export_sha256: str, schema: str = EXPORT_DOCUMENTS_SCHEMA) -> str:
+    """``sha256:<hex>`` of the canonical JSON of the schema, the export file digest, the element count, the
+    element sources (by id) and the external references (in order). The same for an export bundle and for
+    the record of its documents."""
+    payload = {"schema": schema, "source_export_sha256": source_export_sha256,
+               "element_count": len(element_sources),
+               "element_sources": {key: element_sources[key] for key in sorted(element_sources)},
                "external_references": [dict(record) for record in external_references]}
     text = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return "sha256:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -95,7 +99,8 @@ class ExportDocuments:
             raise ValueError("export documents: every element needs a source document, and there is at least one")
         references = tuple(_reference(record) for record in bundle.external_references)
         return cls(source_export_sha256=source_export_sha256, element_sources=MappingProxyType(sources),
-                   external_references=references, content_sha256=documents_digest(sources, references))
+                   external_references=references,
+                   content_sha256=documents_digest(sources, references, source_export_sha256=source_export_sha256))
 
     @classmethod
     def from_dict(cls, value: object) -> "ExportDocuments":
@@ -138,7 +143,9 @@ class ExportDocuments:
                 raise ValueError("export_documents.external_references rows must be "
                                  "[source element id, property path, target id, uri index]")
             references.append(dict(zip(REFERENCE_FIELDS, (row[0], row[1], row[2], uris[row[3]]))))
-        actual = documents_digest(sources, references)
+        if len({row[3] for row in rows}) != len(uris):
+            raise ValueError("export_documents.external_reference_uris lists a URI that no reference uses")
+        actual = documents_digest(sources, references, source_export_sha256=value["source_export_sha256"])
         if actual != value["content_sha256"]:
             raise ValueError(f"export_documents content is {actual}, its record says {value['content_sha256']}")
         return cls(source_export_sha256=value["source_export_sha256"], element_sources=MappingProxyType(sources),
