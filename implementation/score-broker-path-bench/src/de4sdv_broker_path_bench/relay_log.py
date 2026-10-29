@@ -153,3 +153,42 @@ def clock_step_in(events: list[dict], start_ns: int, end_ns: int | None) -> bool
         if step.get("in_phase") is True and end_ns is None:
             return True
     return False
+
+
+def new_phase_starts(before: list[dict], after: list[dict]) -> list[dict]:
+    """The phase_start events of ``after`` whose (pid, phase) key ``before`` does not hold.
+
+    set_ivi_clock.sh setup restarts the ingress after the clock setting; a new
+    phase_start must follow (#448 condition 2, review R37). The relay's own
+    (pid, phase) keys decide what is new, so no clock reading is needed.
+    """
+    seen = {(event.get("pid"), event.get("phase")) for event in before if event.get("event") == "phase_start"}
+    return [event for event in after if event.get("event") == "phase_start"
+            and (event.get("pid"), event.get("phase")) not in seen]
+
+
+def main(argv: list[str] | None = None) -> int:
+    """``new-phase-start --tag T --before F --after F``: print the new phase_start events; exit 1 when none."""
+    import argparse
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(prog="python3 -m de4sdv_broker_path_bench.relay_log")
+    sub = parser.add_subparsers(dest="command", required=True)
+    p = sub.add_parser("new-phase-start", help="the phase_start events that appeared between two logcat dumps")
+    p.add_argument("--tag", required=True)
+    p.add_argument("--before", required=True)
+    p.add_argument("--after", required=True)
+    arguments = parser.parse_args(argv)
+
+    def events(path: str) -> list[dict]:
+        file = Path(path)
+        return relay_events(file.read_text(errors="replace").splitlines(), arguments.tag) if file.exists() else []
+
+    new = new_phase_starts(events(arguments.before), events(arguments.after))
+    for event in new:
+        print(json.dumps(event, separators=(",", ":")))
+    return 0 if new else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

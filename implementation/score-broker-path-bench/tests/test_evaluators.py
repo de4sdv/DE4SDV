@@ -398,7 +398,9 @@ def test_vc020_clock_failure_suppresses_a_small_violation_to_inconclusive(tmp_pa
     # A failed ASM-MW-030 (50 ms offset) suppresses a violation that is within the
     # clock offset plus uncertainty plus 20 ms: it may be only the clock (review R19).
     frame = b.frame(7, T_SUB - 40_000_000)  # 40 ms before the start, below 20 + 50 + uncertainty
-    records = b.stream_records(4731, [frame], t0=T_SUB + 100_000_000)
+    # The normal order: the ingress connects (accept at T_SUB - 70 ms), then the
+    # relay logs the phase start, so the judged start is the relay's.
+    records = b.stream_records(4731, [frame], t0=T_SUB - 100_000_000)
     run = _vc020(tmp_path, records, phase_logcat(T_SUB), offset_ns=50_000_000)  # ASM-MW-030 fails
     assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.INCONCLUSIVE
 
@@ -551,11 +553,56 @@ def test_vc016_r34_gap_without_an_offer_time_is_inconclusive(tmp_path):
 
 def test_vc020_r33_capture_accept_later_than_relay_start_fails(tmp_path):
     # E16: the relay log says the phase started at T0, but the loopback accept is
-    # 200 ms later, and the frame was produced before that accept (R33).
+    # 230 ms later, and the frame was produced before that accept (R33).
     frame = b.frame(30, T_SUB + 100_000_000)
-    records = b.stream_records(4731, [frame], t0=T_SUB + 200_000_000)  # accept ~200 ms after the relay start
+    records = b.stream_records(4731, [frame], t0=T_SUB + 200_000_000)  # accept (ACK) at T_SUB + 230 ms
     run = _vc020(tmp_path, records, phase_logcat(T_SUB))
     assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.FAIL
+
+
+def test_vc020_r33_judged_start_is_the_later_of_relay_start_and_accept(tmp_path):
+    # Decision on R33: no tolerance. The judged start is the later of the relay's
+    # phase start and the ingress's loopback accept; a relay that claims a start
+    # 60 ms before the ingress connected is judged against the accept.
+    frame = b.frame(31, T_SUB + 20_000_000)  # produced 20 ms after the relay's start, 40 ms before the accept
+    records = b.stream_records(4731, [frame], t0=T_SUB + 30_000_000)  # accept (ACK) at T_SUB + 60 ms
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB))
+    assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.FAIL
+
+
+def test_vc020_r33_records_both_starts_and_their_difference(tmp_path):
+    frame = b.frame(30, T_SUB + 100_000_000)
+    records = b.stream_records(4731, [frame], t0=T_SUB + 200_000_000)  # accept (ACK) at T_SUB + 230 ms
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB))
+    starts = evaluators.evaluate_unsubscribed_discard(run).measurements["phase_starts"]
+    assert starts == [{"pid": 1234, "phase": 1, "connection": 0, "relay_start_ns": T_SUB,
+                       "accept_ns": T_SUB + 230_000_000, "accept_minus_relay_ns": 230_000_000,
+                       "judged_start_ns": T_SUB + 230_000_000}]
+
+
+def test_vc020_r33_normal_order_keeps_the_relay_start(tmp_path):
+    # R-U in the normal order: the ingress connects, then the relay logs the
+    # phase start; the max is the relay's own start, so a fresh frame produced
+    # after it passes, and an old-phase frame delivered in phase 1 is not
+    # judged against phase 2.
+    s2 = T_SUB + 30_000_000_000
+    old = b.stream_records(4731, [b.frame(1, s2 - 21_000_000_000)], t0=T_SUB - 40_000_000, cport=42001)
+    fresh = b.stream_records(4731, [b.frame(2, s2 + 30_000_000)], t0=s2 - 40_000_000, cport=42002)
+    logcat = (phase_logcat(T_SUB, T_SUB + 10_000_000_000, phase=1, client_connected=False, cause="client_lost")
+              + phase_logcat(s2, phase=2))
+    run = _vc020(tmp_path, sorted(old + fresh), logcat)
+    result = evaluators.evaluate_unsubscribed_discard(run)
+    assert result.outcome == outcome.PASS, result.as_dict()
+    assert all(entry["judged_start_ns"] == entry["relay_start_ns"] for entry in result.measurements["phase_starts"])
+
+
+def test_vc020_e3b_frame_within_the_margin_of_the_relay_start_passes(tmp_path):
+    # E3b in the normal order: guest clock -10 ms, a frame stamped 15 ms before the
+    # relay's start, compared raw; within the 20 ms margin.
+    frame = b.frame(8, T_SUB - 15_000_000)
+    records = b.stream_records(4731, [frame], t0=T_SUB - 100_000_000)  # accept at T_SUB - 70 ms
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB), offset_ns=-10_000_000)
+    assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.PASS
 
 
 def test_vc020_r18_ivi_vm_down_first_phase_is_data(tmp_path):
@@ -568,8 +615,9 @@ def test_vc020_r18_ivi_vm_down_first_phase_is_data(tmp_path):
               + b.phase_end_line(p1 + 10_000_000_000, p1, phase=1, layer_caused=False, client_connected=False,
                                  cause="client_lost") + "\n"
               + b.phase_start_line(p2, phase=2) + "\n")
-    records = (b.stream_records(4731, bad, t0=p1 + 10_000_000, cport=43001)
-               + b.stream_records(4731, clean, t0=p2 + 40_000_000, cport=43002))
+    # The normal order: each connection's accept comes before its phase start.
+    records = (b.stream_records(4731, bad, t0=p1 - 40_000_000, cport=43001)
+               + b.stream_records(4731, clean, t0=p2 - 40_000_000, cport=43002))
     run = _vc020(tmp_path, sorted(records), logcat, condition="ivi_vm_down")
     assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.PASS
 
@@ -585,8 +633,9 @@ def test_vc020_r30_clock_step_in_the_unjudged_first_phase_does_not_void(tmp_path
               + b.phase_end_line(p1 + 10_000_000_000, p1, phase=1, layer_caused=False, client_connected=False,
                                  cause="client_lost", clock_steps=1) + "\n"
               + b.phase_start_line(p2, phase=2) + "\n")
-    records = (b.stream_records(4731, first, t0=p1 + 30_000_000, cport=44001)
-               + b.stream_records(4731, clean, t0=p2 + 40_000_000, cport=44002))
+    # The normal order: each connection's accept comes before its phase start.
+    records = (b.stream_records(4731, first, t0=p1 - 40_000_000, cport=44001)
+               + b.stream_records(4731, clean, t0=p2 - 40_000_000, cport=44002))
     run = _vc020(tmp_path, sorted(records), logcat, condition="ivi_vm_down")
     assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.PASS
 
@@ -631,3 +680,33 @@ def test_run_cli_vc020_case_fails_when_one_condition_fails(tmp_path, capsys):
     result = json.loads(capsys.readouterr().out)["results"]["VC-MW-020"]
     assert code == 1 and result["outcome"] == outcome.FAIL
     assert result["conditions"]["pair_restart"]["outcome"] == outcome.FAIL
+
+
+# ------------------------------------------------- R37: a new phase after the clock setting
+
+def test_r37_new_phase_start_after_the_ingress_restart_is_found(tmp_path):
+    # set_ivi_clock.sh setup restarts the ingress after the clock setting; a new
+    # relay phase_start (a (pid, phase) key not in the log before) must follow.
+    from de4sdv_broker_path_bench import relay_log
+    before = (b.phase_start_line(T_SUB, phase=1) + "\n"
+              + b.phase_end_line(T_SUB + 5_000_000_000, T_SUB, phase=1, layer_caused=False, client_connected=False,
+                                 cause="client_lost") + "\n")
+    after = before + b.phase_start_line(T_SUB + 6_000_000_000, phase=2) + "\n"
+    (tmp_path / "before.txt").write_text(before)
+    (tmp_path / "after.txt").write_text(after)
+    new = relay_log.new_phase_starts(relay_log.relay_events(before.splitlines(), TAG),
+                                     relay_log.relay_events(after.splitlines(), TAG))
+    assert [(event["pid"], event["phase"]) for event in new] == [(1234, 2)]
+    code = relay_log.main(["new-phase-start", "--tag", TAG, "--before", str(tmp_path / "before.txt"),
+                           "--after", str(tmp_path / "after.txt")])
+    assert code == 0
+
+
+def test_r37_no_new_phase_start_is_reported(tmp_path):
+    from de4sdv_broker_path_bench import relay_log
+    log = b.phase_start_line(T_SUB, phase=1) + "\n"
+    (tmp_path / "before.txt").write_text(log)
+    (tmp_path / "after.txt").write_text(log)  # the same phase only: the ingress did not reconnect
+    code = relay_log.main(["new-phase-start", "--tag", TAG, "--before", str(tmp_path / "before.txt"),
+                           "--after", str(tmp_path / "after.txt")])
+    assert code == 1

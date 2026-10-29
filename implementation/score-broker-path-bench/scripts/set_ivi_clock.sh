@@ -54,23 +54,31 @@ setup() {
   # (#448 condition 2). init ignores `start` for a service that is already
   # running, so the oneshot ingress must be stopped first; the relay's
   # ingress-start property then starts a fresh ingress, which the relay accepts
-  # as a new client and logs as a new phase_start (review R37).
+  # as a new client and logs as a new phase_start (review R37). The relay's
+  # logcat tag is a required input (the relay lane owns it; it is not written
+  # into this file), so the new phase can be asserted.
+  [ -n "${RELAY_LOGCAT_TAG:-}" ] || { log "ERROR: export RELAY_LOGCAT_TAG to assert the new phase_start"; return 2; }
+  local before="$RUN_DIR/relay-before-ingress-restart.txt" after="$RUN_DIR/relay-after-ingress-restart.txt"
+  _guest "logcat -d -v epoch -v usec ${RELAY_LOGCAT_TAG}:* '*:S'" 2>/dev/null | tr -d '\r' > "$before"
   _guest "stop de4sdv_aebs_ingress" || true
   local i
   for i in $(seq 1 15); do
     [ "$(_guest 'getprop init.svc.de4sdv_aebs_ingress' | tr -d '\r')" = stopped ] && break; sleep 0.5
   done
   _guest "setprop de4sdv.aebs.ingress.start 0; setprop de4sdv.aebs.ingress.start 1" || true
-  log "stopped and restarted the ingress after the clock setting; a new relay phase_start must follow"
-  # The relay's logcat tag is a required input (the relay lane owns it; it is
-  # not written into this file, review R23/coupling). With it set, confirm a
-  # new phase_start after the setting.
-  if [ -n "${RELAY_LOGCAT_TAG:-}" ]; then
-    _guest "logcat -d -t 400 ${RELAY_LOGCAT_TAG}:* '*:S' 2>/dev/null | grep -m1 '\"event\":\"phase_start\"'" 2>/dev/null \
-      | tr -d '\r' | sed 's/^/new phase: /' || log "NOTE: no new phase_start seen yet; the ingress may not have reconnected"
-  else
-    log "NOTE: RELAY_LOGCAT_TAG unset; export it to confirm the new phase_start after the setting"
-  fi
+  log "stopped and restarted the ingress after the clock setting; waiting for a new relay phase_start"
+  # A phase_start whose (pid, phase) the log did not hold before the restart.
+  for i in $(seq 1 30); do
+    _guest "logcat -d -v epoch -v usec ${RELAY_LOGCAT_TAG}:* '*:S'" 2>/dev/null | tr -d '\r' > "$after"
+    # pipefail (set at the top) makes the pipeline fail when no new phase is found.
+    if PYTHONPATH="$HERE/../src" python3 -m de4sdv_broker_path_bench.relay_log new-phase-start \
+         --tag "$RELAY_LOGCAT_TAG" --before "$before" --after "$after" | sed 's/^/new phase: /'; then
+      log "a new phase started after the clock setting"; return 0
+    fi
+    sleep 1
+  done
+  log "ERROR: no new relay phase_start after the clock setting (the ingress did not reconnect); see $after"
+  return 1
 }
 
 measure() {

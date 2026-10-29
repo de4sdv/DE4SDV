@@ -78,9 +78,14 @@ Each evaluator reads a run directory of raw artifacts and returns an outcome of
 the middleware evidence vocabulary (passBoundedVerification, failObservedBehavior,
 inconclusiveMissingEvidence, blockedTargetRuntime, errorEvidence), mapped to a
 verdict as INC-MW-010 maps it. The independent captures are authoritative; the
-relay's log is the record of its subscription phases, which the loopback accept
-of the guest capture corroborates (a layer-caused phase end in the event is a
-delivery failure of the layer, so the relay log can fail the case). It compares
+relay's log is the record of its subscription phases (a layer-caused phase end
+in the event is a delivery failure of the layer, so the relay log can fail the
+case). For VC-MW-020 the judged start of a new phase is the later of the
+relay's phase start and the ingress's loopback accept in the guest capture;
+both times and their difference are recorded. A later start only makes the
+check stricter: a relay that claims a start before the ingress connected is
+judged against the accept, and in the normal order (the accept, then the
+relay's log line) the later time is the relay's own. It compares
 raw clock readings, with no offset correction, as the phase-8 rule and the
 verification case do. Precedence follows #448: only a failure whose evidence
 does not depend on an inconclusive condition dominates, so a capture gap, a
@@ -106,7 +111,7 @@ it read and a digest of the evaluator sources.
 | VC-MW-015 | REQ-MW-014 | every frame produced unambiguously inside a subscription phase (beyond the 20 ms clock band) reaches the HMI, in order, inter-arrival below 500 ms; a layer-caused phase end or a DATA_LOSS inside the AEBS event fails; an ingress disconnect in the event, a second `:4721` client, a capture gap or ASM-MW-030 not holding is inconclusive |
 | VC-MW-016 | REQ-MW-015 | each received frame equals its produced frame byte for byte, with its source kind; a received frame the stack never produced fails; after a spoofed SD offer the provider must stay 192.168.98.1 and the frames must keep arriving; an offer record with no provider is inconclusive |
 | VC-MW-017 | REQ-MW-016 | second finding: no host DDS port of the layer is reachable from a guest, judged by a capture on the guest-facing interface plus the drop-rule counter (reached = captured and not dropped; a recorded host-socket receipt or a completed guest TCP connect also counts as reached); a failed, unsent or malformed probe is a coverage gap; a positive control by the same observation; without a readable firewall table the run is inconclusive; a reachable `:4721` is an ASM-MW-029 finding, not a failure; the first finding needs the inspection record |
-| VC-MW-020 | REQ-MW-019 | per condition (HMI down, IVI VM down, SDV Core VM down, pair restart): each frame in a new phase was produced no more than the 20 ms margin before the phase start, compared raw; a frame earlier than the start by more than the offset plus its uncertainty plus 20 ms fails whatever the clock shows; the IVI-VM-down condition judges only the phase after the clock setting; needs ASM-MW-030 to hold |
+| VC-MW-020 | REQ-MW-019 | per condition (HMI down, IVI VM down, SDV Core VM down, pair restart): each frame in a new phase was produced no more than the 20 ms margin before the judged phase start (the later of the relay's start and the ingress's loopback accept), compared raw; a frame earlier than that start by more than the offset plus its uncertainty plus 20 ms fails whatever the clock shows; the IVI-VM-down condition judges only the phase after the clock setting; needs ASM-MW-030 to hold |
 
 The run directory holds, by convention: `produced.pcap` (host `:4721`),
 `received.pcap` (guest `:4731`), `relay-logcat.txt` (the relay's events, with
@@ -172,16 +177,23 @@ These stay manual or out of scope for the first VM session; none blocks it.
   offer from 192.168.98.3, the `REMOTE SUBSCRIBE` line); the launch of the SD
   agent and the guest survival of the operator's shell; the post-boot relay
   checks; the MP4 of the recording; and the 2048-byte frame boundary.
+- **A new phase after the clock setting is checked only on the VM.**
+  `set_ivi_clock.sh setup` stops and restarts the ingress after the clock
+  setting and then asserts that a new relay phase_start appears (a (pid,
+  phase) the relay log did not hold before the restart); it fails otherwise.
+  The assertion runs only against a live IVI VM, so S1 confirms it.
 - **The bridge-family firewall rule is not executable off the VM.** The
   SOME/IP bridge-port hardening (`host_isolation_firewall.sh`) sits in an
   `nf_tables` bridge input chain, which this development host's kernel does not
   carry, so it is checked only on the VM. It is a recorded design measure, no
   part of any case's pass condition (#448).
 - **The VLAN 2 Data Tunnel capture is retained, not consumed.** `capture_case.sh`
-  records the cleartext Data Tunnel on VLAN 2, the second corroboration #448
-  names for the subscription start. The VC-MW-020 evaluator corroborates the
-  phase start with the loopback accept of `received.pcap`; it does not yet read
-  the VLAN 2 capture, which stays with the evidence for review.
+  records the cleartext Data Tunnel on VLAN 2, the second capture #448 names
+  for the subscription start. The VC-MW-020 evaluator takes the later of the
+  relay's phase start and the loopback accept of `received.pcap`; it does not
+  yet read the VLAN 2 capture, which stays with the evidence for review. The
+  VC-MW-015 evaluator takes its phase windows from the relay log alone; it does
+  not yet apply the capture comparison that #448 also names for it.
 - **The probe is serialized and long.** `host_isolation_probe.sh` reads the
   drop counter around each of the roughly 244 DDS ports, over each interface
   and host address, from both VMs, so a full probe takes tens of minutes. S1

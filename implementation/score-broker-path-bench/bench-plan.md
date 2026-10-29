@@ -73,6 +73,10 @@ Both VMs sit on the host bridge `cvd-ebr`; each also has a network of its own
    the session, the host clock steps logged, and the ingress restarted after
    the setting. A run whose offset plus its uncertainty is not below 20 ms, or
    with a clock step in a judged phase, is void (`set_ivi_clock.sh`).
+   **S1 check:** after the clock setting, a new relay phase_start appears.
+   `set_ivi_clock.sh setup` stops the ingress, waits for it to stop, starts it
+   again and asserts a phase_start whose (pid, phase) the relay log did not
+   hold before the restart; it fails otherwise. This runs only on the VM.
 6. **Relay provisioning.** Exactly one ACL file per subject across /product,
    /system and /vendor before the IVI VM boots, the broker's object policy, the
    relay binary and init file (the relay sets the ingress port 4731 and host
@@ -126,7 +130,7 @@ built), so S0 and S1 budget its build and bring-up.
 | Session | Content | Nominal | With contingency |
 |---|---|---|---|
 | S0 | host-stack readiness: `df -h /`, prove nothing in use points into the 31 GB Bazel cache (`readlink -f` of the cvd binaries, `dpkg -L` of the cuttlefish packages, the host-resources unit, `lsof +D`), then Orkun's prune decision (D3 allows it on that condition); build the Autoware converter and stage the 009D bench | 1.5 h | 2.25 h |
-| S1 | prep and identity (`repo manifest -r`, the device diff digest) 0.25 h; the clean SDV Core image build 1.5 h; the IVI relay stage 0.5 h; two-VM launch with `--config`, relay provisioning, chrony allow, clock set and drift 1.0 h; guest preflight (the chain byte-identical to the host, the offset known) 0.5 h; isolation firewall and the reachability probe (VC-MW-017) 0.75 h | 4.5 h | 6.0 h |
+| S1 | prep and identity (`repo manifest -r`, the device diff digest) 0.25 h; the clean SDV Core image build 1.5 h; the IVI relay stage 0.5 h; two-VM launch with `--config`, relay provisioning, chrony allow, clock set and drift, and the check that a new phase_start follows the clock setting 1.0 h; guest preflight (the chain byte-identical to the host, the offset known) 0.5 h; isolation firewall and the reachability probe (VC-MW-017) 0.75 h | 4.5 h | 6.0 h |
 | S2 | the 009D AEBS event over the full chain, MONITORING verified before recording; VC-MW-015 and VC-MW-016 over three events 0.75 h; the resubscription, copy-window, SD-outage and malformed-wrapper preflight checks 0.75 h; the public recording 0.5 h; pull and quiesce 0.4 h | 2.4 h | 3.25 h |
 | S3 | VC-MW-020 four conditions: HMI down ×2, IVI VM down ×2, SDV Core VM down with the GAP-MW-048 recovery ×2, and the gatewayd+someipd pair restart with the PublicationDestroyed latency ×2, each with the clock measurements 1.25 h; the recovery timing (stale duration, new subscription) 0.5 h; final pull and teardown 0.4 h | 2.15 h | 3.0 h |
 | **Total** | | **≈ 10.55 h (≈ €8.4)** | **≈ 14.5 h (≈ €11.6)** |
@@ -181,9 +185,10 @@ None of these blocks the first VM session; the operator confirms them by hand.
 | IVI authorization | Install and the one-file-per-subject check scripted; the post-boot relay checks only logged |
 | Real frame source | Manual (the host runs the real frame assembler, not a synthetic source) |
 | Clock | Scripted (chrony allow, auto_time off, set and slew, two measurements, the ingress restart); the host-step log and the `ping`/`tcpdump` presence checks assume the image carries them |
+| New phase after the clock setting | Scripted and VM-only: `set_ivi_clock.sh setup` asserts a new relay phase_start after the ingress restart and fails otherwise; S1 confirms it on the live IVI VM |
 | Captures | Scripted; the kernel drop count is read from the capture tool's exit line, not the pcap |
 | Firewall and probe | Scripted; the bridge-family SOME/IP rule is checked only on the VM (no `nf_tables` bridge family on the build host); the probe is serialized and takes tens of minutes |
-| VLAN 2 Data Tunnel capture | Recorded by `capture_case.sh`, retained for review; the evaluator corroborates the phase start with the loopback accept, not this capture |
+| VLAN 2 Data Tunnel capture | Recorded by `capture_case.sh`, retained for review; the VC-MW-020 judged start is the later of the relay's start and the loopback accept, not this capture |
 | Spoofed SD offer | Scripted (`send_sd_offer.sh`); the provider after the offer is read from the SD capture |
 | HMI recording | The MONITORING gate is scripted on the app's real line; the MP4 is validated by hand |
 | 2048-byte boundary | Manual (a 2044-byte frame end to end) |

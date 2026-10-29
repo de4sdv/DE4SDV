@@ -37,12 +37,6 @@ DEFAULT_PRODUCED_PORT = 4721
 DEFAULT_RECEIVED_PORT = 4731
 MAX_GAP_NS = 500_000_000            # the inter-arrival bound of REQ-MW-014
 PHASE_SLOP_NS = clock.CLOCK_BOUND_NS  # 20 ms: a produced frame counts as in a phase within this of its edges
-#: The relay logs a phase start at the moment the ingress connects, so the
-#: loopback accept of received.pcap corroborates it. They are taken to agree
-#: within this connection-formation allowance; a larger difference makes the
-#: capture the authoritative start (#448, review R33). The VLAN 2 Data Tunnel
-#: capture, the second corroboration #448 names, is a known limit (see the README).
-PHASE_START_CAPTURE_TOLERANCE_NS = 100_000_000  # 100 ms
 
 
 @dataclass
@@ -136,38 +130,27 @@ def _relay(run: RunInputs) -> tuple[list[dict], list, list[str], bool]:
     return events, all_phases, problems, True
 
 
-def _accept_times(run: RunInputs, port: int) -> list[int]:
-    """The ingress accept times in received.pcap: the established time of each loopback connection to ``port``.
+def _accept_by_connection(run: RunInputs, port: int) -> dict[int, int]:
+    """The loopback accept of the ingress in received.pcap, per connection index.
 
-    #448 corroborates each phase start with the loopback accept of the ingress.
-    Where they differ, the capture gives the start (review R33).
+    The accept is the completed handshake (the client's ACK), else the SYN-ACK
+    or the SYN where the ACK is not in the capture; a connection the capture
+    joined mid-stream has none. The indices are those of ``_read_frames``
+    (the order of ``tcp_streams``), so a frame's ``connection`` finds its own.
     """
     path = run.run_dir / "received.pcap"
     if not path.exists():
-        return []
+        return {}
     try:
         capture = read_pcap(path)
     except PcapError:
-        return []
-    accepts = []
-    for stream in tcp_streams(datagrams(capture), port):
+        return {}
+    accepts: dict[int, int] = {}
+    for index, stream in enumerate(tcp_streams(datagrams(capture), port)):
         when = stream.established_ns or stream.synack_ns or stream.syn_ns
         if when is not None:
-            accepts.append(when)
-    return sorted(accepts)
-
-
-def _corroborated_start(phase, accepts: list[int]) -> int:
-    """The phase start, taken from the nearest loopback accept where it differs from the relay log (#448)."""
-    start = phase.start_realtime_ns
-    end = phase.end_realtime_ns
-    window = [a for a in accepts if start - PHASE_START_CAPTURE_TOLERANCE_NS <= a <= (end if end is not None else a)]
-    if not window:
-        return start
-    nearest = min(window, key=lambda a: abs(a - start))
-    # Where they differ beyond the connection-formation allowance, the capture
-    # accept is the authoritative start (#448, review R33).
-    return nearest if abs(nearest - start) > PHASE_START_CAPTURE_TOLERANCE_NS else start
+            accepts[index] = when
+    return accepts
 
 
 def _clock(run: RunInputs) -> dict:
@@ -607,11 +590,26 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
         result.measurements["first_phase_recorded_as_data"] = {"pid": first.pid, "phase": first.number}
     judged_keys = {phase.key for phase in judged}
 
-    # Where the loopback accept of the ingress (received.pcap) differs from the
-    # relay log, the capture gives the phase start (#448, review R33). The VLAN 2
-    # Data Tunnel capture is a known limit; the loopback accept is used here.
-    accepts = _accept_times(run, run.received_port)
-    phase_start = {phase.key: _corroborated_start(phase, accepts) for phase in all_phases}
+    # The judged start of a phase is the later of two times: the relay's phase
+    # start and the loopback accept of the ingress (received.pcap) on the
+    # connection that carries the frame (#448, decision on review R33). A later
+    # start only makes the check stricter: a relay that claims a start before
+    # the ingress connected is judged against the accept; in the normal order
+    # (accept, then the relay's log line) the later time is the relay's own.
+    # Both times and their difference are recorded. The VLAN 2 Data Tunnel
+    # capture is retained, not read here (a known limit).
+    accepts = _accept_by_connection(run, run.received_port)
+    phase_starts: dict[tuple, dict] = {}
+
+    def judged_start(phase, connection: int) -> int:
+        accept = accepts.get(connection)
+        start = phase.start_realtime_ns if accept is None else max(phase.start_realtime_ns, accept)
+        phase_starts.setdefault((phase.key, connection), {
+            "pid": phase.pid, "phase": phase.number, "connection": connection,
+            "relay_start_ns": phase.start_realtime_ns, "accept_ns": accept,
+            "accept_minus_relay_ns": None if accept is None else accept - phase.start_realtime_ns,
+            "judged_start_ns": start})
+        return start
 
     # ASM-MW-030: start and end offsets hold; a clock step in a JUDGED phase
     # voids only that phase (review R30).
@@ -666,18 +664,18 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
             result.add("timestamp", INCONCLUSIVE, f"a frame in phase {phase.key} has no frame timestamp")
             continue
         judged_frames += 1
-        # Raw comparison: production time (host clock) vs the phase start less
-        # the 20 ms margin. The start comes from the loopback accept where it
-        # differs from the relay log (review R33).
-        if facts.frame_timestamp_ns < phase_start[phase.key] - PHASE_SLOP_NS:
+        start = judged_start(phase, frame.connection)
+        # Raw comparison: production time (host clock) vs the judged start less
+        # the 20 ms margin.
+        if facts.frame_timestamp_ns < start - PHASE_SLOP_NS:
             violations += 1
-        # The clock-independent check is anchored to the canonical relay start,
-        # so capture jitter cannot turn a borderline clock case into a definite
-        # one; only a frame far before it fails whatever the clock shows (R19).
-        if ci_threshold is not None and facts.frame_timestamp_ns < phase.start_realtime_ns - ci_threshold:
+        # Clock-independent: earlier than the judged start by more than the
+        # offset plus its uncertainty plus 20 ms fails whatever the clock shows (R19).
+        if ci_threshold is not None and facts.frame_timestamp_ns < start - ci_threshold:
             clock_independent += 1
     result.measurements["judged_frames"] = judged_frames
     result.measurements["judged_phases"] = len(seen_phases)
+    result.measurements["phase_starts"] = list(phase_starts.values())
     if judged_frames == 0:
         result.add("frames", INCONCLUSIVE, "no frame with a timestamp arrived in a judged phase")
     if clock_independent:
