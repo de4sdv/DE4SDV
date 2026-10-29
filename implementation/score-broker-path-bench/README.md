@@ -43,13 +43,14 @@ scripts/                 VM scripts, each idempotent and with an undo
   host_sd_multicast_route.sh  the SD group route on cvd-ebr (GAP-MW-047)
   host_isolation_firewall.sh  the owner-approved rules (GAP-MW-046) + remove
   host_isolation_probe.sh     the reachability check of REQ-MW-016, records for the evaluator
-  provision_ivi_relay.sh      exactly one ACL, the relay binary and init, port 4731, reboot
-  set_ivi_clock.sh       auto_time off, SNTP set and slew, capture the exchange (ASM-MW-030)
-  recover_core_vm.sh     death detection and the in-place reboot recovery (GAP-MW-048)
+  provision_ivi_relay.sh      one ACL per subject + the broker object policy, relay binary and init, reboot
+  set_ivi_clock.sh       chrony allow, auto_time off, SNTP set and slew, capture the exchange (ASM-MW-030)
+  capture_case.sh        produce the case artifacts: the :4721 and :4731 streams, the relay log, the ss check, the clocks
+  recover_core_vm.sh     death detection (a VmHealth subscriber) and the in-place reboot recovery (GAP-MW-048)
   record_full_chain.sh   the public recording harness (terminals + adb screenrecord)
-  teardown.sh            undo everything and append to the change log
+  teardown.sh            undo everything and write a run-dir session log
 aosp-overlay/core/       the SDV Core image overlay (frame type, mapping, stack config, broker ACL)
-aosp-overlay/ivi-acl/    the relay's one subscriber ACL (its path encodes the subject)
+aosp-overlay/ivi-acl/    the relay's subscriber ACL and the broker's object policy
 config/run-settings.example.json   the settings the evaluators read
 src/de4sdv_broker_path_bench/       pure evaluators (read the raw artifacts off the VM)
 tests/                   the evaluator unit tests (CI, with synthetic captures)
@@ -64,8 +65,10 @@ bench-plan.md            the session plan (S1 to S3), VM-hours and cost
 2. `host_sd_multicast_route.sh add`, then `launch_two_vms.sh up`.
 3. `provision_ivi_relay.sh install`, then `set_ivi_clock.sh setup` and `drift`.
 4. `host_isolation_firewall.sh add`, then `host_isolation_probe.sh run <dir>`.
-5. The running cases: capture the host `:4721` stream and the guest `:4731`
-   stream, the relay logcat and the clock exchanges, then evaluate off the VM.
+5. The running cases: `capture_case.sh start <dir>`, verify MONITORING, run the
+   009D AEBS event, `capture_case.sh stop <dir>`, then evaluate off the VM. It
+   produces the host `:4721` stream, the guest `:4731` stream, the relay log,
+   the `ss` client check and the clock exchanges.
 6. `recover_core_vm.sh` for the GAP-MW-048 case; `teardown.sh` at the end.
 
 ## Evaluators
