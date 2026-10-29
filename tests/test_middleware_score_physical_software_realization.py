@@ -224,10 +224,18 @@ def test_the_relay_discard_rule_traces_its_requirements_bound_and_residual() -> 
     for statement in ("the relay holds a subscription, through the SDV Gateway on IVI, to the broker's publication "
                       "of the frame topic",
                       "the ingress is connected to the relay's loopback server",
-                      "the notification Disconnected of the gateway client",
+                      "the notification Disconnected of the gateway client, an event of the API that the "
+                      "feasibility runs did not see",
                       "the notification PublicationDestroyed of the subscription",
-                      "no message for 1 s, the relay's own timeout",
-                      "saw PublicationDestroyed after a restart of someipd. The old subscription then got no message",
+                      "no message for 3 s, the relay's own timeout",
+                      "saw PublicationDestroyed within about 0.1 s after a restart of someipd",
+                      # A phase end that the layer causes is a delivery failure, never an unsubscription
+                      # (claims review R1).
+                      "while the ingress stays connected, is a delivery failure of the layer. It is not an "
+                      "unsubscription of the HMI application. So the verification of REQ-MW-014 records every phase "
+                      "end.",
+                      "It never lets the run pass.",
+                      "A DATA_LOSS status of a read is a gap (GAP-MW-037). It does not end the phase.",
                       "So the timeout is the event that ends the phase then (GAP-MW-048).",
                       "They are older than the new phase, so the first check drops them.",
                       "accepts it as the only client",
@@ -247,8 +255,8 @@ def test_asm_mw_030_holds_the_clock_bound_with_session_controls() -> None:
     """The offset is measured two-way on the clock that times the subscription, and steps of both clocks are logged."""
     assumption = _part_doc(PHYSICAL.read_text(encoding="utf-8"), "ASM-MW-030")
     (bound,) = _numbers(r"differ by less than (\d+) ms", assumption)
-    assert _numbers(r"No case starts before the start measurement gives an offset below (\d+) ms",
-                    assumption) == [bound]
+    assert _numbers(r"No case starts before the start measurement gives an offset whose size plus that "
+                    r"uncertainty is below (\d+) ms", assumption) == [bound]
     for control in ("the system clocks of the Linux host and of the IVI VM of the AAOS SDV guest differ",
                     "the IVI VM clock is set after each boot and before each session",
                     "So the bound holds only after a clock setting",
@@ -259,9 +267,19 @@ def test_asm_mw_030_holds_the_clock_bound_with_session_controls() -> None:
                     "the same two-way time exchange, without a clock setting, measures the offset between the host "
                     "clock and the IVI VM clock",
                     "the host logs each step of its clock",
-                    "That minimum bounds the offset from one side only"):
+                    "That minimum bounds the offset from one side only",
+                    # The relay's log is no bounding control at the latency of the broker path (claims review R5).
+                    "So it cannot detect an offset inside 20 ms, and it is no bounding control",
+                    "It is the only control that bounds the offset. It reports its uncertainty, half of its round "
+                    "trip.",
+                    "A run whose measured offset plus its uncertainty is not below 20 ms is void",
+                    # A slewing client, or sessions sized from the drift (technical review R12).
+                    "A slew changes CLOCK_REALTIME and CLOCK_MONOTONIC alike, so it is no step under this "
+                    "assumption.",
+                    "Otherwise each session is sized from the measured drift"):
         assert control in assumption, control
-    # Under the broker path SOME/IP no longer reaches the IVI VM (owner decision of 2026-10-28, #440 review D5).
+    # The SOME/IP path no longer ends in the IVI VM (owner decision of 2026-10-28, finding D5 of the requirements
+    # review).
     assert "the offset comes from SOME/IP packets" not in assumption, "the measurement follows the subscription clock"
 
 
@@ -311,7 +329,7 @@ def test_the_relay_code_uses_the_margin_and_the_copy_window_of_the_model() -> No
     _, rule = _comment(PHYSICAL.read_text(encoding="utf-8"), "relaySubscriptionPhaseDiscardRule")
     (margin,) = _numbers(r"not earlier than the phase start less (\d+) ms", rule)
     (window,) = _numbers(r"of the last (\d+) frames it served", rule)
-    named = f"{found[0]} names the relay"
+    named = f"{found[0]} names the relay's service or its margin constant"
     headers = [path for path in tracked if path.suffix == ".hpp" and path.is_relative_to(IMPLEMENTATION)]
     code = "\n".join(path.read_text(encoding="utf-8") for path in headers)
     margins = [int(value.replace("'", "")) for value in re.findall(r"\bkPhaseStartMarginNs\s*=\s*([0-9']+)", code)]
@@ -344,25 +362,47 @@ def test_the_relay_subscribes_through_the_gateway_and_removes_the_broker_wrapper
     doc = _named_part_doc(PHYSICAL.read_text(encoding="utf-8"), "iviFrameRelay")
     for statement in ("with the subscriber flag ASDVGATEWAY_SUBSCRIBER_OPTIONS_FLAG_NONE",
                       "Each message holds the SOME/IP payload of one frame event in the broker's wrapper for "
-                      "INTERPRET_AS_BYTES: a protobuf message with one bytes field (broker_translator.rs:248-262).",
-                      "The relay removes the wrapper.",
-                      "It forwards a payload only when the payload's own length prefix matches the payload length",
+                      "INTERPRET_AS_BYTES: a protobuf message with one bytes field "
+                      "(some_ip/broker_agent_comms/src/translator/broker_translator.rs:248-262).",
+                      # The strict parse of the wrapper (technical review R10).
+                      "The relay parses the wrapper strictly. The outer varint must equal the size that remains. "
+                      "Exactly one field must follow: field 1 of wire type 2 (0x0A), whose length equals the rest, "
+                      "with no other byte.",
+                      "Then it forwards a payload only when the payload's own length prefix matches the payload length",
                       "The broker subscribes to someipd whether an IVI subscriber exists or not "
-                      "(pubsub_handler.rs:764-923).",
+                      "(some_ip/broker_agent_comms/src/pubsub/pubsub_handler.rs:764-923).",
+                      "from the bench's synthetic frame source",
                       "This rule is the discard that REQ-MW-019 relies on in the guest.",
                       "on 127.0.0.1:4731 of the IVI VM loopback",
-                      # The resubscription (proposed on 2026-10-29) and the design data of the feasibility run.
-                      "The relay subscribes at its start and keeps the subscription while it runs, with or without a "
-                      "client.",
-                      "the subscription reports PublicationDestroyed",
-                      "the gateway client reports Disconnected",
-                      "no message comes for 1 s, ten frame periods",
-                      "Before it subscribes again, it ends the old subscription.",
-                      "it tries again each second",
+                      # The resubscription (proposed; the owner decides), with the conditions of both reviews.
+                      "Subscription (proposed; the owner decides):",
+                      "The relay keeps one subscription for its lifetime, with or without a client.",
+                      "It runs the gateway client (init, subscribe and read) on a thread of its own, with bounded "
+                      "waits. The loopback server and the ingress connection do not depend on that thread.",
+                      "On PublicationDestroyed, it ends the old subscription and subscribes again: every 100 ms for "
+                      "the first 5 s, then every second.",
+                      "PublicationDestroyed came within about 0.1 s after a restart of someipd",
+                      "On Disconnected, it creates the gateway client again, with a bounded retry, and it logs each "
+                      "attempt. Disconnected is an event of the API. The feasibility runs did not see it.",
+                      "When no message comes for 3 s, it ends the subscription and subscribes again.",
+                      "After three subscriptions in a row that bring no message, it waits 5 s between them.",
+                      "It counts each failed subscription and logs it with its status text.",
+                      "if no subscription succeeds within 30 s of its start, the relay reports a likely fault of the "
+                      "ACL or of the mapping. After that, it tries every 10 s.",
+                      "It counts a DATA_LOSS status of a read as a gap (GAP-MW-037), not as the end of a phase.",
+                      "which someipd (no receiver for guest data) and the host configuration of GAP-MW-046 (DDS "
+                      "ports) enforce.",
+                      "(init/service.cpp:620-642 and 328-329 of platform/system/core at android17-release).",
                       "The publication was instance1:com.android.sdv.someip.SomeIpBroker/default, unit "
                       "de4sdv-score-aebs-signal-frame."):
         assert statement in doc, statement
     assert "FLAG_FETCHLASTMESSAGE" not in doc, "the relay never asks for the last message before its subscription"
+    for gone in ("about 0.5 s", "no message comes for 1 s", "android14-release", "which someipd enforces"):
+        assert gone not in doc, gone
+    # The relay's input carries the wrapped topic; its behavior unwraps it (technical review R11).
+    relay = _braced(PHYSICAL.read_text(encoding="utf-8"), r"\bpart iviFrameRelay : PhysicalAllocationElement \{")
+    assert re.search(r"\bport frameTopicIn : DataTunnelPort \{", relay)
+    assert re.search(r"\bport aebsSignalFrameOut : AEBSSignalFrameOut \{", relay)
 
 
 def test_the_guest_side_guard_rail_names_the_clock_assumption() -> None:
@@ -496,11 +536,24 @@ def test_the_host_isolation_is_an_obligation_with_an_open_gap() -> None:
     assert re.findall(r"\bdependency (\w+)\s+from gapHostPortIsolationNotAuthored to ([\w:]+);", text) == [
         ("hostPortIsolationGapOnLinuxHost", "scoreTwoDomainPhysicalSystem::linuxHost")]
     (action,) = re.findall(r'attribute :>> nextAction = "phase 10, in this order: ([^"]*)";', text)
-    last = ("(9) author the host configuration that makes the DDS ports of every host ROS 2 process, and port "
-            "4721, unreachable from each guest domain (a host firewall on the bench), and run the reachability "
-            "probe of the case that verifies REQ-MW-016 (ASM-MW-029, GAP-MW-046)")
-    assert action.endswith(last), action[-260:]
-    assert re.findall(r"\((\d+)\) ", action) == [str(step) for step in range(1, 10)], "the steps are numbered in order"
+    last = ("(11) author the host configuration of GAP-MW-046, written by interface, that makes the DDS ports of "
+            "every host ROS 2 process, and port 4721, unreachable from each guest domain (a host firewall on the "
+            "bench), and run the reachability probe of the case that verifies REQ-MW-016 from each VM, over each of "
+            "its interfaces (eth1, buried_eth0, the VLAN interfaces, wlan if present), to each address of the host "
+            "(192.168.98.1, the host end of the buried network of each VM, any other cvd-* bridge address) "
+            "(ASM-MW-029, GAP-MW-046)")
+    assert action.endswith(last), action[-300:]
+    assert re.findall(r"\((\d+)\) ", action) == [str(step) for step in range(1, 12)], "the steps are numbered in order"
+    # The steps that the technical review asked for (R3, R4 and items 4 and 6 of its list S1).
+    for step in ("(2) set up the SD network of the host: the unicast address 192.168.98.1/24 of someipd on the "
+                 "bridge cvd-ebr, a route for the SD group on cvd-ebr",
+                 "with the remote endpoint of the frame service pinned to 192.168.98.1, so that an SD message from "
+                 "the IVI VM cannot redirect the subscription",
+                 "(5) provision the relay for the IVI VM:",
+                 "install exactly one ACL file for the relay's subject before the IVI VM boots",
+                 "(7) check on the host with ss -H -t -n -p state established '( sport = :4721 )'",
+                 "and record every phase end of the relay"):
+        assert step in action, step
     assert ("the frame assembler binds 0.0.0.0:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), and the adapter "
             "connects to 127.0.0.1:4721 on the host loopback") in text
     assert "on the host loopback, 127.0.0.1:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35)" not in text, "citation"
@@ -508,9 +561,24 @@ def test_the_host_isolation_is_an_obligation_with_an_open_gap() -> None:
             "feasibility runs of 2026-10-28 (GAP-MW-038)\";") in text, (
         "the frame mapping record lists the isolation gap, the version skew, the restart gap and the AAOS SDV path "
         "assumption")
-    # S4: the IVI VM shares the segment, so the host configuration is also the place for the SOME/IP rule.
-    assert ("So the same configuration is the place for a rule that admits SOME/IP to someipd from the SDV Core VM "
-            "only.") in gap, gap
+    # The proposed host configuration is written by interface (technical review R1), and the SOME/IP rule is
+    # hardening bound to the bridge port of the SDV Core VM (technical review R2); both wait for the owner.
+    for statement in ("Proposed host configuration (proposed; the owner decides): rules by interface, not by source "
+                      "address.",
+                      "drops UDP 30150-30151 and 30160-30401, and TCP 4721, on every interface except lo.",
+                      "the bench's ROS_DOMAIN_ID 91 with MaxAutoParticipantIndex 120",
+                      "The reachability probe runs from each VM, over each of its interfaces (eth1, buried_eth0, the "
+                      "VLAN interfaces, and wlan if present), to each address of the host (192.168.98.1, the host end "
+                      "of the buried network of each VM, and any other cvd-* bridge address).",
+                      "The IVI VM can reach the SOME/IP ports of someipd: one routing rule in the guest is enough, so "
+                      "the host must not rely on the routing of the guest.",
+                      "Proposed hardening (proposed; the owner decides), for REQ-MW-019 and REQ-MW-015, not for "
+                      "REQ-MW-016:",
+                      "accepts UDP 30490 and TCP 30509 to the host only from that bridge port. It also matches ip "
+                      "saddr 192.168.98.3 and the MAC address of that VM.",
+                      "a static neighbour entry pins that MAC address"):
+        assert statement in gap, statement
+    assert "admits SOME/IP to someipd from the SDV Core VM only" not in gap, "the IP-only rule is replaced"
 
 
 def test_someipd_names_the_assumption_that_the_dds_criteria_of_req_mw_016_need() -> None:
@@ -547,15 +615,16 @@ def test_the_layer_refers_to_the_aaos_sdv_elements_and_owns_the_relay() -> None:
                         "part iviFrameRelay : PhysicalAllocationElement {"):
         assert declaration in layer, declaration
     assert not re.search(r"(?<!ref )\bpart (?:sdvCore|sdvGateway)\b", layer), "the AAOS SDV elements are references"
+    assert len(re.findall(r"\bconnect\b", layer)) == 7, "a further connection in the layer"
     assert re.findall(r"\bconnection (\w+) connect ([\w.]+) to ([\w.]+);", layer) == [
         ("speedTopicToHealthProxy", "adapter.middlewareVelocityStatusOut", "healthProxyNode.middlewareVelocityStatusIn"),
         ("frameEventOverSCORECommunication", "adapter.aebsSignalFrameOut", "scoreServices.gatewayd.aebsSignalFrameIn"),
         ("frameEventOverGatewayIPC", "scoreServices.gatewayd.aebsSignalFrameOut",
          "scoreServices.someipd.aebsSignalFrameIn"),
         ("frameEventOverSOMEIPAcrossHypervisor", "scoreServices.someipd.aebsSignalFrameOut", "sdvCore.someIp.someIpPort"),
-        ("frameTopicPublishedByBroker", "sdvCore.someIp.someIpPort", "sdvCore.dataTunnel.topicPublishPort"),
+        ("frameTopicPublishedByBroker", "sdvCore.someIp.topicPublishOut", "sdvCore.dataTunnel.topicPublishPort"),
         ("frameTopicOverDataTunnelAcrossVMs", "sdvCore.dataTunnel.topicSubscribePort", "sdvGateway.dataTunnelPort"),
-        ("frameTopicThroughSDVGatewayToRelay", "sdvGateway.clientPort", "iviFrameRelay.aebsSignalFrameIn"),
+        ("frameTopicThroughSDVGatewayToRelay", "sdvGateway.clientPort", "iviFrameRelay.frameTopicIn"),
     ]
 
 
@@ -569,6 +638,7 @@ def test_the_physical_context_has_two_vms_and_binds_the_aaos_sdv_references() ->
     assert "part sdvGateway : SDVGatewayOnIVIBoundary {" in ivi
     assert "SDVGatewayOnIVIBoundary" not in core and "SDVCoreBoundary" not in core + ivi, "one owner per element"
     own = " ".join(_code(context).split())
+    assert len(re.findall(r"\bbind\b", own)) == 5, "a further binding in the physical context"
     assert re.findall(r"\bbinding (\w+) bind ([\w.]+) = ([\w.]+);", own) == [
         ("scoreServicesBoundToLinuxHost", "integrationLayer.scoreServices", "linuxHost.scoreServices"),
         ("adapterBoundToLinuxHost", "integrationLayer.adapter", "linuxHost.adapter"),
@@ -624,7 +694,17 @@ def test_gap_mw_038_carries_the_corrected_premise() -> None:
                       "(2026-10-28) ran the whole chain.",
                       "Both VMs must use the same boot mode: a mismatch failed at the handshake.",
                       "The host bridge passed the tagged frames",
-                      "Cross-VM communication is denied by default, and a subject without an ACL was denied.",
+                      "Google's documentation states that cross-VM communication is denied by default. The bench "
+                      "used the allow-all VM-level policy of the sample targets, and a subject without a "
+                      "service-level ACL was denied.",
+                      # The AOSP citations are pinned once (form review R5).
+                      "The AOSP citations of this slice refer to the android17-release tree of manifest ad156f32 "
+                      "(platform/manifest), with these project commits: some_ip 27bff3fe, sdv_gateway c918480a, "
+                      "middleware 7ab87b58 and samples e8cc5f41 of platform/system/software_defined_vehicle; "
+                      "device/google/sdv f4bfa128; platform/external/sdv/vsomeip 906331c2; platform/system/core "
+                      "545d2487.",
+                      "In the UNLOCKED mode of the bench, the SD mesh and Data Tunnel run as cleartext HTTP/2.",
+                      "exactly one ACL file for its subject on the IVI side, before the IVI VM boots",
                       "It needs a rebuilt SDV Core image",
                       "Still open: evidence of record, the build of the relay and its start as a native init service",
                       "This is design data, not evidence of record."):
@@ -669,20 +749,56 @@ def test_gap_mw_048_records_that_nothing_restarts_the_broker_and_its_stack() -> 
     gap = _part_doc(text, "GAP-MW-048")
     assert gap.startswith("Open: nothing restarts the SOME/IP broker or its stack in the SDV Core VM."), gap[:100]
     for statement in ('"Critical agent has died"', "all_service_bundles_alive as false within about 90 ms",
-                      "A restart of the broker after the stack, or a reboot of the SDV Core VM, gave the frames again.",
-                      "Bench recovery (proposed on 2026-10-29; the owner decides): the bench reboots the SDV Core VM.",
-                      "Ways out, each a later decision:"):
+                      # The two deaths, each on its own (claims review R2).
+                      "showed two different deaths:",
+                      "A start of the stack alone gave no message. A restart of the broker after it gave the frames "
+                      "again, and so did a reboot of the SDV Core VM;",
+                      "A start of the broker alone gave no publication. The frames came back after a toggle of the "
+                      "service availability on the host",
+                      "A reboot of the SDV Core VM was not tried after this death.",
+                      # Detection, the launch configuration and the preferred recovery (technical review R7).
+                      "Detection: for either death, the logcat of the SDV Core VM shows",
+                      "So the reboot keeps the launch configuration",
+                      "it gives no burst of GAP-MW-039, and one procedure covers both deaths.",
+                      "Bench recovery (proposed; the owner decides): a manual recovery by the operator, for the bench "
+                      "only.",
+                      "No availability claim is made. Phase 10 measures how long the HMI shows stale",
+                      "A failure of the SD agent or of sdv_gateway in the IVI VM needs a reboot of the IVI VM",
+                      "it needs a new clock setting (ASM-MW-030)",
+                      "Ways out, each a later decision:",
+                      "so it needs a test after a death of the broker first;",
+                      "it needs a requirement of its own."):
         assert statement in gap, statement
     assert re.findall(r"\bdependency (\w+)\s+from gapSOMEIPBrokerAndStackNotRestarted to ([\w:]+);", text) == [
         ("brokerRestartGapOnSDVCoreVM", "scoreTwoDomainPhysicalSystem::sdvCoreGuest")]
 
 
+def _design_data_carriers(text: str) -> list[str]:
+    """The flattened /* */ blocks that name a run on the bench VM of 2026-10-28."""
+    blocks = (_flat(block) for block in re.findall(r"/\*(.*?)\*/", text, re.DOTALL))
+    return [block for block in blocks if re.search(r"\bbench VM\b.{0,40}\(2026-10-28\)", block)]
+
+
 def test_the_feasibility_facts_are_dated_design_data() -> None:
-    """Each fact of the feasibility runs of the broker path is design data with its run date, never evidence."""
-    text = PHYSICAL.read_text(encoding="utf-8")
-    for short_name in ("GAP-MW-038", "GAP-MW-045", "GAP-MW-046", "GAP-MW-047", "GAP-MW-048", "ASM-MW-030",
-                       "ASM-MW-032"):
-        doc = _part_doc(text, short_name)
-        assert "Design data, not evidence of record" in doc and "(2026-10-28)" in doc, short_name
+    """Each block that reports a run on the bench VM of 2026-10-28 labels it design data, never evidence.
+
+    A scan, not a hand list: every /* */ block whose text names such a run must carry the label and no word of
+    acceptance (form review R1)."""
+    carriers = _design_data_carriers(PHYSICAL.read_text(encoding="utf-8"))
+    assert len(carriers) >= 11, len(carriers)
+    for block in carriers:
+        assert "design data, not evidence of record" in block.lower(), block[:160]
         for word in (r"\bverified\b", r"\bproven\b", r"\bcertified\b", r"\bcompliant\b"):
-            assert not re.search(word, doc, re.IGNORECASE), (short_name, word)
+            assert not re.search(word, block, re.IGNORECASE), (word, block[:160])
+
+
+def test_the_design_data_scan_finds_an_unlabelled_or_overclaimed_carrier() -> None:
+    """Negative cases on synthetic text: a carrier without the label, and one with a word of acceptance."""
+    unlabelled = "/* An unreviewed DE4SDV feasibility run on the bench VM (2026-10-28) saw it. */"
+    overclaimed = ("/* Design data, not evidence of record: a run on the bench VM (2026-10-28) verified the "
+                   "chain. */")
+    (block,) = _design_data_carriers(unlabelled)
+    assert "design data, not evidence of record" not in block.lower()
+    (block,) = _design_data_carriers(overclaimed)
+    assert re.search(r"\bverified\b", block)
+    assert _design_data_carriers("/* A run on another VM (2026-10-28). */") == []

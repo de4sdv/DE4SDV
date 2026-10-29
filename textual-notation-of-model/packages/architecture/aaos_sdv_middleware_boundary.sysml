@@ -251,9 +251,14 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
      * SOME/IP interoperability stack for communication with non-SDV
      * automotive systems. Operates over TCP or UDP. Drawn separately
      * from the native SDV communication abstractions because it is an
-     * established automotive protocol, not an SDV-native mechanism.
+     * established automotive protocol, not an SDV-native mechanism. In AAOS
+     * SDV, its SOME/IP broker maps a SOME/IP event to an SDV topic and
+     * publishes the topic into Data Tunnel.
      */
     port someIpPort : SomeIpPort;
+    port topicPublishOut : DataTunnelPort {
+      doc /* The SDV topics that the SOME/IP broker publishes for the SOME/IP events that it maps. */
+    }
   }
 
   /* ──────────────────────────────────────────
@@ -262,17 +267,18 @@ package DE4SDV_AAOSSDVMiddlewareBoundary {
 
   part def SDVGatewayOnIVIBoundary {
     doc /*
-     * The SDV Gateway on IVI: the boundary through which IVI applications
-     * and native IVI services reach SDV services. It runs in an IVI VM, not
-     * in SDV Core. In android17-release it is the sdv_gateway service of the
-     * IVI image, which also runs the Data Tunnel agent of that VM
-     * (sdv_ivi_base/sdv.agents.rc:33-35 of device/google/sdv). Native
-     * services use it through libsdvgatewayclient, and Java applications
-     * through its Java client. A subscriber can subscribe by name to a Data
-     * Tunnel publication of another VM. By default it then reads only the
-     * messages published after its subscription. On request it can also
-     * read the last message published before it
-     * (libsdvgatewayclient.h:302-316).
+     * The SDV Gateway on IVI: the boundary through which IVI applications and
+     * native IVI services reach SDV services. It runs in an IVI VM, not in SDV
+     * Core. In android17-release it is the sdv_gateway service of the IVI
+     * image, which also runs the Data Tunnel agent of that VM
+     * (sdv_ivi_base/sdv.agents.rc:33-35 of device/google/sdv at f4bfa128,
+     * manifest ad156f32). Native services use it through libsdvgatewayclient,
+     * and Java applications through its Java client. A subscriber can
+     * subscribe by name to a Data Tunnel publication of another VM. By default
+     * it then reads only the messages published after its subscription. On
+     * request it can also read the last message published before it
+     * (libsdvgatewayclient/include/libsdvgatewayclient.h:302-316 of
+     * platform/system/software_defined_vehicle/sdv_gateway at c918480a).
      */
     port dataTunnelPort : DataTunnelPort {
       doc /* Data Tunnel topics of this VM and of other VMs. */

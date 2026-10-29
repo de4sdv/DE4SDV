@@ -45,6 +45,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   private import DE4SDV_SDVPlatformStack::*;
   private import DE4SDV_AAOSSDVMiddlewareBoundary::SDVCoreBoundary;
   private import DE4SDV_AAOSSDVMiddlewareBoundary::SDVGatewayOnIVIBoundary;
+  private import DE4SDV_AAOSSDVMiddlewareBoundary::DataTunnelPort;
   private import DE4SDV_MiddlewareSCOREFraming::SCOREMiddlewareIntegrationLayer;
   private import DE4SDV_MiddlewareSCOREOperationalContext::AEBSSignalFrame;
   private import DE4SDV_MiddlewarePhysicalSoftwareRealization::VelocityReportPublication;
@@ -280,35 +281,68 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * publishes in the SDV Core VM. It subscribes by name, with the
        * subscriber flag ASDVGATEWAY_SUBSCRIBER_OPTIONS_FLAG_NONE. So it reads
        * only the messages published after its subscription, and not the last
-       * message published before it (libsdvgatewayclient.h:302-316 of
-       * android17-release). Each message holds the SOME/IP payload of one
-       * frame event in the broker's wrapper for INTERPRET_AS_BYTES: a
-       * protobuf message with one bytes field (broker_translator.rs:248-262).
-       * The relay removes the wrapper. It forwards a payload only when the
-       * payload's own length prefix matches the payload length (owner
-       * decision of 2026-10-23). So a corrupted payload cannot shift the
-       * stream framing of the ingress (GAP-MW-040).
+       * message published before it
+       * (sdv_gateway/libsdvgatewayclient/include/libsdvgatewayclient.h:302-316).
+       * Each message holds the SOME/IP payload of one frame event in the
+       * broker's wrapper for INTERPRET_AS_BYTES: a protobuf message with one
+       * bytes field
+       * (some_ip/broker_agent_comms/src/translator/broker_translator.rs:248-262).
+       * The relay parses the wrapper strictly. The outer varint must equal the
+       * size that remains. Exactly one field must follow: field 1 of wire
+       * type 2 (0x0A), whose length equals the rest, with no other byte.
+       * Anything else is malformed, and the relay drops it with a reason of
+       * its own. Then it forwards a payload only when the payload's own
+       * length prefix matches the payload length (owner decision of
+       * 2026-10-23). So a corrupted payload cannot shift the stream framing of
+       * the ingress (GAP-MW-040).
        * Design data, not evidence of record: an unreviewed DE4SDV feasibility
        * run on the bench VM (2026-10-28) subscribed a native IVI probe in this
        * way, with the authorization enforced. The publication was
        * instance1:com.android.sdv.someip.SomeIpBroker/default, unit
        * de4sdv-score-aebs-signal-frame. Over 630 s the probe read 6300 of 6300
-       * frames in order. After it removed the wrapper, each frame was equal
-       * byte for byte to the frame on the host.
-       * Subscription (proposed on 2026-10-29; the owner decides). The relay
-       * subscribes at its start and keeps the subscription while it runs,
-       * with or without a client. An unsubscription would not stop the
-       * stream. In the feasibility runs, the platform sent the topic to the IVI
-       * VM for at least 6 minutes after the last client unsubscribed, until
-       * the publication went. The relay subscribes again in three cases:
-       * - the subscription reports PublicationDestroyed. In the run this came
-       *   about 0.5 s after a restart of someipd, and the broker then made a
-       *   new publication;
-       * - the gateway client reports Disconnected;
-       * - no message comes for 1 s, ten frame periods.
-       * Before it subscribes again, it ends the old subscription. While a
-       * subscription fails, for example with "No publication service unit
-       * found", it tries again each second.
+       * frames from the bench's synthetic frame source, in order. After it
+       * removed the wrapper, each frame was equal byte for byte to the frame
+       * on the host.
+       * Subscription (proposed; the owner decides):
+       * - The relay keeps one subscription for its lifetime, with or without
+       *   a client. An unsubscription would not stop the stream. In the
+       *   feasibility runs, the platform sent the topic to the IVI VM for at
+       *   least 6 minutes after the last client unsubscribed, until the
+       *   publication went.
+       * - It runs the gateway client (init, subscribe and read) on a thread
+       *   of its own, with bounded waits. The loopback server and the
+       *   ingress connection do not depend on that thread.
+       * - On PublicationDestroyed, it ends the old subscription and
+       *   subscribes again: every 100 ms for the first 5 s, then every
+       *   second. In the feasibility run, PublicationDestroyed came within
+       *   about 0.1 s after a restart of someipd (IVI VM clock corrected by
+       *   the measured offset). The broker had no new publication yet.
+       * - On Disconnected, it creates the gateway client again, with a
+       *   bounded retry, and it logs each attempt. Disconnected is an event of
+       *   the API. The feasibility runs did not see it.
+       * - When no message comes for 3 s, it ends the subscription and
+       *   subscribes again. The timeout is above the longest pause of a
+       *   healthy source. That pause is the reconnect delay of the adapter, at
+       *   most 2 s (adapter/de4sdv_score_adapter/src/adapter_main.cpp:338 of
+       *   the S-CORE reference interop bench), plus one frame period. After
+       *   three subscriptions in a row that bring no message, it waits 5 s
+       *   between them. This break-before-make design keeps one subscription
+       *   at a time, because the runs did not test whether a second
+       *   subscription adds a stream.
+       * - It counts each failed subscription and logs it with its status
+       *   text. A subject without an ACL gets "No publication service unit
+       *   found", the reply to a missing publication too. So if no
+       *   subscription succeeds within 30 s of its start, the relay reports a
+       *   likely fault of the ACL or of the mapping. After that, it tries
+       *   every 10 s.
+       * - It counts a DATA_LOSS status of a read as a gap (GAP-MW-037), not
+       *   as the end of a phase.
+       * A new subscription can miss the messages of its own window. Phase 10
+       * measures, on corrected clocks, the latency of PublicationDestroyed
+       * and the time to a new publication after a restart of someipd. It
+       * also measures the subscribe latency and its loss window, the
+       * DATA_LOSS counts, the subscriptions during a death of the stack, and
+       * whether new subscriptions add streams or bandwidth.
        * Output: it serves each frame unchanged as the INC-AEBS-010
        * length-delimited stream on 127.0.0.1:4731 of the IVI VM loopback. It
        * serves one client, the reused ingress (ASM-MW-029), and it refuses a
@@ -323,7 +357,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * (relaySubscriptionPhaseDiscardRule). For that rule it reads two fields
        * of each frame, the sequence and the frame timestamp. It changes no
        * byte of the frame (REQ-MW-015). The broker subscribes to someipd
-       * whether an IVI subscriber exists or not (pubsub_handler.rs:764-923).
+       * whether an IVI subscriber exists or not
+       * (some_ip/broker_agent_comms/src/pubsub/pubsub_handler.rs:764-923).
        * So the host half and the SDV Core VM cannot see whether the HMI
        * application is connected. This rule is the discard that REQ-MW-019
        * relies on in the guest. It keeps the ingress connection open while the
@@ -332,7 +367,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * sequence (guestStaleFrameDropGuardRail). It sends nothing to the host
        * or to the SDV Core VM. Only the SDV Gateway on IVI exchanges
        * subscription control with the SDV Core VM for it. That is a design
-       * property, not the protection of REQ-MW-016, which someipd enforces.
+       * property, not the protection of REQ-MW-016, which someipd (no
+       * receiver for guest data) and the host configuration of GAP-MW-046 (DDS
+       * ports) enforce.
        * It runs as a native init service of the IVI VM, outside the Launch
        * Manager, which runs only on the Linux host. It is not a oneshot
        * service, so init restarts it when it exits. The relay starts the
@@ -342,7 +379,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * property to 0 and then to 1. It does so at each of its own starts,
        * once its loopback server listens. Init ignores a start of a oneshot
        * service whose old process it has not reaped yet
-       * (init/service.cpp:589-608 and 313-314 of AOSP android14-release).
+       * (init/service.cpp:620-642 and 328-329 of platform/system/core at
+       * android17-release).
        * So until the first client of the current relay process connects, the
        * relay repeats the trigger at a fixed interval, a fixed number of
        * times at most. After that first client, it never triggers the
@@ -350,8 +388,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * itself, stays down until the bench starts it or the relay restarts.
        * Its bench form, and what stays untested, are in GAP-MW-038.
        */
-      port aebsSignalFrameIn : AEBSSignalFrameIn {
-        doc /* Subscription through the SDV Gateway on IVI to the broker's frame topic in the SDV Core VM. */
+      port frameTopicIn : DataTunnelPort {
+        doc /* Subscription through the SDV Gateway on IVI to the broker's frame topic in the SDV Core VM. Each message is a SOME/IP payload in the broker's wrapper; the relay's behavior unwraps it. */
       }
       port aebsSignalFrameOut : AEBSSignalFrameOut {
         doc /* Length-delimited frame stream, server on 127.0.0.1:4731 of the IVI VM loopback, one client. */
@@ -517,9 +555,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
          * host also keeps the DDS ports of the adapter and the health proxy
          * node off the guest network, as it must keep port 4721 of the frame
          * assembler (ASM-MW-029). Both VMs of the guest are on the host's
-         * untagged network segment. So the IVI VM reaches the SOME/IP ports
-         * of someipd too, but no element of the layer there uses SOME/IP
-         * (GAP-MW-046).
+         * untagged network segment. So the IVI VM can reach the SOME/IP ports
+         * of someipd too: one routing rule in the guest is enough, so the host
+         * must not rely on the routing of the guest (GAP-MW-046). No element
+         * of the layer in the IVI VM uses SOME/IP.
          * REQ-MW-016, and REQ-MW-019 while the broker's subscription is
          * absent, are enforced here by the host's own configuration and do
          * not rely on the guest. The bench does not have
@@ -574,7 +613,9 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * (ADR 0025). The layer uses two of its parts. It refers to them and
        * does not own them: the product around the layer owns the SDV Core.
        * - someIp: the SOME/IP broker and its stack. The broker is the init
-       *   service sdv_someip_broker_agent (sdv_someip_broker_agent_comms).
+       *   service sdv_someip_broker_agent (sdv_someip_broker_agent_comms). It
+       *   takes the SOME/IP event at someIpPort and publishes the topic at
+       *   topicPublishOut.
        *   The stack is Google's reference stack sdv_someip_stack_agent, a
        *   thin wrapper of the vsomeip 3.1.37.1 of AOSP (GAP-MW-047), behind
        *   the Stable AIDL interface ISomeIpStack. Under the fallback of
@@ -592,8 +633,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        * (/vendor/etc/someip/vsomeip_config.json) and offers no SOME/IP
        * service. The VM starts the broker and the stack on the boot property
        * ro.boot.sdv.someip.enable=true. Both are oneshot services, so init
-       * does not restart them (init.sdv_core_cf.rc:47-66 of device/google/sdv
-       * at android17-release; GAP-MW-048). The mapping and the stack
+       * does not restart them (sdv_core_cf/init.sdv_core_cf.rc:47-66 of
+       * device/google/sdv; GAP-MW-048). The mapping and the stack
        * configuration go into the SDV Core image when it is built
        * (GAP-MW-038).
        */
@@ -617,11 +658,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
     connection frameEventOverSOMEIPAcrossHypervisor
       connect scoreServices.someipd.aebsSignalFrameOut to sdvCore.someIp.someIpPort;
     connection frameTopicPublishedByBroker
-      connect sdvCore.someIp.someIpPort to sdvCore.dataTunnel.topicPublishPort;
+      connect sdvCore.someIp.topicPublishOut to sdvCore.dataTunnel.topicPublishPort;
     connection frameTopicOverDataTunnelAcrossVMs
       connect sdvCore.dataTunnel.topicSubscribePort to sdvGateway.dataTunnelPort;
     connection frameTopicThroughSDVGatewayToRelay
-      connect sdvGateway.clientPort to iviFrameRelay.aebsSignalFrameIn;
+      connect sdvGateway.clientPort to iviFrameRelay.frameTopicIn;
   }
 
   part def SCORETwoDomainPhysicalSystem {
@@ -719,7 +760,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
       part os : AndroidHLOS;
       part sdvMiddleware : AndroidSDVMiddleware;
       part sdvGateway : SDVGatewayOnIVIBoundary {
-        doc /* The SDV Gateway on IVI of this VM, a service of its AAOS SDV middleware. The layer's sdvGateway refers to it. */
+        doc /* The SDV Gateway on IVI of this VM: the sdv_gateway service of the IVI image. The model holds it beside sdvMiddleware. The layer's sdvGateway refers to it. */
       }
 
       part hmiApplication {
@@ -852,14 +893,14 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
        */
       attribute :>> semanticSource = "the AEBS signal frame (AEBSSignalFrame), opaque DE4SDV content: it carries no VSS signal, by the owner decision of 2026-10-18 recorded on AEBSSignalFrame";
       attribute :>> softwareContractArtifact = "the INC-AEBS-010 frame-server stream into the adapter: the frame assembler binds 0.0.0.0:4721 (de4sdv_aebs_010_bridge/ros_node.py:34-35), and the adapter connects to 127.0.0.1:4721 on the host loopback (adapter/de4sdv_score_adapter/src/adapter_main.cpp:190-191 of the S-CORE reference interop bench), exact; the layer's S-CORE mw::com configuration, the gateway configuration that gatewayd hands to someipd, the vsomeip 3.6.1 configuration of someipd, the DE4SDV stack configuration of the SDV Core VM, the DE4SDV SOME/IP mapping of the broker with its VSIDL type and catalog, and the authorization entries of the broker's publication and of the relay's subscription (phase 10), candidate; the relay's subscription through the SDV Gateway on IVI, candidate; the relay's stream on the IVI VM loopback, 127.0.0.1:4731, candidate; the INC-AEBS-010 ingress stream (ingress/main.cpp:27-28, 142-146), exact";
-      attribute :>> softwareContractMessage = "host and IVI VM loopback: the length-delimited frame stream; mw::com: the AEBS signal frame service instance with one event of the gateway type PreSerializedData<2048>; gateway IPC binding: the same bytes behind a 16-byte SOME/IP header, as a sample of gatewayd's bridged mw::com service, and someipd removes the header; SOME/IP: one service with one reliable event, events only, IDs not yet assigned; Data Tunnel: one topic of the broker's publication, each message the SOME/IP payload in the broker's wrapper for INTERPRET_AS_BYTES, [length varint][0x0A][length varint][payload], a protobuf message with one bytes field (broker_translator.rs:248-262 of android17-release); the relay removes the wrapper; in the feasibility run of 2026-10-28 the publication was instance1:com.android.sdv.someip.SomeIpBroker/default, unit de4sdv-score-aebs-signal-frame (design data)";
+      attribute :>> softwareContractMessage = "host and IVI VM loopback: the length-delimited frame stream; mw::com: the AEBS signal frame service instance with one event of the gateway type PreSerializedData<2048>; gateway IPC binding: the same bytes behind a 16-byte SOME/IP header, as a sample of gatewayd's bridged mw::com service, and someipd removes the header; SOME/IP: one service with one reliable event, events only, IDs not yet assigned; Data Tunnel: one topic of the broker's publication, each message the SOME/IP payload in the broker's wrapper for INTERPRET_AS_BYTES, [length varint][0x0A][length varint][payload], a protobuf message with one bytes field (some_ip/broker_agent_comms/src/translator/broker_translator.rs:248-262); the relay removes the wrapper and parses it strictly; in the feasibility run of 2026-10-28 the publication was instance1:com.android.sdv.someip.SomeIpBroker/default, unit de4sdv-score-aebs-signal-frame (design data)";
       attribute :>> softwareContractField = "the whole frame, opaque; the relay reads only sequence and frame_timestamp_ns (aebs_visualization.proto:59-60 of INC-AEBS-010) for its discard rule";
-      attribute :>> dataTypeAndUnit = "a length-prefixed frame of at most 2048 bytes; on Data Tunnel the bytes field of the topic's VSIDL type holds at least 2048 bytes; the wrapper adds 5 bytes to a payload of that size, and the maximum message size of the publication must hold both, because the broker does not publish a payload that exceeds it (broker_translator.rs:263-265); Data Tunnel sends the whole slot, so a larger field costs bandwidth (feasibility run of 2026-10-28: about 4.1 KB on the wire for each 2053-byte message in a 4101-byte slot, design data); no unit";
+      attribute :>> dataTypeAndUnit = "a length-prefixed frame of at most 2048 bytes; on Data Tunnel the bytes field of the topic's VSIDL type holds at least 2048 bytes; the wrapper adds 5 bytes to a payload of that size, and the maximum message size of the publication must hold both, because the broker does not publish a payload that exceeds it (some_ip/broker_agent_comms/src/translator/broker_translator.rs:263-265); Data Tunnel sends the whole slot, so a larger field costs bandwidth (feasibility run of 2026-10-28 with the bench's synthetic frames: about 4.1 KB on the wire for each 2053-byte message in a 4101-byte slot, design data); no unit";
       attribute :>> timingQualityAndState = "source order (REQ-MW-014), not guaranteed (GAP-MW-037), and on the AAOS SDV hops assumed (ASM-MW-032); discarded while the HMI application is not subscribed (REQ-MW-019): at someipd while the broker's subscription is absent, if someipd's vsomeip configuration gives the frame event no cycle; the broker subscribes whether an IVI subscriber exists or not, and a gateway subscriber with ASDVGATEWAY_SUBSCRIBER_OPTIONS_FLAG_NONE reads only the messages published after its subscription; at the relay outside a subscription phase and, in a phase, when the AEBS stack produced the frame before the phase started (relaySubscriptionPhaseDiscardRule, ASM-MW-030); a new subscription of a LoLa hop can return up to 10 frames from before it (GAP-MW-039), they reach the topic as new messages, and the relay drops those produced before the phase, apart from the band of GAP-MW-045";
       attribute :>> transformationRule = "pass-through and unchanged (REQ-MW-015): no element changes the frame; the broker puts the SOME/IP payload into its wrapper, and the relay removes the wrapper; the relay reads the length prefix to check the framing, and the sequence and the frame timestamp for its discard rule; no VSS signal, by owner decision";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10, in this order: (1) assign the mw::com instance and the SOME/IP service, instance and event IDs, and give the frame event no cycle and 20 sample slots, at least the 10 that gatewayd needs and the count that the relay's copy check sums; (2) author the DE4SDV stack configuration, with no offered service, and the DE4SDV SOME/IP mapping: one someip_service_mapping for the frame event with INTERPRET_AS_BYTES, a VSIDL type whose bytes field holds the 2048 bytes of the frame bound and not much more, its catalog, and the authorization entries of the broker's publication and of the relay's subscription, among them the relay's ACL; (3) build the SDV Core image with the mapping and the stack configuration, and launch the SDV Core VM and the IVI VM from one android17-release revision, both in the UNLOCKED boot mode (ADR 0025, decision 8); (4) before each session, apply the clock controls of ASM-MW-030: IVI VM auto_time and auto_time_zone off, one clock setting, and the two-way measurement at the start and the end; (5) check with ss -tnp that the adapter is the only client of the frame assembler (ASM-MW-029); (6) run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019; (7) run the start, stop and restart cases of the guard rails, a restart of the relay after which it starts the ingress again, a death of the broker and of its stack with the bench recovery of GAP-MW-048, an outage of SD multicast (GAP-MW-047), and a link loss and a reboot of each VM; (8) run the phase-start and stored-frame cases of the relay's discard rule, and a corrupted-payload case for its framing check; (9) author the host configuration that makes the DDS ports of every host ROS 2 process, and port 4721, unreachable from each guest domain (a host firewall on the bench), and run the reachability probe of the case that verifies REQ-MW-016 (ASM-MW-029, GAP-MW-046)";
+      attribute :>> nextAction = "phase 10, in this order: (1) assign the mw::com instance and the SOME/IP service, instance and event IDs, and give the frame event no cycle and 20 sample slots, at least the 10 that gatewayd needs and the count that the relay's copy check sums; (2) set up the SD network of the host: the unicast address 192.168.98.1/24 of someipd on the bridge cvd-ebr, a route for the SD group on cvd-ebr, and an SD group that the bridge forwards, in 224.0.0.0/24 or with an IGMP querier or with no IGMP snooping on cvd-ebr (GAP-MW-047); (3) author the DE4SDV stack configuration, with no offered service and with the remote endpoint of the frame service pinned to 192.168.98.1, so that an SD message from the IVI VM cannot redirect the subscription (else filter SD in the SDV Core VM to 192.168.98.1, or record the residual for REQ-MW-015 under GAP-MW-012), and the DE4SDV SOME/IP mapping: one someip_service_mapping for the frame event with INTERPRET_AS_BYTES, a VSIDL type whose bytes field holds the 2048 bytes of the frame bound and not much more, its catalog, and the authorization entries of the broker's publication and of the relay's subscription, among them the relay's ACL; (4) build the SDV Core image with the mapping and the stack configuration, from a clean, recorded build, and launch the SDV Core VM and the IVI VM from one android17-release revision, both in the UNLOCKED boot mode (ADR 0025, decision 8); (5) provision the relay for the IVI VM: build it into the IVI image, or put it on the instance overlay for the bench, with its init service; set the ingress's frame-server port property to 4731; install exactly one ACL file for the relay's subject before the IVI VM boots; then reboot the IVI VM and set its clock (ASM-MW-030) before any case; (6) before each session, apply the clock controls of ASM-MW-030: IVI VM auto_time and auto_time_zone off, a clock setting after each boot, and the two-way measurement with its uncertainty at the start and the end; (7) check on the host with ss -H -t -n -p state established '( sport = :4721 )' that the adapter is the only client of the frame assembler (ASM-MW-029); (8) run the sequence-gap and resubscription tests of REQ-MW-014 and REQ-MW-019, and record every phase end of the relay (relaySubscriptionPhaseDiscardRule); (9) run the start, stop and restart cases of the guard rails, a restart of the relay after which it starts the ingress again, a death of the broker and of its stack with the bench recovery of GAP-MW-048, an outage of SD multicast and a long session that checks that the SD offers and renewals keep coming (GAP-MW-047), and a link loss and a reboot of each VM; (10) run the phase-start and stored-frame cases of the relay's discard rule, a corrupted-payload case for its framing check, and a malformed-wrapper case; (11) author the host configuration of GAP-MW-046, written by interface, that makes the DDS ports of every host ROS 2 process, and port 4721, unreachable from each guest domain (a host firewall on the bench), and run the reachability probe of the case that verifies REQ-MW-016 from each VM, over each of its interfaces (eth1, buried_eth0, the VLAN interfaces, wlan if present), to each address of the host (192.168.98.1, the host end of the buried network of each VM, any other cvd-* bridge address) (ASM-MW-029, GAP-MW-046)";
       attribute :>> evidenceOrGap = "no runtime evidence yet; GAP-MW-035, GAP-MW-036, GAP-MW-037, GAP-MW-038, GAP-MW-039, GAP-MW-040, GAP-MW-041, GAP-MW-042, GAP-MW-043, GAP-MW-045, GAP-MW-046, GAP-MW-047, GAP-MW-048; ASM-MW-032; design data only from the feasibility runs of 2026-10-28 (GAP-MW-038)";
     }
   }
@@ -957,16 +998,24 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * session:
      * - the automatic time and time zone of the IVI VM are off (auto_time
      *   and auto_time_zone);
-     * - the IVI VM clock is set after each boot and before each session, by
-     *   a two-way time exchange with the chrony of the host, for example with
+     * - the IVI VM clock is set after each boot and before each session, by a
+     *   two-way time exchange with the chrony of the host, for example with
      *   the sntp of toybox if the image has it. A setting through adb is not
-     *   used, because its round trip would add to the offset;
+     *   used, because its round trip would add to the offset. If that sntp has
+     *   its adjust and daemon modes, it first sets the clock with -s. Then it
+     *   slews the clock against the chrony of the host in daemon mode. A slew
+     *   changes CLOCK_REALTIME and CLOCK_MONOTONIC alike, so it is no step
+     *   under this assumption. Otherwise each session is sized from the
+     *   measured drift: at about 60 ppm, the budget lasts about 5 minutes
+     *   after a setting;
      * - the same two-way time exchange, without a clock setting, measures
      *   the offset between the host clock and the IVI VM clock. It does so at
-     *   the start and at the end of the session. SOME/IP runs between the
-     *   host and the SDV Core VM, so a capture of it does not measure the
-     *   offset of the IVI VM clock. No case starts before the start
-     *   measurement gives an offset below 20 ms;
+     *   the start and at the end of the session. It is the only control that
+     *   bounds the offset. It reports its uncertainty, half of its round
+     *   trip. SOME/IP runs between the host and the SDV Core VM, so a capture
+     *   of it does not measure the offset of the IVI VM clock. No case starts
+     *   before the start measurement gives an offset whose size plus that
+     *   uncertainty is below 20 ms;
      * - the host logs each step of its clock, from the "System clock was
      *   stepped" lines of chrony or from its own CLOCK_REALTIME minus
      *   CLOCK_MONOTONIC;
@@ -974,7 +1023,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   it. For the frames that it serves in a phase, it logs the minimum and
      *   the maximum of receipt time minus frame timestamp. That minimum
      *   bounds the offset from one side only: it shows an IVI VM clock that
-     *   runs behind the host clock;
+     *   runs behind the host clock. At the latency of the broker path, about
+     *   31 to 34 ms (GAP-MW-045), the minimum stays positive unless the IVI
+     *   VM clock runs behind by more than that. So it cannot detect an offset
+     *   inside 20 ms, and it is no bounding control;
      * - each frame_timestamp_ns is compared with the host capture time of the
      *   SOME/IP packet that carries it, because the bridge node stamps with
      *   its ROS 2 clock (de4sdv_aebs_010_bridge/ros_node.py:93) and a peer
@@ -987,10 +1039,10 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * an indication only. So the bound holds only after a clock setting, and
      * phase 10 measures the drift rate before it sets the length of a
      * session.
-     * A run whose measured offset is not below 20 ms is void, and so is a run
-     * in which a clock steps. The bound keeps the band of GAP-MW-045 below
-     * half of the 100 ms frame period of the frame assembler
-     * (de4sdv_aebs_010_bridge/ros_node.py:56).
+     * A run whose measured offset plus its uncertainty is not below 20 ms is
+     * void, and so is a run in which a clock steps. The bound keeps the band
+     * of GAP-MW-045 below half of the 100 ms frame period of the frame
+     * assembler (de4sdv_aebs_010_bridge/ros_node.py:56).
      */
   }
 
@@ -1032,18 +1084,19 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * broker's frame topic to the relay in the order of publication. They
      * keep each payload unchanged inside the broker's wrapper. REQ-MW-014
      * and REQ-MW-015 rely on this on the AAOS SDV hops. The broker copies
-     * each payload unchanged into its wrapper (broker_translator.rs:248-280
-     * of android17-release). DE4SDV has not analyzed the order and the bytes
-     * of the cross-VM Data Tunnel and of the SDV Gateway on IVI. A topic
-     * queue that is full discards unread messages (the VSIDL language
-     * specification). That gives a sequence gap (GAP-MW-037), not a change
-     * of order or of bytes. The tests of REQ-MW-014 and REQ-MW-015 check
-     * this assumption end to end. They use the frames' own sequence numbers,
-     * and they compare the bytes with the capture on the host.
-     * Design data, not evidence of record: an unreviewed DE4SDV feasibility
-     * run on the bench VM (2026-10-28) delivered 6300 of 6300 frames over
-     * 630 s, in order and equal byte for byte. It ran in the LOCKED mode with
-     * the authorization enforced.
+     * each payload unchanged into its wrapper
+     * (some_ip/broker_agent_comms/src/translator/broker_translator.rs:248-280).
+     * DE4SDV has not analyzed the order and the bytes of the cross-VM Data
+     * Tunnel and of the SDV Gateway on IVI. A topic queue that is full
+     * discards unread messages (the VSIDL language specification). That gives
+     * a sequence gap (GAP-MW-037), not a change of order or of bytes. The
+     * tests of REQ-MW-014 and REQ-MW-015 check this assumption end to end.
+     * They use the frames' own sequence numbers, and they compare the bytes
+     * with the capture on the host. Design data, not evidence of record: an
+     * unreviewed DE4SDV feasibility run on the bench VM (2026-10-28) delivered
+     * 6300 of 6300 frames over 630 s, in order and equal byte for byte. The
+     * frames came from the bench's synthetic frame source. The run used the
+     * LOCKED mode with the authorization enforced.
      */
   }
   dependency aaosSdvPathAssumedForSDVCore
@@ -1160,7 +1213,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * endpoint queue of someipd (REQ-MW-019) drops frames while a
      * subscribed SDV Core VM stalls. On the AAOS SDV hops, a topic holds a
      * bounded queue, and a full queue discards unread messages (the VSIDL
-     * language specification). So a stalled relay loses frames. Reliable
+     * language specification). So a stalled relay loses frames, and it
+     * counts each DATA_LOSS status of a read as such a gap. Reliable
      * events keep the order on one connection, and slot and queue sizes for
      * 10 Hz frames of at most 2048 bytes make a gap unlikely, but none of
      * this rules out a sequence gap. Stored frames of a late subscription in
@@ -1175,7 +1229,14 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   part <'GAP-MW-038'> gapSOMEIPStackOnAAOSGuestUntested : IncrementGap {
     doc /*
      * DE4SDV has no evidence of record of the AAOS SDV SOME/IP path of this
-     * member (ADR 0025). Design data, not evidence of record: unreviewed
+     * member (ADR 0025). The AOSP citations of this slice refer to the
+     * android17-release tree of manifest ad156f32 (platform/manifest), with
+     * these project commits: some_ip 27bff3fe, sdv_gateway c918480a,
+     * middleware 7ab87b58 and samples e8cc5f41 of
+     * platform/system/software_defined_vehicle; device/google/sdv f4bfa128;
+     * platform/external/sdv/vsomeip 906331c2; platform/system/core 545d2487.
+     * A citation that starts with a project name gives the path in that
+     * project. Design data, not evidence of record: unreviewed
      * DE4SDV feasibility runs on the bench VM (2026-10-28) ran the whole
      * chain. It went from someipd on the host through the broker and Data
      * Tunnel to a native probe in the IVI VM. The runs showed:
@@ -1197,10 +1258,13 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   apexd activates every APEX at bootstrap, so it drops an updated data
      *   APEX;
      * - the cross-VM subscription of a native IVI service, with the
-     *   authorization enforced (iviFrameRelay). Cross-VM communication is
-     *   denied by default, and a subject without an ACL was denied. The SD
-     *   agent of the IVI VM reads the ACLs only at its start, so a new ACL
-     *   needs a restart of the IVI VM;
+     *   authorization enforced (iviFrameRelay). Google's documentation
+     *   states that cross-VM communication is denied by default. The bench
+     *   used the allow-all VM-level policy of the sample targets, and a
+     *   subject without a service-level ACL was denied. The SD agent of the
+     *   IVI VM reads the ACLs only at its start, so a new ACL needs a restart
+     *   of the IVI VM. A second ACL file for one subject makes the SD agent
+     *   exit;
      * - the restart behavior of the oneshot broker and stack (GAP-MW-048).
      * Still open: evidence of record, the build of the relay and its start
      * as a native init service, and the product form below.
@@ -1211,15 +1275,20 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * only to upstream vsomeip, not to this copy.
      * Claim boundary: Google's reference stack is a non-production reference
      * sample. This member uses it as AAOS SDV deploys it, in the SDV Core VM.
-     * No SOME/IP conformance or AAOS SDV compatibility claim is made.
+     * No SOME/IP conformance or AAOS SDV compatibility claim is made. In the
+     * UNLOCKED mode of the bench, the SD mesh and Data Tunnel run as
+     * cleartext HTTP/2.
      * Bench form: both images come from one android17-release revision, in
      * the UNLOCKED boot mode (ADR 0025, decision 8). SELinux stays
      * permissive, as in the INC-AEBS-010 bench. The SOME/IP mapping and the
      * stack configuration go into the SDV Core image when it is built. Phase
-     * 10 provisions the relay and its ACL on the IVI image. Product form,
-     * still open: SELinux domains of their own, and an IVI image built with
-     * the relay. Because these belong to the system of interest, that build
-     * is realization work of the layer; the rest of the images is context.
+     * 10 provisions the relay, its init service and exactly one ACL file for
+     * its subject on the IVI side, before the IVI VM boots. It starts from a
+     * clean, recorded build, not from the images of the feasibility runs.
+     * Product form, still open: SELinux domains of their own, and an IVI image
+     * built with the relay. Because these belong to the system of interest,
+     * that build is realization work of the layer; the rest of the images is
+     * context.
      * Design data of the parked DE4SDV SOME/IP receiver, which leaves the
      * product path (ADR 0025, decision 7). An unreviewed DE4SDV feasibility
      * run tested it on Linux against the real someipd at d9eac670 (CI run
@@ -1264,11 +1333,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * - no old frame when the guest subscribed late or again, when the
      *   publisher restarted under a subscribed gatewayd, and at a start in
      *   the start order.
-     * An unreviewed DE4SDV feasibility run of the broker path on the bench VM
-     * (2026-10-28) saw it on the wire too. After a restart of someipd or of
-     * the pair, 2 of 4 new SOME/IP subscriptions began with a burst of 8 or
-     * 9 frames, 0.7 to 1.0 s old. In one burst all 9 frames were copies of
-     * frames already sent.
+     * Design data, not evidence of record: an unreviewed DE4SDV feasibility
+     * run of the broker path on the bench VM (2026-10-28) saw it on the wire
+     * too, with the bench's synthetic frame source. After a restart of
+     * someipd or of the pair, 2 of 4 new SOME/IP subscriptions began with a
+     * burst of 8 or 9 frames, 0.7 to 1.0 s old. In one burst all 9 frames
+     * were copies of frames already sent.
      * Effects on the layer:
      * - Frame path. The broker subscribes as soon as someipd offers the
      *   service, so these frames reach the broker's topic as new messages.
@@ -1424,10 +1494,11 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * The broker path adds hops between the host and the relay.
      * Design data, not evidence of record: an unreviewed DE4SDV feasibility
      * run on the bench VM (2026-10-28) indicated about 31 to 34 ms from the
-     * host to a probe in the IVI VM.
-     * That is longer than the 20 ms margin. So while the clock offset is
-     * small, a frame of the first kind comes at about one phase start in
-     * five: the band is 20 ms of the 100 ms frame period.
+     * host to a probe in the IVI VM. Its frames came from the bench's
+     * synthetic frame source. That latency is longer than the 20 ms margin.
+     * So while the clock offset is small, a frame of the first kind comes at
+     * about one phase start in five: the band is 20 ms of the 100 ms frame
+     * period.
      * The success criteria of REQ-MW-019 declare this margin as the bound of
      * ASM-MW-030 (owner decision of 2026-10-28). So such a frame meets them
      * while ASM-MW-030 holds.
@@ -1456,16 +1527,34 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * execution slice authors the configuration, a host firewall on the
      * bench, and the reachability probe of the case that verifies REQ-MW-016
      * checks it. Until then, the isolation
-     * that REQ-MW-016 and ASM-MW-029 need is not realized. The IVI VM is on
-     * that segment too, so it reaches the SOME/IP ports of someipd, although
-     * no element of the layer there uses SOME/IP. So the same configuration
-     * is the place for a rule that admits SOME/IP to someipd from the SDV
-     * Core VM only. Design data, not evidence of record: an unreviewed DE4SDV
-     * feasibility run on the bench VM (2026-10-28) found layer 3 open on
-     * eth1. The IVI VM reached the host apart from its own policy routing,
-     * and one routing rule in the guest made port 30509 of someipd
-     * reachable. A host rule that admits SOME/IP to someipd only from
-     * 192.168.98.3, the SDV Core VM, is proposed to the owner.
+     * that REQ-MW-016 and ASM-MW-029 need is not realized.
+     * Proposed host configuration (proposed; the owner decides): rules by
+     * interface, not by source address. In an inet input chain, the host
+     * drops UDP 30150-30151 and 30160-30401, and TCP 4721, on every interface
+     * except lo. The UDP ports are the DDS ports of the bench's ROS_DOMAIN_ID
+     * 91 with MaxAutoParticipantIndex 120, and the configuration records both
+     * parameters. A rule by source subnet would miss a guest network: each VM
+     * also has a network of its own (buried_eth0), and CycloneDDS receives on
+     * every address. The reachability probe runs from each VM, over each of
+     * its interfaces (eth1, buried_eth0, the VLAN interfaces, and wlan if
+     * present), to each address of the host (192.168.98.1, the host end of
+     * the buried network of each VM, and any other cvd-* bridge address).
+     * Design data, not evidence of record: an unreviewed DE4SDV feasibility
+     * run on the bench VM (2026-10-28) found layer 3 open on eth1. The IVI
+     * VM can reach the SOME/IP ports of someipd: one routing rule in the
+     * guest is enough, so the host must not rely on the routing of the
+     * guest. No element of the layer in the IVI VM uses SOME/IP.
+     * Proposed hardening (proposed; the owner decides), for REQ-MW-019 and
+     * REQ-MW-015, not for REQ-MW-016: a SOME/IP rule bound to the bridge
+     * port of the SDV Core VM. A rule of the nftables bridge family, or of
+     * br_netfilter with an iifname match, accepts UDP 30490 and TCP 30509 to
+     * the host only from that bridge port. It also matches ip saddr
+     * 192.168.98.3 and the MAC address of that VM. It drops those ports from
+     * every other bridge port, and a static neighbour entry pins that MAC
+     * address. So only the broker subscribes at someipd. An IP match alone
+     * is not enough on a shared bridge: a guest with root can send from
+     * 192.168.98.3. REQ-MW-016 does not need the rule, because someipd has
+     * no receiver for guest data.
      */
   }
   dependency hostPortIsolationGapOnLinuxHost
@@ -1474,8 +1563,8 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   part <'GAP-MW-047'> gapReferenceStackVsomeipSkewUntested : IncrementGap {
     doc /*
      * Open: Google's reference stack in the SDV Core VM links the vsomeip
-     * 3.1.37.1 of AOSP (external/sdv/vsomeip, METADATA:21-22 at
-     * android17-release: last upgrade 2023-09-04). someipd links the
+     * 3.1.37.1 of AOSP (METADATA:21-22 of platform/external/sdv/vsomeip:
+     * last upgrade 2023-09-04). someipd links the
      * gateway's patched vsomeip 3.6.1 (someipd). Upstream fixes after
      * 3.1.37.1 touch this path. Examples are the handling of endpoint options
      * (3.3.7), the acknowledgement of a subscription (3.5.1) and the expiry
@@ -1485,18 +1574,25 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * path. someipd offered the frame service with a TTL of 3 s and a TCP
      * endpoint. The stack sent the subscription with an IPv4 endpoint option
      * for TCP, got the acknowledgement, renewed the subscription and read the
-     * events over TCP for 630 s. After a restart of someipd it subscribed
-     * again within about 0.1 s, on a new TCP connection. Two findings stay
-     * open:
+     * events over TCP for 630 s, with the bench's synthetic frame source.
+     * After a restart of someipd it subscribed again within about 0.1 s, on a
+     * new TCP connection. Two findings stay open:
      * - the path needs SD multicast across the bridge. With multicast
      *   blocked, the stack used no unicast SD. The events stopped about 2.5 s
      *   after the block, when the TTL ran out. They came back on a new TCP
      *   connection about 0.5 s after the block ended, but the old IVI
-     *   subscription stayed silent (iviFrameRelay);
+     *   subscription stayed silent (iviFrameRelay). So the host needs a
+     *   route for the SD group on the bridge cvd-ebr (the runs added
+     *   224.0.0.0/4). The group must be one that the bridge forwards: a
+     *   group in 224.0.0.0/24 is flooded, and another group needs an IGMP
+     *   querier or no IGMP snooping on cvd-ebr. The runs used 224.0.0.0;
      * - someipd left the multicast group and joined it again about every
      *   2 s, after "Didn't receive a multicast SD message for 1100ms". The
      *   stack offers every 2000 ms, so this is probably the mismatch of the
-     *   two cycles. No event was lost in the 630 s run.
+     *   two cycles. No event was lost in the 630 s run. The DE4SDV stack
+     *   configuration offers no service, so the stack sends no cyclic offer.
+     *   Then someipd can leave and join about every 1.1 s. Phase 10 checks
+     *   over a long session that the offers and the renewals keep coming.
      * So the run gave no reason for the fallback of ADR 0025, decision 4. If
      * a finding breaks the path, the fallback of ADR 0025, decision 4,
      * applies: a custom DE4SDV ISomeIpStack replaces the reference stack in
@@ -1509,33 +1605,58 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
   part <'GAP-MW-048'> gapSOMEIPBrokerAndStackNotRestarted : IncrementGap {
     doc /*
      * Open: nothing restarts the SOME/IP broker or its stack in the SDV Core
-     * VM. Both are oneshot services (init.sdv_core_cf.rc:54 and 64 of
-     * device/google/sdv at android17-release). The health monitor of AAOS
-     * SDV reports their death, and a listener of the OEM takes the action
-     * (the health monitor page of AAOS SDV).
+     * VM. Both are oneshot services (sdv_core_cf/init.sdv_core_cf.rc:54 and
+     * 64 of device/google/sdv). The health monitor of AAOS SDV reports their
+     * death, and a listener of the OEM takes the action (the health monitor
+     * page of AAOS SDV).
      * Design data, not evidence of record: unreviewed DE4SDV feasibility runs
-     * on the bench VM (2026-10-28) showed:
-     * - when the broker or the stack died, the health monitor logged
-     *   "Critical agent has died", and VmHealth reported
-     *   all_service_bundles_alive as false within about 90 ms. Init did not
-     *   restart the service;
-     * - a start of the broker alone gave no publication. A start of the
-     *   stack alone gave no message. A restart of the broker after the
-     *   stack, or a reboot of the SDV Core VM, gave the frames again.
-     * Effect on the layer: after such a death, no frame reaches the relay
-     * until the bench recovers the SDV Core VM. The relay ends its phase on
-     * its timeout and subscribes again each second (iviFrameRelay). The HMI
-     * shows its stale overlay, as after a failure on the host (GAP-MW-043).
-     * Bench recovery (proposed on 2026-10-29; the owner decides): the bench
-     * reboots the SDV Core VM. This recovery needs no order of restarts. The
-     * owner accepted a manual recovery on the host for the bench
-     * demonstration (GAP-MW-043, ASM-MW-025).
+     * on the bench VM (2026-10-28) showed two different deaths:
+     * - death of the stack: the health monitor logged "Critical agent has
+     *   died", and VmHealth reported all_service_bundles_alive as false
+     *   within about 90 ms. Init did not restart the stack. A start of the
+     *   stack alone gave no message. A restart of the broker after it gave
+     *   the frames again, and so did a reboot of the SDV Core VM;
+     * - death of the broker: the health monitor logged "Critical agent has
+     *   died" about 60 ms after the kill. Init did not restart the broker. A
+     *   start of the broker alone gave no publication. The frames came back
+     *   after a toggle of the service availability on the host: a restart of
+     *   gatewayd and someipd as a pair. A reboot of the SDV Core VM was not
+     *   tried after this death.
+     * Detection: for either death, the logcat of the SDV Core VM shows
+     * "Critical agent has died". VmHealth reports at 10 Hz, and it showed
+     * all_service_bundles_alive as false after the death of the stack.
+     * Effect on the layer: after either death, no frame reaches the relay
+     * until the SDV Core VM recovers. The relay ends its phase on its
+     * timeout and subscribes again (iviFrameRelay). The HMI shows its stale
+     * overlay, as after a failure on the host (GAP-MW-043).
+     * Bench recovery (proposed; the owner decides): a manual recovery by the
+     * operator, for the bench only. The operator reboots the SDV Core VM, in
+     * the guest or by a restart of its cvd group, and not by a new create.
+     * So the reboot keeps the launch configuration:
+     * androidboot.sdv.someip.enable=true comes from the extra kernel command
+     * line. The core VM booted in about 12 s in the runs. The reboot is
+     * preferred to the other recovery of a broker death, a broker start
+     * with a pair restart on the host. The reboot needs no restart on the
+     * host, so it gives no burst of GAP-MW-039, and one procedure covers both
+     * deaths. No availability claim is made. Phase 10 measures how long the
+     * HMI shows stale, and it tests the reboot together with the relay's new
+     * subscription. The owner accepted a manual recovery on the host for the
+     * bench demonstration (GAP-MW-043, ASM-MW-025).
+     * The IVI side has a similar limit. A failure of the SD agent or of
+     * sdv_gateway in the IVI VM needs a reboot of the IVI VM: a restarted SD
+     * agent left sdv_gateway with DEAD_OBJECT. While the SD agent could not
+     * start, the init of the gateway client blocked for good. A reboot of
+     * the IVI VM also restarts the relay and the ingress, and it needs a new
+     * clock setting (ASM-MW-030).
      * Ways out, each a later decision:
      * - a DE4SDV listener of VmHealth in the SDV Core VM that restarts the
-     *   stack and then the broker. It is DE4SDV code in the SDV Core image,
-     *   so it is an element of the layer;
+     *   stack and then the broker. Only the death of the stack has shown
+     *   that this order recovers, so it needs a test after a death of the
+     *   broker first;
      * - such a listener that reboots the SDV Core VM, the example action of
      *   the health monitor page.
+     * A listener is DE4SDV code in the SDV Core image, so it is a new element
+     * of the layer, and it needs a requirement of its own.
      */
   }
   dependency brokerRestartGapOnSDVCoreVM
@@ -1668,19 +1789,29 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
    *   broker's publication of the frame topic;
    * - the ingress is connected to the relay's loopback server.
    * The relay is not subscribed at its start. It stops being subscribed on
-   * each of these events (libsdvgatewayclient.h of android17-release):
-   * - the notification Disconnected of the gateway client;
+   * each of these events (libsdvgatewayclient.h):
    * - the notification PublicationDestroyed of the subscription;
-   * - no message for 1 s, the relay's own timeout.
+   * - the notification Disconnected of the gateway client, an event of the
+   *   API that the feasibility runs did not see;
+   * - no message for 3 s, the relay's own timeout.
    * It is subscribed again when a new subscription to the publication
    * succeeds (iviFrameRelay). Design data, not evidence of record: an
    * unreviewed DE4SDV feasibility run on the bench VM (2026-10-28) saw
-   * PublicationDestroyed after a restart of someipd. The old subscription
-   * then got no message, and a new one read the frames of the new
-   * publication. After an outage of SD multicast, the old subscription got
-   * one more notification and then no message. After the stack was killed,
-   * a new subscription still succeeded but read no message. So the timeout
-   * is the event that ends the phase then (GAP-MW-048).
+   * PublicationDestroyed within about 0.1 s after a restart of someipd. The
+   * old subscription then got no message, and a new one read the frames of
+   * the new publication. After an outage of SD multicast, the old
+   * subscription got one more notification and then no message. After the
+   * stack was killed, a new subscription still succeeded but read no
+   * message. So the timeout is the event that ends the phase then
+   * (GAP-MW-048).
+   * A phase end that the layer causes, by PublicationDestroyed, by
+   * Disconnected or by the timeout, while the ingress stays connected, is a
+   * delivery failure of the layer. It is not an unsubscription of the HMI
+   * application. So the verification of REQ-MW-014 records every phase end.
+   * A phase end during the AEBS event fails the run of REQ-MW-014 or makes
+   * it inconclusive. It never lets the run pass.
+   * A DATA_LOSS status of a read is a gap (GAP-MW-037). It does not end the
+   * phase.
    * The ingress is connected from the time the relay accepts it as the
    * only client. A phase starts when the second of the two conditions
    * starts to hold. It ends when one of them ends. The relay takes the
@@ -1922,6 +2053,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * not draw the host/guest boundary.
      */
     expose scoreTwoDomainPhysicalSystem::integrationLayer;
+    expose scoreTwoDomainPhysicalSystem::integrationLayer::*;
     expose scoreTwoDomainPhysicalSystem::integrationLayer::**;
     filter not (@ SysML::AllocationUsage);
     attribute depth = -1;

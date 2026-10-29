@@ -121,8 +121,9 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
      * One frame of the AEBS signals that the Autoware-based AEBS stack
      * produces on the Linux host, as the HMI path carries it, with the
      * per-field provenance that the framing's hmiPathInScope states; the
-     * integration layer carries it unchanged (REQ-MW-015). Only the SOME/IP
-     * receiver reads two of its fields, the sequence and the frame timestamp.
+     * integration layer carries it unchanged (REQ-MW-015). Only the IVI
+     * frame relay reads two of its fields, the sequence and the frame
+     * timestamp.
      * It needs them to discard the frames produced more than the margin of
      * REQ-MW-019 before the HMI application subscribed (phase 8). A System 1
      * item that references no System 2 element, so a System 2 frame type can
