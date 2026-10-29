@@ -519,6 +519,7 @@ def evaluate_isolation(run: RunInputs) -> CaseResult:
     result.measurements["probe_attempts"] = verdict.attempts
     result.measurements["isolated_probes"] = verdict.isolated_probes
     result.measurements["asm_mw_031_holds"] = verdict.asm_mw_031_holds
+    result.measurements["required_dds_ports"] = verdict.required_dds_ports
 
     # A reachable DDS port of a layer element fails, whatever the control or ASM-MW-031 show.
     for reached in verdict.reached_layer:

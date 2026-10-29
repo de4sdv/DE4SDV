@@ -60,10 +60,19 @@ def listeners(*rows):
     return out
 
 
-def coverage(probed_if=("eth1",), expected_if=("eth1",), probed_addr=(HOST,), expected_addr=(HOST,)):
-    return {"per_guest": {"ivi": {"expected_interfaces": list(expected_if), "probed_interfaces": list(probed_if),
-                                  "expected_host_addresses": list(expected_addr),
-                                  "probed_host_addresses": list(probed_addr)}}}
+def coverage(expected_if=("eth1",), expected_addr=(HOST,)):
+    # The script records only the EXPECTED sets (derived from the host and guest
+    # inventories); probe.py derives the PROBED sets from captured attempts, so a
+    # pair the script skipped cannot count itself as probed (reviews R41/B3).
+    return {"per_guest": {"ivi": {"expected_interfaces": list(expected_if),
+                                  "expected_host_addresses": list(expected_addr)}}}
+
+
+# A small required DDS set for the reach/coverage unit cases. The real contract
+# is the full dds_udp_ports() set (review R45); that is exercised through the
+# case evaluator in test_evaluators and on the VM. Pinning a small set here
+# keeps each case about one property.
+SMALL_DDS = frozenset({30150, 30151, LAYER_PORT, 30161, OTHER_PORT})
 
 
 def base(run: Path, *, attempts, captured_udp=(), captured_syns=(), listeners_rows=((LAYER_PORT, "de4sdv_score_ad", True),),
@@ -84,8 +93,8 @@ def base(run: Path, *, attempts, captured_udp=(), captured_syns=(), listeners_ro
     return write(run, **files)
 
 
-def verdict(run: Path):
-    return probe.evaluate_isolation(run)
+def verdict(run: Path, required=SMALL_DDS):
+    return probe.evaluate_isolation(run, required_dds_ports=required)
 
 
 # -------------------------------------------------- the four harness scenarios
@@ -185,8 +194,8 @@ def test_a_reachable_4721_is_a_frame_assembler_finding_not_a_layer_finding(tmp_p
 
 def test_r29_coverage_gap_when_the_host_has_an_unprobed_address(tmp_path):
     """R29/R2d: expected addresses derived from the host side; an unprobed one is a gap."""
-    attempt = udp_attempt(LAYER_PORT, counter=True)
-    cov = coverage(probed_addr=(HOST,), expected_addr=(HOST, "192.168.97.1"))
+    attempt = udp_attempt(LAYER_PORT, counter=True)  # only HOST is probed
+    cov = coverage(expected_addr=(HOST, "192.168.97.1"))
     run = base(tmp_path, attempts=[attempt], captured_udp=[attempt["marker"]], cov=cov)
     assert any("192.168.97.1" in gap for gap in verdict(run).coverage_gaps)
 
@@ -246,3 +255,81 @@ def test_a_receipt_for_a_probe_from_the_guest_loopback_is_not_a_reach(tmp_path):
     result = verdict(run)
     assert result.reached_layer == []
     assert result.unknown_probes
+
+
+# -------------------------------------------------- R25: isolated needs the capture
+
+def test_r25_counter_moved_but_not_captured_is_not_isolated(tmp_path):
+    """N-6: the drop counter moved in the probe window, but the marker was never
+    captured. #448 asks for the capture AND the counter, so the probe is not
+    shown to have arrived; it is a coverage gap, not 'isolated'."""
+    attempt = udp_attempt(LAYER_PORT, counter=True)
+    run = base(tmp_path, attempts=[attempt], captured_udp=[])  # counter moved, nothing captured
+    result = verdict(run)
+    assert result.isolated_probes == 0
+    assert result.reached_layer == []
+    assert attempt in result.unknown_probes
+
+
+def test_a_captured_and_dropped_probe_is_isolated(tmp_path):
+    attempt = udp_attempt(LAYER_PORT, counter=True)
+    run = base(tmp_path, attempts=[attempt], captured_udp=[attempt["marker"]])
+    assert verdict(run).isolated_probes == 1
+
+
+# -------------------------------------------------- R41/B3: probed sets from captured attempts
+
+def test_r41_probed_sets_come_from_captured_attempts(tmp_path):
+    """A pair whose attempt was captured is probed; the derived sets ignore any
+    self-reported probed list the script might have written (reviews R41/B3)."""
+    attempt = udp_attempt(LAYER_PORT, iface="eth1", counter=True)
+    run = base(tmp_path, attempts=[attempt], captured_udp=[attempt["marker"]],
+               cov=coverage(expected_if=("eth1",), expected_addr=(HOST,)))
+    result = verdict(run)
+    assert "eth1" in result.probed_interfaces.get("ivi", set())
+    assert HOST in result.probed_host_addresses.get("ivi", set())
+
+
+def test_b3_a_pair_with_only_a_failed_send_is_a_coverage_gap(tmp_path):
+    """B3: a (interface, host) pair that the sender could not leave on (send_failed,
+    nothing captured) is NOT counted as probed; the expected address is a gap."""
+    attempt = udp_attempt(LAYER_PORT, host="192.168.94.1", sent="send_failed", counter=False)
+    run = base(tmp_path, attempts=[attempt], captured_udp=[],
+               cov=coverage(expected_if=("eth1",), expected_addr=(HOST, "192.168.94.1")))
+    result = verdict(run)
+    assert "192.168.94.1" not in result.probed_host_addresses.get("ivi", set())
+    assert any("192.168.94.1" in gap for gap in result.coverage_gaps)
+
+
+# -------------------------------------------------- R45: the full DDS set per pair
+
+def test_r45_a_missing_dds_port_for_a_probed_pair_is_a_coverage_gap(tmp_path):
+    """R45: every DDS port of the set (plus 4721) must be probed for each covered
+    pair; a port the run never probed is a coverage gap, so a reduced-range dry
+    run does not pass."""
+    probed = [udp_attempt(p, counter=True) for p in (30150, LAYER_PORT)]  # 30151 missing
+    run = base(tmp_path, attempts=probed, captured_udp=[a["marker"] for a in probed])
+    result = probe.evaluate_isolation(run, required_dds_ports={30150, 30151, LAYER_PORT})
+    assert any("30151" in gap for gap in result.coverage_gaps)
+
+
+def test_r45_the_4721_port_is_required_for_a_probed_pair(tmp_path):
+    probed = [udp_attempt(p, counter=True) for p in (30150, 30151, LAYER_PORT)]  # no 4721 tcp probe
+    run = base(tmp_path, attempts=probed, captured_udp=[a["marker"] for a in probed])
+    result = probe.evaluate_isolation(run, required_dds_ports={30150, 30151, LAYER_PORT})
+    assert any("4721" in gap for gap in result.coverage_gaps)
+
+
+def test_r45_a_malformed_listener_is_a_coverage_gap(tmp_path):
+    attempt = udp_attempt(LAYER_PORT, counter=True)
+    run = base(tmp_path, attempts=[attempt], captured_udp=[attempt["marker"]])
+    (run / "host_listeners.json").write_text(json.dumps(
+        [{"address": "0.0.0.0", "port": "not-a-port", "protocol": "udp", "element": "x", "element_in_layer": True}]))
+    assert any("malformed" in gap or "listener" in gap for gap in verdict(run).coverage_gaps)
+
+
+def test_r45_the_required_dds_range_is_recorded(tmp_path):
+    attempt = udp_attempt(LAYER_PORT, counter=True)
+    run = base(tmp_path, attempts=[attempt], captured_udp=[attempt["marker"]])
+    result = probe.evaluate_isolation(run, required_dds_ports={30150, 30151, LAYER_PORT})
+    assert result.required_dds_ports == 3

@@ -18,7 +18,7 @@ sys.path.insert(0, str(BENCH / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import builders as b  # noqa: E402
-from de4sdv_broker_path_bench import evaluators, outcome  # noqa: E402
+from de4sdv_broker_path_bench import evaluators, outcome, probe  # noqa: E402
 
 STAGES = ["MONITORING", "WARNING", "INTERVENTION", "RELEASED", "MONITORING", "MONITORING"]
 P0 = 1_793_000_000_000_000_000  # a realistic epoch-ns base (2026-10), so clock captures stay positive
@@ -233,17 +233,32 @@ def _udp_probe(port, *, counter=True, sent="sent", guest="ivi", iface="eth1", ho
             "counter_moved": counter, "guest_connected": None}
 
 
-def _vc017(tmp_path, **files):
+def _full_isolation_artifacts(reached_udp=(), connected_4721=False, host="192.168.98.1", guest="ivi", iface="eth1"):
+    """Attempts and captured markers covering the full DDS set plus 4721 for one
+    (guest, host) pair, all isolated unless a port is marked reached (review R45:
+    a pass needs the whole set probed)."""
+    reached = set(reached_udp)
+    attempts, udp_markers = [], []
+    for port in probe.dds_udp_ports():
+        attempts.append(_udp_probe(port, counter=port not in reached, guest=guest, iface=iface, host=host))
+        udp_markers.append(_marker(port, guest, iface, host))
+    attempts.append({"guest": guest, "interface": iface, "src_addr": "192.168.98.118", "host": host,
+                     "port": 4721, "protocol": "tcp", "marker": _marker(4721, guest, iface, host),
+                     "send_status": "sent", "counter_moved": not connected_4721, "guest_connected": connected_4721})
+    return attempts, udp_markers, [{"host": host, "port": 4721}]
+
+
+def _vc017(tmp_path, *, reached_udp=(), connected_4721=False, **files):
+    attempts, udp_markers, syns = _full_isolation_artifacts(reached_udp, connected_4721)
     base = dict(
         firewall__json={"inet_table_present": True, "dds_counters_readable": True, "tcp_counters_readable": True},
         host_listeners__json=[{"address": "0.0.0.0", "port": 30160, "protocol": "udp", "element": "de4sdv_score_ad",
                                "pid": 11, "element_in_layer": True}],
-        probe_attempts__json=[_udp_probe(30160, counter=True)],
-        captured_markers__json={"udp_markers": [_marker(30160)], "tcp_syns": []},
+        probe_attempts__json=attempts,
+        captured_markers__json={"udp_markers": udp_markers, "tcp_syns": syns},
         control__json={"captured": True, "counter_moved": False, "delivered": True, "detail": "control arrived"},
-        coverage__json={"per_guest": {"ivi": {"expected_interfaces": ["eth1"], "probed_interfaces": ["eth1"],
-                                              "expected_host_addresses": ["192.168.98.1"],
-                                              "probed_host_addresses": ["192.168.98.1"]}}},
+        coverage__json={"per_guest": {"ivi": {"expected_interfaces": ["eth1"],
+                                              "expected_host_addresses": ["192.168.98.1"]}}},
         asm_mw_031__json={"holds": True},
         inspection__json={"no_host_endpoint": True, "inspector": "bench"},
     )
@@ -266,37 +281,31 @@ def test_vc017_no_firewall_table_is_inconclusive(tmp_path):
 
 
 def test_vc017_e12_layer_port_reached_fails_even_if_control_fails(tmp_path):
-    run = _vc017(tmp_path,
-                 probe_attempts__json=[_udp_probe(30160, counter=False)],  # captured, not dropped: reached
+    # The full set is probed; layer port 30160 is reached (captured, not dropped).
+    run = _vc017(tmp_path, reached_udp=(30160,),
                  control__json={"captured": False, "counter_moved": None, "delivered": False, "detail": "control lost"})
     assert evaluators.evaluate_isolation(run).outcome == outcome.FAIL
 
 
 def test_vc017_e13_only_4721_reached_is_not_a_requirement_failure(tmp_path):
-    run = _vc017(
-        tmp_path,
-        host_listeners__json=[{"address": "0.0.0.0", "port": 4721, "protocol": "tcp", "element": "python3",
-                               "pid": 12, "element_in_layer": False}],
-        probe_attempts__json=[{"guest": "ivi", "interface": "eth1", "src_addr": "192.168.98.118",
-                               "host": "192.168.98.1", "port": 4721, "protocol": "tcp", "marker": _marker(4721),
-                               "send_status": "sent", "counter_moved": False, "guest_connected": True}],
-        captured_markers__json={"udp_markers": [], "tcp_syns": [{"host": "192.168.98.1", "port": 4721}]},
-    )
+    # Every DDS port is isolated; only :4721 connects. An ASM-MW-029 finding, not
+    # a REQ-MW-016 failure, and the full set is covered, so the case passes.
+    run = _vc017(tmp_path, connected_4721=True,
+                 host_listeners__json=[{"address": "0.0.0.0", "port": 4721, "protocol": "tcp", "element": "python3",
+                                        "pid": 12, "element_in_layer": False}])
     res = evaluators.evaluate_isolation(run)
-    assert res.outcome == outcome.PASS
+    assert res.outcome == outcome.PASS, res.as_dict()
     assert res.measurements.get("asm_mw_029_findings")
 
 
 def test_vc017_other_process_reachable_fails_only_when_asm031_holds(tmp_path):
-    base = dict(
-        host_listeners__json=[{"address": "0.0.0.0", "port": 30161, "protocol": "udp", "element": "component_conta",
-                               "pid": 13, "element_in_layer": False}],
-        probe_attempts__json=[_udp_probe(30161, counter=False)],  # captured, not dropped: reached
-        captured_markers__json={"udp_markers": [_marker(30161)], "tcp_syns": []},
-    )
-    holds = _vc017(tmp_path / "a", asm_mw_031__json={"holds": True}, **base)
+    listeners = [{"address": "0.0.0.0", "port": 30161, "protocol": "udp", "element": "component_conta",
+                  "pid": 13, "element_in_layer": False}]
+    holds = _vc017(tmp_path / "a", reached_udp=(30161,), host_listeners__json=listeners,
+                   asm_mw_031__json={"holds": True})
     assert evaluators.evaluate_isolation(holds).outcome == outcome.FAIL
-    not_shown = _vc017(tmp_path / "b", asm_mw_031__json={"holds": False}, **base)
+    not_shown = _vc017(tmp_path / "b", reached_udp=(30161,), host_listeners__json=listeners,
+                       asm_mw_031__json={"holds": False})
     assert evaluators.evaluate_isolation(not_shown).outcome == outcome.INCONCLUSIVE
 
 

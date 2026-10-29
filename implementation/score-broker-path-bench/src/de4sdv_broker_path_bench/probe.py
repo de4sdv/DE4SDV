@@ -115,6 +115,9 @@ class IsolationVerdict:
     control_detail: str = ""
     asm_mw_031_holds: bool | None = None
     attempts: int = 0
+    required_dds_ports: int = 0                                         # the DDS set size required per pair (R45)
+    probed_interfaces: dict = field(default_factory=dict)              # guest -> {interface}, from captured attempts
+    probed_host_addresses: dict = field(default_factory=dict)         # guest -> {host address}, from captured attempts
     coverage_gaps: list[str] = field(default_factory=list)
     inspection_present: bool = False
     inspection_no_host_endpoint: bool | None = None
@@ -157,7 +160,9 @@ def _classify(attempt: dict, captured: dict, udp_receipts: set, tcp_receipts: se
     received: direct reach evidence (a host socket received the marker, or the
               guest's own TCP connect completed); it needs no drop counter.
     reached:  the capture saw the marker and the drop counter did not take it.
-    isolated: the drop counter took it.
+    isolated: the capture saw the marker and the drop counter took it. The
+              capture is required (review R25): a counter that moved without a
+              captured marker is not shown to be this probe's datagram.
     unknown:  the send failed, the record is incomplete, or nothing arrived;
               it shows nothing and is a coverage gap, never silently skipped.
     invalid:  a probe from the guest's loopback, which cannot reach the host.
@@ -172,19 +177,24 @@ def _classify(attempt: dict, captured: dict, udp_receipts: set, tcp_receipts: se
         return "received"
     if attempt.get("send_status") != SENT:
         return "unknown"
-    counter_moved = attempt.get("counter_moved")
-    if counter_moved is True:
-        return "isolated"
     if not _captured(attempt, captured):
         return "unknown"  # it never arrived at the host (silent send failure, no route)
+    counter_moved = attempt.get("counter_moved")
+    if counter_moved is True:
+        return "isolated"  # captured and the isolation rule took it (R25)
     if counter_moved is False:
-        return "reached"  # arrived and the isolation rule did not take it
-    return "unknown"      # counter unreadable for this probe
+        return "reached"   # captured and the isolation rule did not take it
+    return "unknown"       # captured but the counter is unreadable for this probe
 
 
-def evaluate_isolation(run_dir: str | Path) -> IsolationVerdict:
+def evaluate_isolation(run_dir: str | Path, *, required_dds_ports: set[int] | None = None) -> IsolationVerdict:
     run_dir = Path(run_dir)
     verdict = IsolationVerdict()
+    # The DDS set that each probed pair must cover (review R45). The default is
+    # the full set of the domain and participant range; a reduced dry run leaves
+    # ports unprobed, which the coverage check below reports as a gap.
+    required_ports = set(required_dds_ports) if required_dds_ports is not None else set(dds_udp_ports())
+    verdict.required_dds_ports = len(required_ports)
     firewall = _load(run_dir, "firewall.json", {})
     listeners = _load(run_dir, "host_listeners.json", [])
     attempts = _load(run_dir, "probe_attempts.json", [])
@@ -258,6 +268,13 @@ def evaluate_isolation(run_dir: str | Path) -> IsolationVerdict:
     # can a captured probe be told from a dropped one; a direct receipt needs
     # no counter.
     loopback_seen = False
+    # Coverage is derived from the attempts whose datagram actually reached the
+    # host, not from any probed list the script wrote (reviews R41/B3): a pair
+    # or a port counts as probed only when the capture (or a direct receipt)
+    # shows its datagram arrived. A send that failed or never arrived is a gap.
+    arrived_if: dict[str, set] = {}
+    arrived_addr: dict[str, set] = {}
+    arrived_ports: dict[tuple, set] = {}
     for attempt in attempts:
         if not isinstance(attempt, dict):
             verdict.unknown_probes.append({"port": None, "malformed": True})
@@ -267,6 +284,11 @@ def evaluate_isolation(run_dir: str | Path) -> IsolationVerdict:
             verdict.unknown_probes.append(attempt)  # a malformed probe record shows nothing (review R38)
             continue
         state = _classify(attempt, captured, udp_receipts, tcp_receipts)
+        if _captured(attempt, captured) or state == "received":
+            guest = attempt.get("guest")
+            arrived_if.setdefault(guest, set()).add(attempt.get("interface"))
+            arrived_addr.setdefault(guest, set()).add(attempt.get("host"))
+            arrived_ports.setdefault((guest, attempt.get("host")), set()).add(port)
         if state == "isolated":
             verdict.isolated_probes += 1
             continue
@@ -284,6 +306,8 @@ def evaluate_isolation(run_dir: str | Path) -> IsolationVerdict:
             verdict.reached_layer.append(attempt)
         elif port in dds_set:
             verdict.reached_other.append(attempt)
+    verdict.probed_interfaces = {guest: set(ifaces) for guest, ifaces in arrived_if.items()}
+    verdict.probed_host_addresses = {guest: set(hosts) for guest, hosts in arrived_addr.items()}
 
     if loopback_seen:
         verdict.problems.append("a probe record names the guest's loopback as its source; such a datagram cannot "
@@ -293,24 +317,38 @@ def evaluate_isolation(run_dir: str | Path) -> IsolationVerdict:
         verdict.coverage_gaps.append(f"{len(verdict.unknown_probes)} probes did not arrive at the host, were not "
                                      f"sent, or are malformed (ports {ports[:8]}); they show nothing")
 
-    # Coverage: every listed socket, host address and interface must be probed.
+    # Coverage: every expected interface and host address of each guest must
+    # have a captured attempt, and each probed (guest, host) pair must cover the
+    # full DDS set plus 4721 (reviews R41/B3/R45). A reduced-range dry run leaves
+    # ports unprobed, which is a gap, so it cannot pass.
+    required_full = required_ports | {FRAME_ASSEMBLER_PORT}
     if isinstance(coverage, dict) and coverage:
         for guest, expect in (coverage.get("per_guest") or {}).items():
-            missing_if = set(expect.get("expected_interfaces", [])) - set(expect.get("probed_interfaces", []))
-            missing_addr = set(expect.get("expected_host_addresses", [])) - set(expect.get("probed_host_addresses", []))
+            missing_if = set(expect.get("expected_interfaces", [])) - arrived_if.get(guest, set())
+            missing_addr = set(expect.get("expected_host_addresses", [])) - arrived_addr.get(guest, set())
             if missing_if:
-                verdict.coverage_gaps.append(f"{guest}: interfaces not probed: {sorted(missing_if)}")
+                verdict.coverage_gaps.append(f"{guest}: interfaces with no captured probe: {sorted(missing_if)}")
             if missing_addr:
-                verdict.coverage_gaps.append(f"{guest}: host addresses not probed: {sorted(missing_addr)}")
-        probed_ports = {_as_int(a.get("port")) for a in attempts if isinstance(a, dict)}
-        for item in listeners:
-            if not isinstance(item, dict):
-                continue
-            port = _as_int(item.get("port"))
-            if port is not None and (port in dds_set or port == FRAME_ASSEMBLER_PORT) and port not in probed_ports:
-                verdict.coverage_gaps.append(f"listed socket on port {port} was not probed")
+                verdict.coverage_gaps.append(f"{guest}: host addresses with no captured probe: {sorted(missing_addr)}")
     else:
         verdict.coverage_gaps.append("no coverage record; the probed interfaces and addresses are unknown")
+    for (guest, host), ports in sorted(arrived_ports.items(), key=lambda item: (str(item[0][0]), str(item[0][1]))):
+        missing_ports = required_full - ports
+        if missing_ports:
+            sample = sorted(p for p in missing_ports if isinstance(p, int))[:8]
+            verdict.coverage_gaps.append(f"{guest} {host}: {len(missing_ports)} of {len(required_full)} required "
+                                         f"ports not probed (e.g. {sample})")
+    probed_ports_all = {port for ports in arrived_ports.values() for port in ports}
+    for item in listeners:
+        if not isinstance(item, dict):
+            verdict.coverage_gaps.append("a host listener entry is malformed; it cannot be checked for coverage")
+            continue
+        port = _as_int(item.get("port"))
+        if port is None:
+            verdict.coverage_gaps.append("a host listener entry has no valid port (a malformed listener is a gap)")
+            continue
+        if (port in dds_set or port == FRAME_ASSEMBLER_PORT) and port not in probed_ports_all:
+            verdict.coverage_gaps.append(f"listed socket on port {port} was not probed")
 
     if isinstance(inspection, dict):
         verdict.inspection_present = True
