@@ -73,9 +73,9 @@ _TRIGGER_KEYS = {"signal", "sent_monotonic_ns"}
 _PROCESS_KEYS = {"returncode", "exit_monotonic_ns", "alive_at_check", "stop_returncode"}
 
 
-def parse_adapter_log(text: str) -> list[dict[str, Any]]:
-    """The adapter's JSON event lines in order; other console lines are skipped."""
-    events: list[dict[str, Any]] = []
+def json_lines(text: str) -> list[dict[str, Any]]:
+    """The JSON objects of text, one per line, in order; other lines are skipped."""
+    records: list[dict[str, Any]] = []
     for line in text.splitlines():
         line = line.strip()
         if not line.startswith("{"):
@@ -84,13 +84,14 @@ def parse_adapter_log(text: str) -> list[dict[str, Any]]:
             value = json.loads(line)
         except json.JSONDecodeError:
             continue
-        if isinstance(value, dict) and isinstance(value.get("event"), str):
-            events.append(value)
-    return events
+        if isinstance(value, dict):
+            records.append(value)
+    return records
 
 
-def _is_int(value: Any) -> bool:
-    return type(value) is int
+def parse_adapter_log(text: str) -> list[dict[str, Any]]:
+    """The adapter's JSON event lines in order; other console lines are skipped."""
+    return [record for record in json_lines(text) if isinstance(record.get("event"), str)]
 
 
 def _is_optional_int(value: Any) -> bool:
@@ -160,33 +161,16 @@ def evaluate_variant(
     backtrace_text is gdb's ``bt`` of the core and mappings_text gdb's ``info
     proc mappings`` of the same core.
     """
+    known = record if isinstance(record, dict) else {}
+    result: dict[str, Any] = {"role": known.get("role"), "variant": known.get("variant"), "outcome": PASS,
+                              "reasons": [], "signal": None, "top_frames": [], "caller": None,
+                              "first_named_frame": None}
     errors = _shape_errors(record)
     if errors:
-        return {
-            "role": record.get("role") if isinstance(record, dict) else None,
-            "variant": record.get("variant") if isinstance(record, dict) else None,
-            "outcome": ERROR,
-            "reasons": errors,
-            "signal": None,
-            "top_frames": [],
-            "caller": None,
-            "first_named_frame": None,
-        }
-    role = record["role"]
-    variant = record["variant"]
-    process = record["process"]
-    trigger = record["trigger"]
+        return dict(result, outcome=ERROR, reasons=errors)
+    role, variant, process, trigger = record["role"], record["variant"], record["process"], record["trigger"]
+    result["signal"] = _signal_name(process["returncode"])
     events = parse_adapter_log(adapter_log_text)
-    result: dict[str, Any] = {
-        "role": role,
-        "variant": variant,
-        "outcome": PASS,
-        "reasons": [],
-        "signal": _signal_name(process["returncode"]),
-        "top_frames": [],
-        "caller": None,
-        "first_named_frame": None,
-    }
 
     def finish(outcome: str, reason: str) -> dict[str, Any]:
         result["outcome"] = outcome
