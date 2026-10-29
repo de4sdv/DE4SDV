@@ -653,11 +653,12 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * - a cleartext capture of Data Tunnel on VLAN 2, in the UNLOCKED mode,
      *   for the subscription through the SDV Gateway on IVI;
      * - the loopback capture, for the accept of the ingress.
-     * The record holds their difference from the relay's log. Where they
-     * differ, processData takes the start of the new subscription from the
-     * captures. For REQ-MW-014, a phase end that the layer causes is a
-     * delivery failure (VC-MW-015). For REQ-MW-019, the new phase is the
-     * current subscription.
+     * processData takes the later of two times as the start of the new
+     * subscription. They are the relay's phase_start in its log and the
+     * accept of the ingress in the loopback capture. It records both times
+     * and their difference. A later start can only make the check stricter.
+     * For REQ-MW-014, a phase end that the layer causes is a delivery failure
+     * (VC-MW-015). For REQ-MW-019, the new phase is the current subscription.
      * The SOME/IP hardening of GAP-MW-046 is a recorded design measure
      * (VC-MW-017). It is no part of the pass condition of this case, and the
      * case makes no robustness claim for it (GAP-MW-012).

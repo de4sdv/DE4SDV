@@ -341,6 +341,8 @@ def test_the_source_order_case_records_every_phase_end() -> None:
     for statement in ("collectData also records every start and end of a subscription phase of the relay, with its "
                       "cause, from the relay's log.",
                       "The IVI frame relay delivers them there, on 127.0.0.1:4731 of the IVI VM.",
+                      # Here the phase start comes from the captures: a later start would shrink the window of frames
+                      # that must arrive, so the later-of-two rule of VC-MW-020 would be the lenient one here.
                       "Two captures in the IVI VM corroborate each phase start: - a cleartext capture of Data Tunnel "
                       "on VLAN 2, in the UNLOCKED mode, for the subscription through the SDV Gateway on IVI; - the "
                       "loopback capture, for the accept of the ingress. The record holds their difference from the "
@@ -372,6 +374,11 @@ def test_the_source_order_case_records_every_phase_end() -> None:
     # The list comparison runs in every run, so the inconclusive conditions cannot hide a delivery failure.
     assert case.index("processData compares the two lists") < case.index("Otherwise the three conditions"), case
     assert "Otherwise, processData compares" not in case, "the comparison runs only when no condition holds"
+    # The later-of-two rule belongs to VC-MW-020 only, where a later start makes the check stricter.
+    for rule in ("the later of two times", "can only make the case stricter", "can only make the check stricter"):
+        assert rule not in case, rule
+    assert "Where they differ" not in _definition_doc("UnsubscribedFrameDiscardVerification"), (
+        "in VC-MW-020 a capture time alone could give an earlier phase start")
     needs = _usage_doc("VC-MW-015")
     assert ("The IVI VM runs the IVI frame relay and the HMI application, and it captures its loopback and Data "
             "Tunnel on VLAN 2.") in needs, needs
@@ -513,11 +520,13 @@ def test_the_discard_case_runs_the_four_conditions() -> None:
                       "record names that phase as outside the judged scope (GAP-MW-045).",
                       "The new subscription is the start of a subscription phase of the IVI frame relay, as phase 8 "
                       "defines it (relaySubscriptionPhaseDiscardRule).",
+                      # The later of the relay's own record and the independent accept: never an earlier start.
                       "The relay's log shows it. Two captures in the IVI VM corroborate it: - a cleartext capture of "
                       "Data Tunnel on VLAN 2, in the UNLOCKED mode, for the subscription through the SDV Gateway on "
-                      "IVI; - the loopback capture, for the accept of the ingress. The record holds their difference "
-                      "from the relay's log. Where they differ, processData takes the start of the new subscription "
-                      "from the captures.",
+                      "IVI; - the loopback capture, for the accept of the ingress. processData takes the later of two "
+                      "times as the start of the new subscription. They are the relay's phase_start in its log and the "
+                      "accept of the ingress in the loopback capture. It records both times and their difference. A "
+                      "later start can only make the check stricter.",
                       "For REQ-MW-014, a phase end that the layer causes is a delivery failure (VC-MW-015). For "
                       "REQ-MW-019, the new phase is the current subscription.",
                       "The SOME/IP hardening of GAP-MW-046 is a recorded design measure (VC-MW-017). It is no part of "
