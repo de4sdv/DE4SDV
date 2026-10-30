@@ -1,0 +1,37 @@
+# DE4SDV broker-path bench (INC-MW-011 phase 10), bench-only.
+# Maps the SOME/IP frame event that someipd offers (service 0x4dee,
+# instance 0x0001, eventgroup 0x0001, event 0x8001, version 1.0; the service
+# discovery IDs the run assigns) to an SDV Data Tunnel topic published by the
+# SOME/IP broker, bytes forwarded. One someip_service_mapping, for the frame
+# event, with INTERPRET_AS_BYTES (MAP-MW-SCORE-AEBS-SIGNAL-FRAME).
+
+package: "com.android.sdv.someip"
+
+some_ip_mapping {
+  someip_service_mapping {
+    someip_service_id: 0x4dee
+    version_major: 0x1
+    version_minor: 0x0
+    instance {
+        instance_id: 0x0001
+        sdv_service_unit_parameterization {key: 0 value: "de4sdv-score-aebs-signal-frame"}
+    }
+    instance_impl {
+      offered_event {
+        group_id: 0x0001
+        event_id: 0x8001
+        simple_event {
+          sdv_unit_type {
+            package_name: "com.android.sdv.someip"
+            service_bundle_name: "SomeIpBroker"
+            type_name: "De4sdvScoreAebsSignalFrame"
+          }
+          service_unit: 0
+          type_definition {
+          }
+          message_translation_mode: INTERPRET_AS_BYTES
+        }
+      }
+    }
+  }
+}

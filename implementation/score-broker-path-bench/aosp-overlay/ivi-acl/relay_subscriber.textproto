@@ -1,0 +1,14 @@
+# DE4SDV broker-path bench (INC-MW-011 phase 10), bench-only.
+# The authorization grant of the IVI frame relay's subject: it may subscribe
+# to the frame topic that the SOME/IP broker publishes. The subject (its
+# package and bundle) is encoded by the path the provisioning script installs
+# this file at: /product/etc/sdv_authz_acls/<relay package>/<relay bundle>.textproto.
+# The relay's subject identity is the default of its options.hpp
+# (de4sdv.ivi_frame_relay / IviFrameRelay); the bench takes it as the
+# RELAY_SUBJECT_PACKAGE and RELAY_SUBJECT_BUNDLE settings of bench_env.sh. The SD agent reads
+# the ACLs only at its start and exits if a second file names one subject, so
+# the provisioning script installs exactly this one file before the IVI VM boots.
+subscriber {
+  message: "com.android.sdv.someip.De4sdvScoreAebsSignalFrame"
+  topic: "de4sdv-score-aebs-signal-frame"
+}
