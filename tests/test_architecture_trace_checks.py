@@ -39,7 +39,7 @@ from increment_model_fixtures import (
 from test_revision_index import _traversal
 
 #: An export snapshot, as the pull-request Method Check evaluates: an API revision binding withholds these checks
-#: while allocatedTo has open forward obligations (test_allocation_checks_are_withheld_on_an_api_revision_binding).
+#: while allocatedTo has open forward obligations (test_allocation_checks_are_withheld_while_an_obligation_is_open).
 REVISION = me.RevisionIdentity("a" * 40, "", "", workflow_reader.EXPORT_SNAPSHOT_SCOPE)
 API_BINDING = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
 P0, P6, P7, P8 = ("phase0_incrementFraming", "phase6_functionalArchitecture", "phase7_logicalArchitecture",
@@ -386,9 +386,14 @@ def _withheld(evaluation) -> dict[str, str]:
     return found
 
 
-def test_allocation_checks_are_withheld_on_an_api_revision_binding() -> None:
+#: An obligation a row of the admission could list, for the tests of the guard itself.
+OPEN_OBLIGATION = "exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim"
+
+
+def test_allocation_checks_are_withheld_while_an_obligation_is_open(monkeypatch) -> None:
     """While allocatedTo has open forward obligations, an API revision binding reports every check of
     phases 6 to 8 as method side (nothing to author, exits BLOCKED); an export snapshot evaluates them."""
+    monkeypatch.setattr(workflow_reader, "open_forward_obligations", lambda relation: (OPEN_OBLIGATION,))
     a = _architecture()
     api, export = _evaluate(a, API_BINDING), _evaluate(a)
     withheld = _withheld(api)
@@ -402,23 +407,24 @@ def test_allocation_checks_are_withheld_on_an_api_revision_binding() -> None:
     assert _exits(export) == {P6: "READY", P7: "READY", P8: "READY"}
 
 
-def test_the_allocation_guard_lifts_once_the_obligations_are_discharged(monkeypatch) -> None:
+def test_the_allocation_guard_lifts_with_this_checkouts_admission() -> None:
+    """The admission lists no open obligation of allocatedTo (an exact-SHA privileged run discharged both;
+    test_kernel_vocabulary_projection pins the record), so an API revision binding evaluates every check of
+    phases 6 to 8 as the export snapshot does."""
     a = _architecture()
-    monkeypatch.setattr(workflow_reader, "open_forward_obligations", lambda relation: ())
     api, export = _evaluate(a, API_BINDING), _evaluate(a)
+    assert _withheld(api) == {}
     for gate in ARCHITECTURE_GATES:
         assert _subjects(api, gate) == _subjects(export, gate), gate
-    assert _exits(api) == _exits(export)
+    assert _exits(api) == _exits(export) == {P6: "READY", P7: "READY", P8: "READY"}
+    assert api.next_obligation()["method_side_blockers"] == export.next_obligation()["method_side_blockers"] == []
 
 
-def test_the_admission_still_lists_the_forward_obligations_of_allocated_to() -> None:
-    """The guard reads them from this checkout's kernel-vocabulary admission; discharging them (the
-    successor-traversal parity and an exact-SHA privileged run) is the change that lifts it."""
-    assert workflow_reader.open_forward_obligations("allocatedTo") == (
-        "exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim",
-        "exact-revision API closure of the typed allocation ends in the exact-SHA privileged run; a failure "
-        "blocks activation",
-    )
+def test_the_admission_lists_no_open_forward_obligation_of_allocated_to() -> None:
+    """The guard reads them from this checkout's kernel-vocabulary admission. The successor parity and the
+    allocation-end closure of the exact-SHA privileged run discharged both; the row records them under
+    discharged_obligations, which the guard does not read."""
+    assert workflow_reader.open_forward_obligations("allocatedTo") == ()
 
 
 @pytest.fixture
