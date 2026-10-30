@@ -330,9 +330,12 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   configuration's projection keeps both and fails. The derivation binds
   that part definition by validated identity, never by its name alone. A test article that
   specializes a configured member counts through the part it inherits and
-  never becomes a member. Over the API the derivation lacks the source
-  documents and the external references of an export. There the check is
-  method side (`evaluation-input:export-documents`): it is listed under
+  never becomes a member. The derivation reads the source documents and the
+  external references of the export. Over the API they come from the
+  revision binding: the ingestion importer records them there
+  (`export_documents`), so the API gives the export's phase-9 result. A
+  binding without them keeps the check method side
+  (`evaluation-input:export-documents`): it is listed under
   `method_side_blockers`, never as `next`, and phase 9 stays `BLOCKED`. The
   Method Check of a pull request evaluates it on the export. So:
 
@@ -390,12 +393,50 @@ python scripts/evaluate_increment.py \
 ```
 
 With the validated revision binding of the same commit, the evaluation key
-equals the one the API service computes for that revision. Without
+equals the one the API service computes for that revision. A binding that
+records export documents must record this export's, or the evaluation is
+refused (exit 2). Without
 `--binding`, the export is evaluated as an export snapshot: kernel identity
 is validated from the export as the ingestion importer validates it, and the
 same failures refuse it (exit 2); the revision identity carries the scope
 `export-snapshot`. Element source files appear in
-a separate `presentation` block, because only an export records them.
+a separate `presentation` block. The export records them; over the API, the
+export documents of the binding do.
+
+## Over the API and over the export
+
+The API service builds its method view from the same inputs as the export
+path:
+
+- the served corpus is the validated export (the served-model check);
+- the kernel identities are the ingestion-validated kernel bindings;
+- the source documents and the external references are the export
+  documents that the importer records in the revision binding;
+- the library pins, such as the VSS signal metadata, are bound from those
+  documents by the same file-mapped rule.
+
+So the phase-9 checks give the export path's result over the API, and so
+do the other checks, except in two cases:
+
+- **A binding without export documents.** A binding that an earlier
+  importer wrote has none. Over it, the checks that need them are method
+  side (`evaluation-input:export-documents` for phase 9,
+  `library-binding:` for a library pin), never `next` and never a pass.
+  The next ingestion and deploy write a binding with them. A record that
+  does not list the served corpus is never read: the deployed runtime
+  refuses that corpus, and every answer with it.
+- **The checks that read native allocations.** At this revision they are
+  10 gates of phases 6 to 8 in each increment. An API revision binding
+  withholds them while the admission of `allocatedTo` has open
+  obligations (see the allocations above). They are method side there
+  (`allocation-admission:allocatedTo`), and the Method Check evaluates them on
+  the export. A relation the method cannot read is a different marker
+  (`governed-relation:`) and never excuses a difference.
+
+The release evidence of each privileged ingestion checks this on the
+release export (method parity). For each declared increment, phase 9 and
+`next` over the runtime service must equal the export path's. A `next`
+that the allocation guard withholds over the API is not compared.
 
 ## On a pull request
 

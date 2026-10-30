@@ -374,12 +374,18 @@ These method rules apply to every increment:
       never becomes a member: membership is never inferred from
       specializing a member definition.
     - **Phase 9, boundaries.** The derivation reads the source documents
-      and the external references of an export. An evaluation over the
-      API has neither, so there the check is `INDETERMINATE` with the
+      and the external references of the export. An API listing carries
+      neither. The ingestion importer records both in the revision binding
+      (`export_documents`), from the export that its served-model record
+      names. The API evaluation reads them from there, never from files at
+      the server's checkout, and gives the export path's phase-9 result. A
+      binding without them leaves the check `INDETERMINATE` with the
       method-side marker `evaluation-input:export-documents`. It is listed
       under `method_side_blockers`, never as `next` and never as authoring
-      work, and the phase-9 exit stays `BLOCKED`. The Method Check of a
-      pull request evaluates the export of its head.
+      work, and the phase-9 exit stays `BLOCKED`. A record that does not
+      list the served corpus is never read: the deployed runtime refuses
+      that corpus, and every answer with it. The Method Check of a pull
+      request evaluates the export of its head.
       `variationPoints[0..*]` and `physicalElements[0..*]` stay untyped and
       unchecked: a native variation point has no selector.
     - **Phase 12.** The increment has exactly one baseline decision, typed

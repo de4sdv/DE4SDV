@@ -174,11 +174,11 @@ def check_status_payload(status_doc: dict[str, Any]) -> dict[str, Any]:
     )
     baseline = status_doc.get("baseline") or {}
     for field in ("git_commit", "sysml_project_id", "sysml_commit_id", "semantic_authority",
-                  "served_model"):
+                  "served_model", "export_documents"):
         require(field in baseline, f"status document baseline missing {field}")
     _check_semantic_authority_identity(baseline["semantic_authority"])
     try:
-        deployment_expectation(status_doc, require_served_model=True)
+        deployment_expectation(status_doc, require_served_model=True, require_export_documents=True)
     except AuthorityCheckError as exc:
         raise VerificationError(str(exc)) from exc
     text = json.dumps(status_doc)
@@ -201,7 +201,8 @@ def check_ask_semantic_authority(
     back the API (the stack swap has already happened).
     """
     try:
-        expectation = deployment_expectation(status_doc, require_served_model=True)
+        expectation = deployment_expectation(status_doc, require_served_model=True,
+                                             require_export_documents=True)
         return check_served_authority(ask_status, expectation, require_built=require_built)
     except AuthorityCheckError as exc:
         raise VerificationError(f"Ask semantic authority: {exc}") from exc

@@ -20,6 +20,7 @@ from de4sdv.semantic.trace_vocabulary_traversal import targetless_check
 from de4sdv.semantic.validation import cross_check_model_provider, validate_ontology_bindings
 from de4sdv.sysml_api.baseline import BaselineExportBundle, BaselineManifest
 from de4sdv.sysml_api.client import ApiClient
+from de4sdv.sysml_api.export_documents import ExportDocuments
 from de4sdv.sysml_api.ingestion import import_baseline
 from de4sdv.sysml_api.repository import SysMLRepository
 from de4sdv.sysml_api.revisions import KernelElementBinding, RevisionBinding
@@ -105,6 +106,11 @@ def run_import(
         "element_count": imported.element_count,
         "content_sha256": imported.content_sha256,
     })
+    # The export documents: the source document of each element and the external references of the
+    # same export. The API listing carries neither; an evaluation over the API reads them from the
+    # binding. They must list exactly the elements the read-back holds.
+    export_documents = ExportDocuments.from_export(bundle, source_export_sha256=export_sha256)
+    documents_problem = export_documents.problem_for(elements)
     report = {
         "schema": "de4sdv-full-model-semantic-validation/v2",
         "git_commit": head,
@@ -112,6 +118,7 @@ def run_import(
         "sysml_commit_id": imported.commit_id,
         "source_export_sha256": export_sha256,
         "served_model": served_model.to_dict(),
+        "export_documents": export_documents.summary(),
         "export_scope": "candidate" if candidate else "full-model",
         "source_document_count": len(set(bundle.element_sources.values())),
         "element_count": imported.element_count,
@@ -138,6 +145,8 @@ def run_import(
             f"{len(cross_check['duplicate_providers'])} conflicting provider(s); "
             f"report={report_path}"
         )
+    if documents_problem is not None:
+        raise RuntimeError(f"export documents refused: {documents_problem}; report={report_path}")
     if not targetless["passed"]:
         raise RuntimeError(
             "target-less relationship check failed closed: "
@@ -159,10 +168,22 @@ def run_import(
             KernelElementBinding.from_dict(item) for item in kernel_bindings
         ),
         served_model=served_model,
+        export_documents=export_documents,
     )
-    _write_json(binding_path, binding.to_dict())
+    # The binding is written only when it loads: the invariants of RevisionBinding.from_dict (the export
+    # documents record the export its served model names) hold for what the runtime reads.
+    document = binding.to_dict()
+    try:
+        RevisionBinding.from_dict(json.loads(json.dumps(document)))
+    except ValueError as exc:
+        raise RuntimeError(f"the revision binding does not load: {exc}; report={report_path}") from exc
+    _write_json(binding_path, document)
+    # A summary, never the binding itself: its export documents are about 11 MB.
     return {
-        "binding": binding.to_dict(),
+        "binding": str(binding_path),
+        "binding_sha256": "sha256:" + hashlib.sha256(binding_path.read_bytes()).hexdigest(),
+        "served_model": served_model.to_dict(),
+        "export_documents": export_documents.summary(),
         "semantic_report": str(report_path),
         "kernel_binding_summary": ontology.summary,
         "element_count": imported.element_count,

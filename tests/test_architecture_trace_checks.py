@@ -381,7 +381,7 @@ def _withheld(evaluation) -> dict[str, str]:
     found = {}
     for gate in ARCHITECTURE_GATES:
         unit = evaluation._unit(gate)
-        if (unit.verdict, unit.missing) == (None, ("governed-relation:allocatedTo",)):
+        if (unit.verdict, unit.missing) == (None, ("allocation-admission:allocatedTo",)):
             found[gate] = unit.diagnostics[0]
     return found
 

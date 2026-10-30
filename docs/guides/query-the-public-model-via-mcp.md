@@ -23,7 +23,8 @@ and [ADR 0013](../architecture-decisions/0013-deploy-experimental-readonly-publi
   the semantic-authority identity the baseline was validated against
   (`baseline.semantic_authority`, `sai-…`) and the served model
   (`baseline.served_model`: the validated export's digest, element count and
-  content digest).
+  content digest), and the identity of the export documents the binding
+  records (`baseline.export_documents`).
 
 Project/Commit UUIDs are specific to each deployment (the importer generates
 them fresh); element UUIDs are stable across deployments. Never reuse a binding

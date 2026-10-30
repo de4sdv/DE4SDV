@@ -253,3 +253,54 @@ def test_a_stale_snapshot_does_not_mark_the_runtime_failed(checkout, tmp_path):
         expected_git_revision=head, repository=repository)
     assert len(service._elements()) == 2
     assert service.authority_status()["served_model_check"] == "passed"
+
+
+# ---------------------------------------------------------------------------
+# The export documents the binding records belong to the served corpus.
+# ---------------------------------------------------------------------------
+
+
+def _documents(identifiers) -> dict:
+    """An export-documents record of one document listing ``identifiers``, of the binding's export."""
+    from types import SimpleNamespace
+
+    from de4sdv.sysml_api.export_documents import ExportDocuments
+
+    bundle = SimpleNamespace(element_sources={i: "model/m.sysml" for i in identifiers}, external_references=())
+    return ExportDocuments.from_export(bundle, source_export_sha256="e" * 64).to_dict()
+
+
+def test_the_startup_report_names_the_export_documents_the_binding_records(checkout, tmp_path):
+    root, head = checkout
+    record = _documents([element["@id"] for element in CORPUS])
+    check = dr.verify_startup(root, binding_path=_binding(tmp_path, head, export_documents=record),
+                              expected_git_revision=head)
+    assert check.report()["export_documents"] == record["content_sha256"]
+    plain = dr.verify_startup(root, binding_path=_binding(tmp_path, head), expected_git_revision=head)
+    assert plain.report()["export_documents"] is None
+
+
+def test_the_method_view_reads_the_export_documents_of_the_served_corpus(checkout, tmp_path):
+    root, head = checkout
+    record = _documents([element["@id"] for element in CORPUS])
+    service = dr.build_deployment_runtime(
+        root, api_url="http://deployed-api.invalid",
+        binding_path=_binding(tmp_path, head, export_documents=record),
+        expected_git_revision=head, repository=_repository(CORPUS))
+    view = service._method_view()
+    assert dict(view.sources) == {"pkg": "model/m.sysml", "part": "model/m.sysml"}
+    assert view.external_references == ()
+    assert service.authority_status()["served_model_check"] == "passed"
+
+
+def test_a_served_corpus_that_the_export_documents_do_not_list_is_refused(checkout, tmp_path):
+    """Same export digest, same element count, other element ids: the binding is not this corpus's."""
+    root, head = checkout
+    binding = _binding(tmp_path, head, export_documents=_documents(["pkg", "another"]))
+    service = dr.build_deployment_runtime(
+        root, api_url="http://deployed-api.invalid", binding_path=binding,
+        expected_git_revision=head, repository=_repository(CORPUS))
+    assert service.corpus_matches(CORPUS) is False
+    with pytest.raises(ServedModelMismatchError, match="export documents do not cover the served corpus"):
+        service._elements()
+    assert service.authority_status()["served_model_check"].startswith("failed")

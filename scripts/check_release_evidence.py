@@ -16,6 +16,10 @@ growth cannot trip it and a count-preserving swap cannot pass it.
   it from the API listing).
 - **Binding.** v2, full-model, validation passed; the kernel bindings
   re-derived from the export alone equal the binding's (ADR 0011).
+- **Export documents.** The binding records the source documents and the
+  external references of this export: the digest recomputed over the export
+  equals the record's, and the record names the export of the served-model
+  record.
 - **Runtime over the export.** The production construction
   (:func:`build_deployment_runtime`: startup check, then a corpus that must be
   the validated export) with the API transport replaced by the export:
@@ -25,7 +29,11 @@ growth cannot trip it and a count-preserving swap cannot pass it.
     errors, and its live ``EvidenceContract`` closure equals, by element id,
     the bound members validated from the export;
   - ``VerificationCase`` grounds on the standard library (the decision-13
-    anchors) with nothing missing or conflicting.
+    anchors) with nothing missing or conflicting;
+  - method parity (``de4sdv.semantic.method_parity``): every increment the
+    export declares has, over the runtime service, the export path's phase-9
+    status and ``next``, unless the export's ``next`` is a gate that the API
+    binding withholds (the allocation guard).
 - **Coverage.** The model-projection coverage residual is empty.
 - **Batteries** (when given). Each report names this revision, the binding's
   SysML project/commit and semantic authority, and a served model that passed;
@@ -66,6 +74,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from de4sdv.semantic.successor_parity import PARITY_RELATIONS, PARITY_SCHEMA  # noqa: E402
+from de4sdv.sysml_api.export_documents import documents_digest  # noqa: E402
 from de4sdv.sysml_api.repository import SysMLRepository  # noqa: E402
 from de4sdv.sysml_api.revisions import RevisionBinding  # noqa: E402
 from de4sdv.sysml_api.served_model import served_model_digest  # noqa: E402
@@ -115,6 +124,8 @@ class Evidence:
     semantic_report: dict[str, Any]
     batteries: dict[str, dict[str, Any] | None] = field(default_factory=dict)
     export_content_sha256: str = ""
+    #: The digest of the export's own source documents and external references (``documents_digest``).
+    export_documents_sha256: str = ""
     export_kernel_bindings: list[tuple[str, str, str, str]] | None = None
     export_kernel_error: str = ""
     checkout_semantic_authority: dict[str, Any] | None = None
@@ -171,6 +182,15 @@ def evaluate(evidence: Evidence) -> list[dict[str, Any]]:
            {"binding": len(recorded), "export": None if derived is None else len(derived),
             "error": evidence.export_kernel_error or None})
 
+    documents = binding.get("export_documents") or {}
+    _check(results, "export documents: the binding records this export's source documents and external "
+           "references",
+           bool(evidence.export_documents_sha256)
+           and documents.get("content_sha256") == evidence.export_documents_sha256
+           and documents.get("source_export_sha256") == served.get("source_export_sha256"),
+           {"binding": documents.get("content_sha256"), "binding_export": documents.get("source_export_sha256")},
+           evidence.export_documents_sha256)
+
     runtime = evidence.runtime
     _check(results, "runtime over the export: startup check passed and the corpus is the export",
            runtime.get("startup_check") == "passed" and runtime.get("served_model_check") == "passed",
@@ -193,6 +213,14 @@ def evaluate(evidence: Evidence) -> list[dict[str, Any]]:
            grounding.get("result") == "EQUIVALENT" and grounding.get("missing") == []
            and grounding.get("conflicts") == [],
            {key: grounding.get(key) for key in ("result", "governed_population", "missing", "conflicts")})
+    parity = runtime.get("method_parity") or {}
+    _check(results, "method parity: over the runtime service every declared increment has the export path's "
+           "phase 9 and next",
+           parity.get("passed") is True and bool(parity.get("increments")),
+           {"increments": [{key: row.get(key) for key in ("increment", "phase9_equal", "next_equal",
+                                                          "next_compared")}
+                           for row in parity.get("increments") or ()],
+            "error": parity.get("error")})
 
     coverage = evidence.coverage
     _check(results, "coverage: empty residual, no duplicate provider, clean kernel accounting",
@@ -269,7 +297,8 @@ def collect(*, export_path: Path, binding_path: Path, semantic_report_path: Path
     from de4sdv.semantic import runtime_answers as answers
     from de4sdv.semantic import verification_grounding as vg
     from de4sdv.semantic.deployment_runtime import build_deployment_runtime
-    from de4sdv.semantic.export_evaluation import load_export_snapshot
+    from de4sdv.semantic.export_evaluation import export_view, load_export_snapshot
+    from de4sdv.semantic.method_parity import method_parity
     from de4sdv.semantic.model_contract import (
         bound_evidence_contract_closure,
         build_model_contract,
@@ -286,7 +315,14 @@ def collect(*, export_path: Path, binding_path: Path, semantic_report_path: Path
         batteries={name: _read(path) for name, path in batteries.items()},
     )
     evidence.export_content_sha256 = served_model_digest(elements)
+    try:
+        evidence.export_documents_sha256 = documents_digest(
+            export.get("element_sources") or {}, export.get("external_references") or [],
+            source_export_sha256=evidence.export_sha256)
+    except Exception:  # noqa: BLE001 — an unreadable export leaves it empty; the check fails
+        evidence.export_documents_sha256 = ""
     evidence.checkout_semantic_authority = build_model_contract(root).identity.to_dict()
+    snapshot = None
     try:
         snapshot = load_export_snapshot(Path(export_path), None, root=root)
         evidence.export_kernel_bindings = sorted(
@@ -319,6 +355,12 @@ def collect(*, export_path: Path, binding_path: Path, semantic_report_path: Path
         members = validate_closure_members(bound_evidence_contract_closure(root), elements,
                                            bundle.element_sources)
         runtime["closure_identity"] = _closure_identity(service, served_elements, members)
+        try:
+            if snapshot is None:
+                raise RuntimeError("the export snapshot did not load")
+            runtime["method_parity"] = method_parity(service, export_view(snapshot, root=root), snapshot.revision)
+        except Exception as exc:  # noqa: BLE001 — recorded; the parity check fails
+            runtime["method_parity"] = {"passed": False, "error": f"{type(exc).__name__}: {exc}"}
     except Exception as exc:  # noqa: BLE001 — recorded; the runtime checks fail
         runtime["error"] = f"{type(exc).__name__}: {exc}"
     evidence.runtime = runtime
