@@ -764,13 +764,27 @@ def _exits(evaluation) -> dict[str, str]:
             else phase["phase_exit"] for phase in evaluation.status()["phases"] if phase.get("gates")}
 
 
-def test_the_signal_mapping_checks_are_withheld_on_an_api_revision_binding() -> None:
+def test_the_signal_mapping_checks_are_withheld_while_an_obligation_is_open(monkeypatch) -> None:
     """They read native allocations: while allocatedTo has open forward obligations an API revision binding
     reports them as method side, as it does the allocation checks of phases 6 to 8."""
+    monkeypatch.setattr(workflow_reader, "open_forward_obligations",
+                        lambda relation: ("exact-revision traversal evidence (exact-SHA privileged run) before any "
+                                          "runtime-queryable claim",))
     api = _evaluate(_realization(), API_BINDING)
     for gate in (CROSSING, SOURCE):
         unit = next(u for u in api.canonical.units if u.unit_id == gate)
         assert (unit.verdict, unit.missing) == (None, ("governed-relation:allocatedTo",)), gate
+
+
+def test_the_signal_mapping_checks_answer_on_an_api_revision_binding_as_on_the_export() -> None:
+    """This checkout's admission lists no open obligation of allocatedTo, so an API revision binding
+    evaluates them as the export snapshot does."""
+    r = _realization()
+    api, export = _evaluate(r, API_BINDING), _evaluate(r)
+    for gate in (CROSSING, SOURCE):
+        unit = next(u for u in api.canonical.units if u.unit_id == gate)
+        assert unit.missing != ("governed-relation:allocatedTo",), gate
+        assert _verdicts(api, gate) == _verdicts(export, gate) and _verdicts(api, gate), gate
 
 
 def test_the_remedies_without_a_subject_declare_the_whole_mapping() -> None:
