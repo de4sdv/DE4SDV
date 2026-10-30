@@ -27,6 +27,17 @@
 # record, the W6 transition plan). Gates resolved here unblock ADMISSION
 # (definition/representation generation) only; runtime support targets keep
 # their forward obligations below.
+# A forward obligation is discharged by the evidence it asks for, never by
+# deletion alone. Its row moves it to discharged_obligations. The record names
+# the exact-SHA privileged ingestion run (run id, Git commit, workflow,
+# artifact), each artifact file it cites (sha256) and the values the run
+# reported under the cited keys. The generator checks form and literal
+# successful result values, not authenticity. Review checks the retained bytes.
+# It does not read the artifact, which expires. The guard that reads native
+# allocations reads forward_obligations only. A discharge does not stop the
+# check: the privileged run of every release repeats the successor parity and
+# the allocation-end closure. A failure fails that run, and no deploy takes
+# the evidence of a failed run.
 #
 # Machine-locked properties (generator and tests):
 #   * every model home resolves in its named file (owner block, documentation
@@ -48,7 +59,10 @@
 #     specialize the kernel EvidenceContract.
 #
 # Boundaries: admission is NOT production activation and NOT a traversal
-# proof. The PLE configuration rows (decision-9) and the method-admitted
+# proof. A discharge record cites model-content consistency of one revision
+# (the facts and ends the API served equal the export's); it makes no
+# satisfaction, realization, deployment or compliance claim.
+# The PLE configuration rows (decision-9) and the method-admitted
 # derivation classes carry no configurator authority: the configuration
 # authority follows ADR 0022. External-content rows carry no content.
 # Retired names (owner decision D4) answer no fact: the runtime refuses
@@ -1461,10 +1475,52 @@ admitted:
   - gate: row-blocker
     resolved_by:
     - release-2026-10-11:docs/method-conformance/o4/approved-semantic-decisions.yaml#topic1
-  forward_obligations:
-  - exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
-  - exact-revision API closure of the typed allocation ends in the exact-SHA privileged run; a failure
-    blocks activation
+  forward_obligations: []
+  discharged_obligations:
+  - obligation: exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim
+    run: 40931858718
+    git_commit: ab551cec7b1de0cdc3c1431aa65709569df75381
+    workflow: .github/workflows/privileged-full-model-api-ingestion.yml
+    artifact: full-model-api-ingestion-ab551cec7b1de0cdc3c1431aa65709569df75381
+    evidence:
+    - file: de4sdv-full-model-semantic-query-coverage.json
+      sha256: 90ba497f29341f75e16fcadb5ad65df2b018cfd7607b4666d64dbd428dcfacaf
+      values:
+        git_commit: ab551cec7b1de0cdc3c1431aa65709569df75381
+        semantic_authority.semantic_authority_id: sai-65375cec4f530cc796b28d5d770c8420
+        successor_parity.schema: de4sdv.successor-parity/v1
+        successor_parity.passed: true
+        successor_parity.relations.allocatedTo.passed: true
+        successor_parity.relations.allocatedTo.by_end_pair.RequirementFunctionAssignment: 26
+        successor_parity.relations.allocatedTo.by_end_pair.FunctionLogicalAssignment: 27
+        successor_parity.relations.allocatedTo.by_end_pair.LogicalPhysicalAssignment: 36
+    - file: de4sdv-release-evidence.json
+      sha256: 8e3afd62950096ab0b81af495d2429f34e633878aace14ff07d132417bddb445
+      values:
+        git_revision: ab551cec7b1de0cdc3c1431aa65709569df75381
+        passed: true
+  - obligation: exact-revision API closure of the typed allocation ends in the exact-SHA privileged run; a failure
+      blocks activation
+    run: 40931858718
+    git_commit: ab551cec7b1de0cdc3c1431aa65709569df75381
+    workflow: .github/workflows/privileged-full-model-api-ingestion.yml
+    artifact: full-model-api-ingestion-ab551cec7b1de0cdc3c1431aa65709569df75381
+    evidence:
+    - file: de4sdv-full-model-semantic-query-coverage.json
+      sha256: 90ba497f29341f75e16fcadb5ad65df2b018cfd7607b4666d64dbd428dcfacaf
+      values:
+        git_commit: ab551cec7b1de0cdc3c1431aa65709569df75381
+        successor_parity.allocation_end_closure.passed: true
+        successor_parity.allocation_end_closure.allocations: 100
+        successor_parity.allocation_end_closure.end_pair_classes.Requirement.closed: true
+        successor_parity.allocation_end_closure.end_pair_classes.Function.closed: true
+        successor_parity.allocation_end_closure.end_pair_classes.LogicalElement.closed: true
+        successor_parity.allocation_end_closure.end_pair_classes.PhysicalElement.closed: true
+    - file: de4sdv-release-evidence.json
+      sha256: 8e3afd62950096ab0b81af495d2429f34e633878aace14ff07d132417bddb445
+      values:
+        git_revision: ab551cec7b1de0cdc3c1431aa65709569df75381
+        passed: true
 - identity: hasRegulatorySource
   semantic_kind: relationship
   admission_class: successor
