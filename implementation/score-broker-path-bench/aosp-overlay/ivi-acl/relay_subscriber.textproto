@@ -3,8 +3,9 @@
 # to the frame topic that the SOME/IP broker publishes. The subject (its
 # package and bundle) is encoded by the path the provisioning script installs
 # this file at: /product/etc/sdv_authz_acls/<relay package>/<relay bundle>.textproto.
-# The relay lane owns the relay's subject identity; the bench takes it as the
-# RELAY_SUBJECT_PACKAGE and RELAY_SUBJECT_BUNDLE settings. The SD agent reads
+# The relay's subject identity is the default of its options.hpp
+# (de4sdv.ivi_frame_relay / IviFrameRelay); the bench takes it as the
+# RELAY_SUBJECT_PACKAGE and RELAY_SUBJECT_BUNDLE settings of bench_env.sh. The SD agent reads
 # the ACLs only at its start and exits if a second file names one subject, so
 # the provisioning script installs exactly this one file before the IVI VM boots.
 subscriber {

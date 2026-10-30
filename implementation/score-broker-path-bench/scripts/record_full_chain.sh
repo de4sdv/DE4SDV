@@ -11,7 +11,7 @@
 #
 # Panes (each a real terminal under script --log-timing): the host stack and
 # gatewayd/someipd, the SDV Core broker logcat, the IVI frame relay log. The
-# relay's logcat tag is a required input (the relay lane owns it).
+# relay's logcat tag comes from bench_env.sh (the IVI frame relay's service name).
 set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/bench_env.sh"

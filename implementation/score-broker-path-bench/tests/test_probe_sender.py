@@ -6,8 +6,8 @@ EOF on a UDP socket (reviews R39, R40, R41, R43). The bench replaces nc on the
 probe path with one small POSIX C sender that binds the egress device
 (SO_BINDTODEVICE), the source address and the source port, sends one datagram
 or does one timed TCP connect, and exits with the errno. This test compiles it
-with the host C compiler and exercises it in an unprivileged user and network
-namespace, so CI proves the properties the real guest needs:
+with the host C compiler. The six namespace tests exercise these properties
+locally when unprivileged user and network namespaces are available:
 
 - the datagram leaves on the bound device, whatever the route says (R41);
 - the source port on the wire is the one asked for (R43);
@@ -18,7 +18,9 @@ namespace, so CI proves the properties the real guest needs:
 It never runs on the VM and never opens a privileged socket on the host: the
 whole exercise is inside the namespace. It skips only when the C compiler or
 unprivileged user namespaces are unavailable (an environment gap, not a tool
-defect); on CI (ubuntu-latest) and the bench host both are present.
+defect). CI compiles the sender, but its runner skips the six namespace tests.
+The earlier local run and off-VM harness exercised the sender; neither proves
+the AOSP build or guest behavior.
 """
 
 from __future__ import annotations

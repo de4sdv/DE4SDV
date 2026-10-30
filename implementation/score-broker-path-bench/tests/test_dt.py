@@ -27,6 +27,7 @@ MS = 1_000_000
 
 
 def _read(tmp_path, connections):
+    tmp_path.mkdir(parents=True, exist_ok=True)
     path = tmp_path / "data-tunnel-vlan2.pcap"
     path.write_bytes(b.dt_capture(connections))
     return dt.read(read_pcap(path))
@@ -110,3 +111,23 @@ def test_arrivals_can_start_the_search_at_a_time(tmp_path):
     carrier = tunnel.locate(frames[0])[0]
     # Only the frames that crossed at or after the given time are searched for.
     assert tunnel.arrivals(carrier, frames, since_ns=T + 300 * MS) == [T + i * 100 * MS + 5 * MS for i in (3, 4, 5)]
+
+
+def test_r48_d_a_new_stream_on_a_connection_older_than_the_capture_has_no_open_time(tmp_path):
+    """Repro D (a known limit for pair_restart): neither VM restarts, so the VLAN 2
+    connection may predate the capture. A new stream opened inside the capture
+    on it is not readable (the frame boundaries before it are unknown); S1
+    shows whether the connection is new."""
+    conn = b.DtConnection(T - 60_000 * MS).handshake().open_stream(1, T - 59_000 * MS, preface=True).server_settings()
+    for i in range(20):
+        conn.data(1, b.frame(i + 1, T - 30_000 * MS + i * 100 * MS), T - 30_000 * MS + i * 100 * MS)
+    conn.open_stream(3, T - 400 * MS)
+    new = [b.frame(100 + i, T - 350 * MS + i * 100 * MS) for i in range(8)]
+    for i, payload in enumerate(new):
+        conn.data(3, payload, T - 350 * MS + i * 100 * MS)
+    whole = _read(tmp_path / "whole", [conn])
+    assert whole.stream_open_ns(whole.locate(new[0])[0]) == T - 400 * MS
+    conn.records = [record for record in conn.records if record[0] >= T - 10_000 * MS]
+    joined = _read(tmp_path / "joined", [conn])
+    found = joined.locate(new[0])
+    assert found and joined.stream_open_ns(found[0]) is None

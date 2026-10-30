@@ -76,17 +76,27 @@ run_manifest_sender_sha256() {
 # --- the SNTP server for the IVI VM clock (ASM-MW-030): the host chrony ---
 : "${SNTP_SERVER:=$HOST_ADDR}"
 
-# --- the IVI frame relay (the relay lane owns these; no defaults). A script
-#     that needs them calls require_relay_inputs and fails fast when they are
-#     unset, so the bench never provisions the wrong subject or reads the wrong
-#     logcat tag (review R10/R23). The real values of the IVI frame relay
-#     (implementation/score-reference-interop-bench/ivi-frame-relay) are in the README.
-#     RELAY_LOGCAT_TAG and RELAY_BIN are the relay's init-service name, which is
-#     the model-guard marker, so they are not written into this file. ---
+# --- the IVI frame relay, on main at 5835cb6f
+#     (implementation/score-reference-interop-bench/ivi-frame-relay). Its
+#     init-service name is also its liblog tag and its binary; its authz
+#     subject is the default of its options.hpp. tests/test_relay_inputs.py
+#     holds these values to the relay's own files. RELAY_BIN is the AOSP build
+#     output of the relay (a system binary, installed at /system/bin). A script
+#     that needs them calls require_relay_inputs and fails fast when one is set
+#     empty (review R10/R23). ---
+_BENCH_SCRIPTS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+: "${DE4SDV_ROOT:=$(cd -- "$_BENCH_SCRIPTS/../../.." && pwd)}"
+: "${RELAY_SERVICE:=de4sdv_ivi_frame_relay}"
+: "${RELAY_LOGCAT_TAG=$RELAY_SERVICE}"
+: "${RELAY_RC=$DE4SDV_ROOT/implementation/score-reference-interop-bench/ivi-frame-relay/$RELAY_SERVICE.rc}"
+: "${RELAY_BIN=$AOSP_TOP/out/target/product/$IVI_PRODUCT/system/bin/$RELAY_SERVICE}"
+: "${RELAY_SUBJECT_PACKAGE=de4sdv.ivi_frame_relay}"
+: "${RELAY_SUBJECT_BUNDLE=IviFrameRelay}"
+: "${RELAY_SUBJECT_INSTANCE=default}"
 require_relay_inputs() {
   local missing=0 name
   for name in RELAY_BIN RELAY_RC RELAY_LOGCAT_TAG RELAY_SUBJECT_PACKAGE RELAY_SUBJECT_BUNDLE RELAY_SUBJECT_INSTANCE; do
-    if [ -z "${!name:-}" ]; then echo "MISSING required relay input: $name (see the README for the relay's values)"; missing=1; fi
+    if [ -z "${!name:-}" ]; then echo "MISSING required relay input: $name (it is set empty; see the README)"; missing=1; fi
   done
   return $missing
 }

@@ -23,8 +23,9 @@
  * address 99). Diagnostics go to stderr; nothing is written to stdout.
  *
  * POSIX C11, no dependencies. It runs on the AAOS guest (built in the AOSP
- * tree by the Android.bp beside it) and, for CI, compiles with gcc and is
- * exercised in an unprivileged user and network namespace (tests).
+ * tree by the Android.bp beside it). CI compiles it with the host compiler;
+ * the six namespace tests skip there. Local tests and the off-VM harness
+ * exercise it in unprivileged user and network namespaces.
  */
 
 /* SO_BINDTODEVICE is a GNU extension on glibc, so the host compile asks for it

@@ -55,9 +55,8 @@ setup() {
   # running, so the oneshot ingress must be stopped first; the relay's
   # ingress-start property then starts a fresh ingress, which the relay accepts
   # as a new client and logs as a new phase_start (review R37). The relay's
-  # logcat tag is a required input (the relay lane owns it; it is not written
-  # into this file), so the new phase can be asserted.
-  [ -n "${RELAY_LOGCAT_TAG:-}" ] || { log "ERROR: export RELAY_LOGCAT_TAG to assert the new phase_start"; return 2; }
+  # logcat tag comes from bench_env.sh, so the new phase can be asserted.
+  [ -n "${RELAY_LOGCAT_TAG:-}" ] || { log "ERROR: RELAY_LOGCAT_TAG is set empty; it is needed to assert the new phase_start"; return 2; }
   local before="$RUN_DIR/relay-before-ingress-restart.txt" after="$RUN_DIR/relay-after-ingress-restart.txt"
   _guest "logcat -d -v epoch -v usec ${RELAY_LOGCAT_TAG}:* '*:S'" 2>/dev/null | tr -d '\r' > "$before"
   _guest "stop de4sdv_aebs_ingress" || true

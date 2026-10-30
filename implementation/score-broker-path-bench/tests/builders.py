@@ -190,8 +190,8 @@ def stream_records(port: int, payloads, *, t0: int, step: int = 100_000_000, cpo
     return records
 
 
-# A neutral tag for the tests; the relay lane's real tag is named in the README
-# (Markdown), so this committed file does not carry the model-guard marker.
+# A neutral tag for the evaluator tests: the evaluators read the tag from the
+# run settings, so any tag shows that they do not depend on the real one.
 RELAY_TAG = "relay_under_test"
 
 

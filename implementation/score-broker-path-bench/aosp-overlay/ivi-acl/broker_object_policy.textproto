@@ -7,8 +7,8 @@
 # policy. The provisioning script installs it at
 # /product/etc/sdv_authz_acls/com.android.sdv.someip/SomeIpBroker.textproto.
 # The reader name is the relay's subject package.bundle (dotted), taken from
-# the relay lane (RELAY_SUBJECT_PACKAGE.RELAY_SUBJECT_BUNDLE); it is not the
-# relay's init-service name.
+# the relay's options.hpp (RELAY_SUBJECT_PACKAGE.RELAY_SUBJECT_BUNDLE); it is not
+# the relay's init-service name.
 subscriber {
   message: "com.android.sdv.someip.De4sdvScoreAebsSignalFrame"
   topic: "de4sdv-score-aebs-signal-frame"

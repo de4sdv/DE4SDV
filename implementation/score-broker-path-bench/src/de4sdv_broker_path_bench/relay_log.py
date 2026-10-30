@@ -2,8 +2,8 @@
 
 The bench saves logcat with ``adb logcat -v epoch -v usec``. A relay line is
 one JSON object per event, written with the relay's liblog tag (the run
-settings name that tag; its real value is the relay lane's init-service name,
-given in the README). Each line carries the process id, so a relay restart (a
+settings name that tag; it is the relay's init-service name,
+de4sdv_ivi_frame_relay). Each line carries the process id, so a relay restart (a
 new process, phases numbered from 1 again) is told apart by keying every phase
 by (pid, phase).
 

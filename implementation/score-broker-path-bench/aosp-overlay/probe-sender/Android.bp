@@ -5,7 +5,8 @@
 // digest with the other pushed binaries.
 //
 // CI does not build this file; CI compiles de4sdv_probe_send.c with the host
-// compiler and exercises it in a namespace (tests/test_probe_sender.py). This
+// compiler. The six namespace tests (tests/test_probe_sender.py) are skipped on
+// the CI runner; the sender ran locally and in the off-VM harness. This
 // module is the guest build for S1.
 
 cc_binary {

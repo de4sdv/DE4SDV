@@ -20,7 +20,7 @@ Run directory, by convention:
 - clock-start.pcap, clock-end.pcap  the NTP exchanges of ASM-MW-030;
 - settings.json  the run settings (ports, the relay's logcat tag, condition);
 - for VC-MW-016: host-cvd-ebr.pcap (the SD capture) with sd_core_processed.json
-  (the core stack's log line about the offer), or sd_offer.json or residual.json;
+  (the core stack's log line about the offer), or residual.json (GAP-MW-012);
 - for VC-MW-017: the probe artifacts of probe.py;
 - frame_assembler_clients.json  the ss client check of ASM-MW-029 (VC-MW-015).
 """
@@ -469,10 +469,10 @@ def evaluate_provenance(run: RunInputs) -> CaseResult:
     if any(stage not in stages for stage in frames.STAGES):
         result.add("event", INCONCLUSIVE, "the produced frames do not show every stage of the event")
 
-    # The SD offer: from the host SD capture where present (the authoritative
-    # source, VC-MW-016), else a recorded sd_offer.json that must name the provider
-    # and the offer time, else the GAP-MW-012 residual. An empty or partial
-    # record is missing evidence, not a pass (review R34).
+    # The SD offer: from the host SD capture (the authoritative source,
+    # VC-MW-016), else the GAP-MW-012 residual. A written sd_offer.json is data
+    # only and gives no pass (review R49); an empty record is missing evidence
+    # too (review R34).
     offer_time_ns: int | None = None
     offer = _sd_from_capture(run)
     residual = _load_json(run, "residual.json")
@@ -530,20 +530,21 @@ def evaluate_provenance(run: RunInputs) -> CaseResult:
             if not providers:
                 result.add("sd-offer", INCONCLUSIVE, "an SD offer was seen and processed but no later subscription of "
                            "the stack, so the provider after the offer is unknown")
-    elif isinstance(sd_offer, dict) and sd_offer.get("provider_after_offer") is not None:
-        offer_time_ns = sd_offer.get("offer_time_ns")
-        provider = sd_offer.get("provider_after_offer")
-        if provider != "192.168.98.1":
-            result.add("sd-redirect", FAIL, f"after the SD offer from the IVI VM the stack subscribed to "
-                       f"{provider!r}, not 192.168.98.1")
+    elif isinstance(sd_offer, dict):
+        # A written sd_offer.json is data only (review R49): the case takes the
+        # provider after the offer from the SD capture, and neither R43
+        # condition (an offer from the SD source port, a stack-processed record)
+        # can be shown by a written record. Alone it gives no pass.
+        result.measurements["sd_offer_record"] = {key: sd_offer.get(key)
+                                                  for key in ("provider_after_offer", "offer_time_ns")}
+        result.add("sd-offer", INCONCLUSIVE, "sd_offer.json is data only: the provider after the offer must come from "
+                   "the SD capture (host-cvd-ebr.pcap) with the core stack's record (sd_core_processed.json); a "
+                   "written record alone shows nothing")
     elif isinstance(residual, dict) and residual.get("gap") == "GAP-MW-012":
         result.measurements["residual"] = "GAP-MW-012 recorded (no pin or filter)"
-    elif isinstance(sd_offer, dict):
-        result.add("sd-offer", INCONCLUSIVE, "the SD-offer record names no provider after the offer")
     else:
-        result.add("sd-offer", INCONCLUSIVE, "no SD-offer record and no GAP-MW-012 residual record")
-    offer_recorded = offer_time_ns is not None or (isinstance(sd_offer, dict)
-                                                   and sd_offer.get("provider_after_offer") is not None)
+        result.add("sd-offer", INCONCLUSIVE, "no SD capture with a spoofed offer and no GAP-MW-012 residual record")
+    offer_recorded = offer_time_ns is not None
 
     compared = 0
     for frame in received.frames:
@@ -687,8 +688,9 @@ def _dt_start(tunnel, first_frame, judged_start_ns: int, produced: "Capture") ->
     "before_judged_start": the capture joined the connection after it opened
     (so the open time is not in it), but the produced frames flowed on the same
     carrier with no gap of 500 ms or more from before the judged start to the
-    phase's first frame, so the subscription started before the judged start
-    and the second check cannot fail where the first passes. kind "unknown":
+    phase's first frame, so the subscription started before the judged start.
+    The caller must also judge every later delivery and reject deliveries
+    outside a relay phase before that start. kind "unknown":
     neither, so the second check cannot run.
     """
     located = tunnel.locate(first_frame.payload)
@@ -801,7 +803,7 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
     # the ingress connected is judged against the accept; in the normal order
     # (accept, then the relay's log line) the later time is the relay's own.
     # Both times and their difference are recorded. The VLAN 2 Data Tunnel
-    # capture is retained, not read here (a known limit).
+    # capture supplies the independent second check below.
     accepts = _accept_by_connection(run, run.received_port)
     phase_starts: dict[tuple, dict] = {}
 
@@ -911,6 +913,10 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
     # and the first passes, the run is inconclusive. Without a readable time the
     # second check cannot run, so the run gives no pass (coordinator decision).
     dt_starts, dt_violations = [], 0
+    # Keep the explicit post-reboot data-only phase outside both checks. No
+    # other phase boundary may remove a received frame from the second check.
+    dt_frames = [frame for frame in received.frames
+                 if (phase := relay_log.phase_at(all_phases, frame.delivered_ns)) is None or phase.key in judged_keys]
     dt_path = run.run_dir / "data-tunnel-vlan2.pcap"
     tunnel = None
     if not dt_path.exists():
@@ -935,13 +941,53 @@ def evaluate_unsubscribed_discard(run: RunInputs) -> CaseResult:
                       "dt_start_ns": start2, "dt_minus_judged_ns": None if start2 is None else start2 - start1,
                       "detail": detail}
             dt_starts.append(record)
+            # The bound's guard starts at the previous relay phase end, or the
+            # capture start when there is no previous end.
+            previous_end = max((other.end_realtime_ns for other in all_phases
+                                if other.key != phase.key and other.end_realtime_ns is not None
+                                and other.end_realtime_ns <= phase.start_realtime_ns), default=None)
             if kind == "unknown":
                 result.add("dt-start", INCONCLUSIVE, f"phase (pid {phase.pid}, {phase.number}): {detail}; the second "
                            "check cannot run, so the run gives no pass")
             elif kind == "stream_open":
-                late = [frame for frame in in_phase if _facts(frame).frame_timestamp_ns is not None
-                        and _facts(frame).frame_timestamp_ns < start2 - PHASE_SLOP_NS]
+                # Every received frame delivered at or after the second start, not
+                # only those inside the relay's phase: a frame delivered between the
+                # relay's phases after the subscription is judged too (R48).
+                late = [frame for frame in dt_frames
+                        if frame.delivered_ns >= start2
+                        and (facts := _facts(frame)) is not None and facts.frame_timestamp_ns is not None
+                        and facts.frame_timestamp_ns < start2 - PHASE_SLOP_NS]
                 dt_violations += len(late)
+            else:
+                # The bound shows the subscription started before the judged start,
+                # not when. A frame delivered outside every relay phase between the
+                # previous phase end and the judged start might follow it, and the
+                # bound cannot judge that frame (R48).
+                stray = [frame for frame in received.frames
+                         if (previous_end is None or frame.delivered_ns >= previous_end)
+                         and frame.delivered_ns < start1 and relay_log.phase_at(all_phases, frame.delivered_ns) is None]
+                record["frames_outside_a_phase_before_the_judged_start"] = len(stray)
+                if stray:
+                    result.add("dt-bound", INCONCLUSIVE, f"phase (pid {phase.pid}, {phase.number}): {len(stray)} frames "
+                               "were delivered outside the relay's phases before the judged start; the Data Tunnel "
+                               "bound cannot judge them, so the run shows nothing")
+                # The stricter judged start can prove the second check only for
+                # frames within its margin. Apply it after the start without
+                # trusting a relay phase end to hide later deliveries.
+                unproven = [frame for frame in dt_frames if frame.delivered_ns >= start1
+                            and (facts := _facts(frame)) is not None and facts.frame_timestamp_ns is not None
+                            and facts.frame_timestamp_ns < start1 - PHASE_SLOP_NS]
+                if unproven:
+                    result.add("dt-bound", INCONCLUSIVE, f"phase (pid {phase.pid}, {phase.number}): {len(unproven)} frames "
+                               "delivered at or after the judged start were produced before its margin; the Data "
+                               "Tunnel bound alone cannot judge them")
+            if kind != "unknown":
+                check_start = start2 if kind == "stream_open" else start1
+                if any(frame.delivered_ns >= check_start
+                       and ((facts := _facts(frame)) is None or facts.frame_timestamp_ns is None)
+                       for frame in dt_frames):
+                    result.add("dt-timestamp", INCONCLUSIVE, "a frame delivered after the second check's start has "
+                               "no frame timestamp, so the Data Tunnel check gives no pass")
         if dt_violations:
             result.add("dt-check", INCONCLUSIVE, f"{dt_violations} frames were produced more than 20 ms before the "
                        "subscription time in the Data Tunnel capture; with that start the check fails, so the run "

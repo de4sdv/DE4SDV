@@ -19,7 +19,7 @@ Decision authority: Orkun.
 | Requirements | REQ-MW-014, REQ-MW-015, REQ-MW-016 (two findings), REQ-MW-019 @ main |
 | Verification cases | `middleware_score_verification_evidence.sysml` at main `4bcfe628` (VC-MW-015 to VC-MW-020 on the broker path). The evaluators follow this commit; rebind when the file changes on main |
 | Host half | the S-CORE reference interop bench (`../score-reference-interop-bench`): the adapter, gatewayd, someipd, ASM-MW-021 pins |
-| Relay | the IVI frame relay (`implementation/score-reference-interop-bench/ivi-frame-relay`) at `028467e2`, branch `feat/score-someip-receiver`, not yet on main (binary `de4sdv_ivi_frame_relay`, its init file, tag `de4sdv_ivi_frame_relay`, subject `de4sdv.ivi_frame_relay`/`IviFrameRelay`/`default`); the bench parses its phase_start, phase_end, clock_step, data_loss and gateway_client_lost (exit code 4) records at this commit |
+| Relay | the IVI frame relay (`implementation/score-reference-interop-bench/ivi-frame-relay`) on main at `5835cb6f` (binary `de4sdv_ivi_frame_relay`, its init file, tag `de4sdv_ivi_frame_relay`, subject `de4sdv.ivi_frame_relay`/`IviFrameRelay`/`default`); the bench parses its phase_start, phase_end, clock_step, data_loss and gateway_client_lost (exit code 4) records at this commit; `bench_env.sh` names these values and `tests/test_relay_inputs.py` holds them to the relay's files |
 | Spike facts | design data only (GAP-MW-038, GAP-MW-039, GAP-MW-047, GAP-MW-048); not evidence of record |
 | System 2 VM | GAP-MW-044: `de4sdv-aaos-build`, n2-standard-16, europe-west4, nested virtualization, from the snapshot of 2026-10-14 |
 
@@ -92,8 +92,8 @@ Both VMs sit on the host bridge `cvd-ebr`; each also has a network of its own
    /system and /vendor before the IVI VM boots, the broker's object policy, the
    relay binary and init file (the relay sets the ingress port 4731 and host
    from its own init file on boot), then an IVI reboot and the post-boot checks
-   (`provision_ivi_relay.sh`). The relay inputs are required, with no defaults;
-   an S1 preflight compares them with the relay's `.rc` at `028467e2`.
+   (`provision_ivi_relay.sh`). `bench_env.sh` names the relay's values (main
+   `5835cb6f`), and a test holds them to the relay's `.rc` and sources.
 7. **Recovery (GAP-MW-048).** The SDV Core VM reboots in place, which keeps
    the launch configuration; death is detected from the logcat "Critical agent
    has died" and from VmHealth. An IVI SD agent or gateway failure needs an IVI
@@ -201,7 +201,7 @@ None of these blocks the first VM session; the operator confirms them by hand.
 | Clock | Scripted (chrony allow, auto_time off, set and slew, two measurements, the ingress restart); the host-step log and the `ping`/`tcpdump` presence checks assume the image carries them |
 | New phase after the clock setting | Scripted and VM-only: `set_ivi_clock.sh setup` asserts a new relay phase_start after the ingress restart and fails otherwise; S1 confirms it on the live IVI VM |
 | Captures | Scripted; the host captures are stopped first and the guest captures last, so the received capture outlives the produced capture (review B1); the kernel drop count is read from the capture tool's exit line, not the pcap; a run whose IVI boot identity changed inside its window fails at stop; the IVI-VM-down condition uses `capture_case.sh ivi-vm-down`, which starts the captures after the reboot |
-| Probe sender | Scripted (`provision_probe_sender.sh build`, `install`): built in the AOSP tree, pushed to both guests, its sha256 checked on each guest and recorded in the run manifest; the probe and the offer stop when it is missing or differs. The Android.bp flags are first checked by this build in S1; CI only compiles the C source and exercises it in a namespace |
+| Probe sender | Scripted (`provision_probe_sender.sh build`, `install`): built in the AOSP tree, pushed to both guests, its sha256 checked on each guest and recorded in the run manifest; the probe and the offer stop when it is missing or differs. The Android.bp flags are first checked by this build in S1. CI compiles the C source; the six namespace tests are skipped on the CI runner; the sender ran locally and in the off-VM harness |
 | S1 smoke step (first) | Scripted and VM-only, ahead of any case run: one probe, one control and one SD offer with the built sender, checking the exit codes, the captured egress interface, source address and MAC, the source port, the counter, the core stack's log line about the offer, and the sudo'd ASM-MW-031 scan |
 | Firewall and probe | Scripted; the bridge-family SOME/IP rule is checked only on the VM (no `nf_tables` bridge family on the build host); the probe is serialized and each UDP probe is at least a second, so a full probe over every DDS port, interface and host address takes tens of minutes. A reduced range is a coverage gap, not a pass; S1 measures the probes per second and sizes the slot (the 0.75 h budget does not fit the full cross product) |
 | ASM-MW-031 scan | Scripted and VM-only: the root `/proc` scan runs under `sudo` from `src/`, keeps its stderr and records the uid; an unreadable process gives holds=null |
@@ -216,8 +216,8 @@ None of these blocks the first VM session; the operator confirms them by hand.
 - Task: plan and build the INC-MW-011 phase-10 broker-path bench.
 - Owner: de4sdv-integration. Reviewers: de4sdv-vv, de4sdv-architect,
   de4sdv-assurance. Decider: Orkun.
-- Input SHA: DE4SDV main `4bcfe628`.
+- Input SHAs: verification cases at main `4bcfe628`, relay at main `5835cb6f`.
 - Status: the scripts, the evaluators and this plan are on the branch; nothing
-  executed on the VM. Blockers: the relay lane's binary and subject identity;
-  the verification-case slice merged or on the execution head; the CI dispatch of the reference bench
-  is the coordinator's and Orkun's call.
+  executed on the VM. The relay and the verification cases are on main.
+  Remaining gates: the S1 AOSP build and smoke step, the owner's expected-set
+  decision for the VLAN interfaces, and the S2 and S3 case captures.

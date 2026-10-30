@@ -5,16 +5,14 @@
     "run. The evaluators read only these keys; the new-subscription phase times",
     "come from the relay's log, not from settings. everything else is a raw",
     "artifact (the pcaps, the logcat, the probe JSON).",
-    "relay_logcat_tag is the relay lane's liblog tag. Its real value is the",
-    "relay's init-service name (see the README section 'Interfaces this bench",
-    "needs'); it is left as a placeholder here so this committed file does not",
-    "carry the model-guard marker while the relay lane is unmerged.",
+    "relay_logcat_tag is the IVI frame relay's liblog tag, its init-service",
+    "name (implementation/score-reference-interop-bench/ivi-frame-relay).",
     "condition names which VC-MW-020 condition this run exercises: hmi_down,",
     "ivi_vm_down, sdv_core_vm_down or pair_restart; a case pass needs all four."
   ],
   "produced_port": 4721,
   "received_port": 4731,
-  "relay_logcat_tag": "SEE_README_RELAY_LOGCAT_TAG",
+  "relay_logcat_tag": "de4sdv_ivi_frame_relay",
   "sntp_server": "192.168.98.1",
   "condition": "hmi_down"
 }

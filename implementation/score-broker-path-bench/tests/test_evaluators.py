@@ -13,6 +13,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 BENCH = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(BENCH / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -235,9 +237,14 @@ def _spoofed_offer_capture(offer_src_port=30490, provider="192.168.98.1"):
     ]
 
 
+def _good_offer():
+    """A valid stimulus: a spoofed offer from the SD port in the SD capture, which the core stack processed."""
+    return {"sd_capture": _spoofed_offer_capture(offer_src_port=30490), "core_processed": PROCESSED}
+
+
 def test_vc016_passes_on_identical_bytes_with_a_good_offer(tmp_path):
     payloads = frames_seq()
-    run = _vc016(tmp_path, payloads, payloads, sd_offer={"provider_after_offer": "192.168.98.1"})
+    run = _vc016(tmp_path, payloads, payloads, **_good_offer())
     assert evaluators.evaluate_provenance(run).outcome == outcome.PASS, evaluators.evaluate_provenance(run).as_dict()
 
 
@@ -245,7 +252,7 @@ def test_vc016_byte_difference_fails(tmp_path):
     payloads = frames_seq()
     tampered = list(payloads)
     tampered[1] = b.frame(2, 2_100_000_000, stage="INTERVENTION")
-    run = _vc016(tmp_path, payloads, tampered, sd_offer={"provider_after_offer": "192.168.98.1"})
+    run = _vc016(tmp_path, payloads, tampered, **_good_offer())
     assert evaluators.evaluate_provenance(run).outcome == outcome.FAIL
 
 
@@ -255,16 +262,33 @@ def test_vc016_no_sd_record_is_inconclusive(tmp_path):
     assert evaluators.evaluate_provenance(run).outcome == outcome.INCONCLUSIVE
 
 
-def test_vc016_sd_redirect_fails(tmp_path):
+def test_vc016_r49_a_written_redirect_record_is_data_only(tmp_path):
+    # Review R49: sd_offer.json is data only; a redirect is failed from the SD
+    # capture (test_vc016_r43_offer_processed_with_a_redirect_fails), not from a
+    # written record.
     payloads = frames_seq()
     run = _vc016(tmp_path, payloads, payloads, sd_offer={"provider_after_offer": "192.168.98.118"})
-    assert evaluators.evaluate_provenance(run).outcome == outcome.FAIL
+    result = evaluators.evaluate_provenance(run)
+    assert result.outcome == outcome.INCONCLUSIVE
+    assert result.measurements["sd_offer_record"]["provider_after_offer"] == "192.168.98.118"
+
+
+def test_vc016_r49_v2_b016_a_written_good_offer_record_alone_gives_no_pass(tmp_path):
+    # v2 B016: no SD capture, an sd_offer.json naming 192.168.98.1. Neither R43
+    # condition is shown (source port 30490, a stack-processed record), so the
+    # record is data only and the run shows nothing.
+    payloads = frames_seq()
+    run = _vc016(tmp_path, payloads, payloads, sd_offer={"provider_after_offer": "192.168.98.1",
+                                                         "offer_time_ns": P0 + 150_000_000})
+    result = evaluators.evaluate_provenance(run)
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert any(f.code == "sd-offer" and "data only" in f.message for f in result.findings)
 
 
 def test_vc016_rg_unproduced_received_frame_fails(tmp_path):
     payloads = frames_seq()
     injected = payloads[:3] + [b.frame(999, 9_000_000_000)] + payloads[3:]
-    run = _vc016(tmp_path, payloads, injected, sd_offer={"provider_after_offer": "192.168.98.1"})
+    run = _vc016(tmp_path, payloads, injected, **_good_offer())
     assert evaluators.evaluate_provenance(run).outcome == outcome.FAIL
 
 
@@ -345,8 +369,7 @@ def test_vc016_b1_frames_produced_after_the_guest_capture_ended_are_not_a_stop(t
     # stack produced frames 8-12 after the capture ended. They are beyond the
     # capture's coverage, not a stop after the offer; a clean run passes.
     produced = frames_seq(["MONITORING", "WARNING", "INTERVENTION", "RELEASED"] + ["MONITORING"] * 8, base_ns=P0)
-    run = _vc016(tmp_path, produced, produced[:7],
-                 sd_offer={"provider_after_offer": "192.168.98.1", "offer_time_ns": P0 + 150_000_000})
+    run = _vc016(tmp_path, produced, produced[:7], **_good_offer())
     (run.run_dir / "received.pcap").write_bytes(b.pcap(b.stream_records(4731, produced[:7], t0=P0 + 5_000_000)[:-1]))
     assert evaluators.evaluate_provenance(run).outcome == outcome.PASS, evaluators.evaluate_provenance(run).as_dict()
 
@@ -705,7 +728,7 @@ def test_vc016_r8b_frames_stop_after_the_offer_fails(tmp_path):
     # R-S2: frames 1-3 of 6 arrive, then the stack keeps producing but nothing
     # more arrives; the provider stayed .1 (R8b).
     payloads = frames_seq()
-    run = _vc016(tmp_path, payloads, payloads[:3], sd_offer={"provider_after_offer": "192.168.98.1"})
+    run = _vc016(tmp_path, payloads, payloads[:3], **_good_offer())
     assert evaluators.evaluate_provenance(run).outcome == outcome.FAIL
 
 
@@ -1129,10 +1152,14 @@ def test_vc020_the_data_tunnel_stream_opened_before_the_judged_start_passes(tmp_
 
 
 def test_vc020_a_later_data_tunnel_subscription_that_fails_the_second_check_is_inconclusive(tmp_path):
-    # The relay and the accept say T_SUB; Data Tunnel says the stream opened at
-    # T_SUB + 300 ms. A frame produced at T_SUB + 150 ms passes the first check
-    # and fails the second, so the run shows nothing (inconclusive, not fail).
-    run, records = _clean_phase_run(tmp_path, dt=None)
+    # The relay and the accept say about T_SUB; Data Tunnel says the stream
+    # opened at T_SUB + 300 ms. Frames produced at T_SUB + 150 and + 250 ms are
+    # delivered after that opening (stored frames): they pass the first check
+    # and fail the second, so the run shows nothing (inconclusive, not fail).
+    frames = [(T_SUB + 320_000_000, b.frame(1, T_SUB + 150_000_000)), (T_SUB + 330_000_000, b.frame(2, T_SUB + 250_000_000)),
+              (T_SUB + 370_000_000, b.frame(3, T_SUB + 350_000_000))]
+    records = _loopback(frames, t0=T_SUB + 40_000_000)
+    run = _vc020(tmp_path, records, phase_logcat(T_SUB, phase=1), dt=None)
     (run.run_dir / "data-tunnel-vlan2.pcap").write_bytes(_dt_stream(_served_frames(records), T_SUB + 300_000_000))
     result = evaluators.evaluate_unsubscribed_discard(run)
     assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
@@ -1212,3 +1239,190 @@ def test_vc020_a_first_check_failure_still_fails_without_a_data_tunnel_capture(t
               + phase_logcat(s2, phase=2))
     run = _vc020(tmp_path, records, logcat, dt=None)
     assert evaluators.evaluate_unsubscribed_discard(run).outcome == outcome.FAIL
+
+
+# ------------------------------------------- R48: the second check judges every frame after its start
+#
+# Decision on review R48: the second check judges every received frame
+# delivered at or after the Data Tunnel start,
+# not only frames inside the relay's logged phases. With the Data Tunnel bound,
+# no frame may have been delivered outside a relay phase between the previous
+# phase end (or the capture start) and the judged start; such a frame gives
+# inconclusive. The bound then holds in all four conditions. Repros A-C of the
+# final closure check of d4ab2ac1.
+
+def _loopback(deliveries, *, t0, close="client"):
+    """One ingress connection on 4731; ``deliveries`` = [(delivered_ns, frame bytes)], in time order."""
+    sender = b.TcpSender("127.0.0.1", "127.0.0.1", 5731, 4731, t0).handshake()
+    for at, payload in deliveries:
+        sender.send(b.delimited(payload), step_ns=at - sender.t)
+    if close == "client":
+        sender.client_fin()
+    return sender.records
+
+
+def _dt_readable(open_ns, frames_at, earlier=None):
+    """One VLAN 2 connection from its SYN. ``earlier`` = (open_ns, frames_at) of a first stream; the second
+    stream (3) opens at ``open_ns``."""
+    first_open = earlier[0] if earlier else open_ns
+    conn = b.DtConnection(first_open - 30_000_000).handshake().open_stream(1, first_open, preface=True)
+    conn.server_settings()
+    sid = 1
+    if earlier:
+        for at, payload in earlier[1]:
+            conn.data(1, payload, at)
+        conn.open_stream(3, open_ns)
+        sid = 3
+    for at, payload in frames_at:
+        conn.data(sid, payload, at)
+    return b.dt_capture([conn])
+
+
+def _r48_run(tmp_path, condition, records, logcat, dt_bytes):
+    run = write(tmp_path, received__pcap=b.pcap(records), settings__json=settings(condition=condition),
+                **{"relay-logcat.txt": logcat})
+    (run / "clock-start.pcap").write_bytes(b.clock_pcap(2_000_000, T_SUB - 60_000_000_000, 0x1111))
+    (run / "clock-end.pcap").write_bytes(b.clock_pcap(2_000_000, T_SUB + 60_000_000_000, 0x2222))
+    (run / "data-tunnel-vlan2.pcap").write_bytes(dt_bytes)
+    return evaluators.load_run(run)
+
+
+@pytest.mark.parametrize("condition", ["hmi_down", "ivi_vm_down", "sdv_core_vm_down", "pair_restart"])
+def test_r48_a_the_bound_holds_in_every_condition(tmp_path, condition):
+    run = _hmi_down_like(tmp_path)
+    settings_path = run.run_dir / "settings.json"
+    values = json.loads(settings_path.read_text())
+    values["condition"] = condition
+    settings_path.write_text(json.dumps(values))
+    result = evaluators.evaluate_unsubscribed_discard(evaluators.load_run(run.run_dir))
+    assert result.outcome == outcome.PASS, result.as_dict()
+    assert result.measurements["dt_starts"][0]["dt_start_kind"] == "before_judged_start"
+
+
+def _pair_restart_runs(tmp_path, *, stored: bool):
+    prev_start, prev_end, s2, s1 = T_SUB - 10_000_000_000, T_SUB - 2_000_000_000, T_SUB - 400_000_000, T_SUB
+    before = [(prev_start + 100_000_000 + i * 100_000_000, b.frame(i + 1, prev_start + 95_000_000 + i * 100_000_000))
+              for i in range(10)]
+    old = [(T_SUB - 300_000_000, b.frame(50, s2 - 3_000_000_000))] if stored else []  # between the phases, after S2
+    after = [(s1 + 60_000_000 + i * 100_000_000, b.frame(60 + i, s1 + 50_000_000 + i * 100_000_000))
+             for i in range(5)]
+    records = _loopback(before + old + after, t0=prev_start - 50_000_000)
+    logcat = (phase_logcat(prev_start, prev_end, layer_caused=False, client_connected=True,
+                           cause="publication_destroyed", phase=1)
+              + phase_logcat(s1, phase=2))
+    phase1 = (prev_start - 100_000_000, [(at - 2_000_000, payload) for at, payload in before])
+    dt_bytes = _dt_readable(s2, [(at - 2_000_000, payload) for at, payload in old + after], earlier=phase1)
+    return _r48_run(tmp_path, "pair_restart", records, logcat, dt_bytes)
+
+
+def test_r48_b_a_stored_frame_between_the_phases_after_the_data_tunnel_start_is_inconclusive(tmp_path):
+    # pair_restart, the ingress connected throughout: the Data Tunnel stream
+    # opens 400 ms before the relay's phase_start, and a frame produced 3.4 s
+    # before that opening is delivered between the relay's phases. The second
+    # check judges it and fails; the first passes; so the run shows nothing.
+    result = evaluators.evaluate_unsubscribed_discard(_pair_restart_runs(tmp_path, stored=True))
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert any(f.code == "dt-check" for f in result.findings)
+
+
+def test_r48_b0_the_same_run_without_the_stored_frame_passes(tmp_path):
+    result = evaluators.evaluate_unsubscribed_discard(_pair_restart_runs(tmp_path, stored=False))
+    assert result.outcome == outcome.PASS, result.as_dict()
+
+
+@pytest.mark.parametrize("delivery_ns", [T_SUB + 500_000_000, T_SUB + 600_000_000])
+def test_r48_a_readable_start_judges_a_stored_frame_at_or_after_the_phase_end(tmp_path, delivery_ns):
+    opened = T_SUB - 100_000_000
+    deliveries = [(T_SUB + 60_000_000, b.frame(1, T_SUB + 50_000_000)),
+                  (delivery_ns, b.frame(2, opened - 3_000_000_000))]
+    records = _loopback(deliveries, t0=T_SUB - 60_000_000)
+    logcat = phase_logcat(T_SUB, T_SUB + 500_000_000, phase=1, cause="publication_destroyed")
+    tunnel = _dt_readable(opened, [(at - 2_000_000, payload) for at, payload in deliveries])
+    result = evaluators.evaluate_unsubscribed_discard(_r48_run(tmp_path, "pair_restart", records, logcat, tunnel))
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert any(f.code == "dt-check" for f in result.findings)
+
+
+def test_r48_c_a_stored_frame_between_the_accept_and_the_relay_start_is_inconclusive(tmp_path):
+    # hmi_down in the normal order: the accept at -30 ms, the relay's
+    # phase_start at T; a frame produced 3 s earlier is delivered at -20 ms,
+    # after the Data Tunnel stream opened (-100 ms). The second check judges it.
+    stored = (T_SUB - 20_000_000, b.frame(70, T_SUB - 3_000_000_000))
+    after = [(T_SUB + 60_000_000 + i * 100_000_000, b.frame(80 + i, T_SUB + 50_000_000 + i * 100_000_000))
+             for i in range(5)]
+    records = _loopback([stored] + after, t0=T_SUB - 60_000_000)  # the handshake's ACK at T - 30 ms
+    dt_bytes = _dt_readable(T_SUB - 100_000_000, [(at - 2_000_000, p) for at, p in [stored] + after])
+    result = evaluators.evaluate_unsubscribed_discard(
+        _r48_run(tmp_path, "hmi_down", records, phase_logcat(T_SUB, phase=1), dt_bytes))
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert any(f.code == "dt-check" for f in result.findings)
+
+
+@pytest.mark.parametrize("condition", ["hmi_down", "ivi_vm_down", "sdv_core_vm_down", "pair_restart"])
+def test_r48_with_the_bound_a_frame_delivered_outside_a_phase_before_the_judged_start_is_inconclusive(tmp_path, condition):
+    # The bound shows the subscription started before the judged start, but not
+    # when; a frame delivered outside the relay's phases before the judged start
+    # might follow it, and the bound cannot judge that frame.
+    produced = [(T_SUB - 2_000_000_000 + i * 100_000_000, b.frame(i, T_SUB - 2_000_000_000 + i * 100_000_000))
+                for i in range(1, 25)]
+    stray = (T_SUB - 150_000_000, b.frame(300, T_SUB - 4_000_000_000))  # outside every phase
+    served = [(ts + 10_000_000, payload) for ts, payload in produced if ts >= T_SUB + 50_000_000]
+    records = _loopback([stray] + served, t0=T_SUB - 400_000_000)
+    run = write(tmp_path, received__pcap=b.pcap(records), settings__json=settings(condition=condition),
+                **{"relay-logcat.txt": phase_logcat(T_SUB, phase=1)})
+    (run / "clock-start.pcap").write_bytes(b.clock_pcap(2_000_000, T_SUB - 60_000_000_000, 0x1111))
+    (run / "clock-end.pcap").write_bytes(b.clock_pcap(2_000_000, T_SUB + 60_000_000_000, 0x2222))
+    (run / "produced.pcap").write_bytes(b.pcap(b.stream_records(4721, [p for _t, p in produced],
+                                                               t0=T_SUB - 2_100_000_000)))
+    (run / "data-tunnel-vlan2.pcap").write_bytes(_flowing_tunnel(produced, from_ns=T_SUB - 2_500_000_000))
+    result = evaluators.evaluate_unsubscribed_discard(evaluators.load_run(run))
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert any(f.code == "dt-bound" for f in result.findings)
+
+
+@pytest.mark.parametrize("delivery_ns", [T_SUB + 500_000_000, T_SUB + 600_000_000])
+def test_r48_the_bound_cannot_hide_a_stored_frame_at_or_after_the_phase_end(tmp_path, delivery_ns):
+    run = _hmi_down_like(tmp_path)
+    received = evaluators._read_frames(run, "received.pcap", 4731)
+    deliveries = [(frame.delivered_ns, frame.payload) for frame in received.frames]
+    deliveries.append((delivery_ns, b.frame(300, T_SUB - 4_000_000_000)))
+    (run.run_dir / "received.pcap").write_bytes(b.pcap(_loopback(deliveries, t0=T_SUB - 60_000_000)))
+    (run.run_dir / "relay-logcat.txt").write_text(
+        phase_logcat(T_SUB, T_SUB + 500_000_000, phase=1, cause="publication_destroyed"))
+    result = evaluators.evaluate_unsubscribed_discard(evaluators.load_run(run.run_dir))
+    assert result.measurements["dt_starts"][0]["dt_start_kind"] == "before_judged_start"
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert any(f.code == "dt-bound" for f in result.findings)
+
+
+@pytest.mark.parametrize("readable", [False, True])
+def test_r48_the_second_check_needs_a_timestamp_outside_a_relay_phase(tmp_path, readable):
+    run = _hmi_down_like(tmp_path)
+    received = evaluators._read_frames(run, "received.pcap", 4731)
+    deliveries = [(frame.delivered_ns, frame.payload) for frame in received.frames]
+    deliveries.append((T_SUB + 600_000_000, b"\x08\x01\x18\x63"))  # sequence 99, no timestamp
+    (run.run_dir / "received.pcap").write_bytes(b.pcap(_loopback(deliveries, t0=T_SUB - 60_000_000)))
+    (run.run_dir / "relay-logcat.txt").write_text(
+        phase_logcat(T_SUB, T_SUB + 500_000_000, phase=1, cause="publication_destroyed"))
+    if readable:
+        (run.run_dir / "data-tunnel-vlan2.pcap").write_bytes(
+            _dt_readable(T_SUB - 100_000_000, [(at - 2_000_000, payload) for at, payload in deliveries]))
+    result = evaluators.evaluate_unsubscribed_discard(evaluators.load_run(run.run_dir))
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert any(f.code == "dt-timestamp" for f in result.findings)
+
+
+def test_r48_a_forward_clock_step_in_the_lookback_can_make_the_bound_unknown(tmp_path):
+    run = _hmi_down_like(tmp_path)
+    produced = evaluators._read_frames(run, "produced.pcap", 4721)
+    conn = b.DtConnection(T_SUB - 4_000_000_000).handshake()
+    conn.open_stream(1, T_SUB - 3_900_000_000, preface=True).server_settings()
+    for frame in produced.frames:
+        ts = evaluators._facts(frame).frame_timestamp_ns
+        clock_shift = -500_000_000 if ts < T_SUB - 1_000_000_000 else 0
+        conn.data(1, frame.payload, ts + 5_000_000 + clock_shift)
+    conn.records = [record for record in conn.records if record[0] > T_SUB - 3_000_000_000]
+    (run.run_dir / "data-tunnel-vlan2.pcap").write_bytes(b.dt_capture([conn]))
+    result = evaluators.evaluate_unsubscribed_discard(evaluators.load_run(run.run_dir))
+    assert result.outcome == outcome.INCONCLUSIVE, result.as_dict()
+    assert result.measurements["dt_starts"][0]["dt_start_kind"] == "unknown"

@@ -11,7 +11,7 @@
 #   capture_case.sh stop <out-dir>         stop the captures, pull the guest stream, clock end, ss check again
 #
 # Window: start, verify MONITORING, run the AEBS event, then stop. The relay
-# logcat tag is a required input (the relay lane owns it).
+# logcat tag comes from bench_env.sh (the IVI frame relay's service name).
 #
 # The guest captures and the relay-log stream end when the IVI VM reboots, so
 # a run whose IVI VM rebooted inside the window cannot pass. Each run records
