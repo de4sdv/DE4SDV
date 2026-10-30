@@ -88,7 +88,8 @@ from .increment_scope import (
     scope_closure,
 )
 from .method_checks import ALLOCATION_CHECKS, CHECK_MAXIMUM, default_claim, method_checks
-from .relation_checks import MethodSideInput, allocation_ends, allocation_pairs, native_allocation_rows
+from .relation_checks import (ALLOCATION_ADMISSION_PREFIX, MethodSideInput, allocation_ends, allocation_pairs,
+                              native_allocation_rows)
 from .revision_index import MultiplicityError
 
 #: The governed ``MethodPhase`` literals of the method kernel, by phase number.
@@ -326,7 +327,8 @@ def _parameter_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> t
         withheld = allocations_withheld(ctx, view)
         if withheld:
             raise me.SubjectResolutionError(me.INPUT_UNAVAILABLE, diagnostics=(withheld,),
-                                            missing=tuple(f"governed-relation:{name}" for name in sorted(allocated)))
+                                            missing=tuple(f"{ALLOCATION_ADMISSION_PREFIX}{name}"
+                                                          for name in sorted(allocated)))
     if not rows:
         return subjects, diagnostics
     try:

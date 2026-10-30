@@ -770,7 +770,7 @@ def test_the_signal_mapping_checks_are_withheld_on_an_api_revision_binding() -> 
     api = _evaluate(_realization(), API_BINDING)
     for gate in (CROSSING, SOURCE):
         unit = next(u for u in api.canonical.units if u.unit_id == gate)
-        assert (unit.verdict, unit.missing) == (None, ("governed-relation:allocatedTo",)), gate
+        assert (unit.verdict, unit.missing) == (None, ("allocation-admission:allocatedTo",)), gate
 
 
 def test_the_remedies_without_a_subject_declare_the_whole_mapping() -> None:

@@ -371,9 +371,9 @@ def test_method_parity_fails_over_a_binding_without_the_record() -> None:
     assert (row["api_phase9"]["phase_exit"], row["export_phase9"]["phase_exit"]) == ("BLOCKED", "READY")
 
 
-def _answer(*, exit_="READY", next_gate=None, withheld=()):
+def _answer(*, exit_="READY", next_gate=None, withheld=(), marker="allocation-admission:allocatedTo"):
     """An evaluation's answers, as method parity reads them."""
-    results = [SimpleNamespace(unit_id=gate, missing=("governed-relation:allocatedTo",)) for gate in withheld]
+    results = [SimpleNamespace(unit_id=gate, missing=(marker,)) for gate in withheld]
     return SimpleNamespace(
         status=lambda: {"phases": [{"phase": P9, "phase_exit": exit_, "conformance_verdict": "PASS",
                                     "evaluation_state": "COMPLETE"}]},
@@ -385,10 +385,18 @@ def _answer(*, exit_="READY", next_gate=None, withheld=()):
     (_answer(), _answer(), True),
     (_answer(exit_="BLOCKED"), _answer(), False),
     (_answer(next_gate="b"), _answer(next_gate="a"), False),
-    # The export's next is a gate the API binding withholds (the allocation guard): next is not compared.
+    # The export's next is a gate the API binding withholds (the allocation-admission guard): next is not
+    # compared.
     (_answer(next_gate="b", withheld=("a",)), _answer(next_gate="a"), True),
     # A withheld gate elsewhere changes nothing: the export's next is compared.
     (_answer(next_gate="b", withheld=("c",)), _answer(next_gate="a"), False),
+    # A governed relation the method cannot read is not the admission guard: its marker excuses nothing, so
+    # the export's next is compared and the differing answer fails.
+    (_answer(next_gate="b", withheld=("a",), marker="governed-relation:derivesRequirementFromNeed"),
+     _answer(next_gate="a"), False),
+    # Neither is the reader's own allocation failure.
+    (_answer(next_gate="b", withheld=("a",), marker="governed-relation:native-allocation"),
+     _answer(next_gate="a"), False),
 ])
 def test_method_parity_compares_next_unless_the_api_binding_withholds_the_export_s_next(api, export, passed):
     row = increment_parity("INC-EXAMPLE-001", api, export)

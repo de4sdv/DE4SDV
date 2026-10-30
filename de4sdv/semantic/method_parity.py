@@ -4,8 +4,9 @@ The API service builds its method view from the served corpus and from the expor
 revision binding records. The export path builds its view from the export. With the same inputs, the two
 give the same answers, except where the revision scope decides. An API revision binding withholds the
 checks that read native allocations while the admission of their relation has open obligations
-(``increment_workflow.allocations_withheld``): there those checks are method side, with a
-``governed-relation:`` marker. So parity requires, per declared increment:
+(``increment_workflow.allocations_withheld``): there those checks are method side, with an
+``allocation-admission:`` marker. That marker alone is the guard; a ``governed-relation:`` marker is a
+relation the method cannot read, which no admission lifts. So parity requires, per declared increment:
 
 - the phase-9 status block of the API evaluation equals the export path's;
 - the API's ``next`` equals the export path's, unless the export's ``next`` is a gate that the API
@@ -21,12 +22,13 @@ from typing import Any, Mapping
 
 from .increment_discovery import declared_increments
 from .increment_evaluation import evaluate_increment
+from .relation_checks import ALLOCATION_ADMISSION_PREFIX
 
 PARITY_SCHEMA = "de4sdv.method-parity/v1"
 #: The phase whose status block must be equal.
 PHASE = "phase9_variabilityConfiguration"
-#: The marker of a check that an API revision binding withholds (the allocation guard).
-WITHHELD_PREFIX = "governed-relation:"
+#: The marker of a check that an API revision binding withholds (the allocation-admission guard).
+WITHHELD_PREFIX = ALLOCATION_ADMISSION_PREFIX
 #: Answer fields that name the revision or the service, never the evaluation's content.
 REVISION_FIELDS = frozenset({"evaluation_key", "revision", "provenance", "service_provenance"})
 

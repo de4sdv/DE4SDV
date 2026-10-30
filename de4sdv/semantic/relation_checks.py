@@ -39,7 +39,9 @@ Two kinds of names:
 
 A result records a problem with a marker: ``kernel-binding:``,
 ``library-binding:``, ``governed-relation:`` or ``external-relation:`` for
-method-side inputs, and ``model-witness:`` for engineering witnesses that
+method-side inputs, ``allocation-admission:`` for a check that the API
+revision binding withholds while the admission of its relation has open
+forward obligations, and ``model-witness:`` for engineering witnesses that
 cannot be read, which the author can fix.
 
 The module also reads the phase-8 signal-mapping control for the named checks
@@ -72,9 +74,14 @@ from .kernel_contract import KernelFileMapping
 #: external references of an export when the evaluation runs over the API. Only a change to the evaluation
 #: supplies it, so it is method side.
 EVALUATION_INPUT_PREFIX = "evaluation-input:"
+#: Problem marker of a check that an API revision binding withholds because the kernel-vocabulary
+#: admission of a relation it reads has open forward obligations. Distinct from
+#: ``governed-relation:``, which marks a relation the method cannot read at all: only this marker is
+#: the allocation-admission guard, so method parity excuses only the gates it names.
+ALLOCATION_ADMISSION_PREFIX = "allocation-admission:"
 #: Problem markers of inputs that only a method, kernel or evaluation change can supply.
 METHOD_SIDE_PREFIXES = ("kernel-binding:", "library-binding:", "governed-relation:", "external-relation:",
-                        EVALUATION_INPUT_PREFIX)
+                        ALLOCATION_ADMISSION_PREFIX, EVALUATION_INPUT_PREFIX)
 #: Problem marker of engineering witnesses that exist but cannot be read.
 MODEL_WITNESS_PREFIX = "model-witness:"
 

@@ -429,8 +429,9 @@ do the other checks, except in two cases:
   10 gates of phases 6 to 8 in each increment. An API revision binding
   withholds them while the admission of `allocatedTo` has open
   obligations (see the allocations above). They are method side there
-  (`governed-relation:allocatedTo`), and the Method Check evaluates them on
-  the export.
+  (`allocation-admission:allocatedTo`), and the Method Check evaluates them on
+  the export. A relation the method cannot read is a different marker
+  (`governed-relation:`) and never excuses a difference.
 
 The release evidence of each privileged ingestion checks this on the
 release export (method parity). For each declared increment, phase 9 and
