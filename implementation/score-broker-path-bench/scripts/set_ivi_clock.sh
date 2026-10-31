@@ -136,16 +136,21 @@ setup() {
   [ -n "${RELAY_LOGCAT_TAG:-}" ] || { log "ERROR: RELAY_LOGCAT_TAG is set empty; it is needed to assert the new phase_start"; return 2; }
   local before="$RUN_DIR/relay-before-ingress-restart.txt" after="$RUN_DIR/relay-after-ingress-restart.txt"
   _guest "logcat -d -v epoch -v usec ${RELAY_LOGCAT_TAG}:* '*:S'" 2>/dev/null | tr -d '\r' > "$before"
-  # Clear the IVI log buffer now, so the relay log that a capture streams next
-  # begins at this restart's phase_start instead of opening mid-phase on a stale
-  # phase_end (the evaluator reads a phase_end without its phase_start as an
-  # inconclusive relay record). The pre-restart buffer is kept in $before above.
-  _guest "logcat -c" || true
+  # The pre-restart buffer is kept in $before above. Clear the buffer *after* the
+  # ingress is stopped and *before* it is started, so the log a capture pulls next
+  # opens on this restart's phase_start. Clearing before the stop leaves the
+  # stop's own phase_end as the first line, and the evaluator reads a phase_end
+  # whose start predates the buffer as an inconclusive relay record (S3 window).
   _guest "stop de4sdv_aebs_ingress" || true
   local i
   for i in $(seq 1 15); do
     [ "$(_guest 'getprop init.svc.de4sdv_aebs_ingress' | tr -d '\r')" = stopped ] && break; sleep 0.5
   done
+  # Let the relay notice the disconnect and log its phase_end, then clear: the
+  # clear has to come after that line and before the start, or the buffer opens
+  # on a phase_end whose start is already gone.
+  sleep 1
+  _guest "logcat -c" || true
   _guest "setprop de4sdv.aebs.ingress.start 0; setprop de4sdv.aebs.ingress.start 1" || true
   log "stopped and restarted the ingress after the clock setting; waiting for a new relay phase_start"
   # A phase_start whose (pid, phase) the log did not hold before the restart.
