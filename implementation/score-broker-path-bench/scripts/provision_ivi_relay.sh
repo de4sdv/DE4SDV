@@ -23,6 +23,7 @@
 set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/bench_env.sh"
+: "${RELAY_IDENTITY_MODULE:=de4sdv_ivi_frame_relay_identity}"
 require_relay_inputs || exit 2
 S=("$ADB" -s "$IVI_ADB")
 ACL_SRC="$HERE/../aosp-overlay/ivi-acl/relay_subscriber.textproto"
@@ -65,6 +66,19 @@ install() {
   "${S[@]}" disable-verity >/dev/null 2>&1 || true
   _reboot || return 1
   "${S[@]}" root >/dev/null 2>&1 || true; "${S[@]}" remount 2>&1 | tail -1
+
+  # The identity package. AAOS SDV identity is PackageManager-based: the relay runs as uid 1000 and
+  # claims the subject package RELAY_SUBJECT_PACKAGE, so that package must be installed and resolve
+  # to uid 1000. Without it the SD agent rejects the registration with `passed_verification` and the
+  # relay exits 4 in a restart loop. See identity/AndroidManifest.xml in the relay directory.
+  local identity_apk="$AOSP_TOP/out/target/product/$IVI_PRODUCT/system/app/$RELAY_IDENTITY_MODULE/$RELAY_IDENTITY_MODULE.apk"
+  [ -f "$identity_apk" ] || {
+    log "ERROR: identity APK not found at $identity_apk (run stage_ivi_frame_relay.sh stage)"; return 1; }
+  "${S[@]}" install -r "$identity_apk" 2>&1 | tail -1
+  if ! "${S[@]}" shell "pm list packages --uid 1000" | tr -d '\r' | grep -q "^package:$RELAY_SUBJECT_PACKAGE uid:1000$"; then
+    log "ERROR: $RELAY_SUBJECT_PACKAGE is not installed on uid 1000; the relay cannot get an identity"; return 1
+  fi
+  log "identity package installed: $RELAY_SUBJECT_PACKAGE on uid 1000"
 
   # Remove any stale sibling in the two subject directories, then install one each.
   "${S[@]}" shell "mkdir -p '$SUBJECT_DIR' '$BROKER_DIR'"

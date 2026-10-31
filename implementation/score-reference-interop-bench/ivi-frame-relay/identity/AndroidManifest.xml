@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Bench-only identity package for the DE4SDV IVI frame relay (INC-MW-011 phase 10).
+
+  The relay is a native service that runs as `user system` (uid 1000). AAOS SDV identity is
+  PackageManager-based: the subject package the client claims must be installed and must resolve
+  to the caller's UID, otherwise SdvServiceManagerServer rejects the registration:
+
+    SdvIviRt: Process UID: 1000, does not match UID: -1 of package de4sdv.ivi_frame_relay
+    SdvServiceManagerServer: Rejecting registration ... (Condition failed: `passed_verification`)
+
+  This empty app carries the package name and `sharedUserId=android.uid.system`, so the installed
+  package resolves to uid 1000 and the relay's claim verifies. It has no components and does
+  nothing; it exists so the ACL subject named by provision_ivi_relay.sh is a real identity.
+
+  A product would use its own SELinux domain and its own UID instead (GAP-MW-038); the bench
+  keeps the relay on uid 1000 and adds this package rather than impersonate a platform package.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="de4sdv.ivi_frame_relay"
+    android:sharedUserId="android.uid.system">
+    <uses-sdk android:minSdkVersion="35" android:targetSdkVersion="35"/>
+</manifest>
