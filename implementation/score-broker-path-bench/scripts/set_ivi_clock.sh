@@ -7,7 +7,8 @@
 #
 #   set_ivi_clock.sh allow            add a host chrony allow for the IVI (idempotent)
 #   set_ivi_clock.sh deny             remove the host chrony allow (the undo)
-#   set_ivi_clock.sh setup            auto_time off, prove reachability, set once, start a slew, restart the ingress
+#   set_ivi_clock.sh setup            auto_time off, prove reachability, set once, start a slew, clear the IVI
+#                                     log buffer, restart the ingress (so the capture's relay log opens on a phase_start)
 #   set_ivi_clock.sh measure <out>    capture one NTP query (no setting) for the evaluator
 #   set_ivi_clock.sh drift            two measures a session apart; print the drift and the session length
 #   set_ivi_clock.sh host-steps <out> record the host clock steps over the session (ASM-MW-030)
@@ -73,6 +74,11 @@ setup() {
   [ -n "${RELAY_LOGCAT_TAG:-}" ] || { log "ERROR: RELAY_LOGCAT_TAG is set empty; it is needed to assert the new phase_start"; return 2; }
   local before="$RUN_DIR/relay-before-ingress-restart.txt" after="$RUN_DIR/relay-after-ingress-restart.txt"
   _guest "logcat -d -v epoch -v usec ${RELAY_LOGCAT_TAG}:* '*:S'" 2>/dev/null | tr -d '\r' > "$before"
+  # Clear the IVI log buffer now, so the relay log that a capture streams next
+  # begins at this restart's phase_start instead of opening mid-phase on a stale
+  # phase_end (the evaluator reads a phase_end without its phase_start as an
+  # inconclusive relay record). The pre-restart buffer is kept in $before above.
+  _guest "logcat -c" || true
   _guest "stop de4sdv_aebs_ingress" || true
   local i
   for i in $(seq 1 15); do

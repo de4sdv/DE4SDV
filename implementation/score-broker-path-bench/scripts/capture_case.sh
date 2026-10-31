@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Produce the raw artifacts a running case needs (review R20): the host frame
-# stream, the guest frame stream, the relay log, the frame-assembler client
-# check, the SD capture and the clock exchanges. The evaluator
-# (de4sdv_broker_path_bench.run) reads them off the VM. Standard tools only; it
-# never dispatches a workflow.
+# stream, the guest frame stream, the relay log, the ingress log, the
+# frame-assembler client check, the SD capture and the clock exchanges. The
+# evaluator (de4sdv_broker_path_bench.run) reads them off the VM. Standard tools
+# only; it never dispatches a workflow.
 #
 #   capture_case.sh start <out-dir>        start the captures and record the ss client check and clock start
 #   capture_case.sh ivi-vm-down <out-dir>  the IVI-VM-down condition: reboot the IVI VM, start the captures
@@ -11,7 +11,10 @@
 #   capture_case.sh stop <out-dir>         stop the captures, pull the guest stream, clock end, ss check again
 #
 # Window: start, verify MONITORING, run the AEBS event, then stop. The relay
-# logcat tag comes from bench_env.sh (the IVI frame relay's service name).
+# logcat tag comes from bench_env.sh (the IVI frame relay's service name); the
+# ingress's tag is INGRESS_TAG (default de4sdv_aebs_ingress). Both are streamed
+# with epoch microseconds, so a frame's relay record, its ingress record and its
+# app record can be placed on one timeline.
 #
 # The guest captures and the relay-log stream end when the IVI VM reboots, so
 # a run whose IVI VM rebooted inside the window cannot pass. Each run records
@@ -32,6 +35,7 @@ SCAN=(python3 -m de4sdv_broker_path_bench.hostscan)
 export PYTHONPATH="$HERE/../src${PYTHONPATH:+:$PYTHONPATH}"
 : "${VM_SCRIPT:=$HERE/launch_two_vms.sh}"
 : "${CLOCK_SCRIPT:=$HERE/set_ivi_clock.sh}"
+: "${INGRESS_TAG:=de4sdv_aebs_ingress}"   # the INC-AEBS-010 ingress's logcat tag (its per-frame line)
 
 # The IVI VM's boot identity; it changes on every boot.
 _ivi_boot_id() { "$ADB" -s "$IVI_ADB" shell "cat /proc/sys/kernel/random/boot_id" 2>/dev/null | tr -d '\r' | head -1; }
@@ -76,6 +80,10 @@ _start_captures() {
   "$ADB" -s "$IVI_ADB" shell "rm -f /data/local/tmp/data-tunnel-vlan2.pcap; ip netns exec sdv_dt_ns tcpdump -i sdv_dt -s0 -U -w /data/local/tmp/data-tunnel-vlan2.pcap >/dev/null 2>&1 & echo \$! > /data/local/tmp/dt.pid" >/dev/null 2>&1 || true
   # Guest: the relay log, streamed from before the event with epoch microseconds.
   ( "$ADB" -s "$IVI_ADB" logcat -v epoch -v usec "$RELAY_LOGCAT_TAG":* "*:S" > "$OUT/relay-logcat.txt" 2>/dev/null & echo "relaylog $!" >> "$OUT/.pids" )
+  # Guest: the ingress log, the hop between the relay and the app. Its
+  # "frame accepted and published sequence=N" line is what ties a relay record to
+  # an app record without a capture in between.
+  ( "$ADB" -s "$IVI_ADB" logcat -v epoch -v usec "$INGRESS_TAG":* "*:S" > "$OUT/ingress-logcat.txt" 2>/dev/null & echo "ingresslog $!" >> "$OUT/.pids" )
   _ss_client_check before
 }
 
@@ -132,13 +140,13 @@ stop() {
   # the guest captures, so it covers the whole window.
   if [ -f "$OUT/.pids" ]; then
     while read -r name pid; do
-      case "$name" in relaylog) : ;; *) sudo kill -INT "$pid" 2>/dev/null || true ;; esac
+      case "$name" in relaylog|ingresslog) : ;; *) sudo kill -INT "$pid" 2>/dev/null || true ;; esac
     done < "$OUT/.pids"
   fi
   sleep 2
   "$ADB" -s "$IVI_ADB" shell "kill -INT \$(cat /data/local/tmp/received.pid 2>/dev/null) \$(cat /data/local/tmp/dt.pid 2>/dev/null) 2>/dev/null; sleep 1; sync" >/dev/null 2>&1 || true
   if [ -f "$OUT/.pids" ]; then
-    while read -r name pid; do [ "$name" = relaylog ] && { kill "$pid" 2>/dev/null || true; }; done < "$OUT/.pids"
+    while read -r name pid; do case "$name" in relaylog|ingresslog) kill "$pid" 2>/dev/null || true ;; esac; done < "$OUT/.pids"
   fi
   "$ADB" -s "$IVI_ADB" pull /data/local/tmp/received.pcap "$OUT/received.pcap" 2>&1 | tail -1 || true
   "$ADB" -s "$IVI_ADB" pull /data/local/tmp/data-tunnel-vlan2.pcap "$OUT/data-tunnel-vlan2.pcap" 2>&1 | tail -1 || true
@@ -152,6 +160,8 @@ stop() {
     echo "received: guest tcpdump -i lo tcp port $RELAY_LOOPBACK_PORT"
     echo "data_tunnel_vlan2: guest ip netns exec sdv_dt_ns tcpdump -i sdv_dt -s0 (VC-MW-020's second start)"
     echo "relay_logcat_tag: $RELAY_LOGCAT_TAG"
+    echo "ingress_logcat_tag: $INGRESS_TAG"
+    echo "ingress_log: logcat -v epoch -v usec $INGRESS_TAG:* (the relay -> app hop)"
     echo "kernel_drops: record 'N packets dropped by kernel' from the capture tool's exit line (-s0 should give 0)"
     echo "ivi_boot_start: ${start_boot:-unknown}"
     echo "ivi_boot_stop: ${stop_boot:-unknown}"
