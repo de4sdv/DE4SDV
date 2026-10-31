@@ -10,8 +10,15 @@
 #   record_full_chain.sh stop <out-dir>    stop every recording and write the manifest
 #
 # Panes (each a real terminal under script --log-timing): the host stack and
-# gatewayd/someipd, the SDV Core broker logcat, the IVI frame relay log. The
-# relay's logcat tag comes from bench_env.sh (the IVI frame relay's service name).
+# gatewayd/someipd, the SDV Core broker logcat, the IVI frame relay log, and the
+# IVI frame path (the HMI app's per-frame line next to the ingress's per-frame
+# line, both with epoch timestamps). The relay's logcat tag comes from
+# bench_env.sh (the IVI frame relay's service name).
+#
+# hmi records the anchors too (hmi-anchor.yaml): the IVI clock read immediately
+# before and after the screenrecord launch, and the host time around it. The
+# video's t=0 lies inside that interval, so a log line can be placed on the
+# video from the anchors instead of being inferred from the pixels.
 set -uo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 . "$HERE/bench_env.sh"
@@ -19,6 +26,7 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 OUT="$2"; mkdir -p "$OUT"
 : "${HOST_STACK_UNITS:=de4sdv-*}"          # the host-half units the run uses (set to the Launch Manager's units)
 : "${APP_TAG:=MainActivity}"               # the HMI app's logcat tag (INC-AEBS-010)
+: "${INGRESS_TAG:=de4sdv_aebs_ingress}"    # the INC-AEBS-010 ingress's logcat tag (its per-frame line)
 : "${MONITORING_MAX_AGE_S:=2}"             # the latest frame line must be at most this old on the guest clock
 SCAN=(python3 -m de4sdv_broker_path_bench.hostscan)
 export PYTHONPATH="$HERE/../src${PYTHONPATH:+:$PYTHONPATH}"
@@ -26,7 +34,19 @@ export PYTHONPATH="$HERE/../src${PYTHONPATH:+:$PYTHONPATH}"
 _rec_pane() {
   local name="$1"; shift
   script --log-timing "$OUT/$name.timing" --command "$*" "$OUT/$name.typescript" < /dev/null >/dev/null 2>&1 &
-  echo $! > "$OUT/.pane.$name.pid"
+  local pid=$!; echo "$pid" > "$OUT/.pane.$name.pid"
+  # A pane that died at once (no pty, a command that cannot run) leaves a silent
+  # gap in the evidence, so the start fails instead of recording three panes and
+  # saying it recorded four.
+  local i
+  for i in 1 2 3; do
+    kill -0 "$pid" 2>/dev/null && break
+    sleep 0.2
+  done
+  if ! kill -0 "$pid" 2>/dev/null; then
+    log "ERROR: pane $name did not start; nothing was recorded for it (see $OUT/$name.typescript)"
+    return 1
+  fi
   log "recording pane $name"
 }
 
@@ -36,9 +56,13 @@ start() {
   "$ADB" connect "$CORE_ADB" >/dev/null 2>&1 || true
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
   "$ADB" -s "$IVI_ADB" logcat -G 16M >/dev/null 2>&1 || true
-  _rec_pane host-stack "journalctl -f -u '$HOST_STACK_UNITS' --no-hostname"
-  _rec_pane core-broker "$ADB -s $CORE_ADB logcat -v epoch -v usec sdv_someip_broker_agent_comms:* sdv_someip_stack_agent:* *:S"
-  _rec_pane relay "$ADB -s $IVI_ADB logcat -v epoch -v usec $RELAY_LOGCAT_TAG:* *:S"
+  _rec_pane host-stack "journalctl -f -u '$HOST_STACK_UNITS' --no-hostname" || return 1
+  _rec_pane core-broker "$ADB -s $CORE_ADB logcat -v epoch -v usec sdv_someip_broker_agent_comms:* sdv_someip_stack_agent:* *:S" || return 1
+  _rec_pane relay "$ADB -s $IVI_ADB logcat -v epoch -v usec $RELAY_LOGCAT_TAG:* *:S" || return 1
+  # The IVI frame path in one terminal: the ingress publishes each frame and the
+  # app renders it, both with epoch stamps, so the two lines of one frame sit
+  # side by side while the event runs.
+  _rec_pane ivi-frames "$ADB -s $IVI_ADB logcat -v epoch -v usec ${INGRESS_TAG}:* ${APP_TAG}:I *:S" || return 1
   log "operator panes recording; verify MONITORING on the HMI, then: $0 hmi $OUT"
 }
 
@@ -59,8 +83,27 @@ hmi() {
     return 1
   fi
   log "MONITORING gate: $(cat "$OUT/monitoring-gate.json")"
+  # The anchors: the IVI clock immediately before and after the launch, and the
+  # host time around it. screenrecord sets up its encoder between the two reads,
+  # so the video's t=0 lies inside that interval; the pair is written down so
+  # the alignment is read from the run, not guessed from the frames later.
+  local ivi_before ivi_after host_before host_after
+  ivi_before="$("$ADB" -s "$IVI_ADB" shell "date +%s.%N" 2>/dev/null | tr -d '\r' | head -1)"
+  host_before="$(date -u +%FT%T.%NZ)"
   "$ADB" -s "$IVI_ADB" shell "screenrecord --bit-rate 8000000 --time-limit 180 /data/local/tmp/hmi.mp4" &
   echo $! > "$OUT/.hmi.pid"
+  ivi_after="$("$ADB" -s "$IVI_ADB" shell "date +%s.%N" 2>/dev/null | tr -d '\r' | head -1)"
+  host_after="$(date -u +%FT%T.%NZ)"
+  {
+    echo "schema: de4sdv.recording-anchor.v1"
+    echo "gate_json: monitoring-gate.json"
+    echo "screenrecord_command: $ADB -s $IVI_ADB shell screenrecord --bit-rate 8000000 --time-limit 180 /data/local/tmp/hmi.mp4"
+    echo "host_before: $host_before"
+    echo "ivi_before_epoch_s: ${ivi_before:-unreadable}"
+    echo "ivi_after_epoch_s: ${ivi_after:-unreadable}"
+    echo "host_after: $host_after"
+    echo "note: the encoder starts between ivi_before_epoch_s and ivi_after_epoch_s, so the video's t=0 lies in that interval; read the alignment from here, do not infer it"
+  } > "$OUT/hmi-anchor.yaml"
   log "recording the IVI HMI display; run the event now, then: $0 stop $OUT"
 }
 
@@ -80,9 +123,9 @@ stop() {
     echo "owner_decision: owner decision of 2026-10-28 (recording for public use; posting needs approval)"
     echo "note: real terminal recordings (script --log-timing) and a real adb screenrecord of the IVI HMI; no rendered or stylized footage; an edited cut is labeled publication_cut"
     echo "files:"
-    ( cd "$OUT" && for f in *.typescript *.timing hmi-raw.mp4; do [ -f "$f" ] && echo "  - path: $f"; done )
+    ( cd "$OUT" && for f in *.typescript *.timing hmi-raw.mp4 hmi-anchor.yaml; do [ -f "$f" ] && echo "  - path: $f"; done )
     echo "sha256:"
-    ( cd "$OUT" && sha256sum *.typescript *.timing hmi-raw.mp4 2>/dev/null | sed 's/^/  /' )
+    ( cd "$OUT" && sha256sum *.typescript *.timing hmi-raw.mp4 hmi-anchor.yaml 2>/dev/null | sed 's/^/  /' )
   } > "$OUT/recording-manifest.yaml"
   log "wrote $OUT/recording-manifest.yaml; raw files stay with the evidence, posting needs approval"
 }
