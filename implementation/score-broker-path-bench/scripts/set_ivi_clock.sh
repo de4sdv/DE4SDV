@@ -171,11 +171,34 @@ measure() {
   local out="${1:?usage: $0 measure <out.pcap>}"
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
   "${S[@]}" root >/dev/null 2>&1 || true
-  # Capture on the guest, on the guest clock; record tcpdump's own pid and stop
-  # it by that pid (not pkill -f, which also matches this shell).
-  _guest "rm -f /data/local/tmp/clock.pcap; tcpdump -i any -w /data/local/tmp/clock.pcap 'udp port 123 and host $SNTP_SERVER' >/dev/null 2>&1 & echo \$! > /data/local/tmp/clock.pid; sleep 1; (toybox sntp -q $SNTP_SERVER || true) >/dev/null 2>&1; sleep 1; kill -INT \$(cat /data/local/tmp/clock.pid); for i in \$(seq 1 20); do kill -0 \$(cat /data/local/tmp/clock.pid) 2>/dev/null || break; sleep 0.2; done; sync"
-  "${S[@]}" pull /data/local/tmp/clock.pcap "$out" 2>&1 | tail -1
-  log "captured one NTP exchange into $out"
+  # One UDP query can be dropped, and a missing start reading turns the whole
+  # case inconclusive (S3 window 3: clock-start.pcap held no complete exchange
+  # while the end reading was -2.35 ms). Capture until the pcap carries one
+  # complete exchange, at most three times; the reading is still taken at this
+  # point in the run.
+  local attempt exchange
+  for attempt in 1 2 3; do
+    # Capture on the guest, on the guest clock; record tcpdump's own pid and stop
+    # it by that pid (not pkill -f, which also matches this shell).
+    _guest "rm -f /data/local/tmp/clock.pcap; tcpdump -i any -w /data/local/tmp/clock.pcap 'udp port 123 and host $SNTP_SERVER' >/dev/null 2>&1 & echo \$! > /data/local/tmp/clock.pid; sleep 1; (toybox sntp -q $SNTP_SERVER || true) >/dev/null 2>&1; sleep 1; kill -INT \$(cat /data/local/tmp/clock.pid); for i in \$(seq 1 20); do kill -0 \$(cat /data/local/tmp/clock.pid) 2>/dev/null || break; sleep 0.2; done; sync"
+    "${S[@]}" pull /data/local/tmp/clock.pcap "$out" 2>&1 | tail -1
+    exchange=$(PYTHONPATH="$HERE/../src" python3 - "$out" <<'PY'
+import sys
+from de4sdv_broker_path_bench import clock
+from de4sdv_broker_path_bench.pcap import read_pcap
+try:
+    exchanges = clock.exchanges(read_pcap(sys.argv[1]))
+except Exception:                                   # noqa: BLE001 - report, do not crash the capture
+    print("")
+else:
+    print("yes" if exchanges and clock.best(exchanges[0]) is not None else "")
+PY
+)
+    [ -n "$exchange" ] && { log "captured one complete NTP exchange into $out"; return 0; }
+    log "no complete NTP exchange in $out (attempt $attempt); capturing again"
+  done
+  log "ERROR: no complete NTP exchange in $out after 3 captures"
+  return 1
 }
 
 host_steps() {
