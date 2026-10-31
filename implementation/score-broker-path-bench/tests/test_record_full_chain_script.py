@@ -53,14 +53,23 @@ esac
 exit 0
 '''
 
+# The host pane runs `journalctl -f`; a CI runner has the binary but no system
+# journal, so it exits at once. Stub it the same way as adb, or the pane is
+# judged dead for a reason that has nothing to do with the harness.
+FAKE_JOURNALCTL = r'''#!/usr/bin/env bash
+echo "journalctl $*" >> "$FAKE_DIR/calls.log"
+exec sleep 20
+'''
+
 
 def setup(tmp_path: Path) -> dict:
     bindir = tmp_path / "bin"
     bindir.mkdir()
-    adb = bindir / "adb"
-    adb.write_text(FAKE_ADB)
-    adb.chmod(0o755)
-    return {**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}", "ADB": str(adb),
+    for name, body in (("adb", FAKE_ADB), ("journalctl", FAKE_JOURNALCTL)):
+        path = bindir / name
+        path.write_text(body)
+        path.chmod(0o755)
+    return {**os.environ, "PATH": f"{bindir}:{os.environ['PATH']}", "ADB": str(bindir / "adb"),
             "FAKE_DIR": str(tmp_path),
             "RELAY_BIN": "x", "RELAY_RC": "x", "RELAY_LOGCAT_TAG": "relay_tag",
             "RELAY_SUBJECT_PACKAGE": "x", "RELAY_SUBJECT_BUNDLE": "x", "RELAY_SUBJECT_INSTANCE": "x"}
