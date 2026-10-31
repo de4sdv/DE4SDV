@@ -201,8 +201,16 @@ cases are pinned at main `4bcfe628` (`middleware_score_verification_evidence.sys
 `record_full_chain.sh` records real operator terminals (`script --log-timing`)
 and the real IVI HMI display (`adb screenrecord`), started only after MONITORING
 shows. Panes: the host stack and gatewayd/someipd, the SDV Core broker logcat,
-and the relay log. No rendered or stylized footage. An edited cut is labeled
-`publication_cut`; the raw files stay with the evidence.
+the relay log, and the IVI frame path (the ingress's per-frame line beside the
+app's, both with epoch stamps). No rendered or stylized footage. An edited cut is
+labeled `publication_cut`; the raw files stay with the evidence.
+
+`hmi` also writes `hmi-anchor.yaml`: the IVI clock read immediately before and
+after the screenrecord launch, and the host time around it. The video's `t = 0`
+lies inside that interval, so a log line or a frame record can be placed on the
+video from the anchors (the bracket is one adb round trip, roughly 0.2 s) and
+the placement is re-checkable from the state transitions the app logs. Without
+the anchors the alignment would have to be inferred from the pixels.
 
 ## Known limits
 
