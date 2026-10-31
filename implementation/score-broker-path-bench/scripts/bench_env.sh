@@ -15,7 +15,13 @@ set -u
 : "${RELEASE:=cp2a}"
 : "${VARIANT:=eng}"            # the bench boot mode is UNLOCKED (ADR 0025, decision 8)
 : "${ADB:=$AOSP_HOST_OUT/bin/adb}"
-: "${CVD:=$AOSP_HOST_OUT/bin/cvd}"
+: "${CVD:=}"
+# The bench VM ships cuttlefish-base/-user 1.51.0 and has no cvd under the AOSP host out
+# (the tree builds launch_cvd/assemble_cvd, not the cvd front end). Prefer the tree's cvd when
+# it exists, otherwise use the packaged one on PATH.
+if [ -z "$CVD" ]; then
+  if [ -x "$AOSP_HOST_OUT/bin/cvd" ]; then CVD="$AOSP_HOST_OUT/bin/cvd"; else CVD="$(command -v cvd || true)"; fi
+fi
 
 # --- cvd groups and adb ports (the documented multi-VM recipe: the SDV Core
 #     VM as instance 1 and the IVI VM as instance 2 of the dev mesh, on cvd
