@@ -35,16 +35,22 @@ _rec_pane() {
   local name="$1"; shift
   script --log-timing "$OUT/$name.timing" --command "$*" "$OUT/$name.typescript" < /dev/null >/dev/null 2>&1 &
   local pid=$!; echo "$pid" > "$OUT/.pane.$name.pid"
-  # A pane that died at once (no pty, a command that cannot run) leaves a silent
+  # A pane is only recording once its process is up AND its typescript exists;
+  # a pane that died at once (no pty, a command that cannot run) leaves a silent
   # gap in the evidence, so the start fails instead of recording three panes and
   # saying it recorded four.
   local i
-  for i in 1 2 3; do
-    kill -0 "$pid" 2>/dev/null && break
-    sleep 0.2
+  for i in $(seq 1 20); do
+    kill -0 "$pid" 2>/dev/null || break
+    [ -e "$OUT/$name.typescript" ] && break
+    sleep 0.1
   done
   if ! kill -0 "$pid" 2>/dev/null; then
     log "ERROR: pane $name did not start; nothing was recorded for it (see $OUT/$name.typescript)"
+    return 1
+  fi
+  if [ ! -e "$OUT/$name.typescript" ]; then
+    log "ERROR: pane $name is running but wrote no typescript at $OUT/$name.typescript"
     return 1
   fi
   log "recording pane $name"
