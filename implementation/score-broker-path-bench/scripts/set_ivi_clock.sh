@@ -62,14 +62,24 @@ _sntp_offset() {
     awk '/offset/ { for (i = 1; i < NF; i++) if ($i == "offset") { print $(i + 1); exit } }'
 }
 _step_by() { # <offset-seconds>: read, add and set inside one guest shell
-  # The read, the arithmetic and the set are one guest shell command on purpose.
-  # Split across two adb round trips, the set lands ~50-150 ms after the read and
-  # the clock ends up that far behind again, so no number of retries converges.
-  local guest_cmd
-  guest_cmd="toybox date -s @\$(awk -v n=\$(date +%s.%N) -v o=$1 'BEGIN { printf \"%.9f\", n + o }')"
+  # The read, the arithmetic and the set are one guest shell command on purpose:
+  # across two adb round trips the set lands 50-150 ms after the read and never
+  # converges. One shell is not enough on its own either — the guest still needs
+  # ~16 ms to start awk and date between its read and its set (measured on the
+  # bench guest: 15.4-18.0 ms over five runs), so a step that ignores that lands
+  # 16 ms behind every time and three retries settle at +15.3/+21.7/+18.9 ms.
+  # Measure the same chain and carry its duration into the target.
+  local latency target_offset guest_cmd
+  latency=$(_chain_latency)
+  [ -n "$latency" ] || latency=0
+  target_offset=$(awk -v o="$1" -v l="$latency" 'BEGIN { printf "%.9f", o + l }')
+  guest_cmd="toybox date -s @\$(awk -v n=\$(date +%s.%N) -v o=$target_offset 'BEGIN { printf \"%.9f\", n + o }')"
   if ! _guest "$guest_cmd" >/dev/null; then
     log "ERROR: the guest could not step the clock by $1 s"; return 1
   fi
+}
+_chain_latency() { # the guest's own read-to-set cost, same command shape
+  _guest 't0=$(date +%s.%N); awk -v n=$t0 -v o=1 "BEGIN{printf \"%.9f\", n+o}" >/dev/null; t1=$(date +%s.%N); awk -v a=$t0 -v b=$t1 "BEGIN{printf \"%.6f\", b-a}"' 2>/dev/null | tr -d '\r'
 }
 set_clock() {
   local attempt offset residual
