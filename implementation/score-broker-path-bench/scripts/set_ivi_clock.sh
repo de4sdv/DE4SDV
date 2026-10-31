@@ -30,10 +30,24 @@ EOF
 
 deny() { sudo chronyc deny "${IVI_ADDR}/32" && log "host chrony no longer serves ${IVI_ADDR}" || true; }
 
+# The guest's default network is buried_eth0, and each network carries its own routing table, so
+# HOST_ADDR resolves through the buried_eth0 default route and is unreachable even though eth1
+# carries the bench /24 (spike T8 saw exactly this). Add one rule that sends the bench subnet to the
+# main table first. It is idempotent, and it does not survive a reboot, which is why setup re-applies
+# it instead of asking the operator to fix routing by hand.
+_ensure_route_to_host() {
+  local net="${HOST_ADDR%.*}.0/24"
+  "${S[@]}" shell "ip rule show | grep -q 'to $net lookup main' || ip rule add to $net lookup main priority 15000" >/dev/null 2>&1
+  "${S[@]}" shell "ip route get $HOST_ADDR 2>/dev/null | grep -q 'dev eth1'" || {
+    log "ERROR: the IVI still routes $HOST_ADDR away from eth1; the guest rule did not take effect"; return 1; }
+  log "guest route: $net resolves through the main table, so $HOST_ADDR is on eth1"
+}
+
 setup() {
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
   "${S[@]}" root >/dev/null 2>&1 || true
   _guest "settings put global auto_time 0; settings put global auto_time_zone 0" 2>/dev/null || true
+  _ensure_route_to_host || return 1
   # Prove the IVI reaches the server from its default network before relying on it
   # (spike T8 saw TCP to .1 fail via buried_eth0). The reachability gate uses the
   # image's ping; check it exists first, since not every Android image ships it.

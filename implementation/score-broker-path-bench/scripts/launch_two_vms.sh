@@ -7,6 +7,11 @@
 # forced to UNLOCKED and SOME/IP enabled on the core. The reboot path reboots
 # the guest in place, so it keeps the launch configuration (GAP-MW-048).
 #
+# Group names are used when the installed cvd supports them. The bench VM's
+# cuttlefish 1.51.0 does not (it forwards --group_name to cvd_internal_start,
+# which rejects the flag), so presence checks and teardown key on the base
+# instance number, which both flavours report in `cvd fleet`.
+#
 #   launch_two_vms.sh up            create both groups (idempotent) and assert the boot properties
 #   launch_two_vms.sh reboot-core   reboot the SDV Core VM in place (GAP-MW-048)
 #   launch_two_vms.sh reboot-ivi    reboot the IVI VM (its SD agent reads ACLs only at start)
@@ -20,11 +25,44 @@ export PATH="$AOSP_HOST_OUT/bin:$PATH"
 
 _group_present() { "$CVD" fleet 2>/dev/null | grep -q "\"group_name\" : \"$1\""; }
 
+# The bench VM ships cuttlefish-base/-user 1.51.0, whose `cvd create` has no group naming: it
+# forwards --group_name to cvd_internal_start, which rejects it ("unknown command line flag
+# 'group_name'"). Detect the capability once; both cvd flavours report the base instance number
+# in `cvd fleet`, so presence and teardown key on that instead of on a group name.
+if "$AOSP_HOST_OUT/bin/cvd_internal_start" --help 2>&1 | grep -q -- '--group_name'; then
+  CVD_GROUP_NAMES=1
+else
+  CVD_GROUP_NAMES=0
+fi
+
+# Print the group holding the given base instance number; print nothing when it is absent.
+_group_for_instance() {
+  "$CVD" fleet 2>/dev/null | python3 -c '
+import json, sys
+raw = sys.stdin.read()
+start = raw.find("{")
+if start < 0:
+    raise SystemExit(0)
+try:
+    fleet = json.loads(raw[start:])
+except ValueError:
+    raise SystemExit(0)
+for group in fleet.get("groups", []):
+    for inst in group.get("instances", []):
+        if str(inst.get("instance_name")) == sys.argv[1]:
+            print(group.get("group_name", ""))
+            raise SystemExit(0)
+' "$1"
+}
+
 _create() {
   local group="$1" product="$2" instance="$3" config="$4" bootcfg="$5" cpus="$6" mem="$7"
-  if _group_present "$group"; then log "group $group already present; leaving it"; return 0; fi
+  local existing; existing="$(_group_for_instance "$instance")"
+  if [ -n "$existing" ]; then log "instance $instance already present (group $existing); leaving it"; return 0; fi
+  local name_args=()
+  [ "$CVD_GROUP_NAMES" = 1 ] && name_args=(--group_name="$group")
   ANDROID_PRODUCT_OUT="$AOSP_TOP/out/target/product/$product" \
-    "$CVD" create --group_name="$group" --base_instance_num="$instance" --config="$config" \
+    "$CVD" create "${name_args[@]}" --base_instance_num="$instance" --config="$config" \
       --cpus="$cpus" --memory_mb="$mem" \
       --extra_bootconfig_args="$bootcfg" --report_anonymous_usage_stats=n
   local rc=$?
@@ -78,11 +116,14 @@ case "${1:-status}" in
   reboot-core) _reboot "$CORE_ADB" "the SDV Core VM" ;;
   reboot-ivi) _reboot "$IVI_ADB" "the IVI VM" ;;
   down)
-    for group in "$CORE_GROUP" "$IVI_GROUP"; do
-      if _group_present "$group"; then
+    for instance in "$CORE_INSTANCE" "$IVI_INSTANCE"; do
+      group="$(_group_for_instance "$instance")"
+      if [ -n "$group" ]; then
         "$CVD" --group_name="$group" stop 2>&1 | tail -1 || true
         "$CVD" --group_name="$group" remove 2>&1 | tail -1 || true
-        log "stopped and removed $group"
+        log "stopped and removed $group (instance $instance)"
+      else
+        log "instance $instance not present"
       fi
     done ;;
   status) "$CVD" fleet 2>&1 | head -40 ;;

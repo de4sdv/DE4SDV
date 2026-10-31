@@ -1,0 +1,16 @@
+// Bench-only identity package for the DE4SDV IVI frame relay (INC-MW-011 phase 10).
+//
+// See AndroidManifest.xml: AAOS SDV identity is PackageManager-based, so the relay's claimed
+// subject package (de4sdv.ivi_frame_relay) must be installed and resolve to the service's UID
+// (1000, `user system`). This module installs that package. It has no sources and no components.
+//
+// Built by stage_ivi_frame_relay.sh; installed by provision_ivi_relay.sh install.
+android_app {
+    name: "de4sdv_ivi_frame_relay_identity",
+    manifest: "AndroidManifest.xml",
+    certificate: "platform",
+    sdk_version: "system_current",
+    min_sdk_version: "35",
+    srcs: [],
+    installable: true,
+}
