@@ -256,7 +256,8 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   typing.
 - **Concerns (phase 1).** At least one concern the increment's packages own
   is not typed by `IncrementBoundaryConcern` or a specialization of it
-  (`incrementHasNonBoundaryConcern`): a boundary concern alone does not open
+  (registry check `nonBoundaryConcernPresent`, reported as
+  `incrementHasNonBoundaryConcern`): a boundary concern alone does not open
   the phase. Boundary concerns may remain. Each concern the increment's
   packages own has a native `stakeholder` member (`stakeholderMember`). A
   viewpoint of a view of the increment frames it (`framedByViewpoint`), by

@@ -272,6 +272,20 @@ def test_unreadable_direct_typing_keeps_phase1_actionable():
     assert (step["stage"], step["gate"]) == (P1, GATE), step
 
 
+def test_an_untyped_concern_counts_as_non_boundary():
+    """The owner-approved pin: an untyped concern has an empty lineage and counts."""
+    scenario = _scenario()
+    builder = scenario.builder
+    role = next(element for element in builder.elements if element.get("declaredName") == "FixtureEngineer")
+    concern = builder.usage("ConcernUsage", "placeholder", scenario.framing, [])
+    builder.stakeholder(concern, "engineer", role)
+    viewpoint = next(element for element in builder.elements if element.get("declaredName") == "selectedViewpoint")
+    builder.frame(viewpoint, concern)
+    block = _phase(_evaluate(scenario))
+    assert block["phase_exit"] == "READY"
+    assert set(block["gates"].values()) == {"PASS"}
+
+
 def test_the_new_gate_keeps_the_notes_of_its_authoring_lines():
     from de4sdv.semantic.remedies import check_remedy
 

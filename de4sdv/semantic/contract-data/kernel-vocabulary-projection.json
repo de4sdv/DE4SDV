@@ -708,7 +708,7 @@
       "accounting": "method-admitted",
       "boundary": "none",
       "definition": {
-        "documentation": "Reviewers need each increment to separate framing, operational context, needs, requirements, functional modeling, logical realization, physical/software realization, and evidence work.",
+        "documentation": "A concern that separates the phases of an increment's work. It is not a concern of the increment's engineering scope, so a boundary concern alone does not open Phase 1.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
           "owner": "concern def IncrementBoundaryConcern",
