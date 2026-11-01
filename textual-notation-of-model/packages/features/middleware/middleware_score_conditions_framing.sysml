@@ -151,14 +151,17 @@ package DE4SDV_MiddlewareSCOREConditionsFraming {
      * adds no concern framing beyond the one in this package, no capability,
      * and no architecture - the layer it verifies is INC-MW-011's, and its
      * physical realization, configuration and platform stack are that
-     * increment's. Owner, expected artifacts and expected review evidence are
-     * declarations, not completion or review evidence.
+     * increment's. The expected artifacts name the package that holds content
+     * today; each later slice adds its own when it is authored, because the
+     * gate compares this list with the packages that hold increment content.
+     * Owner, expected artifacts and expected review evidence are declarations,
+     * not completion or review evidence.
      */
     attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase4_needs, MethodPhase::phase5_requirements, MethodPhase::phase10_vvEvidence, MethodPhase::phase11_publication, MethodPhase::phase12_baselineNextSlice);
     ref part :>> increment = DE4SDV_MiddlewareSCOREConditionsFraming::scoreMiddlewareConditionsIncrement;
     ref part :>> systemOfInterest = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     attribute :>> owner = "DE4SDV maintainers";
-    attribute :>> expectedArtifacts = ("DE4SDV_MiddlewareSCOREConditionsFraming", "DE4SDV_MiddlewareSCOREConditionsNeedsRequirements", "DE4SDV_MiddlewareSCOREConditionsVerificationEvidence");
+    attribute :>> expectedArtifacts = ("DE4SDV_MiddlewareSCOREConditionsFraming");
     attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates and the Method Check at the reviewed head", "retained evidence per condition: the capture, the evaluator output and the claim boundary the condition supports");
   }
 
