@@ -207,11 +207,19 @@ labeled `publication_cut`; the raw files stay with the evidence.
 
 `HOST_STACK_UNITS` names the host-half units the run uses. The pane probes each
 one and follows the journal that holds it — the bench splits the host half
-across scopes (the frame assembler is a system unit, the S-CORE daemons are the
-operator's `--user` units), so a single `journalctl -u` cannot see both. It
-follows from now (`-n 0`) rather than replaying the journal tail, which in one
-window recorded thirteen lines from three hours before the run and read like
-evidence. A unit that resolves in neither scope is named in the output.
+across scopes (some units are system units, others the operator's `--user`
+units), so a single `journalctl -u` cannot see both. It follows from now
+(`-n 0`) rather than replaying the journal tail, which in one window recorded
+thirteen lines from three hours before the run and read like evidence. A unit
+that resolves in neither scope is named in the output.
+
+`HOST_STACK_LOGS` is the better source when the units redirect their output:
+they run `exec … >> logs/<name>.log 2>&1`, so the journal holds their start and
+stop lines and nothing from the run. Set it to the files the units write
+(`HOST_STACK_LOGS="$LOGS/someipd.log $LOGS/gatewayd.log"`) and the pane follows
+those files instead; a file that does not exist fails the start rather than
+recording an empty pane. The manifest records which source was used:
+`host_stack_source: logs | journal`.
 
 `AEB_PANE_CMD` adds the Autoware-side pane (the coordinator's decision, before
 the assembler), which needs the bench ROS environment because it talks to the
