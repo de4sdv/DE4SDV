@@ -54,14 +54,18 @@ stop/disable response in simulation and retained failure-path evidence.
 
 ## Next obligation and execution limits
 
-Use the reviewed PR's **Method Check** export to select the next obligation,
-not the phase number alone. The initial framing already satisfies Phase 1's
-two structural checks through its stakeholder-bearing, framed concern. That
-is not a claim of complete stakeholder or risk analysis. The next model
-obligation is **Phase 2 operational context**: exactly one context holding the
-system of interest, with stories bound to the subject and context actors.
-Review stakeholder/concern coverage alongside that boundary work. Do not jump
-from this charter to an implementation or claim a passed runtime gate.
+Use the reviewed revision's **Method Check** export to identify the first
+unmet model-content obligation; it is not proof that earlier engineering
+work is complete. The next work for this framing is **Phase 1 concern
+framing**. The increment-boundary concern alone cannot open its exit: model
+at least one concern of the driving capability's engineering scope, with
+native stakeholders and a frame from a viewpoint of an increment view.
+Review stakeholder and risk coverage and the selected viewpoints; the
+structural gates do not assess their adequacy.
+
+Phase 2 then develops the operational context: exactly one context holding
+the system of interest, with stories bound to the subject and context actors.
+Do not jump from this charter to implementation or claim a passed runtime gate.
 
 Before deep adoption, involve upstream maintainers and resolve source,
 checkpoint and data-use terms. Before a paid cloud run, refresh the regional

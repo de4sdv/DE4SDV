@@ -1,5 +1,5 @@
 {
-  "description": "Contract fields the kernel-vocabulary admission manifest holds itself instead of the model (owner decision D9): kernel mapping, subclass and disjointness pins, relation domain/range/direction/strength and mechanics. Extracted once from the comparison that proved them equal to the authored ontology before its deletion; definition text is excluded (the model owns it). Changing a value needs a reviewed update of this file. The kernel_mapping file of DerivesFromNeed and the trace-relation classes follows their move to de4sdv_trace_vocabulary.sysml, and that of the trace-obligation class IncrementTraceObligations its move to de4sdv_increment_workflow.sysml. The rows of the removed classes ApprovedTraceMethod, EvidenceSupportCitation, ScopedEvidenceAdequacyAssessment and ScopedVVActivityRecord, and of the removed relations hasStakeholder and includesCommonCapability, were dropped with them; no other value changed. The rows of the five method-admitted product-line derivation classes (DerivationRule, DerivedVariation, ProductModelProjection, ProductModelProjectionName and UnassignedBindingTime) were added after the deletion: they record the reviewed values of their admission, not an authored-ontology comparison. The rows of the classes ConfiguredProduct, IncrementBaselineDecision and LifecycleDisposition and of the relationship configuredBy, method-admitted by the owner decisions of 2026-10-28 on phases 9 and 12, were added in the same way: they record the reviewed values of their admission, not an authored-ontology comparison.",
+  "description": "Contract fields the kernel-vocabulary admission manifest holds itself instead of the model (owner decision D9): kernel mapping, subclass and disjointness pins, relation domain/range/direction/strength and mechanics. Extracted once from the comparison that proved them equal to the authored ontology before its deletion; definition text is excluded (the model owns it). Changing a value needs a reviewed update of this file. The kernel_mapping file of DerivesFromNeed and the trace-relation classes follows their move to de4sdv_trace_vocabulary.sysml, and that of the trace-obligation class IncrementTraceObligations its move to de4sdv_increment_workflow.sysml. The rows of the removed classes ApprovedTraceMethod, EvidenceSupportCitation, ScopedEvidenceAdequacyAssessment and ScopedVVActivityRecord, and of the removed relations hasStakeholder and includesCommonCapability, were dropped with them; no other value changed. The rows of the five method-admitted product-line derivation classes (DerivationRule, DerivedVariation, ProductModelProjection, ProductModelProjectionName and UnassignedBindingTime) were added after the deletion: they record the reviewed values of their admission, not an authored-ontology comparison. The rows of the classes ConfiguredProduct, IncrementBaselineDecision and LifecycleDisposition and of the relationship configuredBy, method-admitted by the owner decisions of 2026-10-28 on phases 9 and 12, were added in the same way: they record the reviewed values of their admission, not an authored-ontology comparison. The row of the class IncrementBoundaryConcern, promoted from the kernel-internal declarations manifest to a projected class for the owner-approved phase 1 concern contract, was added the same way.",
   "source": {
     "tag": "release-2026-10-11",
     "commit": "063c4fb1f2763a366874118f3b78d9841e0d11b4",
@@ -8,10 +8,10 @@
     "sha256": "2d24c4b1c642738c3857f33552042fe2189cf9b255cd19d5bc71e717cc8058ee",
     "section": "manifest_held_fields"
   },
-  "rows": 60,
-  "rows_with_manifest_held_contract_fields": 57,
+  "rows": 61,
+  "rows_with_manifest_held_contract_fields": 58,
   "relation_rows": 20,
-  "kernel_mapping_rows": 37,
+  "kernel_mapping_rows": 38,
   "entries": {
     "AcceptanceCriterion": {
       "admission_class": "definition",
@@ -208,6 +208,17 @@
           "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml"
         },
         "sub_class_of": "IncrementLifecycleDecision"
+      }
+    },
+    "IncrementBoundaryConcern": {
+      "admission_class": "definition",
+      "manifest": {
+        "sub_class_of": null,
+        "kernel_mapping": {
+          "file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
+          "declaration": "concern def IncrementBoundaryConcern"
+        },
+        "disjoint_with": []
       }
     },
     "IncrementTraceObligations": {

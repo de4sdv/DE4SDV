@@ -156,6 +156,7 @@ REPRESENTATION_CLASSES = {
     "action": "action-definition",
     "connection": "connection-definition",
     "metadata": "metadata-definition",
+    "concern": "concern-definition",
 }
 API_METACLASSES = {
     "part": "PartDefinition",
@@ -166,6 +167,7 @@ API_METACLASSES = {
     "action": "ActionDefinition",
     "connection": "ConnectionDefinition",
     "metadata": "MetadataDefinition",
+    "concern": "ConcernDefinition",
 }
 FORM_REPRESENTATION = {
     "package-doc": ("package-owned-definition-documentation", "Documentation"),

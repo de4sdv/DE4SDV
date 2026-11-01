@@ -62,7 +62,6 @@ declarations:
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml:
     concern def ProductLineCapabilityClassificationConcern: method-specific concern type
     concern def RegulatoryScopeWithoutComplianceClaimConcern: method-specific concern type
-    concern def IncrementBoundaryConcern: method-specific concern type
     concern def MethodStackConcern: method-specific concern type
     concern def ProductLineConfigurationConcern: method-specific concern type
     concern def ProductModelAssemblyConcern: method-specific concern type
