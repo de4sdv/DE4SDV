@@ -103,14 +103,16 @@ lateral_x(y)  = origin_x + y/(60/2) × usable_half_width
 ## 6. Provenance ribbon (exact text)
 
 ```text
-SIMULATED POINT CLOUD → AUTOWARE AEB → S-CORE → SDV CORE VM → SDV GATEWAY → AAOS APP
+SIMULATED POINT CLOUD → AUTOWARE AEB → S-CORE → SDV CORE VM → SDV GATEWAY → IVI APP
 Read-only engineering visualization · issues no vehicle commands
 ```
 
 - Both lines must remain readable at 1080×600 and at LinkedIn feed width.
-  The ribbon names the three stack layers the member uses — Autoware (the
-  application on the Linux host), S-CORE (the vehicle middleware) and AAOS (the
-  guest the HMI runs in) — so a reader can see which layers produced the frame.
+  The ribbon names the layers and boundaries a reader needs to place the frame:
+  Autoware (the application on the Linux host), S-CORE (the vehicle middleware),
+  the SDV Core VM, the SDV Gateway, and the IVI app. The guest operating system
+  is not spelled out — the IVI app runs in the AAOS SDV guest — because the line
+  is a provenance summary, not a stack listing.
 - "SIMULATED" must remain visible in every public frame.
 - The ribbon summarises a path, it is not a component inventory: the frame
   assembler, the S-CORE adapter, `gatewayd`/`someipd`, the SOME/IP broker, the

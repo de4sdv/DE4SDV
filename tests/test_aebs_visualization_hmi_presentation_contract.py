@@ -210,7 +210,7 @@ def test_provenance_and_read_only_boundary_remain_publicly_visible():
     # S-CORE while the HMI under them said they came over a bridge. A path change
     # must fail here, not drift silently into a video.
     assert ("SIMULATED POINT CLOUD → AUTOWARE AEB → S-CORE → SDV CORE VM → "
-            "SDV GATEWAY → AAOS APP") in strings
+            "SDV GATEWAY → IVI APP") in strings
     nodes = _layout_nodes_by_id()
     assert _sp(nodes["health_chip"]) >= 16
     assert _sp(nodes["provenance"]) >= 16
