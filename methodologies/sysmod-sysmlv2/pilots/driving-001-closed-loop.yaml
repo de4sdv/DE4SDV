@@ -1,0 +1,10 @@
+# Index only: scope, assumptions and evidence semantics live in the SysML model.
+increment_id: INC-DRIVING-001
+model_files:
+  - package: DE4SDV_ClosedLoopDrivingFraming
+    file: textual-notation-of-model/packages/features/driving/closed_loop_driving_framing.sysml
+    increment: DE4SDV_ClosedLoopDrivingFraming::closedLoopDrivingIncrement
+    charter: DE4SDV_ClosedLoopDrivingFraming::closedLoopDrivingCharter
+    view: DE4SDV_ClosedLoopDrivingFraming::closedLoopDrivingFramingView
+documentation: docs/guides/closed-loop-driving-increment.md
+provenance: textual-notation-of-model/packages/features/driving/upstream.md
