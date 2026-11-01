@@ -143,7 +143,25 @@ stop() {
       case "$name" in relaylog|ingresslog) : ;; *) sudo kill -INT "$pid" 2>/dev/null || true ;; esac
     done < "$OUT/.pids"
   fi
-  sleep 2
+  # `sudo tcpdump … &` forks: $! is sudo, so the kill above stops the wrapper and
+  # leaves tcpdump itself writing into the pcap after the window. Both S3b runs
+  # ended with two captures still appending minutes later — the file the
+  # evaluator hashed is not the file the evidence ships. Stop the captures by
+  # their own command line and refuse to call the window stopped while one lives.
+  for pcap in produced.pcap host-cvd-ebr.pcap; do
+    sudo pkill -INT -f "tcpdump .*-w $OUT/$pcap" 2>/dev/null || true
+  done
+  local i
+  for i in $(seq 1 25); do
+    pgrep -f "tcpdump .*-w $OUT/" >/dev/null 2>&1 || break
+    sleep 0.2
+  done
+  if pgrep -f "tcpdump .*-w $OUT/" >/dev/null 2>&1; then
+    pgrep -af "tcpdump .*-w $OUT/" | head -3
+    log "ERROR: a host capture is still running after stop; the pcap would keep changing"
+    return 1
+  fi
+  sleep 1
   "$ADB" -s "$IVI_ADB" shell "kill -INT \$(cat /data/local/tmp/received.pid 2>/dev/null) \$(cat /data/local/tmp/dt.pid 2>/dev/null) 2>/dev/null; sleep 1; sync" >/dev/null 2>&1 || true
   if [ -f "$OUT/.pids" ]; then
     while read -r name pid; do case "$name" in relaylog|ingresslog) kill "$pid" 2>/dev/null || true ;; esac; done < "$OUT/.pids"

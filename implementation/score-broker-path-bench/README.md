@@ -159,7 +159,11 @@ What the scripts record about identity, and what they do not:
   sha256 read back from each guest. The probe copies what it found into
   `probe_sender.json` of its run directory.
 - `capture_case.sh stop` writes `capture-manifest.yaml` per case run: the
-  capture commands, the relay tag, the stop time and the IVI boot identity.
+  capture commands, the relay tag, the stop time and the IVI boot identity. It
+  stops the host captures by their own command line, not by the pid it recorded
+  — that pid is `sudo`, whose death leaves `tcpdump` writing into the pcap — and
+  fails the stop if a capture is still writing, because a pcap that grows after
+  the window no longer matches the digest the evaluator recorded.
 - `run.py` reports the sha256 of every artifact it read and a digest of the
   evaluator sources.
 - Not recorded by a script: the IVI image, the relay binary and init digests,
