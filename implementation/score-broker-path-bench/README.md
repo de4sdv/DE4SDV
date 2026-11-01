@@ -45,7 +45,7 @@ scripts/                 VM scripts, each idempotent and with an undo
   host_isolation_probe.sh     the reachability check of REQ-MW-016, records for the evaluator
   provision_ivi_relay.sh      one ACL per subject + the broker object policy, relay binary and init, reboot
   provision_probe_sender.sh   build the probe sender, push it to both guests, record its sha256 in the run manifest
-  set_ivi_clock.sh       chrony allow, auto_time off, SNTP set and slew, capture the exchange (ASM-MW-030)
+  set_ivi_clock.sh       chrony allow, auto_time off, SNTP measure/step/verify and slew, capture the exchange (ASM-MW-030)
   send_sd_offer.sh       send a spoofed SOME/IP SD offer from the IVI VM (VC-MW-016)
   capture_case.sh        produce the case artifacts: the :4721 and :4731 streams, the relay log, the ss check, the clocks;
                          `ivi-vm-down` reboots the IVI VM and starts the captures after the reboot
@@ -304,6 +304,21 @@ passes.
   setting and then asserts that a new relay phase_start appears (a (pid,
   phase) the relay log did not hold before the restart); it fails otherwise.
   The assertion runs only against a live IVI VM, so S1 confirms it.
+- **The clock set is measured, applied and re-measured, because `toybox sntp -s`
+  is not a step on the sdv_ivi_cf image.** It prints the offset, exits 0 and
+  leaves the clock where it was (a fresh guest read -183.6 ms before and -183.5 ms
+  after the set), so a set built on it reports success while the window runs on
+  the guest's free-running drift — the S2 window measured +44.5 ms against a
+  20 ms bound exactly this way. `set_ivi_clock.sh set` (and `setup`, which calls
+  it) therefore measures with `toybox sntp -q`, applies the offset with
+  `toybox date -s` inside one guest shell — read, add and set in a single command,
+  since two adb round trips leave the set 50-150 ms late and never converge — and
+  then takes a second exchange that must show the residual inside
+  `CLOCK_SET_BOUND_MS` (5 ms). The second exchange is the verification; a set that
+  does not land fails the script. The guest needs an `awk` for the arithmetic
+  (`/system/bin/awk` on this image); the script says so if it is missing. The
+  harness runs under `LC_ALL=C`, because a host locale with a decimal comma makes
+  the computed epoch unparseable for the guest's `date`.
 - **The bridge-family firewall rule is not executable off the VM.** The
   SOME/IP bridge-port hardening (`host_isolation_firewall.sh`) sits in an
   `nf_tables` bridge input chain, which this development host's kernel does not
