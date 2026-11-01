@@ -25,11 +25,60 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 [ -n "${2:-}" ] || { echo "usage: $0 {start|hmi|stop} <out-dir>" >&2; exit 2; }
 OUT="$2"; mkdir -p "$OUT"
 : "${HOST_STACK_UNITS:=de4sdv-*}"          # the host-half units the run uses (set to the Launch Manager's units)
+: "${AEB_PANE_CMD:=}"                      # optional Autoware-side pane; needs the bench ROS environment
 : "${APP_TAG:=MainActivity}"               # the HMI app's logcat tag (INC-AEBS-010)
 : "${INGRESS_TAG:=de4sdv_aebs_ingress}"    # the INC-AEBS-010 ingress's logcat tag (its per-frame line)
 : "${MONITORING_MAX_AGE_S:=2}"             # the latest frame line must be at most this old on the guest clock
 SCAN=(python3 -m de4sdv_broker_path_bench.hostscan)
 export PYTHONPATH="$HERE/../src${PYTHONPATH:+:$PYTHONPATH}"
+
+# The host half does not live in one journal: on the bench the frame assembler is
+# a system unit while the S-CORE daemons are the operator's --user units. A single
+# `journalctl -u` therefore watches one scope, and without -n 0 it replays the
+# other scope's tail instead of following it: the S3 window recorded 13 lines from
+# three hours before the run and nothing during it, which reads as evidence and
+# isn't. Probe every unit, follow both journals from now on, and say plainly when
+# a unit resolves nowhere.
+#
+# `systemctl cat` is not a probe: it exits 0 for a unit that does not exist (and
+# for a glob that matches nothing), so the pane ends up following a unit name no
+# journal holds. LoadState is the question being asked.
+_unit_scope() {
+  local u="$1" state
+  case "$u" in *'*'*) return 0 ;; esac      # a pattern is not one unit's scope
+  state="$(systemctl --user show -p LoadState --value "$u" 2>/dev/null)"
+  [ "$state" = loaded ] && { printf 'user'; return 0; }
+  state="$(systemctl show -p LoadState --value "$u" 2>/dev/null)"
+  [ "$state" = loaded ] && printf 'system'
+}
+
+_host_stack_journal() {
+  local u scope has_sys=0 has_user=0 sys_cmd="" user_cmd=""
+  local -a sys_args=() user_args=()
+  for u in $HOST_STACK_UNITS; do
+    scope="$(_unit_scope "$u")"
+    case "$scope" in
+      user)   user_args+=(-u "$u"); has_user=1 ;;
+      system) sys_args+=(-u "$u"); has_sys=1 ;;
+      *)      log "WARNING: host-half unit '$u' is in neither the system nor the user scope" >&2 ;;
+    esac
+  done
+  [ "$has_sys" = 1 ] && sys_cmd="journalctl -f -n 0 -o short-iso-precise --no-hostname ${sys_args[*]}"
+  [ "$has_user" = 1 ] && user_cmd="journalctl --user -f -n 0 -o short-iso-precise --no-hostname ${user_args[*]}"
+  if [ -n "$sys_cmd" ] && [ -n "$user_cmd" ]; then
+    printf '%s & %s & wait' "$sys_cmd" "$user_cmd"
+  elif [ -n "$sys_cmd" ]; then
+    printf '%s' "$sys_cmd"
+  elif [ -n "$user_cmd" ]; then
+    printf '%s' "$user_cmd"
+  else
+    # No unit resolves (a CI runner has no user session and no bench units). Follow
+    # the whole journal rather than fail the recording, but make the gap explicit:
+    # an unfiltered pane is still honest, a silently empty one is not.
+    log "WARNING: none of HOST_STACK_UNITS='$HOST_STACK_UNITS' resolves; the host-stack pane follows the unfiltered journal" >&2
+    printf '%s' "journalctl -f -n 0 -o short-iso-precise --no-hostname"
+  fi
+}
 
 _rec_pane() {
   local name="$1"; shift
@@ -62,7 +111,17 @@ start() {
   "$ADB" connect "$CORE_ADB" >/dev/null 2>&1 || true
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
   "$ADB" -s "$IVI_ADB" logcat -G 16M >/dev/null 2>&1 || true
-  _rec_pane host-stack "journalctl -f -u '$HOST_STACK_UNITS' --no-hostname" || return 1
+  local host_cmd
+  host_cmd="$(_host_stack_journal)"
+  [ -n "$host_cmd" ] || return 1
+  if [ -n "$AEB_PANE_CMD" ]; then
+    # The Autoware side of the chain, in its own terminal, before the assembler:
+    # without it the earliest hop has a pcap and nothing a viewer can read.
+    _rec_pane aeb-decision "$AEB_PANE_CMD" || return 1
+  else
+    log "NOTE: AEB_PANE_CMD unset; the Autoware-side decision pane is not recorded"
+  fi
+  _rec_pane host-stack "$host_cmd" || return 1
   _rec_pane core-broker "$ADB -s $CORE_ADB logcat -v epoch -v usec sdv_someip_broker_agent_comms:* sdv_someip_stack_agent:* *:S" || return 1
   _rec_pane relay "$ADB -s $IVI_ADB logcat -v epoch -v usec $RELAY_LOGCAT_TAG:* *:S" || return 1
   # The IVI frame path in one terminal: the ingress publishes each frame and the
@@ -128,6 +187,8 @@ stop() {
     echo "disposition: deferred_not_proven   # until a review promotes it"
     echo "owner_decision: owner decision of 2026-10-28 (recording for public use; posting needs approval)"
     echo "note: real terminal recordings (script --log-timing) and a real adb screenrecord of the IVI HMI; no rendered or stylized footage; an edited cut is labeled publication_cut"
+    echo "host_stack_units: $HOST_STACK_UNITS"
+    if [ -n "$AEB_PANE_CMD" ]; then echo "aeb_pane: recorded"; else echo "aeb_pane: not_recorded  # AEB_PANE_CMD was unset"; fi
     echo "files:"
     ( cd "$OUT" && for f in *.typescript *.timing hmi-raw.mp4 hmi-anchor.yaml; do [ -f "$f" ] && echo "  - path: $f"; done )
     echo "sha256:"
