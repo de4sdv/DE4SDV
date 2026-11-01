@@ -45,17 +45,33 @@ export PYTHONPATH="$HERE/../src${PYTHONPATH:+:$PYTHONPATH}"
 # journal holds. LoadState is the question being asked.
 _unit_scope() {
   local u="$1" state
-  case "$u" in *'*'*) return 0 ;; esac      # a pattern is not one unit's scope
   state="$(systemctl --user show -p LoadState --value "$u" 2>/dev/null)"
   [ "$state" = loaded ] && { printf 'user'; return 0; }
   state="$(systemctl show -p LoadState --value "$u" 2>/dev/null)"
   [ "$state" = loaded ] && printf 'system'
 }
 
+# The bench names its units by pattern (`s2-*`), and a pattern is not a unit: it
+# has to be expanded in each scope first, or every unit behind it is invisible.
+# --all so a unit that failed before the window (and may be restarted into it) is
+# still watched.
+_expand_units() {
+  local u
+  for u in $HOST_STACK_UNITS; do
+    case "$u" in
+      *'*'*|*'?'*|*'['*)
+        systemctl --user list-units --all --plain --no-legend "$u" 2>/dev/null | awk '{print $1}'
+        systemctl list-units --all --plain --no-legend "$u" 2>/dev/null | awk '{print $1}'
+        ;;
+      *) printf '%s\n' "$u" ;;
+    esac
+  done | sed '/^$/d' | sort -u
+}
+
 _host_stack_journal() {
   local u scope has_sys=0 has_user=0 sys_cmd="" user_cmd=""
   local -a sys_args=() user_args=()
-  for u in $HOST_STACK_UNITS; do
+  for u in $(_expand_units); do
     scope="$(_unit_scope "$u")"
     case "$scope" in
       user)   user_args+=(-u "$u"); has_user=1 ;;
