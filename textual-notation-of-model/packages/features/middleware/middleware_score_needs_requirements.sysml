@@ -323,6 +323,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * state and the predicted-trajectory input of the AEB node is blocked.
      * No safety or freedom-from-interference claim is made.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
   dependency speedTopicGapOnAEBVelocityInput
     from gapSCORESpeedTopicOwnershipOpen
@@ -373,6 +374,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * SDV guest, whose trust boundary stays undefined. No security claim is
      * made.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
 
   concern scoreMiddlewareRequirementTraceConcern : RequirementTraceConcern {

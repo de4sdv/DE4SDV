@@ -316,13 +316,6 @@ package DE4SDV_MiddlewareSCOREFraming {
      */
   }
 
-  part gapRealizationCoverageUnknown : IncrementGap {
-    doc /*
-     * GAP-MW-030: Which of the six middleware components S-CORE v0.9.0
-     * realizes, and which stay open, is unknown until the physical/software
-     * realization slice of this increment records the coverage.
-     */
-  }
   part gapHMITransportUnselected : IncrementGap {
     doc /*
      * GAP-MW-031: The transport that carries the AEBS signals from S-CORE on
@@ -331,7 +324,12 @@ package DE4SDV_MiddlewareSCOREFraming {
      * realization slice selects and pins it. Phase 8 selects it
      * (hmiTransportSelection): SOME/IP into the SDV Core VM of the guest,
      * then Data Tunnel to its IVI VM (ADR 0025).
+     *
+     * Withdrawn at phase 12: the transport is selected and pinned, so the
+     * item no longer holds. The record stays so the selection comment keeps
+     * its subject.
      */
+    attribute :>> disposition = LifecycleDisposition::invalidated;
   }
   part gapTwoDomainMemberNotExpressible : IncrementGap {
     doc /*
@@ -351,6 +349,7 @@ package DE4SDV_MiddlewareSCOREFraming {
      * Phases 8 and 9 of this increment close the gap with
      * per-execution-domain platform modeling.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   /* Qualified references to the reused targets of the two-domain framing
@@ -413,6 +412,46 @@ package DE4SDV_MiddlewareSCOREFraming {
     stakeholder productLineEngineer : ProductLineEngineer;
     stakeholder systemArchitect : SystemArchitect;
     stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  part scoreMiddlewareBaselineDecision011 : IncrementBaselineDecision {
+    doc /*
+     * BL-MW-011-P12. The baseline of INC-MW-011 accepts the demonstrated
+     * S-CORE path: the Autoware-based AEBS stack on the Linux host, its
+     * frames carried by S-CORE mw::com to the S-CORE SOME/IP gateway, over
+     * SOME/IP into the SDV Core VM, through Data Tunnel into the IVI VM,
+     * and rendered by the read-only visualization app, with the bounded
+     * evidence of the retained windows (the phase-10 verification case for
+     * byte identity and in-order delivery of the required frames passes; the
+     * AEBS arc MONITORING, WARNING, INTERVENTION, RELEASED runs on camera).
+     *
+     * Accepted as known limits, still open in this baseline: the AEBS
+     * velocity input that does not pass through the middleware
+     * (GAP-MW-033), the Eclipse S-CORE assumptions of use
+     * (GAP-MW-034), in-order delivery that REQ-MW-014 does not guarantee by
+     * design (GAP-MW-037), the start-order and pair-restart consequences the
+     * owner already accepted (GAP-MW-043), the missing host-to-guest time
+     * synchronization that the bench compensates for (GAP-MW-045), and the
+     * absent restart of the SOME/IP broker and its stack (GAP-MW-048).
+     *
+     * Deferred to a later slice or to upstream: the two-domain member
+     * representation (GAP-MW-032), the unreleased S-CORE gateway
+     * (GAP-MW-036), the evidence of record for the AAOS SDV SOME/IP path
+     * (GAP-MW-038), the S-CORE behaviours of GAP-MW-039 to GAP-MW-042, the
+     * verification environment model (GAP-MW-044), host port isolation
+     * (GAP-MW-046) and the vsomeip version skew (GAP-MW-047).
+     *
+     * Withdrawn, because they no longer hold: GAP-MW-031 (phase 8 selected
+     * and pinned the transport) and GAP-MW-035 (the one-process adapter built
+     * and ran on the benchmark Linux host). GAP-MW-030 left the model: the
+     * realization coverage it asked for is recorded in phase 8.
+     *
+     * No production-HMI, safety, ASIL, certification, compliance or
+     * homologation claim follows from this baseline. The display is an
+     * informational instrument; the warning, braking and lifecycle states are
+     * coordinator outputs, not native Autoware AEB decisions.
+     */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
 
   view scoreMiddlewareFramingView {
