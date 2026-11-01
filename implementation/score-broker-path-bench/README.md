@@ -205,6 +205,20 @@ the relay log, and the IVI frame path (the ingress's per-frame line beside the
 app's, both with epoch stamps). No rendered or stylized footage. An edited cut is
 labeled `publication_cut`; the raw files stay with the evidence.
 
+`HOST_STACK_UNITS` names the host-half units the run uses. The pane probes each
+one and follows the journal that holds it — the bench splits the host half
+across scopes (the frame assembler is a system unit, the S-CORE daemons are the
+operator's `--user` units), so a single `journalctl -u` cannot see both. It
+follows from now (`-n 0`) rather than replaying the journal tail, which in one
+window recorded thirteen lines from three hours before the run and read like
+evidence. A unit that resolves in neither scope is named in the output.
+
+`AEB_PANE_CMD` adds the Autoware-side pane (the coordinator's decision, before
+the assembler), which needs the bench ROS environment because it talks to the
+graph rather than to a log; it is empty by default and the manifest records
+`aeb_pane: recorded | not_recorded` either way, so a missing first hop is
+visible in the evidence instead of being assumed.
+
 `hmi` also writes `hmi-anchor.yaml`: the IVI clock read immediately before and
 after the screenrecord launch, and the host time around it. The video's `t = 0`
 lies inside that interval, so a log line or a frame record can be placed on the

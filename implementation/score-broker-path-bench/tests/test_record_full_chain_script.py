@@ -61,6 +61,24 @@ echo "journalctl $*" >> "$FAKE_DIR/calls.log"
 exec sleep 20
 '''
 
+# On the bench the host half spans two scopes: the frame assembler runs as a
+# system unit, the S-CORE daemons as the operator's --user units. This stub says
+# so, which is the only way to test that the pane watches the journal that
+# actually holds a unit instead of the other one.
+FAKE_SYSTEMCTL = r'''#!/usr/bin/env bash
+# `show -p LoadState --value <unit>`: loaded for the unit's own scope, not-found
+# otherwise. Nothing else is modelled because nothing else is asked.
+if [ "$1" = "--user" ]; then
+  shift
+  [ "$1" = "show" ] || exit 1
+  [ "$5" = "s2-someipd" ] && { echo "loaded"; exit 0; }
+  echo "not-found"; exit 0
+fi
+[ "$1" = "show" ] || exit 1
+[ "$5" = "s2-bridge" ] && { echo "loaded"; exit 0; }
+echo "not-found"; exit 0
+'''
+
 
 def setup(tmp_path: Path) -> dict:
     bindir = tmp_path / "bin"
@@ -120,4 +138,57 @@ def test_start_records_the_ivi_frame_path_pane(tmp_path):
     assert panes == [".pane.core-broker.pid", ".pane.host-stack.pid",
                      ".pane.ivi-frames.pid", ".pane.relay.pid"]
     assert (out / "ivi-frames.typescript").exists()
+    run(env, "stop", str(out))
+
+
+def test_host_stack_pane_follows_the_journal_that_holds_each_unit(tmp_path):
+    """A system unit and a --user unit need two journals and no replay.
+
+    In the S3 window this pane watched `journalctl -u 'de4sdv-*'`, matched
+    nothing, and replayed 13 lines from three hours earlier — stale output that
+    looks like evidence. Both scopes must be followed, from now (-n 0), and the
+    unit must be named rather than globbed.
+    """
+    env = setup(tmp_path)
+    bin_path = Path(env["PATH"].split(os.pathsep)[0])
+    systemctl = bin_path / "systemctl"
+    systemctl.write_text(FAKE_SYSTEMCTL)
+    systemctl.chmod(0o755)
+    env["HOST_STACK_UNITS"] = "s2-bridge s2-someipd"
+    out = tmp_path / "rec"
+    result = run(env, "start", str(out))
+    assert result.returncode == 0, result.stdout + result.stderr
+    calls = [ln for ln in (tmp_path / "calls.log").read_text().splitlines() if ln.startswith("journalctl")]
+    system = [c for c in calls if "--user" not in c]
+    user = [c for c in calls if "--user" in c]
+    assert len(system) == 1 and "-u s2-bridge" in system[0], calls
+    assert len(user) == 1 and "-u s2-someipd" in user[0], calls
+    for c in calls:
+        assert "-n 0" in c, f"pane would replay the journal tail: {c}"
+        assert "de4sdv-*" not in c, f"unit glob matches nothing: {c}"
+    run(env, "stop", str(out))
+
+
+def test_aeb_pane_is_recorded_when_its_command_is_set(tmp_path):
+    """The Autoware-side hop gets its own pane, and the manifest says so."""
+    env = setup(tmp_path)
+    env["AEB_PANE_CMD"] = "sleep 20"
+    out = tmp_path / "rec"
+    result = run(env, "start", str(out))
+    assert result.returncode == 0, result.stdout + result.stderr
+    panes = sorted(p.name for p in out.glob(".pane.*.pid"))
+    assert ".pane.aeb-decision.pid" in panes, panes
+    run(env, "stop", str(out))
+    manifest = (out / "recording-manifest.yaml").read_text()
+    assert "aeb_pane: recorded" in manifest
+
+
+def test_start_says_so_when_no_host_unit_resolves(tmp_path):
+    """No systemd units (CI): follow the whole journal, but never silently."""
+    env = setup(tmp_path)
+    out = tmp_path / "rec"
+    result = run(env, "start", str(out))
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "none of HOST_STACK_UNITS" in result.stdout + result.stderr
+    assert "NOTE: AEB_PANE_CMD unset" in result.stdout + result.stderr
     run(env, "stop", str(out))
