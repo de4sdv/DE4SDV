@@ -196,7 +196,10 @@ def test_incomplete_candidate_lineage_is_not_evidence_of_non_boundary_membership
         assert block["phase_exit"] == "BLOCKED"
         assert block["gates"][GATE] != "PASS"
         entry = next(entry for entry in evaluation.gaps()["blocking"] if entry["gate"] == GATE)
-        assert entry["kind"] == "method-side"
+        assert entry["kind"] == "input-problem", entry
+        assert entry["what_to_author"], entry
+        step = evaluation.next_obligation()["next"]
+        assert (step["stage"], step["gate"]) == (P1, GATE), step
 
 
 _NARROWING = [("Subsetting", "subsettedFeature"), ("Redefinition", "redefinedFeature"),
@@ -246,5 +249,36 @@ def test_an_unavailable_narrowed_feature_is_not_non_boundary_evidence(known_non_
     else:
         assert _phase(evaluation)["phase_exit"] == "BLOCKED"
         entry = next(entry for entry in evaluation.gaps()["blocking"] if entry["gate"] == GATE)
-        assert entry["kind"] == "method-side"
+        assert entry["kind"] == "input-problem", entry
+        assert entry["what_to_author"], entry
+        step = evaluation.next_obligation()["next"]
+        assert (step["stage"], step["gate"]) == (P1, GATE), step
+
+
+def test_unreadable_direct_typing_keeps_phase1_actionable():
+    scenario = _scenario()
+    builder = scenario.builder
+    missing = builder.definition("ConcernDefinition", "MissingConcernType", scenario.framing)
+    concern = _add_concern(scenario, definition=missing, name="unreadableTypedConcern")
+    builder.remove(missing)  # removing the definition also removes its typing
+    dangling = "00000000-0000-4000-8000-000000000001"
+    builder.relationship("FeatureTyping", concern, type=ref(dangling), general=ref(dangling),
+                         specific=ref(concern), typedFeature=ref(concern))
+    evaluation = _evaluate(scenario)
+    entry = next(entry for entry in evaluation.gaps()["blocking"] if entry["gate"] == GATE)
+    assert entry["kind"] == "input-problem", entry
+    assert entry["what_to_author"], entry
+    step = evaluation.next_obligation()["next"]
+    assert (step["stage"], step["gate"]) == (P1, GATE), step
+
+
+def test_the_new_gate_keeps_the_notes_of_its_authoring_lines():
+    from de4sdv.semantic.remedies import check_remedy
+
+    scenario = _scenario()
+    view = ModelView(scenario.builder.elements, _traversal(scenario.builder), sources=scenario.builder.sources)
+    base = check_remedy(view, "framedByViewpoint")
+    extended = check_remedy(view, "nonBoundaryConcernPresent")
+    assert set(base.notes) <= set(extended.notes), (base.notes, extended.notes)
+    assert any("coverage adequacy" in note for note in extended.notes)
 

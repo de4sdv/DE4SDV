@@ -752,7 +752,7 @@ def _non_boundary_concern_present(request: _Request) -> Remedy:
     return replace(base, instruction=(
         f"declare at least one concern of the increment's engineering scope {_where(request)}, "
         f"not typed by {boundary} or any definition specializing it; keep existing boundary concerns"
-    ), notes=(SUBJECT_FIRST,
+    ), notes=(*base.notes,
               "Every concern, including a boundary concern, still needs its native stakeholder member and "
               "a frame from a viewpoint of an increment view. Presence is not evidence of coverage adequacy."))
 
