@@ -696,7 +696,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * integration layer that spans both. The guest has two VMs (ADR 0025):
      * the SDV Core VM (sdvCoreGuest) and the IVI VM (hmiGuest). Each domain
      * and each VM is typed with the existing layers of the SDV platform
-     * stack; phase 9 adds the per-domain variation (GAP-MW-032). The Linux
+     * stack; phase 9 adds the per-domain variation. The Linux
      * host owns the S-CORE services and the adapter. The SDV Core VM owns
      * the SDV Core, and the IVI VM owns the SDV Gateway on IVI.
      * Five bindings make the layer's references the same things, so this

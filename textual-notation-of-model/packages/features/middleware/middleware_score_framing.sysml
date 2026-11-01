@@ -52,9 +52,9 @@ package DE4SDV_MiddlewareSCOREFraming {
      * DE4SDV's middleware integration layer is realized only on AAOS SDV
      * (INC-MW-008). The product line names Eclipse S-CORE as a middleware
      * alternative, but there is no evidence that S-CORE can realize the
-     * layer (GAP-MW-030), no planned member product uses it, and the product
-     * model cannot describe the product it would need: Autoware and S-CORE
-     * on a Linux host, with an AAOS SDV guest for the HMI (GAP-MW-032).
+     * layer, no planned member product uses it, and the product model cannot
+     * describe the product it would need: Autoware and S-CORE on a Linux host,
+     * with an AAOS SDV guest for the HMI.
      * Until that changes, S-CORE stays a reference-only alternative of the
      * governed product-line scope (ADR 0014), and product-line engineers,
      * architects and reviewers cannot judge it as an open-source automotive
@@ -97,7 +97,7 @@ package DE4SDV_MiddlewareSCOREFraming {
   }
 
   part scoreMiddlewareScope : IncrementScope {
-    doc /* The scope of INC-MW-011: the engineering question, GAP-MW-030, GAP-MW-032 and the charter set its realization, member-product and platform scope; the nested parts are the two signal paths later slices trace to; the OutOfScopeItem parts of this package bound it. */
+    doc /* The scope of INC-MW-011: the engineering question and the charter set its realization, member-product and platform scope; the nested parts are the two signal paths later slices trace to; the OutOfScopeItem parts of this package bound it. */
     part referenceVehicleSpeedPathInScope : InScopeItem {
       doc /* The reference vehicle-speed path (VSS Vehicle.Speed) over S-CORE communication into the same Autoware consumer, like for like with the AAOS SDV realization of INC-MW-008 over the same reference signal, with evidence comparable with the retained evidence of INC-MW-010. */
     }
@@ -331,26 +331,6 @@ package DE4SDV_MiddlewareSCOREFraming {
      */
     attribute :>> disposition = LifecycleDisposition::invalidated;
   }
-  part gapTwoDomainMemberNotExpressible : IncrementGap {
-    doc /*
-     * GAP-MW-032: The product model cannot express a member product with two
-     * execution domains. The feature model selects exactly one operating
-     * system, one middleware alternative and one hypervisor per product
-     * (the alternative groups F-PLATFORM-OS, F-PLATFORM-MIDDLEWARE and
-     * F-PLATFORM-HYPERVISOR), and constraint C001 requires PlatformStack.OS
-     * in [Linux, QNX] when PlatformStack.Middleware is EclipseSCORE; the
-     * platform stack mirrors this with one osPlatform, one middleware and
-     * one hypervisor variation per stack. The two-domain member needs Linux
-     * with S-CORE on the host and Android with the AAOS SDV middleware in
-     * the guest; the example feature configuration "Autoware on S-CORE on
-     * Linux" describes only the Linux domain. The same limit affects the
-     * AAOS-integrated reference member: its Autoware runs on a Linux ROS 2
-     * runtime while its single operating-system selection says Android.
-     * Phases 8 and 9 of this increment close the gap with
-     * per-execution-domain platform modeling.
-     */
-    attribute :>> disposition = LifecycleDisposition::deferred;
-  }
 
   /* Qualified references to the reused targets of the two-domain framing
    * (no restatement of their content). */
@@ -366,10 +346,6 @@ package DE4SDV_MiddlewareSCOREFraming {
     from scoreMiddlewareScope::referenceVehicleSpeedPathInScope to DE4SDV_MiddlewarePhysicalSoftwareRealization::COVESAVehicleSpeedSemanticSource;
   dependency speedPathLikeForLikeWithAAOSSDVRealization
     from scoreMiddlewareScope::referenceVehicleSpeedPathInScope to DE4SDV_MiddlewarePhysicalSoftwareRealization::physicalSoftware;
-  dependency twoDomainGapOnSinglePlatformStackSelections
-    from gapTwoDomainMemberNotExpressible to DE4SDV_SDVPlatformStack::SDVPlatformStack;
-  dependency twoDomainGapAffectsAAOSIntegratedMember
-    from gapTwoDomainMemberNotExpressible to DE4SDV_AEBSProductLineScope::InitialPlannedReferenceMemberPortfolio::aaosIntegratedAutowareAEBSReferenceMember;
   dependency emergencyPathAssumptionOnProtectedPathIndependence
     from asmEmergencyCommandPathStaysOnLinuxHost to DE4SDV_AEBSProductLineScope::InitialCommonCoreEngineeringContent::protectedEmergencyCommandPathIndependence;
 
@@ -434,8 +410,7 @@ package DE4SDV_MiddlewareSCOREFraming {
      * synchronization that the bench compensates for (GAP-MW-045), and the
      * absent restart of the SOME/IP broker and its stack (GAP-MW-048).
      *
-     * Deferred to a later slice or to upstream: the two-domain member
-     * representation (GAP-MW-032), the unreleased S-CORE gateway
+     * Deferred to a later slice or to upstream: the unreleased S-CORE gateway
      * (GAP-MW-036), the evidence of record for the AAOS SDV SOME/IP path
      * (GAP-MW-038), the S-CORE behaviours of GAP-MW-039 to GAP-MW-042, the
      * verification environment model (GAP-MW-044), host port isolation
@@ -443,8 +418,11 @@ package DE4SDV_MiddlewareSCOREFraming {
      *
      * Withdrawn, because they no longer hold: GAP-MW-031 (phase 8 selected
      * and pinned the transport) and GAP-MW-035 (the one-process adapter built
-     * and ran on the benchmark Linux host). GAP-MW-030 left the model: the
-     * realization coverage it asked for is recorded in phase 8.
+     * and ran on the benchmark Linux host). GAP-MW-030 and GAP-MW-032 left the
+     * model: phase 8 recorded the realization coverage the first asked for, and
+     * phase 9 expressed the two execution domains the second said the product
+     * model could not — the platform stack carries a main side and a guest
+     * side, and both configured products select them.
      *
      * No production-HMI, safety, ASIL, certification, compliance or
      * homologation claim follows from this baseline. The display is an

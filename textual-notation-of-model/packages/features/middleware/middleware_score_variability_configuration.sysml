@@ -124,9 +124,10 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
     to DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization::gapSOMEIPStackOnAAOSGuestUntested;
 
   comment twoDomainMemberExpressed
-    about DE4SDV_MiddlewareSCOREFraming::gapTwoDomainMemberNotExpressible
+    about configuredProduct,
+      DE4SDV_MiddlewareVariabilityConfiguration::configuredMember
   /*
-   * Phase 9 resolves GAP-MW-032. The SDV platform stack and the SDV feature
+   * Phase 9 resolved the two-domain limitation. The SDV platform stack and the SDV feature
    * model have a main side and a guest side on one SoC. The owner decided
    * this on 2026-10-21 and 2026-10-22. The groups guestOperatingSystem and
    * guestMiddleware bind the variations guestOSPlatform and guestMiddleware,

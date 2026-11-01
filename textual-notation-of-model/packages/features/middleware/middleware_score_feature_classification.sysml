@@ -25,12 +25,9 @@ package DE4SDV_MiddlewareSCOREFeatureClassification {
      * CLS-MW-004: an AAOS SDV HMI guest next to the Linux host distinguishes the
      * two-domain member from the standalone member. Acceptance waits for the scope
      * ADR and phase 9; the AAOS-integrated mode is only a candidate counterpart, and
-     * the ADR decides. Structural consequence: per-domain platform selection (GAP-MW-032).
+     * the ADR decides. Structural consequence: per-domain platform selection.
      */
   }
-  dependency hmiGuestCandidateOnTwoDomainGap
-    from hmiGuestExecutionDomain
-    to DE4SDV_MiddlewareSCOREFraming::gapTwoDomainMemberNotExpressible;
   dependency hmiGuestCandidateCounterpartOfAAOSIntegratedMode
     from hmiGuestExecutionDomain
     to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
