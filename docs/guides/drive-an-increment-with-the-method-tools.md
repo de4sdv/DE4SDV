@@ -116,6 +116,14 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   as notes.
 - **Ranking.** `next_obligation` returns the earliest open blocking check in
   workflow order (step order, then check order).
+- **Vacuous phases.** A declared phase whose blocking checks are all not
+  applicable, such as phase 3 when the increment records no feature-model
+  delta, has the exit `READY`. `increment_status` marks it `vacuous: true`,
+  with `evaluated`: how many of its checks were evaluated (advisory ones
+  only). `next_obligation` lists each such phase before `next` in
+  `vacuous_phases`, with a review `prompt`, within the `phase` it is asked
+  about. The list is advisory: it never blocks, never changes `next`, and
+  needs no model record to clear.
 - **What to author.** `what_to_author` (and `what_satisfies` in
   `phase_contract`) is SysML built from the step parameter the check is about:
   its keyword, its type's qualified name with the `private import` of that
@@ -513,7 +521,7 @@ jq '.increments[] | {id, outcome, next: .next.gate, counts}' method-check.json
 | `id`, `outcome` | The increment identifier, for example `INC-AEBS-010`; `evaluated`, `method-unavailable`, `method-invalid`, `refused` or `error` |
 | `next` | The first check to act on: `gate`, `stage`, `kind`, `what_to_author`, `authoring`, `where`, `subjects`; `null` when none is open |
 | `counts` | `blocking`, `blocking_by_kind`, `advisory`, `method_side_blockers` |
-| `phase_exits`, `phase_checks` | Per phase with executable checks: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`). The exit of a phase the charter does not declare is `READY`, because all its checks are not applicable; the summary shows such a phase as "not declared" |
+| `phase_exits`, `phase_checks` | Per phase with executable checks: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`). The exit of a phase the charter does not declare is `READY`, because all its checks are not applicable; the summary shows such a phase as "not declared". A declared phase whose blocking checks are all not applicable is `READY` too: `evaluation.status` marks it `vacuous: true` with its `evaluated` count, `evaluation.next.vacuous_phases` lists it with a review prompt when it comes before `next`, and the summary shows it as "vacuous". It never blocks |
 | `phases_without_checks` | The declared phases whose step has no executable checks: `phase`, `step` and its `outputs`; never evaluated, so the counts say nothing about them |
 | `evaluation.gaps.blocking` | Every unmet blocking check with all its subjects; `evaluation.gaps.advisory` holds the advisory notes |
 | `evaluation` | The full `scripts/evaluate_increment.py` report: `status`, `gaps`, `next`, `contract` |

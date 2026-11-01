@@ -579,22 +579,23 @@ class IncrementEvaluation:
                 f"; {NO_EXECUTABLE_CHECKS} judge the declared phase{'s' if len(unchecked) > 1 else ''} "
                 f"{', '.join(unchecked)}" if unchecked else "")
         response.update(next=step, reason=reason, stage_queue=queue, method_side_blockers=method_side,
-                        vacuous_phases=self._vacuous_before(step))
+                        vacuous_phases=self._vacuous_before(step, phase))
         response.update(_next_reason(self.scope, self.revision))
         return self._presented(response)
 
-    def _vacuous_before(self, step: Mapping[str, Any] | None) -> list[dict[str, str]]:
-        """Declared phases whose required gates are all not applicable, before the next obligation.
+    def _vacuous_before(self, step: Mapping[str, Any] | None, phase: str | None = None) -> list[dict[str, str]]:
+        """Declared phases whose required gates are all not applicable, before the next obligation,
+        within the phase the answer is asked about (every phase when none is given).
 
         Advisory only: it never stalls the walk and needs no model record to clear.
         """
         rank = PHASE_ORDER.get(str((step or {}).get("stage") or ""), len(PHASE_ORDER))
         found: list[dict[str, str]] = []
-        for phase in self._status_phases(None):
-            block = self._phase_status(phase)
-            if block.get("vacuous") and PHASE_ORDER.get(phase, len(PHASE_ORDER)) < rank:
-                found.append({"phase": phase,
-                              "prompt": VACUOUS_REVIEW_PROMPTS.get(phase, DEFAULT_VACUOUS_PROMPT)})
+        for candidate in self._status_phases(phase):
+            block = self._phase_status(candidate)
+            if block.get("vacuous") and PHASE_ORDER.get(candidate, len(PHASE_ORDER)) < rank:
+                found.append({"phase": candidate,
+                              "prompt": VACUOUS_REVIEW_PROMPTS.get(candidate, DEFAULT_VACUOUS_PROMPT)})
         return found
 
     def phase_contract(self, phase: str | None = None) -> dict[str, Any]:

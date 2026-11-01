@@ -295,4 +295,3 @@ def test_the_new_gate_keeps_the_notes_of_its_authoring_lines():
     extended = check_remedy(view, "nonBoundaryConcernPresent")
     assert set(base.notes) <= set(extended.notes), (base.notes, extended.notes)
     assert any("coverage adequacy" in note for note in extended.notes)
-

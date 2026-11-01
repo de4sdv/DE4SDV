@@ -144,6 +144,16 @@ def test_the_status_description_says_an_unchecked_exit_is_never_a_gap() -> None:
     assert "declared outputs" in tools["increment_status"]
 
 
+def test_the_descriptions_say_a_vacuous_phase_is_advisory() -> None:
+    service, _scenario, _repository = _service()
+    tools = {tool.name: " ".join(tool.description.split())  # docstrings wrap their lines
+             for tool in create_mcp_server(service)._tool_manager.list_tools()}
+    assert "`vacuous: true`" in tools["increment_status"] and "`evaluated`" in tools["increment_status"]
+    assert "readiness stays READY or BLOCKED" in tools["increment_status"]
+    assert "`vacuous_phases`" in tools["next_obligation"]
+    assert "it never blocks, never changes `next`" in tools["next_obligation"]
+
+
 def test_malformed_increment_identifier_is_refused() -> None:
     service, _scenario, _repository = _service()
     with pytest.raises(ValueError, match="INC-<SUBJECT>-<SEQ>"):

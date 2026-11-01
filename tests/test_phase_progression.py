@@ -26,6 +26,7 @@ from increment_model_fixtures import (
     WorkflowStep,
     increment_scenario,
     increment_workflow,
+    ref,
 )
 from model_contract_fixtures import model_contract
 from scripts import method_check
@@ -145,6 +146,9 @@ def framing_only(applicable_phases=PHASE_LITERALS):
     view = b.usage("ViewUsage", "progressionView", framing)
     viewpoint = b.usage("ViewpointUsage", "selectedViewpoint", view, membership="FeatureMembership")
     b.frame(viewpoint, concern)
+    # ``expose DE4SDV_ProgressionFraming::*;``: a framing view shows the framing,
+    # as the closed-loop driving framing view does.
+    b.relationship("NamespaceExpose", view, importedNamespace=ref(framing))
     for name in ("IncrementScope", "OutOfScopeItem", "IncrementAssumption"):
         typed(name)
     b.usage("PartUsage", "progressionScope", framing, [typed("IncrementScope")])
@@ -191,7 +195,7 @@ def phase(evaluation, name: str) -> dict:
     return block
 
 
-def test_framing_only_leaves_only_phase_3_vacuously_ready():
+def test_framing_only_opens_vacuous_phase_3_and_the_phase_11_defect():
     evaluation = evaluate(framing_only())
     assert phase(evaluation, P0)["phase_exit"] == "READY"
     for name in (P1, "phase2_operationalContext", P4, P5, "phase6_functionalArchitecture",
@@ -201,12 +205,15 @@ def test_framing_only_leaves_only_phase_3_vacuously_ready():
     vacuous = phase(evaluation, P3)
     assert vacuous["phase_exit"] == "READY" and vacuous["vacuous"] is True and vacuous["evaluated"] == 0
     assert vacuous["conformance_verdict"] == "NOT_APPLICABLE"
-    # The known defect: a model-only framing view frames the concern but the
-    # scope exposes no content. The follow-up method PR retires this phase.
+    # Pinned known defect: the framing view frames the boundary concern and
+    # exposes the framing, so publication opens on Phase 0 content alone, as
+    # it does for INC-DRIVING-001. The follow-up method PR retires this phase
+    # and removes this pin.
     publication = phase(evaluation, P11)
-    assert publication["phase_exit"] == "BLOCKED"
+    assert publication["phase_exit"] == "READY"
     assert publication["gates"] == {"publishedViewFramesConcern": "PASS",
-                                    "publishedViewExposesContent": "FAIL"}
+                                    "publishedViewExposesContent": "PASS"}
+    assert "vacuous" not in publication
     step = evaluation.next_obligation()["next"]
     assert (step["stage"], step["gate"]) == (P1, "incrementHasNonBoundaryConcern")
     # Phase 3 comes after the next obligation, so the advisory list is empty.
@@ -219,6 +226,24 @@ def test_a_vacuous_phase_before_the_next_obligation_is_advised_not_blocking():
     assert (step["stage"], step["gate"]) == (P4, "needHasStatement")
     assert evaluation.next_obligation()["vacuous_phases"] == [
         {"phase": P3, "prompt": "confirm the increment adds no feature-model delta"}]
+
+
+def test_vacuous_phases_keep_to_the_phase_a_next_obligation_asks_about():
+    """A phase-scoped answer lists only the vacuous phases in that scope, like
+    its ``stage_queue``; the unscoped answer is unchanged."""
+    evaluation = evaluate(framing_only(applicable_phases=(P0, P3, P4, P5, P10)))
+    prompt = {"phase": P3, "prompt": "confirm the increment adds no feature-model delta"}
+    assert evaluation.next_obligation()["vacuous_phases"] == [prompt]
+    framing = evaluation.next_obligation(P0)
+    assert framing["next"] is None and framing["stage_queue"] == []
+    assert framing["vacuous_phases"] == []
+    evidence = evaluation.next_obligation(P10)
+    assert evidence["next"]["stage"] == P10
+    assert [entry["phase"] for entry in evidence["stage_queue"]] == [P10]
+    assert evidence["vacuous_phases"] == []
+    classification = evaluation.next_obligation(P3)
+    assert classification["next"] is None
+    assert classification["vacuous_phases"] == [prompt]
 
 
 def test_the_walk_reaches_the_first_phase_whose_content_is_missing():
@@ -244,16 +269,25 @@ def test_the_walk_reaches_the_first_phase_whose_content_is_missing():
     assert missing_needs.next_obligation()["next"]["stage"] == P4
 
 
-def test_the_summary_marks_a_vacuous_phase_without_changing_readiness():
+@pytest.mark.parametrize("evaluated,shown", [
+    (None, "(vacuous, nothing to evaluate)"),
+    (0, "(vacuous, nothing to evaluate)"),
+    (1, "(vacuous, 1 advisory check evaluated)"),
+    (2, "(vacuous, 2 advisory checks evaluated)"),
+])
+def test_the_summary_marks_a_vacuous_phase_without_changing_readiness(evaluated, shown):
+    status = {"phase": P3, "applicability": "declared", "vacuous": True}
+    if evaluated is not None:
+        status["evaluated"] = evaluated
     entry = {
         "id": "INC-X", "outcome": "evaluated", "usage": {"qualified_name": "P::inc"}, "charters": [],
         "next": None, "next_reason": "", "counts": {}, "diagnostics": [],
         "phase_exits": {P3: "READY"},
         "phase_checks": {P3: {"pass": 0, "total": 1, "not_applicable": 1}},
-        "evaluation": {"status": {"phases": [{"phase": P3, "applicability": "declared", "vacuous": True}]},
+        "evaluation": {"status": {"phases": [status]},
                        "gaps": {"blocking": [], "advisory": []}, "next": {"method_side_blockers": []}},
     }
     result = {"revision": "a" * 40, "export": {}, "increments": [entry], "notes": [], "errors": []}
     text = method_check.render_summary(result)
-    assert f"{P3} READY (vacuous, nothing to evaluate)" in text
+    assert f"{P3} READY {shown}" in text
     assert entry["phase_exits"][P3] == "READY"
