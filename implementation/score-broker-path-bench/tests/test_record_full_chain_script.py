@@ -66,17 +66,24 @@ exec sleep 20
 # so, which is the only way to test that the pane watches the journal that
 # actually holds a unit instead of the other one.
 FAKE_SYSTEMCTL = r'''#!/usr/bin/env bash
-# `show -p LoadState --value <unit>`: loaded for the unit's own scope, not-found
-# otherwise. Nothing else is modelled because nothing else is asked.
+# `show -p LoadState --value <unit>`: loaded in the unit's own scope, not-found
+# otherwise. `list-units --all --plain --no-legend <pattern>`: the units that
+# pattern resolves to in that scope. Nothing else is modelled.
 if [ "$1" = "--user" ]; then
   shift
-  [ "$1" = "show" ] || exit 1
-  [ "$5" = "s2-someipd" ] && { echo "loaded"; exit 0; }
-  echo "not-found"; exit 0
+  case "$1" in
+    show) [ "${5%.service}" = "s2-someipd" ] && { echo "loaded"; exit 0; }; echo "not-found" ;;
+    list-units) echo "s2-someipd.service loaded active running S-CORE SOME/IP daemon" ;;
+    *) exit 1 ;;
+  esac
+  exit 0
 fi
-[ "$1" = "show" ] || exit 1
-[ "$5" = "s2-bridge" ] && { echo "loaded"; exit 0; }
-echo "not-found"; exit 0
+case "$1" in
+  show) [ "${5%.service}" = "s2-bridge" ] && { echo "loaded"; exit 0; }; echo "not-found" ;;
+  list-units) echo "s2-bridge.service loaded active running AEBS frame assembler" ;;
+  *) exit 1 ;;
+esac
+exit 0
 '''
 
 
@@ -166,6 +173,65 @@ def test_host_stack_pane_follows_the_journal_that_holds_each_unit(tmp_path):
     for c in calls:
         assert "-n 0" in c, f"pane would replay the journal tail: {c}"
         assert "de4sdv-*" not in c, f"unit glob matches nothing: {c}"
+    run(env, "stop", str(out))
+
+
+def test_host_stack_units_pattern_is_expanded_in_both_scopes(tmp_path):
+    """The bench names its units `s2-*`; a pattern has to become units.
+
+    Without expansion a pattern resolves in no scope, the pane falls back to the
+    whole journal, and the run's own lines are lost in the noise — the same
+    silent-gap failure in a different shape.
+    """
+    env = setup(tmp_path)
+    bin_path = Path(env["PATH"].split(os.pathsep)[0])
+    systemctl = bin_path / "systemctl"
+    systemctl.write_text(FAKE_SYSTEMCTL)
+    systemctl.chmod(0o755)
+    env["HOST_STACK_UNITS"] = "s2-*"
+    out = tmp_path / "rec"
+    result = run(env, "start", str(out))
+    assert result.returncode == 0, result.stdout + result.stderr
+    calls = [ln for ln in (tmp_path / "calls.log").read_text().splitlines() if ln.startswith("journalctl")]
+    joined = " ".join(calls)
+    assert "-u s2-bridge" in joined, calls
+    assert "--user" in joined and "-u s2-someipd" in joined, calls
+    assert "s2-*" not in joined, f"pattern reached journalctl: {calls}"
+    run(env, "stop", str(out))
+
+
+def test_host_stack_pane_follows_the_unit_log_files_when_given(tmp_path):
+    """The units write to files, so the pane must follow the files.
+
+    S3b: with four resolved units the pane still recorded nothing, because each
+    unit runs `exec … >> logs/… 2>&1` — the journal holds their start and stop
+    lines and no content. The S-CORE entry in `someipd.log` had 163 lines during
+    that window and none of them reached the evidence.
+    """
+    env = setup(tmp_path)
+    a = tmp_path / "someipd.log"
+    b = tmp_path / "gatewayd.log"
+    a.write_text("")
+    b.write_text("")
+    env["HOST_STACK_LOGS"] = f"{a} {b}"
+    out = tmp_path / "rec"
+    result = run(env, "start", str(out))
+    assert result.returncode == 0, result.stdout + result.stderr
+    calls = (tmp_path / "calls.log").read_text()
+    assert "journalctl" not in calls, "the journal is the wrong source when files are given"
+    run(env, "stop", str(out))
+    manifest = (out / "recording-manifest.yaml").read_text()
+    assert "host_stack_source: logs" in manifest
+
+
+def test_start_refuses_a_log_file_that_does_not_exist(tmp_path):
+    """A tail over a missing file records nothing; that must fail the start."""
+    env = setup(tmp_path)
+    env["HOST_STACK_LOGS"] = str(tmp_path / "not-there.log")
+    out = tmp_path / "rec"
+    result = run(env, "start", str(out))
+    assert result.returncode != 0
+    assert "does not exist" in result.stdout
     run(env, "stop", str(out))
 
 

@@ -25,6 +25,7 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 [ -n "${2:-}" ] || { echo "usage: $0 {start|hmi|stop} <out-dir>" >&2; exit 2; }
 OUT="$2"; mkdir -p "$OUT"
 : "${HOST_STACK_UNITS:=de4sdv-*}"          # the host-half units the run uses (set to the Launch Manager's units)
+: "${HOST_STACK_LOGS:=}"                   # space-separated host-half log files; preferred over the journal when set
 : "${AEB_PANE_CMD:=}"                      # optional Autoware-side pane; needs the bench ROS environment
 : "${APP_TAG:=MainActivity}"               # the HMI app's logcat tag (INC-AEBS-010)
 : "${INGRESS_TAG:=de4sdv_aebs_ingress}"    # the INC-AEBS-010 ingress's logcat tag (its per-frame line)
@@ -45,17 +46,33 @@ export PYTHONPATH="$HERE/../src${PYTHONPATH:+:$PYTHONPATH}"
 # journal holds. LoadState is the question being asked.
 _unit_scope() {
   local u="$1" state
-  case "$u" in *'*'*) return 0 ;; esac      # a pattern is not one unit's scope
   state="$(systemctl --user show -p LoadState --value "$u" 2>/dev/null)"
   [ "$state" = loaded ] && { printf 'user'; return 0; }
   state="$(systemctl show -p LoadState --value "$u" 2>/dev/null)"
   [ "$state" = loaded ] && printf 'system'
 }
 
+# The bench names its units by pattern (`s2-*`), and a pattern is not a unit: it
+# has to be expanded in each scope first, or every unit behind it is invisible.
+# --all so a unit that failed before the window (and may be restarted into it) is
+# still watched.
+_expand_units() {
+  local u
+  for u in $HOST_STACK_UNITS; do
+    case "$u" in
+      *'*'*|*'?'*|*'['*)
+        systemctl --user list-units --all --plain --no-legend "$u" 2>/dev/null | awk '{print $1}'
+        systemctl list-units --all --plain --no-legend "$u" 2>/dev/null | awk '{print $1}'
+        ;;
+      *) printf '%s\n' "$u" ;;
+    esac
+  done | sed '/^$/d' | sort -u
+}
+
 _host_stack_journal() {
   local u scope has_sys=0 has_user=0 sys_cmd="" user_cmd=""
   local -a sys_args=() user_args=()
-  for u in $HOST_STACK_UNITS; do
+  for u in $(_expand_units); do
     scope="$(_unit_scope "$u")"
     case "$scope" in
       user)   user_args+=(-u "$u"); has_user=1 ;;
@@ -112,7 +129,22 @@ start() {
   "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
   "$ADB" -s "$IVI_ADB" logcat -G 16M >/dev/null 2>&1 || true
   local host_cmd
-  host_cmd="$(_host_stack_journal)"
+  if [ -n "$HOST_STACK_LOGS" ]; then
+    # The host-half units run with their output redirected to files
+    # (`exec … >> logs/bridge.log 2>&1`), so the journal holds only their
+    # start/stop lines: a pane that follows the journal next to a live chain
+    # records a lifecycle diary and nothing else. Follow the files they write,
+    # from now on, or the S-CORE hop is missing from the evidence exactly where
+    # the increment is about it.
+    local missing=0 f
+    for f in $HOST_STACK_LOGS; do
+      [ -e "$f" ] || { log "ERROR: host-half log $f does not exist; the pane would record nothing"; missing=1; }
+    done
+    [ "$missing" = 0 ] || return 1
+    host_cmd="tail -F -n 0 $HOST_STACK_LOGS"
+  else
+    host_cmd="$(_host_stack_journal)"
+  fi
   [ -n "$host_cmd" ] || return 1
   if [ -n "$AEB_PANE_CMD" ]; then
     # The Autoware side of the chain, in its own terminal, before the assembler:
@@ -188,6 +220,7 @@ stop() {
     echo "owner_decision: owner decision of 2026-10-28 (recording for public use; posting needs approval)"
     echo "note: real terminal recordings (script --log-timing) and a real adb screenrecord of the IVI HMI; no rendered or stylized footage; an edited cut is labeled publication_cut"
     echo "host_stack_units: $HOST_STACK_UNITS"
+    if [ -n "$HOST_STACK_LOGS" ]; then echo "host_stack_source: logs  # $HOST_STACK_LOGS"; else echo "host_stack_source: journal"; fi
     if [ -n "$AEB_PANE_CMD" ]; then echo "aeb_pane: recorded"; else echo "aeb_pane: not_recorded  # AEB_PANE_CMD was unset"; fi
     echo "files:"
     ( cd "$OUT" && for f in *.typescript *.timing hmi-raw.mp4 hmi-anchor.yaml; do [ -f "$f" ] && echo "  - path: $f"; done )
