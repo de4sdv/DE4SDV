@@ -254,11 +254,19 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   `attribute speed_kmh : Vehicle_Speed;` in the payload); VSS typing is read
   at a port, never at an element, and text naming a VSS path is no VSS
   typing.
-- **Concerns (phase 1).** Each concern the increment's packages own has a
-  native `stakeholder` member (`stakeholderMember`). A viewpoint of a view of
-  the increment frames it (`framedByViewpoint`), by its own frame or by a
-  frame of the viewpoint definition it is typed by. Both checks block. The
-  views of the increment are the views its packages own, the same views as
+- **Concerns (phase 1).** At least one concern the increment's packages own
+  is not typed by `IncrementBoundaryConcern` or a specialization of it
+  (`incrementHasNonBoundaryConcern`): a boundary concern alone does not open
+  the phase. Boundary concerns may remain. Each concern the increment's
+  packages own has a native `stakeholder` member (`stakeholderMember`). A
+  viewpoint of a view of the increment frames it (`framedByViewpoint`), by
+  its own frame or by a frame of the viewpoint definition it is typed by.
+  All three checks block. A concern whose type or narrowed feature cannot be
+  read is an input problem, not a pass: its remedy says what to repair, and
+  it stays the next obligation. These gates judge presence and native
+  relationships only, never the completeness or adequacy of stakeholder,
+  risk or viewpoint coverage.
+  The views of the increment are the views its packages own, the same views as
   in phase 11. A view that a part or another view owns is none of them.
   The stakeholders are those members, of the concerns, the problem statement
   and the needs; no check counts stakeholder parts. A frame owned
