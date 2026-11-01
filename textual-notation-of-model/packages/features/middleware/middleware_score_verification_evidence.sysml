@@ -134,6 +134,7 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
      * reachability probe from both VMs of the guest. The next slice adds the
      * System 2 test environment element and closes this gap.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   /* Each case collects one ReceiptBoundMiddlewareEvidence record

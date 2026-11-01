@@ -1173,7 +1173,12 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * Fast DDS must stay on the host, the adapter splits into an S-CORE
      * process and a ROS 2 process. That changes the adapter process that
      * REQ-MW-018 names.
+          *
+     * Withdrawn at phase 12: the one-process adapter was built and run on the
+     * benchmark Linux host (x86_64) in the S1 to S3b sessions, so the item no
+     * longer holds for that host class.
      */
+    attribute :>> disposition = LifecycleDisposition::invalidated;
   }
 
   part <'GAP-MW-036'> gapSCOREGatewayOutsideReleasedBaseline : IncrementGap {
@@ -1221,6 +1226,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * protocol, and with it the SOME/IP end in the SDV Core VM, stays
      * SOME/IP.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   part <'GAP-MW-037'> gapInOrderFrameDeliveryNotGuaranteed : IncrementGap {
@@ -1249,6 +1255,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * REQ-MW-014 sees each gap and each change of order. Phase 10 measures
      * it with the frames' own sequence numbers.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
 
   part <'GAP-MW-038'> gapSOMEIPStackOnAAOSGuestUntested : IncrementGap {
@@ -1324,6 +1331,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * the phase start. The relay keeps this discard core. This is design
      * data, not evidence of record.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   part <'GAP-MW-039'> gapLoLaReturnsStoredSamplesOnSubscription : IncrementGap {
@@ -1384,6 +1392,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   prevents that; phase 10 tests it.
      * DE4SDV reported the defect to the communication project (2026-10-22).
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   part <'GAP-MW-040'> gapGatewaydOnlyRestartCorruptsPayloads : IncrementGap {
@@ -1409,6 +1418,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * The project closed the report as completed when the rework merged on
      * the same day.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   part <'GAP-MW-041'> gapLoLaAbortOnSubscribedProxyDestruction : IncrementGap {
@@ -1429,6 +1439,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * d9eac670, with 17 of 17 stops in each run of 2026-10-28. DE4SDV
      * reported the defect to the communication project (2026-10-22).
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   part <'GAP-MW-042'> gapSomeipdKeepsLocalOffers : IncrementGap {
@@ -1457,6 +1468,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * observed the kept offer, at commit 951fbc09 and again at d9eac670.
      * DE4SDV reported the defect to the gateway project (2026-10-22).
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   part <'GAP-MW-043'> gapGatewayFailureStopsAdapterWithNoRestart : IncrementGap {
@@ -1495,6 +1507,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      *   changes the adapter process that REQ-MW-018 names (GAP-MW-035).
      * No way out of the missing restart is assessed.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
 
   part <'GAP-MW-045'> gapPhaseStartDiscardBand : IncrementGap {
@@ -1536,6 +1549,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * phase starts of the resubscription case. Phase 10 reports each frame
      * that the AEBS stack produced in the band of a phase start.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
 
   part <'GAP-MW-046'> gapHostPortIsolationNotAuthored : IncrementGap {
@@ -1580,6 +1594,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * bridge: a guest with root can send from 192.168.98.3. REQ-MW-016 does
      * not need the rule, because someipd has no receiver for guest data.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   dependency hostPortIsolationGapOnLinuxHost
     from gapHostPortIsolationNotAuthored to scoreTwoDomainPhysicalSystem::linuxHost;
@@ -1622,6 +1637,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * applies: a custom DE4SDV ISomeIpStack replaces the reference stack in
      * the SDV Core VM. The owner decides it on the evidence.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   dependency referenceStackSkewGapOnSDVCoreVM
     from gapReferenceStackVsomeipSkewUntested to scoreTwoDomainPhysicalSystem::sdvCoreGuest;
@@ -1682,6 +1698,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * A listener is DE4SDV code in the SDV Core image, so it is a new element
      * of the layer, and it needs a requirement of its own.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
   dependency brokerRestartGapOnSDVCoreVM
     from gapSOMEIPBrokerAndStackNotRestarted to scoreTwoDomainPhysicalSystem::sdvCoreGuest;
