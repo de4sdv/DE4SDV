@@ -12,7 +12,7 @@
     <string name="state_intervention">INTERVENTION</string>
     <string name="state_released">RELEASED</string>
     <string name="provenance_chain">
-        SIMULATED POINT CLOUD → AUTOWARE AEB → ROS BRIDGE → SDV GATEWAY → AAOS
+        SIMULATED POINT CLOUD → AUTOWARE AEB → S-CORE → SDV CORE VM → SDV GATEWAY → AAOS APP
     </string>
     <string name="provenance_boundary">
         Read-only engineering visualization · issues no vehicle commands

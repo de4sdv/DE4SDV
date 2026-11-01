@@ -103,12 +103,22 @@ lateral_x(y)  = origin_x + y/(60/2) × usable_half_width
 ## 6. Provenance ribbon (exact text)
 
 ```text
-SIMULATED POINT CLOUD → AUTOWARE AEB → ROS BRIDGE → SDV GATEWAY → AAOS
+SIMULATED POINT CLOUD → AUTOWARE AEB → S-CORE → SDV CORE VM → SDV GATEWAY → AAOS APP
 Read-only engineering visualization · issues no vehicle commands
 ```
 
 - Both lines must remain readable at 1080×600 and at LinkedIn feed width.
+  The ribbon names the three stack layers the member uses — Autoware (the
+  application on the Linux host), S-CORE (the vehicle middleware) and AAOS (the
+  guest the HMI runs in) — so a reader can see which layers produced the frame.
 - "SIMULATED" must remain visible in every public frame.
+- The ribbon summarises a path, it is not a component inventory: the frame
+  assembler, the S-CORE adapter, `gatewayd`/`someipd`, the SOME/IP broker, the
+  Data Tunnel, the IVI frame relay and the AEBS ingress are deliberately not
+  named. Naming `ROS BRIDGE` here was correct for INC-AEBS-010 and wrong from
+  INC-MW-011 on: that component no longer exists, and the frames reach the HMI
+  through S-CORE. Any change to this line is a change to the member's public
+  provenance claim, not a cosmetic edit.
 - No physical LiDAR/camera detection-performance claim, no radar claim, no
   certification/compliance implication, no statement that the app is a safety
   authority.

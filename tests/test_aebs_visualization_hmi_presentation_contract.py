@@ -204,6 +204,13 @@ def test_provenance_and_read_only_boundary_remain_publicly_visible():
     strings = STRINGS.read_text(encoding="utf-8")
     assert "SIMULATED POINT CLOUD" in strings
     assert "Read-only engineering visualization · issues no vehicle commands" in strings
+    # The ribbon is the member's public provenance claim, so pin the whole line and
+    # not just its first word. It still named the INC-AEBS-010 "ROS BRIDGE" long
+    # after that component was gone: the S3 recording showed frames arriving through
+    # S-CORE while the HMI under them said they came over a bridge. A path change
+    # must fail here, not drift silently into a video.
+    assert ("SIMULATED POINT CLOUD → AUTOWARE AEB → S-CORE → SDV CORE VM → "
+            "SDV GATEWAY → AAOS APP") in strings
     nodes = _layout_nodes_by_id()
     assert _sp(nodes["health_chip"]) >= 16
     assert _sp(nodes["provenance"]) >= 16
