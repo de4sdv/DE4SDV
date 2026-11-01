@@ -44,6 +44,13 @@ echo "vm $*" >> "$FAKE_DIR/calls.log"
 [ "$1" = reboot-ivi ] && [ -z "$FAKE_SAME_BOOT" ] && echo "boot-2" > "$FAKE_DIR/boot_id"
 exit 0
 '''
+
+# `sudo tcpdump … &` keeps sudo as the recorded pid; this wrapper models the kill
+# that stops only sudo, leaving the capture alive.
+FAKE_SUDO_WRAPPER_ONLY = r'''#!/usr/bin/env bash
+if [ "$1" = tcpdump ]; then echo "sudo tcpdump $*" >> "$FAKE_DIR/calls.log"; exec sleep 20; fi
+exit 0
+'''
 FAKE_CLOCK = r'''#!/usr/bin/env bash
 if [ -n "${2:-}" ]; then echo "clock $1 $(basename "$2")"; else echo "clock $1"; fi >> "$FAKE_DIR/calls.log"
 exit 0
@@ -116,3 +123,32 @@ def test_a_plain_start_and_stop_with_one_boot_is_clean(tmp_path):
     result = run(env, "stop", str(out))
     assert result.returncode == 0, result.stdout + result.stderr
     assert "ivi_rebooted_in_window: false" in (out / "capture-manifest.yaml").read_text()
+
+
+def test_stop_refuses_while_a_host_capture_is_still_writing(tmp_path):
+    """`sudo tcpdump &` records the sudo pid, so killing it leaves tcpdump writing.
+
+    Both S3b windows ended with two orphans still appending to the pcap minutes
+    after `stop`: the file the evaluator hashed was not the file the evidence
+    would ship. The stop must stop the capture itself, and refuse to report a
+    stopped window while a writer lives.
+
+    The default fake sudo forwards to the real command, which would kill the
+    orphan and hide the defect; here sudo is a wrapper that stops at itself, as
+    on the bench.
+    """
+    env = setup(tmp_path)
+    out = tmp_path / "case"
+    assert run(env, "start", str(out)).returncode == 0
+    fake_sudo = Path(env["PATH"].split(os.pathsep)[0]) / "sudo"
+    fake_sudo.write_text(FAKE_SUDO_WRAPPER_ONLY)
+    fake_sudo.chmod(0o755)
+    # a live process whose command line is a host capture into this run's pcap
+    orphan = subprocess.Popen(
+        ["bash", "-c", f'exec -a "tcpdump -i lo -s0 -U -w {out}/produced.pcap tcp port 4721" sleep 30'])
+    try:
+        result = run(env, "stop", str(out))
+        assert result.returncode != 0
+        assert "still running after stop" in result.stdout
+    finally:
+        orphan.kill()

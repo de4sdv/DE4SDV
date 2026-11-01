@@ -159,7 +159,11 @@ What the scripts record about identity, and what they do not:
   sha256 read back from each guest. The probe copies what it found into
   `probe_sender.json` of its run directory.
 - `capture_case.sh stop` writes `capture-manifest.yaml` per case run: the
-  capture commands, the relay tag, the stop time and the IVI boot identity.
+  capture commands, the relay tag, the stop time and the IVI boot identity. It
+  stops the host captures by their own command line, not by the pid it recorded
+  — that pid is `sudo`, whose death leaves `tcpdump` writing into the pcap — and
+  fails the stop if a capture is still writing, because a pcap that grows after
+  the window no longer matches the digest the evaluator recorded.
 - `run.py` reports the sha256 of every artifact it read and a digest of the
   evaluator sources.
 - Not recorded by a script: the IVI image, the relay binary and init digests,
@@ -204,6 +208,28 @@ shows. Panes: the host stack and gatewayd/someipd, the SDV Core broker logcat,
 the relay log, and the IVI frame path (the ingress's per-frame line beside the
 app's, both with epoch stamps). No rendered or stylized footage. An edited cut is
 labeled `publication_cut`; the raw files stay with the evidence.
+
+`HOST_STACK_UNITS` names the host-half units the run uses. The pane probes each
+one and follows the journal that holds it — the bench splits the host half
+across scopes (some units are system units, others the operator's `--user`
+units), so a single `journalctl -u` cannot see both. It follows from now
+(`-n 0`) rather than replaying the journal tail, which in one window recorded
+thirteen lines from three hours before the run and read like evidence. A unit
+that resolves in neither scope is named in the output.
+
+`HOST_STACK_LOGS` is the better source when the units redirect their output:
+they run `exec … >> logs/<name>.log 2>&1`, so the journal holds their start and
+stop lines and nothing from the run. Set it to the files the units write
+(`HOST_STACK_LOGS="$LOGS/someipd.log $LOGS/gatewayd.log"`) and the pane follows
+those files instead; a file that does not exist fails the start rather than
+recording an empty pane. The manifest records which source was used:
+`host_stack_source: logs | journal`.
+
+`AEB_PANE_CMD` adds the Autoware-side pane (the coordinator's decision, before
+the assembler), which needs the bench ROS environment because it talks to the
+graph rather than to a log; it is empty by default and the manifest records
+`aeb_pane: recorded | not_recorded` either way, so a missing first hop is
+visible in the evidence instead of being assumed.
 
 `hmi` also writes `hmi-anchor.yaml`: the IVI clock read immediately before and
 after the screenrecord launch, and the host time around it. The video's `t = 0`
