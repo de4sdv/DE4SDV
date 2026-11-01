@@ -14,6 +14,8 @@ performance result or product-line admission is claimed.
   `INC-DRIVING-001`, its engineering question, charter, scope and open gaps.
 - [Pilot index](../../methodologies/sysmod-sysmlv2/pilots/driving-001-closed-loop.yaml):
   artifact locations only; it does not duplicate the model's meaning.
+- [Syside framing review view](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
+  the generated, dense model review artifact, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
 
 Orkun Yilmaz owns the increment. One identity covers phases 0 through 12;
@@ -52,9 +54,14 @@ stop/disable response in simulation and retained failure-path evidence.
 
 ## Next obligation and execution limits
 
-After review and licensed validation of framing, continue with **Phase 1 concern
-framing**: stakeholder concerns, risks and selected viewpoints. Do not jump from
-this charter to an implementation or claim a passed runtime gate.
+Use the reviewed PR's **Method Check** export to select the next obligation,
+not the phase number alone. The initial framing already satisfies Phase 1's
+two structural checks through its stakeholder-bearing, framed concern. That
+is not a claim of complete stakeholder or risk analysis. The next model
+obligation is **Phase 2 operational context**: exactly one context holding the
+system of interest, with stories bound to the subject and context actors.
+Review stakeholder/concern coverage alongside that boundary work. Do not jump
+from this charter to an implementation or claim a passed runtime gate.
 
 Before deep adoption, involve upstream maintainers and resolve source,
 checkpoint and data-use terms. Before a paid cloud run, refresh the regional
