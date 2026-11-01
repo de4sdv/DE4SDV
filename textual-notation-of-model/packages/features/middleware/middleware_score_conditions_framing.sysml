@@ -128,18 +128,18 @@ package DE4SDV_MiddlewareSCOREConditionsFraming {
        * points at rather than against prose.
        */
     }
+  }
 
-    part upstreamDefectsOutOfScope : OutOfScopeItem {
-      doc /*
-       * The S-CORE behaviours GAP-MW-039 to GAP-MW-042 record, and the
-       * unreleased S-CORE gateway of GAP-MW-036. They are upstream work; this
-       * increment observes their effect at the bench and does not fix them.
-       */
-    }
+  part upstreamDefectsOutOfScope : OutOfScopeItem {
+    doc /*
+     * The S-CORE behaviours GAP-MW-039 to GAP-MW-042 record, and the unreleased
+     * S-CORE gateway of GAP-MW-036. They are upstream work; this increment
+     * observes their effect at the bench and does not fix them.
+     */
+  }
 
-    part performanceOutOfScope : OutOfScopeItem {
-      doc /* Throughput, latency budgets and resource use. The increment states behaviour, not performance. */
-    }
+  part performanceOutOfScope : OutOfScopeItem {
+    doc /* Throughput, latency budgets and resource use. The increment states behaviour, not performance. */
   }
 
   part scoreMiddlewareConditionsCharter : IncrementCharter {
