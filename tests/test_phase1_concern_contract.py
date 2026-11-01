@@ -13,7 +13,7 @@ from de4sdv.semantic.increment_evaluation import evaluate_increment
 from de4sdv.semantic.increment_scope import ModelView
 from increment_model_fixtures import (
     INFINITY, WorkflowCheck, WorkflowParameter, WorkflowStep,
-    increment_scenario, increment_workflow,
+    increment_scenario, increment_workflow, ref,
 )
 from test_method_answer_coverage import _workflow_steps
 from test_revision_index import _traversal
@@ -195,6 +195,56 @@ def test_incomplete_candidate_lineage_is_not_evidence_of_non_boundary_membership
     else:
         assert block["phase_exit"] == "BLOCKED"
         assert block["gates"][GATE] != "PASS"
+        entry = next(entry for entry in evaluation.gaps()["blocking"] if entry["gate"] == GATE)
+        assert entry["kind"] == "method-side"
+
+
+_NARROWING = [("Subsetting", "subsettedFeature"), ("Redefinition", "redefinedFeature"),
+              ("ReferenceSubsetting", "referencedFeature")]
+
+
+def _narrow(builder, concern, target, kind, field, own_type=False):
+    if not own_type:
+        builder.remove(*[e for e in builder.elements if e.get("@type") == "FeatureTyping"
+                         and e.get("owningRelatedElement", {}).get("@id") == concern["@id"]])
+    builder.relationship(kind, concern, general=ref(target), specific=ref(concern), **{field: ref(target)})
+
+
+@pytest.mark.parametrize("kind,field", _NARROWING)
+@pytest.mark.parametrize("own_type", [False, True])
+def test_narrowing_a_boundary_concern_cannot_erase_its_inherited_type(kind, field, own_type):
+    scenario = _scenario(depth=1)
+    concern = _add_concern(scenario)
+    _narrow(scenario.builder, concern, scenario.concern, kind, field, own_type)
+    assert _phase(_evaluate(scenario))["gates"][GATE] == "FAIL"
+
+
+@pytest.mark.parametrize("kind,field", _NARROWING)
+def test_a_known_non_boundary_type_inherited_from_a_narrowed_feature_counts(kind, field):
+    scenario = _scenario()
+    builder = scenario.builder
+    foreign = builder.package("ReusableConcerns")
+    base = _add_concern(scenario, owner=foreign)
+    concern = _add_concern(scenario, name="localAnalysisConcern")
+    _narrow(builder, concern, base, kind, field)
+    assert _phase(_evaluate(scenario))["gates"][GATE] == "PASS"
+
+
+@pytest.mark.parametrize("known_non_boundary", [False, True])
+def test_an_unavailable_narrowed_feature_is_not_non_boundary_evidence(known_non_boundary):
+    scenario = _scenario()
+    builder = scenario.builder
+    missing = _add_concern(scenario, owner=builder.package("ReusableConcerns"))
+    concern = _add_concern(scenario, name="unreadableNarrowedConcern")
+    _narrow(builder, concern, missing, "Subsetting", "subsettedFeature")
+    builder.remove(missing)
+    if known_non_boundary:
+        _add_concern(scenario, name="knownConcern")
+    evaluation = _evaluate(scenario)
+    if known_non_boundary:
+        assert _phase(evaluation)["gates"][GATE] == "PASS"
+    else:
+        assert _phase(evaluation)["phase_exit"] == "BLOCKED"
         entry = next(entry for entry in evaluation.gaps()["blocking"] if entry["gate"] == GATE)
         assert entry["kind"] == "method-side"
 

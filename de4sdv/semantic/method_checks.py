@@ -849,12 +849,16 @@ def _non_boundary_concern_present(view: ModelView, increment: IncrementScope, su
     for element in increment.scope_elements:
         if view.element(element).get("@type") != "ConcernUsage":
             continue
-        lineage = type_lineage(view, element)
+        # A concern keeps the types of features it subsets, redefines or
+        # references, even when the serializer writes no typing of its own.
+        features = narrowed_features(view, element)
+        lineage = {definition for feature in features for definition in type_lineage(view, feature)}
         if boundary.intersection(lineage):
             continue
-        missing = [definition for definition in lineage if not view.element(definition)]
+        missing = [target for target in (*features, *sorted(lineage)) if not view.element(target)]
         if missing:
-            unreadable.append(f"{_name(view, element)} has unavailable type ancestors: {', '.join(missing)}")
+            unreadable.append(f"{_name(view, element)} has unavailable narrowed features or type ancestors: "
+                              + ", ".join(missing))
         else:
             concerns.append(element)
     if concerns:
