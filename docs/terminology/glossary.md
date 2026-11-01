@@ -3,6 +3,9 @@
 | Term | Working definition |
 |---|---|
 | SDV | Software-Defined Vehicle; a vehicle whose behavior and value are increasingly defined by software capabilities. |
+| AutoE2E | Autoware Foundation camera-based learned planning model; consumes camera and ego-motion history and predicts future acceleration/curvature samples. A model, not a complete Autoware deployment. |
+| CARLA | Driving simulator providing simulated sensors, vehicle dynamics and scenarios; an engineering and verification environment, not a vehicle product feature. |
+| Closed-loop driving | Driving in which planner/controller output affects the vehicle and the resulting sensor/vehicle state feeds subsequent planning. A prediction overlay on an independently driven vehicle does not establish this feedback. |
 | MBSE | Model-Based Systems Engineering. |
 | SysML v2 | Next-generation Systems Modeling Language and related API concepts. |
 | Concern | Any topic of interest for one or more stakeholders, such as functionality, variability, safety, security, compliance, cost, or evolvability; the questions a view must answer. |

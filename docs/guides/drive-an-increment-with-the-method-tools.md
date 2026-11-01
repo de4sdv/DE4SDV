@@ -8,6 +8,10 @@ authors model content, the deterministic evaluation judges it.
 
 ## Method representation
 
+For an owner-requested Phase 0 example that separates a candidate driving
+function from its simulator and evidence bench, see
+[Closed-loop driving increment](closed-loop-driving-increment.md).
+
 The method of an increment is the workflow its charter declares
 ([`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)).
 The tools reach it through native relations from validated identity: the
