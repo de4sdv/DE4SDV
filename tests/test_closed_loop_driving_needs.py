@@ -15,40 +15,40 @@ CONTEXT_PACKAGE = "DE4SDV_ClosedLoopDrivingOperationalContext"
 SYSTEM_OF_INTEREST = "DE4SDV_ClosedLoopDrivingFraming::candidateDrivingSystem"
 CHECKPOINT_PIN = "cb50764b"
 
-#: Each need: its short name, the stakeholder roles that hold it, and the phase 1 concern its source
-#: names. The stakeholders are those of that concern, so the need traces to the concern through both.
+#: Each need: its short name, the stakeholder roles that hold it, and the FIRST phase 1 concern its
+#: source names. A need is held by the parties it serves, so each role set is a subset of the
+#: stakeholders of that concern; the roles that check the answer stay on the planned reviews.
 NEEDS = {
-    "needCheckpointPlansMoveTheVehicle": (
-        "NEED-DRIVING-001", {"SystemsEngineer", "VerificationEngineer", "OpenSourceReviewer"},
-        "checkpointCommandAuthorityConcern"),
-    "needCheckpointInputsAsTrained": (
-        "NEED-DRIVING-002", {"SystemsEngineer", "VerificationEngineer"}, "checkpointCommandAuthorityConcern"),
+    "needDrivenAlongTheRoute": (
+        "NEED-DRIVING-001", {"VehicleOccupant"}, "drivenAlongTheRouteConcern"),
     "needPlansAndCommandsThroughSCORE": (
-        "NEED-DRIVING-003", {"SystemArchitect", "SoftwareDeveloper", "Maintainer"}, "scoreCommandPathConcern"),
+        "NEED-DRIVING-002", {"SystemArchitect", "SoftwareDeveloper", "Maintainer"}, "scoreCommandPathConcern"),
     "needLiveStateForAAOS": (
-        "NEED-DRIVING-004", {"VerificationEngineer", "OpenSourceReviewer"}, "aaosObservationFidelityConcern"),
+        "NEED-DRIVING-003", {"VehicleOccupant", "VerificationEngineer"}, "aaosObservationFidelityConcern"),
     "needLoopIndependentOfAAOS": (
-        "NEED-DRIVING-005", {"VerificationEngineer", "OpenSourceReviewer"}, "aaosObservationFidelityConcern"),
+        "NEED-DRIVING-004", {"VehicleOccupant"}, "aaosObservationFidelityConcern"),
     "needDefinedResponseToDegradedInputOrPlan": (
-        "NEED-DRIVING-006", {"SafetyExpert", "SystemArchitect"}, "degradedInputBehaviorConcern"),
+        "NEED-DRIVING-005", {"VehicleOccupant", "RoadUser"}, "degradedInputBehaviorConcern"),
     "needTimesMeasurableInTheirOwnDomain": (
-        "NEED-DRIVING-007", {"VerificationEngineer", "SystemsEngineer"}, "timeDomainHonestyConcern"),
+        "NEED-DRIVING-006", {"VerificationEngineer", "SystemsEngineer"}, "timeDomainHonestyConcern"),
     "needRunsIdentifyCheckpointAndConfiguration": (
-        "NEED-DRIVING-008", {"VerificationEngineer", "Maintainer", "OpenSourceReviewer"},
+        "NEED-DRIVING-007", {"VerificationEngineer", "Maintainer", "OpenSourceReviewer"},
         "reproducibleClosedLoopEvidenceConcern"),
 }
 
 #: The validation plan of each need and the phase 2 use case whose run the planned review watches.
 VALIDATION = {
-    "needCheckpointPlansMoveTheVehicle": ("SC-DRIVING-005", "driveOnCheckpointPlans"),
-    "needCheckpointInputsAsTrained": ("SC-DRIVING-006", "driveOnCheckpointPlans"),
-    "needPlansAndCommandsThroughSCORE": ("SC-DRIVING-007", "driveOnCheckpointPlans"),
-    "needLiveStateForAAOS": ("SC-DRIVING-008", "showLiveStateOnAAOS"),
-    "needLoopIndependentOfAAOS": ("SC-DRIVING-009", "continueWithoutAAOS"),
-    "needDefinedResponseToDegradedInputOrPlan": ("SC-DRIVING-010", "respondToDegradedInputOrPlan"),
-    "needTimesMeasurableInTheirOwnDomain": ("SC-DRIVING-011", "driveOnCheckpointPlans"),
-    "needRunsIdentifyCheckpointAndConfiguration": ("SC-DRIVING-012", "driveBoundedScenarioClosedLoop"),
+    "needDrivenAlongTheRoute": ("SC-DRIVING-005", "driveOnCheckpointPlans"),
+    "needPlansAndCommandsThroughSCORE": ("SC-DRIVING-006", "driveOnCheckpointPlans"),
+    "needLiveStateForAAOS": ("SC-DRIVING-007", "showLiveStateOnAAOS"),
+    "needLoopIndependentOfAAOS": ("SC-DRIVING-008", "continueWithoutAAOS"),
+    "needDefinedResponseToDegradedInputOrPlan": ("SC-DRIVING-009", "respondToDegradedInputOrPlan"),
+    "needTimesMeasurableInTheirOwnDomain": ("SC-DRIVING-010", "driveOnCheckpointPlans"),
+    "needRunsIdentifyCheckpointAndConfiguration": ("SC-DRIVING-011", "driveBoundedScenarioClosedLoop"),
 }
+
+#: Wording that belongs to the review of the answer, not to the statement of what a holder expects.
+REVIEW_WORDING = ("autopilot", "replay", "undisclosed", "cannot pass", "wall-clock")
 
 
 def _raw() -> str:
@@ -81,7 +81,7 @@ def _statement(body: str) -> str:
     return _flat(match.group(1))
 
 
-def test_the_needs_are_exactly_the_eight_of_phase_4_with_unique_short_names():
+def test_the_needs_are_exactly_the_seven_of_phase_4_with_unique_short_names():
     code = _code()
     assert re.search(rf"\bpackage\s+{PACKAGE}\s*\{{", code)
     declared = re.findall(r"\brequirement\s+<'([^']+)'>\s+(\w+)\s*:\s*StakeholderNeedCandidate\b", code)
@@ -104,15 +104,23 @@ def test_each_need_has_statement_stakeholders_source_rationale_and_the_system_of
         assert len(_attribute(body, "rationale")) > 60, name
 
 
-def test_every_non_boundary_concern_of_phase_1_has_a_need():
+def test_every_non_boundary_concern_of_phase_1_is_named_by_a_need():
+    # The reviewers' command-authority question is no longer held by a need of its own: it is answered by
+    # the phase 8 mapping, checked by SC-DRIVING-005, and named by NEED-DRIVING-001's source. Every other
+    # non-boundary concern of phase 1 is the first-named concern of a need and is held by that need's roles.
     framing = strip_comments(FRAMING.read_text(encoding="utf-8"))
     concerns = {name for name, kind in re.findall(r"\bconcern\s+(\w+)\s*:\s*(\w+)\s*\{", framing)
                 if kind != "IncrementBoundaryConcern"}
-    assert len(concerns) == 6
-    assert {concern for _short, _roles, concern in NEEDS.values()} == concerns
+    assert len(concerns) == 7
+    named = set()
     for name, (_short, roles, concern) in NEEDS.items():
-        holders = set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", braced_body(framing, f"concern {concern} :")))
+        source = _attribute(_need(name), "source")
+        named.update(re.findall(r"\b(\w+Concern)\b", source))
+        holders = set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;",
+                                 braced_body(framing, f"concern {concern} :")))
         assert roles <= holders, (name, roles - holders)
+    assert concerns <= named, sorted(concerns - named)
+    assert "checkpointCommandAuthorityConcern" in _attribute(_need("needDrivenAlongTheRoute"), "source")
 
 
 def test_each_need_has_a_planned_review_on_a_phase_2_scenario():
@@ -128,7 +136,7 @@ def test_each_need_has_a_planned_review_on_a_phase_2_scenario():
         plan = plans[plan_short]
         assert associations.count((need, plan)) == 1, (need, plan)
         doc = _flat(braced_body(raw, f"part <'{plan_short}'> {plan} : ValidationPlanningScenario"))
-        assert f"For {NEEDS[need][0]}, a planned stakeholder review." in doc, plan
+        assert f"For {NEEDS[need][0]}, a planned stakeholder review" in doc, plan
         assert (plan, f"{CONTEXT_PACKAGE}::{use_case}") in dependencies, (plan, use_case)
         assert re.search(rf"\buse\s+case\s+{use_case}\b", context), use_case
     assert len(associations) == len(NEEDS), "one planned review per need"
@@ -136,14 +144,28 @@ def test_each_need_has_a_planned_review_on_a_phase_2_scenario():
     assert not re.search(r"<'SC-DRIVING-00[1-4]'>", code)
 
 
-def test_the_inputs_need_names_the_runtime_contract_of_the_pinned_checkpoint():
-    body = _need("needCheckpointInputsAsTrained")
-    statement = _statement(body)
-    for item in ("camera images", "calibration", "ego-motion history", "map", "route", "aligned in time"):
-        assert item in statement, item
-    source = _attribute(body, "source")
-    assert CHECKPOINT_PIN in source and "Model/README.md" in source and "egomotion.py" in source
-    assert "gapModelInputAndFeedback" in source and "asmSourceAuthenticity" in source
+def test_the_checkpoint_input_contract_is_kept_as_a_comment_for_phase_5():
+    # NEED-DRIVING-002 is folded into NEED-DRIVING-001: the form of the pinned checkpoint's inputs is
+    # no longer a need of its own, but phase 5 still derives requirements from it.
+    match = re.search(r"comment\s+checkpointInputContractForPhase5\s+about\s+needDrivenAlongTheRoute\s*/\*(.*?)\*/",
+                      _raw(), re.S)
+    assert match, "the checkpoint input contract is kept as a comment about NEED-DRIVING-001"
+    text = _flat(match.group(1))
+    assert "For phase 5" in text
+    for item in (CHECKPOINT_PIN, "Model/README.md", "egomotion.py", "map_context", "64 history samples at 10 Hz"):
+        assert item in text, item
+    assert "derived from NEED-DRIVING-001" in text
+
+
+def test_the_need_statements_state_what_the_holders_expect_not_how_it_is_reviewed():
+    # The no-autopilot/replay/overlay condition is a check on the answer, carried by SC-DRIVING-005 and
+    # turned into a verification criterion in phase 5; it is not part of what a holder states.
+    for name in NEEDS:
+        statement = _statement(_need(name)).lower()
+        for wording in REVIEW_WORDING:
+            assert wording not in statement, (name, wording)
+    plan = _flat(braced_body(_raw(), "part <'SC-DRIVING-005'> checkpointAuthorityValidationPlan : ValidationPlanningScenario"))
+    assert "no autopilot, replay or overlay" in plan
 
 
 def test_the_need_texts_make_no_claim_the_charter_excludes():
@@ -168,10 +190,10 @@ def test_two_tables_frame_the_needs_concern_and_show_needs_and_planned_reviews()
         assert re.search(rf"\bviewpoint\s+\w+\s*:\s*StakeholderRequirementDefinitionViewpoint\s*\{{\s*frame\s+{concerns[0]}\s*;",
                          body), view
         exposed[view] = re.findall(r"\bexpose\s+([^;]+);", body)
-    plans = [plan for plan in re.findall(r"\bpart\s+<'SC-DRIVING-\d{3}'>\s+(\w+)\s*:", code)]
-    assert sorted(exposed.values()) == sorted([list(NEEDS), plans])
+    plan_names = [name for _short, name in re.findall(r"\bpart\s+<'(SC-DRIVING-\d{3})'>\s+(\w+)\s*:", code)]
+    assert sorted(exposed.values()) == sorted([list(NEEDS), plan_names])
     needs_view = next(view for view, names in exposed.items() if names == list(NEEDS))
-    plans_view = next(view for view, names in exposed.items() if names == plans)
+    plans_view = next(view for view, names in exposed.items() if names == plan_names)
     needs_body = braced_body(code, f"view {needs_view} : TVD::TableView")
     assert re.search(r'CT::attributeValue\s*\{\s*attribute\s+attributeName\s*=\s*"source"\s*;', needs_body), \
         "the needs table shows each source"
@@ -189,12 +211,12 @@ def test_no_source_holds_a_path_too_long_to_wrap_in_its_table_column():
         assert len(longest) <= 40, (name, longest)
 
 
-def test_the_route_from_navigation_enters_the_inputs_and_the_degraded_response():
-    # Phase 2 correction of 2026-11-02 (#476): navigation gives the route. NEED-DRIVING-002 names that
-    # context role as the source of the map and route, and a degraded route triggers the same defined
-    # response as degraded camera images or motion (SC-DRIVING-003 now names the route).
-    assert "the navigation context role (SC-DRIVING-001)" in _attribute(_need("needCheckpointInputsAsTrained"), "source")
+def test_the_route_from_navigation_enters_the_route_need_and_the_degraded_response():
+    # Phase 2 correction of 2026-11-02 (#476): navigation gives the route. NEED-DRIVING-001 names that
+    # context role as the source of the route, and a degraded route triggers the same defined response as
+    # degraded camera images or motion (SC-DRIVING-003 now names the route, reviewed by SC-DRIVING-009).
+    assert "the route from the navigation context role" in _attribute(_need("needDrivenAlongTheRoute"), "source")
     degraded = _statement(_need("needDefinedResponseToDegradedInputOrPlan"))
     assert "the camera images, the motion of the vehicle or the route become invalid, lost or stale" in degraded
-    plan = _flat(braced_body(_raw(), "part <'SC-DRIVING-010'> degradedResponseValidationPlan : ValidationPlanningScenario"))
+    plan = _flat(braced_body(_raw(), "part <'SC-DRIVING-009'> degradedResponseValidationPlan : ValidationPlanningScenario"))
     assert "camera images, motion or route" in plan

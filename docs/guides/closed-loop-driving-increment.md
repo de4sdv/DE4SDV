@@ -175,26 +175,39 @@ candidate or deferred scope; review judges the classification.
 
 ## Stakeholder needs (Phase 4)
 
-Eight needs, `NEED-DRIVING-001` to `NEED-DRIVING-008`, take the candidate
-driving system as subject. Each is elaborated from one non-boundary Phase 1
-concern and is held by stakeholders of that concern:
+Seven needs, `NEED-DRIVING-001` to `NEED-DRIVING-007`, take the candidate
+driving system as subject. Each is held by the parties it serves, not by the
+roles that check the answer, and each is derived from one non-boundary Phase 1
+concern, which its source names:
 
-- **Checkpoint command authority:** the checkpoint's plans move the vehicle
-  (001); it plans from the inputs its runtime contract fixes, which are
-  calibrated camera images, the ego-motion history, and the map and route
-  (002).
-- **S-CORE command path:** plans and commands pass through S-CORE (003).
+- **Driven along the route:** the checkpoint's plans move the vehicle along
+  the route the driver chose (001; vehicle occupants).
+- **S-CORE command path:** plans and commands pass through S-CORE (002; system
+  architects, software developers, maintainers).
 - **AAOS observation fidelity:** the loop publishes its live state with
-  producer and time (004), and runs unchanged when AAOS SDV is down or late
-  (005).
+  producer and time (003; vehicle occupants, verification engineers), and runs
+  unchanged when AAOS SDV is down or late (004; vehicle occupants).
 - **Degraded input behavior:** a defined stop or disable response to degraded
-  camera images, motion, route or plans (006).
-- **Time-domain honesty:** inputs, plans and commands carry their times (007).
+  camera images, motion, route or plans (005; vehicle occupants, road users).
+- **Time-domain honesty:** inputs, plans and commands carry their times (006;
+  verification engineers, systems engineers).
 - **Reproducible evidence:** each run identifies its checkpoint and
-  configuration (008).
+  configuration (007; verification engineers, maintainers, open-source
+  reviewers).
+
+The form of the inputs the pinned checkpoint takes — camera images through the
+projection operator that carries their calibration, the `map_context` raster
+with the route corridor and destination, and the ego-motion history with its
+sample count and spacing — is no need of its own. It is recorded as
+`checkpointInputContractForPhase5`, a comment on `NEED-DRIVING-001` in the
+needs model, and Phase 5 states it as requirements derived from that need.
+
+The no-autopilot, replay or overlay condition is likewise not part of what an
+occupant states. The planned review `SC-DRIVING-005` checks it, and Phase 5
+turns it into a verification criterion.
 
 Each need has its own planned stakeholder review, `SC-DRIVING-005` to
-`SC-DRIVING-012`, watching a Phase 2 scenario. The limits and the deadlines
+`SC-DRIVING-011`, watching a Phase 2 scenario. The limits and the deadlines
 come with the requirements in Phase 5. No need covers driving quality: the
 charter scopes checkpoint authority, and poor driving is a hold or redirect
 condition of the performance gap. The Phase 4 gates check that each need has

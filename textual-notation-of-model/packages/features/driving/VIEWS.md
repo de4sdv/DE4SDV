@@ -53,7 +53,7 @@ Reviewers need the stakeholder needs of the driving system with their statements
 - **Viewpoint:** `selectedNeedsViewpoint` (`StakeholderRequirementDefinitionViewpoint`)
 - **View type:** `TVD::TableView`
 - **Concern:** `closedLoopDrivingNeedsConcern`
-- **Exposes:** `needCheckpointPlansMoveTheVehicle`, `needCheckpointInputsAsTrained`, `needPlansAndCommandsThroughSCORE`, `needLiveStateForAAOS`, `needLoopIndependentOfAAOS`, `needDefinedResponseToDegradedInputOrPlan`, `needTimesMeasurableInTheirOwnDomain`, `needRunsIdentifyCheckpointAndConfiguration`
+- **Exposes:** `needDrivenAlongTheRoute`, `needPlansAndCommandsThroughSCORE`, `needLiveStateForAAOS`, `needLoopIndependentOfAAOS`, `needDefinedResponseToDegradedInputOrPlan`, `needTimesMeasurableInTheirOwnDomain`, `needRunsIdentifyCheckpointAndConfiguration`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 
@@ -67,7 +67,7 @@ Reviewers need the stakeholder needs of the driving system with their statements
 - **Viewpoint:** `selectedNeedValidationViewpoint` (`StakeholderRequirementDefinitionViewpoint`)
 - **View type:** `TVD::TableView`
 - **Concern:** `closedLoopDrivingNeedsConcern`
-- **Exposes:** `checkpointAuthorityValidationPlan`, `checkpointInputsValidationPlan`, `scoreCommandPathValidationPlan`, `liveStateValidationPlan`, `aaosIndependenceValidationPlan`, `degradedResponseValidationPlan`, `timeDomainValidationPlan`, `rerunValidationPlan`
+- **Exposes:** `checkpointAuthorityValidationPlan`, `scoreCommandPathValidationPlan`, `liveStateValidationPlan`, `aaosIndependenceValidationPlan`, `degradedResponseValidationPlan`, `timeDomainValidationPlan`, `rerunValidationPlan`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 
