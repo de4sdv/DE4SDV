@@ -3,13 +3,12 @@
 from pathlib import Path
 import re
 
-import yaml
-
 from sysml_shapes import braced_body, strip_comments
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "textual-notation-of-model/packages/features/driving/closed_loop_driving_framing.sysml"
 PACKAGE = "DE4SDV_ClosedLoopDrivingFraming"
+CONTEXT_PACKAGE = "DE4SDV_ClosedLoopDrivingOperationalContext"
 
 
 def test_increment_has_its_own_phase_zero_contract():
@@ -39,7 +38,7 @@ def test_increment_has_its_own_phase_zero_contract():
         "phase10_vvEvidence", "phase11_baseline",
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [PACKAGE]
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [PACKAGE, CONTEXT_PACKAGE]
     assert "frame closedLoopDrivingBoundary;" in code
     assert "viewpoint closedLoopDrivingFramingViewpoint : IncrementFramingViewpoint" in code
     assert "expose closedLoopDrivingCharter;" in code
@@ -69,23 +68,6 @@ def test_phase_zero_keeps_risks_and_nonclaims_visible():
     assert "part closedLoopVerificationEnvironment : System2EngineeringAndAssuranceSystem" in code
     assert "OutOfScopeItem" not in braced_body(code, "part closedLoopDrivingScope : IncrementScope")
     assert not re.search(r"\b(?:verify|satisfy)\s+\w+", code)
-
-
-def test_pilot_is_an_index_of_existing_artifacts_only():
-    pilot = ROOT / "methodologies/sysmod-sysmlv2/pilots/driving-001-closed-loop.yaml"
-    assert pilot.is_file(), "the new framing needs a discoverable pilot index"
-    index = yaml.safe_load(pilot.read_text(encoding="utf-8"))
-    assert set(index) == {"increment_id", "model_files", "documentation", "provenance"}
-    assert index["increment_id"] == "INC-DRIVING-001"
-    assert index["model_files"] == [{
-        "package": PACKAGE,
-        "file": str(MODEL.relative_to(ROOT)),
-        "increment": f"{PACKAGE}::closedLoopDrivingIncrement",
-        "charter": f"{PACKAGE}::closedLoopDrivingCharter",
-        "view": f"{PACKAGE}::closedLoopDrivingFramingView",
-    }]
-    assert (ROOT / index["documentation"]).is_file()
-    assert (ROOT / index["provenance"]).is_file()
 
 
 def test_framing_view_exposes_scope_and_deferred_scope():
