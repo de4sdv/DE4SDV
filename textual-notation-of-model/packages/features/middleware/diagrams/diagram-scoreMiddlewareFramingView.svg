@@ -39,12 +39,12 @@
   <path d="M 1110,201 H 1429 A 6,6 0 0 1 1435,207 V 313 A 6,6 0 0 1 1429,319 H 1110 A 6,6 0 0 1 1104,313 V 207 A 6,6 0 0 1 1110,201 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 397,375 H 735 A 6,6 0 0 1 741,381 V 535 A 6,6 0 0 1 735,541 H 397 A 6,6 0 0 1 391,535 V 381 A 6,6 0 0 1 397,375 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 767,375 H 1113 A 6,6 0 0 1 1119,381 V 559 A 6,6 0 0 1 1113,565 H 767 A 6,6 0 0 1 761,559 V 381 A 6,6 0 0 1 767,375 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1144,375 H 1477 A 6,6 0 0 1 1483,381 V 581 A 6,6 0 0 1 1477,587 H 1144 A 6,6 0 0 1 1138,581 V 381 A 6,6 0 0 1 1144,375 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1144,375 H 1499 A 6,6 0 0 1 1505,381 V 581 A 6,6 0 0 1 1499,587 H 1144 A 6,6 0 0 1 1138,581 V 381 A 6,6 0 0 1 1144,375 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 304,88 H 637 L 649,100 V 144 H 304 V 88 Z" fill="#FFFDE7" fill-opacity="1.000"/>
   <path d="M 637,88 L 637,100 L 649,100 Z" fill="#FFFDE7" fill-opacity="1.000" stroke="none"/>
   <path d="M 398,661 H 765 A 6,6 0 0 1 771,667 V 958 A 6,6 0 0 1 765,964 H 398 A 6,6 0 0 1 392,958 V 667 A 6,6 0 0 1 398,661 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1509,375 H 1834 A 6,6 0 0 1 1840,381 V 624 A 6,6 0 0 1 1834,630 H 1509 A 6,6 0 0 1 1503,624 V 381 A 6,6 0 0 1 1509,375 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 1866,375 H 2227 A 6,6 0 0 1 2233,381 V 636 A 6,6 0 0 1 2227,642 H 1866 A 6,6 0 0 1 1860,636 V 381 A 6,6 0 0 1 1866,375 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1531,375 H 1856 A 6,6 0 0 1 1862,381 V 624 A 6,6 0 0 1 1856,630 H 1531 A 6,6 0 0 1 1525,624 V 381 A 6,6 0 0 1 1531,375 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 1888,375 H 2249 A 6,6 0 0 1 2255,381 V 636 A 6,6 0 0 1 2249,642 H 1888 A 6,6 0 0 1 1882,636 V 381 A 6,6 0 0 1 1888,375 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 34,1424 H 397 A 6,6 0 0 1 403,1430 V 1906 A 6,6 0 0 1 397,1912 H 34 A 6,6 0 0 1 28,1906 V 1430 A 6,6 0 0 1 34,1424 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 1258,720 H 1566 V 756 H 1258 V 720 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 796,661 H 1232 A 6,6 0 0 1 1238,667 V 697 H 790 V 667 A 6,6 0 0 1 796,661 Z" fill="#C8DCE6" fill-opacity="1.000"/>
@@ -69,10 +69,10 @@
   <path d="M 1110,201 H 1429 A 6,6 0 0 1 1435,207 V 237 H 1104 V 207 A 6,6 0 0 1 1110,201 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 397,375 H 735 A 6,6 0 0 1 741,381 V 411 H 391 V 381 A 6,6 0 0 1 397,375 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 767,375 H 1113 A 6,6 0 0 1 1119,381 V 411 H 761 V 381 A 6,6 0 0 1 767,375 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1144,375 H 1477 A 6,6 0 0 1 1483,381 V 411 H 1138 V 381 A 6,6 0 0 1 1144,375 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1144,375 H 1499 A 6,6 0 0 1 1505,381 V 411 H 1138 V 381 A 6,6 0 0 1 1144,375 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 398,661 H 765 A 6,6 0 0 1 771,667 V 697 H 392 V 667 A 6,6 0 0 1 398,661 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1509,375 H 1834 A 6,6 0 0 1 1840,381 V 411 H 1503 V 381 A 6,6 0 0 1 1509,375 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 1866,375 H 2227 A 6,6 0 0 1 2233,381 V 411 H 1860 V 381 A 6,6 0 0 1 1866,375 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1531,375 H 1856 A 6,6 0 0 1 1862,381 V 411 H 1525 V 381 A 6,6 0 0 1 1531,375 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 1888,375 H 2249 A 6,6 0 0 1 2255,381 V 411 H 1882 V 381 A 6,6 0 0 1 1888,375 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 34,1424 H 397 A 6,6 0 0 1 403,1430 V 1460 H 28 V 1430 A 6,6 0 0 1 34,1424 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 1258,720 H 1566 V 756 H 1258 V 720 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="790,697 1238,697" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -128,9 +128,9 @@
   <path d="M 397,375 H 735 A 6,6 0 0 1 741,381 V 535 A 6,6 0 0 1 735,541 H 397 A 6,6 0 0 1 391,535 V 381 A 6,6 0 0 1 397,375 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="761,411 1119,411" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 767,375 H 1113 A 6,6 0 0 1 1119,381 V 559 A 6,6 0 0 1 1113,565 H 767 A 6,6 0 0 1 761,559 V 381 A 6,6 0 0 1 767,375 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1138,411 1483,411" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1138,541 1483,541" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1144,375 H 1477 A 6,6 0 0 1 1483,381 V 581 A 6,6 0 0 1 1477,587 H 1144 A 6,6 0 0 1 1138,581 V 381 A 6,6 0 0 1 1144,375 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1138,411 1505,411" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1138,541 1505,541" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1144,375 H 1499 A 6,6 0 0 1 1505,381 V 581 A 6,6 0 0 1 1499,587 H 1144 A 6,6 0 0 1 1138,581 V 381 A 6,6 0 0 1 1144,375 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 304,88 H 637 L 649,100 V 144 H 304 V 88 Z" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 637,88 L 637,100 L 649,100 Z" fill="none" stroke="none"/>
   <path d="M 637,88 L 637,100 L 649,100" fill="none" stroke="#F9A825" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -139,16 +139,16 @@
   <polyline points="392,825 771,825" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="392,883 771,883" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 398,661 H 765 A 6,6 0 0 1 771,667 V 958 A 6,6 0 0 1 765,964 H 398 A 6,6 0 0 1 392,958 V 667 A 6,6 0 0 1 398,661 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1503,411 1840,411" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1503,481 1840,481" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1503,515 1840,515" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1503,573 1840,573" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1509,375 H 1834 A 6,6 0 0 1 1840,381 V 624 A 6,6 0 0 1 1834,630 H 1509 A 6,6 0 0 1 1503,624 V 381 A 6,6 0 0 1 1509,375 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1860,411 2233,411" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1860,481 2233,481" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1860,515 2233,515" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="1860,573 2233,573" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
-  <path d="M 1866,375 H 2227 A 6,6 0 0 1 2233,381 V 636 A 6,6 0 0 1 2227,642 H 1866 A 6,6 0 0 1 1860,636 V 381 A 6,6 0 0 1 1866,375 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1525,411 1862,411" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1525,481 1862,481" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1525,515 1862,515" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1525,573 1862,573" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1531,375 H 1856 A 6,6 0 0 1 1862,381 V 624 A 6,6 0 0 1 1856,630 H 1531 A 6,6 0 0 1 1525,624 V 381 A 6,6 0 0 1 1531,375 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1882,411 2255,411" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1882,481 2255,481" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1882,515 2255,515" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="1882,573 2255,573" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 1888,375 H 2249 A 6,6 0 0 1 2255,381 V 636 A 6,6 0 0 1 2249,642 H 1888 A 6,6 0 0 1 1882,636 V 381 A 6,6 0 0 1 1888,375 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,1460 403,1460" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="28,1866 403,1866" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 34,1424 H 397 A 6,6 0 0 1 403,1430 V 1906 A 6,6 0 0 1 397,1912 H 34 A 6,6 0 0 1 28,1906 V 1430 A 6,6 0 0 1 34,1424 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -174,8 +174,8 @@
   <text x="798" y="723" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">INC-MW-011: middleware integration on Eclipse S-CORE, in a member</tspan></text>
   <text x="798" y="735" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">product with two execution domains under a hypervisor: Autoware,</tspan></text>
   <text x="798" y="747" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">S-CORE and the adapter on a Linux host, and an AAOS SDV guest with the</tspan></text>
-  <text x="798" y="759" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">HMI. One increment identity spanning phases 0 to 12, from framing</tspan></text>
-  <text x="798" y="771" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">through verification evidence, publication and the baseline decision:</tspan></text>
+  <text x="798" y="759" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">HMI. One increment identity spanning phases 0 to 11, from framing</tspan></text>
+  <text x="798" y="771" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">through verification evidence to the baseline decision and its views:</tspan></text>
   <text x="798" y="783" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">this framing slice and the needs, requirements, physical/software</tspan></text>
   <text x="798" y="795" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">realization, configuration and verification-evidence slices all</tspan></text>
   <text x="798" y="807" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">belong to this increment.</tspan></text>
@@ -260,13 +260,13 @@
   <text x="430" y="1510" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">concern framing, operational context, capability classification, needs,</tspan></text>
   <text x="430" y="1522" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">requirements, functional and logical architecture, physical/software</tspan></text>
   <text x="430" y="1534" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">realization, variability and configuration, verification evidence,</tspan></text>
-  <text x="430" y="1546" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">publication, and the baseline and next-slice decision. Phases 1 to 3</tspan></text>
+  <text x="430" y="1546" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">and the baseline decision with its published views. Phases 1 to 3</tspan></text>
   <text x="430" y="1558" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">and 6 to 7 are declared because the increment revalidates the</tspan></text>
   <text x="430" y="1570" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">middleware baseline of INC-MW-002 to INC-MW-007 for the S-CORE variant</tspan></text>
   <text x="430" y="1582" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">and extends it where the two-domain member needs it: the cross-domain</tspan></text>
-  <text x="430" y="1594" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">HMI path and the per-execution-domain platform. Phases 11 and 12 are</tspan></text>
-  <text x="430" y="1606" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">declared because the lifecycle decision and the scope-revision</tspan></text>
-  <text x="430" y="1618" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">decision record that admits the member are phase 12 work.</tspan></text>
+  <text x="430" y="1594" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">HMI path and the per-execution-domain platform. Phase 11 is declared</tspan></text>
+  <text x="430" y="1606" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">because the lifecycle decision and the scope-revision decision record</tspan></text>
+  <text x="430" y="1618" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">that admits the member are baseline work.</tspan></text>
   <text x="430" y="1630" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Each later slice belongs to this increment and is not a second</tspan></text>
   <text x="430" y="1642" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">increment identity. Owner, expected artifacts and expected review</tspan></text>
   <text x="430" y="1654" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">evidence are declarations, not completion or review evidence. The</tspan></text>
@@ -281,7 +281,7 @@
   <text x="430" y="1772" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements,</tspan></text>
   <text x="430" y="1784" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        MethodPhase::phase6_functionalArchitecture, MethodPhase::phase7_logicalArchitecture,</tspan></text>
   <text x="430" y="1796" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        MethodPhase::phase8_physicalRealization, MethodPhase::phase9_variabilityConfiguration,</tspan></text>
-  <text x="430" y="1808" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        MethodPhase::phase10_vvEvidence, MethodPhase::phase11_publication, MethodPhase::phase12_baselineNextSlice,</tspan></text>
+  <text x="430" y="1808" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        MethodPhase::phase10_vvEvidence, MethodPhase::phase11_baseline,</tspan></text>
   <text x="430" y="1820" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">    )</tspan></text>
   <text x="430" y="1832" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">owner :&gt;&gt; owner = "DE4SDV maintainers"</tspan></text>
   <text x="430" y="1844" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expectedArtifacts :&gt;&gt; expectedArtifacts = (</tspan></text>
@@ -435,19 +435,19 @@
   <text x="769" y="533" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">host. No</tspan></text>
   <text x="769" y="545" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">freedom-from-interference claim is made; REQ-MW-006</tspan></text>
   <text x="769" y="557" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(reqIsolateSafetyPath, in development) and GAP-MW-029 stay open.</tspan></text>
-  <text x="1310.5" y="387" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
-  <text x="1310.5" y="403" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">gapHMITransportUnselected : IncrementGap</tspan></text>
-  <text x="1310.5" y="421.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1321.5" y="387" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
+  <text x="1321.5" y="403" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">gapHMITransportUnselected : IncrementGap</tspan></text>
+  <text x="1321.5" y="421.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
   <text x="1146" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">GAP-MW-031: The transport that carries the AEBS signals from S-CORE on</tspan></text>
   <text x="1146" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host across the domain boundary, through the hypervisor,</tspan></text>
   <text x="1146" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">into the AAOS SDV guest is not selected in this framing slice; the</tspan></text>
   <text x="1146" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">realization slice selects and pins it. Phase 8 selects it</tspan></text>
   <text x="1146" y="485" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">(hmiTransportSelection): SOME/IP into the SDV Core VM of the guest,</tspan></text>
   <text x="1146" y="497" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">then Data Tunnel to its IVI VM (ADR 0025).</tspan></text>
-  <text x="1146" y="509" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Withdrawn at phase 12: the transport is selected and pinned, so the</tspan></text>
+  <text x="1146" y="509" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Withdrawn at the baseline decision: the transport is selected and pinned, so the</tspan></text>
   <text x="1146" y="521" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">item no longer holds. The record stays so the selection comment keeps</tspan></text>
   <text x="1146" y="533" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">its subject.</tspan></text>
-  <text x="1310.5" y="551.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
+  <text x="1321.5" y="551.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">attributes</tspan></text>
   <text x="1146" y="567" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">disposition :&gt;&gt; disposition = LifecycleDisposition::invalidated</tspan></text>
   <text x="1146" y="579" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^disposition</tspan></text>
   <text x="476.5" y="100" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#F9A825" fill-opacity="1.000" font-style="italic">«comment»</tspan></text>
@@ -474,41 +474,41 @@
   <text x="400" y="933" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">feature-model delta), with their variability decisions and deferred</tspan></text>
   <text x="400" y="945" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">variability decisions. Core elements are common by default and get no</tspan></text>
   <text x="400" y="957" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">record.</tspan></text>
-  <text x="1671.5" y="387" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
-  <text x="1671.5" y="403" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">hmiDomainBoundaryConcern : FunctionalInterfaceConcern</tspan></text>
-  <text x="1671.5" y="421.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1511" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the HMI path to be one-way and read-only across the</tspan></text>
-  <text x="1511" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">domain and hypervisor boundary: the AEBS signals flow from S-CORE on</tspan></text>
-  <text x="1511" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host into the AAOS SDV guest, and nothing flows back into</tspan></text>
-  <text x="1511" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Autoware application or the middleware.</tspan></text>
-  <text x="1671.5" y="491.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1511" y="507" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
-  <text x="1671.5" y="525.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
-  <text x="1511" y="541" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemArchitect : SystemArchitect</tspan></text>
-  <text x="1511" y="553" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">safetyExpert : SafetyExpert</tspan></text>
-  <text x="1511" y="565" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationEngineer : VerificationEngineer</tspan></text>
-  <text x="1671.5" y="583.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1511" y="599" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the functional boundary ports, signal character,</tspan></text>
-  <text x="1511" y="611" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">direction, producer/consumer mapping, and upstreaming posture</tspan></text>
-  <text x="1511" y="623" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">for DE4SDV candidate VSS extension signals.</tspan></text>
-  <text x="2046.5" y="387" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
-  <text x="2046.5" y="403" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">twoDomainMemberRepresentationConcern : ProductLineConfigurationConcern</tspan></text>
-  <text x="2046.5" y="421.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
-  <text x="1868" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the two-domain member product, with its own operating</tspan></text>
-  <text x="1868" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">system, middleware and hypervisor selection per execution domain, to</tspan></text>
-  <text x="1868" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">be representable in the product model's variation structure without</tspan></text>
-  <text x="1868" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">changing what the existing members are.</tspan></text>
-  <text x="2046.5" y="491.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
-  <text x="1868" y="507" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
-  <text x="2046.5" y="525.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
-  <text x="1868" y="541" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">productLineEngineer : ProductLineEngineer</tspan></text>
-  <text x="1868" y="553" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemArchitect : SystemArchitect</tspan></text>
-  <text x="1868" y="565" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reviewer : OpenSourceReviewer</tspan></text>
-  <text x="2046.5" y="583.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
-  <text x="1868" y="599" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the native SysML v2 variation and variant structure</tspan></text>
-  <text x="1868" y="611" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">in the model to be visible for review, so that configured choices</tspan></text>
-  <text x="1868" y="623" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">can be checked against the feature models and feature</tspan></text>
-  <text x="1868" y="635" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">configurations under the authority of ADR 0022.</tspan></text>
+  <text x="1693.5" y="387" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
+  <text x="1693.5" y="403" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">hmiDomainBoundaryConcern : FunctionalInterfaceConcern</tspan></text>
+  <text x="1693.5" y="421.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1533" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the HMI path to be one-way and read-only across the</tspan></text>
+  <text x="1533" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">domain and hypervisor boundary: the AEBS signals flow from S-CORE on</tspan></text>
+  <text x="1533" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Linux host into the AAOS SDV guest, and nothing flows back into</tspan></text>
+  <text x="1533" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">the Autoware application or the middleware.</tspan></text>
+  <text x="1693.5" y="491.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1533" y="507" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
+  <text x="1693.5" y="525.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
+  <text x="1533" y="541" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemArchitect : SystemArchitect</tspan></text>
+  <text x="1533" y="553" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">safetyExpert : SafetyExpert</tspan></text>
+  <text x="1533" y="565" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">verificationEngineer : VerificationEngineer</tspan></text>
+  <text x="1693.5" y="583.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1533" y="599" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the functional boundary ports, signal character,</tspan></text>
+  <text x="1533" y="611" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">direction, producer/consumer mapping, and upstreaming posture</tspan></text>
+  <text x="1533" y="623" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">for DE4SDV candidate VSS extension signals.</tspan></text>
+  <text x="2068.5" y="387" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«concern»</tspan></text>
+  <text x="2068.5" y="403" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">twoDomainMemberRepresentationConcern : ProductLineConfigurationConcern</tspan></text>
+  <text x="2068.5" y="421.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>
+  <text x="1890" y="437" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the two-domain member product, with its own operating</tspan></text>
+  <text x="1890" y="449" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">system, middleware and hypervisor selection per execution domain, to</tspan></text>
+  <text x="1890" y="461" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">be representable in the product model's variation structure without</tspan></text>
+  <text x="1890" y="473" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">changing what the existing members are.</tspan></text>
+  <text x="2068.5" y="491.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">subject</tspan></text>
+  <text x="1890" y="507" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">ref</tspan></text>
+  <text x="2068.5" y="525.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">stakeholders</tspan></text>
+  <text x="1890" y="541" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">productLineEngineer : ProductLineEngineer</tspan></text>
+  <text x="1890" y="553" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">systemArchitect : SystemArchitect</tspan></text>
+  <text x="1890" y="565" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">reviewer : OpenSourceReviewer</tspan></text>
+  <text x="2068.5" y="583.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">require constraints</tspan></text>
+  <text x="1890" y="599" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^doc </tspan><tspan fill="#1A1A1A" fill-opacity="1.000">Reviewers need the native SysML v2 variation and variant structure</tspan></text>
+  <text x="1890" y="611" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">in the model to be visible for review, so that configured choices</tspan></text>
+  <text x="1890" y="623" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">can be checked against the feature models and feature</tspan></text>
+  <text x="1890" y="635" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">configurations under the authority of ADR 0022.</tspan></text>
   <text x="215.5" y="1436" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
   <text x="215.5" y="1452" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">scoreMiddlewareBaselineDecision011 : IncrementBaselineDecision</tspan></text>
   <text x="215.5" y="1470.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">doc</tspan></text>

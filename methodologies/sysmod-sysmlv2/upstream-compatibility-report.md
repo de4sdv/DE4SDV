@@ -17,7 +17,7 @@ DE4SDV intends to:
 - expose local seams for `ExtendedStakeholder`, `ExtendedRequirement`,
   `SystemUseCase`, and `ConstrainedOccurrence`;
 - keep SAF concerns, viewpoints, and Operational/Conceptual/Physical domains;
-- keep the DE4SDV 13-phase increment workflow, product-line engineering, and
+- keep the DE4SDV 12-phase increment workflow, product-line engineering, and
   evidence lifecycle; and
 - avoid adopting `Project` as the DE4SDV root until its context and architecture
   ownership has been reconciled with those structures.

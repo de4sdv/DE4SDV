@@ -11,10 +11,10 @@
  * Autoware-based AEBS stack on the Linux host travel over S-CORE
  * communication inside the host, and the S-CORE SOME/IP gateway carries them
  * across the domain boundary to the HMI in the guest. One increment identity
- * spans phases 0 to 12: this framing slice, the needs, requirements,
+ * spans phases 0 to 11: this framing slice, the needs, requirements,
  * physical/software realization, variability and configuration, and
- * verification-evidence slices that follow, and the publication and baseline
- * decision all belong to it.
+ * verification-evidence slices that follow, and the baseline decision with
+ * its published views all belong to it.
  *
  * Predecessor relationship: the increment builds on the closed INC-MW-010
  * baseline and on the INC-MW-002 to INC-MW-007 baseline (ASM-MW-023). It
@@ -39,8 +39,8 @@ package DE4SDV_MiddlewareSCOREFraming {
      * INC-MW-011: middleware integration on Eclipse S-CORE, in a member
      * product with two execution domains under a hypervisor: Autoware,
      * S-CORE and the adapter on a Linux host, and an AAOS SDV guest with the
-     * HMI. One increment identity spanning phases 0 to 12, from framing
-     * through verification evidence, publication and the baseline decision:
+     * HMI. One increment identity spanning phases 0 to 11, from framing
+     * through verification evidence to the baseline decision and its views:
      * this framing slice and the needs, requirements, physical/software
      * realization, configuration and verification-evidence slices all
      * belong to this increment.
@@ -148,13 +148,13 @@ package DE4SDV_MiddlewareSCOREFraming {
      * concern framing, operational context, capability classification, needs,
      * requirements, functional and logical architecture, physical/software
      * realization, variability and configuration, verification evidence,
-     * publication, and the baseline and next-slice decision. Phases 1 to 3
+     * and the baseline decision with its published views. Phases 1 to 3
      * and 6 to 7 are declared because the increment revalidates the
      * middleware baseline of INC-MW-002 to INC-MW-007 for the S-CORE variant
      * and extends it where the two-domain member needs it: the cross-domain
-     * HMI path and the per-execution-domain platform. Phases 11 and 12 are
-     * declared because the lifecycle decision and the scope-revision
-     * decision record that admits the member are phase 12 work.
+     * HMI path and the per-execution-domain platform. Phase 11 is declared
+     * because the lifecycle decision and the scope-revision decision record
+     * that admits the member are baseline work.
      * Each later slice belongs to this increment and is not a second
      * increment identity. Owner, expected artifacts and expected review
      * evidence are declarations, not completion or review evidence. The
@@ -164,7 +164,7 @@ package DE4SDV_MiddlewareSCOREFraming {
      * the middleware integration layer: the needs and requirements take it
      * as their subject, the problem statement keeps the increment.
      */
-    attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements, MethodPhase::phase6_functionalArchitecture, MethodPhase::phase7_logicalArchitecture, MethodPhase::phase8_physicalRealization, MethodPhase::phase9_variabilityConfiguration, MethodPhase::phase10_vvEvidence, MethodPhase::phase11_publication, MethodPhase::phase12_baselineNextSlice);
+    attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements, MethodPhase::phase6_functionalArchitecture, MethodPhase::phase7_logicalArchitecture, MethodPhase::phase8_physicalRealization, MethodPhase::phase9_variabilityConfiguration, MethodPhase::phase10_vvEvidence, MethodPhase::phase11_baseline);
     ref part :>> increment = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationIncrement;
     ref part :>> systemOfInterest = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     attribute :>> owner = "DE4SDV maintainers";
@@ -325,7 +325,7 @@ package DE4SDV_MiddlewareSCOREFraming {
      * (hmiTransportSelection): SOME/IP into the SDV Core VM of the guest,
      * then Data Tunnel to its IVI VM (ADR 0025).
      *
-     * Withdrawn at phase 12: the transport is selected and pinned, so the
+     * Withdrawn at the baseline decision: the transport is selected and pinned, so the
      * item no longer holds. The record stays so the selection comment keeps
      * its subject.
      */

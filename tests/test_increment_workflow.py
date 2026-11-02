@@ -22,8 +22,7 @@ PHASES = (
     "phase0_incrementFraming", "phase1_concernFraming", "phase2_operationalContext",
     "phase3_capabilityClassification", "phase4_needs", "phase5_requirements",
     "phase6_functionalArchitecture", "phase7_logicalArchitecture", "phase8_physicalRealization",
-    "phase9_variabilityConfiguration", "phase10_vvEvidence", "phase11_publication",
-    "phase12_baselineNextSlice",
+    "phase9_variabilityConfiguration", "phase10_vvEvidence", "phase11_baseline",
 )
 # One check per accepted rule clause, in the step whose output it is about.
 CHECKS_BY_STEP = {
@@ -66,9 +65,10 @@ CHECKS_BY_STEP = {
     "DefineVariabilityAndConfiguration": {
         "incrementHasConfiguredProduct", "configuredProductConfiguredByOneConfiguration",
     },
-    "PublishIncrement": {"publishedViewFramesConcern", "publishedViewExposesContent"},
-    "DecideBaselineAndNextSlice": {
+    "DecideBaseline": {
+        "publishedViewFramesConcern", "publishedViewExposesContent",
         "incrementHasBaselineDecision", "baselineDecisionStatesDisposition", "openGapStatesDisposition",
+        "applicablePhaseContentPublished",
     },
 }
 #: The steps with no executable check. Every step has checks now: a step without one is a method decision
@@ -86,6 +86,7 @@ ADVISORY = {
     "crossingHasSignalMapping",
     "signalMappingNamesSemanticSource",
     "verificationCaseHasEvidenceRecordOrStatus",
+    "applicablePhaseContentPublished",
 }
 # Registry contract for the evaluation engine: every check identifier the model
 # uses must be one of these. The engine fails closed on any other identifier.
@@ -101,7 +102,7 @@ CHECK_REGISTRY = {
     "signalMappingRecorded", "semanticSourceNamed",
     "verifiesIncrementRequirement", "verifiedBy", "evidenceRecordOrStatus",
     "framedByViewpoint", "nonBoundaryConcernPresent", "contextSystemOfInterest", "storySubjectBound", "storyActorsBound",
-    "featureDeltaOnly", "viewpointFramesConcern", "exposesModelContent",
+    "featureDeltaOnly", "viewpointFramesConcern", "exposesModelContent", "phaseContentPublished",
     "configuredByOneConfiguration", "dispositionStated",
 }
 
@@ -132,7 +133,7 @@ def _checks(definition: str) -> dict[str, dict[str, str]]:
 
 def test_workflow_orders_one_step_per_phase_and_makes_later_steps_optional() -> None:
     steps = _steps()
-    assert len(steps) == 13
+    assert len(steps) == 12
     phases = []
     for usage, multiplicity, definition in steps:
         assert usage == definition[0].lower() + definition[1:], usage
@@ -147,7 +148,7 @@ def test_workflow_orders_one_step_per_phase_and_makes_later_steps_optional() -> 
 def test_each_step_asks_its_phase_question_and_declares_artifacts() -> None:
     table = WORKFLOW_DOC.read_text(encoding="utf-8")
     questions = re.findall(r"^\| \d+\. [^|]+\| ([^|]+?) \|", table, re.MULTILINE)
-    assert len(questions) == 13
+    assert len(questions) == 12
     text = WORKFLOW_FILE.read_text(encoding="utf-8")
     for (_, _, definition), question in zip(_steps(), questions):
         start = text.index(f"action def {definition} :> IncrementStep")
@@ -218,9 +219,11 @@ REMAINING_PARAMETERS = {
     "ClassifyCapabilities": [
         ("in", "part", "operationalContext", "", "SystemContext"),
         ("out", "part", "characteristics", "[0..*]", "ProductLineCharacteristic")],
-    "PublishIncrement": [
+    "DecideBaseline": [
         ("in", "part", "charter", "", "IncrementCharter"),
-        ("out", "view", "publishedViews", "[1..*]", "")],
+        ("out", "view", "publishedViews", "[1..*]", ""),
+        ("out", "part", "baselineDecision", "", "IncrementBaselineDecision"),
+        ("out", "part", "openGaps", "[0..*]", "IncrementGap")],
 }
 
 

@@ -1330,14 +1330,14 @@ def _pilot_selection() -> me.ApprovedMethodSelection:
 
 def test_mc34_phase_without_contract_reports_contract_unavailable() -> None:
     selection = _pilot_selection()
-    response = selection.phase_contract("phase11_publication")
+    response = selection.phase_contract("phase11_baseline")
     assert response["executable_contract_available"] is False
     assert response["reason_codes"] == ["CONTRACT_UNAVAILABLE"]
     assert response["obligations"] == []
     # Broader exit readiness stays blocked for the unavailable contract.
     service = me.MethodConformanceService(selection)
     status = service.increment_status(
-        "phase11_publication",
+        "phase11_baseline",
         None,
         requested_readiness=[me.ReadinessTarget("PHASE_EXIT", "INC-1/phase11")],
     )

@@ -117,7 +117,7 @@ def test_an_increment_the_bound_revision_does_not_declare_is_answered_as_such() 
 def test_the_served_contract_lists_every_step_and_the_phases_no_check_judges() -> None:
     service, _scenario, _repository = _service()
     contract = _call(create_mcp_server(service), "phase_contract", {})
-    assert len(contract["steps"]) == 13
+    assert len(contract["steps"]) == 12
     assert [step["phase"] for step in contract["steps"] if step["executable_checks"]] == contract["phases"]
     assert contract["phases_without_executable_checks"] == [
         step["phase"] for step in contract["steps"] if step["coverage"] == "no executable checks at this revision"]

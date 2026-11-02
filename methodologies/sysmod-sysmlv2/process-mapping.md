@@ -12,14 +12,14 @@ implement any external methodology wholesale.
 ## Process correspondence
 
 DE4SDV organizes work across three ASELCM system layers plus a
-13-phase increment workflow numbered 0 through 12:
+12-phase increment workflow numbered 0 through 11:
 
 | Process area | DE4SDV system layer | DE4SDV phases |
 |---|---|---|
 | Methodology and infrastructure setup | System 3 (governance) | outside increment |
 | Methodology evolution and feedback | System 3 (methodology evolution) | outside increment |
 | Problem analysis and requirements | System 2 (engineering) | 0–5, 10 |
-| Architecture and realization | System 2 (engineering) | 6–9, 10–12 |
+| Architecture and realization | System 2 (engineering) | 6–9, 10–11 |
 
 Structural notes:
 
@@ -49,7 +49,7 @@ Do this once, then revisit when the method itself evolves.
 
 ## System 2 increment iteration (the main loop)
 
-Each increment walks phases 0–12 from the
+Each increment walks phases 0–11 from the
 [increment workflow](increment-workflow.md).
 
 **The phase numbers describe logical dependency, not a rigid timeline.**
@@ -75,13 +75,11 @@ graph TD
     P8[Phase 8: Physical/software realization]
     P9[Phase 9: Variability and configuration]
     P10[Phase 10: V&V and evidence]
-    P11[Phase 11: Publication]
-    P12[Phase 12: Baseline and next slice]
+    P11[Phase 11: Baseline]
 
     P0 --> P1 --> P2 --> P3 --> P4 --> P5
     P5 --> P6 --> P7 --> P8 --> P9 --> P10
-    P10 --> P11 --> P12
-    P12 -.->|"next increment"| P0
+    P10 --> P11
 
     P8 -->|"when enabling-system evidence is needed"| RP[Realization-readiness probe]
     RP --> RI[Implementation and toolchain inspection]
@@ -223,21 +221,21 @@ Connect to the
 Verification cases are SysML v2 case definitions with verification
 metadata.
 
-### Phase 11 — Publication
+### Phase 11 — Baseline
 
-Produce reviewable SysML v2 textual notation, Markdown, YAML, and open
-a GitHub PR. The increment publishes at least one view. Each view of the
-increment has a viewpoint that frames a concern and exposes model content
-(rule 15 of the
-[increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
-The pull request and its review stay outside the model.
-
-### Phase 12 — Baseline and next slice
-
-Baseline decision, open issues, next increment scope. Feed lessons
-back to System 3. The increment has one baseline decision that states its
+Decide what the increment accepts, defers or invalidates, and publish the
+views that show it. The increment has one baseline decision that states its
 disposition, and each open gap states its disposition (rule 16 of the
 [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
+The increment publishes at least one view. Each view of the increment has a
+viewpoint that frames a concern and exposes model content (rule 15). An
+advisory check names each applicable phase whose content no view shows.
+The pull request and its review stay outside the model. Feed lessons back
+to System 3.
+
+The increment ends here. Rework iterates the same increment; a new
+increment starts at phase 0 from a new engineering question, never as a
+continuation of this one.
 
 ## Viewpoint flow per phase
 
@@ -261,8 +259,7 @@ domain mapping, and selection guidance.
 | 8 — Physical/software realization | Physical Context Definition, Physical Structure Definition, Physical Interface Definition, Physical Functional Mapping, Physical Logical Mapping | Physical/software realization contains explicit variation points (platform stack, middleware, sensing) |
 | 9 — Variability and configuration | ProductLineConfigurationViewpoint, ProductModelAssemblyViewpoint (DE4SDV method viewpoints) | Explicit configuration and product-model assembly — consolidates variability decisions from earlier phases |
 | 10 — V&V and evidence | Argumentation Assurance, Asset Identification, Security Risk Analysis (when safety/security-relevant) | Verification must cover configured variants |
-| 11 — Publication | EA Traceability (final trace review before PR) | — |
-| 12 — Baseline and next slice | EA Traceability (baseline decision record) | — |
+| 11 — Baseline | EA Traceability (baseline decision record, final trace review before PR) | — |
 
 Variability is not confined to Phase 9. It is a cross-cutting concern that
 starts at Phase 3 (the feature candidates an increment adds), runs
@@ -316,11 +313,10 @@ views — see the
 | 8 — Physical/software realization | `aebs_physical_software_realization.sysml` (7 views), `aebs_execution_environment.sysml` (2 views), `aebs_simulation_deployment.sysml` (17 views) | `middleware_physical_software_realization.sysml` (7 views) | `aebs-physical-software-realization.md`/`.yaml`, `aebs-simulation-deployment.md`/`.yaml`, `middleware-physical-software-realization.yaml` |
 | 9 — Variability and configuration | variation-modeling gaps in needs slices; configurations in `model-based-product-line-engineering/` | `middleware_variability_configuration.sysml` (2 views) | `middleware-variability-configuration.yaml`, `model-based-product-line-engineering/feature-configurations/` |
 | 10 — V&V and evidence | `aebs_nominal_evidence.sysml`, `aebs_bicycle_verification.sysml`, `aebs_degraded_input_verification.sysml`, `aebs_non_activation_verification.sysml`, `aebs_partial_intervention_verification.sysml`, `aebs_pedestrian_verification.sysml`, `aebs_regulatory_criterion_verification.sysml` | `middleware_verification_evidence.sysml` (2 views) | `middleware-v-and-v-evidence.yaml`; implementation evidence under `implementation/` |
-| 11 — Publication | generated view index and viewer build | `VIEWS.md` (generated) | PR description with gate evidence |
-| 12 — Baseline and next slice | baseline entries and gap docs | baseline entries and gap docs | `configuration-management/baseline-register.md`, increment YAML baselines |
+| 11 — Baseline | baseline entries and gap docs; generated view index and viewer build | baseline entries and gap docs; `VIEWS.md` (generated) | `configuration-management/baseline-register.md`, increment YAML baselines, PR description with gate evidence |
 
 The AEBS pilot is the richer model (about 50 declared views across phases);
-the middleware pilot demonstrates the full 0–12 chain with a generated view
+the middleware pilot demonstrates the full 0–11 chain with a generated view
 index. Both stay reviewable as small, per-phase slices.
 
 ## Required trace chain

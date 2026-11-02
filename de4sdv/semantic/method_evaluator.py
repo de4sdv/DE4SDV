@@ -13,7 +13,7 @@ result-algebra.md, pilot-scope.md) under ADR 0019. Scope boundary:
 - every result satisfies the normative state/reason compatibility table;
   missing information is never turned into PASS or FAIL.
 
-The engine is phase-neutral across P0-P12: phase identity is contract data
+The engine is phase-neutral across P0-P11: phase identity is contract data
 (the contract's phase literal), never an evaluator condition.
 """
 

@@ -3,7 +3,7 @@
  *
  * INC-MW-010 defines the verification cases, validation scenarios, acceptance
  * criteria, retained evidence, bounded assurance claim, deferred counterclaims,
- * and Phase 12 baseline decision for the configured Autoware + AndroidSDV
+ * and baseline decision for the configured Autoware + AndroidSDV
  * member.
  *
  * The accepted baseline is limited to the observed forward Vehicle.Speed chain,
@@ -306,7 +306,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
 
   part boundedBaselineDecision010 : IncrementLifecycleDecision {
     doc /*
-     * BL-MW-010-P12. Phase 12 accepts the bounded forward Vehicle.Speed chain,
+     * BL-MW-010-P12. The baseline decision accepts the bounded forward Vehicle.Speed chain,
      * direct adapter path, independent ROS 2 observation, one real Autoware
      * consumer, invalid-envelope rejection, and provider-loss degraded/restored
      * health disposition demonstrated by E-MW-011 through E-MW-014.
@@ -813,7 +813,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
       frame argumentationAssuranceConcern;
     }
     doc /*
-     * Positive Phase 12 slice: the bounded claim, retained evidence branches,
+     * Positive baseline slice: the bounded claim, retained evidence branches,
      * accepted baseline decision, and separately framed successor decision.
      * Open counterclaims and gaps are published separately.
      */
@@ -847,7 +847,7 @@ package DE4SDV_MiddlewareVerificationEvidence {
     }
     doc /*
      * Challenge slice: unresolved counterclaims and explicit gaps retained by
-     * the bounded Phase 12 decision. They prevent broader production, full-
+     * the bounded baseline decision. They prevent broader production, full-
      * stack, lifecycle/update, and reverse-path assurance.
      */
     expose boundedBaselineDecision010;

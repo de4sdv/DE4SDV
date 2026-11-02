@@ -63,36 +63,39 @@ def _evaluated(tmp_path: Path):
     return evaluate_export(export, "INC-AEBS-010")
 
 
-def test_the_frozen_cut_passes_phases_0_to_8_and_next_asks_for_a_verification_case(tmp_path: Path) -> None:
+def test_the_frozen_cut_passes_phases_0_to_8_and_its_boundary_fails_phases_9_and_10(tmp_path: Path) -> None:
     """The cut keeps the framing, operational-context, needs-and-requirements, functional, logical and
     physical packages in full and the other declared packages as package elements only. Since its phase-2
     and phase-3 revision, INC-AEBS-010 has one SystemContext that holds its test system and the actors of
-    its story, and phase 3 records no common capability: phases 0 to 8 pass. Its verification cases are
-    outside the cut: phase 10 finds none, no requirement is verified, and next asks for a verification case.
-    The full export of the same revision passes phase 10 (Method Check); the phase-10 failure is the cut
-    boundary, not the model. Phase 11 is not declared."""
+    its story, and phase 3 records no product-line characteristic, so phase 3 is vacuous: phases 0 to 8
+    pass. Its configured products and verification cases are outside the cut: phase 9 finds no configured
+    product, phase 10 no verification case, and next asks for a configured product. The full export of the
+    same revision passes phases 9 and 10 (Method Check); those failures are the cut boundary, not the
+    model. Phase 11 is not declared."""
     snapshot, evaluation = _evaluated(tmp_path)
     assert snapshot.identity_mode == "export-validated-kernel-bindings"
     phases = {phase["phase"]: phase for phase in evaluation.status()["phases"]}
     assert {name: (phase["conformance_verdict"], len(phase["gates"])) for name, phase in phases.items()
             if phase["gates"]} == {
         "phase0_incrementFraming": (me.VERDICT_PASS, 15),
-        "phase1_concernFraming": (me.VERDICT_PASS, 2),
+        "phase1_concernFraming": (me.VERDICT_PASS, 3),
         "phase2_operationalContext": (me.VERDICT_PASS, 4),
-        "phase3_capabilityClassification": (me.VERDICT_PASS, 1),
+        "phase3_capabilityClassification": (me.VERDICT_NOT_APPLICABLE, 1),
         "phase4_needs": (me.VERDICT_PASS, 6),
         "phase5_requirements": (me.VERDICT_PASS, 6),
         "phase6_functionalArchitecture": (me.VERDICT_PASS, 4),
         "phase7_logicalArchitecture": (me.VERDICT_PASS, 2),
         "phase8_physicalRealization": (me.VERDICT_PASS, 4),
+        "phase9_variabilityConfiguration": (me.VERDICT_FAIL, 2),
         "phase10_vvEvidence": (me.VERDICT_FAIL, 3),
-        "phase11_publication": (me.VERDICT_NOT_APPLICABLE, 2),
+        "phase11_baseline": (me.VERDICT_NOT_APPLICABLE, 6),
     }
+    assert phases["phase3_capabilityClassification"]["vacuous"] is True
     assert phases["phase4_needs"]["applicability"] == "declared"  # an optional [0..1] step
-    assert phases["phase9_variabilityConfiguration"]["coverage"] == "no executable checks at this revision"
+    assert evaluation.next_obligation()["next"]["gate"] == "incrementHasConfiguredProduct"
     # An untyped parameter is named by its keyword (its metaclass is no model element), and the remedy
     # says how one verification case is declared.
-    verification = evaluation.next_obligation()["next"]
+    verification = evaluation.next_obligation(phase="phase10_vvEvidence")["next"]
     assert (verification["stage"], verification["gate"], verification["kind"]) == (
         "phase10_vvEvidence", "verificationCaseVerifiesRequirement", "violation")
     assert [subject["reason_codes"] for subject in verification["subjects"]] == [[me.POPULATION_POLICY_VIOLATION]]
@@ -101,7 +104,8 @@ def test_the_frozen_cut_passes_phases_0_to_8_and_next_asks_for_a_verification_ca
     assert verification["authoring"]["declarations"] == [
         "verification <name> { objective { verify <requirement of the increment>; } }"]
     blocking = {gap["gate"]: gap for gap in evaluation.gaps()["blocking"]}
-    assert set(blocking) == {"verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"}
+    assert set(blocking) == {"incrementHasConfiguredProduct", "configuredProductConfiguredByOneConfiguration",
+                             "verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase"}
     assert sorted(s["name"] for s in blocking["requirementVerifiedByVerificationCase"]["subjects"]) == REQUIREMENTS
 
 
@@ -155,28 +159,29 @@ def test_the_frozen_cut_s_concerns_have_stakeholders_and_are_framed_by_the_viewp
         assert len(verdicts) == 14 and set(verdicts.values()) == {me.VERDICT_PASS}, gate
 
 
-def test_the_frozen_cut_s_classification_keeps_its_deferred_scope_and_records_no_common_capability(
-        tmp_path: Path) -> None:
-    """Genuine shapes of phase 3: CLS-AEBS-010-001 records deferred product-line scope (allowed). Since its
-    phase-3 revision the increment records no common capability, as rule 10 says."""
+def test_the_frozen_cut_s_classification_records_nothing_and_phase_3_is_vacuous(tmp_path: Path) -> None:
+    """Genuine shapes of phase 3: the increment adds no feature candidate, so its classification package
+    holds no record, as rule 10 says; its deferred product-line scope is in the verification-evidence
+    slice, outside the cut. The feature-delta check has no subject, and phase 3 is vacuous."""
     _snapshot, evaluation = _evaluated(tmp_path)
-    assert _verdicts(evaluation, "characteristicIsFeatureDelta") == {
-        "visualizationTestSystemClassification": me.VERDICT_PASS}
+    assert _verdicts(evaluation, "characteristicIsFeatureDelta") == {}
+    (phase,) = [p for p in evaluation.status()["phases"] if p["phase"] == "phase3_capabilityClassification"]
+    assert (phase["phase_exit"], phase["vacuous"]) == ("READY", True)
 
 
 def test_a_common_capability_record_in_the_cut_fails_the_feature_delta(tmp_path: Path) -> None:
-    """Mutation on genuine shapes: CLS-AEBS-010-001 retyped by the kernel CommonProductLineCapability is a
-    common-capability record, which rule 10 says a core element never gets."""
+    """Mutation on genuine shapes: the framing's System 1 member, a core element, retyped by the kernel
+    CommonProductLineCapability is a common-capability record, which rule 10 says a core element never
+    gets. (The cut's classification package holds no record to retype since its phase-3 revision.)"""
     export = _cut()
     by_id = {e["@id"]: e for e in export["elements"]}
-    record = by_id[_one(export, "DE4SDV_AEBSVisualizationNeedsRequirements::VisualizationClassification::"
-                                "visualizationTestSystemClassification", "PartUsage")]
+    record = by_id[_one(export, "DE4SDV_AEBSVisualizationFraming::system1ConfiguredAEBSSDVMember", "PartUsage")]
     common = _one(export, "DE4SDV_ProductLine::CommonProductLineCapability", "PartDefinition")
     (typing,) = [by_id[r["@id"]] for r in record["ownedRelationship"] if by_id[r["@id"]]["@type"] == "FeatureTyping"]
     typing["type"] = typing["general"] = {"@id": common}
     _snapshot, evaluation = _evaluate_cut(tmp_path, export)
     assert _verdicts(evaluation, "characteristicIsFeatureDelta") == {
-        "visualizationTestSystemClassification": me.VERDICT_FAIL}
+        "system1ConfiguredAEBSSDVMember": me.VERDICT_FAIL}
 
 
 #: INC-MW-011's operational context, which the cut keeps in full for the binding shapes of its story.
@@ -221,12 +226,12 @@ def test_the_frozen_cut_reads_the_story_bindings_of_both_increments_in_their_gen
     (subject,) = use_case_parameters(view, story, "SubjectMembership")
     assert (view.index.name_of(subject), bound_targets(view, subject)) == ("visualizationTestSystem", (aebs_systems, []))
     # The story's own actors redefine those of its definition by the language rule (an implied
-    # Redefinition in the export): the use case has four actors, not eight.
+    # Redefinition in the export): the use case has three actors, not six. Since its story-actor revision
+    # the instrumented member is an actor; the driver and the vehicle target are parts of the context only.
     actors = use_case_parameters(view, story, "ActorMembership")
     assert {view.label(a): [view.label(t) for t in bound_targets(view, a)[0]] for a in actors} == {
+        f"{AEBS_CONTEXT}::aebsVisualizationStory::instrumentedMember": [f"{aebs_label}::instrumentedMember"],
         f"{AEBS_CONTEXT}::aebsVisualizationStory::reviewer": [f"{aebs_label}::displayReviewer"],
-        f"{AEBS_CONTEXT}::aebsVisualizationStory::driver": [f"{aebs_label}::observingDriver"],
-        f"{AEBS_CONTEXT}::aebsVisualizationStory::vehicleTarget": [f"{aebs_label}::scenarioVehicleTarget"],
         f"{AEBS_CONTEXT}::aebsVisualizationStory::evidenceBaseline": [f"{aebs_label}::visualizationEvidenceBaseline"]}
     # Each actor is bound to a part that the context owns, around its system of interest.
     for actor in actors:

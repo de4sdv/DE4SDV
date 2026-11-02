@@ -919,6 +919,7 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "featureDeltaOnly": lambda request: _feature_delta_only(request),
     "viewpointFramesConcern": lambda request: _viewpoint_frames_concern(request),
     "exposesModelContent": lambda request: _exposes_model_content(request),
+    "phaseContentPublished": lambda request: _phase_content_published(request),
     "configuredByOneConfiguration": lambda request: _configured_by_one_configuration(request),
     "dispositionStated": lambda request: _disposition_stated(request),
 }
@@ -1289,7 +1290,7 @@ def _semantic_source_named(request: _Request) -> Remedy:
 
 
 # ---------------------------------------------------------------------------
-# Operational context and story (phase 2), classification (phase 3), views (phase 11)
+# Operational context and story (phase 2), classification (phase 3), published views (phase 11)
 # ---------------------------------------------------------------------------
 
 _SYSTEM_NAME = "<systemName>"
@@ -1467,6 +1468,21 @@ def _exposes_model_content(request: _Request) -> Remedy:
     return lines.remedy(instruction)
 
 
+def _phase_content_published(request: _Request) -> Remedy:
+    """Show each listed phase in a view of the increment: expose one of its elements there."""
+    lines = _lines(request)
+    lines.declarations.append(_VIEWPOINT_DEF)
+    lines.declarations.append("view <viewName> { viewpoint <viewpointName> : <ViewpointName> "
+                              "{ frame <concern>; } expose <element>; }")
+    lines.notes.append(_VIEWPOINT_NOTE)
+    lines.notes.append("Or add expose <element>; to an existing view of the increment; expose <package>::*; shows a "
+                       "package's members. The diagnostic lists, per phase, the elements no view shows.")
+    lines.notes.append("Visibility is not review: a view that shows a phase says nothing about its adequacy.")
+    where = _where(request)
+    return lines.remedy(f"expose, in a view of the increment{' ' + where if where else ''}, at least one element of "
+                        "each applicable phase that has content but none in a view")
+
+
 def _verification_membership(request: _Request, mapping: Any) -> Remedy:
     lines = _lines(request)
     verified = _subject_ref(lines, "<requirement>")
@@ -1598,7 +1614,7 @@ __all__ = ["Remedy", "SUBJECT_FIRST", "check_remedy", "population_remedy", "subj
 
 
 # ---------------------------------------------------------------------------
-# Configured product (phase 9), baseline decision and open gaps (phase 12)
+# Configured product (phase 9), baseline decision and open gaps (phase 11)
 
 
 def _projection_note(view: ModelView) -> str:

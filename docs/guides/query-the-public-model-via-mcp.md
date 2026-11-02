@@ -215,7 +215,7 @@ For example, over an export of the model,
     "qualified_name": "DE4SDV_MethodProcess::MethodPhase",
     "keyword": "enum def",
     "owning_package": {"qualified_name": "DE4SDV_MethodProcess"},
-    "documentation": ["One of the 13 phases of the DE4SDV increment workflow."],
+    "documentation": ["One of the 12 phases of the DE4SDV increment workflow."],
     "definition": {
       "supertypes": [],
       "owned_features": [],
@@ -223,7 +223,7 @@ For example, over an export of the model,
       "enumerated_values": [
         {"name": "phase0_incrementFraming",
          "qualified_name": "DE4SDV_MethodProcess::MethodPhase::phase0_incrementFraming"},
-        "… 12 more"
+        "… 11 more"
       ]
     }
   },

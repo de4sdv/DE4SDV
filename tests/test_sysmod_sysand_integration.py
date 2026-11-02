@@ -201,10 +201,12 @@ def test_method_uses_saf_domains_independently_from_architecture_artifact_kinds(
         assert re.search(rf"\b{literal}\s*\{{\s*doc /\*[^*]*Conceptual domain\. \*/", method), literal
     assert re.search(r"\bphase8_physicalRealization\s*\{\s*doc /\*[^*]*Physical domain\. \*/", method)
 
+    # Twelve phases since the publication phase was retired into the baseline phase, never by merging the
+    # functional and logical architecture phases: both literals stay above.
     for path in (METHOD_README, PROCESS_MAPPING, PROCESS_SET_README):
         text = path.read_text(encoding="utf-8")
-        assert "13-phase increment workflow" in text
-        assert "12-phase increment workflow" not in text
+        assert "12-phase increment workflow" in text
+        assert "13-phase increment workflow" not in text
 
 
 def test_provenance_separates_historical_source_review_from_current_package() -> None:

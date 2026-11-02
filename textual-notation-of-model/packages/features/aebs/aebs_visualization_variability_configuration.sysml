@@ -11,7 +11,7 @@
  *
  * This slice records planned configuration only. Runtime pins are recorded
  * as configuration obligations; actual pin values, execution, and evidence
- * belong to the implementation and Phase 10-12 slices of the chain.
+ * belong to the implementation, V&V evidence and baseline slices of the chain.
  */
 
 package DE4SDV_AEBSVisualizationVariabilityConfiguration {

@@ -55,9 +55,7 @@ declarations:
       phase and artifact parameters); not an ontology class
     action def PlanVerificationAndEvidence: increment-workflow step definition (method structure with phase and
       artifact parameters); not an ontology class
-    action def PublishIncrement: increment-workflow step definition (method structure with phase and artifact
-      parameters); not an ontology class
-    action def DecideBaselineAndNextSlice: increment-workflow step definition (method structure with phase and artifact
+    action def DecideBaseline: increment-workflow step definition (method structure with phase and artifact
       parameters); not an ontology class
   textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml:
     concern def ProductLineCapabilityClassificationConcern: method-specific concern type

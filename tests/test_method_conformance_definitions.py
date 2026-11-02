@@ -88,7 +88,7 @@ METHOD_CONFORMANCE_CLASSES: tuple[str, ...] = (
 _CLASS_SOURCES: dict[str, tuple[Path, str]] = {
     "MethodPhase": (
         PROCESS_FILE,
-        "One of the 13 phases of the DE4SDV increment workflow.",
+        "One of the 12 phases of the DE4SDV increment workflow.",
     ),
     "MethodContractObligation": (
         CONFORMANCE_FILE,
@@ -691,7 +691,7 @@ class TestMethodConformanceDocumentationOwnership:
 
 
 class TestMethodConformanceStructuralFit:
-    def test_method_phase_enum_with_thirteen_literals(self):
+    def test_method_phase_enum_with_twelve_literals(self):
         text = _file_text("MethodPhase")
         block, bodyless = ai.declaration_block(text, "enum def MethodPhase")
         assert not bodyless and block
@@ -709,12 +709,11 @@ class TestMethodConformanceStructuralFit:
                 "phase8_physicalRealization",
                 "phase9_variabilityConfiguration",
                 "phase10_vvEvidence",
-                "phase11_publication",
-                "phase12_baselineNextSlice",
+                "phase11_baseline",
             )
             if f"{name} {{" in block or f"{name}{{" in block
         ]
-        assert len(literals) == 13, literals
+        assert len(literals) == 12, literals
 
     def test_method_contract_obligation_schema_fields(self):
         """Every frozen Section 7 schema field is carried by typed attributes.

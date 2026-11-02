@@ -675,7 +675,7 @@
       "accounting": "method-admitted",
       "boundary": "none",
       "definition": {
-        "documentation": "The lifecycle decision of phase 12: what the baseline of the increment accepts, defers or invalidates. It is not the framing decision of phase 0, which states the decision that the increment is to support. Its disposition states the decision. Its typing identifies it, never a name: a BL identifier in its short name names the record and does not make it a baseline decision. No check reads the baseline register, and the model does not mirror it. No acceptance under de4sdv.acceptance.maintainer-decision.v1, no compliance and no certification claim follows from it.",
+        "documentation": "The lifecycle decision of phase 11: what the baseline of the increment accepts, defers or invalidates. It is not the framing decision of phase 0, which states the decision that the increment is to support. Its disposition states the decision. Its typing identifies it, never a name: a BL identifier in its short name names the record and does not make it a baseline decision. No check reads the baseline register, and the model does not mirror it. No acceptance under de4sdv.acceptance.maintainer-decision.v1, no compliance and no certification claim follows from it.",
         "documentation_witness": {
           "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_context.sysml",
           "owner": "part def IncrementBaselineDecision",

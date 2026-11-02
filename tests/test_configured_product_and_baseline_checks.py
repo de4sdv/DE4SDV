@@ -1,4 +1,4 @@
-"""The executable checks of phases 9 and 12, and the phase-0 count that a baseline decision leaves alone.
+"""The executable checks of phases 9 and 11, and the phase-0 count that a baseline decision leaves alone.
 
 Phase 9 (``DefineVariabilityAndConfiguration``): the increment declares at least one configured product
 (``configuredProducts[1..*] : ProductLineConfiguredProduct``), and exactly one feature configuration
@@ -11,7 +11,7 @@ and of their generated part definitions, by validated identity, is the member-pr
 the configured product: its own and inherited usages, a redefinition, a specialization that adds System 2
 instrumentation, and none or two configurations.
 
-Phase 12 (``DecideBaselineAndNextSlice``): exactly one baseline decision, typed by
+Phase 11 (``DecideBaseline``): exactly one baseline decision, typed by
 ``IncrementBaselineDecision``, states its disposition, and each open gap states the disposition that the
 baseline decision gives it. A disposition is a literal of the kernel's ``LifecycleDisposition``.
 
@@ -46,7 +46,7 @@ from test_remedies import _problems
 from test_revision_index import _traversal
 
 REVISION = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
-P0, P9, P12 = "phase0_incrementFraming", "phase9_variabilityConfiguration", "phase12_baselineNextSlice"
+P0, P9, P11 = "phase0_incrementFraming", "phase9_variabilityConfiguration", "phase11_baseline"
 P = WorkflowParameter
 C = WorkflowCheck
 FRAMING_DECISION = "incrementHasLifecycleDecision"
@@ -86,12 +86,12 @@ class Increment:
         return {self.projection["@id"]: (self.configuration["@id"],)}
 
 
-def _increment(*, phases=(P0, P9, P12)) -> Increment:
+def _increment(*, phases=(P0, P9, P11)) -> Increment:
     """A conforming increment. ``FixtureConfiguredProduct :> ProductLineConfiguredProduct`` composes the
     generated projection ``FixtureProjection`` of ``fixtureConfiguration`` (its ``platformStack``) and a
     realization part; ``configuredProduct`` is its usage. ``baselineDecision : IncrementBaselineDecision``
     and the gap ``fixtureGap`` state their dispositions. The framing package keeps its framing decision."""
-    scenario = increment_scenario(ModelBuilder(label="phase-9-12", kernel_packages=True), applicable_phases=phases)
+    scenario = increment_scenario(ModelBuilder(label="phase-9-11", kernel_packages=True), applicable_phases=phases)
     b = scenario.builder
     roots = {cls: b.kernel_definition(cls) for cls in (
         "ConfiguredProduct", "IncrementBaselineDecision", "IncrementLifecycleDecision", "Gap")}
@@ -126,7 +126,7 @@ def _increment(*, phases=(P0, P9, P12)) -> Increment:
             P("configuredProducts", "ConfiguredProduct", "PartUsage", bounds=(1, INFINITY)),), (
             C(HAS_PRODUCT, "populationMember", "configuredProducts"),
             C(CONFIGURED_BY, "configuredByOneConfiguration", "configuredProducts"))),
-        WorkflowStep("decideBaselineAndNextSlice", P12, (
+        WorkflowStep("decideBaseline", P11, (
             P("baselineDecision", "IncrementBaselineDecision", "PartUsage"),
             P("openGaps", "Gap", "PartUsage", bounds=(0, INFINITY))), (
             C(HAS_BASELINE, "populationMember", "baselineDecision"),
@@ -193,12 +193,12 @@ def _population_failure(unit: me.EvaluationResult) -> bool:
 # -- pass ------------------------------------------------------------------------------
 
 
-def test_a_conforming_increment_passes_every_check_of_phases_9_and_12() -> None:
+def test_a_conforming_increment_passes_every_check_of_phases_9_and_11() -> None:
     evaluation = _evaluate(_increment())
     for gate in (FRAMING_DECISION, *GATES):
         unit = _unit(evaluation, gate)
         assert (unit.state, unit.verdict) == (me.STATE_COMPLETE, me.VERDICT_PASS), (gate, unit.diagnostics)
-    assert {p: _phase(evaluation, p)["phase_exit"] for p in (P0, P9, P12)} == dict.fromkeys((P0, P9, P12), "READY")
+    assert {p: _phase(evaluation, p)["phase_exit"] for p in (P0, P9, P11)} == dict.fromkeys((P0, P9, P11), "READY")
     (result,) = [r for r in evaluation.canonical.results if r.unit_id == CONFIGURED_BY and r.subject_id]
     increment = _increment()
     assert evaluation.view.index.name_of(result.targets[0]) == "fixtureConfiguration"
@@ -444,18 +444,18 @@ def test_without_the_pleml_library_the_real_derivation_reads_no_configuration_an
     assert _unit(evaluation, CONFIGURED_BY).verdict != me.VERDICT_PASS
 
 
-# -- phase 12: the baseline decision and the open gaps ------------------------------------------
+# -- phase 11: the baseline decision and the open gaps ------------------------------------------
 
 
 def test_an_increment_without_a_baseline_decision_fails_on_population() -> None:
-    """INC-MW-011 declares phase 12 and has authored no baseline decision yet."""
+    """INC-MW-011 declares phase 11 and has authored no baseline decision yet."""
     increment = _increment()
     increment.builder.remove(increment.baseline)
     evaluation = _evaluate(increment)
     for gate in (HAS_BASELINE, BASELINE_DISPOSITION):
         assert _population_failure(_unit(evaluation, gate)), gate
         assert _authorable(_blocking(evaluation, gate), increment) == []
-    assert _phase(evaluation, P12)["phase_exit"] == "BLOCKED"
+    assert _phase(evaluation, P11)["phase_exit"] == "BLOCKED"
 
 
 def test_two_baseline_decisions_fail_on_population() -> None:
@@ -494,7 +494,7 @@ def test_each_literal_of_the_lifecycle_disposition_states_a_disposition() -> Non
 
 
 def test_an_open_gap_without_its_disposition_fails_and_is_named() -> None:
-    """A gap has no disposition before phase 12; the record of a resolved gap leaves the model, so a resolved
+    """A gap has no disposition before phase 11; the record of a resolved gap leaves the model, so a resolved
     gap whose record stays (INC-MW-011's GAP-MW-032) counts as open and fails the same way."""
     increment = _increment()
     b = increment.builder
@@ -556,7 +556,7 @@ def test_a_framing_decision_and_a_baseline_decision_in_the_framing_package_pass_
     _framing_baseline(increment)
     evaluation = _evaluate(increment)
     assert _unit(evaluation, FRAMING_DECISION).verdict == me.VERDICT_PASS
-    assert _unit(evaluation, HAS_BASELINE).verdict == me.VERDICT_PASS  # phase 12 counts it, wherever it is
+    assert _unit(evaluation, HAS_BASELINE).verdict == me.VERDICT_PASS  # phase 11 counts it, wherever it is
 
 
 def test_a_baseline_decision_alone_fails_the_framing_decision_count() -> None:
@@ -661,7 +661,7 @@ def _retype_framing_decision(increment: Increment, definition: dict[str, Any]) -
 
 def test_a_homonym_baseline_decision_definition_still_counts_as_a_framing_decision() -> None:
     """M6: a local ``part def IncrementBaselineDecision :> IncrementLifecycleDecision`` is no kernel baseline
-    decision: phase 0 counts it (it is the framing decision here), and phase 12 does not."""
+    decision: phase 0 counts it (it is the framing decision here), and phase 11 does not."""
     increment = _increment()
     b = increment.builder
     homonym = b.definition("PartDefinition", "IncrementBaselineDecision", increment.scenario.framing,
