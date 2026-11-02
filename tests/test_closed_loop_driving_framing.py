@@ -98,3 +98,51 @@ def test_framing_view_exposes_scope_and_deferred_scope():
     exposed = set(re.findall(r"\bexpose\s+(\w+)\s*;", view))
     required = scope_items | {"closedLoopDrivingBoundary"}
     assert required <= exposed, f"framing view omits boundary content: {sorted(required - exposed)}"
+
+
+#: Phase 1: one concern per reviewer question of the in-scope items, typed by the SAF concern whose question it
+#: is, with its native stakeholders (owner decision of 2026-11-02: six concerns). The in-scope item each answers
+#: is named in its documentation.
+PHASE1_CONCERNS = {
+    "checkpointCommandAuthorityConcern": ("PhysicalFunctionalMappingConcern", "learnedDrivingInScope", {
+        "systemsEngineer": "SystemsEngineer", "verificationEngineer": "VerificationEngineer",
+        "reviewer": "OpenSourceReviewer"}),
+    "scoreCommandPathConcern": ("PhysicalInternalExchangeConcern", "integrationAndObservationInScope", {
+        "systemArchitect": "SystemArchitect", "softwareDeveloper": "SoftwareDeveloper",
+        "maintainer": "Maintainer"}),
+    "aaosObservationFidelityConcern": ("PhysicalContextExchangeConcern", "integrationAndObservationInScope", {
+        "verificationEngineer": "VerificationEngineer", "reviewer": "OpenSourceReviewer"}),
+    "degradedInputBehaviorConcern": ("FunctionalBehaviorConcern", "feedbackAndTimingInScope", {
+        "safetyExpert": "SafetyExpert", "systemArchitect": "SystemArchitect"}),
+    "timeDomainHonestyConcern": ("ArgumentationAssuranceConcern", "feedbackAndTimingInScope", {
+        "verificationEngineer": "VerificationEngineer", "systemsEngineer": "SystemsEngineer"}),
+    "reproducibleClosedLoopEvidenceConcern": ("ArgumentationAssuranceConcern", "closedLoopEvidenceInScope", {
+        "verificationEngineer": "VerificationEngineer", "maintainer": "Maintainer",
+        "reviewer": "OpenSourceReviewer"}),
+}
+
+
+def test_phase_one_frames_a_concern_for_every_in_scope_question():
+    raw = MODEL.read_text(encoding="utf-8")
+    code = strip_comments(raw)
+    assert "private import SAF_Viewpoints::*;" in code
+    assert not re.search(r"\b(?:concern|part) def \w*(?:Concern|Engineer|Expert|Architect|Developer|Maintainer)\b", code), \
+        "concern types and stakeholders come from SAF and the kernel, never from the slice"
+    viewpoint = braced_body(code, "viewpoint closedLoopDrivingFramingViewpoint : IncrementFramingViewpoint")
+    view = braced_body(code, "view closedLoopDrivingFramingView")
+    declared = dict(re.findall(r"\bconcern\s+(\w+)\s*:\s*(\w+)\s*\{", code))
+    assert set(declared) == set(PHASE1_CONCERNS) | {"closedLoopDrivingBoundary"}
+    answered = set()
+    for name, (kind, scope_item, stakeholders) in PHASE1_CONCERNS.items():
+        assert declared[name] == kind, name
+        body = braced_body(code, f"concern {name} : {kind}")
+        parameters = [line.strip() for line in body.splitlines() if line.strip() and line.strip() != "doc"]
+        assert parameters[0] == "subject;", f"{name}: the subject is the first parameter"
+        assert dict(re.findall(r"\bstakeholder\s+(\w+)\s*:\s*(\w+)\s*;", body)) == stakeholders, name
+        assert f"frame {name};" in viewpoint, f"{name} is not framed by the framing viewpoint"
+        assert f"expose {name};" in view, f"{name} is not shown in the framing view"
+        documentation = " ".join(re.sub(r"(?m)^\s*\*\s?", "", braced_body(raw, f"concern {name} : {kind}")).split())
+        assert scope_item in documentation, f"{name} does not name the in-scope item it answers"
+        answered.add(scope_item)
+    in_scope = set(re.findall(r"\bpart\s+(\w+)\s*:\s*InScopeItem\b", code))
+    assert answered == in_scope, f"in-scope items without a concern: {sorted(in_scope - answered)}"
