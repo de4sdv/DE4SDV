@@ -50,9 +50,11 @@ does not carry: the export evaluation refuses such an export, by design. And
 re-cut it when the Method Check retires a check that the cut's workflow still
 declares: an unknown check id makes the method invalid. Retire the check in
 the model first, keeping its code, and remove the code with the re-cut made
-from that revision's export. Re-cut it when the workflow gains checks that the
+from that revision's export. Re-cut it when the method phases change: a step
+whose phase is not a `MethodPhase` literal of the code makes the method
+invalid, and every test that adopts the cut's method layer fails. Re-cut it when the workflow gains checks that the
 tests evaluate on genuine shapes, such as the allocation checks of phases 6
-to 8 or the concern, context, classification and publication checks of
+to 8 or the concern, context, classification and view checks of
 phases 1, 2, 3 and 11: cut from the export of the pull request that adds
 them, so the cut's workflow declares them.
 A re-cut must re-read the expected values in `tests/test_inspect_definitions.py` from the new cut's source files and update its `SOURCES` digests.

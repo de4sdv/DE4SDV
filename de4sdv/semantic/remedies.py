@@ -1471,13 +1471,16 @@ def _exposes_model_content(request: _Request) -> Remedy:
 def _phase_content_published(request: _Request) -> Remedy:
     """Show each listed phase in a view of the increment: expose one of its elements there."""
     lines = _lines(request)
-    lines.declarations.append("expose <element>;")
-    lines.notes.append("Put the expose in an existing view of the increment, or declare a view whose viewpoint frames "
-                       "the concern the element answers; expose <package>::*; shows a package's members. The diagnostic "
-                       "lists, per phase, the elements no view shows.")
-    lines.notes.append("Visibility is not review: a phase shown in a view is not thereby adequate or accepted.")
-    return lines.remedy("expose, in a view of the increment, at least one element of each applicable phase that "
-                        "has content but none in a view")
+    lines.declarations.append(_VIEWPOINT_DEF)
+    lines.declarations.append("view <viewName> { viewpoint <viewpointName> : <ViewpointName> "
+                              "{ frame <concern>; } expose <element>; }")
+    lines.notes.append(_VIEWPOINT_NOTE)
+    lines.notes.append("Or add expose <element>; to an existing view of the increment; expose <package>::*; shows a "
+                       "package's members. The diagnostic lists, per phase, the elements no view shows.")
+    lines.notes.append("Visibility is not review: a view that shows a phase says nothing about its adequacy.")
+    where = _where(request)
+    return lines.remedy(f"expose, in a view of the increment{' ' + where if where else ''}, at least one element of "
+                        "each applicable phase that has content but none in a view")
 
 
 def _verification_membership(request: _Request, mapping: Any) -> Remedy:

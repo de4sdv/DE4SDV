@@ -354,7 +354,8 @@ def phase_contents(view: ModelView, increment: IncrementScope) -> tuple[Mapping[
     elements its allocations name. The API guard that withholds allocation reading does not apply: the
     content is read, not judged. Framing always applies; a later phase applies when the charter declares it.
     Built once per corpus and increment."""
-    key = ("phase-contents", increment.increment_id, tuple(increment.scope_packages), tuple(increment.charters))
+    key = ("phase-contents", increment.increment_id, tuple(increment.scope_packages), tuple(increment.charters),
+           tuple(increment.declared_phases or ()))
 
     def build() -> tuple[Mapping[str, tuple[str, ...]], tuple[str, ...]]:
         method = read_increment_method(view, increment, revision_label="phase-contents")
@@ -372,9 +373,10 @@ def phase_contents(view: ModelView, increment: IncrementScope) -> tuple[Mapping[
                 continue
             found = contents.setdefault(spec.phase, [])
             try:
-                subjects, _diagnostics = _scoped_subjects(spec, ctx, own_package=spec.selector_kind == OWN_PACKAGE_SELECTOR)
-                kind = spec.subject_selector.startswith(KIND_PREFIX)
-                rows = [] if kind else allocation_rows_entering(view, spec.subject_selector)
+                framing = spec.selector_kind == OWN_PACKAGE_SELECTOR
+                subjects, _diagnostics = _scoped_subjects(spec, ctx, own_package=framing)
+                direct = framing or spec.subject_selector.startswith(KIND_PREFIX)
+                rows = [] if direct else allocation_rows_entering(view, spec.subject_selector)
                 if rows:
                     subjects = _architecture_subjects(view, increment, spec.subject_selector, rows)
             except (me.SubjectResolutionError, MethodSideInput) as error:

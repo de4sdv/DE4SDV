@@ -363,10 +363,12 @@ These method rules apply to every increment:
       and visibility is not review.
     - **Why advisory.** The owner decision of 2026-11-01 measures the rule
       against INC-AEBS-010 and INC-MW-011 before it blocks. Both have
-      content that no view shows: INC-AEBS-010 its framing records and its
-      verification cases, INC-MW-011 its configured product usage (its views
-      expose the definition). The rule stays advisory until the owner
-      decides.
+      content that no view shows. INC-MW-011 fails it on phase 9: no view
+      shows its configured product usage (its views expose the definition).
+      INC-AEBS-010 does not declare phase 11, so the check does not apply
+      to it; measured as if it did, no view shows any of its phase-0
+      framing records or its phase-10 verification cases. The rule stays
+      advisory until the owner decides.
 16. **Variability and the baseline decision (phases 9 and 11).** The
     kernel types what these steps declare (owner decisions of 2026-10-28
     and 2026-10-29), and all their checks block:

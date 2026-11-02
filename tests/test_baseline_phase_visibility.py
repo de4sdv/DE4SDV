@@ -9,12 +9,14 @@ synthetic framing of ``test_phase_progression``; no production model is copied.
 """
 from __future__ import annotations
 
+import dataclasses
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from de4sdv.semantic.increment_scope import ModelView
+from de4sdv.semantic.increment_workflow import phase_contents
 from de4sdv.semantic.remedies import check_remedy
 from increment_model_fixtures import ModelBuilder, ref
 from test_phase_progression import P0, P11, evaluate, framing_only, phase
@@ -77,6 +79,16 @@ def test_an_undeclared_phase_has_no_content_to_show():
     assert phase(evaluate(builder), P11)["gates"][GATE] == "PASS"
 
 
+def test_the_content_of_one_corpus_follows_the_declared_phases_it_is_read_for():
+    """The content is built once per corpus, increment and declared phases: a scope that declares fewer
+    phases never reads the content cached for one that declares more."""
+    evaluation = evaluate(framing_only())
+    view, scope = evaluation.view, evaluation.scope
+    everything, _ = phase_contents(view, scope)
+    framing, _ = phase_contents(view, dataclasses.replace(scope, declared_phases=(P0,)))
+    assert P1 in everything and set(framing) == {P0}
+
+
 def test_a_member_expose_shows_what_the_member_owns_only_when_recursive():
     plain = framing_only()
     _expose_only(plain, _named(plain, "DE4SDV_ProgressionFraming"))
@@ -93,3 +105,4 @@ def test_the_remedy_asks_for_an_expose_in_a_view_of_the_increment():
     remedy = check_remedy(ModelView(builder.elements, _traversal(builder), sources=builder.sources), CHECK)
     assert "expose" in remedy.text and "view of the increment" in remedy.text
     assert any("Visibility is not review" in note for note in remedy.notes)
+    assert any("existing view of the increment" in note for note in remedy.notes)

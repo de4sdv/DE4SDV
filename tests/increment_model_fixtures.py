@@ -783,6 +783,36 @@ def cut_workflow(scenario: IncrementScenario) -> dict[str, Any]:
     return handles
 
 
+def uncheck_step(scenario: IncrementScenario, workflow: dict[str, Any], step_name: str) -> None:
+    """Remove every check of one step of the cut's workflow, with what each check owns.
+
+    A charter can declare a workflow whose steps do not all carry checks; the
+    cut's workflow gives every step checks, so a test of an unchecked phase
+    tailors one step this way (a :func:`cut_workflow` handle)."""
+    builder = scenario.builder
+    by_id = {e["@id"]: e for e in builder.elements}
+    step = workflow["steps"][step_name]
+    typing = next(by_id[r["@id"]] for r in step["ownedRelationship"]
+                  if by_id[r["@id"]].get("@type") == "FeatureTyping" and not by_id[r["@id"]].get("isImplied"))
+    definition = by_id[typing["type"]["@id"]]
+    doomed, frontier = [], []
+    for reference in definition.get("ownedRelationship", []):
+        relationship = by_id.get(reference["@id"], {})
+        member = by_id.get((relationship.get("memberElement") or {}).get("@id"), {})
+        if member.get("@type") == "MetadataUsage":
+            frontier.append(relationship["@id"])
+    while frontier:
+        current = by_id.get(frontier.pop())
+        if current is None or current in doomed:
+            continue
+        doomed.append(current)
+        for key in ("ownedRelationship", "ownedRelatedElement"):
+            frontier.extend(r["@id"] for r in current.get(key) or [] if isinstance(r, dict))
+    builder.remove(*doomed)
+    for name in [name for name, check in workflow["checks"].items() if check in doomed]:
+        del workflow["checks"][name]
+
+
 def set_check(scenario: IncrementScenario, workflow: dict[str, Any], check_name: str, /, **values: Any) -> None:
     """Set (or replace) attributes of one check of the cut's workflow, as a redefinition would."""
     builder, metadata = scenario.builder, workflow["checks"][check_name]
