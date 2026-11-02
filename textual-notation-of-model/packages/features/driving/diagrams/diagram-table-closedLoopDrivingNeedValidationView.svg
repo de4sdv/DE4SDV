@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="648" height="1914" viewBox="0 0 648 1914" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="648" height="1934" viewBox="0 0 648 1934" role="img" aria-labelledby="title description">
   <title id="title">table-closedLoopDrivingNeedValidationView</title>
   <desc id="description">table-closedLoopDrivingNeedValidationView. Generated from SysIDE grid CSV.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
@@ -100,30 +100,31 @@
     <tspan x="300" dy="20">that the degraded-input response did not</tspan>
     <tspan x="300" dy="20">trigger?</tspan>
   </text>
-  <rect x="0" y="1214" width="288" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="0" y="1214" width="288" height="260" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">degradedResponseValidationPlan</tspan>
   </text>
-  <rect x="288" y="1214" width="360" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="288" y="1214" width="360" height="260" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="300" y="1238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="300" dy="0">For NEED-DRIVING-006, a planned</tspan>
     <tspan x="300" dy="20">stakeholder review. In the degraded input</tspan>
     <tspan x="300" dy="20">or plan scenario (SC-DRIVING-003), can</tspan>
     <tspan x="300" dy="20">safety experts and system architects</tspan>
     <tspan x="300" dy="20">confirm for each injected case (invalid,</tspan>
-    <tspan x="300" dy="20">lost or stale camera images or motion; an</tspan>
-    <tspan x="300" dy="20">invalid, late, lost or stale plan) that</tspan>
-    <tspan x="300" dy="20">the vehicle received the defined stop or</tspan>
-    <tspan x="300" dy="20">disable response instead of a command from</tspan>
-    <tspan x="300" dy="20">the last plan, and that the driving system</tspan>
-    <tspan x="300" dy="20">published its degraded state?</tspan>
+    <tspan x="300" dy="20">lost or stale camera images, motion or</tspan>
+    <tspan x="300" dy="20">route; an invalid, late, lost or stale</tspan>
+    <tspan x="300" dy="20">plan) that the vehicle received the</tspan>
+    <tspan x="300" dy="20">defined stop or disable response instead</tspan>
+    <tspan x="300" dy="20">of a command from the last plan, and that</tspan>
+    <tspan x="300" dy="20">the driving system published its degraded</tspan>
+    <tspan x="300" dy="20">state?</tspan>
   </text>
-  <rect x="0" y="1454" width="288" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1474" width="288" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">timeDomainValidationPlan</tspan>
   </text>
-  <rect x="288" y="1454" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="300" y="1478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="288" y="1474" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="300" y="1498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="300" dy="0">For NEED-DRIVING-007, a planned</tspan>
     <tspan x="300" dy="20">stakeholder review. While the closed-loop</tspan>
     <tspan x="300" dy="20">scenario runs (SC-DRIVING-001), can</tspan>
@@ -136,12 +137,12 @@
     <tspan x="300" dy="20">mixes simulation time with wall-clock</tspan>
     <tspan x="300" dy="20">time?</tspan>
   </text>
-  <rect x="0" y="1694" width="288" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1714" width="288" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">rerunValidationPlan</tspan>
   </text>
-  <rect x="288" y="1694" width="360" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="300" y="1718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="288" y="1714" width="360" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="300" y="1738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="300" dy="0">For NEED-DRIVING-008, a planned</tspan>
     <tspan x="300" dy="20">stakeholder review. After a bounded</tspan>
     <tspan x="300" dy="20">closed-loop run, can verification</tspan>
