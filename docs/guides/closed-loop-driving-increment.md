@@ -180,8 +180,8 @@ driving system as subject. Each is held by the parties it serves, not by the
 roles that check the answer, and each is derived from one non-boundary Phase 1
 concern, which its source names:
 
-- **Driven along the route:** the checkpoint's plans move the vehicle along
-  the route the driver chose (001; vehicle occupants).
+- **Driven along the route:** the driving system's own plans move the vehicle
+  along the route the driver chose (001; vehicle occupants).
 - **S-CORE command path:** plans and commands pass through S-CORE (002; system
   architects, software developers, maintainers).
 - **AAOS observation fidelity:** the loop publishes its live state with

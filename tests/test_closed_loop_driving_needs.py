@@ -155,6 +155,7 @@ def test_the_checkpoint_input_contract_is_kept_as_a_comment_for_phase_5():
     for item in (CHECKPOINT_PIN, "Model/README.md", "egomotion.py", "map_context", "64 history samples at 10 Hz"):
         assert item in text, item
     assert "derived from NEED-DRIVING-001" in text
+    assert "asmSourceAuthenticity" in text and "gapModelInputAndFeedback" in text
 
 
 def test_the_need_statements_state_what_the_holders_expect_not_how_it_is_reviewed():
@@ -220,3 +221,12 @@ def test_the_route_from_navigation_enters_the_route_need_and_the_degraded_respon
     assert "the camera images, the motion of the vehicle or the route become invalid, lost or stale" in degraded
     plan = _flat(braced_body(_raw(), "part <'SC-DRIVING-009'> degradedResponseValidationPlan : ValidationPlanningScenario"))
     assert "camera images, motion or route" in plan
+
+
+def test_the_route_need_states_the_occupants_expectation_without_naming_the_solution():
+    # Owner correction of 2026-11-02: NEED-DRIVING-001 is the vehicle occupants' expectation. It names the
+    # driving system's own plans, not the checkpoint that is the candidate solution, and no review wording.
+    statement = _statement(_need("needDrivenAlongTheRoute"))
+    assert statement.startswith("Vehicle occupants need the vehicle to take them along the route"), statement
+    assert "the driving system's own plans" in statement
+    assert "checkpoint" not in statement.lower() and "AutoE2E" not in statement

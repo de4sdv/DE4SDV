@@ -39,8 +39,10 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
      * destination, and an ego-motion history of speed, acceleration, yaw
      * rate and curvature; egomotion.py in Model/data_parsing: 64 history
      * samples at 10 Hz). The README names that raster map_context and the
-     * route route_mask. Phase 5 states it as requirements derived from
-     * NEED-DRIVING-001.
+     * route route_mask. It rests on assumption asmSourceAuthenticity (the
+     * pinned checkpoint and its compatible input geometry and history) and
+     * closes part of gap gapModelInputAndFeedback. Phase 5 states it as
+     * requirements derived from NEED-DRIVING-001.
      */
 
   requirement <'NEED-DRIVING-002'> needPlansAndCommandsThroughSCORE : StakeholderNeedCandidate {
