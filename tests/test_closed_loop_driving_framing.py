@@ -10,6 +10,7 @@ MODEL = ROOT / "textual-notation-of-model/packages/features/driving/closed_loop_
 PACKAGE = "DE4SDV_ClosedLoopDrivingFraming"
 CONTEXT_PACKAGE = "DE4SDV_ClosedLoopDrivingOperationalContext"
 CLASSIFICATION_PACKAGE = "DE4SDV_ClosedLoopDrivingCapabilityClassification"
+NEEDS_PACKAGE = "DE4SDV_ClosedLoopDrivingNeedsRequirements"
 
 
 def test_increment_has_its_own_phase_zero_contract():
@@ -39,7 +40,8 @@ def test_increment_has_its_own_phase_zero_contract():
         "phase10_vvEvidence", "phase11_baseline",
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [PACKAGE, CONTEXT_PACKAGE, CLASSIFICATION_PACKAGE]
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
+        PACKAGE, CONTEXT_PACKAGE, CLASSIFICATION_PACKAGE, NEEDS_PACKAGE]
     assert "frame closedLoopDrivingBoundary;" in code
     assert "viewpoint closedLoopDrivingFramingViewpoint : IncrementFramingViewpoint" in code
     assert "expose closedLoopDrivingCharter;" in code

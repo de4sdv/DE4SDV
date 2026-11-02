@@ -5,9 +5,10 @@ behavior from a prediction overlay on a separately driven car. This increment
 proposes the former: real camera-based learned planning, a functional S-CORE
 integration path, and an AAOS SDV application showing genuine plan/state/health.
 
-**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and
-Phase 3 capability classification, proposal.** No implementation, successful
-driving run, performance result or product-line admission is claimed.
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
+Phase 3 capability classification and Phase 4 stakeholder needs,
+proposal.** No implementation, successful driving run, performance result or
+product-line admission is claimed.
 
 ## Authoritative frame
 
@@ -17,6 +18,8 @@ driving run, performance result or product-line admission is claimed.
   the Phase 2 context, operational behavior and story.
 - [SysML capability classification](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_capability_classification.sysml):
   the Phase 3 feature candidate and the scope decisions it needs.
+- [SysML needs and requirements](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_needs_requirements.sysml):
+  the Phase 4 stakeholder needs and their planned reviews.
 - [Syside review views](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifacts, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
@@ -149,12 +152,41 @@ gap.
 The Phase 3 gate checks only that each recorded characteristic is a feature
 candidate or deferred scope; review judges the classification.
 
+## Stakeholder needs (Phase 4)
+
+Eight needs, `NEED-DRIVING-001` to `NEED-DRIVING-008`, take the candidate
+driving system as subject. Each is elaborated from one non-boundary Phase 1
+concern and is held by stakeholders of that concern:
+
+- **Checkpoint command authority:** the checkpoint's plans move the vehicle
+  (001); it plans from the inputs its runtime contract fixes, which are
+  calibrated camera images, the ego-motion history, and the map and route
+  (002).
+- **S-CORE command path:** plans and commands pass through S-CORE (003).
+- **AAOS observation fidelity:** the loop publishes its live state with
+  producer and time (004), and runs unchanged when AAOS SDV is down or late
+  (005).
+- **Degraded input behavior:** a defined stop or disable response to degraded
+  inputs or plans (006).
+- **Time-domain honesty:** inputs, plans and commands carry their times (007).
+- **Reproducible evidence:** each run identifies its checkpoint and
+  configuration (008).
+
+Each need has its own planned stakeholder review, `SC-DRIVING-005` to
+`SC-DRIVING-012`, watching a Phase 2 scenario. The limits and the deadlines
+come with the requirements in Phase 5. No need covers driving quality: the
+charter scopes checkpoint authority, and poor driving is a hold or redirect
+condition of the performance gap. The Phase 4 gates check that each need has
+a statement, a stakeholder, a source, a rationale and a planned review;
+review judges whether the needs are the right ones.
+
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is **Phase 4**: the stakeholder needs,
-elaborated from the Phase 1 concerns; its first gate is `needHasStatement`.
+work is complete. The next work is **Phase 5**: the requirements derived
+from the needs, each with a verification method and success criteria; its
+first gate is `requirementHasStatement`.
 Do not jump from this context to implementation or claim a passed runtime
 gate.
 
@@ -169,7 +201,8 @@ launch compute or authorize spend.
 Run `sysand sync`, `python scripts/check_repo.py`, `python scripts/smoke_test.py`
 and `python -m pytest -q` on `tests/test_closed_loop_driving_framing.py`,
 `tests/test_closed_loop_driving_operational_context.py`,
-`tests/test_closed_loop_driving_capability_classification.py` and
+`tests/test_closed_loop_driving_capability_classification.py`,
+`tests/test_closed_loop_driving_needs.py` and
 `tests/test_check_naming.py`.
 These are repository/lexical checks, not SysML semantic or runtime verification.
 Use `python scripts/validate_sysml.py` when a supported licensed validator is
