@@ -2,9 +2,12 @@
  * DE4SDV closed-loop driving capability: Phase 2 operational context.
  *
  * INC-DRIVING-001, phase 2: what happens in the world of the candidate driving
- * system. The vehicle's cameras and motion sensing feed it, its steering and
+ * system. The vehicle's cameras and motion sensing feed it, navigation gives
+ * it the route to the destination the driver chose, its steering and
  * acceleration commands move the vehicle, and AAOS SDV presents the plan,
- * vehicle state and health it publishes. AAOS SDV is a context role, not part
+ * vehicle state and health it publishes. The route says where the vehicle is
+ * to go; the plan, the trajectory the checkpoint computes, says how it moves
+ * through the next seconds; the commands carry the plan out. AAOS SDV is a context role, not part
  * of the driving system (owner decision of 2026-11-02): removing it leaves the
  * plan-to-command chain unchanged, and the increment claims no driver-HMI
  * capability. No planning, transport, display or deployment technology is
@@ -33,6 +36,15 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
     doc /* The vehicle's own motion and its recent history, such as speed, acceleration and yaw rate, with their sample times. */
   }
 
+  item def Route {
+    doc /*
+     * Where the vehicle is to go, as navigation gives it: the destination the
+     * driver chose, the route to it, and the map of the roads around the
+     * vehicle that the route runs through, with their times. Not a plan: the
+     * plan says how the vehicle moves through the next seconds.
+     */
+  }
+
   item def VehicleMotionCommand {
     doc /* The steering and acceleration commands the driving system gives the vehicle's actuation. */
   }
@@ -41,6 +53,18 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
     doc /*
      * The live plan, vehicle state and health of the driving system as it
      * publishes them for observation, each with its producer and its time.
+     */
+  }
+
+  part def NavigationSystem :> OperationalEntity {
+    doc /*
+     * The navigation of the vehicle: it holds the road map, takes the
+     * destination the driver chooses and gives the driving system the route
+     * there. It is an operational role, not a platform: which computer runs
+     * it is an allocation of phase 8. If a later phase allocates it to the
+     * AAOS SDV guest, AAOS SDV becomes an input to the loop and the
+     * context-role decision of 2026-11-02 reopens. The driving system plans
+     * its trajectory along the route and does not choose the route.
      */
   }
 
@@ -59,12 +83,14 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
      * learned planning, command execution and operational-state publication;
      * the plan and the commands cross S-CORE inside it. The publication ends
      * at its receiving end in the AAOS SDV guest, as in INC-MW-011. Around
-     * it: the vehicle it drives, the road environment its cameras see, the
-     * AAOS SDV guest with the application that presents the published state,
-     * and the driver who watches it. System 1 roles only: CARLA, the cloud
-     * bench and the capture instruments realize the vehicle and the scene for
-     * verification (closedLoopVerificationEnvironment). This is the
-     * operational environment, not a deployment decomposition.
+     * it: the vehicle it drives, the road environment its cameras see,
+     * navigation, which gives the route, the AAOS SDV guest with the
+     * application that presents the published state, and the driver who
+     * chooses the destination and watches the state. System 1 roles only:
+     * CARLA, the cloud bench and the capture instruments realize the vehicle,
+     * the scene and the route for verification
+     * (closedLoopVerificationEnvironment). This is the operational
+     * environment, not a deployment decomposition.
      */
     part drivingSystem : ClosedLoopDrivingSystem :>> systemOfInterest;
     part vehicle : SubjectVehicle {
@@ -73,22 +99,31 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
     part roadEnvironment : RoadEnvironment {
       doc /* The road, lanes and traffic of the bounded driving scenario: what the cameras see and where the vehicle drives. */
     }
+    part navigation : NavigationSystem {
+      doc /* The navigation the driver chooses the destination on. In verification, the scenario's route and map stand in for it. */
+    }
     part aaosSDVGuest : AAOSSDVGuestExecutionDomain {
       doc /* The AAOS SDV guest of the existing S-CORE and AAOS SDV integration, with its SDV Core, Gateway and IVI; phase 8 realizes them. */
       part stateObserver : DrivingStateObserverApplication;
     }
     part driver : Driver {
-      doc /* The operator of the problem statement: the person who watches the plan, vehicle state and health on AAOS SDV. The driver commands nothing of the driving system in this increment. */
+      doc /* The operator of the problem statement: the person who chooses the destination on navigation and watches the plan, vehicle state and health on AAOS SDV. The driver commands nothing of the driving system in this increment. */
     }
   }
 
   /* Operational behavior: the loop closes through the vehicle and the world; AAOS SDV only receives. */
   action def ClosedLoopDrivingOperation {
     doc /*
-     * One cycle of the loop in the world: the vehicle observes the scene, the
-     * driving system plans and commands, the vehicle moves, and AAOS SDV
-     * presents the published state outside the loop.
+     * One cycle of the loop in the world: navigation gives the route, the
+     * vehicle observes the scene, the driving system plans along the route
+     * and commands, the vehicle moves, and AAOS SDV presents the published
+     * state outside the loop.
      */
+    action guideToDestination {
+      doc /* Navigation: gives the route to the destination the driver chose, over its map. */
+      out route : Route;
+    }
+
     action senseScene {
       doc /* The vehicle: its cameras capture the road environment and its motion sensing samples its own motion. */
       out cameraImages : CameraImages;
@@ -96,15 +131,17 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
     }
 
     action planAndCommand {
-      doc /* The driving system: the pinned checkpoint plans from the images and the motion history, and the plan becomes steering and acceleration commands. */
+      doc /* The driving system: the pinned checkpoint plans from the images, the motion history and the route, and the plan becomes steering and acceleration commands. */
       in cameraImages : CameraImages;
       in egoMotion : EgoMotionState;
+      in route : Route;
       out command : VehicleMotionCommand;
       out operationalState : DrivingOperationalState;
     }
 
     flow from senseScene.cameraImages to planAndCommand.cameraImages;
     flow from senseScene.egoMotion to planAndCommand.egoMotion;
+    flow from guideToDestination.route to planAndCommand.route;
     first senseScene then planAndCommand;
 
     action actuateVehicle {
@@ -129,7 +166,7 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
   use case def DriveBoundedScenarioClosedLoop :> SYSMODSystemUseCaseBase {
     doc /* The candidate driving system in operation: learned plans move the vehicle through one bounded scenario while AAOS SDV shows the live state outside the loop. */
     attribute redefines ucMotivation = "DE4SDV needs a camera-based driving capability in which a learned checkpoint's plans actually determine the vehicle's steering and acceleration, while the driver sees the genuine plan, vehicle state and health.";
-    attribute redefines ucTrigger = "The driving system starts with a pinned checkpoint in one bounded driving scenario, and the vehicle's cameras and motion sensing deliver their first input.";
+    attribute redefines ucTrigger = "The driving system starts with a pinned checkpoint in one bounded driving scenario, navigation gives the route to the destination the driver chose, and the vehicle's cameras and motion sensing deliver their first input.";
     attribute redefines ucResult = "The vehicle drives the scenario on the checkpoint's plans, AAOS SDV shows the live plan, vehicle state and health, invalid, lost or stale input or plan leads to the defined stop or disable response, and an unavailable AAOS SDV leaves the loop unchanged.";
 
     objective {
@@ -146,6 +183,7 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
     subject drivingSystem : ClosedLoopDrivingSystem = closedLoopDrivingOperationalContext::drivingSystem;
     actor vehicle : SubjectVehicle = closedLoopDrivingOperationalContext::vehicle;
     actor roadEnvironment : RoadEnvironment = closedLoopDrivingOperationalContext::roadEnvironment;
+    actor navigation : NavigationSystem = closedLoopDrivingOperationalContext::navigation;
     actor stateObserver : DrivingStateObserverApplication = closedLoopDrivingOperationalContext::aaosSDVGuest::stateObserver;
     actor driver : Driver = closedLoopDrivingOperationalContext::driver;
 
@@ -169,15 +207,17 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
     subject drivingSystem : ClosedLoopDrivingSystem = closedLoopDrivingOperationalContext::drivingSystem;
     actor vehicle : SubjectVehicle = closedLoopDrivingOperationalContext::vehicle;
     actor roadEnvironment : RoadEnvironment = closedLoopDrivingOperationalContext::roadEnvironment;
+    actor navigation : NavigationSystem = closedLoopDrivingOperationalContext::navigation;
 
     objective {
       doc /*
        * SC-DRIVING-001 (normal operation, closed loop): the cameras see the
-       * road environment; the pinned checkpoint plans from the images and the
-       * motion history; its plan becomes steering and acceleration commands
-       * that move the vehicle; the vehicle's new motion changes the next
-       * images. An autopilot, a replayed history or a prediction overlay does
-       * not perform this scenario.
+       * road environment; navigation gives the route to the destination the
+       * driver chose; the pinned checkpoint plans from the images, the motion
+       * history and the route; its plan becomes steering and acceleration
+       * commands that move the vehicle; the vehicle's new motion changes the
+       * next images. An autopilot, a replayed history or a prediction overlay
+       * does not perform this scenario.
        */
     }
 
@@ -207,16 +247,17 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
   use case respondToDegradedInputOrPlan {
     subject drivingSystem : ClosedLoopDrivingSystem = closedLoopDrivingOperationalContext::drivingSystem;
     actor vehicle : SubjectVehicle = closedLoopDrivingOperationalContext::vehicle;
+    actor navigation : NavigationSystem = closedLoopDrivingOperationalContext::navigation;
     actor stateObserver : DrivingStateObserverApplication = closedLoopDrivingOperationalContext::aaosSDVGuest::stateObserver;
 
     objective {
       doc /*
-       * SC-DRIVING-003 (degraded input or plan): the camera images or the
-       * motion become invalid, lost or stale, or the plan becomes invalid,
-       * late, lost or stale; the driving system gives the vehicle the defined
-       * stop or disable response instead of acting on the last plan, and
-       * publishes the degraded state. The response and its deadlines are
-       * fixed with the requirements (phase 5).
+       * SC-DRIVING-003 (degraded input or plan): the camera images, the
+       * motion or the route become invalid, lost or stale, or the plan
+       * becomes invalid, late, lost or stale; the driving system gives the
+       * vehicle the defined stop or disable response instead of acting on the
+       * last plan, and publishes the degraded state. The response and its
+       * deadlines are fixed with the requirements (phase 5).
        */
     }
 
@@ -254,13 +295,27 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
   dependency stateObserverOnTransportGap
     from DrivingStateObserverApplication
     to DE4SDV_ClosedLoopDrivingFraming::gapTransportAndControl;
+  dependency navigationOnInputGap
+    from NavigationSystem
+    to DE4SDV_ClosedLoopDrivingFraming::gapModelInputAndFeedback;
+
+  comment navigationInputOfTheCheckpoint about DE4SDV_ClosedLoopDrivingFraming::gapModelInputAndFeedback
+    /*
+     * Besides camera images and the ego-motion history, the pinned checkpoint
+     * takes a map of the roads around the vehicle with the route corridor and
+     * the destination (Model/README.md and Model/navigation/geometry.py at
+     * cb50764b). The gap covers their geometry, their timing and the raster
+     * geometry the checkpoint expects as well. Phase 2 adds navigation as the
+     * context role that gives them (owner decision of 2026-11-02).
+     */
 
   concern closedLoopDrivingContextConcern : OperationalContextConcern {
     doc /*
      * Reviewers need to see what is inside the driving system and what is
-     * around it: the vehicle, the road environment, AAOS SDV and the driver,
-     * and which items cross the boundary in which direction. AAOS SDV only
-     * receives; nothing it sends enters the loop.
+     * around it: the vehicle, the road environment, navigation, AAOS SDV and
+     * the driver, and which items cross the boundary in which direction.
+     * Navigation gives the route; AAOS SDV only receives, and nothing it
+     * sends enters the loop.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
