@@ -255,6 +255,19 @@ package DE4SDV_ClosedLoopDrivingFraming {
   /* Phase 1: one concern per reviewer question of the in-scope items. Each is
    * typed by the SAF concern that asks its question; the views of later phases
    * answer it. The framing viewpoint frames all of them until then. */
+  concern drivenAlongTheRouteConcern : OperationalCapabilityConcern {
+    doc /*
+     * learnedDrivingInScope, operational part. Vehicle occupants need the
+     * vehicle to take them along the route to the destination the driver
+     * chose on navigation, steered and accelerated by the driving system's
+     * own plans. It states what the occupants expect, not how well the
+     * vehicle drives: no driving-quality, safety or on-road claim follows
+     * from it. Answered by the operational story of phase 2.
+     */
+    subject;
+    stakeholder occupant : VehicleOccupant;
+  }
+
   concern checkpointCommandAuthorityConcern : PhysicalFunctionalMappingConcern {
     doc /*
      * learnedDrivingInScope. Reviewers need to see that the pinned AutoE2E
@@ -285,28 +298,34 @@ package DE4SDV_ClosedLoopDrivingFraming {
 
   concern aaosObservationFidelityConcern : PhysicalContextExchangeConcern {
     doc /*
-     * integrationAndObservationInScope, AAOS part. Reviewers need to see
-     * that the plan, vehicle state and health shown on AAOS SDV Core,
-     * Gateway and IVI come from the live closed loop, which items cross to
-     * them, and from which producer; a mock or replayed stream does not
-     * count. Typed for AAOS as a context role of the driving system; if
-     * phase 2 places AAOS inside the boundary, the question becomes a
-     * physical internal exchange.
+     * integrationAndObservationInScope, AAOS part. The driver, a vehicle
+     * occupant, needs the plan, vehicle state and health shown on AAOS SDV
+     * to be those of the running loop. Reviewers need to see which items
+     * cross to AAOS SDV Core, Gateway and IVI and from which producer; a
+     * mock or replayed stream does not count. Typed for AAOS as a context
+     * role of the driving system; if phase 2 places AAOS inside the
+     * boundary, the question becomes a physical internal exchange.
      */
     subject;
+    stakeholder occupant : VehicleOccupant;
     stakeholder verificationEngineer : VerificationEngineer;
     stakeholder reviewer : OpenSourceReviewer;
   }
 
   concern degradedInputBehaviorConcern : FunctionalBehaviorConcern {
     doc /*
-     * feedbackAndTimingInScope, behavior part. Reviewers need the defined
-     * response when camera input, ego state or the plan becomes invalid,
-     * lost or stale: which function detects it, how old an input may be,
-     * and how the vehicle stops or the function disables, independent of
-     * the software that implements it.
+     * feedbackAndTimingInScope, behavior part. Vehicle occupants and road
+     * users need the vehicle to stop or the function to disable in a
+     * defined way when camera input, ego state, the route or the plan
+     * becomes invalid, lost or stale, instead of acting on the last plan.
+     * Safety experts and system architects need to see which function
+     * detects it, how old an input may be, and how the vehicle stops or the
+     * function disables, independent of the software that implements it.
+     * No safety claim follows from it.
      */
     subject;
+    stakeholder occupant : VehicleOccupant;
+    stakeholder roadUser : RoadUser;
     stakeholder safetyExpert : SafetyExpert;
     stakeholder systemArchitect : SystemArchitect;
   }
@@ -340,6 +359,7 @@ package DE4SDV_ClosedLoopDrivingFraming {
   view closedLoopDrivingFramingView {
     viewpoint closedLoopDrivingFramingViewpoint : IncrementFramingViewpoint {
       frame closedLoopDrivingBoundary;
+      frame drivenAlongTheRouteConcern;
       frame checkpointCommandAuthorityConcern;
       frame scoreCommandPathConcern;
       frame aaosObservationFidelityConcern;
@@ -355,6 +375,7 @@ package DE4SDV_ClosedLoopDrivingFraming {
     expose candidateDrivingSystem;
     expose closedLoopDrivingScope;
     expose closedLoopDrivingBoundary;
+    expose drivenAlongTheRouteConcern;
     expose checkpointCommandAuthorityConcern;
     expose scoreCommandPathConcern;
     expose aaosObservationFidelityConcern;
