@@ -15,8 +15,6 @@ product-line admission is claimed.
   `INC-DRIVING-001`, its engineering question, charter, scope and open gaps.
 - [SysML operational context](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_operational_context.sysml):
   the Phase 2 context, operational behavior and story.
-- [Pilot index](../../methodologies/sysmod-sysmlv2/pilots/driving-001-closed-loop.yaml):
-  artifact locations only; it does not duplicate the model's meaning.
 - [Syside review views](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifacts, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
