@@ -5,9 +5,9 @@ behavior from a prediction overlay on a separately driven car. This increment
 proposes the former: real camera-based learned planning, a functional S-CORE
 integration path, and an AAOS SDV application showing genuine plan/state/health.
 
-**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context,
-proposal.** No implementation, successful driving run, performance result or
-product-line admission is claimed.
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and
+Phase 3 capability classification, proposal.** No implementation, successful
+driving run, performance result or product-line admission is claimed.
 
 ## Authoritative frame
 
@@ -15,6 +15,8 @@ product-line admission is claimed.
   `INC-DRIVING-001`, its engineering question, charter, scope and open gaps.
 - [SysML operational context](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_operational_context.sysml):
   the Phase 2 context, operational behavior and story.
+- [SysML capability classification](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_capability_classification.sysml):
+  the Phase 3 feature candidate and the scope decisions it needs.
 - [Syside review views](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifacts, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
@@ -121,15 +123,40 @@ fixed with the requirements in Phase 5. The Phase 2 gates check one context
 that holds the system of interest and a story bound to it and to the context
 parts; review judges the roles and the scenarios.
 
+## Capability classification (Phase 3)
+
+The increment adds one characteristic that distinguishes member products:
+**AutoE2E as the driving stack**, the feature candidate `autoE2EDrivingStack`
+(owner decisions of 2026-11-02). It traces to the driving-stack variability
+the governed scope defers and answers the framing's product-line admission
+gap.
+
+- **Sensing:** AutoE2E plans from camera images and its ego-motion history and
+  takes no LiDAR input. Phase 9 adds it to the feature model with a constraint
+  that it requires the camera feature, and leaves LiDAR selectable. Ego motion
+  needs no constraint: it comes from the motion sensors, which every member
+  has, so they have no feature. LiDAR itself gets no record: the feature model
+  already makes it optional.
+- **Why the feature model waits for Phase 9:** a new vehicle application
+  needs a derived middleware adapter for every valid configuration, and
+  Phase 8 realizes that adapter first.
+- **Scope decisions:** the driving member becomes a new planned member;
+  Autoware and LiDAR stop being common; Vehicle-Target AEBS and the protected
+  emergency command path stay common; Eclipse S-CORE still has to be
+  admitted. A comment on the admission gap records them, and the member
+  decision amends ADR 0014 with them.
+
+The Phase 3 gate checks only that each recorded characteristic is a feature
+candidate or deferred scope; review judges the classification.
+
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is **Phase 3**: classify the driving
-capability and identify the owner scope decisions it needs. Its gate has
-nothing to evaluate while the increment adds no product-line characteristic,
-so review, not the gate, judges it. Phase 4 needs follow. Do not jump from
-this context to implementation or claim a passed runtime gate.
+work is complete. The next work is **Phase 4**: the stakeholder needs,
+elaborated from the Phase 1 concerns; its first gate is `needHasStatement`.
+Do not jump from this context to implementation or claim a passed runtime
+gate.
 
 Before deep adoption, involve upstream maintainers and resolve source,
 checkpoint and data-use terms. Before a paid cloud run, refresh the regional
@@ -141,7 +168,8 @@ launch compute or authorize spend.
 
 Run `sysand sync`, `python scripts/check_repo.py`, `python scripts/smoke_test.py`
 and `python -m pytest -q` on `tests/test_closed_loop_driving_framing.py`,
-`tests/test_closed_loop_driving_operational_context.py` and
+`tests/test_closed_loop_driving_operational_context.py`,
+`tests/test_closed_loop_driving_capability_classification.py` and
 `tests/test_check_naming.py`.
 These are repository/lexical checks, not SysML semantic or runtime verification.
 Use `python scripts/validate_sysml.py` when a supported licensed validator is
