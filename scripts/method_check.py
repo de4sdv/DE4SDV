@@ -427,6 +427,13 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
             lines.append(f"- Finding: {_plain('; '.join(findings))}")
     else:
         lines.append(f"**Next:** none. {_plain(entry.get('next_reason') or '')}".rstrip())
+    # A declared phase the walk passed with nothing to evaluate, before `next`: name it with its review
+    # prompt, so the reader sees what review still owes before the next gate. Advisory, as in the answer.
+    vacuous = [item for item in (((entry.get("evaluation") or {}).get("next") or {}).get("vacuous_phases") or [])
+               if item.get("phase")]
+    if vacuous:
+        named = ", ".join(f"{_plain(item['phase'])} ({_plain(item.get('prompt') or '')})" for item in vacuous)
+        lines += ["", f"**Passed with nothing to evaluate:** {named}. Review answers this; no gate does."]
     lines.append("")
 
     evaluation = entry.get("evaluation") or {}
