@@ -5,8 +5,8 @@ behavior from a prediction overlay on a separately driven car. This increment
 proposes the former: real camera-based learned planning, a functional S-CORE
 integration path, and an AAOS SDV application showing genuine plan/state/health.
 
-**Status: Phase 0 framing proposal.** No implementation, successful driving run,
-performance result or product-line admission is claimed.
+**Status: Phase 0 framing and Phase 1 concerns, proposal.** No implementation,
+successful driving run, performance result or product-line admission is claimed.
 
 ## Authoritative frame
 
@@ -52,20 +52,46 @@ interface compatibility nor recorded-input inference proves useful closed-loop
 driving on CARLA imagery. Invalid, lost or stale plans require a defined
 stop/disable response in simulation and retained failure-path evidence.
 
+## Concerns (Phase 1)
+
+Each in-scope item leads to the reviewer questions it raises; two items raise
+two questions each, with different stakeholders (owner decision of
+2026-11-02). Each concern is typed by the SAF concern that asks its question,
+so its domain says which later view answers it. The framing viewpoint frames
+all six until those views exist.
+
+- **Learned driving:** `checkpointCommandAuthorityConcern`, the checkpoint's
+  plan determines the commands with nothing in between. Physical functional
+  mapping; systems engineer, verification engineer, reviewer.
+- **Integration and observation:** `scoreCommandPathConcern`, plan and command
+  items pass through S-CORE, not beside it. Physical internal exchange; system
+  architect, software developer, maintainer.
+- **Integration and observation:** `aaosObservationFidelityConcern`, AAOS shows
+  the live plan, state and health. Physical context exchange, or internal if
+  phase 2 puts AAOS inside the boundary; verification engineer, reviewer.
+- **Feedback and timing:** `degradedInputBehaviorConcern`, a defined response
+  to invalid, lost or stale input or plan. Functional behavior; safety expert,
+  system architect.
+- **Feedback and timing:** `timeDomainHonestyConcern`, every timing claim names
+  its time domain. Argumentation assurance; verification engineer, systems
+  engineer.
+- **Closed-loop evidence:** `reproducibleClosedLoopEvidenceConcern`, rerunnable
+  scenarios, per-hop logs and the actual capture. Argumentation assurance;
+  verification engineer, maintainer, reviewer.
+
+The Phase 1 gates check that each concern has native stakeholders and a
+frame, and that one concern is not the boundary concern. They do not judge
+whether the stakeholder, risk and viewpoint coverage is adequate; review does.
+
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work for this framing is **Phase 1 concern
-framing**. The increment-boundary concern alone cannot open its exit: model
-at least one concern of the driving capability's engineering scope, with
-native stakeholders and a frame from a viewpoint of an increment view.
-Review stakeholder and risk coverage and the selected viewpoints; the
-structural gates do not assess their adequacy.
-
-Phase 2 then develops the operational context: exactly one context holding
-the system of interest, with stories bound to the subject and context actors.
-Do not jump from this charter to implementation or claim a passed runtime gate.
+work is complete. The next work for this framing is **Phase 2**, the
+operational context: exactly one context holding the system of interest, with
+stories bound to the subject and context actors. Phase 2 also decides whether
+AAOS SDV is a context role or part of the driving system. Do not jump from
+this charter to implementation or claim a passed runtime gate.
 
 Before deep adoption, involve upstream maintainers and resolve source,
 checkpoint and data-use terms. Before a paid cloud run, refresh the regional

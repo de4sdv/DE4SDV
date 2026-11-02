@@ -1,5 +1,5 @@
 /*
- * DE4SDV closed-loop driving capability: Phase 0 framing only.
+ * DE4SDV closed-loop driving capability: Phase 0 framing and Phase 1 concerns.
  * One increment spans framing, realization and CARLA verification.
  * No implementation, runtime result or product-line admission is asserted.
  */
@@ -9,6 +9,7 @@ package DE4SDV_ClosedLoopDrivingFraming {
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;
+  private import SAF_Viewpoints::*;
   private import Views::*;
 
   part def ClosedLoopDrivingIncrement :> EngineeringIncrement;
@@ -19,7 +20,8 @@ package DE4SDV_ClosedLoopDrivingFraming {
      * middleware audit or an extension of the existing AEBS behavior.
      * AutoE2E, Eclipse S-CORE and AAOS SDV are integration candidates named
      * by the owner; CARLA is the enabling closed-loop verification environment.
-     * All phases retain this identity. This package holds only Phase 0.
+     * All phases retain this identity. This package holds Phase 0 and the
+     * Phase 1 concerns.
      */
   }
 
@@ -246,9 +248,100 @@ package DE4SDV_ClosedLoopDrivingFraming {
      */
   }
 
+  /* Phase 1: one concern per reviewer question of the in-scope items. Each is
+   * typed by the SAF concern that asks its question; the views of later phases
+   * answer it. The framing viewpoint frames all of them until then. */
+  concern checkpointCommandAuthorityConcern : PhysicalFunctionalMappingConcern {
+    doc /*
+     * learnedDrivingInScope. Reviewers need to see that the pinned AutoE2E
+     * checkpoint's planning output is what determines steering and
+     * acceleration in CARLA, with no autopilot, replay or other source of
+     * commands in between. Answered by the physical-functional mapping of
+     * phase 8.
+     */
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder verificationEngineer : VerificationEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  concern scoreCommandPathConcern : PhysicalInternalExchangeConcern {
+    doc /*
+     * integrationAndObservationInScope, S-CORE part. Reviewers need to see
+     * that the plan and command items pass through Eclipse S-CORE elements
+     * between the planner and actuation, not beside them: an exchange that
+     * skips S-CORE means S-CORE is not on the path. Answered by the
+     * physical internal exchanges of phase 8.
+     */
+    subject;
+    stakeholder systemArchitect : SystemArchitect;
+    stakeholder softwareDeveloper : SoftwareDeveloper;
+    stakeholder maintainer : Maintainer;
+  }
+
+  concern aaosObservationFidelityConcern : PhysicalContextExchangeConcern {
+    doc /*
+     * integrationAndObservationInScope, AAOS part. Reviewers need to see
+     * that the plan, vehicle state and health shown on AAOS SDV Core,
+     * Gateway and IVI come from the live closed loop, which items cross to
+     * them, and from which producer; a mock or replayed stream does not
+     * count. Typed for AAOS as a context role of the driving system; if
+     * phase 2 places AAOS inside the boundary, the question becomes a
+     * physical internal exchange.
+     */
+    subject;
+    stakeholder verificationEngineer : VerificationEngineer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  concern degradedInputBehaviorConcern : FunctionalBehaviorConcern {
+    doc /*
+     * feedbackAndTimingInScope, behavior part. Reviewers need the defined
+     * response when camera input, ego state or the plan becomes invalid,
+     * lost or stale: which function detects it, how old an input may be,
+     * and how the vehicle stops or the function disables, independent of
+     * the software that implements it.
+     */
+    subject;
+    stakeholder safetyExpert : SafetyExpert;
+    stakeholder systemArchitect : SystemArchitect;
+  }
+
+  concern timeDomainHonestyConcern : ArgumentationAssuranceConcern {
+    doc /*
+     * feedbackAndTimingInScope, timing part. Reviewers need each timing
+     * claim to name its time domain: simulation time, rendered frames,
+     * inference cadence, transport latency, input-to-actuation age and wall
+     * clock are measured separately, so that no real-time claim rests on a
+     * single number or on another domain's measurement.
+     */
+    subject;
+    stakeholder verificationEngineer : VerificationEngineer;
+    stakeholder systemsEngineer : SystemsEngineer;
+  }
+
+  concern reproducibleClosedLoopEvidenceConcern : ArgumentationAssuranceConcern {
+    doc /*
+     * closedLoopEvidenceInScope. Reviewers need the closed-loop claims tied
+     * to evidence another engineer can rerun: pinned scenarios,
+     * configuration and checkpoint, per-hop logs and the actual capture,
+     * with every failed or missing run kept as a gap rather than dropped.
+     */
+    subject;
+    stakeholder verificationEngineer : VerificationEngineer;
+    stakeholder maintainer : Maintainer;
+    stakeholder reviewer : OpenSourceReviewer;
+  }
+
   view closedLoopDrivingFramingView {
     viewpoint closedLoopDrivingFramingViewpoint : IncrementFramingViewpoint {
       frame closedLoopDrivingBoundary;
+      frame checkpointCommandAuthorityConcern;
+      frame scoreCommandPathConcern;
+      frame aaosObservationFidelityConcern;
+      frame degradedInputBehaviorConcern;
+      frame timeDomainHonestyConcern;
+      frame reproducibleClosedLoopEvidenceConcern;
     }
     expose ClosedLoopDrivingIncrement;
     expose closedLoopDrivingIncrement;
@@ -258,6 +351,12 @@ package DE4SDV_ClosedLoopDrivingFraming {
     expose candidateDrivingSystem;
     expose closedLoopDrivingScope;
     expose closedLoopDrivingBoundary;
+    expose checkpointCommandAuthorityConcern;
+    expose scoreCommandPathConcern;
+    expose aaosObservationFidelityConcern;
+    expose degradedInputBehaviorConcern;
+    expose timeDomainHonestyConcern;
+    expose reproducibleClosedLoopEvidenceConcern;
     expose learnedDrivingInScope;
     expose integrationAndObservationInScope;
     expose feedbackAndTimingInScope;
