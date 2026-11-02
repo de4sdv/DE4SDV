@@ -221,18 +221,27 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def FrameConcerns :> IncrementStep {
-    doc /* Who cares and why? Rules: each concern of the increment has a native
+    doc /* Who cares and why? Rules: at least one concern of the increment is
+         * not typed by IncrementBoundaryConcern or a specialization of it.
+         * A boundary concern alone is insufficient. Each concern has a native
          * stakeholder member, and a viewpoint of a view of the increment frames
          * it, by its own frame or by a frame of the viewpoint definition it is
          * typed by. The views of the increment are the views its packages own,
          * as in phase 11. The stakeholders are the native stakeholder members
          * of the concerns, the problem statement and the needs; no check counts
-         * stakeholder parts. */
+         * stakeholder parts. These are structural gates, not a completeness or
+         * adequacy assessment of stakeholder coverage or viewpoint selection. */
     attribute :>> phase = MethodPhase::phase1_concernFraming;
     in requirement problemStatement : ProblemStatement;
     out part stakeholders[1..*] : Stakeholder;
     out concern concerns[1..*];
 
+    metadata incrementHasNonBoundaryConcern : MethodCheck about concerns {
+      doc /* At least one concern of the increment is not typed by IncrementBoundaryConcern or any
+           * specialization of it. Boundary concerns may remain; no claim of complete stakeholder or
+           * risk coverage, viewpoint-selection adequacy or review acceptance. */
+      :>> check = "nonBoundaryConcernPresent";
+    }
     metadata concernHasStakeholder : MethodCheck about concerns {
       doc /* Each concern of the increment has a native stakeholder member; no assignment or authority claim. */
       :>> check = "stakeholderMember";

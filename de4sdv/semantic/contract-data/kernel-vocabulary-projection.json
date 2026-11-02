@@ -23,6 +23,7 @@
       "FeatureConfiguration",
       "Function",
       "IncrementBaselineDecision",
+      "IncrementBoundaryConcern",
       "IncrementTraceObligations",
       "Interface",
       "LifecycleDisposition",
@@ -691,6 +692,39 @@
         },
         "ontology_relations": {
           "sub_class_of": "IncrementLifecycleDecision",
+          "disjoint_with": []
+        },
+        "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"
+      },
+      "support": "vocabulary-only",
+      "traversal": false,
+      "api_identity": "unclaimed"
+    },
+    {
+      "identity": "IncrementBoundaryConcern",
+      "semantic_kind": "class",
+      "admission_class": "definition",
+      "register_wave": null,
+      "accounting": "method-admitted",
+      "boundary": "none",
+      "definition": {
+        "documentation": "A concern that separates the phases of an increment's work. It is not a concern of the increment's engineering scope, so a boundary concern alone does not open Phase 1.",
+        "documentation_witness": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
+          "owner": "concern def IncrementBoundaryConcern",
+          "form": "owned-doc",
+          "documentation_name": null,
+          "documentation_index": 0
+        },
+        "documentation_observation": "model-owned-documentation"
+      },
+      "grounding": {
+        "kernel_binding_contract": {
+          "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
+          "declaration": "concern def IncrementBoundaryConcern"
+        },
+        "ontology_relations": {
+          "sub_class_of": null,
           "disjoint_with": []
         },
         "contract_source": "kernel mapping kind and ontology relations: reviewed admission-manifest fields (manifest-held: the model does not carry them structurally, so the reviewed manifest is their authority); file mappings are resolved in the model by this generator; admitted by a method pull request after the authored ontology's deletion: no authored-ontology comparison exists"

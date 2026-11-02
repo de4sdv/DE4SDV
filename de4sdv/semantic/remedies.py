@@ -742,6 +742,21 @@ def _framed_by_increment_view(request: _Request) -> Remedy:
     return lines.remedy(f"declare a concern and frame it by a viewpoint of a view, {_where(request)}".rstrip(", "))
 
 
+def _non_boundary_concern_present(request: _Request) -> Remedy:
+    """Declare an actual new concern, never retag the existing boundary to clear the gate."""
+    try:
+        boundary = request.view.label(request.view.kernel_element("IncrementBoundaryConcern"))
+    except IdentityNotFoundError as error:
+        return _method_side(str(error), "revision ingestion to validate the canonical kernel binding")(request)
+    base = _framed_by_increment_view(replace(request, subject=None))
+    return replace(base, instruction=(
+        f"declare at least one concern of the increment's engineering scope {_where(request)}, "
+        f"not typed by {boundary} or any definition specializing it; keep existing boundary concerns"
+    ), notes=(*base.notes,
+              "Every concern, including a boundary concern, still needs its native stakeholder member and "
+              "a frame from a viewpoint of an increment view. Presence is not evidence of coverage adequacy."))
+
+
 def _require_constraint(request: _Request) -> Remedy:
     lines = _lines(request)
     statement = 'require constraint statement { language "English" /* <the statement> */ }'
@@ -877,6 +892,7 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "ownedByIncrementPackage": _owned_by_increment_package,
     "stakeholderMember": _stakeholder_member,
     "framedByIncrementView": _framed_by_increment_view,
+    "nonBoundaryConcernPresent": _non_boundary_concern_present,
     "charterOwner": _charter_value,
     "charterApplicablePhases": _applicable_phases,
     "charterExpectedArtifacts": _charter_value,

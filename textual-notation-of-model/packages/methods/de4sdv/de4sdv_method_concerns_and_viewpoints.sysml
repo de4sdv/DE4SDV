@@ -75,6 +75,11 @@ package DE4SDV_MethodViewpoints {
   }
 
   concern def IncrementBoundaryConcern {
+    doc /*
+     * A concern that separates the phases of an increment's work. It is not a
+     * concern of the increment's engineering scope, so a boundary concern
+     * alone does not open Phase 1.
+     */
     require constraint {
       doc /*
        * Reviewers need each increment to separate framing, operational context,

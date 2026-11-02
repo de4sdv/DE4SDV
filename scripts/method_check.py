@@ -449,6 +449,8 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
         # declared" for it, never READY; the report keeps its exit as the evaluation states it.
         undeclared = {str(phase.get("phase")) for phase in (evaluation.get("status") or {}).get("phases") or []
                       if phase.get("applicability") == PHASE_NOT_DECLARED}
+        vacuous = {str(phase.get("phase")): int(phase.get("evaluated") or 0)
+                   for phase in (evaluation.get("status") or {}).get("phases") or [] if phase.get("vacuous")}
 
         def tally(phase: str) -> str:
             count = checks.get(phase)
@@ -462,6 +464,12 @@ def _increment_section(entry: Mapping[str, Any]) -> list[str]:
         def shown(phase: str, exit_: Any) -> str:
             if phase in undeclared:
                 return f"{_plain(phase)} {PHASE_NOT_DECLARED}"
+            if phase in vacuous:
+                # Every blocking check is not applicable; any evaluated check is advisory.
+                evaluated = vacuous[phase]
+                detail = (f"{evaluated} advisory check{'s' if evaluated > 1 else ''} evaluated" if evaluated
+                          else "nothing to evaluate")
+                return f"{_plain(phase)} {_plain(exit_)} (vacuous, {detail})"
             return f"{_plain(phase)} {_plain(exit_)}{tally(phase)}"
 
         lines.append("**Phase exits:** " + ", ".join(shown(p, r) for p, r in exits.items()))

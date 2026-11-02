@@ -320,10 +320,20 @@ These method rules apply to every increment:
       VSS path in a doc or a string is no VSS typing, a signal the pinned VSS
       snapshot lacks goes into `DE4SDV_VSS_Extensions` as a candidate, and
       whether an item is a vehicle signal stays the reviewer's judgment.
-14. **Concerns (phase 1).** Each concern of the increment has a native
-    stakeholder member. A viewpoint of a view of the increment frames it,
-    by its own frame or by a frame of the viewpoint definition it is typed
-    by. Both checks block. The concerns are the concern usages the
+14. **Concerns (phase 1).** The increment has at least one concern that is
+    not typed by `IncrementBoundaryConcern` or any specialization of it.
+    **Owner-approved exit condition:** an increment-boundary concern alone
+    is insufficient; it separates the work's phases but does not establish
+    the concerns of the engineering scope. Boundary concerns may remain. A
+    concern with no typing at all counts as non-boundary. Every concern,
+    boundary or not, has a native stakeholder member. A
+    viewpoint of a view of the increment frames it, by its own frame or by
+    a frame of the viewpoint definition it is typed by. All three checks
+    block. They establish the presence and native relationships of the
+    declared concerns, not the completeness of stakeholder or risk coverage,
+    the adequacy of viewpoint selection, or review acceptance. Shared
+    artifacts may satisfy multiple phases; no separate Phase 1 package or
+    completion flag is required. The concerns are the concern usages the
     increment's packages own. The views of the increment are the view
     usages its packages own, nested packages included: the views of rule
     15. A view that a part or another view owns is none of them. The

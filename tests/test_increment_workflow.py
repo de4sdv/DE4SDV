@@ -35,7 +35,7 @@ CHECKS_BY_STEP = {
         "incrementDeclaresApplicablePhases", "incrementDeclaresExpectedArtifacts",
         "incrementDeclaresExpectedReviewEvidence", "expectedArtifactsCoverIncrementContent",
     },
-    "FrameConcerns": {"concernHasStakeholder", "concernFramedByViewpoint"},
+    "FrameConcerns": {"incrementHasNonBoundaryConcern", "concernHasStakeholder", "concernFramedByViewpoint"},
     "SpecifyOperationalContext": {
         "incrementHasOperationalContext", "operationalContextHoldsSystemOfInterest",
         "storyBindsSubjectToSystemOfInterest", "storyBindsActorsToContextParts",
@@ -100,7 +100,7 @@ CHECK_REGISTRY = {
     "allocatedTo", "populationMember", "carriedByArchitecture", "receivesAllocation",
     "signalMappingRecorded", "semanticSourceNamed",
     "verifiesIncrementRequirement", "verifiedBy", "evidenceRecordOrStatus",
-    "framedByViewpoint", "contextSystemOfInterest", "storySubjectBound", "storyActorsBound",
+    "framedByViewpoint", "nonBoundaryConcernPresent", "contextSystemOfInterest", "storySubjectBound", "storyActorsBound",
     "featureDeltaOnly", "viewpointFramesConcern", "exposesModelContent",
     "configuredByOneConfiguration", "dispositionStated",
 }

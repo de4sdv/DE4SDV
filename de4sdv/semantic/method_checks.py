@@ -830,6 +830,61 @@ def _population_member(view: ModelView, increment: IncrementScope, subject_id: s
 
 #: The metaclass of the views the publication step counts (``out view publishedViews``).
 VIEW_KIND = "ViewUsage"
+#: The model-projected class whose validated kernel identity distinguishes phase-boundary concerns.
+BOUNDARY_CONCERN_CLASS = "IncrementBoundaryConcern"
+
+
+def _non_boundary_concerns(view: ModelView, increment: IncrementScope) -> tuple[list[str], list[str]]:
+    """(non-boundary concerns, unreadable candidates) in the increment's scope, computed once.
+
+    A concern keeps the types of the features it subsets, redefines or
+    references, even when the serializer writes no typing of its own. The
+    exclusion resolves the canonical boundary lineage from validated kernel
+    bindings, never from a name.
+    """
+    boundary = kernel_lineage(view, BOUNDARY_CONCERN_CLASS)
+    key = ("non-boundary-concerns", tuple(sorted(increment.scope_packages)), tuple(sorted(boundary)))
+
+    def build() -> tuple[tuple[str, ...], tuple[str, ...]]:
+        concerns, unreadable = [], []
+        for element in increment.scope_elements:
+            if view.element(element).get("@type") != "ConcernUsage":
+                continue
+            features = narrowed_features(view, element)
+            lineage = {definition for feature in features for definition in type_lineage(view, feature)}
+            if boundary.intersection(lineage):
+                continue
+            missing = [target for target in (*features, *sorted(lineage)) if not view.element(target)]
+            if missing:
+                unreadable.append(f"{_name(view, element)} has unavailable narrowed features or type ancestors: "
+                                  + ", ".join(missing))
+            else:
+                concerns.append(element)
+        return tuple(concerns), tuple(unreadable)
+
+    concerns, unreadable = view.index.memo(key, build)
+    return list(concerns), list(unreadable)
+
+
+def _non_boundary_concern_present(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """At least one package-owned concern in scope is outside the canonical boundary-concern lineage.
+
+    Like the framing-package existence check, every subject reports the same
+    scope-level presence result. The other gates still judge every concern's
+    native stakeholder and frame, including the boundary concerns. No name,
+    phase marker or second concern/reference list determines membership.
+    Resolving the excluded lineage first is essential: an unavailable kernel
+    identity is method side, while an unreadable model candidate is an
+    authorable input problem that keeps the gate actionable.
+    """
+    concerns, unreadable = _non_boundary_concerns(view, increment)
+    if concerns:
+        return satisfied(concerns)
+    if unreadable:
+        return indeterminate(MODEL_WITNESS_PREFIX + "concern-lineage",
+                             "non-boundary membership cannot be established: " + "; ".join(unreadable))
+    return violated("the increment has no concern outside the canonical increment-boundary concern "
+                    "lineage; declare a concern of its engineering scope, not another boundary specialization")
 
 
 def increment_views(view: ModelView, increment: IncrementScope) -> list[str]:
@@ -1528,6 +1583,7 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "ownedByIncrementPackage": _owned_by_increment_package,
     "stakeholderMember": _stakeholder_member,
     "framedByIncrementView": _framed_by_increment_view,
+    "nonBoundaryConcernPresent": _non_boundary_concern_present,
     "charterOwner": _charter_text("owner"),
     "charterApplicablePhases": _charter_applicable_phases,
     "charterExpectedArtifacts": _charter_expected_artifacts,

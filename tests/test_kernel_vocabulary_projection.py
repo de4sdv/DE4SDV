@@ -45,10 +45,14 @@ MERGED_ALIASES = {"validatesFitnessForUse"}
 #: the five product-line derivation classes. The owner decisions of 2026-10-28 on
 #: phases 9 and 12 admitted three classes and the vocabulary relationship
 #: configuredBy, which maps the configured product onto FeatureConfiguration.
+#: The owner-approved phase 1 concern contract admitted IncrementBoundaryConcern,
+#: promoted from the kernel-internal declarations manifest: the phase 1 gate
+#: resolves its canonical identity, and the row stays vocabulary-only.
 DERIVATION_CLASSES = {"DerivationRule", "DerivedVariation", "ProductModelProjection",
                       "ProductModelProjectionName", "UnassignedBindingTime"}
 METHOD_ADMITTED_CLASSES = DERIVATION_CLASSES | {"ConfiguredProduct", "IncrementBaselineDecision",
-                                                "LifecycleDisposition"}
+                                                "LifecycleDisposition",
+                                                "IncrementBoundaryConcern"}
 METHOD_ADMITTED_RELATIONSHIPS = {"configuredBy"}
 METHOD_ADMITTED = METHOD_ADMITTED_CLASSES | METHOD_ADMITTED_RELATIONSHIPS
 #: Rows whose manifest-held fields were proven equal to the authored ontology.

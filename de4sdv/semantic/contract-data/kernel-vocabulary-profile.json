@@ -252,6 +252,19 @@
       ]
     },
     {
+      "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#IncrementBoundaryConcern",
+      "for_concept": "IncrementBoundaryConcern",
+      "representation_class": "concern-definition",
+      "binding_contract_echo": {
+        "source_file": "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
+        "owner": "concern def IncrementBoundaryConcern",
+        "api_metaclass": "ConcernDefinition"
+      },
+      "witness_forms": [
+        "ownedRelationship -> OwningMembership -> Documentation (anonymous, owner-selected index)"
+      ]
+    },
+    {
       "profile_identity": "de4sdv.o4-definition-batch2-profile/v1#IncrementTraceObligations",
       "for_concept": "IncrementTraceObligations",
       "representation_class": "part-definition",

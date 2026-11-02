@@ -77,6 +77,11 @@ LINEAGE_UNAVAILABLE = "lineage-unavailable"  # the EngineeringIncrement lineage 
 PHASE_NOT_DECLARED = "not declared"
 NEXT_REASON = "the first open blocking check in workflow order (step order, then check order)"
 NONE_OPEN_REASON = "every required gate passes or is not applicable"
+#: Review prompts for a phase whose required gates are all not applicable; the walk never stalls on it.
+VACUOUS_REVIEW_PROMPTS = {
+    "phase3_capabilityClassification": "confirm the increment adds no feature-model delta",
+}
+DEFAULT_VACUOUS_PROMPT = "confirm the increment has nothing to add in this phase"
 #: What the bounds of a phase_contract gate count (a claim of "at least one ..." reads on one of them).
 CONTRACT_LEGEND = {
     "population": "[lower, upper] number of subjects: the elements conforming to the step parameter the "
@@ -429,7 +434,9 @@ class IncrementEvaluation:
             if kind is None:
                 continue
             (blocking if gate.required else advisory).append({"gate": gate.obligation_id, "kind": kind})
-        return {
+        vacuous = (readiness.readiness == "READY" and verdict == me.VERDICT_NOT_APPLICABLE
+                   and self._applicability(gates, phase) != PHASE_NOT_DECLARED)
+        block: dict[str, Any] = {
             "phase": phase,
             "applicability": self._applicability(gates, phase),
             "executable_checks": len(gates),
@@ -443,6 +450,12 @@ class IncrementEvaluation:
             "blocking": blocking,
             "advisory_open": advisory,
         }
+        if vacuous:
+            # Additive: readiness stays binary; the phase opened without evaluating a subject.
+            block["vacuous"] = True
+            block["evaluated"] = sum(1 for gate in gates
+                                     if _state_label(self._unit(gate.obligation_id)) != me.VERDICT_NOT_APPLICABLE)
+        return block
 
     def _unchecked_phase_status(self, phase: str) -> dict[str, Any]:
         """A declared phase no executable check judges: reported with its step's declared outputs
@@ -502,6 +515,7 @@ class IncrementEvaluation:
             response = self._unavailable("next_obligation")
             response.update(next=None, reason=self.increment_method.reason, stage_queue=[], method_side_blockers=[])
             response.update(_next_reason(self.scope, self.revision))
+            response["vacuous_phases"] = []
             return response
         response = self._header("next_obligation")
         order = {g.obligation_id: i for i, g in enumerate(self._contract().obligations)}
@@ -564,9 +578,25 @@ class IncrementEvaluation:
             reason = NONE_OPEN_REASON + (
                 f"; {NO_EXECUTABLE_CHECKS} judge the declared phase{'s' if len(unchecked) > 1 else ''} "
                 f"{', '.join(unchecked)}" if unchecked else "")
-        response.update(next=step, reason=reason, stage_queue=queue, method_side_blockers=method_side)
+        response.update(next=step, reason=reason, stage_queue=queue, method_side_blockers=method_side,
+                        vacuous_phases=self._vacuous_before(step, phase))
         response.update(_next_reason(self.scope, self.revision))
         return self._presented(response)
+
+    def _vacuous_before(self, step: Mapping[str, Any] | None, phase: str | None = None) -> list[dict[str, str]]:
+        """Declared phases whose required gates are all not applicable, before the next obligation,
+        within the phase the answer is asked about (every phase when none is given).
+
+        Advisory only: it never stalls the walk and needs no model record to clear.
+        """
+        rank = PHASE_ORDER.get(str((step or {}).get("stage") or ""), len(PHASE_ORDER))
+        found: list[dict[str, str]] = []
+        for candidate in self._status_phases(phase):
+            block = self._phase_status(candidate)
+            if block.get("vacuous") and PHASE_ORDER.get(candidate, len(PHASE_ORDER)) < rank:
+                found.append({"phase": candidate,
+                              "prompt": VACUOUS_REVIEW_PROMPTS.get(candidate, DEFAULT_VACUOUS_PROMPT)})
+        return found
 
     def phase_contract(self, phase: str | None = None) -> dict[str, Any]:
         """The gates of the method (or one phase) with this increment's applicability."""
