@@ -1,5 +1,10 @@
 from pathlib import Path
 import re
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from test_saf_domains import DOMAIN_VIEWPOINT_ROOTS  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SAF_FILE = ROOT / "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml"
@@ -103,10 +108,9 @@ def _aspect_from_block(block: str) -> str:
     return match.group(1)
 
 
-#: The abstract domain roots classify the catalogue's viewpoints by SAF domain (test_saf_domains); they are no
-#: SAF viewpoint, so they sit in no grid column and carry no aspect.
-DOMAIN_ROOTS = {f"{domain}DomainViewpoint" for domain in
-                ("ArchitectureManagement", "Operational", "Conceptual", "Physical", "SAFDevelopment")}
+#: The abstract domain roots classify the catalogue's viewpoints by SAF domain; they are no SAF viewpoint, so
+#: they sit in no grid column and carry no aspect.
+DOMAIN_ROOTS = DOMAIN_VIEWPOINT_ROOTS
 
 
 def test_every_viewpoint_has_known_aspect_annotation() -> None:

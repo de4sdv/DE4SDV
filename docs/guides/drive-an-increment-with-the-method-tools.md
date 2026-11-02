@@ -381,7 +381,11 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   applicable phase with content of which no element is in a view of the
   increment (`phaseContentPublished`): what a step produces, read from the
   subjects of its checks about an `out` parameter, against what the views
-  expose. It never blocks and is not review. The increment ends at this
+  expose. It never blocks and is not review. A second advisory check,
+  `concernAnsweredInItsDomain`, names each concern typed by an SAF concern
+  definition that no viewpoint of its own SAF domain frames
+  (`concernAnsweredInDomain`): no view answers it yet, or its definition
+  belongs to another domain than its question. The increment ends at this
   phase: rework iterates the same increment, and a new increment starts at
   phase 0 from a new engineering question. So:
 

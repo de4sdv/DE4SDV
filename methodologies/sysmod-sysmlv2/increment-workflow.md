@@ -333,7 +333,11 @@ These method rules apply to every increment:
     declared concerns, not the completeness of stakeholder or risk coverage,
     the adequacy of viewpoint selection, or review acceptance. Shared
     artifacts may satisfy multiple phases; no separate Phase 1 package or
-    completion flag is required. The concerns are the concern usages the
+    completion flag is required. Type a concern by its SAF domain first,
+    then by the question its SAF concern definition states: a question
+    about a concrete platform, product or component is a Physical Domain
+    question, and the words of a definition's name ("interface", "path")
+    do not decide it. Rule 15's advisory domain check reads the result. The concerns are the concern usages the
     increment's packages own. The views of the increment are the view
     usages its packages own, nested packages included: the views of rule
     15. A view that a part or another view owns is none of them. The
@@ -369,6 +373,19 @@ These method rules apply to every increment:
       to it; measured as if it did, no view shows any of its phase-0
       framing records or its phase-10 verification cases. The rule stays
       advisory until the owner decides.
+    - **Domain (advisory).** Each concern typed by an SAF concern
+      definition is framed by a viewpoint of a view of the increment whose
+      definition is an SAF viewpoint definition of the same SAF domain
+      (`concernAnsweredInDomain`). Each definition of `SAF_Viewpoints`
+      specializes the abstract definition of its domain, a row of the SAF
+      grid (for example `PhysicalDomainConcern` and
+      `PhysicalDomainViewpoint`), so the domain is read by identity. A
+      concern that only a framing view or viewpoints of other domains frame
+      is named: either no view answers it yet, or it asks another domain's
+      question and its definition is the wrong one. A frame by a viewpoint
+      of another domain beside an answering one is not refused, since
+      framing, overview and mapping views frame concerns they do not answer.
+      A concern typed by no SAF concern definition is outside the rule.
 16. **Variability and the baseline decision (phases 9 and 11).** The
     kernel types what these steps declare (owner decisions of 2026-10-28
     and 2026-10-29), and all their checks block:
@@ -466,8 +483,8 @@ result is a conformance, acceptance, or certification claim.
 
 | Phase | Question | SAF domain | Main outputs |
 |---|---|---|---|
-| 0. Increment framing | What are we changing or learning? | Common | increment charter, scope, assumptions |
-| 1. Concern framing | Who cares and why? | Common / Operational | stakeholders, concerns, viewpoint selection |
+| 0. Increment framing | What are we changing or learning? | Architecture Management | increment charter, scope, assumptions |
+| 1. Concern framing | Who cares and why? | Architecture Management / Operational | stakeholders, concerns, viewpoint selection |
 | 2. Operational context | What happens in the world? | Operational | context, actors, scenarios, operational processes |
 | 3. Capability / feature semantics | Which characteristics distinguish member products? | DE4SDV ontology | feature candidates: the feature-model delta |
 | 4. Needs | What stakeholder needs exist and how will the needs be validated? | Operational | needs, sources, rationale, validation intent |
@@ -476,8 +493,8 @@ result is a conformance, acceptance, or certification claim.
 | 7. Logical architecture | What technology-independent logical elements realize the functions? | Conceptual | logical structure, exchanges, allocation/mapping |
 | 8. Physical / software realization | What software, hardware, deployment, or tool elements realize the system design? | Physical | physical/software structure, interfaces, mappings, readiness probes when required |
 | 9. Variability and configuration | How does this vary across member products or configurations? | DE4SDV product-line layer | variation points, feature configurations, configured products, applicability |
-| 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Common / Conceptual | verification cases, validation scenarios, evidence records, open gaps |
-| 11. Baseline | What is accepted, deferred, or invalidated, and which published views show it? | Common | baseline decision and its disposition, open-gap dispositions, published views |
+| 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Architecture Management / Conceptual | verification cases, validation scenarios, evidence records, open gaps |
+| 11. Baseline | What is accepted, deferred, or invalidated, and which published views show it? | Architecture Management | baseline decision and its disposition, open-gap dispositions, published views |
 
 An increment ends at its baseline decision. Rework iterates the same
 increment; a new increment starts only from a new engineering question, at

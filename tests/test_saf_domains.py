@@ -19,6 +19,9 @@ SAF_FILE = ROOT / "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints
 AM, O, C, P, D = "ArchitectureManagement", "Operational", "Conceptual", "Physical", "SAFDevelopment"
 LABEL = {AM: "SAF Architecture Management Domain", O: "SAF Operational Domain", C: "SAF Conceptual Domain",
          P: "SAF Physical Domain", D: "SAF Development Domain"}
+#: The abstract viewpoint definitions of the domains: classifiers of the catalogue, no SAF viewpoint (no grid
+#: cell, aspect or viewpoint page).
+DOMAIN_VIEWPOINT_ROOTS = frozenset(f"{domain}DomainViewpoint" for domain in LABEL)
 
 #: Viewpoint definition -> its row in the SAF grid (the grid identifier in the comment).
 EXPECTED_VIEWPOINT_DOMAINS = {
