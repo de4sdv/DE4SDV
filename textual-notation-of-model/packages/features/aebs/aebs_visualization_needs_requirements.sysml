@@ -404,11 +404,10 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
 
   part nonInterferenceValidationPlan : ValidationPlanningScenario {
     doc /* SC-AEBS-010-11, N-AEBS-013: planned stakeholder review. In the
-         * warning-intervention-release scenario, does what systems engineers
-         * and verification engineers observe show that the visualization
-         * observes AEBS detection, warning, intervention, and release behavior
-         * without commanding or modifying it, so that what it shows is the
-         * behavior of the unchanged System 1 AEBS?
+         * warning-intervention-release scenario, can systems engineers and
+         * verification engineers confirm that the visualization neither
+         * commands nor modifies the unchanged System 1 AEBS detection,
+         * warning, intervention, and release behavior it shows?
          * No execution, result or acceptance. */
   }
   connection nonInterferenceValidationPlanning : ValidationPlanningAssociation connect needNonInterference to nonInterferenceValidationPlan;
