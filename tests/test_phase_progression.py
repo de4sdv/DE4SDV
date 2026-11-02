@@ -7,6 +7,7 @@ export-shaped framing, not a copy of a production model.
 """
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -15,6 +16,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from de4sdv.semantic import method_evaluator as me
+from de4sdv.semantic.increment_discovery import DeclaredIncrement
 from de4sdv.semantic.increment_evaluation import evaluate_increment
 from de4sdv.semantic.increment_scope import ModelView
 from increment_model_fixtures import (
@@ -265,6 +267,81 @@ def test_the_walk_reaches_the_first_phase_whose_content_is_missing():
     no_needs.builder.remove(*no_needs.needs, *no_needs.requirements, *no_needs.cases)
     missing_needs = evaluate(no_needs.builder)
     assert missing_needs.next_obligation()["next"]["stage"] == P4
+
+
+#: The summary line that names a vacuous phase the walk passed before ``next`` (or before "none").
+PASSED_EMPTY = "**Passed with nothing to evaluate:**"
+P3_PROMPT = {"phase": P3, "prompt": "confirm the increment adds no feature-model delta"}
+
+
+def _summary_entry(step, vacuous_phases):
+    """One evaluated increment as the Method Check summary renders it."""
+    status = {"phase": P3, "applicability": "declared", "vacuous": True, "evaluated": 0}
+    return {
+        "id": "INC-X", "outcome": "evaluated", "usage": {"qualified_name": "P::inc"}, "charters": [],
+        "next": step, "next_reason": "" if step else "every required gate passes or is not applicable",
+        "counts": {}, "diagnostics": [],
+        "phase_exits": {P3: "READY", P4: "BLOCKED" if step else "READY"},
+        "phase_checks": {P3: {"pass": 0, "total": 1, "not_applicable": 1}, P4: {"pass": 0, "total": 6}},
+        "evaluation": {"status": {"phases": [status]}, "gaps": {"blocking": [], "advisory": []},
+                       "next": {"method_side_blockers": [], "vacuous_phases": vacuous_phases}},
+    }
+
+
+def _summary_lines(entry) -> list[str]:
+    result = {"revision": "a" * 40, "export": {}, "increments": [entry], "notes": [], "errors": []}
+    return method_check.render_summary(result).splitlines()
+
+
+def test_the_summary_names_a_vacuous_phase_the_walk_passed_before_next():
+    """Phase 3 passes with nothing to evaluate and the next gate is in phase 4: the summary says so
+    under **Next**, with the review prompt, instead of jumping to phase 4 silently."""
+    step = {"stage": P4, "gate": "needHasStatement", "kind": "violation"}
+    lines = _summary_lines(_summary_entry(step, [P3_PROMPT]))
+    at = lines.index("**Next:** `needHasStatement` in phase4_needs (violation)")
+    passed = [line for line in lines if line.startswith(PASSED_EMPTY)]
+    assert passed == [f"{PASSED_EMPTY} {P3} (confirm the increment adds no feature-model delta). "
+                      "Review answers this; no gate does."]
+    assert at < lines.index(passed[0]) < next(i for i, line in enumerate(lines) if line.startswith("**Blocking gaps"))
+    assert lines[lines.index(passed[0]) - 1] == "", "a paragraph of its own, not a continuation of the list above"
+
+
+def test_the_summary_names_a_vacuous_phase_when_nothing_is_next():
+    lines = _summary_lines(_summary_entry(None, [P3_PROMPT]))
+    at = next(i for i, line in enumerate(lines) if line.startswith("**Next:** none."))
+    assert lines[at + 2] == (f"{PASSED_EMPTY} {P3} (confirm the increment adds no feature-model delta). "
+                             "Review answers this; no gate does.")
+
+
+def test_the_summary_adds_nothing_without_a_vacuous_phase_before_next():
+    step = {"stage": P4, "gate": "needHasStatement", "kind": "violation"}
+    for vacuous in ([], None):
+        entry = _summary_entry(step, vacuous)
+        if vacuous is None:
+            del entry["evaluation"]["next"]["vacuous_phases"]
+        assert not [line for line in _summary_lines(entry) if line.startswith(PASSED_EMPTY)]
+
+
+def test_the_method_check_summary_reads_the_vacuous_phases_of_a_real_evaluation(tmp_path):
+    """End to end over the Method Check's own entry builder: the real next_obligation answer of a
+    framing-only increment whose charter declares phase 3 reaches the summary line."""
+    evaluation = evaluate(framing_only(applicable_phases=(P0, P3, P4, P5, P10)))
+    report = {"status": evaluation.status(), "gaps": evaluation.gaps(), "next": evaluation.next_obligation()}
+    assert report["next"]["vacuous_phases"] == [P3_PROMPT]
+
+    def runner(argv):
+        argv = list(argv)
+        Path(argv[argv.index("--output") + 1]).write_text(json.dumps(report))
+        return method_check.RunnerResult(0, "", "")
+
+    increment = DeclaredIncrement(increment_id=evaluation.increment_id, usage={"qualified_name": "P::inc"},
+                                  charters=())
+    entry, problems = method_check._evaluate(increment, tmp_path / "export.json", tmp_path, runner)
+    assert problems == [] and entry["outcome"] == "evaluated"
+    lines = _summary_lines(entry)
+    assert f"**Next:** `needHasStatement` in {P4} (violation)" in lines
+    assert (f"{PASSED_EMPTY} {P3} (confirm the increment adds no feature-model delta). "
+            "Review answers this; no gate does.") in lines
 
 
 @pytest.mark.parametrize("evaluated,shown", [
