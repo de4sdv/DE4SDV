@@ -364,7 +364,7 @@ package DE4SDV_MiddlewareSCOREFraming {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern hmiDomainBoundaryConcern : FunctionalInterfaceConcern {
+  concern hmiDomainBoundaryConcern : PhysicalContextExchangeConcern {
     doc /*
      * Reviewers need the HMI path to be one-way and read-only across the
      * domain and hypervisor boundary: the AEBS signals flow from S-CORE on
