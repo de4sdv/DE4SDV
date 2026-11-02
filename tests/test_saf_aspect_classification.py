@@ -103,11 +103,19 @@ def _aspect_from_block(block: str) -> str:
     return match.group(1)
 
 
+#: The abstract domain roots classify the catalogue's viewpoints by SAF domain (test_saf_domains); they are no
+#: SAF viewpoint, so they sit in no grid column and carry no aspect.
+DOMAIN_ROOTS = {f"{domain}DomainViewpoint" for domain in
+                ("ArchitectureManagement", "Operational", "Conceptual", "Physical", "SAFDevelopment")}
+
+
 def test_every_viewpoint_has_known_aspect_annotation() -> None:
     text = SAF_FILE.read_text(encoding="utf-8")
     found = {}
     for block in _viewpoint_blocks(text):
         name = block.splitlines()[0].split()[2]
+        if name in DOMAIN_ROOTS:
+            continue
         aspect = _aspect_from_block(block)
         found[name] = aspect
         assert aspect in KNOWN_ASPECTS, f"Unexpected aspect {aspect!r} on {name}"

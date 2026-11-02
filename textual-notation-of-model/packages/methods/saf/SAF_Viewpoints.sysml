@@ -13,9 +13,77 @@
 package SAF_Viewpoints {
   private import Views::*;
 
-  // ─── Common Domain ───
+  // ─── SAF domains ───
+  // The rows of the SAF grid. Each concern and viewpoint definition of this
+  // catalogue specializes the abstract definition of its domain, so the domain is
+  // a fact of the model that a check reads by identity, not a comment.
 
-  concern def CommonTermsConcern {
+  abstract concern def ArchitectureManagementDomainConcern {
+    doc /*
+     * A concern of the SAF Architecture Management Domain: content that spans
+     * the architecture, such as terms, applicable standards, the assurance
+     * argument and the traceability between the architecture's artifacts.
+     */
+  }
+
+  abstract viewpoint def ArchitectureManagementDomainViewpoint {
+    doc /* A viewpoint of the SAF Architecture Management Domain. */
+  }
+
+  abstract concern def OperationalDomainConcern {
+    doc /*
+     * A concern of the SAF Operational Domain: the concept phase, that is the
+     * mission, the stakeholders and their needs, and the operational context,
+     * capabilities, stories and processes of the organization or operational
+     * entity, before a system solution is chosen.
+     */
+  }
+
+  abstract viewpoint def OperationalDomainViewpoint {
+    doc /* A viewpoint of the SAF Operational Domain. */
+  }
+
+  abstract concern def ConceptualDomainConcern {
+    doc /*
+     * A concern of the SAF Conceptual Domain: the functional and logical
+     * architecture of the system, that is its behavior at the system boundary,
+     * its functions, logical elements, exchanges, interfaces and requirements,
+     * and its security analysis. A question about a concrete platform, product
+     * or component that realizes the system is a Physical Domain concern.
+     */
+  }
+
+  abstract viewpoint def ConceptualDomainViewpoint {
+    doc /* A viewpoint of the SAF Conceptual Domain. */
+  }
+
+  abstract concern def PhysicalDomainConcern {
+    doc /*
+     * A concern of the SAF Physical Domain: the design definition of the
+     * system, that is its physical and software elements, including reused and
+     * off-the-shelf products and platforms, their physical interfaces and
+     * exchanges, and the mapping of functional and logical elements to them.
+     */
+  }
+
+  abstract viewpoint def PhysicalDomainViewpoint {
+    doc /* A viewpoint of the SAF Physical Domain. */
+  }
+
+  abstract concern def SAFDevelopmentDomainConcern {
+    doc /*
+     * A concern of the SAF Development Domain: the development, maintenance
+     * and extension of the framework itself.
+     */
+  }
+
+  abstract viewpoint def SAFDevelopmentDomainViewpoint {
+    doc /* A viewpoint of the SAF Development Domain. */
+  }
+
+  // ─── Architecture Management Domain ───
+
+  concern def CommonTermsConcern :> ArchitectureManagementDomainConcern {
     require constraint {
       doc /*
        * Reviewers need terms introduced by an increment to be defined
@@ -24,9 +92,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def CommonTermsDefinitionViewpoint {
+  viewpoint def CommonTermsDefinitionViewpoint :> ArchitectureManagementDomainViewpoint {
     doc /*
-     * SAF Common Domain: Common Terms Definition Viewpoint.
+     * SAF Architecture Management Domain: Common Terms Definition Viewpoint.
      * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -38,7 +106,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def CommonStandardsConcern {
+  concern def CommonStandardsConcern :> ArchitectureManagementDomainConcern {
     require constraint {
       doc /*
        * Reviewers need standards and regulations used as constraints
@@ -47,9 +115,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def CommonStandardsDefinitionViewpoint {
+  viewpoint def CommonStandardsDefinitionViewpoint :> ArchitectureManagementDomainViewpoint {
     doc /*
-     * SAF Common Domain: Common Standards Definition Viewpoint.
+     * SAF Architecture Management Domain: Common Standards Definition Viewpoint.
      * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -62,7 +130,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def EATraceabilityConcern {
+  concern def EATraceabilityConcern :> ArchitectureManagementDomainConcern {
     require constraint {
       doc /*
        * Reviewers need increment artifacts linked together in a
@@ -72,7 +140,9 @@ package SAF_Viewpoints {
   }
 
 
-  concern def StakeholderIdentificationConcern {
+  // ─── Operational Domain ───
+
+  concern def StakeholderIdentificationConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need roles affected by the increment to be
@@ -81,9 +151,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def StakeholderIdentificationViewpoint {
+  viewpoint def StakeholderIdentificationViewpoint :> OperationalDomainViewpoint {
     doc /*
-     * SAF Common Domain: Stakeholder Identification Viewpoint.
+     * SAF Operational Domain: Stakeholder Identification Viewpoint.
      * Aspect: Context & Exchange
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -95,9 +165,7 @@ package SAF_Viewpoints {
     }
   }
 
-  // ─── Operational Domain ───
-
-  concern def OperationalContextConcern {
+  concern def OperationalContextConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need to see the operational actors, context boundary,
@@ -106,7 +174,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def OperationalContextDefinitionViewpoint {
+  viewpoint def OperationalContextDefinitionViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: Operational Context Definition Viewpoint.
      * Aspect: Context & Exchange
@@ -121,7 +189,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def OperationalStoryConcern {
+  concern def OperationalStoryConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need the operational scenario told in stakeholder
@@ -130,7 +198,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def OperationalStoryViewpoint {
+  viewpoint def OperationalStoryViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: Operational Story Viewpoint.
      * Aspect: Interaction & Collaboration
@@ -145,7 +213,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def OperationalCapabilityConcern {
+  concern def OperationalCapabilityConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need the operational capability expected from the
@@ -154,7 +222,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def OperationalCapabilityDefinitionViewpoint {
+  viewpoint def OperationalCapabilityDefinitionViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: Operational Capability Definition Viewpoint.
      * Aspect: Process & Behavior
@@ -168,7 +236,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def OperationalProcessConcern {
+  concern def OperationalProcessConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need the operational flow or lifecycle process to be
@@ -177,7 +245,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def OperationalProcessViewpoint {
+  viewpoint def OperationalProcessViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: Operational Process Viewpoint.
      * Aspect: Process & Behavior
@@ -191,7 +259,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def StakeholderNeedsConcern {
+  concern def StakeholderNeedsConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need stakeholder needs and validation intent to be
@@ -200,7 +268,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def StakeholderRequirementDefinitionViewpoint {
+  viewpoint def StakeholderRequirementDefinitionViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: Stakeholder Requirement Definition Viewpoint.
      * Aspect: Traceability & Mapping
@@ -222,7 +290,7 @@ package SAF_Viewpoints {
   // describe the conceptual system; they do not rename the logical
   // architecture artifact or the Architecture Definition process.
 
-  concern def SystemContextConcern {
+  concern def SystemContextConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need the system boundary and external interfaces to
@@ -232,7 +300,7 @@ package SAF_Viewpoints {
   }
 
 
-  concern def SystemUseCaseConcern {
+  concern def SystemUseCaseConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need system use cases captured for the increment.
@@ -240,7 +308,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemUseCaseViewpoint {
+  viewpoint def SystemUseCaseViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Use Case Viewpoint.
      * Aspect: Interaction & Collaboration
@@ -254,7 +322,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def SystemCapabilityConcern {
+  concern def SystemCapabilityConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need system capabilities defined for the increment.
@@ -262,7 +330,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemCapabilityDefinitionViewpoint {
+  viewpoint def SystemCapabilityDefinitionViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Capability Definition Viewpoint.
      * Aspect: Process & Behavior
@@ -276,7 +344,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def FunctionalBehaviorConcern {
+  concern def FunctionalBehaviorConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need the functional responsibilities, information items,
@@ -286,7 +354,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemFunctionalBreakdownStructureViewpoint {
+  viewpoint def SystemFunctionalBreakdownStructureViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Functional Breakdown Structure Viewpoint.
      * Aspect: Process & Behavior
@@ -301,7 +369,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def SystemProcessConcern {
+  concern def SystemProcessConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need behavior and process sequencing described for
@@ -310,7 +378,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemProcessViewpoint {
+  viewpoint def SystemProcessViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Process Viewpoint.
      * Aspect: Process & Behavior
@@ -325,7 +393,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def FunctionalInterfaceConcern {
+  concern def FunctionalInterfaceConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need the functional boundary ports, signal character,
@@ -335,7 +403,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemInterfaceDefinitionViewpoint {
+  viewpoint def SystemInterfaceDefinitionViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Interface Definition Viewpoint.
      * Aspect: Interaction & Collaboration
@@ -350,7 +418,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def RequirementTraceConcern {
+  concern def RequirementTraceConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need requirement candidates traced to stakeholder needs,
@@ -360,7 +428,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemRequirementDefinitionViewpoint {
+  viewpoint def SystemRequirementDefinitionViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Requirement Definition Viewpoint.
      * Aspect: Traceability & Mapping
@@ -375,7 +443,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemRequirementTraceabilityViewpoint {
+  viewpoint def SystemRequirementTraceabilityViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Requirement Traceability Viewpoint.
      * Aspect: Traceability & Mapping
@@ -392,7 +460,7 @@ package SAF_Viewpoints {
 
   // ─── Conceptual Domain (continued) ───
 
-  concern def ConceptualStructureConcern {
+  concern def ConceptualStructureConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need the conceptual system decomposition, conceptual element
@@ -401,7 +469,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemStructureDefinitionViewpoint {
+  viewpoint def SystemStructureDefinitionViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Structure Definition Viewpoint.
      * Aspect: Taxonomy & Structure
@@ -416,7 +484,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def ConceptualInternalExchangeConcern {
+  concern def ConceptualInternalExchangeConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need the typed conceptual interfaces, exchanges, directions,
@@ -425,7 +493,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemInternalExchangeViewpoint {
+  viewpoint def SystemInternalExchangeViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Internal Exchange Viewpoint.
      * Aspect: Interaction & Collaboration
@@ -440,7 +508,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def ConceptualInternalInteractionConcern {
+  concern def ConceptualInternalInteractionConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need conceptual interactions (sequences, message ordering)
@@ -449,7 +517,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemInternalInteractionViewpoint {
+  viewpoint def SystemInternalInteractionViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Internal Interaction Viewpoint.
      * Aspect: Interaction & Collaboration
@@ -464,7 +532,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def ConceptualFunctionMappingConcern {
+  concern def ConceptualFunctionMappingConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need every system function allocated to one or more logical
@@ -473,7 +541,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemFunctionMappingViewpoint {
+  viewpoint def SystemFunctionMappingViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: System Functional Mapping Viewpoint.
      * Aspect: Process & Behavior
@@ -489,7 +557,7 @@ package SAF_Viewpoints {
 
   // ─── Physical Domain ───
 
-  concern def PhysicalContextConcern {
+  concern def PhysicalContextConcern :> PhysicalDomainConcern {
     require constraint {
       doc /*
        * Reviewer question: What is inside the candidate physical system,
@@ -499,7 +567,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def PhysicalContextDefinitionViewpoint {
+  viewpoint def PhysicalContextDefinitionViewpoint :> PhysicalDomainViewpoint {
     doc /*
      * SAF Physical Domain: P1_PCXD Physical Context Definition Viewpoint.
      * Aspect: Context & Exchange
@@ -513,7 +581,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def PhysicalContextExchangeConcern {
+  concern def PhysicalContextExchangeConcern :> PhysicalDomainConcern {
     require constraint {
       doc /*
        * Reviewer question: What typed physical items cross the candidate
@@ -522,7 +590,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def PhysicalContextExchangeViewpoint {
+  viewpoint def PhysicalContextExchangeViewpoint :> PhysicalDomainViewpoint {
     doc /*
      * SAF Physical Domain: P1_PCXE Physical Context Exchange Viewpoint.
      * Aspect: Context & Exchange
@@ -537,7 +605,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def PhysicalExchangeTypeConcern {
+  concern def PhysicalExchangeTypeConcern :> PhysicalDomainConcern {
     require constraint {
       doc /*
        * Reviewer question: Which reusable physical exchange item, endpoint,
@@ -547,7 +615,7 @@ package SAF_Viewpoints {
   }
 
 
-  concern def PhysicalStructureConcern {
+  concern def PhysicalStructureConcern :> PhysicalDomainConcern {
     require constraint {
       doc /*
        * Reviewer question: What physical hardware, software, and mechanical
@@ -557,7 +625,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def PhysicalStructureDefinitionViewpoint {
+  viewpoint def PhysicalStructureDefinitionViewpoint :> PhysicalDomainViewpoint {
     doc /*
      * SAF Physical Domain: P2_PSTD Physical Structure Definition Viewpoint.
      * Aspect: Taxonomy & Structure
@@ -572,7 +640,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def PhysicalInterfaceConcern {
+  concern def PhysicalInterfaceConcern :> PhysicalDomainConcern {
     require constraint {
       doc /*
        * Reviewer question: Which reusable physical interface and protocol
@@ -582,7 +650,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def PhysicalInterfaceDefinitionViewpoint {
+  viewpoint def PhysicalInterfaceDefinitionViewpoint :> PhysicalDomainViewpoint {
     doc /*
      * SAF Physical Domain: P5_PIFD Physical Interface Definition Viewpoint.
      * Aspect: Interaction & Collaboration
@@ -597,7 +665,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def PhysicalInternalExchangeConcern {
+  concern def PhysicalInternalExchangeConcern :> PhysicalDomainConcern {
     require constraint {
       doc /*
        * Reviewer question: Which internal physical roles exchange each typed
@@ -607,7 +675,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def PhysicalInternalExchangeViewpoint {
+  viewpoint def PhysicalInternalExchangeViewpoint :> PhysicalDomainViewpoint {
     doc /*
      * SAF Physical Domain: P4_PIEX Physical Internal Exchange Viewpoint.
      * Aspect: Interaction & Collaboration
@@ -624,7 +692,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def PhysicalFunctionalMappingConcern {
+  concern def PhysicalFunctionalMappingConcern :> PhysicalDomainConcern {
     require constraint {
       doc /*
        * Reviewer question: Which physical/software elements realize which
@@ -633,7 +701,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def PhysicalFunctionalMappingViewpoint {
+  viewpoint def PhysicalFunctionalMappingViewpoint :> PhysicalDomainViewpoint {
     doc /*
      * SAF Physical Domain: P8_PFUM Physical Functional Mapping Viewpoint.
      * Aspect: Process & Behavior
@@ -648,7 +716,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def PhysicalLogicalMappingConcern {
+  concern def PhysicalLogicalMappingConcern :> PhysicalDomainConcern {
     require constraint {
       doc /*
        * Reviewer question: Which conceptual element roles are realized by which
@@ -657,7 +725,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def PhysicalLogicalMappingViewpoint {
+  viewpoint def PhysicalLogicalMappingViewpoint :> PhysicalDomainViewpoint {
     doc /*
      * SAF Physical Domain: P8_PLOM Physical Logical Mapping Viewpoint.
      * Aspect: Traceability & Mapping
@@ -672,7 +740,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def PhysicalLogicalItemMappingConcern {
+  concern def PhysicalLogicalItemMappingConcern :> PhysicalDomainConcern {
     require constraint {
       doc /*
        * Reviewer question: Which logical information items are realized by
@@ -683,9 +751,9 @@ package SAF_Viewpoints {
   }
 
 
-  // ─── Safety/Security Domain ───
+  // ─── Conceptual Domain: Safety & Security aspect ───
 
-  concern def AssetIdentificationConcern {
+  concern def AssetIdentificationConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need assets affected by the feature or toolchain to be
@@ -694,9 +762,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def AssetIdentificationViewpoint {
+  viewpoint def AssetIdentificationViewpoint :> ConceptualDomainViewpoint {
     doc /*
-     * SAF Safety/Security Domain: Asset Identification Viewpoint.
+     * SAF Conceptual Domain: Asset Identification Viewpoint.
      * Aspect: Safety & Security
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -709,7 +777,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def SecurityContextConcern {
+  concern def SecurityContextConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need the security boundary and context identified for
@@ -718,9 +786,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SecurityContextViewpoint {
+  viewpoint def SecurityContextViewpoint :> ConceptualDomainViewpoint {
     doc /*
-     * SAF Safety/Security Domain: Security Context Viewpoint.
+     * SAF Conceptual Domain: Security Context Viewpoint.
      * Aspect: Safety & Security
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -732,7 +800,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def SecurityRiskAnalysisConcern {
+  concern def SecurityRiskAnalysisConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need threat and risk analysis captured for the increment.
@@ -740,9 +808,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SecurityRiskAnalysisViewpoint {
+  viewpoint def SecurityRiskAnalysisViewpoint :> ConceptualDomainViewpoint {
     doc /*
-     * SAF Safety/Security Domain: Security Risk Analysis Viewpoint.
+     * SAF Conceptual Domain: Security Risk Analysis Viewpoint.
      * Aspect: Safety & Security
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -754,7 +822,7 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def ThreatSzenarioConcern {
+  concern def ThreatSzenarioConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need threat scenarios described for the increment.
@@ -762,9 +830,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def ThreatSzenarioViewpoint {
+  viewpoint def ThreatSzenarioViewpoint :> ConceptualDomainViewpoint {
     doc /*
-     * SAF Safety/Security Domain: Threat Szenario Viewpoint.
+     * SAF Conceptual Domain: Threat Szenario Viewpoint.
      * Aspect: Safety & Security
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -776,7 +844,9 @@ package SAF_Viewpoints {
     }
   }
 
-  concern def ArgumentationAssuranceConcern {
+  // ─── Architecture Management Domain (continued) ───
+
+  concern def ArgumentationAssuranceConcern :> ArchitectureManagementDomainConcern {
     require constraint {
       doc /*
        * Reviewers need claims, arguments, evidence, and gaps linked
@@ -785,9 +855,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def ArgumentationAssuranceViewpoint {
+  viewpoint def ArgumentationAssuranceViewpoint :> ArchitectureManagementDomainViewpoint {
     doc /*
-     * SAF Safety/Security Domain: Argumentation Assurance Viewpoint.
+     * SAF Architecture Management Domain: Argumentation Assurance Viewpoint.
      * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      */
@@ -800,7 +870,7 @@ package SAF_Viewpoints {
   }
 
   // ─── GfSE SAF-SysMLV2 additions ───
-  concern def ImpactAnalysisConcern {
+  concern def ImpactAnalysisConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need ImpactAnalysisViewpoint captured with source-backed frame bindings for the increment.
@@ -808,9 +878,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def ImpactAnalysisViewpoint {
+  viewpoint def ImpactAnalysisViewpoint :> ConceptualDomainViewpoint {
     doc /*
-     * SAF Safety/Security Domain: ImpactAnalysis Viewpoint
+     * SAF Conceptual Domain: ImpactAnalysis Viewpoint
      * Aspect: Safety & Security
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: SeverityOfLoss.
@@ -821,7 +891,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def OperationalDomainItemKindConcern {
+  concern def OperationalDomainItemKindConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need OperationalDomainItemKindViewpoint captured with source-backed frame bindings for the increment.
@@ -829,7 +899,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def OperationalDomainItemKindViewpoint {
+  viewpoint def OperationalDomainItemKindViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: OperationalDomainItemKind Viewpoint
      * Aspect: Taxonomy & Structure
@@ -842,7 +912,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def SystemContextInteractionConcern {
+  concern def SystemContextInteractionConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need SystemContextInteractionViewpoint captured with source-backed frame bindings for the increment.
@@ -850,7 +920,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemContextInteractionViewpoint {
+  viewpoint def SystemContextInteractionViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: SystemContextInteraction Viewpoint
      * Aspect: Context & Exchange
@@ -863,7 +933,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def OperationalContextExchangeConcern {
+  concern def OperationalContextExchangeConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need OperationalContextExchangeViewpoint captured with source-backed frame bindings for the increment.
@@ -871,7 +941,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def OperationalContextExchangeViewpoint {
+  viewpoint def OperationalContextExchangeViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: OperationalContextExchange Viewpoint
      * Aspect: Context & Exchange
@@ -884,7 +954,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def SystemDomainItemKindConcern {
+  concern def SystemDomainItemKindConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need SystemDomainItemKindViewpoint captured with source-backed frame bindings for the increment.
@@ -892,7 +962,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemDomainItemKindViewpoint {
+  viewpoint def SystemDomainItemKindViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: SystemDomainItemKind Viewpoint
      * Aspect: Taxonomy & Structure
@@ -905,7 +975,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def SystemFunctionalRefinementConcern {
+  concern def SystemFunctionalRefinementConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need SystemFunctionalRefinementViewpoint captured with source-backed frame bindings for the increment.
@@ -913,7 +983,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemFunctionalRefinementViewpoint {
+  viewpoint def SystemFunctionalRefinementViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: SystemFunctionalRefinement Viewpoint
      * Aspect: Process & Behavior
@@ -926,7 +996,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def SystemStateConcern {
+  concern def SystemStateConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
        * Reviewers need SystemStateViewpoint captured with source-backed frame bindings for the increment.
@@ -934,7 +1004,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def SystemStateViewpoint {
+  viewpoint def SystemStateViewpoint :> ConceptualDomainViewpoint {
     doc /*
      * SAF Conceptual Domain: SystemState Viewpoint
      * Aspect: Taxonomy & Structure
@@ -947,7 +1017,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def OperationalContextInteractionConcern {
+  concern def OperationalContextInteractionConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need OperationalContextInteractionViewpoint captured with source-backed frame bindings for the increment.
@@ -955,7 +1025,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def OperationalContextInteractionViewpoint {
+  viewpoint def OperationalContextInteractionViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: OperationalContextInteraction Viewpoint
      * Aspect: Context & Exchange
@@ -968,7 +1038,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def GridDefinitionConcern {
+  concern def GridDefinitionConcern :> ArchitectureManagementDomainConcern {
     require constraint {
       doc /*
        * Reviewers need GridDefinitionViewpoint captured with source-backed frame bindings for the increment.
@@ -976,9 +1046,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def GridDefinitionViewpoint {
+  viewpoint def GridDefinitionViewpoint :> ArchitectureManagementDomainViewpoint {
     doc /*
-     * SAF Conceptual Domain: GridDefinition Viewpoint
+     * SAF Architecture Management Domain: GridDefinition Viewpoint
      * Aspect: Traceability & Mapping
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: ViewpointsUsedInSystemModel, FrameworkViewpoints.
@@ -989,7 +1059,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def FrameworkConceptDefinitionConcern {
+  concern def FrameworkConceptDefinitionConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
        * Reviewers need FrameworkConceptDefinitionViewpoint captured with source-backed frame bindings for the increment.
@@ -997,9 +1067,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def FrameworkConceptDefinitionViewpoint {
+  viewpoint def FrameworkConceptDefinitionViewpoint :> SAFDevelopmentDomainViewpoint {
     doc /*
-     * SAF Framework Domain: FrameworkConceptDefinition Viewpoint
+     * SAF Development Domain: FrameworkConceptDefinition Viewpoint
      * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: RelationsBetweenSEConcepts, ConstraintsOnSEConcepts, SEConceptsCovered.
@@ -1010,7 +1080,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def FrameworkConcernOverviewConcern {
+  concern def FrameworkConcernOverviewConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
        * Reviewers need FrameworkViewpointOverviewViewpoint captured with source-backed frame bindings for the increment.
@@ -1018,9 +1088,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def FrameworkViewpointOverviewViewpoint {
+  viewpoint def FrameworkViewpointOverviewViewpoint :> SAFDevelopmentDomainViewpoint {
     doc /*
-     * SAF Framework Domain: Framework ViewpointOverview Viewpoint
+     * SAF Development Domain: Framework ViewpointOverview Viewpoint
      * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: DefinitionOfGridRows, DefinitionOfGridColumns, FrameworkGridStructure, ViewpointLocationInGrid, MaturityOfViewpoints, AvailableViewpoints.
@@ -1031,7 +1101,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def FrameworkStakeholderandConcernDefinitionConcern {
+  concern def FrameworkStakeholderandConcernDefinitionConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
        * Reviewers need FrameworkStakeholderandConcernDefinitionViewpoint captured with source-backed frame bindings for the increment.
@@ -1039,9 +1109,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def FrameworkStakeholderandConcernDefinitionViewpoint {
+  viewpoint def FrameworkStakeholderandConcernDefinitionViewpoint :> SAFDevelopmentDomainViewpoint {
     doc /*
-     * SAF Framework Domain: FrameworkStakeholderandConcernDefinition Viewpoint
+     * SAF Development Domain: FrameworkStakeholderandConcernDefinition Viewpoint
      * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: StakeholderConcerns, FrameworkStakeholders, StakeholderConcernsReasons.
@@ -1052,7 +1122,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def FrameworkConcernDefinitionConcern {
+  concern def FrameworkConcernDefinitionConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
        * Reviewers need FrameworkViewpointDefinitionViewpoint captured with source-backed frame bindings for the increment.
@@ -1060,9 +1130,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def FrameworkViewpointDefinitionViewpoint {
+  viewpoint def FrameworkViewpointDefinitionViewpoint :> SAFDevelopmentDomainViewpoint {
     doc /*
-     * SAF Framework Domain: Framework ViewpointDefinition Viewpoint
+     * SAF Development Domain: Framework ViewpointDefinition Viewpoint
      * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: ConceptsExposedInViewpoints, ConcernsFramedByViewpoints, DefinitionOfViewpoints, ViewpointLocationInGrid, ViewpointPurpose, ViewpointPresentations, ViewpointDependencies, SupportForSEStandards.
@@ -1073,7 +1143,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def FrameworkConcernImplementationConcern {
+  concern def FrameworkConcernImplementationConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
        * Reviewers need FrameworkViewpointImplementationViewpoint captured with source-backed frame bindings for the increment.
@@ -1081,9 +1151,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def FrameworkViewpointImplementationViewpoint {
+  viewpoint def FrameworkViewpointImplementationViewpoint :> SAFDevelopmentDomainViewpoint {
     doc /*
-     * SAF Framework Domain: Framework ViewpointImplementation Viewpoint
+     * SAF Development Domain: Framework ViewpointImplementation Viewpoint
      * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: ImplementationOfFrameworkConcepts, ViewpointImplementation.
@@ -1094,7 +1164,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def FrameworkImplementationTraceabilityConcern {
+  concern def FrameworkImplementationTraceabilityConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
        * Reviewers need FrameworkImplementationTraceabilityViewpoint captured with source-backed frame bindings for the increment.
@@ -1102,9 +1172,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def FrameworkImplementationTraceabilityViewpoint {
+  viewpoint def FrameworkImplementationTraceabilityViewpoint :> SAFDevelopmentDomainViewpoint {
     doc /*
-     * SAF Framework Domain: FrameworkImplementationTraceability Viewpoint
+     * SAF Development Domain: FrameworkImplementationTraceability Viewpoint
      * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: ImplementationOfFrameworkConcepts, FrameworkModelElements.
@@ -1115,7 +1185,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def FrameworkStereotypeOverviewConcern {
+  concern def FrameworkStereotypeOverviewConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
        * Reviewers need FrameworkStereotypeOverviewViewpoint captured with source-backed frame bindings for the increment.
@@ -1123,9 +1193,9 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def FrameworkStereotypeOverviewViewpoint {
+  viewpoint def FrameworkStereotypeOverviewViewpoint :> SAFDevelopmentDomainViewpoint {
     doc /*
-     * SAF Framework Domain: FrameworkStereotypeOverview Viewpoint
+     * SAF Development Domain: FrameworkStereotypeOverview Viewpoint
      * Aspect: SAF Development Domain
      * Source: https://saf.gfse.org/userdoc/viewpoints.html
      * GfSE frame bindings: FrameworkModelElements.
@@ -1136,7 +1206,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def OperationalPerformerConcern {
+  concern def OperationalPerformerConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need OperationalPerformerViewpoint captured with source-backed frame bindings for the increment.
@@ -1144,7 +1214,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def OperationalPerformerViewpoint {
+  viewpoint def OperationalPerformerViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: OperationalPerformer Viewpoint
      * Aspect: Taxonomy & Structure
@@ -1157,7 +1227,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def OperationalCapabilityMappingConcern {
+  concern def OperationalCapabilityMappingConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need OperationalCapabilityMappingViewpoint captured with source-backed frame bindings for the increment.
@@ -1165,7 +1235,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def OperationalCapabilityMappingViewpoint {
+  viewpoint def OperationalCapabilityMappingViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: OperationalCapabilityMapping Viewpoint
      * Aspect: Process & Behavior
@@ -1178,7 +1248,7 @@ package SAF_Viewpoints {
        */
     }
   }
-  concern def OperationalProcessMappingConcern {
+  concern def OperationalProcessMappingConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
        * Reviewers need OperationalProcessMappingViewpoint captured with source-backed frame bindings for the increment.
@@ -1186,7 +1256,7 @@ package SAF_Viewpoints {
     }
   }
 
-  viewpoint def OperationalProcessMappingViewpoint {
+  viewpoint def OperationalProcessMappingViewpoint :> OperationalDomainViewpoint {
     doc /*
      * SAF Operational Domain: OperationalProcessMapping Viewpoint
      * Aspect: Process & Behavior
