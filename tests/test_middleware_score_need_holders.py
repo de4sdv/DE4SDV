@@ -76,3 +76,15 @@ def test_the_concern_opens_with_the_occupant_not_the_reviewer():
     text = " ".join(line.strip().lstrip("*").strip() for line in doc.splitlines()).strip()
     assert not text.startswith("Reviewers need"), text
     assert text.startswith("Vehicle occupants need"), text
+
+
+def test_the_statement_names_the_holders_it_declares():
+    # A holder declared but missing from the statement (or the reverse) leaves the need unattributed.
+    raw = NEEDS.read_text(encoding="utf-8")
+    start = raw.index("requirement <'NEED-MW-002'>")
+    statement = re.search(r"require constraint statement \{ language \"English\" /\*\s*(.*?)\s*\*/", raw[start:], re.S)
+    assert statement, "NEED-MW-002 has a statement"
+    assert statement.group(1).startswith(
+        "Vehicle occupants, system architects and safety experts need the middleware integration layer"), \
+        statement.group(1)
+    assert "so that the HMI shows what the AEBS stack produced" in statement.group(1)
