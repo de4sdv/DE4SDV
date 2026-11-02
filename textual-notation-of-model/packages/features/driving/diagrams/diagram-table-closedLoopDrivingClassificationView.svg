@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="896" height="334" viewBox="0 0 896 334" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="896" height="434" viewBox="0 0 896 434" role="img" aria-labelledby="title description">
   <title id="title">table-closedLoopDrivingClassificationView</title>
   <desc id="description">table-closedLoopDrivingClassificationView. Generated from SysIDE grid CSV.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
@@ -18,27 +18,32 @@
   <text x="548" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="548" dy="0">Rationale</tspan>
   </text>
-  <rect x="0" y="94" width="176" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="0" y="94" width="176" height="340" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">autoE2EDrivingStack</tspan>
   </text>
-  <rect x="176" y="94" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="176" y="94" width="360" height="340" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="188" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="188" dy="0">ProductLineFeatureCandidate,</tspan>
     <tspan x="188" dy="20">ProductLineCharacteristic</tspan>
   </text>
-  <rect x="536" y="94" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="536" y="94" width="360" height="340" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="548" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="548" dy="0">AutoE2E as the vehicle application</tspan>
     <tspan x="548" dy="20">distinguishes the driving member from the</tspan>
     <tspan x="548" dy="20">Autoware members. It plans from camera</tspan>
-    <tspan x="548" dy="20">images and ego motion and takes no LiDAR</tspan>
-    <tspan x="548" dy="20">input. So phase 9 adds it to the feature</tspan>
-    <tspan x="548" dy="20">model with a constraint that it requires</tspan>
-    <tspan x="548" dy="20">the camera feature, and leaves LiDAR</tspan>
-    <tspan x="548" dy="20">selectable (owner decision of 2026-11-02).</tspan>
-    <tspan x="548" dy="20">Phase 9 also derives its middleware</tspan>
-    <tspan x="548" dy="20">adapter, which phase 8 realizes first.</tspan>
-    <tspan x="548" dy="20">Acceptance waits for the member decision.</tspan>
+    <tspan x="548" dy="20">images and its ego-motion history (speed,</tspan>
+    <tspan x="548" dy="20">acceleration, yaw rate and curvature) and</tspan>
+    <tspan x="548" dy="20">takes no LiDAR input. So phase 9 adds it</tspan>
+    <tspan x="548" dy="20">to the feature model with a constraint</tspan>
+    <tspan x="548" dy="20">that it requires the camera feature, and</tspan>
+    <tspan x="548" dy="20">leaves LiDAR selectable (owner decision of</tspan>
+    <tspan x="548" dy="20">2026-11-02). Ego motion needs no</tspan>
+    <tspan x="548" dy="20">constraint: it comes from the motion</tspan>
+    <tspan x="548" dy="20">sensors, which are common content of every</tspan>
+    <tspan x="548" dy="20">member and have no feature. Phase 9 also</tspan>
+    <tspan x="548" dy="20">derives its middleware adapter, which</tspan>
+    <tspan x="548" dy="20">phase 8 realizes first. Acceptance waits</tspan>
+    <tspan x="548" dy="20">for the member decision.</tspan>
   </text>
 </svg>
