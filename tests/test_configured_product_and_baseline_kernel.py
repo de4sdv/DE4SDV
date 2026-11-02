@@ -243,15 +243,17 @@ PARAMETERS = {
         ("out", "part", "configuredProducts", "[1..*]", "ProductLineConfiguredProduct")],
     "DecideBaseline": [
         ("in", "part", "charter", "", "IncrementCharter"),
+        ("in", "concern", "concerns", "[0..*]", ""),
         ("out", "view", "publishedViews", "[1..*]", ""),
         ("out", "part", "baselineDecision", "", "IncrementBaselineDecision"),
         ("out", "part", "openGaps", "[0..*]", "IncrementGap")],
 }
 #: Step -> the parameters its checks are about: the typed outputs, and for the baseline the published views
-#: (moved from the retired publication step) and the charter (the advisory visibility check).
+#: (moved from the retired publication step), the charter (the advisory visibility check) and the concerns
+#: (the advisory SAF-domain check).
 ABOUT = {
     "DefineVariabilityAndConfiguration": {"configuredProducts"},
-    "DecideBaseline": {"publishedViews", "baselineDecision", "openGaps", "charter"},
+    "DecideBaseline": {"publishedViews", "baselineDecision", "openGaps", "charter", "concerns"},
 }
 
 

@@ -568,12 +568,16 @@ package DE4SDV_IncrementWorkflow {
          * resolved gap leaves the model, so every gap of the increment is open.
          * The typing identifies the baseline decision, never a name, and no check
          * reads the baseline register. Advisory: each applicable phase with
-         * content has at least one of its elements in a view of the increment.
-         * The checks judge the model only. The pull request, its review and the
+         * content has at least one of its elements in a view of the increment,
+         * and each concern typed by an SAF concern definition is framed by a
+         * viewpoint of a view of the increment whose definition is an SAF
+         * viewpoint definition of the concern's SAF domain. The checks judge
+         * the model only. The pull request, its review and the
          * rendered diagrams are judged outside the model: CI checks the diagrams
          * and the view index, review the rest. */
     attribute :>> phase = MethodPhase::phase11_baseline;
     in part charter : IncrementCharter;
+    in concern concerns[0..*];
     out view publishedViews[1..*];
     out part baselineDecision : IncrementBaselineDecision;
     out part openGaps[0..*] : IncrementGap;
@@ -603,6 +607,14 @@ package DE4SDV_IncrementWorkflow {
            * view of the increment: exposed by the view or a view it owns, or the view itself. Exposure is read from the
            * expose relationships, without filters; no rendering, review or completeness claim. */
       :>> check = "phaseContentPublished";
+      :>> advisory = true;
+    }
+    metadata concernAnsweredInItsDomain : MethodCheck about concerns {
+      doc /* Advisory: a concern typed by an SAF concern definition is framed by a viewpoint of a view of the increment
+           * whose definition is an SAF viewpoint definition of the same SAF domain. The domain is the specialization of
+           * the abstract domain definitions of SAF_Viewpoints, read by identity. A frame by a viewpoint of another
+           * domain or of none is not refused; no claim that a view answers its concern adequately. */
+      :>> check = "concernAnsweredInDomain";
       :>> advisory = true;
     }
   }

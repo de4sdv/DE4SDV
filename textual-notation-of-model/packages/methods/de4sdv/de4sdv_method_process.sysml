@@ -25,10 +25,10 @@ package DE4SDV_MethodProcess {
     doc /* One of the 12 phases of the DE4SDV increment workflow. */
 
     phase0_incrementFraming {
-      doc /* What are we changing or learning? Common domain. */
+      doc /* What are we changing or learning? Architecture Management domain. */
     }
     phase1_concernFraming {
-      doc /* Who cares and why? Common/Operational domain. */
+      doc /* Who cares and why? Architecture Management/Operational domain. */
     }
     phase2_operationalContext {
       doc /* What happens in the world? Operational domain. */
@@ -55,10 +55,10 @@ package DE4SDV_MethodProcess {
       doc /* How does this vary across member products? DE4SDV product-line layer. */
     }
     phase10_vvEvidence {
-      doc /* How will satisfaction be checked? Common/Conceptual domain. */
+      doc /* How will satisfaction be checked? Architecture Management/Conceptual domain. */
     }
     phase11_baseline {
-      doc /* What is accepted, deferred, or invalidated, and which published views show it? Common domain. */
+      doc /* What is accepted, deferred, or invalidated, and which published views show it? Architecture Management domain. */
     }
   }
 

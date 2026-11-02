@@ -68,8 +68,10 @@ from .relation_checks import (
     SIGNAL_MAPPING,
     SIGNAL_MAPPING_DISPOSITION,
     SIGNAL_MAPPING_RECORD,
+    SAF_CATALOGUE,
     MethodSideInput,
     mapping_records,
+    saf_domain_pin,
     signal_mappings,
     stated_texts,
 )
@@ -920,6 +922,7 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "viewpointFramesConcern": lambda request: _viewpoint_frames_concern(request),
     "exposesModelContent": lambda request: _exposes_model_content(request),
     "phaseContentPublished": lambda request: _phase_content_published(request),
+    "concernAnsweredInDomain": lambda request: _concern_answered_in_domain(request),
     "configuredByOneConfiguration": lambda request: _configured_by_one_configuration(request),
     "dispositionStated": lambda request: _disposition_stated(request),
 }
@@ -1466,6 +1469,50 @@ def _exposes_model_content(request: _Request) -> Remedy:
     lines.notes.append("A table or matrix view may expose through the views it owns instead "
                        "(view :>> rowView { expose <element>; }); expose <package>::*; exposes a package's members.")
     return lines.remedy(instruction)
+
+
+def _concern_answered_in_domain(request: _Request) -> Remedy:
+    """Frame the concern by a viewpoint of its SAF domain, or retype it by the domain its question asks about.
+    For a failing concern the domain is read as the check reads it, and the catalogue's viewpoint definitions
+    of that domain are listed; without a subject, or with the domain roots unbound, the text says how."""
+    from .method_checks import SAF_DOMAIN_LABELS, concern_saf_domains
+
+    view, lines = request.view, _lines(request)
+    retype = ("When the concern asks a question of another domain, retype it by that domain's SAF concern "
+              "definition instead; read the definition's question first. A question about a concrete platform, "
+              "product or component is a Physical Domain question.")
+    try:
+        domains = concern_saf_domains(view, request.subject)[0] if request.subject else []
+        root = view.library_element(saf_domain_pin(domains[0], "viewpoint")) if domains else None
+    except (MethodSideInput, IdentityNotFoundError):
+        domains, root = [], None
+    where = _where(request)
+    if root is None:
+        lines.notes.append(retype)
+        lines.notes.append("The check reads the domain of the framing viewpoint, not what the view shows.")
+        return lines.remedy(
+            "nothing to author for a concern typed by no SAF concern definition; frame each concern typed by "
+            "one by a viewpoint of a view of the increment"
+            f"{' ' + where if where else ''} whose definition is an SAF viewpoint definition of the concern's "
+            "domain (in SAF_Viewpoints it specializes <Domain>DomainViewpoint as the concern's definition "
+            "specializes <Domain>DomainConcern), or retype the concern by the SAF concern definition of the "
+            "domain its question belongs to")
+    concern, label = view.label(request.subject), SAF_DOMAIN_LABELS[domains[0]]
+    lines.declarations.append(f"viewpoint def <ViewpointName> :> {lines.type(root, _SPECIALIZING)} "
+                              "{ doc /* <what the view shows> */ }")
+    lines.declarations.append(f"view <viewName> {{ viewpoint <viewpointName> : <ViewpointName> {{ frame {concern}; }} "
+                              "expose <element>; }")
+    catalogue = sorted(str(view.index.name_of(element)) for element in view.index.specializations(root)
+                       if element != root and str(view.element(element).get("@type")) == "ViewpointDefinition"
+                       and view.source_of(element) == SAF_CATALOGUE)
+    if catalogue:
+        lines.notes.append(f"<ViewpointName> may instead be an SAF viewpoint definition of the {label} Domain: "
+                           + ", ".join(catalogue) + "; an existing view of the increment may frame the concern.")
+    lines.notes.append(retype)
+    lines.notes.append("The check reads the domain of the framing viewpoint, not what the view shows.")
+    return lines.remedy(f"frame {concern} by a viewpoint of the SAF {label} Domain in a view of the increment"
+                        f"{' ' + where if where else ''}, or retype it by the SAF concern definition of the domain "
+                        "its question belongs to")
 
 
 def _phase_content_published(request: _Request) -> Remedy:

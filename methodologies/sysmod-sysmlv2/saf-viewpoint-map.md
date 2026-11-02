@@ -20,10 +20,18 @@ Do not require all viewpoints for every increment.
 
 | SAF domain | Role in DE4SDV | Typical DE4SDV artifacts |
 |---|---|---|
-| Common Domain | shared terms, standards, argumentation, traceability | glossary, standards register, evidence register, traceability reports |
+| Architecture Management Domain | shared terms, standards, argumentation, traceability | glossary, standards register, evidence register, traceability reports |
 | Operational Domain | stakeholder needs, operational context, capabilities, scenarios/processes | increment charter, operational context, needs, use cases/scenarios |
 | Conceptual Domain | system context, requirements, functional architecture, logical architecture, safety/security concerns, and function-to-logical mapping | requirements, functional model, interface model, risk/security notes, logical architecture, service/component model, allocation map |
 | Physical Domain | physical/software realization and mappings | deployment/software/hardware model, interface contracts, realization map |
+| SAF Development Domain | the development of the framework itself | none in an increment |
+
+The domain of each SAF definition is part of the model: every concern and viewpoint definition of
+`SAF_Viewpoints` specializes the abstract definition of its domain (`ArchitectureManagementDomainConcern`,
+`OperationalDomainViewpoint`, …), following the rows of the SAF grid. Safety and Security is an aspect
+(a column) of the grid, not a domain: its viewpoints are in the Conceptual Domain. A concern definition
+is in the domain of the viewpoint definition that answers it, and the baseline phase advises when a
+concern of the increment is framed by no viewpoint of its own domain (`concernAnsweredInDomain`).
 
 ## Recommended viewpoint subsets
 

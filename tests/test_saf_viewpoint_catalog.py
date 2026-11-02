@@ -1,6 +1,11 @@
+import sys
 from pathlib import Path
 
 import yaml
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from test_saf_domains import DOMAIN_VIEWPOINT_ROOTS  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 SAF_FILE = ROOT / "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml"
@@ -113,7 +118,8 @@ def test_saf_viewpoint_names_match_published_catalog() -> None:
     found = []
     for block in _viewpoint_blocks(text):
         first_line = block.splitlines()[0]
-        found.append(first_line.split()[2])
+        if first_line.split()[2] not in DOMAIN_VIEWPOINT_ROOTS:  # domain classifiers, no SAF viewpoint
+            found.append(first_line.split()[2])
 
     assert len(found) >= 35
     assert sorted(found) == sorted(EXPECTED_VIEWPOINT_NAMES)
@@ -134,7 +140,8 @@ def test_saf_source_metadata_records_repository_and_license() -> None:
 def test_every_viewpoint_has_source_url_doc_comment() -> None:
     text = SAF_FILE.read_text(encoding="utf-8")
     for block in _viewpoint_blocks(text):
-        assert "https://saf.gfse.org/userdoc/viewpoints.html" in block
+        if block.splitlines()[0].split()[2] not in DOMAIN_VIEWPOINT_ROOTS:  # no SAF viewpoint page
+            assert "https://saf.gfse.org/userdoc/viewpoints.html" in block
 
 
 def test_catalog_contains_at_least_original_viewpoint_count() -> None:
