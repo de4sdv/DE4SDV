@@ -366,12 +366,15 @@ package DE4SDV_MiddlewareSCOREFraming {
 
   concern hmiDomainBoundaryConcern : PhysicalContextExchangeConcern {
     doc /*
-     * Reviewers need the HMI path to be one-way and read-only across the
+     * Vehicle occupants need the HMI to show the AEBS state the AEBS
+     * stack produced. System architects, safety experts and verification
+     * engineers need the HMI path to be one-way and read-only across the
      * domain and hypervisor boundary: the AEBS signals flow from S-CORE on
      * the Linux host into the AAOS SDV guest, and nothing flows back into
      * the Autoware application or the middleware.
      */
     subject;
+    stakeholder occupant : VehicleOccupant;
     stakeholder systemArchitect : SystemArchitect;
     stakeholder safetyExpert : SafetyExpert;
     stakeholder verificationEngineer : VerificationEngineer;
