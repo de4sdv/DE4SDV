@@ -182,7 +182,7 @@ concern and is held by stakeholders of that concern:
   producer and time (004), and runs unchanged when AAOS SDV is down or late
   (005).
 - **Degraded input behavior:** a defined stop or disable response to degraded
-  inputs or plans (006).
+  camera images, motion, route or plans (006).
 - **Time-domain honesty:** inputs, plans and commands carry their times (007).
 - **Reproducible evidence:** each run identifies its checkpoint and
   configuration (008).

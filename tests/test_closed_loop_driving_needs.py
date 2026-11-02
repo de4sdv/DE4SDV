@@ -187,3 +187,14 @@ def test_no_source_holds_a_path_too_long_to_wrap_in_its_table_column():
     for name in NEEDS:
         longest = max(re.split(r"[\s(]+", _attribute(_need(name), "source")), key=len)
         assert len(longest) <= 40, (name, longest)
+
+
+def test_the_route_from_navigation_enters_the_inputs_and_the_degraded_response():
+    # Phase 2 correction of 2026-11-02 (#476): navigation gives the route. NEED-DRIVING-002 names that
+    # context role as the source of the map and route, and a degraded route triggers the same defined
+    # response as degraded camera images or motion (SC-DRIVING-003 now names the route).
+    assert "the navigation context role (SC-DRIVING-001)" in _attribute(_need("needCheckpointInputsAsTrained"), "source")
+    degraded = _statement(_need("needDefinedResponseToDegradedInputOrPlan"))
+    assert "the camera images, the motion of the vehicle or the route become invalid, lost or stale" in degraded
+    plan = _flat(braced_body(_raw(), "part <'SC-DRIVING-010'> degradedResponseValidationPlan : ValidationPlanningScenario"))
+    assert "camera images, motion or route" in plan

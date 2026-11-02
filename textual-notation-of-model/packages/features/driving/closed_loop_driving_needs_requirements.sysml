@@ -36,7 +36,7 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder verificationEngineer : VerificationEngineer;
     require constraint statement { language "English" /* Systems engineers and verification engineers need the pinned AutoE2E checkpoint to plan from inputs in the form its runtime contract fixes: the camera images with the calibration of the cameras that took them, the ego-motion history of the vehicle, and the map around the vehicle with the route to its destination, aligned in time with one another. */ }
-    attribute :>> source = "INC-DRIVING-001 checkpointCommandAuthorityConcern, assumption asmSourceAuthenticity (the pinned checkpoint and its compatible input geometry and history), gap gapModelInputAndFeedback, scenario SC-DRIVING-001; the runtime contract of AutoE2E at cb50764b (Model/README.md: surround camera images with a projection operator that carries their calibration, a semantic map raster with the route corridor and destination, and an ego-motion history of speed, acceleration, yaw rate and curvature; egomotion.py in Model/data_parsing: 64 history samples at 10 Hz); owner review of 2026-11-02 (ego motion)";
+    attribute :>> source = "INC-DRIVING-001 checkpointCommandAuthorityConcern, assumption asmSourceAuthenticity (the pinned checkpoint and its compatible input geometry and history), gap gapModelInputAndFeedback, the map and route from the navigation context role (SC-DRIVING-001); the runtime contract of AutoE2E at cb50764b (Model/README.md: surround camera images with a projection operator that carries their calibration, a semantic map raster with the route corridor and destination, and an ego-motion history of speed, acceleration, yaw rate and curvature; egomotion.py in Model/data_parsing: 64 history samples at 10 Hz); owner review of 2026-11-02 (ego motion)";
     attribute :>> rationale = "A checkpoint given inputs other than those it was trained on plans for a different problem: another camera geometry, a missing or misaligned motion history or a missing route leaves its plans meaningless even when every interface accepts the data.";
   }
 
@@ -72,7 +72,7 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
     subject drivingSystem :> DE4SDV_ClosedLoopDrivingFraming::candidateDrivingSystem;
     stakeholder safetyExpert : SafetyExpert;
     stakeholder systemArchitect : SystemArchitect;
-    require constraint statement { language "English" /* Safety experts and system architects need the driving system, when the camera images or the motion of the vehicle become invalid, lost or stale, or a plan becomes invalid, late, lost or stale, to give the vehicle a defined stop or disable response instead of acting on the last plan, and to publish that it is degraded. */ }
+    require constraint statement { language "English" /* Safety experts and system architects need the driving system, when the camera images, the motion of the vehicle or the route become invalid, lost or stale, or a plan becomes invalid, late, lost or stale, to give the vehicle a defined stop or disable response instead of acting on the last plan, and to publish that it is degraded. */ }
     attribute :>> source = "INC-DRIVING-001 degradedInputBehaviorConcern, scope item feedbackAndTimingInScope (behavior part), gap gapTransportAndControl, scenario SC-DRIVING-003";
     attribute :>> rationale = "A learned planner given a frozen or late input still produces a plausible plan, so without a defined response the vehicle acts on a world that has moved on. Phase 5 fixes the response and its deadlines; the response is shown in simulation and carries no safety claim.";
   }
@@ -176,8 +176,8 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
     doc /* For NEED-DRIVING-006, a planned stakeholder review. In the
          * degraded input or plan scenario (SC-DRIVING-003), can safety
          * experts and system architects confirm for each injected case
-         * (invalid, lost or stale camera images or motion; an invalid, late,
-         * lost or stale plan) that the vehicle received the defined stop or
+         * (invalid, lost or stale camera images, motion or route; an invalid,
+         * late, lost or stale plan) that the vehicle received the defined stop or
          * disable response instead of a command from the last plan, and that
          * the driving system published its degraded state? */
   }
