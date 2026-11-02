@@ -102,6 +102,7 @@ from .relation_checks import (
     native_allocation_rows,
     port_reading,
     relation_checks,
+    saf_domains,
     signal_mappings,
     stated_texts,
     type_lineage,
@@ -971,6 +972,65 @@ def _framed_by_viewpoint(view: ModelView, increment: IncrementScope, subject_id:
                     _frames_elsewhere(view, subject_id))
 
 
+#: How a result names an SAF domain (:data:`SAF_DOMAINS`).
+SAF_DOMAIN_LABELS: Mapping[str, str] = MappingProxyType({
+    "ArchitectureManagement": "Architecture Management", "Operational": "Operational",
+    "Conceptual": "Conceptual", "Physical": "Physical", "SAFDevelopment": "SAF Development"})
+
+
+def concern_saf_domains(view: ModelView, concern: str) -> tuple[list[str], list[str]]:
+    """(the SAF domains of a concern, its unreadable narrowed features and type ancestors): the domains whose
+    abstract concern definition one of its definitions specializes, including the definitions of the
+    features it subsets, redefines or references. Raises :class:`MethodSideInput` when a root is unbound."""
+    features = narrowed_features(view, concern)
+    lineage = sorted({definition for feature in features for definition in type_lineage(view, feature)})
+    return saf_domains(view, lineage, "concern"), [t for t in (*features, *lineage) if not view.element(t)]
+
+
+def _concern_answered_in_domain(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """Advisory: a concern typed by an SAF concern definition is framed by a viewpoint of a view of the
+    increment (:func:`framing_views`) whose definition is an SAF viewpoint definition of the concern's domain.
+
+    The domain is native lineage against the abstract domain definitions of the SAF catalogue, bound by
+    identity (:func:`saf_domains`): the concern's definitions, with those of the features it narrows, and
+    the viewpoint's. A frame by a viewpoint of another domain or of none (a DE4SDV method viewpoint) does
+    not answer the concern here and is not refused: a framing or overview view frames concerns it does
+    not answer. No claim that a view answers its concern adequately.
+    """
+    name = _name(view, subject_id)
+    own, missing = concern_saf_domains(view, subject_id)
+    if not own:
+        if missing:
+            return indeterminate(MODEL_WITNESS_PREFIX + "concern-lineage",
+                                 f"{name} has unavailable narrowed features or type ancestors: " + ", ".join(missing))
+        return satisfied([subject_id], diagnostics=(
+            f"{name} is typed by no SAF concern definition; the rule reads SAF concerns only",))
+    answering: list[tuple[str, str]] = []
+    others: list[str] = []
+    framing = dict.fromkeys(view_usage for view_usage, _membership in framing_views(view, increment).get(subject_id, ()))
+    for view_usage in framing:
+        for viewpoint in view_viewpoints(view, view_usage):
+            memberships = [membership for concern, membership in viewpoint_frames(view, viewpoint) if concern == subject_id]
+            if not memberships:
+                continue
+            domains = saf_domains(view, type_lineage(view, viewpoint), "viewpoint")
+            if set(domains) & set(own):
+                answering.extend((viewpoint, membership) for membership in memberships)
+            else:
+                named = " and ".join(SAF_DOMAIN_LABELS[d] for d in domains) or "no SAF domain"
+                held = (_name(view, viewpoint) if view.index.owner_of(viewpoint) == view_usage
+                        else f"{_name(view, viewpoint)} of {_name(view, view_usage)}")
+                others.append(f"{held} ({named})")
+    if answering:
+        return satisfied([viewpoint for viewpoint, _ in answering], [membership for _, membership in answering])
+    domain = " or ".join(SAF_DOMAIN_LABELS[d] for d in own)
+    return violated(
+        f"{name} asks a question of the SAF {domain} Domain, and no viewpoint of that domain frames it",
+        (f"framed by: {'; '.join(others) if others else 'no viewpoint of a view of the increment'}",
+         "either a view of the increment answers it through a viewpoint of its domain, or the concern asks a "
+         "question of another domain and its SAF concern definition is the wrong one"))
+
+
 def _viewpoint_frames_concern(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
     """The view has a viewpoint, of its own or of its definition, that frames a concern, by its own frame or
     by a frame of the viewpoint definition it is typed by."""
@@ -1681,6 +1741,7 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "storyActorsBound": _story_actors_bound,
     "featureDeltaOnly": _feature_delta_only,
     "viewpointFramesConcern": _viewpoint_frames_concern,
+    "concernAnsweredInDomain": _concern_answered_in_domain,
     "exposesModelContent": _exposes_model_content,
     "phaseContentPublished": _phase_content_published,
     "configuredByOneConfiguration": _configured_by_one_configuration,

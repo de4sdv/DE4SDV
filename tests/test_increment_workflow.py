@@ -68,7 +68,7 @@ CHECKS_BY_STEP = {
     "DecideBaseline": {
         "publishedViewFramesConcern", "publishedViewExposesContent",
         "incrementHasBaselineDecision", "baselineDecisionStatesDisposition", "openGapStatesDisposition",
-        "applicablePhaseContentPublished",
+        "applicablePhaseContentPublished", "concernAnsweredInItsDomain",
     },
 }
 #: The steps with no executable check. Every step has checks now: a step without one is a method decision
@@ -87,6 +87,7 @@ ADVISORY = {
     "signalMappingNamesSemanticSource",
     "verificationCaseHasEvidenceRecordOrStatus",
     "applicablePhaseContentPublished",
+    "concernAnsweredInItsDomain",
 }
 # Registry contract for the evaluation engine: every check identifier the model
 # uses must be one of these. The engine fails closed on any other identifier.
@@ -103,7 +104,7 @@ CHECK_REGISTRY = {
     "verifiesIncrementRequirement", "verifiedBy", "evidenceRecordOrStatus",
     "framedByViewpoint", "nonBoundaryConcernPresent", "contextSystemOfInterest", "storySubjectBound", "storyActorsBound",
     "featureDeltaOnly", "viewpointFramesConcern", "exposesModelContent", "phaseContentPublished",
-    "configuredByOneConfiguration", "dispositionStated",
+    "configuredByOneConfiguration", "dispositionStated", "concernAnsweredInDomain",
 }
 
 
@@ -221,6 +222,7 @@ REMAINING_PARAMETERS = {
         ("out", "part", "characteristics", "[0..*]", "ProductLineCharacteristic")],
     "DecideBaseline": [
         ("in", "part", "charter", "", "IncrementCharter"),
+        ("in", "concern", "concerns", "[0..*]", ""),
         ("out", "view", "publishedViews", "[1..*]", ""),
         ("out", "part", "baselineDecision", "", "IncrementBaselineDecision"),
         ("out", "part", "openGaps", "[0..*]", "IncrementGap")],
