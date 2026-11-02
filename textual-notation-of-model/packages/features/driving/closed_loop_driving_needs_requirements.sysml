@@ -36,7 +36,7 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder verificationEngineer : VerificationEngineer;
     require constraint statement { language "English" /* Systems engineers and verification engineers need the pinned AutoE2E checkpoint to plan from inputs in the form its runtime contract fixes: the camera images with the calibration of the cameras that took them, the ego-motion history of the vehicle, and the map around the vehicle with the route to its destination, aligned in time with one another. */ }
-    attribute :>> source = "INC-DRIVING-001 checkpointCommandAuthorityConcern, assumption asmSourceAuthenticity (the pinned checkpoint and its compatible input geometry and history), gap gapModelInputAndFeedback, scenario SC-DRIVING-001; the runtime contract of AutoE2E at cb50764b (Model/README.md: surround camera images with a projection operator that carries their calibration, a semantic map raster with the route corridor and destination, and an ego-motion history of speed, acceleration, yaw rate and curvature; Model/data_parsing/nvidia_physical_ai/egomotion.py: 64 history samples at 10 Hz); owner review of 2026-11-02 (ego motion)";
+    attribute :>> source = "INC-DRIVING-001 checkpointCommandAuthorityConcern, assumption asmSourceAuthenticity (the pinned checkpoint and its compatible input geometry and history), gap gapModelInputAndFeedback, scenario SC-DRIVING-001; the runtime contract of AutoE2E at cb50764b (Model/README.md: surround camera images with a projection operator that carries their calibration, a semantic map raster with the route corridor and destination, and an ego-motion history of speed, acceleration, yaw rate and curvature; egomotion.py in Model/data_parsing: 64 history samples at 10 Hz); owner review of 2026-11-02 (ego motion)";
     attribute :>> rationale = "A checkpoint given inputs other than those it was trained on plans for a different problem: another camera geometry, a missing or misaligned motion history or a missing route leaves its plans meaningless even when every interface accepts the data.";
   }
 
@@ -247,6 +247,7 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
     attribute :>> maxRowHeight = 300;
     view ID :> columnViews {
       attribute :>> featureToRender = CT::reqId;
+      attribute :>> columnWidth = 160;
     }
     view Need :> columnViews {
       attribute :>> featureToRender = CT::declaredName;
@@ -283,9 +284,6 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
     filter @ SysML::PartUsage;
     attribute :>> includeReferenceElements = true;
     attribute :>> maxRowHeight = 300;
-    view ID :> columnViews {
-      attribute :>> featureToRender = CT::reqId;
-    }
     view Plan :> columnViews {
       attribute :>> featureToRender = CT::declaredName;
     }

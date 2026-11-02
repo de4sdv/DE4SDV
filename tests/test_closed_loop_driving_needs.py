@@ -167,10 +167,25 @@ def test_two_tables_frame_the_needs_concern_and_show_needs_and_planned_reviews()
         body = braced_body(code, f"view {view} : TVD::TableView")
         assert re.search(rf"\bviewpoint\s+\w+\s*:\s*StakeholderRequirementDefinitionViewpoint\s*\{{\s*frame\s+{concerns[0]}\s*;",
                          body), view
-        assert "CT::reqId" in body, view
         exposed[view] = re.findall(r"\bexpose\s+([^;]+);", body)
     plans = [plan for plan in re.findall(r"\bpart\s+<'SC-DRIVING-\d{3}'>\s+(\w+)\s*:", code)]
     assert sorted(exposed.values()) == sorted([list(NEEDS), plans])
     needs_view = next(view for view, names in exposed.items() if names == list(NEEDS))
-    assert re.search(r'CT::attributeValue\s*\{\s*attribute\s+attributeName\s*=\s*"source"\s*;',
-                     braced_body(code, f"view {needs_view} : TVD::TableView")), "the needs table shows each source"
+    plans_view = next(view for view, names in exposed.items() if names == plans)
+    needs_body = braced_body(code, f"view {needs_view} : TVD::TableView")
+    assert re.search(r'CT::attributeValue\s*\{\s*attribute\s+attributeName\s*=\s*"source"\s*;', needs_body), \
+        "the needs table shows each source"
+    # The licensed render of the first push clipped every ID to "NEED-DRIVING-00" at the default width.
+    id_column = re.search(r"\bview\s+ID\s*:>\s*columnViews\s*\{([^}]*)\}", needs_body)
+    assert id_column and "CT::reqId" in id_column.group(1)
+    width = re.search(r"columnWidth\s*=\s*(\d+)\s*;", id_column.group(1))
+    assert width and int(width.group(1)) >= 150, "the ID column must fit NEED-DRIVING-001"
+    # The same render left CT::reqId empty for the planned reviews, which are part usages: no ID column there.
+    assert "CT::reqId" not in braced_body(code, f"view {plans_view} : TVD::TableView")
+
+
+def test_no_source_holds_a_path_too_long_to_wrap_in_its_table_column():
+    # The first render ran Model/data_parsing/nvidia_physical_ai/egomotion.py past the Source column edge.
+    for name in NEEDS:
+        longest = max(re.split(r"[\s(]+", _attribute(_need(name), "source")), key=len)
+        assert len(longest) <= 40, (name, longest)
