@@ -396,9 +396,10 @@ package SAF_Viewpoints {
   concern def FunctionalInterfaceConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need the functional boundary ports, signal character,
-       * direction, producer/consumer mapping, and upstreaming posture
-       * for DE4SDV candidate VSS extension signals.
+       * Reviewers need the conceptual interfaces of the system for the
+       * increment: its functional boundary ports, their typed items,
+       * signal character and direction, and the functional chain that
+       * owns them.
        */
     }
   }
@@ -873,7 +874,8 @@ package SAF_Viewpoints {
   concern def ImpactAnalysisConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need ImpactAnalysisViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need this question answered for the increment: Which
+       * severity has the Loss of the Security Objectives?
        */
     }
   }
@@ -894,7 +896,9 @@ package SAF_Viewpoints {
   concern def OperationalDomainItemKindConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need OperationalDomainItemKindViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need this question answered for the increment: What
+       * types of exchange can exist between Operational Performers (i.e.,
+       * flows of information, people, material, or energy)?
        */
     }
   }
@@ -915,7 +919,12 @@ package SAF_Viewpoints {
   concern def SystemContextInteractionConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need SystemContextInteractionViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: How is
+       * the system being used or utilized and interacting with other
+       * external systems to satisfy user needs? What is the necessary
+       * response time for an interface or a service? What is the sequence
+       * of interactions among the system and context elements on
+       * conceptual level?
        */
     }
   }
@@ -936,7 +945,9 @@ package SAF_Viewpoints {
   concern def OperationalContextExchangeConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need OperationalContextExchangeViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need this question answered for the increment: Which
+       * operational exchanges do operational performers need to consume or
+       * provide?
        */
     }
   }
@@ -957,7 +968,9 @@ package SAF_Viewpoints {
   concern def SystemDomainItemKindConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need SystemDomainItemKindViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need this question answered for the increment: Which
+       * kind of conceptual items (energy, material, information, etc.) are
+       * used in the logical architecture of the system?
        */
     }
   }
@@ -978,7 +991,11 @@ package SAF_Viewpoints {
   concern def SystemFunctionalRefinementConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need SystemFunctionalRefinementViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: What
+       * are the interactions and dependencies between the different
+       * identified sub-functions? What is the breakdown of functions into
+       * sub-functions? How are the system functions decomposed into
+       * smaller, and more manageable sub-functions?
        */
     }
   }
@@ -999,7 +1016,9 @@ package SAF_Viewpoints {
   concern def SystemStateConcern :> ConceptualDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need SystemStateViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: Which
+       * modes and states does the system have? Which system functions are
+       * dependent on a system's mode or state?
        */
     }
   }
@@ -1020,7 +1039,10 @@ package SAF_Viewpoints {
   concern def OperationalContextInteractionConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need OperationalContextInteractionViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need this question answered for the increment: What
+       * possible threads of operational process activities have to be
+       * carried out to achieve the operational story main and alternative
+       * goals?
        */
     }
   }
@@ -1041,7 +1063,9 @@ package SAF_Viewpoints {
   concern def GridDefinitionConcern :> ArchitectureManagementDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need GridDefinitionViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: Which
+       * viewpoints are used in the system model? Which views of the
+       * frameworks viewpoints are present in the system model?
        */
     }
   }
@@ -1062,7 +1086,11 @@ package SAF_Viewpoints {
   concern def FrameworkConceptDefinitionConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need FrameworkConceptDefinitionViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: What
+       * are the relations between systems engineering concepts covered by
+       * the framework? What are the constraints related to SE concepts
+       * covered by the framework? Which systems engineering concepts are
+       * covered by the framework?
        */
     }
   }
@@ -1083,7 +1111,13 @@ package SAF_Viewpoints {
   concern def FrameworkConcernOverviewConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need FrameworkViewpointOverviewViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: What is
+       * the definition of rows (domains) in the framework's grid? What is
+       * the definition of columns (aspects) in the framework's grid? Which
+       * columns and rows does the framework's grid have? Where is a
+       * viewpoint of the framework located in the framework's grid? What
+       * is the maturity state of viewpoints in the framework? Which
+       * viewpoints are available in the framework?
        */
     }
   }
@@ -1104,7 +1138,10 @@ package SAF_Viewpoints {
   concern def FrameworkStakeholderandConcernDefinitionConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need FrameworkStakeholderandConcernDefinitionViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: Which
+       * concerns does an architecture framework stakeholder have? Who are
+       * the architecture framework stakeholders of the framework's
+       * viewpoints?
        */
     }
   }
@@ -1125,7 +1162,16 @@ package SAF_Viewpoints {
   concern def FrameworkConcernDefinitionConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need FrameworkViewpointDefinitionViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: Which
+       * systems engineering concepts are exposed within a viewpoint of the
+       * framework? Which concerns are framed by a viewpoint of the
+       * framework? What is the definition of a viewpoint of the framework?
+       * Where is a viewpoint of the framework located in the framework's
+       * grid? What is the purpose of a viewpoint in the framework? Which
+       * presentations are available for a viewpoint in the framework?
+       * Which dependencies to other viewpoints exist for a viewpoint of
+       * the framework? How does a viewpoint of the framework support the
+       * processes and best practices of systems engineering standards?
        */
     }
   }
@@ -1146,7 +1192,9 @@ package SAF_Viewpoints {
   concern def FrameworkConcernImplementationConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need FrameworkViewpointImplementationViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: What is
+       * the implementation of the framework's concepts? How is a viewpoint
+       * implemented (which stereotypes/model elements are used)?
        */
     }
   }
@@ -1167,7 +1215,9 @@ package SAF_Viewpoints {
   concern def FrameworkImplementationTraceabilityConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need FrameworkImplementationTraceabilityViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: What is
+       * the implementation of the framework's concepts? What are the
+       * framework's model elements to be used in system models?
        */
     }
   }
@@ -1188,7 +1238,8 @@ package SAF_Viewpoints {
   concern def FrameworkStereotypeOverviewConcern :> SAFDevelopmentDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need FrameworkStereotypeOverviewViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need this question answered for the increment: What are
+       * the framework's model elements to be used in system models?
        */
     }
   }
@@ -1209,7 +1260,11 @@ package SAF_Viewpoints {
   concern def OperationalPerformerConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need OperationalPerformerViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need these questions answered for the increment: What
+       * parts of the organization, enterprise, or operational entity are
+       * needed to achieve an intended operational capability? What are the
+       * relationships between the parties involved in the operation of the
+       * intended solution?
        */
     }
   }
@@ -1230,7 +1285,9 @@ package SAF_Viewpoints {
   concern def OperationalCapabilityMappingConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need OperationalCapabilityMappingViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need this question answered for the increment: How do
+       * operational capabilities relate to operational stories,
+       * operational activities and operational performers?
        */
     }
   }
@@ -1251,7 +1308,9 @@ package SAF_Viewpoints {
   concern def OperationalProcessMappingConcern :> OperationalDomainConcern {
     require constraint {
       doc /*
-       * Reviewers need OperationalProcessMappingViewpoint captured with source-backed frame bindings for the increment.
+       * Reviewers need this question answered for the increment: How do
+       * operational processes relate to operational stories and
+       * operational performers?
        */
     }
   }

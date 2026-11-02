@@ -147,3 +147,27 @@ def test_every_viewpoint_documentation_names_its_domain_and_no_retired_label_rem
             assert label and label.group(1) == LABEL[EXPECTED_VIEWPOINT_DOMAINS[name]], name
     for retired in ("Safety/Security Domain", "SAF Common Domain", "SAF Framework Domain", "─── Common Domain"):
         assert retired not in text, retired
+
+
+def _concern_text(body: str) -> str:
+    return " ".join(line.strip().lstrip("*").strip() for line in body.splitlines()
+                    if line.strip().startswith("*") and not line.strip().startswith("*/"))
+
+
+def test_every_concern_definition_states_a_question_not_only_its_viewpoint():
+    """An author types a concern by the question it asks; a definition that only names its viewpoint
+    ("captured with source-backed frame bindings") gives nothing to choose by."""
+    for keyword, name, _general, abstract, body in _declarations(SAF_FILE.read_text("utf-8")):
+        if keyword == "concern" and not abstract:
+            text = _concern_text(body)
+            assert "source-backed frame bindings" not in text and "//" not in text, name
+            assert text.startswith(("Reviewers need", "Reviewer question:")), name
+
+
+def test_the_functional_interface_concern_is_not_narrowed_to_one_signal_catalogue():
+    """The Conceptual interface question is about the system's interfaces in general; the former text
+    narrowed it to candidate VSS extension signals of DE4SDV, which its middleware user does not carry."""
+    (body,) = [b for k, n, _g, _a, b in _declarations(SAF_FILE.read_text("utf-8")) if n == "FunctionalInterfaceConcern"]
+    text = _concern_text(body)
+    assert "conceptual interfaces of the system" in text
+    assert not re.search(r"\b(DE4SDV|VSS)\b", text)
