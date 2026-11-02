@@ -88,6 +88,8 @@ INCREMENT_DEFINITION = "<IncrementDefinitionName>"
 _OWN_DEFINITION = "the increment's own definition specializes it"
 SUBJECT_FIRST = ("Subject first: a requirement, concern or viewpoint with stakeholder or actor members declares "
                  "its subject before them (Syside: requirement-usage-subject-parameter-position).")
+STAKEHOLDER_HOLDER = ("A stakeholder member names a party whose interest the element states; a role that only "
+                      "reviews or verifies it does not hold it.")
 _SPECIALIZING = "this definition or a definition specializing it"
 
 
@@ -713,6 +715,7 @@ def _stakeholder_member(request: _Request) -> Remedy:
     view = request.view
     members = [] if _has_subject(view, request.subject) else [_subject_first(lines)]
     members.append(_stakeholder_line(lines))
+    lines.notes.append(STAKEHOLDER_HOLDER)
     lines.notes.append(SUBJECT_FIRST)
     if request.subject is not None:
         lines.declarations.extend(members)
