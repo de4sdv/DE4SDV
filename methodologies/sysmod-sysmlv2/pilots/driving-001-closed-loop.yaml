@@ -6,5 +6,12 @@ model_files:
     increment: DE4SDV_ClosedLoopDrivingFraming::closedLoopDrivingIncrement
     charter: DE4SDV_ClosedLoopDrivingFraming::closedLoopDrivingCharter
     view: DE4SDV_ClosedLoopDrivingFraming::closedLoopDrivingFramingView
+  - package: DE4SDV_ClosedLoopDrivingOperationalContext
+    file: textual-notation-of-model/packages/features/driving/closed_loop_driving_operational_context.sysml
+    context: DE4SDV_ClosedLoopDrivingOperationalContext::closedLoopDrivingOperationalContext
+    story: DE4SDV_ClosedLoopDrivingOperationalContext::driveBoundedScenarioClosedLoop
+    views:
+      - DE4SDV_ClosedLoopDrivingOperationalContext::closedLoopDrivingOperationalContextView
+      - DE4SDV_ClosedLoopDrivingOperationalContext::closedLoopDrivingOperationalStoryView
 documentation: docs/guides/closed-loop-driving-increment.md
 provenance: textual-notation-of-model/packages/features/driving/upstream.md

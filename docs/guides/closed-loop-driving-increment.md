@@ -5,17 +5,20 @@ behavior from a prediction overlay on a separately driven car. This increment
 proposes the former: real camera-based learned planning, a functional S-CORE
 integration path, and an AAOS SDV application showing genuine plan/state/health.
 
-**Status: Phase 0 framing and Phase 1 concerns, proposal.** No implementation,
-successful driving run, performance result or product-line admission is claimed.
+**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context,
+proposal.** No implementation, successful driving run, performance result or
+product-line admission is claimed.
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_framing.sysml):
   `INC-DRIVING-001`, its engineering question, charter, scope and open gaps.
+- [SysML operational context](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_operational_context.sysml):
+  the Phase 2 context, operational behavior and story.
 - [Pilot index](../../methodologies/sysmod-sysmlv2/pilots/driving-001-closed-loop.yaml):
   artifact locations only; it does not duplicate the model's meaning.
-- [Syside framing review view](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
-  the generated, dense model review artifact, not a runtime architecture claim.
+- [Syside review views](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
+  the generated model review artifacts, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
 
 Orkun Yilmaz owns the increment. One identity covers phases 0 through 11;
@@ -32,7 +35,7 @@ rendering does not belong in the fast vehicle-control loop.
 
 The proposed driving-function boundary is a candidate **System 1** subject.
 CARLA, cloud hosts and evidence/capture instruments are **System 2** enablers,
-not vehicle features. Detailed boundaries and interfaces follow in Phase 2.
+not vehicle features. Phase 2 draws the boundary and the exchanges across it.
 This framing does not modify the existing AEBS behavior, admit an automated-driving
 member under [the current scope decision](../architecture-decisions/0014-ratify-initial-aebs-product-line-scope.md),
 or claim production readiness, on-road suitability or safety approval.
@@ -67,8 +70,8 @@ all six until those views exist.
   items pass through S-CORE, not beside it. Physical internal exchange; system
   architect, software developer, maintainer.
 - **Integration and observation:** `aaosObservationFidelityConcern`, AAOS shows
-  the live plan, state and health. Physical context exchange, or internal if
-  phase 2 puts AAOS inside the boundary; verification engineer, reviewer.
+  the live plan, state and health. Physical context exchange, because Phase 2
+  keeps AAOS SDV in the context; verification engineer, reviewer.
 - **Feedback and timing:** `degradedInputBehaviorConcern`, a defined response
   to invalid, lost or stale input or plan. Functional behavior; safety expert,
   system architect.
@@ -83,15 +86,52 @@ The Phase 1 gates check that each concern has native stakeholders and a
 frame, and that one concern is not the boundary concern. They do not judge
 whether the stakeholder, risk and viewpoint coverage is adequate; review does.
 
+## Operational context (Phase 2)
+
+AAOS SDV is a **context role**, not part of the driving system (owner decision
+of 2026-11-02). Remove it and the plan-to-command chain is unchanged; only the
+observation is lost. Putting it inside would make the display's correctness and
+delay something the system delivers, which Phase 0 does not claim.
+
+- **Inside the system of interest:** camera and ego-motion input, learned
+  planning, command execution and operational-state publication, as Phase 0
+  draws it. The plan and the commands cross S-CORE inside it. The publication
+  ends at its receiving end in the AAOS SDV guest, as in INC-MW-011.
+- **Around it, System 1 roles only:** the vehicle it drives, the road
+  environment its cameras see, the AAOS SDV guest of the existing S-CORE and
+  AAOS SDV integration with the application that presents the published state,
+  and the driver who watches it. CARLA, the cloud bench and the capture
+  instruments realize the vehicle and the scene for verification; they are
+  System 2 and stay out of the context.
+- **Exchanges:** camera images and ego motion from the vehicle, steering and
+  acceleration commands to it, and the plan, vehicle state and health to AAOS
+  SDV. Nothing flows from AAOS SDV back into the loop.
+
+The story has four scenarios:
+
+- **`SC-DRIVING-001`:** the checkpoint's plans move the vehicle, and its
+  motion changes the next images.
+- **`SC-DRIVING-002`:** AAOS SDV shows the live plan, vehicle state and health
+  of this run, outside the control loop.
+- **`SC-DRIVING-003`:** invalid, lost or stale input or plan leads to the
+  defined stop or disable response.
+- **`SC-DRIVING-004`:** with AAOS SDV down or late, the loop goes on unchanged
+  and no stale state is shown as live.
+
+The response and its deadlines, and how a stale observation is marked, are
+fixed with the requirements in Phase 5. The Phase 2 gates check one context
+that holds the system of interest and a story bound to it and to the context
+parts; review judges the roles and the scenarios.
+
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work for this framing is **Phase 2**, the
-operational context: exactly one context holding the system of interest, with
-stories bound to the subject and context actors. Phase 2 also decides whether
-AAOS SDV is a context role or part of the driving system. Do not jump from
-this charter to implementation or claim a passed runtime gate.
+work is complete. The next work is **Phase 3**: classify the driving
+capability and identify the owner scope decisions it needs. Its gate has
+nothing to evaluate while the increment adds no product-line characteristic,
+so review, not the gate, judges it. Phase 4 needs follow. Do not jump from
+this context to implementation or claim a passed runtime gate.
 
 Before deep adoption, involve upstream maintainers and resolve source,
 checkpoint and data-use terms. Before a paid cloud run, refresh the regional
@@ -99,12 +139,14 @@ quote, capacity/storage and available credit; obtain campaign authorization and
 verify bounded shutdown plus evidence export. Starting this increment does not
 launch compute or authorize spend.
 
-## Check the framing change
+## Check a model change
 
 Run `sysand sync`, `python scripts/check_repo.py`, `python scripts/smoke_test.py`
-and `python -m pytest tests/test_closed_loop_driving_framing.py tests/test_check_naming.py -q`.
+and `python -m pytest -q` on `tests/test_closed_loop_driving_framing.py`,
+`tests/test_closed_loop_driving_operational_context.py` and
+`tests/test_check_naming.py`.
 These are repository/lexical checks, not SysML semantic or runtime verification.
 Use `python scripts/validate_sysml.py` when a supported licensed validator is
 available, or request maintainer-run **Privileged Syside Validation** on the
-reviewed head. The framing view and its published artifacts must come from that
+reviewed head. The views and their published artifacts must come from that
 Syside run; no hand-drawn substitute establishes model validation.

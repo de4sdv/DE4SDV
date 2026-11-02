@@ -221,7 +221,10 @@ package DE4SDV_ClosedLoopDrivingFraming {
       MethodPhase::phase10_vvEvidence,
       MethodPhase::phase11_baseline
     );
-    attribute :>> expectedArtifacts = ("DE4SDV_ClosedLoopDrivingFraming");
+    attribute :>> expectedArtifacts = (
+      "DE4SDV_ClosedLoopDrivingFraming",
+      "DE4SDV_ClosedLoopDrivingOperationalContext"
+    );
     attribute :>> expectedReviewEvidence = (
       "independent review of the owner question, System 1/2 boundary and nonclaims",
       "repository, smoke and focused regression checks on the reviewed changes",

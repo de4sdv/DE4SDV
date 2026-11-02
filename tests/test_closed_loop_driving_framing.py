@@ -10,6 +10,8 @@ from sysml_shapes import braced_body, strip_comments
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "textual-notation-of-model/packages/features/driving/closed_loop_driving_framing.sysml"
 PACKAGE = "DE4SDV_ClosedLoopDrivingFraming"
+CONTEXT_PACKAGE = "DE4SDV_ClosedLoopDrivingOperationalContext"
+CONTEXT_MODEL = MODEL.with_name("closed_loop_driving_operational_context.sysml")
 
 
 def test_increment_has_its_own_phase_zero_contract():
@@ -39,7 +41,7 @@ def test_increment_has_its_own_phase_zero_contract():
         "phase10_vvEvidence", "phase11_baseline",
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [PACKAGE]
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [PACKAGE, CONTEXT_PACKAGE]
     assert "frame closedLoopDrivingBoundary;" in code
     assert "viewpoint closedLoopDrivingFramingViewpoint : IncrementFramingViewpoint" in code
     assert "expose closedLoopDrivingCharter;" in code
@@ -83,7 +85,17 @@ def test_pilot_is_an_index_of_existing_artifacts_only():
         "increment": f"{PACKAGE}::closedLoopDrivingIncrement",
         "charter": f"{PACKAGE}::closedLoopDrivingCharter",
         "view": f"{PACKAGE}::closedLoopDrivingFramingView",
+    }, {
+        "package": CONTEXT_PACKAGE,
+        "file": str(CONTEXT_MODEL.relative_to(ROOT)),
+        "context": f"{CONTEXT_PACKAGE}::closedLoopDrivingOperationalContext",
+        "story": f"{CONTEXT_PACKAGE}::driveBoundedScenarioClosedLoop",
+        "views": [
+            f"{CONTEXT_PACKAGE}::closedLoopDrivingOperationalContextView",
+            f"{CONTEXT_PACKAGE}::closedLoopDrivingOperationalStoryView",
+        ],
     }]
+    assert all((ROOT / entry["file"]).is_file() for entry in index["model_files"])
     assert (ROOT / index["documentation"]).is_file()
     assert (ROOT / index["provenance"]).is_file()
 
