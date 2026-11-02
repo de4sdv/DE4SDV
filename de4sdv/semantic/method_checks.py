@@ -824,11 +824,11 @@ def _population_member(view: ModelView, increment: IncrementScope, subject_id: s
 
 
 # ---------------------------------------------------------------------------
-# Concern framing (phase 1) and publication (phase 11): concerns, viewpoints, views
+# Concern framing (phase 1) and the published views of the baseline (phase 11): concerns, viewpoints, views
 # ---------------------------------------------------------------------------
 
 
-#: The metaclass of the views the publication step counts (``out view publishedViews``).
+#: The metaclass of the views the baseline step counts (``out view publishedViews``).
 VIEW_KIND = "ViewUsage"
 #: The model-projected class whose validated kernel identity distinguishes phase-boundary concerns.
 BOUNDARY_CONCERN_CLASS = "IncrementBoundaryConcern"
@@ -889,7 +889,7 @@ def _non_boundary_concern_present(view: ModelView, increment: IncrementScope, su
 
 def increment_views(view: ModelView, increment: IncrementScope) -> list[str]:
     """The views the increment's packages own (nested packages included): the population of the
-    publication step's ``publishedViews``, and the views whose viewpoints frame the concerns of phase 1.
+    baseline step's ``publishedViews``, and the views whose viewpoints frame the concerns of phase 1.
     A view owned by a part or by another view (a matrix view's row view) is none of them."""
     return [element for element in increment.scope_elements if str(view.element(element).get("@type")) == VIEW_KIND]
 
@@ -1023,6 +1023,78 @@ def _exposes_model_content(view: ModelView, increment: IncrementScope, subject_i
     if not targets:
         return violated(f"{_name(view, subject_id)} exposes no model content, nor does a view it owns")
     return satisfied(targets, witnesses)
+
+
+def _owned_closure(view: ModelView, element: str) -> list[str]:
+    """What ``element`` owns at any depth."""
+    found: list[str] = []
+    frontier = [element]
+    while frontier:
+        for member in view.index.owned_members(frontier.pop()):
+            if member not in found:
+                found.append(member)
+                frontier.append(member)
+    return found
+
+
+def published_elements(view: ModelView, increment: IncrementScope) -> frozenset[str]:
+    """The elements a view of the increment (:func:`increment_views`) shows: the view itself, and what
+    it, or a view it owns at any depth, exposes. A member expose shows its member, and what that member
+    owns at any depth when the expose is recursive. A namespace expose shows the namespace's members, at
+    any depth when recursive. Expose filters are not evaluated. Built once per corpus and package set."""
+    packages = tuple(increment.scope_packages)
+
+    def build() -> frozenset[str]:
+        index = view.index
+        views = increment_views(view, increment)
+        shown = set(views)
+        for root in views:
+            for holder in owned_views(view, root):
+                for relationship in index.owned_relationships(holder, *EXPOSE_RELATIONSHIPS):
+                    recursive = bool(relationship.get("isRecursive"))
+                    for membership in reference_ids(relationship.get("importedMembership")):
+                        for member in reference_ids(index.element(membership).get("memberElement")):
+                            shown.add(member)
+                            if recursive:
+                                shown.update(_owned_closure(view, member))
+                    for namespace in reference_ids(relationship.get("importedNamespace")):
+                        shown.update(_owned_closure(view, namespace) if recursive else index.owned_members(namespace))
+        return frozenset(shown)
+
+    return view.index.memo(("published-elements", packages), build)
+
+
+#: Most hidden elements named per phase in a diagnostic.
+HIDDEN_SAMPLE = 5
+
+
+def _phase_content_published(view: ModelView, increment: IncrementScope, subject_id: str) -> me.PredicateOutcome:
+    """Each applicable phase with content has at least one element of it in a view of the increment
+    (:func:`published_elements`). A phase's content is the subjects of its checks about what it produces
+    (:func:`de4sdv.semantic.increment_workflow.phase_contents`); a phase without content has nothing to
+    show. Like the framing-package existence checks, every subject reports the same scope-level result."""
+    from .increment_workflow import phase_contents  # the workflow reader reads this module's checks
+
+    contents, unreadable = phase_contents(view, increment)
+    shown = published_elements(view, increment)
+    hidden, witnesses = [], []
+    for phase, elements in contents.items():
+        if not elements:
+            continue
+        visible = [element for element in elements if element in shown]
+        if visible:
+            witnesses.append(visible[0])
+            continue
+        names = ", ".join(_name(view, element) for element in elements[:HIDDEN_SAMPLE])
+        more = f" and {len(elements) - HIDDEN_SAMPLE} more" if len(elements) > HIDDEN_SAMPLE else ""
+        hidden.append(f"{phase}: none of {len(elements)} element(s) is in a view of the increment ({names}{more})")
+    if hidden:
+        return violated(f"{len(hidden)} applicable phase(s) with content have no element in a view of the increment",
+                        [*hidden, *unreadable])
+    if unreadable:
+        return indeterminate(EVALUATION_INPUT_PREFIX + "phase-content",
+                             "the content of some checks cannot be read: " + "; ".join(unreadable))
+    return satisfied(witnesses or [subject_id])
 
 
 # ---------------------------------------------------------------------------
@@ -1516,7 +1588,7 @@ def _configured_by_one_configuration(view: ModelView, increment: IncrementScope,
 
 
 # ---------------------------------------------------------------------------
-# Baseline decision and open gaps (phase 12)
+# Baseline decision and open gaps (phase 11)
 # ---------------------------------------------------------------------------
 
 #: The kernel enumeration of a disposition (accepted, deferred, invalidated), the feature that holds it, and
@@ -1610,6 +1682,7 @@ NAMED_CHECKS: Mapping[str, CheckFunction] = MappingProxyType({
     "featureDeltaOnly": _feature_delta_only,
     "viewpointFramesConcern": _viewpoint_frames_concern,
     "exposesModelContent": _exposes_model_content,
+    "phaseContentPublished": _phase_content_published,
     "configuredByOneConfiguration": _configured_by_one_configuration,
     "dispositionStated": _disposition_stated,
 })

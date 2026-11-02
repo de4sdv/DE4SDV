@@ -142,7 +142,7 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
    * phase-12 decision.
    */
 
-  comment hmiGuestCandidateCounterpartInPhase12
+  comment hmiGuestCandidateCounterpartAtBaseline
     about DE4SDV_MiddlewareSCOREFeatureClassification::hmiGuestExecutionDomain,
       DE4SDV_MiddlewareSCOREFeatureClassification::hmiGuestCandidateCounterpartOfAAOSIntegratedMode
   /*
@@ -152,7 +152,7 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
    * selects the same guest side. So, of this characteristic, only hmiDisplay
    * distinguishes the S-CORE product from it. In phase 9 the counterpart
    * dependency stays on the AAOS-integrated mode. If the owner admits the
-   * member, phase 12 re-points it to the new S-CORE Integrated alternative
+   * member, the baseline decision re-points it to the new S-CORE Integrated alternative
    * of the integration mode (owner decision of 2026-10-21).
    */
 

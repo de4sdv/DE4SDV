@@ -36,7 +36,7 @@ def test_increment_has_its_own_phase_zero_contract():
         "phase3_capabilityClassification", "phase4_needs", "phase5_requirements",
         "phase6_functionalArchitecture", "phase7_logicalArchitecture",
         "phase8_physicalRealization", "phase9_variabilityConfiguration",
-        "phase10_vvEvidence", "phase11_publication", "phase12_baselineNextSlice",
+        "phase10_vvEvidence", "phase11_baseline",
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [PACKAGE]

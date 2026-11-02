@@ -504,7 +504,7 @@ def test_boundary_problem_statement_remains_a_requirement_definition() -> None:
 
 
 #: The one member IncrementGap holds besides its documentation: the optional
-#: disposition that the baseline decision of phase 12 gives an open gap (owner
+#: disposition that the baseline decision of phase 11 gives an open gap (owner
 #: decision of 2026-10-28, Q2), with its own documentation.
 GAP_DISPOSITION = "attribute disposition : LifecycleDisposition[0..1] {"
 

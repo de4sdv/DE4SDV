@@ -1,7 +1,7 @@
 /*
  * DE4SDV method process — iteration sequence of the DE4SDV increment workflow.
  *
- * This package models the 13-phase increment workflow from
+ * This package models the 12-phase increment workflow from
  * methodologies/sysmod-sysmlv2/increment-workflow.md as a SysML v2 model.
  * The phase sequence and feedback loops are documented in
  * methodologies/sysmod-sysmlv2/process-mapping.md (PR #74) as a mermaid
@@ -22,7 +22,7 @@ package DE4SDV_MethodProcess {
   /* ─── Method phases ─── */
 
   enum def MethodPhase {
-    doc /* One of the 13 phases of the DE4SDV increment workflow. */
+    doc /* One of the 12 phases of the DE4SDV increment workflow. */
 
     phase0_incrementFraming {
       doc /* What are we changing or learning? Common domain. */
@@ -57,11 +57,8 @@ package DE4SDV_MethodProcess {
     phase10_vvEvidence {
       doc /* How will satisfaction be checked? Common/Conceptual domain. */
     }
-    phase11_publication {
-      doc /* What is reviewable now? DE4SDV workflow. */
-    }
-    phase12_baselineNextSlice {
-      doc /* What is accepted, deferred, or invalidated? Common domain. */
+    phase11_baseline {
+      doc /* What is accepted, deferred, or invalidated, and which published views show it? Common domain. */
     }
   }
 

@@ -217,8 +217,7 @@ package DE4SDV_ClosedLoopDrivingFraming {
       MethodPhase::phase8_physicalRealization,
       MethodPhase::phase9_variabilityConfiguration,
       MethodPhase::phase10_vvEvidence,
-      MethodPhase::phase11_publication,
-      MethodPhase::phase12_baselineNextSlice
+      MethodPhase::phase11_baseline
     );
     attribute :>> expectedArtifacts = ("DE4SDV_ClosedLoopDrivingFraming");
     attribute :>> expectedReviewEvidence = (

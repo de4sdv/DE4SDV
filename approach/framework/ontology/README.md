@@ -118,7 +118,7 @@ The configured product, the main output of phase 9, maps to
 `ConfiguredProduct`). The vocabulary-only relationship `configuredBy` maps it
 onto `FeatureConfiguration`. So the kernel imports no PLEML package: the
 relationship is a DE4SDV derived fact over the product-model projection that
-the configuration generates. The baseline decision of phase 12 maps to
+the configuration generates. The baseline decision of phase 11 maps to
 `IncrementBaselineDecision`, a specialization of `IncrementLifecycleDecision`
 in `DE4SDV_MethodContext`. The enumeration `LifecycleDisposition` (`accepted`,
 `deferred`, `invalidated`) types its disposition and the optional disposition

@@ -18,7 +18,7 @@ performance result or product-line admission is claimed.
   the generated, dense model review artifact, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
 
-Orkun Yilmaz owns the increment. One identity covers phases 0 through 12;
+Orkun Yilmaz owns the increment. One identity covers phases 0 through 11;
 CARLA closed-loop verification belongs to Phase 10 of this increment, with
 readiness probes earlier in phases 6 through 8.
 

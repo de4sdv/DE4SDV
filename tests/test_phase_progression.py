@@ -39,8 +39,7 @@ P3 = "phase3_capabilityClassification"
 P4 = "phase4_needs"
 P5 = "phase5_requirements"
 P10 = "phase10_vvEvidence"
-P11 = "phase11_publication"
-P12 = "phase12_baselineNextSlice"
+P11 = "phase11_baseline"
 META = {"part": "PartUsage", "requirement": "RequirementUsage", "concern": "ConcernUsage",
         "action": "ActionUsage", "view": "ViewUsage", "verification": "VerificationCaseUsage",
         "allocation": "AllocationUsage"}
@@ -195,25 +194,24 @@ def phase(evaluation, name: str) -> dict:
     return block
 
 
-def test_framing_only_opens_vacuous_phase_3_and_the_phase_11_defect():
+def test_framing_only_opens_only_vacuous_phase_3():
+    """Phase 0 content alone opens no later phase but the vacuous phase 3. The
+    publication phase that opened on a framing view alone is retired: its view
+    checks are part of the baseline phase, which also needs a baseline decision."""
     evaluation = evaluate(framing_only())
     assert phase(evaluation, P0)["phase_exit"] == "READY"
     for name in (P1, "phase2_operationalContext", P4, P5, "phase6_functionalArchitecture",
                  "phase7_logicalArchitecture", "phase8_physicalRealization",
-                 "phase9_variabilityConfiguration", P10, P12):
+                 "phase9_variabilityConfiguration", P10, P11):
         assert phase(evaluation, name)["phase_exit"] == "BLOCKED", name
     vacuous = phase(evaluation, P3)
     assert vacuous["phase_exit"] == "READY" and vacuous["vacuous"] is True and vacuous["evaluated"] == 0
     assert vacuous["conformance_verdict"] == "NOT_APPLICABLE"
-    # Pinned known defect: the framing view frames the boundary concern and
-    # exposes the framing, so publication opens on Phase 0 content alone, as
-    # it does for INC-DRIVING-001. The follow-up method PR retires this phase
-    # and removes this pin.
-    publication = phase(evaluation, P11)
-    assert publication["phase_exit"] == "READY"
-    assert publication["gates"] == {"publishedViewFramesConcern": "PASS",
-                                    "publishedViewExposesContent": "PASS"}
-    assert "vacuous" not in publication
+    baseline = phase(evaluation, P11)
+    assert baseline["gates"]["publishedViewFramesConcern"] == "PASS"
+    assert baseline["gates"]["publishedViewExposesContent"] == "PASS"
+    assert baseline["gates"]["incrementHasBaselineDecision"] == "FAIL"
+    assert [p["phase"] for p in evaluation.status()["phases"]][-1] == P11
     step = evaluation.next_obligation()["next"]
     assert (step["stage"], step["gate"]) == (P1, "incrementHasNonBoundaryConcern")
     # Phase 3 comes after the next obligation, so the advisory list is empty.

@@ -48,8 +48,7 @@ PHASE_LITERALS = (
     "phase8_physicalRealization",
     "phase9_variabilityConfiguration",
     "phase10_vvEvidence",
-    "phase11_publication",
-    "phase12_baselineNextSlice",
+    "phase11_baseline",
 )
 INFINITY = object()
 

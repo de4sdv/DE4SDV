@@ -145,8 +145,8 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   `phase_contract`, `parameter_element_id` is the element id of that step
   parameter.
 - **Coverage.** Every step of the workflow carries checks; those of
-  variability and configuration (phase 9) and of the baseline decision
-  (phase 12) are in
+  variability and configuration (phase 9) and of the baseline (phase 11)
+  are in
   [rule 16](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model).
   A charter can name another workflow, whose steps need not all carry
   checks. `phase_contract`
@@ -329,17 +329,6 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   `CommonProductLineCapability` record fails: core elements are common by
   default and get no record. An increment that adds no variability records
   nothing, and the check is not applicable.
-- **Publication (phase 11).** The increment publishes at least one view
-  (`publishedViews[1..*]`), so a declared phase 11 without a view fails on
-  population. Each view the increment's packages own has a viewpoint, of its
-  own or of its definition, that frames a concern
-  (`viewpointFramesConcern`). The frame is the viewpoint's own or its viewpoint
-  definition's. Each view, or a view it owns at any depth,
-  exposes model content (`exposesModelContent`). A table or matrix view
-  exposes through its row, column and cell views. Both block and judge the
-  model only. The pull request, its review and the rendered diagrams are
-  judged outside the model: CI checks the diagrams and each folder's
-  `VIEWS.md`.
 - **Configured product (phase 9).** The increment declares at least one
   configured product (`incrementHasConfiguredProduct`), and exactly one
   feature configuration configures each
@@ -367,7 +356,18 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   part <configuredProduct> : <ConfiguredProduct>;
   ```
 
-- **Baseline decision (phase 12).** The increment has exactly one baseline
+- **Baseline (phase 11).** The phase decides what the increment accepts,
+  defers or invalidates, and publishes the views that show it. The increment
+  publishes at least one view (`publishedViews[1..*]`), so a declared phase
+  11 without a view fails on population. Each view the increment's packages
+  own has a viewpoint, of its own or of its definition, that frames a
+  concern (`viewpointFramesConcern`). The frame is the viewpoint's own or its
+  viewpoint definition's. Each view, or a view it owns at any depth, exposes
+  model content (`exposesModelContent`). A table or matrix view exposes
+  through its row, column and cell views. Both block and judge the model
+  only. The pull request, its review and the rendered diagrams are judged
+  outside the model: CI checks the diagrams and each folder's `VIEWS.md`.
+  The increment has exactly one baseline
   decision, typed by `IncrementBaselineDecision`, and it states its
   disposition (`baselineDecisionStatesDisposition`). Each open gap states
   the disposition that the baseline decision gives it
@@ -377,7 +377,13 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   a value that only its definition sets does not count. The record of a
   resolved gap leaves the model, so every gap in scope is open.
   The phase-0 count of framing decisions leaves the baseline decision out.
-  So:
+  An advisory check, `applicablePhaseContentPublished`, names each
+  applicable phase with content of which no element is in a view of the
+  increment (`phaseContentPublished`): what a step produces, read from the
+  subjects of its checks about an `out` parameter, against what the views
+  expose. It never blocks and is not review. The increment ends at this
+  phase: rework iterates the same increment, and a new increment starts at
+  phase 0 from a new engineering question. So:
 
   ```sysml
   part <baselineDecision> : IncrementBaselineDecision {

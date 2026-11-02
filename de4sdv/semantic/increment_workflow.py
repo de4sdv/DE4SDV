@@ -105,8 +105,7 @@ CANONICAL_PHASE_LITERALS = {
     8: "phase8_physicalRealization",
     9: "phase9_variabilityConfiguration",
     10: "phase10_vvEvidence",
-    11: "phase11_publication",
-    12: "phase12_baselineNextSlice",
+    11: "phase11_baseline",
 }
 #: Upper cardinality bound standing for "unbounded" (``*``).
 UNBOUNDED = 1_000_000
@@ -196,7 +195,7 @@ def _scoped_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext, *,
 
 
 #: Ontology class -> the classes whose lineage a parameter typed by it does not count. A baseline decision
-#: (phase 12) specializes the lifecycle decision, but it is never the framing decision of phase 0 (owner
+#: (phase 11) specializes the lifecycle decision, but it is never the framing decision of phase 0 (owner
 #: decision of 2026-10-29): the exclusion is structural, by typing, never by the package that holds it.
 EXCLUDED_LINEAGES: Mapping[str, tuple[str, ...]] = MappingProxyType({
     "IncrementLifecycleDecision": ("IncrementBaselineDecision",),
@@ -341,6 +340,58 @@ def _parameter_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> t
 def _framing_subjects(spec: me.ObligationSpec, ctx: me.EvaluationContext) -> tuple[list[str], list[str]]:
     """Subjects of a framing check: the increment's own package."""
     return _scoped_subjects(spec, ctx, own_package=True)
+
+
+#: Directions of the step parameters that hold what a phase produces.
+CONTENT_DIRECTIONS = frozenset({"out", "inout"})
+
+
+def phase_contents(view: ModelView, increment: IncrementScope) -> tuple[Mapping[str, tuple[str, ...]], tuple[str, ...]]:
+    """(applicable phase -> its content, the checks whose subjects cannot be read) for the workflow the
+    increment's charter declares. A phase's content is the subjects of its checks about an ``out`` or
+    ``inout`` parameter, resolved as the evaluation resolves them: framing in the increment's package, a
+    later step in the charter-declared scope, and a parameter that an allocation end pair reaches with the
+    elements its allocations name. The API guard that withholds allocation reading does not apply: the
+    content is read, not judged. Framing always applies; a later phase applies when the charter declares it.
+    Built once per corpus and increment."""
+    key = ("phase-contents", increment.increment_id, tuple(increment.scope_packages), tuple(increment.charters))
+
+    def build() -> tuple[Mapping[str, tuple[str, ...]], tuple[str, ...]]:
+        method = read_increment_method(view, increment, revision_label="phase-contents")
+        if method.contract is None:
+            return MappingProxyType({}), (f"the increment workflow cannot be read: {method.reason}",)
+        declared = set(increment.declared_phases or ())
+        ctx = _ContentContext(model=view, increment=increment)
+        contents: dict[str, list[str]] = {}
+        unreadable: list[str] = []
+        for spec in method.contract.obligations:
+            label = method.labels.get(spec.obligation_id) or {}
+            if label.get("direction") not in CONTENT_DIRECTIONS:
+                continue
+            if spec.applicability_kind != me.APPLICABILITY_UNCONDITIONAL and spec.phase not in declared:
+                continue
+            found = contents.setdefault(spec.phase, [])
+            try:
+                subjects, _diagnostics = _scoped_subjects(spec, ctx, own_package=spec.selector_kind == OWN_PACKAGE_SELECTOR)
+                kind = spec.subject_selector.startswith(KIND_PREFIX)
+                rows = [] if kind else allocation_rows_entering(view, spec.subject_selector)
+                if rows:
+                    subjects = _architecture_subjects(view, increment, spec.subject_selector, rows)
+            except (me.SubjectResolutionError, MethodSideInput) as error:
+                unreadable.append(f"{spec.obligation_id}: {getattr(error, 'detail', None) or error}")
+                continue
+            found.extend(subject for subject in subjects if subject not in found)
+        return MappingProxyType({phase: tuple(found) for phase, found in contents.items()}), tuple(unreadable)
+
+    return view.index.memo(key, build)
+
+
+@dataclass(frozen=True)
+class _ContentContext:
+    """The two inputs subject resolution reads, for :func:`phase_contents`."""
+
+    model: ModelView
+    increment: IncrementScope
 
 
 #: Selector kind -> subject resolution of the workflow's checks.

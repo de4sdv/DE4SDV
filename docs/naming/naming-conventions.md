@@ -18,13 +18,13 @@ These three concepts are distinct and must not be conflated:
 
 - **Engineering increment** — one bounded engineering question/change with its
   own identity (`INC-<SUBJECT>-<SEQ>`). A DE4SDV increment traverses the
-  13-phase workflow (phases 0–12). Do not treat phases as separate increments.
+  12-phase workflow (phases 0–11). Do not treat phases as separate increments.
 - **Phase** — one step of the DE4SDV method executed inside an increment
   (0 Increment framing, 1 Concern framing, 2 Operational context,
   3 Capability/feature semantics, 4 Needs, 5 Requirements,
   6 Functional architecture, 7 Logical architecture, 8 Physical/software
   realization, 9 Variability and configuration, 10 V&V and evidence,
-  11 Publication, 12 Baseline and next slice). Phases are workflow steps;
+  11 Baseline). Phases are workflow steps;
   they never receive identifiers of their own and never appear as the naming
   basis of enduring model partitions.
 - **Record** — an identity-bearing artifact tied to a specific increment,

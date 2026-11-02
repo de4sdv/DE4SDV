@@ -78,7 +78,7 @@ def test_evidence_vocabulary_role_is_unique_and_states_its_boundary(name):
 def test_status_successor_adds_no_universal_status_enum_and_keeps_legacy_name():
     # The kernel enum population is pinned: a status successor must reuse VVStatus.
     # LifecycleDisposition (owner decision of 2026-10-28, Q2) is a decision outcome
-    # of phase 12 (accepted, deferred, invalidated), not a status or a verdict.
+    # of phase 11 (accepted, deferred, invalidated), not a status or a verdict.
     enums = set()
     for path in sorted((ROOT / KERNEL).glob("*.sysml")):
         active = re.sub(r"/\*.*?\*/|//[^\n]*", " ", path.read_text(), flags=re.S)

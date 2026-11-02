@@ -61,7 +61,7 @@ feature, system behavior and requirements, safety/security, logical
 realization, physical/software realization) and shows the AEBS pilot
 selection. The
 [`process-mapping.md`](../../../methodologies/sysmod-sysmlv2/process-mapping.md#viewpoint-flow-per-phase)
-table shows which viewpoints each of the 13 phases typically produces.
+table shows which viewpoints each of the 12 phases typically produces.
 
 ## Stakeholders and concerns by system layer
 

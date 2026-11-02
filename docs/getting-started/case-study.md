@@ -204,7 +204,7 @@ defines the broader mission.
 In the repository today:
 
 - the SysML v2 model of the platform stack and its candidates;
-- the method kernel: the increment workflow with its 13 phases, the checks the
+- the method kernel: the increment workflow with its 12 phases, the checks the
   method declares, and the read-only method tools that answer with the next
   obligation (see [part 2](#2-how-the-engineering-work-runs));
 - the AEBS reference thread, increments `INC-AEBS-001` to `INC-AEBS-010`,
@@ -270,10 +270,10 @@ implementation should reflect it, not quietly define a different system.
 Work happens in **increments**. An increment answers one engineering question,
 such as "can Eclipse S-CORE realize the middleware layer?". Its charter, which
 is part of the model, names the question, the scope, the owner, and the phases
-the increment covers. The method has 13 phases, from framing (0) through
+the increment covers. The method has 12 phases, from framing (0) through
 needs (4), requirements (5), architecture (6 to 8), variability (9), and
-verification and validation (V&V) and evidence (10) to publication (11) and the
-baseline decision (12).
+verification and validation (V&V) and evidence (10) to the baseline decision
+and its published views (11).
 
 ![Concept illustration, not a model view: three lanes. Agent: read the next obligation, author model content, open a pull request. Deterministic evaluation: on each push the Method Check evaluates the model (same revision, same verdict) and returns gaps and the next obligation to the agent; executable checks today cover phases 0, 4 to 8 and 10. People: the report goes to independent review and owner decisions, and only then to a merge to main.](concept-agentic-engineering.drawio.svg)
 
@@ -301,7 +301,7 @@ and INC-MW-011 is being authored the same way
 ([framing model](../../textual-notation-of-model/packages/features/middleware/middleware_score_framing.sysml)).
 
 The scope is deliberately narrow. Today every step of the workflow declares
-executable checks, from framing to the baseline decision (phases 0 to 12); a
+executable checks, from framing to the baseline decision (phases 0 to 11); a
 phase without checks is reported as unchecked, never as passed, and relies on
 review. The architecture phases 6 to 8 check the
 allocation chain from requirement to function, logical element, and physical

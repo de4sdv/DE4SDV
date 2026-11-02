@@ -10,7 +10,7 @@ the repository.
 For the **logical sequence of work** — the order in which these processes are
 exercised inside a modeling increment — see
 [`methodologies/sysmod-sysmlv2/process-mapping.md`](../../methodologies/sysmod-sysmlv2/process-mapping.md),
-which defines the 13-phase increment workflow, feedback loops, and the
+which defines the 12-phase increment workflow, feedback loops, and the
 viewpoint flow per phase. For the repeatable contribution pattern (entry
 criteria, sizes, review questions), see
 [`methodologies/sysmod-sysmlv2/increment-workflow.md`](../../methodologies/sysmod-sysmlv2/increment-workflow.md).
@@ -105,7 +105,7 @@ and [`increment-workflow.md`](../../methodologies/sysmod-sysmlv2/increment-workf
 
 ## Related guidance
 
-- [`methodologies/sysmod-sysmlv2/process-mapping.md`](../../methodologies/sysmod-sysmlv2/process-mapping.md) — logical sequence of work, 13 phases, viewpoint flow
+- [`methodologies/sysmod-sysmlv2/process-mapping.md`](../../methodologies/sysmod-sysmlv2/process-mapping.md) — logical sequence of work, 12 phases, viewpoint flow
 - [`methodologies/sysmod-sysmlv2/increment-workflow.md`](../../methodologies/sysmod-sysmlv2/increment-workflow.md) — repeatable contribution pattern and review questions
 - [`methodologies/sysmod-sysmlv2/artifact-map.md`](../../methodologies/sysmod-sysmlv2/artifact-map.md) — method concepts to repository artifacts
 - [`methodologies/sysmod-sysmlv2/saf-viewpoint-map.md`](../../methodologies/sysmod-sysmlv2/saf-viewpoint-map.md) — viewpoint selection per increment type

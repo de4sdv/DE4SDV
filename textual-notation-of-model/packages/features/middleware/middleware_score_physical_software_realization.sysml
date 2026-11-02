@@ -1174,7 +1174,7 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
      * process and a ROS 2 process. That changes the adapter process that
      * REQ-MW-018 names.
           *
-     * Withdrawn at phase 12: the one-process adapter was built and run on the
+     * Withdrawn at the baseline decision: the one-process adapter was built and run on the
      * benchmark Linux host (x86_64) in the S1 to S3b sessions, so the item no
      * longer holds for that host class.
      */

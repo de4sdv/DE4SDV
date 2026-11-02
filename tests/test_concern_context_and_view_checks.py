@@ -12,7 +12,7 @@
 - Phase 3 (``classifyCapabilities``, about the product-line characteristics):
   each one is a feature candidate or deferred product-line scope
   (``featureDeltaOnly``); a common-capability record is no feature-model delta.
-- Phase 11 (``publishIncrement``, about the views): each view has a viewpoint
+- Phase 11 (``decideBaseline``, about the views): each view has a viewpoint
   that frames a concern (``viewpointFramesConcern``) and exposes model content,
   itself or through a view it owns (``exposesModelContent``).
 
@@ -52,7 +52,7 @@ from test_revision_index import _traversal
 #: The checks read no allocation, so an API revision binding evaluates them (nothing is withheld).
 REVISION = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
 P0, P1, P2, P3, P11 = ("phase0_incrementFraming", "phase1_concernFraming", "phase2_operationalContext",
-                       "phase3_capabilityClassification", "phase11_publication")
+                       "phase3_capabilityClassification", "phase11_baseline")
 P, C = WorkflowParameter, WorkflowCheck
 STAKEHOLDER, FRAMED = "concernHasStakeholder", "concernFramedByViewpoint"
 CONTEXT, CONTEXT_SYSTEM, SUBJECT_BOUND, ACTORS_BOUND = (
@@ -204,7 +204,7 @@ def _workflow(story: Story) -> None:
         WorkflowStep("classifyCapabilities", P3, (
             P("characteristics", "ProductLineCharacteristic", "PartUsage", bounds=(0, INFINITY)),), (
             C(DELTA, "featureDeltaOnly", "characteristics"),)),
-        WorkflowStep("publishIncrement", P11, (P("publishedViews", None, "ViewUsage", bounds=(1, INFINITY)),), (
+        WorkflowStep("decideBaseline", P11, (P("publishedViews", None, "ViewUsage", bounds=(1, INFINITY)),), (
             C(VIEW_FRAMES, "viewpointFramesConcern", "publishedViews"),
             C(VIEW_EXPOSES, "exposesModelContent", "publishedViews"))),
     ], charter=story.scenario.charter)
@@ -708,7 +708,7 @@ def test_a_view_that_exposes_nothing_fails_and_one_exposing_through_its_owned_vi
     assert _authorable(_blocking(evaluation, VIEW_EXPOSES), story) == []
 
 
-def test_a_declared_publication_without_views_fails_on_population() -> None:
+def test_a_declared_baseline_without_views_fails_on_population() -> None:
     """Review R3: ``publishedViews[1..*]``. A declared phase 11 with no view of the increment is no empty
     publication that passes: both checks fail on population and the exit is BLOCKED (MC-05)."""
     story = _story()

@@ -342,17 +342,32 @@ These method rules apply to every increment:
     stakeholder parts: such a part would only restate them (rule 11). A
     frame owned by a need or a requirement does not count (rule 3). Nor
     does a viewpoint of another view.
-15. **Publication (phase 11).** The increment publishes at least one view
-    (`publishedViews[1..*]`): a declared phase 11 without a view fails on
-    population. Each view of the increment (rule 14) has a viewpoint, of its
-    own or of its definition, that frames a concern, by its own frame or by
-    a frame of its viewpoint definition. Each view, or a view it owns at any
-    depth, exposes model content. A table or matrix view
+15. **Published views (phase 11, baseline).** The increment publishes at
+    least one view (`publishedViews[1..*]`): a declared phase 11 without a
+    view fails on population. Each view of the increment (rule 14) has a
+    viewpoint, of its own or of its definition, that frames a concern, by
+    its own frame or by a frame of its viewpoint definition. Each view, or a
+    view it owns at any depth, exposes model content. A table or matrix view
     exposes through its row, column and cell views. Both checks block and
     judge the model only. The pull request, its review and the rendered
     diagrams are judged outside the model. CI checks the diagrams and each
     folder's `VIEWS.md`, and review judges the rest.
-16. **Variability and the baseline decision (phases 9 and 12).** The
+    - **Visibility (advisory).** Each applicable phase with content has at
+      least one of its elements in a view of the increment
+      (`phaseContentPublished`). A phase's content is the subjects of its
+      checks about what the step produces (an `out` parameter); a phase
+      without content, such as a phase 3 that records no feature-model
+      delta, has nothing to show. A view shows itself, the member a member
+      expose names, and the members of a namespace an expose names, at any
+      depth when the expose is recursive. Expose filters are not evaluated,
+      and visibility is not review.
+    - **Why advisory.** The owner decision of 2026-11-01 measures the rule
+      against INC-AEBS-010 and INC-MW-011 before it blocks. Both have
+      content that no view shows: INC-AEBS-010 its framing records and its
+      verification cases, INC-MW-011 its configured product usage (its views
+      expose the definition). The rule stays advisory until the owner
+      decides.
+16. **Variability and the baseline decision (phases 9 and 11).** The
     kernel types what these steps declare (owner decisions of 2026-10-28
     and 2026-10-29), and all their checks block:
     - **Phase 9.** The increment declares at least one configured product
@@ -398,7 +413,7 @@ These method rules apply to every increment:
       request evaluates the export of its head.
       `variationPoints[0..*]` and `physicalElements[0..*]` stay untyped and
       unchecked: a native variation point has no selector.
-    - **Phase 12.** The increment has exactly one baseline decision, typed
+    - **Phase 11.** The increment has exactly one baseline decision, typed
       by `IncrementBaselineDecision`, and it states its disposition, a
       literal of `LifecycleDisposition` (`accepted`, `deferred`,
       `invalidated`). Each open gap (`IncrementGap`) states the
@@ -411,7 +426,7 @@ These method rules apply to every increment:
       sets does not count, and neither does a literal of a specialization.
       The typing identifies the baseline decision, never a name: a `BL-`
       short name does not make one.
-    - **Phase 12, resolved gaps.** The record of a resolved gap leaves the
+    - **Phase 11, resolved gaps.** The record of a resolved gap leaves the
       model, so every `IncrementGap` in scope is open. A disposition
       cannot say "resolved", and `invalidated` does not mean "fixed". A
       resolved gap whose record stays counts as open: without a
@@ -438,7 +453,7 @@ The checks of these rules are `MethodCheck` metadata inside the step
 definitions, one check per rule clause, each about the step parameter it
 constrains. The check identifier names the evaluation, an unknown identifier
 fails closed, and `advisory = true` marks the advisory checks. Every step
-carries checks; rule 16 gives those of phases 9 and 12. The physical-architecture
+carries checks; rule 16 gives those of phases 9 and 11. The physical-architecture
 step also checks rule 13. The phase-2 checks of rule 9 are about the
 operational context, the parameter through which they reach it. They read the
 story's use cases from there. Rule 11 is a report over the whole scope, not a
@@ -460,8 +475,16 @@ result is a conformance, acceptance, or certification claim.
 | 8. Physical / software realization | What software, hardware, deployment, or tool elements realize the system design? | Physical | physical/software structure, interfaces, mappings, readiness probes when required |
 | 9. Variability and configuration | How does this vary across member products or configurations? | DE4SDV product-line layer | variation points, feature configurations, configured products, applicability |
 | 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Common / Conceptual | verification cases, validation scenarios, evidence records, open gaps |
-| 11. Publication | What is reviewable now? | DE4SDV workflow | SysML v2, Markdown, YAML, generated views, reports, PR |
-| 12. Baseline and next slice | What is accepted, deferred, or invalidated? | Common | baseline decision and its disposition, open issues, next increment |
+| 11. Baseline | What is accepted, deferred, or invalidated, and which published views show it? | Common | baseline decision and its disposition, open-gap dispositions, published views |
+
+An increment ends at its baseline decision. Rework iterates the same
+increment; a new increment starts only from a new engineering question, at
+phase 0. There is no "next slice" step and no loop from the baseline back to
+framing (owner decision of 2026-11-01). The same decision retired the
+publication phase: its view checks moved into the baseline phase, which is
+phase 11, so the workflow has 12 phases. Records written before name the
+publication phase 11 and the baseline phase 12, and their identifiers keep
+that numbering (`BL-MW-010-P12`, `BL-MW-011-P12`).
 
 `System architecture` is the umbrella for the architecture of the system and
 its coordinated views; it is not the name of Phase 7. Phases 6 through 8

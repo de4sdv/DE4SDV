@@ -1,4 +1,4 @@
-"""Configured product (phase 9) and baseline decision (phase 12): the kernel
+"""Configured product (phase 9) and baseline decision (phase 11): the kernel
 classes, their admission and bindings, and the workflow parameters they type.
 
 The owner decided both on 2026-10-28:
@@ -16,7 +16,7 @@ The owner decided both on 2026-10-28:
 Lexical source checks and the model-built contract. The licensed validation of
 the definitions runs in CI. The binding test is synthetic: it proves the
 ingestion rule (ADR 0011), not a licensed export. No check is about these
-parameters yet; the checks of phases 9 and 12 are a later method change.
+parameters yet; the checks of phases 9 and 11 are a later method change.
 """
 from __future__ import annotations
 
@@ -166,7 +166,7 @@ def test_the_baseline_decision_specializes_the_lifecycle_decision_with_one_dispo
     # The framing decision stays doc-only: phase 0 keeps its type.
     assert _members(METHOD_CONTEXT, "part def IncrementLifecycleDecision") == []
     doc = _first_doc(METHOD_CONTEXT, "part def IncrementBaselineDecision")
-    for clause in ("The lifecycle decision of phase 12",
+    for clause in ("The lifecycle decision of phase 11",
                    "It is not the framing decision of phase 0",
                    "Its disposition states the decision",
                    "Its typing identifies it, never a name",
@@ -184,7 +184,7 @@ def test_the_disposition_enumeration_has_the_three_literals_of_the_owner_decisio
 
 
 def test_the_gap_carries_an_optional_disposition_of_the_same_enumeration():
-    """A gap is recorded in any phase; the baseline decision of phase 12 gives it its disposition."""
+    """A gap is recorded in any phase; the baseline decision of phase 11 gives it its disposition."""
     assert _members(METHOD_CONTEXT, "part def IncrementGap") == [
         "attribute disposition : LifecycleDisposition[0..1]"]
 
@@ -232,7 +232,7 @@ def test_ingestion_binds_each_new_class_by_file_and_declaration_never_by_name():
 
 
 # ---------------------------------------------------------------------------
-# The workflow parameters of phases 9 and 12
+# The workflow parameters of phases 9 and 11
 # ---------------------------------------------------------------------------
 
 #: Step -> its parameters (direction, keyword, name, multiplicity, type).
@@ -241,23 +241,30 @@ PARAMETERS = {
         ("in", "part", "physicalElements", "[0..*]", ""),
         ("out", "part", "variationPoints", "[0..*]", ""),
         ("out", "part", "configuredProducts", "[1..*]", "ProductLineConfiguredProduct")],
-    "DecideBaselineAndNextSlice": [
+    "DecideBaseline": [
         ("in", "part", "charter", "", "IncrementCharter"),
+        ("out", "view", "publishedViews", "[1..*]", ""),
         ("out", "part", "baselineDecision", "", "IncrementBaselineDecision"),
         ("out", "part", "openGaps", "[0..*]", "IncrementGap")],
+}
+#: Step -> the parameters its checks are about: the typed outputs, and for the baseline the published views
+#: (moved from the retired publication step) and the charter (the advisory visibility check).
+ABOUT = {
+    "DefineVariabilityAndConfiguration": {"configuredProducts"},
+    "DecideBaseline": {"publishedViews", "baselineDecision", "openGaps", "charter"},
 }
 
 
 @pytest.mark.parametrize("step", sorted(PARAMETERS))
-def test_the_steps_of_phases_9_and_12_type_their_outputs_by_the_new_classes(step):
-    """The types of the step parameters. The checks of phases 9 and 12 are about the
+def test_the_steps_of_phases_9_and_11_type_their_outputs_by_the_new_classes(step):
+    """The types of the step parameters. The checks of phases 9 and 11 are about the
     typed outputs only (``tests/test_increment_workflow.py`` locks them): never about
     ``variationPoints`` or ``physicalElements``, which stay untyped."""
     body = strip_comments(braced_body(_text(WORKFLOW), f"action def {step}"))
     found = re.findall(r"\b(in|out)\s+(\w+)\s+(\w+)(\[[^\]]*\])?\s*(?::\s*(\w+))?\s*;", body)
     assert found == PARAMETERS[step]
     about = set(re.findall(r"\bMethodCheck\s+about\s+(\w+)", body))
-    assert about == {name for _direction, _kind, name, _bounds, typed in found if typed and name != "charter"}
+    assert about == ABOUT[step]
     code = strip_comments(_text(WORKFLOW))
     assert code.count("private import DE4SDV_ProductLine::ProductLineConfiguredProduct;") == 1
 
@@ -292,7 +299,7 @@ def _maps_a_disposition_literal(text: str) -> bool:
 
 
 def test_no_evaluator_or_acceptance_module_maps_a_disposition_literal():
-    """Review R5: LifecycleDisposition::accepted is a phase-12 decision, never an
+    """Review R5: LifecycleDisposition::accepted is a phase-11 decision, never an
     acceptance under de4sdv.acceptance.maintainer-decision.v1, a verdict or
     readiness. The modules that decide those do not name the enumeration, and no
     other module maps its literals."""

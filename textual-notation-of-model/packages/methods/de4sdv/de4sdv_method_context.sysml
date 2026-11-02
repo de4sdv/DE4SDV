@@ -333,7 +333,7 @@ package DE4SDV_MethodContext {
   part def IncrementGap {
     doc /* A known missing trace link, missing evidence item, unresolved uncertainty, or unproven claim that must not be hidden. */
     attribute disposition : LifecycleDisposition[0..1] {
-      doc /* The disposition that the baseline decision of phase 12 gives the gap while it is open. A gap has no disposition before phase 12. */
+      doc /* The disposition that the baseline decision of phase 11 gives the gap while it is open. A gap has no disposition before phase 11. */
     }
   }
 
@@ -350,7 +350,7 @@ package DE4SDV_MethodContext {
   }
 
   part def IncrementBaselineDecision :> IncrementLifecycleDecision {
-    doc /* The lifecycle decision of phase 12: what the baseline of the increment accepts, defers or invalidates. It is not the framing decision of phase 0, which states the decision that the increment is to support. Its disposition states the decision. Its typing identifies it, never a name: a BL identifier in its short name names the record and does not make it a baseline decision. No check reads the baseline register, and the model does not mirror it. No acceptance under de4sdv.acceptance.maintainer-decision.v1, no compliance and no certification claim follows from it. */
+    doc /* The lifecycle decision of phase 11: what the baseline of the increment accepts, defers or invalidates. It is not the framing decision of phase 0, which states the decision that the increment is to support. Its disposition states the decision. Its typing identifies it, never a name: a BL identifier in its short name names the record and does not make it a baseline decision. No check reads the baseline register, and the model does not mirror it. No acceptance under de4sdv.acceptance.maintainer-decision.v1, no compliance and no certification claim follows from it. */
     attribute disposition : LifecycleDisposition {
       doc /* What the baseline decision does with the result of the increment. */
     }
