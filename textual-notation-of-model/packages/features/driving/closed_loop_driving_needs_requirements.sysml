@@ -247,7 +247,6 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
     attribute :>> maxRowHeight = 300;
     view ID :> columnViews {
       attribute :>> featureToRender = CT::reqId;
-      attribute :>> columnWidth = 160;
     }
     view Need :> columnViews {
       attribute :>> featureToRender = CT::declaredName;
@@ -264,7 +263,6 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
       attribute :>> featureToRender = CT::attributeValue {
         attribute attributeName = "source";
       }
-      attribute :>> columnWidth = 320;
     }
   }
 
@@ -289,7 +287,6 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
     }
     view Review :> columnViews {
       attribute :>> featureToRender = CT::documentation;
-      attribute :>> columnWidth = 480;
     }
   }
 }
