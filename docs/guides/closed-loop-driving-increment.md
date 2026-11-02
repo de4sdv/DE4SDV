@@ -60,12 +60,17 @@ stop/disable response in simulation and retained failure-path evidence.
 
 ## Concerns (Phase 1)
 
-Each in-scope item leads to the reviewer questions it raises; two items raise
-two questions each, with different stakeholders (owner decision of
-2026-11-02). Each concern is typed by the SAF concern that asks its question,
-so its domain says which later view answers it. The framing viewpoint frames
-all six until those views exist.
+Each in-scope item leads to the questions it raises; three items raise two
+questions each, with different stakeholders (owner decisions of 2026-11-02).
+A question is held by the party it serves, not only by the roles that check
+the answer: the vehicle occupants state what they expect of the vehicle. Each
+concern is typed by the SAF concern that asks its question, so its domain says
+which later view answers it. The framing viewpoint frames all seven until
+those views exist.
 
+- **Learned driving:** `drivenAlongTheRouteConcern`, the vehicle occupants are
+  taken along the route the driver chose, by the driving system's own plans.
+  Operational capability; vehicle occupant. Answered by the Phase 2 story.
 - **Learned driving:** `checkpointCommandAuthorityConcern`, the checkpoint's
   plan determines the commands with nothing in between. Physical functional
   mapping; systems engineer, verification engineer, reviewer.
@@ -73,11 +78,12 @@ all six until those views exist.
   items pass through S-CORE, not beside it. Physical internal exchange; system
   architect, software developer, maintainer.
 - **Integration and observation:** `aaosObservationFidelityConcern`, AAOS shows
-  the live plan, state and health. Physical context exchange, because Phase 2
-  keeps AAOS SDV in the context; verification engineer, reviewer.
+  the live plan, state and health to the driver, who is a vehicle occupant.
+  Physical context exchange, because Phase 2 keeps AAOS SDV in the context;
+  vehicle occupant, verification engineer, reviewer.
 - **Feedback and timing:** `degradedInputBehaviorConcern`, a defined response
-  to invalid, lost or stale input or plan. Functional behavior; safety expert,
-  system architect.
+  to invalid, lost or stale camera input, ego state, route or plan. Functional
+  behavior; vehicle occupants, road users, safety expert, system architect.
 - **Feedback and timing:** `timeDomainHonestyConcern`, every timing claim names
   its time domain. Argumentation assurance; verification engineer, systems
   engineer.

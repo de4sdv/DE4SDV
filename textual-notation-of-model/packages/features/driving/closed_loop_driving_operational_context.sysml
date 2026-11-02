@@ -351,6 +351,7 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
   view closedLoopDrivingOperationalStoryView {
     viewpoint closedLoopDrivingStoryViewpoint : OperationalStoryViewpoint {
       frame closedLoopDrivingStoryConcern;
+      frame drivenAlongTheRouteConcern;
     }
 
     expose driveBoundedScenarioClosedLoop;
