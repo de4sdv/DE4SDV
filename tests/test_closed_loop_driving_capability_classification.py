@@ -55,6 +55,10 @@ def test_the_candidate_needs_cameras_and_leaves_lidar_open():
     assert "takes no LiDAR input" in doc
     assert "requires the camera feature" in doc
     assert "leaves LiDAR selectable" in doc
+    # Review of 2026-11-02: AutoE2E also needs its ego-motion history. It gets no constraint
+    # because the motion sensors are common content with no feature; the doc must say so.
+    assert "ego-motion history" in doc
+    assert "Ego motion needs no constraint" in doc and "common content" in doc
 
 
 def test_the_candidate_traces_to_the_deferred_driving_stack_variability_and_the_admission_gap():

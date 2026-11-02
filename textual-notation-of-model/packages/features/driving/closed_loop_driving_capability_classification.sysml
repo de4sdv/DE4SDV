@@ -19,11 +19,14 @@ package DE4SDV_ClosedLoopDrivingCapabilityClassification {
   part autoE2EDrivingStack : ProductLineFeatureCandidate {
     doc /*
      * AutoE2E as the vehicle application distinguishes the driving member from
-     * the Autoware members. It plans from camera images and ego motion and takes
-     * no LiDAR input. So phase 9 adds it to the feature model with a constraint
-     * that it requires the camera feature, and leaves LiDAR selectable (owner
-     * decision of 2026-11-02). Phase 9 also derives its middleware adapter, which
-     * phase 8 realizes first. Acceptance waits for the member decision.
+     * the Autoware members. It plans from camera images and its ego-motion history
+     * (speed, acceleration, yaw rate and curvature) and takes no LiDAR input. So
+     * phase 9 adds it to the feature model with a constraint that it requires the
+     * camera feature, and leaves LiDAR selectable (owner decision of 2026-11-02).
+     * Ego motion needs no constraint: it comes from the motion sensors, which are
+     * common content of every member and have no feature. Phase 9 also derives
+     * its middleware adapter, which phase 8 realizes first. Acceptance waits for
+     * the member decision.
      */
   }
   dependency autoE2ECandidateOfDeferredDrivingStackVariability

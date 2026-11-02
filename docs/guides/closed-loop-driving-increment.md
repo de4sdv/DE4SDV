@@ -131,10 +131,12 @@ The increment adds one characteristic that distinguishes member products:
 the governed scope defers and answers the framing's product-line admission
 gap.
 
-- **Sensing:** AutoE2E plans from camera images and ego motion and takes no
-  LiDAR input. Phase 9 adds it to the feature model with a constraint that it
-  requires the camera feature, and leaves LiDAR selectable. LiDAR itself gets
-  no record: the feature model already makes it optional.
+- **Sensing:** AutoE2E plans from camera images and its ego-motion history and
+  takes no LiDAR input. Phase 9 adds it to the feature model with a constraint
+  that it requires the camera feature, and leaves LiDAR selectable. Ego motion
+  needs no constraint: it comes from the motion sensors, which every member
+  has, so they have no feature. LiDAR itself gets no record: the feature model
+  already makes it optional.
 - **Why the feature model waits for Phase 9:** a new vehicle application
   needs a derived middleware adapter for every valid configuration, and
   Phase 8 realizes that adapter first.
