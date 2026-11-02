@@ -12,21 +12,24 @@ MODEL = DRIVING / "closed_loop_driving_operational_context.sysml"
 PACKAGE = "DE4SDV_ClosedLoopDrivingOperationalContext"
 CONTEXT = "closedLoopDrivingOperationalContext"
 
-#: Context parts around the system of interest and their kernel or reused types (owner decision of
-#: 2026-11-02: AAOS SDV is a context role of the driving system, not part of it).
+#: Context parts around the system of interest and their kernel or reused types (owner decisions of
+#: 2026-11-02: AAOS SDV is a context role of the driving system, not part of it; navigation is a context
+#: role that gives the route, with no platform).
 CONTEXT_PARTS = {
     "vehicle": "SubjectVehicle",
     "roadEnvironment": "RoadEnvironment",
+    "navigation": "NavigationSystem",
     "aaosSDVGuest": "AAOSSDVGuestExecutionDomain",
     "driver": "Driver",
 }
+INPUT_GAP = "DE4SDV_ClosedLoopDrivingFraming::gapModelInputAndFeedback"
 
 #: The story: one use case per operational scenario, each with the context parts it involves.
 STORY = "driveBoundedScenarioClosedLoop"
 SCENARIOS = {
-    "driveOnCheckpointPlans": ("SC-DRIVING-001", {"vehicle", "roadEnvironment"}),
+    "driveOnCheckpointPlans": ("SC-DRIVING-001", {"vehicle", "roadEnvironment", "navigation"}),
     "showLiveStateOnAAOS": ("SC-DRIVING-002", {"aaosSDVGuest::stateObserver", "driver"}),
-    "respondToDegradedInputOrPlan": ("SC-DRIVING-003", {"vehicle", "aaosSDVGuest::stateObserver"}),
+    "respondToDegradedInputOrPlan": ("SC-DRIVING-003", {"vehicle", "navigation", "aaosSDVGuest::stateObserver"}),
     "continueWithoutAAOS": ("SC-DRIVING-004", {"aaosSDVGuest::stateObserver", "vehicle"}),
 }
 
@@ -142,3 +145,50 @@ def test_operational_views_frame_operational_concerns_and_expose_phase_two():
         lines = [line.strip() for line in concern_body.splitlines() if line.strip() and line.strip() != "doc"]
         assert lines[0] == "subject;", concern
         assert re.findall(r"\bstakeholder\s+\w+\s*:\s*\w+\s*;", concern_body), concern
+
+
+def test_navigation_is_a_context_role_that_gives_the_route_and_has_no_platform():
+    # Owner decisions of 2026-11-02: the map and the route come from navigation, a context role with no
+    # platform; the driver chooses the destination on it; the driving system plans its trajectory along
+    # the route and does not choose the route. Each statement is pinned by its own phrase.
+    raw = MODEL.read_text(encoding="utf-8")
+    code = _code()
+    assert re.search(r"\bpart\s+def\s+NavigationSystem\s*:>\s*OperationalEntity\b", code)
+    role = _doc(raw, "part def NavigationSystem :> OperationalEntity")
+    for phrase in ("an operational role, not a platform", "phase 8", "AAOS SDV guest",
+                   "context-role decision of 2026-11-02 reopens", "does not choose the route"):
+        assert phrase in role, phrase
+    context = braced_body(code, f"part {CONTEXT} : SystemContext")
+    guest = braced_body(context, "part aaosSDVGuest : AAOSSDVGuestExecutionDomain")
+    assert "NavigationSystem" not in guest, "navigation is not placed on the AAOS SDV guest"
+    assert "chooses the destination on navigation" in _doc(raw, "part driver : Driver")
+    route = _doc(raw, "item def Route")
+    for phrase in ("map", "route", "destination", "Not a plan"):
+        assert phrase in route, phrase
+
+
+def test_the_route_flows_from_navigation_into_planning_only():
+    code = _code()
+    operation = braced_body(code, "action def ClosedLoopDrivingOperation")
+    flows = re.findall(r"\bflow\s+from\s+(\w+)\.(\w+)\s+to\s+(\w+)\.(\w+)\s*;", operation)
+    assert ("guideToDestination", "route", "planAndCommand", "route") in flows
+    assert not [f for f in flows if f[2] == "guideToDestination"], "nothing flows from the loop into navigation"
+    assert re.search(r"\bout\s+route\s*:\s*Route\s*;", braced_body(operation, "action guideToDestination"))
+    assert re.search(r"\bin\s+route\s*:\s*Route\s*;", braced_body(operation, "action planAndCommand"))
+    raw = MODEL.read_text(encoding="utf-8")
+    assert "route" in _doc(raw, "use case driveOnCheckpointPlans")
+    assert "the route become invalid, lost or stale" in _doc(raw, "use case respondToDegradedInputOrPlan")
+
+
+def test_the_input_gap_records_the_map_and_route_of_the_pinned_checkpoint():
+    # The framing's input gap names camera and ego-motion inputs only. A comment about it records the map
+    # and route input without editing the accepted phase 0 text, and the new role traces to the gap.
+    match = re.search(rf"\bcomment\s+\w+\s+about\s+{re.escape(INPUT_GAP)}\s*/\*(.*?)\*/",
+                      MODEL.read_text(encoding="utf-8"), re.S)
+    assert match, "a comment about the input gap must record the map and route input"
+    text = " ".join(re.sub(r"(?m)^\s*\*\s?", "", match.group(1)).split())
+    for phrase in ("map", "route", "cb50764b", "geometry.py", "navigation"):
+        assert phrase in text, phrase
+    assert re.search(rf"\bdependency\s+\w+\s+from\s+NavigationSystem\s+to\s+{re.escape(INPUT_GAP)}\s*;", _code())
+    framing = strip_comments(FRAMING.read_text(encoding="utf-8"))
+    assert re.search(r"\bpart\s+gapModelInputAndFeedback\s*:\s*IncrementGap\b", framing)

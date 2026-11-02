@@ -98,23 +98,38 @@ delay something the system delivers, which Phase 0 does not claim.
   draws it. The plan and the commands cross S-CORE inside it. The publication
   ends at its receiving end in the AAOS SDV guest, as in INC-MW-011.
 - **Around it, System 1 roles only:** the vehicle it drives, the road
-  environment its cameras see, the AAOS SDV guest of the existing S-CORE and
-  AAOS SDV integration with the application that presents the published state,
-  and the driver who watches it. CARLA, the cloud bench and the capture
-  instruments realize the vehicle and the scene for verification; they are
-  System 2 and stay out of the context.
-- **Exchanges:** camera images and ego motion from the vehicle, steering and
-  acceleration commands to it, and the plan, vehicle state and health to AAOS
-  SDV. Nothing flows from AAOS SDV back into the loop.
+  environment its cameras see, navigation, the AAOS SDV guest of the existing
+  S-CORE and AAOS SDV integration with the application that presents the
+  published state, and the driver who chooses the destination and watches the
+  state. CARLA, the cloud bench and the capture instruments realize the
+  vehicle, the scene and the route for verification; they are System 2 and
+  stay out of the context.
+- **Exchanges:** camera images and ego motion from the vehicle, the route from
+  navigation, steering and acceleration commands to the vehicle, and the plan,
+  vehicle state and health to AAOS SDV. Nothing flows from AAOS SDV back into
+  the loop.
+- **Navigation** is an operational role, not a platform (owner decision of
+  2026-11-02): it holds the road map and gives the route to the destination
+  the driver chose. Which computer runs it is a Phase 8 allocation. If a later
+  phase allocates it to the AAOS SDV guest, AAOS SDV becomes an input to the
+  loop and the context-role decision reopens.
+
+Three words stay apart:
+
+- **route:** where the vehicle is to go, from navigation: the destination,
+  the route to it and the map of the roads around the vehicle;
+- **plan:** how the vehicle moves through the next seconds, the trajectory
+  the checkpoint computes along the route;
+- **command:** the steering and acceleration that carry the plan out.
 
 The story has four scenarios:
 
-- **`SC-DRIVING-001`:** the checkpoint's plans move the vehicle, and its
-  motion changes the next images.
+- **`SC-DRIVING-001`:** the checkpoint plans along the route from navigation,
+  its plans move the vehicle, and its motion changes the next images.
 - **`SC-DRIVING-002`:** AAOS SDV shows the live plan, vehicle state and health
   of this run, outside the control loop.
-- **`SC-DRIVING-003`:** invalid, lost or stale input or plan leads to the
-  defined stop or disable response.
+- **`SC-DRIVING-003`:** invalid, lost or stale camera images, motion, route
+  or plan leads to the defined stop or disable response.
 - **`SC-DRIVING-004`:** with AAOS SDV down or late, the loop goes on unchanged
   and no stale state is shown as live.
 
