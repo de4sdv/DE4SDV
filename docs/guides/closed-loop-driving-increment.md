@@ -57,10 +57,10 @@ stop/disable response in simulation and retained failure-path evidence.
 
 ## Concerns (Phase 1)
 
-Each in-scope item leads to the questions it raises; two items raise two
-questions each, with different stakeholders (owner decision of 2026-11-02).
+Each in-scope item leads to the questions it raises; three items raise two
+questions each, with different stakeholders (owner decisions of 2026-11-02).
 A question is held by the party it serves, not only by the roles that check
-the answer: the vehicle occupant states what it expects of the vehicle. Each
+the answer: the vehicle occupants state what they expect of the vehicle. Each
 concern is typed by the SAF concern that asks its question, so its domain says
 which later view answers it. The framing viewpoint frames all seven until
 those views exist.

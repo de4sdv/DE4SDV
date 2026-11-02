@@ -252,9 +252,11 @@ package DE4SDV_ClosedLoopDrivingFraming {
      */
   }
 
-  /* Phase 1: one concern per reviewer question of the in-scope items. Each is
-   * typed by the SAF concern that asks its question; the views of later phases
-   * answer it. The framing viewpoint frames all of them until then. */
+  /* Phase 1: one concern per question of the in-scope items, held by the
+   * stakeholders whose interest it states, not only by the roles that check
+   * the answer. Each is typed by the SAF concern that asks its question; the
+   * views of later phases answer it. The framing viewpoint frames all of them
+   * until then. */
   concern drivenAlongTheRouteConcern : OperationalCapabilityConcern {
     doc /*
      * learnedDrivingInScope, operational part. Vehicle occupants need the

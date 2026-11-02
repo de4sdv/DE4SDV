@@ -83,7 +83,7 @@ def test_framing_view_exposes_scope_and_deferred_scope():
     assert required <= exposed, f"framing view omits boundary content: {sorted(required - exposed)}"
 
 
-#: Phase 1: one concern per reviewer question of the in-scope items, typed by the SAF concern whose question it
+#: Phase 1: one concern per question of the in-scope items, typed by the SAF concern whose question it
 #: is, with its native stakeholders (owner decision of 2026-11-02: the needs are held by those they serve, not
 #: only by the roles that check them; seven concerns, the occupant's added last). The in-scope item each answers
 #: is named in its documentation.
@@ -167,11 +167,17 @@ def test_the_occupant_holds_the_operational_concern_and_the_two_reuse_concerns()
                                         "stakeholder safetyExpert : SafetyExpert;",
                                         "stakeholder systemArchitect : SystemArchitect;"],
     }
+    #: Each doc opens with its in-scope item, so the first sentence after it must be the holders' own need:
+    #: a check for a leading "Reviewers need" would never fire here.
+    holder_need = {
+        "aaosObservationFidelityConcern": "AAOS part. The driver, a vehicle occupant, needs",
+        "degradedInputBehaviorConcern": "behavior part. Vehicle occupants and road users need",
+    }
     for name, expected in holders.items():
         body = braced_body(code, f"concern {name}")
         assert re.findall(r"\bstakeholder\s+\w+\s*:\s*\w+\s*;", body) == expected, name
         documentation = " ".join(re.sub(r"(?m)^\s*\*\s?", "", braced_body(raw, f"concern {name}")).split())
-        assert not documentation.startswith("Reviewers need"), f"{name}: the holder states the need"
+        assert holder_need[name] in documentation, f"{name}: the holder states the need first"
     degraded_doc = " ".join(re.sub(r"(?m)^\s*\*\s?", "",
                                    braced_body(raw, "concern degradedInputBehaviorConcern")).split())
     assert "route" in degraded_doc, "degraded input includes the route becoming invalid, lost or stale"
