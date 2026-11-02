@@ -166,6 +166,14 @@ KNOWN_PRESENTATION_NOTES = {
         "The single-column grid is narrower than its title; the mapping cells "
         "remain readable at full size."
     ),
+    "closedLoopDrivingOperationalContextView": (
+        "SysIDE lists the actions of `closedLoopDrivingOperation` but does not "
+        "draw the flows between them. The flows are modeled in the source, in "
+        "the action definition `ClosedLoopDrivingOperation`: camera images and "
+        "ego motion from the vehicle into planning, steering and acceleration "
+        "commands to the vehicle, and the published plan, vehicle state and "
+        "health to AAOS SDV, with no flow back into the loop."
+    ),
     "middlewareAdapterBoundaryExchangeView": (
         "The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The "
         "boundary refers to them; in the configured member `MW-CONFIG-001` the "
