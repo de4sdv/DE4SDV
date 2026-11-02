@@ -77,7 +77,7 @@ Reviewers need the stakeholder needs of the driving system with their statements
 
 ### `closedLoopDrivingOperationalContextView`
 
-Reviewers need to see what is inside the driving system and what is around it: the vehicle, the road environment, AAOS SDV and the driver, and which items cross the boundary in which direction.
+Reviewers need to see what is inside the driving system and what is around it: the vehicle, the road environment, navigation, AAOS SDV and the driver, and which items cross the boundary in which direction.
 
 - **Source:** `closed_loop_driving_operational_context.sysml`
 - **Viewpoint:** `closedLoopDrivingContextViewpoint` (`OperationalContextDefinitionViewpoint`)
