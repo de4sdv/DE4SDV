@@ -223,7 +223,8 @@ package DE4SDV_ClosedLoopDrivingFraming {
     );
     attribute :>> expectedArtifacts = (
       "DE4SDV_ClosedLoopDrivingFraming",
-      "DE4SDV_ClosedLoopDrivingOperationalContext"
+      "DE4SDV_ClosedLoopDrivingOperationalContext",
+      "DE4SDV_ClosedLoopDrivingCapabilityClassification"
     );
     attribute :>> expectedReviewEvidence = (
       "independent review of the owner question, System 1/2 boundary and nonclaims",
