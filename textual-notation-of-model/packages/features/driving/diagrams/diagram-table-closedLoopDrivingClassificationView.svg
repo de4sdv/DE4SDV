@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="896" height="334" viewBox="0 0 896 334" role="img" aria-labelledby="title description">
+  <title id="title">table-closedLoopDrivingClassificationView</title>
+  <desc id="description">table-closedLoopDrivingClassificationView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="896" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-closedLoopDrivingClassificationView</text>
+  <rect x="0" y="54" width="176" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="176" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="188" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="188" dy="0">Classification</tspan>
+  </text>
+  <rect x="536" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="548" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="548" dy="0">Rationale</tspan>
+  </text>
+  <rect x="0" y="94" width="176" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">autoE2EDrivingStack</tspan>
+  </text>
+  <rect x="176" y="94" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="188" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="188" dy="0">ProductLineFeatureCandidate,</tspan>
+    <tspan x="188" dy="20">ProductLineCharacteristic</tspan>
+  </text>
+  <rect x="536" y="94" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="548" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="548" dy="0">AutoE2E as the vehicle application</tspan>
+    <tspan x="548" dy="20">distinguishes the driving member from the</tspan>
+    <tspan x="548" dy="20">Autoware members. It plans from camera</tspan>
+    <tspan x="548" dy="20">images and ego motion and takes no LiDAR</tspan>
+    <tspan x="548" dy="20">input. So phase 9 adds it to the feature</tspan>
+    <tspan x="548" dy="20">model with a constraint that it requires</tspan>
+    <tspan x="548" dy="20">the camera feature, and leaves LiDAR</tspan>
+    <tspan x="548" dy="20">selectable (owner decision of 2026-11-02).</tspan>
+    <tspan x="548" dy="20">Phase 9 also derives its middleware</tspan>
+    <tspan x="548" dy="20">adapter, which phase 8 realizes first.</tspan>
+    <tspan x="548" dy="20">Acceptance waits for the member decision.</tspan>
+  </text>
+</svg>
