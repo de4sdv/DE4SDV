@@ -17,7 +17,7 @@ def test_the_hmi_domain_concern_asks_a_physical_context_exchange_question():
     code = strip_comments(MODEL.read_text(encoding="utf-8"))
     assert re.search(r"\bconcern\s+hmiDomainBoundaryConcern\s*:\s*PhysicalContextExchangeConcern\s*\{", code)
     body = braced_body(code, "concern hmiDomainBoundaryConcern : PhysicalContextExchangeConcern")
-    assert dict(re.findall(r"\bstakeholder\s+(\w+)\s*:\s*(\w+)\s*;", body)) == {
-        "systemArchitect": "SystemArchitect", "safetyExpert": "SafetyExpert",
-        "verificationEngineer": "VerificationEngineer"}
+    assert re.findall(r"\bstakeholder\s+(\w+)\s*:\s*(\w+)\s*;", body) == [
+        ("occupant", "VehicleOccupant"), ("systemArchitect", "SystemArchitect"),
+        ("safetyExpert", "SafetyExpert"), ("verificationEngineer", "VerificationEngineer")]
     assert "frame hmiDomainBoundaryConcern;" in code

@@ -48,10 +48,10 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
 
   requirement <'NEED-MW-002'> needOneWayAEBSSignalPathToHMI : StakeholderNeedCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
+    stakeholder occupant : VehicleOccupant;
     stakeholder systemArchitect : SystemArchitect;
     stakeholder safetyExpert : SafetyExpert;
-    stakeholder verificationEngineer : VerificationEngineer;
-    require constraint statement { language "English" /* System architects, safety experts and verification engineers need the middleware integration layer to carry the AEBS signals of the Autoware-based AEBS stack one way, from the Linux host to the HMI in the AAOS SDV guest, in source order and with the provenance of each field preserved. */ }
+    require constraint statement { language "English" /* Vehicle occupants, system architects and safety experts need the middleware integration layer to carry the AEBS signals of the Autoware-based AEBS stack one way, from the Linux host to the HMI in the AAOS SDV guest, in source order and with the provenance of each field preserved, so that the HMI shows what the AEBS stack produced. */ }
     attribute :>> source = "INC-MW-011 hmiDomainBoundaryConcern, scope item hmiPathInScope (per-field provenance), scenarios SC-MW-002 and SC-MW-004, ASM-MW-024";
     attribute :>> rationale = "The HMI is an informational display: it must show what the AEBS stack produced, each field attributed to its source kind (native Autoware AEB output, DE4SDV coordinator output or display-derived), and the guest must not be able to influence the AEBS stack or the middleware on the host.";
   }
