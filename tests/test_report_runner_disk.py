@@ -66,7 +66,7 @@ def test_one_notice_with_free_space_log_exports_and_database(tmp_path):
 @pytest.mark.parametrize("container, docker", [
     ("", None),                              # no service container id
     ("c0ffee", None),                        # no docker on PATH
-    ("c0ffee", "echo boom >&2; exit 3"),     # docker fails
+    ("c0ffee", "echo 123; exit 3"),          # docker fails (what it printed is not a size)
     ("c0ffee", "echo 'not a size'"),         # docker answers without a size
 ], ids=["no-container", "no-docker", "docker-fails", "no-size"])
 def test_what_cannot_be_measured_is_named_and_the_report_still_exits_0(tmp_path, container, docker):
@@ -78,6 +78,20 @@ def test_what_cannot_be_measured_is_named_and_the_report_still_exits_0(tmp_path,
     assert message == (f"at the end of the run: free space on the filesystem of {missing} unknown; "
                        f"API service log absent; 0 files matching {missing / 'de4sdv-*.json'}: 0 MiB; "
                        "database unknown"), message
+
+
+def test_an_unexpected_error_still_ends_in_one_notice_and_exit_0(monkeypatch, capsys):
+    import importlib
+
+    module = importlib.import_module("scripts.report_runner_disk")
+
+    def broken(*_args):
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(module, "report", broken)
+    assert module.main(["--label", "after the import"]) == 0
+    assert capsys.readouterr().out == (
+        "::notice title=Runner disk::after the import: disk report failed (RuntimeError: boom)\n")
 
 
 def test_annotation_data_is_escaped(tmp_path):
