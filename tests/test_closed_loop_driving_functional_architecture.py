@@ -293,12 +293,15 @@ def test_the_concern_is_held_by_those_who_build_on_the_functions():
         "System architects and verification engineers need")
 
 
-def test_the_breakdown_tree_shows_the_seven_functions():
+def test_the_breakdown_view_shows_the_flow_with_its_seven_functions():
+    """The view exposes the flow usage only, as AEBS-010's rendered function view does: its compartments list
+    the items and the seven functions. Exposing the functions themselves (`Flow::fn`), the allocation targets,
+    made SysIDE draw all 35 allocations of this package as unconnected nodes (licensed run 41737744809)."""
     view = braced_body(_code(), f"view {TREE_VIEW}")
     viewpoint = braced_body(view, "viewpoint")
     assert re.search(r"viewpoint\s+\w+\s*:\s*SystemFunctionalBreakdownStructureViewpoint\s*\{", view)
     assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == [CONCERN]
-    assert re.findall(r"\bexpose\s+([\w:]+)\s*;", view) == [FLOW] + [f"{FLOW}::{f}" for f in FUNCTIONS]
+    assert re.findall(r"\bexpose\s+([\w:*]+)\s*;", view) == [FLOW_USAGE]
     assert "render asTreeDiagram;" in view
 
 

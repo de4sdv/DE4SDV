@@ -365,16 +365,7 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
     viewpoint selectedFunctionalBreakdownViewpoint : SystemFunctionalBreakdownStructureViewpoint {
       frame closedLoopDrivingFunctionsConcern;
     }
-    expose ClosedLoopDrivingFunctionalFlow;
-    expose ClosedLoopDrivingFunctionalFlow::identifyRun;
-    expose ClosedLoopDrivingFunctionalFlow::assembleInputs;
-    expose ClosedLoopDrivingFunctionalFlow::planTrajectory;
-    expose ClosedLoopDrivingFunctionalFlow::superviseLoop;
-    expose ClosedLoopDrivingFunctionalFlow::commandVehicle;
-    expose ClosedLoopDrivingFunctionalFlow::applyCommands;
-    expose ClosedLoopDrivingFunctionalFlow::publishState;
-    attribute showAnnotationRows = false;
-    attribute maxCompartmentEntries = 0;
+    expose closedLoopDrivingFunctionalFlow;
     render asTreeDiagram;
   }
 

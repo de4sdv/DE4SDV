@@ -350,8 +350,9 @@ only; it claims no satisfaction.
 Two views of the SAF System Functional Breakdown Structure viewpoint publish
 the architecture:
 
-- the breakdown tree `closedLoopDrivingFunctionBreakdownView`, which shows no
-  item flows; they are in the model;
+- the breakdown view `closedLoopDrivingFunctionBreakdownView`, which lists the
+  items and the seven functions of the flow but draws no item flows; they are
+  in the model;
 - the matrix `closedLoopDrivingRequirementFunctionMappingView`, with the
   requirements in rows and the functions in columns.
 

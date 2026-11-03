@@ -175,11 +175,11 @@ KNOWN_PRESENTATION_NOTES = {
         "health to AAOS SDV, with no flow back into the loop."
     ),
     "closedLoopDrivingFunctionBreakdownView": (
-        "The tree shows the breakdown of `ClosedLoopDrivingFunctionalFlow` into "
-        "its seven functions; SysIDE draws no item flows in a tree. The flows "
-        "between the functions are modeled in the source, in the action "
-        "definition `ClosedLoopDrivingFunctionalFlow`, and the requirements each "
-        "function carries are in `closedLoopDrivingRequirementFunctionMappingView`."
+        "SysIDE lists the items and the seven functions of "
+        "`closedLoopDrivingFunctionalFlow` but does not draw the flows between "
+        "them. The flows are modeled in the source, in the action definition "
+        "`ClosedLoopDrivingFunctionalFlow`, and the requirements each function "
+        "carries are in `closedLoopDrivingRequirementFunctionMappingView`."
     ),
     "middlewareAdapterBoundaryExchangeView": (
         "The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The "
