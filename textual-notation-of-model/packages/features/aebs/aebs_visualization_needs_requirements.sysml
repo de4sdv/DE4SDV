@@ -66,7 +66,7 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
       subject visualizationTestSystem :> system2VisualizationInstrument;
       stakeholder systemsEngineer : SystemsEngineer;
       stakeholder verificationEngineer : VerificationEngineer;
-      require constraint statement { language "English" /* Systems engineers need source provenance, units, coordinate frame, timestamps, rate and freshness, validity, and bounded displayed cardinality preserved between native Autoware output, DE4SDV AEBS coordination state, and display-derived presentation. */ }
+      require constraint statement { language "English" /* Systems engineers and verification engineers need source provenance, units, coordinate frame, timestamps, rate and freshness, validity, and bounded displayed cardinality preserved between native Autoware output, DE4SDV AEBS coordination state, and display-derived presentation. */ }
       attribute :>> status = ReqStatus::InDevelopment;
       attribute :>> source = "INC-AEBS-010 increment framing";
       attribute :>> rationale = "Displayed values must remain traceable to their source identity and context.";
@@ -93,9 +93,9 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
     requirement needNonInterference : VisualizationEngineeringNeed {
       doc /* N-AEBS-013 draft System 2 need. */
       subject visualizationTestSystem :> system2VisualizationInstrument;
-      stakeholder maintainer : Maintainer;
+      stakeholder systemsEngineer : SystemsEngineer;
       stakeholder verificationEngineer : VerificationEngineer;
-      require constraint statement { language "English" /* Maintainers and verification engineers need assurance that visualization instrumentation cannot command or modify AEBS detection, warning, intervention, or release behavior. */ }
+      require constraint statement { language "English" /* Systems engineers and verification engineers need the visualization instrumentation to observe AEBS detection, warning, intervention and release behavior without commanding or modifying it, so that what it shows is the behavior of the unchanged AEBS. */ }
       attribute :>> status = ReqStatus::InDevelopment;
       attribute :>> source = "INC-AEBS-010 increment framing";
       attribute :>> rationale = "Visualization instrumentation must not influence the behavior it observes.";
@@ -404,10 +404,10 @@ package DE4SDV_AEBSVisualizationNeedsRequirements {
 
   part nonInterferenceValidationPlan : ValidationPlanningScenario {
     doc /* SC-AEBS-010-11, N-AEBS-013: planned stakeholder review. In the
-         * warning-intervention-release scenario, does what maintainers and
-         * verification engineers can inspect give them the assurance they need
-         * that the visualization neither commands nor modifies the unchanged
-         * System 1 AEBS detection, warning, intervention, and release behavior?
+         * warning-intervention-release scenario, can systems engineers and
+         * verification engineers confirm that the visualization neither
+         * commands nor modifies the unchanged System 1 AEBS detection,
+         * warning, intervention, and release behavior it shows?
          * No execution, result or acceptance. */
   }
   connection nonInterferenceValidationPlanning : ValidationPlanningAssociation connect needNonInterference to nonInterferenceValidationPlan;
