@@ -209,9 +209,10 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
 
   concern closedLoopDrivingNeedsConcern : StakeholderNeedsConcern {
     doc /*
-     * Reviewers need the stakeholder needs of the driving system with their
-     * statements and sources, and the planned stakeholder review of each, to
-     * judge whether the needs cover the concerns of phase 1.
+     * Systems engineers and open-source reviewers need the stakeholder needs
+     * of the driving system with their statements and sources, and the
+     * planned stakeholder review of each, to judge whether the needs cover
+     * the concerns of phase 1.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;

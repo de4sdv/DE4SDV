@@ -248,8 +248,9 @@ package DE4SDV_ClosedLoopDrivingFraming {
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder verificationEngineer : VerificationEngineer;
     doc /*
-     * Keep the owner-selected closed loop distinct from a trajectory preview,
-     * and the framing proposal distinct from realized, tested or accepted scope.
+     * Systems engineers and verification engineers need the owner-selected
+     * closed loop kept distinct from a trajectory preview, and the framing
+     * proposal kept distinct from realized, tested or accepted scope.
      */
   }
 
@@ -273,11 +274,11 @@ package DE4SDV_ClosedLoopDrivingFraming {
 
   concern checkpointCommandAuthorityConcern : PhysicalFunctionalMappingConcern {
     doc /*
-     * learnedDrivingInScope. Reviewers need to see that the pinned AutoE2E
-     * checkpoint's planning output is what determines steering and
-     * acceleration in CARLA, with no autopilot, replay or other source of
-     * commands in between. Answered by the physical-functional mapping of
-     * phase 8.
+     * learnedDrivingInScope. Systems engineers, verification engineers and
+     * open-source reviewers need to see that the pinned AutoE2E checkpoint's
+     * planning output is what determines steering and acceleration in CARLA,
+     * with no autopilot, replay or other source of commands in between.
+     * Answered by the physical-functional mapping of phase 8.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -287,11 +288,12 @@ package DE4SDV_ClosedLoopDrivingFraming {
 
   concern scoreCommandPathConcern : PhysicalInternalExchangeConcern {
     doc /*
-     * integrationAndObservationInScope, S-CORE part. Reviewers need to see
-     * that the plan and command items pass through Eclipse S-CORE elements
-     * between the planner and actuation, not beside them: an exchange that
-     * skips S-CORE means S-CORE is not on the path. Answered by the
-     * physical internal exchanges of phase 8.
+     * integrationAndObservationInScope, S-CORE part. System architects,
+     * software developers and maintainers need to see that the plan and
+     * command items pass through Eclipse S-CORE elements between the planner
+     * and actuation, not beside them: an exchange that skips S-CORE means
+     * S-CORE is not on the path. Answered by the physical internal exchanges
+     * of phase 8.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
@@ -303,11 +305,12 @@ package DE4SDV_ClosedLoopDrivingFraming {
     doc /*
      * integrationAndObservationInScope, AAOS part. The driver, a vehicle
      * occupant, needs the plan, vehicle state and health shown on AAOS SDV
-     * to be those of the running loop. Reviewers need to see which items
-     * cross to AAOS SDV Core, Gateway and IVI and from which producer; a
-     * mock or replayed stream does not count. Typed for AAOS as a context
-     * role of the driving system; if phase 2 places AAOS inside the
-     * boundary, the question becomes a physical internal exchange.
+     * to be those of the running loop. Verification engineers and
+     * open-source reviewers need to see which items cross to AAOS SDV Core,
+     * Gateway and IVI and from which producer; a mock or replayed stream does
+     * not count. Typed for AAOS as a context role of the driving system; if
+     * phase 2 places AAOS inside the boundary, the question becomes a
+     * physical internal exchange.
      */
     subject;
     stakeholder occupant : VehicleOccupant;
@@ -335,11 +338,12 @@ package DE4SDV_ClosedLoopDrivingFraming {
 
   concern timeDomainHonestyConcern : ArgumentationAssuranceConcern {
     doc /*
-     * feedbackAndTimingInScope, timing part. Reviewers need each timing
-     * claim to name its time domain: simulation time, rendered frames,
-     * inference cadence, transport latency, input-to-actuation age and wall
-     * clock are measured separately, so that no real-time claim rests on a
-     * single number or on another domain's measurement.
+     * feedbackAndTimingInScope, timing part. Verification engineers and
+     * systems engineers need each timing claim to name its time domain:
+     * simulation time, rendered frames, inference cadence, transport latency,
+     * input-to-actuation age and wall clock are measured separately, so that
+     * no real-time claim rests on a single number or on another domain's
+     * measurement.
      */
     subject;
     stakeholder verificationEngineer : VerificationEngineer;
@@ -348,10 +352,11 @@ package DE4SDV_ClosedLoopDrivingFraming {
 
   concern reproducibleClosedLoopEvidenceConcern : ArgumentationAssuranceConcern {
     doc /*
-     * closedLoopEvidenceInScope. Reviewers need the closed-loop claims tied
-     * to evidence another engineer can rerun: pinned scenarios,
-     * configuration and checkpoint, per-hop logs and the actual capture,
-     * with every failed or missing run kept as a gap rather than dropped.
+     * closedLoopEvidenceInScope. Verification engineers, maintainers and
+     * open-source reviewers need the closed-loop claims tied to evidence
+     * another engineer can rerun: pinned scenarios, configuration and
+     * checkpoint, per-hop logs and the actual capture, with every failed or
+     * missing run kept as a gap rather than dropped.
      */
     subject;
     stakeholder verificationEngineer : VerificationEngineer;

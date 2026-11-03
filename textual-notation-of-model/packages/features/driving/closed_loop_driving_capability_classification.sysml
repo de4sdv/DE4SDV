@@ -52,9 +52,10 @@ package DE4SDV_ClosedLoopDrivingCapabilityClassification {
 
   concern closedLoopDrivingClassificationConcern : ProductLineCapabilityClassificationConcern {
     doc /*
-     * Reviewers need the driving stack identified as the feature candidate that
-     * distinguishes the driving member, with what it requires of the sensing
-     * and the deferred scope it turns into variability.
+     * Product-line engineers and systems engineers need the driving stack
+     * identified as the feature candidate that distinguishes the driving
+     * member, with what it requires of the sensing and the deferred scope it
+     * turns into variability.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;

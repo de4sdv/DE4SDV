@@ -311,11 +311,11 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
 
   concern closedLoopDrivingContextConcern : OperationalContextConcern {
     doc /*
-     * Reviewers need to see what is inside the driving system and what is
-     * around it: the vehicle, the road environment, navigation, AAOS SDV and
-     * the driver, and which items cross the boundary in which direction.
-     * Navigation gives the route; AAOS SDV only receives, and nothing it
-     * sends enters the loop.
+     * System architects, systems engineers and open-source reviewers need to
+     * see what is inside the driving system and what is around it: the
+     * vehicle, the road environment, navigation, AAOS SDV and the driver, and
+     * which items cross the boundary in which direction. Navigation gives the
+     * route; AAOS SDV only receives, and nothing it sends enters the loop.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
@@ -338,9 +338,10 @@ package DE4SDV_ClosedLoopDrivingOperationalContext {
 
   concern closedLoopDrivingStoryConcern : OperationalStoryConcern {
     doc /*
-     * Reviewers need the loop told in stakeholder language: driving on the
-     * checkpoint's plans, the live state on AAOS SDV, the response to
-     * degraded input or plan, and the loop without AAOS SDV.
+     * Systems engineers, verification engineers and open-source reviewers
+     * need the loop told in stakeholder language: driving on the checkpoint's
+     * plans, the live state on AAOS SDV, the response to degraded input or
+     * plan, and the loop without AAOS SDV.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
