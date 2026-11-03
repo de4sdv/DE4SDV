@@ -83,6 +83,12 @@ GRID_METADATA = {
         "conceptual system elements (part usages)",
         "physical/software elements (part usages)",
     ),
+    "matrix-closedLoopDrivingRequirementFunctionMappingView": GridMetadata(
+        "Closed-loop driving requirement-function mapping",
+        "Maps the requirements of the driving system to the system functions that carry them.",
+        "requirements (requirement usages)",
+        "system functions (action usages)",
+    ),
     "table-middlewareProductLineClassificationView": GridMetadata(
         "Middleware product-line classification",
         "Classifies middleware characteristics and attaches each rationale to its element.",

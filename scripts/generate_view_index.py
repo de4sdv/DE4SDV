@@ -174,6 +174,13 @@ KNOWN_PRESENTATION_NOTES = {
         "commands to the vehicle, and the published plan, vehicle state and "
         "health to AAOS SDV, with no flow back into the loop."
     ),
+    "closedLoopDrivingFunctionBreakdownView": (
+        "The tree shows the breakdown of `ClosedLoopDrivingFunctionalFlow` into "
+        "its seven functions; SysIDE draws no item flows in a tree. The flows "
+        "between the functions are modeled in the source, in the action "
+        "definition `ClosedLoopDrivingFunctionalFlow`, and the requirements each "
+        "function carries are in `closedLoopDrivingRequirementFunctionMappingView`."
+    ),
     "middlewareAdapterBoundaryExchangeView": (
         "The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The "
         "boundary refers to them; in the configured member `MW-CONFIG-001` the "

@@ -6,7 +6,7 @@ pins hold what review settled on top of them:
 
 - the requirement set itself, each with its need, its kind and its verification method; design constraints
   (the checkpoint, its input form, the S-CORE path) and performance limits are RequirementCandidate, so that
-  phase 6 allocates only functional requirements to functions;
+  the phase 6 gate asks a function only of the functional requirements;
 - requirement-writing rules: one obligation per statement (one `shall`, at most 60 words), the positive form
   where one exists, a tolerance instead of "the same" where the criteria accept a measured spread, and the
   terms the statements use defined once in the package;
