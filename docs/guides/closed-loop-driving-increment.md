@@ -226,8 +226,8 @@ AutoE2E source cites it at the checkpoint pin; the freshness limits, the
 deadlines, the stop deceleration and the command limits are set in Phase 5, each
 with its reason in its rationale.
 
-Three kinds stand apart. The checkpoint, the form of the inputs it takes and the
-S-CORE path are design constraints: the increment evaluates them as they are, so
+Two kinds are not functional. The checkpoint, the form of the inputs it takes
+and the S-CORE path are design constraints: the increment evaluates them as they are, so
 a plan comes from that checkpoint through those inputs, and the commands computed
 from it travel over S-CORE. The limits on planning time and on independence from
 observation are performance requirements. Neither kind is functional, so Phase 6
@@ -239,7 +239,7 @@ answer:
   images, the ego-motion history and the route of its step (002); the input form
   it takes: six camera images at the two sizes it asks for (003),
   seven earlier images per camera (004), one projection operator per image (005),
-  the map_context raster (006), the route_mask raster (007) and 64 motion samples
+  the `map_context` raster (006), the `route_mask` raster (007) and 64 motion samples
   100 ms apart (008); standstill until both histories are complete (009);
   histories only from images and samples captured in the run (010); commands only
   from the newest valid plan and current motion (011), within the steering and
@@ -303,8 +303,7 @@ unmet model-content obligation; it is not proof that earlier engineering
 work is complete. The next work is **Phase 6**, the functional architecture:
 the functions of the driving system, with each functional requirement
 allocated to one of them. Its first gate is
-`functionalRequirementAllocatedToFunction`: the Method Check names it at the
-reviewed head of the first version, and it holds for this one.
+`functionalRequirementAllocatedToFunction`.
 Do not jump from this context to implementation or claim a passed runtime
 gate.
 
