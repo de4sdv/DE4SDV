@@ -13,7 +13,6 @@ MODEL = DRIVING / "closed_loop_driving_needs_requirements.sysml"
 PACKAGE = "DE4SDV_ClosedLoopDrivingNeedsRequirements"
 CONTEXT_PACKAGE = "DE4SDV_ClosedLoopDrivingOperationalContext"
 SYSTEM_OF_INTEREST = "DE4SDV_ClosedLoopDrivingFraming::candidateDrivingSystem"
-CHECKPOINT_PIN = "cb50764b"
 
 #: Each need: its short name, the stakeholder roles that hold it, and the FIRST phase 1 concern its
 #: source names. A need is held by the parties it serves, so each role set is a subset of the
@@ -144,20 +143,6 @@ def test_each_need_has_a_planned_review_on_a_phase_2_scenario():
     assert not re.search(r"<'SC-DRIVING-00[1-4]'>", code)
 
 
-def test_the_checkpoint_input_contract_is_kept_as_a_comment_for_phase_5():
-    # NEED-DRIVING-002 is folded into NEED-DRIVING-001: the form of the pinned checkpoint's inputs is
-    # no longer a need of its own, but phase 5 still derives requirements from it.
-    match = re.search(r"comment\s+checkpointInputContractForPhase5\s+about\s+needDrivenAlongTheRoute\s*/\*(.*?)\*/",
-                      _raw(), re.S)
-    assert match, "the checkpoint input contract is kept as a comment about NEED-DRIVING-001"
-    text = _flat(match.group(1))
-    assert "For phase 5" in text
-    for item in (CHECKPOINT_PIN, "Model/README.md", "egomotion.py", "map_context", "64 history samples at 10 Hz"):
-        assert item in text, item
-    assert "derived from NEED-DRIVING-001" in text
-    assert "asmSourceAuthenticity" in text and "gapModelInputAndFeedback" in text
-
-
 def test_the_need_statements_state_what_the_holders_expect_not_how_it_is_reviewed():
     # The no-autopilot/replay/overlay condition is a check on the answer, carried by SC-DRIVING-005 and
     # turned into a verification criterion in phase 5; it is not part of what a holder states.
@@ -183,7 +168,9 @@ def test_two_tables_frame_the_needs_concern_and_show_needs_and_planned_reviews()
     assert len(concerns) == 1
     concern = braced_body(code, f"concern {concerns[0]} : StakeholderNeedsConcern")
     assert re.search(r"\bsubject\s*;", concern)
-    views = re.findall(r"\bview\s+(\w+)\s*:\s*TVD::TableView\b", code)
+    # Phase 5 adds the requirement tables to this package; they frame the requirement trace concern.
+    views = [view for view in re.findall(r"\bview\s+(\w+)\s*:\s*TVD::TableView\b", code)
+             if re.search(rf"\bframe\s+{concerns[0]}\s*;", braced_body(code, f"view {view} : TVD::TableView"))]
     assert len(views) == 2
     exposed = {}
     for view in views:
