@@ -154,10 +154,11 @@ package DE4SDV_AEBSVisualizationOperationalContext {
 
   concern visualizationScenarioConcern : OperationalContextConcern {
     doc /*
-     * Reviewers need the operational context of the visualization test
-     * system, the visualization observation scenarios, their fail-closed
-     * dispositions, and their separation from the unchanged System 1 AEBS
-     * story to be visible.
+     * Systems engineers, verification engineers and open-source reviewers
+     * need the operational context of the visualization test system, the
+     * visualization observation scenarios, their fail-closed dispositions,
+     * and their separation from the unchanged System 1 AEBS story to be
+     * visible.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;

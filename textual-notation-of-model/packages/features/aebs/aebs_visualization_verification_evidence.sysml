@@ -1052,7 +1052,11 @@ package DE4SDV_AEBSVisualizationVerificationEvidence {
    * ────────────────────────────────────────── */
 
   concern visualizationArgumentationAssuranceConcern : ArgumentationAssuranceConcern {
-    doc /* Evidence-based assurance claim, counterclaims, retained evidence, and gaps for the visualization instrumentation. */
+    doc /*
+     * Systems engineers, verification engineers and open-source reviewers
+     * need the evidence-based assurance claim, the counterclaims, the retained
+     * evidence, and the gaps for the visualization instrumentation.
+     */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
     stakeholder verificationEngineer : VerificationEngineer;
