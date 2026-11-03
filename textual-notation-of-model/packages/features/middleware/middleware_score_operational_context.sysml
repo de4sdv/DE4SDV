@@ -55,7 +55,7 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
   concern runnableProofBenchConcern : ArgumentationAssuranceConcern {
     doc /*
      * The verification engineer, the maintainer and the open-source
-     * reviewers need the bench of the runnable proof (ASM-MW-025) to
+     * reviewer need the bench of the runnable proof (ASM-MW-025) to
      * observe the vehicle-speed path, the cross-domain HMI path and the
      * HMI read-only, to retain evidence bound to the exact model
      * revision and to the pinned S-CORE commit (ASM-MW-021), and to stay
