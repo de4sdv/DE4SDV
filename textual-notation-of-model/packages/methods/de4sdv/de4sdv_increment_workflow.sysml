@@ -223,15 +223,18 @@ package DE4SDV_IncrementWorkflow {
 
   action def FrameConcerns :> IncrementStep {
     doc /* Who cares and why? Rules: at least one concern of the increment is
-         * not typed by IncrementBoundaryConcern or a specialization of it.
-         * A boundary concern alone is insufficient. Each concern has a native
+         * not typed by IncrementBoundaryConcern or a specialization of it. A
+         * boundary concern alone is insufficient. Each concern has a native
          * stakeholder member, and a viewpoint of a view of the increment frames
          * it, by its own frame or by a frame of the viewpoint definition it is
-         * typed by. The views of the increment are the views its packages own,
-         * as in phase 11. The stakeholders are the native stakeholder members
-         * of the concerns, the problem statement and the needs; no check counts
-         * stakeholder parts. These are structural gates, not a completeness or
-         * adequacy assessment of stakeholder coverage or viewpoint selection. */
+         * typed by. A concern names as its stakeholders the parties whose
+         * interest it states, not only the reviewers who will inspect the views
+         * that answer it. The views of the increment are the views its packages
+         * own, as in phase 11. The stakeholders are the native stakeholder
+         * members of the concerns, the problem statement and the needs; no
+         * check counts stakeholder parts. These are structural gates, not a
+         * completeness or adequacy assessment of stakeholder coverage or
+         * viewpoint selection. */
     attribute :>> phase = MethodPhase::phase1_concernFraming;
     in requirement problemStatement : ProblemStatement;
     out part stakeholders[1..*] : Stakeholder;
@@ -303,15 +306,20 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def ElaborateNeeds :> IncrementStep {
-    doc /* What stakeholder needs exist and how will the needs be validated? Rules:
-         * each need has a statement, at least one stakeholder, an ODE4HERA source
-         * and rationale, and at least one planned validation scenario. Needs are
-         * elaborated from the concerns that viewpoints frame and trace to them
-         * through stakeholder, source and rationale. A need doesn't frame a
-         * concern: it would then be satisfied only when the whole concern is
-         * addressed, while a need usually covers only part of one. Advisory: a
-         * need takes the system of interest the charter declares as subject,
-         * never the increment. */
+    doc /* What stakeholder needs exist and how will the needs be validated?
+         * Rules: each need has a statement, at least one stakeholder, an
+         * ODE4HERA source and rationale, and at least one planned validation
+         * scenario. Needs are elaborated from the concerns that viewpoints
+         * frame and trace to them through stakeholder, source and rationale. A
+         * need's stakeholders are the parties whose interest it states, those
+         * the system of interest serves. A role that only reviews, verifies or
+         * approves the need does not hold it; that role belongs to the need's
+         * planned validation. An engineering role holds a need when the system
+         * of interest provides something the role uses in its own work. A need
+         * doesn't frame a concern: it would then be satisfied only when the
+         * whole concern is addressed, while a need usually covers only part of
+         * one. Advisory: a need takes the system of interest the charter
+         * declares as subject, never the increment. */
     attribute :>> phase = MethodPhase::phase4_needs;
     in requirement problemStatement : ProblemStatement;
     in concern concerns[0..*];

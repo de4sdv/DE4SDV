@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from de4sdv.semantic.remedies import SUBJECT_FIRST
+from de4sdv.semantic.remedies import STAKEHOLDER_HOLDER, SUBJECT_FIRST
 from increment_model_fixtures import (
     ModelBuilder,
     increment_scenario,
@@ -458,7 +458,7 @@ def test_the_summary_names_next_and_the_blocking_gaps_per_increment(tmp_path: Pa
     assert "**Next:** `needHasStakeholder` in phase4_needs (violation)" in lines
     stakeholder, package = kernel_qualified_name(cut_method_builder("oracle"), "Stakeholder")
     what = (f"add to DE4SDV_FirstNeedsRequirements::need1, after its subject: stakeholder <stakeholderName> : "
-            f"{stakeholder}; Import: private import {package}::*; {SUBJECT_FIRST}")
+            f"{stakeholder}; Import: private import {package}::*; {STAKEHOLDER_HOLDER} {SUBJECT_FIRST}")
     at = lines.index(f"- What to author: `{what}`")
     assert lines[at + 1:at + 6] == ["", "  ```sysml", f"  private import {package}::*;",
                                     f"  stakeholder <stakeholderName> : {stakeholder};", "  ```"]

@@ -55,11 +55,11 @@ package DE4SDV_MethodViewpoints {
   concern def ProductLineCapabilityClassificationConcern {
     require constraint {
       doc /*
-       * Reviewers need model content to show which characteristics distinguish
-       * member products: the feature candidates an increment adds (the
-       * feature-model delta), with their variability decisions and deferred
-       * variability decisions. Core elements are common by default and get no
-       * record.
+       * Product-line engineers need model content to show which characteristics
+       * distinguish member products: the feature candidates an increment adds
+       * (the feature-model delta), with their variability decisions and
+       * deferred variability decisions. Core elements are common by default and
+       * get no record.
        */
     }
   }
@@ -67,9 +67,10 @@ package DE4SDV_MethodViewpoints {
   concern def RegulatoryScopeWithoutComplianceClaimConcern {
     require constraint {
       doc /*
-       * Reviewers need regulatory anchors, source assumptions, missing evidence,
-       * and scope boundaries to be visible without implying compliance,
-       * certification, or type approval.
+       * Compliance engineers need regulatory anchors, source assumptions,
+       * missing evidence, and scope boundaries to be visible, and reviewers
+       * need them shown without implying compliance, certification, or type
+       * approval.
        */
     }
   }
@@ -102,10 +103,10 @@ package DE4SDV_MethodViewpoints {
   concern def ProductLineConfigurationConcern {
     require constraint {
       doc /*
-       * Reviewers need the native SysML v2 variation and variant structure
-       * in the model to be visible for review, so that configured choices
-       * can be checked against the feature models and feature
-       * configurations under the authority of ADR 0022.
+       * Product-line engineers need the native SysML v2 variation and variant
+       * structure in the model to be visible, so that configured choices can be
+       * checked against the feature models and feature configurations under the
+       * authority of ADR 0022.
        */
     }
   }
@@ -113,11 +114,11 @@ package DE4SDV_MethodViewpoints {
   concern def ProductModelAssemblyConcern {
     require constraint {
       doc /*
-       * Reviewers need a composite product model's assembly of shared assets
-       * (platform stack, sensing, feature realization) and its product-level
-       * trace links to be visible for review, so that the composition can be
-       * checked for completeness and correctness against the selected
-       * configuration.
+       * Product-line engineers and systems engineers need a composite product
+       * model's assembly of shared assets (platform stack, sensing, feature
+       * realization) and its product-level trace links to be visible, so that
+       * the composition can be checked for completeness and correctness against
+       * the selected configuration.
        */
     }
   }

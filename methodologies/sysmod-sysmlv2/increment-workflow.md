@@ -104,9 +104,10 @@ These method rules apply to every increment:
 2. **Needs.** Each need owns a statement (a `require constraint` of its own;
    one inherited from its definition does not count), has at least one
    stakeholder, an ODE4HERA source and rationale, and at least one planned
-   validation scenario. Its
-   subject is the system of interest the charter declares, never the
-   increment (advisory).
+   validation scenario. A need's stakeholders are the parties whose interest
+   it states; a role that only reviews, verifies or approves the need does not
+   hold it. Its subject is the system of interest the charter declares, never
+   the increment (advisory).
 3. **Needs and concerns.** Only viewpoints frame concerns. A need doesn't
    frame the concern it comes from: a requirement that frames a concern is
    satisfied only when the whole concern is addressed, while a need usually
