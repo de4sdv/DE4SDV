@@ -4,7 +4,8 @@ Owner decision of 2026-11-02: a concern names as its stakeholders the parties
 whose interest it states, and a need is held by those it serves. The doc of a
 concern is what its framing view shows, so the doc names the same parties:
 
-- every declared stakeholder member's role appears in the doc;
+- every declared stakeholder member's role appears in the doc, and the doc
+  names no known role that the concern does not declare;
 - no doc gives the concern to unnamed "reviewers" (the role is the
   open-source reviewer, and the doc says so).
 
@@ -148,5 +149,8 @@ def test_the_concern_doc_names_its_holders(increment, name, path, holders, doc):
     assert not unknown, f"{where}: add the words for {unknown} to ROLE_WORDS"
     unnamed = [role for role in holders if ROLE_WORDS[role] not in doc.lower()]
     assert not unnamed, f"{where}: the doc does not name {unnamed}: {doc[:120]}"
+    undeclared = [role for role, words in ROLE_WORDS.items() if role not in holders and words in doc.lower()]
+    assert not undeclared, f"{where}: the doc names {undeclared}, which the concern does not declare: " \
+                           "declare the stakeholder or reword the doc"
     generic = GENERIC_REVIEWERS.search(doc)
     assert not generic, f"{where}: the doc gives the concern to unnamed reviewers: {doc[:120]}"
