@@ -74,9 +74,10 @@ package DE4SDV_MiddlewareSCOREFunctionalArchitecture {
 
   concern scoreMiddlewareFunctionAllocationConcern : FunctionalBehaviorConcern {
     doc /*
-     * Reviewers need each requirement of the middleware integration layer
-     * mapped to the function that carries it, a baseline function of
-     * INC-MW-006 or a function added for the S-CORE member.
+     * System architects and open-source reviewers need each requirement of the
+     * middleware integration layer mapped to the function that carries it, a
+     * baseline function of INC-MW-006 or a function added for the S-CORE
+     * member.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;

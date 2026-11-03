@@ -214,8 +214,9 @@ package DE4SDV_AEBSVisualizationFraming {
 
   concern visualizationProvenanceConcern : ProductLineCapabilityClassificationConcern {
     doc /*
-     * Reviewers need the visualization classified as System 2 engineering and
-     * evidence instrumentation, not as a product feature or production HMI.
+     * Product-line engineers, systems engineers and open-source reviewers
+     * need the visualization classified as System 2 engineering and evidence
+     * instrumentation, not as a product feature or production HMI.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -225,7 +226,8 @@ package DE4SDV_AEBSVisualizationFraming {
 
   concern visualizationBoundaryConcern : IncrementBoundaryConcern {
     doc /*
-     * Reviewers need the framing slice to stay separate from architecture,
+     * Systems engineers, verification engineers and open-source reviewers
+     * need the framing slice to stay separate from architecture,
      * configuration, implementation, and evidence slices in the same chain.
      */
     subject;
@@ -236,8 +238,9 @@ package DE4SDV_AEBSVisualizationFraming {
 
   concern predecessorIndependenceConcern : ArgumentationAssuranceConcern {
     doc /*
-     * Reviewers need visible assurance that this increment neither reopens
-     * INC-MW-010 nor claims its gate 8 reverse path retroactively.
+     * Systems engineers, maintainers and open-source reviewers need visible
+     * assurance that this increment neither reopens INC-MW-010 nor claims its
+     * gate 8 reverse path retroactively.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;

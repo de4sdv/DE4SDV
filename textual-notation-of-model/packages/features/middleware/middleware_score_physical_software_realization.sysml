@@ -2003,12 +2003,13 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
 
   concern scoreMiddlewarePhysicalAllocationConcern : PhysicalLogicalMappingConcern {
     doc /*
-     * Reviewers need each logical element of the middleware integration
-     * layer, the six components of MiddlewareSystem and the HMI frame relay,
-     * mapped to the physical elements it is allocated to, with the
-     * components that S-CORE v0.9.0 leaves unrealized as empty rows
-     * (GAP-MW-030). A mark assigns responsibility for the S-CORE member's
-     * scope only. Two allocations are partial and typed
+     * Product-line engineers, system architects and open-source reviewers
+     * need each logical element of the middleware integration layer, the
+     * six components of MiddlewareSystem and the HMI frame relay, mapped
+     * to the physical elements it is allocated to, with the components
+     * that S-CORE v0.9.0 leaves unrealized as empty rows (GAP-MW-030). A
+     * mark assigns responsibility for the S-CORE member's scope only. Two
+     * allocations are partial and typed
      * PartialLogicalToPhysicalSoftwareRealization: the Launch Manager
      * realizes the lifecycle bridge in part, and the health proxy node
      * forwards the health of the reference speed, not the safety-path
@@ -2058,14 +2059,15 @@ package DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization {
 
   concern scoreMiddlewareLayerInternalExchangeConcern : PhysicalInternalExchangeConcern {
     doc /*
-     * Reviewers, and the safety expert who reviews GAP-MW-033, need the
-     * exchanges between the processes of the integration layer. They need to
-     * see which process publishes the speed topic and which observes it.
-     * They need the path of the AEBS signal frames: over S-CORE
-     * communication inside the Linux host, through the two processes of the
-     * S-CORE SOME/IP gateway, over SOME/IP across the hypervisor into the SDV
-     * Core VM, and over Data Tunnel and the SDV Gateway on IVI into the IVI
-     * VM. And they need to see that nothing flows back from the guest.
+     * System architects, verification engineers and the safety expert who
+     * reviews GAP-MW-033 need the exchanges between the processes of the
+     * integration layer. They need to see which process publishes the
+     * speed topic and which observes it. They need the path of the AEBS
+     * signal frames: over S-CORE communication inside the Linux host,
+     * through the two processes of the S-CORE SOME/IP gateway, over
+     * SOME/IP across the hypervisor into the SDV Core VM, and over Data
+     * Tunnel and the SDV Gateway on IVI into the IVI VM. And they need to
+     * see that nothing flows back from the guest.
      */
     subject layer : SCOREMiddlewareIntegrationLayerRealization;
     stakeholder systemArchitect : SystemArchitect;

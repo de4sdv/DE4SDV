@@ -158,14 +158,15 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
 
   concern scoreMiddlewareProductLineConfigurationConcern : ProductLineConfigurationConcern {
     doc /*
-     * Reviewers need the variant selections of MW-CONFIG-002 in the
-     * platform-stack projection that the configurator generates from its
-     * receipt. The main side selects Autoware, Eclipse S-CORE and Linux. The
-     * hypervisor is KVM. The guest side selects Android with the AAOS SDV
-     * middleware. The adapter is the derived Autoware-to-S-CORE adapter. For
-     * the S-CORE product, this answers the representation part of the
-     * framing's twoDomainMemberRepresentationConcern. This concern is about
-     * choices, not assembly.
+     * Product-line engineers, system architects and open-source reviewers
+     * need the variant selections of MW-CONFIG-002 in the platform-stack
+     * projection that the configurator generates from its receipt. The
+     * main side selects Autoware, Eclipse S-CORE and Linux. The hypervisor
+     * is KVM. The guest side selects Android with the AAOS SDV middleware.
+     * The adapter is the derived Autoware-to-S-CORE adapter. For the
+     * S-CORE product, this answers the representation part of the
+     * framing's twoDomainMemberRepresentationConcern. This concern is
+     * about choices, not assembly.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -175,9 +176,10 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
 
   concern scoreMiddlewareProductModelAssemblyConcern : ProductModelAssemblyConcern {
     doc /*
-     * Reviewers need the assembly of MW-CONFIG-002 with one instance and one
-     * owner per platform layer. It holds the platform-stack projection and
-     * the realization of the integration layer. The S-CORE services of the
+     * System architects, verification engineers and open-source reviewers
+     * need the assembly of MW-CONFIG-002 with one instance and one owner
+     * per platform layer. It holds the platform-stack projection and the
+     * realization of the integration layer. The S-CORE services of the
      * layer are the selected middleware, and its adapter is the derived
      * adapter. The SDV Core of the layer is the guest middleware, and its
      * platform software is the guest operating system. The platform stack

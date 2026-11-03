@@ -165,8 +165,9 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
 
   concern visualizationProductLineConfigurationConcern : ProductLineConfigurationConcern {
     doc /*
-     * Reviewers need the test article's inherited variant selections to be
-     * visible as unchanged reuse of the accepted reference member.
+     * Systems engineers, product-line engineers and open-source reviewers
+     * need the test article's inherited variant selections to be visible as
+     * unchanged reuse of the accepted reference member.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -176,8 +177,9 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
 
   concern visualizationProductModelAssemblyConcern : ProductModelAssemblyConcern {
     doc /*
-     * Reviewers need the instrumented test-article assembly — accepted
-     * platform stack plus the deployed visualization chain — to be visible.
+     * Systems engineers, product-line engineers and open-source reviewers
+     * need the instrumented test-article assembly — accepted platform stack
+     * plus the deployed visualization chain — to be visible.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;

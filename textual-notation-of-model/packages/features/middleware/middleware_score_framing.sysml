@@ -351,12 +351,12 @@ package DE4SDV_MiddlewareSCOREFraming {
 
   concern scoreRealizationCoverageConcern : ProductLineCapabilityClassificationConcern {
     doc /*
-     * Reviewers need to see which of the six middleware components Eclipse
-     * S-CORE realizes for the EclipseSCORE variant and which stay open, so
-     * that the S-CORE variant of the middleware feature is classified from
-     * its realization coverage, not from the variant name, and compared like
-     * for like with the AAOS SDV realization of INC-MW-008 over the same
-     * reference vehicle-speed signal.
+     * Product-line engineers, system architects and open-source reviewers need
+     * to see which of the six middleware components Eclipse S-CORE realizes for
+     * the EclipseSCORE variant and which stay open, so that the S-CORE variant
+     * of the middleware feature is classified from its realization coverage,
+     * not from the variant name, and compared like for like with the AAOS SDV
+     * realization of INC-MW-008 over the same reference vehicle-speed signal.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -382,10 +382,11 @@ package DE4SDV_MiddlewareSCOREFraming {
 
   concern twoDomainMemberRepresentationConcern : ProductLineConfigurationConcern {
     doc /*
-     * Reviewers need the two-domain member product, with its own operating
-     * system, middleware and hypervisor selection per execution domain, to
-     * be representable in the product model's variation structure without
-     * changing what the existing members are.
+     * Product-line engineers, system architects and open-source reviewers need
+     * the two-domain member product, with its own operating system, middleware
+     * and hypervisor selection per execution domain, to be representable in
+     * the product model's variation structure without changing what the
+     * existing members are.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;

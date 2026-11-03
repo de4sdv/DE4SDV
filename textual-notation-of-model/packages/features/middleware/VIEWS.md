@@ -278,7 +278,7 @@ Shows the requirement set and its trace links to needs, behavior, or architectur
 
 ### `scoreTwoDomainClassificationView`
 
-Reviewers need the new member-distinguishing characteristic identified as a feature candidate, with the gap and the scope decision it waits for.
+Product-line engineers, system architects and open-source reviewers need the new member-distinguishing characteristic identified as a feature candidate, with the gap and the scope decision it waits for.
 
 - **Source:** `middleware_score_feature_classification.sysml`
 - **Viewpoint:** `selectedProductLineClassificationViewpoint` (`ProductLineClassificationViewpoint`)
@@ -294,7 +294,7 @@ Reviewers need the new member-distinguishing characteristic identified as a feat
 
 ### `scoreMiddlewareFramingView`
 
-Reviewers need to see which of the six middleware components Eclipse S-CORE realizes for the EclipseSCORE variant and which stay open, so that the S-CORE variant of the middleware feature is classified from its realization coverage, not from the variant name, and compared like for like with the AAOS SDV realization of INC-MW-008 over the same reference vehicle-speed signal.
+Product-line engineers, system architects and open-source reviewers need to see which of the six middleware components Eclipse S-CORE realizes for the EclipseSCORE variant and which stay open, so that the S-CORE variant of the middleware feature is classified from its realization coverage, not from the variant name, and compared like for like with the AAOS SDV realization of INC-MW-008 over the same reference vehicle-speed signal.
 
 - **Source:** `middleware_score_framing.sysml`
 - **Viewpoint:** `selectedFramingViewpoint` (`IncrementFramingViewpoint`)
@@ -311,7 +311,7 @@ Reviewers need to see which of the six middleware components Eclipse S-CORE real
 
 ### `scoreMiddlewareRequirementFunctionMappingView`
 
-Reviewers need each requirement of the middleware integration layer mapped to the function that carries it, a baseline function of INC-MW-006 or a function added for the S-CORE member.
+System architects and open-source reviewers need each requirement of the middleware integration layer mapped to the function that carries it, a baseline function of INC-MW-006 or a function added for the S-CORE member.
 
 - **Source:** `middleware_score_functional_architecture.sysml`
 - **Viewpoint:** `selectedFunctionalBreakdownViewpoint` (`SystemFunctionalBreakdownStructureViewpoint`)
@@ -327,7 +327,7 @@ Reviewers need each requirement of the middleware integration layer mapped to th
 
 ### `scoreMiddlewareFunctionMappingView`
 
-Reviewers, and the safety expert who reviews GAP-MW-033, need each function that carries a requirement of the S-CORE member mapped to the logical element it is allocated to: the proposed owners of the speed topic and its health topic, and the relay of the HMI path.
+System architects, open-source reviewers and the safety expert who reviews GAP-MW-033 need each function that carries a requirement of the S-CORE member mapped to the logical element it is allocated to: the proposed owners of the speed topic and its health topic, and the relay of the HMI path.
 
 - **Source:** `middleware_score_logical_architecture.sysml`
 - **Viewpoint:** `selectedFunctionMappingViewpoint` (`SystemFunctionMappingViewpoint`)
@@ -343,7 +343,7 @@ Reviewers, and the safety expert who reviews GAP-MW-033, need each function that
 
 ### `scoreMiddlewareRequirementTraceView`
 
-Reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method, success criteria and verification status of each requirement, and the gaps that stay open.
+Verification engineers and open-source reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method, success criteria and verification status of each requirement, and the gaps that stay open.
 
 - **Source:** `middleware_score_needs_requirements.sysml`
 - **Viewpoint:** `selectedRequirementTraceViewpoint` (`SystemRequirementTraceabilityViewpoint`)
@@ -360,7 +360,7 @@ Reviewers need each requirement of the middleware integration layer traced to th
 
 ### `scoreMiddlewareStakeholderConcernView`
 
-The integrator (software developer and system architect) needs the assumptions of use that Eclipse S-CORE v0.9.0 states for the application and for the operating system to be registered with source attribution (ASM-MW-021) and checked against the Autoware-based AEBS stack on the Ubuntu x86_64 host (ASM-MW-026), so that phases 4, 5 and 8 derive needs, requirements and the realization inside those assumptions.
+The integrator (software developer and system architect) and the product-line engineer need the assumptions of use that Eclipse S-CORE v0.9.0 states for the application and for the operating system to be registered with source attribution (ASM-MW-021) and checked against the Autoware-based AEBS stack on the Ubuntu x86_64 host (ASM-MW-026), so that phases 4, 5 and 8 derive needs, requirements and the realization inside those assumptions.
 
 - **Source:** `middleware_score_operational_context.sysml`
 - **Viewpoint:** `selectedStakeholderIdentificationViewpoint` (`StakeholderIdentificationViewpoint`)
@@ -374,7 +374,7 @@ The integrator (software developer and system architect) needs the assumptions o
 
 ### `scoreTwoDomainOperationalContextView`
 
-Reviewers need the two execution domains, the hypervisor boundary, the host-side and guest-side actors, the system of interest in both domains and the one-way HMI path visible for the two-domain member.
+System architects, systems engineers and open-source reviewers need the two execution domains, the hypervisor boundary, the host-side and guest-side actors, the system of interest in both domains and the one-way HMI path visible for the two-domain member.
 
 - **Source:** `middleware_score_operational_context.sysml`
 - **Viewpoint:** `selectedOperationalContextViewpoint` (`OperationalContextDefinitionViewpoint`)
@@ -390,7 +390,7 @@ Reviewers need the two execution domains, the hypervisor boundary, the host-side
 
 ### `scoreTwoDomainOperationalStoryView`
 
-Reviewers need the operational story of the two-domain member told in stakeholder language: the speed path, the AEBS event on the HMI, the provider-loss degradation, the unavailable or stale guest, and the S-CORE service lifecycle, with the emergency command staying on the host.
+Systems engineers, verification engineers and open-source reviewers need the operational story of the two-domain member told in stakeholder language: the speed path, the AEBS event on the HMI, the provider-loss degradation, the unavailable or stale guest, and the S-CORE service lifecycle, with the emergency command staying on the host.
 
 - **Source:** `middleware_score_operational_context.sysml`
 - **Viewpoint:** `selectedOperationalStoryViewpoint` (`OperationalStoryViewpoint`)
@@ -407,7 +407,7 @@ Reviewers need the operational story of the two-domain member told in stakeholde
 
 ### `scoreMiddlewarePhysicalLogicalMappingView`
 
-Reviewers need each logical element of the middleware integration layer, the six components of MiddlewareSystem and the HMI frame relay, mapped to the physical elements it is allocated to, with the components that S-CORE v0.9.0 leaves unrealized as empty rows (GAP-MW-030).
+Product-line engineers, system architects and open-source reviewers need each logical element of the middleware integration layer, the six components of MiddlewareSystem and the HMI frame relay, mapped to the physical elements it is allocated to, with the components that S-CORE v0.9.0 leaves unrealized as empty rows (GAP-MW-030).
 
 - **Source:** `middleware_score_physical_software_realization.sysml`
 - **Viewpoint:** `selectedPhysicalLogicalMappingViewpoint` (`PhysicalLogicalMappingViewpoint`)
@@ -422,7 +422,7 @@ Reviewers need each logical element of the middleware integration layer, the six
 
 ### `scoreMiddlewareLayerInternalExchangeView`
 
-Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges between the processes of the integration layer.
+System architects, verification engineers and the safety expert who reviews GAP-MW-033 need the exchanges between the processes of the integration layer.
 
 - **Source:** `middleware_score_physical_software_realization.sysml`
 - **Viewpoint:** `selectedLayerInternalExchangeViewpoint` (`PhysicalInternalExchangeViewpoint`)
@@ -441,7 +441,7 @@ Reviewers, and the safety expert who reviews GAP-MW-033, need the exchanges betw
 
 ### `scoreMiddlewareProductLineConfigurationView`
 
-Reviewers need the variant selections of MW-CONFIG-002 in the platform-stack projection that the configurator generates from its receipt.
+Product-line engineers, system architects and open-source reviewers need the variant selections of MW-CONFIG-002 in the platform-stack projection that the configurator generates from its receipt.
 
 - **Source:** `middleware_score_variability_configuration.sysml`
 - **Viewpoint:** `selectedProductLineConfigurationViewpoint` (`ProductLineConfigurationViewpoint`)
@@ -455,7 +455,7 @@ Reviewers need the variant selections of MW-CONFIG-002 in the platform-stack pro
 
 ### `scoreMiddlewareProductModelAssemblyView`
 
-Reviewers need the assembly of MW-CONFIG-002 with one instance and one owner per platform layer.
+System architects, verification engineers and open-source reviewers need the assembly of MW-CONFIG-002 with one instance and one owner per platform layer.
 
 - **Source:** `middleware_score_variability_configuration.sysml`
 - **Viewpoint:** `selectedProductModelAssemblyViewpoint` (`ProductModelAssemblyViewpoint`)
@@ -472,7 +472,7 @@ Reviewers need the assembly of MW-CONFIG-002 with one instance and one owner per
 
 ### `scoreMiddlewareVerificationCaseView`
 
-Reviewers need the method, bench and status of the one verification case of each requirement of the middleware integration layer.
+Verification engineers and open-source reviewers need the method, bench and status of the one verification case of each requirement of the middleware integration layer.
 
 - **Source:** `middleware_score_verification_evidence.sysml`
 - **Viewpoint:** `selectedVerificationTraceViewpoint` (`SystemRequirementTraceabilityViewpoint`)

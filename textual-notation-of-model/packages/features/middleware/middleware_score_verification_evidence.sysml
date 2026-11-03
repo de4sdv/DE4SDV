@@ -820,9 +820,10 @@ package DE4SDV_MiddlewareSCOREVerificationEvidence {
 
   concern scoreMiddlewareVerificationCaseConcern : RequirementTraceConcern {
     doc /*
-     * Reviewers need the method, bench and status of the one verification
-     * case of each requirement of the middleware integration layer. Before
-     * any run, the status is not started.
+     * Verification engineers and open-source reviewers need the method,
+     * bench and status of the one verification case of each requirement
+     * of the middleware integration layer. Before any run, the status is
+     * not started.
      */
     subject;
     stakeholder verificationEngineer : VerificationEngineer;

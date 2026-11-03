@@ -69,10 +69,11 @@ package DE4SDV_MiddlewareSCORELogicalArchitecture {
 
   concern scoreMiddlewareLogicalAllocationConcern : ConceptualFunctionMappingConcern {
     doc /*
-     * Reviewers, and the safety expert who reviews GAP-MW-033, need each
-     * function that carries a requirement of the S-CORE member mapped to the
-     * logical element it is allocated to: the proposed owners of the speed
-     * topic and its health topic, and the relay of the HMI path.
+     * System architects, open-source reviewers and the safety expert who
+     * reviews GAP-MW-033 need each function that carries a requirement of the
+     * S-CORE member mapped to the logical element it is allocated to: the
+     * proposed owners of the speed topic and its health topic, and the relay of
+     * the HMI path.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;

@@ -469,7 +469,7 @@ Maps logical information items to the physical exchange items that carry them.
 
 ### `aebsVisualizationFramingView`
 
-Reviewers need the visualization classified as System 2 engineering and evidence instrumentation, not as a product feature or production HMI.
+Product-line engineers, systems engineers and open-source reviewers need the visualization classified as System 2 engineering and evidence instrumentation, not as a product feature or production HMI.
 
 - **Source:** `aebs_visualization_framing.sysml`
 - **Viewpoint:** `selectedFramingViewpoint` (`IncrementFramingViewpoint`)
@@ -593,7 +593,7 @@ Shows how visualization requirements trace to needs and downstream architecture.
 
 ### `aebsVisualizationOperationalContextView`
 
-Reviewers need the operational context of the visualization test system, the visualization observation scenarios, their fail-closed dispositions, and their separation from the unchanged System 1 AEBS story to be visible.
+Systems engineers, verification engineers and open-source reviewers need the operational context of the visualization test system, the visualization observation scenarios, their fail-closed dispositions, and their separation from the unchanged System 1 AEBS story to be visible.
 
 - **Source:** `aebs_visualization_operational_context.sysml`
 - **Viewpoint:** `selectedOperationalViewpoint` (`OperationalContextDefinitionViewpoint`)
@@ -655,7 +655,7 @@ Maps logical visualization responsibilities to their selected physical realizati
 
 ### `aebsVisualizationProductLineConfigurationView`
 
-Reviewers need the test article's inherited variant selections to be visible as unchanged reuse of the accepted reference member.
+Systems engineers, product-line engineers and open-source reviewers need the test article's inherited variant selections to be visible as unchanged reuse of the accepted reference member.
 
 - **Source:** `aebs_visualization_variability_configuration.sysml`
 - **Viewpoint:** `selectedConfigurationViewpoint` (`ProductLineConfigurationViewpoint`)
@@ -670,7 +670,7 @@ Reviewers need the test article's inherited variant selections to be visible as 
 
 ### `aebsVisualizationProductModelAssemblyView`
 
-Reviewers need the instrumented test-article assembly — accepted platform stack plus the deployed visualization chain — to be visible.
+Systems engineers, product-line engineers and open-source reviewers need the instrumented test-article assembly — accepted platform stack plus the deployed visualization chain — to be visible.
 
 - **Source:** `aebs_visualization_variability_configuration.sysml`
 - **Viewpoint:** `selectedAssemblyViewpoint` (`ProductModelAssemblyViewpoint`)
@@ -687,7 +687,7 @@ Reviewers need the instrumented test-article assembly — accepted platform stac
 
 ### `aebsVisualizationVerificationAssuranceView`
 
-Evidence-based assurance claim, counterclaims, retained evidence, and gaps for the visualization instrumentation.
+Systems engineers, verification engineers and open-source reviewers need the evidence-based assurance claim, the counterclaims, the retained evidence, and the gaps for the visualization instrumentation.
 
 - **Source:** `aebs_visualization_verification_evidence.sysml`
 - **Viewpoint:** `selectedAssuranceViewpoint` (`ArgumentationAssuranceViewpoint`)
@@ -701,7 +701,7 @@ Evidence-based assurance claim, counterclaims, retained evidence, and gaps for t
 
 ### `aebsVisualizationOpenCounterclaimAssuranceView`
 
-Evidence-based assurance claim, counterclaims, retained evidence, and gaps for the visualization instrumentation.
+Systems engineers, verification engineers and open-source reviewers need the evidence-based assurance claim, the counterclaims, the retained evidence, and the gaps for the visualization instrumentation.
 
 - **Source:** `aebs_visualization_verification_evidence.sysml`
 - **Viewpoint:** `selectedOpenCounterclaimViewpoint` (`ArgumentationAssuranceViewpoint`)
