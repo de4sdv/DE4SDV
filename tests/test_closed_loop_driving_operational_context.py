@@ -131,15 +131,19 @@ def test_operational_views_frame_operational_concerns_and_expose_phase_two():
     code = _code()
     expected = {
         "closedLoopDrivingOperationalContextView": (
-            "OperationalContextDefinitionViewpoint", "closedLoopDrivingContextConcern", "OperationalContextConcern",
-            {CONTEXT, f"{CONTEXT}::*", "closedLoopDrivingOperation"}),
+            "OperationalContextDefinitionViewpoint", ["closedLoopDrivingContextConcern"],
+            "OperationalContextConcern", {CONTEXT, f"{CONTEXT}::*", "closedLoopDrivingOperation"}),
+        # The story answers the occupant's concern as well as its own (owner decision of 2026-11-02).
         "closedLoopDrivingOperationalStoryView": (
-            "OperationalStoryViewpoint", "closedLoopDrivingStoryConcern", "OperationalStoryConcern",
-            {STORY, f"{STORY}::*"}),
+            "OperationalStoryViewpoint", ["closedLoopDrivingStoryConcern", "drivenAlongTheRouteConcern"],
+            "OperationalStoryConcern", {STORY, f"{STORY}::*"}),
     }
-    for view_name, (viewpoint, concern, concern_type, exposed) in expected.items():
+    for view_name, (viewpoint, frames, concern_type, exposed) in expected.items():
         view = braced_body(code, f"view {view_name}")
-        assert re.search(rf"\bviewpoint\s+\w+\s*:\s*{viewpoint}\s*\{{\s*frame\s+{concern}\s*;\s*\}}", view), view_name
+        assert re.search(rf"\bviewpoint\s+\w+\s*:\s*{viewpoint}\s*\{{", view), view_name
+        framed = [name.split("::")[-1] for name in re.findall(r"\bframe\s+([\w:]+)\s*;", view)]
+        assert framed == frames, view_name
+        concern = frames[0]
         assert set(re.findall(r"\bexpose\s+([\w:*]+)\s*;", view)) == exposed, view_name
         concern_body = braced_body(code, f"concern {concern} : {concern_type}")
         lines = [line.strip() for line in concern_body.splitlines() if line.strip() and line.strip() != "doc"]
