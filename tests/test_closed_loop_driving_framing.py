@@ -83,10 +83,13 @@ def test_framing_view_exposes_scope_and_deferred_scope():
     assert required <= exposed, f"framing view omits boundary content: {sorted(required - exposed)}"
 
 
-#: Phase 1: one concern per reviewer question of the in-scope items, typed by the SAF concern whose question it
-#: is, with its native stakeholders (owner decision of 2026-11-02: six concerns). The in-scope item each answers
+#: Phase 1: one concern per question of the in-scope items, typed by the SAF concern whose question it
+#: is, with its native stakeholders (owner decision of 2026-11-02: the needs are held by those they serve, not
+#: only by the roles that check them; seven concerns, the occupant's added last). The in-scope item each answers
 #: is named in its documentation.
 PHASE1_CONCERNS = {
+    "drivenAlongTheRouteConcern": ("OperationalCapabilityConcern", "learnedDrivingInScope", {
+        "occupant": "VehicleOccupant"}),
     "checkpointCommandAuthorityConcern": ("PhysicalFunctionalMappingConcern", "learnedDrivingInScope", {
         "systemsEngineer": "SystemsEngineer", "verificationEngineer": "VerificationEngineer",
         "reviewer": "OpenSourceReviewer"}),
@@ -94,8 +97,10 @@ PHASE1_CONCERNS = {
         "systemArchitect": "SystemArchitect", "softwareDeveloper": "SoftwareDeveloper",
         "maintainer": "Maintainer"}),
     "aaosObservationFidelityConcern": ("PhysicalContextExchangeConcern", "integrationAndObservationInScope", {
+        "occupant": "VehicleOccupant",
         "verificationEngineer": "VerificationEngineer", "reviewer": "OpenSourceReviewer"}),
     "degradedInputBehaviorConcern": ("FunctionalBehaviorConcern", "feedbackAndTimingInScope", {
+        "occupant": "VehicleOccupant", "roadUser": "RoadUser",
         "safetyExpert": "SafetyExpert", "systemArchitect": "SystemArchitect"}),
     "timeDomainHonestyConcern": ("ArgumentationAssuranceConcern", "feedbackAndTimingInScope", {
         "verificationEngineer": "VerificationEngineer", "systemsEngineer": "SystemsEngineer"}),
@@ -129,3 +134,66 @@ def test_phase_one_frames_a_concern_for_every_in_scope_question():
         answered.add(scope_item)
     in_scope = set(re.findall(r"\bpart\s+(\w+)\s*:\s*InScopeItem\b", code))
     assert answered == in_scope, f"in-scope items without a concern: {sorted(in_scope - answered)}"
+
+
+def test_the_occupant_holds_the_operational_concern_and_the_two_reuse_concerns():
+    # Owner decision of 2026-11-02: a need is held by the party it serves, not only by the roles that check it.
+    # The occupant's own expectation of being driven along the chosen route is its own concern, answered by the
+    # phase 2 story; the AAOS and degraded-input concerns gain the people the question is answered for.
+    raw = MODEL.read_text(encoding="utf-8")
+    code = strip_comments(raw)
+    assert "private import DE4SDV_Stakeholders::*;" in code, "the occupant and road user come from the kernel"
+    assert not re.search(r"\bpart def (?:VehicleOccupant|RoadUser)\b", code), "kernel stakeholders are reused"
+    assert "private import SAF_Viewpoints::*;" in code
+    assert not re.search(r"\bconcern def OperationalCapabilityConcern\b", code)
+
+    occupant_concern = braced_body(code, "concern drivenAlongTheRouteConcern : OperationalCapabilityConcern")
+    lines = [line.strip() for line in occupant_concern.splitlines() if line.strip() and line.strip() != "doc"]
+    assert lines[0] == "subject;"
+    assert re.findall(r"\bstakeholder\s+\w+\s*:\s*\w+\s*;", occupant_concern) == \
+        ["stakeholder occupant : VehicleOccupant;"], "the occupant alone holds the operational concern"
+    occupant_doc = " ".join(re.sub(r"(?m)^\s*\*\s?", "", braced_body(
+        raw, "concern drivenAlongTheRouteConcern : OperationalCapabilityConcern")).split())
+    for phrase in ("learnedDrivingInScope", "operational part", "along the route",
+                   "chose on navigation", "not how well", "phase 2"):
+        assert phrase in occupant_doc, phrase
+
+    holders = {
+        "aaosObservationFidelityConcern": ["stakeholder occupant : VehicleOccupant;",
+                                           "stakeholder verificationEngineer : VerificationEngineer;",
+                                           "stakeholder reviewer : OpenSourceReviewer;"],
+        "degradedInputBehaviorConcern": ["stakeholder occupant : VehicleOccupant;",
+                                        "stakeholder roadUser : RoadUser;",
+                                        "stakeholder safetyExpert : SafetyExpert;",
+                                        "stakeholder systemArchitect : SystemArchitect;"],
+    }
+    #: Each doc opens with its in-scope item, so the first sentence after it must be the holders' own need:
+    #: a check for a leading "Reviewers need" would never fire here.
+    holder_need = {
+        "aaosObservationFidelityConcern": "AAOS part. The driver, a vehicle occupant, needs",
+        "degradedInputBehaviorConcern": "behavior part. Vehicle occupants and road users need",
+    }
+    for name, expected in holders.items():
+        body = braced_body(code, f"concern {name}")
+        assert re.findall(r"\bstakeholder\s+\w+\s*:\s*\w+\s*;", body) == expected, name
+        documentation = " ".join(re.sub(r"(?m)^\s*\*\s?", "", braced_body(raw, f"concern {name}")).split())
+        assert holder_need[name] in documentation, f"{name}: the holder states the need first"
+    degraded_doc = " ".join(re.sub(r"(?m)^\s*\*\s?", "",
+                                   braced_body(raw, "concern degradedInputBehaviorConcern")).split())
+    assert "route" in degraded_doc, "degraded input includes the route becoming invalid, lost or stale"
+    assert "road users" in degraded_doc
+
+    viewpoint = braced_body(code, "viewpoint closedLoopDrivingFramingViewpoint : IncrementFramingViewpoint")
+    assert "frame drivenAlongTheRouteConcern;" in viewpoint
+    assert viewpoint.index("frame drivenAlongTheRouteConcern;") < \
+        viewpoint.index("frame checkpointCommandAuthorityConcern;")
+    view = braced_body(code, "view closedLoopDrivingFramingView")
+    assert "expose drivenAlongTheRouteConcern;" in view
+
+    assert "Reviewers need" not in occupant_doc
+    story_model = (ROOT / "textual-notation-of-model/packages/features/driving"
+                   "/closed_loop_driving_operational_context.sysml").read_text(encoding="utf-8")
+    story = braced_body(strip_comments(story_model),
+                        "viewpoint closedLoopDrivingStoryViewpoint : OperationalStoryViewpoint")
+    assert re.search(r"\bframe\s+(?:[\w.]+::)?drivenAlongTheRouteConcern\s*;", story), \
+        "the phase 2 story answers the occupant's concern"
