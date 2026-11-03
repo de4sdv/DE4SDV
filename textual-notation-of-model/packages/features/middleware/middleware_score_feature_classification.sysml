@@ -39,8 +39,9 @@ package DE4SDV_MiddlewareSCOREFeatureClassification {
 
   concern scoreTwoDomainClassificationConcern : ProductLineCapabilityClassificationConcern {
     doc /*
-     * Reviewers need the new member-distinguishing characteristic identified as
-     * a feature candidate, with the gap and the scope decision it waits for.
+     * Product-line engineers, system architects and open-source reviewers need
+     * the new member-distinguishing characteristic identified as a feature
+     * candidate, with the gap and the scope decision it waits for.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;

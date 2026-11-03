@@ -378,7 +378,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
   }
 
   concern scoreMiddlewareRequirementTraceConcern : RequirementTraceConcern {
-    doc /* Reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method, success criteria and verification status of each requirement, and the gaps that stay open. */
+    doc /* Verification engineers and open-source reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method, success criteria and verification status of each requirement, and the gaps that stay open. */
     subject;
     stakeholder verificationEngineer : VerificationEngineer;
     stakeholder reviewer : OpenSourceReviewer;
