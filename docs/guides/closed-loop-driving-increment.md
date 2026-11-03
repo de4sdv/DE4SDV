@@ -5,9 +5,10 @@ behavior from a prediction overlay on a separately driven car. This increment
 proposes the former: real camera-based learned planning, a functional S-CORE
 integration path, and an AAOS SDV application showing genuine plan/state/health.
 
-**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and
-Phase 3 capability classification, proposal.** No implementation, successful
-driving run, performance result or product-line admission is claimed.
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
+Phase 3 capability classification and Phase 4 stakeholder needs,
+proposal.** No implementation, successful driving run, performance result or
+product-line admission is claimed.
 
 ## Authoritative frame
 
@@ -17,6 +18,8 @@ driving run, performance result or product-line admission is claimed.
   the Phase 2 context, operational behavior and story.
 - [SysML capability classification](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_capability_classification.sysml):
   the Phase 3 feature candidate and the scope decisions it needs.
+- [SysML needs and requirements](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_needs_requirements.sysml):
+  the Phase 4 stakeholder needs and their planned reviews.
 - [Syside review views](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifacts, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
@@ -170,12 +173,54 @@ gap.
 The Phase 3 gate checks only that each recorded characteristic is a feature
 candidate or deferred scope; review judges the classification.
 
+## Stakeholder needs (Phase 4)
+
+Seven needs, `NEED-DRIVING-001` to `NEED-DRIVING-007`, take the candidate
+driving system as subject. Each is held by the parties it serves, not by the
+roles that check the answer, and each is derived from one non-boundary Phase 1
+concern, which its source names:
+
+- **Driven along the route:** the driving system's own plans move the vehicle
+  along the route the driver chose (001; vehicle occupants).
+- **S-CORE command path:** plans and commands pass through S-CORE (002; system
+  architects, software developers, maintainers).
+- **AAOS observation fidelity:** the loop publishes its live state with
+  producer and time (003; vehicle occupants, verification engineers), and runs
+  unchanged when AAOS SDV is down or late (004; vehicle occupants).
+- **Degraded input behavior:** a defined stop or disable response to degraded
+  camera images, motion, route or plans (005; vehicle occupants, road users).
+- **Time-domain honesty:** inputs, plans and commands carry their times (006;
+  verification engineers, systems engineers).
+- **Reproducible evidence:** each run identifies its checkpoint and
+  configuration (007; verification engineers, maintainers, open-source
+  reviewers).
+
+The form of the inputs the pinned checkpoint takes — camera images through the
+projection operator that carries their calibration, the `map_context` raster
+with the route corridor and destination, and the ego-motion history with its
+sample count and spacing — is no need of its own. It is recorded as
+`checkpointInputContractForPhase5`, a comment on `NEED-DRIVING-001` in the
+needs model, and Phase 5 states it as requirements derived from that need.
+
+The no-autopilot, replay or overlay condition is likewise not part of what an
+occupant states. The planned review `SC-DRIVING-005` checks it, and Phase 5
+turns it into a verification criterion.
+
+Each need has its own planned stakeholder review, `SC-DRIVING-005` to
+`SC-DRIVING-011`, watching a Phase 2 scenario. The limits and the deadlines
+come with the requirements in Phase 5. No need covers driving quality: the
+charter scopes checkpoint authority, and poor driving is a hold or redirect
+condition of the performance gap. The Phase 4 gates check that each need has
+a statement, a stakeholder, a source, a rationale and a planned review;
+review judges whether the needs are the right ones.
+
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is **Phase 4**: the stakeholder needs,
-elaborated from the Phase 1 concerns; its first gate is `needHasStatement`.
+work is complete. The next work is **Phase 5**: the requirements derived
+from the needs, each with a verification method and success criteria; its
+first gate is `requirementHasStatement`.
 Do not jump from this context to implementation or claim a passed runtime
 gate.
 
@@ -190,7 +235,8 @@ launch compute or authorize spend.
 Run `sysand sync`, `python scripts/check_repo.py`, `python scripts/smoke_test.py`
 and `python -m pytest -q` on `tests/test_closed_loop_driving_framing.py`,
 `tests/test_closed_loop_driving_operational_context.py`,
-`tests/test_closed_loop_driving_capability_classification.py` and
+`tests/test_closed_loop_driving_capability_classification.py`,
+`tests/test_closed_loop_driving_needs.py` and
 `tests/test_check_naming.py`.
 These are repository/lexical checks, not SysML semantic or runtime verification.
 Use `python scripts/validate_sysml.py` when a supported licensed validator is
