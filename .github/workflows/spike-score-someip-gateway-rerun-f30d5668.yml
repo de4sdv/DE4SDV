@@ -1,24 +1,34 @@
-# DE4SDV throwaway spike (INC-MW-011 gateway feasibility), rerun at the merge of
-# eclipse-score/inc_someip_gateway#375. Lives only on the branch
-# spike/score-someip-gateway-d9eac670 and never merges. It builds the Eclipse
+# DE4SDV throwaway spike (INC-MW-011 gateway feasibility), rerun at
+# eclipse-score/inc_someip_gateway main f30d5668. Lives only on the branch
+# spike/score-someip-gateway-f30d5668 and never merges. It builds the Eclipse
 # S-CORE SOME/IP gateway at one pinned commit and runs the same cross-domain
-# scenarios as the 2026-10-27 reruns (runs 40532187964 and 40537983047): an
-# mw::com publisher on the host network domain, gatewayd and someipd, and a
-# vsomeip 3.7.6 client in a separate network namespace. Two matrix jobs run the
-# same pin on two runners, so the results compare one to one with the two
-# earlier runs per pin. See docs/spikes/score-someip-gateway-feasibility/README.md.
+# scenarios as the d9eac670 rerun (run 40651267422): an mw::com publisher on the
+# host network domain, gatewayd and someipd, and a vsomeip 3.7.6 client in a
+# separate network namespace. See docs/spikes/score-someip-gateway-feasibility/README.md.
 #
-# Pin:
-#   main-d9eac670  inc_someip_gateway main at the merge of #375 (mw::com IPC
-#                  binding). Its sources equal the tested PR head 723119c4; only
-#                  MODULE.bazel (score_baselibs 0.2.15 -> 0.2.16 and three dev or
-#                  docs dependencies), MODULE.bazel.lock and two socom unit tests
-#                  differ. .bazelversion stays 8.6.0.
-name: Spike S-CORE SOME/IP gateway rerun at d9eac670
+# Pin: inc_someip_gateway main f30d5668 (2026-11-03). Since d9eac670 the
+# gatewayd and someipd sources are unchanged; score_communication 0.5.0 -> 0.6.0
+# (#397), score_baselibs 0.2.16 -> 0.2.17 (#398), Bazel 8.6.0 -> 8.8.2 (#399),
+# the legacy message-passing gateway_ipc_binding is removed and BUILD files
+# change.
+#
+# Variants, two runs each on separate runners:
+#   main-f30d5668-r1/r2    the pin as it is.
+#   pr1531-f30d5668-r1/r2  the pin plus the one-line implementation change of
+#                          eclipse-score/communication PR 1531 (head 0c5f0020),
+#                          applied to score_communication 0.6.0 as one more
+#                          patch of the gateway's single_version_override.
+#                          After patching, generic_proxy_event.cpp is
+#                          byte-identical to the PR head's file; the other
+#                          files the change uses are identical in 0.6.0 and
+#                          the PR head. The PR's test-code changes are not
+#                          applied. Only MODULE.bazel (one added patch line) is
+#                          modified upstream; ci_checkout_gateway.sh proves it.
+name: Spike S-CORE SOME/IP gateway rerun at f30d5668
 
 on:
   push:
-    branches: [spike/score-someip-gateway-d9eac670]
+    branches: [spike/score-someip-gateway-f30d5668]
     paths-ignore:
       - docs/spikes/score-someip-gateway-feasibility/README.md
       - docs/spikes/score-someip-gateway-feasibility/tests/**
@@ -35,8 +45,9 @@ env:
   GATEWAY_REPO: https://github.com/eclipse-score/inc_someip_gateway.git
   VSOMEIP_SHA: 4187431d2815bd351845a09d01aa85b2a3163cab
   SPIKE_DIR: docs/spikes/score-someip-gateway-feasibility
-  # bazel-8.6.0-linux-x86_64, the version of the gateway's .bazelversion at d9eac670
-  BAZELISK_VERIFY_SHA256: 9860da9c9386bbc023feed8f43af3105d338727d77b644fa6aeca45a4a11957c
+  # bazel-8.8.2-linux-x86_64 (official .sha256 of the release asset), the
+  # version of the gateway's .bazelversion at f30d5668
+  BAZELISK_VERIFY_SHA256: bf463ba0f5f782e8fe31071bd2b821c2f6a27f03e5bb62f0879e88cbf3656e04
 
 jobs:
   cross-domain:
@@ -47,16 +58,33 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - pin: main-d9eac670-r1
-            gateway_sha: d9eac670b7534352749da3d30f52aebf5129f168
+          - pin: main-f30d5668-r1
+            variant: main
+            gateway_sha: f30d5668eeceadde55200c73bc5c448477672757
             ipc_binding: mw_com
-          - pin: main-d9eac670-r2
-            gateway_sha: d9eac670b7534352749da3d30f52aebf5129f168
+            communication_patch: ''
+          - pin: main-f30d5668-r2
+            variant: main
+            gateway_sha: f30d5668eeceadde55200c73bc5c448477672757
             ipc_binding: mw_com
+            communication_patch: ''
+          - pin: pr1531-f30d5668-r1
+            variant: pr1531
+            gateway_sha: f30d5668eeceadde55200c73bc5c448477672757
+            ipc_binding: mw_com
+            communication_patch: patches/communication-pr1531-generic_proxy_event_register.patch
+          - pin: pr1531-f30d5668-r2
+            variant: pr1531
+            gateway_sha: f30d5668eeceadde55200c73bc5c448477672757
+            ipc_binding: mw_com
+            communication_patch: patches/communication-pr1531-generic_proxy_event_register.patch
     env:
       GATEWAY_SHA: ${{ matrix.gateway_sha }}
       IPC_BINDING: ${{ matrix.ipc_binding }}
       SPIKE_PIN: ${{ matrix.pin }}
+      SPIKE_VARIANT: ${{ matrix.variant }}
+      # path relative to SPIKE_DIR; empty = no patch
+      COMMUNICATION_PATCH: ${{ matrix.communication_patch }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,9 +103,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ~/.cache/spike-bazel
-          key: spike-bazel-xdomain-${{ env.GATEWAY_SHA }}-${{ hashFiles('docs/spikes/score-someip-gateway-feasibility/overlay/**', 'docs/spikes/score-someip-gateway-feasibility/config/**') }}
+          key: spike-bazel-xdomain-${{ env.GATEWAY_SHA }}-${{ matrix.variant }}-${{ hashFiles('docs/spikes/score-someip-gateway-feasibility/overlay/**', 'docs/spikes/score-someip-gateway-feasibility/config/**') }}
           restore-keys: |
-            spike-bazel-xdomain-${{ env.GATEWAY_SHA }}-
+            spike-bazel-xdomain-${{ env.GATEWAY_SHA }}-${{ matrix.variant }}-
       - name: Check out the gateway at the pinned commit, add the spike package
         run: bash "$SPIKE_DIR/scripts/ci_checkout_gateway.sh" "$RUNNER_TEMP/gw" "$RUNNER_TEMP/facts" --overlay
       - name: Build the gateway and the spike publisher
@@ -100,7 +128,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: ~/.cache/spike-bazel
-          key: spike-bazel-xdomain-${{ env.GATEWAY_SHA }}-${{ hashFiles('docs/spikes/score-someip-gateway-feasibility/overlay/**', 'docs/spikes/score-someip-gateway-feasibility/config/**') }}
+          key: spike-bazel-xdomain-${{ env.GATEWAY_SHA }}-${{ matrix.variant }}-${{ hashFiles('docs/spikes/score-someip-gateway-feasibility/overlay/**', 'docs/spikes/score-someip-gateway-feasibility/config/**') }}
       - name: Create the two network domains
         run: sudo python3 "$SPIKE_DIR/scripts/xdomain.py" netns-up --out "$RUNNER_TEMP/facts"
       - name: Run the scenarios
@@ -122,7 +150,7 @@ jobs:
           python3 "$SPIKE_DIR/scripts/analyze.py" "$RUNNER_TEMP/results" \
             --json "$RUNNER_TEMP/results/analysis.json" --markdown "$RUNNER_TEMP/results/analysis.md"
           {
-            echo "### Pin $SPIKE_PIN (inc_someip_gateway $GATEWAY_SHA, IPC binding $IPC_BINDING)"
+            echo "### Pin $SPIKE_PIN (inc_someip_gateway $GATEWAY_SHA, IPC binding $IPC_BINDING, communication patch: ${COMMUNICATION_PATCH:-none})"
             echo
             cat "$RUNNER_TEMP/results/analysis.md"
           } >> "$GITHUB_STEP_SUMMARY"

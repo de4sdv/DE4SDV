@@ -73,6 +73,34 @@ runs per pin. It changes no scenario, script, overlay or configuration. It
 adds one measurement step that records the disk and memory use after the
 build.
 
+## Rerun at f30d5668, with and without communication PR 1531 (2026-11-03)
+
+inc_someip_gateway main moved to `f30d5668`. Since `d9eac670`, the gatewayd
+and someipd sources are unchanged. score_communication moved from 0.5.0 to
+0.6.0, score_baselibs from 0.2.16 to 0.2.17, and Bazel from 8.6.0 to 8.8.2.
+The legacy message-passing `gateway_ipc_binding` code is removed. The workflow
+`.github/workflows/spike-score-someip-gateway-rerun-f30d5668.yml` on the
+branch `spike/score-someip-gateway-f30d5668` runs the same scenarios in two
+variants, two runs each:
+
+- `main-f30d5668-r1`, `-r2`: the pin as it is.
+- `pr1531-f30d5668-r1`, `-r2`: the pin plus the one-line implementation change
+  of eclipse-score/communication PR 1531 (head `0c5f0020`, "Fix generic proxy
+  cleanup with active subscriptions"), in
+  `patches/communication-pr1531-generic_proxy_event_register.patch`. The
+  checkout script copies the patch into `//de4sdv_spike` and appends it to the
+  patches of the gateway's `score_communication` override. `MODULE.bazel` is
+  then the only modified upstream file, and the script fails if its diff is
+  not exactly that one added line. After patching, `generic_proxy_event.cpp`
+  is byte-identical to the file at the PR head. The other files that the
+  change uses are identical in 0.6.0 and at the PR head. The PR's test-code
+  changes are not applied.
+
+The question for the `pr1531` variant is whether SIGTERM still aborts a
+gatewayd that is subscribed to a local event (communication issue 1430). The
+`main` variant gives current numbers for the other open defects. No scenario,
+script, overlay or configuration changes.
+
 ## Layout
 
 - `overlay/de4sdv_spike/`: the Bazel package added to the gateway checkout

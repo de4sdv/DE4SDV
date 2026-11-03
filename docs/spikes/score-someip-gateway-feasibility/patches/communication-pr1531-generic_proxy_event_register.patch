@@ -1,0 +1,11 @@
+diff --git a/score/mw/com/impl/generic_proxy_event.cpp b/score/mw/com/impl/generic_proxy_event.cpp
+--- a/score/mw/com/impl/generic_proxy_event.cpp
++++ b/score/mw/com/impl/generic_proxy_event.cpp
+@@ -29,6 +29,7 @@ GenericProxyEvent::GenericProxyEvent(ProxyBase& parent, const std::string_view e
+                              return Result<std::unique_ptr<ProxyEventBinding>>{std::move(binding)};
+                          })}
+ {
++    ProxyBaseView{parent}.RegisterEvent(event_name, GetReferenceToMoveable());
+ }
+ 
+ GenericProxyEvent::GenericProxyEvent(const std::string_view event_name,
