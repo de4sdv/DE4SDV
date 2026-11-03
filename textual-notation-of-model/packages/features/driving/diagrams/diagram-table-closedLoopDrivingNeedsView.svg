@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1232" height="1254" viewBox="0 0 1232 1254" role="img" aria-labelledby="title description">
+  <title id="title">table-closedLoopDrivingNeedsView</title>
+  <desc id="description">table-closedLoopDrivingNeedsView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="1232" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-closedLoopDrivingNeedsView</text>
+  <rect x="0" y="54" width="152" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="152" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">Need</tspan>
+  </text>
+  <rect x="512" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="524" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="524" dy="0">Statement</tspan>
+  </text>
+  <rect x="872" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="884" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="884" dy="0">Source</tspan>
+  </text>
+  <rect x="0" y="94" width="152" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-DRIVING-001</tspan>
+  </text>
+  <rect x="152" y="94" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">needDrivenAlongTheRoute</tspan>
+  </text>
+  <rect x="512" y="94" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="524" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="524" dy="0">Vehicle occupants need the vehicle to take</tspan>
+    <tspan x="524" dy="20">them along the route to the destination</tspan>
+    <tspan x="524" dy="20">the driver chose, steered and accelerated</tspan>
+    <tspan x="524" dy="20">by the driving system's own plans, made</tspan>
+    <tspan x="524" dy="20">from the vehicle's live camera images, its</tspan>
+    <tspan x="524" dy="20">motion and the route.</tspan>
+  </text>
+  <rect x="872" y="94" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="884" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="884" dy="0">INC-DRIVING-001</tspan>
+    <tspan x="884" dy="20">drivenAlongTheRouteConcern, scope item</tspan>
+    <tspan x="884" dy="20">learnedDrivingInScope, scenario SC-</tspan>
+    <tspan x="884" dy="20">DRIVING-001 (the route from the navigation</tspan>
+    <tspan x="884" dy="20">context role); the review answers</tspan>
+    <tspan x="884" dy="20">checkpointCommandAuthorityConcern</tspan>
+  </text>
+  <rect x="0" y="234" width="152" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-DRIVING-002</tspan>
+  </text>
+  <rect x="152" y="234" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">needPlansAndCommandsThroughSCORE</tspan>
+  </text>
+  <rect x="512" y="234" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="524" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="524" dy="0">System architects, software developers and</tspan>
+    <tspan x="524" dy="20">maintainers need the plans and commands of</tspan>
+    <tspan x="524" dy="20">the driving system to pass between</tspan>
+    <tspan x="524" dy="20">planning and the vehicle's actuation</tspan>
+    <tspan x="524" dy="20">through Eclipse S-CORE communication, with</tspan>
+    <tspan x="524" dy="20">no exchange on that path that goes around</tspan>
+    <tspan x="524" dy="20">it.</tspan>
+  </text>
+  <rect x="872" y="234" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="884" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="884" dy="0">INC-DRIVING-001 scoreCommandPathConcern,</tspan>
+    <tspan x="884" dy="20">scope item</tspan>
+    <tspan x="884" dy="20">integrationAndObservationInScope (S-CORE</tspan>
+    <tspan x="884" dy="20">part), gap gapTransportAndControl,</tspan>
+    <tspan x="884" dy="20">assumption asmCandidateReuse, scenario SC-</tspan>
+    <tspan x="884" dy="20">DRIVING-001</tspan>
+  </text>
+  <rect x="0" y="394" width="152" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-DRIVING-003</tspan>
+  </text>
+  <rect x="152" y="394" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">needLiveStateForAAOS</tspan>
+  </text>
+  <rect x="512" y="394" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="524" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="524" dy="0">Vehicle occupants and verification</tspan>
+    <tspan x="524" dy="20">engineers need the driving system to</tspan>
+    <tspan x="524" dy="20">publish its plan, the vehicle state and</tspan>
+    <tspan x="524" dy="20">its health as it produces them in the</tspan>
+    <tspan x="524" dy="20">running loop, each with its producer and</tspan>
+    <tspan x="524" dy="20">its time, so that what AAOS SDV presents</tspan>
+    <tspan x="524" dy="20">is what the vehicle is doing now.</tspan>
+  </text>
+  <rect x="872" y="394" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="884" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="884" dy="0">INC-DRIVING-001</tspan>
+    <tspan x="884" dy="20">aaosObservationFidelityConcern, scope item</tspan>
+    <tspan x="884" dy="20">integrationAndObservationInScope (AAOS</tspan>
+    <tspan x="884" dy="20">part), gap gapTransportAndControl,</tspan>
+    <tspan x="884" dy="20">scenario SC-DRIVING-002; owner decision</tspan>
+    <tspan x="884" dy="20">2026-11-02 (AAOS SDV is a context role)</tspan>
+  </text>
+  <rect x="0" y="554" width="152" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-DRIVING-004</tspan>
+  </text>
+  <rect x="152" y="554" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">needLoopIndependentOfAAOS</tspan>
+  </text>
+  <rect x="512" y="554" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="524" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="524" dy="0">Vehicle occupants need the vehicle to keep</tspan>
+    <tspan x="524" dy="20">driving when AAOS SDV, its application or</tspan>
+    <tspan x="524" dy="20">the path to it is down or late: a failed</tspan>
+    <tspan x="524" dy="20">or slow display neither stops the driving</tspan>
+    <tspan x="524" dy="20">system nor changes how it plans and</tspan>
+    <tspan x="524" dy="20">commands.</tspan>
+  </text>
+  <rect x="872" y="554" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="884" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="884" dy="0">INC-DRIVING-001</tspan>
+    <tspan x="884" dy="20">aaosObservationFidelityConcern (AAOS SDV</tspan>
+    <tspan x="884" dy="20">typed as a context role), gap</tspan>
+    <tspan x="884" dy="20">gapTransportAndControl (the display is not</tspan>
+    <tspan x="884" dy="20">in the fast control loop), scenario SC-</tspan>
+    <tspan x="884" dy="20">DRIVING-004; owner decision 2026-11-02</tspan>
+    <tspan x="884" dy="20">(removing AAOS SDV leaves the plan-to-</tspan>
+    <tspan x="884" dy="20">command chain unchanged)</tspan>
+  </text>
+  <rect x="0" y="734" width="152" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-DRIVING-005</tspan>
+  </text>
+  <rect x="152" y="734" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">needDefinedResponseToDegradedInputOrPlan</tspan>
+  </text>
+  <rect x="512" y="734" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="524" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="524" dy="0">Vehicle occupants and road users need the</tspan>
+    <tspan x="524" dy="20">driving system, when the camera images,</tspan>
+    <tspan x="524" dy="20">the motion of the vehicle or the route</tspan>
+    <tspan x="524" dy="20">become invalid, lost or stale, or a plan</tspan>
+    <tspan x="524" dy="20">becomes invalid, late, lost or stale, to</tspan>
+    <tspan x="524" dy="20">give the vehicle a defined stop or disable</tspan>
+    <tspan x="524" dy="20">response instead of acting on the last</tspan>
+    <tspan x="524" dy="20">plan, and to publish that it is degraded.</tspan>
+  </text>
+  <rect x="872" y="734" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="884" y="758" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="884" dy="0">INC-DRIVING-001</tspan>
+    <tspan x="884" dy="20">degradedInputBehaviorConcern, scope item</tspan>
+    <tspan x="884" dy="20">feedbackAndTimingInScope (behavior part),</tspan>
+    <tspan x="884" dy="20">gap gapTransportAndControl, scenario SC-</tspan>
+    <tspan x="884" dy="20">DRIVING-003</tspan>
+  </text>
+  <rect x="0" y="914" width="152" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-DRIVING-006</tspan>
+  </text>
+  <rect x="152" y="914" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">needTimesMeasurableInTheirOwnDomain</tspan>
+  </text>
+  <rect x="512" y="914" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="524" y="938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="524" dy="0">Verification engineers and systems</tspan>
+    <tspan x="524" dy="20">engineers need the driving system to carry</tspan>
+    <tspan x="524" dy="20">the time of each camera image, motion</tspan>
+    <tspan x="524" dy="20">sample, plan and command with it, so that</tspan>
+    <tspan x="524" dy="20">the age of an input at actuation, the</tspan>
+    <tspan x="524" dy="20">planning cadence and the transport delay</tspan>
+    <tspan x="524" dy="20">can each be measured in its own time</tspan>
+    <tspan x="524" dy="20">domain.</tspan>
+  </text>
+  <rect x="872" y="914" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="884" y="938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="884" dy="0">INC-DRIVING-001 timeDomainHonestyConcern,</tspan>
+    <tspan x="884" dy="20">scope item feedbackAndTimingInScope</tspan>
+    <tspan x="884" dy="20">(timing part), gap</tspan>
+    <tspan x="884" dy="20">gapClosedLoopPerformance</tspan>
+  </text>
+  <rect x="0" y="1094" width="152" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-DRIVING-007</tspan>
+  </text>
+  <rect x="152" y="1094" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">needRunsIdentifyCheckpointAndConfiguration</tspan>
+  </text>
+  <rect x="512" y="1094" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="524" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="524" dy="0">Verification engineers, maintainers and</tspan>
+    <tspan x="524" dy="20">open-source reviewers need each run of the</tspan>
+    <tspan x="524" dy="20">driving system to identify the checkpoint</tspan>
+    <tspan x="524" dy="20">and the configuration it ran with, so that</tspan>
+    <tspan x="524" dy="20">another engineer can rerun it.</tspan>
+  </text>
+  <rect x="872" y="1094" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="884" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="884" dy="0">INC-DRIVING-001</tspan>
+    <tspan x="884" dy="20">reproducibleClosedLoopEvidenceConcern,</tspan>
+    <tspan x="884" dy="20">scope item closedLoopEvidenceInScope, out-</tspan>
+    <tspan x="884" dy="20">of-scope item modelTrainingOutOfScope (no</tspan>
+    <tspan x="884" dy="20">undisclosed checkpoint swap), gap</tspan>
+    <tspan x="884" dy="20">gapAdoptionAndRights (source, checkpoint</tspan>
+    <tspan x="884" dy="20">and configuration pinned separately)</tspan>
+  </text>
+</svg>
