@@ -12,6 +12,7 @@ no dispatch.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shlex
 import subprocess
@@ -34,6 +35,15 @@ UPLOAD = "Upload exact-head ingestion evidence"
 VALIDATE = "Validate exact-revision checkout"
 GUARDS = ("Refuse a dirty checkout before the import",
           "Refuse a dirty checkout before the candidate imports")
+FREE = "Free runner disk space"
+# Preinstalled toolchains no step of the job runs. setup-python and setup-java
+# keep /opt/hostedtoolcache/{Python,Java_*}; Docker and the services stay.
+UNUSED_TOOLCHAINS = ("/usr/local/lib/android", "/usr/share/dotnet", "/usr/local/.ghcup",
+                     "/opt/ghc", "/opt/hostedtoolcache/CodeQL", "/usr/share/swift")
+DISK_REPORTS = (("Report runner disk after the import", "after the import"),
+                ("Report runner disk before the candidate imports", "before the candidate imports"),
+                ("Report runner disk after the candidate imports", "after the candidate imports"),
+                ("Report runner disk at the end of the run", "at the end of the run"))
 
 
 def _workflow():
@@ -238,7 +248,7 @@ class _Parsed(Exception):
 
 _SCRIPTS = ("validate_full_model_semantic_queries.py", "validate_product_line_scope_api.py",
             "validate_semantic_mcp.py", "import_sysml_api_baseline.py",
-            "check_release_evidence.py")
+            "check_release_evidence.py", "report_runner_disk.py")
 _COMMANDS = [c for c in _commands() if Path(c[1][1]).name in _SCRIPTS]
 
 
@@ -295,3 +305,61 @@ def test_a_dirty_checkout_guard_refuses_what_the_startup_check_refuses(tmp_path,
         assert result.returncode == 1 and "?? logs/" in result.stderr, result.stderr
     else:
         assert result.returncode == 0, result.stderr
+
+
+# Release run 41718067304 (cdc45dc2) died with "No space left on device" while
+# importing candidate transaction 1, on the image and workflow the release
+# before it passed on, and the runner lost its job log. The job writes several
+# GB (three imports into PostgreSQL, the API service log, the exports).
+
+
+def test_the_job_frees_unused_toolchains_before_it_writes_anything():
+    names = _names()
+    assert names.index(VALIDATE) < names.index(FREE) < names.index(
+        "Install Sysand and pinned model dependencies")
+    step = _step(FREE)
+    assert step.get("continue-on-error") is True  # a failed removal must not cost the release
+    joined = re.sub(r"\\\n\s*", " ", step["run"])
+    removals = [shlex.split(line) for line in joined.splitlines()
+                if line.strip().startswith(("rm ", "sudo "))]
+    assert removals == [["sudo", "rm", "-rf", *UNUSED_TOOLCHAINS]]
+    others = "\n".join(str(s.get("run") or "") + str(s.get("uses") or "") + str(s.get("with") or "")
+                       for s in _steps() if s.get("name") != FREE).lower()
+    for toolchain in ("android", "dotnet", "ghc", "codeql", "swift"):
+        assert toolchain not in others, toolchain
+
+
+def test_the_free_step_removes_through_sudo_and_reports_the_space_it_won(tmp_path):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    calls = tmp_path / "sudo.calls"
+    sudo = bin_dir / "sudo"  # records the call; nothing is removed
+    sudo.write_text(f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{calls}"\n', encoding="utf-8")
+    sudo.chmod(0o755)
+    env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"}
+    result = subprocess.run(["bash", "-e", "-c", _step(FREE)["run"]], cwd=tmp_path, env=env,
+                            capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert calls.read_text(encoding="utf-8").splitlines() == ["rm -rf " + " ".join(UNUSED_TOOLCHAINS)]
+    assert re.search(r"^::notice title=Runner disk::at the start: \d+ GiB free before removing "
+                     r"unused toolchains, \d+ GiB after$", result.stdout, re.M), result.stdout
+
+
+def test_disk_reports_bracket_the_imports_and_close_the_run():
+    names = _names()
+
+    def next_to(name):
+        return names[names.index(name) + 1]
+
+    assert next_to("Import and validate exact API revision") == DISK_REPORTS[0][0]
+    assert names.index(GUARDS[1]) < names.index(DISK_REPORTS[1][0])
+    assert next_to(DISK_REPORTS[1][0]) == "Import candidate transaction 1 into a distinct API project"
+    assert next_to("Import candidate transaction 2 into a second distinct API project") == DISK_REPORTS[2][0]
+    assert next_to(DISK_REPORTS[3][0]) == "Trim API service log for upload"
+    assert _step(DISK_REPORTS[3][0]).get("if") == "always()"
+    for name, label in DISK_REPORTS:
+        step = _step(name)
+        assert step.get("continue-on-error") is True, name  # a diagnostic never fails a release
+        assert step.get("env") == {"POSTGRES_CONTAINER": "${{ job.services.postgres.id }}"}, name
+        assert shlex.split(step["run"]) == ["python", "scripts/report_runner_disk.py", "--label", label,
+                                            "--postgres-container", "$POSTGRES_CONTAINER"], name
