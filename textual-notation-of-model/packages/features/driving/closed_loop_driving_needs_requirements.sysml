@@ -9,9 +9,9 @@
  * a scenario of phase 2, carried out by the roles that check the answer.
  * Phase 5: the requirements derived from these needs, each with one
  * subject, the candidate driving system, one verification method and its
- * success criteria. Their values come from the AutoE2E source at the
- * checkpoint pin cb50764b, which each rationale cites. The requirements are
- * not core: the driving system enters a member product only with the
+ * success criteria. A value taken from the AutoE2E source at the
+ * checkpoint pin cb50764b cites it in its rationale; the other limits are
+ * set here and justified in theirs. The requirements are not core: the driving system enters a member product only with the
  * driving stack that phase 3 records as the feature candidate
  * autoE2EDrivingStack, and phase 9 adds that feature to the feature model
  * and links the system of interest to it.
@@ -223,7 +223,7 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
     subject drivingSystem :> DE4SDV_ClosedLoopDrivingFraming::candidateDrivingSystem;
     require constraint statement { language "English" /* The driving system shall give the checkpoint, for each step, the map of the roads around the vehicle and the route from navigation as the map_context raster of 14 channels and the route_mask raster of two channels, route corridor and destination, both in the geometry autoe2e-bev-450x300-0p4m-v1 of 450 by 300 pixels at 0.4 m per pixel, brought to the time of the step. */ }
     attribute :>> source = "NEED-DRIVING-001; scenario SC-DRIVING-001 (the route from the navigation context role); gap gapModelInputAndFeedback";
-    attribute :>> rationale = "AutoE2E is conditioned on a route raster, not on discrete commands. The geometry is the one the training and packing manifests of the source at cb50764b record (AUTOE2E_NAVIGATION_GEOMETRY in Model/navigation/geometry.py: 60 m behind to 120 m ahead and 60 m to each side); the module default is another geometry of 256 by 256 pixels at 1.0 m per pixel, so the geometry is named. The route channels are the selected corridor and the destination. The source renders the rasters at 2 Hz and warps them to each 10 Hz step with the localization of the vehicle.";
+    attribute :>> rationale = "AutoE2E is conditioned on a route raster, not on discrete commands. The geometry is the one the training and packing manifests of the source at cb50764b record (AUTOE2E_NAVIGATION_GEOMETRY in Model/navigation/geometry.py: 60 m behind to 120 m ahead and 60 m to each side); the module default is another geometry of 256 by 256 pixels at 1.0 m per pixel, so the geometry is named. The route channels are the selected corridor and the destination. The source sets the rasters at 2 Hz (RASTER_HZ), warped to each 10 Hz step with the localization of the vehicle.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when the inputs recorded for every plan of a run of SC-DRIVING-001 hold a map_context of 14 channels and a route_mask of two channels, both of 450 by 300 pixels and tagged with the geometry autoe2e-bev-450x300-0p4m-v1, whose route corridor covers the route navigation gave for the run, and whose raster was rendered no more than 500 ms of simulation time before the step.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
@@ -383,7 +383,7 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
     subject drivingSystem :> DE4SDV_ClosedLoopDrivingFraming::candidateDrivingSystem;
     require constraint statement { language "English" /* The driving system shall produce no plan from a checkpoint whose SHA-256 differs from the one its configuration names, or when its configuration names none. */ }
     attribute :>> source = "NEED-DRIVING-007; out-of-scope item modelTrainingOutOfScope (no undisclosed checkpoint swap); assumption asmSourceAuthenticity";
-    attribute :>> rationale = "A swapped or untrained checkpoint would still drive, and the run would still name its configuration; refusing to plan makes a swap visible instead of undisclosed. Random weights are no substitute for the source (asmSourceAuthenticity); the AlpaSim driver plugin of the source at cb50764b has an untrained mode (UNTRAINED_CHECKPOINT), which names no checkpoint and is refused as well.";
+    attribute :>> rationale = "A swapped or untrained checkpoint would still drive, and the run would still name its configuration; refusing to plan makes a swap visible instead of undisclosed. Random weights are no substitute for the source (asmSourceAuthenticity); the AlpaSim driver plugin of the source at cb50764b has an untrained and a mock mode (UNTRAINED_CHECKPOINT, MOCK_CHECKPOINT), which load no checkpoint file and so have no SHA-256 to match; they are refused as well.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when, given a checkpoint file that differs from the named one in a single byte, and given a configuration that names no checkpoint SHA-256, the driving system produces no plan, the vehicle stays at standstill, and the health names the mismatch.";
     attribute :>> verificationStatus = VVStatus::NotStarted;

@@ -50,8 +50,11 @@ The planning objective is at least **20 fresh rendered frames per wall-clock
 second**, targeting **24 fps live capture** without speeding up a slow simulation.
 These numbers are not model-invocation rates or fulfilled requirements. Simulation
 real-time factor, inference cadence, input-to-actuation age, observation age and
-capture continuity need separate evidence. Phase 5 fixes scenario, resolution,
-duration, windows, drop tolerance and freshness/control deadlines before testing.
+capture continuity need separate evidence. Phase 5 fixes the share of the
+driving system: input resolution, measurement window, drop tolerance, freshness
+limits and control deadlines. The frame rate, capture rate and render
+resolution of the simulator, and the CARLA map and route, are fixed with the
+System 2 bench before the readiness probe.
 
 The released checkpoint must be evaluated with its compatible geometry and
 history. Fast synthetic-input results do not prove its performance. Neither
@@ -216,9 +219,11 @@ the right ones.
 Nineteen requirements, `REQ-DRIVING-012` to `REQ-DRIVING-030`, take the
 candidate driving system as subject. Each derives from one need through
 `DerivesFromNeed` and carries one verification method, `test`, and its success
-criteria. Their values come from the AutoE2E source at the checkpoint pin,
-which each rationale cites; a difference found when the checkpoint itself is
-pinned revises the requirement. Grouped by the need they answer:
+criteria. A value taken from the AutoE2E source at the checkpoint pin cites
+it in its rationale, and a difference found when the checkpoint itself is
+pinned revises the requirement. The freshness limits, the deadlines and the
+stop deceleration are set in Phase 5, each with its reason in its rationale.
+Grouped by the need they answer:
 
 - **Driven along the route (001):** one plan for each 100 ms of simulation
   time from the pinned checkpoint (012); the camera, route and ego-motion
@@ -228,13 +233,12 @@ pinned revises the requirement. Grouped by the need they answer:
   each plan within 100 ms of wall-clock time (018).
 - **S-CORE command path (002):** plans and the commands computed from them
   reach the actuation only over Eclipse S-CORE (019).
-- **AAOS observation fidelity (003):** each plan, motion sample, command and
-  the health is published once, with its producer and production time, within
-  one planning period (020), and the health at least every 200 ms of
-  wall-clock time, also while no plan is produced (021).
-- **AAOS observation fidelity (004):** with the same recorded inputs, the
-  plans and commands are the same whether AAOS SDV receives on time, 1 s late
-  or not at all (022).
+- **AAOS observation fidelity (003, 004):** each plan, motion sample, command
+  and the health is published once, with its producer and production time,
+  within 100 ms of wall-clock time (020), and the health at least every 200 ms
+  of wall-clock time, also while no plan is produced (021); with the same
+  recorded inputs, the plans and commands are the same whether AAOS SDV
+  receives on time, 1 s late or not at all (022).
 - **Degraded input behavior (005):** one stop response decelerates at 4 m/s²
   to standstill, steering held, and keeps the vehicle there (023), begun by
   images or motion samples more than 200 ms old, a route more than 1 s old or
@@ -258,19 +262,23 @@ What stays open with the System 2 bench is the rendered frame rate, the
 capture rate and render resolution of the simulator, and the CARLA map and
 route of `SC-DRIVING-001`, recorded in the model on `gapClosedLoopPerformance`.
 
-The requirements are not core: Phase 9 adds the AutoE2E feature to the feature
-model and links the system of interest to it, and until then a member product
-enters only with the driving stack Phase 3 records as `autoE2EDrivingStack`.
-No member product, safety, on-road or production claim is made; the Phase 5
-gates check statements, subjects, sources, rationales, methods and criteria.
+The requirements are not core: the driving system enters a member product
+only with the driving stack that Phase 3 records as the feature candidate
+`autoE2EDrivingStack`, and Phase 9 adds that feature to the feature model and
+links the system of interest to it. No member product, safety, on-road or
+production claim is made. The Phase 5 gates check that each requirement has a
+statement, derives from a need, has one subject and one verification method,
+and, as advisories, that its subject is the system of interest and that it
+states its success criteria; review judges whether the requirements are the
+right ones and whether their values hold.
 
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is **Phase 6**, the functional architecture;
-its first gate is `functionalRequirementAllocatedToFunction`, as the reviewer
-confirms the gate name against Method Check after the push.
+work is complete. The next work is **Phase 6**, the functional architecture:
+the functions of the driving system, with each functional requirement
+allocated to one of them.
 Do not jump from this context to implementation or claim a passed runtime
 gate.
 
