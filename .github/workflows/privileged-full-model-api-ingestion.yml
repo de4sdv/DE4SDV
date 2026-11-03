@@ -86,6 +86,22 @@ jobs:
             exit 1
           fi
 
+      # Release run 41718067304 (cdc45dc2) died with "No space left on device"
+      # while importing candidate transaction 1, on the workflow and image the
+      # release before it passed on, and the runner lost its job log. The job
+      # writes several GB (three imports into PostgreSQL, the API service log,
+      # the exports), so it first removes preinstalled toolchains no step runs.
+      # setup-python and setup-java keep theirs; Docker and the services stay.
+      - name: Free runner disk space
+        continue-on-error: true
+        run: |
+          before="$(df -BG --output=avail / | tail -n 1 | tr -dc 0-9)"
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /usr/local/.ghcup \
+            /opt/ghc /opt/hostedtoolcache/CodeQL /usr/share/swift
+          after="$(df -BG --output=avail / | tail -n 1 | tr -dc 0-9)"
+          df -h /
+          echo "::notice title=Runner disk::at the start: ${before} GiB free before removing unused toolchains, ${after} GiB after"
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -195,6 +211,15 @@ jobs:
             --binding /tmp/de4sdv-full-model-binding.json \
             --report /tmp/de4sdv-full-model-semantic-validation.json
 
+      # Free disk, the API service log, the exports and the database, as one
+      # annotation: annotations of finished steps survive a runner that dies
+      # of a full disk, its job log does not. Never fails the run.
+      - name: Report runner disk after the import
+        continue-on-error: true
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: python scripts/report_runner_disk.py --label "after the import" --postgres-container "$POSTGRES_CONTAINER"
+
       - name: Exercise production semantic concerns and the successor parity
         # Three impact concerns, then the successor parity: over the API
         # revision this run imported, the production runtime must serve the
@@ -266,6 +291,12 @@ jobs:
             exit 1
           fi
 
+      - name: Report runner disk before the candidate imports
+        continue-on-error: true
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: python scripts/report_runner_disk.py --label "before the candidate imports" --postgres-container "$POSTGRES_CONTAINER"
+
       - name: Import candidate transaction 1 into a distinct API project
         run: |
           python scripts/import_sysml_api_baseline.py \
@@ -283,6 +314,12 @@ jobs:
             --binding /tmp/de4sdv-candidate-binding-2.json \
             --report /tmp/de4sdv-candidate-semantic-validation-2.json \
             --candidate
+
+      - name: Report runner disk after the candidate imports
+        continue-on-error: true
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: python scripts/report_runner_disk.py --label "after the candidate imports" --postgres-container "$POSTGRES_CONTAINER"
 
       - name: MC-14 correspondence across the two independent transactions
         run: |
@@ -323,6 +360,13 @@ jobs:
             tests/test_sysml_full_ingestion.py \
             tests/test_sysml_api_semantic.py \
             tests/test_semantic_mcp.py -q
+
+      - name: Report runner disk at the end of the run
+        if: always()
+        continue-on-error: true
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: python scripts/report_runner_disk.py --label "at the end of the run" --postgres-container "$POSTGRES_CONTAINER"
 
       - name: Trim API service log for upload
         # The raw API-service log reaches multi-GB per run; reviewers only ever
