@@ -204,7 +204,7 @@ Phase 5 states it as requirements derived from `NEED-DRIVING-001`.
 
 The no-autopilot, replay or overlay condition is likewise not part of what an
 occupant states. The planned review `SC-DRIVING-005` checks it, and it is a
-success criterion of `REQ-DRIVING-017`.
+success criterion of `REQ-DRIVING-011`.
 
 Each need has its own planned stakeholder review, `SC-DRIVING-005` to
 `SC-DRIVING-011`, watching a Phase 2 scenario. Phase 5 fixes the limits and
@@ -216,41 +216,65 @@ the right ones.
 
 ## Requirements (Phase 5)
 
-Nineteen requirements, `REQ-DRIVING-012` to `REQ-DRIVING-030`, take the
+Thirty-five requirements, `REQ-DRIVING-001` to `REQ-DRIVING-035`, take the
 candidate driving system as subject. Each derives from one need through
 `DerivesFromNeed` and carries one verification method, `test`, and its success
-criteria. A value taken from the AutoE2E source at the checkpoint pin cites
-it in its rationale, and a difference found when the checkpoint itself is
-pinned revises the requirement. The freshness limits, the deadlines and the
-stop deceleration are set in Phase 5, each with its reason in its rationale.
-Grouped by the need they answer:
+criteria; each statement carries one obligation. The terms the statements use,
+among them run, step, motion sample, plan, valid plan, health and stop response,
+are defined once in the needs-and-requirements model. A value taken from the
+AutoE2E source cites it at the checkpoint pin; the freshness limits, the
+deadlines, the stop deceleration and the command limits are set in Phase 5, each
+with its reason in its rationale.
 
-- **Driven along the route (001):** one plan for each 100 ms of simulation
-  time from the pinned checkpoint (012); the camera, route and ego-motion
-  inputs in the form the checkpoint takes them (013 to 015); no motion before
-  those histories are complete with images and samples captured in the run
-  (016); commands only from the newest valid plan and current motion (017);
-  each plan within 100 ms of wall-clock time (018).
-- **S-CORE command path (002):** plans and the commands computed from them
-  reach the actuation only over Eclipse S-CORE (019).
-- **AAOS observation fidelity (003, 004):** each plan, motion sample, command
-  and the health is published once, with its producer and production time,
-  within 100 ms of wall-clock time (020), and the health at least every 200 ms
-  of wall-clock time, also while no plan is produced (021); with the same
-  recorded inputs, the plans and commands are the same whether AAOS SDV
-  receives on time, 1 s late or not at all (022).
-- **Degraded input behavior (005):** one stop response decelerates at 4 m/s²
-  to standstill, steering held, and keeps the vehicle there (023), begun by
-  images or motion samples more than 200 ms old, a route more than 1 s old or
-  without a corridor (024), a newest valid plan more than 300 ms old or not 64
-  finite pairs (025), and by commands lost for 200 ms (026); the stop and its
-  cause are published (027).
-- **Time-domain honesty (006):** every capture, sample, production, issue and
-  actuation time names its domain (028).
+Three kinds stand apart. The checkpoint, the form of the inputs it takes and the
+S-CORE path are design constraints: the increment evaluates them as they are, so
+a plan comes from that checkpoint through those inputs, and the commands computed
+from it travel over S-CORE. The limits on planning time and on independence from
+observation are performance requirements. Neither kind is functional, so Phase 6
+allocates only the other 23 requirements to functions. Grouped by the need they
+answer:
+
+- **Driven along the route (001):** one plan for each 100 ms step of simulation
+  time (001); each plan by inference of the pinned checkpoint on the camera
+  images, the ego-motion history and the route of its step (002); the input form
+  it takes: six camera images at the two sizes it asks for (003),
+  seven earlier images per camera (004), one projection operator per image (005),
+  the map_context raster (006), the route_mask raster (007) and 64 motion samples
+  100 ms apart (008); standstill until both histories are complete (009);
+  histories only from images and samples captured in the run (010); commands only
+  from the newest valid plan and current motion (011), within the steering and
+  acceleration limits the configuration names (012); each plan within 100 ms of
+  wall-clock time after its newest camera image (013), kept on this need by owner
+  decision.
+- **S-CORE command path (002):** plans and the commands computed from them reach
+  the actuation only over Eclipse S-CORE (014).
+- **AAOS observation fidelity (003, 004):** each plan and each motion sample
+  published once, with its producer and its time, within 100 ms of wall-clock
+  time (015, 016), and the health at least every 200 ms of wall-clock time, also
+  while no plan is produced (017); with the same recorded inputs, the plans and
+  commands differ by no more than two reference runs with AAOS SDV receiving on
+  time differ from each other, whether it receives on time, 1 s late or not at
+  all (018), and the planning time stays within 10 ms of its value with AAOS SDV
+  on time (019).
+- **Degraded input behavior (005):** one stop response decelerates at 4 m/s² to
+  standstill (020), holds the steering command (021) and keeps the vehicle at
+  standstill to the end of the run (022); it begins when the images of a camera
+  are missing, invalid or more than 200 ms of simulation time old (023), when the
+  newest motion sample is invalid or more than 200 ms old (024), when the route
+  is more than 1 s old or holds no corridor (025), when the newest valid plan is
+  more than 300 ms old (026), when a plan is not 64 finite pairs (027) and when
+  no valid command has reached the actuation for 200 ms (028); the stop and its
+  cause are published within 100 ms of wall-clock time (029).
+- **Time-domain honesty (006):** each camera image and motion sample carries its
+  capture time in simulation time (030), each plan the capture time of its newest
+  image and its production time on the host clock (031), and each command its
+  plan, its issue time on the host clock and its actuation time in simulation
+  time (032).
 - **Reproducible evidence (007):** each run records the SHA-256 of its
-  checkpoint, its source revision and the SHA-256 of its configuration before
-  its first plan, and every plan names that record (029), while a checkpoint
-  that differs from the named SHA-256 yields no plan (030).
+  checkpoint, its source revision and the SHA-256 of its configuration before its
+  first plan (033), every plan names that record (034), and a checkpoint that
+  differs from the named SHA-256, or a configuration that names none, yields no
+  plan (035).
 
 Two time domains stay apart. What the vehicle lives through is counted in
 simulation time: input age at the command, the interval between plans, and the
@@ -278,7 +302,9 @@ Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
 work is complete. The next work is **Phase 6**, the functional architecture:
 the functions of the driving system, with each functional requirement
-allocated to one of them.
+allocated to one of them. Its first gate is
+`functionalRequirementAllocatedToFunction`: the Method Check names it at the
+reviewed head of the first version, and it holds for this one.
 Do not jump from this context to implementation or claim a passed runtime
 gate.
 
