@@ -16,6 +16,13 @@ Relevant inspected surfaces:
 - [Checkpoint repository](https://huggingface.co/AutowareFoundation/auto_e2e).
   This is a discovery location, not an immutable checkpoint selection.
 
+Phase 5 inspected surfaces, for the requirements derived from the needs:
+
+- [Camera tiles and history](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/Model/reactive_training_contracts.py).
+- [Navigation raster geometry and rates](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/Model/navigation/geometry.py).
+- [Ego-motion history](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/Model/data_parsing/kit_scenes/egomotion.py).
+- [Control contract of the plan](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/Tools/trajectory_visualization/kinematics.py).
+
 The speed benchmark and released-checkpoint driver do not establish the same
 configuration or timed scope. The existing simulator integration is AlpaSim;
 a CARLA adapter and target-hardware evidence remain new work.
@@ -54,6 +61,12 @@ increment's result is reclassified by this framing.
   closed-loop inference, and what target-hardware timing is actually measured?
 - Which temporal/camera geometry and control-output interpretation must a CARLA
   adapter preserve, and which domain-shift limitations are known?
+- Which loading path is authoritative for closed-loop use: replaying the
+  configuration the checkpoint records, as the AlpaSim driver plugin does, or
+  rebuilding it from the training stage
+  ([inference pipeline](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/Platform/pipelines/inference.py))?
+- Which measured latency applies to the 512 by 512 input form, since the
+  published speed-benchmark rows measure 256 by 256?
 - Which checkpoint/data terms permit the intended use and evidence distribution?
 
 No upstream contact, compatibility endorsement, adoption approval or rights

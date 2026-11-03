@@ -6,9 +6,9 @@ proposes the former: real camera-based learned planning, a functional S-CORE
 integration path, and an AAOS SDV application showing genuine plan/state/health.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 capability classification and Phase 4 stakeholder needs,
-proposal.** No implementation, successful driving run, performance result or
-product-line admission is claimed.
+Phase 3 capability classification, Phase 4 stakeholder needs and Phase 5
+requirements, proposal.** No implementation, successful driving run,
+performance result or product-line admission is claimed.
 
 ## Authoritative frame
 
@@ -19,7 +19,8 @@ product-line admission is claimed.
 - [SysML capability classification](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_capability_classification.sysml):
   the Phase 3 feature candidate and the scope decisions it needs.
 - [SysML needs and requirements](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_needs_requirements.sysml):
-  the Phase 4 stakeholder needs and their planned reviews.
+  the Phase 4 stakeholder needs, their planned reviews, and the Phase 5
+  requirements.
 - [Syside review views](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifacts, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
@@ -49,8 +50,11 @@ The planning objective is at least **20 fresh rendered frames per wall-clock
 second**, targeting **24 fps live capture** without speeding up a slow simulation.
 These numbers are not model-invocation rates or fulfilled requirements. Simulation
 real-time factor, inference cadence, input-to-actuation age, observation age and
-capture continuity need separate evidence. Phase 5 must fix scenario, resolution,
-duration, windows, drop tolerance and freshness/control deadlines before testing.
+capture continuity need separate evidence. Phase 5 fixes the share of the
+driving system: input resolution, measurement window, drop tolerance, freshness
+limits and control deadlines. The frame rate, capture rate and render
+resolution of the simulator, and the CARLA map and route, are fixed with the
+System 2 bench before the readiness probe.
 
 The released checkpoint must be evaluated with its compatible geometry and
 history. Fast synthetic-input results do not prove its performance. Neither
@@ -195,32 +199,111 @@ concern, which its source names:
   configuration (007; verification engineers, maintainers, open-source
   reviewers).
 
-The form of the inputs the pinned checkpoint takes — camera images through the
-projection operator that carries their calibration, the `map_context` raster
-with the route corridor and destination, and the ego-motion history with its
-sample count and spacing — is no need of its own. It is recorded as
-`checkpointInputContractForPhase5`, a comment on `NEED-DRIVING-001` in the
-needs model, and Phase 5 states it as requirements derived from that need.
+The form of the inputs the pinned checkpoint takes is no need of its own;
+Phase 5 states it as requirements derived from `NEED-DRIVING-001`.
 
 The no-autopilot, replay or overlay condition is likewise not part of what an
-occupant states. The planned review `SC-DRIVING-005` checks it, and Phase 5
-turns it into a verification criterion.
+occupant states. The planned review `SC-DRIVING-005` checks it, and it is a
+success criterion of `REQ-DRIVING-011`.
 
 Each need has its own planned stakeholder review, `SC-DRIVING-005` to
-`SC-DRIVING-011`, watching a Phase 2 scenario. The limits and the deadlines
-come with the requirements in Phase 5. No need covers driving quality: the
-charter scopes checkpoint authority, and poor driving is a hold or redirect
-condition of the performance gap. The Phase 4 gates check that each need has
-a statement, a stakeholder, a source, a rationale and a planned review;
-review judges whether the needs are the right ones.
+`SC-DRIVING-011`, watching a Phase 2 scenario. Phase 5 fixes the limits and
+the deadlines. No need covers driving quality: the charter scopes checkpoint
+authority, and poor driving is a hold or redirect condition of the performance
+gap. The Phase 4 gates check that each need has a statement, a stakeholder, a
+source, a rationale and a planned review; review judges whether the needs are
+the right ones.
+
+## Requirements (Phase 5)
+
+Thirty-five requirements, `REQ-DRIVING-001` to `REQ-DRIVING-035`, take the
+candidate driving system as subject. Each derives from one need through
+`DerivesFromNeed` and carries one verification method, `test`, and its success
+criteria; each statement carries one obligation. The terms the statements use,
+among them run, step, motion sample, plan, valid plan, health and stop response,
+are defined once in the needs-and-requirements model. A value taken from the
+AutoE2E source cites it at the checkpoint pin; the freshness limits, the
+deadlines, the stop deceleration and the command limits are set in Phase 5, each
+with its reason in its rationale.
+
+Two kinds are not functional. The checkpoint, the form of the inputs it takes
+and the S-CORE path are design constraints: the increment evaluates them as they are, so
+a plan comes from that checkpoint through those inputs, and the commands computed
+from it travel over S-CORE. The limits on planning time and on independence from
+observation are performance requirements. Neither kind is functional, so Phase 6
+allocates only the other 23 requirements to functions. Grouped by the need they
+answer:
+
+- **Driven along the route (001):** one plan for each 100 ms step of simulation
+  time (001); each plan by inference of the pinned checkpoint on the camera
+  images, the ego-motion history and the route of its step (002); the input form
+  it takes: six camera images at the two sizes it asks for (003),
+  seven earlier images per camera (004), one projection operator per image (005),
+  the `map_context` raster (006), the `route_mask` raster (007) and 64 motion samples
+  100 ms apart (008); standstill until both histories are complete (009);
+  histories only from images and samples captured in the run (010); commands only
+  from the newest valid plan and current motion (011), within the steering and
+  acceleration limits the configuration names (012); each plan within 100 ms of
+  wall-clock time after its newest camera image (013), kept on this need by owner
+  decision.
+- **S-CORE command path (002):** plans and the commands computed from them reach
+  the actuation only over Eclipse S-CORE (014).
+- **AAOS observation fidelity (003, 004):** each plan and each motion sample
+  published once, with its producer and its time, within 100 ms of wall-clock
+  time (015, 016), and the health at least every 200 ms of wall-clock time, also
+  while no plan is produced (017); with the same recorded inputs, the plans and
+  commands differ by no more than two reference runs with AAOS SDV receiving on
+  time differ from each other, whether it receives on time, 1 s late or not at
+  all (018), and the planning time stays within 10 ms of its value with AAOS SDV
+  on time (019).
+- **Degraded input behavior (005):** one stop response decelerates at 4 m/s² to
+  standstill (020), holds the steering command (021) and keeps the vehicle at
+  standstill to the end of the run (022); it begins when the images of a camera
+  are missing, invalid or more than 200 ms of simulation time old (023), when the
+  newest motion sample is invalid or more than 200 ms old (024), when the route
+  is more than 1 s old or holds no corridor (025), when the newest valid plan is
+  more than 300 ms old (026), when a plan is not 64 finite pairs (027) and when
+  no valid command has reached the actuation for 200 ms (028); the stop and its
+  cause are published within 100 ms of wall-clock time (029).
+- **Time-domain honesty (006):** each camera image and motion sample carries its
+  capture time in simulation time (030), each plan the capture time of its newest
+  image and its production time on the host clock (031), and each command its
+  plan, its issue time on the host clock and its actuation time in simulation
+  time (032).
+- **Reproducible evidence (007):** each run records the SHA-256 of its
+  checkpoint, its source revision and the SHA-256 of its configuration before its
+  first plan (033), every plan names that record (034), and a checkpoint that
+  differs from the named SHA-256, or a configuration that names none, yields no
+  plan (035).
+
+Two time domains stay apart. What the vehicle lives through is counted in
+simulation time: input age at the command, the interval between plans, and the
+freshness limits and deadlines of the stop response. What the host does is on
+its monotonic clock: planning time, publication time and the S-CORE transport
+delay. No rate or age is read in a domain it was not measured in.
+
+What stays open with the System 2 bench is the rendered frame rate, the
+capture rate and render resolution of the simulator, and the CARLA map and
+route of `SC-DRIVING-001`, recorded in the model on `gapClosedLoopPerformance`.
+
+The requirements are not core: the driving system enters a member product
+only with the driving stack that Phase 3 records as the feature candidate
+`autoE2EDrivingStack`, and Phase 9 adds that feature to the feature model and
+links the system of interest to it. No member product, safety, on-road or
+production claim is made. The Phase 5 gates check that each requirement has a
+statement, derives from a need, has one subject and one verification method,
+and, as advisories, that its subject is the system of interest and that it
+states its success criteria; review judges whether the requirements are the
+right ones and whether their values hold.
 
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is **Phase 5**: the requirements derived
-from the needs, each with a verification method and success criteria; its
-first gate is `requirementHasStatement`.
+work is complete. The next work is **Phase 6**, the functional architecture:
+the functions of the driving system, with each functional requirement
+allocated to one of them. Its first gate is
+`functionalRequirementAllocatedToFunction`.
 Do not jump from this context to implementation or claim a passed runtime
 gate.
 
@@ -236,7 +319,8 @@ Run `sysand sync`, `python scripts/check_repo.py`, `python scripts/smoke_test.py
 and `python -m pytest -q` on `tests/test_closed_loop_driving_framing.py`,
 `tests/test_closed_loop_driving_operational_context.py`,
 `tests/test_closed_loop_driving_capability_classification.py`,
-`tests/test_closed_loop_driving_needs.py` and
+`tests/test_closed_loop_driving_needs.py`,
+`tests/test_closed_loop_driving_requirements.py` and
 `tests/test_check_naming.py`.
 These are repository/lexical checks, not SysML semantic or runtime verification.
 Use `python scripts/validate_sysml.py` when a supported licensed validator is
