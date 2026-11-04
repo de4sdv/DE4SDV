@@ -14,7 +14,10 @@ package FramesFeature {
     doc /* SAF Frames Domain: Frames Viewpoint. Aspect: Test & Sample */
   }
 
+  // `frame` in a comment of a viewpoint definition is no frame either
   viewpoint def BaseFramingViewpoint {
+    doc /* frame concern docGhostConcern : GhostConcern; */
+    // frame lineGhostConcern;
     frame concern baseConcern : BaseConcern;
   }
 
@@ -61,6 +64,15 @@ package FramesFeature {
 
   view inheritedAndOwnView {
     viewpoint selected : MidFramingViewpoint {
+      frame alphaConcern;
+    }
+    expose FramesFeature::*;
+  }
+
+  // the same concern framed twice in one usage is one frame
+  view duplicateOwnFrameView {
+    viewpoint selected : PlainFramingViewpoint {
+      frame alphaConcern;
       frame alphaConcern;
     }
     expose FramesFeature::*;

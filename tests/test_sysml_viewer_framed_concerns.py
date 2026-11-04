@@ -85,6 +85,19 @@ def test_frame_word_in_comments_is_no_frame(views):
     assert [f.name for f in view.frames] == ["alphaConcern"]
 
 
+def test_frame_word_in_comments_of_a_viewpoint_definition_is_no_frame(views):
+    """`frame` in a doc or line comment of a viewpoint definition frames
+    nothing, so a typed usage inherits only the definition's real frames."""
+    view = views["inheritedOnlyView"]
+    assert [f.name for f in view.inherited_frames] == ["baseConcern"]
+
+
+def test_a_concern_framed_twice_in_one_usage_is_one_frame(views):
+    """A usage that states the same frame twice frames that concern once."""
+    view = views["duplicateOwnFrameView"]
+    assert [f.name for f in view.frames] == ["alphaConcern"]
+
+
 def test_a_viewpoint_with_no_frames_has_none(views):
     view = views["noFramesView"]
     assert view.frames == []
