@@ -1,9 +1,11 @@
 """The runner disk report of the privileged ingestion (scripts/report_runner_disk.py).
 
-One ``::notice`` annotation per call, because the annotations of finished steps
-survive a runner that dies of a full disk while its job log does not (release
-run 41718067304). The report is diagnostic: it exits 0 whatever it cannot
-measure and writes nothing into the checkout the dirty-checkout guards read.
+One ``::notice`` annotation per call. When release run 41718067304 died of a
+full disk, the job kept GitHub's annotation of the crash and lost its job log;
+run 41736484152 showed the notices once the job completed. Whether they outlive
+a runner that dies is untested. The report is diagnostic: it exits 0 whatever
+it cannot measure and writes nothing into the checkout the dirty-checkout
+guards read.
 """
 from __future__ import annotations
 

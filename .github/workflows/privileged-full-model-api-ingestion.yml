@@ -212,8 +212,9 @@ jobs:
             --report /tmp/de4sdv-full-model-semantic-validation.json
 
       # Free disk, the API service log, the exports and the database, as one
-      # annotation: annotations of finished steps survive a runner that dies
-      # of a full disk, its job log does not. Never fails the run.
+      # notice annotation. The notices show on the job once it completes (run
+      # 41736484152); whether they outlive a runner that dies is untested.
+      # Never fails the run.
       - name: Report runner disk after the import
         continue-on-error: true
         env:
