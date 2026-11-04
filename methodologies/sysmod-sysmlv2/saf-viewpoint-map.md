@@ -175,7 +175,18 @@ Each engineering-domain viewpoint def carries a `doc` comment naming its SAF sou
 
 SAF viewpoints are in `textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml`.
 DE4SDV method-governance viewpoints are in `textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml`.
-New SAF viewpoints are added to `SAF_Viewpoints` incrementally as DE4SDV increments need them.
+
+`SAF_Viewpoints` now carries all 58 viewpoints of the current SAF grid, so every
+viewpoint this map selects has a definition to frame a view with. The catch-up
+that completed it added the eight the recommended subsets already relied on —
+EA Traceability, System Context Definition, System Context Exchange, System
+Capability Mapping, Operational State, Physical Exchange Type Definition,
+Physical Context Interaction and Physical Internal Interaction — and renamed
+three to SAF's current names (System Exchange Type Definition, Operational
+Exchange Type Definition, Operational Performer Definition) without changing
+what they ask. Physical Context Interaction and Physical Internal Interaction
+are under construction in SAF: the catalogue states what a conforming view
+shows, and DE4SDV decides the SysML v2 rendering when an increment selects one.
 
 Each concrete `view` uses a `viewpoint` selection with `frame` bindings to
 concerns. Exposures are scoped to the elements and relationships needed to
