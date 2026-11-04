@@ -26,6 +26,7 @@ DOMAIN_VIEWPOINT_ROOTS = frozenset(f"{domain}DomainViewpoint" for domain in LABE
 #: Viewpoint definition -> its row in the SAF grid (the grid identifier in the comment).
 EXPECTED_VIEWPOINT_DOMAINS = {
     "CommonTermsDefinitionViewpoint": AM,                    # A2_TRMD
+    "EATraceabilityViewpoint": AM,                           # A8_EATR
     "CommonStandardsDefinitionViewpoint": AM,                # A2_CSTD
     "ArgumentationAssuranceViewpoint": AM,                   # A2_ARAS
     "GridDefinitionViewpoint": AM,                           # A2_GRID
@@ -34,8 +35,9 @@ EXPECTED_VIEWPOINT_DOMAINS = {
     "OperationalContextExchangeViewpoint": O,                # O1_OCXE
     "OperationalStoryViewpoint": O,                          # O1_OSTY
     "OperationalCapabilityDefinitionViewpoint": O,           # O2_OCYD
-    "OperationalDomainItemKindViewpoint": O,                 # O2_OETD
-    "OperationalPerformerViewpoint": O,                      # O2_OPRF
+    "OperationalExchangeTypeDefinitionViewpoint": O,        # O2_OETD
+    "OperationalPerformerDefinitionViewpoint": O,            # O2_OPRF
+    "OperationalStateViewpoint": O,                          # O3_OSTA
     "OperationalProcessViewpoint": O,                        # O3_OPRO
     "OperationalContextInteractionViewpoint": O,             # O4_OCXI
     "StakeholderRequirementDefinitionViewpoint": O,          # O6_SKRD
@@ -45,7 +47,10 @@ EXPECTED_VIEWPOINT_DOMAINS = {
     "SystemCapabilityDefinitionViewpoint": C,                # C2_SCYD
     "SystemFunctionalBreakdownStructureViewpoint": C,        # C2_SFBS
     "SystemStructureDefinitionViewpoint": C,                 # C2_SSTD
-    "SystemDomainItemKindViewpoint": C,                      # C2_SETD
+    "SystemCapabilityMappingViewpoint": C,                   # C8_SCYM
+    "SystemContextDefinitionViewpoint": C,                   # C1_SCXD
+    "SystemContextExchangeViewpoint": C,                     # C1_SCXE
+    "SystemExchangeTypeDefinitionViewpoint": C,              # C2_SETD
     "SystemFunctionalRefinementViewpoint": C,                # C3_SFRE
     "SystemProcessViewpoint": C,                             # C3_SPRO
     "SystemStateViewpoint": C,                               # C3_SSTA
@@ -64,7 +69,10 @@ EXPECTED_VIEWPOINT_DOMAINS = {
     "PhysicalContextDefinitionViewpoint": P,                 # P1_PCXD
     "PhysicalContextExchangeViewpoint": P,                   # P1_PCXE
     "PhysicalStructureDefinitionViewpoint": P,               # P2_PSTD
+    "PhysicalContextInteractionViewpoint": P,                # P4_PCXI
+    "PhysicalExchangeTypeDefinitionViewpoint": P,            # P2_PETD
     "PhysicalInternalExchangeViewpoint": P,                  # P4_PIEX
+    "PhysicalInternalInteractionViewpoint": P,               # P4_PITI
     "PhysicalInterfaceDefinitionViewpoint": P,               # P5_PIFD
     "PhysicalFunctionalMappingViewpoint": P,                 # P8_PFUM
     "PhysicalLogicalMappingViewpoint": P,                    # P8_PLOM
@@ -77,9 +85,9 @@ EXPECTED_VIEWPOINT_DOMAINS = {
     "FrameworkStereotypeOverviewViewpoint": D,
 }
 #: Concern definitions that no viewpoint definition directly follows in the catalogue.
-UNPAIRED_CONCERN_DOMAINS = {"EATraceabilityConcern": AM,  # A8_EATR
-                            "SystemContextConcern": C, "PhysicalExchangeTypeConcern": P,
-                            "PhysicalLogicalItemMappingConcern": P}
+#: The EA traceability, system context and physical exchange type concerns gained their
+#: viewpoints in the current catch-up and are now paired like every other concern.
+UNPAIRED_CONCERN_DOMAINS = {"PhysicalLogicalItemMappingConcern": P}
 
 
 def _declarations(text: str) -> list[tuple[str, str, str | None, bool, str]]:
