@@ -15,15 +15,17 @@ what review settled on top of them:
   stopped;
 - the allocation of every requirement but REQ-DRIVING-014, which constrains the exchanges and is carried in
   phase 8;
-- two views of the SAF System Functional Breakdown Structure viewpoint: the breakdown tree and the
-  requirement-function matrix, which also answers the degraded-input concern of phase 1;
+- the breakdown tree of the SAF System Functional Breakdown Structure viewpoint and the requirement-function
+  matrix of the System Requirement Traceability viewpoint, which also answers the degraded-input concern of
+  phase 1;
 - the functions the context elements perform in the loop, as functions of their own root, outside the
   system's scope, and the system process that runs the system as one action between them, with the items
-  that cross the boundary;
+  that cross the boundary. Its participants are the context parts of phase 2 themselves, bound by
+  reference: the process declares no part of its own, so the increment has one context;
 - the modes and the functions that depend on them, the system's functional interfaces as port definitions
-  with directed items typed by functional item definitions of this package, and candidate render forms of
-  the SAF System Process, System State and System Interface Definition viewpoints, each framed by a phase 6
-  concern typed by that catalogue;
+  with directed items typed by functional item definitions of this package, and one view per SAF question:
+  the process as an action flow, the modes as a table, the boundary as an interconnection, each framed by a
+  phase 6 concern typed by that catalogue. The package publishes exactly five views;
 - no technology, platform or safety claim in the functions, and no vehicle signal specification in the
   package.
 """
@@ -156,40 +158,45 @@ CONTEXT_FUNCTIONS = {
 PROCESS = "ClosedLoopDrivingSystemProcess"
 PROCESS_USAGE = "closedLoopDrivingSystemProcess"
 
-#: Each participant of the process, in loop order -> its phase 2 type and the process actions it performs.
+#: The one operational context of the increment (phase 2), whose parts the process binds its participants to.
+CONTEXT_USAGE = "closedLoopDrivingOperationalContext"
+
+#: Each participant of the process, in loop order -> its phase 2 type, the phase 2 context part it is bound
+#: to by reference (the process declares no part of its own) and the process actions it performs.
 PARTICIPANTS = {
-    "navigation": ("NavigationSystem", ("giveRoute",)),
-    "vehicle": ("SubjectVehicle", ("captureImages", "sampleEgoMotion", "applyCommands")),
-    "drivingSystem": ("ClosedLoopDrivingSystem", ("driveSystem",)),
-    "stateObserver": ("DrivingStateObserverApplication", ("presentState",)),
+    "navigation": ("NavigationSystem", f"{CONTEXT_USAGE}::navigation", ("giveRoute",)),
+    "vehicle": ("SubjectVehicle", f"{CONTEXT_USAGE}::vehicle",
+                ("captureImages", "sampleEgoMotion", "applyCommands")),
+    "drivingSystem": ("ClosedLoopDrivingSystem", f"{CONTEXT_USAGE}::drivingSystem", (FLOW_USAGE,)),
+    "stateObserver": ("DrivingStateObserverApplication", f"{CONTEXT_USAGE}::aaosSDVGuest::stateObserver",
+                      ("presentState",)),
 }
 
-#: Each action of the process, in loop order -> its action definition. One of them is the system's whole
-#: functional flow: the system's functional scope is one action of the process.
+#: The context functions the process declares as its own actions, in loop order -> the action definition.
+#: The system's step is not among them: it performs the one functional flow usage the boundary performs.
 PROCESS_STEPS = {
     "giveRoute": "GiveRoute",
     "captureImages": "CaptureCameraImages",
     "sampleEgoMotion": "SampleEgoMotion",
-    "driveSystem": "ClosedLoopDrivingFunctionalFlow",
     "applyCommands": "ApplyMotionCommands",
     "presentState": "PresentDrivingState",
 }
 
 #: The items that cross the boundary of the system inside the process (source, target).
 PROCESS_FLOWS = {
-    ("giveRoute.route", "driveSystem.route"),
-    ("captureImages.cameraImages", "driveSystem.cameraImages"),
-    ("sampleEgoMotion.egoMotion", "driveSystem.egoMotion"),
-    ("driveSystem.vehicleCommand", "applyCommands.command"),
-    ("driveSystem.operationalState", "presentState.operationalState"),
+    ("giveRoute.route", f"{FLOW_USAGE}.route"),
+    ("captureImages.cameraImages", f"{FLOW_USAGE}.cameraImages"),
+    ("sampleEgoMotion.egoMotion", f"{FLOW_USAGE}.egoMotion"),
+    (f"{FLOW_USAGE}.vehicleCommand", "applyCommands.command"),
+    (f"{FLOW_USAGE}.operationalState", "presentState.operationalState"),
 }
 
 #: The order of the loop, as far as the process states it.
 PROCESS_SUCCESSIONS = {
-    ("giveRoute", "driveSystem"),
-    ("captureImages", "driveSystem"),
-    ("sampleEgoMotion", "driveSystem"),
-    ("driveSystem", "applyCommands"),
+    ("giveRoute", FLOW_USAGE),
+    ("captureImages", FLOW_USAGE),
+    ("sampleEgoMotion", FLOW_USAGE),
+    (FLOW_USAGE, "applyCommands"),
 }
 
 #: The functions whose behavior differs by mode (function usage, mode).
@@ -219,7 +226,6 @@ BOUNDARY_PORTS = {
 }
 
 BOUNDARY = "ClosedLoopDrivingFunctionalBoundary"
-BOUNDARY_USAGE = "closedLoopDrivingFunctionalBoundary"
 
 #: Each port usage of the boundary part -> its port definition.
 BOUNDARY_PORT_USAGES = {
@@ -250,43 +256,32 @@ CATALOGUE_CONCERNS = {
     INTERFACE_CONCERN: ("FunctionalInterfaceConcern", {"SystemsEngineer", "SoftwareDeveloper"}),
 }
 
-#: The candidate render forms the owner compares, one view per form: name -> (type or "", render statement,
-#: exposures, framed concerns). The owner keeps one form per question and the others leave the model.
-CANDIDATE_VIEWS = {
-    "closedLoopDrivingSystemProcessActionFlowView": (
-        "ActionFlowView", "", ["closedLoopDrivingSystemProcess"], [PROCESS_CONCERN]),
-    "closedLoopDrivingSystemProcessTreeView": (
-        "", "render asTreeDiagram;", ["closedLoopDrivingSystemProcess"], [PROCESS_CONCERN]),
-    "closedLoopDrivingSystemProcessTableView": (
-        "TVD::TableView", "",
-        ["closedLoopDrivingSystemProcess::navigation", "closedLoopDrivingSystemProcess::vehicle",
-         "closedLoopDrivingSystemProcess::drivingSystem", "closedLoopDrivingSystemProcess::stateObserver"],
-        [PROCESS_CONCERN]),
-    "closedLoopDrivingStateTransitionView": (
-        "StateTransitionView", "", ["ClosedLoopDrivingModes"], [STATE_CONCERN, PHASE_1_CONCERN]),
-    "closedLoopDrivingModeTreeView": (
-        "", "render asTreeDiagram;", ["ClosedLoopDrivingModes"], [STATE_CONCERN, PHASE_1_CONCERN]),
+#: One view per SAF question beyond the breakdown and the matrix: name -> (type or "", render statement,
+#: exposures, framed concerns). The process is an action flow with its members exposed (SysIDE draws only
+#: exposed elements as nodes), the modes a table, the boundary an interconnection. The render forms the
+#: owner compared on 2026-11-04 left the model.
+VIEWS = {
+    "closedLoopDrivingSystemProcessView": (
+        "ActionFlowView", "", [PROCESS_USAGE, f"{PROCESS_USAGE}::**"], [PROCESS_CONCERN]),
     "closedLoopDrivingModeDependenceTableView": (
         "TVD::TableView", "",
         ["ClosedLoopDrivingModes::priming", "ClosedLoopDrivingModes::driving", "ClosedLoopDrivingModes::stopped"],
         [STATE_CONCERN, PHASE_1_CONCERN]),
     "closedLoopDrivingFunctionalInterfaceView": (
-        "InterconnectionView", "", ["closedLoopDrivingFunctionalBoundary"], [INTERFACE_CONCERN]),
-    "closedLoopDrivingFunctionalInterfacePortView": (
-        "", "render asTreeDiagram;", [f for f in sorted(BOUNDARY_PORTS)], [INTERFACE_CONCERN]),
+        "InterconnectionView", "", [BOUNDARY], [INTERFACE_CONCERN]),
 }
-#: The two candidate tables, with the row population and the columns each renders.
-CANDIDATE_TABLES = {
-    "closedLoopDrivingSystemProcessTableView": ("filter @ SysML::PartUsage;",
-                                                [("Element", "CT::declaredName"),
-                                                 ("Role", "CT::documentation")]),
+#: The one table, with the row population and the columns it renders.
+TABLES = {
     "closedLoopDrivingModeDependenceTableView": ("filter @ SysML::StateUsage;",
                                                  [("Mode", "CT::declaredName"),
                                                   ("DependentFunctions", "CT::documentation")]),
 }
 
-#: The catalogue viewpoint definition each candidate's viewpoint usage is typed by, by the phase 6 concern.
-CANDIDATE_VIEWPOINTS = {
+#: Every view the package publishes: the breakdown, the matrix and one view per question above.
+PUBLISHED_VIEWS = {TREE_VIEW, MATRIX_VIEW, *VIEWS}
+
+#: The catalogue viewpoint definition each view's viewpoint usage is typed by, by the phase 6 concern.
+VIEWPOINTS = {
     PROCESS_CONCERN: "SystemProcessViewpoint",
     STATE_CONCERN: "SystemStateViewpoint",
     INTERFACE_CONCERN: "SystemInterfaceDefinitionViewpoint",
@@ -482,7 +477,9 @@ def test_the_matrix_maps_every_requirement_to_its_functions_and_answers_the_degr
     assert f"private import DE4SDV_ClosedLoopDrivingFraming::{PHASE_1_CONCERN};" in code
     view = braced_body(code, f"view {MATRIX_VIEW} : MVD::MatrixView")
     viewpoint = braced_body(view, "viewpoint")
-    assert re.search(r"viewpoint\s+\w+\s*:\s*SystemFunctionalBreakdownStructureViewpoint\s*\{", view)
+    # SAF System Requirement Traceability asks which system function a requirement addresses; the breakdown
+    # viewpoint asks which functions there are, which the tree answers
+    assert re.search(r"viewpoint\s+\w+\s*:\s*SystemRequirementTraceabilityViewpoint\s*\{", view)
     assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == [CONCERN, PHASE_1_CONCERN]
     rows = braced_body(view, "view :>> rowView")
     columns = braced_body(view, "view :>> columnView")
@@ -536,29 +533,35 @@ def test_the_context_elements_perform_the_loop_functions_outside_the_system_scop
     assert "outside the scope of the driving system" in _doc(f"action def {CONTEXT_FUNCTION_ROOT}")
 
 
-def test_the_process_runs_the_system_as_one_action_between_the_context_elements():
-    """SAF System Process: one activity whose participants are the context elements and the system. Each
-    participant performs the functions of the loop, one of them the system's whole functional flow, so the
-    system's functional scope is one action of the process; the exchanges across the boundary are the
-    process's item flows, and no allocation leaves the requirement-to-function pairs of this package."""
+def test_the_process_binds_its_participants_to_the_context_parts_of_phase_2():
+    """SAF System Process: one activity whose participants are the context parts of phase 2 and the system
+    of interest, bound by reference as the story's actors are, so the increment keeps one context and the
+    process declares no part of its own. Each participant performs the functions of the loop; the system's
+    step is the one functional flow usage the boundary performs, so the system's functional scope is one
+    action of the process; the exchanges across the boundary are the process's item flows, and no
+    allocation leaves the requirement-to-function pairs of this package."""
+    code = _code()
     body = _process_body()
     direct = _direct(body)
-    assert re.findall(r"\bpart\s+(\w+)\s*:\s*(\w+)\s*\{", direct) == [
-        (name, typed) for name, (typed, _) in PARTICIPANTS.items()]
-    assert list(dict(re.findall(r"\baction\s+(\w+)\s*:\s*(\w+)\s*\{", direct))) == list(PROCESS_STEPS)
-    assert dict(re.findall(r"\baction\s+(\w+)\s*:\s*(\w+)\s*\{", direct)) == PROCESS_STEPS
-    for name, (typed, functions) in PARTICIPANTS.items():
-        part = braced_body(body, f"part {name} : {typed}")
+    assert re.findall(r"\bref\s+part\s+(\w+)\s*:\s*(\w+)\s*=\s*([\w:]+)\s*\{", direct) == [
+        (name, typed, bound) for name, (typed, bound, _) in PARTICIPANTS.items()]
+    assert not re.search(r"(?<!ref )\bpart\s+\w+", direct), "the process declares no part of its own"
+    assert f"private import DE4SDV_ClosedLoopDrivingOperationalContext::{CONTEXT_USAGE};" in code
+    assert re.findall(r"\baction\s+(\w+)\s*:\s*(\w+)\s*\{", direct) == list(PROCESS_STEPS.items())
+    assert re.search(rf"\bperform\s+{FLOW_USAGE}\s*:\s*{FLOW}\s*;", direct), \
+        "the system's step is the flow usage the boundary performs, not a second usage of the flow"
+    assert not re.search(rf"\baction\s+\w+\s*:\s*{FLOW}\b", direct)
+    for name, (typed, bound, functions) in PARTICIPANTS.items():
+        part = braced_body(body, f"ref part {name} : {typed} = {bound}")
         assert re.findall(r"\bperform\s+(\w+)\s*;", part) == list(functions), name
-    performed = {performed for _, (_, functions) in PARTICIPANTS.items() for performed in functions}
-    assert performed == set(PROCESS_STEPS), "every performed action is a step of the process"
+    performed = {performed for _, (_, _, functions) in PARTICIPANTS.items() for performed in functions}
+    assert performed == set(PROCESS_STEPS) | {FLOW_USAGE}, "every performed action is a step of the process"
     assert set(re.findall(r"\bflow\s+from\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)) == PROCESS_FLOWS
     assert set(re.findall(r"\bfirst\s+(\w+)\s+then\s+(\w+)\s*;", body)) == PROCESS_SUCCESSIONS
-    assert re.search(rf"\baction\s+{PROCESS_USAGE}\s*:\s*{PROCESS}\s*;", _code())
-    assert [step for step, typed in PROCESS_STEPS.items() if typed == FLOW] == ["driveSystem"], \
-        "the system's functional scope is the one action typed by its functional flow"
+    assert re.search(rf"\baction\s+{PROCESS_USAGE}\s*:\s*{PROCESS}\s*;", code)
     assert "allocate" not in body, "the process assigns no responsibility"
     doc = _doc(f"action def {PROCESS}")
+    assert "the context parts of phase 2 themselves" in doc and "declares no part of its own" in doc
     assert "navigation gives the route" in doc and "outside the scope of the driving system" in doc
     assert "nothing the observation gives flows back" in doc
 
@@ -603,27 +606,37 @@ def test_the_system_boundary_carries_typed_functional_ports():
     assert re.findall(r"\bport\s+(\w+)\s*:\s*(\w+)\s*;", direct) == list(BOUNDARY_PORT_USAGES.items())
     perform = braced_body(boundary, f"perform closedLoopDrivingFunctionalFlow : {FLOW}")
     assert set(re.findall(r"\b(in|out)\s+item\s+(\w+)\s*=\s*([\w.]+)\s*;", perform)) == BOUNDARY_BINDINGS
-    assert re.search(rf"\bpart\s+{BOUNDARY_USAGE}\s*:\s*{BOUNDARY}\s*;", code)
+    # the boundary is a definition of the system of interest; a usage of it would be a second system
+    assert not re.search(rf"\bpart\s+\w+\s*:\s*{BOUNDARY}\b", code)
     assert "not a logical element" in _doc(f"part def {BOUNDARY}")
     for typed in ("NavigationSystem", "DrivingStateObserverApplication"):
         assert f"private import DE4SDV_ClosedLoopDrivingOperationalContext::{typed};" in code, typed
     assert "private import DE4SDV_OperationalContext::SubjectVehicle;" in code
     assert "private import DE4SDV_ClosedLoopDrivingFraming::ClosedLoopDrivingSystem;" in code
-    for name, (base, _) in PARTICIPANTS.items():
-        assert re.search(rf"\bpart\s+{name}\s*:\s*{base}\b", _process_body()), name
+    for name, (base, _, _) in PARTICIPANTS.items():
+        assert re.search(rf"\bref\s+part\s+{name}\s*:\s*{base}\b", _process_body()), name
 
 
-@pytest.mark.parametrize("view_name", sorted(CANDIDATE_VIEWS), ids=sorted(CANDIDATE_VIEWS))
-def test_each_candidate_view_frames_its_concern_and_exposes_its_content(view_name):
-    """The candidate render forms the owner compares: each frames a phase 6 concern from its catalogue type's
-    viewpoint, and exposes exactly the content of its question."""
-    view_type, render, exposes, frames = CANDIDATE_VIEWS[view_name]
+def test_the_package_publishes_exactly_one_view_per_question():
+    """Five views: the breakdown tree, the requirement matrix, the process, the modes and the boundary. A
+    second form of the same elements is bloat, not a view (review of 2026-11-04)."""
+    declared = re.findall(r"^\s*view\s+(\w+)\s*(?::\s*(?!>)[\w:]+)?\s*\{", _code(), re.M)
+    assert sorted(declared) == sorted(PUBLISHED_VIEWS)
+    assert len(declared) == 5
+
+
+@pytest.mark.parametrize("view_name", sorted(VIEWS), ids=sorted(VIEWS))
+def test_each_view_frames_its_concern_and_exposes_its_content(view_name):
+    """Each view frames a phase 6 concern from its catalogue type's viewpoint and exposes exactly the content
+    of its question. The process exposes its members too: SysIDE draws only exposed elements as nodes, and
+    a view typed by a standard view definition carries no render statement (the type selects the kind)."""
+    view_type, render, exposes, frames = VIEWS[view_name]
     code = _code()
     header = f"view {view_name}" + (f" : {view_type}" if view_type else "")
     view = braced_body(code, header)
     viewpoint = braced_body(view, "viewpoint")
     assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == frames
-    assert re.search(rf"viewpoint\s+\w+\s*:\s*{CANDIDATE_VIEWPOINTS[frames[0]]}\s*\{{", view), view_name
+    assert re.search(rf"viewpoint\s+\w+\s*:\s*{VIEWPOINTS[frames[0]]}\s*\{{", view), view_name
     assert len(re.findall(r"\bviewpoint\b", view)) == 1
     assert re.findall(r"\bexpose\s+([\w:*]+)\s*;", view) == exposes
     if render:
@@ -632,10 +645,10 @@ def test_each_candidate_view_frames_its_concern_and_exposes_its_content(view_nam
         assert "render as" not in view, "the view type selects the kind"
 
 
-@pytest.mark.parametrize("view_name", sorted(CANDIDATE_TABLES))
-def test_each_candidate_table_states_its_rows_and_columns(view_name):
+@pytest.mark.parametrize("view_name", sorted(TABLES))
+def test_each_table_states_its_rows_and_columns(view_name):
     code = _code()
-    filter_, columns = CANDIDATE_TABLES[view_name]
+    filter_, columns = TABLES[view_name]
     view = braced_body(code, f"view {view_name} : TVD::TableView")
     assert filter_ in view
     for label, feature in columns:
