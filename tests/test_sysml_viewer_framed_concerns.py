@@ -108,6 +108,9 @@ def _page(tmp_path) -> str:
     return page.read_text(encoding="utf-8").replace("<wbr>", "")
 
 
+_OWN = "<span class='muted frame-origin'>own frame</span>"
+
+
 def _section(html: str, view_name: str) -> str:
     marker = f'<section class="view-section" id="view-{view_name}">'
     start = html.index(marker)
@@ -126,7 +129,7 @@ def test_page_lists_own_and_inherited_frames_with_their_origin(tmp_path):
     assert (section.index("alphaConcern")
             < section.index("midConcern")
             < section.index("baseConcern"))
-    assert section.count("own frame") == 1
+    assert section.count(_OWN) == 1
     assert ("frame inherited from viewpoint definition "
             "<code>MidFramingViewpoint</code>") in section
     assert ("frame inherited from viewpoint definition "
@@ -137,7 +140,7 @@ def test_page_lists_all_own_frames_of_a_view(tmp_path):
     """A view with three own frames lists three, none of them inherited."""
     section = _section(_page(tmp_path), "severalOwnFramesView")
     assert section.count("<li>") == 3
-    assert section.count("own frame") == 3
+    assert section.count(_OWN) == 3
     assert "inherited from viewpoint definition" not in section
     assert "<code>betaConcern</code>" in section
 
