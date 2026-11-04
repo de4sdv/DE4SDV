@@ -601,7 +601,7 @@ def test_the_system_boundary_carries_typed_functional_ports():
     boundary = braced_body(code, f"part def {BOUNDARY}")
     direct = _direct(boundary)
     assert re.findall(r"\bport\s+(\w+)\s*:\s*(\w+)\s*;", direct) == list(BOUNDARY_PORT_USAGES.items())
-    perform = braced_body(boundary, f"perform drivingFlow : {FLOW}")
+    perform = braced_body(boundary, f"perform closedLoopDrivingFunctionalFlow : {FLOW}")
     assert set(re.findall(r"\b(in|out)\s+item\s+(\w+)\s*=\s*([\w.]+)\s*;", perform)) == BOUNDARY_BINDINGS
     assert re.search(rf"\bpart\s+{BOUNDARY_USAGE}\s*:\s*{BOUNDARY}\s*;", code)
     assert "not a logical element" in _doc(f"part def {BOUNDARY}")

@@ -500,7 +500,7 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
     port vehicleCommandOut : VehicleCommandOutbound;
     port operationalStateOut : OperationalStateOutbound;
 
-    perform drivingFlow : ClosedLoopDrivingFunctionalFlow {
+    perform closedLoopDrivingFunctionalFlow : ClosedLoopDrivingFunctionalFlow {
       in item cameraImages = cameraImagesIn.cameraImages;
       in item egoMotion = egoMotionIn.egoMotion;
       in item route = routeIn.route;
