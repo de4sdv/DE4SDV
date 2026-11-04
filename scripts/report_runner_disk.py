@@ -1,10 +1,12 @@
 """Report the runner's disk use as one workflow annotation (privileged ingestion).
 
 Release run 41718067304 died with "No space left on device" while importing
-candidate transaction 1, and the runner lost its job log with it. The
-annotations of the steps that had finished survived, so each report is one
-``::notice`` annotation: free space on the filesystem of /tmp, the API service
-log, the run's exports and the database the imports fill.
+candidate transaction 1. The runner lost its job log, and the job kept one
+annotation: GitHub's report of the crash. Each report is therefore one
+``::notice`` annotation, on that channel: free space on the filesystem of
+/tmp, the API service log, the run's exports and the database the imports
+fill. Run 41736484152 showed the notices on the job once it completed and none
+while it ran; whether they outlive a runner that dies is untested.
 
 Diagnostic only: it exits 0 whatever it cannot measure, imports only the
 standard library and writes nothing, so the dirty-checkout guards stay green.
