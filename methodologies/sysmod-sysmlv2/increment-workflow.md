@@ -499,10 +499,10 @@ result is a conformance, acceptance, or certification claim.
 | 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Architecture Management / Conceptual | verification cases, validation scenarios, evidence records, open gaps |
 | 11. Baseline | What is accepted, deferred, or invalidated, and which published views show it? | Architecture Management | baseline decision and its disposition, open-gap dispositions, published views |
 
-VSS types items only from phase 8 on: the functional and logical items of
-phases 6 and 7 stay technology-independent, and an item is typed where it
-enters a software contract at a phase 8 port (rule 13; owner decision of
-2026-11-04).
+Items are typed with VSS only from phase 8 on: the functional and logical
+items of phases 6 and 7 stay technology-independent, and an item is typed
+where it enters a software contract at a phase 8 port (rule 13; owner decision
+of 2026-11-04).
 
 An increment ends at its baseline decision. Rework iterates the same
 increment; a new increment starts only from a new engineering question, at
@@ -525,8 +525,7 @@ Whenever a logical or semantic information item crosses into a concrete
 software, service, topic, API, or physical interface, create an explicit
 system-to-software signal mapping. This is a recurring control applied at
 each applicable boundary, variant, and contract revision; it is not a new
-lifecycle phase and it is not limited to VSS or VSIDL. VSS typing belongs to
-this boundary: the items of phases 6 and 7 carry no VSS type.
+lifecycle phase and it is not limited to VSS or VSIDL.
 
 The mapping is required for interface-bearing information items, not for every
 internal calculation, which needs no record. Rule 13 states which elements are
