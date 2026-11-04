@@ -310,7 +310,9 @@ These method rules apply to every increment:
       export binds it by the file-mapped rule of the kernel bindings (its
       metatype, declared name and source document), and no other metadata
       counts. VSS typing is read at a port, never at an element: a mapping
-      to an element states the source in its records.
+      to an element states the source in its records. It begins at phase 8:
+      a phase 6 or phase 7 item stays technology-independent and is not typed
+      with VSS (owner decision of 2026-11-04).
     - **Stated values.** A record member that still holds a remedy's
       placeholder (`<…>`), or only TBD, TBC or TODO, states nothing. Any
       other text counts as stated, and what it says is not judged.
@@ -497,6 +499,11 @@ result is a conformance, acceptance, or certification claim.
 | 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Architecture Management / Conceptual | verification cases, validation scenarios, evidence records, open gaps |
 | 11. Baseline | What is accepted, deferred, or invalidated, and which published views show it? | Architecture Management | baseline decision and its disposition, open-gap dispositions, published views |
 
+VSS types items only from phase 8 on: the functional and logical items of
+phases 6 and 7 stay technology-independent, and an item is typed where it
+enters a software contract at a phase 8 port (rule 13; owner decision of
+2026-11-04).
+
 An increment ends at its baseline decision. Rework iterates the same
 increment; a new increment starts only from a new engineering question, at
 phase 0. There is no "next slice" step and no loop from the baseline back to
@@ -518,7 +525,8 @@ Whenever a logical or semantic information item crosses into a concrete
 software, service, topic, API, or physical interface, create an explicit
 system-to-software signal mapping. This is a recurring control applied at
 each applicable boundary, variant, and contract revision; it is not a new
-lifecycle phase and it is not limited to VSS or VSIDL.
+lifecycle phase and it is not limited to VSS or VSIDL. VSS typing belongs to
+this boundary: the items of phases 6 and 7 carry no VSS type.
 
 The mapping is required for interface-bearing information items, not for every
 internal calculation, which needs no record. Rule 13 states which elements are
