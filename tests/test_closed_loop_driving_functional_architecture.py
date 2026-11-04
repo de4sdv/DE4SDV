@@ -162,41 +162,26 @@ PROCESS_USAGE = "closedLoopDrivingSystemProcess"
 CONTEXT_USAGE = "closedLoopDrivingOperationalContext"
 
 #: Each participant of the process, in loop order -> its phase 2 type, the phase 2 context part it is bound
-#: to by reference (the process declares no part of its own) and the process actions it performs.
+#: to by reference (the process declares no part of its own) and the actions it owns and performs, each a
+#: context function of this package (name -> definition). The participant is the swim lane of its function.
 PARTICIPANTS = {
-    "navigation": ("NavigationSystem", f"{CONTEXT_USAGE}::navigation", ("giveRoute",)),
+    "navigation": ("NavigationSystem", f"{CONTEXT_USAGE}::navigation", {"giveRoute": "GiveRoute"}),
     "vehicle": ("SubjectVehicle", f"{CONTEXT_USAGE}::vehicle",
-                ("captureImages", "sampleEgoMotion", "applyCommands")),
-    "drivingSystem": ("ClosedLoopDrivingSystem", f"{CONTEXT_USAGE}::drivingSystem", (FLOW_USAGE,)),
+                {"captureImages": "CaptureCameraImages", "sampleEgoMotion": "SampleEgoMotion",
+                 "applyCommands": "ApplyMotionCommands"}),
+    "drivingSystem": ("ClosedLoopDrivingSystem", f"{CONTEXT_USAGE}::drivingSystem", {}),
     "stateObserver": ("DrivingStateObserverApplication", f"{CONTEXT_USAGE}::aaosSDVGuest::stateObserver",
-                      ("presentState",)),
+                      {"presentState": "PresentDrivingState"}),
 }
 
-#: The context functions the process declares as its own actions, in loop order -> the action definition.
-#: The system's step is not among them: it performs the one functional flow usage the boundary performs.
-PROCESS_STEPS = {
-    "giveRoute": "GiveRoute",
-    "captureImages": "CaptureCameraImages",
-    "sampleEgoMotion": "SampleEgoMotion",
-    "applyCommands": "ApplyMotionCommands",
-    "presentState": "PresentDrivingState",
-}
-
-#: The items that cross the boundary of the system inside the process (source, target).
+#: The items that cross the boundary of the system inside the process (source, target), each end chained
+#: through the participant that owns the action: the exchange says who gives and who takes.
 PROCESS_FLOWS = {
-    ("giveRoute.route", f"{FLOW_USAGE}.route"),
-    ("captureImages.cameraImages", f"{FLOW_USAGE}.cameraImages"),
-    ("sampleEgoMotion.egoMotion", f"{FLOW_USAGE}.egoMotion"),
-    (f"{FLOW_USAGE}.vehicleCommand", "applyCommands.command"),
-    (f"{FLOW_USAGE}.operationalState", "presentState.operationalState"),
-}
-
-#: The order of the loop, as far as the process states it.
-PROCESS_SUCCESSIONS = {
-    ("giveRoute", FLOW_USAGE),
-    ("captureImages", FLOW_USAGE),
-    ("sampleEgoMotion", FLOW_USAGE),
-    (FLOW_USAGE, "applyCommands"),
+    ("navigation.giveRoute.route", f"drivingSystem.{FLOW_USAGE}.route"),
+    ("vehicle.captureImages.cameraImages", f"drivingSystem.{FLOW_USAGE}.cameraImages"),
+    ("vehicle.sampleEgoMotion.egoMotion", f"drivingSystem.{FLOW_USAGE}.egoMotion"),
+    (f"drivingSystem.{FLOW_USAGE}.vehicleCommand", "vehicle.applyCommands.command"),
+    (f"drivingSystem.{FLOW_USAGE}.operationalState", "stateObserver.presentState.operationalState"),
 }
 
 #: The functions whose behavior differs by mode (function usage, mode).
@@ -262,13 +247,15 @@ CATALOGUE_CONCERNS = {
 #: owner compared on 2026-11-04 left the model.
 VIEWS = {
     "closedLoopDrivingSystemProcessView": (
-        "ActionFlowView", "", [PROCESS_USAGE, f"{PROCESS_USAGE}::**"], [PROCESS_CONCERN]),
+        "ActionFlowView", "",
+        [f"{PROCESS}::*"] + [f"{PROCESS}::{participant}::*" for participant in PARTICIPANTS],
+        [PROCESS_CONCERN]),
     "closedLoopDrivingModeDependenceTableView": (
         "TVD::TableView", "",
         ["ClosedLoopDrivingModes::priming", "ClosedLoopDrivingModes::driving", "ClosedLoopDrivingModes::stopped"],
         [STATE_CONCERN, PHASE_1_CONCERN]),
     "closedLoopDrivingFunctionalInterfaceView": (
-        "InterconnectionView", "", [BOUNDARY], [INTERFACE_CONCERN]),
+        "InterconnectionView", "", [BOUNDARY, f"{BOUNDARY}::*[istype SysML::PortUsage]"], [INTERFACE_CONCERN]),
 }
 #: The one table, with the row population and the columns it renders.
 TABLES = {
@@ -536,10 +523,11 @@ def test_the_context_elements_perform_the_loop_functions_outside_the_system_scop
 def test_the_process_binds_its_participants_to_the_context_parts_of_phase_2():
     """SAF System Process: one activity whose participants are the context parts of phase 2 and the system
     of interest, bound by reference as the story's actors are, so the increment keeps one context and the
-    process declares no part of its own. Each participant performs the functions of the loop; the system's
-    step is the one functional flow usage the boundary performs, so the system's functional scope is one
-    action of the process; the exchanges across the boundary are the process's item flows, and no
-    allocation leaves the requirement-to-function pairs of this package."""
+    process declares no part of its own. Each participant owns and performs its functions of the loop, as
+    the swim lane of its function; the system's step is the one functional flow usage the boundary
+    performs, so the system's functional scope is one action of the process; the exchanges across the
+    boundary are the process's item flows, chained through the participants, and no allocation leaves the
+    requirement-to-function pairs of this package."""
     code = _code()
     body = _process_body()
     direct = _direct(body)
@@ -547,17 +535,20 @@ def test_the_process_binds_its_participants_to_the_context_parts_of_phase_2():
         (name, typed, bound) for name, (typed, bound, _) in PARTICIPANTS.items()]
     assert not re.search(r"(?<!ref )\bpart\s+\w+", direct), "the process declares no part of its own"
     assert f"private import DE4SDV_ClosedLoopDrivingOperationalContext::{CONTEXT_USAGE};" in code
-    assert re.findall(r"\baction\s+(\w+)\s*:\s*(\w+)\s*\{", direct) == list(PROCESS_STEPS.items())
-    assert re.search(rf"\bperform\s+{FLOW_USAGE}\s*:\s*{FLOW}\s*;", direct), \
-        "the system's step is the flow usage the boundary performs, not a second usage of the flow"
-    assert not re.search(rf"\baction\s+\w+\s*:\s*{FLOW}\b", direct)
+    assert not re.search(r"\b(action|perform|first)\b", direct), \
+        "the process owns no action of its own: each participant performs its function in its own body"
     for name, (typed, bound, functions) in PARTICIPANTS.items():
         part = braced_body(body, f"ref part {name} : {typed} = {bound}")
-        assert re.findall(r"\bperform\s+(\w+)\s*;", part) == list(functions), name
-    performed = {performed for _, (_, _, functions) in PARTICIPANTS.items() for performed in functions}
-    assert performed == set(PROCESS_STEPS) | {FLOW_USAGE}, "every performed action is a step of the process"
+        assert re.findall(r"\bperform\s+action\s+(\w+)\s*:\s*(\w+)\s*;", part) == list(functions.items()), name
+        if name == "drivingSystem":
+            assert re.findall(r"\bperform\s+(\w+)\s*;", part) == [FLOW_USAGE], \
+                "the system's step is the flow usage the boundary performs, not a second usage of the flow"
+        else:
+            assert not re.search(r"\bperform\s+\w+\s*;", part), name
+    performed = {definition for _, (_, _, functions) in PARTICIPANTS.items() for definition in functions.values()}
+    assert performed == set(CONTEXT_FUNCTIONS), "every context function is performed by one participant"
     assert set(re.findall(r"\bflow\s+from\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)) == PROCESS_FLOWS
-    assert set(re.findall(r"\bfirst\s+(\w+)\s+then\s+(\w+)\s*;", body)) == PROCESS_SUCCESSIONS
+    assert len(re.findall(r"\bflow\s+from\b", body)) == len(PROCESS_FLOWS)
     assert re.search(rf"\baction\s+{PROCESS_USAGE}\s*:\s*{PROCESS}\s*;", code)
     assert "allocate" not in body, "the process assigns no responsibility"
     doc = _doc(f"action def {PROCESS}")
