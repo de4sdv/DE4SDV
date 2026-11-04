@@ -82,7 +82,7 @@ System architects and systems engineers need the loop as a process: the function
 - **Viewpoint:** `selectedSystemProcessViewpoint` (`SystemProcessViewpoint`)
 - **View type:** `ActionFlowView`
 - **Concern:** `closedLoopDrivingProcessConcern`
-- **Exposes:** `closedLoopDrivingSystemProcess`, `closedLoopDrivingSystemProcess::**`
+- **Exposes:** `ClosedLoopDrivingSystemProcess::*`, `ClosedLoopDrivingSystemProcess::navigation::*`, `ClosedLoopDrivingSystemProcess::vehicle::*`, `ClosedLoopDrivingSystemProcess::drivingSystem::*`, `ClosedLoopDrivingSystemProcess::stateObserver::*`
 
 - **Diagram status:** Not yet published in this folder.
 
@@ -110,7 +110,7 @@ Systems engineers and software developers need the conceptual interfaces of the 
 - **Viewpoint:** `selectedFunctionalInterfaceViewpoint` (`SystemInterfaceDefinitionViewpoint`)
 - **View type:** `InterconnectionView`
 - **Concern:** `closedLoopDrivingInterfaceConcern`
-- **Exposes:** `ClosedLoopDrivingFunctionalBoundary`
+- **Exposes:** `ClosedLoopDrivingFunctionalBoundary`, `ClosedLoopDrivingFunctionalBoundary::*[istype SysML::PortUsage]`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 

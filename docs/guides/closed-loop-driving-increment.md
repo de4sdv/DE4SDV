@@ -373,15 +373,18 @@ the states and the interfaces.
   loop. Its participants are the parts of the one operational context of
   Phase 2 (`closedLoopDrivingOperationalContext`) and its system of interest,
   bound by reference as the story's actors are: the process declares no part
-  of its own, so the increment has one context. Navigation gives the route,
-  the vehicle's cameras and motion sensing give the images and the ego motion,
-  the vehicle's actuation applies the commands, and the state observer
-  presents the published state. Those five are functions of the context
-  elements (`ContextElementFunction`), outside the scope of the driving
-  system: no requirement is allocated to them. The driving system performs
-  the one functional flow usage, the same one its functional boundary
-  performs, as one action of the process, and the five items that cross its
-  boundary are the flows of the process. Nothing flows back from observation.
+  of its own, so the increment has one context. Each participant owns and
+  performs its functions of the loop, as the swim lane of its function.
+  Navigation gives the route, the vehicle's cameras and motion sensing give
+  the images and the ego motion, the vehicle's actuation applies the
+  commands, and the state observer presents the published state. Those five
+  are functions of the context elements (`ContextElementFunction`), outside
+  the scope of the driving system: no requirement is allocated to them. The
+  driving system performs the one functional flow usage, the same one its
+  functional boundary performs, as one action of the process, and the five
+  items that cross its boundary are the flows of the process, each chained
+  through the participant that gives and the one that takes. Nothing flows
+  back from observation.
 - **The modes.** Each mode of `ClosedLoopDrivingModes` states what the
   functions that differ by mode do in it, and a dependency runs from each such
   function to each mode it depends on: `commandVehicle` to all three,

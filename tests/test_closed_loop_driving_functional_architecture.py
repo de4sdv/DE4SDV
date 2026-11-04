@@ -629,7 +629,7 @@ def test_each_view_frames_its_concern_and_exposes_its_content(view_name):
     assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == frames
     assert re.search(rf"viewpoint\s+\w+\s*:\s*{VIEWPOINTS[frames[0]]}\s*\{{", view), view_name
     assert len(re.findall(r"\bviewpoint\b", view)) == 1
-    assert re.findall(r"\bexpose\s+([\w:*]+)\s*;", view) == exposes
+    assert re.findall(r"\bexpose\s+([\w:*]+(?:\[[^\]]*\])?)\s*;", view) == exposes
     if render:
         assert render in view
     else:
