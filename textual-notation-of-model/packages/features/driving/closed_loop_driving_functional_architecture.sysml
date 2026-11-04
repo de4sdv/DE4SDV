@@ -15,19 +15,38 @@
  * those exchanges. An allocation assigns responsibility only (allocatedTo);
  * it asserts no satisfaction. No logical element, platform, transport or
  * technology is chosen, and no safety claim is made.
+ *
+ * The loop around the system is a process, not a second architecture:
+ * navigation gives the route, the vehicle's cameras and motion sensing give
+ * the images and the ego motion, its actuation applies the commands and the
+ * state observer presents the published state. Those are functions of the
+ * context elements, outside the scope of the driving system, and
+ * ClosedLoopDrivingSystemProcess runs the system as one action between them.
+ * The functions whose behavior differs by mode depend on the modes of
+ * ClosedLoopDrivingModes, and the conceptual interfaces of the system are
+ * the ports of ClosedLoopDrivingFunctionalBoundary, whose items specialize
+ * the items of phase 2. No vehicle signal specification is imported or used
+ * anywhere in this package: the interface items are conceptual, and the
+ * signal typing of an interface starts in phase 8, at the port where an item
+ * enters a software contract.
  */
 
 package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
   private import DE4SDV_Stakeholders::*;
   private import DE4SDV_TraceVocabulary::AllocatableFunction;
   private import DE4SDV_ClosedLoopDrivingFraming::degradedInputBehaviorConcern;
+  private import DE4SDV_ClosedLoopDrivingFraming::ClosedLoopDrivingSystem;
+  private import DE4SDV_OperationalContext::SubjectVehicle;
   private import DE4SDV_ClosedLoopDrivingOperationalContext::CameraImages;
   private import DE4SDV_ClosedLoopDrivingOperationalContext::EgoMotionState;
   private import DE4SDV_ClosedLoopDrivingOperationalContext::Route;
   private import DE4SDV_ClosedLoopDrivingOperationalContext::VehicleMotionCommand;
   private import DE4SDV_ClosedLoopDrivingOperationalContext::DrivingOperationalState;
+  private import DE4SDV_ClosedLoopDrivingOperationalContext::NavigationSystem;
+  private import DE4SDV_ClosedLoopDrivingOperationalContext::DrivingStateObserverApplication;
   private import DE4SDV_ClosedLoopDrivingNeedsRequirements::*;
   private import SAF_Viewpoints::*;
+  private import StandardViewDefinitions::*;
   private import SysideViews::**;
   private import Views::*;
 
@@ -68,6 +87,45 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
      * AutoE2E source revision it runs and the SHA-256 of its complete
      * configuration.
      */
+  }
+
+  /* ────────────── The loop functions of the context elements of phase 2 ────────────── */
+
+  action def ContextElementFunction {
+    doc /*
+     * A behavior of a context element of phase 2 in the closed loop. It is
+     * outside the scope of the driving system: the system does not provide it
+     * and no requirement of phase 5 is allocated to it.
+     */
+  }
+
+  action def GiveRoute :> ContextElementFunction {
+    doc /*
+     * Navigation: gives the route to the destination the driver chose, over
+     * its map. It chooses no trajectory, and it takes nothing from the
+     * driving system.
+     */
+    out route : Route;
+  }
+
+  action def CaptureCameraImages :> ContextElementFunction {
+    doc /* The vehicle's cameras: capture the road environment and give the images with their capture times. */
+    out cameraImages : CameraImages;
+  }
+
+  action def SampleEgoMotion :> ContextElementFunction {
+    doc /* The vehicle's motion sensing: sample its own motion and give the samples with their times. */
+    out egoMotion : EgoMotionState;
+  }
+
+  action def ApplyMotionCommands :> ContextElementFunction {
+    doc /* The vehicle's actuation: apply the steering and acceleration commands it is given and move the vehicle. */
+    in command : VehicleMotionCommand;
+  }
+
+  action def PresentDrivingState :> ContextElementFunction {
+    doc /* The state observer: present the published plan, vehicle state and health to the driver and send nothing back. */
+    in operationalState : DrivingOperationalState;
   }
 
   /* ─────────────────────────────── Functions ─────────────────────────────── */
@@ -156,8 +214,8 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
      * Publishes for observation each plan, the motion sample of each step, the
      * health at least periodically and the stop with its cause, each with its
      * producer and its time. Publication is one way and never waits for a
-     * receiver, so how AAOS SDV receives it does not change the plans, the
-     * commands or the planning time.
+     * receiver, so how the state observer receives it does not change the
+     * plans, the commands or the planning time.
      */
     in plan : DrivingPlan;
     in motion : EgoMotionState;
@@ -172,9 +230,9 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
      * The driving system broken into its functions, and the items they
      * exchange in one step. The camera images, the ego-motion state and the
      * route come from the context of phase 2; the commands go to the
-     * actuation of the vehicle, and the operational state to AAOS SDV. Only
-     * the commands of CommandVehicle reach the actuation, and nothing the
-     * publication gives flows back into the loop.
+     * actuation of the vehicle, and the operational state to the state
+     * observer. Only the commands of CommandVehicle reach the actuation, and
+     * nothing the publication gives flows back into the loop.
      */
     in item cameraImages : CameraImages;
     in item egoMotion : EgoMotionState;
@@ -242,6 +300,89 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
 
   action closedLoopDrivingFunctionalFlow : ClosedLoopDrivingFunctionalFlow;
 
+  /* ─────────── The system process: the system between the context elements ─────────── */
+
+  action def ClosedLoopDrivingSystemProcess {
+    doc /*
+     * One cycle of the loop as a process. The participants are the context
+     * elements of phase 2 and the driving system: navigation gives the route,
+     * the vehicle's cameras and motion sensing give the images and the ego
+     * motion, the driving system plans and commands as one action of the
+     * process, the vehicle's actuation applies the commands, and the state
+     * observer presents the published state. The functions of the context
+     * elements are outside the scope of the driving system; the driving
+     * system's functional scope is the one action typed by its functional
+     * flow. The items that cross its boundary are the flows of the process,
+     * in the order the loop runs, and nothing the observation gives flows
+     * back into it. The process states the functional scope, the services the
+     * context elements are expected to give and the exchanges only: no
+     * planning, transport or display technology, no response deadline and no
+     * timing claim is fixed here.
+     */
+    part navigation : NavigationSystem {
+      doc /* Navigation: it performs the function that gives the route, and nothing else. */
+      perform giveRoute;
+    }
+
+    part vehicle : SubjectVehicle {
+      doc /* The vehicle: its cameras and motion sensing give the input, and its actuation applies the commands. */
+      perform captureImages;
+      perform sampleEgoMotion;
+      perform applyCommands;
+    }
+
+    part drivingSystem : ClosedLoopDrivingSystem {
+      doc /* The driving system: it performs its whole functional flow, from the inputs of the checkpoint to the commands and the published state. */
+      perform driveSystem;
+    }
+
+    part stateObserver : DrivingStateObserverApplication {
+      doc /* The state observer: it performs the presentation of the published state and sends nothing back. */
+      perform presentState;
+    }
+
+    action giveRoute : GiveRoute {
+      out route;
+    }
+
+    action captureImages : CaptureCameraImages {
+      out cameraImages;
+    }
+
+    action sampleEgoMotion : SampleEgoMotion {
+      out egoMotion;
+    }
+
+    action driveSystem : ClosedLoopDrivingFunctionalFlow {
+      in cameraImages;
+      in egoMotion;
+      in route;
+      out vehicleCommand;
+      out operationalState;
+    }
+
+    action applyCommands : ApplyMotionCommands {
+      in command;
+    }
+
+    action presentState : PresentDrivingState {
+      in operationalState;
+    }
+
+    flow from giveRoute.route to driveSystem.route;
+    flow from captureImages.cameraImages to driveSystem.cameraImages;
+    flow from sampleEgoMotion.egoMotion to driveSystem.egoMotion;
+    flow from driveSystem.vehicleCommand to applyCommands.command;
+    flow from driveSystem.operationalState to presentState.operationalState;
+
+    first giveRoute then driveSystem;
+    first captureImages then driveSystem;
+    first sampleEgoMotion then driveSystem;
+    first driveSystem then applyCommands;
+  }
+
+  action closedLoopDrivingSystemProcess : ClosedLoopDrivingSystemProcess;
+
   /* ────────────────────────────────── Modes ────────────────────────────────── */
 
   state def ClosedLoopDrivingModes {
@@ -253,13 +394,122 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
      * detection of SuperviseDrivingLoop leads to stopped, from priming as from
      * driving; CommandVehicle computes the commands of each mode.
      */
-    state priming;
-    state driving;
-    state stopped;
+    state priming {
+      doc /*
+       * Both histories are incomplete: CommandVehicle holds the vehicle at
+       * standstill while plans are produced, and PublishOperationalState
+       * publishes the mode.
+       */
+    }
+    state driving {
+      doc /*
+       * Both histories are complete and no detection has stopped the loop:
+       * CommandVehicle commands from the newest valid plan, and
+       * PublishOperationalState publishes the plan, the vehicle state and the
+       * health.
+       */
+    }
+    state stopped {
+      doc /*
+       * The stop response, from the first detection of SuperviseDrivingLoop:
+       * CommandVehicle computes the stop response, deceleration to standstill
+       * with the steering held, then standstill, and PublishOperationalState
+       * publishes the stop with its cause. There is no transition out.
+       */
+    }
     transition first priming then driving;   // both histories complete
     transition first priming then stopped;   // a detection of SuperviseDrivingLoop
     transition first driving then stopped;   // a detection of SuperviseDrivingLoop
   }
+
+  /* ────────── The functions whose behavior differs by mode depend on it ────────── */
+
+  dependency commandVehicleDependsOnPrimingMode
+    from ClosedLoopDrivingFunctionalFlow::commandVehicle
+    to ClosedLoopDrivingModes::priming;
+  dependency commandVehicleDependsOnDrivingMode
+    from ClosedLoopDrivingFunctionalFlow::commandVehicle
+    to ClosedLoopDrivingModes::driving;
+  dependency commandVehicleDependsOnStoppedMode
+    from ClosedLoopDrivingFunctionalFlow::commandVehicle
+    to ClosedLoopDrivingModes::stopped;
+  dependency publishStateDependsOnStoppedMode
+    from ClosedLoopDrivingFunctionalFlow::publishState
+    to ClosedLoopDrivingModes::stopped;
+
+  /* ────────── The conceptual interfaces of the system: one functional chain ────────── */
+
+  item def CameraImageInput :> CameraImages {
+    doc /* The camera images as they enter the driving system at its input: the vehicle's images with their capture times. */
+  }
+
+  item def EgoMotionInput :> EgoMotionState {
+    doc /* The vehicle's motion as it enters the driving system at its input: its samples with their times. */
+  }
+
+  item def RouteInput :> Route {
+    doc /* The route as it enters the driving system at its input: destination, route and map, with their times. */
+  }
+
+  item def VehicleCommandOutput :> VehicleMotionCommand {
+    doc /* The steering and acceleration commands as they leave the driving system for the vehicle's actuation. */
+  }
+
+  item def OperationalStateOutput :> DrivingOperationalState {
+    doc /* The published plan, vehicle state and health as they leave the driving system for observation. */
+  }
+
+  port def CameraImagesInbound {
+    doc /* The input port of the image item: the vehicle's cameras provide it. */
+    in item cameraImages : CameraImageInput;
+  }
+
+  port def EgoMotionInbound {
+    doc /* The input port of the ego-motion item: the vehicle's motion sensing provides it. */
+    in item egoMotion : EgoMotionInput;
+  }
+
+  port def RouteInbound {
+    doc /* The input port of the route item: navigation provides it. */
+    in item route : RouteInput;
+  }
+
+  port def VehicleCommandOutbound {
+    doc /* The output port of the command item: the vehicle's actuation takes it. */
+    out item vehicleCommand : VehicleCommandOutput;
+  }
+
+  port def OperationalStateOutbound {
+    doc /* The output port of the operational state: the state observer takes it. */
+    out item operationalState : OperationalStateOutput;
+  }
+
+  part def ClosedLoopDrivingFunctionalBoundary :> ClosedLoopDrivingSystem {
+    doc /*
+     * The driving system at its functional boundary, the one place its
+     * conceptual interfaces are stated: three input ports the context elements
+     * provide and two output ports they take, each with one directed item
+     * typed by an item definition of this package that specializes the item
+     * of phase 2. It performs the functional flow and binds its inputs and
+     * outputs to the ports. It is not a logical element: neither it nor its
+     * ports names a computer, a process, a transport or a technology.
+     */
+    port cameraImagesIn : CameraImagesInbound;
+    port egoMotionIn : EgoMotionInbound;
+    port routeIn : RouteInbound;
+    port vehicleCommandOut : VehicleCommandOutbound;
+    port operationalStateOut : OperationalStateOutbound;
+
+    perform drivingFlow : ClosedLoopDrivingFunctionalFlow {
+      in item cameraImages = cameraImagesIn.cameraImages;
+      in item egoMotion = egoMotionIn.egoMotion;
+      in item route = routeIn.route;
+      out item vehicleCommand = vehicleCommandOut.vehicleCommand;
+      out item operationalState = operationalStateOut.operationalState;
+    }
+  }
+
+  part closedLoopDrivingFunctionalBoundary : ClosedLoopDrivingFunctionalBoundary;
 
   /* ─────────────── Requirement-to-function allocations (allocatedTo) ─────────────── */
 
@@ -428,5 +678,146 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
       expose DE4SDV_ClosedLoopDrivingFunctionalArchitecture::*;
       attribute :>> direction = SysideViews::MatrixTraceabilityDirection::row2col;
     }
+  }
+
+  /* ─────────── The loop as a process: the system and its context elements ─────────── */
+
+  concern closedLoopDrivingProcessConcern : SystemProcessConcern {
+    doc /*
+     * System architects and systems engineers need the loop as a process: the
+     * functions navigation, the vehicle's cameras and motion sensing, its
+     * actuation and the state observer perform, which of those functions are
+     * outside the scope of the driving system, what the driving system
+     * provides and what it expects from each context element, and which items
+     * cross its boundary in which direction. No response deadline or timing
+     * claim follows from it.
+     */
+    subject;
+    stakeholder systemArchitect : SystemArchitect;
+    stakeholder systemsEngineer : SystemsEngineer;
+  }
+
+  view closedLoopDrivingSystemProcessActionFlowView : ActionFlowView {
+    viewpoint selectedSystemProcessViewpoint : SystemProcessViewpoint {
+      frame closedLoopDrivingProcessConcern;
+    }
+    expose closedLoopDrivingSystemProcess;
+  }
+
+  view closedLoopDrivingSystemProcessTreeView {
+    viewpoint selectedSystemProcessTreeViewpoint : SystemProcessViewpoint {
+      frame closedLoopDrivingProcessConcern;
+    }
+    expose closedLoopDrivingSystemProcess;
+    attribute depth = 2;
+    attribute showAnnotationRows = false;
+    render asTreeDiagram;
+  }
+
+  view closedLoopDrivingSystemProcessTableView : TVD::TableView {
+    viewpoint selectedSystemProcessTableViewpoint : SystemProcessViewpoint {
+      frame closedLoopDrivingProcessConcern;
+    }
+    expose closedLoopDrivingSystemProcess::navigation;
+    expose closedLoopDrivingSystemProcess::vehicle;
+    expose closedLoopDrivingSystemProcess::drivingSystem;
+    expose closedLoopDrivingSystemProcess::stateObserver;
+    filter @ SysML::PartUsage;
+    attribute :>> maxRowHeight = 300;
+    view Element :> columnViews {
+      attribute :>> featureToRender = CT::declaredName;
+    }
+    view Role :> columnViews {
+      attribute :>> featureToRender = CT::documentation;
+      attribute :>> columnWidth = 360;
+    }
+  }
+
+  /* ───────────── The modes, and the functions that depend on them ───────────── */
+
+  concern closedLoopDrivingModeDependenceConcern : SystemStateConcern {
+    doc /*
+     * System architects and software developers need the modes of the
+     * driving system and each function whose behavior differs by mode: what
+     * CommandVehicle commands while priming, while driving and while stopped,
+     * and what PublishOperationalState publishes of the stop and its cause,
+     * so that the behavior of each function is designed and built per mode.
+     */
+    subject;
+    stakeholder systemArchitect : SystemArchitect;
+    stakeholder softwareDeveloper : SoftwareDeveloper;
+  }
+
+  view closedLoopDrivingStateTransitionView : StateTransitionView {
+    viewpoint selectedSystemStateViewpoint : SystemStateViewpoint {
+      frame closedLoopDrivingModeDependenceConcern;
+      frame degradedInputBehaviorConcern;
+    }
+    expose ClosedLoopDrivingModes;
+  }
+
+  view closedLoopDrivingModeTreeView {
+    viewpoint selectedSystemStateTreeViewpoint : SystemStateViewpoint {
+      frame closedLoopDrivingModeDependenceConcern;
+      frame degradedInputBehaviorConcern;
+    }
+    expose ClosedLoopDrivingModes;
+    attribute showAnnotationRows = false;
+    render asTreeDiagram;
+  }
+
+  view closedLoopDrivingModeDependenceTableView : TVD::TableView {
+    viewpoint selectedSystemStateTableViewpoint : SystemStateViewpoint {
+      frame closedLoopDrivingModeDependenceConcern;
+      frame degradedInputBehaviorConcern;
+    }
+    expose ClosedLoopDrivingModes::priming;
+    expose ClosedLoopDrivingModes::driving;
+    expose ClosedLoopDrivingModes::stopped;
+    filter @ SysML::StateUsage;
+    attribute :>> maxRowHeight = 300;
+    view Mode :> columnViews {
+      attribute :>> featureToRender = CT::declaredName;
+    }
+    view DependentFunctions :> columnViews {
+      attribute :>> featureToRender = CT::documentation;
+      attribute :>> columnWidth = 360;
+    }
+  }
+
+  /* ─────────────── The conceptual interfaces of the system ─────────────── */
+
+  concern closedLoopDrivingInterfaceConcern : FunctionalInterfaceConcern {
+    doc /*
+     * Systems engineers and software developers need the conceptual interfaces
+     * of the driving system before phase 7 allocates the functions and phase 8
+     * places software on them: the port of the functional chain for each item
+     * that crosses its boundary, the direction of that item, and the item of
+     * phase 2 the port's item specializes. Signal typing at a software
+     * contract belongs to phase 8.
+     */
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder softwareDeveloper : SoftwareDeveloper;
+  }
+
+  view closedLoopDrivingFunctionalInterfaceView : InterconnectionView {
+    viewpoint selectedFunctionalInterfaceViewpoint : SystemInterfaceDefinitionViewpoint {
+      frame closedLoopDrivingInterfaceConcern;
+    }
+    expose closedLoopDrivingFunctionalBoundary;
+  }
+
+  view closedLoopDrivingFunctionalInterfacePortView {
+    viewpoint selectedFunctionalInterfacePortViewpoint : SystemInterfaceDefinitionViewpoint {
+      frame closedLoopDrivingInterfaceConcern;
+    }
+    expose CameraImagesInbound;
+    expose EgoMotionInbound;
+    expose OperationalStateOutbound;
+    expose RouteInbound;
+    expose VehicleCommandOutbound;
+    attribute showAnnotationRows = false;
+    render asTreeDiagram;
   }
 }

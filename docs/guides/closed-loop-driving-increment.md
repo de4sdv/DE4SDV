@@ -321,9 +321,9 @@ Seven functions break the driving system down, in the order of one step:
 They are `AllocatableFunction` actions of the functional flow
 `ClosedLoopDrivingFunctionalFlow`. The flow takes the camera images, the
 ego-motion state and the route of Phase 2 in, and gives the commands to the
-actuation and the operational state to AAOS SDV. Inside, the functions
-exchange the checkpoint inputs, the input condition, the plan, the mode and
-the run record.
+actuation and the operational state to the state observer. Inside, the
+functions exchange the checkpoint inputs, the input condition, the plan, the
+mode and the run record.
 
 Three decisions shape it:
 
@@ -363,6 +363,42 @@ arriving. The Phase 6 gates check that a function exists and that each
 functional requirement is allocated to one, and, as advisories, that each
 requirement is carried by the architecture and each function carries a
 requirement; review judges whether these are the right functions.
+
+### The loop, the modes and the interfaces
+
+Three more parts of the model answer the rest of what Phase 6 asks: the flows,
+the states and the interfaces.
+
+- **The system process.** `ClosedLoopDrivingSystemProcess` is one cycle of the
+  loop. Its participants are the context elements of Phase 2 and the driving
+  system. Navigation gives the route, the vehicle's cameras and motion sensing
+  give the images and the ego motion, the vehicle's actuation applies the
+  commands, and the state observer presents the published state. Those five
+  are functions of the context elements (`ContextElementFunction`), outside
+  the scope of the driving system: no requirement is allocated to them. The
+  driving system performs its whole functional flow as one action of the
+  process, and the five items that cross its boundary are the flows of the
+  process. Nothing flows back from observation.
+- **The modes.** Each mode of `ClosedLoopDrivingModes` states what the
+  functions that differ by mode do in it, and a dependency runs from each such
+  function to each mode it depends on: `commandVehicle` to all three,
+  `publishState` to stopped.
+- **The interfaces.** `ClosedLoopDrivingFunctionalBoundary` is the driving
+  system at its functional boundary: it specializes `ClosedLoopDrivingSystem`
+  and carries five port definitions, three in and two out, with one directed
+  item each. Each item specializes its Phase 2 item. The ports name no
+  computer, transport or technology, and no item is typed with a vehicle
+  signal specification: that typing starts in Phase 8, at the port where an
+  item enters a software contract.
+
+Three concerns of this phase are held by the parties they serve: the process
+by system architects and systems engineers, the modes by system architects
+and software developers, and the interfaces by systems engineers and software
+developers. Views of the SAF System Process, System State and System
+Interface Definition viewpoints frame them; the state views also frame
+`degradedInputBehaviorConcern`. SysIDE has published no action-flow or state
+render in this repository yet, so each viewpoint has candidate render forms,
+and the ones kept are listed in `VIEWS.md`.
 
 ## Next obligation and execution limits
 

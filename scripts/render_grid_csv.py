@@ -89,6 +89,18 @@ GRID_METADATA = {
         "requirements (requirement usages)",
         "system functions (action usages)",
     ),
+    "table-closedLoopDrivingSystemProcessTableView": GridMetadata(
+        "Closed-loop driving system process",
+        "The participants of one cycle of the loop and the function each performs in it.",
+        "participants (part usages)",
+        "",
+    ),
+    "table-closedLoopDrivingModeDependenceTableView": GridMetadata(
+        "Closed-loop driving system modes",
+        "The modes of the driving system and the functions whose behavior differs in each.",
+        "modes (state usages)",
+        "",
+    ),
     "table-middlewareProductLineClassificationView": GridMetadata(
         "Middleware product-line classification",
         "Classifies middleware characteristics and attaches each rationale to its element.",
