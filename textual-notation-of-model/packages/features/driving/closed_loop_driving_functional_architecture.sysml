@@ -733,13 +733,16 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
     stakeholder softwareDeveloper : SoftwareDeveloper;
   }
 
-  view closedLoopDrivingFunctionalInterfaceView : InterconnectionView {
+  view closedLoopDrivingFunctionalInterfaceView {
     viewpoint selectedFunctionalInterfaceViewpoint : SystemInterfaceDefinitionViewpoint {
       frame closedLoopDrivingInterfaceConcern;
     }
-    expose ClosedLoopDrivingFunctionalBoundary;
-    expose ClosedLoopDrivingFunctionalBoundary::*[istype SysML::PortUsage];
+    expose CameraImagesInbound;
+    expose EgoMotionInbound;
+    expose OperationalStateOutbound;
+    expose RouteInbound;
+    expose VehicleCommandOutbound;
     attribute showAnnotationRows = false;
-    attribute showInheritedRows = false;
+    render asTreeDiagram;
   }
 }

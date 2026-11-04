@@ -626,6 +626,8 @@ def test_each_view_frames_its_concern_and_exposes_its_content(view_name):
     view_type, render, exposes, frames = VIEWS[view_name]
     code = _code()
     header = f"view {view_name}" + (f" : {view_type}" if view_type else "")
+    # the exact header: an untyped view is a general view, and a type would select another kind
+    assert re.search(rf"\bview\s+{view_name}\s*" + (rf":\s*{re.escape(view_type)}\s*" if view_type else "") + r"\{", code), header
     view = braced_body(code, header)
     viewpoint = braced_body(view, "viewpoint")
     assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == frames

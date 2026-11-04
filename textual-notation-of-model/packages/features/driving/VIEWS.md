@@ -84,9 +84,9 @@ System architects and systems engineers need the loop as a process: the function
 - **Concern:** `closedLoopDrivingProcessConcern`
 - **Exposes:** `ClosedLoopDrivingSystemProcess::*`, `ClosedLoopDrivingSystemProcess::navigation::*`, `ClosedLoopDrivingSystemProcess::vehicle::*`, `ClosedLoopDrivingSystemProcess::drivingSystem::*`, `ClosedLoopDrivingSystemProcess::stateObserver::*`
 
-- **Diagram status:** Not yet published in this folder.
+- **Diagram status:** Published from the committed SysIDE SVG.
 
-_Diagram not present: `diagrams/diagram-closedLoopDrivingSystemProcessView.svg` (regenerate via the Privileged Syside Validation workflow)._
+![closedLoopDrivingSystemProcessView](diagrams/diagram-closedLoopDrivingSystemProcessView.svg)
 
 ### `closedLoopDrivingModeDependenceTableView`
 
@@ -108,13 +108,13 @@ Systems engineers and software developers need the conceptual interfaces of the 
 
 - **Source:** `closed_loop_driving_functional_architecture.sysml`
 - **Viewpoint:** `selectedFunctionalInterfaceViewpoint` (`SystemInterfaceDefinitionViewpoint`)
-- **View type:** `InterconnectionView`
 - **Concern:** `closedLoopDrivingInterfaceConcern`
-- **Exposes:** `ClosedLoopDrivingFunctionalBoundary`, `ClosedLoopDrivingFunctionalBoundary::*[istype SysML::PortUsage]`
+- **Exposes:** `CameraImagesInbound`, `EgoMotionInbound`, `OperationalStateOutbound`, `RouteInbound`, `VehicleCommandOutbound`
+- **Render:** `asTreeDiagram`
 
-- **Diagram status:** Published from the committed SysIDE SVG.
+- **Diagram status:** Not yet published in this folder.
 
-![closedLoopDrivingFunctionalInterfaceView](diagrams/diagram-closedLoopDrivingFunctionalInterfaceView.svg)
+_Diagram not present: `diagrams/diagram-closedLoopDrivingFunctionalInterfaceView.svg` (regenerate via the Privileged Syside Validation workflow)._
 
 ## `closed_loop_driving_needs_requirements.sysml`
 

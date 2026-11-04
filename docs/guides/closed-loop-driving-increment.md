@@ -402,8 +402,9 @@ by system architects and systems engineers, the modes by system architects
 and software developers, and the interfaces by systems engineers and software
 developers. One view answers each: the process as an action flow of the SAF
 System Process viewpoint, the modes as a table of the System State viewpoint,
-which also frames `degradedInputBehaviorConcern`, and the boundary definition
-as an interconnection of the System Interface Definition viewpoint. With the
+which also frames `degradedInputBehaviorConcern`, and the five port
+definitions with their items as a tree of the System Interface Definition
+viewpoint (SysIDE draws no definition in an interconnection view). With the
 breakdown tree and the requirement matrix, whose viewpoint is System
 Requirement Traceability (which function a requirement addresses), the phase
 publishes five views, listed in `VIEWS.md`.
