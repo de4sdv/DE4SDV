@@ -2,10 +2,10 @@
 
 Owner decision of 2026-11-04: one view per SAF question a phase answers, never
 two forms of the same elements, and the views of a phase are the ones the
-increment workflow's "Views per phase" table names. The table is the single
+increment workflow's "Views per phase" list names. The list is the single
 source: this test parses it from ``increment-workflow.md``, so the document and
-the check cannot drift, and it refuses a second per-phase viewpoint table in
-the method documents.
+the check cannot drift, and it refuses a second per-phase viewpoint selection
+in the method documents.
 
 A view's phase is the phase of the package that declares it, read from the
 package name's suffix (``…FunctionalArchitecture`` is phase 6); the method's
@@ -75,7 +75,8 @@ KNOWN_DEVIATIONS = {
     ("INC-MW-011", "scoreMiddlewareVerificationCaseView"): ((10,), "SystemRequirementTraceabilityViewpoint"),
 }
 
-TABLE_HEADER = "| Phase | Views | Viewpoint definitions | Form |"
+SECTION = "### Views per phase\n"
+ENTRY = re.compile(r"^- \*\*Phases? ([\d and]+)\*\*", re.MULTILINE)
 VIEW = re.compile(r"^\s*view\s+(\w+)\s*(?::\s*[\w:]+)?\s*\{", re.MULTILINE)
 VIEWPOINT = re.compile(r"\bviewpoint\s+\w+\s*:\s*([\w:]+)")
 VIEWPOINT_NAME = re.compile(r"`(\w+Viewpoint)`")
@@ -91,14 +92,13 @@ def _body(text: str, open_brace: int) -> str:
     return text[open_brace + 1:index - 1]
 
 
-def _package_files() -> dict[str, Path]:
+def _package_files() -> dict[str, list[Path]]:
     files: dict[str, list[Path]] = {}
     for path in PACKAGES.rglob("*.sysml"):
         for name in re.findall(r"^\s*(?:public\s+|private\s+)?package\s+(\w+)\s*\{", path.read_text(encoding="utf-8"),
                                re.MULTILINE):
             files.setdefault(name, []).append(path)
-    assert all(len(paths) == 1 for paths in files.values()), {n: p for n, p in files.items() if len(p) != 1}
-    return {name: paths[0] for name, paths in files.items()}
+    return files
 
 
 def _expected_artifacts(charter_file: str, charter: str) -> list[str]:
@@ -111,25 +111,27 @@ def _expected_artifacts(charter_file: str, charter: str) -> list[str]:
 
 
 def _phases_of(package: str) -> tuple[int, ...]:
-    matches = [phases for suffix, phases in PACKAGE_PHASES.items() if package.endswith(suffix)]
-    assert len(matches) == 1, f"{package} fits {len(matches)} known package suffixes; extend PACKAGE_PHASES"
-    return matches[0]
+    # the longest matching suffix decides: ``…NeedsRequirements`` holds phases 4 and 5, not phase 5 alone
+    matches = sorted((suffix for suffix in PACKAGE_PHASES if package.endswith(suffix)), key=len)
+    assert matches, f"{package} fits no known package suffix; extend PACKAGE_PHASES"
+    return PACKAGE_PHASES[matches[-1]]
 
 
-def _canonical_table() -> dict[int, set[str]]:
-    """Phase -> the viewpoint definitions the workflow's table names for it."""
+def _section() -> str:
     text = WORKFLOW.read_text(encoding="utf-8")
-    assert text.count(TABLE_HEADER) == 1, "increment-workflow.md carries exactly one 'Views per phase' table"
-    rows = text.split(TABLE_HEADER, 1)[1].split("\n\n", 1)[0].splitlines()[2:]
+    assert text.count(SECTION) == 1, "increment-workflow.md carries exactly one 'Views per phase' section"
+    return re.split(r"\n#{2,3} ", text.split(SECTION, 1)[1], 1)[0]
+
+
+def _canonical_list() -> dict[int, set[str]]:
+    """Phase -> the viewpoint definitions the workflow's list names for it."""
+    section = _section()
+    entries = ENTRY.split(section)[1:]
     canonical: dict[int, set[str]] = {}
-    for row in rows:
-        cells = [cell.strip() for cell in row.strip().strip("|").split("|")]
-        assert len(cells) == 4, row
-        phases = [int(number) for number in re.findall(r"\d+", cells[0])]
-        assert phases, row
-        names = set(VIEWPOINT_NAME.findall(cells[2]))
-        for phase in phases:
-            assert phase not in canonical, f"phase {phase} appears twice in the table"
+    for header, body in zip(entries[::2], entries[1::2]):
+        names = set(VIEWPOINT_NAME.findall(body.split("\n- ", 1)[0]))
+        for phase in (int(number) for number in re.findall(r"\d+", header)):
+            assert phase not in canonical, f"phase {phase} appears twice in the list"
             canonical[phase] = names
     assert sorted(canonical) == list(range(12)), sorted(canonical)
     return canonical
@@ -141,19 +143,21 @@ def _views() -> list[tuple[str, str, tuple[int, ...], str, str | None]]:
     for increment, (charter_file, charter) in CHARTERS.items():
         for package in _expected_artifacts(charter_file, charter):
             phases = _phases_of(package)
-            text = package_files[package].read_text(encoding="utf-8")
+            paths = package_files.get(package, [])
+            assert len(paths) == 1, f"{package} is declared in {len(paths)} files"
+            text = paths[0].read_text(encoding="utf-8")
             for match in VIEW.finditer(text):
                 viewpoints = [name.split("::")[-1] for name in VIEWPOINT.findall(_body(text, match.end() - 1))]
                 found.append((increment, package, phases, match.group(1), viewpoints[0] if viewpoints else None))
     return found
 
 
-CANONICAL = _canonical_table()
+CANONICAL = _canonical_list()
 VIEWS = _views()
 
 
-def test_the_table_names_only_defined_viewpoints_and_marks_the_de4sdv_ones():
-    text = WORKFLOW.read_text(encoding="utf-8").split(TABLE_HEADER, 1)[1].split("\n\n", 1)[0]
+def test_the_list_names_only_defined_viewpoints_and_marks_the_de4sdv_ones():
+    text = _section()
     saf = set(DEFINITION.findall(SAF_CATALOGUE.read_text(encoding="utf-8")))
     de4sdv = set(DEFINITION.findall(DE4SDV_CATALOGUE.read_text(encoding="utf-8")))
     for name in VIEWPOINT_NAME.findall(text):
@@ -162,10 +166,10 @@ def test_the_table_names_only_defined_viewpoints_and_marks_the_de4sdv_ones():
         assert marked == (name in de4sdv), f"{name}: a DE4SDV viewpoint is marked (DE4SDV), an SAF one is not"
 
 
-def test_the_table_lives_in_the_workflow_only():
+def test_the_list_lives_in_the_workflow_only():
     for path in METHOD_DOCS.rglob("*.md"):
         if path != WORKFLOW:
-            assert TABLE_HEADER not in path.read_text(encoding="utf-8"), f"{path.name} repeats the table"
+            assert SECTION not in path.read_text(encoding="utf-8"), f"{path.name} repeats the section"
     assert "## Viewpoint flow per phase" not in (METHOD_DOCS / "process-mapping.md").read_text(encoding="utf-8")
     assert "## AEBS pilot viewpoint selection" not in (METHOD_DOCS / "saf-viewpoint-map.md").read_text(encoding="utf-8")
 

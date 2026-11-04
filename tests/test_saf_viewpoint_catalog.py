@@ -249,7 +249,23 @@ def test_saf_source_metadata_records_repository_and_license() -> None:
     assert meta["userdoc"] == "https://saf.gfse.org/userdoc/aspects.html"
     assert meta["extraction"]["commit_sha"] == "c57bd42db60a00c51168f6aba8e2229ba0165b6c"
     assert meta["extraction"]["extracted_on"] == "2026-07-29"
+    assert meta["role"].startswith("SysML v2 mechanics only")
     assert meta["claim_boundary"] == "source-backed reference, not a vendored copy"
+
+
+def test_saf_source_metadata_records_the_content_source_pin() -> None:
+    content = yaml.safe_load(SOURCE_META.read_text(encoding="utf-8"))["content_source"]
+
+    assert content["source_id"] == "GfSE/SAF-Specification"
+    assert content["repository"] == "https://github.com/GfSE/SAF-Specification"
+    assert content["license"] == "Apache-2.0"
+    assert content["userdoc"] == "https://saf.gfse.org/userdoc/viewpoints.html"
+    assert content["extraction"]["commit_sha"] == "bc6bd5ce2bf27f3b18b084377198c6de85fe94a3"
+    assert content["extraction"]["files"] == ["src/_data/viewpoints.json", "src/_data/concerns.json"]
+    # the same pin upstream.md names as the catalogue's content source
+    upstream = (ROOT / "methodologies/sysmod-sysmlv2/upstream.md").read_text(encoding="utf-8")
+    assert content["extraction"]["commit_sha"] in upstream
+    assert "SAF-Specification" in SAF_FILE.read_text(encoding="utf-8").split("package SAF_Viewpoints", 1)[0]
 
 
 def test_every_viewpoint_has_source_url_doc_comment() -> None:

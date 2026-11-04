@@ -237,29 +237,29 @@ The increment ends here. Rework iterates the same increment; a new
 increment starts at phase 0 from a new engineering question, never as a
 continuation of this one.
 
-## Viewpoint flow per phase
+## Views and variability per phase
 
-Each phase produces DE4SDV artifacts that are expressed through SAF or
-DE4SDV method viewpoints. The table below shows which viewpoints are
-typically produced at each phase. It is a guide, not a checklist — not
-every viewpoint is needed in every increment. See
-[`saf-viewpoint-map.md`](saf-viewpoint-map.md) for viewpoint definitions,
-domain mapping, and selection guidance.
+The views each phase publishes, with their viewpoint definitions and proven
+forms, are the [views-per-phase list](increment-workflow.md#views-per-phase)
+of the increment workflow: one view per SAF question the phase answers, one
+list for every increment. See [`saf-viewpoint-map.md`](saf-viewpoint-map.md)
+for the viewpoint definitions and the domain mapping. The table below keeps
+what the phases decide about variability.
 
-| Phase | Typical viewpoints produced | Variability concerns |
-|---|---|---|
-| 0 — Increment framing | IncrementFramingViewpoint, ProductLineClassificationViewpoint, RegulatoryScopeViewpoint, Common Terms Definition, Common Standards Definition, EA Traceability | Product-line scope is recorded here; feature candidates are recorded in phase 3 |
-| 1 — Concern framing | Stakeholder Identification Viewpoint | — |
-| 2 — Operational context | Operational Context Definition, Operational Story, Operational Capability Definition, Operational Process | Operational capabilities may vary by variant |
-| 3 — Capability/feature semantics | ProductLineClassificationViewpoint (DE4SDV method viewpoint) | Core variability decision: the feature candidates the increment adds; core elements are common by default |
-| 4 — Needs | Stakeholder Requirement Definition Viewpoint | Needs may be variant-specific |
-| 5 — Requirements | System Context Definition, System Use Case, System Capability Definition, System Process, System Requirement Definition, System Interface Definition, System Requirement Traceability | Requirements vary with the features that bring their system of interest (rule 5 of the [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)) |
-| 6 — Functional architecture | System Functional Breakdown Structure | Functional structure may contain variation points |
-| 7 — Logical architecture | System Structure Definition, System Internal Exchange, System Function Mapping | Logical elements may vary by configuration (sensor suites, compute platform) |
-| 8 — Physical/software realization | Physical Context Definition, Physical Structure Definition, Physical Interface Definition, Physical Functional Mapping, Physical Logical Mapping | Physical/software realization contains explicit variation points (platform stack, middleware, sensing) |
-| 9 — Variability and configuration | ProductLineConfigurationViewpoint, ProductModelAssemblyViewpoint (DE4SDV method viewpoints) | Explicit configuration and product-model assembly — consolidates variability decisions from earlier phases |
-| 10 — V&V and evidence | Argumentation Assurance, Asset Identification, Security Risk Analysis (when safety/security-relevant) | Verification must cover configured variants |
-| 11 — Baseline | EA Traceability (baseline decision record, final trace review before PR) | — |
+| Phase | Variability concerns |
+|---|---|
+| 0 — Increment framing | Product-line scope is recorded here; feature candidates are recorded in phase 3 |
+| 1 — Concern framing | — |
+| 2 — Operational context | Operational capabilities may vary by variant |
+| 3 — Capability/feature semantics | Core variability decision: the feature candidates the increment adds; core elements are common by default |
+| 4 — Needs | Needs may be variant-specific |
+| 5 — Requirements | Requirements vary with the features that bring their system of interest (rule 5 of the [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)) |
+| 6 — Functional architecture | Functional structure may contain variation points |
+| 7 — Logical architecture | Logical elements may vary by configuration (sensor suites, compute platform) |
+| 8 — Physical/software realization | Physical/software realization contains explicit variation points (platform stack, middleware, sensing) |
+| 9 — Variability and configuration | Explicit configuration and product-model assembly — consolidates variability decisions from earlier phases |
+| 10 — V&V and evidence | Verification must cover configured variants |
+| 11 — Baseline | — |
 
 Variability is not confined to Phase 9. It is a cross-cutting concern that
 starts at Phase 3 (the feature candidates an increment adds), runs
@@ -281,7 +281,7 @@ bring its system of interest (rule 5 of the
 A feature candidate from Phase 3 becomes a variation point in Phase 9 once
 member-product variability is shown; core elements are shared assets.
 
-Each phase consumes the viewpoints produced by earlier phases. For
+Each phase consumes the views published by earlier phases. For
 example, phase 5 (requirements) consumes the operational context views
 from phase 2 and the stakeholder needs from phase 4 to produce
 verifiable requirements with trace links back to both. Phase 10 (V&V)
