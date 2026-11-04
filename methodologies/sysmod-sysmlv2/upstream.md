@@ -97,3 +97,31 @@ specialize `Project` or `AIProject`, or consume the requirement-boilerplate
 constraints. Candidate compatibility questions are recorded in the
 [draft upstream report](upstream-compatibility-report.md). They need upstream
 maintainer review before DE4SDV depends on the affected definitions.
+
+## SAF reference catalogue lineage
+
+The `SAF_Viewpoints` catalogue
+(`textual-notation-of-model/packages/methods/saf/`) is a source-backed reference
+to the GfSE System Architecture Framework, not a vendored copy. Two GfSE
+repositories are involved, and only one of them is the content source.
+
+- Content source: <https://github.com/GfSE/SAF-Specification>, `main` @
+  `bc6bd5ce2bf27f3b18b084377198c6de85fe94a3`. This repository builds
+  saf.gfse.org, the viewpoint pages the catalogue cites in every definition.
+- Viewpoint data: `src/_data/viewpoints.json` at that pin — 58 viewpoints with
+  their name, grid identifier, domain, aspect, purpose, maturity, required and
+  recommended viewpoints, and concern identifiers.
+- Concern data: `src/_data/concerns.json` at the same pin — 146 concerns whose
+  `Name` is the question text. The catalogue states the questions of each
+  viewpoint it defines verbatim, after its own lead-in.
+- Rename evidence: every renamed viewpoint keeps its stable SAF element
+  identifier across the `PreRefactor2026` (`6b09c2f7`) and `TdSE2025`
+  (`2cda0814`) branches of the same repository.
+- Experimental projection, not a content source:
+  <https://github.com/GfSE/SAF-SysMLV2>, `main` @
+  `c57bd42db60a00c51168f6aba8e2229ba0165b6c`. Its naming predates the 2026
+  refactor, so its names and its two purpose texts are not used for catalogue
+  content; it is read for SysML v2 mechanics only.
+- Not adopted from either repository: the `Presentation` fields, which describe
+  SysML v1 diagram kinds, and the stereotype and profile data. DE4SDV chooses
+  its SysML v2 renderings itself, limited by what the renderer publishes.

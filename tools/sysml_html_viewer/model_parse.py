@@ -124,6 +124,32 @@ class Member:
     parent: "Member | None" = field(default=None, repr=False, compare=False)
 
 
+@dataclass(frozen=True)
+class FramedConcern:
+    """One concern a view frames (`frame`).
+
+    ``concern_def`` is the concern definition the frame names
+    (``frame concern c : C;`` -> ``"C"``); it is empty for the plain
+    ``frame c;`` form. ``viewpoint_definition`` names the viewpoint
+    definition the frame is inherited from; it is empty when the view
+    states the frame itself.
+    """
+
+    name: str
+    concern_def: str = ""
+    viewpoint_definition: str = ""
+
+
+@dataclass
+class ViewpointDefinition:
+    """A declared `viewpoint def`: the concerns it frames, and its `:>`
+    general definitions (the ones it inherits frames through)."""
+
+    name: str
+    frames: tuple[FramedConcern, ...] = ()
+    generalizations: tuple[str, ...] = ()
+
+
 @dataclass
 class ViewInfo:
     """A declared `view` usage plus its SysIDE artifact mapping."""
@@ -132,12 +158,28 @@ class ViewInfo:
     view_type: str = ""
     viewpoint: str = ""
     viewpoint_type: str = ""
-    concern: str = ""
     exposes: list[str] = field(default_factory=list)
     depth: str = ""
     render: str = ""
     line: int = 0
     doc: str = ""
+    # the frames the view states itself, in model order
+    own_frames: list[FramedConcern] = field(default_factory=list)
+    # the frames it inherits from its viewpoint definition and that
+    # definition's `:>` general definitions (resolved model-wide)
+    inherited_frames: list[FramedConcern] = field(default_factory=list)
+
+    @property
+    def frames(self) -> list[FramedConcern]:
+        """Every concern the view frames: its own first, then inherited."""
+        return self.own_frames + self.inherited_frames
+
+    @property
+    def concern(self) -> str:
+        """The first own frame, or "" — the single concern that
+        ``scripts/generate_view_index.py`` lists, which this module agrees
+        with (see the parity test)."""
+        return self.own_frames[0].name if self.own_frames else ""
 
 
 @dataclass
@@ -148,6 +190,9 @@ class ModelFile:
     rel_path: str               # repo-relative posix path
     members: list[Member] = field(default_factory=list)
     views: list[ViewInfo] = field(default_factory=list)
+    # the `viewpoint def` declarations of the file, by name: the frames they
+    # state and the `:>` general definitions a view inherits frames through
+    viewpoint_definitions: dict[str, ViewpointDefinition] = field(default_factory=dict)
     file_doc: str = ""
     # the names that the code of the file uses as a qualifier (`Q::`), also
     # in its imports (`import Q::*`): see file_index
@@ -183,7 +228,10 @@ _VIEW_RE = re.compile(
 _VIEWPOINT_RE = re.compile(
     r"viewpoint\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*\{"
 )
-_FRAME_RE = re.compile(r"frame\s+([A-Za-z_][A-Za-z0-9_.]*)")
+_FRAME_RE = re.compile(
+    rf"\bframe\s+(?:concern\s+)?([A-Za-z_][A-Za-z0-9_.]*)\s*"
+    rf"(?::\s*({_QUALIFIED_NAME}))?\s*;"
+)
 _EXPOSE_RE = re.compile(r"\bexpose\s+([^;\n]+?)\s*;")
 _DEPTH_RE = re.compile(r"attribute\s+depth\s*=\s*(-?\d+)")
 _RENDER_RE = re.compile(r"render\s+([A-Za-z_][A-Za-z0-9_]*)")
@@ -197,6 +245,86 @@ def artifact_filename(view_name: str, view_type: str) -> str:
     if short == "TableView":
         return f"diagram-table-{view_name}.svg"
     return f"diagram-{view_name}.svg"
+
+
+def _frames_in(block: str) -> list[FramedConcern]:
+    """The `frame` statements of a comment-free block, in model order.
+
+    Both forms count: `frame c;` and `frame concern c : C;` (the keyword
+    `concern` is never the name). A concern the block frames twice is
+    listed once — the first statement is the one the model states first.
+    """
+    frames: list[FramedConcern] = []
+    seen: set[str] = set()
+    for match in _FRAME_RE.finditer(block):
+        name = match.group(1)
+        if name in seen:
+            continue
+        seen.add(name)
+        frames.append(FramedConcern(name=name, concern_def=match.group(2) or ""))
+    return frames
+
+
+_VIEWPOINT_DEF_RE = re.compile(r"\bviewpoint\s+def\s+([A-Za-z_][A-Za-z0-9_]*)")
+_GENERALIZATION_RE = re.compile(
+    r"(?::>|\bspecializes\b)\s*"
+    r"([A-Za-z_][A-Za-z0-9_:]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_:]*)*)"
+)
+
+
+def _block_at(text: str, brace: int) -> str | None:
+    """The text from the opening brace at `brace` to its matching `}`."""
+    depth = 1
+    for i in range(brace + 1, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[brace : i + 1]
+    return None
+
+
+def _parse_viewpoint_definition(text: str, name: str) -> ViewpointDefinition:
+    """Parse one `viewpoint def` of comment-free text.
+
+    A definition without a body (`viewpoint def X;`) frames nothing and has
+    no specialization: it is not mistaken for a later block.
+    """
+    match = re.search(rf"\bviewpoint\s+def\s+{re.escape(name)}\b", text)
+    frames: tuple[FramedConcern, ...] = ()
+    generalizations: tuple[str, ...] = ()
+    if match:
+        brace = text.find("{", match.end())
+        semi = text.find(";", match.end())
+        if brace != -1 and (semi == -1 or brace < semi):
+            block = _block_at(text, brace)
+            if block:
+                header = text[match.end() : brace]
+                spec = _GENERALIZATION_RE.search(header)
+                if spec:
+                    generalizations = tuple(
+                        re.sub(r"\s+", "", g) for g in spec.group(1).split(",")
+                    )
+                frames = tuple(_frames_in(block))
+    return ViewpointDefinition(
+        name=name, frames=frames, generalizations=generalizations
+    )
+
+
+def parse_viewpoint_definitions(text: str) -> dict[str, ViewpointDefinition]:
+    """The `viewpoint def` declarations of one file, by name.
+
+    `text` is the comment-free text of the file. A name declared twice
+    keeps its first declaration.
+    """
+    definitions: dict[str, ViewpointDefinition] = {}
+    for match in _VIEWPOINT_DEF_RE.finditer(text):
+        name = match.group(1)
+        if name in definitions:
+            continue
+        definitions[name] = _parse_viewpoint_definition(text, name)
+    return definitions
 
 
 def _parse_view(text: str, name: str) -> ViewInfo | None:
@@ -215,9 +343,7 @@ def _parse_view(text: str, name: str) -> ViewInfo | None:
     vp = _VIEWPOINT_RE.search(block)
     if vp:
         info.viewpoint, info.viewpoint_type = vp.group(1), vp.group(2)
-    frame = _FRAME_RE.search(block)
-    if frame:
-        info.concern = frame.group(1)
+    info.own_frames = _frames_in(block)
     info.exposes = [e for e in _EXPOSE_RE.findall(block) if e != name]
     d = _DEPTH_RE.search(block)
     if d:
@@ -531,6 +657,8 @@ def parse_file(path: Path, repo_root: Path) -> ModelFile:
     code, comment_ends = _code_mask(text)
     mf.members = _scan_members(text, code, comment_ends)
     mf.qualifiers = frozenset(_QUALIFIER_RE.findall(code))
+    stripped = _strip_comments(text)
+    mf.viewpoint_definitions = parse_viewpoint_definitions(stripped)
 
     # --- views ---
     for match in _VIEW_RE.finditer(text):
@@ -574,8 +702,79 @@ def model_paths(repo_root: Path, roots: list[str]) -> list[Path]:
 
 
 def load_model(repo_root: Path, roots: list[str]) -> list[ModelFile]:
-    """Load the .sysml files under the given repo-relative roots, without their fixtures."""
-    return [parse_file(path, repo_root) for path in model_paths(repo_root, roots)]
+    """Load the .sysml files under the given repo-relative roots, without their fixtures.
+
+    The frames a view inherits from its viewpoint definition are resolved
+    model-wide, so the loaded views carry every concern they frame (see
+    ``resolve_framed_concerns``)."""
+    files = [parse_file(path, repo_root) for path in model_paths(repo_root, roots)]
+    resolve_framed_concerns(files)
+    return files
+
+
+def _definition_name(
+    type_name: str, definitions: dict[str, ViewpointDefinition]
+) -> str:
+    """The declared viewpoint definition for a typename, or "".
+
+    A qualified typename (`SAF::X`) names its last segment; the model may
+    declare the definition in another package."""
+    for candidate in (type_name, type_name.rsplit("::", 1)[-1]):
+        candidate = re.sub(r"\s+", "", candidate)
+        if candidate in definitions:
+            return candidate
+    return ""
+
+
+def resolve_framed_concerns(files: list[ModelFile]) -> None:
+    """Give every view the concerns it inherits from its viewpoint definition.
+
+    A `viewpoint def` frames concerns; a viewpoint usage typed by that
+    definition frames them too, and through the definition's `:>` general
+    definitions. The nearer definition's frames come first, after the
+    frames the view states itself. A concern the view frames itself is not
+    repeated — the view states it once, as its own frame. What the model
+    does not state is not added.
+    """
+    definitions: dict[str, ViewpointDefinition] = {}
+    for mf in files:
+        for name, definition in mf.viewpoint_definitions.items():
+            definitions.setdefault(name, definition)
+    for mf in files:
+        for view in mf.views:
+            view.inherited_frames = _inherited_frames(view, definitions)
+
+
+def _inherited_frames(
+    view: ViewInfo, definitions: dict[str, ViewpointDefinition]
+) -> list[FramedConcern]:
+    """The frames a view inherits through the type of its viewpoint usage."""
+    frames: list[FramedConcern] = []
+    seen = {frame.name for frame in view.own_frames}
+    visited: set[str] = set()
+    pending = [_definition_name(view.viewpoint_type, definitions)]
+    while pending:
+        name = pending.pop(0)
+        if not name or name in visited:
+            continue
+        visited.add(name)
+        definition = definitions[name]
+        for frame in definition.frames:
+            if frame.name in seen:
+                continue
+            seen.add(frame.name)
+            frames.append(
+                FramedConcern(
+                    name=frame.name,
+                    concern_def=frame.concern_def,
+                    viewpoint_definition=definition.name,
+                )
+            )
+        pending.extend(
+            _definition_name(generalization, definitions)
+            for generalization in definition.generalizations
+        )
+    return frames
 
 
 # ---------------------------------------------------------------------------

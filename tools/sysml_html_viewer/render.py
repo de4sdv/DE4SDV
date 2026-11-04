@@ -846,8 +846,25 @@ def _render_view_block(
         )
     if v.view_type:
         rows.append(("View type", f"<code>{wbr(v.view_type)}</code>"))
-    if v.concern:
-        rows.append(("Concern", f"<code>{wbr(v.concern)}</code>"))
+    if v.frames:
+        frames_html = "".join(
+            "<li>"
+            f"<code>{wbr(f.name)}</code>"
+            + (
+                f" <span class='muted'>: <code>{wbr(f.concern_def)}</code></span>"
+                if f.concern_def
+                else ""
+            )
+            + (
+                " <span class='muted frame-origin'>frame inherited from "
+                f"viewpoint definition <code>{wbr(f.viewpoint_definition)}</code></span>"
+                if f.viewpoint_definition
+                else " <span class='muted frame-origin'>own frame</span>"
+            )
+            + "</li>"
+            for f in v.frames
+        )
+        rows.append(("Framed concerns", f"<ul class='frame-list'>{frames_html}</ul>"))
     if v.render:
         rows.append(("Render", f"<code>{wbr(v.render)}</code>"))
     if v.depth:
