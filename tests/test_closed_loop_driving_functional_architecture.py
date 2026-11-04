@@ -17,11 +17,21 @@ what review settled on top of them:
   phase 8;
 - two views of the SAF System Functional Breakdown Structure viewpoint: the breakdown tree and the
   requirement-function matrix, which also answers the degraded-input concern of phase 1;
-- no technology, platform or safety claim in the functions.
+- the functions the context elements perform in the loop, as functions of their own root, outside the
+  system's scope, and the system process that runs the system as one action between them, with the items
+  that cross the boundary;
+- the modes and the functions that depend on them, the system's functional interfaces as port definitions
+  with directed items typed by functional item definitions of this package, and candidate render forms of
+  the SAF System Process, System State and System Interface Definition viewpoints, each framed by a phase 6
+  concern typed by that catalogue;
+- no technology, platform or safety claim in the functions, and no vehicle signal specification in the
+  package.
 """
 
 from pathlib import Path
 import re
+
+import pytest
 
 from sysml_shapes import braced_body, strip_comments
 
@@ -129,9 +139,164 @@ EXCHANGE_CONSTRAINT = "reqPlansAndCommandsOverSCORE"
 MODES = ["priming", "driving", "stopped"]
 TRANSITIONS = {("priming", "driving"), ("priming", "stopped"), ("driving", "stopped")}
 
+#: The root of the functions the context elements perform, outside the system's functional scope. Not an
+#: AllocatableFunction: the increment's functions are the AllocatableFunction actions, and no context
+#: function carries a requirement of phase 5.
+CONTEXT_FUNCTION_ROOT = "ContextElementFunction"
+
+#: Each context function -> its one parameter (direction, name, item type), taken from phase 2.
+CONTEXT_FUNCTIONS = {
+    "GiveRoute": ("out", "route", "Route"),
+    "CaptureCameraImages": ("out", "cameraImages", "CameraImages"),
+    "SampleEgoMotion": ("out", "egoMotion", "EgoMotionState"),
+    "ApplyMotionCommands": ("in", "command", "VehicleMotionCommand"),
+    "PresentDrivingState": ("in", "operationalState", "DrivingOperationalState"),
+}
+
+PROCESS = "ClosedLoopDrivingSystemProcess"
+PROCESS_USAGE = "closedLoopDrivingSystemProcess"
+
+#: Each participant of the process, in loop order -> its phase 2 type and the process actions it performs.
+PARTICIPANTS = {
+    "navigation": ("NavigationSystem", ("giveRoute",)),
+    "vehicle": ("SubjectVehicle", ("captureImages", "sampleEgoMotion", "applyCommands")),
+    "drivingSystem": ("ClosedLoopDrivingSystem", ("driveSystem",)),
+    "stateObserver": ("DrivingStateObserverApplication", ("presentState",)),
+}
+
+#: Each action of the process, in loop order -> its action definition. One of them is the system's whole
+#: functional flow: the system's functional scope is one action of the process.
+PROCESS_STEPS = {
+    "giveRoute": "GiveRoute",
+    "captureImages": "CaptureCameraImages",
+    "sampleEgoMotion": "SampleEgoMotion",
+    "driveSystem": "ClosedLoopDrivingFunctionalFlow",
+    "applyCommands": "ApplyMotionCommands",
+    "presentState": "PresentDrivingState",
+}
+
+#: The items that cross the boundary of the system inside the process (source, target).
+PROCESS_FLOWS = {
+    ("giveRoute.route", "driveSystem.route"),
+    ("captureImages.cameraImages", "driveSystem.cameraImages"),
+    ("sampleEgoMotion.egoMotion", "driveSystem.egoMotion"),
+    ("driveSystem.vehicleCommand", "applyCommands.command"),
+    ("driveSystem.operationalState", "presentState.operationalState"),
+}
+
+#: The order of the loop, as far as the process states it.
+PROCESS_SUCCESSIONS = {
+    ("giveRoute", "driveSystem"),
+    ("captureImages", "driveSystem"),
+    ("sampleEgoMotion", "driveSystem"),
+    ("driveSystem", "applyCommands"),
+}
+
+#: The functions whose behavior differs by mode (function usage, mode).
+MODE_DEPENDENCIES = {
+    ("commandVehicle", "priming"),
+    ("commandVehicle", "driving"),
+    ("commandVehicle", "stopped"),
+    ("publishState", "stopped"),
+}
+
+#: The functional item definitions of the boundary, each specializing its phase 2 item.
+BOUNDARY_ITEM_SPECIALIZATIONS = {
+    "CameraImageInput": "CameraImages",
+    "EgoMotionInput": "EgoMotionState",
+    "RouteInput": "Route",
+    "VehicleCommandOutput": "VehicleMotionCommand",
+    "OperationalStateOutput": "DrivingOperationalState",
+}
+
+#: Each port definition of the boundary -> its one directed item (direction, name, item definition).
+BOUNDARY_PORTS = {
+    "CameraImagesInbound": ("in", "cameraImages", "CameraImageInput"),
+    "EgoMotionInbound": ("in", "egoMotion", "EgoMotionInput"),
+    "RouteInbound": ("in", "route", "RouteInput"),
+    "VehicleCommandOutbound": ("out", "vehicleCommand", "VehicleCommandOutput"),
+    "OperationalStateOutbound": ("out", "operationalState", "OperationalStateOutput"),
+}
+
+BOUNDARY = "ClosedLoopDrivingFunctionalBoundary"
+BOUNDARY_USAGE = "closedLoopDrivingFunctionalBoundary"
+
+#: Each port usage of the boundary part -> its port definition.
+BOUNDARY_PORT_USAGES = {
+    "cameraImagesIn": "CameraImagesInbound",
+    "egoMotionIn": "EgoMotionInbound",
+    "routeIn": "RouteInbound",
+    "vehicleCommandOut": "VehicleCommandOutbound",
+    "operationalStateOut": "OperationalStateOutbound",
+}
+
+#: How the boundary binds the flow's parameters to the port payloads (direction, parameter, binding).
+BOUNDARY_BINDINGS = {
+    ("in", "cameraImages", "cameraImagesIn.cameraImages"),
+    ("in", "egoMotion", "egoMotionIn.egoMotion"),
+    ("in", "route", "routeIn.route"),
+    ("out", "vehicleCommand", "vehicleCommandOut.vehicleCommand"),
+    ("out", "operationalState", "operationalStateOut.operationalState"),
+}
+
+PROCESS_CONCERN = "closedLoopDrivingProcessConcern"
+STATE_CONCERN = "closedLoopDrivingModeDependenceConcern"
+INTERFACE_CONCERN = "closedLoopDrivingInterfaceConcern"
+
+#: The Phase 6 concerns and the catalogue concern definition each is typed by.
+CATALOGUE_CONCERNS = {
+    PROCESS_CONCERN: ("SystemProcessConcern", {"SystemArchitect", "SystemsEngineer"}),
+    STATE_CONCERN: ("SystemStateConcern", {"SystemArchitect", "SoftwareDeveloper"}),
+    INTERFACE_CONCERN: ("FunctionalInterfaceConcern", {"SystemsEngineer", "SoftwareDeveloper"}),
+}
+
+#: The candidate render forms the owner compares, one view per form: name -> (type or "", render statement,
+#: exposures, framed concerns). The owner keeps one form per question and the others leave the model.
+CANDIDATE_VIEWS = {
+    "closedLoopDrivingSystemProcessActionFlowView": (
+        "ActionFlowView", "", ["closedLoopDrivingSystemProcess"], [PROCESS_CONCERN]),
+    "closedLoopDrivingSystemProcessTreeView": (
+        "", "render asTreeDiagram;", ["closedLoopDrivingSystemProcess"], [PROCESS_CONCERN]),
+    "closedLoopDrivingSystemProcessTableView": (
+        "TVD::TableView", "",
+        ["closedLoopDrivingSystemProcess::navigation", "closedLoopDrivingSystemProcess::vehicle",
+         "closedLoopDrivingSystemProcess::drivingSystem", "closedLoopDrivingSystemProcess::stateObserver"],
+        [PROCESS_CONCERN]),
+    "closedLoopDrivingStateTransitionView": (
+        "StateTransitionView", "", ["ClosedLoopDrivingModes"], [STATE_CONCERN, PHASE_1_CONCERN]),
+    "closedLoopDrivingModeTreeView": (
+        "", "render asTreeDiagram;", ["ClosedLoopDrivingModes"], [STATE_CONCERN, PHASE_1_CONCERN]),
+    "closedLoopDrivingModeDependenceTableView": (
+        "TVD::TableView", "",
+        ["ClosedLoopDrivingModes::priming", "ClosedLoopDrivingModes::driving", "ClosedLoopDrivingModes::stopped"],
+        [STATE_CONCERN, PHASE_1_CONCERN]),
+    "closedLoopDrivingFunctionalInterfaceView": (
+        "InterconnectionView", "", ["closedLoopDrivingFunctionalBoundary"], [INTERFACE_CONCERN]),
+    "closedLoopDrivingFunctionalInterfacePortView": (
+        "", "render asTreeDiagram;", [f for f in sorted(BOUNDARY_PORTS)], [INTERFACE_CONCERN]),
+}
+#: The two candidate tables, with the row population and the columns each renders.
+CANDIDATE_TABLES = {
+    "closedLoopDrivingSystemProcessTableView": ("filter @ SysML::PartUsage;",
+                                                [("Element", "CT::declaredName"),
+                                                 ("Role", "CT::documentation")]),
+    "closedLoopDrivingModeDependenceTableView": ("filter @ SysML::StateUsage;",
+                                                 [("Mode", "CT::declaredName"),
+                                                  ("DependentFunctions", "CT::documentation")]),
+}
+
+#: The catalogue viewpoint definition each candidate's viewpoint usage is typed by, by the phase 6 concern.
+CANDIDATE_VIEWPOINTS = {
+    PROCESS_CONCERN: "SystemProcessViewpoint",
+    STATE_CONCERN: "SystemStateViewpoint",
+    INTERFACE_CONCERN: "SystemInterfaceDefinitionViewpoint",
+}
+
 #: Words that would name a technology, a platform or a claim inside a function.
 FORBIDDEN_IN_FUNCTIONS = ("CARLA", "ROS", "DDS", "Zenoh", "SOME/IP", "GPU", "Python", "PyTorch", "Linux",
-                          "Android", "S-CORE", "safe", "certif", "complian", "homolog")
+                          "Android", "S-CORE", "VSS", "safe", "certif", "complian", "homolog")
+
+TECHNOLOGY_NAMES = ("CAN", "LIN", "FlexRay", "Ethernet", "gRPC", "KUKSA", "AUTOSAR", "AAOS", "Autoware")
 
 
 def _raw() -> str:
@@ -199,10 +364,13 @@ def test_the_charter_names_the_package_after_the_needs_and_requirements():
 def test_the_seven_functions_are_allocatable_functions_and_nothing_else_is():
     code = _code()
     functions = re.findall(r"\baction\s+def\s+(\w+)\s*:>\s*([^{;]+?)\s*\{", code)
-    assert dict(functions) == {name: "AllocatableFunction" for name in FUNCTIONS.values()}
+    assert {name: typed for name, typed in functions if typed == "AllocatableFunction"} == {
+        name: "AllocatableFunction" for name in FUNCTIONS.values()}
+    assert {name: typed for name, typed in functions if typed != "AllocatableFunction"} == {
+        name: CONTEXT_FUNCTION_ROOT for name in CONTEXT_FUNCTIONS}
     assert code.count("private import DE4SDV_TraceVocabulary::AllocatableFunction;") == 1
     assert re.search(rf"\baction\s+def\s+{FLOW}\s*\{{", code), "the flow is a composite, not a function"
-    assert set(re.findall(r"\bitem\s+def\s+(\w+)", code)) == INTERNAL_ITEMS
+    assert set(re.findall(r"\bitem\s+def\s+(\w+)", code)) == INTERNAL_ITEMS | set(BOUNDARY_ITEM_SPECIALIZATIONS)
     for item in PHASE_2_ITEMS:
         assert f"private import DE4SDV_ClosedLoopDrivingOperationalContext::{item};" in code, item
     assert re.search(rf"\baction\s+{FLOW_USAGE}\s*:\s*{FLOW}\s*;", code)
@@ -246,14 +414,18 @@ def test_observation_is_one_way():
     code = _code()
     assert not [flow for flow in FLOWS if flow[0].startswith("publishState.")]
     assert not re.search(r"\bflow\s+from\s+publishState\.", code)
-    assert not re.search(r"\bin\s+\w+\s*:\s*DrivingOperationalState\b", code), "no function takes the published state"
+    functions = [body for body in re.findall(r"action def \w+ :> AllocatableFunction \{[^}]*\}", code)]
+    assert not any(re.search(r"\bin\s+\w+\s*:\s*DrivingOperationalState\b", body) for body in functions), \
+        "no function of the driving system takes the published state"
+    assert not [flow for flow in PROCESS_FLOWS if "presentState" in flow[0]], \
+        "the state observer gives nothing back into the process"
     assert "never waits for a receiver" in _doc("action def PublishOperationalState :> AllocatableFunction")
 
 
 def test_the_modes_are_those_the_health_of_the_driving_system_names():
     code = _code()
     machine = braced_body(code, "state def ClosedLoopDrivingModes")
-    assert re.findall(r"\bstate\s+(\w+)\s*;", machine) == MODES
+    assert re.findall(r"\bstate\s+(\w+)\s*[;{]", machine) == MODES
     assert set(re.findall(r"\btransition\s+first\s+(\w+)\s+then\s+(\w+)\s*;", machine)) == TRANSITIONS
     assert len(re.findall(r"\btransition\b", machine)) == len(TRANSITIONS)
     terms = _flat(NEEDS_REQUIREMENTS.read_text(encoding="utf-8"))
@@ -330,6 +502,8 @@ def test_the_functions_name_no_technology_platform_or_claim():
     for declaration in declarations:
         doc = _doc(declaration)
         found = [word for word in FORBIDDEN_IN_FUNCTIONS if re.search(rf"\b{re.escape(word)}", doc, re.I)]
+        # buses, brokers and platforms, matched by case so that the word "can" is no bus
+        found += [word for word in TECHNOLOGY_NAMES if re.search(rf"\b{re.escape(word)}\b", doc)]
         assert not found, (declaration, found)
 
 
@@ -339,3 +513,170 @@ def test_the_matrix_render_has_a_title_and_its_axes_named():
     metadata = GRID_METADATA[f"matrix-{MATRIX_VIEW}"]
     assert metadata.row_label == "requirements (requirement usages)"
     assert metadata.column_label == "system functions (action usages)"
+
+
+def _process_body() -> str:
+    return braced_body(_code(), f"action def {PROCESS}")
+
+
+def test_the_context_elements_perform_the_loop_functions_outside_the_system_scope():
+    """The context elements act: navigation gives the route, the vehicle's cameras and motion sensing give
+    the images and the ego motion, its actuation applies the commands, and the state observer presents the
+    published state. Those functions are not the system's: they are typed by their own root, not by
+    AllocatableFunction, so Method Check keeps counting the seven functions as the increment's."""
+    code = _code()
+    assert re.search(rf"\baction\s+def\s+{CONTEXT_FUNCTION_ROOT}\s*\{{", code), "the context functions need a root"
+    declared = dict(re.findall(r"\baction\s+def\s+(\w+)\s*:>\s*(\w+)\s*\{", code))
+    assert {name: base for name, base in declared.items() if base == CONTEXT_FUNCTION_ROOT} == {
+        name: CONTEXT_FUNCTION_ROOT for name in CONTEXT_FUNCTIONS}
+    assert not re.search(rf"\baction\s+def\s+{CONTEXT_FUNCTION_ROOT}\s*:>", code), "the root specializes nothing"
+    for name, parameter in CONTEXT_FUNCTIONS.items():
+        body = _direct(braced_body(code, f"action def {name} :> {CONTEXT_FUNCTION_ROOT}"))
+        assert re.findall(r"\b(in|out)\s+(\w+)\s*:\s*(\w+)\s*;", body) == [parameter], name
+    assert "outside the scope of the driving system" in _doc(f"action def {CONTEXT_FUNCTION_ROOT}")
+
+
+def test_the_process_runs_the_system_as_one_action_between_the_context_elements():
+    """SAF System Process: one activity whose participants are the context elements and the system. Each
+    participant performs the functions of the loop, one of them the system's whole functional flow, so the
+    system's functional scope is one action of the process; the exchanges across the boundary are the
+    process's item flows, and no allocation leaves the requirement-to-function pairs of this package."""
+    body = _process_body()
+    direct = _direct(body)
+    assert re.findall(r"\bpart\s+(\w+)\s*:\s*(\w+)\s*\{", direct) == [
+        (name, typed) for name, (typed, _) in PARTICIPANTS.items()]
+    assert list(dict(re.findall(r"\baction\s+(\w+)\s*:\s*(\w+)\s*\{", direct))) == list(PROCESS_STEPS)
+    assert dict(re.findall(r"\baction\s+(\w+)\s*:\s*(\w+)\s*\{", direct)) == PROCESS_STEPS
+    for name, (typed, functions) in PARTICIPANTS.items():
+        part = braced_body(body, f"part {name} : {typed}")
+        assert re.findall(r"\bperform\s+(\w+)\s*;", part) == list(functions), name
+    performed = {performed for _, (_, functions) in PARTICIPANTS.items() for performed in functions}
+    assert performed == set(PROCESS_STEPS), "every performed action is a step of the process"
+    assert set(re.findall(r"\bflow\s+from\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)) == PROCESS_FLOWS
+    assert set(re.findall(r"\bfirst\s+(\w+)\s+then\s+(\w+)\s*;", body)) == PROCESS_SUCCESSIONS
+    assert re.search(rf"\baction\s+{PROCESS_USAGE}\s*:\s*{PROCESS}\s*;", _code())
+    assert [step for step, typed in PROCESS_STEPS.items() if typed == FLOW] == ["driveSystem"], \
+        "the system's functional scope is the one action typed by its functional flow"
+    assert "allocate" not in body, "the process assigns no responsibility"
+    doc = _doc(f"action def {PROCESS}")
+    assert "navigation gives the route" in doc and "outside the scope of the driving system" in doc
+    assert "nothing the observation gives flows back" in doc
+
+
+def test_the_modes_name_the_functions_that_depend_on_them():
+    """SAF System State: which modes the system has, and which functions depend on them. The dependence is
+    native, one dependency per function and mode, and each mode's doc says what the dependent functions do
+    in it. Stopped is the degraded-input response the phase 1 concern asks about."""
+    code = _code()
+    pairs = set(re.findall(
+        rf"\bdependency\s+\w+\s+from\s+{FLOW}::(\w+)\s+to\s+ClosedLoopDrivingModes::(\w+)\s*;", code))
+    assert pairs == MODE_DEPENDENCIES
+    assert len(re.findall(r"\bdependency\b", code)) == len(MODE_DEPENDENCIES), "no other dependency"
+    mode_takers = set()
+    for name, function in FUNCTIONS.items():
+        if re.search(r"\bin\s+mode\s*:\s*DrivingMode\s*;",
+                     braced_body(code, f"action def {function} :> AllocatableFunction")):
+            mode_takers.add(name)
+    assert mode_takers == {"commandVehicle", "publishState"}
+    assert "CommandVehicle holds the vehicle at standstill" in _doc("state priming")
+    assert "CommandVehicle commands from the newest valid plan" in _doc("state driving")
+    stopped = _doc("state stopped")
+    assert "CommandVehicle computes the stop response" in stopped
+    assert "PublishOperationalState publishes the stop with its cause" in stopped
+
+
+def test_the_system_boundary_carries_typed_functional_ports():
+    """SAF System Interface Definition: the system's conceptual interfaces as port definitions with one
+    directed item each, typed by a functional item definition of this package that specializes the phase 2
+    item, on one functional chain. No logical element owns them."""
+    code = _code()
+    # the boundary is the driving system itself at its interfaces, not a second system
+    assert re.search(rf"\bpart\s+def\s+{BOUNDARY}\s*:>\s*ClosedLoopDrivingSystem\s*\{{", code)
+    specializations = dict(re.findall(r"\bitem\s+def\s+(\w+)\s*:>\s*(\w+)\s*\{", code))
+    assert {name: base for name, base in specializations.items()
+            if name in BOUNDARY_ITEM_SPECIALIZATIONS} == BOUNDARY_ITEM_SPECIALIZATIONS
+    for port, item in BOUNDARY_PORTS.items():
+        body = braced_body(code, f"port def {port}")
+        assert re.findall(r"\b(in|out)\s+item\s+(\w+)\s*:\s*(\w+)\s*;", body) == [item], port
+    boundary = braced_body(code, f"part def {BOUNDARY}")
+    direct = _direct(boundary)
+    assert re.findall(r"\bport\s+(\w+)\s*:\s*(\w+)\s*;", direct) == list(BOUNDARY_PORT_USAGES.items())
+    perform = braced_body(boundary, f"perform drivingFlow : {FLOW}")
+    assert set(re.findall(r"\b(in|out)\s+item\s+(\w+)\s*=\s*([\w.]+)\s*;", perform)) == BOUNDARY_BINDINGS
+    assert re.search(rf"\bpart\s+{BOUNDARY_USAGE}\s*:\s*{BOUNDARY}\s*;", code)
+    assert "not a logical element" in _doc(f"part def {BOUNDARY}")
+    for typed in ("NavigationSystem", "DrivingStateObserverApplication"):
+        assert f"private import DE4SDV_ClosedLoopDrivingOperationalContext::{typed};" in code, typed
+    assert "private import DE4SDV_OperationalContext::SubjectVehicle;" in code
+    assert "private import DE4SDV_ClosedLoopDrivingFraming::ClosedLoopDrivingSystem;" in code
+    for name, (base, _) in PARTICIPANTS.items():
+        assert re.search(rf"\bpart\s+{name}\s*:\s*{base}\b", _process_body()), name
+
+
+@pytest.mark.parametrize("view_name", sorted(CANDIDATE_VIEWS), ids=sorted(CANDIDATE_VIEWS))
+def test_each_candidate_view_frames_its_concern_and_exposes_its_content(view_name):
+    """The candidate render forms the owner compares: each frames a phase 6 concern from its catalogue type's
+    viewpoint, and exposes exactly the content of its question."""
+    view_type, render, exposes, frames = CANDIDATE_VIEWS[view_name]
+    code = _code()
+    header = f"view {view_name}" + (f" : {view_type}" if view_type else "")
+    view = braced_body(code, header)
+    viewpoint = braced_body(view, "viewpoint")
+    assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == frames
+    assert re.search(rf"viewpoint\s+\w+\s*:\s*{CANDIDATE_VIEWPOINTS[frames[0]]}\s*\{{", view), view_name
+    assert len(re.findall(r"\bviewpoint\b", view)) == 1
+    assert re.findall(r"\bexpose\s+([\w:*]+)\s*;", view) == exposes
+    if render:
+        assert render in view
+    else:
+        assert "render as" not in view, "the view type selects the kind"
+
+
+@pytest.mark.parametrize("view_name", sorted(CANDIDATE_TABLES))
+def test_each_candidate_table_states_its_rows_and_columns(view_name):
+    code = _code()
+    filter_, columns = CANDIDATE_TABLES[view_name]
+    view = braced_body(code, f"view {view_name} : TVD::TableView")
+    assert filter_ in view
+    for label, feature in columns:
+        column = braced_body(view, f"view {label} :> columnViews")
+        assert f"attribute :>> featureToRender = {feature}" in column, (view_name, label)
+    from scripts.render_grid_csv import GRID_METADATA
+
+    metadata = GRID_METADATA[f"table-{view_name}"]
+    assert metadata.title and metadata.description, view_name
+
+
+@pytest.mark.parametrize("concern_name", sorted(CATALOGUE_CONCERNS), ids=sorted(CATALOGUE_CONCERNS))
+def test_each_phase_6_concern_is_typed_by_the_catalogue_and_held_by_the_party_it_serves(concern_name):
+    catalogue, stakeholders = CATALOGUE_CONCERNS[concern_name]
+    concern = braced_body(_code(), f"concern {concern_name} : {catalogue}")
+    members = re.findall(r"\b(subject|stakeholder)\b", concern)
+    assert members and members[0] == "subject"
+    assert set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", concern)) == stakeholders
+    assert "need" in _doc(f"concern {concern_name} : {catalogue}")
+
+
+def test_the_package_types_no_vehicle_signal_specification():
+    """Owner decision: no vehicle signal specification in phase 6. The typing starts at phase 8, at the port
+    where an item enters a software contract; the phase 6 interface items are conceptual."""
+    raw = _raw()
+    code = _code()
+    assert "VSS" not in code, "no vehicle signal type, import or path in the model code"
+    assert "COVESA_VSS" not in raw and "DE4SDV_VSS_Extensions" not in raw
+    assert not re.search(r"\bimport\b[^\n]*VSS", raw)
+    assert "no vehicle signal specification" in _flat(raw.split(f"package {PACKAGE}", 1)[0]).lower()
+
+
+def test_the_new_elements_name_no_technology_platform_or_claim():
+    declarations = [f"action def {name} :> {CONTEXT_FUNCTION_ROOT}" for name in CONTEXT_FUNCTIONS]
+    declarations += [f"action def {PROCESS}", f"part def {BOUNDARY}"]
+    declarations += [f"port def {port}" for port in BOUNDARY_PORTS]
+    declarations += [f"item def {item}" for item in BOUNDARY_ITEM_SPECIALIZATIONS]
+    declarations += [f"concern {name} : {catalogue}" for name, (catalogue, _) in CATALOGUE_CONCERNS.items()]
+    for declaration in declarations:
+        doc = _doc(declaration)
+        found = [word for word in FORBIDDEN_IN_FUNCTIONS if re.search(rf"\b{re.escape(word)}", doc, re.I)]
+        # buses, brokers and platforms, matched by case so that the word "can" is no bus
+        found += [word for word in TECHNOLOGY_NAMES if re.search(rf"\b{re.escape(word)}\b", doc)]
+        assert not found, (declaration, found)
