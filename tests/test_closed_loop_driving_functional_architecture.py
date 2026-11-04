@@ -243,8 +243,10 @@ CATALOGUE_CONCERNS = {
 
 #: One view per SAF question beyond the breakdown and the matrix: name -> (type or "", render statement,
 #: exposures, framed concerns). The process is an action flow with its members exposed (SysIDE draws only
-#: exposed elements as nodes), the modes a table, the boundary an interconnection. The render forms the
-#: owner compared on 2026-11-04 left the model.
+#: exposed elements as nodes), the modes a table, the interfaces the tree of the five port definitions with
+#: their items (SysIDE's interconnection kind draws usages wired through ports; the boundary definition
+#: alone drew nothing, licensed runs 41920933909 and 41923136300). The render forms the owner compared on
+#: 2026-11-04 left the model.
 VIEWS = {
     "closedLoopDrivingSystemProcessView": (
         "ActionFlowView", "",
@@ -255,7 +257,7 @@ VIEWS = {
         ["ClosedLoopDrivingModes::priming", "ClosedLoopDrivingModes::driving", "ClosedLoopDrivingModes::stopped"],
         [STATE_CONCERN, PHASE_1_CONCERN]),
     "closedLoopDrivingFunctionalInterfaceView": (
-        "InterconnectionView", "", [BOUNDARY, f"{BOUNDARY}::*[istype SysML::PortUsage]"], [INTERFACE_CONCERN]),
+        "", "render asTreeDiagram;", [port for port in sorted(BOUNDARY_PORTS)], [INTERFACE_CONCERN]),
 }
 #: The one table, with the row population and the columns it renders.
 TABLES = {
