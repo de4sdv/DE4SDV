@@ -417,6 +417,11 @@ code {
   .meta-table th { width: 84px; white-space: normal; }
 }
 
+/* framed concerns of a view: every frame the model states, own ones first,
+ * then the ones the view inherits from its viewpoint definition */
+.frame-list { margin: 0; padding-left: 18px; }
+.frame-list li { margin: 1px 0; }
+
 /* doc blocks */
 .doc-block {
   background: #fafbfc;

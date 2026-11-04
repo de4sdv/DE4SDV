@@ -97,6 +97,26 @@ python -m tools.sysml_html_viewer.generate --repo . --out build/model-viewer
 
 ## Features
 
+### Every concern a view frames
+
+A view's card lists the concerns it frames, in the order the model states
+them. `frame` is the SysML v2 statement that frames a concern:
+
+- **own frame** — the view states the frame itself, in its own `viewpoint`
+  usage (`frame closedLoopDrivingBoundary;`), or directly in the view. The
+  `frame concern <name> : <ConcernDefinition>;` form also names the concern
+  definition the concern is typed by, and the card shows it after the name.
+- **frame inherited from viewpoint definition `<name>`** — the `viewpoint
+  def` that types the view's viewpoint usage frames the concern
+  (`frame concern incrementConcern : IncrementConcern;`), and the view
+  inherits it. The frames of a definition reached through `:>`
+  specialization come after the nearer definition's frames.
+
+A concern the view frames itself appears once, as its own frame, even when
+its viewpoint definition frames the same concern. A view whose viewpoint
+frames nothing gets no such list: the viewer shows what the model states and
+adds nothing to it.
+
 ### Hover tooltips on elements
 
 Rest the pointer on any model label — tree entry or diagram element. A tooltip
