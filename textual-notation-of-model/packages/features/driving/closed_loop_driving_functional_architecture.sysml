@@ -22,6 +22,8 @@
  * state observer presents the published state. Those are functions of the
  * context elements, outside the scope of the driving system, and
  * ClosedLoopDrivingSystemProcess runs the system as one action between them.
+ * Its participants are the parts of the one operational context of phase 2,
+ * bound by reference: the process declares no context of its own.
  * The functions whose behavior differs by mode depend on the modes of
  * ClosedLoopDrivingModes, and the conceptual interfaces of the system are
  * the ports of ClosedLoopDrivingFunctionalBoundary, whose items specialize
@@ -44,6 +46,7 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
   private import DE4SDV_ClosedLoopDrivingOperationalContext::DrivingOperationalState;
   private import DE4SDV_ClosedLoopDrivingOperationalContext::NavigationSystem;
   private import DE4SDV_ClosedLoopDrivingOperationalContext::DrivingStateObserverApplication;
+  private import DE4SDV_ClosedLoopDrivingOperationalContext::closedLoopDrivingOperationalContext;
   private import DE4SDV_ClosedLoopDrivingNeedsRequirements::*;
   private import SAF_Viewpoints::*;
   private import StandardViewDefinitions::*;
@@ -305,7 +308,9 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
   action def ClosedLoopDrivingSystemProcess {
     doc /*
      * One cycle of the loop as a process. The participants are the context
-     * elements of phase 2 and the driving system: navigation gives the route,
+     * parts of phase 2 themselves and the system of interest, bound by
+     * reference as the story's actors are: the process declares no part of
+     * its own, so the increment has one context. In it navigation gives the route,
      * the vehicle's cameras and motion sensing give the images and the ego
      * motion, the driving system plans and commands as one action of the
      * process, the vehicle's actuation applies the commands, and the state
@@ -319,25 +324,25 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
      * planning, transport or display technology, no response deadline and no
      * timing claim is fixed here.
      */
-    part navigation : NavigationSystem {
-      doc /* Navigation: it performs the function that gives the route, and nothing else. */
+    ref part navigation : NavigationSystem = closedLoopDrivingOperationalContext::navigation {
+      doc /* Navigation of phase 2: it performs the function that gives the route, and nothing else. */
       perform giveRoute;
     }
 
-    part vehicle : SubjectVehicle {
-      doc /* The vehicle: its cameras and motion sensing give the input, and its actuation applies the commands. */
+    ref part vehicle : SubjectVehicle = closedLoopDrivingOperationalContext::vehicle {
+      doc /* The vehicle of phase 2: its cameras and motion sensing give the input, and its actuation applies the commands. */
       perform captureImages;
       perform sampleEgoMotion;
       perform applyCommands;
     }
 
-    part drivingSystem : ClosedLoopDrivingSystem {
-      doc /* The driving system: it performs its whole functional flow, from the inputs of the checkpoint to the commands and the published state. */
-      perform driveSystem;
+    ref part drivingSystem : ClosedLoopDrivingSystem = closedLoopDrivingOperationalContext::drivingSystem {
+      doc /* The system of interest of phase 2: it performs its whole functional flow, from the inputs of the checkpoint to the commands and the published state. */
+      perform closedLoopDrivingFunctionalFlow;
     }
 
-    part stateObserver : DrivingStateObserverApplication {
-      doc /* The state observer: it performs the presentation of the published state and sends nothing back. */
+    ref part stateObserver : DrivingStateObserverApplication = closedLoopDrivingOperationalContext::aaosSDVGuest::stateObserver {
+      doc /* The state observer of phase 2: it performs the presentation of the published state and sends nothing back. */
       perform presentState;
     }
 
@@ -353,13 +358,7 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
       out egoMotion;
     }
 
-    action driveSystem : ClosedLoopDrivingFunctionalFlow {
-      in cameraImages;
-      in egoMotion;
-      in route;
-      out vehicleCommand;
-      out operationalState;
-    }
+    perform closedLoopDrivingFunctionalFlow : ClosedLoopDrivingFunctionalFlow;
 
     action applyCommands : ApplyMotionCommands {
       in command;
@@ -369,16 +368,16 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
       in operationalState;
     }
 
-    flow from giveRoute.route to driveSystem.route;
-    flow from captureImages.cameraImages to driveSystem.cameraImages;
-    flow from sampleEgoMotion.egoMotion to driveSystem.egoMotion;
-    flow from driveSystem.vehicleCommand to applyCommands.command;
-    flow from driveSystem.operationalState to presentState.operationalState;
+    flow from giveRoute.route to closedLoopDrivingFunctionalFlow.route;
+    flow from captureImages.cameraImages to closedLoopDrivingFunctionalFlow.cameraImages;
+    flow from sampleEgoMotion.egoMotion to closedLoopDrivingFunctionalFlow.egoMotion;
+    flow from closedLoopDrivingFunctionalFlow.vehicleCommand to applyCommands.command;
+    flow from closedLoopDrivingFunctionalFlow.operationalState to presentState.operationalState;
 
-    first giveRoute then driveSystem;
-    first captureImages then driveSystem;
-    first sampleEgoMotion then driveSystem;
-    first driveSystem then applyCommands;
+    first giveRoute then closedLoopDrivingFunctionalFlow;
+    first captureImages then closedLoopDrivingFunctionalFlow;
+    first sampleEgoMotion then closedLoopDrivingFunctionalFlow;
+    first closedLoopDrivingFunctionalFlow then applyCommands;
   }
 
   action closedLoopDrivingSystemProcess : ClosedLoopDrivingSystemProcess;
@@ -509,7 +508,6 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
     }
   }
 
-  part closedLoopDrivingFunctionalBoundary : ClosedLoopDrivingFunctionalBoundary;
 
   /* ─────────────── Requirement-to-function allocations (allocatedTo) ─────────────── */
 
@@ -620,7 +618,7 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
   }
 
   view closedLoopDrivingRequirementFunctionMappingView : MVD::MatrixView {
-    viewpoint selectedRequirementFunctionViewpoint : SystemFunctionalBreakdownStructureViewpoint {
+    viewpoint selectedRequirementFunctionViewpoint : SystemRequirementTraceabilityViewpoint {
       frame closedLoopDrivingFunctionsConcern;
       frame degradedInputBehaviorConcern;
     }
@@ -697,40 +695,13 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
     stakeholder systemsEngineer : SystemsEngineer;
   }
 
-  view closedLoopDrivingSystemProcessActionFlowView : ActionFlowView {
+  view closedLoopDrivingSystemProcessView : ActionFlowView {
     viewpoint selectedSystemProcessViewpoint : SystemProcessViewpoint {
       frame closedLoopDrivingProcessConcern;
     }
     expose closedLoopDrivingSystemProcess;
-  }
-
-  view closedLoopDrivingSystemProcessTreeView {
-    viewpoint selectedSystemProcessTreeViewpoint : SystemProcessViewpoint {
-      frame closedLoopDrivingProcessConcern;
-    }
-    expose closedLoopDrivingSystemProcess;
-    attribute depth = 2;
+    expose closedLoopDrivingSystemProcess::**;
     attribute showAnnotationRows = false;
-    render asTreeDiagram;
-  }
-
-  view closedLoopDrivingSystemProcessTableView : TVD::TableView {
-    viewpoint selectedSystemProcessTableViewpoint : SystemProcessViewpoint {
-      frame closedLoopDrivingProcessConcern;
-    }
-    expose closedLoopDrivingSystemProcess::navigation;
-    expose closedLoopDrivingSystemProcess::vehicle;
-    expose closedLoopDrivingSystemProcess::drivingSystem;
-    expose closedLoopDrivingSystemProcess::stateObserver;
-    filter @ SysML::PartUsage;
-    attribute :>> maxRowHeight = 300;
-    view Element :> columnViews {
-      attribute :>> featureToRender = CT::declaredName;
-    }
-    view Role :> columnViews {
-      attribute :>> featureToRender = CT::documentation;
-      attribute :>> columnWidth = 360;
-    }
   }
 
   /* ───────────── The modes, and the functions that depend on them ───────────── */
@@ -746,24 +717,6 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
     subject;
     stakeholder systemArchitect : SystemArchitect;
     stakeholder softwareDeveloper : SoftwareDeveloper;
-  }
-
-  view closedLoopDrivingStateTransitionView : StateTransitionView {
-    viewpoint selectedSystemStateViewpoint : SystemStateViewpoint {
-      frame closedLoopDrivingModeDependenceConcern;
-      frame degradedInputBehaviorConcern;
-    }
-    expose ClosedLoopDrivingModes;
-  }
-
-  view closedLoopDrivingModeTreeView {
-    viewpoint selectedSystemStateTreeViewpoint : SystemStateViewpoint {
-      frame closedLoopDrivingModeDependenceConcern;
-      frame degradedInputBehaviorConcern;
-    }
-    expose ClosedLoopDrivingModes;
-    attribute showAnnotationRows = false;
-    render asTreeDiagram;
   }
 
   view closedLoopDrivingModeDependenceTableView : TVD::TableView {
@@ -805,19 +758,6 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
     viewpoint selectedFunctionalInterfaceViewpoint : SystemInterfaceDefinitionViewpoint {
       frame closedLoopDrivingInterfaceConcern;
     }
-    expose closedLoopDrivingFunctionalBoundary;
-  }
-
-  view closedLoopDrivingFunctionalInterfacePortView {
-    viewpoint selectedFunctionalInterfacePortViewpoint : SystemInterfaceDefinitionViewpoint {
-      frame closedLoopDrivingInterfaceConcern;
-    }
-    expose CameraImagesInbound;
-    expose EgoMotionInbound;
-    expose OperationalStateOutbound;
-    expose RouteInbound;
-    expose VehicleCommandOutbound;
-    attribute showAnnotationRows = false;
-    render asTreeDiagram;
+    expose ClosedLoopDrivingFunctionalBoundary;
   }
 }

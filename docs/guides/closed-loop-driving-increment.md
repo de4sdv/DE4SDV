@@ -370,15 +370,18 @@ Three more parts of the model answer the rest of what Phase 6 asks: the flows,
 the states and the interfaces.
 
 - **The system process.** `ClosedLoopDrivingSystemProcess` is one cycle of the
-  loop. Its participants are the context elements of Phase 2 and the driving
-  system. Navigation gives the route, the vehicle's cameras and motion sensing
-  give the images and the ego motion, the vehicle's actuation applies the
-  commands, and the state observer presents the published state. Those five
-  are functions of the context elements (`ContextElementFunction`), outside
-  the scope of the driving system: no requirement is allocated to them. The
-  driving system performs its whole functional flow as one action of the
-  process, and the five items that cross its boundary are the flows of the
-  process. Nothing flows back from observation.
+  loop. Its participants are the parts of the one operational context of
+  Phase 2 (`closedLoopDrivingOperationalContext`) and its system of interest,
+  bound by reference as the story's actors are: the process declares no part
+  of its own, so the increment has one context. Navigation gives the route,
+  the vehicle's cameras and motion sensing give the images and the ego motion,
+  the vehicle's actuation applies the commands, and the state observer
+  presents the published state. Those five are functions of the context
+  elements (`ContextElementFunction`), outside the scope of the driving
+  system: no requirement is allocated to them. The driving system performs
+  the one functional flow usage, the same one its functional boundary
+  performs, as one action of the process, and the five items that cross its
+  boundary are the flows of the process. Nothing flows back from observation.
 - **The modes.** Each mode of `ClosedLoopDrivingModes` states what the
   functions that differ by mode do in it, and a dependency runs from each such
   function to each mode it depends on: `commandVehicle` to all three,
@@ -394,11 +397,13 @@ the states and the interfaces.
 Three concerns of this phase are held by the parties they serve: the process
 by system architects and systems engineers, the modes by system architects
 and software developers, and the interfaces by systems engineers and software
-developers. Views of the SAF System Process, System State and System
-Interface Definition viewpoints frame them; the state views also frame
-`degradedInputBehaviorConcern`. SysIDE has published no action-flow or state
-render in this repository yet, so each viewpoint has candidate render forms,
-and the ones kept are listed in `VIEWS.md`.
+developers. One view answers each: the process as an action flow of the SAF
+System Process viewpoint, the modes as a table of the System State viewpoint,
+which also frames `degradedInputBehaviorConcern`, and the boundary definition
+as an interconnection of the System Interface Definition viewpoint. With the
+breakdown tree and the requirement matrix, whose viewpoint is System
+Requirement Traceability (which function a requirement addresses), the phase
+publishes five views, listed in `VIEWS.md`.
 
 ## Next obligation and execution limits
 
