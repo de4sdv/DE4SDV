@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="488" height="414" viewBox="0 0 488 414" role="img" aria-labelledby="title description">
+  <title id="title">Closed-loop driving system process</title>
+  <desc id="description">The participants of one cycle of the loop and the function each performs in it.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="488" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">Closed-loop driving system process</text>
+  <rect x="0" y="54" width="128" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">Element</tspan>
+  </text>
+  <rect x="128" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="140" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="140" dy="0">Role</tspan>
+  </text>
+  <rect x="0" y="94" width="128" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">navigation</tspan>
+  </text>
+  <rect x="128" y="94" width="360" height="60" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="140" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="140" dy="0">Navigation: it performs the function that</tspan>
+    <tspan x="140" dy="20">gives the route, and nothing else.</tspan>
+  </text>
+  <rect x="0" y="154" width="128" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">vehicle</tspan>
+  </text>
+  <rect x="128" y="154" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="140" y="178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="140" dy="0">The vehicle: its cameras and motion</tspan>
+    <tspan x="140" dy="20">sensing give the input, and its actuation</tspan>
+    <tspan x="140" dy="20">applies the commands.</tspan>
+  </text>
+  <rect x="0" y="234" width="128" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">drivingSystem</tspan>
+  </text>
+  <rect x="128" y="234" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="140" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="140" dy="0">The driving system: it performs its whole</tspan>
+    <tspan x="140" dy="20">functional flow, from the inputs of the</tspan>
+    <tspan x="140" dy="20">checkpoint to the commands and the</tspan>
+    <tspan x="140" dy="20">published state.</tspan>
+  </text>
+  <rect x="0" y="334" width="128" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">stateObserver</tspan>
+  </text>
+  <rect x="128" y="334" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="140" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="140" dy="0">The state observer: it performs the</tspan>
+    <tspan x="140" dy="20">presentation of the published state and</tspan>
+    <tspan x="140" dy="20">sends nothing back.</tspan>
+  </text>
+</svg>
