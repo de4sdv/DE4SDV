@@ -6,9 +6,10 @@ proposes the former: real camera-based learned planning, a functional S-CORE
 integration path, and an AAOS SDV application showing genuine plan/state/health.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 capability classification, Phase 4 stakeholder needs and Phase 5
-requirements, proposal.** No implementation, successful driving run,
-performance result or product-line admission is claimed.
+Phase 3 capability classification, Phase 4 stakeholder needs, Phase 5
+requirements and Phase 6 functional architecture, proposal.** No
+implementation, successful driving run, performance result or product-line
+admission is claimed.
 
 ## Authoritative frame
 
@@ -230,9 +231,9 @@ Two kinds are not functional. The checkpoint, the form of the inputs it takes
 and the S-CORE path are design constraints: the increment evaluates them as they are, so
 a plan comes from that checkpoint through those inputs, and the commands computed
 from it travel over S-CORE. The limits on planning time and on independence from
-observation are performance requirements. Neither kind is functional, so Phase 6
-allocates only the other 23 requirements to functions. Grouped by the need they
-answer:
+observation are performance requirements. Neither kind is functional, so only
+the other 23 requirements must be allocated to a function in Phase 6. Grouped by
+the need they answer:
 
 - **Driven along the route (001):** one plan for each 100 ms step of simulation
   time (001); each plan by inference of the pinned checkpoint on the camera
@@ -296,14 +297,125 @@ and, as advisories, that its subject is the system of interest and that it
 states its success criteria; review judges whether the requirements are the
 right ones and whether their values hold.
 
+## Functional architecture (Phase 6)
+
+Seven functions break the driving system down, in the order of one step:
+
+- **`identifyRun`** compares the SHA-256 of the checkpoint file with the one
+  the configuration names, refuses to plan from any other, and records the run
+  identity before the first plan;
+- **`assembleInputs`** marks each camera image and motion sample with its
+  capture time and builds the inputs the checkpoint takes, from inputs
+  captured in the run;
+- **`planTrajectory`** makes one plan for each step by checkpoint inference
+  and marks it;
+- **`superviseLoop`** detects degraded camera images, motion, route and plans,
+  and sets the mode;
+- **`commandVehicle`** computes the steering and acceleration commands of each
+  mode;
+- **`applyCommands`** gives the commands to the actuation of the vehicle and
+  marks their actuation time;
+- **`publishState`** publishes the plans, the vehicle state, the health and a
+  stop for observation.
+
+They are `AllocatableFunction` actions of the functional flow
+`ClosedLoopDrivingFunctionalFlow`. The flow takes the camera images, the
+ego-motion state and the route of Phase 2 in, and gives the commands to the
+actuation and the operational state to the state observer. Inside, the
+functions exchange the checkpoint inputs, the input condition, the plan, the
+mode and the run record.
+
+Three decisions shape it:
+
+- **One command path.** The stop response is a mode of `commandVehicle`, not a
+  second source of commands, and only its commands reach the actuation. When
+  commands stop arriving there, `applyCommands` applies the stop response
+  itself (`REQ-DRIVING-028`).
+- **Observation one way.** Nothing `publishState` gives flows back into the
+  loop, and it never waits for a receiver. The two requirements on
+  independence from observation (018, 019) are allocated to it.
+- **Modes.** The health names three modes: priming, driving and stopped.
+  `ClosedLoopDrivingModes` holds them. Stopped has no transition out, so a
+  stopped run stays stopped until it ends.
+
+Each requirement but one is allocated (`allocatedTo`) to the functions that
+carry it: the 23 functional requirements the gate asks for, and the design
+constraints and performance limits to the functions they bind, such as the
+input form to `assembleInputs` and the planning time to `planTrajectory`.
+`REQ-DRIVING-014`, the S-CORE path, is carried by no function. It constrains
+how the plan and the commands travel between the functions, and Phase 8 places
+the S-CORE elements on those exchanges. An allocation assigns responsibility
+only; it claims no satisfaction.
+
+Two views of the SAF System Functional Breakdown Structure viewpoint publish
+the architecture:
+
+- the breakdown view `closedLoopDrivingFunctionBreakdownView`, which lists the
+  items and the seven functions of the flow but draws no item flows; they are
+  in the model;
+- the matrix `closedLoopDrivingRequirementFunctionMappingView`, with the
+  requirements in rows and the functions in columns.
+
+The matrix also answers the Phase 1 concern `degradedInputBehaviorConcern`: it
+shows `superviseLoop` detecting degraded inputs and plans, `commandVehicle`
+stopping the vehicle, and `applyCommands` stopping it when commands stop
+arriving. The Phase 6 gates check that a function exists and that each
+functional requirement is allocated to one, and, as advisories, that each
+requirement is carried by the architecture and each function carries a
+requirement; review judges whether these are the right functions.
+
+### The loop, the modes and the interfaces
+
+Three more parts of the model answer the rest of what Phase 6 asks: the flows,
+the states and the interfaces.
+
+- **The system process.** `ClosedLoopDrivingSystemProcess` is one cycle of the
+  loop. Its participants are the parts of the one operational context of
+  Phase 2 (`closedLoopDrivingOperationalContext`) and its system of interest,
+  bound by reference as the story's actors are: the process declares no part
+  of its own, so the increment has one context. Each participant owns and
+  performs its functions of the loop, as the swim lane of its function.
+  Navigation gives the route, the vehicle's cameras and motion sensing give
+  the images and the ego motion, the vehicle's actuation applies the
+  commands, and the state observer presents the published state. Those five
+  are functions of the context elements (`ContextElementFunction`), outside
+  the scope of the driving system: no requirement is allocated to them. The
+  driving system performs the one functional flow usage, the same one its
+  functional boundary performs, as one action of the process, and the five
+  items that cross its boundary are the flows of the process, each chained
+  through the participant that gives and the one that takes. Nothing flows
+  back from observation.
+- **The modes.** Each mode of `ClosedLoopDrivingModes` states what the
+  functions that differ by mode do in it, and a dependency runs from each such
+  function to each mode it depends on: `commandVehicle` to all three,
+  `publishState` to stopped.
+- **The interfaces.** `ClosedLoopDrivingFunctionalBoundary` is the driving
+  system at its functional boundary: it specializes `ClosedLoopDrivingSystem`
+  and carries five port definitions, three in and two out, with one directed
+  item each. Each item specializes its Phase 2 item. The ports name no
+  computer, transport or technology, and no item is typed with a vehicle
+  signal specification: that typing starts in Phase 8, at the port where an
+  item enters a software contract.
+
+Three concerns of this phase are held by the parties they serve: the process
+by system architects and systems engineers, the modes by system architects
+and software developers, and the interfaces by systems engineers and software
+developers. One view answers each: the process as an action flow of the SAF
+System Process viewpoint, the modes as a table of the System State viewpoint,
+which also frames `degradedInputBehaviorConcern`, and the five port
+definitions with their items as a tree of the System Interface Definition
+viewpoint (SysIDE draws no definition in an interconnection view). With the
+breakdown tree and the requirement matrix, whose viewpoint is System
+Requirement Traceability (which function a requirement addresses), the phase
+publishes five views, listed in `VIEWS.md`.
+
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is **Phase 6**, the functional architecture:
-the functions of the driving system, with each functional requirement
-allocated to one of them. Its first gate is
-`functionalRequirementAllocatedToFunction`.
+work is complete. The next work is **Phase 7**, the logical architecture: the
+logical elements that realize the functions, with each function allocated to
+one of them. Its first gate is `functionAllocatedToLogicalElement`.
 Do not jump from this context to implementation or claim a passed runtime
 gate.
 
@@ -320,7 +432,9 @@ and `python -m pytest -q` on `tests/test_closed_loop_driving_framing.py`,
 `tests/test_closed_loop_driving_operational_context.py`,
 `tests/test_closed_loop_driving_capability_classification.py`,
 `tests/test_closed_loop_driving_needs.py`,
-`tests/test_closed_loop_driving_requirements.py` and
+`tests/test_closed_loop_driving_requirements.py`,
+`tests/test_closed_loop_driving_functional_architecture.py`,
+`tests/test_trace_allocation_completeness.py` and
 `tests/test_check_naming.py`.
 These are repository/lexical checks, not SysML semantic or runtime verification.
 Use `python scripts/validate_sysml.py` when a supported licensed validator is
