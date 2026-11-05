@@ -358,7 +358,9 @@ These method rules apply to every increment:
     exposes through its row, column and cell views. Both checks block and
     judge the model only. The pull request, its review and the rendered
     diagrams are judged outside the model. CI checks the diagrams and each
-    folder's `VIEWS.md`, and review judges the rest.
+    folder's `VIEWS.md`, and that each view of a live increment uses a
+    viewpoint the [views-per-phase list](#views-per-phase) names for its
+    phase; review judges the rest.
     - **Visibility (advisory).** Each applicable phase with content has at
       least one of its elements in a view of the increment
       (`phaseContentPublished`). A phase's content is the subjects of its
@@ -503,6 +505,65 @@ Items are typed with VSS only from phase 8 on: the functional and logical
 items of phases 6 and 7 stay technology-independent, and an item is typed
 where it enters a software contract at a phase 8 port (rule 13; owner decision
 of 2026-11-04).
+
+### Views per phase
+
+Each phase publishes one view per SAF question it answers, never two forms of
+the same elements, and the views of an increment are the ones this list names
+(owner decision of 2026-11-04). Framing and the concerns live in one view; the
+context, the boundary and the story are drawn once, in phase 2; traceability is
+a matrix. The forms are the ones the licensed renderer has drawn for a merged
+or validated view; a new kind of diagram is proved with one render before it
+becomes the form of a view, and a table or matrix stands in only for a
+relation no proven form shows. A hand-drawn or proprietary-tool diagram is not
+a deliverable: it cannot be regenerated and byte-compared in CI.
+
+- **Phases 0 and 1** — one view, a tree: `IncrementFramingViewpoint`
+  (DE4SDV), framing every concern of the increment.
+- **Phase 2** — two trees: `OperationalContextDefinitionViewpoint`, which
+  draws the boundary too, so there is no System Context Definition view;
+  `OperationalStoryViewpoint`.
+- **Phase 3** — one table, or none when the feature-model delta is empty:
+  `ProductLineClassificationViewpoint` (DE4SDV).
+- **Phase 4** — one table: `StakeholderRequirementDefinitionViewpoint`, the
+  needs with their validation intent.
+- **Phase 5** — one table: `SystemRequirementDefinitionViewpoint`, the
+  requirements with their verification method and success criteria.
+- **Phase 6** — five views: `SystemFunctionalBreakdownStructureViewpoint`, a
+  tree; `SystemProcessViewpoint`, an action flow of the context parts as the
+  lanes of the functions they perform, with the exchanges, which answers
+  System Context Exchange; `SystemStateViewpoint`, a table of the modes and
+  the functions that depend on them; `SystemInterfaceDefinitionViewpoint`, a
+  tree of the boundary's port definitions with their items;
+  `SystemRequirementTraceabilityViewpoint`, a matrix of requirement by
+  function.
+- **Phase 7** — two views, plus one when an exchange carries a requirement:
+  `SystemStructureDefinitionViewpoint`, a tree; `SystemFunctionMappingViewpoint`,
+  a matrix of function by logical element; `SystemInternalExchangeViewpoint`,
+  an interconnection of the exchange a requirement constrains.
+- **Phase 8** — two views, plus one when the platform path is the claim:
+  `PhysicalStructureDefinitionViewpoint`, a tree;
+  `PhysicalLogicalMappingViewpoint`, a matrix of logical element by physical
+  element; `PhysicalInternalExchangeViewpoint`, an interconnection of the path
+  the increment claims, as INC-MW-011 does.
+- **Phase 9** — two trees: `ProductLineConfigurationViewpoint` (DE4SDV);
+  `ProductModelAssemblyViewpoint` (DE4SDV).
+- **Phase 10** — one tree: `ArgumentationAssuranceViewpoint`, the claims,
+  cases, evidence and counterclaims in one view.
+- **Phase 11** — no view: the baseline decision and the dispositions are
+  gated (rule 16), not drawn.
+
+About seventeen views for an increment that walks every phase, each answering
+a different question. Phase 6 carries five because functions, exchanges, modes
+and interfaces all first appear there. A table split in two for column width
+(needs and their planned reviews) is not a second question. The views that the
+merged increments published before this list are left as they are: retyping
+them would reopen accepted phases for a method tidy-up.
+`tests/test_views_per_phase.py` reads this list and fails a view of a live
+increment whose viewpoint the list does not name for the view's phase, with
+those earlier views pinned as the known deviations. It reads the viewpoint
+only: whether a view shows the right content, and whether a phase published
+every view the list names, stays with review.
 
 An increment ends at its baseline decision. Rework iterates the same
 increment; a new increment starts only from a new engineering question, at

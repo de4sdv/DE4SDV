@@ -6,4 +6,17 @@ userdoc: https://saf.gfse.org/userdoc/aspects.html
 extraction:
   commit_sha: c57bd42db60a00c51168f6aba8e2229ba0165b6c
   extracted_on: "2026-07-29"
+role: SysML v2 mechanics only; its names predate SAF's 2026 refactor and are not catalogue content
+content_source:
+  source_id: GfSE/SAF-Specification
+  repository: https://github.com/GfSE/SAF-Specification
+  license: Apache-2.0
+  userdoc: https://saf.gfse.org/userdoc/viewpoints.html
+  extraction:
+    commit_sha: bc6bd5ce2bf27f3b18b084377198c6de85fe94a3
+    extracted_on: "2026-11-04"
+    files:
+      - src/_data/viewpoints.json
+      - src/_data/concerns.json
+  role: viewpoint names, grid identifiers, domains, aspects and the concern questions of the catalogue
 claim_boundary: source-backed reference, not a vendored copy
