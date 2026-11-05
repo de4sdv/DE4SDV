@@ -348,9 +348,9 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
       perform action presentState : PresentDrivingState;
     }
 
-    flow from navigation.giveRoute.route to drivingSystem.closedLoopDrivingFunctionalFlow.route;
-    flow from vehicle.captureImages.cameraImages to drivingSystem.closedLoopDrivingFunctionalFlow.cameraImages;
     flow from vehicle.sampleEgoMotion.egoMotion to drivingSystem.closedLoopDrivingFunctionalFlow.egoMotion;
+    flow from vehicle.captureImages.cameraImages to drivingSystem.closedLoopDrivingFunctionalFlow.cameraImages;
+    flow from navigation.giveRoute.route to drivingSystem.closedLoopDrivingFunctionalFlow.route;
     flow from drivingSystem.closedLoopDrivingFunctionalFlow.vehicleCommand to vehicle.applyCommands.command;
     flow from drivingSystem.closedLoopDrivingFunctionalFlow.operationalState to stateObserver.presentState.operationalState;
   }
