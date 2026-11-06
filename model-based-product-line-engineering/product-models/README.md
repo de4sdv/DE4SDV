@@ -12,6 +12,7 @@ privileged validation path.
 |---|---|---|
 | `aebs_autoware_linux_lidar_camera.sysml` | `aebsAutowareLinuxLidarCamera` (`sdv_product_line.receipt.json`) | Standalone AEBS reference member platform projection |
 | `middleware_autoware_aaos_sdv_reference.sysml` | `middlewareAutowareAAOSSDVReference` (`sdv_product_line.receipt.json`) | AAOS-integrated middleware reference member platform projection |
+| `closed_loop_driving_autoe2e_score_reference.sysml` | `closedLoopDrivingAutoE2ESCOREReference` (`sdv_product_line.receipt.json`) | Closed-loop driving reference configuration of INC-DRIVING-001: AutoE2E on S-CORE on Linux on the main side, the KVM host, with an AAOS SDV guest; valid, not admitted |
 | `middleware_autoware_score_reference.sysml` | `middlewareAutowareSCOREReference` (`sdv_product_line.receipt.json`) | Eclipse S-CORE reference configuration platform projection (INC-MW-011; not admitted) |
 | `apollo_qnx_qvm.sysml` | `apolloQNXQVMVariant` (`sdv_product_line.receipt.json`) | SDV platform projection |
 | `inc_aebs_009a_jetson_execution_environment.sysml` | `incAEBS009AJetsonExecutionEnvironment` (`engineering_execution_environments.receipt.json`) | Inspected exact maintained System 2 environment projection; historical run has coarser identity |

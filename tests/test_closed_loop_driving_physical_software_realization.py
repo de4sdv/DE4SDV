@@ -405,7 +405,8 @@ def test_the_charter_names_the_package_after_the_logical_architecture():
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts
     names = re.findall(r'"([^"]+)"', artifacts.group(1))
-    assert names.index(PACKAGE) == names.index(LOGICAL_PACKAGE) + 1 == len(names) - 1
+    assert names.index(PACKAGE) == names.index(LOGICAL_PACKAGE) + 1 == len(names) - 2
+    assert names[-1] == "DE4SDV_ClosedLoopDrivingVariabilityConfiguration", "phase 9 follows phase 8 in the charter"
     assert re.search(rf"\bpackage\s+{PACKAGE}\s*\{{", _code())
 
 
@@ -852,7 +853,7 @@ def test_the_allocation_file_is_governed_with_its_six_endpoint_definitions():
                                                     "ScenarioRouteProvider", "AAOSSDVCoreGuest", "AAOSIVIGuest"}
 
 
-def test_the_guide_describes_phase_8_and_names_phase_9_as_the_next_work():
+def test_the_guide_describes_phase_8_and_names_the_next_work():
     guide = GUIDE.read_text(encoding="utf-8")
     assert "## Physical and software realization (Phase 8)" in guide
     assert "closed_loop_driving_physical_software_realization.sysml" in guide
@@ -865,6 +866,6 @@ def test_the_guide_describes_phase_8_and_names_phase_9_as_the_next_work():
         assert word in flat, word
     assert "GAP-DRIVING-008" not in guide and "Three assumptions and seven gaps" not in flat
     assert "follow-up PR carries the amendment" not in flat, "the amendment landed"
-    assert "The next work is **Phase 9**" in guide
-    assert "The next work is **Phase 8**" not in guide
+    assert "The next work is **Phase 10**" in guide, "phase 9 landed; the guide names phase 10"
+    assert "The next work is **Phase 8**" not in guide and "The next work is **Phase 9**" not in guide
     assert "tests/test_closed_loop_driving_physical_software_realization.py" in guide

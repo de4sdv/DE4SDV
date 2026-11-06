@@ -53,7 +53,7 @@ def _run(*arguments: str) -> subprocess.CompletedProcess:
                           check=False, timeout=120)
 
 
-def test_seven_committed_projections_name_their_configuration() -> None:
+def test_eight_committed_projections_name_their_configuration() -> None:
     from scripts import run_ple_authority as runner
 
     assert sorted(PROJECTIONS) == sorted(runner.CONFIGURATIONS)
@@ -103,7 +103,7 @@ def test_the_configurator_projects_exactly_the_member_configurations() -> None:
     served = {source for source in sources if configurator.served_configuration({"source": source})}
     assert served == set(runner.CONFIGURATIONS) == set(PROJECTIONS)
     assert sources - served == set(runner.FIXTURES)
-    assert len(served) == 7 and len(runner.FIXTURES) == 18
+    assert len(served) == 8 and len(runner.FIXTURES) == 18
 
 
 @pytest.mark.parametrize("name", ["radarOnlySensingProbe", "invalidSCOREAndroidVariant"])
