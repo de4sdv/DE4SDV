@@ -320,8 +320,8 @@ Seven functions break the driving system down, in the order of one step:
   and sets the mode;
 - **`commandVehicle`** computes the steering and acceleration commands of each
   mode;
-- **`applyCommands`** gives the commands to the actuation of the vehicle and
-  marks their actuation time;
+- **`applyCommands`** gives the commands to the actuation of the vehicle,
+  marks their actuation time and reports its actuation state;
 - **`publishState`** publishes the plans, the vehicle state, the health and a
   stop for observation.
 
@@ -330,7 +330,24 @@ They are `AllocatableFunction` actions of the functional flow
 ego-motion state and the route of Phase 2 in, and gives the commands to the
 actuation and the operational state to the state observer. Inside, the
 functions exchange the checkpoint inputs, the input condition, the plan, the
-mode and the run record.
+mode, the run record and, since the amendment of 2026-11-06, the actuation
+state: what the actuation applied with its time, or that its own stop is in
+force, since when and why. It goes from `applyCommands` to `publishState`
+and nowhere else, so the stop the actuation decides (REQ-DRIVING-028) is
+published with its cause (REQ-DRIVING-029) like the stop the supervision
+decides. Before the amendment the publisher saw the supervision's mode only;
+Phase 8 found the hole as GAP-DRIVING-005, and the owner decided to amend
+rather than to narrow REQ-DRIVING-029.
+
+The boundary items say what the sensing gives the system, with no vehicle
+signal specification: a `CameraImageInput` is one image per position, the
+six of `CameraPosition` in the order REQ-DRIVING-003 fixes, each with its
+capture time in simulation time, its size in pixels and its camera's
+calibration, from which the projection operator of REQ-DRIVING-005 is
+built; an `EgoMotionInput` is the samples of the vehicle's speed,
+longitudinal and lateral acceleration and yaw rate as ISQ quantities, each
+with its sample time. The curvature of the checkpoint's history is derived
+inside the system (REQ-DRIVING-008), not sampled.
 
 Three decisions shape it:
 
@@ -444,9 +461,11 @@ or demands that one keeps working when the other does not.
   source, with the stop response as a mode of its computation.
 - **Actuation gateway** carries the application of the commands at the
   actuation and applies the stop response itself when no valid command
-  reaches it (REQ-DRIVING-028), so it is separate from the commander.
+  reaches it (REQ-DRIVING-028), so it is separate from the commander. It
+  reports its actuation state to the state publisher, off the loop.
 - **State publisher** carries the publication of the operational state, one
-  way; nothing it provides flows back into the loop.
+  way; nothing it provides flows back into the loop. It publishes the stop
+  with its cause whether the supervisor or the actuation gateway decided it.
 
 Each function is allocated to its element by a native allocation from the
 definition-nested function usage Phase 6 allocated the requirements to; the
@@ -457,11 +476,13 @@ input conditioner, the vehicle commander and the state publisher alike), and
 inside, the checkpoint inputs and the input condition leave the input
 conditioner, the plan goes from the planner to the loop supervisor and to the
 state publisher, the newest valid plan and the mode go on to the vehicle
-commander, the mode also to the state publisher, and the command goes from
-the vehicle commander to the actuation gateway. The plan and command
-exchanges are the ones REQ-DRIVING-014 constrains; Phase 8 places them on a
-technology. No element, port or exchange names a computer, a process, a
-transport or a signal catalogue.
+commander, the mode also to the state publisher, the command goes from the
+vehicle commander to the actuation gateway, and the actuation state from the
+actuation gateway to the state publisher (the amendment of 2026-11-06 for
+GAP-DRIVING-005). The plan and command exchanges are the ones REQ-DRIVING-014
+constrains, the actuation state the one REQ-DRIVING-029 times, and
+Phase 8 places them on a technology. No element, port or exchange names a
+computer, a process, a transport or a signal catalogue.
 
 Three concerns of this phase are held by the parties they serve: the
 structure by system architects and software developers, the function mapping
@@ -510,8 +531,24 @@ REQ-DRIVING-028 constrain. The owner's picks of 2026-11-06:
   wall-clock time from the host. The simulator server and the scenario's
   route provider are System 2 context realizations on the host; the route
   provider realizes the Phase 2 navigation on the host, not on the AAOS
-  guest, so the context-role decision of 2026-11-02 stays closed.
-- **The production observation path, typed.** The operational state leaves
+  guest, so the context-role decision of 2026-11-02 stays closed. The
+  sensors of the loop are the simulator's: a simulated sensor rig inside the
+  server, six cameras at the positions of `CameraPosition` and one
+  ego-motion source. Its geometry is the rig profile of the pinned
+  checkpoint's dataset at the source pin (one JSON per dataset rig, six
+  cameras with native image size, intrinsic matrix and camera-to-reference
+  pose, and the dataset's curvature rule); which profile applies follows the
+  checkpoint pinned in Phase 10, so the model states the rule and no number.
+  The ego motion is the simulator's vehicle state, ground truth without a
+  sensor's noise and latency: ASM-DRIVING-004 says so, and the projection
+  operators are built from the simulated cameras' calibration, with the
+  profile's principal-point offset recorded at the pin. The product line's
+  sensing boundary types its camera as a detection camera, so it does not
+  type these; the rig stands for the sensing assembly by dependency.
+- **The production observation path, typed.** The publisher takes the plan,
+  the mode and the ego-motion sample from the agent and the actuation state
+  from the actuation adapter, each an mw::com event
+  (`MAP-DRIVING-ACTUATION-STATE` for the last). The operational state leaves
   the publisher as an mw::com event, goes through `gatewayd` and `someipd`,
   crosses the hypervisor on SOME/IP into the SDV Core VM, becomes a typed
   Data Tunnel topic (a VSIDL message, GAP-DRIVING-006) and reaches the
@@ -524,28 +561,26 @@ REQ-DRIVING-028 constrain. The owner's picks of 2026-11-06:
 Each logical element is allocated to the software element that carries it
 (eight allocations; the publisher reaches the observer through three
 elements), and each crossing of an item into a software contract has a
-system-to-software signal mapping with its record (`MAP-DRIVING-*`, eight
+system-to-software signal mapping with its record (`MAP-DRIVING-*`, nine
 candidates): what the item is, which contract it enters, its type and unit,
 its timing, its transformation, and the phase 10 action that follows. An
 allocation is a responsibility assignment, no deployment or runtime claim; a
 mapping is no interoperability claim; a pin is no build claim.
 
-Three assumptions and seven gaps record what the realization depends on and
-what it found. **GAP-DRIVING-005** is new information from the placement:
-the actuation adapter's own stop response (REQ-DRIVING-028) has no path to
-the publication REQ-DRIVING-029 asks for, because phases 6 and 7 have no flow
+Four assumptions and six gaps record what the realization depends on and
+what it found. **GAP-DRIVING-005** was new information from the placement:
+the actuation adapter's own stop response (REQ-DRIVING-028) had no path to
+the publication REQ-DRIVING-029 asks for, because phases 6 and 7 had no flow
 from the actuation gateway to the publisher. The owner decided on 2026-11-06
-to amend phases 6 and 7 with an actuation-state flow to the publisher; a
-follow-up PR carries the amendment through phases 6 to 8 and retires the
-record. The same follow-up describes the sensing the increment uses, in the
-places it belongs: the Phase 6 exchange types (which cameras, image size,
-capture time, calibration; the motion quantities and their sample time, as
-REQ-DRIVING-003 to -005, -010 and -030 fix them), the bench's simulated
-sensor rig inside the simulator server in Phase 8 (the checkpoint's camera
-configuration, read from the pinned source; ego motion from the simulator's
-vehicle state, a stated fidelity assumption), and the product line's
-sensing boundary as their type. The sensors stay the vehicle's, context of
-the loop: the logical architecture decomposes the system of interest only.
+to amend phases 6 and 7 with an actuation-state flow to the publisher; the
+amendment landed in phases 6 to 8 (the `ActuationState` item and flow, the
+`actuationStateToPublisher` connection, the `actuationStateOverSCORECommunication`
+hop with `MAP-DRIVING-ACTUATION-STATE`) and the record left the model. The
+same amendment described the sensing in the places it belongs: the Phase 6
+exchange types, the simulated sensor rig of Phase 8 with ASM-DRIVING-004,
+and the dependency on the product line's sensing assembly. The sensors stay
+the vehicle's, context of the loop: the logical architecture decomposes the
+system of interest only.
 The reading of the plan hops inside the agent, FEO topics rather than the
 Communication module, was settled the same day: they are no hops between
 processes and REQ-DRIVING-014 does not constrain them; the comment
@@ -591,9 +626,8 @@ constraint on the camera feature, the derived middleware adapter per valid
 configuration, the per-domain variation of the host and the guests, and the
 configuration applicability the framing's product-line admission gap asks
 for, under the member decision that amends ADR 0014. Beside it, the
-follow-up PR that amends phases 6 to 8 for GAP-DRIVING-005 and the sensing
-description, and the readiness probes of GAP-DRIVING-001 to -004, -006 and
--007 before Phase 10 builds anything. Do
+readiness probes of GAP-DRIVING-001 to -004, -006 and -007 before Phase 10
+builds anything. Do
 not jump from this context to implementation or claim a passed runtime
 gate.
 

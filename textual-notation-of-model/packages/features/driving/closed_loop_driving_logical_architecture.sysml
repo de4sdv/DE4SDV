@@ -25,6 +25,12 @@
  * supervisor to commander to actuation gateway; phase 8 places them on a
  * technology. Nothing here names a computer, a process, a transport or a
  * signal catalogue, and nothing is a vehicle signal specification.
+ *
+ * Amended on the owner's decision of 2026-11-06 (GAP-DRIVING-005 of phase
+ * 8): the actuation gateway reports its actuation state to the publisher, so
+ * the stop it applies itself (REQ-DRIVING-028) is published with its cause
+ * (REQ-DRIVING-029) like the stop the supervisor decides. The publisher stays
+ * off the loop; the new exchange is one way, like the ones it joins.
  */
 package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
   private import DE4SDV_Stakeholders::*;
@@ -37,6 +43,7 @@ package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::InputCondition;
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::DrivingPlan;
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::DrivingMode;
+  private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::ActuationState;
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::CameraImagesInbound;
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::EgoMotionInbound;
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::RouteInbound;
@@ -87,6 +94,14 @@ package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
   port def MotionCommandInbound {
     doc /* The input port of a command inside the driving system: the actuation gateway takes it. */
     in item command : VehicleMotionCommand;
+  }
+  port def ActuationStateOutbound {
+    doc /* The output port of the actuation state inside the driving system: the actuation gateway reports it. */
+    out item actuationState : ActuationState;
+  }
+  port def ActuationStateInbound {
+    doc /* The input port of the actuation state inside the driving system: the publisher takes it. */
+    in item actuationState : ActuationState;
   }
 
   /* ──────────────── The six logical elements of the driving system ──────────────── */
@@ -154,22 +169,28 @@ package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
      * driving system and applies the stop response itself when no valid
      * command reaches it in the limit of REQ-DRIVING-028. It is separate from
      * the vehicle commander so that the vehicle stops also when the command
-     * path between them does not deliver.
+     * path between them does not deliver. It reports its actuation state,
+     * the applied command with its time or its own stop with the cause, to
+     * the publisher, which is off the loop; nothing of it flows back.
      */
     port commandIn : MotionCommandInbound;
     port vehicleCommandOut : VehicleCommandOutbound;
+    port actuationStateOut : ActuationStateOutbound;
   }
 
   part def OperationalStatePublisher :> LogicalAllocationElement {
     doc /*
      * Carries the publication of the operational state: each plan, the motion
-     * of each step, the health and the stop with its cause, one way, for the
-     * state observer outside the driving system. Nothing it provides flows
-     * back into the loop, so it is separate from the elements of the loop.
+     * of each step, the health and the stop with its cause, whether the loop
+     * supervisor decided it (the mode) or the actuation gateway did (the
+     * actuation state), one way, for the state observer outside the driving
+     * system. Nothing it provides flows back into the loop, so it is separate
+     * from the elements of the loop.
      */
     port planIn : DrivingPlanInbound;
     port egoMotionIn : EgoMotionInbound;
     port modeIn : DrivingModeInbound;
+    port actuationStateIn : ActuationStateInbound;
     port operationalStateOut : OperationalStateOutbound;
   }
 
@@ -232,6 +253,8 @@ package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
       connect loopSupervisor.modeOut to statePublisher.modeIn;
     connection commandExchange
       connect vehicleCommander.commandOut to actuationGateway.commandIn;
+    connection actuationStateToPublisher
+      connect actuationGateway.actuationStateOut to statePublisher.actuationStateIn;
   }
 
   part closedLoopDrivingLogicalSystem : ClosedLoopDrivingLogicalSystem {
@@ -332,8 +355,9 @@ package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
      * Systems engineers and software developers need the exchanges between
      * the logical elements of the driving system, the item each carries and
      * its direction: the plan and the command exchanges that REQ-DRIVING-014
-     * and REQ-DRIVING-028 constrain, and the boundary items delegated to the
-     * elements that take or provide them. Phase 8 places each exchange on a
+     * and REQ-DRIVING-028 constrain, the actuation state exchange that
+     * REQ-DRIVING-029 times, and the boundary items delegated to the elements
+     * that take or provide them. Phase 8 places each exchange on a
      * technology.
      */
     subject;

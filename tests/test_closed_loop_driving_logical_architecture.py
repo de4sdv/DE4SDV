@@ -66,9 +66,11 @@ PORTS = {
                        "validPlanOut": "DrivingPlanOutbound", "modeOut": "DrivingModeOutbound"},
     "VehicleCommander": {"validPlanIn": "DrivingPlanInbound", "modeIn": "DrivingModeInbound",
                          "egoMotionIn": "EgoMotionInbound", "commandOut": "MotionCommandOutbound"},
-    "ActuationGateway": {"commandIn": "MotionCommandInbound", "vehicleCommandOut": "VehicleCommandOutbound"},
+    "ActuationGateway": {"commandIn": "MotionCommandInbound", "vehicleCommandOut": "VehicleCommandOutbound",
+                         "actuationStateOut": "ActuationStateOutbound"},
     "OperationalStatePublisher": {"planIn": "DrivingPlanInbound", "egoMotionIn": "EgoMotionInbound",
-                                  "modeIn": "DrivingModeInbound", "operationalStateOut": "OperationalStateOutbound"},
+                                  "modeIn": "DrivingModeInbound", "actuationStateIn": "ActuationStateInbound",
+                                  "operationalStateOut": "OperationalStateOutbound"},
 }
 BOUNDARY_PORTS = ("cameraImagesIn", "egoMotionIn", "routeIn", "vehicleCommandOut", "operationalStateOut")
 INTERNAL_PORT_ITEMS = {
@@ -82,6 +84,8 @@ INTERNAL_PORT_ITEMS = {
     "DrivingModeInbound": ("in", "mode", "DrivingMode"),
     "MotionCommandOutbound": ("out", "command", "VehicleMotionCommand"),
     "MotionCommandInbound": ("in", "command", "VehicleMotionCommand"),
+    "ActuationStateOutbound": ("out", "actuationState", "ActuationState"),
+    "ActuationStateInbound": ("in", "actuationState", "ActuationState"),
 }
 
 #: Every connection of the system as (from end, to end): boundary delegations, then the loop.
@@ -101,12 +105,16 @@ CONNECTIONS = {
     ("loopSupervisor.modeOut", "vehicleCommander.modeIn"),
     ("loopSupervisor.modeOut", "statePublisher.modeIn"),
     ("vehicleCommander.commandOut", "actuationGateway.commandIn"),
+    ("actuationGateway.actuationStateOut", "statePublisher.actuationStateIn"),
 }
-#: The exchanges REQ-DRIVING-014 constrains: the plan to the supervisor, the valid plan on, the command.
+#: The exchanges a requirement constrains: the plan to the supervisor, the valid plan on and the command
+#: (REQ-DRIVING-014), and the actuation state to the publisher, which REQ-DRIVING-029 times from the stop the
+#: actuation applies itself (GAP-DRIVING-005, amended on the owner's decision of 2026-11-06).
 CONSTRAINED_EXCHANGES = {
     ("planner.planOut", "loopSupervisor.planIn"),
     ("loopSupervisor.validPlanOut", "vehicleCommander.validPlanIn"),
     ("vehicleCommander.commandOut", "actuationGateway.commandIn"),
+    ("actuationGateway.actuationStateOut", "statePublisher.actuationStateIn"),
 }
 
 STRUCTURE_VIEW = "closedLoopDrivingLogicalStructureView"
@@ -254,9 +262,17 @@ def test_the_constrained_exchanges_cross_element_boundaries_and_nothing_flows_ba
     connections = set(_connections())
     assert CONSTRAINED_EXCHANGES <= connections
     for source, target in connections:
-        for one_way in ("statePublisher.", "actuationGateway."):
-            if source.startswith(one_way):
-                assert "." not in target, (source, target, "only to the boundary, never back into the loop")
+        if source.startswith("statePublisher."):
+            assert "." not in target, (source, target, "only to the boundary, never back into the loop")
+        if source.startswith("actuationGateway."):
+            assert "." not in target or target.startswith("statePublisher."), \
+                (source, target, "to the boundary or to the publisher, which is off the loop; never back into it")
+    publisher_sources = {source for source, target in connections if target.startswith("statePublisher.")}
+    assert publisher_sources == {"egoMotionIn", "planner.planOut", "loopSupervisor.modeOut",
+                                 "actuationGateway.actuationStateOut"}, "both stop deciders reach the publisher"
+    for element in ("ActuationGateway", "OperationalStatePublisher"):
+        doc = _doc(f"part def {element} :> LogicalAllocationElement")
+        assert "actuation state" in doc and "cause" in doc, element
     # the ego motion reaches the three elements that take it
     assert {target for source, target in connections if source == "egoMotionIn"} == {
         "inputConditioner.egoMotionIn", "vehicleCommander.egoMotionIn", "statePublisher.egoMotionIn"}

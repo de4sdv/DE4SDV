@@ -62,7 +62,15 @@ FUNCTIONS = {
 }
 
 #: The items the functions exchange inside the driving system; the boundary items are phase 2's.
-INTERNAL_ITEMS = {"CheckpointInputs", "InputCondition", "DrivingPlan", "DrivingMode", "RunRecord"}
+INTERNAL_ITEMS = {"CheckpointInputs", "InputCondition", "DrivingPlan", "DrivingMode", "RunRecord", "ActuationState"}
+#: the exchange-type content of the boundary items: ISQ quantities and the camera position, no signal specification
+EXCHANGE_TYPE_ITEMS = {"CameraImage", "EgoMotionSample"}
+CAMERA_POSITIONS = ["front", "frontLeft", "frontRight", "rearLeft", "rear", "rearRight"]
+CAMERA_IMAGE_ATTRIBUTES = {"position": "CameraPosition", "captureTime": "ISQ::DurationValue",
+                           "widthPixels": "Positive", "heightPixels": "Positive"}
+EGO_MOTION_SAMPLE_ATTRIBUTES = {"speed": "ISQ::SpeedValue", "longitudinalAcceleration": "ISQ::AccelerationValue",
+                                "lateralAcceleration": "ISQ::AccelerationValue", "yawRate": "ISQ::AngularVelocityValue",
+                                "sampleTime": "ISQ::DurationValue"}
 PHASE_2_ITEMS = ("CameraImages", "EgoMotionState", "Route", "VehicleMotionCommand", "DrivingOperationalState")
 
 #: The flow's own parameters: the phase 2 items crossing the boundary of the driving system.
@@ -83,6 +91,7 @@ FLOWS = {
     ("superviseLoop.validPlan", "commandVehicle.validPlan"),
     ("superviseLoop.mode", "commandVehicle.mode"),
     ("commandVehicle.command", "applyCommands.command"),
+    ("applyCommands.actuationState", "publishState.actuationState"),
     ("planTrajectory.plan", "publishState.plan"),
     ("superviseLoop.mode", "publishState.mode"),
 }
@@ -355,7 +364,8 @@ def test_the_seven_functions_are_allocatable_functions_and_nothing_else_is():
         name: CONTEXT_FUNCTION_ROOT for name in CONTEXT_FUNCTIONS}
     assert code.count("private import DE4SDV_TraceVocabulary::AllocatableFunction;") == 1
     assert re.search(rf"\baction\s+def\s+{FLOW}\s*\{{", code), "the flow is a composite, not a function"
-    assert set(re.findall(r"\bitem\s+def\s+(\w+)", code)) == INTERNAL_ITEMS | set(BOUNDARY_ITEM_SPECIALIZATIONS)
+    assert set(re.findall(r"\bitem\s+def\s+(\w+)", code)) == (
+        INTERNAL_ITEMS | set(BOUNDARY_ITEM_SPECIALIZATIONS) | EXCHANGE_TYPE_ITEMS)
     for item in PHASE_2_ITEMS:
         assert f"private import DE4SDV_ClosedLoopDrivingOperationalContext::{item};" in code, item
     assert re.search(rf"\baction\s+{FLOW_USAGE}\s*:\s*{FLOW}\s*;", code)
@@ -481,6 +491,50 @@ def test_the_matrix_maps_every_requirement_to_its_functions_and_answers_the_degr
         assert "attribute :>> representation = Rep::name;" in axis
     assert re.findall(r"\bexpose\s+([\w:*]+)\s*;", cells) == [f"{PACKAGE}::*"]
     assert "MatrixTraceabilityDirection::row2col" in cells
+
+
+def test_the_actuation_reports_its_state_to_the_publication_and_to_nothing_else():
+    """GAP-DRIVING-005, amended on the owner's decision of 2026-11-06: the stop the actuation applies itself
+    (REQ-DRIVING-028) reaches the publication of REQ-DRIVING-029 with its cause, off the loop."""
+    code = _code()
+    assert "out actuationState : ActuationState;" in braced_body(code, "action def ApplyCommandsAtActuation")
+    assert "in actuationState : ActuationState;" in braced_body(code, "action def PublishOperationalState")
+    doc = _doc("item def ActuationState")
+    for word in ("stop response", "cause", "actuation time", "REQ-DRIVING-028", "REQ-DRIVING-029"):
+        assert word in doc, word
+    body = braced_body(code, f"action def {FLOW}")
+    apply_body = braced_body(body, "action applyCommands : ApplyCommandsAtActuation")
+    assert "out actuationState;" in apply_body, "an internal output, bound to no boundary item"
+    assert "in actuationState;" in braced_body(body, "action publishState : PublishOperationalState")
+    targets = [t for s, t in re.findall(r"\bflow\s+from\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)
+               if s == "applyCommands.actuationState"]
+    assert targets == ["publishState.actuationState"], "the actuation state goes to the publication only"
+    assert "actuationState" not in braced_body(code, "action def ClosedLoopDrivingSystemProcess"), \
+        "nothing of it crosses the boundary: the observer sees the published state"
+
+
+def test_the_exchange_types_describe_the_sensing_without_a_signal_specification():
+    """The owner's sensing decision of 2026-11-06: the boundary items say which cameras, what size, which capture
+    time and which calibration, and which motion quantities with their sample time, as ISQ quantities; the vehicle
+    signal typing starts in phase 8."""
+    code = _code()
+    assert "private import ISQ::*;" not in code and "COVESA_VSS" not in code
+    literals = [w for w in re.findall(r"^\s*(\w+)\s*;", braced_body(code, "enum def CameraPosition"), re.M) if w != "doc"]
+    assert literals == CAMERA_POSITIONS, "the six positions in the order REQ-DRIVING-003 fixes"
+    camera = braced_body(code, "item def CameraImage")  # declared before CameraImageInput
+    assert dict(re.findall(r"\battribute\s+(\w+)\s*:\s*([\w:]+)\s*;", camera)) == CAMERA_IMAGE_ATTRIBUTES
+    sample = braced_body(code, "item def EgoMotionSample")
+    assert dict(re.findall(r"\battribute\s+(\w+)\s*:\s*([\w:]+)\s*;", sample)) == EGO_MOTION_SAMPLE_ATTRIBUTES
+    assert "item image : CameraImage[6] ordered;" in braced_body(code, "item def CameraImageInput :> CameraImages")
+    assert "item sample : EgoMotionSample[*] ordered;" in braced_body(code, "item def EgoMotionInput :> EgoMotionState")
+    camera_doc = _doc("item def CameraImage") + _doc("item def CameraImageInput :> CameraImages")
+    for word in ("REQ-DRIVING-003", "REQ-DRIVING-005", "REQ-DRIVING-030", "projection operator", "intrinsic",
+                 "vehicle frame"):
+        assert word in camera_doc, word
+    motion_doc = _doc("item def EgoMotionSample") + _doc("item def EgoMotionInput :> EgoMotionState")
+    for word in ("REQ-DRIVING-008", "REQ-DRIVING-030", "curvature", "derive"):
+        assert word in motion_doc, word
+    assert "the vehicle's" in motion_doc or "of the vehicle" in motion_doc, "whose motion it is"
 
 
 def test_the_functions_name_no_technology_platform_or_claim():
