@@ -6,8 +6,9 @@ DefineLogicalArchitecture rule (each function allocated to a logical element by 
 each logical element carries a function). These pins hold what review settled on top of it:
 
 - the decomposition subject is the system of interest: ClosedLoopDrivingLogicalSystem specializes the
-  functional boundary of phase 6, keeps its five ports and owns the six elements; the context's drivingSystem
-  stays its only usage, so the increment has one system;
+  functional boundary of phase 6, keeps its five ports and owns the six elements; its one usage,
+  closedLoopDrivingLogicalSystem, exists for the views (SysIDE draws usages, not definitions) and is the
+  same system as the context's drivingSystem, not a second one;
 - six elements, not seven (owner decision of 2026-11-06): run identity and planning share the planner, since
   the identity check is on the checkpoint the planner loads; the vehicle commander and the actuation gateway
   are separate, since the stop response of REQ-DRIVING-028 must survive the command path failing; the state
@@ -38,6 +39,7 @@ GUIDE = ROOT / "docs/guides/closed-loop-driving-increment.md"
 PACKAGE = "DE4SDV_ClosedLoopDrivingLogicalArchitecture"
 FUNCTIONAL_PACKAGE = "DE4SDV_ClosedLoopDrivingFunctionalArchitecture"
 SYSTEM = "ClosedLoopDrivingLogicalSystem"
+SYSTEM_USAGE = "closedLoopDrivingLogicalSystem"
 BOUNDARY = "ClosedLoopDrivingFunctionalBoundary"
 FLOW = "ClosedLoopDrivingFunctionalFlow"
 FLOW_USAGE = "closedLoopDrivingFunctionalFlow"
@@ -113,13 +115,13 @@ EXCHANGE_VIEW = "closedLoopDrivingInternalExchangeView"
 #: view -> (type or None, render, exposes in order, framed concerns)
 VIEWS = {
     STRUCTURE_VIEW: (None, "render asTreeDiagram;",
-                     [SYSTEM] + [f"{SYSTEM}::{element}" for element in ELEMENTS],
+                     [SYSTEM_USAGE] + [f"{SYSTEM_USAGE}::{element}" for element in ELEMENTS],
                      ["closedLoopDrivingLogicalStructureConcern"]),
     MATRIX_VIEW: ("MVD::MatrixView", None,
                   [f"{FLOW_USAGE}::{function}" for function in FUNCTIONS]
                   + [f"{SYSTEM}::{element}" for element in ELEMENTS] + [f"{PACKAGE}::*"],
                   ["closedLoopDrivingFunctionMappingConcern"]),
-    EXCHANGE_VIEW: (None, "render asInterconnectionDiagram;", [f"{SYSTEM}::*", f"{SYSTEM}::**"],
+    EXCHANGE_VIEW: (None, "render asInterconnectionDiagram;", [SYSTEM_USAGE, f"{SYSTEM_USAGE}::**"],
                     ["closedLoopDrivingInternalExchangeConcern"]),
 }
 VIEWPOINTS = {
@@ -202,10 +204,11 @@ def test_the_system_is_the_boundary_of_phase_6_one_level_inside_and_owns_the_six
     body = _system_body()
     owned = re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)
     assert owned == [(usage, definition) for usage, (definition, _) in ELEMENTS.items()]
-    # the context's drivingSystem is the only usage of the system: no second system in the increment
-    assert not re.search(rf"\bpart\s+\w+\s*:\s*{SYSTEM}\b", code)
+    # one usage of the logical definition, for the views (SysIDE draws usages); no usage of the boundary
+    assert re.findall(rf"^\s*part\s+(\w+)\s*:\s*{SYSTEM}\s*[{{;=]", code, re.M) == [SYSTEM_USAGE]
     assert not re.search(rf"\bpart\s+\w+\s*:\s*{BOUNDARY}\b", code)
-    assert "the context's drivingSystem is its only usage" in _doc(f"part def {SYSTEM} :> {BOUNDARY}")
+    assert "the same system as the context's drivingSystem" in _doc(f"part def {SYSTEM} :> {BOUNDARY}")
+    assert "the same system as the context's drivingSystem" in _doc(f"part {SYSTEM_USAGE} : {SYSTEM}")
     # the boundary ports are inherited, never redeclared
     assert not re.search(r"^\s*port\s+\w+\s*:", body, re.M)
 
@@ -324,9 +327,11 @@ def test_the_matrix_maps_the_functions_to_the_elements_with_reference_elements()
     assert metadata.title and metadata.description, MATRIX_VIEW
 
 
-def test_the_exchange_view_draws_the_elements_without_the_allocations():
+def test_the_diagrams_draw_the_elements_without_the_allocations():
+    """SysIDE draws every allocation of the view's package as a node unless filtered (render of dd91667d)."""
+    for view_name in (STRUCTURE_VIEW, EXCHANGE_VIEW):
+        assert "filter not (@ SysML::AllocationUsage);" in braced_body(_code(), f"view {view_name}"), view_name
     view = braced_body(_code(), f"view {EXCHANGE_VIEW}")
-    assert "filter not (@ SysML::AllocationUsage);" in view
     assert "attribute depth = -1;" in view
     assert "attribute showAnnotationRows = false;" in view
 
@@ -357,6 +362,7 @@ def test_the_package_types_no_vehicle_signal_specification():
     assert "COVESA_VSS" not in code and "DE4SDV_VSS_Extensions" not in code
     assert not re.search(r":\s*Vehicle_\w+", code), "VSS typing starts at phase 8"
     assert not re.search(r"\b(ref\s+part|perform|exhibit|state\s+def)\b", code)
+    assert not re.search(rf"^\s*part\s+\w+\s*:\s*{SYSTEM}\s*=", code, re.M), "the usage is bound to nothing"
 
 
 def test_the_allocation_file_is_governed_with_its_six_endpoint_definitions():

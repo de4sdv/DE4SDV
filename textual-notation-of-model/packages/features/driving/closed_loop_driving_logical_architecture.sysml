@@ -188,7 +188,9 @@ package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
      * exchanges REQ-DRIVING-014 constrains and phase 8 places. No exchange
      * runs from the state publisher or the actuation gateway back into the
      * loop. This definition names no computer, process, transport or
-     * technology; the context's drivingSystem is its only usage.
+     * technology. closedLoopDrivingLogicalSystem is its usage for the views,
+     * which draw usages; it is the same system as the context's
+     * drivingSystem, not a second one.
      */
     part inputConditioner : InputConditioner;
     part planner : TrajectoryPlanner;
@@ -232,6 +234,10 @@ package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
       connect vehicleCommander.commandOut to actuationGateway.commandIn;
   }
 
+  part closedLoopDrivingLogicalSystem : ClosedLoopDrivingLogicalSystem {
+    doc /* The driving system as the views draw it: the one usage of the logical definition, the same system as the context's drivingSystem. */
+  }
+
   /* ─────────────── Function-to-logical-element allocations (allocatedTo) ─────────────── */
 
   allocation inputConditioningResponsibility
@@ -267,13 +273,14 @@ package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
     viewpoint selectedLogicalStructureViewpoint : SystemStructureDefinitionViewpoint {
       frame closedLoopDrivingLogicalStructureConcern;
     }
-    expose ClosedLoopDrivingLogicalSystem;
-    expose ClosedLoopDrivingLogicalSystem::inputConditioner;
-    expose ClosedLoopDrivingLogicalSystem::planner;
-    expose ClosedLoopDrivingLogicalSystem::loopSupervisor;
-    expose ClosedLoopDrivingLogicalSystem::vehicleCommander;
-    expose ClosedLoopDrivingLogicalSystem::actuationGateway;
-    expose ClosedLoopDrivingLogicalSystem::statePublisher;
+    expose closedLoopDrivingLogicalSystem;
+    expose closedLoopDrivingLogicalSystem::inputConditioner;
+    expose closedLoopDrivingLogicalSystem::planner;
+    expose closedLoopDrivingLogicalSystem::loopSupervisor;
+    expose closedLoopDrivingLogicalSystem::vehicleCommander;
+    expose closedLoopDrivingLogicalSystem::actuationGateway;
+    expose closedLoopDrivingLogicalSystem::statePublisher;
+    filter not (@ SysML::AllocationUsage);
     render asTreeDiagram;
   }
 
@@ -338,8 +345,8 @@ package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
     viewpoint selectedInternalExchangeViewpoint : SystemInternalExchangeViewpoint {
       frame closedLoopDrivingInternalExchangeConcern;
     }
-    expose ClosedLoopDrivingLogicalSystem::*;
-    expose ClosedLoopDrivingLogicalSystem::**;
+    expose closedLoopDrivingLogicalSystem;
+    expose closedLoopDrivingLogicalSystem::**;
     filter not (@ SysML::AllocationUsage);
     attribute depth = -1;
     attribute showAnnotationRows = false;

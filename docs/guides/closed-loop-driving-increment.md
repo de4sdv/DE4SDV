@@ -416,8 +416,10 @@ technology-independent logical elements realize the seven functions. The
 decomposition subject is the system of interest itself:
 `ClosedLoopDrivingLogicalSystem` specializes the functional boundary of
 Phase 6, keeps its five ports and owns the system's inside, one level below
-the boundary. The context elements of Phase 2 stay outside and undivided, and
-the context's `drivingSystem` stays the only usage of the system.
+the boundary. The context elements of Phase 2 stay outside and undivided. The
+package's one usage of the definition, `closedLoopDrivingLogicalSystem`, exists
+for the views, which draw usages; it is the same system as the context's
+`drivingSystem`, not a second one.
 
 The owner decided on six logical elements, not one per function (2026-11-06):
 functions share an element when nothing requires them to be separately
