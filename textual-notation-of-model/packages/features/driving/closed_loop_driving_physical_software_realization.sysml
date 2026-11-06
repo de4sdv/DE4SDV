@@ -1167,6 +1167,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::hmiGuest::stateObserver;
     filter not (@ SysML::AllocationUsage);
     filter not (@ SysML::BindingConnectorAsUsage);
+    filter not (@ SysML::FlowUsage);
     render asTreeDiagram;
   }
 
@@ -1257,9 +1258,11 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * parts, their ports and the flows are exposed by name (the ports are
      * declared on the definitions; a wildcard over a usage drew none of
      * them); the insides of the realization and of the guests stay hidden,
-     * which the filter on connections does: the delegations inside them
-     * drew as boxes with two ends wherever one end was exposed. The
-     * hypervisor interfaces, which span levels, are connections too.
+     * which the exact-type filter on connections does: the delegations
+     * inside them drew as boxes with two ends wherever one end was exposed,
+     * and the subtype-inclusive filter (@) took the flows with them (run
+     * 42247403125). The hypervisor interfaces, which span levels, are
+     * filtered by their own type.
      */
     viewpoint selectedPhysicalContextExchangeViewpoint : PhysicalContextExchangeViewpoint {
       frame aaosObservationFidelityConcern;
@@ -1295,7 +1298,8 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::operationalStateOverSOMEIPAcrossHypervisor;
     expose closedLoopDrivingPhysicalSystem::operationalStateTopicOverDataTunnelAcrossVMs;
     filter not (@ SysML::AllocationUsage);
-    filter not (@ SysML::ConnectionUsage);
+    filter not (@ SysML::InterfaceUsage);
+    filter not (hastype SysML::ConnectionUsage);
     attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;

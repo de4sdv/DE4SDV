@@ -732,12 +732,14 @@ def test_the_interconnection_views_draw_the_path_and_the_context_at_their_depths
     assert "attribute depth = -1;" in context and "attribute maxCompartmentEntries = 0;" in context
     assert "attribute showAnnotationRows = false;" in context
     # a connection with one exposed end drew as a box with two ends (run 42215689738: the delegations inside the
-    # host and the guests); the exchanges the view draws are flows, every connection (interfaces and the
-    # delegations inside the exposed parts) is filtered
-    assert "filter not (@ SysML::ConnectionUsage);" in context
-    assert "filter not (@ SysML::InterfaceUsage);" not in context, "subsumed by the connection filter"
+    # host and the guests); the exchanges the view draws are flows; the delegations are filtered by exact type
+    # (`@`, subtype-inclusive, took the flows with them: run 42247403125), the hypervisor interfaces by theirs
+    assert "filter not (hastype SysML::ConnectionUsage);" in context
+    assert "filter not (@ SysML::InterfaceUsage);" in context, "the hypervisor interfaces span levels"
+    assert "filter not (@ SysML::ConnectionUsage);" not in context
     tree = braced_body(code, f"view {STRUCTURE_VIEW}")
     assert "filter not (@ SysML::BindingConnectorAsUsage);" in tree, "the guest's bind drew as a box with two ends"
+    assert "filter not (@ SysML::FlowUsage);" in tree, "the flows' ends drew as compartments of every part (run 42247403125)"
 
 
 def test_the_matrix_maps_the_logical_elements_to_the_software_with_reference_elements():
