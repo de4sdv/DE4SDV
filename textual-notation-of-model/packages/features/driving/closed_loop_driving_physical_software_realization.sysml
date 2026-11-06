@@ -441,8 +441,9 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     doc /*
      * The driving system as phase 8 realizes it: the same system as the
      * context's drivingSystem, now the three programs on the Linux host and
-     * the S-CORE services they use, referenced here and owned by the host.
-     * The boundary of phase 6 is kept as ports of the realization: the
+     * the S-CORE services they use, owned here with them (one instance on
+     * the host, typed by the platform stack's middleware layer). The
+     * boundary of phase 6 is kept as ports of the realization: the
      * camera images, the ego motion and the route in, the vehicle command
      * out, the operational state out; the simulation clock is a System 2
      * input the bench adds. Between processes every hop is mw::com (S-CORE
@@ -464,13 +465,12 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     part drivingAgent : DrivingAgentApplication;
     part actuationAdapter : ActuationAdapterApplication;
     part statePublisherApplication : OperationalStatePublisherApplication;
-    ref part scoreServices : EclipseSCORE {
+    part scoreServices : EclipseSCORE {
       doc /*
-       * The S-CORE services of the host the realization uses, one instance,
-       * owned by the host and bound here. Lifecycle's Launch Manager starts
-       * and supervises the three programs; the SOME/IP gateway of
-       * INC-MW-011 (gatewayd and someipd at d9eac670) carries the
-       * operational state out of the host.
+       * The S-CORE services of the host the realization uses, one instance
+       * on the host. Lifecycle's Launch Manager starts and supervises the
+       * three programs; the SOME/IP gateway of INC-MW-011 (gatewayd and
+       * someipd at d9eac670) carries the operational state out of the host.
        */
       part launchManager {
         doc /*
@@ -598,8 +598,8 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * The Linux host of the bench: x86_64, with an NVIDIA GPU for the
      * simulator's rendering and the planner's inference engine, and KVM for
      * the two AAOS SDV guests (GAP-DRIVING-007). It owns the platform
-     * layers, the S-CORE services, the software realization of the driving
-     * system, the simulator server and the route provider. The sensor
+     * layers, the software realization of the driving system with its
+     * S-CORE services, the simulator server and the route provider. The sensor
      * streams, the route, the simulation clock and the vehicle control cross
      * the host's loopback between the simulator and the driving software;
      * the operational state leaves the host on SOME/IP.
@@ -607,11 +607,9 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     port operationalStateOut : OperationalStateOut;
     part os : LinuxPlatform;
     part hypervisor : KVMHypervisor;
-    part scoreServices : EclipseSCORE;
     part drivingSoftware : ClosedLoopDrivingSoftwareRealization;
     part carlaServer : CARLASimulationServer;
     part routeProvider : ScenarioRouteProvider;
-    bind drivingSoftware.scoreServices = scoreServices;
     connection cameraStreamOverHostLoopback connect carlaServer.cameraStreamOut to drivingSoftware.cameraImagesIn;
     connection egoMotionOverHostLoopback connect carlaServer.egoMotionOut to drivingSoftware.egoMotionIn;
     connection simulationClockOverHostLoopback connect carlaServer.simulationClockOut to drivingSoftware.simulationClockIn;
@@ -642,6 +640,15 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   part closedLoopDrivingPhysicalSystem : ClosedLoopDrivingPhysicalSystem;
 
+  part closedLoopDrivingSoftware : ClosedLoopDrivingSoftwareRealization {
+    doc /*
+     * Exists for the S-CORE path view, which draws usages: the same
+     * realization as the host's drivingSoftware, not a second one. Drawn
+     * from the host's usage, the view also drew the host's connections to
+     * the realization's ports as boxes with two ends.
+     */
+  }
+
   /* ───────────── Logical-to-physical allocations (allocatedTo) ───────────── */
 
   allocation inputConditionerToConditionInputs allocate ClosedLoopDrivingLogicalSystem::inputConditioner to closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::drivingAgent::conditionInputs;
@@ -656,13 +663,16 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   /* ───────────── System-to-software signal mappings (the method's phase 8 exit rule) ─────────────
    * One per crossing of an information item into a software contract, each
    * with its record. A mapping is no runtime-interoperability claim. The
-   * owning allocation targets the port where the item enters the contract;
-   * the typed ports and the connections give the other endpoints.
+   * owning allocation targets the port where the item enters the contract,
+   * written as a feature chain through the usage (the ports are declared on
+   * the definitions, so a qualified name would resolve to the definition's
+   * port, outside the realizing usage); the typed ports and the connections
+   * give the other endpoints.
    */
 
   allocation cameraImagesIngressMapping : SystemToSoftwareSignalMappingCandidate
     allocate ClosedLoopDrivingLogicalSystem::inputConditioner
-    to closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::drivingAgent::conditionInputs::cameraImagesIn {
+    to closedLoopDrivingPhysicalSystem.linuxHost.drivingSoftware.drivingAgent.conditionInputs.cameraImagesIn {
     item <'MAP-DRIVING-CAMERA-IMAGES'> cameraImagesIngressMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The camera images from the simulator's camera sensors into the input
@@ -687,7 +697,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   allocation egoMotionSampleMapping : SystemToSoftwareSignalMappingCandidate
     allocate ClosedLoopDrivingLogicalSystem::inputConditioner
-    to closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::drivingAgent::conditionInputs::egoMotionSampleOut {
+    to closedLoopDrivingPhysicalSystem.linuxHost.drivingSoftware.drivingAgent.conditionInputs.egoMotionSampleOut {
     item <'MAP-DRIVING-EGO-MOTION'> egoMotionSampleMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The ego motion from the simulator's vehicle state through the input
@@ -713,7 +723,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   allocation routeIngressMapping : SystemToSoftwareSignalMappingCandidate
     allocate ClosedLoopDrivingLogicalSystem::inputConditioner
-    to closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::drivingAgent::conditionInputs::routeIn {
+    to closedLoopDrivingPhysicalSystem.linuxHost.drivingSoftware.drivingAgent.conditionInputs.routeIn {
     item <'MAP-DRIVING-ROUTE'> routeIngressMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The route of the scenario from the route provider into the input
@@ -736,7 +746,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   allocation planMapping : SystemToSoftwareSignalMappingCandidate
     allocate ClosedLoopDrivingLogicalSystem::planner
-    to closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::drivingAgent::inferPlan::planEventOut {
+    to closedLoopDrivingPhysicalSystem.linuxHost.drivingSoftware.drivingAgent.inferPlan.planEventOut {
     item <'MAP-DRIVING-PLAN'> planMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The plan from the inference engine's output to the FEO topic the
@@ -760,7 +770,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   allocation modeMapping : SystemToSoftwareSignalMappingCandidate
     allocate ClosedLoopDrivingLogicalSystem::loopSupervisor
-    to closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::drivingAgent::superviseLoop::modeEventOut {
+    to closedLoopDrivingPhysicalSystem.linuxHost.drivingSoftware.drivingAgent.superviseLoop.modeEventOut {
     item <'MAP-DRIVING-MODE'> modeMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The mode of the loop from the loop supervision to the vehicle
@@ -784,7 +794,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   allocation commandMapping : SystemToSoftwareSignalMappingCandidate
     allocate ClosedLoopDrivingLogicalSystem::vehicleCommander
-    to closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::drivingAgent::commandVehicle::commandOut {
+    to closedLoopDrivingPhysicalSystem.linuxHost.drivingSoftware.drivingAgent.commandVehicle.commandOut {
     item <'MAP-DRIVING-COMMAND'> commandMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The command from the vehicle commander to the actuation adapter on
@@ -809,7 +819,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   allocation vehicleControlMapping : SystemToSoftwareSignalMappingCandidate
     allocate ClosedLoopDrivingLogicalSystem::actuationGateway
-    to closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::actuationAdapter::vehicleControlOut {
+    to closedLoopDrivingPhysicalSystem.linuxHost.drivingSoftware.actuationAdapter.vehicleControlOut {
     item <'MAP-DRIVING-VEHICLE-CONTROL'> vehicleControlMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The command from the actuation adapter into the simulator's vehicle
@@ -833,7 +843,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   allocation operationalStateMapping : SystemToSoftwareSignalMappingCandidate
     allocate ClosedLoopDrivingLogicalSystem::statePublisher
-    to closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::scoreServices::someipd::operationalStateOut {
+    to closedLoopDrivingPhysicalSystem.linuxHost.drivingSoftware.scoreServices.someipd.operationalStateOut {
     item <'MAP-DRIVING-OPERATIONAL-STATE'> operationalStateMappingRecord : LogicalToSoftwareSignalMappingRecord {
       doc /*
        * The operational state on the observation path, hop by hop: the
@@ -1113,6 +1123,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::hmiGuest::sdvGateway;
     expose closedLoopDrivingPhysicalSystem::hmiGuest::stateObserver;
     filter not (@ SysML::AllocationUsage);
+    filter not (@ SysML::BindingConnectorAsUsage);
     render asTreeDiagram;
   }
 
@@ -1180,8 +1191,8 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       frame scoreCommandPathConcern;
       frame checkpointCommandAuthorityConcern;
     }
-    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::**;
+    expose closedLoopDrivingSoftware;
+    expose closedLoopDrivingSoftware::**;
     filter not (@ SysML::AllocationUsage);
     attribute depth = -1;
     attribute showAnnotationRows = false;
@@ -1193,18 +1204,24 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * What the physical system exchanges with the AAOS SDV guests
      * (aaosObservationFidelityConcern): the operational state leaving the
      * host on SOME/IP into the SDV Core VM and the typed topic from the SDV
-     * Core VM to the IVI VM, and nothing back. The host and the guests at
-     * depth 1; the hypervisor interfaces, which span levels, are filtered.
+     * Core VM to the IVI VM, and nothing back. The host and the guests with
+     * their ports and the two hops, their insides hidden (the form of the
+     * AEBS simulation deployment's context exchange view); the hypervisor
+     * interfaces, which span levels, are filtered.
      */
     viewpoint selectedPhysicalContextExchangeViewpoint : PhysicalContextExchangeViewpoint {
       frame aaosObservationFidelityConcern;
     }
     expose closedLoopDrivingPhysicalSystem;
     expose closedLoopDrivingPhysicalSystem::*;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::*[istype SysML::PortUsage];
+    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::*[istype SysML::PortUsage];
+    expose closedLoopDrivingPhysicalSystem::hmiGuest::*[istype SysML::PortUsage];
     filter not (@ SysML::AllocationUsage);
     filter not (@ SysML::InterfaceUsage);
-    attribute depth = 1;
+    attribute depth = -1;
     attribute showAnnotationRows = false;
+    attribute maxCompartmentEntries = 0;
     render asInterconnectionDiagram;
   }
 }

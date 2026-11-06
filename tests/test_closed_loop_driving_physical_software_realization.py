@@ -50,6 +50,9 @@ HOST = "ClosedLoopDrivingLinuxHost"
 REALIZATION = "ClosedLoopDrivingSoftwareRealization"
 AGENT = "DrivingAgentApplication"
 SOFTWARE = f"{SYSTEM_USAGE}::linuxHost::drivingSoftware"
+#: the same software realization as a feature chain: a mapping's port target is written through the usage, since
+#: the ports are declared on the definitions and a qualified name would resolve to the definition's port
+SOFTWARE_CHAIN = f"{SYSTEM_USAGE}.linuxHost.drivingSoftware"
 
 #: The physical element definitions, in the order of the loop -> (usage path below the software realization,
 #: the logical element each carries).
@@ -286,9 +289,11 @@ VIEWS = {
                   + [f"{SOFTWARE}::{path}" for path, _ in ELEMENT_DEFINITIONS.values()]
                   + [f"{SOFTWARE}::scoreServices::{process}" for process in GATEWAY_PROCESSES] + [f"{PACKAGE}::*"],
                   "PhysicalLogicalMappingViewpoint", ["closedLoopDrivingPhysicalAllocationConcern"]),
-    PATH_VIEW: (None, "render asInterconnectionDiagram;", [SOFTWARE, f"{SOFTWARE}::**"],
+    PATH_VIEW: (None, "render asInterconnectionDiagram;", ["closedLoopDrivingSoftware", "closedLoopDrivingSoftware::**"],
                 "PhysicalInternalExchangeViewpoint", ["scoreCommandPathConcern", "checkpointCommandAuthorityConcern"]),
-    CONTEXT_VIEW: (None, "render asInterconnectionDiagram;", [SYSTEM_USAGE, f"{SYSTEM_USAGE}::*"],
+    CONTEXT_VIEW: (None, "render asInterconnectionDiagram;",
+                   [SYSTEM_USAGE, f"{SYSTEM_USAGE}::*"] + [f"{SYSTEM_USAGE}::{part}::*[istype SysML::PortUsage]"
+                                                           for part in ("linuxHost", "sdvCoreGuest", "hmiGuest")],
                    "PhysicalContextExchangeViewpoint", ["aaosObservationFidelityConcern"]),
 }
 #: the concerns this phase declares -> (catalogue type, the parties that hold it)
@@ -393,8 +398,9 @@ def test_the_software_realization_is_the_system_of_interest_and_owns_the_three_p
     owned = re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)
     assert owned == [("drivingAgent", AGENT), ("actuationAdapter", "ActuationAdapterApplication"),
                      ("statePublisherApplication", "OperationalStatePublisherApplication")]
-    assert re.search(r"^\s*ref\s+part\s+scoreServices\s*:\s*EclipseSCORE\s*\{", body, re.M), "referenced, owned by the host"
-    services = braced_body(body, "ref part scoreServices : EclipseSCORE")
+    assert re.search(r"^\s*part\s+scoreServices\s*:\s*EclipseSCORE\s*\{", body, re.M), "owned with the programs, one instance"
+    assert "ref part" not in body and "bind" not in body, "a reference bound to a host part drew no processes (run 42212398480)"
+    services = braced_body(body, "part scoreServices : EclipseSCORE")
     assert re.findall(r"^\s*part\s+(\w+)", services, re.M) == ["launchManager", *GATEWAY_PROCESSES]
     for process in GATEWAY_PROCESSES:
         assert dict(re.findall(r"\bport\s+(\w+)\s*:\s*(\w+)\s*;", braced_body(services, f"part {process} : PhysicalAllocationElement"))) == GATEWAY_PORTS
@@ -495,10 +501,9 @@ def test_the_host_owns_the_platform_the_software_and_the_context_realizations():
     code = _code()
     body = _body_of_definition(HOST)
     owned = re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)
-    assert owned == [("os", "LinuxPlatform"), ("hypervisor", "KVMHypervisor"), ("scoreServices", "EclipseSCORE"),
-                     ("drivingSoftware", REALIZATION), ("carlaServer", "CARLASimulationServer"),
-                     ("routeProvider", "ScenarioRouteProvider")]
-    assert "bind drivingSoftware.scoreServices = scoreServices;" in body
+    assert owned == [("os", "LinuxPlatform"), ("hypervisor", "KVMHypervisor"), ("drivingSoftware", REALIZATION),
+                     ("carlaServer", "CARLASimulationServer"), ("routeProvider", "ScenarioRouteProvider")]
+    assert "bind" not in body and "scoreServices" not in body, "the realization owns the S-CORE services"
     connections = _connections(body)
     assert set(connections) == HOST_CONNECTIONS and len(connections) == len(HOST_CONNECTIONS)
     assert dict(re.findall(r"^\s*port\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)) == {"operationalStateOut": "OperationalStateOut"}
@@ -540,6 +545,9 @@ def test_the_guests_carry_the_observation_path_and_the_system_crosses_the_hyperv
     for name in ("SDVCoreBoundary", "SDVGatewayOnIVIBoundary", "DataTunnelPort"):
         assert f"private import DE4SDV_AAOSSDVMiddlewareBoundary::{name};" in code, name
     assert re.findall(rf"^\s*part\s+(\w+)\s*:\s*{SYSTEM}\s*[{{;=]", code, re.M) == [SYSTEM_USAGE]
+    # the path view draws usages: one package-level usage of the realization exists for it (phase 7's form)
+    assert re.findall(rf"^  part\s+(\w+)\s*:\s*{REALIZATION}\s*[{{;=]", code, re.M) == ["closedLoopDrivingSoftware"]
+    assert "the same" in _doc(f"part closedLoopDrivingSoftware : {REALIZATION}")
 
 
 def test_each_logical_element_is_allocated_to_its_software_and_each_element_carries_one():
@@ -567,7 +575,8 @@ def test_each_crossing_has_one_signal_mapping_with_a_complete_record():
     for name, source, target, body in mappings:
         logical, path, short = SIGNAL_MAPPINGS[name]
         assert source == f"{LOGICAL_SYSTEM}::{logical}", name
-        assert target == f"{SOFTWARE}::{path}", name
+        assert target == f"{SOFTWARE_CHAIN}.{path.replace('::', '.')}", name
+        assert "::" not in target, "a chain through the realizing usage, not a qualified name"
         records = re.findall(r"\bitem\s+<'([^']+)'>\s+(\w+)\s*:\s*LogicalToSoftwareSignalMappingRecord\s*\{", body)
         assert records == [(short, f"{name[:-len('Mapping')]}MappingRecord")], name
         record = braced_body(raw, f"item <'{short}'> {records[0][1]} : LogicalToSoftwareSignalMappingRecord")
@@ -651,7 +660,7 @@ def test_each_view_frames_its_concerns_and_exposes_its_content(view_name):
     assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == frames
     assert re.search(rf"viewpoint\s+\w+\s*:\s*{viewpoint_type}\s*\{{", view), view_name
     assert len(re.findall(r"\bviewpoint\b", view)) == 1
-    assert re.findall(r"\bexpose\s+([\w:*]+)\s*;", view) == exposes
+    assert re.findall(r"\bexpose\s+([\w:*]+(?:\[[^\]]*\])?)\s*;", view) == exposes
     if render:
         assert render in view
         assert "filter not (@ SysML::AllocationUsage);" in view, "SysIDE draws the package's allocations otherwise"
@@ -664,9 +673,13 @@ def test_the_interconnection_views_draw_the_path_and_the_context_at_their_depths
     path = braced_body(code, f"view {PATH_VIEW}")
     assert "attribute depth = -1;" in path and "attribute showAnnotationRows = false;" in path
     context = braced_body(code, f"view {CONTEXT_VIEW}")
-    assert "attribute depth = 1;" in context, "the host and the guests with the hops between them, not their insides"
+    # depth 1 drew one box with a parts compartment and no hop (run 42212398480); the AEBS simulation deployment's
+    # form draws the parts with their ports and the hops, insides hidden
+    assert "attribute depth = -1;" in context and "attribute maxCompartmentEntries = 0;" in context
     assert "attribute showAnnotationRows = false;" in context
     assert "filter not (@ SysML::InterfaceUsage);" in context, "the hypervisor interfaces span levels; a box with two ends otherwise"
+    tree = braced_body(code, f"view {STRUCTURE_VIEW}")
+    assert "filter not (@ SysML::BindingConnectorAsUsage);" in tree, "the guest's bind drew as a box with two ends"
 
 
 def test_the_matrix_maps_the_logical_elements_to_the_software_with_reference_elements():
