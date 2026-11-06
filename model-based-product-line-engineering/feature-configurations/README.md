@@ -15,6 +15,7 @@ Bills-of-Features retired at step S7 of ADR 0022, and the evidence records in
 | `aebs_autoware_linux_lidar_camera.sysml` | SDV product line | none | Standalone AEBS reference member (ADR 0014) |
 | `middleware_autoware_aaos_sdv_reference.sysml` | SDV product line | `evidence/middleware-autoware-aaos-sdv-reference.yaml` (`planned`) | Planned AAOS-integrated middleware reference member (ADR 0014) |
 | `middleware_autoware_score_reference.sysml` | SDV product line | none | Eclipse S-CORE reference configuration of INC-MW-011: Linux with S-CORE on the main side, an AAOS SDV guest under KVM, the HMI display |
+| `closed_loop_driving_autoe2e_score_reference.sysml` | SDV product line | `evidence/closed-loop-driving-autoe2e-score-reference.yaml` (`planned`) | Closed-loop driving reference configuration of INC-DRIVING-001: AutoE2E on S-CORE on Linux on the main side, the KVM host, with an AAOS SDV guest and the display; cameras only; valid, not admitted |
 | `apollo_qnx_qvm.sysml` | SDV product line | none | Example mixed-criticality platform projection |
 | `fixtures/invalid_score_android.sysml` | SDV product line | none (invalid fixture) | Deliberate C001 violation (and C011) |
 | `inc_aebs_009a_jetson.sysml` | Engineering environment | `evidence/inc-aebs-009a-jetson.yaml` (`inspected`) | Exact maintained Jetson target; historical 009A run proved only Jetson 8 GiB identity |
