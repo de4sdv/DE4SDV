@@ -7,9 +7,10 @@ integration path, and an AAOS SDV application showing genuine plan/state/health.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
 Phase 3 capability classification, Phase 4 stakeholder needs, Phase 5
-requirements and Phase 6 functional architecture, proposal.** No
-implementation, successful driving run, performance result or product-line
-admission is claimed.
+requirements, Phase 6 functional architecture, Phase 7 logical architecture
+and Phase 8 physical/software realization, proposal.** No implementation,
+build, successful driving run, performance result or product-line admission
+is claimed.
 
 ## Authoritative frame
 
@@ -22,6 +23,12 @@ admission is claimed.
 - [SysML needs and requirements](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_needs_requirements.sysml):
   the Phase 4 stakeholder needs, their planned reviews, and the Phase 5
   requirements.
+- [SysML functional architecture](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_functional_architecture.sysml)
+  and [logical architecture](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_logical_architecture.sysml):
+  the Phase 6 functions and interfaces, the Phase 7 logical elements.
+- [SysML physical/software realization](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_physical_software_realization.sysml):
+  the Phase 8 software elements, their allocations, signal mappings,
+  assumptions and gaps.
 - [Syside review views](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifacts, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
@@ -466,17 +473,101 @@ element of the System Function Mapping viewpoint, and the exchanges as an
 interconnection of the System Internal Exchange viewpoint. The phase publishes
 three views, listed in `VIEWS.md`.
 
+## Physical and software realization (Phase 8)
+
+`closed_loop_driving_physical_software_realization.sysml` answers what
+software, hardware and deployment elements realize the six logical elements,
+and on which technology the exchanges travel that REQ-DRIVING-014 and
+REQ-DRIVING-028 constrain. The owner's picks of 2026-11-06:
+
+- **Topology A, one FEO agent.** The loop is one Eclipse S-CORE program: a
+  fixed-execution-order agent (eclipse-score/feo v1.0.5) that runs four
+  activities in one Linux process, in the order of the loop, once per camera
+  frame: condition the inputs, infer the plan, supervise the loop, command
+  the vehicle. Each activity is a software element that carries one logical
+  element. The **actuation adapter** and the **state publisher** are S-CORE
+  applications of their own, so the stop response of REQ-DRIVING-028
+  survives the agent and the observation stays off the loop. The two
+  processes of the S-CORE SOME/IP gateway, `gatewayd` and `someipd`, carry
+  the publisher's reach across the hypervisor; the Launch Manager of S-CORE
+  Lifecycle starts and supervises the three programs and carries no logical
+  element.
+- **A C++ planner on an exported model.** The plan inference activity runs
+  an inference engine (TensorRT on the NVIDIA host, ONNX Runtime as the
+  fallback) over an ONNX export of the pinned AutoE2E checkpoint; the
+  training framework runs nowhere on the loop, and Python stays in System 2
+  for the export and the parity measurement. The export is an assumption
+  (ASM-DRIVING-002) with GAP-DRIVING-003 behind it until phase 10 measures
+  its parity against the reference.
+- **S-CORE at v0.10.0** (reference_integration `ca2a5f03`): Communication
+  v0.6.0, Lifecycle v0.10.0, Logging v0.2.6, Time v0.3.1, Configuration
+  Management v0.3.1. FEO (GAP-DRIVING-001) and the SOME/IP gateway of
+  INC-MW-011 (GAP-DRIVING-002) sit outside that baseline and are pinned
+  separately. Nothing is vendored. **KUKSA stays unselected**
+  (ALT-MW-KUKSA-001).
+- **Simulator in asynchronous real-time mode.** Simulation time comes with
+  each measurement and from the world snapshot at the actuation adapter;
+  wall-clock time from the host. The simulator server and the scenario's
+  route provider are System 2 context realizations on the host; the route
+  provider realizes the Phase 2 navigation on the host, not on the AAOS
+  guest, so the context-role decision of 2026-11-02 stays closed.
+- **The production observation path, typed.** The operational state leaves
+  the publisher as an mw::com event, goes through `gatewayd` and `someipd`,
+  crosses the hypervisor on SOME/IP into the SDV Core VM, becomes a typed
+  Data Tunnel topic (a VSIDL message, GAP-DRIVING-006) and reaches the
+  observer on the IVI VM through the SDV Gateway. Nothing flows back.
+- **VSS at the contract ports.** The ego-motion sample is typed by COVESA
+  VSS where it enters the S-CORE contract; the commanded acceleration and
+  steering angle are two `DE4SDV_VSS_Extensions` candidates, local to
+  DE4SDV.
+
+Each logical element is allocated to the software element that carries it
+(eight allocations; the publisher reaches the observer through three
+elements), and each crossing of an item into a software contract has a
+system-to-software signal mapping with its record (`MAP-DRIVING-*`, eight
+candidates): what the item is, which contract it enters, its type and unit,
+its timing, its transformation, and the phase 10 action that follows. An
+allocation is a responsibility assignment, no deployment or runtime claim; a
+mapping is no interoperability claim; a pin is no build claim.
+
+Three assumptions and eight gaps record what the realization depends on and
+what it found. Two need the owner's word before phase 10: **GAP-DRIVING-005**,
+the actuation adapter's own stop response (REQ-DRIVING-028) has no path to
+the publication REQ-DRIVING-029 asks for, because phases 6 and 7 have no flow
+from the actuation gateway to the publisher; and **GAP-DRIVING-008**, whether
+the plan hops inside the agent, FEO topics rather than the Communication
+module, fall under REQ-DRIVING-014. The others are readiness-probe items
+(FEO and the gateway against v0.10.0, the model export and its parity, the
+simulator client's build, the typed topic, a GPU and KVM host) that run
+before phase 10 builds anything; a paid host needs the owner's campaign
+authorization.
+
+Four views answer the phase's questions: the structure as a tree of the SAF
+Physical Structure Definition viewpoint, the logical-to-software mapping as
+a matrix of the Physical Logical Mapping viewpoint, the S-CORE path as an
+interconnection of the software realization (Physical Internal Exchange
+viewpoint, framing the Phase 1 concerns for the S-CORE path and the
+checkpoint's command authority), and the observation path as an
+interconnection of the physical system with the AAOS guests (Physical
+Context Exchange viewpoint, framing the Phase 1 observation-fidelity
+concern). The last viewpoint is not yet in the method's views-per-phase
+list for Phase 8; the deviation is pinned in `tests/test_views_per_phase.py`
+and a method change proposes the entry. The phase publishes four views,
+listed in `VIEWS.md`.
+
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is **Phase 8**, the physical and software
-realization: the software, hardware and deployment elements that realize the
-logical elements, with each logical element allocated to one of them, the
-S-CORE path REQ-DRIVING-014 constrains placed on the plan and command
-exchanges, and the signal mapping of each item that enters a software
-contract. Its first gate is `logicalElementAllocatedToPhysicalElement`.
-Do not jump from this context to implementation or claim a passed runtime
+work is complete. The next work is **Phase 9**, variability and
+configuration: the driving stack as a feature of the product line with its
+constraint on the camera feature, the derived middleware adapter per valid
+configuration, the per-domain variation of the host and the guests, and the
+configuration applicability the framing's product-line admission gap asks
+for, under the member decision that amends ADR 0014. Before it, the owner's
+word on GAP-DRIVING-005 and GAP-DRIVING-008, and the readiness probes of
+GAP-DRIVING-001 to -004, -006 and -007 before Phase 10 builds anything. Do
+not jump from this context to implementation or claim a passed runtime
 gate.
 
 Before deep adoption, involve upstream maintainers and resolve source,
@@ -495,8 +586,9 @@ and `python -m pytest -q` on `tests/test_closed_loop_driving_framing.py`,
 `tests/test_closed_loop_driving_requirements.py`,
 `tests/test_closed_loop_driving_functional_architecture.py`,
 `tests/test_closed_loop_driving_logical_architecture.py`,
-`tests/test_trace_allocation_completeness.py` and
-`tests/test_check_naming.py`.
+`tests/test_closed_loop_driving_physical_software_realization.py`,
+`tests/test_trace_allocation_completeness.py`, `tests/test_views_per_phase.py`
+and `tests/test_check_naming.py`.
 These are repository/lexical checks, not SysML semantic or runtime verification.
 Use `python scripts/validate_sysml.py` when a supported licensed validator is
 available, or request maintainer-run **Privileged Syside Validation** on the

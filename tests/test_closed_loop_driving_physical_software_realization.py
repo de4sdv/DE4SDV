@@ -324,6 +324,19 @@ def _doc(declaration: str, source: str | None = None) -> str:
     return _flat(match.group(1))
 
 
+def _direct(body: str) -> str:
+    """Blank nested bodies, keeping their braces, so only direct members remain visible."""
+    out, depth = [], 0
+    for char in body:
+        if char == "}":
+            depth -= 1
+        out.append(char if depth == 0 else " ")
+        if char == "{":
+            depth += 1
+    assert depth == 0, "unbalanced body"
+    return "".join(out)
+
+
 def _connections(body: str) -> list[tuple[str, str]]:
     return re.findall(r"\bconnection\s+\w+\s+connect\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)
 
@@ -397,7 +410,7 @@ def test_the_agent_runs_the_four_activities_in_the_order_of_the_loop():
     assert owned == [("conditionInputs", "InputConditioningActivity"), ("inferPlan", "PlanInferenceActivity"),
                      ("superviseLoop", "LoopSupervisionActivity"), ("commandVehicle", "VehicleCommandActivity")]
     doc = _doc(f"part def {AGENT}")
-    for word in ("FEO", "fixed", "activit", "one process", "v1.0.5"):
+    for word in ("FEO", "fixed", "activit", "one Linux process", "v1.0.5"):
         assert word in doc, word
     connections = _connections(body)
     assert set(connections) == AGENT_CONNECTIONS and len(connections) == len(AGENT_CONNECTIONS)
@@ -415,7 +428,7 @@ def test_the_agent_runs_the_four_activities_in_the_order_of_the_loop():
 def test_each_definition_declares_exactly_its_ports(definition):
     header = f"part def {definition}"
     body = braced_body(_code(), header)
-    assert dict(re.findall(r"^\s*port\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)) == PORTS[definition]
+    assert dict(re.findall(r"^\s*port\s+(\w+)\s*:\s*(\w+)\s*;", _direct(body), re.M)) == PORTS[definition]
     if definition in ELEMENT_DEFINITIONS:
         assert not re.search(r"\b(part|action|perform|flow|state)\b", body), "an element carries by allocation only"
 
