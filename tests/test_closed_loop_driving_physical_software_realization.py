@@ -207,8 +207,8 @@ HOST_CONNECTIONS = {
     "simulationClockOverHostLoopback": ("carlaServer.simulationClockOut", "drivingSoftware.simulationClockIn"),
     "routeFromScenario": ("routeProvider.routeOut", "drivingSoftware.routeIn"),
     "vehicleControlOverHostLoopback": ("drivingSoftware.vehicleControlOut", "carlaServer.vehicleControlIn"),
+    "operationalStateDelegation": ("drivingSoftware.operationalStateOut", "operationalStateOut"),
 }
-HOST_BINDS = {("operationalStateOut", "drivingSoftware.operationalStateOut")}
 SYSTEM_CONNECTIONS = {
     "operationalStateOverSOMEIPAcrossHypervisor": ("linuxHost.operationalStateOut", "sdvCoreGuest.someIpIn"),
     "operationalStateTopicOverDataTunnelAcrossVMs": ("sdvCoreGuest.topicOut", "hmiGuest.topicIn"),
@@ -539,7 +539,7 @@ def test_the_host_owns_the_platform_the_software_and_the_context_realizations():
                      ("carlaServer", "CARLASimulationServer"), ("routeProvider", "ScenarioRouteProvider")]
     assert "scoreServices" not in body, "the realization owns the S-CORE services"
     assert _named_connections(body) == HOST_CONNECTIONS and len(_connections(body)) == len(HOST_CONNECTIONS)
-    assert _binds(body) == HOST_BINDS
+    assert _binds(body) == set(), "both ends of the host's delegation are exposed, so a connection draws as an edge"
     assert "flow" not in body, "flows between these ports were not drawn (six licensed runs)"
     into_simulator = [name for name, (_, target) in HOST_CONNECTIONS.items() if target.startswith("carlaServer.")]
     assert into_simulator == ["vehicleControlOverHostLoopback"], "the vehicle control is the only thing the simulator receives"
@@ -734,7 +734,8 @@ def test_the_interconnection_views_draw_the_path_and_the_context_at_their_depths
     # host and the guests); the exchanges the view draws are flows; the delegations are filtered by exact type
     # (`@`, subtype-inclusive, took the flows with them: run 42247403125), the hypervisor interfaces by theirs
     assert "filter not (@ SysML::InterfaceUsage);" in context, "the hypervisor interfaces span levels"
-    assert "ConnectionUsage" not in context, "the exchanges are connections; the delegations are binds, never drawn"
+    assert "filter not (@ SysML::BindingConnectorAsUsage);" in context, "nine binds drew as boxes with two ends (run 42255511098)"
+    assert "ConnectionUsage" not in context, "the exchanges are connections"
     tree = braced_body(code, f"view {STRUCTURE_VIEW}")
     assert "filter not (@ SysML::BindingConnectorAsUsage);" in tree, "the guest's bind drew as a box with two ends"
     assert "FlowUsage" not in tree, "filtering the flows did not remove their ends from the parts' compartments (run 42248991235)"

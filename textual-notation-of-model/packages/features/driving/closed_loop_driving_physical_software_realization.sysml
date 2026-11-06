@@ -640,9 +640,8 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * carries the one item its exchange moves. The exchanges are named
      * connections, which SysIDE draws as edges between exposed ports; flows
      * between these ports were not drawn in six licensed runs (42247403125
-     * to 42253633791). The host's own port is bound to the realization's:
-     * a bind is not drawn, where a connection with an unexposed end drew as
-     * a box with two ends.
+     * to 42253633791). The delegation to the host's own port is a
+     * connection with both ends exposed in the view, drawn as an edge.
      */
     port operationalStateOut : OperationalStateOut;
     part os : LinuxPlatform;
@@ -655,7 +654,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     connection simulationClockOverHostLoopback connect carlaServer.simulationClockOut to drivingSoftware.simulationClockIn;
     connection routeFromScenario connect routeProvider.routeOut to drivingSoftware.routeIn;
     connection vehicleControlOverHostLoopback connect drivingSoftware.vehicleControlOut to carlaServer.vehicleControlIn;
-    bind operationalStateOut = drivingSoftware.operationalStateOut;
+    connection operationalStateDelegation connect drivingSoftware.operationalStateOut to operationalStateOut;
   }
 
   part def ClosedLoopDrivingPhysicalSystem {
@@ -1259,10 +1258,11 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * them (runs 42214648709, 42253633791); the exchanges are connections,
      * drawn as edges between exposed ports, where flows were not drawn in
      * six runs. The insides of the realization and of the guests stay
-     * hidden because their port delegations are binds, which the diagram
-     * does not draw (a connection with an unexposed end drew as a box with
-     * two ends, run 42215689738). The package's allocations and the
-     * hypervisor interfaces, which span levels, are filtered.
+     * hidden: their port delegations are binds, filtered here (a bind or a
+     * connection with an unexposed end draws as a box with two ends, runs
+     * 42215689738 and 42255511098), and the path view keeps its
+     * connections. The package's allocations and the hypervisor
+     * interfaces, which span levels, are filtered too.
      */
     viewpoint selectedPhysicalContextExchangeViewpoint : PhysicalContextExchangeViewpoint {
       frame aaosObservationFidelityConcern;
@@ -1290,6 +1290,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::linuxHost::simulationClockOverHostLoopback;
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeFromScenario;
     expose closedLoopDrivingPhysicalSystem::linuxHost::vehicleControlOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::operationalStateDelegation;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::someIpIn;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::topicOut;
@@ -1299,6 +1300,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::operationalStateTopicOverDataTunnelAcrossVMs;
     filter not (@ SysML::AllocationUsage);
     filter not (@ SysML::InterfaceUsage);
+    filter not (@ SysML::BindingConnectorAsUsage);
     attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;
