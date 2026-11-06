@@ -301,17 +301,17 @@ Shows the model elements selected to address the score command path concern.
 
 ![closedLoopDrivingSCOREPathExchangeView](diagrams/diagram-closedLoopDrivingSCOREPathExchangeView.svg)
 
-### `closedLoopDrivingObservationExchangeView`
+### `closedLoopDrivingPhysicalContextExchangeView`
 
 Shows the model elements selected to address the aaos observation fidelity concern.
 
 - **Source:** `closed_loop_driving_physical_software_realization.sysml`
 - **Viewpoint:** `selectedPhysicalContextExchangeViewpoint` (`PhysicalContextExchangeViewpoint`)
 - **Concern:** `aaosObservationFidelityConcern`
-- **Exposes:** `closedLoopDrivingPhysicalSystem`, `closedLoopDrivingPhysicalSystem::linuxHost`, `closedLoopDrivingPhysicalSystem::linuxHost::operationalStateOut`, `closedLoopDrivingPhysicalSystem::sdvCoreGuest`, `closedLoopDrivingPhysicalSystem::sdvCoreGuest::someIpIn`, `closedLoopDrivingPhysicalSystem::sdvCoreGuest::topicOut`, `closedLoopDrivingPhysicalSystem::hmiGuest`, `closedLoopDrivingPhysicalSystem::hmiGuest::topicIn`, `closedLoopDrivingPhysicalSystem::operationalStateOverSOMEIPAcrossHypervisor`, `closedLoopDrivingPhysicalSystem::operationalStateTopicOverDataTunnelAcrossVMs`
+- **Exposes:** `closedLoopDrivingPhysicalSystem`, `closedLoopDrivingPhysicalSystem::linuxHost`, `closedLoopDrivingPhysicalSystem::linuxHost::operationalStateOut`, `closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware`, `closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::cameraImagesIn`, `closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::egoMotionIn`, `closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::routeIn`, `closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::simulationClockIn`, `closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::vehicleControlOut`, `closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::operationalStateOut`, `closedLoopDrivingPhysicalSystem::linuxHost::carlaServer`, `closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::cameraStreamOut`, `closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::egoMotionOut`, `closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::simulationClockOut`, `closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::vehicleControlIn`, `closedLoopDrivingPhysicalSystem::linuxHost::routeProvider`, `closedLoopDrivingPhysicalSystem::linuxHost::routeProvider::routeOut`, `closedLoopDrivingPhysicalSystem::linuxHost::cameraStreamOverHostLoopback`, `closedLoopDrivingPhysicalSystem::linuxHost::egoMotionOverHostLoopback`, `closedLoopDrivingPhysicalSystem::linuxHost::simulationClockOverHostLoopback`, `closedLoopDrivingPhysicalSystem::linuxHost::routeFromScenario`, `closedLoopDrivingPhysicalSystem::linuxHost::vehicleControlOverHostLoopback`, `closedLoopDrivingPhysicalSystem::linuxHost::operationalStateDelegation`, `closedLoopDrivingPhysicalSystem::sdvCoreGuest`, `closedLoopDrivingPhysicalSystem::sdvCoreGuest::someIpIn`, `closedLoopDrivingPhysicalSystem::sdvCoreGuest::topicOut`, `closedLoopDrivingPhysicalSystem::hmiGuest`, `closedLoopDrivingPhysicalSystem::hmiGuest::topicIn`, `closedLoopDrivingPhysicalSystem::operationalStateOverSOMEIPAcrossHypervisor`, `closedLoopDrivingPhysicalSystem::operationalStateTopicOverDataTunnelAcrossVMs`
 - **Depth:** `-1`
 - **Render:** `asInterconnectionDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 
-![closedLoopDrivingObservationExchangeView](diagrams/diagram-closedLoopDrivingObservationExchangeView.svg)
+![closedLoopDrivingPhysicalContextExchangeView](diagrams/diagram-closedLoopDrivingPhysicalContextExchangeView.svg)
