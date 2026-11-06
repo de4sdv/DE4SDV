@@ -525,12 +525,12 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       }
     }
 
-    connection cameraImagesDelegation connect cameraImagesIn to drivingAgent.cameraImagesIn;
-    connection egoMotionDelegation connect egoMotionIn to drivingAgent.egoMotionIn;
-    connection routeDelegation connect routeIn to drivingAgent.routeIn;
-    connection simulationClockDelegation connect simulationClockIn to actuationAdapter.simulationClockIn;
-    connection vehicleControlDelegation connect actuationAdapter.vehicleControlOut to vehicleControlOut;
-    connection operationalStateDelegation connect scoreServices.someipd.operationalStateOut to operationalStateOut;
+    bind cameraImagesIn = drivingAgent.cameraImagesIn;
+    bind egoMotionIn = drivingAgent.egoMotionIn;
+    bind routeIn = drivingAgent.routeIn;
+    bind simulationClockIn = actuationAdapter.simulationClockIn;
+    bind vehicleControlOut = actuationAdapter.vehicleControlOut;
+    bind operationalStateOut = scoreServices.someipd.operationalStateOut;
     connection commandOverSCORECommunication connect drivingAgent.commandOut to actuationAdapter.commandIn;
     connection planEventOverSCORECommunication connect drivingAgent.planEventOut to statePublisherApplication.planIn;
     connection modeEventOverSCORECommunication connect drivingAgent.modeEventOut to statePublisherApplication.modeIn;
@@ -590,9 +590,9 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     part sdvMiddleware : AndroidSDVMiddleware;
     ref part sdvCore : SDVCoreBoundary;
     bind sdvCore = sdvMiddleware;
-    connection someIpDelegation connect someIpIn to sdvCore.someIp.someIpPort;
+    bind someIpIn = sdvCore.someIp.someIpPort;
     connection operationalStateTopicPublishedByBroker connect sdvCore.someIp.topicPublishOut to sdvCore.dataTunnel.topicPublishPort;
-    connection topicDelegation connect sdvCore.dataTunnel.topicSubscribePort to topicOut;
+    bind topicOut = sdvCore.dataTunnel.topicSubscribePort;
   }
 
   part def AAOSIVIGuest {
@@ -622,7 +622,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        */
       port operationalStateIn : OperationalStateIn;
     }
-    connection topicDelegation connect topicIn to sdvGateway.dataTunnelPort;
+    bind topicIn = sdvGateway.dataTunnelPort;
     connection operationalStateThroughSDVGateway connect sdvGateway.clientPort to stateObserver.operationalStateIn;
   }
 
@@ -635,11 +635,14 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * S-CORE services, the simulator server and the route provider. The sensor
      * streams, the route, the simulation clock and the vehicle control cross
      * the host's loopback between the simulator and the driving software;
-     * the operational state leaves the host on SOME/IP. The exchanges are
-     * flows, each of its item, so the context exchange view names what
-     * crosses; into the simulator goes the vehicle control and nothing else.
-     * The delegation to the host's own port is a connection: a flow into an
-     * out item fails direction conformance (run 42245984456).
+     * the operational state leaves the host on SOME/IP. Into the simulator
+     * goes the vehicle control and nothing else; each port definition
+     * carries the one item its exchange moves. The exchanges are named
+     * connections, which SysIDE draws as edges between exposed ports; flows
+     * between these ports were not drawn in six licensed runs (42247403125
+     * to 42253633791). The host's own port is bound to the realization's:
+     * a bind is not drawn, where a connection with an unexposed end drew as
+     * a box with two ends.
      */
     port operationalStateOut : OperationalStateOut;
     part os : LinuxPlatform;
@@ -647,17 +650,12 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     part drivingSoftware : ClosedLoopDrivingSoftwareRealization;
     part carlaServer : CARLASimulationServer;
     part routeProvider : ScenarioRouteProvider;
-    flow cameraStreamOverHostLoopback
-      from carlaServer.cameraStreamOut.cameraImages to drivingSoftware.cameraImagesIn.cameraImages;
-    flow egoMotionOverHostLoopback
-      from carlaServer.egoMotionOut.egoMotion to drivingSoftware.egoMotionIn.egoMotion;
-    flow simulationClockOverHostLoopback
-      from carlaServer.simulationClockOut.simulationClock to drivingSoftware.simulationClockIn.simulationClock;
-    flow routeFromScenario
-      from routeProvider.routeOut.route to drivingSoftware.routeIn.route;
-    flow vehicleControlOverHostLoopback
-      from drivingSoftware.vehicleControlOut.vehicleControl to carlaServer.vehicleControlIn.vehicleControl;
-    connection operationalStateDelegation connect drivingSoftware.operationalStateOut to operationalStateOut;
+    connection cameraStreamOverHostLoopback connect carlaServer.cameraStreamOut to drivingSoftware.cameraImagesIn;
+    connection egoMotionOverHostLoopback connect carlaServer.egoMotionOut to drivingSoftware.egoMotionIn;
+    connection simulationClockOverHostLoopback connect carlaServer.simulationClockOut to drivingSoftware.simulationClockIn;
+    connection routeFromScenario connect routeProvider.routeOut to drivingSoftware.routeIn;
+    connection vehicleControlOverHostLoopback connect drivingSoftware.vehicleControlOut to carlaServer.vehicleControlIn;
+    bind operationalStateOut = drivingSoftware.operationalStateOut;
   }
 
   part def ClosedLoopDrivingPhysicalSystem {
@@ -677,10 +675,10 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       connect sdvCoreGuest.os.hypervisorPort to linuxHost.hypervisor.guestPort;
     interface hmiGuestUnderKVM : OSHypervisorInterface
       connect hmiGuest.os.hypervisorPort to linuxHost.hypervisor.guestPort;
-    flow from linuxHost.operationalStateOut.operationalState to sdvCoreGuest.someIpIn.operationalState {
+    connection operationalStateOverSOMEIPAcrossHypervisor connect linuxHost.operationalStateOut to sdvCoreGuest.someIpIn {
       doc /* The operational state on SOME/IP across the hypervisor, from someipd to the SDV Core VM's interop. */
     }
-    flow of DrivingOperationalState from sdvCoreGuest.topicOut.topicData to hmiGuest.topicIn.topicData {
+    connection operationalStateTopicOverDataTunnelAcrossVMs connect sdvCoreGuest.topicOut to hmiGuest.topicIn {
       doc /* The operational state as the Data Tunnel topic from the SDV Core VM to the IVI VM (its VSIDL message is GAP-DRIVING-006). */
     }
   }
@@ -1255,15 +1253,16 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * stream, the ego motion and the simulation clock; from the route
      * provider: the route. Out of the host: the operational state on
      * SOME/IP into the SDV Core VM and the topic from the SDV Core VM to
-     * the IVI VM, and nothing back (aaosObservationFidelityConcern). The
-     * form is the AEBS simulation deployment's context exchange view: the
-     * parts by name, their ports and the flows by typed wildcard (ports
-     * and flows exposed by name were drawn without the flows: runs
-     * 42247403125 to 42251968632). The insides of the realization and of
-     * the guests stay hidden by the exact-type filter on connections: the
-     * delegations inside them drew as boxes with two ends wherever one end
-     * was exposed. The package's allocations and the hypervisor interfaces
-     * have no exposed end and are not drawn (the AEBS view's evidence).
+     * the IVI VM, and nothing back (aaosObservationFidelityConcern). Each
+     * part, port and exchange is exposed by name: the ports are declared
+     * on the definitions and a typed wildcard over a usage drew none of
+     * them (runs 42214648709, 42253633791); the exchanges are connections,
+     * drawn as edges between exposed ports, where flows were not drawn in
+     * six runs. The insides of the realization and of the guests stay
+     * hidden because their port delegations are binds, which the diagram
+     * does not draw (a connection with an unexposed end drew as a box with
+     * two ends, run 42215689738). The package's allocations and the
+     * hypervisor interfaces, which span levels, are filtered.
      */
     viewpoint selectedPhysicalContextExchangeViewpoint : PhysicalContextExchangeViewpoint {
       frame aaosObservationFidelityConcern;
@@ -1271,20 +1270,35 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     }
     expose closedLoopDrivingPhysicalSystem;
     expose closedLoopDrivingPhysicalSystem::linuxHost;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::*[istype SysML::PortUsage];
+    expose closedLoopDrivingPhysicalSystem::linuxHost::operationalStateOut;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::*[istype SysML::PortUsage];
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::cameraImagesIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::egoMotionIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::routeIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::simulationClockIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::vehicleControlOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::operationalStateOut;
     expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::*[istype SysML::PortUsage];
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::cameraStreamOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::egoMotionOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::simulationClockOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::vehicleControlIn;
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider::*[istype SysML::PortUsage];
-    expose closedLoopDrivingPhysicalSystem::linuxHost::*[istype SysML::FlowUsage];
+    expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider::routeOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::cameraStreamOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::egoMotionOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::simulationClockOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::routeFromScenario;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::vehicleControlOverHostLoopback;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
-    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::*[istype SysML::PortUsage];
+    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::someIpIn;
+    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::topicOut;
     expose closedLoopDrivingPhysicalSystem::hmiGuest;
-    expose closedLoopDrivingPhysicalSystem::hmiGuest::*[istype SysML::PortUsage];
-    expose closedLoopDrivingPhysicalSystem::*[istype SysML::FlowUsage];
-    filter not (hastype SysML::ConnectionUsage);
+    expose closedLoopDrivingPhysicalSystem::hmiGuest::topicIn;
+    expose closedLoopDrivingPhysicalSystem::operationalStateOverSOMEIPAcrossHypervisor;
+    expose closedLoopDrivingPhysicalSystem::operationalStateTopicOverDataTunnelAcrossVMs;
+    filter not (@ SysML::AllocationUsage);
+    filter not (@ SysML::InterfaceUsage);
     attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;

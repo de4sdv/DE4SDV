@@ -167,13 +167,17 @@ AGENT_CONNECTIONS = {
     ("superviseLoop.modeOut", "commandVehicle.modeIn"),
 }
 #: The connections of the software realization: boundary delegations, then the hops between processes.
-REALIZATION_CONNECTIONS = {
+#: the realization's boundary ports are bound to the programs' ports: a bind is not drawn in an interconnection
+#: view, where a delegation connection with an unexposed end drew as a box with two ends (run 42215689738)
+REALIZATION_BINDS = {
     ("cameraImagesIn", "drivingAgent.cameraImagesIn"),
     ("egoMotionIn", "drivingAgent.egoMotionIn"),
     ("routeIn", "drivingAgent.routeIn"),
     ("simulationClockIn", "actuationAdapter.simulationClockIn"),
-    ("actuationAdapter.vehicleControlOut", "vehicleControlOut"),
-    ("scoreServices.someipd.operationalStateOut", "operationalStateOut"),
+    ("vehicleControlOut", "actuationAdapter.vehicleControlOut"),
+    ("operationalStateOut", "scoreServices.someipd.operationalStateOut"),
+}
+REALIZATION_CONNECTIONS = {
     ("drivingAgent.commandOut", "actuationAdapter.commandIn"),
     ("drivingAgent.planEventOut", "statePublisherApplication.planIn"),
     ("drivingAgent.modeEventOut", "statePublisherApplication.modeIn"),
@@ -194,34 +198,26 @@ SCORE_COMMUNICATION_HOPS = {
 }
 #: host flow -> (item, source, target): each exchange with the context realizations is a flow of its item, so the
 #: context exchange view labels what crosses; into the simulator goes the vehicle control and nothing else
-#: the item is the end ports' (typed), so the flow declares none (the MW-008 adapter boundary form, which renders)
-HOST_FLOWS = {
-    "cameraStreamOverHostLoopback": ("", "carlaServer.cameraStreamOut.cameraImages",
-                                     "drivingSoftware.cameraImagesIn.cameraImages"),
-    "egoMotionOverHostLoopback": ("", "carlaServer.egoMotionOut.egoMotion", "drivingSoftware.egoMotionIn.egoMotion"),
-    "simulationClockOverHostLoopback": ("", "carlaServer.simulationClockOut.simulationClock",
-                                        "drivingSoftware.simulationClockIn.simulationClock"),
-    "routeFromScenario": ("", "routeProvider.routeOut.route", "drivingSoftware.routeIn.route"),
-    "vehicleControlOverHostLoopback": ("", "drivingSoftware.vehicleControlOut.vehicleControl",
-                                       "carlaServer.vehicleControlIn.vehicleControl"),
+#: host exchange -> (source, target): named connections, drawn as edges between exposed ports; flows between
+#: these ports were not drawn in six licensed runs (42247403125 to 42253633791); each port definition carries
+#: the one item its exchange moves, and into the simulator goes the vehicle control and nothing else
+HOST_CONNECTIONS = {
+    "cameraStreamOverHostLoopback": ("carlaServer.cameraStreamOut", "drivingSoftware.cameraImagesIn"),
+    "egoMotionOverHostLoopback": ("carlaServer.egoMotionOut", "drivingSoftware.egoMotionIn"),
+    "simulationClockOverHostLoopback": ("carlaServer.simulationClockOut", "drivingSoftware.simulationClockIn"),
+    "routeFromScenario": ("routeProvider.routeOut", "drivingSoftware.routeIn"),
+    "vehicleControlOverHostLoopback": ("drivingSoftware.vehicleControlOut", "carlaServer.vehicleControlIn"),
 }
-#: the delegation to the host's own port stays a connection: a flow into an out item fails direction conformance
-HOST_CONNECTIONS = [("drivingSoftware.operationalStateOut", "operationalStateOut")]
-#: the two hops are unnamed flows (the AEBS deployment's form); the Data Tunnel's port item is untyped, so that
-#: flow declares the payload
-SYSTEM_FLOWS = [
-    ("", "linuxHost.operationalStateOut.operationalState", "sdvCoreGuest.someIpIn.operationalState"),
-    ("DrivingOperationalState", "sdvCoreGuest.topicOut.topicData", "hmiGuest.topicIn.topicData"),
-]
-SDV_CORE_GUEST_CONNECTIONS = {
-    ("someIpIn", "sdvCore.someIp.someIpPort"),
-    ("sdvCore.someIp.topicPublishOut", "sdvCore.dataTunnel.topicPublishPort"),
-    ("sdvCore.dataTunnel.topicSubscribePort", "topicOut"),
+HOST_BINDS = {("operationalStateOut", "drivingSoftware.operationalStateOut")}
+SYSTEM_CONNECTIONS = {
+    "operationalStateOverSOMEIPAcrossHypervisor": ("linuxHost.operationalStateOut", "sdvCoreGuest.someIpIn"),
+    "operationalStateTopicOverDataTunnelAcrossVMs": ("sdvCoreGuest.topicOut", "hmiGuest.topicIn"),
 }
-HMI_GUEST_CONNECTIONS = {
-    ("topicIn", "sdvGateway.dataTunnelPort"),
-    ("sdvGateway.clientPort", "stateObserver.operationalStateIn"),
-}
+SDV_CORE_GUEST_BINDS = {("sdvCore", "sdvMiddleware"), ("someIpIn", "sdvCore.someIp.someIpPort"),
+                        ("topicOut", "sdvCore.dataTunnel.topicSubscribePort")}
+SDV_CORE_GUEST_CONNECTIONS = {("sdvCore.someIp.topicPublishOut", "sdvCore.dataTunnel.topicPublishPort")}
+HMI_GUEST_BINDS = {("topicIn", "sdvGateway.dataTunnelPort")}
+HMI_GUEST_CONNECTIONS = {("sdvGateway.clientPort", "stateObserver.operationalStateIn")}
 
 #: signal mapping -> (logical element, target port path below the software realization, record short name)
 SIGNAL_MAPPINGS = {
@@ -300,14 +296,17 @@ VIEWS = {
                 "PhysicalInternalExchangeViewpoint", ["scoreCommandPathConcern", "checkpointCommandAuthorityConcern"]),
     CONTEXT_VIEW: (None, "render asInterconnectionDiagram;",
                    [SYSTEM_USAGE] + [f"{SYSTEM_USAGE}::{member}" for member in (
-                       "linuxHost", "linuxHost::*[istype SysML::PortUsage]",
-                       "linuxHost::drivingSoftware", "linuxHost::drivingSoftware::*[istype SysML::PortUsage]",
-                       "linuxHost::carlaServer", "linuxHost::carlaServer::*[istype SysML::PortUsage]",
-                       "linuxHost::routeProvider", "linuxHost::routeProvider::*[istype SysML::PortUsage]",
-                       "linuxHost::*[istype SysML::FlowUsage]",
-                       "sdvCoreGuest", "sdvCoreGuest::*[istype SysML::PortUsage]",
-                       "hmiGuest", "hmiGuest::*[istype SysML::PortUsage]",
-                       "*[istype SysML::FlowUsage]")],
+                       "linuxHost", "linuxHost::operationalStateOut", "linuxHost::drivingSoftware",
+                       *(f"linuxHost::drivingSoftware::{port}" for port in (
+                           "cameraImagesIn", "egoMotionIn", "routeIn", "simulationClockIn", "vehicleControlOut",
+                           "operationalStateOut")),
+                       "linuxHost::carlaServer",
+                       *(f"linuxHost::carlaServer::{port}" for port in (
+                           "cameraStreamOut", "egoMotionOut", "simulationClockOut", "vehicleControlIn")),
+                       "linuxHost::routeProvider", "linuxHost::routeProvider::routeOut",
+                       *(f"linuxHost::{name}" for name in HOST_CONNECTIONS),
+                       "sdvCoreGuest", "sdvCoreGuest::someIpIn", "sdvCoreGuest::topicOut", "hmiGuest", "hmiGuest::topicIn",
+                       *SYSTEM_CONNECTIONS)],
                    "PhysicalContextExchangeViewpoint",
                    ["aaosObservationFidelityConcern", "checkpointCommandAuthorityConcern"]),
 }
@@ -359,18 +358,16 @@ def _direct(body: str) -> str:
 
 
 def _connections(body: str) -> list[tuple[str, str]]:
-    return re.findall(r"\bconnection\s+\w+\s+connect\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)
+    return re.findall(r"\bconnection\s+\w+\s+connect\s+([\w.]+)\s+to\s+([\w.]+)\s*[;{]", body)
 
 
-def _flows(body: str) -> dict[str, tuple[str, str, str]]:
-    """name -> (declared item or '', source, target) of every named flow, with or without an `of <Item>` payload."""
-    return {name: (item, source, target) for name, item, source, target in re.findall(
-        r"\bflow\s+(\w+)\s+(?:of\s+(\w+)\s+)?from\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)}
+def _named_connections(body: str) -> dict[str, tuple[str, str]]:
+    return {name: (source, target) for name, source, target in re.findall(
+        r"\bconnection\s+(\w+)\s+connect\s+([\w.]+)\s+to\s+([\w.]+)\s*[;{]", body)}
 
 
-def _unnamed_flows(body: str) -> list[tuple[str, str, str]]:
-    """(declared item or '', source, target) of every unnamed flow (the AEBS deployment's rendering form)."""
-    return re.findall(r"\bflow\s+(?:of\s+(\w+)\s+)?from\s+([\w.]+)\s+to\s+([\w.]+)\s*[;{]", body)
+def _binds(body: str) -> set[tuple[str, str]]:
+    return set(re.findall(r"\bbind\s+([\w.]+)\s*=\s*([\w.]+)\s*;", body))
 
 
 def _allocations() -> list[tuple[str, str, str, str, str]]:
@@ -425,7 +422,8 @@ def test_the_software_realization_is_the_system_of_interest_and_owns_the_three_p
     assert owned == [("drivingAgent", AGENT), ("actuationAdapter", "ActuationAdapterApplication"),
                      ("statePublisherApplication", "OperationalStatePublisherApplication")]
     assert re.search(r"^\s*part\s+scoreServices\s*:\s*EclipseSCORE\s*\{", body, re.M), "owned with the programs, one instance"
-    assert "ref part" not in body and "bind" not in body, "a reference bound to a host part drew no processes (run 42212398480)"
+    assert "ref part" not in body, "a reference bound to a host part drew no processes (run 42212398480)"
+    assert not re.search(r"\bbind\s+scoreServices\b", body), "the services are owned, not bound to the host's"
     services = braced_body(body, "part scoreServices : EclipseSCORE")
     assert re.findall(r"^\s*part\s+(\w+)", services, re.M) == ["launchManager", *GATEWAY_PROCESSES]
     for process in GATEWAY_PROCESSES:
@@ -521,12 +519,12 @@ def test_the_extension_candidates_are_declared_with_their_metadata_and_stay_loca
 
 def test_the_realization_connects_the_programs_over_score_communication_and_delegates_its_boundary():
     body = braced_body(_code(), f"part def {REALIZATION} :> {IDENTITY}")
-    connections = _connections(body)
+    connections = _connections(_direct(body))
     assert set(connections) == REALIZATION_CONNECTIONS and len(connections) == len(REALIZATION_CONNECTIONS)
     named = dict(re.findall(r"\bconnection\s+(\w+)\s+connect\s+([\w.]+\s+to\s+[\w.]+)\s*;", body))
     for name, (source, target) in SCORE_COMMUNICATION_HOPS.items():
         assert named[name] == f"{source} to {target}", name
-    assert "bind" not in body, "the host binds its S-CORE services to the reference"
+    assert _binds(_direct(body)) == REALIZATION_BINDS, "the boundary ports are bound, not connected"
     # nothing runs from the actuation adapter or the publisher back into the agent (phase 7's one-way rule)
     for source, target in connections:
         if source.startswith(("actuationAdapter.", "statePublisherApplication.", "scoreServices.")):
@@ -539,11 +537,11 @@ def test_the_host_owns_the_platform_the_software_and_the_context_realizations():
     owned = re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)
     assert owned == [("os", "LinuxPlatform"), ("hypervisor", "KVMHypervisor"), ("drivingSoftware", REALIZATION),
                      ("carlaServer", "CARLASimulationServer"), ("routeProvider", "ScenarioRouteProvider")]
-    assert "bind" not in body and "scoreServices" not in body, "the realization owns the S-CORE services"
-    assert _connections(body) == HOST_CONNECTIONS, "the exchanges are flows of their items; the delegation a connection"
-    assert _flows(body) == HOST_FLOWS
-    assert len(re.findall(r"\bflow\b", body)) == len(HOST_FLOWS)
-    into_simulator = [name for name, (_, _, target) in HOST_FLOWS.items() if target.startswith("carlaServer.")]
+    assert "scoreServices" not in body, "the realization owns the S-CORE services"
+    assert _named_connections(body) == HOST_CONNECTIONS and len(_connections(body)) == len(HOST_CONNECTIONS)
+    assert _binds(body) == HOST_BINDS
+    assert "flow" not in body, "flows between these ports were not drawn (six licensed runs)"
+    into_simulator = [name for name, (_, target) in HOST_CONNECTIONS.items() if target.startswith("carlaServer.")]
     assert into_simulator == ["vehicleControlOverHostLoopback"], "the vehicle control is the only thing the simulator receives"
     assert dict(re.findall(r"^\s*port\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)) == {"operationalStateOut": "OperationalStateOut"}
     for layer in ("LinuxPlatform", "KVMHypervisor", "EclipseSCORE", "AndroidHLOS", "AndroidSDVMiddleware",
@@ -564,14 +562,14 @@ def test_the_guests_carry_the_observation_path_and_the_system_crosses_the_hyperv
                                                                         ("sdvMiddleware", "AndroidSDVMiddleware")]
     # the SDV Core boundary model is referenced, never owned: the platform stack owns the guest (2026-10-25)
     assert re.search(r"^\s*ref\s+part\s+sdvCore\s*:\s*SDVCoreBoundary\s*;", core, re.M)
-    assert "bind sdvCore = sdvMiddleware;" in core
+    assert _binds(core) == SDV_CORE_GUEST_BINDS
     assert set(_connections(core)) == SDV_CORE_GUEST_CONNECTIONS
     assert dict(re.findall(r"^\s*port\s+(\w+)\s*:\s*(\w+)\s*;", core, re.M)) == {"someIpIn": "OperationalStateIn",
                                                                                  "topicOut": "DataTunnelPort"}
     hmi = _body_of_definition("AAOSIVIGuest")
     assert re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*[;{]", hmi, re.M) == [
         ("os", "AndroidHLOS"), ("sdvGateway", "SDVGatewayOnIVIBoundary"), ("stateObserver", "DrivingStateObserverApplication")]
-    assert set(_connections(hmi)) == HMI_GUEST_CONNECTIONS
+    assert set(_connections(hmi)) == HMI_GUEST_CONNECTIONS and _binds(hmi) == HMI_GUEST_BINDS
     observer = braced_body(hmi, "part stateObserver : DrivingStateObserverApplication")
     assert dict(re.findall(r"\bport\s+(\w+)\s*:\s*(\w+)\s*;", observer)) == {"operationalStateIn": "OperationalStateIn"}
     # what the observer presents (owner decision 2026-11-06): the operational state only, under two clocks
@@ -583,7 +581,7 @@ def test_the_guests_carry_the_observation_path_and_the_system_crosses_the_hyperv
     system = _body_of_definition(SYSTEM)
     assert re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", system, re.M) == [
         ("linuxHost", HOST), ("sdvCoreGuest", "AAOSSDVCoreGuest"), ("hmiGuest", "AAOSIVIGuest")]
-    assert _connections(system) == [] and _flows(system) == {} and _unnamed_flows(system) == SYSTEM_FLOWS
+    assert _named_connections(system) == SYSTEM_CONNECTIONS and "flow" not in system and _binds(system) == set()
     interfaces = re.findall(r"\binterface\s+(\w+)\s*:\s*OSHypervisorInterface\s+connect\s+([\w.]+)\s+to\s+([\w.]+)\s*;", system)
     assert interfaces == [("sdvCoreGuestUnderKVM", "sdvCoreGuest.os.hypervisorPort", "linuxHost.hypervisor.guestPort"),
                           ("hmiGuestUnderKVM", "hmiGuest.os.hypervisorPort", "linuxHost.hypervisor.guestPort")]
@@ -718,8 +716,7 @@ def test_each_view_frames_its_concerns_and_exposes_its_content(view_name):
     assert re.findall(r"\bexpose\s+([\w:*]+(?:\[[^\]]*\])?)\s*;", view) == exposes
     if render:
         assert render in view
-        if view_name != CONTEXT_VIEW:
-            assert "filter not (@ SysML::AllocationUsage);" in view, "SysIDE draws the package's allocations otherwise"
+        assert "filter not (@ SysML::AllocationUsage);" in view, "SysIDE draws the package's allocations otherwise (run 42253633791: eight boxes)"
     else:
         assert "render as" not in view, "the view type selects the kind"
 
@@ -736,8 +733,8 @@ def test_the_interconnection_views_draw_the_path_and_the_context_at_their_depths
     # a connection with one exposed end drew as a box with two ends (run 42215689738: the delegations inside the
     # host and the guests); the exchanges the view draws are flows; the delegations are filtered by exact type
     # (`@`, subtype-inclusive, took the flows with them: run 42247403125), the hypervisor interfaces by theirs
-    assert "filter not (hastype SysML::ConnectionUsage);" in context
-    assert len(re.findall(r"\bfilter\b", context)) == 1, "the AEBS form: allocations and interfaces with no exposed end are not drawn"
+    assert "filter not (@ SysML::InterfaceUsage);" in context, "the hypervisor interfaces span levels"
+    assert "ConnectionUsage" not in context, "the exchanges are connections; the delegations are binds, never drawn"
     tree = braced_body(code, f"view {STRUCTURE_VIEW}")
     assert "filter not (@ SysML::BindingConnectorAsUsage);" in tree, "the guest's bind drew as a box with two ends"
     assert "FlowUsage" not in tree, "filtering the flows did not remove their ends from the parts' compartments (run 42248991235)"
