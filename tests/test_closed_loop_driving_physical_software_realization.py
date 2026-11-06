@@ -194,15 +194,15 @@ SCORE_COMMUNICATION_HOPS = {
 }
 #: host flow -> (item, source, target): each exchange with the context realizations is a flow of its item, so the
 #: context exchange view labels what crosses; into the simulator goes the vehicle control and nothing else
+#: the item is the end ports' (typed), so the flow declares none (the MW-008 adapter boundary form, which renders)
 HOST_FLOWS = {
-    "cameraStreamOverHostLoopback": ("CameraImages", "carlaServer.cameraStreamOut.cameraImages",
+    "cameraStreamOverHostLoopback": ("", "carlaServer.cameraStreamOut.cameraImages",
                                      "drivingSoftware.cameraImagesIn.cameraImages"),
-    "egoMotionOverHostLoopback": ("EgoMotionState", "carlaServer.egoMotionOut.egoMotion",
-                                  "drivingSoftware.egoMotionIn.egoMotion"),
-    "simulationClockOverHostLoopback": ("SimulationClock", "carlaServer.simulationClockOut.simulationClock",
+    "egoMotionOverHostLoopback": ("", "carlaServer.egoMotionOut.egoMotion", "drivingSoftware.egoMotionIn.egoMotion"),
+    "simulationClockOverHostLoopback": ("", "carlaServer.simulationClockOut.simulationClock",
                                         "drivingSoftware.simulationClockIn.simulationClock"),
-    "routeFromScenario": ("Route", "routeProvider.routeOut.route", "drivingSoftware.routeIn.route"),
-    "vehicleControlOverHostLoopback": ("SimulatorVehicleControl", "drivingSoftware.vehicleControlOut.vehicleControl",
+    "routeFromScenario": ("", "routeProvider.routeOut.route", "drivingSoftware.routeIn.route"),
+    "vehicleControlOverHostLoopback": ("", "drivingSoftware.vehicleControlOut.vehicleControl",
                                        "carlaServer.vehicleControlIn.vehicleControl"),
 }
 #: the delegation to the host's own port stays a connection: a flow into an out item fails direction conformance
@@ -367,9 +367,9 @@ def _connections(body: str) -> list[tuple[str, str]]:
 
 
 def _flows(body: str) -> dict[str, tuple[str, str, str]]:
-    """name -> (item, source, target) of every named `flow <name> of <Item> from <src> to <tgt>;`."""
+    """name -> (declared item or '', source, target) of every named flow, with or without an `of <Item>` payload."""
     return {name: (item, source, target) for name, item, source, target in re.findall(
-        r"\bflow\s+(\w+)\s+of\s+(\w+)\s+from\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)}
+        r"\bflow\s+(\w+)\s+(?:of\s+(\w+)\s+)?from\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)}
 
 
 def _allocations() -> list[tuple[str, str, str, str, str]]:

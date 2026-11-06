@@ -647,15 +647,15 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     part drivingSoftware : ClosedLoopDrivingSoftwareRealization;
     part carlaServer : CARLASimulationServer;
     part routeProvider : ScenarioRouteProvider;
-    flow cameraStreamOverHostLoopback of CameraImages
+    flow cameraStreamOverHostLoopback
       from carlaServer.cameraStreamOut.cameraImages to drivingSoftware.cameraImagesIn.cameraImages;
-    flow egoMotionOverHostLoopback of EgoMotionState
+    flow egoMotionOverHostLoopback
       from carlaServer.egoMotionOut.egoMotion to drivingSoftware.egoMotionIn.egoMotion;
-    flow simulationClockOverHostLoopback of SimulationClock
+    flow simulationClockOverHostLoopback
       from carlaServer.simulationClockOut.simulationClock to drivingSoftware.simulationClockIn.simulationClock;
-    flow routeFromScenario of Route
+    flow routeFromScenario
       from routeProvider.routeOut.route to drivingSoftware.routeIn.route;
-    flow vehicleControlOverHostLoopback of SimulatorVehicleControl
+    flow vehicleControlOverHostLoopback
       from drivingSoftware.vehicleControlOut.vehicleControl to carlaServer.vehicleControlIn.vehicleControl;
     connection operationalStateDelegation connect drivingSoftware.operationalStateOut to operationalStateOut;
   }
