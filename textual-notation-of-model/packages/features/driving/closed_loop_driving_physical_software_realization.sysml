@@ -638,6 +638,8 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * the operational state leaves the host on SOME/IP. The exchanges are
      * flows, each of its item, so the context exchange view names what
      * crosses; into the simulator goes the vehicle control and nothing else.
+     * The delegation to the host's own port is a connection: a flow into an
+     * out item fails direction conformance (run 42245984456).
      */
     port operationalStateOut : OperationalStateOut;
     part os : LinuxPlatform;
@@ -655,8 +657,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       from routeProvider.routeOut.route to drivingSoftware.routeIn.route;
     flow vehicleControlOverHostLoopback of SimulatorVehicleControl
       from drivingSoftware.vehicleControlOut.vehicleControl to carlaServer.vehicleControlIn.vehicleControl;
-    flow operationalStateDelegation of DrivingOperationalState
-      from drivingSoftware.operationalStateOut.operationalState to operationalStateOut.operationalState;
+    connection operationalStateDelegation connect drivingSoftware.operationalStateOut to operationalStateOut;
   }
 
   part def ClosedLoopDrivingPhysicalSystem {
@@ -1286,7 +1287,6 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::linuxHost::simulationClockOverHostLoopback;
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeFromScenario;
     expose closedLoopDrivingPhysicalSystem::linuxHost::vehicleControlOverHostLoopback;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::operationalStateDelegation;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::someIpIn;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::topicOut;

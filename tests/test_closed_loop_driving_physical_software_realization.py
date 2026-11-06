@@ -204,9 +204,9 @@ HOST_FLOWS = {
     "routeFromScenario": ("Route", "routeProvider.routeOut.route", "drivingSoftware.routeIn.route"),
     "vehicleControlOverHostLoopback": ("SimulatorVehicleControl", "drivingSoftware.vehicleControlOut.vehicleControl",
                                        "carlaServer.vehicleControlIn.vehicleControl"),
-    "operationalStateDelegation": ("DrivingOperationalState", "drivingSoftware.operationalStateOut.operationalState",
-                                   "operationalStateOut.operationalState"),
 }
+#: the delegation to the host's own port stays a connection: a flow into an out item fails direction conformance
+HOST_CONNECTIONS = [("drivingSoftware.operationalStateOut", "operationalStateOut")]
 SYSTEM_FLOWS = {
     "operationalStateOverSOMEIPAcrossHypervisor": ("DrivingOperationalState",
                                                    "linuxHost.operationalStateOut.operationalState",
@@ -539,7 +539,7 @@ def test_the_host_owns_the_platform_the_software_and_the_context_realizations():
     assert owned == [("os", "LinuxPlatform"), ("hypervisor", "KVMHypervisor"), ("drivingSoftware", REALIZATION),
                      ("carlaServer", "CARLASimulationServer"), ("routeProvider", "ScenarioRouteProvider")]
     assert "bind" not in body and "scoreServices" not in body, "the realization owns the S-CORE services"
-    assert _connections(body) == [], "the host's exchanges are flows of their items (connections drew as boxes)"
+    assert _connections(body) == HOST_CONNECTIONS, "the exchanges are flows of their items; the delegation a connection"
     assert _flows(body) == HOST_FLOWS
     assert len(re.findall(r"\bflow\b", body)) == len(HOST_FLOWS)
     into_simulator = [name for name, (_, _, target) in HOST_FLOWS.items() if target.startswith("carlaServer.")]
