@@ -89,6 +89,12 @@ GRID_METADATA = {
         "requirements (requirement usages)",
         "system functions (action usages)",
     ),
+    "matrix-closedLoopDrivingFunctionMappingView": GridMetadata(
+        "Closed-loop driving function-to-logical-element mapping",
+        "Maps the seven functions of the driving system to the six logical elements that carry them.",
+        "system functions (action usages)",
+        "logical elements (part usages)",
+    ),
     "table-closedLoopDrivingModeDependenceTableView": GridMetadata(
         "Closed-loop driving system modes",
         "The modes of the driving system and the functions whose behavior differs in each.",

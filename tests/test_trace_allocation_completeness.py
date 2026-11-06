@@ -42,6 +42,7 @@ SCORE_L = FEATURES / "middleware/middleware_score_logical_architecture.sysml"
 SCORE_P = FEATURES / "middleware/middleware_score_physical_software_realization.sysml"
 DRIVING_N = FEATURES / "driving/closed_loop_driving_needs_requirements.sysml"
 DRIVING_F = FEATURES / "driving/closed_loop_driving_functional_architecture.sysml"
+DRIVING_L = FEATURES / "driving/closed_loop_driving_logical_architecture.sysml"
 
 FUNCTION, LOGICAL, PHYSICAL = "AllocatableFunction", "LogicalAllocationElement", "PhysicalAllocationElement"
 REQUIREMENT = "RequirementCandidate"
@@ -69,6 +70,8 @@ GOVERNED = {
                       "UpdateClient", "ServiceDiscoveryClient"}),
     DRIVING_F: (FUNCTION, {"IdentifyRun", "AssembleCheckpointInputs", "PlanTrajectory", "SuperviseDrivingLoop",
                            "CommandVehicle", "ApplyCommandsAtActuation", "PublishOperationalState"}),
+    DRIVING_L: (LOGICAL, {"InputConditioner", "TrajectoryPlanner", "LoopSupervisor", "VehicleCommander",
+                          "ActuationGateway", "OperationalStatePublisher"}),
 }
 NOT_ENDPOINTS = {
     VIS_F: {"AebsVisualizationFunctionalFlow"},
@@ -78,6 +81,7 @@ NOT_ENDPOINTS = {
     MW_L: {"MiddlewareSystem"},
     MW_P: {"MiddlewarePhysicalSoftwareBoundary", "AutowareToAAOSSDVAdapterPhysical", "AutowareRos2TopicBoundary"},
     DRIVING_F: {"ClosedLoopDrivingFunctionalFlow"},
+    DRIVING_L: {"ClosedLoopDrivingLogicalSystem"},
 }
 # Allocation definition -> governed end pair. Excluded mappings stay outside.
 PAIRS = {
@@ -111,9 +115,10 @@ ALLOCATION_FILES = {
     SCORE_P: ((SCORE_P, SCORE_L, MW_L), {(LOGICAL, PHYSICAL): 7}, {"SystemToSoftwareSignalMappingCandidate": 3},
               (LOGICAL, PHYSICAL)),
     DRIVING_F: ((DRIVING_F, DRIVING_N), {(REQUIREMENT, FUNCTION): 35}, {}, (REQUIREMENT, FUNCTION)),
+    DRIVING_L: ((DRIVING_L, DRIVING_F), {(FUNCTION, LOGICAL): 7}, {}, (FUNCTION, LOGICAL)),
 }
 LINEAGE_FILES = (VIS_F, VIS_L, VIS_P, VIS_N, MW_F, MW_L, MW_P, AEBS_P, AEBS_F, AEBS_L, AEBS_SIM, AEBS_NEEDS,
-                 DRIVING_F, KERNEL / "de4sdv_method_context.sysml")
+                 DRIVING_F, DRIVING_L, KERNEL / "de4sdv_method_context.sysml")
 # AEBS core endpoint lineage, pinned exactly. The two composites are a
 # recorded pre-existing deviation (w6-transition-record.md), not a pattern.
 AEBS_CORE_LINEAGE = {

@@ -466,7 +466,7 @@
   <text x="36" y="1311" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expectedArtifacts :&gt;&gt; expectedArtifacts = (</tspan></text>
   <text x="36" y="1323" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_ClosedLoopDrivingFraming", "DE4SDV_ClosedLoopDrivingOperationalContext",</tspan></text>
   <text x="36" y="1335" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_ClosedLoopDrivingCapabilityClassification", "DE4SDV_ClosedLoopDrivingNeedsRequirements",</tspan></text>
-  <text x="36" y="1347" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_ClosedLoopDrivingFunctionalArchitecture",</tspan></text>
+  <text x="36" y="1347" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_ClosedLoopDrivingFunctionalArchitecture", "DE4SDV_ClosedLoopDrivingLogicalArchitecture",</tspan></text>
   <text x="36" y="1359" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">    )</tspan></text>
   <text x="36" y="1371" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expectedReviewEvidence :&gt;&gt; expectedReviewEvidence = (</tspan></text>
   <text x="36" y="1383" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "independent review of the owner question, System 1/2 boundary and nonclaims",</tspan></text>
