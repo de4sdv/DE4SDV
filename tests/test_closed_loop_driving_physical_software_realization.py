@@ -292,8 +292,10 @@ VIEWS = {
     PATH_VIEW: (None, "render asInterconnectionDiagram;", ["closedLoopDrivingSoftware", "closedLoopDrivingSoftware::**"],
                 "PhysicalInternalExchangeViewpoint", ["scoreCommandPathConcern", "checkpointCommandAuthorityConcern"]),
     CONTEXT_VIEW: (None, "render asInterconnectionDiagram;",
-                   [SYSTEM_USAGE, f"{SYSTEM_USAGE}::*"] + [f"{SYSTEM_USAGE}::{part}::*[istype SysML::PortUsage]"
-                                                           for part in ("linuxHost", "sdvCoreGuest", "hmiGuest")],
+                   [SYSTEM_USAGE] + [f"{SYSTEM_USAGE}::{member}" for member in (
+                       "linuxHost", "linuxHost::operationalStateOut", "sdvCoreGuest", "sdvCoreGuest::someIpIn",
+                       "sdvCoreGuest::topicOut", "hmiGuest", "hmiGuest::topicIn",
+                       "operationalStateOverSOMEIPAcrossHypervisor", "operationalStateTopicOverDataTunnelAcrossVMs")],
                    "PhysicalContextExchangeViewpoint", ["aaosObservationFidelityConcern"]),
 }
 #: the concerns this phase declares -> (catalogue type, the parties that hold it)
@@ -673,8 +675,8 @@ def test_the_interconnection_views_draw_the_path_and_the_context_at_their_depths
     path = braced_body(code, f"view {PATH_VIEW}")
     assert "attribute depth = -1;" in path and "attribute showAnnotationRows = false;" in path
     context = braced_body(code, f"view {CONTEXT_VIEW}")
-    # depth 1 drew one box with a parts compartment and no hop (run 42212398480); the AEBS simulation deployment's
-    # form draws the parts with their ports and the hops, insides hidden
+    # depth 1 drew one box with a parts compartment and no hop (run 42212398480); a wildcard over the usages drew
+    # the parts without their definition-declared ports and no hop (run 42214648709): each element is named
     assert "attribute depth = -1;" in context and "attribute maxCompartmentEntries = 0;" in context
     assert "attribute showAnnotationRows = false;" in context
     assert "filter not (@ SysML::InterfaceUsage);" in context, "the hypervisor interfaces span levels; a box with two ends otherwise"

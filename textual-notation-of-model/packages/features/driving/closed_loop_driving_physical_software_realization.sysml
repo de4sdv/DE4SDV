@@ -1205,18 +1205,24 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * (aaosObservationFidelityConcern): the operational state leaving the
      * host on SOME/IP into the SDV Core VM and the typed topic from the SDV
      * Core VM to the IVI VM, and nothing back. The host and the guests with
-     * their ports and the two hops, their insides hidden (the form of the
-     * AEBS simulation deployment's context exchange view); the hypervisor
-     * interfaces, which span levels, are filtered.
+     * their ports and the two hops, each exposed by name (the ports are
+     * declared on the definitions; a wildcard over the usage drew none of
+     * them), their insides hidden; the hypervisor interfaces, which span
+     * levels, are filtered.
      */
     viewpoint selectedPhysicalContextExchangeViewpoint : PhysicalContextExchangeViewpoint {
       frame aaosObservationFidelityConcern;
     }
     expose closedLoopDrivingPhysicalSystem;
-    expose closedLoopDrivingPhysicalSystem::*;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::*[istype SysML::PortUsage];
-    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::*[istype SysML::PortUsage];
-    expose closedLoopDrivingPhysicalSystem::hmiGuest::*[istype SysML::PortUsage];
+    expose closedLoopDrivingPhysicalSystem::linuxHost;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::operationalStateOut;
+    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
+    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::someIpIn;
+    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::topicOut;
+    expose closedLoopDrivingPhysicalSystem::hmiGuest;
+    expose closedLoopDrivingPhysicalSystem::hmiGuest::topicIn;
+    expose closedLoopDrivingPhysicalSystem::operationalStateOverSOMEIPAcrossHypervisor;
+    expose closedLoopDrivingPhysicalSystem::operationalStateTopicOverDataTunnelAcrossVMs;
     filter not (@ SysML::AllocationUsage);
     filter not (@ SysML::InterfaceUsage);
     attribute depth = -1;
