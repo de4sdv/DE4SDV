@@ -409,13 +409,71 @@ breakdown tree and the requirement matrix, whose viewpoint is System
 Requirement Traceability (which function a requirement addresses), the phase
 publishes five views, listed in `VIEWS.md`.
 
+## Logical architecture (Phase 7)
+
+`closed_loop_driving_logical_architecture.sysml` answers what
+technology-independent logical elements realize the seven functions. The
+decomposition subject is the system of interest itself:
+`ClosedLoopDrivingLogicalSystem` specializes the functional boundary of
+Phase 6, keeps its five ports and owns the system's inside, one level below
+the boundary. The context elements of Phase 2 stay outside and undivided, and
+the context's `drivingSystem` stays the only usage of the system.
+
+The owner decided on six logical elements, not one per function (2026-11-06):
+functions share an element when nothing requires them to be separately
+placeable, and split where a requirement constrains the exchange between them
+or demands that one keeps working when the other does not.
+
+- **Input conditioner** carries the assembly of the checkpoint inputs: the
+  ingress of the system.
+- **Planner** carries the identification of the run and the planning of the
+  trajectory: the identity check is on the checkpoint the planner loads, so
+  the two functions share it.
+- **Loop supervisor** carries the supervision of the loop and is the one
+  authority on the mode; it issues no command.
+- **Vehicle commander** carries the commanding of the vehicle, the one command
+  source, with the stop response as a mode of its computation.
+- **Actuation gateway** carries the application of the commands at the
+  actuation and applies the stop response itself when no valid command
+  reaches it (REQ-DRIVING-028), so it is separate from the commander.
+- **State publisher** carries the publication of the operational state, one
+  way; nothing it provides flows back into the loop.
+
+Each function is allocated to its element by a native allocation from the
+definition-nested function usage Phase 6 allocated the requirements to; the
+allocation is a responsibility assignment, not a realization, deployment or
+runtime claim. The exchanges are connections between typed ports: the
+boundary items are delegated from the inherited ports (the ego motion to the
+input conditioner, the vehicle commander and the state publisher alike), and
+inside, the checkpoint inputs and the input condition leave the input
+conditioner, the plan goes from the planner to the loop supervisor and to the
+state publisher, the newest valid plan and the mode go on to the vehicle
+commander, the mode also to the state publisher, and the command goes from
+the vehicle commander to the actuation gateway. The plan and command
+exchanges are the ones REQ-DRIVING-014 constrains; Phase 8 places them on a
+technology. No element, port or exchange names a computer, a process, a
+transport or a signal catalogue.
+
+Three concerns of this phase are held by the parties they serve: the
+structure by system architects and software developers, the function mapping
+by system architects and verification engineers, and the internal exchanges by
+systems engineers and software developers. One view answers each, per the
+method's list of views per phase: the structure as a tree of the SAF System
+Structure Definition viewpoint, the mapping as a matrix of function by logical
+element of the System Function Mapping viewpoint, and the exchanges as an
+interconnection of the System Internal Exchange viewpoint. The phase publishes
+three views, listed in `VIEWS.md`.
+
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is **Phase 7**, the logical architecture: the
-logical elements that realize the functions, with each function allocated to
-one of them. Its first gate is `functionAllocatedToLogicalElement`.
+work is complete. The next work is **Phase 8**, the physical and software
+realization: the software, hardware and deployment elements that realize the
+logical elements, with each logical element allocated to one of them, the
+S-CORE path REQ-DRIVING-014 constrains placed on the plan and command
+exchanges, and the signal mapping of each item that enters a software
+contract. Its first gate is `logicalElementAllocatedToPhysicalElement`.
 Do not jump from this context to implementation or claim a passed runtime
 gate.
 
@@ -434,6 +492,7 @@ and `python -m pytest -q` on `tests/test_closed_loop_driving_framing.py`,
 `tests/test_closed_loop_driving_needs.py`,
 `tests/test_closed_loop_driving_requirements.py`,
 `tests/test_closed_loop_driving_functional_architecture.py`,
+`tests/test_closed_loop_driving_logical_architecture.py`,
 `tests/test_trace_allocation_completeness.py` and
 `tests/test_check_naming.py`.
 These are repository/lexical checks, not SysML semantic or runtime verification.

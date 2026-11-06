@@ -178,7 +178,9 @@ def test_the_charter_names_the_package_after_the_functional_architecture():
     charter = braced_body(strip_comments(FRAMING.read_text(encoding="utf-8")),
                           "part closedLoopDrivingCharter : IncrementCharter")
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-2:] == [FUNCTIONAL_PACKAGE, PACKAGE]
+    assert artifacts
+    names = re.findall(r'"([^"]+)"', artifacts.group(1))
+    assert names.index(PACKAGE) == names.index(FUNCTIONAL_PACKAGE) + 1
     assert re.search(rf"\bpackage\s+{PACKAGE}\s*\{{", _code())
 
 

@@ -340,8 +340,9 @@ def test_the_charter_names_the_package_after_the_needs_and_requirements():
     charter = braced_body(strip_comments(FRAMING.read_text(encoding="utf-8")),
                           "part closedLoopDrivingCharter : IncrementCharter")
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-2:] == [
-        "DE4SDV_ClosedLoopDrivingNeedsRequirements", PACKAGE]
+    assert artifacts
+    names = re.findall(r'"([^"]+)"', artifacts.group(1))
+    assert names.index(PACKAGE) == names.index("DE4SDV_ClosedLoopDrivingNeedsRequirements") + 1
     assert re.search(rf"\bpackage\s+{PACKAGE}\s*\{{", _code())
 
 
