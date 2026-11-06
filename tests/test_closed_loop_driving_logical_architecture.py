@@ -376,11 +376,10 @@ def test_the_allocation_file_is_governed_with_its_six_endpoint_definitions():
     assert trace.NOT_ENDPOINTS[trace.DRIVING_L] == {SYSTEM}
 
 
-def test_the_guide_describes_phase_7_and_names_phase_8_as_the_next_work():
+def test_the_guide_describes_phase_7_and_hands_its_exchanges_to_phase_8():
     guide = GUIDE.read_text(encoding="utf-8")
     assert "## Logical architecture (Phase 7)" in guide
     assert "closed_loop_driving_logical_architecture.sysml" in guide
     assert "six logical elements" in guide
-    assert "The next work is **Phase 8**" in guide
-    assert "logicalElementAllocatedToPhysicalElement" in guide
+    assert "Phase 8 places them on a" in guide, "the exchanges REQ-DRIVING-014 constrains are placed by phase 8"
     assert "tests/test_closed_loop_driving_logical_architecture.py" in guide

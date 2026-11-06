@@ -227,7 +227,8 @@ package DE4SDV_ClosedLoopDrivingFraming {
       "DE4SDV_ClosedLoopDrivingCapabilityClassification",
       "DE4SDV_ClosedLoopDrivingNeedsRequirements",
       "DE4SDV_ClosedLoopDrivingFunctionalArchitecture",
-      "DE4SDV_ClosedLoopDrivingLogicalArchitecture"
+      "DE4SDV_ClosedLoopDrivingLogicalArchitecture",
+      "DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization"
     );
     attribute :>> expectedReviewEvidence = (
       "independent review of the owner question, System 1/2 boundary and nonclaims",

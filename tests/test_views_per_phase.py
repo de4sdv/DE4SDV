@@ -66,6 +66,9 @@ KNOWN_DEVIATIONS = {
     ("INC-DRIVING-001", "closedLoopDrivingRequirementsView"): ((4, 5), "SystemRequirementTraceabilityViewpoint"),
     ("INC-DRIVING-001", "closedLoopDrivingRequirementVerificationView"): (
         (4, 5), "SystemRequirementTraceabilityViewpoint"),
+    # phase 8 frames a phase 1 concern of the Physical domain whose view the list does not name yet: what the
+    # physical system exchanges with the AAOS SDV guests (a method PR proposes the entry)
+    ("INC-DRIVING-001", "closedLoopDrivingPhysicalContextExchangeView"): ((8,), "PhysicalContextExchangeViewpoint"),
     ("INC-AEBS-010", "aebsVisualizationRequirementTraceView"): ((4, 5), "SystemRequirementTraceabilityViewpoint"),
     ("INC-AEBS-010", "aebsVisualizationFunctionStructureView"): ((6,), "SystemStructureDefinitionViewpoint"),
     ("INC-AEBS-010", "aebsVisualizationFunctionInternalExchangeView"): ((6,), "SystemInternalExchangeViewpoint"),
