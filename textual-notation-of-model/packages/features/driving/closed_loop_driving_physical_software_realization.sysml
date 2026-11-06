@@ -677,10 +677,12 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       connect sdvCoreGuest.os.hypervisorPort to linuxHost.hypervisor.guestPort;
     interface hmiGuestUnderKVM : OSHypervisorInterface
       connect hmiGuest.os.hypervisorPort to linuxHost.hypervisor.guestPort;
-    flow operationalStateOverSOMEIPAcrossHypervisor of DrivingOperationalState
-      from linuxHost.operationalStateOut.operationalState to sdvCoreGuest.someIpIn.operationalState;
-    flow operationalStateTopicOverDataTunnelAcrossVMs of DrivingOperationalState
-      from sdvCoreGuest.topicOut.topicData to hmiGuest.topicIn.topicData;
+    flow from linuxHost.operationalStateOut.operationalState to sdvCoreGuest.someIpIn.operationalState {
+      doc /* The operational state on SOME/IP across the hypervisor, from someipd to the SDV Core VM's interop. */
+    }
+    flow of DrivingOperationalState from sdvCoreGuest.topicOut.topicData to hmiGuest.topicIn.topicData {
+      doc /* The operational state as the Data Tunnel topic from the SDV Core VM to the IVI VM (its VSIDL message is GAP-DRIVING-006). */
+    }
   }
 
   part closedLoopDrivingPhysicalSystem : ClosedLoopDrivingPhysicalSystem;
@@ -1254,17 +1256,14 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * provider: the route. Out of the host: the operational state on
      * SOME/IP into the SDV Core VM and the topic from the SDV Core VM to
      * the IVI VM, and nothing back (aaosObservationFidelityConcern). The
-     * parts and their ports are exposed by name (the ports are declared on
-     * the definitions; a wildcard over a usage drew none of them), the
-     * flows by the typed wildcard of the AEBS simulation deployment's
-     * context exchange view (exposed by name, a flow is not drawn: runs
-     * 42247403125 and 42248991235); the insides of the realization and of
-     * the guests stay hidden,
-     * which the exact-type filter on connections does: the delegations
-     * inside them drew as boxes with two ends wherever one end was exposed,
-     * and the subtype-inclusive filter (@) took the flows with them (run
-     * 42247403125). The hypervisor interfaces, which span levels, are
-     * filtered by their own type.
+     * form is the AEBS simulation deployment's context exchange view: the
+     * parts by name, their ports and the flows by typed wildcard (ports
+     * and flows exposed by name were drawn without the flows: runs
+     * 42247403125 to 42251968632). The insides of the realization and of
+     * the guests stay hidden by the exact-type filter on connections: the
+     * delegations inside them drew as boxes with two ends wherever one end
+     * was exposed. The package's allocations and the hypervisor interfaces
+     * have no exposed end and are not drawn (the AEBS view's evidence).
      */
     viewpoint selectedPhysicalContextExchangeViewpoint : PhysicalContextExchangeViewpoint {
       frame aaosObservationFidelityConcern;
@@ -1272,30 +1271,19 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     }
     expose closedLoopDrivingPhysicalSystem;
     expose closedLoopDrivingPhysicalSystem::linuxHost;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::operationalStateOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::*[istype SysML::PortUsage];
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::cameraImagesIn;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::egoMotionIn;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::routeIn;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::simulationClockIn;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::vehicleControlOut;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::operationalStateOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::*[istype SysML::PortUsage];
     expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::cameraStreamOut;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::egoMotionOut;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::simulationClockOut;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::vehicleControlIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::*[istype SysML::PortUsage];
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider::routeOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider::*[istype SysML::PortUsage];
     expose closedLoopDrivingPhysicalSystem::linuxHost::*[istype SysML::FlowUsage];
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
-    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::someIpIn;
-    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::topicOut;
+    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::*[istype SysML::PortUsage];
     expose closedLoopDrivingPhysicalSystem::hmiGuest;
-    expose closedLoopDrivingPhysicalSystem::hmiGuest::topicIn;
+    expose closedLoopDrivingPhysicalSystem::hmiGuest::*[istype SysML::PortUsage];
     expose closedLoopDrivingPhysicalSystem::*[istype SysML::FlowUsage];
-    filter not (@ SysML::AllocationUsage);
-    filter not (@ SysML::InterfaceUsage);
     filter not (hastype SysML::ConnectionUsage);
     attribute depth = -1;
     attribute showAnnotationRows = false;

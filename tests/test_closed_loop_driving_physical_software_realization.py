@@ -207,13 +207,12 @@ HOST_FLOWS = {
 }
 #: the delegation to the host's own port stays a connection: a flow into an out item fails direction conformance
 HOST_CONNECTIONS = [("drivingSoftware.operationalStateOut", "operationalStateOut")]
-SYSTEM_FLOWS = {
-    "operationalStateOverSOMEIPAcrossHypervisor": ("DrivingOperationalState",
-                                                   "linuxHost.operationalStateOut.operationalState",
-                                                   "sdvCoreGuest.someIpIn.operationalState"),
-    "operationalStateTopicOverDataTunnelAcrossVMs": ("DrivingOperationalState", "sdvCoreGuest.topicOut.topicData",
-                                                     "hmiGuest.topicIn.topicData"),
-}
+#: the two hops are unnamed flows (the AEBS deployment's form); the Data Tunnel's port item is untyped, so that
+#: flow declares the payload
+SYSTEM_FLOWS = [
+    ("", "linuxHost.operationalStateOut.operationalState", "sdvCoreGuest.someIpIn.operationalState"),
+    ("DrivingOperationalState", "sdvCoreGuest.topicOut.topicData", "hmiGuest.topicIn.topicData"),
+]
 SDV_CORE_GUEST_CONNECTIONS = {
     ("someIpIn", "sdvCore.someIp.someIpPort"),
     ("sdvCore.someIp.topicPublishOut", "sdvCore.dataTunnel.topicPublishPort"),
@@ -301,16 +300,13 @@ VIEWS = {
                 "PhysicalInternalExchangeViewpoint", ["scoreCommandPathConcern", "checkpointCommandAuthorityConcern"]),
     CONTEXT_VIEW: (None, "render asInterconnectionDiagram;",
                    [SYSTEM_USAGE] + [f"{SYSTEM_USAGE}::{member}" for member in (
-                       "linuxHost", "linuxHost::operationalStateOut", "linuxHost::drivingSoftware",
-                       *(f"linuxHost::drivingSoftware::{port}" for port in (
-                           "cameraImagesIn", "egoMotionIn", "routeIn", "simulationClockIn", "vehicleControlOut",
-                           "operationalStateOut")),
-                       "linuxHost::carlaServer",
-                       *(f"linuxHost::carlaServer::{port}" for port in (
-                           "cameraStreamOut", "egoMotionOut", "simulationClockOut", "vehicleControlIn")),
-                       "linuxHost::routeProvider", "linuxHost::routeProvider::routeOut",
+                       "linuxHost", "linuxHost::*[istype SysML::PortUsage]",
+                       "linuxHost::drivingSoftware", "linuxHost::drivingSoftware::*[istype SysML::PortUsage]",
+                       "linuxHost::carlaServer", "linuxHost::carlaServer::*[istype SysML::PortUsage]",
+                       "linuxHost::routeProvider", "linuxHost::routeProvider::*[istype SysML::PortUsage]",
                        "linuxHost::*[istype SysML::FlowUsage]",
-                       "sdvCoreGuest", "sdvCoreGuest::someIpIn", "sdvCoreGuest::topicOut", "hmiGuest", "hmiGuest::topicIn",
+                       "sdvCoreGuest", "sdvCoreGuest::*[istype SysML::PortUsage]",
+                       "hmiGuest", "hmiGuest::*[istype SysML::PortUsage]",
                        "*[istype SysML::FlowUsage]")],
                    "PhysicalContextExchangeViewpoint",
                    ["aaosObservationFidelityConcern", "checkpointCommandAuthorityConcern"]),
@@ -370,6 +366,11 @@ def _flows(body: str) -> dict[str, tuple[str, str, str]]:
     """name -> (declared item or '', source, target) of every named flow, with or without an `of <Item>` payload."""
     return {name: (item, source, target) for name, item, source, target in re.findall(
         r"\bflow\s+(\w+)\s+(?:of\s+(\w+)\s+)?from\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)}
+
+
+def _unnamed_flows(body: str) -> list[tuple[str, str, str]]:
+    """(declared item or '', source, target) of every unnamed flow (the AEBS deployment's rendering form)."""
+    return re.findall(r"\bflow\s+(?:of\s+(\w+)\s+)?from\s+([\w.]+)\s+to\s+([\w.]+)\s*[;{]", body)
 
 
 def _allocations() -> list[tuple[str, str, str, str, str]]:
@@ -582,7 +583,7 @@ def test_the_guests_carry_the_observation_path_and_the_system_crosses_the_hyperv
     system = _body_of_definition(SYSTEM)
     assert re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", system, re.M) == [
         ("linuxHost", HOST), ("sdvCoreGuest", "AAOSSDVCoreGuest"), ("hmiGuest", "AAOSIVIGuest")]
-    assert _connections(system) == [] and _flows(system) == SYSTEM_FLOWS
+    assert _connections(system) == [] and _flows(system) == {} and _unnamed_flows(system) == SYSTEM_FLOWS
     interfaces = re.findall(r"\binterface\s+(\w+)\s*:\s*OSHypervisorInterface\s+connect\s+([\w.]+)\s+to\s+([\w.]+)\s*;", system)
     assert interfaces == [("sdvCoreGuestUnderKVM", "sdvCoreGuest.os.hypervisorPort", "linuxHost.hypervisor.guestPort"),
                           ("hmiGuestUnderKVM", "hmiGuest.os.hypervisorPort", "linuxHost.hypervisor.guestPort")]
@@ -717,7 +718,8 @@ def test_each_view_frames_its_concerns_and_exposes_its_content(view_name):
     assert re.findall(r"\bexpose\s+([\w:*]+(?:\[[^\]]*\])?)\s*;", view) == exposes
     if render:
         assert render in view
-        assert "filter not (@ SysML::AllocationUsage);" in view, "SysIDE draws the package's allocations otherwise"
+        if view_name != CONTEXT_VIEW:
+            assert "filter not (@ SysML::AllocationUsage);" in view, "SysIDE draws the package's allocations otherwise"
     else:
         assert "render as" not in view, "the view type selects the kind"
 
@@ -735,8 +737,7 @@ def test_the_interconnection_views_draw_the_path_and_the_context_at_their_depths
     # host and the guests); the exchanges the view draws are flows; the delegations are filtered by exact type
     # (`@`, subtype-inclusive, took the flows with them: run 42247403125), the hypervisor interfaces by theirs
     assert "filter not (hastype SysML::ConnectionUsage);" in context
-    assert "filter not (@ SysML::InterfaceUsage);" in context, "the hypervisor interfaces span levels"
-    assert "filter not (@ SysML::ConnectionUsage);" not in context
+    assert len(re.findall(r"\bfilter\b", context)) == 1, "the AEBS form: allocations and interfaces with no exposed end are not drawn"
     tree = braced_body(code, f"view {STRUCTURE_VIEW}")
     assert "filter not (@ SysML::BindingConnectorAsUsage);" in tree, "the guest's bind drew as a box with two ends"
     assert "FlowUsage" not in tree, "filtering the flows did not remove their ends from the parts' compartments (run 42248991235)"
