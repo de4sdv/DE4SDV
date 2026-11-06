@@ -274,7 +274,8 @@ TREE_EXPOSES = [SYSTEM_USAGE] + [f"{SYSTEM_USAGE}::{path}" for path in (
     "linuxHost::drivingSoftware::statePublisherApplication", "linuxHost::drivingSoftware::scoreServices",
     "linuxHost::drivingSoftware::scoreServices::launchManager", "linuxHost::drivingSoftware::scoreServices::gatewayd",
     "linuxHost::drivingSoftware::scoreServices::someipd", "linuxHost::carlaServer", "linuxHost::routeProvider",
-    "sdvCoreGuest", "sdvCoreGuest::os", "sdvCoreGuest::sdvCore", "hmiGuest", "hmiGuest::os", "hmiGuest::sdvGateway",
+    "sdvCoreGuest", "sdvCoreGuest::os", "sdvCoreGuest::sdvMiddleware", "sdvCoreGuest::sdvCore", "hmiGuest",
+    "hmiGuest::os", "hmiGuest::sdvGateway",
     "hmiGuest::stateObserver")]
 #: view -> (type or None, render, exposes in order, viewpoint type, framed concerns in order)
 VIEWS = {
@@ -458,7 +459,7 @@ def test_the_payloads_realize_phase_2_items_and_type_vehicle_signals_with_vss(pa
         assert typed[name] == signal, (payload, name)
     assert not re.search(r"\bflow\b|\bpart\b", body)
     for signal in attributes.values():
-        library = "DE4SDV_VSS_Extensions" if signal in EXTENSIONS_ADDED else "COVESA_VSS"
+        library = "DE4SDV_VSS_Extensions" if signal in EXTENSIONS_ADDED else "COVESA_VSS::SignalDefinitions"
         assert f"private import {library}::{signal};" in code, signal
 
 
@@ -501,7 +502,8 @@ def test_the_host_owns_the_platform_the_software_and_the_context_realizations():
     connections = _connections(body)
     assert set(connections) == HOST_CONNECTIONS and len(connections) == len(HOST_CONNECTIONS)
     assert dict(re.findall(r"^\s*port\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)) == {"operationalStateOut": "OperationalStateOut"}
-    for layer in ("LinuxPlatform", "KVMHypervisor", "EclipseSCORE", "AndroidHLOS", "OSHypervisorInterface"):
+    for layer in ("LinuxPlatform", "KVMHypervisor", "EclipseSCORE", "AndroidHLOS", "AndroidSDVMiddleware",
+                  "OSHypervisorInterface"):
         assert f"private import DE4SDV_SDVPlatformStack::{layer};" in code, layer
     # the navigation of phase 2 is realized on the host, not on the AAOS guest: the context-role decision holds
     assert re.search(r"\bpart\s+def\s+ScenarioRouteProvider\s*:>\s*NavigationSystem\s*\{", code)
@@ -514,8 +516,11 @@ def test_the_host_owns_the_platform_the_software_and_the_context_realizations():
 def test_the_guests_carry_the_observation_path_and_the_system_crosses_the_hypervisor_twice():
     code = _code()
     core = _body_of_definition("AAOSSDVCoreGuest")
-    assert re.findall(r"^\s*part\s+(\w+)\s*:\s*([\w, ]+?)\s*;", core, re.M) == [("os", "AndroidHLOS"),
-                                                                              ("sdvCore", "SDVCoreBoundary")]
+    assert re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", core, re.M) == [("os", "AndroidHLOS"),
+                                                                        ("sdvMiddleware", "AndroidSDVMiddleware")]
+    # the SDV Core boundary model is referenced, never owned: the platform stack owns the guest (2026-10-25)
+    assert re.search(r"^\s*ref\s+part\s+sdvCore\s*:\s*SDVCoreBoundary\s*;", core, re.M)
+    assert "bind sdvCore = sdvMiddleware;" in core
     assert set(_connections(core)) == SDV_CORE_GUEST_CONNECTIONS
     assert dict(re.findall(r"^\s*port\s+(\w+)\s*:\s*(\w+)\s*;", core, re.M)) == {"someIpIn": "OperationalStateIn",
                                                                                  "topicOut": "DataTunnelPort"}

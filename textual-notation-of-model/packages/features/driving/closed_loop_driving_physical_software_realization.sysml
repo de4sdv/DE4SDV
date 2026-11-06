@@ -96,6 +96,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   private import DE4SDV_SDVPlatformStack::KVMHypervisor;
   private import DE4SDV_SDVPlatformStack::EclipseSCORE;
   private import DE4SDV_SDVPlatformStack::AndroidHLOS;
+  private import DE4SDV_SDVPlatformStack::AndroidSDVMiddleware;
   private import DE4SDV_SDVPlatformStack::OSHypervisorInterface;
   private import DE4SDV_AAOSSDVMiddlewareBoundary::SDVCoreBoundary;
   private import DE4SDV_AAOSSDVMiddlewareBoundary::SDVGatewayOnIVIBoundary;
@@ -118,10 +119,10 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::DrivingPlan;
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::DrivingMode;
   private import DE4SDV_ClosedLoopDrivingLogicalArchitecture::ClosedLoopDrivingLogicalSystem;
-  private import COVESA_VSS::Vehicle_Speed;
-  private import COVESA_VSS::Vehicle_Acceleration_Longitudinal;
-  private import COVESA_VSS::Vehicle_Acceleration_Lateral;
-  private import COVESA_VSS::Vehicle_AngularVelocity_Yaw;
+  private import COVESA_VSS::SignalDefinitions::Vehicle_Speed;
+  private import COVESA_VSS::SignalDefinitions::Vehicle_Acceleration_Longitudinal;
+  private import COVESA_VSS::SignalDefinitions::Vehicle_Acceleration_Lateral;
+  private import COVESA_VSS::SignalDefinitions::Vehicle_AngularVelocity_Yaw;
   private import DE4SDV_VSS_Extensions::Vehicle_ADAS_Driving_Command_Acceleration;
   private import DE4SDV_VSS_Extensions::Vehicle_ADAS_Driving_Command_SteeringAngle;
   private import DE4SDV_Stakeholders::*;
@@ -557,13 +558,17 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * under the host's KVM, with the SDV Core middleware. The SOME/IP
      * interop of SDV Core receives the operational-state events from
      * someipd and the Data Tunnel publishes them as the typed topic the IVI
-     * VM subscribes to (decision 4). The guest is the reference boundary
-     * model of packages/architecture, not built by DE4SDV.
+     * VM subscribes to (decision 4). The guest owns its platform layers; the
+     * SDV Core boundary model of packages/architecture is referenced and
+     * bound to the middleware layer (the platform stack owns the guest,
+     * owner decision of 2026-10-25); nothing of it is built by DE4SDV.
      */
     port someIpIn : OperationalStateIn;
     port topicOut : DataTunnelPort;
     part os : AndroidHLOS;
-    part sdvCore : SDVCoreBoundary;
+    part sdvMiddleware : AndroidSDVMiddleware;
+    ref part sdvCore : SDVCoreBoundary;
+    bind sdvCore = sdvMiddleware;
     connection someIpDelegation connect someIpIn to sdvCore.someIp.someIpPort;
     connection operationalStateTopicPublishedByBroker connect sdvCore.someIp.topicPublishOut to sdvCore.dataTunnel.topicPublishPort;
     connection topicDelegation connect sdvCore.dataTunnel.topicSubscribePort to topicOut;
@@ -1101,6 +1106,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::os;
+    expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::sdvMiddleware;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::sdvCore;
     expose closedLoopDrivingPhysicalSystem::hmiGuest;
     expose closedLoopDrivingPhysicalSystem::hmiGuest::os;
