@@ -1167,7 +1167,6 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::hmiGuest::stateObserver;
     filter not (@ SysML::AllocationUsage);
     filter not (@ SysML::BindingConnectorAsUsage);
-    filter not (@ SysML::FlowUsage);
     render asTreeDiagram;
   }
 
@@ -1255,9 +1254,12 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * provider: the route. Out of the host: the operational state on
      * SOME/IP into the SDV Core VM and the topic from the SDV Core VM to
      * the IVI VM, and nothing back (aaosObservationFidelityConcern). The
-     * parts, their ports and the flows are exposed by name (the ports are
-     * declared on the definitions; a wildcard over a usage drew none of
-     * them); the insides of the realization and of the guests stay hidden,
+     * parts and their ports are exposed by name (the ports are declared on
+     * the definitions; a wildcard over a usage drew none of them), the
+     * flows by the typed wildcard of the AEBS simulation deployment's
+     * context exchange view (exposed by name, a flow is not drawn: runs
+     * 42247403125 and 42248991235); the insides of the realization and of
+     * the guests stay hidden,
      * which the exact-type filter on connections does: the delegations
      * inside them drew as boxes with two ends wherever one end was exposed,
      * and the subtype-inclusive filter (@) took the flows with them (run
@@ -1285,18 +1287,13 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::vehicleControlIn;
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider;
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider::routeOut;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::cameraStreamOverHostLoopback;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::egoMotionOverHostLoopback;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::simulationClockOverHostLoopback;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::routeFromScenario;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::vehicleControlOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::*[istype SysML::FlowUsage];
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::someIpIn;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::topicOut;
     expose closedLoopDrivingPhysicalSystem::hmiGuest;
     expose closedLoopDrivingPhysicalSystem::hmiGuest::topicIn;
-    expose closedLoopDrivingPhysicalSystem::operationalStateOverSOMEIPAcrossHypervisor;
-    expose closedLoopDrivingPhysicalSystem::operationalStateTopicOverDataTunnelAcrossVMs;
+    expose closedLoopDrivingPhysicalSystem::*[istype SysML::FlowUsage];
     filter not (@ SysML::AllocationUsage);
     filter not (@ SysML::InterfaceUsage);
     filter not (hastype SysML::ConnectionUsage);

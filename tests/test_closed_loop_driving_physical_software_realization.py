@@ -309,9 +309,9 @@ VIEWS = {
                        *(f"linuxHost::carlaServer::{port}" for port in (
                            "cameraStreamOut", "egoMotionOut", "simulationClockOut", "vehicleControlIn")),
                        "linuxHost::routeProvider", "linuxHost::routeProvider::routeOut",
-                       *(f"linuxHost::{flow}" for flow in HOST_FLOWS),
+                       "linuxHost::*[istype SysML::FlowUsage]",
                        "sdvCoreGuest", "sdvCoreGuest::someIpIn", "sdvCoreGuest::topicOut", "hmiGuest", "hmiGuest::topicIn",
-                       *SYSTEM_FLOWS)],
+                       "*[istype SysML::FlowUsage]")],
                    "PhysicalContextExchangeViewpoint",
                    ["aaosObservationFidelityConcern", "checkpointCommandAuthorityConcern"]),
 }
@@ -739,7 +739,7 @@ def test_the_interconnection_views_draw_the_path_and_the_context_at_their_depths
     assert "filter not (@ SysML::ConnectionUsage);" not in context
     tree = braced_body(code, f"view {STRUCTURE_VIEW}")
     assert "filter not (@ SysML::BindingConnectorAsUsage);" in tree, "the guest's bind drew as a box with two ends"
-    assert "filter not (@ SysML::FlowUsage);" in tree, "the flows' ends drew as compartments of every part (run 42247403125)"
+    assert "FlowUsage" not in tree, "filtering the flows did not remove their ends from the parts' compartments (run 42248991235)"
 
 
 def test_the_matrix_maps_the_logical_elements_to_the_software_with_reference_elements():
