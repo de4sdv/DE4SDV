@@ -73,7 +73,8 @@
  * - ALT-DRIVING-FEOMWCOM-001: FEO from its main branch, whose feo-com has an
  *   mw_com backend, so that the plan hops inside the agent are themselves
  *   mw::com. Unreleased, and its module file pins an older Communication;
- *   the reading question of GAP-DRIVING-008 disappears, the build risk grows.
+ *   the reading question the owner closed on 2026-11-06 would not arise,
+ *   the build risk grows.
  *
  * The context parts of phase 2 are realized on the bench as context parts of
  * the physical system, so the boundary connections have ends: the simulator
@@ -119,6 +120,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::DrivingPlan;
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::DrivingMode;
   private import DE4SDV_ClosedLoopDrivingLogicalArchitecture::ClosedLoopDrivingLogicalSystem;
+  private import DE4SDV_ClosedLoopDrivingNeedsRequirements::reqPlansAndCommandsOverSCORE;
   private import COVESA_VSS::SignalDefinitions::Vehicle_Speed;
   private import COVESA_VSS::SignalDefinitions::Vehicle_Acceleration_Longitudinal;
   private import COVESA_VSS::SignalDefinitions::Vehicle_Acceleration_Lateral;
@@ -174,6 +176,24 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     attribute steeringAngle : Vehicle_ADAS_Driving_Command_SteeringAngle;
     attribute productionTime : Real;
     attribute planReference : String;
+  }
+
+  item def SimulatorVehicleControl {
+    doc /*
+     * The information that crosses to the simulator, and the only thing
+     * that does: the control the actuation adapter applies to the ego
+     * vehicle through the simulator client, the three fields of the client
+     * library's VehicleControl the adapter sets, throttle and brake in
+     * [0, 1] and steer in [-1, 1] (the client library's API reference; the
+     * release is pinned in phase 10). Hand brake, reverse, manual gear
+     * shift and gear stay at their defaults. The adapter converts the
+     * commanded acceleration and steering angle into these within the
+     * vehicle's limits (REQ-DRIVING-012), so the logical VehicleMotionCommand
+     * ends at the adapter and this is what the simulated vehicle receives.
+     */
+    attribute throttle : Real;
+    attribute steer : Real;
+    attribute brake : Real;
   }
 
   /* ───────────── Ports: one pair per item, whatever hop carries it ───────────── */
@@ -259,12 +279,12 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     in item command : VehicleMotionCommandPayload;
   }
   port def VehicleControlOut {
-    doc /* The vehicle command applied at the simulated actuation, from the actuation adapter. */
-    out item vehicleCommand : VehicleMotionCommand;
+    doc /* The vehicle control the actuation adapter applies at the simulated actuation. */
+    out item vehicleControl : SimulatorVehicleControl;
   }
   port def VehicleControlIn {
-    doc /* The vehicle command the simulator server applies to the ego vehicle. */
-    in item vehicleCommand : VehicleMotionCommand;
+    doc /* The vehicle control the simulator server applies to the ego vehicle. */
+    in item vehicleControl : SimulatorVehicleControl;
   }
   port def OperationalStateOut {
     doc /* The operational state leaving an element on any hop of the observation path. */
@@ -367,8 +387,9 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * the frame rather than by a timer is part of ASM-DRIVING-001. Inside the
      * agent the checkpoint inputs, the input condition, the plan, the valid
      * plan, the mode and the ego-motion sample move on FEO topics of the
-     * framework's communication layer (shared memory on one host); whether
-     * these in-process hops fall under REQ-DRIVING-014 is GAP-DRIVING-008.
+     * framework's communication layer (shared memory on one host); they are
+     * no hops between processes, so REQ-DRIVING-014 does not constrain them
+     * (the owner's reading of 2026-11-06, reqPlansAndCommandsOverSCOREReading).
      * Across processes the agent speaks mw::com only. It is started and
      * supervised by the Launch Manager of S-CORE Lifecycle.
      */
@@ -587,6 +608,18 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     part os : AndroidHLOS;
     part sdvGateway : SDVGatewayOnIVIBoundary;
     part stateObserver : DrivingStateObserverApplication {
+      doc /*
+       * The observer application of the bench, a build item named here, not
+       * claimed. It presents the operational state and nothing else (owner
+       * decision 2026-11-06): the plan with its producer, its production
+       * time and the run record it names; the vehicle state sample with its
+       * sample time; the health; the mode with the cause of a stop; and the
+       * run identity. No camera images, no commands, no route; nothing
+       * back. Its screen shows two clocks side by side, the simulation time
+       * of the newest input and the wall-clock time of the publication, so
+       * that no reading mixes the time domains; the screen's recording is
+       * phase 10 evidence.
+       */
       port operationalStateIn : OperationalStateIn;
     }
     connection topicDelegation connect topicIn to sdvGateway.dataTunnelPort;
@@ -602,7 +635,9 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * S-CORE services, the simulator server and the route provider. The sensor
      * streams, the route, the simulation clock and the vehicle control cross
      * the host's loopback between the simulator and the driving software;
-     * the operational state leaves the host on SOME/IP.
+     * the operational state leaves the host on SOME/IP. The exchanges are
+     * flows, each of its item, so the context exchange view names what
+     * crosses; into the simulator goes the vehicle control and nothing else.
      */
     port operationalStateOut : OperationalStateOut;
     part os : LinuxPlatform;
@@ -610,12 +645,18 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     part drivingSoftware : ClosedLoopDrivingSoftwareRealization;
     part carlaServer : CARLASimulationServer;
     part routeProvider : ScenarioRouteProvider;
-    connection cameraStreamOverHostLoopback connect carlaServer.cameraStreamOut to drivingSoftware.cameraImagesIn;
-    connection egoMotionOverHostLoopback connect carlaServer.egoMotionOut to drivingSoftware.egoMotionIn;
-    connection simulationClockOverHostLoopback connect carlaServer.simulationClockOut to drivingSoftware.simulationClockIn;
-    connection routeFromScenario connect routeProvider.routeOut to drivingSoftware.routeIn;
-    connection vehicleControlOverHostLoopback connect drivingSoftware.vehicleControlOut to carlaServer.vehicleControlIn;
-    connection operationalStateDelegation connect drivingSoftware.operationalStateOut to operationalStateOut;
+    flow cameraStreamOverHostLoopback of CameraImages
+      from carlaServer.cameraStreamOut.cameraImages to drivingSoftware.cameraImagesIn.cameraImages;
+    flow egoMotionOverHostLoopback of EgoMotionState
+      from carlaServer.egoMotionOut.egoMotion to drivingSoftware.egoMotionIn.egoMotion;
+    flow simulationClockOverHostLoopback of SimulationClock
+      from carlaServer.simulationClockOut.simulationClock to drivingSoftware.simulationClockIn.simulationClock;
+    flow routeFromScenario of Route
+      from routeProvider.routeOut.route to drivingSoftware.routeIn.route;
+    flow vehicleControlOverHostLoopback of SimulatorVehicleControl
+      from drivingSoftware.vehicleControlOut.vehicleControl to carlaServer.vehicleControlIn.vehicleControl;
+    flow operationalStateDelegation of DrivingOperationalState
+      from drivingSoftware.operationalStateOut.operationalState to operationalStateOut.operationalState;
   }
 
   part def ClosedLoopDrivingPhysicalSystem {
@@ -625,7 +666,8 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * once on SOME/IP, from someipd to the SDV Core VM, and the VMs once on
      * the Data Tunnel, from the SDV Core VM to the IVI VM. Nothing crosses
      * back: the guests are observers. The host's inside is drawn by the
-     * S-CORE path view; this level by the observation view.
+     * S-CORE path view; what crosses the realization's boundary, on the
+     * bench side and on the observer side, by the context exchange view.
      */
     part linuxHost : ClosedLoopDrivingLinuxHost;
     part sdvCoreGuest : AAOSSDVCoreGuest;
@@ -634,8 +676,10 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       connect sdvCoreGuest.os.hypervisorPort to linuxHost.hypervisor.guestPort;
     interface hmiGuestUnderKVM : OSHypervisorInterface
       connect hmiGuest.os.hypervisorPort to linuxHost.hypervisor.guestPort;
-    connection operationalStateOverSOMEIPAcrossHypervisor connect linuxHost.operationalStateOut to sdvCoreGuest.someIpIn;
-    connection operationalStateTopicOverDataTunnelAcrossVMs connect sdvCoreGuest.topicOut to hmiGuest.topicIn;
+    flow operationalStateOverSOMEIPAcrossHypervisor of DrivingOperationalState
+      from linuxHost.operationalStateOut.operationalState to sdvCoreGuest.someIpIn.operationalState;
+    flow operationalStateTopicOverDataTunnelAcrossVMs of DrivingOperationalState
+      from sdvCoreGuest.topicOut.topicData to hmiGuest.topicIn.topicData;
   }
 
   part closedLoopDrivingPhysicalSystem : ClosedLoopDrivingPhysicalSystem;
@@ -813,7 +857,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10: author the command event's mw::com configuration with the two extension candidates and run REQ-DRIVING-011, -012, -014, -020 to -022 and -032 with hop logs";
-      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-008 (the in-process hops before this one), GAP-DRIVING-001 (the agent's framework)";
+      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-001 (the agent's framework); the in-process hops before this one are not under REQ-DRIVING-014 (owner reading 2026-11-06)";
     }
   }
 
@@ -879,9 +923,24 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * planner-to-simulator bypass exists. AAOS SDV consumes the plan, the
      * vehicle state and the health as a typed Data Tunnel topic over the
      * gateway chain; the observer sends nothing back. Open: the contract
-     * ids and the VSIDL message (phase 10), the reading of the in-process
-     * hops under REQ-DRIVING-014 (GAP-DRIVING-008), the publication of the
-     * actuation-side stop (GAP-DRIVING-005).
+     * ids and the VSIDL message (phase 10) and the publication of the
+     * actuation-side stop (GAP-DRIVING-005, to be amended in phases 6 and
+     * 7); the in-process hops are settled by the owner's reading
+     * (reqPlansAndCommandsOverSCOREReading).
+     */
+
+  comment reqPlansAndCommandsOverSCOREReading about reqPlansAndCommandsOverSCORE, DrivingAgentApplication
+    /*
+     * The owner's reading of REQ-DRIVING-014 (2026-11-06): the requirement
+     * constrains the hops between processes from planning to the actuation,
+     * and the one on this path is the command event from the agent to the
+     * actuation adapter, mw::com. The topics inside the agent's process
+     * (checkpoint inputs, input condition, plan, valid plan, mode and the
+     * ego-motion sample on FEO's communication layer) are no hops between
+     * processes, and REQ-DRIVING-014 does not constrain them. The placement
+     * stands; the phase 10 case logs them as FEO topics. This closed the
+     * phase 8 gap that asked the question; ALT-DRIVING-PLAINAPPS-001 and
+     * ALT-DRIVING-FEOMWCOM-001 stay alternatives on other grounds.
      */
 
   comment phase8ConversionPlacement about gapModelInputAndFeedback
@@ -1019,10 +1078,11 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * real (a lost mw::com hop or a stopped agent). The publisher sees the
      * mode of the supervision only, and the supervision cannot see the
      * command hop. Phase 8 adds no connection the logical architecture does
-     * not have. The owner decides: amend phases 6 and 7 with an
-     * actuation-status flow to the publisher (off the loop, like the
-     * publisher itself), or accept that REQ-DRIVING-029 covers the
-     * supervision's stop only and say so in the requirement.
+     * not have. The owner decided on 2026-11-06: amend phases 6 and 7 with
+     * an actuation-state flow to the publisher (off the loop, like the
+     * publisher itself). A follow-up increment PR carries the amendment
+     * through phases 6, 7 and 8 and retires this record; until it merges
+     * the gap is real in the tree.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -1058,24 +1118,6 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
-  part <'GAP-DRIVING-008'> gapInProcessHopsUnderREQ014 : IncrementGap {
-    doc /*
-     * Open, a reading for the owner: REQ-DRIVING-014 requires the plans and
-     * the commands to travel from planning to the actuation only over
-     * Eclipse S-CORE communication. Between processes they do: the command
-     * hop is mw::com. Inside the agent the plan goes from the inference to
-     * the supervision and the valid plan to the commander on FEO topics,
-     * the communication layer of the FEO module (shared memory on one host
-     * at v1.0.5), which is S-CORE's but not its Communication module. If
-     * the owner reads S-CORE communication as the Communication module,
-     * either ALT-DRIVING-PLAINAPPS-001 puts those hops on mw::com or
-     * ALT-DRIVING-FEOMWCOM-001 takes FEO's unreleased mw_com backend; if the
-     * owner reads it as no transport beside S-CORE on the path, the
-     * placement stands and the phase 10 case logs the in-process hops as
-     * FEO topics.
-     */
-    attribute :>> disposition = LifecycleDisposition::deferred;
-  }
 
   /* ───────────── Concerns and views of the phase ───────────── */
 
@@ -1199,23 +1241,52 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     render asInterconnectionDiagram;
   }
 
-  view closedLoopDrivingObservationExchangeView {
+  view closedLoopDrivingPhysicalContextExchangeView {
     doc /*
-     * What the physical system exchanges with the AAOS SDV guests
-     * (aaosObservationFidelityConcern): the operational state leaving the
-     * host on SOME/IP into the SDV Core VM and the typed topic from the SDV
-     * Core VM to the IVI VM, and nothing back. The host and the guests with
-     * their ports and the two hops, each exposed by name (the ports are
-     * declared on the definitions; a wildcard over the usage drew none of
-     * them), their insides hidden; the hypervisor interfaces, which span
-     * levels, are filtered.
+     * What crosses the boundary of the software realization on the bench,
+     * both sides, each exchange labelled with its item. Into the simulator
+     * server, which stands for the vehicle and the road environment: the
+     * vehicle control, the three fields the actuation adapter sets, and
+     * nothing else (checkpointCommandAuthorityConcern: no other source of
+     * commands reaches the simulated vehicle). Out of it: the camera
+     * stream, the ego motion and the simulation clock; from the route
+     * provider: the route. Out of the host: the operational state on
+     * SOME/IP into the SDV Core VM and the topic from the SDV Core VM to
+     * the IVI VM, and nothing back (aaosObservationFidelityConcern). The
+     * parts, their ports and the flows are exposed by name (the ports are
+     * declared on the definitions; a wildcard over a usage drew none of
+     * them); the insides of the realization and of the guests stay hidden,
+     * which the filter on connections does: the delegations inside them
+     * drew as boxes with two ends wherever one end was exposed. The
+     * hypervisor interfaces, which span levels, are connections too.
      */
     viewpoint selectedPhysicalContextExchangeViewpoint : PhysicalContextExchangeViewpoint {
       frame aaosObservationFidelityConcern;
+      frame checkpointCommandAuthorityConcern;
     }
     expose closedLoopDrivingPhysicalSystem;
     expose closedLoopDrivingPhysicalSystem::linuxHost;
     expose closedLoopDrivingPhysicalSystem::linuxHost::operationalStateOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::cameraImagesIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::egoMotionIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::routeIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::simulationClockIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::vehicleControlOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::operationalStateOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::cameraStreamOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::egoMotionOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::simulationClockOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::vehicleControlIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider::routeOut;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::cameraStreamOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::egoMotionOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::simulationClockOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::routeFromScenario;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::vehicleControlOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::operationalStateDelegation;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::someIpIn;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::topicOut;
@@ -1224,7 +1295,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::operationalStateOverSOMEIPAcrossHypervisor;
     expose closedLoopDrivingPhysicalSystem::operationalStateTopicOverDataTunnelAcrossVMs;
     filter not (@ SysML::AllocationUsage);
-    filter not (@ SysML::InterfaceUsage);
+    filter not (@ SysML::ConnectionUsage);
     attribute depth = -1;
     attribute showAnnotationRows = false;
     attribute maxCompartmentEntries = 0;

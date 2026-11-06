@@ -530,30 +530,56 @@ its timing, its transformation, and the phase 10 action that follows. An
 allocation is a responsibility assignment, no deployment or runtime claim; a
 mapping is no interoperability claim; a pin is no build claim.
 
-Three assumptions and eight gaps record what the realization depends on and
-what it found. Two need the owner's word before phase 10: **GAP-DRIVING-005**,
+Three assumptions and seven gaps record what the realization depends on and
+what it found. **GAP-DRIVING-005** is new information from the placement:
 the actuation adapter's own stop response (REQ-DRIVING-028) has no path to
 the publication REQ-DRIVING-029 asks for, because phases 6 and 7 have no flow
-from the actuation gateway to the publisher; and **GAP-DRIVING-008**, whether
-the plan hops inside the agent, FEO topics rather than the Communication
-module, fall under REQ-DRIVING-014. The others are readiness-probe items
-(FEO and the gateway against v0.10.0, the model export and its parity, the
-simulator client's build, the typed topic, a GPU and KVM host) that run
-before phase 10 builds anything; a paid host needs the owner's campaign
-authorization.
+from the actuation gateway to the publisher. The owner decided on 2026-11-06
+to amend phases 6 and 7 with an actuation-state flow to the publisher; a
+follow-up PR carries the amendment through phases 6 to 8 and retires the
+record. The same follow-up describes the sensing the increment uses, in the
+places it belongs: the Phase 6 exchange types (which cameras, image size,
+capture time, calibration; the motion quantities and their sample time, as
+REQ-DRIVING-003 to -005, -010 and -030 fix them), the bench's simulated
+sensor rig inside the simulator server in Phase 8 (the checkpoint's camera
+configuration, read from the pinned source; ego motion from the simulator's
+vehicle state, a stated fidelity assumption), and the product line's
+sensing boundary as their type. The sensors stay the vehicle's, context of
+the loop: the logical architecture decomposes the system of interest only.
+The reading of the plan hops inside the agent, FEO topics rather than the
+Communication module, was settled the same day: they are no hops between
+processes and REQ-DRIVING-014 does not constrain them; the comment
+`reqPlansAndCommandsOverSCOREReading` holds the reading. The other gaps are
+readiness-probe items (FEO and the gateway against v0.10.0, the model export
+and its parity, the simulator client's build, the typed topic, a GPU and KVM
+host) that run before phase 10 builds anything; a paid host needs the
+owner's campaign authorization.
+
+What the IVI observer presents is decided (owner decision 2026-11-06) and
+recorded on the observer part: the operational state and nothing else, the
+plan with its producer, production time and run record, the vehicle state
+sample with its sample time, the health, the mode with the cause of a stop,
+and the run identity; no camera images, no commands, no route, nothing back.
+Its screen shows two clocks side by side, the simulation time of the newest
+input and the wall-clock time of the publication, so that no reading mixes
+the time domains; the screen's recording is phase 10 evidence.
 
 Four views answer the phase's questions: the structure as a tree of the SAF
 Physical Structure Definition viewpoint, the logical-to-software mapping as
 a matrix of the Physical Logical Mapping viewpoint, the S-CORE path as an
 interconnection of the software realization (Physical Internal Exchange
 viewpoint, framing the Phase 1 concerns for the S-CORE path and the
-checkpoint's command authority), and the observation path as an
-interconnection of the physical system with the AAOS guests (Physical
-Context Exchange viewpoint, framing the Phase 1 observation-fidelity
-concern). The last viewpoint is not yet in the method's views-per-phase
-list for Phase 8; the deviation is pinned in `tests/test_views_per_phase.py`
-and a method change proposes the entry. The phase publishes four views,
-listed in `VIEWS.md`.
+checkpoint's command authority), and what crosses the realization's
+boundary on the bench as an interconnection of the physical system (Physical
+Context Exchange viewpoint, framing the Phase 1 observation-fidelity and
+command-authority concerns): into the simulator server the vehicle control
+and nothing else, out of it the camera stream, the ego motion and the
+simulation clock, from the route provider the route, and the operational
+state on SOME/IP into the SDV Core VM and on the Data Tunnel topic to the
+IVI VM, each exchange a flow labelled with its item. The last viewpoint is
+not yet in the method's views-per-phase list for Phase 8; the deviation is
+pinned in `tests/test_views_per_phase.py` and a method change proposes the
+entry. The phase publishes four views, listed in `VIEWS.md`.
 
 ## Next obligation and execution limits
 
@@ -564,9 +590,10 @@ configuration: the driving stack as a feature of the product line with its
 constraint on the camera feature, the derived middleware adapter per valid
 configuration, the per-domain variation of the host and the guests, and the
 configuration applicability the framing's product-line admission gap asks
-for, under the member decision that amends ADR 0014. Before it, the owner's
-word on GAP-DRIVING-005 and GAP-DRIVING-008, and the readiness probes of
-GAP-DRIVING-001 to -004, -006 and -007 before Phase 10 builds anything. Do
+for, under the member decision that amends ADR 0014. Beside it, the
+follow-up PR that amends phases 6 to 8 for GAP-DRIVING-005 and the sensing
+description, and the readiness probes of GAP-DRIVING-001 to -004, -006 and
+-007 before Phase 10 builds anything. Do
 not jump from this context to implementation or claim a passed runtime
 gate.
 

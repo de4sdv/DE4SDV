@@ -129,8 +129,8 @@ PORT_ITEMS = {
     "EgoMotionSampleIn": ("in", "egoMotionSample", "EgoMotionSamplePayload"),
     "MotionCommandOut": ("out", "command", "VehicleMotionCommandPayload"),
     "MotionCommandIn": ("in", "command", "VehicleMotionCommandPayload"),
-    "VehicleControlOut": ("out", "vehicleCommand", "VehicleMotionCommand"),
-    "VehicleControlIn": ("in", "vehicleCommand", "VehicleMotionCommand"),
+    "VehicleControlOut": ("out", "vehicleControl", "SimulatorVehicleControl"),
+    "VehicleControlIn": ("in", "vehicleControl", "SimulatorVehicleControl"),
     "OperationalStateOut": ("out", "operationalState", "DrivingOperationalState"),
     "OperationalStateIn": ("in", "operationalState", "DrivingOperationalState"),
 }
@@ -192,17 +192,27 @@ SCORE_COMMUNICATION_HOPS = {
     "operationalStateOverSCORECommunication": ("statePublisherApplication.operationalStateOut",
                                                "scoreServices.gatewayd.operationalStateIn"),
 }
-HOST_CONNECTIONS = {
-    ("carlaServer.cameraStreamOut", "drivingSoftware.cameraImagesIn"),
-    ("carlaServer.egoMotionOut", "drivingSoftware.egoMotionIn"),
-    ("carlaServer.simulationClockOut", "drivingSoftware.simulationClockIn"),
-    ("routeProvider.routeOut", "drivingSoftware.routeIn"),
-    ("drivingSoftware.vehicleControlOut", "carlaServer.vehicleControlIn"),
-    ("drivingSoftware.operationalStateOut", "operationalStateOut"),
+#: host flow -> (item, source, target): each exchange with the context realizations is a flow of its item, so the
+#: context exchange view labels what crosses; into the simulator goes the vehicle control and nothing else
+HOST_FLOWS = {
+    "cameraStreamOverHostLoopback": ("CameraImages", "carlaServer.cameraStreamOut.cameraImages",
+                                     "drivingSoftware.cameraImagesIn.cameraImages"),
+    "egoMotionOverHostLoopback": ("EgoMotionState", "carlaServer.egoMotionOut.egoMotion",
+                                  "drivingSoftware.egoMotionIn.egoMotion"),
+    "simulationClockOverHostLoopback": ("SimulationClock", "carlaServer.simulationClockOut.simulationClock",
+                                        "drivingSoftware.simulationClockIn.simulationClock"),
+    "routeFromScenario": ("Route", "routeProvider.routeOut.route", "drivingSoftware.routeIn.route"),
+    "vehicleControlOverHostLoopback": ("SimulatorVehicleControl", "drivingSoftware.vehicleControlOut.vehicleControl",
+                                       "carlaServer.vehicleControlIn.vehicleControl"),
+    "operationalStateDelegation": ("DrivingOperationalState", "drivingSoftware.operationalStateOut.operationalState",
+                                   "operationalStateOut.operationalState"),
 }
-SYSTEM_CONNECTIONS = {
-    ("linuxHost.operationalStateOut", "sdvCoreGuest.someIpIn"),
-    ("sdvCoreGuest.topicOut", "hmiGuest.topicIn"),
+SYSTEM_FLOWS = {
+    "operationalStateOverSOMEIPAcrossHypervisor": ("DrivingOperationalState",
+                                                   "linuxHost.operationalStateOut.operationalState",
+                                                   "sdvCoreGuest.someIpIn.operationalState"),
+    "operationalStateTopicOverDataTunnelAcrossVMs": ("DrivingOperationalState", "sdvCoreGuest.topicOut.topicData",
+                                                     "hmiGuest.topicIn.topicData"),
 }
 SDV_CORE_GUEST_CONNECTIONS = {
     ("someIpIn", "sdvCore.someIp.someIpPort"),
@@ -246,7 +256,6 @@ GAPS = {
     "GAP-DRIVING-005": "gapActuationStopUnobservable",
     "GAP-DRIVING-006": "gapTypedOperationalStateTopicUnproven",
     "GAP-DRIVING-007": "gapGPUAndKVMHostUnprovisioned",
-    "GAP-DRIVING-008": "gapInProcessHopsUnderREQ014",
 }
 #: what each gap must name
 GAP_MENTIONS = {
@@ -254,10 +263,9 @@ GAP_MENTIONS = {
     "GAP-DRIVING-002": ("d9eac670", "0.6.0"),
     "GAP-DRIVING-003": ("ONNX", "parity", "REQ-DRIVING-035"),
     "GAP-DRIVING-004": ("libcarla", "12.2"),
-    "GAP-DRIVING-005": ("REQ-DRIVING-028", "REQ-DRIVING-029", "publishState"),
+    "GAP-DRIVING-005": ("REQ-DRIVING-028", "REQ-DRIVING-029", "publishState", "2026-11-06", "follow-up"),
     "GAP-DRIVING-006": ("VSIDL", "GAP-MW-038"),
     "GAP-DRIVING-007": ("GPU", "KVM", "gapBoundedCloudCampaign"),
-    "GAP-DRIVING-008": ("REQ-DRIVING-014", "FEO", "mw_com"),
 }
 PINS = ("313b3d849c17881d3a11b6bf62aa2afab6565ef0", "ca2a5f03724780be3cebf3d80e0c9c0c6fa64eb2",
         "d9eac670b7534352749da3d30f52aebf5129f168", "cb50764b8250a3c44ee5b79b87ba02c5a83b0c91", "v0.10.0",
@@ -268,7 +276,7 @@ ALTERNATIVES = ("ALT-DRIVING-PLAINAPPS-001", "ALT-DRIVING-SIMBRIDGE-001", "ALT-D
 STRUCTURE_VIEW = "closedLoopDrivingPhysicalStructureView"
 MATRIX_VIEW = "closedLoopDrivingPhysicalLogicalMappingView"
 PATH_VIEW = "closedLoopDrivingSCOREPathExchangeView"
-CONTEXT_VIEW = "closedLoopDrivingObservationExchangeView"
+CONTEXT_VIEW = "closedLoopDrivingPhysicalContextExchangeView"
 TREE_EXPOSES = [SYSTEM_USAGE] + [f"{SYSTEM_USAGE}::{path}" for path in (
     "linuxHost", "linuxHost::os", "linuxHost::hypervisor", "linuxHost::drivingSoftware",
     "linuxHost::drivingSoftware::drivingAgent", "linuxHost::drivingSoftware::drivingAgent::conditionInputs",
@@ -293,10 +301,19 @@ VIEWS = {
                 "PhysicalInternalExchangeViewpoint", ["scoreCommandPathConcern", "checkpointCommandAuthorityConcern"]),
     CONTEXT_VIEW: (None, "render asInterconnectionDiagram;",
                    [SYSTEM_USAGE] + [f"{SYSTEM_USAGE}::{member}" for member in (
-                       "linuxHost", "linuxHost::operationalStateOut", "sdvCoreGuest", "sdvCoreGuest::someIpIn",
-                       "sdvCoreGuest::topicOut", "hmiGuest", "hmiGuest::topicIn",
-                       "operationalStateOverSOMEIPAcrossHypervisor", "operationalStateTopicOverDataTunnelAcrossVMs")],
-                   "PhysicalContextExchangeViewpoint", ["aaosObservationFidelityConcern"]),
+                       "linuxHost", "linuxHost::operationalStateOut", "linuxHost::drivingSoftware",
+                       *(f"linuxHost::drivingSoftware::{port}" for port in (
+                           "cameraImagesIn", "egoMotionIn", "routeIn", "simulationClockIn", "vehicleControlOut",
+                           "operationalStateOut")),
+                       "linuxHost::carlaServer",
+                       *(f"linuxHost::carlaServer::{port}" for port in (
+                           "cameraStreamOut", "egoMotionOut", "simulationClockOut", "vehicleControlIn")),
+                       "linuxHost::routeProvider", "linuxHost::routeProvider::routeOut",
+                       *(f"linuxHost::{flow}" for flow in HOST_FLOWS),
+                       "sdvCoreGuest", "sdvCoreGuest::someIpIn", "sdvCoreGuest::topicOut", "hmiGuest", "hmiGuest::topicIn",
+                       *SYSTEM_FLOWS)],
+                   "PhysicalContextExchangeViewpoint",
+                   ["aaosObservationFidelityConcern", "checkpointCommandAuthorityConcern"]),
 }
 #: the concerns this phase declares -> (catalogue type, the parties that hold it)
 CATALOGUE_CONCERNS = {
@@ -347,6 +364,12 @@ def _direct(body: str) -> str:
 
 def _connections(body: str) -> list[tuple[str, str]]:
     return re.findall(r"\bconnection\s+\w+\s+connect\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)
+
+
+def _flows(body: str) -> dict[str, tuple[str, str, str]]:
+    """name -> (item, source, target) of every named `flow <name> of <Item> from <src> to <tgt>;`."""
+    return {name: (item, source, target) for name, item, source, target in re.findall(
+        r"\bflow\s+(\w+)\s+of\s+(\w+)\s+from\s+([\w.]+)\s+to\s+([\w.]+)\s*;", body)}
 
 
 def _allocations() -> list[tuple[str, str, str, str, str]]:
@@ -454,7 +477,17 @@ def test_the_port_definitions_carry_one_item_each_in_one_direction():
         assert f"private import DE4SDV_ClosedLoopDrivingOperationalContext::{item};" in code, item
     for item in ("CheckpointInputs", "InputCondition", "DrivingPlan", "DrivingMode"):
         assert f"private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::{item};" in code, item
-    assert re.findall(r"\bitem\s+def\s+(\w+)", code) == ["SimulationClock", *PAYLOADS]
+    assert re.findall(r"\bitem\s+def\s+(\w+)", code) == ["SimulationClock", *PAYLOADS, "SimulatorVehicleControl"]
+
+
+def test_the_simulator_receives_the_three_control_fields_the_adapter_sets_and_nothing_else():
+    body = braced_body(_code(), "item def SimulatorVehicleControl")
+    assert re.findall(r"\battribute\s+(\w+)\s*:\s*(\w+)\s*;", body) == [("throttle", "Real"), ("steer", "Real"),
+                                                                            ("brake", "Real")]
+    doc = _doc("item def SimulatorVehicleControl")
+    for phrase in ("the only thing", "VehicleControl", "[0, 1]", "[-1, 1]", "API reference", "pinned in phase 10",
+                   "REQ-DRIVING-012", "Hand brake, reverse, manual gear shift and gear stay at their defaults"):
+        assert phrase in doc, phrase
 
 
 @pytest.mark.parametrize("payload", sorted(PAYLOADS), ids=sorted(PAYLOADS))
@@ -506,8 +539,11 @@ def test_the_host_owns_the_platform_the_software_and_the_context_realizations():
     assert owned == [("os", "LinuxPlatform"), ("hypervisor", "KVMHypervisor"), ("drivingSoftware", REALIZATION),
                      ("carlaServer", "CARLASimulationServer"), ("routeProvider", "ScenarioRouteProvider")]
     assert "bind" not in body and "scoreServices" not in body, "the realization owns the S-CORE services"
-    connections = _connections(body)
-    assert set(connections) == HOST_CONNECTIONS and len(connections) == len(HOST_CONNECTIONS)
+    assert _connections(body) == [], "the host's exchanges are flows of their items (connections drew as boxes)"
+    assert _flows(body) == HOST_FLOWS
+    assert len(re.findall(r"\bflow\b", body)) == len(HOST_FLOWS)
+    into_simulator = [name for name, (_, _, target) in HOST_FLOWS.items() if target.startswith("carlaServer.")]
+    assert into_simulator == ["vehicleControlOverHostLoopback"], "the vehicle control is the only thing the simulator receives"
     assert dict(re.findall(r"^\s*port\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)) == {"operationalStateOut": "OperationalStateOut"}
     for layer in ("LinuxPlatform", "KVMHypervisor", "EclipseSCORE", "AndroidHLOS", "AndroidSDVMiddleware",
                   "OSHypervisorInterface"):
@@ -537,10 +573,16 @@ def test_the_guests_carry_the_observation_path_and_the_system_crosses_the_hyperv
     assert set(_connections(hmi)) == HMI_GUEST_CONNECTIONS
     observer = braced_body(hmi, "part stateObserver : DrivingStateObserverApplication")
     assert dict(re.findall(r"\bport\s+(\w+)\s*:\s*(\w+)\s*;", observer)) == {"operationalStateIn": "OperationalStateIn"}
+    # what the observer presents (owner decision 2026-11-06): the operational state only, under two clocks
+    observer_doc = _doc("part stateObserver : DrivingStateObserverApplication", braced_body(_raw(), "part def AAOSIVIGuest"))
+    for phrase in ("2026-11-06", "the run record it names", "the cause of a stop", "the run identity",
+                   "No camera images, no commands, no route; nothing back", "two clocks side by side",
+                   "simulation time of the newest input", "wall-clock time of the publication", "phase 10 evidence"):
+        assert phrase in observer_doc, phrase
     system = _body_of_definition(SYSTEM)
     assert re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", system, re.M) == [
         ("linuxHost", HOST), ("sdvCoreGuest", "AAOSSDVCoreGuest"), ("hmiGuest", "AAOSIVIGuest")]
-    assert set(_connections(system)) == SYSTEM_CONNECTIONS
+    assert _connections(system) == [] and _flows(system) == SYSTEM_FLOWS
     interfaces = re.findall(r"\binterface\s+(\w+)\s*:\s*OSHypervisorInterface\s+connect\s+([\w.]+)\s+to\s+([\w.]+)\s*;", system)
     assert interfaces == [("sdvCoreGuestUnderKVM", "sdvCoreGuest.os.hypervisorPort", "linuxHost.hypervisor.guestPort"),
                           ("hmiGuestUnderKVM", "hmiGuest.os.hypervisorPort", "linuxHost.hypervisor.guestPort")]
@@ -638,9 +680,19 @@ def test_the_package_records_the_pins_the_alternatives_and_what_phase_8_settled(
     assert "KUKSA" in head
     comments = re.findall(r"\bcomment\s+(\w+)\s+about\s+(\w+)", _code())
     assert sorted(comments) == sorted([("phase8TransportSettled", "gapTransportAndControl"),
-                                       ("phase8ConversionPlacement", "gapModelInputAndFeedback")])
+                                       ("phase8ConversionPlacement", "gapModelInputAndFeedback"),
+                                       ("reqPlansAndCommandsOverSCOREReading", "reqPlansAndCommandsOverSCORE")])
     for gap in ("gapTransportAndControl", "gapModelInputAndFeedback"):
         assert f"private import DE4SDV_ClosedLoopDrivingFraming::{gap};" in _code(), gap
+    # the owner's reading of REQ-DRIVING-014 (2026-11-06) closed the in-process-hops question: no gap carries it
+    assert "private import DE4SDV_ClosedLoopDrivingNeedsRequirements::reqPlansAndCommandsOverSCORE;" in _code()
+    assert re.search(r"\bcomment\s+reqPlansAndCommandsOverSCOREReading\s+about\s+reqPlansAndCommandsOverSCORE,\s*"
+                     + AGENT + r"\b", _code())
+    reading = _flat(re.search(r"comment reqPlansAndCommandsOverSCOREReading[^/]*/\*(.*?)\*/", _raw(), re.S).group(1))
+    for phrase in ("2026-11-06", "hops between processes", "mw::com", "no hops between processes",
+                   "REQ-DRIVING-014 does not constrain them", "The placement stands", "logs them as FEO topics"):
+        assert phrase in reading, phrase
+    assert "GAP-DRIVING-008" not in _raw() and "gapInProcessHopsUnderREQ014" not in _raw()
     for concern in FRAMING_CONCERNS:
         assert f"private import DE4SDV_ClosedLoopDrivingFraming::{concern};" in _code(), concern
 
@@ -679,7 +731,11 @@ def test_the_interconnection_views_draw_the_path_and_the_context_at_their_depths
     # the parts without their definition-declared ports and no hop (run 42214648709): each element is named
     assert "attribute depth = -1;" in context and "attribute maxCompartmentEntries = 0;" in context
     assert "attribute showAnnotationRows = false;" in context
-    assert "filter not (@ SysML::InterfaceUsage);" in context, "the hypervisor interfaces span levels; a box with two ends otherwise"
+    # a connection with one exposed end drew as a box with two ends (run 42215689738: the delegations inside the
+    # host and the guests); the exchanges the view draws are flows, every connection (interfaces and the
+    # delegations inside the exposed parts) is filtered
+    assert "filter not (@ SysML::ConnectionUsage);" in context
+    assert "filter not (@ SysML::InterfaceUsage);" not in context, "subsumed by the connection filter"
     tree = braced_body(code, f"view {STRUCTURE_VIEW}")
     assert "filter not (@ SysML::BindingConnectorAsUsage);" in tree, "the guest's bind drew as a box with two ends"
 
@@ -752,9 +808,12 @@ def test_the_guide_describes_phase_8_and_names_phase_9_as_the_next_work():
     guide = GUIDE.read_text(encoding="utf-8")
     assert "## Physical and software realization (Phase 8)" in guide
     assert "closed_loop_driving_physical_software_realization.sysml" in guide
+    flat = " ".join(guide.split())
     for word in ("FEO", "actuation adapter", "state publisher", "gatewayd", "ONNX", "v0.10.0", "v1.0.5",
-                 "GAP-DRIVING-005", "GAP-DRIVING-008", "KUKSA"):
-        assert word in guide, word
+                 "GAP-DRIVING-005", "reqPlansAndCommandsOverSCOREReading", "KUKSA", "two clocks side by side",
+                 "simulated sensor rig", "the vehicle control and nothing else", "2026-11-06"):
+        assert word in flat, word
+    assert "GAP-DRIVING-008" not in guide
     assert "The next work is **Phase 9**" in guide
     assert "The next work is **Phase 8**" not in guide
     assert "tests/test_closed_loop_driving_physical_software_realization.py" in guide
