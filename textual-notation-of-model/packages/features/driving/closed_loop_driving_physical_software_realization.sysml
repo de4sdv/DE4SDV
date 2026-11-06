@@ -119,6 +119,9 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::InputCondition;
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::DrivingPlan;
   private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::DrivingMode;
+  private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::ActuationState;
+  private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::CameraPosition;
+  private import DE4SDV_VehicleSensingBoundary::VehicleSensingAssembly;
   private import DE4SDV_ClosedLoopDrivingLogicalArchitecture::ClosedLoopDrivingLogicalSystem;
   private import DE4SDV_ClosedLoopDrivingNeedsRequirements::reqPlansAndCommandsOverSCORE;
   private import COVESA_VSS::SignalDefinitions::Vehicle_Speed;
@@ -294,6 +297,14 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     doc /* The operational state entering an element on any hop of the observation path. */
     in item operationalState : DrivingOperationalState;
   }
+  port def ActuationStateOut {
+    doc /* The actuation adapter's actuation-state event for the publisher: the applied command with its time, or its own stop with the cause. */
+    out item actuationState : ActuationState;
+  }
+  port def ActuationStateIn {
+    doc /* The publisher's subscription to the actuation adapter's actuation state. */
+    in item actuationState : ActuationState;
+  }
 
   /* ───────────── The software elements: four activities of one agent, two applications ───────────── */
 
@@ -431,30 +442,38 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * vehicle. It reads the simulation time from the world snapshot; when no
      * valid command has arrived for 200 ms of simulation time it applies the
      * stop response itself (REQ-DRIVING-028), which is why it is not an
-     * activity of the agent. Nothing it knows flows back into the loop; what
-     * that means for REQ-DRIVING-029 is GAP-DRIVING-005.
+     * activity of the agent. It publishes its actuation state as an mw::com
+     * event for the state publisher, the applied command with its actuation
+     * time or its own stop with the cause, so that the stop it decides is
+     * published within the limit of REQ-DRIVING-029 like the one the
+     * supervision decides (the amendment of 2026-11-06). Nothing it knows
+     * flows back into the loop.
      */
     port commandIn : MotionCommandIn;
     port simulationClockIn : SimulationClockIn;
     port vehicleControlOut : VehicleControlOut;
+    port actuationStateOut : ActuationStateOut;
   }
 
   part def OperationalStatePublisherApplication :> PhysicalAllocationElement {
     doc /*
      * Carries the operational-state publisher of phase 7: an S-CORE
      * application of its own, in C++, off the loop. It subscribes to the
-     * plan, the mode and the ego-motion sample events of the agent and
-     * publishes the operational state, each publication with its producer
-     * and its time: the plan (REQ-DRIVING-015), the motion sample
-     * (REQ-DRIVING-016), the health at least every 200 ms also while no plan
-     * arrives (REQ-DRIVING-017), and the stop with its cause when the mode
-     * changes (REQ-DRIVING-029). Its one output is the mw::com event the
-     * SOME/IP gateway forwards; it has no port into the agent
+     * plan, the mode and the ego-motion sample events of the agent and to
+     * the actuation-state event of the actuation adapter, and publishes the
+     * operational state, each publication with its producer and its time:
+     * the plan (REQ-DRIVING-015), the motion sample (REQ-DRIVING-016), the
+     * health at least every 200 ms also while no plan arrives
+     * (REQ-DRIVING-017), and the stop with its cause when the mode changes
+     * or the actuation state reports the adapter's own stop
+     * (REQ-DRIVING-029). Its one output is the mw::com event the SOME/IP
+     * gateway forwards; it has no port into the agent or the adapter
      * (REQ-DRIVING-018, -019).
      */
     port planIn : DrivingPlanIn;
     port modeIn : DrivingModeIn;
     port egoMotionSampleIn : EgoMotionSampleIn;
+    port actuationStateIn : ActuationStateIn;
     port operationalStateOut : OperationalStateOut;
   }
 
@@ -470,7 +489,8 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * input the bench adds. Between processes every hop is mw::com (S-CORE
      * Communication v0.6.0): the command to the actuation adapter, the
      * REQ-DRIVING-014 hop; the plan, the mode and the ego-motion sample to
-     * the publisher; the operational state to gatewayd. From gatewayd on the
+     * the publisher, and the actuation state from the adapter to the
+     * publisher; the operational state to gatewayd. From gatewayd on the
      * path is INC-MW-011's: the gateway's IPC to someipd, SOME/IP out of the
      * host. The application-middleware adapter of the platform stack is the
      * mw::com binding code of the three programs; phase 9 derives it per
@@ -535,6 +555,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     connection planEventOverSCORECommunication connect drivingAgent.planEventOut to statePublisherApplication.planIn;
     connection modeEventOverSCORECommunication connect drivingAgent.modeEventOut to statePublisherApplication.modeIn;
     connection egoMotionSampleOverSCORECommunication connect drivingAgent.egoMotionSampleOut to statePublisherApplication.egoMotionSampleIn;
+    connection actuationStateOverSCORECommunication connect actuationAdapter.actuationStateOut to statePublisherApplication.actuationStateIn;
     connection operationalStateOverSCORECommunication connect statePublisherApplication.operationalStateOut to scoreServices.gatewayd.operationalStateIn;
     connection operationalStateOverGatewayIPC connect scoreServices.gatewayd.operationalStateOut to scoreServices.someipd.operationalStateIn;
   }
@@ -552,13 +573,82 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * activity for the sensor streams and the actuation adapter for the
      * vehicle control and the world snapshot. Its release is pinned with the
      * scenario in phase 10; the client library's build against the S-CORE
-     * toolchain is GAP-DRIVING-004.
+     * toolchain is GAP-DRIVING-004. The sensors of the loop are its: the
+     * simulated sensor rig below renders the six camera streams and samples
+     * the ego motion the server puts on its ports (the owner's sensing
+     * decision of 2026-11-06, ASM-DRIVING-004).
      */
     port cameraStreamOut : CameraStreamOut;
     port egoMotionOut : EgoMotionStreamOut;
     port simulationClockOut : SimulationClockOut;
     port vehicleControlIn : VehicleControlIn;
+
+    part sensorRig : SimulatedSensorRig;
   }
+
+  part def SimulatedSensorRig {
+    doc /*
+     * The bench's sensors, System 2: six cameras attached to the simulated
+     * ego vehicle and one ego-motion source, standing for the vehicle's
+     * cameras and motion sensors of the phase 2 context. The rig's geometry
+     * is the rig profile of the pinned checkpoint's dataset at the source
+     * pin cb50764b (Model/plugins/alpasim_driver/alpasim_autoe2e/
+     * configs/calibration/, one JSON per dataset rig): six cameras in the
+     * canonical slots of Model/data_parsing/camera_slots.py, each with its
+     * native image size, its intrinsic matrix and its camera-to-reference
+     * pose, and the dataset's curvature rule for the ego-motion history. The
+     * released checkpoints of the pinned source are trained on the nuPlan
+     * and the KITScenes rigs (Model/plugins/alpasim_driver/README.md); which
+     * profile applies follows the checkpoint pinned in phase 10, so no
+     * profile number is stated here. The simulated cameras take the
+     * profile's image size, field of view and pose; their principal point
+     * sits at the image centre, where the profile's is offset, so the
+     * projection operators of REQ-DRIVING-005 are built from the simulated
+     * cameras' calibration and the offset is recorded with the pin. The
+     * product line's sensing boundary (DE4SDV_VehicleSensingBoundary) types
+     * its camera as a detection camera, one that produces object
+     * observations, so it does not type these image cameras; whether an
+     * image camera joins the sensing boundary is a product-line decision,
+     * not this increment's. The rig stands for the sensing assembly by
+     * dependency only. No connection, binding or port inside: the server's
+     * ports carry the streams.
+     */
+    part frontCamera : SimulatedCamera { attribute :>> position = CameraPosition::front; }
+    part frontLeftCamera : SimulatedCamera { attribute :>> position = CameraPosition::frontLeft; }
+    part frontRightCamera : SimulatedCamera { attribute :>> position = CameraPosition::frontRight; }
+    part rearLeftCamera : SimulatedCamera { attribute :>> position = CameraPosition::rearLeft; }
+    part rearCamera : SimulatedCamera { attribute :>> position = CameraPosition::rear; }
+    part rearRightCamera : SimulatedCamera { attribute :>> position = CameraPosition::rearRight; }
+    part egoMotionSource : SimulatedEgoMotionSource;
+  }
+
+  part def SimulatedCamera {
+    doc /*
+     * One rendered camera of the rig, at one of the six positions of
+     * REQ-DRIVING-003: it renders an image of the scene at the profile's
+     * image size and field of view from the profile's pose on the ego
+     * vehicle, stamped with the simulation time of the render
+     * (REQ-DRIVING-030). Rendered, not captured: no exposure, no motion
+     * blur, no lens distortion beyond what the simulator models
+     * (ASM-DRIVING-004).
+     */
+    attribute position : CameraPosition;
+  }
+
+  part def SimulatedEgoMotionSource {
+    doc /*
+     * The rig's motion sensing: it reads the simulated ego vehicle's
+     * vehicle state, its velocity, acceleration and angular velocity, from
+     * the simulator's physics each step and stamps the sample with the
+     * simulation time (REQ-DRIVING-030). That is ground truth: a vehicle's
+     * inertial measurement unit and wheel odometry add noise, bias and
+     * latency the bench does not have (ASM-DRIVING-004). The curvature the
+     * checkpoint takes is derived inside the driving system
+     * (MAP-DRIVING-EGO-MOTION), not here.
+     */
+  }
+
+  dependency sensorRigStandsForTheSensingAssembly from SimulatedSensorRig to VehicleSensingAssembly;
 
   part def ScenarioRouteProvider :> NavigationSystem {
     doc /*
@@ -832,7 +922,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10: fix the mode and cause enumerations in the mw::com configuration and run REQ-DRIVING-023 to -027 and -029 with injected degradations";
-      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-005 (the actuation-side stop has no cause on this path)";
+      attribute :>> evidenceOrGap = "no runtime evidence of record; the actuation-side stop reaches the publisher on MAP-DRIVING-ACTUATION-STATE, not on this path";
     }
   }
 
@@ -881,7 +971,31 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10: identify the vehicle's response on the pinned simulator release, author the conversion and run REQ-DRIVING-012, -020 to -022 and -028 with a withheld command";
-      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-004, GAP-DRIVING-005 (the stop applied here reaches no publication)";
+      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-004; the stop applied here is published through MAP-DRIVING-ACTUATION-STATE";
+    }
+  }
+
+  allocation actuationStateMapping : SystemToSoftwareSignalMappingCandidate
+    allocate ClosedLoopDrivingLogicalSystem::actuationGateway
+    to closedLoopDrivingPhysicalSystem.linuxHost.drivingSoftware.actuationAdapter.actuationStateOut {
+    item <'MAP-DRIVING-ACTUATION-STATE'> actuationStateMappingRecord : LogicalToSoftwareSignalMappingRecord {
+      doc /*
+       * The actuation state from the actuation adapter to the state publisher,
+       * an mw::com event off the loop: the amendment of 2026-11-06 that gives
+       * the adapter's own stop (REQ-DRIVING-028) its path to the publication
+       * of REQ-DRIVING-029. A state of the actuation, no vehicle signal.
+       */
+      attribute :>> semanticSource = "the actuation state the adapter reports each step: the command it applied with its actuation time in simulation time, or that its own stop response is in force, since when and why (no valid command for 200 ms of simulation time, REQ-DRIVING-028): a system state, no vehicle signal";
+      attribute :>> softwareContractArtifact = "in: the applied vehicle control and the world snapshot's simulation time inside the adapter; out: the mw::com actuation-state event for the state publisher, candidate";
+      attribute :>> softwareContractMessage = "out: ActuationState with the applied command or the stop in force, its cause and the actuation time, candidate";
+      attribute :>> softwareContractField = "out: applied, acceleration, steeringAngle, actuationTime, stopInForce, stopSince, cause, candidate";
+      attribute :>> dataTypeAndUnit = "out: a flag for applied, the command's m/s^2 and degrees, simulation-time seconds for the times, an enumeration for the cause; no unit";
+      attribute :>> timingQualityAndState = "published once per applied command and once when the stop response begins; the publisher publishes the stop with its cause within 100 ms of wall-clock time of that event (REQ-DRIVING-029); one way, the publisher sends nothing back (REQ-DRIVING-018, -019)";
+      attribute :>> transformationRule = "state rule: a valid command applied gives applied with its time; 200 ms of simulation time without a valid command gives the stop in force with the cause lost commands and the time it began (REQ-DRIVING-028); the publisher merges it with the mode of MAP-DRIVING-MODE into the one stop publication";
+      attribute :>> disposition = SignalMappingDisposition::candidate;
+      attribute :>> owner = "DE4SDV maintainers";
+      attribute :>> nextAction = "phase 10: fix the event in the mw::com configuration and run REQ-DRIVING-028 and -029 with the command event withheld, reading the published cause";
+      attribute :>> evidenceOrGap = "no runtime evidence of record";
     }
   }
 
@@ -923,10 +1037,10 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * planner-to-simulator bypass exists. AAOS SDV consumes the plan, the
      * vehicle state and the health as a typed Data Tunnel topic over the
      * gateway chain; the observer sends nothing back. Open: the contract
-     * ids and the VSIDL message (phase 10) and the publication of the
-     * actuation-side stop (GAP-DRIVING-005, to be amended in phases 6 and
-     * 7); the in-process hops are settled by the owner's reading
-     * (reqPlansAndCommandsOverSCOREReading).
+     * ids and the VSIDL message (phase 10); the actuation-side stop reaches
+     * the publisher since the amendment of 2026-11-06
+     * (MAP-DRIVING-ACTUATION-STATE); the in-process hops are settled by the
+     * owner's reading (reqPlansAndCommandsOverSCOREReading).
      */
 
   comment reqPlansAndCommandsOverSCOREReading about reqPlansAndCommandsOverSCORE, DrivingAgentApplication
@@ -999,6 +1113,22 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      */
   }
 
+  part <'ASM-DRIVING-004'> asmSimulatedSensorsStandForTheVehicles : IncrementAssumption {
+    doc /*
+     * The simulated sensor rig stands for the vehicle's sensors: the camera
+     * images are rendered by the simulator at the rig profile's geometry,
+     * not captured by a camera, and the ego-motion samples are the
+     * simulator's vehicle state, ground truth without the noise, the bias
+     * and the latency of an inertial measurement unit and a wheel odometry.
+     * The loop and its evidence are proven on these inputs; what the proof
+     * says about a vehicle's camera and motion sensors is outside this
+     * increment, which claims no on-road behavior. Where the profile's
+     * principal point is offset from the image centre the simulated
+     * cameras use, the offset is recorded with the pinned checkpoint in
+     * phase 10 (the owner's sensing decision of 2026-11-06).
+     */
+  }
+
   part <'GAP-DRIVING-001'> gapFEOOutsideReleasedBaseline : IncrementGap {
     doc /*
      * Open: FEO is not in the known_good.json of reference_integration
@@ -1062,27 +1192,6 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * one hop and one copy per frame. The readiness probe links a client
      * that reads one camera frame and applies one vehicle control before
      * phase 10.
-     */
-    attribute :>> disposition = LifecycleDisposition::deferred;
-  }
-
-  part <'GAP-DRIVING-005'> gapActuationStopUnobservable : IncrementGap {
-    doc /*
-     * Open, found by this placement: REQ-DRIVING-028 is allocated to
-     * applyCommands and so to the actuation adapter, REQ-DRIVING-029 to
-     * publishState and so to the publisher, and phase 6 has no flow and
-     * phase 7 no connection from the actuation gateway to the publisher. The
-     * adapter's own stop response, applied when no valid command arrives for
-     * 200 ms of simulation time, therefore has no path to be published with
-     * its cause; with the adapter a process of its own the loss case is
-     * real (a lost mw::com hop or a stopped agent). The publisher sees the
-     * mode of the supervision only, and the supervision cannot see the
-     * command hop. Phase 8 adds no connection the logical architecture does
-     * not have. The owner decided on 2026-11-06: amend phases 6 and 7 with
-     * an actuation-state flow to the publisher (off the loop, like the
-     * publisher itself). A follow-up increment PR carries the amendment
-     * through phases 6, 7 and 8 and retires this record; until it merges
-     * the gap is real in the tree.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -1155,6 +1264,14 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::scoreServices::gatewayd;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::scoreServices::someipd;
     expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::frontCamera;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::frontLeftCamera;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::frontRightCamera;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::rearLeftCamera;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::rearCamera;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::rearRightCamera;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::egoMotionSource;
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::os;

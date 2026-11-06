@@ -28,9 +28,14 @@
  * ClosedLoopDrivingModes, and the conceptual interfaces of the system are
  * the ports of ClosedLoopDrivingFunctionalBoundary, whose items specialize
  * the items of phase 2. No vehicle signal specification is imported or used
- * anywhere in this package: the interface items are conceptual, and the
- * signal typing of an interface starts in phase 8, at the port where an item
- * enters a software contract.
+ * anywhere in this package: the interface items are conceptual, their
+ * quantities are ISQ quantity values, and the signal typing of an interface
+ * starts in phase 8, at the port where an item enters a software contract.
+ *
+ * Amended on the owner's decision of 2026-11-06 (GAP-DRIVING-005 of phase
+ * 8): the actuation reports its state to the publication, so the stop it
+ * applies itself reaches the observer with its cause. Described the same
+ * day: what the camera images and the motion samples carry at the boundary.
  */
 
 package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
@@ -48,6 +53,7 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
   private import DE4SDV_ClosedLoopDrivingOperationalContext::DrivingStateObserverApplication;
   private import DE4SDV_ClosedLoopDrivingOperationalContext::closedLoopDrivingOperationalContext;
   private import DE4SDV_ClosedLoopDrivingNeedsRequirements::*;
+  private import ScalarValues::Positive;
   private import SAF_Viewpoints::*;
   private import StandardViewDefinitions::*;
   private import SysideViews::**;
@@ -89,6 +95,17 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
      * The identity of a run: the SHA-256 of the checkpoint file it loaded, the
      * AutoE2E source revision it runs and the SHA-256 of its complete
      * configuration.
+     */
+  }
+
+  item def ActuationState {
+    doc /*
+     * For each step, what the actuation did: the command it applied with its
+     * actuation time, or that its own stop response is in force, since when
+     * and why, when no valid command reached it in the limit of
+     * REQ-DRIVING-028. It goes to the publication only, so that the stop the
+     * actuation decides is published with its cause (REQ-DRIVING-029) like
+     * the stop the supervision decides; nothing of it enters the loop.
      */
   }
 
@@ -206,23 +223,28 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
      * Gives each command to the actuation of the vehicle and marks it with its
      * actuation time. When no valid command has reached the actuation in the
      * limit of REQ-DRIVING-028, it applies the stop response there itself, so
-     * the vehicle stops also when the command path does not deliver.
+     * the vehicle stops also when the command path does not deliver. It
+     * reports its actuation state to the publication: the applied command
+     * with its time, or its own stop with the cause.
      */
     in command : VehicleMotionCommand;
     out actuatedCommand : VehicleMotionCommand;
+    out actuationState : ActuationState;
   }
 
   action def PublishOperationalState :> AllocatableFunction {
     doc /*
      * Publishes for observation each plan, the motion sample of each step, the
-     * health at least periodically and the stop with its cause, each with its
-     * producer and its time. Publication is one way and never waits for a
-     * receiver, so how the state observer receives it does not change the
-     * plans, the commands or the planning time.
+     * health at least periodically and the stop with its cause, whether the
+     * supervision decided it (the mode) or the actuation did (the actuation
+     * state), each with its producer and its time. Publication is one way and
+     * never waits for a receiver, so how the state observer receives it does
+     * not change the plans, the commands or the planning time.
      */
     in plan : DrivingPlan;
     in motion : EgoMotionState;
     in mode : DrivingMode;
+    in actuationState : ActuationState;
     out operationalState : DrivingOperationalState;
   }
 
@@ -287,6 +309,7 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
     action applyCommands : ApplyCommandsAtActuation {
       in command;
       out actuatedCommand = ClosedLoopDrivingFunctionalFlow::vehicleCommand;
+      out actuationState;
     }
     flow from commandVehicle.command to applyCommands.command;
     first commandVehicle then applyCommands;
@@ -295,10 +318,12 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
       in plan;
       in motion = ClosedLoopDrivingFunctionalFlow::egoMotion;
       in mode;
+      in actuationState;
       out operationalState = ClosedLoopDrivingFunctionalFlow::operationalState;
     }
     flow from planTrajectory.plan to publishState.plan;
     flow from superviseLoop.mode to publishState.mode;
+    flow from applyCommands.actuationState to publishState.actuationState;
   }
 
   action closedLoopDrivingFunctionalFlow : ClosedLoopDrivingFunctionalFlow;
@@ -413,12 +438,68 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
 
   /* ────────── The conceptual interfaces of the system: one functional chain ────────── */
 
+  enum def CameraPosition {
+    doc /*
+     * The six camera positions of the vehicle, in the order REQ-DRIVING-003
+     * fixes for the checkpoint's input.
+     */
+    front;
+    frontLeft;
+    frontRight;
+    rearLeft;
+    rear;
+    rearRight;
+  }
+
+  item def CameraImage {
+    doc /*
+     * One image of one of the vehicle's cameras: its position, its capture
+     * time in simulation time (REQ-DRIVING-030), its size in pixels, and the
+     * calibration of its camera, the intrinsic matrix and the pose in the
+     * vehicle frame, from which the projection operator of REQ-DRIVING-005
+     * is built once the image is scaled to the size the checkpoint takes
+     * (REQ-DRIVING-003). The calibration is the camera's and travels with its
+     * images; the driving system builds no calibration of its own.
+     */
+    attribute position : CameraPosition;
+    attribute captureTime : ISQ::DurationValue;
+    attribute widthPixels : Positive;
+    attribute heightPixels : Positive;
+  }
+
   item def CameraImageInput :> CameraImages {
-    doc /* The camera images as they enter the driving system at its input: the vehicle's images with their capture times. */
+    doc /*
+     * The camera images as they enter the driving system at its input: for
+     * each step one image per position, the six in the order of
+     * CameraPosition (REQ-DRIVING-003), each with its capture time
+     * (REQ-DRIVING-030) and its camera's calibration (REQ-DRIVING-005).
+     */
+    item image : CameraImage[6] ordered;
+  }
+
+  item def EgoMotionSample {
+    doc /*
+     * One sample of the vehicle's own motion: its speed, its longitudinal
+     * and lateral acceleration and its yaw rate, as ISQ quantities, with its
+     * sample time in simulation time (REQ-DRIVING-030). The curvature the
+     * checkpoint takes in its history (REQ-DRIVING-008) is no sampled
+     * quantity: the driving system derives it from the yaw rate and the
+     * speed by the rule of the checkpoint's data.
+     */
+    attribute speed : ISQ::SpeedValue;
+    attribute longitudinalAcceleration : ISQ::AccelerationValue;
+    attribute lateralAcceleration : ISQ::AccelerationValue;
+    attribute yawRate : ISQ::AngularVelocityValue;
+    attribute sampleTime : ISQ::DurationValue;
   }
 
   item def EgoMotionInput :> EgoMotionState {
-    doc /* The vehicle's motion as it enters the driving system at its input: its samples with their times. */
+    doc /*
+     * The vehicle's motion as it enters the driving system at its input: its
+     * samples in the order of their sample times, from which the system
+     * keeps the history REQ-DRIVING-008 asks for.
+     */
+    item sample : EgoMotionSample[*] ordered;
   }
 
   item def RouteInput :> Route {

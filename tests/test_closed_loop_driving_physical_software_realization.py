@@ -92,9 +92,11 @@ PORTS = {
     "VehicleCommandActivity": {"validPlanIn": "DrivingPlanIn", "modeIn": "DrivingModeIn",
                                "egoMotionSampleIn": "EgoMotionSampleIn", "commandOut": "MotionCommandOut"},
     "ActuationAdapterApplication": {"commandIn": "MotionCommandIn", "simulationClockIn": "SimulationClockIn",
-                                    "vehicleControlOut": "VehicleControlOut"},
+                                    "vehicleControlOut": "VehicleControlOut",
+                                    "actuationStateOut": "ActuationStateOut"},
     "OperationalStatePublisherApplication": {"planIn": "DrivingPlanIn", "modeIn": "DrivingModeIn",
                                              "egoMotionSampleIn": "EgoMotionSampleIn",
+                                             "actuationStateIn": "ActuationStateIn",
                                              "operationalStateOut": "OperationalStateOut"},
     AGENT: {"cameraImagesIn": "CameraStreamIn", "egoMotionIn": "EgoMotionStreamIn", "routeIn": "RouteIn",
             "egoMotionSampleOut": "EgoMotionSampleOut", "planEventOut": "DrivingPlanOut",
@@ -133,6 +135,8 @@ PORT_ITEMS = {
     "VehicleControlIn": ("in", "vehicleControl", "SimulatorVehicleControl"),
     "OperationalStateOut": ("out", "operationalState", "DrivingOperationalState"),
     "OperationalStateIn": ("in", "operationalState", "DrivingOperationalState"),
+    "ActuationStateOut": ("out", "actuationState", "ActuationState"),
+    "ActuationStateIn": ("in", "actuationState", "ActuationState"),
 }
 #: the payloads this phase types, each a realization of a phase 2 item -> (base item, VSS-typed attributes)
 PAYLOADS = {
@@ -182,6 +186,7 @@ REALIZATION_CONNECTIONS = {
     ("drivingAgent.planEventOut", "statePublisherApplication.planIn"),
     ("drivingAgent.modeEventOut", "statePublisherApplication.modeIn"),
     ("drivingAgent.egoMotionSampleOut", "statePublisherApplication.egoMotionSampleIn"),
+    ("actuationAdapter.actuationStateOut", "statePublisherApplication.actuationStateIn"),
     ("statePublisherApplication.operationalStateOut", "scoreServices.gatewayd.operationalStateIn"),
     ("scoreServices.gatewayd.operationalStateOut", "scoreServices.someipd.operationalStateIn"),
 }
@@ -193,6 +198,8 @@ SCORE_COMMUNICATION_HOPS = {
     "modeEventOverSCORECommunication": ("drivingAgent.modeEventOut", "statePublisherApplication.modeIn"),
     "egoMotionSampleOverSCORECommunication": ("drivingAgent.egoMotionSampleOut",
                                               "statePublisherApplication.egoMotionSampleIn"),
+    "actuationStateOverSCORECommunication": ("actuationAdapter.actuationStateOut",
+                                             "statePublisherApplication.actuationStateIn"),
     "operationalStateOverSCORECommunication": ("statePublisherApplication.operationalStateOut",
                                                "scoreServices.gatewayd.operationalStateIn"),
 }
@@ -231,6 +238,8 @@ SIGNAL_MAPPINGS = {
     "commandMapping": ("vehicleCommander", "drivingAgent::commandVehicle::commandOut", "MAP-DRIVING-COMMAND"),
     "vehicleControlMapping": ("actuationGateway", "actuationAdapter::vehicleControlOut",
                               "MAP-DRIVING-VEHICLE-CONTROL"),
+    "actuationStateMapping": ("actuationGateway", "actuationAdapter::actuationStateOut",
+                              "MAP-DRIVING-ACTUATION-STATE"),
     "operationalStateMapping": ("statePublisher", "scoreServices::someipd::operationalStateOut",
                                 "MAP-DRIVING-OPERATIONAL-STATE"),
 }
@@ -242,13 +251,13 @@ ASSUMPTIONS = {
     "ASM-DRIVING-001": "asmFixedOrderCycleCarriesTheLoop",
     "ASM-DRIVING-002": "asmExportedModelStandsForTheCheckpoint",
     "ASM-DRIVING-003": "asmSimulatorClientsInsideSCOREApplications",
+    "ASM-DRIVING-004": "asmSimulatedSensorsStandForTheVehicles",
 }
 GAPS = {
     "GAP-DRIVING-001": "gapFEOOutsideReleasedBaseline",
     "GAP-DRIVING-002": "gapSOMEIPGatewayAgainstCommunication060",
     "GAP-DRIVING-003": "gapModelExportAndParityUnproven",
     "GAP-DRIVING-004": "gapSimulatorClientBuildUnproven",
-    "GAP-DRIVING-005": "gapActuationStopUnobservable",
     "GAP-DRIVING-006": "gapTypedOperationalStateTopicUnproven",
     "GAP-DRIVING-007": "gapGPUAndKVMHostUnprovisioned",
 }
@@ -258,8 +267,8 @@ GAP_MENTIONS = {
     "GAP-DRIVING-002": ("d9eac670", "0.6.0"),
     "GAP-DRIVING-003": ("ONNX", "parity", "REQ-DRIVING-035"),
     "GAP-DRIVING-004": ("libcarla", "12.2"),
-    "GAP-DRIVING-005": ("REQ-DRIVING-028", "REQ-DRIVING-029", "publishState", "2026-11-06", "follow-up"),
     "GAP-DRIVING-006": ("VSIDL", "GAP-MW-038"),
+    "ASM-DRIVING-004": ("rendered", "ground truth", "noise", "latency", "camera", "motion"),
     "GAP-DRIVING-007": ("GPU", "KVM", "gapBoundedCloudCampaign"),
 }
 PINS = ("313b3d849c17881d3a11b6bf62aa2afab6565ef0", "ca2a5f03724780be3cebf3d80e0c9c0c6fa64eb2",
@@ -279,7 +288,11 @@ TREE_EXPOSES = [SYSTEM_USAGE] + [f"{SYSTEM_USAGE}::{path}" for path in (
     "linuxHost::drivingSoftware::drivingAgent::commandVehicle", "linuxHost::drivingSoftware::actuationAdapter",
     "linuxHost::drivingSoftware::statePublisherApplication", "linuxHost::drivingSoftware::scoreServices",
     "linuxHost::drivingSoftware::scoreServices::launchManager", "linuxHost::drivingSoftware::scoreServices::gatewayd",
-    "linuxHost::drivingSoftware::scoreServices::someipd", "linuxHost::carlaServer", "linuxHost::routeProvider",
+    "linuxHost::drivingSoftware::scoreServices::someipd", "linuxHost::carlaServer",
+    "linuxHost::carlaServer::sensorRig",
+    *(f"linuxHost::carlaServer::sensorRig::{camera}Camera" for camera in (
+        "front", "frontLeft", "frontRight", "rearLeft", "rear", "rearRight")),
+    "linuxHost::carlaServer::sensorRig::egoMotionSource", "linuxHost::routeProvider",
     "sdvCoreGuest", "sdvCoreGuest::os", "sdvCoreGuest::sdvMiddleware", "sdvCoreGuest::sdvCore", "hmiGuest",
     "hmiGuest::os", "hmiGuest::sdvGateway",
     "hmiGuest::stateObserver")]
@@ -320,7 +333,7 @@ CATALOGUE_CONCERNS = {
 FRAMING_CONCERNS = ("scoreCommandPathConcern", "checkpointCommandAuthorityConcern", "aaosObservationFidelityConcern")
 #: context realizations and platform parts carry no kernel typing: the advisory would name them
 NOT_ELEMENTS = ("CARLASimulationServer", "ScenarioRouteProvider", "AAOSSDVCoreGuest", "AAOSIVIGuest", HOST, SYSTEM,
-                REALIZATION, AGENT)
+                REALIZATION, AGENT, "SimulatedSensorRig", "SimulatedCamera", "SimulatedEgoMotionSource")
 CLAIM_WORDS = ("certif", "homolog", "complian", "production-ready", "production ready", "guarantee", "proves that",
                "proven on")
 
@@ -531,6 +544,35 @@ def test_the_realization_connects_the_programs_over_score_communication_and_dele
             assert not target.startswith("drivingAgent."), (source, target)
 
 
+def test_the_simulator_server_carries_the_sensor_rig_the_checkpoint_profile_shapes():
+    """The owner's sensing decision of 2026-11-06: the loop uses the simulation's sensors, described on the bench."""
+    code = _code()
+    assert "part sensorRig : SimulatedSensorRig;" in braced_body(code, "part def CARLASimulationServer")
+    rig = braced_body(code, "part def SimulatedSensorRig")
+    cameras = re.findall(r"\bpart\s+(\w+)\s*:\s*SimulatedCamera\s*\{\s*attribute\s+:>>\s+position\s*=\s*CameraPosition::(\w+);\s*\}", rig)
+    assert cameras == [(f"{p}Camera", p) for p in ("front", "frontLeft", "frontRight", "rearLeft", "rear", "rearRight")], \
+        "six cameras, one per position of REQ-DRIVING-003, in its order"
+    assert "part egoMotionSource : SimulatedEgoMotionSource;" in rig
+    assert not re.search(r"\b(connection|bind|flow|port)\b", rig), "nothing in the rig draws as a box in the context view"
+    assert "attribute position : CameraPosition;" in braced_body(code, "part def SimulatedCamera")
+    assert "private import DE4SDV_ClosedLoopDrivingFunctionalArchitecture::CameraPosition;" in code
+    rig_doc = _doc("part def SimulatedSensorRig")
+    for word in ("cb50764b", "configs/calibration", "camera_slots.py", "intrinsic", "camera-to-reference",
+                 "principal point", "REQ-DRIVING-005", "phase 10", "curvature rule"):
+        assert word in rig_doc, word
+    assert "nuPlan" in rig_doc and "KITScenes" in rig_doc, "the two released profiles; the pin picks one"
+    assert not re.search(r"\b\d{3,4}\s*(px|pixels|mm|°)", rig_doc), "no profile number before the checkpoint is pinned"
+    motion_doc = _doc("part def SimulatedEgoMotionSource")
+    for word in ("ground truth", "ASM-DRIVING-004", "vehicle state", "REQ-DRIVING-030"):
+        assert word in motion_doc, word
+    assert "detection" in rig_doc and "DE4SDV_VehicleSensingBoundary" in rig_doc, \
+        "the product line's camera is a detection camera: it does not type these"
+    assert re.search(r"\bdependency\s+\w+\s+from\s+SimulatedSensorRig\s+to\s+VehicleSensingAssembly\s*;", code)
+    assert "private import DE4SDV_VehicleSensingBoundary::VehicleSensingAssembly;" in code
+    server_doc = _doc("part def CARLASimulationServer")
+    assert "sensor rig" in server_doc or "sensorRig" in server_doc
+
+
 def test_the_host_owns_the_platform_the_software_and_the_context_realizations():
     code = _code()
     body = _body_of_definition(HOST)
@@ -642,6 +684,11 @@ def test_the_records_say_what_each_item_is_and_where_the_vss_typing_is():
         return braced_body(raw, f"item <'{short}'>")
     assert "no vehicle signal" in record("MAP-DRIVING-CAMERA-IMAGES") or "not a vehicle signal" in record("MAP-DRIVING-CAMERA-IMAGES")
     assert "Vehicle_Speed" in record("MAP-DRIVING-EGO-MOTION") and "km/h" in record("MAP-DRIVING-EGO-MOTION")
+    actuation = record("MAP-DRIVING-ACTUATION-STATE")
+    semantic_source = re.search(r'semanticSource = "([^"]*)"', actuation).group(1)
+    assert semantic_source.endswith("a system state, no vehicle signal"), "what the actuation state is, said where the method reads it"
+    assert "REQ-DRIVING-028" in semantic_source and "REQ-DRIVING-029" in actuation
+    assert "GAP-DRIVING-005" not in _code(), "retired by the amendment the owner decided on 2026-11-06"
     assert "curvature" in record("MAP-DRIVING-EGO-MOTION"), "the fourth history input is derived, not a VSS signal"
     assert "Vehicle_ADAS_Driving_Command_Acceleration" in record("MAP-DRIVING-COMMAND")
     assert "REQ-DRIVING-014" in record("MAP-DRIVING-COMMAND")
@@ -798,7 +845,7 @@ def test_the_allocation_file_is_governed_with_its_six_endpoint_definitions():
 
     assert trace.ALLOCATION_FILES[trace.DRIVING_P] == (
         (trace.DRIVING_P, trace.DRIVING_L), {(trace.LOGICAL, trace.PHYSICAL): 8},
-        {"SystemToSoftwareSignalMappingCandidate": 8}, (trace.LOGICAL, trace.PHYSICAL))
+        {"SystemToSoftwareSignalMappingCandidate": 9}, (trace.LOGICAL, trace.PHYSICAL))
     assert trace.GOVERNED[trace.DRIVING_P] == (trace.PHYSICAL, set(ELEMENT_DEFINITIONS))
     assert trace.DRIVING_P in trace.LINEAGE_FILES
     assert trace.NOT_ENDPOINTS[trace.DRIVING_P] == {SYSTEM, HOST, REALIZATION, AGENT, "CARLASimulationServer",
@@ -812,9 +859,12 @@ def test_the_guide_describes_phase_8_and_names_phase_9_as_the_next_work():
     flat = " ".join(guide.split())
     for word in ("FEO", "actuation adapter", "state publisher", "gatewayd", "ONNX", "v0.10.0", "v1.0.5",
                  "GAP-DRIVING-005", "reqPlansAndCommandsOverSCOREReading", "KUKSA", "two clocks side by side",
-                 "simulated sensor rig", "the vehicle control and nothing else", "2026-11-06"):
+                 "simulated sensor rig", "the vehicle control and nothing else", "2026-11-06",
+                 "Four assumptions and six gaps", "actuation state", "MAP-DRIVING-ACTUATION-STATE", "ASM-DRIVING-004",
+                 "rig profile", "ground truth", "ISQ", "CameraPosition"):
         assert word in flat, word
-    assert "GAP-DRIVING-008" not in guide
+    assert "GAP-DRIVING-008" not in guide and "Three assumptions and seven gaps" not in flat
+    assert "follow-up PR carries the amendment" not in flat, "the amendment landed"
     assert "The next work is **Phase 9**" in guide
     assert "The next work is **Phase 8**" not in guide
     assert "tests/test_closed_loop_driving_physical_software_realization.py" in guide
