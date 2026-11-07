@@ -293,12 +293,13 @@ def test_the_assurance_view_frames_the_two_phase_1_assurance_concerns_and_links_
                          "frame reproducibleClosedLoopEvidenceConcern; }")
     assert re.search(r"\bconcern (timeDomainHonestyConcern|reproducibleClosedLoopEvidenceConcern) : ArgumentationAssuranceConcern \{",
                      _code(FRAMING))
-    exposed = re.findall(r"\bexpose (\w+);", view)
+    exposed = re.findall(r"\bexpose ([\w:]+);", view)
     usages = [u for u, _, _ in _usages().values()]
     for name in ([f"{s}Claim" for s in CLAIMS] + [f"{s}Argument" for s in CLAIMS] + [f"counterClaim{s}" for s in COUNTER_CLAIMS]
                  + usages + [RECORD, BENCH_DEF, "gapDrivingVerificationEnvironmentOpen"]
                  + [f"claimSupportedBy{s[0].upper() + s[1:]}Argument" for s in CLAIMS] + [f"{s}ArgumentCitesCases" for s in CLAIMS]
-                 + [f"counterClaim{s}BoundTo" for s in COUNTER_CLAIMS]):
+                 + [f"counterClaim{s}BoundTo" for s in COUNTER_CLAIMS]
+                 + [target for target in COUNTER_CLAIMS.values() if "::" in target]):
         assert name in exposed, name
     assert len(exposed) == len(set(exposed))
     assert "render asTreeDiagram;" in view and "attribute maxCompartmentEntries = 0;" in view

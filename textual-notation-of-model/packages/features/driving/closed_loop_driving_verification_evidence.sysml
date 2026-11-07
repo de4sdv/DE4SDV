@@ -2172,9 +2172,9 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
      * claims, the argument that supports each and the cases it cites, the
      * thirty-five cases, the evidence record of a run, the bench and the
      * environment gap, and the seven counter-claims with the records that
-     * keep them open. It frames the two phase 1 concerns of the
-     * Architecture Management domain beside the phase's own concern, so
-     * that both are answered in their domain.
+     * keep them open, each record exposed so that the tie draws. It frames
+     * the two phase 1 concerns of the Architecture Management domain beside
+     * the phase's own concern, so that both are answered in their domain.
      */
     expose drivenAlongTheRouteClaim;
     expose checkpointCommandAuthorityClaim;
@@ -2235,6 +2235,12 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
     expose RetainedDrivingRunEvidence;
     expose ClosedLoopDrivingVerificationBench;
     expose gapDrivingVerificationEnvironmentOpen;
+    expose DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization::asmSimulatedSensorsStandForTheVehicles;
+    expose DE4SDV_ClosedLoopDrivingFraming::gapClosedLoopPerformance;
+    expose DE4SDV_ClosedLoopDrivingFraming::roadDeploymentOutOfScope;
+    expose DE4SDV_ClosedLoopDrivingFraming::gapProductLineAdmission;
+    expose DE4SDV_ClosedLoopDrivingFraming::gapAdoptionAndRights;
+    expose DE4SDV_ClosedLoopDrivingFraming::gapModelInputAndFeedback;
     expose claimSupportedByDrivenAlongTheRouteArgument;
     expose claimSupportedByCheckpointCommandAuthorityArgument;
     expose claimSupportedByScoreCommandPathArgument;
