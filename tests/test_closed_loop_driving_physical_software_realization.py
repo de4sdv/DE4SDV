@@ -405,8 +405,9 @@ def test_the_charter_names_the_package_after_the_logical_architecture():
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts
     names = re.findall(r'"([^"]+)"', artifacts.group(1))
-    assert names.index(PACKAGE) == names.index(LOGICAL_PACKAGE) + 1 == len(names) - 2
-    assert names[-1] == "DE4SDV_ClosedLoopDrivingVariabilityConfiguration", "phase 9 follows phase 8 in the charter"
+    assert names.index(PACKAGE) == names.index(LOGICAL_PACKAGE) + 1 == len(names) - 3
+    assert names[-2:] == ["DE4SDV_ClosedLoopDrivingVariabilityConfiguration",
+                          "DE4SDV_ClosedLoopDrivingVerificationEvidence"], "phases 9 and 10 follow phase 8 in the charter"
     assert re.search(rf"\bpackage\s+{PACKAGE}\s*\{{", _code())
 
 
@@ -866,6 +867,6 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
         assert word in flat, word
     assert "GAP-DRIVING-008" not in guide and "Three assumptions and seven gaps" not in flat
     assert "follow-up PR carries the amendment" not in flat, "the amendment landed"
-    assert "The next work is **Phase 10**" in guide, "phase 9 landed; the guide names phase 10"
     assert "The next work is **Phase 8**" not in guide and "The next work is **Phase 9**" not in guide
+    assert re.search(r"The next work is (\*\*Phase 1[01]\*\*|the \*\*second slice of Phase 10\*\*)", guide), "phases 8 and 9 landed"
     assert "tests/test_closed_loop_driving_physical_software_realization.py" in guide

@@ -32,6 +32,9 @@ is claimed.
 - [SysML variability and configuration](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_variability_configuration.sysml):
   the Phase 9 configured product DRIVING-CONFIG-001, bound to the receipt
   of its feature configuration.
+- [SysML verification and evidence](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_verification_evidence.sysml):
+  the Phase 10 verification cases, the run record, the claims and the
+  counter-claims; no case has started.
 - [Syside review views](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifacts, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
@@ -682,15 +685,65 @@ projection (Product Line Configuration viewpoint) and the assembly of the
 product with its one binding (Product Model Assembly viewpoint), listed in
 `VIEWS.md`.
 
+## Verification and evidence (Phase 10)
+
+`closed_loop_driving_verification_evidence.sysml` answers how each
+requirement will be checked and what the increment will claim once it is.
+This is the first slice: the cases, not the runs. The owner's picks of
+2026-11-06:
+
+- **One case per requirement.** VC-DRIVING-001 to VC-DRIVING-035, one for
+  each of the 35 requirements, every objective binding the requirement's
+  subject to the driving software of DRIVING-CONFIG-001 on the bench. Each
+  case checks the success criteria its requirement states and adds no
+  criterion of its own; each collects by test and processes and evaluates
+  by analysis, from the record of its run to the increment's own outcome
+  vocabulary and the standard verdict. Every case is Not started and every
+  requirement keeps NotStarted. The cases of one scenario read the record of
+  the same run: 20 of them read one run of SC-DRIVING-001.
+- **The increment's own outcome vocabulary.** `DrivingEvidenceOutcome`
+  carries the six literals of INC-MW-010's vocabulary, so that a later lift
+  into the method is a rename; only the bounded-verification outcome maps to
+  pass, a missing or partial record to inconclusive.
+- **One record per run.** `RetainedDrivingRunEvidence` binds
+  DRIVING-CONFIG-001 and the receipt it ran against, the model revision, the
+  checkpoint, source and configuration identities of the run record of
+  REQ-DRIVING-033, the pins of the S-CORE components and of the simulator,
+  the scenario, the two clock spans kept apart, the retained records and the
+  **bench recording**: one capture of the bench's display, taken while the
+  run runs, that shows the simulator's view and the IVI VM's display with the
+  observer application together, with **both clocks** visible. It is not
+  composed from separate recordings and not rendered afterwards; the public
+  cut of the increment comes from this capture and from nothing else.
+- **Claims now, counter-claims from the non-claims.** Seven claims, one per
+  phase 1 concern this phase answers (driven along the route, checkpoint
+  command authority, the S-CORE command path, observation fidelity,
+  degraded-input behavior, time-domain honesty, reproducible evidence), each
+  with an argument that cites the cases that will support it; seven
+  counter-claims that repeat the framing's non-claims (simulated sensors, no
+  real time on target, no safety or certification, no membership, checkpoint
+  rights, bounded faults, no verdict yet), each tied to the record that keeps
+  it open. A claim written before its evidence is a claim to be proven. One
+  tree view of the `ArgumentationAssuranceViewpoint` links them, and frames
+  the two phase 1 concerns of the Architecture Management domain beside the
+  phase's own.
+- **The environment stays a gap.** GAP-DRIVING-009: the hosts, the topology
+  and the capture pipeline of the System 2 environment are fixed by the five
+  readiness probes the owner authorized (the three-program skeleton on the
+  pinned S-CORE components, the export and parity of the checkpoint with the
+  route-conditioned inputs, the simulator with the rig and its client library
+  inside an S-CORE application, the GPU host with KVM, the SOME/IP gateway
+  against the pinned communication). Each discharges one assumption or gap
+  of Phase 8; nothing of Phase 10 is built before they are read.
+
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is **Phase 10**, verification and
-evidence: the runnable proof of one configured product, DRIVING-CONFIG-001,
-on the bench of Phase 8, with the readiness probes of GAP-DRIVING-001 to
--004, -006 and -007 answered before it builds anything, and the member
-decision that amends ADR 0014 after it. Do
+work is complete. The next work is the **second slice of Phase 10**: the
+readiness probes of GAP-DRIVING-009, then the bench, the runs of the 35
+cases and their evidence records with the bench recording, then the member
+decision that amends ADR 0014 and the baseline of Phase 11. Do
 not jump from this context to implementation or claim a passed runtime
 gate.
 
@@ -712,6 +765,8 @@ and `python -m pytest -q` on `tests/test_closed_loop_driving_framing.py`,
 `tests/test_closed_loop_driving_logical_architecture.py`,
 `tests/test_closed_loop_driving_physical_software_realization.py`,
 `tests/test_closed_loop_driving_variability_configuration.py`,
+`tests/test_closed_loop_driving_verification_evidence.py`,
+`tests/test_verification_model_invariants.py`,
 `tests/test_ple_authority_model.py`, `tests/test_ple_authority_receipts.py`,
 `tests/test_trace_allocation_completeness.py`, `tests/test_views_per_phase.py`
 and `tests/test_check_naming.py`.

@@ -320,10 +320,10 @@ def test_the_two_phase_9_views_frame_the_two_concerns() -> None:
     assert "filter not (@ SysML::AllocationUsage);" in assembly
 
 
-def test_the_charter_names_the_phase_9_package_last() -> None:
+def test_the_charter_names_the_phase_9_package_after_phase_8() -> None:
     charter = _body(_code(FRAMING), r"\bpart closedLoopDrivingCharter : IncrementCharter\s*\{")
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", FRAMING.read_text(encoding="utf-8"), re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-2:] == [
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-3:-1] == [
         "DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization", PACKAGE]
     assert charter
     assert re.search(rf"\bpackage {PACKAGE}\s*\{{", _code(SLICE))
