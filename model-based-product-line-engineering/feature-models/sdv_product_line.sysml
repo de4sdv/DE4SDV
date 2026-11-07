@@ -76,6 +76,34 @@ package DE4SDV_SDVProductLineFeatureModel {
                     in occurrence constrainedFeatures = new FeatureOperand(that, (androidSDV, autosarAdaptive));
                 }
             }
+            #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E'> autoE2E[0..1] :> vehicleApplication default null {
+                doc /* AutoE2E as the vehicle application: the driving member of
+                     * INC-DRIVING-001 (phase 3 candidate autoE2EDrivingStack,
+                     * phase 9 of 2026-11-06). It plans from camera images and
+                     * takes no LiDAR input, so it requires the camera feature
+                     * and leaves LiDAR selectable (owner decision of
+                     * 2026-11-02). */
+                assert constraint <'C012'> autoE2ERequiresCamera :> requiresFeatures {
+                    doc /* AutoE2E plans from the images of six cameras: the
+                         * camera is required, LiDAR and radar stay selectable
+                         * (owner decision of 2026-11-02). */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, sensingBoundary::camera);
+                }
+                assert constraint <'C013'> autoE2ERequiresLinux :> requiresFeatures {
+                    doc /* AutoE2E requires Linux on the main side (owner
+                         * decision of 2026-11-06): the exported checkpoint's
+                         * runtime, the simulator client and the phase 8
+                         * realization are Linux-built. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, linux);
+                }
+                assert constraint autoE2EExcludesUnsupportedMiddleware :> xorFeatures {
+                    doc /* No derivation rule exists for AutoE2E with Android SDV,
+                         * AUTOSAR Adaptive or no middleware, so the three pairs
+                         * are unsupported: the one adapter is the mw::com
+                         * binding code of its programs on Eclipse S-CORE. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, (androidSDV, autosarAdaptive, noMiddleware));
+                }
+            }
 
             #feature occurrence <'F-PLATFORM-MIDDLEWARE'> middleware[1] {
                 doc /* The middleware that the vehicle application integrates
@@ -232,6 +260,9 @@ package DE4SDV_SDVProductLineFeatureModel {
     #FeatureBinding dependency vehicleApplicationApolloBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::vehicleApplication::apollo
         to SDVProductLineFeatureTree::platformStack::apollo;
+    #FeatureBinding dependency vehicleApplicationAutoE2EBinding
+        from DE4SDV_SDVPlatformStack::SDVPlatformStack::vehicleApplication::autoE2E
+        to SDVProductLineFeatureTree::platformStack::autoE2E;
 
     #FeatureBinding dependency middlewareEclipseSCOREBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::middleware::eclipseSCORE
@@ -316,6 +347,10 @@ package DE4SDV_SDVProductLineFeatureModel {
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter::apolloToSCORE
         to SDVProductLineFeatureTree::platformStack::apollo,
            SDVProductLineFeatureTree::platformStack::eclipseSCORE;
+    #DerivationRule dependency autoE2EEclipseSCORERule
+        from DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter::autoE2EToSCORE
+        to SDVProductLineFeatureTree::platformStack::autoE2E,
+           SDVProductLineFeatureTree::platformStack::eclipseSCORE;
     #DerivationRule dependency autowareNoMiddlewareRule
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter::none
         to SDVProductLineFeatureTree::platformStack::autoware,
@@ -368,6 +403,9 @@ package DE4SDV_SDVProductLineFeatureModel {
     dependency openpilotCorrespondsToReferenceOnlyOpenpilot
         from SDVProductLineFeatureTree::platformStack::openpilot
         to DE4SDV_AEBSProductLineScope::ReferenceOnlyAlternativeSet::openpilot;
+    dependency autoE2ECorrespondsToDrivingStackVariability
+        from SDVProductLineFeatureTree::platformStack::autoE2E
+        to DE4SDV_AEBSProductLineScope::DeferredVariabilitySet::drivingStackVariability;
     dependency apolloCorrespondsToReferenceOnlyApollo
         from SDVProductLineFeatureTree::platformStack::apollo
         to DE4SDV_AEBSProductLineScope::ReferenceOnlyAlternativeSet::apollo;

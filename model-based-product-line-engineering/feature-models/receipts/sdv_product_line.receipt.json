@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "59e724270e47554baf8aaedeff949c77ad7be0d94cf0091a203acdb83a16bd63",
+    "content_sha256": "43a7bc604cc561771f580af626ebf0f0e7caff2e06c38bc87f9609b570c5d446",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "88426eb23d0d673a4169d142aea8264c2486478f94c2408bcdb52a93f06e9dca"
+    "sha256": "a187a596041311715bd7269e638d33da4275932512576bb5ee31ae5dad0259e5"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -13,7 +13,7 @@
           {
             "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
             "derived_variation": "applicationMiddlewareAdapter",
-            "pairs": 12,
+            "pairs": 16,
             "rows": [
               {
                 "exclusions": [],
@@ -134,14 +134,54 @@
                 "rules": [
                   "apolloNoMiddlewareRule"
                 ]
+              },
+              {
+                "exclusions": [],
+                "pair": [
+                  "platformStack.autoE2E",
+                  "platformStack.eclipseSCORE"
+                ],
+                "rules": [
+                  "autoE2EEclipseSCORERule"
+                ]
+              },
+              {
+                "exclusions": [
+                  "autoE2EExcludesUnsupportedMiddleware"
+                ],
+                "pair": [
+                  "platformStack.autoE2E",
+                  "platformStack.androidSDV"
+                ],
+                "rules": []
+              },
+              {
+                "exclusions": [
+                  "autoE2EExcludesUnsupportedMiddleware"
+                ],
+                "pair": [
+                  "platformStack.autoE2E",
+                  "platformStack.autosarAdaptive"
+                ],
+                "rules": []
+              },
+              {
+                "exclusions": [
+                  "autoE2EExcludesUnsupportedMiddleware"
+                ],
+                "pair": [
+                  "platformStack.autoE2E",
+                  "platformStack.noMiddleware"
+                ],
+                "rules": []
               }
             ],
             "source_groups": [
               "platformStack.vehicleApplication",
               "platformStack.middleware"
             ],
-            "with_exclusion": 4,
-            "with_rule": 8
+            "with_exclusion": 7,
+            "with_rule": 9
           }
         ],
         "bindings": [
@@ -175,6 +215,17 @@
             "feature_short_name": "F-PLATFORM-VEHICLE-APPLICATION-APOLLO",
             "variant": "apollo",
             "variant_id": "70a07927-c9df-5415-87a9-aefbdf14ab59",
+            "variation": "vehicleApplication",
+            "variation_id": "220db22f-ef58-5fba-9073-4a2154c344b1"
+          },
+          {
+            "binding": "vehicleApplicationAutoE2EBinding",
+            "element_id": "cf814fc9-5cbb-5a54-9643-46ceea60eb72",
+            "feature": "platformStack.autoE2E",
+            "feature_id": "ee805841-a86f-5b0c-9b68-ec24f8e2a138",
+            "feature_short_name": "F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E",
+            "variant": "autoE2E",
+            "variant_id": "7a065f22-46e5-5cf9-a7bf-6023832b487c",
             "variation": "vehicleApplication",
             "variation_id": "220db22f-ef58-5fba-9073-4a2154c344b1"
           },
@@ -491,6 +542,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -673,6 +725,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "enabled",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "enabled",
@@ -698,6 +751,188 @@
               "sensingBoundary.lidar": "enabled",
               "sensingBoundary.perceptionSensors": "enabled",
               "sensingBoundary.radar": "enabled"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "aaosIntegrated",
+              "alternatives_realized": {
+                "aaosIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.autoware"
+                  ],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "sensingBoundary.lidar"
+                  ],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: platformStack.autoE2E: deferred drivingStackVariability | platformStack.eclipseSCORE: reference-only eclipseSCORE | capabilities.hmiDisplay: not in the governed scope",
+                "misses derived realizations of aaosIntegrated: platformStack.middleware = platformStack.androidSDV",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); currentSensingBaseline (missing sensingBoundary.lidar)"
+              ]
+            },
+            "configuration": "closedLoopDrivingAutoE2ESCOREReference",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "autoE2EEclipseSCORERule",
+                "variant": "autoE2EToSCORE",
+                "variant_id": "1081802d-e6bd-56c6-bcd8-08577694547f",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "guestMiddlewareAndroidSDVBinding",
+                "variant": "androidSDV",
+                "variant_id": "b2a42812-989d-5511-beae-413f8316bf53",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformAndroidBinding",
+                "variant": "android",
+                "variant_id": "bbffe2c8-6872-5e78-8244-397edf4baf79",
+                "variation": "guestOSPlatform"
+              },
+              {
+                "binding": "hypervisorKVMBinding",
+                "variant": "kvm",
+                "variant_id": "81032cdb-ae10-58eb-b691-ca5cc2b8ade0",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareEclipseSCOREBinding",
+                "variant": "eclipseSCORE",
+                "variant_id": "db135c9e-c653-5275-8a88-409a0fa4afea",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationAutoE2EBinding",
+                "variant": "autoE2E",
+                "variant_id": "7a065f22-46e5-5cf9-a7bf-6023832b487c",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Closed-loop driving reference configuration on one SoC: AutoE2E\non Eclipse S-CORE on Linux on the main side, which is also the\nKVM host, and an AAOS SDV guest under KVM that shows the driving\nsystem's operational state on a display. Cameras only: AutoE2E\nplans from camera images, so LiDAR and radar are absent (C012\nrequires the camera and leaves the others selectable).\nVehicle-target AEBS only (no pedestrian/bicycle detection).",
+            "element_id": "79d0e341-1f7c-55aa-b506-8b6a11cb3657",
+            "projection_name": "ClosedLoopDrivingAutoE2ESCOREReference",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "capabilities.hmiDisplay",
+              "platformStack",
+              "platformStack.autoE2E",
+              "platformStack.eclipseSCORE",
+              "platformStack.guestAndroid",
+              "platformStack.guestAndroidSDV",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
+              "platformStack.hypervisor",
+              "platformStack.kvm",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "disabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "enabled",
+              "capabilities.laneKeepAssist": "disabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "enabled",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "omitted",
+              "platformStack.eclipseSCORE": "enabled",
+              "platformStack.guestAndroid": "enabled",
+              "platformStack.guestAndroidSDV": "enabled",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "enabled",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "omitted",
+              "platformStack.noGuestOperatingSystem": "omitted",
+              "platformStack.noHypervisor": "omitted",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "omitted",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
             },
             "valid": true
           },
@@ -833,6 +1068,7 @@
               "platformStack.android": "enabled",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "enabled",
@@ -1010,6 +1246,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -1158,6 +1395,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "enabled",
               "platformStack.apollo": "enabled",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
@@ -1306,6 +1544,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "enabled",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "enabled",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
@@ -1485,6 +1724,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "enabled",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
@@ -1660,6 +1900,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "enabled",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -1846,6 +2087,7 @@
               "platformStack.android": "enabled",
               "platformStack.androidSDV": "enabled",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -2023,6 +2265,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -2165,6 +2408,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -2342,6 +2586,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -2520,6 +2765,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -2696,6 +2942,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -2844,6 +3091,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "enabled",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
@@ -2992,6 +3240,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "enabled",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
@@ -3171,6 +3420,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "enabled",
@@ -3350,6 +3600,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "omitted",
               "platformStack.eclipseSCORE": "omitted",
@@ -3529,6 +3780,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -3703,6 +3955,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -3877,6 +4130,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "enabled",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "omitted",
@@ -4054,6 +4308,7 @@
               "platformStack.android": "omitted",
               "platformStack.androidSDV": "omitted",
               "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
               "platformStack.autosarAdaptive": "omitted",
               "platformStack.autoware": "enabled",
               "platformStack.eclipseSCORE": "enabled",
@@ -4122,6 +4377,47 @@
               "platformStack.autosarAdaptive"
             ],
             "owner": "platformStack.apollo",
+            "pair_exclusion": true,
+            "short_name": null
+          },
+          {
+            "element_id": "9a996d65-125b-5df7-ade1-268173ed7071",
+            "kind": "requires",
+            "operand_a": [
+              "platformStack.autoE2E"
+            ],
+            "operand_b": [
+              "sensingBoundary.camera"
+            ],
+            "owner": "platformStack.autoE2E",
+            "pair_exclusion": false,
+            "short_name": "C012"
+          },
+          {
+            "element_id": "d22d1ec9-c090-504a-86c5-6703c13f6ff5",
+            "kind": "requires",
+            "operand_a": [
+              "platformStack.autoE2E"
+            ],
+            "operand_b": [
+              "platformStack.linux"
+            ],
+            "owner": "platformStack.autoE2E",
+            "pair_exclusion": false,
+            "short_name": "C013"
+          },
+          {
+            "element_id": "81369efd-b641-5f77-a392-f8cd7d3bb5e3",
+            "kind": "xor",
+            "operand_a": [
+              "platformStack.autoE2E"
+            ],
+            "operand_b": [
+              "platformStack.androidSDV",
+              "platformStack.autosarAdaptive",
+              "platformStack.noMiddleware"
+            ],
+            "owner": "platformStack.autoE2E",
             "pair_exclusion": true,
             "short_name": null
           },
@@ -4262,6 +4558,14 @@
             "feature": "platformStack.apollo",
             "governed": "apollo",
             "governed_id": "4db25409-9262-5995-a954-5c6d801577a2"
+          },
+          {
+            "classification": "deferred",
+            "correspondence": "autoE2ECorrespondsToDrivingStackVariability",
+            "element_id": "1e723696-a82d-50b1-9f3b-06181dbb9171",
+            "feature": "platformStack.autoE2E",
+            "governed": "drivingStackVariability",
+            "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3"
           },
           {
             "classification": "reference-only",
@@ -4482,6 +4786,16 @@
                 "rule": "apolloEclipseSCORERule"
               },
               {
+                "element_id": "9bc7002a-f73f-5943-8698-de2aac781126",
+                "premises": [
+                  "platformStack.autoE2E",
+                  "platformStack.eclipseSCORE"
+                ],
+                "result": "autoE2EToSCORE",
+                "result_id": "1081802d-e6bd-56c6-bcd8-08577694547f",
+                "rule": "autoE2EEclipseSCORERule"
+              },
+              {
                 "element_id": "fea7ce6d-1274-505f-81d4-bbfd9b54d872",
                 "premises": [
                   "platformStack.autoware",
@@ -4544,7 +4858,8 @@
             "members": [
               "platformStack.autoware",
               "platformStack.openpilot",
-              "platformStack.apollo"
+              "platformStack.apollo",
+              "platformStack.autoE2E"
             ],
             "multiplicity": {
               "lower": 1,
@@ -4599,6 +4914,21 @@
             "owner": "platformStack",
             "path": "platformStack.apollo",
             "short_name": "F-PLATFORM-VEHICLE-APPLICATION-APOLLO",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "ee805841-a86f-5b0c-9b68-ec24f8e2a138",
+            "group": "platformStack.vehicleApplication",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "autoE2E",
+            "owner": "platformStack",
+            "path": "platformStack.autoE2E",
+            "short_name": "F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E",
             "unassigned": false
           },
           {
@@ -5117,6 +5447,7 @@
     "model_sources": [
       "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
       "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
+      "model-based-product-line-engineering/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
@@ -5165,6 +5496,7 @@
   "model_sources": [
     "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
     "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
+    "model-based-product-line-engineering/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
@@ -5189,8 +5521,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "26006447169cfe79fb2aae82bc05c474734ee333",
-    "executor_revision": "26006447169cfe79fb2aae82bc05c474734ee333"
+    "bundle_git_commit": "149e2ffcb5c40d280eeb68344838a670e49c1eeb",
+    "executor_revision": "149e2ffcb5c40d280eeb68344838a670e49c1eeb"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -5223,6 +5555,12 @@
       "path": "model-based-product-line-engineering/feature-configurations/apple_silicon_macos_candidate.sysml",
       "sha256": "4adceab22e25e3c4a5a21e6c54e8bc37c00ce1ed260449f01ef44abb0fd65a23",
       "size": 1671
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
+      "sha256": "beff58616091361d0f4df152611e71b5bde523cc08aebd8c86675830f03049c3",
+      "size": 3007
     },
     {
       "authority": "pleml-fixture",
@@ -5365,8 +5703,8 @@
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "d32fb51f7ee4a8291d0cd7e12c1e9fcf3fc054cc134a0f56b2d01dad2a17fd90",
-      "size": 30863
+      "sha256": "a259b8a6736d81f204a7eaeb9f7a2bb13729a8658d1513f66eb40388dd91321f",
+      "size": 33593
     },
     {
       "authority": "pleml-feature-model",
@@ -5389,8 +5727,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "c3172c55a73d76a2018dcc722b0f46b76a4b2360db2085cfc61810bb18c289b9",
-      "size": 30571
+      "sha256": "616dfce419346bf31cdfd9db1b54a3ecc99c577ad808d4e70dc22bdb96493557",
+      "size": 31905
     },
     {
       "authority": "reviewed",

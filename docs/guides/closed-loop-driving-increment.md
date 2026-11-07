@@ -29,6 +29,9 @@ is claimed.
 - [SysML physical/software realization](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_physical_software_realization.sysml):
   the Phase 8 software elements, their allocations, signal mappings,
   assumptions and gaps.
+- [SysML variability and configuration](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_variability_configuration.sysml):
+  the Phase 9 configured product DRIVING-CONFIG-001, bound to the receipt
+  of its feature configuration.
 - [Syside review views](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifacts, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
@@ -616,18 +619,78 @@ not yet in the method's views-per-phase list for Phase 8; the deviation is
 pinned in `tests/test_views_per_phase.py` and a method change proposes the
 entry. The phase publishes four views, listed in `VIEWS.md`.
 
+## Variability and configuration (Phase 9)
+
+`closed_loop_driving_variability_configuration.sysml` answers which product
+of the line the driving system belongs to, and with which selections. The
+owner's picks of 2026-11-06, after the phase 3 decision of 2026-11-02 that
+the driving stack is a feature and requires the camera:
+
+- **The feature.** `autoE2E` joins the vehicle-application group of the
+  feature model (`F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E`) with two requires
+  constraints, C012 on the camera and C013 on Linux (the mirror of C011 for
+  Autoware), and corresponds to the driving-stack variability the governed
+  scope defers. Its pairing with the middlewares is stated the way openpilot
+  and Apollo state theirs: an exclusion of `androidSDV`, `autosarAdaptive`
+  and `noMiddleware`, because no derivation rule exists for those pairs, and
+  one derivation rule for the pair with Eclipse S-CORE that derives the
+  adapter `autoE2EToSCORE`. An exclusion lifts the day someone adds an
+  adapter and its rule; a `requires eclipseSCORE` would have frozen the
+  bench architecture into the line. The exclusion of `androidSDV` costs the
+  driving member nothing: `middleware` is the main-side integration
+  middleware, one per product, and the member's AAOS SDV is the guest
+  middleware of the guest side.
+- **The shared asset.** `sdv_platform_stack.sysml` gains the two variants
+  the binding and the rule target: `autoE2E : AutoE2EStack` and
+  `autoE2EToSCORE : AutoE2EToSCOREAdapter`. The adapter is the mw::com
+  binding code of the three programs of Phase 8, no program of its own.
+- **The configuration.** `closedLoopDrivingAutoE2ESCOREReference` selects
+  AutoE2E, Eclipse S-CORE, Linux and KVM on the main side, Android with the
+  AAOS SDV middleware in the guest, the camera alone, and the HMI display:
+  the observer of the IVI VM is this member's display, selected on the same
+  ground as MW-CONFIG-002 (no shared asset resolves it; the projection lists
+  it among the selections SysML does not resolve). No requirement of the
+  increment names the display, so, unlike INC-MW-011, no requirement depends
+  on `hmiDisplay`. The privileged PLE authority workflow cut the receipt;
+  the configurator generated the projection
+  `ClosedLoopDrivingAutoE2ESCOREReference` from it. The receipt records the
+  configuration as **valid and not admitted**: the driving stack is deferred
+  variability, Eclipse S-CORE is reference-only, the display is outside the
+  governed scope, the guest side realizes the AAOS-integrated alternative
+  without its middleware, and the configuration does not represent the
+  common content (no Autoware, no LiDAR). The same receipt re-cut rebinds
+  MW-CONFIG-002's digest; its own record did not change.
+- **The configured product.** `DRIVING-CONFIG-001` pairs the projection
+  with the Phase 8 realization of the driving system and binds the
+  realization's S-CORE services to the selected middleware. Phase 8
+  composes those services in the realization, because the two gateway
+  processes sit on the observation path, so the binding makes two
+  composers hold one instance, where INC-MW-011's layer only refers to
+  its services; the product says so rather than hides it. The derived
+  adapter and the selected application are dependencies, not parts: the
+  adapter is the programs' binding code, and the driving agent runs the
+  exported checkpoint of the application. The product does not compose the
+  physical context; a test keeps the host and guest layers of that context
+  typed by the definitions of the selected variants. The identity binds the
+  SHA-256 of the receipt, and Phase 10 evidence binds the identity. The
+  definition specializes no member-product type: the member decision that
+  amends ADR 0014 follows the runnable proof, as the framing's admission gap
+  asks.
+
+Two views answer the phase's questions, both trees: the selections of the
+projection (Product Line Configuration viewpoint) and the assembly of the
+product with its one binding (Product Model Assembly viewpoint), listed in
+`VIEWS.md`.
+
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is **Phase 9**, variability and
-configuration: the driving stack as a feature of the product line with its
-constraint on the camera feature, the derived middleware adapter per valid
-configuration, the per-domain variation of the host and the guests, and the
-configuration applicability the framing's product-line admission gap asks
-for, under the member decision that amends ADR 0014. Beside it, the
-readiness probes of GAP-DRIVING-001 to -004, -006 and -007 before Phase 10
-builds anything. Do
+work is complete. The next work is **Phase 10**, verification and
+evidence: the runnable proof of one configured product, DRIVING-CONFIG-001,
+on the bench of Phase 8, with the readiness probes of GAP-DRIVING-001 to
+-004, -006 and -007 answered before it builds anything, and the member
+decision that amends ADR 0014 after it. Do
 not jump from this context to implementation or claim a passed runtime
 gate.
 
@@ -648,6 +711,8 @@ and `python -m pytest -q` on `tests/test_closed_loop_driving_framing.py`,
 `tests/test_closed_loop_driving_functional_architecture.py`,
 `tests/test_closed_loop_driving_logical_architecture.py`,
 `tests/test_closed_loop_driving_physical_software_realization.py`,
+`tests/test_closed_loop_driving_variability_configuration.py`,
+`tests/test_ple_authority_model.py`, `tests/test_ple_authority_receipts.py`,
 `tests/test_trace_allocation_completeness.py`, `tests/test_views_per_phase.py`
 and `tests/test_check_naming.py`.
 These are repository/lexical checks, not SysML semantic or runtime verification.

@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "59e724270e47554baf8aaedeff949c77ad7be0d94cf0091a203acdb83a16bd63",
+    "content_sha256": "43a7bc604cc561771f580af626ebf0f0e7caff2e06c38bc87f9609b570c5d446",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "88426eb23d0d673a4169d142aea8264c2486478f94c2408bcdb52a93f06e9dca"
+    "sha256": "a187a596041311715bd7269e638d33da4275932512576bb5ee31ae5dad0259e5"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -488,8 +488,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "26006447169cfe79fb2aae82bc05c474734ee333",
-    "executor_revision": "26006447169cfe79fb2aae82bc05c474734ee333"
+    "bundle_git_commit": "149e2ffcb5c40d280eeb68344838a670e49c1eeb",
+    "executor_revision": "149e2ffcb5c40d280eeb68344838a670e49c1eeb"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -522,6 +522,12 @@
       "path": "model-based-product-line-engineering/feature-configurations/apple_silicon_macos_candidate.sysml",
       "sha256": "4adceab22e25e3c4a5a21e6c54e8bc37c00ce1ed260449f01ef44abb0fd65a23",
       "size": 1671
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
+      "sha256": "beff58616091361d0f4df152611e71b5bde523cc08aebd8c86675830f03049c3",
+      "size": 3007
     },
     {
       "authority": "pleml-fixture",
@@ -664,8 +670,8 @@
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "d32fb51f7ee4a8291d0cd7e12c1e9fcf3fc054cc134a0f56b2d01dad2a17fd90",
-      "size": 30863
+      "sha256": "a259b8a6736d81f204a7eaeb9f7a2bb13729a8658d1513f66eb40388dd91321f",
+      "size": 33593
     },
     {
       "authority": "pleml-feature-model",
@@ -688,8 +694,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "c3172c55a73d76a2018dcc722b0f46b76a4b2360db2085cfc61810bb18c289b9",
-      "size": 30571
+      "sha256": "616dfce419346bf31cdfd9db1b54a3ecc99c577ad808d4e70dc22bdb96493557",
+      "size": 31905
     },
     {
       "authority": "reviewed",

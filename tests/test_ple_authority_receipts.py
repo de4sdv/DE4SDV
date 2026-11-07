@@ -35,6 +35,7 @@ VERDICTS = {
         "aebsAutowareLinuxLidarCamera": (True, "standalone", "none", []),
         "middlewareAutowareAAOSSDVReference": (True, "aaosIntegrated", "autowareToAAOSSDV", []),
         "middlewareAutowareSCOREReference": (True, None, "autowareToSCORE", []),
+        "closedLoopDrivingAutoE2ESCOREReference": (True, None, "autoE2EToSCORE", []),
         "apolloQNXQVMVariant": (True, None, "apolloToSCORE", []),
         "invalidSCOREAndroidVariant": (False, None, None, ["C001", "C011"]),
     },

@@ -43,7 +43,7 @@ class TestValidateSysML(unittest.TestCase):
                   for path in validate_sysml.model_files(root, configurations)]
         fixtures = sorted((root / configurations / "fixtures").rglob("*.sysml"))
         self.assertEqual(len(fixtures), 18)
-        self.assertEqual(len(listed), 7)
+        self.assertEqual(len(listed), 8)
         self.assertFalse([path for path in listed if "/fixtures/" in path])
 
     def test_propagates_syside_failure(self):
