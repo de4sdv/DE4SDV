@@ -310,6 +310,7 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
                 ("platformStack.autoware", "platformStack.autosarAdaptive"): "autowareToAUTOSAR",
                 ("platformStack.openpilot", "platformStack.eclipseSCORE"): "openpilotToSCORE",
                 ("platformStack.apollo", "platformStack.eclipseSCORE"): "apolloToSCORE",
+                ("platformStack.autoE2E", "platformStack.eclipseSCORE"): "autoE2EToSCORE",
                 ("platformStack.autoware", "platformStack.noMiddleware"): "none",
                 ("platformStack.openpilot", "platformStack.noMiddleware"): "none",
                 ("platformStack.apollo", "platformStack.noMiddleware"): "none",

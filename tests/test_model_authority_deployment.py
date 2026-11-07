@@ -96,7 +96,7 @@ def test_the_drift_gate_governs_no_fixture_and_every_member_configuration():
     assert not set(fixtures) & set(governed)
     assert not [path for path in governed if "/fixtures/" in path]
     members = [path for path in governed if path.startswith(configurations) and path.endswith(".sysml")]
-    assert len(members) == 7
+    assert len(members) == 8
 
 
 def test_a_fixture_change_is_no_model_drift(runtime_repo):
