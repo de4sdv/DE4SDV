@@ -41,6 +41,12 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
   private import DE4SDV_ClosedLoopDrivingFraming::closedLoopVerificationEnvironment;
   private import DE4SDV_ClosedLoopDrivingFraming::timeDomainHonestyConcern;
   private import DE4SDV_ClosedLoopDrivingFraming::reproducibleClosedLoopEvidenceConcern;
+  private import DE4SDV_ClosedLoopDrivingFraming::gapClosedLoopPerformance;
+  private import DE4SDV_ClosedLoopDrivingFraming::roadDeploymentOutOfScope;
+  private import DE4SDV_ClosedLoopDrivingFraming::gapProductLineAdmission;
+  private import DE4SDV_ClosedLoopDrivingFraming::gapAdoptionAndRights;
+  private import DE4SDV_ClosedLoopDrivingFraming::gapModelInputAndFeedback;
+  private import DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization::asmSimulatedSensorsStandForTheVehicles;
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import SAF_Viewpoints::*;
@@ -2131,17 +2137,17 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
       recordRunIdentityVerification,
       plansNameRunRecordVerification;
   dependency counterClaimSimulatedSensorsAndDynamicsBoundTo
-    from counterClaimSimulatedSensorsAndDynamics to DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization::asmSimulatedSensorsStandForTheVehicles;
+    from counterClaimSimulatedSensorsAndDynamics to asmSimulatedSensorsStandForTheVehicles;
   dependency counterClaimNoRealTimeOnTargetBoundTo
-    from counterClaimNoRealTimeOnTarget to DE4SDV_ClosedLoopDrivingFraming::gapClosedLoopPerformance;
+    from counterClaimNoRealTimeOnTarget to gapClosedLoopPerformance;
   dependency counterClaimNoSafetyOrCertificationBoundTo
-    from counterClaimNoSafetyOrCertification to DE4SDV_ClosedLoopDrivingFraming::roadDeploymentOutOfScope;
+    from counterClaimNoSafetyOrCertification to roadDeploymentOutOfScope;
   dependency counterClaimNoMembershipBoundTo
-    from counterClaimNoMembership to DE4SDV_ClosedLoopDrivingFraming::gapProductLineAdmission;
+    from counterClaimNoMembership to gapProductLineAdmission;
   dependency counterClaimCheckpointRightsAndTransferBoundTo
-    from counterClaimCheckpointRightsAndTransfer to DE4SDV_ClosedLoopDrivingFraming::gapAdoptionAndRights;
+    from counterClaimCheckpointRightsAndTransfer to gapAdoptionAndRights;
   dependency counterClaimBoundedFaultsBoundTo
-    from counterClaimBoundedFaults to DE4SDV_ClosedLoopDrivingFraming::gapModelInputAndFeedback;
+    from counterClaimBoundedFaults to gapModelInputAndFeedback;
   dependency counterClaimEnvironmentOpenNoVerdictBoundTo
     from counterClaimEnvironmentOpenNoVerdict to gapDrivingVerificationEnvironmentOpen;
 
@@ -2172,9 +2178,9 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
      * claims, the argument that supports each and the cases it cites, the
      * thirty-five cases, the evidence record of a run, the bench and the
      * environment gap, and the seven counter-claims with the records that
-     * keep them open, each record exposed so that the tie draws. It frames
-     * the two phase 1 concerns of the Architecture Management domain beside
-     * the phase's own concern, so that both are answered in their domain.
+     * keep them open, those records exposed beside them. It frames the two
+     * phase 1 concerns of the Architecture Management domain beside the
+     * phase's own concern, so that both are answered in their domain.
      */
     expose drivenAlongTheRouteClaim;
     expose checkpointCommandAuthorityClaim;
@@ -2235,12 +2241,12 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
     expose RetainedDrivingRunEvidence;
     expose ClosedLoopDrivingVerificationBench;
     expose gapDrivingVerificationEnvironmentOpen;
-    expose DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization::asmSimulatedSensorsStandForTheVehicles;
-    expose DE4SDV_ClosedLoopDrivingFraming::gapClosedLoopPerformance;
-    expose DE4SDV_ClosedLoopDrivingFraming::roadDeploymentOutOfScope;
-    expose DE4SDV_ClosedLoopDrivingFraming::gapProductLineAdmission;
-    expose DE4SDV_ClosedLoopDrivingFraming::gapAdoptionAndRights;
-    expose DE4SDV_ClosedLoopDrivingFraming::gapModelInputAndFeedback;
+    expose asmSimulatedSensorsStandForTheVehicles;
+    expose gapClosedLoopPerformance;
+    expose roadDeploymentOutOfScope;
+    expose gapProductLineAdmission;
+    expose gapAdoptionAndRights;
+    expose gapModelInputAndFeedback;
     expose claimSupportedByDrivenAlongTheRouteArgument;
     expose claimSupportedByCheckpointCommandAuthorityArgument;
     expose claimSupportedByScoreCommandPathArgument;

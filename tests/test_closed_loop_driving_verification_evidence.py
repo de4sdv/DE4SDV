@@ -55,13 +55,13 @@ CLAIMS = {
 }
 #: counter-claim -> the record that keeps it open
 COUNTER_CLAIMS = {
-    "SimulatedSensorsAndDynamics": "DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization::asmSimulatedSensorsStandForTheVehicles",
-    "NoRealTimeOnTarget": "DE4SDV_ClosedLoopDrivingFraming::gapClosedLoopPerformance",
-    "NoSafetyOrCertification": "DE4SDV_ClosedLoopDrivingFraming::roadDeploymentOutOfScope",
-    "NoMembership": "DE4SDV_ClosedLoopDrivingFraming::gapProductLineAdmission",
-    "CheckpointRightsAndTransfer": "DE4SDV_ClosedLoopDrivingFraming::gapAdoptionAndRights",
-    "BoundedFaults": "DE4SDV_ClosedLoopDrivingFraming::gapModelInputAndFeedback",
-    "EnvironmentOpenNoVerdict": "gapDrivingVerificationEnvironmentOpen",
+    "SimulatedSensorsAndDynamics": ("asmSimulatedSensorsStandForTheVehicles", PHYSICAL),
+    "NoRealTimeOnTarget": ("gapClosedLoopPerformance", FRAMING),
+    "NoSafetyOrCertification": ("roadDeploymentOutOfScope", FRAMING),
+    "NoMembership": ("gapProductLineAdmission", FRAMING),
+    "CheckpointRightsAndTransfer": ("gapAdoptionAndRights", FRAMING),
+    "BoundedFaults": ("gapModelInputAndFeedback", FRAMING),
+    "EnvironmentOpenNoVerdict": ("gapDrivingVerificationEnvironmentOpen", SLICE),
 }
 RECORD_ATTRIBUTES = [
     "configurationIdentity", "receiptSha256", "modelRevision", "checkpointSha256", "autoE2ESourceRevision",
@@ -275,9 +275,12 @@ def test_each_claim_answers_one_phase_1_concern_and_its_argument_cites_the_right
         assert re.search(rf"\brequirement {stem}Argument : ClosedLoopDrivingArgument \{{", code)
     assert set(re.findall(r"\brequirement (\w+)Claim : ClosedLoopDrivingClaim \{", code)) == set(CLAIMS)
     assert {n for _, numbers in CLAIMS.values() for n in numbers} == set(range(1, CASE_COUNT + 1)), "every case is cited"
-    for stem, target in COUNTER_CLAIMS.items():
+    for stem, (target, home) in COUNTER_CLAIMS.items():
         assert re.search(rf"\brequirement counterClaim{stem} : ClosedLoopDrivingCounterClaim \{{", code), stem
-        assert re.search(rf"dependency counterClaim{stem}BoundTo\s+from counterClaim{stem} to {re.escape(target)};", code), stem
+        assert re.search(rf"dependency counterClaim{stem}BoundTo\s+from counterClaim{stem} to {target};", code), stem
+        assert re.search(rf"\bpart (<'[A-Z0-9-]+'> )?{target} : \w+ \{{", _code(home)), (stem, target)
+        if home is not SLICE:
+            assert re.search(rf"\bprivate import \w+::{target};", code), target
     assert set(re.findall(r"\brequirement counterClaim(\w+) : ClosedLoopDrivingCounterClaim \{", code)) == set(COUNTER_CLAIMS)
     for definition, kind in [("ClosedLoopDrivingClaim", "AssuranceClaim"), ("ClosedLoopDrivingArgument", "AssuranceArgument"),
                              ("ClosedLoopDrivingCounterClaim", "AssuranceCounterClaim")]:
@@ -299,7 +302,7 @@ def test_the_assurance_view_frames_the_two_phase_1_assurance_concerns_and_links_
                  + usages + [RECORD, BENCH_DEF, "gapDrivingVerificationEnvironmentOpen"]
                  + [f"claimSupportedBy{s[0].upper() + s[1:]}Argument" for s in CLAIMS] + [f"{s}ArgumentCitesCases" for s in CLAIMS]
                  + [f"counterClaim{s}BoundTo" for s in COUNTER_CLAIMS]
-                 + [target for target in COUNTER_CLAIMS.values() if "::" in target]):
+                 + [target for target, _ in COUNTER_CLAIMS.values()]):
         assert name in exposed, name
     assert len(exposed) == len(set(exposed))
     assert "render asTreeDiagram;" in view and "attribute maxCompartmentEntries = 0;" in view
