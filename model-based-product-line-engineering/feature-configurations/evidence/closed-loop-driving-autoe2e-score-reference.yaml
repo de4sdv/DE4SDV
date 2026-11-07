@@ -1,8 +1,0 @@
-# Evidence record of the PLEML feature configuration
-# closed_loop_driving_autoe2e_score_reference.sysml (INC-DRIVING-001 phase 9):
-# the evidence status of the configuration and the retained artifacts behind
-# that status. It selects no feature. Planned until the phase 10 campaign of
-# the increment retains evidence.
-
-status: planned
-artifacts: []

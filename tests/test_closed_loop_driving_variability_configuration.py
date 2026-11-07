@@ -201,10 +201,14 @@ def test_the_receipt_records_what_the_configured_product_states() -> None:
         assert statement in docs, statement
 
 
-def test_the_evidence_record_of_the_configuration_is_planned() -> None:
-    text = EVIDENCE.read_text(encoding="utf-8")
-    assert re.search(r"^status: planned$", text, re.M)
-    assert re.search(r"^artifacts: \[\]$", text, re.M)
+def test_the_configuration_has_no_evidence_record() -> None:
+    """The evidence records under ``feature-configurations/evidence/`` are the retired Bills-of-Features'
+    evidence blocks (ADR 0022, S7): nothing evaluates them, no receipt reads them, and the precedent
+    MW-CONFIG-002 has none. The evidence of this configured product is phase 10 model content bound to
+    DRIVING-CONFIG-001 (owner question of 2026-11-06)."""
+    assert not EVIDENCE.exists(), "an evidence record carries nothing the model does not"
+    assert "closed_loop_driving_autoe2e_score_reference" not in " ".join(
+        p.name for p in EVIDENCE.parent.glob("*.yaml"))
 
 
 # -- the feature model and the links of the system of interest -----------------------------------

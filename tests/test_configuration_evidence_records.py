@@ -26,7 +26,6 @@ EVIDENCE = ROOT / "model-based-product-line-engineering/feature-configurations/e
 #: stated until S7.
 STATUSES = {
     "apple_silicon_macos_candidate.sysml": "planned",
-    "closed_loop_driving_autoe2e_score_reference.sysml": "planned",
     "inc_aebs_009a_jetson.sysml": "inspected",
     "middleware_autoware_aaos_sdv_reference.sysml": "planned",
     "nxp_zephyr_vehicle_target_candidate.sysml": "planned",
