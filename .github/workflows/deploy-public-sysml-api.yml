@@ -88,7 +88,10 @@ jobs:
     # of the releases that passed.
     runs-on: ubuntu-24.04
     environment: sysml-api-production
-    timeout-minutes: 90
+    # Step 9 (host import) took 50, 53 and 66 min over the last three releases
+    # and the verifier ~19 min; 90 was within five minutes of killing a good
+    # release. The import grows with the model and the production database.
+    timeout-minutes: 180
     steps:
       - name: Check out deployment tooling at the workflow revision
         uses: actions/checkout@v4

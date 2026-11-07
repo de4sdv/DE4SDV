@@ -267,8 +267,11 @@ def test_the_round_trip_timeout_is_the_production_imports() -> None:
     import re
 
     source = (ROOT / "scripts/import_sysml_api_baseline.py").read_text(encoding="utf-8")
-    [timeout] = re.findall(r"\bApiClient\(api_url, timeout=([0-9.]+)", source)
-    assert runner.API_TIMEOUT_SECONDS == float(timeout) == 600.0
+    [timeout] = re.findall(r"^DEFAULT_API_TIMEOUT_SECONDS = ([0-9.]+)$", source, flags=re.MULTILINE)
+    assert "ApiClient(api_url, timeout=api_timeout_seconds," in source
+    # 600 s was refused by production at 122,423 elements (2026-11-07); both
+    # paths follow the importer's default, which is sized for that import.
+    assert runner.API_TIMEOUT_SECONDS == float(timeout) >= 3600.0
 
 
 def test_the_bundle_is_written_plain_as_the_entry_points_input(tmp_path) -> None:
