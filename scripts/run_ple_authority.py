@@ -196,7 +196,7 @@ API_PROJECT = "DE4SDV isolated PLE authority round trip"
 #: The production import's request timeout (scripts/import_sysml_api_baseline.py).
 #: The API commits the authority bundle in one request, which outlasts the
 #: client's 30-second default (run 39244883381).
-API_TIMEOUT_SECONDS = 600.0
+API_TIMEOUT_SECONDS = 3600.0
 
 Documents = dict[str, list[dict[str, Any]]]
 

@@ -1044,3 +1044,108 @@ def test_importer_threads_host_header_into_api_client() -> None:
     assert request_headers["Host"] == "sysml2-api:9000"
     # No flag -> empty default_headers -> urllib auto-Host (unchanged behavior).
     assert ApiClient("http://host:9000").default_headers == {}
+
+
+# -- the import window: one commit request, bounded by silence, not by size -------------------------
+
+
+def _load_importer_module():
+    spec = importlib.util.spec_from_file_location(
+        "import_sysml_api_baseline", REPO / "scripts" / "import_sysml_api_baseline.py"
+    )
+    assert spec is not None and spec.loader is not None
+    importer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(importer)
+    return importer
+
+
+def _run_import_until_the_client(importer, monkeypatch: pytest.MonkeyPatch, **overrides) -> dict[str, Any]:
+    """Drive ``run_import`` exactly up to the ApiClient construction and return its kwargs.
+
+    The API answers the commit request only once the whole baseline is
+    persisted, so the client's timeout is the longest silence the importer
+    tolerates. On 2026-11-07 production needed more than the former 600 s for
+    122,423 elements (the server finished; the client had already refused).
+    """
+    seen: dict[str, Any] = {}
+
+    class Stop(Exception):
+        pass
+
+    class RecordingClient:
+        def __init__(self, api_url: str, **kwargs: Any) -> None:
+            seen["api_url"] = api_url
+            seen.update(kwargs)
+            raise Stop
+
+    head = "b" * 40
+    bundle = type(
+        "Bundle", (), {"git_commit": head, "require_current_sources": lambda self, manifest: None}
+    )()
+    monkeypatch.setattr(importer, "_git_head", lambda: head)
+    monkeypatch.setattr(importer.BaselineExportBundle, "load", staticmethod(lambda path: bundle))
+    monkeypatch.setattr(importer.BaselineManifest, "discover", staticmethod(lambda root: None))
+    monkeypatch.setattr(importer, "ApiClient", RecordingClient)
+    kwargs: dict[str, Any] = dict(
+        api_url="http://172.18.0.5:9000",
+        export_path=Path("export.json"),
+        binding_path=Path("binding.json"),
+        report_path=Path("report.json"),
+        project_name="t",
+        git_repository="de4sdv/DE4SDV",
+    )
+    kwargs.update(overrides)
+    with pytest.raises(Stop):
+        importer.run_import(**kwargs)
+    return seen
+
+
+def test_importer_waits_at_least_an_hour_for_the_commit_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default client timeout >= 3600 s: 10 min was refused by production at 122k elements."""
+    importer = _load_importer_module()
+    assert importer.DEFAULT_API_TIMEOUT_SECONDS >= 3600.0
+    seen = _run_import_until_the_client(importer, monkeypatch)
+    assert seen["timeout"] == importer.DEFAULT_API_TIMEOUT_SECONDS
+
+
+def test_importer_timeout_is_an_explicit_argument_and_cli_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``--api-timeout-seconds`` reaches the ApiClient; the keyword does the same for callers."""
+    importer = _load_importer_module()
+    seen = _run_import_until_the_client(importer, monkeypatch, api_timeout_seconds=42.5)
+    assert seen["timeout"] == 42.5
+
+    captured: dict[str, Any] = {}
+
+    def fake_run_import(**kwargs: Any) -> dict[str, object]:
+        captured.update(kwargs)
+        return {}
+
+    monkeypatch.setattr(importer, "run_import", fake_run_import)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["import_sysml_api_baseline.py", "--api-url", "http://api.invalid", "--export", "e.json",
+         "--binding", "b.json", "--report", "r.json", "--api-timeout-seconds", "7200"],
+    )
+    assert importer.main() == 0
+    assert captured["api_timeout_seconds"] == 7200.0
+    monkeypatch.setattr(
+        "sys.argv",
+        ["import_sysml_api_baseline.py", "--api-url", "http://api.invalid", "--export", "e.json",
+         "--binding", "b.json", "--report", "r.json"],
+    )
+    assert importer.main() == 0
+    assert captured["api_timeout_seconds"] == importer.DEFAULT_API_TIMEOUT_SECONDS
+
+
+def test_workflow_job_timeout_leaves_room_for_the_import_window() -> None:
+    """Step 9 grew 50 -> 53 -> 66 min over the last three releases, the verifier adds ~19 min.
+
+    The previous 90-minute job limit was within five minutes of killing a
+    successful release; the import keeps growing with the model and the
+    production database, so the limit must stay well clear of it.
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(encoding="utf-8")
+    job = wf.split("\n  deploy:\n", 1)[1]
+    timeouts = [int(line.split(":", 1)[1]) for line in job.splitlines() if line.strip().startswith("timeout-minutes:")]
+    assert timeouts, "the deploy job must declare timeout-minutes"
+    assert timeouts[0] >= 150
