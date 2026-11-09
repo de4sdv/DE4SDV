@@ -17,7 +17,7 @@ python3.10 world_side.py \
   --route <run_dir>/navigation/route.json \
   --profile /opt/de4sdv-p2/.../calibration/nuplan.json \
   --rig-path <agent>/python/de4sdv_planner/rig.py \
-  --width 1920 --front-width 1920 \
+  --width 1024 --front-width 1920 \
   --run-dir <run_dir> --run-s 120 --seed 7 \
   --fault camera_stop:rear_left@12.5
 ```
@@ -246,6 +246,16 @@ rejected with the list of supported kinds.
     last tick, with its images missing. `summary.json` is written before
     teardown as well as after it, because a server that dies during teardown
     makes the client library's timeout abort the process.
+13. **Render width** (owner decision of 2026-11-09, after the first runs on the
+    simulator host). The front camera renders 1920 px wide, the five others
+    1024 px (`--front-width`, `--width`). The checkpoint's input is the same
+    either way: each camera resized to 512 by 512, the front also to 1024 by
+    1024 (REQ-DRIVING-003). CARLA's game thread delivers the six images one
+    after another, 10–12 ms apart. With all six at 1920 the sixth image came up
+    to 87 ms after the tick on one host, 8 ms inside drivingAgent's 95 ms frame
+    deadline, and with the planner on a second host 13 % of the frames missed
+    the deadline. With the five others at 1024 it came by 69 ms on one host and
+    by 82 ms across two, and no frame missed the deadline.
 
 ## Known limits
 

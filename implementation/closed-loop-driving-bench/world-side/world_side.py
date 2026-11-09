@@ -1178,7 +1178,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--vehicle-config", default=None,
                         help="vehicle configuration JSON (ICD section 5); its "
                              "vehicle_blueprint names the hero's blueprint")
-    parser.add_argument("--width", type=int, default=1920)
+    parser.add_argument("--width", type=int, default=1024,
+                        help="render width of the five non-front cameras (the front: --front-width); "
+                             "the checkpoint takes 512 x 512 from each either way")
     parser.add_argument("--front-width", type=int, default=1920)
     parser.add_argument("--run-dir", required=True)
     parser.add_argument("--warmup-s", type=float, default=0.0,

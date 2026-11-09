@@ -34,7 +34,7 @@ def test_cli_defaults():
     assert (args.host, args.port, args.tm_port) == ("127.0.0.1", 2000, 8000)
     assert args.map == "Town10HD_Opt"
     assert (args.warmup_s, args.run_s, args.warmup_speed_kmh, args.seed) == (0.0, 120.0, 30.0, 7)
-    assert (args.width, args.front_width) == (1920, 1920)
+    assert (args.width, args.front_width) == (1024, 1920)
     assert args.spawn_index is None
     assert args.fault == []
     assert args.dry_run is False
