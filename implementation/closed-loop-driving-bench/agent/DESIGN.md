@@ -190,8 +190,14 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - A discrete-event model of the chain: one chain per frame event, the backlog merged into the newest frame, the cache rule.
   - Without the warm-up it reproduces the G4 failure: 5 cold plans, a merged frame, a 67-frame gap.
   - With it every plan is warm and no frame is lost, also under ±4 ms jitter.
-  - The engine glue on fake caches. Six mutations of the scheduler and the glue fail the tests.
-- **Not yet shown on the G4.** A merged frame no longer breaks the ego history ("Merged frames" below).
+  - The scheduler learns a slower host's measured cost and then defers cold calls; the predicted lag counts the chain's own time as well as the engine call.
+  - The engine glue on fake caches, including a full stream whose last commit is not 0.5 s old: cold, its cache reset first.
+  - Eight mutations of the scheduler and the glue fail the tests: the lag budget ignored, the lag never observed, merged frames not counted in the lag, measured costs never recorded, the predicted lag without the chain, the next phase's stream, a stream with a stale commit counted as warm, no wait for the camera history.
+- **On the G4 (2026-11-09), with merged frames ("Merged frames" below).** Fake world: synthetic images and no route, so it shows timing, not driving.
+  - 1,756 plans in 1,817 steps: a plan on every frame from the end of priming to the end of the run, no stop. Every plan was warm (`cache_before` 7).
+  - Frame ready to command: p50 94.8 ms, p99 95.5 ms, max 96.9 ms; engine call p50 90.2 ms. Real-time factor 1.000 over the 175 s of planning.
+  - The warm-up made 30 decisions: 5 cold, 23 warm, 2 deferred; the lag stayed at or below 45 ms.
+  - The run before the warm-up and merged frames planned 125 times in 1,797 steps and stopped on `kPlanStale`.
 
 ## Merged frames (2026-11-09)
 

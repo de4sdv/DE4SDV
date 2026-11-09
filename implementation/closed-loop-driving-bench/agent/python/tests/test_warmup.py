@@ -38,6 +38,11 @@ class FakeCache:
 
     def __init__(self):
         self.full, self.last = False, None
+        self.resets = 0
+
+    def reset(self):
+        self.full, self.last = False, None
+        self.resets += 1
 
     def __len__(self):
         return 7 if self.full else 0
@@ -146,6 +151,27 @@ def test_the_scheduler_defers_a_cold_call_that_would_lag_too_far():
     assert s.decide(102, stream_warm=True)[0] == "warm"   # a warm call lowers the lag
 
 
+def test_the_scheduler_learns_the_measured_cost():
+    """The cost estimates follow the measured calls: on a host slower than the setup's calls, the
+    scheduler stops priming cold streams once the measured cost would leave the lag over the limit."""
+    s = WarmupScheduler(cold_ms=121.0, warm_ms=91.3)
+    s.observe_step_start(100, 10.0)
+    assert s.decide(100, stream_warm=False)[0] == "cold"        # 5 + 121 - 100 = 26 ms predicted
+    for _ in range(10):
+        s.record("cold", 170.0)                                  # the calls take 170 ms on this host
+    assert s.cost_ms["cold"] == pytest.approx(170.0, abs=6.0)
+    assert s.decide(100, stream_warm=False)[0] == "skip"         # 5 + ~165 - 100 > 50 ms
+
+
+def test_the_predicted_lag_includes_the_chain():
+    """The lag after a call counts the chain's own time (conditionInputs, supervision, command), not
+    only the engine call."""
+    s = WarmupScheduler(chain_ms=10.0, cold_ms=145.0)
+    assert s.predicted_lag_ms("cold") == pytest.approx(55.0)    # 0 + 10 + 145 - 100
+    assert s.decide(0, stream_warm=False)[0] == "skip"           # over the 50 ms limit
+    assert WarmupScheduler(chain_ms=0.0, cold_ms=145.0).decide(0, stream_warm=False)[0] == "cold"
+
+
 def test_the_scheduler_counts_merged_frames_in_the_lag():
     s = WarmupScheduler()
     s.observe_step_start(10, 1.0)
@@ -192,6 +218,19 @@ def test_engine_warm_primes_the_frames_stream_at_its_timestamp():
     assert rec["warm"] == "cold" and rec["stream"] == 0
     assert eng.calls == [(35, 0, t_us_of(35))]
     assert eng.counts["warm_cold"] == 1 and "ms" in rec
+
+
+def test_engine_warm_treats_a_stream_with_a_stale_commit_as_cold():
+    """A full stream whose last commit is not exactly 0.5 s before the frame (a frame of its phase was
+    not committed) re-encodes its history: the call is cold, and the cache is reset first, as infer()
+    does on a gap."""
+    eng = _engine_with_history(0, 45)
+    eng.caches[0].call(t_us_of(35))                    # stream 0 full, committed 1.0 s before frame 45
+    eng.sched.observe_step_start(45, time.monotonic())
+    rec = eng.warm(45)
+    assert rec["warm"] == "cold" and eng.counts["warm_cold"] == 1
+    assert eng.caches[0].resets == 1
+    assert eng.calls == [(45, 0, t_us_of(45))]
 
 
 def test_engine_warm_reports_a_warm_stream_as_warm():
