@@ -1,0 +1,7 @@
+.upstream/
+.venv/
+build/
+__pycache__/
+*.pyc
+*.so
+out/
