@@ -1,0 +1,270 @@
+# Closed-loop driving bench (INC-DRIVING-001, slice 10b): Interface Control Document v2
+
+> **Amendment 1 (2026-11-09, before first deployment; `kInterfaceVersion` stays 2):** rulings A1–A15 of the v2 interface review. Payload change: `DrivingModePayload` gains `checkpointExpectedSha256[64]`, `checkpointActualSha256[64]`, `refusalReason[16]` (A5).
+
+Version 2, 2026-11-09. v1 is `ICD-v1.md`. The changes from v1:
+- §3 encodes the operational state as a SOME/IP struct. The broker translates it into the typed `DrivingOperationalState`, as phase 8's MAP-DRIVING-OPERATIONAL-STATE states.
+- §2 adds the service id table.
+- §4 and §5 take the adapter rules.
+- §6 adds clock suffixes.
+- §7 and §8 take the run directory and run record additions.
+- §10 adds the records the 35 verification cases need.
+
+The model is the authority:
+- phase 8 of INC-DRIVING-001, in `closed_loop_driving_physical_software_realization.sysml` on `main`;
+- the MAP-DRIVING-* items;
+- REQ-DRIVING-001 to -035.
+
+If this document and the model disagree, the model wins: report it, don't guess. The C++ types are in `include/de4sdv/driving/payloads.h` and the log writer is in `run_log.h`.
+
+## 1. Hosts, processes, clocks
+
+| Host (phase 8 part) | Machine | Processes |
+|---|---|---|
+| S-CORE host `linuxHost : ClosedLoopDrivingLinuxHost` | G4 (RTX PRO 6000), europe-west1-b, 10.132.0.2 | `drivingAgent` (FEO, 4 activities), `actuationAdapter`, `statePublisher`, `gatewayd` + `someipd`, `routeProvider`, bench controller; started by the Launch Manager (root) |
+| simulator host `simulatorHost : ClosedLoopDrivingSimulatorHost` | L4 VM, 10.10.0.2 | CARLA 0.9.16 (synchronous, 0.1 s), world-side pacer + rig + scenario (scenario tooling), chase-view recorder |
+| guest host `guestHost : AAOSGuestHost` | aaos-build (KVM) | SDV Core VM, IVI VM (observer app) |
+
+There are three clocks. Every time field in a record names its clock by a suffix (§6):
+- **Simulation time:** the frame index × 100 ms, exact. Never the simulator's float stamp. CARLA's world frame number is the frame index.
+- **Monotonic:** `CLOCK_MONOTONIC` of the S-CORE host. It stamps a plan's production time, a mode's decision time and a command's issue time (REQ-DRIVING-031, -032), and is valid on that host only.
+- **Real time:** `CLOCK_REALTIME`, chrony-synchronised. It is used only for comparisons across hosts.
+
+## 2. mw::com events on the S-CORE host (LoLa, one service per specifier)
+
+| Event | Producer | Consumers | Instance specifier | Service id | Payload | When | REQ |
+|---|---|---|---|---|---|---|---|
+| ego-motion sample | agent / conditionInputs | statePublisher | `de4sdv/driving/ego_motion_sample` | 7401 | `EgoMotionSamplePayload` | once per step | 016, 030 |
+| plan | agent / inferPlan | statePublisher | `de4sdv/driving/plan` | 7402 | `DrivingPlanPayload` | once per plan | 015, 027, 031, 034 |
+| mode | agent / superviseLoop | statePublisher | `de4sdv/driving/mode` | 7403 | `DrivingModePayload` | once per step, and at once on a change | 029 |
+| command | agent / commandVehicle | actuationAdapter | `de4sdv/driving/command` | 7404 | `VehicleMotionCommandPayload` | once per step | 011, 012, 014, 020–022, 032 |
+| actuation state | actuationAdapter | statePublisher | `de4sdv/driving/actuation_state` | 7405 | `ActuationStatePayload` | once per applied command; at once when the adapter's stop begins | 028, 029, 032 |
+| operational state | statePublisher | gatewayd → SOME/IP | `de4sdv/driving/operational_state` | 7406 | three events `plan`, `vehicle_state`, `health`, each `PreSerializedData<2048>` (bytes 0–1 little-endian length, the §3 struct from byte 4) | §3 | 015–019, 029 |
+
+- The event name of each of the first five services is the last segment of its specifier. Instance id is 1.
+- Proxies subscribe with a max sample count of 8. A consumer never blocks a producer: a full slot is a dropped sample, which is counted and logged.
+
+## 3. The operational state on SOME/IP (MAP-DRIVING-OPERATIONAL-STATE)
+
+**Service:**
+- service `0x4DF0`, instance `0x0001`;
+- events `0x8001` plan, `0x8002` vehicle state, `0x8003` health;
+- eventgroup `0x0001`, reliable (TCP), port 30510.
+
+**Encoding:**
+- Every event carries one `DrivingOperationalState`, encoded as a SOME/IP struct in field order, with no struct length field, big-endian.
+- `u32` is UINT32. `f32` is FLOAT32.
+- `str` is a UTF8 string per AUTOSAR: a 4-byte length (covering the BOM, the bytes and the terminating NUL), then the BOM `EF BB BF`, the bytes, and `00`.
+- `f32[]` is a dynamic array: a 4-byte length in bytes, then the elements.
+- Fields of the other kinds are zero, empty strings or empty arrays.
+
+**The broker:** SDV Core's broker maps all three events with `message_translation_mode: REFLECTION` and a `type_definition` listing the same field names and types. It translates them into the typed VSIDL message `de4sdv.driving.v1.DrivingOperationalState`: proto3, the same field names, `uint32` / `float` / `string` / `repeated float`. The IVI observer consumes that typed topic.
+
+| # | Field | Type | Meaning |
+|---|---|---|---|
+| 1 | schema_major | u32 | 2 |
+| 2 | schema_minor | u32 | 0 |
+| 3 | kind | u32 | 1 PLAN, 2 VEHICLE_STATE, 3 HEALTH |
+| 4 | sequence | u32 | per kind, from 1, no gaps |
+| 5 | producer | str | `statePublisher` |
+| 6 | publish_real_s | u32 | real time at encoding, seconds |
+| 7 | publish_real_ns | u32 | nanoseconds part |
+| 8 | publish_mono_s | u32 | monotonic at encoding, seconds |
+| 9 | publish_mono_ns | u32 | nanoseconds part |
+| 10 | plan_frame_index | u32 | PLAN: the step the plan was made from |
+| 11 | plan_capture_ms | u32 | PLAN: simulation ms of its newest camera image (= frame × 100) |
+| 12 | plan_production_mono_s | u32 | PLAN: the plan's own production time (REQ-DRIVING-031) |
+| 13 | plan_production_mono_ns | u32 | |
+| 14 | plan_reference | str | PLAN: `<runRecord>/<frameIndex>` |
+| 15 | run_record | str | PLAN: run record identity (REQ-DRIVING-034) |
+| 16 | plan_producer | str | PLAN: `drivingAgent/inferPlan` (REQ-DRIVING-015) |
+| 17 | plan_sample_count | u32 | PLAN: the payload's raw `sampleCount` (64 when well-formed); the arrays carry min(count, 64) samples (A4) |
+| 18 | plan_horizon_s | f32 | PLAN |
+| 19 | plan_acceleration | f32[] | PLAN: 64, m/s² |
+| 20 | plan_curvature | f32[] | PLAN: 64, 1/m, positive left |
+| 21 | plan_x | f32[] | PLAN: 64, m, forward |
+| 22 | plan_y | f32[] | PLAN: 64, m, left |
+| 23 | speed_kmh | f32 | VEHICLE_STATE: VSS Vehicle.Speed |
+| 24 | longitudinal_acceleration | f32 | VEHICLE_STATE: m/s² |
+| 25 | lateral_acceleration | f32 | VEHICLE_STATE: m/s² |
+| 26 | yaw_rate_dps | f32 | VEHICLE_STATE: deg/s, positive left |
+| 27 | sample_capture_ms | u32 | VEHICLE_STATE: simulation ms (REQ-DRIVING-016, -030) = round(captureTime·1000), exact since captureTime = frame × 0.1 s (A1) |
+| 28 | sample_receipt_mono_s | u32 | VEHICLE_STATE: when the publisher received it |
+| 29 | sample_receipt_mono_ns | u32 | |
+| 30 | mode | u32 | HEALTH: `Mode` value |
+| 31 | cause | u32 | HEALTH: `Cause` value; the first stop cause wins and latches |
+| 32 | mode_source | str | HEALTH: `superviseLoop`, `actuationAdapter`, or "" while starting |
+| 33 | cause_since_mono_s | u32 | HEALTH: when the stop began (monotonic); 0 if none. Adapter stop: `ActuationStatePayload.stopSinceMono`; the publisher's own causes: when it detected the cause (A3) |
+| 34 | cause_since_mono_ns | u32 | |
+| 35 | last_plan_frame_index | u32 | HEALTH |
+| 36 | last_plan_capture_ms | u32 | HEALTH: simulation ms of the newest plan's newest image (REQ-DRIVING-017) |
+| 37 | step_capture_ms | u32 | HEALTH: the largest step capture time (simulation ms) among the ego-motion samples and plans received (A2) |
+| 38 | last_plan_production_mono_s | u32 | HEALTH |
+| 39 | last_plan_production_mono_ns | u32 | |
+| 40 | dropped_samples | u32 | HEALTH: publisher-side drops so far |
+| 41 | checkpoint_expected_sha256 | str | HEALTH, refusal only (REQ-DRIVING-035); from `DrivingModePayload.checkpointExpectedSha256` of the kRefused mode (A5) |
+| 42 | checkpoint_actual_sha256 | str | HEALTH, refusal only; from `DrivingModePayload.checkpointActualSha256` (A5) |
+| 43 | refusal_reason | str | HEALTH: `mismatch`, `no_pin`, or ""; from `DrivingModePayload.refusalReason` (A5) |
+
+**Publisher timing:**
+- Plan: each plan within 100 ms after its production (REQ-DRIVING-015).
+- Vehicle state: each motion sample within 100 ms after its receipt (REQ-DRIVING-016).
+- Health: every 100 ms of monotonic time, also without plans (REQ-DRIVING-017). Also published at once when a stop begins: the mode becomes `kStopResponse`, `kStandstill` or `kRefused`, or an actuation state reports `stopInForce` (REQ-DRIVING-029).
+- The publisher receives nothing from the observation path (REQ-DRIVING-018, -019).
+
+## 4. Stop response (REQ-DRIVING-020 to -029)
+
+- **Causes:** the `Cause` values.
+  - The supervision decides 023 to 027 at the step.
+  - The commander checks 026 again at the command.
+  - The adapter decides 028.
+  - `kRouteEmpty` means no corridor cell in the step's `route_mask`. That covers an empty announcement and an ego vehicle that has left the route.
+  - One cause per stop, in pipeline order: the step's input conditions first (023 to 025, lowest `Cause` value among them), then a plan that arrived in this step and is invalid (027), then the age of the newest valid plan (026). The first stop cause latches for the run.
+- **The stop itself:**
+  - The command is `acceleration = -min(4, max_deceleration)`.
+  - The steering is held at the last value computed from a valid plan.
+  - Every stop command names that plan in `planReference`, frozen when the stop begins, never a plan captured later (REQ-DRIVING-011, VC-DRIVING-022). It is `none` when no driving command was ever computed.
+  - At standstill (speed < 0.1 km/h), the vehicle is held until the run ends. The stop latches for the run.
+- **Adapter:**
+  - Before the first valid command, it holds the brake, without latching a stop.
+  - After that, 200 ms of simulation time without a valid applied command starts its own stop (`kCommandTimeout`), from the actuation time of the last valid one.
+  - It publishes the stop with `stopInForce = 1` and `stopSinceMono`.
+- **Valid command:**
+  - finite values within the limits of §5;
+  - non-empty `planReference`;
+  - `-5 ms <= age <= 300 ms` of monotonic time at arrival.
+  - An invalid command is dropped, counted and logged, and changes nothing.
+
+## 5. Vehicle configuration (REQ-DRIVING-012)
+
+One JSON file is named by the run record; the commander and the adapter read it:
+
+```json
+{"vehicle_blueprint": "vehicle.lincoln.mkz_2020", "wheelbase_m": 2.85,
+ "max_acceleration_mps2": 3.0, "max_deceleration_mps2": 8.0,
+ "max_road_wheel_angle_deg": 35.0, "max_steering_rate_deg_per_s": 180.0,
+ "command_law": "first_control",
+ "longitudinal_controller": {"table": [[-8.0, 0.0, 1.0], [0.0, 0.0, 0.0], [3.0, 0.75, 0.0]],
+                             "kp": 0.3, "ki": 0.05, "integrator_limit": 0.3}}
+```
+
+- The numbers are placeholders. Bench calibration replaces them; the adapter logs the vehicle's physics control as a `config` record.
+- **Commander:**
+  - `steeringAngle = clamp(deg(atan(wheelbase·κ)), ±max_road_wheel_angle)`, rate-limited per step;
+  - `acceleration = clamp(a, -max_deceleration, +max_acceleration)`.
+- **Adapter:** `steer = clamp(-steeringAngle / max_road_wheel_angle, -1, 1)`. Throttle and brake come from the table plus PI (S2 README).
+
+## 6. Logs
+
+- **Files:** each process writes `<run_dir>/<host>/<component>.jsonl`, using `run_log.h` or the same format.
+- **Records:** every record has `t_mono_ns`, `t_real_ns`, `host`, `component`, `event`, `seq`, `data`.
+  - `event` is `in.<port>` or `out.<port>` for each crossing, with the full payload. Lifecycle events are `start`, `ready`, `stop`, `drop`, `error`, `config`. The stop events are `stop_response.begin` and `stop_response.standstill`, with the cause.
+- **Clock suffixes:** every time field inside `data` names its clock: `_sim_ms` or `_sim_s` (simulation), `_mono_ns` or `_mono_s` (monotonic), `_real_ns` (real time). Payload fields keep their model names, and a sibling `clocks` object maps each payload time field to its clock (REQ-DRIVING-030 to -032).
+  - Amendment 1 (A7): `clocks` values are `simulation`, `monotonic` or `real`; payload time fields are seconds (double).
+- **No computed latencies:** components log stamps, and the evaluators compute.
+- **Non-finite values** are JSON `null`, and evaluators treat `null` as non-finite.
+
+## 7. Run directory
+
+```text
+<run_dir>/run_record.json             # §8; frozen before the first plan
+<run_dir>/config/                     # agent configuration, vehicle configuration (as used)
+<run_dir>/navigation/map.json         # exported map; route file
+<run_dir>/score/*.jsonl               # drivingAgent, actuationAdapter, statePublisher, route_provider,
+                                      # checkpointInputs (§10 C2), gatewayd/someipd logs
+<run_dir>/score/bundles/*.npz         # sampled full input bundles (§10 C2)
+<run_dir>/score/drivingAgent.stderr   # FEO_PACE lines (events, skipped)
+<run_dir>/simulator/world.jsonl       # pacer, one record per tick (§10 C1)
+<run_dir>/simulator/view.mp4          # chase view (NVENC) + recorder summary.json
+<run_dir>/guest/observer.jsonl        # observer receipts (IVI real time + decoded message)
+<run_dir>/guest/ivi_screen.mp4
+<run_dir>/bench/injection.jsonl       # §10 C8
+<run_dir>/terminals/*.cast            # real terminal sessions
+<run_dir>/MANIFEST.sha256
+```
+
+## 8. Run record (REQ-DRIVING-033, -034, -035)
+
+`run_record.json` is written by inferPlan before the first plan and then frozen. Its identity is the first 16 hex digits of its SHA-256.
+
+It holds the `RetainedDrivingRunEvidence` fields known at start:
+- configurationIdentity, checkpointSha256, autoE2ESourceRevision, configurationSha256;
+- scoreFEORevision (with the event-trigger patch SHA-256), scoreCommunicationVersion, scoreLifecycleVersion, scoreSOMEIPGatewayCommit;
+- simulatorBuild, scenario, executionEnvironmentIdentity;
+- contractIdentity = `de4sdv.driving.icd.v2`.
+
+It also holds:
+- the cuDNN version, the parity result, the warm-up step count and the command law;
+- C4: `campaignId`, `runRole`, `scenarioVariant {fault, entrySpeedMps, aaosMode, checkpointCase}`, `inputReplay {sourceRun, digest}`;
+- C7: `checkpointPath`, `configurationPath`, `vehicleConfiguration {path, sha256}`, `navigationMap {path, sha256}`, `route {path, sha256}`, `writtenAtMonoNs`, `writtenAtRealNs`.
+
+The checkpoint itself is retained once per campaign, not per run.
+
+## 9. Route (MAP-DRIVING-ROUTE)
+
+- **Route file:** JSON `{"map": "Town10HD_Opt", "waypoints": [[x, y, heading_rad, road_id], ...], "destination": [x, y]}`. It is in the map frame (`x = x_carla`, `y = -y_carla`, `yaw = -yaw_carla`; S3 `carla_frame.py`).
+- **Provider:** sends `RouteAnnouncement` to UDP 127.0.0.1:47110 every 500 ms of simulation time. `routeSha256` is exactly 64 hex characters, with no NUL.
+- **Fault knobs:** `--stale-after-s`, `--empty-after-s`.
+- **Log:** `score/route_provider.jsonl`.
+
+## 10. Records for the verification cases (S5 change list, as adopted)
+
+- **C1, `simulator/world.jsonl`:** the pacer writes one record per tick:
+  - `frame`, `sim_ms`;
+  - the ego pose, velocity, acceleration and angular velocity;
+  - lane: `road`, `lane`, `lat_m`, `junction`;
+  - `sensors[]`: per rig camera `{name, actor_id, alive, attached}`;
+  - `controlSource` (`actuationAdapter`, or the autopilot during an announced warm-up), `autopilotEnabled`, `trafficManagerEnabled`;
+  - collision and lane-invasion events.
+  - It records no image digests: the pacer does not receive images.
+- **C2, `score/checkpointInputs.jsonl`:** conditionInputs writes one record per step:
+  - the step frame and `sim_ms`;
+  - per camera: the image frame, `capture_sim_ms`, `arrival_mono_ns`, width, height, valid/missing/stale;
+  - each camera's history references (frame indices);
+  - the ego-motion history rows (64 × 4);
+  - the projection operators (once per run, plus on any change);
+  - the raster render time, the corridor cell count, the destination cell count;
+  - the input-condition bits.
+  - **Bundles:** full input bundles (`score/bundles/<frame>.npz`: the tensors as handed to the checkpoint) for every 50th step and for every step within ±0.5 s of an injected fault, written off the critical path.
+- **C3:** commandVehicle's `out.command` record carries `step_capture_sim_ms` and the plan's `capture_sim_ms`. The payload stays exact.
+- **C5, C6, C12:** in §3 (HEALTH 36–39, 41–43; PLAN 16–18). The agent also logs `error {code: checkpoint_refused, expectedSha256, actualSha256, reason}` before any plan.
+- **C8, `bench/injection.jsonl`:** the bench controller writes `{action: plan_inject|comm_stop|fault_begin|fault_end|camera_stop|..., t_sim_ms, t_mono_ns, t_real_ns, detail}`.
+- **C9:** the clock suffixes of §6.
+- **C10:** conditionInputs logs `priming.complete {frame, sim_ms, historiesReady}`.
+- **C11:** after each campaign, on the G4, the pinned checkpoint's Python reference runs on the retained bundles. Output: `score/referenceInference.jsonl {frameIndex, checkpointSha256, sourceRevision, acceleration[64], curvature[64]}`.
+
+### Amendment 1 additions to §7 and §10
+
+- **§7 `world.jsonl` (A10):** the schema is S5's C1 world record in `case-evaluators/OBSERVABLES.md`. That record is `sensors[] {name, actor_id, alive, attached}`, ego kinematics and `controlSource`, with no digests. The world/pacer process writes it.
+- **§10 C2 per-step metadata (A11).** Add four fields; the producer is agent/conditionInputs:
+  - `cameras[front].front_hi_res {width, height}`;
+  - `marker {image_px, operator_coverage}`;
+  - `mapContext {channels, width, height, geometry}`;
+  - `routeMask {corridorCells, geometry, routeSha256}`.
+- **§10 C2 bundle keys (A12):** the bundle keys are upstream's model-input names, as in the upstream input sample:
+  - `camera_tiles`, `front_camera_tile`, `camera_history_tiles`;
+  - `egomotion_history`, `map_context`, `route_mask`;
+  - `map_valid`, `route_valid`, `visual_history`;
+  - `camera_projection_matrix`, `camera_history_projection_matrix`, `front_camera_projection_matrix`;
+  - plus `plan_controls` (64×2).
+  - A C11 reference inference feeds a bundle to the model unchanged.
+- **VC-DRIVING-002 sampling (A13):** the offline re-inference covers the bundled steps (every 50th step and around faults). The evidence states the sample count; the verdict is at most `passBoundedVerification`.
+
+### Amendment 2 (2026-11-09, found while integrating the agent, world side and route provider; `kInterfaceVersion` stays 2)
+
+No payload changes.
+
+- **A16, C2 route coverage.** `routeMask` adds `waypointsInWindow` and `waypointsOnCorridor`. The step adds `rasterPose {x_map_m, y_map_m, yaw_map_rad}`: the REF pose (map frame, §9) both rasters were rendered at.
+  - A route centre-line point is in the window when its REF-frame position (x forward, y left; upstream `map_to_ego`) satisfies −10 m + 0.8 m < x < 120 m − 0.8 m and −60 m + 0.8 m < y < 60 m − 0.8 m. That is the window of geometry `autoe2e-bev-450x300-0p4m-v1` with the 10 m route rear clip, shrunk by two pixels.
+  - Its cell is row ⌊(120 − x)/0.4⌋, column ⌊(60 − y)/0.4⌋. `waypointsOnCorridor` counts the in-window points whose cell is set in route_mask channel 0.
+  - With no accepted route both counts are 0.
+  - The window is symmetric left to right, so the counts cannot reveal a mirrored raster; only a retained raster (C2 bundle) can.
+- **A17, C2 image sizes.** A camera's `width`/`height` is the size of the image handed to the checkpoint: the 512×512 tile for the checkpoint engine; the stub engine hands the simulator image as it is. `source_width`/`source_height` is the simulator image. `cameras[front].front_hi_res` is as in A11.
+- **A18, route provider log (§6).** Each datagram is logged as `out.route_announcement` with `clocks {issueTime: simulation}`. VC-DRIVING-025 reads this record.
+- **A19, run record (§8).** Adds `navigationMap {path, sha256}`, `route {path, sha256}` and `cameraProfile {path, sha256}`.
+  - `route` is the route file the provider announces; the bench names it in the agent configuration (`route_file`).
+  - `cameraProfile` is the camera calibration profile, which shapes every tile and projection.
+- **A20, C1 world side.**
+  - No autopilot warm-up by default. REQ-DRIVING-011 allows the autopilot no control at any time of the run, so the hero rests at the route start until the agent drives.
+  - Kinematics are in the map frame, as in `case-evaluators/OBSERVABLES.md` §3: yaw rate positive counter-clockwise, lateral acceleration positive to the left. `summary.yawRateCheck` compares CARLA's yaw rate with the logged poses on every run.
+  - The rig's REF origin is read only after the hero has been simulated and has settled. These setup ticks are not run ticks; `simulator/worldSide.jsonl` logs them as `setup`.
