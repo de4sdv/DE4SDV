@@ -213,6 +213,34 @@ MUTATIONS = [
         "    } else if (conditions.Any()) {\n      stop = conditions.Lowest();\n    } else if (plan_arrived && !plan_valid) {",
         "cause order (inputs first)",
     ),
+    (
+        "primed falls back to the step count when the engine did not condition the step",
+        "agent_logic.cpp",
+        "  if (engine) return conditioned && engine_primed;",
+        "  if (engine && conditioned) return engine_primed;",
+        "ICD A26 (priming.complete, VC-DRIVING-001)",
+    ),
+    (
+        "primed ignores the engine's answer",
+        "agent_logic.cpp",
+        "  if (engine) return conditioned && engine_primed;",
+        "  if (engine) return conditioned && (engine_primed || conditioned);",
+        "ICD A26",
+    ),
+    (
+        "the stand-in is primed one step early",
+        "agent_logic.cpp",
+        "frame - first_frame + 1 >= priming_frames;",
+        "frame - first_frame + 2 >= priming_frames;",
+        "ICD A26 (stand-in step count)",
+    ),
+    (
+        "the stand-in step count wraps around before the first step",
+        "agent_logic.cpp",
+        "  return frame >= first_frame && frame - first_frame + 1 >= priming_frames;",
+        "  return frame - first_frame + 1 >= priming_frames;",
+        "ICD A26 (no wrap-around)",
+    ),
 ]
 
 BUILD_COMMAND = [

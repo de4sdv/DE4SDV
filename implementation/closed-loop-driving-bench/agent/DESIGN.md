@@ -48,6 +48,8 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - writes the FEO topics;
   - publishes the ego-motion sample (VSS units) on mw::com.
 - **Frame of the motion sample:** CARLA's velocity and acceleration are rotated into the vehicle frame. The signs follow the model's VSS signals: yaw rate positive to the left, CARLA's z angular velocity negated, in deg/s.
+- **Primed** (C2 `primed`, `priming.complete`, and inferPlan's choice between warming and planning; ICD A26): with an engine, the engine's answer for a step it conditioned. A step it did not condition (an input condition, a refused checkpoint) is not in the histories, so it is never primed. Without an engine (the stand-in), the number of steps since the first one.
+  - Before, a step that was not conditioned fell back to the step count. On the simulator host, a step with a camera missing at the deadline logged `priming.complete` at frame 113, while the engine's histories were first complete at frame 179.
 
 ## inferPlan (inference activity, embeds CPython)
 
@@ -69,7 +71,7 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - returns 64 × (a, κ, x, y, ψ);
   - C++ fills `PlanMsg`/`DrivingPlanPayload`, stamped with the capture time of the newest image of the step and the production monotonic time (REQ-DRIVING-031), and the run record (REQ-DRIVING-034);
   - publishes it on the FEO topic and mw::com.
-- **while the agent primes:** `warm(frame)`, no plan (see "Warm-up while priming" below).
+- **while the agent primes:** on a clean step, `warm(frame)`, no plan (see "Warm-up while priming" below). A step with an input condition was not conditioned, so there is nothing to warm.
 
 ## superviseLoop
 

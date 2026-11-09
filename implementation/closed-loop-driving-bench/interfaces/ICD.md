@@ -293,3 +293,8 @@ No payload changes.
   - C2 names each camera by the checkpoint's slot: `cameras[].name` and `projections[].camera` are `front`, `front_left`, `front_right`, `rear_left`, `rear`, `rear_right`, in that order. These are the model's camera positions, and the names the evaluators and A11 (`cameras[front]`) use.
   - drivingAgent wrote the CARLA role names (`cam_front`, ...) before, so VC-DRIVING-003 found every real step's camera order wrong.
   - The CARLA role names stay what the world-side rig gives its actors and what the agent searches for; C1 `sensors[].name` keeps them.
+- **A26, primed and priming.complete (§10 C2, C10).** No payload change.
+  - C2 `primed` and C10 `priming.complete` come from the planner's engine. A step the engine did not condition (an input condition, a refused checkpoint) is not primed.
+  - Before, such a step fell back to the number of steps since the first one. On the simulator host, a step with a camera missing at the deadline logged `priming.complete` at frame 113, but the engine's histories were first complete at frame 179. VC-DRIVING-001 reads `priming.complete`, so it would have counted the 66 steps from 113 to 178 as steps without a plan.
+  - Without an engine (the stand-in), the step count stays.
+  - inferPlan no longer calls the warm-up on a step with an input condition. That step was not conditioned, so there is nothing to warm, and `warmCalls` counted it.

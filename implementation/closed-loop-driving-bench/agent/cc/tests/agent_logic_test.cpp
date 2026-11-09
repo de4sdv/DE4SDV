@@ -432,6 +432,22 @@ void TestPlanValidity() {
   CHECK(IsPlanValid(pose_only));
 }
 
+// ------------------------------------------------------------------ primed (ICD A26)
+void TestStepPrimed() {
+  // With an engine, only a step the engine conditioned can be primed, whatever the step count says.
+  CHECK(StepPrimed(true, true, true, 5065, 5000, 66));
+  CHECK(!StepPrimed(true, true, false, 5100, 5000, 66));
+  // The simulator-host run: frame 113, 66 steps after the first (48), was not conditioned (a camera
+  // missing at the deadline); the engine was first primed at frame 179.
+  CHECK(!StepPrimed(true, false, false, 113, 48, 66));
+  CHECK(!StepPrimed(true, false, true, 5200, 5000, 66));  // a faulted or refused step
+  // Without an engine (the stand-in): the steps since the first one, never before it.
+  CHECK(!StepPrimed(false, false, false, 5064, 5000, 66));
+  CHECK(StepPrimed(false, false, false, 5065, 5000, 66));
+  CHECK(StepPrimed(false, false, false, 5300, 5000, 66));
+  CHECK(!StepPrimed(false, false, false, 4990, 5000, 66));  // no unsigned wrap-around
+}
+
 // ------------------------------------------------------------------ supervisor
 void TestSupervisorStart() {
   Supervisor supervisor;
@@ -1473,6 +1489,7 @@ int main(int argc, char** argv) {
   TestConditionCameras();
   TestConditionMotionRoute();
   TestPlanValidity();
+  TestStepPrimed();
   TestSupervisorStart();
   TestSupervisorPlanAge();
   TestSupervisorStopLatching();

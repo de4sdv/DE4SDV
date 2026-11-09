@@ -147,6 +147,14 @@ ConditionResult JudgeConditions(const StepConditions& conditions,
 // acceleration and curvature values are finite. x, y and heading are not judged.
 bool IsPlanValid(const DrivingPlanPayload& plan);
 
+// Whether the planner's histories are ready at a step: C2 `primed`, C10 `priming.complete`, and inferPlan's
+// choice between warming and planning (ICD A26). With a planner engine only the engine knows, and only for
+// a step it conditioned: a step it did not condition (an input condition, a refused checkpoint) is not
+// in the histories, so it is not primed. Without an engine (the stand-in), the histories are the number of
+// steps since the first one.
+bool StepPrimed(bool engine, bool conditioned, bool engine_primed, std::uint64_t frame,
+                std::uint64_t first_frame, std::uint64_t priming_frames);
+
 // REQ-DRIVING-035: the checkpoint refusal detail the agent carries.
 struct RefusalDetail {
   bool refused = false;

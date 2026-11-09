@@ -991,7 +991,6 @@ int32_t de4sdv_condition_step(De4sdvInputsMsg* inputs, De4sdvConditionMsg* condi
   Log("out.condition", WithStage(da::record::Condition(sc, judged)));
 
   // The checkpoint inputs, from clean inputs only (a faulted step starts the stop instead).
-  bool primed = frame - a.first_frame + 1 >= a.cfg.priming_frames;
   da::PlannerBridge::ConditionOut out;
   double condition_ms = 0.0;
   bool conditioned = false;
@@ -1013,9 +1012,10 @@ int32_t de4sdv_condition_step(De4sdvInputsMsg* inputs, De4sdvConditionMsg* condi
       return -1;
     }
     condition_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
-    primed = out.primed;
     conditioned = true;
   }
+  // ICD A26: with an engine, only a step it conditioned can be primed; a faulted step is not in the histories.
+  const bool primed = da::StepPrimed(a.python, conditioned, out.primed, frame, a.first_frame, a.cfg.priming_frames);
 
   // C2 (ICD section 10): one record per step, read by runio.input_steps.
   {
@@ -1143,10 +1143,11 @@ int32_t de4sdv_infer_startup(void) {
 int32_t de4sdv_infer_step(const De4sdvInputsMsg* inputs, De4sdvPlanMsg* plan) {
   *plan = De4sdvPlanMsg{};
   auto& a = *g_agent;
-  if (a.python && !a.refusal.refused && inputs->has_step && !inputs->primed) {
+  if (a.python && !a.refusal.refused && inputs->has_step && !inputs->primed && inputs->condition_bits == 0) {
     // While the agent primes (DESIGN.md, warm-up while priming), the engine may warm its camera history cache with
     // one call on the frame's phase stream (output discarded) when its lag budget allows; the first
-    // plan of every phase then runs warm. No plan is produced.
+    // plan of every phase then runs warm. No plan is produced. A faulted step was not conditioned, so
+    // there is nothing to warm.
     std::string record, error;
     ++a.warm_calls;
     if (!a.planner.Warm(inputs->step_frame, &record, &error)) {

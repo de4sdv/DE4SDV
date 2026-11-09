@@ -252,6 +252,12 @@ ConditionResult JudgeConditions(const StepConditions& conditions,
   return result;
 }
 
+bool StepPrimed(bool engine, bool conditioned, bool engine_primed, std::uint64_t frame,
+                std::uint64_t first_frame, std::uint64_t priming_frames) {
+  if (engine) return conditioned && engine_primed;
+  return frame >= first_frame && frame - first_frame + 1 >= priming_frames;
+}
+
 bool IsPlanValid(const DrivingPlanPayload& plan) {
   if (plan.sampleCount != kPlanSamples) return false;
   for (std::size_t i = 0; i < kPlanSamples; ++i) {
