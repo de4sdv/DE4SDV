@@ -43,6 +43,11 @@ There are three clocks. Every time field in a record names its clock by a suffix
 
 - The event name of each of the first five services is the last segment of its specifier. Instance id is 1.
 - Proxies subscribe with a max sample count of 8. A consumer never blocks a producer: a full slot is a dropped sample, which is counted and logged.
+- Every event has `numberOfSampleSlots` ≥ `maxSubscribers` × 8 + 1. LoLa rejects a subscription once the subscribers' sample counts would exceed the slots, and the producer needs one slot that no subscriber holds.
+  - The agent's four events allow 3 subscribers (the consumer above, the bench tap, one spare) and have 25 slots.
+  - `actuation_state` allows 2 and has 20.
+  - Each `operational_state` event allows 1 and has 9.
+  - Every manifest that declares an event gives the same two numbers.
 
 ## 3. The operational state on SOME/IP (MAP-DRIVING-OPERATIONAL-STATE)
 
@@ -268,3 +273,6 @@ No payload changes.
   - No autopilot warm-up by default. REQ-DRIVING-011 allows the autopilot no control at any time of the run, so the hero rests at the route start until the agent drives.
   - Kinematics are in the map frame, as in `case-evaluators/OBSERVABLES.md` §3: yaw rate positive counter-clockwise, lateral acceleration positive to the left. `summary.yawRateCheck` compares CARLA's yaw rate with the logged poses on every run.
   - The rig's REF origin is read only after the hero has been simulated and has settled. These setup ticks are not run ticks; `simulator/worldSide.jsonl` logs them as `setup`.
+- **A21, mw::com slot sizing (§2).** No payload change.
+  - On the simulator host the bench tap and the actuation adapter each subscribed to `command` with 8 samples while the event had 8 slots. Whichever subscribed second was rejected (LoLa: slot overflow): in one run the adapter never drove the vehicle, in two the tap saw nothing.
+  - §2 now sizes every event for all its allowed subscribers plus the producer. `interfaces/tests/test_mw_com_manifests.py` checks every manifest and every `Subscribe` call of the bench.

@@ -55,8 +55,8 @@
                     "events": [
                         {
                             "eventName": "command",
-                            "numberOfSampleSlots": 8,
-                            "maxSubscribers": 8
+                            "numberOfSampleSlots": 25,
+                            "maxSubscribers": 3
                         }
                     ]
                 }
@@ -78,7 +78,7 @@
                         {
                             "eventName": "actuation_state",
                             "numberOfSampleSlots": 20,
-                            "maxSubscribers": 8
+                            "maxSubscribers": 2
                         }
                     ]
                 }

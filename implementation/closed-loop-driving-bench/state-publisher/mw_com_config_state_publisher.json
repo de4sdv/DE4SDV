@@ -120,8 +120,8 @@
                     "events": [
                         {
                             "eventName": "plan",
-                            "numberOfSampleSlots": 8,
-                            "maxSubscribers": 1
+                            "numberOfSampleSlots": 25,
+                            "maxSubscribers": 3
                         }
                     ]
                 }
@@ -142,8 +142,8 @@
                     "events": [
                         {
                             "eventName": "ego_motion_sample",
-                            "numberOfSampleSlots": 8,
-                            "maxSubscribers": 1
+                            "numberOfSampleSlots": 25,
+                            "maxSubscribers": 3
                         }
                     ]
                 }
@@ -164,8 +164,8 @@
                     "events": [
                         {
                             "eventName": "mode",
-                            "numberOfSampleSlots": 8,
-                            "maxSubscribers": 1
+                            "numberOfSampleSlots": 25,
+                            "maxSubscribers": 3
                         }
                     ]
                 }
@@ -186,8 +186,8 @@
                     "events": [
                         {
                             "eventName": "actuation_state",
-                            "numberOfSampleSlots": 8,
-                            "maxSubscribers": 1
+                            "numberOfSampleSlots": 20,
+                            "maxSubscribers": 2
                         }
                     ]
                 }
@@ -208,17 +208,17 @@
                     "events": [
                         {
                             "eventName": "plan",
-                            "numberOfSampleSlots": 8,
+                            "numberOfSampleSlots": 9,
                             "maxSubscribers": 1
                         },
                         {
                             "eventName": "vehicle_state",
-                            "numberOfSampleSlots": 8,
+                            "numberOfSampleSlots": 9,
                             "maxSubscribers": 1
                         },
                         {
                             "eventName": "health",
-                            "numberOfSampleSlots": 8,
+                            "numberOfSampleSlots": 9,
                             "maxSubscribers": 1
                         }
                     ]

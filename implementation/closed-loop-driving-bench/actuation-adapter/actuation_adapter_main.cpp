@@ -284,7 +284,12 @@ std::string RoleName(const cc::Actor& actor) {
 carla::SharedPtr<cc::Vehicle> FindHero(cc::World& world) {
   const auto actors = world.GetActors();
   if (!actors) return nullptr;
-  for (const auto& actor : *actors->Filter("vehicle.*")) {
+  // Name the filtered list. A range-for over `*actors->Filter(...)` iterates a list whose only owner,
+  // the temporary SharedPtr, C++17 destroys before the first iteration; CARLA's iterator then builds
+  // actors into freed memory (on the simulator host: "double free detected in tcache 2").
+  const auto vehicles = actors->Filter("vehicle.*");
+  if (!vehicles) return nullptr;
+  for (const auto& actor : *vehicles) {
     if (RoleName(*actor) == "hero") {
       return boost::static_pointer_cast<cc::Vehicle>(actor);
     }

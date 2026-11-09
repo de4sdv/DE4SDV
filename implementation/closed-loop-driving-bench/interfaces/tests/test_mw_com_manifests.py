@@ -40,6 +40,63 @@ def manifests(bench=BENCH):
     return sorted(p for p in bench.rglob("mw_com_config*.json") if ".venv" not in p.parts)
 
 
+def icd_max_samples(bench=BENCH):
+    """The per-proxy max sample count that ICD.md section 2 fixes ("max sample count of N")."""
+    text = (bench / "interfaces" / "ICD.md").read_text(encoding="utf-8")
+    section = text.split("## 2.", 1)[1].split("\n## ", 1)[0]
+    found = re.search(r"max sample count of (\d+)", section)
+    assert found, "ICD.md section 2 states no per-proxy max sample count"
+    return int(found.group(1))
+
+
+def event_deployments(path):
+    """[(specifier, event, numberOfSampleSlots, maxSubscribers)] of one manifest."""
+    cfg = json.loads(Path(path).read_text(encoding="utf-8"))
+    out = []
+    for inst in cfg.get("serviceInstances", []):
+        for i in inst.get("instances", []):
+            for e in i.get("events", []):
+                out.append((inst["instanceSpecifier"], e.get("eventName"),
+                            e.get("numberOfSampleSlots"), e.get("maxSubscribers")))
+    return out
+
+
+def check_sizing(path, per_proxy):
+    """LoLa (enforceMaxSamples, the default) rejects a Subscribe once the subscribers' max sample
+    counts would sum to more than the event's numberOfSampleSlots, and the producer needs one slot no
+    subscriber holds. So every allowed subscriber fits only when slots >= maxSubscribers x N + 1."""
+    problems = []
+    for spec, event, slots, subs in event_deployments(path):
+        if not isinstance(slots, int) or not isinstance(subs, int) or subs < 1:
+            problems.append(f"{spec}/{event}: numberOfSampleSlots {slots}, maxSubscribers {subs}")
+        elif slots < subs * per_proxy + 1:
+            problems.append(f"{spec}/{event}: {slots} slots cannot hold {subs} subscribers x {per_proxy}"
+                            f" samples + 1 producer slot (needs {subs * per_proxy + 1})")
+    return problems
+
+
+SOURCE_SKIP = {".venv", ".build", ".upstream", "tests", "__pycache__"}
+
+
+def subscribe_calls(bench=BENCH):
+    """[(file, line, count or None)] for every mw::com Subscribe call in the bench's C++ sources;
+    a named count is resolved from a constant of the same file, None when it cannot be."""
+    calls = []
+    for path in sorted(bench.rglob("*")):
+        if path.suffix not in (".cpp", ".cc", ".h") or SOURCE_SKIP & set(path.parts):
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for m in re.finditer(r"(?:\.|->)\s*Subscribe\(\s*([A-Za-z_]\w*|\d+)\s*\)", text):
+            arg = m.group(1)
+            if arg.isdigit():
+                count = int(arg)
+            else:
+                const = re.search(rf"\b{arg}\s*=\s*(\d+)", text)
+                count = int(const.group(1)) if const else None
+            calls.append((str(path.relative_to(bench)), text.count("\n", 0, m.start()) + 1, count))
+    return calls
+
+
 def check_manifest(path, table):
     """List of problems of one manifest against the table."""
     cfg = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -84,6 +141,34 @@ def test_every_manifest_matches_the_icd():
     assert found, "no mw_com_config*.json found under the bench"
     problems = {str(p.relative_to(BENCH)): check_manifest(p, table) for p in found}
     assert not any(problems.values()), problems
+
+
+def test_every_event_has_a_slot_for_each_subscriber_and_the_producer():
+    # On the simulator host the bench tap and the actuation adapter each subscribed to the command
+    # event with 8 samples while it had 8 slots: whichever came second was rejected (slot overflow).
+    per_proxy = icd_max_samples()
+    problems = {str(p.relative_to(BENCH)): check_sizing(p, per_proxy) for p in manifests()}
+    assert not any(problems.values()), problems
+
+
+def test_every_copy_of_an_event_deployment_agrees():
+    seen = {}
+    for p in manifests():
+        for spec, event, slots, subs in event_deployments(p):
+            seen.setdefault((spec, event), set()).add((slots, subs, str(p.relative_to(BENCH))))
+    disagree = {f"{s}/{e}": sorted(v) for (s, e), v in seen.items() if len({(a, b) for a, b, _ in v}) > 1}
+    assert not disagree, disagree
+
+
+def test_every_proxy_subscribes_within_the_icd_count():
+    per_proxy = icd_max_samples()
+    calls = subscribe_calls()
+    files = {f for f, _, _ in calls}
+    for consumer in ("agent/tools/agent_tap.cpp", "actuation-adapter/actuation_adapter_main.cpp",
+                     "state-publisher/state_publisher_main.cpp"):
+        assert consumer in files, f"no Subscribe call found in {consumer}: the scan is blind"
+    bad = [(f, line, n) for f, line, n in calls if n is None or n > per_proxy]
+    assert not bad, bad
 
 
 if __name__ == "__main__":

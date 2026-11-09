@@ -97,7 +97,7 @@
                     "events": [
                         {
                             "eventName": "ego_motion_sample",
-                            "numberOfSampleSlots": 8,
+                            "numberOfSampleSlots": 25,
                             "maxSubscribers": 3
                         }
                     ]
@@ -119,7 +119,7 @@
                     "events": [
                         {
                             "eventName": "plan",
-                            "numberOfSampleSlots": 8,
+                            "numberOfSampleSlots": 25,
                             "maxSubscribers": 3
                         }
                     ]
@@ -141,7 +141,7 @@
                     "events": [
                         {
                             "eventName": "mode",
-                            "numberOfSampleSlots": 8,
+                            "numberOfSampleSlots": 25,
                             "maxSubscribers": 3
                         }
                     ]
@@ -163,7 +163,7 @@
                     "events": [
                         {
                             "eventName": "command",
-                            "numberOfSampleSlots": 8,
+                            "numberOfSampleSlots": 25,
                             "maxSubscribers": 3
                         }
                     ]

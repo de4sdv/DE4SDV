@@ -89,6 +89,12 @@ bool PlannerBridge::Start(const std::string& python_executable, const std::vecto
   PyConfig config;
   PyConfig_InitPythonConfig(&config);
   config.install_signal_handlers = 0;  // FEO keeps SIGINT/SIGTERM
+  // The planner's Python comes only from the configuration (the executable's environment plus
+  // `paths`): PYTHONPATH, PYTHONHOME and the other PYTHON* variables of the host, and the user's
+  // site directory, would change which libraries the planner loads without the run record showing
+  // it (on the simulator host a PYTHONPATH meant for Python 3.10 tools broke the numpy import).
+  config.use_environment = 0;
+  config.user_site_directory = 0;
   PyStatus status = PyConfig_SetBytesString(&config, &config.executable, python_executable.c_str());
   if (PyStatus_Exception(status)) {
     PyConfig_Clear(&config);
