@@ -36,7 +36,8 @@ EOF
  "python_executable": "$VENV_PY", "python_paths": ["$PKG/de4sdv_bench/agent/python"],
  "planner_config": "$RUN/planner.json", "fake_rig": "$OUT/rig.json", "fake_rate_hz": 10.0, "fake_first_frame": 5000,
  "fake_speed_kmh": 18.0, "campaign_id": "wp2-g4-checkpoint", "run_role": "integration-$NAME",
- "scenario": "closedLoopRoute", "fault": "none", "checkpoint_case": "$( [ "$PIN" = "$ZERO" ] && echo wrong_pin || echo pinned )",
+ "scenario": "$( [ "$PIN" = "$ZERO" ] && echo checkpointRefusal || echo closedLoopRoute )", "fault": "none",
+ "checkpoint_case": "$( [ "$PIN" = "$ZERO" ] && echo wrong_pin || echo pinned )",
  "score_feo_revision": "313b3d8+event-trigger"}
 EOF
   rm -rf /tmp/mw_com_lola /dev/shm/lola-* 2>/dev/null
