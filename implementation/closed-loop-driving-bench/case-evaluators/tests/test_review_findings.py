@@ -745,6 +745,24 @@ def test_r6_vc032_sets_no_range_without_a_model_source(run_for, tmp_path):
     assert res.measured["planning_time_s"]["max"] > 0.6
 
 
+def test_r6_vc032_a_reception_before_its_production_is_no_measurement(run_for, tmp_path):
+    # The agent and the adapter stamp production and arrival on the score host's
+    # monotonic clock. An arrival before the production means a wrong join or a
+    # wrong stamp: the run then cannot show the four quantities. A join by plan
+    # reference (the review's R6) yields such values while the plan is frozen.
+    d = copied(run_for, tmp_path, "nominal", "r6-negative-transport")
+    target = round(records(d / ADAPTER, "in.command")[40]["data"]["productionTime"], 6)
+
+    def adapter(rec):
+        if rec["event"] == "in.command" and round(rec["data"]["productionTime"], 6) == target:
+            rec["data"]["arrival_mono_s"] = round(rec["data"]["productionTime"] - 0.5, 6)
+        return rec
+    rewrite(d / ADAPTER, adapter)
+    res = verdict(Run(d), "VC-DRIVING-032")
+    assert res.outcome == cases.INCONCL, (res.outcome, res.measured, res.notes)
+    assert any("negative" in n for n in res.notes), res.notes
+
+
 # ------------------------------------------------------------------ R7
 # REQ-DRIVING-013: over a 60 s wall-clock window that starts at the end of
 # priming, with the simulation at a real-time factor of at least 0.95. Plans

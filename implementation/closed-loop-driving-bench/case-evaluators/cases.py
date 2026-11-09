@@ -2508,6 +2508,21 @@ def vc032(run: Run) -> Result:
         return inconclusive(vc, "clock-domain tags", "C9",
                             "a command or its plan is not stamped and marked with its clocks",
                             measured)
+    # Each quantity is a later stamp minus an earlier one on one clock. A negative
+    # value is no delay: a join or a stamp is wrong (a join by plan reference gives
+    # such values while a frozen plan is commanded), so the run shows nothing.
+    negative = {name: sum(1 for x in xs if x < -1e-6)
+                for name, xs in (("input_age_at_actuation_s", ages),
+                                 ("planning_interval_s", intervals),
+                                 ("planning_time_s", planning),
+                                 ("score_transport_delay_s", transport))}
+    negative = {k: n for k, n in negative.items() if n}
+    if negative:
+        measured["negative_samples"] = negative
+        return inconclusive(vc, "consistent production, arrival and actuation stamps", None,
+                            "negative " + ", ".join(f"{k} in {n} samples" for k, n in negative.items())
+                            + ": a later stamp precedes an earlier one on the same clock, so a join "
+                              "or a stamp is wrong", measured)
     if not (ages and intervals and planning and transport):
         return inconclusive(vc, "the records of all four quantities", None,
                             "no command yields every quantity", measured)

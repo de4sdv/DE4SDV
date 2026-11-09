@@ -28,7 +28,7 @@ field + producer for the missing case, and the C2 bundle ledger.
 | `make_synthetic_run.py` | writes synthetic run directories: nominal, each SC-DRIVING-003 fault, the AAOS replay campaign, the two checkpoint-refusal starts |
 | `gaps.py` | the ICD change list as data (`C1`..`C12`), with the cases each unblocks, and the amendments (`A11`..`A26`) each case relies on, named per case in `verdicts.json` |
 | `strip.py` | removes one change's records from a copy of a run — how the tests prove a case that needs a record cannot pass without it |
-| `tests/` | 152 tests |
+| `tests/` | 153 tests |
 
 ## Use
 
@@ -88,7 +88,7 @@ slice exists to prevent:
 
 ## What the tests establish
 
-152 tests, all passing. `tests/test_review_findings.py` holds one group of
+153 tests, all passing. `tests/test_review_findings.py` holds one group of
 tests per finding of the independent review (R1 to R16), each written to fail
 on the code before its fix:
 
@@ -155,7 +155,9 @@ is a reading the owner may change; the code names it where it applies.
   criterion (inconclusive).
 * **VC-DRIVING-032.** The success criterion states no range: the four
   quantities are computed per command, each from stamps of one domain, and
-  reported. Commands are joined to the adapter by `productionTime`.
+  reported. Commands are joined to the adapter by `productionTime`. A
+  negative value of any of the four makes the case inconclusive: a later stamp
+  then precedes an earlier one on the same clock, so a join or a stamp is wrong.
 * **Engine and names (VC-DRIVING-002, -003, -013).** A run of the stub engine
   (A17) makes all three inconclusive: it makes no checkpoint inference, so its
   images and its plan times say nothing about the driving system's. The camera names `cam_<slot>` written before A25
