@@ -1,0 +1,57 @@
+{
+  "_comment": [
+    "DE4SDV INC-DRIVING-001 slice 10b, DRAFT, bench-only, not yet validated.",
+    "The DE4SDV stack configuration of the SDV Core VM for the driving",
+    "operational state. It replaces the reference stack's",
+    "/vendor/etc/someip/vsomeip_config.json, as the AEBS frame bench's does.",
+    "It offers no SOME/IP service: the SDV Core VM consumes the three events",
+    "that someipd on the S-CORE host offers (service 0x4df0, instance 0x0001,",
+    "eventgroup 0x0001, events 0x8001/0x8002/0x8003, reliable TCP 30510, ICD",
+    "section 3). Each event's payload is the ICD section 3 SOME/IP struct (no",
+    "length field, big-endian); the broker translates it in REFLECTION mode into",
+    "the typed message de4sdv.driving.v1.DrivingOperationalState.",
+    "__SCORE_SOMEIP_PEER__ is the S-CORE host's address on the VXLAN segment;",
+    "scripts/stage_sdv_core_interop.sh renders it from SCORE_SOMEIP_PEER.",
+    "The service is marked secure and accepted only from that address (the",
+    "AEBS frame bench's setting): with service discovery enabled, vsomeip",
+    "3.1.37.1 processes an offer for a known service from any sender unless",
+    "the service is secure, so an SD offer from the IVI VM could otherwise",
+    "redirect the subscription. AOSP's vsomeip copy may carry patches, so the",
+    "runbook verifies the effect; the residual goes to GAP-MW-012 as in the",
+    "AEBS bench. The SD group stays 224.0.0.0 (GAP-MW-047)."
+  ],
+  "unicast": "192.168.98.3",
+  "logging": { "level": "info", "console": "true", "dlt": "false" },
+  "applications": [ { "name": "SampleStack", "id": "0x1221" } ],
+  "services": [
+    {
+      "service": "0x4df0",
+      "instance": "0x0001",
+      "unicast": "__SCORE_SOMEIP_PEER__",
+      "reliable": { "port": "30510", "enable-magic-cookies": "false" },
+      "events": [
+        { "event": "0x8001", "is_field": "false", "is_reliable": "true" },
+        { "event": "0x8002", "is_field": "false", "is_reliable": "true" },
+        { "event": "0x8003", "is_field": "false", "is_reliable": "true" }
+      ],
+      "eventgroups": [ { "eventgroup": "0x0001", "events": [ "0x8001", "0x8002", "0x8003" ] } ]
+    }
+  ],
+  "secure-services": [ { "service": "0x4df0", "instance": "0x0001" } ],
+  "acceptances": [
+    {
+      "address": "__SCORE_SOMEIP_PEER__",
+      "reliable": [ { "first": "30510", "last": "30510", "type": "secure" } ]
+    }
+  ],
+  "routing": "SampleStack",
+  "service-discovery": {
+    "enable": "true",
+    "multicast": "224.0.0.0",
+    "port": "30490",
+    "protocol": "udp",
+    "ttl": 3,
+    "cyclic_offer_delay": "2000",
+    "request_response_delay": "1500"
+  }
+}

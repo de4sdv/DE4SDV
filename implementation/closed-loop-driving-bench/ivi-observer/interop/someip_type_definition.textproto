@@ -1,0 +1,272 @@
+# DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+# Bench-only. The operational state as a SOME/IP struct (2026-11-09).
+#
+# The SomeIpStruct of the driving operational state: 43 fields, ICD v2 section 3,
+# in table order. This file is the canonical copy; `de4sdv_driving_operational_state.vsidl`
+# is generated from it by scripts/gen_someip_vsidl.py, once per event, because a
+# VSIDL mapping file has no way to name a type_definition and reuse it. The three
+# emitted blocks are byte-identical (the test asserts it), so the three events
+# really do share one definition.
+#
+# The rules this block encodes (AOSP "Write a SOME/IP type definition", 2026-09-24,
+# and ICD v2 section 3):
+#   * length_field_size: ZERO -- a SOME/IP struct carries no length prefix here;
+#     the ICD says so, and the S-CORE side writes none.
+#   * field_name must equal the SDV protobuf field name exactly; the broker
+#     matches struct fields to protobuf fields by name in REFLECTION mode.
+#   * UINT32 / FLOAT32 are the only primitives used; both are documented.
+#     There is deliberately no 64-bit field: the ICD carries times as _s/_ns
+#     UINT32 pairs and simulation time as _ms UINT32, so this mapping does not
+#     depend on a 64-bit SomeIpPrimitive existing in the shipped release
+#     (scripts/probe_aosp_tree.sh greps the enum; if UINT64 exists, nothing here
+#     changes -- the ICD is the contract).
+#   * strings: UTF_8 with length_field_size FOUR -- AUTOSAR string framing, so the
+#     four-byte length counts the BOM (EF BB BF), the UTF-8 bytes and the
+#     terminating NUL. An empty string is 00 00 00 04 EF BB BF 00, not 00 00 00 00.
+#   * arrays: length_field_size FOUR, length in BYTES (not elements), element
+#     SOMEIP FLOAT32. 64 values cost 4 + 256 = 260 bytes each.
+#
+# Two facts about the shipped broker are not provable from the documentation and
+# are the first AOSP-tree checks of the runbook (probe_aosp_tree.sh):
+#   1. that its string reader applies the BOM/NUL convention (and, if it does not,
+#      whether a BOM-less string is what it wants -- the S-CORE side would then
+#      change, not this file, because the ICD fixes the convention);
+#   2. that REFLECTION fills a `repeated float` protobuf field from a
+#      length-prefixed FLOAT32 array.
+# If either fails, this is an owner-level finding: option A is the first fallback
+# (fallback-a/), and it needs a model amendment.
+type_definition {
+  length_field_size: ZERO
+  field {
+    field_name: "schema_major"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "schema_minor"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "kind"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "sequence"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "producer"
+    field_type {
+      someip_string {
+        string_encoding: UTF_8
+        length_field_size: FOUR
+      }
+    }
+  }
+  field {
+    field_name: "publish_real_s"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "publish_real_ns"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "publish_mono_s"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "publish_mono_ns"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "plan_frame_index"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "plan_capture_ms"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "plan_production_mono_s"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "plan_production_mono_ns"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "plan_reference"
+    field_type {
+      someip_string {
+        string_encoding: UTF_8
+        length_field_size: FOUR
+      }
+    }
+  }
+  field {
+    field_name: "run_record"
+    field_type {
+      someip_string {
+        string_encoding: UTF_8
+        length_field_size: FOUR
+      }
+    }
+  }
+  field {
+    field_name: "plan_producer"
+    field_type {
+      someip_string {
+        string_encoding: UTF_8
+        length_field_size: FOUR
+      }
+    }
+  }
+  field {
+    field_name: "plan_sample_count"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "plan_horizon_s"
+    field_type { someip_primitive: FLOAT32 }
+  }
+  field {
+    field_name: "plan_acceleration"
+    field_type {
+      someip_array {
+        length_field_size: FOUR
+        array_type { someip_primitive: FLOAT32 }
+      }
+    }
+  }
+  field {
+    field_name: "plan_curvature"
+    field_type {
+      someip_array {
+        length_field_size: FOUR
+        array_type { someip_primitive: FLOAT32 }
+      }
+    }
+  }
+  field {
+    field_name: "plan_x"
+    field_type {
+      someip_array {
+        length_field_size: FOUR
+        array_type { someip_primitive: FLOAT32 }
+      }
+    }
+  }
+  field {
+    field_name: "plan_y"
+    field_type {
+      someip_array {
+        length_field_size: FOUR
+        array_type { someip_primitive: FLOAT32 }
+      }
+    }
+  }
+  field {
+    field_name: "speed_kmh"
+    field_type { someip_primitive: FLOAT32 }
+  }
+  field {
+    field_name: "longitudinal_acceleration"
+    field_type { someip_primitive: FLOAT32 }
+  }
+  field {
+    field_name: "lateral_acceleration"
+    field_type { someip_primitive: FLOAT32 }
+  }
+  field {
+    field_name: "yaw_rate_dps"
+    field_type { someip_primitive: FLOAT32 }
+  }
+  field {
+    field_name: "sample_capture_ms"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "sample_receipt_mono_s"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "sample_receipt_mono_ns"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "mode"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "cause"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "mode_source"
+    field_type {
+      someip_string {
+        string_encoding: UTF_8
+        length_field_size: FOUR
+      }
+    }
+  }
+  field {
+    field_name: "cause_since_mono_s"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "cause_since_mono_ns"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "last_plan_frame_index"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "last_plan_capture_ms"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "step_capture_ms"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "last_plan_production_mono_s"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "last_plan_production_mono_ns"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "dropped_samples"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "checkpoint_expected_sha256"
+    field_type {
+      someip_string {
+        string_encoding: UTF_8
+        length_field_size: FOUR
+      }
+    }
+  }
+  field {
+    field_name: "checkpoint_actual_sha256"
+    field_type {
+      someip_string {
+        string_encoding: UTF_8
+        length_field_size: FOUR
+      }
+    }
+  }
+  field {
+    field_name: "refusal_reason"
+    field_type {
+      someip_string {
+        string_encoding: UTF_8
+        length_field_size: FOUR
+      }
+    }
+  }
+}

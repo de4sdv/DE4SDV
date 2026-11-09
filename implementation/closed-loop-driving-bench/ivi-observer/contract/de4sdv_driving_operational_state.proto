@@ -1,0 +1,82 @@
+// DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+//
+// The typed VSIDL message of the observation path: what the SOME/IP broker of
+// the SDV Core VM publishes on the Data Tunnel topic, and what the IVI observer
+// subscribes to (model item MAP-DRIVING-OPERATIONAL-STATE: "one
+// VSIDL message DrivingOperationalState with a kind field").
+//
+// This file is the type in three places at once, and that is deliberate:
+//   1. the SDV catalog: the broker's publication type, resolved by vsidlc
+//      (scripts/stage_sdv_core_interop.sh stages it into
+//      <tree>/system/software_defined_vehicle/samples/some_ip/catalog/de4sdv_driving/);
+//   2. the app's compile-time type (contract/Android.bp, staged with the app);
+//   3. the reader of the run: every field name and every field's type here is
+//      held to interfaces/ICD.md v2 section 3 by tests/test_contract_and_encoding.py.
+//
+// proto3, field numbers 1..43 in ICD table order, one field per ICD row. The
+// field names are the contract in a second sense: the broker matches a SOME/IP
+// struct field to a protobuf field BY NAME (AOSP "Write a SOME/IP type
+// definition", field_name "must exactly match the corresponding field name
+// defined in the SDV protobuf message"), so renaming one here without renaming
+// it in interop/someip_type_definition.textproto breaks the translation
+// silently, with the field left at its default.
+//
+// There is no bytes field and no protobuf wrapper: the SOME/IP payload is a
+// struct (ICD section 3) and the broker translates it in REFLECTION mode. Do not
+// add a `bytes data = 1` carrier; that is option A, kept in fallback-a/.
+syntax = "proto3";
+
+package de4sdv.driving.v1;
+
+message DrivingOperationalState {
+  // ---- header, all kinds (ICD rows 1-9) -------------------------------
+  uint32 schema_major = 1;                    // 2
+  uint32 schema_minor = 2;                    // 0
+  uint32 kind = 3;                            // 1 PLAN, 2 VEHICLE_STATE, 3 HEALTH
+  uint32 sequence = 4;                        // per kind, from 1, no gaps
+  string producer = 5;                        // "statePublisher"
+  uint32 publish_real_s = 6;                  // CLOCK_REALTIME at encoding, seconds
+  uint32 publish_real_ns = 7;                 // nanoseconds part
+  uint32 publish_mono_s = 8;                  // CLOCK_MONOTONIC of the S-CORE host
+  uint32 publish_mono_ns = 9;                 // nanoseconds part
+
+  // ---- kind == PLAN (rows 10-22) --------------------------------------
+  uint32 plan_frame_index = 10;               // the step the plan was made from
+  uint32 plan_capture_ms = 11;                // simulation ms of the newest image
+  uint32 plan_production_mono_s = 12;         // the plan's own production time
+  uint32 plan_production_mono_ns = 13;
+  string plan_reference = 14;                 // "<runRecord>/<frameIndex>"
+  string run_record = 15;                     // run record identity
+  string plan_producer = 16;                  // "drivingAgent/inferPlan"
+  uint32 plan_sample_count = 17;              // 64 when well-formed
+  float plan_horizon_s = 18;
+  repeated float plan_acceleration = 19;      // 64, m/s^2
+  repeated float plan_curvature = 20;         // 64, 1/m, positive left
+  repeated float plan_x = 21;                 // 64, m, forward
+  repeated float plan_y = 22;                 // 64, m, left
+
+  // ---- kind == VEHICLE_STATE (rows 23-29) -----------------------------
+  float speed_kmh = 23;                       // VSS Vehicle.Speed
+  float longitudinal_acceleration = 24;       // m/s^2
+  float lateral_acceleration = 25;            // m/s^2
+  float yaw_rate_dps = 26;                    // deg/s, positive left
+  uint32 sample_capture_ms = 27;              // simulation ms
+  uint32 sample_receipt_mono_s = 28;          // when the publisher received it
+  uint32 sample_receipt_mono_ns = 29;
+
+  // ---- kind == HEALTH (rows 30-43) ------------------------------------
+  uint32 mode = 30;                           // de4sdv::driving::Mode
+  uint32 cause = 31;                          // de4sdv::driving::Cause, first stop cause latches
+  string mode_source = 32;                    // "superviseLoop" | "actuationAdapter" | ""
+  uint32 cause_since_mono_s = 33;             // when the stop began; 0 if none
+  uint32 cause_since_mono_ns = 34;
+  uint32 last_plan_frame_index = 35;
+  uint32 last_plan_capture_ms = 36;           // simulation ms of the newest plan's image
+  uint32 step_capture_ms = 37;                // simulation ms of the newest step seen
+  uint32 last_plan_production_mono_s = 38;
+  uint32 last_plan_production_mono_ns = 39;
+  uint32 dropped_samples = 40;                // publisher-side drops so far
+  string checkpoint_expected_sha256 = 41;     // refusal only
+  string checkpoint_actual_sha256 = 42;       // refusal only
+  string refusal_reason = 43;                 // "mismatch" | "no_pin" | ""
+}

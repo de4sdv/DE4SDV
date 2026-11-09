@@ -1,0 +1,50 @@
+// DE4SDV INC-DRIVING-001 slice 10b: the IVI observer application.
+//
+// One android_app, installed over adb on the IVI VM by
+// scripts/stage_ivi_observer.sh. It depends on the image's Java SDV Gateway client
+// (libsdvgatewayclient-java-sdk, as the INC-AEBS-010 visualization app does), on
+// protobuf lite, and on the typed message of ../contract -- and on nothing else.
+//
+// There is no carrier library and no bytes type any more (option B: the typed message);
+// the app's parser is the generated class of
+// de4sdv.driving.v1.DrivingOperationalState, compiled from the one .proto in
+// ../contract by the module below's dependency.
+//
+// Build:  m De4sdvDrivingStateObserver De4sdvDrivingStateRecordTest
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+android_app {
+    name: "De4sdvDrivingStateObserver",
+    manifest: "AndroidManifest.xml",
+    srcs: ["src/**/*.java"],
+    static_libs: [
+        "de4sdv_driving_operational_state_proto_java",
+        "libprotobuf-java-lite",
+    ],
+    uses_libs: ["libsdvgatewayclient-java-sdk"],
+    sdk_version: "module_current",
+    certificate: "platform",
+    privileged: true,
+    // Not `vendor: true`: the APK must land in system/priv-app, which is where
+    // stage_ivi_observer.sh installs it from and what the runbook pushes.
+    optimize: {
+        enabled: false,
+    },
+    owner: "de4sdv",
+}
+
+// JVM test of the record builder: the half of this app that is worth testing
+// without a device. No Android and no protobuf import, so it also runs on any
+// host with a JDK (StateRecordTest has a main()).
+java_test {
+    name: "De4sdvDrivingStateRecordTest",
+    srcs: [
+        "src/org/de4sdv/drivingstate/StateRecord.java",
+        "tests/org/de4sdv/drivingstate/StateRecordTest.java",
+    ],
+    static_libs: ["junit"],
+    sdk_version: "system_current",
+    owner: "de4sdv",
+}

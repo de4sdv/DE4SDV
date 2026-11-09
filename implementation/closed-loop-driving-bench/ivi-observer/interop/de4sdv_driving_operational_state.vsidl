@@ -1,0 +1,809 @@
+# DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+# Bench-only. GENERATED FILE: do not edit; regenerate with
+#   python3 scripts/gen_someip_vsidl.py
+# from interop/someip_type_definition.textproto and codec/icd_table.py.
+# tests/test_contract_and_encoding.py fails when this file is stale.
+#
+# Maps the one SOME/IP service of the driving operational state (service
+# 0x4df0, instance 0x0001, eventgroup 0x0001, events 0x8001 plan /
+# 0x8002 vehicle state / 0x8003 health, reliable, TCP 30510 -- ICD section 3) to
+# one Data Tunnel topic, `de4sdv-driving-operational-state`, typed
+# de4sdv.driving.v1.DrivingOperationalState -- the type the model names:
+#
+#   MAP-DRIVING-OPERATIONAL-STATE: "one SOME/IP service with three events, plan,
+#   vehicle state and health, mapped onto one VSIDL message
+#   DrivingOperationalState with a kind field".
+#
+# Translation: message_translation_mode REFLECTION on all three events. The broker
+# lays out the SOME/IP payload by the type_definition below (big-endian struct,
+# no struct length field, AUTOSAR strings, length-prefixed FLOAT32 arrays) and
+# fills the protobuf message's fields BY NAME. There is no bytes carrier and no
+# payload decoding anywhere on the guest: the IVI app receives the typed message.
+#
+# One topic parameter for three events: one subscription, one ACL pair and one
+# loss counter at the observer, and the two clocks on its screen come from one
+# stream. The order within a kind is the publisher's `sequence`; the interleaving
+# across kinds carries no meaning and is not used.
+#
+# If vsidlc or the broker refuses three offered events on one topic parameter, the
+# variant is three topics (keys 1/2/3, `de4sdv-driving-operational-state-plan` and so on) and three
+# subscriptions in the app; RUNBOOK step 6 names the switch and its cost.
+#
+# The one type_definition the three events share is emitted verbatim three times:
+# textproto has no aliasing, so "one definition" is a property the generator
+# guarantees and the test checks, not something the format can express.
+
+package: "com.android.sdv.someip"
+
+some_ip_mapping {
+  someip_service_mapping {
+    someip_service_id: 0x4df0
+    version_major: 0x1
+    version_minor: 0x0
+    instance {
+      instance_id: 0x0001
+      # Key 0 is the service unit name, which is what the broker's publish ACL and
+      # the IVI broker object policy see; key 1 names the topic.
+      sdv_service_unit_parameterization {key: 0 value: "de4sdv-driving-operational-state"}
+      sdv_topic_parameterization {
+        key: 1
+        value {
+          topic: "de4sdv-driving-operational-state"
+          capacity: 16
+        }
+      }
+    }
+    instance_impl {
+      offered_event {
+        # plan
+        group_id: 0x0001
+        event_id: 0x8001
+        simple_event {
+          sdv_unit_type {
+            package_name: "com.android.sdv.someip"
+            service_bundle_name: "SomeIpBroker"
+            type_name: "DrivingOperationalState"
+          }
+          service_unit: 0
+          topic: 1
+          message_translation_mode: REFLECTION
+          type_definition {
+            length_field_size: ZERO
+            field {
+              field_name: "schema_major"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "schema_minor"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "kind"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "sequence"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "producer"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "publish_real_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "publish_real_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "publish_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "publish_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_frame_index"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_production_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_production_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_reference"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "run_record"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "plan_producer"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "plan_sample_count"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_horizon_s"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "plan_acceleration"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "plan_curvature"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "plan_x"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "plan_y"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "speed_kmh"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "longitudinal_acceleration"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "lateral_acceleration"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "yaw_rate_dps"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "sample_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "sample_receipt_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "sample_receipt_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "mode"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "cause"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "mode_source"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "cause_since_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "cause_since_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_frame_index"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "step_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_production_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_production_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "dropped_samples"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "checkpoint_expected_sha256"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "checkpoint_actual_sha256"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "refusal_reason"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+          }
+        }
+      }
+      offered_event {
+        # vehicle state
+        group_id: 0x0001
+        event_id: 0x8002
+        simple_event {
+          sdv_unit_type {
+            package_name: "com.android.sdv.someip"
+            service_bundle_name: "SomeIpBroker"
+            type_name: "DrivingOperationalState"
+          }
+          service_unit: 0
+          topic: 1
+          message_translation_mode: REFLECTION
+          type_definition {
+            length_field_size: ZERO
+            field {
+              field_name: "schema_major"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "schema_minor"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "kind"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "sequence"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "producer"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "publish_real_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "publish_real_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "publish_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "publish_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_frame_index"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_production_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_production_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_reference"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "run_record"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "plan_producer"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "plan_sample_count"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_horizon_s"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "plan_acceleration"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "plan_curvature"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "plan_x"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "plan_y"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "speed_kmh"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "longitudinal_acceleration"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "lateral_acceleration"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "yaw_rate_dps"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "sample_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "sample_receipt_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "sample_receipt_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "mode"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "cause"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "mode_source"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "cause_since_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "cause_since_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_frame_index"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "step_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_production_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_production_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "dropped_samples"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "checkpoint_expected_sha256"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "checkpoint_actual_sha256"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "refusal_reason"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+          }
+        }
+      }
+      offered_event {
+        # health
+        group_id: 0x0001
+        event_id: 0x8003
+        simple_event {
+          sdv_unit_type {
+            package_name: "com.android.sdv.someip"
+            service_bundle_name: "SomeIpBroker"
+            type_name: "DrivingOperationalState"
+          }
+          service_unit: 0
+          topic: 1
+          message_translation_mode: REFLECTION
+          type_definition {
+            length_field_size: ZERO
+            field {
+              field_name: "schema_major"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "schema_minor"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "kind"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "sequence"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "producer"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "publish_real_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "publish_real_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "publish_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "publish_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_frame_index"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_production_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_production_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_reference"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "run_record"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "plan_producer"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "plan_sample_count"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "plan_horizon_s"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "plan_acceleration"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "plan_curvature"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "plan_x"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "plan_y"
+              field_type {
+                someip_array {
+                  length_field_size: FOUR
+                  array_type { someip_primitive: FLOAT32 }
+                }
+              }
+            }
+            field {
+              field_name: "speed_kmh"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "longitudinal_acceleration"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "lateral_acceleration"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "yaw_rate_dps"
+              field_type { someip_primitive: FLOAT32 }
+            }
+            field {
+              field_name: "sample_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "sample_receipt_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "sample_receipt_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "mode"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "cause"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "mode_source"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "cause_since_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "cause_since_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_frame_index"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "step_capture_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_production_mono_s"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "last_plan_production_mono_ns"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "dropped_samples"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "checkpoint_expected_sha256"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "checkpoint_actual_sha256"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+            field {
+              field_name: "refusal_reason"
+              field_type {
+                someip_string {
+                  string_encoding: UTF_8
+                  length_field_size: FOUR
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

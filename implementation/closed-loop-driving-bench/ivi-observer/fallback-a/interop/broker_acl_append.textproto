@@ -1,0 +1,12 @@
+# DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+# Bench-only.
+#
+# Appended (once) to the SOME/IP broker's authorization policy in the SDV Core
+# VM: the broker may publish the topic that the mapping declares. The file is
+# system/software_defined_vehicle/samples/some_ip/config/broker_apex/someip_acl.textproto
+# of the AOSP tree; scripts/stage_sdv_core_interop.sh appends it and greps for
+# the topic name so a second run does not append it twice.
+publisher {
+  message: "com.android.sdv.someip.De4sdvDrivingOperationalStateFrame"
+  topic: "de4sdv-driving-operational-state"
+}

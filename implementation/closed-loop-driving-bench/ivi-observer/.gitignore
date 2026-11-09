@@ -1,0 +1,5 @@
+# Local test by-products. The runbook's evidence lives in run/ and is pulled, not
+# committed: recordings, JSONL, identity files.
+__pycache__/
+*.pyc
+run/
