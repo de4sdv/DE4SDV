@@ -210,20 +210,26 @@ def test_the_outcome_vocabulary_is_the_increments_own_with_the_six_shared_litera
 
 
 def test_the_run_record_binds_the_identities_and_the_bench_recording() -> None:
-    """Owner decision 4: one record per run. The recording rule of 2026-11-06: one capture with the simulator's
-    view and the IVI display together and both clocks, not composed, not rendered afterwards."""
+    """Owner decision 4: one record per run. The recording rule of 2026-11-09, which supersedes the single capture
+    of 2026-11-06: separate real-time recordings per host, each showing its clocks, never retimed."""
     code = _code(SLICE)
     attributes = re.findall(r"\battribute (\w+) : ", _body(code, rf"\bitem def {RECORD} \{{"))
     assert attributes == RECORD_ATTRIBUTES
     assert "attribute scenario : DrivingScenarioIdentity;" in code
     docs = _docs(SLICE)
-    for phrase in ["one capture of the bench's display, taken while the run runs, that shows the simulator's view of the "
-                   "vehicle and the display of the IVI VM with the observer application together, with the simulation "
-                   "clock and the wall clock of the host visible",
-                   "It is not composed from separate recordings and not rendered after the run (owner decision of 2026-11-06)",
-                   "the public cut of the increment comes from this capture and from nothing else",
+    for phrase in ["separate real-time recordings, one per host, taken while the run runs",
+                   "the simulator's chase view of the vehicle, rendered and encoded by the simulator host's hardware "
+                   "video encoder (NVENC) after one warm-up lap",
+                   "the display of the IVI VM with the observer application, recorded on the guest",
+                   "the terminal sessions of the bench, recorded as terminal sessions",
+                   "Each recording shows its clocks",
+                   "A public cut may place them side by side, aligned by the clocks the run record names; nothing is "
+                   "retimed and nothing is rendered after the run (owner decision of 2026-11-09, which supersedes the "
+                   "single capture of 2026-11-06)",
+                   "the public cut of the increment comes from these recordings and from nothing else",
                    "A missing or partial record gives inconclusive, never pass. No record exists yet."]:
         assert phrase in docs, phrase
+    assert "It is not composed from separate recordings" not in docs, "superseded on 2026-11-09"
 
 
 def test_the_bench_refers_to_the_driving_software_of_driving_config_001() -> None:
@@ -242,13 +248,14 @@ def test_the_environment_gap_is_deferred_and_names_the_probes_and_the_capture() 
     gap = _body(raw, rf"\bpart <'{GAP}'> gapDrivingVerificationEnvironmentOpen : IncrementGap \{{")
     assert "attribute :>> disposition = LifecycleDisposition::deferred;" in gap
     doc = " ".join(re.sub(r"^\s*\*\s?", "", gap, flags=re.M).split())
-    for phrase in ["the probes the owner authorized on 2026-11-06", "the three-program skeleton on the pinned S-CORE components",
-                   "the export and parity of the checkpoint with the route-conditioned inputs",
-                   "the simulator with the rig and the control interface and its client library inside an S-CORE application",
-                   "the GPU host with KVM", "the SOME/IP gateway against the pinned communication",
-                   "nothing of phase 10 is built before they are read",
-                   "one recording of the bench's display with the simulator's view and the IVI VM's display side by side and both clocks visible"]:
+    for phrase in ["the probes the owner authorized on 2026-11-06", "were read from 2026-11-07 to 2026-11-09",
+                   "three hosts", "the bench network", "the VXLAN segment", "GAP-DRIVING-007",
+                   "separate real-time recordings per host", "the environment's identity",
+                   "the three hosts have not yet run together"]:
         assert phrase in doc, phrase
+    assert "side by side and both clocks visible" not in doc and "nothing of phase 10 is built before they are read" not in doc
+    head = " ".join(raw[:raw.index("package ")].split())
+    assert "stay open until then" not in head and "fixed by the readiness probes" in head
     ids = sorted(set(re.findall(r"GAP-DRIVING-\d{3}", "".join(p.read_text(encoding="utf-8") for p in DRIVING.glob("*.sysml")))))
     assert ids.count(GAP) == 1 and GAP == max(ids), "the next free gap number"
 

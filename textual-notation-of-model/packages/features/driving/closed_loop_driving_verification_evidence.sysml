@@ -15,7 +15,9 @@
  * execution slice can plan the runs. The System 2 test environment is the
  * framing's closedLoopVerificationEnvironment; its hosts, their topology
  * and the capture pipeline are fixed by the readiness probes the owner
- * authorized on 2026-11-06 and stay open until then (GAP-DRIVING-009). The
+ * authorized on 2026-11-06, read into phase 8's amendment of 2026-11-09:
+ * three hosts and separate real-time recordings per host. The environment's
+ * identity in the record stays open (GAP-DRIVING-009). The
  * validation of the needs stays planned in phase 4 (SC-DRIVING-005 to
  * SC-DRIVING-011). This slice adds no validation case.
  *
@@ -26,7 +28,7 @@
  * the model revision, the checkpoint and source identities the run record
  * of REQ-DRIVING-033 names, the pins of the S-CORE components and of the
  * simulator, the scenario, the two clock spans and the retained artifacts,
- * among them the bench recording. The claims of the increment are stated
+ * among them the bench recordings. The claims of the increment are stated
  * now, one per phase 1 concern this phase answers, each supported by an
  * argument that cites the planned cases; the counter-claims are the
  * framing's non-claims, each tied to the record that keeps it open. A
@@ -57,7 +59,7 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
      * The scenario of a run, as the records and the evidence record name
      * it. closedLoopRoute is SC-DRIVING-001, the vehicle driven along the
      * route from the system's own plans; the observation of SC-DRIVING-002
-     * is shown by the same run on the IVI display and its bench recording.
+     * is shown by the same run on the IVI display and its recording.
      * degradedInputOrPlan is SC-DRIVING-003 with the fault the case names.
      * aaosUnavailable is SC-DRIVING-004 on replayed inputs.
      * checkpointRefusal is no scenario of phase 2: a start of the driving
@@ -123,13 +125,18 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
      * retained records: the inputs, plans, commands, publications and
      * S-CORE communication records of the run.
      *
-     * benchRecordingArtifact names the bench recording: one capture of the
-     * bench's display, taken while the run runs, that shows the simulator's
-     * view of the vehicle and the display of the IVI VM with the observer
-     * application together, with the simulation clock and the wall clock of
-     * the host visible. It is not composed from separate recordings and not
-     * rendered after the run (owner decision of 2026-11-06); the public cut
-     * of the increment comes from this capture and from nothing else.
+     * benchRecordingArtifact names the bench recordings: separate real-time
+     * recordings, one per host, taken while the run runs: the simulator's
+     * chase view of the vehicle, rendered and encoded by the simulator
+     * host's hardware video encoder (NVENC) after one warm-up lap; the
+     * display of the IVI VM with the observer application, recorded on the
+     * guest; and the terminal sessions of the bench, recorded as terminal
+     * sessions. Each recording shows its clocks. A public cut may place them
+     * side by side, aligned by the clocks the run record names; nothing is
+     * retimed and nothing is rendered after the run (owner decision of
+     * 2026-11-09, which supersedes the single capture of 2026-11-06); the
+     * public cut of the increment comes from these recordings and from
+     * nothing else.
      * independentObserverIdentity names the observer of the publications
      * and the engineer who re-derived the run identity. claimBoundary
      * states what the record proves and what it does not. A missing or
@@ -165,9 +172,10 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
      * and does not own. drivingSoftware is its driving software, the
      * realization of the system of interest: the subject that each verified
      * requirement binds. The System 2 test environment is the framing's
-     * closedLoopVerificationEnvironment; which hosts carry the simulator
-     * server, the three programs and the guests, and how the bench captures
-     * its display, stay open until the readiness probes (GAP-DRIVING-009).
+     * closedLoopVerificationEnvironment: three hosts carry the simulator
+     * server, the three programs and the guests, and each host records its
+     * own part of a run (phase 8's amendment of 2026-11-09); the
+     * environment's identity in the record is GAP-DRIVING-009.
      * The bench is not a product selection.
      */
     ref part system1ConfiguredProduct :> DE4SDV_ClosedLoopDrivingVariabilityConfiguration::configuredProduct;
@@ -178,27 +186,17 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
 
   part <'GAP-DRIVING-009'> gapDrivingVerificationEnvironmentOpen : IncrementGap {
     doc /*
-     * Open: the hosts, the topology and the capture pipeline of the System
-     * 2 test environment are not fixed. Phase 8 needs an x86_64 Linux host
-     * with an NVIDIA GPU for the inference engine and KVM for the two AAOS
-     * SDV guests (GAP-DRIVING-007), and a simulator server with a GPU for
-     * the rendering; whether one host carries both or the simulator runs on
-     * a second host joined by a network is decided by the probes the owner
-     * authorized on 2026-11-06: the three-program skeleton on the pinned
-     * S-CORE components, the export and parity of the checkpoint with the
-     * route-conditioned inputs, the simulator with the rig and the control
-     * interface and its client library inside an S-CORE application, the
-     * GPU host with KVM, and the SOME/IP gateway against the pinned
-     * communication. Each probe discharges one assumption or gap of phase
-     * 8, and nothing of phase 10 is built before they are read.
-     *
-     * The capture pipeline follows the recording rule of
-     * RetainedDrivingRunEvidence: one recording of the bench's display with
-     * the simulator's view and the IVI VM's display side by side and both
-     * clocks visible, which needs the simulator's view and the guest's
-     * display on one display of the bench. The next slice adds the
-     * environment's identity to the evidence record and closes this gap.
-     * Deferred to that slice.
+     * Open: the environment's identity in the evidence record. All of the
+     * probes the owner authorized on 2026-11-06 were read from 2026-11-07 to
+     * 2026-11-09, and phase 8's amendment of 2026-11-09 fixes the hosts,
+     * the topology and the capture: three hosts, the simulator host and the
+     * S-CORE host joined by the bench network, the guests on the guest host
+     * reached over the VXLAN segment, and separate real-time recordings per
+     * host under the recording rule of RetainedDrivingRunEvidence. Still
+     * open: the three hosts have not yet run together (GAP-DRIVING-007), and
+     * the record does not yet name the hosts, their images and the clocks of
+     * the recordings. The next slice adds the environment's identity to the
+     * evidence record and closes this gap. Deferred to that slice.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }

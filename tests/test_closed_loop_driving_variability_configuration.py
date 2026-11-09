@@ -50,9 +50,12 @@ SELECTIONS = {
 }
 
 #: phase-8 context part -> (its definition, the composed layer part, the projection selection that types it)
+#: three hosts since the amendment of 2026-11-09: the hypervisor is the guest host's, each host has its Linux
 CONTEXT_LAYERS = [
     ("ClosedLoopDrivingLinuxHost", "os", "osPlatform"),
-    ("ClosedLoopDrivingLinuxHost", "hypervisor", "hypervisor"),
+    ("ClosedLoopDrivingSimulatorHost", "os", "osPlatform"),
+    ("AAOSGuestHost", "os", "osPlatform"),
+    ("AAOSGuestHost", "hypervisor", "hypervisor"),
     ("AAOSSDVCoreGuest", "os", "guestOSPlatform"),
     ("AAOSSDVCoreGuest", "sdvMiddleware", "guestMiddleware"),
     ("AAOSIVIGuest", "os", "guestOSPlatform"),
@@ -272,6 +275,8 @@ def test_the_context_layers_of_phase_8_are_typed_by_the_selected_variants() -> N
         definition = SELECTIONS[selection][2]
         body = _own(_body(physical, rf"\bpart def {context_def}\b[^{{;]*\{{"))
         assert re.search(rf"(?<!ref )\bpart {layer} : {definition}\b", body), f"{context_def}.{layer} is not a {definition}"
+    host = _own(_body(physical, r"\bpart def ClosedLoopDrivingLinuxHost\b[^{;]*\{"))
+    assert "KVMHypervisor" not in host, "the S-CORE host nests no VM (amendment of 2026-11-09)"
 
 
 def test_no_feature_model_or_configuration_document_names_an_increment_requirement() -> None:

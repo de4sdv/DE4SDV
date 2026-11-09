@@ -505,39 +505,46 @@ three views, listed in `VIEWS.md`.
 `closed_loop_driving_physical_software_realization.sysml` answers what
 software, hardware and deployment elements realize the six logical elements,
 and on which technology the exchanges travel that REQ-DRIVING-014 and
-REQ-DRIVING-028 constrain. The owner's picks of 2026-11-06:
+REQ-DRIVING-028 constrain. The owner's picks of 2026-11-06, as amended on
+2026-11-09 from the readiness probes (below):
 
 - **Topology A, one FEO agent.** The loop is one Eclipse S-CORE program: a
-  fixed-execution-order agent (eclipse-score/feo v1.0.5) that runs four
-  activities in one Linux process, in the order of the loop, once per camera
-  frame: condition the inputs, infer the plan, supervise the loop, command
-  the vehicle. Each activity is a software element that carries one logical
-  element. The **actuation adapter** and the **state publisher** are S-CORE
-  applications of their own, so the stop response of REQ-DRIVING-028
-  survives the agent and the observation stays off the loop. The two
-  processes of the S-CORE SOME/IP gateway, `gatewayd` and `someipd`, carry
-  the publisher's reach across the hypervisor; the Launch Manager of S-CORE
-  Lifecycle starts and supervises the three programs and carries no logical
-  element.
-- **A C++ planner on an exported model.** The plan inference activity runs
-  an inference engine (TensorRT on the NVIDIA host, ONNX Runtime as the
-  fallback) over an ONNX export of the pinned AutoE2E checkpoint; the
-  training framework runs nowhere on the loop, and Python stays in System 2
-  for the export and the parity measurement. The export is an assumption
+  fixed-execution-order agent (eclipse-score/feo v1.0.5 with a DE4SDV
+  **event trigger**) that runs four activities in one Linux process, in the
+  order of the loop, once per camera frame: condition the inputs, infer the
+  plan, supervise the loop, command the vehicle. The trigger takes the
+  newest frame and counts the frames it skipped. Each activity is a software
+  element that carries one logical element: a Rust shell over C++ libraries,
+  because FEO's topics are Rust-only. The **actuation adapter** and the
+  **state publisher** are S-CORE applications of their own, so the stop
+  response of REQ-DRIVING-028 survives the agent and the observation stays
+  off the loop. The two processes of the S-CORE SOME/IP gateway, `gatewayd`
+  and `someipd`, carry the publisher's reach to the guests; the Launch
+  Manager of S-CORE Lifecycle, which runs as root, starts and supervises the
+  three programs and carries no logical element.
+- **The planner on PyTorch in the agent's process.** The plan inference
+  activity runs the pinned AutoE2E checkpoint on PyTorch, with DE4SDV's
+  rounding-level kernel changes and pinned libraries (torch 2.7.1, triton
+  3.3.1, cuDNN 9.26.0.51). The pick of 2026-11-06, an inference engine over
+  an ONNX export, failed at the export: the exporter ran out of 64 GB of
+  memory. The stack's parity with the reference is an assumption
   (ASM-DRIVING-002) with GAP-DRIVING-003 behind it until phase 10 measures
-  its parity against the reference.
+  it on the bench.
 - **S-CORE at v0.10.0** (reference_integration `ca2a5f03`): Communication
   v0.6.0, Lifecycle v0.10.0, Logging v0.2.6, Time v0.3.1, Configuration
-  Management v0.3.1. FEO (GAP-DRIVING-001) and the SOME/IP gateway of
-  INC-MW-011 (GAP-DRIVING-002) sit outside that baseline and are pinned
-  separately. Nothing is vendored. **KUKSA stays unselected**
-  (ALT-MW-KUKSA-001).
-- **Simulator in asynchronous real-time mode.** Simulation time comes with
-  each measurement and from the world snapshot at the actuation adapter;
-  wall-clock time from the host. The simulator server and the scenario's
-  route provider are System 2 context realizations on the host; the route
-  provider realizes the Phase 2 navigation on the host, not on the AAOS
-  guest, so the context-role decision of 2026-11-02 stays closed. The
+  Management v0.3.1. FEO (GAP-DRIVING-001, built beside them with eight
+  module overrides) and the SOME/IP gateway of INC-MW-011 sit outside that
+  baseline and are pinned separately. No source is vendored. **KUKSA stays
+  unselected** (ALT-MW-KUKSA-001).
+- **Simulator at wall-clock pace, never waiting for a plan.** The simulator
+  runs in synchronous mode with a 100 ms step, ticked by a world-side pacer
+  on the wall clock, so no element of the loop ticks it. Capture times come
+  from the frame index. Simulation time comes with each measurement and
+  from the world snapshot at the actuation adapter; wall-clock time from
+  the host. The simulator server and the scenario's route provider are
+  System 2 context realizations; the route provider realizes the Phase 2
+  navigation on the S-CORE host, not on the AAOS guest, so the context-role
+  decision of 2026-11-02 stays closed. The
   sensors of the loop are the simulator's: a simulated sensor rig inside the
   server, six cameras at the positions of `CameraPosition` and one
   ego-motion source. Its geometry is the rig profile of the pinned
@@ -556,13 +563,29 @@ REQ-DRIVING-028 constrain. The owner's picks of 2026-11-06:
   from the actuation adapter, each an mw::com event
   (`MAP-DRIVING-ACTUATION-STATE` for the last). The operational state leaves
   the publisher as an mw::com event, goes through `gatewayd` and `someipd`,
-  crosses the hypervisor on SOME/IP into the SDV Core VM, becomes a typed
+  crosses a VXLAN segment on SOME/IP into the SDV Core VM, becomes a typed
   Data Tunnel topic (a VSIDL message, GAP-DRIVING-006) and reaches the
   observer on the IVI VM through the SDV Gateway. Nothing flows back.
 - **VSS at the contract ports.** The ego-motion sample is typed by COVESA
   VSS where it enters the S-CORE contract; the commanded acceleration and
   steering angle are two `DE4SDV_VSS_Extensions` candidates, local to
   DE4SDV.
+- **Three hosts** (2026-11-09). The S-CORE host carries the driving
+  software and the route provider on the planner's GPU, an RTX PRO 6000
+  class card that runs nothing else; the simulator host renders on its own
+  GPU; the guest host runs the two AAOS SDV guests under KVM. The
+  simulator's exchanges cross the bench network; a VXLAN segment joins the
+  S-CORE host to the guests' bridge, so the guest images stay unchanged.
+  The cloud's GPU hosts nest no VM, and the planner missed its budget
+  whenever the simulator rendered on its card.
+- **Bench rules and recording** (2026-11-09). Eight operating rules: pinned
+  planner code, a parity check at start, capture-safe preprocessing, no
+  recompilation after the warm-up, a history cache of 64 entries, capture
+  times from the frame index, the simulator never on the planner's card,
+  and one **warm-up lap** with every camera before any judged or recorded
+  run. Each host records its part of a run in real time: the simulator's
+  chase view, encoded by its **NVENC** encoder; the IVI screen, on the
+  guest; the terminals, as terminal sessions. Nothing is retimed.
 
 Each logical element is allocated to the software element that carries it
 (eight allocations; the publisher reaches the observer through three
@@ -573,8 +596,17 @@ its timing, its transformation, and the phase 10 action that follows. An
 allocation is a responsibility assignment, no deployment or runtime claim; a
 mapping is no interoperability claim; a pin is no build claim.
 
-Four assumptions and six gaps record what the realization depends on and
-what it found. **GAP-DRIVING-005** was new information from the placement:
+Four assumptions and four gaps record what the realization depends on and
+what it found. The **readiness probes** of 2026-11-07 to 2026-11-09 retired
+two gaps: the SOME/IP gateway built at the v0.10.0 modules and carried 600 of
+600 events between two hosts to the IVI VM (GAP-DRIVING-002), and the
+simulator's client library linked into an S-CORE application
+(GAP-DRIVING-004). They narrowed GAP-DRIVING-003 to the planning stack's
+parity and turned GAP-DRIVING-007 into the open question of the three hosts
+in one run; a probe is evidence for an amendment, never a result of the
+increment. With the simulator on its own card the planner met REQ-DRIVING-013's
+budget at wall-clock pace, so the increment needs no redirect.
+**GAP-DRIVING-005** was new information from the placement:
 the actuation adapter's own stop response (REQ-DRIVING-028) had no path to
 the publication REQ-DRIVING-029 asks for, because phases 6 and 7 had no flow
 from the actuation gateway to the publisher. The owner decided on 2026-11-06
@@ -710,11 +742,14 @@ This is the first slice: the cases, not the runs. The owner's picks of
   checkpoint, source and configuration identities of the run record of
   REQ-DRIVING-033, the pins of the S-CORE components and of the simulator,
   the scenario, the two clock spans kept apart, the retained records and the
-  **bench recording**: one capture of the bench's display, taken while the
-  run runs, that shows the simulator's view and the IVI VM's display with the
-  observer application together, with **both clocks** visible. It is not
-  composed from separate recordings and not rendered afterwards; the public
-  cut of the increment comes from this capture and from nothing else.
+  **bench recording**: since 2026-11-09, separate real-time recordings, one
+  per host (the simulator's chase view encoded on the simulator host after a
+  warm-up lap, the IVI VM's display with the observer application, the
+  terminal sessions), each with its clocks; **both clocks** stay visible. A
+  public cut may place them side by side, aligned by the run record's
+  clocks, never retimed. This supersedes the single capture of 2026-11-06;
+  the public cut of the increment comes from these recordings and from
+  nothing else.
 - **Claims now, counter-claims from the non-claims.** Seven claims, one per
   phase 1 concern this phase answers (driven along the route, checkpoint
   command authority, the S-CORE command path, observation fidelity,
@@ -727,22 +762,20 @@ This is the first slice: the cases, not the runs. The owner's picks of
   tree view of the `ArgumentationAssuranceViewpoint` links them, and frames
   the two phase 1 concerns of the Architecture Management domain beside the
   phase's own.
-- **The environment stays a gap.** GAP-DRIVING-009: the hosts, the topology
-  and the capture pipeline of the System 2 environment are fixed by the five
-  readiness probes the owner authorized (the three-program skeleton on the
-  pinned S-CORE components, the export and parity of the checkpoint with the
-  route-conditioned inputs, the simulator with the rig and its client library
-  inside an S-CORE application, the GPU host with KVM, the SOME/IP gateway
-  against the pinned communication). Each discharges one assumption or gap
-  of Phase 8; nothing of Phase 10 is built before they are read.
+- **The environment's identity stays a gap.** GAP-DRIVING-009: the five
+  readiness probes the owner authorized on 2026-11-06 were read from
+  2026-11-07 to 2026-11-09, and Phase 8's amendment fixes the hosts, the
+  topology and the capture (three hosts, separate recordings per host).
+  Still open: the three hosts have not run together, and the evidence record
+  does not yet name the hosts, their images and the recordings' clocks.
 
 ## Next obligation and execution limits
 
 Use the reviewed revision's **Method Check** export to identify the first
 unmet model-content obligation; it is not proof that earlier engineering
 work is complete. The next work is the **second slice of Phase 10**: the
-readiness probes of GAP-DRIVING-009, then the bench, the runs of the 35
-cases and their evidence records with the bench recording, then the member
+bench on three hosts, the runs of the 35 cases and their evidence records
+with the bench recordings, then the member
 decision that amends ADR 0014 and the baseline of Phase 11. Do
 not jump from this context to implementation or claim a passed runtime
 gate.

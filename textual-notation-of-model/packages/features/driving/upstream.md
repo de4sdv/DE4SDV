@@ -42,6 +42,26 @@ The documented Autoware end-to-end example concerns VAD, not proof of an
 AutoE2E connector. Select and pin a compatible simulator build, sensor rig,
 scenario and vehicle/control interpretation before execution.
 
+## Eclipse S-CORE FEO
+
+Inspected source: [eclipse-score/feo](https://github.com/eclipse-score/feo/tree/313b3d849c17881d3a11b6bf62aa2afab6565ef0),
+release v1.0.5, commit `313b3d849c17881d3a11b6bf62aa2afab6565ef0`.
+
+Phase 8's amendment of 2026-11-09 consumes it with one DE4SDV patch, an event
+trigger in the scheduler: one chain per camera frame, the newest frame taken
+and the skipped frames counted. The release's scheduler is timer-paced only,
+and its topics are Rust-only. The patch and the eight module overrides that
+let it build beside reference_integration v0.10.0 are DE4SDV's to keep; no
+FEO source is vendored. Proposing the trigger upstream is an owner-authorized
+action that has not been taken.
+
+## Changes over the AutoE2E pin
+
+The planner of phase 8 runs the checkpoint at `cb50764b` on PyTorch with
+DE4SDV's kernel changes, which alter rounding only. They are DE4SDV changes
+over the pinned revision, not an upstream release, and not offered upstream:
+that, too, waits for the owner's word.
+
 ## Existing DE4SDV integration
 
 The framing was started from repository commit

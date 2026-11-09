@@ -75,10 +75,10 @@ package DE4SDV_ClosedLoopDrivingVariabilityConfiguration {
      * mw::com binding code of the three programs of the realization, no
      * program of its own, so no part of the realization is the adapter. A
      * dependency records which parts carry it. The driving agent runs the
-     * exported checkpoint of the selected vehicle application; a dependency
-     * records that too, because the application layer of the stack is the
-     * whole AutoE2E stack, and the agent is the program DE4SDV writes around
-     * the export.
+     * pinned checkpoint of the selected vehicle application in its own
+     * process (phase 8's engine decision of 2026-11-08); a dependency records
+     * that too, because the application layer of the stack is the whole
+     * AutoE2E stack, and the agent is the program DE4SDV writes around it.
      *
      * No shared asset implements the HMI display, so no feature binding
      * resolves the hmiDisplay selection. The projection lists it among the
