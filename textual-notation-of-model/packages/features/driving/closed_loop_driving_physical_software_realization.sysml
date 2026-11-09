@@ -16,31 +16,33 @@
  *   element. The actuation adapter and the operational-state publisher are
  *   S-CORE applications of their own, so the stop response of REQ-DRIVING-028
  *   survives the agent, and the observation stays off the loop (phase 7).
- * - B. The planner is C++ on an exported form of the pinned AutoE2E checkpoint
- *   (source revision cb50764b8250a3c44ee5b79b87ba02c5a83b0c91): an inference
- *   engine (TensorRT on the NVIDIA host, ONNX Runtime as the fallback) over an
- *   ONNX export, after the shape of the S-CORE AI Platform feature request
- *   (a thin model API over a vendor runtime). The training framework runs
- *   nowhere on the loop; Python stays in System 2 (export and parity tooling).
- *   Whether the export stands for the checkpoint is GAP-DRIVING-003.
+ * - B. The planner runs the pinned AutoE2E checkpoint (source revision
+ *   cb50764b8250a3c44ee5b79b87ba02c5a83b0c91) on its training framework,
+ *   PyTorch, in the agent's process (amended by the owner's engine decision of
+ *   2026-11-08; the pick of 2026-11-06, C++ over an ONNX export on an inference
+ *   engine, is now ALT-DRIVING-ONNXENGINE-001). Whether the planner's stack
+ *   stands for the checkpoint is GAP-DRIVING-003.
  * - C. Eclipse S-CORE pinned at reference_integration v0.10.0
  *   (ca2a5f03724780be3cebf3d80e0c9c0c6fa64eb2, known_good.json of
  *   2026-08-28): Communication v0.6.0 (mw::com, LoLa), Lifecycle v0.10.0
  *   (Launch Manager), Logging v0.2.6, Time v0.3.1, Configuration Management
  *   v0.3.1, Baselibs v0.2.17. Two modules sit outside that baseline: FEO at
- *   v1.0.5 (313b3d849c17881d3a11b6bf62aa2afab6565ef0, GAP-DRIVING-001) and
- *   the SOME/IP gateway of INC-MW-011 at d9eac670b7534352749da3d30f52aebf5129f168
- *   (GAP-DRIVING-002). Nothing is vendored.
+ *   v1.0.5 (313b3d849c17881d3a11b6bf62aa2afab6565ef0) with one DE4SDV patch
+ *   (GAP-DRIVING-001), and the SOME/IP gateway of INC-MW-011 at
+ *   d9eac670b7534352749da3d30f52aebf5129f168, incubation code (GAP-MW-036).
+ *   No source is vendored.
  * - D. KUKSA Databroker stays unselected: ALT-MW-KUKSA-001 stands. It is a
  *   QM gRPC broker of VSS signals; on the command path it would put a hop
  *   beside S-CORE communication (REQ-DRIVING-014), and on the observation
  *   path AAOS SDV consumes a typed Data Tunnel topic (decision 4). A host-side
  *   VSS broker is at most a phase 9 variation point.
- * - Decision 3. The simulator runs in asynchronous real-time mode (phase 0:
- *   no retiming of a slow simulation). Simulation time comes with each
- *   measurement (REQ-DRIVING-030) and from the world snapshot at the actuation
- *   adapter (REQ-DRIVING-028); wall-clock time from the host (REQ-DRIVING-013,
- *   -015 to -017, -019, -029, -031, -032).
+ * - Decision 3. The simulator follows the wall clock and never waits for a
+ *   plan (phase 0: no retiming of a slow simulation); since 2026-11-08 it
+ *   runs in synchronous mode, ticked by a world-side pacer (below).
+ *   Simulation time comes with each measurement (REQ-DRIVING-030) and from
+ *   the world snapshot at the actuation adapter (REQ-DRIVING-028);
+ *   wall-clock time from the host (REQ-DRIVING-013, -015 to -017, -019,
+ *   -029, -031, -032).
  * - Decision 4. The operational state reaches AAOS SDV on the production path
  *   INC-MW-011 proved for opaque frames: the publisher's S-CORE event, the
  *   gateway's gatewayd and someipd, SOME/IP across the hypervisor into the
@@ -55,6 +57,78 @@
  *   DE4SDV_VSS_Extensions candidates, local to DE4SDV (proposing them to
  *   COVESA needs the owner's word).
  *
+ * Amended on the owner's decisions of 2026-11-07 to 2026-11-09, read from
+ * the readiness probes P1 to P4. A probe is evidence for this amendment,
+ * never a result of the increment: it closes no requirement and no case.
+ *
+ * - The agent's activities are Rust shells over C++ libraries (2026-11-07).
+ *   FEO's topics are Rust-only at the pinned commit and its C++ binding has
+ *   no topic API, so the activities that move data on FEO topics are Rust;
+ *   the simulator client, the mw::com skeletons and the conversions are C++
+ *   libraries behind them.
+ * - FEO runs one chain per camera frame through an event trigger, a DE4SDV
+ *   patch on top of v1.0.5 (owner decision (a) of 2026-11-07): the
+ *   scheduler waits for the next frame instead of a timer, takes the newest
+ *   frame and counts the frames it skipped. Unpatched FEO is timer-paced
+ *   only. Proposing the trigger upstream waits for the owner's word.
+ * - FEO builds beside the v0.10.0 modules only with eight
+ *   single_version_override entries that force the reference integration's
+ *   pins: Communication 0.6.0, Lifecycle 0.10.0, Baselibs 0.2.17,
+ *   score_crates 0.0.11, score_docs_as_code 8.6.0, score_bazel_platforms
+ *   1.1.0, score_tooling 3.0.1 and flatbuffers 25.12.19.bcr.1. The set is
+ *   DE4SDV's integration metadata, checked again whenever FEO or the
+ *   baseline moves (GAP-DRIVING-001).
+ * - The Launch Manager runs as root: it changes the user of each program it
+ *   starts (setuid, setgroups), which an unprivileged Launch Manager cannot.
+ * - Engine (2026-11-08): the planner runs PyTorch in the agent's process. Four
+ *   exports of the checkpoint to ONNX exhausted 64 GB of host memory in the
+ *   exporter's graph passes without reporting an unsupported operator, so
+ *   TensorRT and ONNX Runtime have no model to run. The planning stack is the
+ *   checkpoint with DE4SDV's rounding-level kernel changes (the owner's stack
+ *   decision of 2026-11-08), pinned with its libraries (the library pin of
+ *   2026-11-08): torch 2.7.1 built for CUDA 12.8, triton 3.3.1 and the cuDNN of
+ *   nvidia-cudnn-cu12 9.26.0.51, with no TensorRT, ONNX Runtime or CUDA 13
+ *   library in the planner's environment.
+ * - Clock (2026-11-08, amending decision 3): the simulator runs in synchronous
+ *   mode with a fixed 100 ms step, and a world-side pacer of the bench's
+ *   scenario tooling ticks it on the wall clock, so the simulation keeps
+ *   wall-clock pace (real-time factor 0.99999 in the probe) while no client of
+ *   the loop ticks it. The simulator's own asynchronous modes ran ahead of the
+ *   wall clock or captured off the 100 ms grid. Capture times come from the
+ *   frame index: the simulator stores the step as a 32-bit float, and its
+ *   stamps drift off the grid that the checkpoint's history cache matches
+ *   exactly.
+ * - Recording (2026-11-09): separate real-time recordings per host, each
+ *   showing its clocks: the simulator's chase view rendered and encoded by
+ *   the simulator host's NVENC encoder after one warm-up lap, the IVI VM's
+ *   display recorded on the guest, and the terminal sessions recorded as
+ *   terminal sessions; nothing retimed. It supersedes the single capture of
+ *   2026-11-06 (phase 10).
+ * - Bench rules (2026-11-09), the bench's eight operating rules: pinned code
+ *   for the planner; a parity check at start; capture-safe preprocessing in
+ *   the planner; no recompilation after the warm-up; the history cache at 64
+ *   entries for the five interleaved history streams of a 10 Hz loop;
+ *   capture times from the frame index; the simulator never on the
+ *   planner's card; one warm-up lap of the route with every camera, the
+ *   recording view included, in the same simulator session before any
+ *   judged or recorded run.
+ * - The bench is three hosts (2026-11-09): the S-CORE host with the
+ *   planner's GPU, the simulator host with its own GPU, and the guest host
+ *   with KVM for the two AAOS SDV guests. The simulator's exchanges cross
+ *   the bench network between the simulator host and the S-CORE host; the
+ *   operational state crosses a VXLAN segment from the S-CORE host into the
+ *   guests' bridge. The cloud's GPU hosts nest no VM, and the planner missed
+ *   its 100 ms budget whenever the simulator rendered on its card.
+ * - With the simulator on its own card the planner met REQ-DRIVING-013's
+ *   budget in the probe at wall-clock pace, so the increment needs no
+ *   redirect: the charter's hold/redirect condition is not met.
+ * - GAP-DRIVING-002 and GAP-DRIVING-004 are retired. The gateway built at
+ *   the v0.10.0 modules, its mw::com side received every sample of a 0.6.0
+ *   publisher, and SOME/IP between two hosts completed the subscription and
+ *   carried 600 of 600 events to the IVI VM in order. The simulator's
+ *   client library linked into an S-CORE application with one C++ standard
+ *   library, read a camera frame and applied a vehicle control.
+ *
  * Alternatives recorded and not selected:
  * - ALT-DRIVING-PLAINAPPS-001: four plain S-CORE applications instead of the
  *   FEO agent, every exchange of the loop over mw::com. Cheaper to build, no
@@ -64,17 +138,35 @@
  *   the simulator client and publishing camera frames over mw::com, instead
  *   of the client inside the agent's input activity. One more copy of each
  *   frame and one more hop before planning; production-like for a camera
- *   driver, not needed on the bench.
- * - ALT-DRIVING-LIBTORCH-001: the C++ planner on the training framework's
- *   C++ runtime (a traced or exported graph) instead of an ONNX export.
- *   Closest numerics, no conversion, but not among the runtimes the S-CORE
- *   AI Platform request names. The fallback if the export fails on an
- *   unsupported operator (GAP-DRIVING-003).
+ *   driver, not needed on the bench, where the client links into the
+ *   S-CORE application.
+ * - ALT-DRIVING-LIBTORCH-001: the planner in C++ on the training
+ *   framework's C++ runtime over a traced or exported graph, instead of
+ *   PyTorch in the agent's process. No Python on the loop and the closest
+ *   numerics, but not among the runtimes the S-CORE AI Platform request
+ *   names, and its graph is not exported yet. The fallback if Python in the
+ *   agent's process cannot be kept (GAP-DRIVING-003).
  * - ALT-DRIVING-FEOMWCOM-001: FEO from its main branch, whose feo-com has an
  *   mw_com backend, so that the plan hops inside the agent are themselves
  *   mw::com. Unreleased, and its module file pins an older Communication;
  *   the reading question the owner closed on 2026-11-06 would not arise,
  *   the build risk grows.
+ * - ALT-DRIVING-ONNXENGINE-001: the pick B of 2026-11-06, the planner in C++
+ *   over an ONNX export on TensorRT, ONNX Runtime as the fallback, with no
+ *   training framework on the loop. Not selected on 2026-11-08: the export did
+ *   not complete (the engine decision of 2026-11-08). Open again if a change of
+ *   the graph's shape lets the export fit.
+ * - ALT-DRIVING-FEOGATE-001: unpatched FEO with a 1 ms cycle and the first
+ *   activity blocking until the next frame. One chain per frame without a
+ *   patch, but an error-level overrun log in every cycle, a cycle counter
+ *   that no longer measures time, and frames queued under overload unless
+ *   the activity drains to the newest. Not selected on 2026-11-07; the
+ *   fallback if the patch cannot be kept.
+ * - ALT-DRIVING-LOCKSTEP-001: the simulator waits for each plan before its
+ *   next step. It meets the latency on one shared card, but it retimes a
+ *   slow simulation against decision 3 and missed REQ-DRIVING-013's
+ *   real-time factor (0.872 against 0.95 in the probe). Usable for
+ *   development runs that produce no verification evidence.
  *
  * The context parts of phase 2 are realized on the bench as context parts of
  * the physical system, so the boundary connections have ends: the simulator
@@ -311,11 +403,15 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   part def InputConditioningActivity :> PhysicalAllocationElement {
     doc /*
      * Carries the input conditioner of phase 7 as the first activity of the
-     * FEO cycle, in C++. It holds the simulator client of the agent: the
-     * camera sensor stream, the motion state of the ego vehicle and the route
-     * of the scenario arrive through the client library on its threads; the
-     * step reads the newest frame and sample, marks each with its capture
-     * time in simulation time (REQ-DRIVING-030), keeps the camera and
+     * FEO cycle: a Rust shell over a C++ library. It holds the simulator
+     * client of the agent: the camera sensor stream and the motion state of
+     * the ego vehicle arrive from the simulator host over the bench network,
+     * through the client library on its threads, and the route of the
+     * scenario from the route provider; the step reads the newest frame and
+     * sample, marks each with its capture time in simulation time
+     * (REQ-DRIVING-030), computed from the frame index at 100 ms per step
+     * rather than read from the simulator's floating-point stamp (a bench
+     * rule of 2026-11-09), keeps the camera and
      * ego-motion histories of the run (REQ-DRIVING-004, -008, -010), derives
      * the curvature from yaw rate and speed, rasterizes the route mask and
      * the map context (REQ-DRIVING-006, -007) and writes the checkpoint
@@ -334,18 +430,22 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   part def PlanInferenceActivity :> PhysicalAllocationElement {
     doc /*
-     * Carries the planner of phase 7, run identity and planning, as the
-     * second activity of the FEO cycle, in C++. At startup it reads the
-     * configuration, computes the SHA-256 of the checkpoint file and of the
-     * exported model file it loads, refuses to plan when the checkpoint's
-     * SHA-256 differs from the one the configuration names or none is named
-     * (REQ-DRIVING-035), and records the run identity before the first plan
-     * (REQ-DRIVING-033). Each step runs the inference engine (TensorRT on the
-     * NVIDIA host, ONNX Runtime as the fallback) over the ONNX export of the
-     * pinned checkpoint on the checkpoint inputs and writes the plan, with
-     * its producer, its production time and the run record it names
-     * (REQ-DRIVING-031, -034), to the FEO topic for the loop supervision and
-     * to the mw::com event for the state publisher (REQ-DRIVING-015).
+     * Carries the planner of phase 7, run identity and planning, as the second
+     * activity of the FEO cycle: a Rust shell over a C++ library that embeds
+     * the Python runtime and runs the pinned checkpoint on PyTorch in the
+     * agent's process (the engine decision of 2026-11-08). At startup it reads
+     * the configuration, computes the SHA-256 of the checkpoint file it loads,
+     * refuses to plan when that SHA-256 differs from the one the configuration
+     * names or none is named (REQ-DRIVING-035), checks the cuDNN version of its
+     * pinned libraries, warms the planning stack up, checks its parity on a
+     * recorded input, and records the run identity, among it the AutoE2E source
+     * revision with DE4SDV's kernel changes, before the first plan
+     * (REQ-DRIVING-033). Each step runs the planning stack, with capture-safe
+     * preprocessing and no recompilation after the warm-up, on the checkpoint
+     * inputs and writes the plan, with its producer, its production time and
+     * the run record it names (REQ-DRIVING-031, -034), to the FEO topic for the
+     * loop supervision and to the mw::com event for the state publisher
+     * (REQ-DRIVING-015).
      */
     port checkpointInputsIn : CheckpointInputsIn;
     port planOut : DrivingPlanOut;
@@ -354,13 +454,13 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   part def LoopSupervisionActivity :> PhysicalAllocationElement {
     doc /*
-     * Carries the loop supervisor of phase 7 as the third activity of the
-     * FEO cycle, in C++. It judges the plan against the input condition and
-     * the planning period (REQ-DRIVING-013, -023 to -027), passes the newest
-     * valid plan on, and decides the mode: driving, or the stop response
-     * with its cause. The mode goes to the vehicle commander on an FEO topic
-     * and to the state publisher as an mw::com event (REQ-DRIVING-029). It
-     * issues no command.
+     * Carries the loop supervisor of phase 7 as the third activity of the FEO
+     * cycle: a Rust shell over a C++ library. It judges the plan against the
+     * input condition and the planning period (REQ-DRIVING-013, -023 to -027),
+     * passes the newest valid plan on, and decides the mode: driving, or the
+     * stop response with its cause. The mode goes to the vehicle commander on
+     * an FEO topic and to the state publisher as an mw::com event
+     * (REQ-DRIVING-029). It issues no command.
      */
     port inputConditionIn : InputConditionIn;
     port planIn : DrivingPlanIn;
@@ -371,10 +471,10 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   part def VehicleCommandActivity :> PhysicalAllocationElement {
     doc /*
-     * Carries the vehicle commander of phase 7 as the last activity of the
-     * FEO cycle, in C++. It computes the steering angle and the acceleration
-     * from the newest valid plan and the current motion sample
-     * (REQ-DRIVING-011), within the limits the configuration names
+     * Carries the vehicle commander of phase 7 as the last activity of the FEO
+     * cycle: a Rust shell over a C++ library. It computes the steering angle
+     * and the acceleration from the newest valid plan and the current motion
+     * sample (REQ-DRIVING-011), within the limits the configuration names
      * (REQ-DRIVING-012), commands the stop response in its mode
      * (REQ-DRIVING-020 to -022), stamps the command with its production time
      * (REQ-DRIVING-032) and publishes it as the typed mw::com event to the
@@ -390,12 +490,16 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   part def DrivingAgentApplication {
     doc /*
      * The FEO agent: one Linux process of the fixed-execution-order
-     * framework (eclipse-score/feo v1.0.5, a Rust framework whose activities
-     * may be C++ through its C++ activity bindings), running the four
-     * activities in the order of the loop, once per cycle. The cycle is paced
-     * by the camera frames of the simulation (REQ-DRIVING-001: one plan per
-     * 100 ms step of simulation time); whether the scheduler can be driven by
-     * the frame rather than by a timer is part of ASM-DRIVING-001. Inside the
+     * framework (eclipse-score/feo v1.0.5 with DE4SDV's event-trigger patch,
+     * a Rust framework), running the four activities in the order of the
+     * loop, once per cycle. Each activity is a Rust shell over C++
+     * libraries: FEO's topics are Rust-only at the pin, and its C++ activity
+     * binding has no topic API. The cycle is paced by the camera frames of
+     * the simulation (REQ-DRIVING-001: one plan per 100 ms step of
+     * simulation time) through the event trigger: the scheduler waits for
+     * the next frame instead of a timer, takes the newest frame and counts
+     * the frames it skipped, so a slow cycle plans on a current frame, not on
+     * a queued one (ASM-DRIVING-001). Inside the
      * agent the checkpoint inputs, the input condition, the plan, the valid
      * plan, the mode and the ego-motion sample move on FEO topics of the
      * framework's communication layer (shared memory on one host); they are
@@ -435,7 +539,8 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   part def ActuationAdapterApplication :> PhysicalAllocationElement {
     doc /*
      * Carries the actuation gateway of phase 7: an S-CORE application of its
-     * own, in C++, with a second simulator client. It subscribes to the
+     * own, in C++, with a second simulator client over the bench network.
+     * It subscribes to the
      * command event, converts the acceleration and the steering angle into
      * the simulator's vehicle control (throttle, brake, steer) within the
      * limits of the vehicle (REQ-DRIVING-012) and applies it to the ego
@@ -480,7 +585,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   part def ClosedLoopDrivingSoftwareRealization :> ClosedLoopDrivingSystem {
     doc /*
      * The driving system as phase 8 realizes it: the same system as the
-     * context's drivingSystem, now the three programs on the Linux host and
+     * context's drivingSystem, now the three programs on the S-CORE host and
      * the S-CORE services they use, owned here with them (one instance on
      * the host, typed by the platform stack's middleware layer). The
      * boundary of phase 6 is kept as ports of the realization: the
@@ -517,8 +622,12 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
         doc /*
          * The Launch Manager of S-CORE Lifecycle v0.10.0: starts the agent,
          * the actuation adapter and the publisher and supervises them. It
-         * carries no logical element; its recovery actions are a phase 10
-         * configuration.
+         * runs as root, because it changes the user of each program it
+         * starts (setuid, setgroups); the mw::com state a program leaves under
+         * /tmp/mw_com_lola belongs to that user, so a change of user between
+         * runs clears it first. Its own LmControlService needs two entries in
+         * the mw::com manifest. It carries no logical element; its recovery
+         * actions are a phase 10 configuration.
          */
       }
       part gatewayd : PhysicalAllocationElement {
@@ -527,7 +636,8 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
          * the operational-state event on mw::com and hands it to someipd
          * over the gateway's IPC. Carries the publisher's reach to the
          * observer together with someipd; a process of the pinned gateway,
-         * not DE4SDV code (GAP-DRIVING-002).
+         * not DE4SDV code, and incubation code outside both baselines
+         * (GAP-MW-036).
          */
         port operationalStateIn : OperationalStateIn;
         port operationalStateOut : OperationalStateOut;
@@ -536,7 +646,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
         doc /*
          * The someipd process of the S-CORE SOME/IP gateway: offers the
          * operational-state service on SOME/IP and sends each event over the
-         * virtual network of the hypervisor to the SOME/IP interop of SDV
+         * VXLAN segment into the guests' bridge to the SOME/IP interop of SDV
          * Core. The last element of the driving system on the observation
          * path; a process of the pinned gateway, not DE4SDV code.
          */
@@ -567,16 +677,19 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * The simulator server, System 2: renders the cameras of the ego vehicle
      * and simulates its dynamics and the road environment, so it stands for
      * the vehicle and the road environment of the phase 2 context on the
-     * bench. It runs in asynchronous real-time mode (decision 3): the scene
-     * progresses at wall-clock pace and no client ticks the world. Two
-     * clients connect to it over the host's loopback: the agent's input
-     * activity for the sensor streams and the actuation adapter for the
-     * vehicle control and the world snapshot. Its release is pinned with the
-     * scenario in phase 10; the client library's build against the S-CORE
-     * toolchain is GAP-DRIVING-004. The sensors of the loop are its: the
-     * simulated sensor rig below renders the six camera streams and samples
-     * the ego motion the server puts on its ports (the owner's sensing
-     * decision of 2026-11-06, ASM-DRIVING-004).
+     * bench. It follows the wall clock and never waits for a plan (decision
+     * 3, amended on 2026-11-08): it runs in synchronous mode with a fixed
+     * 100 ms step, and a world-side pacer of the bench's scenario tooling
+     * ticks it on the wall clock, so no element of the loop ticks the world.
+     * It runs on the simulator host, on its own GPU. Two clients connect to
+     * it over the bench network: the agent's input activity for the sensor
+     * streams and the actuation adapter for the vehicle control and the
+     * world snapshot. Its release is pinned with the scenario in phase 10.
+     * The sensors of the loop are its: the simulated sensor rig below
+     * renders the six camera streams and samples the ego motion the server
+     * puts on its ports (the owner's sensing decision of 2026-11-06,
+     * ASM-DRIVING-004). The chase view it renders for the recording is no
+     * sensor of the loop.
      */
     port cameraStreamOut : CameraStreamOut;
     port egoMotionOut : EgoMotionStreamOut;
@@ -654,9 +767,9 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     doc /*
      * The navigation of the phase 2 context as the bench realizes it: the
      * pinned route of the scenario, System 2, read from the scenario
-     * configuration on the Linux host and handed to the input activity at
-     * the start of the run; the destination is the scenario's. It runs on
-     * the host, not on the AAOS SDV guest, so AAOS SDV is no input to the
+     * configuration on the S-CORE host and handed to the input activity at the
+     * start of the run; the destination is the scenario's. It runs on the
+     * S-CORE host, not on the AAOS SDV guest, so AAOS SDV is no input to the
      * loop and the context-role decision of 2026-11-02 stays closed. The
      * driving system plans along the route and does not choose it.
      */
@@ -666,7 +779,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   part def AAOSSDVCoreGuest {
     doc /*
      * The SDV Core VM of the AAOS SDV guest, context of the loop: Android
-     * under the host's KVM, with the SDV Core middleware. The SOME/IP
+     * under the guest host's KVM, with the SDV Core middleware. The SOME/IP
      * interop of SDV Core receives the operational-state events from
      * someipd and the Data Tunnel publishes them as the typed topic the IVI
      * VM subscribes to (decision 4). The guest owns its platform layers; the
@@ -687,12 +800,12 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   part def AAOSIVIGuest {
     doc /*
-     * The IVI VM of the AAOS SDV guest, context of the loop: Android under
-     * the host's KVM, with the SDV Gateway and the observer application of
-     * phase 2 that presents the plan, the vehicle state and the health to
-     * the driver. The observer subscribes to the typed topic through the SDV
-     * Gateway and sends nothing to the driving system. The observer
-     * application is a build item of the bench, named here, not claimed.
+     * The IVI VM of the AAOS SDV guest, context of the loop: Android under the
+     * guest host's KVM, with the SDV Gateway and the observer application of
+     * phase 2 that presents the plan, the vehicle state and the health to the
+     * driver. The observer subscribes to the typed topic through the SDV
+     * Gateway and sends nothing to the driving system. The observer application
+     * is a build item of the bench, named here, not claimed.
      */
     port topicIn : DataTunnelPort;
     part os : AndroidHLOS;
@@ -718,54 +831,115 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   part def ClosedLoopDrivingLinuxHost {
     doc /*
-     * The Linux host of the bench: x86_64, with an NVIDIA GPU for the
-     * simulator's rendering and the planner's inference engine, and KVM for
-     * the two AAOS SDV guests (GAP-DRIVING-007). It owns the platform
-     * layers, the software realization of the driving system with its
-     * S-CORE services, the simulator server and the route provider. The sensor
-     * streams, the route, the simulation clock and the vehicle control cross
-     * the host's loopback between the simulator and the driving software;
-     * the operational state leaves the host on SOME/IP. Into the simulator
-     * goes the vehicle control and nothing else; each port definition
-     * carries the one item its exchange moves. The exchanges are named
-     * connections, which SysIDE draws as edges between exposed ports; flows
-     * between these ports were not drawn in six licensed runs (42247403125
-     * to 42253633791). The delegation to the host's own port is a
-     * connection with both ends exposed in the view, drawn as an edge.
+     * The S-CORE host of the bench (owner decision of 2026-11-09: three
+     * hosts): x86_64 Linux with the planner's GPU, an NVIDIA RTX PRO 6000
+     * class card that runs nothing else. It owns its platform layer, the
+     * software realization of the driving system with its S-CORE services,
+     * and the route provider. It nests no VM: the cloud's GPU hosts offer no
+     * nested virtualization, so the AAOS SDV guests run on the guest host.
+     * The camera stream, the ego motion and the simulation clock arrive from
+     * the simulator host over the bench network, and the vehicle control
+     * leaves for it; the operational state leaves on SOME/IP over the VXLAN
+     * segment. Each exchange is handed to the host's own port by a named
+     * delegation connection, which SysIDE draws as an edge between exposed
+     * ports; flows between these ports were not drawn in six licensed runs
+     * (42247403125 to 42253633791). Each port definition carries the one
+     * item its exchange moves.
      */
+    port cameraImagesIn : CameraStreamIn;
+    port egoMotionIn : EgoMotionStreamIn;
+    port simulationClockIn : SimulationClockIn;
+    port vehicleControlOut : VehicleControlOut;
     port operationalStateOut : OperationalStateOut;
     part os : LinuxPlatform;
-    part hypervisor : KVMHypervisor;
     part drivingSoftware : ClosedLoopDrivingSoftwareRealization;
-    part carlaServer : CARLASimulationServer;
     part routeProvider : ScenarioRouteProvider;
-    connection cameraStreamOverHostLoopback connect carlaServer.cameraStreamOut to drivingSoftware.cameraImagesIn;
-    connection egoMotionOverHostLoopback connect carlaServer.egoMotionOut to drivingSoftware.egoMotionIn;
-    connection simulationClockOverHostLoopback connect carlaServer.simulationClockOut to drivingSoftware.simulationClockIn;
+    connection cameraImagesDelegation connect cameraImagesIn to drivingSoftware.cameraImagesIn;
+    connection egoMotionDelegation connect egoMotionIn to drivingSoftware.egoMotionIn;
+    connection simulationClockDelegation connect simulationClockIn to drivingSoftware.simulationClockIn;
     connection routeFromScenario connect routeProvider.routeOut to drivingSoftware.routeIn;
-    connection vehicleControlOverHostLoopback connect drivingSoftware.vehicleControlOut to carlaServer.vehicleControlIn;
+    connection vehicleControlDelegation connect drivingSoftware.vehicleControlOut to vehicleControlOut;
     connection operationalStateDelegation connect drivingSoftware.operationalStateOut to operationalStateOut;
+  }
+
+  part def ClosedLoopDrivingSimulatorHost {
+    doc /*
+     * The simulator host of the bench (owner decision of 2026-11-09): x86_64
+     * Linux with its own GPU for the simulator's rendering, so the simulator
+     * never renders on the planner's card (a bench rule of 2026-11-09). It owns
+     * its platform layer and the simulator server. The camera stream, the ego
+     * motion and the simulation clock leave it, and the vehicle control enters
+     * it, over the bench network to and from the S-CORE host: a private routed
+     * link that carries the simulator's ports and nothing else. The chase view
+     * of the recording is rendered here and encoded by the host's NVENC
+     * hardware encoder, after one warm-up lap of the route in the same
+     * simulator session: in the probe, the first lap of a session delayed the
+     * camera streams once, by about 300 ms, at the same place of the route, and
+     * the next lap did not.
+     */
+    port cameraStreamOut : CameraStreamOut;
+    port egoMotionOut : EgoMotionStreamOut;
+    port simulationClockOut : SimulationClockOut;
+    port vehicleControlIn : VehicleControlIn;
+    part os : LinuxPlatform;
+    part carlaServer : CARLASimulationServer;
+    connection cameraStreamDelegation connect carlaServer.cameraStreamOut to cameraStreamOut;
+    connection egoMotionDelegation connect carlaServer.egoMotionOut to egoMotionOut;
+    connection simulationClockDelegation connect carlaServer.simulationClockOut to simulationClockOut;
+    connection vehicleControlDelegation connect vehicleControlIn to carlaServer.vehicleControlIn;
+  }
+
+  part def AAOSGuestHost {
+    doc /*
+     * The guest host of the bench (owner decision of 2026-11-09): x86_64
+     * Linux with KVM for the two AAOS SDV guests and no GPU of the loop. It
+     * owns its platform layer and the hypervisor; the guests run under it. A
+     * VXLAN segment joins the S-CORE host to the guests' bridge, and the
+     * S-CORE host takes 192.168.98.1 on it, the address the SDV Core guest's
+     * SOME/IP configuration of INC-MW-011 expects for its peer, so the guest
+     * images stay unchanged. It carries no element of the driving system
+     * and no port of the loop.
+     */
+    part os : LinuxPlatform;
+    part hypervisor : KVMHypervisor;
   }
 
   part def ClosedLoopDrivingPhysicalSystem {
     doc /*
-     * The physical context of the bench: the Linux host and the two AAOS SDV
-     * guests under its KVM. The operational state crosses the hypervisor
-     * once on SOME/IP, from someipd to the SDV Core VM, and the VMs once on
-     * the Data Tunnel, from the SDV Core VM to the IVI VM. Nothing crosses
-     * back: the guests are observers. The host's inside is drawn by the
-     * S-CORE path view; what crosses the realization's boundary, on the
-     * bench side and on the observer side, by the context exchange view.
+     * The physical context of the bench: three hosts and the two AAOS SDV
+     * guests (owner decision of 2026-11-09). The simulator's exchanges cross
+     * the bench network between the simulator host and the S-CORE host. The
+     * operational state crosses the VXLAN segment once on SOME/IP, from
+     * someipd to the SDV Core VM, and the VMs once on the Data Tunnel, from
+     * the SDV Core VM to the IVI VM. Nothing crosses back: the guests are
+     * observers, under the guest host's KVM. The S-CORE host's inside is
+     * drawn by the S-CORE path view; what crosses the realization's
+     * boundary, on the bench side and on the observer side, by the context
+     * exchange view.
      */
     part linuxHost : ClosedLoopDrivingLinuxHost;
+    part simulatorHost : ClosedLoopDrivingSimulatorHost;
+    part guestHost : AAOSGuestHost;
     part sdvCoreGuest : AAOSSDVCoreGuest;
     part hmiGuest : AAOSIVIGuest;
     interface sdvCoreGuestUnderKVM : OSHypervisorInterface
-      connect sdvCoreGuest.os.hypervisorPort to linuxHost.hypervisor.guestPort;
+      connect sdvCoreGuest.os.hypervisorPort to guestHost.hypervisor.guestPort;
     interface hmiGuestUnderKVM : OSHypervisorInterface
-      connect hmiGuest.os.hypervisorPort to linuxHost.hypervisor.guestPort;
-    connection operationalStateOverSOMEIPAcrossHypervisor connect linuxHost.operationalStateOut to sdvCoreGuest.someIpIn {
-      doc /* The operational state on SOME/IP across the hypervisor, from someipd to the SDV Core VM's interop. */
+      connect hmiGuest.os.hypervisorPort to guestHost.hypervisor.guestPort;
+    connection cameraStreamOverBenchNetwork connect simulatorHost.cameraStreamOut to linuxHost.cameraImagesIn {
+      doc /* The six camera streams from the simulator host to the agent's input activity, over the bench network. */
+    }
+    connection egoMotionOverBenchNetwork connect simulatorHost.egoMotionOut to linuxHost.egoMotionIn {
+      doc /* The ego vehicle's motion state from the simulator host to the agent's input activity, over the bench network. */
+    }
+    connection simulationClockOverBenchNetwork connect simulatorHost.simulationClockOut to linuxHost.simulationClockIn {
+      doc /* The world snapshot's simulation time from the simulator host to the actuation adapter, over the bench network. */
+    }
+    connection vehicleControlOverBenchNetwork connect linuxHost.vehicleControlOut to simulatorHost.vehicleControlIn {
+      doc /* The vehicle control from the actuation adapter to the simulator host, over the bench network, and nothing else. */
+    }
+    connection operationalStateOverSOMEIPAcrossVXLANSegment connect linuxHost.operationalStateOut to sdvCoreGuest.someIpIn {
+      doc /* The operational state on SOME/IP from someipd to the SDV Core VM's interop, over the VXLAN segment that joins the S-CORE host to the guests' bridge (guest images unchanged). */
     }
     connection operationalStateTopicOverDataTunnelAcrossVMs connect sdvCoreGuest.topicOut to hmiGuest.topicIn {
       doc /* The operational state as the Data Tunnel topic from the SDV Core VM to the IVI VM (its VSIDL message is GAP-DRIVING-006). */
@@ -825,7 +999,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10: pin the simulator release, the camera placement and the sensor tick with the scenario, then run REQ-DRIVING-003 to -005, -010 and -023 against recorded frames";
-      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-004 (client library build), framing gap gapModelInputAndFeedback (camera calibration and history priming)";
+      attribute :>> evidenceOrGap = "no runtime evidence of record; framing gap gapModelInputAndFeedback (camera calibration and history priming)";
     }
   }
 
@@ -851,7 +1025,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10: author the mw::com configuration of the sample event and run REQ-DRIVING-008, -010, -016 and -024 on recorded samples, with the unit conversions checked against the Python reference";
-      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-003 (the reference's ego-motion conventions), GAP-DRIVING-004";
+      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-003 (the reference's ego-motion conventions)";
     }
   }
 
@@ -888,16 +1062,16 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * takes. The owning allocation targets the event port; the FEO topic
        * is the same item one hop earlier. A plan is no vehicle signal.
        */
-      attribute :>> semanticSource = "the trajectory the exported checkpoint predicts for the next planning horizon, in the ego frame, with its producer, its production time and the run record it names: a plan, no vehicle signal";
-      attribute :>> softwareContractArtifact = "in: the output tensors of the inference engine over the ONNX export of the pinned checkpoint, candidate; out: the agent's FEO topic for the loop supervision and the mw::com plan event for the state publisher, candidate";
+      attribute :>> semanticSource = "the trajectory the pinned checkpoint predicts for the next planning horizon, in the ego frame, with its producer, its production time and the run record it names: a plan, no vehicle signal";
+      attribute :>> softwareContractArtifact = "in: the output tensors of the planning stack, PyTorch over the pinned checkpoint in the agent's process, candidate; out: the agent's FEO topic for the loop supervision and the mw::com plan event for the state publisher, candidate";
       attribute :>> softwareContractMessage = "in: the checkpoint's output layout (trajectory samples over the horizon), exact per the pinned source revision; out: DrivingPlan with producer, production time and run record, candidate";
       attribute :>> softwareContractField = "in: the sampled positions or acceleration/curvature samples of the output head, exact per the pinned source revision; out: samples, horizon, producer, productionTime, runRecord, candidate";
       attribute :>> dataTypeAndUnit = "in: float32 metres and radians, or m/s^2 and 1/m, per the output head; out: the same with wall-clock seconds for the production time";
       attribute :>> timingQualityAndState = "one plan per 100 ms step (REQ-DRIVING-001), produced within 100 ms of wall-clock time after the newest image (REQ-DRIVING-013), stamped (REQ-DRIVING-031), published for observation within 100 ms (REQ-DRIVING-015); no plan while the checkpoint identity fails (REQ-DRIVING-035)";
-      attribute :>> transformationRule = "identity on the values; the plan names the run record (REQ-DRIVING-034); the engine's numerical parity with the Python reference is the probe of GAP-DRIVING-003";
+      attribute :>> transformationRule = "identity on the values; the plan names the run record (REQ-DRIVING-034); the planning stack's numerical parity with the unmodified reference is GAP-DRIVING-003";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: export the pinned checkpoint, measure its parity on recorded inputs, author the plan event's mw::com configuration and run REQ-DRIVING-001, -013, -015 and -031";
+      attribute :>> nextAction = "phase 10: pin the planning stack with its libraries, measure its parity with the reference on recorded inputs, author the plan event's mw::com configuration and run REQ-DRIVING-001, -013, -015 and -031";
       attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-003, framing gap gapClosedLoopPerformance (planning time unmeasured)";
     }
   }
@@ -971,7 +1145,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10: identify the vehicle's response on the pinned simulator release, author the conversion and run REQ-DRIVING-012, -020 to -022 and -028 with a withheld command";
-      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-004; the stop applied here is published through MAP-DRIVING-ACTUATION-STATE";
+      attribute :>> evidenceOrGap = "no runtime evidence of record; the stop applied here is published through MAP-DRIVING-ACTUATION-STATE";
     }
   }
 
@@ -1006,7 +1180,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       doc /*
        * The operational state on the observation path, hop by hop: the
        * publisher's mw::com event, gatewayd to someipd over the gateway's
-       * IPC, SOME/IP across the hypervisor into the SOME/IP interop of SDV
+       * IPC, SOME/IP over the VXLAN segment into the SOME/IP interop of SDV
        * Core, the Data Tunnel topic to the SDV Gateway on the IVI VM, the
        * observer. One mapping covers the processes of the chain; the owning
        * allocation targets someipd's port, where the item leaves the host.
@@ -1022,7 +1196,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10, in this order: assign the mw::com instance and the SOME/IP ids, author the VSIDL message and the Data Tunnel topic, build the observer, then run REQ-DRIVING-015 to -019 and -029 with hop logs on both sides of the hypervisor";
-      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-002 (the gateway against Communication v0.6.0), GAP-DRIVING-006 (typed topic), INC-MW-011's GAP-MW-038 (SOME/IP on the guest untested)";
+      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-006 (typed topic), INC-MW-011's GAP-MW-038 (SOME/IP on the guest untested)";
     }
   }
 
@@ -1073,43 +1247,54 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   part <'ASM-DRIVING-001'> asmFixedOrderCycleCarriesTheLoop : IncrementAssumption {
     doc /*
-     * The fixed-execution-order cycle of FEO v1.0.5 can host the loop: four
-     * activities with startup, step and shutdown, C++ through the framework's
-     * C++ activity bindings, run in the order of the loop once per camera
-     * frame at 10 Hz of simulation time, with the step of the inference
-     * activity inside the 100 ms wall-clock budget of REQ-DRIVING-013 beside
-     * the three others. The framework is described as data-driven or
-     * time-driven; the frame-driven pacing and the per-step budget are
-     * assumed here and measured by the readiness probe before phase 10
-     * builds. If the probe fails, the fallback is ALT-DRIVING-PLAINAPPS-001.
+     * The fixed-execution-order cycle of FEO v1.0.5 with DE4SDV's event
+     * trigger can host the loop: four activities with startup, step and
+     * shutdown, each a Rust shell over C++ libraries, run in the order of
+     * the loop once per camera frame at 10 Hz of simulation time, the
+     * trigger taking the newest frame and counting the frames it skipped,
+     * with the step of the inference activity inside the 100 ms wall-clock
+     * budget of REQ-DRIVING-013 beside the three others. The readiness
+     * probes measured the parts apart: the patched scheduler ran one chain
+     * per external event, Rust and C++ activities built against the v0.10.0
+     * modules, and planning took a median of 90 to 91 ms per plan on a card
+     * of its own in the closed loop, which leaves the three other
+     * activities less than 10 ms. The agent as one program is unmeasured
+     * until phase 10. If it fails, the fallback is ALT-DRIVING-PLAINAPPS-001.
      */
   }
 
-  part <'ASM-DRIVING-002'> asmExportedModelStandsForTheCheckpoint : IncrementAssumption {
+  part <'ASM-DRIVING-002'> asmPlannerStackStandsForTheCheckpoint : IncrementAssumption {
     doc /*
-     * The inference engine's output over the ONNX export equals the Python
-     * reference's output over the pinned checkpoint on the same recorded
-     * inputs within a tolerance phase 10 fixes, so that a plan made by the
-     * export is a plan made by inference of the pinned checkpoint
-     * (REQ-DRIVING-002) and the run identity records both the checkpoint's
-     * and the export's SHA-256 (REQ-DRIVING-033). The export tooling is
-     * System 2 and is written by DE4SDV; AutoE2E publishes no export of the
-     * checkpoint. Until the parity is measured this is an assumption with
-     * GAP-DRIVING-003 behind it, not a result.
+     * The planning stack's output equals the unmodified reference's output
+     * over the pinned checkpoint on the same recorded inputs within a
+     * tolerance phase 10 fixes against the deployed precision, so that a
+     * plan made by the stack is a plan made by inference of the pinned
+     * checkpoint (REQ-DRIVING-002), and the run identity records the
+     * checkpoint's SHA-256 and the AutoE2E source revision with DE4SDV's
+     * kernel changes (REQ-DRIVING-033). The stack is PyTorch over the
+     * checkpoint with changes that alter rounding only: in the readiness
+     * probe its fp32 output stayed within 9.83e-05 of the reference, and its
+     * bf16 output differed from the fp32 reference by 6.49e-03 on average
+     * and 1.68e-02 at most, against 6.21e-03 and 1.60e-02 for the unmodified
+     * code's own bf16 rounding. Until phase 10 measures it on the bench this
+     * is an assumption with GAP-DRIVING-003 behind it, not a result.
      */
   }
 
   part <'ASM-DRIVING-003'> asmSimulatorClientsInsideSCOREApplications : IncrementAssumption {
     doc /*
-     * Two simulator clients coexist with the S-CORE applications on one
-     * host: the agent's input activity receives the sensor streams on the
-     * client library's threads and reads the newest measurement in its
-     * step; the actuation adapter applies the vehicle control and reads the
-     * world snapshot through a second connection. In asynchronous real-time
-     * mode no client ticks the world, so two connections do not interfere.
-     * The clients are the bench's; in a vehicle the camera driver and the
-     * actuation interface would stand there. The build of the client
-     * library against the S-CORE toolchain is GAP-DRIVING-004.
+     * Two simulator clients coexist with the S-CORE applications on the
+     * S-CORE host and reach the simulator host over the bench network: the
+     * agent's input activity receives the sensor streams on the client
+     * library's threads and reads the newest measurement in its step; the
+     * actuation adapter applies the vehicle control and reads the world
+     * snapshot through a second connection. The simulator runs in
+     * synchronous mode and only the world-side pacer of the bench ticks it,
+     * so neither client ticks the world and the two connections do not
+     * interfere. The readiness probe linked the client library into an
+     * S-CORE application with one C++ standard library. The clients are the
+     * bench's; in a vehicle the camera driver and the actuation interface
+     * would stand there.
      */
   }
 
@@ -1125,73 +1310,50 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * increment, which claims no on-road behavior. Where the profile's
      * principal point is offset from the image centre the simulated
      * cameras use, the offset is recorded with the pinned checkpoint in
-     * phase 10 (the owner's sensing decision of 2026-11-06).
+     * phase 10 (the owner's sensing decision of 2026-11-06). On the nuPlan
+     * profile the readiness probe placed the six cameras within 0.01 mm and
+     * 0.0001 degrees of the profile's poses; square pixels cannot reproduce
+     * the profile's unequal focal lengths at 1920×1080, so each camera
+     * renders 1920×963 at the horizontal focal length, and the image
+     * squashed to the checkpoint's 512×512 tile keeps the profile's tile
+     * focal lengths within 0.15 px, its principal point 9.73 px off.
      */
   }
 
   part <'GAP-DRIVING-001'> gapFEOOutsideReleasedBaseline : IncrementGap {
     doc /*
      * Open: FEO is not in the known_good.json of reference_integration
-     * v0.10.0, the baseline the owner pinned (C). It is consumed as a pinned
-     * git dependency at v1.0.5 (313b3d849c17881d3a11b6bf62aa2afab6565ef0,
-     * released 2026-02-19, Apache-2.0, not vendored), whose module file pins
-     * its own Rust toolchain and tooling versions and declares no dependency
-     * on Communication, so no version conflict with v0.6.0 arises inside the
-     * build, but one toolchain for the Rust framework and the C++ activities
-     * beside the C++ applications of the reference integration is unproven.
-     * FEO's release note states that it is not released for production and
-     * has no safety argumentation. The readiness probe builds a two-activity
-     * agent against the v0.10.0 modules before phase 10; failure re-scopes to
-     * ALT-DRIVING-PLAINAPPS-001.
+     * v0.10.0, the baseline the owner pinned (C). It is consumed as v1.0.5
+     * (313b3d849c17881d3a11b6bf62aa2afab6565ef0, released 2026-02-19,
+     * Apache-2.0, not vendored) with one DE4SDV patch, the event trigger of
+     * the owner's decision (a) of 2026-11-07, which DE4SDV keeps until
+     * upstream offers the mode. Its module file pins its own tooling
+     * versions; beside the v0.10.0 modules it builds only with eight
+     * single_version_override entries that force the reference
+     * integration's pins (readiness probe of 2026-11-07), and its default
+     * build applies a lint aspect that fetches a toolchain from the
+     * network. FEO's topics are Rust-only at the pin, so the activities are
+     * Rust shells over C++ libraries. FEO's release note states that it is
+     * not released for production and has no safety argumentation. Failure
+     * re-scopes to ALT-DRIVING-PLAINAPPS-001; losing the patch, to
+     * ALT-DRIVING-FEOGATE-001.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
-  part <'GAP-DRIVING-002'> gapSOMEIPGatewayAgainstCommunication060 : IncrementGap {
+  part <'GAP-DRIVING-003'> gapPlannerStackParityUnproven : IncrementGap {
     doc /*
-     * Open: the SOME/IP gateway INC-MW-011 pinned (eclipse-score/inc_someip_gateway
-     * d9eac670b7534352749da3d30f52aebf5129f168) was built against Communication
-     * 0.5.0, Baselibs 0.2.16 and Lifecycle v0.6.1 of the v0.9.0 baseline.
-     * The driving member pins v0.10.0 with Communication 0.6.0; the gateway's
-     * build and its mw::com subscription against 0.6.0 are unproven, and the
-     * gateway itself is still incubation code outside both baselines
-     * (GAP-MW-036). The readiness probe builds gatewayd and someipd against
-     * the v0.10.0 modules before phase 10. INC-MW-011 stays on v0.9.0 in its
-     * own package.
-     */
-    attribute :>> disposition = LifecycleDisposition::deferred;
-  }
-
-  part <'GAP-DRIVING-003'> gapModelExportAndParityUnproven : IncrementGap {
-    doc /*
-     * Open: no ONNX export of the pinned checkpoint exists; the source
-     * revision's only ONNX references are in an accuracy benchmark of
-     * another model. Whether every operator of the checkpoint exports to a
-     * supported opset, whether its dynamic shapes export, whether TensorRT
-     * builds an engine from the export on the bench GPU and whether the
-     * engine's output matches the Python reference within tolerance on
-     * recorded inputs is unmeasured; so is the inference time against
-     * REQ-DRIVING-013. REQ-DRIVING-035 refuses to plan from a checkpoint the
-     * configuration does not name; the export's own SHA-256 is recorded
-     * beside it. The readiness probe exports and measures parity before
-     * phase 10; an unsupported operator re-scopes to ALT-DRIVING-LIBTORCH-001.
+     * Open: the planner runs the pinned checkpoint on PyTorch in the agent's
+     * process (the engine decision of 2026-11-08); its ONNX export exhausted 64
+     * GB of host memory in the exporter's graph passes without reporting an
+     * unsupported operator, so no export exists and none is planned for this
+     * increment. What stays open is the parity of the planning stack, the
+     * checkpoint with DE4SDV's rounding-level kernel changes on the pinned
+     * libraries, with the unmodified reference on the bench: the tolerance
+     * against the deployed precision, the recorded inputs it is measured on,
+     * and the pin of the stack's source in the run identity. REQ-DRIVING-035
+     * refuses to plan from a checkpoint the configuration does not name.
      * Checkpoint and data terms stay open (framing gap gapAdoptionAndRights).
-     */
-    attribute :>> disposition = LifecycleDisposition::deferred;
-  }
-
-  part <'GAP-DRIVING-004'> gapSimulatorClientBuildUnproven : IncrementGap {
-    doc /*
-     * Open: the simulator's C++ client library (libcarla) is built by the
-     * simulator's own toolchain; linking it into S-CORE applications built
-     * with the reference integration's gcc 12.2 toolchain under Bazel, with
-     * one C++ standard library for both, is unproven, and the simulator
-     * release is not pinned before the scenario is. If the library cannot be
-     * linked, ALT-DRIVING-SIMBRIDGE-001 moves the client into a separate
-     * bridge process built with the simulator's toolchain, at the cost of
-     * one hop and one copy per frame. The readiness probe links a client
-     * that reads one camera frame and applies one vehicle control before
-     * phase 10.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -1207,22 +1369,26 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * Which VSIDL types the interop maps, how the three publications share
      * one message, and whether the observer application can be built
      * against the pinned AAOS SDV revision is phase 10 work with its own
-     * readiness probe.
+     * readiness probe. A readiness probe carried INC-MW-011's opaque frame
+     * between two hosts into the AEBS observer of an IVI VM, which leaves
+     * the typed message as the open part.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
-  part <'GAP-DRIVING-007'> gapGPUAndKVMHostUnprovisioned : IncrementGap {
+  part <'GAP-DRIVING-007'> gapThreeHostBenchUnjoined : IncrementGap {
     doc /*
-     * Open: the bench host needs an NVIDIA GPU for the simulator's rendering
-     * and the planner's inference engine, and KVM for two AAOS SDV guests at
-     * once. No such host is provisioned; the AAOS build host of the
-     * execution environments has no GPU, and the Jetson of the maintainers
-     * is arm64 without KVM guests. The framing's gapBoundedCloudCampaign
-     * governs the spend: a GPU and KVM host in the cloud is a System 2
-     * candidate that needs the owner's campaign authorization, a regional
-     * quote and a bounded shutdown before any paid run. Nothing here
-     * launches compute.
+     * Open: the bench is three hosts (owner decision of 2026-11-09): the
+     * S-CORE host with the planner's GPU, the simulator host with its own
+     * GPU and the guest host with KVM for the two AAOS SDV guests, cloud
+     * machines provisioned under the owner's campaign authorization; the
+     * framing's gapBoundedCloudCampaign governs the spend. The readiness
+     * probes ran them in pairs: the simulator host with the S-CORE host's
+     * planner, and the SOME/IP gateway with the guests over a VXLAN segment
+     * between two hosts of one region. The three hosts have not run in one
+     * session, the VXLAN segment from the S-CORE host to the guest host
+     * crosses two regions untested, and the hosts exist only while the
+     * campaign keeps them. Nothing here launches compute.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -1234,9 +1400,10 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     doc /*
      * System architects and software developers need the software and
      * platform elements that realize the driving system on the bench, as
-     * they nest: the host with its platform layers, the S-CORE services, the
-     * three programs and the four activities of the agent, the simulator
-     * and the route provider beside them, and the two AAOS SDV guests.
+     * they nest: the three hosts with their platform layers, the S-CORE
+     * services, the three programs and the four activities of the agent,
+     * the route provider, the simulator with its rig, the hypervisor and the
+     * two AAOS SDV guests.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
@@ -1250,7 +1417,6 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem;
     expose closedLoopDrivingPhysicalSystem::linuxHost;
     expose closedLoopDrivingPhysicalSystem::linuxHost::os;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::hypervisor;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::drivingAgent;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::drivingAgent::conditionInputs;
@@ -1263,16 +1429,21 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::scoreServices::launchManager;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::scoreServices::gatewayd;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::scoreServices::someipd;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::frontCamera;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::frontLeftCamera;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::frontRightCamera;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::rearLeftCamera;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::rearCamera;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::rearRightCamera;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::sensorRig::egoMotionSource;
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::os;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::sensorRig;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::sensorRig::frontCamera;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::sensorRig::frontLeftCamera;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::sensorRig::frontRightCamera;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::sensorRig::rearLeftCamera;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::sensorRig::rearCamera;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::sensorRig::rearRightCamera;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::sensorRig::egoMotionSource;
+    expose closedLoopDrivingPhysicalSystem::guestHost;
+    expose closedLoopDrivingPhysicalSystem::guestHost::os;
+    expose closedLoopDrivingPhysicalSystem::guestHost::hypervisor;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::os;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::sdvMiddleware;
@@ -1367,9 +1538,11 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * nothing else (checkpointCommandAuthorityConcern: no other source of
      * commands reaches the simulated vehicle). Out of it: the camera
      * stream, the ego motion and the simulation clock; from the route
-     * provider: the route. Out of the host: the operational state on
-     * SOME/IP into the SDV Core VM and the topic from the SDV Core VM to
-     * the IVI VM, and nothing back (aaosObservationFidelityConcern). Each
+     * provider: the route. The simulator's exchanges cross from the
+     * simulator host's ports to the S-CORE host's over the bench network.
+     * Out of the S-CORE host: the operational state on SOME/IP over the
+     * VXLAN segment into the SDV Core VM and the topic from the SDV Core VM
+     * to the IVI VM, and nothing back (aaosObservationFidelityConcern). Each
      * part, port and exchange is exposed by name: the ports are declared
      * on the definitions and a typed wildcard over a usage drew none of
      * them (runs 42214648709, 42253633791); the exchanges are connections,
@@ -1387,6 +1560,10 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     }
     expose closedLoopDrivingPhysicalSystem;
     expose closedLoopDrivingPhysicalSystem::linuxHost;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::cameraImagesIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::egoMotionIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::simulationClockIn;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::vehicleControlOut;
     expose closedLoopDrivingPhysicalSystem::linuxHost::operationalStateOut;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::cameraImagesIn;
@@ -1395,25 +1572,38 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::simulationClockIn;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::vehicleControlOut;
     expose closedLoopDrivingPhysicalSystem::linuxHost::drivingSoftware::operationalStateOut;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::cameraStreamOut;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::egoMotionOut;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::simulationClockOut;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::carlaServer::vehicleControlIn;
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider;
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeProvider::routeOut;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::cameraStreamOverHostLoopback;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::egoMotionOverHostLoopback;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::simulationClockOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::cameraImagesDelegation;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::egoMotionDelegation;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::simulationClockDelegation;
     expose closedLoopDrivingPhysicalSystem::linuxHost::routeFromScenario;
-    expose closedLoopDrivingPhysicalSystem::linuxHost::vehicleControlOverHostLoopback;
+    expose closedLoopDrivingPhysicalSystem::linuxHost::vehicleControlDelegation;
     expose closedLoopDrivingPhysicalSystem::linuxHost::operationalStateDelegation;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::cameraStreamOut;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::egoMotionOut;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::simulationClockOut;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::vehicleControlIn;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::cameraStreamOut;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::egoMotionOut;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::simulationClockOut;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::carlaServer::vehicleControlIn;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::cameraStreamDelegation;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::egoMotionDelegation;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::simulationClockDelegation;
+    expose closedLoopDrivingPhysicalSystem::simulatorHost::vehicleControlDelegation;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::someIpIn;
     expose closedLoopDrivingPhysicalSystem::sdvCoreGuest::topicOut;
     expose closedLoopDrivingPhysicalSystem::hmiGuest;
     expose closedLoopDrivingPhysicalSystem::hmiGuest::topicIn;
-    expose closedLoopDrivingPhysicalSystem::operationalStateOverSOMEIPAcrossHypervisor;
+    expose closedLoopDrivingPhysicalSystem::cameraStreamOverBenchNetwork;
+    expose closedLoopDrivingPhysicalSystem::egoMotionOverBenchNetwork;
+    expose closedLoopDrivingPhysicalSystem::simulationClockOverBenchNetwork;
+    expose closedLoopDrivingPhysicalSystem::vehicleControlOverBenchNetwork;
+    expose closedLoopDrivingPhysicalSystem::operationalStateOverSOMEIPAcrossVXLANSegment;
     expose closedLoopDrivingPhysicalSystem::operationalStateTopicOverDataTunnelAcrossVMs;
     filter not (@ SysML::AllocationUsage);
     filter not (@ SysML::InterfaceUsage);

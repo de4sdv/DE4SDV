@@ -88,7 +88,7 @@ NOT_ENDPOINTS = {
     DRIVING_L: {"ClosedLoopDrivingLogicalSystem"},
     DRIVING_P: {"ClosedLoopDrivingPhysicalSystem", "ClosedLoopDrivingLinuxHost", "ClosedLoopDrivingSoftwareRealization",
                 "DrivingAgentApplication", "CARLASimulationServer", "ScenarioRouteProvider", "AAOSSDVCoreGuest",
-                "AAOSIVIGuest"},
+                "AAOSIVIGuest", "ClosedLoopDrivingSimulatorHost", "AAOSGuestHost"},
 }
 # Allocation definition -> governed end pair. Excluded mappings stay outside.
 PAIRS = {

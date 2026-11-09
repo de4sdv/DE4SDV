@@ -47,6 +47,9 @@ IDENTITY = "ClosedLoopDrivingSystem"
 SYSTEM = "ClosedLoopDrivingPhysicalSystem"
 SYSTEM_USAGE = "closedLoopDrivingPhysicalSystem"
 HOST = "ClosedLoopDrivingLinuxHost"
+#: the two hosts the bench added beside the S-CORE host (owner decision of 2026-11-09: three hosts)
+SIMULATOR_HOST = "ClosedLoopDrivingSimulatorHost"
+GUEST_HOST = "AAOSGuestHost"
 REALIZATION = "ClosedLoopDrivingSoftwareRealization"
 AGENT = "DrivingAgentApplication"
 SOFTWARE = f"{SYSTEM_USAGE}::linuxHost::drivingSoftware"
@@ -203,21 +206,37 @@ SCORE_COMMUNICATION_HOPS = {
     "operationalStateOverSCORECommunication": ("statePublisherApplication.operationalStateOut",
                                                "scoreServices.gatewayd.operationalStateIn"),
 }
-#: host flow -> (item, source, target): each exchange with the context realizations is a flow of its item, so the
-#: context exchange view labels what crosses; into the simulator goes the vehicle control and nothing else
-#: host exchange -> (source, target): named connections, drawn as edges between exposed ports; flows between
-#: these ports were not drawn in six licensed runs (42247403125 to 42253633791); each port definition carries
-#: the one item its exchange moves, and into the simulator goes the vehicle control and nothing else
+#: The three hosts of the bench (owner decision of 2026-11-09). Each host hands its exchanges to its own ports with
+#: named connections, drawn as edges between exposed ports; flows between these ports were not drawn in six licensed
+#: runs (42247403125 to 42253633791); each port definition carries the one item its exchange moves, and into the
+#: simulator goes the vehicle control and nothing else.
+HOST_PORTS = {"cameraImagesIn": "CameraStreamIn", "egoMotionIn": "EgoMotionStreamIn",
+              "simulationClockIn": "SimulationClockIn", "vehicleControlOut": "VehicleControlOut",
+              "operationalStateOut": "OperationalStateOut"}
 HOST_CONNECTIONS = {
-    "cameraStreamOverHostLoopback": ("carlaServer.cameraStreamOut", "drivingSoftware.cameraImagesIn"),
-    "egoMotionOverHostLoopback": ("carlaServer.egoMotionOut", "drivingSoftware.egoMotionIn"),
-    "simulationClockOverHostLoopback": ("carlaServer.simulationClockOut", "drivingSoftware.simulationClockIn"),
+    "cameraImagesDelegation": ("cameraImagesIn", "drivingSoftware.cameraImagesIn"),
+    "egoMotionDelegation": ("egoMotionIn", "drivingSoftware.egoMotionIn"),
+    "simulationClockDelegation": ("simulationClockIn", "drivingSoftware.simulationClockIn"),
     "routeFromScenario": ("routeProvider.routeOut", "drivingSoftware.routeIn"),
-    "vehicleControlOverHostLoopback": ("drivingSoftware.vehicleControlOut", "carlaServer.vehicleControlIn"),
+    "vehicleControlDelegation": ("drivingSoftware.vehicleControlOut", "vehicleControlOut"),
     "operationalStateDelegation": ("drivingSoftware.operationalStateOut", "operationalStateOut"),
 }
+SIMULATOR_HOST_PORTS = {"cameraStreamOut": "CameraStreamOut", "egoMotionOut": "EgoMotionStreamOut",
+                        "simulationClockOut": "SimulationClockOut", "vehicleControlIn": "VehicleControlIn"}
+SIMULATOR_HOST_CONNECTIONS = {
+    "cameraStreamDelegation": ("carlaServer.cameraStreamOut", "cameraStreamOut"),
+    "egoMotionDelegation": ("carlaServer.egoMotionOut", "egoMotionOut"),
+    "simulationClockDelegation": ("carlaServer.simulationClockOut", "simulationClockOut"),
+    "vehicleControlDelegation": ("vehicleControlIn", "carlaServer.vehicleControlIn"),
+}
+#: system exchange -> (source, target): the simulator's exchanges cross the bench network between the simulator host
+#: and the S-CORE host; the operational state crosses the VXLAN segment into the SDV Core VM, then the VMs
 SYSTEM_CONNECTIONS = {
-    "operationalStateOverSOMEIPAcrossHypervisor": ("linuxHost.operationalStateOut", "sdvCoreGuest.someIpIn"),
+    "cameraStreamOverBenchNetwork": ("simulatorHost.cameraStreamOut", "linuxHost.cameraImagesIn"),
+    "egoMotionOverBenchNetwork": ("simulatorHost.egoMotionOut", "linuxHost.egoMotionIn"),
+    "simulationClockOverBenchNetwork": ("simulatorHost.simulationClockOut", "linuxHost.simulationClockIn"),
+    "vehicleControlOverBenchNetwork": ("linuxHost.vehicleControlOut", "simulatorHost.vehicleControlIn"),
+    "operationalStateOverSOMEIPAcrossVXLANSegment": ("linuxHost.operationalStateOut", "sdvCoreGuest.someIpIn"),
     "operationalStateTopicOverDataTunnelAcrossVMs": ("sdvCoreGuest.topicOut", "hmiGuest.topicIn"),
 }
 SDV_CORE_GUEST_BINDS = {("sdvCore", "sdvMiddleware"), ("someIpIn", "sdvCore.someIp.someIpPort"),
@@ -249,50 +268,73 @@ RECORD_ATTRIBUTES = ("semanticSource", "softwareContractArtifact", "softwareCont
 
 ASSUMPTIONS = {
     "ASM-DRIVING-001": "asmFixedOrderCycleCarriesTheLoop",
-    "ASM-DRIVING-002": "asmExportedModelStandsForTheCheckpoint",
+    "ASM-DRIVING-002": "asmPlannerStackStandsForTheCheckpoint",
     "ASM-DRIVING-003": "asmSimulatorClientsInsideSCOREApplications",
     "ASM-DRIVING-004": "asmSimulatedSensorsStandForTheVehicles",
 }
 GAPS = {
     "GAP-DRIVING-001": "gapFEOOutsideReleasedBaseline",
-    "GAP-DRIVING-002": "gapSOMEIPGatewayAgainstCommunication060",
-    "GAP-DRIVING-003": "gapModelExportAndParityUnproven",
-    "GAP-DRIVING-004": "gapSimulatorClientBuildUnproven",
+    "GAP-DRIVING-003": "gapPlannerStackParityUnproven",
     "GAP-DRIVING-006": "gapTypedOperationalStateTopicUnproven",
-    "GAP-DRIVING-007": "gapGPUAndKVMHostUnprovisioned",
+    "GAP-DRIVING-007": "gapThreeHostBenchUnjoined",
 }
+#: retired by the amendment of 2026-11-09 on the readiness probes' evidence: the records left the model
+RETIRED = {
+    "GAP-DRIVING-002": "gapSOMEIPGatewayAgainstCommunication060",
+    "GAP-DRIVING-004": "gapSimulatorClientBuildUnproven",
+}
+#: renamed by the same amendment: the old names are gone
+RENAMED_AWAY = ("asmExportedModelStandsForTheCheckpoint", "gapModelExportAndParityUnproven",
+                "gapGPUAndKVMHostUnprovisioned")
 #: what each gap must name
 GAP_MENTIONS = {
-    "GAP-DRIVING-001": ("v1.0.5", "313b3d84", "known_good"),
-    "GAP-DRIVING-002": ("d9eac670", "0.6.0"),
-    "GAP-DRIVING-003": ("ONNX", "parity", "REQ-DRIVING-035"),
-    "GAP-DRIVING-004": ("libcarla", "12.2"),
+    "GAP-DRIVING-001": ("v1.0.5", "313b3d84", "known_good", "event trigger", "single_version_override", "Rust"),
+    "GAP-DRIVING-003": ("PyTorch", "parity", "tolerance", "REQ-DRIVING-035", "ONNX"),
     "GAP-DRIVING-006": ("VSIDL", "GAP-MW-038"),
-    "ASM-DRIVING-004": ("rendered", "ground truth", "noise", "latency", "camera", "motion"),
-    "GAP-DRIVING-007": ("GPU", "KVM", "gapBoundedCloudCampaign"),
+    "GAP-DRIVING-007": ("GPU", "KVM", "gapBoundedCloudCampaign", "three hosts", "VXLAN"),
+    "ASM-DRIVING-001": ("event trigger", "newest frame", "Rust", "REQ-DRIVING-013"),
+    "ASM-DRIVING-002": ("PyTorch", "rounding", "REQ-DRIVING-033", "tolerance"),
+    "ASM-DRIVING-003": ("pacer", "bench network", "synchronous mode"),
+    "ASM-DRIVING-004": ("rendered", "ground truth", "noise", "latency", "camera", "motion", "1920"),
 }
 PINS = ("313b3d849c17881d3a11b6bf62aa2afab6565ef0", "ca2a5f03724780be3cebf3d80e0c9c0c6fa64eb2",
         "d9eac670b7534352749da3d30f52aebf5129f168", "cb50764b8250a3c44ee5b79b87ba02c5a83b0c91", "v0.10.0",
-        "v1.0.5", "0.6.0", "ALT-MW-KUKSA-001")
+        "v1.0.5", "0.6.0", "ALT-MW-KUKSA-001", "torch 2.7.1", "triton 3.3.1", "9.26.0.51")
 ALTERNATIVES = ("ALT-DRIVING-PLAINAPPS-001", "ALT-DRIVING-SIMBRIDGE-001", "ALT-DRIVING-LIBTORCH-001",
-                "ALT-DRIVING-FEOMWCOM-001")
+                "ALT-DRIVING-FEOMWCOM-001", "ALT-DRIVING-ONNXENGINE-001", "ALT-DRIVING-FEOGATE-001",
+                "ALT-DRIVING-LOCKSTEP-001")
+#: the owner's decisions of 2026-11-07 to 2026-11-09 the package's head records, from the readiness probes P1 to P4
+#: (a probe is evidence for an amendment, never a result of the increment)
+AMENDMENT_PHRASES = (
+    "2026-11-07", "2026-11-08", "2026-11-09", "readiness probes", "never a result of the increment",
+    "Rust", "C++ libraries", "event trigger", "newest frame", "single_version_override", "as root",
+    "PyTorch", "in the agent's process", "TensorRT", "torch 2.7.1", "triton 3.3.1", "9.26.0.51",
+    "synchronous mode", "pacer", "frame index", "NVENC", "warm-up lap", "nothing retimed",
+    "separate real-time recordings", "three hosts", "bench network", "VXLAN", "no redirect",
+    # the eight operating rules of decision 5
+    "pinned code", "parity check", "capture-safe preprocessing", "no recompilation after the warm-up",
+    "64 entries", "capture times from the frame index", "never on the planner's card",
+    "one warm-up lap of the route with every camera, the recording view included, in the same simulator session "
+    "before any judged or recorded run",
+)
 
 STRUCTURE_VIEW = "closedLoopDrivingPhysicalStructureView"
 MATRIX_VIEW = "closedLoopDrivingPhysicalLogicalMappingView"
 PATH_VIEW = "closedLoopDrivingSCOREPathExchangeView"
 CONTEXT_VIEW = "closedLoopDrivingPhysicalContextExchangeView"
 TREE_EXPOSES = [SYSTEM_USAGE] + [f"{SYSTEM_USAGE}::{path}" for path in (
-    "linuxHost", "linuxHost::os", "linuxHost::hypervisor", "linuxHost::drivingSoftware",
+    "linuxHost", "linuxHost::os", "linuxHost::drivingSoftware",
     "linuxHost::drivingSoftware::drivingAgent", "linuxHost::drivingSoftware::drivingAgent::conditionInputs",
     "linuxHost::drivingSoftware::drivingAgent::inferPlan", "linuxHost::drivingSoftware::drivingAgent::superviseLoop",
     "linuxHost::drivingSoftware::drivingAgent::commandVehicle", "linuxHost::drivingSoftware::actuationAdapter",
     "linuxHost::drivingSoftware::statePublisherApplication", "linuxHost::drivingSoftware::scoreServices",
     "linuxHost::drivingSoftware::scoreServices::launchManager", "linuxHost::drivingSoftware::scoreServices::gatewayd",
-    "linuxHost::drivingSoftware::scoreServices::someipd", "linuxHost::carlaServer",
-    "linuxHost::carlaServer::sensorRig",
-    *(f"linuxHost::carlaServer::sensorRig::{camera}Camera" for camera in (
+    "linuxHost::drivingSoftware::scoreServices::someipd", "linuxHost::routeProvider",
+    "simulatorHost", "simulatorHost::os", "simulatorHost::carlaServer", "simulatorHost::carlaServer::sensorRig",
+    *(f"simulatorHost::carlaServer::sensorRig::{camera}Camera" for camera in (
         "front", "frontLeft", "frontRight", "rearLeft", "rear", "rearRight")),
-    "linuxHost::carlaServer::sensorRig::egoMotionSource", "linuxHost::routeProvider",
+    "simulatorHost::carlaServer::sensorRig::egoMotionSource",
+    "guestHost", "guestHost::os", "guestHost::hypervisor",
     "sdvCoreGuest", "sdvCoreGuest::os", "sdvCoreGuest::sdvMiddleware", "sdvCoreGuest::sdvCore", "hmiGuest",
     "hmiGuest::os", "hmiGuest::sdvGateway",
     "hmiGuest::stateObserver")]
@@ -309,15 +351,17 @@ VIEWS = {
                 "PhysicalInternalExchangeViewpoint", ["scoreCommandPathConcern", "checkpointCommandAuthorityConcern"]),
     CONTEXT_VIEW: (None, "render asInterconnectionDiagram;",
                    [SYSTEM_USAGE] + [f"{SYSTEM_USAGE}::{member}" for member in (
-                       "linuxHost", "linuxHost::operationalStateOut", "linuxHost::drivingSoftware",
+                       "linuxHost", *(f"linuxHost::{port}" for port in HOST_PORTS), "linuxHost::drivingSoftware",
                        *(f"linuxHost::drivingSoftware::{port}" for port in (
                            "cameraImagesIn", "egoMotionIn", "routeIn", "simulationClockIn", "vehicleControlOut",
                            "operationalStateOut")),
-                       "linuxHost::carlaServer",
-                       *(f"linuxHost::carlaServer::{port}" for port in (
-                           "cameraStreamOut", "egoMotionOut", "simulationClockOut", "vehicleControlIn")),
                        "linuxHost::routeProvider", "linuxHost::routeProvider::routeOut",
                        *(f"linuxHost::{name}" for name in HOST_CONNECTIONS),
+                       "simulatorHost", *(f"simulatorHost::{port}" for port in SIMULATOR_HOST_PORTS),
+                       "simulatorHost::carlaServer",
+                       *(f"simulatorHost::carlaServer::{port}" for port in (
+                           "cameraStreamOut", "egoMotionOut", "simulationClockOut", "vehicleControlIn")),
+                       *(f"simulatorHost::{name}" for name in SIMULATOR_HOST_CONNECTIONS),
                        "sdvCoreGuest", "sdvCoreGuest::someIpIn", "sdvCoreGuest::topicOut", "hmiGuest", "hmiGuest::topicIn",
                        *SYSTEM_CONNECTIONS)],
                    "PhysicalContextExchangeViewpoint",
@@ -333,6 +377,7 @@ CATALOGUE_CONCERNS = {
 FRAMING_CONCERNS = ("scoreCommandPathConcern", "checkpointCommandAuthorityConcern", "aaosObservationFidelityConcern")
 #: context realizations and platform parts carry no kernel typing: the advisory would name them
 NOT_ELEMENTS = ("CARLASimulationServer", "ScenarioRouteProvider", "AAOSSDVCoreGuest", "AAOSIVIGuest", HOST, SYSTEM,
+                SIMULATOR_HOST, GUEST_HOST,
                 REALIZATION, AGENT, "SimulatedSensorRig", "SimulatedCamera", "SimulatedEgoMotionSource")
 CLAIM_WORDS = ("certif", "homolog", "complian", "production-ready", "production ready", "guarantee", "proves that",
                "proven on")
@@ -575,31 +620,58 @@ def test_the_simulator_server_carries_the_sensor_rig_the_checkpoint_profile_shap
     assert "sensor rig" in server_doc or "sensorRig" in server_doc
 
 
-def test_the_host_owns_the_platform_the_software_and_the_context_realizations():
+def _owned(body: str) -> list[tuple[str, str]]:
+    return re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)
+
+
+def _ports(body: str) -> dict[str, str]:
+    return dict(re.findall(r"^\s*port\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M))
+
+
+def test_the_three_hosts_own_their_platform_layers_the_software_and_the_context_realizations():
+    """Owner decision of 2026-11-09: three hosts. The S-CORE host nests no VM and renders nothing; the simulator
+    renders on its own card; the guest host carries KVM and nothing of the driving system."""
     code = _code()
-    body = _body_of_definition(HOST)
-    owned = re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)
-    assert owned == [("os", "LinuxPlatform"), ("hypervisor", "KVMHypervisor"), ("drivingSoftware", REALIZATION),
-                     ("carlaServer", "CARLASimulationServer"), ("routeProvider", "ScenarioRouteProvider")]
-    assert "scoreServices" not in body, "the realization owns the S-CORE services"
-    assert _named_connections(body) == HOST_CONNECTIONS and len(_connections(body)) == len(HOST_CONNECTIONS)
-    assert _binds(body) == set(), "both ends of the host's delegation are exposed, so a connection draws as an edge"
-    assert "flow" not in body, "flows between these ports were not drawn (six licensed runs)"
-    into_simulator = [name for name, (_, target) in HOST_CONNECTIONS.items() if target.startswith("carlaServer.")]
-    assert into_simulator == ["vehicleControlOverHostLoopback"], "the vehicle control is the only thing the simulator receives"
-    assert dict(re.findall(r"^\s*port\s+(\w+)\s*:\s*(\w+)\s*;", body, re.M)) == {"operationalStateOut": "OperationalStateOut"}
+    host = _body_of_definition(HOST)
+    assert _owned(host) == [("os", "LinuxPlatform"), ("drivingSoftware", REALIZATION),
+                            ("routeProvider", "ScenarioRouteProvider")]
+    assert "scoreServices" not in host, "the realization owns the S-CORE services"
+    assert "hypervisor" not in host and "carlaServer" not in host
+    assert _named_connections(host) == HOST_CONNECTIONS and len(_connections(host)) == len(HOST_CONNECTIONS)
+    assert _ports(host) == HOST_PORTS
+    simulator = _body_of_definition(SIMULATOR_HOST)
+    assert _owned(simulator) == [("os", "LinuxPlatform"), ("carlaServer", "CARLASimulationServer")]
+    assert (_named_connections(simulator) == SIMULATOR_HOST_CONNECTIONS
+            and len(_connections(simulator)) == len(SIMULATOR_HOST_CONNECTIONS))
+    assert _ports(simulator) == SIMULATOR_HOST_PORTS
+    into_server = [name for name, (_, target) in SIMULATOR_HOST_CONNECTIONS.items() if target.startswith("carlaServer.")]
+    assert into_server == ["vehicleControlDelegation"], "the vehicle control is the only thing the simulator receives"
+    guest_host = _body_of_definition(GUEST_HOST)
+    assert _owned(guest_host) == [("os", "LinuxPlatform"), ("hypervisor", "KVMHypervisor")]
+    assert _ports(guest_host) == {} and not _connections(guest_host)
+    for body in (host, simulator, guest_host):
+        assert _binds(body) == set(), "both ends of each delegation are exposed, so a connection draws as an edge"
+        assert "flow" not in body, "flows between these ports were not drawn (six licensed runs)"
     for layer in ("LinuxPlatform", "KVMHypervisor", "EclipseSCORE", "AndroidHLOS", "AndroidSDVMiddleware",
                   "OSHypervisorInterface"):
         assert f"private import DE4SDV_SDVPlatformStack::{layer};" in code, layer
-    # the navigation of phase 2 is realized on the host, not on the AAOS guest: the context-role decision holds
+    # the navigation of phase 2 is realized on the S-CORE host, not on the AAOS guest: the context-role decision holds
     assert re.search(r"\bpart\s+def\s+ScenarioRouteProvider\s*:>\s*NavigationSystem\s*\{", code)
     route_doc = _doc("part def ScenarioRouteProvider :> NavigationSystem")
     assert "System 2" in route_doc and "2026-11-02" in route_doc
     carla_doc = _doc("part def CARLASimulationServer")
-    assert "System 2" in carla_doc and "asynchronous" in carla_doc
+    for phrase in ("System 2", "synchronous mode", "pacer", "no element of the loop ticks the world",
+                   "never waits for a plan", "decision 3"):
+        assert phrase in carla_doc, phrase
+    for definition, phrases in ((HOST, ("2026-11-09", "S-CORE host", "RTX PRO 6000", "nests no VM")),
+                                (SIMULATOR_HOST, ("2026-11-09", "its own GPU", "NVENC", "warm-up lap", "bench network")),
+                                (GUEST_HOST, ("2026-11-09", "KVM", "VXLAN", "192.168.98.1"))):
+        doc = _doc(f"part def {definition}")
+        for phrase in phrases:
+            assert phrase in doc, (definition, phrase)
 
 
-def test_the_guests_carry_the_observation_path_and_the_system_crosses_the_hypervisor_twice():
+def test_the_guests_carry_the_observation_path_and_the_state_crosses_the_vxlan_segment_and_the_vms():
     code = _code()
     core = _body_of_definition("AAOSSDVCoreGuest")
     assert re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", core, re.M) == [("os", "AndroidHLOS"),
@@ -624,11 +696,20 @@ def test_the_guests_carry_the_observation_path_and_the_system_crosses_the_hyperv
         assert phrase in observer_doc, phrase
     system = _body_of_definition(SYSTEM)
     assert re.findall(r"^\s*part\s+(\w+)\s*:\s*(\w+)\s*;", system, re.M) == [
-        ("linuxHost", HOST), ("sdvCoreGuest", "AAOSSDVCoreGuest"), ("hmiGuest", "AAOSIVIGuest")]
+        ("linuxHost", HOST), ("simulatorHost", SIMULATOR_HOST), ("guestHost", GUEST_HOST),
+        ("sdvCoreGuest", "AAOSSDVCoreGuest"), ("hmiGuest", "AAOSIVIGuest")]
     assert _named_connections(system) == SYSTEM_CONNECTIONS and "flow" not in system and _binds(system) == set()
+    into_simulator = [name for name, (_, target) in SYSTEM_CONNECTIONS.items() if target.startswith("simulatorHost.")]
+    assert into_simulator == ["vehicleControlOverBenchNetwork"], "into the simulator goes the vehicle control and nothing else"
+    assert not [name for name, (source, target) in SYSTEM_CONNECTIONS.items()
+                if source.startswith(("sdvCoreGuest.", "hmiGuest.")) and not target.startswith("hmiGuest.")], "nothing back"
     interfaces = re.findall(r"\binterface\s+(\w+)\s*:\s*OSHypervisorInterface\s+connect\s+([\w.]+)\s+to\s+([\w.]+)\s*;", system)
-    assert interfaces == [("sdvCoreGuestUnderKVM", "sdvCoreGuest.os.hypervisorPort", "linuxHost.hypervisor.guestPort"),
-                          ("hmiGuestUnderKVM", "hmiGuest.os.hypervisorPort", "linuxHost.hypervisor.guestPort")]
+    assert interfaces == [("sdvCoreGuestUnderKVM", "sdvCoreGuest.os.hypervisorPort", "guestHost.hypervisor.guestPort"),
+                          ("hmiGuestUnderKVM", "hmiGuest.os.hypervisorPort", "guestHost.hypervisor.guestPort")]
+    vxlan_doc = _flat(re.search(r"connection operationalStateOverSOMEIPAcrossVXLANSegment[^{]*\{\s*doc\s*/\*(.*?)\*/",
+                                _raw(), re.S).group(1))
+    for phrase in ("VXLAN", "someipd", "guest images unchanged"):
+        assert phrase in vxlan_doc, phrase
     for name in ("SDVCoreBoundary", "SDVGatewayOnIVIBoundary", "DataTunnelPort"):
         assert f"private import DE4SDV_AAOSSDVMiddlewareBoundary::{name};" in code, name
     assert re.findall(rf"^\s*part\s+(\w+)\s*:\s*{SYSTEM}\s*[{{;=]", code, re.M) == [SYSTEM_USAGE]
@@ -698,7 +779,7 @@ def test_the_records_say_what_each_item_is_and_where_the_vss_typing_is():
     state = record("MAP-DRIVING-OPERATIONAL-STATE")
     for hop in ("gatewayd", "someipd", "SOME/IP", "Data Tunnel", "VSIDL", "REQ-DRIVING-017"):
         assert hop in state, hop
-    assert "ONNX" in record("MAP-DRIVING-PLAN") or "exported" in record("MAP-DRIVING-PLAN")
+    assert "PyTorch" in record("MAP-DRIVING-PLAN") and "ONNX" not in record("MAP-DRIVING-PLAN")
 
 
 def test_the_assumptions_and_gaps_of_the_realization_are_recorded_with_short_names():
@@ -716,6 +797,11 @@ def test_the_assumptions_and_gaps_of_the_realization_are_recorded_with_short_nam
     for short in GAPS:
         body = braced_body(code, f"part <'{short}'>")
         assert "attribute :>> disposition = LifecycleDisposition::" in body, short
+    # retired and renamed on the amendment of 2026-11-09: no record, no reference left in the code
+    for short, name in RETIRED.items():
+        assert short not in code and name not in raw, short
+    for name in RENAMED_AWAY:
+        assert name not in raw, name
 
 
 def test_the_package_records_the_pins_the_alternatives_and_what_phase_8_settled():
@@ -743,6 +829,27 @@ def test_the_package_records_the_pins_the_alternatives_and_what_phase_8_settled(
     assert "GAP-DRIVING-008" not in _raw() and "gapInProcessHopsUnderREQ014" not in _raw()
     for concern in FRAMING_CONCERNS:
         assert f"private import DE4SDV_ClosedLoopDrivingFraming::{concern};" in _code(), concern
+
+
+def test_the_amendment_records_the_owner_decisions_of_the_readiness_probes():
+    raw = _raw()
+    head = _flat(raw[:raw.index("package " + PACKAGE)])
+    for phrase in AMENDMENT_PHRASES:
+        assert phrase in head, phrase
+    assert "Python stays in System 2" not in raw, "the planner runs PyTorch in the agent's process (decision 4)"
+    assert "TensorRT on the NVIDIA host" not in raw and "over the ONNX export" not in raw
+    agent = _doc(f"part def {AGENT}")
+    for phrase in ("Rust", "C++ libraries", "event trigger", "newest frame", "skipped"):
+        assert phrase in agent, phrase
+    inference = _doc("part def PlanInferenceActivity :> PhysicalAllocationElement")
+    for phrase in ("PyTorch", "REQ-DRIVING-035", "REQ-DRIVING-033", "cuDNN", "capture-safe preprocessing"):
+        assert phrase in inference, phrase
+    assert "ONNX" not in inference and "TensorRT" not in inference
+    conditioning = _doc("part def InputConditioningActivity :> PhysicalAllocationElement")
+    assert "frame index" in conditioning and "100 ms" in conditioning
+    launch = _doc("part launchManager", braced_body(raw, "part scoreServices : EclipseSCORE"))
+    for phrase in ("as root", "/tmp/mw_com_lola", "LmControlService"):
+        assert phrase in launch, phrase
 
 
 def test_the_package_publishes_exactly_one_view_per_question():
@@ -834,7 +941,8 @@ def test_the_phase_1_physical_concerns_are_framed_here_in_their_domain_and_the_l
 
 def test_the_element_docs_make_no_assurance_claim():
     declarations = [f"part def {d} :> PhysicalAllocationElement" for d in ELEMENT_DEFINITIONS]
-    declarations += [f"part def {AGENT}", f"part def {REALIZATION} :> {IDENTITY}", f"part def {HOST}", f"part def {SYSTEM}"]
+    declarations += [f"part def {AGENT}", f"part def {REALIZATION} :> {IDENTITY}", f"part def {HOST}", f"part def {SYSTEM}",
+                     f"part def {SIMULATOR_HOST}", f"part def {GUEST_HOST}"]
     for declaration in declarations:
         doc = _doc(declaration)
         found = [word for word in CLAIM_WORDS if word in doc.lower()]
@@ -851,7 +959,8 @@ def test_the_allocation_file_is_governed_with_its_six_endpoint_definitions():
     assert trace.GOVERNED[trace.DRIVING_P] == (trace.PHYSICAL, set(ELEMENT_DEFINITIONS))
     assert trace.DRIVING_P in trace.LINEAGE_FILES
     assert trace.NOT_ENDPOINTS[trace.DRIVING_P] == {SYSTEM, HOST, REALIZATION, AGENT, "CARLASimulationServer",
-                                                    "ScenarioRouteProvider", "AAOSSDVCoreGuest", "AAOSIVIGuest"}
+                                                    "ScenarioRouteProvider", "AAOSSDVCoreGuest", "AAOSIVIGuest",
+                                                    SIMULATOR_HOST, GUEST_HOST}
 
 
 def test_the_guide_describes_phase_8_and_names_the_next_work():
@@ -862,10 +971,12 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
     for word in ("FEO", "actuation adapter", "state publisher", "gatewayd", "ONNX", "v0.10.0", "v1.0.5",
                  "GAP-DRIVING-005", "reqPlansAndCommandsOverSCOREReading", "KUKSA", "two clocks side by side",
                  "simulated sensor rig", "the vehicle control and nothing else", "2026-11-06",
-                 "Four assumptions and six gaps", "actuation state", "MAP-DRIVING-ACTUATION-STATE", "ASM-DRIVING-004",
-                 "rig profile", "ground truth", "ISQ", "CameraPosition"):
+                 "Four assumptions and four gaps", "actuation state", "MAP-DRIVING-ACTUATION-STATE", "ASM-DRIVING-004",
+                 "rig profile", "ground truth", "ISQ", "CameraPosition", "three hosts", "readiness probes",
+                 "2026-11-09", "PyTorch", "event trigger", "VXLAN", "NVENC", "warm-up lap"):
         assert word in flat, word
     assert "GAP-DRIVING-008" not in guide and "Three assumptions and seven gaps" not in flat
+    assert "Four assumptions and six gaps" not in flat, "GAP-DRIVING-002 and -004 retired on 2026-11-09"
     assert "follow-up PR carries the amendment" not in flat, "the amendment landed"
     assert "The next work is **Phase 8**" not in guide and "The next work is **Phase 9**" not in guide
     assert re.search(r"The next work is (\*\*Phase 1[01]\*\*|the \*\*second slice of Phase 10\*\*)", guide), "phases 8 and 9 landed"
