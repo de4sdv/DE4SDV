@@ -386,6 +386,7 @@ class World:
     def apply_settings(self, settings) -> None:
         self.settings = settings.copy()
         self.apply_settings_calls.append(self.settings.as_dict())
+        self.log.append(("settings", bool(self.settings.synchronous_mode)))
 
     # -- world
     @property

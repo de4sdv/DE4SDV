@@ -30,7 +30,7 @@ python3.10 world_side.py \
 | Req | Where in `world_side.py` | Test |
 |---|---|---|
 | R1 CLI | `build_parser`, `print_plan`, `Route`, `WorldSide.pick_spawn`, `WorldSide.ensure_map` | `test_cli_defaults`, `test_dry_run_prints_plan_and_spawns_nothing`, `test_dry_run_rejects_an_unknown_fault`, `test_map_loaded_only_when_different`, `test_spawn_point_is_the_nearest_within_two_metres`, `test_spawn_point_far_away_is_loud`, `test_spawn_index_out_of_range_is_loud`, `test_cli_dry_run_as_a_subprocess` |
-| R2 settings + teardown | `apply_settings`, `restore_settings`, `teardown` | `test_settings_applied_and_restored`, `test_settings_restored_when_a_camera_fails_to_spawn`, `test_teardown_is_idempotent` |
+| R2 settings + teardown | `apply_settings`, `restore_settings`, `teardown`, `main` | `test_settings_applied_and_restored`, `test_settings_restored_when_a_camera_fails_to_spawn`, `test_teardown_is_idempotent`, `test_every_actor_goes_while_the_world_is_still_synchronous`, `test_the_last_tick_gets_time_to_arrive_before_teardown`, `test_no_wait_when_no_tick_was_made`, `test_the_summary_is_on_disk_when_teardown_dies` |
 | R3 pacing | `Pacer`, `WorldSide._do_tick`, `summary` | `test_one_tick_per_hundred_ms_of_wall_time`, `test_a_slow_tick_moves_the_schedule_and_is_counted`, `test_a_late_wake_is_counted_and_logged`, `test_the_pacer_never_runs_a_tick_before_its_deadline` |
 | R4 hero and rig | `spawn_hero`, `spawn_rig`, `load_rig_module` | `test_six_cameras_named_from_the_profile`, `test_rig_pose_is_actor_pose_in_vehicle`, `test_rig_uses_the_real_agent_module` |
 | R5 handover marker | `run` (F_h), `spawn_marker`, `tick_data` (`handoverFrame`), `summary` | `test_handover_marker_names_the_frame` |
@@ -237,6 +237,15 @@ rejected with the list of supported kinds.
     against the real API).
 11. **Exit codes**: 1 for a bench error (after teardown, with an `error`
     record), 2 for a usage error (a non-positive width).
+12. **Teardown order** (changed after the first runs on the simulator host).
+    After the last tick the tool waits `LAST_FRAME_DRAIN_S` (0.3 s) so that the
+    last tick's images reach drivingAgent, stops and destroys every actor while
+    the world is still synchronous, and only then restores the settings. The
+    first order restored asynchronous mode first: the server ran free with the
+    hero and the cameras in place, and drivingAgent took a frame after the run's
+    last tick, with its images missing. `summary.json` is written before
+    teardown as well as after it, because a server that dies during teardown
+    makes the client library's timeout abort the process.
 
 ## Known limits
 
@@ -254,3 +263,6 @@ rejected with the list of supported kinds.
   confirms or refutes that on the first CARLA run; the fake cannot.
 * The `--fault` vocabulary covers `camera_stop` (and the inert
   `run_end_brake`). Other C8 actions belong to the bench controller.
+* CARLA 0.9.16 crashed (signal 11) at the end of two of seven runs on the
+  simulator host, as teardown began, under the first teardown order. Whether
+  the order of decision 12 prevents it is not yet shown.

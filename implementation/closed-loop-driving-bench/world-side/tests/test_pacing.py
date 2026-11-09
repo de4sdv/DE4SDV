@@ -24,8 +24,10 @@ def test_one_tick_per_hundred_ms_of_wall_time(tmp_path, route, profile):
     assert ticks == 20                       # 10 warm-up + 10 run ticks
     assert summary["lateTicks"] == 0
     assert summary["scheduleSlips"] == 0
-    # sleeps are all one period and the wall time is (ticks - 1) periods
-    assert all(abs(s - 0.1) < 1e-9 for s in clock.sleeps[1:])
+    # sleeps are all one period and the wall time is (ticks - 1) periods; the last sleep is
+    # teardown's wait for the last tick's images, after the wall time ends
+    assert clock.sleeps[-1] == W.LAST_FRAME_DRAIN_S
+    assert all(abs(s - 0.1) < 1e-9 for s in clock.sleeps[1:-1])
     assert abs(summary["wallSeconds"] - (ticks - 1) * 0.1) < 1e-6
     assert 0.99 < summary["realTimeFactor"] < 1.06
     assert all(r["data"]["latenessMonoNs"] == 0 for r in records(run_dir))
@@ -47,7 +49,8 @@ def test_a_slow_tick_moves_the_schedule_and_is_counted(tmp_path, route, profile)
     assert summary["realTimeFactor"] < 0.8
     # wall time is the sum of the overruns, not one period per tick
     assert abs(summary["wallSeconds"] - ticks * 0.13) < 1e-6
-    assert all(s < 1e-9 for s in clock.sleeps), "a late tick must not burst"
+    assert clock.sleeps[-1] == W.LAST_FRAME_DRAIN_S   # teardown's wait, after the run
+    assert all(s < 1e-9 for s in clock.sleeps[:-1]), "a late tick must not burst"
 
     recs = [r["data"] for r in records(run_dir)]
     assert len(recs) == ticks

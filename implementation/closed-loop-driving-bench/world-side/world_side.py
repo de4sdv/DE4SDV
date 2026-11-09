@@ -42,6 +42,9 @@ from pathlib import Path
 from typing import Any, Callable, Iterable
 
 STEP_S = 0.1
+# After the last tick, before teardown: drivingAgent waits up to 95 ms after a tick for its six
+# images; three steps let the last tick's images arrive before the cameras go.
+LAST_FRAME_DRAIN_S = 0.3
 STEP_MS = 100
 LATE_TOLERANCE_S = 0.001      # a tick later than this past its deadline is counted
 COMPONENT = "worldSide"
@@ -1113,19 +1116,25 @@ class WorldSide:
 
     # --------------------------------------------------------------- teardown
     def teardown(self) -> None:
-        """Restore the settings, TM off, stop and destroy every actor (idempotent)."""
+        """Wait for the last tick's images, stop and destroy every actor while the world is still
+        synchronous, then restore the settings and turn the TM off (idempotent).
+
+        In synchronous mode the server makes no frame of its own, so no frame follows the run's last
+        tick. Restoring asynchronous mode first let the server run free with the hero and the cameras
+        still in place: drivingAgent took a frame after the last tick, with its images missing."""
         with self._teardown_lock:
             if self._torn_down:
                 return
             self._torn_down = True
 
+        if self.last_frame is not None:
+            self.sleep(LAST_FRAME_DRAIN_S)
         if self.hero is not None:
             try:
                 self.hero.set_autopilot(False, int(self.args.tm_port))
             except Exception:  # noqa: BLE001
                 pass
             self.autopilot = False
-        self.restore_settings()
 
         for sensor in list(self.extra_sensors) + [c.actor for c in self.cameras]:
             try:
@@ -1139,6 +1148,7 @@ class WorldSide:
                 pass
         self._spawned.clear()
         self.extra_sensors.clear()
+        self.restore_settings()
 
         for writer in (self.injection_log, self.world_log, self.side_log):
             try:
@@ -1337,6 +1347,9 @@ def main(argv: Iterable[str] | None = None, *,
         if tool is not None:
             if tool.stop_reason is None:
                 tool.stop_reason = "error"
+            # On disk before teardown as well: when the server dies during teardown, the client
+            # library's timeout aborts the process and the summary would be lost.
+            tool.write_summary()
             tool.teardown()
             tool.write_summary()
 
