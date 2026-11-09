@@ -86,9 +86,10 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
 - The mode is driving:
   - Take the newest valid plan's sample at `k = round((step capture time − plan capture time) / 0.1 s)`, clamped to 0..63.
   - `acceleration = a[k]`.
-  - `steeringAngle = deg(atan(wheelbase · κ[k]))`.
+  - `steeringAngle` by the configured command law; the run record names it (ICD A27):
+    - `pure_pursuit`, shipped: on the plan's path from sample k, with a lookahead of 4 m + 0.8 s · the current motion sample's speed (4 to 15 m), `deg(atan(wheelbase · 2y/d²))`.
+    - `first_control`: `deg(atan(wheelbase · κ[k]))`. The checkpoint's first curvature sample leans right in its outputs while its path follows the road. With yaw rate and curvature given as zero in the history (REQ-DRIVING-008), steering on that one sample turned the vehicle off the road within seconds on the simulator host.
   - Limits and steering rate come from the vehicle configuration (REQ-DRIVING-011, -012).
-  - This is the configured command law `first_control`. A `pure_pursuit` law on the integrated path, with the speed from the current motion sample, is the alternative if the closed loop oscillates; the run record names the law.
 - The mode is stop:
   - `acceleration = -4`, with the steering held at the last value computed from a valid plan (REQ-DRIVING-020, -021);
   - the same at standstill (REQ-DRIVING-022; the adapter holds the brake).

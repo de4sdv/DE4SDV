@@ -1038,6 +1038,50 @@ void TestCommanderPurePursuit() {
   CHECK_NEAR(step.command.steeringAngle, kFirstControl005Deg, 1e-5);
 }
 
+// A plan with the checkpoint's shape: the first curvature sample leans one way,
+// the path the plan integrates (5 m/s, 0.1 s steps) bends the other way.
+DrivingPlanPayload MakeLeaningPlan(std::uint64_t frame, double speed_mps, double first_curvature,
+                                   double path_curvature) {
+  DrivingPlanPayload plan = MakePlan(frame, 0.0, path_curvature);
+  plan.samples[0].curvature = static_cast<float>(first_curvature);
+  double x = 0.0;
+  double y = 0.0;
+  double heading = 0.0;
+  for (std::size_t i = 0; i < kPlanSamples; ++i) {
+    heading += speed_mps * static_cast<double>(plan.samples[i].curvature) * 0.1;
+    x += speed_mps * std::cos(heading) * 0.1;
+    y += speed_mps * std::sin(heading) * 0.1;
+    plan.samples[i].x = static_cast<float>(x);
+    plan.samples[i].y = static_cast<float>(y);
+    plan.samples[i].heading = static_cast<float>(heading);
+  }
+  return plan;
+}
+
+// The shipped vehicle configuration steers with the plan's path, not with its
+// first control sample alone. The checkpoint's first curvature sample leans
+// right in its outputs (about -0.05 1/m) while the path it plans bends with the
+// road; steering on that one sample turned the vehicle off the road in the
+// simulator although the plans' paths bent left with the route.
+void TestShippedLawSteersWithThePlanPath() {
+  const std::string here = __FILE__;
+  const std::string path = here.substr(0, here.find_last_of('/')) +
+                           "/../../../actuation-adapter/config/vehicle_limits.json";
+  VehicleConfig shipped;
+  std::string error;
+  CHECK(LoadVehicleConfigFile(path, &shipped, &error));
+  Commander left_commander(shipped);
+  const DrivingPlanPayload left = MakeLeaningPlan(10, 5.0, -0.05, 0.02);
+  const CommandStep to_left =
+      left_commander.Step(Mode::kDriving, &left, 10, CleanMotion(10, 18.0), 1.0);
+  CHECK(to_left.command.steeringAngle > 0.5);
+  Commander right_commander(shipped);
+  const DrivingPlanPayload right = MakeLeaningPlan(11, 5.0, 0.05, -0.02);
+  const CommandStep to_right =
+      right_commander.Step(Mode::kDriving, &right, 11, CleanMotion(11, 18.0), 1.0);
+  CHECK(to_right.command.steeringAngle < -0.5);
+}
+
 // ------------------------------------------------------------------ config
 void TestVehicleConfig() {
   VehicleConfig config;
@@ -1506,6 +1550,7 @@ int main(int argc, char** argv) {
   TestPlanInvalidOutranksStaleInOneStep();
   TestCommanderLimits();
   TestCommanderPurePursuit();
+  TestShippedLawSteersWithThePlanPath();
   TestVehicleConfig();
   TestRecords();
   TestScenario();

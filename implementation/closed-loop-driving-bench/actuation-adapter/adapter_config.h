@@ -9,7 +9,7 @@
 //     "max_deceleration_mps2": 8.0,
 //     "max_road_wheel_angle_deg": 35.0,
 //     "max_steering_rate_deg_per_s": 180.0,
-//     "command_law": "first_control",
+//     "command_law": "pure_pursuit",
 //     "longitudinal_controller": {
 //       "table": [[-8.0, 0.0, 1.0], [0.0, 0.0, 0.0], [3.0, 0.75, 0.0]],
 //       "kp": 0.3,

@@ -148,14 +148,16 @@ One JSON file is named by the run record; the commander and the adapter read it:
 {"vehicle_blueprint": "vehicle.lincoln.mkz_2020", "wheelbase_m": 2.85,
  "max_acceleration_mps2": 3.0, "max_deceleration_mps2": 8.0,
  "max_road_wheel_angle_deg": 35.0, "max_steering_rate_deg_per_s": 180.0,
- "command_law": "first_control",
+ "command_law": "pure_pursuit",
  "longitudinal_controller": {"table": [[-8.0, 0.0, 1.0], [0.0, 0.0, 0.0], [3.0, 0.75, 0.0]],
                              "kp": 0.3, "ki": 0.05, "integrator_limit": 0.3}}
 ```
 
 - The numbers are placeholders. Bench calibration replaces them; the adapter logs the vehicle's physics control as a `config` record.
 - **Commander:**
-  - `steeringAngle = clamp(deg(atan(wheelbase·κ)), ±max_road_wheel_angle)`, rate-limited per step;
+  - `steeringAngle` by `command_law` (A27), clamped to ±max_road_wheel_angle and rate-limited per step:
+    - `pure_pursuit` (shipped): on the plan's path from sample k, lookahead 4 m + 0.8 s · speed (4 to 15 m), `deg(atan(wheelbase · 2y/d²))`;
+    - `first_control`: `deg(atan(wheelbase·κ[k]))`;
   - `acceleration = clamp(a, -max_deceleration, +max_acceleration)`.
 - **Adapter:** `steer = clamp(-steeringAngle / max_road_wheel_angle, -1, 1)`. Throttle and brake come from the table plus PI (S2 README).
 
@@ -298,3 +300,9 @@ No payload changes.
   - Before, such a step fell back to the number of steps since the first one. On the simulator host, a step with a camera missing at the deadline logged `priming.complete` at frame 113, but the engine's histories were first complete at frame 179. VC-DRIVING-001 reads `priming.complete`, so it would have counted the 66 steps from 113 to 178 as steps without a plan.
   - Without an engine (the stand-in), the step count stays.
   - inferPlan no longer calls the warm-up on a step with an input condition. That step was not conditioned, so there is nothing to warm, and `warmCalls` counted it.
+- **A27, shipped command law (§5).** No payload change.
+  - The shipped vehicle configuration names `pure_pursuit`: the steering follows the plan's path from sample k, with a lookahead of 4 m + 0.8 s · speed (4 to 15 m). `first_control` stays available and is still named by the run record when configured.
+  - The checkpoint's first curvature sample leans right in its outputs: about −0.05 1/m at rest and −0.044 1/m while moving, in every moving plan of a simulator run, while the same plans' paths bent left with the route by +0.5 to +1.0 m at 5 to 10 m ahead.
+  - Under `first_control` the vehicle steered about −8° from its first command and left the road within 23 s. Re-judged on the same plans, `pure_pursuit` steers a median of +0.6° while moving and 0° at rest.
+  - The readiness probe in which the vehicle kept its lane with yaw rate and curvature given as zero in the history (REQ-DRIVING-008) steered by pure pursuit on the plan's path.
+  - The acceleration stays `a[k]` under both laws.

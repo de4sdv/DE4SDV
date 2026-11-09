@@ -116,7 +116,7 @@ v2 shape is what `config/vehicle_limits.json` holds:
 {"vehicle_blueprint": "vehicle.lincoln.mkz_2020", "wheelbase_m": 2.85,
  "max_acceleration_mps2": 3.0, "max_deceleration_mps2": 8.0,
  "max_road_wheel_angle_deg": 35.0, "max_steering_rate_deg_per_s": 180.0,
- "command_law": "first_control",
+ "command_law": "pure_pursuit",
  "longitudinal_controller": {"table": [[-8.0, 0.0, 1.0], [0.0, 0.0, 0.0], [3.0, 0.75, 0.0]],
                              "kp": 0.3, "ki": 0.05, "integrator_limit": 0.3}}
 ```
