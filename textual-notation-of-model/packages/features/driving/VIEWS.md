@@ -313,6 +313,7 @@ Shows the model elements selected to address the aaos observation fidelity conce
 - **Render:** `asInterconnectionDiagram`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
+- **Presentation note:** This is a dense review artifact; open the SVG at full size rather than reading it from the page thumbnail.
 
 ![closedLoopDrivingPhysicalContextExchangeView](diagrams/diagram-closedLoopDrivingPhysicalContextExchangeView.svg)
 
