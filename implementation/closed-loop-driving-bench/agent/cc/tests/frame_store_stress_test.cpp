@@ -137,12 +137,19 @@ void ConsumerThread(FrameStore* store, Shared* shared, std::vector<std::uint64_t
   std::uniform_int_distribution<int> workUs(0, 2500);   // about one frame period
   std::uniform_int_distribution<int> slowUs(4000, 14000);  // longer: backlog and skips
   std::uniform_int_distribution<int> slow(0, 99);
+  std::uniform_int_distribution<int> coin(0, 1);
   for (;;) {
-    FrameHandle handle = store->TakeNewestReady();
+    std::vector<FrameHandle> merged;
+    FrameHandle handle = store->TakeNewestReady(coin(rng) == 1 ? &merged : nullptr);  // both paths
     if (!handle.valid()) {
       if (shared->stopRequested.load(std::memory_order_acquire)) break;
       std::this_thread::sleep_for(std::chrono::microseconds(200));
       continue;
+    }
+    std::vector<std::uint64_t> mergedBefore;
+    for (const FrameHandle& m : merged) {                // oldest first, all older than the newest
+      taken->push_back(m.frame());
+      mergedBefore.push_back(Checksum(m.view()));
     }
     const std::uint64_t before = Checksum(handle.view());
     taken->push_back(handle.frame());
@@ -150,6 +157,10 @@ void ConsumerThread(FrameStore* store, Shared* shared, std::vector<std::uint64_t
     std::this_thread::sleep_for(std::chrono::microseconds(delay));
     const std::uint64_t after = Checksum(handle.view());
     if (before != after) shared->checksumFailures.fetch_add(1, std::memory_order_relaxed);
+    for (std::size_t i = 0; i < merged.size(); ++i) {
+      if (Checksum(merged[i].view()) != mergedBefore[i]) shared->checksumFailures.fetch_add(1, std::memory_order_relaxed);
+      store->Release(merged[i]);
+    }
     store->Release(handle);
   }
 }
@@ -274,7 +285,8 @@ int main() {
   CHECK(c.slotsCreated == c.readyComplete + c.readyDeadline + c.droppedIncomplete +
                              c.inFlightSnapshot + c.inFlightNoSnapshot);
 
-  // 4. Ready disposition: consumed, skipped, or still untaken (none).
+  // 4. Ready disposition: consumed (taken or merged: `taken` lists both), skipped, or still
+  //    untaken (none).
   CHECK(c.readyUntaken == 0);
   CHECK(c.locked == 0);
   CHECK(c.readyComplete + c.readyDeadline == total_taken + c.skipped + c.readyUntaken);
@@ -283,7 +295,7 @@ int main() {
   CHECK(sinkCount.load() == c.readyComplete + c.readyDeadline);
   CHECK(c.sinkInvocations == c.readyComplete + c.readyDeadline);
 
-  // 6. Frames are handed over in increasing order.
+  // 6. Frames are handed over in increasing order, merged frames included.
   bool increasing = true;
   for (std::size_t i = 1; i < taken.size(); ++i) {
     if (taken[i] <= taken[i - 1]) increasing = false;
@@ -297,6 +309,7 @@ int main() {
   CHECK(c.readyComplete > 0);
   CHECK(c.readyDeadline > 0);
   CHECK(c.skipped > 0);
+  CHECK(c.merged > 0);
   std::uint64_t late = 0;
   for (std::size_t camera = 0; camera < kCameraCount; ++camera) late += c.lateImages[camera];
   CHECK(late > 0);

@@ -63,8 +63,8 @@ MUTATIONS = [
     {
         "name": "M08 second Take without Release allowed",
         "file": "frame_store.cpp",
-        "old": "  if (lockedSlot_ != kNoSlot) {\n    ++misuse_;  // one slot at a time: the caller forgot Release\n    return handle;\n  }",
-        "new": "  if (lockedSlot_ != kNoSlot) {\n    ++misuse_;  // one slot at a time: the caller forgot Release\n  }",
+        "old": "  if (lockedCount_ != 0) {\n    ++misuse_;  // one take at a time: the caller forgot a Release\n    return handle;\n  }",
+        "new": "  if (lockedCount_ != 0) {\n    ++misuse_;  // one take at a time: the caller forgot a Release\n  }",
     },
     {
         "name": "M09 poll re-marks ready slots",
@@ -113,6 +113,61 @@ MUTATIONS = [
         "file": "frame_store.cpp",
         "old": "    if (slot.state == SlotState::kEmpty || slot.locked || slot.frame >= newestFrame) continue;",
         "new": "    if (slot.state != SlotState::kReady || slot.locked || slot.frame >= newestFrame) continue;",
+    },
+    # Merged frames (DESIGN.md "Merged frames"): the take hands older ready frames over instead of skipping them.
+    {
+        "name": "M17 merged frames never handed over",
+        "file": "frame_store.cpp",
+        "old": "  if (merged != nullptr) {\n    while (mergedCount < kMaxMerged) {",
+        "new": "  if (false) {\n    while (mergedCount < kMaxMerged) {",
+    },
+    {
+        "name": "M18 merged frames handed over newest first",
+        "file": "frame_store.cpp",
+        "old": "[this](std::size_t a, std::size_t b) { return slots_[a].frame < slots_[b].frame; });",
+        "new": "[this](std::size_t a, std::size_t b) { return slots_[a].frame > slots_[b].frame; });",
+    },
+    {
+        "name": "M19 merged cap one lower",
+        "file": "frame_store.cpp",
+        "old": "    while (mergedCount < kMaxMerged) {",
+        "new": "    while (mergedCount + 1 < kMaxMerged) {",
+    },
+    {
+        "name": "M20 merged slot not locked",
+        "file": "frame_store.cpp",
+        "old": "    slots_[mergedSlots[m]].locked = true;\n    ++merged_;",
+        "new": "    ++merged_;",
+    },
+    {
+        "name": "M21 merged frame not counted",
+        "file": "frame_store.cpp",
+        "old": "    slots_[mergedSlots[m]].locked = true;\n    ++merged_;",
+        "new": "    slots_[mergedSlots[m]].locked = true;",
+    },
+    {
+        "name": "M22 Release leaves the take locked",
+        "file": "frame_store.cpp",
+        "old": "  if (lockedCount_ > 0) --lockedCount_;\n",
+        "new": "",
+    },
+    {
+        "name": "M23 a filling older frame may be merged",
+        "file": "frame_store.cpp",
+        "old": "        if (index == newest || slot.state != SlotState::kReady || slot.locked ||",
+        "new": "        if (index == newest || slot.state == SlotState::kEmpty || slot.locked ||",
+    },
+    {
+        "name": "M24 merged picks the oldest older frames, not the newest",
+        "file": "frame_store.cpp",
+        "old": "        if (pick == kNoSlot || slot.frame > slots_[pick].frame) pick = index;",
+        "new": "        if (pick == kNoSlot || slot.frame < slots_[pick].frame) pick = index;",
+    },
+    {
+        "name": "M25 the take retires its own merged slots",
+        "file": "frame_store.cpp",
+        "old": "    if (index == newest || isMerged(index)) continue;",
+        "new": "    if (index == newest) continue;",
     },
 ]
 

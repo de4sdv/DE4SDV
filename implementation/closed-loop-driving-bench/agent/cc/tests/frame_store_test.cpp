@@ -33,6 +33,7 @@ using de4sdv::driving::agent::HeroSnapshot;
 using de4sdv::driving::agent::kCameraCount;
 using de4sdv::driving::agent::kDefaultDeadlineNs;
 using de4sdv::driving::agent::kFront;
+using de4sdv::driving::agent::kMaxMerged;
 using de4sdv::driving::agent::kRear;
 using de4sdv::driving::agent::PaceSignal;
 
@@ -171,11 +172,12 @@ void CheckAccounting(const CountersSnapshot& c, std::uint64_t taken, const char*
   }
   ++g_checks;
   const std::uint64_t ready = c.readyComplete + c.readyDeadline;
-  if (ready != taken + c.skipped + c.readyUntaken) {
+  if (ready != taken + c.merged + c.skipped + c.readyUntaken) {
     ++g_failures;
-    std::printf("FAIL %s: ready identity %llu != %llu + %llu + %llu\n", where,
+    std::printf("FAIL %s: ready identity %llu != %llu + %llu (merged) + %llu + %llu\n", where,
                 static_cast<unsigned long long>(ready),
                 static_cast<unsigned long long>(taken),
+                static_cast<unsigned long long>(c.merged),
                 static_cast<unsigned long long>(c.skipped),
                 static_cast<unsigned long long>(c.readyUntaken));
   }
@@ -898,6 +900,99 @@ void TestPacePayloadCodec() {
 
 }  // namespace
 
+// Merged frames: a take with `merged` hands the older ready frames over too, oldest first and
+// locked, instead of skipping them, so the planner's histories see every frame (REQ-DRIVING-008).
+void TestTakeHandsOverMergedFrames() {
+  SinkLog log;
+  FrameStore store(MakeConfig(8, 95'000'000, &log));
+  for (std::uint64_t frame = 10; frame <= 12; ++frame) {
+    CHECK(store.OnSnapshot(frame, MakeSnapshot(frame), static_cast<std::int64_t>(frame) * 1000));
+    FeedAllImages(store, frame, static_cast<std::int64_t>(frame) * 1000 + 500);
+  }
+  std::vector<FrameHandle> merged;
+  FrameHandle newest = store.TakeNewestReady(&merged);
+  CHECK(newest.valid() && newest.frame() == 12);
+  CHECK(merged.size() == 2);
+  if (!newest.valid() || merged.size() != 2) return;
+  CHECK(merged[0].valid() && merged[0].frame() == 10);
+  CHECK(merged[1].valid() && merged[1].frame() == 11);
+  CHECK(merged[0].view().snapshot.pose.x == MakeSnapshot(10).pose.x);
+  CHECK(merged[1].view().allPresent());
+  CountersSnapshot c = store.Counters();
+  CHECK(c.merged == 2);
+  CHECK(c.skipped == 0);
+  CHECK(c.locked == 3);
+  CHECK(c.readyUntaken == 0);
+  CheckAccounting(c, 1, "merged-locked");
+
+  // One take at a time: none while any of the three slots is locked.
+  std::vector<FrameHandle> again;
+  FrameHandle second = store.TakeNewestReady(&again);
+  CHECK(!second.valid() && again.empty());
+  CHECK(store.Counters().misuse == 1);
+
+  // The consumer conditions the merged frames and releases them, then the newest.
+  store.Release(merged[0]);
+  store.Release(merged[1]);
+  CHECK(store.Counters().locked == 1);
+  store.Release(newest);
+  c = store.Counters();
+  CHECK(c.locked == 0);
+  CHECK(c.merged == 2 && c.skipped == 0 && c.misuse == 1);
+  CheckAccounting(c, 1, "merged-released");
+
+  // A released handle is reset; data for a merged frame is late from then on.
+  CHECK(!merged[0].valid());
+  CHECK(!FeedImage(store, kFront, 11, 20'000));
+  CHECK(store.Counters().lateImages[kFront] == 1);
+}
+
+// At most kMaxMerged older ready frames are handed over, the newest of them; older ones are
+// skipped as without `merged`.
+void TestMergedFramesAreCapped() {
+  SinkLog log;
+  FrameStore store(MakeConfig(8, 95'000'000, &log));
+  for (std::uint64_t frame = 0; frame <= 6; ++frame) {
+    CHECK(store.OnSnapshot(frame, MakeSnapshot(frame), static_cast<std::int64_t>(frame) * 1000 + 1));
+    FeedAllImages(store, frame, static_cast<std::int64_t>(frame) * 1000 + 500);
+  }
+  std::vector<FrameHandle> merged;
+  FrameHandle newest = store.TakeNewestReady(&merged);
+  CHECK(newest.valid() && newest.frame() == 6);
+  CHECK(merged.size() == kMaxMerged);
+  for (std::size_t i = 0; i < merged.size(); ++i) {
+    CHECK(merged[i].frame() == 6 - kMaxMerged + i);   // 2, 3, 4, 5
+  }
+  CountersSnapshot c = store.Counters();
+  CHECK(c.merged == kMaxMerged);
+  CHECK(c.skipped == 7 - 1 - kMaxMerged);             // frames 0 and 1
+  for (FrameHandle& m : merged) store.Release(m);
+  if (newest.valid()) store.Release(newest);
+  CHECK(store.Counters().locked == 0);
+  CheckAccounting(store.Counters(), 1, "merged-capped");
+}
+
+// An older frame still filling is dropped as incomplete, never handed over.
+void TestMergedSkipsFillingFrames() {
+  SinkLog log;
+  FrameStore store(MakeConfig(8, 95'000'000, &log));
+  CHECK(store.OnSnapshot(10, MakeSnapshot(10), 1000));
+  FeedAllImages(store, 10, 1500);
+  CHECK(store.OnSnapshot(11, MakeSnapshot(11), 2000));   // no images: filling
+  CHECK(store.OnSnapshot(12, MakeSnapshot(12), 3000));
+  FeedAllImages(store, 12, 3500);
+  std::vector<FrameHandle> merged;
+  FrameHandle newest = store.TakeNewestReady(&merged);
+  CHECK(newest.valid() && newest.frame() == 12);
+  CHECK(merged.size() == 1 && merged[0].frame() == 10);
+  CountersSnapshot c = store.Counters();
+  CHECK(c.droppedIncomplete == 1);
+  CHECK(c.merged == 1 && c.skipped == 0);
+  for (FrameHandle& m : merged) store.Release(m);
+  if (newest.valid()) store.Release(newest);
+  CheckAccounting(store.Counters(), 1, "merged-filling");
+}
+
 int main() {
   std::printf("FRAME_STORE_TESTS start\n");
 
@@ -914,6 +1009,9 @@ int main() {
   TestReadySlotEvictedIsSkipped();
   TestOverflowWhenNothingEvictable();
   TestTakeRetiresOlderSlots();
+  TestTakeHandsOverMergedFrames();
+  TestMergedFramesAreCapped();
+  TestMergedSkipsFillingFrames();
   TestMisuse();
   TestSinkCalledExactlyOncePerSlot();
   TestRetiredFrameDataIsLate();

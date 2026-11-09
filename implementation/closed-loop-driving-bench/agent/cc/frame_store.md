@@ -60,14 +60,19 @@ allocation happens on the callback path but never allocates memory.
   with images but no snapshot has no deadline and only ages out by eviction.
 - **Ready slots are immutable.** A late image, a duplicate image or a second
   snapshot is dropped and counted; it never changes a ready slot.
-- **The consumer takes the newest ready slot** and locks it. Every slot older
-  than that frame is retired in the same call (ready ones as `skipped`, filling
-  ones as `dropped_incomplete`), and the retire floor rises to the taken frame.
-  That is what makes the sequence of taken frames strictly increasing and what
-  stops a stale frame from being resurrected by data that arrives later.
-- **One lock at a time.** A second `TakeNewestReady()` without `Release`
-  returns an empty handle and counts one `misuse`; the locked slot is untouched
-  (one of the two behaviours the brief allows, tested).
+- **The consumer takes the newest ready slot** and locks it. With `merged`,
+  the older ready slots not yet taken are handed over too: oldest first, at
+  most `kMaxMerged` (4, the newest of them), each locked and counted as
+  `merged` (agent `DESIGN.md`, "Merged frames"). Every other slot older than
+  the newest frame is retired in the same call (ready ones as `skipped`,
+  filling ones as `dropped_incomplete`), and the retire floor rises to the
+  newest frame. That is what makes the sequence of handed-over frames strictly
+  increasing and what stops a stale frame from being resurrected by data that
+  arrives later.
+- **One take at a time.** A second `TakeNewestReady()` before every slot of
+  the previous take is released returns an empty handle and counts one
+  `misuse`; the locked slots are untouched (one of the two behaviours the
+  brief allows, tested).
 - **Overflow** is counted when a frame cannot get a slot at all: every slot is
   locked or is the protected newest ready slot, so nothing is evictable. The
   incoming data is dropped; a locked slot is never overwritten and a callback
@@ -92,7 +97,7 @@ snapshots          = readyComplete + readyDeadline
                      + droppedIncompleteSnapshot + inFlightSnapshot          (S)
 slotsCreated       = readyComplete + readyDeadline + droppedIncomplete
                      + inFlightSnapshot + inFlightNoSnapshot                  (L)
-readyComplete + readyDeadline = taken + skipped + readyUntaken                (R)
+readyComplete + readyDeadline = taken + merged + skipped + readyUntaken       (R)
 ```
 
 - `frames` counts `OnSnapshot` calls; `snapshots` only the first snapshot that
@@ -102,40 +107,51 @@ readyComplete + readyDeadline = taken + skipped + readyUntaken                (R
   `droppedIncompleteSnapshot` is the subset whose frame had arrived, which is
   what the per-frame identity needs. `slotsCreated` closes the same books from
   the slot side, including images-only slots.
-- (R) is the disposition of every ready slot: taken (consumed), skipped (never
-  taken, counted once), or still ready and untaken. It holds after the stress
+- (R) is the disposition of every ready slot: taken or merged (consumed),
+  skipped (never handed over, counted once), or still ready and untaken. It holds after the stress
   test's drain with `readyUntaken == 0`.
 
 The stress test asserts (F), (S), (L) and (R) with `inFlightSnapshot == 0`,
-plus: strictly increasing taken frames, an unchanged checksum of every locked
-slot between `Take` and `Release`, `sinkInvocations == readyComplete +
-readyDeadline`, and that the complete, deadline, skip and late-image paths all
-actually fired.
+plus: strictly increasing handed-over frames (its consumer takes with and
+without `merged`, at random), an unchanged checksum of every locked slot
+between `Take` and `Release`, `sinkInvocations == readyComplete +
+readyDeadline`, and that the complete, deadline, skip, merge and late-image
+paths all actually fired.
 
 ## Mutation probes
 
-`python3 mutations.py` applies each edit, rebuilds both tests, runs them
+`python3 tests/frame_store_mutations.py` applies each edit, rebuilds both tests, runs them
 (stress at `STRESS_FRAMES=800`), restores the sources and verifies their
-SHA-256. All 16 are killed by the unit tests; none survives.
+SHA-256. All 25 are killed by the unit tests; none survives. M17 to M25 probe
+the merged take (agent `DESIGN.md`, "Merged frames").
 
 | # | Mutation | Location | Killed |
 |---|---|---|---|
-| M01 | deadline 95 ms -> 195 ms | `frame_store.h:31` | yes |
+| M01 | deadline 95 ms -> 195 ms | `frame_store.h:34` | yes |
 | M02 | readiness needs 5 cameras, not 6 | `frame_store.cpp:151` | yes |
-| M03 | skip not counted in `RetireLocked` | `frame_store.cpp:338` | yes |
+| M03 | skip not counted in `RetireLocked` | `frame_store.cpp:371` | yes |
 | M04 | late image may modify a ready slot | `frame_store.cpp:125` | yes |
 | M05 | `late_images` not incremented for a ready slot | `frame_store.cpp:127` | yes |
-| M06 | eviction picks the newest, not the oldest | `frame_store.cpp:299` | yes |
-| M07 | newest-ready picks the oldest | `frame_store.cpp:315` | yes |
+| M06 | eviction picks the newest, not the oldest | `frame_store.cpp:332` | yes |
+| M07 | newest-ready picks the oldest | `frame_store.cpp:348` | yes |
 | M08 | second `Take` without `Release` allowed | `frame_store.cpp:180` | yes |
 | M09 | poll re-marks ready slots (double signal) | `frame_store.cpp:167` | yes |
 | M10 | size validation always valid | `frame_store.cpp:145` | yes |
 | M11 | pace payload big-endian | `pace_signal.cpp:21` | yes |
 | M12 | deadline fires one nanosecond late | `frame_store.cpp:168` | yes |
 | M13 | overflow not counted | `frame_store.cpp:72` | yes |
-| M14 | `skipCounted` guard removed (double count) | `frame_store.cpp:338` | yes |
+| M14 | `skipCounted` guard removed (double count) | `frame_store.cpp:371` | yes |
 | M15 | a retired frame may be resurrected by an image | `frame_store.cpp:112` | yes |
-| M16 | `Take` retires only ready slots, not filling ones | `frame_store.cpp:195` | yes |
+| M16 | `Take` retires only ready slots, not filling ones | `frame_store.cpp:221` | yes |
+| M17 | merged frames never handed over | `frame_store.cpp:198` | yes |
+| M18 | merged frames handed over newest first | `frame_store.cpp:229` | yes |
+| M19 | merged cap one lower | `frame_store.cpp:199` | yes |
+| M20 | merged slot not locked | `frame_store.cpp:231` | yes |
+| M21 | merged frame not counted | `frame_store.cpp:231` | yes |
+| M22 | `Release` leaves the take locked | `frame_store.cpp:259` | yes |
+| M23 | a filling older frame may be merged | `frame_store.cpp:203` | yes |
+| M24 | merged picks the oldest older frames, not the newest | `frame_store.cpp:207` | yes |
+| M25 | the take retires its own merged slots | `frame_store.cpp:219` | yes |
 
 ## Decisions taken beyond the brief
 

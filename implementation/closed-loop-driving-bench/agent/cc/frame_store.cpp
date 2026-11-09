@@ -174,23 +174,49 @@ std::size_t FrameStore::PollDeadlines(std::int64_t nowMonoNs) {
   return madeReady;
 }
 
-FrameHandle FrameStore::TakeNewestReady() {
+FrameHandle FrameStore::TakeNewestReady(std::vector<FrameHandle>* merged) {
   FrameHandle handle;
   std::lock_guard<std::mutex> lock(mutex_);
-  if (lockedSlot_ != kNoSlot) {
-    ++misuse_;  // one slot at a time: the caller forgot Release
+  if (lockedCount_ != 0) {
+    ++misuse_;  // one take at a time: the caller forgot a Release
     return handle;
   }
   const std::size_t newest = NewestReadyUntakenLocked();
   if (newest == kNoSlot) return handle;
-
-  // Everything older than the newest frame the consumer gets is superseded: a
-  // ready one is counted as skipped, a filling one as dropped incomplete.
-  // Retiring them, and raising the retire floor to the taken frame, is what
-  // makes the sequence of taken frames strictly increasing.
   const std::uint64_t newestFrame = slots_[newest].frame;
+
+  // Merged frames: when the caller asks, the newest older ready untaken slots (at most kMaxMerged)
+  // are handed over with the newest one, so the consumer's histories see every frame.
+  std::size_t mergedSlots[kMaxMerged];
+  std::size_t mergedCount = 0;
+  auto isMerged = [&](std::size_t index) {
+    for (std::size_t m = 0; m < mergedCount; ++m) {
+      if (mergedSlots[m] == index) return true;
+    }
+    return false;
+  };
+  if (merged != nullptr) {
+    while (mergedCount < kMaxMerged) {
+      std::size_t pick = kNoSlot;
+      for (std::size_t index = 0; index < slots_.size(); ++index) {
+        const Slot& slot = slots_[index];
+        if (index == newest || slot.state != SlotState::kReady || slot.locked ||
+            slot.frame >= newestFrame || isMerged(index)) {
+          continue;
+        }
+        if (pick == kNoSlot || slot.frame > slots_[pick].frame) pick = index;
+      }
+      if (pick == kNoSlot) break;
+      mergedSlots[mergedCount++] = pick;
+    }
+  }
+
+  // Everything else older than the newest frame the consumer gets is superseded: a ready one is
+  // counted as skipped, a filling one as dropped incomplete. Retiring them, and raising the retire
+  // floor to the taken frame, is what makes the sequence of handed-over frames strictly
+  // increasing (merged ones are older than the newest and newer than the previous take).
   for (std::size_t index = 0; index < slots_.size(); ++index) {
-    if (index == newest) continue;
+    if (index == newest || isMerged(index)) continue;
     const Slot& slot = slots_[index];
     if (slot.state == SlotState::kEmpty || slot.locked || slot.frame >= newestFrame) continue;
     RetireLocked(index);
@@ -199,9 +225,15 @@ FrameHandle FrameStore::TakeNewestReady() {
     retiredThrough_ = static_cast<std::int64_t>(newestFrame);
   }
 
-  Slot& slot = slots_[newest];
-  slot.locked = true;
-  lockedSlot_ = newest;
+  std::sort(mergedSlots, mergedSlots + mergedCount,
+            [this](std::size_t a, std::size_t b) { return slots_[a].frame < slots_[b].frame; });
+  for (std::size_t m = 0; m < mergedCount; ++m) {
+    slots_[mergedSlots[m]].locked = true;
+    ++merged_;
+    merged->push_back(FrameHandle(this, mergedSlots[m], BuildViewLocked(mergedSlots[m])));
+  }
+  slots_[newest].locked = true;
+  lockedCount_ = 1 + mergedCount;
   handle = FrameHandle(this, newest, BuildViewLocked(newest));
   return handle;
 }
@@ -214,7 +246,7 @@ void FrameStore::Release(FrameHandle& handle) {
     return;
   }
   const std::size_t index = handle.slot_;
-  if (index != lockedSlot_ || index >= slots_.size() ||
+  if (index >= slots_.size() || !slots_[index].locked ||
       slots_[index].state != SlotState::kReady ||
       slots_[index].frame != handle.view_.frame) {
     ++misuse_;
@@ -222,9 +254,9 @@ void FrameStore::Release(FrameHandle& handle) {
     return;
   }
   slots_[index].locked = false;
-  slots_[index].skipCounted = true;  // consumed, not skipped
+  slots_[index].skipCounted = true;  // consumed (taken or merged), not skipped
   RetireLocked(index);
-  lockedSlot_ = kNoSlot;
+  if (lockedCount_ > 0) --lockedCount_;
   handle.Reset();
 }
 
@@ -234,6 +266,7 @@ CountersSnapshot FrameStore::Counters() const {
   counters.readyComplete = readyComplete_;
   counters.readyDeadline = readyDeadline_;
   counters.skipped = skipped_;
+  counters.merged = merged_;
   counters.droppedIncomplete = droppedIncomplete_;
   for (std::size_t camera = 0; camera < kCameraCount; ++camera) {
     counters.lateImages[camera] = lateImages_[camera];

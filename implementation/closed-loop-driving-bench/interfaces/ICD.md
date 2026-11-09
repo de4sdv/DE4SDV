@@ -279,3 +279,8 @@ No payload changes.
 - **A22, drivingAgent warm-up records (§6).** No payload change.
   - While the agent primes, inferPlan may call the checkpoint engine to warm its camera history cache (agent `DESIGN.md`, "Warm-up while priming"). No plan is produced.
   - drivingAgent logs `warm` {frame, stream, warm, reason, lag_ms, ms} for each decision, and `stop` gains `warmCalls`. No evaluator reads them.
+- **A23, merged frames (§6, §10 C2).** No payload change.
+  - When FEO merges several frame events into one chain, conditionInputs conditions the older ready frames into the planner's histories, oldest first, and plans only the newest (agent `DESIGN.md`, "Merged frames"). Before, they were skipped, and the histories primed again.
+  - C2: the newest frame's step record gains `mergedFrames`, one entry per merged frame: `{frame, conditioned, why, condition_ms, readyByDeadline}`. `why` (`camera_not_valid`, `no_planner`, `refused`) appears only when `conditioned` is false. The list is empty when nothing was merged.
+  - A merged frame has no C2 record of its own; C2 stays one record per step.
+  - `stop` gains `mergedConditioned`, `mergedNotConditioned` and `frameStore.merged`. No evaluator reads them yet.

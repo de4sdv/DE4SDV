@@ -32,6 +32,8 @@ namespace de4sdv::driving::agent {
 // kCameraCount: rig.h
 inline constexpr std::size_t kMaxRingSize = 64;      // ReadySink batch bound
 inline constexpr std::int64_t kDefaultDeadlineNs = 95'000'000;  // 95 ms
+// The most older ready frames one take hands over as merged (DESIGN.md "Merged frames").
+inline constexpr std::size_t kMaxMerged = 4;
 
 // Index order fixed by the brief; names are the world-side rig role names
 // (DESIGN.md "conditionInputs / startup").
@@ -128,8 +130,8 @@ struct FrameView {
 
 class FrameStore;
 
-// A locked slot. Copyable and movable (cheap); only one handle is live at a
-// time because the store admits one Take between Release calls.
+// A locked slot. Copyable and movable (cheap). The store admits one Take until
+// every slot it locked (the newest and its merged slots) is released.
 class FrameHandle {
  public:
   FrameHandle() = default;
@@ -158,6 +160,7 @@ struct CountersSnapshot {
   std::uint64_t readyComplete = 0;
   std::uint64_t readyDeadline = 0;
   std::uint64_t skipped = 0;
+  std::uint64_t merged = 0;   // older ready slots handed over with a newer one
   std::uint64_t droppedIncomplete = 0;
   std::uint64_t lateImages[kCameraCount] = {};
   std::uint64_t overflow = 0;
@@ -175,7 +178,7 @@ struct CountersSnapshot {
   std::size_t inFlightSnapshot = 0;            // filling slots holding a snapshot
   std::size_t inFlightNoSnapshot = 0;          // filling slots holding images only
   std::size_t readyUntaken = 0;                // ready slots not taken and not locked
-  std::size_t locked = 0;                      // 0 or 1
+  std::size_t locked = 0;                      // 0 .. 1 + kMaxMerged
 };
 
 class FrameStore {
@@ -199,13 +202,17 @@ class FrameStore {
   // filling slot whose snapshot deadline has passed ready, returns how many.
   std::size_t PollDeadlines(std::int64_t nowMonoNs);
 
-  // Newest ready, untaken slot; locks it. Older ready untaken slots are
-  // counted as skipped and released. Returns an invalid handle when nothing is
-  // ready, and an invalid handle plus one `misuse` when a slot is still locked.
-  FrameHandle TakeNewestReady();
+  // Newest ready, untaken slot; locks it. With `merged`, the older ready untaken
+  // slots, at most kMaxMerged (the newest of them), are locked too and appended
+  // oldest first: the consumer conditions them into its histories and releases
+  // each. Without `merged`, and beyond the cap, older ready untaken slots are
+  // counted as skipped and released. Older filling slots are dropped as
+  // incomplete. Returns an invalid handle when nothing is ready, and an invalid
+  // handle plus one `misuse` when a slot is still locked.
+  FrameHandle TakeNewestReady(std::vector<FrameHandle>* merged = nullptr);
 
   // Unlocks and frees the slot. Counts `misuse` and ignores the call when the
-  // handle is not the locked one.
+  // handle is not a locked one.
   void Release(FrameHandle& handle);
 
   CountersSnapshot Counters() const;
@@ -268,12 +275,13 @@ class FrameStore {
   std::vector<Slot> slots_;
 
   mutable std::mutex mutex_;
-  std::size_t lockedSlot_ = static_cast<std::size_t>(-1);
+  std::size_t lockedCount_ = 0;     // the newest taken slot plus its merged slots
   std::int64_t retiredThrough_ = -1;  // frames at or below this are gone
 
   std::uint64_t readyComplete_ = 0;
   std::uint64_t readyDeadline_ = 0;
   std::uint64_t skipped_ = 0;
+  std::uint64_t merged_ = 0;
   std::uint64_t droppedIncomplete_ = 0;
   std::uint64_t droppedIncompleteSnapshot_ = 0;
   std::uint64_t lateImages_[kCameraCount] = {};

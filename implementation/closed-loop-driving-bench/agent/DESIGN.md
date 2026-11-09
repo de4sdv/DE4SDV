@@ -27,8 +27,8 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - A ready slot sends one datagram to the pace socket.
 - **Slot ownership:**
   - LibCarla callbacks write only into slots that are not ready.
-  - `conditionInputs` takes the newest ready slot and locks it until `inferPlan` releases it.
-  - Older ready slots are counted as skipped.
+  - `conditionInputs` takes the newest ready slot together with the older ready slots FEO merged into the same chain (at most 4, the newest of them; "Merged frames" below). It locks them until the planner has copied their images, within conditionInputs.
+  - Older ready slots beyond those are counted as skipped; older slots still filling are dropped as incomplete.
 
 ## conditionInputs (input activity)
 
@@ -39,7 +39,7 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - loads the map and route through the navigation library (S3);
   - offers the mw::com `ego_motion_sample` skeleton.
 - **step:**
-  - takes the newest ready slot;
+  - takes the newest ready slot and the frames merged into this chain; conditions the merged frames into the histories first, oldest first, and plans only the newest ("Merged frames" below);
   - computes the capture times from the frame index (`CaptureTimeMicros`; each camera's own image frame number gives its capture time);
   - updates the camera history (per camera, the frame references the checkpoint's history layout needs) and the 64-row ego-motion history;
   - gives the checkpoint the history's yaw rate and curvature as zero (REQ-DRIVING-008 as amended on 2026-11-09, GAP-DRIVING-010; the owner's history-mask decision of 2026-11-09). It is upstream's own closed-loop check (`experiment/closed-loop/replay_driver.py`: `egomotion[:, 2:] = 0`), applied to the raw [speed, acceleration, yaw rate, curvature] rows before `adapt_egomotion_history`. The measured yaw rate still goes into the published ego-motion sample and the C1 world record; C2 records the zeroed copy the checkpoint took, as REQ-DRIVING-008's criterion reads it. CL5 showed the effect: lane kept, clean stop/restart at a light, but straight on at a left-turn junction;
@@ -191,4 +191,30 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - Without the warm-up it reproduces the G4 failure: 5 cold plans, a merged frame, a 67-frame gap.
   - With it every plan is warm and no frame is lost, also under ±4 ms jitter.
   - The engine glue on fake caches. Six mutations of the scheduler and the glue fail the tests.
-- **Not yet shown on the G4.** A merged frame still breaks the ego history; conditioning every merged frame is the next change.
+- **Not yet shown on the G4.** A merged frame no longer breaks the ego history ("Merged frames" below).
+
+## Merged frames (2026-11-09)
+
+- **Why.** The bench's FEO event trigger runs one chain per wake-up, and a backlog of frame events becomes one chain for the newest frame. The frame store used to retire the older ready frames as skipped, so the planner never saw them.
+  - One missing frame breaks the 66-pose ego-motion window, and the camera history of the frames 5, 10, ... 35 frames later.
+  - The agent then primes again for 6.6 s without a plan. While driving, `kPlanStale` latches after 300 ms (REQ-DRIVING-026).
+- **The take.** `TakeNewestReady(&merged)` hands over the newest ready frame and, with it, the older ready frames not yet taken: oldest first, at most `kMaxMerged` = 4 (the newest of them), each locked.
+  - Older ready frames beyond those are skipped as before; older frames still filling are dropped as incomplete.
+  - The frame store's ready identity gains `merged` (`cc/frame_store.md`).
+- **Conditioning.** conditionInputs conditions each merged frame into the planner's histories (`condition(frame, ...)`: camera tiles, pose, ego-motion rows), oldest first, and releases its slot at once.
+  - A merged frame gets no plan, no C2 step record, no `ego_motion_sample` and no rasters. The newest frame is conditioned and planned as before.
+  - A merged frame with a camera that is not valid is left out, and the histories re-prime as after a skipped frame.
+- **Why 4.** While driving, a gap of three frames already latches `kPlanStale`. Four covers every gap the vehicle can drive through, and bounds the extra conditioning to four calls (2.6 ms each, the G4 median). More matters only while priming, when no plan is due.
+- **The camera cache.** A merged frame is not planned, so its phase stream misses one commit, and the plan five frames later on that stream is cold. The warm-up does not cover it, because it runs only while priming. Whether the lag this leaves stays below a frame is for the G4 run to show.
+- **The warm-up scheduler.** Each conditioned frame reports its chain start. Merged frames conditioned one by one, oldest first, leave the same lag as one observation of the newest frame (tested).
+- **Records (ICD A23).**
+  - The newest frame's C2 record gains `mergedFrames` [{frame, conditioned, why, condition_ms, readyByDeadline}], empty when nothing was merged.
+  - `stop` gains `mergedConditioned`, `mergedNotConditioned` and `frameStore.merged`.
+- **Stub stall (integration runs only).** With `stub_stall_ms` and `stub_stall_every` in the planner configuration, the stub engine delays the plan of every frame that is a multiple of `stub_stall_every`, so that FEO merges the frames that arrive meanwhile. The engine record and each stalled plan's record carry the stall.
+- **Tests.**
+  - `cc/tests/frame_store_test.cpp`: three tests of the take. The stress test's consumer takes both ways; merged frames join its ordering and checksum checks. Nine mutations of the take fail the tests.
+  - `python/tests/test_merged_frames.py`: a skipped frame un-primes 66 frames, and a merged frame conditioned without a plan keeps the histories (stub engine); the scheduler equivalence; the stub stall.
+- **On P1 (2026-11-09).** Fake world along the bench route, stub engine. The plan of every 40th frame was stalled by 250 ms (M1) or 350 ms (M2), so FEO merged one or two frames per stall. The same scenario ran before and after the change:
+  - Before: every merge skipped its frames (4 and 8 skipped). The agent primed again and stopped on `kPlanStale` 0.4 s after the first stall: 55 and 51 plans in 325 and 321 steps.
+  - After: 7 and 14 frames merged, all conditioned, none skipped. No step was un-primed after the first plan, and the agent stayed `kDriving` to the end: 253 and 246 plans in 322 and 315 steps.
+  - In M2, the plan after a stall was exactly 300 ms newer than the last one, the `kPlanStale` limit (not exceeded).

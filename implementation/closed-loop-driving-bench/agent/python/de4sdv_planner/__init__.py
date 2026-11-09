@@ -83,6 +83,11 @@ class StubEngine:
     route, map frame) and stub_target_speed_mps in the planner configuration, the plan follows the
     route by pure pursuit at the target speed, so the commander, the actuation adapter's control
     conversion and the vehicle run in closed loop. Every plan is labelled stub-pure-pursuit.
+
+    Stall (integration runs only): with stub_stall_ms and stub_stall_every, the plan of every frame
+    that is a multiple of stub_stall_every takes stub_stall_ms longer, so that FEO merges the frames
+    that arrive meanwhile (DESIGN.md, merged frames). The engine record and each stalled plan's
+    record carry the stall.
     """
 
     name = "stub"
@@ -102,6 +107,14 @@ class StubEngine:
         self.target_mps = float(cfg.get("stub_target_speed_mps", 0.0))
         self.lookahead_m = float(cfg.get("stub_lookahead_m", 6.0))
         self.pose_map: dict[int, tuple[float, float, float]] = {}
+        self.stall = None
+        if "stub_stall_ms" in cfg or "stub_stall_every" in cfg:
+            ms, every = float(cfg.get("stub_stall_ms", -1)), int(cfg.get("stub_stall_every", 0))
+            if not (ms >= 0.0 and every >= 1):
+                raise ValueError("stub_stall_ms >= 0 and stub_stall_every >= 1 are both needed, got %r and %r"
+                                 % (cfg.get("stub_stall_ms"), cfg.get("stub_stall_every")))
+            self.stall = {"ms": ms, "every": every}
+        self.record["stall"] = self.stall
 
     def bind_thread(self) -> dict:
         import threading
@@ -134,12 +147,16 @@ class StubEngine:
     def infer(self, k):
         if k not in self.rows or k not in self.frames_with_images:
             return None
+        rec = {"engine": self.name}
+        if self.stall is not None and k % self.stall["every"] == 0:
+            time.sleep(self.stall["ms"] / 1000.0)
+            rec["stall_ms"] = self.stall["ms"]
         v0 = float(self.rows[k][-1, 0])
         if self.route_xy is None or k not in self.pose_map:
             t = np.arange(1, 65, dtype=np.float32) * 0.1
             samples = np.zeros((64, 5), dtype=np.float32)
             samples[:, 2] = v0 * t
-            return samples, v0, {"engine": self.name}
+            return samples, v0, rec
         kappa = pure_pursuit_curvature(self.route_xy, self.pose_map[k], self.lookahead_m)
         samples = np.zeros((64, 5), dtype=np.float32)
         v, x, y, h = v0, 0.0, 0.0, 0.0
@@ -150,7 +167,7 @@ class StubEngine:
             x += v * math.cos(h) * 0.1
             y += v * math.sin(h) * 0.1
             samples[i] = (a, kappa, x, y, h)
-        return samples, v0, {"engine": self.name, "mode": "stub-pure-pursuit", "curvature": kappa}
+        return samples, v0, {**rec, "mode": "stub-pure-pursuit", "curvature": kappa}
 
 
 def setup(config_json: str) -> str:

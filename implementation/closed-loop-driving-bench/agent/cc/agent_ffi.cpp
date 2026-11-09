@@ -433,6 +433,8 @@ struct Agent {
   std::uint64_t first_frame = 0;
   std::uint64_t steps = 0;
   bool priming_logged = false;
+  std::uint64_t merged_conditioned = 0;      // merged frames in the histories (DESIGN.md, merged frames)
+  std::uint64_t merged_not_conditioned = 0;  // merged frames left out: an input not valid, or no planner
   // inferPlan
   bool stall_logged = false;
   std::uint64_t warm_calls = 0;     // warm-up calls while priming (DESIGN.md)
@@ -550,6 +552,74 @@ const char* CameraStatus(const da::CameraView& cv, const da::CameraSize& size, s
   if (!cv.valid || cv.size == 0 || cv.width != size.width || cv.height != size.height) return "invalid";
   if (da::AgeMs(step_frame, cv.imageFrame) > da::kCameraStaleMs) return "stale";
   return "valid";
+}
+
+// The checkpoint's inputs from one slot: the six images and the hero's pose (no map context).
+void FillConditionIn(const da::FrameView& view, da::PlannerBridge::ConditionIn* in) {
+  in->frame = view.frame;
+  for (std::size_t i = 0; i < da::kCameraCount; ++i) {
+    in->image[i] = view.cameras[i].data;
+    in->image_bytes[i] = view.cameras[i].size;
+    in->width[i] = view.cameras[i].width;
+    in->height[i] = view.cameras[i].height;
+  }
+  // UE local -> world, row-major: GetMatrix's columns are the forward, right and up axes
+  const auto& pose = view.snapshot.pose;
+  double f[3], r[3], u[3];
+  da::CarlaAxes(pose.pitch, pose.yaw, pose.roll, f, r, u);
+  const double m[16] = {f[0], r[0], u[0], pose.x, f[1], r[1], u[1], pose.y,
+                        f[2], r[2], u[2], pose.z, 0.0,  0.0,  0.0,  1.0};
+  for (int i = 0; i < 16; ++i) in->world_from_vehicle[i] = m[i];
+}
+
+// Merged frames (DESIGN.md, merged frames): the older ready frames FEO merged into this chain, oldest
+// first. Each goes into the checkpoint's histories (camera tiles, pose, ego-motion rows) and is released
+// at once; none is planned, gets a C2 step record or an ego_motion_sample. A merged frame with a camera
+// that is not valid is left out, and the histories re-prime as after a skipped frame. Returns the C2
+// "mergedFrames" list; on a planner error every handle is released and the error is returned.
+bool ConditionMerged(Agent& a, std::vector<da::FrameHandle>& merged, std::string* json, std::string* error) {
+  std::ostringstream os;
+  os << "[";
+  bool ok = true;
+  for (std::size_t m = 0; m < merged.size(); ++m) {
+    da::FrameHandle& handle = merged[m];
+    if (!ok) {
+      a.store->Release(handle);
+      continue;
+    }
+    const da::FrameView& view = handle.view();
+    const char* why = nullptr;
+    if (!a.python) why = "no_planner";
+    else if (a.refusal.refused) why = "refused";
+    for (std::size_t i = 0; why == nullptr && i < da::kCameraCount; ++i) {
+      if (std::strcmp(CameraStatus(view.cameras[i], a.sizes[i], view.frame), "valid") != 0) why = "camera_not_valid";
+    }
+    double ms = 0.0;
+    if (why == nullptr) {
+      da::PlannerBridge::ConditionIn in;
+      FillConditionIn(view, &in);
+      da::PlannerBridge::ConditionOut out;
+      const auto t0 = std::chrono::steady_clock::now();
+      if (!a.planner.Condition(in, &out, error)) {
+        *error = "merged frame " + std::to_string(view.frame) + ": " + *error;
+        ok = false;
+        a.store->Release(handle);
+        continue;
+      }
+      ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
+      ++a.merged_conditioned;
+    } else {
+      ++a.merged_not_conditioned;
+    }
+    os << (m ? "," : "") << "{\"frame\":" << view.frame << ",\"conditioned\":" << (why == nullptr ? "true" : "false");
+    if (why != nullptr) os << ",\"why\":\"" << why << "\"";
+    os << ",\"condition_ms\":" << dd::JsonNumber(ms) << ",\"readyByDeadline\":" << (view.readyByDeadline ? "true" : "false")
+       << "}";
+    a.store->Release(handle);
+  }
+  os << "]";
+  *json = os.str();
+  return ok;
 }
 
 // ---------------------------------------------------------------- the engine, before FEO starts
@@ -740,12 +810,14 @@ void de4sdv_agent_fini(void) {
   os << "{\"stage\":\"" << Stage() << "\",\"frames_produced\":" << (g_agent->world ? g_agent->world->produced() : (g_agent->carla ? g_agent->carla->ticks() : 0))
      << ",\"steps\":" << g_agent->steps << ",\"commands\":" << g_agent->commands
      << ",\"warmCalls\":" << g_agent->warm_calls
+     << ",\"mergedConditioned\":" << g_agent->merged_conditioned
+     << ",\"mergedNotConditioned\":" << g_agent->merged_not_conditioned
      << ",\"pace_sent\":" << (g_agent->pace ? g_agent->pace->sent() : 0)
      << ",\"pace_send_failures\":" << (g_agent->pace ? g_agent->pace->failures() : 0);
   if (g_agent->store) {
     const auto c = g_agent->store->Counters();
     os << ",\"frameStore\":{\"readyComplete\":" << c.readyComplete << ",\"readyDeadline\":" << c.readyDeadline
-       << ",\"skipped\":" << c.skipped << ",\"droppedIncomplete\":" << c.droppedIncomplete
+       << ",\"skipped\":" << c.skipped << ",\"merged\":" << c.merged << ",\"droppedIncomplete\":" << c.droppedIncomplete
        << ",\"overflow\":" << c.overflow << ",\"misuse\":" << c.misuse << ",\"lateImages\":[";
     for (std::size_t i = 0; i < da::kCameraCount; ++i) os << (i ? "," : "") << c.lateImages[i];
     os << "]}";
@@ -857,12 +929,26 @@ int32_t de4sdv_condition_step(De4sdvInputsMsg* inputs, De4sdvConditionMsg* condi
   *condition = De4sdvConditionMsg{};
   *ego = De4sdvEgoMsg{};
   auto& a = *g_agent;
-  da::FrameHandle handle = a.store->TakeNewestReady();
+  std::vector<da::FrameHandle> merged;
+  merged.reserve(da::kMaxMerged);
+  da::FrameHandle handle = a.store->TakeNewestReady(&merged);
   if (!handle.valid()) return 1;  // a wake-up without a new frame
   const da::FrameView& view = handle.view();
   const std::uint64_t frame = view.frame;
-  if (a.first_frame == 0) a.first_frame = frame;
+  if (a.first_frame == 0) a.first_frame = merged.empty() ? frame : merged.front().frame();
   ++a.steps;
+
+  // The frames FEO merged into this chain go into the histories first, oldest first (DESIGN.md).
+  std::string merged_json = "[]";
+  {
+    std::string error;
+    if (!ConditionMerged(a, merged, &merged_json, &error)) {
+      Log("error", "{\"what\":\"condition_failed\",\"frame\":" + std::to_string(frame) + ",\"message\":" +
+                       dd::JsonString(error) + "}");
+      a.store->Release(handle);
+      return -1;
+    }
+  }
 
   // REQ-DRIVING-023 to -025: the step's input conditions.
   da::StepConditions sc;
@@ -912,21 +998,7 @@ int32_t de4sdv_condition_step(De4sdvInputsMsg* inputs, De4sdvConditionMsg* condi
   if (a.python && !a.refusal.refused && !judged.Any()) {
     std::string error;
     da::PlannerBridge::ConditionIn in;
-    in.frame = frame;
-    for (std::size_t i = 0; i < da::kCameraCount; ++i) {
-      in.image[i] = view.cameras[i].data;
-      in.image_bytes[i] = view.cameras[i].size;
-      in.width[i] = view.cameras[i].width;
-      in.height[i] = view.cameras[i].height;
-    }
-    {  // UE local -> world, row-major: GetMatrix's columns are the forward, right and up axes
-      const auto& pose = view.snapshot.pose;
-      double f[3], r[3], u[3];
-      da::CarlaAxes(pose.pitch, pose.yaw, pose.roll, f, r, u);
-      const double m[16] = {f[0], r[0], u[0], pose.x, f[1], r[1], u[1], pose.y,
-                            f[2], r[2], u[2], pose.z, 0.0,  0.0,  0.0,  1.0};
-      for (int i = 0; i < 16; ++i) in.world_from_vehicle[i] = m[i];
-    }
+    FillConditionIn(view, &in);
     if (rendered) {
       in.map_context = a.nav->map_context().data();
       in.map_bytes = a.nav->map_context().size() * sizeof(float);
@@ -999,7 +1071,8 @@ int32_t de4sdv_condition_step(De4sdvInputsMsg* inputs, De4sdvConditionMsg* condi
     os << ",\"input_conditions\":{\"bits\":" << judged.bits
        << ",\"causes\":" << CausesJson(judged) << "},\"primed\":" << (primed ? "true" : "false")
        << ",\"conditioned\":" << (conditioned ? "true" : "false") << ",\"condition_ms\":" << dd::JsonNumber(condition_ms)
-       << ",\"frameStore\":{\"readyByDeadline\":" << (view.readyByDeadline ? "true" : "false") << "}";
+       << ",\"frameStore\":{\"readyByDeadline\":" << (view.readyByDeadline ? "true" : "false") << "}"
+       << ",\"mergedFrames\":" << merged_json;
     if (conditioned && !out.record_json.empty()) os << ",\"planner\":" << out.record_json;
     os << "}";
     a.inputs_log->Write("out.checkpoint_inputs", a.inputs_seq.fetch_add(1), os.str());
