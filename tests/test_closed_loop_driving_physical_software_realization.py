@@ -277,6 +277,7 @@ GAPS = {
     "GAP-DRIVING-003": "gapPlannerStackParityUnproven",
     "GAP-DRIVING-006": "gapTypedOperationalStateTopicUnproven",
     "GAP-DRIVING-007": "gapThreeHostBenchUnjoined",
+    "GAP-DRIVING-010": "gapClosedLoopHistoryFeedback",
 }
 #: retired by the amendment of 2026-11-09 on the readiness probes' evidence: the records left the model
 RETIRED = {
@@ -292,6 +293,9 @@ GAP_MENTIONS = {
     "GAP-DRIVING-003": ("PyTorch", "parity", "tolerance", "REQ-DRIVING-035", "ONNX"),
     "GAP-DRIVING-006": ("VSIDL", "GAP-MW-038"),
     "GAP-DRIVING-007": ("GPU", "KVM", "gapBoundedCloudCampaign", "three hosts", "VXLAN"),
+    "GAP-DRIVING-010": ("asmSourceAuthenticity", "owner decision of 2026-11-09", "experiment/closed-loop/RESULTS.md",
+                        "readiness probe", "REQ-DRIVING-008", "yaw rate and curvature as zero",
+                        "Revisit when upstream publishes"),
     "ASM-DRIVING-001": ("event trigger", "newest frame", "Rust", "REQ-DRIVING-013"),
     "ASM-DRIVING-002": ("PyTorch", "rounding", "REQ-DRIVING-033", "tolerance"),
     "ASM-DRIVING-003": ("pacer", "bench network", "synchronous mode"),
@@ -772,7 +776,7 @@ def test_the_records_say_what_each_item_is_and_where_the_vss_typing_is():
     assert semantic_source.endswith("a system state, no vehicle signal"), "what the actuation state is, said where the method reads it"
     assert "REQ-DRIVING-028" in semantic_source and "REQ-DRIVING-029" in actuation
     assert "GAP-DRIVING-005" not in _code(), "retired by the amendment the owner decided on 2026-11-06"
-    assert "curvature" in record("MAP-DRIVING-EGO-MOTION"), "the fourth history input is derived, not a VSS signal"
+    assert "curvature" in record("MAP-DRIVING-EGO-MOTION"), "the fourth history input is given as zero, not a VSS signal"
     assert "Vehicle_ADAS_Driving_Command_Acceleration" in record("MAP-DRIVING-COMMAND")
     assert "REQ-DRIVING-014" in record("MAP-DRIVING-COMMAND")
     assert "VehicleControl" in record("MAP-DRIVING-VEHICLE-CONTROL") and "REQ-DRIVING-028" in record("MAP-DRIVING-VEHICLE-CONTROL")
@@ -802,6 +806,19 @@ def test_the_assumptions_and_gaps_of_the_realization_are_recorded_with_short_nam
         assert short not in code and name not in raw, short
     for name in RENAMED_AWAY:
         assert name not in raw, name
+
+
+def test_the_input_activity_gives_the_checkpoint_yaw_rate_and_curvature_as_zero():
+    # The history-mask decision of 2026-11-09 (GAP-DRIVING-010): no text of the realization may still say the
+    # agent derives the curvature history the checkpoint takes.
+    raw = _raw()
+    for gone in ("derives\n     * the curvature from yaw rate and speed", "derives the curvature from yaw rate and speed",
+                 "yawRate * pi / 180", "curvature = yawRate_rad / speed_mps",
+                 "The curvature history the checkpoint takes is derived", "The\n       * curvature history is derived."):
+        assert gone not in raw, gone
+    assert "gives the checkpoint the history's yaw rate and curvature as zero" in _flat(raw)
+    gap = braced_body(_code(), "part <'GAP-DRIVING-010'>")
+    assert "attribute :>> disposition = LifecycleDisposition::accepted;" in gap, "a known limit the baseline keeps visible"
 
 
 def test_the_package_records_the_pins_the_alternatives_and_what_phase_8_settled():

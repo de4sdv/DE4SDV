@@ -63,8 +63,9 @@ REQUIREMENTS = {
         N1, R, ("route_mask", "route corridor and destination", "autoe2e-bev-450x300-0p4m-v1"),
         (CHECKPOINT_PIN, "RouteChannel")),
     "reqEgoMotionHistory": (
-        N1, R, ("64 motion samples of the vehicle it commands", "100 ms apart", "speed in m/s", "yaw rate in rad/s",
-                "curvature in 1/m"), (CHECKPOINT_PIN, "temporal_contract.py", "egomotion.py")),
+        N1, R, ("64 motion samples of the vehicle it commands", "100 ms apart", "speed in m/s",
+                "longitudinal acceleration in m/s²", "yaw rate and curvature given as 0 rad/s and 0 1/m"),
+        (CHECKPOINT_PIN, "temporal_contract.py", "egomotion.py", "GAP-DRIVING-010", "experiment/closed-loop/RESULTS.md")),
     "reqHoldUntilHistoriesComplete": (N1, F, ("hold the vehicle at standstill until",), ("REQ-DRIVING-004", "6.3 s")),
     "reqHistoriesFromCapturedInputs": (
         N1, R, ("only from images and samples captured in the run",), (CHECKPOINT_PIN, "reactive_e2e.py", "asmSourceAuthenticity")),
@@ -182,6 +183,22 @@ def test_each_statement_holds_one_obligation_in_the_positive_form():
         assert len(re.findall(r"\bshall\b", statement)) == 1, (name, "one obligation per statement")
         assert len(statement.split()) <= 60, (name, len(statement.split()))
         assert not re.search(r"\bshall\s+(command|produce|give|make)\s+no\b", statement), name
+
+
+def test_the_ego_motion_history_gives_yaw_rate_and_curvature_as_zero_under_the_bounded_deviation():
+    # The history-mask decision of 2026-11-09: fed back closed loop, the checkpoint's own yaw history turned its
+    # plans off the lane (upstream's closed-loop results at the pin, and the readiness probe in CARLA). The history
+    # keeps the measured speed and acceleration and gives yaw rate and curvature as zero.
+    requirement = _requirement("reqEgoMotionHistory")
+    criteria = _attribute(requirement, "successCriteria")
+    assert "each within 0.05 m/s and 0.1 m/s² of the speed and acceleration that the simulator reports" in criteria
+    assert "and each with a yaw rate of 0 rad/s and a curvature of 0 1/m" in criteria
+    for gone in ("0.01 rad/s", "0.001 1/m"):
+        assert gone not in criteria, gone
+    assert "GAP-DRIVING-010" in _attribute(requirement, "source")
+    rationale = _attribute(requirement, "rationale")
+    assert "the bounded deviation of asmSourceAuthenticity (owner decision of 2026-11-09)" in rationale
+    assert "This closes the loop: the motion the commands produce is what the next plan is made from." not in rationale
 
 
 def test_a_measured_spread_is_stated_as_a_tolerance_not_as_sameness():

@@ -127,6 +127,11 @@ package DE4SDV_ClosedLoopDrivingFraming {
      * inference source. Actual predictions, commands and observation data
      * are retained. Random weights, synthetic-input speed results, repeated
      * camera histories and CARLA autopilot are not substitutes for that source.
+     * The history carries one bounded deviation (owner decision of
+     * 2026-11-09): the checkpoint gets the ego-motion history with its yaw
+     * rate and curvature as zero, because its own yaw history, fed back in the
+     * closed loop, turned its plans off the lane. GAP-DRIVING-010 records the
+     * deviation and the trigger to revisit it.
      */
   }
   part asmCandidateReuse : IncrementAssumption {
@@ -157,8 +162,10 @@ package DE4SDV_ClosedLoopDrivingFraming {
     doc /*
      * A CARLA adapter is not yet realized. Camera calibration, coordinate
      * frames, image and ego-motion history, time alignment and history priming
-     * must match the selected checkpoint. Output acceleration/curvature
-     * samples are not already CARLA steering commands or world waypoints.
+     * must match the selected checkpoint; the ego-motion history is read
+     * through the bounded deviation of asmSourceAuthenticity. Output
+     * acceleration/curvature samples are not already CARLA steering commands
+     * or world waypoints.
      * Control conversion and feedback need verification. CARLA imagery
      * introduces domain shift; interface compatibility alone cannot establish
      * useful driving, stability or collision outcomes.

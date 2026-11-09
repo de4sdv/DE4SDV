@@ -246,9 +246,9 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * commander (an FEO topic) and for the state publisher (an mw::com
      * event). The four vehicle signals are typed by COVESA VSS (decision 5);
      * the capture time is the simulation time of the measurement
-     * (REQ-DRIVING-030). The curvature history the checkpoint takes is derived
-     * inside the agent from the yaw rate and the speed and is no vehicle
-     * signal (MAP-DRIVING-EGO-MOTION).
+     * (REQ-DRIVING-030). The checkpoint takes the history's yaw rate and
+     * curvature as zero (REQ-DRIVING-008, GAP-DRIVING-010); the curvature is
+     * no vehicle signal (MAP-DRIVING-EGO-MOTION).
      */
     attribute speed : Vehicle_Speed;
     attribute longitudinalAcceleration : Vehicle_Acceleration_Longitudinal;
@@ -412,9 +412,10 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * (REQ-DRIVING-030), computed from the frame index at 100 ms per step
      * rather than read from the simulator's floating-point stamp (a bench
      * rule of 2026-11-09), keeps the camera and
-     * ego-motion histories of the run (REQ-DRIVING-004, -008, -010), derives
-     * the curvature from yaw rate and speed, rasterizes the route mask and
-     * the map context (REQ-DRIVING-006, -007) and writes the checkpoint
+     * ego-motion histories of the run (REQ-DRIVING-004, -008, -010), gives
+     * the checkpoint the history's yaw rate and curvature as zero
+     * (GAP-DRIVING-010), rasterizes the route mask and the map context
+     * (REQ-DRIVING-006, -007) and writes the checkpoint
      * inputs and the input condition to their FEO topics. It publishes the
      * typed ego-motion sample for the vehicle commander and, as an mw::com
      * event, for the state publisher. On the bench the client is the
@@ -1013,15 +1014,16 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * publisher take. The owning allocation targets the typed port; its
        * item EgoMotionSamplePayload types speed, longitudinal and lateral
        * acceleration and yaw rate with COVESA VSS (decision 5). The
-       * curvature history is derived.
+       * checkpoint takes the history's yaw rate and curvature as zero
+       * (GAP-DRIVING-010).
        */
       attribute :>> semanticSource = "the motion state of the ego vehicle as the simulator reports it (velocity and acceleration vectors, angular velocity) and, out, the sample typed by COVESA VSS at the port: Vehicle_Speed [km/h], Vehicle_Acceleration_Longitudinal and _Lateral [m/s^2], Vehicle_AngularVelocity_Yaw [deg/s]";
       attribute :>> softwareContractArtifact = "in: the simulator client library's actor state of the ego vehicle, candidate; out: the agent's FEO topic for the vehicle commander and the mw::com event for the state publisher (the layer's mw::com configuration, phase 10), candidate";
       attribute :>> softwareContractMessage = "in: velocity, acceleration and angular velocity of the ego vehicle per world snapshot, candidate; out: EgoMotionSamplePayload with its capture time, candidate";
       attribute :>> softwareContractField = "in: velocity.x/y, acceleration.x/y, angular_velocity.z, snapshot timestamp, exact per the client library; out: speed, longitudinalAcceleration, lateralAcceleration, yawRate, captureTime, exact";
-      attribute :>> dataTypeAndUnit = "in: float32 m/s, m/s^2, deg/s, simulation seconds; out: speed : Vehicle_Speed km/h, accelerations : Vehicle_Acceleration_* m/s^2, yawRate : Vehicle_AngularVelocity_Yaw deg/s, captureTime simulation seconds; inside the agent the checkpoint takes speed in m/s, yaw rate in rad/s and the curvature in 1/m";
+      attribute :>> dataTypeAndUnit = "in: float32 m/s, m/s^2, deg/s, simulation seconds; out: speed : Vehicle_Speed km/h, accelerations : Vehicle_Acceleration_* m/s^2, yawRate : Vehicle_AngularVelocity_Yaw deg/s, captureTime simulation seconds; inside the agent the checkpoint takes speed in m/s, and yaw rate and curvature as zero (GAP-DRIVING-010)";
       attribute :>> timingQualityAndState = "one sample per 100 ms step, marked with its capture time (REQ-DRIVING-030); the sample history of the run has no record twice (REQ-DRIVING-010); a missing or implausible sample sets the input condition (REQ-DRIVING-024); the publisher receives the same sample within 100 ms of wall-clock time (REQ-DRIVING-016)";
-      attribute :>> transformationRule = "speed = |velocity| * 3.6 as the VSS km/h value; the checkpoint input takes speed / 3.6, yawRate * pi / 180 and curvature = yawRate_rad / speed_mps (0 below a configured minimum speed), as the pinned source revision defines its ego-motion history";
+      attribute :>> transformationRule = "speed = |velocity| * 3.6 as the VSS km/h value; the checkpoint input takes speed / 3.6 and the longitudinal acceleration, with yaw rate and curvature 0 (GAP-DRIVING-010), in the layout of the pinned source revision's ego-motion history";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10: author the mw::com configuration of the sample event and run REQ-DRIVING-008, -010, -016 and -024 on recorded samples, with the unit conversions checked against the Python reference";
@@ -1391,6 +1393,27 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * campaign keeps them. Nothing here launches compute.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
+  }
+  part <'GAP-DRIVING-010'> gapClosedLoopHistoryFeedback : IncrementGap {
+    doc /*
+     * Open, and accepted as a known limit: the bounded deviation of
+     * asmSourceAuthenticity (owner decision of 2026-11-09). Fed its own yaw
+     * rate and curvature history in the closed loop, the pinned checkpoint
+     * turns its plans away from the lane within seconds. Upstream's
+     * closed-loop results at the pinned commit
+     * (experiment/closed-loop/RESULTS.md) trace this to the ego-motion
+     * feedback, and the readiness probe in CARLA showed it too: the vehicle
+     * left the road or the route 13 to 33 s after the hand-over in four
+     * runs. So the input activity gives the checkpoint the ego-motion history
+     * with yaw rate and curvature as zero (REQ-DRIVING-008). In the readiness
+     * probe the vehicle then kept its lane and stopped and restarted at a
+     * traffic light, but drove straight on at a junction where the route
+     * turned. The plans are therefore not what the checkpoint makes on the
+     * full history it was trained with, and the route does not yet steer the
+     * vehicle at junctions. Revisit when upstream publishes a checkpoint or a
+     * driver without this feedback.
+     */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
 
 

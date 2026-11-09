@@ -190,16 +190,17 @@
     <tspan x="492" dy="20">checkpoint, for each step, the last 64</tspan>
     <tspan x="492" dy="20">motion samples of the vehicle it commands,</tspan>
     <tspan x="492" dy="20">100 ms apart and ending at the step, each</tspan>
-    <tspan x="492" dy="20">holding speed in m/s, longitudinal</tspan>
-    <tspan x="492" dy="20">acceleration in m/s², yaw rate in rad/s</tspan>
-    <tspan x="492" dy="20">and curvature in 1/m.</tspan>
+    <tspan x="492" dy="20">with its speed in m/s and longitudinal</tspan>
+    <tspan x="492" dy="20">acceleration in m/s², and with yaw rate</tspan>
+    <tspan x="492" dy="20">and curvature given as 0 rad/s and 0 1/m.</tspan>
   </text>
   <rect x="840" y="974" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
   <text x="852" y="998" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">NEED-DRIVING-001; gap</tspan>
     <tspan x="852" dy="20">gapModelInputAndFeedback (ego-motion</tspan>
     <tspan x="852" dy="20">history, time alignment); assumption</tspan>
-    <tspan x="852" dy="20">asmSourceAuthenticity</tspan>
+    <tspan x="852" dy="20">asmSourceAuthenticity; gap GAP-DRIVING-010</tspan>
+    <tspan x="852" dy="20">(its bounded deviation)</tspan>
   </text>
   <rect x="0" y="1134" width="144" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="1158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
