@@ -1,0 +1,68 @@
+# DE4SDV INC-DRIVING-001 slice 10b, S1: the operational-state publisher.
+#
+# Built on the FEO workspace (/opt/src/feo, Bazel 8.3.0, S-CORE gcc 12.2.0,
+# --config=x86_64-linux) by the bench orchestrator. It is NOT buildable on the
+# development machine: no S-CORE, no Bazel, no mw::com headers. The logic
+# library and its tests are built and run with plain g++ instead
+# (tests/run_tests.sh, see README.md).
+#
+# The one label that depends on how the workspace is assembled is
+# DE4SDV_HEADERS: a cc_library over interfaces/include that strips the include
+# prefix, so that #include "de4sdv/driving/payloads.h" and ".../run_log.h"
+# resolve. In this repository that is
+#   implementation/closed-loop-driving-bench/interfaces/include/de4sdv/driving/
+# If the orchestrator copies the headers in under another label, only this
+# constant changes.
+#
+# mw_com_config_state_publisher.json is the process's runtime configuration
+# (--mw-com-config); it is an input of the Launch Manager, not of the build.
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+DE4SDV_HEADERS = "//interfaces:driving_headers"
+
+COMMON_COPTS = [
+    "-std=c++17",
+    "-Wall",
+    "-Wextra",
+    "-Werror",
+]
+
+exports_files(["mw_com_config_state_publisher.json"])
+
+cc_library(
+    name = "publisher_core",
+    srcs = ["publisher_core.cpp"],
+    hdrs = ["publisher_core.h"],
+    copts = COMMON_COPTS,
+    deps = [DE4SDV_HEADERS],
+)
+
+cc_binary(
+    name = "state_publisher",
+    srcs = ["state_publisher_main.cpp"],
+    copts = COMMON_COPTS,
+    deps = [
+        ":publisher_core",
+        DE4SDV_HEADERS,
+        # The gateway's sample type: gatewayd's null serializer copies .size
+        # bytes onto the wire unread (the P4/P5 layout).
+        "//score/serializer:pre_serialized_data",
+        "@score_communication//score/mw/com",
+    ],
+)
+
+# The same test binary tests/run_tests.sh builds with g++, kept runnable in the
+# FEO workspace too.
+cc_test(
+    name = "publisher_core_test",
+    srcs = ["tests/test_publisher_core.cpp"],
+    copts = COMMON_COPTS,
+    deps = [
+        ":publisher_core",
+        DE4SDV_HEADERS,
+    ],
+)
