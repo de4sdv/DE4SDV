@@ -316,9 +316,9 @@ def check_camera_run(run: runio.Run, identity: str) -> None:
               "camera run: the condition word names kCameraMissing")
     result = evaluate(run, cases.vc023)
     check(result["outcome"] == cases.INCONCL,
-          f"camera run: vc023 stays inconclusive without C2 metadata, got {result['outcome']}")
-    check("checkpointInputs" in str(result.get("missing", "")),
-          f"camera run: vc023 names the missing C2 record, got {result.get('missing')!r}")
+          f"camera run: vc023 stays inconclusive without C2 metadata or priming.complete, got {result['outcome']}")
+    check(any(name in str(result.get("missing", "")) for name in ("checkpointInputs", "priming.complete")),
+          f"camera run: vc023 names a missing C2 or priming.complete record, got {result.get('missing')!r}")
 
 
 def evaluate(run: runio.Run, fn):
