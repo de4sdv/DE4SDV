@@ -197,7 +197,9 @@ void TestTrackingOfConstantAcceleration() {
   }
 }
 
-void TestWatchdogFiresAtExactly200ms() {
+// REQ-DRIVING-028: with a command every 100 ms, two missed commands mean the path has stopped. The stop
+// begins at the first tick more than 200 ms of simulation time after the last actuation: the third.
+void TestWatchdogFiresOnlyAfterMoreThan200ms() {
   Bench bench(MakeTestConfig());
   bench.car.speed_mps = 10.0;
   for (int step = 0; step < 10; ++step) bench.StepWithCommand(0.0, 3.0);
@@ -207,16 +209,42 @@ void TestWatchdogFiresAtExactly200ms() {
   CHECK(!at_100ms.stopBegan);
   CHECK_NEAR(at_100ms.actuationTime, 1.0, 1e-9);
 
-  const ActuationOutput at_200ms = bench.StepNoCommand();  // frame 11
-  CHECK(at_200ms.stopBegan);
-  CHECK(at_200ms.hasState);
-  CHECK(at_200ms.state.stopInForce == 1);
-  CHECK(at_200ms.state.cause == Cause::kCommandTimeout);
-  CHECK_NEAR(at_200ms.actuationTime, 1.1, 1e-9);
-  CHECK_NEAR(at_200ms.state.stopSince, 1.1, 1e-9);
-  CHECK_NEAR(at_200ms.state.steeringAngle, 3.0, 1e-5);
-  CHECK_NEAR(at_200ms.state.acceleration, -4.0, 1e-5);
+  const ActuationOutput at_200ms = bench.StepNoCommand();  // frame 11: exactly 200 ms, no stop yet
+  CHECK(!at_200ms.stopBegan);
+  CHECK(!bench.adapter.StopLatched());
+
+  const ActuationOutput at_300ms = bench.StepNoCommand();  // frame 12: two commands missed
+  CHECK(at_300ms.stopBegan);
+  CHECK(at_300ms.hasState);
+  CHECK(at_300ms.state.stopInForce == 1);
+  CHECK(at_300ms.state.cause == Cause::kCommandTimeout);
+  CHECK_NEAR(at_300ms.actuationTime, 1.2, 1e-9);
+  CHECK_NEAR(at_300ms.state.stopSince, 1.2, 1e-9);
+  CHECK_NEAR(at_300ms.state.steeringAngle, 3.0, 1e-5);
+  CHECK_NEAR(at_300ms.state.acceleration, -4.0, 1e-5);
   CHECK(bench.adapter.StopLatched());
+}
+
+// The simulator-host run: a command arrives about one period after its frame's tick, so one of them
+// can land just after the next tick. In simulation time that is the same as one missed command: the
+// tick before it sees exactly 200 ms. Neither may begin the stop; the vehicle drives on.
+void TestOneLateOrMissedCommandDoesNotStop() {
+  Bench bench(MakeTestConfig());
+  bench.car.speed_mps = 10.0;
+  for (int step = 0; step < 10; ++step) bench.StepWithCommand(0.0, 3.0);  // actuations 0.0 .. 0.9
+  const ActuationOutput gap = bench.StepNoCommand();  // frame 10: its command is late (or lost)
+  CHECK(!gap.stopBegan);
+  const ActuationOutput late = bench.StepWithCommand(0.0, 3.0);  // tick 11 (200 ms), then the command
+  CHECK(late.appliedCommand);
+  CHECK(late.reject == RejectReason::kNone);
+  CHECK_NEAR(late.actuationTime, 1.1, 1e-9);
+  CHECK(!bench.adapter.StopLatched());
+  for (int step = 0; step < 5; ++step) {
+    const ActuationOutput out = bench.StepWithCommand(0.0, 3.0);  // back on the frame grid
+    CHECK(out.appliedCommand);
+  }
+  CHECK(!bench.adapter.StopLatched());
+  CHECK(bench.adapter.StopCause() == Cause::kNone);
 }
 
 void TestACommandAtTheBoundaryPreventsTheStop() {
@@ -249,8 +277,10 @@ void TestInvalidCommandsDoNotFeedTheWatchdog() {
   CHECK(rejected.reject == RejectReason::kNonFinite);  // does not refresh last actuation
 
   const ActuationOutput at_200ms = bench.StepNoCommand();  // frame 11
-  CHECK(at_200ms.stopBegan);
-  CHECK(at_200ms.state.cause == Cause::kCommandTimeout);
+  CHECK(!at_200ms.stopBegan);
+  const ActuationOutput at_300ms = bench.StepNoCommand();  // frame 12
+  CHECK(at_300ms.stopBegan);
+  CHECK(at_300ms.state.cause == Cause::kCommandTimeout);
 }
 
 void TestStopToStandstillAndHold() {
@@ -264,7 +294,7 @@ void TestStopToStandstillAndHold() {
     stop = bench.StepNoCommand();
   } while (!stop.stopBegan && ++guard < 10);
   CHECK(stop.stopBegan);
-  CHECK_NEAR(stop.actuationTime, 0.7, 1e-9);
+  CHECK_NEAR(stop.actuationTime, 0.8, 1e-9);  // last actuation 0.5; more than 200 ms at 0.8
   CHECK_NEAR(stop.state.steeringAngle, 12.0, 1e-5);
   CHECK_NEAR(stop.state.acceleration, -4.0, 1e-5);
   CHECK_NEAR(stop.control.steer, -12.0 / 35.0, 1e-6);
@@ -440,15 +470,17 @@ void TestStopSinceMonoIsTheMonotonicStopBeginTime() {
 
   const ActuationOutput at_100ms = bench.StepNoCommand();  // frame 10
   CHECK(!at_100ms.stopBegan);
+  const ActuationOutput at_200ms = bench.StepNoCommand();  // frame 11
+  CHECK(!at_200ms.stopBegan);
 
   const double tick_monotonic = bench.monotonic;
-  const ActuationOutput at_200ms = bench.StepNoCommand();  // frame 11
-  CHECK(at_200ms.stopBegan);
-  CHECK(at_200ms.hasState);
-  CHECK(at_200ms.state.stopInForce == 1);
-  CHECK(at_200ms.state.stopSinceMono > 0.0);
-  CHECK_NEAR(at_200ms.state.stopSinceMono, tick_monotonic, 1e-12);
-  CHECK_NEAR(at_200ms.state.stopSince, CaptureTimeSeconds(at_200ms.frameIndex), 1e-9);
+  const ActuationOutput at_300ms = bench.StepNoCommand();  // frame 12
+  CHECK(at_300ms.stopBegan);
+  CHECK(at_300ms.hasState);
+  CHECK(at_300ms.state.stopInForce == 1);
+  CHECK(at_300ms.state.stopSinceMono > 0.0);
+  CHECK_NEAR(at_300ms.state.stopSinceMono, tick_monotonic, 1e-12);
+  CHECK_NEAR(at_300ms.state.stopSince, CaptureTimeSeconds(at_300ms.frameIndex), 1e-9);
   CHECK_NEAR(bench.adapter.StopSinceMonoSeconds(), tick_monotonic, 1e-12);
   CHECK(bench.adapter.StopCause() == Cause::kCommandTimeout);
 
@@ -774,7 +806,8 @@ int main(int argc, char** argv) {
   std::printf("ADAPTER_CORE_TESTS config=%s\n", config_path.c_str());
 
   TestTrackingOfConstantAcceleration();
-  TestWatchdogFiresAtExactly200ms();
+  TestWatchdogFiresOnlyAfterMoreThan200ms();
+  TestOneLateOrMissedCommandDoesNotStop();
   TestACommandAtTheBoundaryPreventsTheStop();
   TestInvalidCommandsDoNotFeedTheWatchdog();
   TestStopToStandstillAndHold();

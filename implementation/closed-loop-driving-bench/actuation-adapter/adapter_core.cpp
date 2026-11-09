@@ -7,7 +7,10 @@
 namespace de4sdv::driving::actuation {
 namespace {
 
-// REQ-DRIVING-028: 200 ms of simulation time, two 100 ms steps.
+// REQ-DRIVING-028: the stop begins once more than 200 ms of simulation time have passed since the last
+// actuation, at the third tick. A command arrives about one period after its frame's tick, so one late
+// command sees exactly 200 ms at the tick before it, as one missed command does; the requirement stops
+// on two missed commands.
 constexpr std::int64_t kWatchdogMicros = 200000;
 // REQ-DRIVING-028 validity: -5 ms <= age <= 300 ms at arrival (ICD v2 §4).
 constexpr double kMaxCommandAgeSeconds = 0.300;
@@ -226,7 +229,7 @@ ActuationOutput ActuationAdapter::OnWorldTick(const WorldTick& tick) {
   }
 
   if (have_current_command_) {
-    if (tick_micros - last_actuation_micros_ >= kWatchdogMicros) {
+    if (tick_micros - last_actuation_micros_ > kWatchdogMicros) {
       BeginStopLocked(tick_micros, tick.monotonicSeconds, &out);
       return out;
     }

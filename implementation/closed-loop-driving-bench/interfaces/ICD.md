@@ -132,7 +132,7 @@ There are three clocks. Every time field in a record names its clock by a suffix
   - At standstill (speed < 0.1 km/h), the vehicle is held until the run ends. The stop latches for the run.
 - **Adapter:**
   - Before the first valid command, it holds the brake, without latching a stop.
-  - After that, 200 ms of simulation time without a valid applied command starts its own stop (`kCommandTimeout`), from the actuation time of the last valid one.
+  - After that, more than 200 ms of simulation time without a valid applied command starts its own stop (`kCommandTimeout`), from the actuation time of the last valid one (A24).
   - It publishes the stop with `stopInForce = 1` and `stopSinceMono`.
 - **Valid command:**
   - finite values within the limits of §5;
@@ -284,3 +284,8 @@ No payload changes.
   - C2: the newest frame's step record gains `mergedFrames`, one entry per merged frame: `{frame, conditioned, why, condition_ms, readyByDeadline}`. `why` (`camera_not_valid`, `no_planner`, `refused`) appears only when `conditioned` is false. The list is empty when nothing was merged.
   - A merged frame has no C2 record of its own; C2 stays one record per step.
   - `stop` gains `mergedConditioned`, `mergedNotConditioned` and `frameStore.merged`. No evaluator reads them yet.
+- **A24, adapter command timeout (§4).** No payload change.
+  - The adapter's stop begins once *more than* 200 ms of simulation time have passed since the actuation time of the last valid command: at the third tick after it, not the second.
+  - A command arrives about one period after its frame's tick. One late command, arriving just after the next tick, therefore sees exactly 200 ms at the tick before it, as one missed command does. REQ-DRIVING-028 stops on two missed commands.
+  - On the simulator host the earlier rule (200 ms or more) stopped the vehicle about 2 s into a run in which no command was missing.
+  - After a lost command path, the stop reaches the actuation 300 ms of simulation time after the last applied command, the limit VC-DRIVING-028 checks.

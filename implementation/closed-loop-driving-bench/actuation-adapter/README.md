@@ -61,11 +61,18 @@ is held and applied at the first tick (its actuation time is that tick). A
 command that arrives after the stop is latched is rejected with `stop_latched`.
 
 **Watchdog.** On every world tick, if a command is in force and
-`tickMicros − lastActuationMicros >= 200000`, the adapter starts its stop. The
-comparison is in integer microseconds, so the stop begins at exactly the second
-tick after the last actuation (200 ms) and not at the first (100 ms). A valid
-command applied at that tick wins over the watchdog. The stop latches: later
-commands are rejected, and the latch never clears within the run.
+`tickMicros − lastActuationMicros > 200000`, the adapter starts its stop. The
+comparison is in integer microseconds, so the stop begins at the third tick
+after the last actuation (300 ms), not at the second (200 ms): with a command
+every 100 ms, two missed commands mean the path has stopped (REQ-DRIVING-028).
+A command arrives about one period after its frame's tick, so one late command
+sees exactly 200 ms at the tick before it, as one missed command does; neither
+starts the stop. On the simulator host the earlier `>= 200000` stopped the
+vehicle about 2 s into a run in which no command was missing: one command
+arrived 2 ms after the next tick. The stop then reaches the actuation 300 ms of
+simulation time after the last applied command, REQ-DRIVING-028's limit. The
+stop latches: later commands are rejected, and the latch never clears within
+the run.
 
 **The stop.** `acceleration = −min(4, max_deceleration)`: −4 m/s² on the
 placeholder vehicle, −3 on a vehicle configured to brake at most 3 m/s², so the
@@ -242,18 +249,19 @@ TRACKING target=+0.00 m/s^2 mean_accel=-0.0010 error=-0.0010 m/s^2 ...
 TRACKING target=-2.00 m/s^2 mean_accel=-1.9882 error=+0.0118 m/s^2 ...
 STOP mean_decel=-3.9604 m/s^2 duration=5.10 s states=1
 STOP_CLAMPED mean_decel=-2.9656 m/s^2 duration=6.80 s min=-3.5325
-ADAPTER_CORE_TESTS PASS: 562 checks, 0 failures
+ADAPTER_CORE_TESTS PASS: 578 checks, 0 failures
 
 $ python3 tests/fit_calibration_test.py
 FIT_TABLE rows=23 mean_abs_reproduction_error=0.120 m/s^2 max=0.500 m/s^2
 FIT_CALIBRATION_TESTS PASS: 76 checks, 0 failures
 ```
 
-The same test binary built with `-fsanitize=address,undefined` passes 562/562
+The same test binary built with `-fsanitize=address,undefined` passes 578/578
 with no sanitizer report.
 
-Covered: constant-acceleration tracking (above), watchdog at exactly 200 ms and
-not at 100 ms, a command at the boundary preventing the stop, an invalid command
+Covered: constant-acceleration tracking (above), the watchdog at 300 ms and not
+at 100 or 200 ms, one late or missed command not stopping the vehicle (the
+simulator-host case), a command at the boundary preventing the stop, an invalid command
 not refreshing the watchdog, stop to standstill at ≈4 m/s² with held steering,
 standstill hold to the end, latching with rejection afterwards, the validity
 window at both edges (−5 ms and 300 ms; `future_production_time` below it),
