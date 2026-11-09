@@ -357,6 +357,22 @@ def test_warmup_follows_the_route_in_carla_coordinates(tmp_path, profile):
     assert ("set_random_device_seed", 7) in tm.calls
 
 
+def test_warmup_path_lies_at_the_spawn_height(tmp_path, profile):
+    """The Traffic Manager's path is at the height of the spawn point; the route's heading went into
+    z instead, up to 3.14 m off the road."""
+    route = write_route(tmp_path / "route.json", start=(0.0, 3.0, 1.0), count=4, step_m=5.0)
+    clock = FakeClock()
+    client = a_client(clock)
+    client.world.map.spawn_transforms[0] = carla.Transform(
+        carla.Location(0.0, -3.0, 0.6), carla.Rotation(0.0, 0.0, 0.0))
+    code, _ = run_tool(route, profile, tmp_path / "run", client, clock, warmup=1.0, run_s=0.3)
+    assert code == 0
+    tm = client.traffic_managers[8000]
+    assert [(round(p.x, 6), round(p.y, 6)) for p in tm.path] == [
+        (0.0, -3.0), (5.0, -3.0), (10.0, -3.0), (15.0, -3.0)]
+    assert [p.z for p in tm.path] == [0.6] * 4
+
+
 def test_no_warmup_leaves_the_adapter_in_control_from_the_first_tick(tmp_path, route,
                                                                     profile):
     clock = FakeClock()

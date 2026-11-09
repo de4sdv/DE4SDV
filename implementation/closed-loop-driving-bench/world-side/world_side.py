@@ -168,8 +168,8 @@ class Route:
         x, y, heading, _ = self.waypoints[0]
         return x, y, heading
 
-    def carla_points(self, z: float = 0.0) -> list[tuple[float, float, float]]:
-        """Waypoints as CARLA world points (x, y, yaw_rad), for the Traffic Manager."""
+    def carla_points(self) -> list[tuple[float, float, float]]:
+        """Waypoints as CARLA world points (x, y, yaw_rad)."""
         out = []
         for x, y, heading, _ in self.waypoints:
             cx, cy = map_to_carla_xy(x, y)
@@ -662,8 +662,9 @@ class WorldSide:
         """Hand the hero to the Traffic Manager until F_h (R6)."""
         if self.args.warmup_s <= 0:
             return
-        points = self.route.carla_points(z=float(self.spawn_transform.location.z))
-        path = [self.carla.Location(x=x, y=y, z=z) for x, y, z in points]
+        # The path lies at the spawn point's height; the points' third value is their heading.
+        z0 = float(self.spawn_transform.location.z)
+        path = [self.carla.Location(x=x, y=y, z=z0) for x, y, _yaw in self.route.carla_points()]
         self.hero.set_autopilot(True, int(self.args.tm_port))
         self.autopilot = True
         try:
