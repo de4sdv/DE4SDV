@@ -58,10 +58,13 @@ def test_phase_zero_keeps_risks_and_nonclaims_visible():
     code = strip_comments(raw)
     expected = {
         "asmEngineeringUse": ("IncrementAssumption", ("System 1", "System 2", "not production-ready")),
-        "asmSourceAuthenticity": ("IncrementAssumption", ("pinned checkpoint", "synthetic-input", "not substitutes")),
+        "asmSourceAuthenticity": ("IncrementAssumption", ("pinned checkpoint", "synthetic-input", "not substitutes",
+                                                          "one bounded deviation (owner decision of 2026-11-09)",
+                                                          "GAP-DRIVING-010 records the deviation")),
         "asmCandidateReuse": ("IncrementAssumption", ("reuse candidate", "not trajectory", "not safety")),
         "gapClosedLoopPerformance": ("IncrementGap", ("20 fresh", "24 fps", "inference cadence", "real-time factor", "input-to-actuation age", "unmeasured")),
-        "gapModelInputAndFeedback": ("IncrementGap", ("calibration", "history", "acceleration/curvature", "domain shift")),
+        "gapModelInputAndFeedback": ("IncrementGap", ("calibration", "history", "acceleration/curvature", "domain shift",
+                                                      "read through the bounded deviation of asmSourceAuthenticity")),
         "gapTransportAndControl": ("IncrementGap", ("S-CORE", "AAOS", "existing AEBS", "control")),
         "gapProductLineAdmission": ("IncrementGap", ("ADR 0014", "Phase 3", "Phase 9")),
         "gapAdoptionAndRights": ("IncrementGap", ("maintainers", "checkpoint", "before deep adoption")),

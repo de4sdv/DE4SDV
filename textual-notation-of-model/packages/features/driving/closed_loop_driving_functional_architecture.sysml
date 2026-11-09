@@ -481,10 +481,11 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
     doc /*
      * One sample of the vehicle's own motion: its speed, its longitudinal
      * and lateral acceleration and its yaw rate, as ISQ quantities, with its
-     * sample time in simulation time (REQ-DRIVING-030). The curvature the
-     * checkpoint takes in its history (REQ-DRIVING-008) is no sampled
-     * quantity: the driving system derives it from the yaw rate and the
-     * speed by the rule of the checkpoint's data.
+     * sample time in simulation time (REQ-DRIVING-030). The curvature of the
+     * checkpoint's history (REQ-DRIVING-008) is no sampled quantity: the
+     * checkpoint's data derive it from the yaw rate and the speed. Under the
+     * bounded deviation of asmSourceAuthenticity, the driving system gives
+     * the checkpoint yaw rate and curvature as zero.
      */
     attribute speed : ISQ::SpeedValue;
     attribute longitudinalAcceleration : ISQ::AccelerationValue;

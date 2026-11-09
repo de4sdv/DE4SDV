@@ -423,11 +423,11 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
     doc /*
      * Test of REQ-DRIVING-008. collectData records the ego-motion history
      * given to the checkpoint for every plan of a run of SC-DRIVING-001 and
-     * the speed, acceleration, yaw rate and curvature the simulator reports
-     * for the commanded vehicle at each sample time. processData checks 64
-     * samples 100 ms apart by their sample times with the newest at the
-     * step, and compares each with the simulator's values within 0.05 m/s,
-     * 0.1 m/s², 0.01 rad/s and 0.001 1/m.
+     * the speed and acceleration the simulator reports for the commanded
+     * vehicle at each sample time. processData checks 64 samples 100 ms
+     * apart by their sample times with the newest at the step, compares
+     * speed and acceleration with the simulator's values within 0.05 m/s and
+     * 0.1 m/s², and checks that yaw rate and curvature are 0.
      */
     subject verifiedBench : ClosedLoopDrivingVerificationBench;
     objective egoMotionHistoryObjective {

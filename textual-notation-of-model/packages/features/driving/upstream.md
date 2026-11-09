@@ -23,6 +23,12 @@ Phase 5 inspected surfaces, for the requirements derived from the needs:
 - [Ego-motion history](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/Model/data_parsing/kit_scenes/egomotion.py).
 - [Control contract of the plan](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/Tools/trajectory_visualization/kinematics.py).
 
+Inspected for the history amendment of 2026-11-09, on the ego-motion history the
+checkpoint takes in the closed loop:
+
+- [Closed-loop results](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/experiment/closed-loop/RESULTS.md).
+- [Closed-loop replay check](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/experiment/closed-loop/replay_driver.py).
+
 The speed benchmark and released-checkpoint driver do not establish the same
 configuration or timed scope. The existing simulator integration is AlpaSim;
 a CARLA adapter and target-hardware evidence remain new work.
@@ -62,6 +68,14 @@ DE4SDV's kernel changes, which alter rounding only. They are DE4SDV changes
 over the pinned revision, not an upstream release, and not offered upstream:
 that, too, waits for the owner's word.
 
+The input activity gives the checkpoint the ego-motion history with yaw rate
+and curvature as zero (owner decision of 2026-11-09, GAP-DRIVING-010).
+Upstream's closed-loop results at the pin trace the checkpoint's divergence to
+its own yaw history, fed back in the closed loop, and name zeroing those two
+columns as a check without retraining. DE4SDV adopts that check as a bounded
+deviation of its own; upstream presents it as a check, not as a supported
+configuration.
+
 ## Existing DE4SDV integration
 
 The framing was started from repository commit
@@ -88,6 +102,10 @@ increment's result is reclassified by this framing.
 - Which measured latency applies to the 512 by 512 input form, since the
   published speed-benchmark rows measure 256 by 256?
 - Which checkpoint/data terms permit the intended use and evidence distribution?
+- Is a zeroed yaw-rate and curvature history the intended way to drive
+  `nuplan-epoch-5` in the closed loop, and is a checkpoint or driver without
+  this feedback planned? The readiness probe reproduced the divergence in CARLA
+  and the effect of the zeroed history; sharing it waits for the owner's word.
 
 No upstream contact, compatibility endorsement, adoption approval or rights
 clearance is asserted. Contacting maintainers remains an owner-authorized action

@@ -254,7 +254,8 @@ the need they answer:
   it takes: six camera images at the two sizes it asks for (003),
   seven earlier images per camera (004), one projection operator per image (005),
   the `map_context` raster (006), the `route_mask` raster (007) and 64 motion samples
-  100 ms apart (008); standstill until both histories are complete (009);
+  100 ms apart, with yaw rate and curvature given as zero (008); standstill until
+  both histories are complete (009);
   histories only from images and samples captured in the run (010); commands only
   from the newest valid plan and current motion (011), within the steering and
   acceleration limits the configuration names (012); each plan within 100 ms of
@@ -352,8 +353,10 @@ capture time in simulation time, its size in pixels and its camera's
 calibration, from which the projection operator of REQ-DRIVING-005 is
 built; an `EgoMotionInput` is the samples of the vehicle's speed,
 longitudinal and lateral acceleration and yaw rate as ISQ quantities, each
-with its sample time. The curvature of the checkpoint's history is derived
-inside the system (REQ-DRIVING-008), not sampled.
+with its sample time. The checkpoint gets the history's yaw rate and curvature
+as zero (REQ-DRIVING-008), the bounded deviation of the owner's decision of
+2026-11-09 that GAP-DRIVING-010 records: fed back in the closed loop, the
+checkpoint's own yaw history turned its plans off the lane.
 
 Three decisions shape it:
 

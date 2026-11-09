@@ -534,6 +534,10 @@ def test_the_exchange_types_describe_the_sensing_without_a_signal_specification(
     motion_doc = _doc("item def EgoMotionSample") + _doc("item def EgoMotionInput :> EgoMotionState")
     for word in ("REQ-DRIVING-008", "REQ-DRIVING-030", "curvature", "derive"):
         assert word in motion_doc, word
+    # the history-mask decision of 2026-11-09: the checkpoint's data derive the curvature; the driving system gives
+    # the checkpoint yaw rate and curvature as zero
+    assert "the driving system gives the checkpoint yaw rate and curvature as zero" in motion_doc
+    assert "the driving system derives it from the yaw rate" not in motion_doc
     assert "the vehicle's" in motion_doc or "of the vehicle" in motion_doc, "whose motion it is"
 
 

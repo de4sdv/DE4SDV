@@ -73,6 +73,14 @@ RECORD_ATTRIBUTES = [
 _NOT_CODE = re.compile(r"/\*.*?\*/|//[^\n]*|\"(?:[^\"\\]|\\.)*\"", re.S)
 
 
+def test_the_ego_motion_history_case_checks_yaw_rate_and_curvature_as_zero():
+    # REQ-DRIVING-008 as amended on 2026-11-09: the case compares speed and acceleration with the simulator and
+    # checks that yaw rate and curvature were given as zero.
+    text = _docs(SLICE)
+    assert "compares speed and acceleration with the simulator's values within 0.05 m/s and 0.1 m/s², and checks that yaw rate and curvature are 0" in text
+    assert "0.01 rad/s" not in text and "0.001 1/m" not in text
+
+
 def _code(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
     return _NOT_CODE.sub(lambda match: '""' if match.group().startswith('"') else " ", text)
@@ -257,7 +265,9 @@ def test_the_environment_gap_is_deferred_and_names_the_probes_and_the_capture() 
     head = " ".join(raw[:raw.index("package ")].split())
     assert "stay open until then" not in head and "fixed by the readiness probes" in head
     ids = sorted(set(re.findall(r"GAP-DRIVING-\d{3}", "".join(p.read_text(encoding="utf-8") for p in DRIVING.glob("*.sysml")))))
-    assert ids.count(GAP) == 1 and GAP == max(ids), "the next free gap number"
+    # GAP-DRIVING-009 took the next free number; GAP-DRIVING-010 (the history-mask decision of 2026-11-09) is the
+    # newest since. Numbers are taken in order and never reused.
+    assert GAP in ids and max(ids) == "GAP-DRIVING-010", "the next free gap number"
 
 
 # -- the assurance structure ----------------------------------------------------------------------
