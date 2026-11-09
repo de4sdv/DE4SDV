@@ -435,6 +435,7 @@ struct Agent {
   bool priming_logged = false;
   // inferPlan
   bool stall_logged = false;
+  std::uint64_t warm_calls = 0;     // warm-up calls while priming (DESIGN.md)
   // superviseLoop / commandVehicle
   std::unique_ptr<da::Supervisor> supervisor;
   std::unique_ptr<da::Commander> commander;
@@ -738,6 +739,7 @@ void de4sdv_agent_fini(void) {
   std::ostringstream os;
   os << "{\"stage\":\"" << Stage() << "\",\"frames_produced\":" << (g_agent->world ? g_agent->world->produced() : (g_agent->carla ? g_agent->carla->ticks() : 0))
      << ",\"steps\":" << g_agent->steps << ",\"commands\":" << g_agent->commands
+     << ",\"warmCalls\":" << g_agent->warm_calls
      << ",\"pace_sent\":" << (g_agent->pace ? g_agent->pace->sent() : 0)
      << ",\"pace_send_failures\":" << (g_agent->pace ? g_agent->pace->failures() : 0);
   if (g_agent->store) {
@@ -1068,6 +1070,20 @@ int32_t de4sdv_infer_startup(void) {
 int32_t de4sdv_infer_step(const De4sdvInputsMsg* inputs, De4sdvPlanMsg* plan) {
   *plan = De4sdvPlanMsg{};
   auto& a = *g_agent;
+  if (a.python && !a.refusal.refused && inputs->has_step && !inputs->primed) {
+    // While the agent primes (DESIGN.md, warm-up while priming), the engine may warm its camera history cache with
+    // one call on the frame's phase stream (output discarded) when its lag budget allows; the first
+    // plan of every phase then runs warm. No plan is produced.
+    std::string record, error;
+    ++a.warm_calls;
+    if (!a.planner.Warm(inputs->step_frame, &record, &error)) {
+      Log("error", "{\"what\":\"warm_failed\",\"frame\":" + std::to_string(inputs->step_frame) +
+                       ",\"message\":" + dd::JsonString(error) + "}");
+    } else if (!record.empty()) {
+      Log("warm", WithStage(record));
+    }
+    return 1;
+  }
   if (a.refusal.refused || !inputs->has_step || !inputs->primed || inputs->condition_bits != 0) return 1;
   const std::uint64_t frame = inputs->step_frame;
   if (a.cfg.fault_plan_stall_frame != 0 && frame >= a.cfg.fault_plan_stall_frame) {

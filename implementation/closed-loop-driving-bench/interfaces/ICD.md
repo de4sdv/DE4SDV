@@ -276,3 +276,6 @@ No payload changes.
 - **A21, mw::com slot sizing (§2).** No payload change.
   - On the simulator host the bench tap and the actuation adapter each subscribed to `command` with 8 samples while the event had 8 slots. Whichever subscribed second was rejected (LoLa: slot overflow): in one run the adapter never drove the vehicle, in two the tap saw nothing.
   - §2 now sizes every event for all its allowed subscribers plus the producer. `interfaces/tests/test_mw_com_manifests.py` checks every manifest and every `Subscribe` call of the bench.
+- **A22, drivingAgent warm-up records (§6).** No payload change.
+  - While the agent primes, inferPlan may call the checkpoint engine to warm its camera history cache (agent `DESIGN.md`, "Warm-up while priming"). No plan is produced.
+  - drivingAgent logs `warm` {frame, stream, warm, reason, lag_ms, ms} for each decision, and `stop` gains `warmCalls`. No evaluator reads them.

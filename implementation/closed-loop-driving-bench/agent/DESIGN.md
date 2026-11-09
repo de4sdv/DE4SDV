@@ -69,6 +69,7 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - returns 64 × (a, κ, x, y, ψ);
   - C++ fills `PlanMsg`/`DrivingPlanPayload`, stamped with the capture time of the newest image of the step and the production monotonic time (REQ-DRIVING-031), and the run record (REQ-DRIVING-034);
   - publishes it on the FEO topic and mw::com.
+- **while the agent primes:** `warm(frame)`, no plan (see "Warm-up while priming" below).
 
 ## superviseLoop
 
@@ -171,3 +172,23 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - Coverage uses upstream's geometry (`map_to_ego`, `ego_to_pixel`): the route's waypoints inside the window, 2 px clear of its edges and of the 10 m rear clip, must fall on corridor cells. Two mutations of the mapping (mirrored lateral axis, swapped axes) fail the test.
   - Without `nav_map` the route channel is the stand-in, and the stage label says `-route-stand-in`.
 - **Fake world:** per-camera sizes from a rig file (`fake_rig`, from `scripts/make_fake_rig.py`: the profile-exact rig at 1920 px), and `fake_route` to drive along a route's centre line.
+
+## Warm-up while priming (2026-11-09)
+
+- **What the G4 run showed.** The checkpoint planned in 119 ms per call (91 ms in setup), only in bursts of 5, each followed by 67 frames without a plan; the supervision stopped on `kPlanStale`.
+  - The checkpoint keeps one camera history cache stream per 100 ms phase. A call is warm only when its stream holds the 7 history frames and its last commit was exactly 0.5 s earlier. Otherwise the model re-encodes the 7 history frames from the raw tiles: cold, longer than a frame.
+  - The first plan of each phase was cold, so the first five plans overran the 100 ms chain. The event trigger merged the backlog into one chain for the newest frame (`FEO_PACE`: 26 cycles with `skipped` > 0).
+  - The merged frame was never conditioned, so the 66-pose ego history broke and the agent primed again for 66 frames, with every stream cold again.
+- **The warm-up.** While the agent primes (camera history complete, ego history not yet), inferPlan calls `warm(frame)` and produces no plan:
+  - One engine call on the frame's phase stream: the real tiles, projections and capture timestamp, the recorded sample's ego history and the camera-only context. The output is discarded.
+  - The cache holds only the model's base camera pyramid of each frame; its signature is the stream's dimensions, dtype and device. The call therefore leaves the cache exactly as a planning call would.
+  - `warmup.WarmupScheduler` decides. A call that keeps a warm stream warm costs less than a frame and runs. A call that primes a cold stream runs only when the lag it leaves stays within 50 ms; the lag is how far the chain start trails the 100 ms frame grid, measured at conditionInputs' calls.
+  - The cost estimates come from bind_thread's calls (the first on a fresh cache is cold, the next two warm) and follow the measured calls.
+  - The camera history needs 36 frames and the ego history 66, so the warm-up has 30 frames; by the first plan every stream is warm.
+- **Records:** `warm` {frame, stream, warm: `warm` | `cold` | `skip`, reason, lag_ms, ms} for each decision once the camera history is complete; `stop` gains `warmCalls`. Each plan's `planner` record keeps `cache_before` (7 when the call was warm) and `counts`.
+- **Tests (`python/tests/test_warmup.py`):**
+  - A discrete-event model of the chain: one chain per frame event, the backlog merged into the newest frame, the cache rule.
+  - Without the warm-up it reproduces the G4 failure: 5 cold plans, a merged frame, a 67-frame gap.
+  - With it every plan is warm and no frame is lost, also under ±4 ms jitter.
+  - The engine glue on fake caches. Six mutations of the scheduler and the glue fail the tests.
+- **Not yet shown on the G4.** A merged frame still breaks the ego history; conditioning every merged frame is the next change.

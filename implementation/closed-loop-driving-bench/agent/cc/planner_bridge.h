@@ -61,6 +61,9 @@ class PlannerBridge {
                       std::string* error);
   bool Condition(const ConditionIn& in, ConditionOut* out, std::string* error);
   bool Infer(std::uint64_t frame, InferOut* out, std::string* error);
+  // inferPlan while the agent primes (DESIGN.md, warm-up while priming): de4sdv_planner.warm; *record_json is the
+  // engine's warm-up record to log, empty when there is nothing to log.
+  bool Warm(std::uint64_t frame, std::string* record_json, std::string* error);
   void Stop();
   bool started() const { return started_; }
 

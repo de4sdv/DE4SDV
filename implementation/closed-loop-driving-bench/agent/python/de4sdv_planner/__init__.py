@@ -204,6 +204,17 @@ def infer(frame):
     return np.ascontiguousarray(samples, dtype=np.float32).tobytes(), float(v0), json.dumps(rec)
 
 
+def warm(frame):
+    """inferPlan while the agent primes (DESIGN.md, warm-up while priming): the engine may warm its history cache.
+    Returns the record to log, or "" when there is nothing to log (an engine without a warm-up, or
+    a frame whose camera history is not complete yet)."""
+    fn = getattr(_ENGINE, "warm", None)
+    if fn is None:
+        return ""
+    rec = fn(int(frame))
+    return "" if rec.get("warm") == "wait" else json.dumps(rec)
+
+
 def write_run_record(path: str, fields_json: str) -> str:
     """ICD section 8: writes run_record.json once, before the first plan, and returns its identity.
 

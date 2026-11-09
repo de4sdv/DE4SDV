@@ -26,6 +26,7 @@ import numpy as np
 
 from . import history as H
 from . import rig as R
+from .warmup import WarmupScheduler
 
 PATCHES_R2 = ["p2h_dynamo_cfg:cfg",
               "p2h_rev:front+tcast+clm+clp+clv+kern+pos+gemm+ctf+cbb+cpl+tsap+relu+hpack+lnf+tsm+ssm+tsv",
@@ -120,7 +121,9 @@ class CheckpointEngine:
         self.caches = [model.create_stateful_camera_fpn_cache() for _ in range(5)]
         self.tiles, self.fronts, self.nav, self.rows = {}, {}, {}, {}
         self.poses = H.PoseRing()
-        self.counts = {"gap_reset": 0, "reprime": 0}
+        self.counts = {"gap_reset": 0, "reprime": 0, "warm_cold": 0, "warm_warm": 0, "warm_skip": 0}
+        # the warm-up while the agent primes (warmup.py); calibrated again in bind_thread
+        self.sched = WarmupScheduler(cold_ms=1.33 * float(np.median(idle_c)), warm_ms=float(np.median(idle_c)))
         self.origin = None
         self.record = {"engine": self.name, "cudnn": int(cudnn), "torch": torch.__version__,
                        "device": torch.cuda.get_device_name(0), "patches": self.patches,
@@ -144,8 +147,12 @@ class CheckpointEngine:
         lat_s = self._timed(3, self._sample_ctx, cache_s, "sample", 30_000_000)
         lat_c = self._timed(3, self.cam_only, cache_c, "camonly", 30_000_000)
         del cache_s, cache_c
+        # the first call on a fresh cache primes it (cold), the next two are 0.5 s apart (warm)
+        self.sched.cost_ms["cold"] = float(lat_c[0])
+        self.sched.cost_ms["warm"] = float(np.median(lat_c[1:]))
         rec = {"thread": threading.get_ident(), "bindPlanMs": [round(x, 2) for x in lat_s],
-               "bindPlanMsCameraOnly": [round(x, 2) for x in lat_c], "bindSeconds": round(time.monotonic() - t0, 3)}
+               "bindPlanMsCameraOnly": [round(x, 2) for x in lat_c], "bindSeconds": round(time.monotonic() - t0, 3),
+               "warmupCostMs": {k: round(v, 2) for k, v in self.sched.cost_ms.items()}}
         self.record["bind"] = rec
         return rec
 
@@ -198,6 +205,7 @@ class CheckpointEngine:
         return u8[..., [2, 1, 0]].permute(2, 0, 1).unsqueeze(0).float().div_(255.0)
 
     def condition(self, k, images, shapes, M_world_veh, map_context, route_mask):
+        self.sched.observe_step_start(k, time.monotonic())   # the chain starts with conditionInputs
         torch, F = self.torch, self.F
         rec = {"engine": self.name}
         if all(im is not None for im in images):
@@ -227,6 +235,53 @@ class CheckpointEngine:
         primed = measured is not None and all(j in self.tiles for j in H.camera_history_frames(k) + [k])
         return primed, measured, rec
 
+    def _history_inputs(self, k):
+        """The 7 history tiles of frame k's phase stream and their projections from the REF poses."""
+        torch = self.torch
+        hk = H.camera_history_frames(k)
+        hist_tiles = torch.stack([self.tiles[j] for j in hk])[None]
+        Tk = self.poses.pose[k]
+        hist_proj = []
+        for j in hk:
+            pfc = np.linalg.inv(self.poses.pose[j]) @ Tk
+            hist_proj.append(np.stack([self.Kt[v] @ (self.ref_to_cam[v] @ pfc)[:3, :] for v in range(6)]).astype(np.float32))
+        hp = torch.from_numpy(np.stack(hist_proj)[None]).to(self.dev)
+        return hist_tiles, tuple(self.PinholeProjection(hp[:, i], geometry_type="pinhole") for i in range(7))
+
+    def warm(self, k):
+        """inferPlan while the agent primes (warmup.py): one engine call on frame k's
+        phase stream with the real tiles, projections and timestamp and the recorded sample's ego history,
+        output discarded, when the scheduler's lag budget allows it. The cache holds only camera
+        pyramids, so the call leaves it exactly as a planning call would."""
+        s = k % 5
+        t_us = 10_000_000 + 100_000 * k
+        rec = {"engine": self.name, "frame": k, "stream": s}
+        frames = H.camera_history_frames(k) + [k]
+        if k not in self.fronts or any(j not in self.tiles or j not in self.poses.pose for j in frames):
+            rec["warm"] = "wait"
+            return rec
+        cache = self.caches[s]
+        stream_warm = len(cache) == 7 and cache.last_committed_timestamps_us == (t_us - 500_000,)
+        decision, reason = self.sched.decide(k, stream_warm)
+        rec.update({"warm": decision, "reason": reason, "lag_ms": round(self.sched.lag_ms, 1)})
+        self.counts["warm_" + decision] += 1
+        if decision == "skip":
+            return rec
+        if not stream_warm and cache.last_committed_timestamps_us is not None:
+            cache.reset()                            # as infer() on a gap
+        t0 = time.perf_counter()
+        self._warm_call(k, s, t_us)
+        ms = (time.perf_counter() - t0) * 1000.0
+        self.sched.record(decision, ms)
+        rec["ms"] = round(ms, 2)
+        return rec
+
+    def _warm_call(self, k, s, t_us):
+        hist_tiles, hproj = self._history_inputs(k)
+        front, fpn = self.fronts[k]
+        self._call(self.tiles[k][None], front, fpn, self.proj, self.fproj, hist_tiles, hproj,
+                   self.TPL["egomotion_history"], self.caches[s], "phase%d" % s, t_us).float().cpu()
+
     def infer(self, k):
         torch = self.torch
         hk = H.camera_history_frames(k)
@@ -239,14 +294,7 @@ class CheckpointEngine:
         if last is not None and last != (t_us - 500_000,):
             self.caches[s].reset()
             self.counts["gap_reset"] += 1
-        hist_tiles = torch.stack([self.tiles[j] for j in hk])[None]
-        Tk = self.poses.pose[k]
-        hist_proj = []
-        for j in hk:
-            pfc = np.linalg.inv(self.poses.pose[j]) @ Tk
-            hist_proj.append(np.stack([self.Kt[v] @ (self.ref_to_cam[v] @ pfc)[:3, :] for v in range(6)]).astype(np.float32))
-        hp = torch.from_numpy(np.stack(hist_proj)[None]).to(self.dev)
-        hproj = tuple(self.PinholeProjection(hp[:, i], geometry_type="pinhole") for i in range(7))
+        hist_tiles, hproj = self._history_inputs(k)
         measured = self.rows[k]
         eh = self.adapt(torch.from_numpy(H.checkpoint_rows(measured)).reshape(1, -1), self.policy).to(self.dev, torch.float32)
         v0 = float(measured[-1, 0])

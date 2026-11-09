@@ -278,6 +278,25 @@ bool PlannerBridge::Infer(std::uint64_t frame, InferOut* out, std::string* error
   return ok;
 }
 
+bool PlannerBridge::Warm(std::uint64_t frame, std::string* record_json, std::string* error) {
+  if (!started_) return false;
+  Gil gil;
+  PyObject* r = PyObject_CallMethod(static_cast<PyObject*>(module_), "warm", "K", static_cast<unsigned long long>(frame));
+  if (r == nullptr) {
+    *error = "warm: " + FetchPythonError();
+    return false;
+  }
+  bool ok = true;
+  if (!PyUnicode_Check(r)) {
+    *error = "warm returned no str";
+    ok = false;
+  } else {
+    *record_json = AsString(r);
+  }
+  Py_DECREF(r);
+  return ok;
+}
+
 void PlannerBridge::Stop() {
   if (module_ == nullptr) return;
   Gil gil;
