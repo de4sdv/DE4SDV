@@ -21,10 +21,10 @@ std::string CameraLabel(std::size_t camera) {
 
 const char* CameraName(std::size_t camera) {
   static const char* const kNames[kCameraCount] = {
-      "cam_front",  "cam_front_left", "cam_front_right",
-      "cam_rear_left", "cam_rear",    "cam_rear_right",
+      "front",     "front_left", "front_right",
+      "rear_left", "rear",       "rear_right",
   };
-  return camera < kCameraCount ? kNames[camera] : "cam_unknown";
+  return camera < kCameraCount ? kNames[camera] : "unknown";
 }
 
 FrameStore::FrameStore(const FrameStoreConfig& config) : config_(config) {

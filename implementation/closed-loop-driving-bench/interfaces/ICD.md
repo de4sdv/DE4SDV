@@ -289,3 +289,7 @@ No payload changes.
   - A command arrives about one period after its frame's tick. One late command, arriving just after the next tick, therefore sees exactly 200 ms at the tick before it, as one missed command does. REQ-DRIVING-028 stops on two missed commands.
   - On the simulator host the earlier rule (200 ms or more) stopped the vehicle about 2 s into a run in which no command was missing.
   - After a lost command path, the stop reaches the actuation 300 ms of simulation time after the last applied command, the limit VC-DRIVING-028 checks.
+- **A25, C2 camera names (§10).** No payload change.
+  - C2 names each camera by the checkpoint's slot: `cameras[].name` and `projections[].camera` are `front`, `front_left`, `front_right`, `rear_left`, `rear`, `rear_right`, in that order. These are the model's camera positions, and the names the evaluators and A11 (`cameras[front]`) use.
+  - drivingAgent wrote the CARLA role names (`cam_front`, ...) before, so VC-DRIVING-003 found every real step's camera order wrong.
+  - The CARLA role names stay what the world-side rig gives its actors and what the agent searches for; C1 `sensors[].name` keeps them.

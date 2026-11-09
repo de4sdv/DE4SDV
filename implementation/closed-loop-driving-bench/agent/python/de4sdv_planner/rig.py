@@ -210,7 +210,7 @@ def c2_projection_block(P_cur, P_front, tile_wh=(512, 512), front_wh=(1024, 1024
     P_cur: (6, 3, 4) or (1, 6, 3, 4); P_front: (3, 4), (1, 3, 4) or (1, 1, 3, 4)."""
     P_cur = np.asarray(P_cur, dtype=np.float64).reshape(len(SLOTS), 3, 4)
     P_front = np.asarray(P_front, dtype=np.float64).reshape(3, 4)
-    block = [{"camera": f"cam_{slot}", "matrix": P_cur[i].reshape(-1).tolist(), "image_size": list(tile_wh)}
+    block = [{"camera": slot, "matrix": P_cur[i].reshape(-1).tolist(), "image_size": list(tile_wh)}
              for i, slot in enumerate(SLOTS)]
     block[0].update(front_hi_res_matrix=P_front.reshape(-1).tolist(), front_hi_res_size=list(front_wh))
     return block

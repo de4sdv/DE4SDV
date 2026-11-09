@@ -35,8 +35,9 @@ inline constexpr std::int64_t kDefaultDeadlineNs = 95'000'000;  // 95 ms
 // The most older ready frames one take hands over as merged (DESIGN.md "Merged frames").
 inline constexpr std::size_t kMaxMerged = 4;
 
-// Index order fixed by the brief; names are the world-side rig role names
-// (DESIGN.md "conditionInputs / startup").
+// Index order fixed by the brief. CameraName gives the name the agent's records use: the checkpoint's
+// slot name (C2, ICD A25). The CARLA actors are found by their role names (`cam_front`, ...;
+// carla_source.h), the names the world-side rig gives them (DESIGN.md "conditionInputs / startup").
 enum CameraIndex : std::size_t {
   kFront = 0,
   kFrontLeft = 1,

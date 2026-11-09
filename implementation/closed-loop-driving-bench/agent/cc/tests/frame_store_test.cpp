@@ -33,8 +33,11 @@ using de4sdv::driving::agent::HeroSnapshot;
 using de4sdv::driving::agent::kCameraCount;
 using de4sdv::driving::agent::kDefaultDeadlineNs;
 using de4sdv::driving::agent::kFront;
+using de4sdv::driving::agent::kFrontLeft;
 using de4sdv::driving::agent::kMaxMerged;
 using de4sdv::driving::agent::kRear;
+using de4sdv::driving::agent::kRearLeft;
+using de4sdv::driving::agent::kRearRight;
 using de4sdv::driving::agent::PaceSignal;
 
 namespace {
@@ -190,9 +193,13 @@ void TestConfigDefaults() {
   CHECK(config.ringSize == 8);
   CHECK(config.deadlineNs == 95'000'000);
   CHECK(kDefaultDeadlineNs == 95'000'000);
-  CHECK(std::string(de4sdv::driving::agent::CameraName(kFront)) == "cam_front");
-  CHECK(std::string(de4sdv::driving::agent::CameraName(kRear)) == "cam_rear");
-  CHECK(std::string(de4sdv::driving::agent::CameraName(9)) == "cam_unknown");
+  // Record names are the checkpoint's slot names (C2, ICD A25), not the CARLA role names `cam_*`.
+  CHECK(std::string(de4sdv::driving::agent::CameraName(kFront)) == "front");
+  CHECK(std::string(de4sdv::driving::agent::CameraName(kFrontLeft)) == "front_left");
+  CHECK(std::string(de4sdv::driving::agent::CameraName(kRearLeft)) == "rear_left");
+  CHECK(std::string(de4sdv::driving::agent::CameraName(kRear)) == "rear");
+  CHECK(std::string(de4sdv::driving::agent::CameraName(kRearRight)) == "rear_right");
+  CHECK(std::string(de4sdv::driving::agent::CameraName(9)) == "unknown");
 }
 
 void TestCompleteSlot() {

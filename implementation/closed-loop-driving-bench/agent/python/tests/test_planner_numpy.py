@@ -244,13 +244,14 @@ def test_stub_pure_pursuit_plan_turns_left_and_reaches_the_target_speed(tmp_path
 
 
 def test_c2_projection_block_names_and_shapes():
-    """C2 projections: C2 camera names in the fixed order, 12 row-major numbers per operator, the
-    tile size, and the front high-resolution operator on cam_front only."""
+    """C2 projections: the C2 camera names (the checkpoint's slot names, ICD A25) in the fixed order,
+    12 row-major numbers per operator, the tile size, and the front high-resolution operator on the
+    front camera only."""
     P = np.arange(6 * 12, dtype=np.float32).reshape(1, 6, 3, 4)
     F = (np.arange(12, dtype=np.float32) + 100).reshape(1, 1, 3, 4)
     block = R.c2_projection_block(P, F)
-    assert [b["camera"] for b in block] == ["cam_front", "cam_front_left", "cam_front_right",
-                                            "cam_rear_left", "cam_rear", "cam_rear_right"]
+    assert [b["camera"] for b in block] == ["front", "front_left", "front_right",
+                                            "rear_left", "rear", "rear_right"]
     assert block[2]["matrix"] == list(range(24, 36)) and block[2]["image_size"] == [512, 512]
     assert block[0]["front_hi_res_matrix"] == list(range(100, 112)) and block[0]["front_hi_res_size"] == [1024, 1024]
     assert all("front_hi_res_matrix" not in b for b in block[1:])

@@ -34,7 +34,7 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
 
 - **startup:**
   - connects the client to the simulator host and waits for the hero (role_name `hero`);
-  - finds its six cameras by role_name `cam_front`, `cam_front_left`, `cam_front_right`, `cam_rear_left`, `cam_rear`, `cam_rear_right`, the names the world-side rig gives them, and `Listen`s;
+  - finds its six cameras by role_name `cam_front`, `cam_front_left`, `cam_front_right`, `cam_rear_left`, `cam_rear`, `cam_rear_right`, the names the world-side rig gives them, and `Listen`s. The agent's records name each camera by the checkpoint's slot instead (`front`, `front_left`, `front_right`, `rear_left`, `rear`, `rear_right`; ICD A25);
   - registers `OnTick`;
   - loads the map and route through the navigation library (S3);
   - offers the mw::com `ego_motion_sample` skeleton.
