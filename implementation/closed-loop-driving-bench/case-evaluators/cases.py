@@ -1930,7 +1930,11 @@ def vc017(run: Run) -> Result:
         age = (h["step_capture_ms"] - h["last_plan_capture_ms"]) / 1000.0
         if age < -1e-9:
             field_bad.append({"t": h["t_real"] - t0, "problem": f"negative plan age {age}"})
-        if h["mode"] in ("kStopResponse", "kStandstill", "2", "3") and h["cause"] in (None, "kNone", 0):
+        # The observer records the mode and the cause as their u32 values (ICD
+        # section 3, fields 30-31; ivi-observer StateRecord.java:138-141 writes
+        # the name only as mode_name and cause_name); a name is read as its value.
+        if means_stopped(h["mode"]) and (h["cause"] is None
+                                         or enum_name(h["cause"], CAUSES) == "kNone"):
             field_bad.append({"t": h["t_real"] - t0, "problem": "stopped without a cause"})
     measured = {"publications": len(win), "worst_gap_s": worst_gap,
                 "gaps_over_200ms": gap_bad[:5], "window_s": THRESHOLDS["window_s"],
