@@ -36,19 +36,28 @@ check() {
   [ -f "$SLICE_ROOT/app/src/org/de4sdv/drivingstate/StateRecord.java" ] || { log "ERROR: StateRecord.java missing"; rc=1; }
   [ -f "$INTEROP/acl/ivi_observer_subscriber.textproto" ] || { log "ERROR: subject ACL missing"; rc=1; }
   [ -f "$INTEROP/acl/ivi_broker_object_policy.textproto" ] || { log "ERROR: object policy missing"; rc=1; }
-  grep -q "topic: \"$TOPIC\"" "$INTEROP/acl/ivi_observer_subscriber.textproto" || { log "ERROR: subject ACL topic"; rc=1; }
+  # The app subscribes to the three units of the default mapping; the one-unit variant
+  # (interop/variants/) has no IVI side.
+  [ "$MAPPING_VARIANT" = three ] || { log "ERROR: MAPPING_VARIANT=$MAPPING_VARIANT: the app and the IVI ACLs name the three units only"; rc=1; }
+  local u
+  for u in $SERVICE_UNITS; do
+    grep -q "topic: \"$u\"" "$INTEROP/acl/ivi_observer_subscriber.textproto" || { log "ERROR: subject ACL lacks unit $u"; rc=1; }
+    grep -q "topic: \"$u\"" "$INTEROP/acl/ivi_broker_object_policy.textproto" || { log "ERROR: object policy lacks subscriber unit $u"; rc=1; }
+    grep -q "name: \"$u\"" "$INTEROP/acl/ivi_broker_object_policy.textproto" || { log "ERROR: object policy lacks service_units $u"; rc=1; }
+    grep -q "\"$u\"" "$subscriber" || { log "ERROR: java lacks unit $u"; rc=1; }
+  done
   grep -q "message: \"$MESSAGE_NAME\"" "$INTEROP/acl/ivi_observer_subscriber.textproto" || { log "ERROR: subject ACL message"; rc=1; }
   grep -q "include: \"$OBSERVER_PACKAGE.$OBSERVER_BUNDLE\"" "$INTEROP/acl/ivi_broker_object_policy.textproto" || { log "ERROR: object policy reader"; rc=1; }
   grep -q "message: \"$MESSAGE_NAME\"" "$INTEROP/acl/ivi_broker_object_policy.textproto" || { log "ERROR: object policy message"; rc=1; }
 
-  # The app must name the typed message, subscribe by name to the broker's unit, and
+  # The app must name the typed message, subscribe by name to the broker's units, and
   # must not carry a bytes type any more.
   grep -q "SUBJECT_PACKAGE = \"$OBSERVER_PACKAGE\"" "$subscriber" || { log "ERROR: java subject package"; rc=1; }
   grep -q "SUBJECT_BUNDLE = \"$OBSERVER_BUNDLE\"" "$subscriber" || { log "ERROR: java subject bundle"; rc=1; }
-  grep -q "TOPIC_NAME = \"$TOPIC\"" "$subscriber" || { log "ERROR: java topic"; rc=1; }
   grep -q "MESSAGE_NAME = \"$MESSAGE_NAME\"" "$subscriber" || { log "ERROR: java message name"; rc=1; }
   grep -q "PUBLISHER_PACKAGE = \"$BROKER_PACKAGE\"" "$subscriber" || { log "ERROR: java publisher package"; rc=1; }
   grep -q "PUBLISHER_BUNDLE = \"$BROKER_BUNDLE\"" "$subscriber" || { log "ERROR: java publisher bundle"; rc=1; }
+  grep -q "subscribeToPublicationByName" "$subscriber" || { log "ERROR: java does not subscribe by name"; rc=1; }
   grep -q "REFLECTION" "$subscriber" || log "NOTE: the subscriber should say the translation is REFLECTION"
   if grep -rq 'bytes data' "$SLICE_ROOT/app" 2>/dev/null; then
     log "ERROR: the app still carries a bytes type (that is option A)"; rc=1
@@ -206,8 +215,8 @@ install() {
     echo -n "selinux: "; ivi_adb shell getenforce | tr -d '\r'
     sha256sum "$OBSERVER_APK" | sed 's#^#apk_host_sha256: #'
     echo -n "apk_guest_sha256: "; ivi_adb shell sha256sum "$OBSERVER_GUEST_DIR/$OBSERVER_APP.apk" | tr -d '\r' | awk '{print $1}'
-    echo "subject: ${OBSERVER_PACKAGE}.${OBSERVER_BUNDLE}, topic ${TOPIC}, message ${MESSAGE_NAME}"
-    echo "publisher: ${BROKER_PACKAGE}.${BROKER_BUNDLE} unit ${PUBLISHER_UNIT} (subscribed by name)"
+    echo "subject: ${OBSERVER_PACKAGE}.${OBSERVER_BUNDLE}, message ${MESSAGE_NAME}"
+    echo "publisher: ${BROKER_PACKAGE}.${BROKER_BUNDLE} units ${SERVICE_UNITS} (subscribed by name)"
     sha256sum "$INTEROP/acl/ivi_observer_subscriber.textproto" "$INTEROP/acl/ivi_broker_object_policy.textproto" | sed 's#^#acl_sha256: #'
   } > "$RUN_DIR/ivi-observer-identity.txt"
   log "recorded the IVI identity in $RUN_DIR/ivi-observer-identity.txt"
@@ -243,10 +252,14 @@ verify() {
   ivi_adb shell "ls -l $ACL_ROOT/$OBSERVER_PACKAGE $ACL_ROOT/$BROKER_PACKAGE" 2>/dev/null | tr -d '\r'
   log "--- the observer's own lines (last 15)"
   ivi_adb logcat -d -s "$OBSERVER_LOGCAT_TAG" 2>/dev/null | tail -15 | tr -d '\r'
-  log "--- the publisher the discovery found, and the subscription"
-  ivi_adb logcat -d -s "$OBSERVER_LOGCAT_TAG" 2>/dev/null | grep -E "publisher_registered|subscribed=|gateway=" | tail -5 | tr -d '\r'
+  log "--- the publisher units the discovery found, and the subscriptions (one per unit)"
+  ivi_adb logcat -d -s "$OBSERVER_LOGCAT_TAG" 2>/dev/null | grep -E "publisher_registered|subscribed=|gateway=|ready link=" | tail -8 | tr -d '\r'
   receipts="$(ivi_adb logcat -d -s "$OBSERVER_LOGCAT_TAG" 2>/dev/null | grep -c 'kind=' | tr -d '\r')"
   log "receipts in the logcat buffer: ${receipts:-0}"
+  local kind
+  for kind in PLAN VEHICLE_STATE HEALTH; do
+    log "  kind=$kind: $(ivi_adb logcat -d -s "$OBSERVER_LOGCAT_TAG" 2>/dev/null | grep -c " kind=$kind " | tr -d '\r')"
+  done
   [ "${receipts:-0}" -gt 0 ] || { log "NO RECEIPTS: DESIGN.md section 1 (the hops) and section 8 (localizing a failure)"; rc=1; }
   log "--- SELinux denials of this app (empty is the expected answer)"
   ivi_adb logcat -d 2>/dev/null | grep -i "avc: denied" | grep -iE "drivingstate|ISdvGateway" | tail -5 | tr -d '\r'

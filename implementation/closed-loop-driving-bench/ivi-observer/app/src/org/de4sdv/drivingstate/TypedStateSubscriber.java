@@ -1,22 +1,32 @@
 // Copyright (C) 2026 DE4SDV contributors
 // SPDX-License-Identifier: Apache-2.0
 //
-// The gateway subscriber of the IVI observer: one subscription to the typed
-// topic that the SOME/IP broker of the SDV Core VM publishes.
+// The gateway subscriber of the IVI observer: three subscriptions, one per
+// service unit that the SOME/IP broker of the SDV Core VM publishes, merged into
+// the one stream the app's state and record take.
 //
-// It subscribes BY NAME to the broker's service unit, the way the two existing
-// subscribers of a broker publication on this tree do it:
+// The broker registers one service unit per SOME/IP event
+// (interop/de4sdv_driving_operational_state.vsidl: sdv_service_unit_parameterization
+// keys 0, 1, 2 for the events 0x8001 plan, 0x8002 vehicle state, 0x8003 health),
+// all three of the one message type: the publication is SINGLE_PUB, one publisher
+// per channel. Each unit carries one kind, so the per-kind sequences of the merged
+// stream are per-unit sequences; nothing relies on an order across kinds.
+//
+// It subscribes BY NAME to each unit, the way the two existing subscribers of a
+// broker publication on this tree do it:
 //   * the proven native relay of the AEBS frame bench subscribed to
 //     instance1:com.android.sdv.someip.SomeIpBroker, unit de4sdv-score-aebs-signal-frame
 //     (samples/ivi_frame_relay, options.hpp);
 //   * the platform's SdvCarMonitorTestApp subscribes to the broker's FooMessage
-//     unit with addListenerForServiceUnitChangeByName + subscribeToPublicationByName.
-// The client's Subscriber.create() is NOT used: it discovers by unit type, which
-// it derives from the message name (package de4sdv.driving.v1), and the mapping
-// registers the unit type in package com.android.sdv.someip
-// (interop/de4sdv_driving_operational_state.vsidl). Discovery by name does not
-// depend on that, and every failure of the subscribe call reaches this class
-// (Subscriber.create logs it under tag "Subscriber" and drops it).
+//     unit with addListenerForServiceUnitChangeByName + subscribeToPublicationByName,
+//     and holds two such discoveries and subscriptions on one client.
+// A by-name subscription addresses a unit by (VM, publisher package, publisher
+// bundle, service unit name): the broker's own bundle com.android.sdv.someip /
+// SomeIpBroker and the unit names of the mapping. The message name is not part of
+// the address; it is this app's parser and the ACLs' `message`.
+// The client's Subscriber.create() is NOT used: it discovers by unit type and
+// matches the publisher's topic name, which a broker unit without a topic
+// parameter does not set; and it logs and drops subscribe and parse failures.
 //
 // The message arrives typed: the broker translated the SOME/IP struct in
 // REFLECTION mode on the SDV Core VM; nothing here decodes the SOME/IP bytes.
@@ -43,6 +53,9 @@ import de4sdv.driving.v1.De4SdvDrivingOperationalState.DrivingOperationalState;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Executors;
@@ -69,17 +82,25 @@ final class TypedStateSubscriber {
     // The subject this app claims (initComms) -- granted by interop/acl/.
     static final String SUBJECT_PACKAGE = "org.de4sdv.drivingstate";
     static final String SUBJECT_BUNDLE = "DrivingStateObserver";
-    // The topic and its typed message (ICD section 3, MAP-DRIVING-OPERATIONAL-STATE).
-    static final String TOPIC_NAME = "de4sdv-driving-operational-state";
+    // The typed message of all three units (ICD section 3, MAP-DRIVING-OPERATIONAL-STATE).
     static final String MESSAGE_NAME = "de4sdv.driving.v1.DrivingOperationalState";
-    // The publisher: the SOME/IP broker bundle of the SDV Core VM. The unit name
-    // is key 0 of the mapping's sdv_service_unit_parameterization (= the topic).
-    // An empty VM name matches the unit on any VM; the subscribe call then uses
-    // the VM name the discovery event reports.
+    // The publisher: the SOME/IP broker bundle of the SDV Core VM. An empty VM name
+    // matches the units on any VM; each subscribe call then uses the VM name its
+    // discovery event reports.
     static final String PUBLISHER_VM = "";
     static final String PUBLISHER_PACKAGE = "com.android.sdv.someip";
     static final String PUBLISHER_BUNDLE = "SomeIpBroker";
-    static final String PUBLISHER_UNIT = TOPIC_NAME;
+    // The three service units (the mapping's sdv_service_unit_parameterization values,
+    // keys 0, 1, 2) and the kind each one carries.
+    static final String UNIT_PLAN = "de4sdv-driving-operational-state-plan";
+    static final String UNIT_VEHICLE_STATE = "de4sdv-driving-operational-state-vehicle-state";
+    static final String UNIT_HEALTH = "de4sdv-driving-operational-state-health";
+    static final List<String> PUBLISHER_UNITS =
+            Collections.unmodifiableList(Arrays.asList(UNIT_PLAN, UNIT_VEHICLE_STATE, UNIT_HEALTH));
+
+    static final String LINK_WAITING = "WAITING";
+    static final String LINK_SUBSCRIBED = "SUBSCRIBED";
+    static final String LINK_UNAVAILABLE = "UNAVAILABLE";
 
     static final Parser<DrivingOperationalState> PARSER = DrivingOperationalState.parser();
 
@@ -102,27 +123,44 @@ final class TypedStateSubscriber {
         /** The gateway reported DATA_LOSS: messages were skipped in the queue. */
         void onDataLoss(String reason, long tMonoNs, long tRealNs);
 
-        /** Link state for the screen and the record: WAITING, SUBSCRIBED, UNAVAILABLE. */
+        /** Link state of the three units together: WAITING, SUBSCRIBED, UNAVAILABLE. */
         void onLink(String state, String detail);
 
         /** A lifecycle/config fact for the record (key, value). */
         void onConfig(String key, String value);
     }
 
+    /** One service unit: its discovery, its subscription and its link (executor thread only). */
+    private static final class Unit {
+        final String name;
+        final int expectedKind;
+        AutoCloseable discovery;
+        Subscription subscription;
+        ServiceUnitDefinition publisher;
+        String link = LINK_WAITING;
+        String detail = "";
+
+        Unit(String name) {
+            this.name = name;
+            this.expectedKind = expectedKind(name);
+        }
+    }
+
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     private final Sink sink;
+    private final List<Unit> units = new ArrayList<>();
 
     // Owned by the executor thread.
     private SdvGatewayClient client;
     private boolean clientInitCalled;
-    private AutoCloseable discovery;
-    private Subscription subscription;
-    private ServiceUnitDefinition publisher;
     private boolean polling;
     private volatile boolean running;
 
     TypedStateSubscriber(Sink sink) {
         this.sink = sink;
+        for (String name : PUBLISHER_UNITS) {
+            units.add(new Unit(name));
+        }
     }
 
     void start() {
@@ -158,10 +196,44 @@ final class TypedStateSubscriber {
         if (!BUNDLE_NAME.matcher(PUBLISHER_BUNDLE).matches()) {
             return "publisher bundle must start [A-Z]: " + PUBLISHER_BUNDLE;
         }
-        if (!UNIT_NAME.matcher(PUBLISHER_UNIT).matches()) {
-            return "service unit must be [a-z0-9-] starting [a-z]: " + PUBLISHER_UNIT;
+        for (String unit : PUBLISHER_UNITS) {
+            if (!UNIT_NAME.matcher(unit).matches()) {
+                return "service unit must be [a-z0-9-] starting [a-z]: " + unit;
+            }
         }
         return "";
+    }
+
+    /** The kind a unit carries (ICD section 3: 1 PLAN, 2 VEHICLE_STATE, 3 HEALTH); 0 if unknown. */
+    static int expectedKind(String unit) {
+        if (UNIT_PLAN.equals(unit)) {
+            return 1;
+        }
+        if (UNIT_VEHICLE_STATE.equals(unit)) {
+            return 2;
+        }
+        if (UNIT_HEALTH.equals(unit)) {
+            return 3;
+        }
+        return 0;
+    }
+
+    /**
+     * The one link state of the units: UNAVAILABLE when any unit failed, SUBSCRIBED only when
+     * every unit is subscribed, WAITING otherwise. A partly subscribed set is not SUBSCRIBED:
+     * the screen shows which unit is missing.
+     */
+    static String aggregateLink(List<String> states) {
+        boolean all = !states.isEmpty();
+        for (String state : states) {
+            if (LINK_UNAVAILABLE.equals(state)) {
+                return LINK_UNAVAILABLE;
+            }
+            if (!LINK_SUBSCRIBED.equals(state)) {
+                all = false;
+            }
+        }
+        return all ? LINK_SUBSCRIBED : LINK_WAITING;
     }
 
     /** One Data Tunnel slot to the typed message (varint-delimited, zero-padded). */
@@ -181,7 +253,7 @@ final class TypedStateSubscriber {
         }
         final String naming = namingProblem();
         if (!naming.isEmpty()) {
-            sink.onLink("UNAVAILABLE", naming);
+            sink.onLink(LINK_UNAVAILABLE, naming);
             return;
         }
         final SdvGatewayClient candidate = new SdvGatewayClient();
@@ -192,27 +264,31 @@ final class TypedStateSubscriber {
             Log.i(TAG, "lifecycle initComms package=" + SUBJECT_PACKAGE + " bundle=" + SUBJECT_BUNDLE);
             sink.onConfig("initComms", SUBJECT_PACKAGE + "." + SUBJECT_BUNDLE);
 
-            final UnitNameDiscoveryArgs name = new UnitNameDiscoveryArgs(
-                    PUBLISHER_VM, PUBLISHER_PACKAGE, PUBLISHER_BUNDLE, PUBLISHER_UNIT);
-            discovery = candidate.addListenerForServiceUnitChangeByName(name,
-                    (type, definition) -> post(() -> onUnitChanged(type, definition)));
-            Log.i(TAG, "discovery by name vm='" + PUBLISHER_VM + "' package=" + PUBLISHER_PACKAGE
-                    + " bundle=" + PUBLISHER_BUNDLE + " unit=" + PUBLISHER_UNIT);
-            sink.onLink("WAITING", "for " + PUBLISHER_PACKAGE + "." + PUBLISHER_BUNDLE + " unit " + PUBLISHER_UNIT);
+            for (Unit unit : units) {
+                unit.link = LINK_WAITING;
+                unit.detail = "";
+                final UnitNameDiscoveryArgs name = new UnitNameDiscoveryArgs(
+                        PUBLISHER_VM, PUBLISHER_PACKAGE, PUBLISHER_BUNDLE, unit.name);
+                unit.discovery = candidate.addListenerForServiceUnitChangeByName(name,
+                        (type, definition) -> post(() -> onUnitChanged(unit, type, definition)));
+                Log.i(TAG, "discovery by name vm='" + PUBLISHER_VM + "' package=" + PUBLISHER_PACKAGE
+                        + " bundle=" + PUBLISHER_BUNDLE + " unit=" + unit.name);
+            }
+            reportLink();
             if (!polling) {
                 polling = true;
-                executor.scheduleWithFixedDelay(this::drain, kPollPeriodMs, kPollPeriodMs, TimeUnit.MILLISECONDS);
+                executor.scheduleWithFixedDelay(this::drainAll, kPollPeriodMs, kPollPeriodMs, TimeUnit.MILLISECONDS);
             }
         } catch (Throwable error) {
             final String reason = "initComms/discovery: " + describe(error);
             Log.e(TAG, reason + "; retrying in " + kRetryDelayMs + " ms", error);
             closeAll();
-            sink.onLink("UNAVAILABLE", reason);
+            sink.onLink(LINK_UNAVAILABLE, reason);
             later(this::connect);
         }
     }
 
-    private void onUnitChanged(ServiceUnitChangeEventType type, ServiceUnitDefinition definition) {
+    private void onUnitChanged(Unit unit, ServiceUnitChangeEventType type, ServiceUnitDefinition definition) {
         if (!running || client == null) {
             return;
         }
@@ -221,62 +297,69 @@ final class TypedStateSubscriber {
         sink.onConfig("publisher_" + (type == ServiceUnitChangeEventType.Registered ? "registered" : "unregistered"),
                 identity);
         if (type == ServiceUnitChangeEventType.Registered) {
-            publisher = definition;
-            subscribe();
+            unit.publisher = definition;
+            subscribe(unit);
         } else {
-            publisher = null;
-            closeSubscription();
-            sink.onLink("WAITING", "publisher unregistered: " + identity);
+            unit.publisher = null;
+            closeSubscription(unit);
+            setLink(unit, LINK_WAITING, "publisher unregistered: " + identity);
         }
     }
 
-    private void subscribe() {
-        if (!running || client == null || publisher == null) {
+    private void subscribe(Unit unit) {
+        if (!running || client == null || unit.publisher == null) {
             return;
         }
-        closeSubscription();
-        final String vm = publisher.serviceUnitIdentifier == null || publisher.serviceUnitIdentifier.fqin == null
-                ? PUBLISHER_VM : publisher.serviceUnitIdentifier.fqin.sdvVmName;
+        closeSubscription(unit);
+        final String vm = unit.publisher.serviceUnitIdentifier == null
+                || unit.publisher.serviceUnitIdentifier.fqin == null
+                ? PUBLISHER_VM : unit.publisher.serviceUnitIdentifier.fqin.sdvVmName;
         try {
-            subscription = client.subscribeToPublicationByName(vm, PUBLISHER_PACKAGE, PUBLISHER_BUNDLE,
-                    PUBLISHER_UNIT,
-                    (sub, notification) -> post(() -> onNotification(sub, notification)),
+            unit.subscription = client.subscribeToPublicationByName(vm, PUBLISHER_PACKAGE, PUBLISHER_BUNDLE,
+                    unit.name,
+                    (sub, notification) -> post(() -> onNotification(unit, sub, notification)),
                     /* fetchLastMessageOnSubscribe= */ true);
-            final String slot = subscription.metadata == null ? "?" : subscription.metadata.messageSizeBytes
-                    + " B x " + subscription.metadata.messageCount;
-            Log.i(TAG, "subscribed topic=" + TOPIC_NAME + " message=" + MESSAGE_NAME + " vm=" + vm
+            final String slot = unit.subscription.metadata == null ? "?"
+                    : unit.subscription.metadata.messageSizeBytes + " B x " + unit.subscription.metadata.messageCount;
+            Log.i(TAG, "subscribed unit=" + unit.name + " message=" + MESSAGE_NAME + " vm=" + vm
                     + " publisher=" + PUBLISHER_PACKAGE + "." + PUBLISHER_BUNDLE + " slot=" + slot);
-            sink.onConfig("subscribed", vm + ":" + PUBLISHER_PACKAGE + "." + PUBLISHER_BUNDLE + "/" + PUBLISHER_UNIT
+            sink.onConfig("subscribed", vm + ":" + PUBLISHER_PACKAGE + "." + PUBLISHER_BUNDLE + "/" + unit.name
                     + " slot " + slot);
-            sink.onLink("SUBSCRIBED", vm + ":" + PUBLISHER_UNIT);
-            drain();
+            setLink(unit, LINK_SUBSCRIBED, vm);
+            drain(unit);
         } catch (Throwable error) {
-            final String reason = "subscribe " + vm + ":" + PUBLISHER_UNIT + ": " + describe(error);
+            final String reason = "subscribe " + vm + ":" + unit.name + ": " + describe(error);
             Log.e(TAG, reason + "; retrying in " + kRetryDelayMs + " ms", error);
-            subscription = null;
-            sink.onLink("UNAVAILABLE", reason);
-            later(this::subscribe);
+            unit.subscription = null;
+            setLink(unit, LINK_UNAVAILABLE, reason);
+            later(() -> subscribe(unit));
         }
     }
 
-    private void onNotification(Subscription sub, SubscriptionNotificationType type) {
-        if (sub != subscription) {
+    private void onNotification(Unit unit, Subscription sub, SubscriptionNotificationType type) {
+        if (sub != unit.subscription) {
             return;
         }
         if (type == SubscriptionNotificationType.PublicationDestroyed) {
             // Unread messages can still be in the queue (G/SubscriptionNotificationType.java):
             // read them, then let go of the subscription.
-            Log.w(TAG, "publication destroyed");
-            drain();
-            closeSubscription();
-            sink.onLink("WAITING", "publication destroyed; waiting for the publisher to register again");
+            Log.w(TAG, "publication destroyed: " + unit.name);
+            drain(unit);
+            closeSubscription(unit);
+            setLink(unit, LINK_WAITING, "publication destroyed; waiting for the publisher to register again");
             return;
         }
-        drain();
+        drain(unit);
     }
 
-    private void drain() {
-        final Subscription current = subscription;
+    private void drainAll() {
+        for (Unit unit : units) {
+            drain(unit);
+        }
+    }
+
+    private void drain(Unit unit) {
+        final Subscription current = unit.subscription;
         if (!running || current == null) {
             return;
         }
@@ -289,15 +372,15 @@ final class TypedStateSubscriber {
                 final long tRealNs = System.currentTimeMillis() * 1_000_000L;
                 if (error.getSdvGatewayStatusCode() == SdvGatewayStatusCode.DATA_LOSS) {
                     // Messages were skipped in the queue; the subscription itself is fine.
-                    sink.onDataLoss("DATA_LOSS: " + error.getMessage(), tMonoNs, tRealNs);
+                    sink.onDataLoss("DATA_LOSS " + unit.name + ": " + error.getMessage(), tMonoNs, tRealNs);
                     continue;
                 }
-                final String reason = "read: " + describe(error);
+                final String reason = "read " + unit.name + ": " + describe(error);
                 Log.w(TAG, reason, error);
                 sink.onError(reason, tMonoNs, tRealNs);
-                closeSubscription();
-                sink.onLink("UNAVAILABLE", reason);
-                later(this::subscribe);
+                closeSubscription(unit);
+                setLink(unit, LINK_UNAVAILABLE, reason);
+                later(() -> subscribe(unit));
                 return;
             }
             if (slots == null || slots.isEmpty()) {
@@ -312,9 +395,15 @@ final class TypedStateSubscriber {
                 try {
                     message = parseSlot(slot);
                 } catch (IOException error) {
-                    sink.onError(String.format(Locale.US, "parse: %s (%d bytes)", describe(error), slot.length),
-                            tMonoNs, tRealNs);
+                    sink.onError(String.format(Locale.US, "parse: %s (%d bytes, unit %s)", describe(error),
+                            slot.length, unit.name), tMonoNs, tRealNs);
                     continue;
+                }
+                if (message.getKind() != unit.expectedKind) {
+                    // The receipt is kept (its values are the published ones); a crossed unit key
+                    // in the mapping is reported, not hidden by the merge.
+                    sink.onError(String.format(Locale.US, "unit %s carried kind %d, expected %d", unit.name,
+                            message.getKind(), unit.expectedKind), tMonoNs, tRealNs);
                 }
                 sink.onState(MessageMapper.map(message), tMonoNs, tRealNs);
             }
@@ -322,6 +411,41 @@ final class TypedStateSubscriber {
                 return;
             }
         }
+    }
+
+    private void setLink(Unit unit, String state, String detail) {
+        unit.link = state;
+        unit.detail = detail == null ? "" : detail;
+        reportLink();
+    }
+
+    /** The units' links as one state and one line: which units are subscribed, and why not the others. */
+    private void reportLink() {
+        final List<String> states = new ArrayList<>();
+        int subscribed = 0;
+        String vm = "";
+        for (Unit unit : units) {
+            states.add(unit.link);
+            if (LINK_SUBSCRIBED.equals(unit.link)) {
+                subscribed++;
+                vm = unit.detail;
+            }
+        }
+        final String state = aggregateLink(states);
+        final StringBuilder detail = new StringBuilder(160);
+        detail.append(subscribed).append(" of ").append(units.size()).append(" units subscribed");
+        if (LINK_SUBSCRIBED.equals(state)) {
+            detail.append(" on ").append(vm.isEmpty() ? "?" : vm);
+        }
+        for (Unit unit : units) {
+            if (!LINK_SUBSCRIBED.equals(unit.link)) {
+                detail.append("; ").append(unit.name).append(' ').append(unit.link);
+                if (!unit.detail.isEmpty()) {
+                    detail.append(": ").append(unit.detail);
+                }
+            }
+        }
+        sink.onLink(state, detail.toString());
     }
 
     /** Hop a gateway callback (a JNI-attached native thread) onto the executor. */
@@ -366,30 +490,36 @@ final class TypedStateSubscriber {
         return text.toString();
     }
 
-    private void closeSubscription() {
-        final Subscription current = subscription;
-        subscription = null;
+    private void closeSubscription(Unit unit) {
+        final Subscription current = unit.subscription;
+        unit.subscription = null;
         if (current == null) {
             return;
         }
         try {
             current.close();
         } catch (Throwable error) {
-            Log.w(TAG, "subscription close: " + describe(error));
+            Log.w(TAG, "subscription close " + unit.name + ": " + describe(error));
         }
     }
 
-    /** Subscription, then discovery, then the client (the client's close() javadoc order). */
+    /** Subscriptions, then discoveries, then the client (the client's close() javadoc order). */
     private void closeAll() {
-        closeSubscription();
-        publisher = null;
-        if (discovery != null) {
-            try {
-                discovery.close();
-            } catch (Throwable error) {
-                Log.w(TAG, "discovery close: " + describe(error));
+        for (Unit unit : units) {
+            closeSubscription(unit);
+            unit.publisher = null;
+            unit.link = LINK_WAITING;
+            unit.detail = "";
+        }
+        for (Unit unit : units) {
+            if (unit.discovery != null) {
+                try {
+                    unit.discovery.close();
+                } catch (Throwable error) {
+                    Log.w(TAG, "discovery close " + unit.name + ": " + describe(error));
+                }
+                unit.discovery = null;
             }
-            discovery = null;
         }
         if (client != null && clientInitCalled) {
             try {

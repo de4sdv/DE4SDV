@@ -31,9 +31,32 @@ public class TypedStateSubscriberTest {
         assertEquals("DrivingStateObserver", TypedStateSubscriber.SUBJECT_BUNDLE);
         assertEquals("com.android.sdv.someip", TypedStateSubscriber.PUBLISHER_PACKAGE);
         assertEquals("SomeIpBroker", TypedStateSubscriber.PUBLISHER_BUNDLE);
-        assertEquals("de4sdv-driving-operational-state", TypedStateSubscriber.PUBLISHER_UNIT);
-        assertEquals(TypedStateSubscriber.TOPIC_NAME, TypedStateSubscriber.PUBLISHER_UNIT);
+        // The three service units of the mapping (keys 0, 1, 2), in event order.
+        assertEquals(Arrays.asList("de4sdv-driving-operational-state-plan",
+                "de4sdv-driving-operational-state-vehicle-state",
+                "de4sdv-driving-operational-state-health"), TypedStateSubscriber.PUBLISHER_UNITS);
         assertEquals("de4sdv.driving.v1.DrivingOperationalState", TypedStateSubscriber.MESSAGE_NAME);
+    }
+
+    @Test
+    public void eachUnitCarriesOneKind() {
+        assertEquals(1, TypedStateSubscriber.expectedKind(TypedStateSubscriber.UNIT_PLAN));
+        assertEquals(2, TypedStateSubscriber.expectedKind(TypedStateSubscriber.UNIT_VEHICLE_STATE));
+        assertEquals(3, TypedStateSubscriber.expectedKind(TypedStateSubscriber.UNIT_HEALTH));
+        assertEquals(0, TypedStateSubscriber.expectedKind("de4sdv-driving-operational-state"));
+    }
+
+    @Test
+    public void theLinkIsSubscribedOnlyWhenEveryUnitIs() {
+        final String s = TypedStateSubscriber.LINK_SUBSCRIBED;
+        final String w = TypedStateSubscriber.LINK_WAITING;
+        final String u = TypedStateSubscriber.LINK_UNAVAILABLE;
+        assertEquals(s, TypedStateSubscriber.aggregateLink(Arrays.asList(s, s, s)));
+        assertEquals(w, TypedStateSubscriber.aggregateLink(Arrays.asList(s, w, s)));
+        assertEquals(w, TypedStateSubscriber.aggregateLink(Arrays.asList(w, w, w)));
+        assertEquals(u, TypedStateSubscriber.aggregateLink(Arrays.asList(s, s, u)));
+        assertEquals(u, TypedStateSubscriber.aggregateLink(Arrays.asList(w, u, s)));
+        assertEquals(w, TypedStateSubscriber.aggregateLink(Arrays.<String>asList()));
     }
 
     @Test

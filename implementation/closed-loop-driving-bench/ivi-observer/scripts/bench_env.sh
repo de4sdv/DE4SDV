@@ -79,8 +79,8 @@ fi
 : "${OBSERVER_GUEST_DIR:=/vendor/priv-app/$OBSERVER_APP}"
 # The Gateway Java client sources the app compiles in (as the AEBS app carries them).
 : "${GATEWAY_JAVA_SRC:=$AOSP_TOP/system/software_defined_vehicle/sdv_gateway/libsdvgatewayclient_java/src}"
-# The publisher the app subscribes to by name (the SOME/IP broker of the SDV Core VM).
-: "${PUBLISHER_UNIT:=$TOPIC}"
+# The publisher the app subscribes to by name is the SOME/IP broker of the SDV Core
+# VM (BROKER_PACKAGE / BROKER_BUNDLE), one subscription per unit of SERVICE_UNITS.
 # screenrecord's display: empty = the default display, which on sdv_ivi_cf is the
 # 1080 x 600 centre display of the earlier recordings. Otherwise a physical id from
 # `dumpsys SurfaceFlinger --display-id`.

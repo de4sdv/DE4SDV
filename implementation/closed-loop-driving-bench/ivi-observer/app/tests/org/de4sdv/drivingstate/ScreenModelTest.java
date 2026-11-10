@@ -83,7 +83,7 @@ public class ScreenModelTest {
 
     private static ObserverState live() {
         final ObserverState s = new ObserverState();
-        s.setLink("SUBSCRIBED", "instance1:de4sdv-driving-operational-state");
+        s.setLink("SUBSCRIBED", "3 of 3 units subscribed on instance1");
         s.onReceipt(mapped(health(1, NOW_MS - 120, 1, 0)), (NOW_MS - 100) * 1_000_000L);
         s.onReceipt(mapped(vehicle(1, NOW_MS - 90, 36f)), (NOW_MS - 60) * 1_000_000L);
         s.onReceipt(mapped(plan(1, NOW_MS - 80)), (NOW_MS - 40) * 1_000_000L);
@@ -329,7 +329,7 @@ public class ScreenModelTest {
         out.add(new ObserverState());
         out.add(live());
         final ObserverState big = new ObserverState();
-        big.setLink("SUBSCRIBED", "instance1:de4sdv-driving-operational-state");
+        big.setLink("SUBSCRIBED", "3 of 3 units subscribed on instance1");
         final StateRecord.Fields h = health(4294967295L, NOW_MS, 2, 11);
         h.modeSource = "actuationAdapter";
         h.causeSinceMonoS = 4294967295L;
@@ -370,7 +370,8 @@ public class ScreenModelTest {
         refused.onError("read: INTERNAL: " + "x".repeat(300));
         out.add(refused);
         final ObserverState down = new ObserverState();
-        down.setLink("UNAVAILABLE", "subscribe instance1:de4sdv-driving-operational-state: PERMISSION_DENIED: "
+        down.setLink("UNAVAILABLE", "2 of 3 units subscribed; de4sdv-driving-operational-state-plan UNAVAILABLE: "
+                + "subscribe instance1:de4sdv-driving-operational-state-plan: PERMISSION_DENIED: "
                 + "y".repeat(300));
         out.add(down);
         return out;

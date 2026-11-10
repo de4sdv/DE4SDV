@@ -3,8 +3,9 @@
 //
 // The IVI observer application of INC-DRIVING-001 (phase 8, decision 4).
 //
-// It subscribes to the typed Data Tunnel topic that carries the driving
-// operational state from the SOME/IP broker of the SDV Core VM, appends one JSONL
+// It subscribes to the three typed Data Tunnel units (plan, vehicle state,
+// health; one message type) that carry the driving operational state from the
+// SOME/IP broker of the SDV Core VM, merges them into one state, appends one JSONL
 // record per receipt to /data/data/org.de4sdv.drivingstate/files/observer.jsonl
 // (ICD section 6, unchanged), mirrors a summary of each receipt to logcat (tag
 // DE4SDV_DRIVING_STATE) and draws the plan, the state and the two clocks.
@@ -81,10 +82,10 @@ public final class MainActivity extends Activity implements TypedStateSubscriber
 
         lifecycle("start", "subject", TypedStateSubscriber.SUBJECT_PACKAGE + "."
                 + TypedStateSubscriber.SUBJECT_BUNDLE);
-        lifecycle("config", "topic", TypedStateSubscriber.TOPIC_NAME);
         lifecycle("config", "message", TypedStateSubscriber.MESSAGE_NAME);
         lifecycle("config", "publisher", TypedStateSubscriber.PUBLISHER_PACKAGE + "."
-                + TypedStateSubscriber.PUBLISHER_BUNDLE + " unit " + TypedStateSubscriber.PUBLISHER_UNIT);
+                + TypedStateSubscriber.PUBLISHER_BUNDLE + " units "
+                + String.join(",", TypedStateSubscriber.PUBLISHER_UNITS));
         lifecycle("config", "translation", "REFLECTION at the SDV Core SOME/IP broker");
 
         subscriber = new TypedStateSubscriber(this);
@@ -143,7 +144,7 @@ public final class MainActivity extends Activity implements TypedStateSubscriber
     public void onLink(String linkState, String detail) {
         lastStatus = linkState;
         if ("SUBSCRIBED".equals(linkState)) {
-            lifecycle("ready", "topic", TypedStateSubscriber.TOPIC_NAME);
+            lifecycle("ready", "link", detail);
         } else if ("UNAVAILABLE".equals(linkState)) {
             Log.w(TAG, "gateway unavailable: " + detail);
             lifecycle("error", "gateway", detail);
