@@ -377,14 +377,19 @@ from the route, and the model revisits it when upstream publishes one.
 GAP-DRIVING-012 records a third limit, accepted on the owner's decision of
 2026-11-10: the pinned checkpoint does not keep the vehicle in its lane. On a
 straight route the plans leaned about 2 degrees to one side from the first
-plan that moved the vehicle and never steered back: of 375 plans made with the
-vehicle more than 0.3 m off to that side, 3 pointed back. The vehicle was in
-the next lane after about 11 s. With the yaw history as REQ-DRIVING-008 gives
-it the plans do not correct a drift, and with the checkpoint's own yaw history
-they turn off the lane within seconds (GAP-DRIVING-010), so no setting keeps
-the lane. The review of NEED-DRIVING-001 (SC-DRIVING-005) names both limits,
-and the evidence claims neither lane keeping nor driving along the route. The
-gap closes only with a checkpoint that keeps its lane in a closed loop.
+plan that moved the vehicle and never steered back. Until a correction that
+day the bench applied every steering command at twice its angle, because the
+actuation adapter scaled the steer by the 35 degree command limit, not by the
+vehicle's 70 degree maximum, and the vehicle was in the next lane after about
+11 s. After the correction it was there after about 15 s, and the plans still
+leaned and did not correct: of 434 plans made with the vehicle more than 0.3 m
+off to that side, 2 pointed back. With the yaw history as REQ-DRIVING-008
+gives it the plans do not correct a drift, and with the checkpoint's own yaw
+history they turn off the lane within seconds (GAP-DRIVING-010), so no setting
+keeps the lane. The review of NEED-DRIVING-001 (SC-DRIVING-005) names both
+limits, and the evidence claims neither lane keeping nor driving along the
+route. The gap closes only with a checkpoint that keeps its lane in a closed
+loop.
 
 Three decisions shape the functional architecture:
 
@@ -642,11 +647,11 @@ increment. With the simulator on its own card the planner met REQ-DRIVING-013's
 budget at wall-clock pace in the probe, so the increment needed no redirect.
 The verification runs missed it narrowly: **GAP-DRIVING-013**, accepted on the
 owner's decision of 2026-11-10, records that REQ-DRIVING-013 is narrowly not
-met. On the straight route 99.2 % of the plans came in time, but two in a row
-missed, none by more than 2 ms; an earlier run met it at its limit, 99.0 %,
-with the vehicle standing for most of the window. The checkpoint's inference
-alone takes about 90 ms of the 100, so a few milliseconds anywhere make a
-miss. The limit stays at 100 ms.
+met. In three runs on the straight route 97.5 to 99.2 % of the plans came in
+time, and in each two in a row missed, the latest by 7.7 ms; an earlier run
+met it at its limit, 99.0 %, with the vehicle standing for most of the window.
+The checkpoint's inference alone takes about 90 ms of the 100, so a few
+milliseconds anywhere make a miss. The limit stays at 100 ms.
 **GAP-DRIVING-005** was new information from the placement:
 the actuation adapter's own stop response (REQ-DRIVING-028) had no path to
 the publication REQ-DRIVING-029 asks for, because phases 6 and 7 had no flow

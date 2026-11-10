@@ -1457,27 +1457,39 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   part <'GAP-DRIVING-012'> gapPlansKeepNoLane : IncrementGap {
     doc /*
-     * Open, and accepted as a known limit (owner decision of 2026-11-10): the
-     * pinned checkpoint does not keep the vehicle in its lane. In a run of
-     * the closed-loop scenario on a straight route (2026-11-10), with the
-     * motion history as REQ-DRIVING-008 gives it, the plans leaned to one
-     * side from the first plan that moved the vehicle, with the vehicle
-     * aligned in its lane (about 2 degrees at 10 m ahead), and never steered
-     * back: of 375 plans made with the vehicle more than 0.3 m to that side
-     * of the route, 3 pointed back toward it. The vehicle was in the next
-     * lane after about 11 s. In the readiness probe, with the yaw history
-     * also given as zero, the vehicle drifted to the other side in the same
-     * way (GAP-DRIVING-010). Bench-side causes were checked: the camera's
-     * principal point is 0.08 degrees off centre, the motion history carries
-     * only speed and acceleration, and the drift went to opposite sides in
-     * the two runs, which makes a fixed error of the camera rig unlikely.
-     * With its own yaw history the checkpoint turns its plans off the lane
-     * within seconds (GAP-DRIVING-010); without it, as here, the plans do not
-     * correct a drift. So neither setting keeps the vehicle in its lane. The
-     * evidence therefore claims no lane keeping and no driving along the
-     * route, and the review of NEED-DRIVING-001 (SC-DRIVING-005) names this
-     * limit. Revisit when upstream publishes a checkpoint that keeps its lane
-     * in a closed loop.
+     * Open, and accepted as a known limit (owner decision of 2026-11-10):
+     * the pinned checkpoint does not keep the vehicle in its lane. In runs
+     * of the closed-loop scenario on a straight route (2026-11-10), with
+     * the motion history as REQ-DRIVING-008 gives it, the plans leaned to
+     * one side from the first plan that moved the vehicle, with the vehicle
+     * aligned in its lane, and never steered back. Until a correction that
+     * day, the bench applied every steering command at twice its angle: its
+     * actuation adapter scaled the steer by the 35 degree command limit
+     * instead of by the vehicle's maximum steering angle of 70 degrees, as
+     * MAP-DRIVING-VEHICLE-CONTROL states. In two runs before the correction
+     * the vehicle turned at 1.9 times the commanded rate and was in the
+     * next lane 11.5 and 11.6 s after the first plan; of 375 and 405 plans
+     * made with the vehicle more than 0.3 m to that side of the route, 3
+     * and 2 pointed back toward it. In the run after the correction the
+     * vehicle turned at 0.95 times the commanded rate and was in the next
+     * lane 14.7 s after the first plan, and the plans still leaned and did
+     * not correct: until the vehicle first crossed a lane marking, their
+     * heading 10 m ahead was 1.7 degrees off the vehicle's at the median
+     * (2.2 in both runs before), and of 434 plans made with the vehicle
+     * more than 0.3 m to that side, 2 pointed back. In the readiness probe,
+     * with the yaw history also given as zero, the vehicle drifted to the
+     * other side in the same way (GAP-DRIVING-010). Other bench-side causes
+     * were checked: the camera's principal point is 0.08 degrees off
+     * centre, the motion history carries only speed and acceleration, and
+     * the drift went to opposite sides on the bench and in the readiness
+     * probe, which makes a fixed error of the camera rig unlikely. With its
+     * own yaw history the checkpoint turns its plans off the lane within
+     * seconds (GAP-DRIVING-010); without it, as here, the plans do not
+     * correct a drift. So neither setting keeps the vehicle in its lane.
+     * The evidence therefore claims no lane keeping and no driving along
+     * the route, and the review of NEED-DRIVING-001 (SC-DRIVING-005) names
+     * this limit. Revisit when upstream publishes a checkpoint that keeps
+     * its lane in a closed loop.
      */
     attribute :>> disposition = LifecycleDisposition::accepted;
   }
@@ -1485,21 +1497,23 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   part <'GAP-DRIVING-013'> gapPlanningPeriodNarrowlyMissed : IncrementGap {
     doc /*
      * Open, and accepted as a known limit (owner decision of 2026-11-10):
-     * REQ-DRIVING-013 is narrowly not met. In the run of the closed-loop
-     * scenario on a straight route (2026-11-10), 595 of the 600 plans of the
-     * 60 s window were produced within 100 ms after their newest camera image
-     * was available (99.2 %), but two consecutive plans missed it; no plan was
-     * more than 2 ms late. In an earlier run (2026-11-09), with the vehicle
-     * standing after a contact for about three quarters of the window, 594 of
-     * 600 were in time (99.0 %) and no two consecutive plans missed, which
-     * meets the criterion at its limit. The margin is small by construction:
-     * the checkpoint's inference alone takes about 90 ms, and a plan took
-     * 95.9 ms at the median and 99.9 ms at the 99th percentile, so a delay of
-     * a few milliseconds anywhere in the step makes a miss. The limit stays at
-     * 100 ms, the planning period, and the miss is accepted instead of the
-     * hold or redirect that gapClosedLoopPerformance names. Revisit with a
-     * faster host, or with a faster engine for the checkpoint, which changes
-     * its numbers and needs its own parity evidence.
+     * REQ-DRIVING-013 is narrowly not met. In three runs of the closed-loop
+     * scenario on a straight route (2026-11-10), 595, 585 and 588 of the
+     * 600 plans of the 60 s window were produced within 100 ms after their
+     * newest camera image was available (99.2 %, 97.5 % and 98.0 %), and in
+     * each run two consecutive plans missed it; the latest plan was 1.7,
+     * 7.7 and 3.1 ms late. In an earlier run (2026-11-09), with the vehicle
+     * standing after a contact for about three quarters of the window, 594
+     * of 600 were in time (99.0 %) and no two consecutive plans missed,
+     * which meets the criterion at its limit. The margin is small by
+     * construction: the checkpoint's inference alone takes about 90 ms, and
+     * in the three runs a plan took 95.9 to 96.3 ms at the median and 99.9
+     * to 101.6 ms at the 99th percentile, so a delay of a few milliseconds
+     * anywhere in the step makes a miss. The limit stays at 100 ms, the
+     * planning period, and the miss is accepted instead of the hold or
+     * redirect that gapClosedLoopPerformance names. Revisit with a faster
+     * host, or with a faster engine for the checkpoint, which changes its
+     * numbers and needs its own parity evidence.
      */
     attribute :>> disposition = LifecycleDisposition::accepted;
   }

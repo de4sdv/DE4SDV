@@ -337,41 +337,51 @@ ROUTE_GAP_STATEMENTS = (
     "at junctions.",
     "Revisit when upstream publishes a checkpoint whose plans take the turn from the route.",
 )
-#: The deadline decision of 2026-11-10 (GAP-DRIVING-013), as the gap states it: the two runs on the two-host bench,
-#: why the margin is small, what stays and when to revisit. The numbers are the evaluator's for the 60 s window of
-#: REQ-DRIVING-013 and the run's timing records.
+#: The deadline decision of 2026-11-10 (GAP-DRIVING-013), as the gap states it: the runs on the bench, why the margin
+#: is small, what stays and when to revisit. The numbers are the evaluator's for the 60 s window of REQ-DRIVING-013 and
+#: the runs' timing records: three runs on the straight route, one of them after the bench's steering correction, which
+#: does not touch the plan times.
 DEADLINE_GAP_STATEMENTS = (
     "Open, and accepted as a known limit (owner decision of 2026-11-10): REQ-DRIVING-013 is narrowly not met.",
-    "In the run of the closed-loop scenario on a straight route (2026-11-10), 595 of the 600 plans of the 60 s window "
-    "were produced within 100 ms after their newest camera image was available (99.2 %), but two consecutive plans "
-    "missed it; no plan was more than 2 ms late.",
+    "In three runs of the closed-loop scenario on a straight route (2026-11-10), 595, 585 and 588 of the 600 plans of "
+    "the 60 s window were produced within 100 ms after their newest camera image was available (99.2 %, 97.5 % and "
+    "98.0 %), and in each run two consecutive plans missed it; the latest plan was 1.7, 7.7 and 3.1 ms late.",
     "In an earlier run (2026-11-09), with the vehicle standing after a contact for about three quarters of the "
     "window, 594 of 600 were in time (99.0 %) and no two consecutive plans missed, which meets the criterion at its "
     "limit.",
-    "The margin is small by construction: the checkpoint's inference alone takes about 90 ms, and a plan took "
-    "95.9 ms at the median and 99.9 ms at the 99th percentile, so a delay of a few milliseconds anywhere in the step "
-    "makes a miss.",
+    "The margin is small by construction: the checkpoint's inference alone takes about 90 ms, and in the three runs a "
+    "plan took 95.9 to 96.3 ms at the median and 99.9 to 101.6 ms at the 99th percentile, so a delay of a few "
+    "milliseconds anywhere in the step makes a miss.",
     "The limit stays at 100 ms, the planning period, and the miss is accepted instead of the hold or redirect that "
     "gapClosedLoopPerformance names.",
     "Revisit with a faster host, or with a faster engine for the checkpoint, which changes its numbers and needs its "
     "own parity evidence.",
 )
-#: The lane decision of 2026-11-10 (GAP-DRIVING-012), as the gap states it: what the run on a straight route showed,
-#: what the readiness probe showed, which bench-side causes were checked, why no history setting keeps the lane, and
-#: what the evidence and the review of NEED-DRIVING-001 take from it.
+#: The lane decision of 2026-11-10 (GAP-DRIVING-012), as the gap states it: what the runs on a straight route showed,
+#: before and after the bench's steering correction, what the readiness probe showed, which other bench-side causes were
+#: checked, why no history setting keeps the lane, and what the evidence and the review of NEED-DRIVING-001 take from
+#: it. The numbers are the runs' own records: the plans, the vehicle's poses and the adapter's applied commands.
 LANE_GAP_STATEMENTS = (
     "Open, and accepted as a known limit (owner decision of 2026-11-10): the pinned checkpoint does not keep the "
     "vehicle in its lane.",
-    "In a run of the closed-loop scenario on a straight route (2026-11-10), with the motion history as "
-    "REQ-DRIVING-008 gives it, the plans leaned to one side from the first plan that moved the vehicle, with the "
-    "vehicle aligned in its lane (about 2 degrees at 10 m ahead), and never steered back: of 375 plans made with the "
-    "vehicle more than 0.3 m to that side of the route, 3 pointed back toward it.",
-    "The vehicle was in the next lane after about 11 s.",
+    "In runs of the closed-loop scenario on a straight route (2026-11-10), with the motion history as REQ-DRIVING-008 "
+    "gives it, the plans leaned to one side from the first plan that moved the vehicle, with the vehicle aligned in its "
+    "lane, and never steered back.",
+    "Until a correction that day, the bench applied every steering command at twice its angle: its actuation adapter "
+    "scaled the steer by the 35 degree command limit instead of by the vehicle's maximum steering angle of 70 degrees, "
+    "as MAP-DRIVING-VEHICLE-CONTROL states.",
+    "In two runs before the correction the vehicle turned at 1.9 times the commanded rate and was in the next lane "
+    "11.5 and 11.6 s after the first plan; of 375 and 405 plans made with the vehicle more than 0.3 m to that side of "
+    "the route, 3 and 2 pointed back toward it.",
+    "In the run after the correction the vehicle turned at 0.95 times the commanded rate and was in the next lane "
+    "14.7 s after the first plan, and the plans still leaned and did not correct: until the vehicle first crossed a "
+    "lane marking, their heading 10 m ahead was 1.7 degrees off the vehicle's at the median (2.2 in both runs before), "
+    "and of 434 plans made with the vehicle more than 0.3 m to that side, 2 pointed back.",
     "In the readiness probe, with the yaw history also given as zero, the vehicle drifted to the other side in the "
     "same way (GAP-DRIVING-010).",
-    "Bench-side causes were checked: the camera's principal point is 0.08 degrees off centre, the motion history "
-    "carries only speed and acceleration, and the drift went to opposite sides in the two runs, which makes a fixed "
-    "error of the camera rig unlikely.",
+    "Other bench-side causes were checked: the camera's principal point is 0.08 degrees off centre, the motion history "
+    "carries only speed and acceleration, and the drift went to opposite sides on the bench and in the readiness probe, "
+    "which makes a fixed error of the camera rig unlikely.",
     "With its own yaw history the checkpoint turns its plans off the lane within seconds (GAP-DRIVING-010); without "
     "it, as here, the plans do not correct a drift. So neither setting keeps the vehicle in its lane.",
     "The evidence therefore claims no lane keeping and no driving along the route, and the review of NEED-DRIVING-001 "
@@ -976,7 +986,9 @@ def test_the_lane_gap_records_that_the_checkpoint_keeps_no_lane():
         assert statement in doc, statement
     assert not re.search(r"\bTown\d|\bspawn", doc, re.I), doc
     assert not [word for word in CLAIM_WORDS if word in doc.lower()]
-    for gone in ("kept its lane", "the vehicle keeps its lane", "lane keeping works"):
+    for gone in ("kept its lane", "the vehicle keeps its lane", "lane keeping works", "about 2 degrees at 10 m ahead",
+                 "The vehicle was in the next lane after about 11 s.", "Bench-side causes were checked:",
+                 "opposite sides in the two runs"):
         assert gone not in doc, gone
 
 
@@ -993,7 +1005,8 @@ def test_the_deadline_gap_records_that_req_013_is_narrowly_not_met():
         assert statement in doc, statement
     assert not re.search(r"\bTown\d|\bspawn", doc, re.I), doc
     assert not [word for word in CLAIM_WORDS if word in doc.lower()]
-    for gone in ("REQ-DRIVING-013 is met", "meets REQ-DRIVING-013", "lower-precision"):
+    for gone in ("REQ-DRIVING-013 is met", "meets REQ-DRIVING-013", "lower-precision", "no plan was more than 2 ms late",
+                 "In the run of the closed-loop scenario on a straight route"):
         assert gone not in doc, gone
     # the probe's statement in the package head stays, with the verification outcome next to it
     head = _flat(raw[:raw.index("package " + PACKAGE)])
@@ -1236,10 +1249,12 @@ def test_the_guide_records_the_deadline_gap_with_the_probe_that_met_the_budget()
     assert probe in flat
     after = flat[flat.index(probe):]
     for phrase in ("**GAP-DRIVING-013**, accepted on the owner's decision of 2026-11-10, records that REQ-DRIVING-013 "
-                   "is narrowly not met.", "99.2 %", "two in a row missed", "none by more than 2 ms", "99.0 %",
-                   "standing for most of the window", "about 90 ms of the 100", "The limit stays at 100 ms."):
+                   "is narrowly not met.", "In three runs on the straight route 97.5 to 99.2 % of the plans came in "
+                   "time", "two in a row missed", "the latest by 7.7 ms", "99.0 %", "standing for most of the window",
+                   "about 90 ms of the 100", "The limit stays at 100 ms."):
         assert phrase in after[:900], phrase
     assert "so the increment needs no redirect." not in flat
+    assert "none by more than 2 ms" not in flat, "a later run's latest plan was 7.7 ms late"
 
 
 def test_the_guide_says_the_history_is_worked_out_from_the_positions():
@@ -1258,8 +1273,10 @@ def test_the_guide_explains_the_lane_gap_right_after_the_route_gap():
     route = next(index for index, paragraph in enumerate(paragraphs) if "GAP-DRIVING-011 records a separate limit" in paragraph)
     lane = paragraphs[route + 1]
     for phrase in ("GAP-DRIVING-012 records a third limit", "owner's decision of 2026-11-10",
-                   "the pinned checkpoint does not keep the vehicle in its lane", "about 2 degrees", "375 plans",
-                   "3 pointed back", "about 11 s", "REQ-DRIVING-008", "GAP-DRIVING-010", "so no setting keeps the lane",
+                   "the pinned checkpoint does not keep the vehicle in its lane", "about 2 degrees", "twice its angle",
+                   "the 35 degree command limit", "the vehicle's 70 degree maximum", "about 11 s", "about 15 s",
+                   "434 plans", "2 pointed back", "REQ-DRIVING-008", "GAP-DRIVING-010", "so no setting keeps the lane",
                    "SC-DRIVING-005", "claims neither lane keeping nor driving along the route",
                    "a checkpoint that keeps its lane in a closed loop"):
         assert phrase in lane, phrase
+    assert "of 375 plans" not in lane, "the numbers after the steering correction"
