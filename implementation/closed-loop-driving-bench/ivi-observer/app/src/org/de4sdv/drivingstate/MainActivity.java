@@ -5,18 +5,19 @@
 //
 // It subscribes to the typed Data Tunnel topic that carries the driving
 // operational state from the SOME/IP broker of the SDV Core VM, appends one JSONL
-// record per receipt to /data/data/org.de4sdv.drivingstate/files/observer.jsonl,
-// mirrors a summary of each receipt to logcat (tag DE4SDV_DRIVING_STATE) and draws
-// the state and the two clocks on screen.
+// record per receipt to /data/data/org.de4sdv.drivingstate/files/observer.jsonl
+// (ICD section 6, unchanged), mirrors a summary of each receipt to logcat (tag
+// DE4SDV_DRIVING_STATE) and draws the plan, the state and the two clocks.
 //
 // The message arrives typed: the broker translated the SOME/IP struct in
-// REFLECTION mode, and this process reads protobuf fields. Nothing here decodes a
-// byte payload, and no DE4SDV relay sits between the platform's topic and this
-// app; the app publishes nothing back.
+// REFLECTION mode, and this process reads protobuf fields. No DE4SDV relay sits
+// between the platform's topic and this app; the app publishes nothing back.
 //
-// The APK is installed over adb on the IVI VM (scripts/stage_ivi_observer.sh); the
-// record file is pulled by the same script (adb root, or run-as on a debuggable
-// build).
+// Threads: the subscriber's executor calls the Sink; this class writes the
+// record there (one writer, synchronized) and posts every receipt to the UI
+// thread in arrival order. ObserverState and the view live on the UI thread.
+// A 100 ms UI tick redraws, so the IVI clock, the ages and the STALE state move
+// even when nothing arrives.
 package org.de4sdv.drivingstate;
 
 import android.app.Activity;
@@ -40,20 +41,33 @@ public final class MainActivity extends Activity implements TypedStateSubscriber
     private static final String RECORD_TAG = TAG;
     private static final String RECORD_FILE = "observer.jsonl";
     private static final long kStatusPeriodMs = 5000L;
+    private static final long kFramePeriodMs = 100L;
 
     private final Handler main = new Handler(Looper.getMainLooper());
+    private final ObserverState state = new ObserverState();
     private ObserverView view;
     private TypedStateSubscriber subscriber;
     private BufferedWriter record;
+    // Written on the subscriber's executor only.
     private long receipts;
     private long errors;
-    private String lastStatus = "starting";
+    private volatile String lastStatus = "starting";
+
+    private final Runnable frameTick = new Runnable() {
+        @Override
+        public void run() {
+            if (view != null) {
+                view.invalidate();
+            }
+            main.postDelayed(this, kFramePeriodMs);
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        view = new ObserverView(this);
+        view = new ObserverView(this, state);
         setContentView(view);
 
         try {
@@ -69,12 +83,15 @@ public final class MainActivity extends Activity implements TypedStateSubscriber
                 + TypedStateSubscriber.SUBJECT_BUNDLE);
         lifecycle("config", "topic", TypedStateSubscriber.TOPIC_NAME);
         lifecycle("config", "message", TypedStateSubscriber.MESSAGE_NAME);
+        lifecycle("config", "publisher", TypedStateSubscriber.PUBLISHER_PACKAGE + "."
+                + TypedStateSubscriber.PUBLISHER_BUNDLE + " unit " + TypedStateSubscriber.PUBLISHER_UNIT);
         lifecycle("config", "translation", "REFLECTION at the SDV Core SOME/IP broker");
 
         subscriber = new TypedStateSubscriber(this);
         subscriber.start();
 
         main.postDelayed(this::statusTick, kStatusPeriodMs);
+        main.post(frameTick);
     }
 
     @Override
@@ -83,19 +100,19 @@ public final class MainActivity extends Activity implements TypedStateSubscriber
         if (subscriber != null) {
             subscriber.stop();
         }
-        closeRecord();
         main.removeCallbacksAndMessages(null);
+        closeRecord();
         super.onDestroy();
     }
 
-    // --- TypedStateSubscriber.Sink, called on the subscriber's thread ---------
+    // --- TypedStateSubscriber.Sink, called on the subscriber's executor ----------
 
     @Override
     public void onState(MessageMapper.Mapped mapped, long tMonoNs, long tRealNs) {
         receipts++;
         writeRecord(StateRecord.line(tMonoNs, tRealNs, receipts, mapped.fields));
         Log.i(RECORD_TAG, summary(receipts, mapped));
-        main.post(() -> view.onState(mapped, tRealNs));
+        main.post(() -> state.onReceipt(mapped, tRealNs));
     }
 
     @Override
@@ -104,25 +121,44 @@ public final class MainActivity extends Activity implements TypedStateSubscriber
         Log.w(RECORD_TAG, "error reason=" + reason);
         writeRecord(StateRecord.envelope(tMonoNs, tRealNs, "error",
                 "\"reason\":\"" + StateRecord.quote(reason) + "\""));
-        main.post(() -> view.onError(reason));
+        final boolean parse = reason.startsWith("parse:");
+        main.post(() -> {
+            if (parse) {
+                state.onParseFailure(reason);
+            } else {
+                state.onError(reason);
+            }
+        });
     }
 
     @Override
-    public void onSubscriptionActive() {
-        lastStatus = "SUBSCRIBED";
-        lifecycle("ready", "topic", TypedStateSubscriber.TOPIC_NAME);
-        main.post(() -> view.setLink("SUBSCRIBED"));
+    public void onDataLoss(String reason, long tMonoNs, long tRealNs) {
+        Log.w(RECORD_TAG, "drop reason=" + reason);
+        writeRecord(StateRecord.envelope(tMonoNs, tRealNs, "drop",
+                "\"reason\":\"" + StateRecord.quote(reason) + "\""));
+        main.post(() -> state.onDataLoss(reason));
     }
 
     @Override
-    public void onUnavailable(String reason) {
-        lastStatus = "UNAVAILABLE";
-        Log.w(TAG, "gateway unavailable: " + reason);
-        lifecycle("error", "gateway", reason);
-        main.post(() -> view.setLink("UNAVAILABLE"));
+    public void onLink(String linkState, String detail) {
+        lastStatus = linkState;
+        if ("SUBSCRIBED".equals(linkState)) {
+            lifecycle("ready", "topic", TypedStateSubscriber.TOPIC_NAME);
+        } else if ("UNAVAILABLE".equals(linkState)) {
+            Log.w(TAG, "gateway unavailable: " + detail);
+            lifecycle("error", "gateway", detail);
+        } else {
+            lifecycle("config", "link", linkState + " " + detail);
+        }
+        main.post(() -> state.setLink(linkState, detail));
     }
 
-    // --- records -------------------------------------------------------------
+    @Override
+    public void onConfig(String key, String value) {
+        lifecycle("config", key, value);
+    }
+
+    // --- records -------------------------------------------------------------------
 
     /** One logcat line, short enough not to be truncated (the file has the arrays). */
     private static String summary(long receiptSeq, MessageMapper.Mapped mapped) {
@@ -132,7 +168,8 @@ public final class MainActivity extends Activity implements TypedStateSubscriber
         line.append(" kind=").append(StateRecord.kindName(f.kind));
         line.append(" sequence=").append(f.sequence);
         line.append(" schema=").append(f.schemaMajor).append('.').append(f.schemaMinor);
-        line.append(" publish_real=").append(f.publishRealS).append('.').append(f.publishRealNs);
+        line.append(" publish_real=").append(f.publishRealS).append('.')
+                .append(String.format(Locale.US, "%09d", f.publishRealNs));
         switch ((int) f.kind) {
             case 1:
                 line.append(" frame=").append(f.planFrameIndex);

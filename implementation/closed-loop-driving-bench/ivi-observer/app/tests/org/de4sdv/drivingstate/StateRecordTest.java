@@ -8,7 +8,7 @@
 // dropped or reordered here, the evaluators silently read nothing, and a runtime
 // check on the guest cannot tell that apart from a quiet car.
 //
-// Run in the tree:   m De4sdvDrivingStateRecordTest && the tree's java_test runner
+// Run in the tree:   m De4sdvDrivingStateObserverTests, then JUnitCore (RUNBOOK step 8)
 // Run anywhere else: javac StateRecord.java StateRecordTest.java && java ...
 package org.de4sdv.drivingstate;
 
@@ -93,17 +93,27 @@ public class StateRecordTest {
 
     @Test
     public void valuesAreTranscribedNotReshaped() {
-        final String data = StateRecord.data(planFields());
+        final StateRecord.Fields f = planFields();
+        final String data = StateRecord.data(f);
         assertTrue(data.contains("\"plan_capture_ms\":123400"));
         assertTrue(data.contains("\"plan_frame_index\":1234"));
         assertTrue(data.contains("\"publish_real_s\":1762742400"));
         assertTrue(data.contains("\"publish_real_ns\":123456789"));
         assertTrue(data.contains("\"plan_reference\":\"0123456789abcdef/1234\""));
-        // 64 points, four values each in x and y: the arrays are written in full.
         assertEquals(1, countOccurrences(data, "\"plan_x\":["));
-        assertTrue(data.contains("\"plan_x\":[0,0.75,1.5,"));
-        assertTrue(data.contains(",47.25]"));
-        assertTrue(data.contains("\"plan_y\":[0,-0.125,-0.25,"));
+        // The arrays are written in full, 64 values each, and every value reads
+        // back to the same float32 (StateRecord writes 9 significant digits,
+        // "%.9g", which round-trips any float exactly; the previous version of this test
+        // expected the shortest form "0,0.75,1.5", which the code never wrote).
+        final float[] x = floatArray(data, "plan_x");
+        final float[] y = floatArray(data, "plan_y");
+        assertEquals(64, x.length);
+        assertEquals(64, y.length);
+        for (int i = 0; i < 64; i++) {
+            assertEquals("plan_x[" + i + "]", Float.floatToIntBits(f.planX[i]), Float.floatToIntBits(x[i]));
+            assertEquals("plan_y[" + i + "]", Float.floatToIntBits(f.planY[i]), Float.floatToIntBits(y[i]));
+        }
+        assertTrue(data.contains("\"plan_x\":[0.00000000,0.750000000,1.50000000,"));
     }
 
     @Test
@@ -148,6 +158,17 @@ public class StateRecordTest {
             at = haystack.indexOf(needle, at + 1);
         }
         return count;
+    }
+
+    private static float[] floatArray(String data, String name) {
+        final int start = data.indexOf("\"" + name + "\":[") + name.length() + 4;
+        final int end = data.indexOf(']', start);
+        final String[] parts = data.substring(start, end).split(",");
+        final float[] out = new float[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            out[i] = Float.parseFloat(parts[i]);
+        }
+        return out;
     }
 
     /** Runs without JUnit, for a host that only has a JDK. */

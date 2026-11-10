@@ -109,11 +109,16 @@ calls nothing (REQ-DRIVING-018, -019).
 - **Subscription** (`TypedStateSubscriber`): subject
   `org.de4sdv.drivingstate` / `DrivingStateObserver`, topic
   `de4sdv-driving-operational-state`, message
-  `de4sdv.driving.v1.DrivingOperationalState`, parser = the generated class. The
-  platform parses the protobuf; the app reads fields. **No bytes, no framing, no
-  decode step.** Polls every 100 ms and on the gateway's data-available
-  notification; reads up to 16 per batch; retries the connection every 5 s instead
-  of dying (the bench reboots and restarts the gateway).
+  `de4sdv.driving.v1.DrivingOperationalState`, parser = the generated class
+  (`DrivingOperationalState.parser()`, varint-delimited, as the platform's own
+  `Subscriber` parses). The broker translated the struct; the app reads fields. **No
+  bytes field, no framing of our own, no SOME/IP decode step.** The publisher is found
+  **by name** (`com.android.sdv.someip` / `SomeIpBroker` / unit
+  `de4sdv-driving-operational-state`, any VM), as the proven native relay and the
+  platform's SOME/IP sample do, not by unit type. Polls every 100 ms and on the
+  gateway's data-available notification; reads up to 16 per batch; `DATA_LOSS` is
+  counted, not a reconnect; every gateway failure is shown with its status; retries
+  every 5 s after closing the client (the JNI keeps one client per process).
 - **Contract checks** (`MessageMapper`): `schema_major == 2`, `kind in 1..3`,
   non-empty `producer`; and one diagnostic that protobuf cannot express — if every
   field of the message's kind is still at its default, the record and the screen
@@ -127,12 +132,20 @@ calls nothing (REQ-DRIVING-018, -019).
   receipt stamp at millisecond granularity (`System.currentTimeMillis() * 1e6`);
   the image's Java API has no nanosecond realtime read. No latency is computed in
   the app (ICD §6).
-- **Screen** (`ObserverView`, `PlanPathView`): the two clocks side by side — *IVI
-  real time at receipt* and *message publish real time* — then health (mode and
-  cause with their names, when the stop began, its source), the vehicle state,
-  the newest plan with its frame index and image capture time, and the plan's path
-  (`plan_x`/`plan_y`, vehicle frame, x forward and y left, 10 m grid, ego at the
-  origin). Stamps are formatted, never differenced.
+- **Screen** (`ObserverView`, drawing only; content in `ScreenModel`, layout in
+  `ScreenLayout`, projection in `PlanGeometry`, plan numbers in `PlanKinematics`, all
+  Android-free and pinned by JVM tests): the plan's path (`plan_x`/`plan_y`, vehicle
+  frame, x forward up and y left left, one scale for both axes, a metric grid whose
+  spacing is printed, ego at the origin, larger dots at whole seconds); mode and cause
+  (the only colour authority, always with text); speed in m/s and km/h and the plan's
+  speed at +1 s, +3 s and the horizon (the plan's acceleration integrated from the
+  current speed, labelled as such); the plan's frame, sample count, +1 s point and
+  first-second mean curvature (a number, no steering word); IVI real time now and the
+  newest message's publish real time; identity and counters; one provenance line.
+  The receipt lag and the plan age are shown as **display-only** differences of two
+  clocks (IVI vs S-CORE real time), labelled so; the record stays stamps only (ICD §6,
+  no computed latencies). STALE after 1.0 s without a receipt greys the state and
+  clears the path.
 - **Screen recording**: `screenrecord` on the guest, 40 s, pulled
   (`stage_ivi_observer.sh record`).
 
@@ -153,7 +166,7 @@ family). If the pushed app cannot bind the gateway, SELinux is the cause and
 | A new protobuf type enters the SDV catalog through a `proto_library` in the catalog's `Android.bp`, and `vsidlc` resolves it for `broker.vsidl` | **assumed** | no offline tree; probe §6 prints the tree's own registration and module kinds; a wrong module kind is a build-time failure, not a silent one |
 | A dotted message name in `broker.vsidl`'s `publisher` entry resolves across packages | **assumed** | the AEBS precedent used a same-package name; probe §6 prints whether any tree entry is dotted; the bare-name variant is a one-line change plus a rebuild |
 | A Java app on this image subscribes through `google.sdv.gateway.client` and draws typed messages | **proven** | INC-AEBS-010 `GatewayFrameSubscriber` + `MainActivity`, runtime-verified (PF-004) |
-| An app pushed into `/system/priv-app` may bind the SDV Gateway | **assumed** | the AEBS app was an image module; G5 (`initComms` + `avc: denied`) decides |
+| An app pushed into `/vendor/priv-app` may bind the SDV Gateway | **assumed** | the AEBS app was an image module in the same partition with the same module shape; G5 (`initComms` + `avc: denied`) decides |
 | The SDV Gateway hands the app the broker's protobuf message ready to parse | **assumed** | the Java client parses into the generated class; a parse failure surfaces as a read error at G5 |
 
 ## 6. Option A, kept as the first fallback

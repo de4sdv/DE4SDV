@@ -230,12 +230,29 @@ cd "$SLICE"
 
 The script copies the Soong modules into
 `$AOSP_TOP/system/software_defined_vehicle/samples/de4sdv_driving_observer/{app,contract}`
-(Soong only sees modules inside the tree), then `lunch sdv_ivi_cf-cp2a-eng; m
-De4sdvDrivingStateObserver De4sdvDrivingStateRecordTest`.
+(Soong only sees modules inside the tree), copies the tree's own Gateway Java client
+sources (`sdv_gateway/libsdvgatewayclient_java/src/google/...`) into
+`app/src/google/sdv/gateway/client/` (the INC-AEBS-010 app carries the same copy),
+then `lunch sdv_ivi_cf-cp2a-eng; m De4sdvDrivingStateObserver
+De4sdvDrivingStateObserverTests`. The full build log is `run/observer-build.log`.
 
-Expected: `built .../out/target/product/sdv_ivi_cf/system/priv-app/De4sdvDrivingStateObserver/De4sdvDrivingStateObserver.apk`
-and no Soong error. Run `De4sdvDrivingStateRecordTest` with the tree's java_test
-runner; the same rules already ran offline (step 1).
+Expected: `built .../out/target/product/sdv_ivi_cf/vendor/priv-app/De4sdvDrivingStateObserver/De4sdvDrivingStateObserver.apk`
+(a vendor privileged app, the AEBS app's module shape: the Gateway Java client is a
+vendor `java_sdk_library`) and no Soong error. `m` builds the JVM tests but does not
+run them; run them with the tree's JDK:
+
+```bash
+cd "$AOSP_TOP"
+JAR=$(find out/soong/.intermediates/system/software_defined_vehicle/samples/de4sdv_driving_observer/app/De4sdvDrivingStateObserverTests \
+  -name 'De4sdvDrivingStateObserverTests.jar' -path '*combined*' | head -1)
+# The combined jar carries junit and hamcrest (static_libs); nothing else is needed.
+prebuilts/jdk/jdk21/linux-x86/bin/java -cp "$JAR" org.junit.runner.JUnitCore \
+  org.de4sdv.drivingstate.StateRecordTest org.de4sdv.drivingstate.PlanGeometryTest \
+  org.de4sdv.drivingstate.PlanKinematicsTest org.de4sdv.drivingstate.ScreenModelTest
+```
+
+Expected: `OK (35 tests)` (8 + 7 + 13 + 7; the subscriber's own 6 tests need the Gateway
+client classes and run off the tree).
 
 This can run while the core image builds only if the tree is already built for
 `sdv_ivi_cf`; otherwise run it here, after step 5.
@@ -248,8 +265,9 @@ This can run while the core image builds only if the tree is already built for
 
 What it does, and why each piece is not optional:
 
-1. `adb root` + `remount` on the IVI (eng/UNLOCKED; the relay precedent pushes to
-   `/system`).
+1. `adb root` + `remount` on the IVI (eng/UNLOCKED). `/vendor` must be writable; on a
+   guest with verity on, the first `remount` disables it and asks for a reboot, which
+   the script does once and remounts again.
 2. Pushes the subject ACL to
    `/product/etc/sdv_authz_acls/org.de4sdv.drivingstate/DrivingStateObserver.textproto`
    and the broker object policy to
@@ -257,9 +275,11 @@ What it does, and why each piece is not optional:
    Both name `message: "de4sdv.driving.v1.DrivingOperationalState"`. The SD agent
    reads ACLs **only at its start** and exits if a second file names one subject, so
    the script refuses to continue on a duplicate.
-3. Pushes the APK to `/system/priv-app/De4sdvDrivingStateObserver/`.
+3. Removes a `/data/app` copy of the package if an earlier `adb install` left one
+   (it would shadow the image path as an update), then pushes the APK to
+   `/vendor/priv-app/De4sdvDrivingStateObserver/` (`restorecon` after the push).
 4. Reboots; PackageManager scans the APK, the SD agent reads the ACLs.
-5. Prints `installed: package:/system/priv-app/...apk` and writes
+5. Prints `installed: package:/vendor/priv-app/...apk` (anything else fails the step) and writes
    `run/ivi-observer-identity.txt` (APK sha256 host and guest, IVI fingerprint,
    both ACL digests, subject, topic, message).
 
@@ -293,11 +313,25 @@ cd "$SLICE"
 "$ADB" -s 0.0.0.0:6522 logcat -s DE4SDV_DRIVING_STATE | head -40
 ```
 
-Expected lines: `lifecycle start ...`, `lifecycle config topic=...`,
+Expected lines, in this order (all under the one tag `DE4SDV_DRIVING_STATE`):
+`lifecycle start subject=org.de4sdv.drivingstate.DrivingStateObserver`,
+`lifecycle config topic=de4sdv-driving-operational-state`,
 `lifecycle config message=de4sdv.driving.v1.DrivingOperationalState`,
-`lifecycle config translation=REFLECTION ...`, `lifecycle initComms ...`,
-`subscribed topic=... message=...`, `lifecycle ready ...`, then
-`seq=1 kind=HEALTH sequence=... publish_real=... mode=0(kStarting)`.
+`lifecycle config publisher=com.android.sdv.someip.SomeIpBroker unit de4sdv-driving-operational-state`,
+`lifecycle config translation=REFLECTION at the SDV Core SOME/IP broker`,
+`lifecycle initComms package=org.de4sdv.drivingstate bundle=DrivingStateObserver`,
+`discovery by name vm='' package=com.android.sdv.someip bundle=SomeIpBroker unit=de4sdv-driving-operational-state`,
+`service unit Registered <vm>:com.android.sdv.someip.SomeIpBroker/<instance> unit de4sdv-driving-operational-state type <package>/<bundle>/DrivingOperationalState topic ... slot ...`,
+`subscribed topic=de4sdv-driving-operational-state message=de4sdv.driving.v1.DrivingOperationalState vm=<vm> ...`,
+`lifecycle ready topic=de4sdv-driving-operational-state`, then
+`seq=1 kind=HEALTH sequence=... schema=2.0 publish_real=... mode=0(kStarting) cause=...`.
+
+The app subscribes **by name** to the broker's unit, so it does not depend on the unit
+type the broker registers; the `service unit Registered` line shows that type. If the
+app stays at `WAITING for com.android.sdv.someip.SomeIpBroker unit ...`, the broker
+has not registered the unit on any VM the IVI sees: that is a core-side or SD-agent
+fault, not an app fault (DESIGN §8 localizes it). If the subscribe call reports
+`PERMISSION_DENIED`, compare the registered type with `message:` in both ACL files.
 
 Read four things from the first receipt:
 
@@ -356,10 +390,16 @@ translation (R2), not the publisher: say which field, with both lines in the rep
 ./scripts/stage_ivi_observer.sh record 40
 ```
 
-Expected: `run/ivi_screen.mp4` (~40 s) and `run/ivi_screen_logcat.txt`. Watch the
-clip: the two clocks readable side by side (IVI real time and message publish real
-time), the plan path drawn with its 10 m grid, health changing on a stop, the plan
-frame and its capture time. Recorded on the guest, nothing retimed.
+Expected: `run/ivi_screen.mp4` (~40 s), `run/ivi_screen_logcat.txt` (epoch stamps)
+and `run/ivi_screen_t0.txt` (the guest's real time just before and just after
+`screenrecord` started; the clip has no usable creation time). `screenrecord` takes the
+default display, the 1080 x 600 centre display; set `IVI_DISPLAY_ID` to a physical id
+from `dumpsys SurfaceFlinger --display-id` only if it does not. Watch the clip: the two
+clocks one above the other (IVI now, message publish real time), the receipt lag and
+the plan age (both labelled as differences of two clocks), the plan path drawn to scale
+with its metric grid (the spacing is printed under the panel), the freshness chip
+(`LIVE`, or `STALE` after 1.0 s without a receipt), health changing on a stop, the plan
+frame and its image capture time. Recorded on the guest, nothing retimed.
 
 ## 14. The judged run and the pull (30 min)
 

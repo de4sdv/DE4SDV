@@ -70,10 +70,21 @@ fi
 : "${OBSERVER_PACKAGE:=org.de4sdv.drivingstate}"
 : "${OBSERVER_BUNDLE:=DrivingStateObserver}"
 : "${OBSERVER_APP:=De4sdvDrivingStateObserver}"
+: "${OBSERVER_TESTS:=De4sdvDrivingStateObserverTests}"
 : "${OBSERVER_LOGCAT_TAG:=DE4SDV_DRIVING_STATE}"
 : "${OBSERVER_RECORD:=observer.jsonl}"
-: "${OBSERVER_APK:=$AOSP_TOP/out/target/product/$IVI_PRODUCT/system/priv-app/$OBSERVER_APP/$OBSERVER_APP.apk}"
-: "${OBSERVER_GUEST_DIR:=/system/priv-app/$OBSERVER_APP}"
+# A vendor privileged app (the INC-AEBS-010 module shape: the Gateway Java client's
+# SDK library is a vendor java_sdk_library), so Soong installs it to vendor/priv-app.
+: "${OBSERVER_APK:=$AOSP_TOP/out/target/product/$IVI_PRODUCT/vendor/priv-app/$OBSERVER_APP/$OBSERVER_APP.apk}"
+: "${OBSERVER_GUEST_DIR:=/vendor/priv-app/$OBSERVER_APP}"
+# The Gateway Java client sources the app compiles in (as the AEBS app carries them).
+: "${GATEWAY_JAVA_SRC:=$AOSP_TOP/system/software_defined_vehicle/sdv_gateway/libsdvgatewayclient_java/src}"
+# The publisher the app subscribes to by name (the SOME/IP broker of the SDV Core VM).
+: "${PUBLISHER_UNIT:=$TOPIC}"
+# screenrecord's display: empty = the default display, which on sdv_ivi_cf is the
+# 1080 x 600 centre display of the earlier recordings. Otherwise a physical id from
+# `dumpsys SurfaceFlinger --display-id`.
+: "${IVI_DISPLAY_ID:=}"
 
 # --- the DE4SDV tree ---------------------------------------------------------
 _BENCH_SCRIPTS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"

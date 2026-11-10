@@ -9,7 +9,7 @@ native process needed policy only because it opened a TCP socket
 (`sdv_gateway_client_domain(...)` plus `tcp_socket` allows).
 
 That is an expectation, not a proof: the AEBS app was an **image** module and
-this APK is pushed into `/system/priv-app` (`RUNBOOK` step 8), so its domain is
+this APK is pushed into `/vendor/priv-app` (`RUNBOOK` step 9), so its domain is
 whichever the image's `seapp_contexts` gives a platform-signed privileged app —
 not the image module's own.
 
@@ -29,7 +29,7 @@ bench owner allows it, otherwise read `dmesg | grep avc`.
 ## The two shapes of fix, in order of preference
 
 1. **Move the app, not the policy.** If the denial names `untrusted_app` (an
-   `adb install`ed APK), the app was not picked up from `/system/priv-app`;
+   `adb install`ed APK), the app was not picked up from `/vendor/priv-app`;
    re-run `stage_ivi_observer.sh install` and check `pm path` (RUNBOOK step 8).
    This is a 10-minute fix and needs no build.
 2. **A policy fragment in the IVI image.** Only when the domain is the expected

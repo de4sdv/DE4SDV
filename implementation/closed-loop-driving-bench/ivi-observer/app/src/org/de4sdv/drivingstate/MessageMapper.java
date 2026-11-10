@@ -19,7 +19,9 @@
 //    idle car. The check never fires for a real message: `kind` itself is set.
 package org.de4sdv.drivingstate;
 
-import de4sdv.driving.v1.DrivingOperationalState;
+// The generated lite class: the contract has no java_multiple_files option, so
+// protoc nests the message in the file's outer class De4SdvDrivingOperationalState.
+import de4sdv.driving.v1.De4SdvDrivingOperationalState.DrivingOperationalState;
 
 import java.util.List;
 

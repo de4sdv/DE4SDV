@@ -1,227 +1,198 @@
 // Copyright (C) 2026 DE4SDV contributors
 // SPDX-License-Identifier: Apache-2.0
 //
-// The observer's screen: the operational state and, side by side, the two clocks
-// the owner's decision names -- the IVI's own real time at the receipt, and the
-// real time the message carries from its publisher. Each panel is labelled with
-// the field it shows, because the two are read on different machines: a reader
-// must never have to guess which clock a number belongs to.
+// The observer's screen, drawn on one canvas. It only draws: every string and
+// colour comes from ScreenModel, every region from ScreenLayout and every plan
+// coordinate from PlanGeometry, all three Android-free and pinned by JVM tests.
 //
-// Below them: health (mode, cause, when the stop began, its source), the vehicle
-// state, the newest plan with its frame index and image capture time, and the
-// plan's path in the vehicle frame.
+// Regions (1080 x 600 reference, scaled uniformly): header with the freshness
+// chip; the plan panel on the left (vehicle frame, x forward up, y left left,
+// one scale for both axes, metric grid, ego marker at the plan's origin); mode,
+// speed, plan facts and the two clocks on the right; counters, identity and the
+// provenance line at the bottom.
 //
-// Nothing here is computed across time domains: the screen formats the stamps the
-// record holds. No latency, no offset, no difference between the clocks.
+// No smoothing, no interpolation, nothing drawn that the message does not carry:
+// a stale or missing plan clears the path and says why.
 package org.de4sdv.drivingstate;
 
 import android.content.Context;
-import android.graphics.Color;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Typeface;
-import android.util.TypedValue;
-import android.view.Gravity;
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import android.view.View;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.TimeZone;
+final class ObserverView extends View {
 
-final class ObserverView extends LinearLayout {
+    private static final int C_BACKGROUND = 0xFF080A0C;
+    private static final int C_PANEL = 0xFF12161B;
+    private static final int C_GRID = 0xFF263040;
+    private static final int C_GRID_LABEL = 0xFF8592A6;
+    private static final int C_AXIS = 0xFF4A5868;
+    private static final int C_PATH = 0xFF5FD3F3;
+    private static final int C_POINT = 0xFFCFF4FF;
+    private static final int C_EGO = 0xFFFFFFFF;
 
-    private final TextView linkLine;
-    private final TextView iviClock;
-    private final TextView iviSource;
-    private final TextView publishClock;
-    private final TextView publishSource;
-    private final TextView healthLine;
-    private final TextView vehicleLine;
-    private final TextView planLine;
-    private final PlanPathView planPath;
-    private final TextView countersLine;
+    private final ObserverState state;
+    private final Paint text = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint stroke = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path path = new Path();
 
-    private long receipts;
-    private long errors;
-    private String linkState = "STARTING";
-
-    ObserverView(Context context) {
+    ObserverView(Context context, ObserverState state) {
         super(context);
-        setOrientation(VERTICAL);
-        setBackgroundColor(Color.rgb(8, 10, 12));
-        final int pad = dp(18);
-        setPadding(pad, pad, pad, pad);
-
-        addView(title("DE4SDV DRIVING OPERATIONAL STATE   typed SOME/IP \u2192 VSIDL topic",
-                17, Color.rgb(150, 200, 255)));
-        linkLine = text("link " + linkState, 15, Color.rgb(255, 200, 0));
-        addView(linkLine);
-
-        // The two clocks, side by side.
-        final LinearLayout clocks = new LinearLayout(context);
-        clocks.setOrientation(HORIZONTAL);
-        clocks.setPadding(0, dp(12), 0, dp(8));
-
-        final LinearLayout iviPanel = panel(context);
-        iviPanel.addView(text("IVI REAL TIME AT RECEIPT", 13, Color.rgb(150, 200, 255)));
-        iviClock = text("--:--:--.---", 34, Color.WHITE);
-        iviClock.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-        iviPanel.addView(iviClock);
-        iviSource = text("t_real_ns of the record (ms granularity)", 12, Color.rgb(170, 170, 170));
-        iviPanel.addView(iviSource);
-
-        final LinearLayout publishPanel = panel(context);
-        publishPanel.addView(text("MESSAGE PUBLISH REAL TIME", 13, Color.rgb(150, 200, 255)));
-        publishClock = text("--:--:--.---", 34, Color.WHITE);
-        publishClock.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-        publishPanel.addView(publishClock);
-        publishSource = text("publish_real_s . publish_real_ns", 12, Color.rgb(170, 170, 170));
-        publishPanel.addView(publishSource);
-
-        final LinearLayout.LayoutParams half =
-                new LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f);
-        half.setMargins(dp(6), 0, dp(6), 0);
-        clocks.addView(iviPanel, half);
-        clocks.addView(publishPanel, half);
-        addView(clocks);
-
-        healthLine = text("health: mode --   cause --", 19, Color.rgb(255, 170, 130));
-        vehicleLine = text("vehicle: --", 19, Color.rgb(200, 255, 200));
-        planLine = text("newest plan: --", 17, Color.rgb(210, 210, 210));
-        addView(healthLine);
-        addView(vehicleLine);
-        addView(planLine);
-
-        planPath = new PlanPathView(context);
-        final LinearLayout.LayoutParams pathParams =
-                new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f);
-        pathParams.setMargins(0, dp(6), 0, dp(6));
-        addView(planPath, pathParams);
-
-        countersLine = text("receipts 0   errors 0", 12, Color.rgb(170, 170, 170));
-        addView(countersLine);
+        this.state = state;
+        text.setTypeface(Typeface.MONOSPACE);
+        fill.setStyle(Paint.Style.FILL);
+        stroke.setStyle(Paint.Style.STROKE);
+        setKeepScreenOn(true);
     }
 
-    void setLink(String state) {
-        linkState = state;
-        linkLine.setText("link " + linkState + "   receipts " + receipts + "   errors " + errors);
-        linkLine.setTextColor("SUBSCRIBED".equals(state)
-                ? Color.rgb(120, 230, 140) : Color.rgb(255, 200, 0));
+    @Override
+    protected void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+        final float w = getWidth();
+        final float h = getHeight();
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        final float s = ScreenLayout.scaleFor(w, h);
+        final ScreenModel model = new ScreenModel(state, System.currentTimeMillis());
+        canvas.drawColor(C_BACKGROUND);
+
+        // Header: title left, freshness chip right, the newest link/error state below.
+        final ScreenLayout.Box hb = ScreenLayout.HEADER;
+        final float row1 = hb.top + ScreenLayout.HEADER_PAD + ScreenLayout.TITLE;
+        drawText(canvas, s, ScreenModel.TITLE, hb.left, row1, ScreenLayout.TITLE, ScreenModel.C_TEXT, hb.width / 2f);
+        final ScreenModel.Line chip = model.chip();
+        final float chipWidth = ScreenLayout.textWidth(chip.text, chip.size) + 16f;
+        fill.setColor(0xFF1B2128);
+        canvas.drawRect(s * (hb.right() - chipWidth), s * (hb.top + 2f), s * hb.right(), s * (row1 + 7f), fill);
+        drawText(canvas, s, chip.text, hb.right() - chipWidth + 8f, row1, chip.size, chip.color, chipWidth);
+        final ScreenModel.Line error = model.errorLine();
+        if (error != null) {
+            drawText(canvas, s, error.text, hb.left, row1 + ScreenLayout.NOTE * ScreenLayout.LINE_SPACING + 2f,
+                    error.size, error.color, hb.width);
+        }
+
+        drawPlan(canvas, s, model);
+        drawBox(canvas, s, ScreenLayout.MODE_BOX, model.modeLines(), model.stale ? 0xFF7A7F87 : model.modeStyle().color);
+        drawBox(canvas, s, ScreenLayout.SPEED_BOX, model.speedLines(), 0);
+        drawBox(canvas, s, ScreenLayout.FACTS_BOX, model.factLines(), 0);
+        drawBox(canvas, s, ScreenLayout.CLOCKS_BOX, model.clockLines(), 0);
+        drawBox(canvas, s, ScreenLayout.FOOTER, model.footerLines(), 0);
     }
 
-    void onState(MessageMapper.Mapped mapped, long tRealNs) {
-        receipts++;
-        final StateRecord.Fields f = mapped.fields;
+    private void drawPlan(Canvas canvas, float s, ScreenModel model) {
+        final ScreenLayout.Box box = ScreenLayout.PLAN;
+        fill.setColor(C_PANEL);
+        canvas.drawRect(s * box.left, s * box.top, s * box.right(), s * box.bottom(), fill);
+        final ScreenModel.Line title = model.planTitle();
+        drawText(canvas, s, title.text, box.left + ScreenLayout.PAD, ScreenLayout.PLAN_TITLE.top + 20f,
+                title.size, title.color, box.width - 2f * ScreenLayout.PAD);
 
-        iviClock.setText(clock(tRealNs / 1_000_000_000L, tRealNs % 1_000_000_000L));
-        publishClock.setText(clock(f.publishRealS, f.publishRealNs));
-        publishSource.setText("publish_real_s . publish_real_ns   ("
-                + StateRecord.kindName(f.kind) + " seq " + f.sequence + ")");
+        final ScreenLayout.Box plot = ScreenLayout.PLAN_PLOT;
+        final String absence = model.planAbsence();
+        final StateRecord.Fields plan = absence == null ? state.plan : null;
+        final PlanGeometry g = PlanGeometry.fit(s * plot.left, s * plot.top, s * plot.width, s * plot.height,
+                plan == null ? null : plan.planX, plan == null ? null : plan.planY);
 
-        healthLine.setText(String.format(Locale.US,
-                "health: mode %d %s   cause %d %s   since %s s   source %s   step %s s",
-                f.mode, StateRecord.modeName(f.mode),
-                f.cause, StateRecord.causeName(f.cause),
-                secondsWait(f.causeSinceMonoS, f.causeSinceMonoNs),
-                f.modeSource.isEmpty() ? "-" : f.modeSource,
-                simulationSeconds(f.stepCaptureMs)));
-        vehicleLine.setText(String.format(Locale.US,
-                "vehicle: %s km/h   long %s   lat %s   yaw %s deg/s   sample %s s",
-                number(f.speedKmh), number(f.longitudinalAcceleration),
-                number(f.lateralAcceleration), number(f.yawRateDps),
-                simulationSeconds(f.sampleCaptureMs)));
+        // Metric grid, one spacing on both axes, labelled in metres from ego.
+        stroke.setStrokeWidth(Math.max(1f, s));
+        stroke.setColor(C_GRID);
+        text.setTextSize(s * ScreenLayout.NOTE);
+        text.setColor(C_GRID_LABEL);
+        final float labelTop = g.top + (ScreenLayout.NOTE + 4f) * s;   // keeps labels off the panel title
+        for (float m : g.forwardGridM()) {
+            final float y = g.screenY(m, 0f);
+            canvas.drawLine(g.left, y, g.left + g.width, y, stroke);
+            if (m > 0f && y - 3f * s >= labelTop) {
+                canvas.drawText(Math.round(m) + " m", g.left + 4f * s, y - 3f * s, text);
+            }
+        }
+        for (float m : g.lateralGridM()) {
+            final float x = g.screenX(0f, m);
+            canvas.drawLine(x, g.top, x, g.top + g.height, stroke);
+        }
+        stroke.setColor(C_AXIS);
+        stroke.setStrokeWidth(Math.max(1f, 1.5f * s));
+        canvas.drawLine(g.originX, g.top, g.originX, g.top + g.height, stroke);
+        canvas.drawLine(g.left, g.originY, g.left + g.width, g.originY, stroke);
 
-        if (f.kind == 1) {
-            planLine.setText(String.format(Locale.US,
-                    "newest plan: frame %d   capture %s s   %d points   horizon %s s   reference %s",
-                    f.planFrameIndex, simulationSeconds(f.planCaptureMs), f.planX.length,
-                    number(f.planHorizonS), shorten(f.planReference, 30)));
-            planPath.setPlan(f.planX, f.planY);
-        } else if (f.kind == 3) {
-            planLine.setText(String.format(Locale.US,
-                    "last plan seen: frame %d   capture %s s   (this message is HEALTH)",
-                    f.lastPlanFrameIndex, simulationSeconds(f.lastPlanCaptureMs)));
+        if (plan != null) {
+            // The 64 points as published, joined in order; nothing smoothed or resampled.
+            path.reset();
+            path.moveTo(g.originX, g.originY);
+            for (int i = 0; i < plan.planX.length; i++) {
+                if (!PlanGeometry.finite(plan.planX[i]) || !PlanGeometry.finite(plan.planY[i])) {
+                    continue;
+                }
+                path.lineTo(g.screenX(plan.planX[i], plan.planY[i]), g.screenY(plan.planX[i], plan.planY[i]));
+            }
+            stroke.setColor(C_PATH);
+            stroke.setStrokeWidth(3f * s);
+            canvas.save();
+            canvas.clipRect(g.left, g.top, g.left + g.width, g.top + g.height);
+            canvas.drawPath(path, stroke);
+            fill.setColor(C_POINT);
+            final PlanKinematics k = ScreenModel.kinematics(plan);
+            for (int i = 0; i < plan.planX.length; i++) {
+                if (g.inside(plan.planX[i], plan.planY[i])) {
+                    final float r = k.isWholeSecond(i) ? 4f * s : 2f * s; // the samples at 1 s, 2 s, ... larger
+                    canvas.drawCircle(g.screenX(plan.planX[i], plan.planY[i]),
+                            g.screenY(plan.planX[i], plan.planY[i]), r, fill);
+                }
+            }
+            canvas.restore();
         } else {
-            planLine.setText(String.format(Locale.US,
-                    "last plan seen: frame %d   capture %s s   (this message is VEHICLE_STATE)",
-                    f.lastPlanFrameIndex, simulationSeconds(f.lastPlanCaptureMs)));
+            drawText(canvas, s, absence, plot.left + 2f * ScreenLayout.PAD, plot.top + plot.height / 3f,
+                    ScreenLayout.BODY, model.planStale && state.plan != null ? ScreenModel.C_STALE : ScreenModel.C_DIM,
+                    plot.width - 4f * ScreenLayout.PAD);
         }
 
-        countersLine.setText(String.format(Locale.US,
-                "receipts %d   errors %d   schema %d.%d   sequence %d   dropped %d%s",
-                receipts, errors, f.schemaMajor, f.schemaMinor, f.sequence, f.droppedSamples,
-                mapped.ok() ? "" : "   CONTRACT " + mapped.contractProblem));
-        countersLine.setTextColor(Color.rgb(170, 170, 170));
-        if (mapped.allDefaults) {
-            countersLine.setText(countersLine.getText()
-                    + "   ALL-DEFAULTS (field names may not match)");
-            countersLine.setTextColor(Color.rgb(255, 140, 120));
+        // Ego marker at the plan origin: a chevron pointing forward (up).
+        path.reset();
+        path.moveTo(g.originX, g.originY - 12f * s);
+        path.lineTo(g.originX - 8f * s, g.originY + 8f * s);
+        path.lineTo(g.originX, g.originY + 3f * s);
+        path.lineTo(g.originX + 8f * s, g.originY + 8f * s);
+        path.close();
+        fill.setColor(C_EGO);
+        canvas.drawPath(path, fill);
+
+        final ScreenModel.Line caption = model.planCaption(g);
+        drawText(canvas, s, caption.text, box.left + ScreenLayout.PAD, ScreenLayout.PLAN_CAPTION.top + 19f,
+                caption.size, caption.color, box.width - 2f * ScreenLayout.PAD);
+    }
+
+    /** A panel with a stack of lines; a non-zero accent draws the state bar on its left. */
+    private void drawBox(Canvas canvas, float s, ScreenLayout.Box box, ScreenModel.Line[] lines, int accent) {
+        fill.setColor(C_PANEL);
+        canvas.drawRect(s * box.left, s * box.top, s * box.right(), s * box.bottom(), fill);
+        float inset = ScreenLayout.PAD;
+        if (accent != 0) {
+            fill.setColor(accent);
+            canvas.drawRect(s * box.left, s * box.top, s * (box.left + 8f), s * box.bottom(), fill);
+            inset += 6f;
         }
-        setLink(linkState);
-    }
-
-    void onError(String reason) {
-        errors++;
-        countersLine.setText("receipts " + receipts + "   errors " + errors + "   last " + reason);
-        countersLine.setTextColor(Color.rgb(255, 120, 120));
-    }
-
-    /** Seconds of simulation time, from the ICD's `_ms` field. */
-    private static String simulationSeconds(long millis) {
-        return String.format(Locale.US, "%.1f", millis / 1000.0);
-    }
-
-    /** An `_s`/`_ns` pair as a decimal of seconds, not as a reformatted clock. */
-    private static String secondsWait(long seconds, long nanos) {
-        return String.format(Locale.US, "%d.%09d", seconds, nanos);
-    }
-
-    private static String clock(long seconds, long nanos) {
-        final long millis = seconds * 1000L + nanos / 1_000_000L;
-        final SimpleDateFormat format = new SimpleDateFormat("HH:mm:ss.SSS", Locale.US);
-        format.setTimeZone(TimeZone.getTimeZone("UTC"));
-        return format.format(new Date(millis));
-    }
-
-    private static String number(float value) {
-        if (Float.isNaN(value) || Float.isInfinite(value)) {
-            return "null";
+        float baseline = box.top + ScreenLayout.PAD_Y;
+        for (ScreenModel.Line line : lines) {
+            baseline += line.size * ScreenLayout.LINE_SPACING;
+            drawText(canvas, s, line.text, box.left + inset, baseline - line.size * 0.25f, line.size, line.color,
+                    box.width - inset - ScreenLayout.PAD);
         }
-        return String.format(Locale.US, "%.2f", value);
     }
 
-    private static String shorten(String value, int limit) {
-        if (value.isEmpty()) {
-            return "-";
+    /** Draws one line; shrinks it only if the device font is wider than the tested advance. */
+    private void drawText(Canvas canvas, float s, String value, float xRef, float baselineRef, float sizeRef,
+            int color, float maxWidthRef) {
+        text.setColor(color);
+        text.setTextSize(s * sizeRef);
+        final float measured = text.measureText(value);
+        final float limit = s * maxWidthRef;
+        if (measured > limit && measured > 0f) {
+            text.setTextSize(s * sizeRef * limit / measured);
         }
-        return value.length() <= limit ? value : value.substring(0, limit) + "...";
-    }
-
-    private TextView title(String value, int sp, int color) {
-        final TextView view = text(value, sp, color);
-        view.setPadding(0, 0, 0, dp(4));
-        return view;
-    }
-
-    private TextView text(String value, int sp, int color) {
-        final TextView view = new TextView(getContext());
-        view.setText(value);
-        view.setTextSize(TypedValue.COMPLEX_UNIT_SP, sp);
-        view.setTextColor(color);
-        view.setTypeface(Typeface.MONOSPACE);
-        view.setGravity(Gravity.START);
-        return view;
-    }
-
-    private LinearLayout panel(Context context) {
-        final LinearLayout panel = new LinearLayout(context);
-        panel.setOrientation(VERTICAL);
-        panel.setBackgroundColor(Color.rgb(20, 24, 30));
-        panel.setPadding(dp(12), dp(10), dp(12), dp(10));
-        return panel;
-    }
-
-    private int dp(int value) {
-        return Math.round(value * getResources().getDisplayMetrics().density);
+        canvas.drawText(value, s * xRef, s * baselineRef, text);
     }
 }
