@@ -302,9 +302,9 @@ No payload changes.
   - inferPlan no longer calls the warm-up on a step with an input condition. That step was not conditioned, so there is nothing to warm, and `warmCalls` counted it.
 - **A27, shipped command law (§5).** No payload change.
   - The shipped vehicle configuration names `pure_pursuit`: the steering follows the plan's path from sample k, with a lookahead of 4 m + 0.8 s · speed (4 to 15 m). `first_control` stays available and is still named by the run record when configured.
-  - The checkpoint's first curvature sample leans right in its outputs: about −0.05 1/m at rest and −0.044 1/m while moving, in every moving plan of a simulator run, while the same plans' paths bent left with the route by +0.5 to +1.0 m at 5 to 10 m ahead.
+  - The checkpoint's first curvature sample leans right in its outputs: about −0.05 1/m at rest and −0.044 1/m while moving, in every moving plan of a simulator run, while the same plans' paths bent left by +0.5 to +1.0 m at 5 to 10 m ahead.
   - Under `first_control` the vehicle steered about −8° from its first command and left the road within 23 s. Re-judged on the same plans, `pure_pursuit` steers a median of +0.6° while moving and 0° at rest.
-  - The readiness probe in which the vehicle kept its lane with yaw rate and curvature given as zero in the history (REQ-DRIVING-008) steered by pure pursuit on the plan's path.
+  - The readiness probe with yaw rate and curvature given as zero in the history (REQ-DRIVING-008), in which the plans no longer turned off the lane within seconds, steered by pure pursuit on the plan's path.
   - The acceleration stays `a[k]` under both laws.
 - **A28, late camera image (§4, REQ-DRIVING-023).** No payload change.
   - A camera whose image for the step missed the frame deadline is judged by its newest valid image to date. Only an image *more than* 200 ms of simulation time older than the step is a condition (`kCameraStale`). With a camera's images withheld from step k, the stop therefore begins at step k+2, as A24 reads the adapter's limit. `kCameraMissing` now means no valid image of that camera to date; an invalid image of the step is `kCameraInvalid` at once, as before.
