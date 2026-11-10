@@ -34,7 +34,7 @@ Nothing upstream is modified; the native library is built with upstream's own
 | `navigation_raster.{h,cpp}` | the C++ rasterizer library (no dependencies beyond libstdc++) |
 | `route_provider.py` | the route provider process (UDP 127.0.0.1:47110, JSONL logs) |
 | `parity_report.py` | per-channel C++ vs Python difference report (synthetic maps) |
-| `tests/` | 111 tests (4 need the real map): exporters on a fake `carla`, parity, the route corridor, provider, layout |
+| `tests/` | 115 tests (4 need the real map): exporters on a fake `carla`, parity, the route corridor, provider, layout |
 | `tests/parity_sweep.cpp` | `Render` vs `RenderReference` sweep on a real map (`make parity`) |
 | `tests/render_cost.cpp` | per-render wall clock on a real map (`make bench`) |
 | `tests/render_profile.cpp` | the unoptimised path split into zero-fill / packing / native call (`make profile`) |
@@ -243,7 +243,7 @@ written per pixel by the same primitive that writes the mask.
 
 ```
 $ make all && .venv/bin/python -m pytest -q tests
-107 passed, 4 skipped in 8.7s
+111 passed, 4 skipped in 12.8s
 $ .venv/bin/python parity_report.py
 cases: 25, mismatched: 0
   map   DRIVABLE_AREA ... OVERLAPPING_LEVEL_AMBIGUITY   max abs diff 0   (all 14)
@@ -273,7 +273,12 @@ uint8 pixels.  Coverage:
   wider than the corridor and a road run of one waypoint
   (`test_route_corridor.py`, `test_navigation_raster_parity.py`).  The parity
   tests alone cannot see a corridor the reader gets wrong: both paths are fed
-  the same lines.
+  the same lines;
+* the map raster of an export against an expectation that does not come from
+  the export: two roads end to end, one with a lane section that has no
+  2 m sample, exported from a fake that samples and ends its lanes as LibCarla
+  does, must be drivable over the whole road, and its centre-line and
+  direction channels unbroken through the joints (`test_carla_export.py`).
 
 ## What is untested without CARLA
 
@@ -300,6 +305,15 @@ Only testable on the bench (no aarch64 CARLA wheel, no GPU here):
    The fake now gives its crosswalk as CARLA does; a two-way road in the tests
    gives its lanes as CARLA does.  The real export has to be made again with
    this code.
+   A third shape was found on 2026-11-10: `generate_waypoints(2.0)` samples
+   each road at s = 0, 2, 4, ... below its length, so every lane stopped up to
+   2 m short of the next one (128 of the 168 lanes more than one 0.4 m pixel
+   short, median 1.0 m), and DRIVABLE_AREA was 0 across the ego's lane for 2
+   or 3 rows at 4 of the 5 road joints of the bench route.  Since
+   `carla_map_export_v2` each lane runs from its exact start to its exact end
+   (see the next section); a map written before says `carla_map_export_v1` in
+   `provenance.adapter_version` and has to be exported again.  The fake now
+   samples, pairs and ends its lanes as LibCarla 0.9.16 does.
 2. `route_from_carla.py` against the real `GlobalRoutePlanner` (the fake
    reproduces only `trace_route`'s contract).
 3. Junction polygons: CARLA publishes no junction footprint, so the export is
@@ -331,6 +345,27 @@ Only testable on the bench (no aarch64 CARLA wheel, no GPU here):
   `lane_width`; boundaries are offsets of the centre line, not CARLA data.
   Only lanes whose `lane_type` is `Driving` are exported (CARLA also samples
   sidewalks and bike lanes); a waypoint without `lane_type` is kept.
+* Each lane of each lane section runs from its exact start to its exact end
+  in its driving direction, so it meets the lane it leads into, as upstream's
+  lanelets meet at their shared nodes.  The 2 m samples alone stop short of
+  the far end of each road and lane section (`generate_waypoints` samples a
+  road at s = 0, 2, 4, ... below its length): that is the end of a lane that
+  drives along `s` and the start of one that drives against it.  From
+  LibCarla 0.9.16 (`road/Map.cpp`, `client/Waypoint.cpp`):
+  - the start is the first waypoint of the lane's `get_topology()` pair,
+    which CARLA places at the start of every drivable lane of every lane
+    section in its driving direction, for lanes of either sign;
+  - a lane that leads into another road ends where its road ends: the last
+    waypoint of `next_until_lane_end`, which walks the lane's driving
+    direction to s = length or s = 0 by the lane's direction;
+  - any other lane ends at the second waypoint of its pair: the start of its
+    continuation in the next lane section, or, for a lane that leads nowhere,
+    its own end.  `next_until_lane_end` walks on to the end of the road there.
+  A lane section shorter than 2 m, which has no sample, is exported from its
+  start and end.  A lane CARLA leaves out of `get_topology()` (it does so
+  when it cannot place the end of a lane that leads nowhere) keeps its
+  samples.  A waypoint that belongs to the next lane does not make its lane
+  part of a junction.
 * The route is fixed for the run; the provider does not re-read the file.
   If the file changes under a running provider, the announced SHA-256 no longer
   matches the content (the C++ library computes the SHA-256 of what it loaded,
