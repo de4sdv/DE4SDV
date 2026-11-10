@@ -446,15 +446,35 @@ def test_r5_steps_without_a_plan_are_not_judged(run_for):
         assert res.outcome == cases.PASS, (vc, res.outcome, res.measured, res.notes)
 
 
-# The engine's newest row is the sample of frame k-1: the rows come from the
-# poses of frames k-65 .. k by central differences (agent/DESIGN.md,
-# "Ego-motion history", line 117). Row j is compared with the simulator at
-# frame k-64+j.
+# The engine's newest row is the sample of frame k-1: the rows are worked out
+# from the poses of frames k-65 .. k with numpy.gradient, rows [1:-1]
+# (agent/DESIGN.md, "Ego-motion history"). Row j is compared with the source's
+# sample of frame k-64+j (REQ-DRIVING-008 as amended on 2026-11-10).
 def test_r5_vc008_rows_end_one_frame_before_the_step(run_for):
+    import math
     run = run_for("nominal")
     wb = run.world_by_frame()
+    ox, oy, _ = run.events(AGENT, "rig")[0]["data"]["result"]["origin"]
+
+    def ref(g):                 # frame g's pose moved to the rig origin (vehicle y right)
+        p = wb[g]["data"]["egoPose"]
+        c, s = math.cos(p["yaw"]), math.sin(p["yaw"])
+        return p["x"] + ox * c + oy * s, p["y"] + ox * s - oy * c
+
+    def dist(a, b):
+        return math.hypot(ref(a)[0] - ref(b)[0], ref(a)[1] - ref(b)[1])
+
+    def newest(k):              # row 63 of step k: frame k-1, inside a window ending at k
+        speed_k = dist(k, k - 1) / 0.1                   # the window's end: one-sided
+        return [dist(k, k - 2) / 0.2,
+                (speed_k - dist(k - 1, k - 3) / 0.2) / 0.2]
+
     step = next(s for s in run.input_steps() if s["frame"] == 100)
-    assert step["ego_motion_history"][-1][0] == wb[99]["data"]["velocity"]["speed_mps"]
+    row = step["ego_motion_history"][-1]
+    assert abs(row[0] - newest(100)[0]) < 1e-6 and abs(row[1] - newest(100)[1]) < 1e-6, \
+        (row, newest(100))
+    # the vehicle speeds up at frame 100: the sample of the step itself is another
+    assert abs(row[0] - newest(101)[0]) > 0.1, (row, newest(101))
 
 
 def test_r5_vc008_rows_ending_at_the_step_fail(run_for, tmp_path):
@@ -473,6 +493,9 @@ def test_r5_vc008_rows_ending_at_the_step_fail(run_for, tmp_path):
     assert edit_jsonl(d / C2, "out.checkpoint_inputs", fn) > 0
     res = verdict(Run(d), "VC-DRIVING-008")
     assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    # judged on the values of the rows, not on a missing record or a row count
+    assert res.measured["worst_abs_error"]["speed"] > cases.THRESHOLDS["ego_speed_tol_mps"]
+    assert all(p["problems"][0].startswith("sample frame") for p in res.measured["problems"])
 
 
 # ------------------------------------------------------------------ R13

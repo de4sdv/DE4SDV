@@ -71,6 +71,57 @@ BUNDLE_FAULT_WINDOW_S = 0.5       # plus every step within +/-0.5 s of a fault
 GEOMETRY = "autoe2e-bev-450x300-0p4m-v1"
 MAP_CONTEXT = {"channels": 14, "height": 450, "width": 300, "geometry": GEOMETRY}
 
+# The origin of the camera rig (REF) that drivingAgent's set_rig returns and logs
+# in its `rig` record: the rear-axle centre on the road plane, in vehicle axes
+# (CARLA: x forward, y right, z up), metres; about the value read from a
+# vehicle.lincoln.mkz_2020 hero.
+RIG_ORIGIN = [-1.3886, 0.0, 0.0051]
+EGO_POSE_WINDOW = 66              # the poses of frames k-65 .. k of a step k
+
+
+def ego_pose(st: dict) -> dict:
+    """A state's C1 `egoPose` {x, y, yaw}, map frame, as the tick records it."""
+    return {"x": round(st["x"], 4), "y": round(st["y"], 4), "yaw": round(st["yaw"], 6)}
+
+
+def ego_motion_rows(poses: list[dict], origin) -> list[list[float]]:
+    """The 64 ego-motion rows the agent gives the checkpoint at a step k.
+
+    `poses` are the C1 `egoPose` {x, y, yaw} (map frame, ICD section 9) of the
+    66 frames k-65 .. k, oldest first; `origin` is the rig origin [x, y, z] in
+    vehicle axes, so a pose moves by (x, -y) in its own map-frame axes. The
+    rows are worked out as upstream's closed-loop driver does it
+    (`egomotion_from_poses`, agent/python/de4sdv_planner/history.py):
+    numpy.gradient at 0.1 s over the positions, speed its norm, acceleration
+    numpy.gradient of the speed, rows [1:-1], so row j is frame k-64+j. Yaw
+    rate and curvature are given as zero (REQ-DRIVING-008 as amended on
+    2026-11-09).
+    """
+    if len(poses) != EGO_POSE_WINDOW:
+        raise ValueError(f"need {EGO_POSE_WINDOW} poses, got {len(poses)}")
+    ox, oy = float(origin[0]), float(origin[1])
+    xy = np.array([[p["x"] + ox * math.cos(p["yaw"]) + oy * math.sin(p["yaw"]),
+                    p["y"] + ox * math.sin(p["yaw"]) - oy * math.cos(p["yaw"])]
+                   for p in poses], dtype=np.float64)
+    speed = np.linalg.norm(np.gradient(xy, STEP_S, axis=0), axis=1)
+    accel = np.gradient(speed, STEP_S)
+    return [[round(float(v), 6), round(float(a), 6), 0.0, 0.0]
+            for v, a in zip(speed[1:-1], accel[1:-1])]
+
+
+def rig_result(origin=RIG_ORIGIN) -> dict:
+    """The `result` of drivingAgent's `rig` record, as set_rig returns it
+    (agent/cc/agent_ffi.cpp:854-885, agent/python/de4sdv_planner/__init__.py),
+    without the projection matrices."""
+    return {"engine": "checkpoint", "origin": list(origin),
+            "origin_info": {"wheel_position_unit": "cm", "wheel_radius_m": 0.355,
+                            "rear_wheels_vehicle_local_m": [
+                                [origin[0], -0.7965, round(origin[2] + 0.355, 4)],
+                                [origin[0], 0.7965, round(origin[2] + 0.355, 4)]]},
+            "rig_pose_err_mm": [1.787] * len(CAMERAS),
+            "rig_pose_err_deg": [2.0e-05] * len(CAMERAS),
+            "front_hi_res": {"width": 1024, "height": 1024}, "tile_wh": [512, 512]}
+
 
 def ns(t: float) -> int:
     return int(round(t * 1e9))
@@ -455,8 +506,7 @@ class RunBuilder:
                                          and f >= self.fault_onset())}
                        for i, name in enumerate(CAMERAS)]
             wd = {"frame": f, "sim_ms": f * STEP_MS,
-                  "egoPose": {"x": round(self.x, 4), "y": round(self.y, 4),
-                              "yaw": round(self.yaw, 6)},
+                  "egoPose": ego_pose(st),
                   "velocity": {"speed_mps": round(st["v"], 6),
                                "heading_rad": round(st["yaw"], 6)},
                   "acceleration": {"longitudinal_mps2": round(st["accel"], 6),
@@ -799,6 +849,13 @@ class RunBuilder:
                          "setup": {"engine": "checkpoint",
                                    "engineRecord": {"engine": "checkpoint"}}},
                         tm0 - 0.6, tr0 - 0.6)
+        if not refused:
+            # the rig, before the first step, unless the checkpoint was refused
+            # (agent/cc/agent_ffi.cpp:854-885): its origin is the REF origin the
+            # ego-motion rows are worked out at
+            self.logs.write("score/drivingAgent.jsonl", "score", "drivingAgent", "rig",
+                            {"stage": "synthetic", "result": rig_result()},
+                            tm0 - 0.5, tr0 - 0.5)
         if self.scenario == "checkpointRefusal":
             self.logs.write("score/drivingAgent.jsonl", "score", "drivingAgent", "error",
                             {"code": "checkpoint_refused",
@@ -921,16 +978,14 @@ class RunBuilder:
         primed = conditioned and f >= self.prime
         hist = []
         if primed:
-            # The engine's rows come from the poses of frames f-65 .. f by central
-            # differences, so row j is the sample of frame f-64+j and the newest
-            # row is frame f-1 (agent/DESIGN.md, "Ego-motion history"). The agent
-            # writes rows only for a conditioned step (agent_ffi.cpp:1049).
-            for j in range(64):
-                hst = self.states[f - 64 + j]
-                # REQ-DRIVING-008 as amended on 2026-11-09 (GAP-DRIVING-010): the
-                # checkpoint gets the measured speed and acceleration, and yaw rate
-                # and curvature as zero.
-                hist.append([round(hst["v"], 6), round(hst["accel"], 6), 0.0, 0.0])
+            # The engine works the rows out from the poses of frames f-65 .. f,
+            # moved to the rig origin (agent/DESIGN.md, "Ego-motion history"), so
+            # row j is the sample of frame f-64+j and the newest row is frame f-1.
+            # The agent writes rows only for a conditioned step (agent_ffi.cpp:1049).
+            # REQ-DRIVING-008 as amended on 2026-11-09 (GAP-DRIVING-010): yaw rate
+            # and curvature are given as zero.
+            poses = [ego_pose(self.states[g]) for g in range(f - EGO_POSE_WINDOW + 1, f + 1)]
+            hist = ego_motion_rows(poses, RIG_ORIGIN)
         d = {"frame": f, "sim_ms": f * STEP_MS, "cameras": cams,
              "ego_motion_history": hist,
              "map_context_render_sim_ms": max(0, f - 1) * STEP_MS,

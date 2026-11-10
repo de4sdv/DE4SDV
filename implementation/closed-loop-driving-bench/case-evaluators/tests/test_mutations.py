@@ -8,8 +8,12 @@ say the evaluators measure something rather than re-reading the fixture.
 from __future__ import annotations
 
 import json
+import math
+
+import pytest
 
 import cases
+import make_synthetic_run as synth
 import strip
 from conftest import CASE_RUN, edit_jsonl, verdict
 
@@ -52,6 +56,215 @@ def test_history_with_zero_yaw_and_curvature_passes_vc008(run_for):
     res = verdict(Run(run_for(CASE_RUN["VC-DRIVING-008"]).root), "VC-DRIVING-008")
     assert res.outcome == cases.PASS, res
     assert res.thresholds.get("yaw_rate_given_radps") == 0.0 and res.thresholds.get("curvature_given_1pm") == 0.0
+
+
+# ------------------------------------------- REQ-DRIVING-008 as amended on 2026-11-10
+# The rows are compared with the speed and acceleration worked out the source's
+# way (numpy.gradient at 0.1 s, rows [1:-1]) from the C1 poses of the frames
+# k-65 .. k, moved to the origin of the camera rig of drivingAgent's `rig`
+# record; never with the speed and acceleration the simulator reports.
+AGENT = "score/drivingAgent.jsonl"
+C2 = "score/checkpointInputs.jsonl"
+WORLD = "simulator/world.jsonl"
+LATERAL_ORIGIN = [synth.RIG_ORIGIN[0], 0.4, synth.RIG_ORIGIN[2]]   # 0.4 m to the right
+
+
+def _vc008(d):
+    from runio import Run
+    return verdict(Run(d), "VC-DRIVING-008")
+
+
+def _poses(d) -> dict:
+    """{frame: egoPose} of a run directory's C1 record."""
+    out = {}
+    for line in (d / WORLD).read_text().splitlines():
+        if line.strip():
+            rec = json.loads(line)
+            out[rec["data"]["frame"]] = rec["data"]["egoPose"]
+    return out
+
+
+def _source_rows(poses: dict, k: int, origin) -> list:
+    """The rows of step k from the poses of frames k-65 .. k (the generator's own)."""
+    return synth.ego_motion_rows([poses[g] for g in range(k - 65, k + 1)], origin)
+
+
+def _set_rows(d, rows_for) -> int:
+    """Every step with rows gets rows_for(step frame)."""
+    def fn(data):
+        if data["ego_motion_history"]:
+            data["ego_motion_history"] = rows_for(data["frame"])
+        return data
+    return edit_jsonl(d / C2, "out.checkpoint_inputs", fn)
+
+
+def _set_rig_origin(d, origin) -> None:
+    def fn(data):
+        data["result"]["origin"] = list(origin)
+        return data
+    edit_jsonl(d / AGENT, "rig", fn)
+
+
+def _slow_turn(run_for, tmp_path, tag, rig_origin, rows_origin):
+    """The nominal run with every pose on a 4 m circle at 2 m/s, turning at
+    0.5 rad/s, the rig at `rig_origin` and every step's rows worked out at
+    `rows_origin`."""
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-008"], tag)
+    radius, speed = 4.0, 2.0
+
+    def tick(data):
+        th = speed / radius * data["frame"] * synth.STEP_S
+        data["egoPose"] = {"x": round(radius * math.sin(th), 4),
+                           "y": round(radius * (1.0 - math.cos(th)), 4), "yaw": round(th, 6)}
+        return data
+    assert edit_jsonl(d / WORLD, "tick", tick) > 0
+    _set_rig_origin(d, rig_origin)
+    poses = _poses(d)
+    assert _set_rows(d, lambda k: _source_rows(poses, k, rows_origin)) > 0
+    return _vc008(d)
+
+
+def test_vc008_reports_the_rig_origin_it_moved_the_poses_to(run_for):
+    run = run_for(CASE_RUN["VC-DRIVING-008"])
+    res = _vc008(run.root)
+    assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
+    assert res.measured["rig_origin_m"] == synth.RIG_ORIGIN
+    assert res.measured["worst_abs_error"]["speed"] < 1e-5, res.measured
+    assert res.measured["worst_abs_error"]["accel"] < 1e-5, res.measured
+    rig = run.events(AGENT, "rig")[0]
+    assert {"file": AGENT, "seq": rig["seq"]} in res.evidence, res.evidence
+
+
+def test_vc008_passes_where_the_reported_speed_jumps_at_the_start(run_for, tmp_path):
+    # At a start from standstill CARLA's reported speed and acceleration are not
+    # what the poses show; the case does not compare with them.
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-008"], "startup-jump")
+
+    def fn(data):
+        if 60 <= data["frame"] <= 80:
+            data["velocity"]["speed_mps"] = round(data["velocity"]["speed_mps"] + 0.5, 6)
+            data["acceleration"]["longitudinal_mps2"] = 4.0
+        return data
+    assert edit_jsonl(d / WORLD, "tick", fn) == 21
+    res = _vc008(d)
+    assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
+
+
+def test_vc008_needs_no_reported_speed_or_acceleration(run_for, tmp_path):
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-008"], "no-reported-kinematics")
+
+    def fn(data):
+        data.pop("velocity")
+        data.pop("acceleration")
+        return data
+    assert edit_jsonl(d / WORLD, "tick", fn) > 0
+    res = _vc008(d)
+    assert res.outcome == cases.PASS, (res.outcome, res.missing, res.measured)
+
+
+def test_vc008_rows_at_the_rig_origin_pass_on_a_slow_turn(run_for, tmp_path):
+    res = _slow_turn(run_for, tmp_path, "turn-rig", synth.RIG_ORIGIN, synth.RIG_ORIGIN)
+    assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
+
+
+def test_vc008_rows_at_the_vehicle_origin_fail_on_a_slow_turn(run_for, tmp_path):
+    # 1.39 m behind the vehicle origin, the rig origin moves at about 2.12 m/s
+    res = _slow_turn(run_for, tmp_path, "turn-vehicle", synth.RIG_ORIGIN, [0.0, 0.0, 0.0])
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    assert 0.11 < res.measured["worst_abs_error"]["speed"] < 0.125, res.measured
+    assert res.measured["records_with_a_problem"] == res.measured["records"]
+
+
+def test_vc008_a_lateral_rig_origin_passes_with_its_sign(run_for, tmp_path):
+    res = _slow_turn(run_for, tmp_path, "lateral", LATERAL_ORIGIN, LATERAL_ORIGIN)
+    assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
+    assert res.measured["rig_origin_m"] == LATERAL_ORIGIN
+
+
+def test_vc008_a_lateral_rig_origin_with_the_wrong_sign_fails(run_for, tmp_path):
+    # the rig origin's y is to the right (vehicle axes); taken to the left it is
+    # 0.8 m off, and on this turn about 0.38 m/s slower
+    flipped = [LATERAL_ORIGIN[0], -LATERAL_ORIGIN[1], LATERAL_ORIGIN[2]]
+    res = _slow_turn(run_for, tmp_path, "lateral-flipped", LATERAL_ORIGIN, flipped)
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    assert 0.37 < res.measured["worst_abs_error"]["speed"] < 0.39, res.measured
+
+
+def test_vc008_source_rows_one_frame_late_fail(run_for, tmp_path):
+    # The source's rows of frames k-63 .. k: the newest at the step, not 100 ms
+    # before it. While the vehicle speeds up by 0.15 m/s a frame they are off by that.
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-008"], "rows-late")
+    poses = _poses(d)
+    last = max(poses)
+    assert _set_rows(d, lambda k: _source_rows(poses, min(k + 1, last), synth.RIG_ORIGIN)) > 0
+    res = _vc008(d)
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    assert 0.14 < res.measured["worst_abs_error"]["speed"] < 0.16, res.measured
+    assert all(p["problems"][0].startswith("sample frame") for p in res.measured["problems"])
+
+
+@pytest.mark.parametrize("column, offset, outcome", [
+    (0, 0.04, cases.PASS), (0, 0.06, cases.FAIL),
+    (1, 0.09, cases.PASS), (1, 0.11, cases.FAIL)])
+def test_vc008_tolerance_edges(run_for, tmp_path, column, offset, outcome):
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-008"], f"tolerance-{column}-{offset}")
+
+    def fn(data):
+        for row in data["ego_motion_history"]:
+            row[column] = round(row[column] + offset, 6)
+        return data
+    assert edit_jsonl(d / C2, "out.checkpoint_inputs", fn) > 0
+    res = _vc008(d)
+    assert res.outcome == outcome, (res.outcome, res.measured, res.notes)
+    worst = res.measured["worst_abs_error"]["speed" if column == 0 else "accel"]
+    assert abs(worst - offset) < 1e-5, res.measured      # the offset, nothing else
+
+
+def test_vc008_a_null_speed_in_a_row_fails(run_for, tmp_path):
+    # ICD section 6: JSON null is a non-finite value, never within 0.05 m/s
+    res = _history_edit(run_for, tmp_path, "null-speed", 0, None)
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+
+
+def test_vc008_without_the_rig_record_is_inconclusive(run_for, tmp_path):
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-008"], "no-rig")
+    assert edit_jsonl(d / AGENT, "rig", lambda data: None) == 1
+    res = _vc008(d)
+    assert res.outcome == cases.INCONCL, (res.outcome, res.measured, res.notes)
+    assert any(AGENT in m and "rig" in m and "result.origin" in m for m in res.missing), res.missing
+
+
+def test_vc008_reads_a_rig_result_logged_as_a_json_string(run_for, tmp_path):
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-008"], "rig-string")
+
+    def fn(data):
+        data["result"] = json.dumps(data["result"])
+        return data
+    assert edit_jsonl(d / AGENT, "rig", fn) == 1
+    res = _vc008(d)
+    assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
+    assert res.measured["rig_origin_m"] == synth.RIG_ORIGIN
+
+
+@pytest.mark.parametrize("frame, records", [(0, 1), (300, 66)])
+def test_vc008_a_missing_tick_in_a_window_fails_naming_its_frame(run_for, tmp_path,
+                                                                   frame, records):
+    # frame 0 is only the oldest pose of the first plan's window (step 65), no row's
+    # frame; frame 300 is in the windows of steps 300 .. 365
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-008"], f"no-tick-{frame}")
+    assert edit_jsonl(d / WORLD, "tick",
+                      lambda data: None if data["frame"] == frame else data) == 1
+    res = _vc008(d)
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    assert res.measured["records_with_a_problem"] == records, res.measured
+    first = res.measured["problems"][0]
+    assert first["frame"] == max(frame, 65), first
+    assert first["problems"] == [f"no world tick for frame {frame}"], first
+
+
+def test_vc008_names_its_amendment():
+    import gaps
+    assert "A29" in gaps.amendments_for("VC-DRIVING-008")
 
 
 # ---------------------------------------------------------------- the five of the brief

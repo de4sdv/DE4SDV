@@ -250,16 +250,43 @@ def sensors_at(run: Run) -> dict[int, list[dict]]:
     return out
 
 
-# The engine computes the ego-motion rows from the poses of frames k-65 .. k by
-# central differences, so its newest row is the sample of frame k-1 (agent
-# DESIGN.md, "Ego-motion history"). Row j of a step's 64 rows is frame
-# step - 64 + j.
+# The engine works the ego-motion rows of a step k out from the REF poses of
+# frames k-65 .. k (agent DESIGN.md, "Ego-motion history"): numpy.gradient,
+# central inside the window and one-sided at its ends, rows [1:-1]. Its newest
+# row is therefore the sample of frame k-1, and row j of a step's 64 rows is
+# frame step - 64 + j.
 EGO_ROWS = 64
 EGO_NEWEST_ROW_LAG = 1
+EGO_POSE_WINDOW = EGO_ROWS + 2          # the poses of frames k-65 .. k
 
 
 def ego_row_frame(step_frame: int, j: int) -> int:
     return step_frame - EGO_ROWS - EGO_NEWEST_ROW_LAG + 1 + j
+
+
+def ego_pose_frames(step_frame: int) -> range:
+    """The frames whose poses a step's rows are worked out from, oldest first."""
+    return range(step_frame - EGO_POSE_WINDOW + 1, step_frame + 1)
+
+
+def source_speed_acceleration(poses, origin) -> tuple[np.ndarray, np.ndarray]:
+    """The speed and acceleration of a step's 64 rows, worked out the source's way.
+
+    REQ-DRIVING-008 as amended on 2026-11-10, as upstream's closed-loop driver
+    works them out (`egomotion_from_poses` of alpasim_autoe2e). `poses` are the
+    66 C1 poses (x, y, yaw) of the step's window, map frame (ICD section 9);
+    `origin` is the rig origin (x, y, z) in vehicle axes, y to the right, so a
+    pose moves by (x, -y) in its own axes. The velocity is numpy.gradient of the
+    moved positions at 0.1 s, the speed its norm, the acceleration
+    numpy.gradient of the speed; rows [1:-1].
+    """
+    ox, oy = float(origin[0]), float(origin[1])
+    p = np.asarray(poses, dtype=np.float64)
+    c, s = np.cos(p[:, 2]), np.sin(p[:, 2])
+    xy = np.stack([p[:, 0] + ox * c + oy * s, p[:, 1] + ox * s - oy * c], axis=1)
+    speed = np.linalg.norm(np.gradient(xy, STEP_S, axis=0), axis=1)
+    accel = np.gradient(speed, STEP_S)
+    return speed[1:-1], accel[1:-1]
 
 
 def plan_steps(run: Run) -> list[dict]:
@@ -1179,67 +1206,79 @@ def vc007(run: Run) -> Result:
 
 @case("VC-DRIVING-008", ("closedLoopRoute",), needs=("C1", "C2"))
 def vc008(run: Run) -> Result:
-    """The 64-sample ego-motion history: 100 ms apart, newest at the step, speed
-    and acceleration matching the simulator within their tolerances, and yaw
-    rate and curvature given as zero (REQ-008 as amended on 2026-11-09).
+    """The 64-sample ego-motion history of every plan: oldest first, the newest
+    100 ms before the step, speed and acceleration within their tolerances of
+    the source's, and yaw rate and curvature given as zero (REQ-DRIVING-008 as
+    amended on 2026-11-10).
 
-    C2 records the rows as 64 x 4 values in order, oldest first; C1 records the
-    ego kinematics speed and acceleration are compared with. Row j is the sample
-    of frame step-64+j: the engine's newest row is frame step-1 (agent
-    DESIGN.md, "Ego-motion history"). Only the steps with a plan are judged.
+    C2 records the rows as 64 x 4 values, oldest first. The reference comes
+    from the C1 `egoPose` of the 66 frames step-65 .. step, moved to the origin
+    of the camera rig (drivingAgent `rig` record) and worked out the source's
+    way (`source_speed_acceleration`); row j is frame step-64+j. The speed and
+    acceleration the simulator reports are not read. A record with a missing
+    tick in its 66 frames has a problem. Only the steps with a plan are judged.
     """
     vc = "VC-DRIVING-008"
     recs = plan_steps(run)
+    origin, rig_rec = rig_origin(run)
     wb = run.world_by_frame()
     worst = {"speed": 0.0, "accel": 0.0, "yaw": 0.0, "curv": 0.0}
     bad_records = []
-    evid = []
+    evid = [ev("score/drivingAgent.jsonl", rig_rec)]
     for step in recs:
         f = step["frame"]
         hist = step["ego_motion_history"]
         problems = []
+        frames = ego_pose_frames(f)
         if len(hist) != THRESHOLDS["ego_history_len"]:
             problems.append(f"{len(hist)} samples")
+        elif any(not isinstance(row, list) or len(row) != 4 for row in hist):
+            k = next(k for k, row in enumerate(hist)
+                     if not isinstance(row, list) or len(row) != 4)
+            problems.append(f"row {k} is not four values")
+        elif any(g not in wb for g in frames):
+            problems.append(f"no world tick for frame {next(g for g in frames if g not in wb)}")
         else:
-            for k, row in enumerate(hist):
-                if not isinstance(row, list) or len(row) != 4:
-                    problems.append(f"row {k} is not four values")
-                    break
-                hf = ego_row_frame(f, k)
-                w = wb.get(hf)
-                if w is None:
-                    problems.append(f"no world tick for sample frame {hf}")
-                    break
-                wd = w["data"]
-                speed = float(wd_get(w, "velocity", "speed_mps"))
-                da = abs(float(row[1]) - float(wd_get(w, "acceleration", "longitudinal_mps2")))
-                dy = abs(float(row[2]) - THRESHOLDS["ego_yaw_given_radps"])
-                dv = abs(float(row[0]) - speed)
-                dc = abs(float(row[3]) - THRESHOLDS["ego_curvature_given_1pm"])
-                worst["speed"] = max(worst["speed"], dv)
-                worst["accel"] = max(worst["accel"], da)
-                worst["yaw"] = max(worst["yaw"], dy)
-                worst["curv"] = max(worst["curv"], dc)
-                if (dv > THRESHOLDS["ego_speed_tol_mps"] + 1e-9
-                        or da > THRESHOLDS["ego_accel_tol_mps2"] + 1e-9
-                        or dy != 0.0 or dc != 0.0):
-                    problems.append(f"sample frame {hf}: dv={dv:.3f} da={da:.3f} "
-                                    f"dyaw={dy:.3f} dcurv={dc:.4f}")
-                    break
+            poses = [[float(wd_get(wb[g], "egoPose", key)) for key in ("x", "y", "yaw")]
+                     for g in frames]
+            speed, accel = source_speed_acceleration(poses, origin)
+            # JSON null is a non-finite value (ICD section 6): never within a tolerance
+            rows = np.array([[float("nan") if v is None else float(v) for v in row]
+                             for row in hist], dtype=np.float64)
+            dv = np.abs(rows[:, 0] - speed)
+            da = np.abs(rows[:, 1] - accel)
+            dy = np.abs(rows[:, 2] - THRESHOLDS["ego_yaw_given_radps"])
+            dc = np.abs(rows[:, 3] - THRESHOLDS["ego_curvature_given_1pm"])
+            for key, err in (("speed", dv), ("accel", da), ("yaw", dy), ("curv", dc)):
+                finite = err[np.isfinite(err)]
+                if finite.size:
+                    worst[key] = max(worst[key], float(finite.max()))
+            within = ((dv <= THRESHOLDS["ego_speed_tol_mps"] + 1e-9)
+                      & (da <= THRESHOLDS["ego_accel_tol_mps2"] + 1e-9)
+                      & (dy == 0.0) & (dc == 0.0))
+            if not within.all():
+                k = int(np.argmin(within))
+                problems.append(f"sample frame {ego_row_frame(f, k)}: dv={dv[k]:.3f} "
+                                f"da={da[k]:.3f} dyaw={dy[k]:.3f} dcurv={dc[k]:.4f}")
         if problems:
             bad_records.append({"frame": f, "problems": problems})
-        if len(evid) < 2:
+        if len(evid) < 3:
             evid.append(ev(step["file"], step["rec"]))
     measured = {"records": len(recs), "worst_abs_error": worst,
-                "records_with_a_problem": len(bad_records), "problems": bad_records[:5]}
+                "records_with_a_problem": len(bad_records), "problems": bad_records[:5],
+                "rig_origin_m": origin}
     th = {"samples": THRESHOLDS["ego_history_len"], "spacing_s": STEP_S,
+          "poses_per_record": EGO_POSE_WINDOW,
           "speed_tol_mps": THRESHOLDS["ego_speed_tol_mps"],
           "accel_tol_mps2": THRESHOLDS["ego_accel_tol_mps2"],
           "yaw_rate_given_radps": THRESHOLDS["ego_yaw_given_radps"],
           "curvature_given_1pm": THRESHOLDS["ego_curvature_given_1pm"]}
+    notes = ["the reference speed and acceleration are worked out from the C1 poses at "
+             "the rig origin, as upstream's closed-loop driver works them out; the "
+             "simulator's reported speed and acceleration are not read"]
     if bad_records:
-        return bad(vc, measured, th, evid)
-    return ok(vc, measured, th, evid)
+        return bad(vc, measured, th, evid, notes)
+    return ok(vc, measured, th, evid, notes)
 
 
 @case("VC-DRIVING-009", ("closedLoopRoute",), needs=("C1", "C2", "C9"))
@@ -2733,6 +2772,38 @@ def wd_get(rec: dict, *path: str):
                                   "the pacer does not record this ego observable")
         d = d[k]
     return d
+
+
+def rig_origin(run: Run) -> tuple[list[float], dict]:
+    """The origin of the camera rig (REF) and the record that gives it.
+
+    drivingAgent logs `rig` once, before the first step: `result` is what its
+    planner's set_rig returned (agent/cc/agent_ffi.cpp:854-885), and
+    `result.origin` the REF origin [x, y, z] in vehicle axes (CARLA: x forward,
+    y right, z up), metres. A `result` logged as a JSON string is read too.
+    """
+    import json
+    rel = "score/drivingAgent.jsonl"
+    for rec in run.events(rel, "rig", required=False):
+        res = rec["data"].get("result")
+        if isinstance(res, str):
+            try:
+                res = json.loads(res)
+            except json.JSONDecodeError as exc:
+                raise RunFormatError(f"{rel}:{rec['seq']}: rig result is not JSON: {exc}") \
+                    from exc
+        origin = res.get("origin") if isinstance(res, dict) else None
+        if origin is None:
+            continue
+        if not (isinstance(origin, list) and len(origin) == 3
+                and all(isinstance(v, (int, float)) and not isinstance(v, bool)
+                        for v in origin)):
+            raise RunFormatError(f"{rel}:{rec['seq']}: rig result.origin is not three "
+                                 f"numbers: {origin!r}")
+        return [float(v) for v in origin], rec
+    raise MissingEvidence(f"{rel}:rig.result.origin", None,
+                          "the origin of the camera rig is not recorded, so the poses "
+                          "cannot be moved to it")
 
 
 def _speed_mps(run: Run, frame: int) -> float | None:

@@ -36,7 +36,7 @@ Reading the table: `agent` = `score/drivingAgent.jsonl`, `adapter` =
 | 005 | S1 | 005 | `inputs.projections[]` {camera, matrix 3×4, image_size, images_covered}; `marker` {vehicleFrame, imagePx} | project the marker's vehicle-frame point through the operator; compare with its image position | one operator per image; error ≤ 2 px | **MISSING C2** — the operator is recorded; the marker's pixel and per-image coverage are not |
 | 006 | S1 | 006 | `inputs.map_context_render_sim_ms`; `mapContext` {channels, width, height, geometry} | size, geometry tag, render age | 14 ch, 450×300, `autoe2e-bev-450x300-0p4m-v1`, rendered ≤ 500 ms sim before the step | **SUPPORTED C2, A11** — channels, size, tag and render age are decided per step from the producer's metadata; the raster itself is only in the sampled bundles |
 | 007 | S1 | 007 | `inputs.routeMask` {channels, width, height, geometry, corridorCells, routeSha256, waypointsInWindow, waypointsOnCorridor}; `rasterPose`; `navigation/route.json` | geometry and route sha per step; every in-window count re-derived from the retained route file and the raster pose; on-corridor = in-window | two channels, right geometry, the run's route sha, the corridor covers every in-window waypoint, and at least one step has one | **SUPPORTED C2, A16, A11** — decided per step, with the A16 recount when the route file is retained; a left-right mirrored raster is not detectable from counts and needs the bundles |
-| 008 | S1 | 008 | `inputs.ego_motion_history[64]` rows (speed, accel, yaw, curvature); world {velocity.speed_mps, acceleration.longitudinal_mps2, angular_velocity.yaw_rad_s} | row j is the sample of frame step − 64 + j (the engine's newest row is step − 1); value deltas vs the simulator | 100 ms apart, newest at the step; 0.05 m/s, 0.1 m/s², 0.01 rad/s, 0.001 1/m | **SUPPORTED C1, C2** |
+| 008 | S1 | 008 | `inputs.ego_motion_history[64]` rows (speed, accel, yaw, curvature); world `egoPose` {x, y, yaw} of frames step − 65 … step; agent `rig` {result.origin} | each pose moved to the rig origin; speed = norm of `numpy.gradient` of the positions at 0.1 s, acceleration = `numpy.gradient` of that speed, rows [1:-1], as upstream's closed-loop driver works them out (A29); row j is frame step − 64 + j (the engine's newest row is step − 1); judged on plan steps only | 64 rows, oldest first, the newest 100 ms before the step; within 0.05 m/s and 0.1 m/s²; yaw rate and curvature 0 (REQ-DRIVING-008 as amended on 2026-11-10) | **SUPPORTED C1, C2** (no `rig` record: inconclusive) |
 | 009 | S1 | 009 | `inputs.cameras[].history`; `out.ego_motion_sample` count and captureTime; adapter actuations; world speed | release frame = max(first step with 8 images per camera 0.5 s apart, first step with 64 samples) | no motion and no positive command before the release; motion after it | **SUPPORTED C1, C2, C9** |
 | 010 | S1 | 010 | `inputs` history frame refs; ego rows; world tick existence | membership of every history element in the run's captures; duplicates per history; judged on plan steps only | every element names a capture record of the run; no record twice in one history | **SUPPORTED C2, C1** (caveat: ego rows are identified positionally, frame = step − 64 + k; the engine's newest row is frame step − 1) |
 | 011 | S1 | 011 | `out.command` {planReference, step_capture_sim_ms}; `in.plan` {runRecord, producer}; world {controlSource, autopilotEnabled, trafficManagerEnabled}; `injection` {plan_inject} | chain command→plan→inference; every tick's control source; steering sign around the test plan | every command names its plan; no autopilot/TM/scripted control ever; sign reverses ≤ 100 ms after the test plan | **SUPPORTED C1, C8** |
@@ -110,10 +110,10 @@ because the pacer does not receive images.
 | Observable | Why a case needs it | ICD v2 |
 |---|---|---|
 | `frame`, `sim_ms` | every simulation-time computation; duplication check | field names fixed (C1) |
-| `egoPose` {x, y, yaw} | BEV projection (007), route coverage, standstill (022) | field names fixed (C1) |
-| `velocity` {speed_mps, heading_rad} | standstill thresholds (009, 022), entry speed (020), ego history (008) | field names fixed (C1) |
-| `acceleration` {longitudinal_mps2, lateral_mps2} | the other side of the ego-motion history (008) | field names fixed (C1) |
-| `angular_velocity` {roll, pitch, yaw_rad_s} | yaw rate for the history and curvature (008) | field names fixed (C1) |
+| `egoPose` {x, y, yaw} | BEV projection (007), route coverage, standstill (022), the ego-motion history (008: the poses of each plan step's 66 frames) | field names fixed (C1) |
+| `velocity` {speed_mps, heading_rad} | standstill thresholds (009, 022), entry speed (020) | field names fixed (C1) |
+| `acceleration` {longitudinal_mps2, lateral_mps2} | no case reads it: VC-DRIVING-008 works acceleration out of the poses (A29) | field names fixed (C1) |
+| `angular_velocity` {roll, pitch, yaw_rad_s} | no case reads it: the history gives yaw rate and curvature as zero (REQ-DRIVING-008) | field names fixed (C1) |
 | `lane` {road, lane, lat_m, junction} | lane context; no case judges it yet | field names fixed (C1) |
 | `control` {throttle, brake, steer, accelMps2} | what was applied, at which tick (011, 012, 020) | field names fixed (C1) |
 | `controlSource` ∈ {actuationAdapter, autopilot} | "no autopilot, traffic-manager, recorded or scripted control reached the actuation" (011) | C1 |
@@ -164,6 +164,11 @@ a log says "the vehicle stopped" and a person wants to see it.
 
 The list is derived from the evaluators' `needs`; `tests/test_gaps.py`
 asserts the two agree.
+
+VC-DRIVING-008 also reads the agent's `rig` record (`result.origin`: the
+origin of the camera rig, in vehicle axes, metres), which drivingAgent logs
+once before the first step (A29). It is no ICD change, so no change id names
+it; a run without it leaves the case inconclusive.
 
 ## 6. Cases that cannot be decided from logs alone
 

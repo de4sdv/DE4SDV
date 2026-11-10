@@ -232,6 +232,15 @@ AMENDMENT_CHANGES: dict[str, dict] = {
         "unblocks": ["VC-DRIVING-001", "VC-DRIVING-009", "VC-DRIVING-013",
                      "VC-DRIVING-023", "VC-DRIVING-024", "VC-DRIVING-025"],
     },
+    "A29": {
+        "title": "Ego-motion history against the poses (amendment 2)",
+        "adds": "No record is added. VC-DRIVING-008 works speed and acceleration out "
+                "of the C1 egoPose of the 66 frames that end at the step, moved to "
+                "the origin in drivingAgent's `rig` record (result.origin), and no "
+                "longer reads C1 velocity or acceleration.",
+        "where": "simulator host, world side (world.jsonl); S-CORE host, drivingAgent",
+        "unblocks": ["VC-DRIVING-008"],
+    },
 }
 
 

@@ -19,7 +19,7 @@ from pathlib import Path
 RULES: dict[str, tuple[list[str], list[tuple[str, str, list[str] | None]]]] = {
     "C1": ([], [
         ("simulator/world.jsonl", "tick",
-         ["sensors", "velocity", "acceleration", "angular_velocity",
+         ["sensors", "egoPose", "velocity", "acceleration", "angular_velocity",
           "controlSource", "autopilotEnabled", "trafficManagerEnabled"]),
     ]),
     "C2": (["score/checkpointInputs.jsonl", "score/bundles"], []),

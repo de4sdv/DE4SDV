@@ -26,9 +26,9 @@ field + producer for the missing case, and the C2 bundle ledger.
 | `evaluate_run.py` | one run directory → `verdicts.json`, selecting the cases of the run's `scenario` |
 | `evaluate_campaign.py` | many runs → the cases that need more than one run (VC-DRIVING-018, VC-DRIVING-019, VC-DRIVING-035, and the VC-DRIVING-020/VC-DRIVING-021/VC-DRIVING-022 pair) |
 | `make_synthetic_run.py` | writes synthetic run directories: nominal, each SC-DRIVING-003 fault, the AAOS replay campaign, the two checkpoint-refusal starts |
-| `gaps.py` | the ICD change list as data (`C1`..`C12`), with the cases each unblocks, and the amendments (`A11`..`A26`) each case relies on, named per case in `verdicts.json` |
+| `gaps.py` | the ICD change list as data (`C1`..`C12`), with the cases each unblocks, and the amendments (`A11`..`A29`) each case relies on, named per case in `verdicts.json` |
 | `strip.py` | removes one change's records from a copy of a run — how the tests prove a case that needs a record cannot pass without it |
-| `tests/` | 166 tests |
+| `tests/` | 184 tests |
 
 ## Use
 
@@ -88,7 +88,7 @@ slice exists to prevent:
 
 ## What the tests establish
 
-166 tests, all passing. `tests/test_review_findings.py` holds one group of
+184 tests, all passing. `tests/test_review_findings.py` holds one group of
 tests per finding of the independent review (R1 to R16), each written to fail
 on the code before its fix; `tests/test_req001_req023.py` holds the tests of
 REQ-DRIVING-001 as amended and of the camera reading of REQ-DRIVING-023:
@@ -110,6 +110,13 @@ REQ-DRIVING-001 as amended and of the camera reading of REQ-DRIVING-023:
   (VC-DRIVING-023): the stop at that step passes; a stop at the first missing
   image, at exactly 200 ms or 200 ms after the condition fails; a corrupt image
   is a condition at its own step, and never the camera's newest image;
+* **VC-DRIVING-008 compares the rows with the poses, not with CARLA's
+  reported speed** (REQ-DRIVING-008 as amended on 2026-11-10): the source's
+  rows pass where the reported speed jumps or is absent; on a slow turn, rows
+  worked out at the vehicle origin or with the rig origin's lateral sign
+  flipped fail, and so do rows one frame late; 0.06 m/s or 0.11 m/s² off
+  fails, 0.04 m/s or 0.09 m/s² passes; without the `rig` record the case is
+  inconclusive, and a missing tick in a step's 66 frames fails it;
 * **targeted mutations fail** (`failObservedBehavior`): a plan published
   101 ms after production; a health gap of 201 ms; a stop begun 101 ms of
   simulation time after a stale camera; a command after standstill that pulls;
@@ -212,7 +219,9 @@ or not, as the agent writes it; full bundles are written on the C2 schedule (eve
 steps. The operational state is written as the decoded §3 struct. The
 kinematics are a kinematic bicycle model on a 100 m radius route: the vehicle
 accelerates to 8 m/s, drives, and — in the fault runs — stops at −4 m/s² to
-standstill. The AAOS campaign's four runs are identical by construction, which
+standstill. The C2 ego-motion rows are worked out from the recorded poses at
+the origin of the agent's `rig` record, as the agent works them out. The AAOS
+campaign's four runs are identical by construction, which
 is the point: two replays on the same inputs must agree, so any difference in
 the late or stopped run is the driving system reacting to its observer.
 
