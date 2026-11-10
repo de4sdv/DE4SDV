@@ -11,6 +11,12 @@ Four campaigns, one per group of runs the cases name:
 * degraded: the fault runs; no campaign case, but its runs are used by
   evaluate_run.py.
 
+A campaign judges every run it holds. Where a case is aggregated from the
+verdicts of single runs (VC-DRIVING-020, -021, -022, -035), a role passes only
+if each of its runs passes, and measured.runs lists every run. VC-DRIVING-018
+and -019 compare one run of each role; a role with more than one run makes
+them inconclusive.
+
 The difference metric of REQ-018 is not fixed by the requirement. This script
 fixes it and reports every number so a reviewer can re-judge: for each signal
 (plan acceleration, plan curvature, command acceleration, command steering)
@@ -62,8 +68,45 @@ def load_runs(root: Path) -> dict[str, list[Run]]:
     return groups
 
 
-def by_role(runs: list[Run]) -> dict[str, Run]:
-    return {r.role() or f"unnamed{i}": r for i, r in enumerate(runs)}
+def by_role(runs: list[Run]) -> dict[str, list[Run]]:
+    """Every run of each role, in directory order.
+
+    A role is never reduced to one of its runs: two runs with the same runRole
+    are both judged (aggregate) or make the case inconclusive (vc018, vc019).
+    """
+    out: dict[str, list[Run]] = {}
+    for i, r in enumerate(runs):
+        out.setdefault(r.role() or f"unnamed{i}", []).append(r)
+    return out
+
+
+def run_entry(run: Run, res: Result | None = None) -> dict:
+    """One run as measured.runs lists it, with its outcome when it was judged."""
+    entry: dict = {"path": str(run.root), "run_record_identity": run.identity()}
+    if res is not None:
+        entry.update({"outcome": res.outcome, "measured": res.measured,
+                      "missing": res.missing, "notes": res.notes})
+    return entry
+
+
+def one_run_per_role(vc: str, runs: list[Run], need: tuple[str, ...]) -> dict[str, Run] | Result:
+    """The run of each role a case compares, or the inconclusive result when a
+    role has no run or more than one: the case compares one run of each role
+    and cannot tell which of two runs with the same role is the campaign's."""
+    r = by_role(runs)
+    missing = [x for x in need if x not in r]
+    if missing:
+        return cases.inconclusive(vc, f"runs: {', '.join(missing)}", "C4",
+                                  "the campaign has no run with these roles")
+    doubled = [x for x in need if len(r[x]) > 1]
+    if doubled:
+        return cases.inconclusive(
+            vc, f"one run of role {doubled[0]}", "C4",
+            "the campaign holds more than one run of role "
+            + ", ".join(f"{x} ({len(r[x])})" for x in doubled)
+            + "; the case compares one run of each role",
+            {"runs": {x: [run_entry(y) for y in r[x]] for x in doubled}})
+    return {x: r[x][0] for x in need}
 
 
 # ------------------------------------------------------------------ metric
@@ -157,12 +200,9 @@ def planning_times(run: Run) -> list[float]:
 # ------------------------------------------------------------------ cases
 def vc018(runs: list[Run]) -> Result:
     vc = "VC-DRIVING-018"
-    r = by_role(runs)
-    need = REQUIRED_ROLES["obs-independence"]
-    missing = [x for x in need if x not in r]
-    if missing:
-        return cases.inconclusive(vc, f"runs: {', '.join(missing)}", "C4",
-                                  "the campaign has no run with these roles")
+    r = one_run_per_role(vc, runs, REQUIRED_ROLES["obs-independence"])
+    if isinstance(r, Result):
+        return r
     ref1, ref2, late, stopped = (r["ref1"], r["ref2"], r["late"], r["stopped"])
     digests = {x.record.get("inputReplay", {}).get("digest")
                for x in (ref1, ref2, late, stopped)}
@@ -198,12 +238,10 @@ def vc018(runs: list[Run]) -> Result:
 
 def vc019(runs: list[Run]) -> Result:
     vc = "VC-DRIVING-019"
-    r = by_role(runs)
     need = REQUIRED_ROLES["obs-independence"]
-    missing = [x for x in need if x not in r]
-    if missing:
-        return cases.inconclusive(vc, f"runs: {', '.join(missing)}", "C4",
-                                  "the campaign has no run with these roles")
+    r = one_run_per_role(vc, runs, need)
+    if isinstance(r, Result):
+        return r
     p99, counts = {}, {}
     for role in need:
         lat = planning_times(r[role])
@@ -226,23 +264,25 @@ def vc019(runs: list[Run]) -> Result:
 
 
 def aggregate(vc: str, runs: list[Run], roles: tuple[str, ...]) -> Result:
+    """Judge every run of every role; a role passes only if each of its runs
+    passes, and measured.runs lists every run with its outcome."""
     r = by_role(runs)
     missing = [x for x in roles if x not in r]
     if missing:
         return cases.inconclusive(vc, f"runs: {', '.join(missing)}", "C4",
                                   "the campaign has no run with these roles")
-    outcomes = {}
-    for x in roles:
-        res = cases.evaluate_case(r[x], vc)
-        outcomes[x] = {"outcome": res.outcome, "measured": res.measured,
-                       "missing": res.missing, "notes": res.notes}
-    if any(o["outcome"] == FAIL for o in outcomes.values()):
+    outcomes = {x: [run_entry(run, cases.evaluate_case(run, vc)) for run in r[x]]
+                for x in roles}
+    judged = [(x, o) for x in roles for o in outcomes[x]]
+    failed = [(x, o) for x, o in judged if o["outcome"] == FAIL]
+    if failed:
         return cases.bad(vc, {"runs": outcomes}, {"all_runs_must_pass": True}, [],
-                         [f"{x} fails" for x in roles
-                          if outcomes[x]["outcome"] == FAIL])
-    if any(o["outcome"] != PASS for o in outcomes.values()):
-        first = next(x for x in roles if outcomes[x]["outcome"] != PASS)
-        return cases.inconclusive(vc, f"{first}: {outcomes[first]['missing']}",
+                         [f"{x} run {o['run_record_identity']} ({o['path']}) fails"
+                          for x, o in failed])
+    open_runs = [(x, o) for x, o in judged if o["outcome"] != PASS]
+    if open_runs:
+        x, o = open_runs[0]
+        return cases.inconclusive(vc, f"{x} run {o['run_record_identity']}: {o['missing']}",
                                   "C4", "a run of the campaign is inconclusive",
                                   {"runs": outcomes})
     return cases.ok(vc, {"runs": outcomes}, {"all_runs_must_pass": True}, [])
