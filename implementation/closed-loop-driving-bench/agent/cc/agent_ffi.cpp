@@ -435,6 +435,7 @@ struct Agent {
   bool priming_logged = false;
   std::uint64_t merged_conditioned = 0;      // merged frames in the histories (DESIGN.md, merged frames)
   std::uint64_t merged_not_conditioned = 0;  // merged frames left out: an input not valid, or no planner
+  da::CameraHistory camera_history;          // ICD A28: each camera's newest valid image to date
   // inferPlan
   bool stall_logged = false;
   std::uint64_t warm_calls = 0;     // warm-up calls while priming (DESIGN.md)
@@ -608,6 +609,7 @@ bool ConditionMerged(Agent& a, std::vector<da::FrameHandle>& merged, std::string
       }
       ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
       ++a.merged_conditioned;
+      a.camera_history.RecordMergedFrame(view.frame);  // ICD A28: its six valid images count as received
     } else {
       ++a.merged_not_conditioned;
     }
@@ -953,14 +955,23 @@ int32_t de4sdv_condition_step(De4sdvInputsMsg* inputs, De4sdvConditionMsg* condi
   // REQ-DRIVING-023 to -025: the step's input conditions.
   da::StepConditions sc;
   sc.step_frame = frame;
-  for (std::size_t i = 0; i < da::kCameraCount; ++i) {
-    const da::CameraView& cv = view.cameras[i];
-    sc.cameras[i].present = cv.present;
-    sc.cameras[i].empty = cv.present && cv.size == 0;
-    sc.cameras[i].width = cv.width;
-    sc.cameras[i].height = cv.height;
-    sc.cameras[i].has_frame = cv.present;
-    sc.cameras[i].frame_index = cv.imageFrame;
+  {
+    // ICD A28: the images handed over for this step; a camera whose image missed the deadline is
+    // judged by its newest valid image (stale only beyond 200 ms). The step still goes into the
+    // histories below (its pose; Python gets no image for that camera, so the frame has no tiles).
+    da::CameraObservation arrived[da::kCameraCount];
+    for (std::size_t i = 0; i < da::kCameraCount; ++i) {
+      const da::CameraView& cv = view.cameras[i];
+      arrived[i].present = cv.present;
+      // An image the frame store found unusable (byte count or size not as configured) is invalid,
+      // as C2 reports it; it is never a camera's newest valid image.
+      arrived[i].empty = cv.present && (cv.size == 0 || !cv.valid);
+      arrived[i].width = cv.width;
+      arrived[i].height = cv.height;
+      arrived[i].has_frame = cv.present;
+      arrived[i].frame_index = cv.imageFrame;
+    }
+    a.camera_history.Observe(arrived, a.sizes, sc.cameras);
   }
   const dd::EgoMotionSamplePayload sample = EgoFromSnapshot(view.snapshot, frame);
   sc.motion.has_sample = true;

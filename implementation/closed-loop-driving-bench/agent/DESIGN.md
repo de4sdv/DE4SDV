@@ -44,7 +44,7 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - updates the camera history (per camera, the frame references the checkpoint's history layout needs) and the 64-row ego-motion history;
   - gives the checkpoint the history's yaw rate and curvature as zero (REQ-DRIVING-008 as amended on 2026-11-09, GAP-DRIVING-010; the owner's history-mask decision of 2026-11-09). It is upstream's own closed-loop check (`experiment/closed-loop/replay_driver.py`: `egomotion[:, 2:] = 0`), applied to the raw [speed, acceleration, yaw rate, curvature] rows before `adapt_egomotion_history`. The measured yaw rate still goes into the published ego-motion sample and the C1 world record; C2 records the zeroed copy the checkpoint took, as REQ-DRIVING-008's criterion reads it. CL5 showed the effect: lane kept, clean stop/restart at a light, but straight on at a left-turn junction;
   - rasterizes the route and the map at the ego pose of the step;
-  - fills the input condition, one bit per cause of REQ-DRIVING-023 to -025;
+  - fills the input condition, one bit per cause of REQ-DRIVING-023 to -025 (a camera whose image missed the frame deadline counts with its newest valid image: "Late camera image" below);
   - writes the FEO topics;
   - publishes the ego-motion sample (VSS units) on mw::com.
 - **Frame of the motion sample:** CARLA's velocity and acceleration are rotated into the vehicle frame. The signs follow the model's VSS signals: yaw rate positive to the left, CARLA's z angular velocity negated, in deg/s.
@@ -227,3 +227,20 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - Before: every merge skipped its frames (4 and 8 skipped). The agent primed again and stopped on `kPlanStale` 0.4 s after the first stall: 55 and 51 plans in 325 and 321 steps.
   - After: 7 and 14 frames merged, all conditioned, none skipped. No step was un-primed after the first plan, and the agent stayed `kDriving` to the end: 253 and 246 plans in 322 and 315 steps.
   - In M2, the plan after a stall was exactly 300 ms newer than the last one, the `kPlanStale` limit (not exceeded).
+
+## Late camera image (2026-11-09, ICD A28)
+
+- **Why.** The owner's decision of 2026-11-09: REQ-DRIVING-023 is followed as written. The step judged a camera by the step's own image only, so one image that missed the 95 ms frame deadline set `kCameraMissing` and started the stop. On the simulator host a run stopped that way after a single late image.
+- **The rule.** `CameraHistory` (`cc/agent_logic`) keeps each camera's newest valid image to date. conditionInputs hands it the step's images; a camera without one is observed through its newest valid image (present, at that image's frame). `JudgeConditions` is unchanged:
+  - only an image *more than* 200 ms older than the step is a condition (`kCameraStale`): with a camera's images withheld from step k, the stop begins at step k+2, as the adapter reads its own limit (ICD A24);
+  - `kCameraMissing` now means no valid image of that camera to date;
+  - an invalid image of the step is `kCameraInvalid` at once and never becomes the camera's newest. An image the frame store marks not valid (no data, or a byte count, width or height other than the camera's configuration) counts as invalid, as C2 reports it; before, only its width and height were judged.
+- **What follows with the checkpoint engine.** The step has no condition, so it is conditioned: its pose goes into the 66-pose window, the checkpoint gets no image for the late camera (`None`), and the frame gets no camera tiles. The step is not primed and has no plan.
+  - The steps that take that frame as a camera-history frame (5, 10, ... 35 frames later) have no plan either, and the first plan after them on that phase stream is cold.
+  - The supervision keeps the newest valid plan in force meanwhile; each of these is a single step without its own plan. The stand-in engine plans as usual.
+- **Merged frames.** A merged frame's images count as received when the frame was conditioned (all six valid), as the case evaluators count them. A merged frame with a late camera is still left out of the histories (unchanged), so the histories re-prime after it.
+- **Not done.** Conditioning the late image when it arrives, so that its frame keeps its camera tiles and the seven later steps keep their plans. That needs the frame store to hand over an image after its frame's deadline.
+- **Tests (`cc/tests/agent_logic_test.cpp`).**
+  - `TestCameraHistoryLateImage`: one and two steps without a camera's image (no condition), the third (`kCameraStale`); the observation's frame and size; no image to date (`kCameraMissing`); an invalid image never the newest; a merged frame counted; while driving, no stop at a late image and the stop at the third step without one.
+  - The scripted scenario (`RunScenario`, the records test's camera run) passes its cameras through `CameraHistory` as well: the front images withheld from step 60 start the stop at step 62 with `kCameraStale`.
+  - Five mutations fail the tests: a late camera judged missing, an invalid image taken as the newest, merged frames not counted, the newest image two frames younger, the 200 ms limit inclusive.

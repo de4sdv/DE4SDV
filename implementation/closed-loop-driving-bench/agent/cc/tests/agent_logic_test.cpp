@@ -1292,6 +1292,7 @@ ScenarioResult RunScenario(std::uint64_t fault_frame, ScenarioFault fault, RunLo
 
   Supervisor supervisor;
   Commander commander(DefaultConfig());
+  CameraHistory cameras;  // ICD A28, as conditionInputs judges the cameras
   ScenarioResult result;
   result.fault_frame = fault_frame;
   result.steps = static_cast<int>(steps);
@@ -1303,10 +1304,12 @@ ScenarioResult RunScenario(std::uint64_t fault_frame, ScenarioFault fault, RunLo
     const double speed_kmh = speed_mps * 3.6;
 
     StepConditions step_conditions = CleanConditions(frame);
+    CameraObservation arrived[kCameraCount];
+    for (std::size_t i = 0; i < kCameraCount; ++i) arrived[i] = step_conditions.cameras[i];
     if (fault == ScenarioFault::kCameraMissing && frame >= fault_frame) {
-      step_conditions.cameras[0].present = false;  // front image withheld
-      step_conditions.cameras[0].has_frame = false;
+      arrived[0] = CameraObservation{};  // front image withheld
     }
+    cameras.Observe(arrived, StandardSizes(), step_conditions.cameras);
     const ConditionResult conditions = JudgeConditions(step_conditions, StandardSizes());
     const MotionObservation motion = CleanMotion(frame, speed_kmh);
 
@@ -1424,18 +1427,21 @@ void TestScenario() {
   CHECK(pulling_commands == 0);
   CHECK_NEAR(held_steering, kFirstControl005Deg, 1e-5);
 
-  // The brief's scenario: a camera fault at step 60. The stop begins at the
-  // fault step (no plan age involved) and the deceleration is -4 from then on.
+  // The brief's scenario: the front camera's images withheld from step 60 (the
+  // last at 59). REQ-DRIVING-023 (ICD A28): the stop begins at the first step
+  // whose newest front image is more than 200 ms old, step 62; the deceleration
+  // is -4 from then on.
   const ScenarioResult camera =
       RunScenario(60, ScenarioFault::kCameraMissing, nullptr, kRunIdentity);
   CHECK(camera.found_stop);
-  CHECK(camera.stop_frame == 60);
-  CHECK(camera.stop_cause == Cause::kCameraMissing);
+  CHECK(camera.stop_frame == 62);
+  CHECK(camera.stop_cause == Cause::kCameraStale);
   CHECK(camera.found_standstill);
-  CHECK(camera.standstill_frame > 60);
+  CHECK(camera.standstill_frame > 62);
 
   Supervisor camera_supervisor;
   Commander camera_commander(DefaultConfig());
+  CameraHistory camera_history;
   double camera_speed_mps = 10.0;
   bool camera_stopped = false;
   int camera_commands = 0;
@@ -1445,10 +1451,10 @@ void TestScenario() {
       camera_speed_mps = std::max(0.0, camera_speed_mps - 4.0 * kRateLimitStepSeconds);
     }
     StepConditions step_conditions = CleanConditions(frame);
-    if (frame >= 60) {
-      step_conditions.cameras[0].present = false;
-      step_conditions.cameras[0].has_frame = false;
-    }
+    CameraObservation arrived[kCameraCount];
+    for (std::size_t i = 0; i < kCameraCount; ++i) arrived[i] = step_conditions.cameras[i];
+    if (frame >= 60) arrived[0] = CameraObservation{};  // front image withheld
+    camera_history.Observe(arrived, StandardSizes(), step_conditions.cameras);
     const MotionObservation motion = CleanMotion(frame, camera_speed_mps * 3.6);
     const bool planning = frame >= 20;
     const DrivingPlanPayload plan = MakePlan(frame, 0.0, 0.05);
@@ -1460,19 +1466,20 @@ void TestScenario() {
         camera_commander.Step(supervision.mode, supervision.newest_valid_plan, frame, motion,
                               1000.5 + FrameSeconds(frame));
     if (supervision.stop_began) camera_stopped = true;
-    if (frame == 60) {
+    if (frame == 61) CHECK(supervision.mode == Mode::kDriving);
+    if (frame == 62) {
       CHECK(supervision.mode == Mode::kStopResponse);
-      CHECK(supervision.cause == Cause::kCameraMissing);
+      CHECK(supervision.cause == Cause::kCameraStale);
       camera_held = command.command.steeringAngle;
     }
-    if (frame >= 60) {
+    if (frame >= 62) {
       ++camera_commands;
       CHECK_NEAR(command.command.acceleration, -4.0, 1e-6);
       CHECK_NEAR(command.command.steeringAngle, camera_held, 1e-6);
     }
     if (frame == 99) CHECK(supervision.mode == Mode::kStandstill);
   }
-  CHECK(camera_commands == 40);  // frames 60..99
+  CHECK(camera_commands == 38);  // frames 62..99
   CHECK_NEAR(camera_held, kFirstControl005Deg, 1e-5);
 }
 
@@ -1515,6 +1522,106 @@ int EmitScenario(const std::string& name, const std::string& run_dir,
   return 0;
 }
 
+// ------------------------------------------------------------------ camera history (ICD A28)
+// The images the frame store hands over for one step: every camera's image of
+// the step, except the cameras in `late` (no image of the step by the deadline).
+void ArrivedCameras(std::uint64_t frame, std::initializer_list<std::size_t> late,
+                    CameraObservation arrived[kCameraCount]) {
+  const StepConditions clean = CleanConditions(frame);
+  for (std::size_t i = 0; i < kCameraCount; ++i) {
+    arrived[i] = clean.cameras[i];
+    for (std::size_t j : late) {
+      if (j == i) arrived[i] = CameraObservation{};
+    }
+  }
+}
+
+ConditionResult JudgeObserved(CameraHistory& history, std::uint64_t frame,
+                              std::initializer_list<std::size_t> late) {
+  CameraObservation arrived[kCameraCount];
+  ArrivedCameras(frame, late, arrived);
+  StepConditions conditions = CleanConditions(frame);
+  history.Observe(arrived, StandardSizes(), conditions.cameras);
+  return JudgeConditions(conditions, StandardSizes());
+}
+
+void TestCameraHistoryLateImage() {
+  const CameraSize* sizes = StandardSizes();
+  {
+    // REQ-DRIVING-023: a late image is judged by the camera's newest image. One
+    // step without it: 100 ms, no condition; two: 200 ms, still none (the limit
+    // is "more than 200 ms"); the third: 300 ms, kCameraStale.
+    CameraHistory history;
+    CHECK(!JudgeObserved(history, 40, {}).Any());
+    CHECK(!JudgeObserved(history, 41, {3}).Any());
+    CHECK(!JudgeObserved(history, 42, {3}).Any());
+    const ConditionResult third = JudgeObserved(history, 43, {3});
+    CHECK(third.Has(Cause::kCameraStale));
+    CHECK(!third.Has(Cause::kCameraMissing));
+  }
+  {
+    // What the judge takes for a late camera: present, at the newest image's frame and size.
+    CameraHistory history;
+    CameraObservation arrived[kCameraCount];
+    CameraObservation observed[kCameraCount];
+    ArrivedCameras(40, {}, arrived);
+    history.Observe(arrived, sizes, observed);
+    ArrivedCameras(41, {5}, arrived);
+    history.Observe(arrived, sizes, observed);
+    CHECK(observed[5].present);
+    CHECK(observed[5].has_frame);
+    CHECK(!observed[5].empty);
+    CHECK(observed[5].frame_index == 40);
+    CHECK(observed[5].width == sizes[5].width && observed[5].height == sizes[5].height);
+    CHECK(observed[0].frame_index == 41);
+  }
+  {
+    // No valid image to date: kCameraMissing.
+    CameraHistory history;
+    CHECK(JudgeObserved(history, 40, {2}).Has(Cause::kCameraMissing));
+  }
+  {
+    // An invalid image of the step is a condition at once and never becomes the
+    // camera's newest: a late image after it ages from the last valid one.
+    CameraHistory history;
+    CHECK(!JudgeObserved(history, 40, {}).Any());
+    CameraObservation arrived[kCameraCount];
+    ArrivedCameras(41, {}, arrived);
+    arrived[1].width = 640;
+    StepConditions conditions = CleanConditions(41);
+    history.Observe(arrived, sizes, conditions.cameras);
+    CHECK(JudgeConditions(conditions, sizes).Has(Cause::kCameraInvalid));
+    CHECK(!JudgeObserved(history, 42, {1}).Any());                    // frame 40: 200 ms
+    CHECK(JudgeObserved(history, 43, {1}).Has(Cause::kCameraStale));  // 300 ms
+  }
+  {
+    // A merged frame that went into the histories counts as received for every camera.
+    CameraHistory history;
+    CHECK(!JudgeObserved(history, 40, {}).Any());
+    history.RecordMergedFrame(42);
+    CHECK(!JudgeObserved(history, 44, {4}).Any());                    // frame 42: 200 ms
+    CHECK(JudgeObserved(history, 45, {4}).Has(Cause::kCameraStale));  // 300 ms
+  }
+  {
+    // While driving, steps with a late image and no plan start no stop; a withheld
+    // camera starts it at the step its newest image passes 200 ms.
+    const DrivingPlanPayload plan = MakePlan(40, 0.0, 0.0);
+    Supervisor supervisor;
+    CameraHistory history;
+    SupervisorStep step =
+        supervisor.Step(40, 4.0, JudgeObserved(history, 40, {}), &plan, CleanMotion(40, 36.0));
+    CHECK(step.mode == Mode::kDriving);
+    step = supervisor.Step(41, 4.1, JudgeObserved(history, 41, {0}), nullptr, CleanMotion(41, 36.0));
+    CHECK(step.mode == Mode::kDriving);
+    step = supervisor.Step(42, 4.2, JudgeObserved(history, 42, {0}), nullptr, CleanMotion(42, 36.0));
+    CHECK(step.mode == Mode::kDriving);
+    step = supervisor.Step(43, 4.3, JudgeObserved(history, 43, {0}), nullptr, CleanMotion(43, 36.0));
+    CHECK(step.mode == Mode::kStopResponse);
+    CHECK(step.cause == Cause::kCameraStale);
+    CHECK(step.stop_began);
+  }
+}
+
 }  // namespace
 
 int main(int argc, char** argv) {
@@ -1531,6 +1638,7 @@ int main(int argc, char** argv) {
 
   TestTimes();
   TestConditionCameras();
+  TestCameraHistoryLateImage();
   TestConditionMotionRoute();
   TestPlanValidity();
   TestStepPrimed();

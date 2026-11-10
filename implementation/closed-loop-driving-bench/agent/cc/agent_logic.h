@@ -143,6 +143,30 @@ struct ConditionResult {
 ConditionResult JudgeConditions(const StepConditions& conditions,
                                 const CameraSize sizes[kCameraCount]);
 
+// REQ-DRIVING-023 as written (ICD A28): a camera is judged by its newest valid
+// image to date, not only by the image of the step. A camera whose image of the
+// step missed the frame deadline is observed through that newest image, so the
+// step has no camera condition while the image is at most 200 ms older than
+// the step (kCameraStale beyond); kCameraMissing means no valid image to date.
+// An invalid image of the step is observed as it is (kCameraInvalid).
+class CameraHistory {
+ public:
+  // The observations JudgeConditions takes for one step, from the images the
+  // frame store handed over for it (`arrived`: present, size and frame index
+  // as delivered). A valid image of the step becomes the camera's newest.
+  void Observe(const CameraObservation arrived[kCameraCount],
+               const CameraSize sizes[kCameraCount],
+               CameraObservation observed[kCameraCount]);
+  // A frame merged into a later step (ICD A23) whose cameras were all valid
+  // and which went into the checkpoint's histories: its images count as
+  // received, as the case evaluators count them.
+  void RecordMergedFrame(std::uint64_t frame);
+
+ private:
+  bool has_valid_[kCameraCount] = {};
+  std::uint64_t newest_valid_frame_[kCameraCount] = {};
+};
+
 // REQ-DRIVING-027: a plan is valid when sampleCount == 64 and all 64
 // acceleration and curvature values are finite. x, y and heading are not judged.
 bool IsPlanValid(const DrivingPlanPayload& plan);

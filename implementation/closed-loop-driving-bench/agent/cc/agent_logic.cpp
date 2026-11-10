@@ -252,6 +252,45 @@ ConditionResult JudgeConditions(const StepConditions& conditions,
   return result;
 }
 
+void CameraHistory::Observe(const CameraObservation arrived[kCameraCount],
+                            const CameraSize sizes[kCameraCount],
+                            CameraObservation observed[kCameraCount]) {
+  for (std::size_t i = 0; i < kCameraCount; ++i) {
+    const CameraObservation& image = arrived[i];
+    if (image.present) {
+      // The step's own image is judged as it is; only a valid one becomes the newest.
+      observed[i] = image;
+      const bool valid = !image.empty && image.has_frame && image.width == sizes[i].width &&
+                         image.height == sizes[i].height;
+      if (valid && (!has_valid_[i] || image.frame_index > newest_valid_frame_[i])) {
+        has_valid_[i] = true;
+        newest_valid_frame_[i] = image.frame_index;
+      }
+    } else if (has_valid_[i]) {
+      // The image of the step missed the deadline: the camera's newest valid image.
+      CameraObservation newest;
+      newest.present = true;
+      newest.empty = false;
+      newest.width = sizes[i].width;
+      newest.height = sizes[i].height;
+      newest.has_frame = true;
+      newest.frame_index = newest_valid_frame_[i];
+      observed[i] = newest;
+    } else {
+      observed[i] = image;  // no valid image to date: kCameraMissing
+    }
+  }
+}
+
+void CameraHistory::RecordMergedFrame(std::uint64_t frame) {
+  for (std::size_t i = 0; i < kCameraCount; ++i) {
+    if (!has_valid_[i] || frame > newest_valid_frame_[i]) {
+      has_valid_[i] = true;
+      newest_valid_frame_[i] = frame;
+    }
+  }
+}
+
 bool StepPrimed(bool engine, bool conditioned, bool engine_primed, std::uint64_t frame,
                 std::uint64_t first_frame, std::uint64_t priming_frames) {
   if (engine) return conditioned && engine_primed;

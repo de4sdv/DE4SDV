@@ -266,24 +266,26 @@ def check_plan_invalid_run(run: runio.Run, identity: str) -> None:
 
 
 def check_camera_run(run: runio.Run, identity: str) -> None:
-    """The brief's scenario: images of one camera withheld from step 60."""
+    """The brief's scenario: the front camera's images withheld from step 60 (the
+    last at 59). REQ-DRIVING-023 (ICD A28): the stop begins at the first step whose
+    newest front image is more than 200 ms old, step 62."""
     begin = run.stop_begin()
     check(begin is not None, "camera run: stop_response.begin present")
     if begin:
-        check_close(begin["t_sim"], 6.0, 1e-9, "camera run: the stop begins at the fault step")
-        check(cases.enum_name(begin["cause"], cases.CAUSES) == "kCameraMissing",
-              "camera run: the stop cause is kCameraMissing")
+        check_close(begin["t_sim"], 6.2, 1e-9, "camera run: the stop begins once the image passes 200 ms")
+        check(cases.enum_name(begin["cause"], cases.CAUSES) == "kCameraStale",
+              "camera run: the stop cause is kCameraStale")
 
     by_frame = {m["frame"]: cases.enum_name(m["mode"], cases.MODES) for m in run.modes()}
-    check(by_frame.get(59) == "kDriving", "camera run: frame 59 is kDriving")
-    check(by_frame.get(60) == "kStopResponse", "camera run: frame 60 is kStopResponse")
+    check(by_frame.get(61) == "kDriving", "camera run: frame 61 is kDriving")
+    check(by_frame.get(62) == "kStopResponse", "camera run: frame 62 is kStopResponse")
     check(by_frame.get(99) == "kStandstill", "camera run: the last step is kStandstill")
 
     commands = run.commands()
-    stop_commands = [c for c in commands if c["step_capture_ms"] >= 6000]
-    check(len(stop_commands) == 40, f"camera run: 40 stop commands, got {len(stop_commands)}")
+    stop_commands = [c for c in commands if c["step_capture_ms"] >= 6200]
+    check(len(stop_commands) == 38, f"camera run: 38 stop commands, got {len(stop_commands)}")
     check(all(abs(c["accel"] + 4.0) <= 1e-6 for c in stop_commands),
-          "camera run: every stop command is -4 m/s^2 from the fault step on")
+          "camera run: every stop command is -4 m/s^2 from the stop step on")
     check(all(c["step_capture_ms"] is not None and c["plan_capture_ms"] is not None
               for c in commands),
           "camera run: every command still carries both sim stamps (C3)")
@@ -291,7 +293,7 @@ def check_camera_run(run: runio.Run, identity: str) -> None:
     # Orchestrator review (C2 resolved): VC-DRIVING-022's predicate, "no command
     # after T0 comes from a plan captured after T0", over the evaluators' reader.
     # Non-vacuous only if inferPlan kept planning after the stop began.
-    t0_ms = 6000
+    t0_ms = 6200
     late_plans = [p for p in run.plans() if (p["capture_ms"] or 0) > t0_ms]
     check(bool(late_plans), f"camera run: plans captured after T0 exist ({len(late_plans)})")
     late_refs = {p["reference"] for p in late_plans}
@@ -309,11 +311,11 @@ def check_camera_run(run: runio.Run, identity: str) -> None:
     first_bad = [r for r in conditions if r["data"]["bits"] != 0]
     check(bool(first_bad), "camera run: out.condition reports a non-zero bit word")
     if first_bad:
-        check(first_bad[0]["data"]["frame"] == 60,
-              f"camera run: the first non-zero condition word is frame 60, got "
+        check(first_bad[0]["data"]["frame"] == 62,
+              f"camera run: the first non-zero condition word is frame 62, got "
               f"{first_bad[0]['data']['frame']}")
-        check("kCameraMissing" in first_bad[0]["data"]["causes"],
-              "camera run: the condition word names kCameraMissing")
+        check("kCameraStale" in first_bad[0]["data"]["causes"],
+              "camera run: the condition word names kCameraStale")
     result = evaluate(run, cases.vc023)
     check(result["outcome"] == cases.INCONCL,
           f"camera run: vc023 stays inconclusive without C2 metadata or priming.complete, got {result['outcome']}")
