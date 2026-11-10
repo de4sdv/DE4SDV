@@ -497,10 +497,11 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * libraries: FEO's topics are Rust-only at the pin, and its C++ activity
      * binding has no topic API. The cycle is paced by the camera frames of
      * the simulation (REQ-DRIVING-001: one plan per 100 ms step of
-     * simulation time) through the event trigger: the scheduler waits for
-     * the next frame instead of a timer, takes the newest frame and counts
-     * the frames it skipped, so a slow cycle plans on a current frame, not on
-     * a queued one (ASM-DRIVING-001). Inside the
+     * simulation time, no two consecutive steps without one) through the
+     * event trigger: the scheduler waits for the next frame instead of a
+     * timer, takes the newest frame and counts the frames it skipped, so a
+     * slow cycle plans on a current frame, not on a queued one
+     * (ASM-DRIVING-001). Inside the
      * agent the checkpoint inputs, the input condition, the plan, the valid
      * plan, the mode and the ego-motion sample move on FEO topics of the
      * framework's communication layer (shared memory on one host); they are
@@ -1069,7 +1070,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> softwareContractMessage = "in: the checkpoint's output layout (trajectory samples over the horizon), exact per the pinned source revision; out: DrivingPlan with producer, production time and run record, candidate";
       attribute :>> softwareContractField = "in: the sampled positions or acceleration/curvature samples of the output head, exact per the pinned source revision; out: samples, horizon, producer, productionTime, runRecord, candidate";
       attribute :>> dataTypeAndUnit = "in: float32 metres and radians, or m/s^2 and 1/m, per the output head; out: the same with wall-clock seconds for the production time";
-      attribute :>> timingQualityAndState = "one plan per 100 ms step (REQ-DRIVING-001), produced within 100 ms of wall-clock time after the newest image (REQ-DRIVING-013), stamped (REQ-DRIVING-031), published for observation within 100 ms (REQ-DRIVING-015); no plan while the checkpoint identity fails (REQ-DRIVING-035)";
+      attribute :>> timingQualityAndState = "one plan per 100 ms step, no two consecutive steps without one (REQ-DRIVING-001), produced within 100 ms of wall-clock time after the newest image (REQ-DRIVING-013), stamped (REQ-DRIVING-031), published for observation within 100 ms (REQ-DRIVING-015); no plan while the checkpoint identity fails (REQ-DRIVING-035)";
       attribute :>> transformationRule = "identity on the values; the plan names the run record (REQ-DRIVING-034); the planning stack's numerical parity with the unmodified reference is GAP-DRIVING-003";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";

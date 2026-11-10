@@ -249,7 +249,7 @@ the other 23 requirements must be allocated to a function in Phase 6. Grouped by
 the need they answer:
 
 - **Driven along the route (001):** one plan for each 100 ms step of simulation
-  time (001); each plan by inference of the pinned checkpoint on the camera
+  time, no two consecutive steps without one (001); each plan by inference of the pinned checkpoint on the camera
   images, the ego-motion history and the route of its step (002); the input form
   it takes: six camera images at the two sizes it asks for (003),
   seven earlier images per camera (004), one projection operator per image (005),
@@ -321,8 +321,8 @@ Seven functions break the driving system down, in the order of one step:
 - **`assembleInputs`** marks each camera image and motion sample with its
   capture time and builds the inputs the checkpoint takes, from inputs
   captured in the run;
-- **`planTrajectory`** makes one plan for each step by checkpoint inference
-  and marks it;
+- **`planTrajectory`** makes the plan of a step by checkpoint inference and
+  marks it;
 - **`superviseLoop`** detects degraded camera images, motion, route and plans,
   and sets the mode;
 - **`commandVehicle`** computes the steering and acceleration commands of each
