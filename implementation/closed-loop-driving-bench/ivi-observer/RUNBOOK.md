@@ -334,7 +334,7 @@ prebuilts/jdk/jdk21/linux-x86/bin/java -cp "$JAR" org.junit.runner.JUnitCore \
   org.de4sdv.drivingstate.PlanKinematicsTest org.de4sdv.drivingstate.ScreenModelTest
 ```
 
-Expected: `OK (38 tests)` (7 + 11 + 7 + 13; the subscriber's own 8 tests need the Gateway
+Expected: `OK (39 tests)` (7 + 11 + 7 + 14; the subscriber's own 8 tests need the Gateway
 client classes and run off the tree).
 
 This can run while the core image builds only if the tree is already built for

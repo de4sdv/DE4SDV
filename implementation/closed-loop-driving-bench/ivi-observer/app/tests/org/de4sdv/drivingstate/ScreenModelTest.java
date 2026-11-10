@@ -389,4 +389,18 @@ public class ScreenModelTest {
         }
         return out;
     }
+
+    @Test
+    public void aHealthMessageBeforeTheAgentsFirstModeIsNotAContractFinding() {
+        // statePublisher's heartbeat while drivingAgent has not offered its mode yet: the header is set and
+        // every HEALTH field is legitimately at its default (kStarting, no cause, no step, no plan, no source).
+        final StateRecord.Fields startup = header(3, 7, NOW_MS);
+        assertFalse(MessageMapper.kindIsAllDefault(startup));
+        final ObserverState s = new ObserverState();
+        s.onReceipt(new MessageMapper.Mapped(startup, "", MessageMapper.kindIsAllDefault(startup)), NOW_MS * 1_000_000L);
+        assertEquals(0L, s.allDefaultReceipts);
+        // The kinds whose real messages can never be all default keep the check.
+        assertTrue(MessageMapper.kindIsAllDefault(header(1, 7, NOW_MS)));
+        assertTrue(MessageMapper.kindIsAllDefault(header(2, 7, NOW_MS)));
+    }
 }
