@@ -39,14 +39,14 @@ There are three clocks. Every time field in a record names its clock by a suffix
 | mode | agent / superviseLoop | statePublisher | `de4sdv/driving/mode` | 7403 | `DrivingModePayload` | once per step, and at once on a change | 029 |
 | command | agent / commandVehicle | actuationAdapter | `de4sdv/driving/command` | 7404 | `VehicleMotionCommandPayload` | once per step | 011, 012, 014, 020–022, 032 |
 | actuation state | actuationAdapter | statePublisher | `de4sdv/driving/actuation_state` | 7405 | `ActuationStatePayload` | once per applied command; at once when the adapter's stop begins | 028, 029, 032 |
-| operational state | statePublisher | gatewayd → SOME/IP | `de4sdv/driving/operational_state` | 7406 | three events `plan`, `vehicle_state`, `health`, each `PreSerializedData<2048>` (bytes 0–1 little-endian length, the §3 struct from byte 4) | §3 | 015–019, 029 |
+| operational state | statePublisher | gatewayd → SOME/IP | `de4sdv/driving/operational_state` | 7406 | three events `plan`, `vehicle_state`, `health`, each `PreSerializedData<2048>` (size = the §3 struct's length, data[0..size) = the §3 struct; gatewayd copies data[0..size) onto the SOME/IP payload unread, A31) | §3 | 015–019, 029 |
 
 - The event name of each of the first five services is the last segment of its specifier. Instance id is 1.
 - Proxies subscribe with a max sample count of 8. A consumer never blocks a producer: a full slot is a dropped sample, which is counted and logged.
 - Every event has `numberOfSampleSlots` ≥ `maxSubscribers` × 8 + 1. LoLa rejects a subscription once the subscribers' sample counts would exceed the slots, and the producer needs one slot that no subscriber holds.
   - The agent's four events allow 3 subscribers (the consumer above, the bench tap, one spare) and have 25 slots.
   - `actuation_state` allows 2 and has 20.
-  - Each `operational_state` event allows 1 and has 9.
+  - Each `operational_state` event allows 1 and has 20. Its one subscriber is gatewayd, which subscribes with 10 samples, not 8 (`someip::kMaxSampleCount` of the SOME/IP gateway), so it needs at least 10 + 1 slots; 20 is the value the gateway probes ran with (A31).
   - Every manifest that declares an event gives the same two numbers.
 
 ## 3. The operational state on SOME/IP (MAP-DRIVING-OPERATIONAL-STATE)
@@ -322,3 +322,7 @@ No payload changes.
   - `max_road_wheel_angle_deg` (35°) stays the command limit: the commander's clamp and the adapter's validity check.
   - The adapter does not start when CARLA gives no front-wheel `max_steer_angle`, or one below the command limit: it logs an `error` record and exits.
   - Before A30 the steer was the angle over `max_road_wheel_angle_deg`, so CARLA turned the road wheels by twice the commanded angle. On the straight route the commands before the first contact had a median of 0.64° and the applied steer turned the wheels 1.29°; the vehicle turned as the doubled angle predicts.
+- **A31, operational-state sample (§2).** No payload change; the SOME/IP payload (§3) is unchanged.
+  - `size` is the §3 struct's length and `data[0..size)` is the struct. gatewayd's null serializer copies `data[0..size)` onto the SOME/IP payload without reading it, so the 4-byte little-endian length that the publisher's library frame carries in front of the struct is not written into `data` any more.
+  - Before A31 the row said "bytes 0–1 little-endian length, the §3 struct from byte 4", and the publisher sent its whole frame: the prefix reached the SOME/IP payload, and the broker would have read every field four bytes late.
+  - The `operational_state` events have 20 slots: gatewayd subscribes with 10 samples, where the bench's own proxies use 8.

@@ -18,9 +18,11 @@
 //   de4sdv/driving/actuation_state      ActuationStatePayload   <- actuationAdapter
 // Offers (skeleton, three PreSerializedData<2048> events for gatewayd):
 //   de4sdv/driving/operational_state    plan, vehicle_state, health
-// Each frame carries the ICD v2 section 3 SOME/IP struct (43 fields, big-endian)
-// from byte 4; gatewayd maps it to the typed DrivingOperationalState topic
-// (service 0x4DF0, events 0x8001-0x8003, REFLECTION). No protobuf anywhere.
+// Each sample carries the ICD v2 section 3 SOME/IP struct (43 fields, big-endian)
+// alone, from data[0], with size = its length (ICD section 2, A31); gatewayd and
+// someipd offer it as service 0x4DF0, events 0x8001-0x8003, and the SDV Core
+// broker translates it (REFLECTION) into the typed DrivingOperationalState. No
+// protobuf anywhere.
 //
 // Usage:
 //   state_publisher --run-dir <dir> [--host-name score] [--mw-com-config <json>]

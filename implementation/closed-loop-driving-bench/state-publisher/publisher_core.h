@@ -5,10 +5,11 @@
 //
 // The publisher is fed typed inputs with their receipt time on the host's
 // CLOCK_MONOTONIC and is ticked with the current monotonic time. It emits
-// ready-to-send frames in the PreSerializedData<2048> layout of the P4 probe:
-// bytes 0-3 little-endian message length (bytes 0-1 carry it, ICD section 2),
-// the ICD v2 section 3 SOME/IP struct from byte 4 (43 fields, table order,
-// big-endian, AUTOSAR strings and dynamic float arrays).
+// frames in the layout of the P4 probe: bytes 0-3 little-endian message length
+// (bytes 0-1 carry it), the ICD v2 section 3 SOME/IP struct from byte 4 (43
+// fields, table order, big-endian, AUTOSAR strings and dynamic float arrays).
+// The shell sends the struct alone: data[0..size) = bytes 4.., size =
+// messageBytes (ICD section 2, A31); the vectors keep the whole frame.
 //
 // Rules implemented here (ICD section 3, REQ-DRIVING-015 to -019, -029):
 //   * one PLAN frame per plan, at once;
@@ -99,7 +100,7 @@ struct Frame {
   Port port = Port::kPlan;
   std::uint64_t sequence = 0;    // per kind, from 1, no gaps
   std::uint32_t messageBytes = 0;  // value of the length prefix
-  std::uint32_t size = 0;          // 4 + messageBytes, the sample's `size` field
+  std::uint32_t size = 0;          // 4 + messageBytes (the sample sent carries messageBytes)
   std::uint8_t bytes[kFrameBytes] = {};  // prefix in 0-3, struct from 4
   // The record data of ICD section 6 for the out.operational_state crossing:
   // the wire fields (enums by name), every time field suffixed with its clock.

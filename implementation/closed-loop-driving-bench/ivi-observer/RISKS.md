@@ -22,43 +22,56 @@ null-termination handling"). The whole option-B premise is that both work.
   plus the app's decode path, which is entirely in `fallback-a/` and was already
   written). The 2-day timebox does not hold; say so at the decision.
 
-## R2. The mw::com 4-byte prefix survives into the SOME/IP payload — likely
+## R2. The mw::com 4-byte prefix survives into the SOME/IP payload — unlikely once the publisher is patched
 
-ICD §2 says the publisher's event payload is `PreSerializedData<2048>`: bytes 0–1 a
-little-endian length, the struct from byte 4. ICD §3 says the SOME/IP payload is the
-struct with no prefix. The vectors in `state-publisher/tests/vectors/*.bin` confirm
-the host-side frame is `length + struct` (frame 222 B, message 218 B), so the
-gateway must drop four bytes — and gatewayd is not in the AOSP tree.
+gatewayd's null serializer copies `data[0..size)` of the `PreSerializedData<2048>`
+sample onto the SOME/IP payload without reading it, and someipd removes only
+gatewayd's own 16-byte header. So the publisher decides the payload. Its library
+frame carries a 4-byte little-endian length in front of the struct (the vectors in
+`state-publisher/tests/vectors/*.bin`: frame 222 B, message 218 B); the shell now
+sends the struct alone, `data[0..size)` = frame bytes 4.., `size` = the message
+length (ICD §2, A31). An older shell that sends the whole frame puts the prefix on
+the wire, and every event then fails in the broker (`Unknown BOM for string`).
 
 - **Detect:** RUNBOOK step 7's hexdump. `00 00 00 02` first means the struct starts
-  at 0 (right). A little-endian length first means the prefix survived: the broker
-  would then read `schema_major = 0x0000xxxx` and every field would be shifted.
-- **Cost if hit:** an S-CORE-side change (strip the prefix at gatewayd before the
-  SOME/IP event), not an AOSP change. Zero hours on this VM; the slice waits on the
-  other side, which is why the check is at T+3 h and not at G6.
+  at 0 (right). A little-endian length first (`da 00 00 00`, `12 05 00 00`) means
+  the prefix survived: an unpatched `state_publisher` is running.
+- **Cost if hit:** rebuild and restart the patched publisher on the S-CORE host,
+  not an AOSP change. Zero hours on this VM; the check is at T+3 h, not at G6.
 
 ## R3. The catalog does not compile or resolve the new type — medium
 
-Soong only sees modules in an `Android.bp` in the directory, and `vsidlc` must
-resolve `de4sdv.driving.v1.DrivingOperationalState` for `broker.vsidl`'s `publisher`
-entry. The scripts append a `proto_library`-shaped module (`CATALOG_MODULE_KIND`),
-but the shipped catalog may use another kind, or the broker bundle may compile its
-own proto list that the new file is not in. No offline tree can settle it.
+`vsidlc` must resolve `de4sdv.driving.v1.DrivingOperationalState` for
+`broker.vsidl`'s `publisher` entry, and the pdk29 catalog accepts a publisher type
+only if the message is a VSIDL publication with a max size on every string and a
+max count on every repeated field. The stage script adds no module: the catalog's
+`Android.bp` already takes every `**/*.proto` and `**/*.vsidl` below it, so the
+proto and the mapping go into `catalog/de4sdv_driving/` as plain files (this
+release registers no `proto_library` module type).
 
-- **Detect:** RUNBOOK step 3 §6 prints the catalog's own module kinds and proto
-  lists; gate G1b builds the module before the 1.5 h image build.
-- **Cost if hit:** 20–30 min per attempt (module kind, then the bundle's proto
-  srcs). If the type cannot be registered at all, that is an owner-level finding
-  about the reference stack, and the first fallback is option A.
+- **Detect:** gate G1b (`stage_sdv_core_interop.sh validate`) before the long build:
+  `vsidl_rc_generator` and `vsidlc` over the whole catalog, the catalog's Rust
+  crate, and the generated `someip-config.binpb` decoded.
+- **Cost if hit:** 20–30 min per attempt. If the type cannot be registered at all,
+  that is an owner-level finding about the reference stack, and the first fallback
+  is option A.
 
-## R4. vsidlc refuses three offered events on one topic parameter — possible
+## R4. The runtime refuses three service units of one publication type — possible
 
-The mapping gives three `offered_event` blocks one `sdv_topic_parameterization` key;
-the documented examples use one event per topic. Nothing says three may share one.
+The broker creates one SDV publisher per offered event, so the mapping gives each
+event its own service unit (`de4sdv-driving-operational-state-plan`, `-vehicle-state`,
+`-health`) of the one type: one publisher per unit, as SINGLE_PUB requires. The
+VSIDL model gives a SINGLE_PUB publication without `channels_enum` one channel only,
+so three units of that type are not something the catalog declares; G1b cannot see
+them (it checks the one `publisher` entry of `broker.vsidl`), and the run-time rule
+is in `sdv_comms`, which is not in the AOSP source subset this slice read. The
+one-unit form (`interop/variants/`) would put three publishers on one unit, which
+SINGLE_PUB excludes outright.
 
-- **Detect:** `vsidlc`/G1b, before the long build.
-- **Cost if hit:** regenerate with three topic parameters (one generator change,
-  ~20 min) plus three subscriptions in the app (~30 min) and a rebuild.
+- **Detect:** the broker's start log (`Failed to create publisher with
+  service_unit_name ...`), then the app's three `subscribed unit=` lines (G5).
+- **Cost if hit:** an owner decision: a `channels_enum` with three channels on the
+  publication (a contract change, then a core rebuild), or the one-unit variant.
 
 ## R5. The typed message does not reach the Java app — possible
 
@@ -94,8 +107,10 @@ name, so the tree may have no example of the dotted form.
 ## R7. The peer address / VXLAN acceptance is wrong — possible
 
 The core stack pins the S-CORE host's address and accepts the service only from it
-(`secure-services` + `acceptances`). On the three-host bench that address is new: it
-is not the guest host, and the AEBS default (`192.168.98.1`) is.
+(`secure-services` + `acceptances`). On the three-host bench the S-CORE host holds
+`192.168.98.1` on the VXLAN segment and the guest host's bridge moves to
+`192.168.98.254`. If that move was not made, two hosts claim `.1` on one segment and
+the address the core accepts is ambiguous. The stage script has no default for the peer.
 
 - **Detect:** RUNBOOK step 4, before any build. On the guest, `tcpdump` shows the
   handshake unanswered and no `REMOTE SUBSCRIBE`; SD offers may arrive and be
@@ -148,10 +163,11 @@ different number from the publisher's.
 
 ## R12. The typed message is larger than the stack or the topic allows — unlikely
 
-A full 64-point plan is 1301 bytes of struct (1305 with the S-CORE frame prefix);
-the largest vector is 1394 bytes (`plan_max_strings`), well under the S-CORE
-`PreSerializedData<2048>` bound. The typed message has no `variable_type_max_size`
-annotation because it is not a bytes field.
+A full 64-point plan is 1301 bytes of struct; the largest vector is 1390 bytes of
+struct (`plan_max_strings`, 1394 with the library frame's prefix, which is not
+sent), well under the S-CORE `PreSerializedData<2048>` bound. The typed message
+carries the catalog's size annotations (strings 128 bytes, arrays 64 elements), from
+which the broker takes its publication's message size.
 
 - **Detect:** G6's plan receipt decodes with 64 points; a truncated array or a
   short read is this risk. The codec's sizes are asserted in the local test.
