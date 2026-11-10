@@ -4,6 +4,9 @@ evaluators.
 * VC-DRIVING-017 compared the HEALTH mode with names and strings, but the
   observer records it as its u32 value, so a stopped publication without a
   cause was never found.
+* VC-DRIVING-030 read a camera slot without capture_sim_ms and image_frame as
+  a slot without an image, so an image recorded without its capture time
+  passed, and a run whose records hold no image at all passed with none judged.
 
 Each test builds its run from the fixture of make_synthetic_run.py and edits a
 hard-linked copy, streaming each record file into a new file, so the fixture's
@@ -106,3 +109,99 @@ def test_vc017_stopped_health_with_its_cause_passes(run_for, tmp_path, mode):
     res = verdict(Run(d), "VC-DRIVING-017")
     assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
     assert res.measured["field_problems"] == []
+
+
+# ------------------------------------------------------------------ VC-DRIVING-030
+# REQ-DRIVING-030: "Met when every camera image and motion sample in the
+# records of a run of SC-DRIVING-001 carries a capture time marked as
+# simulation time." A camera slot without an image at its step has status
+# "missing" and null stamps (ICD A28; agent/cc/agent_ffi.cpp:552, 1039-1044).
+# Every other status the agent writes ("valid", "invalid", "stale") describes
+# an image of the records, which must carry its capture_sim_ms.
+C2 = "score/checkpointInputs.jsonl"
+MISSING_SLOT = {"image_frame": None, "capture_sim_ms": None, "arrival_mono_ns": None,
+                "valid": False, "status": "missing"}
+
+
+class StubRun:
+    """The two records VC-DRIVING-030 reads, in the shape runio returns them:
+    one step with the given camera slots, one motion sample."""
+
+    def __init__(self, cameras: list[dict]):
+        self.cameras = cameras
+
+    def input_steps(self):
+        return [{"frame": 100, "sim_ms": 10000, "cameras": self.cameras,
+                 "file": C2, "rec": {"seq": 1}}]
+
+    def ego_samples(self):
+        return [{"step": 100, "capture_ms": 10000.0, "capture_clock": "simulation"}]
+
+
+def test_vc030_valid_images_without_a_capture_stamp_fail():
+    cams = [{"name": name, "status": "valid", "valid": True, "capture_sim_ms": None,
+             "image_frame": None} for name in cases.CAMERAS]
+    res = cases.vc030(StubRun(cams))
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    assert res.measured["images"] == 6, res.measured
+    assert res.measured["problem_count"] == 6, res.measured
+    assert {p["problem"] for p in res.measured["problems"]} == {"no capture_sim_ms stamp"}
+
+
+@pytest.mark.parametrize("status", ["valid", "invalid", "stale"])
+def test_vc030_an_image_recorded_without_its_capture_time_fails(run_for, tmp_path, status):
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-030"], f"unstamped-{status}")
+
+    def fn(rec):
+        if rec["event"] == "out.checkpoint_inputs" and rec["data"]["frame"] == 300:
+            rec["data"]["cameras"][2].update(image_frame=None, capture_sim_ms=None,
+                                             arrival_mono_ns=None,
+                                             valid=status == "valid", status=status)
+        return rec
+    assert rewrite_jsonl(d / C2, fn) == 1
+    res = verdict(Run(d), "VC-DRIVING-030")
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    assert res.measured["problems"] == [{"frame": 300, "camera": cases.CAMERAS[2],
+                                         "problem": "no capture_sim_ms stamp"}]
+    assert res.measured["images"] == 700 * 6, res.measured
+
+
+@pytest.mark.parametrize("shape", ["every-slot-missing", "no-camera-slots"])
+def test_vc030_records_without_any_image_are_inconclusive(run_for, tmp_path, shape):
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-030"], f"no-image-{shape}")
+
+    def fn(rec):
+        if rec["event"] == "out.checkpoint_inputs":
+            if shape == "no-camera-slots":
+                rec["data"]["cameras"] = []
+            else:
+                for cam in rec["data"]["cameras"]:
+                    cam.update(MISSING_SLOT)
+        return rec
+    assert rewrite_jsonl(d / C2, fn) == 700
+    res = verdict(Run(d), "VC-DRIVING-030")
+    assert res.outcome == cases.INCONCL, (res.outcome, res.measured, res.notes)
+    assert res.measured["images"] == 0, res.measured
+
+
+def test_vc030_a_motion_sample_without_its_capture_time_fails_without_images(run_for,
+                                                                             tmp_path):
+    # A sample without its capture time is not met whether or not the records
+    # hold an image: the missing images do not hide it.
+    d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-030"], "no-image-unstamped-sample")
+
+    def cams(rec):
+        if rec["event"] == "out.checkpoint_inputs":
+            for cam in rec["data"]["cameras"]:
+                cam.update(MISSING_SLOT)
+        return rec
+
+    def sample(rec):
+        if rec["event"] == "out.ego_motion_sample" and rec["data"]["frame"] == 300:
+            rec["data"].pop("captureTime")
+        return rec
+    assert rewrite_jsonl(d / C2, cams) == 700
+    assert rewrite_jsonl(d / "score/drivingAgent.jsonl", sample) == 1
+    res = verdict(Run(d), "VC-DRIVING-030")
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    assert res.measured["problems"] == [{"sample": 300, "problem": "no capture time"}]

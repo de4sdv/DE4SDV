@@ -2446,8 +2446,10 @@ def vc030(run: Run) -> Result:
     for step in steps:
         for c in step["cameras"]:
             ct = c.get("capture_sim_ms")
-            if c.get("status") == "missing" or (ct is None and c.get("image_frame") is None):
-                # no image this step (agent/cc/agent_ffi.cpp:1031-1032): nothing to mark
+            if c.get("status") == "missing":
+                # no image this step: the agent writes the slot with status
+                # "missing" and null stamps (ICD A28; agent/cc/agent_ffi.cpp:552,
+                # 1039-1044). Any other slot holds an image, which needs its stamp.
                 skipped_slots += 1
                 continue
             if ct is None:
@@ -2482,6 +2484,13 @@ def vc030(run: Run) -> Result:
         return bad(vc, measured, th, evid,
                    [f"{len(problems)} stamps are not a simulation-time capture time, "
                     f"first {problems[0]}"])
+    if measured["images"] == 0:
+        # "every camera image ... carries a capture time" is not shown by a
+        # record that holds no image
+        return inconclusive(vc, "score/checkpointInputs.jsonl:cameras (an image)", None,
+                            f"no camera image in the records: {len(steps)} steps, "
+                            f"{skipped_slots} camera slots, each without an image",
+                            measured)
     return ok(vc, measured, th, evid)
 
 
