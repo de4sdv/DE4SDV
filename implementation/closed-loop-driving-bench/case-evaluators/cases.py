@@ -582,7 +582,10 @@ def vc001(run: Run) -> Result:
     names a step the engine did not condition predates ICD A26 (run N: frame
     113, the engine primed at 179); it is flagged, and the end of priming is
     the engine's first conditioned primed step at or after it (C2, A26). The
-    run ends at the agent's last step, its last C2 record.
+    run ends at the world's last tick (C1), or at the agent's last step, its
+    last C2 record, when that is later: an agent that stops planning while the
+    world ticks on leaves the steps after it without a plan. A run without a
+    world record ends at the agent's last step, with a note.
     """
     vc = "VC-DRIVING-001"
     plans = run.plans()
@@ -603,7 +606,17 @@ def vc001(run: Run) -> Result:
                                 {"priming_record_conflict": conflict})
         prime = engine
     stop = run.stop_begin()
-    end = (int(round(stop["t_sim"] / STEP_S)) - 1) if stop else steps[-1]["frame"]
+    agent_last = steps[-1]["frame"]
+    world_last = None
+    if stop:
+        end = int(round(stop["t_sim"] / STEP_S)) - 1
+    else:
+        try:
+            ticks = run.world_by_frame()
+        except MissingEvidence:
+            ticks = {}
+        world_last = max(ticks) if ticks else None
+        end = agent_last if world_last is None else max(world_last, agent_last)
     frames = [plan_frame(p) for p in plans]
     counts = Counter(f for f in frames if f is not None)
     window = range(prime, end + 1)
@@ -630,11 +643,19 @@ def vc001(run: Run) -> Result:
                 "longest_run_without_a_new_plan": longest,
                 "failing_pairs": pairs[:10],
                 "doubled_steps": doubled[:10], "steps_with_wrong_capture_time": len(bad_time),
-                "priming_record_conflict": conflict}
+                "priming_record_conflict": conflict,
+                "agents_last_step": agent_last, "world_last_tick": world_last}
     th = {"consecutive_steps_without_a_new_plan_max": 1, "step_s": STEP_S}
     flag = ([f"flagged: priming.complete at frame {recorded} names a step the engine did "
              f"not condition (before ICD A26); the end of priming is the engine's first "
              f"conditioned primed step, {prime}"] if conflict else [])
+    if not stop and world_last is None:
+        flag.append(f"the run has no world record (simulator/world.jsonl): the window ends "
+                    f"at the agent's last C2 record, frame {agent_last}, and steps after "
+                    f"the agent stopped cannot be judged")
+    elif not stop and world_last > agent_last:
+        flag.append(f"the world ticked to frame {world_last}, {world_last - agent_last} "
+                    f"steps after the agent's last C2 record (frame {agent_last})")
     if without and not pairs:
         flag.append(f"{len(without)} steps without their own plan, none next to another "
                     f"({measured['merged_frames_without_a_plan']} merged by FEO, ICD A23)")

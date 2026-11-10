@@ -942,7 +942,7 @@ def test_r11_vc001_run_end_is_the_agents_last_step(run_for, tmp_path):
         extra.append(json.dumps(rec))
     strip.replace_bytes(p, p.read_bytes() + ("\n".join(extra) + "\n").encode())
     res = verdict(Run(d), "VC-DRIVING-001")
-    assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
 
 
 def test_r11_cases_reading_the_world_declare_c1():
