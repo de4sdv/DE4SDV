@@ -272,9 +272,10 @@ def test_the_environment_gap_is_deferred_and_names_the_probes_and_the_capture() 
     head = " ".join(raw[:raw.index("package ")].split())
     assert "stay open until then" not in head and "fixed by the readiness probes" in head
     ids = sorted(set(re.findall(r"GAP-DRIVING-\d{3}", "".join(p.read_text(encoding="utf-8") for p in DRIVING.glob("*.sysml")))))
-    # GAP-DRIVING-009 took the next free number; GAP-DRIVING-010 (the history-mask decision of 2026-11-09) is the
-    # newest since. Numbers are taken in order and never reused.
-    assert GAP in ids and max(ids) == "GAP-DRIVING-010", "the next free gap number"
+    # GAP-DRIVING-009 took the next free number; GAP-DRIVING-010 (the history-mask decision of 2026-11-09) and
+    # GAP-DRIVING-011 (the route decision of 2026-11-10) are the newest since. Numbers are taken in order and never
+    # reused.
+    assert GAP in ids and max(ids) == "GAP-DRIVING-011", "the next free gap number"
 
 
 # -- the assurance structure ----------------------------------------------------------------------

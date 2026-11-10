@@ -358,7 +358,21 @@ as zero (REQ-DRIVING-008), the bounded deviation of the owner's decision of
 2026-11-09 that GAP-DRIVING-010 records: fed back in the closed loop, the
 checkpoint's own yaw history turned its plans off the lane.
 
-Three decisions shape it:
+GAP-DRIVING-011 records a separate limit, accepted on the owner's decision of
+2026-11-10: the pinned checkpoint takes no turn from the route. With the same
+camera images, map and motion history, swapping a route that turns hard left
+for the same route mirrored to a hard right changes the planned heading at
+6.4 s by at most 0.02 degrees, where a turn at a junction needs about 60. That
+holds with the history as REQ-DRIVING-008 gives it and with the recorded one,
+with a road-wide route corridor, with a destination marker 40 m along the
+route, and with the cameras blanked and no map. So the scenario's route needs
+no branch choice: every junction on it is passed straight on, and CARLA's
+route planner gives only lane-follow and straight road options along it. Keep
+it so when you change the route; the evidence claims no route following at
+junctions. The gap closes only with a checkpoint whose plans take the turn
+from the route, and the model revisits it when upstream publishes one.
+
+Three decisions shape the functional architecture:
 
 - **One command path.** The stop response is a mode of `commandVehicle`, not a
   second source of commands, and only its commands reach the actuation. When
@@ -599,8 +613,10 @@ its timing, its transformation, and the phase 10 action that follows. An
 allocation is a responsibility assignment, no deployment or runtime claim; a
 mapping is no interoperability claim; a pin is no build claim.
 
-Four assumptions and four gaps record what the realization depends on and
-what it found. The **readiness probes** of 2026-11-07 to 2026-11-09 retired
+Four assumptions and six gaps record what the realization depends on and
+what it found. Two of the gaps, GAP-DRIVING-010 and GAP-DRIVING-011, are
+accepted as known limits (see Phase 6); the others are deferred.
+The **readiness probes** of 2026-11-07 to 2026-11-09 retired
 two gaps: the SOME/IP gateway built at the v0.10.0 modules and carried 600 of
 600 events between two hosts to the IVI VM (GAP-DRIVING-002), and the
 simulator's client library linked into an S-CORE application

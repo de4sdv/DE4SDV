@@ -29,6 +29,12 @@ checkpoint takes in the closed loop:
 - [Closed-loop results](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/experiment/closed-loop/RESULTS.md).
 - [Closed-loop replay check](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/experiment/closed-loop/replay_driver.py).
 
+Inspected for the route decision of 2026-11-10, on whether the route steers the
+plans:
+
+- [Route-conditioned planner model](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/Model/model_components/reactive_e2e.py).
+- [Route-conditioning evaluation](https://github.com/autowarefoundation/auto_e2e/blob/cb50764b8250a3c44ee5b79b87ba02c5a83b0c91/Academic_Paper/AutoE2E_Route_Conditioned/paper_en.md).
+
 The speed benchmark and released-checkpoint driver do not establish the same
 configuration or timed scope. The existing simulator integration is AlpaSim;
 a CARLA adapter and target-hardware evidence remain new work.
