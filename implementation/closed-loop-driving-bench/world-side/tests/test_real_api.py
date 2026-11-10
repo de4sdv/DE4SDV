@@ -158,3 +158,20 @@ def test_control_accel_is_null_the_world_side_does_not_see_the_command(tmp_path,
 def test_default_run_has_no_autopilot_warmup():
     args = W.build_parser().parse_args(["--route", "r.json", "--profile", "p.json", "--run-dir", "run"])
     assert args.warmup_s == 0.0
+
+
+def test_is_alive_is_a_property_and_intact_cameras_read_alive_and_attached(tmp_path, route, profile):
+    """In CARLA 0.9.16 `carla.Actor.is_alive` is a bool property. Called as a method it raises
+    TypeError ('bool' object is not callable); a world side that called it recorded every camera
+    of every real tick as alive=false, attached=false while all six delivered images."""
+    assert isinstance(carla.Actor.__dict__.get("is_alive"), property)
+    clock = FakeClock()
+    client = carla.Client("127.0.0.1", 2000, clock=clock)
+    code, run_dir = run_tool(route, profile, tmp_path / "run", client, clock, warmup=0.0, run_s=0.3)
+    assert code == 0
+    ticks = world_records(run_dir)
+    assert ticks
+    for r in ticks:
+        sensors = r["data"]["sensors"]
+        assert len(sensors) == 6
+        assert all(s["alive"] is True and s["attached"] is True for s in sensors), (r["data"]["frame"], sensors)

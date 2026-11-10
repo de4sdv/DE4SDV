@@ -248,7 +248,9 @@ class Actor:
         return self._world.frame > self.spawned_at_frame
 
     # -- state
+    @property
     def is_alive(self) -> bool:
+        """A bool property in the real API (`actor.is_alive`), not a method."""
         return bool(self._alive)
 
     def get_transform(self) -> Transform:
