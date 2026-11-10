@@ -279,6 +279,7 @@ GAPS = {
     "GAP-DRIVING-007": "gapThreeHostBenchUnjoined",
     "GAP-DRIVING-010": "gapClosedLoopHistoryFeedback",
     "GAP-DRIVING-011": "gapRouteChoosesNoBranch",
+    "GAP-DRIVING-012": "gapPlansKeepNoLane",
 }
 #: retired by the amendment of 2026-11-09 on the readiness probes' evidence: the records left the model
 RETIRED = {
@@ -299,6 +300,8 @@ GAP_MENTIONS = {
                         "Revisit when upstream publishes"),
     "GAP-DRIVING-011": ("owner decision of 2026-11-10", "takes no turn from the route", "REQ-DRIVING-008",
                         "no branch choice", "Revisit when upstream publishes"),
+    "GAP-DRIVING-012": ("owner decision of 2026-11-10", "does not keep the vehicle in its lane", "REQ-DRIVING-008",
+                        "GAP-DRIVING-010", "SC-DRIVING-005", "Revisit when upstream publishes"),
     "ASM-DRIVING-001": ("event trigger", "newest frame", "Rust", "REQ-DRIVING-013"),
     "ASM-DRIVING-002": ("PyTorch", "rounding", "REQ-DRIVING-033", "tolerance"),
     "ASM-DRIVING-003": ("pacer", "bench network", "synchronous mode"),
@@ -330,6 +333,28 @@ ROUTE_GAP_STATEMENTS = (
     "route planner gives only lane-follow and straight road options), and the evidence claims no route following "
     "at junctions.",
     "Revisit when upstream publishes a checkpoint whose plans take the turn from the route.",
+)
+#: The lane decision of 2026-11-10 (GAP-DRIVING-012), as the gap states it: what the run on a straight route showed,
+#: what the readiness probe showed, which bench-side causes were checked, why no history setting keeps the lane, and
+#: what the evidence and the review of NEED-DRIVING-001 take from it.
+LANE_GAP_STATEMENTS = (
+    "Open, and accepted as a known limit (owner decision of 2026-11-10): the pinned checkpoint does not keep the "
+    "vehicle in its lane.",
+    "In a run of the closed-loop scenario on a straight route (2026-11-10), with the motion history as "
+    "REQ-DRIVING-008 gives it, the plans leaned to one side from the first plan that moved the vehicle, with the "
+    "vehicle aligned in its lane (about 2 degrees at 10 m ahead), and never steered back: of 375 plans made with the "
+    "vehicle more than 0.3 m to that side of the route, 3 pointed back toward it.",
+    "The vehicle was in the next lane after about 11 s.",
+    "In the readiness probe, with the yaw history also given as zero, the vehicle drifted to the other side in the "
+    "same way (GAP-DRIVING-010).",
+    "Bench-side causes were checked: the camera's principal point is 0.08 degrees off centre, the motion history "
+    "carries only speed and acceleration, and the drift went to opposite sides in the two runs, which makes a fixed "
+    "error of the camera rig unlikely.",
+    "With its own yaw history the checkpoint turns its plans off the lane within seconds (GAP-DRIVING-010); without "
+    "it, as here, the plans do not correct a drift. So neither setting keeps the vehicle in its lane.",
+    "The evidence therefore claims no lane keeping and no driving along the route, and the review of NEED-DRIVING-001 "
+    "(SC-DRIVING-005) names this limit.",
+    "Revisit when upstream publishes a checkpoint that keeps its lane in a closed loop.",
 )
 #: GAP-DRIVING-010 keeps the junction it observed and what the history mask means for the plans; since the route
 #: decision of 2026-11-10 the junction is a limit of its own (GAP-DRIVING-011), not a consequence of the mask.
@@ -916,6 +941,23 @@ def test_the_route_gap_records_that_the_checkpoint_takes_no_turn_from_the_route(
     assert not [word for word in CLAIM_WORDS if word in doc.lower()]
 
 
+def test_the_lane_gap_records_that_the_checkpoint_keeps_no_lane():
+    # The lane decision of 2026-11-10 (GAP-DRIVING-012): a measured negative result, accepted, right after the route
+    # gap. The run's route and spawn point are bench configuration and stay out of the model.
+    raw = _raw()
+    following = re.findall(r"\bpart\s+<'([A-Z]+-DRIVING-\d{3})'>", raw[raw.index("part <'GAP-DRIVING-010'>"):])
+    assert following[:3] == ["GAP-DRIVING-010", "GAP-DRIVING-011", "GAP-DRIVING-012"], following
+    gap = braced_body(_code(), "part <'GAP-DRIVING-012'>")
+    assert "attribute :>> disposition = LifecycleDisposition::accepted;" in gap, "a known limit the baseline keeps visible"
+    doc = _doc("part <'GAP-DRIVING-012'> gapPlansKeepNoLane : IncrementGap")
+    for statement in LANE_GAP_STATEMENTS:
+        assert statement in doc, statement
+    assert not re.search(r"\bTown\d|\bspawn", doc, re.I), doc
+    assert not [word for word in CLAIM_WORDS if word in doc.lower()]
+    for gone in ("kept its lane", "the vehicle keeps its lane", "lane keeping works"):
+        assert gone not in doc, gone
+
+
 def test_the_package_records_the_pins_the_alternatives_and_what_phase_8_settled():
     raw = _raw()
     head = raw[:raw.index("package " + PACKAGE)]
@@ -1087,12 +1129,14 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                  "rig profile", "ground truth", "ISQ", "CameraPosition", "three hosts", "readiness probes",
                  "2026-11-09", "PyTorch", "event trigger", "VXLAN", "NVENC", "warm-up lap"):
         assert word in flat, word
-    # the count follows the gap records of the realization, GAP-DRIVING-010 and GAP-DRIVING-011 included
+    # the count follows the gap records of the realization, GAP-DRIVING-010 to GAP-DRIVING-012 included
     count = f"{NUMBER_WORDS[len(ASSUMPTIONS)].capitalize()} assumptions and {NUMBER_WORDS[len(GAPS)]} gaps"
     assert count in flat, count
-    assert "Two of the gaps, GAP-DRIVING-010 and GAP-DRIVING-011, are accepted as known limits" in flat
+    assert ("Three of the gaps, GAP-DRIVING-010, GAP-DRIVING-011 and GAP-DRIVING-012, are accepted as known "
+            "limits") in flat
     assert "GAP-DRIVING-008" not in guide and "Three assumptions and seven gaps" not in flat
-    assert "Four assumptions and four gaps" not in flat, "GAP-DRIVING-010 and GAP-DRIVING-011 count too"
+    assert "Four assumptions and four gaps" not in flat, "GAP-DRIVING-010 to GAP-DRIVING-012 count too"
+    assert "Two of the gaps, GAP-DRIVING-010 and GAP-DRIVING-011" not in flat, "GAP-DRIVING-012 is accepted too"
     assert "follow-up PR carries the amendment" not in flat, "the amendment landed"
     assert "The next work is **Phase 8**" not in guide and "The next work is **Phase 9**" not in guide
     assert re.search(r"The next work is (\*\*Phase 1[01]\*\*|the \*\*second slice of Phase 10\*\*)", guide), "phases 8 and 9 landed"
@@ -1112,3 +1156,17 @@ def test_the_guide_explains_the_route_gap_right_after_the_history_gap():
                    "Keep it so when you change the route", "the evidence claims no route following at junctions",
                    "a checkpoint whose plans take the turn from the route"):
         assert phrase in route, phrase
+
+
+def test_the_guide_explains_the_lane_gap_right_after_the_route_gap():
+    # The lane decision of 2026-11-10 for contributors: what the straight-route run showed, why no history setting
+    # keeps the lane, what the review and the evidence take from it, and what would close the gap.
+    paragraphs = [" ".join(paragraph.split()) for paragraph in GUIDE.read_text(encoding="utf-8").split("\n\n")]
+    route = next(index for index, paragraph in enumerate(paragraphs) if "GAP-DRIVING-011 records a separate limit" in paragraph)
+    lane = paragraphs[route + 1]
+    for phrase in ("GAP-DRIVING-012 records a third limit", "owner's decision of 2026-11-10",
+                   "the pinned checkpoint does not keep the vehicle in its lane", "about 2 degrees", "375 plans",
+                   "3 pointed back", "about 11 s", "REQ-DRIVING-008", "GAP-DRIVING-010", "so no setting keeps the lane",
+                   "SC-DRIVING-005", "claims neither lane keeping nor driving along the route",
+                   "a checkpoint that keeps its lane in a closed loop"):
+        assert phrase in lane, phrase
