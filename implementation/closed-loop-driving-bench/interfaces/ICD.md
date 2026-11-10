@@ -43,7 +43,7 @@ There are three clocks. Every time field in a record names its clock by a suffix
 
 - The event name of each of the first five services is the last segment of its specifier. Instance id is 1.
 - Proxies subscribe with a max sample count of 8. A consumer never blocks a producer: a full slot is a dropped sample, which is counted and logged.
-- Every event has `numberOfSampleSlots` ≥ `maxSubscribers` × 8 + 1. LoLa rejects a subscription once the subscribers' sample counts would exceed the slots, and the producer needs one slot that no subscriber holds.
+- Every event has `numberOfSampleSlots` ≥ `maxSubscribers` × 8 + 1 (× 10 + 1 for an event gatewayd subscribes to: gatewayd requests 10 samples, A31). LoLa rejects a subscription once the subscribers' sample counts would exceed the slots, and the producer needs one slot that no subscriber holds.
   - The agent's four events allow 3 subscribers (the consumer above, the bench tap, one spare) and have 25 slots.
   - `actuation_state` allows 2 and has 20.
   - Each `operational_state` event allows 1 and has 20. Its one subscriber is gatewayd, which subscribes with 10 samples, not 8 (`someip::kMaxSampleCount` of the SOME/IP gateway), so it needs at least 10 + 1 slots; 20 is the value the gateway probes ran with (A31).
