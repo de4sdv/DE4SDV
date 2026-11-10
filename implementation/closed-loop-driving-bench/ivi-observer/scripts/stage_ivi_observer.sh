@@ -66,6 +66,13 @@ check() {
 
   # The contract proto and the mapping are the ones the core side stages.
   grep -q "message $TYPE_NAME" "$CONTRACT/de4sdv_driving_operational_state.proto" || { log "ERROR: contract message name"; rc=1; }
+  # The proto imports the catalog's publication annotations; the app's Java lite module
+  # must have their directory (and protobuf's, for descriptor.proto) on its include path.
+  if grep -q '^import "sdv/vsidl/v1/annotations.proto";' "$CONTRACT/de4sdv_driving_operational_state.proto"; then
+    grep -q '"system/software_defined_vehicle/vsidl/language/src/protos"' "$CONTRACT/Android.bp" \
+      && grep -q '"external/protobuf/src"' "$CONTRACT/Android.bp" \
+      || { log "ERROR: contract/Android.bp lacks the include path of sdv/vsidl/v1/annotations.proto"; rc=1; }
+  fi
   python3 "$SLICE_ROOT/scripts/gen_someip_vsidl.py" --check || rc=1
   [ "$rc" = 0 ] && log "check: ok (artifacts agree; nothing touched)"
   return "$rc"

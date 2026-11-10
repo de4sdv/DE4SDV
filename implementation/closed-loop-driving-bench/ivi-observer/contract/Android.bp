@@ -1,35 +1,48 @@
 // DE4SDV INC-DRIVING-001 slice 10b: the typed contracts of the observation path.
 //
-// de4sdv_driving_operational_state.proto is the VSIDL message of the Data Tunnel
-// topic and the compile-time type of the observer app (option B: the typed message).
-// Its field names and types are held to interfaces/ICD.md v2 section 3 by
-// tests/test_contract_and_encoding.py.
+// de4sdv_driving_operational_state.proto is the VSIDL message of the three Data
+// Tunnel units the SOME/IP broker publishes and the compile-time type of the
+// observer app (option B: the typed message). Its field names and types are held
+// to interfaces/ICD.md v2 section 3 by tests/test_contract_and_encoding.py.
 //
-// The module below is built inside the AOSP tree twice, from the same file:
-//   * for the SDV Core product, by the catalog module that
-//     scripts/stage_sdv_core_interop.sh appends to the catalog's Android.bp, so
-//     vsidlc can resolve the type of the broker's publication;
-//   * for the IVI product, by this module, linked into the app.
-// Two module names, one source; the staging scripts copy this file, they do not
-// fork it.
+// One source, two consumers in the AOSP tree; the staging scripts copy this file,
+// they do not fork it:
+//   * the SDV Core product: scripts/stage_sdv_core_interop.sh copies the proto into
+//     samples/some_ip/catalog/de4sdv_driving/ (no Android.bp there): the catalog's
+//     own rust_protobuf and filegroups take every **/*.proto below them, and the
+//     pdk29 catalog needs the publication annotations the proto carries;
+//   * the IVI product: this module, linked into the app.
 package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
+// The proto imports sdv/vsidl/v1/annotations.proto (the catalog's publication
+// annotations), which imports google/protobuf/descriptor.proto. Both directories
+// go on the proto include path, the same two the platform uses for that file:
+// libvsidl_v1_stdlib_proto@java_defaults ("Allows Java targets to use the same
+// protobuf files as Rust middleware") adds the first, and every module that
+// compiles annotations.proto adds external/protobuf/src (SdvCarMonitorTestApp's
+// lite library, the rust_protobuf stdlib). annotations.proto itself is NOT a
+// source here: lite code keeps no options, so the generated class has no reference
+// to the annotation classes and needs nothing beyond libprotobuf-java-lite.
 java_library {
     name: "de4sdv_driving_operational_state_proto_java",
     srcs: ["de4sdv_driving_operational_state.proto"],
     proto: {
         type: "lite",
+        include_dirs: [
+            "system/software_defined_vehicle/vsidl/language/src/protos",
+            "external/protobuf/src",
+        ],
     },
     sdk_version: "system_current",
     owner: "de4sdv",
 }
 
-// Only the proto is a Soong input here. The .vsidl mapping, the bundle
-// declaration and the type_definition fragment are data for the broker and for
-// review; scripts/stage_sdv_core_interop.sh copies them into the catalog, and a
-// filegroup cannot reach outside its own directory.
+// Only the proto is a Soong input here. The .vsidl mapping and the ACL files are
+// data for the broker and the SD agent; scripts/stage_sdv_core_interop.sh and
+// scripts/stage_ivi_observer.sh copy them, and a filegroup cannot reach outside
+// its own directory.
 filegroup {
     name: "de4sdv_driving_operational_state_contract_sources",
     srcs: ["de4sdv_driving_operational_state.proto"],
