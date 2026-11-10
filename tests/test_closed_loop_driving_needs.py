@@ -154,6 +154,18 @@ def test_the_need_statements_state_what_the_holders_expect_not_how_it_is_reviewe
     assert "no autopilot, replay or overlay" in plan
 
 
+def test_the_route_review_names_the_checkpoint_limits_that_bear_on_its_answer():
+    # The owner's decision of 2026-11-10: SC-DRIVING-005 points to the known limits of the pinned checkpoint that bear
+    # on its answer, the route (GAP-DRIVING-011) and the lane (GAP-DRIVING-012). It still asks its question and does
+    # not state the answer.
+    plan = _flat(braced_body(_raw(), "part <'SC-DRIVING-005'> checkpointAuthorityValidationPlan : ValidationPlanningScenario"))
+    assert "does the vehicle follow the route the driver chose" in plan
+    assert ("Known limits that bear on the answer: the pinned checkpoint takes no turn from the route "
+            "(GAP-DRIVING-011) and does not keep the vehicle in its lane (GAP-DRIVING-012).") in plan
+    for verdict in ("will find", "does not follow the route", "is not met", "fails"):
+        assert verdict not in plan, verdict
+
+
 def test_the_need_texts_make_no_claim_the_charter_excludes():
     # roadDeploymentOutOfScope and the phase 3 boundary: no safety, certification or on-road claim, and
     # no member product. The degraded-input need says the response carries no safety claim.
