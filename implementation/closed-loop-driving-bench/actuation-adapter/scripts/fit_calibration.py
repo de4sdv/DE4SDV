@@ -263,7 +263,7 @@ def fit(steady, targets, window):
 def parse_targets(spec):
     parts = spec.split(":")
     if len(parts) != 3:
-        raise argparse.ArgumentTypeError("--targets needs start:stop:step, e.g. -8:3:0.5")
+        raise argparse.ArgumentTypeError("--targets needs start:stop:step, e.g. --targets=-8:3:0.5")
     start, stop, step = (float(part) for part in parts)
     if step <= 0.0 or stop < start:
         raise argparse.ArgumentTypeError("--targets needs stop >= start and step > 0")
@@ -275,7 +275,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--world", required=True, help="world.jsonl of the run")
     parser.add_argument("--out", required=True, help="table block to write (JSON)")
-    parser.add_argument("--targets", default="-8:3:0.5", help="target accelerations start:stop:step (m/s^2)")
+    parser.add_argument("--targets", default="-8:3:0.5", help="target accelerations start:stop:step (m/s^2); a range that starts below zero needs the = form, --targets=-8:3:0.5, or argparse reads it as an option")
     parser.add_argument("--window", type=float, default=0.3, help="acceleration window of the median (m/s^2)")
     parser.add_argument("--min-speed", type=float, default=1.0, help="ignore ticks below this speed (m/s)")
     parser.add_argument("--steady-pedal", type=float, default=0.02,

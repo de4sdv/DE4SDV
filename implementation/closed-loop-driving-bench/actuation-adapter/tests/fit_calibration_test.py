@@ -98,7 +98,7 @@ def main():
 
     result = subprocess.run(
         [sys.executable, os.path.join(ROOT, "scripts", "fit_calibration.py"),
-         "--world", world, "--out", out, "--targets", "-8:3:0.5", "--window", "0.3"],
+         "--world", world, "--out", out, "--targets=-8:3:0.5", "--window", "0.3"],
         capture_output=True, text=True,
     )
     print(result.stdout, end="")
