@@ -3,8 +3,10 @@
 The guest end of INC-DRIVING-001's observation path, typed end to end: the S-CORE
 host publishes the driving operational state as a **SOME/IP struct** (ICD v2 §3);
 SDV Core's SOME/IP broker translates it in **REFLECTION** mode into the typed VSIDL
-message `de4sdv.driving.v1.DrivingOperationalState`; one Android app on the IVI VM
-subscribes to that typed topic through the SDV Gateway, shows mode, cause, speed,
+message `de4sdv.driving.v1.DrivingOperationalState`, published on three service
+units of that type, one per event (`de4sdv-driving-operational-state-plan`,
+`-vehicle-state`, `-health`); one Android app on the IVI VM subscribes to the three
+units through the SDV Gateway, shows mode, cause, speed,
 the plan's path and the two clocks, and logs every receipt as JSONL (ICD §6). No
 DE4SDV relay on the guest.
 
@@ -32,19 +34,20 @@ amendment and the owner's word.
 |---|---|---|
 | `contract/de4sdv_driving_operational_state.proto` | the typed VSIDL message: proto3, 43 fields, numbers 1..43, `uint32`/`float`/`string`/`repeated float` | `vsidlc`, the broker, the app's generated parser |
 | `interop/someip_type_definition.textproto` | the `SomeIpStruct`: 43 fields in ICD order, no struct length, AUTOSAR strings, byte-length arrays | the generator, the broker, review |
-| `interop/de4sdv_driving_operational_state.vsidl` | the mapping: 0x4df0/0x0001, events 0x8001–0x8003, eventgroup 1, one topic, `REFLECTION` + the struct on each event — **generated** | `vsidlc`, the broker |
+| `interop/de4sdv_driving_operational_state.vsidl` | the mapping: 0x4df0/0x0001, events 0x8001–0x8003, eventgroup 1, one `instance_impl` and one service unit per event (unit type `de4sdv.driving.v1.DrivingOperationalState`), `REFLECTION` + the struct on each event — **generated** | `vsidlc`, the broker |
+| `interop/variants/` | the one-unit form of the mapping and the broker ACL, for an owner decision only (no IVI side) | `MAPPING_VARIANT=one` |
 | `scripts/gen_someip_vsidl.py` | emits the mapping from the type definition (three identical blocks; textproto cannot alias) | the test, `stage_sdv_core_interop.sh check` |
 | `interop/de4sdv_driving_operational_state_bundle.vsidl` | the broker's `publisher` declaration (inserted into the platform `broker.vsidl`) | the SDV Core build |
 | `interop/vsomeip_config.json` | the core stack: service, port 30510, peer pinned and secure | the core image's stack |
-| `interop/broker_acl_append.textproto` | the broker may publish the topic with the typed message | the core image's broker APEX |
+| `interop/broker_acl_append.textproto` | the broker may publish the three units with the typed message | the core image's broker APEX |
 | `interop/acl/ivi_observer_subscriber.textproto` | the observer's subject grant | the IVI SD agent (at boot) |
 | `interop/acl/ivi_broker_object_policy.textproto` | the broker's object policy on the IVI (cross-VM read) | the IVI SD agent (at boot) |
-| `app/` | the observer: typed subscriber, mapper, record writer, screen, plan-path view, JVM record test | `m De4sdvDrivingStateObserver` |
+| `app/` | the observer: typed subscriber of the three units, mapper, record writer, screen (drawing, model, layout, plan geometry and numbers), JVM tests | `m De4sdvDrivingStateObserver De4sdvDrivingStateObserverTests` |
 | `codec/icd_table.py` | the 43-field table, hand-copied from ICD §3 — the single source the artifacts are held to | the tests, the generator, the codec |
 | `codec/someip_struct.py` | the **independent** encoder/decoder of the §3 struct (no C++ read), with a CLI | the tests, the VM gates, the vector check |
-| `scripts/probe_aosp_tree.sh` | read-only probe of the five facts option B rests on | the VM, before any build |
-| `scripts/stage_sdv_core_interop.sh` | check/stage/build/revert the SDV Core overlay | the VM |
-| `scripts/stage_ivi_observer.sh` | check/build/install/start/verify/record/pull/remove the IVI side | the VM |
+| `scripts/probe_aosp_tree.sh` | read-only probe of the facts option B rests on (7 checks) | the VM, before any build |
+| `scripts/stage_sdv_core_interop.sh` | check/stage/validate (G1b)/build/revert the SDV Core overlay | the VM |
+| `scripts/stage_ivi_observer.sh` | check/stage/build/install/start/verify/record/pull/remove/unstage the IVI side | the VM |
 | `tests/test_contract_and_encoding.py` | contract + struct + codec + protobuf agreement | any host with `uv` |
 | `tests/decode_s1_vectors.py` | decodes the S-CORE side's wire vectors with the independent codec | after the publisher's vectors exist |
 
@@ -52,18 +55,18 @@ amendment and the owner's word.
 
 ```bash
 python3 codec/someip_struct.py selftest
-uv run --with grpcio-tools python tests/test_contract_and_encoding.py
+(cd ../state-publisher && tests/run_tests.sh)
 python3 tests/decode_s1_vectors.py
+uv run --with grpcio-tools python tests/test_contract_and_encoding.py
 bash -n scripts/*.sh
 ```
 
-Last run: the codec round-trips all three kinds (PLAN 1301 B, VEHICLE_STATE 218 B,
-HEALTH 234 B); the contract test prints five `ok` lines and
-`ALL LOCAL CHECKS PASSED (contract + encoding; no AOSP, no runtime)`; the vector
-check decoded 16 S-CORE frames and compared **688 fields with no disagreement**
-(those frames are generated by `../state-publisher/tests/run_tests.sh`; regenerate
-them first, or the script reports `NOT CHECKED`). It proves nothing about the
-broker, the gateway or the guest.
+Last run (2026-11-10): the codec round-trips all three kinds (PLAN 1301 B,
+VEHICLE_STATE 218 B, HEALTH 234 B); the publisher's tests pass and regenerate the
+committed vectors byte-identically; the vector check decoded 16 S-CORE frames and
+compared **688 fields with no disagreement**; the contract test prints six `ok`
+lines and `ALL LOCAL CHECKS PASSED (contract + encoding; no AOSP, no runtime)`. It
+proves nothing about the broker, the gateway or the guest.
 
 ## The decision the owner may still have to make
 

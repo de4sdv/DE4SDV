@@ -25,14 +25,17 @@ fi
 : "${IVI_ADB:=0.0.0.0:6522}"
 : "${CORE_ADDR:=192.168.98.3}"
 : "${IVI_ADDR:=192.168.98.118}"
+# The guest host's bridge on the two-host bench; on the three-host bench it is
+# 192.168.98.254 and .1 is the S-CORE host. Not used by these scripts.
 : "${HOST_ADDR:=192.168.98.1}"
 
 # The S-CORE host's address on the VXLAN segment: the peer the SDV Core stack
 # pins for service 0x4df0 and the address its acceptance rule allows. On the
-# three-host bench this is NOT the guest host: the runbook's step 4 reads it off
-# the S-CORE host's VXLAN interface before the build. No default: the staging
-# script refuses to render the stack config without it (a silent 192.168.98.1
-# would pin the guest host and the core would never accept the real offer).
+# three-host bench it is 192.168.98.1: the S-CORE host holds .1 on the segment and
+# the guest host's bridge moves from .1 to .254 when the VXLAN's guest-host half is
+# added (RUNBOOK step 4 checks both before the build). No default: the staging
+# script refuses to render the stack config without it, because .1 is the guest
+# host itself until that move is made.
 : "${SCORE_SOMEIP_PEER:=}"
 
 # --- the contract (ICD section 3) -------------------------------------------

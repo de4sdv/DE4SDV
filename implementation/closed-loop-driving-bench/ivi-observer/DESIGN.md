@@ -30,8 +30,9 @@ statePublisher (S-CORE host, mw::com event 7406, PreSerializedData<2048>)
   → SDV Core VM 192.168.98.3      SOME/IP stack (vsomeip 3.1.37.1, AOSP copy)
   → SOME/IP broker                message_translation_mode: REFLECTION,
                                    type_definition = 43-field SomeIpStruct
-  → Data Tunnel topic             de4sdv-driving-operational-state,
-                                   type de4sdv.driving.v1.DrivingOperationalState
+  → Data Tunnel service units     de4sdv-driving-operational-state-plan (0x8001),
+                                   -vehicle-state (0x8002), -health (0x8003),
+                                   one type de4sdv.driving.v1.DrivingOperationalState
   → SDV Gateway on IVI            cross-VM subscription (ACL on both sides)
   → IVI observer app              typed message → JSONL + screen
 ```
@@ -40,26 +41,39 @@ statePublisher (S-CORE host, mw::com event 7406, PreSerializedData<2048>)
 |---|---|---|
 | publisher → someipd | `<run_dir>/score/statePublisher.jsonl`, gatewayd/someipd logcat | `out.operational_state` per event (ICD §2/§6) |
 | someipd → guest, TCP 30510 | `tcpdump` on the SDV Core VM and on the host | SYN/subscribe, then event payloads; the first 4 bytes of the payload are `00 00 00 02` (schema_major = 2) if the struct starts at byte 0 |
-| stack → broker → topic | broker logcat (`SomeIpBroker`), `sdv_authz` | the mapping loaded, the publication created, the topic named |
-| broker → topic | the topic's content on the guest | typed fields, not bytes: a wrong `field_name` leaves its field at the default |
-| topic → SDV Gateway → IVI | IVI `logcat` of the observer, the SDV Gateway's own log | subscription created; `ready` and receipts |
+| stack → broker → units | broker logcat (`someip_broker_agent`), `sdv_authz` | the mapping loaded, one publisher created per unit |
+| broker → units | the units' content on the guest | typed fields, not bytes: a wrong `field_name` leaves its field at the default |
+| units → SDV Gateway → IVI | IVI `logcat` of the observer, the SDV Gateway's own log | three subscriptions created; `ready` and receipts of all three kinds |
 | observer | `<run_dir>/guest/observer.jsonl`, the screen, the recording | one record per receipt: the 43 fields, both clocks, the IVI receipt stamp |
 
 Every hop has its own log, so a failure is localized by the first hop whose log
 stops (§8).
 
-## 2. Why one topic and three events
+## 2. Why three service units of one type
 
 The ICD fixes three events that carry one message, told apart by `kind`. The
-mapping sends all three to **one** topic parameter
-(`de4sdv-driving-operational-state`), so the observer has one subscription, one
-ACL pair and one loss counter instead of three of each. Ordering inside a kind is
-the publisher's `sequence`; the interleaving across kinds carries no meaning and
-is not used.
+mapping gives each event its own `instance_impl` and its own service unit, all of
+the one type `de4sdv.driving.v1.DrivingOperationalState`:
 
-Fallback if vsidlc refuses three offered events on one topic parameter: three
-topic parameters (keys 1/2/3) and three subscriptions in the app; the generator's
-header names the edit, and it costs about 30 minutes on the VM.
+| Event | Mapping key | Service unit |
+|---|---|---|
+| 0x8001 plan | 0 | `de4sdv-driving-operational-state-plan` |
+| 0x8002 vehicle_state | 1 | `de4sdv-driving-operational-state-vehicle-state` |
+| 0x8003 health | 2 | `de4sdv-driving-operational-state-health` |
+
+Why not one unit: an `instance_impl` holds one interface (`interface_type` is a
+oneof in the platform's SOME/IP mapping proto), the broker creates one SDV publisher
+per offered event, and the publication model of the type is `SINGLE_PUB`, under
+which each channel has one publisher. One unit fed by three broker publishers would
+contradict that; three units of one type follow it. The model allows it:
+MAP-DRIVING-OPERATIONAL-STATE maps the three events onto one VSIDL message and
+leaves the split into topics to this contract. The one-unit form is kept in
+`interop/variants/` for an owner decision only, with no IVI side.
+
+The observer has one gateway client (the JNI keeps one per process), three
+subscriptions by name on it, one ACL pair that names the three units, and one
+merged state. Ordering inside a kind is the publisher's `sequence`, one per unit;
+the interleaving across kinds carries no meaning and is not used.
 
 ## 3. The contract on the wire
 
@@ -82,7 +96,7 @@ order.
 
 Sizes, from the codec (all under the S-CORE `PreSerializedData<2048>` bound):
 
-| Kind | Struct | Frame (mw::com envelope + 4) |
+| Kind | Struct (the SOME/IP payload) | Library frame (+4, the vectors; not sent) |
 |---|---|---|
 | PLAN, 64 points, four arrays | 1301 B | 1305 B |
 | VEHICLE_STATE | 218 B | 222 B |
@@ -107,15 +121,19 @@ One process, one subscriber, one screen. It publishes nothing, offers nothing an
 calls nothing (REQ-DRIVING-018, -019).
 
 - **Subscription** (`TypedStateSubscriber`): subject
-  `org.de4sdv.drivingstate` / `DrivingStateObserver`, topic
-  `de4sdv-driving-operational-state`, message
+  `org.de4sdv.drivingstate` / `DrivingStateObserver`, the three units
+  `de4sdv-driving-operational-state-plan`, `-vehicle-state` and `-health`, message
   `de4sdv.driving.v1.DrivingOperationalState`, parser = the generated class
   (`DrivingOperationalState.parser()`, varint-delimited, as the platform's own
   `Subscriber` parses). The broker translated the struct; the app reads fields. **No
-  bytes field, no framing of our own, no SOME/IP decode step.** The publisher is found
-  **by name** (`com.android.sdv.someip` / `SomeIpBroker` / unit
-  `de4sdv-driving-operational-state`, any VM), as the proven native relay and the
-  platform's SOME/IP sample do, not by unit type. Polls every 100 ms and on the
+  bytes field, no framing of our own, no SOME/IP decode step.** Each unit is found
+  **by name** (`com.android.sdv.someip` / `SomeIpBroker` / the unit name, any VM), as
+  the proven native relay and the platform's SOME/IP sample do, not by unit type; a
+  by-name address is (VM, package, bundle, unit) and carries no message name. All
+  three subscriptions live on one client and feed one state; a receipt whose `kind`
+  is not its unit's is kept and also reported as an error (a crossed unit key in the
+  mapping). The link is `SUBSCRIBED` only when all three units are. Polls every
+  100 ms and on the
   gateway's data-available notification; reads up to 16 per batch; `DATA_LOSS` is
   counted, not a reconnect; every gateway failure is shown with its status; retries
   every 5 s after closing the client (the JNI keeps one client per process).
@@ -161,9 +179,10 @@ family). If the pushed app cannot bind the gateway, SELinux is the cause and
 | The SOME/IP broker translates a `SomeIpStruct` in REFLECTION mode into a typed protobuf message, matching fields by name | **documented** | AOSP "Write a SOME/IP mapping file" (event example uses `message_translation_mode: REFLECTION`) and "Write a SOME/IP type definition" (field_name "must exactly match") |
 | `SomeIpPrimitive` has `UINT32` and `FLOAT32`; a struct declares `length_field_size: ZERO` | **documented** | same page; `probe_aosp_tree.sh` §1 confirms on the shipped tree |
 | The broker fills a **repeated** float field from a length-prefixed FLOAT32 array, and reads strings with the BOM/NUL convention | **assumed** | the page states the mapping table but not this code path; probe §3/§4/§5 prints the code; gate G5 catches an empty array or an all-default message, G6 the subtler string faults |
-| The S-CORE encoder writes exactly this struct, BOM and byte-lengths included | **proven against vectors** | 16 frames from `state-publisher/tests/vectors/*.bin` (generated by that side's `tests/run_tests.sh`; not committed), decoded by `tests/decode_s1_vectors.py`: 688 field comparisons, no disagreement |
-| The SOME/IP payload is the struct alone, not the mw::com frame with its 4-byte prefix | **assumed** | ICD §3 says so; the vectors carry the envelope (ICD §2), so gatewayd must drop it; gate G3 hexdumps the first event payload |
-| A new protobuf type enters the SDV catalog through a `proto_library` in the catalog's `Android.bp`, and `vsidlc` resolves it for `broker.vsidl` | **assumed** | no offline tree; probe §6 prints the tree's own registration and module kinds; a wrong module kind is a build-time failure, not a silent one |
+| The S-CORE encoder writes exactly this struct, BOM and byte-lengths included | **proven against vectors** | 16 frames in `state-publisher/tests/vectors/*.bin` (committed; that side's `tests/run_tests.sh` regenerates them byte-identically), decoded by `tests/decode_s1_vectors.py`: 688 field comparisons, no disagreement |
+| The SOME/IP payload is the struct alone, not the library frame with its 4-byte prefix | **assumed** | gatewayd copies `data[0..size)` of the sample onto the payload unread, so the publisher shell sends the frame from byte 4 with `size` = the message length (ICD §2, A31); gate G3 hexdumps the first event payload (`00 00 00 02`) |
+| A new protobuf type enters the SDV catalog as plain files in a subdirectory the catalog's `Android.bp` globs (`**/*.proto`, `**/*.vsidl`), carries the pdk29 publication annotations, and `vsidlc` resolves it for `broker.vsidl` | **checked at G1b** | probe §6 prints the globs; `stage_sdv_core_interop.sh validate` builds the catalog modules and decodes the generated `someip-config.binpb` before the image build |
+| The runtime accepts three service units of one `SINGLE_PUB` type, one broker publisher each | **assumed** | the language and mapping rules allow it; the runtime rule is in `sdv_comms`, not in the AOSP source read here; the broker's start log and the app's three `subscribed unit=` lines decide (RISKS R4) |
 | A dotted message name in `broker.vsidl`'s `publisher` entry resolves across packages | **assumed** | the AEBS precedent used a same-package name; probe §6 prints whether any tree entry is dotted; the bare-name variant is a one-line change plus a rebuild |
 | A Java app on this image subscribes through `google.sdv.gateway.client` and draws typed messages | **proven** | INC-AEBS-010 `GatewayFrameSubscriber` + `MainActivity`, runtime-verified (PF-004) |
 | An app pushed into `/vendor/priv-app` may bind the SDV Gateway | **assumed** | the AEBS app was an image module in the same partition with the same module shape; G5 (`initComms` + `avc: denied`) decides |
@@ -189,8 +208,10 @@ from the no-relay rule.
 
 ```bash
 python3 codec/someip_struct.py selftest
-uv run --with grpcio-tools python tests/test_contract_and_encoding.py
+(cd ../state-publisher && tests/run_tests.sh)      # regenerates the vectors byte-identically
 python3 tests/decode_s1_vectors.py
+uv run --with grpcio-tools python tests/test_contract_and_encoding.py
+python3 scripts/gen_someip_vsidl.py --check
 bash -n scripts/*.sh
 ```
 
@@ -206,12 +227,14 @@ VEHICLE_STATE    218 B  consumed   218  first bytes 00 00 00 02 00 00 00 00 ... 
 HEALTH           234 B  consumed   234  first bytes 00 00 00 02 00 00 00 00 ...  round trip ok
 CODEC SELFTEST PASSED
 
-$ uv run --with grpcio-tools python tests/test_contract_and_encoding.py
+$ VSIDL_PROTO_ROOT=<tree>/vsidl/language/src/protos python tests/test_contract_and_encoding.py
+contract: compiled as is, with sdv/vsidl/v1/annotations.proto from <tree>/vsidl/language/src/protos
 contract: ok (43 fields, numbers 1..43, uint32/float/string/repeated float, no bytes)
-someip struct: ok (43 fields x 3 events, identical, REFLECTION, no struct length, not stale)
+annotations: ok (SINGLE_PUB, message_count 32, 8 strings with a max size, 4 repeated fields with a max count; as text and through the descriptor)
+someip struct: ok (43 fields x 3 events, identical, REFLECTION, no struct length, one instance_impl and one unit per event, not stale)
 codec: ok (big-endian, BOM in the length, arrays in bytes, 3 kinds 1301/218/234 B, malformed rejected)
 agreement: ok (the codec and the protobuf message hold the same 43 values per kind)
-artifacts agree: ok (mapping, bundle, ACLs, stack, the app, the record, the ICD)
+artifacts agree: ok (mapping, bundle, ACLs, stack, the app, the record, the ICD; three units)
 ALL LOCAL CHECKS PASSED (contract + encoding; no AOSP, no runtime)
 
 $ python3 tests/decode_s1_vectors.py | tail -1
@@ -221,50 +244,61 @@ VECTOR CHECK PASSED: 16 vector(s) decoded, 16 compared, 688 field comparisons
 The vector check is the one cross-implementation number: the frames are the
 S-CORE side's, the decoder is `codec/someip_struct.py`, written from the ICD table
 and the type definition, and every one of the 43 fields agrees on all 16 frames. The
-vectors are generated, not committed (`../state-publisher/tests/run_tests.sh`), so a
-later session must regenerate them before quoting this number again; with the
-directory absent the script says `NOT CHECKED` and exits 2, and this paragraph is
-then the record of the run that did happen (2026-11-09, 10:46 UTC).
+vectors are committed, and `../state-publisher/tests/run_tests.sh` regenerated all
+18 vector files byte-identically on 2026-11-10; with the directory absent the script
+says `NOT CHECKED` and exits 2. The same 16 frames, taken from byte 4 as the
+publisher shell sends them, also pass a re-implementation of the broker's REFLECTION
+rules for this type (688 field comparisons, no disagreement; with the 4-byte prefix
+left on, every frame fails as the broker would, `Unknown BOM for string`).
 Two caveats, stated rather than glossed: `expected.json` was produced by the S-CORE
 side's own decoder from the same frames, so this is decoder-to-decoder agreement
 (their intent checks are in `tests/test_publisher_core.cpp`); and it says nothing
 about the broker.
 
-### 7.2 The scripts, against a synthetic tree
+### 7.2 The scripts, against a copy of the pulled AOSP subset
 
-The AOSP tree is not here, so the scripts were exercised against a fixture that
-mimics the layout they expect (`system/software_defined_vehicle/samples/some_ip/…`
-with a `someip_types.proto`, a catalog `Android.bp`, an `agent/broker.vsidl`, a
-`config/broker_apex/someip_acl.textproto` and a stack `vsomeip_config.json`). It
-proves the scripts' quoting, insertion, backup and revert, not the AOSP layout:
+The full AOSP tree is not here. The scripts' AOSP-free modes ran against a copy of
+the pulled `system/software_defined_vehicle` subset (never the subset itself), on
+2026-11-10. It proves the scripts' checks, insertion, rendering, backup and revert
+on the real layout, not a build:
 
 ```
-$ AOSP_TOP=<fixture> ./scripts/probe_aosp_tree.sh | tail -2
+$ AOSP_TOP=<copy> ./scripts/probe_aosp_tree.sh | tail -1
 7 checks, 0 blocker(s)
-
-$ AOSP_TOP=<fixture> ./scripts/stage_sdv_core_interop.sh check
-check: ok
-$ AOSP_TOP=<fixture> SCORE_SOMEIP_PEER=10.0.0.9 ./scripts/stage_sdv_core_interop.sh stage
-catalog module de4sdv_driving_operational_state_proto appended ...
-appended the broker publish ACL
+$ AOSP_TOP=<copy> ./scripts/stage_sdv_core_interop.sh check
+check: ok (variant: three, units: de4sdv-driving-operational-state-plan de4sdv-driving-operational-state-vehicle-state de4sdv-driving-operational-state-health)
+$ AOSP_TOP=<copy> ./scripts/stage_sdv_core_interop.sh stage          # no SCORE_SOMEIP_PEER
+ERROR: export SCORE_SOMEIP_PEER (the S-CORE host's VXLAN address, RUNBOOK step 4); nothing staged
+$ AOSP_TOP=<copy> SCORE_SOMEIP_PEER=192.168.98.1 ./scripts/stage_sdv_core_interop.sh stage
+appended the broker publish ACL (three unit variant)
 broker.vsidl publisher inserted: de4sdv.driving.v1.DrivingOperationalState
-stack config rendered with SCORE_SOMEIP_PEER=10.0.0.9
-$ AOSP_TOP=<fixture> ./scripts/stage_sdv_core_interop.sh revert
+stack config rendered: services ['0x4dee', '0x4df0'], 0x4df0 provider 192.168.98.1
+(a second run: "already present" for each unit and the publisher; one acceptance
+entry for 192.168.98.1 with ports 30509 and 30510)
+$ AOSP_TOP=<copy> ./scripts/stage_ivi_observer.sh check
+check: ok (artifacts agree; nothing touched)
+$ AOSP_TOP=<copy> ./scripts/stage_ivi_observer.sh stage && ... unstage
+(42 Gateway client sources staged; protoc lite accepts the staged contract with the module's include path)
+$ AOSP_TOP=<copy> ./scripts/stage_sdv_core_interop.sh revert
 tree_identical_after_revert=yes
 ```
 
-`bash -n scripts/*.sh` is clean. The Java has no compiler on this host; all seven
-files were parsed with `javalang` (syntax only, no types) and the compiler is the
-AOSP build at RUNBOOK step 8 — that is stated rather than implied by a green test.
+`bash -n` is clean on every script. The app was compiled with `javac -Xlint:all`
+(JDK 21, `--release 17`) against the tree's own Gateway Java client sources,
+protobuf-javalite 3.25.5 and compile-time stubs of the Android and gRPC classes,
+with the contract generated by protoc 3.25.5 in lite mode from the annotated proto:
+no warning, no error, and all 43 JVM tests pass (the 35 of the on-tree test module
+plus the subscriber's 8). The AOSP build at RUNBOOK step 8 is still the real
+compiler.
 
 ## 8. Localizing a failure
 
 | First hop without evidence | Likely cause | Check |
 |---|---|---|
 | someipd → guest | peer address, VXLAN, firewall, event ids | `tcpdump -i any port 30510` both ends; SD offers on 30490 |
-| payload looks shifted | the mw::com 4-byte prefix was not dropped | the first 4 payload bytes are `00 00 00 02`; if they are a little-endian length, the struct starts at byte 4 and the mapping cannot be right |
-| stack → broker | mapping not loaded, type not registered, stack config not applied | broker logcat, `vsidlc` output, the catalog's `Android.bp`, `vsomeip_config.json` in the image |
-| broker → topic | ACL denies the publication, or the name does not match | broker logcat; the topic name in the ACL vs the parameterization |
+| payload looks shifted | an unpatched publisher shell sends the library frame with its 4-byte prefix | the first 4 payload bytes are `00 00 00 02`; if they are a little-endian length, the struct starts at byte 4 and the broker rejects every event (`Unknown BOM for string`) |
+| stack → broker | mapping not loaded, type not registered, stack config not applied | broker logcat, `run/g1b-build.log`, `run/someip-config.decoded.txt`, `vsomeip_config.json` in the image |
+| broker → units | ACL denies the publication, or a unit name does not match | broker logcat (`Failed to create publisher with service_unit_name`); the unit names in the broker ACL vs the mapping's service-unit keys |
 | broker translates nothing | a `field_name` differs from the protobuf field, or REFLECTION cannot fill a repeated field | the record's `all_defaults` flag, empty strings where the S-CORE log has text, empty arrays where the log has 64 points |
 | gateway → IVI | missing/duplicated ACL, SD agent restarted only at boot | `initComms`, `NOT_FOUND`, the ACL file list |
 | values | the S-CORE side sends something else | compare all 43 fields with `statePublisher.jsonl` (G6) |

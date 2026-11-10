@@ -151,9 +151,10 @@ else
 fi
 
 # ------------------------------------- 7. does gatewayd forward the mw::com frame?
-head2 "7. The mw::com operational-state frame: is the 4-byte prefix stripped before SOME/IP?"
-say "  ICD section 2: the publisher's event is PreSerializedData<2048>, bytes 0-1 a little-endian"
-say "  length, the struct from byte 4. The SOME/IP payload must be the struct alone (section 3)."
+head2 "7. The mw::com operational-state sample: does the SOME/IP payload start with the struct?"
+say "  ICD section 2 (A31): the publisher's sample is PreSerializedData<2048> with size = the"
+say "  struct's length and data[0..size) = the struct; gatewayd copies data[0..size) unread."
+say "  The SOME/IP payload must be the struct alone (section 3)."
 PREFIX_HITS="$(grep -rn -E 'PreSerializedData|kSerialized|SerializedData|operational_state|operationalState' "$SDV" --include=*.cc --include=*.h --include=*.json 2>/dev/null | head -12)"
 if [ -n "$PREFIX_HITS" ]; then
   printf '%s\n' "$PREFIX_HITS" | sed 's/^/    /'
