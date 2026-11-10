@@ -44,6 +44,7 @@ cc_library(
         "cc/ego_motion.h",
         "cc/frame_store.h",
         "cc/json_lite.h",
+        "cc/nav_prefetch.h",
         "cc/navigation_input.h",
         "cc/pace_signal.h",
         "cc/planner_bridge.h",

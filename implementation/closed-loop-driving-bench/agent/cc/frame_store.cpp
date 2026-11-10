@@ -91,6 +91,9 @@ bool FrameStore::OnSnapshot(std::uint64_t frame, const HeroSnapshot& snapshot,
       MakeReadyLocked(index, false, pending, pendingCount);
     }
   }
+  // The snapshot sink first: a step this snapshot completes is announced only after its prefetch
+  // was submitted (the agent's nav prefetch, DESIGN.md). Every refused snapshot returned above.
+  if (config_.snapshotSink) config_.snapshotSink(frame, snapshot, arrivalMonoNs);
   DeliverPending(pending, pendingCount);
   return accepted;
 }

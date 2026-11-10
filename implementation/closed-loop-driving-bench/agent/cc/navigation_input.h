@@ -6,6 +6,7 @@
 #pragma once
 
 #include <cstdint>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -36,6 +37,9 @@ class NavigationInput {
     bool route_in_raster = false;  // a route file with the announced SHA-256 is loaded
     std::string route_sha256;      // that file's SHA-256, else empty
     std::string route_event;       // JSON when the route changed or failed at this step, else empty
+    // What decides the route part of the raster: RouteIdentity() of the announcement it was drawn
+    // with. Equal identities at the same pose give byte-identical rasters (the nav prefetch's check).
+    std::string route_identity;
     std::uint32_t destination_cells = 0;
     // Coverage (VC-DRIVING-007): route waypoints inside the raster window, 2 px clear of its edges
     // and of the 10 m rear clip, and how many of them fall on a corridor cell. Upstream's own
@@ -50,11 +54,27 @@ class NavigationInput {
   int listener_port() const { return listener_.port(); }
   const std::string& map_version() const { return raster_.map().map_version; }
 
+  // Renders into map_context() and route_mask(). Thread-safe against RenderInto: one render at a time.
   bool Render(const Pose& vehicle_pose_ue, const double origin_ue[3], Step* step, std::string* error);
+  // The same render into the caller's buffers (the nav prefetch's thread; DESIGN.md).
+  bool RenderInto(const Pose& vehicle_pose_ue, const double origin_ue[3], Step* step, std::vector<float>* map_context,
+                  std::vector<float>* route_mask, std::string* error);
   const std::vector<float>& map_context() const { return map_context_; }
   const std::vector<float>& route_mask() const { return route_mask_f32_; }
 
+  // The listener's newest announcement, and the part of it that decides the raster: none, a
+  // withdrawal, or the announced file and SHA-256 (not the issue time or the corridor count).
+  RouteState NewestRoute() const { return listener_.Newest(); }
+  static std::string RouteIdentity(const RouteState& rs);
+  // The announcement's part of the route observation (announced, corridor count, issue time), as
+  // Render sets it: the take of a prefetched render reads it from the announcement at the step.
+  static void ObserveAnnouncement(const RouteState& rs, RouteObservation* route);
+
  private:
+  bool RenderLocked(const Pose& vehicle_pose_ue, const double origin_ue[3], Step* step, std::vector<float>* map_context,
+                    std::vector<float>* route_mask, std::string* error);
+
+  std::mutex render_mu_;     // the route state, the rasterizer and route_u8_ below
   RouteListener listener_;
   navigation::NavigationRasterizer raster_;
   bool started_ = false;
