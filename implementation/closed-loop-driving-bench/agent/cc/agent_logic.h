@@ -276,7 +276,7 @@ bool LoadVehicleConfigFile(const std::string& path, VehicleConfig* out, std::str
 // at the capture of the plan's frame. The first sample after sample k that lies
 // at least the lookahead from the origin is the target, and the curvature of
 // the arc from the origin through it is turned into a road-wheel angle. No
-// sample's pose stands in for the vehicle's (ICD A31). Exposed for testing.
+// sample's pose stands in for the vehicle's (ICD A32). Exposed for testing.
 double PurePursuitLookaheadM(double speed_kmh);
 double PurePursuitSteeringDeg(const DrivingPlanPayload& plan, std::uint64_t k,
                               double speed_kmh, double wheelbase_m);

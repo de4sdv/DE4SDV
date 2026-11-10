@@ -87,7 +87,7 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - Take the newest valid plan's sample at `k = round((step capture time − plan capture time) / 0.1 s)`, clamped to 0..63.
   - `acceleration = a[k]`.
   - `steeringAngle` by the configured command law; the run record names it (ICD A27):
-    - `pure_pursuit`, shipped: on the plan's path in the plan's own frame (the vehicle at the origin, heading along x; ICD A31), with a lookahead of 4 m + 0.8 s · the current motion sample's speed (4 to 15 m). The target is the first sample after sample k at least the lookahead from the origin; the steering is `deg(atan(wheelbase · 2y/d²))` of its x and y.
+    - `pure_pursuit`, shipped: on the plan's path in the plan's own frame (the vehicle at the origin, heading along x; ICD A32), with a lookahead of 4 m + 0.8 s · the current motion sample's speed (4 to 15 m). The target is the first sample after sample k at least the lookahead from the origin; the steering is `deg(atan(wheelbase · 2y/d²))` of its x and y.
     - `first_control`: `deg(atan(wheelbase · κ[k]))`. The checkpoint's first curvature sample leans right in its outputs while its path follows the road. With yaw rate and curvature given as zero in the history (REQ-DRIVING-008), steering on that one sample turned the vehicle off the road within seconds on the simulator host.
   - Limits and steering rate come from the vehicle configuration (REQ-DRIVING-011, -012).
 - The mode is stop:

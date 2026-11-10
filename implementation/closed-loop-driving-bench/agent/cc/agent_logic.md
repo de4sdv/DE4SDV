@@ -86,7 +86,7 @@ priming (0..19) → driving (20..) → a fault at 60 → stop → standstill.
 | REQ-DRIVING-026 re-check at the command | `Step` (kDriving, before the sample) |
 | acceleration clamp for both laws | `Step` |
 | `first_control`: deg(atan(wheelbase·κ)) | `FirstControlSteeringDeg` |
-| `pure_pursuit`: the plan's path from its origin (A31), Ld, 2y/d² | `PurePursuitSteeringDeg`, `PurePursuitLookaheadM` |
+| `pure_pursuit`: the plan's path from its origin (A32), Ld, 2y/d² | `PurePursuitSteeringDeg`, `PurePursuitLookaheadM` |
 | angle clamp, then per-step rate limit | `Commander::LimitSteering` |
 | ICD §5 configuration, rejecting bad values and laws | `ParseVehicleConfig`, `LoadVehicleConfigFile` |
 | record builders | `namespace record` |
