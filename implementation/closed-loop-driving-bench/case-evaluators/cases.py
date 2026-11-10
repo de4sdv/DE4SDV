@@ -1704,7 +1704,11 @@ def vc013(run: Run) -> Result:
 def vc014(run: Run) -> Result:
     """Every command at the actuation matches its plan in the S-CORE records, and
     after the communication of the driving system is stopped no command computed
-    from a plan reaches the actuation (REQ-014)."""
+    from a plan reaches the actuation (REQ-014).
+
+    An applied actuation state that names no plan is a command matched to no
+    plan, before the stop and after it. Only the adapter's own stop
+    (stopInForce) names none by design (actuation-adapter/adapter_core.cpp)."""
     vc = "VC-DRIVING-014"
     g = gate(run, vc)
     if g is not None:
@@ -1715,9 +1719,13 @@ def vc014(run: Run) -> Result:
     matched, unmatched = 0, []
     evid = []
     for a in run.actuations():
-        if not a["applied"] or not a["reference"]:
+        if not a["applied"]:
             continue
         ref = a["reference"]
+        if not ref:
+            if not a["stop"]:
+                unmatched.append({"t": a["actuation_s"], "planReference": ref})
+            continue
         hop = [c for c in adapter_cmds if c["reference"] == ref]
         if ref in agent_cmds and ref in plans and hop:
             matched += 1

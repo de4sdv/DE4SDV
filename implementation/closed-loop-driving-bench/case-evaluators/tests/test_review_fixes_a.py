@@ -209,3 +209,86 @@ def test_fewer_than_six_cameras_under_unknown_names_fail(straight, tmp_path, vc)
     assert res.outcome == cases.FAIL, (vc, res.outcome, res.measured, res.notes)
     assert set(PLAN_FRAMES) <= reported_frames(vc, res.measured), res.measured
     assert "5 cameras, not six" in json.dumps(res.measured), res.measured
+
+
+# ------------------------------------------------------------------ VC-DRIVING-014
+# REQ-DRIVING-014: "Met when, in a run of SC-DRIVING-001, every command that
+# reaches the actuation of the vehicle is matched in the Eclipse S-CORE
+# communication records to the plan it was computed from, and when, after the
+# Eclipse S-CORE communication of the driving system is stopped in the run, no
+# further command computed from a plan reaches the actuation." The adapter
+# applies no command without a plan reference (actuation-adapter/adapter_core.cpp:
+# 118-121); its own stop names no plan (adapter_core.cpp:373-385).
+VC014 = "VC-DRIVING-014"
+ADAPTER = "score/actuationAdapter.jsonl"
+
+
+@pytest.fixture(scope="module")
+def comm(tmp_path_factory) -> Path:
+    """A run of SC-DRIVING-001 whose S-CORE communication is stopped at frame
+    500 (50.0 s): 620 steps, the adapter's own stop at 50.2 s."""
+    return make_synthetic_run.build(tmp_path_factory.mktemp("fixes-a") / "comm",
+                                    scenario="closedLoopRoute", fault="comm_stop",
+                                    frames=620, fault_frame=500)
+
+
+def test_vc014_the_unedited_run_passes(comm):
+    res = verdict(Run(comm), VC014)
+    assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
+    assert res.measured["commands_matched"] == 435, res.measured
+
+
+def test_vc014_an_applied_command_that_names_no_plan_fails(comm, tmp_path):
+    # the applied, not-stopped actuation states at 20.0 to 20.4 s name no plan
+    d = strip.copy_run(comm, tmp_path / "no-plan-reference")
+
+    def fn(rec):
+        data = rec["data"]
+        if rec["event"] == "out.actuation_state" and data.get("applied") \
+                and not data.get("stopInForce") and 20.0 <= float(data["actuationTime"]) <= 20.4:
+            data.update(planReference="", acceleration=2.5)
+        return rec
+    assert rewrite(d / ADAPTER, fn) == 5
+    res = verdict(Run(d), VC014)
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    unmatched = res.measured["commands_unmatched"]
+    assert [(round(u["t"], 1), u["planReference"]) for u in unmatched] == \
+        [(20.0, ""), (20.1, ""), (20.2, ""), (20.3, ""), (20.4, "")], unmatched
+
+
+def test_vc014_an_applied_command_that_names_no_plan_after_the_stop_fails(comm, tmp_path):
+    # one more applied, not-stopped actuation state at 50.5 s, after the stop at
+    # 50.0 s, naming no plan
+    d = strip.copy_run(comm, tmp_path / "no-plan-after-stop")
+    p = d / ADAPTER
+    last, top = None, 0
+    with open(p) as fh:
+        for line in fh:
+            rec = json.loads(line)
+            top = max(top, rec["seq"])
+            if rec["event"] == "out.actuation_state" and rec["data"].get("applied"):
+                last = rec
+    assert last is not None
+    extra = json.loads(json.dumps(last))
+    extra.update(seq=top + 1, t_mono_ns=last["t_mono_ns"] + 600_000_000,
+                 t_real_ns=last["t_real_ns"] + 600_000_000)
+    extra["data"].update(actuationTime=50.5, planReference="", acceleration=2.5)
+    strip.replace_bytes(p, p.read_bytes() + (json.dumps(extra) + "\n").encode())
+    res = verdict(Run(d), VC014)
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    assert res.measured["commands_unmatched"] == [{"t": 50.5, "planReference": ""}], \
+        res.measured
+
+
+def test_vc014_the_adapters_own_stop_is_not_a_command_without_a_plan(comm, tmp_path):
+    # the adapter's stop state names no plan; marked applied, it is still the
+    # adapter's own stop (stopInForce 1), not a command that came from no plan
+    d = strip.copy_run(comm, tmp_path / "own-stop-applied")
+
+    def fn(rec):
+        if rec["event"] == "out.actuation_state" and rec["data"].get("stopInForce"):
+            rec["data"]["applied"] = 1
+        return rec
+    assert rewrite(d / ADAPTER, fn) == 1
+    res = verdict(Run(d), VC014)
+    assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
