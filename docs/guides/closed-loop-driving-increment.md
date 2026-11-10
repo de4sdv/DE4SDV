@@ -254,7 +254,8 @@ the need they answer:
   it takes: six camera images at the two sizes it asks for (003),
   seven earlier images per camera (004), one projection operator per image (005),
   the `map_context` raster (006), the `route_mask` raster (007) and 64 motion samples
-  100 ms apart, with yaw rate and curvature given as zero (008); standstill until
+  100 ms apart before the step, worked out from the vehicle's positions, with yaw
+  rate and curvature given as zero (008); standstill until
   both histories are complete (009);
   histories only from images and samples captured in the run (010); commands only
   from the newest valid plan and current motion (011), within the steering and
@@ -353,7 +354,8 @@ capture time in simulation time, its size in pixels and its camera's
 calibration, from which the projection operator of REQ-DRIVING-005 is
 built; an `EgoMotionInput` is the samples of the vehicle's speed,
 longitudinal and lateral acceleration and yaw rate as ISQ quantities, each
-with its sample time. The checkpoint gets the history's yaw rate and curvature
+with its sample time, and the vehicle's position at each, from which the
+checkpoint's history is worked out the source's way (REQ-DRIVING-008). The checkpoint gets the history's yaw rate and curvature
 as zero (REQ-DRIVING-008), the bounded deviation of the owner's decision of
 2026-11-09 that GAP-DRIVING-010 records: fed back in the closed loop, the
 checkpoint's own yaw history turned its plans off the lane.
@@ -625,10 +627,10 @@ its timing, its transformation, and the phase 10 action that follows. An
 allocation is a responsibility assignment, no deployment or runtime claim; a
 mapping is no interoperability claim; a pin is no build claim.
 
-Four assumptions and seven gaps record what the realization depends on and
-what it found. Three of the gaps, GAP-DRIVING-010, GAP-DRIVING-011 and
-GAP-DRIVING-012, are accepted as known limits (see Phase 6); the others are
-deferred.
+Four assumptions and eight gaps record what the realization depends on and
+what it found. Four of the gaps, GAP-DRIVING-010 to GAP-DRIVING-013, are
+accepted as known limits (see Phase 6 and the readiness probes below); the
+others are deferred.
 The **readiness probes** of 2026-11-07 to 2026-11-09 retired
 two gaps: the SOME/IP gateway built at the v0.10.0 modules and carried 600 of
 600 events between two hosts to the IVI VM (GAP-DRIVING-002), and the
@@ -637,7 +639,14 @@ simulator's client library linked into an S-CORE application
 parity and turned GAP-DRIVING-007 into the open question of the three hosts
 in one run; a probe is evidence for an amendment, never a result of the
 increment. With the simulator on its own card the planner met REQ-DRIVING-013's
-budget at wall-clock pace, so the increment needs no redirect.
+budget at wall-clock pace in the probe, so the increment needed no redirect.
+The verification runs missed it narrowly: **GAP-DRIVING-013**, accepted on the
+owner's decision of 2026-11-10, records that REQ-DRIVING-013 is narrowly not
+met. On the straight route 99.2 % of the plans came in time, but two in a row
+missed, none by more than 2 ms; an earlier run met it at its limit, 99.0 %,
+with the vehicle standing for most of the window. The checkpoint's inference
+alone takes about 90 ms of the 100, so a few milliseconds anywhere make a
+miss. The limit stays at 100 ms.
 **GAP-DRIVING-005** was new information from the placement:
 the actuation adapter's own stop response (REQ-DRIVING-028) had no path to
 the publication REQ-DRIVING-029 asks for, because phases 6 and 7 had no flow

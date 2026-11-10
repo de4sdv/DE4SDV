@@ -497,8 +497,9 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
   item def EgoMotionInput :> EgoMotionState {
     doc /*
      * The vehicle's motion as it enters the driving system at its input: its
-     * samples in the order of their sample times, from which the system
-     * keeps the history REQ-DRIVING-008 asks for.
+     * samples in the order of their sample times, and the vehicle's position
+     * at each, from which the system works out the history REQ-DRIVING-008
+     * asks for.
      */
     item sample : EgoMotionSample[*] ordered;
   }

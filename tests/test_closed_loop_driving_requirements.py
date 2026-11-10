@@ -65,9 +65,11 @@ REQUIREMENTS = {
         N1, R, ("route_mask", "route corridor and destination", "autoe2e-bev-450x300-0p4m-v1"),
         (CHECKPOINT_PIN, "RouteChannel")),
     "reqEgoMotionHistory": (
-        N1, R, ("64 motion samples of the vehicle it commands", "100 ms apart", "speed in m/s",
-                "longitudinal acceleration in m/s²", "yaw rate and curvature given as 0 rad/s and 0 1/m"),
-        (CHECKPOINT_PIN, "temporal_contract.py", "egomotion.py", "GAP-DRIVING-010", "experiment/closed-loop/RESULTS.md")),
+        N1, R, ("64 motion samples of the vehicle it commands before the step", "100 ms apart", "speed in m/s",
+                "longitudinal acceleration in m/s² worked out from the vehicle's positions",
+                "yaw rate and curvature given as 0 rad/s and 0 1/m"),
+        (CHECKPOINT_PIN, "temporal_contract.py", "egomotion.py", "parser.py", "GAP-DRIVING-010",
+         "experiment/closed-loop/RESULTS.md")),
     "reqHoldUntilHistoriesComplete": (N1, F, ("hold the vehicle at standstill until",), ("REQ-DRIVING-004", "6.3 s")),
     "reqHistoriesFromCapturedInputs": (
         N1, R, ("only from images and samples captured in the run",), (CHECKPOINT_PIN, "reactive_e2e.py", "asmSourceAuthenticity")),
@@ -187,13 +189,41 @@ def test_each_statement_holds_one_obligation_in_the_positive_form():
         assert not re.search(r"\bshall\s+(command|produce|give|make)\s+no\b", statement), name
 
 
+def test_the_ego_motion_history_is_worked_out_from_positions_and_checked_like_with_like():
+    # The owner decision of 2026-11-10 on VC-DRIVING-008: the source's closed-loop driver works speed and acceleration
+    # out from the vehicle's positions by numpy's gradient, so the criterion compares the history with the same
+    # derivation from the simulator's recorded poses, not with the simulator's own speed and acceleration, which differ
+    # from it at a start from standstill, around a contact and in the window's first and last rows.
+    requirement = _requirement("reqEgoMotionHistory")
+    statement = _statement(requirement)
+    assert "the 64 motion samples of the vehicle it commands before the step, 100 ms apart," in statement
+    assert "ending at the step" not in statement
+    criteria = _attribute(requirement, "successCriteria")
+    for phrase in ("hold 64 samples, oldest first and the newest 100 ms before the step,",
+                   "each within 0.05 m/s and 0.1 m/s² of the speed and acceleration worked out the source's way from "
+                   "the poses the simulator records for the commanded vehicle, moved to the origin of its camera rig, "
+                   "over the 66 steps that end at the step,"):
+        assert phrase in criteria, phrase
+    for gone in ("that the simulator reports", "the newest at the step"):
+        assert gone not in criteria, gone
+    rationale = _attribute(requirement, "rationale")
+    for phrase in ("Its closed-loop driver works speed and acceleration out from the vehicle's positions "
+                   "(parser.py in Model/plugins/alpasim_driver/alpasim_autoe2e)",
+                   "over the 66 positions 100 ms apart that end at the step, numpy's gradient, central inside the "
+                   "window and one-sided at its two ends,",
+                   "the first row and the step's own row are dropped, so the newest sample is 100 ms before the step, "
+                   "as in training.",
+                   "These values are not the simulator's own speed and acceleration:",
+                   "so the criterion compares like with like (owner decision of 2026-11-10)."):
+        assert phrase in rationale, phrase
+
+
 def test_the_ego_motion_history_gives_yaw_rate_and_curvature_as_zero_under_the_bounded_deviation():
     # The history-mask decision of 2026-11-09: fed back closed loop, the checkpoint's own yaw history turned its
     # plans off the lane (upstream's closed-loop results at the pin, and the readiness probe in CARLA). The history
-    # keeps the measured speed and acceleration and gives yaw rate and curvature as zero.
+    # keeps speed and acceleration and gives yaw rate and curvature as zero.
     requirement = _requirement("reqEgoMotionHistory")
     criteria = _attribute(requirement, "successCriteria")
-    assert "each within 0.05 m/s and 0.1 m/s² of the speed and acceleration that the simulator reports" in criteria
     assert "and each with a yaw rate of 0 rad/s and a curvature of 0 1/m" in criteria
     for gone in ("0.01 rad/s", "0.001 1/m"):
         assert gone not in criteria, gone

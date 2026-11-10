@@ -74,10 +74,19 @@ _NOT_CODE = re.compile(r"/\*.*?\*/|//[^\n]*|\"(?:[^\"\\]|\\.)*\"", re.S)
 
 
 def test_the_ego_motion_history_case_checks_yaw_rate_and_curvature_as_zero():
-    # REQ-DRIVING-008 as amended on 2026-11-09: the case compares speed and acceleration with the simulator and
-    # checks that yaw rate and curvature were given as zero.
+    # REQ-DRIVING-008 as amended on 2026-11-09 and 2026-11-10: the case works speed and acceleration out of the
+    # simulator's recorded poses the source's way, compares like with like and checks that yaw rate and curvature
+    # were given as zero.
     text = _docs(SLICE)
-    assert "compares speed and acceleration with the simulator's values within 0.05 m/s and 0.1 m/s², and checks that yaw rate and curvature are 0" in text
+    for phrase in ("the poses the simulator records for the commanded vehicle at every step, and the origin of its "
+                   "camera rig.",
+                   "processData moves the poses to that origin, works speed and acceleration out of the 66 that end "
+                   "at the plan's step the source's way, compares the 64 samples, oldest first and the newest 100 ms "
+                   "before the step, with them within 0.05 m/s and 0.1 m/s², and checks that yaw rate and curvature "
+                   "are 0."):
+        assert phrase in text, phrase
+    assert "compares speed and acceleration with the simulator's values" not in text
+    assert "the speed and acceleration the simulator reports for the commanded vehicle" not in text
     assert "0.01 rad/s" not in text and "0.001 1/m" not in text
 
 
@@ -273,9 +282,10 @@ def test_the_environment_gap_is_deferred_and_names_the_probes_and_the_capture() 
     assert "stay open until then" not in head and "fixed by the readiness probes" in head
     ids = sorted(set(re.findall(r"GAP-DRIVING-\d{3}", "".join(p.read_text(encoding="utf-8") for p in DRIVING.glob("*.sysml")))))
     # GAP-DRIVING-009 took the next free number; GAP-DRIVING-010 (the history-mask decision of 2026-11-09),
-    # GAP-DRIVING-011 (the route decision of 2026-11-10) and GAP-DRIVING-012 (the lane decision of 2026-11-10) are
-    # the newest since. Numbers are taken in order and never reused.
-    assert GAP in ids and max(ids) == "GAP-DRIVING-012", "the next free gap number"
+    # GAP-DRIVING-011 (the route decision of 2026-11-10), GAP-DRIVING-012 (the lane decision of 2026-11-10) and
+    # GAP-DRIVING-013 (the deadline decision of 2026-11-10) are the newest since. Numbers are taken in order and never
+    # reused.
+    assert GAP in ids and max(ids) == "GAP-DRIVING-013", "the next free gap number"
 
 
 # -- the assurance structure ----------------------------------------------------------------------
