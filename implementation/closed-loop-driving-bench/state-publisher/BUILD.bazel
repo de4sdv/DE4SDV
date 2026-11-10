@@ -39,6 +39,11 @@ cc_library(
     srcs = ["publisher_core.cpp"],
     hdrs = ["publisher_core.h"],
     copts = COMMON_COPTS + ["-Werror"],
+    # The test sources in tests/ include "publisher_core.h" by its bare name (as
+    # tests/run_tests.sh compiles them with -I<this directory>). Bazel gives quote
+    # includes only the execution root, so the package directory is exported to the
+    # dependents, the same idiom as interfaces:de4sdv_driving (includes = ["include"]).
+    includes = ["."],
     deps = [DE4SDV_HEADERS],
 )
 
