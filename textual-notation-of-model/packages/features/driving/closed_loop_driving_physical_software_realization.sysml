@@ -1452,6 +1452,33 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
     attribute :>> disposition = LifecycleDisposition::accepted;
   }
 
+  part <'GAP-DRIVING-012'> gapPlansKeepNoLane : IncrementGap {
+    doc /*
+     * Open, and accepted as a known limit (owner decision of 2026-11-10): the
+     * pinned checkpoint does not keep the vehicle in its lane. In a run of
+     * the closed-loop scenario on a straight route (2026-11-10), with the
+     * motion history as REQ-DRIVING-008 gives it, the plans leaned to one
+     * side from the first plan that moved the vehicle, with the vehicle
+     * aligned in its lane (about 2 degrees at 10 m ahead), and never steered
+     * back: of 375 plans made with the vehicle more than 0.3 m to that side
+     * of the route, 3 pointed back toward it. The vehicle was in the next
+     * lane after about 11 s. In the readiness probe, with the yaw history
+     * also given as zero, the vehicle drifted to the other side in the same
+     * way (GAP-DRIVING-010). Bench-side causes were checked: the camera's
+     * principal point is 0.08 degrees off centre, the motion history carries
+     * only speed and acceleration, and the drift went to opposite sides in
+     * the two runs, which makes a fixed error of the camera rig unlikely.
+     * With its own yaw history the checkpoint turns its plans off the lane
+     * within seconds (GAP-DRIVING-010); without it, as here, the plans do not
+     * correct a drift. So neither setting keeps the vehicle in its lane. The
+     * evidence therefore claims no lane keeping and no driving along the
+     * route, and the review of NEED-DRIVING-001 (SC-DRIVING-005) names this
+     * limit. Revisit when upstream publishes a checkpoint that keeps its lane
+     * in a closed loop.
+     */
+    attribute :>> disposition = LifecycleDisposition::accepted;
+  }
+
 
   /* ───────────── Concerns and views of the phase ───────────── */
 

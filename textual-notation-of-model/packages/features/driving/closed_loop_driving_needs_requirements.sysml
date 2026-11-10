@@ -102,7 +102,9 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
          * chose, with each steering and acceleration command derived from a
          * plan of the pinned checkpoint, the next camera images reflecting
          * the motion those commands caused, and no autopilot, replay or
-         * overlay issuing a command? */
+         * overlay issuing a command? Known limits that bear on the answer:
+         * the pinned checkpoint takes no turn from the route (GAP-DRIVING-011)
+         * and does not keep the vehicle in its lane (GAP-DRIVING-012). */
   }
   connection checkpointAuthorityValidationPlanning : ValidationPlanningAssociation
     connect needDrivenAlongTheRoute to checkpointAuthorityValidationPlan;

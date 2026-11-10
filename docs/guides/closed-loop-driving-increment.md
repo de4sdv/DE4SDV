@@ -372,6 +372,18 @@ it so when you change the route; the evidence claims no route following at
 junctions. The gap closes only with a checkpoint whose plans take the turn
 from the route, and the model revisits it when upstream publishes one.
 
+GAP-DRIVING-012 records a third limit, accepted on the owner's decision of
+2026-11-10: the pinned checkpoint does not keep the vehicle in its lane. On a
+straight route the plans leaned about 2 degrees to one side from the first
+plan that moved the vehicle and never steered back: of 375 plans made with the
+vehicle more than 0.3 m off to that side, 3 pointed back. The vehicle was in
+the next lane after about 11 s. With the yaw history as REQ-DRIVING-008 gives
+it the plans do not correct a drift, and with the checkpoint's own yaw history
+they turn off the lane within seconds (GAP-DRIVING-010), so no setting keeps
+the lane. The review of NEED-DRIVING-001 (SC-DRIVING-005) names both limits,
+and the evidence claims neither lane keeping nor driving along the route. The
+gap closes only with a checkpoint that keeps its lane in a closed loop.
+
 Three decisions shape the functional architecture:
 
 - **One command path.** The stop response is a mode of `commandVehicle`, not a
@@ -613,9 +625,10 @@ its timing, its transformation, and the phase 10 action that follows. An
 allocation is a responsibility assignment, no deployment or runtime claim; a
 mapping is no interoperability claim; a pin is no build claim.
 
-Four assumptions and six gaps record what the realization depends on and
-what it found. Two of the gaps, GAP-DRIVING-010 and GAP-DRIVING-011, are
-accepted as known limits (see Phase 6); the others are deferred.
+Four assumptions and seven gaps record what the realization depends on and
+what it found. Three of the gaps, GAP-DRIVING-010, GAP-DRIVING-011 and
+GAP-DRIVING-012, are accepted as known limits (see Phase 6); the others are
+deferred.
 The **readiness probes** of 2026-11-07 to 2026-11-09 retired
 two gaps: the SOME/IP gateway built at the v0.10.0 modules and carried 600 of
 600 events between two hosts to the IVI VM (GAP-DRIVING-002), and the
