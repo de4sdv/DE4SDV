@@ -81,6 +81,11 @@ placeholder vehicle, −3 on a vehicle configured to brake at most 3 m/s², so t
 stop never violates REQ-DRIVING-012. Steering is held at the last valid
 command's `steeringAngle` (0 if none was ever applied). At standstill (speed <
 0.1 km/h, `standstill_speed_kmh`) the brake is held for the rest of the run.
+The stop never applies throttle. A contact can slow the vehicle faster than the
+stop's profile, and the speed error would then call for throttle. When it does,
+the reference speed is set to the measured speed and the integral keeps no
+forward part, so the stop brakes with at least its feedforward. While the
+vehicle follows the profile, the stop is the same as before.
 The stop publishes `stopInForce = 1`, `cause = kCommandTimeout`,
 `stopSince` (simulation seconds of the stop-begin tick) and `stopSinceMono`
 (CLOCK_MONOTONIC seconds of the same tick, ICD v2 §4). The core takes the
