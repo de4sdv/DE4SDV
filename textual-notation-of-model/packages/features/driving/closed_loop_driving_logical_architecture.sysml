@@ -126,7 +126,7 @@ package DE4SDV_ClosedLoopDrivingLogicalArchitecture {
      * Carries the identification of the run and the planning of the
      * trajectory: it holds the pinned checkpoint, refuses to plan when the
      * checkpoint is not the one the configuration names, records the run
-     * identity, and makes one plan for each step from the checkpoint inputs.
+     * identity, and makes the plans from the checkpoint inputs.
      * The identity check is on the checkpoint this element loads, so the two
      * functions share it.
      */

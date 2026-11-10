@@ -229,11 +229,11 @@ package DE4SDV_ClosedLoopDrivingNeedsRequirements {
 
   requirement <'REQ-DRIVING-001'> reqPlanEachStep : FunctionalRequirementCandidate {
     subject drivingSystem :> DE4SDV_ClosedLoopDrivingFraming::candidateDrivingSystem;
-    require constraint statement { language "English" /* The driving system shall produce one plan for each 100 ms step of simulation time. */ }
+    require constraint statement { language "English" /* The driving system shall produce one plan for each 100 ms step of simulation time, leaving a step without a plan of its own only when the step before it has one. */ }
     attribute :>> source = "NEED-DRIVING-001; scenario SC-DRIVING-001";
-    attribute :>> rationale = "The source at the checkpoint pin cb50764b invokes the model at 10 Hz (MODEL_HZ in Model/navigation/geometry.py, OUTPUT_FREQUENCY_HZ in the AlpaSim driver plugin). The step is counted in simulation time, the time of the vehicle's world, so a slower simulation does not thin out the plans; how fast the plans come in wall-clock time is REQ-DRIVING-013.";
+    attribute :>> rationale = "The source at the checkpoint pin cb50764b invokes the model at 10 Hz (MODEL_HZ in Model/navigation/geometry.py, OUTPUT_FREQUENCY_HZ in the AlpaSim driver plugin). The step is counted in simulation time, the time of the vehicle's world, so a slower simulation does not thin out the plans; how fast the plans come in wall-clock time is REQ-DRIVING-013. A step is left without a plan of its own when the plan of the step before it runs long, or when a camera image of the step arrives too late to plan on (REQ-DRIVING-023 tolerates one late image); the vehicle meanwhile stays on the newest valid plan, which reaches 6.4 s ahead. One such step is tolerated, as one late plan is in REQ-DRIVING-013; two in a row are not, and a plan that stays away ends in the stop response of REQ-DRIVING-026 (owner decision of 2026-11-09).";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when, in a run of SC-DRIVING-001, the records hold one plan for each 100 ms of simulation time from the end of priming to the end of the run or the start of the stop response.";
+    attribute :>> successCriteria = "Met when, in a run of SC-DRIVING-001, the records hold at most one plan for each 100 ms step of simulation time and no two consecutive steps without one, from the end of priming to the end of the run or the start of the stop response.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 

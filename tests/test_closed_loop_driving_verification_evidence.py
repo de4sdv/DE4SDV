@@ -81,6 +81,13 @@ def test_the_ego_motion_history_case_checks_yaw_rate_and_curvature_as_zero():
     assert "0.01 rad/s" not in text and "0.001 1/m" not in text
 
 
+def test_the_plan_per_step_case_fails_two_consecutive_steps_without_a_plan_not_one():
+    # REQ-DRIVING-001 as amended on 2026-11-09: one step without a plan of its own passes, two in a row fail.
+    text = _docs(SLICE)
+    assert "a step with two plans, or two consecutive steps without one, gives failObservedBehavior" in text
+    assert "a missing or a doubled step gives failObservedBehavior" not in text
+
+
 def _code(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
     return _NOT_CODE.sub(lambda match: '""' if match.group().startswith('"') else " ", text)
