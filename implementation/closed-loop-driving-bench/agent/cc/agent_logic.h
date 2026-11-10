@@ -271,10 +271,12 @@ bool ParseVehicleConfig(const std::string& json_text, VehicleConfig* out, std::s
 // Reads and parses the file; false and *error when it cannot be read.
 bool LoadVehicleConfigFile(const std::string& path, VehicleConfig* out, std::string* error);
 
-// The pure-pursuit steering of REQ-DRIVING-011's alternative law: the plan's
-// integrated path is shifted to the origin and heading of sample k, the first
-// sample beyond the lookahead is the target, and the curvature it implies is
-// turned into a road-wheel angle. Exposed for testing.
+// The pure-pursuit steering of REQ-DRIVING-011's alternative law, on the plan's
+// path in the plan's own frame: the vehicle at the origin, heading along x, as
+// at the capture of the plan's frame. The first sample after sample k that lies
+// at least the lookahead from the origin is the target, and the curvature of
+// the arc from the origin through it is turned into a road-wheel angle. No
+// sample's pose stands in for the vehicle's (ICD A31). Exposed for testing.
 double PurePursuitLookaheadM(double speed_kmh);
 double PurePursuitSteeringDeg(const DrivingPlanPayload& plan, std::uint64_t k,
                               double speed_kmh, double wheelbase_m);

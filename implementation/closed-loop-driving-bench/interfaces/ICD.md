@@ -156,7 +156,7 @@ One JSON file is named by the run record; the commander and the adapter read it:
 - The numbers are placeholders. Bench calibration replaces them; the adapter logs the vehicle's physics control as a `config` record. The steer's full scale is not one of them: the adapter reads it from the vehicle at start-up (A30).
 - **Commander:**
   - `steeringAngle` by `command_law` (A27), clamped to ±max_road_wheel_angle and rate-limited per step:
-    - `pure_pursuit` (shipped): on the plan's path from sample k, lookahead 4 m + 0.8 s · speed (4 to 15 m), `deg(atan(wheelbase · 2y/d²))`;
+    - `pure_pursuit` (shipped): on the plan's path in the plan's own frame (A31), lookahead 4 m + 0.8 s · speed (4 to 15 m), target the first sample after sample k at least the lookahead from the origin, `deg(atan(wheelbase · 2y/d²))` of its x, y;
     - `first_control`: `deg(atan(wheelbase·κ[k]))`;
   - `acceleration = clamp(a, -max_deceleration, +max_acceleration)`.
 - **Adapter:** `steer = clamp(-steeringAngle / max_steer_angle, -1, 1)`, with `max_steer_angle` the hero's front-wheel `max_steer_angle` read from CARLA at start-up (A30); `max_road_wheel_angle` only bounds a valid command (§4). Throttle and brake come from the table plus PI (S2 README).
@@ -322,3 +322,9 @@ No payload changes.
   - `max_road_wheel_angle_deg` (35°) stays the command limit: the commander's clamp and the adapter's validity check.
   - The adapter does not start when CARLA gives no front-wheel `max_steer_angle`, or one below the command limit: it logs an `error` record and exits.
   - Before A30 the steer was the angle over `max_road_wheel_angle_deg`, so CARLA turned the road wheels by twice the commanded angle. On the straight route the commands before the first contact had a median of 0.64° and the applied steer turned the wheels 1.29°; the vehicle turned as the doubled angle predicts.
+- **A31, pure-pursuit anchor (§5, REQ-DRIVING-011).** No payload change.
+  - `pure_pursuit` reads the plan's path in the plan's own frame: the vehicle is at the origin and heads along x, as it did when the plan's frame was captured. The target is the first sample after sample k that lies at least the lookahead from the origin, and the steering is `deg(atan(wheelbase · 2y/d²))` of that sample's x and y. No sample's position or heading stands in for the vehicle's.
+  - Before A31 the commander took sample k's pose, heading included, for the vehicle's and shifted the path to it. A sample's pose is where the plan expects the vehicle 0.1 s · (k+1) later. The checkpoint's first samples head right (A27; a median of −0.57° at sample 0 in moving plans) while its path stays on the vehicle's line, and the vehicle does not follow that first heading. Turning the path by it moved every target to the left.
+  - Two simulator runs on a straight route show the size. All 189 and 188 moving commands before the first contact were further left than the same plans read from their origin, by a median of 0.61°. The commands asked for a heading change of +9.9° and +9.7° over 21.6 s; the vehicle turned +9.3° in both and left its lane. Read from the origin, the same plans ask for −0.7° and −0.9°. The "+0.6° while moving" of A27 was this shift, not the plans' demand.
+  - Sample k still starts the target search, so a plan that is k steps old is not steered toward a sample it has already passed. On a path of constant curvature the steering is the same for every k.
+  - The vehicle's travel since the plan's capture is not compensated. On those runs the vehicle was 0.24 m (median) further along the path, and 5 mm to its side, when the command acted.

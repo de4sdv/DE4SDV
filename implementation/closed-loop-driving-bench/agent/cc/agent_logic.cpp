@@ -492,33 +492,24 @@ double PurePursuitLookaheadM(double speed_kmh) {
 double PurePursuitSteeringDeg(const DrivingPlanPayload& plan, std::uint64_t k,
                               double speed_kmh, double wheelbase_m) {
   if (k >= kPlanSamples) k = kPlanSamples - 1;
-  const PlanSample& reference = plan.samples[k];
-  const double cosine = std::cos(reference.heading);
-  const double sine = std::sin(reference.heading);
 
-  // The plan's integrated path, shifted to the origin and heading of sample k.
-  const auto shifted = [&](std::size_t index, double* x, double* y) {
-    const double dx = static_cast<double>(plan.samples[index].x) - reference.x;
-    const double dy = static_cast<double>(plan.samples[index].y) - reference.y;
-    *x = cosine * dx + sine * dy;
-    *y = -sine * dx + cosine * dy;
-  };
-
+  // The plan's path in the plan's own frame: the vehicle is at the origin and
+  // heads along x, as it did when the plan's frame was captured. A sample's
+  // pose is where the plan expects the vehicle later, not where it is, so no
+  // sample's position or heading is taken for the vehicle's.
   const double lookahead = PurePursuitLookaheadM(speed_kmh);
   std::size_t target = kPlanSamples - 1;  // the last sample when none is far enough
   for (std::size_t index = static_cast<std::size_t>(k) + 1; index < kPlanSamples; ++index) {
-    double x = 0.0;
-    double y = 0.0;
-    shifted(index, &x, &y);
+    const double x = static_cast<double>(plan.samples[index].x);
+    const double y = static_cast<double>(plan.samples[index].y);
     if (std::hypot(x, y) >= lookahead) {
       target = index;
       break;
     }
   }
 
-  double x = 0.0;
-  double y = 0.0;
-  shifted(target, &x, &y);
+  const double x = static_cast<double>(plan.samples[target].x);
+  const double y = static_cast<double>(plan.samples[target].y);
   const double distance = std::max(1.0, std::hypot(x, y));
   const double curvature = 2.0 * y / (distance * distance);
   return FirstControlSteeringDeg(wheelbase_m, curvature);

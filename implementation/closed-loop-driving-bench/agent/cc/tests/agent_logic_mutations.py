@@ -241,6 +241,32 @@ MUTATIONS = [
         "  return frame - first_frame + 1 >= priming_frames;",
         "ICD A26 (no wrap-around)",
     ),
+    # The pure-pursuit anchor (ICD A31).
+    (
+        "pure pursuit takes sample k's position for the vehicle's",
+        "agent_logic.cpp",
+        "  const double y = static_cast<double>(plan.samples[target].y);\n",
+        "  const double y = static_cast<double>(plan.samples[target].y) -\n"
+        "                   static_cast<double>(plan.samples[k].y);\n",
+        "ICD A31 (the plan's own frame)",
+    ),
+    (
+        "pure pursuit turns the path into sample k's heading",
+        "agent_logic.cpp",
+        "  const double y = static_cast<double>(plan.samples[target].y);\n",
+        "  const double y = static_cast<double>(plan.samples[target].y) -\n"
+        "                   std::sin(static_cast<double>(plan.samples[k].heading)) * x;\n",
+        "ICD A31 (the plan's own frame)",
+    ),
+    (
+        "pure pursuit's target search starts at the first sample",
+        "agent_logic.cpp",
+        "  for (std::size_t index = static_cast<std::size_t>(k) + 1; index < kPlanSamples; ++index) {\n"
+        "    const double x = static_cast<double>(plan.samples[index].x);",
+        "  for (std::size_t index = 0; index < kPlanSamples; ++index) {\n"
+        "    const double x = static_cast<double>(plan.samples[index].x);",
+        "ICD A31 (target after sample k)",
+    ),
 ]
 
 BUILD_COMMAND = [

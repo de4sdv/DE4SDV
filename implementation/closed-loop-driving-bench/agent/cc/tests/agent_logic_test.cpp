@@ -1038,6 +1038,102 @@ void TestCommanderPurePursuit() {
   CHECK_NEAR(step.command.steeringAngle, kFirstControl005Deg, 1e-5);
 }
 
+// A plan the pinned checkpoint produced on a straight road in the simulator, at
+// 9.27 km/h: samples 0 to 25 in the plan's own frame (x, y in metres, heading in
+// radians). Its first samples head right (-0.65 deg at sample 0, -1.14 deg at
+// sample 2) while its path stays within 3.5 cm of the vehicle's line, crosses it
+// again near 6 m and leans left beyond.
+constexpr double kRecordedPlanSpeedKmh = 9.2683;
+constexpr double kRecordedPlanX[] = {
+    0.257314, 0.519018, 0.785066, 1.055277, 1.329424, 1.607235, 1.888435, 2.172749, 2.459920,
+    2.749711, 3.041905, 3.336315, 3.632773, 3.931121, 4.231231, 4.532976, 4.836256, 5.140974,
+    5.447040, 5.754378, 6.062917, 6.372601, 6.683369, 6.995168, 7.307951, 7.621673};
+constexpr double kRecordedPlanY[] = {
+    -0.002926, -0.007600, -0.012885, -0.018050, -0.022694, -0.026622, -0.029749, -0.032051,
+    -0.033532, -0.034215, -0.034128, -0.033300, -0.031758, -0.029535, -0.026663, -0.023176,
+    -0.019102, -0.014472, -0.009312, -0.003653, 0.002477,  0.009048,  0.016031,  0.023398,
+    0.031122,  0.039177};
+constexpr double kRecordedPlanHeading[] = {
+    -0.011371, -0.017857, -0.019863, -0.019113, -0.016937, -0.014139, -0.011118, -0.008099,
+    -0.005154, -0.002359, 0.000298,  0.002814,  0.005202,  0.007451,  0.009567,  0.011556,
+    0.013435,  0.015193,  0.016856,  0.018413,  0.019863,  0.021215,  0.022467,  0.023624,
+    0.024688,  0.025670};
+
+// The recorded plan; `side` = -1 mirrors it about the vehicle's line. Beyond the
+// recorded samples the path runs straight on.
+DrivingPlanPayload MakeRecordedPlan(std::uint64_t frame, double side = 1.0) {
+  DrivingPlanPayload plan = MakePlan(frame, 0.0, 0.0);
+  const std::size_t recorded = sizeof(kRecordedPlanX) / sizeof(kRecordedPlanX[0]);
+  const double spacing = kRecordedPlanX[recorded - 1] - kRecordedPlanX[recorded - 2];
+  for (std::size_t i = 0; i < kPlanSamples; ++i) {
+    const std::size_t source = std::min(i, recorded - 1);
+    const double beyond = static_cast<double>(i - source);
+    plan.samples[i].x = static_cast<float>(kRecordedPlanX[source] + spacing * beyond);
+    plan.samples[i].y = static_cast<float>(side * kRecordedPlanY[source]);
+    plan.samples[i].heading = static_cast<float>(side * kRecordedPlanHeading[source]);
+  }
+  return plan;
+}
+
+// Pure pursuit reads the plan's path in the plan's own frame: the vehicle is at
+// the plan's origin and heads along x, as it did when the plan's frame was
+// captured. A sample's pose is where the plan expects the vehicle later, not
+// where it is. The checkpoint's first samples head right while its path stays on
+// the vehicle's line; taking sample k's pose for the vehicle's turned that into
+// about +0.6 deg of left steering in every moving command of a straight-road run.
+void TestPurePursuitAnchorsAtThePlanOrigin() {
+  const double pi = std::acos(-1.0);
+
+  // The recorded plan asks for next to no steering. The expected value is an
+  // independent computation from the plan's origin (target: sample 20).
+  const DrivingPlanPayload recorded = MakeRecordedPlan(0);
+  const double steering = PurePursuitSteeringDeg(recorded, 0, kRecordedPlanSpeedKmh, 2.85);
+  CHECK_NEAR(steering, 0.022006963, 1e-6);
+  CHECK(std::fabs(steering) < 0.1);  // from sample 0's pose: +0.7118 deg
+  // No built-in side: the mirrored plan steers the same amount the other way.
+  CHECK_NEAR(PurePursuitSteeringDeg(MakeRecordedPlan(0, -1.0), 0, kRecordedPlanSpeedKmh, 2.85),
+             -steering, 1e-12);
+
+  // Through the Commander, at the plan's own step.
+  VehicleConfig config = DefaultConfig();
+  config.law = CommandLaw::kPurePursuit;
+  Commander commander(config);
+  const DrivingPlanPayload at_step = MakeRecordedPlan(10);
+  const CommandStep step = commander.Step(Mode::kDriving, &at_step, 10,
+                                          CleanMotion(10, kRecordedPlanSpeedKmh), 1.0);
+  CHECK_NEAR(step.command.steeringAngle, 0.022006963, 1e-6);
+
+  // A sample's heading does not enter: a path on the vehicle's line has no
+  // steering, whatever heading its samples carry, at any sample index.
+  DrivingPlanPayload on_line = MakePlan(0, 0.0, 0.0);
+  for (std::size_t i = 0; i < kPlanSamples; ++i) on_line.samples[i].heading = -0.02f;
+  CHECK_NEAR(PurePursuitSteeringDeg(on_line, 0, 18.0, 2.85), 0.0, 0.0);
+  CHECK_NEAR(PurePursuitSteeringDeg(on_line, 3, 18.0, 2.85), 0.0, 0.0);
+
+  // Nor does a sample's position: a path 0.2 m to the left of the vehicle's line
+  // is steered toward. 18 km/h: lookahead 8 m, target sample 15 at (8.0, 0.2).
+  DrivingPlanPayload beside = MakePlan(0, 0.0, 0.0);
+  for (std::size_t i = 0; i < kPlanSamples; ++i) beside.samples[i].y = 0.2f;
+  const double offset = static_cast<double>(0.2f);
+  const double toward =
+      std::atan(2.85 * 2.0 * offset / (8.0 * 8.0 + offset * offset)) * 180.0 / pi;
+  CHECK_NEAR(PurePursuitSteeringDeg(beside, 0, 18.0, 2.85), toward, 1e-12);
+  CHECK_NEAR(PurePursuitSteeringDeg(beside, 3, 18.0, 2.85), toward, 1e-12);
+  CHECK(toward > 0.3);
+
+  // Sample k only moves the start of the target search: no sample up to k is
+  // the target. At rest the lookahead is 4 m; samples lie 0.5 m apart and the
+  // path leaves the vehicle's line after sample 10.
+  DrivingPlanPayload late = MakePlan(0, 0.0, 0.0);
+  for (std::size_t i = 11; i < kPlanSamples; ++i) {
+    late.samples[i].y = static_cast<float>(0.3 * static_cast<double>(i - 10));
+  }
+  CHECK_NEAR(PurePursuitSteeringDeg(late, 0, 0.0, 2.85), 0.0, 0.0);   // target: sample 7 at (4.0, 0)
+  const double rise = static_cast<double>(static_cast<float>(0.3));
+  const double from_11 = std::atan(2.85 * 2.0 * rise / (6.0 * 6.0 + rise * rise)) * 180.0 / pi;
+  CHECK_NEAR(PurePursuitSteeringDeg(late, 10, 0.0, 2.85), from_11, 1e-12);  // sample 11 at (6.0, 0.3)
+}
+
 // A plan with the checkpoint's shape: the first curvature sample leans one way,
 // the path the plan integrates (5 m/s, 0.1 s steps) bends the other way.
 DrivingPlanPayload MakeLeaningPlan(std::uint64_t frame, double speed_mps, double first_curvature,
@@ -1658,6 +1754,7 @@ int main(int argc, char** argv) {
   TestPlanInvalidOutranksStaleInOneStep();
   TestCommanderLimits();
   TestCommanderPurePursuit();
+  TestPurePursuitAnchorsAtThePlanOrigin();
   TestShippedLawSteersWithThePlanPath();
   TestVehicleConfig();
   TestRecords();
