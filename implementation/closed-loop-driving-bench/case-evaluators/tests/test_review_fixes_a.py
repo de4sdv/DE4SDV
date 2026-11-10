@@ -114,3 +114,98 @@ def test_vc001_without_a_world_record_the_window_ends_at_the_agents_last_step(st
     assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
     assert res.measured["last_step"] == CUT, res.measured
     assert any(WORLD in n for n in res.notes), res.notes
+
+
+# ------------------------------------------------------------------ VC-DRIVING-003, -004, -010
+# REQ-DRIVING-003: "Met when the inputs recorded for every plan ... hold six
+# current images of 512 by 512 pixels in that order and a current front image
+# of 1024 by 1024 pixels." REQ-DRIVING-004: "... hold, for each camera, seven
+# earlier images ...". REQ-DRIVING-010: "every image and sample given to the
+# checkpoint ... has its own capture record of the run ...". The six cameras
+# are the slots of ICD A25. A plan whose C2 record lacks one has no current
+# image of it, none of its seven earlier images and no capture record of them.
+CAMERA_CASES = ("VC-DRIVING-003", "VC-DRIVING-004", "VC-DRIVING-010")
+PLAN_FRAMES = (200, 201)
+
+
+def edit_cameras(d: Path, fn, frames=PLAN_FRAMES) -> None:
+    """Apply fn(cameras) -> cameras to the C2 records of `frames`."""
+    def edit(rec):
+        data = rec["data"]
+        if rec["event"] == "out.checkpoint_inputs" and data.get("frame") in frames:
+            data["cameras"] = fn(data["cameras"])
+        return rec
+    assert rewrite(d / C2, edit) == len(frames)
+
+
+SIX = ", ".join(cases.CAMERAS)
+# edit of a plan step's cameras -> the problem the cases must name
+DROP = {"drop_one": (lambda cams: [c for c in cams if c.get("name") != "rear"],
+                     "no rear camera"),
+        "drop_all": (lambda cams: [], f"no {SIX} camera"),
+        # a record from before ICD A25 names the cameras cam_<slot>
+        "drop_one_cam_names": (lambda cams: [dict(c, name="cam_" + c["name"]) for c in cams
+                                             if c.get("name") != "rear"],
+                               "no rear camera")}
+
+
+def reported_frames(vc: str, measured: dict) -> set:
+    key = "steps_without_the_six_cameras" if vc == "VC-DRIVING-010" else "problems"
+    return {e["frame"] for e in measured[key]}
+
+
+@pytest.mark.parametrize("mode", sorted(DROP))
+@pytest.mark.parametrize("vc", CAMERA_CASES)
+def test_a_plan_whose_inputs_lack_a_camera_fails(straight, tmp_path, vc, mode):
+    edit, problem = DROP[mode]
+    d = strip.copy_run(straight, tmp_path / mode)
+    edit_cameras(d, edit)
+    run = Run(d)
+    assert set(PLAN_FRAMES) <= {s["frame"] for s in cases.plan_steps(run)}
+    res = verdict(run, vc)
+    assert res.outcome == cases.FAIL, (vc, mode, res.outcome, res.measured, res.notes)
+    assert set(PLAN_FRAMES) <= reported_frames(vc, res.measured), res.measured
+    assert problem in json.dumps(res.measured), res.measured     # the missing camera is named
+
+
+@pytest.mark.parametrize("vc", CAMERA_CASES)
+def test_the_unedited_run_passes_the_camera_cases(straight, vc):
+    res = verdict(Run(straight), vc)
+    assert res.outcome == cases.PASS, (vc, res.outcome, res.measured, res.notes)
+
+
+@pytest.mark.parametrize("vc", CAMERA_CASES)
+def test_camera_names_before_a25_are_read_as_the_slots(straight, tmp_path, vc):
+    # the agent wrote the CARLA role names cam_<slot> before ICD A25
+    d = strip.copy_run(straight, tmp_path / "cam-names")
+
+    def fn(rec):
+        if rec["event"] == "out.checkpoint_inputs":
+            for c in rec["data"]["cameras"]:
+                c["name"] = "cam_" + c["name"]
+        return rec
+    assert rewrite(d / C2, fn) == 400
+    res = verdict(Run(d), vc)
+    assert res.outcome == cases.PASS, (vc, res.outcome, res.measured, res.notes)
+
+
+def test_six_cameras_under_unknown_names_are_not_called_missing(straight, tmp_path):
+    # names that are no slot cannot show which camera is missing: VC-DRIVING-003
+    # stays inconclusive on them, and the histories are judged per camera
+    d = strip.copy_run(straight, tmp_path / "unknown-names")
+    edit_cameras(d, lambda cams: [dict(c, name=f"camera{i}") for i, c in enumerate(cams)])
+    run = Run(d)
+    got = {vc: verdict(run, vc).outcome for vc in CAMERA_CASES}
+    assert got == {"VC-DRIVING-003": cases.INCONCL, "VC-DRIVING-004": cases.PASS,
+                   "VC-DRIVING-010": cases.PASS}, got
+
+
+@pytest.mark.parametrize("vc", CAMERA_CASES)
+def test_fewer_than_six_cameras_under_unknown_names_fail(straight, tmp_path, vc):
+    d = strip.copy_run(straight, tmp_path / "five-unknown")
+    edit_cameras(d, lambda cams: [dict(c, name=f"camera{i}")
+                                  for i, c in enumerate(DROP["drop_one"][0](cams))])
+    res = verdict(Run(d), vc)
+    assert res.outcome == cases.FAIL, (vc, res.outcome, res.measured, res.notes)
+    assert set(PLAN_FRAMES) <= reported_frames(vc, res.measured), res.measured
+    assert "5 cameras, not six" in json.dumps(res.measured), res.measured

@@ -779,6 +779,10 @@ def vc003(run: Run) -> Result:
     checkpoint; A11 adds the front high-resolution size,
     cameras[front].front_hi_res. Runs before those amendments carry neither,
     and the case stays inconclusive rather than passing.
+
+    A plan step whose record lacks one of the six cameras (the slots of ICD
+    A25, see cameras_missing) fails. Camera names that are no slot leave the
+    order unjudged, inconclusive, unless the step lists fewer than six.
     """
     vc = "VC-DRIVING-003"
     stub = stub_engine_note(run)
@@ -799,7 +803,11 @@ def vc003(run: Run) -> Result:
         aliased = aliased or names != raw
         problems = []
         if sorted(map(str, names)) != sorted(CAMERAS):
-            unknown_names.append({"frame": step["frame"], "names": raw})
+            lack = cameras_missing(cams)
+            if lack:
+                problems.append(lack["text"])
+            else:
+                unknown_names.append({"frame": step["frame"], "names": raw})
         elif names != CAMERAS:
             problems.append(f"order {names}")
         for c in cams:
@@ -848,9 +856,37 @@ def vc003(run: Run) -> Result:
                        "are only in the sampled bundles"])
 
 
+def cameras_missing(cams: list[dict]) -> dict | None:
+    """The cameras of REQ-DRIVING-003 a step's C2 record does not hold.
+
+    The six cameras are the slots of ICD A25 (CAMERAS); a camera named
+    cam_<slot> is that slot (records before A25). A slot that no camera of the
+    step is named by is missing: the plan was given no current image of it,
+    none of its seven earlier images and no capture record of them. A record
+    that names a camera which is no slot cannot show which slot is missing; it
+    lacks a camera only when it lists fewer than six. Returns None when nothing
+    is shown missing, else {"missing": slot names (empty when the names are
+    unknown), "count", "text"}.
+    """
+    names = [CAMERA_ALIASES.get(n, n) if isinstance(n, str) else n
+             for n in (c.get("name") for c in cams)]
+    if all(n in CAMERAS for n in names):
+        missing = [s for s in CAMERAS if s not in names]
+        if not missing:
+            return None
+        return {"missing": missing, "count": len(missing),
+                "text": f"no {', '.join(missing)} camera"}
+    if len(names) < len(CAMERAS):
+        return {"missing": [], "count": len(CAMERAS) - len(names),
+                "text": f"{len(names)} cameras, not six"}
+    return None
+
+
 @case("VC-DRIVING-004", ("closedLoopRoute",), needs=("C2",))
 def vc004(run: Run) -> Result:
-    """Seven earlier images per camera at 0.5 s to 3.5 s before the step (REQ-004)."""
+    """Seven earlier images per camera at 0.5 s to 3.5 s before the step (REQ-004).
+
+    A camera the step's record lacks has none of its seven (cameras_missing)."""
     vc = "VC-DRIVING-004"
     recs = plan_steps(run)
     offs = THRESHOLDS["camera_history_offsets_s"]
@@ -858,6 +894,9 @@ def vc004(run: Run) -> Result:
     evid = []
     for step in recs:
         problems = []
+        lack = cameras_missing(step["cameras"])
+        if lack:
+            problems.append(f"{lack['text']}: 0 of 7 history images for it")
         for c in step["cameras"]:
             hist = c.get("history") or []
             if len(hist) != 7:
@@ -1371,15 +1410,19 @@ def vc010(run: Run) -> Result:
     the (camera, frame) pair; the world tick proves the frame exists). The ego
     rows carry no id, so their identity is positional: row k is frame
     step-64+k (agent DESIGN.md, "Ego-motion history"). That convention is
-    stated in OBSERVABLES.md.
+    stated in OBSERVABLES.md. A camera the step's record lacks
+    (cameras_missing) gave the checkpoint images with no capture record.
     """
     vc = "VC-DRIVING-010"
     steps = plan_steps(run)
     wb = run.world_by_frame()
-    unknown, dups = [], []
+    unknown, dups, lacking = [], [], []
     evid = []
     for step in steps:
         f = step["frame"]
+        lack = cameras_missing(step["cameras"])
+        if lack:
+            lacking.append({"frame": f, "problem": lack["text"]})
         for c in step["cameras"]:
             refs = c.get("history") or []
             if len(refs) != len(set(refs)):
@@ -1399,10 +1442,15 @@ def vc010(run: Run) -> Result:
             evid.append(ev(step["file"], step["rec"]))
     measured = {"records": len(steps),
                 "unknown_capture_records": unknown[:5],
-                "duplicated_in_one_history": dups[:5]}
-    th = {"duplicates_per_history": 0, "ego_row_identity": "positional frame"}
-    if unknown or dups:
+                "duplicated_in_one_history": dups[:5],
+                "steps_without_the_six_cameras": lacking[:5]}
+    th = {"duplicates_per_history": 0, "ego_row_identity": "positional frame",
+          "cameras": CAMERAS}
+    if unknown or dups or lacking:
         notes = []
+        if lacking:
+            notes.append(f"{len(lacking)} plan steps do not hold the six cameras: the "
+                         f"images given for a missing one have no capture record of the run")
         if unknown:
             notes.append("history elements with no capture record of the run")
         if dups:
