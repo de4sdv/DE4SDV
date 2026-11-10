@@ -22,9 +22,10 @@ This directory is bench tooling, test stand-ins and evaluators.
 - The stub engine is a stand-in planner for integration runs. Its plans,
   including its route-following mode, are never model results; records name it
   `stub` / `stub-pure-pursuit`.
-- The pinned checkpoint does not follow the route through junctions. The runs
-  verify the bench and the agent against their requirements; they do not
-  validate driving quality.
+- The pinned checkpoint does not follow the route through junctions, and it
+  does not keep the vehicle in its lane: its plans lean to one side and never
+  steer back. The runs verify the bench and the agent against their
+  requirements; they do not validate driving quality.
 
 ## Path
 
