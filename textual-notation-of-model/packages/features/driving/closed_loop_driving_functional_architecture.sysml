@@ -177,7 +177,7 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
 
   action def PlanTrajectory :> AllocatableFunction {
     doc /*
-     * Makes one plan for each step by inference of the pinned checkpoint on the
+     * Makes the plan of a step by inference of the pinned checkpoint on the
      * inputs of the step, and marks it with the capture time of its newest
      * camera image, its production time and the run record.
      */

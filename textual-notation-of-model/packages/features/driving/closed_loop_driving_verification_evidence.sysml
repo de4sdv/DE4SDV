@@ -214,9 +214,10 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
      * Test of REQ-DRIVING-001. collectData records every plan of a run of
      * SC-DRIVING-001 with the simulation time of its step, from the end of
      * priming to the end of the run or to the start of the stop response.
-     * processData counts the plans per 100 ms of simulation time over that
-     * span: one per step gives passBoundedVerification, a missing or a
-     * doubled step gives failObservedBehavior.
+     * processData counts the plans of each 100 ms step of simulation time
+     * over that span: a step with two plans, or two consecutive steps
+     * without one, gives failObservedBehavior; otherwise, single steps
+     * without a plan of their own included, passBoundedVerification.
      */
     subject verifiedBench : ClosedLoopDrivingVerificationBench;
     objective planPerStepObjective {

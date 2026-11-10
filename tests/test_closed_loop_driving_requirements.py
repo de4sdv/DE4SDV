@@ -48,7 +48,9 @@ N1, N2, N3, N4, N5, N6, N7 = NEED_SHORT.values()
 #: statement must carry, and the fragments its rationale must carry (the citations of values taken from the
 #: source at the checkpoint pin, and the reasons of values set here). Short names run REQ-DRIVING-001 on.
 REQUIREMENTS = {
-    "reqPlanEachStep": (N1, F, ("one plan for each 100 ms step of simulation time",), (CHECKPOINT_PIN, "MODEL_HZ")),
+    "reqPlanEachStep": (
+        N1, F, ("one plan for each 100 ms step of simulation time, leaving a step without a plan of its own only when "
+                "the step before it has one",), (CHECKPOINT_PIN, "MODEL_HZ", "REQ-DRIVING-013", "REQ-DRIVING-026")),
     "reqPlansByCheckpointInference": (
         N1, R, ("by inference of the pinned AutoE2E checkpoint",), (CHECKPOINT_PIN, "kinematics.py", "design constraint")),
     "reqCameraImagesInCheckpointForm": (
@@ -199,6 +201,17 @@ def test_the_ego_motion_history_gives_yaw_rate_and_curvature_as_zero_under_the_b
     rationale = _attribute(requirement, "rationale")
     assert "the bounded deviation of asmSourceAuthenticity (owner decision of 2026-11-09)" in rationale
     assert "This closes the loop: the motion the commands produce is what the next plan is made from." not in rationale
+
+
+def test_one_step_without_a_plan_of_its_own_is_tolerated_and_two_in_a_row_are_not():
+    # The cadence decision of 2026-11-09: a plan that runs long, or a camera image too late to plan on, leaves a step
+    # without a plan of its own while the vehicle stays on the newest valid plan. One such step is tolerated, as one
+    # late plan is in REQ-DRIVING-013; two in a row are not.
+    requirement = _requirement("reqPlanEachStep")
+    criteria = _attribute(requirement, "successCriteria")
+    assert "at most one plan for each 100 ms step of simulation time and no two consecutive steps without one" in criteria
+    assert "the records hold one plan for each 100 ms of simulation time" not in criteria
+    assert "(owner decision of 2026-11-09)" in _attribute(requirement, "rationale")
 
 
 def test_a_measured_spread_is_stated_as_a_tolerance_not_as_sameness():
