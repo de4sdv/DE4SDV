@@ -207,7 +207,7 @@ AMENDMENT_CHANGES: dict[str, dict] = {
         "adds": "C2's step record lists the older frames merged into it, "
                 "{frame, conditioned, why, condition_ms, readyByDeadline}.",
         "where": "S-CORE host, drivingAgent/conditionInputs",
-        "unblocks": ["VC-DRIVING-023"],
+        "unblocks": ["VC-DRIVING-001", "VC-DRIVING-023"],
     },
     "A24": {
         "title": "Adapter command timeout (amendment 2)",

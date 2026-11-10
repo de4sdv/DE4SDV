@@ -588,10 +588,11 @@ def set_c2_camera_missing(d, frame, slot=5):
 
 def test_r4_vc023_ignores_a_camera_condition_before_driving(run_for, tmp_path):
     d = copied(run_for, tmp_path, "fault-camera_missing", "r4-cam-early")
-    set_c2_camera_missing(d, 10)
+    for f in (10, 11, 12):               # newest image frame 9: a condition at 12
+        set_c2_camera_missing(d, f)
     res = verdict(Run(d), "VC-DRIVING-023")
     assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
-    assert res.measured["condition_frame"] == 250
+    assert res.measured["condition_frame"] == 252
 
 
 def test_r4_vc023_is_inconclusive_when_the_agent_never_drives(run_for, tmp_path):
@@ -669,13 +670,17 @@ def test_r10_camera_stop_after_one_missing_image_fails(run_for, tmp_path):
 
 def test_r10_newest_image_exactly_200_ms_old_is_not_a_condition(run_for, tmp_path):
     assert cases.CAMERA_NEWEST_IMAGE_LIMIT_MS == 200
-    d = nominal_with_camera_stop(run_for, tmp_path, "r10-two-late", [299, 300], 300)
+    d = nominal_with_camera_stop(run_for, tmp_path, "r10-two-late", [299, 300], 300,
+                                 cause="kCameraStale")
     res = verdict(Run(d), "VC-DRIVING-023")
     assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    assert res.measured.get("stop_without_condition_frame") == 300, res.measured
 
 
 def test_r10_newest_image_300_ms_old_is_a_condition(run_for, tmp_path):
-    d = nominal_with_camera_stop(run_for, tmp_path, "r10-stopped", [298, 299, 300], 300)
+    # the camera has images, the newest 300 ms old: kCameraStale, as the agent names it
+    d = nominal_with_camera_stop(run_for, tmp_path, "r10-stopped", [298, 299, 300], 300,
+                                 cause="kCameraStale")
     res = verdict(Run(d), "VC-DRIVING-023")
     # the stop was due: it began at the step of the condition
     assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)

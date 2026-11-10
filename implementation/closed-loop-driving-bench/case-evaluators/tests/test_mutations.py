@@ -139,16 +139,18 @@ def test_replay_plans_beyond_the_on_time_spread_fail_vc018(run_for, tmp_path):
 
 
 # ---------------------------------------------------------------- more of the same kind
-def test_missing_plan_step_fails_vc001(run_for, tmp_path):
-    d = copied(run_for, tmp_path, "nominal", "drop-plan")
+def test_two_consecutive_steps_without_a_plan_fail_vc001(run_for, tmp_path):
+    # REQ-DRIVING-001 as amended: one step without its own plan is allowed, two are not
+    d = copied(run_for, tmp_path, "nominal", "drop-plans")
 
     def fn(data):
-        return None if data.get("frameIndex") == 300 else data
-    assert edit_jsonl(d / "score/drivingAgent.jsonl", "out.plan", fn) == 1
+        return None if data.get("frameIndex") in (300, 301) else data
+    assert edit_jsonl(d / "score/drivingAgent.jsonl", "out.plan", fn) == 2
     from runio import Run
     res = verdict(Run(d), "VC-DRIVING-001")
     assert res.outcome == cases.FAIL
-    assert res.measured["missing_steps"] == 1
+    assert res.measured.get("failing_pairs") == [[300, 301]], res.measured
+    assert res.measured["longest_run_without_a_new_plan"] == 2
 
 
 def test_doubled_plan_step_fails_vc001(run_for, tmp_path):

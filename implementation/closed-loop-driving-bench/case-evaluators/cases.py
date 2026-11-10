@@ -317,50 +317,38 @@ NOT_WHILE_DRIVING = ("no {what} condition at a step at or after priming.complete
 
 
 def first_camera_condition(run: Run, eligible=None) -> tuple[int, str] | None:
-    """First step at which a camera is missing, invalid or older than 200 ms.
+    """First step with a camera condition under the reading of REQ-DRIVING-023
+    (README, "Readings"; camera_conditions_by_reading).
 
-    Returns (frame, cause) or None. The baseline is read from the C2 metadata
-    record: per camera image frame, capture_sim_ms, valid and status. C1's
-    world sensors only name the actor and whether it is attached/alive; they
-    carry no capture time, so the staleness instant comes from C2. Steps for
-    which `eligible(frame)` is false are skipped.
+    Returns (frame, cause) or None. The conditions are read from the C2
+    metadata record: per camera image frame, capture_sim_ms, valid and status.
+    C1's world sensors only name the actor and whether it is attached/alive;
+    they carry no capture time, so the staleness instant comes from C2. Steps
+    for which `eligible(frame)` is false are skipped.
     """
-    for step in camera_views(run):
-        f = step["frame"]
-        if eligible is not None and not eligible(f):
-            continue
-        step_ms = step["sim_ms"]
-        worst = None
-        for cam in step["cameras"]:
-            status = cam.get("status")
-            if status == "missing" or (cam.get("valid") is False and status != "invalid"):
-                return f, "kCameraMissing"
-            if status == "invalid" or cam.get("valid") is False:
-                worst = "kCameraInvalid"
-        if worst:
-            return f, worst
-        for cam in step["cameras"]:
-            ct = cam.get("capture_sim_ms")
-            if ct is not None and (step_ms - ct) / 1000.0 > THRESHOLDS["camera_stale_s"] + 1e-9:
-                return f, "kCameraStale"
+    conds = camera_conditions_by_reading(run)
+    for f in sorted(conds):
+        if eligible is None or eligible(f):
+            return f, conds[f]["cause"]
     return None
 
 
-# Reading of REQ-DRIVING-023 for its no-fault half (README, "Readings"): the
-# statement with its rationale "one late image is tolerated, a second means the
-# camera has stopped". The owner may change this reading.
-CAMERA_NEWEST_IMAGE_LIMIT_MS = 200
+# Reading of REQ-DRIVING-023, both halves (README, "Readings"): the statement
+# with its rationale "one late image is tolerated, a second means the camera
+# has stopped". The owner may change this reading.
+CAMERA_NEWEST_IMAGE_LIMIT_MS = int(round(THRESHOLDS["camera_stale_s"] * 1000))    # 200
 CAMERA_CAUSES = ("kCameraMissing", "kCameraInvalid", "kCameraStale")
 
 
 def camera_conditions_by_reading(run: Run) -> dict[int, dict]:
     """The steps with a camera condition under the reading of REQ-DRIVING-023.
 
-    A camera condition exists at a step when a camera has had no image to
-    date, its image at the step is invalid, or its newest image is more than
-    CAMERA_NEWEST_IMAGE_LIMIT_MS of simulation time older than the step. A step
-    whose own image missed while the camera's newest image is at most that old
-    is not a condition.
+    A camera condition exists at a step when a camera has had no valid image to
+    date (kCameraMissing), its image at the step is invalid (kCameraInvalid),
+    or its newest valid image is more than CAMERA_NEWEST_IMAGE_LIMIT_MS of
+    simulation time older than the step (kCameraStale), whether or not the
+    step's own image arrived. A step whose own image missed while the camera's
+    newest image is at most that old is not a condition.
 
     The agent's C2 record describes the step's own slot: a camera whose image
     did not arrive for the frame has null stamps and status "missing"
@@ -383,10 +371,10 @@ def camera_conditions_by_reading(run: Run) -> dict[int, dict]:
             status = cam.get("status")
             ct = cam.get("capture_sim_ms")
             present = ct is not None and status != "missing"
-            if present and status != "invalid":
+            invalid = status == "invalid" or (status is None and cam.get("valid") is False)
+            if present and not invalid:
                 newest[i] = max(newest.get(i, -1.0), float(ct))
-            if present and (status == "invalid"
-                            or (status is None and cam.get("valid") is False)):
+            if present and invalid:
                 found = found or {"cause": "kCameraInvalid", "camera": cam.get("name"),
                                   "age_ms": None}
                 continue
@@ -396,28 +384,30 @@ def camera_conditions_by_reading(run: Run) -> dict[int, dict]:
                 continue
             age = step_ms - newest[i]
             if age > CAMERA_NEWEST_IMAGE_LIMIT_MS + 1e-9:
-                found = found or {"cause": "kCameraStale" if present else "kCameraMissing",
+                found = found or {"cause": "kCameraStale",
                                   "camera": cam.get("name"), "age_ms": age}
         if found:
             out[f] = found
     return out
 
 
-def camera_no_fault_half(run: Run, vc: str) -> Result:
-    """VC-DRIVING-023 on a run of SC-DRIVING-001, read as stated in the README
-    ("Readings"): every camera-caused stop begins at most 100 ms after a camera
-    condition under the reading, and a condition while the agent drives
-    begins the stop response within 100 ms."""
+def camera_by_reading(run: Run, vc: str, fault_run: bool) -> Result:
+    """VC-DRIVING-023, both halves, read as stated in the README ("Readings"):
+    every camera-caused stop begins at most 100 ms after a camera condition
+    under the reading, and the first condition while the agent drives begins
+    the stop response within 100 ms. Without such a condition the no-fault
+    half (a run of SC-DRIVING-001) passes and the fault half (SC-DRIVING-003)
+    is inconclusive."""
     conds = camera_conditions_by_reading(run)
     prime, eligible = driving_after_priming(run)
     lag = int(round(THRESHOLDS["stop_begin_latency_s"] / STEP_S))
     camera_stops = [s for s in run.stops("stop_response.begin")
                     if enum_name(s["cause"], CAUSES) in CAMERA_CAUSES]
-    driving_conds = sorted(f for f in conds if eligible(f))
+    first = first_camera_condition(run, eligible)
     measured = {"reading": "README, Readings: REQ-DRIVING-023",
                 "newest_image_limit_ms": CAMERA_NEWEST_IMAGE_LIMIT_MS,
                 "steps_with_a_condition": len(conds),
-                "first_condition_frame": driving_conds[0] if driving_conds else None,
+                "first_condition_frame": first[0] if first else None,
                 "camera_caused_stops": [{"frame": s["frame"],
                                          "cause": enum_name(s["cause"], CAUSES)}
                                         for s in camera_stops[:3]],
@@ -432,15 +422,21 @@ def camera_no_fault_half(run: Run, vc: str) -> Result:
             return bad(vc, measured, th, evid,
                        [f"a camera-caused stop began at frame {s['frame']} with no camera "
                         "condition under the reading (one late image is tolerated)"])
-    if not driving_conds:
+    if first is None:
+        if fault_run:
+            return inconclusive(vc, "a camera condition while the agent drove", None,
+                                NOT_WHILE_DRIVING.format(what="camera"),
+                                dict(measured, fault=run.fault()))
         return ok(vc, measured, th, evid,
                   ["no camera condition while the agent drove and no stop without one "
                    "(the no-fault half; README, Readings)"])
-    first = driving_conds[0]
-    res = stop_timing(run, first, conds[first]["cause"])
+    frame, cause = first
+    res = stop_timing(run, frame, cause)
     res.vc = vc
     res.measured.update(measured)
+    res.measured.update({"condition_frame": frame, "condition": cause})
     res.thresholds.update(th)
+    res.thresholds.update({"condition": cause})
     res.notes.append("a camera condition under the reading while the agent drove")
     return res
 
@@ -545,8 +541,15 @@ def gate(run: Run, vc: str) -> Result | None:
 # --------------------------------------------------------------------- cases
 @case("VC-DRIVING-001", ("closedLoopRoute",), needs=("C10", "C9", "C2"))
 def vc001(run: Run) -> Result:
-    """One plan for each 100 ms step, from the end of priming to the end of the
-    run or the start of the stop response (REQ-001).
+    """No two consecutive 100 ms steps without a new plan, from the end of
+    priming to the end of the run or the start of the stop response (REQ-001
+    as amended).
+
+    A new plan at step k is an out.plan whose frameIndex is k. A single step
+    without one is allowed: a frame FEO merged into the next step after an
+    overrun gets no plan of its own (ICD A23, C2 mergedFrames), nor does a step
+    whose camera image missed the deadline. The window's first step needs no
+    plan before it.
 
     The end of priming is the agent's priming.complete record. A record that
     names a step the engine did not condition predates ICD A26 (run N: frame
@@ -576,25 +579,43 @@ def vc001(run: Run) -> Result:
     end = (int(round(stop["t_sim"] / STEP_S)) - 1) if stop else steps[-1]["frame"]
     frames = [plan_frame(p) for p in plans]
     counts = Counter(f for f in frames if f is not None)
-    expected = set(range(prime, end + 1))
-    missing = sorted(expected - set(counts))
+    window = range(prime, end + 1)
+    planned = set(counts)
+    without = [f for f in window if f not in planned]
+    # a step without a new plan fails when the step before it in the window had none
+    pairs = [[f - 1, f] for f in without if f - 1 >= prime and f - 1 not in planned]
+    merged = {m["frame"] for s in steps for m in s["merged_frames"]
+              if isinstance(m, dict) and isinstance(m.get("frame"), int)}
+    longest = run_len = 0
+    for i, f in enumerate(without):
+        run_len = run_len + 1 if i and without[i - 1] == f - 1 else 1
+        longest = max(longest, run_len)
     doubled = sorted(f for f, c in counts.items() if c > 1)
     bad_time = [p for p in plans
                 if plan_frame(p) is None or p["capture_ms"] is None
                 or not close(p["capture_ms"], plan_frame(p) * 100, 1e-6)]
     evid = [ev(p["file"], p["rec"]) for p in (plans[0], plans[-1])] if plans else []
-    measured = {"plans": len(plans), "expected_steps": len(expected),
-                "first_step": prime, "last_step": end, "missing_steps": len(missing),
+    measured = {"plans": len(plans), "steps_in_window": len(window),
+                "first_step": prime, "last_step": end,
+                "steps_without_a_new_plan": len(without),
+                "merged_frames_without_a_plan": len(merged.intersection(without)),
+                "first_steps_without_a_new_plan": without[:10],
+                "longest_run_without_a_new_plan": longest,
+                "failing_pairs": pairs[:10],
                 "doubled_steps": doubled[:10], "steps_with_wrong_capture_time": len(bad_time),
                 "priming_record_conflict": conflict}
-    th = {"one_plan_per_step": 1, "step_s": STEP_S}
+    th = {"consecutive_steps_without_a_new_plan_max": 1, "step_s": STEP_S}
     flag = ([f"flagged: priming.complete at frame {recorded} names a step the engine did "
              f"not condition (before ICD A26); the end of priming is the engine's first "
              f"conditioned primed step, {prime}"] if conflict else [])
-    if missing or doubled or bad_time:
+    if without and not pairs:
+        flag.append(f"{len(without)} steps without their own plan, none next to another "
+                    f"({measured['merged_frames_without_a_plan']} merged by FEO, ICD A23)")
+    if pairs or doubled or bad_time:
         notes = list(flag)
-        if missing:
-            notes.append(f"{len(missing)} steps without a plan, first {missing[:5]}")
+        if pairs:
+            notes.append(f"{len(pairs)} pairs of consecutive steps without a new plan, "
+                         f"first {pairs[:5]}")
         if doubled:
             notes.append(f"steps with more than one plan: {doubled[:5]}")
         if bad_time:
@@ -1952,29 +1973,20 @@ def vc023(run: Run) -> Result:
     """Missing, invalid or more-than-200-ms-old camera images begin the stop
     response within 100 ms of simulation time (REQ-023).
 
-    On a degraded run the baseline is the first camera condition at a step at
-    or after priming.complete while the agent drives (README, Readings). On a
-    run of SC-DRIVING-001 the no-fault half is judged: no camera-caused stop
-    without a camera condition under the reading of the README.
+    Both halves take the reading of the README ("Readings"): a camera is judged
+    by its newest valid image, so a single late image is not a condition, and a
+    camera-caused stop without a condition in the 100 ms before it fails. The
+    baseline is the first condition at a step at or after priming.complete
+    while the agent drives. On a run of SC-DRIVING-001 (the no-fault half) a
+    run without such a condition passes; on a degraded run it is inconclusive.
     """
     vc = "VC-DRIVING-023"
     if run.scenario == "closedLoopRoute":
-        return camera_no_fault_half(run, vc)
+        return camera_by_reading(run, vc, fault_run=False)
     g = gate(run, vc)
     if g is not None:
         return g
-    prime, eligible = driving_after_priming(run)
-    cond = first_camera_condition(run, eligible)
-    if cond is None:
-        return inconclusive(vc, "a camera condition while the agent drove", None,
-                            NOT_WHILE_DRIVING.format(what="camera"),
-                            {"fault": run.fault(), "priming_frame": prime})
-    frame, cause = cond
-    res = stop_timing(run, frame, cause)
-    res.vc = vc
-    res.measured.update({"condition_frame": frame, "condition": cause})
-    res.thresholds.update({"condition": cause})
-    return res
+    return camera_by_reading(run, vc, fault_run=True)
 
 
 @case("VC-DRIVING-024", ("degradedInputOrPlan",), needs=("C9", "C10"))

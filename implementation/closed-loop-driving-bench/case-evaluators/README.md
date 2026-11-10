@@ -28,7 +28,7 @@ field + producer for the missing case, and the C2 bundle ledger.
 | `make_synthetic_run.py` | writes synthetic run directories: nominal, each SC-DRIVING-003 fault, the AAOS replay campaign, the two checkpoint-refusal starts |
 | `gaps.py` | the ICD change list as data (`C1`..`C12`), with the cases each unblocks, and the amendments (`A11`..`A26`) each case relies on, named per case in `verdicts.json` |
 | `strip.py` | removes one change's records from a copy of a run — how the tests prove a case that needs a record cannot pass without it |
-| `tests/` | 153 tests |
+| `tests/` | 166 tests |
 
 ## Use
 
@@ -88,9 +88,10 @@ slice exists to prevent:
 
 ## What the tests establish
 
-153 tests, all passing. `tests/test_review_findings.py` holds one group of
+166 tests, all passing. `tests/test_review_findings.py` holds one group of
 tests per finding of the independent review (R1 to R16), each written to fail
-on the code before its fix:
+on the code before its fix; `tests/test_req001_req023.py` holds the tests of
+REQ-DRIVING-001 as amended and of the camera reading of REQ-DRIVING-023:
 
 * **every SUPPORTED case passes on the synthetic run of its own bench**, and
   **every MISSING case is inconclusiveMissingEvidence** naming its gap;
@@ -102,15 +103,23 @@ on the code before its fix:
 * **VC-DRIVING-029 is judged on the S-CORE monotonic clock**: a 5 s real-time skew at
   the stop begin does not move the verdict, and a health published 1 s late on
   the monotonic clock fails;
+* **one step without its own plan passes VC-DRIVING-001, two in a row fail**:
+  a merged frame or a dropped plan alone passes, a merged frame next to a
+  step without a plan fails, and so do the window's first two steps;
+* **a withheld camera's stop is due when its newest image passes 200 ms**
+  (VC-DRIVING-023): the stop at that step passes; a stop at the first missing
+  image, at exactly 200 ms or 200 ms after the condition fails; a corrupt image
+  is a condition at its own step, and never the camera's newest image;
 * **targeted mutations fail** (`failObservedBehavior`): a plan published
   101 ms after production; a health gap of 201 ms; a stop begun 101 ms of
   simulation time after a stale camera; a command after standstill that pulls;
-  replay plans differing beyond the on-time spread; plus a missing and a
-  doubled plan step, a plan age of 350 ms, an adapter stop 400 ms after the last
-  command, a sample published 150 ms late, a command over the acceleration
-  limit, a 3 m/s² stop, a reference inference off by 0.5 m/s², a plan naming
-  another run record, one byte changed in the checkpoint, and the two C3
-  columns removed from `out.command` (026 must name C3);
+  replay plans differing beyond the on-time spread; plus two consecutive steps
+  without a plan, a doubled plan step, a plan age of 350 ms, an adapter stop
+  400 ms after the last command, a sample published 150 ms late, a command over
+  the acceleration limit, a 3 m/s² stop, a reference inference off by
+  0.5 m/s², a plan naming another run record, one byte changed in the
+  checkpoint, and the two C3 columns removed from `out.command` (026 must name
+  C3);
 * **malformed → error, missing → inconclusive, unknown scenario → nothing
   selected**, and an unreadable run record turns all 35 into `errorEvidence`;
 * the change list in `gaps.py` and the `needs` of the evaluators agree, and so
@@ -126,17 +135,32 @@ is a reading the owner may change; the code names it where it applies.
   again. The baseline of a degraded-input case is the first condition at a
   step at or after `priming.complete` whose previous mode record is
   `kDriving`. Without such a step the case is inconclusive.
-* **A camera condition (VC-DRIVING-023, no-fault half, runs of
-  SC-DRIVING-001).** REQ-DRIVING-023 with its rationale "one late image is
-  tolerated, a second means the camera has stopped": a camera condition exists
-  at a step when the camera has had no image to date, its image is invalid, or
-  its newest image is more than 200 ms of simulation time older than the step
-  (`cases.CAMERA_NEWEST_IMAGE_LIMIT_MS`). A step whose own image missed the
-  deadline while the camera's newest image is at most 200 ms old is not a
-  condition. The newest image is the latest in any C2 step so far, or in a
-  merged frame the agent conditioned (A23). A camera-caused stop without such a
-  condition in the 100 ms before it fails the no-fault half. A condition while
-  the agent drives must begin the stop within 100 ms.
+* **A camera condition (VC-DRIVING-023, both halves).** REQ-DRIVING-023 with
+  its rationale "one late image is tolerated, a second means the camera has
+  stopped": a camera condition exists at a step when the camera has had no
+  valid image to date (`kCameraMissing`), its image is invalid
+  (`kCameraInvalid`), or its newest image is more than 200 ms of simulation
+  time older than the step (`kCameraStale`, whether or not the step's own image
+  arrived; `cases.CAMERA_NEWEST_IMAGE_LIMIT_MS`). A step whose own image missed
+  the deadline while the camera's newest image is at most 200 ms old is not a
+  condition, so a camera withheld from step k has a condition from k + 2. The
+  newest image is the latest in any C2 step so far, or in a merged frame the
+  agent conditioned (A23). A camera-caused stop without such a condition in the
+  100 ms before it fails. The first condition while the agent drives must begin
+  the stop within 100 ms; on a run of SC-DRIVING-001 without one the case
+  passes, on a run of SC-DRIVING-003 it is inconclusive. An invalid image never
+  becomes the camera's newest, also in records from before the C2 `status`
+  field (`valid` false). The agent judges its cameras the same way (ICD A28).
+* **One step without a plan (VC-DRIVING-001).** REQ-DRIVING-001 as amended:
+  from the end of priming to the end of the run or the start of the stop
+  response, no two consecutive steps pass without a new plan. A new plan at
+  step k is an `out.plan` whose `frameIndex` is k. A frame FEO merged into the
+  next step (A23) has none, nor has a step whose image missed the deadline;
+  one such step is allowed, two in a row fail. The window's first step needs
+  no plan before it. `measured` gives the steps without a new plan, how many
+  of them are merged frames, the longest run of them and the failing pairs.
+  A doubled plan or a plan whose capture stamp is not frame × 100 ms still
+  fails.
 * **Route coverage (VC-DRIVING-007, A16).** The recount counts the points of
   the route's centre lines as the navigation library builds them: one centre
   line per run of constant road id with two or more points

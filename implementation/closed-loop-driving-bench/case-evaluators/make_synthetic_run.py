@@ -47,7 +47,10 @@ CAMERAS = ["front", "front_left", "front_right", "rear_left", "rear", "rear_righ
 
 FAULT_CAUSE = {
     "none": None,
-    "camera_missing": "kCameraMissing",
+    # the images of one camera are withheld from F: judged by its newest valid image,
+    # the camera has a condition once that image is more than 200 ms old, at F + 2
+    # (REQ-DRIVING-023; README, Readings)
+    "camera_missing": "kCameraStale",
     "camera_invalid": "kCameraInvalid",
     "camera_stale": "kCameraStale",
     "motion_stale": "kMotionStale",
@@ -310,7 +313,7 @@ class RunBuilder:
         if F is None:
             return None
         return {
-            "camera_missing": F, "camera_invalid": F, "motion_invalid": F,
+            "camera_missing": F + 2, "camera_invalid": F, "motion_invalid": F,
             "route_empty": F, "camera_stale": F + 2, "motion_stale": F + 2,
             "route_stale": F + 11, "plan_stale": F + 3, "plan_dropped": F + 3,
             # A24 (ICD section 4): the last command is applied at F - 1; the
