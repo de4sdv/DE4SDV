@@ -348,3 +348,98 @@ def test_vc035_on_the_synthetic_start_without_world_ticks_is_inconclusive(run_fo
     res = cases.evaluate_case(Run(d), "VC-DRIVING-035")
     assert res.outcome == cases.INCONCL, (res.outcome, res.measured)
     assert res.missing == ["simulator/world.jsonl:tick"], res.missing
+
+
+# ------------------------------------------------------------------ VC-DRIVING-029
+# REQ-DRIVING-029: in each run of REQ-DRIVING-023 to -028, a publication that the
+# driving system is stopped, "with the cause of that run". A run that names its
+# fault (ICD C4 scenarioVariant.fault) calls for a cause of that fault: a cause
+# that gate() maps to the fault's case (CAUSE_TO_FAULT, FAULT_FAMILY); for a
+# withheld camera that is kCameraStale once its newest image is more than
+# 200 ms old (A28). A run that names no fault is judged against its own stop
+# cause, as gate() routes such a run by it.
+class StopRun:
+    """A run whose stop begins at t_mono 100 s and whose publisher shows it 20 ms later."""
+    scenario = "degradedInputOrPlan"
+
+    def __init__(self, fault, begin_cause, published_cause=None):
+        self.variant = {} if fault is None else {"fault": fault}
+        self._begin = begin_cause
+        self._published = begin_cause if published_cause is None else published_cause
+
+    def fault(self):
+        return self.variant.get("fault") or "none"
+
+    def stop_begin(self):
+        return {"t_sim": 5.0, "t_mono": 100.0, "cause": self._begin,
+                "file": "score/drivingAgent.jsonl", "rec": {"seq": 1}}
+
+    def health_side(self):
+        return [{"publish_mono": 100.02 + 0.1 * i, "mode": "kStopResponse",
+                 "cause": self._published, "file": "score/statePublisher.jsonl",
+                 "rec": {"seq": 10 + i}} for i in range(5)]
+
+
+def test_vc029_fails_a_camera_fault_run_that_stops_and_publishes_a_route_cause():
+    res = cases.vc029(StopRun("camera_missing", "kRouteStale"))
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
+    assert "kRouteStale" in res.notes[0] and "camera_missing" in res.notes[0], res.notes
+
+
+def test_vc029_passes_a_withheld_camera_run_that_publishes_the_stale_camera_cause():
+    res = cases.vc029(StopRun("camera_missing", "kCameraStale"))
+    assert res.outcome == cases.PASS, (res.outcome, res.notes)
+    assert "kCameraStale" in res.measured["expected_causes"], res.measured
+
+
+@pytest.mark.parametrize("fault", [None, "none"])
+def test_vc029_judges_a_run_without_a_fault_label_by_its_own_stop_cause(fault):
+    res = cases.vc029(StopRun(fault, "kRouteStale"))
+    assert res.outcome == cases.PASS, (res.outcome, res.notes)
+    assert res.measured["expected_causes"] == ["kRouteStale"], res.measured
+
+
+def test_vc029_on_a_run_whose_fault_names_no_case_is_inconclusive():
+    res = cases.vc029(StopRun("sensor_noise", "kRouteStale"))
+    assert res.outcome == cases.INCONCL, (res.outcome, res.notes)
+    assert res.missing == ["run_record.scenarioVariant.fault"], res.missing
+    assert res.icd_changes == ["C4"], res.icd_changes
+
+
+def test_vc029_fails_when_the_publication_names_another_cause_than_the_stop():
+    res = cases.vc029(StopRun("camera_missing", "kCameraStale", published_cause="kCameraMissing"))
+    assert res.outcome == cases.FAIL, (res.outcome, res.notes)
+
+
+# Every fault of VC-DRIVING-023 to -028 against the synthetic generator's own
+# statement of the cause each fault produces, and a cause of another case.
+FAULTS = sorted({f for vc, fam in cases.FAULT_FAMILY.items() if vc != "VC-DRIVING-014"
+                 for f in fam})
+
+
+@pytest.mark.parametrize("fault", FAULTS)
+def test_vc029_passes_each_fault_with_its_own_cause_and_fails_it_with_another(fault):
+    import make_synthetic_run as synth
+    own = synth.FAULT_CAUSE[fault]
+    foreign = "kCommandTimeout" if own != "kCommandTimeout" else "kCameraStale"
+    assert cases.vc029(StopRun(fault, own)).outcome == cases.PASS, (fault, own)
+    assert cases.vc029(StopRun(fault, foreign)).outcome == cases.FAIL, (fault, foreign)
+
+
+# The same on the synthetic camera-fault run, through the run reader: its stop
+# and its publications carry a route cause.
+def test_vc029_on_the_synthetic_camera_run_fails_when_it_stops_for_a_route_cause(run_for,
+                                                                                   tmp_path):
+    d = strip.copy_run(run_for("fault-camera_missing").root, tmp_path / "camera-route-cause")
+    stale, route = cases.CAUSES.index("kCameraStale"), cases.CAUSES.index("kRouteStale")
+
+    def begin(data):
+        return {**data, "cause": "kRouteStale", "causeValue": route}
+
+    def health(data):
+        return {**data, "cause": route} if data.get("cause") == stale else data
+    assert edit_jsonl(d / "score/drivingAgent.jsonl", "stop_response.begin", begin) == 1
+    assert edit_jsonl(d / "score/statePublisher.jsonl", "out.health", health) > 0
+    from runio import Run
+    res = cases.evaluate_case(Run(d), "VC-DRIVING-029")
+    assert res.outcome == cases.FAIL, (res.outcome, res.missing, res.notes)

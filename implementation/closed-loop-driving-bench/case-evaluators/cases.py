@@ -532,6 +532,24 @@ CAUSE_TO_FAULT = {
 }
 
 
+def fault_in_family(observed: str | None, fam: tuple[str, ...]) -> bool:
+    """Does a fault named by a stop cause (CAUSE_TO_FAULT) belong to a case's
+    family of faults (FAULT_FAMILY)? A kPlanStale stop names both plan_stale
+    and plan_dropped, a kPlanInvalid stop both invalid plans."""
+    return observed in fam \
+        or (observed == "plan_stale_or_dropped" and bool(set(fam) & {"plan_stale", "plan_dropped"})) \
+        or (observed == "plan_invalid" and bool(set(fam) & {"plan_invalid_nan", "plan_invalid_63"}))
+
+
+def fault_causes(label: str) -> list[str]:
+    """The stop causes of a run's fault: those that route a run to the case of
+    that fault (gate() reads an unlabelled run's stop cause so). Empty when the
+    label is no fault of REQ-DRIVING-023 to -028."""
+    fams = [fam for vc, fam in FAULT_FAMILY.items() if label in fam]
+    return [c for c in CAUSES
+            if any(fault_in_family(CAUSE_TO_FAULT.get(c), fam) for fam in fams)]
+
+
 def gate(run: Run, vc: str) -> Result | None:
     """Is this case's fault the fault of this run?
 
@@ -556,9 +574,7 @@ def gate(run: Run, vc: str) -> Result | None:
         return inconclusive(vc, "run_record.scenarioVariant.fault", "C4",
                             "the run neither names its fault nor records a stop that "
                             "identifies it")
-    if observed in fam or (observed == "plan_stale_or_dropped"
-                           and set(fam) & {"plan_stale", "plan_dropped"})             or (observed == "plan_invalid"
-                and set(fam) & {"plan_invalid_nan", "plan_invalid_63"}):
+    if fault_in_family(observed, fam):
         return None
     return not_applicable(
         vc, f"the stop cause shows a {observed} condition; the case needs a run in which "
@@ -2383,6 +2399,13 @@ def vc029(run: Run) -> Result:
     Both ends are on the S-CORE host (ICD v2 answer to S5): the stop begin's
     envelope t_mono_ns and the publisher's HEALTH `publish_mono_s/_ns` in
     score/statePublisher.jsonl. The guest's receipt time is not used.
+
+    "The cause of that run": a run that names its fault (scenarioVariant.fault,
+    ICD C4) calls for a cause of that fault, the causes that route a run to the
+    fault's case (fault_causes, as gate() routes by the stop cause); the stop
+    must begin with one of them and the publication name the stop's cause. A
+    run that names no fault is judged against its own stop cause; a run whose
+    fault is none of REQ-023 to REQ-028 is inconclusive.
     """
     vc = "VC-DRIVING-029"
     begin = run.stop_begin()
@@ -2390,10 +2413,31 @@ def vc029(run: Run) -> Result:
         return not_applicable(vc, "this run has no stop response; REQ-029 applies to the "
                                   "stopped runs of REQ-023 to REQ-028")
     cause = enum_name(begin["cause"], CAUSES)
+    label = run.variant.get("fault")
+    if isinstance(label, str) and label not in ("", "none"):
+        expected: list = fault_causes(label)
+        source = f"scenarioVariant.fault {label!r}"
+    else:
+        expected = [cause]
+        source = "the run's own stop cause (the run names no fault)"
     hs = run.health_side()
     if not hs:
         return inconclusive(vc, "score/statePublisher.jsonl:out.health", "C5",
                             "the publisher's own health records are absent")
+    if not expected:
+        return inconclusive(vc, "run_record.scenarioVariant.fault", "C4",
+                            f"the run's fault {label!r} is none of REQ-DRIVING-023 to -028, "
+                            "so the cause the run calls for is not known",
+                            {"cause": cause, "fault": label})
+    named = {"expected_causes": expected, "expected_from": source}
+    if cause not in expected:
+        return bad(vc, {"stop_begin_mono": begin["t_mono"], "cause": cause, **named,
+                        "health_publications": len(hs)},
+                   {"stop_publication_latency_s": THRESHOLDS["stop_publication_latency_s"],
+                    "cause_of_the_run": expected},
+                   [ev(begin["file"], begin["rec"])],
+                   [f"the stop began with cause {cause}, which is no cause of this run's "
+                    f"fault {label} ({', '.join(str(c) for c in expected)})"])
     first = None
     for h in hs:
         if h["publish_mono"] is None:
@@ -2403,7 +2447,7 @@ def vc029(run: Run) -> Result:
             first = h
             break
     if first is None:
-        return bad(vc, {"stop_begin_mono": begin["t_mono"], "cause": cause,
+        return bad(vc, {"stop_begin_mono": begin["t_mono"], "cause": cause, **named,
                         "health_publications": len(hs)},
                    {"stop_publication_latency_s":
                     THRESHOLDS["stop_publication_latency_s"]},
@@ -2417,10 +2461,10 @@ def vc029(run: Run) -> Result:
     measured = {"clock": "monotonic (S-CORE host)",
                 "stop_begin_mono": begin["t_mono"],
                 "stop_publication_mono": first["publish_mono"],
-                "latency_s": lat, "cause": cause, "publications_after": len(later),
+                "latency_s": lat, "cause": cause, **named, "publications_after": len(later),
                 "later_publications_not_stopped": not_stopped[:5]}
     th = {"stop_publication_latency_s": THRESHOLDS["stop_publication_latency_s"],
-          "clock": "monotonic"}
+          "clock": "monotonic", "cause_of_the_run": expected}
     evid = [ev(begin["file"], begin["rec"]), ev(first["file"], first["rec"])]
     if lat > THRESHOLDS["stop_publication_latency_s"] + 1e-9:
         return bad(vc, measured, th, evid,
