@@ -30,6 +30,7 @@ using de4sdv::driving::actuation::CommandValidity;
 using de4sdv::driving::actuation::LoadAdapterConfigFile;
 using de4sdv::driving::actuation::ParseAdapterConfig;
 using de4sdv::driving::actuation::RejectReason;
+using de4sdv::driving::actuation::SetVehicleMaxSteerAngle;
 using de4sdv::driving::actuation::TableSource;
 using de4sdv::driving::actuation::test::SimulatedVehicle;
 
@@ -104,6 +105,31 @@ AdapterConfig MakeTestConfig(double max_angle_deg = 35.0, double max_deceleratio
   return config;
 }
 
+// The shell's start-up step: the adapter takes the vehicle's maximum steering
+// angle from the simulator (CARLA's front-wheel max_steer_angle).
+AdapterConfig WithVehicleSteering(AdapterConfig config, double max_steer_angle_deg) {
+  std::string error;
+  if (!SetVehicleMaxSteerAngle(&config, max_steer_angle_deg, &error)) {
+    std::printf("FATAL: the vehicle's maximum steering angle is refused: %s\n", error.c_str());
+    std::exit(2);
+  }
+  return config;
+}
+
+// One world snapshot at `frame`, then one command arriving 20 ms after its
+// production, to an adapter without a simulated vehicle.
+ActuationOutput TickAndSend(ActuationAdapter& adapter, std::uint64_t frame, double steering_angle) {
+  const double monotonic = 1000.0 + 0.1 * static_cast<double>(frame);
+  adapter.OnWorldTick({frame, 0.0, 0.0, monotonic});
+  VehicleMotionCommandPayload payload{};
+  payload.acceleration = 0.0F;
+  payload.steeringAngle = static_cast<float>(steering_angle);
+  payload.productionTime = monotonic - 0.02;
+  std::snprintf(payload.planReference, sizeof payload.planReference, "run/%llu",
+                static_cast<unsigned long long>(frame));
+  return adapter.OnCommand(payload, monotonic);
+}
+
 struct Bench {
   SimulatedVehicle car;
   ActuationAdapter adapter;
@@ -113,10 +139,11 @@ struct Bench {
   std::vector<double> accel_history;
   std::vector<double> time_history;
 
+  // `car` is declared first, so the adapter is given the simulated vehicle's own
+  // maximum steering angle, as the shell gives it CARLA's.
   explicit Bench(AdapterConfig config)
-      : adapter(std::move(config)) {
+      : adapter(WithVehicleSteering(std::move(config), car.max_steer_angle_deg)) {
     car.wheelbase_m = adapter.config().wheelbase_m;
-    car.max_road_wheel_angle_deg = adapter.config().limits.max_road_wheel_angle_deg;
   }
 
   ActuationOutput TickDecision() {
@@ -297,7 +324,7 @@ void TestStopToStandstillAndHold() {
   CHECK_NEAR(stop.actuationTime, 0.8, 1e-9);  // last actuation 0.5; more than 200 ms at 0.8
   CHECK_NEAR(stop.state.steeringAngle, 12.0, 1e-5);
   CHECK_NEAR(stop.state.acceleration, -4.0, 1e-5);
-  CHECK_NEAR(stop.control.steer, -12.0 / 35.0, 1e-6);
+  CHECK_NEAR(stop.control.steer, -12.0 / 70.0, 1e-6);
   CHECK_NEAR(stop.control.brake, 0.35, 0.06);
   CHECK(stop.control.throttle == 0.0);
 
@@ -335,7 +362,7 @@ void TestStopToStandstillAndHold() {
     CHECK(!out.hasState);
     CHECK(out.control.brake == 1.0);
     CHECK(out.control.throttle == 0.0);
-    CHECK_NEAR(out.control.steer, -12.0 / 35.0, 1e-6);
+    CHECK_NEAR(out.control.steer, -12.0 / 70.0, 1e-6);
     CHECK(bench.car.speed_mps * 3.6 < 0.1);
   }
   CHECK(bench.adapter.StopLatched());
@@ -378,20 +405,86 @@ void TestInvalidCommandsAreRejected() {
   CHECK(bench.adapter.RejectCount(RejectReason::kStaleProductionTime) == 1);
 }
 
+// The model's actuation mapping turns the steering angle into the normalized
+// steer by the vehicle's maximum steering angle, clipped. The configured limit
+// (35) bounds the command; the simulated vehicle's maximum (70) scales it.
 void TestSteeringMappingSignsAndClamps() {
   Bench bench(MakeTestConfig());
   bench.StepNoCommand();
 
   const ActuationOutput angle_minus_35 = bench.Send(0.0, -35.0);
-  CHECK_NEAR(angle_minus_35.control.steer, 1.0, 1e-6);  // right command -> CARLA right
+  CHECK_NEAR(angle_minus_35.control.steer, 0.5, 1e-6);  // right command -> CARLA right
   const ActuationOutput angle_minus_17_5 = bench.Send(0.0, -17.5);
-  CHECK_NEAR(angle_minus_17_5.control.steer, 0.5, 1e-6);
+  CHECK_NEAR(angle_minus_17_5.control.steer, 0.25, 1e-6);
   const ActuationOutput straight = bench.Send(0.0, 0.0);
   CHECK_NEAR(straight.control.steer, 0.0, 1e-12);
   const ActuationOutput angle_plus_35 = bench.Send(0.0, 35.0);  // left command -> CARLA left
-  CHECK_NEAR(angle_plus_35.control.steer, -1.0, 1e-6);
-  const ActuationOutput clamp = bench.Send(0.0, 35.0000005);
-  CHECK_NEAR(clamp.control.steer, -1.0, 1e-12);
+  CHECK_NEAR(angle_plus_35.control.steer, -0.5, 1e-6);
+  const ActuationOutput at_tolerance = bench.Send(0.0, 35.0000005);  // valid within 1e-6 of the limit
+  CHECK_NEAR(at_tolerance.control.steer, -0.5, 1e-6);
+
+  // Clipped: a vehicle whose maximum is below the command still gets |steer| <= 1.
+  // SetVehicleMaxSteerAngle refuses such a vehicle, so the value is set directly.
+  AdapterConfig narrow = MakeTestConfig();
+  narrow.vehicle_max_steer_angle_deg = 20.0;
+  ActuationAdapter adapter(narrow);
+  CHECK_NEAR(TickAndSend(adapter, 0, 35.0).control.steer, -1.0, 1e-12);
+  CHECK_NEAR(TickAndSend(adapter, 1, -35.0).control.steer, 1.0, 1e-12);
+}
+
+// What is commanded and what the vehicle does stay the same (REQ-DRIVING-012's
+// rationale): the simulated vehicle, like CARLA's vehicle.lincoln.mkz_2020,
+// turns its road wheels 70 degrees at steer +-1 while the configured limit is
+// 35, and its wheels turn by the commanded angle.
+void TestSteeringTurnsTheWheelsByTheCommandedAngle() {
+  Bench bench(MakeTestConfig());
+  CHECK_NEAR(bench.car.max_steer_angle_deg, 70.0, 0.0);
+  CHECK_NEAR(bench.adapter.config().limits.max_road_wheel_angle_deg, 35.0, 0.0);
+  bench.StepNoCommand();
+  for (const double angle : {0.64, 7.0, -17.5, 35.0, -35.0, 0.0}) {
+    const ActuationOutput out = bench.Send(0.0, angle);
+    CHECK(out.reject == RejectReason::kNone);
+    CHECK(out.hasControl);
+    CHECK_NEAR(bench.car.RoadWheelAngleDeg(out.control), angle, 1e-6);
+  }
+}
+
+// The shell takes the vehicle's maximum steering angle from CARLA's physics
+// control at start-up (the front wheels' max_steer_angle). It refuses a value
+// that is not finite and positive, and one below the configured limit, with
+// which a command at the limit could not be applied as commanded.
+void TestTheVehiclesMaximumSteeringAngleIsValidated() {
+  const double refused[] = {std::numeric_limits<double>::quiet_NaN(),
+                            std::numeric_limits<double>::infinity(),
+                            -std::numeric_limits<double>::infinity(), 0.0, -70.0, 34.9};
+  for (const double degrees : refused) {
+    AdapterConfig config = MakeTestConfig();  // limit 35
+    std::string error;
+    CHECK(!SetVehicleMaxSteerAngle(&config, degrees, &error));
+    CHECK(error.find("max_steer_angle") != std::string::npos);
+    CHECK(config.vehicle_max_steer_angle_deg == 0.0);  // unchanged
+  }
+  AdapterConfig below = MakeTestConfig();
+  std::string below_error;
+  CHECK(!SetVehicleMaxSteerAngle(&below, 34.9, &below_error));
+  CHECK(below_error.find("max_road_wheel_angle_deg") != std::string::npos);  // names the limit
+
+  const double accepted[] = {35.0, 69.99999237060547, 70.0};
+  for (const double degrees : accepted) {
+    AdapterConfig config = MakeTestConfig();
+    std::string error;
+    CHECK(SetVehicleMaxSteerAngle(&config, degrees, &error));
+    CHECK(error.empty());
+    CHECK_NEAR(config.vehicle_max_steer_angle_deg, degrees, 0.0);
+  }
+}
+
+// Without the vehicle's maximum steering angle (the shell does not start
+// without one) the core sends a straight steer, never an infinite or NaN one.
+void TestWithoutTheVehiclesMaximumSteeringAngleTheSteerIsStraight() {
+  ActuationAdapter adapter(MakeTestConfig());
+  CHECK_NEAR(TickAndSend(adapter, 0, 7.0).control.steer, 0.0, 0.0);
+  CHECK_NEAR(TickAndSend(adapter, 1, -7.0).control.steer, 0.0, 0.0);
 }
 
 void TestAgentStopIsAnOrdinaryCommand() {
@@ -813,6 +906,9 @@ int main(int argc, char** argv) {
   TestStopToStandstillAndHold();
   TestInvalidCommandsAreRejected();
   TestSteeringMappingSignsAndClamps();
+  TestSteeringTurnsTheWheelsByTheCommandedAngle();
+  TestTheVehiclesMaximumSteeringAngleIsValidated();
+  TestWithoutTheVehiclesMaximumSteeringAngleTheSteerIsStraight();
   TestAgentStopIsAnOrdinaryCommand();
   TestStartupHoldWithoutStop();
   TestValidityWindowIsMinus5To300Ms();

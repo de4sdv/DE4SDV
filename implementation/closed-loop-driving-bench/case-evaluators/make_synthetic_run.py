@@ -29,7 +29,8 @@ STEP_MS = 100
 WHEELBASE_M = 2.85
 MAX_ACC = 3.0
 MAX_DEC = 8.0
-MAX_ROAD_WHEEL_ANGLE_DEG = 35.0
+MAX_ROAD_WHEEL_ANGLE_DEG = 35.0           # the command limit (ICD section 5)
+VEHICLE_MAX_STEER_ANGLE_DEG = 70.0        # CARLA mkz_2020 front wheels at steer +-1: the steer's full scale (A30)
 MAX_STEER_RATE_DEG_S = 180.0
 STOP_ACCEL = -4.0
 STANDSTILL_KMH = 0.1
@@ -701,7 +702,7 @@ class RunBuilder:
                              "throttle": round(max(0.0, accel) / MAX_ACC, 4),
                              "brake": round(max(0.0, -accel) / MAX_DEC, 4) if applied
                              else 0.5,
-                             "steer": round(-self.actuated_steer / MAX_ROAD_WHEEL_ANGLE_DEG, 6),
+                             "steer": round(-self.actuated_steer / VEHICLE_MAX_STEER_ANGLE_DEG, 6),
                              "handBrake": False, "trigger": trigger,
                              "controlSource": "actuationAdapter",
                              "clocks": {"t_sim_ms": "simulation"}},
@@ -738,7 +739,7 @@ class RunBuilder:
         self.control = {"throttle": round(max(0.0, accel) / MAX_ACC, 4),
                         "brake": round(max(0.0, -accel) / MAX_DEC, 4),
                         "steer": round(-math.degrees(math.atan(WHEELBASE_M * curv))
-                                       / MAX_ROAD_WHEEL_ANGLE_DEG, 6),
+                                       / VEHICLE_MAX_STEER_ANGLE_DEG, 6),
                         "accelMps2": round(accel, 6),
                         "source": "actuationAdapter"}
 

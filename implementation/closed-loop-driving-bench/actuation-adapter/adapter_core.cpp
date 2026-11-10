@@ -33,6 +33,17 @@ double Clamp(double value, double low, double high) {
   return std::min(high, std::max(low, value));
 }
 
+// The model's actuation mapping: the steering angle over the vehicle's maximum
+// steering angle, clipped (CARLA steers right for positive steer, the command
+// is positive left). Straight while that maximum is unknown: the shell does not
+// start without it.
+double SteerFor(double steering_angle_deg, double vehicle_max_steer_angle_deg) {
+  if (!std::isfinite(vehicle_max_steer_angle_deg) || !(vehicle_max_steer_angle_deg > 0.0)) {
+    return 0.0;
+  }
+  return Clamp(-steering_angle_deg / vehicle_max_steer_angle_deg, -1.0, 1.0);
+}
+
 }  // namespace
 
 const char* RejectReasonName(RejectReason reason) {
@@ -316,8 +327,7 @@ VehicleControlCommand ActuationAdapter::ComputeControlLocked(double acceleration
   // One effort scalar, one pedal: throttle and brake can never both be set.
   control.throttle = effort > 0.0 ? effort : 0.0;
   control.brake = effort < 0.0 ? -effort : 0.0;
-  const double max_angle = config_.limits.max_road_wheel_angle_deg;
-  control.steer = Clamp(-steeringAngleDeg / max_angle, -1.0, 1.0);
+  control.steer = SteerFor(steeringAngleDeg, config_.vehicle_max_steer_angle_deg);
   control.handBrake = false;
   return control;
 }
@@ -331,7 +341,7 @@ VehicleControlCommand ActuationAdapter::StandstillControlLocked() const {
   VehicleControlCommand control;
   control.throttle = 0.0;
   control.brake = config_.longitudinal.standstill_brake;
-  control.steer = Clamp(-held_steering_deg_ / config_.limits.max_road_wheel_angle_deg, -1.0, 1.0);
+  control.steer = SteerFor(held_steering_deg_, config_.vehicle_max_steer_angle_deg);
   control.handBrake = false;
   return control;
 }

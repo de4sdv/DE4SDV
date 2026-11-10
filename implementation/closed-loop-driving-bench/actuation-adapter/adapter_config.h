@@ -20,7 +20,10 @@
 //
 // That is the ICD v2 section 5 document verbatim. The adapter reads:
 //
-//  * the limits and vehicle_blueprint (validity, steering clamp, config log);
+//  * the limits and vehicle_blueprint (command validity, config log). The
+//    steer's full scale is not read from this file: it is the vehicle's
+//    maximum steering angle, which the shell reads from the vehicle at start-up
+//    (SetVehicleMaxSteerAngle, ICD A30);
 //  * "command_law": accepted and logged with the config record, then ignored
 //    (the commander owns it; the adapter applies whatever command arrives);
 //  * "longitudinal_controller.table": rows are [acceleration_mps2, throttle,
@@ -79,6 +82,11 @@ struct AdapterConfig {
   std::string command_law;  // ICD v2 section 5; read for the log, not acted on here
   VehicleLimits limits;
   LongitudinalConfig longitudinal;
+  // The vehicle's maximum steering angle: the road-wheel angle at steer +-1,
+  // degrees. Not a configuration key: the shell reads it from the vehicle at
+  // start-up (CARLA's front-wheel max_steer_angle) through
+  // SetVehicleMaxSteerAngle. 0 until set.
+  double vehicle_max_steer_angle_deg = 0.0;
 
   TableSource tableSource() const { return table_source_; }
   void setTableSource(TableSource source) { table_source_ = source; }
@@ -97,6 +105,13 @@ struct AdapterConfig {
 // unsorted table, pedal outside [0,1], both pedals in one row, a table row
 // that is neither a 3-number array nor an object).
 AdapterConfig ParseAdapterConfig(const std::string& json_text, bool* ok, std::string* error);
+
+// Sets the vehicle's maximum steering angle, the full scale of the normalized
+// steer (the model's actuation mapping; ICD A30). Returns false, leaves *config
+// unchanged and sets *error when `degrees` is not finite and positive, or is
+// below limits.max_road_wheel_angle_deg (by more than 1e-3): a command at the
+// limit could not then be applied as commanded.
+bool SetVehicleMaxSteerAngle(AdapterConfig* config, double degrees, std::string* error);
 
 // Reads and parses the file; returns false and sets *error when the file
 // cannot be read or the document is invalid.

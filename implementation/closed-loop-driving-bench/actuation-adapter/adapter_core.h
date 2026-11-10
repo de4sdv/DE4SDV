@@ -32,8 +32,10 @@
 //    then a brake hold until the run ends. The stop latches: later commands
 //    are rejected. The stop's monotonic stamp is the WorldTick time at which
 //    it began (ActuationStatePayload::stopSinceMono).
-//  * Steering: steer = clamp(-steeringAngle / max_road_wheel_angle_deg, -1, 1)
-//    (CARLA steers right for positive steer, the command is positive left).
+//  * Steering: steer = clamp(-steeringAngle / vehicle_max_steer_angle_deg, -1, 1),
+//    the vehicle's maximum steering angle, which the shell reads from CARLA
+//    (ICD A30); max_road_wheel_angle_deg only bounds a valid command. CARLA
+//    steers right for positive steer, the command is positive left.
 //  * Longitudinal: feedforward lookup (acceleration -> throttle or brake from
 //    the calibration table) plus a PI correction on the speed error against a
 //    reference speed integrated from the commanded acceleration, with

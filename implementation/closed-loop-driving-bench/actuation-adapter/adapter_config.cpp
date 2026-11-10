@@ -284,4 +284,24 @@ AdapterConfig LoadAdapterConfigFile(const std::string& path, bool* ok, std::stri
   return ParseAdapterConfig(buffer.str(), ok, error);
 }
 
+bool SetVehicleMaxSteerAngle(AdapterConfig* config, double degrees, std::string* error) {
+  // CARLA reports its angles as floats (69.99999237 for 70): a maximum this
+  // close below the limit still serves a command at the limit.
+  constexpr double kToleranceDeg = 1e-3;
+  std::ostringstream message;
+  if (!Finite(degrees) || !(degrees > 0.0)) {
+    message << "the vehicle's max_steer_angle must be finite and positive, got " << degrees;
+  } else if (degrees + kToleranceDeg < config->limits.max_road_wheel_angle_deg) {
+    message << "the vehicle's max_steer_angle (" << degrees << " deg) is below max_road_wheel_angle_deg ("
+            << config->limits.max_road_wheel_angle_deg
+            << " deg): a command at the limit could not be applied as commanded";
+  } else {
+    config->vehicle_max_steer_angle_deg = degrees;
+    if (error != nullptr) error->clear();
+    return true;
+  }
+  if (error != nullptr) *error = message.str();
+  return false;
+}
+
 }  // namespace de4sdv::driving::actuation

@@ -16,8 +16,9 @@ the run.
 | `log_records.h` | the §6 JSONL record builders (header-only, unit tested) |
 | `json_lite.{h,cpp}` | minimal JSON parser for the one configuration document |
 | `tests/adapter_core_test.cpp` | simulation-based unit tests (plain g++) |
-| `tests/simulated_vehicle.h` | longitudinal point mass + lag + kinematic bicycle |
+| `tests/simulated_vehicle.h` | longitudinal point mass + lag + kinematic bicycle, steering with its own maximum (70°, CARLA's mkz_2020) |
 | `tests/fit_calibration_test.py` | tests the calibration fitter on synthetic step responses |
+| `tests/test_libcarla_shell.py`, `tests/test_shell_vehicle_steering.py` | static checks of the LibCarla shell: list lifetime; the steer's full scale from the vehicle |
 | `scripts/fit_calibration.py` | fits the acceleration→pedal table from `world.jsonl` |
 | `actuation_adapter_main.cpp` | S-CORE mw::com + LibCarla shell |
 | `BUILD.bazel` | Bazel targets (S-CORE toolchain, LibCarla 0.9.16) |
@@ -33,6 +34,7 @@ g++ -std=c++17 -Wall -Wextra -Werror -I. -I../interfaces/include -Itests \
     -o .build/adapter_core_test
 .build/adapter_core_test config/vehicle_limits.json
 python3 tests/fit_calibration_test.py
+python3 -m pytest -q tests/test_libcarla_shell.py tests/test_shell_vehicle_steering.py
 ```
 
 Both exit 0 on this machine (aarch64, g++ 11.4). The numbers are in
@@ -85,8 +87,12 @@ The stop publishes `stopInForce = 1`, `cause = kCommandTimeout`,
 monotonic time as an input (`WorldTick::monotonicSeconds`), so both stamps are
 testable without a clock.
 
-**Steering.** `steer = clamp(-steeringAngle / max_road_wheel_angle_deg, -1, 1)`.
-The command is positive left, CARLA's `steer` positive right.
+**Steering.** `steer = clamp(-steeringAngle / vehicle_max_steer_angle_deg, -1, 1)`:
+the commanded road-wheel angle over the vehicle's maximum steering angle, as the
+model's actuation mapping reads (ICD A30). The shell reads that maximum from
+CARLA at start-up, the front wheels' `max_steer_angle` (70° for
+`vehicle.lincoln.mkz_2020`); `max_road_wheel_angle_deg` (35°) only bounds a valid
+command. The command is positive left, CARLA's `steer` positive right.
 
 **Longitudinal.** A feedforward lookup plus a PI correction on the speed error
 against a reference speed integrated from the commanded acceleration:
@@ -233,7 +239,10 @@ MW_COM_CONFIG=$PWD/mw_com_config_actuation_adapter.json \
   `role_name` attribute is `hero`, reads its physics control (wheel positions →
   wheelbase, front wheels' `max_steer_angle`), logs a `config` record with the
   CARLA values next to the configured ones, their deltas, the `command_law` and
-  the table source.
+  the table source. The front wheels' `max_steer_angle` becomes the steer's full
+  scale (`steer_full_scale_deg` in that record). Without one, or with one below
+  `max_road_wheel_angle_deg`, the adapter logs an `error` record and exits with
+  status 14 before it applies any control.
 - Registers `World::OnTick`; the mw::com receive loop runs on its own thread.
   One mutex serialises the core call, `ApplyControl`, the skeleton send and the
   log write in both paths. Each tick passes `MonotonicSeconds()` as
@@ -247,16 +256,16 @@ $ .build/adapter_core_test config/vehicle_limits.json
 TRACKING target=+1.50 m/s^2 mean_accel=+1.5222 error=+0.0222 m/s^2 ...
 TRACKING target=+0.00 m/s^2 mean_accel=-0.0010 error=-0.0010 m/s^2 ...
 TRACKING target=-2.00 m/s^2 mean_accel=-1.9882 error=+0.0118 m/s^2 ...
-STOP mean_decel=-3.9604 m/s^2 duration=5.10 s states=1
-STOP_CLAMPED mean_decel=-2.9656 m/s^2 duration=6.80 s min=-3.5325
-ADAPTER_CORE_TESTS PASS: 578 checks, 0 failures
+STOP mean_decel=-3.9609 m/s^2 duration=5.10 s states=1
+STOP_CLAMPED mean_decel=-2.9656 m/s^2 duration=6.80 s min=-3.5384
+ADAPTER_CORE_TESTS PASS: 631 checks, 0 failures
 
 $ python3 tests/fit_calibration_test.py
 FIT_TABLE rows=23 mean_abs_reproduction_error=0.120 m/s^2 max=0.500 m/s^2
 FIT_CALIBRATION_TESTS PASS: 76 checks, 0 failures
 ```
 
-The same test binary built with `-fsanitize=address,undefined` passes 578/578
+The same test binary built with `-fsanitize=address,undefined` passes 631/631
 with no sanitizer report.
 
 Covered: constant-acceleration tracking (above), the watchdog at 300 ms and not
@@ -268,7 +277,11 @@ window at both edges (−5 ms and 300 ms; `future_production_time` below it),
 `stopSinceMono` equal to the tick's monotonic input and zero on applied
 commands, the stop clamped to a 3 m/s² vehicle (state, control and mean
 deceleration), invalid commands changing nothing (NaN, out of limits, empty
-reference, stale, future, non-finite production time), steering signs and clamp,
+reference, stale, future, non-finite production time), steering signs and clip,
+the steer scaled by the vehicle's maximum steering angle so the simulated
+vehicle's wheels turn by the commanded angle (70° at steer ±1 against the 35°
+limit), that maximum refused when not finite and positive or below the limit, a
+straight steer without it,
 agent stop as an ordinary command, the 3 s startup hold without latch, the
 actuation-state bookkeeping, the ICD v2 §5 document verbatim (array rows,
 `kp`/`ki`/`integrator_limit`, `command_law`) with its error cases, and the log

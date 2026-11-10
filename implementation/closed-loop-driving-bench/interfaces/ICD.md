@@ -153,13 +153,13 @@ One JSON file is named by the run record; the commander and the adapter read it:
                              "kp": 0.3, "ki": 0.05, "integrator_limit": 0.3}}
 ```
 
-- The numbers are placeholders. Bench calibration replaces them; the adapter logs the vehicle's physics control as a `config` record.
+- The numbers are placeholders. Bench calibration replaces them; the adapter logs the vehicle's physics control as a `config` record. The steer's full scale is not one of them: the adapter reads it from the vehicle at start-up (A30).
 - **Commander:**
   - `steeringAngle` by `command_law` (A27), clamped to ±max_road_wheel_angle and rate-limited per step:
     - `pure_pursuit` (shipped): on the plan's path from sample k, lookahead 4 m + 0.8 s · speed (4 to 15 m), `deg(atan(wheelbase · 2y/d²))`;
     - `first_control`: `deg(atan(wheelbase·κ[k]))`;
   - `acceleration = clamp(a, -max_deceleration, +max_acceleration)`.
-- **Adapter:** `steer = clamp(-steeringAngle / max_road_wheel_angle, -1, 1)`. Throttle and brake come from the table plus PI (S2 README).
+- **Adapter:** `steer = clamp(-steeringAngle / max_steer_angle, -1, 1)`, with `max_steer_angle` the hero's front-wheel `max_steer_angle` read from CARLA at start-up (A30); `max_road_wheel_angle` only bounds a valid command (§4). Throttle and brake come from the table plus PI (S2 README).
 
 ## 6. Logs
 
@@ -317,3 +317,8 @@ No payload changes.
   - For each plan's step k it works speed and acceleration out of the poses of frames k−65 … k as upstream's closed-loop driver does (`egomotion_from_poses`): each pose moved to the origin of the camera rig, `numpy.gradient` of the positions at 0.1 s, the speed its norm, the acceleration `numpy.gradient` of the speed, rows [1:-1]. Row j is frame k−64+j, the newest k−1. Each C2 row is within 0.05 m/s and 0.1 m/s² of those, with yaw rate and curvature 0.
   - The origin is `rig` `result.origin`: the REF origin set_rig returned, `[x, y, z]` in vehicle axes (x forward, y right, z up), metres, logged once before the first step. In the map frame a pose moves by (x, −y) in its own axes. A run without that record leaves the case inconclusive; a missing tick in a step's 66 frames fails that step.
   - Before A29 the rows were compared with CARLA's reported values. Those differ from the poses' at a start from standstill, around contacts and in the edge rows' acceleration, where `numpy.gradient` is one-sided, so the case failed on runs whose rows were within 0.003 m/s and 0.02 m/s² of the poses'.
+- **A30, steering full scale (§5, REQ-DRIVING-012).** No payload change.
+  - The adapter's steer is the commanded road-wheel angle over the vehicle's maximum steering angle, as the model's actuation mapping reads. That maximum is the hero's front-wheel `max_steer_angle`, which the adapter reads from CARLA's physics control at start-up and logs as `steer_full_scale_deg` in its `config` record: 70° for `vehicle.lincoln.mkz_2020`.
+  - `max_road_wheel_angle_deg` (35°) stays the command limit: the commander's clamp and the adapter's validity check.
+  - The adapter does not start when CARLA gives no front-wheel `max_steer_angle`, or one below the command limit: it logs an `error` record and exits.
+  - Before A30 the steer was the angle over `max_road_wheel_angle_deg`, so CARLA turned the road wheels by twice the commanded angle. On the straight route the commands before the first contact had a median of 0.64° and the applied steer turned the wheels 1.29°; the vehicle turned as the doubled angle predicts.

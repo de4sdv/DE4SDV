@@ -36,9 +36,12 @@
 // clock; shell-only time fields carry the suffix themselves (t_sim_ms,
 // arrival_mono_s). No computed latencies are logged: the evaluators compute.
 //
-// The vehicle limits are the run configuration's (ICD section 5). The values
-// read from CARLA's physics control are logged in the config record next to
-// the configured ones; a mismatch is the calibration task's signal, not a
+// The vehicle limits are the run configuration's (ICD section 5). The steer's
+// full scale is not: it is the hero's own maximum steering angle, its front
+// wheels' max_steer_angle read from CARLA's physics control (ICD A30), and the
+// adapter does not start without it or with one below the configured limit.
+// The values read from CARLA are logged in the config record next to the
+// configured ones; any other mismatch is the calibration task's signal, not a
 // silent override.
 #include <atomic>
 #include <chrono>
@@ -91,6 +94,7 @@ using de4sdv::driving::actuation::AdapterConfig;
 using de4sdv::driving::actuation::LoadAdapterConfigFile;
 using de4sdv::driving::actuation::RejectReason;
 using de4sdv::driving::actuation::RejectReasonName;
+using de4sdv::driving::actuation::SetVehicleMaxSteerAngle;
 using de4sdv::driving::actuation::VehicleControlCommand;
 using de4sdv::driving::actuation::WorldTick;
 
@@ -300,7 +304,7 @@ carla::SharedPtr<cc::Vehicle> FindHero(cc::World& world) {
 struct PhysicsSummary {
   bool valid = false;
   double wheelbase_m = 0.0;
-  double max_road_wheel_angle_deg = 0.0;
+  double max_road_wheel_angle_deg = 0.0;  // front wheels' max_steer_angle: the vehicle's maximum
   float mass_kg = 0.0F;
   std::vector<carla::rpc::WheelPhysicsControl> wheels;
 };
@@ -360,6 +364,7 @@ std::string PhysicsConfigJson(const AdapterConfig& config, const PhysicsSummary&
                                 JsonNumber(physics.max_road_wheel_angle_deg -
                                            config.limits.max_road_wheel_angle_deg)) +
                             "}")
+       << "," << Tag("steer_full_scale_deg", JsonNumber(config.vehicle_max_steer_angle_deg))
        << "}";
   return data.str();
 }
@@ -523,7 +528,19 @@ int main(int argc, char** argv) {
     write("error", data.str());
     return 13;
   }
+  // ICD A30: the steer's full scale is the vehicle's maximum steering angle.
+  std::string steering_error;
+  const bool steering_ok =
+      SetVehicleMaxSteerAngle(&config, physics.max_road_wheel_angle_deg, &steering_error);
   write("config", PhysicsConfigJson(config, physics));
+  if (!steering_ok) {
+    std::fprintf(stderr, "actuationAdapter: %s\n", steering_error.c_str());
+    std::ostringstream data;
+    data << "{" << Tag("what", JsonString("vehicle steering")) << ","
+         << Tag("message", JsonString(steering_error)) << "}";
+    write("error", data.str());
+    return 14;
+  }
 
   Shell shell(std::move(config), &log, &sequence, vehicle, &skeleton);
   const std::size_t callback_id = world->OnTick(
