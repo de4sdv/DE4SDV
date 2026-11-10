@@ -34,7 +34,7 @@ Nothing upstream is modified; the native library is built with upstream's own
 | `navigation_raster.{h,cpp}` | the C++ rasterizer library (no dependencies beyond libstdc++) |
 | `route_provider.py` | the route provider process (UDP 127.0.0.1:47110, JSONL logs) |
 | `parity_report.py` | per-channel C++ vs Python difference report (synthetic maps) |
-| `tests/` | 74 tests: exporters on a fake `carla`, parity, provider, layout |
+| `tests/` | 111 tests (4 need the real map): exporters on a fake `carla`, parity, the route corridor, provider, layout |
 | `tests/parity_sweep.cpp` | `Render` vs `RenderReference` sweep on a real map (`make parity`) |
 | `tests/render_cost.cpp` | per-render wall clock on a real map (`make bench`) |
 | `tests/render_profile.cpp` | the unoptimised path split into zero-fill / packing / native call (`make profile`) |
@@ -243,7 +243,7 @@ written per pixel by the same primitive that writes the mask.
 
 ```
 $ make all && .venv/bin/python -m pytest -q tests
-74 passed in 19.5s
+107 passed, 4 skipped in 8.7s
 $ .venv/bin/python parity_report.py
 cases: 25, mismatched: 0
   map   DRIVABLE_AREA ... OVERLAPPING_LEVEL_AMBIGUITY   max abs diff 0   (all 14)
@@ -266,7 +266,14 @@ uint8 pixels.  Coverage:
   a wider sweep of 200 route + 200 random poses is the same command with
   `--route-poses 200 --random-poses 200`;
 * a level-carrying fixture, because the CARLA export has no road levels and
-  channels 11-13 would otherwise stay untested (`test_navigation_raster_levels.py`).
+  channels 11-13 would otherwise stay untested (`test_navigation_raster_levels.py`);
+* the route corridor against an expectation that does not come from the route
+  reader: the route drawn as one line through all its waypoints, worked out
+  from geometry.  It covers every synthetic case, a road change across a joint
+  wider than the corridor and a road run of one waypoint
+  (`test_route_corridor.py`, `test_navigation_raster_parity.py`).  The parity
+  tests alone cannot see a corridor the reader gets wrong: both paths are fed
+  the same lines.
 
 ## What is untested without CARLA
 
@@ -328,9 +335,17 @@ Only testable on the bench (no aarch64 CARLA wheel, no GPU here):
   If the file changes under a running provider, the announced SHA-256 no longer
   matches the content (the C++ library computes the SHA-256 of what it loaded,
   so a mismatch is detectable, but nothing compares the two yet).
-* A route split by `road_id` runs gives one corridor polyline per run; a lane
-  change inside one road is a single polyline, which is what the corridor
-  channel needs.
+* The corridor is drawn from one polyline per run of constant `road_id`, and
+  each run after the first starts at the previous run's last waypoint.  The
+  corridor therefore has no break where the road changes, as upstream's has
+  none: its lane sequence is lanelets that share their end points.  CARLA's
+  planner puts 2-4 m between the last waypoint of one road and the first of
+  the next, more than the 3.5 m corridor is wide.  A run of one waypoint still
+  makes a line, from the waypoint before it.  A lane change inside one road is
+  a single polyline.  The C2 counts of ICD A16 (`waypointsInWindow`,
+  `waypointsOnCorridor`) still count the waypoints of each run of two or more
+  waypoints once (`RouteData::centerlines`), the rule VC-DRIVING-007 recounts
+  with.
 
 ## Contract and model notes
 

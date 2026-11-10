@@ -179,7 +179,12 @@ def route_waypoints(kind: str):
 
 
 def write_route(path: Path, kind: str, *, destination=None) -> Path:
-    rows = route_waypoints(kind)
+    return write_route_rows(path, route_waypoints(kind), destination=destination)
+
+
+def write_route_rows(path: Path, rows, *, destination=None) -> Path:
+    """A route file of the given waypoint rows (x, y, heading, road_id)."""
+    rows = [[float(row[0]), float(row[1]), float(row[2]), int(row[3])] for row in rows]
     if destination is None:
         destination = [rows[-1][0], rows[-1][1]]
     path.write_text(
@@ -190,6 +195,70 @@ def write_route(path: Path, kind: str, *, destination=None) -> Path:
         encoding="ascii",
     )
     return path
+
+
+# Routes whose road id changes, on the straight road.  CARLA's planner gives
+# 2-4 m between the last waypoint of one road and the first of the next; these
+# make the joint wider than the 3.5 m corridor, so a corridor drawn per road
+# run without the joint has rows with no corridor pixel.
+
+
+def road_change_rows():
+    """Road 1 up to x=20, road 2 from x=26: a 6 m joint."""
+    rows = [[x, 0.0, 0.0, 1] for x in np.arange(0.0, 21.0, 2.0)]
+    rows += [[x, 0.0, 0.0, 2] for x in np.arange(26.0, 61.0, 2.0)]
+    return rows
+
+
+def single_point_run_rows():
+    """Road 2 is one waypoint, 2.5 m off the line between roads 1 and 3."""
+    rows = [[x, 0.0, 0.0, 1] for x in np.arange(0.0, 21.0, 2.0)]
+    rows.append([24.0, 2.5, 0.0, 2])
+    rows += [[x, 0.0, 0.0, 3] for x in np.arange(28.0, 61.0, 2.0)]
+    return rows
+
+
+def expected_corridor(rows, pose, *, half_width_m=1.75, rear_clip_m=10.0,
+                      tie_m=1e-6):
+    """route_mask channel 0 of the route drawn as one line, from geometry alone.
+
+    The rule of upstream's ``draw_route_line``, worked out here without the
+    route reader or the renderer: a pixel is set when its centre is within
+    ``half_width_m`` of the polyline through all waypoints, in their order, and
+    no more than ``rear_clip_m`` behind the ego.  Returns ``(mask, decided)``;
+    ``decided`` is False for the few centres within ``tie_m`` of either
+    threshold, where rounding may go either way.
+    """
+    x0, y0, yaw = (float(value) for value in pose)
+    cosine, sine = math.cos(yaw), math.sin(yaw)
+    points = np.asarray([[row[0], row[1]] for row in rows], dtype=np.float64)
+    dx = points[:, 0] - x0
+    dy = points[:, 1] - y0
+    ego_x = cosine * dx + sine * dy
+    ego_y = -sine * dx + cosine * dy
+    centre_x = np.repeat(
+        (120.0 - (np.arange(450) + 0.5) * 0.4)[:, None], 300, axis=1)
+    centre_y = np.repeat(
+        (60.0 - (np.arange(300) + 0.5) * 0.4)[None, :], 450, axis=0)
+    distance = np.full((450, 300), np.inf)
+    for index in range(len(points) - 1):
+        ax, ay = ego_x[index], ego_y[index]
+        vx, vy = ego_x[index + 1] - ax, ego_y[index + 1] - ay
+        length_squared = vx * vx + vy * vy
+        if length_squared <= 1e-12:
+            fraction = 0.0
+        else:
+            fraction = np.clip(
+                ((centre_x - ax) * vx + (centre_y - ay) * vy) / length_squared,
+                0.0, 1.0)
+        distance = np.minimum(
+            distance,
+            np.hypot(centre_x - (ax + fraction * vx), centre_y - (ay + fraction * vy)),
+        )
+    mask = (distance <= half_width_m) & (centre_x >= -rear_clip_m)
+    decided = (np.abs(distance - half_width_m) > tie_m) & (
+        np.abs(centre_x + rear_clip_m) > tie_m)
+    return mask.astype(np.uint8), decided
 
 
 def poses(kind: str):

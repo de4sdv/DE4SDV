@@ -115,6 +115,48 @@ def test_render_matches_upstream(
     assert max(per_channel) == 0.0
 
 
+@pytest.mark.parametrize("kind,pose_index", CASE_IDS,
+                         ids=[f"{kind}-pose{index}" for kind, index in CASE_IDS])
+def test_corridor_is_the_route_drawn_as_one_line(
+    kind, pose_index, tmp_path, native_library, raster_cli, cli_runner
+):
+    """An expectation that does not come from the route reader.
+
+    The parity test above compares two paths fed the same centre lines, so both
+    agree on whatever the reader makes of a road change.  Here the corridor of
+    both paths is held against the route drawn as one line through all its
+    waypoints, worked out from geometry: the L junction's route changes road
+    across a 10 m joint, wider than the 3.5 m corridor.
+    """
+    navigation_map, map_path, route_path, route_object = _prepare(
+        tmp_path, kind, with_route=True
+    )
+    pose = synthetic.poses(kind)[pose_index]
+    expected, decided = synthetic.expected_corridor(synthetic.route_waypoints(kind), pose)
+    reference = _reference_rasterizer(native_library).render(
+        navigation_map,
+        route_object,
+        autoe2e_bridge.rasterizer().EgoPose(
+            x_enu_m=pose[0], y_enu_m=pose[1], yaw_rad=pose[2], timestamp_ns=0
+        ),
+    )
+    route_out = tmp_path / "route.u8"
+    cli_runner(
+        raster_cli,
+        "--map", str(map_path),
+        "--route", str(route_path),
+        "--pose", repr(pose[0]), repr(pose[1]), repr(pose[2]),
+        "--route-out", str(route_out),
+    )
+    cpp_corridor = np.fromfile(route_out, dtype=np.uint8).reshape(
+        ROUTE_CHANNELS, HEIGHT, WIDTH
+    )[0]
+    assert decided.sum() > HEIGHT * WIDTH - 10
+    for name, corridor in (("upstream", reference.route_mask[0]), ("C++", cpp_corridor)):
+        wrong = int((corridor[decided] != expected[decided]).sum())
+        assert wrong == 0, f"{kind} pose {pose_index}: {name} corridor differs in {wrong} pixels"
+
+
 @pytest.mark.parametrize("kind", list(synthetic.MAPS))
 def test_render_without_route_matches_upstream(
     kind, tmp_path, native_library, raster_cli, cli_runner
