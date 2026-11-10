@@ -253,3 +253,98 @@ def test_vc018_on_the_synthetic_replay_without_command_records_is_inconclusive(r
     v = ec.evaluate_campaign(root)["cases"]["VC-DRIVING-018"]
     assert v["outcome"] == cases.INCONCL, v
     assert "out.command" in v["missing"][0], v["missing"]
+
+
+# ------------------------------------------------------------------ VC-DRIVING-035
+# REQ-DRIVING-035 names two starts: a checkpoint file that differs from the
+# named one in a single byte (checkpointCase "mismatch") and a configuration
+# that names no checkpoint SHA-256 ("unpinned"). The health names the condition
+# of its own start: refusal_reason "mismatch" with both SHA-256 values, or
+# "no_pin" with no expected one (ICD section 3, HEALTH field 43; A5). A run
+# whose checkpointCase is neither start cannot be judged on the reason, and a
+# run without any world tick does not show the vehicle at standstill.
+STILL = {f: {"data": {"frame": f, "velocity": {"speed_mps": 0.0}}} for f in range(10)}
+
+
+class RefusalRun:
+    """A start of REQ-DRIVING-035 that produced no plan; one refusal health."""
+    scenario = "checkpointRefusal"
+
+    def __init__(self, case, reason, expected="cd" * 32, actual="ab" * 32, world=STILL):
+        self.variant = {} if case is None else {"checkpointCase": case}
+        self._world = world
+        self._health = {"cause": "kCheckpointRefused", "refusal_reason": reason,
+                        "expected_sha": expected, "actual_sha": actual,
+                        "file": "guest/observer.jsonl", "rec": {"seq": 1}}
+
+    def plans(self, required=True):
+        return []
+
+    def world_by_frame(self):
+        return self._world
+
+    def health_pubs(self):
+        return [dict(self._health)]
+
+
+def test_vc035_fails_a_mismatch_start_whose_health_names_no_pin():
+    res = cases.vc035(RefusalRun("mismatch", "no_pin", expected=None))
+    assert res.outcome == cases.FAIL, (res.outcome, res.missing, res.notes)
+    assert "no_pin" in res.notes[0] and "mismatch" in res.notes[0], res.notes
+
+
+def test_vc035_fails_an_unpinned_start_whose_health_names_a_mismatch():
+    res = cases.vc035(RefusalRun("unpinned", "mismatch"))
+    assert res.outcome == cases.FAIL, (res.outcome, res.missing, res.notes)
+
+
+@pytest.mark.parametrize("case, reason, expected", [("mismatch", "mismatch", "cd" * 32),
+                                                    ("unpinned", "no_pin", None)])
+def test_vc035_passes_each_start_whose_health_names_its_condition(case, reason, expected):
+    res = cases.vc035(RefusalRun(case, reason, expected=expected))
+    assert res.outcome == cases.PASS, (res.outcome, res.missing, res.notes)
+    assert res.thresholds["refusal_reason"] == reason, res.thresholds
+
+
+@pytest.mark.parametrize("case", [None, "pinned", "wrong_pin"])
+def test_vc035_on_a_start_that_is_neither_case_is_inconclusive(case):
+    res = cases.vc035(RefusalRun(case, "mismatch"))
+    assert res.outcome == cases.INCONCL, (res.outcome, res.notes)
+    assert res.missing == ["run_record.scenarioVariant.checkpointCase"], res.missing
+    assert res.icd_changes == ["C4"], res.icd_changes
+
+
+def test_vc035_without_a_world_tick_is_inconclusive():
+    res = cases.vc035(RefusalRun("unpinned", "no_pin", expected=None, world={}))
+    assert res.outcome == cases.INCONCL, (res.outcome, res.measured)
+    assert res.missing == ["simulator/world.jsonl:tick"], res.missing
+    assert res.icd_changes == ["C1"], res.icd_changes
+
+
+def test_vc035_fails_a_wrong_reason_even_without_a_world_tick():
+    res = cases.vc035(RefusalRun("mismatch", "no_pin", expected=None, world={}))
+    assert res.outcome == cases.FAIL, (res.outcome, res.missing, res.notes)
+
+
+# The same on the synthetic refusal runs, through the run reader.
+def test_vc035_on_the_synthetic_mismatch_start_fails_when_the_health_names_no_pin(run_for,
+                                                                                    tmp_path):
+    d = strip.copy_run(run_for("refusal-mismatch").root, tmp_path / "refusal-no-pin")
+
+    def fn(data):
+        if data.get("refusal_reason"):
+            data.update({"refusal_reason": "no_pin", "checkpoint_expected_sha256": ""})
+        return data
+    assert edit_jsonl(d / "guest/observer.jsonl", "rx.health", fn) > 0
+    from runio import Run
+    res = cases.evaluate_case(Run(d), "VC-DRIVING-035")
+    assert res.outcome == cases.FAIL, (res.outcome, res.missing, res.notes)
+
+
+def test_vc035_on_the_synthetic_start_without_world_ticks_is_inconclusive(run_for, tmp_path):
+    d = strip.copy_run(run_for("refusal-unpinned").root, tmp_path / "refusal-no-ticks")
+    assert edit_jsonl(d / "simulator/world.jsonl", "tick", lambda data: None) > 0
+    from runio import Run
+    res = cases.evaluate_case(Run(d), "VC-DRIVING-035")
+    assert res.outcome == cases.INCONCL, (res.outcome, res.measured)
+    assert res.missing == ["simulator/world.jsonl:tick"], res.missing

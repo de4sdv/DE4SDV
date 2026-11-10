@@ -2774,13 +2774,30 @@ def vc034(run: Run) -> Result:
     return ok(vc, measured, th, evid)
 
 
+# REQ-DRIVING-035 names two starts, and the health names the condition of each
+# (ICD section 3, HEALTH field 43 refusal_reason: "mismatch", "no_pin"; A5). A
+# checkpoint file that differs from the named one in one byte (checkpointCase
+# "mismatch") is refused with "mismatch"; a configuration that names no
+# checkpoint SHA-256 ("unpinned") with "no_pin". These are the two starts the
+# case's run record names (ICD C4 scenarioVariant.checkpointCase) and the two
+# roles of the checkpoint-refusal campaign; the agent refuses them so
+# (agent/python/de4sdv_planner/__init__.py identity_check).
+REFUSAL_REASON = {"mismatch": "mismatch", "unpinned": "no_pin"}
+
+
 @case("VC-DRIVING-035", ("checkpointRefusal",), needs=("C6", "C1"))
 def vc035(run: Run) -> Result:
     """A checkpoint that differs in one byte, and a configuration that names no
     checkpoint, produce no plan, keep the vehicle at standstill and the health
-    names the mismatch (REQ-035)."""
+    names the mismatch (REQ-035).
+
+    The refusal reason judged is the one the run's start calls for
+    (REFUSAL_REASON); a health that names the other reason fails. A start that
+    is neither of the two, or a run without a world tick (the standstill is not
+    observed), is inconclusive."""
     vc = "VC-DRIVING-035"
-    case = (run.variant or {}).get("checkpointCase") or "pinned"
+    case = (run.variant or {}).get("checkpointCase")
+    want = REFUSAL_REASON.get(case) if isinstance(case, str) else None
     plans = run.plans(required=False)
     wb = run.world_by_frame()
     moving = [{"frame": f, "speed_kmh": float(wd_get(r, "velocity", "speed_mps")) * 3.6}
@@ -2789,24 +2806,42 @@ def vc035(run: Run) -> Result:
               > THRESHOLDS["standstill_kmh"]]
     hs = run.health_pubs()
     refusal = [h for h in hs if enum_name(h["cause"], CAUSES) == "kCheckpointRefused"]
-    detail_ok = [h for h in refusal
-                 if (h.get("refusal_reason") == "mismatch"
-                     and h.get("expected_sha") and h.get("actual_sha")
-                     and h["expected_sha"] != h["actual_sha"])
-                 or (h.get("refusal_reason") == "no_pin" and not h.get("expected_sha"))]
-    measured = {"checkpoint_case": case, "plans": len(plans),
+    detail_ok = [h for h in refusal if want is not None and h.get("refusal_reason") == want
+                 and ((want == "mismatch" and h.get("expected_sha") and h.get("actual_sha")
+                       and h["expected_sha"] != h["actual_sha"])
+                      or (want == "no_pin" and not h.get("expected_sha")))]
+    other = [h for h in refusal if want is not None and h.get("refusal_reason")
+             and h.get("refusal_reason") != want]
+    measured = {"checkpoint_case": case, "plans": len(plans), "world_ticks": len(wb),
                 "moving_ticks": moving[:5], "health_publications": len(hs),
                 "refusal_healths": len(refusal),
-                "refusals_naming_the_mismatch": len(detail_ok)}
-    th = {"plans_allowed": 0, "standstill_kmh": THRESHOLDS["standstill_kmh"]}
+                "refusals_naming_the_mismatch": len(detail_ok),
+                "refusals_naming_another_reason": sorted({h["refusal_reason"] for h in other})}
+    th = {"plans_allowed": 0, "standstill_kmh": THRESHOLDS["standstill_kmh"],
+          "refusal_reason": want}
     evid = [ev(h["file"], h["rec"]) for h in (refusal[:1] or hs[:1])]
     if plans:
         return bad(vc, measured, th, evid, ["a plan was produced from a refused checkpoint"])
     if moving:
         return bad(vc, measured, th, evid, ["the vehicle was not at standstill"])
+    if other:
+        return bad(vc, measured, th, evid,
+                   [f"the health names the refusal reason {other[0]['refusal_reason']!r}; "
+                    f"a start with checkpointCase {case!r} calls for {want!r}"])
+    if not wb:
+        return inconclusive(vc, "simulator/world.jsonl:tick", "C1",
+                            "no world tick is recorded, so the vehicle is not observed at "
+                            "standstill", measured)
     if not refusal:
         return inconclusive(vc, "health with cause kCheckpointRefused", "C6",
                             "the health never names the refusal", measured)
+    if want is None:
+        return inconclusive(vc, "run_record.scenarioVariant.checkpointCase", "C4",
+                            f"the run's checkpointCase is {case!r}, neither start of "
+                            "REQ-DRIVING-035 (mismatch: a checkpoint that differs in one "
+                            "byte; unpinned: a configuration that names no checkpoint "
+                            "SHA-256), so the refusal reason it calls for is not known",
+                            measured)
     if not detail_ok:
         return inconclusive(vc, "rx.health.checkpoint_expected_sha256/refusal_reason", "C6",
                             "the refusal is published without naming the mismatch", measured)
