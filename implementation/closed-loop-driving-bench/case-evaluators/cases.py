@@ -2003,6 +2003,11 @@ def vc021(run: Run) -> Result:
     if run.actuations() and all(a["actuation_s"] is None for a in run.actuations()):
         raise MissingEvidence("out.actuation_state.clocks.actuationTime", "C9",
                               "actuation records carry no simulation-time stamp")
+    if stand is None:
+        # the window ends at standstill; a run that never reaches it does not
+        # show the whole window (VC-DRIVING-020 and -022 read it the same way)
+        return inconclusive(vc, "stop_response.standstill", None,
+                            "the stop never reached standstill in this run")
     T0 = begin["t_sim"]
     prev = [a for a in run.actuations()
             if a["actuation_s"] is not None and a["actuation_s"] < T0 - 1e-9
@@ -2011,7 +2016,7 @@ def vc021(run: Run) -> Result:
         return inconclusive(vc, "last valid-plan actuation before the stop", None,
                             "no actuation from a valid plan precedes the stop")
     held = prev[-1]["steer"]
-    acts = actuations_between(run, T0, stand["t_sim"] if stand else None)
+    acts = actuations_between(run, T0, stand["t_sim"])
     if not acts:
         if run.actuations() and all(a["actuation_s"] is None for a in run.actuations()):
             raise MissingEvidence("out.actuation_state.clocks.actuationTime", "C9",

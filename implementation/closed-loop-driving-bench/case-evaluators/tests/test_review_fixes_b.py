@@ -7,6 +7,8 @@ evaluators.
 * VC-DRIVING-030 read a camera slot without capture_sim_ms and image_frame as
   a slot without an image, so an image recorded without its capture time
   passed, and a run whose records hold no image at all passed with none judged.
+* VC-DRIVING-021 judged a stop that never reached standstill up to the end of
+  the records and passed it, where VC-DRIVING-020 and -022 are inconclusive.
 
 Each test builds its run from the fixture of make_synthetic_run.py and edits a
 hard-linked copy, streaming each record file into a new file, so the fixture's
@@ -205,3 +207,27 @@ def test_vc030_a_motion_sample_without_its_capture_time_fails_without_images(run
     res = verdict(Run(d), "VC-DRIVING-030")
     assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
     assert res.measured["problems"] == [{"sample": 300, "problem": "no capture time"}]
+
+
+# ------------------------------------------------------------------ VC-DRIVING-021
+# REQ-DRIVING-021: "Met when, in the runs of the criteria of REQ-DRIVING-020,
+# the steering command stays at the last value computed from a valid plan from
+# the start of the stop response until standstill." A run without a
+# stop_response.standstill record never shows the end of that window, so it
+# cannot show the criterion met; VC-DRIVING-020 and -022 are inconclusive on it.
+def drop_standstill(d: Path) -> int:
+    return sum(rewrite_jsonl(p, lambda rec: None
+                             if rec["event"] == "stop_response.standstill" else rec)
+               for p in sorted((d / "score").glob("*.jsonl")))
+
+
+@pytest.mark.parametrize("vc", ["VC-DRIVING-020", "VC-DRIVING-021", "VC-DRIVING-022"])
+def test_stop_cases_without_standstill_are_inconclusive(run_for, tmp_path, vc):
+    d = copied(run_for, tmp_path, CASE_RUN[vc], "no-standstill")
+    assert Run(d).standstill() is not None
+    assert drop_standstill(d) >= 1
+    run = Run(d)
+    assert run.stop_begin() is not None and run.standstill() is None
+    res = verdict(run, vc)
+    assert res.outcome == cases.INCONCL, (vc, res.outcome, res.measured, res.notes)
+    assert res.missing == ["stop_response.standstill"], res.missing
