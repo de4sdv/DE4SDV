@@ -120,11 +120,11 @@ Channel-major, row-major inside a channel.
 | 1 | `LANE_BOUNDARY` | f32 0/1 | lane side lines, 1 m wide (polyline distance test) |
 | 2 | `LANE_CENTERLINE` | f32 0/1 | lane centre lines, 1 m wide |
 | 3 | `INTERSECTION` | f32 0/1 | junction footprint polygons |
-| 4 | `CROSSWALK` | f32 0/1 | `map.get_crosswalks()` quads |
+| 4 | `CROSSWALK` | f32 0/1 | `map.get_crosswalks()` closed rings, one polygon each |
 | 5 | `STOP_LINE` | f32 0/1 | 1 m lines at the traffic lights |
 | 6 | `STATIC_TRAFFIC_SIGNAL` | f32 0/1 | 2 m discs at the light positions |
-| 7 | `TRAFFIC_DIRECTION_SIN` | f32 | `(sin θ + 1)/2` per lane segment |
-| 8 | `TRAFFIC_DIRECTION_COS` | f32 | `(cos θ + 1)/2` per lane segment |
+| 7 | `TRAFFIC_DIRECTION_SIN` | f32 | `(sin θ + 1)/2` per lane segment, θ the lane's driving direction |
+| 8 | `TRAFFIC_DIRECTION_COS` | f32 | `(cos θ + 1)/2` per lane segment, θ the lane's driving direction |
 | 9 | `TRAFFIC_DIRECTION_VALID` | f32 0/1 | 1 where a direction is drawn |
 | 10 | `KNOWN_MAP_AREA` | f32 0/1 | the map `bounds_enu_m` rectangle (always) |
 | 11 | `ROAD_LEVEL` | f32 | `(level + 8)/16`; all zero for CARLA (no layered roads) |
@@ -199,7 +199,7 @@ order only selects the reported cause (see the open question below).
 
 ## Render cost and why it is shaped this way
 
-`render_cost` on the real `Town10HD_Opt` export (903 KB: 168 centre lines, 336
+`render_cost` on the first real `Town10HD_Opt` export, before the crosswalk fix (903 KB: 168 centre lines, 336
 boundaries, 168 drivable polygons, 20 crosswalks, 9 junction polygons, 15
 signals, 18657 points) and its 282-waypoint route, on this aarch64 host
 (Cortex-A78AE), one `Render` per call, 500 renders:
@@ -275,7 +275,24 @@ Only testable on the bench (no aarch64 CARLA wheel, no GPU here):
 1. `carla_map_export.py` against the real `carla` API: `generate_waypoints`,
    `get_topology`, `get_crosswalks` (beta in 0.9.16), traffic-light actors and
    `traffic.traffic_light` filtering.  The fake exercises every code path but
-   with CARLA-shaped objects, not CARLA.
+   with CARLA-shaped objects, not CARLA.  The first `Town10HD_Opt` export
+   (2026-11-09) showed two shapes the fake did not have, both fixed with tests
+   on 2026-11-10:
+   - `get_crosswalks` gives each crosswalk as a closed ring, its first point
+     repeated at its end (16 rings of 5 points).  Grouped by 4, they became
+     20 polygons joining corners of different crosswalks, up to 189 m long; at
+     the start of the bench route the whole road 40 m ahead was crosswalk.
+     The export now splits the list at each ring's closing point and leaves
+     out a run that never closes (before, any count that was no multiple of 4
+     gave one convex hull of all crosswalks).
+   - CARLA lets `s` grow along the road's reference line in every lane and
+     faces each waypoint in its lane's driving direction.  Written in `s`
+     order, every lane with a positive id ran against its traffic in the
+     direction channels.  The export now turns each lane to its waypoints'
+     heading, and a boundary that two opposite lanes share is still drawn once.
+   The fake now gives its crosswalk as CARLA does; a two-way road in the tests
+   gives its lanes as CARLA does.  The real export has to be made again with
+   this code.
 2. `route_from_carla.py` against the real `GlobalRoutePlanner` (the fake
    reproduces only `trace_route`'s contract).
 3. Junction polygons: CARLA publishes no junction footprint, so the export is

@@ -213,6 +213,76 @@ def test_export_map_survives_a_missing_crosswalk_api(world):
     assert navigation_map.layer_availability["crosswalk"] is False
 
 
+class _Crosswalks(carla.Map):
+    """The fake scene with its crosswalks replaced by ``locations``."""
+
+    def __init__(self, locations):
+        super().__init__(MAP_NAME)
+        self._locations = list(locations)
+
+    def get_crosswalks(self):
+        return list(self._locations)
+
+
+def _closed(rings):
+    # CARLA's Map.get_crosswalks: every crosswalk is a closed polygon, its first point repeated at its end.
+    return [carla.Location(x, y) for ring in rings for (x, y) in list(ring) + [ring[0]]]
+
+
+def test_crosswalks_are_read_as_closed_rings_of_any_size(world):
+    # On Town10HD_Opt CARLA returned 16 rings of 5 points. Grouped by 4, they became 20 polygons that joined
+    # corners of different crosswalks, up to 189 m long.
+    rings = [
+        [(10.0, -2.0), (14.0, -2.0), (14.0, 2.0), (10.0, 2.0)],
+        [(30.0, -2.0), (34.0, -2.0), (34.0, 2.0), (30.0, 2.0)],
+        [(50.0, -2.0), (54.0, -2.0), (55.0, 0.0), (54.0, 2.0), (50.0, 2.0)],
+    ]
+    navigation_map = carla_map_export.export_map(_Crosswalks(_closed(rings)), world=world)
+    polygons = navigation_map.crosswalk_polygons
+    assert len(polygons) == len(rings)
+    for ring, polygon in zip(rings, polygons):
+        expected = [carla_frame.carla_to_map_xy(x, y) for x, y in ring]
+        assert np.allclose(np.asarray(polygon.points_enu_m)[:, :2], expected)
+
+
+def test_a_crosswalk_run_that_never_closes_is_left_out(world):
+    # Before, a point count that was no multiple of 4 gave one convex hull of every crosswalk of the map.
+    ring = [(10.0, -2.0), (14.0, -2.0), (14.0, 2.0), (10.0, 2.0)]
+    tail = [carla.Location(70.0, -2.0), carla.Location(74.0, -2.0), carla.Location(74.0, 2.0)]
+    navigation_map = carla_map_export.export_map(_Crosswalks(_closed([ring]) + tail), world=world)
+    assert len(navigation_map.crosswalk_polygons) == 1
+    points = np.asarray(navigation_map.crosswalk_polygons[0].points_enu_m)
+    assert points[:, 0].max() == pytest.approx(14.0)
+
+
+class _TwoWayRoad(carla.Map):
+    """One road with a lane each way, as CARLA gives it: s grows along the road's reference line in both
+    lanes, and each waypoint faces its lane's driving direction (lane -1 along the reference line, lane +1
+    against it, right-hand traffic)."""
+
+    def _build(self):
+        self._add_lane(5, 0, -1, (0.0, 1.75), (60.0, 1.75), 0.0)
+        self._add_lane(5, 0, 1, (0.0, -1.75), (60.0, -1.75), 180.0)
+        self._topology = []
+
+    def get_crosswalks(self):
+        return []
+
+
+def test_directed_lane_fields_run_in_the_driving_direction():
+    # On Town10HD_Opt every lane with a positive id ran against its traffic: the lanes were written in s order.
+    navigation_map = carla_map_export.export_map(_TwoWayRoad(MAP_NAME))
+    fields = {field.lane_id.rsplit(":", 1)[-1]: np.asarray(field.centerline_enu_m)
+              for field in navigation_map.directed_lane_fields}
+    assert fields["lane-1"][0, 0] == pytest.approx(0.0) and fields["lane-1"][-1, 0] == pytest.approx(60.0)
+    assert fields["lane1"][0, 0] == pytest.approx(60.0) and fields["lane1"][-1, 0] == pytest.approx(0.0)
+    centre = {item.primitive_id.rsplit(":", 2)[-2]: np.asarray(item.points_enu_m)
+              for item in navigation_map.lane_centerlines}
+    assert centre["lane1"][0, 0] == pytest.approx(60.0)
+    # The two lanes share their left side, now in opposite orders; it is still drawn once.
+    assert len(navigation_map.lane_boundaries) == 3
+
+
 # ---------------------------------------------------------------------- route
 
 

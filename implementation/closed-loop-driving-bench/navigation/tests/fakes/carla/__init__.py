@@ -204,9 +204,10 @@ class Map:
         ]
 
     def get_crosswalks(self):
+        # As CARLA gives them: a closed polygon, its first point repeated at its end.
         return [
             Location(98.0, -5.0), Location(102.0, -5.0),
-            Location(102.0, 5.0), Location(98.0, 5.0),
+            Location(102.0, 5.0), Location(98.0, 5.0), Location(98.0, -5.0),
         ]
 
     def all_waypoints(self):

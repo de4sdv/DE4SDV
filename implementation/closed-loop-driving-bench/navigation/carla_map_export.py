@@ -138,12 +138,19 @@ def _dedupe(points: list[list[float]], decimals: int = 6) -> list[list[float]]:
 
 
 def _polyline_digest(points: list[list[float]], decimals: int = 6) -> str:
-    """Identity of a boundary polyline, so shared lane sides are drawn once."""
-    payload = ",".join(
-        f"{round(point[0], decimals)!r},{round(point[1], decimals)!r}"
-        for point in points
-    )
-    return hashlib.sha256(payload.encode("ascii")).hexdigest()[:32]
+    """Identity of a boundary polyline, so shared lane sides are drawn once.
+
+    Two lanes that drive in opposite directions share their left side in
+    opposite orders, so the identity does not depend on the order.
+    """
+    def digest(sequence: list[list[float]]) -> str:
+        payload = ",".join(
+            f"{round(point[0], decimals)!r},{round(point[1], decimals)!r}"
+            for point in sequence
+        )
+        return hashlib.sha256(payload.encode("ascii")).hexdigest()[:32]
+
+    return min(digest(points), digest(list(reversed(points))))
 
 
 def _waypoint_yaw_rad(waypoint: Any) -> float:
@@ -164,7 +171,7 @@ def is_drivable(waypoint: Any) -> bool:
 def sample_lanes(
     carla_map: Any, sample_distance: float
 ) -> dict[tuple[int, int, int], list[Any]]:
-    """Waypoints of every directed lane, keyed and ordered along ``s``."""
+    """Waypoints of every directed lane, keyed and ordered in its driving direction."""
     waypoints = carla_map.generate_waypoints(float(sample_distance))
     lanes: dict[tuple[int, int, int], list[Any]] = defaultdict(list)
     for waypoint in waypoints:
@@ -175,7 +182,26 @@ def sample_lanes(
         ].append(waypoint)
     for key in lanes:
         lanes[key].sort(key=lambda item: float(item.s))
+        lanes[key] = _in_driving_direction(lanes[key])
     return dict(lanes)
+
+
+def _in_driving_direction(waypoints: list[Any]) -> list[Any]:
+    """A lane's waypoints, sorted along ``s``, turned to its driving direction.
+
+    CARLA lets ``s`` grow along the road's reference line in every lane and
+    faces each waypoint in its lane's driving direction; with right-hand
+    traffic the lanes with a positive id drive against the reference line.
+    The order follows the waypoints' own heading, so it needs no sign rule.
+    """
+    along = 0.0
+    for previous, current in zip(waypoints, waypoints[1:]):
+        yaw = _waypoint_yaw_rad(previous)
+        along += (
+            (float(current.transform.location.x) - float(previous.transform.location.x)) * math.cos(yaw)
+            + (float(current.transform.location.y) - float(previous.transform.location.y)) * math.sin(yaw)
+        )
+    return list(reversed(waypoints)) if along < 0.0 else waypoints
 
 
 def lane_geometry(waypoints: list[Any]):
@@ -383,35 +409,43 @@ def _crosswalk_polygons(
     if not locations:
         return []
     polygons = []
-    if len(locations) % 4 == 0:
-        groups = [locations[index:index + 4] for index in range(0, len(locations), 4)]
-        for index, group in enumerate(groups):
-            points = [list(carla_frame.carla_to_map_point(item)) + [0.0]
-                      for item in group]
-            points = _dedupe(points)
-            if len(points) < 3:
-                continue
-            polygons.append(
-                contracts.PolygonPrimitive(
-                    primitive_id=f"carla:{map_name}:crosswalk{index}",
-                    points_enu_m=points,
-                    level=None,
-                )
-            )
-        return polygons
-    # Unexpected grouping: one hull of the whole set keeps the layer present.
-    hull = convex_hull(
-        [carla_frame.carla_to_map_point(item) for item in locations]
-    )
-    if len(hull) >= 3:
+    for index, ring in enumerate(_closed_rings(locations)):
+        points = [list(carla_frame.carla_to_map_point(item)) + [0.0]
+                  for item in ring]
+        points = _dedupe(points)
+        if len(points) < 3:
+            continue
         polygons.append(
             contracts.PolygonPrimitive(
-                primitive_id=f"carla:{map_name}:crosswalks",
-                points_enu_m=hull,
+                primitive_id=f"carla:{map_name}:crosswalk{index}",
+                points_enu_m=points,
                 level=None,
             )
         )
     return polygons
+
+
+def _closed_rings(locations: list[Any], tolerance_m: float = 1e-3) -> list[list[Any]]:
+    """CARLA's crosswalk list split into its polygons.
+
+    ``Map.get_crosswalks`` gives every crosswalk as a closed polygon whose
+    first point is repeated at its end, and the polygons need not have the
+    same number of points. A ring ends where its first point comes back; the
+    repeated point is not kept. A trailing run that never closes is left out.
+    """
+    rings: list[list[Any]] = []
+    current: list[Any] = []
+    for item in locations:
+        if (
+            len(current) >= 3
+            and abs(float(item.x) - float(current[0].x)) <= tolerance_m
+            and abs(float(item.y) - float(current[0].y)) <= tolerance_m
+        ):
+            rings.append(current)
+            current = []
+        else:
+            current.append(item)
+    return rings
 
 
 def _traffic_controls(
