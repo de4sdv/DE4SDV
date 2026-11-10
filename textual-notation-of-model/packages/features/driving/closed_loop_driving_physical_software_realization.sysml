@@ -1407,12 +1407,47 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * left the road or the route 13 to 33 s after the hand-over in four
      * runs. So the input activity gives the checkpoint the ego-motion history
      * with yaw rate and curvature as zero (REQ-DRIVING-008). In the readiness
-     * probe the vehicle then kept its lane and stopped and restarted at a
-     * traffic light, but drove straight on at a junction where the route
-     * turned. The plans are therefore not what the checkpoint makes on the
-     * full history it was trained with, and the route does not yet steer the
-     * vehicle at junctions. Revisit when upstream publishes a checkpoint or a
-     * driver without this feedback.
+     * probe the plans then no longer turned off the lane within seconds: the
+     * vehicle stayed in its lane for the 12 s to the first junction, though
+     * it drifted steadily to one side without steering back, and drove
+     * straight on at that junction where the route turned. The plans are
+     * therefore not what the checkpoint makes on the full history it was
+     * trained with. That the route does not steer the vehicle at junctions is
+     * a separate limit, independent of the history (GAP-DRIVING-011). Revisit
+     * when upstream publishes a checkpoint or a driver without this feedback.
+     */
+    attribute :>> disposition = LifecycleDisposition::accepted;
+  }
+
+  part <'GAP-DRIVING-011'> gapRouteChoosesNoBranch : IncrementGap {
+    doc /*
+     * Open, and accepted as a known limit (owner decision of 2026-11-10): the
+     * pinned checkpoint takes no turn from the route. Given the same camera
+     * images, map and motion history, swapping a route that turns hard left
+     * for the same route mirrored to a hard right changes the planned heading
+     * at 6.4 s by at most 0.02 degrees, where a turn at a junction needs
+     * about 60. This holds with the motion history as REQ-DRIVING-008 gives
+     * it (yaw rate and curvature zero) and with the recorded history, with a
+     * route corridor drawn road-wide as in the checkpoint's training data,
+     * with a destination marker 40 m along the route, and with the cameras
+     * blanked and no map, where the route is the only navigation input (0.01
+     * degrees). Upstream's other released checkpoint (kitscenes-epoch-5)
+     * moves its planned heading by at most 1.5 degrees for the corridor and
+     * by 4 degrees for a route that ends 40 m ahead in a destination marker.
+     * Upstream's route-reconstruction head reads the navigation encoder's
+     * route contribution, not the fused camera and navigation features the
+     * planner sees (Model/model_components/reactive_e2e.py), so its training
+     * teaches encoding the route, not driving along it; upstream's own
+     * evaluation (Academic_Paper/AutoE2E_Route_Conditioned/paper_en.md)
+     * states that its route-reconstruction score is not evidence that the
+     * policy drove along the route, and lists route-determined branch choice
+     * as a hypothesis still to be tested. So the route enters the plans but
+     * does not choose the branch at a junction. The scenario's route
+     * therefore needs no branch choice: every junction on it is passed
+     * straight on (CARLA's route planner gives only lane-follow and straight
+     * road options), and the evidence claims no route following at junctions.
+     * Revisit when upstream publishes a checkpoint whose plans take the turn
+     * from the route.
      */
     attribute :>> disposition = LifecycleDisposition::accepted;
   }

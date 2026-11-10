@@ -203,6 +203,15 @@ def test_the_ego_motion_history_gives_yaw_rate_and_curvature_as_zero_under_the_b
     assert "This closes the loop: the motion the commands produce is what the next plan is made from." not in rationale
 
 
+def test_the_history_rationale_says_what_the_readiness_probe_showed_with_the_two_columns_zero():
+    # The readiness probe's own record: with the two columns zero the plans no longer turned off the lane within
+    # seconds, but the vehicle drifted to one side with no correction back. It did not keep its lane.
+    rationale = " ".join(_attribute(_requirement("reqEgoMotionHistory"), "rationale").split())
+    assert ("with the two columns zero, the plans in the readiness probe no longer turned off the lane within "
+            "seconds, though the vehicle still drifted to one side without steering back.") in rationale
+    assert "kept its lane" not in rationale
+
+
 def test_one_step_without_a_plan_of_its_own_is_tolerated_and_two_in_a_row_are_not():
     # The cadence decision of 2026-11-09: a plan that runs long, or a camera image too late to plan on, leaves a step
     # without a plan of its own while the vehicle stays on the newest valid plan. One such step is tolerated, as one
