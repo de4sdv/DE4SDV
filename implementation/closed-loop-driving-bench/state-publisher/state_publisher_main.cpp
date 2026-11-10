@@ -19,7 +19,7 @@
 // Offers (skeleton, three PreSerializedData<2048> events for gatewayd):
 //   de4sdv/driving/operational_state    plan, vehicle_state, health
 // Each sample carries the ICD v2 section 3 SOME/IP struct (43 fields, big-endian)
-// alone, from data[0], with size = its length (ICD section 2, A31); gatewayd and
+// alone, from data[0], with size = its length (ICD section 2, A33); gatewayd and
 // someipd offer it as service 0x4DF0, events 0x8001-0x8003, and the SDV Core
 // broker translates it (REFLECTION) into the typed DrivingOperationalState. No
 // protobuf anywhere.

@@ -30,7 +30,7 @@ gatewayd's own 16-byte header. So the publisher decides the payload. Its library
 frame carries a 4-byte little-endian length in front of the struct (the vectors in
 `state-publisher/tests/vectors/*.bin`: frame 222 B, message 218 B); the shell now
 sends the struct alone, `data[0..size)` = frame bytes 4.., `size` = the message
-length (ICD §2, A31). An older shell that sends the whole frame puts the prefix on
+length (ICD §2, A33). An older shell that sends the whole frame puts the prefix on
 the wire, and every event then fails in the broker (`Unknown BOM for string`).
 
 - **Detect:** RUNBOOK step 7's hexdump. `00 00 00 02` first means the struct starts

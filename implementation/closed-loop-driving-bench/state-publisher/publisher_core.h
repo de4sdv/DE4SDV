@@ -9,7 +9,7 @@
 // (bytes 0-1 carry it), the ICD v2 section 3 SOME/IP struct from byte 4 (43
 // fields, table order, big-endian, AUTOSAR strings and dynamic float arrays).
 // The shell sends the struct alone: data[0..size) = bytes 4.., size =
-// messageBytes (ICD section 2, A31); the vectors keep the whole frame.
+// messageBytes (ICD section 2, A33); the vectors keep the whole frame.
 //
 // Rules implemented here (ICD section 3, REQ-DRIVING-015 to -019, -029):
 //   * one PLAN frame per plan, at once;

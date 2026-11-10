@@ -101,7 +101,7 @@ is under 64 KiB) and the struct from byte 4; the vectors are these frames. The
 shell does not send the prefix: gatewayd copies `data[0..size)` of the
 `PreSerializedData<2048>` sample onto the SOME/IP payload unread, so the sample
 carries the struct alone, `data[0..size)` = frame bytes 4.., `size =
-message_length` (ICD §2, A31). The oversize guard drops anything over 2044 bytes
+message_length` (ICD §2, A33). The oversize guard drops anything over 2044 bytes
 and counts it in `dropped_samples`.
 
 Measured sizes (message / frame):
