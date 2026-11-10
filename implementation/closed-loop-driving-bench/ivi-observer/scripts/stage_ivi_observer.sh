@@ -113,6 +113,13 @@ unstage() {
 
 build() {
   check || return 1
+  # Never build the module under another variant than the product's last build: the
+  # build system would installclean the product directory and delete the IVI images
+  # (bench_env.sh, IVI_VARIANT).
+  if [ -n "$IVI_LAST_BUILT" ] && [ "$IVI_LAST_BUILT" != "${IVI_PRODUCT}-${IVI_VARIANT}" ]; then
+    log "ERROR: $IVI_PRODUCT was last built as $IVI_LAST_BUILT; a build as ${IVI_PRODUCT}-${IVI_VARIANT} forces an installclean that deletes its images. Unset IVI_VARIANT, or rebuild the whole product first."
+    return 1
+  fi
   stage || return 1
   [ -d "$AOSP_TOP" ] || { log "ERROR: no AOSP tree at $AOSP_TOP"; return 1; }
   local rc=0 build_log="$RUN_DIR/observer-build.log"
@@ -120,7 +127,7 @@ build() {
     set +u
     cd "$AOSP_TOP" || exit 1
     source build/envsetup.sh >/dev/null
-    lunch "${IVI_PRODUCT}-${RELEASE}-${VARIANT}" >/dev/null || exit 1
+    lunch "${IVI_PRODUCT}-${RELEASE}-${IVI_VARIANT}" >/dev/null || exit 1
     m "$OBSERVER_APP" "$OBSERVER_TESTS"
   ) > "$build_log" 2>&1 || rc=1
   tail -8 "$build_log"
@@ -216,7 +223,7 @@ install() {
   # The run's identity of the IVI side, bound to the records pulled at the end of a run.
   {
     echo "# IVI observer identity $(date -u +%FT%T.%NZ)"
-    echo "product: ${IVI_PRODUCT}-${RELEASE}-${VARIANT}, boot mode UNLOCKED"
+    echo "product: ${IVI_PRODUCT}-${RELEASE}-${IVI_VARIANT}, boot mode UNLOCKED"
     echo -n "ivi_fingerprint: "; ivi_adb shell getprop ro.build.fingerprint | tr -d '\r'
     echo -n "ivi_instance: "; ivi_adb shell getprop ro.boot.sdv.instance_name | tr -d '\r'
     echo -n "selinux: "; ivi_adb shell getenforce | tr -d '\r'
@@ -243,7 +250,10 @@ start() {
   ivi_adb shell "svc power stayon true; input keyevent KEYCODE_WAKEUP" >/dev/null 2>&1 || true
   # -S: a real restart (a restarted publisher resets its sequences; an old process would
   # show them as restarts), -W: wait for the launch.
-  ivi_adb shell am start -S -W -n "$OBSERVER_PACKAGE/.MainActivity" 2>&1 | tail -4
+  # OBSERVER_IMMERSIVE=1 asks the app to hide the system bars (the IVI's system bar policy decides).
+  local extra=()
+  [ "${OBSERVER_IMMERSIVE:-0}" = 1 ] && extra=(--ez immersive true)
+  ivi_adb shell am start -S -W -n "$OBSERVER_PACKAGE/.MainActivity" ${extra[@]+"${extra[@]}"} 2>&1 | tail -4
   sleep 3
   ivi_adb shell "dumpsys window 2>/dev/null | grep -m1 mCurrentFocus" | tr -d '\r' || true
   ivi_adb logcat -d -s "$OBSERVER_LOGCAT_TAG" 2>/dev/null | tail -20 || true
@@ -278,7 +288,9 @@ record() {
   local seconds="${1:-40}" out="$RUN_DIR/ivi_screen.mp4" display=()
   [ "$seconds" -le 180 ] 2>/dev/null || { log "ERROR: screenrecord's limit is 180 s"; return 1; }
   [ -n "$IVI_DISPLAY_ID" ] && display=(--display-id "$IVI_DISPLAY_ID")
-  ivi_adb logcat -v epoch -T 1 -s "$OBSERVER_LOGCAT_TAG" > "$RUN_DIR/ivi_screen_logcat.txt" 2>&1 &
+  # adb itself in the background, not the ivi_adb function: killing a function's subshell leaves
+  # its adb running, and the capture then keeps growing after the recording has ended.
+  "$ADB" -s "$IVI_ADB" logcat -v epoch -T 1 -s "$OBSERVER_LOGCAT_TAG" > "$RUN_DIR/ivi_screen_logcat.txt" 2>&1 &
   local logpid=$!
   # The video has no usable creation time: bracket its start with the guest clock.
   ivi_adb shell 'date +%s.%N' | tr -d '\r' | sed 's/^/guest_real_before_start: /' > "$RUN_DIR/ivi_screen_t0.txt"
@@ -289,6 +301,7 @@ record() {
   log "screenrecord ${seconds}s started (pid $pid); t0 bracket in $RUN_DIR/ivi_screen_t0.txt"
   wait "$pid" || true
   kill "$logpid" 2>/dev/null || true
+  wait "$logpid" 2>/dev/null || true
   ivi_adb pull /data/local/tmp/ivi_screen.mp4 "$out" 2>&1 | tail -1
   ivi_adb shell rm -f /data/local/tmp/ivi_screen.mp4
   log "pulled $out ($(stat -c %s "$out" 2>/dev/null || echo 0) bytes) and the tag log"
@@ -298,11 +311,18 @@ pull() {
   local out="${1:-$RUN_DIR/observer.jsonl}"
   ivi_adb root >/dev/null 2>&1 || true
   ivi_adb wait-for-device
-  ivi_adb exec-out "cat /data/data/$OBSERVER_PACKAGE/files/$OBSERVER_RECORD" > "$out" 2>/dev/null
+  # The app runs as the IVI's current user (user 10, "Driver", on sdv_ivi_cf), so its files
+  # are under /data/user/<user>/, not under user 0's /data/data/.
+  local user
+  user="$(ivi_adb shell am get-current-user 2>/dev/null | tr -d '\r')"
+  case "$user" in ''|*[!0-9]*) user=0 ;; esac
+  ivi_adb exec-out "cat /data/user/$user/$OBSERVER_PACKAGE/files/$OBSERVER_RECORD 2>/dev/null" > "$out" 2>/dev/null
   if [ ! -s "$out" ]; then
-    ivi_adb exec-out "run-as $OBSERVER_PACKAGE cat files/$OBSERVER_RECORD" > "$out" 2>/dev/null
+    ivi_adb exec-out "run-as $OBSERVER_PACKAGE --user $user cat files/$OBSERVER_RECORD 2>/dev/null" > "$out" 2>/dev/null
   fi
-  [ -s "$out" ] || { log "ERROR: no record file on the IVI VM"; return 1; }
+  [ -s "$out" ] || { log "ERROR: no record file on the IVI VM (user $user)"; return 1; }
+  # An error text in place of the file must not pass for a record.
+  head -c 1 "$out" | grep -q '{' || { log "ERROR: $out does not start with a JSON record: $(head -c 120 "$out")"; return 1; }
   log "pulled $out ($(wc -l < "$out") lines)"
 }
 

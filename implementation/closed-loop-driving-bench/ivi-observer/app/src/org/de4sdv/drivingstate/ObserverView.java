@@ -17,10 +17,13 @@ package org.de4sdv.drivingstate;
 
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Insets;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Typeface;
+import android.util.Log;
 import android.view.View;
+import android.view.WindowInsets;
 
 final class ObserverView extends View {
 
@@ -48,17 +51,49 @@ final class ObserverView extends View {
         setKeepScreenOn(true);
     }
 
+    // What the system bars cover of this view's edges, px. The window is laid out edge to
+    // edge, so without these the header lies under the status bar and the footer under the
+    // navigation bar.
+    private int barLeft;
+    private int barTop;
+    private int barRight;
+    private int barBottom;
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        requestApplyInsets();
+    }
+
+    @Override
+    public WindowInsets onApplyWindowInsets(WindowInsets insets) {
+        final Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+        if (bars.left != barLeft || bars.top != barTop || bars.right != barRight || bars.bottom != barBottom) {
+            barLeft = bars.left;
+            barTop = bars.top;
+            barRight = bars.right;
+            barBottom = bars.bottom;
+            Log.i("DE4SDV_DRIVING_STATE", "screen insets left=" + barLeft + " top=" + barTop + " right=" + barRight
+                    + " bottom=" + barBottom + " view=" + getWidth() + "x" + getHeight());
+            invalidate();
+        }
+        return insets;
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         final float w = getWidth();
         final float h = getHeight();
-        if (w <= 0 || h <= 0) {
+        canvas.drawColor(C_BACKGROUND);
+        final ScreenLayout.Placement place = ScreenLayout.place(w, h, barLeft, barTop, barRight, barBottom);
+        final float s = place.scale;
+        if (s <= 0f) {
             return;
         }
-        final float s = ScreenLayout.scaleFor(w, h);
         final ScreenModel model = new ScreenModel(state, System.currentTimeMillis());
-        canvas.drawColor(C_BACKGROUND);
+        canvas.save();
+        canvas.translate(place.left, place.top);
 
         // Header: title left, freshness chip right, the newest link/error state below.
         final ScreenLayout.Box hb = ScreenLayout.HEADER;
@@ -81,6 +116,7 @@ final class ObserverView extends View {
         drawBox(canvas, s, ScreenLayout.FACTS_BOX, model.factLines(), 0);
         drawBox(canvas, s, ScreenLayout.CLOCKS_BOX, model.clockLines(), 0);
         drawBox(canvas, s, ScreenLayout.FOOTER, model.footerLines(), 0);
+        canvas.restore();
     }
 
     private void drawPlan(Canvas canvas, float s, ScreenModel model) {

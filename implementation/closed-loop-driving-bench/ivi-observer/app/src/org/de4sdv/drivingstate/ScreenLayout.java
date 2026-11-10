@@ -7,8 +7,8 @@
 // the freshness chip in the header.
 //
 // Laid out for the IVI centre display of the earlier recordings, 1080 x 600
-// px, and scaled uniformly into whatever the view gets (s = min(w/1080,
-// h/600)). Text widths are checked against a conservative monospace advance
+// px, and scaled uniformly into the part of the view the system bars leave
+// free (s = min(w/1080, h/600) of that part; place()). Text widths are checked against a conservative monospace advance
 // of 0.61 em (DejaVu/Droid Sans Mono advance 1229/2048 = 0.600 em), so a line
 // that passes ScreenLayoutTest also fits on the device; the view additionally
 // shrinks a line at draw time if Paint.measureText says it does not fit.
@@ -81,6 +81,36 @@ final class ScreenLayout {
     /** Uniform scale of the reference layout into a view of w x h px. */
     static float scaleFor(float w, float h) {
         return Math.min(w / REF_W, h / REF_H);
+    }
+
+    /** Scale and origin of the reference layout inside a view, view px. */
+    static final class Placement {
+        final float scale;
+        final float left;
+        final float top;
+
+        Placement(float scale, float left, float top) {
+            this.scale = scale;
+            this.left = left;
+            this.top = top;
+        }
+    }
+
+    /**
+     * Places the reference layout in the part of a w x h view that the system bars leave free.
+     * The window is laid out edge to edge (enforced from Android 15), so the bars cover the
+     * view's edges by the given insets; hidden bars give zero insets and the layout fills the
+     * view as before. Uniform scale, centred in the free area. A free area without width or
+     * height gives scale 0: nothing can be drawn.
+     */
+    static Placement place(float w, float h, float insetLeft, float insetTop, float insetRight, float insetBottom) {
+        final float freeW = w - insetLeft - insetRight;
+        final float freeH = h - insetTop - insetBottom;
+        if (freeW <= 0f || freeH <= 0f) {
+            return new Placement(0f, 0f, 0f);
+        }
+        final float s = scaleFor(freeW, freeH);
+        return new Placement(s, insetLeft + (freeW - s * REF_W) / 2f, insetTop + (freeH - s * REF_H) / 2f);
     }
 
     /** Width of a monospace line at a reference text size, reference px. */

@@ -59,6 +59,7 @@ python3 codec/someip_struct.py selftest
 python3 tests/decode_s1_vectors.py
 uv run --with grpcio-tools python tests/test_contract_and_encoding.py
 bash -n scripts/*.sh
+bash tests/test_stage_ivi_build_variant.sh
 ```
 
 Last run (2026-11-10): the codec round-trips all three kinds (PLAN 1301 B,

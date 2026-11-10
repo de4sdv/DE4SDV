@@ -14,6 +14,20 @@ set -u
 : "${IVI_PRODUCT:=sdv_ivi_cf}"
 : "${RELEASE:=cp2a}"
 : "${VARIANT:=eng}"
+# The IVI product's build variant is the one that product was last built with, as the
+# build system records it in previous_build_config.mk. A module build under another
+# variant makes the build system run an installclean of the whole product directory
+# first ("Build configuration changed: sdv_ivi_cf-userdebug -> sdv_ivi_cf-eng, forcing
+# installclean"): the IVI images are deleted, and a guest running from them dies at its
+# next restart. Only a product that was never built takes VARIANT.
+: "${IVI_PREVIOUS_BUILD_CONFIG:=$AOSP_TOP/out/target/product/$IVI_PRODUCT/previous_build_config.mk}"
+IVI_LAST_BUILT="$(sed -n 's/^PREVIOUS_BUILD_CONFIG := *//p' "$IVI_PREVIOUS_BUILD_CONFIG" 2>/dev/null | head -1)"
+if [ -z "${IVI_VARIANT:-}" ]; then
+  case "$IVI_LAST_BUILT" in
+    "$IVI_PRODUCT"-*) IVI_VARIANT="${IVI_LAST_BUILT#"$IVI_PRODUCT"-}" ;;
+    *) IVI_VARIANT="$VARIANT" ;;
+  esac
+fi
 : "${ADB:=$AOSP_HOST_OUT/bin/adb}"
 : "${CVD:=}"
 if [ -z "$CVD" ]; then

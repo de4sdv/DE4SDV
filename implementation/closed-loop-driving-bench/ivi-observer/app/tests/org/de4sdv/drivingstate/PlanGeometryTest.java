@@ -139,6 +139,38 @@ public class PlanGeometryTest {
         assertEquals(small.scale * s, big.scale, 1e-3f);
     }
 
+    @Test
+    public void withoutBarsTheLayoutFillsTheReferenceView() {
+        final ScreenLayout.Placement p = ScreenLayout.place(1080f, 600f, 0f, 0f, 0f, 0f);
+        assertEquals(1f, p.scale, 0f);
+        assertEquals(0f, p.left, 0f);
+        assertEquals(0f, p.top, 0f);
+    }
+
+    @Test
+    public void theLayoutStaysInsideTheSystemBars() {
+        // The IVI centre display with its status bar and navigation bar shown.
+        final float barTop = 57f;
+        final float barBottom = 76f;
+        final ScreenLayout.Placement p = ScreenLayout.place(1080f, 600f, 0f, barTop, 0f, barBottom);
+        assertEquals((600f - barTop - barBottom) / 600f, p.scale, 1e-6f);
+        for (ScreenLayout.Box b : ScreenLayout.ALL) {
+            assertTrue(p.top + p.scale * b.top >= barTop);
+            assertTrue(p.top + p.scale * b.bottom() <= 600f - barBottom + 1e-3f);
+            assertTrue(p.left + p.scale * b.left >= 0f);
+            assertTrue(p.left + p.scale * b.right() <= 1080f);
+        }
+        // centred in the free width, flush with the status bar when the height decides the scale
+        assertEquals((1080f - p.scale * 1080f) / 2f, p.left, 1e-3f);
+        assertEquals(barTop, p.top, 1e-3f);
+    }
+
+    @Test
+    public void noFreeAreaDrawsNothing() {
+        assertEquals(0f, ScreenLayout.place(1080f, 600f, 0f, 300f, 0f, 300f).scale, 0f);
+        assertEquals(0f, ScreenLayout.place(0f, 0f, 0f, 0f, 0f, 0f).scale, 0f);
+    }
+
     private static boolean contains(float[] values, float v) {
         for (float value : values) {
             if (Math.abs(value - v) < EPS) {

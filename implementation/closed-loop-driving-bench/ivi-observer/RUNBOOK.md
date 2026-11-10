@@ -62,12 +62,14 @@ python3 tests/decode_s1_vectors.py
 uv run --with grpcio-tools python tests/test_contract_and_encoding.py
 python3 scripts/gen_someip_vsidl.py --check
 bash -n scripts/*.sh
+bash tests/test_stage_ivi_build_variant.sh
 ```
 
 Expected: `CODEC SELFTEST PASSED`; `all tests passed`; no `git status` output;
 `VECTOR CHECK PASSED: 16 vector(s) decoded, 16 compared, 688 field comparisons`;
 `ALL LOCAL CHECKS PASSED (contract + encoding; no AOSP, no runtime)`;
-`mapping up to date (811 lines)`; no `bash -n` output.
+`mapping up to date (811 lines)`; no `bash -n` output;
+`BUILD VARIANT CHECK PASSED (5 cases)`.
 
 The vectors in `../state-publisher/tests/vectors/` are committed; the publisher's
 own `tests/run_tests.sh` regenerates them and they must come out byte-identical. If
@@ -307,8 +309,15 @@ The script copies the Soong modules into
 (Soong only sees modules inside the tree), copies the tree's own Gateway Java client
 sources (`sdv_gateway/libsdvgatewayclient_java/src/google/...`) into
 `app/src/google/sdv/gateway/client/` (the INC-AEBS-010 app carries the same copy),
-then `lunch sdv_ivi_cf-cp2a-eng; m De4sdvDrivingStateObserver
+then `lunch sdv_ivi_cf-cp2a-<variant>; m De4sdvDrivingStateObserver
 De4sdvDrivingStateObserverTests`. The full build log is `run/observer-build.log`.
+
+The variant is the one the IVI product was last built with, read from
+`out/target/product/sdv_ivi_cf/previous_build_config.mk` (`IVI_VARIANT` in
+`bench_env.sh`); the script refuses any other. A module build under another variant
+makes the build system run an installclean of the product directory first, which
+deletes the IVI images (RISKS R14). Before the build, note the line the script will
+use: `cat $AOSP_TOP/out/target/product/sdv_ivi_cf/previous_build_config.mk`.
 
 Expected: `built .../out/target/product/sdv_ivi_cf/vendor/priv-app/De4sdvDrivingStateObserver/De4sdvDrivingStateObserver.apk`
 (a vendor privileged app, the AEBS app's module shape: the Gateway Java client is a
@@ -325,7 +334,7 @@ prebuilts/jdk/jdk21/linux-x86/bin/java -cp "$JAR" org.junit.runner.JUnitCore \
   org.de4sdv.drivingstate.PlanKinematicsTest org.de4sdv.drivingstate.ScreenModelTest
 ```
 
-Expected: `OK (35 tests)` (8 + 7 + 13 + 7; the subscriber's own 8 tests need the Gateway
+Expected: `OK (38 tests)` (7 + 11 + 7 + 13; the subscriber's own 8 tests need the Gateway
 client classes and run off the tree).
 
 This can run while the core image builds only if the tree is already built for
@@ -388,6 +397,15 @@ cd "$SLICE"
 "$ADB" -s 0.0.0.0:6522 logcat -s DE4SDV_DRIVING_STATE | head -40
 ```
 
+The IVI's window is edge to edge, so the status bar and the bottom bar lie over the
+window's top and bottom. The app draws its whole screen inside the area the bars
+leave free and logs what it was given (`screen insets left=0 top=57 right=0
+bottom=72` on the 1080 x 600 centre display). `OBSERVER_IMMERSIVE=1
+./scripts/stage_ivi_observer.sh start` asks for hidden bars instead (`lifecycle
+config immersive=requested`, then `screen insets ... top=0 ... bottom=0`): the app
+then fills the display. The IVI's system bar policy decides whether the request is
+granted; the screen is complete either way.
+
 Expected lines (all under the one tag `DE4SDV_DRIVING_STATE`). The first six come in
 this order; the per-unit lines come once per unit, in whatever order the units
 register (`<unit>` is each of `de4sdv-driving-operational-state-plan`,
@@ -436,6 +454,10 @@ typed message; that is R5, not an app bug. Do not spend the day on the Java path
 the fallback is the native C++ subscriber plus the loopback feed (RISKS R5, 2–3 h).
 
 ## 12. Prove the values are the published ones, all 43 fields (30 min)
+
+`pull` reads the record from the app's own files directory, which belongs to the
+IVI's current user (`am get-current-user`, user 10 on this image), and refuses a
+file that does not start with a JSON record.
 
 ```bash
 ./scripts/stage_ivi_observer.sh pull

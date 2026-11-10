@@ -26,6 +26,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 
 import java.io.BufferedWriter;
@@ -71,6 +73,18 @@ public final class MainActivity extends Activity implements TypedStateSubscriber
         view = new ObserverView(this, state);
         setContentView(view);
 
+        // The bench can ask for hidden system bars (am start --ez immersive true), so a
+        // recording shows the screen at its full size; the IVI's system bar policy decides
+        // whether they are hidden. Either way the view draws inside the insets it is given.
+        final boolean immersive = getIntent() != null && getIntent().getBooleanExtra("immersive", false);
+        if (immersive) {
+            final WindowInsetsController bars = getWindow().getInsetsController();
+            if (bars != null) {
+                bars.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                bars.hide(WindowInsets.Type.systemBars());
+            }
+        }
+
         try {
             final File file = new File(getFilesDir(), RECORD_FILE);
             record = new BufferedWriter(new OutputStreamWriter(
@@ -87,6 +101,7 @@ public final class MainActivity extends Activity implements TypedStateSubscriber
                 + TypedStateSubscriber.PUBLISHER_BUNDLE + " units "
                 + String.join(",", TypedStateSubscriber.PUBLISHER_UNITS));
         lifecycle("config", "translation", "REFLECTION at the SDV Core SOME/IP broker");
+        lifecycle("config", "immersive", immersive ? "requested" : "not requested");
 
         subscriber = new TypedStateSubscriber(this);
         subscriber.start();

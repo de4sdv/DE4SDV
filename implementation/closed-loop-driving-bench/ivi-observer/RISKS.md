@@ -144,7 +144,13 @@ The app may start off-screen, the panel may sleep, or `screenrecord` may capture
 black frame. New in B: the plan path is drawn from floats that are non-finite or all
 zero if the translation failed, so the panel is blank rather than wrong.
 
-- **Detect:** `dumpsys window | grep mCurrentFocus` in `start`; watching the first
+Seen on the bench VM: the first screenshot had the header (title, freshness chip)
+under the status bar and the footer under the bottom bar, because the window is edge
+to edge on this image. The screen is now laid out inside the insets, and the app logs
+them (`screen insets ...`).
+
+- **Detect:** `dumpsys window | grep mCurrentFocus` in `start`; a screenshot
+  (`screencap -d <display id>`) before any recording; watching the first
   40 s clip at step 13 (the mp4 is reviewed, never assumed).
 - **Cost if hit:** 20–30 min (stay-awake, `am start`, launcher metadata).
 
@@ -182,6 +188,41 @@ both ACL digests (`run/ivi-observer-identity.txt`), the core identity at build
 
 - **Detect:** the three files exist at step 14's pull.
 - **Cost if hit:** 10 min, at the end, when it is most annoying.
+
+## R14. The observer build deletes the IVI images — happened once, now refused by the script
+
+A module build (`m De4sdvDrivingStateObserver`) under another build variant than the
+IVI product's last build makes the build system clean the product directory first:
+`Build configuration changed: "sdv_ivi_cf-userdebug" -> "sdv_ivi_cf-eng", forcing
+installclean`. Every image of the product is deleted. A guest already running from
+them keeps running on its open files and dies at its next restart (`open_disk_file
+failed ... boot.img: No such file or directory` in the instance's `launcher.log`).
+On the bench VM the IVI image was a userdebug build and this slice's scripts built
+with `eng`: the images were lost 4 minutes into the app build, and the IVI VM did not
+come back from the restart of step 9.
+
+`stage_ivi_observer.sh build` now takes the variant from the product's
+`previous_build_config.mk` and refuses any other (`tests/test_stage_ivi_build_variant.sh`).
+
+- **Detect:** `ls $AOSP_TOP/out/target/product/sdv_ivi_cf/*.img` before and after the
+  build; `grep "forcing installclean" run/observer-build.log` prints nothing.
+- **Cost if hit:** a full `m` of the IVI product (hours), or a restore of the product
+  directory from a disk snapshot (about 5 min when one exists; `obj/` need not be
+  restored).
+
+## R15. `gatewayd` ends with a core dump when it is stopped — seen in every run
+
+On SIGINT `gatewayd` logs `Received termination signal. Initiating graceful
+shutdown...`, `Shutting down gateway...` and then dies with a core dump (`timeout: the
+monitored command dumped core`). It happened in every run on the bench, on the host
+that built it and through the packaged loader alike, and only after the stop was
+requested: the publications of the run are complete (the wire capture is closed by
+its own process). It is recorded here so that the line in `gatewayd.log` is not read
+as a failure of the run. Not analysed further; a finding for the gateway's owners.
+
+- **Detect:** `tail -2 <run>/gatewayd.log`.
+- **Cost if hit:** none for the evidence; a stop that waits for a clean exit code
+  would see a failure.
 
 ## Cross-cutting: what a failure does **not** mean
 
