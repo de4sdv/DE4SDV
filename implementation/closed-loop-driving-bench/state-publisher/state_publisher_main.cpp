@@ -25,12 +25,26 @@
 // Usage:
 //   state_publisher --run-dir <dir> [--host-name score] [--mw-com-config <json>]
 //
-// Not verified locally: no S-CORE and no Bazel on the development machine. The
-// mw::com calls follow the reference probes (P1e-P5 frame_publisher,
-// P4 p4_frame_publisher) for the skeleton side; the proxy side
-// (StartFindService / Create / Subscribe / GetNewSamples) is written against
-// the S-CORE Communication v0.6.0 API as the phase 9/10 notes describe it and
-// must be confirmed by the first build on the FEO workspace.
+// The mw::com calls are checked against the declared API of S-CORE
+// Communication v0.6.0 (c5efd74f): ProxyBase::StartFindService returns
+// Result<FindServiceHandle> and takes FindServiceHandler<HandleType>
+// (impl/proxy_base.h:105, impl/find_service_handler.h); HandleType and
+// FindServiceHandle have no default constructor (impl/handle_type.h:52,
+// impl/find_service_handle.h:44); Subscribe and GetNewSamples are members of
+// the proxy EVENT, not of the proxy (impl/proxy_event_base.h:82,
+// impl/proxy_event.h:125); the receiver gets SamplePtr<T> by rvalue
+// (impl/tracing/proxy_event_tracing.h:82). A syntax-only compile against those
+// headers passes; the first Bazel build on the build VM is still the real test.
+//
+// The sample layout is gatewayd's (inc_someip_gateway d9eac670,
+// score/serializer/pre_serialized_data.h): `std::size_t size` first, then
+// `alignas(std::max_align_t) std::byte data[N]`. gatewayd's null serializer
+// copies data[0..size) onto the wire unread (null_serializer.cpp:65-70) and
+// someipd removes only gatewayd's own 16-byte header
+// (someipd/impl/local_network_service.cpp:124-135). So whatever sits in
+// data[0..size) IS the SOME/IP payload: this shell writes the ICD section 3
+// struct from data[0] with size = the struct's length, and drops the library
+// frame's 4-byte little-endian length prefix (bytes 0-3 of Frame::bytes).
 
 #include <atomic>
 #include <chrono>
@@ -43,8 +57,10 @@
 #include <ctime>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -84,6 +100,17 @@ constexpr std::size_t kMaxSampleCount = 8;
 constexpr auto kPollInterval = std::chrono::milliseconds{2};
 
 using Sample = score::someip_gateway::serializer::PreSerializedData<2048>;
+
+// The layout gatewayd's null serializer reads through PreSerializedData<0>:
+// `size` at offset 0, the bytes at alignof(std::max_align_t). A different
+// header (the old local mock put `data` first) would make gatewayd read the
+// payload's first eight bytes as the size.
+static_assert(std::is_standard_layout_v<Sample>, "PreSerializedData must be standard-layout");
+static_assert(offsetof(Sample, size) == 0, "gatewayd reads PreSerializedData::size at offset 0");
+static_assert(offsetof(Sample, data) == alignof(std::max_align_t),
+              "gatewayd reads PreSerializedData::data at alignof(max_align_t)");
+static_assert(sizeof(Sample::data) == de4sdv::driving::publisher::kFrameBytes,
+              "the frame capacity must equal the gateway's max_message_size");
 
 // ------------------------------------------------------------ service traits
 // One event per service interface, named by the last segment of the instance
@@ -125,6 +152,15 @@ struct OperationalStateService : public Trait::Base {
 };
 using OperationalStateSkeleton = score::mw::com::AsSkeleton<OperationalStateService>;
 
+// The one event of each consumed service. Subscribe/GetNewSamples are members
+// of the proxy event (ProxyEventBase / ProxyEvent), so the consumer reaches
+// the event through these overloads; a member pointer such as &Proxy::plan
+// would name the interface base and fail deduction.
+auto& EventOf(PlanProxy& proxy) { return proxy.plan; }
+auto& EventOf(EgoMotionSampleProxy& proxy) { return proxy.ego_motion_sample; }
+auto& EventOf(ModeProxy& proxy) { return proxy.mode; }
+auto& EventOf(ActuationStateProxy& proxy) { return proxy.actuation_state; }
+
 // ------------------------------------------------------------------ consumer
 // One proxy of one service. The find-service callback runs on an mw::com
 // thread and only records the handle; the proxy is created and subscribed by
@@ -132,7 +168,13 @@ using OperationalStateSkeleton = score::mw::com::AsSkeleton<OperationalStateServ
 template <typename ProxyT>
 class Consumer {
  public:
+  using HandleType = typename ProxyT::HandleType;
+
   explicit Consumer(std::string port) : port_(std::move(port)) {}
+  Consumer(const Consumer&) = delete;
+  Consumer& operator=(const Consumer&) = delete;
+  // The find-service handler holds `this`: stop it before the object goes.
+  ~Consumer() { StopFindService(); }
 
   bool StartFindService(const char* specifierText, de4sdv::driving::RunLog& log) {
     auto specifier = score::mw::com::InstanceSpecifier::Create(std::string{specifierText});
@@ -143,35 +185,60 @@ class Consumer {
                     de4sdv::driving::JsonString(specifierText) + "}");
       return false;
     }
-    findHandle_ = ProxyT::StartFindService(
-        [this](auto handles, auto /*findHandle*/) {
+    // FindServiceHandler<HandleType> = score::cpp::callback<void(
+    //   ServiceHandleContainer<HandleType>, FindServiceHandle)> (32-byte capacity);
+    // it is called on every availability change, with an empty container when
+    // the service goes away.
+    auto started = ProxyT::StartFindService(
+        [this](score::mw::com::ServiceHandleContainer<HandleType> handles,
+               score::mw::com::FindServiceHandle /*findHandle*/) {
           std::lock_guard<std::mutex> lock(mutex_);
           if (found_ || handles.empty()) return;
-          handle_ = handles[0];
+          handle_.emplace(handles.front());
           found_ = true;
         },
         specifier.value());
+    if (!started.has_value()) {
+      log.Write("error", 0,
+                std::string{"{\"port\":"} + de4sdv::driving::JsonString(port_) +
+                    ",\"error\":\"start_find_service_failed\",\"message\":" +
+                    de4sdv::driving::JsonString(std::string{started.error().Message()}) + "}");
+      return false;
+    }
+    findHandle_.emplace(started.value());
     return true;
+  }
+
+  void StopFindService() {
+    if (findHandle_.has_value()) {
+      static_cast<void>(ProxyT::StopFindService(findHandle_.value()));
+      findHandle_.reset();
+    }
   }
 
   // Main thread: creates the proxy once the service is found.
   bool TrySubscribe(de4sdv::driving::RunLog& log) {
     std::lock_guard<std::mutex> lock(mutex_);
     if (proxy_) return true;
-    if (!found_) return false;
-    auto created = ProxyT::Create(handle_);
+    if (!found_ || !handle_.has_value()) return false;
+    auto created = ProxyT::Create(handle_.value());
     if (!created.has_value()) {
       log.Write("error", 0,
                 std::string{"{\"port\":"} + de4sdv::driving::JsonString(port_) +
-                    ",\"error\":\"proxy_create_failed\"}");
+                    ",\"error\":\"proxy_create_failed\",\"message\":" +
+                    de4sdv::driving::JsonString(std::string{created.error().Message()}) + "}");
+      // Retry from discovery: the found instance may have gone.
+      found_ = false;
+      handle_.reset();
       return false;
     }
     proxy_ = std::make_unique<ProxyT>(std::move(created).value());
-    const auto subscribed = proxy_->Subscribe(kMaxSampleCount);
+    const auto subscribed = EventOf(*proxy_).Subscribe(kMaxSampleCount);
     if (!subscribed.has_value()) {
       log.Write("error", 0,
                 std::string{"{\"port\":"} + de4sdv::driving::JsonString(port_) +
-                    ",\"error\":\"subscribe_failed\"}");
+                    ",\"error\":\"subscribe_failed\",\"message\":" +
+                    de4sdv::driving::JsonString(std::string{subscribed.error().Message()}) + "}");
       proxy_.reset();
       return false;
     }
@@ -188,24 +255,35 @@ class Consumer {
   }
 
   // Non-blocking drain of up to kMaxSampleCount samples; `fn` gets the payload.
+  // GetNewSamples hands each sample over as an rvalue SamplePtr<T>; the sample
+  // slot is released when the SamplePtr goes out of scope at the end of the
+  // lambda. A failing call is logged once until a call succeeds again.
   template <typename Fn>
   void Poll(Fn&& fn, de4sdv::driving::RunLog& log) {
     std::lock_guard<std::mutex> lock(mutex_);
     if (!proxy_) return;
-    const auto result = proxy_->GetNewSamples(
-        [&fn](auto&& sample) { fn(*sample); }, kMaxSampleCount);
+    const auto result =
+        EventOf(*proxy_).GetNewSamples([&fn](auto sample) { fn(*sample); }, kMaxSampleCount);
     if (!result.has_value()) {
-      log.Write("error", 0, std::string{"{\"port\":"} + de4sdv::driving::JsonString(port_) +
-                                ",\"error\":\"get_new_samples_failed\"}");
+      if (!pollFailing_) {
+        log.Write("error", 0, std::string{"{\"port\":"} + de4sdv::driving::JsonString(port_) +
+                                  ",\"error\":\"get_new_samples_failed\",\"message\":" +
+                                  de4sdv::driving::JsonString(std::string{result.error().Message()}) +
+                                  "}");
+      }
+      pollFailing_ = true;
+    } else {
+      pollFailing_ = false;
     }
   }
 
  private:
   std::string port_;
   mutable std::mutex mutex_;
-  typename ProxyT::FindServiceHandle findHandle_{};
-  typename ProxyT::HandleType handle_{};
+  std::optional<score::mw::com::FindServiceHandle> findHandle_;
+  std::optional<HandleType> handle_;
   bool found_ = false;
+  bool pollFailing_ = false;
   std::unique_ptr<ProxyT> proxy_;
 };
 
@@ -317,7 +395,8 @@ int main(int argc, char* argv[]) {
                 ",\"someip\":{\"service_id\":\"0x4DF0\",\"instance_id\":\"0x0001\","
                 "\"eventgroup\":\"0x0001\",\"events\":{\"plan\":\"0x8001\","
                 "\"vehicle_state\":\"0x8002\",\"health\":\"0x8003\"},"
-                "\"transport\":\"tcp\",\"port\":30510}}");
+                "\"transport\":\"tcp\",\"port\":30510}"
+                ",\"sample_layout\":\"size_then_data;someip_payload=data[0..size)=icd_v2_s3_struct\"}");
 
   // ---- proxies -----------------------------------------------------------
   Consumer<PlanProxy> plans{"plan"};
@@ -358,8 +437,11 @@ int main(int argc, char* argv[]) {
         continue;
       }
       auto slot = std::move(allocated).value();
-      std::memcpy(reinterpret_cast<std::uint8_t*>(slot->data), frame.bytes, frame.size);
-      slot->size = frame.size;
+      // The SOME/IP payload is data[0..size): the ICD section 3 struct alone,
+      // without the library frame's 4-byte little-endian length prefix
+      // (Frame::bytes[0..3]); `size` carries the length instead.
+      std::memcpy(reinterpret_cast<std::uint8_t*>(slot->data), frame.bytes + 4, frame.messageBytes);
+      slot->size = frame.messageBytes;
       const auto sent = event.Send(std::move(slot));
       if (!sent.has_value()) {
         core.NoteDownstreamDrop("send_failed");
@@ -433,6 +515,10 @@ int main(int argc, char* argv[]) {
                 ",\"health\":" +
                 std::to_string(core.Sequence(de4sdv::driving::publisher::Kind::kHealth)) + "}}");
 
+  plans.StopFindService();
+  samples.StopFindService();
+  modes.StopFindService();
+  actuations.StopFindService();
   skeleton.StopOfferService();
   std::printf("state_publisher: stopped, dropped=%llu plan_seq=%llu vehicle_seq=%llu health_seq=%llu\n",
               static_cast<unsigned long long>(core.DroppedSamples()),
