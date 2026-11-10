@@ -280,6 +280,7 @@ GAPS = {
     "GAP-DRIVING-010": "gapClosedLoopHistoryFeedback",
     "GAP-DRIVING-011": "gapRouteChoosesNoBranch",
     "GAP-DRIVING-012": "gapPlansKeepNoLane",
+    "GAP-DRIVING-013": "gapPlanningPeriodNarrowlyMissed",
 }
 #: retired by the amendment of 2026-11-09 on the readiness probes' evidence: the records left the model
 RETIRED = {
@@ -302,6 +303,8 @@ GAP_MENTIONS = {
                         "no branch choice", "Revisit when upstream publishes"),
     "GAP-DRIVING-012": ("owner decision of 2026-11-10", "does not keep the vehicle in its lane", "REQ-DRIVING-008",
                         "GAP-DRIVING-010", "SC-DRIVING-005", "Revisit when upstream publishes"),
+    "GAP-DRIVING-013": ("owner decision of 2026-11-10", "REQ-DRIVING-013 is narrowly not met", "99.2 %", "99.0 %",
+                        "gapClosedLoopPerformance", "The limit stays at 100 ms", "Revisit with a faster host"),
     "ASM-DRIVING-001": ("event trigger", "newest frame", "Rust", "REQ-DRIVING-013"),
     "ASM-DRIVING-002": ("PyTorch", "rounding", "REQ-DRIVING-033", "tolerance"),
     "ASM-DRIVING-003": ("pacer", "bench network", "synchronous mode"),
@@ -333,6 +336,25 @@ ROUTE_GAP_STATEMENTS = (
     "route planner gives only lane-follow and straight road options), and the evidence claims no route following "
     "at junctions.",
     "Revisit when upstream publishes a checkpoint whose plans take the turn from the route.",
+)
+#: The deadline decision of 2026-11-10 (GAP-DRIVING-013), as the gap states it: the two runs on the two-host bench,
+#: why the margin is small, what stays and when to revisit. The numbers are the evaluator's for the 60 s window of
+#: REQ-DRIVING-013 and the run's timing records.
+DEADLINE_GAP_STATEMENTS = (
+    "Open, and accepted as a known limit (owner decision of 2026-11-10): REQ-DRIVING-013 is narrowly not met.",
+    "In the run of the closed-loop scenario on a straight route (2026-11-10), 595 of the 600 plans of the 60 s window "
+    "were produced within 100 ms after their newest camera image was available (99.2 %), but two consecutive plans "
+    "missed it; no plan was more than 2 ms late.",
+    "In an earlier run (2026-11-09), with the vehicle standing after a contact for about three quarters of the "
+    "window, 594 of 600 were in time (99.0 %) and no two consecutive plans missed, which meets the criterion at its "
+    "limit.",
+    "The margin is small by construction: the checkpoint's inference alone takes about 90 ms, and a plan took "
+    "95.9 ms at the median and 99.9 ms at the 99th percentile, so a delay of a few milliseconds anywhere in the step "
+    "makes a miss.",
+    "The limit stays at 100 ms, the planning period, and the miss is accepted instead of the hold or redirect that "
+    "gapClosedLoopPerformance names.",
+    "Revisit with a faster host, or with a faster engine for the checkpoint, which changes its numbers and needs its "
+    "own parity evidence.",
 )
 #: The lane decision of 2026-11-10 (GAP-DRIVING-012), as the gap states it: what the run on a straight route showed,
 #: what the readiness probe showed, which bench-side causes were checked, why no history setting keeps the lane, and
@@ -958,6 +980,53 @@ def test_the_lane_gap_records_that_the_checkpoint_keeps_no_lane():
         assert gone not in doc, gone
 
 
+def test_the_deadline_gap_records_that_req_013_is_narrowly_not_met():
+    # The deadline decision of 2026-11-10 (GAP-DRIVING-013): REQ-DRIVING-013 recorded as narrowly not met with its
+    # measured margin, accepted, right after the lane gap. The limit itself does not move.
+    raw = _raw()
+    following = re.findall(r"\bpart\s+<'([A-Z]+-DRIVING-\d{3})'>", raw[raw.index("part <'GAP-DRIVING-010'>"):])
+    assert following[:4] == ["GAP-DRIVING-010", "GAP-DRIVING-011", "GAP-DRIVING-012", "GAP-DRIVING-013"], following
+    gap = braced_body(_code(), "part <'GAP-DRIVING-013'>")
+    assert "attribute :>> disposition = LifecycleDisposition::accepted;" in gap, "a known limit the baseline keeps visible"
+    doc = _doc("part <'GAP-DRIVING-013'> gapPlanningPeriodNarrowlyMissed : IncrementGap")
+    for statement in DEADLINE_GAP_STATEMENTS:
+        assert statement in doc, statement
+    assert not re.search(r"\bTown\d|\bspawn", doc, re.I), doc
+    assert not [word for word in CLAIM_WORDS if word in doc.lower()]
+    for gone in ("REQ-DRIVING-013 is met", "meets REQ-DRIVING-013", "lower-precision"):
+        assert gone not in doc, gone
+    # the probe's statement in the package head stays, with the verification outcome next to it
+    head = _flat(raw[:raw.index("package " + PACKAGE)])
+    assert ("met REQ-DRIVING-013's budget in the probe at wall-clock pace, so the increment needed no redirect then: "
+            "the charter's hold/redirect condition was not met in the probe. The verification runs later missed the "
+            "budget narrowly, and the owner accepted the miss (GAP-DRIVING-013).") in head
+    assert "the charter's hold/redirect condition is not met." not in head
+
+
+def test_the_ego_motion_mapping_says_the_history_is_worked_out_from_the_poses():
+    # The owner decision of 2026-11-10 on VC-DRIVING-008: the checkpoint's history takes speed and acceleration from
+    # the vehicle's poses the source's way, not speed / 3.6 of the published sample; the record lists the transform
+    # among the fields it reads.
+    record = braced_body(_raw(), "item <'MAP-DRIVING-EGO-MOTION'>")
+    def value(name):
+        return re.search(rf'{name} = "([^"]*)"', record).group(1)
+    assert value("semanticSource").startswith(
+        "the motion state of the ego vehicle as the simulator reports it (its transform, velocity and acceleration "
+        "vectors, angular velocity)")
+    assert value("softwareContractMessage").startswith(
+        "in: transform, velocity, acceleration and angular velocity of the ego vehicle per world snapshot, candidate;")
+    assert value("softwareContractField").startswith(
+        "in: the transform's world matrix, velocity.x/y, acceleration.x/y, angular_velocity.z, snapshot timestamp,")
+    assert value("dataTypeAndUnit").startswith("in: float32 m (the transform), m/s, m/s^2, deg/s, simulation seconds;")
+    rule = value("transformationRule")
+    assert rule.startswith("speed = |velocity| * 3.6 as the VSS km/h value; the checkpoint's history takes speed and "
+                           "acceleration worked out the source's way from the transforms, moved to the origin of the "
+                           "camera rig, of the 66 steps that end at the step (REQ-DRIVING-008),")
+    assert "the checkpoint input takes speed / 3.6" not in record
+    assert ("and its speed and acceleration worked out from the vehicle's poses, not from the sample "
+            "(REQ-DRIVING-008)") in _flat(record)
+
+
 def test_the_package_records_the_pins_the_alternatives_and_what_phase_8_settled():
     raw = _raw()
     head = raw[:raw.index("package " + PACKAGE)]
@@ -1129,11 +1198,11 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                  "rig profile", "ground truth", "ISQ", "CameraPosition", "three hosts", "readiness probes",
                  "2026-11-09", "PyTorch", "event trigger", "VXLAN", "NVENC", "warm-up lap"):
         assert word in flat, word
-    # the count follows the gap records of the realization, GAP-DRIVING-010 to GAP-DRIVING-012 included
+    # the count follows the gap records of the realization, GAP-DRIVING-010 to GAP-DRIVING-013 included
     count = f"{NUMBER_WORDS[len(ASSUMPTIONS)].capitalize()} assumptions and {NUMBER_WORDS[len(GAPS)]} gaps"
     assert count in flat, count
-    assert ("Three of the gaps, GAP-DRIVING-010, GAP-DRIVING-011 and GAP-DRIVING-012, are accepted as known "
-            "limits") in flat
+    assert "Four of the gaps, GAP-DRIVING-010 to GAP-DRIVING-013, are accepted as known limits" in flat
+    assert "Three of the gaps, GAP-DRIVING-010, GAP-DRIVING-011 and GAP-DRIVING-012" not in flat, "GAP-DRIVING-013 too"
     assert "GAP-DRIVING-008" not in guide and "Three assumptions and seven gaps" not in flat
     assert "Four assumptions and four gaps" not in flat, "GAP-DRIVING-010 to GAP-DRIVING-012 count too"
     assert "Two of the gaps, GAP-DRIVING-010 and GAP-DRIVING-011" not in flat, "GAP-DRIVING-012 is accepted too"
@@ -1156,6 +1225,30 @@ def test_the_guide_explains_the_route_gap_right_after_the_history_gap():
                    "Keep it so when you change the route", "the evidence claims no route following at junctions",
                    "a checkpoint whose plans take the turn from the route"):
         assert phrase in route, phrase
+
+
+def test_the_guide_records_the_deadline_gap_with_the_probe_that_met_the_budget():
+    # The deadline decision of 2026-11-10 for contributors, where the guide says what the readiness probe found: the
+    # probe met the budget, the verification runs missed it narrowly, and the limit stays.
+    flat = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    probe = ("With the simulator on its own card the planner met REQ-DRIVING-013's budget at wall-clock pace in the "
+             "probe, so the increment needed no redirect.")
+    assert probe in flat
+    after = flat[flat.index(probe):]
+    for phrase in ("**GAP-DRIVING-013**, accepted on the owner's decision of 2026-11-10, records that REQ-DRIVING-013 "
+                   "is narrowly not met.", "99.2 %", "two in a row missed", "none by more than 2 ms", "99.0 %",
+                   "standing for most of the window", "about 90 ms of the 100", "The limit stays at 100 ms."):
+        assert phrase in after[:900], phrase
+    assert "so the increment needs no redirect." not in flat
+
+
+def test_the_guide_says_the_history_is_worked_out_from_the_positions():
+    # The owner decision of 2026-11-10 on VC-DRIVING-008, in the requirement summary and the Phase 6 description.
+    flat = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    assert ("64 motion samples 100 ms apart before the step, worked out from the vehicle's positions, with yaw rate "
+            "and curvature given as zero (008)") in flat
+    assert ("each with its sample time, and the vehicle's position at each, from which the checkpoint's history is "
+            "worked out the source's way (REQ-DRIVING-008).") in flat
 
 
 def test_the_guide_explains_the_lane_gap_right_after_the_route_gap():

@@ -539,6 +539,11 @@ def test_the_exchange_types_describe_the_sensing_without_a_signal_specification(
     assert "the driving system gives the checkpoint yaw rate and curvature as zero" in motion_doc
     assert "the driving system derives it from the yaw rate" not in motion_doc
     assert "the vehicle's" in motion_doc or "of the vehicle" in motion_doc, "whose motion it is"
+    # the owner decision of 2026-11-10 on VC-DRIVING-008: the history's speed and acceleration are worked out from the
+    # vehicle's positions, as the source does, not kept from the samples
+    assert ("its samples in the order of their sample times, and the vehicle's position at each, from which the "
+            "system works out the history REQ-DRIVING-008 asks for") in motion_doc
+    assert "from which the system keeps the history" not in motion_doc
 
 
 def test_the_functions_name_no_technology_platform_or_claim():

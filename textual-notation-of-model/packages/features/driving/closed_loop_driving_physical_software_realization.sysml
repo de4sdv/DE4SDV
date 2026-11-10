@@ -120,8 +120,10 @@
  *   guests' bridge. The cloud's GPU hosts nest no VM, and the planner missed
  *   its 100 ms budget whenever the simulator rendered on its card.
  * - With the simulator on its own card the planner met REQ-DRIVING-013's
- *   budget in the probe at wall-clock pace, so the increment needs no
- *   redirect: the charter's hold/redirect condition is not met.
+ *   budget in the probe at wall-clock pace, so the increment needed no
+ *   redirect then: the charter's hold/redirect condition was not met in the
+ *   probe. The verification runs later missed the budget narrowly, and the
+ *   owner accepted the miss (GAP-DRIVING-013).
  * - GAP-DRIVING-002 and GAP-DRIVING-004 are retired. The gateway built at
  *   the v0.10.0 modules, its mw::com side received every sample of a 0.6.0
  *   publisher, and SOME/IP between two hosts completed the subscription and
@@ -1016,15 +1018,16 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * item EgoMotionSamplePayload types speed, longitudinal and lateral
        * acceleration and yaw rate with COVESA VSS (decision 5). The
        * checkpoint takes the history's yaw rate and curvature as zero
-       * (GAP-DRIVING-010).
+       * (GAP-DRIVING-010) and its speed and acceleration worked out from the
+       * vehicle's poses, not from the sample (REQ-DRIVING-008).
        */
-      attribute :>> semanticSource = "the motion state of the ego vehicle as the simulator reports it (velocity and acceleration vectors, angular velocity) and, out, the sample typed by COVESA VSS at the port: Vehicle_Speed [km/h], Vehicle_Acceleration_Longitudinal and _Lateral [m/s^2], Vehicle_AngularVelocity_Yaw [deg/s]";
+      attribute :>> semanticSource = "the motion state of the ego vehicle as the simulator reports it (its transform, velocity and acceleration vectors, angular velocity) and, out, the sample typed by COVESA VSS at the port: Vehicle_Speed [km/h], Vehicle_Acceleration_Longitudinal and _Lateral [m/s^2], Vehicle_AngularVelocity_Yaw [deg/s]";
       attribute :>> softwareContractArtifact = "in: the simulator client library's actor state of the ego vehicle, candidate; out: the agent's FEO topic for the vehicle commander and the mw::com event for the state publisher (the layer's mw::com configuration, phase 10), candidate";
-      attribute :>> softwareContractMessage = "in: velocity, acceleration and angular velocity of the ego vehicle per world snapshot, candidate; out: EgoMotionSamplePayload with its capture time, candidate";
-      attribute :>> softwareContractField = "in: velocity.x/y, acceleration.x/y, angular_velocity.z, snapshot timestamp, exact per the client library; out: speed, longitudinalAcceleration, lateralAcceleration, yawRate, captureTime, exact";
-      attribute :>> dataTypeAndUnit = "in: float32 m/s, m/s^2, deg/s, simulation seconds; out: speed : Vehicle_Speed km/h, accelerations : Vehicle_Acceleration_* m/s^2, yawRate : Vehicle_AngularVelocity_Yaw deg/s, captureTime simulation seconds; inside the agent the checkpoint takes speed in m/s, and yaw rate and curvature as zero (GAP-DRIVING-010)";
+      attribute :>> softwareContractMessage = "in: transform, velocity, acceleration and angular velocity of the ego vehicle per world snapshot, candidate; out: EgoMotionSamplePayload with its capture time, candidate";
+      attribute :>> softwareContractField = "in: the transform's world matrix, velocity.x/y, acceleration.x/y, angular_velocity.z, snapshot timestamp, exact per the client library; out: speed, longitudinalAcceleration, lateralAcceleration, yawRate, captureTime, exact";
+      attribute :>> dataTypeAndUnit = "in: float32 m (the transform), m/s, m/s^2, deg/s, simulation seconds; out: speed : Vehicle_Speed km/h, accelerations : Vehicle_Acceleration_* m/s^2, yawRate : Vehicle_AngularVelocity_Yaw deg/s, captureTime simulation seconds; inside the agent the checkpoint takes speed in m/s, and yaw rate and curvature as zero (GAP-DRIVING-010)";
       attribute :>> timingQualityAndState = "one sample per 100 ms step, marked with its capture time (REQ-DRIVING-030); the sample history of the run has no record twice (REQ-DRIVING-010); a missing or implausible sample sets the input condition (REQ-DRIVING-024); the publisher receives the same sample within 100 ms of wall-clock time (REQ-DRIVING-016)";
-      attribute :>> transformationRule = "speed = |velocity| * 3.6 as the VSS km/h value; the checkpoint input takes speed / 3.6 and the longitudinal acceleration, with yaw rate and curvature 0 (GAP-DRIVING-010), in the layout of the pinned source revision's ego-motion history";
+      attribute :>> transformationRule = "speed = |velocity| * 3.6 as the VSS km/h value; the checkpoint's history takes speed and acceleration worked out the source's way from the transforms, moved to the origin of the camera rig, of the 66 steps that end at the step (REQ-DRIVING-008), with yaw rate and curvature 0 (GAP-DRIVING-010), in the layout of the pinned source revision's ego-motion history";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "phase 10: author the mw::com configuration of the sample event and run REQ-DRIVING-008, -010, -016 and -024 on recorded samples, with the unit conversions checked against the Python reference";
@@ -1475,6 +1478,28 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * route, and the review of NEED-DRIVING-001 (SC-DRIVING-005) names this
      * limit. Revisit when upstream publishes a checkpoint that keeps its lane
      * in a closed loop.
+     */
+    attribute :>> disposition = LifecycleDisposition::accepted;
+  }
+
+  part <'GAP-DRIVING-013'> gapPlanningPeriodNarrowlyMissed : IncrementGap {
+    doc /*
+     * Open, and accepted as a known limit (owner decision of 2026-11-10):
+     * REQ-DRIVING-013 is narrowly not met. In the run of the closed-loop
+     * scenario on a straight route (2026-11-10), 595 of the 600 plans of the
+     * 60 s window were produced within 100 ms after their newest camera image
+     * was available (99.2 %), but two consecutive plans missed it; no plan was
+     * more than 2 ms late. In an earlier run (2026-11-09), with the vehicle
+     * standing after a contact for about three quarters of the window, 594 of
+     * 600 were in time (99.0 %) and no two consecutive plans missed, which
+     * meets the criterion at its limit. The margin is small by construction:
+     * the checkpoint's inference alone takes about 90 ms, and a plan took
+     * 95.9 ms at the median and 99.9 ms at the 99th percentile, so a delay of
+     * a few milliseconds anywhere in the step makes a miss. The limit stays at
+     * 100 ms, the planning period, and the miss is accepted instead of the
+     * hold or redirect that gapClosedLoopPerformance names. Revisit with a
+     * faster host, or with a faster engine for the checkpoint, which changes
+     * its numbers and needs its own parity evidence.
      */
     attribute :>> disposition = LifecycleDisposition::accepted;
   }

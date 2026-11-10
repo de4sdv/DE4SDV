@@ -423,11 +423,12 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
   verification def EgoMotionHistoryVerification {
     doc /*
      * Test of REQ-DRIVING-008. collectData records the ego-motion history
-     * given to the checkpoint for every plan of a run of SC-DRIVING-001 and
-     * the speed and acceleration the simulator reports for the commanded
-     * vehicle at each sample time. processData checks 64 samples 100 ms
-     * apart by their sample times with the newest at the step, compares
-     * speed and acceleration with the simulator's values within 0.05 m/s and
+     * given to the checkpoint for every plan of a run of SC-DRIVING-001,
+     * the poses the simulator records for the commanded vehicle at every
+     * step, and the origin of its camera rig. processData moves the poses to
+     * that origin, works speed and acceleration out of the 66 that end at the
+     * plan's step the source's way, compares the 64 samples, oldest first and
+     * the newest 100 ms before the step, with them within 0.05 m/s and
      * 0.1 m/s², and checks that yaw rate and curvature are 0.
      */
     subject verifiedBench : ClosedLoopDrivingVerificationBench;
