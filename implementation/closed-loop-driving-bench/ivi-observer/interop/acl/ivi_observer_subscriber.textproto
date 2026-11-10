@@ -16,7 +16,20 @@
 # `message` is the typed message the topic carries. It is not a carrier any more:
 # the app's parser is De4sdvDrivingOperationalState's generated class, and the
 # gateway hands it the broker's protobuf message ready to parse.
+#
+# Three service units (one per SOME/IP event: plan, vehicle state, health), one message
+# type: the mapping registers one broker publisher per event, and the publication is
+# SINGLE_PUB ("each channel can only have one publisher", vsidl annotations.proto), so
+# each event gets its own unit. The one-unit form is interop/variants/.
 subscriber {
   message: "de4sdv.driving.v1.DrivingOperationalState"
-  topic: "de4sdv-driving-operational-state"
+  topic: "de4sdv-driving-operational-state-plan"
+}
+subscriber {
+  message: "de4sdv.driving.v1.DrivingOperationalState"
+  topic: "de4sdv-driving-operational-state-vehicle-state"
+}
+subscriber {
+  message: "de4sdv.driving.v1.DrivingOperationalState"
+  topic: "de4sdv-driving-operational-state-health"
 }

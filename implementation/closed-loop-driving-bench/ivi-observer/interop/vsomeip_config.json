@@ -18,12 +18,25 @@
     "the service is secure, so an SD offer from the IVI VM could otherwise",
     "redirect the subscription. AOSP's vsomeip copy may carry patches, so the",
     "runbook verifies the effect; the residual goes to GAP-MW-012 as in the",
-    "AEBS bench. The SD group stays 224.0.0.0 (GAP-MW-047)."
+    "AEBS bench. The SD group stays 224.0.0.0 (GAP-MW-047).",
+    "The earlier increment's frame service 0x4dee (reliable 30509, provider",
+    "192.168.98.1) stays configured exactly as the tree carries it",
+    "(some_ip/vsomeip_stack/vsomeip_config.json): this file replaces that one, so",
+    "dropping it would silently unconfigure the proven service. The stage script",
+    "merges the two acceptances into one entry when both providers have one address."
   ],
   "unicast": "192.168.98.3",
   "logging": { "level": "info", "console": "true", "dlt": "false" },
   "applications": [ { "name": "SampleStack", "id": "0x1221" } ],
   "services": [
+    {
+      "service": "0x4dee",
+      "instance": "0x0001",
+      "unicast": "192.168.98.1",
+      "reliable": { "port": "30509", "enable-magic-cookies": "false" },
+      "events": [ { "event": "0x8001", "is_field": "false", "is_reliable": "true" } ],
+      "eventgroups": [ { "eventgroup": "0x0001", "events": [ "0x8001" ] } ]
+    },
     {
       "service": "0x4df0",
       "instance": "0x0001",
@@ -37,8 +50,15 @@
       "eventgroups": [ { "eventgroup": "0x0001", "events": [ "0x8001", "0x8002", "0x8003" ] } ]
     }
   ],
-  "secure-services": [ { "service": "0x4df0", "instance": "0x0001" } ],
+  "secure-services": [
+    { "service": "0x4dee", "instance": "0x0001" },
+    { "service": "0x4df0", "instance": "0x0001" }
+  ],
   "acceptances": [
+    {
+      "address": "192.168.98.1",
+      "reliable": [ { "first": "30509", "last": "30509", "type": "secure" } ]
+    },
     {
       "address": "__SCORE_SOMEIP_PEER__",
       "reliable": [ { "first": "30510", "last": "30510", "type": "secure" } ]

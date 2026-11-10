@@ -29,9 +29,11 @@ fi
 
 # The S-CORE host's address on the VXLAN segment: the peer the SDV Core stack
 # pins for service 0x4df0 and the address its acceptance rule allows. On the
-# three-host bench this is NOT the guest host: the runbook's step 3 reads it off
-# the S-CORE host's VXLAN interface before the build.
-: "${SCORE_SOMEIP_PEER:=192.168.98.1}"
+# three-host bench this is NOT the guest host: the runbook's step 4 reads it off
+# the S-CORE host's VXLAN interface before the build. No default: the staging
+# script refuses to render the stack config without it (a silent 192.168.98.1
+# would pin the guest host and the core would never accept the real offer).
+: "${SCORE_SOMEIP_PEER:=}"
 
 # --- the contract (ICD section 3) -------------------------------------------
 : "${SERVICE_ID:=0x4df0}"
@@ -45,7 +47,17 @@ fi
 : "${SD_PORT:=30490}"
 
 # --- the Data Tunnel side ----------------------------------------------------
+# TOPIC is the base name. MAPPING_VARIANT=three (default) registers one service unit
+# per event, SERVICE_UNITS below; MAPPING_VARIANT=one registers all three events on
+# the one unit TOPIC (interop/variants/, not decidable from the AOSP source: see the
+# generator header). The service unit names are what the ACLs call `topic`.
 : "${TOPIC:=de4sdv-driving-operational-state}"
+: "${MAPPING_VARIANT:=three}"
+if [ "$MAPPING_VARIANT" = one ]; then
+  : "${SERVICE_UNITS:=$TOPIC}"
+else
+  : "${SERVICE_UNITS:=$TOPIC-plan $TOPIC-vehicle-state $TOPIC-health}"
+fi
 # The typed VSIDL message (the SOME/IP struct the broker translates): the topic's type, the broker's
 # publication type, the app's parser and the ACLs' `message` are all this name.
 : "${TYPE_PACKAGE:=de4sdv.driving.v1}"
@@ -72,16 +84,24 @@ _BENCH_SCRIPTS="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 : "${RUN_DIR:=$SLICE_ROOT/run}"
 : "${SAMPLES:=$AOSP_TOP/system/software_defined_vehicle/samples}"
 
-# The catalog the SDV Core VM reads: the typed message, its SomeIpStruct and the
-# mapping, beside the platform's own some_ip catalog (the AEBS bench's placement).
+# The catalog the SDV Core VM reads: the typed message and the mapping, in a
+# subdirectory of the platform's some_ip catalog with NO Android.bp of its own, as
+# catalog/de4sdv_score/ (the earlier, proven increment). The catalog's Android.bp
+# already takes every **/*.proto and **/*.vsidl below it (rust_protobuf
+# libsomeip_messages_catalog, filegroup someip_catalog_protos); nothing is
+# registered. (The release has no proto_library module type at all.)
 : "${CATALOG_DIR:=$SAMPLES/some_ip/catalog/de4sdv_driving}"
-: "${CATALOG_BP:=$CATALOG_DIR/Android.bp}"
-# How the catalog registers a protobuf type. The probe (scripts/probe_aosp_tree.sh)
-# prints what the tree's own catalog does; if it is not `proto_library`, set this.
-: "${CATALOG_MODULE_KIND:=proto_library}"
-: "${CATALOG_MODULE:=de4sdv_driving_operational_state_proto}"
 : "${BROKER_VSIDL:=$SAMPLES/some_ip/catalog/agent/broker.vsidl}"
 : "${BROKER_ACL:=$SAMPLES/some_ip/config/broker_apex/someip_acl.textproto}"
+# The stack config's source (prebuilt_etc vsomeip_config.json, sub_dir someip,
+# vendor: true -> /vendor/etc/someip/vsomeip_config.json).
+: "${STACK_CONFIG:=$AOSP_TOP/system/software_defined_vehicle/some_ip/vsomeip_stack/vsomeip_config.json}"
+# The smallest build that validates the type and the mapping (RUNBOOK gate G1b):
+# vsidl_rc_generator's pdk29 checks over the whole catalog (it writes both the
+# broker's VSIDL schemas and the SOME/IP mappings), vsidlc over the same catalog
+# (it generates every service bundle's code, the broker's included), the Rust
+# compile of every catalog proto, and aprotoc to decode the generated mappings.
+: "${G1B_MODULES:=generate_vsidl_files_someip_catalog_protos_with_bp_file vsidlc_someip_catalog_protos_with_bp_file libsomeip_messages_catalog aprotoc}"
 : "${BACKUP:=$RUN_DIR/core-image-originals}"
 : "${DISK_FLOOR_GB:=32}"
 
