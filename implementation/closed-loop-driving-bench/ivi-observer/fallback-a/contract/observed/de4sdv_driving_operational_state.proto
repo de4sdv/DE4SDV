@@ -1,0 +1,56 @@
+// DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+//
+// The payload schema of the driving operational state, byte for byte the
+// message of the ICD (interfaces/ICD.md section 3). This file is the schema of
+// what travels on the SOME/IP events 0x8001/0x8002/0x8003 and of what the
+// observer decodes; it is not a VSIDL service-bundle type (the topic's VSIDL
+// type is De4sdvDrivingOperationalStateFrame, see ../de4sdv_driving_operational_state_frame.proto).
+//
+// It is the *same* message the S-CORE publisher serializes: the ICD fixes the
+// field numbers, so the two sides never drift. Do not renumber a field here;
+// renumbering it is a contract change and must go through the ICD and
+// MAP-DRIVING-OPERATIONAL-STATE.
+syntax = "proto3";
+
+package de4sdv.driving.v1;
+
+enum Kind {
+  KIND_UNSPECIFIED = 0;
+  PLAN = 1;
+  VEHICLE_STATE = 2;
+  HEALTH = 3;
+}
+
+message DrivingOperationalState {
+  uint32 schema_major = 1;        // 1
+  uint32 schema_minor = 2;        // 0
+  Kind kind = 3;
+  uint64 sequence = 4;            // per kind, from 1, no gaps
+  string producer = 5;            // "statePublisher"
+  double publish_time_real = 6;   // CLOCK_REALTIME seconds at serialization
+  double publish_time_mono = 7;   // CLOCK_MONOTONIC seconds of the S-CORE host
+  // kind == PLAN
+  uint64 plan_frame_index = 10;
+  double plan_capture_time = 11;  // simulation seconds
+  double plan_production_time = 12; // monotonic seconds (the plan's own stamp)
+  string plan_reference = 13;
+  string run_record = 14;
+  repeated float plan_acceleration = 15;  // 64, m/s^2
+  repeated float plan_curvature = 16;     // 64, 1/m
+  repeated float plan_x = 17;             // 64, m
+  repeated float plan_y = 18;             // 64, m
+  // kind == VEHICLE_STATE (the motion sample, VSS units)
+  float speed_kmh = 20;
+  float longitudinal_acceleration = 21;
+  float lateral_acceleration = 22;
+  float yaw_rate_dps = 23;
+  double sample_capture_time = 24;        // simulation seconds
+  double sample_receipt_time_mono = 25;   // when the publisher received it
+  // kind == HEALTH
+  uint32 mode = 30;              // de4sdv::driving::Mode value
+  uint32 cause = 31;             // de4sdv::driving::Cause value
+  string mode_source = 32;       // "superviseLoop" or "actuationAdapter"
+  double cause_since_mono = 33;  // when the stop began (monotonic), 0 if none
+  uint64 last_plan_frame_index = 34;
+  uint64 dropped_samples = 35;   // publisher-side drops so far
+}

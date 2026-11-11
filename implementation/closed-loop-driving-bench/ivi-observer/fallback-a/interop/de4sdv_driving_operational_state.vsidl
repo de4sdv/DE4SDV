@@ -1,0 +1,97 @@
+# DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+# Bench-only; the productive shape of MAP-DRIVING-OPERATIONAL-STATE.
+#
+# Maps the one SOME/IP service of the driving operational state (service 0x4df0,
+# instance 0x0001, eventgroup 0x0001, events 0x8001 plan / 0x8002 vehicle state /
+# 0x8003 health, reliable, TCP 30510 -- ICD section 3) to the one SDV Data
+# Tunnel topic that the SOME/IP broker publishes, `de4sdv-driving-operational-state`,
+# typed De4sdvDrivingOperationalStateFrame with INTERPRET_AS_BYTES (the payload
+# is forwarded unchanged; it is the protobuf of de4sdv.driving.v1.DrivingOperationalState).
+#
+# One topic for the three events: the three events carry the same message, told
+# apart by its `kind` field, and the topic is the thing the observer subscribes
+# to through the SDV Gateway. One topic is one subscription, one ACL and one
+# loss counter instead of three of each. The order of the messages within one
+# kind is the publisher's `sequence`; the interleaving of the three kinds on the
+# topic carries no meaning and is not used.
+#
+# Fallback if the generator refuses three events on one topic parameter (the
+# broker may require one topic per offered event): three instances of
+# sdv_topic_parameterization, keys 1/2/3, values
+# `...-plan` / `...-vehicle-state` / `...-health`, and the three simple_event
+# blocks take topic: 1 / 2 / 3. The observer then subscribes three times with
+# the same descriptor type; RUNBOOK step 12 names the switch.
+
+package: "com.android.sdv.someip"
+
+some_ip_mapping {
+  someip_service_mapping {
+    someip_service_id: 0x4df0
+    version_major: 0x1
+    version_minor: 0x0
+    instance {
+      instance_id: 0x0001
+      # Key 0: the service unit name. With a topic parameterization present the
+      # broker names the topic from key 1; key 0 stays the unit name and is the
+      # name the broker's ACL and object policy see.
+      sdv_service_unit_parameterization {key: 0 value: "de4sdv-driving-operational-state"}
+      sdv_topic_parameterization {
+        key: 1
+        value {
+          topic: "de4sdv-driving-operational-state"
+          capacity: 16
+        }
+      }
+    }
+    instance_impl {
+      offered_event {
+        group_id: 0x0001
+        event_id: 0x8001
+        simple_event {
+          sdv_unit_type {
+            package_name: "com.android.sdv.someip"
+            service_bundle_name: "SomeIpBroker"
+            type_name: "De4sdvDrivingOperationalStateFrame"
+          }
+          service_unit: 0
+          topic: 1
+          type_definition {
+          }
+          message_translation_mode: INTERPRET_AS_BYTES
+        }
+      }
+      offered_event {
+        group_id: 0x0001
+        event_id: 0x8002
+        simple_event {
+          sdv_unit_type {
+            package_name: "com.android.sdv.someip"
+            service_bundle_name: "SomeIpBroker"
+            type_name: "De4sdvDrivingOperationalStateFrame"
+          }
+          service_unit: 0
+          topic: 1
+          type_definition {
+          }
+          message_translation_mode: INTERPRET_AS_BYTES
+        }
+      }
+      offered_event {
+        group_id: 0x0001
+        event_id: 0x8003
+        simple_event {
+          sdv_unit_type {
+            package_name: "com.android.sdv.someip"
+            service_bundle_name: "SomeIpBroker"
+            type_name: "De4sdvDrivingOperationalStateFrame"
+          }
+          service_unit: 0
+          topic: 1
+          type_definition {
+          }
+          message_translation_mode: INTERPRET_AS_BYTES
+        }
+      }
+    }
+  }
+}

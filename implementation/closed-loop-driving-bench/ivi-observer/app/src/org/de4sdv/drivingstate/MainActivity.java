@@ -1,0 +1,258 @@
+// Copyright (C) 2026 DE4SDV contributors
+// SPDX-License-Identifier: Apache-2.0
+//
+// The IVI observer application of INC-DRIVING-001 (phase 8, decision 4).
+//
+// It subscribes to the three typed Data Tunnel units (plan, vehicle state,
+// health; one message type) that carry the driving operational state from the
+// SOME/IP broker of the SDV Core VM, merges them into one state, appends one JSONL
+// record per receipt to /data/data/org.de4sdv.drivingstate/files/observer.jsonl
+// (ICD section 6, unchanged), mirrors a summary of each receipt to logcat (tag
+// DE4SDV_DRIVING_STATE) and draws the plan, the state and the two clocks.
+//
+// The message arrives typed: the broker translated the SOME/IP struct in
+// REFLECTION mode, and this process reads protobuf fields. No DE4SDV relay sits
+// between the platform's topic and this app; the app publishes nothing back.
+//
+// Threads: the subscriber's executor calls the Sink; this class writes the
+// record there (one writer, synchronized) and posts every receipt to the UI
+// thread in arrival order. ObserverState and the view live on the UI thread.
+// A 100 ms UI tick redraws, so the IVI clock, the ages and the STALE state move
+// even when nothing arrives.
+package org.de4sdv.drivingstate;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.util.Log;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+
+public final class MainActivity extends Activity implements TypedStateSubscriber.Sink {
+
+    private static final String TAG = "DE4SDV_DRIVING_STATE";
+    private static final String RECORD_TAG = TAG;
+    private static final String RECORD_FILE = "observer.jsonl";
+    private static final long kStatusPeriodMs = 5000L;
+    private static final long kFramePeriodMs = 100L;
+
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private final ObserverState state = new ObserverState();
+    private ObserverView view;
+    private TypedStateSubscriber subscriber;
+    private BufferedWriter record;
+    // Written on the subscriber's executor only.
+    private long receipts;
+    private long errors;
+    private volatile String lastStatus = "starting";
+
+    private final Runnable frameTick = new Runnable() {
+        @Override
+        public void run() {
+            if (view != null) {
+                view.invalidate();
+            }
+            main.postDelayed(this, kFramePeriodMs);
+        }
+    };
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        view = new ObserverView(this, state);
+        setContentView(view);
+
+        // The bench can ask for hidden system bars (am start --ez immersive true), so a
+        // recording shows the screen at its full size; the IVI's system bar policy decides
+        // whether they are hidden. Either way the view draws inside the insets it is given.
+        final boolean immersive = getIntent() != null && getIntent().getBooleanExtra("immersive", false);
+        if (immersive) {
+            final WindowInsetsController bars = getWindow().getInsetsController();
+            if (bars != null) {
+                bars.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                bars.hide(WindowInsets.Type.systemBars());
+            }
+        }
+
+        try {
+            final File file = new File(getFilesDir(), RECORD_FILE);
+            record = new BufferedWriter(new OutputStreamWriter(
+                    new FileOutputStream(file, false), StandardCharsets.UTF_8));
+            Log.i(TAG, "record file " + file.getAbsolutePath());
+        } catch (IOException error) {
+            Log.e(TAG, "cannot open the record file", error);
+        }
+
+        lifecycle("start", "subject", TypedStateSubscriber.SUBJECT_PACKAGE + "."
+                + TypedStateSubscriber.SUBJECT_BUNDLE);
+        lifecycle("config", "message", TypedStateSubscriber.MESSAGE_NAME);
+        lifecycle("config", "publisher", TypedStateSubscriber.PUBLISHER_PACKAGE + "."
+                + TypedStateSubscriber.PUBLISHER_BUNDLE + " units "
+                + String.join(",", TypedStateSubscriber.PUBLISHER_UNITS));
+        lifecycle("config", "translation", "REFLECTION at the SDV Core SOME/IP broker");
+        lifecycle("config", "immersive", immersive ? "requested" : "not requested");
+
+        subscriber = new TypedStateSubscriber(this);
+        subscriber.start();
+
+        main.postDelayed(this::statusTick, kStatusPeriodMs);
+        main.post(frameTick);
+    }
+
+    @Override
+    protected void onDestroy() {
+        lifecycle("stop", "receipts", Long.toString(receipts));
+        if (subscriber != null) {
+            subscriber.stop();
+        }
+        main.removeCallbacksAndMessages(null);
+        closeRecord();
+        super.onDestroy();
+    }
+
+    // --- TypedStateSubscriber.Sink, called on the subscriber's executor ----------
+
+    @Override
+    public void onState(MessageMapper.Mapped mapped, long tMonoNs, long tRealNs) {
+        receipts++;
+        writeRecord(StateRecord.line(tMonoNs, tRealNs, receipts, mapped.fields));
+        Log.i(RECORD_TAG, summary(receipts, mapped));
+        main.post(() -> state.onReceipt(mapped, tRealNs));
+    }
+
+    @Override
+    public void onError(String reason, long tMonoNs, long tRealNs) {
+        errors++;
+        Log.w(RECORD_TAG, "error reason=" + reason);
+        writeRecord(StateRecord.envelope(tMonoNs, tRealNs, "error",
+                "\"reason\":\"" + StateRecord.quote(reason) + "\""));
+        final boolean parse = reason.startsWith("parse:");
+        main.post(() -> {
+            if (parse) {
+                state.onParseFailure(reason);
+            } else {
+                state.onError(reason);
+            }
+        });
+    }
+
+    @Override
+    public void onDataLoss(String reason, long tMonoNs, long tRealNs) {
+        Log.w(RECORD_TAG, "drop reason=" + reason);
+        writeRecord(StateRecord.envelope(tMonoNs, tRealNs, "drop",
+                "\"reason\":\"" + StateRecord.quote(reason) + "\""));
+        main.post(() -> state.onDataLoss(reason));
+    }
+
+    @Override
+    public void onLink(String linkState, String detail) {
+        lastStatus = linkState;
+        if ("SUBSCRIBED".equals(linkState)) {
+            lifecycle("ready", "link", detail);
+        } else if ("UNAVAILABLE".equals(linkState)) {
+            Log.w(TAG, "gateway unavailable: " + detail);
+            lifecycle("error", "gateway", detail);
+        } else {
+            lifecycle("config", "link", linkState + " " + detail);
+        }
+        main.post(() -> state.setLink(linkState, detail));
+    }
+
+    @Override
+    public void onConfig(String key, String value) {
+        lifecycle("config", key, value);
+    }
+
+    // --- records -------------------------------------------------------------------
+
+    /** One logcat line, short enough not to be truncated (the file has the arrays). */
+    private static String summary(long receiptSeq, MessageMapper.Mapped mapped) {
+        final StateRecord.Fields f = mapped.fields;
+        final StringBuilder line = new StringBuilder(256);
+        line.append("seq=").append(receiptSeq);
+        line.append(" kind=").append(StateRecord.kindName(f.kind));
+        line.append(" sequence=").append(f.sequence);
+        line.append(" schema=").append(f.schemaMajor).append('.').append(f.schemaMinor);
+        line.append(" publish_real=").append(f.publishRealS).append('.')
+                .append(String.format(Locale.US, "%09d", f.publishRealNs));
+        switch ((int) f.kind) {
+            case 1:
+                line.append(" frame=").append(f.planFrameIndex);
+                line.append(" plan_capture_ms=").append(f.planCaptureMs);
+                line.append(" points=").append(f.planX.length);
+                line.append(" run_record=").append(f.runRecord);
+                break;
+            case 2:
+                line.append(" speed_kmh=").append(String.format(Locale.US, "%.2f", f.speedKmh));
+                line.append(" sample_capture_ms=").append(f.sampleCaptureMs);
+                break;
+            case 3:
+                line.append(" mode=").append(f.mode).append('(')
+                        .append(StateRecord.modeName(f.mode)).append(')');
+                line.append(" cause=").append(f.cause).append('(')
+                        .append(StateRecord.causeName(f.cause)).append(')');
+                line.append(" cause_since_s=").append(f.causeSinceMonoS);
+                break;
+            default:
+                break;
+        }
+        if (!mapped.ok()) {
+            line.append(" contract=").append(mapped.contractProblem);
+        }
+        if (mapped.allDefaults) {
+            line.append(" all_defaults=1");
+        }
+        return line.toString();
+    }
+
+    private void statusTick() {
+        Log.i(RECORD_TAG, String.format(Locale.US,
+                "status link=%s receipts=%d errors=%d", lastStatus, receipts, errors));
+        main.postDelayed(this::statusTick, kStatusPeriodMs);
+    }
+
+    private void lifecycle(String event, String key, String value) {
+        final long tMonoNs = System.nanoTime();
+        final long tRealNs = System.currentTimeMillis() * 1_000_000L;
+        Log.i(RECORD_TAG, "lifecycle " + event + " " + key + "=" + value);
+        writeRecord(StateRecord.envelope(tMonoNs, tRealNs, event,
+                "\"" + key + "\":\"" + StateRecord.quote(value) + "\""));
+    }
+
+    private synchronized void writeRecord(String line) {
+        if (record == null) {
+            return;
+        }
+        try {
+            record.write(line);
+            record.write('\n');
+            record.flush();
+        } catch (IOException error) {
+            Log.e(TAG, "record write failed", error);
+        }
+    }
+
+    private synchronized void closeRecord() {
+        if (record == null) {
+            return;
+        }
+        try {
+            record.close();
+        } catch (IOException error) {
+            Log.w(TAG, "record close failed", error);
+        } finally {
+            record = null;
+        }
+    }
+}

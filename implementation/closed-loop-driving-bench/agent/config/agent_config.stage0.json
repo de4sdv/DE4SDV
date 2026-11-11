@@ -1,0 +1,11 @@
+{
+  "run_dir": "/opt/de4sdv-agent/runs/stage0",
+  "mw_com_config": "/opt/src/feo/de4sdv_bench/agent/mw_com_config_driving_agent.json",
+  "source": "fake",
+  "inference": "stub",
+  "fake_rate_hz": 10.0,
+  "fake_first_frame": 1000,
+  "priming_frames": 66,
+  "fake_speed_kmh": 18.0,
+  "wheelbase_m": 2.85
+}

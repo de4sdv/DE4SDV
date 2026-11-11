@@ -29,3 +29,9 @@ configuration or model validation as runtime proof.
   relay provisioning, clock, recovery), the recording harness, and pure
   evaluators that verdict the HMI-path cases (VC-MW-015/016/017/020) from raw
   run artifacts. Bench tooling and evaluators, not evidence of record.
+- [`closed-loop-driving-bench`](closed-loop-driving-bench/README.md)
+  — INC-DRIVING-001 slice 10b closed-loop driving bench: drivingAgent (S-CORE
+  FEO with the pinned AutoE2E checkpoint in process), the CARLA world side,
+  actuation adapter, state publisher, navigation, typed IVI observer and the
+  verification-case evaluators. Bench tooling, stand-ins and evaluators, not
+  evidence of record.

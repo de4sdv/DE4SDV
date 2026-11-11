@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- DE4SDV INC-DRIVING-001 slice 10b: the IVI observer's screen.
+     Bench-only. Installed over adb on the IVI VM by
+     scripts/stage_ivi_observer.sh; it uses the image's Java SDV Gateway client
+     (libsdvgatewayclient-java-sdk), as the INC-AEBS-010 visualization app does. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.de4sdv.drivingstate">
+
+    <application
+        android:label="DE4SDV Driving Observer"
+        android:theme="@android:style/Theme.Material.NoActionBar"
+        android:allowBackup="false"
+        android:debuggable="true">
+
+        <uses-library
+            android:name="libsdvgatewayclient-java-sdk"
+            android:required="true" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Draw on the IVI's center display, like the AEBS visualization app. -->
+            <meta-data
+                android:name="android.car.application.car_launcher_intent"
+                android:value="true" />
+        </activity>
+    </application>
+</manifest>

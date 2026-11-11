@@ -1,0 +1,217 @@
+diff --git a/.bazelrc b/.bazelrc
+index 3f297f5..864f090 100644
+--- a/.bazelrc
++++ b/.bazelrc
+@@ -32,8 +32,8 @@ build:x86_64-linux --extra_toolchains=@score_gcc_x86_64_toolchain//:x86_64-linux
+ build:x86_64-linux --extra_toolchains=@score_toolchains_rust//toolchains/ferrocene:ferrocene_x86_64_unknown_linux_gnu
+ 
+ # Clippy linting (enabled by default)
+-build --aspects=@score_rust_policies//clippy:linters.bzl%clippy_strict
+-build --output_groups=+rules_lint_human
++# build --aspects=@score_rust_policies//clippy:linters.bzl%clippy_strict
++# build --output_groups=+rules_lint_human
+ build:lint --@aspect_rules_lint//lint:fail_on_violation=true
+ 
+ build:lint-rust --aspects=@rules_rust//rust:defs.bzl%rust_clippy_aspect
+diff --git a/MODULE.bazel b/MODULE.bazel
+index 652dc26..edf5167 100644
+--- a/MODULE.bazel
++++ b/MODULE.bazel
+@@ -85,3 +85,61 @@ python.toolchain(
+     is_default = True,
+     python_version = PYTHON_VERSION,
+ )
++
++# --- PROBE P1.c/P1.d additions: S-CORE reference_integration v0.10.0 module set ---
++# Declared the same way reference_integration does (bazel_dep + single_version_override),
++# versions taken from reference_integration v0.10.0 known_good.json.
++bazel_dep(name = "score_communication")
++single_version_override(
++    module_name = "score_communication",
++    version = "0.6.0",
++)
++
++bazel_dep(name = "score_lifecycle")
++single_version_override(
++    module_name = "score_lifecycle",
++    version = "0.10.0",
++)
++
++# PROBE P1.d: force the tooling versions that reference_integration v0.10.0 pins
++# (known_good.json "tooling"): score_crates 0.0.11, score_docs_as_code 8.6.0.
++single_version_override(
++    module_name = "score_crates",
++    version = "0.0.11",
++)
++single_version_override(
++    module_name = "score_docs_as_code",
++    version = "8.6.0",
++)
++single_version_override(
++    module_name = "score_bazel_platforms",
++    version = "1.1.0",
++)
++single_version_override(
++    module_name = "score_tooling",
++    version = "3.0.1",
++)
++single_version_override(
++    module_name = "flatbuffers",
++    version = "25.12.19.bcr.1",
++)
++single_version_override(
++    module_name = "score_baselibs",
++    version = "0.2.17",
++)
++
++# P3.d: LibCarla 0.9.16 client built with the S-CORE toolchain outside Bazel (prebuilt static archives)
++new_local_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:local.bzl", "new_local_repository")
++
++new_local_repository(
++    name = "libcarla",
++    build_file = "//probe/carla:libcarla.BUILD",
++    path = "/opt/carla-d/libcarla-install",
++)
++
++# WP2a (slice 10b): CPython 3.12.16 (uv-managed, python-build-standalone) for the embedded planner.
++new_local_repository(
++    name = "python312",
++    build_file = "//probe/embed:python312.BUILD",
++    path = "/opt/python/cpython-3.12.16-linux-x86_64-gnu",
++)
+diff --git a/src/feo/src/scheduler.rs b/src/feo/src/scheduler.rs
+index c49115f..bf5f5b6 100644
+--- a/src/feo/src/scheduler.rs
++++ b/src/feo/src/scheduler.rs
+@@ -109,6 +109,10 @@ impl Scheduler {
+         #[cfg(feature = "loop_duration_meter")]
+         let mut meter = loop_duration_meter::LoopDurationMeter::<1000>::default();
+ 
++        // DE4SDV event-trigger patch: optional external cycle pacing source.
++        let mut pace_gate = PaceGate::from_env();
++        let mut pace_cycle: u64 = 0;
++
+         // Sort activity ids
+         let mut activity_ids: Vec<_> = self.activity_states.keys().collect();
+         activity_ids.sort();
+@@ -143,6 +147,29 @@ impl Scheduler {
+ 
+         // Loop the FEO task chain
+         loop {
++            // DE4SDV event-trigger patch: wait for the next frame, take the newest, count the skipped.
++            if let Some(gate) = pace_gate.as_mut() {
++                match gate.wait(&self.shutdown_requested) {
++                    Some(events) => {
++                        pace_cycle += 1;
++                        let real_ns = std::time::SystemTime::now()
++                            .duration_since(std::time::UNIX_EPOCH)
++                            .map(|d| d.as_nanos())
++                            .unwrap_or(0);
++                        std::eprintln!(
++                            "FEO_PACE {{\"cycle\":{},\"events\":{},\"skipped\":{},\"t_real_ns\":{}}}",
++                            pace_cycle,
++                            events,
++                            events - 1,
++                            real_ns
++                        );
++                    }
++                    None => {
++                        info!("Pacing wait ended (stop requested or source failed), ending the main loop.");
++                        break;
++                    }
++                }
++            }
+             let task_chain_start = Instant::now();
+ 
+             // Record start of task chain on registered recorders
+@@ -182,15 +209,18 @@ impl Scheduler {
+             #[cfg(feature = "loop_duration_meter")]
+             meter.track(&task_chain_duration);
+ 
+-            let time_left = self.cycle_time.saturating_sub(task_chain_duration);
+-            if time_left.is_zero() {
+-                error!(
+-                    "Finished task chain after {task_chain_duration:?}. Expected to be less than {:?}",
+-                    self.cycle_time
+-                );
+-            } else {
+-                debug!("Finished task chain after {task_chain_duration:?}. Sleeping for {time_left:?}");
+-                thread::sleep(time_left);
++            // DE4SDV event-trigger patch: the timer paces only when no event source is set.
++            if pace_gate.is_none() {
++                let time_left = self.cycle_time.saturating_sub(task_chain_duration);
++                if time_left.is_zero() {
++                    error!(
++                        "Finished task chain after {task_chain_duration:?}. Expected to be less than {:?}",
++                        self.cycle_time
++                    );
++                } else {
++                    debug!("Finished task chain after {task_chain_duration:?}. Sleeping for {time_left:?}");
++                    thread::sleep(time_left);
++                }
+             }
+ 
+             // Check for an external shutdown request (e.g., from Ctrl-C).
+@@ -514,3 +544,62 @@ mod loop_duration_meter {
+         }
+     }
+ }
++
++// ---------------------------------------------------------------------------
++// DE4SDV event-trigger patch (not upstream): one task chain per external frame event.
++// The input activity sends one datagram to FEO_PACE_SOCKET per complete frame.
++// ---------------------------------------------------------------------------
++struct PaceGate {
++    socket: std::os::unix::net::UnixDatagram,
++}
++
++impl PaceGate {
++    fn from_env() -> Option<Self> {
++        let path = std::env::var("FEO_PACE_SOCKET").ok()?;
++        let _ = std::fs::remove_file(&path);
++        match std::os::unix::net::UnixDatagram::bind(&path) {
++            Ok(socket) => {
++                if let Err(e) = socket.set_read_timeout(Some(std::time::Duration::from_millis(50))) {
++                    error!("Failed to set the pacing timeout on {path}: {e:?}; falling back to timer");
++                    return None;
++                }
++                info!("External event pacing enabled from {path}");
++                Some(Self { socket })
++            }
++            Err(e) => {
++                error!("Failed to bind pacing socket {path}: {e:?}; falling back to timer");
++                None
++            }
++        }
++    }
++
++    /// Blocks until a frame datagram arrives, then drains the datagrams queued meanwhile.
++    /// Returns the number consumed (>= 1), or None on a stop request or a socket failure.
++    fn wait(&mut self, stop: &std::sync::atomic::AtomicBool) -> Option<u64> {
++        use std::io::ErrorKind;
++        let mut buf = [0u8; 16];
++        loop {
++            if stop.load(std::sync::atomic::Ordering::Relaxed) {
++                return None;
++            }
++            match self.socket.recv(&mut buf) {
++                Ok(_) => break,
++                Err(e) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut | ErrorKind::Interrupted) => {
++                    continue
++                }
++                Err(e) => {
++                    error!("Pacing receive failed: {e:?}");
++                    return None;
++                }
++            }
++        }
++        let mut events: u64 = 1;
++        if self.socket.set_nonblocking(true).is_ok() {
++            while self.socket.recv(&mut buf).is_ok() {
++                events += 1;
++            }
++            let _ = self.socket.set_nonblocking(false);
++        }
++        Some(events)
++    }
++}

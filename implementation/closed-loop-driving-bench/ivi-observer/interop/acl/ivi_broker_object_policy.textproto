@@ -1,0 +1,51 @@
+# DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+# Bench-only.
+#
+# The broker's object policy on the IVI VM. A cross-VM subscriber needs the remote
+# publisher's object policy as well as its own subject grant: the IVI SD agent
+# builds the AuthzGuard of the broker unit from this package and bundle's policy,
+# so the deprecated service_units mapping must name the observer as a reader of
+# the topic (same file as the AEBS frame bench's
+# ivi-acl/broker_object_policy.textproto).
+#
+# Installed at
+#   /product/etc/sdv_authz_acls/com.android.sdv.someip/SomeIpBroker.textproto
+# The reader name is the observer's subject package.bundle (dotted), not its
+# process or activity name.
+#
+# Three service units (one per SOME/IP event: plan, vehicle state, health), one message
+# type: the mapping registers one broker publisher per event, and the publication is
+# SINGLE_PUB ("each channel can only have one publisher", vsidl annotations.proto), so
+# each event gets its own unit. The one-unit form is interop/variants/.
+#
+# Same install path as the earlier increment's broker object policy: installing this file
+# replaces that one. If both increments must work on one IVI VM, merge their blocks into
+# one file (the SD agent exits when a second file names one subject).
+subscriber {
+  message: "de4sdv.driving.v1.DrivingOperationalState"
+  topic: "de4sdv-driving-operational-state-plan"
+}
+subscriber {
+  message: "de4sdv.driving.v1.DrivingOperationalState"
+  topic: "de4sdv-driving-operational-state-vehicle-state"
+}
+subscriber {
+  message: "de4sdv.driving.v1.DrivingOperationalState"
+  topic: "de4sdv-driving-operational-state-health"
+}
+acls {
+  name: "DrivingStateObserverReader"
+  include: "org.de4sdv.drivingstate.DrivingStateObserver"
+}
+service_units {
+  name: "de4sdv-driving-operational-state-plan"
+  acl_names: "DrivingStateObserverReader"
+}
+service_units {
+  name: "de4sdv-driving-operational-state-vehicle-state"
+  acl_names: "DrivingStateObserverReader"
+}
+service_units {
+  name: "de4sdv-driving-operational-state-health"
+  acl_names: "DrivingStateObserverReader"
+}
