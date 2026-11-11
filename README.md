@@ -141,6 +141,12 @@ The curated repository map lives in
 [`docs/repository-tree.md`](docs/repository-tree.md). Run `git ls-files` when a
 complete machine-readable inventory is needed.
 
+## Upstream projects
+
+DE4SDV builds on other projects, among them SYSMOD, PLEML, SAF, COVESA VSS,
+Autoware, Eclipse S-CORE, AAOS SDV and CARLA. [`UPSTREAM`](UPSTREAM.md) lists
+them with their links and says where each version in use is recorded.
+
 ## Contributing
 
 This project welcomes contributions beyond code: documentation, examples,
