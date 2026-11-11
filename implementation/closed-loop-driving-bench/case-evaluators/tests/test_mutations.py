@@ -15,7 +15,7 @@ import pytest
 import cases
 import make_synthetic_run as synth
 import strip
-from conftest import CASE_RUN, edit_jsonl, verdict
+from conftest import CASE_RUN, add_arrivals, edit_jsonl, verdict
 
 
 def copied(run_for, tmp_path, name, tag):
@@ -270,12 +270,19 @@ def test_vc008_names_its_amendment():
 # ---------------------------------------------------------------- the five of the brief
 def test_plan_published_101_ms_late_fails_vc015(run_for, tmp_path):
     d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-015"], "late-publish")
-
-    def fn(data):
-        if data.get("plan_frame_index") == 300:
-            data["publish_mono_s"] = data["plan_production_mono_s"] + 1
-        return data
-    assert edit_jsonl(d / "guest/observer.jsonl", "rx.plan", fn) == 1
+    # the publication time is the publisher's record of the message, written
+    # after the send (ICD A34): that record is the one made late
+    path, changed, out = d / "score/statePublisher.jsonl", 0, []
+    for line in path.read_text().splitlines():
+        rec = json.loads(line)
+        data = rec["data"]
+        if rec["event"] == "out.operational_state" and data.get("kind") == "PLAN" \
+                and data.get("plan_frame_index") == 300:
+            rec["t_mono_ns"] = data["plan_production_mono_ns"] + 1_000_000_000
+            changed += 1
+        out.append(json.dumps(rec, separators=(",", ":")))
+    strip._replace(path, "\n".join(out) + "\n")
+    assert changed == 1
     from runio import Run
     res = verdict(Run(d), "VC-DRIVING-015")
     assert res.outcome == cases.FAIL
@@ -289,10 +296,11 @@ def test_health_gap_of_201_ms_fails_vc017(run_for, tmp_path):
     out, seen = [], 0
     for line in path.read_text().splitlines():
         rec = json.loads(line)
-        if rec["event"] == "rx.health" and seen == 99:
+        health = rec["event"] == "in.operational_state" and rec["data"]["kind"] == 3
+        if health and seen == 99:
             rec["t_real_ns"] += 101_000_000
             seen += 1
-        elif rec["event"] == "rx.health":
+        elif health:
             seen += 1
         out.append(json.dumps(rec, separators=(",", ":")))
     strip._replace(path, "\n".join(out) + "\n")
@@ -414,15 +422,24 @@ def test_adapter_stop_400_ms_after_last_command_fails_vc028(run_for, tmp_path):
 
 def test_sample_published_150_ms_late_fails_vc016(run_for, tmp_path):
     d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-016"], "late-sample")
-
-    def fn(data):
-        if data.get("sample_capture_ms") == 3000:
-            t = (data["sample_receipt_mono_s"] + data["sample_receipt_mono_ns"] / 1e9
-                 + 0.15)
-            data["publish_mono_s"] = int(t)
-            data["publish_mono_ns"] = int(round((t - int(t)) * 1e9))
-        return data
-    assert edit_jsonl(d / "guest/observer.jsonl", "rx.vehicle_state", fn) == 1
+    # VC-DRIVING-016 counts from the sample's arrival at the agent, which no
+    # producer writes yet (gaps.V2_GAPS): the copy gets it, and the publisher's
+    # record of the message (the publication time, ICD A34) is made late
+    assert add_arrivals(d) == 700
+    arrival = {r["data"]["captureTime"]: r["data"]["arrival_mono_ns"]
+               for r in map(json.loads, (d / "score/drivingAgent.jsonl").read_text().splitlines())
+               if r["event"] == "out.ego_motion_sample"}
+    path, changed, out = d / "score/statePublisher.jsonl", 0, []
+    for line in path.read_text().splitlines():
+        rec = json.loads(line)
+        data = rec["data"]
+        if rec["event"] == "out.operational_state" and data.get("kind") == "VEHICLE_STATE" \
+                and data.get("sample_capture_sim_ms") == 3000:
+            rec["t_mono_ns"] = arrival[3.0] + 150_000_000
+            changed += 1
+        out.append(json.dumps(rec, separators=(",", ":")))
+    strip._replace(path, "\n".join(out) + "\n")
+    assert changed == 1
     from runio import Run
     res = verdict(Run(d), "VC-DRIVING-016")
     assert res.outcome == cases.FAIL
@@ -557,11 +574,15 @@ def test_vc029_uses_monotonic_not_real_time(run_for, tmp_path):
 
 def test_vc029_publish_mono_1s_late_fails(run_for, tmp_path):
     d = copied(run_for, tmp_path, CASE_RUN["VC-DRIVING-029"], "vc029-late")
-
-    def fn(data):
-        data["publish_mono_s"] += 1
-        return data
-    edit_jsonl(d / "score/statePublisher.jsonl", "out.health", fn)
+    # the publication time is the publisher's HEALTH record, written after the
+    # send (ICD A34): the records are made 1 s late, a whole nanosecond count
+    path, out = d / "score/statePublisher.jsonl", []
+    for line in path.read_text().splitlines():
+        rec = json.loads(line)
+        if rec["event"] == "out.operational_state" and rec["data"].get("kind") == "HEALTH":
+            rec["t_mono_ns"] += 1_000_000_000
+        out.append(json.dumps(rec, separators=(",", ":")))
+    strip._replace(path, "\n".join(out) + "\n")
     from runio import Run
     res = verdict(Run(d), "VC-DRIVING-029")
     assert res.outcome == cases.FAIL, (res.outcome, res.measured)

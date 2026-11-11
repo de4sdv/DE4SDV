@@ -13,8 +13,8 @@ directory into verdicts.
 **Start with [`OBSERVABLES.md`](OBSERVABLES.md).** It has one row per case: the
 scenario, the requirement, the exact observables (component, log event, field,
 clock), the computation, the threshold, and whether ICD v2 records them.
-Status: **34 SUPPORTED (with stated caveats), 1 MISSING**, the exact remaining
-field + producer for the missing case, and the C2 bundle ledger.
+Status: **33 SUPPORTED (with stated caveats), 2 MISSING**, the exact remaining
+field + producer for each missing case, and the C2 bundle ledger.
 
 ## What is here
 
@@ -101,8 +101,8 @@ REQ-DRIVING-001 as amended and of the camera reading of REQ-DRIVING-023:
 * **a sampled plan step without its bundle makes VC-DRIVING-002 inconclusive and leaves
   VC-DRIVING-004 passing** — the C2 sampling rule is enforced where it applies;
 * **VC-DRIVING-029 is judged on the S-CORE monotonic clock**: a 5 s real-time skew at
-  the stop begin does not move the verdict, and a health published 1 s late on
-  the monotonic clock fails;
+  the stop begin does not move the verdict, and a health whose publisher record
+  is written 1 s late on the monotonic clock fails;
 * **one step without its own plan passes VC-DRIVING-001, two in a row fail**:
   a merged frame or a dropped plan alone passes, a merged frame next to a
   step without a plan fails, and so do the window's first two steps;
@@ -182,11 +182,42 @@ is a reading the owner may change; the code names it where it applies.
   criteria hold for the inputs of every plan, so only steps with an `out.plan`
   are judged; a run without plans is inconclusive. The engine's newest
   ego-motion row is frame k − 1 (agent `DESIGN.md`).
-* **60 s windows (VC-DRIVING-013, -015, -016, -017).** Records spanning less
+* **60 s windows (VC-DRIVING-013, -015, -016).** Records spanning less
   than the window make the case inconclusive. VC-DRIVING-013's window starts at
   `priming.complete`, holds only plans made in `kDriving`, and its real-time
   factor is taken over the same window; below 0.95 the run cannot show the
   criterion (inconclusive).
+* **Health over the run (VC-DRIVING-017).** REQ-DRIVING-017 asks for a 60 s
+  window of a run that includes priming, driving and a stop. 60 s is read as
+  the least the health receipts must span: every receipt of the run is
+  judged, and among them there must be `kStarting`, `kDriving` and
+  `kStopResponse` or `kStandstill`; otherwise the case is inconclusive and
+  names what is absent. A gap of more than 200 ms anywhere in the run fails,
+  and every receipt must hold its fields. `measured` gives the count, the
+  span, the count per mode, the worst gap, the first gaps over the limit with
+  their time and mode, and the smallest and largest plan age while driving
+  (before the first plan the publication carries `last_plan_capture_ms` 0, so
+  `step_capture_ms - last_plan_capture_ms` is no age then).
+* **When a message was published (VC-DRIVING-015, -016, -029).** The
+  publication time is the envelope `t_mono_ns` of the publisher's own
+  `out.operational_state` record of the message, which it writes after the
+  send returned (ICD A34). The `publish_mono` stamps inside the message are
+  taken before the send and end no interval. A plan is joined by
+  `plan_frame_index`, a motion sample by `sample_capture_sim_ms`; a plan or
+  sample with no such record, or with more than one, is a problem of it, and a
+  run without the publisher's records of the kind is missing evidence.
+  VC-DRIVING-015 also checks that the production time the observer received
+  equals the plan record's within 1 µs.
+* **VC-DRIVING-016 counts from the sample's arrival.** The criterion counts
+  from when the driving system received the sample: the arrival of the world
+  snapshot at the agent, `out.ego_motion_sample.arrival_mono_ns`, which no
+  producer writes yet. Without it the case is inconclusive, names the field
+  and the change C13, and still reports the samples, the receipts per sample
+  and the worst time from the agent's record to the publication. A sample not
+  received exactly once, without its producer, or with one of its four values
+  (speed, longitudinal and lateral acceleration, yaw rate; same units in the
+  agent's record and ICD section 3) more than 1e-3 off its record fails with
+  or without the arrival.
 * **VC-DRIVING-032.** The success criterion states no range: the four
   quantities are computed per command, each from stamps of one domain, and
   reported. Commands are joined to the adapter by `productionTime`. A
@@ -255,7 +286,15 @@ it does not say the driving system met a requirement.
   spread, and reports every number so a reviewer can re-judge. A signal that a
   run holds no record of leaves the case inconclusive.
 * VC-DRIVING-029 is judged on the S-CORE host's monotonic clock at the publisher
-  (`score/statePublisher.jsonl`, `out.health`), as the S5 answer directs.
+  (`score/statePublisher.jsonl`, `out.operational_state` of kind `HEALTH`, the
+  envelope `t_mono_ns` of the record, written after the send; ICD A34), as the
+  S5 answer directs.
+* VC-DRIVING-015, -016, -017 and -035 read the observer's receipts
+  (`guest/observer.jsonl`, `in.operational_state` of kind 1, 2 or 3; ICD A34),
+  and VC-DRIVING-015 and -016 also the publisher's `PLAN` and `VEHICLE_STATE`
+  records for the publication time.
+  A run that holds only `rx.plan`, `rx.vehicle_state` or `rx.health` is missing
+  evidence for them, as a run that holds only `out.health` is for VC-DRIVING-029.
 
 Nothing in this directory edits the ICD or the model. `OBSERVABLES.md` and
-`gaps.py` record the remaining metadata gap.
+`gaps.py` record the remaining gaps.

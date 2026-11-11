@@ -20,7 +20,9 @@ import make_synthetic_run  # noqa: E402
 
 # The run each case is judged on. This is the bench the case documentation
 # names, not a convenience: VC-DRIVING-023 is the camera-fault run, VC-DRIVING-028
-# the run whose communication is stopped, and so on.
+# the run whose communication is stopped, and so on. VC-DRIVING-017 needs a run
+# of the closed-loop route that includes priming, driving and a stop: the run
+# whose communication is stopped is the closed-loop run that stops.
 CASE_RUN = {
     "VC-DRIVING-001": "nominal", "VC-DRIVING-002": "nominal",
     "VC-DRIVING-003": "nominal", "VC-DRIVING-004": "nominal",
@@ -30,7 +32,7 @@ CASE_RUN = {
     "VC-DRIVING-011": "nominal", "VC-DRIVING-012": "nominal",
     "VC-DRIVING-013": "nominal", "VC-DRIVING-014": "comm-stop",
     "VC-DRIVING-015": "nominal", "VC-DRIVING-016": "nominal",
-    "VC-DRIVING-017": "nominal", "VC-DRIVING-028": "comm-stop",
+    "VC-DRIVING-017": "comm-stop", "VC-DRIVING-028": "comm-stop",
     "VC-DRIVING-030": "nominal", "VC-DRIVING-031": "nominal",
     "VC-DRIVING-032": "nominal", "VC-DRIVING-033": "nominal",
     "VC-DRIVING-034": "nominal", "VC-DRIVING-029": "fault-camera_missing",
@@ -89,3 +91,27 @@ def edit_jsonl(path: Path, event: str, fn) -> int:
     import strip
     strip._replace(path, "\n".join(out) + "\n")
     return changed
+
+
+def add_arrivals(run_dir: Path, before_record_ns: int = 40_000_000) -> int:
+    """Give every out.ego_motion_sample of the agent the arrival VC-DRIVING-016
+    counts from: `arrival_mono_ns`, a whole nanosecond count on the S-CORE
+    host's monotonic clock, `before_record_ns` before the agent's record of the
+    sample, with `clocks.arrival_mono_ns = "monotonic"`. No producer writes the
+    field yet (gaps.V2_GAPS, change C13): only tests add it, to the records they
+    build. The file is replaced, so a hard-linked fixture is not touched.
+    Returns the number of samples given one."""
+    path = Path(run_dir) / "score/drivingAgent.jsonl"
+    out, n = [], 0
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        rec = json.loads(line)
+        if rec.get("event") == "out.ego_motion_sample":
+            rec["data"]["arrival_mono_ns"] = rec["t_mono_ns"] - before_record_ns
+            rec["data"].setdefault("clocks", {})["arrival_mono_ns"] = "monotonic"
+            n += 1
+        out.append(json.dumps(rec, separators=(",", ":")))
+    import strip
+    strip._replace(path, "\n".join(out) + "\n")
+    return n

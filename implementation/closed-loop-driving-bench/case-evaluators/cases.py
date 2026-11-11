@@ -30,7 +30,7 @@ from pathlib import Path
 import numpy as np
 
 from runio import (STEP_MS, STEP_S, Run, RunFormatError, MissingEvidence, close, finite,
-                   frames_between, maybe_num, num)
+                   frames_between, maybe_num, num, observer_record, publisher_record)
 from gaps import ICD_CHANGES
 
 PASS = "passBoundedVerification"
@@ -68,7 +68,9 @@ def stub_engine_note(run: Run) -> str | None:
 THRESHOLDS = {
     "step_s": 0.1,
     "plan_publish_latency_s": 0.10,        # REQ-015
+    "production_time_tol_s": 1e-6,         # REQ-015: production time, published vs recorded
     "sample_publish_latency_s": 0.10,      # REQ-016
+    "sample_value_tol": 1e-3,              # REQ-016: each sample value, published vs recorded
     "health_period_s": 0.20,               # REQ-017
     "camera_stale_s": 0.20,                # REQ-023
     "motion_stale_s": 0.20,                # REQ-024
@@ -1783,16 +1785,37 @@ def vc015(run: Run) -> Result:
     """Each plan published once, equal to its record, with its own producer and
     production time, within 100 ms of wall clock after production (REQ-015).
 
-    ICD v2 C12 puts plan_producer, plan_sample_count and plan_horizon on the
-    PLAN publication; the evaluator requires them (the publication's `producer`
-    is the publisher, statePublisher).
+    The criterion: "Met when, over a 60 s window of a run of SC-DRIVING-001,
+    every plan in the records of the run is published once, equal to its
+    record, with its producer and its production time, within 100 ms of
+    wall-clock time after that production time."
+
+    Published once: one receipt at the observer per plan, by plan_frame_index.
+    Equal to its record: the arrays, the reference and the sample count. Its
+    producer: ICD v2 C12 puts plan_producer, plan_sample_count and plan_horizon
+    on the PLAN publication; the evaluator requires them (the publication's
+    `producer` is the publisher, statePublisher). Its production time: the one
+    the observer received equals the plan record's within 1 microsecond.
+
+    When it was published: the envelope t_mono_ns of the publisher's own PLAN
+    record of the message (score/statePublisher.jsonl, joined by
+    plan_frame_index), which the publisher writes after the send returned (ICD
+    A34). The publish_mono in the message is the publisher's receipt of the
+    plan, taken before it encodes and sends it; it is not the end of the
+    interval. Both ends are on the S-CORE host's monotonic clock. A plan with
+    no such record, or more than one, is a problem of that plan; a run without
+    the publisher's PLAN records is missing evidence.
     """
     vc = "VC-DRIVING-015"
     plans = run.plans()
     pubs = run.plan_pubs()
+    sent = run.plan_side()
     by_frame: dict[int, list[dict]] = {}
     for p in pubs:
         by_frame.setdefault(p["frame"], []).append(p)
+    sent_by_frame: dict[int, list[dict]] = {}
+    for r in sent:
+        sent_by_frame.setdefault(r["frame"], []).append(r)
     t0 = plans[0]["production_mono"]
     cover = window_cover_note(t0, max(p["production_mono"] for p in plans
                                       if p["production_mono"] is not None))
@@ -1801,7 +1824,7 @@ def vc015(run: Run) -> Result:
                             {"plans": len(plans)})
     problems = []
     checked = 0
-    lat = []
+    lat, prod_diff = [], []
     evid = [ev(plans[0]["file"], plans[0]["rec"])]
     for p in plans:
         if p["production_mono"] - t0 > THRESHOLDS["window_s"]:
@@ -1811,16 +1834,25 @@ def vc015(run: Run) -> Result:
         if len(got) != 1:
             problems.append({"frame": plan_frame(p), "publications": len(got)})
             continue
-        q = got[0]
-        if q["publish_mono"] is None or q["production_mono"] is None:
-            problems.append({"frame": plan_frame(p),
-                             "problem": "no publish/production monotonic time"})
+        rec = sent_by_frame.get(plan_frame(p), [])
+        if len(rec) != 1:
+            problems.append({"frame": plan_frame(p), "publisher_records": len(rec)})
             continue
+        q, r = got[0], rec[0]
+        if q["production_mono"] is None:
+            problems.append({"frame": plan_frame(p), "problem": "no production time"})
+        else:
+            diff = abs(q["production_mono"] - p["production_mono"])
+            prod_diff.append(diff)
+            if diff > THRESHOLDS["production_time_tol_s"]:
+                problems.append({"frame": plan_frame(p), "difference_s": diff,
+                                 "problem": "the published production time differs from "
+                                            "the plan record's"})
         if q["plan_producer"] != p.get("producer"):
             problems.append({"frame": plan_frame(p),
                              "problem": f"plan_producer {q['plan_producer']!r} is not "
                                         f"{p.get('producer')!r}"})
-        d = q["publish_mono"] - p["production_mono"]
+        d = r["t_mono"] - p["production_mono"]
         lat.append(d)
         if d > THRESHOLDS["plan_publish_latency_s"] + 1e-9:
             problems.append({"frame": plan_frame(p), "latency_s": d})
@@ -1838,16 +1870,20 @@ def vc015(run: Run) -> Result:
             problems.append({"frame": plan_frame(p),
                              "problem": "plan_sample_count differs from the record"})
         if len(evid) < 3:
-            evid.append(ev(q["file"], q["rec"]))
+            evid.extend([ev(q["file"], q["rec"]), ev(r["file"], r["rec"])])
     if any(q.get("plan_producer") in (None, "") for q in pubs):
-        return inconclusive(vc, "rx.plan.plan_producer/plan_sample_count/plan_horizon",
+        return inconclusive(vc, f"{observer_record('PLAN')}.plan_producer/plan_sample_count/"
+                                "plan_horizon_s",
                             "C12", "the PLAN publication does not carry the plan's "
                                    "producer and completeness", {"publications": len(pubs)})
-    measured = {"plans_in_window": checked, "publications": len(pubs),
+    measured = {"clock": "monotonic (S-CORE host)", "plans_in_window": checked,
+                "publications": len(pubs), "publisher_records": len(sent),
                 "worst_latency_s": max(lat) if lat else None,
+                "largest_production_time_difference_s": max(prod_diff) if prod_diff else None,
                 "problems": problems[:5], "problem_count": len(problems)}
     th = {"publish_latency_s": THRESHOLDS["plan_publish_latency_s"],
-          "publications_per_plan": 1, "array_tol": 1e-6}
+          "publications_per_plan": 1, "publisher_records_per_plan": 1, "array_tol": 1e-6,
+          "production_time_tol_s": THRESHOLDS["production_time_tol_s"]}
     if problems:
         return bad(vc, measured, th, evid,
                    [f"{len(problems)} plans not published as required, first "
@@ -1855,13 +1891,49 @@ def vc015(run: Run) -> Result:
     return ok(vc, measured, th, evid)
 
 
+# The four values of a motion sample: the agent's record and the observer's
+# receipt in the same units (km/h, m/s^2, m/s^2, deg/s; ICD section 3 fields
+# 23-26; payloads.h EgoMotionSamplePayload), runio keys and section 3 names.
+SAMPLE_VALUES = (("speed_kmh", "speed_kmh"), ("accel", "longitudinal_acceleration"),
+                 ("lateral", "lateral_acceleration"), ("yaw_dps", "yaw_rate_dps"))
+
+
 @case("VC-DRIVING-016", ("closedLoopRoute",), needs=("C9",))
 def vc016(run: Run) -> Result:
     """The motion sample of every step published once, equal to its record, with
-    producer and sample time, within 100 ms after receipt (REQ-016)."""
+    producer and sample time, within 100 ms after the driving system received
+    it (REQ-016).
+
+    The criterion: "Met when, over a 60 s window of a run of SC-DRIVING-001, the
+    motion sample of every step in the records of the run is published once,
+    equal to its record, with its producer and its sample time, within 100 ms
+    of wall-clock time after the driving system received it."
+
+    Published once: one receipt at the observer per sample, by its sample time
+    (sample_capture_ms). Equal to its record: speed, longitudinal and lateral
+    acceleration and yaw rate, each within 1e-3 of the agent's
+    out.ego_motion_sample (SAMPLE_VALUES). Its producer: the receipt's producer.
+
+    When it was published: the envelope t_mono_ns of the publisher's own
+    VEHICLE_STATE record of the message (joined by sample_capture_sim_ms),
+    written after the send returned (ICD A34). The message's publish_mono is the
+    publisher's receipt of the sample and equals its sample_receipt_mono; it is
+    not the end of the interval, and that receipt is the publisher's, not the
+    driving system's. A sample with no such record, or more than one, is a
+    problem of that sample; a run without the publisher's VEHICLE_STATE records
+    is missing evidence.
+
+    When the driving system received it: the arrival at the agent of the world
+    snapshot the sample comes from, out.ego_motion_sample.arrival_mono_ns
+    (S-CORE host monotonic). The agent does not write it yet (gaps.V2_GAPS,
+    change C13). A judged sample without it leaves the case inconclusive; a
+    problem in another clause fails the case whether or not the arrival is
+    there. With it, the interval is arrival to publication, limit 100 ms.
+    """
     vc = "VC-DRIVING-016"
     samples = run.ego_samples()
     pubs = run.vs_pubs()
+    sent = run.vs_side()
     if samples and all(s["capture_ms"] is None for s in samples):
         raise MissingEvidence("out.ego_motion_sample.clocks.captureTime", "C9",
                               "motion samples carry no simulation capture stamp")
@@ -1869,78 +1941,147 @@ def vc016(run: Run) -> Result:
     for p in pubs:
         if p["sample_capture_ms"] is not None:
             by_capture.setdefault(round(p["sample_capture_ms"], 3), []).append(p)
+    sent_by_capture: dict[float, list[dict]] = {}
+    for r in sent:
+        if r["capture_ms"] is not None:
+            sent_by_capture.setdefault(round(r["capture_ms"], 3), []).append(r)
     t0 = samples[0]["capture_ms"]
     cover = window_cover_note(t0 / 1000.0, max(s["capture_ms"] for s in samples
                                                 if s["capture_ms"] is not None) / 1000.0)
     if cover:
         return inconclusive(vc, "out.ego_motion_sample over a 60 s window", None, cover,
                             {"samples": len(samples)})
-    checked, problems, lat = 0, [], []
+    checked, problems, lat, to_pub, no_arrival = 0, [], [], [], []
+    receipts, records = Counter(), Counter()
+    diff = {name: 0.0 for _, name in SAMPLE_VALUES}
+    tol = THRESHOLDS["sample_value_tol"]
     evid = [ev(samples[0]["file"], samples[0]["rec"])]
     for s in samples:
         if s["capture_ms"] - t0 > THRESHOLDS["window_s"] * 1000:
             continue
         checked += 1
         got = by_capture.get(round(s["capture_ms"], 3), [])
+        rec = sent_by_capture.get(round(s["capture_ms"], 3), [])
+        receipts[str(len(got))] += 1
+        records[str(len(rec))] += 1
         if len(got) != 1:
             problems.append({"capture_ms": s["capture_ms"], "publications": len(got)})
             continue
-        q = got[0]
-        if q["publish_mono"] is None or q["receipt_mono"] is None:
-            problems.append({"capture_ms": s["capture_ms"],
-                             "problem": "no publish/receipt time"})
+        if len(rec) != 1:
+            problems.append({"capture_ms": s["capture_ms"], "publisher_records": len(rec)})
             continue
-        d = q["publish_mono"] - q["receipt_mono"]
-        lat.append(d)
-        if d > THRESHOLDS["sample_publish_latency_s"] + 1e-9:
-            problems.append({"capture_ms": s["capture_ms"], "latency_s": d})
-        if s["speed_kmh"] is not None and q["speed_kmh"] is not None \
-                and abs(s["speed_kmh"] - q["speed_kmh"]) > 1e-3:
-            problems.append({"capture_ms": s["capture_ms"], "problem": "speed differs"})
+        q, r = got[0], rec[0]
+        if q["producer"] in (None, ""):
+            problems.append({"capture_ms": s["capture_ms"], "problem": "no producer"})
+        for key, name in SAMPLE_VALUES:
+            a, b = s[key], q[key]
+            if a is None or b is None:
+                if (a is None) != (b is None):
+                    problems.append({"capture_ms": s["capture_ms"],
+                                     "problem": f"{name} differs from the record"})
+                continue
+            diff[name] = max(diff[name], abs(a - b))
+            if abs(a - b) > tol:
+                problems.append({"capture_ms": s["capture_ms"],
+                                 "problem": f"{name} differs from the record"})
+        to_pub.append(r["t_mono"] - s["t_mono"])
+        if s["arrival_mono"] is None:
+            no_arrival.append(s["capture_ms"])
+        else:
+            d = r["t_mono"] - s["arrival_mono"]
+            lat.append(d)
+            if d > THRESHOLDS["sample_publish_latency_s"] + 1e-9:
+                problems.append({"capture_ms": s["capture_ms"], "latency_s": d})
         if len(evid) < 3:
-            evid.append(ev(q["file"], q["rec"]))
-    measured = {"samples_in_window": checked, "publications": len(pubs),
+            evid.extend([ev(q["file"], q["rec"]), ev(r["file"], r["rec"])])
+    measured = {"clock": "monotonic (S-CORE host)", "samples_in_window": checked,
+                "publications": len(pubs), "publisher_records": len(sent),
+                "receipts_per_sample": dict(receipts),
+                "publisher_records_per_sample": dict(records),
+                "samples_with_arrival": len(lat),
                 "worst_latency_s": max(lat) if lat else None,
+                "worst_record_to_publication_s": max(to_pub) if to_pub else None,
+                "largest_value_difference": diff,
                 "problems": problems[:5], "problem_count": len(problems)}
     th = {"publish_latency_s": THRESHOLDS["sample_publish_latency_s"],
-          "publications_per_sample": 1, "speed_tol_kmh": 1e-3}
+          "publications_per_sample": 1, "publisher_records_per_sample": 1,
+          "value_tol": tol}
+    missing_note = (f"{len(no_arrival)} of {checked} motion samples in the window carry no "
+                    "arrival_mono_ns, so the records do not show when the driving system "
+                    "received them: the frame store may hold a sample up to 95 ms before "
+                    "the agent hands it on (agent/cc/frame_store.h, kDefaultDeadlineNs)")
     if problems:
         return bad(vc, measured, th, evid,
                    [f"{len(problems)} motion samples not published as required, first "
-                    f"{problems[0]}"])
+                    f"{problems[0]}"] + ([missing_note] if no_arrival else []))
+    if no_arrival:
+        return inconclusive(vc, "score/drivingAgent.jsonl:out.ego_motion_sample.arrival_mono_ns",
+                            "C13", missing_note, measured)
     return ok(vc, measured, th, evid)
 
 
 @case("VC-DRIVING-017", ("closedLoopRoute",), needs=("C5",))
 def vc017(run: Run) -> Result:
-    """Health at least every 200 ms of wall clock over a 60 s window, each with
-    mode, cause while stopped and the age of the newest valid plan (REQ-017)."""
+    """Health at least every 200 ms of wall clock, each with mode, cause while
+    stopped and the age of the newest valid plan, over a run with priming,
+    driving and a stop (REQ-017).
+
+    The criterion: "Met when, over a 60 s window of a run of SC-DRIVING-001
+    that includes priming, driving and a stop, no two consecutive health
+    publications are more than 200 ms of wall-clock time apart, and each holds
+    the mode, the cause of the stop while stopped, and the age of the newest
+    valid plan, with its producer and its production time."
+
+    How it is read: 60 s is the least the receipts must span. Every health
+    receipt of the run at the observer is judged, not only the first 60 s, by
+    its receipt time; among them there must be priming (kStarting), driving
+    (kDriving) and a stop (kStopResponse or kStandstill). Receipts that span
+    less than 60 s, or show one of the three not at all, cannot show the
+    criterion: inconclusive, naming what is absent. A gap of more than 200 ms
+    between two consecutive receipts anywhere in the run fails, and the field
+    checks run on every receipt. The plan age is reported while driving only:
+    before the first plan the publication carries last_plan_capture_ms 0, so
+    step_capture_ms - last_plan_capture_ms is then no age.
+    """
     vc = "VC-DRIVING-017"
     hs = run.health_pubs()
     if len(hs) < 2:
-        return inconclusive(vc, "guest/observer.jsonl:rx.health", None,
+        return inconclusive(vc, observer_record("HEALTH"), None,
                             "fewer than two health publications")
     t0 = hs[0]["t_real"]
+    per_mode = Counter(str(enum_name(h["mode"], MODES)) for h in hs)
+    seen = {"publications": len(hs), "span_s": hs[-1]["t_real"] - t0,
+            "count_per_mode": dict(per_mode)}
     cover = window_cover_note(t0, hs[-1]["t_real"])
     if cover:
-        return inconclusive(vc, "guest/observer.jsonl:rx.health over a 60 s window", None,
-                            cover, {"publications": len(hs)})
-    win = [h for h in hs if h["t_real"] - t0 <= THRESHOLDS["window_s"]]
-    gaps = [b["t_real"] - a["t_real"] for a, b in zip(win, win[1:])]
-    worst_gap = max(gaps) if gaps else None
-    gap_bad = [{"after": win[i]["t_real"] - t0, "gap_s": g}
-               for i, g in enumerate(gaps) if g > THRESHOLDS["health_period_s"] + 1e-9]
-    age_missing = [h for h in win
+        return inconclusive(vc, f"{observer_record('HEALTH')} over a 60 s window", None,
+                            cover, seen)
+    age_missing = [h for h in hs
                    if h["last_plan_capture_ms"] is None or h["step_capture_ms"] is None
                    or h["last_plan_production_mono"] is None]
     if age_missing:
-        return inconclusive(vc, "rx.health.last_plan_capture_ms/step_capture_ms/"
-                                "last_plan_production_mono_s", "C5",
-                            f"{len(age_missing)} of {len(win)} health publications carry no "
-                            "plan age", {"publications": len(win),
-                                         "without_plan_age": len(age_missing)})
+        return inconclusive(vc, f"{observer_record('HEALTH')}.last_plan_capture_ms/"
+                                "step_capture_ms/last_plan_production_mono_s", "C5",
+                            f"{len(age_missing)} of {len(hs)} health publications carry no "
+                            "plan age", {**seen, "without_plan_age": len(age_missing)})
+    absent = [(what, modes) for what, modes in (("priming", ("kStarting",)),
+                                                ("driving", ("kDriving",)),
+                                                ("stop", ("kStopResponse", "kStandstill")))
+              if not any(per_mode.get(m) for m in modes)]
+    if absent:
+        return inconclusive(vc, f"{observer_record('HEALTH')} in mode "
+                                + "; in mode ".join(" or ".join(m) for _, m in absent), None,
+                            "the run's health receipts show "
+                            + " and ".join(f"no {what} ({' or '.join(m)})" for what, m in absent)
+                            + ": the criterion asks for a run that includes priming, driving "
+                              "and a stop", seen)
+    gaps = [b["t_real"] - a["t_real"] for a, b in zip(hs, hs[1:])]
+    worst_gap = max(gaps) if gaps else None
+    gap_bad = [{"after": hs[i]["t_real"] - t0, "gap_s": g,
+                "mode": enum_name(hs[i]["mode"], MODES)}
+               for i, g in enumerate(gaps) if g > THRESHOLDS["health_period_s"] + 1e-9]
     field_bad = []
-    for h in win:
+    for h in hs:
         if h["mode"] is None or h["producer"] in (None, "") or h["publish_mono"] is None:
             field_bad.append({"t": h["t_real"] - t0, "problem": "mode/producer/time"})
         age = (h["step_capture_ms"] - h["last_plan_capture_ms"]) / 1000.0
@@ -1952,14 +2093,14 @@ def vc017(run: Run) -> Result:
         if means_stopped(h["mode"]) and (h["cause"] is None
                                          or enum_name(h["cause"], CAUSES) == "kNone"):
             field_bad.append({"t": h["t_real"] - t0, "problem": "stopped without a cause"})
-    measured = {"publications": len(win), "worst_gap_s": worst_gap,
-                "gaps_over_200ms": gap_bad[:5], "window_s": THRESHOLDS["window_s"],
+    ages = [(h["step_capture_ms"] - h["last_plan_capture_ms"]) / 1000.0 for h in hs
+            if enum_name(h["mode"], MODES) == "kDriving"]
+    measured = {**seen, "worst_gap_s": worst_gap, "gaps_over_200ms": gap_bad[:5],
                 "field_problems": field_bad[:5],
-                "ages_s": [round((h["step_capture_ms"] - h["last_plan_capture_ms"]) / 1000.0, 3)
-                           for h in win][:10]}
+                "plan_age_while_driving_s": {"min": min(ages), "max": max(ages)}}
     th = {"health_period_s": THRESHOLDS["health_period_s"],
           "window_s": THRESHOLDS["window_s"]}
-    evid = [ev(h["file"], h["rec"]) for h in win[:2]]
+    evid = [ev(h["file"], h["rec"]) for h in hs[:2] + hs[-1:]]
     if gap_bad:
         return bad(vc, measured, th, evid,
                    [f"a gap of {gap_bad[0]['gap_s'] * 1000:.0f} ms between health "
@@ -2396,9 +2537,21 @@ def vc029(run: Run) -> Result:
     100 ms of monotonic time after the stop begins, and every later health
     publication shows the mode stopped (REQ-029).
 
+    The criterion: "Met when, in each run of the criteria of REQ-DRIVING-023 to
+    REQ-DRIVING-028, a publication that the driving system is stopped, with the
+    cause of that run, follows within 100 ms of wall-clock time after the stop
+    response begins, and every later health publication of the run shows the
+    mode stopped."
+
     Both ends are on the S-CORE host (ICD v2 answer to S5): the stop begin's
-    envelope t_mono_ns and the publisher's HEALTH `publish_mono_s/_ns` in
-    score/statePublisher.jsonl. The guest's receipt time is not used.
+    envelope t_mono_ns, and the envelope t_mono_ns of the publisher's HEALTH
+    record in score/statePublisher.jsonl, which the publisher writes after the
+    send returned (ICD A34). The stop publication is the publisher's first
+    HEALTH record at or after the stop begin (5 ms earlier allowed) that shows
+    a stopped mode and the stop's cause; every later health publication is a
+    HEALTH record after it, by the same time. The `publish_mono_ns` in the
+    message is the time the publisher made it, before the send, and is not the
+    end of the interval. The guest's receipt time is not used.
 
     "The cause of that run": a run that names its fault (scenarioVariant.fault,
     ICD C4) calls for a cause of that fault, the causes that route a run to the
@@ -2422,7 +2575,7 @@ def vc029(run: Run) -> Result:
         source = "the run's own stop cause (the run names no fault)"
     hs = run.health_side()
     if not hs:
-        return inconclusive(vc, "score/statePublisher.jsonl:out.health", "C5",
+        return inconclusive(vc, publisher_record("HEALTH"), "C5",
                             "the publisher's own health records are absent")
     if not expected:
         return inconclusive(vc, "run_record.scenarioVariant.fault", "C4",
@@ -2440,9 +2593,7 @@ def vc029(run: Run) -> Result:
                     f"fault {label} ({', '.join(str(c) for c in expected)})"])
     first = None
     for h in hs:
-        if h["publish_mono"] is None:
-            continue
-        if h["publish_mono"] >= begin["t_mono"] - 0.005 and means_stopped(h["mode"]) \
+        if h["t_mono"] >= begin["t_mono"] - 0.005 and means_stopped(h["mode"]) \
                 and enum_name(h["cause"], CAUSES) == cause:
             first = h
             break
@@ -2453,14 +2604,14 @@ def vc029(run: Run) -> Result:
                     THRESHOLDS["stop_publication_latency_s"]},
                    [ev(begin["file"], begin["rec"])],
                    [f"no publisher health publication shows the stop with cause {cause}"])
-    lat = first["publish_mono"] - begin["t_mono"]
-    later = [h for h in hs if h["publish_mono"] is not None
-             and h["publish_mono"] > first["publish_mono"] + 1e-9]
-    not_stopped = [{"t_mono": h["publish_mono"], "mode": enum_name(h["mode"], MODES)}
+    lat = first["t_mono"] - begin["t_mono"]
+    later = [h for h in hs if h["t_mono"] > first["t_mono"] + 1e-9]
+    not_stopped = [{"t_mono": h["t_mono"], "mode": enum_name(h["mode"], MODES)}
                    for h in later if not means_stopped(h["mode"])]
     measured = {"clock": "monotonic (S-CORE host)",
                 "stop_begin_mono": begin["t_mono"],
-                "stop_publication_mono": first["publish_mono"],
+                "stop_publication_mono": first["t_mono"],
+                "stop_publication_made_mono": first["publish_mono"],
                 "latency_s": lat, "cause": cause, **named, "publications_after": len(later),
                 "later_publications_not_stopped": not_stopped[:5]}
     th = {"stop_publication_latency_s": THRESHOLDS["stop_publication_latency_s"],
@@ -2887,7 +3038,8 @@ def vc035(run: Run) -> Result:
                             "SHA-256), so the refusal reason it calls for is not known",
                             measured)
     if not detail_ok:
-        return inconclusive(vc, "rx.health.checkpoint_expected_sha256/refusal_reason", "C6",
+        return inconclusive(vc, f"{observer_record('HEALTH')}.checkpoint_expected_sha256/"
+                                "refusal_reason", "C6",
                             "the refusal is published without naming the mismatch", measured)
     return ok(vc, measured, th, evid)
 

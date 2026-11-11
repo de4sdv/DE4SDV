@@ -335,7 +335,7 @@ def test_vc035_on_the_synthetic_mismatch_start_fails_when_the_health_names_no_pi
         if data.get("refusal_reason"):
             data.update({"refusal_reason": "no_pin", "checkpoint_expected_sha256": ""})
         return data
-    assert edit_jsonl(d / "guest/observer.jsonl", "rx.health", fn) > 0
+    assert edit_jsonl(d / "guest/observer.jsonl", "in.operational_state", fn) > 0
     from runio import Run
     res = cases.evaluate_case(Run(d), "VC-DRIVING-035")
     assert res.outcome == cases.FAIL, (res.outcome, res.missing, res.notes)
@@ -359,7 +359,9 @@ def test_vc035_on_the_synthetic_start_without_world_ticks_is_inconclusive(run_fo
 # 200 ms old (A28). A run that names no fault is judged against its own stop
 # cause, as gate() routes such a run by it.
 class StopRun:
-    """A run whose stop begins at t_mono 100 s and whose publisher shows it 20 ms later."""
+    """A run whose stop begins at t_mono 100 s and whose publisher shows it 20 ms
+    later: it makes the message then (`publish_mono`) and records it after the
+    send (`t_mono`, the publication time), as Run.health_side returns them."""
     scenario = "degradedInputOrPlan"
 
     def __init__(self, fault, begin_cause, published_cause=None):
@@ -375,7 +377,8 @@ class StopRun:
                 "file": "score/drivingAgent.jsonl", "rec": {"seq": 1}}
 
     def health_side(self):
-        return [{"publish_mono": 100.02 + 0.1 * i, "mode": "kStopResponse",
+        return [{"t_mono": 100.0201 + 0.1 * i, "publish_mono": 100.02 + 0.1 * i,
+                 "mode": "kStopResponse",
                  "cause": self._published, "file": "score/statePublisher.jsonl",
                  "rec": {"seq": 10 + i}} for i in range(5)]
 
@@ -437,9 +440,11 @@ def test_vc029_on_the_synthetic_camera_run_fails_when_it_stops_for_a_route_cause
         return {**data, "cause": "kRouteStale", "causeValue": route}
 
     def health(data):
-        return {**data, "cause": route} if data.get("cause") == stale else data
+        # the publisher names the cause (ICD A34)
+        return {**data, "cause": cases.CAUSES[route]} \
+            if data.get("cause") == cases.CAUSES[stale] else data
     assert edit_jsonl(d / "score/drivingAgent.jsonl", "stop_response.begin", begin) == 1
-    assert edit_jsonl(d / "score/statePublisher.jsonl", "out.health", health) > 0
+    assert edit_jsonl(d / "score/statePublisher.jsonl", "out.operational_state", health) > 0
     from runio import Run
     res = cases.evaluate_case(Run(d), "VC-DRIVING-029")
     assert res.outcome == cases.FAIL, (res.outcome, res.missing, res.notes)

@@ -72,12 +72,14 @@ def set_health(d: Path, t_from: float, t_to: float, mode, cause) -> int:
     t0 = None
     with path.open() as fh:
         for line in fh:
-            if '"rx.health"' in line:
-                t = json.loads(line)["t_real_ns"]
-                t0 = t if t0 is None else min(t0, t)
+            if '"in.operational_state"' in line:
+                rec = json.loads(line)
+                if rec["data"]["kind"] == 3:
+                    t = rec["t_real_ns"]
+                    t0 = t if t0 is None else min(t0, t)
 
     def fn(rec):
-        if rec["event"] == "rx.health" and \
+        if rec["event"] == "in.operational_state" and rec["data"]["kind"] == 3 and \
                 t_from <= (rec["t_real_ns"] - t0) / 1e9 <= t_to:
             rec["data"].update(mode=mode, cause=cause)
         return rec
