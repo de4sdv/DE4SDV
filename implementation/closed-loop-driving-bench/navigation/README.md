@@ -34,7 +34,7 @@ Nothing upstream is modified; the native library is built with upstream's own
 | `navigation_raster.{h,cpp}` | the C++ rasterizer library (no dependencies beyond libstdc++) |
 | `route_provider.py` | the route provider process (UDP 127.0.0.1:47110, JSONL logs) |
 | `parity_report.py` | per-channel C++ vs Python difference report (synthetic maps) |
-| `tests/` | 74 tests: exporters on a fake `carla`, parity, provider, layout |
+| `tests/` | 115 tests (4 need the real map): exporters on a fake `carla`, parity, the route corridor, provider, layout |
 | `tests/parity_sweep.cpp` | `Render` vs `RenderReference` sweep on a real map (`make parity`) |
 | `tests/render_cost.cpp` | per-render wall clock on a real map (`make bench`) |
 | `tests/render_profile.cpp` | the unoptimised path split into zero-fill / packing / native call (`make profile`) |
@@ -243,7 +243,7 @@ written per pixel by the same primitive that writes the mask.
 
 ```
 $ make all && .venv/bin/python -m pytest -q tests
-74 passed in 19.5s
+111 passed, 4 skipped in 12.8s
 $ .venv/bin/python parity_report.py
 cases: 25, mismatched: 0
   map   DRIVABLE_AREA ... OVERLAPPING_LEVEL_AMBIGUITY   max abs diff 0   (all 14)
@@ -266,7 +266,19 @@ uint8 pixels.  Coverage:
   a wider sweep of 200 route + 200 random poses is the same command with
   `--route-poses 200 --random-poses 200`;
 * a level-carrying fixture, because the CARLA export has no road levels and
-  channels 11-13 would otherwise stay untested (`test_navigation_raster_levels.py`).
+  channels 11-13 would otherwise stay untested (`test_navigation_raster_levels.py`);
+* the route corridor against an expectation that does not come from the route
+  reader: the route drawn as one line through all its waypoints, worked out
+  from geometry.  It covers every synthetic case, a road change across a joint
+  wider than the corridor and a road run of one waypoint
+  (`test_route_corridor.py`, `test_navigation_raster_parity.py`).  The parity
+  tests alone cannot see a corridor the reader gets wrong: both paths are fed
+  the same lines;
+* the map raster of an export against an expectation that does not come from
+  the export: two roads end to end, one with a lane section that has no
+  2 m sample, exported from a fake that samples and ends its lanes as LibCarla
+  does, must be drivable over the whole road, and its centre-line and
+  direction channels unbroken through the joints (`test_carla_export.py`).
 
 ## What is untested without CARLA
 
@@ -293,6 +305,15 @@ Only testable on the bench (no aarch64 CARLA wheel, no GPU here):
    The fake now gives its crosswalk as CARLA does; a two-way road in the tests
    gives its lanes as CARLA does.  The real export has to be made again with
    this code.
+   A third shape was found on 2026-11-10: `generate_waypoints(2.0)` samples
+   each road at s = 0, 2, 4, ... below its length, so every lane stopped up to
+   2 m short of the next one (128 of the 168 lanes more than one 0.4 m pixel
+   short, median 1.0 m), and DRIVABLE_AREA was 0 across the ego's lane for 2
+   or 3 rows at 4 of the 5 road joints of the bench route.  Since
+   `carla_map_export_v2` each lane runs from its exact start to its exact end
+   (see the next section); a map written before says `carla_map_export_v1` in
+   `provenance.adapter_version` and has to be exported again.  The fake now
+   samples, pairs and ends its lanes as LibCarla 0.9.16 does.
 2. `route_from_carla.py` against the real `GlobalRoutePlanner` (the fake
    reproduces only `trace_route`'s contract).
 3. Junction polygons: CARLA publishes no junction footprint, so the export is
@@ -324,13 +345,42 @@ Only testable on the bench (no aarch64 CARLA wheel, no GPU here):
   `lane_width`; boundaries are offsets of the centre line, not CARLA data.
   Only lanes whose `lane_type` is `Driving` are exported (CARLA also samples
   sidewalks and bike lanes); a waypoint without `lane_type` is kept.
+* Each lane of each lane section runs from its exact start to its exact end
+  in its driving direction, so it meets the lane it leads into, as upstream's
+  lanelets meet at their shared nodes.  The 2 m samples alone stop short of
+  the far end of each road and lane section (`generate_waypoints` samples a
+  road at s = 0, 2, 4, ... below its length): that is the end of a lane that
+  drives along `s` and the start of one that drives against it.  From
+  LibCarla 0.9.16 (`road/Map.cpp`, `client/Waypoint.cpp`):
+  - the start is the first waypoint of the lane's `get_topology()` pair,
+    which CARLA places at the start of every drivable lane of every lane
+    section in its driving direction, for lanes of either sign;
+  - a lane that leads into another road ends where its road ends: the last
+    waypoint of `next_until_lane_end`, which walks the lane's driving
+    direction to s = length or s = 0 by the lane's direction;
+  - any other lane ends at the second waypoint of its pair: the start of its
+    continuation in the next lane section, or, for a lane that leads nowhere,
+    its own end.  `next_until_lane_end` walks on to the end of the road there.
+  A lane section shorter than 2 m, which has no sample, is exported from its
+  start and end.  A lane CARLA leaves out of `get_topology()` (it does so
+  when it cannot place the end of a lane that leads nowhere) keeps its
+  samples.  A waypoint that belongs to the next lane does not make its lane
+  part of a junction.
 * The route is fixed for the run; the provider does not re-read the file.
   If the file changes under a running provider, the announced SHA-256 no longer
   matches the content (the C++ library computes the SHA-256 of what it loaded,
   so a mismatch is detectable, but nothing compares the two yet).
-* A route split by `road_id` runs gives one corridor polyline per run; a lane
-  change inside one road is a single polyline, which is what the corridor
-  channel needs.
+* The corridor is drawn from one polyline per run of constant `road_id`, and
+  each run after the first starts at the previous run's last waypoint.  The
+  corridor therefore has no break where the road changes, as upstream's has
+  none: its lane sequence is lanelets that share their end points.  CARLA's
+  planner puts 2-4 m between the last waypoint of one road and the first of
+  the next, more than the 3.5 m corridor is wide.  A run of one waypoint still
+  makes a line, from the waypoint before it.  A lane change inside one road is
+  a single polyline.  The C2 counts of ICD A16 (`waypointsInWindow`,
+  `waypointsOnCorridor`) still count the waypoints of each run of two or more
+  waypoints once (`RouteData::centerlines`), the rule VC-DRIVING-007 recounts
+  with.
 
 ## Contract and model notes
 

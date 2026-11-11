@@ -7,6 +7,24 @@ straight two-lane road that turns left into a second road, with one junction,
 one crosswalk and one traffic light, which is enough to exercise every export
 path on a machine without CARLA (no aarch64 wheel exists).
 
+Where a lane starts and ends follows LibCarla 0.9.16 (``road/Map.cpp``,
+``client/Waypoint.cpp``), because the exporter depends on it:
+
+* ``generate_waypoints(d)`` samples each road at s = EPSILON, EPSILON + d, ...
+  below the road's length, for every lane of the lane section there.  A lane's
+  samples therefore stop up to ``d`` short of the road's far end (s = length),
+  and a lane section between two sample positions has none.
+* ``get_topology()`` pairs every lane of every lane section, at its start in
+  its driving direction, with the start of each lane it leads into, or, when
+  it leads nowhere, with its own end.
+* ``Waypoint.next`` and ``Waypoint.next_until_lane_end`` move along the
+  driving direction as LibCarla does; the last waypoint of
+  ``next_until_lane_end`` is at the end of the road.
+
+A lane drives along s when its yaw points from its ``start`` to its ``end``
+(the order of s), against s otherwise.  CARLA derives that from the sign of the
+lane id; the first scene below keeps both lanes of a road in one direction.
+
 This file is a test double.  It is not used on the bench.
 """
 
@@ -15,6 +33,8 @@ from __future__ import annotations
 import math
 
 LANE_WIDTH = 3.5
+# road::Map's EPSILON (LibCarla/source/carla/road/Map.cpp:43).
+EPSILON = 10.0 * 2.220446049250313e-16
 
 
 class Location:
@@ -88,6 +108,16 @@ class Waypoint:
     def get_right_lane(self):
         return None if self._map is None else self._map.neighbour(self, +1)
 
+    def next(self, distance):
+        if self._map is None:
+            raise RuntimeError("waypoint without a map")
+        return self._map.next_waypoints(self, float(distance))
+
+    def next_until_lane_end(self, distance):
+        if self._map is None:
+            raise RuntimeError("waypoint without a map")
+        return self._map.next_until_lane_end(self, float(distance))
+
 
 class _ActorList:
     def __init__(self, actors):
@@ -113,88 +143,168 @@ class TrafficLight:
         return self._transform
 
 
+class _Lane:
+    """One lane of one lane section: a straight piece from ``start`` (at s0) to
+    ``end`` (at s1), in the order of s."""
+
+    def __init__(self, key, start, end, s0, yaw_deg, junction_from, junction_to,
+                 junction_id):
+        self.key = key
+        self.start = (float(start[0]), float(start[1]))
+        self.end = (float(end[0]), float(end[1]))
+        self.length = math.hypot(self.end[0] - self.start[0], self.end[1] - self.start[1])
+        self.s0 = float(s0)
+        self.s1 = self.s0 + self.length
+        self.yaw_deg = float(yaw_deg)
+        along = math.atan2(self.end[1] - self.start[1], self.end[0] - self.start[0])
+        self.forward = math.cos(math.radians(self.yaw_deg) - along) > 0.0
+        self.junction_from = junction_from
+        self.junction_to = junction_to
+        self.junction_id = junction_id
+
+
 class Map:
     """The scene: two roads, two waypoint groups per road and one junction."""
 
     def __init__(self, name="Town10HD_Test"):
         self.name = name
         self._lanes: dict[tuple[int, int, int], list[Waypoint]] = {}
-        self._topology: list[tuple[Waypoint, Waypoint]] = []
+        self._pieces: dict[tuple[int, int, int], _Lane] = {}
+        # The lanes each lane leads into, in its driving direction.
+        self._successors: dict[tuple[int, int, int], list[tuple[int, int, int]]] = {}
         self._build()
 
     # ---------------------------------------------------------------- scene
     def _add_lane(self, road_id, section_id, lane_id, start, end, yaw_deg,
-                  junction_from=None, junction_id=None, junction_to=None):
-        x0, y0 = start
-        x1, y1 = end
-        length = math.hypot(x1 - x0, y1 - y0)
-        count = max(2, int(round(length / 2.0)) + 1)
-        points = []
-        for index in range(count):
-            fraction = index / (count - 1)
-            x = x0 + fraction * (x1 - x0)
-            y = y0 + fraction * (y1 - y0)
-            s = fraction * length
-            in_junction = junction_from is not None and s >= junction_from and (
-                junction_to is None or s <= junction_to
-            )
-            points.append(
-                Waypoint(
-                    road_id=road_id,
-                    section_id=section_id,
-                    lane_id=lane_id,
-                    s=s,
-                    x=x,
-                    y=y,
-                    yaw_deg=yaw_deg,
-                    is_junction=in_junction,
-                    junction_id=junction_id if in_junction else None,
-                    carla_map=self,
-                )
-            )
-        self._lanes[(road_id, section_id, lane_id)] = points
+                  junction_from=None, junction_id=None, junction_to=None,
+                  s_start=0.0):
+        key = (road_id, section_id, lane_id)
+        piece = _Lane(key, start, end, s_start, yaw_deg, junction_from,
+                      junction_to, junction_id)
+        self._pieces[key] = piece
+        count = max(2, int(round(piece.length / 2.0)) + 1)
+        points = [
+            self._waypoint_at(piece, piece.s0 + piece.length * index / (count - 1))
+            for index in range(count)
+        ]
+        self._lanes[key] = points
         return points
 
     def _build(self):
         # Road 1: +x, 0..100 m.  Lane +1 is 1.75 m to the driver's left (-y),
         # lane -1 is 1.75 m to the right (+y): CARLA y grows to the right.
-        left = self._add_lane(1, 0, 1, (0.0, -1.75), (100.0, -1.75), 0.0,
-                              junction_from=96.0, junction_id=7)
-        right = self._add_lane(1, 0, -1, (0.0, 1.75), (100.0, 1.75), 0.0,
-                               junction_from=96.0, junction_id=7)
+        self._add_lane(1, 0, 1, (0.0, -1.75), (100.0, -1.75), 0.0,
+                       junction_from=96.0, junction_id=7)
+        self._add_lane(1, 0, -1, (0.0, 1.75), (100.0, 1.75), 0.0,
+                       junction_from=96.0, junction_id=7)
         # Road 2: +y, 0..100 m from (100, 0), a left turn from road 1.
-        turn_left = self._add_lane(2, 0, 1, (98.25, 0.0), (98.25, 100.0), 90.0,
-                                   junction_from=0.0, junction_id=7,
-                                   junction_to=4.0)
-        turn_right = self._add_lane(2, 0, -1, (101.75, 0.0), (101.75, 100.0),
-                                    90.0, junction_from=0.0, junction_id=7,
-                                    junction_to=4.0)
-        self._topology = [
-            (left[-1], turn_left[0]),
-            (right[-1], turn_right[0]),
-        ]
+        self._add_lane(2, 0, 1, (98.25, 0.0), (98.25, 100.0), 90.0,
+                       junction_from=0.0, junction_id=7, junction_to=4.0)
+        self._add_lane(2, 0, -1, (101.75, 0.0), (101.75, 100.0), 90.0,
+                       junction_from=0.0, junction_id=7, junction_to=4.0)
+        self._successors = {
+            (1, 0, 1): [(2, 0, 1)],
+            (1, 0, -1): [(2, 0, -1)],
+        }
+
+    def _waypoint_at(self, piece, s):
+        fraction = 0.0 if piece.length <= 0.0 else (s - piece.s0) / piece.length
+        relative = s - piece.s0
+        in_junction = piece.junction_from is not None and relative >= piece.junction_from and (
+            piece.junction_to is None or relative <= piece.junction_to
+        )
+        road_id, section_id, lane_id = piece.key
+        return Waypoint(
+            road_id=road_id,
+            section_id=section_id,
+            lane_id=lane_id,
+            s=s,
+            x=piece.start[0] + fraction * (piece.end[0] - piece.start[0]),
+            y=piece.start[1] + fraction * (piece.end[1] - piece.start[1]),
+            yaw_deg=piece.yaw_deg,
+            is_junction=in_junction,
+            junction_id=piece.junction_id if in_junction else None,
+            carla_map=self,
+        )
+
+    def _road_length(self, road_id):
+        return max(piece.s1 for piece in self._pieces.values() if piece.key[0] == road_id)
+
+    def _start_of(self, piece):
+        # GetDistanceAtStartOfLane (road/Map.cpp:61-67).
+        s = piece.s0 + 10.0 * EPSILON if piece.forward else piece.s1 - 10.0 * EPSILON
+        return self._waypoint_at(piece, s)
+
+    def _end_of(self, piece):
+        # GetDistanceAtEndOfLane (road/Map.cpp:69-75).
+        s = piece.s1 - 10.0 * EPSILON if piece.forward else piece.s0 + 10.0 * EPSILON
+        return self._waypoint_at(piece, s)
+
+    @staticmethod
+    def _key(waypoint):
+        return (waypoint.road_id, waypoint.section_id, waypoint.lane_id)
 
     # ------------------------------------------------------------------ API
     def generate_waypoints(self, distance):
+        """road::Map::GenerateWaypoints (road/Map.cpp:783-795)."""
         step = float(distance)
         out = []
-        for key in sorted(self._lanes):
-            points = self._lanes[key]
-            accumulated = 0.0
-            out.append(points[0])
-            for previous, current in zip(points, points[1:]):
-                segment = math.hypot(
-                    current.transform.location.x - previous.transform.location.x,
-                    current.transform.location.y - previous.transform.location.y,
-                )
-                accumulated += segment
-                if accumulated >= step - 1e-9:
-                    out.append(current)
-                    accumulated = 0.0
+        for road_id in sorted({key[0] for key in self._pieces}):
+            pieces = [self._pieces[key] for key in sorted(self._pieces) if key[0] == road_id]
+            length = self._road_length(road_id)
+            s = EPSILON
+            while s < length - EPSILON:
+                for piece in pieces:
+                    if piece.s0 <= s < piece.s1:
+                        out.append(self._waypoint_at(piece, s))
+                s += step
         return out
 
     def get_topology(self):
-        return list(self._topology)
+        """road::Map::GenerateTopology (road/Map.cpp:856-877)."""
+        pairs = []
+        for key in sorted(self._pieces):
+            entry = self._start_of(self._pieces[key])
+            followers = self._successors.get(key, [])
+            if followers:
+                pairs.extend((entry, self._start_of(self._pieces[other])) for other in followers)
+            else:
+                pairs.append((entry, self._end_of(self._pieces[key])))
+        return pairs
+
+    def next_waypoints(self, waypoint, distance):
+        """road::Map::GetNext (road/Map.cpp:641-688), without its loop guard."""
+        if distance <= EPSILON:
+            return [waypoint]
+        piece = self._pieces[self._key(waypoint)]
+        remaining = piece.s1 - waypoint.s if piece.forward else waypoint.s - piece.s0
+        if distance <= remaining:
+            if piece.forward:
+                return [self._waypoint_at(piece, waypoint.s + distance - EPSILON)]
+            return [self._waypoint_at(piece, waypoint.s - distance + EPSILON)]
+        out = []
+        for other in self._successors.get(piece.key, []):
+            out.extend(self.next_waypoints(self._start_of(self._pieces[other]),
+                                           distance - remaining))
+        return out
+
+    def next_until_lane_end(self, waypoint, distance):
+        """client::Waypoint::GetNextUntilLaneEnd (client/Waypoint.cpp): steps of
+        ``distance`` while one waypoint follows on the same road, then the rest
+        of the road, so the last waypoint is at the road's end."""
+        result = []
+        following = self.next_waypoints(waypoint, distance)
+        while len(following) == 1 and following[0].road_id == waypoint.road_id:
+            result.append(following[0])
+            following = self.next_waypoints(result[-1], distance)
+        base = result[-1] if result else waypoint
+        if self._pieces[self._key(waypoint)].forward:
+            remaining = self._road_length(waypoint.road_id) - base.s
+        else:
+            remaining = base.s
+        remaining -= 2.220446049250313e-16
+        result.append(self.next_waypoints(base, remaining)[0])
+        return result
 
     def get_spawn_points(self):
         return [
