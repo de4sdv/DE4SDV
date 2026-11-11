@@ -1,5 +1,5 @@
 #!/bin/bash
-# WP2 stage 1a on P1: drivingAgent with the embedded CPython planner (de4sdv_planner, stub engine:
+# Stage 1a on P1: drivingAgent with the embedded CPython planner (de4sdv_planner, stub engine:
 # numpy only, no GPU), fake frames with six patterned BGRA images and a moving vehicle pose.
 #   run A: correct checkpoint pin -> condition + infer every step, plans over mw::com (tap)
 #   run B: wrong pin -> REQ-DRIVING-035 refusal: no plan ever, mode kRefused with both hashes

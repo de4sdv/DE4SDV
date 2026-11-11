@@ -77,8 +77,8 @@ no longer used; nothing in the test path imports protobuf.
 
 The S-CORE binary itself is **not** built here: no S-CORE, no Bazel, no mw::com
 headers on this machine. `BUILD.bazel` targets the FEO workspace
-(`/opt/src/feo`, Bazel 8.3.0, S-CORE gcc 12.2.0, `--config=x86_64-linux`);
-the orchestrator builds it there.
+(`/opt/src/feo`, Bazel 8.3.0, S-CORE gcc 12.2.0, `--config=x86_64-linux`),
+where it is built.
 
 ## The encoding (ICD v2 §3)
 

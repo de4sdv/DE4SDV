@@ -1,5 +1,5 @@
 #!/bin/bash
-# WP2 on the G4 (RTX PRO 6000): drivingAgent with the real checkpoint engine inside the S-CORE binary.
+# On the G4 (RTX PRO 6000): drivingAgent with the real checkpoint engine inside the S-CORE binary.
 # The fake world feeds the frame store with the profile-exact rig (make_fake_rig.py, 1920-wide
 # images); everything is stamped "stage-1b-fake-world": no driving evidence, a timing and
 # integration check of the engine port.

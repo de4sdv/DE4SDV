@@ -296,7 +296,7 @@ def plan_steps(run: Run) -> list[dict]:
 
     REQ-DRIVING-003, -004, -006, -007, -008 and -010 state their criteria for
     the inputs recorded for every plan. The agent writes a C2 record for every
-    step, primed or not (agent/cc/agent_ffi.cpp:1020-1079), so a step without a
+    step, primed or not (`de4sdv_condition_step` in agent/cc/agent_ffi.cpp), so a step without a
     plan is not judged. No plan in the run, or a plan without its C2 record,
     is missing evidence.
     """
@@ -381,10 +381,11 @@ def camera_conditions_by_reading(run: Run) -> dict[int, dict]:
 
     The agent's C2 record describes the step's own slot: a camera whose image
     did not arrive for the frame has null stamps and status "missing"
-    (agent/cc/frame_store.h:94, agent_ffi.cpp:1026-1033). The newest image is
+    (`CameraView::present` in agent/cc/frame_store.h; `CameraStatus` and the C2
+    record of `de4sdv_condition_step` in agent_ffi.cpp). The newest image is
     therefore the latest image of the camera in any C2 step up to this one, or
     in a merged frame the agent conditioned, which needs every camera valid
-    (agent_ffi.cpp:575-615). Returns {frame: {"cause", "camera", "age_ms"}}.
+    (`ConditionMerged` in agent_ffi.cpp). Returns {frame: {"cause", "camera", "age_ms"}}.
     """
     newest: dict[int, float] = {}
     out: dict[int, dict] = {}
@@ -2290,7 +2291,7 @@ def vc024(run: Run) -> Result:
     if any(s.get("step") is None for s in samples):
         raise MissingEvidence("out.ego_motion_sample.frame", None,
                               "a motion sample does not name its step frame "
-                              "(agent/cc/agent_ffi.cpp:1094)")
+                              "(de4sdv_condition_step in agent/cc/agent_ffi.cpp writes it)")
     prime, eligible = driving_after_priming(run)
     cond = None
     for s in samples:
@@ -2648,8 +2649,9 @@ def vc030(run: Run) -> Result:
             ct = c.get("capture_sim_ms")
             if c.get("status") == "missing":
                 # no image this step: the agent writes the slot with status
-                # "missing" and null stamps (ICD A28; agent/cc/agent_ffi.cpp:552,
-                # 1039-1044). Any other slot holds an image, which needs its stamp.
+                # "missing" and null stamps (ICD A28; `CameraStatus` and the C2 record of
+                # `de4sdv_condition_step` in agent/cc/agent_ffi.cpp). Any other slot holds an
+                # image, which needs its stamp.
                 skipped_slots += 1
                 continue
             if ct is None:
@@ -3104,7 +3106,7 @@ def rig_origin(run: Run) -> tuple[list[float], dict]:
     """The origin of the camera rig (REF) and the record that gives it.
 
     drivingAgent logs `rig` once, before the first step: `result` is what its
-    planner's set_rig returned (agent/cc/agent_ffi.cpp:854-885), and
+    planner's set_rig returned (`de4sdv_condition_startup` in agent/cc/agent_ffi.cpp), and
     `result.origin` the REF origin [x, y, z] in vehicle axes (CARLA: x forward,
     y right, z up), metres. A `result` logged as a JSON string is read too.
     """

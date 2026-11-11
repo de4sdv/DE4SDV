@@ -1,8 +1,9 @@
-# agent_logic: the pure decision logic of the DE4SDV driving agent (slice 10b, WP2)
+# agent_logic: the pure decision logic of the DE4SDV driving agent (slice 10b)
 
-The FEO agent of phase 8 has four activities in one chain per 100 ms step. The
-orchestrator writes the Rust shells; this library is the decision logic they
-call, with no S-CORE, CARLA, Python or wall clock inside:
+The FEO agent of phase 8 has four activities in one chain per 100 ms step.
+Their Rust shells (`agent/src/activities.rs`) call this library through the C
+ABI of `agent_ffi.cpp`; it is the decision logic, with no S-CORE, CARLA,
+Python or wall clock inside:
 
 | activity | entry point | requirements |
 |---|---|---|
@@ -17,14 +18,14 @@ The caller passes the monotonic time in; the library never reads a clock.
 
 ## Files
 
-| file | lines | content |
-|---|---|---|
-| `agent_logic.h` | 321 | the contract: conditions, supervisor, commander, config, records |
-| `agent_logic.cpp` | 698 | the rules and the record builders |
-| `json_lite.h` / `json_lite.cpp` | 68 / 354 | copied from `actuation-adapter/` with a one-line provenance block; `diff` against the source differs only in that block |
-| `tests/agent_logic_test.cpp` | 1432 | unit tests, boundaries, the scripted run, the JSONL emitter |
-| `tests/test_records_against_evaluators.py` | 438 | the records parsed by the evaluators' own `runio.py`, VC-DRIVING-026 and VC-DRIVING-027 decided |
-| `mutations.py` | 279 | 22 single-point mutation probes |
+| file | content |
+|---|---|
+| `agent_logic.h` | the contract: conditions, supervisor, commander, config, records |
+| `agent_logic.cpp` | the rules and the record builders |
+| `json_lite.h` / `json_lite.cpp` | copied from `actuation-adapter/` with a one-line provenance block; `diff` against the source differs only in that block |
+| `tests/agent_logic_test.cpp` | unit tests, boundaries, the scripted run, the JSONL emitter |
+| `tests/test_records_against_evaluators.py` | the records parsed by the evaluators' own `runio.py`, VC-DRIVING-026 and VC-DRIVING-027 decided |
+| `tests/agent_logic_mutations.py` | 32 single-point mutation probes; `tests/mutation_report.py` prints their table |
 
 Payloads come from the bench (`-I <bench>/interfaces/include`); `payloads.h` is
 not copied.
@@ -33,17 +34,18 @@ not copied.
 
 ```bash
 B="$(git rev-parse --show-toplevel)/implementation/closed-loop-driving-bench"
+mkdir -p .build
 g++ -std=c++17 -O2 -Wall -Wextra -Werror -I. -I$B/interfaces/include \
     tests/agent_logic_test.cpp agent_logic.cpp json_lite.cpp -o .build/agent_logic_test
-./.build/agent_logic_test                      # 640 checks, 0 failures
+./.build/agent_logic_test                      # 740 checks, 0 failures
 
 g++ -std=c++17 -O1 -g -Wall -Wextra -Werror -fsanitize=address,undefined \
     -fno-omit-frame-pointer -I. -I$B/interfaces/include \
     tests/agent_logic_test.cpp agent_logic.cpp json_lite.cpp -o .build/agent_logic_test_san
-./.build/agent_logic_test_san                  # 640 checks, 0 failures, no sanitizer report
+./.build/agent_logic_test_san                  # 740 checks, 0 failures, no sanitizer report
 
-python3 tests/test_records_against_evaluators.py   # 116 checks, 0 failures
-python3 mutations.py                               # 22 mutations, 22 killed
+python3 tests/test_records_against_evaluators.py   # 120 checks, 0 failures
+python3 tests/agent_logic_mutations.py             # 32 mutations, 32 killed, 0 not killed
 ```
 
 `tests/test_records_against_evaluators.py` writes three run directories under
@@ -128,11 +130,13 @@ record is written for the run's evidence, not for a verdict.
 ## Contradictions found (listed, not silently chosen; C2 and C3 resolved in review)
 
 **C1 — the sample index: integer frames vs DESIGN's rounding formula.**
-`agent/DESIGN.md:84` says `k = round((step capture time − plan capture time) / 0.1 s)`,
-a float division and rounding. `interfaces/ICD.md:28-31` (section 1) and the brief
-require frame arithmetic. The two agree whenever `captureTime == frame × 0.1`, which
-`interfaces/ICD.md:75` fixes (`plan_capture_ms = frame × 100`) and
-`payloads.h:77` repeats. Implemented: `PlanSampleIndex(step_frame, plan_frame)`,
+`agent/DESIGN.md` (commandVehicle) says
+`k = round((step capture time − plan capture time) / 0.1 s)`, a float division
+and rounding. `interfaces/ICD.md` (section 1, simulation time) and the brief
+require frame arithmetic. The two agree whenever `captureTime == frame × 0.1`,
+which the `plan_capture_ms` row of `interfaces/ICD.md` section 3 fixes
+(`= frame × 100`) and `DrivingPlanPayload::captureTime` in `payloads.h` repeats.
+Implemented: `PlanSampleIndex(step_frame, plan_frame)`,
 integer subtraction, clamped 0..63. Note the clamp is defensive: because
 REQ-DRIVING-026 stops at age > 300 ms, k in kDriving is 0..3, so 63 is unreachable
 through `Commander::Step`; `PlanSampleIndex` is public so the clamp is still
@@ -203,7 +207,7 @@ step frame, which is present, so the chain still closes.
 10. **`out.condition` is an extra record** (`bits`, `causes`, `input_conditions`)
     that the shell embeds in C2's `out.checkpoint_inputs`; it is not a
     replacement for that record, which still needs the per-camera metadata
-    VC-DRIVING-023 reads (`cases.py:233-257`).
+    VC-DRIVING-023 reads (`vc023` in `case-evaluators/cases.py`).
 
 ## Open questions
 
@@ -223,36 +227,52 @@ step frame, which is present, so the chain still closes.
 
 ## Mutation probes
 
-`mutations.py` applies one textual change at a time to `agent_logic.h`/`.cpp`,
-rebuilds with `-Werror`, runs the C++ test, and requires a failure. It records
-the line of the changed rule, restores the source in a `finally`, and compares
-SHA-256 with the pre-run values (plus an `.orig` recovery file if a run is
-killed). Latest run: **22 mutations, 22 killed, sources restored byte-identical**.
+`tests/agent_logic_mutations.py` applies one textual change at a time to
+`agent_logic.h`/`.cpp`, found by its text (exactly once), rebuilds with
+`-Werror`, runs the C++ test, and requires a failure. It restores the source in a
+`finally` and compares SHA-256 with the pre-run values (plus an `.orig` recovery
+file if a run is killed).
 
-| mutation | file:line | rule |
-|---|---|---|
-| camera stale threshold 200 → 300 ms | agent_logic.h:39 | REQ-DRIVING-023 |
-| camera stale `>` → `>=` | agent_logic.cpp:217 | REQ-DRIVING-023 boundary |
-| motion stale threshold 200 → 300 ms | agent_logic.h:41 | REQ-DRIVING-024 |
-| motion finiteness drops yawRate | agent_logic.cpp:227 | REQ-DRIVING-024 |
-| route stale threshold 1000 → 900 ms | agent_logic.h:43 | REQ-DRIVING-025 |
-| plan stale threshold 300 → 400 ms | agent_logic.h:45 | REQ-DRIVING-026 |
-| plan age `>` → `>=` | agent_logic.cpp:346 | REQ-DRIVING-026 boundary |
-| plan validity accepts 63 pairs | agent_logic.cpp:256 | REQ-DRIVING-027 |
-| plan validity drops the curvature check | agent_logic.cpp:259 | REQ-DRIVING-027 |
-| lowest cause → highest cause | agent_logic.cpp:184 | cause order |
-| first cause wins → overwritten | agent_logic.cpp:285 | latching |
-| kStarting lets a fault stop | agent_logic.cpp:332 | priming |
-| stop deceleration -4 → -5 | agent_logic.h:49 | REQ-DRIVING-020 |
-| standstill 0.1 → 0.2 km/h | agent_logic.h:51 | REQ-DRIVING-022 |
-| standstill `<` → `>` | agent_logic.cpp:357 | REQ-DRIVING-022 |
-| stop command drops the held steering | agent_logic.cpp:509 | REQ-DRIVING-021 |
-| sample index floor 0 → 1 | agent_logic.cpp:131 | k clamp |
-| sample index ceiling 63 → 62 | agent_logic.cpp:132 | k clamp |
-| steering rate limit doubled | agent_logic.cpp:492 | REQ-DRIVING-012 |
-| road-wheel angle clamp removed | agent_logic.cpp:491 | REQ-DRIVING-012 |
-| unknown command law accepted | agent_logic.cpp:418 | REQ-DRIVING-012 |
-| kRefused not permanent | agent_logic.cpp:328 | REQ-DRIVING-035 |
+How the table is produced: `bash tests/run_tests.sh --mutations` runs the script
+and keeps its output in `.build/logic_mutations.log`; the table below is that
+output, copied unchanged. *killed by* names the functions of
+`tests/agent_logic_test.cpp` that hold the failing checks, in the order they
+failed (at most three, then a count), and the number of failing checks
+(`tests/mutation_report.py`). The table holds no line numbers, so it changes only
+when a mutation, a rule or a test changes. Latest run (2026-11-11): **32
+mutations, 32 killed, 0 not killed, sources restored byte-identical**.
 
-Line numbers are from the run recorded here; `mutations.py` prints them fresh on
-every run.
+| mutation | rule | result | killed by |
+|---|---|---|---|
+| camera stale threshold 200 -> 300 ms | REQ-DRIVING-023 | killed | `TestConditionCameras`, `TestCameraHistoryLateImage`, `TestScenario` (14 failing checks) |
+| camera stale comparison > becomes >= | REQ-DRIVING-023 (200 ms must not trigger) | killed | `TestConditionCameras`, `TestCameraHistoryLateImage`, `TestScenario` (8 failing checks) |
+| motion stale threshold 200 -> 300 ms | REQ-DRIVING-024 | killed | `TestConditionMotionRoute` (2 failing checks) |
+| motion finiteness drops yawRate | REQ-DRIVING-024 (any non-finite field is invalid) | killed | `TestConditionMotionRoute` (2 failing checks) |
+| route stale threshold 1000 -> 900 ms | REQ-DRIVING-025 | killed | `TestConditionMotionRoute` (1 failing check) |
+| plan stale threshold 300 -> 400 ms | REQ-DRIVING-026 | killed | `TestSupervisorPlanAge`, `TestCommanderPlanStale`, `TestScenario` (11 failing checks) |
+| plan age comparison > becomes >= | REQ-DRIVING-026 (300 ms must not trigger) | killed | `TestSupervisorPlanAge`, `TestPlanInvalidOutranksStaleInOneStep`, `TestScenario` (9 failing checks) |
+| plan validity accepts 63 pairs | REQ-DRIVING-027 | killed | `TestPlanValidity`, `TestSupervisorStopLatching` (9 failing checks) |
+| plan validity drops the curvature check | REQ-DRIVING-027 (both pairs finite) | killed | `TestPlanValidity`, `TestSupervisorStopLatching`, `TestPlanInvalidOutranksStaleInOneStep` (6 failing checks) |
+| lowest cause becomes highest cause | REQ-DRIVING-020..-027 (deterministic cause order) | killed | `TestConditionCameras`, `TestSupervisorStopLatching` (2 failing checks) |
+| first cause wins: the latch is overwritten | REQ-DRIVING-029 / ICD 3 (cause latches) | killed | `TestSupervisorLatchApi`, `TestSupervisorRefusal` (2 failing checks) |
+| kStarting lets an input fault start the stop | REQ-DRIVING-023..-025 (priming faults do not stop) | killed | `TestSupervisorStart` (5 failing checks) |
+| stop deceleration -4 becomes -5 m/s^2 | REQ-DRIVING-020 | killed | `TestCommanderPlanStale`, `TestCommanderStopModes`, `TestScenario` (80 failing checks) |
+| standstill threshold 0.1 -> 0.2 km/h | REQ-DRIVING-022 | killed | `TestSupervisorStandstill` (3 failing checks) |
+| standstill comparison < becomes > | REQ-DRIVING-022 | killed | `TestSupervisorStopLatching`, `TestSupervisorStandstill`, `TestSupervisorLatchApi` and 1 more (9 failing checks) |
+| stop command drops the held steering | REQ-DRIVING-021 | killed | `TestCommanderStopModes`, `TestCommanderLimits`, `TestScenario` (8 failing checks) |
+| sample index clamp floor 0 -> 1 | REQ-DRIVING-026 (k = step - plan frame, clamped) | killed | `TestCommanderSampleIndexClamp` (3 failing checks) |
+| sample index clamp ceiling 63 -> 62 | REQ-DRIVING-026 (k clamped to 63) | killed | `TestCommanderSampleIndexClamp` (1 failing check) |
+| steering rate limit doubled | REQ-DRIVING-012 | killed | `TestCommanderLimits` (4 failing checks) |
+| road-wheel angle clamp removed | REQ-DRIVING-012 | killed | `TestCommanderLimits` (2 failing checks) |
+| unknown command law accepted as first_control | REQ-DRIVING-012 (configured law) | killed | `TestVehicleConfig` (2 failing checks) |
+| kRefused is not permanent | REQ-DRIVING-035 | killed | `TestSupervisorRefusal`, `TestRecords` (20 failing checks) |
+| stop command names the newest valid plan, not the held one | REQ-DRIVING-011, VC-DRIVING-022 (reference frozen at the stop) | killed | `TestCommanderStopModes`, `TestStopReferenceFrozenInScenario` (47 failing checks) |
+| plan age judged before an invalid arrival | REQ-DRIVING-027, VC-DRIVING-027 (cause order) | killed | `TestPlanInvalidOutranksStaleInOneStep` (1 failing check) |
+| an invalid plan outranks an input cause | cause order (inputs first) | killed | `TestPlanInvalidOutranksStaleInOneStep` (1 failing check) |
+| primed falls back to the step count when the engine did not condition the step | ICD A26 (priming.complete, VC-DRIVING-001) | killed | `TestStepPrimed` (2 failing checks) |
+| primed ignores the engine's answer | ICD A26 | killed | `TestStepPrimed` (1 failing check) |
+| the stand-in is primed one step early | ICD A26 (stand-in step count) | killed | `TestStepPrimed` (1 failing check) |
+| the stand-in step count wraps around before the first step | ICD A26 (no wrap-around) | killed | `TestStepPrimed` (1 failing check) |
+| pure pursuit takes sample k's position for the vehicle's | ICD A32 (the plan's own frame) | killed | `TestCommanderPurePursuit`, `TestPurePursuitAnchorsAtThePlanOrigin` (7 failing checks) |
+| pure pursuit turns the path into sample k's heading | ICD A32 (the plan's own frame) | killed | `TestCommanderPurePursuit`, `TestPurePursuitAnchorsAtThePlanOrigin` (8 failing checks) |
+| pure pursuit's target search starts at the first sample | ICD A32 (target after sample k) | killed | `TestPurePursuitAnchorsAtThePlanOrigin` (1 failing check) |

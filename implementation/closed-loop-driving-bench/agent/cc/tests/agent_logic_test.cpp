@@ -1,4 +1,4 @@
-// Tests of the DE4SDV driving agent's pure decision logic (slice 10b, WP2).
+// Tests of the DE4SDV driving agent's pure decision logic (slice 10b).
 //
 // Build and run (from the library root):
 //   g++ -std=c++17 -O2 -Wall -Wextra -Werror -I. -I<bench>/interfaces/include
@@ -833,7 +833,7 @@ void TestCommanderPlanStale() {
 
   // No plan handed over in kDriving: the stop response, kPlanStale reported. The
   // held steering was computed from plan 10, so the command names plan 10
-  // (REQ-DRIVING-011; orchestrator review, C2). With no driving command ever
+  // (REQ-DRIVING-011; C2 in agent_logic.md). With no driving command ever
   // computed, the reference is "none" (TestCommanderStopModes, fresh commander).
   const CommandStep no_plan =
       commander.Step(Mode::kDriving, nullptr, 20, CleanMotion(20, 36.0), 1.0);
@@ -881,9 +881,9 @@ void TestCommanderStopModes() {
   CHECK_TEXT(std::string(no_plan.command.planReference), "none");
   CHECK(!no_plan.has_plan_capture);
 
-  // Orchestrator review (C2 resolved): a stop command names the plan its held
-  // steering was computed from (REQ-021, -032), frozen when the stop begins, never
-  // a plan captured later (VC-022: no command from a plan made after T0).
+  // A stop command names the plan its held steering was computed from (C2 in
+  // agent_logic.md; REQ-021, -032), frozen when the stop begins, never a plan
+  // captured later (VC-022: no command from a plan made after T0).
   const DrivingPlanPayload later = MakePlan(12, 0.0, 0.1);
   const CommandStep after =
       commander.Step(Mode::kStopResponse, &later, 13, CleanMotion(13, 36.0), 1.3);
@@ -892,8 +892,8 @@ void TestCommanderStopModes() {
   CHECK_NEAR(after.command.steeringAngle, kFirstControl010Deg, 1e-5);
 }
 
-// Orchestrator review: inferPlan keeps planning after the stop began; every stop
-// command keeps naming the last plan a driving command was computed from.
+// inferPlan keeps planning after the stop began; every stop command keeps naming
+// the last plan a driving command was computed from (C2 in agent_logic.md).
 void TestStopReferenceFrozenInScenario() {
   Supervisor supervisor;
   Commander commander(DefaultConfig());
@@ -920,7 +920,7 @@ void TestStopReferenceFrozenInScenario() {
   CHECK_TEXT(driving_reference, "0123456789abcdef/114");
 }
 
-// Orchestrator review (C3 resolved): within one step, the input causes first,
+// The cause order within one step (C3 in agent_logic.md): the input causes first,
 // then the plan that arrived in this step, then the age of the newest valid plan.
 void TestPlanInvalidOutranksStaleInOneStep() {
   Supervisor supervisor;

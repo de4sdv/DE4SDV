@@ -1,5 +1,5 @@
 #!/bin/bash
-# WP2 stage 0 on P1: build drivingAgent (FEO + 4 Rust activities + C++ over FFI + mw::com) and
+# Stage 0 on P1: build drivingAgent (FEO + 4 Rust activities + C++ over FFI + mw::com) and
 # agent_tap with the S-CORE toolchain, then run one paced skeleton run:
 #   agent (fake 10 Hz frames -> pace datagrams -> one chain per frame) + agent_tap in a second
 #   process (mw::com across the process boundary), 30 s, then SIGINT.

@@ -112,8 +112,8 @@ def ego_motion_rows(poses: list[dict], origin) -> list[list[float]]:
 
 def rig_result(origin=RIG_ORIGIN) -> dict:
     """The `result` of drivingAgent's `rig` record, as set_rig returns it
-    (agent/cc/agent_ffi.cpp:854-885, agent/python/de4sdv_planner/__init__.py),
-    without the projection matrices."""
+    (`de4sdv_condition_startup` in agent/cc/agent_ffi.cpp,
+    agent/python/de4sdv_planner/__init__.py), without the projection matrices."""
     return {"engine": "checkpoint", "origin": list(origin),
             "origin_info": {"wheel_position_unit": "cm", "wheel_radius_m": 0.355,
                             "rear_wheels_vehicle_local_m": [
@@ -466,7 +466,7 @@ class RunBuilder:
 
     def _motion(self, f: int, st: dict) -> dict:
         """The step's motion sample in the shape the agent logs it
-        (agent/cc/agent_ffi.cpp:1088-1095): no valid/status field; a
+        (`de4sdv_condition_step` in agent/cc/agent_ffi.cpp): no valid/status field; a
         non-finite value is JSON null."""
         F = self.fault_onset()
         ct = f * STEP_MS
@@ -956,7 +956,7 @@ class RunBuilder:
                          "checkpointSha256": self.checkpoint_sha,
                          "geometry": "autoe2e-bev-450x300-0p4m-v1"},
                         tm0 - 0.8, tr0 - 0.8)
-        # the engine the agent built (agent/cc/agent_ffi.cpp:656-657)
+        # the engine the agent built (`BuildEngine` in agent/cc/agent_ffi.cpp)
         refused = self.scenario == "checkpointRefusal"
         self.logs.write("score/drivingAgent.jsonl", "score", "drivingAgent", "engine",
                         {"stage": "synthetic", "setup_s": 55.0, "refused": refused,
@@ -965,8 +965,8 @@ class RunBuilder:
                         tm0 - 0.6, tr0 - 0.6)
         if not refused:
             # the rig, before the first step, unless the checkpoint was refused
-            # (agent/cc/agent_ffi.cpp:854-885): its origin is the REF origin the
-            # ego-motion rows are worked out at
+            # (`de4sdv_condition_startup` in agent/cc/agent_ffi.cpp): its origin
+            # is the REF origin the ego-motion rows are worked out at
             self.logs.write("score/drivingAgent.jsonl", "score", "drivingAgent", "rig",
                             {"stage": "synthetic", "result": rig_result()},
                             tm0 - 0.5, tr0 - 0.5)
@@ -1069,14 +1069,14 @@ class RunBuilder:
             cam = {
                 "name": name,
                 # a camera without an image this step has null stamps
-                # (agent/cc/agent_ffi.cpp:1028-1033)
+                # (`de4sdv_condition_step` in agent/cc/agent_ffi.cpp)
                 "image_frame": int(round(ct_ms / STEP_MS)) if present else None,
                 "capture_sim_ms": ct_ms if present else None,
                 "arrival_mono_ns": ns(self.t_mono(f, 0.005)) if present else None,
                 "width": 512, "height": 512,
                 "valid": ok, "status": status,
                 # the agent writes the seven references every step, oldest
-                # first (agent/cc/agent_ffi.cpp:1041)
+                # first (`de4sdv_condition_step` in agent/cc/agent_ffi.cpp)
                 "history": [f - 5 * j for j in range(7, 0, -1)],
             }
             if name == "front":
@@ -1085,9 +1085,9 @@ class RunBuilder:
                 cam["front_hi_res"] = {"width": 1024, "height": 1024}
             cams.append(cam)
         camera_ok = all(c["valid"] and c["status"] == "ok" for c in cams)
-        # A26 (agent/cc/agent_ffi.cpp:997-1018, 1072-1073): a step with an input
-        # condition is not conditioned, and a step that is not conditioned is
-        # not primed.
+        # A26 (`de4sdv_condition_step` in agent/cc/agent_ffi.cpp, `StepPrimed` in
+        # agent_logic.cpp): a step with an input condition is not conditioned, and a
+        # step that is not conditioned is not primed.
         conditioned = camera_ok and ann is not None
         primed = conditioned and f >= self.prime
         hist = []
@@ -1095,7 +1095,8 @@ class RunBuilder:
             # The engine works the rows out from the poses of frames f-65 .. f,
             # moved to the rig origin (agent/DESIGN.md, "Ego-motion history"), so
             # row j is the sample of frame f-64+j and the newest row is frame f-1.
-            # The agent writes rows only for a conditioned step (agent_ffi.cpp:1049).
+            # The agent writes rows only for a conditioned step
+            # (`de4sdv_condition_step` in agent_ffi.cpp).
             # REQ-DRIVING-008 as amended on 2026-11-09 (GAP-DRIVING-010): yaw rate
             # and curvature are given as zero.
             poses = [ego_pose(self.states[g]) for g in range(f - EGO_POSE_WINDOW + 1, f + 1)]
@@ -1136,7 +1137,7 @@ class RunBuilder:
 
     def _write_checkpoint_inputs(self) -> None:
         # one record per step from the agent's first step, primed or not
-        # (agent/cc/agent_ffi.cpp:1020-1079)
+        # (`de4sdv_condition_step` in agent/cc/agent_ffi.cpp)
         for f in range(0, self.frames):
             self.logs.write("score/checkpointInputs.jsonl", "score",
                             "drivingAgent/conditionInputs", "out.checkpoint_inputs",

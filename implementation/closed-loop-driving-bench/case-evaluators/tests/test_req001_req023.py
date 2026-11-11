@@ -33,7 +33,7 @@ def drop_plans(d, frames):
 
 def merge_frame(d, frame):
     """Frame `frame` merged by FEO into the next step after an overrun (ICD A23,
-    agent/cc/agent_ffi.cpp:575-623): no C2 step record and no plan of its own;
+    `ConditionMerged` in agent/cc/agent_ffi.cpp): no C2 step record and no plan of its own;
     the next step's C2 record lists it under mergedFrames."""
     def fn(data):
         if data["frame"] == frame:
@@ -115,7 +115,7 @@ MISSING_IMAGE = {"image_frame": None, "capture_sim_ms": None, "arrival_mono_ns":
 
 def set_camera(d, frames, slot, **fields):
     """Rewrite camera `slot` of the C2 records of `frames`
-    (agent/cc/agent_ffi.cpp:1024-1043)."""
+    (`de4sdv_condition_step` in agent/cc/agent_ffi.cpp)."""
     def fn(data):
         if data["frame"] in frames:
             data["cameras"][slot].update(fields)
