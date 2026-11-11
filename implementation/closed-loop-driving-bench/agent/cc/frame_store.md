@@ -1,4 +1,4 @@
-# Frame store (DE4SDV INC-DRIVING-001, slice 10b, WP2)
+# Frame store (DE4SDV INC-DRIVING-001, slice 10b)
 
 The shared object between the LibCarla glue and the FEO input activity: one
 ring of preallocated slots keyed by the CARLA world frame number, each holding
@@ -12,38 +12,39 @@ it does not include `payloads.h`, so the consumer converts
 
 ## Files
 
-| File | Lines | Contents |
-|---|---|---|
-| `frame_store.h` | 289 | `HeroSnapshot`, `FrameView`, `FrameHandle`, `CountersSnapshot`, `FrameStore` |
-| `frame_store.cpp` | 408 | slot allocation, readiness, deadline sweep, consumer handover |
-| `pace_signal.h` | 52 | `PaceSignal`, payload codec, `FEO_PACE_SOCKET` lookup |
-| `pace_signal.cpp` | 80 | one non-blocking AF_UNIX `SOCK_DGRAM` sender |
-| `tests/frame_store_test.cpp` | 929 | 21 unit tests, 513 checks |
-| `tests/stress_test.cpp` | 320 | 9 threads, 2000 frames, 16 invariants |
-| `mutations.py` | 225 | 16 single-point mutation probes |
+| File | Contents |
+|---|---|
+| `frame_store.h` | `HeroSnapshot`, `FrameView`, `FrameHandle`, `CountersSnapshot`, `FrameStore` |
+| `frame_store.cpp` | slot allocation, readiness, deadline sweep, consumer handover |
+| `pace_signal.h` | `PaceSignal`, payload codec, `FEO_PACE_SOCKET` lookup |
+| `pace_signal.cpp` | one non-blocking AF_UNIX `SOCK_DGRAM` sender |
+| `tests/frame_store_test.cpp` | 26 unit tests, 685 checks |
+| `tests/frame_store_stress_test.cpp` | 9 threads, 2000 frames, 17 checks |
+| `tests/frame_store_mutations.py` | 27 single-point mutation probes; `tests/mutation_report.py` prints their table |
 
 ## Build and run
 
 ```bash
+mkdir -p .build
 g++ -std=c++17 -O2 -Wall -Wextra -Werror -pthread -I. \
     tests/frame_store_test.cpp frame_store.cpp pace_signal.cpp -o .build/frame_store_test
 g++ -std=c++17 -O2 -Wall -Wextra -Werror -pthread -I. \
-    tests/stress_test.cpp frame_store.cpp pace_signal.cpp -o .build/stress_test
+    tests/frame_store_stress_test.cpp frame_store.cpp pace_signal.cpp -o .build/stress_test
 ./.build/frame_store_test && ./.build/stress_test
 
 # ThreadSanitizer
 g++ -std=c++17 -O1 -g -fsanitize=thread -Wall -Wextra -Werror -pthread -I. \
-    tests/stress_test.cpp frame_store.cpp pace_signal.cpp -o .build/stress_test_tsan
+    tests/frame_store_stress_test.cpp frame_store.cpp pace_signal.cpp -o .build/stress_test_tsan
 ./.build/stress_test_tsan
 
 # AddressSanitizer + UndefinedBehaviorSanitizer
 g++ -std=c++17 -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer \
     -Wall -Wextra -Werror -pthread -I. \
-    tests/stress_test.cpp frame_store.cpp pace_signal.cpp -o .build/stress_test_asan
+    tests/frame_store_stress_test.cpp frame_store.cpp pace_signal.cpp -o .build/stress_test_asan
 ./.build/stress_test_asan
 
 # mutation probes (rebuilds and restores the sources itself)
-python3 mutations.py
+python3 tests/frame_store_mutations.py   # 27 mutations, 0 survived
 ```
 
 ## Behaviour
@@ -125,38 +126,52 @@ paths all actually fired.
 
 ## Mutation probes
 
-`python3 tests/frame_store_mutations.py` applies each edit, rebuilds both tests, runs them
-(stress at `STRESS_FRAMES=800`), restores the sources and verifies their
-SHA-256. All 25 are killed by the unit tests; none survives. M17 to M25 probe
-the merged take (agent `DESIGN.md`, "Merged frames").
+`python3 tests/frame_store_mutations.py` applies each edit, found by its text
+(exactly once), rebuilds both tests, runs them (stress at `STRESS_FRAMES=800`),
+restores the sources and verifies their SHA-256. M17 to M25 probe the merged take
+(agent `DESIGN.md`, "Merged frames"), M26 and M27 the snapshot sink.
 
-| # | Mutation | Location | Killed |
+How the table is produced: `bash tests/run_tests.sh --mutations` runs the script
+and keeps its output in `.build/frame_store_mutations.log`; the table below is
+that output, copied unchanged. *rule* is the behaviour above that the mutation
+breaks. *killed by* names the test that failed (`unit`: `tests/frame_store_test.cpp`;
+`stress`: `tests/frame_store_stress_test.cpp`, reported only when the unit test
+passes), the functions that hold its failing checks, in the order they failed (at
+most three, then a count), and the number of failing checks
+(`tests/mutation_report.py`). A lower-case name such as `complete-slot` or
+`overflow` is the label of an accounting-identity check (`CheckAccounting`),
+which prints a label instead of a line. The table holds no line numbers. Latest
+run (2026-11-11): **27 mutations, 0 survived**; the unit test kills all 27.
+
+| mutation | rule | result | killed by |
 |---|---|---|---|
-| M01 | deadline 95 ms -> 195 ms | `frame_store.h:34` | yes |
-| M02 | readiness needs 5 cameras, not 6 | `frame_store.cpp:151` | yes |
-| M03 | skip not counted in `RetireLocked` | `frame_store.cpp:371` | yes |
-| M04 | late image may modify a ready slot | `frame_store.cpp:125` | yes |
-| M05 | `late_images` not incremented for a ready slot | `frame_store.cpp:127` | yes |
-| M06 | eviction picks the newest, not the oldest | `frame_store.cpp:332` | yes |
-| M07 | newest-ready picks the oldest | `frame_store.cpp:348` | yes |
-| M08 | second `Take` without `Release` allowed | `frame_store.cpp:180` | yes |
-| M09 | poll re-marks ready slots (double signal) | `frame_store.cpp:167` | yes |
-| M10 | size validation always valid | `frame_store.cpp:145` | yes |
-| M11 | pace payload big-endian | `pace_signal.cpp:21` | yes |
-| M12 | deadline fires one nanosecond late | `frame_store.cpp:168` | yes |
-| M13 | overflow not counted | `frame_store.cpp:72` | yes |
-| M14 | `skipCounted` guard removed (double count) | `frame_store.cpp:371` | yes |
-| M15 | a retired frame may be resurrected by an image | `frame_store.cpp:112` | yes |
-| M16 | `Take` retires only ready slots, not filling ones | `frame_store.cpp:221` | yes |
-| M17 | merged frames never handed over | `frame_store.cpp:198` | yes |
-| M18 | merged frames handed over newest first | `frame_store.cpp:229` | yes |
-| M19 | merged cap one lower | `frame_store.cpp:199` | yes |
-| M20 | merged slot not locked | `frame_store.cpp:231` | yes |
-| M21 | merged frame not counted | `frame_store.cpp:231` | yes |
-| M22 | `Release` leaves the take locked | `frame_store.cpp:259` | yes |
-| M23 | a filling older frame may be merged | `frame_store.cpp:203` | yes |
-| M24 | merged picks the oldest older frames, not the newest | `frame_store.cpp:207` | yes |
-| M25 | the take retires its own merged slots | `frame_store.cpp:219` | yes |
+| M01 deadline 95 ms -> 195 ms | ready by deadline: the snapshot's arrival + 95 ms | killed | unit: `TestConfigDefaults`, `TestCompleteSlot` (3 failing checks) |
+| M02 readiness needs 5 cameras, not 6 | ready by completeness: the snapshot and all six images | killed | unit: `TestCompleteSlot`, `TestImageBeforeSnapshot`, `TestInvalidSizeImage` and 5 more (50 failing checks) |
+| M03 skip not counted in RetireLocked | accounting (R): a ready slot retired untaken counts as skipped | killed | unit: `TestNewestReadySelectionAndSkips`, `newest-selection`, `TestReadySlotEvictedIsSkipped` and 3 more (9 failing checks) |
+| M04 late image may modify a ready slot | ready slots are immutable | killed | unit: `TestLateImageAfterReady` (5 failing checks) |
+| M05 late_images not incremented for a ready slot | a late image is dropped and counted | killed | unit: `TestLateImageAfterReady`, `TestDuplicateSnapshotAndImage` (2 failing checks) |
+| M06 eviction picks the newest, not the oldest | eviction takes the oldest evictable slot | killed | unit: `TestImageOnlyFrameAgesOutByEviction`, `FeedAllImages`, `TestEvictionPicksOldest` (9 failing checks) |
+| M07 newest-ready picks the oldest | the consumer takes the newest ready slot | killed | unit: `TestNewestReadySelectionAndSkips`, `newest-selection`, `TestEvictionPicksOldest` and 3 more (21 failing checks) |
+| M08 second Take without Release allowed | one take at a time | killed | unit: `TestMisuse` (3 failing checks) |
+| M09 poll re-marks ready slots | the ready sink runs once per slot that becomes ready | killed | unit: `TestDeadlineSlot`, `deadline-slot`, `TestSinkCalledExactlyOncePerSlot` and 1 more (17 failing checks) |
+| M10 size validation always valid | presence, not validity: an image of the wrong size is present and invalid | killed | unit: `TestInvalidSizeImage` (1 failing check) |
+| M11 pace payload big-endian | the pace datagram is the 8-byte little-endian frame number | killed | unit: `TestPaceDatagram`, `TestReadySendsOnePaceDatagram`, `TestPacePayloadCodec` (8 failing checks) |
+| M12 deadline fires one nanosecond late | ready by deadline: now >= deadline fires | killed | unit: `TestDeadlineSlot`, `TestLateImageAfterReady`, `TestSinkCalledExactlyOncePerSlot` and 1 more (20 failing checks) |
+| M13 overflow not counted | overflow is counted | killed | unit: `TestOverflowWhenNothingEvictable` (1 failing check) |
+| M14 skipCounted guard removed (double count) | accounting (R): a skipped slot counts once | killed | unit: `TestCompleteSlot`, `complete-slot`, `TestDeadlineSlot` and 14 more (18 failing checks) |
+| M15 a retired frame may be resurrected by an image | the take raises the retire floor: data for a retired frame is late | killed | unit: `TestLateImageAfterReady`, `TestTakeRetiresOlderSlots`, `TestTakeHandsOverMergedFrames` and 1 more (11 failing checks) |
+| M16 Take retires only ready slots, not filling ones | the take retires every older slot, filling ones as dropped_incomplete | killed | unit: `TestTakeRetiresOlderSlots`, `TestMergedSkipsFillingFrames` (7 failing checks) |
+| M17 merged frames never handed over | merged take: the older ready slots are handed over | killed | unit: `TestTakeHandsOverMergedFrames`, `TestMergedFramesAreCapped`, `TestMergedSkipsFillingFrames` (6 failing checks) |
+| M18 merged frames handed over newest first | merged take: oldest first | killed | unit: `TestTakeHandsOverMergedFrames`, `TestMergedFramesAreCapped` (7 failing checks) |
+| M19 merged cap one lower | merged take: at most kMaxMerged (4) | killed | unit: `TestMergedFramesAreCapped` (6 failing checks) |
+| M20 merged slot not locked | merged take: each merged slot is locked | killed | unit: `TestTakeHandsOverMergedFrames`, `merged-locked`, `merged-released` and 2 more (7 failing checks) |
+| M21 merged frame not counted | merged take: each merged slot counts as merged | killed | unit: `TestTakeHandsOverMergedFrames`, `merged-locked`, `merged-released` and 4 more (8 failing checks) |
+| M22 Release leaves the take locked | one take at a time: Release ends the take | killed | unit: `TestNewestReadySelectionAndSkips`, `TestOverflowWhenNothingEvictable`, `overflow` and 1 more (4 failing checks) |
+| M23 a filling older frame may be merged | merged take: ready slots only | killed | unit: `TestMergedSkipsFillingFrames`, `merged-filling` (4 failing checks) |
+| M24 merged picks the oldest older frames, not the newest | merged take: the newest of the older ready slots | killed | unit: `TestMergedFramesAreCapped` (4 failing checks) |
+| M25 the take retires its own merged slots | merged take: a merged slot is handed over, not retired | killed | unit: `TestTakeHandsOverMergedFrames`, `merged-locked`, `merged-released` and 4 more (18 failing checks) |
+| M26 the snapshot sink gets the frame's deadline, not its arrival | the snapshot sink gets (frame, snapshot, arrival) | killed | unit: `TestSnapshotSinkPerAcceptedSnapshot` (1 failing check) |
+| M27 the snapshot sink runs after the ready sink | the snapshot sink runs before the ready sink | killed | unit: `TestSnapshotSinkBeforeReadySink` (1 failing check) |
 
 ## Decisions taken beyond the brief
 
@@ -190,7 +205,9 @@ the merged take (agent `DESIGN.md`, "Merged frames").
    and never from the image arrival: a camera that never arrives still yields
    a ready slot at the deadline.
 9. **No thread of its own.** Deadline polling is owner-driven, as the brief
-   asks; the orchestrator's 5 ms timer calls `PollDeadlines(now)`.
+   asks: every 5 ms the sweep thread that `CarlaSource::Start`
+   (`carla_source.cpp`) starts calls `PollDeadlines(now)`, and with the fake
+   world `FakeWorld::PollLoop` (`agent_ffi.cpp`) does.
 10. **`PaceSignal` binds nothing.** A datagram sender needs no address; the
     kernel autobinds. `MSG_NOSIGNAL` keeps a vanished peer from raising
     SIGPIPE. The socket is created in the constructor, so a `sendto` costs one

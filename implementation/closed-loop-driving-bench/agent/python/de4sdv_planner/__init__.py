@@ -1,4 +1,4 @@
-"""drivingAgent's embedded planner package (INC-DRIVING-001 slice 10b, WP2; DESIGN.md).
+"""drivingAgent's embedded planner package (INC-DRIVING-001 slice 10b; DESIGN.md).
 
 Called from C++ (cc/planner_bridge.cpp) on FEO worker 40, in this order:
   setup(config_json) -> json        inferPlan startup: checkpoint identity first (REQ-DRIVING-035),

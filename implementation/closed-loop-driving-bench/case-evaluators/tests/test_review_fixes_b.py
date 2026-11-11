@@ -119,7 +119,8 @@ def test_vc017_stopped_health_with_its_cause_passes(run_for, tmp_path, mode):
 # REQ-DRIVING-030: "Met when every camera image and motion sample in the
 # records of a run of SC-DRIVING-001 carries a capture time marked as
 # simulation time." A camera slot without an image at its step has status
-# "missing" and null stamps (ICD A28; agent/cc/agent_ffi.cpp:552, 1039-1044).
+# "missing" and null stamps (ICD A28; `CameraStatus` and the C2 record of
+# `de4sdv_condition_step` in agent/cc/agent_ffi.cpp).
 # Every other status the agent writes ("valid", "invalid", "stale") describes
 # an image of the records, which must carry its capture_sim_ms.
 C2 = "score/checkpointInputs.jsonl"

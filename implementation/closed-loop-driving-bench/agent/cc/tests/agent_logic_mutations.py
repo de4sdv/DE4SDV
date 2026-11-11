@@ -5,8 +5,11 @@ Each entry changes exactly one rule of the library, rebuilds the C++ test, and
 requires at least one test to fail. The source is restored after every probe and
 its SHA-256 is compared with the pre-run value at the end.
 
-    python3 mutations.py
+    python3 tests/agent_logic_mutations.py
 
+(`tests/run_tests.sh --mutations` runs it and writes its output to
+`.build/logic_mutations.log`.) It prints one table row per mutation: the rule it
+breaks, the result and the tests that killed it (`mutation_report.py`).
 Exit status 0 when every mutant is killed and the restored sources are intact.
 """
 from __future__ import annotations
@@ -16,6 +19,9 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from mutation_report import killed_by, print_table  # noqa: E402
 
 # The unit lives in agent/cc/; this script and the tests in agent/cc/tests/.
 HERE = Path(__file__).resolve().parents[1]
@@ -181,7 +187,7 @@ MUTATIONS = [
         "    mode_ = Mode::kStarting;\n  } else if (mode_ == Mode::kStarting) {",
         "REQ-DRIVING-035",
     ),
-    # Added in the orchestrator's review (README, C2 and C3 resolved).
+    # C2 and C3 of agent_logic.md ("Contradictions found"): the plan a stop command names, and the cause order.
     (
         "stop command names the newest valid plan, not the held one",
         "agent_logic.cpp",
@@ -317,7 +323,7 @@ def main() -> int:
         original = path.read_text()
         count = original.count(old)
         if count != 1:
-            rows.append((name, f"{filename}:?", "NOT APPLIED", rule, f"{count} matches"))
+            rows.append((name, rule, "NOT APPLIED", f"{count} matches", filename))
             continue
         line = original[: original.index(old)].count("\n") + 1
         backup = path.with_suffix(path.suffix + ".orig")
@@ -326,32 +332,30 @@ def main() -> int:
         try:
             compiled, build_error = build(MUTANT_BIN)
             if not compiled:
-                rows.append((name, f"{filename}:{line}", "BUILD ERROR", rule, build_error))
+                rows.append((name, rule, "BUILD ERROR", build_error, f"{filename}:{line}"))
                 continue
             run = subprocess.run([str(MUTANT_BIN)], capture_output=True, text=True)
-            summary = ""
-            if run.stdout.strip():
-                summary = run.stdout.strip().splitlines()[-1]
-            rows.append((name, f"{filename}:{line}",
-                         "killed" if run.returncode != 0 else "SURVIVED", rule, summary))
+            if run.returncode != 0:
+                rows.append((name, rule, "killed", killed_by(run.stdout + run.stderr, run.returncode),
+                             f"{filename}:{line}"))
+            else:
+                summary = run.stdout.strip().splitlines()[-1] if run.stdout.strip() else ""
+                rows.append((name, rule, "SURVIVED", summary, f"{filename}:{line}"))
         finally:
             path.write_text(original)
             backup.unlink()
 
     restored = all(sha(HERE / name) == digest for name, digest in pristine.items())
 
-    width = max(len(r[0]) for r in rows)
     print()
-    print("| mutation" + " " * (width - 8) + " | file:line | result | rule |")
-    print("|" + "-" * (width + 2) + "|---|" + "---|" + "---|")
-    for name, where, result, rule, detail in rows:
-        print(f"| {name:<{width}} | {where} | {result} | {rule} |")
+    print_table([(name, rule, result, by if result == "killed" else "")
+                 for name, rule, result, by, _ in rows])
     survivors = [r for r in rows if r[2] != "killed"]
     print()
     print(f"{len(rows)} mutations, {len(rows) - len(survivors)} killed, {len(survivors)} not killed")
     print(f"sources restored byte-identical: {restored}")
     if survivors:
-        for name, where, result, rule, detail in survivors:
+        for name, rule, result, detail, where in survivors:
             print(f"  - {name} ({where}): {result} {detail}")
         return 1
     return 0 if restored else 1

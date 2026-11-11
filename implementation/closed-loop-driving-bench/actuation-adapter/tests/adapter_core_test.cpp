@@ -390,6 +390,11 @@ void TestStopNeverThrottlesWhenTheVehicleSlowsFasterThanTheStop() {
   CHECK(stop.stopBegan);
   int throttle_ticks = 0, brake_ticks = 0, ticks = 0;
   double max_throttle = 0.0;
+  // Counted and printed, not checked: a tick whose error calls for less brake but not for throttle is left
+  // to the speed tracking, so the brake is below the stop's feedforward on some ticks of this contact.
+  constexpr double kStopFeedforwardBrake = (4.0 - 0.5) / 10.0;  // the test table's row at -4 m/s^2
+  int below_feedforward = 0;
+  double min_brake = 1.0;
   bool standstill = false;
   for (int step = 0; step < 60 && !standstill; ++step) {
     const ActuationOutput out = bench.StepNoCommand();
@@ -397,12 +402,15 @@ void TestStopNeverThrottlesWhenTheVehicleSlowsFasterThanTheStop() {
     if (out.control.throttle > 0.0) ++throttle_ticks;
     if (out.control.throttle > max_throttle) max_throttle = out.control.throttle;
     if (out.control.brake > 0.0) ++brake_ticks;
+    if (out.control.brake < kStopFeedforwardBrake - 1e-9) ++below_feedforward;
+    min_brake = std::min(min_brake, out.control.brake);
     standstill = out.standstillReached || bench.adapter.StandstillHold();
     // The contact: 1.5 m/s per tick (15 m/s^2) down to 1 m/s, where the vehicle is held against it.
     bench.car.speed_mps = std::max(1.0, bench.car.speed_mps - 1.5);
   }
-  std::printf("STOP_CONTACT ticks=%d throttle_ticks=%d max_throttle=%.3f brake_ticks=%d\n", ticks, throttle_ticks,
-              max_throttle, brake_ticks);
+  std::printf("STOP_CONTACT ticks=%d throttle_ticks=%d max_throttle=%.3f brake_ticks=%d below_feedforward=%d "
+              "min_brake=%.4f\n",
+              ticks, throttle_ticks, max_throttle, brake_ticks, below_feedforward, min_brake);
   CHECK(throttle_ticks == 0);
   CHECK(brake_ticks == ticks);
   // Released at 1 m/s, the vehicle is braked to standstill and held there.
@@ -411,6 +419,89 @@ void TestStopNeverThrottlesWhenTheVehicleSlowsFasterThanTheStop() {
     CHECK(out.control.throttle == 0.0);
   }
   CHECK(bench.adapter.StandstillHold());
+  CHECK(bench.adapter.StopLatched());
+}
+
+// REQ-DRIVING-020: when a contact makes the speed error call for throttle, the stop keeps no forward part of
+// the integral and brakes with at least the feedforward of its deceleration. The integral is wound forward
+// first: the stop begins at 25 m/s, above the 10 m/s at which the test table is exact, so the vehicle's drag
+// adds to the feedforward's deceleration, the vehicle falls below the stop's profile and the PI integrates
+// that error. The contact then takes the vehicle down to 5 m/s within one tick and releases it there.
+void TestStopBrakesWithAtLeastItsFeedforwardAfterAContact() {
+  constexpr double kStopFeedforwardBrake = (4.0 - 0.5) / 10.0;  // the test table's row at -4 m/s^2
+  constexpr double kSpeedKp = 0.20;                               // TestConfigJson's gains
+  constexpr double kSpeedKi = 0.10;
+  Bench bench(MakeTestConfig());
+  bench.car.speed_mps = 25.0;
+  for (int step = 0; step < 6; ++step) bench.StepWithCommand(0.0, 3.0);
+  ActuationOutput stop;
+  int guard = 0;
+  do {
+    stop = bench.StepNoCommand();
+  } while (!stop.stopBegan && ++guard < 10);
+  CHECK(stop.stopBegan);
+  // Two seconds of the stop, 25 to about 16 m/s. The integral each output implies (the PI law of the README:
+  // effort = feedforward + kp * error + ki * integral, the error clamped to +-5 m/s).
+  double integral = 0.0;
+  for (int step = 0; step < 20; ++step) {
+    const double speed_seen = bench.car.speed_mps;
+    const ActuationOutput out = bench.StepNoCommand();
+    CHECK(out.control.throttle == 0.0);
+    const double error =
+        std::min(5.0, std::max(-5.0, bench.adapter.ReferenceSpeedMps() - speed_seen));
+    integral = (out.control.throttle - out.control.brake + kStopFeedforwardBrake - kSpeedKp * error) /
+               kSpeedKi;
+  }
+  CHECK(integral > 0.1);  // wound forward before the contact
+  const double speed_at_contact = bench.car.speed_mps;
+  bench.car.speed_mps = 5.0;  // the contact
+  int ticks = 0, throttle_ticks = 0, below_feedforward = 0;
+  double min_brake = 1.0;
+  bool standstill = false;
+  for (int step = 0; step < 100 && !standstill; ++step) {
+    const ActuationOutput out = bench.StepNoCommand();
+    ++ticks;
+    if (out.control.throttle > 0.0) ++throttle_ticks;
+    if (out.control.brake < kStopFeedforwardBrake - 1e-9) ++below_feedforward;
+    min_brake = std::min(min_brake, out.control.brake);
+    standstill = out.standstillReached || bench.adapter.StandstillHold();
+  }
+  std::printf(
+      "STOP_CONTACT_WOUND integral_before=%+.4f speed_at_contact=%.2f ticks=%d throttle_ticks=%d "
+      "below_feedforward=%d min_brake=%.4f feedforward=%.4f\n",
+      integral, speed_at_contact, ticks, throttle_ticks, below_feedforward, min_brake, kStopFeedforwardBrake);
+  CHECK(standstill);
+  CHECK(throttle_ticks == 0);
+  CHECK(below_feedforward == 0);
+}
+
+// REQ-DRIVING-020: the stop applies no throttle even when the table's feedforward at the stop's deceleration
+// is a throttle. That is the case when the stop is gentler than the vehicle's drag: on a vehicle configured
+// to brake at most 0.25 m/s^2 the stop decelerates at 0.25 m/s^2, and the test table (the built-in one) needs
+// throttle 0.05 for that at 10 m/s. Every tick after the one that begins the stop is checked; the beginning
+// tick is computed by BeginStopLocked, which does not take this path (its throttle is printed).
+void TestStopNeverThrottlesWhenItsFeedforwardIsAThrottle() {
+  Bench bench(MakeTestConfig(35.0, 0.25));
+  CHECK_NEAR(bench.adapter.config().StopAccelerationMps2(), -0.25, 1e-12);
+  bench.car.speed_mps = 10.0;
+  for (int step = 0; step < 6; ++step) bench.StepWithCommand(0.0, 3.0);
+  ActuationOutput stop;
+  int guard = 0;
+  do {
+    stop = bench.StepNoCommand();
+  } while (!stop.stopBegan && ++guard < 10);
+  CHECK(stop.stopBegan);
+  int ticks = 0, throttle_ticks = 0;
+  double max_throttle = 0.0;
+  for (int step = 0; step < 30; ++step) {
+    const ActuationOutput out = bench.StepNoCommand();
+    ++ticks;
+    if (out.control.throttle > 0.0) ++throttle_ticks;
+    max_throttle = std::max(max_throttle, out.control.throttle);
+  }
+  std::printf("STOP_THROTTLE_FEEDFORWARD begin_throttle=%.4f ticks=%d throttle_ticks=%d max_throttle=%.4f\n",
+              stop.control.throttle, ticks, throttle_ticks, max_throttle);
+  CHECK(throttle_ticks == 0);
   CHECK(bench.adapter.StopLatched());
 }
 
@@ -945,6 +1036,8 @@ int main(int argc, char** argv) {
   TestInvalidCommandsDoNotFeedTheWatchdog();
   TestStopToStandstillAndHold();
   TestStopNeverThrottlesWhenTheVehicleSlowsFasterThanTheStop();
+  TestStopBrakesWithAtLeastItsFeedforwardAfterAContact();
+  TestStopNeverThrottlesWhenItsFeedforwardIsAThrottle();
   TestInvalidCommandsAreRejected();
   TestSteeringMappingSignsAndClamps();
   TestSteeringTurnsTheWheelsByTheCommandedAngle();

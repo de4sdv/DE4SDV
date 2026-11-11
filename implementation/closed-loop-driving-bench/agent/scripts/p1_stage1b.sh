@@ -1,5 +1,5 @@
 #!/bin/bash
-# WP2 stage 1b on P1: drivingAgent with the decision logic (agent_logic), the frame store fed by the
+# Stage 1b on P1: drivingAgent with the decision logic (agent_logic), the frame store fed by the
 # fake world, the run record, and the embedded CPython planner (stub engine: numpy only, no GPU).
 #   A nominal          30 s   starting -> driving at the full 66-pose window, no stop
 #   B camera_missing   15 s   cam_front_right withheld from frame 5080: stop at 5080, kCameraMissing

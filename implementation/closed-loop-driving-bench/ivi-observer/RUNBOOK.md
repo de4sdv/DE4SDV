@@ -268,11 +268,17 @@ publisher per unit (`-plan`, `-vehicle-state`, `-health`). The broker's own erro
 "$ADB" -s 0.0.0.0:6521 shell 'grep -c 4df0 /vendor/etc/someip/vsomeip_config.json'   # >= 1
 "$ADB" -s 0.0.0.0:6521 logcat -d -s someip_broker_agent | grep -E \
   'Encountered error|Unable to build|Failed to create publisher|Couldn.t get publication|Error processing|Error translating|No publication metadata|no known mapping'
-"$ADB" -s 0.0.0.0:6521 shell 'ip rule add to 192.168.98.0/24 lookup main priority 15000'   # every boot (the AEBS bench's buried_eth0 note)
+"$ADB" -s 0.0.0.0:6521 shell 'ip rule add to 192.168.98.0/24 lookup main priority 15000'   # every boot, see below
 ```
 
 Expected: no broker error line names 0x4df0 or `de4sdv-driving-operational-state-*`.
 `Failed to create publisher with service_unit_name ...` is RISKS R4.
+The `ip rule` line is the guest route of the broker-path bench,
+`implementation/score-broker-path-bench/scripts/set_ivi_clock.sh`
+(`_ensure_route_to_host`): a guest's default network is `buried_eth0` and each
+network has its own routing table, so the bench subnet 192.168.98.0/24 resolves
+through `buried_eth0` and is unreachable, although `eth1` carries it, until a
+rule sends it to the main table. The rule does not survive a reboot.
 
 Then the payload itself — this is where option B is decided:
 

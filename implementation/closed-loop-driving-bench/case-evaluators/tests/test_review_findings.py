@@ -71,7 +71,7 @@ def write_run(root, record: dict, files: dict) -> Path:
 
 
 def agent_sample(frame: int, capture_frame: int | None = None, speed=18.0) -> tuple:
-    """out.ego_motion_sample as agent/cc/agent_ffi.cpp:1088-1095 writes it."""
+    """out.ego_motion_sample as `de4sdv_condition_step` (agent/cc/agent_ffi.cpp) writes it."""
     cf = frame if capture_frame is None else capture_frame
     return ("out.ego_motion_sample",
             {"stage": "synthetic", "speed": speed, "longitudinalAcceleration": 0.0,
@@ -101,8 +101,8 @@ def agent_stop_begin(frame: int, cause: str) -> tuple:
 
 # ------------------------------------------------------------------ R1
 # The agent logs the motion sample of each step as out.ego_motion_sample, with
-# the step frame and a clocks entry (agent/cc/agent_ffi.cpp:1088-1095). No
-# producer writes in.ego_motion.
+# the step frame and a clocks entry (`de4sdv_condition_step` in
+# agent/cc/agent_ffi.cpp). No producer writes in.ego_motion.
 def test_r1_fixture_writes_the_agents_ego_motion_sample_record(run_for):
     path = run_for("nominal").root / AGENT
     names = Counter(r["event"] for r in records(path))
@@ -128,7 +128,8 @@ def test_r1_evaluator_reads_out_ego_motion_sample(run_for, tmp_path):
 
 # ------------------------------------------------------------------ R9
 # Real runs start at frame 48 or 5000, so a record index is not a frame. The
-# motion sample carries its step frame (agent/cc/agent_ffi.cpp:1094).
+# motion sample carries its step frame (`de4sdv_condition_step` in
+# agent/cc/agent_ffi.cpp).
 def motion_stale_run(tmp_path, first=5000, last=5100, frozen_from=5050, stop_at=5052,
                      prime=5010, name="motion-stale"):
     agent = [("priming.complete", {"stage": "synthetic", "frame": prime,
@@ -161,10 +162,27 @@ def test_r9_vc024_same_run_from_frame_zero_gives_the_same_frame(tmp_path):
     assert res.measured["condition_frame"] == 52
 
 
+# A motion sample without its step frame leaves VC-DRIVING-024 without
+# evidence, and the note names the function that writes the frame.
+def test_vc024_a_motion_sample_without_its_step_frame_is_missing_evidence(tmp_path):
+    d = motion_stale_run(tmp_path, name="no-step-frame")
+
+    def drop_frame(data):
+        if data.get("frame") == 5060:
+            data = {k: v for k, v in data.items() if k != "frame"}
+        return data
+    assert edit_jsonl(d / AGENT, "out.ego_motion_sample", drop_frame) == 1
+    res = verdict(Run(d), "VC-DRIVING-024")
+    assert res.outcome == cases.INCONCL, (res.outcome, res.missing, res.notes)
+    assert res.missing == ["out.ego_motion_sample.frame"]
+    assert res.notes == ["a motion sample does not name its step frame "
+                         "(de4sdv_condition_step in agent/cc/agent_ffi.cpp writes it)"]
+
+
 # ------------------------------------------------------------------ R14
 # A camera with no image at a step is written with null image_frame,
-# capture_sim_ms and arrival_mono_ns (agent/cc/agent_ffi.cpp:1028-1033): it is
-# not an image, so it carries no capture time to mark.
+# capture_sim_ms and arrival_mono_ns (`de4sdv_condition_step` in
+# agent/cc/agent_ffi.cpp): it is not an image, so it carries no capture time to mark.
 def test_r14_vc030_skips_a_camera_slot_without_an_image(run_for, tmp_path):
     d = copied(run_for, tmp_path, "nominal", "r14-missing-slot")
 
@@ -180,8 +198,8 @@ def test_r14_vc030_skips_a_camera_slot_without_an_image(run_for, tmp_path):
 
 
 # The engine says when its histories are complete: C2 `primed` (ICD A26,
-# agent/cc/agent_ffi.cpp:1018 and 1072). The release is the first primed step,
-# not a count of history references or motion samples.
+# `de4sdv_condition_step` in agent/cc/agent_ffi.cpp, `StepPrimed`). The release
+# is the first primed step, not a count of history references or motion samples.
 def test_r14_vc009_release_is_the_first_primed_step(run_for, tmp_path):
     d = copied(run_for, tmp_path, "nominal", "r14-primed-late")
 
@@ -358,7 +376,8 @@ def test_r3_steps_without_an_accepted_route_are_not_recounted(run_for, tmp_path)
                                       "waypointsInWindow": 0, "waypointsOnCorridor": 0})
         return data
     assert edit_jsonl(d / C2, "out.checkpoint_inputs", step) == 1
-    # a step without an accepted route is not planned (agent/cc/agent_ffi.cpp:997, 1161)
+    # a step without an accepted route is not planned: an empty or stale route is an
+    # input condition (`JudgeConditions`), and `de4sdv_infer_step` plans no step with one
     for event in ("out.plan", "in.plan"):
         edit_jsonl(d / AGENT, event, lambda data: None if data.get("frameIndex") == 300 else data)
     res = verdict(Run(d), "VC-DRIVING-007")
@@ -366,8 +385,9 @@ def test_r3_steps_without_an_accepted_route_are_not_recounted(run_for, tmp_path)
 
 
 # ------------------------------------------------------------------ R12
-# A step without an accepted route is not planned (agent/cc/agent_ffi.cpp:997,
-# 1161), so a null routeSha256 belongs on steps without a plan only. Without a
+# A step without an accepted route is not planned (an empty or stale route is an
+# input condition, `JudgeConditions`, and `de4sdv_infer_step` plans no step with
+# one), so a null routeSha256 belongs on steps without a plan only. Without a
 # route in the run record, a step's sha is compared with the route
 # announcement in force at that step (score/route_provider.jsonl, ICD A18).
 def drop_record_route(d):
@@ -424,8 +444,8 @@ def test_r12_a_step_differing_from_the_announcement_in_force_fails(run_for, tmp_
 # ------------------------------------------------------------------ R5
 # The success criteria of REQ-DRIVING-003, -004, -006, -007, -008 and -010 are
 # stated for the inputs recorded for every plan. The agent writes a C2 record
-# for every step, primed or not (agent/cc/agent_ffi.cpp:1020-1079); a step
-# without a plan is not judged, and a run without plans decides nothing.
+# for every step, primed or not (`de4sdv_condition_step` in agent/cc/agent_ffi.cpp);
+# a step without a plan is not judged, and a run without plans decides nothing.
 PER_PLAN = ("VC-DRIVING-003", "VC-DRIVING-004", "VC-DRIVING-006", "VC-DRIVING-007",
             "VC-DRIVING-008", "VC-DRIVING-010")
 
@@ -506,7 +526,7 @@ def test_r5_vc008_rows_ending_at_the_step_fail(run_for, tmp_path):
 # wrote the CARLA role names cam_<slot> (agent DESIGN.md, conditionInputs
 # startup). A17: the stub engine hands the simulator image as it is, so the
 # 512x512 tile sizes belong to the checkpoint engine only. The agent names its
-# engine in the `engine` record (agent/cc/agent_ffi.cpp:656-657).
+# engine in the `engine` record (`BuildEngine` in agent/cc/agent_ffi.cpp).
 def set_engine(d, engine):
     def fn(rec):
         if rec["event"] == "engine":
@@ -563,7 +583,7 @@ def test_r13_stub_engine_makes_vc002_and_vc003_inconclusive(run_for, tmp_path):
     d = copied(run_for, tmp_path, "nominal", "r13-stub")
     rewrite(d / AGENT, lambda rec: rec)
     if not records(d / AGENT, "engine"):
-        # the agent's engine record (agent/cc/agent_ffi.cpp:656-657)
+        # the agent's engine record (`BuildEngine` in agent/cc/agent_ffi.cpp)
         p = d / AGENT
         first = records(p)[0]
         eng = dict(first, event="engine", seq=0,
@@ -583,7 +603,7 @@ def test_stub_engine_makes_vc013_inconclusive(run_for, tmp_path):
     # engine makes no inference, so its plan times say nothing about the bound.
     d = copied(run_for, tmp_path, "nominal", "vc013-stub")
     if not records(d / AGENT, "engine"):
-        # the agent's engine record (agent/cc/agent_ffi.cpp:656-657)
+        # the agent's engine record (`BuildEngine` in agent/cc/agent_ffi.cpp)
         p = d / AGENT
         first = records(p)[0]
         eng = dict(first, event="engine", seq=0,
@@ -908,7 +928,8 @@ def test_r8_campaign_exits_non_zero_on_a_label_conflict(run_for, tmp_path, monke
 # Run N's priming.complete (frame 113) predates A26: its step is not
 # conditioned, and the engine's first conditioned primed step is 179, where
 # its plans begin. The end of priming is then taken from C2 (A26:
-# agent/cc/agent_ffi.cpp:1018, 1072-1073) and the record is flagged.
+# `de4sdv_condition_step` in agent/cc/agent_ffi.cpp, `StepPrimed`) and the record
+# is flagged.
 def test_r11_vc001_flags_priming_complete_on_an_unconditioned_step(run_for, tmp_path):
     d = copied(run_for, tmp_path, "nominal", "r11-early-priming")
 
@@ -1040,7 +1061,7 @@ def test_r16_adapter_stop_one_step_after_300_ms_fails(run_for, tmp_path):
 
 
 # A merged frame the agent conditioned had every camera valid (A23,
-# agent/cc/agent_ffi.cpp:575-615); its images count as the camera's newest.
+# `ConditionMerged` in agent/cc/agent_ffi.cpp); its images count as the camera's newest.
 def test_r10_a_conditioned_merged_frame_counts_as_the_newest_image(run_for, tmp_path):
     d = nominal_with_camera_stop(run_for, tmp_path, "r10-merged", [298, 300], 300)
 

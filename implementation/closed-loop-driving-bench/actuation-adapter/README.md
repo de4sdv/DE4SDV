@@ -17,9 +17,9 @@ the run.
 | `json_lite.{h,cpp}` | minimal JSON parser for the one configuration document |
 | `tests/adapter_core_test.cpp` | simulation-based unit tests (plain g++) |
 | `tests/simulated_vehicle.h` | longitudinal point mass + lag + kinematic bicycle, steering with its own maximum (70°, CARLA's mkz_2020) |
-| `tests/fit_calibration_test.py` | tests the calibration fitter on synthetic step responses |
+| `tests/fit_calibration_test.py` | tests the calibration fitter on synthetic step responses, and its refusals of a side a log cannot support |
 | `tests/test_libcarla_shell.py`, `tests/test_shell_vehicle_steering.py` | static checks of the LibCarla shell: list lifetime; the steer's full scale from the vehicle |
-| `scripts/fit_calibration.py` | fits the acceleration→pedal table from `world.jsonl` |
+| `scripts/fit_calibration.py` | fits the acceleration→pedal table from `world.jsonl`; refuses a side with too few samples or a non-monotonic pedal |
 | `actuation_adapter_main.cpp` | S-CORE mw::com + LibCarla shell |
 | `BUILD.bazel` | Bazel targets (S-CORE toolchain, LibCarla 0.9.16) |
 | `mw_com_config_actuation_adapter.json` | mw::com service types/instances (7404, 7405) |
@@ -29,6 +29,7 @@ the run.
 
 ```sh
 cd implementation/closed-loop-driving-bench/actuation-adapter
+mkdir -p .build
 g++ -std=c++17 -Wall -Wextra -Werror -I. -I../interfaces/include -Itests \
     tests/adapter_core_test.cpp adapter_core.cpp adapter_config.cpp json_lite.cpp \
     -o .build/adapter_core_test
@@ -81,11 +82,20 @@ placeholder vehicle, −3 on a vehicle configured to brake at most 3 m/s², so t
 stop never violates REQ-DRIVING-012. Steering is held at the last valid
 command's `steeringAngle` (0 if none was ever applied). At standstill (speed <
 0.1 km/h, `standstill_speed_kmh`) the brake is held for the rest of the run.
-The stop never applies throttle. A contact can slow the vehicle faster than the
-stop's profile, and the speed error would then call for throttle. When it does,
-the reference speed is set to the measured speed and the integral keeps no
-forward part, so the stop brakes with at least its feedforward. While the
-vehicle follows the profile, the stop is the same as before.
+After the tick that begins it, the stop applies no throttle. A contact can slow
+the vehicle faster than the stop's profile, and the speed error would then call
+for throttle. On a tick where it does, the reference speed is set to the
+measured speed and the integral keeps no forward part, so that tick brakes with
+at least the stop's feedforward. A tick whose error calls for less brake, but
+not for throttle, is left to the speed tracking, and its brake can be below
+the feedforward: 7 of the 60 ticks of the sustained-contact test, 0.062 at the
+least against a feedforward of 0.35. While the vehicle follows the profile, the
+stop is the same as before.
+The tick that begins the stop applies the table's feedforward at the stop's
+deceleration, without that guard. That is a brake wherever the table needs a
+brake for that deceleration (0.35 at −4 m/s² with the tests' table). It is a
+throttle only where coasting already decelerates more than the stop: 0.05 on
+that one tick for a vehicle configured to brake at most 0.25 m/s².
 The stop publishes `stopInForce = 1`, `cause = kCommandTimeout`,
 `stopSince` (simulation seconds of the stop-begin tick) and `stopSinceMono`
 (CLOCK_MONOTONIC seconds of the same tick, ICD v2 §4). The core takes the
@@ -194,8 +204,19 @@ speed dependence (drag, gear) within its authority.
 
 1. Run a calibration run with **open-loop pedal steps**: constant throttle and
    brake plateaus of 1.5–3 s each, over 0.05 pedal steps, at several speeds
-   (5–25 m/s), with the pacer logging `world.jsonl`. A normal closed-loop run
-   has few constant-pedal plateaus and gives a poor fit.
+   (5–25 m/s), with the pacer logging `world.jsonl`. What each side of the
+   table needs from the run:
+   - **throttle side** (rows from 0 to +3 m/s²): throttle plateaus from light
+     to full throttle, so that the accelerations from 0 up to the vehicle's
+     maximum each hold steady ticks;
+   - **brake side** (rows from −8 to −0.5 m/s²): brake plateaus from light to
+     full brake, so that the decelerations down to the vehicle's maximum each
+     hold steady ticks, the stop's −4 m/s² (REQ-DRIVING-020) among them.
+
+   A normal closed-loop run has few constant-pedal plateaus and is not a
+   calibration run: a recorded straight-route drive of 1500 ticks brakes on 9
+   ticks above 1 m/s, with a brake pedal that changes from tick to tick, so
+   one tick is steady, and the fitter refuses it.
 2. Fit:
 
    ```sh
@@ -208,6 +229,42 @@ speed dependence (drag, gear) within its authority.
    quasi-steady ticks (pedals constant over the neighbouring ticks), and for
    each target acceleration takes the median pedal within ±0.3 m/s² on the
    matching side. It prints the residual RMS and writes ICD v2 array rows.
+
+   It refuses a side the log cannot support, exits with status 5 and writes
+   no table. A row is *measured* when at least 3 steady ticks lie within
+   ±0.3 m/s² of its acceleration (`--min-row-samples`, default 3); a side is
+   fitted only when at least 3 of its rows are measured (`--min-rows`,
+   default 3) and the pedal of its measured rows is monotonic: more
+   deceleration never needs less brake, more acceleration never needs less
+   throttle. The message names the side, how many of its rows hold samples
+   and how many, and the limits.
+   Why these limits: a row's pedal is the median of its ticks, and below three
+   it is one tick or the mean of two, which a single transient tick sets; the
+   rows without samples of their own are filled from a wider window or the
+   side's interpolated curve, so a side is only as good as its measured rows,
+   and three measured rows are the fewest whose shape the monotonic check can
+   test. Only a row's own ±0.3 m/s² window counts, because one tick lies in
+   the windows of up to two neighbouring rows. Both limits can be raised, not
+   lowered, and no option writes an unsupported side.
+
+   A row that is not measured is no evidence of the side's shape, so the
+   monotonic check leaves it out and the fitter holds it between the measured
+   rows around it: a fill below the row before it, or above the next measured
+   row, takes that row's pedal. The written side is monotonic, the printed
+   table marks each held row with what the fill gave, and `fit.sides` counts
+   them (`held_rows`). The case this is for: the first row past what the run
+   covers. Its wider window reaches further into the covered range than
+   beyond it, so its fill can lie below its measured neighbour (0.5975 at
+   +3 m/s² under the measured 0.5996 at +2.5 m/s² on the throttle side of the
+   recorded drive above).
+
+   A run that drives one side only is fitted for that side on request:
+   `--side brake` (or `--side throttle`) together with
+   `--other-side-from <a configuration or table JSON>`, whose rows of the other
+   side are copied unchanged, so the output is still a whole table. The fitted
+   side must meet the same limits. `fit.sides` in the output records which
+   side was fitted and which was copied from which file; `fit.min_rows` and
+   `fit.min_row_samples` record the limits applied.
 3. Merge the table into the run's vehicle configuration:
 
    ```sh
@@ -269,23 +326,36 @@ TRACKING target=+1.50 m/s^2 mean_accel=+1.5222 error=+0.0222 m/s^2 ...
 TRACKING target=+0.00 m/s^2 mean_accel=-0.0010 error=-0.0010 m/s^2 ...
 TRACKING target=-2.00 m/s^2 mean_accel=-1.9882 error=+0.0118 m/s^2 ...
 STOP mean_decel=-3.9609 m/s^2 duration=5.10 s states=1
+STOP_CONTACT ticks=60 throttle_ticks=0 max_throttle=0.000 brake_ticks=60 below_feedforward=7 min_brake=0.0622
+STOP_CONTACT_WOUND integral_before=+0.1615 speed_at_contact=16.02 ticks=14 throttle_ticks=0 below_feedforward=0 min_brake=0.3500 feedforward=0.3500
+STOP_THROTTLE_FEEDFORWARD begin_throttle=0.0500 ticks=30 throttle_ticks=0 max_throttle=0.0000
 STOP_CLAMPED mean_decel=-2.9656 m/s^2 duration=6.80 s min=-3.5384
-ADAPTER_CORE_TESTS PASS: 631 checks, 0 failures
+ADAPTER_CORE_TESTS PASS: 668 checks, 0 failures
 
 $ python3 tests/fit_calibration_test.py
 FIT_TABLE rows=23 mean_abs_reproduction_error=0.120 m/s^2 max=0.500 m/s^2
-FIT_CALIBRATION_TESTS PASS: 76 checks, 0 failures
+FIT_REFUSED_FEW_SAMPLES rc=5 fit_calibration: brake side not fitted: 0 of its 16 rows hold at least 3 samples ...
+FIT_REFUSED_NON_MONOTONIC rc=5 fit_calibration: throttle side not fitted: the pedal of its measured rows is not monotonic ...
+FIT_ONE_SIDE brake rc=0
+FIT_HELD_PAST_THE_MEASURED_ROWS rc=0
+FIT_CALIBRATION_TESTS PASS: 141 checks, 0 failures
 ```
 
-The same test binary built with `-fsanitize=address,undefined` passes 631/631
+The same test binary built with `-fsanitize=address,undefined` passes 668/668
 with no sanitizer report.
 
 Covered: constant-acceleration tracking (above), the watchdog at 300 ms and not
 at 100 or 200 ms, one late or missed command not stopping the vehicle (the
 simulator-host case), a command at the boundary preventing the stop, an invalid command
 not refreshing the watchdog, stop to standstill at ≈4 m/s² with held steering,
-standstill hold to the end, latching with rejection afterwards, the validity
-window at both edges (−5 ms and 300 ms; `future_production_time` below it),
+standstill hold to the end, latching with rejection afterwards, the stop under
+a contact: no throttle while a contact holds the vehicle below the profile
+(`STOP_CONTACT`), and, after the integral was wound forward by a stop begun at
+25 m/s, a brake of at least the feedforward (0.35 at −4 m/s²) on every tick
+from a one-tick contact to standstill (`STOP_CONTACT_WOUND`), no throttle on
+the stop's ticks after its first when the table's feedforward at the stop's
+deceleration is a throttle (a 0.25 m/s² stop, `STOP_THROTTLE_FEEDFORWARD`), the
+validity window at both edges (−5 ms and 300 ms; `future_production_time` below it),
 `stopSinceMono` equal to the tick's monotonic input and zero on applied
 commands, the stop clamped to a 3 m/s² vehicle (state, control and mean
 deceleration), invalid commands changing nothing (NaN, out of limits, empty

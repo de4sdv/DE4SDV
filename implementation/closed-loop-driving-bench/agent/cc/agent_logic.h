@@ -1,4 +1,4 @@
-// DE4SDV INC-DRIVING-001 slice 10b, WP2: the pure decision logic of the
+// DE4SDV INC-DRIVING-001 slice 10b: the pure decision logic of the
 // driving agent's activities.
 //
 // Three activities of the FEO chain are decided here, with no S-CORE, CARLA or
