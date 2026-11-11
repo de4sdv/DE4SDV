@@ -11,7 +11,12 @@
 > CA-declaration hypothesis. The CA inconsistency described below remains a
 > *statically plausible latent* issue, unconfirmed at runtime.
 
-**Status: DRAFT — DO NOT FILE. Withdrawn pending corrected re-run.**
+> **FINAL (2026-08-29):** The corrected probe ran on the unpatched stock image
+> and passed: `initComms()` succeeded with no manifest patch
+> ([PF-004 status](../evidence/010/preflight/PF-004-STATUS.md)). The
+> CA-declaration hypothesis is disproven. This report was never filed.
+
+**Status: WITHDRAWN — DO NOT FILE. The corrected re-run disproved the diagnosis.**
 
 The full v1 report body is preserved below for the correction trail.
 

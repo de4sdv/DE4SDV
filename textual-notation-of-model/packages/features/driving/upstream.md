@@ -46,13 +46,27 @@ Source-code license, checkpoint terms and source-data terms are separate.
 
 ## CARLA
 
-Inspected source: [CARLA](https://github.com/carla-simulator/carla/tree/2466fff9c0671f02c198fc606f398a4b7d12fda9),
-commit `2466fff9c0671f02c198fc606f398a4b7d12fda9`.
-This is an inspection pin, not a selected installable image or build.
+Inspected during framing: [CARLA](https://github.com/carla-simulator/carla/tree/2466fff9c0671f02c198fc606f398a4b7d12fda9),
+commit `2466fff9c0671f02c198fc606f398a4b7d12fda9`, on the branch `ue58-dev`.
+It was read for the framing. It is not the build that the
+[closed-loop driving bench](../../../../implementation/closed-loop-driving-bench/README.md)
+runs.
+
+The bench runs release 0.9.16: tag
+[`0.9.16`](https://github.com/carla-simulator/carla/tree/0.9.16), commit
+`294096eb1c38eabf246e4f3a9cdab704e33a7f4c`, cut from the branch
+`ue4/0.9.16`. That commit is not an ancestor of the inspected one. DE4SDV
+names the release and records no digest of the installed package. Each run
+record carries the version that the simulator server reports, as
+`simulatorBuild`.
 
 The documented Autoware end-to-end example concerns VAD, not proof of an
-AutoE2E connector. Select and pin a compatible simulator build, sensor rig,
-scenario and vehicle/control interpretation before execution.
+AutoE2E connector. The bench's
+[interface control document](../../../../implementation/closed-loop-driving-bench/interfaces/ICD.md)
+gives the simulator host, the route and the vehicle configuration with its
+steering interpretation. The
+[world side](../../../../implementation/closed-loop-driving-bench/world-side/README.md)
+sets up the camera rig.
 
 ## Eclipse S-CORE FEO
 
@@ -64,15 +78,16 @@ trigger in the scheduler: one chain per camera frame, the newest frame taken
 and the skipped frames counted. The release's scheduler is timer-paced only,
 and its topics are Rust-only. The patch and the eight module overrides that
 let it build beside reference_integration v0.10.0 are DE4SDV's to keep; no
-FEO source is vendored. Proposing the trigger upstream is an owner-authorized
-action that has not been taken.
+FEO source is vendored. [Upstream contact](#upstream-contact) says what
+DE4SDV has put to the FEO maintainers about the trigger.
 
 ## Changes over the AutoE2E pin
 
 The planner of phase 8 runs the checkpoint at `cb50764b` on PyTorch with
 DE4SDV's kernel changes, which alter rounding only. They are DE4SDV changes
-over the pinned revision, not an upstream release, and not offered upstream:
-that, too, waits for the owner's word.
+over the pinned revision, not an upstream release.
+[Upstream contact](#upstream-contact) says what DE4SDV has told the AutoE2E
+maintainers about them.
 
 The input activity gives the checkpoint the ego-motion history with yaw rate
 and curvature as zero (owner decision of 2026-11-09, GAP-DRIVING-010).
@@ -111,8 +126,30 @@ increment's result is reclassified by this framing.
 - Is a zeroed yaw-rate and curvature history the intended way to drive
   `nuplan-epoch-5` in the closed loop, and is a checkpoint or driver without
   this feedback planned? The readiness probe reproduced the divergence in CARLA
-  and the effect of the zeroed history; sharing it waits for the owner's word.
+  and the effect of the zeroed history.
+  [Upstream contact](#upstream-contact) says what DE4SDV has posted in the
+  upstream thread on this divergence.
 
-No upstream contact, compatibility endorsement, adoption approval or rights
-clearance is asserted. Contacting maintainers remains an owner-authorized action
-before deep adoption, not a message sent by this framing change.
+## Upstream contact
+
+DE4SDV posted three times in the upstream repositories on 2026-11-11, each
+time on the owner's word:
+
+- [Issue 124 of FEO](https://github.com/eclipse-score/feo/issues/124) states
+  the need for one task chain per set of camera images. It shows the scheduler
+  change as a diff and calls it an experiment, not a proposal for the final
+  shape. It asks whether an event trigger is planned and whether a pull
+  request would be accepted.
+- [Issue 243 of AutoE2E](https://github.com/autowarefoundation/auto_e2e/issues/243)
+  reports the inference time measured with the released code and with
+  DE4SDV's changes, and describes the changes without their code. It asks
+  whether speed work is planned and whether a pull request would be taken.
+- A [comment on issue 221 of AutoE2E](https://github.com/autowarefoundation/auto_e2e/issues/221#issuecomment-6787293503),
+  the upstream thread on the yaw-history divergence, reports the bench's
+  closed-loop results with the yaw-rate and curvature history zeroed, and a
+  route experiment.
+
+DE4SDV has opened no pull request in either repository. This record does not
+follow the replies. No compatibility endorsement, adoption approval or rights
+clearance is asserted. Each further message to maintainers remains an
+owner-authorized action.
