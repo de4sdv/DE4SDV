@@ -24,9 +24,9 @@ amendment and the owner's word.
 |---|---|
 | `DESIGN.md` | the chain hop by hop; the contract on the wire (§3); **proven vs assumed** (§5); option A as fallback (§6); what was actually run (§7.1) |
 | `RUNBOOK.md` | numbered steps, the AOSP-tree probe first, gates G0–G6 with T+ limits, the payload hexdump that decides B, rollback |
-| `RISKS.md` | thirteen risks by likelihood, each with the check that catches it early |
+| `RISKS.md` | fifteen risks, each with the check that catches it early and, where a run decided it, the outcome |
 | `fallback-a/README.md` | what option A is, why it was rejected, and the amendment it needs |
-| `sepolicy/README.md` | why no new policy is expected and the two fixes when one is |
+| `sepolicy/README.md` | what the recorded runs did (a permissive guest), why no new policy is expected under enforcing, and the two fixes when one is needed |
 
 ## Artifacts
 

@@ -391,6 +391,13 @@ depends on it; nothing on the path does.
 
 ## 11. Start the observer and get the first typed receipt (20 min)
 
+**SELinux mode.** This runbook does not change the guest's SELinux mode, and
+`stage_ivi_observer.sh` never does. The recorded runs of 2026-11-10 did: each
+was made after `adb shell setenforce 0` on the IVI guest, applied after every
+boot of the guest and before this step. Under enforcing this step is untested
+(`sepolicy/README.md`). `verify` writes the mode of the run into
+`observer-verify.log`; quote it with every result.
+
 ```bash
 cd "$SLICE"
 ./scripts/stage_ivi_observer.sh start

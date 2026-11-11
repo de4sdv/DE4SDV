@@ -56,7 +56,11 @@ release registers no `proto_library` module type).
   that is an owner-level finding about the reference stack, and the first fallback
   is option A.
 
-## R4. The runtime refuses three service units of one publication type — possible
+## R4. The runtime refuses three service units of one publication type — did not occur
+
+**Outcome (2026-11-10):** the broker registered the three units and the app
+subscribed to all three (`lifecycle ready link=3 of 3 units subscribed`) in all
+six recorded runs.
 
 The broker creates one SDV publisher per offered event, so the mapping gives each
 event its own service unit (`de4sdv-driving-operational-state-plan`, `-vehicle-state`,
@@ -73,7 +77,13 @@ SINGLE_PUB excludes outright.
 - **Cost if hit:** an owner decision: a `channels_enum` with three channels on the
   publication (a contract change, then a core rebuild), or the one-unit variant.
 
-## R5. The typed message does not reach the Java app — possible
+## R5. The typed message does not reach the Java app — did not occur on a permissive guest; open under enforcing
+
+**Outcome (2026-11-10):** the app bound the gateway, subscribed and received in
+all six recorded runs, and in the two closed-loop runs its values equal the
+publisher's, field for field (G6). Every one of those runs was made on a
+permissive guest, so the SELinux sub-cause below is untested, not retired
+(`sepolicy/README.md`).
 
 Three sub-causes, all silent at first: the ACL pair is wrong (root, duplicate,
 topic name), the pushed app cannot bind the gateway (SELinux domain), or the

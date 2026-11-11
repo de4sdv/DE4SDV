@@ -8,8 +8,9 @@
 #   stage_ivi_observer.sh build       stage, then build the app and its JVM tests (IVI product)
 #   stage_ivi_observer.sh unstage     remove the staged modules from the tree
 #   stage_ivi_observer.sh install     ACLs, APK into /vendor/priv-app, reboot the IVI VM
-#   stage_ivi_observer.sh selinux     print the SELinux mode and this app's denials (read-only;
-#                                     never set the guest permissive: sepolicy/README.md)
+#   stage_ivi_observer.sh selinux     print the SELinux mode and this app's denials (read-only:
+#                                     this script never changes the mode. The recorded runs
+#                                     were made on a permissive guest: sepolicy/README.md)
 #   stage_ivi_observer.sh start       stay-awake, (re)start the observer, show its first lines
 #   stage_ivi_observer.sh verify      the hop checks of the IVI side, read-only
 #   stage_ivi_observer.sh record [s]  screenrecord s seconds (<= 180), guest clock around it, pull
