@@ -308,3 +308,6 @@ DE4SDV receiver work is re-scoped to the IVI frame relay.
 - [IVI package list](https://android.googlesource.com/device/google/sdv/+/refs/heads/android17-release/sdv_ivi_base/sdv_packages_ivi_services.mk)
 - [SDV Core init script](https://android.googlesource.com/device/google/sdv/+/refs/heads/android17-release/sdv_core_cf/init.sdv_core_cf.rc)
 - [vsomeip in AOSP](https://android.googlesource.com/platform/external/sdv/vsomeip/+/refs/heads/android17-release/METADATA)
+
+The links to `android.googlesource.com` follow the branch `android17-release`,
+which moves. They are cited as read for this record of 2026-10-28.

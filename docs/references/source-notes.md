@@ -1,5 +1,9 @@
 # Source Notes
 
+This file lists the documents and guides that informed DE4SDV. The upstream
+projects that DE4SDV builds on are listed in [`UPSTREAM`](../../UPSTREAM.md),
+with their links and the file that records each version.
+
 This scaffold was informed by:
 
 - The Open Source Way 2.0 guidebook: community formation, project goals, new
@@ -35,7 +39,8 @@ Methodology references added during DE4SDV modeling-method development:
   concepts, referenced as an upstream modeling-method source. See
   [`../../methodologies/sysmod-sysmlv2/upstream`](../../methodologies/sysmod-sysmlv2/upstream.md).
 
-Keep this file updated as new external references are added.
+Add new documents and guides to this file. A new upstream project gets a row
+in [`UPSTREAM`](../../UPSTREAM.md).
 
 [covesa-vss-library]: ../../textual-notation-of-model/libraries/covesa-vss-sysmlv2/
 [aselcm-pattern]: https://www.omgwiki.org/MBSE/lib/exe/fetch.php?media=mbse:patterns:intro_to_the_aselcm_pattern_v1.6.6.pdf
