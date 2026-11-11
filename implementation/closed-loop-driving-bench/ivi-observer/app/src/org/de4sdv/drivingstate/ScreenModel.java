@@ -12,9 +12,10 @@
 //  * a missing value prints MISSING ("—"), never a zero or a guess;
 //  * STALE (no HEALTH receipt for ObserverState.HEALTH_STALE_AFTER_MS, the receiver
 //    rule in the rationale of REQ-DRIVING-017) is always visible in the header, greys
-//    the mode and everything else and clears the plan, whatever else still arrives;
-//    a plan or a vehicle state that stopped arriving is marked in its own panel, and
-//    a stale plan is not drawn (fail closed);
+//    the mode and the values received (not the IVI's own clock or the app's counters)
+//    and clears the plan, whatever else still arrives; a plan or a vehicle state that
+//    stopped arriving is marked in its own panel, and a stale plan is not drawn (fail
+//    closed);
 //  * stepwise values: the newest receipt, never an interpolation or an average
 //    across receipts;
 //  * the two real-time clocks are printed side by side, each with its source;

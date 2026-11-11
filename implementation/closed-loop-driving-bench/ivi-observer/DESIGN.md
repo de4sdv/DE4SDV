@@ -167,14 +167,17 @@ calls nothing (REQ-DRIVING-018, -019).
   clocks (IVI vs S-CORE real time), labelled so; the record stays stamps only (ICD §6,
   no computed latencies). The screen is STALE when the app has no HEALTH receipt
   newer than 500 ms, the receiver rule in the rationale of REQ-DRIVING-017. The
-  chip then gives the age of the newest HEALTH, the mode and every other value
-  turn grey and the path is cleared, also while PLAN and VEHICLE_STATE keep
-  arriving: each kind has a service unit of its own, so one can stop alone. A
-  plan or a vehicle state that stopped arriving for 1.0 s is marked in its own
-  panel: a stale plan is not drawn, and the last speed stays, grey, with the time
-  since it arrived. Both ages are differences on the IVI's own clock (receipt to
-  now), and the screen redraws every 100 ms, so a marking shows up to 100 ms
-  after its limit. The layout is one 1080 x 600 reference; `ScreenLayout.place`
+  chip then gives the age of the newest HEALTH; the mode with its cause, the
+  speed, the plan's numbers, the publish clock and the lag turn grey and the path
+  is not drawn, also while PLAN and VEHICLE_STATE keep arriving: each kind has a
+  service unit of its own, so one can stop alone. The IVI's own clock and the
+  app's counters stay as they are. A plan or a vehicle state that stopped
+  arriving for 1.0 s is marked in its own panel: a stale plan is not drawn, and
+  the last speed stays, grey, with the time since it arrived (no requirement
+  gives that limit; it is the one the plan had). These ages are differences on
+  the IVI's own clock (receipt to now), and the screen redraws every 100 ms, so
+  a marking shows up to 100 ms after its limit. The layout is one 1080 x 600
+  reference; `ScreenLayout.place`
   scales and centres it inside the part of the view the system bars leave free (the
   IVI's window is edge to edge, so the bars otherwise cover the header and the
   footer). A start with `--ez immersive true` asks for hidden bars; with zero insets

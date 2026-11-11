@@ -201,6 +201,18 @@ public class ScreenModelTest {
         assertTrue(m.clockLines()[2].text, m.clockLines()[2].text.endsWith("plan age \u2014 s"));
         final PlanGeometry g = PlanGeometry.fit(0f, 0f, 540f, 396f, null, null);
         assertEquals("horizon \u2014 \u00b7 grid 5 m", m.planCaption(g).text);
+        // What the stale screen greys while the plan and the speed are current by their own ages,
+        // so that the grey comes from the missing HEALTH alone: the cause, the plan speed, the
+        // plan's numbers, the publish clock and the lag. The IVI's own clock stays as it is.
+        assertEquals(ScreenModel.C_GREY, m.modeLines()[1].color);
+        assertEquals(ScreenModel.C_STALE, m.modeLines()[2].color);
+        assertEquals(ScreenModel.C_GREY, m.speedLines()[2].color);
+        for (ScreenModel.Line line : m.factLines()) {
+            assertEquals(line.text, ScreenModel.C_GREY, line.color);
+        }
+        assertEquals(ScreenModel.C_TEXT, m.clockLines()[0].color);
+        assertEquals(ScreenModel.C_GREY, m.clockLines()[1].color);
+        assertEquals(ScreenModel.C_GREY, m.clockLines()[2].color);
     }
 
     @Test
