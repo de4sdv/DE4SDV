@@ -169,6 +169,18 @@ MUTATIONS = [
         "old": "    if (index == newest || isMerged(index)) continue;",
         "new": "    if (index == newest) continue;",
     },
+    {
+        "name": "M26 the snapshot sink gets the frame's deadline, not its arrival",
+        "file": "frame_store.cpp",
+        "old": "  if (config_.snapshotSink) config_.snapshotSink(frame, snapshot, arrivalMonoNs);",
+        "new": "  if (config_.snapshotSink) config_.snapshotSink(frame, snapshot, arrivalMonoNs + config_.deadlineNs);",
+    },
+    {
+        "name": "M27 the snapshot sink runs after the ready sink",
+        "file": "frame_store.cpp",
+        "old": "  if (config_.snapshotSink) config_.snapshotSink(frame, snapshot, arrivalMonoNs);\n  DeliverPending(pending, pendingCount);",
+        "new": "  DeliverPending(pending, pendingCount);\n  if (config_.snapshotSink) config_.snapshotSink(frame, snapshot, arrivalMonoNs);",
+    },
 ]
 
 

@@ -12,6 +12,8 @@
 #include <poll.h>
 
 #include <chrono>
+#include <future>
+#include <thread>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -187,6 +189,78 @@ void CheckAccounting(const CountersSnapshot& c, std::uint64_t taken, const char*
 }
 
 // ---------------------------------------------------------------- tests
+
+// The snapshot sink (nav prefetch): once per accepted snapshot, with that snapshot and its arrival,
+// never for a duplicate, a late or an overflowing one, and outside the store's lock (the sink may
+// call back into the store).
+void TestSnapshotSinkPerAcceptedSnapshot() {
+  struct Seen {
+    std::uint64_t frame;
+    double x;
+    std::int64_t arrival;
+    std::uint64_t snapshotsCounted;
+  };
+  auto scenario = []() {
+    std::vector<Seen> seen;
+    FrameStore* self = nullptr;
+    FrameStoreConfig config = MakeConfig(2);
+    config.snapshotSink = [&seen, &self](std::uint64_t frame, const HeroSnapshot& snapshot,
+                                         std::int64_t arrival) {
+      // Counters() takes the store's lock: this deadlocks when the sink runs under it.
+      seen.push_back({frame, snapshot.pose.x, arrival, self->Counters().snapshots});
+    };
+    FrameStore s(config);
+    self = &s;
+    CHECK(s.OnSnapshot(5, MakeSnapshot(5), 1'000));
+    CHECK(seen.size() == 1);
+    if (seen.size() == 1) {
+      CHECK(seen[0].frame == 5);
+      CHECK(seen[0].x == MakeSnapshot(5).pose.x);
+      CHECK(seen[0].arrival == 1'000);
+      CHECK(seen[0].snapshotsCounted == 1);   // the store counts the snapshot before the sink runs
+    }
+    CHECK(!s.OnSnapshot(5, MakeSnapshot(5), 2'000));   // duplicate
+    CHECK(seen.size() == 1);
+    CHECK(s.OnSnapshot(6, MakeSnapshot(6), 3'000));
+    CHECK(seen.size() == 2);
+    FeedAllImages(s, 6, 5'000);
+    FrameHandle h = s.TakeNewestReady();               // takes 6, retires 5
+    CHECK(h.valid() && h.frame() == 6);
+    CHECK(!s.OnSnapshot(5, MakeSnapshot(5), 6'000));   // late: frame 5 is retired
+    CHECK(seen.size() == 2);
+    // Overflow as in TestOverflowWhenNothingEvictable: slot of 6 locked, 7 the protected newest ready.
+    CHECK(s.OnSnapshot(7, MakeSnapshot(7), 7'000));
+    FeedAllImages(s, 7, 7'500);
+    CHECK(seen.size() == 3);
+    CHECK(!s.OnSnapshot(8, MakeSnapshot(8), 8'000));   // neither slot can take frame 8
+    CHECK(s.Counters().overflowSnapshots == 1);
+    CHECK(seen.size() == 3);
+    s.Release(h);
+    return seen.size();
+  };
+  auto run = std::async(std::launch::async, scenario);
+  if (run.wait_for(std::chrono::seconds(5)) != std::future_status::ready) {
+    CHECK(!"snapshot sink deadlocked: it runs under the store's lock");
+    std::fflush(stdout);
+    std::_Exit(1);
+  }
+  CHECK(run.get() == 3);
+}
+
+// A snapshot that completes a slot (its images came first) is handed to the snapshot sink before the
+// ready sink announces the step, so a prefetch is always submitted before the step can be taken.
+void TestSnapshotSinkBeforeReadySink() {
+  std::vector<std::string> order;
+  FrameStoreConfig config = MakeConfig(4);
+  config.readySink = [&order](std::uint64_t, bool) { order.push_back("ready"); };
+  config.snapshotSink = [&order](std::uint64_t, const HeroSnapshot&, std::int64_t) { order.push_back("snapshot"); };
+  FrameStore s(config);
+  FeedAllImages(s, 9, 1'000);
+  CHECK(order.empty());
+  CHECK(s.OnSnapshot(9, MakeSnapshot(9), 2'000));
+  CHECK(order.size() == 2);
+  CHECK(order.size() == 2 && order[0] == "snapshot" && order[1] == "ready");
+}
 
 void TestConfigDefaults() {
   FrameStoreConfig config;
@@ -1021,6 +1095,8 @@ int main() {
   TestMergedSkipsFillingFrames();
   TestMisuse();
   TestSinkCalledExactlyOncePerSlot();
+  TestSnapshotSinkPerAcceptedSnapshot();
+  TestSnapshotSinkBeforeReadySink();
   TestRetiredFrameDataIsLate();
   TestDuplicateSnapshotAndImage();
   TestInvalidConfiguration();

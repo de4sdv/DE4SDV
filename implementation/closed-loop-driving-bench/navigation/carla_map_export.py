@@ -10,12 +10,19 @@ path) both read.
 What is exported, and from what CARLA API:
 
 * lane centrelines -- ``map.generate_waypoints(sample_distance)`` grouped by
-  ``(road_id, section_id, lane_id)`` and sorted by ``s``;
+  ``(road_id, section_id, lane_id)`` and ordered in the lane's driving
+  direction, from the lane's exact start to its exact end.  The samples stop
+  up to ``sample_distance`` short of the far end of each road and lane
+  section, so each lane is closed with the start ``map.get_topology()`` gives
+  and the end ``Waypoint.next_until_lane_end`` or the topology gives
+  (``lane_ends``);
 * lane boundaries -- the centreline offset by half the waypoint's
   ``lane_width`` to each side (CARLA has no boundary geometry of its own; the
   lane width is the authoritative quantity);
 * drivable polygons -- one closed polygon per lane, left boundary forward plus
-  right boundary reversed, as upstream's OSM and Lanelet2 adapters do;
+  right boundary reversed, as upstream's OSM and Lanelet2 adapters do.  Each
+  lane ends where the next one starts, so consecutive polygons meet as
+  upstream's lanelets do at their shared nodes;
 * intersections -- the convex hull of the drivable area of every lane whose
   waypoints report ``is_junction`` for that ``junction.id``; CARLA has no
   junction polygon, this is the junction's footprint;
@@ -52,7 +59,7 @@ import numpy as np
 import carla_frame
 import nav_map_json
 
-EXPORTER_VERSION = "carla_map_export_v1"
+EXPORTER_VERSION = "carla_map_export_v2"
 DEFAULT_SAMPLE_DISTANCE_M = 2.0
 DEFAULT_ORIGIN = (0.0, 0.0)
 PROJECTION = "CARLA world frame, metres, y negated (right-handed 2D)"
@@ -168,22 +175,103 @@ def is_drivable(waypoint: Any) -> bool:
     return str(lane_type).rsplit(".", 1)[-1] in ("Driving", "1")
 
 
+def _lane_key(waypoint: Any) -> tuple[int, int, int]:
+    return (int(waypoint.road_id), int(waypoint.section_id), int(waypoint.lane_id))
+
+
+def _distance(first: Any, second: Any) -> float:
+    a = first.transform.location
+    b = second.transform.location
+    return math.hypot(float(a.x) - float(b.x), float(a.y) - float(b.y))
+
+
+# A closing waypoint this close to a lane's first or last sample replaces it,
+# so a lane never gets a segment shorter than this (its heading would be noise).
+CLOSE_TOLERANCE_M = 1e-3
+
+
 def sample_lanes(
     carla_map: Any, sample_distance: float
 ) -> dict[tuple[int, int, int], list[Any]]:
-    """Waypoints of every directed lane, keyed and ordered in its driving direction."""
+    """Waypoints of every directed lane, keyed and ordered in its driving direction.
+
+    ``map.generate_waypoints`` samples each road every ``sample_distance`` from
+    its start (s = 0), so the samples of a lane stop up to that distance short
+    of the far end of its road and of its lane section.  That end is the end of
+    a lane that drives along s and the start of one that drives against it, and
+    a lane section shorter than the spacing may get no sample at all.  Each
+    lane therefore runs from the exact start to the exact end CARLA gives
+    (``lane_ends``), its samples in between.
+    """
     waypoints = carla_map.generate_waypoints(float(sample_distance))
     lanes: dict[tuple[int, int, int], list[Any]] = defaultdict(list)
     for waypoint in waypoints:
         if not is_drivable(waypoint):
             continue
-        lanes[
-            (int(waypoint.road_id), int(waypoint.section_id), int(waypoint.lane_id))
-        ].append(waypoint)
+        lanes[_lane_key(waypoint)].append(waypoint)
     for key in lanes:
         lanes[key].sort(key=lambda item: float(item.s))
         lanes[key] = _in_driving_direction(lanes[key])
-    return dict(lanes)
+    starts, ends = lane_ends(carla_map, lanes, sample_distance)
+    return {
+        key: _closed(lanes.get(key, []), starts.get(key), ends.get(key))
+        for key in sorted(set(lanes) | set(starts))
+    }
+
+
+def lane_ends(
+    carla_map: Any,
+    lanes: dict[tuple[int, int, int], list[Any]],
+    sample_distance: float,
+) -> tuple[dict[tuple[int, int, int], Any], dict[tuple[int, int, int], Any]]:
+    """The waypoints where each lane starts and ends in its driving direction.
+
+    ``Map.get_topology()`` pairs a waypoint at the start of every drivable lane
+    of every lane section, in its driving direction, with the start of each
+    lane it leads into; a lane that leads nowhere is paired with its own end
+    (CARLA 0.9.16, ``road::Map::GenerateTopology``).  The first waypoint of the
+    pair is the lane's start.  Its end:
+
+    * a lane that leads into another road ends where its road ends, and the
+      last waypoint of ``next_until_lane_end`` is that point of the lane;
+    * otherwise it is the pair's second waypoint: the start of the lane's
+      continuation in the next lane section of its road, or the lane's own
+      end.  ``next_until_lane_end`` is not used there: it walks to the end of
+      the road, past the lane section.
+    """
+    starts: dict[tuple[int, int, int], Any] = {}
+    followers: dict[tuple[int, int, int], list[Any]] = defaultdict(list)
+    for entry, exit_waypoint in carla_map.get_topology():
+        if not is_drivable(entry):
+            continue
+        key = _lane_key(entry)
+        starts.setdefault(key, entry)
+        followers[key].append(exit_waypoint)
+    ends: dict[tuple[int, int, int], Any] = {}
+    for key, following in followers.items():
+        samples = lanes.get(key) or [starts[key]]
+        last = samples[-1]
+        if all(int(waypoint.road_id) != key[0] for waypoint in following):
+            ends[key] = last.next_until_lane_end(float(sample_distance))[-1]
+        else:
+            ends[key] = min(following, key=lambda waypoint: _distance(waypoint, last))
+    return starts, ends
+
+
+def _closed(samples: list[Any], start: Any | None, end: Any | None) -> list[Any]:
+    """A lane's samples with its exact start and end added."""
+    points = list(samples)
+    if start is not None:
+        if points and _distance(points[0], start) <= CLOSE_TOLERANCE_M:
+            points[0] = start
+        else:
+            points.insert(0, start)
+    if end is not None:
+        if points and _distance(points[-1], end) <= CLOSE_TOLERANCE_M:
+            points[-1] = end
+        else:
+            points.append(end)
+    return points
 
 
 def _in_driving_direction(waypoints: list[Any]) -> list[Any]:
@@ -298,7 +386,9 @@ def export_map(
             )
             drivable.append(primitive)
             for waypoint in waypoints:
-                if not bool(waypoint.is_junction):
+                # Only the lane's own waypoints: its end may be the start of
+                # the lane it leads into, which can lie in a junction.
+                if not bool(waypoint.is_junction) or _lane_key(waypoint) != key:
                     continue
                 try:
                     junction_id = int(waypoint.get_junction().id)

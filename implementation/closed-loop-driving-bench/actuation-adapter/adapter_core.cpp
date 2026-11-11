@@ -334,7 +334,19 @@ VehicleControlCommand ActuationAdapter::ComputeControlLocked(double acceleration
 
 VehicleControlCommand ActuationAdapter::StopControlLocked(double dtSeconds) {
   if (standstill_) return StandstillControlLocked();
-  return ComputeControlLocked(config_.StopAccelerationMps2(), held_steering_deg_, dtSeconds);
+  VehicleControlCommand control =
+      ComputeControlLocked(config_.StopAccelerationMps2(), held_steering_deg_, dtSeconds);
+  if (control.throttle > 0.0) {
+    // The stop response only decelerates (REQ-DRIVING-020). A contact can slow the vehicle faster
+    // than the stop's profile, and the tracking error then calls for throttle. Instead the reference
+    // follows the vehicle down and the integral keeps no forward part: the stop brakes with at least
+    // its feedforward. While the vehicle follows the profile, nothing changes.
+    reference_speed_mps_ = snapshot_speed_mps_;
+    integral_ = std::min(integral_, 0.0);
+    control = ComputeControlLocked(config_.StopAccelerationMps2(), held_steering_deg_, 0.0);
+    control.throttle = 0.0;
+  }
+  return control;
 }
 
 VehicleControlCommand ActuationAdapter::StandstillControlLocked() const {

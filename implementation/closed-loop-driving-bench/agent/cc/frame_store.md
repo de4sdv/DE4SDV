@@ -81,6 +81,11 @@ allocation happens on the callback path but never allocates memory.
   `(frame, ready_by_deadline)`. A `PollDeadlines` pass may make up to
   `kMaxRingSize` slots ready at once; they are delivered from a fixed stack
   batch after the unlock.
+- **The snapshot sink** (`snapshotSink`, may be empty) runs outside the lock
+  as well, once per accepted snapshot, with `(frame, snapshot, arrival)`. It
+  does not run for a duplicate, late or overflowing snapshot. When that
+  snapshot completes its slot, the snapshot sink runs before the ready sink.
+  The agent's nav prefetch uses it (`../DESIGN.md`).
 
 `PaceSignal` sends the 8-byte little-endian frame number to `FEO_PACE_SOCKET`
 (or the path given at construction) from that sink: one datagram per ready

@@ -157,14 +157,19 @@ int main(int argc, char** argv) {
     if (route_mask[index] != 0) ++corridor_pixels;
     if (route_mask[pixels + index] != 0) ++destination_pixels;
   }
+  // The points the agent counts for ICD A16 (waypointsInWindow).
+  std::size_t centerline_points = 0;
+  for (const auto& line : rasterizer.route().centerlines) {
+    centerline_points += line.size();
+  }
   std::printf(
       "{\"renderer_version\":\"%s\",\"map_nonzero\":%zu,\"map_sum\":%.17g,"
       "\"corridor_pixels\":%zu,\"destination_pixels\":%zu,\"route_valid\":%s,"
-      "\"map_valid\":%s",
+      "\"map_valid\":%s,\"route_centerline_points\":%zu",
       nav::NavigationRasterizer::RendererVersion(), map_nonzero, map_sum,
       corridor_pixels, destination_pixels,
       rasterizer.EffectiveRouteValid() ? "true" : "false",
-      rasterizer.map_valid() ? "true" : "false");
+      rasterizer.map_valid() ? "true" : "false", centerline_points);
 
   if (have_evaluate) {
     nav::RouteAnnouncement announcement;
