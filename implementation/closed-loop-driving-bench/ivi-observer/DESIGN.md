@@ -176,8 +176,9 @@ calls nothing (REQ-DRIVING-018, -019).
   the last speed stays, grey, with the time since it arrived (no requirement
   gives that limit; it is the one the plan had). These ages are differences on
   the IVI's own clock (receipt to now), and the screen redraws every 100 ms, so
-  a marking shows up to 100 ms after its limit. The layout is one 1080 x 600
-  reference; `ScreenLayout.place`
+  a marking shows up to 100 ms after its limit. This rule has run in the app's
+  tests on a plain JDK only, not on the IVI (a known limit, the bench README).
+  The layout is one 1080 x 600 reference; `ScreenLayout.place`
   scales and centres it inside the part of the view the system bars leave free (the
   IVI's window is edge to edge, so the bars otherwise cover the header and the
   footer). A start with `--ez immersive true` asks for hidden bars; with zero insets
