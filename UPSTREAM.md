@@ -84,3 +84,7 @@ Sources that are documents, not projects, are recorded elsewhere:
 A pull request that adds, removes or replaces an upstream project updates this
 page. A pull request that only changes a version does not. It updates the
 record named in the row.
+
+CI checks that every GitHub repository named in a tracked file has an entry on
+this page. [`CONTRIBUTING`](CONTRIBUTING.md) says how to run the check and
+what to do when it fails.
