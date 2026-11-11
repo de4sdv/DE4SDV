@@ -164,10 +164,13 @@ is a reading the owner may change; the code names it where it applies.
   step k is an `out.plan` whose `frameIndex` is k. A frame FEO merged into the
   next step (A23) has none, nor has a step whose image missed the deadline;
   one such step is allowed, two in a row fail. The window's first step needs
-  no plan before it. `measured` gives the steps without a new plan, how many
-  of them are merged frames, the longest run of them and the failing pairs.
-  A doubled plan or a plan whose capture stamp is not frame × 100 ms still
-  fails.
+  no plan before it. Without a stop response the run ends at the world's last
+  tick, or at the agent's last step when that is later: an agent that stops
+  planning while the world ticks on fails. A run without a world record ends
+  at the agent's last step, and the verdict says so. `measured` gives the
+  steps without a new plan, how many of them are merged frames, the longest
+  run of them and the failing pairs. A doubled plan or a plan whose capture
+  stamp is not frame × 100 ms still fails.
 * **Route coverage (VC-DRIVING-007, A16).** The recount counts the points of
   the route's centre lines as the navigation library builds them: one centre
   line per run of constant road id with two or more points
