@@ -109,7 +109,7 @@ public class ScreenModelTest {
     @Test
     public void liveStateShowsSpeedPlanSpeedAndBothClocks() {
         final ScreenModel m = new ScreenModel(live(), NOW_MS);
-        assertEquals("\u25cf LIVE \u00b7 stale > 1.0 s", m.chip().text);
+        assertEquals("\u25cf LIVE \u00b7 stale > 0.5 s", m.chip().text);
         assertNull(m.planAbsence());
         assertEquals("10.00 m/s  36.0 km/h", m.speedLines()[0].text);
         // 10 m/s + 0.5 m/s^2 over 1 s, 3 s and 6.4 s: the plan's speed from this speed.
@@ -152,7 +152,8 @@ public class ScreenModelTest {
         final long later = NOW_MS + 3_000L;
         final ScreenModel m = new ScreenModel(s, later);
         assertTrue(m.stale);
-        assertEquals("STALE 3.04 s (> 1.0 s)", m.chip().text);
+        // The age on the chip is the age of the newest HEALTH receipt (live(): 100 ms before NOW_MS).
+        assertEquals("STALE 3.10 s (> 0.5 s)", m.chip().text);
         assertEquals(ScreenModel.C_STALE, m.chip().color);
         assertEquals("DRIVING", m.modeLines()[0].text);
         assertEquals(ScreenModel.C_GREY, m.modeLines()[0].color);
@@ -166,11 +167,82 @@ public class ScreenModelTest {
     }
 
     @Test
-    public void staleStartsAfterTheStatedLimitAndNotBefore() {
+    public void staleStartsWhenNoHealthIsNewerThan500MsAndNotBefore() {
+        // The receiver rule in the rationale of REQ-DRIVING-017: "a receiver that has no health newer
+        // than 500 ms marks what it shows as stale". The number is the model's, so it is written here
+        // and not read from the app.
         final ObserverState s = live();
-        final long lastMs = NOW_MS - 40;
-        assertFalse(new ScreenModel(s, lastMs + ObserverState.STALE_AFTER_MS).stale);
-        assertTrue(new ScreenModel(s, lastMs + ObserverState.STALE_AFTER_MS + 1).stale);
+        final long healthMs = NOW_MS - 100;   // live()'s HEALTH receipt; its plan arrived 60 ms later
+        assertFalse(new ScreenModel(s, healthMs + 500).stale);
+        assertTrue(new ScreenModel(s, healthMs + 501).stale);
+    }
+
+    @Test
+    public void aStoppedHealthStreamIsStaleWhileThePlanAndTheVehicleStateKeepArriving() {
+        final ObserverState s = live();
+        // HEALTH stops after live(); the other two service units go on every 100 ms for 5 s.
+        long sequence = 2;
+        for (long t = NOW_MS + 100; t <= NOW_MS + 5_000L; t += 100, sequence++) {
+            s.onReceipt(mapped(vehicle(sequence, t - 30, 36f)), (t - 20) * 1_000_000L);
+            s.onReceipt(mapped(plan(sequence, t - 20)), (t - 10) * 1_000_000L);
+        }
+        final ScreenModel m = new ScreenModel(s, NOW_MS + 5_000L);
+        assertTrue(m.stale);
+        assertEquals("STALE 5.10 s (> 0.5 s)", m.chip().text);
+        assertEquals(ScreenModel.C_STALE, m.chip().color);
+        // The mode keeps its last value and loses its colour; the line under it says since when.
+        assertEquals("DRIVING", m.modeLines()[0].text);
+        assertEquals(ScreenModel.C_GREY, m.modeLines()[0].color);
+        assertEquals("STALE: last HEALTH 5.1 s ago", m.modeLines()[2].text);
+        // The plan is current by its own age and still not drawn: the mode it belongs to is not known.
+        assertEquals("plan not drawn \u00b7 no fresh HEALTH", m.planAbsence());
+        assertEquals("plan v \u2014", m.speedLines()[2].text);
+        assertEquals(ScreenModel.C_GREY, m.speedLines()[0].color);
+        assertTrue(m.clockLines()[2].text, m.clockLines()[2].text.endsWith("plan age \u2014 s"));
+        final PlanGeometry g = PlanGeometry.fit(0f, 0f, 540f, 396f, null, null);
+        assertEquals("horizon \u2014 \u00b7 grid 5 m", m.planCaption(g).text);
+    }
+
+    @Test
+    public void receiptsWithoutAnyHealthAreNotLive() {
+        final ObserverState s = new ObserverState();
+        s.setLink("SUBSCRIBED", "2 of 3 units subscribed on instance1");
+        s.onReceipt(mapped(vehicle(1, NOW_MS - 90, 36f)), (NOW_MS - 60) * 1_000_000L);
+        s.onReceipt(mapped(plan(1, NOW_MS - 80)), (NOW_MS - 40) * 1_000_000L);
+        final ScreenModel m = new ScreenModel(s, NOW_MS);
+        assertTrue(m.stale);
+        assertEquals("STALE \u00b7 no HEALTH yet", m.chip().text);
+        assertEquals(ScreenModel.C_STALE, m.chip().color);
+        assertEquals("NO HEALTH YET", m.modeLines()[0].text);
+        assertEquals("plan not drawn \u00b7 no fresh HEALTH", m.planAbsence());
+    }
+
+    @Test
+    public void aStoppedVehicleStateStreamIsMarkedInTheSpeedBoxWhileHealthGoesOn() {
+        final ObserverState s = live();
+        // VEHICLE_STATE stops after live(); HEALTH and PLAN go on every 100 ms for 3 s.
+        long sequence = 2;
+        for (long t = NOW_MS + 100; t <= NOW_MS + 3_000L; t += 100, sequence++) {
+            s.onReceipt(mapped(health(sequence, t - 30, 1, 0)), (t - 20) * 1_000_000L);
+            s.onReceipt(mapped(plan(sequence, t - 20)), (t - 10) * 1_000_000L);
+        }
+        final ScreenModel m = new ScreenModel(s, NOW_MS + 3_000L);
+        assertFalse(m.stale);
+        assertEquals("\u25cf LIVE \u00b7 stale > 0.5 s", m.chip().text);
+        // The last speed stays, grey, with the time since it arrived; nothing is computed from it.
+        assertEquals("10.00 m/s  36.0 km/h", m.speedLines()[0].text);
+        assertEquals(ScreenModel.C_GREY, m.speedLines()[0].color);
+        assertEquals("VEHICLE STATE STALE \u00b7 3.1 s ago", m.speedLines()[1].text);
+        assertEquals(ScreenModel.C_STALE, m.speedLines()[1].color);
+        assertEquals("plan v \u2014", m.speedLines()[2].text);
+        // The plan is current and drawn.
+        assertNull(m.planAbsence());
+
+        // The limit of a kind's own age is 1.0 s, as for the plan.
+        final ObserverState b = live();   // its VEHICLE_STATE arrived 60 ms before NOW_MS
+        b.onReceipt(mapped(health(2, NOW_MS + 880, 1, 0)), (NOW_MS + 900) * 1_000_000L);
+        assertEquals(ScreenModel.C_TEXT, new ScreenModel(b, NOW_MS - 60 + 1_000L).speedLines()[0].color);
+        assertEquals(ScreenModel.C_GREY, new ScreenModel(b, NOW_MS - 60 + 1_001L).speedLines()[0].color);
     }
 
     @Test
@@ -374,6 +446,19 @@ public class ScreenModelTest {
                 + "subscribe instance1:de4sdv-driving-operational-state-plan: PERMISSION_DENIED: "
                 + "y".repeat(300));
         out.add(down);
+        // HEALTH stopped 10 s ago while the vehicle state and the plan are current, at their widest.
+        final ObserverState healthStopped = new ObserverState();
+        healthStopped.setLink("SUBSCRIBED", "3 of 3 units subscribed on instance1");
+        healthStopped.onReceipt(mapped(health(1, NOW_MS - 10_020L, 1, 0)), (NOW_MS - 10_000L) * 1_000_000L);
+        healthStopped.onReceipt(mapped(v), NOW_MS * 1_000_000L);
+        healthStopped.onReceipt(mapped(p), NOW_MS * 1_000_000L);
+        out.add(healthStopped);
+        // The other two kinds arrive and no HEALTH ever did.
+        final ObserverState noHealth = new ObserverState();
+        noHealth.setLink("SUBSCRIBED", "2 of 3 units subscribed on instance1");
+        noHealth.onReceipt(mapped(v), NOW_MS * 1_000_000L);
+        noHealth.onReceipt(mapped(p), NOW_MS * 1_000_000L);
+        out.add(noHealth);
         return out;
     }
 

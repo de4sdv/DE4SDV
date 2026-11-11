@@ -10,8 +10,11 @@
 //  * the state colour has exactly one authority, HEALTH's `mode`; nothing else
 //    colours the mode box, and every colour comes with its text;
 //  * a missing value prints MISSING ("—"), never a zero or a guess;
-//  * STALE (no receipt for ObserverState.STALE_AFTER_MS) is always visible in the
-//    header and greys the mode; a stale plan is not drawn (fail closed);
+//  * STALE (no HEALTH receipt for ObserverState.HEALTH_STALE_AFTER_MS, the receiver
+//    rule in the rationale of REQ-DRIVING-017) is always visible in the header, greys
+//    the mode and everything else and clears the plan, whatever else still arrives;
+//    a plan or a vehicle state that stopped arriving is marked in its own panel, and
+//    a stale plan is not drawn (fail closed);
 //  * stepwise values: the newest receipt, never an interpolation or an average
 //    across receipts;
 //  * the two real-time clocks are printed side by side, each with its source;
@@ -34,7 +37,7 @@ final class ScreenModel {
     static final String TITLE = "DRIVING PLAN \u00b7 IVI observer (read-only)";
 
     /** The stale limit as printed. */
-    static final String LIMIT = String.format(Locale.US, "%.1f", ObserverState.STALE_AFTER_MS / 1000.0);
+    static final String LIMIT = String.format(Locale.US, "%.1f", ObserverState.HEALTH_STALE_AFTER_MS / 1000.0);
 
     // Colour tokens (ARGB). The view uses them as they are.
     static final int C_TEXT = 0xFFE8ECF1;
@@ -102,14 +105,22 @@ final class ScreenModel {
 
     final ObserverState state;
     final long nowRealMs;
+    /** No HEALTH newer than the limit: everything on the screen is marked, whatever else arrives. */
     final boolean stale;
+    /** The plan is not shown as current: it stopped arriving, or the screen is stale. */
     final boolean planStale;
+    /** A vehicle state arrived and none has since, for longer than a kind's limit. */
+    final boolean vehicleStale;
+    /** The plan's own age is over a kind's limit (or there is no plan). */
+    private final boolean planOld;
 
     ScreenModel(ObserverState state, long nowRealMs) {
         this.state = state;
         this.nowRealMs = nowRealMs;
         this.stale = state.stale(nowRealMs);
-        this.planStale = state.planStale(nowRealMs);
+        this.planOld = state.planStale(nowRealMs);
+        this.planStale = planOld || stale;
+        this.vehicleStale = state.vehicle != null && state.vehicleStale(nowRealMs);
     }
 
     // ------------------------------------------------------------------ header
@@ -122,8 +133,12 @@ final class ScreenModel {
             }
             return new Line("NO DATA \u00b7 " + state.link, ScreenLayout.CHIP, C_GREY);
         }
+        if (state.health == null) {
+            // Other kinds arrive and no HEALTH ever did: nothing says the state is current.
+            return new Line("STALE \u00b7 no HEALTH yet", ScreenLayout.CHIP, C_STALE);
+        }
         if (stale) {
-            return new Line("STALE " + age2(state.ageOfLastReceiptMs(nowRealMs) / 1000.0) + " s (> " + LIMIT + " s)",
+            return new Line("STALE " + age2(state.ageOfHealthMs(nowRealMs) / 1000.0) + " s (> " + LIMIT + " s)",
                     ScreenLayout.CHIP, C_STALE);
         }
         return new Line("\u25cf LIVE \u00b7 stale > " + LIMIT + " s", ScreenLayout.CHIP, C_LIVE);
@@ -140,9 +155,13 @@ final class ScreenModel {
         if (state.plan == null) {
             return "no plan received yet";
         }
-        if (planStale) {
+        if (planOld) {
             return "PLAN STALE \u00b7 frame " + state.plan.planFrameIndex + ", "
                     + age((nowRealMs - state.planReceiptRealNs / 1_000_000L) / 1000.0) + " s ago";
+        }
+        if (stale) {
+            // The plan is current by its own age, but the mode it belongs to is not known.
+            return "plan not drawn \u00b7 no fresh HEALTH";
         }
         if (state.plan.planX.length == 0 || state.plan.planX.length != state.plan.planY.length) {
             return "plan has no points (" + state.plan.planX.length + " x, " + state.plan.planY.length + " y)";
@@ -235,19 +254,27 @@ final class ScreenModel {
 
     Line[] speedLines() {
         final StateRecord.Fields v = state.vehicle;
-        final int color = stale ? C_GREY : C_TEXT;
+        final int color = (stale || vehicleStale) ? C_GREY : C_TEXT;
         final String now;
         final String sample;
+        int sampleColor = C_DIM;
         if (v == null || !PlanGeometry.finite(v.speedKmh)) {
             now = "speed " + MISSING;
             sample = v == null ? "no VEHICLE_STATE yet" : "speed_kmh not finite";
         } else {
             now = num(v.speedKmh / 3.6f, 2) + " m/s  " + num(v.speedKmh, 1) + " km/h";
-            sample = "vehicle state sim " + simSeconds(v.sampleCaptureMs) + " s \u00b7 seq " + v.sequence;
+            if (vehicleStale) {
+                // The last speed stays, grey, with the time since it arrived.
+                sample = "VEHICLE STATE STALE \u00b7 "
+                        + age((nowRealMs - state.vehicleReceiptRealNs / 1_000_000L) / 1000.0) + " s ago";
+                sampleColor = C_STALE;
+            } else {
+                sample = "vehicle state sim " + simSeconds(v.sampleCaptureMs) + " s \u00b7 seq " + v.sequence;
+            }
         }
         return new Line[] {
             new Line(now, ScreenLayout.SPEED, color),
-            new Line(sample, ScreenLayout.SMALL, C_DIM),
+            new Line(sample, ScreenLayout.SMALL, sampleColor),
             new Line(planSpeedText(), ScreenLayout.BODY, color),
             new Line("plan v in m/s: this speed + \u222b plan acceleration", ScreenLayout.NOTE, C_DIM),
         };
@@ -257,7 +284,7 @@ final class ScreenModel {
     String planSpeedText() {
         final StateRecord.Fields p = state.plan;
         final StateRecord.Fields v = state.vehicle;
-        if (p == null || planStale || v == null || !PlanGeometry.finite(v.speedKmh)) {
+        if (p == null || planStale || v == null || vehicleStale || !PlanGeometry.finite(v.speedKmh)) {
             return "plan v " + MISSING;
         }
         final PlanKinematics k = kinematics(p);
