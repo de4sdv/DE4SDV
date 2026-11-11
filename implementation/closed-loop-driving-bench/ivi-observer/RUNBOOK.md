@@ -1,6 +1,6 @@
 # Runbook: the typed observation path on the aaos-build VM (option B)
 
-For the orchestrator. Every step is a command, its expected output and a gate.
+Every step is a command, its expected output and a gate.
 Times are nominal, from the precedents' own logs: the AEBS phase-10 plan
 (`score-broker-path-bench/bench-plan.md`, S1) measured the clean SDV Core build at
 1.5 h and the two-VM launch with ACL provisioning and clock setting at 1.0 h.
@@ -29,8 +29,8 @@ export PATH="$AOSP_TOP/out/host/linux-x86/bin:$PATH"
 export ADB="$AOSP_TOP/out/host/linux-x86/bin/adb"
 ```
 
-The whole slice is go/no-go in 2 days. The T+ column assumes day 1 starts at
-08:00 UTC; the owner decides at **2026-11-11 08:30 UTC**.
+The plan was sized for two days. The T+ column gives nominal times from the
+start of day 1.
 
 | T+ | Step | Gate |
 |---|---|---|
@@ -151,7 +151,7 @@ There is no default: `stage_sdv_core_interop.sh stage` refuses to run without it
 
 On the three-host bench the S-CORE host holds **192.168.98.1** on the VXLAN segment:
 its someipd's vsomeip `unicast` is 192.168.98.1, on the bridge that carries the
-`vx98` VXLAN port (or on `vx98` itself in the P4 layout). The guest host's bridge,
+`vx98` VXLAN port (or on `vx98` itself). The guest host's bridge,
 which held `.1` on the two-host bench, moves to **192.168.98.254** when the guest-host
 half of the VXLAN is added. So, once both halves are up:
 

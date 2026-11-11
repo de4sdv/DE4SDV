@@ -166,7 +166,11 @@ calls nothing (REQ-DRIVING-018, -019).
   The receipt lag and the plan age are shown as **display-only** differences of two
   clocks (IVI vs S-CORE real time), labelled so; the record stays stamps only (ICD §6,
   no computed latencies). STALE after 1.0 s without a receipt greys the state and
-  clears the path. The layout is one 1080 x 600 reference; `ScreenLayout.place`
+  clears the path. That is not the receiver rule in the rationale of
+  REQ-DRIVING-017 (no health newer than 500 ms): the app looks at the newest
+  receipt of any kind and waits 1.0 s, so a HEALTH stream that stops while PLAN
+  and VEHICLE_STATE keep arriving is still shown as live. A known limit (the
+  bench README). The layout is one 1080 x 600 reference; `ScreenLayout.place`
   scales and centres it inside the part of the view the system bars leave free (the
   IVI's window is edge to edge, so the bars otherwise cover the header and the
   footer). A start with `--ez immersive true` asks for hidden bars; with zero insets
