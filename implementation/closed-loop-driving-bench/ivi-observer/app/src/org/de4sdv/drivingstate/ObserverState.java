@@ -12,8 +12,15 @@ package org.de4sdv.drivingstate;
 
 final class ObserverState {
 
-    /** No receipt for this long means STALE (HEALTH alone is due every 100 ms, ICD section 3). */
-    static final long STALE_AFTER_MS = 1000L;
+    /**
+     * The receiver rule in the rationale of REQ-DRIVING-017: with no HEALTH newer than this, what
+     * the screen shows is marked stale. HEALTH is due at least every 200 ms, also while no plan is
+     * produced, so it is the one stream whose silence means the state stopped arriving.
+     */
+    static final long HEALTH_STALE_AFTER_MS = 500L;
+
+    /** A plan or a vehicle state older than this is marked in its own panel; a stale plan is not drawn. */
+    static final long KIND_STALE_AFTER_MS = 1000L;
 
     StateRecord.Fields plan;
     StateRecord.Fields vehicle;
@@ -108,18 +115,26 @@ final class ObserverState {
         linkDetail = detail == null ? "" : detail;
     }
 
-    /** Milliseconds since the newest receipt of any kind, or -1 when none arrived. */
-    long ageOfLastReceiptMs(long nowRealMs) {
-        return last == null ? -1L : nowRealMs - lastReceiptRealNs / 1_000_000L;
+    /** Milliseconds since the newest HEALTH receipt, or -1 when none arrived. */
+    long ageOfHealthMs(long nowRealMs) {
+        return health == null ? -1L : nowRealMs - healthReceiptRealNs / 1_000_000L;
     }
 
+    /**
+     * True when no HEALTH is newer than HEALTH_STALE_AFTER_MS, whatever else still arrives: each
+     * kind has a service unit of its own, so HEALTH can stop while PLAN and VEHICLE_STATE go on.
+     */
     boolean stale(long nowRealMs) {
-        final long age = ageOfLastReceiptMs(nowRealMs);
-        return age < 0 || age > STALE_AFTER_MS;
+        final long age = ageOfHealthMs(nowRealMs);
+        return age < 0 || age > HEALTH_STALE_AFTER_MS;
     }
 
     boolean planStale(long nowRealMs) {
-        return plan == null || nowRealMs - planReceiptRealNs / 1_000_000L > STALE_AFTER_MS;
+        return plan == null || nowRealMs - planReceiptRealNs / 1_000_000L > KIND_STALE_AFTER_MS;
+    }
+
+    boolean vehicleStale(long nowRealMs) {
+        return vehicle == null || nowRealMs - vehicleReceiptRealNs / 1_000_000L > KIND_STALE_AFTER_MS;
     }
 
     /**

@@ -522,8 +522,9 @@ from `dumpsys SurfaceFlinger --display-id` only if it does not. Watch the clip: 
 clocks one above the other (IVI now, message publish real time), the receipt lag and
 the plan age (both labelled as differences of two clocks), the plan path drawn to scale
 with its metric grid (the spacing is printed under the panel), the freshness chip
-(`LIVE`, or `STALE` after 1.0 s without a receipt), health changing on a stop, the plan
-frame and its image capture time. Recorded on the guest, nothing retimed.
+(`LIVE`, or `STALE` when the newest HEALTH receipt is older than 0.5 s), health changing
+on a stop, the plan frame and its image capture time. Recorded on the guest, nothing
+retimed.
 
 ## 14. The judged run and the pull (30 min)
 
