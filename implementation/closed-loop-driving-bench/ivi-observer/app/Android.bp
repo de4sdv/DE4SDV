@@ -1,50 +1,103 @@
 // DE4SDV INC-DRIVING-001 slice 10b: the IVI observer application.
 //
-// One android_app, installed over adb on the IVI VM by
-// scripts/stage_ivi_observer.sh. It depends on the image's Java SDV Gateway client
-// (libsdvgatewayclient-java-sdk, as the INC-AEBS-010 visualization app does), on
-// protobuf lite, and on the typed message of ../contract -- and on nothing else.
+// The module shapes are the proven INC-AEBS-010 ones on this tree
+// (system/software_defined_vehicle/samples/de4sdv_aebs_visualization/Android.bp):
 //
-// There is no carrier library and no bytes type any more (option B: the typed message);
-// the app's parser is the generated class of
-// de4sdv.driving.v1.DrivingOperationalState, compiled from the one .proto in
-// ../contract by the module below's dependency.
+//  * a VENDOR privileged app, platform-signed, sdk_version "module_current".
+//    The Gateway Java client's SDK library is a vendor java_sdk_library
+//    (sdv_gateway/libsdvgatewayclient_java/Android.bp: libsdvgatewayclient-java-sdk,
+//    vendor: true) shipped in the vendor APEX com.android.sdv.gateway.client; the
+//    app names it in uses_libs and in the manifest's <uses-library>, so at run time
+//    PackageManager puts the APEX jar on the class path and JniClient can load
+//    libsdvgatewayclient_jni from the APEX. The APK lands in vendor/priv-app.
+//  * the Gateway client's Java sources (google.sdv.gateway.client.*) compiled INTO
+//    the app, as the AEBS app carries them in app/src/google/... The staging script
+//    copies them from the tree's own sdv_gateway/libsdvgatewayclient_java/src at
+//    stage time (they are not part of this repository). Their dependencies are the
+//    static libs below (gRPC core/okhttp-lite, guava, protobuf-lite, androidx
+//    annotations), the same list as the AEBS app.
+//  * the Android-free classes in a java_library, because a java_test cannot see the
+//    classes of an android_app (soong-module-authoring notes); the app links that
+//    library and excludes the same files from its own srcs.
 //
-// Build:  m De4sdvDrivingStateObserver De4sdvDrivingStateRecordTest
+// No soong_namespace block (an empty one silently hid every app module on this tree).
+//
+// Build:  m De4sdvDrivingStateObserver De4sdvDrivingStateObserverTests
 package {
     default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+// The record builder, the mapping of the typed message, the screen's state, model,
+// layout and plan geometry: everything that runs without a device.
+java_library {
+    name: "de4sdv_driving_observer_model",
+    srcs: [
+        "src/org/de4sdv/drivingstate/MessageMapper.java",
+        "src/org/de4sdv/drivingstate/ObserverState.java",
+        "src/org/de4sdv/drivingstate/PlanGeometry.java",
+        "src/org/de4sdv/drivingstate/PlanKinematics.java",
+        "src/org/de4sdv/drivingstate/ScreenLayout.java",
+        "src/org/de4sdv/drivingstate/ScreenModel.java",
+        "src/org/de4sdv/drivingstate/StateRecord.java",
+    ],
+    static_libs: [
+        "de4sdv_driving_operational_state_proto_java",
+        "libprotobuf-java-lite",
+    ],
+    sdk_version: "system_current",
+    owner: "de4sdv",
 }
 
 android_app {
     name: "De4sdvDrivingStateObserver",
     manifest: "AndroidManifest.xml",
     srcs: ["src/**/*.java"],
-    static_libs: [
-        "de4sdv_driving_operational_state_proto_java",
-        "libprotobuf-java-lite",
+    exclude_srcs: [
+        "src/org/de4sdv/drivingstate/MessageMapper.java",
+        "src/org/de4sdv/drivingstate/ObserverState.java",
+        "src/org/de4sdv/drivingstate/PlanGeometry.java",
+        "src/org/de4sdv/drivingstate/PlanKinematics.java",
+        "src/org/de4sdv/drivingstate/ScreenLayout.java",
+        "src/org/de4sdv/drivingstate/ScreenModel.java",
+        "src/org/de4sdv/drivingstate/StateRecord.java",
     ],
+    vendor: true,
     uses_libs: ["libsdvgatewayclient-java-sdk"],
+    static_libs: [
+        "de4sdv_driving_observer_model",
+        "de4sdv_driving_operational_state_proto_java",
+        "grpc-java-core-android",
+        "grpc-java-okhttp-client-lite",
+        "libprotobuf-java-lite",
+        "guava",
+        "androidx.annotation_annotation",
+    ],
     sdk_version: "module_current",
     certificate: "platform",
     privileged: true,
-    // Not `vendor: true`: the APK must land in system/priv-app, which is where
-    // stage_ivi_observer.sh installs it from and what the runbook pushes.
+    owner: "de4sdv",
     optimize: {
         enabled: false,
     },
-    owner: "de4sdv",
 }
 
-// JVM test of the record builder: the half of this app that is worth testing
-// without a device. No Android and no protobuf import, so it also runs on any
-// host with a JDK (StateRecordTest has a main()).
+// JVM tests of the record builder, the plan geometry, the plan's derived numbers and
+// the screen's content and fit at 1080 x 600. `m` builds them but does not run them:
+// run with the tree's JDK and JUnit (RUNBOOK step 8). The subscriber's own
+// test needs the Gateway client classes and is run off the tree, with the client
+// sources and a javac/JUnit classpath of its own.
 java_test {
-    name: "De4sdvDrivingStateRecordTest",
+    name: "De4sdvDrivingStateObserverTests",
     srcs: [
-        "src/org/de4sdv/drivingstate/StateRecord.java",
+        "tests/org/de4sdv/drivingstate/PlanGeometryTest.java",
+        "tests/org/de4sdv/drivingstate/PlanKinematicsTest.java",
+        "tests/org/de4sdv/drivingstate/ScreenModelTest.java",
         "tests/org/de4sdv/drivingstate/StateRecordTest.java",
     ],
-    static_libs: ["junit"],
+    static_libs: [
+        "de4sdv_driving_observer_model",
+        "junit",
+    ],
     sdk_version: "system_current",
     owner: "de4sdv",
 }

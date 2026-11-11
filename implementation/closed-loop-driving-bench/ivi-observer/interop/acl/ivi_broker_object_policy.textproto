@@ -12,15 +12,40 @@
 #   /product/etc/sdv_authz_acls/com.android.sdv.someip/SomeIpBroker.textproto
 # The reader name is the observer's subject package.bundle (dotted), not its
 # process or activity name.
+#
+# Three service units (one per SOME/IP event: plan, vehicle state, health), one message
+# type: the mapping registers one broker publisher per event, and the publication is
+# SINGLE_PUB ("each channel can only have one publisher", vsidl annotations.proto), so
+# each event gets its own unit. The one-unit form is interop/variants/.
+#
+# Same install path as the earlier increment's broker object policy: installing this file
+# replaces that one. If both increments must work on one IVI VM, merge their blocks into
+# one file (the SD agent exits when a second file names one subject).
 subscriber {
   message: "de4sdv.driving.v1.DrivingOperationalState"
-  topic: "de4sdv-driving-operational-state"
+  topic: "de4sdv-driving-operational-state-plan"
+}
+subscriber {
+  message: "de4sdv.driving.v1.DrivingOperationalState"
+  topic: "de4sdv-driving-operational-state-vehicle-state"
+}
+subscriber {
+  message: "de4sdv.driving.v1.DrivingOperationalState"
+  topic: "de4sdv-driving-operational-state-health"
 }
 acls {
   name: "DrivingStateObserverReader"
   include: "org.de4sdv.drivingstate.DrivingStateObserver"
 }
 service_units {
-  name: "de4sdv-driving-operational-state"
+  name: "de4sdv-driving-operational-state-plan"
+  acl_names: "DrivingStateObserverReader"
+}
+service_units {
+  name: "de4sdv-driving-operational-state-vehicle-state"
+  acl_names: "DrivingStateObserverReader"
+}
+service_units {
+  name: "de4sdv-driving-operational-state-health"
   acl_names: "DrivingStateObserverReader"
 }

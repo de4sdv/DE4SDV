@@ -88,24 +88,29 @@ else
 fi
 
 # ------------------------------------------------- 3. reflection of the fields
+# The broker and its serde are Rust (some_ip/broker_agent_comms, some_ip/serde); the
+# incoming REFLECTION path is translator/direct/incoming (DirectTranslator), so the
+# search must include *.rs or it reports a false BLOCKER.
 head2 "3. Does the translator fill repeated float and string fields?"
-BROKER_SRC="$(grep -rl -E 'type_definition|SomeIpStruct' "$SDV" --include=*.cc --include=*.cpp --include=*.h 2>/dev/null | head -10)"
+BROKER_SRC="$(grep -rlE 'type_definition|SomeIpStruct' "$SDV/some_ip" --include=*.rs --include=*.cc --include=*.cpp --include=*.h 2>/dev/null | head -12)"
+DIRECT="$SDV/some_ip/broker_agent_comms/src/translator/direct/incoming"
 if [ -n "$BROKER_SRC" ]; then
   for file in $BROKER_SRC; do say "  $file"; done
-  HITS="$(grep -rn -E 'RepeatedField|AddAlreadyAllocated|FieldDescriptor::TYPE_FLOAT|is_repeated|repeated' $BROKER_SRC 2>/dev/null | head -12)"
+  HITS="$(grep -n -E 'fn translate_f32_to_float_array|field_by_name|is_repeated|someip_array_byte_size == 0' \
+           "$DIRECT/array_metadata.rs" "$SDV/some_ip/broker_agent_comms/src/translator/direct/incoming/metadata.rs" 2>/dev/null | head -12)"
   if [ -n "$HITS" ]; then
     printf '%s\n' "$HITS" | sed 's/^/    /'
-    verdict_read "the translator touches repeated fields; read the branch before the build (RUNBOOK gate G5)"
+    verdict_ok "REFLECTION consumer found (DirectTranslator): fields BY NAME, FLOAT32 array -> repeated float"
   else
-    verdict_block "no repeated-field handling in the translator: a repeated float cannot be filled"
+    verdict_block "type_definition is parsed but no repeated-float translation was found in $DIRECT"
   fi
 else
-  verdict_block "no type_definition consumer found under $SDV: nothing reads the SomeIpStruct"
+  verdict_block "no type_definition consumer found under $SDV/some_ip (searched *.rs, *.cc, *.cpp, *.h)"
 fi
 
 # --------------------------------------------------------- 4. string convention
 head2 "4. String framing: BOM and NUL, or raw bytes?"
-STR_HITS="$(grep -rn -E '0xEF|0xBB|0xBF|\bBOM\b|bom|kUtf8|WriteString|string_encoding' "$SDV" --include=*.cc --include=*.h --include=*.cpp 2>/dev/null | head -15)"
+STR_HITS="$(grep -n -E 'BOM_UTF8|fn read_bom|fn read_string|string_size - 3|Did not find null byte' "$SDV/some_ip/broker_agent_comms/src/translator/direct/incoming/reader.rs" 2>/dev/null | head -15)"
 if [ -n "$STR_HITS" ]; then
   printf '%s\n' "$STR_HITS" | sed 's/^/    /'
   say "  read these against ICD section 3: length covers BOM + bytes + NUL; an empty string is 00000004 EFBBBF 00"
@@ -116,10 +121,10 @@ fi
 
 # ------------------------------------------------------ 5. array length in bytes
 head2 "5. Array length: bytes or elements?"
-ARR_HITS="$(grep -rn -E 'length_field_size|kFourByteLength|array_length|ArrayLength' "$SDV" --include=*.cc --include=*.h 2>/dev/null | head -12)"
+ARR_HITS="$(grep -n -E 'someip_array_byte_size / 4|f32s length is not a multiple of 4|write_raw_varint32\(someip_array_byte_size' "$SDV/some_ip/broker_agent_comms/src/translator/direct/incoming/array_metadata.rs" 2>/dev/null | head -12)"
 if [ -n "$ARR_HITS" ]; then
   printf '%s\n' "$ARR_HITS" | sed 's/^/    /'
-  verdict_read "the array length field is implemented; confirm it counts BYTES (64 floats = 256, not 64)"
+  verdict_ok "the array length field counts BYTES (elements = bytes / 4); 64 floats = 256"
 else
   verdict_block "no array length handling found"
 fi
@@ -134,10 +139,10 @@ if [ -d "$CATALOG" ]; then
   grep -rn -E '^[a-z_]+ \{|name: ' "$CATALOG" --include=Android.bp 2>/dev/null | head -20 | sed 's/^/    /'
   say "  proto srcs of the broker bundle:"
   grep -rn -A 6 'proto_library\|proto: {' "$CATALOG" --include=Android.bp 2>/dev/null | head -20 | sed 's/^/    /'
-  if grep -rh -E '^(proto_library|java_library|cc_library)' "$CATALOG" --include=Android.bp 2>/dev/null | grep -q proto_library; then
-    verdict_ok "the catalog registers protobuf types with proto_library; CATALOG_MODULE_KIND=proto_library is right"
+  if grep -q '"\*\*/\*.proto"' "$CATALOG/Android.bp" && grep -q '"\*\*/\*.vsidl"' "$CATALOG/Android.bp"; then
+    verdict_ok "the catalog globs **/*.proto and **/*.vsidl: drop the files in a subdirectory WITHOUT an Android.bp (as de4sdv_score/)"
   else
-    verdict_read "the catalog's module kinds are printed above; set CATALOG_MODULE_KIND to what it uses"
+    verdict_block "the catalog Android.bp does not glob **/*.proto and **/*.vsidl; the staging layout must change"
   fi
   say "  publisher entries in the broker catalog (do any name a type from another package?):"
   grep -rn -A 2 'publisher {' "$CATALOG/agent" 2>/dev/null | head -20 | sed 's/^/    /'
@@ -146,9 +151,10 @@ else
 fi
 
 # ------------------------------------- 7. does gatewayd forward the mw::com frame?
-head2 "7. The mw::com operational-state frame: is the 4-byte prefix stripped before SOME/IP?"
-say "  ICD section 2: the publisher's event is PreSerializedData<2048>, bytes 0-1 a little-endian"
-say "  length, the struct from byte 4. The SOME/IP payload must be the struct alone (section 3)."
+head2 "7. The mw::com operational-state sample: does the SOME/IP payload start with the struct?"
+say "  ICD section 2 (A33): the publisher's sample is PreSerializedData<2048> with size = the"
+say "  struct's length and data[0..size) = the struct; gatewayd copies data[0..size) unread."
+say "  The SOME/IP payload must be the struct alone (section 3)."
 PREFIX_HITS="$(grep -rn -E 'PreSerializedData|kSerialized|SerializedData|operational_state|operationalState' "$SDV" --include=*.cc --include=*.h --include=*.json 2>/dev/null | head -12)"
 if [ -n "$PREFIX_HITS" ]; then
   printf '%s\n' "$PREFIX_HITS" | sed 's/^/    /'

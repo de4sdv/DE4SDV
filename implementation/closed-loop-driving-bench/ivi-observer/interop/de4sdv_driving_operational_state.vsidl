@@ -1,13 +1,14 @@
 # DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
 # Bench-only. GENERATED FILE: do not edit; regenerate with
-#   python3 scripts/gen_someip_vsidl.py
+#   python3 scripts/gen_someip_vsidl.py            (this file: three service units)
+#   python3 scripts/gen_someip_vsidl.py --one-unit (variant: one service unit)
 # from interop/someip_type_definition.textproto and codec/icd_table.py.
 # tests/test_contract_and_encoding.py fails when this file is stale.
 #
 # Maps the one SOME/IP service of the driving operational state (service
 # 0x4df0, instance 0x0001, eventgroup 0x0001, events 0x8001 plan /
-# 0x8002 vehicle state / 0x8003 health, reliable, TCP 30510 -- ICD section 3) to
-# one Data Tunnel topic, `de4sdv-driving-operational-state`, typed
+# 0x8002 vehicle state / 0x8003 health -- ICD section 3; TCP 30510 is the stack's
+# vsomeip_config.json, not this file) onto the typed message
 # de4sdv.driving.v1.DrivingOperationalState -- the type the model names:
 #
 #   MAP-DRIVING-OPERATIONAL-STATE: "one SOME/IP service with three events, plan,
@@ -15,19 +16,25 @@
 #   DrivingOperationalState with a kind field".
 #
 # Translation: message_translation_mode REFLECTION on all three events. The broker
-# lays out the SOME/IP payload by the type_definition below (big-endian struct,
-# no struct length field, AUTOSAR strings, length-prefixed FLOAT32 arrays) and
-# fills the protobuf message's fields BY NAME. There is no bytes carrier and no
-# payload decoding anywhere on the guest: the IVI app receives the typed message.
+# reads the SOME/IP payload by the type_definition below (big-endian, no struct
+# length field, AUTOSAR strings, FLOAT32 arrays with a 4-byte BYTE count) and fills
+# the protobuf fields BY NAME (metadata.rs field_by_name). A field_name the message
+# does not have fails the whole event's metadata at broker start, it does not leave
+# one field at its default.
 #
-# One topic parameter for three events: one subscription, one ACL pair and one
-# loss counter at the observer, and the two clocks on its screen come from one
-# stream. The order within a kind is the publisher's `sequence`; the interleaving
-# across kinds carries no meaning and is not used.
+# sdv_unit_type: package_name is the PROTOBUF package of the message, type_name its
+# bare name -- that pair is the key of the runtime VSIDL config
+# (vsidl_rc_generator UnitType::from) and every mapping of the catalog follows it.
+# service_bundle_name is deprecated and ignored for the key.
 #
-# If vsidlc or the broker refuses three offered events on one topic parameter, the
-# variant is three topics (keys 1/2/3, `de4sdv-driving-operational-state-plan` and so on) and three
-# subscriptions in the app; RUNBOOK step 6 names the switch and its cost.
+# Service units: de4sdv-driving-operational-state-plan, de4sdv-driving-operational-state-vehicle-state, de4sdv-driving-operational-state-health
+# The broker creates one SDV publisher per offered event (pubsub_handler.rs,
+# handle_someip_event_mapping_infos). The publication is SINGLE_PUB: "Each channel can
+# only have one publisher. A single service bundle can publish multiple channels"
+# (vsidl annotations.proto, SdvPublication.PublisherModel). Three units of one type
+# keep one publisher per unit; three events on ONE unit would put three broker
+# publishers on one channel, which that model excludes (and MULTI_PUB forbids several
+# publishers of one type in one bundle). The one-unit file is kept as a variant only.
 #
 # The one type_definition the three events share is emitted verbatim three times:
 # textproto has no aliasing, so "one definition" is a property the generator
@@ -42,16 +49,10 @@ some_ip_mapping {
     version_minor: 0x0
     instance {
       instance_id: 0x0001
-      # Key 0 is the service unit name, which is what the broker's publish ACL and
-      # the IVI broker object policy see; key 1 names the topic.
-      sdv_service_unit_parameterization {key: 0 value: "de4sdv-driving-operational-state"}
-      sdv_topic_parameterization {
-        key: 1
-        value {
-          topic: "de4sdv-driving-operational-state"
-          capacity: 16
-        }
-      }
+      # The service unit names the broker registers (the ACLs' topic names).
+      sdv_service_unit_parameterization {key: 0 value: "de4sdv-driving-operational-state-plan"}
+      sdv_service_unit_parameterization {key: 1 value: "de4sdv-driving-operational-state-vehicle-state"}
+      sdv_service_unit_parameterization {key: 2 value: "de4sdv-driving-operational-state-health"}
     }
     instance_impl {
       offered_event {
@@ -60,12 +61,11 @@ some_ip_mapping {
         event_id: 0x8001
         simple_event {
           sdv_unit_type {
-            package_name: "com.android.sdv.someip"
+            package_name: "de4sdv.driving.v1"
             service_bundle_name: "SomeIpBroker"
             type_name: "DrivingOperationalState"
           }
           service_unit: 0
-          topic: 1
           message_translation_mode: REFLECTION
           type_definition {
             length_field_size: ZERO
@@ -304,18 +304,19 @@ some_ip_mapping {
           }
         }
       }
+    }
+    instance_impl {
       offered_event {
         # vehicle state
         group_id: 0x0001
         event_id: 0x8002
         simple_event {
           sdv_unit_type {
-            package_name: "com.android.sdv.someip"
+            package_name: "de4sdv.driving.v1"
             service_bundle_name: "SomeIpBroker"
             type_name: "DrivingOperationalState"
           }
-          service_unit: 0
-          topic: 1
+          service_unit: 1
           message_translation_mode: REFLECTION
           type_definition {
             length_field_size: ZERO
@@ -554,18 +555,19 @@ some_ip_mapping {
           }
         }
       }
+    }
+    instance_impl {
       offered_event {
         # health
         group_id: 0x0001
         event_id: 0x8003
         simple_event {
           sdv_unit_type {
-            package_name: "com.android.sdv.someip"
+            package_name: "de4sdv.driving.v1"
             service_bundle_name: "SomeIpBroker"
             type_name: "DrivingOperationalState"
           }
-          service_unit: 0
-          topic: 1
+          service_unit: 2
           message_translation_mode: REFLECTION
           type_definition {
             length_field_size: ZERO

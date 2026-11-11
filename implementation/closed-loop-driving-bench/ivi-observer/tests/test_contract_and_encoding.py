@@ -5,29 +5,42 @@ What this proves, on a host with Python and `grpcio-tools` (no AOSP, no guest):
 
 1. CONTRACT: the typed message compiles, has 43 fields with the ICD's names,
    numbers and types in the ICD's order, and has no bytes carrier and no enum
-   (option B is one message with a `kind` uint32, as the model states).
+   (option B is one message with a `kind` uint32, as the model states). It is a
+   VSIDL publication (the pdk29 catalog's annotations: SINGLE_PUB, an even
+   message_count >= 2, a max size on every string, a max count on every repeated
+   field).
 2. SOMEIP STRUCT: interop/someip_type_definition.textproto declares the same 43
    fields in the same order with the SomeIpType the ICD's type implies, with no
    struct length field; the generated mapping repeats that block verbatim on all
-   three events, in REFLECTION mode, and is not stale.
+   three events, in REFLECTION mode, one instance_impl and one service unit per
+   event, and is not stale (nor is its one-unit variant).
 3. CODEC: codec/someip_struct.py encodes and decodes the struct exactly as
    section 3 says -- big-endian, AUTOSAR strings with the BOM inside the length,
    arrays whose length is in bytes -- and rejects the malformed forms.
 4. AGREEMENT: for each kind, the codec's view and the protobuf message's view of
    the same 43 values are the same values under the same names, which is the
    property the broker's name-matched REFLECTION translation relies on.
-5. ARTIFACTS: ids, topic, message name, ACLs and the app's constants agree.
+5. ARTIFACTS: ids, the three service units, the unit type, message name, ACLs,
+   the stack config and the app's constants agree.
 
 What it does NOT prove: that the shipped broker translates the struct (RUNBOOK
-gates G2/G4), that the S-CORE encoder writes this layout (state-publisher vectors
+gates G3/G5), that the S-CORE encoder writes this layout (state-publisher vectors
 + tests/decode_s1_vectors.py), that anything runs.
 
     uv run --with grpcio-tools python tests/test_contract_and_encoding.py
+
+The contract imports sdv/vsidl/v1/annotations.proto. With VSIDL_PROTO_ROOT (the
+directory that holds sdv/vsidl/v1/annotations.proto) or AOSP_TOP set, the contract
+is compiled as it is and the annotations are read from its descriptor; without
+either, a copy with the VSIDL options removed is compiled (the options do not
+change a field's name, number or type) and the options are checked as text.
 """
 
 from __future__ import annotations
 
 import importlib
+import json
+import os
 import pathlib
 import re
 import struct
@@ -59,10 +72,18 @@ INSTANCE_ID = 0x0001
 EVENTS = (0x8001, 0x8002, 0x8003)
 EVENT_GROUP = 0x0001
 PORT = 30510
+# The base name of the three service units the broker registers, one per event
+# (mapping keys 0, 1, 2 = EVENTS); the ACLs call them `topic`.
 TOPIC = "de4sdv-driving-operational-state"
-MESSAGE_NAME = "de4sdv.driving.v1.DrivingOperationalState"
+SERVICE_UNITS = (f"{TOPIC}-plan", f"{TOPIC}-vehicle-state", f"{TOPIC}-health")
+TYPE_PACKAGE = "de4sdv.driving.v1"
+MESSAGE_NAME = f"{TYPE_PACKAGE}.DrivingOperationalState"
+BROKER_PACKAGE = "com.android.sdv.someip"
+BROKER_BUNDLE = "SomeIpBroker"
 SUBJECT_PACKAGE = "org.de4sdv.drivingstate"
 SUBJECT_BUNDLE = "DrivingStateObserver"
+PEER_PLACEHOLDER = "__SCORE_SOMEIP_PEER__"
+VSIDL_ANNOTATIONS = "sdv/vsidl/v1/annotations.proto"
 
 
 def check(condition: bool, message: str) -> None:
@@ -163,16 +184,59 @@ def _is_repeated(field) -> bool:
     return field.label == 3  # LABEL_REPEATED
 
 
+# The VSIDL options of the contract: one message option, one option per string or
+# repeated field. Removing them leaves every field's name, number and type as is.
+_FIELD_OPTION = re.compile(r"\s*\[\s*\(\.sdv\.vsidl\.v1\.\w+\)\s*=\s*\d+\s*\]")
+_PUBLICATION = re.compile(r"\n[ \t]*option\s*\(\.sdv\.vsidl\.v1\.publication\)\s*=\s*\{[^}]*\};")
+
+
+def without_vsidl_options(source: str) -> str:
+    out = source.replace(f'import "{VSIDL_ANNOTATIONS}";', "")
+    out, publications = _PUBLICATION.subn("", out)
+    check(publications == 1, f"{publications} publication options, expected 1")
+    out = _FIELD_OPTION.sub("", out)
+    check(".sdv.vsidl." not in out.split("syntax =", 1)[1], "a VSIDL option form this test does not strip")
+    return out
+
+
+def vsidl_proto_root() -> pathlib.Path | None:
+    """The directory that holds sdv/vsidl/v1/annotations.proto, if one is given."""
+    candidates = []
+    if os.environ.get("VSIDL_PROTO_ROOT"):
+        candidates.append(pathlib.Path(os.environ["VSIDL_PROTO_ROOT"]))
+    if os.environ.get("AOSP_TOP"):
+        candidates.append(pathlib.Path(os.environ["AOSP_TOP"])
+                          / "system" / "software_defined_vehicle" / "vsidl" / "language" / "src" / "protos")
+    for candidate in candidates:
+        if (candidate / VSIDL_ANNOTATIONS).is_file():
+            return candidate
+    return None
+
+
 def load_pb():
+    """(contract module, annotations module or None)."""
     out = pathlib.Path(tempfile.mkdtemp(prefix="de4sdv-typed-"))
-    result = subprocess.run(
-        [sys.executable, "-m", "grpc_tools.protoc", f"-I{CONTRACT.parent}",
-         f"--python_out={out}", str(CONTRACT)],
-        capture_output=True, text=True,
-    )
+    root = vsidl_proto_root()
+    if root is not None:
+        # The contract as it is, with the platform's annotations.proto beside it
+        # (grpc_tools.protoc adds descriptor.proto's directory itself).
+        args = [f"-I{CONTRACT.parent}", f"-I{root}", f"--python_out={out}",
+                str(CONTRACT), str(root / VSIDL_ANNOTATIONS)]
+        how = f"compiled as is, with {VSIDL_ANNOTATIONS} from {root}"
+    else:
+        stripped = out / "stripped"
+        stripped.mkdir()
+        (stripped / CONTRACT.name).write_text(without_vsidl_options(text(CONTRACT)), encoding="utf-8")
+        args = [f"-I{stripped}", f"--python_out={out}", str(stripped / CONTRACT.name)]
+        how = ("compiled without its VSIDL options (no annotations.proto: set VSIDL_PROTO_ROOT or AOSP_TOP);"
+               " the options are checked as text")
+    result = subprocess.run([sys.executable, "-m", "grpc_tools.protoc", *args], capture_output=True, text=True)
     check(result.returncode == 0, f"protoc failed:\n{result.stdout}\n{result.stderr}")
     sys.path.insert(0, str(out))
-    return importlib.import_module("de4sdv_driving_operational_state_pb2")
+    pb = importlib.import_module("de4sdv_driving_operational_state_pb2")
+    annotations = importlib.import_module("sdv.vsidl.v1.annotations_pb2") if root is not None else None
+    print(f"contract: {how}")
+    return pb, annotations
 
 
 def test_contract(pb) -> None:
@@ -180,6 +244,7 @@ def test_contract(pb) -> None:
     found = [(field.name, field.number, field.type, _is_repeated(field))
              for field in descriptor.fields]
     check(len(found) == 43, f"{len(found)} fields, expected 43")
+    check(descriptor.full_name == MESSAGE_NAME, f"message {descriptor.full_name} != {MESSAGE_NAME}")
 
     proto_types = {
         table.U32: 13,      # TYPE_UINT32
@@ -201,7 +266,45 @@ def test_contract(pb) -> None:
           "the contract declares a bytes field (option A)")
     check("schema_major = 1;" in source and "schema_minor = 2;" in source,
           "schema_major/schema_minor are not fields 1 and 2")
-    print(f"contract: ok (43 fields, numbers 1..43, uint32/float/string/repeated float, no bytes)")
+    print("contract: ok (43 fields, numbers 1..43, uint32/float/string/repeated float, no bytes)")
+
+
+def test_annotations(pb, annotations) -> None:
+    """The pdk29 catalog's publication rules (vsidl context conditions sdv_publication,
+    proto_message_datatype_require_annotation, publication_type)."""
+    source = text(CONTRACT)
+    check(f'import "{VSIDL_ANNOTATIONS}";' in source, "the contract does not import the VSIDL annotations")
+    option = _one(r"option\s*\(\.sdv\.vsidl\.v1\.publication\)\s*=\s*\{([^}]*)\};", source, "publication option")
+    model = _one(r"model\s*:\s*(\w+)", option, "publication model")
+    count = int(_one(r"message_count\s*:\s*(\d+)", option, "message_count"))
+    check(model == "SINGLE_PUB", f"publication model {model}, expected SINGLE_PUB (one publisher per unit)")
+    check(count >= 2 and count % 2 == 0, f"message_count {count} must be even and >= 2")
+    strings = re.findall(r"^\s*string\s+(\w+)\s*=\s*\d+(.*)$", source, re.M)
+    repeated = re.findall(r"^\s*repeated\s+\w+\s+(\w+)\s*=\s*\d+(.*)$", source, re.M)
+    check(len(strings) == sum(f.kind == table.STR for f in table.FIELDS), "string fields in the contract")
+    check(len(repeated) == sum(f.kind == table.F32_ARRAY for f in table.FIELDS), "repeated fields in the contract")
+    for name, rest in strings:
+        check("(.sdv.vsidl.v1.variable_type_max_size)" in rest, f"{name}: no variable_type_max_size")
+    for name, rest in repeated:
+        check("(.sdv.vsidl.v1.repeated_field_max_count)" in rest, f"{name}: no repeated_field_max_count")
+    how = "as text"
+    if annotations is not None:
+        # The same options, read through the platform's annotations.proto.
+        descriptor = pb.DrivingOperationalState.DESCRIPTOR
+        publication = descriptor.GetOptions().Extensions[annotations.publication]
+        check(publication.model == annotations.SdvPublication.SINGLE_PUB, "descriptor: model")
+        check(publication.message_count == count, "descriptor: message_count")
+        check(publication.channels_enum == "", "descriptor: channels_enum set")
+        for field in descriptor.fields:
+            options = field.GetOptions()
+            if field.type == 9:  # TYPE_STRING
+                check(options.Extensions[annotations.variable_type_max_size] > 0, f"{field.name}: max size")
+            if _is_repeated(field):
+                check(options.Extensions[annotations.repeated_field_max_count] >= 64,
+                      f"{field.name}: max count below the ICD's 64 samples")
+        how = "as text and through the descriptor"
+    print(f"annotations: ok (SINGLE_PUB, message_count {count}, {len(strings)} strings with a max size,"
+          f" {len(repeated)} repeated fields with a max count; {how})")
 
 
 # -------------------------------------------------------------- 2. someip struct
@@ -228,13 +331,24 @@ def test_type_definition() -> None:
     for event in EVENTS:
         check(mapping.count(f"event_id: 0x{event:04x}") == 1, f"event {event:#06x} not exactly once")
     check('type_name: "DrivingOperationalState"' in mapping, "mapping type name")
-    check(f'topic: "{TOPIC}"' in mapping, "mapping topic")
+    # interface_type is a oneof: one instance_impl per offered_event.
+    check(len(re.findall(r"^    instance_impl \{", mapping, re.M)) == 3, "one instance_impl per event")
+    # One service unit per event: key i names unit i, event i uses key i.
+    for key, unit in enumerate(SERVICE_UNITS):
+        check(f'sdv_service_unit_parameterization {{key: {key} value: "{unit}"}}' in mapping,
+              f"mapping unit key {key} is not {unit}")
+    pairs = [(int(event, 16), int(key)) for event, key in
+             re.findall(r"event_id: 0x([0-9a-f]{4})\s+simple_event \{.*?service_unit: (\d+)", mapping, re.S)]
+    check(pairs == list(zip(EVENTS, range(3))), f"event -> unit key {pairs}, expected each event its own key")
+    check("sdv_topic_parameterization" not in mapping, "the pdk29 catalog mapping carries no topic parameterization")
 
-    generated = subprocess.run([sys.executable, str(GENERATOR), "--check"],
-                               capture_output=True, text=True)
-    check(generated.returncode == 0,
-          f"the committed mapping is stale:\n{generated.stdout}{generated.stderr}")
-    print("someip struct: ok (43 fields x 3 events, identical, REFLECTION, no struct length, not stale)")
+    for variant in ([], ["--one-unit"]):
+        generated = subprocess.run([sys.executable, str(GENERATOR), "--check", *variant],
+                                   capture_output=True, text=True)
+        check(generated.returncode == 0,
+              f"the committed mapping {variant} is stale:\n{generated.stdout}{generated.stderr}")
+    print("someip struct: ok (43 fields x 3 events, identical, REFLECTION, no struct length,"
+          " one instance_impl and one unit per event, not stale)")
 
 
 # --------------------------------------------------------------------- 3. codec
@@ -352,33 +466,48 @@ def test_artifacts() -> None:
     mapping = text(MAPPING)
     check(f"someip_service_id: 0x{SERVICE_ID:04x}" in mapping, "mapping service id")
     check(f"instance_id: 0x{INSTANCE_ID:04x}" in mapping, "mapping instance id")
-    check(f"group_id: 0x{EVENT_GROUP:04x}" in mapping, "mapping event group")
-    check(f'topic: "{TOPIC}"' in mapping, "mapping topic")
-    check('package_name: "com.android.sdv.someip"' in mapping, "mapping broker package")
-    check('service_bundle_name: "SomeIpBroker"' in mapping, "mapping broker bundle")
+    check(mapping.count(f"group_id: 0x{EVENT_GROUP:04x}") == 3, "mapping event group")
+    check(f'package: "{BROKER_PACKAGE}"' in mapping, "mapping file package (the broker's)")
+    # The unit type is keyed by (proto package, bare name) in the runtime VSIDL config.
+    check(mapping.count(f'package_name: "{TYPE_PACKAGE}"') == 3, "mapping unit type package (the proto's)")
+    check(f'package_name: "{BROKER_PACKAGE}"' not in mapping, "mapping unit type in the broker's package")
+    check(mapping.count(f'service_bundle_name: "{BROKER_BUNDLE}"') == 3, "mapping broker bundle")
 
     check(f'message: "{MESSAGE_NAME}"' in text(BUNDLE), "bundle publisher")
-    check(f'message: "{MESSAGE_NAME}"' in text(BROKER_ACL), "broker acl message")
-    check(f'topic: "{TOPIC}"' in text(BROKER_ACL), "broker acl topic")
-    check(f'message: "{MESSAGE_NAME}"' in text(SUBJECT_ACL), "subject acl message")
-    check(f'message: "{MESSAGE_NAME}"' in text(OBJECT_POLICY), "object policy message")
-    check(f'include: "{SUBJECT_PACKAGE}.{SUBJECT_BUNDLE}"' in text(OBJECT_POLICY), "object policy reader")
-    check(f'name: "{TOPIC}"' in text(OBJECT_POLICY), "object policy unit")
-
-    import json
+    broker_acl = text(BROKER_ACL)
+    subject_acl = text(SUBJECT_ACL)
+    object_policy = text(OBJECT_POLICY)
+    for acl, what in ((broker_acl, "broker acl"), (subject_acl, "subject acl"), (object_policy, "object policy")):
+        check(f'message: "{MESSAGE_NAME}"' in acl, f"{what} message")
+        for unit in SERVICE_UNITS:
+            check(f'topic: "{unit}"' in acl, f"{what} lacks unit {unit}")
+        check(f'topic: "{TOPIC}"' not in acl, f"{what} still names the single unit {TOPIC}")
+    check(f'include: "{SUBJECT_PACKAGE}.{SUBJECT_BUNDLE}"' in object_policy, "object policy reader")
+    for unit in SERVICE_UNITS:
+        check(f'name: "{unit}"' in object_policy, f"object policy service_units lacks {unit}")
 
     vsomeip = json.loads(text(VSOMEIP))
-    service = vsomeip["services"][0]
-    check(int(service["service"], 16) == SERVICE_ID, "stack service id")
+    services = {int(s["service"], 16): s for s in vsomeip["services"]}
+    check(SERVICE_ID in services, "stack service id")
+    service = services[SERVICE_ID]
     check(int(service["instance"], 16) == INSTANCE_ID, "stack instance id")
     check(int(service["reliable"]["port"]) == PORT, "stack port")
     check({int(e["event"], 16) for e in service["events"]} == set(EVENTS), "stack events")
+    check(service["unicast"] == PEER_PLACEHOLDER, "the 0x4df0 provider is the peer, rendered at staging (no default)")
+    check(0x4DEE in services, "the earlier increment's 0x4dee service must stay configured")
+    secure = {int(s["service"], 16) for s in vsomeip["secure-services"]}
+    check({SERVICE_ID, 0x4DEE} <= secure, "both services secure")
     check(vsomeip["unicast"] == "192.168.98.3", "core unicast")
 
     java = text(SUBSCRIBER_JAVA)
     check(f'SUBJECT_PACKAGE = "{SUBJECT_PACKAGE}"' in java, "java subject package")
     check(f'SUBJECT_BUNDLE = "{SUBJECT_BUNDLE}"' in java, "java subject bundle")
-    check(f'TOPIC_NAME = "{TOPIC}"' in java, "java topic")
+    check(f'PUBLISHER_PACKAGE = "{BROKER_PACKAGE}"' in java, "java publisher package")
+    check(f'PUBLISHER_BUNDLE = "{BROKER_BUNDLE}"' in java, "java publisher bundle")
+    for unit in SERVICE_UNITS:
+        check(f'"{unit}"' in java, f"java lacks unit {unit}")
+    check(f'"{TOPIC}"' not in java, f"java still names the single unit {TOPIC}")
+    check("subscribeToPublicationByName" in java, "the app does not subscribe by name")
     check(f'MESSAGE_NAME = "{MESSAGE_NAME}"' in java, "java message name")
     check("DrivingOperationalState.parser()" in java, "the app does not parse the typed message")
     check(".getData()" not in java, "the app still reads a bytes field (option A)")
@@ -394,12 +523,13 @@ def test_artifacts() -> None:
     check(str(PORT) in icd, "ICD port")
     check("DrivingOperationalState" in icd, "ICD message name")
     check("REFLECTION" in icd, "ICD translation mode")
-    print("artifacts agree: ok (mapping, bundle, ACLs, stack, the app, the record, the ICD)")
+    print("artifacts agree: ok (mapping, bundle, ACLs, stack, the app, the record, the ICD; three units)")
 
 
 def main() -> int:
-    pb = load_pb()
+    pb, annotations = load_pb()
     test_contract(pb)
+    test_annotations(pb, annotations)
     test_type_definition()
     test_codec()
     test_agreement(pb)

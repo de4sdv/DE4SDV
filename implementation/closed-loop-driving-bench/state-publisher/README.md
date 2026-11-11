@@ -4,9 +4,10 @@ The operational-state publisher of the closed-loop driving bench: it takes the
 agent's plan, ego-motion sample and mode and the actuation adapter's actuation
 state over S-CORE mw::com, and publishes the bench's operational state —
 `plan`, `vehicle_state`, `health` — as three `PreSerializedData<2048>` events
-for gatewayd, which maps them to the SOME/IP service `0x4DF0` / `0x0001`
-(events `0x8001`–`0x8003`) and translates them into the typed
-`de4sdv.driving.v1.DrivingOperationalState` topic (REFLECTION mode).
+for gatewayd and someipd, which offer them unread as the SOME/IP service
+`0x4DF0` / `0x0001` (events `0x8001`–`0x8003`); the SDV Core broker on the guest
+translates them into the typed `de4sdv.driving.v1.DrivingOperationalState`
+message (REFLECTION mode).
 
 Contract: [`../interfaces/ICD.md`](../interfaces/ICD.md) v2, sections 1, 2, 3
 and 6. Model authority: `closedLoopDrivingPhysicalSystem.linuxHost`
@@ -94,11 +95,14 @@ order, so the layout is fixed and a decoder can walk it without tags:
   array is a 4-byte zero.
 - Fields of the other kinds are zero, `""` or `[]` as their type dictates.
 
-Frame layout stays the P4 probe's: `PreSerializedData<2048>` with the 32-bit
-little-endian message length in bytes 0–3 (bytes 0–1 carry it; 2–3 are zero
-because a message is under 64 KiB) and the struct from byte 4. `size = 4 +
-message_length`; the oversize guard drops anything over 2044 bytes and counts
-it in `dropped_samples`.
+The library's frame layout stays the P4 probe's: the 32-bit little-endian
+message length in bytes 0–3 (bytes 0–1 carry it; 2–3 are zero because a message
+is under 64 KiB) and the struct from byte 4; the vectors are these frames. The
+shell does not send the prefix: gatewayd copies `data[0..size)` of the
+`PreSerializedData<2048>` sample onto the SOME/IP payload unread, so the sample
+carries the struct alone, `data[0..size)` = frame bytes 4.., `size =
+message_length` (ICD §2, A33). The oversize guard drops anything over 2044 bytes
+and counts it in `dropped_samples`.
 
 Measured sizes (message / frame):
 
@@ -252,16 +256,19 @@ are the tokens `"NaN"`, `"Infinity"`, `"-Infinity"`, `"-0"`.
 
 ## Untested here, must be confirmed on the first build
 
-The shell compiles against nothing real on this machine. It is only
-syntax-checked against `tests/mock`, so the following assumptions are untested:
+The shell is built here only against `tests/mock`, which follows the declared
+mw::com API of Communication v0.6.0; the shell was checked with `-fsyntax-only`
+against the real v0.6.0 headers. The S-CORE host's Bazel build is its first real
+compile and link, and nothing has run it yet. So the following assumptions are
+untested:
 
-1. **Proxy API.** `AsProxy<Interface>` takes a template-template parameter (as
-   `AsSkeleton` does in the P4/P5 probes). `Proxy::StartFindService(handler,
-   specifier)` with `handler(ServiceHandleContainer<HandleType>,
-   FindServiceHandle)`, `Proxy::Create(handle)`, `proxy.Subscribe(max_count)`
-   and `proxy.GetNewSamples(fn, max)` where `fn` receives a `SamplePtr<T>`.
-   **The P4/P5 reference sources only show the skeleton side** — this is the
-   highest-risk area of the shell.
+1. **Proxy API.** `StartFindService(handler, specifier)` returns
+   `Result<FindServiceHandle>`, its handler takes
+   `(ServiceHandleContainer<HandleType>, FindServiceHandle)`, handles have no
+   default constructor (held in `std::optional`), and `Subscribe` /
+   `GetNewSamples` are members of the proxy's event, not of the proxy. These
+   follow the v0.6.0 headers; the asynchronous find has not run in the bench's
+   own code (gatewayd's `GenericProxy` uses it at the same release).
 2. `RuntimeConfiguration{std::string path}` and `InitializeRuntime`, and the
    behaviour when the configuration is not passed (`--mw-com-config` absent).
 3. `PreSerializedData::data` is a byte array and `::size` a `std::size_t`
@@ -271,13 +278,15 @@ syntax-checked against `tests/mock`, so the following assumptions are untested:
 5. Timing: whether a 2 ms poll inside a 100 ms budget holds on the G4 with the
    plan, mode, sample and actuation callbacks in one thread. If it does not, the
    library is unaffected — only the shell's loop changes.
-6. `startFindService` lifetime: the handle `findHandle_` is kept but
-   `StopFindService` is not called; the process ends anyway.
+6. `StartFindService` lifetime: the handler captures the consumer, so
+   `StopFindService` runs in the consumer's destructor and before
+   `StopOfferService`; whether a late handler call can still race it is
+   untested.
 7. The mw::com config's service ids 7401–7406 are the ICD §2 values; that the
    installed S-CORE accepts ids in that range (and the SHM binding) is a P1
    build fact.
-8. That gatewayd's REFLECTION `type_definition` maps this struct to the typed
-   topic (S4's observer checks it); nothing here can test the broker.
+8. That the SDV Core broker's REFLECTION `type_definition` maps this struct to
+   the typed message (S4's observer checks it); nothing here can test the broker.
 
 ## ICD v2 problems found, with proposed fixes
 

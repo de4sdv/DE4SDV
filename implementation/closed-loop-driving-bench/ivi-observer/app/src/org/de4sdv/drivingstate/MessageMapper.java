@@ -16,10 +16,14 @@
 //    zero", so if every field of the message's kind is still at its default the
 //    likely cause is a field_name that does not match the protobuf field name
 //    (REFLECTION matches by name), and the record says so instead of drawing an
-//    idle car. The check never fires for a real message: `kind` itself is set.
+//    idle car. It applies to PLAN and VEHICLE_STATE, whose real messages always
+//    carry a non-default field; a HEALTH heartbeat before the agent's first mode
+//    is all defaults by value and is left alone.
 package org.de4sdv.drivingstate;
 
-import de4sdv.driving.v1.DrivingOperationalState;
+// The generated lite class: the contract has no java_multiple_files option, so
+// protoc nests the message in the file's outer class De4SdvDrivingOperationalState.
+import de4sdv.driving.v1.De4SdvDrivingOperationalState.DrivingOperationalState;
 
 import java.util.List;
 
@@ -118,8 +122,14 @@ final class MessageMapper {
         return out;
     }
 
-    /** True when every field of the message's kind is still at its default. */
-    private static boolean kindIsAllDefault(StateRecord.Fields f) {
+    /**
+     * True when every field of the message's kind is still at its default, for the kinds whose real
+     * messages cannot be: a plan has samples and a reference, a vehicle state has a receipt stamp.
+     * A HEALTH message can. Before drivingAgent offers its mode, statePublisher's heartbeat is
+     * kStarting with no cause, no step, no plan and no source, which is the defaults: it is a real
+     * message and is not counted.
+     */
+    static boolean kindIsAllDefault(StateRecord.Fields f) {
         switch ((int) f.kind) {
             case 1:
                 return f.planFrameIndex == 0 && f.planCaptureMs == 0 && f.planSampleCount == 0
@@ -127,10 +137,6 @@ final class MessageMapper {
                         && f.planReference.isEmpty();
             case 2:
                 return f.speedKmh == 0f && f.sampleCaptureMs == 0 && f.sampleReceiptMonoS == 0;
-            case 3:
-                return f.mode == 0 && f.cause == 0 && f.stepCaptureMs == 0
-                        && f.lastPlanFrameIndex == 0 && f.droppedSamples == 0
-                        && f.modeSource.isEmpty();
             default:
                 return false;
         }

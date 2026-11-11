@@ -39,14 +39,14 @@ There are three clocks. Every time field in a record names its clock by a suffix
 | mode | agent / superviseLoop | statePublisher | `de4sdv/driving/mode` | 7403 | `DrivingModePayload` | once per step, and at once on a change | 029 |
 | command | agent / commandVehicle | actuationAdapter | `de4sdv/driving/command` | 7404 | `VehicleMotionCommandPayload` | once per step | 011, 012, 014, 020–022, 032 |
 | actuation state | actuationAdapter | statePublisher | `de4sdv/driving/actuation_state` | 7405 | `ActuationStatePayload` | once per applied command; at once when the adapter's stop begins | 028, 029, 032 |
-| operational state | statePublisher | gatewayd → SOME/IP | `de4sdv/driving/operational_state` | 7406 | three events `plan`, `vehicle_state`, `health`, each `PreSerializedData<2048>` (bytes 0–1 little-endian length, the §3 struct from byte 4) | §3 | 015–019, 029 |
+| operational state | statePublisher | gatewayd → SOME/IP | `de4sdv/driving/operational_state` | 7406 | three events `plan`, `vehicle_state`, `health`, each `PreSerializedData<2048>` (size = the §3 struct's length, data[0..size) = the §3 struct; gatewayd copies data[0..size) onto the SOME/IP payload unread, A33) | §3 | 015–019, 029 |
 
 - The event name of each of the first five services is the last segment of its specifier. Instance id is 1.
 - Proxies subscribe with a max sample count of 8. A consumer never blocks a producer: a full slot is a dropped sample, which is counted and logged.
-- Every event has `numberOfSampleSlots` ≥ `maxSubscribers` × 8 + 1. LoLa rejects a subscription once the subscribers' sample counts would exceed the slots, and the producer needs one slot that no subscriber holds.
+- Every event has `numberOfSampleSlots` ≥ `maxSubscribers` × 8 + 1 (× 10 + 1 for an event gatewayd subscribes to: gatewayd requests 10 samples, A33). LoLa rejects a subscription once the subscribers' sample counts would exceed the slots, and the producer needs one slot that no subscriber holds.
   - The agent's four events allow 3 subscribers (the consumer above, the bench tap, one spare) and have 25 slots.
   - `actuation_state` allows 2 and has 20.
-  - Each `operational_state` event allows 1 and has 9.
+  - Each `operational_state` event allows 1 and has 20. Its one subscriber is gatewayd, which subscribes with 10 samples, not 8 (`someip::kMaxSampleCount` of the SOME/IP gateway), so it needs at least 10 + 1 slots; 20 is the value the gateway probes ran with (A33).
   - Every manifest that declares an event gives the same two numbers.
 
 ## 3. The operational state on SOME/IP (MAP-DRIVING-OPERATIONAL-STATE)
@@ -333,3 +333,7 @@ No payload changes.
   - Two simulator runs on a straight route show the size. All 189 and 188 moving commands before the first contact were further left than the same plans read from their origin, by a median of 0.61°. The commands asked for a heading change of +9.9° and +9.7° over 21.6 s; the vehicle turned +9.3° in both and left its lane. Read from the origin, the same plans ask for −0.7° and −0.9°. The "+0.6° while moving" of A27 was this shift, not the plans' demand.
   - Sample k still starts the target search, so a plan that is k steps old is not steered toward a sample it has already passed. On a path of constant curvature the steering is the same for every k.
   - The vehicle's travel since the plan's capture is not compensated. On those runs the vehicle was 0.24 m (median) further along the path, and 5 mm to its side, when the command acted.
+- **A33, operational-state sample (§2).** No payload change; the SOME/IP payload (§3) is unchanged.
+  - `size` is the §3 struct's length and `data[0..size)` is the struct. gatewayd's null serializer copies `data[0..size)` onto the SOME/IP payload without reading it, so the 4-byte little-endian length that the publisher's library frame carries in front of the struct is not written into `data` any more.
+  - Before A33 the row said "bytes 0–1 little-endian length, the §3 struct from byte 4", and the publisher sent its whole frame: the prefix reached the SOME/IP payload, and the broker would have read every field four bytes late.
+  - The `operational_state` events have 20 slots: gatewayd subscribes with 10 samples, where the bench's own proxies use 8.

@@ -24,17 +24,37 @@
 // There is no bytes field and no protobuf wrapper: the SOME/IP payload is a
 // struct (ICD section 3) and the broker translates it in REFLECTION mode. Do not
 // add a `bytes data = 1` carrier; that is option A, kept in fallback-a/.
+//
+// VSIDL annotations (required by the SDV Core catalog, which vsidl_rc_generator compiles
+// with --target-api pdk29): a broker `publisher { message: ... }` must resolve to a
+// message carrying `option (.sdv.vsidl.v1.publication)`, or the catalog build fails with
+// PublicationTypeDoesNotExist; once it is a publication, every string needs
+// variable_type_max_size and every repeated field repeated_field_max_count
+// (vsidl/language/src/context_conditions/pdk29/{publication_type,sdv_publication,
+// proto_message_datatype_require_annotation}.rs). The options do not change the wire
+// format; the IVI app's Java lite build needs annotations.proto on its proto include path
+// (or an annotation-free copy of this file, which is wire-identical).
+// Bounds: strings 128 bytes (the publisher's longest is 64: the SHA-256 hex; ids are
+// capped at 63 by the payloads), arrays 64 samples (ICD section 3). message_count 32 as
+// the proven DE4SDV publication (catalog/de4sdv_score) uses; even and >= 2.
 syntax = "proto3";
 
 package de4sdv.driving.v1;
 
+import "sdv/vsidl/v1/annotations.proto";
+
 message DrivingOperationalState {
+  option (.sdv.vsidl.v1.publication) = {
+    model : SINGLE_PUB
+    message_count : 32
+  };
+
   // ---- header, all kinds (ICD rows 1-9) -------------------------------
   uint32 schema_major = 1;                    // 2
   uint32 schema_minor = 2;                    // 0
   uint32 kind = 3;                            // 1 PLAN, 2 VEHICLE_STATE, 3 HEALTH
   uint32 sequence = 4;                        // per kind, from 1, no gaps
-  string producer = 5;                        // "statePublisher"
+  string producer = 5 [ (.sdv.vsidl.v1.variable_type_max_size) = 128 ];                        // "statePublisher"
   uint32 publish_real_s = 6;                  // CLOCK_REALTIME at encoding, seconds
   uint32 publish_real_ns = 7;                 // nanoseconds part
   uint32 publish_mono_s = 8;                  // CLOCK_MONOTONIC of the S-CORE host
@@ -45,15 +65,15 @@ message DrivingOperationalState {
   uint32 plan_capture_ms = 11;                // simulation ms of the newest image
   uint32 plan_production_mono_s = 12;         // the plan's own production time
   uint32 plan_production_mono_ns = 13;
-  string plan_reference = 14;                 // "<runRecord>/<frameIndex>"
-  string run_record = 15;                     // run record identity
-  string plan_producer = 16;                  // "drivingAgent/inferPlan"
+  string plan_reference = 14 [ (.sdv.vsidl.v1.variable_type_max_size) = 128 ];                 // "<runRecord>/<frameIndex>"
+  string run_record = 15 [ (.sdv.vsidl.v1.variable_type_max_size) = 128 ];                     // run record identity
+  string plan_producer = 16 [ (.sdv.vsidl.v1.variable_type_max_size) = 128 ];                  // "drivingAgent/inferPlan"
   uint32 plan_sample_count = 17;              // 64 when well-formed
   float plan_horizon_s = 18;
-  repeated float plan_acceleration = 19;      // 64, m/s^2
-  repeated float plan_curvature = 20;         // 64, 1/m, positive left
-  repeated float plan_x = 21;                 // 64, m, forward
-  repeated float plan_y = 22;                 // 64, m, left
+  repeated float plan_acceleration = 19 [ (.sdv.vsidl.v1.repeated_field_max_count) = 64 ];      // 64, m/s^2
+  repeated float plan_curvature = 20 [ (.sdv.vsidl.v1.repeated_field_max_count) = 64 ];         // 64, 1/m, positive left
+  repeated float plan_x = 21 [ (.sdv.vsidl.v1.repeated_field_max_count) = 64 ];                 // 64, m, forward
+  repeated float plan_y = 22 [ (.sdv.vsidl.v1.repeated_field_max_count) = 64 ];                 // 64, m, left
 
   // ---- kind == VEHICLE_STATE (rows 23-29) -----------------------------
   float speed_kmh = 23;                       // VSS Vehicle.Speed
@@ -67,7 +87,7 @@ message DrivingOperationalState {
   // ---- kind == HEALTH (rows 30-43) ------------------------------------
   uint32 mode = 30;                           // de4sdv::driving::Mode
   uint32 cause = 31;                          // de4sdv::driving::Cause, first stop cause latches
-  string mode_source = 32;                    // "superviseLoop" | "actuationAdapter" | ""
+  string mode_source = 32 [ (.sdv.vsidl.v1.variable_type_max_size) = 128 ];                    // "superviseLoop" | "actuationAdapter" | ""
   uint32 cause_since_mono_s = 33;             // when the stop began; 0 if none
   uint32 cause_since_mono_ns = 34;
   uint32 last_plan_frame_index = 35;
@@ -76,7 +96,7 @@ message DrivingOperationalState {
   uint32 last_plan_production_mono_s = 38;
   uint32 last_plan_production_mono_ns = 39;
   uint32 dropped_samples = 40;                // publisher-side drops so far
-  string checkpoint_expected_sha256 = 41;     // refusal only
-  string checkpoint_actual_sha256 = 42;       // refusal only
-  string refusal_reason = 43;                 // "mismatch" | "no_pin" | ""
+  string checkpoint_expected_sha256 = 41 [ (.sdv.vsidl.v1.variable_type_max_size) = 128 ];     // refusal only
+  string checkpoint_actual_sha256 = 42 [ (.sdv.vsidl.v1.variable_type_max_size) = 128 ];       // refusal only
+  string refusal_reason = 43 [ (.sdv.vsidl.v1.variable_type_max_size) = 128 ];                 // "mismatch" | "no_pin" | ""
 }
