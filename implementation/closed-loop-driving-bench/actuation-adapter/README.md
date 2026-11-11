@@ -81,6 +81,11 @@ placeholder vehicle, −3 on a vehicle configured to brake at most 3 m/s², so t
 stop never violates REQ-DRIVING-012. Steering is held at the last valid
 command's `steeringAngle` (0 if none was ever applied). At standstill (speed <
 0.1 km/h, `standstill_speed_kmh`) the brake is held for the rest of the run.
+The stop never applies throttle. A contact can slow the vehicle faster than the
+stop's profile, and the speed error would then call for throttle. When it does,
+the reference speed is set to the measured speed and the integral keeps no
+forward part, so the stop brakes with at least its feedforward. While the
+vehicle follows the profile, the stop is the same as before.
 The stop publishes `stopInForce = 1`, `cause = kCommandTimeout`,
 `stopSince` (simulation seconds of the stop-begin tick) and `stopSinceMono`
 (CLOCK_MONOTONIC seconds of the same tick, ICD v2 §4). The core takes the
@@ -216,11 +221,18 @@ speed dependence (drag, gear) within its authority.
    and that the row near −4 m/s² has a brake value the stop test can use.
 
 `world.jsonl` field names are not fixed by ICD §7 yet. The fitter accepts, at
-top level or under `data`: time (`t_sim`, `sim_time`, `capture_time`, `time`,
-`t`, or `frame`/`frame_index` at 0.1 s), speed (`speed_mps`, `speed`,
-`speed_kmh`, or `velocity` as `[x,y,z]`/`{x,y,z}`), and the applied control
-(`control.throttle`/`.brake`, `control_applied.*`, or `throttle`/`brake`). It
-must be the *applied* pedal.
+top level or under `data`, the following fields:
+- time: `t_sim`, `sim_time`, `capture_time`, `time`, `t`, `sim_ms` (in ms), or
+  `frame`/`frame_index` at 0.1 s;
+- speed: `speed_mps`, `speed`, `speed_kmh`, or `velocity` as `[x,y,z]`,
+  `{x,y,z}` or `{speed_mps, heading_rad}`;
+- the applied control: `control.throttle`/`.brake`, `control_applied.*`, or
+  `throttle`/`brake`. It must be the *applied* pedal.
+
+The world side's tick has `data.sim_ms`, `data.velocity.speed_mps` and
+`data.control`. Before `velocity.speed_mps` was read, the fitter skipped every
+tick of a bench run (the test now holds one real tick). The checked-in table
+has therefore never been fitted.
 
 ## S-CORE shell
 
@@ -321,9 +333,10 @@ for non-finite).
    to 7401–7406. Needs the same edit outside this package.
 3. **`stop_response.standstill` "with the cause"** — ambiguous whether the
    standstill record also carries the cause. Implemented with it.
-4. **§7 `world.jsonl` field names** are still unfixed, so the calibration
-   extractor guesses (`t_sim`/`speed_mps`/`control.{throttle,brake}` proposed
-   earlier and still the sensible set).
+4. **§7 `world.jsonl` field names** are still unfixed. The calibration
+   extractor reads the world side's tick (`data.sim_ms`,
+   `data.velocity.speed_mps`, `data.control.{throttle,brake}`) as well as the
+   names proposed earlier (`t_sim`, `speed_mps`, `control.{throttle,brake}`).
 5. **`ActuationStatePayload` has no actuation-issue time**, so an evaluator
    cannot compute issue→actuation latency for a stop from the payload alone; the
    log records carry both stamps.

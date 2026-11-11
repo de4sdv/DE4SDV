@@ -812,7 +812,11 @@ bool ParseRouteJson(const std::string& text, RouteData* route,
     road_ids.push_back(static_cast<int>(std::llround(road_id)));
   }
 
-  // One centre line per run of constant road id, as _pack_route expects.
+  // One run of constant road id per line.  `centerlines` keeps each run of two
+  // or more waypoints as it is (the points ICD A16 counts).  `corridor_lines`,
+  // which _pack_route draws, starts each run after the first at the previous
+  // run's last waypoint, so the corridor has no break where the road changes;
+  // a run of one waypoint therefore still makes a line.
   std::size_t start = 0;
   for (std::size_t index = 1; index <= points.size(); ++index) {
     const bool boundary =
@@ -823,6 +827,12 @@ bool ParseRouteJson(const std::string& text, RouteData* route,
                                           static_cast<std::ptrdiff_t>(start),
                                       points.begin() +
                                           static_cast<std::ptrdiff_t>(index));
+    }
+    const std::size_t first = start == 0 ? 0 : start - 1;
+    if (index - first >= 2) {
+      parsed.corridor_lines.emplace_back(
+          points.begin() + static_cast<std::ptrdiff_t>(first),
+          points.begin() + static_cast<std::ptrdiff_t>(index));
     }
     start = index;
   }
@@ -844,7 +854,7 @@ bool ParseRouteJson(const std::string& text, RouteData* route,
     return false;
   }
   parsed.destination_valid = true;
-  parsed.valid = parsed.corridor_points >= 2 && !parsed.centerlines.empty();
+  parsed.valid = parsed.corridor_points >= 2 && !parsed.corridor_lines.empty();
   parsed.sha256 = Sha256Hex(text);
   *route = std::move(parsed);
   return true;
@@ -1338,7 +1348,7 @@ void NavigationRasterizer::RepackMap() {
   }
 }
 
-// _pack_route, once per route: one contiguous run of points per centre line,
+// _pack_route, once per route: one contiguous run of points per corridor line,
 // the offsets the native renderer takes, and the per-line culling boxes.
 void NavigationRasterizer::PackRoute() {
   route_points_.clear();
@@ -1347,14 +1357,14 @@ void NavigationRasterizer::PackRoute() {
   route_offsets_.push_back(0);
   route_destination_ = {{0.0, 0.0}};
   std::size_t point_total = 0;
-  for (const std::vector<Point>& line : route_.centerlines) {
+  for (const std::vector<Point>& line : route_.corridor_lines) {
     point_total += line.size();
   }
   route_points_.reserve(point_total * 2);
-  packed_route_lines_.reserve(route_.centerlines.size());
+  packed_route_lines_.reserve(route_.corridor_lines.size());
   const double reach = 0.5 * static_cast<double>(kRouteCorridorWidthM) +
                        kCullMarginM;
-  for (const std::vector<Point>& line : route_.centerlines) {
+  for (const std::vector<Point>& line : route_.corridor_lines) {
     PackedRouteLine packed;
     packed.point_offset = static_cast<std::int32_t>(route_points_.size() / 2);
     packed.point_count = static_cast<std::int32_t>(line.size());
@@ -1403,7 +1413,7 @@ bool NavigationRasterizer::Render(double x_map_m, double y_map_m,
   const std::array<double, 4> window =
       WindowBounds(x_map_m, y_map_m, cosine, sine);
 
-  // Route corridor: cull the centre lines whose box misses the window, keeping
+  // Route corridor: cull the corridor lines whose box misses the window, keeping
   // upstream order and point sequence.
   render_route_points_.clear();
   render_route_offsets_.clear();
@@ -1562,7 +1572,7 @@ bool NavigationRasterizer::RenderReference(double x_map_m, double y_map_m,
   std::array<double, 2> destination{{0.0, 0.0}};
   std::int32_t route_line_count = 0;
   if (route_valid) {
-    for (const std::vector<Point>& line : route_.centerlines) {
+    for (const std::vector<Point>& line : route_.corridor_lines) {
       for (const Point& point : line) {
         route_points.push_back(point.x);
         route_points.push_back(point.y);

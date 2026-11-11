@@ -95,6 +95,20 @@ def main():
     check(fit_calibration.extract({"frame": 5, "velocity": [10.0, 0.0, 0.0],
                                    "control": {"throttle": 0.2, "brake": 0.0}}) == (0.5, 10.0, 0.2, 0.0),
           "frame + velocity is not extracted")
+    # A tick as the bench's world side writes it (simulator/world.jsonl of a run on the simulator host,
+    # trimmed): the speed is data.velocity.speed_mps, the time data.sim_ms, the applied pedals
+    # data.control.
+    real_tick = {"t_mono_ns": 341022695087, "host": "simulator", "component": "worldSide", "event": "tick",
+                 "seq": 200, "data": {"frame": 9012, "sim_ms": 901200, "handoverFrame": 8813,
+                                      "egoPose": {"x": 61.613983154296875, "y": -14.56783390045166,
+                                                  "yaw": -3.05172135312787},
+                                      "velocity": {"speed_mps": 2.381954052839255, "heading_rad": -3.05172135312787},
+                                      "acceleration": {"longitudinal_mps2": 0.36042991707665545},
+                                      "control": {"throttle": 0.4310910105705261, "brake": 0.0,
+                                                  "steer": -0.008453593589365482, "accelMps2": None},
+                                      "controlSource": "actuationAdapter"}}
+    check(fit_calibration.extract(real_tick) == (901.2, 2.381954052839255, 0.4310910105705261, 0.0),
+          "a world-side tick is not extracted: %r" % (fit_calibration.extract(real_tick),))
 
     result = subprocess.run(
         [sys.executable, os.path.join(ROOT, "scripts", "fit_calibration.py"),

@@ -253,8 +253,14 @@ def load_route(
     )
     segments = []
     if len(waypoints) >= 2:
-        # One lane segment per straight run of constant road_id: the shape the
-        # rasterizer packs as one centreline polyline per segment.
+        # One lane segment per run of constant road_id, the shape the
+        # rasterizer packs as one centreline polyline per segment.  Each run
+        # after the first starts at the previous run's last waypoint, so the
+        # corridor has no break where the road changes, as upstream's lane
+        # sequence has none (its lanelet centre lines share their end points).
+        # A run of one waypoint therefore still makes a segment.  A first run
+        # of one waypoint makes none (upstream needs two points): its waypoint
+        # starts the next segment.  Each segment keeps its own run's road id.
         start = 0
         for index in range(1, len(waypoints) + 1):
             boundary = index == len(waypoints) or (
@@ -263,12 +269,13 @@ def load_route(
             )
             if not boundary:
                 continue
-            run = waypoints[start:index]
+            road = int(waypoints[start][3])
+            run = waypoints[max(start - 1, 0):index]
             if len(run) >= 2:
                 segments.append(
                     contracts.RouteLaneSegment(
-                        lane_id=f"route:road{int(run[0][3])}:{len(segments)}",
-                        provider_segment_id=str(int(run[0][3])),
+                        lane_id=f"route:road{road}:{len(segments)}",
+                        provider_segment_id=str(road),
                         centerline_enu_m=run[:, :2],
                         level=None,
                     )

@@ -11,9 +11,10 @@ JSON object per world tick. The ICD does not fix the field names yet, so the
 extractor accepts the shapes below (top level, or under a ``data`` object):
 
   time (simulation seconds):  t_sim | sim_time | capture_time | time | t
-                              or frame | frame_index (x 0.1 s)
+                              or sim_ms (/ 1000) or frame | frame_index (x 0.1 s)
   ego speed:                  speed_mps | speed | speed_kmh | velocity
-                              (velocity is [x, y, z] or {x, y, z}, m/s)
+                              (velocity is [x, y, z], {x, y, z} or, as the world
+                              side writes it, {speed_mps, heading_rad}; m/s)
   applied control:            control.throttle / control.brake,
                               control_applied.throttle / .brake,
                               throttle / brake
@@ -72,6 +73,8 @@ def _first(record, names):
 
 
 def _velocity_speed(value):
+    if isinstance(value, dict) and "speed_mps" in value:
+        return _number(value.get("speed_mps"))   # the world side's velocity {speed_mps, heading_rad}
     if isinstance(value, dict):
         components = [value.get("x"), value.get("y"), value.get("z", 0.0)]
     elif isinstance(value, (list, tuple)) and len(value) >= 2:
@@ -96,6 +99,10 @@ def extract(record):
         if not isinstance(container, dict):
             continue
         time_s = _first(container, ("t_sim", "sim_time", "capture_time", "time", "t"))
+        if time_s is None:
+            sim_ms = _first(container, ("sim_ms",))
+            if sim_ms is not None:
+                time_s = sim_ms / 1000.0
         if time_s is None:
             frame = _first(container, ("frame", "frame_index", "frame_number"))
             if frame is not None:

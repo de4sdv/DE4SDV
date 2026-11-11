@@ -132,10 +132,21 @@ struct MapData {
 };
 
 // The ICD section 9 route file, split into the lane segments upstream packs
-// with _pack_route (one centre line per road id run).
+// with _pack_route.
 struct RouteData {
   std::string map_name;
+  // The waypoints of each run of constant road id with two or more waypoints,
+  // as the file gives them.  These are the points ICD A16's waypointsInWindow
+  // counts (agent/cc/navigation_input.cpp; VC-DRIVING-007 recounts them from
+  // the route file with the same rule).
   std::vector<std::vector<Point>> centerlines;
+  // The lines the corridor is drawn from, one per road run: each run after the
+  // first starts at the previous run's last waypoint, so the corridor stays
+  // continuous where the road changes, as upstream's lane sequence does (its
+  // lanelet centre lines share their end points).  A run of one waypoint is
+  // the line from the previous waypoint to it.  A first run of one waypoint
+  // has no line of its own: its waypoint starts the second run's line.
+  std::vector<std::vector<Point>> corridor_lines;
   Point destination{0.0, 0.0};
   bool destination_valid = false;
   std::int64_t corridor_points = 0;
@@ -255,7 +266,7 @@ class NavigationRasterizer {
     std::array<double, 4> bounds{{0.0, 0.0, 0.0, 0.0}};  // xmin,ymin,xmax,ymax
   };
 
-  // One route centre line: a contiguous run of route_points_ plus its inflated
+  // One route corridor line: a contiguous run of route_points_ plus its inflated
   // map-frame bounding box (for culling the corridor to the window).
   struct PackedRouteLine {
     std::int32_t point_offset = 0;

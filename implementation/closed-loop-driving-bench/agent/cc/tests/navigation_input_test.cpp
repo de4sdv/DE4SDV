@@ -14,6 +14,7 @@
 #include <sstream>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "navigation_input.h"
 
@@ -106,6 +107,19 @@ int main(int argc, char** argv) {
   da::NavigationInput::Step st;
   CHECK(nav.Render(start, o0, &st, &error));
   CHECK(!st.route.has_announcement);
+  // The route identity (nav prefetch, DESIGN.md): what the raster was drawn with, comparable with the
+  // listener's newest announcement at the step's take.
+  CHECK(st.route_identity == "none");
+  CHECK(st.route_identity == da::NavigationInput::RouteIdentity(nav.NewestRoute()));
+  {  // The take's observation equals the render's (nav prefetch): nothing announced yet.
+    da::RouteObservation obs;
+    obs.has_announcement = true;
+    obs.corridor_points = 7;
+    obs.issue_time = 1.0;
+    da::NavigationInput::ObserveAnnouncement(nav.NewestRoute(), &obs);
+    CHECK(obs.has_announcement == st.route.has_announcement && obs.corridor_points == st.route.corridor_points &&
+          obs.issue_time == st.route.issue_time);
+  }
   CHECK(st.route.raster_corridor_cells == 0);
   CHECK(nav.map_context().size() == 14u * 450u * 300u);
   CHECK(nav.route_mask().size() == 2u * 450u * 300u);
@@ -124,6 +138,50 @@ int main(int argc, char** argv) {
   CHECK(st.route.raster_corridor_cells > 100);
   std::printf("corridor cells at the route start: %u; event %s\n", st.route.raster_corridor_cells, st.route_event.c_str());
   CHECK(st.route_sha256 == sha);
+  const std::string loaded_identity = st.route_identity;
+  CHECK(loaded_identity == da::NavigationInput::RouteIdentity(nav.NewestRoute()));
+  CHECK(loaded_identity.find(route_path) != std::string::npos && loaded_identity.find(sha) != std::string::npos);
+  {  // Same pose, same route: byte-identical rasters and step fields (what makes a prefetch exact).
+    const std::vector<float> map1 = nav.map_context(), route1 = nav.route_mask();
+    da::NavigationInput::Step again;
+    CHECK(nav.Render(start, o0, &again, &error));
+    CHECK(map1.size() == nav.map_context().size() &&
+          std::memcmp(map1.data(), nav.map_context().data(), map1.size() * sizeof(float)) == 0);
+    CHECK(route1.size() == nav.route_mask().size() &&
+          std::memcmp(route1.data(), nav.route_mask().data(), route1.size() * sizeof(float)) == 0);
+    CHECK(again.route.raster_corridor_cells == st.route.raster_corridor_cells);
+    CHECK(again.destination_cells == st.destination_cells && again.waypoints_in_window == st.waypoints_in_window &&
+          again.waypoints_on_corridor == st.waypoints_on_corridor);
+    CHECK(again.pose.x == st.pose.x && again.pose.y == st.pose.y && again.pose.yaw == st.pose.yaw);
+    CHECK(again.route_identity == loaded_identity && again.route_event.empty());
+    // RenderInto: the same rasters in the caller's buffers, the members untouched.
+    std::vector<float> map2, route2;
+    da::NavigationInput::Step into;
+    const std::vector<float> members_before = nav.map_context();
+    CHECK(nav.RenderInto(start, o0, &into, &map2, &route2, &error));
+    CHECK(map2.size() == map1.size() && std::memcmp(map2.data(), map1.data(), map1.size() * sizeof(float)) == 0);
+    CHECK(route2.size() == route1.size() && std::memcmp(route2.data(), route1.data(), route1.size() * sizeof(float)) == 0);
+    CHECK(into.route_identity == loaded_identity && into.route.raster_corridor_cells == st.route.raster_corridor_cells);
+    da::NavigationInput::Step far_into;
+    const da::Pose far_pose{wx + 600.0, -wy, 0.0, 0.0, 0.0, 0.0};
+    CHECK(nav.RenderInto(far_pose, o0, &far_into, &map2, &route2, &error));
+    CHECK(std::memcmp(members_before.data(), nav.map_context().data(), members_before.size() * sizeof(float)) == 0);
+    // One render at a time: RenderInto on another thread while Render runs here (the agent's prefetch
+    // thread and a fallback render on the chain). The ThreadSanitizer build reports a missing lock.
+    std::thread other([&nav, &start, &o0] {
+      for (int i = 0; i < 4; ++i) {
+        std::vector<float> m, r;
+        da::NavigationInput::Step s;
+        std::string e;
+        nav.RenderInto(start, o0, &s, &m, &r, &e);
+      }
+    });
+    for (int i = 0; i < 4; ++i) {
+      da::NavigationInput::Step s;
+      CHECK(nav.Render(far_pose, o0, &s, &error));
+    }
+    other.join();
+  }
   CHECK(st.waypoints_in_window > 10);
   CHECK(st.waypoints_on_corridor == st.waypoints_in_window);
   std::printf("coverage at the route start: %u of %u waypoints in the window on the corridor\n",
@@ -150,6 +208,14 @@ int main(int argc, char** argv) {
   Send(nav.listener_port(), Announcement(route_path, sha, 282, 500.5));
   st = RenderAfter(nav, start, o0, 500.5);
   CHECK(st.route_event.empty());
+  CHECK(st.route_identity == loaded_identity);   // a re-announcement (new issue time only) keeps the identity
+  {  // ... and the take reads the new issue time as the render did
+    da::RouteObservation obs;
+    da::NavigationInput::ObserveAnnouncement(nav.NewestRoute(), &obs);
+    CHECK(obs.has_announcement && obs.corridor_points == 282 && obs.issue_time == 500.5);
+    CHECK(obs.has_announcement == st.route.has_announcement && obs.corridor_points == st.route.corridor_points &&
+          obs.issue_time == st.route.issue_time);
+  }
   CHECK(st.route.raster_corridor_cells > 100);
 
   // Far from the route (600 m away): the map raster may hold other roads, the corridor none.
@@ -163,6 +229,8 @@ int main(int argc, char** argv) {
   Send(nav.listener_port(), Announcement(route_path, bad, 282, 501.0));
   st = RenderAfter(nav, start, o0, 501.0);
   CHECK(st.route_event.find("sha256_mismatch") != std::string::npos);
+  CHECK(st.route_identity != loaded_identity);
+  CHECK(st.route_identity == da::NavigationInput::RouteIdentity(nav.NewestRoute()));
   CHECK(!st.route_in_raster);
   CHECK(st.route.raster_corridor_cells == 0);
 
@@ -173,6 +241,7 @@ int main(int argc, char** argv) {
   Send(nav.listener_port(), Announcement(route_path, sha, 0, 502.0));
   st = RenderAfter(nav, start, o0, 502.0);
   CHECK(st.route_event.find("withdrawn") != std::string::npos);
+  CHECK(st.route_identity != loaded_identity);
   CHECK(st.waypoints_in_window == 0 && st.route_sha256.empty());
   CHECK(st.route.corridor_points == 0);
   CHECK(st.route.raster_corridor_cells == 0);
@@ -181,6 +250,7 @@ int main(int argc, char** argv) {
   Send(nav.listener_port(), Announcement("/nonexistent/route.json", sha, 282, 502.5));
   st = RenderAfter(nav, start, o0, 502.5);
   CHECK(st.route_event.find("load_failed") != std::string::npos);
+  CHECK(st.route_identity != loaded_identity && st.route_identity.find("/nonexistent/route.json") != std::string::npos);
   CHECK(st.route.raster_corridor_cells == 0);
 
   nav.Stop();

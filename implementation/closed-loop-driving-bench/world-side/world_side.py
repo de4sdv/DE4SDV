@@ -821,7 +821,8 @@ class WorldSide:
         if actor is None:
             return False
         try:
-            return bool(actor.is_alive())
+            alive = actor.is_alive          # a bool property in CARLA 0.9.16, not a method
+            return bool(alive() if callable(alive) else alive)
         except Exception:  # noqa: BLE001 - a dead handle is not alive
             return False
 

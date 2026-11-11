@@ -244,3 +244,44 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - `TestCameraHistoryLateImage`: one and two steps without a camera's image (no condition), the third (`kCameraStale`); the observation's frame and size; no image to date (`kCameraMissing`); an invalid image never the newest; a merged frame counted; while driving, no stop at a late image and the stop at the third step without one.
   - The scripted scenario (`RunScenario`, the records test's camera run) passes its cameras through `CameraHistory` as well: the front images withheld from step 60 start the stop at step 62 with `kCameraStale`.
   - Five mutations fail the tests: a late camera judged missing, an invalid image taken as the newest, merged frames not counted, the newest image two frames younger, the 200 ms limit inclusive.
+
+## Nav prefetch (2026-11-10, ICD A31)
+
+- **Why.** REQ-DRIVING-013 measures each plan from the newest image of its step. FEO starts a chain only when the step is complete, and the next step's images arrive 100 ms after this step's. On the simulator host a step's newest image to its plan took a median of 96 ms in three straight-route runs of 2026-11-10:
+  - waiting for the chain 1.3 ms, rendering the rasters 2.4 ms, conditioning 2.5 ms, the engine call 89.7 ms;
+  - every plan later than 100 ms had waited 4.5 to 12.5 ms for its chain: its images were complete while the previous chain still ran;
+  - the three runs were 97.5 %, 98.0 % and 99.2 % in time, each with two consecutive misses, so REQ-DRIVING-013 was not met.
+- **What a replay shows.** Replaying the three runs' image arrival times through a serial chain with each step's measured costs reproduces each run's misses to within one. With the 2.4 ms render off the chain, two runs have no miss and one has a single miss. This is a replay, not a run: the G4 run decides.
+- **The prefetch (`cc/nav_prefetch.h`).** The pose arrives with the world tick, about 40 ms before the last of the six images. The frame store's snapshot sink (`FrameStoreConfig::snapshotSink`) hands each accepted snapshot to the prefetch thread before the ready sink announces a step that snapshot completes. The thread renders the step's rasters at the step's REF pose into buffers of its own (`NavigationInput::RenderInto`).
+- **The take.** The step takes its frame's result and uses it only if it is what a render on the chain would draw. That means the same frame, the same pose (every field equal), and the same route: the identity of the listener's newest announcement (none, withdrawn, or file and SHA-256) equals the one the raster was drawn with. The route observation's announcement, corridor count and issue time are read at the take, as a render there reads them.
+  - A render still running is waited for, at most `nav_prefetch_wait_ms` (5 ms).
+  - In every other case the step renders on the chain as before: not submitted (before the prefetch is armed, or dropped from a full queue), timed out, route changed, pose changed, or the prefetch's render failed.
+  - Results of older frames are dropped at the take. A route change that such a render raised is logged at the next take, as a `route` record with the frame it was drawn for; so is the change of a result the take did not use.
+- **Exact by construction.** The same renderer draws at the same pose with the same route, so the rasters are byte-identical (tested). The prefetch changes when the rasters are drawn, not what they hold; REQ-DRIVING-006 and -007 read the same records.
+- **Lifetimes and threads.** `NavigationInput` renders one at a time (a mutex over the route state, the rasterizer and its working buffer), so a fallback render on the chain and the prefetch thread never overlap. A hit's buffers stay in the agent until the next step's, as the member buffers did; the planner copies both rasters in `condition`. The prefetch is created before the frame store, armed after `set_rig` and the navigation input, and stopped after the sources in `de4sdv_agent_fini`.
+- **Configuration.** `nav_prefetch` (default `true`) and `nav_prefetch_wait_ms` (default 5). With `nav_prefetch` false, or without `nav_map`, the steps render on the chain as before A31.
+- **Records (ICD A31).**
+  - C2 gains `navPrefetch`: `{outcome, take_ms}`, or null without the prefetch. `render_ms` stays the render's own time, on whichever thread it ran.
+  - `ready.navigation` gains `prefetch` (`{waitMs}` or null).
+  - `stop` gains `navPrefetch` with the prefetch's counters and the takes' outcomes.
+- **Tests.**
+  - `cc/tests/nav_prefetch_test.cpp` (plain, ThreadSanitizer, AddressSanitizer with UndefinedBehaviorSanitizer), with a fake renderer:
+    - an unarmed request is refused;
+    - a hit holds what was drawn for its own frame and pose;
+    - a take waits for a render in flight;
+    - a timeout leaves the late result dropped, with its route event carried;
+    - older results are dropped, with their events carried oldest first;
+    - a full queue drops its oldest request;
+    - `Stop` joins the thread;
+    - a concurrent producer and consumer over 400 frames.
+  - `cc/tests/frame_store_test.cpp`:
+    - the snapshot sink runs once per accepted snapshot (not for a duplicate, a late or an overflowing one), outside the store's lock;
+    - it runs before the ready sink.
+  - `cc/tests/navigation_input_test.cpp`:
+    - the route identity through load, re-announcement, SHA-256 mismatch, withdrawal and a missing file;
+    - byte-identical rasters at the same pose and route;
+    - `RenderInto` equal to `Render`;
+    - `Render` and `RenderInto` from two threads (ThreadSanitizer build).
+  - Mutation probes: the render lock removed (ThreadSanitizer reports) and the identity without the SHA-256 (two checks fail) are killed.
+  - With GCC 11, ThreadSanitizer does not intercept `pthread_cond_clockwait`, which `wait_for` uses, and reports every timed wait as a double lock (a three-line control shows it). The sanitizer build of `Take` therefore waits on a `system_clock` deadline; the shipped build waits on the monotonic clock.
+- **Not done.** Capturing the engine call as a CUDA graph (about 5.6 ms in an earlier probe) and overlapping conditioning with the previous chain change the engine and stay with their own decisions.
