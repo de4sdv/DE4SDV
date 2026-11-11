@@ -56,8 +56,8 @@ These processes evolve DE4SDV itself as an open innovation ecosystem
 | Process | What it does | Where it lives |
 |---|---|---|
 | Methodology evolution | Tailor and evolve the modeling method; feed lessons from increments back into method docs and ADRs | `methodologies/sysmod-sysmlv2/` (tailoring, process mapping) |
-| Standards and reference adoption | Map and adopt standards and reference frameworks with explicit provenance | `standards/`; `docs/references/source-notes.md` |
-| Upstream maintainer coordination | Coordinate with upstream project owners before deep integration or vendoring | `methodologies/sysmod-sysmlv2/upstream.md`, `upstream-compatibility-report.md` |
+| Standards and reference adoption | Map and adopt standards and reference frameworks with explicit provenance | `standards/`; `docs/references/source-notes.md`; `UPSTREAM.md` |
+| Upstream maintainer coordination | Coordinate with upstream project owners before deep integration or vendoring | `UPSTREAM.md` (index of the upstream projects and their records); `methodologies/sysmod-sysmlv2/upstream.md`, `upstream-compatibility-report.md` |
 | ADR governance | Record architecture decisions with rationale, alternatives, and consequences | `docs/architecture-decisions/` |
 | Contributor onboarding and review | Onboard contributors and review contributions consistently | `CONTRIBUTING.md`, `GOVERNANCE.md`, `docs/getting-started/` |
 | Toolchain evaluation | Evaluate modeling, simulation, and automation toolchains before adoption | ADRs; `experiments/` |

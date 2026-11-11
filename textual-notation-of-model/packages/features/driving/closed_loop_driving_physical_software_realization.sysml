@@ -70,7 +70,7 @@
  *   patch on top of v1.0.5 (owner decision (a) of 2026-11-07): the
  *   scheduler waits for the next frame instead of a timer, takes the newest
  *   frame and counts the frames it skipped. Unpatched FEO is timer-paced
- *   only. Proposing the trigger upstream waits for the owner's word.
+ *   only. upstream.md says what DE4SDV has put to the FEO maintainers.
  * - FEO builds beside the v0.10.0 modules only with eight
  *   single_version_override entries that force the reference integration's
  *   pins: Communication 0.6.0, Lifecycle 0.10.0, Baselibs 0.2.17,
