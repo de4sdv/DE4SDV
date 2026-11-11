@@ -5,6 +5,7 @@
 //       -Itests tests/adapter_core_test.cpp adapter_core.cpp adapter_config.cpp
 //       json_lite.cpp -o .build/adapter_core_test
 //   .build/adapter_core_test config/vehicle_limits.json
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <cstdlib>
@@ -372,6 +373,45 @@ void TestStopToStandstillAndHold() {
   CHECK(rejected.reject == RejectReason::kStopLatched);
   CHECK(!rejected.hasControl);
   CHECK(bench.adapter.RejectCount(RejectReason::kStopLatched) == 1);
+}
+
+// REQ-DRIVING-020: the stop response decelerates until standstill and never accelerates. A contact (a
+// kerb, a bollard) can slow the vehicle faster than the stop's 4 m/s^2; the speed reference of the
+// stop must then follow the vehicle down, not pull it forward with throttle.
+void TestStopNeverThrottlesWhenTheVehicleSlowsFasterThanTheStop() {
+  Bench bench(MakeTestConfig());
+  bench.car.speed_mps = 10.0;
+  for (int step = 0; step < 6; ++step) bench.StepWithCommand(0.0, 3.0);
+  ActuationOutput stop;
+  int guard = 0;
+  do {
+    stop = bench.StepNoCommand();
+  } while (!stop.stopBegan && ++guard < 10);
+  CHECK(stop.stopBegan);
+  int throttle_ticks = 0, brake_ticks = 0, ticks = 0;
+  double max_throttle = 0.0;
+  bool standstill = false;
+  for (int step = 0; step < 60 && !standstill; ++step) {
+    const ActuationOutput out = bench.StepNoCommand();
+    ++ticks;
+    if (out.control.throttle > 0.0) ++throttle_ticks;
+    if (out.control.throttle > max_throttle) max_throttle = out.control.throttle;
+    if (out.control.brake > 0.0) ++brake_ticks;
+    standstill = out.standstillReached || bench.adapter.StandstillHold();
+    // The contact: 1.5 m/s per tick (15 m/s^2) down to 1 m/s, where the vehicle is held against it.
+    bench.car.speed_mps = std::max(1.0, bench.car.speed_mps - 1.5);
+  }
+  std::printf("STOP_CONTACT ticks=%d throttle_ticks=%d max_throttle=%.3f brake_ticks=%d\n", ticks, throttle_ticks,
+              max_throttle, brake_ticks);
+  CHECK(throttle_ticks == 0);
+  CHECK(brake_ticks == ticks);
+  // Released at 1 m/s, the vehicle is braked to standstill and held there.
+  for (int step = 0; step < 40 && !bench.adapter.StandstillHold(); ++step) {
+    const ActuationOutput out = bench.StepNoCommand();
+    CHECK(out.control.throttle == 0.0);
+  }
+  CHECK(bench.adapter.StandstillHold());
+  CHECK(bench.adapter.StopLatched());
 }
 
 void TestInvalidCommandsAreRejected() {
@@ -904,6 +944,7 @@ int main(int argc, char** argv) {
   TestACommandAtTheBoundaryPreventsTheStop();
   TestInvalidCommandsDoNotFeedTheWatchdog();
   TestStopToStandstillAndHold();
+  TestStopNeverThrottlesWhenTheVehicleSlowsFasterThanTheStop();
   TestInvalidCommandsAreRejected();
   TestSteeringMappingSignsAndClamps();
   TestSteeringTurnsTheWheelsByTheCommandedAngle();
