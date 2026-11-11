@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A profile-exact stand-in rig for drivingAgent's fake world (slice 10b, WP2).
+"""A profile-exact stand-in rig for drivingAgent's fake world (slice 10b).
 
 The six cameras of the AutoE2E camera profile, at their render sizes and mounting poses, on a vehicle
 at the world origin, as the world side spawns them in CARLA. The camera actor poses come from

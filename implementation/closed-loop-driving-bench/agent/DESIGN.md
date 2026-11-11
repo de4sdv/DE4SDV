@@ -1,4 +1,4 @@
-# drivingAgent: design (slice 10b, WP2)
+# drivingAgent: design (slice 10b)
 
 The FEO agent of phase 8 (`DrivingAgentApplication`): one process on the S-CORE host, one FEO primary agent (`signalling_direct_mpsc`), four activities in one chain on one worker, each a Rust shell over a C++ library. The interfaces are in `../interfaces/ICD.md`. This file fixes the inside of the agent.
 
@@ -195,7 +195,7 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
   - With it every plan is warm and no frame is lost, also under ±4 ms jitter.
   - The scheduler learns a slower host's measured cost and then defers cold calls; the predicted lag counts the chain's own time as well as the engine call.
   - The engine glue on fake caches, including a full stream whose last commit is not 0.5 s old: cold, its cache reset first.
-  - Eight mutations of the scheduler and the glue fail the tests: the lag budget ignored, the lag never observed, merged frames not counted in the lag, measured costs never recorded, the predicted lag without the chain, the next phase's stream, a stream with a stale commit counted as warm, no wait for the camera history.
+  - Eight mutations of the scheduler and the glue were tried by hand when this change was made and failed the tests; they are in no probe script: the lag budget ignored, the lag never observed, merged frames not counted in the lag, measured costs never recorded, the predicted lag without the chain, the next phase's stream, a stream with a stale commit counted as warm, no wait for the camera history.
 - **On the G4 (2026-11-09), with merged frames ("Merged frames" below).** Fake world: synthetic images and no route, so it shows timing, not driving.
   - 1,756 plans in 1,817 steps: a plan on every frame from the end of priming to the end of the run, no stop. Every plan was warm (`cache_before` 7).
   - Frame ready to command: p50 94.8 ms, p99 95.5 ms, max 96.9 ms; engine call p50 90.2 ms. Real-time factor 1.000 over the 175 s of planning.
@@ -243,7 +243,7 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
 - **Tests (`cc/tests/agent_logic_test.cpp`).**
   - `TestCameraHistoryLateImage`: one and two steps without a camera's image (no condition), the third (`kCameraStale`); the observation's frame and size; no image to date (`kCameraMissing`); an invalid image never the newest; a merged frame counted; while driving, no stop at a late image and the stop at the third step without one.
   - The scripted scenario (`RunScenario`, the records test's camera run) passes its cameras through `CameraHistory` as well: the front images withheld from step 60 start the stop at step 62 with `kCameraStale`.
-  - Five mutations fail the tests: a late camera judged missing, an invalid image taken as the newest, merged frames not counted, the newest image two frames younger, the 200 ms limit inclusive.
+  - Five mutations were tried by hand when this change was made and failed the tests: a late camera judged missing, an invalid image taken as the newest, merged frames not counted, the newest image two frames younger, the 200 ms limit inclusive. The probe script (`cc/tests/agent_logic_mutations.py`) holds the last kind (`camera stale comparison > becomes >=`), not the other four.
 
 ## Nav prefetch (2026-11-10, ICD A31)
 

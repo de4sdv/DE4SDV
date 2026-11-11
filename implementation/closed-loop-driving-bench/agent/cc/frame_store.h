@@ -206,8 +206,10 @@ class FrameStore {
                std::size_t size, int width, int height, double fov,
                std::int64_t arrivalMonoNs);
 
-  // Owner-driven deadline sweep (the orchestrator's 5 ms timer). Marks every
-  // filling slot whose snapshot deadline has passed ready, returns how many.
+  // Owner-driven deadline sweep: the store's owner calls it every 5 ms (the
+  // sweep thread of CarlaSource::Start, or FakeWorld::PollLoop in agent_ffi.cpp
+  // with the fake world). Marks every filling slot whose snapshot deadline has
+  // passed ready, returns how many.
   std::size_t PollDeadlines(std::int64_t nowMonoNs);
 
   // Newest ready, untaken slot; locks it. With `merged`, the older ready untaken

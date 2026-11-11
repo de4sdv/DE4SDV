@@ -1,5 +1,5 @@
-"""Orchestrator review of the world side (2026-11-09): behaviour of the real CARLA 0.9.16 API
-that the first fake did not model, and the frames of the C1 kinematics.
+"""The world side against the real CARLA 0.9.16 API: the behaviour the first fake did not model,
+and the frames of the C1 kinematics.
 
   - a new actor's transform reads as zero until the next tick (synchronous mode), while
     get_physics_control answers at once: the rig origin must come from a simulated, settled hero;

@@ -290,7 +290,7 @@ def check_camera_run(run: runio.Run, identity: str) -> None:
               for c in commands),
           "camera run: every command still carries both sim stamps (C3)")
 
-    # Orchestrator review (C2 resolved): VC-DRIVING-022's predicate, "no command
+    # C2 in agent_logic.md: VC-DRIVING-022's predicate, "no command
     # after T0 comes from a plan captured after T0", over the evaluators' reader.
     # Non-vacuous only if inferPlan kept planning after the stop began.
     t0_ms = 6200

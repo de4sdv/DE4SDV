@@ -709,8 +709,8 @@ class Run:
     # ---------------------------------------------------------------- agent inputs
     def ego_samples(self) -> list[dict]:
         """The motion sample of each step, as the agent logs it:
-        out.ego_motion_sample (agent/cc/agent_ffi.cpp:1207-1215). No producer
-        writes in.ego_motion.
+        out.ego_motion_sample (`de4sdv_condition_step` in agent/cc/agent_ffi.cpp).
+        No producer writes in.ego_motion.
 
         `arrival_mono` is when the world snapshot the sample comes from arrived
         at the agent: `arrival_mono_ns`, a whole nanosecond count on the S-CORE
@@ -813,7 +813,7 @@ class Run:
                 "corridor_cell_count": d.get("corridor_cell_count"),
                 "destination_cell_count": d.get("destination_cell_count"),
                 "input_conditions": d.get("input_conditions") or {},
-                # A26: the engine's answer (agent/cc/agent_ffi.cpp:1018, 1072-1073)
+                # A26: the engine's answer (`de4sdv_condition_step`, `StepPrimed`)
                 "primed": d.get("primed"),
                 "conditioned": d.get("conditioned"),
                 "merged_frames": d.get("mergedFrames") or [],
@@ -962,7 +962,7 @@ class Run:
 
     def engine(self) -> str | None:
         """The planner engine the agent built: `checkpoint` or `stub`, from its
-        `engine` record (agent/cc/agent_ffi.cpp:656-657); None when absent."""
+        `engine` record (`BuildEngine` in agent/cc/agent_ffi.cpp); None when absent."""
         for rec in self.events("score/drivingAgent.jsonl", "engine", required=False):
             setup = rec["data"].get("setup")
             name = setup.get("engine") if isinstance(setup, dict) else rec["data"].get("engine")
