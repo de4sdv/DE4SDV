@@ -44,7 +44,7 @@ drivingAgent -- operational state (SOME/IP) --> SDV Core broker --> IVI observer
 world side (CARLA pacer) --> C1 world record      route provider -- UDP route --> drivingAgent
 ```
 
-The interface contract is `interfaces/ICD.md` (v2 with amendments 1 and 2, rulings A1 to A33).
+The interface contract is `interfaces/ICD.md` (v2 with amendments 1 and 2, rulings A1 to A34).
 
 ## Layout
 
@@ -80,6 +80,6 @@ The interface contract is `interfaces/ICD.md` (v2 with amendments 1 and 2, rulin
 - **No warm-up.** The world side starts the hero at rest with no autopilot warm-up; see `world-side/README.md` for why.
 - **SELinux on the IVI VM.** Every recorded run of the observation path was made with the guest permissive. Whether the observer app reaches the gateway under enforcing is not known; see `ivi-observer/sepolicy/README.md`.
 - **A stalling camera stream.** Both closed-loop runs recorded with the observation path ended in a stop response for a stale camera: one camera stream between the simulator host and the planner host stalled. The cause is open.
-- **The evaluators do not read the observation records yet.** The observer app and statePublisher write `in.operational_state` and `out.operational_state` with a kind; the evaluators look for `rx.health`, `rx.plan`, `rx.vehicle_state` and `out.health`. On the recorded three-host runs VC-DRIVING-015, -016, -017 and -029 are therefore inconclusive, and VC-DRIVING-035 reads the same records.
+- **The evaluators read the observation records, and one case stays blind without a producer change.** The observer app and statePublisher write `in.operational_state` and `out.operational_state` with a kind; the evaluators now read them as `interfaces/ICD.md`'s amendment A34 defines them, with the publisher's record of a message as its publication time. On the two closed-loop runs recorded with the observation path, VC-DRIVING-015, -017 and -029 pass. VC-DRIVING-016 stays inconclusive: no record holds when a motion sample reached the driving system, the time REQ-DRIVING-016 counts from, and the case names the missing field.
 - **The observer's stale rule.** The IVI app marks what it shows as stale after 1.0 s without a receipt of any kind. The rationale of REQ-DRIVING-017 says a receiver marks it stale when it has no health newer than 500 ms. With three service units, a health stream that stops while plans and vehicle states keep arriving is still shown as live.
 - **No run on this tree.** The recorded runs were made on integrations of the changes that existed at the time. None of them carried the adapter's stop fix or the world side's camera-alive fix, so those two have run in their tests only, not against CARLA.

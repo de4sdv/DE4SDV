@@ -14,7 +14,7 @@ from pathlib import Path
 
 import cases
 import strip
-from conftest import CASE_RUN, edit_jsonl, verdict
+from conftest import CASE_RUN, add_arrivals, edit_jsonl, verdict
 import pytest
 from runio import MissingEvidence, Run
 
@@ -116,6 +116,9 @@ def test_r1_fixture_writes_the_agents_ego_motion_sample_record(run_for):
 def test_r1_evaluator_reads_out_ego_motion_sample(run_for, tmp_path):
     d = copied(run_for, tmp_path, "nominal", "r1")
     rename_event(d / AGENT, "in.ego_motion", "out.ego_motion_sample")
+    # VC-DRIVING-016 also needs the sample's arrival, which no producer writes
+    # yet (gaps.V2_GAPS): the copy gets it
+    assert add_arrivals(d) == 700
     run = Run(d)
     assert len(run.ego_samples()) == 700, "the agent's motion samples are not read"
     for vc in ("VC-DRIVING-016", "VC-DRIVING-030"):
@@ -843,10 +846,10 @@ def test_r7_vc016_window_must_be_covered(run_for, tmp_path):
 def test_r7_vc017_window_must_be_covered(run_for, tmp_path):
     d = copied(run_for, tmp_path, "nominal", "r7-short-health")
     p = d / "guest/observer.jsonl"
-    health = records(p, "rx.health")
+    health = [r for r in records(p, "in.operational_state") if r["data"]["kind"] == 3]
     t_end = health[0]["t_real_ns"] + 30_000_000_000
-    rewrite(p, lambda rec: None if rec["event"] == "rx.health" and rec["t_real_ns"] > t_end
-            else rec)
+    rewrite(p, lambda rec: None if rec["event"] == "in.operational_state"
+            and rec["data"]["kind"] == 3 and rec["t_real_ns"] > t_end else rec)
     res = verdict(Run(d), "VC-DRIVING-017")
     assert res.outcome == cases.INCONCL, (res.outcome, res.measured, res.notes)
 

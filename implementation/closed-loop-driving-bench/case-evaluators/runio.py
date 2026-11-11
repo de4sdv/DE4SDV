@@ -97,6 +97,50 @@ def _pair_s(d: dict, base: str) -> float | None:
     return s + ns / 1e9
 
 
+def _ns_s(d: dict, key: str) -> float | None:
+    """A whole nanosecond count (the publisher's `_mono_ns`/`_real_ns`, ICD
+    A34), seconds, or None. An int is divided exactly, so a real-time count
+    near 1.8e18 keeps the precision a double has in seconds."""
+    v = d.get(key)
+    if v is None or isinstance(v, bool) or not isinstance(v, (int, float)):
+        return None
+    return v / 1_000_000_000
+
+
+# ICD A34: the observation records as their producers write them.
+#
+# The observer app (IVI guest) writes one `in.operational_state` record per
+# message it received: the 43 fields of ICD section 3 for every kind, the
+# fields of the other kinds zero, "" or [], and `kind`, `mode` and `cause` as
+# their u32 values (ivi-observer/app/src/org/de4sdv/drivingstate/
+# StateRecord.java:32, 105-158). The state publisher (S-CORE host) writes one
+# `out.operational_state` record per message it sent: `kind` by name, `mode`
+# and `cause` by name, and its own stamps as whole nanosecond counts and
+# simulation milliseconds named by their clock (state-publisher/
+# publisher_core.cpp:574-600, 708-729, 812-827; state_publisher_main.cpp:452).
+OBSERVER = "guest/observer.jsonl"
+OBSERVER_EVENT = "in.operational_state"
+PUBLISHER = "score/statePublisher.jsonl"
+PUBLISHER_EVENT = "out.operational_state"
+KIND_VALUE = {"PLAN": 1, "VEHICLE_STATE": 2, "HEALTH": 3}      # ICD section 3, field 3
+
+
+def observer_record(kind: str) -> str:
+    """The name of the observer's record of one kind, as `missing` reports it."""
+    return f"{OBSERVER}:{OBSERVER_EVENT} kind={KIND_VALUE[kind]} ({kind})"
+
+
+def publisher_record(kind: str) -> str:
+    """The name of the publisher's record of one kind, as `missing` reports it."""
+    return f"{PUBLISHER}:{PUBLISHER_EVENT} kind={kind}"
+
+
+def _is(value, want) -> bool:
+    """`value` is `want` and of its type: the observer's kind is the u32 (a JSON
+    true is not 1), the publisher's the name."""
+    return type(value) is type(want) and value == want
+
+
 def _clock(d: dict, field: str) -> str | None:
     clocks = d.get("clocks")
     if isinstance(clocks, dict):
@@ -492,11 +536,30 @@ class Run:
         return s[0] if s else None
 
     # ---------------------------------------------------------------- publications
+    def _kind_records(self, rel: str, event: str, kind, what: str,
+                      required: bool = True) -> list[dict]:
+        """The records of one kind of the operational state (ICD A34): `event`
+        records of `rel` whose `data.kind` is `kind`. None of them: missing
+        evidence naming `what`, or [] when not required. No other record name
+        is read."""
+        recs = self.read(rel, required=False)
+        if recs is None:
+            if required:
+                raise MissingEvidence(what, None, "file absent from the run directory")
+            return []
+        sel = [r for r in recs if r["event"] == event and _is(r["data"].get("kind"), kind)]
+        if not sel and required:
+            raise MissingEvidence(what, None, "no record of this event and kind in the file")
+        return sel
+
     def health_pubs(self) -> list[dict]:
-        """The observer's decoded HEALTH message (ICD v2 section 3, fields 30-43)."""
-        rel = "guest/observer.jsonl"
+        """The observer's HEALTH receipts, ICD v2 section 3 fields 30-43:
+        `in.operational_state` of kind 3 (ICD A34; StateRecord.java:105-158).
+        `mode` and `cause` are the u32 values."""
+        rel = OBSERVER
         out = []
-        for rec in self.events(rel, "rx.health"):
+        for rec in self._kind_records(rel, OBSERVER_EVENT, KIND_VALUE["HEALTH"],
+                                      observer_record("HEALTH")):
             d = rec["data"]
             out.append({
                 "t_real": rec["t_real_ns"] / 1e9,
@@ -521,10 +584,12 @@ class Run:
         return sorted(out, key=lambda h: h["t_real"])
 
     def plan_pubs(self) -> list[dict]:
-        """The observer's decoded PLAN message (fields 10-22)."""
-        rel = "guest/observer.jsonl"
+        """The observer's PLAN receipts, ICD v2 section 3 fields 10-22:
+        `in.operational_state` of kind 1 (ICD A34; StateRecord.java:118-130)."""
+        rel = OBSERVER
         out = []
-        for rec in self.events(rel, "rx.plan"):
+        for rec in self._kind_records(rel, OBSERVER_EVENT, KIND_VALUE["PLAN"],
+                                      observer_record("PLAN")):
             d = rec["data"]
             out.append({
                 "t_real": rec["t_real_ns"] / 1e9,
@@ -549,46 +614,109 @@ class Run:
         return sorted(out, key=lambda p: p["t_real"])
 
     def vs_pubs(self) -> list[dict]:
-        rel = "guest/observer.jsonl"
+        """The observer's VEHICLE_STATE receipts, ICD v2 section 3 fields 23-29:
+        `in.operational_state` of kind 2 (ICD A34; StateRecord.java:131-137).
+        The four values are in the agent's units: km/h, m/s^2, m/s^2, deg/s
+        (section 3 fields 23-26; payloads.h EgoMotionSamplePayload)."""
+        rel = OBSERVER
         out = []
-        for rec in self.events(rel, "rx.vehicle_state"):
+        for rec in self._kind_records(rel, OBSERVER_EVENT, KIND_VALUE["VEHICLE_STATE"],
+                                      observer_record("VEHICLE_STATE")):
             d = rec["data"]
             out.append({
                 "t_real": rec["t_real_ns"] / 1e9,
                 "publish_mono": _pair_s(d, "publish_mono"),
                 "publish_real": _pair_s(d, "publish_real"),
+                "producer": d.get("producer"),
                 "speed_kmh": maybe_num(d, "speed_kmh"),
+                "accel": maybe_num(d, "longitudinal_acceleration"),
+                "lateral": maybe_num(d, "lateral_acceleration"),
+                "yaw_dps": maybe_num(d, "yaw_rate_dps"),
                 "sample_capture_ms": maybe_num(d, "sample_capture_ms"),
                 "receipt_mono": _pair_s(d, "sample_receipt_mono"),
                 "rec": rec, "file": rel,
             })
         return sorted(out, key=lambda p: p["t_real"])
 
-    def health_side(self) -> list[dict]:
-        """The publisher's own HEALTH record on the S-CORE host (ICD v2 C5).
-
-        VC-029 compares the stop begin with the publisher's monotonic stamp,
-        not with the guest's receipt, so both ends are on the S-CORE host.
-        """
-        rel = "score/statePublisher.jsonl"
+    def plan_side(self) -> list[dict]:
+        """The publisher's own PLAN records on the S-CORE host:
+        `out.operational_state` of kind PLAN (ICD A34; publisher_core.cpp:
+        708-729), one per message it sent. The publisher writes the record after
+        the send returned (state_publisher_main.cpp:447-452), so the envelope
+        `t_mono` is the publication time; `publish_mono_ns` in the message is the
+        publisher's receipt of the plan, taken before it encodes and sends it
+        (publisher_core.cpp:630, 712). Missing evidence when the run holds none."""
+        rel = PUBLISHER
         out = []
-        for rec in self.events(rel, "out.health", required=False):
+        for rec in self._kind_records(rel, PUBLISHER_EVENT, "PLAN", publisher_record("PLAN")):
+            d = rec["data"]
+            out.append({"t_mono": rec["t_mono_ns"] / 1e9,
+                        "frame": d.get("plan_frame_index"),
+                        "publish_mono": _ns_s(d, "publish_mono_ns"),
+                        "production_mono": _ns_s(d, "plan_production_mono_ns"),
+                        "seq": rec["seq"], "rec": rec, "file": rel})
+        return sorted(out, key=lambda p: p["t_mono"])
+
+    def vs_side(self) -> list[dict]:
+        """The publisher's own VEHICLE_STATE records on the S-CORE host:
+        `out.operational_state` of kind VEHICLE_STATE (ICD A34; publisher_core.cpp:
+        812-827), one per message it sent, written after the send returned
+        (state_publisher_main.cpp:447-452): the envelope `t_mono` is the
+        publication time. `publish_mono_ns` and `sample_receipt_mono_ns` are both
+        the publisher's receipt of the sample (publisher_core.cpp:749, 755).
+        Missing evidence when the run holds none."""
+        rel = PUBLISHER
+        out = []
+        for rec in self._kind_records(rel, PUBLISHER_EVENT, "VEHICLE_STATE",
+                                      publisher_record("VEHICLE_STATE")):
+            d = rec["data"]
+            out.append({"t_mono": rec["t_mono_ns"] / 1e9,
+                        "capture_ms": maybe_num(d, "sample_capture_sim_ms"),
+                        "publish_mono": _ns_s(d, "publish_mono_ns"),
+                        "receipt_mono": _ns_s(d, "sample_receipt_mono_ns"),
+                        "seq": rec["seq"], "rec": rec, "file": rel})
+        return sorted(out, key=lambda p: p["t_mono"])
+
+    def health_side(self) -> list[dict]:
+        """The publisher's own HEALTH records on the S-CORE host (ICD v2 C5):
+        `out.operational_state` of kind HEALTH (ICD A34; publisher_core.cpp:
+        574-600). Its stamps are whole nanosecond counts, `publish_mono_ns`
+        and `cause_since_mono_ns` (publisher_core.cpp:578, 583), not the
+        section 3 `_s`/`_ns` pairs; `mode` and `cause` are names. [] when the
+        run holds none.
+
+        The envelope `t_mono` is a time after the send: the publisher writes the
+        record once the send returned (state_publisher_main.cpp:447-452).
+        `publish_mono_ns` is the time it made the message, before the send.
+        VC-029 compares the stop begin with `t_mono`, so both ends are on the
+        S-CORE host; the guest's receipt is not used.
+        """
+        rel = PUBLISHER
+        out = []
+        for rec in self._kind_records(rel, PUBLISHER_EVENT, "HEALTH",
+                                      publisher_record("HEALTH"), required=False):
             d = rec["data"]
             out.append({"t_mono": rec["t_mono_ns"] / 1e9,
                         "t_real": rec["t_real_ns"] / 1e9,
-                        "publish_mono": _pair_s(d, "publish_mono"),
-                        "publish_real": _pair_s(d, "publish_real"),
+                        "publish_mono": _ns_s(d, "publish_mono_ns"),
+                        "publish_real": _ns_s(d, "publish_real_ns"),
                         "mode": d.get("mode"), "cause": d.get("cause"),
                         "mode_source": d.get("mode_source"),
-                        "cause_since_mono": _pair_s(d, "cause_since_mono"),
+                        "cause_since_mono": _ns_s(d, "cause_since_mono_ns"),
                         "seq": rec["seq"], "rec": rec, "file": rel})
         return sorted(out, key=lambda h: h["t_mono"])
 
     # ---------------------------------------------------------------- agent inputs
     def ego_samples(self) -> list[dict]:
         """The motion sample of each step, as the agent logs it:
-        out.ego_motion_sample (agent/cc/agent_ffi.cpp:1088-1095). No producer
-        writes in.ego_motion."""
+        out.ego_motion_sample (agent/cc/agent_ffi.cpp:1207-1215). No producer
+        writes in.ego_motion.
+
+        `arrival_mono` is when the world snapshot the sample comes from arrived
+        at the agent: `arrival_mono_ns`, a whole nanosecond count on the S-CORE
+        host's monotonic clock with `clocks.arrival_mono_ns = "monotonic"`, in
+        seconds; None in any other form. The agent does not write it yet
+        (gaps.V2_GAPS, VC-DRIVING-016)."""
         rel = "score/drivingAgent.jsonl"
         out = []
         for rec in self.events(rel, "out.ego_motion_sample", required=False):
@@ -596,6 +724,8 @@ class Run:
             cap_s = _sim_stamp(d, "captureTime", "capture_sim_ms")
             frame = d.get("frame")
             step = frame if isinstance(frame, int) and not isinstance(frame, bool) else None
+            arrival = d.get("arrival_mono_ns")
+            whole = isinstance(arrival, int) and not isinstance(arrival, bool)
             out.append({
                 "speed_kmh": maybe_num(d, "speed"),
                 "accel": maybe_num(d, "longitudinalAcceleration"),
@@ -604,6 +734,8 @@ class Run:
                 "capture_s": cap_s,
                 "capture_ms": sim_ms(cap_s),
                 "capture_clock": _clock(d, "captureTime") or d.get("captureTimeClock"),
+                "arrival_mono": arrival / 1_000_000_000
+                                if whole and _clock(d, "arrival_mono_ns") == "monotonic" else None,
                 "step": step,
                 "valid": d.get("valid"),
                 "t_mono": rec["t_mono_ns"] / 1e9,

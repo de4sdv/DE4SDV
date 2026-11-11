@@ -140,6 +140,77 @@ def sha16(text: bytes) -> str:
     return hashlib.sha256(text).hexdigest()[:16]
 
 
+# ICD A34: the observation records as their producers write them.
+#
+# The observer app records each message it received as `in.operational_state`:
+# the 43 fields of ICD section 3 in its order for every kind, the fields of the
+# other kinds zero, "" or [], a name after kind, mode and cause, then the clock
+# of every time field (ivi-observer/app/src/org/de4sdv/drivingstate/
+# StateRecord.java:90-158).
+OBSERVER_FIELDS = (
+    ("schema_major", 0), ("schema_minor", 0), ("kind", 0), ("sequence", 0), ("producer", ""),
+    ("publish_real_s", 0), ("publish_real_ns", 0), ("publish_mono_s", 0), ("publish_mono_ns", 0),
+    ("plan_frame_index", 0), ("plan_capture_ms", 0), ("plan_production_mono_s", 0),
+    ("plan_production_mono_ns", 0), ("plan_reference", ""), ("run_record", ""),
+    ("plan_producer", ""), ("plan_sample_count", 0), ("plan_horizon_s", 0.0),
+    ("plan_acceleration", []), ("plan_curvature", []), ("plan_x", []), ("plan_y", []),
+    ("speed_kmh", 0.0), ("longitudinal_acceleration", 0.0), ("lateral_acceleration", 0.0),
+    ("yaw_rate_dps", 0.0), ("sample_capture_ms", 0), ("sample_receipt_mono_s", 0),
+    ("sample_receipt_mono_ns", 0),
+    ("mode", 0), ("cause", 0), ("mode_source", ""), ("cause_since_mono_s", 0),
+    ("cause_since_mono_ns", 0), ("last_plan_frame_index", 0), ("last_plan_capture_ms", 0),
+    ("step_capture_ms", 0), ("last_plan_production_mono_s", 0),
+    ("last_plan_production_mono_ns", 0), ("dropped_samples", 0),
+    ("checkpoint_expected_sha256", ""), ("checkpoint_actual_sha256", ""), ("refusal_reason", ""),
+)
+OBSERVER_CLOCKS = {
+    "publish_real_s": "real", "publish_real_ns": "real",
+    "publish_mono_s": "monotonic", "publish_mono_ns": "monotonic",
+    "plan_capture_ms": "simulation",
+    "plan_production_mono_s": "monotonic", "plan_production_mono_ns": "monotonic",
+    "sample_capture_ms": "simulation",
+    "sample_receipt_mono_s": "monotonic", "sample_receipt_mono_ns": "monotonic",
+    "cause_since_mono_s": "monotonic", "cause_since_mono_ns": "monotonic",
+    "last_plan_capture_ms": "simulation", "step_capture_ms": "simulation",
+    "last_plan_production_mono_s": "monotonic", "last_plan_production_mono_ns": "monotonic",
+}
+KIND_NAMES = {1: "PLAN", 2: "VEHICLE_STATE", 3: "HEALTH"}
+# The state publisher logs each message it sent as `out.operational_state`:
+# `kind`, `mode` and `cause` by name, its own stamps as whole nanosecond counts
+# and simulation milliseconds named by their clock, and their clocks
+# (state-publisher/publisher_core.cpp:574-600, 708-729, 812-827).
+PUBLISHER_CLOCKS = {
+    "PLAN": {"publish_mono_ns": "monotonic", "publish_real_ns": "real",
+             "plan_capture_sim_ms": "simulation", "plan_production_mono_ns": "monotonic"},
+    "VEHICLE_STATE": {"publish_mono_ns": "monotonic", "publish_real_ns": "real",
+                      "sample_capture_sim_ms": "simulation",
+                      "sample_receipt_mono_ns": "monotonic"},
+    "HEALTH": {"publish_mono_ns": "monotonic", "publish_real_ns": "real",
+               "cause_since_mono_ns": "monotonic", "last_plan_capture_sim_ms": "simulation",
+               "step_capture_sim_ms": "simulation", "last_plan_production_mono_ns": "monotonic"},
+}
+
+
+def observer_data(fields: dict) -> dict:
+    """The observer's `data` for one message from its section 3 fields."""
+    out: dict = {}
+    for name, default in OBSERVER_FIELDS:
+        out[name] = fields.get(name, default)
+        if name == "kind":
+            out["kind_name"] = KIND_NAMES[out["kind"]]
+        elif name == "mode":
+            out["mode_name"] = MODES[out["mode"]]
+        elif name == "cause":
+            out["cause_name"] = CAUSES[out["cause"]]
+    out["clocks"] = dict(OBSERVER_CLOCKS)
+    return out
+
+
+def total_ns(pair: tuple[int, int]) -> int:
+    """A section 3 (seconds, nanoseconds) pair as the publisher's whole count."""
+    return pair[0] * 1_000_000_000 + pair[1]
+
+
 class Logs:
     """One JSONL writer per file, seq per file, ICD section 6 envelope."""
 
@@ -149,7 +220,10 @@ class Logs:
         self.files: dict[str, object] = {}
 
     def write(self, rel: str, host: str, component: str, event: str, data: dict,
-              t_mono: float, t_real: float) -> None:
+              t_mono: float, t_real: float, seq: int | None = None) -> None:
+        """One record; `seq` counts the file's records unless the producer
+        numbers them itself (the publisher's out.operational_state carries the
+        kind's sequence, state_publisher_main.cpp:452)."""
         p = self.root / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         fh = self.files.get(rel)
@@ -159,7 +233,8 @@ class Logs:
         s = self.seq.get(rel, 0) + 1
         self.seq[rel] = s
         rec = {"t_mono_ns": ns(t_mono), "t_real_ns": ns(t_real), "host": host,
-               "component": component, "event": event, "seq": s, "data": data}
+               "component": component, "event": event, "seq": s if seq is None else seq,
+               "data": data}
         fh.write(json.dumps(rec, separators=(",", ":"), allow_nan=False) + "\n")
 
     def close(self) -> None:
@@ -269,6 +344,7 @@ class RunBuilder:
         self.prev_steer: float | None = None
         self.commanded = False
         self.injections: list[dict] = []
+        self.sequences: dict[str, int] = {}      # the publisher's, per kind
         self.run_identity = "0" * 16
         self._prepare_artifacts()
 
@@ -743,87 +819,124 @@ class RunBuilder:
                         "accelMps2": round(accel, 6),
                         "source": "actuationAdapter"}
 
+    def _publish(self, kind: str, fields: dict, published: dict, tm: float, tr: float,
+                 obs_tm: float, obs_tr: float) -> None:
+        """One message of the operational state, as the publisher logs it after
+        sending it (`out.operational_state`, `seq` the kind's sequence,
+        state_publisher_main.cpp:452) and as the observer records its receipt
+        at obs_tm/obs_tr (`in.operational_state`, StateRecord.java:162-170).
+        `fields` are its section 3 fields, `published` the publisher's own data
+        without the kind and the clocks."""
+        data = {"kind": kind, **published, "clocks": dict(PUBLISHER_CLOCKS[kind])}
+        self.logs.write("score/statePublisher.jsonl", "score", "statePublisher",
+                        "out.operational_state", data, tm, tr, seq=fields["sequence"])
+        self.logs.write("guest/observer.jsonl", "guest", "observer", "in.operational_state",
+                        observer_data(fields), obs_tm, obs_tr)
+
+    def _sequence(self, kind: str) -> int:
+        """Per kind, from 1, no gaps (ICD section 3, field 4)."""
+        self.sequences[kind] = self.sequences.get(kind, 0) + 1
+        return self.sequences[kind]
+
     def _publish_plan(self, f: int, payload: dict, tm: float, tr: float) -> None:
-        ps, pns = split_s(tm + 0.035)
-        rs, rns = split_s(tr + 0.035)
-        prod_s, prod_ns = split_s(payload["productionTime"])
-        body = {"schema_major": 2, "schema_minor": 0, "kind": 1,
-                "sequence": len(self.plan_payloads), "producer": "statePublisher",
-                "publish_real_s": rs, "publish_real_ns": rns,
-                "publish_mono_s": ps, "publish_mono_ns": pns,
-                "plan_frame_index": f,
-                "plan_capture_ms": int(round(payload["captureTime"] * 1000)),
-                "plan_production_mono_s": prod_s, "plan_production_mono_ns": prod_ns,
-                "plan_reference": payload["planReference"],
-                "run_record": self.run_identity,
+        # The publisher stamps a PLAN with its receipt of the plan, 2 ms after
+        # production here (publisher_core.cpp:435-445, 630, 712), and logs it after
+        # the send returned (state_publisher_main.cpp:447-452), at tm + 0.035.
+        pub_mono, pub_real = split_s(tm + 0.032), split_s(tr + 0.032)
+        production = split_s(payload["productionTime"])
+        capture_ms = int(round(payload["captureTime"] * 1000))
+        seq = self._sequence("PLAN")
+        arrays = {"plan_acceleration": [s["acceleration"] for s in payload["samples"]],
+                  "plan_curvature": [s["curvature"] for s in payload["samples"]],
+                  "plan_x": [s["x"] for s in payload["samples"]],
+                  "plan_y": [s["y"] for s in payload["samples"]]}
+        plan = {"plan_reference": payload["planReference"], "run_record": self.run_identity,
                 "plan_producer": "drivingAgent/inferPlan",
                 "plan_sample_count": payload["sampleCount"],
-                "plan_horizon_s": payload["horizon"],
-                "plan_acceleration": [s["acceleration"] for s in payload["samples"]],
-                "plan_curvature": [s["curvature"] for s in payload["samples"]],
-                "plan_x": [s["x"] for s in payload["samples"]],
-                "plan_y": [s["y"] for s in payload["samples"]]}
-        self.logs.write("score/statePublisher.jsonl", "score", "statePublisher",
-                        "out.plan", dict(body), tm + 0.035, tr + 0.035)
-        self.logs.write("guest/observer.jsonl", "guest", "observer", "rx.plan",
-                        dict(body), tm + 0.038, tr + 0.038 + GUEST_REAL_OFFSET)
+                "plan_horizon_s": payload["horizon"], **arrays}
+        fields = {"schema_major": 2, "schema_minor": 0, "kind": 1, "sequence": seq,
+                  "producer": "statePublisher",
+                  "publish_real_s": pub_real[0], "publish_real_ns": pub_real[1],
+                  "publish_mono_s": pub_mono[0], "publish_mono_ns": pub_mono[1],
+                  "plan_frame_index": f, "plan_capture_ms": capture_ms,
+                  "plan_production_mono_s": production[0],
+                  "plan_production_mono_ns": production[1], **plan}
+        published = {"sequence": seq, "producer": "statePublisher",
+                     "publish_mono_ns": total_ns(pub_mono), "publish_real_ns": total_ns(pub_real),
+                     "plan_frame_index": f, "plan_capture_sim_ms": capture_ms,
+                     "plan_production_mono_ns": total_ns(production), **plan}
+        self._publish("PLAN", fields, published, tm + 0.035, tr + 0.035,
+                      tm + 0.038, tr + 0.038 + GUEST_REAL_OFFSET)
 
     def _publish_vehicle_state(self, f: int, motion: dict, tm: float, tr: float) -> None:
-        ps, pns = split_s(tm + 0.045)
-        rs, rns = split_s(tr + 0.045)
-        receipt = tm + 0.006
-        rec_s, rec_ns = split_s(receipt)
-        body = {"schema_major": 2, "schema_minor": 0, "kind": 2,
-                "sequence": f + 1, "producer": "statePublisher",
-                "publish_real_s": rs, "publish_real_ns": rns,
-                "publish_mono_s": ps, "publish_mono_ns": pns,
-                "speed_kmh": motion["speed"],
-                "longitudinal_acceleration": motion["longitudinalAcceleration"],
-                "lateral_acceleration": motion["lateralAcceleration"],
-                "yaw_rate_dps": motion["yawRate"],
-                "sample_capture_ms": int(round(motion["captureTime"] * 1000)),
-                "sample_receipt_mono_s": rec_s, "sample_receipt_mono_ns": rec_ns}
-        self.logs.write("score/statePublisher.jsonl", "score", "statePublisher",
-                        "out.vehicle_state", dict(body), tm + 0.045, tr + 0.045)
-        self.logs.write("guest/observer.jsonl", "guest", "observer", "rx.vehicle_state",
-                        dict(body), tm + 0.048, tr + 0.048 + GUEST_REAL_OFFSET)
+        # The publisher stamps a VEHICLE_STATE with its receipt of the sample, and
+        # that receipt is also its sample_receipt_mono (publisher_core.cpp:749, 755,
+        # 816, 823); it logs the message after the send returned, at tm + 0.045.
+        receipt = split_s(tm + 0.006)
+        pub_mono, pub_real = receipt, split_s(tr + 0.006)
+        capture_ms = int(round(motion["captureTime"] * 1000))
+        seq = self._sequence("VEHICLE_STATE")
+        sample = {"speed_kmh": motion["speed"],
+                  "longitudinal_acceleration": motion["longitudinalAcceleration"],
+                  "lateral_acceleration": motion["lateralAcceleration"],
+                  "yaw_rate_dps": motion["yawRate"]}
+        fields = {"schema_major": 2, "schema_minor": 0, "kind": 2, "sequence": seq,
+                  "producer": "statePublisher",
+                  "publish_real_s": pub_real[0], "publish_real_ns": pub_real[1],
+                  "publish_mono_s": pub_mono[0], "publish_mono_ns": pub_mono[1], **sample,
+                  "sample_capture_ms": capture_ms,
+                  "sample_receipt_mono_s": receipt[0], "sample_receipt_mono_ns": receipt[1]}
+        published = {"sequence": seq, "producer": "statePublisher",
+                     "publish_mono_ns": total_ns(pub_mono), "publish_real_ns": total_ns(pub_real),
+                     **sample, "sample_capture_sim_ms": capture_ms,
+                     "sample_receipt_mono_ns": total_ns(receipt)}
+        self._publish("VEHICLE_STATE", fields, published, tm + 0.045, tr + 0.045,
+                      tm + 0.048, tr + 0.048 + GUEST_REAL_OFFSET)
 
     def _health(self, f: int, mode: str, cause: str, tm: float, tr: float) -> None:
-        ps, pns = split_s(tm + 0.050)
-        rs, rns = split_s(tr + 0.050)
-        since_s = since_ns = 0
+        pub_mono, pub_real = split_s(tm + 0.050), split_s(tr + 0.050)
+        since = (0, 0)
         if self.stop_frame is not None:
-            cs, cn = split_s(self.t_mono(self.stop_frame))
-            since_s, since_ns = cs, cn
-        lpp_s, lpp_ns = split_s(self.last_plan_production)
-        body = {"schema_major": 2, "schema_minor": 0, "kind": 3,
-                "sequence": f + 1, "producer": "statePublisher",
-                "publish_real_s": rs, "publish_real_ns": rns,
-                "publish_mono_s": ps, "publish_mono_ns": pns,
-                "mode": MODES.index(mode), "cause": CAUSES.index(cause),
-                "mode_source": ("actuationAdapter" if self.fault == "comm_stop"
-                                else ("" if f < self.prime else "superviseLoop")),
-                "cause_since_mono_s": since_s, "cause_since_mono_ns": since_ns,
-                "last_plan_frame_index": self.last_plan_frame,
-                "last_plan_capture_ms": int(round(self.last_plan_capture * 1000)),
-                "step_capture_ms": f * STEP_MS,
-                "last_plan_production_mono_s": lpp_s,
-                "last_plan_production_mono_ns": lpp_ns,
-                "dropped_samples": 0,
-                "checkpoint_expected_sha256": "",
-                "checkpoint_actual_sha256": "",
-                "refusal_reason": ""}
+            since = split_s(self.t_mono(self.stop_frame))
+        last_production = split_s(self.last_plan_production)
+        seq = self._sequence("HEALTH")
+        source = ("actuationAdapter" if self.fault == "comm_stop"
+                  else ("" if f < self.prime else "superviseLoop"))
+        refusal = {}
         if self.scenario == "checkpointRefusal":
-            body.update({
-                "checkpoint_expected_sha256": self.checkpoint_sha
-                if self.checkpoint_case == "mismatch" else "",
-                "checkpoint_actual_sha256": "ff" * 32,
-                "refusal_reason": "mismatch" if self.checkpoint_case == "mismatch"
-                else "no_pin"})
-        self.logs.write("score/statePublisher.jsonl", "score", "statePublisher",
-                        "out.health", dict(body), tm + 0.050, tr + 0.050)
-        self.logs.write("guest/observer.jsonl", "guest", "observer", "rx.health",
-                        dict(body), tm + 0.053, tr + 0.053 + GUEST_REAL_OFFSET)
+            refusal = {"checkpoint_expected_sha256": self.checkpoint_sha
+                       if self.checkpoint_case == "mismatch" else "",
+                       "checkpoint_actual_sha256": "ff" * 32,
+                       "refusal_reason": "mismatch" if self.checkpoint_case == "mismatch"
+                       else "no_pin"}
+        fields = {"schema_major": 2, "schema_minor": 0, "kind": 3, "sequence": seq,
+                  "producer": "statePublisher",
+                  "publish_real_s": pub_real[0], "publish_real_ns": pub_real[1],
+                  "publish_mono_s": pub_mono[0], "publish_mono_ns": pub_mono[1],
+                  "mode": MODES.index(mode), "cause": CAUSES.index(cause),
+                  "mode_source": source,
+                  "cause_since_mono_s": since[0], "cause_since_mono_ns": since[1],
+                  "last_plan_frame_index": self.last_plan_frame,
+                  "last_plan_capture_ms": int(round(self.last_plan_capture * 1000)),
+                  "step_capture_ms": f * STEP_MS,
+                  "last_plan_production_mono_s": last_production[0],
+                  "last_plan_production_mono_ns": last_production[1],
+                  "dropped_samples": 0, **refusal}
+        # the publisher writes the refusal detail only once a refusal is set
+        # (publisher_core.cpp:590-594). It makes the message at tm + 0.050 (its
+        # publish_mono, publisher_core.cpp:513, 578) and logs it after the send
+        # returned (state_publisher_main.cpp:447-452), at tm + 0.051.
+        published = {"sequence": seq, "producer": "statePublisher",
+                     "publish_mono_ns": total_ns(pub_mono), "publish_real_ns": total_ns(pub_real),
+                     "mode": mode, "cause": cause, "mode_source": source,
+                     "cause_since_mono_ns": total_ns(since),
+                     "last_plan_frame_index": self.last_plan_frame,
+                     "last_plan_capture_sim_ms": fields["last_plan_capture_ms"],
+                     "step_capture_sim_ms": fields["step_capture_ms"],
+                     "last_plan_production_mono_ns": total_ns(last_production),
+                     "dropped_samples": 0, **refusal}
+        self._publish("HEALTH", fields, published, tm + 0.051, tr + 0.051,
+                      tm + 0.053, tr + 0.053 + GUEST_REAL_OFFSET)
 
     def _initial_state(self, f: int) -> dict:
         return {"v": self.v, "accel": self.accel_long, "yaw_rate": self.yaw_rate,

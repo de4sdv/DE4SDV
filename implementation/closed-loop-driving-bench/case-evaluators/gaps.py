@@ -9,11 +9,13 @@ agree); `campaign_unblocks` names the cases that need the change only to group
 the runs of a campaign.
 
 `V2_GAPS` is the other direction: the cases ICD v2 still cannot decide, and
-the exact field + producer each one misses. OBSERVABLES.md's "Against ICD v2"
-section is the prose half and the tests keep the two in step.
+the exact field + producer each one misses; `change`, where given, is the label
+of the record change the case names in `icd_changes`, a label ICD v2 has not
+adopted (not in ICD_CHANGES). OBSERVABLES.md's "Against ICD v2" section is the
+prose half and the tests keep the two in step.
 
 `AMENDMENT_CHANGES` records the rulings of ICD amendments 1 and 2 (A11, A16,
-A17) that closed the earlier gaps; its entries have the same shape as
+A17, ..., A34) that closed the earlier gaps; its entries have the same shape as
 ICD_CHANGES and name the cases each ruling makes decidable.
 
 Nothing here edits the ICD or the model.
@@ -241,6 +243,22 @@ AMENDMENT_CHANGES: dict[str, dict] = {
         "where": "simulator host, world side (world.jsonl); S-CORE host, drivingAgent",
         "unblocks": ["VC-DRIVING-008"],
     },
+    "A34": {
+        "title": "Observation records (amendment 2)",
+        "adds": "No record is added. The evaluators read the observation records as "
+                "their producers write them: the observer's in.operational_state "
+                "(guest/observer.jsonl: the 43 section 3 fields for every kind; kind, "
+                "mode and cause as u32 values) and the publisher's "
+                "out.operational_state (score/statePublisher.jsonl: kind, mode and "
+                "cause by name, its own stamps as whole nanosecond counts and "
+                "_sim_ms). The publisher writes its record after the send, so the "
+                "record's t_mono_ns is the publication time of VC-DRIVING-015, -016 "
+                "and -029. A run that holds only rx.plan, rx.vehicle_state, rx.health "
+                "or out.health is missing evidence.",
+        "where": "S-CORE host, statePublisher; IVI guest, observer app",
+        "unblocks": ["VC-DRIVING-015", "VC-DRIVING-016", "VC-DRIVING-017",
+                     "VC-DRIVING-029", "VC-DRIVING-035"],
+    },
 }
 
 
@@ -254,6 +272,18 @@ V2_GAPS: dict[str, dict] = {
         "producer": "drivingAgent/conditionInputs (marker) + a measured bundle image",
         "bundle": "1 bundle at frame 300 of the nominal run (all six cameras "
                   "valid), the marker measured in each image",
+    },
+    "VC-DRIVING-016": {
+        "missing": "out.ego_motion_sample.arrival_mono_ns: when the world snapshot "
+                   "the motion sample comes from arrived at the agent, whole "
+                   "nanoseconds of the S-CORE host's monotonic clock, with "
+                   "clocks.arrival_mono_ns = monotonic. The criterion counts from "
+                   "when the driving system received the sample; the agent's record "
+                   "carries no arrival time (ICD A34), and the frame store may hold "
+                   "a sample up to 95 ms before the agent hands it on",
+        "producer": "drivingAgent (agent/cc/agent_ffi.cpp, out.ego_motion_sample; "
+                    "the frame store knows the arrival, FrameView::snapshotArrivalMonoNs)",
+        "change": "C13",
     },
 }
 
