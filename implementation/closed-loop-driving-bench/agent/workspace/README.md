@@ -22,8 +22,9 @@ beyond upstream FEO.
 - **`.bazelrc`.** Comments out the strict clippy aspect for the bench build.
   - **Open:** the bench's Rust shells (`agent/src`) have not been checked against it.
 
-The patch is local to this bench. It has not been proposed upstream; contacting
-the FEO maintainers needs the project owner's go-ahead.
+The patch is local to this bench. The
+[driving upstream record](../../../../textual-notation-of-model/packages/features/driving/upstream.md)
+says what DE4SDV has put to the FEO maintainers about it.
 
 ## Build
 

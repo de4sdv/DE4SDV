@@ -82,6 +82,14 @@ product-line-applicability extension for a future upstream version rather
 than forking privately. Until that lands, DE4SDV keeps its own
 `applicability` convention.
 
+**Note (2026-11-11), which records what happened and changes nothing in the
+decision:** DE4SDV raised this on 2026-08-29 in
+[issue 4 of the library's repository](https://github.com/ode4hera/SysML-v2-Requirements-Management/issues/4).
+A collaborator of that repository answered on 2026-09-04: contributions for
+product-line attributes are welcome, the maintainers do not plan the work
+themselves, and a pull request is invited. DE4SDV has not replied, has sent no
+proposal or pull request, and has not decided whether to contribute.
+
 ## Consequences
 
 - Attribute data becomes structured and machine-checkable; the requirements
