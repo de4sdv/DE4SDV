@@ -81,12 +81,19 @@ struct CameraConfig {
 // lock, with the frame number and whether the deadline (not completeness)
 // made it ready. It must not call back into the store.
 using ReadySink = std::function<void(std::uint64_t frame, bool readyByDeadline)>;
+// Called once per accepted snapshot (not for a duplicate, late or overflowing one), after the
+// store's lock is released and before the ready sink of a step the snapshot completes, on the
+// LibCarla tick thread: it must return quickly. The agent uses it to render the step's navigation
+// raster while the camera images are still arriving.
+using SnapshotSink =
+    std::function<void(std::uint64_t frame, const HeroSnapshot& snapshot, std::int64_t arrivalMonoNs)>;
 
 struct FrameStoreConfig {
   CameraConfig cameras[kCameraCount];   // expected width/height, BGRA
   std::size_t ringSize = 8;
   std::int64_t deadlineNs = kDefaultDeadlineNs;
   ReadySink readySink;                  // may be empty
+  SnapshotSink snapshotSink;            // may be empty
 };
 
 // Read-only view of one camera image in a taken slot.

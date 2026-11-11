@@ -17,6 +17,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -42,6 +43,7 @@
 #include "ego_motion.h"
 #include "frame_store.h"
 #include "json_lite.h"
+#include "nav_prefetch.h"
 #include "navigation_input.h"
 #include "pace_signal.h"
 #include "planner_bridge.h"
@@ -77,6 +79,9 @@ struct Config {
   // Navigation (ICD section 9): the map JSON on this host and the route provider's datagrams. Without
   // nav_map the route channel is the stand-in (a fresh full corridor every step), named in the stage.
   std::string nav_map;
+  // The nav prefetch (DESIGN.md): the step's rasters drawn when its snapshot arrives, off the chain.
+  bool nav_prefetch = true;
+  double nav_prefetch_wait_ms = 5.0;   // a take waits this long for a render in flight, then renders itself
   std::string route_file;     // the route file the provider announces (run record, ICD amendment 2 A19)
   std::string route_host = "127.0.0.1";
   double route_port = 47110;
@@ -150,6 +155,8 @@ bool LoadConfig(const std::string& path, Config* cfg, std::string* error) {
   num("carla_attach_timeout_s", &cfg->carla_attach_timeout_s);
   num("carla_rpc_timeout_s", &cfg->carla_rpc_timeout_s);
   str("nav_map", &cfg->nav_map);
+  if (const auto* v = doc.Find("nav_prefetch")) cfg->nav_prefetch = v->AsBool(cfg->nav_prefetch);
+  num("nav_prefetch_wait_ms", &cfg->nav_prefetch_wait_ms);
   str("route_file", &cfg->route_file);
   str("route_host", &cfg->route_host);
   num("route_port", &cfg->route_port);
@@ -393,6 +400,17 @@ class FakeWorld {
   std::thread poll_;
 };
 
+// What the nav prefetch's thread hands the step: the step's rasters in buffers of their own, the
+// pose they were drawn at, and the "route" record's data when that render changed the route.
+struct NavPrefetchResult {
+  da::NavigationInput::Step step;
+  std::vector<float> map_context, route_mask;
+  da::Pose pose{};
+  bool ok = false;
+  std::string error;
+  std::string route_event;   // nav_prefetch.h carries it to the next take when the result is never used
+};
+
 struct Agent {
   Config cfg;
   std::unique_ptr<dd::RunLog> log;
@@ -420,6 +438,11 @@ struct Agent {
   std::string carla_rig_json;             // read at Attach
   std::string setup_config_json;          // the planner configuration handed to setup
   std::unique_ptr<da::NavigationInput> nav;  // nav_map set
+  // Declared after nav: destroyed (its thread joined) before it. The store's snapshot sink calls it.
+  std::unique_ptr<da::NavPrefetch<NavPrefetchResult>> nav_prefetch;  // nav_map and nav_prefetch set
+  std::vector<float> nav_hit_map, nav_hit_route;  // a hit's rasters, kept until the next step's
+  std::uint64_t nav_hits = 0, nav_route_changed = 0, nav_pose_changed = 0, nav_render_failed = 0,
+                nav_not_submitted = 0, nav_timed_out = 0;
   double ref_origin[3] = {0.0, 0.0, 0.0};   // REF in the vehicle UE frame, from set_rig
   // What the engine hands the checkpoint (set_rig; ICD amendments 1 and 2): the tile size (0: the
   // engine hands the simulator image as it is), the front high-resolution size and the projection
@@ -804,6 +827,7 @@ void de4sdv_agent_fini(void) {
   if (g_agent == nullptr) return;
   if (g_agent->world) g_agent->world->Stop();
   if (g_agent->carla) g_agent->carla->Stop();
+  if (g_agent->nav_prefetch) g_agent->nav_prefetch->Stop();   // no more snapshots: join its thread
   if (g_agent->command_skeleton) g_agent->command_skeleton->StopOfferService();
   if (g_agent->mode_skeleton) g_agent->mode_skeleton->StopOfferService();
   if (g_agent->plan_skeleton) g_agent->plan_skeleton->StopOfferService();
@@ -816,6 +840,14 @@ void de4sdv_agent_fini(void) {
      << ",\"mergedNotConditioned\":" << g_agent->merged_not_conditioned
      << ",\"pace_sent\":" << (g_agent->pace ? g_agent->pace->sent() : 0)
      << ",\"pace_send_failures\":" << (g_agent->pace ? g_agent->pace->failures() : 0);
+  if (g_agent->nav_prefetch) {
+    const da::PrefetchStats p = g_agent->nav_prefetch->Stats();
+    os << ",\"navPrefetch\":{\"submitted\":" << p.submitted << ",\"refusedUnarmed\":" << p.refusedUnarmed
+       << ",\"droppedQueue\":" << p.droppedQueue << ",\"rendered\":" << p.rendered << ",\"discarded\":" << p.discarded
+       << ",\"hit\":" << g_agent->nav_hits << ",\"routeChanged\":" << g_agent->nav_route_changed
+       << ",\"poseChanged\":" << g_agent->nav_pose_changed << ",\"renderFailed\":" << g_agent->nav_render_failed
+       << ",\"notSubmitted\":" << g_agent->nav_not_submitted << ",\"timedOut\":" << g_agent->nav_timed_out << "}";
+  }
   if (g_agent->store) {
     const auto c = g_agent->store->Counters();
     os << ",\"frameStore\":{\"readyComplete\":" << c.readyComplete << ",\"readyDeadline\":" << c.readyDeadline
@@ -840,6 +872,15 @@ int32_t de4sdv_condition_startup(void) {
   }
   da::PaceSignal* pace = a.pace.get();
   fc.readySink = [pace](std::uint64_t frame, bool) { pace->Send(frame); };
+  if (!a.cfg.nav_map.empty() && a.cfg.nav_prefetch) {
+    // Created before the store and armed once the navigation input and the REF origin exist: until
+    // then the sink's requests are refused and the steps render on the chain.
+    a.nav_prefetch = std::make_unique<da::NavPrefetch<NavPrefetchResult>>();
+    da::NavPrefetch<NavPrefetchResult>* np = a.nav_prefetch.get();
+    fc.snapshotSink = [np](std::uint64_t frame, const da::HeroSnapshot& snapshot, std::int64_t arrival) {
+      np->Submit(frame, snapshot.pose, arrival);
+    };
+  }
   a.store = std::make_unique<da::FrameStore>(fc);
   if (a.carla) {
     std::string error;
@@ -914,11 +955,25 @@ int32_t de4sdv_condition_startup(void) {
       Log("error", "{\"what\":\"navigation_start_failed\",\"message\":" + dd::JsonString(error) + "}");
       return -1;
     }
+    if (a.nav_prefetch) {
+      da::NavigationInput* nav = a.nav.get();
+      const std::array<double, 3> origin{a.ref_origin[0], a.ref_origin[1], a.ref_origin[2]};   // set once, above
+      a.nav_prefetch->Start([nav, origin](std::uint64_t frame, const da::Pose& pose, std::int64_t, NavPrefetchResult* r) {
+        r->pose = pose;
+        r->ok = nav->RenderInto(pose, origin.data(), &r->step, &r->map_context, &r->route_mask, &r->error);
+        if (r->ok && !r->step.route_event.empty()) {
+          r->route_event = "{\"frame\":" + std::to_string(frame) + ",\"event\":" + r->step.route_event + "}";
+        }
+      });
+      a.nav_prefetch->Arm(true);
+    }
   }
   Log("ready", "{\"activity\":\"conditionInputs\",\"source\":" + dd::JsonString(a.cfg.source) +
                    ",\"navigation\":" + (a.nav ? "{\"map\":" + dd::JsonString(a.cfg.nav_map) + ",\"mapVersion\":" +
                                                        dd::JsonString(a.nav->map_version()) + ",\"routePort\":" +
-                                                       std::to_string(a.nav->listener_port()) + "}"
+                                                       std::to_string(a.nav->listener_port()) + ",\"prefetch\":" +
+                                                       (a.nav_prefetch ? "{\"waitMs\":" + dd::JsonNumber(a.cfg.nav_prefetch_wait_ms) + "}"
+                                                                       : std::string("null")) + "}"
                                                  : std::string("\"stand-in\"")) +
                    ",\"frameStore\":{\"ring\":" +
                    std::to_string(a.store->ringSize()) + ",\"bytesPerSlot\":" + std::to_string(a.store->bytesPerSlot()) +
@@ -979,13 +1034,63 @@ int32_t de4sdv_condition_step(De4sdvInputsMsg* inputs, De4sdvConditionMsg* condi
   sc.motion.sample = sample;
   da::NavigationInput::Step nav_step;
   bool rendered = false;
+  const std::vector<float>* map_buf = nullptr;
+  const std::vector<float>* route_buf = nullptr;
+  const char* prefetch_outcome = nullptr;   // C2 navPrefetch (A31); null without the prefetch
+  double prefetch_take_ms = 0.0;
   if (a.nav) {
     std::string error;
-    if (!a.nav->Render(view.snapshot.pose, a.ref_origin, &nav_step, &error)) {
-      Log("error", "{\"what\":\"render_failed\",\"frame\":" + std::to_string(frame) + ",\"message\":" +
-                       dd::JsonString(error) + "}");
-      a.store->Release(handle);
-      return -1;
+    bool from_prefetch = false;
+    if (a.nav_prefetch) {
+      // The rasters drawn when this step's snapshot arrived, if they are what a render here would
+      // draw: the same pose and the same route (the issue time and corridor count are read now).
+      NavPrefetchResult pf;
+      std::vector<std::string> carried;
+      const auto wait_ns = static_cast<std::int64_t>(a.cfg.nav_prefetch_wait_ms * 1e6);
+      const da::TakeOutcome o = a.nav_prefetch->Take(frame, wait_ns, &pf, &carried, &prefetch_take_ms);
+      for (const auto& ev : carried) Log("route", WithStage(ev));   // route changes of renders never used
+      if (o == da::TakeOutcome::kHit) {
+        const da::RouteState now = a.nav->NewestRoute();
+        const da::UseDecision use = da::DecideUse(pf.ok, pf.pose, view.snapshot.pose, pf.step.route_identity,
+                                                  da::NavigationInput::RouteIdentity(now));
+        if (use == da::UseDecision::kRenderFailed) {
+          prefetch_outcome = "render_failed";
+          ++a.nav_render_failed;
+        } else if (use == da::UseDecision::kPoseChanged) {
+          prefetch_outcome = "pose_changed";
+          ++a.nav_pose_changed;
+        } else if (use == da::UseDecision::kRouteChanged) {
+          prefetch_outcome = "route_changed";
+          ++a.nav_route_changed;
+        } else {
+          da::NavigationInput::ObserveAnnouncement(now, &pf.step.route);   // as a render here reads it
+          nav_step = std::move(pf.step);
+          a.nav_hit_map.swap(pf.map_context);
+          a.nav_hit_route.swap(pf.route_mask);
+          map_buf = &a.nav_hit_map;
+          route_buf = &a.nav_hit_route;
+          from_prefetch = true;
+          prefetch_outcome = "hit";
+          ++a.nav_hits;
+        }
+        if (!from_prefetch && !pf.route_event.empty()) Log("route", WithStage(pf.route_event));
+      } else if (o == da::TakeOutcome::kTimedOut) {
+        prefetch_outcome = "timed_out";
+        ++a.nav_timed_out;
+      } else {
+        prefetch_outcome = "not_submitted";
+        ++a.nav_not_submitted;
+      }
+    }
+    if (!from_prefetch) {
+      if (!a.nav->Render(view.snapshot.pose, a.ref_origin, &nav_step, &error)) {
+        Log("error", "{\"what\":\"render_failed\",\"frame\":" + std::to_string(frame) + ",\"message\":" +
+                         dd::JsonString(error) + "}");
+        a.store->Release(handle);
+        return -1;
+      }
+      map_buf = &a.nav->map_context();
+      route_buf = &a.nav->route_mask();
     }
     rendered = true;
     sc.route = nav_step.route;
@@ -1010,10 +1115,10 @@ int32_t de4sdv_condition_step(De4sdvInputsMsg* inputs, De4sdvConditionMsg* condi
     da::PlannerBridge::ConditionIn in;
     FillConditionIn(view, &in);
     if (rendered) {
-      in.map_context = a.nav->map_context().data();
-      in.map_bytes = a.nav->map_context().size() * sizeof(float);
-      in.route_mask = a.nav->route_mask().data();
-      in.route_bytes = a.nav->route_mask().size() * sizeof(float);
+      in.map_context = map_buf->data();
+      in.map_bytes = map_buf->size() * sizeof(float);
+      in.route_mask = route_buf->data();
+      in.route_bytes = route_buf->size() * sizeof(float);
     }
     const auto t0 = std::chrono::steady_clock::now();
     if (!a.planner.Condition(in, &out, &error)) {
@@ -1075,6 +1180,10 @@ int32_t de4sdv_condition_step(De4sdvInputsMsg* inputs, De4sdvConditionMsg* condi
          << ",\"rasterPose\":{\"x_map_m\":" << dd::JsonNumber(nav_step.pose.x) << ",\"y_map_m\":"
          << dd::JsonNumber(nav_step.pose.y) << ",\"yaw_map_rad\":" << dd::JsonNumber(nav_step.pose.yaw)
          << "},\"render_ms\":" << dd::JsonNumber(nav_step.render_ms)
+         << ",\"navPrefetch\":"
+         << (prefetch_outcome == nullptr ? std::string("null")
+                                         : "{\"outcome\":\"" + std::string(prefetch_outcome) + "\",\"take_ms\":" +
+                                               dd::JsonNumber(prefetch_take_ms) + "}")
          << ",\"route\":{\"has_announcement\":" << (sc.route.has_announcement ? "true" : "false")
          << ",\"corridor_points\":" << sc.route.corridor_points << ",\"issue_time_s\":"
          << dd::JsonNumber(sc.route.issue_time) << "}";

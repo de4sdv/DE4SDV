@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # drivingAgent's C++ units (agent/cc): the decision logic (agent_logic), the frame store
-# (frame_store + pace_signal), the kinematics (ego_motion.h), the route listener and the
-# navigation input. Plain -O2 with warnings as errors, AddressSanitizer +
+# (frame_store + pace_signal), the kinematics (ego_motion.h), the route listener, the nav
+# prefetch (nav_prefetch.h) and the navigation input. Plain -O2 with warnings as errors, AddressSanitizer +
 # UndefinedBehaviorSanitizer, ThreadSanitizer for the threaded units, the records-against-the-
 # evaluators check, and with --mutations the mutation probes.
 #   run_tests.sh [--mutations]
@@ -59,6 +59,15 @@ for SAN in thread "address,undefined"; do
   san_clean "$OUT/frame_store_stress_$TAG.log" || { echo "FAIL  frame_store_stress_$TAG: sanitizer report"; FAILED=1; }
 done
 
+step build_prefetch      g++ "${W[@]}" -O2 -pthread "-I$CC_DIR" "$CC_DIR/tests/nav_prefetch_test.cpp" -o "$OUT/nav_prefetch_test"
+step nav_prefetch        "$OUT/nav_prefetch_test"
+for SAN in thread "address,undefined"; do
+  TAG=${SAN%%,*}
+  step build_prefetch_$TAG g++ "${W[@]}" -O1 -g -fsanitize=$SAN -fno-omit-frame-pointer -pthread "-I$CC_DIR" "$CC_DIR/tests/nav_prefetch_test.cpp" -o "$OUT/nav_prefetch_test_$TAG"
+  step nav_prefetch_$TAG   env TSAN_OPTIONS=halt_on_error=0 "$OUT/nav_prefetch_test_$TAG"
+  san_clean "$OUT/nav_prefetch_$TAG.log" || { echo "FAIL  nav_prefetch_$TAG: sanitizer report"; FAILED=1; }
+done
+
 step build_ego           g++ "${W[@]}" -O2 "-I$CC_DIR" "-I$INC" "$CC_DIR/tests/ego_motion_test.cpp" -o "$OUT/ego_motion_test"
 step ego_motion          "$OUT/ego_motion_test"
 step build_route         g++ "${W[@]}" -O2 -pthread "-I$CC_DIR" "-I$INC" "$CC_DIR/tests/route_listener_test.cpp" "$CC_DIR/route_listener.cpp" -o "$OUT/route_listener_test"
@@ -76,6 +85,10 @@ if [ -f "$UPN/navigation_rasterizer.cpp" ] && [ -f "${NAV_MAP:-/nonexistent}" ] 
   step build_upstream_raster g++ -std=c++17 -O3 -DNDEBUG -c "$UPN/navigation_rasterizer.cpp" -o "$OUT/upstream_rasterizer.o"
   step build_nav           g++ "${W[@]}" -O2 -pthread "${NAV[@]}" "$CC_DIR/navigation_input.cpp" -o "$OUT/navigation_input_test"
   step navigation_input    "$OUT/navigation_input_test" "$NAV_MAP" "$NAV_ROUTE"
+  # One render at a time (the nav prefetch's thread and a render on the chain).
+  step build_nav_thread    g++ "${W[@]}" -O1 -g -fsanitize=thread -pthread "${NAV[@]}" "$CC_DIR/navigation_input.cpp" -o "$OUT/navigation_input_test_thread"
+  step navigation_input_thread env TSAN_OPTIONS=halt_on_error=0 "$OUT/navigation_input_test_thread" "$NAV_MAP" "$NAV_ROUTE"
+  san_clean "$OUT/navigation_input_thread.log" || { echo "FAIL  navigation_input_thread: sanitizer report"; FAILED=1; }
 else
   echo "SKIP  navigation_input (needs $UPN/navigation_rasterizer.cpp, NAV_MAP and NAV_ROUTE)"
 fi
@@ -83,6 +96,7 @@ fi
 if [ "${1:-}" = "--mutations" ]; then
   step logic_mutations       "$PYTHON" "$CC_DIR/tests/agent_logic_mutations.py"
   step frame_store_mutations "$PYTHON" "$CC_DIR/tests/frame_store_mutations.py"
+  step nav_prefetch_mutations "$PYTHON" "$CC_DIR/tests/nav_prefetch_mutations.py"
   if [ $NAV_OK -eq 1 ]; then
     # The coverage check must see a wrong pixel mapping: a mirrored lateral axis and swapped axes.
     i=0

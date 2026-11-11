@@ -38,13 +38,38 @@ void NavigationInput::Stop() {
   started_ = false;
 }
 
+std::string NavigationInput::RouteIdentity(const RouteState& rs) {
+  if (!rs.has_announcement) return "none";
+  if (rs.newest.corridorPoints == 0) return "withdrawn";
+  const std::string file(rs.newest.routeFile, ::strnlen(rs.newest.routeFile, sizeof(rs.newest.routeFile)));
+  const std::string sha(rs.newest.routeSha256, sizeof(rs.newest.routeSha256));
+  return "route " + file + " sha256 " + sha;
+}
+
+void NavigationInput::ObserveAnnouncement(const RouteState& rs, RouteObservation* route) {
+  route->has_announcement = rs.has_announcement;
+  route->corridor_points = rs.has_announcement ? rs.newest.corridorPoints : 0;
+  route->issue_time = rs.has_announcement ? rs.newest.issueTime : 0.0;
+}
+
 bool NavigationInput::Render(const Pose& vehicle_pose_ue, const double origin_ue[3], Step* st, std::string* error) {
+  std::lock_guard<std::mutex> lock(render_mu_);
+  return RenderLocked(vehicle_pose_ue, origin_ue, st, &map_context_, &route_mask_f32_, error);
+}
+
+bool NavigationInput::RenderInto(const Pose& vehicle_pose_ue, const double origin_ue[3], Step* st,
+                                 std::vector<float>* map_context, std::vector<float>* route_mask, std::string* error) {
+  std::lock_guard<std::mutex> lock(render_mu_);
+  return RenderLocked(vehicle_pose_ue, origin_ue, st, map_context, route_mask, error);
+}
+
+bool NavigationInput::RenderLocked(const Pose& vehicle_pose_ue, const double origin_ue[3], Step* st,
+                                   std::vector<float>* map_context, std::vector<float>* route_mask, std::string* error) {
   *st = Step{};
   const RouteState rs = listener_.Newest();
-  st->route.has_announcement = rs.has_announcement;
+  st->route_identity = RouteIdentity(rs);
+  ObserveAnnouncement(rs, &st->route);
   if (rs.has_announcement) {
-    st->route.corridor_points = rs.newest.corridorPoints;
-    st->route.issue_time = rs.newest.issueTime;
     const std::string file(rs.newest.routeFile, ::strnlen(rs.newest.routeFile, sizeof(rs.newest.routeFile)));
     const std::string sha(rs.newest.routeSha256, sizeof(rs.newest.routeSha256));
     // An announcement without a corridor withdraws the route (the route_empty fault).
@@ -84,10 +109,10 @@ bool NavigationInput::Render(const Pose& vehicle_pose_ue, const double origin_ue
   st->route_in_raster = route_ok_;
   st->pose = RefPoseInMap(vehicle_pose_ue, origin_ue);
   const auto t0 = std::chrono::steady_clock::now();
-  if (!raster_.Render(st->pose.x, st->pose.y, st->pose.yaw, &map_context_, &route_u8_, error)) return false;
+  if (!raster_.Render(st->pose.x, st->pose.y, st->pose.yaw, map_context, &route_u8_, error)) return false;
   st->render_ms = std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - t0).count();
-  route_mask_f32_.resize(route_u8_.size());
-  for (std::size_t i = 0; i < route_u8_.size(); ++i) route_mask_f32_[i] = static_cast<float>(route_u8_[i]);
+  route_mask->resize(route_u8_.size());
+  for (std::size_t i = 0; i < route_u8_.size(); ++i) (*route_mask)[i] = static_cast<float>(route_u8_[i]);
   const std::size_t plane = static_cast<std::size_t>(nav::kHeightPx) * static_cast<std::size_t>(nav::kWidthPx);
   const std::size_t corridor = static_cast<std::size_t>(nav::RouteChannel::kSelectedCorridor) * plane;
   std::uint32_t cells = 0;
