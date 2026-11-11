@@ -11,12 +11,23 @@ Four campaigns, one per group of runs the cases name:
 * degraded: the fault runs; no campaign case, but its runs are used by
   evaluate_run.py.
 
+A campaign judges every run it holds. Where a case is aggregated from the
+verdicts of single runs (VC-DRIVING-020, -021, -022, -035), a role passes only
+if each of its runs passes, and measured.runs lists every run. VC-DRIVING-018
+and -019 compare one run of each role; a role with more than one run makes
+them inconclusive.
+
 The difference metric of REQ-018 is not fixed by the requirement. This script
 fixes it and reports every number so a reviewer can re-judge: for each signal
 (plan acceleration, plan curvature, command acceleration, command steering)
 the largest absolute difference over the plans/commands present in both runs,
-compared signal by signal with the reference-versus-reference difference. The
-same metric is applied to the late run and to the stopped run.
+and the number of plans and of commands present in one run of the pair only,
+each compared signal by signal with the reference-versus-reference difference.
+The same metric is applied to the late run and to the stopped run. A signal
+that cannot be compared because a run holds no record of it (no out.plan or
+no out.command record), or because the reference runs share no plan or
+command, leaves the case inconclusive; a difference measured on another
+signal still fails it.
 
 Usage:
     python evaluate_campaign.py <runs_root> [--out campaign_verdicts.json]
@@ -43,6 +54,15 @@ REQUIRED_ROLES = {
 
 SIGNALS = ("plan_acceleration", "plan_curvature", "command_acceleration",
            "command_steering")
+# A plan (command) present in one run of a pair and not in the other is a
+# difference too; REQ-018 compares the plans and commands of the runs, not only
+# those they share.
+PRESENCE = ("plans_in_one_run_only", "commands_in_one_run_only")
+RECORDS = {"plans": "score/drivingAgent.jsonl:out.plan",
+           "commands": "score/drivingAgent.jsonl:out.command"}
+KIND = {"plan_acceleration": "plans", "plan_curvature": "plans",
+        "plans_in_one_run_only": "plans", "command_acceleration": "commands",
+        "command_steering": "commands", "commands_in_one_run_only": "commands"}
 
 SPREAD_TOL = 1e-9          # a reference pair on identical inputs must agree to this
 P99_SPREAD_TOL = 0.010     # REQ-019
@@ -62,8 +82,45 @@ def load_runs(root: Path) -> dict[str, list[Run]]:
     return groups
 
 
-def by_role(runs: list[Run]) -> dict[str, Run]:
-    return {r.role() or f"unnamed{i}": r for i, r in enumerate(runs)}
+def by_role(runs: list[Run]) -> dict[str, list[Run]]:
+    """Every run of each role, in directory order.
+
+    A role is never reduced to one of its runs: two runs with the same runRole
+    are both judged (aggregate) or make the case inconclusive (vc018, vc019).
+    """
+    out: dict[str, list[Run]] = {}
+    for i, r in enumerate(runs):
+        out.setdefault(r.role() or f"unnamed{i}", []).append(r)
+    return out
+
+
+def run_entry(run: Run, res: Result | None = None) -> dict:
+    """One run as measured.runs lists it, with its outcome when it was judged."""
+    entry: dict = {"path": str(run.root), "run_record_identity": run.identity()}
+    if res is not None:
+        entry.update({"outcome": res.outcome, "measured": res.measured,
+                      "missing": res.missing, "notes": res.notes})
+    return entry
+
+
+def one_run_per_role(vc: str, runs: list[Run], need: tuple[str, ...]) -> dict[str, Run] | Result:
+    """The run of each role a case compares, or the inconclusive result when a
+    role has no run or more than one: the case compares one run of each role
+    and cannot tell which of two runs with the same role is the campaign's."""
+    r = by_role(runs)
+    missing = [x for x in need if x not in r]
+    if missing:
+        return cases.inconclusive(vc, f"runs: {', '.join(missing)}", "C4",
+                                  "the campaign has no run with these roles")
+    doubled = [x for x in need if len(r[x]) > 1]
+    if doubled:
+        return cases.inconclusive(
+            vc, f"one run of role {doubled[0]}", "C4",
+            "the campaign holds more than one run of role "
+            + ", ".join(f"{x} ({len(r[x])})" for x in doubled)
+            + "; the case compares one run of each role",
+            {"runs": {x: [run_entry(y) for y in r[x]] for x in doubled}})
+    return {x: r[x][0] for x in need}
 
 
 # ------------------------------------------------------------------ metric
@@ -92,15 +149,22 @@ def _command_key(reference: str, fallback: float) -> str:
 
 
 def command_series(run: Run) -> dict[str, dict]:
+    """The run's commands by the plan frame they name; empty when the run holds
+    no out.command record (the run reader reports that as missing evidence)."""
+    try:
+        cmds = run.commands()
+    except MissingEvidence:
+        cmds = []
     out = {}
-    for c in run.commands():
+    for c in cmds:
         key = _command_key(c["reference"] or "", c["production_mono"] or 0.0)
         out[key] = {"acceleration": c["accel"], "steering": c["steer"]}
     return out
 
 
 def diff_runs(a: Run, b: Run) -> dict:
-    """Largest absolute difference per signal between two runs."""
+    """Largest absolute difference per signal between two runs, over the plans
+    (commands) both hold, and the number of plans (commands) only one holds."""
     pa, pb = plan_series(a), plan_series(b)
     ca, cb = command_series(a), command_series(b)
     common = sorted(set(pa) & set(pb))
@@ -109,21 +173,23 @@ def diff_runs(a: Run, b: Run) -> dict:
                  "commands_only_in_a": len(set(ca) - set(cb)),
                  "commands_only_in_b": len(set(cb) - set(ca)),
                  "plans_compared": len(common)}
-    if not common:
-        res.update({s: None for s in SIGNALS})
-        return res
-    da = dc = 0.0
-    for f in common:
-        x, y = pa[f], pb[f]
-        if x["acceleration"].size != y["acceleration"].size:
-            res["size_mismatch"] = f
-            da = dc = float("inf")
-            break
-        da = max(da, float(np.max(np.abs(x["acceleration"] - y["acceleration"]))))
-        dc = max(dc, float(np.max(np.abs(x["curvature"] - y["curvature"]))))
-    res["plan_acceleration"] = da
-    res["plan_curvature"] = dc
+    res["plans_in_one_run_only"] = res["frames_only_in_a"] + res["frames_only_in_b"]
+    res["commands_in_one_run_only"] = res["commands_only_in_a"] + res["commands_only_in_b"]
+    res["plan_acceleration"] = res["plan_curvature"] = None
+    if common:
+        da = dc = 0.0
+        for f in common:
+            x, y = pa[f], pb[f]
+            if x["acceleration"].size != y["acceleration"].size:
+                res["size_mismatch"] = f
+                da = dc = float("inf")
+                break
+            da = max(da, float(np.max(np.abs(x["acceleration"] - y["acceleration"]))))
+            dc = max(dc, float(np.max(np.abs(x["curvature"] - y["curvature"]))))
+        res["plan_acceleration"] = da
+        res["plan_curvature"] = dc
     shared = sorted(set(ca) & set(cb))
+    res["commands_compared"] = len(shared)
     if shared:
         res["command_acceleration"] = max(
             abs((ca[r]["acceleration"] or 0.0) - (cb[r]["acceleration"] or 0.0))
@@ -157,53 +223,77 @@ def planning_times(run: Run) -> list[float]:
 # ------------------------------------------------------------------ cases
 def vc018(runs: list[Run]) -> Result:
     vc = "VC-DRIVING-018"
-    r = by_role(runs)
-    need = REQUIRED_ROLES["obs-independence"]
-    missing = [x for x in need if x not in r]
-    if missing:
-        return cases.inconclusive(vc, f"runs: {', '.join(missing)}", "C4",
-                                  "the campaign has no run with these roles")
+    r = one_run_per_role(vc, runs, REQUIRED_ROLES["obs-independence"])
+    if isinstance(r, Result):
+        return r
     ref1, ref2, late, stopped = (r["ref1"], r["ref2"], r["late"], r["stopped"])
     digests = {x.record.get("inputReplay", {}).get("digest")
                for x in (ref1, ref2, late, stopped)}
     if len(digests) != 1 or None in digests:
         return cases.inconclusive(vc, "run_record.inputReplay.digest", "C4",
                                   "the four runs do not name the same replayed inputs")
+    pair = {"ref1": ref1, "ref2": ref2, "late": late, "stopped": stopped}
+    held = {x: {"plans": len(plan_series(run)), "commands": len(command_series(run))}
+            for x, run in pair.items()}
     floor = diff_runs(ref2, ref1)
     dl = diff_runs(late, ref1)
     ds = diff_runs(stopped, ref1)
-    over = {}
-    for sig in SIGNALS:
-        base = floor.get(sig)
-        if base is None or dl.get(sig) is None or ds.get(sig) is None:
-            over[sig] = "not comparable"
+    over: dict = {}
+    not_comparable: dict = {}
+    for sig in PRESENCE + SIGNALS:
+        kind = KIND[sig]
+        lacking = [x for x in pair if not held[x][kind]]
+        if "ref1" in lacking or "ref2" in lacking:
+            not_comparable[sig] = f"no {RECORDS[kind]} record in run {', '.join(lacking)}"
             continue
-        if dl[sig] > base + SPREAD_TOL or ds[sig] > base + SPREAD_TOL:
-            over[sig] = {"reference_spread": base, "late": dl[sig], "stopped": ds[sig]}
+        base = floor[sig]
+        if base is None:
+            not_comparable[sig] = f"the reference runs share no {kind[:-1]}"
+            continue
+        tol = 0 if sig in PRESENCE else SPREAD_TOL
+        got, why = {}, []
+        for x, d in (("late", dl), ("stopped", ds)):
+            if x in lacking:
+                why.append(f"no {RECORDS[kind]} record in run {x}")
+            elif d[sig] is None:
+                why.append(f"run {x} shares no {kind[:-1]} with ref1")
+            else:
+                got[x] = d[sig]
+        if any(v > base + tol for v in got.values()):
+            over[sig] = {"reference_spread": base, **got}
+        if why:
+            not_comparable[sig] = "; ".join(why)
     measured = {"reference_spread": floor, "late_vs_reference": dl,
                 "stopped_vs_reference": ds, "over_the_spread": over,
+                "not_comparable": not_comparable, "records_held": held,
                 "replay_digest": digests.pop()}
-    th = {"metric": "max abs difference per signal, signal by signal",
+    th = {"metric": "max abs difference per signal over the plans and commands both runs "
+                    "hold, and the number of plans and of commands only one of them holds",
           "allowed": "no more than the reference-versus-reference difference",
           "tolerance": SPREAD_TOL}
     evid = [ev(p["file"], p["rec"]) for p in (ref1.plans(required=False)[:1]
                                               + late.plans(required=False)[:1])]
     if over:
         return cases.bad(vc, measured, th, evid,
-                         [f"{sig}: late {over[sig]['late'] if isinstance(over[sig], dict) else over[sig]}"
-                          for sig in over])
+                         [f"{sig}: " + ", ".join(f"{x} {v}" for x, v in o.items()
+                                                 if x != "reference_spread")
+                          + f", reference spread {o['reference_spread']}"
+                          for sig, o in over.items()])
+    if not_comparable:
+        sig, why = next(iter(not_comparable.items()))
+        return cases.inconclusive(vc, why, None,
+                                  f"{sig} cannot be compared, so the runs' difference on it "
+                                  "is not measured", measured)
     return cases.ok(vc, measured, th, evid,
                     ["the metric is this evaluator's; REQ-018 does not fix one"])
 
 
 def vc019(runs: list[Run]) -> Result:
     vc = "VC-DRIVING-019"
-    r = by_role(runs)
     need = REQUIRED_ROLES["obs-independence"]
-    missing = [x for x in need if x not in r]
-    if missing:
-        return cases.inconclusive(vc, f"runs: {', '.join(missing)}", "C4",
-                                  "the campaign has no run with these roles")
+    r = one_run_per_role(vc, runs, need)
+    if isinstance(r, Result):
+        return r
     p99, counts = {}, {}
     for role in need:
         lat = planning_times(r[role])
@@ -226,23 +316,25 @@ def vc019(runs: list[Run]) -> Result:
 
 
 def aggregate(vc: str, runs: list[Run], roles: tuple[str, ...]) -> Result:
+    """Judge every run of every role; a role passes only if each of its runs
+    passes, and measured.runs lists every run with its outcome."""
     r = by_role(runs)
     missing = [x for x in roles if x not in r]
     if missing:
         return cases.inconclusive(vc, f"runs: {', '.join(missing)}", "C4",
                                   "the campaign has no run with these roles")
-    outcomes = {}
-    for x in roles:
-        res = cases.evaluate_case(r[x], vc)
-        outcomes[x] = {"outcome": res.outcome, "measured": res.measured,
-                       "missing": res.missing, "notes": res.notes}
-    if any(o["outcome"] == FAIL for o in outcomes.values()):
+    outcomes = {x: [run_entry(run, cases.evaluate_case(run, vc)) for run in r[x]]
+                for x in roles}
+    judged = [(x, o) for x in roles for o in outcomes[x]]
+    failed = [(x, o) for x, o in judged if o["outcome"] == FAIL]
+    if failed:
         return cases.bad(vc, {"runs": outcomes}, {"all_runs_must_pass": True}, [],
-                         [f"{x} fails" for x in roles
-                          if outcomes[x]["outcome"] == FAIL])
-    if any(o["outcome"] != PASS for o in outcomes.values()):
-        first = next(x for x in roles if outcomes[x]["outcome"] != PASS)
-        return cases.inconclusive(vc, f"{first}: {outcomes[first]['missing']}",
+                         [f"{x} run {o['run_record_identity']} ({o['path']}) fails"
+                          for x, o in failed])
+    open_runs = [(x, o) for x, o in judged if o["outcome"] != PASS]
+    if open_runs:
+        x, o = open_runs[0]
+        return cases.inconclusive(vc, f"{x} run {o['run_record_identity']}: {o['missing']}",
                                   "C4", "a run of the campaign is inconclusive",
                                   {"runs": outcomes})
     return cases.ok(vc, {"runs": outcomes}, {"all_runs_must_pass": True}, [])

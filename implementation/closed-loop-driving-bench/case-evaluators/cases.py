@@ -532,6 +532,24 @@ CAUSE_TO_FAULT = {
 }
 
 
+def fault_in_family(observed: str | None, fam: tuple[str, ...]) -> bool:
+    """Does a fault named by a stop cause (CAUSE_TO_FAULT) belong to a case's
+    family of faults (FAULT_FAMILY)? A kPlanStale stop names both plan_stale
+    and plan_dropped, a kPlanInvalid stop both invalid plans."""
+    return observed in fam \
+        or (observed == "plan_stale_or_dropped" and bool(set(fam) & {"plan_stale", "plan_dropped"})) \
+        or (observed == "plan_invalid" and bool(set(fam) & {"plan_invalid_nan", "plan_invalid_63"}))
+
+
+def fault_causes(label: str) -> list[str]:
+    """The stop causes of a run's fault: those that route a run to the case of
+    that fault (gate() reads an unlabelled run's stop cause so). Empty when the
+    label is no fault of REQ-DRIVING-023 to -028."""
+    fams = [fam for vc, fam in FAULT_FAMILY.items() if label in fam]
+    return [c for c in CAUSES
+            if any(fault_in_family(CAUSE_TO_FAULT.get(c), fam) for fam in fams)]
+
+
 def gate(run: Run, vc: str) -> Result | None:
     """Is this case's fault the fault of this run?
 
@@ -556,9 +574,7 @@ def gate(run: Run, vc: str) -> Result | None:
         return inconclusive(vc, "run_record.scenarioVariant.fault", "C4",
                             "the run neither names its fault nor records a stop that "
                             "identifies it")
-    if observed in fam or (observed == "plan_stale_or_dropped"
-                           and set(fam) & {"plan_stale", "plan_dropped"})             or (observed == "plan_invalid"
-                and set(fam) & {"plan_invalid_nan", "plan_invalid_63"}):
+    if fault_in_family(observed, fam):
         return None
     return not_applicable(
         vc, f"the stop cause shows a {observed} condition; the case needs a run in which "
@@ -582,7 +598,10 @@ def vc001(run: Run) -> Result:
     names a step the engine did not condition predates ICD A26 (run N: frame
     113, the engine primed at 179); it is flagged, and the end of priming is
     the engine's first conditioned primed step at or after it (C2, A26). The
-    run ends at the agent's last step, its last C2 record.
+    run ends at the world's last tick (C1), or at the agent's last step, its
+    last C2 record, when that is later: an agent that stops planning while the
+    world ticks on leaves the steps after it without a plan. A run without a
+    world record ends at the agent's last step, with a note.
     """
     vc = "VC-DRIVING-001"
     plans = run.plans()
@@ -603,7 +622,17 @@ def vc001(run: Run) -> Result:
                                 {"priming_record_conflict": conflict})
         prime = engine
     stop = run.stop_begin()
-    end = (int(round(stop["t_sim"] / STEP_S)) - 1) if stop else steps[-1]["frame"]
+    agent_last = steps[-1]["frame"]
+    world_last = None
+    if stop:
+        end = int(round(stop["t_sim"] / STEP_S)) - 1
+    else:
+        try:
+            ticks = run.world_by_frame()
+        except MissingEvidence:
+            ticks = {}
+        world_last = max(ticks) if ticks else None
+        end = agent_last if world_last is None else max(world_last, agent_last)
     frames = [plan_frame(p) for p in plans]
     counts = Counter(f for f in frames if f is not None)
     window = range(prime, end + 1)
@@ -630,11 +659,19 @@ def vc001(run: Run) -> Result:
                 "longest_run_without_a_new_plan": longest,
                 "failing_pairs": pairs[:10],
                 "doubled_steps": doubled[:10], "steps_with_wrong_capture_time": len(bad_time),
-                "priming_record_conflict": conflict}
+                "priming_record_conflict": conflict,
+                "agents_last_step": agent_last, "world_last_tick": world_last}
     th = {"consecutive_steps_without_a_new_plan_max": 1, "step_s": STEP_S}
     flag = ([f"flagged: priming.complete at frame {recorded} names a step the engine did "
              f"not condition (before ICD A26); the end of priming is the engine's first "
              f"conditioned primed step, {prime}"] if conflict else [])
+    if not stop and world_last is None:
+        flag.append(f"the run has no world record (simulator/world.jsonl): the window ends "
+                    f"at the agent's last C2 record, frame {agent_last}, and steps after "
+                    f"the agent stopped cannot be judged")
+    elif not stop and world_last > agent_last:
+        flag.append(f"the world ticked to frame {world_last}, {world_last - agent_last} "
+                    f"steps after the agent's last C2 record (frame {agent_last})")
     if without and not pairs:
         flag.append(f"{len(without)} steps without their own plan, none next to another "
                     f"({measured['merged_frames_without_a_plan']} merged by FEO, ICD A23)")
@@ -758,6 +795,10 @@ def vc003(run: Run) -> Result:
     checkpoint; A11 adds the front high-resolution size,
     cameras[front].front_hi_res. Runs before those amendments carry neither,
     and the case stays inconclusive rather than passing.
+
+    A plan step whose record lacks one of the six cameras (the slots of ICD
+    A25, see cameras_missing) fails. Camera names that are no slot leave the
+    order unjudged, inconclusive, unless the step lists fewer than six.
     """
     vc = "VC-DRIVING-003"
     stub = stub_engine_note(run)
@@ -778,7 +819,11 @@ def vc003(run: Run) -> Result:
         aliased = aliased or names != raw
         problems = []
         if sorted(map(str, names)) != sorted(CAMERAS):
-            unknown_names.append({"frame": step["frame"], "names": raw})
+            lack = cameras_missing(cams)
+            if lack:
+                problems.append(lack["text"])
+            else:
+                unknown_names.append({"frame": step["frame"], "names": raw})
         elif names != CAMERAS:
             problems.append(f"order {names}")
         for c in cams:
@@ -827,9 +872,37 @@ def vc003(run: Run) -> Result:
                        "are only in the sampled bundles"])
 
 
+def cameras_missing(cams: list[dict]) -> dict | None:
+    """The cameras of REQ-DRIVING-003 a step's C2 record does not hold.
+
+    The six cameras are the slots of ICD A25 (CAMERAS); a camera named
+    cam_<slot> is that slot (records before A25). A slot that no camera of the
+    step is named by is missing: the plan was given no current image of it,
+    none of its seven earlier images and no capture record of them. A record
+    that names a camera which is no slot cannot show which slot is missing; it
+    lacks a camera only when it lists fewer than six. Returns None when nothing
+    is shown missing, else {"missing": slot names (empty when the names are
+    unknown), "count", "text"}.
+    """
+    names = [CAMERA_ALIASES.get(n, n) if isinstance(n, str) else n
+             for n in (c.get("name") for c in cams)]
+    if all(n in CAMERAS for n in names):
+        missing = [s for s in CAMERAS if s not in names]
+        if not missing:
+            return None
+        return {"missing": missing, "count": len(missing),
+                "text": f"no {', '.join(missing)} camera"}
+    if len(names) < len(CAMERAS):
+        return {"missing": [], "count": len(CAMERAS) - len(names),
+                "text": f"{len(names)} cameras, not six"}
+    return None
+
+
 @case("VC-DRIVING-004", ("closedLoopRoute",), needs=("C2",))
 def vc004(run: Run) -> Result:
-    """Seven earlier images per camera at 0.5 s to 3.5 s before the step (REQ-004)."""
+    """Seven earlier images per camera at 0.5 s to 3.5 s before the step (REQ-004).
+
+    A camera the step's record lacks has none of its seven (cameras_missing)."""
     vc = "VC-DRIVING-004"
     recs = plan_steps(run)
     offs = THRESHOLDS["camera_history_offsets_s"]
@@ -837,6 +910,9 @@ def vc004(run: Run) -> Result:
     evid = []
     for step in recs:
         problems = []
+        lack = cameras_missing(step["cameras"])
+        if lack:
+            problems.append(f"{lack['text']}: 0 of 7 history images for it")
         for c in step["cameras"]:
             hist = c.get("history") or []
             if len(hist) != 7:
@@ -1350,15 +1426,19 @@ def vc010(run: Run) -> Result:
     the (camera, frame) pair; the world tick proves the frame exists). The ego
     rows carry no id, so their identity is positional: row k is frame
     step-64+k (agent DESIGN.md, "Ego-motion history"). That convention is
-    stated in OBSERVABLES.md.
+    stated in OBSERVABLES.md. A camera the step's record lacks
+    (cameras_missing) gave the checkpoint images with no capture record.
     """
     vc = "VC-DRIVING-010"
     steps = plan_steps(run)
     wb = run.world_by_frame()
-    unknown, dups = [], []
+    unknown, dups, lacking = [], [], []
     evid = []
     for step in steps:
         f = step["frame"]
+        lack = cameras_missing(step["cameras"])
+        if lack:
+            lacking.append({"frame": f, "problem": lack["text"]})
         for c in step["cameras"]:
             refs = c.get("history") or []
             if len(refs) != len(set(refs)):
@@ -1378,10 +1458,15 @@ def vc010(run: Run) -> Result:
             evid.append(ev(step["file"], step["rec"]))
     measured = {"records": len(steps),
                 "unknown_capture_records": unknown[:5],
-                "duplicated_in_one_history": dups[:5]}
-    th = {"duplicates_per_history": 0, "ego_row_identity": "positional frame"}
-    if unknown or dups:
+                "duplicated_in_one_history": dups[:5],
+                "steps_without_the_six_cameras": lacking[:5]}
+    th = {"duplicates_per_history": 0, "ego_row_identity": "positional frame",
+          "cameras": CAMERAS}
+    if unknown or dups or lacking:
         notes = []
+        if lacking:
+            notes.append(f"{len(lacking)} plan steps do not hold the six cameras: the "
+                         f"images given for a missing one have no capture record of the run")
         if unknown:
             notes.append("history elements with no capture record of the run")
         if dups:
@@ -1635,7 +1720,11 @@ def vc013(run: Run) -> Result:
 def vc014(run: Run) -> Result:
     """Every command at the actuation matches its plan in the S-CORE records, and
     after the communication of the driving system is stopped no command computed
-    from a plan reaches the actuation (REQ-014)."""
+    from a plan reaches the actuation (REQ-014).
+
+    An applied actuation state that names no plan is a command matched to no
+    plan, before the stop and after it. Only the adapter's own stop
+    (stopInForce) names none by design (actuation-adapter/adapter_core.cpp)."""
     vc = "VC-DRIVING-014"
     g = gate(run, vc)
     if g is not None:
@@ -1646,9 +1735,13 @@ def vc014(run: Run) -> Result:
     matched, unmatched = 0, []
     evid = []
     for a in run.actuations():
-        if not a["applied"] or not a["reference"]:
+        if not a["applied"]:
             continue
         ref = a["reference"]
+        if not ref:
+            if not a["stop"]:
+                unmatched.append({"t": a["actuation_s"], "planReference": ref})
+            continue
         hop = [c for c in adapter_cmds if c["reference"] == ref]
         if ref in agent_cmds and ref in plans and hop:
             matched += 1
@@ -1853,7 +1946,11 @@ def vc017(run: Run) -> Result:
         age = (h["step_capture_ms"] - h["last_plan_capture_ms"]) / 1000.0
         if age < -1e-9:
             field_bad.append({"t": h["t_real"] - t0, "problem": f"negative plan age {age}"})
-        if h["mode"] in ("kStopResponse", "kStandstill", "2", "3") and h["cause"] in (None, "kNone", 0):
+        # The observer records the mode and the cause as their u32 values (ICD
+        # section 3, fields 30-31; ivi-observer StateRecord.java:138-141 writes
+        # the name only as mode_name and cause_name); a name is read as its value.
+        if means_stopped(h["mode"]) and (h["cause"] is None
+                                         or enum_name(h["cause"], CAUSES) == "kNone"):
             field_bad.append({"t": h["t_real"] - t0, "problem": "stopped without a cause"})
     measured = {"publications": len(win), "worst_gap_s": worst_gap,
                 "gaps_over_200ms": gap_bad[:5], "window_s": THRESHOLDS["window_s"],
@@ -1922,6 +2019,11 @@ def vc021(run: Run) -> Result:
     if run.actuations() and all(a["actuation_s"] is None for a in run.actuations()):
         raise MissingEvidence("out.actuation_state.clocks.actuationTime", "C9",
                               "actuation records carry no simulation-time stamp")
+    if stand is None:
+        # the window ends at standstill; a run that never reaches it does not
+        # show the whole window (VC-DRIVING-020 and -022 read it the same way)
+        return inconclusive(vc, "stop_response.standstill", None,
+                            "the stop never reached standstill in this run")
     T0 = begin["t_sim"]
     prev = [a for a in run.actuations()
             if a["actuation_s"] is not None and a["actuation_s"] < T0 - 1e-9
@@ -1930,7 +2032,7 @@ def vc021(run: Run) -> Result:
         return inconclusive(vc, "last valid-plan actuation before the stop", None,
                             "no actuation from a valid plan precedes the stop")
     held = prev[-1]["steer"]
-    acts = actuations_between(run, T0, stand["t_sim"] if stand else None)
+    acts = actuations_between(run, T0, stand["t_sim"])
     if not acts:
         if run.actuations() and all(a["actuation_s"] is None for a in run.actuations()):
             raise MissingEvidence("out.actuation_state.clocks.actuationTime", "C9",
@@ -2297,6 +2399,13 @@ def vc029(run: Run) -> Result:
     Both ends are on the S-CORE host (ICD v2 answer to S5): the stop begin's
     envelope t_mono_ns and the publisher's HEALTH `publish_mono_s/_ns` in
     score/statePublisher.jsonl. The guest's receipt time is not used.
+
+    "The cause of that run": a run that names its fault (scenarioVariant.fault,
+    ICD C4) calls for a cause of that fault, the causes that route a run to the
+    fault's case (fault_causes, as gate() routes by the stop cause); the stop
+    must begin with one of them and the publication name the stop's cause. A
+    run that names no fault is judged against its own stop cause; a run whose
+    fault is none of REQ-023 to REQ-028 is inconclusive.
     """
     vc = "VC-DRIVING-029"
     begin = run.stop_begin()
@@ -2304,10 +2413,31 @@ def vc029(run: Run) -> Result:
         return not_applicable(vc, "this run has no stop response; REQ-029 applies to the "
                                   "stopped runs of REQ-023 to REQ-028")
     cause = enum_name(begin["cause"], CAUSES)
+    label = run.variant.get("fault")
+    if isinstance(label, str) and label not in ("", "none"):
+        expected: list = fault_causes(label)
+        source = f"scenarioVariant.fault {label!r}"
+    else:
+        expected = [cause]
+        source = "the run's own stop cause (the run names no fault)"
     hs = run.health_side()
     if not hs:
         return inconclusive(vc, "score/statePublisher.jsonl:out.health", "C5",
                             "the publisher's own health records are absent")
+    if not expected:
+        return inconclusive(vc, "run_record.scenarioVariant.fault", "C4",
+                            f"the run's fault {label!r} is none of REQ-DRIVING-023 to -028, "
+                            "so the cause the run calls for is not known",
+                            {"cause": cause, "fault": label})
+    named = {"expected_causes": expected, "expected_from": source}
+    if cause not in expected:
+        return bad(vc, {"stop_begin_mono": begin["t_mono"], "cause": cause, **named,
+                        "health_publications": len(hs)},
+                   {"stop_publication_latency_s": THRESHOLDS["stop_publication_latency_s"],
+                    "cause_of_the_run": expected},
+                   [ev(begin["file"], begin["rec"])],
+                   [f"the stop began with cause {cause}, which is no cause of this run's "
+                    f"fault {label} ({', '.join(str(c) for c in expected)})"])
     first = None
     for h in hs:
         if h["publish_mono"] is None:
@@ -2317,7 +2447,7 @@ def vc029(run: Run) -> Result:
             first = h
             break
     if first is None:
-        return bad(vc, {"stop_begin_mono": begin["t_mono"], "cause": cause,
+        return bad(vc, {"stop_begin_mono": begin["t_mono"], "cause": cause, **named,
                         "health_publications": len(hs)},
                    {"stop_publication_latency_s":
                     THRESHOLDS["stop_publication_latency_s"]},
@@ -2331,10 +2461,10 @@ def vc029(run: Run) -> Result:
     measured = {"clock": "monotonic (S-CORE host)",
                 "stop_begin_mono": begin["t_mono"],
                 "stop_publication_mono": first["publish_mono"],
-                "latency_s": lat, "cause": cause, "publications_after": len(later),
+                "latency_s": lat, "cause": cause, **named, "publications_after": len(later),
                 "later_publications_not_stopped": not_stopped[:5]}
     th = {"stop_publication_latency_s": THRESHOLDS["stop_publication_latency_s"],
-          "clock": "monotonic"}
+          "clock": "monotonic", "cause_of_the_run": expected}
     evid = [ev(begin["file"], begin["rec"]), ev(first["file"], first["rec"])]
     if lat > THRESHOLDS["stop_publication_latency_s"] + 1e-9:
         return bad(vc, measured, th, evid,
@@ -2365,8 +2495,10 @@ def vc030(run: Run) -> Result:
     for step in steps:
         for c in step["cameras"]:
             ct = c.get("capture_sim_ms")
-            if c.get("status") == "missing" or (ct is None and c.get("image_frame") is None):
-                # no image this step (agent/cc/agent_ffi.cpp:1031-1032): nothing to mark
+            if c.get("status") == "missing":
+                # no image this step: the agent writes the slot with status
+                # "missing" and null stamps (ICD A28; agent/cc/agent_ffi.cpp:552,
+                # 1039-1044). Any other slot holds an image, which needs its stamp.
                 skipped_slots += 1
                 continue
             if ct is None:
@@ -2401,6 +2533,13 @@ def vc030(run: Run) -> Result:
         return bad(vc, measured, th, evid,
                    [f"{len(problems)} stamps are not a simulation-time capture time, "
                     f"first {problems[0]}"])
+    if measured["images"] == 0:
+        # "every camera image ... carries a capture time" is not shown by a
+        # record that holds no image
+        return inconclusive(vc, "score/checkpointInputs.jsonl:cameras (an image)", None,
+                            f"no camera image in the records: {len(steps)} steps, "
+                            f"{skipped_slots} camera slots, each without an image",
+                            measured)
     return ok(vc, measured, th, evid)
 
 
@@ -2679,13 +2818,30 @@ def vc034(run: Run) -> Result:
     return ok(vc, measured, th, evid)
 
 
+# REQ-DRIVING-035 names two starts, and the health names the condition of each
+# (ICD section 3, HEALTH field 43 refusal_reason: "mismatch", "no_pin"; A5). A
+# checkpoint file that differs from the named one in one byte (checkpointCase
+# "mismatch") is refused with "mismatch"; a configuration that names no
+# checkpoint SHA-256 ("unpinned") with "no_pin". These are the two starts the
+# case's run record names (ICD C4 scenarioVariant.checkpointCase) and the two
+# roles of the checkpoint-refusal campaign; the agent refuses them so
+# (agent/python/de4sdv_planner/__init__.py identity_check).
+REFUSAL_REASON = {"mismatch": "mismatch", "unpinned": "no_pin"}
+
+
 @case("VC-DRIVING-035", ("checkpointRefusal",), needs=("C6", "C1"))
 def vc035(run: Run) -> Result:
     """A checkpoint that differs in one byte, and a configuration that names no
     checkpoint, produce no plan, keep the vehicle at standstill and the health
-    names the mismatch (REQ-035)."""
+    names the mismatch (REQ-035).
+
+    The refusal reason judged is the one the run's start calls for
+    (REFUSAL_REASON); a health that names the other reason fails. A start that
+    is neither of the two, or a run without a world tick (the standstill is not
+    observed), is inconclusive."""
     vc = "VC-DRIVING-035"
-    case = (run.variant or {}).get("checkpointCase") or "pinned"
+    case = (run.variant or {}).get("checkpointCase")
+    want = REFUSAL_REASON.get(case) if isinstance(case, str) else None
     plans = run.plans(required=False)
     wb = run.world_by_frame()
     moving = [{"frame": f, "speed_kmh": float(wd_get(r, "velocity", "speed_mps")) * 3.6}
@@ -2694,24 +2850,42 @@ def vc035(run: Run) -> Result:
               > THRESHOLDS["standstill_kmh"]]
     hs = run.health_pubs()
     refusal = [h for h in hs if enum_name(h["cause"], CAUSES) == "kCheckpointRefused"]
-    detail_ok = [h for h in refusal
-                 if (h.get("refusal_reason") == "mismatch"
-                     and h.get("expected_sha") and h.get("actual_sha")
-                     and h["expected_sha"] != h["actual_sha"])
-                 or (h.get("refusal_reason") == "no_pin" and not h.get("expected_sha"))]
-    measured = {"checkpoint_case": case, "plans": len(plans),
+    detail_ok = [h for h in refusal if want is not None and h.get("refusal_reason") == want
+                 and ((want == "mismatch" and h.get("expected_sha") and h.get("actual_sha")
+                       and h["expected_sha"] != h["actual_sha"])
+                      or (want == "no_pin" and not h.get("expected_sha")))]
+    other = [h for h in refusal if want is not None and h.get("refusal_reason")
+             and h.get("refusal_reason") != want]
+    measured = {"checkpoint_case": case, "plans": len(plans), "world_ticks": len(wb),
                 "moving_ticks": moving[:5], "health_publications": len(hs),
                 "refusal_healths": len(refusal),
-                "refusals_naming_the_mismatch": len(detail_ok)}
-    th = {"plans_allowed": 0, "standstill_kmh": THRESHOLDS["standstill_kmh"]}
+                "refusals_naming_the_mismatch": len(detail_ok),
+                "refusals_naming_another_reason": sorted({h["refusal_reason"] for h in other})}
+    th = {"plans_allowed": 0, "standstill_kmh": THRESHOLDS["standstill_kmh"],
+          "refusal_reason": want}
     evid = [ev(h["file"], h["rec"]) for h in (refusal[:1] or hs[:1])]
     if plans:
         return bad(vc, measured, th, evid, ["a plan was produced from a refused checkpoint"])
     if moving:
         return bad(vc, measured, th, evid, ["the vehicle was not at standstill"])
+    if other:
+        return bad(vc, measured, th, evid,
+                   [f"the health names the refusal reason {other[0]['refusal_reason']!r}; "
+                    f"a start with checkpointCase {case!r} calls for {want!r}"])
+    if not wb:
+        return inconclusive(vc, "simulator/world.jsonl:tick", "C1",
+                            "no world tick is recorded, so the vehicle is not observed at "
+                            "standstill", measured)
     if not refusal:
         return inconclusive(vc, "health with cause kCheckpointRefused", "C6",
                             "the health never names the refusal", measured)
+    if want is None:
+        return inconclusive(vc, "run_record.scenarioVariant.checkpointCase", "C4",
+                            f"the run's checkpointCase is {case!r}, neither start of "
+                            "REQ-DRIVING-035 (mismatch: a checkpoint that differs in one "
+                            "byte; unpinned: a configuration that names no checkpoint "
+                            "SHA-256), so the refusal reason it calls for is not known",
+                            measured)
     if not detail_ok:
         return inconclusive(vc, "rx.health.checkpoint_expected_sha256/refusal_reason", "C6",
                             "the refusal is published without naming the mismatch", measured)

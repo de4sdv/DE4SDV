@@ -905,8 +905,7 @@ def test_r8_campaign_exits_non_zero_on_a_label_conflict(run_for, tmp_path, monke
 # Run N's priming.complete (frame 113) predates A26: its step is not
 # conditioned, and the engine's first conditioned primed step is 179, where
 # its plans begin. The end of priming is then taken from C2 (A26:
-# agent/cc/agent_ffi.cpp:1018, 1072-1073) and the record is flagged. The run
-# ends at the agent's last step (its last C2 record), not at the simulator's.
+# agent/cc/agent_ffi.cpp:1018, 1072-1073) and the record is flagged.
 def test_r11_vc001_flags_priming_complete_on_an_unconditioned_step(run_for, tmp_path):
     d = copied(run_for, tmp_path, "nominal", "r11-early-priming")
 
@@ -926,7 +925,12 @@ def test_r11_vc001_flags_priming_complete_on_an_unconditioned_step(run_for, tmp_
     assert res.measured["priming_record_conflict"]["frame"] == 50, res.measured
 
 
-def test_r11_vc001_run_end_is_the_agents_last_step(run_for, tmp_path):
+# Without a stop response the run ends at the world's last tick (C1), or at the
+# agent's last step (its last C2 record) when that is later. Here the simulator
+# ticks on for 20 steps after the agent's last record: those steps have no
+# plan, and the case fails. test_review_fixes_a.py holds the other ends of this
+# reading: the unedited run, a shorter world record and no world record.
+def test_r11_vc001_fails_when_the_world_ticks_on_after_the_agents_last_step(run_for, tmp_path):
     d = copied(run_for, tmp_path, "nominal", "r11-world-runs-on")
     p = d / "simulator/world.jsonl"
     world = records(p)
@@ -942,7 +946,7 @@ def test_r11_vc001_run_end_is_the_agents_last_step(run_for, tmp_path):
         extra.append(json.dumps(rec))
     strip.replace_bytes(p, p.read_bytes() + ("\n".join(extra) + "\n").encode())
     res = verdict(Run(d), "VC-DRIVING-001")
-    assert res.outcome == cases.PASS, (res.outcome, res.measured, res.notes)
+    assert res.outcome == cases.FAIL, (res.outcome, res.measured, res.notes)
 
 
 def test_r11_cases_reading_the_world_declare_c1():
