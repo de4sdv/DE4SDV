@@ -10,9 +10,11 @@ units through the SDV Gateway, shows mode, cause, speed,
 the plan's path and the two clocks, and logs every receipt as JSONL (ICD §6). No
 DE4SDV relay on the guest.
 
-**Status: design, artifacts and local checks; nothing run on a VM.** The
-orchestrator executes `RUNBOOK.md` on the aaos-build VM. Decision point
-2026-11-11 08:30 UTC.
+**Status: built and run on the bench, on a permissive IVI guest.** The path
+carried the operational state to the app in six recorded runs of 2026-11-10,
+and in the two closed-loop runs every field the app received equals the
+publisher's (`RUNBOOK.md`, gate G6). No run was made under enforcing; see
+`sepolicy/README.md`.
 
 Option A (S-CORE sends protobuf, the broker forwards bytes, the app decodes) is
 rejected as the primary design and kept in `fallback-a/`; it would need a model
@@ -69,12 +71,12 @@ compared **688 fields with no disagreement**; the contract test prints six `ok`
 lines and `ALL LOCAL CHECKS PASSED (contract + encoding; no AOSP, no runtime)`. It
 proves nothing about the broker, the gateway or the guest.
 
-## The decision the owner may still have to make
+## The fact option B depended on
 
-Option B depends on one unproven fact: that the shipped broker's REFLECTION
-translator fills a `repeated float` field and reads the AUTOSAR string framing. The
-documentation says the vocabulary exists; it does not show that code path. The probe
-reads it before the build, and gate G6 catches it field by field. If it fails, the
-first fallback is option A (`fallback-a/`), which changes the topic's type from
-`DrivingOperationalState` to a bytes carrier — a model amendment, not an
-implementer's choice — and the timebox no longer holds.
+Option B depended on one fact the documentation did not show: that the shipped
+broker's REFLECTION translator fills a `repeated float` field and reads the AUTOSAR
+string framing. The recorded runs settled it: gate G6 compared every field the app
+received with the publisher's record, arrays and strings included, and found no
+difference in the two closed-loop runs. Option A (`fallback-a/`) was therefore not
+needed. It would change the topic's type from `DrivingOperationalState` to a bytes
+carrier, which is a model amendment and not an implementer's choice.

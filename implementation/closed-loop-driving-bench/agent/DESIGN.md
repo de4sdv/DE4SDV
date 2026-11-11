@@ -282,6 +282,6 @@ dependencies: 1←0, 2←1, 3←2 (and 3←0 for the ego sample)
     - byte-identical rasters at the same pose and route;
     - `RenderInto` equal to `Render`;
     - `Render` and `RenderInto` from two threads (ThreadSanitizer build).
-  - Mutation probes: the render lock removed (ThreadSanitizer reports) and the identity without the SHA-256 (two checks fail) are killed.
+  - Two mutations were tried by hand when this change was made and are in no probe script: the render lock removed (ThreadSanitizer reports) and the identity without the SHA-256 (two checks fail).
   - With GCC 11, ThreadSanitizer does not intercept `pthread_cond_clockwait`, which `wait_for` uses, and reports every timed wait as a double lock (a three-line control shows it). The sanitizer build of `Take` therefore waits on a `system_clock` deadline; the shipped build waits on the monotonic clock.
 - **Not done.** Capturing the engine call as a CUDA graph (about 5.6 ms in an earlier probe) and overlapping conditioning with the previous chain change the engine and stay with their own decisions.

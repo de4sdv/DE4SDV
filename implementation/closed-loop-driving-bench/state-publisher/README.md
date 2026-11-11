@@ -254,39 +254,46 @@ vector (plus the field order, the types and the message size), for
 cross-checking a decoder written elsewhere. Non-finite floats and negative zero
 are the tokens `"NaN"`, `"Infinity"`, `"-Infinity"`, `"-0"`.
 
-## Untested here, must be confirmed on the first build
+## What the first build and the recorded runs confirmed, and what is still untested
 
 The shell is built here only against `tests/mock`, which follows the declared
 mw::com API of Communication v0.6.0; the shell was checked with `-fsyntax-only`
-against the real v0.6.0 headers. The S-CORE host's Bazel build is its first real
-compile and link, and nothing has run it yet. So the following assumptions are
-untested:
+against the real v0.6.0 headers. Its first real compile and link was the S-CORE
+host's Bazel build, and that binary ran in the recorded runs of the observation
+path on 2026-11-10 (`../ivi-observer/sepolicy/README.md` lists them). This
+section listed eight assumptions before those runs. Where they stand:
 
-1. **Proxy API.** `StartFindService(handler, specifier)` returns
-   `Result<FindServiceHandle>`, its handler takes
-   `(ServiceHandleContainer<HandleType>, FindServiceHandle)`, handles have no
-   default constructor (held in `std::optional`), and `Subscribe` /
-   `GetNewSamples` are members of the proxy's event, not of the proxy. These
-   follow the v0.6.0 headers; the asynchronous find has not run in the bench's
-   own code (gatewayd's `GenericProxy` uses it at the same release).
-2. `RuntimeConfiguration{std::string path}` and `InitializeRuntime`, and the
-   behaviour when the configuration is not passed (`--mw-com-config` absent).
-3. `PreSerializedData::data` is a byte array and `::size` a `std::size_t`
-   (copied from P4, so likely right).
-4. That `OfferService()` succeeds before the first `Tick`, and whether gatewayd
-   (one subscriber) needs the offer before it starts.
-5. Timing: whether a 2 ms poll inside a 100 ms budget holds on the G4 with the
-   plan, mode, sample and actuation callbacks in one thread. If it does not, the
-   library is unaffected — only the shell's loop changes.
+1. **Proxy API: confirmed by the build and the runs.**
+   `StartFindService(handler, specifier)` returns `Result<FindServiceHandle>`,
+   its handler takes `(ServiceHandleContainer<HandleType>, FindServiceHandle)`,
+   handles have no default constructor (held in `std::optional`), and
+   `Subscribe` / `GetNewSamples` are members of the proxy's event, not of the
+   proxy. In both closed-loop runs the shell found the agent's and the adapter's
+   services and recorded their plan, mode, motion-sample and actuation-state
+   events.
+2. `RuntimeConfiguration{std::string path}` and `InitializeRuntime`:
+   **confirmed** with the configuration passed. The behaviour when it is not
+   passed (`--mw-com-config` absent) is **still untested**.
+3. `PreSerializedData::data` is a byte array and `::size` a `std::size_t`:
+   **confirmed by the build.**
+4. `OfferService()` succeeds before the first `Tick`: **confirmed by the runs.**
+   Whether gatewayd (one subscriber) needs the offer before it starts is **not
+   determined**.
+5. Timing: a 2 ms poll inside a 100 ms budget, with the plan, mode, sample and
+   actuation callbacks in one thread, **held in the two closed-loop runs** on
+   the planner host: every plan was published within 3 ms of its production
+   time, and every motion sample within 3 ms of the agent's record of it.
 6. `StartFindService` lifetime: the handler captures the consumer, so
    `StopFindService` runs in the consumer's destructor and before
    `StopOfferService`; whether a late handler call can still race it is
-   untested.
-7. The mw::com config's service ids 7401–7406 are the ICD §2 values; that the
-   installed S-CORE accepts ids in that range (and the SHM binding) is a P1
-   build fact.
-8. That the SDV Core broker's REFLECTION `type_definition` maps this struct to
-   the typed message (S4's observer checks it); nothing here can test the broker.
+   **still untested**.
+7. The mw::com config's service ids 7401–7406 are the ICD §2 values. The
+   installed S-CORE accepted them with the SHM binding: **confirmed by the
+   runs.**
+8. The SDV Core broker's REFLECTION `type_definition` maps this struct to the
+   typed message: **confirmed by the runs, on a permissive IVI guest.** In the
+   two closed-loop runs every field the IVI observer received equals this
+   publisher's record of it. Nothing here can test the broker.
 
 ## ICD v2 problems found, with proposed fixes
 

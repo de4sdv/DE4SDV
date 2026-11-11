@@ -1,9 +1,12 @@
 # Typed observation path: design (INC-DRIVING-001 slice 10b), option B
 
-Status: **design + artifacts + local checks, nothing run on a VM.** The owner
-chose the typed path for phase 8 on 2026-11-09 and timeboxed it to
-2026-11-11 08:30 UTC. This directory holds what the runbook needs; no AOSP tree,
-no guest VM and no S-CORE host was reachable from where it was written.
+Status: **built and run on the bench, on a permissive IVI guest.** The owner
+chose the typed path for phase 8 on 2026-11-09. The design was first written
+before any run (no AOSP tree, no guest VM and no S-CORE host was reachable from
+where it was written) and revised with what the bring-up found. The path then
+ran in six recorded runs of 2026-11-10 (`RUNBOOK.md`, `RISKS.md`); section 5
+says which of its assumptions those runs settled. No run was made under
+enforcing (`sepolicy/README.md`).
 
 Authority: the model
 (`textual-notation-of-model/packages/features/driving/closed_loop_driving_physical_software_realization.sysml`,
@@ -163,7 +166,11 @@ calls nothing (REQ-DRIVING-018, -019).
   The receipt lag and the plan age are shown as **display-only** differences of two
   clocks (IVI vs S-CORE real time), labelled so; the record stays stamps only (ICD §6,
   no computed latencies). STALE after 1.0 s without a receipt greys the state and
-  clears the path. The layout is one 1080 x 600 reference; `ScreenLayout.place`
+  clears the path. That is not the receiver rule in the rationale of
+  REQ-DRIVING-017 (no health newer than 500 ms): the app looks at the newest
+  receipt of any kind and waits 1.0 s, so a HEALTH stream that stops while PLAN
+  and VEHICLE_STATE keep arriving is still shown as live. A known limit (the
+  bench README). The layout is one 1080 x 600 reference; `ScreenLayout.place`
   scales and centres it inside the part of the view the system bars leave free (the
   IVI's window is edge to edge, so the bars otherwise cover the header and the
   footer). A start with `--ez immersive true` asks for hidden bars; with zero insets
@@ -182,15 +189,15 @@ family). If the pushed app cannot bind the gateway, SELinux is the cause and
 |---|---|---|
 | The SOME/IP broker translates a `SomeIpStruct` in REFLECTION mode into a typed protobuf message, matching fields by name | **documented** | AOSP "Write a SOME/IP mapping file" (event example uses `message_translation_mode: REFLECTION`) and "Write a SOME/IP type definition" (field_name "must exactly match") |
 | `SomeIpPrimitive` has `UINT32` and `FLOAT32`; a struct declares `length_field_size: ZERO` | **documented** | same page; `probe_aosp_tree.sh` §1 confirms on the shipped tree |
-| The broker fills a **repeated** float field from a length-prefixed FLOAT32 array, and reads strings with the BOM/NUL convention | **assumed** | the page states the mapping table but not this code path; probe §3/§4/§5 prints the code; gate G5 catches an empty array or an all-default message, G6 the subtler string faults |
+| The broker fills a **repeated** float field from a length-prefixed FLOAT32 array, and reads strings with the BOM/NUL convention | **shown in the recorded runs** | the page states the mapping table but not this code path; probe §3/§4/§5 prints the code; gate G5 catches an empty array or an all-default message, G6 the subtler string faults. Settled by G6: in the two closed-loop runs every field the app received, arrays and strings included, equals the publisher's |
 | The S-CORE encoder writes exactly this struct, BOM and byte-lengths included | **proven against vectors** | 16 frames in `state-publisher/tests/vectors/*.bin` (committed; that side's `tests/run_tests.sh` regenerates them byte-identically), decoded by `tests/decode_s1_vectors.py`: 688 field comparisons, no disagreement |
-| The SOME/IP payload is the struct alone, not the library frame with its 4-byte prefix | **assumed** | gatewayd copies `data[0..size)` of the sample onto the payload unread, so the publisher shell sends the frame from byte 4 with `size` = the message length (ICD §2, A33); gate G3 hexdumps the first event payload (`00 00 00 02`) |
+| The SOME/IP payload is the struct alone, not the library frame with its 4-byte prefix | **shown in the recorded runs** | gatewayd copies `data[0..size)` of the sample onto the payload unread, so the publisher shell sends the frame from byte 4 with `size` = the message length (ICD §2, A33); gate G3 hexdumps the first event payload (`00 00 00 02`). On the wire the event payloads start with `00 00 00 02`, and the broker decoded them |
 | A new protobuf type enters the SDV catalog as plain files in a subdirectory the catalog's `Android.bp` globs (`**/*.proto`, `**/*.vsidl`), carries the pdk29 publication annotations, and `vsidlc` resolves it for `broker.vsidl` | **checked at G1b** | probe §6 prints the globs; `stage_sdv_core_interop.sh validate` builds the catalog modules and decodes the generated `someip-config.binpb` before the image build |
-| The runtime accepts three service units of one `SINGLE_PUB` type, one broker publisher each | **assumed** | the language and mapping rules allow it; the runtime rule is in `sdv_comms`, not in the AOSP source read here; the broker's start log and the app's three `subscribed unit=` lines decide (RISKS R4) |
+| The runtime accepts three service units of one `SINGLE_PUB` type, one broker publisher each | **shown in the recorded runs** | the language and mapping rules allow it; the runtime rule is in `sdv_comms`, not in the AOSP source read here; the broker's start log and the app's three `subscribed unit=` lines decide (RISKS R4). The app subscribed to all three units in all six runs |
 | A dotted message name in `broker.vsidl`'s `publisher` entry resolves across packages | **assumed** | the AEBS precedent used a same-package name; probe §6 prints whether any tree entry is dotted; the bare-name variant is a one-line change plus a rebuild |
 | A Java app on this image subscribes through `google.sdv.gateway.client` and draws typed messages | **proven** | INC-AEBS-010 `GatewayFrameSubscriber` + `MainActivity`, runtime-verified (PF-004) |
-| An app pushed into `/vendor/priv-app` may bind the SDV Gateway | **assumed** | the AEBS app was an image module in the same partition with the same module shape; G5 (`initComms` + `avc: denied`) decides |
-| The SDV Gateway hands the app the broker's protobuf message ready to parse | **assumed** | the Java client parses into the generated class; a parse failure surfaces as a read error at G5 |
+| An app pushed into `/vendor/priv-app` may bind the SDV Gateway | **shown on a permissive guest only** | the AEBS app was an image module in the same partition with the same module shape; G5 (`initComms` + `avc: denied`) decides. The app bound the gateway in all six runs, each on a permissive guest; under enforcing this is open (`sepolicy/README.md`, RISKS R5) |
+| The SDV Gateway hands the app the broker's protobuf message ready to parse | **shown in the recorded runs** | the Java client parses into the generated class; a parse failure surfaces as a read error at G5. The app received and parsed the messages in all six runs; in the two closed-loop runs every receipt equals the publisher's record (G6) |
 
 ## 6. Option A, kept as the first fallback
 
