@@ -23,9 +23,15 @@ This directory is bench tooling, test stand-ins and evaluators.
   including its route-following mode, are never model results; records name it
   `stub` / `stub-pure-pursuit`.
 - The pinned checkpoint does not follow the route through junctions, and it
-  does not keep the vehicle in its lane: its plans lean to one side and never
-  steer back. The runs verify the bench and the agent against their
-  requirements; they do not validate driving quality.
+  does not keep the vehicle in its lane. On a straight road, in two of three
+  runs the vehicle crossed the marking on its right 31.5 s and 35.1 s after
+  the first plan. In the third it was 1.0 m left of the route after 20 s and
+  1.4 m after 30 s, following a turn of 1.6 degrees that no command asked for;
+  the cause of that turn is not determined. The plans did not steer back: of
+  the 269 plans reaching 10 m ahead that were made with the vehicle more than
+  0.3 m right of the route, none pointed back toward it. The runs verify the
+  bench and the agent against their requirements; they do not validate
+  driving quality.
 
 ## Path
 
@@ -38,7 +44,7 @@ drivingAgent -- operational state (SOME/IP) --> SDV Core broker --> IVI observer
 world side (CARLA pacer) --> C1 world record      route provider -- UDP route --> drivingAgent
 ```
 
-The interface contract is `interfaces/ICD.md` (v2 with amendments 1 and 2).
+The interface contract is `interfaces/ICD.md` (v2 with amendments 1 and 2, rulings A1 to A33).
 
 ## Layout
 
@@ -50,7 +56,7 @@ The interface contract is `interfaces/ICD.md` (v2 with amendments 1 and 2).
 | `actuation-adapter/` | vehicle commands to CARLA control, command watchdog | unit tests; builds with the S-CORE toolchain |
 | `state-publisher/` | operational state to the SOME/IP struct | unit tests and golden byte vectors |
 | `navigation/` | CARLA map and route export, a rasterizer at parity with upstream AutoE2E, route provider | parity tests on synthetic and real Town10HD_Opt data |
-| `ivi-observer/` | typed observation path on the IVI | design and local checks; not yet run on a VM |
+| `ivi-observer/` | typed observation path on the IVI | local checks; ran end to end across three hosts with SELinux permissive on the IVI VM, not under enforcing (`ivi-observer/sepolicy/README.md`) |
 | `case-evaluators/` | the verification-case evaluators | tested on synthetic runs; run on real agent runs |
 
 ## Tests
@@ -69,6 +75,9 @@ The interface contract is `interfaces/ICD.md` (v2 with amendments 1 and 2).
 - **C2 bundles and C11 reference inference are not built.**
   - C2 bundles are the input tensors of sampled steps; C11 re-runs the checkpoint on them offline.
   - Until both exist, VC-DRIVING-002 stays undecided.
-- **The FEO workspace patch is local.** It covers the event trigger and the module set (`agent/workspace/`) and has not been proposed upstream. Its build turns the strict clippy aspect off.
+- **The FEO workspace patch is local.** It covers the event trigger and the module set (`agent/workspace/`). Issue 124 of `eclipse-score/feo` describes the event trigger upstream; the patch has not been proposed there as a change. Its build turns the strict clippy aspect off.
 - **The LibCarla 0.9.16 client build recipe** is not in the repository yet.
 - **No warm-up.** The world side starts the hero at rest with no autopilot warm-up; see `world-side/README.md` for why.
+- **SELinux on the IVI VM.** Every recorded run of the observation path was made with the guest permissive. Whether the observer app reaches the gateway under enforcing is not known; see `ivi-observer/sepolicy/README.md`.
+- **A stalling camera stream.** Both closed-loop runs recorded with the observation path ended in a stop response for a stale camera: one camera stream between the simulator host and the planner host stalled. The cause is open.
+- **The evaluators do not read the observation records yet.** The observer app and statePublisher write `in.operational_state` and `out.operational_state` with a kind; the evaluators look for `rx.health`, `rx.plan`, `rx.vehicle_state` and `out.health`. On the recorded three-host runs VC-DRIVING-015, -016, -017 and -029 are therefore inconclusive, and VC-DRIVING-035 reads the same records.
