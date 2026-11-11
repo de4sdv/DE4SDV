@@ -1,0 +1,32 @@
+# DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+# Bench-only.
+#
+# The broker's declaration of the type it publishes. The SDV Core build does not
+# read this file: scripts/stage_sdv_core_interop.sh inserts this same block into
+# the platform's own broker catalog
+# (system/software_defined_vehicle/samples/some_ip/catalog/agent/broker.vsidl, at
+# the anchor of an existing `publisher { message: ... }` entry), because the
+# broker bundle declaration belongs to the platform file. This file is the
+# readable source of the inserted block and the staging script diffs it against
+# the tree's anchor.
+#
+# The type is now the typed message itself (option B), not a bytes
+# carrier: the broker publishes `de4sdv.driving.v1.DrivingOperationalState` and
+# REFLECTION fills its fields from the SOME/IP struct.
+#
+# Name form: fully qualified, because the message lives in another package than
+# this declaration (com.android.sdv.someip). scripts/probe_aosp_tree.sh checks
+# whether the tree's own bundle declarations ever name a type from another
+# package; if the shipped parser rejects a dotted name here, the fallback is a
+# one-line change (bare `DrivingOperationalState` with the type's package added to
+# the declaration) and a core rebuild -- RUNBOOK step 4 names it.
+
+package: "com.android.sdv.someip"
+
+service_bundle {
+  name: "SomeIpBroker"
+
+  publisher {
+    message: "de4sdv.driving.v1.DrivingOperationalState"
+  }
+}

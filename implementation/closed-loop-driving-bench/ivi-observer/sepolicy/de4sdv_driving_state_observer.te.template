@@ -1,0 +1,40 @@
+# DE4SDV driving-state observer: SELinux template (NOT ACTIVE).
+#
+# This file is a skeleton, not policy. The `.te` extension is deliberately
+# absent so a build never picks it up. Fill it only from a real denial captured
+# on the IVI VM (sepolicy/README.md), and only for the domain the audit line
+# names. Every type below is a placeholder: replace it, do not guess it.
+#
+# Where it goes when filled: the IVI image's BOARD_SEPOLICY_DIRS, as the AEBS
+# ingress staged its own (a Soong `sepolicy` property is unsupported on this
+# release):
+#
+#   vendor/de4sdv/driving_observer/sepolicy/de4sdv_driving_state_observer.te
+#   vendor/de4sdv/driving_observer/sepolicy/board_sepolicy_driving.mk
+#     BOARD_VENDOR_SEPOLICY_DIRS += vendor/de4sdv/driving_observer/sepolicy
+#
+# --- for a native fallback binary (the relay's shape), which is the case this
+#     template is most likely to be used for: an init service with its own
+#     domain, a gateway client, and the loopback line socket of the screen.
+#
+# type de4sdv_driving_state_observer, domain;
+# type de4sdv_driving_state_observer_exec, exec_type, vendor_file_type, file_type;
+# init_daemon_domain(de4sdv_driving_state_observer)
+# sdv_gateway_client_domain(de4sdv_driving_state_observer)
+#
+# # The 127.0.0.1:4732 line socket for the observer app. Scoped to loopback and
+# # the one port; no other network access.
+# allow de4sdv_driving_state_observer self:tcp_socket { create bind listen accept read write shutdown getattr setopt };
+# allow de4sdv_driving_state_observer port:tcp_socket { name_bind name_connect };
+#
+# --- for the app (only if the denial shows the app's domain lacks a gateway
+#     allow that the image's own samples have):
+#
+# allow <app_domain> <gateway_service_type>:service_manager find;
+# allow <app_domain> <gateway_service_type>:binder call;
+# allow <app_domain> <gateway_socket_type>:unix_stream_socket connectto;
+#
+# Take the three type names above from the audit lines' `scontext`/`tcontext`
+# fields. A denial whose `tcontext` is a `*_service` type without a
+# `service_manager find` line usually means the app was not installed where the
+# image expects it (sepolicy/README.md, fix 1).

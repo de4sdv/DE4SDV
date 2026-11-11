@@ -1,0 +1,18 @@
+# DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+# Bench-only.
+#
+# The authorization grant of the IVI observer's subject: it may subscribe to the
+# topic the SOME/IP broker publishes. Installed at
+# /product/etc/sdv_authz_acls/<subject package>/<subject bundle>.textproto, so
+# the subject is encoded by the path:
+#   /product/etc/sdv_authz_acls/org.de4sdv.drivingstate/DrivingStateObserver.textproto
+# The app names the same pair in its initComms call
+# (app/src/org/de4sdv/drivingstate/GatewayStateSubscriber.java).
+#
+# The SD agent on the IVI VM reads the ACLs only at its start and exits when a
+# second file names one subject, so exactly this one file is installed and the
+# IVI VM is rebooted afterwards (scripts/stage_ivi_observer.sh).
+subscriber {
+  message: "com.android.sdv.someip.De4sdvDrivingOperationalStateFrame"
+  topic: "de4sdv-driving-operational-state"
+}

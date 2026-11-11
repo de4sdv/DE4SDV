@@ -1,20 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  DE4SDV INC-AEBS-010 BENCH PATCH — pending upstream confirmation.
+  DE4SDV INC-AEBS-010 bench patch. NOT NEEDED and not applied.
 
-  Declares the SDV Certificate Authority and Identity Agent binder services so
-  that libsdvgatewayclient's VINTF precondition (AServiceManager_isDeclared)
-  passes for native clients on sdv_ivi_cf.
+  Declares the SDV Certificate Authority and Identity Agent binder services in
+  a framework manifest fragment for sdv_ivi_cf.
 
-  Why this exists: sdv_sd_agent registers google.sdv.ca.ICertificateAuthority/default
-  (and the identity agent) via plain binder::add_service with no VINTF manifest
-  fragment, so libsdvgatewayclient's waitForCertificateAuthority precondition
-  fails with FAILED_PRECONDITION for every native client. Reported upstream;
-  this fragment is a bench-only workaround until the upstream fix lands.
+  The diagnosis this fragment was written for is disproven. The
+  FAILED_PRECONDITION of the first PF-004 probe came from the probe not
+  starting the Binder thread pool, not from a missing declaration. The
+  corrected probe ran on the stock image without this fragment and passed on
+  2026-08-29: initComms() succeeded and five frames were published
+  (../../evidence/010/preflight/PF-004-STATUS.md).
 
-  This file is NOT part of the DE4SDV model baseline; it is retained as
-  evidence of the PF-004 fix path and must be removed if upstream ships its
-  own declaration.
+  Nothing was reported upstream. The drafted report is withdrawn
+  (../../upstream/README.md).
+
+  This file is NOT part of the DE4SDV model baseline. It is kept as the record
+  of the fix path that PF-004 ruled out.
 -->
 <manifest version="1.0" type="framework">
     <hal max-level="7" format="aidl">

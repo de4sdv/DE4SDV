@@ -1,0 +1,16 @@
+# DE4SDV closed-loop driving bench, slice 10b: the S-CORE contract headers (ICD v2).
+#
+# The bench builds as the overlay package //de4sdv_bench of the pinned FEO workspace (FEO 313b3d8
+# with the event-trigger patch, Communication 0.6.0, Lifecycle 0.10.0; see agent/README.md).
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "de4sdv_driving",
+    hdrs = [
+        "include/de4sdv/driving/payloads.h",
+        "include/de4sdv/driving/run_log.h",
+    ],
+    includes = ["include"],
+)

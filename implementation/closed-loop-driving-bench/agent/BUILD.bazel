@@ -1,0 +1,102 @@
+# DE4SDV closed-loop driving bench, slice 10b: drivingAgent (FEO, four activities; DESIGN.md).
+#
+# Builds as the overlay package //de4sdv_bench/agent of the pinned FEO workspace (FEO 313b3d8 with
+# the DE4SDV event-trigger patch and the eight version overrides; Communication 0.6.0):
+#   bazel build --config=x86_64-linux //de4sdv_bench/agent:driving_agent //de4sdv_bench/agent:agent_tap
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["mw_com_config_driving_agent.json"])
+
+cc_library(
+    name = "agent_services",
+    hdrs = ["cc/services.h"],
+    includes = ["cc"],
+    deps = [
+        "//de4sdv_bench/interfaces:de4sdv_driving",
+        "@score_communication//score/mw/com",
+    ],
+)
+
+# Real configuration, logs, mw::com, the frame store and pacing, the decision logic (agent_logic), the run
+# record and the embedded CPython planner (stub engine on hosts without a GPU). The source is CARLA
+# (carla_source: LibCarla 0.9.16, the world side's hero and cameras) or a fake world standing in for it.
+cc_library(
+    name = "agent_cc",
+    srcs = [
+        "cc/agent_ffi.cpp",
+        "cc/agent_logic.cpp",
+        "cc/carla_source.cpp",
+        "cc/frame_store.cpp",
+        "cc/json_lite.cpp",
+        "cc/navigation_input.cpp",
+        "cc/pace_signal.cpp",
+        "cc/planner_bridge.cpp",
+        "cc/route_listener.cpp",
+    ],
+    hdrs = [
+        "cc/agent_ffi.h",
+        "cc/agent_logic.h",
+        "cc/carla_source.h",
+        "cc/ego_motion.h",
+        "cc/frame_store.h",
+        "cc/json_lite.h",
+        "cc/nav_prefetch.h",
+        "cc/navigation_input.h",
+        "cc/pace_signal.h",
+        "cc/planner_bridge.h",
+        "cc/rig.h",
+        "cc/route_listener.h",
+    ],
+    includes = ["cc"],
+    linkopts = [
+        "-lpthread",
+        "-ldl",
+    ],
+    deps = [
+        ":agent_services",
+        "//de4sdv_bench/interfaces:de4sdv_driving",
+        "//de4sdv_bench/navigation:navigation_raster",
+        "@libcarla//:client",
+        "@python312//:python_unversioned",
+        "@score_communication//score/mw/com",
+    ],
+    alwayslink = True,
+)
+
+rust_binary(
+    name = "driving_agent",
+    srcs = [
+        "src/activities.rs",
+        "src/ffi.rs",
+        "src/main.rs",
+        "src/messages.rs",
+    ],
+    rustc_flags = [
+        "-Clink-arg=-lstdc++",
+        "-Clink-arg=-lm",
+        "-Clink-arg=-lc",
+    ],
+    deps = [
+        ":agent_cc",
+        "//src/feo:libfeo_rust",
+        "//src/feo-com:libfeo_com_rust",
+        "//src/feo-log:libfeo_log_rust",
+        "//src/feo-logger:libfeo_logger_rust",
+        "//src/feo-time:libfeo_time_rust",
+        "//src/feo-tracing:libfeo_tracing_rust",
+        "@score_crates//:tracing",
+    ],
+)
+
+cc_binary(
+    name = "agent_tap",
+    srcs = ["tools/agent_tap.cpp"],
+    deps = [
+        ":agent_services",
+        "//de4sdv_bench/interfaces:de4sdv_driving",
+    ],
+)

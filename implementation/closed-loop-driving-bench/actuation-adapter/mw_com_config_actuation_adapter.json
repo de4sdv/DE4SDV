@@ -1,0 +1,91 @@
+{
+    "serviceTypes": [
+        {
+            "serviceTypeName": "/de4sdv/driving/Command",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7404,
+                    "events": [
+                        {
+                            "eventName": "command",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "serviceTypeName": "/de4sdv/driving/ActuationState",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7405,
+                    "events": [
+                        {
+                            "eventName": "actuation_state",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "serviceInstances": [
+        {
+            "instanceSpecifier": "de4sdv/driving/command",
+            "serviceTypeName": "/de4sdv/driving/Command",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "command",
+                            "numberOfSampleSlots": 25,
+                            "maxSubscribers": 3
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "instanceSpecifier": "de4sdv/driving/actuation_state",
+            "serviceTypeName": "/de4sdv/driving/ActuationState",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "actuation_state",
+                            "numberOfSampleSlots": 20,
+                            "maxSubscribers": 2
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "global": {
+        "asil-level": "QM"
+    }
+}
