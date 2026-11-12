@@ -22,6 +22,7 @@ Every verdict carries `measured` (the numbers the judgement rests on),
 
 from __future__ import annotations
 
+import json
 import math
 from collections import Counter
 from dataclasses import dataclass, field
@@ -33,15 +34,127 @@ from runio import (STEP_MS, STEP_S, Run, RunFormatError, MissingEvidence, close,
                    frames_between, maybe_num, num, observer_record, publisher_record)
 from gaps import ICD_CHANGES
 
-PASS = "passBoundedVerification"
-FAIL = "failObservedBehavior"
-INCONCL = "inconclusiveMissingEvidence"
-ERROR = "errorEvidence"
-BLOCKED = "blockedTargetRuntime"
+# --------------------------------------------------------------------- the model's catalogue
+# What the SysML model declares about the cases (the outcomes and the verdict of
+# each, the scenarios, the cases) is read from driving_case_catalogue.json beside
+# this module. scripts/generate_driving_case_catalogue.py of the repository writes
+# it from the model; it is never edited by hand and never copied here.
+CATALOGUE_FILE = Path(__file__).resolve().with_name("driving_case_catalogue.json")
+CATALOGUE_SCHEMA = "de4sdv.driving.case-catalogue.v1"
+CATALOGUE_KEYS = ("schema", "generated_from", "outcomes", "verdicts", "verdict_otherwise",
+                  "scenarios", "cases")
+CASE_KEYS = ("id", "usage", "definition", "requirement")
+REGENERATE = ("python3 scripts/generate_driving_case_catalogue.py --output "
+              "implementation/closed-loop-driving-bench/case-evaluators/driving_case_catalogue.json")
+
+
+class CatalogueError(RuntimeError):
+    """The case catalogue is missing or malformed, or the evaluators disagree with it."""
+
+
+def load_catalogue(path: Path | str | None = None) -> dict:
+    """The case catalogue at `path` (default: driving_case_catalogue.json beside this module).
+
+    Checks the schema name and the shape. A missing or malformed file raises one
+    CatalogueError that names the generator command.
+    """
+    path = CATALOGUE_FILE if path is None else Path(path)
+
+    def refused(problem: str) -> CatalogueError:
+        return CatalogueError(f"the case catalogue {path} {problem}: regenerate it from the "
+                              f"repository root with `{REGENERATE}`")
+
+    def unique(pairs: list) -> dict:
+        keys = [key for key, _ in pairs]
+        for key in keys:
+            if keys.count(key) > 1:
+                raise refused(f"holds the key {key!r} twice")
+        return dict(pairs)
+
+    def names(key: str) -> list:
+        value = data[key]
+        if not (isinstance(value, list) and value and len(set(map(str, value))) == len(value)
+                and all(isinstance(item, str) and item for item in value)):
+            raise refused(f"has no list of distinct names under {key}")
+        return value
+
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique)
+    except FileNotFoundError:
+        raise refused("is missing") from None
+    except (OSError, ValueError) as exc:
+        raise refused(f"cannot be read ({exc})") from None
+    if not isinstance(data, dict):
+        raise refused("is no JSON object")
+    missing = [key for key in CATALOGUE_KEYS if key not in data]
+    if missing:
+        raise refused(f"lacks the key {', '.join(missing)}")
+    unknown = sorted(set(data) - set(CATALOGUE_KEYS))
+    if unknown:
+        raise refused(f"holds the unknown key {', '.join(unknown)}")
+    if data["schema"] != CATALOGUE_SCHEMA:
+        raise refused(f"has the schema {data['schema']!r}, not {CATALOGUE_SCHEMA!r}")
+    names("generated_from")
+    names("scenarios")
+    verdicts = data["verdicts"]
+    if not isinstance(verdicts, dict):
+        raise refused("has no object under verdicts")
+    for outcome in names("outcomes"):
+        if not (isinstance(verdicts.get(outcome), str) and verdicts[outcome]):
+            raise refused(f"gives no verdict for the outcome {outcome}")
+    extra = sorted(set(verdicts) - set(data["outcomes"]))
+    if extra:
+        raise refused(f"gives a verdict for {', '.join(extra)}, which is no outcome")
+    if not (isinstance(data["verdict_otherwise"], str) and data["verdict_otherwise"]):
+        raise refused("has no verdict under verdict_otherwise")
+    if not (isinstance(data["cases"], list) and data["cases"]):
+        raise refused("has no list of cases")
+    seen: set = set()
+    for number, entry in enumerate(data["cases"], 1):
+        if not isinstance(entry, dict) or set(entry) != set(CASE_KEYS):
+            keys = sorted(entry) if isinstance(entry, dict) else type(entry).__name__
+            raise refused(f"case {number} has the keys {keys}, not {list(CASE_KEYS)}")
+        if not all(isinstance(entry[key], str) and entry[key] for key in CASE_KEYS):
+            raise refused(f"case {number} has a value that is no name")
+        if entry["id"] in seen:
+            raise refused(f"names the case {entry['id']} twice")
+        seen.add(entry["id"])
+    return data
+
+
+CATALOGUE = load_catalogue()
+OUTCOMES = tuple(CATALOGUE["outcomes"])
+
+
+def model_outcome(literal: str) -> str:
+    """`literal` if it is a DrivingEvidenceOutcome literal of the catalogue; it stops the
+    import otherwise."""
+    if literal not in OUTCOMES:
+        raise CatalogueError(f"the outcome {literal!r} of the evaluators is no "
+                             f"DrivingEvidenceOutcome literal of {CATALOGUE_FILE.name} "
+                             f"({', '.join(OUTCOMES)})")
+    return literal
+
+
+PASS = model_outcome("passBoundedVerification")
+FAIL = model_outcome("failObservedBehavior")
+INCONCL = model_outcome("inconclusiveMissingEvidence")
+ERROR = model_outcome("errorEvidence")
+BLOCKED = model_outcome("blockedTargetRuntime")
+# notApplicable is the evaluators' own marker and no outcome of the model: a case
+# that returns it is not judged on this run, and evaluate_run.py lists it under
+# `skipped`. It is never written as the outcome of a case.
 NOT_APPLICABLE = "notApplicable"
 
-VERDICT = {PASS: "pass", "passBoundedValidation": "pass", FAIL: "fail",
-           INCONCL: "inconclusive", BLOCKED: "inconclusive", ERROR: "error"}
+# MapDrivingEvidenceOutcomeToVerdict: the verdict of each outcome, and its else
+# branch's verdict for anything else.
+VERDICT = dict(CATALOGUE["verdicts"])
+VERDICT_OTHERWISE = CATALOGUE["verdict_otherwise"]
+# The verdicts in the order of the outcomes that give them, the else branch's
+# last: the keys of a summary (today pass, fail, inconclusive, error).
+VERDICTS = tuple(dict.fromkeys([*VERDICT.values(), VERDICT_OTHERWISE]))
+SCENARIOS = tuple(CATALOGUE["scenarios"])
+CASE_IDS = tuple(entry["id"] for entry in CATALOGUE["cases"])
 
 MODES = ["kStarting", "kDriving", "kStopResponse", "kStandstill", "kRefused"]
 CAUSES = ["kNone", "kCameraMissing", "kCameraInvalid", "kCameraStale",
@@ -131,8 +244,10 @@ class Result:
     icd_changes: list = field(default_factory=list)
 
     def as_dict(self) -> dict:
-        return {"vc": self.vc, "outcome": self.outcome,
-                "verdict": VERDICT.get(self.outcome, "inconclusive"),
+        return {"vc": self.vc,
+                "requirement": REQUIREMENT[self.vc],
+                "outcome": self.outcome,
+                "verdict": VERDICT.get(self.outcome, VERDICT_OTHERWISE),
                 "measured": _clean(self.measured),
                 "thresholds": _clean(self.thresholds),
                 "evidence": self.evidence, "missing": self.missing,
@@ -192,6 +307,10 @@ def not_applicable(vc: str, why: str) -> Result:
 
 # --------------------------------------------------------------------- registry
 CASES: dict[str, dict] = {}
+# The two cases of SC-DRIVING-004 compare the runs of a campaign:
+# evaluate_campaign.py judges them, and evaluate_run.py lists them under
+# `skipped`. Every other case of the model has an @case evaluator below.
+CAMPAIGN_CASES = ("VC-DRIVING-018", "VC-DRIVING-019")
 
 
 def case(vc: str, scenarios: tuple[str, ...], needs: tuple[str, ...] = ()):
@@ -200,6 +319,43 @@ def case(vc: str, scenarios: tuple[str, ...], needs: tuple[str, ...] = ()):
                      "doc": (fn.__doc__ or "").strip()}
         return fn
     return deco
+
+
+def check_registry(catalogue: dict, registered: dict, campaign, scenario_cases: dict) -> None:
+    """The evaluators against the model's catalogue; a CatalogueError names the
+    first case or scenario on which they disagree.
+
+    The ids of the @case evaluators (`registered`) and of the campaign cases are
+    the catalogue's ids in both directions, and no id is both. Every scenario
+    name of a decorator, every key of SCENARIO_CASES and every case it lists are
+    the catalogue's.
+    """
+    ids = [entry["id"] for entry in catalogue["cases"]]
+    scenarios = set(catalogue["scenarios"])
+    both = sorted(set(registered) & set(campaign))
+    if both:
+        raise CatalogueError(f"{both[0]} is registered both as an @case and as a campaign case")
+    for vc in [*sorted(registered), *campaign]:
+        if vc not in ids:
+            raise CatalogueError(f"{vc} has an evaluator but is no case of the model "
+                                 f"({CATALOGUE_FILE.name})")
+    for vc in ids:
+        if vc not in registered and vc not in campaign:
+            raise CatalogueError(f"{vc} of the model has no evaluator: no @case in cases.py "
+                                 "and not one of CAMPAIGN_CASES")
+    for vc, spec in sorted(registered.items()):
+        for name in spec["scenarios"]:
+            if name not in scenarios:
+                raise CatalogueError(f"the scenario {name!r} of the case {vc} is no "
+                                     f"DrivingScenarioIdentity literal of {CATALOGUE_FILE.name}")
+    for name, listed in scenario_cases.items():
+        if name not in scenarios:
+            raise CatalogueError(f"SCENARIO_CASES names the scenario {name!r}, which is no "
+                                 f"DrivingScenarioIdentity literal of {CATALOGUE_FILE.name}")
+        for vc in listed:
+            if vc not in ids:
+                raise CatalogueError(f"SCENARIO_CASES lists {vc} under {name!r}, which is no "
+                                     "case of the model")
 
 
 # --------------------------------------------------------------------- helpers
@@ -3149,6 +3305,14 @@ SCENARIO_CASES = {
     "aaosUnavailable": ["VC-DRIVING-018", "VC-DRIVING-019"],
     "checkpointRefusal": ["VC-DRIVING-035"],
 }
+# The evaluators against the model, before anything is judged: a disagreement
+# stops the import and names the case or the scenario.
+check_registry(CATALOGUE, CASES, CAMPAIGN_CASES, SCENARIO_CASES)
+# Each case names the requirement it verifies, the catalogue's: in CASES, and
+# right after "vc" in every case object the evaluators write.
+REQUIREMENT = {entry["id"]: entry["requirement"] for entry in CATALOGUE["cases"]}
+for vc, spec in CASES.items():
+    spec["requirement"] = REQUIREMENT[vc]
 for vc, spec in CASES.items():
     assert spec["scenarios"], vc
     for s in spec["scenarios"]:
