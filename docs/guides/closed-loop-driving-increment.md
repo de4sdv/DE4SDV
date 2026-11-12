@@ -375,16 +375,25 @@ junctions. The gap closes only with a checkpoint whose plans take the turn
 from the route, and the model revisits it when upstream publishes one.
 
 GAP-DRIVING-012 records a third limit, accepted on the owner's decision of
-2026-11-10: the pinned checkpoint does not keep the vehicle in its lane. On a
-straight route the plans leaned about 2 degrees to one side from the first
-plan that moved the vehicle and never steered back: of 375 plans made with the
-vehicle more than 0.3 m off to that side, 3 pointed back. The vehicle was in
-the next lane after about 11 s. With the yaw history as REQ-DRIVING-008 gives
-it the plans do not correct a drift, and with the checkpoint's own yaw history
-they turn off the lane within seconds (GAP-DRIVING-010), so no setting keeps
-the lane. The review of NEED-DRIVING-001 (SC-DRIVING-005) names both limits,
-and the evidence claims neither lane keeping nor driving along the route. The
-gap closes only with a checkpoint that keeps its lane in a closed loop.
+2026-11-10: the pinned checkpoint does not keep the vehicle in its lane. Two
+errors of the bench made the first runs on a straight route drift faster than
+the plans asked, and both were corrected that day: the actuation adapter
+applied every steering command at twice its angle, because it scaled the steer
+by the 35 degree command limit, not by the vehicle's 70 degree maximum, and
+the command law asked for 0.6 degrees more steering to the left than the plan
+did. In the three runs after both corrections the vehicle stayed within 0.16 m
+of the route for 10 s. Then its heading turned 2.3 to 2.4 degrees to the right
+between 15 s and 30 s. In two runs it crossed the lane marking on its right
+after 31.5 s and 35.1 s; in the third a turn of 1.6 degrees that no command
+asked for had put it 1.4 m to the left by then. The plans steered back on
+neither side: none of 269 made with the vehicle more than 0.3 m to the right
+of the route pointed back, and 25 of 165 made with it more than 0.3 m to the
+left did. With the yaw history as REQ-DRIVING-008 gives it the plans do not
+correct a drift, and with the checkpoint's own yaw history they turn off the
+lane within seconds (GAP-DRIVING-010), so no setting keeps the lane. The
+review of NEED-DRIVING-001 (SC-DRIVING-005) names both limits, and the
+evidence claims neither lane keeping nor driving along the route. The gap
+closes only with a checkpoint that keeps its lane in a closed loop.
 
 Three decisions shape the functional architecture:
 
@@ -640,13 +649,15 @@ parity and turned GAP-DRIVING-007 into the open question of the three hosts
 in one run; a probe is evidence for an amendment, never a result of the
 increment. With the simulator on its own card the planner met REQ-DRIVING-013's
 budget at wall-clock pace in the probe, so the increment needed no redirect.
-The verification runs missed it narrowly: **GAP-DRIVING-013**, accepted on the
-owner's decision of 2026-11-10, records that REQ-DRIVING-013 is narrowly not
-met. On the straight route 99.2 % of the plans came in time, but two in a row
-missed, none by more than 2 ms; an earlier run met it at its limit, 99.0 %,
-with the vehicle standing for most of the window. The checkpoint's inference
-alone takes about 90 ms of the 100, so a few milliseconds anywhere make a
-miss. The limit stays at 100 ms.
+The first verification runs missed it narrowly: **GAP-DRIVING-013**, accepted
+on the owner's decision of 2026-11-10, records the margin. In three runs on
+the straight route 97.5 to 99.2 % of the plans came in time, and in each two
+in a row missed, the latest by 7.7 ms; an earlier run met it at its limit,
+99.0 %, with the vehicle standing for most of the window. Since the agent
+draws a step's navigation raster ahead of the step, the two complete
+closed-loop runs met it, with all 600 plans in time and the latest after 96.5
+and 98.3 ms. The checkpoint's inference alone takes about 90 ms of the 100, so
+a few milliseconds anywhere make a miss. The limit stays at 100 ms.
 **GAP-DRIVING-005** was new information from the placement:
 the actuation adapter's own stop response (REQ-DRIVING-028) had no path to
 the publication REQ-DRIVING-029 asks for, because phases 6 and 7 had no flow
