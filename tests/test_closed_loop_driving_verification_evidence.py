@@ -9,6 +9,7 @@ the owner decisions of 2026-11-06 by their exact phrases. The invariants of ever
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 from pathlib import Path
@@ -31,13 +32,18 @@ RECORD = "RetainedDrivingRunEvidence"
 GAP = "GAP-DRIVING-009"
 CASE_COUNT = 35
 
-#: requirement number -> (scenario literal, bench phrase the case usage must state)
+#: requirement number -> (scenario literal, or the literals in the order the usage names them; the bench phrase
+#: the case usage must state)
 CASE_SCENARIOS = {
     **{n: ("closedLoopRoute", "no guest") for n in (1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 15, 16, 17, 30, 31, 32, 33, 34)},
     11: ("closedLoopRoute", "plan injection"), 12: ("closedLoopRoute", "plan injection"),
     14: ("closedLoopRoute", "stop of the S-CORE communication"), 28: ("closedLoopRoute", "stop of the S-CORE communication"),
     18: ("aaosUnavailable", "replayed"), 19: ("aaosUnavailable", "replayed"),
-    **{n: ("degradedInputOrPlan", "input faults") for n in (20, 21, 22, 23, 24, 25, 26, 27, 29)},
+    **{n: ("degradedInputOrPlan", "input faults") for n in (20, 21, 22, 24, 25, 26, 27)},
+    # the camera case also runs the closed-loop scenario, without a fault; the stop publication is read in the
+    # runs of the cases 23 to 28, which are of both scenarios
+    23: (("degradedInputOrPlan", "closedLoopRoute"), "input faults"),
+    29: (("degradedInputOrPlan", "closedLoopRoute"), "input faults"),
     35: ("checkpointRefusal", "single byte"),
 }
 SCENARIO_IDS = {"closedLoopRoute": "SC-DRIVING-001", "degradedInputOrPlan": "SC-DRIVING-003",
@@ -140,6 +146,12 @@ def _definitions() -> dict[str, str]:
     return {m[1]: _body(code[m.start():], re.escape(m[0])) for m in re.finditer(r"\bverification def (\w+) \{", code)}
 
 
+def _scenario_sentence(doc: str) -> str:
+    """What a case usage says of its scenarios: the text between 'Not started.' and 'Bench:'."""
+    assert doc.count("Not started. ") == 1 and doc.count(" Bench: ") == 1, doc[:120]
+    return doc.split("Not started. ", 1)[1].split(" Bench: ", 1)[0]
+
+
 # -- the cases ------------------------------------------------------------------------------------
 
 
@@ -175,14 +187,61 @@ def test_no_case_has_started_and_each_states_its_scenario_and_bench() -> None:
     bench feature that distinguishes its run; every requirement keeps NotStarted."""
     for number, (usage, _, body) in _usages().items():
         doc = " ".join(re.sub(r"^\s*\*\s?", "", body, flags=re.M).split())
-        literal, bench = CASE_SCENARIOS[number]
-        assert "doc /* Not started. Scenario: " in doc, usage
-        assert f"DrivingScenarioIdentity::{literal}" in doc, usage
-        assert SCENARIO_IDS[literal] in doc, usage
+        literals, bench = CASE_SCENARIOS[number]
+        literals = (literals,) if isinstance(literals, str) else literals
+        opening = "doc /* Not started. Scenario: " if len(literals) == 1 else "doc /* Not started. Scenarios: "
+        assert opening in doc, usage
+        sentence = _scenario_sentence(doc)
+        assert tuple(re.findall(r"DrivingScenarioIdentity::(\w+)", sentence)) == literals, usage
+        for literal in literals:
+            assert SCENARIO_IDS[literal] in sentence, usage
         assert bench in doc, (usage, bench)
         assert "@VerificationMethod{ kind = (test, analyze); }" in body, usage
         assert "subject verifiedBench :> closedLoopDrivingVerificationBench;" in body, usage
     assert REQUIREMENTS.read_text(encoding="utf-8").count("verificationStatus = VVStatus::NotStarted") == CASE_COUNT
+
+
+def test_a_case_usage_names_every_scenario_its_definition_runs() -> None:
+    """A definition says in which runs it collects, and its usage names the scenarios of those runs. A definition
+    that reads the runs of other cases takes their scenarios."""
+    raw = SLICE.read_text(encoding="utf-8")
+    collects = {name: " ".join(re.sub(r"^\s*\*\s?", "", doc, flags=re.M).split())
+                for name, doc in re.findall(r"\bverification def (\w+) \{\s*doc /\*(.*?)\*/", raw, re.S)}
+    assert len(collects) == CASE_COUNT
+    named = {number: set(re.findall(r"SC-DRIVING-\d{3}", _scenario_sentence(
+                 " ".join(re.sub(r"^\s*\*\s?", "", body, flags=re.M).split()))))
+             for number, (_, _, body) in _usages().items()}
+    for number, (usage, definition, _) in _usages().items():
+        runs = set(re.findall(r"SC-DRIVING-\d{3}", collects[definition]))
+        for first, last in re.findall(r"VC-DRIVING-(\d{3})(?: to VC-DRIVING-(\d{3}))?", collects[definition]):
+            for other in range(int(first), int(last or first) + 1):
+                runs |= named[other]
+        assert runs <= named[number], (usage, sorted(runs - named[number]))
+
+
+def _evaluator_scenarios() -> dict[int, set[str]]:
+    """Case number -> the scenarios in which the bench's evaluators judge it: the table SCENARIO_CASES of the
+    evaluators, read from their source without importing them."""
+    source = (ROOT / "implementation/closed-loop-driving-bench/case-evaluators/cases.py").read_text(encoding="utf-8")
+    (table,) = [node.value for node in ast.parse(source).body if isinstance(node, ast.Assign)
+                and [getattr(target, "id", None) for target in node.targets] == ["SCENARIO_CASES"]]
+    cases_of = eval(compile(ast.Expression(table), "SCENARIO_CASES", "eval"), {"__builtins__": {}, "range": range})
+    judged: dict[int, set[str]] = {}
+    for scenario, cases in cases_of.items():
+        for case in cases:
+            judged.setdefault(int(case.rsplit("-", 1)[1]), set()).add(scenario)
+    return judged
+
+
+def test_the_evaluators_judge_each_case_in_the_scenarios_its_usage_names() -> None:
+    """The bench's evaluators keep a table of the cases of each scenario. The table is held to the scenario
+    sentence of each case usage, so the model and the evaluators cannot name different runs for a case."""
+    judged = _evaluator_scenarios()
+    assert sorted(judged) == list(range(1, CASE_COUNT + 1))
+    for number, (usage, _, body) in _usages().items():
+        doc = " ".join(re.sub(r"^\s*\*\s?", "", body, flags=re.M).split())
+        named = set(re.findall(r"DrivingScenarioIdentity::(\w+)", _scenario_sentence(doc)))
+        assert judged[number] == named, (usage, sorted(judged[number]), sorted(named))
 
 
 def test_each_case_collects_by_test_and_analyzes_against_the_requirement() -> None:

@@ -132,6 +132,31 @@
  *   client library linked into an S-CORE application with one C++ standard
  *   library, read a camera frame and applied a vehicle control.
  *
+ * Amended on the owner's decision of 2026-11-12, after phase 10, from the
+ * bench that implements this realization. Each mapping record now names
+ * where the bench keeps the contract that phase 10 authored and says what
+ * is left to do; every record stays a candidate.
+ *
+ * - The command law is pure pursuit of the plan's path
+ *   (MAP-DRIVING-COMMAND). The law this file stated before, the plan's
+ *   curvature at the control horizon turned into a front-wheel angle, was
+ *   run first: in its two runs of the closed-loop scenario (2026-11-09)
+ *   every steering command of the first 23 s was 4 to 10 degrees to the
+ *   right, and pure pursuit of the same plans asks for less than 1 degree
+ *   in more than nine of ten.
+ * - A plan carries the path that its 64 pairs give, beside the pairs
+ *   (MAP-DRIVING-PLAN); the command law steers on it.
+ * - The loop supervision does not stop on a missed planning period
+ *   (MAP-DRIVING-MODE). No requirement asks for that stop; a late plan
+ *   stops the vehicle when it is stale (REQ-DRIVING-026).
+ * - The operational state has three Data Tunnel topics of one message
+ *   type, one per event (MAP-DRIVING-OPERATIONAL-STATE).
+ * - The route provider announces the route to the agent again and again,
+ *   so that a route can grow old (MAP-DRIVING-ROUTE).
+ * - The vehicle's longitudinal response is not identified yet: the table
+ *   of the shipped vehicle configuration is a placeholder
+ *   (MAP-DRIVING-VEHICLE-CONTROL).
+ *
  * Alternatives recorded and not selected:
  * - ALT-DRIVING-PLAINAPPS-001: four plain S-CORE applications instead of the
  *   FEO agent, every exchange of the loop over mw::com. Cheaper to build, no
@@ -459,11 +484,12 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   part def LoopSupervisionActivity :> PhysicalAllocationElement {
     doc /*
      * Carries the loop supervisor of phase 7 as the third activity of the FEO
-     * cycle: a Rust shell over a C++ library. It judges the plan against the
-     * input condition and the planning period (REQ-DRIVING-013, -023 to -027),
-     * passes the newest valid plan on, and decides the mode: driving, or the
-     * stop response with its cause. The mode goes to the vehicle commander on
-     * an FEO topic and to the state publisher as an mw::com event
+     * cycle: a Rust shell over a C++ library. It judges the input condition
+     * and the plan (REQ-DRIVING-023 to -027), passes the newest valid plan
+     * on, and decides the mode: driving, or the stop response with its
+     * cause. A plan that misses the planning period of REQ-DRIVING-013 is no
+     * cause of a stop. The mode goes to the vehicle commander on an FEO
+     * topic and to the state publisher as an mw::com event
      * (REQ-DRIVING-029). It issues no command.
      */
     port inputConditionIn : InputConditionIn;
@@ -995,7 +1021,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * signal.
        */
       attribute :>> semanticSource = "camera images of the ego vehicle's cameras, rendered by the simulator: image frames, no vehicle signal, so no VSS typing applies; the receiving contract is the input geometry of the pinned checkpoint";
-      attribute :>> softwareContractArtifact = "in: the simulator client library's camera sensor stream (sensor data callbacks on the client's threads), candidate, release pinned in phase 10; out: the checkpoint inputs on the agent's FEO topic, candidate";
+      attribute :>> softwareContractArtifact = "in: the simulator client library's camera sensor stream (sensor data callbacks on the client's threads), candidate, at the simulator release and step that section 1 of implementation/closed-loop-driving-bench/interfaces/ICD.md names; out: the checkpoint inputs on the agent's FEO topic, candidate";
       attribute :>> softwareContractMessage = "in: one image measurement per camera per sensor tick with its frame number and simulation timestamp, candidate; out: the camera history tensor of the checkpoint inputs, candidate";
       attribute :>> softwareContractField = "in: raw image buffer, width, height, field of view, timestamp, exact per the client library; out: the history slot of each camera in the checkpoint's input layout, candidate";
       attribute :>> dataTypeAndUnit = "in: 8-bit BGRA pixels per camera, simulation seconds for the timestamp; out: the checkpoint's normalized image tensor, no unit";
@@ -1003,7 +1029,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> transformationRule = "projection of each image into the checkpoint's camera geometry and history layout (REQ-DRIVING-003 to -005), defined by the pinned source revision; no retiming of the simulation";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: pin the simulator release, the camera placement and the sensor tick with the scenario, then run REQ-DRIVING-003 to -005, -010 and -023 against recorded frames";
+      attribute :>> nextAction = "bring the verification cases of REQ-DRIVING-003 to -005, -010 and -023 to evidence of record; none is started";
       attribute :>> evidenceOrGap = "no runtime evidence of record; framing gap gapModelInputAndFeedback (camera calibration and history priming)";
     }
   }
@@ -1023,7 +1049,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * vehicle's poses, not from the sample (REQ-DRIVING-008).
        */
       attribute :>> semanticSource = "the motion state of the ego vehicle as the simulator reports it (its transform, velocity and acceleration vectors, angular velocity) and, out, the sample typed by COVESA VSS at the port: Vehicle_Speed [km/h], Vehicle_Acceleration_Longitudinal and _Lateral [m/s^2], Vehicle_AngularVelocity_Yaw [deg/s]";
-      attribute :>> softwareContractArtifact = "in: the simulator client library's actor state of the ego vehicle, candidate; out: the agent's FEO topic for the vehicle commander and the mw::com event for the state publisher (the layer's mw::com configuration, phase 10), candidate";
+      attribute :>> softwareContractArtifact = "in: the simulator client library's actor state of the ego vehicle, candidate; out: the agent's FEO topic for the vehicle commander and the mw::com event for the state publisher (the ego-motion sample event in section 2 of implementation/closed-loop-driving-bench/interfaces/ICD.md; payload EgoMotionSamplePayload in implementation/closed-loop-driving-bench/interfaces/include/de4sdv/driving/payloads.h), candidate";
       attribute :>> softwareContractMessage = "in: transform, velocity, acceleration and angular velocity of the ego vehicle per world snapshot, candidate; out: EgoMotionSamplePayload with its capture time, candidate";
       attribute :>> softwareContractField = "in: the transform's world matrix, velocity.x/y, acceleration.x/y, angular_velocity.z, snapshot timestamp, exact per the client library; out: speed, longitudinalAcceleration, lateralAcceleration, yawRate, captureTime, exact";
       attribute :>> dataTypeAndUnit = "in: float32 m (the transform), m/s, m/s^2, deg/s, simulation seconds; out: speed : Vehicle_Speed km/h, accelerations : Vehicle_Acceleration_* m/s^2, yawRate : Vehicle_AngularVelocity_Yaw deg/s, captureTime simulation seconds; inside the agent the checkpoint takes speed in m/s, and yaw rate and curvature as zero (GAP-DRIVING-010)";
@@ -1031,7 +1057,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> transformationRule = "speed = |velocity| * 3.6 as the VSS km/h value; the checkpoint's history takes speed and acceleration worked out the source's way from the transforms, moved to the origin of the camera rig, of the 66 steps that end at the step (REQ-DRIVING-008), with yaw rate and curvature 0 (GAP-DRIVING-010), in the layout of the pinned source revision's ego-motion history";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: author the mw::com configuration of the sample event and run REQ-DRIVING-008, -010, -016 and -024 on recorded samples, with the unit conversions checked against the Python reference";
+      attribute :>> nextAction = "bring the verification cases of REQ-DRIVING-008, -010, -016 and -024 to evidence of record; none is started";
       attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-003 (the reference's ego-motion conventions)";
     }
   }
@@ -1046,15 +1072,15 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * inputs (REQ-DRIVING-007). A route is no vehicle signal.
        */
       attribute :>> semanticSource = "the route to the scenario's destination as a sequence of map waypoints, from the scenario configuration on the host: route and map data, no vehicle signal";
-      attribute :>> softwareContractArtifact = "in: the scenario's route file read by the route provider at the start of the run, candidate; out: the route mask raster in the checkpoint inputs on the agent's FEO topic, candidate";
+      attribute :>> softwareContractArtifact = "in: the scenario's route file read by the route provider at the start of the run, and the route announcement the provider sends to the input activity (section 9 of implementation/closed-loop-driving-bench/interfaces/ICD.md), candidate; out: the route mask raster in the checkpoint inputs on the agent's FEO topic, candidate";
       attribute :>> softwareContractMessage = "in: an ordered list of waypoints in the map frame, candidate; out: the route mask and map context rasters of the checkpoint's input layout, candidate";
       attribute :>> softwareContractField = "in: waypoint x, y, heading and road id, candidate; out: the raster channels the pinned source revision defines, candidate";
       attribute :>> dataTypeAndUnit = "in: float32 metres and radians in the map frame; out: the checkpoint's raster tensors, no unit";
-      attribute :>> timingQualityAndState = "read once per run before the first plan; the raster is recomputed per step from the ego pose; a route the ego vehicle has left or a missing route sets the input condition (REQ-DRIVING-025)";
+      attribute :>> timingQualityAndState = "read once per run before the first plan and announced to the input activity again at a fixed period of simulation time, so that a route that stops arriving grows old; the raster is recomputed per step from the ego pose; a route more than 1 s of simulation time old, a route the ego vehicle has left or a missing route sets the input condition (REQ-DRIVING-025)";
       attribute :>> transformationRule = "rasterization of the route and the map context into the ego frame of each step (REQ-DRIVING-006, -007), as the pinned source revision defines it";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: pin the scenario route with the simulator release and run REQ-DRIVING-006, -007 and -025 against the Python reference's rasters";
+      attribute :>> nextAction = "bring the verification cases of REQ-DRIVING-006, -007 and -025 to evidence of record; none is started";
       attribute :>> evidenceOrGap = "no runtime evidence of record; framing gap gapModelInputAndFeedback (coordinate frames)";
     }
   }
@@ -1070,16 +1096,16 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * is the same item one hop earlier. A plan is no vehicle signal.
        */
       attribute :>> semanticSource = "the trajectory the pinned checkpoint predicts for the next planning horizon, in the ego frame, with its producer, its production time and the run record it names: a plan, no vehicle signal";
-      attribute :>> softwareContractArtifact = "in: the output tensors of the planning stack, PyTorch over the pinned checkpoint in the agent's process, candidate; out: the agent's FEO topic for the loop supervision and the mw::com plan event for the state publisher, candidate";
+      attribute :>> softwareContractArtifact = "in: the output tensors of the planning stack, PyTorch over the pinned checkpoint in the agent's process, candidate; out: the agent's FEO topic for the loop supervision and the mw::com plan event for the state publisher (the plan event in section 2 of implementation/closed-loop-driving-bench/interfaces/ICD.md; payload DrivingPlanPayload in implementation/closed-loop-driving-bench/interfaces/include/de4sdv/driving/payloads.h), candidate";
       attribute :>> softwareContractMessage = "in: the checkpoint's output layout (trajectory samples over the horizon), exact per the pinned source revision; out: DrivingPlan with producer, production time and run record, candidate";
-      attribute :>> softwareContractField = "in: the sampled positions or acceleration/curvature samples of the output head, exact per the pinned source revision; out: samples, horizon, producer, productionTime, runRecord, candidate";
-      attribute :>> dataTypeAndUnit = "in: float32 metres and radians, or m/s^2 and 1/m, per the output head; out: the same with wall-clock seconds for the production time";
+      attribute :>> softwareContractField = "in: the 64 pairs of acceleration and curvature of the output head, exact per the pinned source revision; out: samples (each with its pair and the pose of the plan's path at it), horizon, producer, productionTime, runRecord, candidate";
+      attribute :>> dataTypeAndUnit = "in: float32 m/s^2 and 1/m; out: the same, metres and radians for the pose of the path, and wall-clock seconds for the production time";
       attribute :>> timingQualityAndState = "one plan per 100 ms step, no two consecutive steps without one (REQ-DRIVING-001), produced within 100 ms of wall-clock time after the newest image (REQ-DRIVING-013), stamped (REQ-DRIVING-031), published for observation within 100 ms (REQ-DRIVING-015); no plan while the checkpoint identity fails (REQ-DRIVING-035)";
-      attribute :>> transformationRule = "identity on the values; the plan names the run record (REQ-DRIVING-034); the planning stack's numerical parity with the unmodified reference is GAP-DRIVING-003";
+      attribute :>> transformationRule = "identity on the 64 pairs; each sample also carries the pose of the plan's path: the pairs integrated the way the pinned source revision integrates them, from the newest speed of the motion history of the step, in the vehicle frame of the step (x forward, y to the left); the plan names the run record (REQ-DRIVING-034); the planning stack's numerical parity with the unmodified reference is GAP-DRIVING-003";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: pin the planning stack with its libraries, measure its parity with the reference on recorded inputs, author the plan event's mw::com configuration and run REQ-DRIVING-001, -013, -015 and -031";
-      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-003, framing gap gapClosedLoopPerformance (planning time unmeasured)";
+      attribute :>> nextAction = "bring the verification cases of REQ-DRIVING-001, -013, -015 and -031 to evidence of record; none is started";
+      attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-003, framing gap gapClosedLoopPerformance (the planning times of the runs are in GAP-DRIVING-013)";
     }
   }
 
@@ -1093,16 +1119,16 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * to the state publisher (an mw::com event). A mode is no vehicle
        * signal.
        */
-      attribute :>> semanticSource = "the mode the loop supervision decides each step, driving or the stop response with its cause (degraded camera images, motion or route, a stale or invalid plan, an exceeded planning period): a system state, no vehicle signal";
-      attribute :>> softwareContractArtifact = "in: the plan and the input condition on the agent's FEO topics, candidate; out: the mode and the valid plan on FEO topics for the vehicle commander and the mw::com mode event for the state publisher, candidate";
+      attribute :>> semanticSource = "the mode the loop supervision decides each step: starting, driving, or stopped with its cause (degraded camera images, motion or route, a stale or invalid plan, a refused checkpoint); a system state, no vehicle signal";
+      attribute :>> softwareContractArtifact = "in: the plan and the input condition on the agent's FEO topics, candidate; out: the mode and the valid plan on FEO topics for the vehicle commander and the mw::com mode event for the state publisher (the mode event in section 2 and the causes in section 4 of implementation/closed-loop-driving-bench/interfaces/ICD.md; payload DrivingModePayload and the enumerations Mode and Cause in implementation/closed-loop-driving-bench/interfaces/include/de4sdv/driving/payloads.h), candidate";
       attribute :>> softwareContractMessage = "out: DrivingMode with the cause and the decision time, candidate";
       attribute :>> softwareContractField = "out: mode, cause, decisionTime, candidate";
       attribute :>> dataTypeAndUnit = "out: an enumeration for the mode and the cause, wall-clock seconds for the decision time; no unit";
-      attribute :>> timingQualityAndState = "decided once per step; the stop response is published with its cause within 100 ms of wall-clock time of its start (REQ-DRIVING-029); a plan older than its step is stale (REQ-DRIVING-026)";
-      attribute :>> transformationRule = "state rule: the input condition of REQ-DRIVING-023 to -025, a stale plan (REQ-DRIVING-026), an invalid plan (REQ-DRIVING-027) or an exceeded planning period (REQ-DRIVING-013) gives the stop response with that cause; otherwise driving";
+      attribute :>> timingQualityAndState = "decided once per step; the first cause of a stop holds for the rest of the run; the stop response is published with its cause within 100 ms of wall-clock time of its start (REQ-DRIVING-029); the newest valid plan is stale when it is more than 300 ms of simulation time old at a command (REQ-DRIVING-026)";
+      attribute :>> transformationRule = "state rule: starting until the first valid plan; then the input condition of REQ-DRIVING-023 to -025, a stale plan (REQ-DRIVING-026) or an invalid plan (REQ-DRIVING-027) gives the stop response with that cause, and standstill after it (REQ-DRIVING-022); a refused checkpoint gives refused from the start (REQ-DRIVING-035); otherwise driving. A plan that misses the planning period of REQ-DRIVING-013 gives no stop: the stop on a late plan is that of the stale plan. The enumerations of the contract have five modes (starting, driving, stop response, standstill, refused) and, beside none, one cause for each limit of REQ-DRIVING-023 to -028 and -035 and one for the orderly end of a run";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: fix the mode and cause enumerations in the mw::com configuration and run REQ-DRIVING-023 to -027 and -029 with injected degradations";
+      attribute :>> nextAction = "bring the verification cases of REQ-DRIVING-023 to -027 and -029 to evidence of record; none is started; the mode and the cause are not typed in this model yet";
       attribute :>> evidenceOrGap = "no runtime evidence of record; the actuation-side stop reaches the publisher on MAP-DRIVING-ACTUATION-STATE, not on this path";
     }
   }
@@ -1119,15 +1145,15 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * angle by the two DE4SDV_VSS_Extensions candidates of decision 5.
        */
       attribute :>> semanticSource = "the commanded longitudinal acceleration and front-wheel steering angle computed from the newest valid plan and the current motion (REQ-DRIVING-011), typed at the port by Vehicle_ADAS_Driving_Command_Acceleration [m/s^2] and Vehicle_ADAS_Driving_Command_SteeringAngle [degrees], DE4SDV candidates absent from the pinned VSS snapshot";
-      attribute :>> softwareContractArtifact = "out: the mw::com command event from the agent to the actuation adapter (the layer's mw::com configuration, phase 10), candidate; S-CORE communication and nothing beside it (REQ-DRIVING-014)";
+      attribute :>> softwareContractArtifact = "out: the mw::com command event from the agent to the actuation adapter (the command event in section 2 of implementation/closed-loop-driving-bench/interfaces/ICD.md; payload VehicleMotionCommandPayload in implementation/closed-loop-driving-bench/interfaces/include/de4sdv/driving/payloads.h; the vehicle configuration that names the command law in its section 5), candidate; S-CORE communication and nothing beside it (REQ-DRIVING-014)";
       attribute :>> softwareContractMessage = "out: VehicleMotionCommandPayload, one event per command, candidate";
       attribute :>> softwareContractField = "out: acceleration, steeringAngle, productionTime, planReference, exact";
       attribute :>> dataTypeAndUnit = "out: acceleration float m/s^2 (negative decelerates), steeringAngle float degrees (positive to the left, the sign of Vehicle_Chassis_SteeringWheel_Angle), productionTime wall-clock seconds, planReference string";
       attribute :>> timingQualityAndState = "one command per step from the newest valid plan (REQ-DRIVING-011), stamped (REQ-DRIVING-032); in the stop response a deceleration of 4 m/s^2 with the steering angle held until standstill (REQ-DRIVING-020 to -022); the adapter treats 200 ms of simulation time without a valid command as loss (REQ-DRIVING-028)";
-      attribute :>> transformationRule = "plan to command: the acceleration and the curvature of the plan at the control horizon, the curvature to a front-wheel angle by the wheelbase the configuration names, both clipped to the vehicle limits it names (REQ-DRIVING-012); the conversion is the control part of the framing gap gapModelInputAndFeedback";
+      attribute :>> transformationRule = "plan to command, at the control horizon, the sample of the plan for the step of the command: the acceleration is the plan's acceleration there; the steering angle is pure pursuit of the plan's path (MAP-DRIVING-PLAN), read with the vehicle at its origin: the target is the first sample after the control horizon that lies at least the lookahead from the origin, the lookahead is 4 m plus 0.8 s times the speed of the vehicle, kept within 4 m and 15 m, and the front-wheel angle is that of the arc from the origin through the target, by the wheelbase the configuration names; both clipped to the vehicle limits it names (REQ-DRIVING-012). The law of the first design, the plan's curvature at the control horizon turned into a front-wheel angle by the wheelbase, stays selectable in the configuration and is not the shipped one: it steered to the right in every command of the two closed-loop runs made with it, where pure pursuit of the same plans asks for almost no steering. The conversion is the control part of the framing gap gapModelInputAndFeedback";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: author the command event's mw::com configuration with the two extension candidates and run REQ-DRIVING-011, -012, -014, -020 to -022 and -032 with hop logs";
+      attribute :>> nextAction = "bring the verification cases of REQ-DRIVING-011, -012, -014, -020 to -022 and -032 to evidence of record; none is started";
       attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-001 (the agent's framework); the in-process hops before this one are not under REQ-DRIVING-014 (owner reading 2026-11-06)";
     }
   }
@@ -1143,7 +1169,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * REQ-DRIVING-028 is applied on this port.
        */
       attribute :>> semanticSource = "the vehicle command applied at the simulated actuation: the simulator's VehicleControl (throttle, brake, steer), a simulator actuation contract, no vehicle signal; the commanded quantities it realizes are the two extension candidates of MAP-DRIVING-COMMAND";
-      attribute :>> softwareContractArtifact = "in: the mw::com command event, candidate; out: the simulator client library's vehicle control applied to the ego vehicle, candidate, release pinned in phase 10";
+      attribute :>> softwareContractArtifact = "in: the mw::com command event, candidate; out: the simulator client library's vehicle control applied to the ego vehicle, candidate, at the simulator release that section 1 of implementation/closed-loop-driving-bench/interfaces/ICD.md names, by the conversion of its section 5";
       attribute :>> softwareContractMessage = "out: VehicleControl per applied command, candidate";
       attribute :>> softwareContractField = "out: throttle, brake, steer, exact per the client library";
       attribute :>> dataTypeAndUnit = "out: throttle and brake float 0..1, steer float -1..1, no unit; in: m/s^2 and degrees";
@@ -1151,7 +1177,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> transformationRule = "acceleration to throttle or brake by the vehicle's longitudinal response the configuration names, steering angle to the normalized steer by its maximum steering angle, both clipped (REQ-DRIVING-012); the stop response maps 4 m/s^2 of deceleration to a brake value (REQ-DRIVING-020); the conversion is the actuation part of the framing gap gapModelInputAndFeedback";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: identify the vehicle's response on the pinned simulator release, author the conversion and run REQ-DRIVING-012, -020 to -022 and -028 with a withheld command";
+      attribute :>> nextAction = "identify the vehicle's longitudinal response on the simulator release in a calibration run: the table of the shipped vehicle configuration is a placeholder; then bring the verification cases of REQ-DRIVING-012, -020 to -022 and -028 to evidence of record; none is started";
       attribute :>> evidenceOrGap = "no runtime evidence of record; the stop applied here is published through MAP-DRIVING-ACTUATION-STATE";
     }
   }
@@ -1167,7 +1193,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * of REQ-DRIVING-029. A state of the actuation, no vehicle signal.
        */
       attribute :>> semanticSource = "the actuation state the adapter reports each step: the command it applied with its actuation time in simulation time, or that its own stop response is in force, since when and why (no valid command for 200 ms of simulation time, REQ-DRIVING-028): a system state, no vehicle signal";
-      attribute :>> softwareContractArtifact = "in: the applied vehicle control and the world snapshot's simulation time inside the adapter; out: the mw::com actuation-state event for the state publisher, candidate";
+      attribute :>> softwareContractArtifact = "in: the applied vehicle control and the world snapshot's simulation time inside the adapter; out: the mw::com actuation-state event for the state publisher (the actuation state event in section 2 of implementation/closed-loop-driving-bench/interfaces/ICD.md; payload ActuationStatePayload in implementation/closed-loop-driving-bench/interfaces/include/de4sdv/driving/payloads.h), candidate";
       attribute :>> softwareContractMessage = "out: ActuationState with the applied command or the stop in force, its cause and the actuation time, candidate";
       attribute :>> softwareContractField = "out: applied, acceleration, steeringAngle, actuationTime, stopInForce, stopSince, cause, candidate";
       attribute :>> dataTypeAndUnit = "out: a flag for applied, the command's m/s^2 and degrees, simulation-time seconds for the times, an enumeration for the cause; no unit";
@@ -1175,7 +1201,7 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
       attribute :>> transformationRule = "state rule: a valid command applied gives applied with its time; 200 ms of simulation time without a valid command gives the stop in force with the cause lost commands and the time it began (REQ-DRIVING-028); the publisher merges it with the mode of MAP-DRIVING-MODE into the one stop publication";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10: fix the event in the mw::com configuration and run REQ-DRIVING-028 and -029 with the command event withheld, reading the published cause";
+      attribute :>> nextAction = "bring the verification cases of REQ-DRIVING-028 and -029 to evidence of record; none is started";
       attribute :>> evidenceOrGap = "no runtime evidence of record";
     }
   }
@@ -1194,15 +1220,15 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
        * The topic is typed (decision 4); INC-MW-011 proved opaque frames.
        */
       attribute :>> semanticSource = "the operational state of the driving system for observation: the plan, the motion sample and the health, each with producer and time, and the stop with its cause; a system state publication, no vehicle signal, though the motion sample inside it carries the VSS-typed fields of MAP-DRIVING-EGO-MOTION";
-      attribute :>> softwareContractArtifact = "in: the mw::com operational-state event from the publisher, candidate; gatewayd and someipd of the SOME/IP gateway at d9eac670 with their service, instance and event ids (phase 10), candidate; out: the SOME/IP service of the driving operational state and the Data Tunnel topic of SDV Core, typed by a VSIDL message (GAP-DRIVING-006), candidate";
-      attribute :>> softwareContractMessage = "one SOME/IP service with three events, plan, vehicle state and health, mapped onto one VSIDL message DrivingOperationalState with a kind field, candidate; the split into three topics is a phase 10 contract decision";
+      attribute :>> softwareContractArtifact = "in: the mw::com operational-state event from the publisher (the operational state event in section 2 of implementation/closed-loop-driving-bench/interfaces/ICD.md), candidate; gatewayd and someipd of the SOME/IP gateway at d9eac670 with the service, instance and event ids and the message fields of its section 3, candidate; out: the SOME/IP service of the driving operational state and the Data Tunnel topics of SDV Core, typed by the message of implementation/closed-loop-driving-bench/ivi-observer/contract/de4sdv_driving_operational_state.proto through the mapping of implementation/closed-loop-driving-bench/ivi-observer/interop/de4sdv_driving_operational_state.vsidl (GAP-DRIVING-006), candidate";
+      attribute :>> softwareContractMessage = "one SOME/IP service with three events, plan, vehicle state and health, mapped onto one VSIDL message DrivingOperationalState with a kind field, candidate; three Data Tunnel topics of that message type, one per event";
       attribute :>> softwareContractField = "kind, producer, time, and per kind the plan samples, the motion sample fields or the health with the mode and its cause, candidate";
-      attribute :>> dataTypeAndUnit = "the plan's metres and radians, the sample's VSS units, an enumeration for the health and the cause, wall-clock seconds for the time; the SOME/IP payload is the VSIDL serialization, exact once pinned";
+      attribute :>> dataTypeAndUnit = "the plan's metres and radians, the sample's VSS units, an enumeration for the health and the cause, wall-clock seconds for the time; the SOME/IP payload is the SOME/IP serialization of the message's fields in their order, which the SOME/IP interop of SDV Core translates into the VSIDL message";
       attribute :>> timingQualityAndState = "the plan within 100 ms of its production (REQ-DRIVING-015), the motion sample within 100 ms of its receipt (REQ-DRIVING-016), the health at least every 200 ms also without a plan (REQ-DRIVING-017), the stop with its cause within 100 ms (REQ-DRIVING-029); whether the guest receives on time, late or not at all changes no plan (REQ-DRIVING-018, -019): the publisher has no port into the agent";
       attribute :>> transformationRule = "serialization to the VSIDL message at the SOME/IP interop of SDV Core; no value changes on the path; the discard and ordering behaviour of the chain is INC-MW-011's (GAP-MW-037, GAP-MW-045)";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
-      attribute :>> nextAction = "phase 10, in this order: assign the mw::com instance and the SOME/IP ids, author the VSIDL message and the Data Tunnel topic, build the observer, then run REQ-DRIVING-015 to -019 and -029 with hop logs on both sides of the hypervisor";
+      attribute :>> nextAction = "bring the verification cases of REQ-DRIVING-015 to -019 and -029 to evidence of record; none is started; the fields of the message are not typed in this model yet";
       attribute :>> evidenceOrGap = "no runtime evidence of record; GAP-DRIVING-006 (typed topic), INC-MW-011's GAP-MW-038 (SOME/IP on the guest untested)";
     }
   }
