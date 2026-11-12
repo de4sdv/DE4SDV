@@ -9,8 +9,22 @@ v2 as written records them.
 **Status against ICD v2 (as amended): 33 SUPPORTED (with stated caveats), 2
 MISSING.** A MISSING case cannot pass on an ICD v2 run: `evaluate_run.py`
 returns `inconclusiveMissingEvidence`, naming the field and the producer that
-must add it. Nothing here invents a criterion; every threshold is the one the
-requirement or the model states.
+must add it. Every number of a pass threshold is one that the requirement's
+statement or success criterion states, with these exceptions:
+
+- VC-DRIVING-004, 1 ms: the evaluator's tolerance on the age of each history
+  image.
+- VC-DRIVING-012, 3.0, 8.0, 35 and 180: the limits of the shipped vehicle
+  configuration, `actuation-adapter/config/vehicle_limits.json`; the evaluator
+  reads the limits of the configuration that the run record names.
+- VC-DRIVING-016, 1e-3: the evaluator's tolerance between a published value and
+  its record.
+- VC-DRIVING-021, 1e-6°: the evaluator's tolerance on the held steering angle.
+- VC-DRIVING-022, 0.1 km/h: the speed below which ICD section 4 counts the
+  vehicle as at standstill.
+
+No text of the driving model states the numbers of VC-DRIVING-004, -016, -021
+and -022.
 
 Clock vocabulary, from ICD section 1: **sim** = simulation time = frame ×
 100 ms (`CaptureTimeMicros`), carried as `_sim_ms`; **mono** =

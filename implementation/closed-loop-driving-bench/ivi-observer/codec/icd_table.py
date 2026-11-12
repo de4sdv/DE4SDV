@@ -1,8 +1,11 @@
 """The ICD v2 section 3 field table, as data.
 
-Hand-copied from `interfaces/ICD.md` v2, section 3 (43 rows: name, type, meaning)
-and from the AOSP SOME/IP type-definition page for the type vocabulary. It is
-the single source that the other artifacts are held to:
+A copy of `interfaces/ICD.md` v2, section 3 (number, name and type of each of
+the 43 rows), with the type vocabulary of the AOSP SOME/IP type-definition page.
+The repository root's `tests/test_closed_loop_driving_bench_documents.py`,
+function `test_the_observer_field_table_equals_section_3_of_the_interface_document`,
+holds it to that section. `tests/test_contract_and_encoding.py` holds the
+artifacts below to this copy:
 
   * `contract/de4sdv_driving_operational_state.proto`  -- names, numbers, types
   * `interop/someip_type_definition.textproto`         -- SomeIpType per field
