@@ -101,8 +101,15 @@ On 2026-11-12 DE4SDV [withdrew the proposal](https://github.com/ode4hera/SysML-v
 in that issue and closed it. The message says that the model already states
 the product-line information. It shows the dependency that DE4SDV uses and the
 form of the PLEML drone example, and it corrects one name in the issue text.
-It asks for nothing, and it does not claim that the maintainers agree. DE4SDV
-sent no pull request. This record does not follow replies.
+It asks for nothing, and it does not claim that the maintainers agree.
+
+A collaborator reopened the issue the same day and asked whether DE4SDV wants
+to record this in the library's list of the attributes it does not model.
+DE4SDV [sent a wording](https://github.com/ode4hera/SysML-v2-Requirements-Management/issues/4#issuecomment-6836359535)
+for the product-line attributes and asked the collaborator to add it. The
+wording leaves the applicability and reuse attributes as they are: DE4SDV did
+not examine them. DE4SDV sent no pull request. This record does not follow
+replies.
 
 ## Consequences
 
