@@ -1546,12 +1546,14 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
 
   verification <'VC-DRIVING-023'> stopOnDegradedCameraImagesVerification : StopOnDegradedCameraImagesVerification {
     doc /*
-     * Not started. Scenario: SC-DRIVING-003
-     * (DrivingScenarioIdentity::degradedInputOrPlan). Bench: the Linux host
-     * with the three programs under the Launch Manager and the S-CORE
-     * services, the simulator server with the simulated sensor rig and the
-     * route provider, and the bench's input faults named in the case; no
-     * guest.
+     * Not started. Scenarios: SC-DRIVING-003
+     * (DrivingScenarioIdentity::degradedInputOrPlan) for the two runs with
+     * a camera fault and SC-DRIVING-001
+     * (DrivingScenarioIdentity::closedLoopRoute) for the run without one.
+     * Bench: the Linux host with the three programs under the Launch
+     * Manager and the S-CORE services, the simulator server with the
+     * simulated sensor rig and the route provider, and the bench's input
+     * faults named in the case; no guest.
      */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> closedLoopDrivingVerificationBench;
@@ -1624,12 +1626,14 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
 
   verification <'VC-DRIVING-029'> publishStopVerification : PublishStopVerification {
     doc /*
-     * Not started. Scenario: SC-DRIVING-003
-     * (DrivingScenarioIdentity::degradedInputOrPlan). Bench: the Linux host
+     * Not started. Scenarios: SC-DRIVING-003
+     * (DrivingScenarioIdentity::degradedInputOrPlan) and SC-DRIVING-001
+     * (DrivingScenarioIdentity::closedLoopRoute), as the runs of
+     * VC-DRIVING-023 to VC-DRIVING-028 have them. Bench: the Linux host
      * with the three programs under the Launch Manager and the S-CORE
      * services, the simulator server with the simulated sensor rig and the
-     * route provider, and the bench's input faults named in the case; no
-     * guest.
+     * route provider, and the bench's input faults and stop of the S-CORE
+     * communication named in those cases; no guest.
      */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> closedLoopDrivingVerificationBench;

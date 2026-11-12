@@ -632,9 +632,10 @@ Each logical element is allocated to the software element that carries it
 elements), and each crossing of an item into a software contract has a
 system-to-software signal mapping with its record (`MAP-DRIVING-*`, nine
 candidates): what the item is, which contract it enters, its type and unit,
-its timing, its transformation, and the phase 10 action that follows. An
-allocation is a responsibility assignment, no deployment or runtime claim; a
-mapping is no interoperability claim; a pin is no build claim.
+its timing, its transformation, where the bench keeps the contract that
+Phase 10 authored, and what is left to do. An allocation is a responsibility
+assignment, no deployment or runtime claim; a mapping is no interoperability
+claim; a pin is no build claim.
 
 Four assumptions and eight gaps record what the realization depends on and
 what it found. Four of the gaps, GAP-DRIVING-010 to GAP-DRIVING-013, are
