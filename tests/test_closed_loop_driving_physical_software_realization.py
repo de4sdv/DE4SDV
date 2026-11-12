@@ -26,6 +26,7 @@ settled on top of it (decisions of 2026-11-06):
   of the physical system with its context, each framed by a concern of the Physical domain.
 """
 
+import json
 from pathlib import Path
 import re
 
@@ -925,7 +926,7 @@ def test_each_crossing_has_one_signal_mapping_with_a_complete_record():
             assert len(value) > 12 and not re.search(r"\b(TBD|TBC|TODO)\b|<[^']", value), (short, attribute)
         assert stated["disposition"] == "SignalMappingDisposition::candidate", short
         assert stated["owner"] == '"DE4SDV maintainers"', short
-        assert stated["nextAction"].startswith('"phase 10'), short
+        assert stated["nextAction"].count("to evidence of record; none is started") == 1, short
     assert "private import DE4SDV_MethodProcess::SystemToSoftwareSignalMappingCandidate;" in _code()
     assert "private import DE4SDV_MethodProcess::LogicalToSoftwareSignalMappingRecord;" in _code()
     assert "private import DE4SDV_MethodProcess::SignalMappingDisposition;" in _code()
@@ -1351,3 +1352,252 @@ def test_the_guide_explains_the_lane_gap_right_after_the_route_gap():
         assert phrase in lane, phrase
     for gone in GUIDE_LANE_GONE:
         assert gone not in lane, gone
+
+
+# -- after phase 10: the records name the bench's contract, the shipped command law and what is left ----------------
+#
+# The bench that implements this realization authored the contracts the records waited for. These checks read the
+# bench's own files, so a record and the bench cannot drift apart unseen: the shipped command law and its numbers,
+# the sections and events of the interface document, the payload structures, the modes and causes, the topics.
+
+BENCH = ROOT / "implementation/closed-loop-driving-bench"
+BENCH_ICD = BENCH / "interfaces/ICD.md"
+BENCH_PAYLOADS = BENCH / "interfaces/include/de4sdv/driving/payloads.h"
+VERIFICATION = DRIVING / "closed_loop_driving_verification_evidence.sysml"
+
+#: record -> (the sections of the interface document its artifact names, the mw::com event it names, its payload)
+RECORD_CONTRACTS = {
+    "MAP-DRIVING-CAMERA-IMAGES": ((1,), None, None),
+    "MAP-DRIVING-EGO-MOTION": ((2,), "ego-motion sample", "EgoMotionSamplePayload"),
+    "MAP-DRIVING-ROUTE": ((9,), None, None),
+    "MAP-DRIVING-PLAN": ((2,), "plan", "DrivingPlanPayload"),
+    "MAP-DRIVING-MODE": ((2, 4), "mode", "DrivingModePayload"),
+    "MAP-DRIVING-COMMAND": ((2, 5), "command", "VehicleMotionCommandPayload"),
+    "MAP-DRIVING-VEHICLE-CONTROL": ((1, 5), None, None),
+    "MAP-DRIVING-ACTUATION-STATE": ((2,), "actuation state", "ActuationStatePayload"),
+    "MAP-DRIVING-OPERATIONAL-STATE": ((2, 3), "operational state", None),
+}
+
+#: record -> the requirements whose verification cases its crossing waits for
+RECORD_REQUIREMENTS = {
+    "MAP-DRIVING-CAMERA-IMAGES": {3, 4, 5, 10, 23},
+    "MAP-DRIVING-EGO-MOTION": {8, 10, 16, 24},
+    "MAP-DRIVING-ROUTE": {6, 7, 25},
+    "MAP-DRIVING-PLAN": {1, 13, 15, 31},
+    "MAP-DRIVING-MODE": {23, 24, 25, 26, 27, 29},
+    "MAP-DRIVING-COMMAND": {11, 12, 14, 20, 21, 22, 32},
+    "MAP-DRIVING-VEHICLE-CONTROL": {12, 20, 21, 22, 28},
+    "MAP-DRIVING-ACTUATION-STATE": {28, 29},
+    "MAP-DRIVING-OPERATIONAL-STATE": {15, 16, 17, 18, 19, 29},
+}
+
+NUMBER_WORDS = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine"}
+
+
+def _record_value(short: str, attribute: str) -> str:
+    record = braced_body(_raw(), f"item <'{short}'>")
+    match = re.search(rf'attribute\s*:>>\s*{attribute}\s*=\s*"((?:[^"\\]|\\.)*)"\s*;', record)
+    assert match, (short, attribute)
+    return match.group(1)
+
+
+def _icd_sections() -> dict[int, str]:
+    text = BENCH_ICD.read_text(encoding="utf-8")
+    numbers = [int(number) for number in re.findall(r"^## (\d+)\. ", text, re.M)]
+    assert numbers and numbers == sorted(set(numbers)), "the interface document numbers each section once"
+    return {number: text.split(f"\n## {number}. ", 1)[1].split("\n## ", 1)[0] for number in numbers}
+
+
+def _icd_events() -> dict[str, str]:
+    """mw::com event -> its payload cell, from the event table in section 2 of the interface document."""
+    rows = [[cell.strip() for cell in line.strip().strip("|").split("|")]
+            for line in _icd_sections()[2].splitlines() if line.startswith("| ")]
+    assert rows and rows[0][0] == "Event" and rows[0][5] == "Payload", rows[:1]
+    return {row[0]: row[5] for row in rows[1:]}
+
+
+def _contract_enumeration(name: str) -> list[tuple[str, str]]:
+    """(enumerator, its comment) of an enumeration of the bench's payload header."""
+    body = re.search(rf"enum class {name} : std::uint8_t \{{(.*?)\n\}};", BENCH_PAYLOADS.read_text(encoding="utf-8"), re.S)
+    assert body, name
+    rows = re.findall(r"^\s*(k\w+) = \d+,[ \t]*(?://[ \t]*(.*))?$", body.group(1), re.M)
+    assert rows, name
+    return rows
+
+
+def _expand(numbers: str) -> set[int]:
+    """'023 to -028 and -035' -> {23, 24, 25, 26, 27, 28, 35}."""
+    found: set[int] = set()
+    for first, last in re.findall(r"-?(\d{3})(?: to -(\d{3}))?", numbers):
+        found |= set(range(int(first), int(last or first) + 1))
+    return found
+
+
+def _shipped_law() -> tuple[str, tuple[float, float, float, float]]:
+    """The command law the bench ships, and the lookahead of its pure pursuit: base, gain, lower and upper bound."""
+    config = json.loads((BENCH / "actuation-adapter/config/vehicle_limits.json").read_text(encoding="utf-8"))
+    code = (BENCH / "agent/cc/agent_logic.cpp").read_text(encoding="utf-8")
+    body = re.search(r"double PurePursuitLookaheadM\(double speed_kmh\) \{(.*?)\n\}", code, re.S)
+    assert body, "the lookahead function of the agent"
+    sum_ = re.search(r"const double lookahead = ([\d.]+) \+ ([\d.]+) \* speed_mps;", body.group(1))
+    bounds = re.search(r"return std::min\(([\d.]+), std::max\(([\d.]+), lookahead\)\);", body.group(1))
+    assert sum_ and bounds, "the lookahead of the agent has another form: read it again"
+    return config["command_law"], (float(sum_.group(1)), float(sum_.group(2)), float(bounds.group(2)), float(bounds.group(1)))
+
+
+def _command_rule_problems(rule: str, law: str, lookahead: tuple[float, float, float, float]) -> list[str]:
+    """What the rule of MAP-DRIVING-COMMAND says that the bench does not do."""
+    problems = []
+    base, gain, low, high = lookahead
+    shipped, _, first = rule.partition("The law of the first design")
+    if law != "pure_pursuit":
+        problems.append(f"the bench ships {law}; the record states pure pursuit as the shipped law")
+    if "the steering angle is pure pursuit of the plan's path (MAP-DRIVING-PLAN)" not in shipped:
+        problems.append("the shipped law is not stated as pure pursuit of the plan's path")
+    wanted = (f"the lookahead is {base:g} m plus {gain:g} s times the speed of the vehicle, kept within {low:g} m and "
+              f"{high:g} m")
+    if wanted not in shipped:
+        problems.append(f"the lookahead of the agent's code is not in the rule: {wanted}")
+    if "curvature" in shipped:
+        problems.append("the shipped law reads the plan's curvature")
+    if "the plan's curvature at the control horizon" not in first or "is not the shipped one" not in first:
+        problems.append("the first law is not named as selectable and not shipped")
+    for phrase in ("the acceleration is the plan's acceleration there", "REQ-DRIVING-012", "gapModelInputAndFeedback"):
+        if phrase not in rule:
+            problems.append(f"missing: {phrase}")
+    return problems
+
+
+def test_the_command_record_states_the_command_law_the_bench_ships():
+    # Owner decision of 2026-11-12. The record stated the law of the first design, the plan's curvature at the
+    # control horizon, while the bench ships pure pursuit of the plan's path. The law's name comes from the shipped
+    # vehicle configuration and its numbers from the agent's code, so a change there fails here.
+    law, lookahead = _shipped_law()
+    rule = _record_value("MAP-DRIVING-COMMAND", "transformationRule")
+    assert _command_rule_problems(rule, law, lookahead) == []
+    # the check refuses the rule of the first design, a lookahead other than the agent's, and another shipped law
+    first_design = ("plan to command: the acceleration and the curvature of the plan at the control horizon, the "
+                    "curvature to a front-wheel angle by the wheelbase the configuration names, both clipped to the "
+                    "vehicle limits it names (REQ-DRIVING-012); the conversion is the control part of the framing gap "
+                    "gapModelInputAndFeedback")
+    assert len(_command_rule_problems(first_design, law, lookahead)) >= 4
+    assert _command_rule_problems(rule, law, (lookahead[0] + 1.0,) + lookahead[1:])
+    assert _command_rule_problems(rule, "first_control", lookahead)
+    amendment = _flat(_raw().split("Amended on the owner's decision of 2026-11-12", 1)[1]
+                      .split("Alternatives recorded and not selected", 1)[0])
+    for phrase in ("after phase 10", "every record stays a candidate", "The command law is pure pursuit of the plan's path",
+                   "every steering command of the first 23 s was 4 to 10 degrees to the right",
+                   "pure pursuit of the same plans asks for less than 1 degree in more than nine of ten"):
+        assert phrase in amendment, phrase
+
+
+def test_each_record_names_where_the_bench_keeps_its_contract():
+    sections, events = _icd_sections(), _icd_events()
+    payloads = BENCH_PAYLOADS.read_text(encoding="utf-8")
+    assert list(RECORD_CONTRACTS) == [short for _, _, short in SIGNAL_MAPPINGS.values()]
+    for short, (numbers, event, struct) in RECORD_CONTRACTS.items():
+        assert "phase 10" not in braced_body(_raw(), f"item <'{short}'>"), f"{short}: phase 10 is done"
+        artifact = _record_value(short, "softwareContractArtifact")
+        paths = [path.rstrip(".") for path in re.findall(r"implementation/[\w./-]+", artifact)]
+        assert paths and paths[0] == BENCH_ICD.relative_to(ROOT).as_posix(), (short, paths)
+        for path in paths:
+            assert (ROOT / path).is_file(), (short, path)
+        assert tuple(sorted({int(number) for number in re.findall(r"\bsection (\d+)\b", artifact)})) == numbers, short
+        for number in numbers:
+            assert number in sections, (short, number)
+        if event is not None:
+            assert f"the {event} event in section 2" in artifact, short
+            assert event in events, (short, event)
+        if struct is not None:
+            assert f"`{struct}`" in events[event], (short, events[event])
+            assert re.search(rf"payload {struct}\b[^;)]* in {re.escape(BENCH_PAYLOADS.relative_to(ROOT).as_posix())}",
+                             artifact), short
+            assert f"struct {struct} {{" in payloads, struct
+    guide = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    assert "where the bench keeps the contract that Phase 10 authored, and what is left to do" in guide
+    assert "phase 10 action" not in guide
+
+
+def test_the_plan_record_says_a_plan_carries_its_path_beside_its_pairs():
+    # The shipped command law steers on the path of the plan, so the plan's record says where the path comes from.
+    payloads = BENCH_PAYLOADS.read_text(encoding="utf-8")
+    sample = re.search(r"struct PlanSample \{(.*?)\n\};", payloads, re.S)
+    assert sample and re.findall(r"^\s*float (\w+);", sample.group(1), re.M) == ["acceleration", "curvature", "x", "y",
+                                                                                "heading"]
+    count = re.search(r"inline constexpr std::size_t kPlanSamples = (\d+);", payloads).group(1)
+    rule = _record_value("MAP-DRIVING-PLAN", "transformationRule")
+    assert rule.startswith(f"identity on the {count} pairs; each sample also carries the pose of the plan's path: the "
+                           "pairs integrated the way the pinned source revision integrates them,")
+    assert "identity on the values" not in rule
+    fields = _record_value("MAP-DRIVING-PLAN", "softwareContractField")
+    assert fields.startswith(f"in: the {count} pairs of acceleration and curvature of the output head,")
+    assert "the pose of the plan's path" in fields and "sampled positions" not in fields
+    evidence = _record_value("MAP-DRIVING-PLAN", "evidenceOrGap")
+    assert "unmeasured" not in evidence and "GAP-DRIVING-013" in evidence, "the planning times are measured"
+
+
+def test_the_mode_record_holds_the_modes_and_causes_the_bench_fixed():
+    rule = _record_value("MAP-DRIVING-MODE", "transformationRule")
+    modes = [re.sub(r"(?<!^)(?=[A-Z])", " ", name[1:]).lower() for name, _ in _contract_enumeration("Mode")]
+    listed = re.search(r"have (\w+) modes \(([^)]*)\)", rule)
+    assert listed and listed.group(1) == NUMBER_WORDS[len(modes)] and listed.group(2).split(", ") == modes, modes
+    requirements = {name: {int(number) for number in re.findall(r"REQ-DRIVING-(\d{3})", comment)}
+                    for name, comment in _contract_enumeration("Cause")}
+    assert {name for name, numbers in requirements.items() if not numbers} == {"kNone", "kRunEnd"}
+    limits = set().union(*requirements.values())
+    named = re.search(r"one cause for each limit of REQ-DRIVING-([\d to and,-]+?) and one for the orderly end of a run", rule)
+    assert named and _expand(named.group(1)) == limits, (named and named.group(1), sorted(limits))
+    # No requirement asks for a stop on a missed planning period, and the contract has no cause for one.
+    assert 13 not in limits
+    assert "A plan that misses the planning period of REQ-DRIVING-013 gives no stop" in rule
+    assert "planning period" not in _record_value("MAP-DRIVING-MODE", "semanticSource")
+    supervision = _doc("part def LoopSupervisionActivity")
+    assert "A plan that misses the planning period of REQ-DRIVING-013 is no cause of a stop." in supervision
+    assert "It judges the input condition and the plan (REQ-DRIVING-023 to -027)" in supervision
+    stale = re.search(r"inline constexpr std::int64_t kPlanStaleMs = (\d+);",
+                      (BENCH / "agent/cc/agent_logic.h").read_text(encoding="utf-8"))
+    timing = _record_value("MAP-DRIVING-MODE", "timingQualityAndState")
+    assert stale and f"more than {stale.group(1)} ms of simulation time old at a command (REQ-DRIVING-026)" in timing
+    assert "older than its step" not in timing
+
+
+def test_the_operational_state_record_names_the_three_topics_and_the_message_the_bench_authored():
+    message = _record_value("MAP-DRIVING-OPERATIONAL-STATE", "softwareContractMessage")
+    quoted = ("one SOME/IP service with three events, plan, vehicle state and health, mapped onto one VSIDL message "
+              "DrivingOperationalState with a kind field")
+    assert message.startswith(quoted)
+    assert message.endswith("three Data Tunnel topics of that message type, one per event")
+    interop = BENCH / "ivi-observer/interop"
+    topics = set(re.findall(r'topic: "([^"]+)"', (interop / "broker_acl_append.textproto").read_text(encoding="utf-8")))
+    assert len(topics) == 3, topics
+    mapping = (interop / "de4sdv_driving_operational_state.vsidl").read_text(encoding="utf-8")
+    assert quoted in " ".join(re.sub(r"^#\s?", "", mapping, flags=re.M).split()), "the bench's mapping file quotes the record"
+    contract = (BENCH / "ivi-observer/contract/de4sdv_driving_operational_state.proto").read_text(encoding="utf-8")
+    assert re.search(r"^message DrivingOperationalState \{", contract, re.M)
+    unit = _record_value("MAP-DRIVING-OPERATIONAL-STATE", "dataTypeAndUnit")
+    assert "the SOME/IP payload is the SOME/IP serialization of the message's fields in their order" in unit
+    assert "VSIDL serialization" not in unit
+    assert "encoded as a SOME/IP struct in field order" in _icd_sections()[3]
+
+
+def test_what_is_left_in_each_record_is_the_evidence_of_cases_that_are_not_started():
+    verification = VERIFICATION.read_text(encoding="utf-8")
+    status = {int(number): words for number, words in
+              re.findall(r"verification <'VC-DRIVING-(\d{3})'> \w+ : \w+ \{\s*doc /\*\s*\*\s*([^.]*)\.", verification)}
+    assert len(status) == 35
+    for short, requirements in RECORD_REQUIREMENTS.items():
+        action = _record_value(short, "nextAction")
+        left = re.search(r"bring the verification cases of REQ-DRIVING-(.+?) to evidence of record; none is started",
+                         action)
+        assert left, (short, action)
+        assert _expand(left.group(1)) == requirements, (short, left.group(1))
+        for number in requirements:
+            assert status[number] == "Not started", (short, number)
+    control = _record_value("MAP-DRIVING-VEHICLE-CONTROL", "nextAction")
+    assert control.startswith("identify the vehicle's longitudinal response on the simulator release in a calibration run")
+    readme = " ".join((BENCH / "actuation-adapter/README.md").read_text(encoding="utf-8").split())
+    assert "The numbers in the checked-in file are placeholders" in readme, \
+        "the bench identified the vehicle's response: MAP-DRIVING-VEHICLE-CONTROL still asks for it"
+    route = _record_value("MAP-DRIVING-ROUTE", "timingQualityAndState")
+    assert "announced to the input activity again at a fixed period of simulation time" in route
+    assert re.search(r"sends `RouteAnnouncement` .* every \d+ ms of simulation time", _icd_sections()[9])
