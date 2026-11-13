@@ -70,6 +70,32 @@ def braced_body(source: str, declaration: str) -> str:
     raise AssertionError(f"unclosed declaration: {declaration}")
 
 
+_PACKAGE_RE = re.compile(r"(?m)^\s*(?:public\s+|private\s+)?package\s+(\w+)\s*\{")
+
+
+def charter_package_files(charter_file: Path, charter: str) -> tuple[Path, ...]:
+    """Return the model files of the packages a charter names in ``expectedArtifacts``.
+
+    An increment's packages are the ones its charter names. A features folder
+    can hold more than one increment, so a test of one increment reads this
+    list and not every file of the folder. The packages are looked up in the
+    charter's folder, each in exactly one file; the files come back sorted.
+    """
+    code = strip_comments(charter_file.read_text(encoding="utf-8"))
+    body = braced_body(code, f"part {charter} : IncrementCharter")
+    artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", body, re.DOTALL)
+    assert artifacts, f"charter {charter} lists no expectedArtifacts"
+    named = re.findall(r'"(\w+)"', artifacts.group(1))
+    assert named, f"charter {charter} names no package"
+    declared: dict[str, list[Path]] = {}
+    for path in sorted(charter_file.parent.glob("*.sysml")):
+        for package in _PACKAGE_RE.findall(strip_comments(path.read_text(encoding="utf-8"))):
+            declared.setdefault(package, []).append(path)
+    unresolved = [package for package in named if len(declared.get(package, [])) != 1]
+    assert not unresolved, f"charter {charter} names packages without exactly one file in its folder: {unresolved}"
+    return tuple(sorted({declared[package][0] for package in named}))
+
+
 def requirement_block(model_text: str, element_name: str) -> str | None:
     """Return the full block of the named requirement usage, or None."""
     match = re.search(

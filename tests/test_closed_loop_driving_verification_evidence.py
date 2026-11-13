@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+from sysml_shapes import charter_package_files
+
 ROOT = Path(__file__).resolve().parents[1]
 DRIVING = ROOT / "textual-notation-of-model" / "packages" / "features" / "driving"
 SLICE = DRIVING / "closed_loop_driving_verification_evidence.sysml"
@@ -25,6 +27,8 @@ PHYSICAL = DRIVING / "closed_loop_driving_physical_software_realization.sysml"
 VARIABILITY = DRIVING / "closed_loop_driving_variability_configuration.sysml"
 GUIDE = ROOT / "docs" / "guides" / "closed-loop-driving-increment.md"
 WORKFLOW = ROOT / "methodologies" / "sysmod-sysmlv2" / "increment-workflow.md"
+#: the files of the packages this increment's charter names; the driving folder holds more than one increment
+INCREMENT_FILES = charter_package_files(FRAMING, "closedLoopDrivingCharter")
 
 PACKAGE = "DE4SDV_ClosedLoopDrivingVerificationEvidence"
 BENCH_DEF = "ClosedLoopDrivingVerificationBench"
@@ -343,7 +347,7 @@ def test_the_environment_gap_is_deferred_and_names_the_probes_and_the_capture() 
     assert "side by side and both clocks visible" not in doc and "nothing of phase 10 is built before they are read" not in doc
     head = " ".join(raw[:raw.index("package ")].split())
     assert "stay open until then" not in head and "fixed by the readiness probes" in head
-    ids = sorted(set(re.findall(r"GAP-DRIVING-\d{3}", "".join(p.read_text(encoding="utf-8") for p in DRIVING.glob("*.sysml")))))
+    ids = sorted(set(re.findall(r"GAP-DRIVING-\d{3}", "".join(p.read_text(encoding="utf-8") for p in INCREMENT_FILES))))
     # GAP-DRIVING-009 took the next free number; GAP-DRIVING-010 (the history-mask decision of 2026-11-09),
     # GAP-DRIVING-011 (the route decision of 2026-11-10), GAP-DRIVING-012 (the lane decision of 2026-11-10) and
     # GAP-DRIVING-013 (the deadline decision of 2026-11-10) are the newest since. Numbers are taken in order and never

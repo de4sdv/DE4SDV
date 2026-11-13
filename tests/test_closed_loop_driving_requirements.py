@@ -22,12 +22,14 @@ pins hold what review settled on top of them:
 from pathlib import Path
 import re
 
-from sysml_shapes import braced_body, strip_comments
+from sysml_shapes import braced_body, charter_package_files, strip_comments
 
 ROOT = Path(__file__).resolve().parents[1]
 DRIVING = ROOT / "textual-notation-of-model/packages/features/driving"
 MODEL = DRIVING / "closed_loop_driving_needs_requirements.sysml"
 SYSTEM_OF_INTEREST = "DE4SDV_ClosedLoopDrivingFraming::candidateDrivingSystem"
+#: the files of the packages this increment's charter names; the driving folder holds more than one increment
+INCREMENT_FILES = charter_package_files(DRIVING / "closed_loop_driving_framing.sysml", "closedLoopDrivingCharter")
 CHECKPOINT_PIN = "cb50764b"
 
 NEED_SHORT = {
@@ -158,7 +160,7 @@ def _statement(body: str) -> str:
 def test_the_requirements_are_exactly_the_thirty_five_of_phase_5_in_order():
     declared = REQUIREMENT_PATTERN.findall(_code())
     assert declared == [(SHORT[name], name, kind) for name, (_need, kind, *_rest) in REQUIREMENTS.items()]
-    elsewhere = [path.name for path in DRIVING.glob("*.sysml") if path != MODEL
+    elsewhere = [path.name for path in INCREMENT_FILES if path != MODEL
                  and re.search(r"<'REQ-DRIVING-\d{3}'>", path.read_text(encoding="utf-8"))]
     assert not elsewhere, f"REQ-DRIVING short names are declared only here: {elsewhere}"
 
