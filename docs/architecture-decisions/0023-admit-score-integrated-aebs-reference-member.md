@@ -210,8 +210,9 @@ lands.
    protected emergency-command-path independence. ADR 0026 adds a sixth, an
    HMI display. The S-CORE member runs Autoware on Linux on the main side
    (C011). It keeps the AEBS emergency intervention command path inside the
-   Linux host, outside the integration layer (ASM-MW-028). "Common" is a scope classification, not evidence about
-   that content. REQ-MW-006, GAP-MW-029 and GAP-MW-033 stay open.
+   Linux host, outside the integration layer (ASM-MW-028). "Common" is a
+   scope classification, not evidence about that content. REQ-MW-006,
+   GAP-MW-029 and GAP-MW-033 stay open.
 6. **The role decides, not the software identity.** In the S-CORE member, the
    HMI application in the AAOS SDV guest is System 1 content. It is part of
    the member product, outside the system of interest of INC-MW-011.
