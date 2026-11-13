@@ -14,7 +14,9 @@ of the bench's own test folders, so these checks live here:
 - the table of `case-evaluators/OBSERVABLES.md`: the requirement of each case against the model, and the
   numbers of each pass threshold against the requirement, with the exceptions the document states;
 - the scenario column of that table against the scenarios in which the evaluators judge each case
-  (`SCENARIO_CASES` of `case-evaluators/cases.py`).
+  (`SCENARIO_CASES` of `case-evaluators/cases.py`);
+- the status column of that table against ICD section 8 and the evaluators: a case whose evaluator reads a key
+  of the run record that the agent does not write says so.
 
 Each check is a function of the texts it reads, so a mutated text can be handed to the same check. The parsing
 is a test-side convenience, not a SysML v2 or C++ parser: comments are blanked before structural matching,
@@ -44,6 +46,7 @@ OBSERVABLES = BENCH / "case-evaluators/OBSERVABLES.md"
 AGENT_WRITER = BENCH / "agent/cc/agent_ffi.cpp"
 PLANNER_WRITER = BENCH / "agent/python/de4sdv_planner/__init__.py"
 EVALUATORS = BENCH / "case-evaluators/cases.py"
+CAMPAIGN_EVALUATORS = BENCH / "case-evaluators/evaluate_campaign.py"
 
 #: ICD section 2 names the programs by short names, the software realization by its part names
 ICD_PART_NAMES = {"agent": "drivingAgent", "actuationAdapter": "actuationAdapter",
@@ -733,4 +736,110 @@ def test_the_evaluators_table_names_the_scenarios_in_which_the_evaluators_judge_
     case needs.
     """
     problems = _scenario_column_problems(_read(OBSERVABLES), _read(EVIDENCE), _read(EVALUATORS))
+    assert not problems, "\n".join(problems)
+
+
+# ---------------------------------------------------------------- 7. OBSERVABLES.md and the keys not written
+
+AS_BUILT = "As built"
+RUN_RECORD_SECTION = "ICD section 8"
+
+
+def _keys_said_unwritten(icd: str) -> tuple[set[str], set[str]]:
+    """The keys of the run record that ICD section 8 says the agent does not write, in two sets: the fields of
+    its "It does not hold" list, and the keys in backticks of the first sentence of each line that opens with
+    "The agent writes no" (`inputReplay {sourceRun, digest}` names `inputReplay`)."""
+    section = _section(icd, "## 8. Run record")
+    fields = set(_listed_fields(section, "It does not hold ", required=False))
+    keys = set()
+    for line in section.splitlines():
+        if not line.startswith("The agent writes no "):
+            continue
+        sentence = line.split(". ", 1)[0]
+        spans = re.findall(r"`([^`]*)`", sentence)
+        assert spans, f"ICD section 8: no key in backticks in {sentence!r}"
+        for span in spans:
+            match = re.fullmatch(r"([a-z][A-Za-z0-9]*)(?: \{[A-Za-z0-9, ]+\})?", span)
+            assert match, f"ICD section 8: `{span}` of {sentence!r} is no key"
+            keys.add(match.group(1))
+    return fields, keys
+
+
+def _evaluator_strings(evaluators_py: str, campaign_py: str) -> dict[str, set[str]]:
+    """Case id -> the strings that its evaluator spells: in `cases.py` the function under
+    `@case("VC-DRIVING-<n>", ...)`, in `evaluate_campaign.py` the function `vc<n>`. Read from the source without
+    importing the modules (they need numpy, which CI does not install)."""
+    spelled: dict[str, set[str]] = {}
+    for source, text in (("cases.py", evaluators_py), ("evaluate_campaign.py", campaign_py)):
+        for node in ast.walk(ast.parse(text)):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            cases = [decorator.args[0].value for decorator in node.decorator_list
+                     if isinstance(decorator, ast.Call) and getattr(decorator.func, "id", None) == "case"
+                     and decorator.args and isinstance(decorator.args[0], ast.Constant)
+                     and isinstance(decorator.args[0].value, str)]
+            campaign = re.fullmatch(r"vc(\d{3})", node.name) if source == "evaluate_campaign.py" else None
+            if campaign:
+                cases.append(f"VC-DRIVING-{campaign.group(1)}")
+            for case in cases:
+                assert case not in spelled, f"{source}: two evaluator functions for {case}"
+                spelled[case] = {inner.value for inner in ast.walk(node)
+                                 if isinstance(inner, ast.Constant) and isinstance(inner.value, str)}
+    return spelled
+
+
+def _as_built_sentence(keys: set[str]) -> str:
+    """The sentence that ends the status cell of a case whose evaluator reads ``keys``."""
+    named = [f"no `{key}`" for key in sorted(keys)]
+    listed = named[0] if len(named) == 1 else f"{', '.join(named[:-1])} and {named[-1]}"
+    return f"{AS_BUILT}, the agent's run record holds {listed} ({RUN_RECORD_SECTION}), which the evaluator reads."
+
+
+def _status_caveat_problems(observables: str, icd: str, evaluators_py: str, campaign_py: str, agent_cpp: str,
+                            planner_py: str) -> list[str]:
+    fields, keys = _keys_said_unwritten(icd)
+    problems = []
+    written = sorted(keys & _run_record_top_level_keys(agent_cpp, planner_py))
+    if written:
+        problems.append(f"ICD section 8 says that the agent writes no {written}; its writer writes them")
+    spelled = _evaluator_strings(evaluators_py, campaign_py)
+    rows = _table(observables, OBSERVABLES_HEADER)
+    cases = [f"VC-DRIVING-{row[0]}" for row in rows]
+    if sorted(spelled) != sorted(cases):
+        problems.append(f"evaluator functions and rows of the table differ: {sorted(set(spelled) ^ set(cases))}")
+    for case, row in zip(cases, rows):
+        read = spelled.get(case, set()) & (fields | keys)
+        status = row[-1]
+        if not read:
+            if AS_BUILT in status:
+                problems.append(f"{case}: the status cell says {AS_BUILT!r}; its evaluator reads no key that "
+                                f"{RUN_RECORD_SECTION} lists as not written")
+            continue
+        sentence = _as_built_sentence(read)
+        if status.count(AS_BUILT) != 1 or not status.endswith(f" {sentence}"):
+            problems.append(f"{case}: its evaluator reads {sorted(read)}, which {RUN_RECORD_SECTION} lists as not "
+                            f"written; the status cell does not end with the one sentence {sentence!r}")
+    return problems
+
+
+def test_a_status_cell_names_the_run_record_keys_that_its_evaluator_reads_and_the_agent_does_not_write():
+    """The "Status" column of `case-evaluators/OBSERVABLES.md` against ICD section 8 and the evaluators. ICD
+    section 8 says which keys of the run record the agent does not write: the fields of its "It does not hold"
+    list, and the keys of each line that opens with "The agent writes no". Where the evaluator of a case spells
+    such a key, the status cell of the case ends with one sentence: "As built, the agent's run record holds no
+    `<key>` (ICD section 8), which the evaluator reads.", with the keys in alphabetical order ("no `a` and no
+    `b`"). No other status cell says "As built". A key of a line "The agent writes no" is no key that the
+    agent's writer writes at the top level of the record.
+
+    The evaluators are read from their source: in `case-evaluators/cases.py` the function under
+    `@case("VC-DRIVING-<n>", ...)`, in `case-evaluators/evaluate_campaign.py` the function `vc<n>`. Every row of
+    the table has one such function. A string of the function that equals such a key counts as a read of the
+    key, whatever the function does with it.
+
+    Not seen: a key that an evaluator reads through a helper outside its function or under a name built at run
+    time, a key that the evaluator reads and ICD section 8 does not name, and what the evaluator returns
+    without the key (the evaluators' own tests judge that).
+    """
+    problems = _status_caveat_problems(_read(OBSERVABLES), _read(ICD), _read(EVALUATORS), _read(CAMPAIGN_EVALUATORS),
+                                       _read(AGENT_WRITER), _read(PLANNER_WRITER))
     assert not problems, "\n".join(problems)
