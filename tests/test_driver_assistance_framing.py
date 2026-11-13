@@ -56,7 +56,7 @@ OUT_OF_SCOPE = {
     "existingAEBSOutOfScope": "Changing the Autoware-based AEBS or reusing its evidence for this candidate.",
     "candidateTuningOutOfScope":
         "Training the candidate's networks, or tuning the candidate or a scenario until a case passes.",
-    "roadDeploymentOutOfScope":
+    "onRoadOperationOutOfScope":
         "On-road operation, production readiness, safety approval, compliance, type approval or certification.",
 }
 #: assumption -> the phrase that states its premise
@@ -70,11 +70,12 @@ ASSUMPTIONS = {
 GAPS = {
     "gapVehicleTargetCriteria": "None exists for a vehicle target.",
     "gapNoSeparateEmergencyFunction": "It has no emergency function apart from that planner.",
+    "gapWarningOutput": "That interface carries no warning.",
     "gapCandidateBehaviorUnverified": "No closed-loop result of the application exists on the DE4SDV bench.",
     "gapScoreIntegration": "no binding to Eclipse S-CORE communication and no S-CORE supervision",
     "gapCameraImageAndGeometry": "The simulator's images differ from them.",
-    "gapProductLineAdmission": "This increment admits no member and changes no scope decision.",
-    "gapAdoptionAndRights": "The upstream maintainers are not yet involved.",
+    "gapCandidateAdmission": "This increment admits no member and changes no scope decision.",
+    "gapUpstreamContactAndRights": "The upstream maintainers are not yet involved.",
 }
 
 
@@ -220,7 +221,7 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
         assert "readiness probe" in _doc(f"part {name} : IncrementAssumption"), name
     criteria = _doc("part gapVehicleTargetCriteria : IncrementGap")
     for phrase in ("cover the pedestrian and the bicycle target",
-                   "it defers the promotion of quantified thresholds into product-line obligations",
+                   "it defers the promotion of quantified thresholds into System 1 obligations",
                    "It also has to state whose obligation each criterion is."):
         assert phrase in criteria, phrase
     emergency = _doc("part gapNoSeparateEmergencyFunction : IncrementGap")
@@ -228,11 +229,19 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
                    "The product line holds a protected emergency command path as common content.",
                    "The lifecycle decision turns on it."):
         assert phrase in emergency, phrase
+    warning = _doc("part gapWarningOutput : IncrementGap")
+    for phrase in ("At the inspected revision",
+                   "writes its steering and its acceleration to its vehicle interface",
+                   "The warnings go to the application's own display and to its own data log.",
+                   "is an output that the application does not have",
+                   "without a change to the application's decision logic, is open"):
+        assert phrase in warning, phrase
     unverified = _doc("part gapCandidateBehaviorUnverified : IncrementGap")
-    for phrase in ("A fail is a likely first result.",
+    for phrase in ("an error in the speed planner, which the inspected revision still has",
+                   "A fail is a likely first result.",
                    "is a different candidate, and its verdicts are reported apart"):
         assert phrase in unverified, phrase
-    rights = _doc("part gapAdoptionAndRights : IncrementGap")
+    rights = _doc("part gapUpstreamContactAndRights : IncrementGap")
     for phrase in ("show them a result about their project before it is published",
                    "No upstream contact, endorsement or rights clearance is asserted."):
         assert phrase in rights, phrase
@@ -276,7 +285,7 @@ def test_the_framing_claims_no_verification_no_admission_and_no_compliance():
                    "no compliance"):
         assert phrase in _flat(header.replace("*", "")), phrase
     for word in ("compliance", "type approval", "certification", "production readiness"):
-        assert word in OUT_OF_SCOPE["roadDeploymentOutOfScope"], word
+        assert word in OUT_OF_SCOPE["onRoadOperationOutOfScope"], word
 
 
 def test_the_identity_is_declared_once_and_its_subject_is_registered():
@@ -290,6 +299,24 @@ def test_the_identity_is_declared_once_and_its_subject_is_registered():
     assert IDENTITY.split("-")[1] in check_naming.REGISTERED_SUBJECTS
     assert check_naming.check_identifier_tokens_in_text(
         _raw(), display_path=MODEL.name, suffix=".sysml") == []
+
+
+def test_the_package_declares_no_name_that_another_model_package_declares():
+    # Two packages may declare the same name, but a lookup by name then finds two elements, and a check that
+    # reads a folder by name sees one increment's element as the other's.
+    kinds = r"(?:part def|part|requirement def|requirement|concern def|concern|view def|view|dependency)"
+    declared = set(re.findall(rf"(?m)^  {kinds}\s+(?:<'[^']*'>\s*)?(\w+)", _code()))
+    assert len(declared) >= 35, "the population of the check must not be vacuous"
+    anywhere = re.compile(rf"\b{kinds}\s+(?:<'[^']*'>\s*)?(\w+)")
+    taken: dict[str, list[str]] = {}
+    for root in MODEL_ROOTS:
+        for path in sorted(root.rglob("*.sysml")):
+            if path == MODEL:
+                continue
+            for name in anywhere.findall(strip_comments(path.read_text(encoding="utf-8"))):
+                if name in declared:
+                    taken.setdefault(name, []).append(path.name)
+    assert not taken, f"declared in another package too: {taken}"
 
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
@@ -310,6 +337,9 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "../../textual-notation-of-model/packages/features/driving/driver-assistance-upstream.md"):
         assert f"]({target})" in guide, target
     flat = _flat(guide)
+    open_points = guide.split("## What the framing already records as open", 1)[1].split("\n## ", 1)[0]
+    assert len(re.findall(r"(?m)^- \*\*", open_points)) == len(GAPS), \
+        "the guide lists one open point for each gap of the model"
     for phrase in ("No implementation, run, result, product-line admission or compliance is claimed.",
                    "It is no statement about compliance or type approval.",
                    "Starting this increment launches no compute and authorizes no spend.",
@@ -321,12 +351,15 @@ def test_the_upstream_record_pins_what_the_framing_read():
     record = UPSTREAM_RECORD.read_text(encoding="utf-8")
     flat = _flat(record)
     pinned = re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/([^/)\s]+)", record)
-    assert len(pinned) == 10 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
+    assert len(pinned) == 13 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
     assert f"commit `{PIN}`" in flat
     # what the model's gaps rest on is in the record, in the record's own words
     for phrase in ("The code has no emergency function apart from that planner.",
+                   "It carries no warning.",
                    "The inspected commit holds no binding to Eclipse S-CORE communication and no S-CORE supervision.",
                    "DE4SDV has reproduced none of their results.",
+                   "None of the three starts from the inspected commit",
+                   "The speed planner of the inspected commit takes the relative speed in the same way.",
                    "says that it is trained on the OpenLane dataset",
                    "DE4SDV has built and run nothing of this upstream project.",
                    "The clauses for a vehicle target are not yet anchored there."):

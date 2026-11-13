@@ -151,7 +151,7 @@ package DE4SDV_DriverAssistanceFraming {
      * scenario until a case passes.
      */
   }
-  part roadDeploymentOutOfScope : OutOfScopeItem {
+  part onRoadOperationOutOfScope : OutOfScopeItem {
     doc /*
      * On-road operation, production readiness, safety approval, compliance,
      * type approval or certification.
@@ -208,7 +208,7 @@ package DE4SDV_DriverAssistanceFraming {
      * bicycle target. None exists for a vehicle target. The AEBS model
      * records its detection, warning, braking and non-activation criteria
      * for a vehicle target as undefined, and it defers the promotion of
-     * quantified thresholds into product-line obligations. Phase 5 has to
+     * quantified thresholds into System 1 obligations. Phase 5 has to
      * derive the criteria with their provenance: the approach speeds, the
      * target's speed, the time of the warning before the braking, the
      * braking demand and the speed at impact. It also has to state whose
@@ -226,13 +226,25 @@ package DE4SDV_DriverAssistanceFraming {
      * is open. The lifecycle decision turns on it.
      */
   }
+  part gapWarningOutput : IncrementGap {
+    doc /*
+     * At the inspected revision the application writes its steering and its
+     * acceleration to its vehicle interface. That interface carries no
+     * warning. The warnings go to the application's own display and to its
+     * own data log. A warning request at the system boundary is an output
+     * that the application does not have. Whether the increment reads the
+     * warning from that data log, or from an output that is added without a
+     * change to the application's decision logic, is open.
+     */
+  }
   part gapCandidateBehaviorUnverified : IncrementGap {
     doc /*
      * No closed-loop result of the application exists on the DE4SDV bench.
-     * The upstream record lists the defects that the project's own open
-     * changes report at the inspected revision. A fail is a likely first
-     * result. A build that carries a change which upstream has not merged is
-     * a different candidate, and its verdicts are reported apart.
+     * The upstream record lists what the project's own open changes report:
+     * an error in the speed planner, which the inspected revision still has,
+     * and closed-loop cases that fail. A fail is a likely first result. A
+     * build that carries a change which upstream has not merged is a
+     * different candidate, and its verdicts are reported apart.
      */
   }
   part gapScoreIntegration : IncrementGap {
@@ -253,7 +265,7 @@ package DE4SDV_DriverAssistanceFraming {
      * calibration that has to match the simulated camera.
      */
   }
-  part gapProductLineAdmission : IncrementGap {
+  part gapCandidateAdmission : IncrementGap {
     doc /*
      * The governed scope admits two member products and holds the Autoware
      * application, the sensing baseline and the protected emergency command
@@ -265,7 +277,7 @@ package DE4SDV_DriverAssistanceFraming {
      * member-product claim.
      */
   }
-  part gapAdoptionAndRights : IncrementGap {
+  part gapUpstreamContactAndRights : IncrementGap {
     doc /*
      * The upstream maintainers are not yet involved. Involve them before
      * deep adoption or vendoring, and show them a result about their project
@@ -347,7 +359,7 @@ package DE4SDV_DriverAssistanceFraming {
     expose warningPresentationOutOfScope;
     expose existingAEBSOutOfScope;
     expose candidateTuningOutOfScope;
-    expose roadDeploymentOutOfScope;
+    expose onRoadOperationOutOfScope;
     expose driverAssistanceCharter;
     expose driverAssistanceVerificationEnvironment;
     expose asmSimulatorPathUsable;
@@ -356,11 +368,12 @@ package DE4SDV_DriverAssistanceFraming {
     expose asmSimulatedConfigurationStandsIn;
     expose gapVehicleTargetCriteria;
     expose gapNoSeparateEmergencyFunction;
+    expose gapWarningOutput;
     expose gapCandidateBehaviorUnverified;
     expose gapScoreIntegration;
     expose gapCameraImageAndGeometry;
-    expose gapProductLineAdmission;
-    expose gapAdoptionAndRights;
+    expose gapCandidateAdmission;
+    expose gapUpstreamContactAndRights;
     render asTreeDiagram;
   }
 }

@@ -64,8 +64,14 @@ The scope is one configuration and at most ten requirements.
   acceleration that its speed planner computes. The product line holds a
   protected emergency command path as common content. Whether the candidate's
   braking can stand for that capability is what the decision turns on.
-- **No result on the DE4SDV bench.** The upstream record lists the defects that
-  the project's own open changes report. A fail is a likely first result.
+- **No warning output.** At the inspected revision the application writes its
+  steering and its acceleration to its vehicle interface, and that interface
+  carries no warning. The warnings go to the application's own display and to
+  its own data log. Where the increment reads the warning from is open.
+- **No result on the DE4SDV bench.** The upstream record lists what the
+  project's own open changes report: an error in the speed planner, which the
+  inspected revision still has, and closed-loop cases that fail. A fail is a
+  likely first result.
 - **No Eclipse S-CORE binding.** How the application's command and state enter
   the S-CORE path without a bypass is open.
 - **Simulated images.** Whether the application detects a simulated target at
