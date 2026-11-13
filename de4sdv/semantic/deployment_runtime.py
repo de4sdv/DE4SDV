@@ -24,6 +24,11 @@ The startup check refuses unless:
   runs when the corpus loads, from the API or from a snapshot: a refused
   snapshot is a miss, a refused API corpus raises
   :class:`~de4sdv.sysml_api.errors.ServedModelMismatchError` on every call.
+  When the binding also records the export documents
+  (:class:`~de4sdv.sysml_api.export_documents.ExportDocuments`, the source
+  documents and the external references of the same export), the corpus must
+  hold exactly the elements they list. The method view reads them; a binding
+  without them still starts, and the checks that need them stay method side.
 
 Every refusal is loud and nothing falls back: the Ask viewer serves no
 semantic answers and the MCP server does not start. There is no bundle, no
@@ -100,6 +105,8 @@ class StartupCheck:
             "binding_sha256": self.binding_sha256,
             "served_model": served.content_sha256,
             "source_export_sha256": served.source_export_sha256,
+            "export_documents": (None if self.binding.export_documents is None
+                                 else self.binding.export_documents.content_sha256),
             "element_count": served.element_count,
             "refused": sorted(self.contract.refused),
             "rollback": ROLLBACK,
@@ -201,6 +208,9 @@ class DeployedQueryService(ModelAuthorityQueryService):
             return (f"the corpus holds {len(digests)} elements with content {actual}; the "
                     f"deployment binding records {served.element_count} elements with "
                     f"{served.content_sha256} (export sha256 {served.source_export_sha256})")
+        documents = self.binding.export_documents
+        if documents is not None:
+            return documents.problem_for(elements)
         return None
 
     def verify_corpus(self, elements: list[Any]) -> None:

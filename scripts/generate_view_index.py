@@ -147,6 +147,13 @@ DIAGRAM_PUBLICATION_GAPS = {
 
 
 KNOWN_PRESENTATION_NOTES = {
+    "aaosSdvBoundaryView": (
+        "The parts compartment of `SDVCoreBoundary` lists `platformSoftware` "
+        "like the other parts, without the `ref` keyword. In the source it is a "
+        "reference (`ref part`) to guest operating-system content. In the "
+        "configured member `MW-CONFIG-001`, the platform stack owns that content "
+        "as its guest operating system."
+    ),
     "aebsVisualizationProductLineConfigurationView": (
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
@@ -159,28 +166,105 @@ KNOWN_PRESENTATION_NOTES = {
         "The single-column grid is narrower than its title; the mapping cells "
         "remain readable at full size."
     ),
+    "closedLoopDrivingOperationalContextView": (
+        "SysIDE lists the actions of `closedLoopDrivingOperation` but does not "
+        "draw the flows between them. The flows are modeled in the source, in "
+        "the action definition `ClosedLoopDrivingOperation`: camera images and "
+        "ego motion from the vehicle into planning, steering and acceleration "
+        "commands to the vehicle, and the published plan, vehicle state and "
+        "health to AAOS SDV, with no flow back into the loop."
+    ),
+    "closedLoopDrivingFunctionBreakdownView": (
+        "SysIDE lists the items and the seven functions of "
+        "`closedLoopDrivingFunctionalFlow` but does not draw the flows between "
+        "them. The flows are modeled in the source, in the action definition "
+        "`ClosedLoopDrivingFunctionalFlow`, and the requirements each function "
+        "carries are in `closedLoopDrivingRequirementFunctionMappingView`."
+    ),
+    "middlewareAdapterBoundaryExchangeView": (
+        "The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The "
+        "boundary refers to them; in the configured member `MW-CONFIG-001` the "
+        "platform stack owns them. The adapter box carries the ports of its "
+        "definition (exposed with `::**`). The AAOS SDV boundary box carries "
+        "only `vehicleSignalAccessOut`, its connection end of the wired path "
+        "(exposed without recursion). The wired velocity path is drawn."
+    ),
+    "middlewarePhysicalStructureView": (
+        "The parts compartment lists `adapter` and `aaosSdvBoundary` like the "
+        "other parts, without the `ref` keyword. In the source both are "
+        "references (`ref part`): the boundary refers to them, and in the "
+        "configured member `MW-CONFIG-001` the platform stack owns them."
+    ),
     "middlewareProductLineConfigurationView": (
         "Long qualified labels overlap in the current SysIDE layout; use the "
         "source and exposure list above for exact names."
     ),
     "middlewareProductModelAssemblyView": (
-        "Long qualified labels overlap in the current SysIDE layout; use the "
-        "source and exposure list above for exact names."
+        "The three boxes marked `=` are the bindings. Their end `thisThing` "
+        "names a reference: `middlewareBoundary.adapter`, "
+        "`middlewareBoundary.aaosSdvBoundary` or "
+        "`middlewareBoundary.aaosSdvBoundary.platformSoftware`. SysIDE shows "
+        "`sameThing` without its target, which the source names: "
+        "`platformStack.applicationMiddlewareAdapter`, "
+        "`platformStack.guestMiddleware` and `platformStack.guestOSPlatform`. "
+        "Each `thisThing` end names a `ref part`. The platform stack is the "
+        "only owner of the adapter, the guest middleware and the guest "
+        "operating system."
     ),
     "scoreMiddlewarePhysicalLogicalMappingView": (
         "Cells show ↗ for every allocation; the two partial allocations are "
         "typed `PartialLogicalToPhysicalSoftwareRealization`."
     ),
     "scoreMiddlewareLayerInternalExchangeView": (
-        "The four «connection» boxes above the layer are its connections to the "
-        "context parts of `SCORETwoDomainPhysicalSystem`, drawn as nodes with "
-        "their source and target ends because one end of each lies outside the "
-        "view; none of them reaches the velocity input of the AEB node. The "
-        "S-CORE part shows the platform-stack ports it inherits from "
-        "`MiddlewareLayer`, unconnected: the processes link S-CORE "
-        "communication and connect to each other directly. Domain placement "
-        "is stated in the process docs and the connection name; the view "
-        "does not draw the host/guest boundary."
+        "The five boxes marked `=` bind the layer's references: the S-CORE "
+        "services and the adapter to the Linux host, the SDV Core and its "
+        "platform software to the SDV Core VM, and the SDV Gateway on IVI to "
+        "the IVI VM. The four «connection» boxes above the layer are its "
+        "connections to the context parts of `SCORETwoDomainPhysicalSystem`, "
+        "drawn as nodes with their source and target ends because one end of "
+        "each lies outside the view; none of them reaches the velocity input "
+        "of the AEB node. Inside the layer, SysIDE 0.10.3 draws the "
+        "references `scoreServices`, `sdvGateway` and `sdvCore` («ref part») "
+        "as dashed containers, and the adapter only as a row of the layer's "
+        "parts compartment. The S-CORE part lists the Launch Manager, "
+        "gatewayd and someipd as rows. `sdvCore` shows every part of the SDV "
+        "Core boundary, because the recursive exposure reaches them; the "
+        "layer uses only `someIp` and `dataTunnel`. Of the seven connections "
+        "of the layer, only `frameTopicThroughSDVGatewayToRelay` and "
+        "`speedTopicToHealthProxy` appear, as «connection» boxes with their "
+        "ends. The frame path through gatewayd, someipd, the broker and Data "
+        "Tunnel (`frameEventOverSCORECommunication`, "
+        "`frameEventOverGatewayIPC`, `frameEventOverSOMEIPAcrossHypervisor`, "
+        "`frameTopicPublishedByBroker` and `frameTopicOverDataTunnelAcrossVMs`) "
+        "is in the source only. This is an observed render limit in SysIDE "
+        "0.10.3; the cause is not documented. A narrower exposure drew three "
+        "more of these connections, but it also drew some exposed members "
+        "twice. So the owner chose this exposure (owner decision of "
+        "2026-10-29). Domain placement is stated in the "
+        "process docs and the connection names; the view does not draw the "
+        "boundaries between the host and the two VMs."
+    ),
+    "scoreMiddlewareProductModelAssemblyView": (
+        "The four boxes marked `=` are the bindings. The end `thisThing` "
+        "names the layer's reference: `integrationLayer.scoreServices`, "
+        "`integrationLayer.adapter`, `integrationLayer.sdvCore` or "
+        "`integrationLayer.sdvCore.platformSoftware`. SysIDE shows "
+        "`sameThing` without its target, which the source names: "
+        "`platformStack.middleware`, "
+        "`platformStack.applicationMiddlewareAdapter`, "
+        "`platformStack.guestMiddleware` and `platformStack.guestOSPlatform`. "
+        "The layer side is a reference, so the platform stack is the only "
+        "owner of these parts. The layer's reference to the SDV Gateway on "
+        "IVI has no binding in this product."
+    ),
+    "scoreMiddlewareVerificationCaseView": (
+        "Under each `verify`, SysIDE prints the verified requirement from its "
+        "declaration in `DE4SDV_MiddlewareSCORENeedsRequirements`, not from a "
+        "copy in this slice. The print is not exact. In the `source` of "
+        "REQ-MW-015 it drops the word `requirement` and shows `(the names no "
+        "System 2 type)`. The render shows the requirement's own subject. The "
+        "binding of that subject to `verifiedBench.integrationLayer`, the "
+        "integration layer of `MW-CONFIG-002`, is in the source only."
     ),
     "scoreTwoDomainOperationalContextView": (
         "SysIDE lists the actions of the signal flow `scoreTwoDomainSignalFlow` "

@@ -82,6 +82,35 @@ product-line-applicability extension for a future upstream version rather
 than forking privately. Until that lands, DE4SDV keeps its own
 `applicability` convention.
 
+**Note (2026-11-12), which records what happened. The decision is unchanged;
+the plan in the paragraph above is dropped:** DE4SDV raised this on 2026-08-29
+in [issue 4 of the library's repository](https://github.com/ode4hera/SysML-v2-Requirements-Management/issues/4).
+A collaborator of that repository answered on 2026-09-04: contributions for
+product-line attributes are welcome, the maintainers do not plan the work
+themselves, and a pull request is invited.
+
+DE4SDV needs no such attribute. On 2026-10-21 the owner decided that a
+requirement varies with the features that bring its system of interest into a
+member product, as links the model already has state. A requirement without
+such a link is common to every member product. Rule 5 of the
+[increment workflow](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model)
+states the rule, and says that no check reads these links yet. No requirement
+carries a field or an attribute for product-line applicability.
+
+On 2026-11-12 DE4SDV [withdrew the proposal](https://github.com/ode4hera/SysML-v2-Requirements-Management/issues/4#issuecomment-6832007212)
+in that issue and closed it. The message says that the model already states
+the product-line information. It shows the dependency that DE4SDV uses and the
+form of the PLEML drone example, and it corrects one name in the issue text.
+It asks for nothing, and it does not claim that the maintainers agree.
+
+A collaborator reopened the issue the same day and asked whether DE4SDV wants
+to record this in the library's list of the attributes it does not model.
+DE4SDV [sent a wording](https://github.com/ode4hera/SysML-v2-Requirements-Management/issues/4#issuecomment-6836359535)
+for the product-line attributes and asked the collaborator to add it. The
+wording leaves the applicability and reuse attributes as they are: DE4SDV did
+not examine them. DE4SDV sent no pull request. This record does not follow
+replies.
+
 ## Consequences
 
 - Attribute data becomes structured and machine-checkable; the requirements

@@ -39,6 +39,7 @@ from increment_model_fixtures import (
     cut_workflow,
     ref,
     set_check,
+    uncheck_step,
 )
 from test_revision_index import _traversal
 
@@ -47,18 +48,31 @@ WORKFLOW_FILE = (Path(__file__).resolve().parents[1]
 REVISION = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
 P0, P4, P5, P10 = ("phase0_incrementFraming", "phase4_needs", "phase5_requirements", "phase10_vvEvidence")
 P6, P7, P8 = ("phase6_functionalArchitecture", "phase7_logicalArchitecture", "phase8_physicalRealization")
+P1, P2, P3, P11 = ("phase1_concernFraming", "phase2_operationalContext", "phase3_capabilityClassification",
+                   "phase11_baseline")
+P9 = "phase9_variabilityConfiguration"
 P = WorkflowParameter
 C = WorkflowCheck
 ADVISORY = {"expectedArtifactsCoverIncrementContent", "needSubjectIsSystemOfInterest",
             "requirementSubjectIsSystemOfInterest", "requirementStatesSuccessCriteria",
             "requirementCarriedByArchitecture", "functionCarriesRequirement", "logicalElementCarriesFunction",
             "physicalElementCarriesLogicalElement", "crossingHasSignalMapping", "signalMappingNamesSemanticSource",
-            "verificationCaseHasEvidenceRecordOrStatus"}
+            "verificationCaseHasEvidenceRecordOrStatus", "applicablePhaseContentPublished"}
 #: The checks of the architecture steps, which the fixture's charter does not declare applicable.
 ARCHITECTURE = {"functionalRequirementAllocatedToFunction", "incrementHasFunction", "requirementCarriedByArchitecture",
                 "functionCarriesRequirement", "functionAllocatedToLogicalElement", "logicalElementCarriesFunction",
                 "logicalElementAllocatedToPhysicalElement", "physicalElementCarriesLogicalElement",
                 "crossingHasSignalMapping", "signalMappingNamesSemanticSource"}
+#: The checks of the concern, context, classification, variability and baseline steps, which it does not
+#: declare either.
+CONTEXT_AND_PUBLICATION = {"concernHasStakeholder", "concernFramedByViewpoint", "incrementHasNonBoundaryConcern",
+                           "incrementHasOperationalContext", "operationalContextHoldsSystemOfInterest",
+                           "storyBindsSubjectToSystemOfInterest", "storyBindsActorsToContextParts",
+                           "characteristicIsFeatureDelta", "incrementHasConfiguredProduct",
+                           "configuredProductConfiguredByOneConfiguration", "publishedViewFramesConcern",
+                           "publishedViewExposesContent", "incrementHasBaselineDecision",
+                           "baselineDecisionStatesDisposition", "openGapStatesDisposition",
+                           "applicablePhaseContentPublished"}
 
 
 def _named(scenario, name: str) -> dict:
@@ -107,7 +121,7 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert method.available, method.problems or method.reason
     assert not any(b["ontology_class"] in {"IncrementWorkflow", "MethodCheck"} for b in scenario.builder.bindings)
     obligations = method.contract.obligations
-    assert len(obligations) == 40
+    assert len(obligations) == 56
     assert [o.obligation_id for o in obligations][:2] == ["incrementHasIdentifier", "incrementHasCharter"]
     by_id = {o.obligation_id: o for o in obligations}
     assert by_id["needHasValidationScenario"].predicate == "hasValidationScenario"
@@ -121,22 +135,29 @@ def test_the_charter_declares_the_workflow_read_into_one_contract() -> None:
     assert by_id["requirementHasVerificationMethod"].cardinality == (1, 1)
     assert by_id["needHasValidationScenario"].cardinality == (1, UNBOUNDED)
     assert by_id["requirementVerifiedByVerificationCase"].permitted_empty
-    assert method.phases == (P0, P4, P5, P6, P7, P8, P10)
+    assert method.phases == (P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11)
     assert method.labels["needHasValidationScenario"]["check_definition"].endswith("MethodCheck")
 
 
 def test_the_method_lists_every_step_with_its_parameters_whether_or_not_it_has_checks() -> None:
-    """The frozen cut's workflow declares checks in 7 of its 13 steps; the other 6 are listed too."""
-    method = _method(_scenario())
+    """The frozen cut's workflow declares checks in each of its 12 steps; a step stripped of its checks is
+    listed too."""
+    assert [step["phase"] for step in _method(_scenario()).steps if step["checks"]] == list(PHASE_LITERALS)
+    scenario = _scenario()
+    uncheck_step(scenario, scenario.workflow, "defineVariabilityAndConfiguration")
+    method = _method(scenario)
     steps = method.steps
     assert [step["phase"] for step in steps] == list(PHASE_LITERALS)
-    assert [step["phase"] for step in steps if step["checks"]] == [P0, P4, P5, P6, P7, P8, P10]
+    assert [step["phase"] for step in steps if step["checks"]] == [P0, P1, P2, P3, P4, P5, P6, P7, P8, P10, P11]
+    assert [step["step"] for step in steps if not step["checks"]] == ["defineVariabilityAndConfiguration"]
     assert steps[0]["checks"][:2] == ["incrementHasIdentifier", "incrementHasCharter"]
     assert len([check for step in steps for check in step["checks"]]) == len(method.contract.obligations)
     concerns = steps[1]
     assert (concerns["step"], concerns["definition"], concerns["optional"]) == (
         "frameConcerns", "DE4SDV_IncrementWorkflow::FrameConcerns", True)
-    assert concerns["documentation"] == "Who cares and why?"
+    assert concerns["documentation"].startswith("Who cares and why? Rules: at least one concern of the increment "
+                                                "is not typed by IncrementBoundaryConcern")
+    assert concerns["checks"] == ["incrementHasNonBoundaryConcern", "concernHasStakeholder", "concernFramedByViewpoint"]
     assert [(p["parameter"], p["direction"], p["sysml_type"], p["type"], p["multiplicity"])
             for p in concerns["inputs"] + concerns["outputs"]] == [
         ("problemStatement", "in", "RequirementUsage", "DE4SDV_MethodContext::ProblemStatement", [1, 1]),
@@ -175,7 +196,7 @@ def test_a_metadata_usage_without_a_check_attribute_is_not_a_check() -> None:
 def test_a_complete_increment_passes_every_blocking_check() -> None:
     evaluation = _evaluate(_scenario())
     for unit in evaluation.canonical.units:
-        if unit.unit_id in ARCHITECTURE:  # phases 6 to 8: the charter does not declare them
+        if unit.unit_id in ARCHITECTURE | CONTEXT_AND_PUBLICATION:  # the charter does not declare their phases
             assert unit.verdict == me.VERDICT_NOT_APPLICABLE, unit.unit_id
             continue
         if unit.unit_id in ADVISORY:
@@ -189,8 +210,8 @@ def test_a_complete_increment_passes_every_blocking_check() -> None:
     assert _unit(evaluation, "verificationCaseHasEvidenceRecordOrStatus").state == me.STATE_INDETERMINATE
     status = evaluation.status()
     assert [(block["phase"], block["phase_exit"]) for block in status["phases"]] == [
-        (P0, "READY"), (P4, "READY"), (P5, "READY"), (P6, "READY"), (P7, "READY"), (P8, "READY"),
-        (P10, "READY")]  # phases 6 to 8: not declared, so every check is not applicable
+        (P0, "READY"), (P1, "READY"), (P2, "READY"), (P3, "READY"), (P4, "READY"), (P5, "READY"), (P6, "READY"),
+        (P7, "READY"), (P8, "READY"), (P9, "READY"), (P10, "READY"), (P11, "READY")]  # not declared: not applicable
     assert evaluation.next_obligation()["next"] is None
     assert evaluation.next_obligation()["method_side_blockers"] == []
 

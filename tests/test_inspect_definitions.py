@@ -39,17 +39,17 @@ METHODS = "textual-notation-of-model/packages/methods/de4sdv/"
 #: the cut records for them.
 SOURCES = {
     METHODS + "de4sdv_increment_workflow.sysml":
-        "3948706721d95013446341886385ca91c4fbbdfffe324d4b1c251b0c6ac9dfea",
+        "08d2fbf377a37e28ef113a2b7fc4990fcf8dd5a7e640f80518a076a26539ed02",
     METHODS + "de4sdv_trace_vocabulary.sysml":
         "58ba8ea33ef950e1abcdda19efaa6757e33cad06902e70605ffdc3eaf1a6fbea",
     METHODS + "de4sdv_method_process.sysml":
-        "909f18b5a19748fbd34cf6a32c9fcd66c4a19f419a6abb68cfaee8a1a045c6fb",
+        "6d2c835a13cbf00bd3485c9e3832dbf7d982060cacca027424527e21946b1b80",
     METHODS + "de4sdv_method_context.sysml":
-        "89c51b945f375fce2865b24495c74ad5b12b2e1d38192bb5a86ebcf98314e791",
+        "6f532038768174268da928dd5fe5a98f1bee88060a687e505540fd6d4fd63fc0",
     "textual-notation-of-model/packages/features/aebs/aebs_visualization_needs_requirements.sysml":
-        "edce3bf5b30a042083138712bd8084902d4488be1b308730246b26a50af576bb",
+        "fca72fee30115adce6e09bab7ab9b37cf4f7d35e104be1771619e433c4eed904",
     "textual-notation-of-model/packages/features/aebs/aebs_visualization_framing.sysml":
-        "17ef7aca4932a3abae1a2143796f0b2c66e418ef43e62a0d6bcb4030677662ef",
+        "efa92224db16e931b0e3a067d18d517bdfdf9e9d04c2fafac73947b2278da8ed",
     ".sysand/lib/ode4hera-requirements-management_2.0.1/RequirementsManagement.sysml":
         "f7a480d6baed5b06eefb3be222608a616241eca5cf6dbde738f22ec00a9d3073",
     ".sysand/lib/mbse4u-sysmod_5.1.1/SYSMOD.sysml":
@@ -222,8 +222,7 @@ def test_an_enumeration_definition_lists_its_enumerated_values_in_order(service)
         "phase0_incrementFraming", "phase1_concernFraming", "phase2_operationalContext",
         "phase3_capabilityClassification", "phase4_needs", "phase5_requirements",
         "phase6_functionalArchitecture", "phase7_logicalArchitecture", "phase8_physicalRealization",
-        "phase9_variabilityConfiguration", "phase10_vvEvidence", "phase11_publication",
-        "phase12_baselineNextSlice"]
+        "phase9_variabilityConfiguration", "phase10_vvEvidence", "phase11_baseline"]
     assert values[4]["qualified_name"] == "DE4SDV_MethodProcess::MethodPhase::phase4_needs"
     assert definition["owned_features"] == []
 

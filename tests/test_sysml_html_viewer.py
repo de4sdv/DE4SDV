@@ -444,8 +444,10 @@ def test_elements_page_renders_guide_markdown(tmp_path):
     assert "<blockquote><p>A quoted note with <strong>bold</strong>.</p></blockquote>" in html
     assert "<hr>" in html
     assert "<table><thead><tr><th>Kind</th><th>Used for</th></tr></thead><tbody>" in html
-    assert "<td><code>part def</code></td><td>structure</td>" in html
-    assert "<td><code>dependency</code></td><td>trace links</td>" in html
+    assert ('<td data-label="Kind"><code>part def</code></td>'
+            '<td data-label="Used for">structure</td>') in html
+    assert ('<td data-label="Kind"><code>dependency</code></td>'
+            '<td data-label="Used for">trace links</td>') in html
     assert "No element guide found" not in html
     index = (out / "index.html").read_text(encoding="utf-8")
     assert '<a class="site-nav-link" href="elements.html">Elements</a>' in index
@@ -453,6 +455,84 @@ def test_elements_page_renders_guide_markdown(tmp_path):
     out2 = tmp_path / "site2"
     generate(repo, out2, ["textual-notation-of-model/packages"])
     assert (out2 / "elements.html").read_bytes() == (out / "elements.html").read_bytes()
+
+
+def test_guide_markdown_lists_end_and_keep_their_own_type():
+    """A list ends at a blank line or at other content and leaves no empty
+    list behind. Each list has the type of its own items: a numbered list
+    after a bullet list is an <ol>, a bullet list after it is a <ul>."""
+    from tools.sysml_html_viewer.generate import _render_help_md
+
+    assert _render_help_md(
+        "- first\n"
+        "- second\n"
+        "\n"
+        "Some prose.\n"
+        "\n"
+        "1. one\n"
+        "2. two\n"
+        "\n"
+        "## Heading\n"
+        "\n"
+        "- after\n"
+    ).split("\n") == [
+        "<ul><li>first</li><li>second</li></ul>",
+        "<p>Some prose.</p>",
+        "<ol><li>one</li><li>two</li></ol>",
+        '<h2 id="heading">Heading</h2>',
+        "<ul><li>after</li></ul>",
+    ]
+
+
+def test_guide_markdown_list_item_continues_on_its_next_lines():
+    """The lines after a list item that start no other block are part of
+    that item, as in CommonMark. An item that wraps over several lines
+    stays one item; its text is not split off into a paragraph."""
+    from tools.sysml_html_viewer.generate import _render_help_md
+
+    assert _render_help_md(
+        "- **Model** answers about one\n"
+        "  model element.\n"
+        "- **Repository** answers about\n"
+        "  the repository.\n"
+        "\n"
+        "1. First step,\n"
+        "   on two lines.\n"
+        "2. Second step.\n"
+        "\n"
+        "After the lists.\n"
+    ).split("\n") == [
+        "<ul><li><strong>Model</strong> answers about one model element.</li>"
+        "<li><strong>Repository</strong> answers about the repository.</li></ul>",
+        "<ol><li>First step, on two lines.</li><li>Second step.</li></ol>",
+        "<p>After the lists.</p>",
+    ]
+
+
+def test_guide_table_cells_carry_the_name_of_their_column():
+    """Each body cell of a guide table has the text of its column header in
+    data-label, without markdown and escaped for the attribute. On a phone
+    the rows stack, and each cell shows that name above its text. A cell
+    without a header (a row longer than the header) has no data-label."""
+    from tools.sysml_html_viewer.generate import _render_help_md
+
+    html = _render_help_md(
+        "| **Kind** | Used `for` | [Example](x.md) | A \"quoted\" <name> |\n"
+        "|---|---|---|---|\n"
+        "| `part def` | structure | `PartA` | q | extra |\n"
+    )
+    assert html == (
+        "<table><thead><tr><th><strong>Kind</strong></th><th>Used <code>for</code></th>"
+        '<th><a href="x.md" rel="noopener">Example</a></th>'
+        "<th>A &quot;quoted&quot; &lt;name&gt;</th></tr></thead><tbody><tr>"
+        '<td data-label="Kind"><code>part def</code></td>'
+        '<td data-label="Used for">structure</td>'
+        '<td data-label="Example"><code>PartA</code></td>'
+        '<td data-label="A &quot;quoted&quot; &lt;name&gt;">q</td>'
+        "<td>extra</td></tr></tbody></table>"
+    )
+    css = (REPO_ROOT / "tools/sysml_html_viewer/carbon.css").read_text(encoding="utf-8")
+    assert "td[data-label]::before { content: attr(data-label);" in css
 
 
 def _git(repo: Path, *args: str) -> subprocess.CompletedProcess:
@@ -775,7 +855,7 @@ const documentListeners = {};
 
 function element() {
   return {
-    style: {},
+    style: {setProperty(name, value) { this[name] = value; }},
     classList: {
       add() {}, remove() {}, toggle() {}, contains() { return false; }
     },
@@ -827,8 +907,13 @@ if (!resizer.listeners || !resizer.listeners.mousedown) {
 }
 resizer.listeners.mousedown({preventDefault() {}, clientX: 320});
 documentListeners.mousemove({clientX: 500});
-if (layout.style.gridTemplateColumns !== '500px 6px 1fr') {
+if (layout.style['--tree-w'] !== '500px') {
   throw new Error('tree width did not follow the dragged divider');
+}
+// the width is only a custom property: an inline grid-template-columns
+// would also apply on a narrow screen and make the page scroll sideways
+if (layout.style.gridTemplateColumns !== undefined) {
+  throw new Error('the divider set the grid columns inline');
 }
 """
     result = subprocess.run(
@@ -837,6 +922,103 @@ if (layout.style.gridTemplateColumns !== '500px 6px 1fr') {
         text=True,
     )
     assert result.returncode == 0, result.stderr
+
+
+# a shorthand property sets these properties too
+_CSS_SHORTHANDS = {
+    "padding": ("padding-top", "padding-right", "padding-bottom", "padding-left"),
+    "margin": ("margin-top", "margin-right", "margin-bottom", "margin-left"),
+    "overflow": ("overflow-x", "overflow-y"),
+    "flex": ("flex-grow", "flex-shrink", "flex-basis"),
+    "gap": ("row-gap", "column-gap"),
+    "inset": ("top", "right", "bottom", "left"),
+}
+
+
+def _css_declarations(text: str) -> list[tuple[bool, str, str]]:
+    """(narrow, selector, property) of each declaration, in source order.
+
+    narrow is True in an `@media (max-width: ...)` block. The declarations
+    of the other at-rule blocks (other media queries, keyframes) are left
+    out: they are neither base rules nor narrow-screen rules."""
+    text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    out: list[tuple[bool, str, str]] = []
+
+    def plain_rules(block: str, narrow: bool) -> None:
+        for m in re.finditer(r"([^{}]+)\{([^{}]*)\}", block):
+            selectors = [" ".join(s.split()) for s in m.group(1).split(",")]
+            for decl in m.group(2).split(";"):
+                if ":" in decl:
+                    prop = decl.split(":", 1)[0].strip().lower()
+                    out.extend((narrow, sel, prop) for sel in selectors)
+
+    pos = 0
+    while True:
+        at = text.find("@", pos)
+        plain_rules(text[pos: len(text) if at == -1 else at], False)
+        if at == -1:
+            return out
+        brace = text.find("{", at)
+        depth, end = 1, brace + 1
+        while depth:
+            depth += {"{": 1, "}": -1}.get(text[end], 0)
+            end += 1
+        prelude = text[at:brace]
+        if prelude.startswith("@media") and "max-width" in prelude:
+            plain_rules(text[brace + 1: end - 1], True)
+        pos = end
+
+
+def _dead_narrow_rules(texts: list[str]) -> list[tuple[str, str]]:
+    """Narrow-screen declarations that a later base rule cancels.
+
+    The texts are given in the order the page loads them. A narrow-screen
+    rule has no effect when a base rule for the same selector and property
+    comes after it and no narrow-screen rule follows that base rule."""
+    decls = [d for text in texts for d in _css_declarations(text)]
+
+    def same(a: str, b: str) -> bool:
+        return a == b or b in _CSS_SHORTHANDS.get(a, ()) or a in _CSS_SHORTHANDS.get(b, ())
+
+    dead = []
+    for i, (narrow, sel, prop) in enumerate(decls):
+        if not narrow:
+            continue
+        later = [(j, n) for j, (n, s, p) in enumerate(decls) if j > i and s == sel and same(p, prop)]
+        last_base = max((j for j, n in later if not n), default=-1)
+        if last_base != -1 and not any(n and j > last_base for j, n in later):
+            dead.append((sel, prop))
+    return dead
+
+
+def test_every_narrow_screen_rule_comes_after_its_base_rule():
+    """A narrow-screen rule (`@media (max-width: ...)`) of viewer.css or
+    carbon.css must come after the base rule that it changes. The page
+    loads viewer.css first and carbon.css after it, and selectors of the
+    same specificity follow the source order. Thus a base rule after the
+    narrow-screen rule cancels it, and the narrow screen keeps the
+    desktop value.
+
+    Limits of the check: it compares only rules with the same selector
+    text, so a base rule with another selector for the same element (for
+    example `.a table td` for `.a td`) is not seen. Its shorthand map has
+    padding, margin, overflow, flex, gap and inset; it does not know
+    border, background, font or list-style and their longhand
+    properties."""
+    # the check finds a cancelled rule, and accepts a rule that a later
+    # narrow-screen rule states again after the base rule
+    assert _dead_narrow_rules([
+        "@media (max-width: 640px) { .a { padding: 1px; } }",
+        ".a { padding: 2px; } .b { color: red; }",
+    ]) == [(".a", "padding")]
+    assert _dead_narrow_rules([
+        "@media (max-width: 640px) { .a { padding-left: 1px; } }",
+        ".a { padding: 2px; }\n@media (max-width: 900px) { .a { padding-left: 3px; } }",
+    ]) == []
+    viewer_dir = REPO_ROOT / "tools/sysml_html_viewer"
+    texts = [(viewer_dir / name).read_text(encoding="utf-8") for name in ("viewer.css", "carbon.css")]
+    assert sum(narrow for text in texts for narrow, _, _ in _css_declarations(text)) > 20
+    assert _dead_narrow_rules(texts) == []
 
 
 def test_active_path_chain_stays_open(tmp_path):
@@ -908,6 +1090,35 @@ def test_source_view_only(tmp_path):
     # no comment span may contain a newline (would break line wrapping)
     for cmt in re.findall(r'<span class="src-cmt">(.*?)</span>', pre_body, re.S):
         assert "\n" not in cmt
+
+
+def test_long_names_on_a_file_page_wrap_between_words(tmp_path):
+    """A file page puts <wbr> at the word boundaries of the long names that
+    it shows once: the file path heading, the view heading, the diagram
+    file name and the view metadata. A word boundary is after `::`, `/`,
+    `.` and `_`, and before a capital letter that starts a word. A narrow
+    screen then wraps a long name between two words, not inside a word.
+    The text of each name stays the same."""
+    from tools.sysml_html_viewer.render import wbr
+
+    assert wbr("MiddlewareIntegrationFlow::translateSignal") == (
+        "Middleware<wbr>Integration<wbr>Flow::<wbr>translate<wbr>Signal")
+    assert wbr("features/aebs_needs.sysml") == "features/<wbr>aebs_<wbr>needs.<wbr>sysml"
+    assert wbr("AEBSAutoware") == "AEBS<wbr>Autoware"
+    assert wbr("a<b & 'c'") == "a&lt;b &amp; &#x27;c&#x27;"
+    assert wbr("") == ""
+
+    out = tmp_path / "site"
+    generate(FIXTURE, out, ["textual-notation-of-model/packages"])
+    rel = "textual-notation-of-model/packages/features/fixture/fixture_feature.sysml"
+    html = (out / "pages" / f"{rel}.html").read_text(encoding="utf-8")
+    assert f"<h1>{wbr(rel)}</h1>" in html
+    assert f"{wbr('fixtureStructureView')}<a class=\"view-src-jump\"" in html
+    assert (f'<span class="diagram-toolbar-file">'
+            f'{wbr("diagram-fixtureStructureView.svg")}</span>') in html
+    source_row = re.search(r"<tr><th>Source</th><td><code>(.*?)</code></td></tr>", html)
+    assert source_row and "<wbr>" in source_row.group(1)
+    assert source_row.group(1).replace("<wbr>", "").startswith(f"{rel}:")
 
 
 def test_member_links_target_source_lines(tmp_path):
@@ -1075,7 +1286,7 @@ def test_viewpoint_tooltips(tmp_path, monkeypatch):
     assert re.search(
         r"<span class='muted vp-tip' data-tip-kind=\"SAF viewpoint\" "
         r'data-tip-name="FixtureViewpoint" '
-        r'data-tip-doc="Synthetic SAF description\."> \(FixtureViewpoint\)</span>',
+        r'data-tip-doc="Synthetic SAF description\."> \(Fixture<wbr>Viewpoint\)</span>',
         file_page,
     )
     # the SAF info map is populated and every entry is a non-empty description
@@ -1187,8 +1398,8 @@ def test_declarations_with_several_prefix_keywords_are_indexed(tmp_path):
     assert entries("total") == [("attribute", "Refuel", 15, "Real")]
     # the variant reference and the variant that it references are two
     # declarations with the same name
-    assert [entry[:3] for entry in entries("shared")] == [
-        ("part", "hostLayer", 5), ("part", "guestLayer", 8)]
+    assert entries("shared") == [
+        ("part", "hostLayer", 5, "Shared"), ("part", "guestLayer", 8, "Shared")]
     # one prefix keyword or none
     assert entries("Stack") == [("part def", "P", 2, "")]
     assert entries("hostLayer") == [("part", "Stack", 3, "Layer")]
@@ -1197,9 +1408,9 @@ def test_declarations_with_several_prefix_keywords_are_indexed(tmp_path):
 
 
 def test_variant_reference_label_resolves_in_its_own_variation(tmp_path):
-    """Two variants can have the same name when one references the other.
-    A diagram label resolves to the variant of the variation that contains
-    the label."""
+    """Two variants in different variations can have the same name. Here,
+    one references the other. A diagram label resolves to the variant of
+    the variation that contains the label."""
     f = tmp_path / "prefixes.sysml"
     f.write_text(_PREFIXES_MODEL, encoding="utf-8")
     index = build_member_index([parse_file(f, tmp_path)])
@@ -1211,6 +1422,325 @@ def test_variant_reference_label_resolves_in_its_own_variation(tmp_path):
     )
     assert [(li.name, li.line) for li in resolved] == [
         ("hostLayer", 3), ("shared", 5), ("guestLayer", 7), ("shared", 8)]
+
+
+def test_declared_type_before_a_reference_subsetting_or_redefinition(tmp_path):
+    """A typing can come before a reference, a subsetting or a
+    redefinition, as a keyword or as a symbol. The declared type is
+    captured in each of these forms. A usage that only specializes has no
+    declared type. In a declaration on one line with a body, a typing in
+    the body belongs to the usage in the body, not to the declaration."""
+    f = tmp_path / "typings.sysml"
+    f.write_text(
+        "package P {\n"
+        "  part def Layer {\n"
+        "    variant ref part a : A references b::a;\n"
+        "    part b : B subsets c;\n"
+        "    part d : D redefines e;\n"
+        "    part f : F ::> g;\n"
+        "    part h : H :> i;\n"
+        "    part j : J :>> k;\n"
+        "    part l :> m;\n"
+        "  }\n"
+        "  port def N :> Base { in item n : T redefines payload; }\n"
+        "  port def O { out item o : T; }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    types = {m.name: m.type_name for m in parse_file(f, tmp_path).members}
+    assert types == {"P": "", "Layer": "", "a": "A", "b": "B", "d": "D",
+                     "f": "F", "h": "H", "j": "J", "l": "", "N": "", "O": ""}
+
+
+def test_declared_type_before_a_value_a_multiplicity_or_a_relationship(tmp_path):
+    """The declared type is captured when a value, a multiplicity or a
+    default follows the typing, when the type is a qualified name, and when
+    the typing comes before `about`, `connect`, `allocate` or `bind`. In a
+    typing list, the type is the first type and type_names has all types.
+    A ` : ` in a value (after `=`) is no typing."""
+    f = tmp_path / "typings2.sysml"
+    f.write_text(
+        "package P {\n"
+        "  part def Layer {\n"
+        "    attribute a : A = 3;\n"
+        "    attribute b : Q::B;\n"
+        "    attribute c : Q :: C = 1;\n"
+        "    part d : D[0..1];\n"
+        "    attribute e : E default 1;\n"
+        "    metadata f : F about x;\n"
+        "    connection g : G connect x to y;\n"
+        "    allocation h : H allocate x to y;\n"
+        "    binding i : I bind x = y;\n"
+        "    ref part j : J, Q::K {\n"
+        "    }\n"
+        "    attribute l = cond ? m : n;\n"
+        "    attribute o : O[*] ordered;\n"
+        "  }\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    members = {m.name: m for m in parse_file(f, tmp_path).members}
+    assert {name: m.type_name for name, m in members.items()} == {
+        "P": "", "Layer": "", "a": "A", "b": "Q::B", "c": "Q::C", "d": "D", "e": "E",
+        "f": "F", "g": "G", "h": "H", "i": "I", "j": "J", "l": "", "o": "O"}
+    assert members["j"].type_names == ("J", "Q::K")
+    assert members["a"].type_names == ("A",)
+    assert members["l"].type_names == ()
+    index = build_member_index([parse_file(f, tmp_path)])
+    assert index["j"][0].type_names == ("J", "Q::K")
+
+
+def test_typed_doc_fallback_with_a_qualified_type_or_a_typing_list(tmp_path):
+    """The typed-doc fallback of a diagram label finds a qualified type
+    (`Q::T`) by its last name, and a declaration that Q owns comes first.
+    In a typing list, the first type with a doc gives the doc. The Ask
+    evidence names all types of a typing list."""
+    from tools.sysml_html_viewer.ask_model import build_evidence
+
+    f = tmp_path / "qualified_types.sysml"
+    f.write_text(
+        "package Q {\n"
+        "  part def T {\n"
+        "    doc /* The T that Q owns. */\n"
+        "  }\n"
+        "}\n"
+        "package Other {\n"
+        "  part def T {\n"
+        "    doc /* Another T. */\n"
+        "  }\n"
+        "  part def Plain;\n"
+        "  part def Documented {\n"
+        "    doc /* The documented type. */\n"
+        "  }\n"
+        "}\n"
+        "package Use {\n"
+        "  part a : Q::T;\n"
+        "  part b : Plain, Documented;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    index = build_member_index([mf])
+    resolved = {li.name: li for li in svg_info.resolve_labels(
+        ["a", "b"], index, view_file="qualified_types.sysml", view_folder="")}
+    assert resolved["a"].doc == "The T that Q owns."
+    assert resolved["b"].doc == "The documented type."
+    assert build_evidence(index["b"][0], [mf])["element"]["typed_as"] == "Plain, Documented"
+    assert build_evidence(index["a"][0], [mf])["element"]["typed_as"] == "Q::T"
+
+
+# Synthetic model for qualified names in the source view (`Q::name`). The
+# two layers of the stack have a variant `shared` each. The rack has a
+# `guestLayer::shared` of its own. In the physical system, `layer` has no
+# body: its `adapter` is a feature of its type. The `layer` of the context
+# has an `adapter` of its own.
+_QUALIFIED_MODEL = {
+    "stack/stack.sysml": (
+        "package P {\n"
+        "  part def Stack {\n"
+        "    variation part hostLayer : Layer {\n"
+        "      variant ref part shared : Shared references guestLayer::shared;\n"
+        "    }\n"
+        "    variation part guestLayer : Layer {\n"
+        "      variant part shared : Shared;\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    ),
+    "stack/member.sysml": (
+        "package M {\n"
+        "  part member : P::Stack {\n"
+        "    part :>> hostLayer = hostLayer::shared;\n"
+        "    part :>> guestLayer = guestLayer :: shared;\n"
+        "    part other = Unknown::shared;\n"
+        "  }\n"
+        "}\n"
+    ),
+    "rack/rack.sysml": (
+        "package R {\n"
+        "  part def Rack {\n"
+        "    part guestLayer : Layer {\n"
+        "      part shared : Shared;\n"
+        "    }\n"
+        "  }\n"
+        "  part chained = P::Stack::guestLayer::shared;\n"
+        "}\n"
+    ),
+    "physical/physical.sysml": (
+        "package Phys {\n"
+        "  part def Realization {\n"
+        "    part adapter : Process;\n"
+        "  }\n"
+        "  part def PhysicalSystem {\n"
+        "    part layer : Realization;\n"
+        "  }\n"
+        "  part system : PhysicalSystem;\n"
+        "  allocation a allocate x to system::layer::adapter;\n"
+        "}\n"
+    ),
+    "context/context.sysml": (
+        "package Ctx {\n"
+        "  part def Context {\n"
+        "    part layer : Layer {\n"
+        "      part adapter : Adapter;\n"
+        "    }\n"
+        "  }\n"
+        "}\n"
+    ),
+    "refs/refs.sysml": (
+        "package S {\n"
+        "  part def Holder {\n"
+        "    part hostLayer : Layer;\n"
+        "    ref part probe : P::Stack ::> hostLayer;\n"
+        "  }\n"
+        "}\n"
+    ),
+}
+
+
+def _qualified_model_site(tmp_path):
+    root = tmp_path / "textual-notation-of-model" / "packages"
+    for rel, text in _QUALIFIED_MODEL.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    out = tmp_path / "site"
+    generate(tmp_path, out, ["textual-notation-of-model/packages"])
+    return out
+
+
+def _source_links(out, rel, line):
+    """(name, file name, line) of each source reference on one source line."""
+    page = out / "pages" / "textual-notation-of-model" / "packages" / f"{rel}.html"
+    html = page.read_text(encoding="utf-8")
+    seg = html[html.find(f'id="src-{line}"'): html.find(f'id="src-{line + 1}"')]
+    return [
+        (name, Path(file).name, int(target))
+        for name, file, target in re.findall(
+            r'<a class="src-ref"[^>]*data-tip-name="([^"]*)"[^>]*'
+            r'data-tip-file="([^"]*)" data-tip-line="(\d+)"',
+            seg,
+        )
+    ]
+
+
+def test_qualified_source_reference_resolves_in_its_qualifier(tmp_path):
+    """In `Q::name`, the source reference of name goes to the declaration of
+    name that Q owns. Each qualifier of a chain `A::B::name` is resolved
+    in this way. There can be spaces around `::`."""
+    out = _qualified_model_site(tmp_path)
+    assert _source_links(out, "stack/member.sysml", 3) == [
+        ("hostLayer", "stack.sysml", 3), ("hostLayer", "stack.sysml", 3),
+        ("shared", "stack.sysml", 4)]
+    assert _source_links(out, "stack/member.sysml", 4) == [
+        ("guestLayer", "stack.sysml", 6), ("guestLayer", "stack.sysml", 6),
+        ("shared", "stack.sysml", 7)]
+    # the rack file has a guestLayer::shared of its own
+    assert _source_links(out, "rack/rack.sysml", 7) == [
+        ("P", "stack.sysml", 1), ("Stack", "stack.sysml", 2),
+        ("guestLayer", "stack.sysml", 6), ("shared", "stack.sysml", 7)]
+
+
+def test_qualified_source_reference_on_the_declaration_line_of_its_name(tmp_path):
+    """A variant can reference a variant with the same name
+    (`variant ref part shared : Shared references guestLayer::shared;`).
+    The declared name has no source reference. The qualified name keeps its
+    source reference."""
+    out = _qualified_model_site(tmp_path)
+    assert _source_links(out, "stack/stack.sysml", 4) == [
+        ("guestLayer", "stack.sysml", 6), ("shared", "stack.sysml", 7)]
+
+
+def test_qualified_source_reference_without_an_owned_declaration(tmp_path):
+    """If the declaration of Q owns no declaration of name, or Q has no
+    declaration, the rules for a name without a qualifier apply. In
+    `system::layer::adapter`, the part `layer : Realization` has no body,
+    and adapter is a feature of its type. The name layer is not used to
+    find adapter. Here, the rules pick the adapter in the same file."""
+    out = _qualified_model_site(tmp_path)
+    assert _source_links(out, "physical/physical.sysml", 9) == [
+        ("system", "physical.sysml", 8), ("layer", "physical.sysml", 6),
+        ("adapter", "physical.sysml", 3)]
+    # no declaration has the name Unknown
+    assert _source_links(out, "stack/member.sysml", 5) == [("shared", "stack.sysml", 4)]
+
+
+def test_name_after_the_references_symbol_has_no_qualifier(tmp_path):
+    """The symbol `::>` means `references`. It starts with `::`, but the
+    name after it has no qualifier. Thus in `P::Stack ::> hostLayer`,
+    hostLayer is not the hostLayer that Stack owns."""
+    out = _qualified_model_site(tmp_path)
+    assert _source_links(out, "refs/refs.sysml", 4) == [
+        ("P", "stack.sysml", 1), ("Stack", "stack.sysml", 2),
+        ("hostLayer", "refs.sysml", 3)]
+
+
+def _site(tmp_path, model: dict[str, str]):
+    root = tmp_path / "textual-notation-of-model" / "packages"
+    for rel, text in model.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    out = tmp_path / "site"
+    generate(tmp_path, out, ["textual-notation-of-model/packages"])
+    return out
+
+
+def test_a_name_in_a_string_is_no_source_reference(tmp_path):
+    """A string ("...") is text, like a quoted name: a word in it that is
+    also the name of a declaration is no source reference."""
+    out = _site(tmp_path, {"s/s.sysml": (
+        "package S {\n"
+        "  part def Vehicle;\n"
+        "  attribute note = \"Vehicle signals\" ; part v : Vehicle;\n"
+        "}\n")})
+    assert _source_links(out, "s/s.sysml", 3) == [("Vehicle", "s.sysml", 2)]
+    html = (out / "pages/textual-notation-of-model/packages/s/s.sysml.html").read_text(encoding="utf-8")
+    assert '<span class="src-str">&quot;Vehicle signals&quot;</span>' in html
+
+
+def test_a_library_declaration_is_a_target_only_where_the_library_is_named(tmp_path):
+    """A declaration in a library package is a source reference target and
+    a diagram label target only in its own file and in a file that names
+    the library package as a qualifier (`import L::*`, `L::x`). Thus a
+    common name in another file (`kind`) does not go to the library."""
+    out = _site(tmp_path, {
+        "lib/l.sysml": (
+            "library package L {\n"
+            "  metadata def SignalMetadata {\n"
+            "    attribute kind : String;\n"
+            "  }\n"
+            "  attribute def Speed;\n"
+            "  part def Holder { attribute s : Speed; }\n"
+            "}\n"),
+        "use/importing.sysml": (
+            "package A {\n"
+            "  private import L::*;\n"
+            "  attribute speed : Speed;\n"
+            "  @SignalMetadata { kind = \"sensor\"; }\n"
+            "}\n"),
+        "use/other.sysml": (
+            "package B {\n"
+            "  attribute speed : Speed;\n"
+            "  @VerificationMethod { kind = test; }\n"
+            "}\n"),
+    })
+    assert _source_links(out, "use/importing.sysml", 3) == [("Speed", "l.sysml", 5)]
+    assert _source_links(out, "use/importing.sysml", 4) == [
+        ("SignalMetadata", "l.sysml", 2), ("kind", "l.sysml", 3)]
+    assert _source_links(out, "use/other.sysml", 2) == []
+    assert _source_links(out, "use/other.sysml", 3) == []
+    # the library's own file sees its declarations
+    assert _source_links(out, "lib/l.sysml", 6) == [("Speed", "l.sysml", 5)]
+    # the index has the library declarations for Ask and the tree
+    files = load_model(tmp_path, ["textual-notation-of-model/packages"])
+    index = build_member_index(files)
+    assert [(r.kind, r.library) for r in index["kind"]] == [("attribute", "L")]
+    other = next(mf for mf in files if mf.rel_path.endswith("other.sysml"))
+    from tools.sysml_html_viewer.model_parse import file_index
+
+    assert "kind" not in file_index(index, other)
+    assert not svg_info.resolve_labels(["kind"], file_index(index, other), other.rel_path, "")
 
 
 def test_anonymous_usage_indexed(tmp_path):
@@ -1247,6 +1777,480 @@ def test_anonymous_usage_indexed(tmp_path):
     assert refs[0].doc == "The real objective text."
     assert refs[0].parent_name == "UC"
     assert refs[0].parent_line == uc.line
+
+
+def _parents(index: dict) -> dict[str, tuple[str, int]]:
+    """Declaration name -> (parent name, parent line) of the source entries."""
+    return {
+        name: (r.parent_name, r.parent_line)
+        for name, refs in index.items()
+        for r in refs
+        if r.anchor.startswith("src-")
+    }
+
+
+def test_package_after_a_sibling_usage_keeps_the_parent_of_its_braces(tmp_path):
+    """A package that follows a sibling declaration is a member of the
+    package that contains both. The members after that package keep their
+    parent too. All members get one depth: the number of open braces before
+    the declaration, plus 1. The Ask evidence names the same owner and the
+    same children."""
+    from tools.sysml_html_viewer.ask_model import build_evidence
+
+    f = tmp_path / "depth.sysml"
+    f.write_text(
+        "package Outer {\n"
+        "  part def A {\n"
+        "    part x;\n"
+        "  }\n"
+        "  package Inner {\n"
+        "    part def B;\n"
+        "  }\n"
+        "  part def C;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    assert [(m.name, m.depth) for m in mf.members] == [
+        ("Outer", 1), ("A", 2), ("x", 3), ("Inner", 2), ("B", 3), ("C", 2)]
+    by_name = {m.name: m for m in mf.members}
+    assert [c.name for c in by_name["Outer"].children] == ["A", "Inner", "C"]
+    assert [c.name for c in by_name["A"].children] == ["x"]
+    assert [c.name for c in by_name["Inner"].children] == ["B"]
+
+    index = build_member_index([mf])
+    assert _parents(index) == {
+        "Outer": ("", 0), "A": ("Outer", 1), "x": ("A", 2),
+        "Inner": ("Outer", 1), "B": ("Inner", 5), "C": ("Outer", 1)}
+    assert build_evidence(index["C"][0], [mf])["element"]["owner"] == "Outer"
+    assert build_evidence(index["Inner"][0], [mf])["element"]["owner"] == "Outer"
+    assert build_evidence(index["A"][0], [mf])["child_elements"] == ["x"]
+    assert build_evidence(index["Outer"][0], [mf])["child_elements"] == ["A", "Inner", "C"]
+
+
+def test_package_after_a_sibling_package_keeps_the_parent_of_its_braces(tmp_path):
+    """Two sibling packages are members of the package that contains them,
+    and the declaration after them is a member of that package too."""
+    f = tmp_path / "siblings.sysml"
+    f.write_text(
+        "package Outer {\n"
+        "  package First {\n"
+        "    part def A;\n"
+        "  }\n"
+        "  package Second {\n"
+        "    part def B;\n"
+        "  }\n"
+        "  part def C;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    assert [(m.name, m.depth) for m in mf.members] == [
+        ("Outer", 1), ("First", 2), ("A", 3), ("Second", 2), ("B", 3), ("C", 2)]
+    assert _parents(build_member_index([mf])) == {
+        "Outer": ("", 0), "First": ("Outer", 1), "A": ("First", 2),
+        "Second": ("Outer", 1), "B": ("Second", 5), "C": ("Outer", 1)}
+
+
+def test_top_level_declarations_are_index_roots(tmp_path):
+    """A declaration outside all braces has no parent, whatever its kind.
+    A second top-level package is not a member of the first. A file
+    without a package, such as a derived product model with one top-level
+    part definition, has that definition in the index with its members."""
+    two = tmp_path / "two_packages.sysml"
+    two.write_text(
+        "package One {\n"
+        "  part def A;\n"
+        "}\n"
+        "package Two {\n"
+        "  part def B;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    product = tmp_path / "product.sysml"
+    product.write_text(
+        "private import Lib::Base;\n"
+        "\n"
+        "part def Member :> Base {\n"
+        "  part slot;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    assert _parents(build_member_index([parse_file(two, tmp_path)])) == {
+        "One": ("", 0), "A": ("One", 1), "Two": ("", 0), "B": ("Two", 4)}
+    product_mf = parse_file(product, tmp_path)
+    assert [(m.name, m.depth) for m in product_mf.members] == [("Member", 1), ("slot", 2)]
+    assert _parents(build_member_index([product_mf])) == {
+        "Member": ("", 0), "slot": ("Member", 3)}
+
+
+# Synthetic model with short names (`<'ID'> name`). The short name can
+# follow the kind directly or after `def`, and the name can follow the short
+# name without a space.
+_SHORT_NAMES_MODEL = (
+    "package P {\n"
+    "  requirement def R;\n"
+    "  requirement <'REQ-1'> reqDeliver : R {\n"
+    "    doc /* The first requirement. */\n"
+    "    subject s : S;\n"
+    "  }\n"
+    "  part <'GAP-1'>gapOpen : Gap;\n"
+    "  verification def <'VC-1'>Check {\n"
+    "    objective { doc /* The goal. */ }\n"
+    "  }\n"
+    "  assert constraint <'C1'> needsLinux :> requires {\n"
+    "    doc /* The constraint. */\n"
+    "  }\n"
+    "  assert constraint plainConstraint;\n"
+    "}\n"
+)
+
+
+def test_declarations_with_a_short_name_are_indexed(tmp_path):
+    """A declaration can have a short name between the kind and the name
+    (`requirement <'REQ-1'> reqDeliver`). The index has the declaration
+    under its name, with its kind, parent, type and short name, and also
+    under its short name. Its members have it as parent, and a doc right
+    after its `{` is its doc, not the doc of its first member. `def` is a
+    keyword, never the name of a declaration."""
+    f = tmp_path / "short.sysml"
+    f.write_text(_SHORT_NAMES_MODEL, encoding="utf-8")
+    mf = parse_file(f, tmp_path)
+    index = build_member_index([mf])
+
+    def entries(name):
+        return [(r.kind, r.parent_name, r.line, r.type_name, r.short_name)
+                for r in index.get(name, [])]
+
+    assert entries("reqDeliver") == [("requirement", "P", 3, "R", "REQ-1")]
+    assert entries("s") == [("subject", "reqDeliver", 5, "S", "")]
+    assert entries("gapOpen") == [("part", "P", 7, "Gap", "GAP-1")]
+    assert entries("Check") == [("verification def", "P", 8, "", "VC-1")]
+    assert entries("objective") == [("objective", "Check", 9, "", "")]
+    assert entries("needsLinux") == [("assert constraint", "P", 11, "", "C1")]
+    assert entries("plainConstraint") == [("assert constraint", "P", 14, "", "")]
+    assert "def" not in index
+    # the short name is a name of the declaration too
+    assert [r.name for r in index["REQ-1"]] == ["reqDeliver"]
+    assert [r.name for r in index["VC-1"]] == ["Check"]
+    by_name = {m.name: m for m in mf.members}
+    assert by_name["reqDeliver"].doc == "The first requirement."
+    assert by_name["s"].doc == ""
+    assert by_name["needsLinux"].doc == "The constraint."
+    assert by_name["reqDeliver"].short_name == "REQ-1"
+
+
+def _short_names_site(tmp_path):
+    root = tmp_path / "textual-notation-of-model" / "packages" / "short"
+    root.mkdir(parents=True)
+    (root / "short.sysml").write_text(_SHORT_NAMES_MODEL, encoding="utf-8")
+    (root / "uses.sysml").write_text(
+        "package U {\n"
+        "  allocate reqDeliver to sys;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "site"
+    generate(tmp_path, out, ["textual-notation-of-model/packages"])
+    return out
+
+
+def test_short_names_are_shown_and_searchable_in_the_tree(tmp_path):
+    """The tree shows a short name before the name, as the SysIDE diagrams
+    do (`<REQ-1> reqDeliver`). The tree search reads the label text, so it
+    finds the element by its short name and by its name. The element
+    identity of the tree node (data-tip-name, which Ask uses) stays the
+    name."""
+    out = _short_names_site(tmp_path)
+    page = out / "pages" / "textual-notation-of-model" / "packages" / "short" / "short.sysml.html"
+    for html in ((out / "index.html").read_text(encoding="utf-8"),
+                 page.read_text(encoding="utf-8")):
+        node = re.search(
+            r'<li class="tree-node tree-requirement" ([^>]*)>.*?<a href="[^"]*#src-3">([^<]*)</a>',
+            html)
+        assert node is not None
+        assert 'data-tip-name="reqDeliver"' in node.group(1)
+        assert 'data-tip-short="REQ-1"' in node.group(1)
+        assert node.group(2) == "&lt;REQ-1&gt; reqDeliver"
+        # a declaration without a short name keeps its plain label
+        assert re.search(r'<a href="[^"]*#src-14">plainConstraint</a>', html)
+
+
+def test_short_names_in_source_tooltips_diagram_labels_and_ask(tmp_path):
+    """A source reference to an element with a short name carries the short
+    name for its tooltip (data-tip-short). SysIDE prints the short name
+    before the name in a diagram label (`<REQ-1> reqDeliver : R`): the label
+    resolves to the element, and its hover entry carries the short name. The
+    Ask evidence names the short name too."""
+    from tools.sysml_html_viewer.ask_model import build_evidence
+
+    out = _short_names_site(tmp_path)
+    page = out / "pages" / "textual-notation-of-model" / "packages" / "short" / "uses.sysml.html"
+    html = page.read_text(encoding="utf-8")
+    seg = html[html.find('id="src-2"'): html.find('id="src-3"')]
+    link = re.search(r'<a class="src-ref"[^>]*data-tip-name="reqDeliver"[^>]*>', seg)
+    assert link is not None and 'data-tip-short="REQ-1"' in link.group(0)
+
+    f = tmp_path / "textual-notation-of-model" / "packages" / "short" / "short.sysml"
+    mf = parse_file(f, tmp_path)
+    index = build_member_index([mf])
+    resolved = svg_info.resolve_labels(
+        ["<REQ-1> reqDeliver : R", "<VC-1> Check", "<GAP-1> gapOpen : Gap"], index,
+        view_file=mf.rel_path, view_folder="textual-notation-of-model/packages/short")
+    assert [(li.label, li.name, li.line) for li in resolved] == [
+        ("<REQ-1> reqDeliver : R", "reqDeliver", 3), ("<VC-1> Check", "Check", 8),
+        ("<GAP-1> gapOpen : Gap", "gapOpen", 7)]
+    payload = json.loads(svg_info.labels_to_json(resolved, ""))
+    assert payload["<REQ-1> reqDeliver : R"]["short"] == "REQ-1"
+    element = build_evidence(index["reqDeliver"][0], [mf])["element"]
+    assert (element["short_name"], element["owner"], element["typed_as"]) == ("REQ-1", "P", "R")
+    assert build_evidence(index["s"][0], [mf])["element"]["short_name"] is None
+
+
+def test_tooltip_shows_the_short_name_before_the_name():
+    """viewer.js puts a short name before the name in a tooltip."""
+    script = r"""
+const fs = require('fs');
+const listeners = {};
+function element(tag) {
+  return {
+    tagName: (tag || 'div').toUpperCase(), children: [], style: {setProperty() {}},
+    classList: {add() {}, remove() {}, toggle() {}, contains() { return false; }},
+    appendChild(c) { this.children.push(c); return c; },
+    removeChild() {},
+    querySelector() { return null; }, querySelectorAll() { return []; },
+    addEventListener() {}, getAttribute() { return null; }, setAttribute() {},
+    hasAttribute() { return false; }, closest() { return null; },
+    getBoundingClientRect() { return {left: 0, top: 0, width: 10, height: 10}; }
+  };
+}
+const created = [];
+global.document = {
+  readyState: 'complete', body: element('body'),
+  documentElement: {style: {setProperty() {}}},
+  createElement(tag) { const e = element(tag); created.push(e); return e; },
+  createDocumentFragment: element, createTextNode(t) { return {textContent: t}; },
+  querySelector() { return null; }, querySelectorAll() { return []; },
+  getElementById() { return null; },
+  addEventListener(type, fn) { (listeners[type] = listeners[type] || []).push(fn); },
+  removeEventListener() {}
+};
+global.window = {innerWidth: 1440, innerHeight: 900, USES_INDEX: {},
+  localStorage: {getItem() { return null; }, setItem() {}}, addEventListener() {}};
+global.location = {hash: '', pathname: ''};
+global.sessionStorage = {getItem() { return null; }, removeItem() {}, setItem() {}};
+eval(fs.readFileSync(process.argv[1], 'utf8'));
+const attrs = {'data-tip-kind': 'requirement', 'data-tip-name': 'reqDeliver',
+  'data-tip-short': 'REQ-1', 'data-tip-file': 'p/f.sysml', 'data-tip-line': '3'};
+const a = element('a');
+a.getAttribute = (k) => (k in attrs ? attrs[k] : null);
+a.closest = (sel) => (sel.indexOf('a.src-ref') !== -1 ? a : null);
+for (const fn of listeners.mouseover || []) fn({target: a, clientX: 5, clientY: 5});
+const names = created.filter(e => e.className === 'tip-name').map(e => e.textContent);
+if (names.indexOf('<REQ-1> reqDeliver') === -1) {
+  throw new Error('tooltip names: ' + JSON.stringify(names));
+}
+"""
+    result = subprocess.run(
+        ["node", "-e", script, str(REPO_ROOT / "tools/sysml_html_viewer/viewer.js")],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_members_of_an_unparsed_brace_owner_get_the_nearest_parsed_ancestor(tmp_path):
+    """The scanner does not index `perform ... {` and unnamed redefinitions
+    (`attribute :>> featureToRender = ... {`). The members inside their
+    braces get the nearest declaration that the scanner parses as parent,
+    never a sibling that comes before the brace. The Ask evidence names the
+    same owner and the same children."""
+    from tools.sysml_html_viewer.ask_model import build_evidence
+
+    f = tmp_path / "owners.sysml"
+    f.write_text(
+        "package P {\n"
+        "  part def Chain {\n"
+        "    port inPort : InPort;\n"
+        "    perform flow : Flow {\n"
+        "      in item x = inPort.x;\n"
+        "    }\n"
+        "    attribute :>> featureToRender = CT::constraintLanguage {\n"
+        "      attribute constraintName = \"statement\";\n"
+        "    }\n"
+        "    port outPort : OutPort;\n"
+        "  }\n"
+        "  part def Other;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    index = build_member_index([mf])
+    assert _parents(index) == {
+        "P": ("", 0), "Chain": ("P", 1), "inPort": ("Chain", 2), "x": ("Chain", 2),
+        "constraintName": ("Chain", 2), "outPort": ("Chain", 2), "Other": ("P", 1)}
+    by_name = {m.name: m for m in mf.members}
+    assert [c.name for c in by_name["Chain"].children] == [
+        "inPort", "x", "constraintName", "outPort"]
+    assert by_name["inPort"].children == []
+    assert build_evidence(index["x"][0], [mf])["element"]["owner"] == "Chain"
+    assert build_evidence(index["inPort"][0], [mf])["child_elements"] is None
+
+
+def test_braces_in_comments_strings_and_names_do_not_count(tmp_path):
+    """A brace in a comment, in a string or in a quoted name opens or closes
+    nothing. A note (`//`, `//* ... */`) is no code either."""
+    f = tmp_path / "text.sysml"
+    f.write_text(
+        "package P {\n"
+        "  part def A {\n"
+        "    doc /* an open brace { in a doc */\n"
+        "    attribute s : String = \"}\";\n"
+        "    // a note with a brace {\n"
+        "    //* a multi-line note {\n"
+        "     */\n"
+        "    part x;\n"
+        "  }\n"
+        "  part 'odd { name' : T;\n"
+        "  part y;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    assert [(m.name, m.depth) for m in mf.members] == [
+        ("P", 1), ("A", 2), ("s", 3), ("x", 3), ("'odd { name'", 2), ("y", 2)]
+    assert _parents(build_member_index([mf])) == {
+        "P": ("", 0), "A": ("P", 1), "s": ("A", 2), "x": ("A", 2),
+        "'odd { name'": ("P", 1), "odd { name": ("P", 1), "y": ("P", 1)}
+
+
+def test_library_packages_and_their_members_are_indexed(tmp_path):
+    """`library package` and `standard library package` declare packages.
+    Their members are in the index with their parents, like the members of
+    any other package."""
+    f = tmp_path / "lib.sysml"
+    f.write_text(
+        "library package Lib {\n"
+        "  package Defs {\n"
+        "    attribute def Speed;\n"
+        "  }\n"
+        "  part def Vehicle {\n"
+        "    attribute speed : Speed;\n"
+        "  }\n"
+        "}\n"
+        "standard library package Std {\n"
+        "  attribute def Real;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    index = build_member_index([mf])
+    assert _parents(index) == {
+        "Lib": ("", 0), "Defs": ("Lib", 1), "Speed": ("Defs", 2), "Vehicle": ("Lib", 1),
+        "speed": ("Vehicle", 5), "Std": ("", 0), "Real": ("Std", 9)}
+    assert {r.kind for name in ("Lib", "Defs", "Std") for r in index[name]} == {"package"}
+    assert mf.file_doc == ""
+    assert "Lib" not in {c.label for c in _walk(build_tree([mf]))}
+
+
+def _walk(node):
+    yield node
+    for child in node.children:
+        yield from _walk(child)
+
+
+def test_a_named_binding_is_indexed_under_its_name(tmp_path):
+    """`binding name bind a = b;` declares the binding `name`, also when its
+    `bind` part is on the next line. That line continues the declaration and
+    declares nothing. An unnamed `bind a = b;` stays a member under the name
+    of its first end. A diagram connector with the name of the binding pairs
+    with the binding."""
+    from tools.sysml_html_viewer.svg_info import (
+        extract_text_labels,
+        resolve_connectors,
+        resolve_labels,
+    )
+
+    f = tmp_path / "binding.sysml"
+    f.write_text(
+        "package P {\n"
+        "  part a { part x; }\n"
+        "  part b { part y; }\n"
+        "  binding xToY\n"
+        "    bind a.x = b.y;\n"
+        "  binding direct bind a = b;\n"
+        "  bind a = b;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    mf = parse_file(f, tmp_path)
+    assert [(m.kind, m.name, m.line) for m in mf.members if m.kind in ("bind", "binding")] == [
+        ("binding", "xToY", 4), ("binding", "direct", 6), ("bind", "a", 7)]
+    index = build_member_index([mf])
+    assert "a.x" not in index
+    assert [(r.kind, r.parent_name) for r in index["xToY"]] == [("binding", "P")]
+
+    svg = (
+        '<svg>'
+        '<polyline points="10,10 90,10" fill="none" stroke="#1A1A1A"/>'
+        '<text x="45" y="8">xToY</text>'
+        '</svg>'
+    )
+    resolved_list = resolve_labels(
+        extract_text_labels(svg), index, "binding.sysml", "", svg)
+    resolved = {li.label: li for li in resolved_list}
+    connectors = resolve_connectors(svg, resolved, index, "binding.sysml", "")
+    assert connectors["10,10 90,10"].name == "xToY"
+    assert connectors["10,10 90,10"].kind == "binding"
+
+
+def test_connection_definitions_are_indexed_under_their_name(tmp_path):
+    """`connection def X` declares the connection definition X, not a
+    connection usage with the name `def`."""
+    f = tmp_path / "trace.sysml"
+    f.write_text(
+        "package Trace {\n"
+        "  connection def DerivesFromNeed {\n"
+        "    doc /* A requirement derives from a need. */\n"
+        "  }\n"
+        "  abstract connection def Assignment;\n"
+        "  connection def FunctionAssignment :> Assignment;\n"
+        "}\n",
+        encoding="utf-8",
+    )
+    index = build_member_index([parse_file(f, tmp_path)])
+    assert [(r.kind, r.parent_name, r.line, r.doc) for r in index["DerivesFromNeed"]] == [
+        ("connection def", "Trace", 2, "A requirement derives from a need.")]
+    assert [(r.kind, r.line) for r in index["Assignment"]] == [("connection def", 5)]
+    assert [(r.kind, r.line) for r in index["FunctionAssignment"]] == [("connection def", 6)]
+    assert "def" not in index
+
+
+def test_a_keyword_after_the_kind_is_no_name(tmp_path):
+    """`attribute redefines x = ...;` is an unnamed attribute that
+    redefines x, like `attribute :>> x = ...;`: it declares no member with
+    the name `redefines`. `part subsets x;` and `ref references x;` are
+    unnamed too. `flow of T from a to b;` is an unnamed flow of T: like
+    `objective`, it is listed under its keyword, not under the name `of`.
+    A keyword is no source reference."""
+    out = _site(tmp_path, {"k/k.sysml": (
+        "package K {\n"
+        "  use case def Brake {\n"
+        "    attribute ucResult : String;\n"
+        "  }\n"
+        "  use case brake : Brake {\n"
+        "    attribute redefines ucResult = \"stopped\";\n"
+        "    part subsets parts;\n"
+        "    ref references target;\n"
+        "  }\n"
+        "  flow of Payload from a.out to b.in;\n"
+        "  attribute redefines ucResult = \"again\";\n"
+        "}\n")})
+    mf = parse_file(tmp_path / "textual-notation-of-model/packages/k/k.sysml", tmp_path)
+    assert [(m.kind, m.name) for m in mf.members] == [
+        ("package", "K"), ("use case def", "Brake"), ("attribute", "ucResult"),
+        ("use case", "brake"), ("flow", "flow")]
+    assert _source_links(out, "k/k.sysml", 11) == [("ucResult", "k.sysml", 3)]
 
 
 def test_svg_label_context_resolution():
@@ -1294,6 +2298,80 @@ def test_svg_label_context_resolution():
     assert resolved["actors"].name == "'integrate ADAS'"
     assert resolved["doc The objective body text."].name == "'integrate ADAS'"
     assert resolved["doc The objective body text."].doc == "The use case doc."
+
+
+# Synthetic diagram: element boxes, each with a stereotype, a title and a
+# doc row. Holder has members (the last element with members before the
+# second box); plan has none; the third box has a title that does not
+# resolve. Other has no box: its doc row is below its title in the same
+# column.
+_COMPARTMENT_SVG = (
+    '<svg>'
+    '<path d="M 10,10 H 200 V 100 H 10 Z" fill="#FFFFFF"/>'
+    '<text x="100" y="20">«part def»</text>'
+    '<text x="100" y="36">Holder</text>'
+    '<text x="100" y="54">doc</text>'
+    '<path d="M 10,110 H 200 V 200 H 10 Z" fill="#FFFFFF"/>'
+    '<text x="100" y="120">«part»</text>'
+    '<text x="100" y="136">plan : Plan</text>'
+    '<text x="100" y="154">doc</text>'
+    '<text x="20" y="170">doc The plan of the review.</text>'
+    '<path d="M 10,210 H 200 V 300 H 10 Z" fill="#FFFFFF"/>'
+    '<text x="100" y="220">«part»</text>'
+    '<text x="100" y="236">unknown : Unknown</text>'
+    '<text x="100" y="254">doc</text>'
+    '<text x="300" y="20">Other</text>'
+    '<text x="300" y="40">doc</text>'
+    '</svg>'
+)
+
+
+def _compartment_index():
+    from tools.sysml_html_viewer.model_parse import ElementRef
+
+    refs = [
+        ElementRef(name="Holder", kind="part def", doc="The holder.", rel_path="p/f.sysml",
+                   line=1, anchor="src-1", has_children=True),
+        ElementRef(name="plan", kind="part", doc="The plan.", rel_path="p/f.sysml",
+                   line=5, anchor="src-5"),
+        ElementRef(name="Other", kind="part def", doc="The other.", rel_path="p/f.sysml",
+                   line=9, anchor="src-9"),
+    ]
+    return {r.name: [r] for r in refs}
+
+
+def test_a_compartment_row_resolves_to_the_title_of_its_box():
+    """A compartment row (`doc`, `doc text`, `attributes`, `subject`, ...)
+    belongs to the element whose box contains it: the title of the box, the
+    topmost text in the box that is no stereotype. A row in no box belongs
+    to the title above it in the same column. If the title does not
+    resolve, the row resolves to nothing. The last element with members
+    before the row is not its owner."""
+    resolved = svg_info.resolve_labels(
+        svg_info.extract_text_labels(_COMPARTMENT_SVG), _compartment_index(),
+        "p/f.sysml", "p", _COMPARTMENT_SVG)
+    by_position = {(li.x, li.y): li.name for li in resolved}
+    assert by_position[(100, 54)] == "Holder"
+    assert by_position[(100, 154)] == "plan"
+    assert by_position[(20, 170)] == "plan"
+    assert by_position[(300, 40)] == "Other"
+    assert (100, 254) not in by_position
+
+
+def test_a_compartment_row_has_no_entry_under_its_text(tmp_path):
+    """Many rows have the same text (`doc`). The hover data has a row only
+    under its position, never under its text: under the text, a row without
+    its own entry would show the tooltip of another row."""
+    from tools.sysml_html_viewer.model_parse import ModelFile, ViewInfo
+    from tools.sysml_html_viewer.render import _svg_hover_json
+
+    mf = ModelFile(path=tmp_path / "f.sysml", rel_path="p/f.sysml")
+    payload = json.loads(_svg_hover_json(
+        _COMPARTMENT_SVG, ViewInfo(name="v"), mf, _compartment_index(), "").replace("<\\/", "</"))
+    assert "doc" not in payload and "doc The plan of the review." not in payload
+    assert payload["Holder"]["name"] == "Holder"
+    assert payload["positions"]["100,154"]["name"] == "plan"
+    assert "100,254" not in payload["positions"]
 
 
 

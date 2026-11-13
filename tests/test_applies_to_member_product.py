@@ -207,3 +207,42 @@ def test_a_line_with_correspondences_is_derived_with_the_governed_scope_record()
                                                  library_source=line.graph.library,
                                                  governed_scope=line.graph.scope_record)
     assert _rows(result)["integratedMember"]["member_product"]["element_id"] == member
+
+
+def _projections(line: Line) -> dict:
+    elements, sources = line.graph.build()
+    bindings = {**line.graph.kernel_bindings(), applies.MEMBER_PRODUCT: line.member_root}
+    rows = applies.configuration_projections(elements, sources, kernel_bindings=bindings,
+                                             library_source=line.graph.library)
+    return {row["configuration"]: row for row in rows}
+
+
+def test_configuration_projections_give_every_configuration_its_generated_part_definition() -> None:
+    """The input of the phase-9 check (configuredBy): each configuration with the part definition of its
+    projection, bound by identity, the same as the member derivation binds it."""
+    line = Line()
+    projections = _projections(line)
+    assert {name: row["part_definition"] for name, row in projections.items()} == {
+        "standaloneMember": line.projections["StandaloneProjection"],
+        "integratedMember": line.projections["IntegratedProjection"],
+        "referenceOnly": line.projections["ReferenceProjection"]}
+    members = _rows(line.derive())
+    for name, row in projections.items():
+        assert row["part_definition"] == members[name]["part_definition"]["element_id"], name
+        assert (row["element_id"], row["valid"], row["projection_name"]) == (
+            members[name]["element_id"], members[name]["valid"], members[name]["projection_name"]), name
+
+
+def test_configuration_projections_never_bind_a_homonym_outside_the_generated_product_models() -> None:
+    line = Line()
+    impostor = line.definition("ReferenceProjection", line.graph.asset_owner)
+    projections = _projections(line)
+    assert projections["referenceOnly"]["part_definition"] == line.projections["ReferenceProjection"]
+    assert impostor not in {row["part_definition"] for row in projections.values()}
+
+
+def test_configuration_projections_refuse_two_generated_part_definitions_of_one_name() -> None:
+    line = Line()
+    line.projection("StandaloneProjection")
+    with pytest.raises(applies.MemberProductError, match="matches 2 part definitions"):
+        _projections(line)

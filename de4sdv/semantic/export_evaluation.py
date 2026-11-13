@@ -20,7 +20,10 @@ predicates. Two input modes, both read-only and offline:
 In both modes the library declarations a check reads by identity (the VSS
 signal metadata, :data:`~de4sdv.semantic.relation_checks.LIBRARY_PINS`) are
 bound from the export by the same file-mapped rule. An unbound pin refuses
-nothing: a check that needs it reports it as method side.
+nothing: a check that needs it reports it as method side. The API service
+builds its view the same way (:func:`export_document_inputs`), from the
+export documents its revision binding records; a binding that records them
+must record this export's.
 
 Any identity mismatch refuses the evaluation; nothing falls back to another
 revision or to names.
@@ -33,9 +36,10 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType, SimpleNamespace
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from de4sdv.sysml_api.baseline import BaselineExportBundle
+from de4sdv.sysml_api.export_documents import documents_digest
 from de4sdv.sysml_api.revisions import KernelElementBinding, RevisionBinding
 
 from .increment_evaluation import IncrementEvaluation, evaluate_increment
@@ -70,6 +74,22 @@ class ExportSnapshot:
     library_bindings: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
     #: Library pin -> why it is unbound.
     library_problems: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
+    #: The export's references to elements outside it (the serializer's external references).
+    external_references: tuple[Mapping[str, Any], ...] = ()
+
+
+def export_document_inputs(
+    elements: Sequence[Mapping[str, Any]],
+    sources: Mapping[str, str],
+    external_references: Sequence[Mapping[str, Any]],
+) -> dict[str, Any]:
+    """The view inputs that an export's documents give: its source documents, its external references, and
+    the library pins bound from them by ADR 0011's file-mapped rule (:data:`LIBRARY_PINS`). The export
+    loader and the API service (from the export documents of its revision binding) both build their
+    method view from these, so the two views hold the same inputs."""
+    bound, unbound = resolve_library_pins(LIBRARY_PINS, list(elements), sources)
+    return {"sources": sources, "external_references": tuple(external_references),
+            "library_bindings": MappingProxyType(bound), "library_problems": MappingProxyType(unbound)}
 
 
 def _contract(root: Path) -> Any:
@@ -92,8 +112,8 @@ def load_export_snapshot(
     sources = dict(bundle.element_sources)
     digest = hashlib.sha256(raw).hexdigest()
     contract = _contract(root)
-    bound, unbound = resolve_library_pins(LIBRARY_PINS, elements, sources)
-    library = {"library_bindings": MappingProxyType(bound), "library_problems": MappingProxyType(unbound)}
+    inputs = export_document_inputs(elements, sources, bundle.external_references)
+    library = {name: inputs[name] for name in ("library_bindings", "library_problems", "external_references")}
     if binding_path is not None:
         document = json.loads(Path(binding_path).read_text(encoding="utf-8"))
         try:
@@ -108,6 +128,14 @@ def load_export_snapshot(
                 f"revision binding carries semantic authority {binding.semantic_authority.id}; "
                 f"this checkout builds {contract.identity.id}"
             )
+        recorded = binding.export_documents
+        if recorded is not None:
+            own = documents_digest(sources, bundle.external_references, source_export_sha256=digest)
+            if recorded.content_sha256 != own:
+                raise ExportEvaluationRefused(
+                    f"revision binding records export documents {recorded.content_sha256}; "
+                    f"this export's are {own}"
+                )
         return ExportSnapshot(
             elements=elements, sources=sources, export_sha256=digest,
             revision=RevisionIdentity(binding.git_commit, binding.sysml_project_id,
@@ -161,7 +189,8 @@ def export_view(snapshot: ExportSnapshot, *, root: Path = ROOT) -> ModelView:
     )
     traversal = ModelAuthorityTraversal(facade, kernel_bindings=index)
     return ModelView(snapshot.elements, traversal, sources=snapshot.sources,
-                     library_bindings=snapshot.library_bindings, library_problems=snapshot.library_problems)
+                     library_bindings=snapshot.library_bindings, library_problems=snapshot.library_problems,
+                     external_references=snapshot.external_references)
 
 
 def evaluate_export(

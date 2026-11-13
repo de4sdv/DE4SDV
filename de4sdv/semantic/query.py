@@ -67,6 +67,8 @@ class SemanticQueryService:
         default_factory=dict, init=False, repr=False
     )
     _own_index: RevisionIndex | None = field(default=None, init=False, repr=False)
+    #: (the served corpus, the view inputs its binding's export documents give), built once per corpus.
+    _document_inputs: tuple[Any, dict[str, Any]] | None = field(default=None, init=False, repr=False)
     method_evaluation_count: int = field(default=0, init=False)
 
     def _revision(self) -> dict[str, Any]:
@@ -645,6 +647,24 @@ class SemanticQueryService:
             scope=self.binding.scope,
         )
 
+    def _export_document_inputs(self, elements: list[dict[str, Any]]) -> dict[str, Any]:
+        """The view inputs that the binding's export documents give, built once per served corpus: the
+        export's source documents, its external references, and the library pins bound from them, as the
+        export loader builds them (``export_document_inputs``). They come from the ingestion record in the
+        revision binding, never from files at this checkout. Empty when the binding records no export
+        documents or records another corpus's: the checks that need them then stay method side."""
+        cached = self._document_inputs
+        if cached is not None and cached[0] is elements:
+            return cached[1]
+        documents = getattr(self.binding, "export_documents", None)
+        inputs: dict[str, Any] = {}
+        if documents is not None and documents.problem_for(elements) is None:
+            from .export_evaluation import export_document_inputs
+
+            inputs = export_document_inputs(elements, documents.element_sources, documents.external_references)
+        self._document_inputs = (elements, inputs)
+        return inputs
+
     def _method_view(self) -> ModelView:
         # _elements() enforces the revision gates (exact Git SHA, semantic
         # authority) before any method answer is produced.
@@ -653,7 +673,8 @@ class SemanticQueryService:
                 "no revision binding is configured for this runtime; method gates are "
                 "read from the bound model revision"
             )
-        return ModelView(self._elements(), self.traversal)
+        elements = self._elements()
+        return ModelView(elements, self.traversal, **self._export_document_inputs(elements))
 
     def _revision_key(self) -> tuple[str, str, str]:
         return (

@@ -117,7 +117,7 @@ def test_an_increment_the_bound_revision_does_not_declare_is_answered_as_such() 
 def test_the_served_contract_lists_every_step_and_the_phases_no_check_judges() -> None:
     service, _scenario, _repository = _service()
     contract = _call(create_mcp_server(service), "phase_contract", {})
-    assert len(contract["steps"]) == 13
+    assert len(contract["steps"]) == 12
     assert [step["phase"] for step in contract["steps"] if step["executable_checks"]] == contract["phases"]
     assert contract["phases_without_executable_checks"] == [
         step["phase"] for step in contract["steps"] if step["coverage"] == "no executable checks at this revision"]
@@ -142,6 +142,16 @@ def test_the_status_description_says_an_unchecked_exit_is_never_a_gap() -> None:
              for tool in create_mcp_server(service)._tool_manager.list_tools()}
     assert "BLOCKED by the method (CONTRACT_UNAVAILABLE), never by a gap" in tools["increment_status"]
     assert "declared outputs" in tools["increment_status"]
+
+
+def test_the_descriptions_say_a_vacuous_phase_is_advisory() -> None:
+    service, _scenario, _repository = _service()
+    tools = {tool.name: " ".join(tool.description.split())  # docstrings wrap their lines
+             for tool in create_mcp_server(service)._tool_manager.list_tools()}
+    assert "`vacuous: true`" in tools["increment_status"] and "`evaluated`" in tools["increment_status"]
+    assert "readiness stays READY or BLOCKED" in tools["increment_status"]
+    assert "`vacuous_phases`" in tools["next_obligation"]
+    assert "it never blocks, never changes `next`" in tools["next_obligation"]
 
 
 def test_malformed_increment_identifier_is_refused() -> None:

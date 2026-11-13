@@ -8,8 +8,8 @@
  * Autoware, Eclipse S-CORE and the adapter, and the AAOS SDV guest with the
  * HMI under the hypervisor. The reference vehicle speed travels over S-CORE
  * communication into Autoware; the AEBS signals of the Autoware-based AEBS
- * stack travel over S-CORE communication inside the host, and a DE4SDV
- * SOME/IP relay carries them across the domain boundary to the HMI (phase 8
+ * stack travel over S-CORE communication inside the host, and the S-CORE
+ * SOME/IP gateway carries them across the domain boundary to the HMI (phase 8
  * selects it), with the per-field provenance INC-AEBS-010 assigns; the
  * emergency intervention command path stays on the host.
  *
@@ -37,14 +37,14 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
   concern assumptionsOfUseConcern : CommonStandardsConcern {
     doc /*
-     * The integrator (software developer and system architect) needs the
-     * assumptions of use that Eclipse S-CORE v0.9.0 states for the
-     * application and for the operating system to be registered with source
-     * attribution (ASM-MW-021) and checked against the Autoware-based AEBS
-     * stack on the Ubuntu x86_64 host (ASM-MW-026), so that phases 4, 5 and
-     * 8 derive needs, requirements and the realization inside those
-     * assumptions. Conformance is not claimed here; it is a constraint to
-     * carry.
+     * The integrator (software developer and system architect) and the
+     * product-line engineer need the assumptions of use that Eclipse
+     * S-CORE v0.9.0 states for the application and for the operating
+     * system to be registered with source attribution (ASM-MW-021) and
+     * checked against the Autoware-based AEBS stack on the Ubuntu x86_64
+     * host (ASM-MW-026), so that phases 4, 5 and 8 derive needs,
+     * requirements and the realization inside those assumptions.
+     * Conformance is not claimed here; it is a constraint to carry.
      */
     subject;
     stakeholder softwareDeveloper : SoftwareDeveloper;
@@ -54,12 +54,13 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
   concern runnableProofBenchConcern : ArgumentationAssuranceConcern {
     doc /*
-     * The verification engineer needs the bench of the runnable proof
-     * (ASM-MW-025) to observe the vehicle-speed path, the cross-domain HMI
-     * path and the HMI read-only, to retain evidence bound to the exact model
+     * The verification engineer, the maintainer and the open-source
+     * reviewer need the bench of the runnable proof (ASM-MW-025) to
+     * observe the vehicle-speed path, the cross-domain HMI path and the
+     * HMI read-only, to retain evidence bound to the exact model
      * revision and to the pinned S-CORE commit (ASM-MW-021), and to stay
-     * separate from the member product, so that phase 10 argues the proof
-     * from retained evidence and not from a demonstration.
+     * separate from the member product, so that phase 10 argues the
+     * proof from retained evidence and not from a demonstration.
      */
     subject;
     stakeholder verificationEngineer : VerificationEngineer;
@@ -69,13 +70,13 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
   concern emergencyPathConcern : AssetIdentificationConcern {
     doc /*
-     * The safety expert needs the AEBS emergency intervention command path
-     * identified as the safety-relevant asset of the member: it stays inside
-     * the Linux host (ASM-MW-028), independent of the S-CORE communication
-     * path and of the AAOS SDV guest, so that REQ-MW-006
-     * (reqIsolateSafetyPath) and GAP-MW-029 are carried into the needs and
-     * requirements of this increment. No freedom-from-interference claim is
-     * made.
+     * The safety expert and the system architect need the AEBS emergency
+     * intervention command path identified as the safety-relevant asset
+     * of the member: it stays inside the Linux host (ASM-MW-028),
+     * independent of the S-CORE communication path and of the AAOS SDV
+     * guest, so that REQ-MW-006 (reqIsolateSafetyPath) and GAP-MW-029 are
+     * carried into the needs and requirements of this increment. No
+     * freedom-from-interference claim is made.
      */
     subject;
     stakeholder safetyExpert : SafetyExpert;
@@ -121,10 +122,14 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
      * One frame of the AEBS signals that the Autoware-based AEBS stack
      * produces on the Linux host, as the HMI path carries it, with the
      * per-field provenance that the framing's hmiPathInScope states; the
-     * integration layer carries it unchanged and reads none of its fields
-     * (REQ-MW-015). A System 1 item that references no System 2 element, so a
-     * System 2 frame type can specialize it; it replaces the System 2 frame
-     * type of the HMI flow (owner decision of 2026-10-18). By the same
+     * integration layer carries it unchanged (REQ-MW-015). Only the IVI
+     * frame relay reads two of its fields, the sequence and the frame
+     * timestamp.
+     * It needs them to discard the frames produced more than the margin of
+     * REQ-MW-019 before the HMI application subscribed (phase 8). A System 1
+     * item that references no System 2 element, so a System 2 frame type can
+     * specialize it; it replaces the System 2 frame type of the HMI flow
+     * (owner decision of 2026-10-18). By the same
      * decision it stays opaque, with no DE4SDV VSS extension signal: the two
      * candidates, Vehicle.ADAS.AEBS.DriverWarning.IsActive and
      * Vehicle.ADAS.AEBS.EmergencyBraking.IsCommanded, carry actuator-signal
@@ -319,7 +324,7 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
        * SC-MW-002 (normal operation, AEBS event): an AEBS event runs
        * MONITORING, WARNING, INTERVENTION and RELEASED on the host; the
        * adapter and the S-CORE services carry the AEBS signals inside the
-       * host, and the layer's DE4SDV SOME/IP relay carries them across the
+       * host, and the layer's S-CORE SOME/IP gateway carries them across the
        * domain boundary; the HMI in the guest presents them in source order
        * with per-field provenance; the driver sees an informational display,
        * not the AEBS driver warning; the emergency intervention command goes
@@ -411,9 +416,10 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
   concern scoreTwoDomainContextConcern : OperationalContextConcern {
     doc /*
-     * Reviewers need the two execution domains, the hypervisor boundary, the
-     * host-side and guest-side actors, the system of interest in both domains
-     * and the one-way HMI path visible for the two-domain member.
+     * System architects, systems engineers and open-source reviewers need
+     * the two execution domains, the hypervisor boundary, the host-side
+     * and guest-side actors, the system of interest in both domains and
+     * the one-way HMI path visible for the two-domain member.
      */
     subject;
     stakeholder systemArchitect : SystemArchitect;
@@ -436,7 +442,8 @@ package DE4SDV_MiddlewareSCOREOperationalContext {
 
   concern scoreTwoDomainStoryConcern : OperationalStoryConcern {
     doc /*
-     * Reviewers need the operational story of the two-domain member told in
+     * Systems engineers, verification engineers and open-source reviewers
+     * need the operational story of the two-domain member told in
      * stakeholder language: the speed path, the AEBS event on the HMI, the
      * provider-loss degradation, the unavailable or stale guest, and the
      * S-CORE service lifecycle, with the emergency command staying on the

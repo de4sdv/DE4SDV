@@ -49,6 +49,7 @@ def _status_document(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> dict[st
         "element_count": 5,
         "kernel_binding_summary": {"mapped": 30, "unresolved": 0, "ambiguous": 0},
         "served_model": meta["served_model"],
+        "export_documents": meta["export_documents"],
     }
     path = deploy.write_status(evidence, deployment)
     return json.loads(path.read_text(encoding="utf-8"))
@@ -60,6 +61,7 @@ def _block(document: dict[str, Any], **changes) -> dict[str, Any]:
              "semantic_authority": baseline["semantic_authority"]["id"],
              "semantic_authority_id": baseline["semantic_authority"]["id"],
              "served_model": baseline["served_model"]["content_sha256"],
+             "export_documents": baseline["export_documents"]["content_sha256"],
              "served_model_check": "passed"}
     block.update(changes)
     return block
@@ -70,11 +72,11 @@ def _block(document: dict[str, Any], **changes) -> dict[str, Any]:
 
 def test_real_write_status_output_passes_the_mandatory_check(tmp_path, monkeypatch):
     document = _status_document(tmp_path, monkeypatch)
-    assert {"semantic_authority", "served_model"} <= set(document["baseline"])
+    assert {"semantic_authority", "served_model", "export_documents"} <= set(document["baseline"])
     verify_api.check_status_payload(document)
 
 
-@pytest.mark.parametrize("field", ["semantic_authority", "served_model", "git_commit"])
+@pytest.mark.parametrize("field", ["semantic_authority", "served_model", "export_documents", "git_commit"])
 def test_a_status_document_missing_its_identity_is_refused(tmp_path, monkeypatch, field):
     document = _status_document(tmp_path, monkeypatch)
     del document["baseline"][field]
@@ -104,21 +106,22 @@ def test_malformed_served_model_is_refused(tmp_path, monkeypatch):
         verify_api.check_status_payload(document)
 
 
-def test_a_pre_retirement_status_document_is_not_this_verifier_s_to_pass(tmp_path, monkeypatch):
-    """063c4fb1's deploy wrote no served model; its own verifier checks it."""
+def test_malformed_export_documents_are_refused(tmp_path, monkeypatch):
     document = _status_document(tmp_path, monkeypatch)
-    document["baseline"]["served_model"] = None
-    with pytest.raises(verify_api.VerificationError, match="predates the release-ceremony retirement"):
+    document["baseline"]["export_documents"]["content_sha256"] = "not-a-digest"
+    with pytest.raises(verify_api.VerificationError, match="export_documents"):
         verify_api.check_status_payload(document)
 
 
-def test_check_status_document_delegates_to_the_payload_check(tmp_path, monkeypatch):
-    document = copy.deepcopy(_status_document(tmp_path, monkeypatch))
-    monkeypatch.setattr(verify_api, "fetch_json", lambda url: document)
-    assert verify_api.check_status_document("https://example.invalid") is document
-    del document["baseline"]["served_model"]
-    with pytest.raises(verify_api.VerificationError):
-        verify_api.check_status_document("https://example.invalid")
+def test_the_monitor_accepts_a_deployment_that_records_no_export_documents(tmp_path, monkeypatch):
+    """A deployment from before the importer recorded them: nothing to compare, nothing refused."""
+    document = _status_document(tmp_path, monkeypatch)
+    block = _block(document)
+    del block["export_documents"]
+    del document["baseline"]["export_documents"]
+    expectation = verify_api.deployment_expectation(document, require_served_model=False)
+    assert expectation["export_documents"] is None
+    assert verify_api.check_served_authority({"semantic_authority": block}, expectation)["kind"] == "model"
 
 
 # -- the Ask viewer must serve the deployment --------------------------------------
@@ -137,6 +140,8 @@ def test_the_served_deployment_passes(tmp_path, monkeypatch):
     ({"semantic_authority_id": None, "state": "starting"}, "not built"),
     ({"semantic_authority": "sai-" + "9" * 32}, "serves semantic authority"),
     ({"served_model": "sha256:" + "9" * 64}, "served model"),
+    ({"export_documents": "sha256:" + "9" * 64}, "export documents"),
+    ({"export_documents": None}, "export documents"),
     ({"served_model_check": "failed: the corpus holds 1 elements"}, "served-model check failed"),
 ])
 def test_a_viewer_that_does_not_serve_the_deployment_fails(tmp_path, monkeypatch, changes, match):

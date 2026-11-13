@@ -9,9 +9,10 @@ class-definition and native-grounding pairs), the ontology-mapped classes that
 are not register rows (the successor classes and the trace-obligation
 declaration), the new successor predicates
 (``hasValidationScenario``, ``hasRegulatorySource``), the merged retired name
-``validatesFitnessForUse`` and the classes a method pull request admitted after
-the authored ontology's deletion (accounting ``method-admitted``; their rows
-say that no authored-ontology comparison exists for them). It is a separate pair from
+``validatesFitnessForUse`` and the classes and vocabulary-only relationships a
+method pull request admitted after the authored ontology's deletion (accounting
+``method-admitted``; their rows say that no authored-ontology comparison exists
+for them). It is a separate pair from
 ``class-definition-projection.json`` / ``class-definition-profile.json``,
 written by the same generator, ``scripts/generate_definition_projection.py``.
 
@@ -48,6 +49,16 @@ authority. They were proven equal to the authored ontology
 before its deletion. That comparison is archived at the ``release-2026-10-11``
 tag (``PARITY_EVIDENCE``), and every generated row labels these fields with it
 (``contract_source``); nothing is inferred from names.
+
+The governance fields (``gates``, ``forward_obligations`` and the optional
+``discharged_obligations``) are shape-checked and never projected. A
+discharged obligation names the exact-SHA privileged ingestion run that
+produced its evidence and the cited artifact keys with their values. The
+generator checks that form only; it never reads the artifact.
+
+Successful status citations must be literal true and each file must name the
+run's commit in a revision field. These checks do not authenticate evidence;
+review of the exact run and retained bytes remains necessary.
 
 Boundaries: generation reads ONLY the admission manifest, the governed model
 files named by it and the accepted external-reference profile (for the
@@ -116,9 +127,16 @@ BOUNDARIES = frozenset(
 )
 HOME_FORMS = frozenset({"owned-doc", "named-doc", "vocabulary-role", "retirement-record"})
 ACCOUNTING = frozenset({"retained", "unregistered", "merged", "w6-successor", "method-admitted"})
-#: A class admitted by a method pull request after the authored ontology was
-#: deleted: no register row and no authored-ontology comparison exist for it.
+#: A class or a vocabulary-only relationship admitted by a method pull request
+#: after the authored ontology was deleted: no register row and no
+#: authored-ontology comparison exist for it.
 METHOD_ADMITTED = "method-admitted"
+#: The admission classes a method-admitted row may have: a class definition, or
+#: a vocabulary-only relationship (no mechanics, no traversal).
+METHOD_ADMISSIONS = frozenset({("class", "definition"), ("relationship", "relationship-vocabulary")})
+#: The label of a manifest-held field of a method-admitted row.
+METHOD_ADMITTED_SOURCE = ("admitted by a method pull request after the authored ontology's "
+                          "deletion: no authored-ontology comparison exists")
 SUPPORT = {
     "definition": "vocabulary-only",
     "relationship-vocabulary": "vocabulary-only",
@@ -138,6 +156,7 @@ REPRESENTATION_CLASSES = {
     "action": "action-definition",
     "connection": "connection-definition",
     "metadata": "metadata-definition",
+    "concern": "concern-definition",
 }
 API_METACLASSES = {
     "part": "PartDefinition",
@@ -148,6 +167,7 @@ API_METACLASSES = {
     "action": "ActionDefinition",
     "connection": "ConnectionDefinition",
     "metadata": "MetadataDefinition",
+    "concern": "ConcernDefinition",
 }
 FORM_REPRESENTATION = {
     "package-doc": ("package-owned-definition-documentation", "Documentation"),
@@ -180,6 +200,16 @@ _COMMON_KEYS = frozenset(
     {"identity", "semantic_kind", "admission_class", "register", "boundary", "home",
      "gates", "forward_obligations"}
 )
+#: Optional on every row: the forward obligations an exact-SHA privileged run discharged.
+DISCHARGED_OBLIGATIONS = "discharged_obligations"
+#: The run that discharges a forward obligation: the privileged ingestion at the exact Git commit, whose
+#: upload names the artifact by that commit.
+PRIVILEGED_INGESTION_WORKFLOW = ".github/workflows/privileged-full-model-api-ingestion.yml"
+PRIVILEGED_INGESTION_ARTIFACT = "full-model-api-ingestion-{git_commit}"
+_DISCHARGE_KEYS = frozenset({"obligation", "run", "git_commit", "workflow", "artifact", "evidence"})
+_EVIDENCE_KEYS = frozenset({"file", "sha256", "values"})
+_EVIDENCE_FILE = re.compile(r"de4sdv-[a-z0-9-]+\.json")
+_EVIDENCE_KEY = re.compile(r"[A-Za-z0-9_]+(?:\.[A-Za-z0-9_-]+)*")
 _CLASS_KEYS = frozenset({"grounding", "external_reference"})
 _RELATIONSHIP_KEYS = frozenset(
     {"relation", "mechanics", "carrier", "range_discriminator", "successor",
@@ -496,6 +526,59 @@ def _validate_gates(identity: str, row: dict[str, Any]) -> None:
     obligations = row["forward_obligations"]
     _require(isinstance(obligations, list) and all(_nonempty(item) for item in obligations),
              f"{identity}: forward_obligations must list non-empty strings")
+    _validate_discharges(identity, row)
+
+
+def _validate_discharges(identity: str, row: dict[str, Any]) -> None:
+    """The form of a discharged forward obligation: the obligation's text, the exact-SHA privileged
+    ingestion run that produced its evidence (run id, Git commit, workflow, artifact), and each artifact
+    file it cites (sha256) with the values the run reported under the cited keys. Every cited file records
+    the run's commit. The artifact itself is not read here: it expires."""
+    if DISCHARGED_OBLIGATIONS not in row:
+        return
+    records = row[DISCHARGED_OBLIGATIONS]
+    _require(isinstance(records, list) and bool(records), f"{identity}: discharged_obligations must be a non-empty list")
+    seen: set[str] = set()
+    for record in records:
+        _require(isinstance(record, dict) and set(record) == _DISCHARGE_KEYS,
+                 f"{identity}: each discharged obligation carries exactly {', '.join(sorted(_DISCHARGE_KEYS))}")
+        obligation = record["obligation"]
+        _require(_nonempty(obligation) and obligation not in seen,
+                 f"{identity}: discharged obligations must be unique non-empty strings")
+        seen.add(obligation)
+        _require(obligation not in row["forward_obligations"],
+                 f"{identity}: an obligation is open or discharged, never both")
+        run = record["run"]
+        _require(isinstance(run, int) and not isinstance(run, bool) and run > 0,
+                 f"{identity}: a discharge names the run id of the privileged ingestion")
+        commit = record["git_commit"]
+        _require(isinstance(commit, str) and re.fullmatch(r"[0-9a-f]{40}", commit) is not None,
+                 f"{identity}: a discharge names the full 40-hex Git commit of its run")
+        _require(record["workflow"] == PRIVILEGED_INGESTION_WORKFLOW,
+                 f"{identity}: a discharge cites a run of {PRIVILEGED_INGESTION_WORKFLOW}")
+        _require(record["artifact"] == PRIVILEGED_INGESTION_ARTIFACT.format(git_commit=commit),
+                 f"{identity}: a discharge cites the artifact of its run's commit")
+        evidence = record["evidence"]
+        _require(isinstance(evidence, list) and bool(evidence), f"{identity}: a discharge cites its evidence")
+        for item in evidence:
+            _require(isinstance(item, dict) and set(item) == _EVIDENCE_KEYS
+                     and isinstance(item["file"], str) and _EVIDENCE_FILE.fullmatch(item["file"]) is not None
+                     and isinstance(item["sha256"], str) and re.fullmatch(r"[0-9a-f]{64}", item["sha256"]) is not None,
+                     f"{identity}: each cited evidence file carries file, sha256 and values")
+            values = item["values"]
+            if isinstance(values, dict):
+                for key, value in values.items():
+                    if isinstance(key, str) and key.rsplit(".", 1)[-1] in {"passed", "closed"}:
+                        _require(value is True, f"{identity}: cited evidence status must be literal true: {key}")
+            _require(isinstance(values, dict) and bool(values) and all(
+                isinstance(key, str) and _EVIDENCE_KEY.fullmatch(key) is not None
+                and isinstance(value, (bool, int, str)) for key, value in values.items()),
+                f"{identity}: cited evidence values map dotted keys to scalar values")
+            revisions = [values[key] for key in ("git_commit", "git_revision") if key in values]
+            _require(bool(revisions) and all(value == commit for value in revisions),
+                     f"{identity}: each cited evidence file records the run's Git commit")
+            _require(any(key.rsplit(".", 1)[-1] in {"passed", "closed"} for key in values),
+                     f"{identity}: each cited evidence file cites a passed or closed result")
 
 
 def _validate_row(row: Any) -> str:
@@ -508,7 +591,7 @@ def _validate_row(row: Any) -> str:
     _require(admission in ADMISSION_CLASSES, f"{identity}: unknown admission_class {admission!r}")
     expected_kind = ADMISSION_CLASSES[admission]
     _require(expected_kind in (None, kind), f"{identity}: admission_class {admission} requires {expected_kind}")
-    allowed = _COMMON_KEYS | (_CLASS_KEYS if kind == "class" else _RELATIONSHIP_KEYS)
+    allowed = _COMMON_KEYS | {DISCHARGED_OBLIGATIONS} | (_CLASS_KEYS if kind == "class" else _RELATIONSHIP_KEYS)
     extra = set(row) - allowed
     _require(not extra, f"{identity}: unknown keys {sorted(extra)}")
     missing = _COMMON_KEYS - set(row)
@@ -520,8 +603,8 @@ def _validate_row(row: Any) -> str:
              f"{identity}: register must carry wave and accounting")
     _require((register["wave"] is None) == (register["accounting"] != "retained"),
              f"{identity}: only retained rows carry a register wave")
-    _require(register["accounting"] != METHOD_ADMITTED or (kind == "class" and admission == "definition"),
-             f"{identity}: a method-admitted row is a class definition")
+    _require(register["accounting"] != METHOD_ADMITTED or (kind, admission) in METHOD_ADMISSIONS,
+             f"{identity}: a method-admitted row is a class definition or a vocabulary-only relationship")
     _require(row["boundary"] in BOUNDARIES, f"{identity}: unknown boundary")
     _validate_home(identity, row["home"])
     form = row["home"]["form"]
@@ -825,9 +908,7 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
             "fields (manifest-held: the model does not carry them structurally, so the "
             "reviewed manifest is their authority); file mappings are resolved in the "
             "model by this generator; "
-            + ("admitted by a method pull request after the authored ontology's "
-               "deletion: no authored-ontology comparison exists"
-               if row["register"]["accounting"] == METHOD_ADMITTED else
+            + (METHOD_ADMITTED_SOURCE if row["register"]["accounting"] == METHOD_ADMITTED else
                "authored-ontology parity proven before its deletion: " + PARITY_EVIDENCE)
         )
         projection["grounding"] = ground
@@ -862,7 +943,8 @@ def _row_outputs(root: Path, model: _Model, row: dict[str, Any], successors: dic
                 "domain/range/strength: reviewed admission-manifest fields "
                 "(manifest-held, model-witnessed declaration: the model carries no "
                 "structural domain/range, so the reviewed manifest is their authority); "
-                "authored-ontology parity proven before its deletion: " + PARITY_EVIDENCE
+                + (METHOD_ADMITTED_SOURCE if row["register"]["accounting"] == METHOD_ADMITTED else
+                   "authored-ontology parity proven before its deletion: " + PARITY_EVIDENCE)
             ),
         }
     if "carrier" in row:

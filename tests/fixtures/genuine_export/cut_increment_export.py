@@ -2,12 +2,15 @@
 """Cut a small, self-contained export of one increment from a genuine full-model export.
 
     python tests/fixtures/genuine_export/cut_increment_export.py <export.json> <INC-ID> <out.json.gz> \\
-        <declared package kept in full> [...] [--keep-mapping=<qualified name of a signal mapping> ...]
+        <declared package kept in full> [...] [--keep-mapping=<qualified name of a signal mapping> ...] \\
+        [--keep-package=<top-level package of another increment, kept in full> ...]
 
 Elements are kept unchanged, so every serializer shape is the real one: the
 owned subtrees of the named declared packages, of the package declaring the
 increment's workflow and of the library definitions whose features kept
-content redefines; the other declared packages as package elements; every
+content redefines; the other declared packages as package elements; each
+top-level package named with ``--keep-package`` (of another increment, such as
+INC-MW-011's operational context, for the binding shapes of its story); every
 kernel declaration, a kernel enumeration with its literals; every library
 declaration a check binds by identity (the VSS signal metadata); each signal
 mapping named with ``--keep-mapping``, with the definitions its target's
@@ -55,7 +58,8 @@ def _ids(value) -> list[str]:
     return [found for item in value for found in _ids(item)] if isinstance(value, list) else []
 
 
-def main(source: Path, increment: str, target: Path, full_packages: set[str], mappings: list[str]) -> None:
+def main(source: Path, increment: str, target: Path, full_packages: set[str], mappings: list[str],
+         other_packages: list[str] = ()) -> None:
     raw_bytes = source.read_bytes()
     raw = json.loads(raw_bytes)
     by_id = {element["@id"]: element for element in raw["elements"]}
@@ -91,6 +95,9 @@ def main(source: Path, increment: str, target: Path, full_packages: set[str], ma
 
     workflow, _reason = workflow_of(view, scope.charters[0])
     subtrees([p for p in scope.scope_packages if view.index.name_of(p) in full_packages] + [view.top_package(workflow)])
+    for name in other_packages:
+        (package,) = [element["@id"] for element in view.names.resolve(name)]
+        subtrees([package])
     keep.update(scope.scope_packages)
     kernel = [binding.element_id for binding in snapshot.kernel_bindings]
     # A kernel enumeration keeps its literals: remedies name them (SignalMappingDisposition::candidate).
@@ -119,6 +126,7 @@ def main(source: Path, increment: str, target: Path, full_packages: set[str], ma
         "schema": raw["schema"], "git_commit": raw["git_commit"],
         "cut_from": {"export_sha256": hashlib.sha256(raw_bytes).hexdigest(), "increment": increment,
                      "full_packages": sorted(full_packages), "kept_mappings": sorted(mappings),
+                     **({"kept_packages": sorted(other_packages)} if other_packages else {}),
                      "elements": len(raw["elements"]),
                      "content_sha256": {"elements": hashlib.sha256(canonical(elements)).hexdigest(),
                                         "element_sources": hashlib.sha256(canonical(sources)).hexdigest()}},
@@ -152,5 +160,6 @@ def signal_closure(view, target: str, subtrees, element_sources) -> None:
 
 if __name__ == "__main__":
     options = [argument for argument in sys.argv[4:] if argument.startswith("--keep-mapping=")]
-    main(Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3]), set(sys.argv[4:]) - set(options),
-         [option.split("=", 1)[1] for option in options])
+    packages = [argument for argument in sys.argv[4:] if argument.startswith("--keep-package=")]
+    main(Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3]), set(sys.argv[4:]) - set(options) - set(packages),
+         [option.split("=", 1)[1] for option in options], [option.split("=", 1)[1] for option in packages])

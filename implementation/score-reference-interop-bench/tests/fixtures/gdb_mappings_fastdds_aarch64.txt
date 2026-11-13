@@ -1,0 +1,6 @@
+Mapped address spaces:
+
+          Start Addr           End Addr       Size     Offset objfile
+      0xaaaab7700000     0xaaaab7800000   0x100000        0x0 /scratch/local-bundle/bin/de4sdv_score_adapter
+      0xffff82900000     0xffff82d00000   0x400000        0x0 /opt/ros/humble/lib/libfastrtps.so.2.6.10
+      0xffff83190000     0xffff83320000   0x190000        0x0 /usr/lib/aarch64-linux-gnu/libc.so.6

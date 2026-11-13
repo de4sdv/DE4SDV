@@ -40,7 +40,7 @@ create compliance claims.
 - [`upstream`](upstream.md) separates the historical source review from the current exact-pinned package dependency.
 - [`upstream-compatibility-report`](upstream-compatibility-report.md) records draft questions for upstream review; it has not been sent.
 - [`de4sdv-tailoring`](de4sdv-tailoring.md) explains how DE4SDV specializes the upstream library concepts.
-- [`process-mapping`](process-mapping.md) defines the DE4SDV method process sequence across the three-system layers and 13-phase increment workflow.
+- [`process-mapping`](process-mapping.md) defines the DE4SDV method process sequence across the three-system layers and 12-phase increment workflow.
 - [`increment-workflow`](increment-workflow.md) defines the generic repeatable increment workflow for features, architecture, toolchain, and evidence work.
 - [`saf-viewpoint-map`](saf-viewpoint-map.md) maps GfSE SAF viewpoint families to DE4SDV increment outputs.
 - [`artifact-map`](artifact-map.md) maps method concepts to DE4SDV repository artifacts.

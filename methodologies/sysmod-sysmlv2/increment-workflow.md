@@ -104,9 +104,10 @@ These method rules apply to every increment:
 2. **Needs.** Each need owns a statement (a `require constraint` of its own;
    one inherited from its definition does not count), has at least one
    stakeholder, an ODE4HERA source and rationale, and at least one planned
-   validation scenario. Its
-   subject is the system of interest the charter declares, never the
-   increment (advisory).
+   validation scenario. A need's stakeholders are the parties whose interest
+   it states; a role that only reviews, verifies or approves the need does not
+   hold it. Its subject is the system of interest the charter declares, never
+   the increment (advisory).
 3. **Needs and concerns.** Only viewpoints frame concerns. A need doesn't
    frame the concern it comes from: a requirement that frames a concern is
    satisfied only when the whole concern is addressed, while a need usually
@@ -171,16 +172,40 @@ These method rules apply to every increment:
    context part (`actor a = <part>;`), standard SysML v2 subject and actor
    binding. INC-AEBS-002's vehicle-target story
    (`aebs_operational_context.sysml`) shows the complete binding form,
-   although two of its actors are System 2 roles.
+   although two of its actors are System 2 roles. INC-MW-011's two-domain
+   story (`middleware_score_operational_context.sysml`) binds every use case
+   to the parts of its `SystemContext`.
+   - **Checks (blocking).** The increment has exactly one `SystemContext`
+     usage. A part of it redefines its `systemOfInterest`. That part is,
+     narrows or is bound to the system of interest the charter declares, or
+     is typed by its definition. Each use case the increment's packages own
+     at any depth, also one the context or another part owns, binds its
+     subject to that part. Each actor of each use case is bound to a part
+     the context owns at any depth, around that part, not inside it. A part
+     the context's own definition declares counts. The generic slots of the
+     kernel's `SystemContext` (`actors`) do not: they are no part of the
+     context. An `include use case` is no use case of its own. Without a
+     use case at any depth, the story checks are not applicable.
+   - **Use case parameters.** A use case has one subject: its own, else its
+     definition's. Its actors are its own and those of its definitions
+     that no own actor redefines, explicitly or by the language rule (the
+     export records both). A bound value is the parameter's own
+     `= <usage>`; a feature chain counts as its last feature.
+   - **Left to review.** Whether a role is a System 1 or a System 2 role:
+     the kernel classifies no role as either.
 10. **Feature-model delta (phase 3).** Phase 3 records only what the
     increment adds to the feature model: each characteristic it records is
-    a feature candidate (`ProductLineFeatureCandidate`). Core elements are
-    common by default and get no record, so phase 3 instantiates no
-    `CommonProductLineCapability` for them. Constraints go to the
-    requirements (phase 5) and evidence to V&V (phase 10). An increment that
-    adds no variability records nothing in phase 3. The basis is ISO/IEC
-    26580: a feature differentiates member products, and the feature model
-    covers variability only.
+    a feature candidate (`ProductLineFeatureCandidate`) or product-line
+    scope the increment defers (`DeferredProductLineScope`), such as a gap.
+    Core elements are common by default and get no record, so phase 3
+    instantiates no `CommonProductLineCapability` for them. Constraints go to
+    the requirements (phase 5) and evidence to V&V (phase 10). An increment
+    that adds no variability records nothing in phase 3. The basis is
+    ISO/IEC 26580: a feature differentiates member products, and the feature
+    model covers variability only. The step's output is typed by the
+    classification base `ProductLineCharacteristic`. So its check sees every
+    product-line characteristic of the increment. One that is neither a
+    feature candidate nor deferred scope blocks (`featureDeltaOnly`).
 11. **Unconsumed elements (advisory).** Every element earns its place by
     the modeling rules in [AGENTS.md](../../AGENTS.md#model-elements-earn-their-place):
     a gate requires it, something consumes it, or it carries a decision,
@@ -285,7 +310,9 @@ These method rules apply to every increment:
       export binds it by the file-mapped rule of the kernel bindings (its
       metatype, declared name and source document), and no other metadata
       counts. VSS typing is read at a port, never at an element: a mapping
-      to an element states the source in its records.
+      to an element states the source in its records. It begins at phase 8:
+      a phase 6 or phase 7 item stays technology-independent and is not typed
+      with VSS (owner decision of 2026-11-04).
     - **Stated values.** A record member that still holds a remedy's
       placeholder (`<…>`), or only TBD, TBC or TODO, states nothing. Any
       other text counts as stated, and what it says is not judged.
@@ -296,6 +323,147 @@ These method rules apply to every increment:
       VSS path in a doc or a string is no VSS typing, a signal the pinned VSS
       snapshot lacks goes into `DE4SDV_VSS_Extensions` as a candidate, and
       whether an item is a vehicle signal stays the reviewer's judgment.
+14. **Concerns (phase 1).** The increment has at least one concern that is
+    not typed by `IncrementBoundaryConcern` or any specialization of it.
+    **Owner-approved exit condition:** an increment-boundary concern alone
+    is insufficient; it separates the work's phases but does not establish
+    the concerns of the engineering scope. Boundary concerns may remain. A
+    concern with no typing at all counts as non-boundary. Every concern,
+    boundary or not, has a native stakeholder member. A
+    viewpoint of a view of the increment frames it, by its own frame or by
+    a frame of the viewpoint definition it is typed by. All three checks
+    block. They establish the presence and native relationships of the
+    declared concerns, not the completeness of stakeholder or risk coverage,
+    the adequacy of viewpoint selection, or review acceptance. Shared
+    artifacts may satisfy multiple phases; no separate Phase 1 package or
+    completion flag is required. Type a concern by its SAF domain first,
+    then by the question its SAF concern definition states: a question
+    about a concrete platform, product or component is a Physical Domain
+    question, and the words of a definition's name ("interface", "path")
+    do not decide it. Rule 15's advisory domain check reads the result. The concerns are the concern usages the
+    increment's packages own. The views of the increment are the view
+    usages its packages own, nested packages included: the views of rule
+    15. A view that a part or another view owns is none of them. The
+    concerns' stakeholders are the native `stakeholder` members of the
+    concerns, the problem statement and the needs. So no check counts
+    stakeholder parts: such a part would only restate them (rule 11). A
+    frame owned by a need or a requirement does not count (rule 3). Nor
+    does a viewpoint of another view.
+15. **Published views (phase 11, baseline).** The increment publishes at
+    least one view (`publishedViews[1..*]`): a declared phase 11 without a
+    view fails on population. Each view of the increment (rule 14) has a
+    viewpoint, of its own or of its definition, that frames a concern, by
+    its own frame or by a frame of its viewpoint definition. Each view, or a
+    view it owns at any depth, exposes model content. A table or matrix view
+    exposes through its row, column and cell views. Both checks block and
+    judge the model only. The pull request, its review and the rendered
+    diagrams are judged outside the model. CI checks the diagrams and each
+    folder's `VIEWS.md`, and that each view of a live increment uses a
+    viewpoint the [views-per-phase list](#views-per-phase) names for its
+    phase; review judges the rest.
+    - **Visibility (advisory).** Each applicable phase with content has at
+      least one of its elements in a view of the increment
+      (`phaseContentPublished`). A phase's content is the subjects of its
+      checks about what the step produces (an `out` parameter); a phase
+      without content, such as a phase 3 that records no feature-model
+      delta, has nothing to show. A view shows itself, the member a member
+      expose names, and the members of a namespace an expose names, at any
+      depth when the expose is recursive. Expose filters are not evaluated,
+      and visibility is not review.
+    - **Why advisory.** The owner decision of 2026-11-01 measures the rule
+      against INC-AEBS-010 and INC-MW-011 before it blocks. Both have
+      content that no view shows. INC-MW-011 fails it on phase 9: no view
+      shows its configured product usage (its views expose the definition).
+      INC-AEBS-010 does not declare phase 11, so the check does not apply
+      to it; measured as if it did, no view shows any of its phase-0
+      framing records or its phase-10 verification cases. The rule stays
+      advisory until the owner decides.
+    - **Domain (advisory).** Each concern typed by an SAF concern
+      definition is framed by a viewpoint of a view of the increment whose
+      definition is an SAF viewpoint definition of the same SAF domain
+      (`concernAnsweredInDomain`). Each definition of `SAF_Viewpoints`
+      specializes the abstract definition of its domain, a row of the SAF
+      grid (for example `PhysicalDomainConcern` and
+      `PhysicalDomainViewpoint`), so the domain is read by identity. A
+      concern that only a framing view or viewpoints of other domains frame
+      is named: either no view answers it yet, or it asks another domain's
+      question and its definition is the wrong one. A frame by a viewpoint
+      of another domain beside an answering one is not refused, since
+      framing, overview and mapping views frame concerns they do not answer.
+      A concern typed by no SAF concern definition is outside the rule.
+16. **Variability and the baseline decision (phases 9 and 11).** The
+    kernel types what these steps declare (owner decisions of 2026-10-28
+    and 2026-10-29), and all their checks block:
+    - **Phase 9.** The increment declares at least one configured product
+      (`configuredProducts[1..*]`, typed by `ProductLineConfiguredProduct`),
+      and exactly one feature configuration configures each
+      (`configuredByOneConfiguration`). The check applies the derivation rule
+      of the ontology relationship `configuredBy`. A configuration
+      configures a configured product when one of its effective part
+      usages is typed by the part definition of that configuration's
+      product-model projection, or by a specialization of it. The effective
+      usages are its own and the inherited ones that it does not redefine.
+      A usage is typed by its own typing. A redefining usage without a type
+      of its own keeps the type of the feature it redefines, transitively,
+      as the serializer writes no typing for it. A redefining usage whose
+      own type falls in a projection lineage also keeps the projection type
+      it redefines: a specialization is configured by the same
+      configuration, so a redefinition into another configuration's
+      projection counts both and fails. An own type outside every projection
+      hides the projection it redefines, and a general of a projection part
+      definition, such as its owner, never counts. The configuration's
+      `ProductModelProjectionName` annotation names that part definition,
+      and the derivation binds it by validated identity: metatype, name,
+      generated document and owner, never the name alone. No
+      configuration, or more than one, fails. A configuration can configure
+      more than one configured product.
+    - **Phase 9, System 2.** A specialization that adds System 2
+      instrumentation, such as INC-AEBS-010's test article, inherits the
+      projection part and counts for the phase 9 of its own increment. It
+      never becomes a member: membership is never inferred from
+      specializing a member definition.
+    - **Phase 9, boundaries.** The derivation reads the source documents
+      and the external references of the export. An API listing carries
+      neither. The ingestion importer records both in the revision binding
+      (`export_documents`), from the export that its served-model record
+      names. The API evaluation reads them from there, never from files at
+      the server's checkout, and gives the export path's phase-9 result. A
+      binding without them leaves the check `INDETERMINATE` with the
+      method-side marker `evaluation-input:export-documents`. It is listed
+      under `method_side_blockers`, never as `next` and never as authoring
+      work, and the phase-9 exit stays `BLOCKED`. A record that does not
+      list the served corpus is never read: the deployed runtime refuses
+      that corpus, and every answer with it. The Method Check of a pull
+      request evaluates the export of its head.
+      `variationPoints[0..*]` and `physicalElements[0..*]` stay untyped and
+      unchecked: a native variation point has no selector.
+    - **Phase 11.** The increment has exactly one baseline decision, typed
+      by `IncrementBaselineDecision`, and it states its disposition, a
+      literal of `LifecycleDisposition` (`accepted`, `deferred`,
+      `invalidated`). Each open gap (`IncrementGap`) states the
+      disposition that the baseline decision gives it
+      (`dispositionStated`). An increment without a gap has none to state.
+      Each record states its own disposition: one feature that redefines
+      the kernel's `disposition` of a holder in the record's own type
+      lineage, with exactly one value, a literal that `LifecycleDisposition`
+      itself owns. A value that only a definition
+      sets does not count, and neither does a literal of a specialization.
+      The typing identifies the baseline decision, never a name: a `BL-`
+      short name does not make one.
+    - **Phase 11, resolved gaps.** The record of a resolved gap leaves the
+      model, so every `IncrementGap` in scope is open. A disposition
+      cannot say "resolved", and `invalidated` does not mean "fixed". A
+      resolved gap whose record stays counts as open: without a
+      disposition, it fails like any open gap. The baseline register and the status of an architecture
+      decision record are repository text, which the evaluation does not
+      read.
+    - **Phase 0.** The baseline decision specializes the framing step's
+      `IncrementLifecycleDecision`, but it is never the framing decision.
+      The framing count leaves out its lineage by typing, through the
+      validated kernel bindings, wherever it is declared.
+    - **Left to review.** Whether the disposition is right, and how V&V
+      evidence supports the baseline decision: the step declares no
+      relationship to evidence.
 
 [`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)
 models this workflow in the style of the SYSMOD default process. The
@@ -308,22 +476,20 @@ parameters.
 The checks of these rules are `MethodCheck` metadata inside the step
 definitions, one check per rule clause, each about the step parameter it
 constrains. The check identifier names the evaluation, an unknown identifier
-fails closed, and `advisory = true` marks the advisory checks. The increment
-framing, needs, requirements, functional, logical and physical architecture,
-and V&V and evidence steps carry checks so far; the physical-architecture
-step also checks rule 13. Rules 9 and 10 have no check yet: the
-operational-context and
-capability-classification steps state them in their documentation, which the
-method tools report with each step. Rule 11 is a report over the whole scope,
-not a check of one step. Declaring a check is not evaluating it, and no check
+fails closed, and `advisory = true` marks the advisory checks. Every step
+carries checks; rule 16 gives those of phases 9 and 11. The physical-architecture
+step also checks rule 13. The phase-2 checks of rule 9 are about the
+operational context, the parameter through which they reach it. They read the
+story's use cases from there. Rule 11 is a report over the whole scope, not a
+check of one step. Declaring a check is not evaluating it, and no check
 result is a conformance, acceptance, or certification claim.
 
 ## Workflow phases
 
 | Phase | Question | SAF domain | Main outputs |
 |---|---|---|---|
-| 0. Increment framing | What are we changing or learning? | Common | increment charter, scope, assumptions |
-| 1. Concern framing | Who cares and why? | Common / Operational | stakeholders, concerns, viewpoint selection |
+| 0. Increment framing | What are we changing or learning? | Architecture Management | increment charter, scope, assumptions |
+| 1. Concern framing | Who cares and why? | Architecture Management / Operational | stakeholders, concerns, viewpoint selection |
 | 2. Operational context | What happens in the world? | Operational | context, actors, scenarios, operational processes |
 | 3. Capability / feature semantics | Which characteristics distinguish member products? | DE4SDV ontology | feature candidates: the feature-model delta |
 | 4. Needs | What stakeholder needs exist and how will the needs be validated? | Operational | needs, sources, rationale, validation intent |
@@ -331,10 +497,82 @@ result is a conformance, acceptance, or certification claim.
 | 6. Functional architecture | What functions, flows, states, and interfaces are needed? | Conceptual | functional breakdown, interfaces, behavior slices |
 | 7. Logical architecture | What technology-independent logical elements realize the functions? | Conceptual | logical structure, exchanges, allocation/mapping |
 | 8. Physical / software realization | What software, hardware, deployment, or tool elements realize the system design? | Physical | physical/software structure, interfaces, mappings, readiness probes when required |
-| 9. Variability and configuration | How does this vary across member products or configurations? | DE4SDV product-line layer | variation points, feature configurations, applicability |
-| 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Common / Conceptual | verification cases, validation scenarios, evidence records, open gaps |
-| 11. Publication | What is reviewable now? | DE4SDV workflow | SysML v2, Markdown, YAML, generated views, reports, PR |
-| 12. Baseline and next slice | What is accepted, deferred, or invalidated? | Common | baseline decision, open issues, next increment |
+| 9. Variability and configuration | How does this vary across member products or configurations? | DE4SDV product-line layer | variation points, feature configurations, configured products, applicability |
+| 10. V&V and evidence | How will requirement satisfaction and stakeholder fitness-for-use be checked? | Architecture Management / Conceptual | verification cases, validation scenarios, evidence records, open gaps |
+| 11. Baseline | What is accepted, deferred, or invalidated, and which published views show it? | Architecture Management | baseline decision and its disposition, open-gap dispositions, published views |
+
+Items are typed with VSS only from phase 8 on: the functional and logical
+items of phases 6 and 7 stay technology-independent, and an item is typed
+where it enters a software contract at a phase 8 port (rule 13; owner decision
+of 2026-11-04).
+
+### Views per phase
+
+Each phase publishes one view per SAF question it answers, never two forms of
+the same elements, and the views of an increment are the ones this list names
+(owner decision of 2026-11-04). Framing and the concerns live in one view; the
+context, the boundary and the story are drawn once, in phase 2; traceability is
+a matrix. The forms are the ones the licensed renderer has drawn for a merged
+or validated view; a new kind of diagram is proved with one render before it
+becomes the form of a view, and a table or matrix stands in only for a
+relation no proven form shows. A hand-drawn or proprietary-tool diagram is not
+a deliverable: it cannot be regenerated and byte-compared in CI.
+
+- **Phases 0 and 1** — one view, a tree: `IncrementFramingViewpoint`
+  (DE4SDV), framing every concern of the increment.
+- **Phase 2** — two trees: `OperationalContextDefinitionViewpoint`, which
+  draws the boundary too, so there is no System Context Definition view;
+  `OperationalStoryViewpoint`.
+- **Phase 3** — one table, or none when the feature-model delta is empty:
+  `ProductLineClassificationViewpoint` (DE4SDV).
+- **Phase 4** — one table: `StakeholderRequirementDefinitionViewpoint`, the
+  needs with their validation intent.
+- **Phase 5** — one table: `SystemRequirementDefinitionViewpoint`, the
+  requirements with their verification method and success criteria.
+- **Phase 6** — five views: `SystemFunctionalBreakdownStructureViewpoint`, a
+  tree; `SystemProcessViewpoint`, an action flow of the context parts as the
+  lanes of the functions they perform, with the exchanges, which answers
+  System Context Exchange; `SystemStateViewpoint`, a table of the modes and
+  the functions that depend on them; `SystemInterfaceDefinitionViewpoint`, a
+  tree of the boundary's port definitions with their items;
+  `SystemRequirementTraceabilityViewpoint`, a matrix of requirement by
+  function.
+- **Phase 7** — two views, plus one when an exchange carries a requirement:
+  `SystemStructureDefinitionViewpoint`, a tree; `SystemFunctionMappingViewpoint`,
+  a matrix of function by logical element; `SystemInternalExchangeViewpoint`,
+  an interconnection of the exchange a requirement constrains.
+- **Phase 8** — two views, plus one when the platform path is the claim:
+  `PhysicalStructureDefinitionViewpoint`, a tree;
+  `PhysicalLogicalMappingViewpoint`, a matrix of logical element by physical
+  element; `PhysicalInternalExchangeViewpoint`, an interconnection of the path
+  the increment claims, as INC-MW-011 does.
+- **Phase 9** — two trees: `ProductLineConfigurationViewpoint` (DE4SDV);
+  `ProductModelAssemblyViewpoint` (DE4SDV).
+- **Phase 10** — one tree: `ArgumentationAssuranceViewpoint`, the claims,
+  cases, evidence and counterclaims in one view.
+- **Phase 11** — no view: the baseline decision and the dispositions are
+  gated (rule 16), not drawn.
+
+About seventeen views for an increment that walks every phase, each answering
+a different question. Phase 6 carries five because functions, exchanges, modes
+and interfaces all first appear there. A table split in two for column width
+(needs and their planned reviews) is not a second question. The views that the
+merged increments published before this list are left as they are: retyping
+them would reopen accepted phases for a method tidy-up.
+`tests/test_views_per_phase.py` reads this list and fails a view of a live
+increment whose viewpoint the list does not name for the view's phase, with
+those earlier views pinned as the known deviations. It reads the viewpoint
+only: whether a view shows the right content, and whether a phase published
+every view the list names, stays with review.
+
+An increment ends at its baseline decision. Rework iterates the same
+increment; a new increment starts only from a new engineering question, at
+phase 0. There is no "next slice" step and no loop from the baseline back to
+framing (owner decision of 2026-11-01). The same decision retired the
+publication phase: its view checks moved into the baseline phase, which is
+phase 11, so the workflow has 12 phases. Records written before name the
+publication phase 11 and the baseline phase 12, and their identifiers keep
+that numbering (`BL-MW-010-P12`, `BL-MW-011-P12`).
 
 `System architecture` is the umbrella for the architecture of the system and
 its coordinated views; it is not the name of Phase 7. Phases 6 through 8

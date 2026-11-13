@@ -125,7 +125,9 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         """Per-phase status of one increment at the bound revision: aggregate verdict and phase-exit
         readiness of the executable checks. A declared phase without executable checks is listed with
         its step's declared outputs, never evaluated. Such a phase's exit is BLOCKED by the method
-        (CONTRACT_UNAVAILABLE), never by a gap. `coverage` names the phases the verdicts cover. If the
+        (CONTRACT_UNAVAILABLE), never by a gap. A declared phase whose blocking checks are all not
+        applicable is READY and marked `vacuous: true`, with `evaluated` (advisory checks evaluated);
+        readiness stays READY or BLOCKED. `coverage` names the phases the verdicts cover. If the
         revision does not declare the increment, `increment.resolution` is `not-declared`."""
         return service.increment_status(phase, increment=increment)
 
@@ -144,7 +146,9 @@ def create_mcp_server(service: SemanticQueryService) -> FastMCP:
         """The first actionable gate of one increment at the bound revision, in workflow order (step order,
         then check order), with what to author (`authoring`: declarations with qualified type names, their
         `private import` lines, types, notes and, for the applicable-phases check, the MethodPhase literals
-        in `phases`) and where. `reason` always says why. When
+        in `phases`) and where. `reason` always says why. `vacuous_phases` lists the vacuous phases before
+        `next` (within `phase`), each with a review `prompt`: advisory, it never blocks, never changes
+        `next` and needs no model record to clear. When
         `increment.resolution` is `not-declared`, the bound revision does not declare the increment: work
         on a branch is evaluated by the PR Method Check, not by this revision."""
         return service.next_obligation(phase, increment=increment)

@@ -28,8 +28,8 @@ package DE4SDV_AUTOSARAdaptiveACRNProbeConfiguration {
             #feature occurrence :>> linux[1];
             #feature occurrence :>> hypervisor[1] = (acrn);
             #feature occurrence :>> acrn[1];
-            #feature occurrence :>> guestOperatingSystem[1] = (noGuestOS);
-            #feature occurrence :>> noGuestOS[1];
+            #feature occurrence :>> guestOperatingSystem[1] = (noGuestOperatingSystem);
+            #feature occurrence :>> noGuestOperatingSystem[1];
             #feature occurrence :>> guestMiddleware[1] = (noGuestMiddleware);
             #feature occurrence :>> noGuestMiddleware[1];
         }

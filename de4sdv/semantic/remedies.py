@@ -68,8 +68,10 @@ from .relation_checks import (
     SIGNAL_MAPPING,
     SIGNAL_MAPPING_DISPOSITION,
     SIGNAL_MAPPING_RECORD,
+    SAF_CATALOGUE,
     MethodSideInput,
     mapping_records,
+    saf_domain_pin,
     signal_mappings,
     stated_texts,
 )
@@ -86,6 +88,8 @@ INCREMENT_DEFINITION = "<IncrementDefinitionName>"
 _OWN_DEFINITION = "the increment's own definition specializes it"
 SUBJECT_FIRST = ("Subject first: a requirement, concern or viewpoint with stakeholder or actor members declares "
                  "its subject before them (Syside: requirement-usage-subject-parameter-position).")
+STAKEHOLDER_HOLDER = ("A stakeholder member names a party whose interest the element states; a role that only "
+                      "reviews or verifies it does not hold it.")
 _SPECIALIZING = "this definition or a definition specializing it"
 
 
@@ -711,6 +715,7 @@ def _stakeholder_member(request: _Request) -> Remedy:
     view = request.view
     members = [] if _has_subject(view, request.subject) else [_subject_first(lines)]
     members.append(_stakeholder_line(lines))
+    lines.notes.append(STAKEHOLDER_HOLDER)
     lines.notes.append(SUBJECT_FIRST)
     if request.subject is not None:
         lines.declarations.extend(members)
@@ -740,6 +745,21 @@ def _framed_by_increment_view(request: _Request) -> Remedy:
     if request.subject is not None:
         return lines.remedy(f"frame {concern} by a viewpoint of a view {_where(request) or 'in its package'}")
     return lines.remedy(f"declare a concern and frame it by a viewpoint of a view, {_where(request)}".rstrip(", "))
+
+
+def _non_boundary_concern_present(request: _Request) -> Remedy:
+    """Declare an actual new concern, never retag the existing boundary to clear the gate."""
+    try:
+        boundary = request.view.label(request.view.kernel_element("IncrementBoundaryConcern"))
+    except IdentityNotFoundError as error:
+        return _method_side(str(error), "revision ingestion to validate the canonical kernel binding")(request)
+    base = _framed_by_increment_view(replace(request, subject=None))
+    return replace(base, instruction=(
+        f"declare at least one concern of the increment's engineering scope {_where(request)}, "
+        f"not typed by {boundary} or any definition specializing it; keep existing boundary concerns"
+    ), notes=(*base.notes,
+              "Every concern, including a boundary concern, still needs its native stakeholder member and "
+              "a frame from a viewpoint of an increment view. Presence is not evidence of coverage adequacy."))
 
 
 def _require_constraint(request: _Request) -> Remedy:
@@ -858,10 +878,10 @@ def _verifies(ontology_class: str, what: str) -> Callable[[_Request], Remedy]:
     return build
 
 
-def _method_side(reason: str) -> Callable[[_Request], Remedy]:
+def _method_side(reason: str, supplier: str = "a method or kernel change") -> Callable[[_Request], Remedy]:
     def build(request: _Request) -> Remedy:
         return Remedy(f"nothing to author in the model for {_subject_phrase(request)}: {reason} (method side: only "
-                      "a method or kernel change can supply it)")
+                      f"{supplier} can supply it)")
 
     return build
 
@@ -877,6 +897,7 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "ownedByIncrementPackage": _owned_by_increment_package,
     "stakeholderMember": _stakeholder_member,
     "framedByIncrementView": _framed_by_increment_view,
+    "nonBoundaryConcernPresent": _non_boundary_concern_present,
     "charterOwner": _charter_value,
     "charterApplicablePhases": _applicable_phases,
     "charterExpectedArtifacts": _charter_value,
@@ -896,6 +917,17 @@ _NAMED: Mapping[str, Callable[[_Request], Remedy]] = {
     "populationMember": lambda request: _population_member(request),
     "signalMappingRecorded": lambda request: _signal_mapping_recorded(request),
     "semanticSourceNamed": lambda request: _semantic_source_named(request),
+    "framedByViewpoint": _framed_by_increment_view,
+    "contextSystemOfInterest": lambda request: _context_system_of_interest(request),
+    "storySubjectBound": lambda request: _story_subject_bound(request),
+    "storyActorsBound": lambda request: _story_actors_bound(request),
+    "featureDeltaOnly": lambda request: _feature_delta_only(request),
+    "viewpointFramesConcern": lambda request: _viewpoint_frames_concern(request),
+    "exposesModelContent": lambda request: _exposes_model_content(request),
+    "phaseContentPublished": lambda request: _phase_content_published(request),
+    "concernAnsweredInDomain": lambda request: _concern_answered_in_domain(request),
+    "configuredByOneConfiguration": lambda request: _configured_by_one_configuration(request),
+    "dispositionStated": lambda request: _disposition_stated(request),
 }
 
 
@@ -1263,6 +1295,244 @@ def _semantic_source_named(request: _Request) -> Remedy:
     return lines.remedy(instruction)
 
 
+# ---------------------------------------------------------------------------
+# Operational context and story (phase 2), classification (phase 3), published views (phase 11)
+# ---------------------------------------------------------------------------
+
+_SYSTEM_NAME = "<systemName>"
+_CONTEXT_PART = "<contextPart>"
+_VIEWPOINT_DEF = "viewpoint def <ViewpointName> { doc /* <what the view shows> */ }"
+_VIEWPOINT_NOTE = ("<ViewpointName> may instead be an existing SAF or DE4SDV method viewpoint definition; the "
+                   "check reads the viewpoint and its frame and tests no viewpoint or concern type.")
+
+
+def _declared_system_of_interest(lines: _Lines) -> str:
+    """The definition of the system of interest the charter declares (qualified), or, when it declares
+    none, ``<SystemName>``: declared first, with its usage and the charter's reference to it."""
+    from .method_checks import CONTEXT_SYSTEM_OF_INTEREST
+
+    request = lines.request
+    scope = request.scope
+    if scope is not None and scope.system_of_interest_types:
+        return lines.type(scope.system_of_interest_types[0],
+                          "the system of interest the charter declares, or a definition specializing it")
+    lines.declarations.extend(["part def <SystemName> { doc /* <the system of interest> */ }",
+                               "part <systemUsage> : <SystemName>;"])
+    line = _member_line(lines, CONTEXT_SYSTEM_OF_INTEREST, "<systemUsage>", definitions=_charter_definitions(request))
+    if line:
+        lines.declarations.append(_in_charter(lines, line))
+    return "<SystemName>"
+
+
+def _context_system_line(lines: _Lines) -> str:
+    """``part <systemName> : <the system of interest's definition> :>> systemOfInterest;``: the context's
+    own system of interest, typed like the charter's."""
+    from .method_checks import CONTEXT_SYSTEM_OF_INTEREST
+
+    return f"part {_SYSTEM_NAME} : {_declared_system_of_interest(lines)} :>> {CONTEXT_SYSTEM_OF_INTEREST};"
+
+
+def _context_system_of_interest(request: _Request) -> Remedy:
+    """The context redefines its systemOfInterest with the system of interest the charter declares."""
+    lines = _lines(request)
+    line = _context_system_line(lines)
+    if request.subject is not None:
+        lines.declarations.append(_existing_member(lines, request.subject, line))
+        return lines.remedy(f"give {request.view.label(request.subject)} the system of interest the charter "
+                            "declares as its own systemOfInterest")
+    lines.declarations.append(_declaration(lines, [line], name=_subject_name(request)))
+    where = _where(request)
+    return lines.remedy(f"declare {_parameter_phrase(request)}{' ' + where if where else ''}, its systemOfInterest "
+                        "the system of interest the charter declares")
+
+
+def _story_subject_bound(request: _Request) -> Remedy:
+    """Each use case binds its subject to the context's system of interest: the line for the first one
+    that does not, which replaces its subject (a use case has one)."""
+    from .method_checks import context_system_of_interest, story_subject_problems, use_case_parameters
+
+    view, scope = request.view, request.scope
+    lines = _lines(request)
+    instruction = "bind the subject of each use case of the increment to the system of interest of its operational context"
+    if request.subject is None:
+        lines.declarations.append("use case <useCaseName> { subject <subjectName> = <systemOfInterestPart>; }")
+        lines.notes.append("<systemOfInterestPart> is the part of the increment's operational context that redefines "
+                           "its systemOfInterest.")
+        return lines.remedy(instruction)
+    context = request.subject
+    systems = context_system_of_interest(view, context)[1]
+    if systems:
+        target = view.label(systems[0])
+    else:
+        lines.declarations.append(_existing_member(lines, context, _context_system_line(lines)))
+        target = _SYSTEM_NAME
+    line = f"subject <subjectName> = {target};"
+    problems = story_subject_problems(view, scope, context) if scope is not None else []
+    if problems:
+        use_case = problems[0][0]
+        own = [p for p in use_case_parameters(view, use_case, "SubjectMembership") if view.index.owner_of(p) == use_case]
+        lines.placed[line] = (f"replace the subject of {view.label(use_case)} with:" if own
+                              else f"in the existing {view.label(use_case)}:")
+        if len(problems) > 1:
+            lines.notes.append(f"Likewise in {', '.join(view.label(found) for found, _why in problems[1:])}.")
+    lines.declarations.append(line)
+    lines.notes.append("A use case's definition may declare its subject with another type; change that subject too "
+                       "when it is not the system of interest.")
+    return lines.remedy(instruction)
+
+
+def _story_actors_bound(request: _Request) -> Remedy:
+    """Each actor binds to a part of the context around its system of interest: the lines for the first
+    actor that does not, a context part and the actor's binding in its use case."""
+    from .method_checks import story_actor_problems
+
+    view, scope = request.view, request.scope
+    lines = _lines(request)
+    instruction = "bind each actor of each use case of the increment to a part of its operational context"
+    context = request.subject
+    problems = story_actor_problems(view, scope, context) if context is not None and scope is not None else []
+    if not problems:
+        lines.declarations.append(f"use case <useCaseName> {{ actor <actorName> = {_CONTEXT_PART}; }}")
+        lines.notes.append(f"{_CONTEXT_PART} is a part of the increment's operational context, around its system of "
+                           "interest, not inside it.")
+        return lines.remedy(instruction)
+    use_case, actor, _why = problems[0]
+    actor_type = _one_type(view, actor)
+    typed = lines.type(actor_type, "the type of the actor it binds") if actor_type else None
+    part = f"part {_CONTEXT_PART} : {typed};" if typed else f"part {_CONTEXT_PART};"
+    lines.declarations.append(_existing_member(lines, context, part))
+    binding = f"actor {view.index.name_of(actor) or '<actorName>'} = {_CONTEXT_PART};"
+    lines.declarations.append(_existing_member(lines, use_case, binding))
+    lines.notes.append(f"Bind an existing part of {view.label(context)} instead where it has one, by its qualified "
+                       "name; a part around the system of interest, not inside it.")
+    if view.index.owner_of(actor) == use_case:
+        lines.notes.append(f"The binding replaces the actor's own declaration in {view.label(use_case)}.")
+    if len(problems) > 1:
+        lines.notes.append("Likewise for " + ", ".join(
+            f"{view.label(found)} (actor {view.index.name_of(other) or other})" for found, other, _why in problems[1:])
+            + ".")
+    return lines.remedy(instruction)
+
+
+def _feature_delta_only(request: _Request) -> Remedy:
+    """A phase-3 record that is no feature candidate: no record for a core element; a candidate when it
+    distinguishes member products (a note, as a retyping of an existing element is)."""
+    from .method_checks import DEFERRED_SCOPE_CLASS, FEATURE_CLASS
+
+    view = request.view
+    lines = _lines(request)
+    feature, deferred = _kernel(view, FEATURE_CLASS), _kernel(view, DEFERRED_SCOPE_CLASS)
+    if feature is None or deferred is None:
+        return _method_side("the product-line characteristic classes have no validated kernel binding")(request)
+    candidate = lines.type(feature, "the feature-model delta: a characteristic that distinguishes member products")
+    deferring = lines.type(deferred, "product-line scope the increment defers")
+    if request.subject is None:
+        lines.declarations.append(f"part <name> : {candidate};")
+        lines.notes.append(f"Scope the increment defers is typed by {deferring}.")
+        where = _where(request)
+        return lines.remedy(f"record only the feature candidates the increment adds{' ' + where if where else ''}")
+    target = view.label(request.subject)
+    lines.notes.append(f"Core elements are common by default and get no record: remove {target} and what only "
+                       "restates it.")
+    lines.notes.append(f"When {target} distinguishes member products, retype the existing {target} to "
+                       f"`: {candidate}` instead; scope the increment defers is typed by {deferring}.")
+    return lines.remedy(f"remove {target}, a record of common content, or retype it as a feature candidate")
+
+
+def _viewpoint_frames_concern(request: _Request) -> Remedy:
+    view = request.view
+    lines = _lines(request)
+    lines.declarations.append(_VIEWPOINT_DEF)
+    line = "viewpoint <viewpointName> : <ViewpointName> { frame <concern>; }"
+    if request.subject is not None:
+        lines.declarations.append(_existing_member(lines, request.subject, line))
+        instruction = f"give {view.label(request.subject)} a viewpoint that frames the concern it presents"
+    else:
+        lines.declarations.append(f"view <viewName> {{ {line} expose <element>; }}")
+        where = _where(request)
+        instruction = f"declare the view{' ' + where if where else ''} with a viewpoint that frames a concern"
+    lines.notes.append(_VIEWPOINT_NOTE)
+    return lines.remedy(instruction)
+
+
+def _exposes_model_content(request: _Request) -> Remedy:
+    view = request.view
+    lines = _lines(request)
+    line = "expose <element>;"
+    if request.subject is not None:
+        lines.declarations.append(_existing_member(lines, request.subject, line))
+        instruction = f"expose the model content {view.label(request.subject)} presents"
+    else:
+        lines.declarations.append(_VIEWPOINT_DEF)
+        lines.declarations.append(f"view <viewName> {{ viewpoint <viewpointName> : <ViewpointName> "
+                                  f"{{ frame <concern>; }} {line} }}")
+        lines.notes.append(_VIEWPOINT_NOTE)
+        where = _where(request)
+        instruction = f"declare the view{' ' + where if where else ''}, exposing model content"
+    lines.notes.append("A table or matrix view may expose through the views it owns instead "
+                       "(view :>> rowView { expose <element>; }); expose <package>::*; exposes a package's members.")
+    return lines.remedy(instruction)
+
+
+def _concern_answered_in_domain(request: _Request) -> Remedy:
+    """Frame the concern by a viewpoint of its SAF domain, or retype it by the domain its question asks about.
+    For a failing concern the domain is read as the check reads it, and the catalogue's viewpoint definitions
+    of that domain are listed; without a subject, or with the domain roots unbound, the text says how."""
+    from .method_checks import SAF_DOMAIN_LABELS, concern_saf_domains
+
+    view, lines = request.view, _lines(request)
+    retype = ("When the concern asks a question of another domain, retype it by that domain's SAF concern "
+              "definition instead; read the definition's question first. A question about a concrete platform, "
+              "product or component is a Physical Domain question.")
+    try:
+        domains = concern_saf_domains(view, request.subject)[0] if request.subject else []
+        root = view.library_element(saf_domain_pin(domains[0], "viewpoint")) if domains else None
+    except (MethodSideInput, IdentityNotFoundError):
+        domains, root = [], None
+    where = _where(request)
+    if root is None:
+        lines.notes.append(retype)
+        lines.notes.append("The check reads the domain of the framing viewpoint, not what the view shows.")
+        return lines.remedy(
+            "nothing to author for a concern typed by no SAF concern definition; frame each concern typed by "
+            "one by a viewpoint of a view of the increment"
+            f"{' ' + where if where else ''} whose definition is an SAF viewpoint definition of the concern's "
+            "domain (in SAF_Viewpoints it specializes <Domain>DomainViewpoint as the concern's definition "
+            "specializes <Domain>DomainConcern), or retype the concern by the SAF concern definition of the "
+            "domain its question belongs to")
+    concern, label = view.label(request.subject), SAF_DOMAIN_LABELS[domains[0]]
+    lines.declarations.append(f"viewpoint def <ViewpointName> :> {lines.type(root, _SPECIALIZING)} "
+                              "{ doc /* <what the view shows> */ }")
+    lines.declarations.append(f"view <viewName> {{ viewpoint <viewpointName> : <ViewpointName> {{ frame {concern}; }} "
+                              "expose <element>; }")
+    catalogue = sorted(str(view.index.name_of(element)) for element in view.index.specializations(root)
+                       if element != root and str(view.element(element).get("@type")) == "ViewpointDefinition"
+                       and view.source_of(element) == SAF_CATALOGUE)
+    if catalogue:
+        lines.notes.append(f"<ViewpointName> may instead be an SAF viewpoint definition of the {label} Domain: "
+                           + ", ".join(catalogue) + "; an existing view of the increment may frame the concern.")
+    lines.notes.append(retype)
+    lines.notes.append("The check reads the domain of the framing viewpoint, not what the view shows.")
+    return lines.remedy(f"frame {concern} by a viewpoint of the SAF {label} Domain in a view of the increment"
+                        f"{' ' + where if where else ''}, or retype it by the SAF concern definition of the domain "
+                        "its question belongs to")
+
+
+def _phase_content_published(request: _Request) -> Remedy:
+    """Show each listed phase in a view of the increment: expose one of its elements there."""
+    lines = _lines(request)
+    lines.declarations.append(_VIEWPOINT_DEF)
+    lines.declarations.append("view <viewName> { viewpoint <viewpointName> : <ViewpointName> "
+                              "{ frame <concern>; } expose <element>; }")
+    lines.notes.append(_VIEWPOINT_NOTE)
+    lines.notes.append("Or add expose <element>; to an existing view of the increment; expose <package>::*; shows a "
+                       "package's members. The diagnostic lists, per phase, the elements no view shows.")
+    lines.notes.append("Visibility is not review: a view that shows a phase says nothing about its adequacy.")
+    where = _where(request)
+    return lines.remedy(f"expose, in a view of the increment{' ' + where if where else ''}, at least one element of "
+                        "each applicable phase that has content but none in a view")
+
+
 def _verification_membership(request: _Request, mapping: Any) -> Remedy:
     lines = _lines(request)
     verified = _subject_ref(lines, "<requirement>")
@@ -1391,3 +1661,93 @@ def check_remedy(view: ModelView, check: str, *, subject: str | None = None, par
 
 
 __all__ = ["Remedy", "SUBJECT_FIRST", "check_remedy", "population_remedy", "subject_declaration"]
+
+
+# ---------------------------------------------------------------------------
+# Configured product (phase 9), baseline decision and open gaps (phase 11)
+
+
+def _projection_note(view: ModelView) -> str:
+    """Which part definitions the configurator generated: the product-model projections a configured product
+    composes, by qualified name."""
+    from .method_checks import configuration_part_definitions
+
+    projections, _marker, _problem = configuration_part_definitions(view)
+    names = sorted(view.label(definition) for definition in projections)
+    listed = f": {', '.join(names)}" if names else ""
+    return ("The part is typed by the part definition that the configurator generates from the receipt of its feature "
+            "configuration, in model-based-product-line-engineering/product-models/, or by a specialization of it; "
+            f"the configuration's ProductModelProjectionName annotation names it{listed}. A specialization that adds "
+            "System 2 instrumentation inherits that part and is configured through it.")
+
+
+def _configured_by_one_configuration(request: _Request) -> Remedy:
+    """A configured product that no feature configuration, or more than one, configures: the part that
+    composes its configuration's product-model projection, or one such part only. When the derivation
+    cannot run, its reason, never authoring work it does not support."""
+    from .method_checks import EXPORT_DOCUMENTS, configuration_part_definitions, configured_by, projection_redefinitions
+    from .relation_checks import METHOD_SIDE_PREFIXES
+
+    view = request.view
+    _projections, marker, problem = configuration_part_definitions(view)
+    if marker is not None and marker.startswith(METHOD_SIDE_PREFIXES):
+        reason = problem or marker
+        if marker == EXPORT_DOCUMENTS:
+            reason += "; the Method Check of a pull request evaluates the export of its head"
+        return _method_side(reason, "a change to the evaluation")(request)
+    lines = _lines(request)
+    if marker is not None:
+        lines.notes.append("The member-product derivation reads the same feature configurations and refuses the same "
+                           "shapes.")
+        return lines.remedy(f"make the feature configurations readable: {problem}.")
+    if request.subject is None:
+        product = _kernel(view, "ConfiguredProduct")
+        if product is None:
+            return _method_side("the configured product has no validated kernel binding")(request)
+        typed = lines.type(product, "a product that one feature configuration configures")
+        lines.declarations.append(f"part def <ConfiguredProductName> :> {typed};")
+        lines.declarations.append("part <configuredProductName> : <ConfiguredProductName>;")
+        lines.notes.append("Give <ConfiguredProductName> a part that composes its configuration's product-model "
+                           "projection. " + _projection_note(view))
+        where = _where(request)
+        return lines.remedy(f"declare the configured product{' ' + where if where else ''}")
+    target = view.label(request.subject)
+    configurations, usages = configured_by(view, request.subject)
+    if configurations:
+        lines.notes.append(f"{target} composes the projections of {len(configurations)} feature configurations, through "
+                           + ", ".join(f"{view.label(u)} ({view.label(c)})" for c, u in zip(configurations, usages))
+                           + ". Exactly one configuration configures a configured product.")
+        return lines.remedy(f"keep the part of {target} that composes its own configuration's projection, and "
+                            "remove the others.")
+    hidden = projection_redefinitions(view, request.subject)
+    if hidden:
+        usage, redefined = hidden[0]
+        lines.notes.append(_projection_note(view))
+        return lines.remedy(f"{view.label(usage)} redefines {view.label(redefined)}, which composes a projection, with a "
+                            "type that is no projection's part definition: type it by that part definition or a "
+                            "specialization of it, or leave out its type to keep the redefined one.")
+    definition = _one_type(view, request.subject)
+    holder = view.label(definition) if definition else target
+    lines.notes.append(_projection_note(view))
+    return lines.remedy(f"in {holder}, add a part typed by the part definition of its feature configuration's "
+                        "product-model projection.")
+
+
+def _disposition_stated(request: _Request) -> Remedy:
+    """A baseline decision or an open gap without its disposition: the redefinition that states it."""
+    view = request.view
+    lines = _lines(request)
+    enum = _kernel(view, "LifecycleDisposition")
+    if enum is None:
+        return _method_side("the lifecycle disposition has no validated kernel binding")(request)
+    literals = view.qualified_name(enum) or view.index.name_of(enum) or "LifecycleDisposition"
+    line = "attribute :>> disposition = <disposition>;"
+    lines.notes.append(f"<disposition> is {literals}::accepted, ::deferred or ::invalidated: what the baseline "
+                       "decision does with the result of the increment, or with the open gap. Each record states its "
+                       "own disposition; a value that only its definition sets does not count. An accepted gap stays "
+                       "open as a known limit; the record of a resolved gap leaves the model instead.")
+    if request.subject is not None:
+        lines.declarations.append(_existing_member(lines, request.subject, line))
+        return lines.remedy(f"state the disposition of {view.label(request.subject)}")
+    lines.declarations.append(_declaration(lines, [line], name=_subject_name(request)))
+    return lines.remedy(f"declare {_parameter_phrase(request)} with its disposition {_where(request)}".rstrip())

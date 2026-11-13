@@ -1,0 +1,29 @@
+{
+    "service_types": [
+        {
+            "service_type_name": "de4sdv_aebs_signal_frame",
+            "service_id": 19950,
+            "service_version_major": 1,
+            "service_version_minor": 0,
+            "events": [
+                {
+                    "event_name": "aebs_signal_frame",
+                    "event_id": 32769,
+                    "serialization_config_type": "NullSerializerConfig",
+                    "serialization_config": {
+                        "max_message_size": 2048
+                    },
+                    "eventgroup_ids": [
+                        1
+                    ]
+                }
+            ],
+            "local_service_instances": [
+                {
+                    "instance_specifier": "de4sdv/aebs_signal_frame",
+                    "instance_id": 1
+                }
+            ]
+        }
+    ]
+}

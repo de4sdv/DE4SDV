@@ -1,0 +1,41 @@
+# DE4SDV facade of the AutowareToSCORE adapter (INC-MW-011, GAP-MW-035).
+# This file is copied, with the facade sources, into a throwaway checkout of
+# eclipse-score/inc_someip_gateway as the package
+# //de4sdv_score_bench/facade (scripts/ci_checkout_upstream.sh). It adds files
+# only; no upstream file changes, and no S-CORE file enters the DE4SDV
+# repository.
+#
+# Two static archives leave the Bazel build for the final link with g++ in the
+# ament_cmake package de4sdv_score_adapter:
+# - de4sdv_score_facade: the facade with the object files of communication
+#   (mw::com, LoLa), baselibs and the gateway headers it needs. The gateway's
+#   LLVM toolchain links libstdc++ statically into executables, but an archive
+#   carries no libstdc++: the final link adds the shared one.
+# - de4sdv_aborts_upon_exception: baselibs' replacement of
+#   __cxa_allocate_exception by std::abort() (REQ-MW-018). The final link puts
+#   it first, as a whole archive, and exports the symbol.
+
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_static_library.bzl", "cc_static_library")
+
+cc_library(
+    name = "score_facade",
+    srcs = ["src/score_facade.cpp"],
+    hdrs = ["include/de4sdv_score_facade/score_facade.h"],
+    strip_include_prefix = "include",
+    deps = [
+        "//de4sdv_score_bench/interface:service_interfaces",
+        "@score_baselibs//score/filesystem",
+        "@score_communication//score/mw/com",
+    ],
+)
+
+cc_static_library(
+    name = "de4sdv_score_facade",
+    deps = [":score_facade"],
+)
+
+cc_static_library(
+    name = "de4sdv_aborts_upon_exception",
+    deps = ["@score_baselibs//score/language/safecpp/aborts_upon_exception:abortsuponexception"],
+)

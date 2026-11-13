@@ -1,0 +1,10 @@
+#0  __pthread_kill_implementation (threadid=281472886755360, signo=signo@entry=6, no_tid=no_tid@entry=0) at ./nptl/pthread_kill.c:44
+#1  0x0000ffff83272084 in __pthread_kill_internal (signo=6, threadid=<optimized out>) at ./nptl/pthread_kill.c:78
+#2  0x0000ffff8322a83c in __GI_raise (sig=sig@entry=6) at ../sysdeps/posix/raise.c:26
+#3  0x0000ffff83217134 in __GI_abort () at ./stdlib/abort.c:79
+#4  0x0000aaaab775a6f8 in __cxa_allocate_exception () at /scratch/local-stub/aborts_upon_exception.cpp:23
+#5  0x0000ffff82bc2150 in ?? () from /opt/ros/humble/lib/libfastrtps.so.2.6
+#6  0x0000ffff82bc3520 in ?? () from /opt/ros/humble/lib/libfastrtps.so.2.6
+#7  0x0000ffff82bc0e78 in ?? () from /opt/ros/humble/lib/libfastrtps.so.2.6
+#8  0x0000ffff82a653ec in ?? () from /opt/ros/humble/lib/libfastrtps.so.2.6
+#9  0x0000ffff82a734ec in eprosima::fastdds::rtps::SharedMemTransport::CreateInputChannelResource(eprosima::fastrtps::rtps::Locator_t const&, unsigned int, eprosima::fastdds::rtps::TransportReceiverInterface*) () from /opt/ros/humble/lib/libfastrtps.so.2.6

@@ -9,12 +9,12 @@
  * adapter; an AAOS SDV guest runs the HMI. The reference vehicle speed
  * travels over S-CORE communication into Autoware. The AEBS signals of the
  * Autoware-based AEBS stack on the Linux host travel over S-CORE
- * communication inside the host, and a DE4SDV SOME/IP relay carries them
+ * communication inside the host, and the S-CORE SOME/IP gateway carries them
  * across the domain boundary to the HMI in the guest. One increment identity
- * spans phases 0 to 12: this framing slice, the needs, requirements,
+ * spans phases 0 to 11: this framing slice, the needs, requirements,
  * physical/software realization, variability and configuration, and
- * verification-evidence slices that follow, and the publication and baseline
- * decision all belong to it.
+ * verification-evidence slices that follow, and the baseline decision with
+ * its published views all belong to it.
  *
  * Predecessor relationship: the increment builds on the closed INC-MW-010
  * baseline and on the INC-MW-002 to INC-MW-007 baseline (ASM-MW-023). It
@@ -39,8 +39,8 @@ package DE4SDV_MiddlewareSCOREFraming {
      * INC-MW-011: middleware integration on Eclipse S-CORE, in a member
      * product with two execution domains under a hypervisor: Autoware,
      * S-CORE and the adapter on a Linux host, and an AAOS SDV guest with the
-     * HMI. One increment identity spanning phases 0 to 12, from framing
-     * through verification evidence, publication and the baseline decision:
+     * HMI. One increment identity spanning phases 0 to 11, from framing
+     * through verification evidence to the baseline decision and its views:
      * this framing slice and the needs, requirements, physical/software
      * realization, configuration and verification-evidence slices all
      * belong to this increment.
@@ -52,9 +52,9 @@ package DE4SDV_MiddlewareSCOREFraming {
      * DE4SDV's middleware integration layer is realized only on AAOS SDV
      * (INC-MW-008). The product line names Eclipse S-CORE as a middleware
      * alternative, but there is no evidence that S-CORE can realize the
-     * layer (GAP-MW-030), no planned member product uses it, and the product
-     * model cannot describe the product it would need: Autoware and S-CORE
-     * on a Linux host, with an AAOS SDV guest for the HMI (GAP-MW-032).
+     * layer, no planned member product uses it, and the product model cannot
+     * describe the product it would need: Autoware and S-CORE on a Linux host,
+     * with an AAOS SDV guest for the HMI.
      * Until that changes, S-CORE stays a reference-only alternative of the
      * governed product-line scope (ADR 0014), and product-line engineers,
      * architects and reviewers cannot judge it as an open-source automotive
@@ -97,7 +97,7 @@ package DE4SDV_MiddlewareSCOREFraming {
   }
 
   part scoreMiddlewareScope : IncrementScope {
-    doc /* The scope of INC-MW-011: the engineering question, GAP-MW-030, GAP-MW-032 and the charter set its realization, member-product and platform scope; the nested parts are the two signal paths later slices trace to; the OutOfScopeItem parts of this package bound it. */
+    doc /* The scope of INC-MW-011: the engineering question and the charter set its realization, member-product and platform scope; the nested parts are the two signal paths later slices trace to; the OutOfScopeItem parts of this package bound it. */
     part referenceVehicleSpeedPathInScope : InScopeItem {
       doc /* The reference vehicle-speed path (VSS Vehicle.Speed) over S-CORE communication into the same Autoware consumer, like for like with the AAOS SDV realization of INC-MW-008 over the same reference signal, with evidence comparable with the retained evidence of INC-MW-010. */
     }
@@ -148,27 +148,28 @@ package DE4SDV_MiddlewareSCOREFraming {
      * concern framing, operational context, capability classification, needs,
      * requirements, functional and logical architecture, physical/software
      * realization, variability and configuration, verification evidence,
-     * publication, and the baseline and next-slice decision. Phases 1 to 3
+     * and the baseline decision with its published views. Phases 1 to 3
      * and 6 to 7 are declared because the increment revalidates the
      * middleware baseline of INC-MW-002 to INC-MW-007 for the S-CORE variant
      * and extends it where the two-domain member needs it: the cross-domain
-     * HMI path and the per-execution-domain platform. Phases 11 and 12 are
-     * declared because the lifecycle decision and the scope-revision
-     * decision record that admits the member are phase 12 work.
+     * HMI path and the per-execution-domain platform. Phase 11 is declared
+     * because the lifecycle decision and the scope-revision decision record
+     * that admits the member are baseline work.
      * Each later slice belongs to this increment and is not a second
      * increment identity. Owner, expected artifacts and expected review
      * evidence are declarations, not completion or review evidence. The
-     * expected artifacts name the packages of phases 0 to 8; each later slice
-     * adds its own package when it is authored. The system of interest is
+     * expected artifacts name the packages of phases 0 to 9 and the
+     * verification-evidence package of phase 10. Each later slice adds its
+     * own package when it is authored. The system of interest is
      * the middleware integration layer: the needs and requirements take it
      * as their subject, the problem statement keeps the increment.
      */
-    attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements, MethodPhase::phase6_functionalArchitecture, MethodPhase::phase7_logicalArchitecture, MethodPhase::phase8_physicalRealization, MethodPhase::phase9_variabilityConfiguration, MethodPhase::phase10_vvEvidence, MethodPhase::phase11_publication, MethodPhase::phase12_baselineNextSlice);
+    attribute :>> applicablePhases = (MethodPhase::phase0_incrementFraming, MethodPhase::phase1_concernFraming, MethodPhase::phase2_operationalContext, MethodPhase::phase3_capabilityClassification, MethodPhase::phase4_needs, MethodPhase::phase5_requirements, MethodPhase::phase6_functionalArchitecture, MethodPhase::phase7_logicalArchitecture, MethodPhase::phase8_physicalRealization, MethodPhase::phase9_variabilityConfiguration, MethodPhase::phase10_vvEvidence, MethodPhase::phase11_baseline);
     ref part :>> increment = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationIncrement;
     ref part :>> systemOfInterest = DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     attribute :>> owner = "DE4SDV maintainers";
-    attribute :>> expectedArtifacts = ("DE4SDV_MiddlewareSCOREFraming", "DE4SDV_MiddlewareSCOREOperationalContext", "DE4SDV_MiddlewareSCOREFeatureClassification", "DE4SDV_MiddlewareSCORENeedsRequirements", "DE4SDV_MiddlewareSCOREFunctionalArchitecture", "DE4SDV_MiddlewareSCORELogicalArchitecture", "DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization");
-    attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates and the Method Check at the reviewed head", "retained evidence of the runnable proof: the reference vehicle speed over S-CORE into Autoware and the AEBS signals over S-CORE inside the Linux host and over the DE4SDV SOME/IP relay to the HMI in the AAOS SDV guest");
+    attribute :>> expectedArtifacts = ("DE4SDV_MiddlewareSCOREFraming", "DE4SDV_MiddlewareSCOREOperationalContext", "DE4SDV_MiddlewareSCOREFeatureClassification", "DE4SDV_MiddlewareSCORENeedsRequirements", "DE4SDV_MiddlewareSCOREFunctionalArchitecture", "DE4SDV_MiddlewareSCORELogicalArchitecture", "DE4SDV_MiddlewareSCOREPhysicalSoftwareRealization", "DE4SDV_MiddlewareSCOREVariabilityConfiguration", "DE4SDV_MiddlewareSCOREVerificationEvidence");
+    attribute :>> expectedReviewEvidence = ("exact-head licensed SysML validation of the increment model slices", "repository gates and the Method Check at the reviewed head", "retained evidence of the runnable proof: the reference vehicle speed over S-CORE into Autoware and the AEBS signals over S-CORE inside the Linux host and over the S-CORE SOME/IP gateway to the HMI in the AAOS SDV guest");
   }
 
   /* Qualified references to the accepted baseline and to the platform-stack
@@ -203,7 +204,13 @@ package DE4SDV_MiddlewareSCOREFraming {
     doc /* Reopening the closed INC-MW-010 baseline or extending its retained evidence. */
   }
   part scoreUpstreamEngagementOutOfScope : OutOfScopeItem {
-    doc /* Engagement with, or endorsement by, the Eclipse S-CORE project; the increment claims neither. */
+    doc /*
+     * Engagement with the Eclipse S-CORE project beyond defect reports, and
+     * endorsement by it; the increment claims neither. With the owner's
+     * approval, DE4SDV reported the gateway integration defects upstream on
+     * 2026-10-22 (GAP-MW-036). Code contributions, and a cross-domain
+     * integration test for the gateway, stay a later decision of the owner.
+     */
   }
 
   part asmSCOREBaselinePinned : IncrementAssumption {
@@ -211,8 +218,32 @@ package DE4SDV_MiddlewareSCOREFraming {
      * ASM-MW-021: Eclipse S-CORE v0.9.0 is the pinned baseline:
      * eclipse-score/reference_integration tag v0.9.0, commit
      * 71b00dda29e73433064f0b2536e916099ffe75a9. It is a pre-1.0 release, and
-     * the project states that it is not a ready-to-integrate series product;
-     * every S-CORE statement of this increment is bound to that commit.
+     * the project states that it is not a ready-to-integrate series product.
+     * Every S-CORE statement of this increment is bound to that commit, with
+     * one bounded deviation (owner decision of 2026-10-22). The middleware
+     * integration layer carries the AEBS signal frames over the S-CORE
+     * SOME/IP gateway, which is not in that baseline:
+     * eclipse-score/inc_someip_gateway at commit
+     * d9eac670b7534352749da3d30f52aebf5129f168 (2026-10-27), with no tag. The
+     * gateway needs communication 0.5.0 with two patches of the gateway and
+     * baselibs 0.2.16 with one, in place of the communication 0.4.0 and
+     * baselibs 0.2.12 of v0.9.0. No S-CORE baseline holds that set. The
+     * deviation covers these two modules, for every mw::com user on the
+     * Linux host, and the gateway with its patched vsomeip 3.6.1. Statements
+     * about them are bound to the versions and the commit named here.
+     * Everything else stays bound to v0.9.0, among it lifecycle v0.6.1
+     * (commit 432c85d91db8bd72a39a61f245eaf119a570b88d) and the assumptions
+     * of use of eclipse-score/score v0.7.2 that NEED-MW-004 cites.
+     * NEED-MW-004 is read through this deviation. The component assumptions
+     * of use of communication are the same in 0.4.0 and 0.5.0:
+     * score/mw/com/dependability/safety_analysis/aou.trlc and
+     * score/message_passing/dependability/assumed_system/aous.trlc do not
+     * change. baselibs' component assumptions of use are the same in 0.2.12
+     * and 0.2.16, and the gateway declares none. So SC-MW-009 reviews the
+     * integration against the same set.
+     * Statements about later releases and open upstream work record the
+     * upstream state of 2026-10-28; the trigger of GAP-MW-036 watches it.
+     * GAP-MW-036 records the deviation and the trigger to revisit it.
      */
   }
   part asmAutowareApplicationUnchanged : IncrementAssumption {
@@ -261,10 +292,12 @@ package DE4SDV_MiddlewareSCOREFraming {
      * ASM-MW-027: The hypervisor is KVM on the Linux host, with the AAOS SDV
      * guest, as in the AAOS-integrated reference member (middleware
      * androidSDV in its Android guest, hypervisor kvm, osPlatform linux);
-     * the INC-AEBS-010 bench ran its HMI in an AAOS SDV Cuttlefish guest. The Linux host is
+     * the INC-AEBS-010 bench ran its HMI in an AAOS SDV Cuttlefish guest. In
+     * this member the AAOS SDV guest holds two VMs, an SDV Core VM and an
+     * IVI VM, with the same feature selections (ADR 0025). The Linux host is
      * both the KVM host and the domain that owns the AEBS emergency
      * intervention command path (ASM-MW-028), so the hypervisor boundary
-     * isolates the informational HMI guest from the host.
+     * isolates the VMs of the informational HMI guest from the host.
      */
   }
   part asmEmergencyCommandPathStaysOnLinuxHost : IncrementAssumption {
@@ -276,45 +309,27 @@ package DE4SDV_MiddlewareSCOREFraming {
      * the brake command path remains direct from the AEB node to the vehicle
      * command gate, not through the adapter). With KVM (ASM-MW-027) the
      * Linux host is both the hypervisor host and the owner of that path, so
-     * the hypervisor boundary isolates the HMI guest from the host. No
+     * the hypervisor boundary isolates the VMs of the HMI guest from the
+     * host. No
      * freedom-from-interference claim is made; REQ-MW-006
      * (reqIsolateSafetyPath, in development) and GAP-MW-029 stay open.
      */
   }
 
-  part gapRealizationCoverageUnknown : IncrementGap {
-    doc /*
-     * GAP-MW-030: Which of the six middleware components S-CORE v0.9.0
-     * realizes, and which stay open, is unknown until the physical/software
-     * realization slice of this increment records the coverage.
-     */
-  }
   part gapHMITransportUnselected : IncrementGap {
     doc /*
      * GAP-MW-031: The transport that carries the AEBS signals from S-CORE on
      * the Linux host across the domain boundary, through the hypervisor,
      * into the AAOS SDV guest is not selected in this framing slice; the
-     * realization slice selects and pins it.
+     * realization slice selects and pins it. Phase 8 selects it
+     * (hmiTransportSelection): SOME/IP into the SDV Core VM of the guest,
+     * then Data Tunnel to its IVI VM (ADR 0025).
+     *
+     * Withdrawn at the baseline decision: the transport is selected and pinned, so the
+     * item no longer holds. The record stays so the selection comment keeps
+     * its subject.
      */
-  }
-  part gapTwoDomainMemberNotExpressible : IncrementGap {
-    doc /*
-     * GAP-MW-032: The product model cannot express a member product with two
-     * execution domains. The feature model selects exactly one operating
-     * system, one middleware alternative and one hypervisor per product
-     * (the alternative groups F-PLATFORM-OS, F-PLATFORM-MIDDLEWARE and
-     * F-PLATFORM-HYPERVISOR), and constraint C001 requires PlatformStack.OS
-     * in [Linux, QNX] when PlatformStack.Middleware is EclipseSCORE; the
-     * platform stack mirrors this with one osPlatform, one middleware and
-     * one hypervisor variation per stack. The two-domain member needs Linux
-     * with S-CORE on the host and Android with the AAOS SDV middleware in
-     * the guest; the example feature configuration "Autoware on S-CORE on
-     * Linux" describes only the Linux domain. The same limit affects the
-     * AAOS-integrated reference member: its Autoware runs on a Linux ROS 2
-     * runtime while its single operating-system selection says Android.
-     * Phases 8 and 9 of this increment close the gap with
-     * per-execution-domain platform modeling.
-     */
+    attribute :>> disposition = LifecycleDisposition::invalidated;
   }
 
   /* Qualified references to the reused targets of the two-domain framing
@@ -331,21 +346,17 @@ package DE4SDV_MiddlewareSCOREFraming {
     from scoreMiddlewareScope::referenceVehicleSpeedPathInScope to DE4SDV_MiddlewarePhysicalSoftwareRealization::COVESAVehicleSpeedSemanticSource;
   dependency speedPathLikeForLikeWithAAOSSDVRealization
     from scoreMiddlewareScope::referenceVehicleSpeedPathInScope to DE4SDV_MiddlewarePhysicalSoftwareRealization::physicalSoftware;
-  dependency twoDomainGapOnSinglePlatformStackSelections
-    from gapTwoDomainMemberNotExpressible to DE4SDV_SDVPlatformStack::SDVPlatformStack;
-  dependency twoDomainGapAffectsAAOSIntegratedMember
-    from gapTwoDomainMemberNotExpressible to DE4SDV_AEBSProductLineScope::InitialPlannedReferenceMemberPortfolio::aaosIntegratedAutowareAEBSReferenceMember;
   dependency emergencyPathAssumptionOnProtectedPathIndependence
     from asmEmergencyCommandPathStaysOnLinuxHost to DE4SDV_AEBSProductLineScope::InitialCommonCoreEngineeringContent::protectedEmergencyCommandPathIndependence;
 
   concern scoreRealizationCoverageConcern : ProductLineCapabilityClassificationConcern {
     doc /*
-     * Reviewers need to see which of the six middleware components Eclipse
-     * S-CORE realizes for the EclipseSCORE variant and which stay open, so
-     * that the S-CORE variant of the middleware feature is classified from
-     * its realization coverage, not from the variant name, and compared like
-     * for like with the AAOS SDV realization of INC-MW-008 over the same
-     * reference vehicle-speed signal.
+     * Product-line engineers, system architects and open-source reviewers need
+     * to see which of the six middleware components Eclipse S-CORE realizes for
+     * the EclipseSCORE variant and which stay open, so that the S-CORE variant
+     * of the middleware feature is classified from its realization coverage,
+     * not from the variant name, and compared like for like with the AAOS SDV
+     * realization of INC-MW-008 over the same reference vehicle-speed signal.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -353,14 +364,17 @@ package DE4SDV_MiddlewareSCOREFraming {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
-  concern hmiDomainBoundaryConcern : FunctionalInterfaceConcern {
+  concern hmiDomainBoundaryConcern : PhysicalContextExchangeConcern {
     doc /*
-     * Reviewers need the HMI path to be one-way and read-only across the
+     * Vehicle occupants need the HMI to show the AEBS state the AEBS
+     * stack produced. System architects, safety experts and verification
+     * engineers need the HMI path to be one-way and read-only across the
      * domain and hypervisor boundary: the AEBS signals flow from S-CORE on
      * the Linux host into the AAOS SDV guest, and nothing flows back into
      * the Autoware application or the middleware.
      */
     subject;
+    stakeholder occupant : VehicleOccupant;
     stakeholder systemArchitect : SystemArchitect;
     stakeholder safetyExpert : SafetyExpert;
     stakeholder verificationEngineer : VerificationEngineer;
@@ -368,15 +382,58 @@ package DE4SDV_MiddlewareSCOREFraming {
 
   concern twoDomainMemberRepresentationConcern : ProductLineConfigurationConcern {
     doc /*
-     * Reviewers need the two-domain member product, with its own operating
-     * system, middleware and hypervisor selection per execution domain, to
-     * be representable in the product model's variation structure without
-     * changing what the existing members are.
+     * Product-line engineers, system architects and open-source reviewers need
+     * the two-domain member product, with its own operating system, middleware
+     * and hypervisor selection per execution domain, to be representable in
+     * the product model's variation structure without changing what the
+     * existing members are.
      */
     subject;
     stakeholder productLineEngineer : ProductLineEngineer;
     stakeholder systemArchitect : SystemArchitect;
     stakeholder reviewer : OpenSourceReviewer;
+  }
+
+  part scoreMiddlewareBaselineDecision011 : IncrementBaselineDecision {
+    doc /*
+     * BL-MW-011-P12. The baseline of INC-MW-011 accepts the demonstrated
+     * S-CORE path: the Autoware-based AEBS stack on the Linux host, its
+     * frames carried by S-CORE mw::com to the S-CORE SOME/IP gateway, over
+     * SOME/IP into the SDV Core VM, through Data Tunnel into the IVI VM,
+     * and rendered by the read-only visualization app, with the bounded
+     * evidence of the retained windows (the phase-10 verification case for
+     * byte identity and in-order delivery of the required frames passes; the
+     * AEBS arc MONITORING, WARNING, INTERVENTION, RELEASED runs on camera).
+     *
+     * Accepted as known limits, still open in this baseline: the AEBS
+     * velocity input that does not pass through the middleware
+     * (GAP-MW-033), the Eclipse S-CORE assumptions of use
+     * (GAP-MW-034), in-order delivery that REQ-MW-014 does not guarantee by
+     * design (GAP-MW-037), the start-order and pair-restart consequences the
+     * owner already accepted (GAP-MW-043), the missing host-to-guest time
+     * synchronization that the bench compensates for (GAP-MW-045), and the
+     * absent restart of the SOME/IP broker and its stack (GAP-MW-048).
+     *
+     * Deferred to a later slice or to upstream: the unreleased S-CORE gateway
+     * (GAP-MW-036), the evidence of record for the AAOS SDV SOME/IP path
+     * (GAP-MW-038), the S-CORE behaviours of GAP-MW-039 to GAP-MW-042, the
+     * verification environment model (GAP-MW-044), host port isolation
+     * (GAP-MW-046) and the vsomeip version skew (GAP-MW-047).
+     *
+     * Withdrawn, because they no longer hold: GAP-MW-031 (phase 8 selected
+     * and pinned the transport) and GAP-MW-035 (the one-process adapter built
+     * and ran on the benchmark Linux host). GAP-MW-030 and GAP-MW-032 left the
+     * model: phase 8 recorded the realization coverage the first asked for, and
+     * phase 9 expressed the two execution domains the second said the product
+     * model could not — the platform stack carries a main side and a guest
+     * side, and both configured products select them.
+     *
+     * No production-HMI, safety, ASIL, certification, compliance or
+     * homologation claim follows from this baseline. The display is an
+     * informational instrument; the warning, braking and lifecycle states are
+     * coordinator outputs, not native Autoware AEB decisions.
+     */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
 
   view scoreMiddlewareFramingView {

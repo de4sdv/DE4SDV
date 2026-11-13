@@ -12,6 +12,7 @@ privileged validation path.
 |---|---|---|
 | `aebs_autoware_linux_lidar_camera.sysml` | `aebsAutowareLinuxLidarCamera` (`sdv_product_line.receipt.json`) | Standalone AEBS reference member platform projection |
 | `middleware_autoware_aaos_sdv_reference.sysml` | `middlewareAutowareAAOSSDVReference` (`sdv_product_line.receipt.json`) | AAOS-integrated middleware reference member platform projection |
+| `closed_loop_driving_autoe2e_score_reference.sysml` | `closedLoopDrivingAutoE2ESCOREReference` (`sdv_product_line.receipt.json`) | Closed-loop driving reference configuration of INC-DRIVING-001: AutoE2E on S-CORE on Linux on the main side, the KVM host, with an AAOS SDV guest; valid, not admitted |
 | `middleware_autoware_score_reference.sysml` | `middlewareAutowareSCOREReference` (`sdv_product_line.receipt.json`) | Eclipse S-CORE reference configuration platform projection (INC-MW-011; not admitted) |
 | `apollo_qnx_qvm.sysml` | `apolloQNXQVMVariant` (`sdv_product_line.receipt.json`) | SDV platform projection |
 | `inc_aebs_009a_jetson_execution_environment.sysml` | `incAEBS009AJetsonExecutionEnvironment` (`engineering_execution_environments.receipt.json`) | Inspected exact maintained System 2 environment projection; historical run has coarser identity |
@@ -36,6 +37,41 @@ selection outside the projection is labelled by its PLEML feature path. Until
 step S7 of ADR 0022 the YAML path of the configurator was a non-authoritative
 shadow, and the parity check required its projection of each committed file
 to have the same normalised body.
+
+## Derived product models and configured products
+
+A product model has two stages in DE4SDV.
+
+A **derived product model** (a projection) is generated. The configurator
+writes it from a feature configuration and the receipt of that
+configuration. It specializes the shared asset of its feature model, for
+example `SDVPlatformStack`. It only selects one variant for each variation
+(`part :>> x = x::variant;`). The generated
+files in this directory are derived product models. Do not edit them by
+hand. Generation goes in one direction only: an edit here does not reach
+the feature configuration or the shared asset. To change a derived product
+model, change its feature configuration or the shared asset, and generate
+it again.
+
+A **configured product** completes one derived product model for one
+product. Its increment models it in its own slice, not in this directory.
+It adds the engineering content that the product line does not manage as
+variants. An example is a middleware integration layer with its processes
+and connections. That content refers to the platform-stack parts that it
+uses. A binding makes each reference the same thing as its part, so each
+part has one owner. A configured product carries a configuration identity,
+for example `MW-CONFIG-001` or `MW-CONFIG-002`, and verification evidence
+binds that identity. `MW-CONFIG-002` also records the SHA-256 of its
+receipt. A **configured member** is the configured product of an admitted
+member. The examples are the configured member
+[`MW-CONFIG-001`](../../textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml)
+of INC-MW-009 and the configured product
+[`MW-CONFIG-002`](../../textual-notation-of-model/packages/features/middleware/middleware_score_variability_configuration.sysml)
+of INC-MW-011.
+
+Only content that varies across member products belongs in the shared
+assets. Content that one product needs stays in the slice of its increment
+and enters through the configured product.
 
 ## Validation boundary
 

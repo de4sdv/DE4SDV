@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any, Literal
 
 from .errors import RevisionMismatchError
+from .export_documents import ExportDocuments
 from .served_model import ServedModel
 
 BindingStatus = Literal["synchronized", "stale", "unvalidated"]
@@ -123,6 +124,10 @@ class RevisionBinding:
     #: after the full-payload read-back (:mod:`de4sdv.sysml_api.served_model`).
     #: Optional in the schema; the deployed runtime refuses a binding without it.
     served_model: ServedModel | None = None
+    #: The source documents and the external references of that export, recorded by the importer
+    #: (:mod:`de4sdv.sysml_api.export_documents`). Optional: without it an evaluation over the API
+    #: lacks them, and the checks that need them stay method side.
+    export_documents: ExportDocuments | None = None
 
     @classmethod
     def from_dict(cls, value: dict[str, Any]) -> "RevisionBinding":
@@ -147,6 +152,16 @@ class RevisionBinding:
         raw_kernel_bindings = value.get("kernel_bindings", ())
         if not isinstance(raw_kernel_bindings, (list, tuple)):
             raise ValueError("revision binding kernel_bindings must be a list")
+        served_model = (ServedModel.from_dict(value["served_model"])
+                        if value.get("served_model") is not None else None)
+        export_documents = (ExportDocuments.from_dict(value["export_documents"])
+                            if value.get("export_documents") is not None else None)
+        if export_documents is not None and (
+                served_model is None
+                or export_documents.source_export_sha256 != served_model.source_export_sha256
+                or export_documents.element_count != served_model.element_count):
+            raise ValueError("revision binding export_documents must record the export its served_model "
+                             "names (the same export digest and element count)")
         return cls(
             git_repository=str(value["git_repository"]),
             git_commit=git_commit,
@@ -161,10 +176,8 @@ class RevisionBinding:
                 KernelElementBinding.from_dict(item)
                 for item in raw_kernel_bindings
             ),
-            served_model=(
-                ServedModel.from_dict(value["served_model"])
-                if value.get("served_model") is not None else None
-            ),
+            served_model=served_model,
+            export_documents=export_documents,
         )
 
     @classmethod
@@ -175,12 +188,16 @@ class RevisionBinding:
         return cls.from_dict(value)
 
     def to_dict(self) -> dict[str, Any]:
-        value = asdict(self)
+        value = asdict(replace(self, served_model=None, export_documents=None))
         value["semantic_authority"] = self.semantic_authority.to_dict()
         if self.served_model is None:
             value.pop("served_model")
         else:
             value["served_model"] = self.served_model.to_dict()
+        if self.export_documents is None:
+            value.pop("export_documents")
+        else:
+            value["export_documents"] = self.export_documents.to_dict()
         return value
 
     def status(self, git_revision: str) -> BindingStatus:

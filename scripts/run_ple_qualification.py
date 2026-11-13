@@ -99,8 +99,8 @@ PLEML_1_1_0 = ExperimentIdentity(
 #: against its release tag. Its library equals that of 1.1.0 but for the version
 #: line (the fast path of the upstream release policy), so the interpreter, the
 #: fixture and the library label stay those of the experiment at 1.1.0, and no
-#: frozen-experiment commit is made for it. The scoped probes, the fresh
-#: serialization and the scope alignment run on it. Its values are literal: a
+#: frozen-experiment commit is made for it. The scoped probes and the fresh
+#: serialization run on it. Its values are literal: a
 #: re-pin changes the record and this identity together (a test binds them, and
 #: reuses another experiment's interpreter only on the fast path). Retirement:
 #: the current arm reads the interpreter and fixture of the experiment at 1.1.0

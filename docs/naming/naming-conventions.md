@@ -18,13 +18,13 @@ These three concepts are distinct and must not be conflated:
 
 - **Engineering increment** — one bounded engineering question/change with its
   own identity (`INC-<SUBJECT>-<SEQ>`). A DE4SDV increment traverses the
-  13-phase workflow (phases 0–12). Do not treat phases as separate increments.
+  12-phase workflow (phases 0–11). Do not treat phases as separate increments.
 - **Phase** — one step of the DE4SDV method executed inside an increment
   (0 Increment framing, 1 Concern framing, 2 Operational context,
   3 Capability/feature semantics, 4 Needs, 5 Requirements,
   6 Functional architecture, 7 Logical architecture, 8 Physical/software
   realization, 9 Variability and configuration, 10 V&V and evidence,
-  11 Publication, 12 Baseline and next slice). Phases are workflow steps;
+  11 Baseline). Phases are workflow steps;
   they never receive identifiers of their own and never appear as the naming
   basis of enduring model partitions.
 - **Record** — an identity-bearing artifact tied to a specific increment,
@@ -357,6 +357,7 @@ Unregistered prefixes or subjects fail `scripts/check_naming.py`.
 | Code | Meaning | Scope notes |
 |---|---|---|
 | `AEBS` | Autonomous Emergency Braking System | System 1 AEBS product-line subject; includes the AEBS visualization System 2 test system |
+| `DRIVING` | Automated-driving planning and control | Candidate driving capabilities; distinct from AEBS and middleware integration. Registration allocates identities, not product-line admission or production readiness. |
 | `MW` | Middleware | Registered compact trace namespace: `MW = Middleware` inside identifiers (`INC-MW-010`, `REQ-MW-*`, `AC-MW-010-02`, `MW-CONFIG-001`). Canonical semantic names never use it: filenames use `middleware_*`, SysML packages use `Middleware` (batch 1 migrated these). New trace-ID families SHOULD pick a readable subject code; `MW` is retained because existing AC/VC/EVID/E/GAP/BL/CLM/AGT/CCM/REQ/N families for the middleware subject are stable, provenance-bearing identities. |
 | `UNECE` | UNECE regulation anchor | Subject of the `SRC-UNECE-R152` form (`TYPE=SRC`, `SUBJECT=UNECE`, remainder `R152` is the free-form rest segment, not a subject) |
 | `EXAMPLE` | Method tests (reserved) | Reserved for method tests and throwaway increments (for example `INC-EXAMPLE-001`), so they never edit this registry; real engineering content never uses it. |

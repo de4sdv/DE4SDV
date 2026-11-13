@@ -1,0 +1,9 @@
+# DE4SDV broker-path bench (INC-MW-011 phase 10), bench-only.
+# Appended to the SOME/IP broker's authorization policy: the broker may
+# publish the frame topic that the mapping declares (the broker's publication
+# of MAP-MW-SCORE-AEBS-SIGNAL-FRAME). The relay's own subscriber ACL is on the
+# IVI side (aosp-overlay/ivi-acl), installed before the IVI VM boots.
+publisher {
+  message: "com.android.sdv.someip.De4sdvScoreAebsSignalFrame"
+  topic: "de4sdv-score-aebs-signal-frame"
+}

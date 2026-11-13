@@ -91,8 +91,10 @@ select:focus-visible, input:focus-visible {
 /* Carbon header nav: plain links, subtle hover fill */
 .site-nav {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 2px;
+  min-width: 0;
 }
 .site-nav-link {
   display: inline-flex;
@@ -103,6 +105,10 @@ select:focus-visible, input:focus-visible {
   color: var(--ink);
   text-decoration: none;
   border-radius: 0;
+}
+/* after the base rule: a narrow-screen rule before it has no effect */
+@media (max-width: 640px) {
+  .site-nav-link { padding: 6px 8px; }
 }
 .site-nav-link:hover { background: var(--btn-hover); }
 .site-chat-icon { flex: 0 0 auto; }
@@ -175,6 +181,16 @@ select:focus-visible, input:focus-visible {
 .help-content tr:nth-child(even) td { background: transparent; }
 .help-content tbody tr:hover td { background: var(--accent-soft); }
 .help-content hr { border-top: 1px solid var(--line); }
+/* On a phone a guide table stacks: each row is a block, and each cell
+   shows the name of its column (data-label, from the header) above its
+   text. The header row is then not shown. */
+@media (max-width: 640px) {
+  .help-content table, .help-content tbody, .help-content tr, .help-content td { display: block; width: auto; }
+  .help-content thead { display: none; }
+  .help-content tr { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .help-content td { padding: 2px 0; border: none; }
+  .help-content td[data-label]::before { content: attr(data-label); display: block; font-size: 12px; color: var(--muted); }
+}
 
 /* ---------- revision picker ---------- */
 .ref-picker-label { font-size: 12px; color: var(--muted); letter-spacing: 0.32px; text-transform: none; }
@@ -250,6 +266,16 @@ mark.tree-hl { background: #ff832b; color: #161616; border-radius: 0; padding: 0
 .card h1 { font-size: 28px; font-weight: 300; letter-spacing: 0; margin: 0 0 12px; }
 .card h2 { font-size: 20px; font-weight: 600; }
 
+/* Narrow screens: less padding, so that wrapped source lines and tables
+ * keep a usable width. This layer loads after viewer.css, so it states the
+ * narrow content-pane padding of viewer.css again. */
+@media (max-width: 900px) {
+  .content-pane { padding: 18px 4px 48px; }
+}
+@media (max-width: 640px) {
+  .card { padding: 14px 12px; }
+}
+
 /* long file paths are single unbreakable tokens (underscores, slashes);
    let them wrap inside the card instead of overflowing the background */
 .file-header h1 { overflow-wrap: anywhere; }
@@ -291,12 +317,17 @@ code {
 .stat-n { font-size: 28px; font-weight: 300; color: var(--ink); letter-spacing: 0; }
 .stat-k { font-size: 12px; color: var(--muted); text-transform: none; letter-spacing: 0.32px; }
 
-/* landing "Get started" columns */
+/* landing "Get started" columns: two columns when both can be at least
+   270 px wide, else one. A column of 270 px holds the longest name in
+   them (`tools.sysml_html_viewer.serve` in a list item), so no word
+   breaks inside on a desktop. break-word (not anywhere) keeps the
+   minimum width of a column at its longest word. */
 .land-cols {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 270px), 1fr));
   gap: 8px 32px;
   margin-top: 6px;
+  overflow-wrap: break-word;
 }
 .land-cols h3 {
   font-size: 14px; font-weight: 600; margin: 8px 0 6px;
@@ -308,7 +339,6 @@ code {
 .land-more { margin-top: 14px; font-size: 13px; }
 .land-more a { color: var(--accent); text-decoration: none; }
 .land-more a:hover { text-decoration: underline; }
-@media (max-width: 760px) { .land-cols { grid-template-columns: 1fr; } }
 
 /* kind badges → Carbon tags */
 .kind-badge {
@@ -350,6 +380,10 @@ code {
 /* toc icons are bare inline SVGs (no width/height attrs) — without this
    they default to 100% width and render enormous on dir index pages */
 .toc-list svg { width: 16px; height: 16px; vertical-align: -3px; }
+/* a long file name starts beside its icon and goes on under its first
+   character (a hanging indent), not under the icon */
+.toc-list li { padding-left: 21px; text-indent: -21px; }
+.toc-list li > a { word-break: break-all; }
 
 /* ---------- hover enrichment ---------- */
 .diagram-frame.interactive text.tip-hit:hover { filter: none; }
@@ -386,6 +420,7 @@ a.src-ref.has-uses { text-decoration-color: #ba4c00; }
   background: var(--panel); border: 1px solid var(--line); border-radius: 0;
   padding: 12px 14px;
 }
+@media (max-width: 640px) { .source-view { padding: 8px 6px; } }
 .src-line:hover { background: var(--accent-soft); }
 .src-ln { color: var(--muted); opacity: 0.7; }
 .src-kw { color: #0043ce; font-weight: 500; }

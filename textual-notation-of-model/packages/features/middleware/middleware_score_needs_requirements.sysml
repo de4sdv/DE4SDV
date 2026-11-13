@@ -10,8 +10,16 @@
  * stakeholders, source and rationale and has a planned validation scenario.
  * Each requirement derives from a need through DerivesFromNeed, takes the
  * system of interest as subject, and records one verification method and
- * its success criteria. The requirements are core requirements of the
- * member, with no feature or common-capability trace.
+ * its success criteria. The requirements vary with the features that bring
+ * their system of interest into a member product (rule 5 of the increment
+ * workflow). The system of interest depends on EclipseSCORE and on
+ * AutowareToSCOREAdapter, the definitions of the eclipseSCORE variant and of
+ * the derived autowareToSCORE variant (DE4SDV_MiddlewareSCOREFraming). So
+ * each requirement applies to a member product that selects Autoware and
+ * Eclipse S-CORE. The HMI-path requirements REQ-MW-014, REQ-MW-015,
+ * REQ-MW-016 and REQ-MW-019 also depend on the HMI display (hmiDisplay). So
+ * they apply only to a member product that also selects the display. Phase
+ * 9 added these four dependencies (owner decision of 2026-10-22).
  *
  * The needs of INC-MW-004 and the requirements of INC-MW-005 hold for the
  * S-CORE member (ASM-MW-023); this slice adds only what the two-domain
@@ -40,10 +48,10 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
 
   requirement <'NEED-MW-002'> needOneWayAEBSSignalPathToHMI : StakeholderNeedCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
+    stakeholder occupant : VehicleOccupant;
     stakeholder systemArchitect : SystemArchitect;
     stakeholder safetyExpert : SafetyExpert;
-    stakeholder verificationEngineer : VerificationEngineer;
-    require constraint statement { language "English" /* System architects, safety experts and verification engineers need the middleware integration layer to carry the AEBS signals of the Autoware-based AEBS stack one way, from the Linux host to the HMI in the AAOS SDV guest, in source order and with the provenance of each field preserved. */ }
+    require constraint statement { language "English" /* Vehicle occupants, system architects and safety experts need the middleware integration layer to carry the AEBS signals of the Autoware-based AEBS stack one way, from the Linux host to the HMI in the AAOS SDV guest, in source order and with the provenance of each field preserved, so that the HMI shows what the AEBS stack produced. */ }
     attribute :>> source = "INC-MW-011 hmiDomainBoundaryConcern, scope item hmiPathInScope (per-field provenance), scenarios SC-MW-002 and SC-MW-004, ASM-MW-024";
     attribute :>> rationale = "The HMI is an informational display: it must show what the AEBS stack produced, each field attributed to its source kind (native Autoware AEB output, DE4SDV coordinator output or display-derived), and the guest must not be able to influence the AEBS stack or the middleware on the host.";
   }
@@ -199,22 +207,38 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
   requirement <'REQ-MW-016'> reqNoApplicationDataFromHMIGuest : RequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     require constraint statement { language "English" /* The middleware integration layer shall carry no application data from the AAOS SDV guest to the Linux host. */ }
-    attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the one-way path); scenario SC-MW-004";
-    attribute :>> rationale = "With no application data flowing back, a running, stalled or failed guest cannot influence the AEBS stack or the middleware on the host; transport control, such as acknowledgements, is not application data.";
+    attribute :>> source = "NEED-MW-002; scope item hmiPathInScope (the one-way path); scenario SC-MW-004; ASM-MW-031; owner decision 2026-10-28 (the ROS 2 (DDS) criteria)";
+    attribute :>> rationale = "With no application data flowing back, a running, stalled or failed guest cannot influence the AEBS stack or the middleware on the host; transport control, such as acknowledgements, is not application data. The criteria also cover ROS 2 (DDS) on the Linux host. A host process whose DDS port a guest domain can reach could take data from the guest outside the elements of the layer. So the criteria ask for ports that no guest domain reaches: a property, not a configuration. DDS on the loopback interface alone does not give it. CycloneDDS 0.10.5 binds its receive sockets to INADDR_ANY (ddsi_udp.c:453-456, 479-480), and the guests share the host's untagged network segment. The DDS finding names the elements of the layer. It extends to the other ROS 2 processes on the Linux host only while ASM-MW-031 holds, and the verification checks that assumption on the member.";
     attribute :>> verificationMethod = "inspect";
-    attribute :>> successCriteria = "Met when inspection of the interface definition of the HMI path and of the configuration of the S-CORE services, the adapter, the host relay and the SOME/IP receiver finds no receiver on the Linux host for application data from the AAOS SDV guest.";
+    attribute :>> successCriteria = "Met when two findings hold. A guest domain of the layer is a domain under the hypervisor that the HMI path enters. First, the interface definition of the HMI path and the configuration of each element of the layer declare no endpoint on the Linux host for application data from a guest domain of the layer. Second, no DDS port on the Linux host of an element of the layer, nor, while ASM-MW-031 holds, of any other ROS 2 process on the Linux host, is reachable from any guest domain of the layer. A reachable port of an element of the layer fails the criteria. A verification that finds ASM-MW-031 not holding shows nothing about the other processes, and for them its outcome is inconclusive.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
   requirement <'REQ-MW-019'> reqDiscardFramesWhileHMIUnsubscribed : FunctionalRequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
     require constraint statement { language "English" /* While the HMI application in the AAOS SDV guest is not subscribed, the middleware integration layer shall discard the AEBS signal frames of the Autoware-based AEBS stack instead of holding them for later delivery. */ }
-    attribute :>> source = "NEED-MW-002; scenario SC-MW-004 (the guest or the HMI application down)";
-    attribute :>> rationale = "A guest that is down or stalled must not make the host hold a growing backlog of frames, which could influence the AEBS stack or the middleware on the host, and the HMI must not show old frames as current when it subscribes again.";
+    attribute :>> source = "NEED-MW-002; scenario SC-MW-004 (the guest or the HMI application down); ASM-MW-030; owner decision 2026-10-28 (the margin at the start of a subscription)";
+    attribute :>> rationale = "A guest that is down or stalled must not make the host hold a growing backlog of frames. Such a backlog could influence the AEBS stack or the middleware on the host. The HMI also must not show old frames as current when it subscribes again. The clock that stamps a frame is not the clock that times the start of the HMI application's subscription. So a discard that compares the two clocks needs a margin before the start of the subscription. Without the margin, the discard could drop a frame produced after that start, which would break REQ-MW-014. GAP-MW-045 records the band that the margin leaves.";
     attribute :>> verificationMethod = "test";
-    attribute :>> successCriteria = "Met when, after the HMI application subscribes again, it receives no frame that the AEBS stack produced while the HMI application was not subscribed.";
+    attribute :>> successCriteria = "Met when, while ASM-MW-030 holds, the HMI application receives no frame that the AEBS stack produced more than a margin before the start of its current subscription. The production time comes from the clock of the frame's producer. The start of the subscription comes from the clock that times the start of the HMI application's subscription. The margin is the bound of ASM-MW-030 on the offset between these two clocks. A run in which ASM-MW-030 does not hold does not show the criteria met, and its outcome is inconclusive.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
+
+  /* Rule 5 of the increment workflow. The four HMI-path requirements above
+   * apply only to a member product that also selects the HMI display. Owner
+   * decision of 2026-10-22, INC-MW-011 phase 9. */
+  dependency reqDeliverAEBSSignalsInSourceOrderOnHMIDisplay
+    from reqDeliverAEBSSignalsInSourceOrder
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::capabilities::hmiDisplay;
+  dependency reqPreserveAEBSSignalProvenanceOnHMIDisplay
+    from reqPreserveAEBSSignalProvenance
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::capabilities::hmiDisplay;
+  dependency reqNoApplicationDataFromHMIGuestOnHMIDisplay
+    from reqNoApplicationDataFromHMIGuest
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::capabilities::hmiDisplay;
+  dependency reqDiscardFramesWhileHMIUnsubscribedOnHMIDisplay
+    from reqDiscardFramesWhileHMIUnsubscribed
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::capabilities::hmiDisplay;
 
   requirement <'REQ-MW-017'> reqNoEmergencyCommandOnMiddleware : RequirementCandidate {
     subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;
@@ -222,7 +246,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
     attribute :>> source = "NEED-MW-003; ASM-MW-028; refines the direct vehicle-command path option of REQ-MW-006 (reqIsolateSafetyPath) for the S-CORE member";
     attribute :>> rationale = "The command keeps its direct path from the AEB node to the vehicle command gate on the Linux host. This does not define the failure-containment criteria of REQ-MW-006, so GAP-MW-029 stays open; REQ-MW-020 keeps the reference vehicle speed carried over S-CORE off the velocity input of the AEB node.";
     attribute :>> verificationMethod = "inspect";
-    attribute :>> successCriteria = "Met when inspection of the S-CORE service configuration, the adapter interfaces, the host relay and the SOME/IP receiver, and the interface definition of the HMI path finds no element that carries the AEBS emergency intervention command, and the path of that command from the AEB node to the vehicle command gate on the Linux host contains no element of the middleware integration layer.";
+    attribute :>> successCriteria = "Met when inspection finds no element that carries the AEBS emergency intervention command. The inspection covers the S-CORE service configuration, the adapter interfaces, gatewayd, someipd, each element of the layer in a guest domain and the interface definition of the HMI path. The path of that command from the AEB node to the vehicle command gate on the Linux host contains no element of the middleware integration layer.";
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
@@ -299,6 +323,7 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * state and the predicted-trajectory input of the AEB node is blocked.
      * No safety or freedom-from-interference claim is made.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
   dependency speedTopicGapOnAEBVelocityInput
     from gapSCORESpeedTopicOwnershipOpen
@@ -317,8 +342,10 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * the selected operating system, hypervisor and hardware, or to argue
      * equivalence; phase 10 does so for the Linux host.
      * aou_req__platform__bug_report asks the integrator to report
-     * integration bugs to the supplier and to S-CORE; it is not met while
-     * engagement with the S-CORE project is out of scope.
+     * integration bugs to the supplier and to S-CORE. It is not met yet,
+     * because the integration happens in phase 10. On 2026-10-22, DE4SDV
+     * reported upstream the defects that its gateway feasibility run found
+     * (GAP-MW-036).
      * aou_req__platform__posix_operating_system holds only as far as the
      * Linux host of ASM-MW-026 runs a configuration that S-CORE v0.9.0
      * supports; its conformance to IEEE Std 1003.1 is not established. The
@@ -338,17 +365,20 @@ package DE4SDV_MiddlewareSCORENeedsRequirements {
      * so every such error stops the adapter; the unavailable indication of
      * REQ-MW-004 must therefore come from outside the adapter.
      * Middleware baseline items that face this member without being acted
-     * on here: N-MW-005 (engagement with upstream maintainers) holds but is
-     * not acted on while engagement with the S-CORE project is out of
-     * scope; REQ-MW-008 and N-MW-009 (authenticated service binding across a
-     * trust boundary, GAP-MW-012) now face the hypervisor boundary between
-     * the Linux host and the AAOS SDV guest, whose trust boundary stays
-     * undefined. No security claim is made.
+     * on here: N-MW-005 (engagement with upstream maintainers) holds.
+     * Outside this slice, its only action for S-CORE is the defect reports
+     * of 2026-10-22 (GAP-MW-036). Deeper engagement stays out of scope
+     * (scoreUpstreamEngagementOutOfScope). REQ-MW-008 and N-MW-009
+     * (authenticated service binding across a trust boundary, GAP-MW-012)
+     * now face the hypervisor boundary between the Linux host and the AAOS
+     * SDV guest, whose trust boundary stays undefined. No security claim is
+     * made.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
 
   concern scoreMiddlewareRequirementTraceConcern : RequirementTraceConcern {
-    doc /* Reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method, success criteria and verification status of each requirement, and the gaps that stay open. */
+    doc /* Verification engineers and open-source reviewers need each requirement of the middleware integration layer traced to the need it derives from, with the planned validation of each need, the verification method, success criteria and verification status of each requirement, and the gaps that stay open. */
     subject;
     stakeholder verificationEngineer : VerificationEngineer;
     stakeholder reviewer : OpenSourceReviewer;

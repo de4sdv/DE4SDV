@@ -569,8 +569,7 @@ def _pleml_1_1_shape(elements, sources, *, operand_a=None, operand_a_target=KERN
     return list(by_id.values()), labels, records
 
 
-def test_the_current_identity_is_pleml_1_1_1_from_the_fenced_lock_and_the_scope_alignment_identity():
-    from de4sdv.semantic import ple_scope_alignment as alignment
+def test_the_current_identity_is_pleml_1_1_1_from_the_fenced_lock():
     from de4sdv.semantic import pleml_package
 
     r = runner()
@@ -586,10 +585,6 @@ def test_the_current_identity_is_pleml_1_1_1_from_the_fenced_lock_and_the_scope_
                               provision="submodule") == r.PLEML_1_1_0
     assert r.CURRENT.revision == "69bbe093c179f2121274b9f604c7d6a10de19e77"
     assert r.CURRENT.library == "external/pleml/PLEML.sysml"
-    # PLE-S reads the same experiment: one current identity, not two.
-    assert (alignment.FROZEN_REVISION, alignment.FROZEN_TAG, alignment.FROZEN_INTERPRETER_SHA256,
-            alignment.PLEML_PIN, alignment.LIBRARY_SOURCE) == (
-        r.CURRENT.revision, r.CURRENT.tag, r.CURRENT.interpreter_sha256, r.CURRENT.pleml_pin, r.CURRENT.library)
     # The fresh arm verifies the fenced lock and the record it is checked against at the executor revision.
     assert {"de4sdv/semantic/pleml_package.py", (pleml_package.PROJECT / "sysand-lock.toml").as_posix(),
             (pleml_package.PROJECT / ".project.json").as_posix()} <= set(r.EXECUTOR_INPUTS)

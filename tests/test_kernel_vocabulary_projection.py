@@ -11,7 +11,9 @@ lineage, external-reference, PLE and non-claim guards. No real model copies.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
+import os
 import re
 from pathlib import Path
 
@@ -38,10 +40,21 @@ OTHER_LAYERS = {
 }
 NEW_SUCCESSOR_PREDICATES = {"hasValidationScenario", "hasRegulatorySource"}
 MERGED_ALIASES = {"validatesFitnessForUse"}
-#: Classes a method pull request admitted after the authored ontology's
-#: deletion (ADR 0022 step S2k): no authored-ontology comparison exists for them.
-METHOD_ADMITTED_CLASSES = {"DerivationRule", "DerivedVariation", "ProductModelProjection",
-                           "ProductModelProjectionName", "UnassignedBindingTime"}
+#: Rows a method pull request admitted after the authored ontology's deletion:
+#: no authored-ontology comparison exists for them. ADR 0022 step S2k admitted
+#: the five product-line derivation classes. The owner decisions of 2026-10-28 on
+#: phases 9 and 12 admitted three classes and the vocabulary relationship
+#: configuredBy, which maps the configured product onto FeatureConfiguration.
+#: The owner-approved phase 1 concern contract admitted IncrementBoundaryConcern,
+#: promoted from the kernel-internal declarations manifest: the phase 1 gate
+#: resolves its canonical identity, and the row stays vocabulary-only.
+DERIVATION_CLASSES = {"DerivationRule", "DerivedVariation", "ProductModelProjection",
+                      "ProductModelProjectionName", "UnassignedBindingTime"}
+METHOD_ADMITTED_CLASSES = DERIVATION_CLASSES | {"ConfiguredProduct", "IncrementBaselineDecision",
+                                                "LifecycleDisposition",
+                                                "IncrementBoundaryConcern"}
+METHOD_ADMITTED_RELATIONSHIPS = {"configuredBy"}
+METHOD_ADMITTED = METHOD_ADMITTED_CLASSES | METHOD_ADMITTED_RELATIONSHIPS
 #: Rows whose manifest-held fields were proven equal to the authored ontology.
 ONTOLOGY_COMPARED_HELD_ROWS = 48
 #: Owner decision 2026-10-06 (ADR 0020 D4 follow-up): the closure is exactly these.
@@ -122,9 +135,10 @@ def test_admitted_set_is_exactly_the_derived_family():
     # Content, not counts: admitting another definition must not trip this test.
     # Every retained register row that no other layer projects is admitted here,
     # with the named successors and the merged retired name; every other
-    # admitted row is a class outside the register.
+    # admitted row is a class outside the register or a method-admitted
+    # vocabulary relationship.
     assert family <= set(rows)
-    assert all(rows[i]["semantic_kind"] == "class" for i in set(rows) - family)
+    assert {i for i in set(rows) - family if rows[i]["semantic_kind"] != "class"} == METHOD_ADMITTED_RELATIONSHIPS
     assert not (set(rows) - family) & set(register)
     assert len(rows) == len(_manifest()["admitted"])  # one admitted entry per identity
     assert not set(rows) & set(MIGRATED_IDENTITIES)
@@ -181,7 +195,7 @@ def test_projection_scope_echoes_the_owner_visible_exceptions():
 
 
 def test_manifest_held_contract_fields_equal_the_recorded_values():
-    """The manifest holds 53 rows' contract fields itself instead of the model
+    """The manifest holds 57 rows' contract fields itself instead of the model
     (the model does not carry them structurally): kernel mapping, subclass and
     disjointness pins, and
     relation domain/range/direction/strength with mechanics. They feed the served
@@ -195,8 +209,8 @@ def test_manifest_held_contract_fields_equal_the_recorded_values():
     assert set(recorded["entries"]) == set(rows)
     held = {identity: entry for identity, entry in recorded["entries"].items() if entry["manifest"]}
     assert len(held) == recorded["rows_with_manifest_held_contract_fields"] == (
-        ONTOLOGY_COMPARED_HELD_ROWS + len(METHOD_ADMITTED_CLASSES))
-    assert {i for i, r in rows.items() if r["register"]["accounting"] == "method-admitted"} == METHOD_ADMITTED_CLASSES
+        ONTOLOGY_COMPARED_HELD_ROWS + len(METHOD_ADMITTED))
+    assert {i for i, r in rows.items() if r["register"]["accounting"] == "method-admitted"} == METHOD_ADMITTED
     for identity, row in rows.items():
         entry = recorded["entries"][identity]
         assert row["admission_class"] == entry["admission_class"], identity
@@ -231,7 +245,7 @@ def test_every_contract_row_is_labeled_manifest_held():
                 labeled += 1
                 assert "reviewed admission-manifest" in source, identity
                 assert "test-locked to the authored ontology" not in source, identity
-                if identity in METHOD_ADMITTED_CLASSES:
+                if identity in METHOD_ADMITTED:
                     # Admitted after the deletion: the row never claims a comparison.
                     assert "no authored-ontology comparison exists" in source, identity
                     assert "contract-equivalence.json" not in source and "parity" not in source, identity
@@ -239,7 +253,7 @@ def test_every_contract_row_is_labeled_manifest_held():
                     compared += 1
                     assert "closure/contract-equivalence.json" in source, identity
     assert compared == ONTOLOGY_COMPARED_HELD_ROWS
-    assert labeled == ONTOLOGY_COMPARED_HELD_ROWS + len(METHOD_ADMITTED_CLASSES)
+    assert labeled == ONTOLOGY_COMPARED_HELD_ROWS + len(METHOD_ADMITTED)
 
 
 def test_successors_and_retired_names_follow_the_relationship_redesign():
@@ -271,16 +285,122 @@ def test_successors_and_retired_names_follow_the_relationship_redesign():
 # ---------------------------------------------------------------------------
 
 
-def test_runtime_queryable_targets_keep_their_forward_obligation():
+def _discharged(row):
+    return [record["obligation"] for record in row.get("discharged_obligations") or ()]
+
+
+def test_runtime_queryable_targets_keep_or_discharge_their_forward_obligation():
+    """A runtime-queryable target lists its traversal obligation as open, or as discharged by an exact-SHA
+    privileged run; deleting it alone fails."""
     register = _register()
     for identity, row in _rows().items():
         reg = register.get(identity)
         if reg and str(reg["required_runtime_or_consumer_change"]["runtime_support_target"]).startswith("runtime-queryable"):
-            assert any("exact-revision traversal evidence" in item for item in row["forward_obligations"]), identity
+            assert any("exact-revision traversal evidence" in item
+                       for item in row["forward_obligations"] + _discharged(row)), identity
     rows = _rows()
     assert any("cardinality" in item for item in rows["hasAcceptanceCriterion"]["forward_obligations"])
     assert any("eight-contract" in item for item in rows["hasRelevantEvidenceContract"]["forward_obligations"])
-    assert any("blocks activation" in item for item in rows["allocatedTo"]["forward_obligations"])
+    assert any("blocks activation" in item for item in _discharged(rows["allocatedTo"]))
+
+
+#: The allocatedTo obligations as the admission listed them, and the privileged ingestion run that discharged
+#: them: its step "Exercise production semantic concerns and the successor parity" wrote the parity report.
+ALLOCATED_TO_OBLIGATIONS = (
+    "exact-revision traversal evidence (exact-SHA privileged run) before any runtime-queryable claim",
+    "exact-revision API closure of the typed allocation ends in the exact-SHA privileged run; a failure "
+    "blocks activation",
+)
+DISCHARGE_RUN, DISCHARGE_COMMIT = 40931858718, "ab551cec7b1de0cdc3c1431aa65709569df75381"
+QUERY_COVERAGE, RELEASE_EVIDENCE = "de4sdv-full-model-semantic-query-coverage.json", "de4sdv-release-evidence.json"
+CITED_DIGESTS = {
+    QUERY_COVERAGE: "90ba497f29341f75e16fcadb5ad65df2b018cfd7607b4666d64dbd428dcfacaf",
+    RELEASE_EVIDENCE: "8e3afd62950096ab0b81af495d2429f34e633878aace14ff07d132417bddb445",
+}
+
+
+def test_the_allocated_to_obligations_are_discharged_by_the_exact_sha_privileged_run():
+    """Both obligations, verbatim, cite one privileged ingestion run at its exact commit: the traversal
+    obligation its successor parity of allocatedTo, the closure obligation its allocation-end closure, and
+    each the passing release evidence of that run. No other row records a discharge."""
+    rows = _rows()
+    row = rows["allocatedTo"]
+    assert row["forward_obligations"] == []
+    records = {record["obligation"]: record for record in row["discharged_obligations"]}
+    assert tuple(records) == ALLOCATED_TO_OBLIGATIONS
+    for record in records.values():
+        assert (record["run"], record["git_commit"]) == (DISCHARGE_RUN, DISCHARGE_COMMIT)
+        assert record["workflow"] == ".github/workflows/privileged-full-model-api-ingestion.yml"
+        assert record["artifact"] == f"full-model-api-ingestion-{DISCHARGE_COMMIT}"
+        assert {item["file"]: item["sha256"] for item in record["evidence"]} == CITED_DIGESTS
+        assert len(record["evidence"]) == len(CITED_DIGESTS)
+        cited = {item["file"]: item["values"] for item in record["evidence"]}
+        assert set(cited) == {QUERY_COVERAGE, RELEASE_EVIDENCE}
+        assert cited[QUERY_COVERAGE]["git_commit"] == DISCHARGE_COMMIT
+        assert cited[RELEASE_EVIDENCE] == {"git_revision": DISCHARGE_COMMIT, "passed": True}
+    traversal, closure = (records[text]["evidence"] for text in ALLOCATED_TO_OBLIGATIONS)
+    traversal = {item["file"]: item["values"] for item in traversal}[QUERY_COVERAGE]
+    closure = {item["file"]: item["values"] for item in closure}[QUERY_COVERAGE]
+    assert traversal["successor_parity.passed"] is True
+    assert traversal["successor_parity.relations.allocatedTo.passed"] is True
+    assert closure["successor_parity.allocation_end_closure.passed"] is True
+    end_classes = {key.split(".")[3] for key in closure if key.endswith(".closed")}
+    assert end_classes == {"Requirement", "Function", "LogicalElement", "PhysicalElement"}
+    assert all(closure[f"successor_parity.allocation_end_closure.end_pair_classes.{name}.closed"] is True
+               for name in end_classes)
+    assert [identity for identity, other in rows.items() if other.get("discharged_obligations")] == ["allocatedTo"]
+
+
+EVIDENCE_DIR = os.environ.get("DE4SDV_RELEASE_EVIDENCE_DIR")
+
+
+def _assert_citation(directory, item):
+    """Match retained bytes to the reviewed citation, including scalar types."""
+    data = (directory / item["file"]).read_bytes()
+    assert hashlib.sha256(data).hexdigest() == item["sha256"], item["file"]
+    document = json.loads(data)
+    for key, value in item["values"].items():
+        node = document
+        for part in key.split("."):
+            node = node[part]
+        assert (node, type(node)) == (value, type(value)), (item["file"], key)
+
+
+@pytest.mark.skipif(not EVIDENCE_DIR, reason="set DE4SDV_RELEASE_EVIDENCE_DIR to an extracted "
+                                              "full-model-api-ingestion artifact")
+def test_every_cited_discharge_value_is_the_artifacts():
+    """Against the extracted artifact of the cited run (the artifact expires, so the test is opt-in): each
+    cited file has its recorded sha256, and each cited key has its recorded value and type."""
+    directory = Path(str(EVIDENCE_DIR))
+    for identity, row in _rows().items():
+        for record in row.get("discharged_obligations") or ():
+            for item in record["evidence"]:
+                _assert_citation(directory, item)
+
+
+@pytest.mark.parametrize("mutation,error", [
+    ("fake digest", AssertionError),
+    ("missing file", FileNotFoundError),
+    ("missing key", KeyError),
+    ("other revision", AssertionError),
+    ("integer status", AssertionError),
+])
+def test_retained_citation_matcher_rejects_invalid_artifacts(tmp_path, mutation, error):
+    """Exercise the existing byte/key/type matcher with synthetic evidence, not a run claim."""
+    document = {"git_commit": DISCHARGE_COMMIT, "passed": True}
+    item = {"file": QUERY_COVERAGE, "values": dict(document)}
+    if mutation == "missing key":
+        del document["passed"]
+    elif mutation == "other revision":
+        document["git_commit"] = "d" * 40
+    elif mutation == "integer status":
+        document["passed"] = 1
+    data = json.dumps(document).encode()
+    item["sha256"] = "0" * 64 if mutation == "fake digest" else hashlib.sha256(data).hexdigest()
+    if mutation != "missing file":
+        (tmp_path / QUERY_COVERAGE).write_bytes(data)
+    with pytest.raises(error):
+        _assert_citation(tmp_path, item)
 
 
 # ---------------------------------------------------------------------------
@@ -332,7 +452,8 @@ def test_generated_rows_carry_no_governance_fields_or_executable_claims():
     assert sorted(entry["for_concept"] for entry in outputs["profile_entries"]) == projected
     for row in outputs["projection_rows"]:
         serialized = json.dumps(row)
-        for field in INVENTORY_GOVERNANCE_FIELDS + ("sysml_mapping", "gates", "forward_obligations"):
+        for field in INVENTORY_GOVERNANCE_FIELDS + ("sysml_mapping", "gates", "forward_obligations",
+                                                    "discharged_obligations"):
             assert f'"{field}"' not in serialized, (row["identity"], field)
         assert row["traversal"] is False and row["api_identity"] == "unclaimed"
         assert row["support"] == SUPPORT[row["admission_class"]]
@@ -343,15 +464,16 @@ def test_generated_rows_carry_no_governance_fields_or_executable_claims():
     for entry in outputs["profile_entries"]:
         assert entry["profile_identity"] == f"{PROFILE_SCHEMA}#{entry['for_concept']}"
         serialized = json.dumps(entry)
-        for field in INVENTORY_GOVERNANCE_FIELDS + ("sysml_mapping",):
+        for field in INVENTORY_GOVERNANCE_FIELDS + ("sysml_mapping", "discharged_obligations"):
             assert f'"{field}"' not in serialized, (entry["for_concept"], field)
         boundary = rows[entry["for_concept"]]["boundary"]
         assert ("configurator_authority" in entry) == (boundary == "ple-no-configurator-authority")
     ple = {r["identity"] for r in rows.values() if r["boundary"] == "ple-no-configurator-authority"}
     # S5o: the PLE configuration rows and the method-admitted derivation classes share
-    # the boundary; none of them carries configurator authority (ADR 0022).
+    # the boundary; none of them carries configurator authority (ADR 0022). So do the
+    # configured product and configuredBy (owner decision of 2026-10-28, Q1).
     assert ple == {"FeatureConfiguration", "appliesToMemberProduct", "selectsFeature",
-                   "selectsVariant"} | METHOD_ADMITTED_CLASSES
+                   "selectsVariant", "ConfiguredProduct", "configuredBy"} | DERIVATION_CLASSES
     assert all(rows[i]["admission_class"] in ("definition", "relationship-vocabulary") for i in ple)
 
 
@@ -504,7 +626,73 @@ def test_fixture_baseline_builds_and_is_comment_and_quote_inert(tmp_path):
         {"name": "source", "type": "Alpha"}, {"name": "target", "type": "Alpha"}]
 
 
+_FIXTURE_COMMIT = "c" * 40
+
+
+def _discharge(**changes):
+    """A well-formed synthetic discharge record of one obligation (``changes`` replace its fields)."""
+    record = {"obligation": "fixture obligation", "run": 1, "git_commit": _FIXTURE_COMMIT,
+              "workflow": ".github/workflows/privileged-full-model-api-ingestion.yml",
+              "artifact": f"full-model-api-ingestion-{_FIXTURE_COMMIT}",
+              "evidence": [{"file": "de4sdv-fixture-report.json", "sha256": "0" * 64,
+                            "values": {"git_commit": _FIXTURE_COMMIT, "fixture.passed": True}}]}
+    record.update(changes)
+    return {"discharged_obligations": [record]}
+
+
+def _evidence(**values):
+    return [{"file": "de4sdv-fixture-report.json", "sha256": "0" * 64, "values": values}]
+
+
+@pytest.mark.parametrize("status", [False, "true", "false", 1, 0, None])
+@pytest.mark.parametrize("key", ["passed", "fixture.passed", "fixture.closed"])
+def test_discharge_status_requires_literal_true(tmp_path, key, status):
+    from de4sdv.semantic.kernel_vocabulary_projection import KernelVocabularyError
+
+    manifest = _mutated(lambda r, m: r["betaLink"].update(_discharge(
+        evidence=_evidence(git_commit=_FIXTURE_COMMIT, **{key: status}))))
+    with pytest.raises(KernelVocabularyError, match="status must be literal true"):
+        _build(_fixture(tmp_path, manifest=manifest))
+
+
+@pytest.mark.parametrize("values", [
+    {"note": _FIXTURE_COMMIT, "passed": True},
+    {"note": _FIXTURE_COMMIT, "git_commit": "d" * 40, "passed": True},
+    {"git_commit": _FIXTURE_COMMIT, "git_revision": "d" * 40, "passed": True},
+])
+def test_discharge_revision_is_bound_by_named_keys(tmp_path, values):
+    from de4sdv.semantic.kernel_vocabulary_projection import KernelVocabularyError
+
+    manifest = _mutated(lambda r, m: r["betaLink"].update(_discharge(evidence=_evidence(**values))))
+    with pytest.raises(KernelVocabularyError, match="records the run's Git commit"):
+        _build(_fixture(tmp_path, manifest=manifest))
+
+
+def test_discharge_evidence_requires_a_result(tmp_path):
+    from de4sdv.semantic.kernel_vocabulary_projection import KernelVocabularyError
+
+    manifest = _mutated(lambda r, m: r["betaLink"].update(_discharge(
+        evidence=_evidence(git_commit=_FIXTURE_COMMIT))))
+    with pytest.raises(KernelVocabularyError, match="cites a passed or closed result"):
+        _build(_fixture(tmp_path, manifest=manifest))
+
+
 _NEGATIVE_MANIFESTS = {
+    "discharge list empty": lambda r, m: r["betaLink"].update({"discharged_obligations": []}),
+    "discharge also open": lambda r, m: r["betaLink"].update(
+        {"forward_obligations": ["fixture obligation"], **_discharge()}),
+    "discharge with an unknown key": lambda r, m: r["betaLink"].update(
+        {"discharged_obligations": [{**_discharge()["discharged_obligations"][0], "note": "x"}]}),
+    "discharge run id as text": lambda r, m: r["betaLink"].update(_discharge(run="40931858718")),
+    "discharge with a short commit": lambda r, m: r["betaLink"].update(_discharge(git_commit="ab551cec")),
+    "discharge by another workflow": lambda r, m: r["betaLink"].update(_discharge(workflow=".github/workflows/ci.yml")),
+    "discharge artifact of another commit": lambda r, m: r["betaLink"].update(
+        _discharge(artifact="full-model-api-ingestion-" + "d" * 40)),
+    "discharge without evidence": lambda r, m: r["betaLink"].update(_discharge(evidence=[])),
+    "discharge evidence of another commit": lambda r, m: r["betaLink"].update(
+        _discharge(evidence=_evidence(git_commit="d" * 40, passed=True))),
+    "discharge evidence value not scalar": lambda r, m: r["betaLink"].update(
+        _discharge(evidence=_evidence(git_commit=_FIXTURE_COMMIT, problems=[]))),
     "unknown key": lambda r, m: r["Alpha"].update({"sysml_mapping": {}}),
     "retired definition oracle": lambda r, m: r["Alpha"].update({"reviewed_definition": "Alpha is a different definition."}),
     "wrong doc index": lambda r, m: r["Alpha"]["home"].update({"index": 1}),
@@ -528,13 +716,28 @@ _NEGATIVE_MANIFESTS = {
                                                                       "mechanics": {"strategy": "dependency"}}),
     "retired name without retirement home": lambda r, m: r["oldAlphaLink"].update({"home": copy.deepcopy(r["betaLink"]["home"])}),
     "traversal claim key": lambda r, m: r["betaLink"].update({"traversal": True}),
-    "method-admitted relationship": lambda r, m: r["betaLink"].update(
+    "method-admitted successor": lambda r, m: r["alphaLink"].update(
         {"register": {"wave": None, "accounting": "method-admitted"}}),
+    "method-admitted retired name": lambda r, m: r["oldAlphaLink"].update(
+        {"register": {"wave": None, "accounting": "method-admitted"}}),
+    "method-admitted runtime relationship": lambda r, m: r["betaLink"].update(
+        {"register": {"wave": None, "accounting": "method-admitted"}, "admission_class": "relationship-runtime",
+         "mechanics": {"strategy": "dependency"}}),
 }
 
 
 #: The refusal must come from the intended guard, not an incidental failure.
 _NEGATIVE_REASONS = {
+    "discharge list empty": "discharged_obligations must be a non-empty list",
+    "discharge also open": "open or discharged, never both",
+    "discharge with an unknown key": "each discharged obligation carries exactly",
+    "discharge run id as text": "names the run id of the privileged ingestion",
+    "discharge with a short commit": "full 40-hex Git commit",
+    "discharge by another workflow": "cites a run of .github/workflows/privileged-full-model-api-ingestion.yml",
+    "discharge artifact of another commit": "cites the artifact of its run's commit",
+    "discharge without evidence": "cites its evidence",
+    "discharge evidence of another commit": "records the run's Git commit",
+    "discharge evidence value not scalar": "dotted keys to scalar values",
     "unknown key": "unknown keys",
     "retired definition oracle": "unknown keys",
     "wrong doc index": "anonymous documentation at index 1",
@@ -553,7 +756,10 @@ _NEGATIVE_REASONS = {
     "ple row with runtime class": "PLE configuration rows stay vocabulary-only",
     "retired name without retirement home": "homed by a retirement record",
     "traversal claim key": "unknown keys",
-    "method-admitted relationship": "a method-admitted row is a class definition",
+    "method-admitted successor": "a method-admitted row is a class definition or a vocabulary-only relationship",
+    "method-admitted retired name": "a method-admitted row is a class definition or a vocabulary-only relationship",
+    "method-admitted runtime relationship":
+        "a method-admitted row is a class definition or a vocabulary-only relationship",
 }
 
 
@@ -583,6 +789,22 @@ def test_method_admitted_metadata_class_is_projected_without_a_comparison_claim(
     assert "closure/contract-equivalence.json" in rows["Alpha"]["grounding"]["contract_source"]
     assert profiles["Gamma"]["representation_class"] == "metadata-definition"
     assert profiles["Gamma"]["binding_contract_echo"]["api_metaclass"] == "MetadataDefinition"
+
+
+def test_method_admitted_vocabulary_relationship_is_projected_without_a_comparison_claim(tmp_path):
+    """A vocabulary-only relationship a method pull request admits after the deletion
+    keeps its manifest-held domain and range, and its row never claims an
+    authored-ontology comparison; a compared relationship keeps its parity label."""
+    gamma = copy.deepcopy(_FIXTURE_MANIFEST["admitted"][2])
+    gamma.update({"identity": "gammaLink", "register": {"wave": None, "accounting": "method-admitted"}})
+    outputs = _build(_fixture(tmp_path, manifest=_mutated(lambda r, m: m["admitted"].append(gamma))))
+    rows = {row["identity"]: row for row in outputs["projection_rows"]}
+    assert rows["gammaLink"]["accounting"] == "method-admitted"
+    assert rows["gammaLink"]["relation"]["canonical_direction"] == "Alpha -> Beta"
+    assert (rows["gammaLink"]["support"], rows["gammaLink"]["traversal"]) == ("vocabulary-only", False)
+    source = rows["gammaLink"]["relation"]["contract_source"]
+    assert "no authored-ontology comparison exists" in source and "parity" not in source
+    assert "closure/contract-equivalence.json" in rows["betaLink"]["relation"]["contract_source"]
 
 
 def test_gate_records_archived_at_a_release_tag_are_tag_qualified(tmp_path):
@@ -683,6 +905,14 @@ def test_negative_manifest_mutations_are_refused(tmp_path, case):
     root = _fixture(tmp_path, manifest=_mutated(_NEGATIVE_MANIFESTS[case]))
     with pytest.raises(KernelVocabularyError, match=_NEGATIVE_REASONS[case]):
         _build(root)
+
+
+def test_a_discharge_record_changes_no_generated_output(tmp_path):
+    """A well-formed discharge is governance: the generated projection and profile are the baseline's."""
+    baseline = _build(_fixture(tmp_path / "baseline"))
+    discharged = _build(_fixture(tmp_path / "discharged", manifest=_mutated(
+        lambda r, m: r["betaLink"].update(_discharge()))))
+    assert discharged == baseline
 
 
 _NEGATIVE_MODELS = {

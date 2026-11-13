@@ -102,15 +102,16 @@ the model viewer under **Elements**.
 ## Understand the process
 
 DE4SDV builds the model in small, reviewable increments. Each increment walks
-a 13-phase sequence (numbered 0–12) from framing, through operational
+a 12-phase sequence (numbered 0–11) from framing, through operational
 context, needs, requirements, functional/logical architecture, physical
-realization, variability, V&V and evidence, to publication and baseline.
+realization, variability, V&V and evidence, to the baseline decision and
+the views that publish it.
 
 Key documents:
 
 | Document | Answers |
 |---|---|
-| [`methodologies/sysmod-sysmlv2/process-mapping.md`](../../methodologies/sysmod-sysmlv2/process-mapping.md) | The logical order of work: 13 phases, feedback loops, viewpoint flow per phase |
+| [`methodologies/sysmod-sysmlv2/process-mapping.md`](../../methodologies/sysmod-sysmlv2/process-mapping.md) | The logical order of work: 12 phases, feedback loops, viewpoint flow per phase |
 | [`methodologies/sysmod-sysmlv2/increment-workflow.md`](../../methodologies/sysmod-sysmlv2/increment-workflow.md) | The repeatable contribution pattern: entry criteria, phase table, increment sizes, review questions |
 | [`approach/process-set/README.md`](../../approach/process-set/README.md) | The catalog of reusable processes by system layer |
 | [`methodologies/sysmod-sysmlv2/saf-viewpoint-map.md`](../../methodologies/sysmod-sysmlv2/saf-viewpoint-map.md) | Which viewpoints to select for which kind of increment |

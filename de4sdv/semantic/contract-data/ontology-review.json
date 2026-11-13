@@ -11811,6 +11811,28 @@
      "statement": "Used by model roots: each INC-MW-011 phase-8 record sets its disposition to candidate (textual-notation-of-model/packages/features/middleware/middleware_score_physical_software_realization.sysml:384-456). The first slice usage keeps the disposition on the record, next to its owner, next action and evidence or gap; no native relationship or gap record carries it instead."
     }
    ]
+  },
+  {
+   "id": "method-phase-count",
+   "date": "2026-11-02",
+   "reviewed_revision": "a93e2c9ddc647da42f9eea5acba41cdc69240b34",
+   "trigger": "the owner decision of 2026-11-01 retires the publication phase and makes the baseline phase 11; the pull request that implements it changes the MethodPhase documentation to twelve phases",
+   "basis": "the enum def MethodPhase at the reviewed revision and the change of that pull request on top of it: the literals phase11_publication and phase12_baselineNextSlice are replaced by phase11_baseline; no API read-back",
+   "reviewer": "Ontology Steward (AI-assisted); the owner accepts it by merging the pull request that adds it",
+   "rule": "Each finding supersedes the named statements of its row. The integrated rows above stay as the record of the review at their source revision. Dispositions, targets, migration classes and the identity register are unchanged.",
+   "findings": [
+    {
+     "identity": "MethodPhase",
+     "supersedes": [
+      "current.definition",
+      "current.claim_boundary",
+      "classification.de4sdv_semantic_delta",
+      "assessment.overclaim",
+      "target.definition"
+     ],
+     "statement": "One of the 12 phases of the DE4SDV increment workflow (phases 0 to 11, the baseline last). The twelve governed increment phases, not an OMG lifecycle. Records written before the change name the publication phase 11 and the baseline phase 12."
+    }
+   ]
   }
  ]
 }

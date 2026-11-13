@@ -1,0 +1,19 @@
+# DE4SDV vehicle-speed provider of the S-CORE reference interoperability bench
+# (INC-MW-011). This file is copied, with the source, into a throwaway checkout
+# of eclipse-score/inc_someip_gateway as the package
+# //de4sdv_score_bench/provider (scripts/ci_checkout_upstream.sh). It adds
+# files only; no upstream file changes, and no S-CORE file enters the DE4SDV
+# repository. It builds with the gateway's toolchain and module set, as every
+# mw::com user on the Linux host does (phase-8 realization).
+
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+
+cc_binary(
+    name = "vehicle_speed_provider",
+    srcs = ["vehicle_speed_provider.cpp"],
+    deps = [
+        "//de4sdv_score_bench/interface:service_interfaces",
+        "@score_baselibs//score/filesystem",
+        "@score_communication//score/mw/com",
+    ],
+)

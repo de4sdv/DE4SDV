@@ -13,7 +13,7 @@ purpose: >-
 source_baselines:
   covesa_vss:
     repository: https://github.com/COVESA/vehicle_signal_specification
-    commit: 6fb1dac2630a8910ee996863b2af02b310dcd7ce
+    commit: 20c609bf95c73b51d483fb8f81a099d1d5b73066
     local_library: textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml
   de4sdv_vss_extensions:
     path: textual-notation-of-model/libraries/covesa-vss-sysmlv2/DE4SDV_VSS_Extensions.sysml

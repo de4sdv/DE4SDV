@@ -42,6 +42,7 @@ from .model_parse import (
     build_member_index,
     build_tree,
     count_stats,
+    file_index,
     load_model,
 )
 from .render import (
@@ -401,9 +402,9 @@ def _tree_with_prefix(tree: TreeNode, prefix: str, active_site: str) -> str:
         attrs = node_data_attrs(node)
         inner = f'<span class="tree-icon">{_icon(node.kind)}</span>'
         if href:
-            label = f'<a href="{href}">{_esc(node.label)}</a>'
+            label = f'<a href="{href}">{_esc(node.text)}</a>'
         else:
-            label = f"<span class='tree-label'>{_esc(node.label)}</span>"
+            label = f"<span class='tree-label'>{_esc(node.text)}</span>"
         meta = f"<span class='tree-meta'>{_esc(node.meta)}</span>" if node.meta else ""
         if kids_html:
             open_attr = " open" if node.depth <= 1 or contains else ""
@@ -604,10 +605,14 @@ def _render_help_md(text: str, link_path: str = "") -> str:
             para_buf.clear()
 
     def flush_list() -> None:
+        # None means "no open list": the next item opens a new list with the
+        # type of that item. An emptied buffer would close the list again at
+        # every later line and keep the type of the first list.
+        nonlocal list_buf
         if list_buf is not None:
             items = "".join(f"<li>{_inline_md(i, link_path)}</li>" for i in list_buf)
             out.append(f"<{list_tag}>{items}</{list_tag}>")
-            list_buf.clear()
+            list_buf = None
 
     def flush_table() -> None:
         if not table_buf:
@@ -625,8 +630,16 @@ def _render_help_md(text: str, link_path: str = "") -> str:
         cells = "".join(
             f"<th>{_inline_md(c, link_path)}</th>" for c in header
         )
+        # each body cell names its column (data-label): on a phone the rows
+        # stack, and the stylesheet shows that name above the cell text
+        labels = [_plain_md(c) for c in header]
+
+        def td(i: int, c: str) -> str:
+            label = f' data-label="{_esc(labels[i])}"' if i < len(labels) and labels[i] else ""
+            return f"<td{label}>{_inline_md(c, link_path)}</td>"
+
         rows_html = "".join(
-            "<tr>" + "".join(f"<td>{_inline_md(c, link_path)}</td>" for c in row) + "</tr>"
+            "<tr>" + "".join(td(i, c) for i, c in enumerate(row)) + "</tr>"
             for row in body
         )
         out.append(f"<table><thead><tr>{cells}</tr></thead><tbody>{rows_html}</tbody></table>")
@@ -711,12 +724,23 @@ def _render_help_md(text: str, link_path: str = "") -> str:
                 list_tag = "ol"
             list_buf.append(m.group(1))
             continue
-        flush_list()
+        if list_buf:
+            # a line that starts no other block continues the last list
+            # item (as in CommonMark): a wrapped item stays one item
+            list_buf[-1] += " " + s
+            continue
         para_buf.append(s)
     flush_all()
     if in_code:
         out.append("<pre><code>" + _esc("\n".join(code_buf)) + "</code></pre>")
     return "\n".join(out)
+
+
+def _plain_md(s: str) -> str:
+    """The text of an inline markdown string: the text of a link without its
+    target, and no code, bold or italic markers."""
+    s = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", s)
+    return re.sub(r"[`*]", "", s).strip()
 
 
 def _inline_md(s: str, link_path: str = "") -> str:
@@ -763,6 +787,8 @@ def _uses_index(
     uses: dict[str, list[dict[str, str]]] = {}
     for mf in files:
         counter: dict[str, int] = {}
+        # the labels of this file's diagrams resolve as on its page
+        view_index = file_index(member_index, mf) if mf.views else member_index
         for v in mf.views:
             anchor = make_anchor(counter, v.name)
             svg_abs = mf.path.parent / "diagrams" / _artifact(v)
@@ -774,7 +800,7 @@ def _uses_index(
             labels = svg_info.extract_text_labels(svg_markup)
             folder = str(Path(mf.rel_path).parent)
             resolved = svg_info.resolve_labels(
-                labels, member_index, mf.rel_path, folder, svg_markup
+                labels, view_index, mf.rel_path, folder, svg_markup
             )
             by_label = {li.label: li for li in resolved}
             resolved_pos = {
@@ -787,7 +813,7 @@ def _uses_index(
                 svg_info.resolve_connectors(
                     svg_markup,
                     by_label,
-                    member_index,
+                    view_index,
                     mf.rel_path,
                     folder,
                     resolved_pos=resolved_pos,

@@ -39,7 +39,9 @@ Two kinds of names:
 
 A result records a problem with a marker: ``kernel-binding:``,
 ``library-binding:``, ``governed-relation:`` or ``external-relation:`` for
-method-side inputs, and ``model-witness:`` for engineering witnesses that
+method-side inputs, ``allocation-admission:`` for a check that the API
+revision binding withholds while the admission of its relation has open
+forward obligations, and ``model-witness:`` for engineering witnesses that
 cannot be read, which the author can fix.
 
 The module also reads the phase-8 signal-mapping control for the named checks
@@ -60,7 +62,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Iterable, Mapping
 
 from de4sdv.sysml_api.errors import IdentityNotFoundError
 from de4sdv.sysml_api.repository import reference_ids
@@ -68,8 +70,18 @@ from de4sdv.sysml_api.repository import reference_ids
 from .increment_scope import ModelView
 from .kernel_contract import KernelFileMapping
 
-#: Problem markers of inputs that only a method or kernel change can supply.
-METHOD_SIDE_PREFIXES = ("kernel-binding:", "library-binding:", "governed-relation:", "external-relation:")
+#: Problem marker of an input that the evaluation itself lacks, for example the source documents and the
+#: external references of an export when the evaluation runs over the API. Only a change to the evaluation
+#: supplies it, so it is method side.
+EVALUATION_INPUT_PREFIX = "evaluation-input:"
+#: Problem marker of a check that an API revision binding withholds because the kernel-vocabulary
+#: admission of a relation it reads has open forward obligations. Distinct from
+#: ``governed-relation:``, which marks a relation the method cannot read at all: only this marker is
+#: the allocation-admission guard, so method parity excuses only the gates it names.
+ALLOCATION_ADMISSION_PREFIX = "allocation-admission:"
+#: Problem markers of inputs that only a method, kernel or evaluation change can supply.
+METHOD_SIDE_PREFIXES = ("kernel-binding:", "library-binding:", "governed-relation:", "external-relation:",
+                        ALLOCATION_ADMISSION_PREFIX, EVALUATION_INPUT_PREFIX)
 #: Problem marker of engineering witnesses that exist but cannot be read.
 MODEL_WITNESS_PREFIX = "model-witness:"
 
@@ -459,11 +471,27 @@ SIGNAL_MAPPING_DISPOSITION = "SignalMappingDisposition"
 #: The VSS signal metadata of COVESA_VSS, read by identity: the loader of an export binds it by ADR 0011's
 #: file-mapped rule (metatype, declared name, serializer-recorded source document), never a check by name.
 VSS_SIGNAL_METADATA = "COVESA_VSS::MetadataDefinitions::VssSignalMetadata"
+#: The SAF reference catalogue: each of its concern and viewpoint definitions specializes the abstract
+#: concern or viewpoint definition of its SAF domain, a row of the SAF grid (``<Domain>DomainConcern``,
+#: ``<Domain>DomainViewpoint``); :func:`saf_domains` reads the domain through the library pins below.
+SAF_CATALOGUE = "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml"
+#: The SAF domains, in the order of the grid's rows.
+SAF_DOMAINS = ("ArchitectureManagement", "Operational", "Conceptual", "Physical", "SAFDevelopment")
+
+
+def saf_domain_pin(domain: str, keyword: str) -> str:
+    """The library pin of the abstract ``keyword`` (``concern`` or ``viewpoint``) definition of an SAF domain."""
+    return f"SAF_Viewpoints::{domain}Domain{keyword.capitalize()}"
+
+
 #: The library declarations the checks read by identity, by the name a result reports them under.
 LIBRARY_PINS: Mapping[str, KernelFileMapping] = MappingProxyType({
     VSS_SIGNAL_METADATA: KernelFileMapping(
         file="textual-notation-of-model/libraries/covesa-vss-sysmlv2/COVESA_VSS.sysml",
         declaration="metadata def VssSignalMetadata"),
+    **{saf_domain_pin(domain, keyword): KernelFileMapping(
+        file=SAF_CATALOGUE, declaration=f"{keyword} def {domain}Domain{keyword.capitalize()}")
+       for domain in SAF_DOMAINS for keyword in ("concern", "viewpoint")},
 })
 #: The member of a VSS signal's metadata that names the signal (a feature of the bound definition).
 VSS_PATH = "path"
@@ -496,6 +524,14 @@ def library_lineage(view: ModelView, pin: str) -> frozenset[str]:
         return view.index.specializations(view.library_element(pin))
     except IdentityNotFoundError as error:
         raise MethodSideInput(f"library-binding:{pin}", f"method side: {error}")
+
+
+def saf_domains(view: ModelView, definitions: Iterable[str], keyword: str) -> list[str]:
+    """The SAF domains, in grid order, whose abstract ``keyword`` definition one of ``definitions`` is or
+    specializes: the domain is native lineage from the bound catalogue roots, never a name. Raises
+    :class:`MethodSideInput` when a domain root is unbound."""
+    found = set(definitions)
+    return [domain for domain in SAF_DOMAINS if found & library_lineage(view, saf_domain_pin(domain, keyword))]
 
 
 def stated_texts(view: ModelView, owner: str, member: str) -> list[str]:

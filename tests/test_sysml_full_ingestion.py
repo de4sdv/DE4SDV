@@ -419,7 +419,11 @@ def test_importer_records_the_served_model_in_binding_and_report(tmp_path, monke
     head = "b" * 40
     export_path = tmp_path / "export.json"
     export_path.write_bytes(b'{"synthetic": "export bytes"}')
-    bundle = SimpleNamespace(git_commit=head, elements={}, element_sources={},
+    # Three elements of one document: the read-back lists exactly the elements the export documents
+    # record (the importer refuses a binding otherwise).
+    sources = {identifier: "m.sysml" for identifier in ("a", "b", "c")}
+    readback = [{"@id": identifier, "@type": "Package"} for identifier in sources]
+    bundle = SimpleNamespace(git_commit=head, elements={}, element_sources=sources,
                              source_manifest=[], external_references=[],
                              require_current_sources=lambda manifest: None)
     passing = SimpleNamespace(passed=True, summary={"unresolved": 0}, entries=[],
@@ -430,7 +434,7 @@ def test_importer_records_the_served_model_in_binding_and_report(tmp_path, monke
     monkeypatch.setattr(importer, "import_baseline", lambda client, b, project_name: BaselineImportResult(
         project_id="p-1", commit_id="c-1", element_count=3, internal_reference_count=1,
         content_sha256="sha256:" + "c" * 64))
-    monkeypatch.setattr(importer.SysMLRepository, "list_elements", lambda self, p, c: [])
+    monkeypatch.setattr(importer.SysMLRepository, "list_elements", lambda self, p, c: readback)
     monkeypatch.setattr(importer, "validate_ontology_bindings", lambda *a, **k: passing)
     monkeypatch.setattr(importer, "cross_check_model_provider",
                         lambda *a, **k: {"classification": "EQUIVALENT"})

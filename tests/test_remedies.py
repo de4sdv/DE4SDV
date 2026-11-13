@@ -253,6 +253,13 @@ _MEMBER_FORMS = {
     "verify": rf"verify {_REF};",
     "frame": rf"frame {_REF};",
     "viewpoint": rf"viewpoint {_NAME} : {_REF} \{{ frame {_REF}; \}}",  # INC-TEST-001's view
+    # INC-MW-011's operational context: a context part, and the part that redefines its systemOfInterest
+    "part": rf"part {_NAME}(?: : {_REF})?;",
+    "system of interest": rf"part {_NAME} : {_REF} :>> {_NAME};",
+    # the bound subject and actors of a use case (INC-AEBS-002's and INC-MW-011's stories)
+    "subject binding": rf"subject {_NAME}(?: : {_REF})? = {_REF};",
+    "actor binding": rf"actor {_NAME}(?: : {_REF})? = {_REF};",
+    "expose": rf"expose {_REF}(?:::\*)?;",  # the views of every slice
 }
 #: A signal-mapping record, a member of its mapping: the INC-MW-011 phase-8 form (#389), short name first.
 _MEMBER_FORMS["record"] = rf"item <'[^']*'> {_NAME} : {_REF} \{{(?: {_MEMBER_FORMS['redefinition']})+ \}}"
@@ -260,12 +267,13 @@ _MEMBER_FORMS["record"] = rf"item <'[^']*'> {_NAME} : {_REF} \{{(?: {_MEMBER_FOR
 #: member of a requirement (a concern is one; a case has a subject); a verify sits in a case's objective;
 #: a viewpoint in a view; a redefinition in the part or requirement that inherits the feature.
 _CONTAINS = {
-    "part": ("doc", "redefinition"),
+    "part": ("doc", "redefinition", "system of interest", "part"),
     "action": ("doc",),  # the AEBS flows
     "requirement": ("doc", "subject", "stakeholder", "redefinition", "statement", "frame"),
     "concern": ("doc", "subject", "stakeholder"),
     "verification": ("doc", "subject", "objective"),
-    "view": ("doc", "viewpoint"),
+    "view": ("doc", "viewpoint", "expose"),
+    "use case": ("doc", "subject binding", "actor binding"),
 }
 
 
@@ -315,7 +323,7 @@ def _for_an_existing_element(record: dict) -> bool:
 _PLACEMENT = rf"(?:in the existing|replace the subjects? of) ({_QN})(?: with)?: "
 #: The name a declaration line declares (after an optional short name).
 _DECLARED = re.compile(r"(?:(?:part|action|requirement|concern|verification|view|viewpoint)(?: def)?"
-                       r"|connection|allocation|dependency) (?:<'[^']*'> )?([^\s;{]+)")
+                       r"|connection|allocation|dependency|use case) (?:<'[^']*'> )?([^\s;{]+)")
 
 
 def _placed(text: str, line: str) -> str | None:

@@ -9,21 +9,32 @@ Source reference: <https://saf.gfse.org/userdoc/viewpoints.html>
 For each increment:
 
 1. state the engineering question,
-2. select the smallest useful set of viewpoints,
+2. publish, per phase the increment walks, the views the
+   [views-per-phase list](increment-workflow.md#views-per-phase) of the
+   increment workflow names: one view per SAF question the phase answers,
 3. produce the matching DE4SDV artifacts,
 4. record omitted viewpoints as out of scope,
 5. add trace links to needs, requirements, verification cases, validation scenarios, architecture, evidence, and baselines where relevant.
 
-Do not require all viewpoints for every increment.
+Do not require all viewpoints for every increment. The subsets below group the
+catalogue by DE4SDV purpose; the per-phase list is the selection.
 
 ## Domain mapping
 
 | SAF domain | Role in DE4SDV | Typical DE4SDV artifacts |
 |---|---|---|
-| Common Domain | shared terms, standards, argumentation, traceability | glossary, standards register, evidence register, traceability reports |
+| Architecture Management Domain | shared terms, standards, argumentation, traceability | glossary, standards register, evidence register, traceability reports |
 | Operational Domain | stakeholder needs, operational context, capabilities, scenarios/processes | increment charter, operational context, needs, use cases/scenarios |
 | Conceptual Domain | system context, requirements, functional architecture, logical architecture, safety/security concerns, and function-to-logical mapping | requirements, functional model, interface model, risk/security notes, logical architecture, service/component model, allocation map |
 | Physical Domain | physical/software realization and mappings | deployment/software/hardware model, interface contracts, realization map |
+| SAF Development Domain | the development of the framework itself | none in an increment |
+
+The domain of each SAF definition is part of the model: every concern and viewpoint definition of
+`SAF_Viewpoints` specializes the abstract definition of its domain (`ArchitectureManagementDomainConcern`,
+`OperationalDomainViewpoint`, …), following the rows of the SAF grid. Safety and Security is an aspect
+(a column) of the grid, not a domain: its viewpoints are in the Conceptual Domain. A concern definition
+is in the domain of the viewpoint definition that answers it, and the baseline phase advises when a
+concern of the increment is framed by no viewpoint of its own domain (`concernAnsweredInDomain`).
 
 ## Recommended viewpoint subsets
 
@@ -44,7 +55,7 @@ Use when the increment changes an SDV product-line capability or feature.
 
 | SAF viewpoint | DE4SDV purpose | Output |
 |---|---|---|
-| Operational Context Definition Viewpoint | define external actors/systems and context boundary | operational context model/doc |
+| Operational Context Definition Viewpoint | describe the operational situation: the performers and what passes between them, with no system singled out as the one of interest; in DE4SDV the phase 2 context also draws the boundary, so it is the one context view of an increment | operational context model/doc |
 | Operational Story Viewpoint | tell the scenario in stakeholder language | scenario narrative |
 | Operational Capability Definition Viewpoint | describe operational capability expected from the product line | capability description |
 | Operational Process Viewpoint | describe operational flow or lifecycle process | process/behavior sketch |
@@ -56,7 +67,8 @@ Use when deriving system behavior, requirements, or interfaces.
 
 | SAF viewpoint | DE4SDV purpose | Output |
 |---|---|---|
-| System Context Definition Viewpoint | define system boundary and external interfaces | SysML v2 context package or Markdown context |
+| System Context Definition Viewpoint | the system of interest as a black box with the elements it exchanges with; answered by the phase 2 context, which is defined once, so no separate view | the phase 2 context package |
+| System Context Exchange Viewpoint | the exchanges between the system and each context element, with the items that cross the boundary; answered by the phase 6 process, which draws the context parts as the lanes of their functions with the flows, so no separate view | the phase 6 process view |
 | System Use Case Viewpoint | capture system use cases | use case model/doc |
 | System Capability Definition Viewpoint | define system capabilities | capability model |
 | System Functional Breakdown Structure Viewpoint | decompose functions | functional breakdown |
@@ -115,25 +127,25 @@ Logical Item Mapping is a proposed DE4SDV addition and deliberately has no SAF
 short code. `P8_PFUM` Physical Functional Mapping is deferred for the AEBS
 simulation deployment until executable responsibilities stabilize.
 
-## AEBS pilot viewpoint selection
+Tailoring: SAF's Physical Exchange Type Definition asks which kinds of physical
+items are defined and which conceptual item each derives from, and the
+catalogue states those questions as SAF does. A DE4SDV software realization
+also types its exchanges by endpoint and protocol definitions (the AEBS
+simulation deployment's exchange-type view shows them), which this map reads
+as part of the same question; the catalogue's definition is not widened for
+it.
 
-For the first AEBS pilot, keep the set intentionally small:
+## Viewpoint selection per phase
 
-| Phase | Selected viewpoints |
-|---|---|
-| Framing | Common Terms Definition, Common Standards Definition, EA Traceability |
-| Operational | Stakeholder Identification, Operational Context Definition, Operational Story, Operational Capability Definition |
-| Conceptual | System Context Definition, System Requirement Definition, System Interface Definition, System Requirement Traceability |
-| Product-line | feature/common-capability classification using DE4SDV ontology |
-| Evidence | Argumentation Assurance as a stub only |
-
-Out of scope for the first AEBS pilot:
-
-- full logical/physical architecture,
-- detailed sensor physics,
-- production ECU deployment,
-- complete UNECE R152 compliance claim,
-- complete safety case or cybersecurity case.
+The views an increment publishes per phase, their viewpoint definitions and
+their proven forms are the
+[views-per-phase list](increment-workflow.md#views-per-phase) of the
+increment workflow, one list for every increment; the June 2026 AEBS pilot
+selection this section used to carry is superseded by it. A view of a live
+increment whose viewpoint the list does not name for its phase fails
+`tests/test_views_per_phase.py`; the views the merged increments published
+before the list are pinned there as known deviations and left as they are.
+Whether a view shows the right content stays with review.
 
 ## SysML cross-references
 
@@ -167,18 +179,35 @@ Each engineering-domain viewpoint def carries a `doc` comment naming its SAF sou
 
 SAF viewpoints are in `textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml`.
 DE4SDV method-governance viewpoints are in `textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml`.
-New SAF viewpoints are added to `SAF_Viewpoints` incrementally as DE4SDV increments need them.
+
+`SAF_Viewpoints` now carries all 58 viewpoints of the current SAF grid, so every
+viewpoint this map selects has a definition to frame a view with. The catch-up
+that completed it added the eight the recommended subsets already relied on —
+EA Traceability, System Context Definition, System Context Exchange, System
+Capability Mapping, Operational State, Physical Exchange Type Definition,
+Physical Context Interaction and Physical Internal Interaction — and renamed
+three to SAF's current names (System Exchange Type Definition, Operational
+Exchange Type Definition, Operational Performer Definition) without changing
+what they ask. Physical Context Interaction and Physical Internal Interaction
+are under construction in SAF: the catalogue states what a conforming view
+shows, and DE4SDV decides the SysML v2 rendering when an increment selects one.
 
 Each concrete `view` uses a `viewpoint` selection with `frame` bindings to
 concerns. Exposures are scoped to the elements and relationships needed to
 answer that concern rather than dumping whole packages.
 
-Presentation follows the concern: ownership/decomposition uses trees,
-processes use action-flow diagrams, exchanges use interconnection diagrams,
-requirement definitions use tables, and allocation mappings use matrices.
-Grid views are modeled with a pinned library and exported by the privileged
-workflow as both CSV and review SVG. SysML remains authoritative when a
-renderer omits or simplifies a valid relationship.
+Presentation follows the concern, in the forms the licensed renderer has
+drawn: ownership and decomposition use trees; a process is an action flow
+whose exposed parts are the lanes of the actions they perform, with the item
+flows as edges; exchanges between parts with ports use interconnection
+diagrams; definitions of needs, requirements and modes use tables; and
+mappings use matrices. A renderer draws only what a view exposes: a view
+typed by a standard-library view definition without a `render` statement gets
+a compartment box, and an interconnection view of a definition draws nothing,
+so the form of a new kind of view is proved with one render before it is
+adopted. Grid views are modeled with a pinned library and exported by the
+privileged workflow as both CSV and review SVG. SysML remains authoritative
+when a renderer omits or simplifies a valid relationship.
 
 ## Current middleware publication exceptions
 

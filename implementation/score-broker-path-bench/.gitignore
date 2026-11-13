@@ -1,0 +1,5 @@
+# Run artifacts of a bench session are not evidence of record and are large and
+# volatile; they stay out of Git (a run writes them under RUN_DIR, which the
+# scripts place here by default). Only the scripts, evaluators, configs, plan
+# and change log are tracked.
+run/

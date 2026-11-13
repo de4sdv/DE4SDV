@@ -214,6 +214,21 @@ For SysML v2 models, product-line artifacts, simulations, or other technical exa
 - Avoid claiming standards compliance without traceable evidence
 - Include references when patterns are derived from standards or literature
 
+## Upstream projects
+
+[`UPSTREAM`](UPSTREAM.md) lists the projects that DE4SDV builds on. When your
+change adds, removes or replaces one, update that page in the same pull
+request: one row with the project's link, what DE4SDV uses it for and the file
+that records the version in use. A change of version alone updates that
+record, not the page.
+
+CI checks one part of this. It fails when a tracked file names a GitHub
+repository that has no entry in `UPSTREAM.md`, and it prints the repository
+and the file that names it. Run the check locally with
+`python tools/check_upstream_index.py`. A build tool or the like that the page
+leaves out on purpose goes into the `OMISSIONS` list in that file, with a
+reason.
+
 ## Proposal guidance
 
 Any proposal — documentation, modeling, simulation, tooling, or governance —

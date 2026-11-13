@@ -21,6 +21,7 @@ From the repository root, with the pinned dependencies installed:
 
 ```bash
 sysand sync
+python scripts/generate_driving_case_catalogue.py --output implementation/closed-loop-driving-bench/case-evaluators/driving_case_catalogue.json
 python scripts/generate_definition_projection.py --batch all
 python scripts/generate_native_grounding_projection.py
 python scripts/generate_trace_vocabulary_contract.py
@@ -55,6 +56,20 @@ say so in the pull request:
 ```bash
 python scripts/check_model_projection_coverage.py --write-baseline
 ```
+
+### The driving case catalogue
+
+`implementation/closed-loop-driving-bench/case-evaluators/driving_case_catalogue.json`
+is generated from the closed-loop driving model: the evidence outcomes and the
+verdict of each, the scenarios, and the verification cases with the
+requirement each verifies. The bench's case evaluators read it at import and
+refuse to import when they disagree with it. Never edit it by hand. Regenerate
+it in the same commit as a change of those declarations in
+`textual-notation-of-model/packages/features/driving/`. It reads only the two
+driving model files, not the output of another generator, and takes nothing
+from comment or `doc` text. The
+[evaluators' README](../../implementation/closed-loop-driving-bench/case-evaluators/README.md#what-comes-from-the-model)
+says what the evaluators take from it.
 
 ## Frozen records are different
 

@@ -33,10 +33,11 @@ package DE4SDV_IncrementWorkflow {
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodContext::*;
   private import DE4SDV_Stakeholders::*;
-  private import DE4SDV_ProductLine::ProductLineFeatureCandidate;
+  private import DE4SDV_ProductLine::ProductLineCharacteristic;
   private import DE4SDV_TraceVocabulary::AllocatableFunction;
   private import DE4SDV_TraceVocabulary::LogicalAllocationElement;
   private import DE4SDV_TraceVocabulary::PhysicalAllocationElement;
+  private import DE4SDV_ProductLine::ProductLineConfiguredProduct;
 
   metadata def MethodCheck {
     doc /* A method rule about one parameter of a step definition. Its subjects are
@@ -108,7 +109,9 @@ package DE4SDV_IncrementWorkflow {
   action def IncrementWorkflow {
     doc /* The steps of one increment in method order. Framing always applies; a later
          * step applies when the charter lists its phase in the applicable phases. The
-         * pattern follows SYSMOD's SYSMODDefaultProcess without specializing it;
+         * increment ends at its baseline decision: rework iterates the same increment,
+         * and a new increment starts only from a new engineering question, at framing.
+         * The pattern follows SYSMOD's SYSMODDefaultProcess without specializing it;
          * formal alignment with SYSMOD comes later. */
     first start;
     then action frameIncrement : FrameIncrement;
@@ -122,8 +125,7 @@ package DE4SDV_IncrementWorkflow {
     then action definePhysicalRealization[0..1] : DefinePhysicalRealization;
     then action defineVariabilityAndConfiguration[0..1] : DefineVariabilityAndConfiguration;
     then action planVerificationAndEvidence[0..1] : PlanVerificationAndEvidence;
-    then action publishIncrement[0..1] : PublishIncrement;
-    then action decideBaselineAndNextSlice[0..1] : DecideBaselineAndNextSlice;
+    then action decideBaseline[0..1] : DecideBaseline;
     then done;
 
     flow from frameIncrement.problemStatement to elaborateNeeds.problemStatement;
@@ -168,7 +170,7 @@ package DE4SDV_IncrementWorkflow {
       :>> check = "ownedByIncrementPackage";
     }
     metadata incrementHasLifecycleDecision : MethodCheck about lifecycleDecision {
-      doc /* The increment package owns its lifecycle decision; no decision or acceptance claim. */
+      doc /* The increment package owns its lifecycle decision; a baseline decision of phase 11 does not count. No decision or acceptance claim. */
       :>> check = "ownedByIncrementPackage";
     }
     metadata incrementHasAssumption : MethodCheck about assumptions {
@@ -220,11 +222,38 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def FrameConcerns :> IncrementStep {
-    doc /* Who cares and why? */
+    doc /* Who cares and why? Rules: at least one concern of the increment is
+         * not typed by IncrementBoundaryConcern or a specialization of it. A
+         * boundary concern alone is insufficient. Each concern has a native
+         * stakeholder member, and a viewpoint of a view of the increment frames
+         * it, by its own frame or by a frame of the viewpoint definition it is
+         * typed by. A concern names as its stakeholders the parties whose
+         * interest it states, not only the reviewers who will inspect the views
+         * that answer it. The views of the increment are the views its packages
+         * own, as in phase 11. The stakeholders are the native stakeholder
+         * members of the concerns, the problem statement and the needs; no
+         * check counts stakeholder parts. These are structural gates, not a
+         * completeness or adequacy assessment of stakeholder coverage or
+         * viewpoint selection. */
     attribute :>> phase = MethodPhase::phase1_concernFraming;
     in requirement problemStatement : ProblemStatement;
     out part stakeholders[1..*] : Stakeholder;
     out concern concerns[1..*];
+
+    metadata incrementHasNonBoundaryConcern : MethodCheck about concerns {
+      doc /* At least one concern of the increment is not typed by IncrementBoundaryConcern or any
+           * specialization of it. Boundary concerns may remain; no claim of complete stakeholder or
+           * risk coverage, viewpoint-selection adequacy or review acceptance. */
+      :>> check = "nonBoundaryConcernPresent";
+    }
+    metadata concernHasStakeholder : MethodCheck about concerns {
+      doc /* Each concern of the increment has a native stakeholder member; no assignment or authority claim. */
+      :>> check = "stakeholderMember";
+    }
+    metadata concernFramedByViewpoint : MethodCheck about concerns {
+      doc /* Each concern of the increment is framed by a viewpoint of a view of the increment; no claim that the view addresses the concern. */
+      :>> check = "framedByViewpoint";
+    }
   }
 
   action def SpecifyOperationalContext :> IncrementStep {
@@ -232,33 +261,65 @@ package DE4SDV_IncrementWorkflow {
          * context and story hold System 1 roles only; bench, reviewer and
          * evidence roles belong to the engineering and assurance system. Each
          * use case of the story binds its subject to the system of interest
-         * and each actor to a context part around it. */
+         * and each actor to a context part around it. The context's own
+         * systemOfInterest is the system of interest the charter declares. The
+         * story is every use case the increment's packages own at any depth.
+         * The checks read the context and the bindings of those use cases.
+         * Review judges the roles: the kernel classifies no role as System 1 or
+         * System 2. */
     attribute :>> phase = MethodPhase::phase2_operationalContext;
     in requirement problemStatement : ProblemStatement;
     out part operationalContext : SystemContext;
+
+    metadata incrementHasOperationalContext : MethodCheck about operationalContext {
+      doc /* The increment has exactly one operational context; the count is the rule, no completeness claim. */
+      :>> check = "populationMember";
+    }
+    metadata operationalContextHoldsSystemOfInterest : MethodCheck about operationalContext {
+      doc /* The operational context redefines its systemOfInterest with the system of interest the charter declares, by usage, narrowing, binding or type lineage; no completeness claim. */
+      :>> check = "contextSystemOfInterest";
+    }
+    metadata storyBindsSubjectToSystemOfInterest : MethodCheck about operationalContext {
+      doc /* Each use case of the increment binds its subject to the operational context's system of interest; no claim about what the story says. */
+      :>> check = "storySubjectBound";
+    }
+    metadata storyBindsActorsToContextParts : MethodCheck about operationalContext {
+      doc /* Each actor of each use case of the increment is bound to a part of the operational context around its system of interest; no claim that a role is a System 1 role. */
+      :>> check = "storyActorsBound";
+    }
   }
 
   action def ClassifyCapabilities :> IncrementStep {
     doc /* Which characteristics distinguish member products? Rule: the step
          * records only the feature-model delta, the feature candidates the
-         * increment adds, and the delta may be empty. Core elements are common
-         * by default and get no record; constraints go to the requirements and
-         * evidence to V&V. */
+         * increment adds, and product-line scope it defers, such as a gap. The
+         * delta may be empty. Core elements are common by default and get no
+         * record; constraints go to the requirements and evidence to V&V. */
     attribute :>> phase = MethodPhase::phase3_capabilityClassification;
     in part operationalContext : SystemContext;
-    out part characteristics[0..*] : ProductLineFeatureCandidate;
+    out part characteristics[0..*] : ProductLineCharacteristic;
+
+    metadata characteristicIsFeatureDelta : MethodCheck about characteristics {
+      doc /* Each product-line characteristic of the increment is a feature candidate or deferred product-line scope; a common-capability record is no feature-model delta. No claim that a candidate distinguishes member products. */
+      :>> check = "featureDeltaOnly";
+    }
   }
 
   action def ElaborateNeeds :> IncrementStep {
-    doc /* What stakeholder needs exist and how will the needs be validated? Rules:
-         * each need has a statement, at least one stakeholder, an ODE4HERA source
-         * and rationale, and at least one planned validation scenario. Needs are
-         * elaborated from the concerns that viewpoints frame and trace to them
-         * through stakeholder, source and rationale. A need doesn't frame a
-         * concern: it would then be satisfied only when the whole concern is
-         * addressed, while a need usually covers only part of one. Advisory: a
-         * need takes the system of interest the charter declares as subject,
-         * never the increment. */
+    doc /* What stakeholder needs exist and how will the needs be validated?
+         * Rules: each need has a statement, at least one stakeholder, an
+         * ODE4HERA source and rationale, and at least one planned validation
+         * scenario. Needs are elaborated from the concerns that viewpoints
+         * frame and trace to them through stakeholder, source and rationale. A
+         * need's stakeholders are the parties whose interest it states, those
+         * the system of interest serves. A role that only reviews, verifies or
+         * approves the need does not hold it; that role belongs to the need's
+         * planned validation. An engineering role holds a need when the system
+         * of interest provides something the role uses in its own work. A need
+         * doesn't frame a concern: it would then be satisfied only when the
+         * whole concern is addressed, while a need usually covers only part of
+         * one. Advisory: a need takes the system of interest the charter
+         * declares as subject, never the increment. */
     attribute :>> phase = MethodPhase::phase4_needs;
     in requirement problemStatement : ProblemStatement;
     in concern concerns[0..*];
@@ -452,10 +513,30 @@ package DE4SDV_IncrementWorkflow {
   }
 
   action def DefineVariabilityAndConfiguration :> IncrementStep {
-    doc /* How does this vary across member products or configurations? */
+    doc /* How does this vary across member products or configurations? Rules:
+         * the increment declares at least one configured product, and exactly
+         * one feature configuration configures each. A configuration
+         * configures it when one of its part usages, its own or inherited and
+         * not redefined, is typed by the part definition of that
+         * configuration's product-model projection, bound by validated
+         * identity, or by a specialization of it. A redefining part without a
+         * type of its own keeps the type it redefines. A specialization that
+         * adds System 2 instrumentation, such as a test article, is a
+         * configured product of its own increment and never a member. No
+         * check reads the variation points yet. */
     attribute :>> phase = MethodPhase::phase9_variabilityConfiguration;
     in part physicalElements[0..*];
-    out part variationPoints[1..*];
+    out part variationPoints[0..*];
+    out part configuredProducts[1..*] : ProductLineConfiguredProduct;
+
+    metadata incrementHasConfiguredProduct : MethodCheck about configuredProducts {
+      doc /* The increment declares at least one configured product; no runtime or membership claim. */
+      :>> check = "populationMember";
+    }
+    metadata configuredProductConfiguredByOneConfiguration : MethodCheck about configuredProducts {
+      doc /* Exactly one feature configuration configures each configured product of the increment, by the derivation rule of configuredBy; no validity, admission or membership claim. */
+      :>> check = "configuredByOneConfiguration";
+    }
   }
 
   action def PlanVerificationAndEvidence :> IncrementStep {
@@ -482,18 +563,67 @@ package DE4SDV_IncrementWorkflow {
     }
   }
 
-  action def PublishIncrement :> IncrementStep {
-    doc /* What is reviewable now? */
-    attribute :>> phase = MethodPhase::phase11_publication;
+  action def DecideBaseline :> IncrementStep {
+    doc /* What is accepted, deferred, or invalidated, and which published views show
+         * it? Rules: the increment publishes at least one view; each view of the
+         * increment has a viewpoint that frames a concern, and the view, or a view
+         * it owns, exposes model content. The views of the increment are the views
+         * its packages own, not views that a part or another view owns. The
+         * increment has exactly one baseline decision, and it states its
+         * disposition. Each open gap of the increment states the disposition that
+         * the baseline decision gives it. Each record states its own disposition;
+         * a value that only its definition sets does not count. The record of a
+         * resolved gap leaves the model, so every gap of the increment is open.
+         * The typing identifies the baseline decision, never a name, and no check
+         * reads the baseline register. Advisory: each applicable phase with
+         * content has at least one of its elements in a view of the increment,
+         * and each concern typed by an SAF concern definition is framed by a
+         * viewpoint of a view of the increment whose definition is an SAF
+         * viewpoint definition of the concern's SAF domain. The checks judge
+         * the model only. The pull request, its review and the
+         * rendered diagrams are judged outside the model: CI checks the diagrams
+         * and the view index, review the rest. */
+    attribute :>> phase = MethodPhase::phase11_baseline;
     in part charter : IncrementCharter;
-    out view publishedViews[0..*];
-  }
-
-  action def DecideBaselineAndNextSlice :> IncrementStep {
-    doc /* What is accepted, deferred, or invalidated? */
-    attribute :>> phase = MethodPhase::phase12_baselineNextSlice;
-    in part charter : IncrementCharter;
-    out part baselineDecision : IncrementLifecycleDecision;
+    in concern concerns[0..*];
+    out view publishedViews[1..*];
+    out part baselineDecision : IncrementBaselineDecision;
     out part openGaps[0..*] : IncrementGap;
+
+    metadata publishedViewFramesConcern : MethodCheck about publishedViews {
+      doc /* Each view of the increment has a viewpoint, of its own or of its definition, that frames a concern; no claim that the view addresses the concern. */
+      :>> check = "viewpointFramesConcern";
+    }
+    metadata publishedViewExposesContent : MethodCheck about publishedViews {
+      doc /* Each view of the increment, or a view it owns at any depth, exposes model content; no rendering, publication or review claim. */
+      :>> check = "exposesModelContent";
+    }
+    metadata incrementHasBaselineDecision : MethodCheck about baselineDecision {
+      doc /* The increment has exactly one baseline decision; the count is the rule, no acceptance claim. */
+      :>> check = "populationMember";
+    }
+    metadata baselineDecisionStatesDisposition : MethodCheck about baselineDecision {
+      doc /* The baseline decision states its disposition (accepted, deferred or invalidated); no acceptance, evidence status or verdict claim. */
+      :>> check = "dispositionStated";
+    }
+    metadata openGapStatesDisposition : MethodCheck about openGaps {
+      doc /* Each open gap of the increment states the disposition that the baseline decision gives it; no claim that the gap is resolved. */
+      :>> check = "dispositionStated";
+    }
+    metadata applicablePhaseContentPublished : MethodCheck about charter {
+      doc /* Advisory: each applicable phase whose checks have subjects among its outputs has at least one of them in a
+           * view of the increment: exposed by the view or a view it owns, or the view itself. Exposure is read from the
+           * expose relationships, without filters; no rendering, review or completeness claim. */
+      :>> check = "phaseContentPublished";
+      :>> advisory = true;
+    }
+    metadata concernAnsweredInItsDomain : MethodCheck about concerns {
+      doc /* Advisory: a concern typed by an SAF concern definition is framed by a viewpoint of a view of the increment
+           * whose definition is an SAF viewpoint definition of the same SAF domain. The domain is the specialization of
+           * the abstract domain definitions of SAF_Viewpoints, read by identity. A frame by a viewpoint of another
+           * domain or of none is not refused; no claim that a view answers its concern adequately. */
+      :>> check = "concernAnsweredInDomain";
+      :>> advisory = true;
+    }
   }
 }

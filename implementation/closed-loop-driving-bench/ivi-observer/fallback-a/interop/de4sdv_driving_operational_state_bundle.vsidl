@@ -1,0 +1,22 @@
+# DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+#
+# The broker's declaration of the type it publishes. The SDV Core build does not
+# read this file: the staging script inserts this same block into the platform's
+# own broker catalog (`system/software_defined_vehicle/samples/some_ip/catalog/agent/broker.vsidl`,
+# at the anchor of an existing `publisher { message: ... }` entry), because the
+# broker bundle declaration belongs to the platform file. This file is the
+# readable source of the inserted block and is diffed against the anchor by the
+# staging script's `check` step.
+#
+# Same shape as the AEBS frame bench's insert
+# (score-broker-path-bench/scripts/build_sdv_core_image.sh step 3).
+
+package: "com.android.sdv.someip"
+
+service_bundle {
+  name: "SomeIpBroker"
+
+  publisher {
+    message: "De4sdvDrivingOperationalStateFrame"
+  }
+}

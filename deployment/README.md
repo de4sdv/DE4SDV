@@ -29,8 +29,10 @@ for the separate application/model identity contract and abuse controls.
   served Git SHA, the deployment-specific SysML project/commit UUIDs, the
   semantic-authority identity (`baseline.semantic_authority`, `sai-…`), the
   served model (`baseline.served_model`: export digest, element count and
-  content digest), deployment timestamp, and read-only/experimental status.
-  `scripts/verify_public_api.py` checks both with a strict shape.
+  content digest), the identity of the export documents the binding records
+  (`baseline.export_documents`: the same fields), deployment timestamp, and
+  read-only/experimental status. `scripts/verify_public_api.py` checks them
+  with a strict shape.
 
 ## What is blocked (by design)
 
@@ -256,6 +258,13 @@ and activation ceremony is retired):
    count and its content digest. The importer writes it only after the
    full-payload read-back found every element of the API listing equal to the
    export (schema padding without a value is ignored; numbers compare by value).
+   The binding also records the `export_documents` of that export: the
+   source document of each element and the references to elements outside
+   the export, which the API listing does not carry. The method checks read
+   them over the API, so the binding is about 11 MB. `deploy.py` requires
+   the record to be the privileged import's (the same digest, export and
+   element count) and publishes its identity as
+   `baseline.export_documents` in `deployment-status.json`.
 3. **The deployed API.** `http://sysml2-api:9000` inside the compose network.
 4. **One startup check** (`de4sdv/semantic/deployment_runtime.py`). It
    refuses unless all of these hold:
@@ -270,7 +279,9 @@ and activation ceremony is retired):
      model, and no corpus is used unless its content digest is exactly that
      record's. This part runs when the corpus loads (the warm-up). A snapshot
      that is not the export is ignored; an API corpus that is not the export
-     is refused, and every semantic answer is refused with it.
+     is refused, and every semantic answer is refused with it. The corpus
+     must also hold exactly the elements that the binding's export documents
+     list.
 
 Environment. The ask-viewer needs `DE4SDV_APP_GIT_SHA` (the deployed commit;
 `deploy.py` and the Ask deploy workflow set it); the binding path and API URL
@@ -284,10 +295,12 @@ Refusal is loud. A refused startup makes `/ask-status.json` report
 `semantic_authority.kind == "invalid"` with the reason, and the viewer then
 answers only on the labeled regex path. The MCP server exits with status 2
 and does not start. `/ask-status.json` reports `startup_check`, the served
-`semantic_authority` (`sai-…`), `served_model` and `served_model_check`. The
-post-deploy verifier (`verify_public_api.py`), the Ask verifier
-(`verify_public_ask.py`) and the scheduled monitor (`monitor_public_ask.py`)
-compare them with `deployment-status.json`. Nothing is declared by hand.
+`semantic_authority` (`sai-…`), `served_model`, `export_documents` and
+`served_model_check`. The post-deploy verifier (`verify_public_api.py`), the
+Ask verifier (`verify_public_ask.py`) and the scheduled monitor
+(`monitor_public_ask.py`) compare them with `deployment-status.json`. The
+post-deploy verifier requires `export_documents`; the other two compare it
+when the status document records it. Nothing is declared by hand.
 
 ## Release
 
@@ -319,13 +332,19 @@ release gate: revision, export digest, served model, binding and kernel
 bindings, the runtime answers over the export (K pair, EvidenceContract
 closure, VerificationCase grounding), coverage and the battery identities.
 
-The CI import rehearsal in step 1 stays for two releases after the ceremony
-retirement, then it is dropped. It still includes the full import, two
-candidate imports, correspondence, pilot read-back and the three API
-batteries. Release duration under this contract is not yet measured: those
-retained slow steps took 11,705 seconds (about 195 minutes), before deployment,
-in [run 38095581274](https://github.com/de4sdv/DE4SDV/actions/runs/38095581274).
-That is a historical planning baseline, not a new-contract performance result.
+After the deploy succeeds, add the release to the
+[production-release table](../configuration-management/baseline-register.md#production-releases)
+of the baseline register in a pull request.
+
+The CI import rehearsal in step 1 was planned to stop two releases after the
+ceremony retirement. It still runs, because the successor parity's API half
+needs the import. It includes the full import, two candidate imports,
+correspondence, pilot read-back and the three API batteries. Five releases ran
+under this contract from 2026-10-15 to 2026-10-28. Step 1 took 2 h 32 min to
+3 h 43 min. Step 2 took 50 to 74 minutes after the approval. Before the
+contract, step 1 took 4 h 9 min in
+[run 38095581274](https://github.com/de4sdv/DE4SDV/actions/runs/38095581274).
+Its retained slow steps took 11,705 seconds (about 195 minutes).
 
 During the first two releases after the retirement, leave the 063c4fb1 lines in
 `/srv/de4sdv/sysml2-api.env` (`DE4SDV_SEMANTIC_AUTHORITY`,

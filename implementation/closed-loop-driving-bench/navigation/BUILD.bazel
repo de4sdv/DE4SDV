@@ -1,0 +1,30 @@
+# DE4SDV closed-loop driving bench, S3 navigation inputs, as Bazel targets for the S-CORE host's
+# overlay package //de4sdv_bench/navigation (the agent's conditionInputs draws the rasters with them).
+# The Makefile next to this file is the local build of the same sources.
+#
+# upstream_native_rasterizer is upstream's renderer, built unmodified from the pinned checkout in
+# .upstream/ (cb50764b8250a3c44ee5b79b87ba02c5a83b0c91, not part of this repository: the build
+# context carries it), with the flags of upstream's own build.py.
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "upstream_native_rasterizer",
+    srcs = [".upstream/Model/navigation/native/navigation_rasterizer.cpp"],
+    hdrs = [".upstream/Model/navigation/native/navigation_rasterizer.h"],
+    copts = [
+        "-O3",
+        "-DNDEBUG",
+    ],
+    strip_include_prefix = ".upstream/Model/navigation/native",
+)
+
+cc_library(
+    name = "navigation_raster",
+    srcs = ["navigation_raster.cpp"],
+    hdrs = ["navigation_raster.h"],
+    copts = ["-O2"],
+    includes = ["."],
+    deps = [":upstream_native_rasterizer"],
+)

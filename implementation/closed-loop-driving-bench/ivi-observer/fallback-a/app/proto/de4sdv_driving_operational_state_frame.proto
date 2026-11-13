@@ -1,0 +1,18 @@
+// DE4SDV INC-DRIVING-001 slice 10b: the app's copy of the broker's carrier type.
+//
+// Same message, same field number and same type as the catalog's
+// ../de4sdv_driving_operational_state_frame.proto, without the VSIDL
+// annotation: that annotation needs svd/vsidl/v1/annotations.proto, which only
+// the VSIDL tree provides, and the app builds against the plain protobuf
+// library of the image. The annotation is publication metadata for the broker;
+// the wire shape the app parses is `bytes data = 1`.
+//
+// scripts/stage_ivi_observer.sh check asserts that both files still declare
+// `bytes data = 1` and the same message name.
+syntax = "proto3";
+
+package com.android.sdv.someip;
+
+message De4sdvDrivingOperationalStateFrame {
+  bytes data = 1;
+}

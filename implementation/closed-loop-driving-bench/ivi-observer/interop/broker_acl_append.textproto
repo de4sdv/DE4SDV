@@ -1,0 +1,30 @@
+# DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+# Bench-only.
+#
+# Appended (once) to the SOME/IP broker's authorization policy in the SDV Core VM:
+# the broker may publish the topic that the mapping declares, with the typed
+# message as its type. The file is
+# system/software_defined_vehicle/samples/some_ip/config/broker_apex/someip_acl.textproto
+# in the AOSP tree; scripts/stage_sdv_core_interop.sh appends it beside the earlier increment's entry
+# (De4sdvScoreAebsSignalFrame) and greps for the first unit so a second run does not
+# append it twice.
+#
+# `message` is the fully qualified protobuf message, as the platform's own entries
+# are.
+#
+# Three service units (one per SOME/IP event: plan, vehicle state, health), one message
+# type: the mapping registers one broker publisher per event, and the publication is
+# SINGLE_PUB ("each channel can only have one publisher", vsidl annotations.proto), so
+# each event gets its own unit. The one-unit form is interop/variants/.
+publisher {
+  message: "de4sdv.driving.v1.DrivingOperationalState"
+  topic: "de4sdv-driving-operational-state-plan"
+}
+publisher {
+  message: "de4sdv.driving.v1.DrivingOperationalState"
+  topic: "de4sdv-driving-operational-state-vehicle-state"
+}
+publisher {
+  message: "de4sdv.driving.v1.DrivingOperationalState"
+  topic: "de4sdv-driving-operational-state-health"
+}

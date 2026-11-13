@@ -123,6 +123,37 @@ def served_model_record(binding: dict[str, Any], label: str) -> dict[str, Any]:
     return record
 
 
+EXPORT_DOCUMENTS_SCHEMA = "de4sdv.export-documents/v1"
+EXPORT_DOCUMENTS_KEYS = {"schema", "source_export_sha256", "element_count", "content_sha256", "documents",
+                         "external_reference_uris", "external_references"}
+#: The identity fields of the export-documents record, compared between bindings and published.
+EXPORT_DOCUMENTS_IDENTITY = ("schema", "source_export_sha256", "element_count", "content_sha256")
+
+
+def export_documents_record(binding: dict[str, Any], label: str) -> dict[str, Any]:
+    """The identity of the binding's export-documents record (shape-checked; stdlib only). The runtime
+    checks its content when the binding loads; here it must be the privileged import's."""
+    record = binding.get("export_documents")
+    require(isinstance(record, dict), f"{label} binding records no export documents")
+    content = str(record.get("content_sha256") or "")
+    export = str(record.get("source_export_sha256") or "")
+    count = record.get("element_count")
+    require(
+        set(record) == EXPORT_DOCUMENTS_KEYS
+        and record.get("schema") == EXPORT_DOCUMENTS_SCHEMA
+        and len(export) == 64 and set(export) <= set("0123456789abcdef")
+        and content.startswith("sha256:") and len(content) == 71
+        and set(content[7:]) <= set("0123456789abcdef")
+        and isinstance(count, int) and not isinstance(count, bool) and count > 0
+        and isinstance(record.get("documents"), dict)
+        and isinstance(record.get("external_reference_uris"), list)
+        and isinstance(record.get("external_references"), list),
+        f"{label} binding export documents record is malformed: "
+        f"{ {key: record.get(key) for key in EXPORT_DOCUMENTS_IDENTITY} }",
+    )
+    return {key: record[key] for key in EXPORT_DOCUMENTS_IDENTITY}
+
+
 def git_head(repo: Path) -> str:
     return subprocess.check_output(
         ["git", "rev-parse", "HEAD"], cwd=repo, text=True
@@ -195,6 +226,13 @@ def validate_bundle(bundle_dir: Path) -> dict[str, Any]:
         "privileged binding served model does not name the validated export "
         f"(export {actual_digest}, {report.get('element_count')} elements): {served_model}",
     )
+    export_documents = export_documents_record(binding, "privileged")
+    require(
+        export_documents["source_export_sha256"] == actual_digest
+        and export_documents["element_count"] == served_model["element_count"],
+        "privileged binding export documents do not name the validated export "
+        f"(export {actual_digest}, {served_model['element_count']} elements): {export_documents}",
+    )
 
     require(
         mcp.get("read_only") is True and mcp.get("tool_count") == 7,
@@ -217,6 +255,7 @@ def validate_bundle(bundle_dir: Path) -> dict[str, Any]:
         "expected_source_document_count": report.get("source_document_count"),
         "kernel_binding_summary": summary,
         "served_model": served_model,
+        "export_documents": export_documents,
     }
 
 
@@ -473,6 +512,14 @@ def import_baseline(repo: Path, evidence: dict[str, Any]) -> dict[str, Any]:
         "deployment served model differs from the privileged import's: "
         f"{deployment_served} != {evidence['served_model']}",
     )
+    # The export documents the runtime reads over the API: the deployment's own import must record the
+    # privileged import's, the record the release evidence checked against the export.
+    deployment_documents = export_documents_record(binding, "deployment")
+    require(
+        deployment_documents == evidence["export_documents"],
+        "deployment export documents differ from the privileged import's: "
+        f"{deployment_documents} != {evidence['export_documents']}",
+    )
 
     # Immutable evidence from the privileged run must hold for the deployment
     # import too. Project/commit UUIDs are deployment-specific by design and
@@ -501,6 +548,7 @@ def import_baseline(repo: Path, evidence: dict[str, Any]) -> dict[str, Any]:
         "element_count": deployment_report.get("element_count"),
         "kernel_binding_summary": deployment_summary,
         "served_model": deployment_served,
+        "export_documents": deployment_documents,
     }
 
 
@@ -530,6 +578,9 @@ def write_status(
             # The validated export this deployment serves; the runtime refuses
             # any other corpus and the post-deploy verification compares it.
             "served_model": deployment["served_model"],
+            # The export documents the binding records; the viewer reports them and the post-deploy
+            # verification and the monitor compare them.
+            "export_documents": deployment["export_documents"],
         },
         "deployed_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
     }

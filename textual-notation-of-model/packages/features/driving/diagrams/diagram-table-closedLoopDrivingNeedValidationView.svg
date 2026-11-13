@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="648" height="1774" viewBox="0 0 648 1774" role="img" aria-labelledby="title description">
+  <title id="title">table-closedLoopDrivingNeedValidationView</title>
+  <desc id="description">table-closedLoopDrivingNeedValidationView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="648" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-closedLoopDrivingNeedValidationView</text>
+  <rect x="0" y="54" width="288" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">Plan</tspan>
+  </text>
+  <rect x="288" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="300" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="300" dy="0">Review</tspan>
+  </text>
+  <rect x="0" y="94" width="288" height="340" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">checkpointAuthorityValidationPlan</tspan>
+  </text>
+  <rect x="288" y="94" width="360" height="340" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="300" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="300" dy="0">For NEED-DRIVING-001, a planned</tspan>
+    <tspan x="300" dy="20">stakeholder review that verification</tspan>
+    <tspan x="300" dy="20">engineers and open-source reviewers carry</tspan>
+    <tspan x="300" dy="20">out for the occupants. While the driving</tspan>
+    <tspan x="300" dy="20">system runs the closed-loop scenario (SC-</tspan>
+    <tspan x="300" dy="20">DRIVING-001), does the vehicle follow the</tspan>
+    <tspan x="300" dy="20">route the driver chose, with each steering</tspan>
+    <tspan x="300" dy="20">and acceleration command derived from a</tspan>
+    <tspan x="300" dy="20">plan of the pinned checkpoint, the next</tspan>
+    <tspan x="300" dy="20">camera images reflecting the motion those</tspan>
+    <tspan x="300" dy="20">commands caused, and no autopilot, replay</tspan>
+    <tspan x="300" dy="20">or overlay issuing a command? Known limits</tspan>
+    <tspan x="300" dy="20">that bear on the answer: the pinned</tspan>
+    <tspan x="300" dy="20">checkpoint takes no turn from the route</tspan>
+    <tspan x="300" dy="20">(GAP-DRIVING-011) and does not keep the</tspan>
+    <tspan x="300" dy="20">vehicle in its lane (GAP-DRIVING-012).</tspan>
+  </text>
+  <rect x="0" y="434" width="288" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="458" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">scoreCommandPathValidationPlan</tspan>
+  </text>
+  <rect x="288" y="434" width="360" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="300" y="458" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="300" dy="0">For NEED-DRIVING-002, a planned</tspan>
+    <tspan x="300" dy="20">stakeholder review. While the closed-loop</tspan>
+    <tspan x="300" dy="20">scenario runs (SC-DRIVING-001), can system</tspan>
+    <tspan x="300" dy="20">architects, software developers and</tspan>
+    <tspan x="300" dy="20">maintainers confirm that every plan and</tspan>
+    <tspan x="300" dy="20">command between planning and actuation</tspan>
+    <tspan x="300" dy="20">passed through Eclipse S-CORE</tspan>
+    <tspan x="300" dy="20">communication, and that no other exchange</tspan>
+    <tspan x="300" dy="20">on that path carried them?</tspan>
+  </text>
+  <rect x="0" y="634" width="288" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">liveStateValidationPlan</tspan>
+  </text>
+  <rect x="288" y="634" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="300" y="658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="300" dy="0">For NEED-DRIVING-003, a planned</tspan>
+    <tspan x="300" dy="20">stakeholder review. While the observation</tspan>
+    <tspan x="300" dy="20">scenario runs (SC-DRIVING-002), can</tspan>
+    <tspan x="300" dy="20">verification engineers and open-source</tspan>
+    <tspan x="300" dy="20">reviewers confirm that each plan, vehicle</tspan>
+    <tspan x="300" dy="20">state and health item that reached AAOS</tspan>
+    <tspan x="300" dy="20">SDV matches what the driving system</tspan>
+    <tspan x="300" dy="20">produced in that run, with its producer</tspan>
+    <tspan x="300" dy="20">and its time, and that a state that</tspan>
+    <tspan x="300" dy="20">stopped arriving was not shown as live?</tspan>
+  </text>
+  <rect x="0" y="854" width="288" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">aaosIndependenceValidationPlan</tspan>
+  </text>
+  <rect x="288" y="854" width="360" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="300" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="300" dy="0">For NEED-DRIVING-004, a planned</tspan>
+    <tspan x="300" dy="20">stakeholder review. While AAOS SDV, its</tspan>
+    <tspan x="300" dy="20">application or the path to it is down or</tspan>
+    <tspan x="300" dy="20">late (SC-DRIVING-004), can verification</tspan>
+    <tspan x="300" dy="20">engineers and open-source reviewers</tspan>
+    <tspan x="300" dy="20">confirm that planning and commands go on</tspan>
+    <tspan x="300" dy="20">as in a run with AAOS SDV available, and</tspan>
+    <tspan x="300" dy="20">that the degraded-input response did not</tspan>
+    <tspan x="300" dy="20">trigger?</tspan>
+  </text>
+  <rect x="0" y="1054" width="288" height="260" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">degradedResponseValidationPlan</tspan>
+  </text>
+  <rect x="288" y="1054" width="360" height="260" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="300" y="1078" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="300" dy="0">For NEED-DRIVING-005, a planned</tspan>
+    <tspan x="300" dy="20">stakeholder review. In the degraded input</tspan>
+    <tspan x="300" dy="20">or plan scenario (SC-DRIVING-003), can</tspan>
+    <tspan x="300" dy="20">safety experts and system architects</tspan>
+    <tspan x="300" dy="20">confirm for each injected case (invalid,</tspan>
+    <tspan x="300" dy="20">lost or stale camera images, motion or</tspan>
+    <tspan x="300" dy="20">route; an invalid, late, lost or stale</tspan>
+    <tspan x="300" dy="20">plan) that the vehicle received the</tspan>
+    <tspan x="300" dy="20">defined stop or disable response instead</tspan>
+    <tspan x="300" dy="20">of a command from the last plan, and that</tspan>
+    <tspan x="300" dy="20">the driving system published its degraded</tspan>
+    <tspan x="300" dy="20">state?</tspan>
+  </text>
+  <rect x="0" y="1314" width="288" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1338" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">timeDomainValidationPlan</tspan>
+  </text>
+  <rect x="288" y="1314" width="360" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="300" y="1338" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="300" dy="0">For NEED-DRIVING-006, a planned</tspan>
+    <tspan x="300" dy="20">stakeholder review. While the closed-loop</tspan>
+    <tspan x="300" dy="20">scenario runs (SC-DRIVING-001), can</tspan>
+    <tspan x="300" dy="20">verification engineers and systems</tspan>
+    <tspan x="300" dy="20">engineers measure the age of the inputs at</tspan>
+    <tspan x="300" dy="20">actuation, the planning cadence and the</tspan>
+    <tspan x="300" dy="20">transport delay from the times the driving</tspan>
+    <tspan x="300" dy="20">system carries, each in its own time</tspan>
+    <tspan x="300" dy="20">domain, and confirm that no measurement</tspan>
+    <tspan x="300" dy="20">mixes simulation time with wall-clock</tspan>
+    <tspan x="300" dy="20">time?</tspan>
+  </text>
+  <rect x="0" y="1554" width="288" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">rerunValidationPlan</tspan>
+  </text>
+  <rect x="288" y="1554" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="300" y="1578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="300" dy="0">For NEED-DRIVING-007, a planned</tspan>
+    <tspan x="300" dy="20">stakeholder review. After a bounded</tspan>
+    <tspan x="300" dy="20">closed-loop run, can verification</tspan>
+    <tspan x="300" dy="20">engineers, maintainers and open-source</tspan>
+    <tspan x="300" dy="20">reviewers rerun it from the checkpoint and</tspan>
+    <tspan x="300" dy="20">the configuration the run identifies,</tspan>
+    <tspan x="300" dy="20">together with the scenario that System 2</tspan>
+    <tspan x="300" dy="20">pins, and confirm that a run with another</tspan>
+    <tspan x="300" dy="20">checkpoint identifies that other</tspan>
+    <tspan x="300" dy="20">checkpoint?</tspan>
+  </text>
+</svg>

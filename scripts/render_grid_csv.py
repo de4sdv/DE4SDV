@@ -83,6 +83,32 @@ GRID_METADATA = {
         "conceptual system elements (part usages)",
         "physical/software elements (part usages)",
     ),
+    "matrix-closedLoopDrivingRequirementFunctionMappingView": GridMetadata(
+        "Closed-loop driving requirement-function mapping",
+        "Maps the requirements of the driving system to the system functions that carry them.",
+        "requirements (requirement usages)",
+        "system functions (action usages)",
+    ),
+    "matrix-closedLoopDrivingFunctionMappingView": GridMetadata(
+        "Closed-loop driving function-to-logical-element mapping",
+        "Maps the seven functions of the driving system to the six logical elements that carry them.",
+        "system functions (action usages)",
+        "logical elements (part usages)",
+    ),
+    "matrix-closedLoopDrivingPhysicalLogicalMappingView": GridMetadata(
+        "Closed-loop driving logical-to-software mapping",
+        "Maps the six logical elements of the driving system to the eight software elements that realize them: "
+        "the four activities of the driving agent, the actuation adapter, the state publisher and the two "
+        "processes of the S-CORE SOME/IP gateway.",
+        "logical elements (part usages)",
+        "software elements (part usages)",
+    ),
+    "table-closedLoopDrivingModeDependenceTableView": GridMetadata(
+        "Closed-loop driving system modes",
+        "The modes of the driving system and the functions whose behavior differs in each.",
+        "modes (state usages)",
+        "",
+    ),
     "table-middlewareProductLineClassificationView": GridMetadata(
         "Middleware product-line classification",
         "Classifies middleware characteristics and attaches each rationale to its element.",

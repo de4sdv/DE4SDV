@@ -20,8 +20,13 @@ MODEL_ROOT = REPO_ROOT / "textual-notation-of-model"
 
 _COMMENT_RE = re.compile(r"/\*.*?\*/|//[^\n]*", re.DOTALL)
 
-# A verification usage instantiates a definition: verification <usage> : <Def> {
-_USAGE_RE = re.compile(r"\bverification\s+(\w+)\s*:\s*(\w+)\s*\{")
+# An optional SysML short name, such as <'VC-MW-011'>: the registered ID of a
+# new model element (docs/naming/naming-conventions.md, section 8).
+SHORT_NAME = r"(?:<(?:'[^']*'|\w+)>\s*)?"
+
+# A verification usage instantiates a definition:
+# verification [<short name>] <usage> : <Def> {
+_USAGE_RE = re.compile(rf"\bverification\s+{SHORT_NAME}(\w+)\s*:\s*(\w+)\s*\{{")
 _DEF_RE = re.compile(r"\bverification\s+def\s+(\w+)")
 _VERIFY_TARGET_RE = re.compile(r"\bverify\s+(\w+)\s*;")
 _PERFORM_RE = re.compile(r"\bperform\s+(\w+)\s*;")

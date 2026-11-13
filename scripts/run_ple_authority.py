@@ -64,6 +64,7 @@ CONFIGURATIONS = (
     f"{PLE}/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
     f"{PLE}/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
     f"{PLE}/feature-configurations/middleware_autoware_score_reference.sysml",
+    f"{PLE}/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
     f"{PLE}/feature-configurations/apollo_qnx_qvm.sysml",
     f"{PLE}/feature-configurations/inc_aebs_009a_jetson.sysml",
     f"{PLE}/feature-configurations/apple_silicon_macos_candidate.sysml",
@@ -195,7 +196,7 @@ API_PROJECT = "DE4SDV isolated PLE authority round trip"
 #: The production import's request timeout (scripts/import_sysml_api_baseline.py).
 #: The API commits the authority bundle in one request, which outlasts the
 #: client's 30-second default (run 39244883381).
-API_TIMEOUT_SECONDS = 600.0
+API_TIMEOUT_SECONDS = 3600.0
 
 Documents = dict[str, list[dict[str, Any]]]
 

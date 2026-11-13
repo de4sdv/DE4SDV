@@ -1,0 +1,81 @@
+# DE4SDV INC-DRIVING-001 slice 10b, S1: the operational-state publisher.
+#
+# Built as the overlay package //de4sdv_bench/state-publisher of the pinned FEO
+# workspace (/opt/src/feo, Bazel 8.3.0, S-CORE gcc 12.2.0, --config=x86_64-linux),
+# beside the agent and the actuation adapter:
+#   bazel build --config=x86_64-linux //de4sdv_bench/state-publisher:state_publisher
+#
+# Two inputs come from outside this directory:
+#   * the bench contract headers, //de4sdv_bench/interfaces:de4sdv_driving (the
+#     label agent/ and actuation-adapter/ use in the overlay);
+#   * gatewayd's sample type, score/serializer/pre_serialized_data.h of
+#     eclipse-score/inc_someip_gateway at the commit gatewayd is built from
+#     (d9eac670). The FEO workspace has no such package, so the build script
+#     copies that one header into gateway_include/ at sync time and checks its
+#     sha256 (1ec7b4c9...a1b2f8). The publisher's sample layout must be
+#     byte-identical to the one gatewayd's null serializer reads; the shell
+#     static_asserts the offsets.
+#
+# mw_com_config_state_publisher.json is the process's runtime configuration
+# (--mw-com-config); it is an input of the run, not of the build.
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+load("@rules_cc//cc:cc_test.bzl", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+DE4SDV_HEADERS = "//de4sdv_bench/interfaces:de4sdv_driving"
+
+COMMON_COPTS = [
+    "-std=c++17",
+    "-Wall",
+    "-Wextra",
+]
+
+exports_files(["mw_com_config_state_publisher.json"])
+
+cc_library(
+    name = "publisher_core",
+    srcs = ["publisher_core.cpp"],
+    hdrs = ["publisher_core.h"],
+    copts = COMMON_COPTS + ["-Werror"],
+    # The test sources in tests/ include "publisher_core.h" by its bare name (as
+    # tests/run_tests.sh compiles them with -I<this directory>). Bazel gives quote
+    # includes only the execution root, so the package directory is exported to the
+    # dependents, the same idiom as interfaces:de4sdv_driving (includes = ["include"]).
+    includes = ["."],
+    deps = [DE4SDV_HEADERS],
+)
+
+# gatewayd's PreSerializedData<N>, copied from the gateway checkout at sync time.
+cc_library(
+    name = "pre_serialized_data",
+    hdrs = ["gateway_include/score/serializer/pre_serialized_data.h"],
+    includes = ["gateway_include"],
+)
+
+# No -Werror on the shell: it includes the mw::com headers, whose warnings under
+# gcc 12.2 -Wall -Wextra are not this bench's to fix.
+cc_binary(
+    name = "state_publisher",
+    srcs = ["state_publisher_main.cpp"],
+    copts = COMMON_COPTS,
+    deps = [
+        ":pre_serialized_data",
+        ":publisher_core",
+        DE4SDV_HEADERS,
+        "@score_communication//score/mw/com",
+    ],
+)
+
+# The same test binary tests/run_tests.sh builds with g++, kept runnable in the
+# FEO workspace too.
+cc_test(
+    name = "publisher_core_test",
+    srcs = ["tests/test_publisher_core.cpp"],
+    copts = COMMON_COPTS + ["-Werror"],
+    deps = [
+        ":publisher_core",
+        DE4SDV_HEADERS,
+    ],
+)

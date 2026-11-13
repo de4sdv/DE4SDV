@@ -86,6 +86,19 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
         "element_count": 56745,
         "content_sha256": "sha256:" + "d" * 64,
     }
+    # The export documents of the same export. deploy.py checks the record's shape and its identity
+    # fields; the runtime checks its content.
+    export_documents_record = {
+        "schema": "de4sdv.export-documents/v1",
+        "source_export_sha256": export_digest,
+        "element_count": 56745,
+        "content_sha256": "sha256:" + "e" * 64,
+        "documents": {"model/m.sysml": ["e0"]},
+        "external_reference_uris": [],
+        "external_references": [],
+    }
+    export_documents = {key: export_documents_record[key] for key in
+                        ("schema", "source_export_sha256", "element_count", "content_sha256")}
     binding = {
         "schema": "de4sdv.revision-binding/v2",
         "git_repository": "de4sdv/DE4SDV",
@@ -98,6 +111,7 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
         "semantic_authority": authority,
         "scope": "full-model",
         "served_model": served_model,
+        "export_documents": export_documents_record,
     }
     mcp = {
         "read_only": True,
@@ -117,7 +131,9 @@ def _evidence_bundle(tmp_path: Path) -> tuple[Path, dict[str, Any]]:
     ):
         (tmp_path / name).write_text(json.dumps(payload), encoding="utf-8")
     return tmp_path, {"git_sha": git_sha, "semantic_authority": authority,
-                      "export_digest": export_digest, "served_model": served_model}
+                      "export_digest": export_digest, "served_model": served_model,
+                      "export_documents": export_documents,
+                      "export_documents_record": export_documents_record}
 
 
 # ---------------------------------------------------------------- blockers 1/6
@@ -273,6 +289,7 @@ def test_import_accepts_deployment_specific_identities(
             "scope": "full-model",
             "semantic_authority": facts["semantic_authority"],
             "served_model": facts["served_model"],
+            "export_documents": facts["export_documents_record"],
         }
         report = {
             "source_export_sha256": facts["export_digest"],
@@ -301,17 +318,24 @@ def test_import_accepts_deployment_specific_identities(
     # Deployment-specific identities, NOT the privileged run's ci-project/ci-commit.
     assert deployment["sysml_project_id"] == "deployment-project"
     assert deployment["sysml_commit_id"] == "deployment-commit"
-    # The deployment serves the same content the privileged import served.
+    # The deployment serves the same content the privileged import served, with the same export documents.
     assert deployment["served_model"] == facts["served_model"]
+    assert deployment["export_documents"] == facts["export_documents"]
 
 
-def _fake_import(tmp_path, facts, *, served_model):
+_PRIVILEGED = object()
+
+
+def _fake_import(tmp_path, facts, *, served_model, export_documents=_PRIVILEGED):
     def fake_run(cmd, **_kwargs):
         binding = {"git_commit": facts["git_sha"], "sysml_project_id": "deployment-project",
                    "sysml_commit_id": "deployment-commit", "semantic_validation": "passed",
                    "scope": "full-model", "semantic_authority": facts["semantic_authority"]}
         if served_model is not None:
             binding["served_model"] = served_model
+        documents = facts["export_documents_record"] if export_documents is _PRIVILEGED else export_documents
+        if documents is not None:
+            binding["export_documents"] = documents
         report = {"source_export_sha256": facts["export_digest"], "element_count": 56745,
                   "internal_reference_count": 189930, "source_document_count": 59,
                   "kernel_binding_validation": {"passed": True,
@@ -345,7 +369,39 @@ def test_import_refuses_a_deployment_that_serves_another_model(
         deploy.import_baseline(repo, evidence)
 
 
+@pytest.mark.parametrize("change,match", [
+    (None, "records no export documents"),
+    ({"content_sha256": "sha256:" + "0" * 64}, "export documents differ from the privileged import"),
+    ({"source_export_sha256": "f" * 64}, "export documents differ from the privileged import"),
+    ({"element_count": 56744}, "export documents differ from the privileged import"),
+    ({"schema": "de4sdv.export-documents/v0"}, "export documents record is malformed"),
+])
+def test_import_refuses_a_deployment_whose_export_documents_are_not_the_privileged_ones(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change, match
+) -> None:
+    """The deployment binding's export documents are the privileged binding's, the record the release
+    evidence checked against the export: a record re-made on the host, even self-consistent, is refused."""
+    bundle_dir, facts = _evidence_bundle(tmp_path / "bundle")
+    evidence = deploy.validate_bundle(bundle_dir)
+    repo = tmp_path / "repo"
+    _init_repo(repo)
+    documents = None if change is None else {**facts["export_documents_record"], **change}
+    monkeypatch.setattr(deploy.subprocess, "run", _fake_import(
+        tmp_path, facts, served_model=facts["served_model"], export_documents=documents))
+    monkeypatch.setattr(deploy, "wait_for_api", lambda *_a, **_k: None)
+    monkeypatch.setattr(deploy, "api_base_url_from_docker", lambda: "http://127.0.0.1:1")
+    monkeypatch.setattr(deploy, "DEPLOY_DIR", tmp_path)
+    with pytest.raises(deploy.DeployError, match=match):
+        deploy.import_baseline(repo, evidence)
+
+
 @pytest.mark.parametrize("mutate,match", [
+    (lambda b: b.pop("export_documents"), "privileged binding records no export documents"),
+    (lambda b: b["export_documents"].__setitem__("source_export_sha256", "0" * 64),
+     "export documents do not name the validated export"),
+    (lambda b: b["export_documents"].__setitem__("element_count", 1),
+     "export documents do not name the validated export"),
+    (lambda b: b["export_documents"].pop("documents"), "export documents record is malformed"),
     (lambda b: b.pop("served_model"), "records no served model"),
     (lambda b: b["served_model"].__setitem__("source_export_sha256", "0" * 64),
      "served model does not name the validated export"),
@@ -354,7 +410,7 @@ def test_import_refuses_a_deployment_that_serves_another_model(
     (lambda b: b["served_model"].__setitem__("content_sha256", "not-a-digest"),
      "served model record is malformed"),
 ])
-def test_bundle_requires_the_served_model_of_the_validated_export(
+def test_bundle_requires_the_served_model_and_export_documents_of_the_validated_export(
     tmp_path: Path, mutate, match
 ) -> None:
     bundle_dir, _facts = _evidence_bundle(tmp_path)
@@ -373,9 +429,10 @@ def test_status_publishes_the_served_model(tmp_path: Path, monkeypatch: pytest.M
     target = deploy.write_status(evidence, {
         "sysml_project_id": "p", "sysml_commit_id": "c", "element_count": 56745,
         "kernel_binding_summary": {"unresolved": 0, "ambiguous": 0},
-        "served_model": facts["served_model"]})
+        "served_model": facts["served_model"], "export_documents": facts["export_documents"]})
     baseline = json.loads(target.read_text())["baseline"]
     assert baseline["served_model"] == facts["served_model"]
+    assert baseline["export_documents"] == facts["export_documents"]
     assert baseline["semantic_authority"] == facts["semantic_authority"]
 
 
@@ -396,6 +453,7 @@ def test_import_rejects_count_drift_vs_privileged_evidence(
             "scope": "full-model",
             "semantic_authority": facts["semantic_authority"],
             "served_model": facts["served_model"],
+            "export_documents": facts["export_documents_record"],
         }
         report = {
             "source_export_sha256": facts["export_digest"],
@@ -986,3 +1044,108 @@ def test_importer_threads_host_header_into_api_client() -> None:
     assert request_headers["Host"] == "sysml2-api:9000"
     # No flag -> empty default_headers -> urllib auto-Host (unchanged behavior).
     assert ApiClient("http://host:9000").default_headers == {}
+
+
+# -- the import window: one commit request, bounded by silence, not by size -------------------------
+
+
+def _load_importer_module():
+    spec = importlib.util.spec_from_file_location(
+        "import_sysml_api_baseline", REPO / "scripts" / "import_sysml_api_baseline.py"
+    )
+    assert spec is not None and spec.loader is not None
+    importer = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(importer)
+    return importer
+
+
+def _run_import_until_the_client(importer, monkeypatch: pytest.MonkeyPatch, **overrides) -> dict[str, Any]:
+    """Drive ``run_import`` exactly up to the ApiClient construction and return its kwargs.
+
+    The API answers the commit request only once the whole baseline is
+    persisted, so the client's timeout is the longest silence the importer
+    tolerates. On 2026-11-07 production needed more than the former 600 s for
+    122,423 elements (the server finished; the client had already refused).
+    """
+    seen: dict[str, Any] = {}
+
+    class Stop(Exception):
+        pass
+
+    class RecordingClient:
+        def __init__(self, api_url: str, **kwargs: Any) -> None:
+            seen["api_url"] = api_url
+            seen.update(kwargs)
+            raise Stop
+
+    head = "b" * 40
+    bundle = type(
+        "Bundle", (), {"git_commit": head, "require_current_sources": lambda self, manifest: None}
+    )()
+    monkeypatch.setattr(importer, "_git_head", lambda: head)
+    monkeypatch.setattr(importer.BaselineExportBundle, "load", staticmethod(lambda path: bundle))
+    monkeypatch.setattr(importer.BaselineManifest, "discover", staticmethod(lambda root: None))
+    monkeypatch.setattr(importer, "ApiClient", RecordingClient)
+    kwargs: dict[str, Any] = dict(
+        api_url="http://172.18.0.5:9000",
+        export_path=Path("export.json"),
+        binding_path=Path("binding.json"),
+        report_path=Path("report.json"),
+        project_name="t",
+        git_repository="de4sdv/DE4SDV",
+    )
+    kwargs.update(overrides)
+    with pytest.raises(Stop):
+        importer.run_import(**kwargs)
+    return seen
+
+
+def test_importer_waits_at_least_an_hour_for_the_commit_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Default client timeout >= 3600 s: 10 min was refused by production at 122k elements."""
+    importer = _load_importer_module()
+    assert importer.DEFAULT_API_TIMEOUT_SECONDS >= 3600.0
+    seen = _run_import_until_the_client(importer, monkeypatch)
+    assert seen["timeout"] == importer.DEFAULT_API_TIMEOUT_SECONDS
+
+
+def test_importer_timeout_is_an_explicit_argument_and_cli_flag(monkeypatch: pytest.MonkeyPatch) -> None:
+    """``--api-timeout-seconds`` reaches the ApiClient; the keyword does the same for callers."""
+    importer = _load_importer_module()
+    seen = _run_import_until_the_client(importer, monkeypatch, api_timeout_seconds=42.5)
+    assert seen["timeout"] == 42.5
+
+    captured: dict[str, Any] = {}
+
+    def fake_run_import(**kwargs: Any) -> dict[str, object]:
+        captured.update(kwargs)
+        return {}
+
+    monkeypatch.setattr(importer, "run_import", fake_run_import)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["import_sysml_api_baseline.py", "--api-url", "http://api.invalid", "--export", "e.json",
+         "--binding", "b.json", "--report", "r.json", "--api-timeout-seconds", "7200"],
+    )
+    assert importer.main() == 0
+    assert captured["api_timeout_seconds"] == 7200.0
+    monkeypatch.setattr(
+        "sys.argv",
+        ["import_sysml_api_baseline.py", "--api-url", "http://api.invalid", "--export", "e.json",
+         "--binding", "b.json", "--report", "r.json"],
+    )
+    assert importer.main() == 0
+    assert captured["api_timeout_seconds"] == importer.DEFAULT_API_TIMEOUT_SECONDS
+
+
+def test_workflow_job_timeout_leaves_room_for_the_import_window() -> None:
+    """Step 9 grew 50 -> 53 -> 66 min over the last three releases, the verifier adds ~19 min.
+
+    The previous 90-minute job limit was within five minutes of killing a
+    successful release; the import keeps growing with the model and the
+    production database, so the limit must stay well clear of it.
+    """
+    wf = (REPO / ".github" / "workflows" / "deploy-public-sysml-api.yml").read_text(encoding="utf-8")
+    job = wf.split("\n  deploy:\n", 1)[1]
+    timeouts = [int(line.split(":", 1)[1]) for line in job.splitlines() if line.strip().startswith("timeout-minutes:")]
+    assert timeouts, "the deploy job must declare timeout-minutes"
+    assert timeouts[0] >= 150

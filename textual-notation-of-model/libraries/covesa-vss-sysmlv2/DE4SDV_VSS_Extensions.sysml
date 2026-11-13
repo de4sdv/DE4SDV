@@ -77,4 +77,37 @@ package DE4SDV_VSS_Extensions {
     sourceDescription = "DE4SDV candidate extension indicating that an AEBS evidence-relevant event was recorded.";
     sourceComment = "Candidate extension created by DE4SDV INC-AEBS-004; not present in the generated COVESA VSS snapshot.";
   }
+
+  /*
+   * INC-DRIVING-001 phase 8: the two quantities the closed-loop driving
+   * system commands at the actuation have no signal in the pinned VSS
+   * snapshot. Local DE4SDV candidates, typed at the command event's port
+   * (owner decision 5 of 2026-11-06); not proposed upstream, which needs the
+   * owner's approval.
+   */
+  attribute def Vehicle_ADAS_Driving_Command_Acceleration :> Real;
+  @VssSignalMetadata about Vehicle_ADAS_Driving_Command_Acceleration {
+    path = "Vehicle.ADAS.Driving.Command.Acceleration";
+    kind = "actuator";
+    datatype = "float";
+    sourceDescription = "DE4SDV candidate extension: the longitudinal acceleration the automated driving function commands at the actuation. Negative values decelerate.";
+    sourceComment = "Candidate extension created by DE4SDV INC-DRIVING-001 (phase 8); not present in the generated COVESA VSS snapshot.";
+  }
+  @VssQuantityMetadata about Vehicle_ADAS_Driving_Command_Acceleration {
+    quantityReference = "ISQ::acceleration";
+    unitReference = "SI::metrePerSecondSquared";
+  }
+
+  attribute def Vehicle_ADAS_Driving_Command_SteeringAngle :> Real;
+  @VssSignalMetadata about Vehicle_ADAS_Driving_Command_SteeringAngle {
+    path = "Vehicle.ADAS.Driving.Command.SteeringAngle";
+    kind = "actuator";
+    datatype = "float";
+    sourceDescription = "DE4SDV candidate extension: the front-wheel steering angle the automated driving function commands. Positive = degrees to the left. Negative = degrees to the right, the sign convention of Vehicle.Chassis.SteeringWheel.Angle.";
+    sourceComment = "Candidate extension created by DE4SDV INC-DRIVING-001 (phase 8); not present in the generated COVESA VSS snapshot.";
+  }
+  @VssQuantityMetadata about Vehicle_ADAS_Driving_Command_SteeringAngle {
+    quantityReference = "ISQ::planeAngle";
+    unitReference = "SI::degree";
+  }
 }

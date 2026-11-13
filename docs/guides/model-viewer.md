@@ -97,13 +97,35 @@ python -m tools.sysml_html_viewer.generate --repo . --out build/model-viewer
 
 ## Features
 
+### Every concern a view frames
+
+A view's card lists the concerns it frames, in the order the model states
+them. `frame` is the SysML v2 statement that frames a concern:
+
+- **own frame** — the view states the frame itself, in its own `viewpoint`
+  usage (`frame closedLoopDrivingBoundary;`), or directly in the view. The
+  `frame concern <name> : <ConcernDefinition>;` form also names the concern
+  definition the concern is typed by, and the card shows it after the name.
+- **frame inherited from viewpoint definition `<name>`** — the `viewpoint
+  def` that types the view's viewpoint usage frames the concern
+  (`frame concern incrementConcern : IncrementConcern;`), and the view
+  inherits it. The frames of a definition reached through `:>`
+  specialization come after the nearer definition's frames.
+
+A concern the view frames itself appears once, as its own frame, even when
+its viewpoint definition frames the same concern. A view whose viewpoint
+frames nothing gets no such list: the viewer shows what the model states and
+adds nothing to it.
+
 ### Hover tooltips on elements
 
 Rest the pointer on any model label — tree entry or diagram element. A tooltip
 shows the element kind, its documentation, the source file and line, and a
 link that jumps to the declaration in the highlighted source. Hovering a
 compartment row (for example `attributes` or `doc …`) shows the tooltip of the
-element whose compartment it renders.
+element whose compartment it renders: the title of the box that contains the
+row. An element with a short name shows it
+before its name, as in the diagrams: `<REQ-MW-010> reqDeliverReferenceVehicleSpeed`.
 
 ### Hover tooltips on connections
 
@@ -121,11 +143,22 @@ source view of the model file. In the source view, identifiers that resolve to
 model elements are clickable links — hover them for a tooltip, click to jump.
 Self-links on the declaration itself are omitted so the source stays quiet.
 
+In a qualified name such as `guestMiddleware::androidSDV`, the link goes to the
+`androidSDV` that `guestMiddleware` declares in its body. This is also true on
+a line that declares another `androidSDV`. If the qualifier declares no such
+element in its body, the link uses the rules for a name without a qualifier.
+An example is a feature that the qualifier gets from its type. A word in a
+string (`"..."`) is never a link. A declaration in a library package, such as
+the COVESA VSS signals, is a link target only in a file that names the library
+(`import COVESA_VSS::*`) and in the library file itself. These links help you
+navigate. They are not SysML v2 name resolution.
+
 ### Tree search and filters
 
-The search box filters the model tree live by **names, kinds, and
-documentation text** — type and the tree narrows to matching members, with
-matches highlighted. The filter row beside the search narrows by **kind**
+The search box filters the model tree live by the **text of each tree
+entry**: the name, and the short name if the element has one (`REQ-MW-010`).
+Type and the tree narrows to matching members, with matches highlighted. The
+filter row beside the search narrows by **kind**
 (part, port, requirement, view, … — only kinds actually used in the model are
 listed), **SAF domain**, and **SAF aspect**. The ✕ button clears search and
 filters.

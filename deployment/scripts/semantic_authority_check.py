@@ -8,7 +8,8 @@ and the viewer refuses every semantic answer.
 
 The expectation is never declared by an operator: it is read from the
 deployment's own status document (``deployment-status.json``,
-``baseline.semantic_authority.id`` and ``baseline.served_model``). The checks
+``baseline.semantic_authority.id``, ``baseline.served_model`` and, when the
+deployment records them, ``baseline.export_documents``). The checks
 use only fields every served runtime reports (``kind``, the ``sai-`` id under
 ``semantic_authority`` and the built runtime's ``semantic_authority_id``), so
 the scheduled monitor also accepts a deployment from before the
@@ -44,7 +45,8 @@ def authority_block(ask_status: Any) -> dict[str, Any]:
     return block
 
 
-def deployment_expectation(status_doc: Any, *, require_served_model: bool) -> dict[str, Any]:
+def deployment_expectation(status_doc: Any, *, require_served_model: bool,
+                           require_export_documents: bool = False) -> dict[str, Any]:
     """What the deployment says the viewer must serve (``deployment-status.json``)."""
     baseline = status_doc.get("baseline") if isinstance(status_doc, dict) else None
     if not isinstance(baseline, dict):
@@ -63,7 +65,17 @@ def deployment_expectation(status_doc: Any, *, require_served_model: bool) -> di
         raise AuthorityCheckError(
             "deployment-status records no served model: the deployment predates the "
             "release-ceremony retirement; verify it with its own revision's verifier")
-    return {"semantic_authority": identifier, "served_model": digest}
+    documents = baseline.get("export_documents")
+    documents_digest = documents.get("content_sha256") if isinstance(documents, dict) else None
+    if documents is not None and not (isinstance(documents_digest, str)
+                                      and SERVED_MODEL_DIGEST.fullmatch(documents_digest)):
+        raise AuthorityCheckError(
+            f"deployment-status baseline.export_documents.content_sha256 is malformed: {documents_digest!r}")
+    if require_export_documents and documents_digest is None:
+        raise AuthorityCheckError(
+            "deployment-status records no export_documents: the deployment's binding was written by an "
+            "importer that did not record them")
+    return {"semantic_authority": identifier, "served_model": digest, "export_documents": documents_digest}
 
 
 def check_served_authority(ask_status: Any, expectation: dict[str, Any], *,
@@ -92,6 +104,11 @@ def check_served_authority(ask_status: Any, expectation: dict[str, Any], *,
         raise AuthorityCheckError(
             f"the viewer's served model {block.get('served_model')!r} is not the deployment's "
             f"{expectation['served_model']!r}")
+    if expectation.get("export_documents") is not None and require_built and \
+            block.get("export_documents") != expectation["export_documents"]:
+        raise AuthorityCheckError(
+            f"the viewer's export documents {block.get('export_documents')!r} are not the deployment's "
+            f"{expectation['export_documents']!r}")
     check = str(block.get("served_model_check") or "")
     if check.startswith("failed"):
         raise AuthorityCheckError(f"the served-model check failed: {check}")

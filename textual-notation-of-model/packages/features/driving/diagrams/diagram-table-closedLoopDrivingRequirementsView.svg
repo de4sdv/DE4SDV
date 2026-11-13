@@ -1,0 +1,779 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="4114" viewBox="0 0 1200 4114" role="img" aria-labelledby="title description">
+  <title id="title">table-closedLoopDrivingRequirementsView</title>
+  <desc id="description">table-closedLoopDrivingRequirementsView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="1200" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-closedLoopDrivingRequirementsView</text>
+  <rect x="0" y="54" width="144" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="144" y="54" width="336" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">Requirement</tspan>
+  </text>
+  <rect x="480" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">Statement</tspan>
+  </text>
+  <rect x="840" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">Source</tspan>
+  </text>
+  <rect x="0" y="94" width="144" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-001</tspan>
+  </text>
+  <rect x="144" y="94" width="336" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlanEachStep</tspan>
+  </text>
+  <rect x="480" y="94" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall produce one plan</tspan>
+    <tspan x="492" dy="20">for each 100 ms step of simulation time,</tspan>
+    <tspan x="492" dy="20">leaving a step without a plan of its own</tspan>
+    <tspan x="492" dy="20">only when the step before it has one.</tspan>
+  </text>
+  <rect x="840" y="94" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; scenario SC-DRIVING-001</tspan>
+  </text>
+  <rect x="0" y="194" width="144" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-002</tspan>
+  </text>
+  <rect x="144" y="194" width="336" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlansByCheckpointInference</tspan>
+  </text>
+  <rect x="480" y="194" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall make each plan by</tspan>
+    <tspan x="492" dy="20">inference of the pinned AutoE2E checkpoint</tspan>
+    <tspan x="492" dy="20">on the camera images, the ego-motion</tspan>
+    <tspan x="492" dy="20">history and the route of its step.</tspan>
+  </text>
+  <rect x="840" y="194" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; scope item</tspan>
+    <tspan x="852" dy="20">learnedDrivingInScope; assumption</tspan>
+    <tspan x="852" dy="20">asmSourceAuthenticity</tspan>
+  </text>
+  <rect x="0" y="294" width="144" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-003</tspan>
+  </text>
+  <rect x="144" y="294" width="336" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqCameraImagesInCheckpointForm</tspan>
+  </text>
+  <rect x="480" y="294" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall give the</tspan>
+    <tspan x="492" dy="20">checkpoint, for each step, the images of</tspan>
+    <tspan x="492" dy="20">six cameras in the order front, front</tspan>
+    <tspan x="492" dy="20">left, front right, rear left, rear and</tspan>
+    <tspan x="492" dy="20">rear right, each resized to 512 by 512</tspan>
+    <tspan x="492" dy="20">pixels, with the front image also at 1024</tspan>
+    <tspan x="492" dy="20">by 1024 pixels.</tspan>
+  </text>
+  <rect x="840" y="294" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="318" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; gap</tspan>
+    <tspan x="852" dy="20">gapModelInputAndFeedback (camera images);</tspan>
+    <tspan x="852" dy="20">assumption asmSourceAuthenticity</tspan>
+  </text>
+  <rect x="0" y="454" width="144" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-004</tspan>
+  </text>
+  <rect x="144" y="454" width="336" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqCameraHistory</tspan>
+  </text>
+  <rect x="480" y="454" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall give the</tspan>
+    <tspan x="492" dy="20">checkpoint, for each step and each camera,</tspan>
+    <tspan x="492" dy="20">the seven earlier images captured 0.5 s to</tspan>
+    <tspan x="492" dy="20">3.5 s before the step at 0.5 s intervals.</tspan>
+  </text>
+  <rect x="840" y="454" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; gap</tspan>
+    <tspan x="852" dy="20">gapModelInputAndFeedback (image history);</tspan>
+    <tspan x="852" dy="20">assumption asmSourceAuthenticity</tspan>
+  </text>
+  <rect x="0" y="554" width="144" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-005</tspan>
+  </text>
+  <rect x="144" y="554" width="336" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqProjectionOperators</tspan>
+  </text>
+  <rect x="480" y="554" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall give the</tspan>
+    <tspan x="492" dy="20">checkpoint, for each image, a projection</tspan>
+    <tspan x="492" dy="20">operator built from the calibration of its</tspan>
+    <tspan x="492" dy="20">camera, scaled to the size of the image</tspan>
+    <tspan x="492" dy="20">and expressed in the vehicle frame of the</tspan>
+    <tspan x="492" dy="20">step.</tspan>
+  </text>
+  <rect x="840" y="554" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; gap</tspan>
+    <tspan x="852" dy="20">gapModelInputAndFeedback (calibration,</tspan>
+    <tspan x="852" dy="20">coordinate frames)</tspan>
+  </text>
+  <rect x="0" y="694" width="144" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-006</tspan>
+  </text>
+  <rect x="144" y="694" width="336" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqMapContextRaster</tspan>
+  </text>
+  <rect x="480" y="694" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall give the</tspan>
+    <tspan x="492" dy="20">checkpoint, for each step, the map of the</tspan>
+    <tspan x="492" dy="20">roads around the vehicle as the</tspan>
+    <tspan x="492" dy="20">map_context raster of 14 channels in the</tspan>
+    <tspan x="492" dy="20">geometry autoe2e-bev-450x300-0p4m-v1, 450</tspan>
+    <tspan x="492" dy="20">by 300 pixels at 0.4 m per pixel, brought</tspan>
+    <tspan x="492" dy="20">to the time of the step.</tspan>
+  </text>
+  <rect x="840" y="694" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; scenario SC-DRIVING-001</tspan>
+    <tspan x="852" dy="20">(the map from the navigation context</tspan>
+    <tspan x="852" dy="20">role); gap gapModelInputAndFeedback</tspan>
+  </text>
+  <rect x="0" y="854" width="144" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-007</tspan>
+  </text>
+  <rect x="144" y="854" width="336" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqRouteMaskRaster</tspan>
+  </text>
+  <rect x="480" y="854" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall give the</tspan>
+    <tspan x="492" dy="20">checkpoint, for each step, the route from</tspan>
+    <tspan x="492" dy="20">navigation as the route_mask raster of two</tspan>
+    <tspan x="492" dy="20">channels, route corridor and destination,</tspan>
+    <tspan x="492" dy="20">in the geometry</tspan>
+    <tspan x="492" dy="20">autoe2e-bev-450x300-0p4m-v1, brought to</tspan>
+    <tspan x="492" dy="20">the time of the step.</tspan>
+  </text>
+  <rect x="840" y="854" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="878" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; scenario SC-DRIVING-001</tspan>
+    <tspan x="852" dy="20">(the route from the navigation context</tspan>
+    <tspan x="852" dy="20">role); gap gapModelInputAndFeedback</tspan>
+  </text>
+  <rect x="0" y="1014" width="144" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-008</tspan>
+  </text>
+  <rect x="144" y="1014" width="336" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqEgoMotionHistory</tspan>
+  </text>
+  <rect x="480" y="1014" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall give the</tspan>
+    <tspan x="492" dy="20">checkpoint, for each step, the 64 motion</tspan>
+    <tspan x="492" dy="20">samples of the vehicle it commands before</tspan>
+    <tspan x="492" dy="20">the step, 100 ms apart, each with its</tspan>
+    <tspan x="492" dy="20">speed in m/s and longitudinal acceleration</tspan>
+    <tspan x="492" dy="20">in m/s² worked out from the vehicle's</tspan>
+    <tspan x="492" dy="20">positions, and with yaw rate and curvature</tspan>
+    <tspan x="492" dy="20">given as 0 rad/s and 0 1/m.</tspan>
+  </text>
+  <rect x="840" y="1014" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; gap</tspan>
+    <tspan x="852" dy="20">gapModelInputAndFeedback (ego-motion</tspan>
+    <tspan x="852" dy="20">history, time alignment); assumption</tspan>
+    <tspan x="852" dy="20">asmSourceAuthenticity; gap GAP-DRIVING-010</tspan>
+    <tspan x="852" dy="20">(its bounded deviation)</tspan>
+  </text>
+  <rect x="0" y="1194" width="144" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-009</tspan>
+  </text>
+  <rect x="144" y="1194" width="336" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqHoldUntilHistoriesComplete</tspan>
+  </text>
+  <rect x="480" y="1194" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall hold the vehicle</tspan>
+    <tspan x="492" dy="20">at standstill until its camera history and</tspan>
+    <tspan x="492" dy="20">its ego-motion history are complete.</tspan>
+  </text>
+  <rect x="840" y="1194" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; gap</tspan>
+    <tspan x="852" dy="20">gapModelInputAndFeedback (history priming)</tspan>
+  </text>
+  <rect x="0" y="1274" width="144" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-010</tspan>
+  </text>
+  <rect x="144" y="1274" width="336" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqHistoriesFromCapturedInputs</tspan>
+  </text>
+  <rect x="480" y="1274" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall build its camera</tspan>
+    <tspan x="492" dy="20">history and its ego-motion history only</tspan>
+    <tspan x="492" dy="20">from images and samples captured in the</tspan>
+    <tspan x="492" dy="20">run, with no capture record twice in one</tspan>
+    <tspan x="492" dy="20">history.</tspan>
+  </text>
+  <rect x="840" y="1274" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; assumption</tspan>
+    <tspan x="852" dy="20">asmSourceAuthenticity (no repeated camera</tspan>
+    <tspan x="852" dy="20">histories)</tspan>
+  </text>
+  <rect x="0" y="1394" width="144" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-011</tspan>
+  </text>
+  <rect x="144" y="1394" width="336" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqCommandsFromNewestValidPlan</tspan>
+  </text>
+  <rect x="480" y="1394" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall compute each</tspan>
+    <tspan x="492" dy="20">steering and acceleration command only</tspan>
+    <tspan x="492" dy="20">from its newest valid plan and the current</tspan>
+    <tspan x="492" dy="20">motion of the vehicle.</tspan>
+  </text>
+  <rect x="840" y="1394" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001;</tspan>
+    <tspan x="852" dy="20">checkpointCommandAuthorityConcern, checked</tspan>
+    <tspan x="852" dy="20">by SC-DRIVING-005; scope item</tspan>
+    <tspan x="852" dy="20">learnedDrivingInScope</tspan>
+  </text>
+  <rect x="0" y="1494" width="144" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-012</tspan>
+  </text>
+  <rect x="144" y="1494" width="336" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqCommandsWithinActuationLimits</tspan>
+  </text>
+  <rect x="480" y="1494" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall keep each</tspan>
+    <tspan x="492" dy="20">steering and acceleration command within</tspan>
+    <tspan x="492" dy="20">the steering and acceleration limits of</tspan>
+    <tspan x="492" dy="20">the vehicle that its configuration names.</tspan>
+  </text>
+  <rect x="840" y="1494" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; gap</tspan>
+    <tspan x="852" dy="20">gapModelInputAndFeedback (control</tspan>
+    <tspan x="852" dy="20">conversion)</tspan>
+  </text>
+  <rect x="0" y="1594" width="144" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-013</tspan>
+  </text>
+  <rect x="144" y="1594" width="336" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlanWithinPlanningPeriod</tspan>
+  </text>
+  <rect x="480" y="1594" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall produce each plan</tspan>
+    <tspan x="492" dy="20">within 100 ms of wall-clock time after the</tspan>
+    <tspan x="492" dy="20">newest camera image of its step is</tspan>
+    <tspan x="492" dy="20">available to it.</tspan>
+  </text>
+  <rect x="840" y="1594" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-001; gap</tspan>
+    <tspan x="852" dy="20">gapClosedLoopPerformance (measurement</tspan>
+    <tspan x="852" dy="20">window, drop tolerance)</tspan>
+  </text>
+  <rect x="0" y="1694" width="144" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-014</tspan>
+  </text>
+  <rect x="144" y="1694" width="336" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlansAndCommandsOverSCORE</tspan>
+  </text>
+  <rect x="480" y="1694" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall carry its plans</tspan>
+    <tspan x="492" dy="20">and the commands computed from them from</tspan>
+    <tspan x="492" dy="20">planning to the actuation of the vehicle</tspan>
+    <tspan x="492" dy="20">only over Eclipse S-CORE communication.</tspan>
+  </text>
+  <rect x="840" y="1694" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-002; scenario SC-DRIVING-001;</tspan>
+    <tspan x="852" dy="20">gap gapTransportAndControl; assumption</tspan>
+    <tspan x="852" dy="20">asmCandidateReuse</tspan>
+  </text>
+  <rect x="0" y="1794" width="144" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-015</tspan>
+  </text>
+  <rect x="144" y="1794" width="336" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPublishPlans</tspan>
+  </text>
+  <rect x="480" y="1794" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall publish each plan</tspan>
+    <tspan x="492" dy="20">for observation, with its producer and its</tspan>
+    <tspan x="492" dy="20">production time, within 100 ms of wall-</tspan>
+    <tspan x="492" dy="20">clock time after producing it.</tspan>
+  </text>
+  <rect x="840" y="1794" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-003; scenario SC-DRIVING-002;</tspan>
+    <tspan x="852" dy="20">gap gapTransportAndControl (genuine plan,</tspan>
+    <tspan x="852" dy="20">state and health)</tspan>
+  </text>
+  <rect x="0" y="1894" width="144" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-016</tspan>
+  </text>
+  <rect x="144" y="1894" width="336" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPublishVehicleState</tspan>
+  </text>
+  <rect x="480" y="1894" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall publish for</tspan>
+    <tspan x="492" dy="20">observation the motion sample of each</tspan>
+    <tspan x="492" dy="20">step, with its producer and its sample</tspan>
+    <tspan x="492" dy="20">time, within 100 ms of wall-clock time</tspan>
+    <tspan x="492" dy="20">after receiving it.</tspan>
+  </text>
+  <rect x="840" y="1894" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-003; scenario SC-DRIVING-002;</tspan>
+    <tspan x="852" dy="20">gap gapTransportAndControl (genuine plan,</tspan>
+    <tspan x="852" dy="20">state and health)</tspan>
+  </text>
+  <rect x="0" y="2014" width="144" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-017</tspan>
+  </text>
+  <rect x="144" y="2014" width="336" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPublishHealthPeriodically</tspan>
+  </text>
+  <rect x="480" y="2014" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall publish its</tspan>
+    <tspan x="492" dy="20">health at least every 200 ms of wall-clock</tspan>
+    <tspan x="492" dy="20">time, also while it produces no plan.</tspan>
+  </text>
+  <rect x="840" y="2014" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="2038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-003; scenario SC-DRIVING-004</tspan>
+    <tspan x="852" dy="20">(no stale state shown as live)</tspan>
+  </text>
+  <rect x="0" y="2094" width="144" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-018</tspan>
+  </text>
+  <rect x="144" y="2094" width="336" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlansIndependentOfObservation</tspan>
+  </text>
+  <rect x="480" y="2094" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">Whether AAOS SDV receives the publications</tspan>
+    <tspan x="492" dy="20">of the driving system on time, late or not</tspan>
+    <tspan x="492" dy="20">at all, the driving system shall produce</tspan>
+    <tspan x="492" dy="20">plans and commands that differ by no more</tspan>
+    <tspan x="492" dy="20">than the plans and commands of two runs on</tspan>
+    <tspan x="492" dy="20">the same inputs with AAOS SDV receiving on</tspan>
+    <tspan x="492" dy="20">time differ from each other.</tspan>
+  </text>
+  <rect x="840" y="2094" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="2118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-004; scenario SC-DRIVING-004;</tspan>
+    <tspan x="852" dy="20">gap gapTransportAndControl (the display is</tspan>
+    <tspan x="852" dy="20">not in the fast control loop)</tspan>
+  </text>
+  <rect x="0" y="2254" width="144" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-019</tspan>
+  </text>
+  <rect x="144" y="2254" width="336" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlanningTimeIndependentOfObservation</tspan>
+  </text>
+  <rect x="480" y="2254" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">Whether AAOS SDV receives the publications</tspan>
+    <tspan x="492" dy="20">of the driving system on time, late or not</tspan>
+    <tspan x="492" dy="20">at all, the driving system shall keep the</tspan>
+    <tspan x="492" dy="20">99th percentile of its planning time</tspan>
+    <tspan x="492" dy="20">within 10 ms of wall-clock time of its</tspan>
+    <tspan x="492" dy="20">value with AAOS SDV receiving on time.</tspan>
+  </text>
+  <rect x="840" y="2254" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="2278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-004; scenario SC-DRIVING-004</tspan>
+  </text>
+  <rect x="0" y="2394" width="144" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-020</tspan>
+  </text>
+  <rect x="144" y="2394" width="336" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopResponseDeceleration</tspan>
+  </text>
+  <rect x="480" y="2394" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">While in the stop response, the driving</tspan>
+    <tspan x="492" dy="20">system shall command a deceleration of 4</tspan>
+    <tspan x="492" dy="20">m/s² until the vehicle is at standstill.</tspan>
+  </text>
+  <rect x="840" y="2394" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="2418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-005; scenario SC-DRIVING-003;</tspan>
+    <tspan x="852" dy="20">gap gapTransportAndControl (defined stop</tspan>
+    <tspan x="852" dy="20">or disable response)</tspan>
+  </text>
+  <rect x="0" y="2474" width="144" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-021</tspan>
+  </text>
+  <rect x="144" y="2474" width="336" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopResponseSteeringHeld</tspan>
+  </text>
+  <rect x="480" y="2474" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">While in the stop response, the driving</tspan>
+    <tspan x="492" dy="20">system shall hold the steering command at</tspan>
+    <tspan x="492" dy="20">the last value computed from a valid plan.</tspan>
+  </text>
+  <rect x="840" y="2474" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="2498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-005; scenario SC-DRIVING-003;</tspan>
+    <tspan x="852" dy="20">gap gapTransportAndControl (defined stop</tspan>
+    <tspan x="852" dy="20">or disable response)</tspan>
+  </text>
+  <rect x="0" y="2554" width="144" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-022</tspan>
+  </text>
+  <rect x="144" y="2554" width="336" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStandstillAfterStop</tspan>
+  </text>
+  <rect x="480" y="2554" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">After the stop response has brought the</tspan>
+    <tspan x="492" dy="20">vehicle to standstill, the driving system</tspan>
+    <tspan x="492" dy="20">shall hold the vehicle at standstill until</tspan>
+    <tspan x="492" dy="20">the run ends.</tspan>
+  </text>
+  <rect x="840" y="2554" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="2578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-005; scenario SC-DRIVING-003;</tspan>
+    <tspan x="852" dy="20">gap gapTransportAndControl (defined stop</tspan>
+    <tspan x="852" dy="20">or disable response)</tspan>
+  </text>
+  <rect x="0" y="2654" width="144" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-023</tspan>
+  </text>
+  <rect x="144" y="2654" width="336" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnDegradedCameraImages</tspan>
+  </text>
+  <rect x="480" y="2654" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">When the images of any camera for a step</tspan>
+    <tspan x="492" dy="20">are missing, invalid or captured more than</tspan>
+    <tspan x="492" dy="20">200 ms of simulation time before the step,</tspan>
+    <tspan x="492" dy="20">the driving system shall begin the stop</tspan>
+    <tspan x="492" dy="20">response within 100 ms of simulation time.</tspan>
+  </text>
+  <rect x="840" y="2654" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="2678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-005; scenario SC-DRIVING-003;</tspan>
+    <tspan x="852" dy="20">gap gapClosedLoopPerformance (freshness</tspan>
+    <tspan x="852" dy="20">limits)</tspan>
+  </text>
+  <rect x="0" y="2774" width="144" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-024</tspan>
+  </text>
+  <rect x="144" y="2774" width="336" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnDegradedMotion</tspan>
+  </text>
+  <rect x="480" y="2774" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">When the newest motion sample is invalid</tspan>
+    <tspan x="492" dy="20">or more than 200 ms of simulation time</tspan>
+    <tspan x="492" dy="20">old, the driving system shall begin the</tspan>
+    <tspan x="492" dy="20">stop response within 100 ms of simulation</tspan>
+    <tspan x="492" dy="20">time.</tspan>
+  </text>
+  <rect x="840" y="2774" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="2798" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-005; scenario SC-DRIVING-003;</tspan>
+    <tspan x="852" dy="20">gap gapClosedLoopPerformance (freshness</tspan>
+    <tspan x="852" dy="20">limits)</tspan>
+  </text>
+  <rect x="0" y="2894" width="144" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-025</tspan>
+  </text>
+  <rect x="144" y="2894" width="336" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnDegradedRoute</tspan>
+  </text>
+  <rect x="480" y="2894" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">When the route is more than 1 s of</tspan>
+    <tspan x="492" dy="20">simulation time old or holds no route</tspan>
+    <tspan x="492" dy="20">corridor, the driving system shall begin</tspan>
+    <tspan x="492" dy="20">the stop response within 100 ms of</tspan>
+    <tspan x="492" dy="20">simulation time.</tspan>
+  </text>
+  <rect x="840" y="2894" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="2918" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-005; scenario SC-DRIVING-003;</tspan>
+    <tspan x="852" dy="20">gap gapClosedLoopPerformance (freshness</tspan>
+    <tspan x="852" dy="20">limits)</tspan>
+  </text>
+  <rect x="0" y="3014" width="144" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-026</tspan>
+  </text>
+  <rect x="144" y="3014" width="336" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnStalePlan</tspan>
+  </text>
+  <rect x="480" y="3014" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">When the newest valid plan is more than</tspan>
+    <tspan x="492" dy="20">300 ms of simulation time old at a</tspan>
+    <tspan x="492" dy="20">command, counted from the capture time of</tspan>
+    <tspan x="492" dy="20">its newest camera image, the driving</tspan>
+    <tspan x="492" dy="20">system shall begin the stop response</tspan>
+    <tspan x="492" dy="20">within 100 ms of simulation time.</tspan>
+  </text>
+  <rect x="840" y="3014" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-005; scenario SC-DRIVING-003;</tspan>
+    <tspan x="852" dy="20">gap gapClosedLoopPerformance (control</tspan>
+    <tspan x="852" dy="20">deadlines)</tspan>
+  </text>
+  <rect x="0" y="3154" width="144" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-027</tspan>
+  </text>
+  <rect x="144" y="3154" width="336" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnInvalidPlan</tspan>
+  </text>
+  <rect x="480" y="3154" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">When a plan arrives that does not hold 64</tspan>
+    <tspan x="492" dy="20">finite pairs of acceleration and</tspan>
+    <tspan x="492" dy="20">curvature, the driving system shall begin</tspan>
+    <tspan x="492" dy="20">the stop response within 100 ms of</tspan>
+    <tspan x="492" dy="20">simulation time.</tspan>
+  </text>
+  <rect x="840" y="3154" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-005; scenario SC-DRIVING-003;</tspan>
+    <tspan x="852" dy="20">gap gapClosedLoopPerformance (control</tspan>
+    <tspan x="852" dy="20">deadlines)</tspan>
+  </text>
+  <rect x="0" y="3274" width="144" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-028</tspan>
+  </text>
+  <rect x="144" y="3274" width="336" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnLostCommands</tspan>
+  </text>
+  <rect x="480" y="3274" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">When no valid command has reached the</tspan>
+    <tspan x="492" dy="20">actuation of the vehicle for 200 ms of</tspan>
+    <tspan x="492" dy="20">simulation time, the driving system shall</tspan>
+    <tspan x="492" dy="20">apply the stop response at the actuation.</tspan>
+  </text>
+  <rect x="840" y="3274" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-005; scenario SC-DRIVING-003;</tspan>
+    <tspan x="852" dy="20">gap gapTransportAndControl (lost plans)</tspan>
+  </text>
+  <rect x="0" y="3374" width="144" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3398" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-029</tspan>
+  </text>
+  <rect x="144" y="3374" width="336" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3398" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPublishStop</tspan>
+  </text>
+  <rect x="480" y="3374" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3398" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">When the stop response begins, the driving</tspan>
+    <tspan x="492" dy="20">system shall publish within 100 ms of</tspan>
+    <tspan x="492" dy="20">wall-clock time that it is stopped and the</tspan>
+    <tspan x="492" dy="20">cause.</tspan>
+  </text>
+  <rect x="840" y="3374" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3398" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-005; scenario SC-DRIVING-003</tspan>
+  </text>
+  <rect x="0" y="3474" width="144" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-030</tspan>
+  </text>
+  <rect x="144" y="3474" width="336" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStampInputs</tspan>
+  </text>
+  <rect x="480" y="3474" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall mark each camera</tspan>
+    <tspan x="492" dy="20">image and each motion sample with its</tspan>
+    <tspan x="492" dy="20">capture time in simulation time.</tspan>
+  </text>
+  <rect x="840" y="3474" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3498" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-006; scenario SC-DRIVING-001;</tspan>
+    <tspan x="852" dy="20">gap gapClosedLoopPerformance (separate</tspan>
+    <tspan x="852" dy="20">time domains)</tspan>
+  </text>
+  <rect x="0" y="3554" width="144" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-031</tspan>
+  </text>
+  <rect x="144" y="3554" width="336" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStampPlans</tspan>
+  </text>
+  <rect x="480" y="3554" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall mark each plan</tspan>
+    <tspan x="492" dy="20">with the capture time of its newest camera</tspan>
+    <tspan x="492" dy="20">image in simulation time and with its</tspan>
+    <tspan x="492" dy="20">production time on the monotonic clock of</tspan>
+    <tspan x="492" dy="20">the host.</tspan>
+  </text>
+  <rect x="840" y="3554" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-006; scenario SC-DRIVING-001;</tspan>
+    <tspan x="852" dy="20">gap gapClosedLoopPerformance (separate</tspan>
+    <tspan x="852" dy="20">time domains)</tspan>
+  </text>
+  <rect x="0" y="3674" width="144" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-032</tspan>
+  </text>
+  <rect x="144" y="3674" width="336" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStampCommands</tspan>
+  </text>
+  <rect x="480" y="3674" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall mark each command</tspan>
+    <tspan x="492" dy="20">with the plan it was computed from, with</tspan>
+    <tspan x="492" dy="20">its issue time on the monotonic clock of</tspan>
+    <tspan x="492" dy="20">the host and with its actuation time in</tspan>
+    <tspan x="492" dy="20">simulation time.</tspan>
+  </text>
+  <rect x="840" y="3674" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-006; scenario SC-DRIVING-001;</tspan>
+    <tspan x="852" dy="20">gap gapClosedLoopPerformance (separate</tspan>
+    <tspan x="852" dy="20">time domains)</tspan>
+  </text>
+  <rect x="0" y="3794" width="144" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-033</tspan>
+  </text>
+  <rect x="144" y="3794" width="336" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqRecordRunIdentity</tspan>
+  </text>
+  <rect x="480" y="3794" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall record, before</tspan>
+    <tspan x="492" dy="20">the first plan of each run, the SHA-256 of</tspan>
+    <tspan x="492" dy="20">the checkpoint file it loaded, the AutoE2E</tspan>
+    <tspan x="492" dy="20">source revision it runs and the SHA-256 of</tspan>
+    <tspan x="492" dy="20">its complete configuration.</tspan>
+  </text>
+  <rect x="840" y="3794" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3818" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-007; scenario SC-DRIVING-001;</tspan>
+    <tspan x="852" dy="20">out-of-scope item modelTrainingOutOfScope;</tspan>
+    <tspan x="852" dy="20">gap gapAdoptionAndRights</tspan>
+  </text>
+  <rect x="0" y="3914" width="144" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-034</tspan>
+  </text>
+  <rect x="144" y="3914" width="336" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlansNameRunRecord</tspan>
+  </text>
+  <rect x="480" y="3914" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall name in each plan</tspan>
+    <tspan x="492" dy="20">the run record that identifies its</tspan>
+    <tspan x="492" dy="20">checkpoint, source revision and</tspan>
+    <tspan x="492" dy="20">configuration.</tspan>
+  </text>
+  <rect x="840" y="3914" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-007; scenario SC-DRIVING-001</tspan>
+  </text>
+  <rect x="0" y="4014" width="144" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-035</tspan>
+  </text>
+  <rect x="144" y="4014" width="336" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="4038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqRefuseUnpinnedCheckpoint</tspan>
+  </text>
+  <rect x="480" y="4014" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="4038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driving system shall refuse to plan</tspan>
+    <tspan x="492" dy="20">from a checkpoint whose SHA-256 differs</tspan>
+    <tspan x="492" dy="20">from the one its configuration names, or</tspan>
+    <tspan x="492" dy="20">when its configuration names none.</tspan>
+  </text>
+  <rect x="840" y="4014" width="360" height="100" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="4038" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="852" dy="0">NEED-DRIVING-007; out-of-scope item</tspan>
+    <tspan x="852" dy="20">modelTrainingOutOfScope (no undisclosed</tspan>
+    <tspan x="852" dy="20">checkpoint swap); assumption</tspan>
+    <tspan x="852" dy="20">asmSourceAuthenticity</tspan>
+  </text>
+</svg>

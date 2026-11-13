@@ -1,0 +1,785 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="950" height="5494" viewBox="0 0 950 5494" role="img" aria-labelledby="title description">
+  <title id="title">table-closedLoopDrivingRequirementVerificationView</title>
+  <desc id="description">table-closedLoopDrivingRequirementVerificationView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="950" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-closedLoopDrivingRequirementVerificationView</text>
+  <rect x="0" y="54" width="144" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="144" y="54" width="336" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">Requirement</tspan>
+  </text>
+  <rect x="480" y="54" width="110" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">Method</tspan>
+  </text>
+  <rect x="590" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Criteria</tspan>
+  </text>
+  <rect x="0" y="94" width="144" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-001</tspan>
+  </text>
+  <rect x="144" y="94" width="336" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlanEachStep</tspan>
+  </text>
+  <rect x="480" y="94" width="110" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="94" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in a run of SC-DRIVING-001, the</tspan>
+    <tspan x="602" dy="20">records hold at most one plan for each 100</tspan>
+    <tspan x="602" dy="20">ms step of simulation time and no two</tspan>
+    <tspan x="602" dy="20">consecutive steps without one, from the</tspan>
+    <tspan x="602" dy="20">end of priming to the end of the run or</tspan>
+    <tspan x="602" dy="20">the start of the stop response.</tspan>
+  </text>
+  <rect x="0" y="234" width="144" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-002</tspan>
+  </text>
+  <rect x="144" y="234" width="336" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlansByCheckpointInference</tspan>
+  </text>
+  <rect x="480" y="234" width="110" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="234" width="360" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when every plan of a run of SC-</tspan>
+    <tspan x="602" dy="20">DRIVING-001 names the SHA-256 of the</tspan>
+    <tspan x="602" dy="20">checkpoint it was inferred with, and an</tspan>
+    <tspan x="602" dy="20">offline inference of that checkpoint on</tspan>
+    <tspan x="602" dy="20">the inputs recorded for a plan, on the</tspan>
+    <tspan x="602" dy="20">same host and software, gives every</tspan>
+    <tspan x="602" dy="20">acceleration and curvature of that plan</tspan>
+    <tspan x="602" dy="20">within 1 % of the largest magnitude of</tspan>
+    <tspan x="602" dy="20">that signal in the plan.</tspan>
+  </text>
+  <rect x="0" y="434" width="144" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="458" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-003</tspan>
+  </text>
+  <rect x="144" y="434" width="336" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="458" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqCameraImagesInCheckpointForm</tspan>
+  </text>
+  <rect x="480" y="434" width="110" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="458" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="434" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="458" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when the inputs recorded for every</tspan>
+    <tspan x="602" dy="20">plan of a run of SC-DRIVING-001 hold six</tspan>
+    <tspan x="602" dy="20">current images of 512 by 512 pixels in</tspan>
+    <tspan x="602" dy="20">that order and a current front image of</tspan>
+    <tspan x="602" dy="20">1024 by 1024 pixels.</tspan>
+  </text>
+  <rect x="0" y="554" width="144" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-004</tspan>
+  </text>
+  <rect x="144" y="554" width="336" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqCameraHistory</tspan>
+  </text>
+  <rect x="480" y="554" width="110" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="554" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when the inputs recorded for every</tspan>
+    <tspan x="602" dy="20">plan of a run of SC-DRIVING-001 hold, for</tspan>
+    <tspan x="602" dy="20">each camera, seven earlier images whose</tspan>
+    <tspan x="602" dy="20">capture times lie 0.5 s to 3.5 s before</tspan>
+    <tspan x="602" dy="20">the step at 0.5 s intervals.</tspan>
+  </text>
+  <rect x="0" y="674" width="144" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-005</tspan>
+  </text>
+  <rect x="144" y="674" width="336" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqProjectionOperators</tspan>
+  </text>
+  <rect x="480" y="674" width="110" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="674" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when the inputs recorded for every</tspan>
+    <tspan x="602" dy="20">plan of a run of SC-DRIVING-001 hold one</tspan>
+    <tspan x="602" dy="20">projection operator for each image, and</tspan>
+    <tspan x="602" dy="20">the operator of each camera maps a</tspan>
+    <tspan x="602" dy="20">reference point at a known position in the</tspan>
+    <tspan x="602" dy="20">vehicle frame to within 2 pixels of where</tspan>
+    <tspan x="602" dy="20">that point appears in its image.</tspan>
+  </text>
+  <rect x="0" y="834" width="144" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="858" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-006</tspan>
+  </text>
+  <rect x="144" y="834" width="336" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="858" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqMapContextRaster</tspan>
+  </text>
+  <rect x="480" y="834" width="110" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="858" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="834" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="858" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when the inputs recorded for every</tspan>
+    <tspan x="602" dy="20">plan of a run of SC-DRIVING-001 hold a</tspan>
+    <tspan x="602" dy="20">map_context of 14 channels and 450 by 300</tspan>
+    <tspan x="602" dy="20">pixels, tagged with the geometry</tspan>
+    <tspan x="602" dy="20">autoe2e-bev-450x300-0p4m-v1 and rendered</tspan>
+    <tspan x="602" dy="20">no more than 500 ms of simulation time</tspan>
+    <tspan x="602" dy="20">before the step.</tspan>
+  </text>
+  <rect x="0" y="994" width="144" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1018" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-007</tspan>
+  </text>
+  <rect x="144" y="994" width="336" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1018" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqRouteMaskRaster</tspan>
+  </text>
+  <rect x="480" y="994" width="110" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1018" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="994" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="1018" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when the inputs recorded for every</tspan>
+    <tspan x="602" dy="20">plan of a run of SC-DRIVING-001 hold a</tspan>
+    <tspan x="602" dy="20">route_mask of two channels and 450 by 300</tspan>
+    <tspan x="602" dy="20">pixels, tagged with the geometry</tspan>
+    <tspan x="602" dy="20">autoe2e-bev-450x300-0p4m-v1, whose route</tspan>
+    <tspan x="602" dy="20">corridor covers the route navigation gave</tspan>
+    <tspan x="602" dy="20">for the run.</tspan>
+  </text>
+  <rect x="0" y="1154" width="144" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-008</tspan>
+  </text>
+  <rect x="144" y="1154" width="336" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqEgoMotionHistory</tspan>
+  </text>
+  <rect x="480" y="1154" width="110" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="1154" width="360" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="1178" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when the inputs recorded for every</tspan>
+    <tspan x="602" dy="20">plan of a run of SC-DRIVING-001 hold 64</tspan>
+    <tspan x="602" dy="20">samples, oldest first and the newest 100</tspan>
+    <tspan x="602" dy="20">ms before the step, each within 0.05 m/s</tspan>
+    <tspan x="602" dy="20">and 0.1 m/s² of the speed and acceleration</tspan>
+    <tspan x="602" dy="20">worked out the source's way from the poses</tspan>
+    <tspan x="602" dy="20">the simulator records for the commanded</tspan>
+    <tspan x="602" dy="20">vehicle, moved to the origin of its camera</tspan>
+    <tspan x="602" dy="20">rig, over the 66 steps that end at the</tspan>
+    <tspan x="602" dy="20">step, and each with a yaw rate of 0 rad/s</tspan>
+    <tspan x="602" dy="20">and a curvature of 0 1/m.</tspan>
+  </text>
+  <rect x="0" y="1394" width="144" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-009</tspan>
+  </text>
+  <rect x="144" y="1394" width="336" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqHoldUntilHistoriesComplete</tspan>
+  </text>
+  <rect x="480" y="1394" width="110" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="1394" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="1418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in a run of SC-DRIVING-001 that</tspan>
+    <tspan x="602" dy="20">starts with the vehicle at rest, the</tspan>
+    <tspan x="602" dy="20">commands hold it at standstill until the</tspan>
+    <tspan x="602" dy="20">run has recorded eight images of each</tspan>
+    <tspan x="602" dy="20">camera 0.5 s apart and 64 motion samples.</tspan>
+  </text>
+  <rect x="0" y="1514" width="144" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-010</tspan>
+  </text>
+  <rect x="144" y="1514" width="336" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqHistoriesFromCapturedInputs</tspan>
+  </text>
+  <rect x="480" y="1514" width="110" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="1514" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="1538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when every image and sample given to</tspan>
+    <tspan x="602" dy="20">the checkpoint in a run of SC-DRIVING-001</tspan>
+    <tspan x="602" dy="20">has its own capture record of the run, and</tspan>
+    <tspan x="602" dy="20">no capture record appears twice in one</tspan>
+    <tspan x="602" dy="20">history.</tspan>
+  </text>
+  <rect x="0" y="1634" width="144" height="280" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-011</tspan>
+  </text>
+  <rect x="144" y="1634" width="336" height="280" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqCommandsFromNewestValidPlan</tspan>
+  </text>
+  <rect x="480" y="1634" width="110" height="280" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="1634" width="360" height="280" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="1658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in a run of SC-DRIVING-001,</tspan>
+    <tspan x="602" dy="20">every command that reaches the actuation</tspan>
+    <tspan x="602" dy="20">of the vehicle names the plan it was</tspan>
+    <tspan x="602" dy="20">computed from and that plan names its</tspan>
+    <tspan x="602" dy="20">inference; when the autopilot and the</tspan>
+    <tspan x="602" dy="20">traffic manager of the simulator have no</tspan>
+    <tspan x="602" dy="20">control of the vehicle at any time of the</tspan>
+    <tspan x="602" dy="20">run and no recorded, replayed or scripted</tspan>
+    <tspan x="602" dy="20">control reaches its actuation; and when a</tspan>
+    <tspan x="602" dy="20">test plan of opposite curvature sign, put</tspan>
+    <tspan x="602" dy="20">in place of one checkpoint plan, reverses</tspan>
+    <tspan x="602" dy="20">the sign of the steering command within</tspan>
+    <tspan x="602" dy="20">100 ms of simulation time.</tspan>
+  </text>
+  <rect x="0" y="1914" width="144" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-012</tspan>
+  </text>
+  <rect x="144" y="1914" width="336" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqCommandsWithinActuationLimits</tspan>
+  </text>
+  <rect x="480" y="1914" width="110" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="1914" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="1938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in a run of SC-DRIVING-001 in</tspan>
+    <tspan x="602" dy="20">which test plans that exceed the limits</tspan>
+    <tspan x="602" dy="20">named in the configuration are put in</tspan>
+    <tspan x="602" dy="20">place of checkpoint plans, every command</tspan>
+    <tspan x="602" dy="20">of the run stays within those limits.</tspan>
+  </text>
+  <rect x="0" y="2034" width="144" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-013</tspan>
+  </text>
+  <rect x="144" y="2034" width="336" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlanWithinPlanningPeriod</tspan>
+  </text>
+  <rect x="480" y="2034" width="110" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="2034" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="2058" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, over a 60 s wall-clock window</tspan>
+    <tspan x="602" dy="20">that starts at the end of priming, in a</tspan>
+    <tspan x="602" dy="20">run of SC-DRIVING-001 with the simulation</tspan>
+    <tspan x="602" dy="20">at a real-time factor of at least 0.95, at</tspan>
+    <tspan x="602" dy="20">least 99 % of the plans are produced</tspan>
+    <tspan x="602" dy="20">within 100 ms of wall-clock time after</tspan>
+    <tspan x="602" dy="20">their newest camera image is available,</tspan>
+    <tspan x="602" dy="20">and no two consecutive plans miss it.</tspan>
+  </text>
+  <rect x="0" y="2214" width="144" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-014</tspan>
+  </text>
+  <rect x="144" y="2214" width="336" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlansAndCommandsOverSCORE</tspan>
+  </text>
+  <rect x="480" y="2214" width="110" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="2214" width="360" height="200" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="2238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in a run of SC-DRIVING-001,</tspan>
+    <tspan x="602" dy="20">every command that reaches the actuation</tspan>
+    <tspan x="602" dy="20">of the vehicle is matched in the Eclipse</tspan>
+    <tspan x="602" dy="20">S-CORE communication records to the plan</tspan>
+    <tspan x="602" dy="20">it was computed from, and when, after the</tspan>
+    <tspan x="602" dy="20">Eclipse S-CORE communication of the</tspan>
+    <tspan x="602" dy="20">driving system is stopped in the run, no</tspan>
+    <tspan x="602" dy="20">further command computed from a plan</tspan>
+    <tspan x="602" dy="20">reaches the actuation.</tspan>
+  </text>
+  <rect x="0" y="2414" width="144" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-015</tspan>
+  </text>
+  <rect x="144" y="2414" width="336" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPublishPlans</tspan>
+  </text>
+  <rect x="480" y="2414" width="110" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="2414" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="2438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, over a 60 s window of a run of</tspan>
+    <tspan x="602" dy="20">SC-DRIVING-001, every plan in the records</tspan>
+    <tspan x="602" dy="20">of the run is published once, equal to its</tspan>
+    <tspan x="602" dy="20">record, with its producer and its</tspan>
+    <tspan x="602" dy="20">production time, within 100 ms of wall-</tspan>
+    <tspan x="602" dy="20">clock time after that production time.</tspan>
+  </text>
+  <rect x="0" y="2554" width="144" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-016</tspan>
+  </text>
+  <rect x="144" y="2554" width="336" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPublishVehicleState</tspan>
+  </text>
+  <rect x="480" y="2554" width="110" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="2554" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="2578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, over a 60 s window of a run of</tspan>
+    <tspan x="602" dy="20">SC-DRIVING-001, the motion sample of every</tspan>
+    <tspan x="602" dy="20">step in the records of the run is</tspan>
+    <tspan x="602" dy="20">published once, equal to its record, with</tspan>
+    <tspan x="602" dy="20">its producer and its sample time, within</tspan>
+    <tspan x="602" dy="20">100 ms of wall-clock time after the</tspan>
+    <tspan x="602" dy="20">driving system received it.</tspan>
+  </text>
+  <rect x="0" y="2714" width="144" height="200" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-017</tspan>
+  </text>
+  <rect x="144" y="2714" width="336" height="200" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPublishHealthPeriodically</tspan>
+  </text>
+  <rect x="480" y="2714" width="110" height="200" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="2714" width="360" height="200" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="2738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, over a 60 s window of a run of</tspan>
+    <tspan x="602" dy="20">SC-DRIVING-001 that includes priming,</tspan>
+    <tspan x="602" dy="20">driving and a stop, no two consecutive</tspan>
+    <tspan x="602" dy="20">health publications are more than 200 ms</tspan>
+    <tspan x="602" dy="20">of wall-clock time apart, and each holds</tspan>
+    <tspan x="602" dy="20">the mode, the cause of the stop while</tspan>
+    <tspan x="602" dy="20">stopped, and the age of the newest valid</tspan>
+    <tspan x="602" dy="20">plan, with its producer and its production</tspan>
+    <tspan x="602" dy="20">time.</tspan>
+  </text>
+  <rect x="0" y="2914" width="144" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-018</tspan>
+  </text>
+  <rect x="144" y="2914" width="336" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlansIndependentOfObservation</tspan>
+  </text>
+  <rect x="480" y="2914" width="110" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="2914" width="360" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="2938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, with the same recorded camera</tspan>
+    <tspan x="602" dy="20">images, motion samples and route given to</tspan>
+    <tspan x="602" dy="20">the driving system, the plans and commands</tspan>
+    <tspan x="602" dy="20">of a run in which AAOS SDV receives</tspan>
+    <tspan x="602" dy="20">normally, of one in which it receives</tspan>
+    <tspan x="602" dy="20">every publication 1 s late, and of one in</tspan>
+    <tspan x="602" dy="20">which it is stopped each differ from those</tspan>
+    <tspan x="602" dy="20">of a reference run with AAOS SDV receiving</tspan>
+    <tspan x="602" dy="20">normally by no more than a second such</tspan>
+    <tspan x="602" dy="20">reference run differs from the first.</tspan>
+  </text>
+  <rect x="0" y="3134" width="144" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-019</tspan>
+  </text>
+  <rect x="144" y="3134" width="336" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlanningTimeIndependentOfObservation</tspan>
+  </text>
+  <rect x="480" y="3134" width="110" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="3134" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="3158" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in the three runs of the</tspan>
+    <tspan x="602" dy="20">criteria of REQ-DRIVING-018 and the</tspan>
+    <tspan x="602" dy="20">reference run, the 99th percentile of the</tspan>
+    <tspan x="602" dy="20">planning time of REQ-DRIVING-013 differs</tspan>
+    <tspan x="602" dy="20">by no more than 10 ms between any two of</tspan>
+    <tspan x="602" dy="20">them.</tspan>
+  </text>
+  <rect x="0" y="3274" width="144" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-020</tspan>
+  </text>
+  <rect x="144" y="3274" width="336" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopResponseDeceleration</tspan>
+  </text>
+  <rect x="480" y="3274" width="110" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="3274" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="3298" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in runs of SC-DRIVING-003</tspan>
+    <tspan x="602" dy="20">entered at 10 m/s and at 20 m/s, the</tspan>
+    <tspan x="602" dy="20">commanded deceleration from the start of</tspan>
+    <tspan x="602" dy="20">the stop response is 4 m/s² within 0.2</tspan>
+    <tspan x="602" dy="20">m/s² until standstill.</tspan>
+  </text>
+  <rect x="0" y="3394" width="144" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-021</tspan>
+  </text>
+  <rect x="144" y="3394" width="336" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopResponseSteeringHeld</tspan>
+  </text>
+  <rect x="480" y="3394" width="110" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="3394" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="3418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in the runs of the criteria of</tspan>
+    <tspan x="602" dy="20">REQ-DRIVING-020, the steering command</tspan>
+    <tspan x="602" dy="20">stays at the last value computed from a</tspan>
+    <tspan x="602" dy="20">valid plan from the start of the stop</tspan>
+    <tspan x="602" dy="20">response until standstill.</tspan>
+  </text>
+  <rect x="0" y="3514" width="144" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-022</tspan>
+  </text>
+  <rect x="144" y="3514" width="336" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStandstillAfterStop</tspan>
+  </text>
+  <rect x="480" y="3514" width="110" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="3514" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="3538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in the runs of the criteria of</tspan>
+    <tspan x="602" dy="20">REQ-DRIVING-020, the vehicle stays at</tspan>
+    <tspan x="602" dy="20">standstill to the end of the run and no</tspan>
+    <tspan x="602" dy="20">command is computed from a plan made after</tspan>
+    <tspan x="602" dy="20">the stop response began.</tspan>
+  </text>
+  <rect x="0" y="3634" width="144" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-023</tspan>
+  </text>
+  <rect x="144" y="3634" width="336" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnDegradedCameraImages</tspan>
+  </text>
+  <rect x="480" y="3634" width="110" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="3634" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="3658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in runs of SC-DRIVING-003 that</tspan>
+    <tspan x="602" dy="20">withhold the images of one camera and that</tspan>
+    <tspan x="602" dy="20">deliver a corrupt image, the stop response</tspan>
+    <tspan x="602" dy="20">begins within 100 ms of simulation time</tspan>
+    <tspan x="602" dy="20">after the limit is passed or the corrupt</tspan>
+    <tspan x="602" dy="20">image arrives, and when it does not begin</tspan>
+    <tspan x="602" dy="20">in a run of SC-DRIVING-001 without these</tspan>
+    <tspan x="602" dy="20">conditions.</tspan>
+  </text>
+  <rect x="0" y="3814" width="144" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-024</tspan>
+  </text>
+  <rect x="144" y="3814" width="336" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnDegradedMotion</tspan>
+  </text>
+  <rect x="480" y="3814" width="110" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="3814" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="3838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in runs of SC-DRIVING-003 that</tspan>
+    <tspan x="602" dy="20">freeze the motion samples and that deliver</tspan>
+    <tspan x="602" dy="20">a sample with a value that is not finite,</tspan>
+    <tspan x="602" dy="20">the stop response begins within 100 ms of</tspan>
+    <tspan x="602" dy="20">simulation time after the limit is passed</tspan>
+    <tspan x="602" dy="20">or the invalid sample arrives.</tspan>
+  </text>
+  <rect x="0" y="3954" width="144" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-025</tspan>
+  </text>
+  <rect x="144" y="3954" width="336" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnDegradedRoute</tspan>
+  </text>
+  <rect x="480" y="3954" width="110" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="3954" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="3978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in runs of SC-DRIVING-003 that</tspan>
+    <tspan x="602" dy="20">stop the route and that deliver a route</tspan>
+    <tspan x="602" dy="20">with an empty corridor, the stop response</tspan>
+    <tspan x="602" dy="20">begins within 100 ms of simulation time</tspan>
+    <tspan x="602" dy="20">after the limit is passed or the empty</tspan>
+    <tspan x="602" dy="20">route arrives.</tspan>
+  </text>
+  <rect x="0" y="4094" width="144" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-026</tspan>
+  </text>
+  <rect x="144" y="4094" width="336" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="4118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnStalePlan</tspan>
+  </text>
+  <rect x="480" y="4094" width="110" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="4118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="4094" width="360" height="120" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="4118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in runs of SC-DRIVING-003 that</tspan>
+    <tspan x="602" dy="20">stall planning and that drop plans, the</tspan>
+    <tspan x="602" dy="20">stop response begins within 100 ms of</tspan>
+    <tspan x="602" dy="20">simulation time after the age of the</tspan>
+    <tspan x="602" dy="20">newest valid plan passes 300 ms.</tspan>
+  </text>
+  <rect x="0" y="4214" width="144" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-027</tspan>
+  </text>
+  <rect x="144" y="4214" width="336" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="4238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnInvalidPlan</tspan>
+  </text>
+  <rect x="480" y="4214" width="110" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="4238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="4214" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="4238" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in runs of SC-DRIVING-003 that</tspan>
+    <tspan x="602" dy="20">inject a plan with a value that is not</tspan>
+    <tspan x="602" dy="20">finite and a plan of 63 pairs, the stop</tspan>
+    <tspan x="602" dy="20">response begins within 100 ms of</tspan>
+    <tspan x="602" dy="20">simulation time after the invalid plan</tspan>
+    <tspan x="602" dy="20">arrives and no command is computed from</tspan>
+    <tspan x="602" dy="20">it.</tspan>
+  </text>
+  <rect x="0" y="4374" width="144" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4398" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-028</tspan>
+  </text>
+  <rect x="144" y="4374" width="336" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="4398" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStopOnLostCommands</tspan>
+  </text>
+  <rect x="480" y="4374" width="110" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="4398" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="4374" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="4398" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in a run of SC-DRIVING-001 in</tspan>
+    <tspan x="602" dy="20">which the Eclipse S-CORE communication of</tspan>
+    <tspan x="602" dy="20">the driving system is stopped, the</tspan>
+    <tspan x="602" dy="20">commands at the actuation follow the stop</tspan>
+    <tspan x="602" dy="20">response from no later than 300 ms of</tspan>
+    <tspan x="602" dy="20">simulation time after the last command</tspan>
+    <tspan x="602" dy="20">arrived.</tspan>
+  </text>
+  <rect x="0" y="4534" width="144" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-029</tspan>
+  </text>
+  <rect x="144" y="4534" width="336" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="4558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPublishStop</tspan>
+  </text>
+  <rect x="480" y="4534" width="110" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="4558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="4534" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="4558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, in each run of the criteria of</tspan>
+    <tspan x="602" dy="20">REQ-DRIVING-023 to REQ-DRIVING-028, a</tspan>
+    <tspan x="602" dy="20">publication that the driving system is</tspan>
+    <tspan x="602" dy="20">stopped, with the cause of that run,</tspan>
+    <tspan x="602" dy="20">follows within 100 ms of wall-clock time</tspan>
+    <tspan x="602" dy="20">after the stop response begins, and every</tspan>
+    <tspan x="602" dy="20">later health publication of the run shows</tspan>
+    <tspan x="602" dy="20">the mode stopped.</tspan>
+  </text>
+  <rect x="0" y="4714" width="144" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-030</tspan>
+  </text>
+  <rect x="144" y="4714" width="336" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="4738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStampInputs</tspan>
+  </text>
+  <rect x="480" y="4714" width="110" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="4738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="4714" width="360" height="100" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="4738" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when every camera image and motion</tspan>
+    <tspan x="602" dy="20">sample in the records of a run of SC-</tspan>
+    <tspan x="602" dy="20">DRIVING-001 carries a capture time marked</tspan>
+    <tspan x="602" dy="20">as simulation time.</tspan>
+  </text>
+  <rect x="0" y="4814" width="144" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-031</tspan>
+  </text>
+  <rect x="144" y="4814" width="336" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="4838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStampPlans</tspan>
+  </text>
+  <rect x="480" y="4814" width="110" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="4838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="4814" width="360" height="120" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="4838" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when every plan in the records of a</tspan>
+    <tspan x="602" dy="20">run of SC-DRIVING-001 carries the capture</tspan>
+    <tspan x="602" dy="20">time of its newest camera image marked as</tspan>
+    <tspan x="602" dy="20">simulation time and a production time</tspan>
+    <tspan x="602" dy="20">marked as the monotonic clock of the host.</tspan>
+  </text>
+  <rect x="0" y="4934" width="144" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-032</tspan>
+  </text>
+  <rect x="144" y="4934" width="336" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="4958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqStampCommands</tspan>
+  </text>
+  <rect x="480" y="4934" width="110" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="4958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="4934" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="4958" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, from the records of a run of SC-</tspan>
+    <tspan x="602" dy="20">DRIVING-001 alone, for every command the</tspan>
+    <tspan x="602" dy="20">input age at actuation and the planning</tspan>
+    <tspan x="602" dy="20">interval are computed in simulation time</tspan>
+    <tspan x="602" dy="20">and the planning time and the Eclipse</tspan>
+    <tspan x="602" dy="20">S-CORE transport delay on the monotonic</tspan>
+    <tspan x="602" dy="20">clock of the host, and no computation</tspan>
+    <tspan x="602" dy="20">combines times of two domains.</tspan>
+  </text>
+  <rect x="0" y="5114" width="144" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-033</tspan>
+  </text>
+  <rect x="144" y="5114" width="336" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqRecordRunIdentity</tspan>
+  </text>
+  <rect x="480" y="5114" width="110" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="5114" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="5138" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when every run of SC-DRIVING-001 has</tspan>
+    <tspan x="602" dy="20">the record before its first plan, and</tspan>
+    <tspan x="602" dy="20">another engineer who hashes the named</tspan>
+    <tspan x="602" dy="20">checkpoint file and configuration and</tspan>
+    <tspan x="602" dy="20">checks out the named source revision</tspan>
+    <tspan x="602" dy="20">obtains the recorded values.</tspan>
+  </text>
+  <rect x="0" y="5254" width="144" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="5278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-034</tspan>
+  </text>
+  <rect x="144" y="5254" width="336" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="5278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqPlansNameRunRecord</tspan>
+  </text>
+  <rect x="480" y="5254" width="110" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="5278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="5254" width="360" height="80" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="5278" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when every plan in the records of a</tspan>
+    <tspan x="602" dy="20">run of SC-DRIVING-001 names the run record</tspan>
+    <tspan x="602" dy="20">of REQ-DRIVING-033.</tspan>
+  </text>
+  <rect x="0" y="5334" width="144" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="5358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">REQ-DRIVING-035</tspan>
+  </text>
+  <rect x="144" y="5334" width="336" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="5358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqRefuseUnpinnedCheckpoint</tspan>
+  </text>
+  <rect x="480" y="5334" width="110" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="5358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">test</tspan>
+  </text>
+  <rect x="590" y="5334" width="360" height="160" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="602" y="5358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="602" dy="0">Met when, given a checkpoint file that</tspan>
+    <tspan x="602" dy="20">differs from the named one in a single</tspan>
+    <tspan x="602" dy="20">byte, and given a configuration that names</tspan>
+    <tspan x="602" dy="20">no checkpoint SHA-256, the driving system</tspan>
+    <tspan x="602" dy="20">produces no plan, the vehicle stays at</tspan>
+    <tspan x="602" dy="20">standstill, and the health names the</tspan>
+    <tspan x="602" dy="20">mismatch.</tspan>
+  </text>
+</svg>

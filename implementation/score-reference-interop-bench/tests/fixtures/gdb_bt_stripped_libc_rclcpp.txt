@@ -1,0 +1,7 @@
+Program terminated with signal SIGABRT, Aborted.
+#0  0x00007f12a5e969fc in pthread_kill () from /lib/x86_64-linux-gnu/libc.so.6
+#1  0x00007f12a5e42476 in raise () from /lib/x86_64-linux-gnu/libc.so.6
+#2  0x00007f12a5e287f3 in abort () from /lib/x86_64-linux-gnu/libc.so.6
+#3  0x0000561b0b6d26a9 in __cxa_allocate_exception ()
+#4  0x00007f12a69c7d61 in rclcpp::node_interfaces::NodeParameters::set_parameters_atomically(std::vector<rclcpp::Parameter, std::allocator<rclcpp::Parameter> > const&) () from /opt/ros/humble/lib/librclcpp.so
+#5  0x00007f12a69ba1f3 in ?? () from /opt/ros/humble/lib/librclcpp.so

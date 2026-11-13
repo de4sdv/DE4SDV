@@ -30,27 +30,52 @@ from typing import Iterable
 # `abstract part def`, `in item x`, `ref part x`, `variant part x` all parse;
 # `then` prefixes use-case include actions (`then include 'x' { ... }`).
 # A declaration can have more than one prefix keyword (`variant ref part x`,
-# `in ref item x`). Thus the prefix group repeats.
-_PREFIX = r"(?:(?:abstract|derived|in|out|inout|ref|variant|variation|then)\s+)*"
+# `in ref item x`). Thus the prefix group repeats. `library package` and
+# `standard library package` declare packages: their kind is `package`.
+_PREFIX = (
+    r"(?:(?:abstract|derived|in|out|inout|ref|variant|variation|then|"
+    r"standard|library)\s+)*"
+)
 _KIND = (
     r"part def|port def|item def|requirement def|viewpoint def|concern def|"
     r"action def|state def|interface def|flow def|attribute def|metadata def|"
     r"enum def|verification def|calc def|allocation def|constraint def|"
-    r"use case def|package|part|port|item|requirement|view|viewpoint|concern|"
+    r"connection def|use case def|package|part|port|item|requirement|view|viewpoint|concern|"
     r"action|state|interface|flow|attribute|metadata|usage|exhibit|enum|"
-    r"verification|calc|allocation|constraint|story|interaction|event|transfer|"
+    r"verification|calc|allocation|assert constraint|constraint|story|interaction|event|transfer|"
     r"stakeholder|subject|dependency|trace|satisfy|verify|refine|actor|"
-    r"objective|alias|claim|argument|evidence|counterclaim|use case|include|connection|bind"
+    r"objective|alias|claim|argument|evidence|counterclaim|use case|include|connection|binding|bind"
 )
 _NAME = r"[A-Za-z_][A-Za-z0-9_]*|'[^']*'"
+# A short name sits between the kind and the name: `requirement <'REQ-1'> r`.
+# The name can follow it without a space (`<'VC-1'>Check`).
+_SHORT = r"'(?:[^'\\]|\\.)*'|[A-Za-z_][A-Za-z0-9_]*"
 
+# A keyword is never a name. `def` after a usage kind: a kind that the list
+# does not have (`connection def X` before `connection def` was in it) or a
+# definition with a short name (`verification def <'ID'>X`) matched the
+# usage kind with the name `def`. `redefines`, `subsets` and `references`
+# start the relationship of an unnamed usage (`attribute redefines x = 1;`
+# is `attribute :>> x = 1;`).
 DECL_RE = re.compile(
-    rf"^\s*{_PREFIX}(?P<kind>{_KIND})\s+"
-    rf"(?P<name>{_NAME})(?=\s|:|;|\{{|$)"
+    rf"^\s*{_PREFIX}(?P<kind>{_KIND})"
+    rf"(?:\s*<(?P<short>{_SHORT})>\s*|\s+)"
+    rf"(?P<name>(?!(?:def|redefines|subsets|references)\b)(?:{_NAME}))(?=\s|:|;|\{{|$)"
 )
 
+
+def _short_name(group: str | None) -> str:
+    """The short name without its quotes (`'REQ-1'` -> `REQ-1`), or ''."""
+    if not group:
+        return ""
+    if group.startswith("'") and group.endswith("'"):
+        return re.sub(r"\\(.)", r"\1", group[1:-1])
+    return group
+
 # flow statements without a name (`flow from A to B;`) must not be parsed
-# as declarations named 'from'/'to'/'between'.
+# as declarations named 'from'/'to'/'between'. `flow of T from A to B;` is
+# an unnamed flow of T: like `objective` and `subject`, it is listed under
+# its keyword, never under the name 'of'.
 _FLOW_NO_NAME = frozenset({"from", "to", "between"})
 
 # anonymous usages: `objective { doc ... }` or `subject;` — the keyword is
@@ -86,11 +111,43 @@ class Member:
 
     kind: str
     name: str
-    depth: int          # brace depth at which the member lives
+    depth: int          # code braces open before the declaration, plus 1
     line: int           # 1-based line of the declaration
     doc: str = ""       # attached doc /* ... */ text (raw, unescaped)
     type_name: str = "" # declared typing (`part x : T;` -> "T"), usages only
     children: list["Member"] = field(default_factory=list)
+    short_name: str = ""  # `requirement <'REQ-1'> r` -> "REQ-1"
+    type_names: tuple[str, ...] = ()  # all types of a typing list; type_name is the first
+    library: bool = False  # a `library package` (also `standard library package`)
+    # the nearest parsed declaration whose braces contain this one (None:
+    # an index root); children lists the members that have it as parent
+    parent: "Member | None" = field(default=None, repr=False, compare=False)
+
+
+@dataclass(frozen=True)
+class FramedConcern:
+    """One concern a view frames (`frame`).
+
+    ``concern_def`` is the concern definition the frame names
+    (``frame concern c : C;`` -> ``"C"``); it is empty for the plain
+    ``frame c;`` form. ``viewpoint_definition`` names the viewpoint
+    definition the frame is inherited from; it is empty when the view
+    states the frame itself.
+    """
+
+    name: str
+    concern_def: str = ""
+    viewpoint_definition: str = ""
+
+
+@dataclass
+class ViewpointDefinition:
+    """A declared `viewpoint def`: the concerns it frames, and its `:>`
+    general definitions (the ones it inherits frames through)."""
+
+    name: str
+    frames: tuple[FramedConcern, ...] = ()
+    generalizations: tuple[str, ...] = ()
 
 
 @dataclass
@@ -101,12 +158,28 @@ class ViewInfo:
     view_type: str = ""
     viewpoint: str = ""
     viewpoint_type: str = ""
-    concern: str = ""
     exposes: list[str] = field(default_factory=list)
     depth: str = ""
     render: str = ""
     line: int = 0
     doc: str = ""
+    # the frames the view states itself, in model order
+    own_frames: list[FramedConcern] = field(default_factory=list)
+    # the frames it inherits from its viewpoint definition and that
+    # definition's `:>` general definitions (resolved model-wide)
+    inherited_frames: list[FramedConcern] = field(default_factory=list)
+
+    @property
+    def frames(self) -> list[FramedConcern]:
+        """Every concern the view frames: its own first, then inherited."""
+        return self.own_frames + self.inherited_frames
+
+    @property
+    def concern(self) -> str:
+        """The first own frame, or "" — the single concern that
+        ``scripts/generate_view_index.py`` lists, which this module agrees
+        with (see the parity test)."""
+        return self.own_frames[0].name if self.own_frames else ""
 
 
 @dataclass
@@ -117,7 +190,13 @@ class ModelFile:
     rel_path: str               # repo-relative posix path
     members: list[Member] = field(default_factory=list)
     views: list[ViewInfo] = field(default_factory=list)
+    # the `viewpoint def` declarations of the file, by name: the frames they
+    # state and the `:>` general definitions a view inherits frames through
+    viewpoint_definitions: dict[str, ViewpointDefinition] = field(default_factory=dict)
     file_doc: str = ""
+    # the names that the code of the file uses as a qualifier (`Q::`), also
+    # in its imports (`import Q::*`): see file_index
+    qualifiers: frozenset[str] = frozenset()
 
 
 def _strip_comments(text: str) -> str:
@@ -149,7 +228,10 @@ _VIEW_RE = re.compile(
 _VIEWPOINT_RE = re.compile(
     r"viewpoint\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*\{"
 )
-_FRAME_RE = re.compile(r"frame\s+([A-Za-z_][A-Za-z0-9_.]*)")
+_FRAME_RE = re.compile(
+    rf"\bframe\s+(?:concern\s+)?([A-Za-z_][A-Za-z0-9_.]*)\s*"
+    rf"(?::\s*({_QUALIFIED_NAME}))?\s*;"
+)
 _EXPOSE_RE = re.compile(r"\bexpose\s+([^;\n]+?)\s*;")
 _DEPTH_RE = re.compile(r"attribute\s+depth\s*=\s*(-?\d+)")
 _RENDER_RE = re.compile(r"render\s+([A-Za-z_][A-Za-z0-9_]*)")
@@ -163,6 +245,86 @@ def artifact_filename(view_name: str, view_type: str) -> str:
     if short == "TableView":
         return f"diagram-table-{view_name}.svg"
     return f"diagram-{view_name}.svg"
+
+
+def _frames_in(block: str) -> list[FramedConcern]:
+    """The `frame` statements of a comment-free block, in model order.
+
+    Both forms count: `frame c;` and `frame concern c : C;` (the keyword
+    `concern` is never the name). A concern the block frames twice is
+    listed once — the first statement is the one the model states first.
+    """
+    frames: list[FramedConcern] = []
+    seen: set[str] = set()
+    for match in _FRAME_RE.finditer(block):
+        name = match.group(1)
+        if name in seen:
+            continue
+        seen.add(name)
+        frames.append(FramedConcern(name=name, concern_def=match.group(2) or ""))
+    return frames
+
+
+_VIEWPOINT_DEF_RE = re.compile(r"\bviewpoint\s+def\s+([A-Za-z_][A-Za-z0-9_]*)")
+_GENERALIZATION_RE = re.compile(
+    r"(?::>|\bspecializes\b)\s*"
+    r"([A-Za-z_][A-Za-z0-9_:]*(?:\s*,\s*[A-Za-z_][A-Za-z0-9_:]*)*)"
+)
+
+
+def _block_at(text: str, brace: int) -> str | None:
+    """The text from the opening brace at `brace` to its matching `}`."""
+    depth = 1
+    for i in range(brace + 1, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return text[brace : i + 1]
+    return None
+
+
+def _parse_viewpoint_definition(text: str, name: str) -> ViewpointDefinition:
+    """Parse one `viewpoint def` of comment-free text.
+
+    A definition without a body (`viewpoint def X;`) frames nothing and has
+    no specialization: it is not mistaken for a later block.
+    """
+    match = re.search(rf"\bviewpoint\s+def\s+{re.escape(name)}\b", text)
+    frames: tuple[FramedConcern, ...] = ()
+    generalizations: tuple[str, ...] = ()
+    if match:
+        brace = text.find("{", match.end())
+        semi = text.find(";", match.end())
+        if brace != -1 and (semi == -1 or brace < semi):
+            block = _block_at(text, brace)
+            if block:
+                header = text[match.end() : brace]
+                spec = _GENERALIZATION_RE.search(header)
+                if spec:
+                    generalizations = tuple(
+                        re.sub(r"\s+", "", g) for g in spec.group(1).split(",")
+                    )
+                frames = tuple(_frames_in(block))
+    return ViewpointDefinition(
+        name=name, frames=frames, generalizations=generalizations
+    )
+
+
+def parse_viewpoint_definitions(text: str) -> dict[str, ViewpointDefinition]:
+    """The `viewpoint def` declarations of one file, by name.
+
+    `text` is the comment-free text of the file. A name declared twice
+    keeps its first declaration.
+    """
+    definitions: dict[str, ViewpointDefinition] = {}
+    for match in _VIEWPOINT_DEF_RE.finditer(text):
+        name = match.group(1)
+        if name in definitions:
+            continue
+        definitions[name] = _parse_viewpoint_definition(text, name)
+    return definitions
 
 
 def _parse_view(text: str, name: str) -> ViewInfo | None:
@@ -181,9 +343,7 @@ def _parse_view(text: str, name: str) -> ViewInfo | None:
     vp = _VIEWPOINT_RE.search(block)
     if vp:
         info.viewpoint, info.viewpoint_type = vp.group(1), vp.group(2)
-    frame = _FRAME_RE.search(block)
-    if frame:
-        info.concern = frame.group(1)
+    info.own_frames = _frames_in(block)
     info.exposes = [e for e in _EXPOSE_RE.findall(block) if e != name]
     d = _DEPTH_RE.search(block)
     if d:
@@ -299,94 +459,206 @@ def _attach_docs(text: str, members: list[Member]) -> None:
                 break
 
 
-def _declared_type(raw: str, name: str) -> str:
-    """Typing named in a usage declaration (`part x : T;` -> "T").
+_LIBRARY_RE = re.compile(r"^\s*(?:standard\s+)?library\s+package\b")
+_QUALIFIER_RE = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*::")
+
+# the text of a string or a quoted name in the code mask: not white space
+# (it can start a statement), never a brace or a semicolon
+_TEXT_MARK = "\0"
+
+
+def _code_mask(text: str) -> tuple[str, set[int]]:
+    """The text with notes, comments, strings and quoted names masked.
+
+    A note (`//` to the end of the line, `//* ... */`) and a comment body
+    (`/* ... */`) become spaces. A string (`"..."`) and a quoted name
+    (`'...'`) become _TEXT_MARK. Newlines stay, so every position keeps its
+    line. Also returns the positions just after each comment body: a doc,
+    a comment and a textual representation end with their body.
+    """
+    out = list(text)
+    ends: set[int] = set()
+    n = len(text)
+    i = 0
+    while i < n:
+        c = text[i]
+        if c == "/" and text.startswith(("//", "/*"), i):
+            if text.startswith("//*", i):
+                j = text.find("*/", i + 3)
+                j = n if j == -1 else j + 2
+            elif text.startswith("//", i):
+                j = text.find("\n", i)
+                j = n if j == -1 else j
+            else:
+                j = text.find("*/", i + 2)
+                j = n if j == -1 else j + 2
+                ends.add(j)
+            for p in range(i, j):
+                if out[p] != "\n":
+                    out[p] = " "
+            i = j
+            continue
+        if c in "\"'":
+            j = i + 1
+            while j < n and text[j] != c:
+                j += 2 if text[j] == "\\" else 1
+            j = min(n, j + 1)
+            for p in range(i, j):
+                if out[p] != "\n":
+                    out[p] = _TEXT_MARK
+            i = j
+            continue
+        i += 1
+    return "".join(out), ends
+
+
+# a type: a name or a qualified name (`Q::T`, also `Q :: T`)
+_TYPE = r"[A-Za-z_][A-Za-z0-9_]*(?:\s*::\s*[A-Za-z_][A-Za-z0-9_]*)*"
+_TYPE_LIST_RE = re.compile(rf"\s*({_TYPE}(?:\s*,\s*{_TYPE})*)")
+# What can come after a typing: the end of the declaration or of its line;
+# a value, a multiplicity or a default; a reference, a subsetting or a
+# redefinition, as a keyword or as a symbol (`:>` also starts `:>>`); the
+# ends of a connection, an allocation, a binding, a flow or a succession;
+# the annotated element of a metadata usage.
+_AFTER_TYPING_RE = re.compile(
+    r"$|[;{\[=]|:=|::>|:>|(?:references|subsets|redefines|default|ordered|"
+    r"nonunique|about|connect|allocate|bind|from|first)\b"
+)
+
+
+def _declared_types(raw: str) -> tuple[str, ...]:
+    """Types named in a usage declaration (`part x : T;` -> ("T",)).
 
     Captured so hover enrichment can fall back to the type definition's doc
     when the usage itself is undocumented, even from BARE diagram labels
-    (matrix row/column labels print only the usage name). Returns "" for
-    definitions, untyped usages, and specialization forms (`:>` / `:>>`),
-    which are not typing references.
+    (matrix row/column labels print only the usage name). Returns () for
+    definitions, untyped usages, and usages that only specialize
+    (`part x :> y;`), because a specialization is not a typing.
+
+    Only the header of the declaration counts: the line before its first
+    `{`. In `port def P { in item x : T; }`, T is the type of x, not of P.
+    A qualified type keeps its qualifier (`Q::T`). A typing list
+    (`: A, B`) gives all its types, in their order. A ` : ` after `=` or
+    `default` is in a value (`x = c ? a : b`), not a typing; a ` : ` in a
+    string or a quoted name is no typing either.
     """
-    if " : " not in raw:
-        return ""
-    tail = raw.split(" : ", 1)[1]
-    m = re.match(r"\s*([A-Za-z_][A-Za-z0-9_]*)", tail)
-    if not m:
-        return ""
-    candidate = m.group(1)
-    # `:>`/`:>>` specializations land here only if written with spaces around
-    # the colon; those are not typings. A typing is followed by `;`, `{`, or
-    # end-of-line (possibly with a redefinition/assignment after).
-    after = tail[m.end():].lstrip()
-    if after.startswith((";", "{", "={", "= {")) or after == "":
-        return candidate
-    return ""
+    code = _code_mask(raw)[0]
+    header_end = code.find("{")
+    colon = code.find(" : ", 0, header_end if header_end != -1 else len(code))
+    if colon == -1 or re.search(r"=|\bdefault\b", code[:colon]):
+        return ()
+    tail = raw[colon + 3:]
+    m = _TYPE_LIST_RE.match(tail)
+    if not m or not _AFTER_TYPING_RE.match(tail[m.end():].lstrip()):
+        return ()
+    return tuple(re.sub(r"\s+", "", t) for t in m.group(1).split(","))
+
+
+def _declaration(raw: str, lineno: int, depth: int) -> Member | None:
+    """The member that a source line declares, or None."""
+    m = DECL_RE.match(raw)
+    if m:
+        kind = m.group("kind").strip()
+        name = m.group("name")
+        short = _short_name(m.group("short"))
+        types = _declared_types(raw)
+        if kind == "exhibit":
+            # `exhibit state lifecycleStates {` — index the exhibited
+            # usage (state, action, ...) under its real name so diagram
+            # labels like "lifecycleStates" resolve; a plain
+            # `exhibit partName;` stays an exhibit of that part.
+            sub = _EXHIBIT_USAGE_RE.match(raw.strip())
+            if sub and sub.group(1) in _USAGE_KINDS:
+                kind = sub.group(1)
+                name = sub.group(2)
+        if kind == "flow" and name in _FLOW_NO_NAME:
+            # `flow from A to B;` — no declaration
+            return None
+        if kind == "flow" and name == "of":
+            name = "flow"  # `flow of T from A to B;` — an unnamed flow
+        if kind == "package":
+            return Member(kind=kind, name=name, depth=depth, line=lineno,
+                          short_name=short, library=bool(_LIBRARY_RE.match(raw)))
+        return Member(kind=kind, name=name, depth=depth, line=lineno,
+                      type_name=types[0] if types else "", type_names=types,
+                      short_name=short)
+    bm = _BIND_DOTTED_RE.match(raw)
+    if bm:
+        # `bind a.b = c;` — dotted source; the full path is the name
+        return Member(kind="bind", name=bm.group(1), depth=depth, line=lineno)
+    anon = _ANON_USAGE_RE.match(raw)
+    if anon:
+        # `objective { doc ... }` / `subject;` — anonymous usage;
+        # index it under its keyword so diagram compartment labels
+        # resolve to the declaration (with its doc)
+        akind = anon.group("kind").strip()
+        return Member(kind=akind, name=akind, depth=depth, line=lineno)
+    return None
+
+
+def _scan_members(text: str, code: str, comment_ends: set[int]) -> list[Member]:
+    """The declared members of a file, each with its parent and children.
+
+    A line declares a member when its first character is code and starts a
+    statement. A statement starts at the first character after `;`, `{`,
+    `}` or a comment body; thus a line that continues a statement declares
+    nothing. A `{` belongs to the statement that it ends. The parent of a
+    member is the nearest member that owns one of the braces open at its
+    line. A brace whose statement is no member (`perform ... {`,
+    `attribute :>> x = ... {`) is no parent: the members inside it get the
+    nearest member around it, never a member that comes before it. The
+    depth of a member is the number of code braces open before its line,
+    plus 1: a declaration outside all braces has depth 1. This is a
+    navigation heuristic, not SysML v2 name resolution. code and
+    comment_ends are the result of _code_mask(text).
+    """
+    members: list[Member] = []
+    owners: list[Member | None] = []   # the owner of each open code brace
+    stmt_start: int | None = None      # where the current statement starts
+    declared: dict[int, Member] = {}   # statement start -> its member
+    pos = 0
+    for lineno, raw in enumerate(text.split("\n"), start=1):
+        first = pos + len(raw) - len(raw.lstrip())
+        for i in range(pos, pos + len(raw)):
+            if i in comment_ends:
+                stmt_start = None
+            if i == first and stmt_start is None and code[i] == text[i]:
+                member = _declaration(raw, lineno, len(owners) + 1)
+                if member is not None:
+                    member.parent = next(
+                        (o for o in reversed(owners) if o is not None), None)
+                    if member.parent is not None:
+                        member.parent.children.append(member)
+                    members.append(member)
+                    declared[i] = member
+            c = code[i]
+            if c == "{":
+                owners.append(declared.get(stmt_start) if stmt_start is not None else None)
+                stmt_start = None
+            elif c == "}":
+                if owners:
+                    owners.pop()
+                stmt_start = None
+            elif c == ";":
+                stmt_start = None
+            elif stmt_start is None and not c.isspace():
+                stmt_start = i
+        pos += len(raw)
+        if pos in comment_ends:   # a comment body that ends the line
+            stmt_start = None
+        pos += 1
+    return members
 
 
 def parse_file(path: Path, repo_root: Path) -> ModelFile:
     """Parse one .sysml file into a ModelFile."""
     text = path.read_text(encoding="utf-8")
     mf = ModelFile(path=path, rel_path=path.relative_to(repo_root).as_posix())
-
-    depth = 0
-    for lineno, raw in enumerate(text.splitlines(), start=1):
-        m = DECL_RE.match(raw)
-        opens = raw.count("{")
-        closes = raw.count("}")
-        if m:
-            kind = m.group("kind").strip()
-            name = m.group("name")
-            type_name = _declared_type(raw, name)
-            if kind == "exhibit":
-                # `exhibit state lifecycleStates {` — index the exhibited
-                # usage (state, action, ...) under its real name so diagram
-                # labels like "lifecycleStates" resolve; a plain
-                # `exhibit partName;` stays an exhibit of that part.
-                sub = _EXHIBIT_USAGE_RE.match(raw.strip())
-                if sub and sub.group(1) in _USAGE_KINDS:
-                    kind = sub.group(1)
-                    name = sub.group(2)
-            if kind == "flow" and name in _FLOW_NO_NAME:
-                # `flow from A to B;` — no declaration
-                pass
-            elif kind == "package":
-                decl_depth = depth + 1
-                depth += 1
-                mf.members.append(
-                    Member(kind=kind, name=name, depth=decl_depth, line=lineno)
-                )
-            else:
-                mf.members.append(
-                    Member(kind=kind, name=name, depth=depth, line=lineno, type_name=type_name)
-                )
-        else:
-            bm = _BIND_DOTTED_RE.match(raw)
-            if bm:
-                # `bind a.b = c;` — dotted source; the full path is the name
-                mf.members.append(
-                    Member(kind="bind", name=bm.group(1), depth=depth, line=lineno)
-                )
-            else:
-                anon = _ANON_USAGE_RE.match(raw)
-                if anon:
-                    # `objective { doc ... }` / `subject;` — anonymous usage;
-                    # index it under its keyword so diagram compartment labels
-                    # resolve to the declaration (with its doc)
-                    akind = anon.group("kind").strip()
-                    mf.members.append(Member(kind=akind, name=akind, depth=depth, line=lineno))
-        depth += opens - closes
-        if depth < 0:
-            depth = 0
-
-    # member tree: parent = nearest preceding member with depth-1
-    stack: list[tuple[int, Member]] = []
-    for m in mf.members:
-        while stack and stack[-1][0] >= m.depth:
-            stack.pop()
-        if stack:
-            stack[-1][1].children.append(m)
-        stack.append((m.depth, m))
+    code, comment_ends = _code_mask(text)
+    mf.members = _scan_members(text, code, comment_ends)
+    mf.qualifiers = frozenset(_QUALIFIER_RE.findall(code))
+    stripped = _strip_comments(text)
+    mf.viewpoint_definitions = parse_viewpoint_definitions(stripped)
 
     # --- views ---
     for match in _VIEW_RE.finditer(text):
@@ -430,8 +702,79 @@ def model_paths(repo_root: Path, roots: list[str]) -> list[Path]:
 
 
 def load_model(repo_root: Path, roots: list[str]) -> list[ModelFile]:
-    """Load the .sysml files under the given repo-relative roots, without their fixtures."""
-    return [parse_file(path, repo_root) for path in model_paths(repo_root, roots)]
+    """Load the .sysml files under the given repo-relative roots, without their fixtures.
+
+    The frames a view inherits from its viewpoint definition are resolved
+    model-wide, so the loaded views carry every concern they frame (see
+    ``resolve_framed_concerns``)."""
+    files = [parse_file(path, repo_root) for path in model_paths(repo_root, roots)]
+    resolve_framed_concerns(files)
+    return files
+
+
+def _definition_name(
+    type_name: str, definitions: dict[str, ViewpointDefinition]
+) -> str:
+    """The declared viewpoint definition for a typename, or "".
+
+    A qualified typename (`SAF::X`) names its last segment; the model may
+    declare the definition in another package."""
+    for candidate in (type_name, type_name.rsplit("::", 1)[-1]):
+        candidate = re.sub(r"\s+", "", candidate)
+        if candidate in definitions:
+            return candidate
+    return ""
+
+
+def resolve_framed_concerns(files: list[ModelFile]) -> None:
+    """Give every view the concerns it inherits from its viewpoint definition.
+
+    A `viewpoint def` frames concerns; a viewpoint usage typed by that
+    definition frames them too, and through the definition's `:>` general
+    definitions. The nearer definition's frames come first, after the
+    frames the view states itself. A concern the view frames itself is not
+    repeated — the view states it once, as its own frame. What the model
+    does not state is not added.
+    """
+    definitions: dict[str, ViewpointDefinition] = {}
+    for mf in files:
+        for name, definition in mf.viewpoint_definitions.items():
+            definitions.setdefault(name, definition)
+    for mf in files:
+        for view in mf.views:
+            view.inherited_frames = _inherited_frames(view, definitions)
+
+
+def _inherited_frames(
+    view: ViewInfo, definitions: dict[str, ViewpointDefinition]
+) -> list[FramedConcern]:
+    """The frames a view inherits through the type of its viewpoint usage."""
+    frames: list[FramedConcern] = []
+    seen = {frame.name for frame in view.own_frames}
+    visited: set[str] = set()
+    pending = [_definition_name(view.viewpoint_type, definitions)]
+    while pending:
+        name = pending.pop(0)
+        if not name or name in visited:
+            continue
+        visited.add(name)
+        definition = definitions[name]
+        for frame in definition.frames:
+            if frame.name in seen:
+                continue
+            seen.add(frame.name)
+            frames.append(
+                FramedConcern(
+                    name=frame.name,
+                    concern_def=frame.concern_def,
+                    viewpoint_definition=definition.name,
+                )
+            )
+        pending.extend(
+            _definition_name(generalization, definitions)
+            for generalization in definition.generalizations
+        )
+    return frames
 
 
 # ---------------------------------------------------------------------------
@@ -453,6 +796,14 @@ class TreeNode:
     saf_aspect: str = ""      # views only: SAF aspect from viewpoint def doc
     element_file: str = ""    # element nodes only: declaring .sysml rel_path
     element_line: int = 0     # element nodes only: declaration line (1-based)
+    short_name: str = ""      # element nodes only: the short name, shown before the label
+
+    @property
+    def text(self) -> str:
+        """The text of the node in the tree: `<short> label` (the notation of
+        the SysIDE diagrams), or the label. The label alone is the element
+        identity (data-tip-name)."""
+        return f"<{self.short_name}> {self.label}" if self.short_name else self.label
 
 
 _SAF_DOMAIN_RE = re.compile(r"SAF\s+([A-Za-z &]+?)\s+Domain")
@@ -551,6 +902,7 @@ def build_tree(files: list[ModelFile]) -> TreeNode:
                     meta=mm.kind,
                     element_file=mf.rel_path,
                     element_line=mm.line,
+                    short_name=mm.short_name,
                 )
             )
         node.children.append(file_node)
@@ -590,6 +942,9 @@ class ElementRef:
     parent_line: int = 0
     has_children: bool = False
     type_name: str = ""     # declared typing (`part x : T;` -> "T"), usages only
+    short_name: str = ""    # `requirement <'REQ-1'> r` -> "REQ-1"
+    type_names: tuple[str, ...] = ()  # all types of a typing list; type_name is the first
+    library: str = ""       # the library package that contains the declaration, if any
 
 
 def _walk_with_parent(
@@ -601,6 +956,16 @@ def _walk_with_parent(
         yield from _walk_with_parent(m.children, m)
 
 
+def _library_of(m: Member) -> str:
+    """The name of the library package that contains m (or is m), or ''."""
+    node: Member | None = m
+    while node is not None:
+        if node.library:
+            return node.name
+        node = node.parent
+    return ""
+
+
 def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
     """Index every declared member and view by name.
 
@@ -610,9 +975,12 @@ def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
     index: dict[str, list[ElementRef]] = {}
     for mf in files:
         # mf.members is flat (children are also listed); walk only the
-        # top-level entries and descend via the tree so nothing is doubled
+        # roots (members without a parent) and descend via the tree so
+        # nothing is doubled. A member in the braces of a declaration that
+        # the scanner does not parse (a top-level `library package` before)
+        # is a root too, so it is not lost.
         for m, parent in _walk_with_parent(
-            [m for m in mf.members if m.depth == 1], None
+            [m for m in mf.members if m.parent is None], None
         ):
             if m.kind == "package":
                 # packages resolve `expose PackageName::*` diagram labels
@@ -626,6 +994,8 @@ def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
                     parent_name=parent.name if parent else "",
                     parent_line=parent.line if parent else 0,
                     has_children=bool(m.children),
+                    short_name=m.short_name,
+                    library=_library_of(m),
                 )
                 _index_add(index, ref)
                 continue
@@ -640,6 +1010,9 @@ def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
                 parent_line=parent.line if parent else 0,
                 has_children=bool(m.children),
                 type_name=m.type_name,
+                short_name=m.short_name,
+                type_names=m.type_names,
+                library=_library_of(m),
             )
             _index_add(index, ref)
         for v in mf.views:
@@ -655,7 +1028,35 @@ def build_member_index(files: list[ModelFile]) -> dict[str, list[ElementRef]]:
     return index
 
 
+def file_index(
+    index: dict[str, list[ElementRef]], mf: ModelFile
+) -> dict[str, list[ElementRef]]:
+    """The index as one file sees it, for its source references and its
+    diagram labels.
+
+    A declaration in a library package L counts only in its own file and in
+    a file that names L as a qualifier (`import L::*`, `L::x`). Elsewhere a
+    common name (`kind`, `path`) would go to the library. The full index
+    keeps every declaration, for Ask and the tree. This is a navigation
+    heuristic, not SysML v2 name resolution.
+    """
+    def visible(ref: ElementRef) -> bool:
+        return (not ref.library or ref.rel_path == mf.rel_path
+                or ref.library in mf.qualifiers)
+
+    view: dict[str, list[ElementRef]] = {}
+    for key, refs in index.items():
+        kept = [r for r in refs if visible(r)]
+        if kept:
+            view[key] = kept
+    return view
+
+
 def _index_add(index: dict[str, list[ElementRef]], ref: ElementRef) -> None:
     index.setdefault(ref.name, []).append(ref)
     if ref.name.startswith("'") and ref.name.endswith("'"):
         index.setdefault(ref.name[1:-1], []).append(ref)
+    # a short name is a name of the element too (SysML v2 resolves it like
+    # the name), so `REQ-1` finds `requirement <'REQ-1'> r`
+    if ref.short_name and ref.short_name != ref.name:
+        index.setdefault(ref.short_name, []).append(ref)

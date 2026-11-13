@@ -1,0 +1,62 @@
+# DE4SDV closed-loop driving bench, slice 10b: actuation adapter.
+#
+# Target names follow the probes this component was written against:
+#   - S-CORE Communication v0.6.0  @score_communication//score/mw/com
+#   - LibCarla 0.9.16              @libcarla//:client
+#     (the P3.d new_local_repository: include/ + lib/libcarla_client.a ...)
+#   - the bench contract headers  //de4sdv_bench/interfaces:de4sdv_driving
+# Labels follow the bench overlay layout (the bench sits at de4sdv_bench/ in the
+# S-CORE workspace), as in agent/BUILD.bazel.
+#
+# Build with the S-CORE toolchain: bazel build --config=x86_64-linux //...:actuation_adapter
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "mw_com_config_actuation_adapter.json",
+    "config/vehicle_limits.json",
+])
+
+# Pure C++17 logic; the local g++ test binary uses the same sources.
+cc_library(
+    name = "adapter_core",
+    srcs = [
+        "adapter_config.cpp",
+        "adapter_core.cpp",
+        "json_lite.cpp",
+    ],
+    hdrs = [
+        "adapter_config.h",
+        "adapter_core.h",
+        "json_lite.h",
+        "log_records.h",
+    ],
+    includes = ["."],
+    deps = ["//de4sdv_bench/interfaces:de4sdv_driving"],
+)
+
+cc_binary(
+    name = "actuation_adapter",
+    srcs = ["actuation_adapter_main.cpp"],
+    linkopts = ["-lpthread"],
+    deps = [
+        ":adapter_core",
+        "//de4sdv_bench/interfaces:de4sdv_driving",
+        "@libcarla//:client",
+        "@score_communication//score/mw/com",
+    ],
+)
+
+cc_binary(
+    name = "adapter_core_test",
+    srcs = [
+        "tests/adapter_core_test.cpp",
+        "tests/simulated_vehicle.h",
+    ],
+    deps = [
+        ":adapter_core",
+        "//de4sdv_bench/interfaces:de4sdv_driving",
+    ],
+)

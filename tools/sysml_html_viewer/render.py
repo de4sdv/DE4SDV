@@ -18,10 +18,12 @@ import re
 from pathlib import Path
 
 from .model_parse import (
+    ElementRef,
     ModelFile,
     TreeNode,
     ViewInfo,
     artifact_filename,
+    file_index,
     slugify,
 )
 from .saf_viewpoint_info import SAF_VIEWPOINT_INFO, SAF_VIEWPOINT_URLS
@@ -33,6 +35,23 @@ from .saf_viewpoint_info import SAF_VIEWPOINT_INFO, SAF_VIEWPOINT_URLS
 
 def esc(text: str) -> str:
     return html.escape(text, quote=True)
+
+
+# word boundaries in a name: after `::`, `/`, `.` and `_`; before a capital
+# letter after a lower-case letter or a digit; and before the capital that
+# starts a word after a run of capitals (`AEBSAutoware`: AEBS | Autoware)
+_WORD_BOUNDARY_RE = re.compile(
+    r"(?<=::)(?=.)|(?<=[/._])(?=.)|(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])"
+)
+
+
+def wbr(name: str) -> str:
+    """The name escaped for HTML, with <wbr> at its word boundaries.
+
+    A long identifier or path in a narrow column then wraps between two
+    words, not inside a word. <wbr> adds no text, so a copy of the name
+    stays the same."""
+    return "<wbr>".join(esc(part) for part in _WORD_BOUNDARY_RE.split(name))
 
 
 def make_anchor(counter: dict[str, int], name: str) -> str:
@@ -103,6 +122,8 @@ def node_data_attrs(node: TreeNode) -> str:
             f'data-tip-file="{esc(node.element_file)}"',
             f'data-tip-line="{node.element_line}"',
         ]
+        if node.short_name:
+            parts.append(f'data-tip-short="{esc(node.short_name)}"')
     return " ".join(parts)
 
 
@@ -114,9 +135,9 @@ def render_tree(node: TreeNode, active_href: str = "", depth: int = 0) -> str:
     kids = "".join(render_tree(c, active_href, depth + 1) for c in node.children)
     inner = f'<span class="tree-icon">{_icon(node.kind)}</span>'
     if node.href:
-        label = f'<a href="{esc(node.href)}">{esc(node.label)}</a>'
+        label = f'<a href="{esc(node.href)}">{esc(node.text)}</a>'
     else:
-        label = f"<span class='tree-label'>{esc(node.label)}</span>"
+        label = f"<span class='tree-label'>{esc(node.text)}</span>"
     meta = f"<span class='tree-meta'>{esc(node.meta)}</span>" if node.meta else ""
     attrs = node_data_attrs(node)
     if kids:
@@ -399,7 +420,7 @@ def render_dir_page(
             )
         else:
             items.append(
-                f"<li class='child-item'>{_icon(c.kind)} <a href='{esc(c.href)}'>{esc(c.label)}</a></li>"
+                f"<li class='child-item'>{_icon(c.kind)} <a href='{esc(c.href)}'>{esc(c.text)}</a></li>"
             )
     content = (
         f"<div class='card'><h1>{esc(dir_label)}</h1>"
@@ -432,28 +453,52 @@ _SRC_TOKEN_RE = re.compile(
     r"\b[A-Za-z_][A-Za-z0-9_]*\b|.",
 )
 
-# per-line scan: quoted names first, then comment openers
-_LINE_SCAN_RE = re.compile(r"'[^']*'|/\*|//")
+# per-line scan: quoted names and strings (a string without its closing
+# quote runs to the end of the line), then comment openers. A word in a
+# string is text, never a source reference.
+_LINE_SCAN_RE = re.compile(r"'[^']*'|\"(?:[^\"\\]|\\.)*\"?|/\*|//")
 
 _IDENT_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def _resolve_source_ref(
-    token: str, line_no: int, mf: ModelFile, member_index: dict
+    token: str,
+    line_no: int,
+    mf: ModelFile,
+    member_index: dict,
+    qualifier_ref: ElementRef | None = None,
 ):
     """Resolve an identifier in the source to its declaration, or None.
 
     The declaration itself is never annotated; usages in the same file
     resolve to the same file, everything else to the defining file.
+
+    In a qualified name `Q::token`, qualifier_ref is the resolved
+    declaration of Q. The declarations of token that it owns (its
+    children) come first. A declaration on this line is not a candidate.
+    If no candidate remains, the rules for a name without a qualifier
+    apply. Thus a feature that a usage without a body gets from its type
+    (`part layer : Realization;`) resolves by the rules for a name without
+    a qualifier; the name of Q is not used. This is a navigation heuristic
+    over the scanned declarations, not SysML v2 name resolution.
     """
     refs = member_index.get(token)
     if not refs:
         return None
-    if any(r.rel_path == mf.rel_path and r.line == line_no for r in refs):
-        return None
     from .svg_info import _prefer
 
     folder = str(Path(mf.rel_path).parent)
+    if qualifier_ref is not None:
+        owned = [
+            r for r in refs
+            if r.rel_path == qualifier_ref.rel_path
+            and r.parent_line == qualifier_ref.line
+            and not (r.rel_path == mf.rel_path and r.line == line_no)
+        ]
+        if owned:
+            return _prefer(owned, mf.rel_path, folder)
+    if any(r.rel_path == mf.rel_path and r.line == line_no for r in refs):
+        return None
     return _prefer(refs, mf.rel_path, folder)
 
 
@@ -489,13 +534,25 @@ def _highlight_code(
     prefix: str,
 ) -> str:
     """Highlight keywords/numbers/operators in a comment-free segment and
-    wrap identifiers that resolve to model elements as source references."""
+    wrap identifiers that resolve to model elements as source references.
+
+    The resolved declaration of the last identifier is kept across spaces
+    and `::`, so the name after `Q::` resolves in Q (see
+    _resolve_source_ref). Any other token clears it."""
     out = []
     pos = 0
+    # last_ref: the resolved declaration of the last identifier;
+    # qualifier_ref: the same, after a `::` that follows that identifier
+    last_ref, qualifier_ref = None, None
     for m in _SRC_TOKEN_RE.finditer(seg):
         out.append(esc(seg[pos : m.start()]))
         tok = m.group(0)
         cls = _token_class(tok)
+        is_ident = cls == "" and _IDENT_RE.fullmatch(tok) is not None
+        if tok == "::":
+            last_ref, qualifier_ref = None, last_ref
+        elif not is_ident and not tok.isspace():
+            last_ref, qualifier_ref = None, None
         if cls:
             if cls == "op" and tok in _SYM_TIPS:
                 out.append(
@@ -507,8 +564,12 @@ def _highlight_code(
                 out.append(f'<span class="src-{cls}">{esc(tok)}</span>')
         else:
             ref = None
-            if mf is not None and member_index is not None and _IDENT_RE.fullmatch(tok):
-                ref = _resolve_source_ref(tok, line_no, mf, member_index)
+            if mf is not None and member_index is not None and is_ident:
+                ref = _resolve_source_ref(
+                    tok, line_no, mf, member_index, qualifier_ref
+                )
+            if is_ident:
+                last_ref, qualifier_ref = ref, None
             if ref is not None:
                 same = ref.rel_path == mf.rel_path
                 href = (
@@ -520,6 +581,8 @@ def _highlight_code(
                     f' data-tip-kind="{esc(ref.kind)}"'
                     f' data-tip-name="{esc(ref.name)}"'
                 )
+                if ref.short_name:
+                    tip += f' data-tip-short="{esc(ref.short_name)}"'
                 if ref.doc:
                     tip += f' data-tip-doc="{esc(ref.doc)}"'
                 tip += f' data-tip-file="{esc(ref.rel_path)}" data-tip-line="{ref.line}"'
@@ -568,7 +631,7 @@ def _highlight_line(
             break
         out.append(_highlight_code(line[pos : m.start()], line_no, mf, member_index, prefix))
         tok = m.group(0)
-        if tok.startswith("'"):
+        if tok.startswith(("'", '"')):
             out.append(f'<span class="src-str">{esc(tok)}</span>')
             pos = m.end()
         elif tok == "/*":
@@ -651,7 +714,11 @@ def _svg_hover_json(
         entry = li.to_dict()
         if li.anchor:
             entry["href"] = prefix + f"pages/{li.rel_path}.html#{li.anchor}"
-        payload[li.label] = entry
+        # a compartment row only under its position: many rows have the same
+        # text (`doc`), and under the text a row without its own entry would
+        # show the tooltip of another row
+        if not svg_info.is_compartment_row(li.label):
+            payload[li.label] = entry
         by_label[li.label] = li
         if li.x or li.y:
             positions[f"{li.x:g},{li.y:g}"] = entry
@@ -743,7 +810,7 @@ def _render_view_block(
             diagram_html = (
                 f'<div class="diagram-frame interactive" data-view="{esc(anchor)}">'
                 f'<div class="diagram-toolbar">'
-                f'<span class="diagram-toolbar-file">{esc(artifact)}</span>'
+                f'<span class="diagram-toolbar-file">{wbr(artifact)}</span>'
                 f'<button type="button" class="diagram-fs-btn" '
                 f'title="Fullscreen (Esc to close)">&#x26F6; Fullscreen</button>'
                 f"</div>"
@@ -774,22 +841,39 @@ def _render_view_block(
                 f' data-tip-hint="click to open the SAF viewpoint page"'
             )
         rows.append(
-            ("Viewpoint", f"<code>{esc(v.viewpoint)}</code>"
-             f"<span class='muted vp-tip'{vp_tip}> ({esc(v.viewpoint_type)})</span>")
+            ("Viewpoint", f"<code>{wbr(v.viewpoint)}</code>"
+             f"<span class='muted vp-tip'{vp_tip}> ({wbr(v.viewpoint_type)})</span>")
         )
     if v.view_type:
-        rows.append(("View type", f"<code>{esc(v.view_type)}</code>"))
-    if v.concern:
-        rows.append(("Concern", f"<code>{esc(v.concern)}</code>"))
+        rows.append(("View type", f"<code>{wbr(v.view_type)}</code>"))
+    if v.frames:
+        frames_html = "".join(
+            "<li>"
+            f"<code>{wbr(f.name)}</code>"
+            + (
+                f" <span class='muted'>: <code>{wbr(f.concern_def)}</code></span>"
+                if f.concern_def
+                else ""
+            )
+            + (
+                " <span class='muted frame-origin'>frame inherited from "
+                f"viewpoint definition <code>{wbr(f.viewpoint_definition)}</code></span>"
+                if f.viewpoint_definition
+                else " <span class='muted frame-origin'>own frame</span>"
+            )
+            + "</li>"
+            for f in v.frames
+        )
+        rows.append(("Framed concerns", f"<ul class='frame-list'>{frames_html}</ul>"))
     if v.render:
-        rows.append(("Render", f"<code>{esc(v.render)}</code>"))
+        rows.append(("Render", f"<code>{wbr(v.render)}</code>"))
     if v.depth:
         rows.append(("Depth", f"<code>{esc(v.depth)}</code>"))
     if v.exposes:
         rows.append(
-            ("Exposes", "<br>".join(f"<code>{esc(e)}</code>" for e in v.exposes))
+            ("Exposes", "<br>".join(f"<code>{wbr(e)}</code>" for e in v.exposes))
         )
-    rows.append(("Source", f"<code>{esc(mf.rel_path)}:{v.line}</code>"))
+    rows.append(("Source", f"<code>{wbr(mf.rel_path)}:{v.line}</code>"))
     meta_html = "".join(
         f"<tr><th>{esc(k)}</th><td>{val}</td></tr>" for k, val in rows
     )
@@ -800,7 +884,7 @@ def _render_view_block(
     )
     return f"""
 <section class="view-section" id="view-{anchor}">
-  <h2><span class="kind-badge view-badge">view</span> {esc(v.name)}<a class="view-src-jump" href="#source" title="Jump to the highlighted source below">source ↓</a></h2>
+  <h2><span class="kind-badge view-badge">view</span> {wbr(v.name)}<a class="view-src-jump" href="#source" title="Jump to the highlighted source below">source ↓</a></h2>
   <table class="meta-table">{meta_html}</table>
   {doc_html}
   {diagram_html}
@@ -823,6 +907,9 @@ def render_file_page(
     filters: str = "",
     asset_stamp: str = "",
 ) -> str:
+    # the source references and the diagram labels of this file see the
+    # index as the file sees it (library declarations: see file_index)
+    member_index = file_index(member_index, mf)
     anchor_counter: dict[str, int] = {}
     views_html = "".join(
         _render_view_block(
@@ -853,7 +940,7 @@ def render_file_page(
         source_html = "<p class='muted'>Source file not readable.</p>"
     content = f"""
 <div class="card file-header">
-  <h1>{esc(mf.rel_path)}</h1>
+  <h1>{wbr(mf.rel_path)}</h1>
   <p class="muted">{view_count} view(s) · {len(mf.members)} declared member(s) {source_link}{jump_link}</p>
   {doc_html}
 </div>

@@ -8,6 +8,10 @@ authors model content, the deterministic evaluation judges it.
 
 ## Method representation
 
+For an owner-requested Phase 0 example that separates a candidate driving
+function from its simulator and evidence bench, see
+[Closed-loop driving increment](closed-loop-driving-increment.md).
+
 The method of an increment is the workflow its charter declares
 ([`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)).
 The tools reach it through native relations from validated identity: the
@@ -112,6 +116,17 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   as notes.
 - **Ranking.** `next_obligation` returns the earliest open blocking check in
   workflow order (step order, then check order).
+- **Vacuous phases.** A declared phase whose blocking checks are all not
+  applicable, such as phase 3 when the increment records no feature-model
+  delta, has the exit `READY`. `increment_status` marks it `vacuous: true`,
+  with `evaluated`: how many of its checks were evaluated (advisory ones
+  only). `next_obligation` lists each such phase before `next` in
+  `vacuous_phases`, with a review `prompt`, within the `phase` it is asked
+  about. The list is advisory: it never blocks, never changes `next`, and
+  needs no model record to clear. The Method Check summary names each such
+  phase with its prompt under **Next**, as "Passed with nothing to evaluate",
+  so a reader does not take the next gate's phase for the first one with work
+  left.
 - **What to author.** `what_to_author` (and `what_satisfies` in
   `phase_contract`) is SysML built from the step parameter the check is about:
   its keyword, its type's qualified name with the `private import` of that
@@ -132,7 +147,12 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   lines after `then:` are what its check needs besides it. In
   `phase_contract`, `parameter_element_id` is the element id of that step
   parameter.
-- **Coverage.** Only some steps of the workflow carry checks. `phase_contract`
+- **Coverage.** Every step of the workflow carries checks; those of
+  variability and configuration (phase 9) and of the baseline (phase 11)
+  are in
+  [rule 16](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model).
+  A charter can name another workflow, whose steps need not all carry
+  checks. `phase_contract`
   lists every step in `steps`, with its phase, documentation, inputs and
   outputs (name, kind, type, multiplicity) and its checks; a step without
   checks has the coverage "no executable checks at this revision". In
@@ -245,6 +265,142 @@ of an untyped parameter, not a model element (`subject_type_kind` is
   `attribute speed_kmh : Vehicle_Speed;` in the payload); VSS typing is read
   at a port, never at an element, and text naming a VSS path is no VSS
   typing.
+- **Concerns (phase 1).** At least one concern the increment's packages own
+  is not typed by `IncrementBoundaryConcern` or a specialization of it
+  (registry check `nonBoundaryConcernPresent`, reported as
+  `incrementHasNonBoundaryConcern`): a boundary concern alone does not open
+  the phase. Boundary concerns may remain. Each concern the increment's
+  packages own has a native `stakeholder` member (`stakeholderMember`). A
+  viewpoint of a view of the increment frames it (`framedByViewpoint`), by
+  its own frame or by a frame of the viewpoint definition it is typed by.
+  All three checks block. A concern whose type or narrowed feature cannot be
+  read is an input problem, not a pass: its remedy says what to repair, and
+  it stays the next obligation. These gates judge presence and native
+  relationships only, never the completeness or adequacy of stakeholder,
+  risk or viewpoint coverage.
+  The views of the increment are the views its packages own, the same views as
+  in phase 11. A view that a part or another view owns is none of them.
+  The stakeholders are those members, of the concerns, the problem statement
+  and the needs; no check counts stakeholder parts. A frame owned
+  by a need, or by a viewpoint of another view, is reported and does not
+  count. So, for a concern:
+
+  ```sysml
+  concern <concern> : <ConcernDefinition> { subject; stakeholder <role> : <StakeholderRole>; }
+  view <view> {
+    viewpoint <viewpoint> : <ViewpointDefinition> { frame <concern>; }
+    expose <element>;
+  }
+  ```
+
+- **Operational context and story (phase 2).** The increment has exactly
+  one `SystemContext` usage (`incrementHasOperationalContext`). A part of it
+  redefines its `systemOfInterest` and is the system of interest the charter
+  declares (`contextSystemOfInterest`). That part is the declared usage, a
+  usage that narrows or is bound to it, or a part typed by its definition.
+  Each use case the increment's packages own at any depth, also one the
+  context owns, binds its subject to that part (`storySubjectBound`). An
+  `include use case` is no use case of its own. Each actor of a use case is
+  bound to a part of the context around that part, not inside it
+  (`storyActorsBound`). A part the context's own definition declares counts.
+  The generic slots of the kernel's `SystemContext` (`actors`) do not. All
+  four block. The checks are about the context,
+  the parameter through which they reach it; the gaps name each use case and
+  actor that does not bind. A use case has one subject, its own or its
+  definition's. Its actors are its own and those of its definitions that no
+  own actor redefines. A redefinition by the language rule counts too: the
+  export records it. Without a use case at any depth, or without an actor,
+  the story checks are not applicable, never passed. Whether a role is a System 1 role
+  stays with review. So:
+
+  ```sysml
+  part <context> : SystemContext {
+    part <system> : <SystemOfInterestDefinition> :>> systemOfInterest;
+    part <host> : <HostDefinition> { part <provider> : <ProviderDefinition>; }
+  }
+  use case <story> {
+    subject <subject> = <context>::<system>;
+    actor <provider> = <context>::<host>::<provider>;
+  }
+  ```
+
+- **Feature-model delta (phase 3).** The step's output is typed by the
+  classification base `ProductLineCharacteristic`, so `featureDeltaOnly`
+  (blocking) reads every product-line characteristic the increment's
+  packages own. A feature candidate passes, and so does product-line scope
+  the increment defers (`DeferredProductLineScope`, such as a gap). A
+  `CommonProductLineCapability` record fails: core elements are common by
+  default and get no record. An increment that adds no variability records
+  nothing, and the check is not applicable.
+- **Configured product (phase 9).** The increment declares at least one
+  configured product (`incrementHasConfiguredProduct`), and exactly one
+  feature configuration configures each
+  (`configuredByOneConfiguration`). A configuration configures it when one
+  of its part usages, its own or inherited and not redefined, is typed by
+  the part definition of that configuration's product-model projection, or
+  by a specialization of it. A redefining part without a type of its own
+  keeps the type it redefines. A redefinition typed into another
+  configuration's projection keeps both and fails. The derivation binds
+  that part definition by validated identity, never by its name alone. A test article that
+  specializes a configured member counts through the part it inherits and
+  never becomes a member. The derivation reads the source documents and the
+  external references of the export. Over the API they come from the
+  revision binding: the ingestion importer records them there
+  (`export_documents`), so the API gives the export's phase-9 result. A
+  binding without them keeps the check method side
+  (`evaluation-input:export-documents`): it is listed under
+  `method_side_blockers`, never as `next`, and phase 9 stays `BLOCKED`. The
+  Method Check of a pull request evaluates it on the export. So:
+
+  ```sysml
+  part def <ConfiguredProduct> :> ProductLineConfiguredProduct {
+    part platformStack : <GeneratedProjection>;
+  }
+  part <configuredProduct> : <ConfiguredProduct>;
+  ```
+
+- **Baseline (phase 11).** The phase decides what the increment accepts,
+  defers or invalidates, and publishes the views that show it. The increment
+  publishes at least one view (`publishedViews[1..*]`), so a declared phase
+  11 without a view fails on population. Each view the increment's packages
+  own has a viewpoint, of its own or of its definition, that frames a
+  concern (`viewpointFramesConcern`). The frame is the viewpoint's own or its
+  viewpoint definition's. Each view, or a view it owns at any depth, exposes
+  model content (`exposesModelContent`). A table or matrix view exposes
+  through its row, column and cell views. Both block and judge the model
+  only. The pull request, its review and the rendered diagrams are judged
+  outside the model: CI checks the diagrams and each folder's `VIEWS.md`.
+  The increment has exactly one baseline
+  decision, typed by `IncrementBaselineDecision`, and it states its
+  disposition (`baselineDecisionStatesDisposition`). Each open gap states
+  the disposition that the baseline decision gives it
+  (`openGapStatesDisposition`). A disposition is a literal of
+  `LifecycleDisposition`: `accepted`, `deferred` or `invalidated`. Each
+  record states its own, by a redefinition of `disposition` with one value;
+  a value that only its definition sets does not count. The record of a
+  resolved gap leaves the model, so every gap in scope is open.
+  The phase-0 count of framing decisions leaves the baseline decision out.
+  An advisory check, `applicablePhaseContentPublished`, names each
+  applicable phase with content of which no element is in a view of the
+  increment (`phaseContentPublished`): what a step produces, read from the
+  subjects of its checks about an `out` parameter, against what the views
+  expose. It never blocks and is not review. A second advisory check,
+  `concernAnsweredInItsDomain`, names each concern typed by an SAF concern
+  definition that no viewpoint of its own SAF domain frames
+  (`concernAnsweredInDomain`): no view answers it yet, or its definition
+  belongs to another domain than its question. The increment ends at this
+  phase: rework iterates the same increment, and a new increment starts at
+  phase 0 from a new engineering question. So:
+
+  ```sysml
+  part <baselineDecision> : IncrementBaselineDecision {
+    attribute :>> disposition = LifecycleDisposition::accepted;
+  }
+  part <gap> : IncrementGap {
+    attribute :>> disposition = LifecycleDisposition::deferred;
+  }
+  ```
+
 - **Method side versus model.** Some inputs only a method or kernel change can
   supply, for example a declaration without a validated kernel identity or a
   relation without a SysML mapping. Those checks are listed under
@@ -271,12 +427,50 @@ python scripts/evaluate_increment.py \
 ```
 
 With the validated revision binding of the same commit, the evaluation key
-equals the one the API service computes for that revision. Without
+equals the one the API service computes for that revision. A binding that
+records export documents must record this export's, or the evaluation is
+refused (exit 2). Without
 `--binding`, the export is evaluated as an export snapshot: kernel identity
 is validated from the export as the ingestion importer validates it, and the
 same failures refuse it (exit 2); the revision identity carries the scope
 `export-snapshot`. Element source files appear in
-a separate `presentation` block, because only an export records them.
+a separate `presentation` block. The export records them; over the API, the
+export documents of the binding do.
+
+## Over the API and over the export
+
+The API service builds its method view from the same inputs as the export
+path:
+
+- the served corpus is the validated export (the served-model check);
+- the kernel identities are the ingestion-validated kernel bindings;
+- the source documents and the external references are the export
+  documents that the importer records in the revision binding;
+- the library pins, such as the VSS signal metadata, are bound from those
+  documents by the same file-mapped rule.
+
+So the phase-9 checks give the export path's result over the API, and so
+do the other checks, except in two cases:
+
+- **A binding without export documents.** A binding that an earlier
+  importer wrote has none. Over it, the checks that need them are method
+  side (`evaluation-input:export-documents` for phase 9,
+  `library-binding:` for a library pin), never `next` and never a pass.
+  The next ingestion and deploy write a binding with them. A record that
+  does not list the served corpus is never read: the deployed runtime
+  refuses that corpus, and every answer with it.
+- **The checks that read native allocations.** At this revision they are
+  10 gates of phases 6 to 8 in each increment. An API revision binding
+  withholds them while the admission of `allocatedTo` has open
+  obligations (see the allocations above). They are method side there
+  (`allocation-admission:allocatedTo`), and the Method Check evaluates them on
+  the export. A relation the method cannot read is a different marker
+  (`governed-relation:`) and never excuses a difference.
+
+The release evidence of each privileged ingestion checks this on the
+release export (method parity). For each declared increment, phase 9 and
+`next` over the runtime service must equal the export path's. A `next`
+that the allocation guard withholds over the API is not compared.
 
 ## On a pull request
 
@@ -340,7 +534,7 @@ jq '.increments[] | {id, outcome, next: .next.gate, counts}' method-check.json
 | `id`, `outcome` | The increment identifier, for example `INC-AEBS-010`; `evaluated`, `method-unavailable`, `method-invalid`, `refused` or `error` |
 | `next` | The first check to act on: `gate`, `stage`, `kind`, `what_to_author`, `authoring`, `where`, `subjects`; `null` when none is open |
 | `counts` | `blocking`, `blocking_by_kind`, `advisory`, `method_side_blockers` |
-| `phase_exits`, `phase_checks` | Per phase with executable checks: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`) |
+| `phase_exits`, `phase_checks` | Per phase with executable checks: `READY` or `BLOCKED`, and how many of its checks pass (`pass`, `total`, `not_applicable`). The exit of a phase the charter does not declare is `READY`, because all its checks are not applicable; the summary shows such a phase as "not declared". A declared phase whose blocking checks are all not applicable is `READY` too: `evaluation.status` marks it `vacuous: true` with its `evaluated` count, `evaluation.next.vacuous_phases` lists it with a review prompt when it comes before `next`, and the summary shows it as "vacuous" in the phase exits and names it with its prompt under **Next**. It never blocks |
 | `phases_without_checks` | The declared phases whose step has no executable checks: `phase`, `step` and its `outputs`; never evaluated, so the counts say nothing about them |
 | `evaluation.gaps.blocking` | Every unmet blocking check with all its subjects; `evaluation.gaps.advisory` holds the advisory notes |
 | `evaluation` | The full `scripts/evaluate_increment.py` report: `status`, `gaps`, `next`, `contract` |

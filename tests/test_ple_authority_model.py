@@ -117,11 +117,13 @@ SDV_EXCLUSIONS = {
 #: The SDV requires constraints of INC-MW-011 phase 9: (owner, required features). Each requires
 #: constraint states its rule exactly, so it needs no allowed list and no complement check.
 SDV_REQUIRES = {
-    "C007": ("noHypervisor", {"noGuestOS"}),
+    "C007": ("noHypervisor", {"noGuestOperatingSystem"}),
     "C008": ("guestAndroidSDV", {"guestAndroid"}),
     "C009": ("androidSDV", {"guestAndroidSDV"}),
     "C010": ("hmiDisplay", {"guestAndroidSDV"}),
     "C011": ("autoware", {"linux"}),
+    "C012": ("autoE2E", {"camera"}),
+    "C013": ("autoE2E", {"linux"}),
 }
 
 #: The correspondences of the SDV features to the governed scope, by feature ID: the
@@ -135,6 +137,7 @@ SDV_CORRESPONDENCES = {
     "F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE": {"InitialCommonCoreEngineeringContent::autowareApplication"},
     "F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT": {"ReferenceOnlyAlternativeSet::openpilot"},
     "F-PLATFORM-VEHICLE-APPLICATION-APOLLO": {"ReferenceOnlyAlternativeSet::apollo"},
+    "F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E": {"DeferredVariabilitySet::drivingStackVariability"},
     "F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE": {"ReferenceOnlyAlternativeSet::eclipseSCORE"},
     "F-PLATFORM-MIDDLEWARE-ANDROID-SDV": {"vehiclePlatformIntegrationMode::aaosIntegrated"},
     "F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE": {"ReferenceOnlyAlternativeSet::autosarAdaptive"},
@@ -597,8 +600,9 @@ def _exclusions(by_name: dict[str, Feature]) -> list[tuple[Feature, dict]]:
 
 def test_the_sdv_exclusions_are_the_reviewed_constraints() -> None:
     """C001, C003, C004 and C005 are exclusions, each owned by one choice and excluding choices of another
-    group; C002 and C006 are dropped rules with no constraint (below). Every SDV constraint is an exclusion
-    or one of the reviewed requires constraints; no implies constraint exists."""
+    group; C002 and C006 are dropped rules with no constraint (below). The three pair exclusions of Openpilot,
+    Apollo and AutoE2E carry no ID. Every SDV constraint is an exclusion or one of the reviewed requires
+    constraints; no implies constraint exists."""
     by_name = _by_name(_tree(FAMILIES["sdv"])[1])
     identified = {constraint["id"]: (owner.name, set(constraint["operands"]))
                   for owner, constraint in _exclusions(by_name) if constraint["id"]}
@@ -607,13 +611,14 @@ def test_the_sdv_exclusions_are_the_reviewed_constraints() -> None:
         group = by_name[owner].parent
         assert group and all(by_name[name].parent not in (None, group) for name in excluded), identifier
     kinds = Counter(constraint["kind"] for feature in by_name.values() for constraint in feature.constraints)
-    assert kinds == {"xorFeatures": len(SDV_EXCLUSIONS) + 2, "requiresFeatures": len(SDV_REQUIRES)}, kinds
+    assert kinds == {"xorFeatures": len(SDV_EXCLUSIONS) + 3, "requiresFeatures": len(SDV_REQUIRES)}, kinds
 
 
 def test_the_sdv_requires_constraints_are_the_reviewed_constraints() -> None:
-    """C007 to C011 (INC-MW-011 phase 9) are requires constraints, each with its constraint ID, owned by one
-    feature and requiring one choice of another group: the guest side, its hypervisor, the AAOS SDV partner,
-    the HMI display and Autoware's Linux. Each owner other than the HMI display is a choice of a group."""
+    """C007 to C011 (INC-MW-011 phase 9) and C012, C013 (INC-DRIVING-001 phase 9) are requires constraints,
+    each with its constraint ID, owned by one feature and requiring one choice of another group: the guest
+    side, its hypervisor, the AAOS SDV partner, the HMI display, Autoware's Linux, and AutoE2E's camera and
+    Linux. Each owner other than the HMI display is a choice of a group."""
     by_name = _by_name(_tree(FAMILIES["sdv"])[1])
     identified = {constraint["id"]: (owner.name, set(constraint["operands"]))
                   for owner in by_name.values() for constraint in owner.constraints
@@ -701,7 +706,7 @@ def test_the_derived_variation_and_its_rules_target_the_superset_and_no_binding(
                    if dependency.metadata == "FeatureBinding")
 
 
-def test_the_agreement_check_covers_all_twelve_pairs_exactly_once() -> None:
+def test_the_agreement_check_covers_all_sixteen_pairs_exactly_once() -> None:
     family = FAMILIES["sdv"]
     by_name = _by_name(_tree(family)[1])
     applications = {_qualified(family, feature) for feature in by_name.values() if feature.parent == "vehicleApplication"}
@@ -724,10 +729,10 @@ def test_the_agreement_check_covers_all_twelve_pairs_exactly_once() -> None:
             covered.setdefault((_qualified(family, owner), _qualified(family, by_name[name])),
                                []).append(f"exclusion {constraint['name']}")
     every = {(application, middleware) for application in applications for middleware in middlewares}
-    assert len(every) == 12 and set(covered) == every
+    assert len(every) == 16 and set(covered) == every
     assert all(len(statements) == 1 for statements in covered.values()), covered
-    assert sum(1 for statements in covered.values() if statements[0].startswith("rule")) == len(rules) == 8
-    assert exclusion_owners == 2
+    assert sum(1 for statements in covered.values() if statements[0].startswith("rule")) == len(rules) == 9
+    assert exclusion_owners == 3
 
 
 def _rationale(raw: str, owner: str) -> str:
@@ -887,84 +892,181 @@ def _model_verdict(features: list[Feature], rules: list[Dependency], selected: s
 #: phase 9, and the test computes it with the lexical model above, over the model text only. On 2026-10-22,
 #: in the phase-9 review, a one-off run of the DE4SDV evaluator over a hand-built synthetic mirror of the
 #: tree (revision 1fb1250f) agreed with it selection by selection. That run is not in the repository, and CI
-#: does not repeat it. Of the 129,024 SDV selections, 16,016 are valid; they are 143 valid platform and
-#: display selections, each with the 112 choices of the sensors and the four other capabilities, which no
-#: constraint names.
+#: does not repeat it. Of the 172,032 SDV selections, 16,848 are valid: 143 valid platform and display
+#: selections of the three earlier applications, each with the 112 choices of the sensors and the four other
+#: capabilities, which no constraint names, and, since INC-DRIVING-001 phase 9 (2026-11-06), 13 valid AutoE2E
+#: platform and display selections (Linux, C013; Eclipse S-CORE, the one pair with a rule), each with the 4
+#: sensor choices that keep the camera (C012) and the 16 choices of the four other capabilities.
 CLOSED_WORLD = {
     "sdv": {
-        (False, (), True, None): 7168,
-        (False, ('C001',), False, None): 2912,
         (False, ('C001', 'C007'), False, None): 672,
         (False, ('C001', 'C007', 'C010'), False, None): 224,
         (False, ('C001', 'C007', 'C010', 'C011'), False, None): 112,
+        (False, ('C001', 'C007', 'C010', 'C012', 'C013'), False, None): 48,
+        (False, ('C001', 'C007', 'C010', 'C013'), False, None): 64,
         (False, ('C001', 'C007', 'C011'), False, None): 336,
+        (False, ('C001', 'C007', 'C012', 'C013'), False, None): 144,
+        (False, ('C001', 'C007', 'C013'), False, None): 192,
         (False, ('C001', 'C008'), False, None): 1792,
         (False, ('C001', 'C008', 'C011'), False, None): 896,
+        (False, ('C001', 'C008', 'C012', 'C013'), False, None): 384,
+        (False, ('C001', 'C008', 'C013'), False, None): 512,
         (False, ('C001', 'C010'), False, None): 1568,
         (False, ('C001', 'C010', 'C011'), False, None): 784,
+        (False, ('C001', 'C010', 'C012', 'C013'), False, None): 336,
+        (False, ('C001', 'C010', 'C013'), False, None): 448,
         (False, ('C001', 'C011'), False, None): 1456,
-        (False, ('C003',), True, None): 2912,
+        (False, ('C001', 'C012', 'C013'), False, None): 624,
+        (False, ('C001', 'C013'), False, None): 832,
+        (False, ('C001',), False, None): 2912,
         (False, ('C003', 'C007'), True, None): 672,
         (False, ('C003', 'C007', 'C010'), True, None): 224,
         (False, ('C003', 'C007', 'C010', 'C011'), False, None): 112,
+        (False, ('C003', 'C007', 'C010', 'C012', 'C013'), True, None): 48,
+        (False, ('C003', 'C007', 'C010', 'C013'), True, None): 64,
         (False, ('C003', 'C007', 'C011'), False, None): 336,
+        (False, ('C003', 'C007', 'C012', 'C013'), True, None): 144,
+        (False, ('C003', 'C007', 'C013'), True, None): 192,
         (False, ('C003', 'C008'), True, None): 1792,
         (False, ('C003', 'C008', 'C011'), False, None): 896,
+        (False, ('C003', 'C008', 'C012', 'C013'), True, None): 384,
+        (False, ('C003', 'C008', 'C013'), True, None): 512,
         (False, ('C003', 'C010'), True, None): 1568,
         (False, ('C003', 'C010', 'C011'), False, None): 784,
+        (False, ('C003', 'C010', 'C012', 'C013'), True, None): 336,
+        (False, ('C003', 'C010', 'C013'), True, None): 448,
         (False, ('C003', 'C011'), False, None): 1456,
-        (False, ('C004',), False, None): 1792,
-        (False, ('C004',), True, None): 1344,
+        (False, ('C003', 'C012', 'C013'), True, None): 624,
+        (False, ('C003', 'C013'), True, None): 832,
+        (False, ('C003',), True, None): 2912,
         (False, ('C004', 'C008'), False, None): 896,
         (False, ('C004', 'C008'), True, None): 896,
         (False, ('C004', 'C008', 'C011'), False, None): 896,
+        (False, ('C004', 'C008', 'C012', 'C013'), False, None): 96,
+        (False, ('C004', 'C008', 'C012', 'C013'), True, None): 288,
+        (False, ('C004', 'C008', 'C013'), False, None): 128,
+        (False, ('C004', 'C008', 'C013'), True, None): 384,
         (False, ('C004', 'C009'), True, None): 448,
         (False, ('C004', 'C009', 'C010'), True, None): 448,
         (False, ('C004', 'C009', 'C010', 'C011'), False, None): 224,
+        (False, ('C004', 'C009', 'C010', 'C012', 'C013'), True, None): 96,
+        (False, ('C004', 'C009', 'C010', 'C013'), True, None): 128,
         (False, ('C004', 'C009', 'C011'), False, None): 224,
+        (False, ('C004', 'C009', 'C012', 'C013'), True, None): 96,
+        (False, ('C004', 'C009', 'C013'), True, None): 128,
         (False, ('C004', 'C010'), False, None): 896,
         (False, ('C004', 'C010'), True, None): 448,
         (False, ('C004', 'C010', 'C011'), False, None): 672,
+        (False, ('C004', 'C010', 'C012', 'C013'), False, None): 96,
+        (False, ('C004', 'C010', 'C012', 'C013'), True, None): 192,
+        (False, ('C004', 'C010', 'C013'), False, None): 128,
+        (False, ('C004', 'C010', 'C013'), True, None): 256,
         (False, ('C004', 'C011'), False, None): 1568,
-        (False, ('C005',), False, None): 1792,
-        (False, ('C005',), True, None): 1344,
+        (False, ('C004', 'C012', 'C013'), False, None): 192,
+        (False, ('C004', 'C012', 'C013'), True, None): 480,
+        (False, ('C004', 'C013'), False, None): 256,
+        (False, ('C004', 'C013'), True, None): 640,
+        (False, ('C004',), False, None): 1792,
+        (False, ('C004',), True, None): 1344,
         (False, ('C005', 'C008'), False, None): 896,
         (False, ('C005', 'C008'), True, None): 896,
         (False, ('C005', 'C008', 'C011'), False, None): 896,
+        (False, ('C005', 'C008', 'C012', 'C013'), False, None): 96,
+        (False, ('C005', 'C008', 'C012', 'C013'), True, None): 288,
+        (False, ('C005', 'C008', 'C013'), False, None): 128,
+        (False, ('C005', 'C008', 'C013'), True, None): 384,
         (False, ('C005', 'C009'), True, None): 448,
         (False, ('C005', 'C009', 'C010'), True, None): 448,
         (False, ('C005', 'C009', 'C010', 'C011'), False, None): 224,
+        (False, ('C005', 'C009', 'C010', 'C012', 'C013'), True, None): 96,
+        (False, ('C005', 'C009', 'C010', 'C013'), True, None): 128,
         (False, ('C005', 'C009', 'C011'), False, None): 224,
+        (False, ('C005', 'C009', 'C012', 'C013'), True, None): 96,
+        (False, ('C005', 'C009', 'C013'), True, None): 128,
         (False, ('C005', 'C010'), False, None): 896,
         (False, ('C005', 'C010'), True, None): 448,
         (False, ('C005', 'C010', 'C011'), False, None): 672,
+        (False, ('C005', 'C010', 'C012', 'C013'), False, None): 96,
+        (False, ('C005', 'C010', 'C012', 'C013'), True, None): 192,
+        (False, ('C005', 'C010', 'C013'), False, None): 128,
+        (False, ('C005', 'C010', 'C013'), True, None): 256,
         (False, ('C005', 'C011'), False, None): 1568,
-        (False, ('C007',), False, None): 4592,
-        (False, ('C007',), True, None): 2688,
+        (False, ('C005', 'C012', 'C013'), False, None): 192,
+        (False, ('C005', 'C012', 'C013'), True, None): 480,
+        (False, ('C005', 'C013'), False, None): 256,
+        (False, ('C005', 'C013'), True, None): 640,
+        (False, ('C005',), False, None): 1792,
+        (False, ('C005',), True, None): 1344,
         (False, ('C007', 'C009'), False, None): 112,
-        (False, ('C007', 'C009'), True, None): 672,
+        (False, ('C007', 'C009'), True, None): 736,
         (False, ('C007', 'C009', 'C010'), False, None): 112,
-        (False, ('C007', 'C009', 'C010'), True, None): 672,
+        (False, ('C007', 'C009', 'C010'), True, None): 736,
         (False, ('C007', 'C009', 'C010', 'C011'), False, None): 224,
+        (False, ('C007', 'C009', 'C010', 'C012'), True, None): 48,
+        (False, ('C007', 'C009', 'C010', 'C012', 'C013'), True, None): 96,
+        (False, ('C007', 'C009', 'C010', 'C013'), True, None): 128,
         (False, ('C007', 'C009', 'C011'), False, None): 224,
-        (False, ('C007', 'C010'), False, None): 1456,
-        (False, ('C007', 'C010'), True, None): 448,
+        (False, ('C007', 'C009', 'C012'), True, None): 48,
+        (False, ('C007', 'C009', 'C012', 'C013'), True, None): 96,
+        (False, ('C007', 'C009', 'C013'), True, None): 128,
+        (False, ('C007', 'C010'), False, None): 1520,
+        (False, ('C007', 'C010'), True, None): 576,
         (False, ('C007', 'C010', 'C011'), False, None): 448,
+        (False, ('C007', 'C010', 'C012'), False, None): 48,
+        (False, ('C007', 'C010', 'C012'), True, None): 96,
+        (False, ('C007', 'C010', 'C012', 'C013'), False, None): 48,
+        (False, ('C007', 'C010', 'C012', 'C013'), True, None): 144,
+        (False, ('C007', 'C010', 'C013'), False, None): 64,
+        (False, ('C007', 'C010', 'C013'), True, None): 192,
         (False, ('C007', 'C011'), False, None): 1792,
-        (False, ('C008',), False, None): 10752,
-        (False, ('C008',), True, None): 7168,
+        (False, ('C007', 'C012'), False, None): 144,
+        (False, ('C007', 'C012'), True, None): 384,
+        (False, ('C007', 'C012', 'C013'), False, None): 144,
+        (False, ('C007', 'C012', 'C013'), True, None): 624,
+        (False, ('C007', 'C013'), False, None): 192,
+        (False, ('C007', 'C013'), True, None): 832,
+        (False, ('C007',), False, None): 4784,
+        (False, ('C007',), True, None): 3200,
         (False, ('C008', 'C011'), False, None): 3584,
-        (False, ('C009',), False, None): 784,
-        (False, ('C009',), True, None): 3808,
+        (False, ('C008', 'C012'), False, None): 384,
+        (False, ('C008', 'C012'), True, None): 1152,
+        (False, ('C008', 'C012', 'C013'), False, None): 192,
+        (False, ('C008', 'C012', 'C013'), True, None): 1344,
+        (False, ('C008', 'C013'), False, None): 256,
+        (False, ('C008', 'C013'), True, None): 1792,
+        (False, ('C008',), False, None): 11264,
+        (False, ('C008',), True, None): 8704,
         (False, ('C009', 'C010'), False, None): 784,
-        (False, ('C009', 'C010'), True, None): 3808,
+        (False, ('C009', 'C010'), True, None): 4256,
         (False, ('C009', 'C010', 'C011'), False, None): 1120,
+        (False, ('C009', 'C010', 'C012'), True, None): 336,
+        (False, ('C009', 'C010', 'C012', 'C013'), True, None): 480,
+        (False, ('C009', 'C010', 'C013'), True, None): 640,
         (False, ('C009', 'C011'), False, None): 1120,
-        (False, ('C010',), False, None): 8400,
-        (False, ('C010',), True, None): 2240,
+        (False, ('C009', 'C012'), True, None): 336,
+        (False, ('C009', 'C012', 'C013'), True, None): 480,
+        (False, ('C009', 'C013'), True, None): 640,
+        (False, ('C009',), False, None): 784,
+        (False, ('C009',), True, None): 4256,
         (False, ('C010', 'C011'), False, None): 1792,
+        (False, ('C010', 'C012'), False, None): 336,
+        (False, ('C010', 'C012'), True, None): 672,
+        (False, ('C010', 'C012', 'C013'), False, None): 144,
+        (False, ('C010', 'C012', 'C013'), True, None): 624,
+        (False, ('C010', 'C013'), False, None): 192,
+        (False, ('C010', 'C013'), True, None): 832,
+        (False, ('C010',), False, None): 8848,
+        (False, ('C010',), True, None): 3136,
         (False, ('C011',), False, None): 4032,
+        (False, ('C012', 'C013'), False, None): 240,
+        (False, ('C012', 'C013'), True, None): 1488,
+        (False, ('C012',), False, None): 624,
+        (False, ('C012',), True, None): 1536,
+        (False, ('C013',), False, None): 320,
+        (False, ('C013',), True, None): 1984,
+        (False, (), True, None): 9216,
         (True, (), False, 'apolloToSCORE'): 2016,
+        (True, (), False, 'autoE2EToSCORE'): 832,
         (True, (), False, 'autowareToAAOSSDV'): 672,
         (True, (), False, 'autowareToAUTOSAR'): 1456,
         (True, (), False, 'autowareToSCORE'): 1456,
@@ -1026,7 +1128,7 @@ def test_the_closed_world_keeps_its_verdicts_on_every_structurally_valid_selecti
     for selected in _structural_selections(features):
         valid, ids, pair, variant = _model_verdict(features, rules, selected)
         histogram[(valid, tuple(sorted(ids)), pair, variant)] += 1
-    assert sum(histogram.values()) == {"sdv": 129024, "engineering": 27, "vehicle": 8}[name]
+    assert sum(histogram.values()) == {"sdv": 172032, "engineering": 27, "vehicle": 8}[name]
     assert dict(histogram) == CLOSED_WORLD[name]
 
 
@@ -1351,7 +1453,8 @@ def test_admission_blocks_only_on_selected_choices_and_leaves() -> None:
     assert admission(features, correspondences, family_elements, standalone - {"camera"})[1] == [
         "InitialCommonCoreEngineeringContent::currentSensingBaseline is not represented: camera is not selected"]
     # Two admitted alternatives, or a missing derived realization, reject.
-    assert admission(features, correspondences, family_elements, standalone - {"noGuestOS"} | {"guestAndroid"})[1] == [
+    assert admission(features, correspondences, family_elements,
+                     standalone - {"noGuestOperatingSystem"} | {"guestAndroid"})[1] == [
         "realizes 2 admitted alternatives"]
     _family, integrated = _configuration_selection(CONFIGURATIONS_DIR / "middleware_autoware_aaos_sdv_reference.sysml")
     assert admission(features, correspondences, family_elements, integrated) == (

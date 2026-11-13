@@ -10,7 +10,7 @@ the repository.
 For the **logical sequence of work** — the order in which these processes are
 exercised inside a modeling increment — see
 [`methodologies/sysmod-sysmlv2/process-mapping.md`](../../methodologies/sysmod-sysmlv2/process-mapping.md),
-which defines the 13-phase increment workflow, feedback loops, and the
+which defines the 12-phase increment workflow, feedback loops, and the
 viewpoint flow per phase. For the repeatable contribution pattern (entry
 criteria, sizes, review questions), see
 [`methodologies/sysmod-sysmlv2/increment-workflow.md`](../../methodologies/sysmod-sysmlv2/increment-workflow.md).
@@ -56,8 +56,8 @@ These processes evolve DE4SDV itself as an open innovation ecosystem
 | Process | What it does | Where it lives |
 |---|---|---|
 | Methodology evolution | Tailor and evolve the modeling method; feed lessons from increments back into method docs and ADRs | `methodologies/sysmod-sysmlv2/` (tailoring, process mapping) |
-| Standards and reference adoption | Map and adopt standards and reference frameworks with explicit provenance | `standards/`; `docs/references/source-notes.md` |
-| Upstream maintainer coordination | Coordinate with upstream project owners before deep integration or vendoring | `methodologies/sysmod-sysmlv2/upstream.md`, `upstream-compatibility-report.md` |
+| Standards and reference adoption | Map and adopt standards and reference frameworks with explicit provenance | `standards/`; `docs/references/source-notes.md`; `UPSTREAM.md` |
+| Upstream maintainer coordination | Coordinate with upstream project owners before deep integration or vendoring | `UPSTREAM.md` (index of the upstream projects and their records); `methodologies/sysmod-sysmlv2/upstream.md`, `upstream-compatibility-report.md` |
 | ADR governance | Record architecture decisions with rationale, alternatives, and consequences | `docs/architecture-decisions/` |
 | Contributor onboarding and review | Onboard contributors and review contributions consistently | `CONTRIBUTING.md`, `GOVERNANCE.md`, `docs/getting-started/` |
 | Toolchain evaluation | Evaluate modeling, simulation, and automation toolchains before adoption | ADRs; `experiments/` |
@@ -105,7 +105,7 @@ and [`increment-workflow.md`](../../methodologies/sysmod-sysmlv2/increment-workf
 
 ## Related guidance
 
-- [`methodologies/sysmod-sysmlv2/process-mapping.md`](../../methodologies/sysmod-sysmlv2/process-mapping.md) — logical sequence of work, 13 phases, viewpoint flow
+- [`methodologies/sysmod-sysmlv2/process-mapping.md`](../../methodologies/sysmod-sysmlv2/process-mapping.md) — logical sequence of work, 12 phases, viewpoint flow
 - [`methodologies/sysmod-sysmlv2/increment-workflow.md`](../../methodologies/sysmod-sysmlv2/increment-workflow.md) — repeatable contribution pattern and review questions
 - [`methodologies/sysmod-sysmlv2/artifact-map.md`](../../methodologies/sysmod-sysmlv2/artifact-map.md) — method concepts to repository artifacts
 - [`methodologies/sysmod-sysmlv2/saf-viewpoint-map.md`](../../methodologies/sysmod-sysmlv2/saf-viewpoint-map.md) — viewpoint selection per increment type

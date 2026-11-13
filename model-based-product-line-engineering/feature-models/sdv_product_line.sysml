@@ -49,8 +49,10 @@ package DE4SDV_SDVProductLineFeatureModel {
                  * grouping feature that holds one alternative group per
                  * layer and side. The main side is the execution domain that
                  * runs the vehicle application. The guest side is a second
-                 * execution domain under the hypervisor, or none. Exactly one
-                 * realization per group, subject to the constraints. */
+                 * execution domain under the hypervisor, or none. It is a
+                 * guest partition of one or more VMs, and the VM layout is
+                 * realization content (ADR 0025). Exactly one realization per
+                 * group, subject to the constraints. */
 
             #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION'> vehicleApplication[1];
             #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-AUTOWARE'> autoware[0..1] :> vehicleApplication default null {
@@ -72,6 +74,34 @@ package DE4SDV_SDVProductLineFeatureModel {
                     doc /* No derivation rule exists for Apollo with Android SDV
                          * or AUTOSAR Adaptive, so both pairs are unsupported. */
                     in occurrence constrainedFeatures = new FeatureOperand(that, (androidSDV, autosarAdaptive));
+                }
+            }
+            #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E'> autoE2E[0..1] :> vehicleApplication default null {
+                doc /* AutoE2E as the vehicle application: the driving member of
+                     * INC-DRIVING-001 (phase 3 candidate autoE2EDrivingStack,
+                     * phase 9 of 2026-11-06). It plans from camera images and
+                     * takes no LiDAR input, so it requires the camera feature
+                     * and leaves LiDAR selectable (owner decision of
+                     * 2026-11-02). */
+                assert constraint <'C012'> autoE2ERequiresCamera :> requiresFeatures {
+                    doc /* AutoE2E plans from the images of six cameras: the
+                         * camera is required, LiDAR and radar stay selectable
+                         * (owner decision of 2026-11-02). */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, sensingBoundary::camera);
+                }
+                assert constraint <'C013'> autoE2ERequiresLinux :> requiresFeatures {
+                    doc /* AutoE2E requires Linux on the main side (owner
+                         * decision of 2026-11-06): the exported checkpoint's
+                         * runtime, the simulator client and the phase 8
+                         * realization are Linux-built. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, linux);
+                }
+                assert constraint autoE2EExcludesUnsupportedMiddleware :> xorFeatures {
+                    doc /* No derivation rule exists for AutoE2E with Android SDV,
+                         * AUTOSAR Adaptive or no middleware, so the three pairs
+                         * are unsupported: the one adapter is the mw::com
+                         * binding code of its programs on Eclipse S-CORE. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, (androidSDV, autosarAdaptive, noMiddleware));
                 }
             }
 
@@ -139,21 +169,22 @@ package DE4SDV_SDVProductLineFeatureModel {
                 }
             }
             #feature occurrence <'F-PLATFORM-HYPERVISOR-NONE'> noHypervisor[0..1] :> hypervisor default null {
-                assert constraint <'C007'> noHypervisorRequiresNoGuestOS :> requiresFeatures {
+                assert constraint <'C007'> noHypervisorRequiresNoGuestOperatingSystem :> requiresFeatures {
                     doc /* A guest needs a hypervisor: without one, there is no
                          * guest operating system. The rule covers every guest
                          * operating system, also a later one. */
-                    in occurrence constrainedFeatures = new FeatureOperand(that, noGuestOS);
+                    in occurrence constrainedFeatures = new FeatureOperand(that, noGuestOperatingSystem);
                 }
             }
 
             #feature occurrence <'F-PLATFORM-GUEST-OS'> guestOperatingSystem[1] {
                 doc /* The operating system of the guest side: a second
-                     * execution domain on the same SoC, under the hypervisor.
-                     * noGuestOS selects no guest domain. */
+                     * execution domain on the same SoC, under the hypervisor,
+                     * with one or more VMs. noGuestOperatingSystem selects no
+                     * guest domain. */
             }
             #feature occurrence <'F-PLATFORM-GUEST-OS-ANDROID'> guestAndroid[0..1] :> guestOperatingSystem default null;
-            #feature occurrence <'F-PLATFORM-GUEST-OS-NONE'> noGuestOS[0..1] :> guestOperatingSystem default null;
+            #feature occurrence <'F-PLATFORM-GUEST-OS-NONE'> noGuestOperatingSystem[0..1] :> guestOperatingSystem default null;
 
             #feature occurrence <'F-PLATFORM-GUEST-MIDDLEWARE'> guestMiddleware[1] {
                 doc /* The middleware of the guest side, on the guest operating
@@ -229,6 +260,9 @@ package DE4SDV_SDVProductLineFeatureModel {
     #FeatureBinding dependency vehicleApplicationApolloBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::vehicleApplication::apollo
         to SDVProductLineFeatureTree::platformStack::apollo;
+    #FeatureBinding dependency vehicleApplicationAutoE2EBinding
+        from DE4SDV_SDVPlatformStack::SDVPlatformStack::vehicleApplication::autoE2E
+        to SDVProductLineFeatureTree::platformStack::autoE2E;
 
     #FeatureBinding dependency middlewareEclipseSCOREBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::middleware::eclipseSCORE
@@ -271,7 +305,7 @@ package DE4SDV_SDVProductLineFeatureModel {
         to SDVProductLineFeatureTree::platformStack::guestAndroid;
     #FeatureBinding dependency guestOSPlatformNoneBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::guestOSPlatform::none
-        to SDVProductLineFeatureTree::platformStack::noGuestOS;
+        to SDVProductLineFeatureTree::platformStack::noGuestOperatingSystem;
 
     #FeatureBinding dependency guestMiddlewareAndroidSDVBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::guestMiddleware::androidSDV
@@ -312,6 +346,10 @@ package DE4SDV_SDVProductLineFeatureModel {
     #DerivationRule dependency apolloEclipseSCORERule
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter::apolloToSCORE
         to SDVProductLineFeatureTree::platformStack::apollo,
+           SDVProductLineFeatureTree::platformStack::eclipseSCORE;
+    #DerivationRule dependency autoE2EEclipseSCORERule
+        from DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter::autoE2EToSCORE
+        to SDVProductLineFeatureTree::platformStack::autoE2E,
            SDVProductLineFeatureTree::platformStack::eclipseSCORE;
     #DerivationRule dependency autowareNoMiddlewareRule
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter::none
@@ -365,6 +403,9 @@ package DE4SDV_SDVProductLineFeatureModel {
     dependency openpilotCorrespondsToReferenceOnlyOpenpilot
         from SDVProductLineFeatureTree::platformStack::openpilot
         to DE4SDV_AEBSProductLineScope::ReferenceOnlyAlternativeSet::openpilot;
+    dependency autoE2ECorrespondsToDrivingStackVariability
+        from SDVProductLineFeatureTree::platformStack::autoE2E
+        to DE4SDV_AEBSProductLineScope::DeferredVariabilitySet::drivingStackVariability;
     dependency apolloCorrespondsToReferenceOnlyApollo
         from SDVProductLineFeatureTree::platformStack::apollo
         to DE4SDV_AEBSProductLineScope::ReferenceOnlyAlternativeSet::apollo;
@@ -388,7 +429,7 @@ package DE4SDV_SDVProductLineFeatureModel {
      * is no derived realization of either alternative. The guest side
      * carries the split execution-domain topology of the AAOS-integrated
      * alternative: guestAndroid and guestAndroidSDV correspond to it, and
-     * noGuestOS and noGuestMiddleware to standalone.
+     * noGuestOperatingSystem and noGuestMiddleware to standalone.
      */
     dependency linuxCorrespondsToCommonAutowareRuntime
         from SDVProductLineFeatureTree::platformStack::linux
@@ -413,8 +454,8 @@ package DE4SDV_SDVProductLineFeatureModel {
     dependency guestAndroidCorrespondsToAAOSIntegrated
         from SDVProductLineFeatureTree::platformStack::guestAndroid
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
-    dependency noGuestOSCorrespondsToStandalone
-        from SDVProductLineFeatureTree::platformStack::noGuestOS
+    dependency noGuestOperatingSystemCorrespondsToStandalone
+        from SDVProductLineFeatureTree::platformStack::noGuestOperatingSystem
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::standalone;
     dependency guestAndroidSDVCorrespondsToAAOSIntegrated
         from SDVProductLineFeatureTree::platformStack::guestAndroidSDV

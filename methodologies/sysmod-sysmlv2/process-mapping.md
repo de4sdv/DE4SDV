@@ -12,14 +12,14 @@ implement any external methodology wholesale.
 ## Process correspondence
 
 DE4SDV organizes work across three ASELCM system layers plus a
-13-phase increment workflow numbered 0 through 12:
+12-phase increment workflow numbered 0 through 11:
 
 | Process area | DE4SDV system layer | DE4SDV phases |
 |---|---|---|
 | Methodology and infrastructure setup | System 3 (governance) | outside increment |
 | Methodology evolution and feedback | System 3 (methodology evolution) | outside increment |
 | Problem analysis and requirements | System 2 (engineering) | 0–5, 10 |
-| Architecture and realization | System 2 (engineering) | 6–9, 10–12 |
+| Architecture and realization | System 2 (engineering) | 6–9, 10–11 |
 
 Structural notes:
 
@@ -49,7 +49,7 @@ Do this once, then revisit when the method itself evolves.
 
 ## System 2 increment iteration (the main loop)
 
-Each increment walks phases 0–12 from the
+Each increment walks phases 0–11 from the
 [increment workflow](increment-workflow.md).
 
 **The phase numbers describe logical dependency, not a rigid timeline.**
@@ -75,13 +75,11 @@ graph TD
     P8[Phase 8: Physical/software realization]
     P9[Phase 9: Variability and configuration]
     P10[Phase 10: V&V and evidence]
-    P11[Phase 11: Publication]
-    P12[Phase 12: Baseline and next slice]
+    P11[Phase 11: Baseline]
 
     P0 --> P1 --> P2 --> P3 --> P4 --> P5
     P5 --> P6 --> P7 --> P8 --> P9 --> P10
-    P10 --> P11 --> P12
-    P12 -.->|"next increment"| P0
+    P10 --> P11
 
     P8 -->|"when enabling-system evidence is needed"| RP[Realization-readiness probe]
     RP --> RI[Implementation and toolchain inspection]
@@ -134,7 +132,9 @@ assumptions. Produce an increment charter YAML + SysML v2 package.
 
 Identify stakeholders, concerns, and risks. Select SAF viewpoints.
 Stakeholder definitions use SysML v2 metadata features and DE4SDV
-method package part definitions.
+method package part definitions. Each concern has a native stakeholder
+member, and a viewpoint of a view of the increment frames it (rule 14 of the
+[increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 
 ### Phase 2 — Operational context
 
@@ -205,7 +205,9 @@ rest (the shape and the advisory checks are rule 13 of the
 Variation points, feature configurations, and product-model
 applicability. Feature models become SysML v2 packages with variation
 points and configuration expressions. This is a significant DE4SDV
-extension.
+extension. The increment declares at least one configured product, and
+exactly one feature configuration configures each (rule 16 of the
+[increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 
 ### Phase 10 — V&V and evidence
 
@@ -219,40 +221,45 @@ Connect to the
 Verification cases are SysML v2 case definitions with verification
 metadata.
 
-### Phase 11 — Publication
+### Phase 11 — Baseline
 
-Produce reviewable SysML v2 textual notation, Markdown, YAML, and open
-a GitHub PR.
+Decide what the increment accepts, defers or invalidates, and publish the
+views that show it. The increment has one baseline decision that states its
+disposition, and each open gap states its disposition (rule 16 of the
+[increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
+The increment publishes at least one view. Each view of the increment has a
+viewpoint that frames a concern and exposes model content (rule 15). An
+advisory check names each applicable phase whose content no view shows.
+The pull request and its review stay outside the model. Feed lessons back
+to System 3.
 
-### Phase 12 — Baseline and next slice
+The increment ends here. Rework iterates the same increment; a new
+increment starts at phase 0 from a new engineering question, never as a
+continuation of this one.
 
-Baseline decision, open issues, next increment scope. Feed lessons
-back to System 3.
+## Views and variability per phase
 
-## Viewpoint flow per phase
+The views each phase publishes, with their viewpoint definitions and proven
+forms, are the [views-per-phase list](increment-workflow.md#views-per-phase)
+of the increment workflow: one view per SAF question the phase answers, one
+list for every increment. See [`saf-viewpoint-map.md`](saf-viewpoint-map.md)
+for the viewpoint definitions and the domain mapping. The table below keeps
+what the phases decide about variability.
 
-Each phase produces DE4SDV artifacts that are expressed through SAF or
-DE4SDV method viewpoints. The table below shows which viewpoints are
-typically produced at each phase. It is a guide, not a checklist — not
-every viewpoint is needed in every increment. See
-[`saf-viewpoint-map.md`](saf-viewpoint-map.md) for viewpoint definitions,
-domain mapping, and selection guidance.
-
-| Phase | Typical viewpoints produced | Variability concerns |
-|---|---|---|
-| 0 — Increment framing | IncrementFramingViewpoint, ProductLineClassificationViewpoint, RegulatoryScopeViewpoint, Common Terms Definition, Common Standards Definition, EA Traceability | Product-line scope is recorded here; feature candidates are recorded in phase 3 |
-| 1 — Concern framing | Stakeholder Identification Viewpoint | — |
-| 2 — Operational context | Operational Context Definition, Operational Story, Operational Capability Definition, Operational Process | Operational capabilities may vary by variant |
-| 3 — Capability/feature semantics | ProductLineClassificationViewpoint (DE4SDV method viewpoint) | Core variability decision: the feature candidates the increment adds; core elements are common by default |
-| 4 — Needs | Stakeholder Requirement Definition Viewpoint | Needs may be variant-specific |
-| 5 — Requirements | System Context Definition, System Use Case, System Capability Definition, System Process, System Requirement Definition, System Interface Definition, System Requirement Traceability | Requirements vary with the features that bring their system of interest (rule 5 of the [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)) |
-| 6 — Functional architecture | System Functional Breakdown Structure | Functional structure may contain variation points |
-| 7 — Logical architecture | System Structure Definition, System Internal Exchange, System Function Mapping | Logical elements may vary by configuration (sensor suites, compute platform) |
-| 8 — Physical/software realization | Physical Context Definition, Physical Structure Definition, Physical Interface Definition, Physical Functional Mapping, Physical Logical Mapping | Physical/software realization contains explicit variation points (platform stack, middleware, sensing) |
-| 9 — Variability and configuration | ProductLineConfigurationViewpoint, ProductModelAssemblyViewpoint (DE4SDV method viewpoints) | Explicit configuration and product-model assembly — consolidates variability decisions from earlier phases |
-| 10 — V&V and evidence | Argumentation Assurance, Asset Identification, Security Risk Analysis (when safety/security-relevant) | Verification must cover configured variants |
-| 11 — Publication | EA Traceability (final trace review before PR) | — |
-| 12 — Baseline and next slice | EA Traceability (baseline decision record) | — |
+| Phase | Variability concerns |
+|---|---|
+| 0 — Increment framing | Product-line scope is recorded here; feature candidates are recorded in phase 3 |
+| 1 — Concern framing | — |
+| 2 — Operational context | Operational capabilities may vary by variant |
+| 3 — Capability/feature semantics | Core variability decision: the feature candidates the increment adds; core elements are common by default |
+| 4 — Needs | Needs may be variant-specific |
+| 5 — Requirements | Requirements vary with the features that bring their system of interest (rule 5 of the [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)) |
+| 6 — Functional architecture | Functional structure may contain variation points |
+| 7 — Logical architecture | Logical elements may vary by configuration (sensor suites, compute platform) |
+| 8 — Physical/software realization | Physical/software realization contains explicit variation points (platform stack, middleware, sensing) |
+| 9 — Variability and configuration | Explicit configuration and product-model assembly — consolidates variability decisions from earlier phases |
+| 10 — V&V and evidence | Verification must cover configured variants |
+| 11 — Baseline | — |
 
 Variability is not confined to Phase 9. It is a cross-cutting concern that
 starts at Phase 3 (the feature candidates an increment adds), runs
@@ -274,7 +281,7 @@ bring its system of interest (rule 5 of the
 A feature candidate from Phase 3 becomes a variation point in Phase 9 once
 member-product variability is shown; core elements are shared assets.
 
-Each phase consumes the viewpoints produced by earlier phases. For
+Each phase consumes the views published by earlier phases. For
 example, phase 5 (requirements) consumes the operational context views
 from phase 2 and the stakeholder needs from phase 4 to produce
 verifiable requirements with trace links back to both. Phase 10 (V&V)
@@ -306,11 +313,10 @@ views — see the
 | 8 — Physical/software realization | `aebs_physical_software_realization.sysml` (7 views), `aebs_execution_environment.sysml` (2 views), `aebs_simulation_deployment.sysml` (17 views) | `middleware_physical_software_realization.sysml` (7 views) | `aebs-physical-software-realization.md`/`.yaml`, `aebs-simulation-deployment.md`/`.yaml`, `middleware-physical-software-realization.yaml` |
 | 9 — Variability and configuration | variation-modeling gaps in needs slices; configurations in `model-based-product-line-engineering/` | `middleware_variability_configuration.sysml` (2 views) | `middleware-variability-configuration.yaml`, `model-based-product-line-engineering/feature-configurations/` |
 | 10 — V&V and evidence | `aebs_nominal_evidence.sysml`, `aebs_bicycle_verification.sysml`, `aebs_degraded_input_verification.sysml`, `aebs_non_activation_verification.sysml`, `aebs_partial_intervention_verification.sysml`, `aebs_pedestrian_verification.sysml`, `aebs_regulatory_criterion_verification.sysml` | `middleware_verification_evidence.sysml` (2 views) | `middleware-v-and-v-evidence.yaml`; implementation evidence under `implementation/` |
-| 11 — Publication | generated view index and viewer build | `VIEWS.md` (generated) | PR description with gate evidence |
-| 12 — Baseline and next slice | baseline entries and gap docs | baseline entries and gap docs | `configuration-management/baseline-register.md`, increment YAML baselines |
+| 11 — Baseline | baseline entries and gap docs; generated view index and viewer build | baseline entries and gap docs; `VIEWS.md` (generated) | `configuration-management/baseline-register.md`, increment YAML baselines, PR description with gate evidence |
 
 The AEBS pilot is the richer model (about 50 declared views across phases);
-the middleware pilot demonstrates the full 0–12 chain with a generated view
+the middleware pilot demonstrates the full 0–11 chain with a generated view
 index. Both stay reviewable as small, per-phase slices.
 
 ## Required trace chain

@@ -27,19 +27,27 @@ from increment_model_fixtures import (
     cut_workflow,
     kernel_qualified_name,
     set_check,
+    uncheck_step,
 )
 from test_revision_index import _traversal
 
 REVISION = me.RevisionIdentity("a" * 40, "project", "commit", "full-model")
 P0, P4, P5, P10 = ("phase0_incrementFraming", "phase4_needs", "phase5_requirements", "phase10_vvEvidence")
-#: The phases the workflow of the frozen cut gives executable checks.
-CHECKED = [P0, P4, P5, "phase6_functionalArchitecture", "phase7_logicalArchitecture",
-           "phase8_physicalRealization", P10]
+#: A phase whose step a test strips of its checks (:func:`uncheck_step`): the frozen cut's workflow gives
+#: every step executable checks.
+P9 = "phase9_variabilityConfiguration"
+UNCHECKED = "defineVariabilityAndConfiguration"
+#: The phases the workflow of the frozen cut gives executable checks: all of them.
+CHECKED = [P0, "phase1_concernFraming", "phase2_operationalContext", "phase3_capabilityClassification", P4, P5,
+           "phase6_functionalArchitecture", "phase7_logicalArchitecture", "phase8_physicalRealization", P9, P10,
+           "phase11_baseline"]
 
 
-def _scenario(applicable_phases=(P0, P4, P5, P10)):
+def _scenario(applicable_phases=(P0, P4, P5, P10), unchecked: str | None = None):
     scenario = increment_scenario(cut_method_builder(), applicable_phases=applicable_phases)
     scenario.workflow = cut_workflow(scenario)
+    if unchecked:
+        uncheck_step(scenario, scenario.workflow, unchecked)
     return scenario
 
 
@@ -147,15 +155,15 @@ def test_an_unbound_increment_lineage_resolves_as_lineage_unavailable_not_as_und
 
 def test_next_none_says_which_declared_phases_no_check_judges() -> None:
     """0 blocking says nothing about a declared phase without executable checks; the reason says so."""
-    evaluation = _evaluate(_scenario(applicable_phases=(P0, "phase1_concernFraming", P4, P5, P10)))
+    evaluation = _evaluate(_scenario(applicable_phases=(P0, P4, P5, P9, P10), unchecked=UNCHECKED))
     answer = evaluation.next_obligation()
     assert answer["next"] is None
     assert answer["reason"] == ("every required gate passes or is not applicable; no executable checks at this "
-                                "revision judge the declared phase phase1_concernFraming")
-    assert answer["coverage"]["declared_phases_without_executable_checks"] == ["phase1_concernFraming"]
-    (block,) = [b for b in evaluation.status()["phases"] if b["phase"] == "phase1_concernFraming"]
+                                f"revision judge the declared phase {P9}")
+    assert answer["coverage"]["declared_phases_without_executable_checks"] == [P9]
+    (block,) = [b for b in evaluation.status()["phases"] if b["phase"] == P9]
     assert (block["coverage"], block["phase_exit"]) == ("no executable checks at this revision", "BLOCKED")
-    assert [output["parameter"] for output in block["outputs"]] == ["stakeholders", "concerns"]
+    assert [output["parameter"] for output in block["outputs"]] == ["variationPoints", "configuredProducts"]
 
 
 def test_next_takes_the_earliest_open_check_in_workflow_order() -> None:
@@ -297,30 +305,30 @@ def test_status_names_the_resolved_increment_and_its_scope(increment_id: str) ->
 
 
 def test_a_phase_without_checks_is_unassessed_never_a_pass() -> None:
-    evaluation = _evaluate(_scenario())
-    status = evaluation.status(phase="phase1_concernFraming")
+    evaluation = _evaluate(_scenario(unchecked=UNCHECKED))
+    status = evaluation.status(phase=P9)
     assert status["phases"] == []
     assert (status["assessment_coverage"], status["evaluation_state"], status["conformance_verdict"]) == (
         me.COVERAGE_UNASSESSED, None, None)
     assert status["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
-    assert evaluation.next_obligation(phase="phase1_concernFraming")["next"] is None
-    contract = evaluation.phase_contract(phase="phase1_concernFraming")
+    assert evaluation.next_obligation(phase=P9)["next"] is None
+    contract = evaluation.phase_contract(phase=P9)
     assert contract["executable_contract_available"] is False
     assert contract["reason_codes"] == [me.CONTRACT_UNAVAILABLE]
 
 
 def test_a_phase_without_checks_still_lists_what_its_step_declares() -> None:
-    evaluation = _evaluate(_scenario())
-    contract = evaluation.phase_contract(phase="phase1_concernFraming")
+    evaluation = _evaluate(_scenario(unchecked=UNCHECKED))
+    contract = evaluation.phase_contract(phase=P9)
     (step,) = contract["steps"]
     assert (step["step"], step["executable_checks"], step["coverage"]) == (
-        "frameConcerns", 0, "no executable checks at this revision")
-    assert [output["parameter"] for output in step["outputs"]] == ["stakeholders", "concerns"]
+        "defineVariabilityAndConfiguration", 0, "no executable checks at this revision")
+    assert [output["parameter"] for output in step["outputs"]] == ["variationPoints", "configuredProducts"]
     assert step["applicability_resolution"] == "not_applicable"  # the charter declares phases 0, 4, 5 and 10
-    assert contract["phases_without_executable_checks"] == ["phase1_concernFraming"]
+    assert contract["phases_without_executable_checks"] == [P9]
     whole = evaluation.phase_contract()
-    assert len(whole["steps"]) == 13
-    assert whole["phases"] == CHECKED
+    assert len(whole["steps"]) == 12
+    assert whole["phases"] == [phase for phase in CHECKED if phase != P9]
 
 
 
@@ -374,8 +382,8 @@ def test_without_a_workflow_every_declared_phase_is_reported() -> None:
 
 def test_an_unchecked_phase_exit_is_blocked_by_the_method_never_by_a_gap() -> None:
     """Review R2: BLOCKED beside the step's outputs must not read like a gap to author against."""
-    evaluation = _evaluate(_scenario(applicable_phases=(P0, P1, P4, P5, P10)))
-    (block,) = [b for b in evaluation.status()["phases"] if b["phase"] == P1]
+    evaluation = _evaluate(_scenario(applicable_phases=(P0, P4, P5, P9, P10), unchecked=UNCHECKED))
+    (block,) = [b for b in evaluation.status()["phases"] if b["phase"] == P9]
     assert block["reason_codes"] == [me.CONTRACT_UNAVAILABLE]  # an UNASSESSED result names its reason
     for phrase in ("BLOCKED by the method, not by the model", "no gap is open here",
                    "nothing you author opens this exit"):
@@ -383,7 +391,7 @@ def test_an_unchecked_phase_exit_is_blocked_by_the_method_never_by_a_gap() -> No
     (diagnostic,) = block["readiness"]["diagnostics"]
     assert diagnostic.endswith("its exit stays BLOCKED until the method adds checks; this is not a gap")
     gaps = evaluation.gaps()
-    assert P1 not in {gap["phase"] for gap in gaps["blocking"] + gaps["advisory"]}
+    assert P9 not in {gap["phase"] for gap in gaps["blocking"] + gaps["advisory"]}
     assert evaluation.next_obligation()["next"] is None
     (unread,) = [b for b in _evaluate(_two_step_scenario(with_workflow=False)).status()["phases"] if b["phase"] == P1]
     assert unread["reason_codes"] == [me.CONTRACT_UNAVAILABLE] and unread["exit_note"] == block["exit_note"]

@@ -23,7 +23,8 @@ and [ADR 0013](../architecture-decisions/0013-deploy-experimental-readonly-publi
   the semantic-authority identity the baseline was validated against
   (`baseline.semantic_authority`, `sai-…`) and the served model
   (`baseline.served_model`: the validated export's digest, element count and
-  content digest).
+  content digest), and the identity of the export documents the binding
+  records (`baseline.export_documents`).
 
 Project/Commit UUIDs are specific to each deployment (the importer generates
 them fresh); element UUIDs are stable across deployments. Never reuse a binding
@@ -214,7 +215,7 @@ For example, over an export of the model,
     "qualified_name": "DE4SDV_MethodProcess::MethodPhase",
     "keyword": "enum def",
     "owning_package": {"qualified_name": "DE4SDV_MethodProcess"},
-    "documentation": ["One of the 13 phases of the DE4SDV increment workflow."],
+    "documentation": ["One of the 12 phases of the DE4SDV increment workflow."],
     "definition": {
       "supertypes": [],
       "owned_features": [],
@@ -222,7 +223,7 @@ For example, over an export of the model,
       "enumerated_values": [
         {"name": "phase0_incrementFraming",
          "qualified_name": "DE4SDV_MethodProcess::MethodPhase::phase0_incrementFraming"},
-        "… 12 more"
+        "… 11 more"
       ]
     }
   },

@@ -1,0 +1,8 @@
+{
+    "ecuId": "DE4S",
+    "appId": "ADPT",
+    "appDesc": "DE4SDV AutowareToSCORE adapter",
+    "logMode": "kConsole",
+    "logLevel": "kWarn",
+    "logLevelThresholdConsole": "kWarn"
+}

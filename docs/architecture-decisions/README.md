@@ -105,6 +105,8 @@ Each record's own Status section is authoritative.
   authority](0022-adopt-pleml-as-product-line-authority.md)
 - [ADR 0023: Admit the S-CORE-integrated AEBS reference
   member](0023-admit-score-integrated-aebs-reference-member.md)
+- [ADR 0025: End SOME/IP in an SDV Core VM for the S-CORE-integrated
+  member](0025-end-someip-in-an-sdv-core-vm.md)
 
 ## Template
 

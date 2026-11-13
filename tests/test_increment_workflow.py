@@ -22,8 +22,7 @@ PHASES = (
     "phase0_incrementFraming", "phase1_concernFraming", "phase2_operationalContext",
     "phase3_capabilityClassification", "phase4_needs", "phase5_requirements",
     "phase6_functionalArchitecture", "phase7_logicalArchitecture", "phase8_physicalRealization",
-    "phase9_variabilityConfiguration", "phase10_vvEvidence", "phase11_publication",
-    "phase12_baselineNextSlice",
+    "phase9_variabilityConfiguration", "phase10_vvEvidence", "phase11_baseline",
 )
 # One check per accepted rule clause, in the step whose output it is about.
 CHECKS_BY_STEP = {
@@ -35,6 +34,12 @@ CHECKS_BY_STEP = {
         "incrementDeclaresApplicablePhases", "incrementDeclaresExpectedArtifacts",
         "incrementDeclaresExpectedReviewEvidence", "expectedArtifactsCoverIncrementContent",
     },
+    "FrameConcerns": {"incrementHasNonBoundaryConcern", "concernHasStakeholder", "concernFramedByViewpoint"},
+    "SpecifyOperationalContext": {
+        "incrementHasOperationalContext", "operationalContextHoldsSystemOfInterest",
+        "storyBindsSubjectToSystemOfInterest", "storyBindsActorsToContextParts",
+    },
+    "ClassifyCapabilities": {"characteristicIsFeatureDelta"},
     "ElaborateNeeds": {
         "needHasStatement", "needHasStakeholder", "needHasSource", "needHasRationale",
         "needHasValidationScenario", "needSubjectIsSystemOfInterest",
@@ -57,7 +62,18 @@ CHECKS_BY_STEP = {
         "verificationCaseVerifiesRequirement", "requirementVerifiedByVerificationCase",
         "verificationCaseHasEvidenceRecordOrStatus",
     },
+    "DefineVariabilityAndConfiguration": {
+        "incrementHasConfiguredProduct", "configuredProductConfiguredByOneConfiguration",
+    },
+    "DecideBaseline": {
+        "publishedViewFramesConcern", "publishedViewExposesContent",
+        "incrementHasBaselineDecision", "baselineDecisionStatesDisposition", "openGapStatesDisposition",
+        "applicablePhaseContentPublished", "concernAnsweredInItsDomain",
+    },
 }
+#: The steps with no executable check. Every step has checks now: a step without one is a method decision
+#: this test makes visible.
+UNCHECKED_STEPS: set[str] = set()
 ADVISORY = {
     "expectedArtifactsCoverIncrementContent",
     "needSubjectIsSystemOfInterest",
@@ -70,6 +86,8 @@ ADVISORY = {
     "crossingHasSignalMapping",
     "signalMappingNamesSemanticSource",
     "verificationCaseHasEvidenceRecordOrStatus",
+    "applicablePhaseContentPublished",
+    "concernAnsweredInItsDomain",
 }
 # Registry contract for the evaluation engine: every check identifier the model
 # uses must be one of these. The engine fails closed on any other identifier.
@@ -84,6 +102,9 @@ CHECK_REGISTRY = {
     "allocatedTo", "populationMember", "carriedByArchitecture", "receivesAllocation",
     "signalMappingRecorded", "semanticSourceNamed",
     "verifiesIncrementRequirement", "verifiedBy", "evidenceRecordOrStatus",
+    "framedByViewpoint", "nonBoundaryConcernPresent", "contextSystemOfInterest", "storySubjectBound", "storyActorsBound",
+    "featureDeltaOnly", "viewpointFramesConcern", "exposesModelContent", "phaseContentPublished",
+    "configuredByOneConfiguration", "dispositionStated", "concernAnsweredInDomain",
 }
 
 
@@ -113,7 +134,7 @@ def _checks(definition: str) -> dict[str, dict[str, str]]:
 
 def test_workflow_orders_one_step_per_phase_and_makes_later_steps_optional() -> None:
     steps = _steps()
-    assert len(steps) == 13
+    assert len(steps) == 12
     phases = []
     for usage, multiplicity, definition in steps:
         assert usage == definition[0].lower() + definition[1:], usage
@@ -128,7 +149,7 @@ def test_workflow_orders_one_step_per_phase_and_makes_later_steps_optional() -> 
 def test_each_step_asks_its_phase_question_and_declares_artifacts() -> None:
     table = WORKFLOW_DOC.read_text(encoding="utf-8")
     questions = re.findall(r"^\| \d+\. [^|]+\| ([^|]+?) \|", table, re.MULTILINE)
-    assert len(questions) == 13
+    assert len(questions) == 12
     text = WORKFLOW_FILE.read_text(encoding="utf-8")
     for (_, _, definition), question in zip(_steps(), questions):
         start = text.index(f"action def {definition} :> IncrementStep")
@@ -146,6 +167,12 @@ def test_checks_encode_the_accepted_rules_about_step_parameters() -> None:
         for name, fields in checks.items():
             assert fields["about"] in parameters, (definition, name)
             assert re.fullmatch(r'"\w+"', fields["check"]), (definition, name)
+
+
+def test_every_step_has_checks() -> None:
+    steps = {definition for _, _, definition in _steps()}
+    assert {definition for definition in steps if not _checks(definition)} == UNCHECKED_STEPS
+    assert UNCHECKED_STEPS | set(CHECKS_BY_STEP) == steps
 
 
 def test_every_check_identifier_is_in_the_registry() -> None:
@@ -177,6 +204,38 @@ ARCHITECTURE_PARAMETERS = {
         ("out", "part", "physicalElements", "[1..*]", "PhysicalAllocationElement"),
         ("out", "allocation", "signalMappings", "[0..*]", "SystemToSoftwareSignalMappingCandidate")],
 }
+
+
+#: The parameters of the steps of phases 1, 2, 3 and 11 (direction, keyword, name, multiplicity, type). An
+#: untyped parameter counts the usages of its keyword; the phase-3 output is typed by the classification
+#: base, so the check also sees a characteristic that is no feature candidate.
+REMAINING_PARAMETERS = {
+    "FrameConcerns": [
+        ("in", "requirement", "problemStatement", "", "ProblemStatement"),
+        ("out", "part", "stakeholders", "[1..*]", "Stakeholder"),
+        ("out", "concern", "concerns", "[1..*]", "")],
+    "SpecifyOperationalContext": [
+        ("in", "requirement", "problemStatement", "", "ProblemStatement"),
+        ("out", "part", "operationalContext", "", "SystemContext")],
+    "ClassifyCapabilities": [
+        ("in", "part", "operationalContext", "", "SystemContext"),
+        ("out", "part", "characteristics", "[0..*]", "ProductLineCharacteristic")],
+    "DecideBaseline": [
+        ("in", "part", "charter", "", "IncrementCharter"),
+        ("in", "concern", "concerns", "[0..*]", ""),
+        ("out", "view", "publishedViews", "[1..*]", ""),
+        ("out", "part", "baselineDecision", "", "IncrementBaselineDecision"),
+        ("out", "part", "openGaps", "[0..*]", "IncrementGap")],
+}
+
+
+def test_remaining_steps_declare_the_parameters_their_checks_are_about() -> None:
+    for definition, expected in REMAINING_PARAMETERS.items():
+        found = re.findall(r"\b(in|out)\s+(\w+)\s+(\w+)(\[[^\]]*\])?\s*(?::\s*(\w+))?\s*;", _step_body(definition))
+        assert found == expected, definition
+    code = _code(WORKFLOW_FILE)
+    assert code.count("private import DE4SDV_ProductLine::ProductLineCharacteristic;") == 1
+    assert "ProductLineFeatureCandidate" not in code
 
 
 def test_architecture_steps_type_their_parameters_by_the_trace_profile_classes() -> None:

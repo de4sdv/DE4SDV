@@ -1,0 +1,24 @@
+// The REQ-MW-016 isolation probe sender, built in the AOSP tree beside the IVI
+// frame relay and pushed to the guest the same way (S1). It pins the egress
+// device, the source address and the source port for one datagram or one timed
+// TCP connect (reviews R39, R40, R41, R43). The bench records its on-device
+// digest with the other pushed binaries.
+//
+// CI does not build this file; CI compiles de4sdv_probe_send.c with the host
+// compiler. The six namespace tests (tests/test_probe_sender.py) are skipped on
+// the CI runner; the sender ran locally and in the off-VM harness. This
+// module is the guest build for S1.
+
+cc_binary {
+    name: "de4sdv_probe_send",
+    srcs: ["de4sdv_probe_send.c"],
+    cflags: [
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-std=c11",
+    ],
+    // A plain static-ish host-style tool: no Android libraries beyond libc.
+    sdk_version: "current",
+    vendor: true,
+}

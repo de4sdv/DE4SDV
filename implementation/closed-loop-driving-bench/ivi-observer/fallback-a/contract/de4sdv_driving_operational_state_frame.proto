@@ -1,0 +1,34 @@
+// DE4SDV INC-DRIVING-001 slice 10b, typed observation path (GAP-DRIVING-006).
+//
+// The VSIDL type of the Data Tunnel topic that the SOME/IP broker publishes in
+// the SDV Core VM. The SOME/IP payload -- the protobuf wire format of
+// de4sdv.driving.v1.DrivingOperationalState, at most the 2048 bytes of the
+// S-CORE PreSerializedData<2048> event (ICD section 2) -- is carried unchanged
+// in `data` with INTERPRET_AS_BYTES, exactly as the AEBS frame bench carried
+// its frame (MAP-MW-SCORE-AEBS-SIGNAL-FRAME).
+//
+// Why a carrier and not the ICD message itself: the SOME/IP broker has two
+// translation modes (AOSP "Write a SOME/IP mapping file" / "Optimize
+// performance", 2026-10-28). The default one translates a SOME/IP *struct*
+// encoding (big-endian primitives laid out by a SomeIpStruct type_definition)
+// into protobuf fields; the other one, INTERPRET_AS_BYTES, forwards the payload
+// without translation. Neither parses a protobuf-wire payload into the fields
+// of a typed message. A protobuf payload can therefore only travel as bytes,
+// and the consumer decodes it with the same .proto (../observed/). DESIGN.md
+// section 3 states this as a contract finding, with the alternatives.
+//
+// The bytes field is bounded at 2048, the S-CORE side's own buffer bound, so
+// the slot costs 2048 bytes plus the broker's envelope, not more.
+syntax = "proto3";
+
+package com.android.sdv.someip;
+
+import "sdv/vsidl/v1/annotations.proto";
+
+message De4sdvDrivingOperationalStateFrame {
+  option (.sdv.vsidl.v1.publication) = {
+    message_count : 32
+    model : SINGLE_PUB
+  };
+  bytes data = 1 [ (.sdv.vsidl.v1.variable_type_max_size) = 2048 ];
+}

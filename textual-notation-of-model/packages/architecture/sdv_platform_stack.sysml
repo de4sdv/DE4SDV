@@ -60,7 +60,9 @@ package DE4SDV_SDVPlatformStack {
      * operating system of osPlatform. With KVM, the main side is the KVM
      * host: its operating system hosts the hypervisor and is not a guest of
      * it. The guest side is a second execution domain under the
-     * hypervisor, with guestOSPlatform and guestMiddleware.
+     * hypervisor, with guestOSPlatform and guestMiddleware. It is a guest
+     * partition of one or more VMs. How many VMs it holds, and which image
+     * each one runs, are realization choices (ADR 0025).
      *
      * The middleware variation is the middleware that the vehicle
      * application integrates with through the adapter. Eclipse S-CORE and
@@ -76,6 +78,7 @@ package DE4SDV_SDVPlatformStack {
       variant part autoware : AutowareStack;
       variant part openpilot : OpenpilotStack;
       variant part apollo : ApolloStack;
+      variant part autoE2E : AutoE2EStack;
     }
 
     variation part middleware : MiddlewareLayer {
@@ -93,6 +96,7 @@ package DE4SDV_SDVPlatformStack {
       variant part autowareToAUTOSAR : AutowareToAUTOSARAdapter;
       variant part openpilotToSCORE : OpenpilotToSCOREAdapter;
       variant part apolloToSCORE : ApolloToSCOREAdapter;
+      variant part autoE2EToSCORE : AutoE2EToSCOREAdapter;
       variant part none[0]; /* no adapter when no vehicle-level middleware */
     }
 
@@ -113,7 +117,8 @@ package DE4SDV_SDVPlatformStack {
 
     variation part guestOSPlatform : OSPlatformLayer {
       /* The guest side: the operating system of the second execution
-       * domain, under the hypervisor of the SoC. */
+       * domain, under the hypervisor of the SoC. The domain holds one or
+       * more VMs. */
       variant part android : AndroidHLOS;
       variant part none[0]; /* no guest domain */
     }
@@ -212,7 +217,7 @@ package DE4SDV_SDVPlatformStack {
      * the applications of its execution domain.
      *
      * Candidate realizations: Eclipse S-CORE, Android SDV,
-     * AUTOSAR Adaptive (ARA). The stack has two middleware slots:
+     * AUTOSAR Adaptive Platform (AP). The stack has two middleware slots:
      * middleware, the one that the vehicle application integrates with,
      * and guestMiddleware, the one of the guest side.
      *
@@ -453,9 +458,35 @@ package DE4SDV_SDVPlatformStack {
   /* ──────────────────────────────────────────
    * Candidate realizations — application-middleware adapter layer
    * ────────────────────────────────────────── */
+  part def AutoE2EStack :> VehicleApplicationLayer {
+    doc /*
+     * AutoE2E (Autoware Foundation auto_e2e): a camera-only end-to-end
+     * driving stack that plans a trajectory from six camera images, the
+     * ego-motion history and a route raster, as an exported checkpoint run
+     * by DE4SDV's own programs rather than as a ROS 2 stack.
+     * License: Apache 2.0 for the source; the checkpoint's terms are
+     * resolved separately (INC-DRIVING-001).
+     * Status: candidate realization, admitted to no member; the driving
+     * increment's phase 8 places it, phase 10 proves it. No conformance to
+     * DE4SDV boundary contracts is assumed without evidence.
+     */
+  }
+
   part def AutowareToSCOREAdapter :> ApplicationMiddlewareAdapterLayer {
     doc /*
      * Adapts Autoware ROS 2 topics to Eclipse S-CORE LoLa IPC.
+     */
+  }
+
+  part def AutoE2EToSCOREAdapter :> ApplicationMiddlewareAdapterLayer {
+    doc /*
+     * The mw::com binding code of the three programs that realize the
+     * closed-loop driving system on Eclipse S-CORE: the driving agent, the
+     * actuation adapter and the operational-state publisher of
+     * INC-DRIVING-001 phase 8 speak S-CORE Communication between their
+     * processes, so the adapter is no program of its own. Derived for the
+     * pair AutoE2E and Eclipse S-CORE; no other pairing of AutoE2E has an
+     * adapter.
      */
   }
 
@@ -537,9 +568,8 @@ package DE4SDV_SDVPlatformStack {
 
   part def AUTOSARAdaptive :> MiddlewareLayer {
     doc /*
-     * AUTOSAR Adaptive Platform (ARA).
-     * Automotive middleware standard with functional safety
-     * focus (ASIL).
+     * AUTOSAR Adaptive Platform (AP).
+     * Service-oriented automotive middleware standard.
      * This entry is a placeholder for the standard interface
      * contract, not a specific open-source implementation.
      * License: varies by implementation.
@@ -571,7 +601,7 @@ package DE4SDV_SDVPlatformStack {
   part def QNXPlatform :> OSPlatformLayer {
     doc /*
      * QNX Neutrino RTOS (BlackBerry / QNX).
-     * Real-time POSIX OS, ASIL-D certified.
+     * Real-time OS with a microkernel and a POSIX API.
      * License: commercial (not open-source).
      * Status: candidate realization — included for mixed-criticality
      * architectures; acknowledged as non-OSS.

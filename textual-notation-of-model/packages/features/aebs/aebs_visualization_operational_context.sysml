@@ -6,7 +6,11 @@
  * AEBS behavior. This slice is System 2 operational context only; it does not
  * change the System 1 AEBS operational story, does not select transport or
  * application technology, and does not presuppose a host browser as the
- * rendering surface.
+ * rendering surface. The operational context holds the visualization test
+ * system as its system of interest and the parts around it: the instrumented
+ * System 1 member that the test system observes, the reviewer and the
+ * evidence baseline, and the driver and the vehicle target of the System 1
+ * scenario.
  */
 
 package DE4SDV_AEBSVisualizationOperationalContext {
@@ -76,10 +80,9 @@ package DE4SDV_AEBSVisualizationOperationalContext {
 
   use case def ObserveAEBSVisualizationOnAAOS
     :> SYSMODSystemUseCaseBase {
-    subject instrumentedMember : SubjectVehicle;
+    subject visualizationTestSystem : AEBSVisualizationTestSystem;
+    actor instrumentedMember : SubjectVehicle;
     actor reviewer : OpenSourceReviewer;
-    actor driver : Driver;
-    actor vehicleTarget : VehicleTarget;
     actor evidenceBaseline : DE4SDVEvidenceBaseline;
 
     attribute redefines ucMotivation = "Reviewers need to see live AEBS threat and intervention state, with honest provenance, on an actual AAOS SDV display rather than a host-side substitute.";
@@ -96,20 +99,32 @@ package DE4SDV_AEBSVisualizationOperationalContext {
     }
   }
 
-  part instrumentedMember : SubjectVehicle {
-    doc /* The configured member executing the unchanged System 1 AEBS behavior. */
+  part aebsVisualizationOperationalContext : SystemContext {
+    doc /*
+     * The operational context of the visualization test system, the System 2
+     * system of interest of INC-AEBS-010. The test system observes the
+     * instrumented member read-only. The actors of the story are the
+     * instrumented member, the display reviewer and the evidence baseline.
+     * The observing driver and the scenario vehicle target act on the
+     * instrumented member, not on the test system, so they are parts of the
+     * context and not actors of the story. This is the operational
+     * environment, not a deployment decomposition.
+     */
+    part visualizationTestSystem : AEBSVisualizationTestSystem :>> systemOfInterest;
+    part instrumentedMember : SubjectVehicle {
+      doc /* The configured member executing the unchanged System 1 AEBS behavior. */
+    }
+    part displayReviewer : OpenSourceReviewer;
+    part observingDriver : Driver;
+    part scenarioVehicleTarget : VehicleTarget;
+    part visualizationEvidenceBaseline : DE4SDVEvidenceBaseline;
   }
-  part displayReviewer : OpenSourceReviewer;
-  part observingDriver : Driver;
-  part scenarioVehicleTarget : VehicleTarget;
-  part visualizationEvidenceBaseline : DE4SDVEvidenceBaseline;
 
   use case aebsVisualizationStory : ObserveAEBSVisualizationOnAAOS {
-    subject instrumentedMember;
-    actor reviewer = displayReviewer;
-    actor driver = observingDriver;
-    actor vehicleTarget = scenarioVehicleTarget;
-    actor evidenceBaseline = visualizationEvidenceBaseline;
+    subject visualizationTestSystem = aebsVisualizationOperationalContext::visualizationTestSystem;
+    actor instrumentedMember = aebsVisualizationOperationalContext::instrumentedMember;
+    actor reviewer = aebsVisualizationOperationalContext::displayReviewer;
+    actor evidenceBaseline = aebsVisualizationOperationalContext::visualizationEvidenceBaseline;
   }
 
   action aebsVisualizationObservation : AebsVisualizationObservationFlow;
@@ -139,9 +154,11 @@ package DE4SDV_AEBSVisualizationOperationalContext {
 
   concern visualizationScenarioConcern : OperationalContextConcern {
     doc /*
-     * Reviewers need the visualization observation scenarios, their
-     * fail-closed dispositions, and their separation from the unchanged
-     * System 1 AEBS story to be visible.
+     * Systems engineers, verification engineers and open-source reviewers
+     * need the operational context of the visualization test system, the
+     * visualization observation scenarios, their fail-closed dispositions,
+     * and their separation from the unchanged System 1 AEBS story to be
+     * visible.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -154,6 +171,8 @@ package DE4SDV_AEBSVisualizationOperationalContext {
       frame visualizationScenarioConcern;
     }
 
+    expose aebsVisualizationOperationalContext;
+    expose aebsVisualizationOperationalContext::*;
     expose aebsVisualizationStory;
     attribute depth = 1;
     render asTreeDiagram;

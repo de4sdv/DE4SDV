@@ -383,6 +383,7 @@ _CONFIG_IDENTITY = re.compile(
 # `UNECE` is the subject of SRC-UNECE-R152 (TYPE=SRC, SUBJECT=UNECE, REST=R152).
 REGISTERED_SUBJECTS = {
     "AEBS",
+    "DRIVING",  # automated-driving planning and control, distinct from AEBS
     "MW",  # legacy registered code; canonical spelling is `middleware`
     "UNECE",
     "EXAMPLE",  # reserved for method tests and throwaway increments (decision D12)

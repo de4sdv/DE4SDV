@@ -1,0 +1,233 @@
+{
+    "serviceTypes": [
+        {
+            "serviceTypeName": "/de4sdv/driving/DrivingPlan",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7402,
+                    "events": [
+                        {
+                            "eventName": "plan",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "serviceTypeName": "/de4sdv/driving/DrivingEgoMotionSample",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7401,
+                    "events": [
+                        {
+                            "eventName": "ego_motion_sample",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "serviceTypeName": "/de4sdv/driving/DrivingMode",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7403,
+                    "events": [
+                        {
+                            "eventName": "mode",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "serviceTypeName": "/de4sdv/driving/DrivingActuationState",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7405,
+                    "events": [
+                        {
+                            "eventName": "actuation_state",
+                            "eventId": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "serviceTypeName": "/de4sdv/driving/DrivingOperationalState",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7406,
+                    "events": [
+                        {
+                            "eventName": "plan",
+                            "eventId": 1
+                        },
+                        {
+                            "eventName": "vehicle_state",
+                            "eventId": 2
+                        },
+                        {
+                            "eventName": "health",
+                            "eventId": 3
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "serviceInstances": [
+        {
+            "instanceSpecifier": "de4sdv/driving/plan",
+            "serviceTypeName": "/de4sdv/driving/DrivingPlan",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "plan",
+                            "numberOfSampleSlots": 25,
+                            "maxSubscribers": 3
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "instanceSpecifier": "de4sdv/driving/ego_motion_sample",
+            "serviceTypeName": "/de4sdv/driving/DrivingEgoMotionSample",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "ego_motion_sample",
+                            "numberOfSampleSlots": 25,
+                            "maxSubscribers": 3
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "instanceSpecifier": "de4sdv/driving/mode",
+            "serviceTypeName": "/de4sdv/driving/DrivingMode",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "mode",
+                            "numberOfSampleSlots": 25,
+                            "maxSubscribers": 3
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "instanceSpecifier": "de4sdv/driving/actuation_state",
+            "serviceTypeName": "/de4sdv/driving/DrivingActuationState",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "actuation_state",
+                            "numberOfSampleSlots": 20,
+                            "maxSubscribers": 2
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "instanceSpecifier": "de4sdv/driving/operational_state",
+            "serviceTypeName": "/de4sdv/driving/DrivingOperationalState",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "plan",
+                            "numberOfSampleSlots": 20,
+                            "maxSubscribers": 1
+                        },
+                        {
+                            "eventName": "vehicle_state",
+                            "numberOfSampleSlots": 20,
+                            "maxSubscribers": 1
+                        },
+                        {
+                            "eventName": "health",
+                            "numberOfSampleSlots": 20,
+                            "maxSubscribers": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "global": {
+        "asil-level": "QM",
+        "applicationID": 3306
+    }
+}
