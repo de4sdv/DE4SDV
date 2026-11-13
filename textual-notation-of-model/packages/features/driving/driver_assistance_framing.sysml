@@ -16,14 +16,14 @@ package DE4SDV_DriverAssistanceFraming {
 
   part <'INC-DRIVING-002'> driverAssistanceIncrement : DriverAssistanceIncrement {
     doc /*
-     * Owner-requested increment on a camera-only driver-assistance
-     * application as a candidate for a further member product. VisionPilot of
-     * the Autoware Foundation is the application that the owner named.
-     * Eclipse S-CORE is the integration path, and CARLA is the enabling
-     * closed-loop verification environment. The increment judges the
-     * candidate's warning request and its braking for a vehicle target. It
-     * does not change the Autoware-based AEBS. All phases retain this
-     * identity. This package holds only Phase 0.
+     * Owner-requested increment on a camera-only driver-assistance application
+     * as a candidate for a further member product. VisionPilot of the Autoware
+     * Foundation is the application that the owner named. Eclipse S-CORE is
+     * the integration path, and CARLA is the enabling closed-loop verification
+     * environment. The increment judges the candidate's collision warning, as
+     * the AAOS SDV display shows it to the driver, and its braking for a
+     * vehicle target. It does not change the Autoware-based AEBS. All phases
+     * retain this identity. This package holds only Phase 0.
      */
   }
 
@@ -49,11 +49,12 @@ package DE4SDV_DriverAssistanceFraming {
   part driverAssistanceQuestion : IncrementEngineeringQuestion {
     doc /*
      * Does a camera-only driver-assistance application, with its commands on
-     * the Eclipse S-CORE command path, request the warning and command the
-     * braking that the product line requires for a vehicle target, when
-     * criteria derived from UNECE R152 judge its closed-loop behavior in
-     * simulation? A verdict for each requirement and scenario answers this. A
-     * recording of a run that looks right does not.
+     * the Eclipse S-CORE command path, show the driver its collision warning
+     * on the AAOS SDV display and command the braking that the product line
+     * requires for a vehicle target, when criteria derived from UNECE R152
+     * judge its closed-loop behavior in simulation? A verdict for each
+     * requirement and scenario answers this. A recording of a run that looks
+     * right does not.
      */
   }
 
@@ -74,39 +75,47 @@ package DE4SDV_DriverAssistanceFraming {
     doc /*
      * Candidate System 1 boundary. In: the front-camera image and the vehicle
      * speed. Inside: perception of the lane and of the closest object in the
-     * path, speed and steering planning, and the warning and braking
-     * decision. Out: the driving command and the warning request. The Eclipse
-     * S-CORE command path that carries the driving command to the actuation
-     * is platform content of System 1. It is outside this boundary, and it is
-     * not an enabling system. Phases 6 to 8 decide its realization. The
-     * candidate is a proposed application system, not a member product: this
-     * increment admits no member to the governed product-line scope. Phases 2
-     * and 3 add the actors, the interfaces and the product-line
-     * classification.
+     * path, speed and steering planning, and the warning and braking decision.
+     * Out: the driving command and the warning request. The Eclipse S-CORE
+     * command path that carries the driving command to the actuation is
+     * platform content of System 1. The AAOS SDV display that shows the
+     * collision warning to the driver is System 1 content too: the HMI display
+     * that the product line holds as an optional feature. Both are outside
+     * this boundary, and neither is an enabling system. Phases 6 to 8 decide
+     * their realization. The candidate is a proposed application system, not a
+     * member product: this increment admits no member to the governed
+     * product-line scope. Phases 2 and 3 add the actors, the interfaces and
+     * the product-line classification.
      */
   }
   part candidateDriverAssistanceSystem : DriverAssistanceSystem;
 
   part driverAssistanceScope : IncrementScope {
     doc /*
-     * The warning request and the braking of the candidate for a vehicle
-     * target ahead in its lane, in closed loop with a rendered camera image,
-     * for one configuration and with at most ten requirements. Phase 5
-     * derives those requirements from the product line's requirements on the
-     * collision warning, the emergency braking and the false reaction
-     * (REQ-AEBS-002, REQ-AEBS-003, REQ-AEBS-008 and REQ-AEBS-012). The
-     * scenarios are a stationary target, a slower moving target, and two in
-     * which no reaction is due. Closed-loop execution and its evidence belong
-     * to Phase 10 of this same increment. A readiness probe comes before the
-     * architecture rests on what it tests. Implementation is not part of this
-     * framing slice.
+     * The collision warning that the AAOS SDV display shows the driver and the
+     * braking of the candidate, for a vehicle target ahead in its lane, in
+     * closed loop with a rendered camera image, for one configuration and with
+     * at most ten requirements. Phase 5 derives those requirements from the
+     * product line's requirements on the collision warning, the emergency
+     * braking and the false reaction (REQ-AEBS-002, REQ-AEBS-003, REQ-AEBS-008
+     * and REQ-AEBS-012). The scenarios are a stationary target, a slower
+     * moving target, and two in which no reaction is due. Closed-loop
+     * execution and its evidence belong to Phase 10 of this same increment. A
+     * readiness probe comes before the architecture rests on what it tests.
+     * Implementation is not part of this framing slice.
      */
   }
 
   part vehicleTargetResponseInScope : InScopeItem {
     doc /*
-     * The warning request and the braking for a stationary and for a slower
+     * The collision warning and the braking for a stationary and for a slower
      * moving vehicle target ahead.
+     */
+  }
+  part warningOnDisplayInScope : InScopeItem {
+    doc /*
+     * The collision warning as the AAOS SDV display shows it to the driver:
+     * whether it is shown, and when, relative to the start of the braking.
      */
   }
   part noReactionInScope : InScopeItem {
@@ -123,8 +132,8 @@ package DE4SDV_DriverAssistanceFraming {
   }
   part scoreCommandPathInScope : InScopeItem {
     doc /*
-     * The candidate's commands reach the simulated vehicle through Eclipse
-     * S-CORE; no bypass.
+     * The candidate's commands reach the simulated vehicle, and its warning
+     * reaches the display, through Eclipse S-CORE; no bypass.
      */
   }
   part verdictEvidenceInScope : InScopeItem {
@@ -146,12 +155,11 @@ package DE4SDV_DriverAssistanceFraming {
   part driverInteractionOutOfScope : OutOfScopeItem {
     doc /* Driver monitoring, driver override and deactivation. */
   }
-  part warningPresentationOutOfScope : OutOfScopeItem {
+  part furtherWarningModesOutOfScope : OutOfScopeItem {
     doc /*
-     * Presentation of the warning to a driver, and the modes of that warning.
-     * The increment judges the warning request at the system boundary and the
-     * time of that request. The product line requires a collision warning to
-     * the driver; this increment answers that requirement in part only.
+     * Acoustic and haptic modes of the collision warning. The regulation asks
+     * for the warning in at least two modes; this increment judges one, the
+     * optical warning on the display.
      */
   }
   part existingAEBSOutOfScope : OutOfScopeItem {
@@ -173,11 +181,10 @@ package DE4SDV_DriverAssistanceFraming {
   part driverAssistanceVerificationEnvironment : System2EngineeringAndAssuranceSystem {
     doc /*
      * CARLA renders the camera image and moves the vehicle and the targets.
-     * Cloud hosts, the scenario runner, the evaluators and the recordings
-     * enable engineering and verification. They are not vehicle features and
-     * not contents of the candidate System 1 boundary. Where an AAOS SDV
-     * display shows the warning in this increment, it serves as an
-     * instrument. The increment does not judge it as a warning to the driver.
+     * Cloud hosts, the scenario runner, the evaluators, the capture of the
+     * display and the recordings enable engineering and verification. They are
+     * not vehicle features and not contents of the candidate System 1
+     * boundary. The capture of the display observes it and is no part of it.
      */
   }
 
@@ -199,10 +206,11 @@ package DE4SDV_DriverAssistanceFraming {
   }
   part asmBenchReuse : IncrementAssumption {
     doc /*
-     * The Eclipse S-CORE command path and the actuation adapter of the
-     * closed-loop driving increment, and the evaluator structure of its
-     * bench, can carry a second application. They are reuse candidates. Their
-     * results for the first application are not evidence for this one.
+     * The Eclipse S-CORE command path, the actuation adapter and the path to
+     * the AAOS SDV display of the closed-loop driving increment, and the
+     * evaluator structure of its bench, can carry a second application. They
+     * are reuse candidates. Their results for the first application are not
+     * evidence for this one.
      */
   }
   part asmSimulatedConfigurationStandsIn : IncrementAssumption {
@@ -249,23 +257,20 @@ package DE4SDV_DriverAssistanceFraming {
     doc /*
      * At the inspected revision the application writes its steering and its
      * acceleration to its vehicle interface. That interface carries no
-     * warning. The warnings go to the application's own display and to its
-     * own data log, each only when it is switched on. A warning request at
-     * the system boundary is an output that the application does not have.
-     * Whether the increment reads the warning from that data log, or from an
-     * output that is added without a change to the application's decision
-     * logic, is open.
+     * warning. The warnings go to the application's own visualization and to
+     * its own data log, each only when it is switched on. A warning request at
+     * the system boundary, which the AAOS SDV display needs, is an output that
+     * the application does not have. Whether the increment takes the warning
+     * from that data log, or from an output that is added without a change to
+     * the application's decision logic, is open.
      */
   }
   part gapCandidateBehaviorUnverified : IncrementGap {
     doc /*
-     * No closed-loop result of the application exists on the DE4SDV bench.
-     * The upstream record lists what the project's own open changes report:
-     * an error in the speed planner and closed-loop cases that fail. None of
-     * these changes starts from the inspected revision, and DE4SDV has run
-     * neither that revision nor the changes. A build that carries a change
-     * which upstream has not merged is a different candidate, and its
-     * verdicts are reported apart.
+     * No closed-loop result of the application exists on the DE4SDV bench, and
+     * DE4SDV has run neither the inspected revision nor a change to it. A
+     * build that carries a change which upstream has not merged is a different
+     * candidate, and its verdicts are reported apart.
      */
   }
   part gapScoreIntegration : IncrementGap {
@@ -373,6 +378,7 @@ package DE4SDV_DriverAssistanceFraming {
     expose driverAssistanceScope;
     expose driverAssistanceBoundary;
     expose vehicleTargetResponseInScope;
+    expose warningOnDisplayInScope;
     expose noReactionInScope;
     expose vehicleTargetCriteriaInScope;
     expose scoreCommandPathInScope;
@@ -380,7 +386,7 @@ package DE4SDV_DriverAssistanceFraming {
     expose pedestrianAndBicycleTargetsOutOfScope;
     expose cruiseAndLaneKeepingQualityOutOfScope;
     expose driverInteractionOutOfScope;
-    expose warningPresentationOutOfScope;
+    expose furtherWarningModesOutOfScope;
     expose existingAEBSOutOfScope;
     expose candidateTuningOutOfScope;
     expose onRoadOperationOutOfScope;

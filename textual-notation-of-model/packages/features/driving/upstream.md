@@ -1,7 +1,7 @@
-# Closed-loop driving: upstream provenance
+# Driving: upstream provenance
 
-These are inspection anchors for framing, not an adopted dependency set or an
-execution manifest. No upstream implementation is vendored in this increment.
+These are inspection anchors of the driving increments, not an adopted
+dependency set or an execution manifest. No upstream implementation is vendored.
 
 ## AutoE2E
 
@@ -110,7 +110,54 @@ These are reuse/boundary references. Existing AEBS observations do not prove
 trajectory transport, AutoE2E actuation or the new timing target. No previous
 increment's result is reclassified by this framing.
 
+## VisionPilot
+
+Read for the framing of INC-DRIVING-002 on 2026-11-13:
+[Autoware Foundation VisionPilot](https://github.com/autowarefoundation/vision_pilot/tree/014e0e7a56ee8e597c2cab8175233f74edd9b856),
+commit `014e0e7a56ee8e597c2cab8175233f74edd9b856` of the branch `main`, with
+an [Apache-2.0 licence file](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/LICENSE).
+Its release tag `v1.2` is commit `9a96c3e771f9e79e91b6ccfcbf2ce860530024c8`,
+an ancestor of the inspected commit. Which revision a bench runs is a decision
+of phase 8. DE4SDV has built and run nothing of this project, and vendors
+nothing of it.
+
+What the framing's gaps rest on, at the inspected commit:
+
+- [Application loop](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/app/vision_pilot.cpp):
+  one process that reads the camera image and the vehicle speed and writes a
+  steering and an acceleration command.
+- [Warning and braking decision](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/planning/src/planning.cpp):
+  the forward-collision warning and the emergency braking are two ranges of
+  the acceleration that the
+  [speed planner](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp)
+  returns. The code has no emergency function apart from that planner.
+- [Vehicle interface](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/sensing/vehicle_interface/include/vehicle_interface/vehicle_interface.hpp):
+  it carries no warning. The warnings go to the application's
+  [visualization](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/visualization/src/visual_interface.cpp)
+  and to its
+  [data log](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/logging/src/logger.cpp),
+  each only when the
+  [application configuration](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/config/vision_pilot.conf)
+  switches it on. In the inspected commit that file switches the visualization
+  on and the data log off.
+- [Closed-loop simulator path](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Simulation/CARLA/ROS2/README.md):
+  CARLA 0.9.16 over ROS 2.
+- [Safety element out of context, draft](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Functional_Safety/SAFETY_ELEMENT_OUT_OF_CONTEXT.md):
+  it lists warning requests among the outputs of the element.
+- A search of every text file of the inspected commit for the S-CORE launch
+  manager, its communication library and FEO found none: the commit holds no
+  binding to Eclipse S-CORE communication and no S-CORE supervision.
+- The README of the object-detection network,
+  [AutoSpeed](https://github.com/autowarefoundation/auto_speed/tree/b62e55b93ba728787cb1152347463030443634c4)
+  (commit `b62e55b93ba728787cb1152347463030443634c4`, Apache-2.0 licence
+  file), says that the AutoSpeed 2.0 network is trained on the OpenLane
+  dataset. DE4SDV has not checked that the weights in the application's
+  repository are the ones that this README describes, and has not read the
+  terms of the weights or of that dataset.
+
 ## Questions requiring upstream engagement
+
+AutoE2E:
 
 - Which released checkpoint/configuration is supported for camera-based
   closed-loop inference, and what target-hardware timing is actually measured?
@@ -129,6 +176,19 @@ increment's result is reclassified by this framing.
   and the effect of the zeroed history.
   [Upstream contact](#upstream-contact) says what DE4SDV has posted in the
   upstream thread on this divergence.
+
+VisionPilot:
+
+- Which revision and which configuration does the project support for a
+  closed-loop run in the simulator?
+- Is an emergency function apart from the speed planner planned?
+- The safety draft lists warning requests among the outputs of the element. Is
+  an output of the warnings planned apart from the visualization and the data
+  log?
+- Which camera geometry and calibration does a simulated camera have to keep
+  for the distance estimate to hold?
+- Which terms of the weights and of their training data permit the intended
+  use and the publication of results?
 
 ## Upstream contact
 
@@ -159,6 +219,8 @@ that project proposes (SOME/IP gateway at f30d5668, communication 0.6.0): withou
 the change, 34 of 34 stops of a subscribed gatewayd ended with SIGABRT; with it,
 34 of 34 ended with exit code 0. When the comment was posted, the pull request
 was not merged; the pins of the bench do not carry the change.
+
+In the VisionPilot repository DE4SDV has posted nothing.
 
 DE4SDV has opened no pull request in any of these repositories. This record
 states what DE4SDV sent. It follows neither the replies, nor whether a thread
