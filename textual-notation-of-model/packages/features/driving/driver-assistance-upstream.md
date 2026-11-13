@@ -28,7 +28,9 @@ Inspected surfaces:
   the application reads the vehicle speed from it and writes a steering and an
   acceleration to it. It carries no warning. The warnings go to the
   [application's display](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/visualization/src/visual_interface.cpp)
-  and to its [data log](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/logging/src/logger.cpp).
+  and to its [data log](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/logging/src/logger.cpp),
+  each only when the application configuration switches it on. In the
+  inspected commit that file switches the display on and the data log off.
 - [Speed planner](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp)
   and the [fusion of the closest in-path object](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/fusion/src/longitudinal_fusion.cpp).
 - [Application configuration](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/config/vision_pilot.conf)
@@ -38,9 +40,12 @@ Inspected surfaces:
   commands.
 - [Closed-loop simulator path](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Simulation/CARLA/ROS2/README.md):
   CARLA 0.9.16 over ROS 2, with one node that publishes the vehicle speed and
-  one that merges the two commands into one command message for the simulator.
+  [one that merges](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Simulation/CARLA/ROS2/src/carla_control_publisher/README.md)
+  the steering command and the longitudinal command into one command message
+  for the simulator.
 - [Safety element out of context, draft](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Functional_Safety/SAFETY_ELEMENT_OUT_OF_CONTEXT.md):
-  what the project leaves to the integrator.
+  what the project leaves to the integrator. The draft lists warning requests
+  among the outputs of the element.
 
 The inspected commit holds no binding to Eclipse S-CORE communication and no
 S-CORE supervision. A search of every text file of the inspected commit for the
@@ -49,24 +54,28 @@ S-CORE launch manager, its communication library and FEO found none.
 ## What the project's own open changes report
 
 On 2026-11-13 these three pull requests of the project were open drafts, not
-merged. DE4SDV has reproduced none of their results. They are recorded because
-the framing's gaps rest on them. None of the three starts from the inspected
-commit: pull requests 427 and 423 branch from the default branch as it was on
-2026-08-11, and each carries more than 120 commits that the inspected commit
-does not have. Pull request 448 branches from it as it was on 2026-10-09.
+merged. This repository holds no reproduction of their results. They are
+recorded because the framing's gaps rest on them. None of the three starts from
+the inspected commit. Pull requests 427 and 423 branch from the default branch
+as it was on 2026-09-11. The inspected commit holds none of the 123 commits
+that led to that state: the common ancestor of these two pull requests and the
+inspected commit dates from 2026-08-11. Pull request 448 branches from the
+default branch as it was on 2026-10-09.
 
 - [Pull request 427](https://github.com/autowarefoundation/vision_pilot/pull/427)
   states that the speed planner takes the relative speed of the object ahead as
-  its closing speed, so that the term has the wrong sign. Its table gives, for a
-  stopped object ahead at 9.4 m/s and a 20 m gap, an acceleration of
-  +1.48 m/s² before the change and −3.62 m/s² after it. The speed planner of
-  the inspected commit takes the relative speed in the same way. The same pull
-  request stops one network alone from starting the track of an object ahead.
+  its closing speed, so that the term has the wrong sign. Its table gives, for
+  the application's vehicle at 9.4 m/s, a stopped object ahead and a 20 m gap,
+  an acceleration of +1.48 m/s² before the change and −3.62 m/s² after it. The
+  same pull request stops one network alone from starting the track of an
+  object ahead.
 - [Pull request 448](https://github.com/autowarefoundation/vision_pilot/pull/448)
-  runs the application in closed loop on a processor, in a later CARLA release
-  than the one above. It ran the first case of each of its three scenarios: the
-  vehicle that cuts in is hit, the pedestrian that steps out is hit and never
-  braked for, and the straight junction passes.
+  runs the loop step of the application, bound to Python and with the pull
+  request's own correction of a sign in the lateral control, in closed loop on
+  a processor, in a later CARLA release than the one above. It ran the first
+  case of each of its three scenarios: the vehicle that cuts in is hit, the
+  pedestrian that steps out is hit and never braked for, and the straight
+  junction passes.
 - [Pull request 423](https://github.com/autowarefoundation/vision_pilot/pull/423)
   publishes the driving command and its reference as typed messages with the
   identity of the camera cycle, for a supervisor outside the application. Its
@@ -78,9 +87,10 @@ The application reads its networks' weights from its own repository. The
 README of the object-detection network,
 [AutoSpeed](https://github.com/autowarefoundation/auto_speed/tree/b62e55b93ba728787cb1152347463030443634c4)
 (commit `b62e55b93ba728787cb1152347463030443634c4`, Apache-2.0 licence file),
-says that it is trained on the OpenLane dataset. DE4SDV has not read the terms
-of that dataset, the records of the two other networks, or the terms of the
-weights.
+says that the AutoSpeed 2.0 network is trained on the OpenLane dataset. DE4SDV
+has not checked that the weights in the application's repository are the ones
+that this README describes. It has not read the terms of that dataset, the
+records of the two other networks, or the terms of the weights.
 
 ## Simulator, middleware and regulation
 
@@ -103,8 +113,8 @@ weights.
   default branch with the open changes above?
 - Is an emergency function apart from the speed planner planned, or is the
   supervisor outside the application the intended place for it?
-- Is an output of the warnings planned apart from the display and the data
-  log?
+- The safety draft lists warning requests among the outputs. Is an output of
+  the warnings planned apart from the display and the data log?
 - Which camera geometry and calibration does a simulated camera have to keep
   for the distance estimate to hold?
 - Which terms of the weights and of their training data permit the intended

@@ -3,6 +3,10 @@
 The framing of INC-DRIVING-002 is Phase 0 only. These tests hold its structure to the
 method's Phase 0 shape, pin each decided statement by its own phrase, and hold the guide
 and the upstream record to the model. They read the model text; they do not parse SysML.
+
+What they do not hold: a sentence that no pin names can change inside a doc of the model
+or inside the upstream record, and a report of a run in words that the scan for past
+behavior does not list passes. Those are for the review of the text.
 """
 
 from __future__ import annotations
@@ -24,9 +28,12 @@ MODEL = DRIVING / "driver_assistance_framing.sysml"
 UPSTREAM_RECORD = DRIVING / "driver-assistance-upstream.md"
 GUIDE = ROOT / "docs/guides/driver-assistance-increment.md"
 INDEX = ROOT / "UPSTREAM.md"
+GLOSSARY = ROOT / "docs/terminology/glossary.md"
+AEBS_REQUIREMENTS = ROOT / "textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml"
 PACKAGE = "DE4SDV_DriverAssistanceFraming"
 IDENTITY = "INC-DRIVING-002"
 PIN = "014e0e7a56ee8e597c2cab8175233f74edd9b856"
+AUTOSPEED_PIN = "b62e55b93ba728787cb1152347463030443634c4"
 
 DOC = re.compile(r"\bdoc\s*/\*(.*?)\*/", re.DOTALL)
 #: a usage declared at package level (two spaces of indent), with an optional short name
@@ -35,8 +42,10 @@ PACKAGE_USAGE = re.compile(r"(?m)^  (part|requirement|concern)\s+(?:<'[^']*'>\s*
 #: in-scope item -> the statement it makes
 IN_SCOPE = {
     "vehicleTargetResponseInScope":
-        "Warning and braking for a stationary and for a slower moving vehicle target ahead.",
-    "noReactionInScope": "Two scenarios in which neither a warning nor braking is due.",
+        "The warning request and the braking for a stationary and for a slower moving vehicle target ahead.",
+    "noReactionInScope":
+        "Two scenarios in which neither a warning nor braking is due, taken from the false-reaction scenarios of "
+        "the regulation.",
     "vehicleTargetCriteriaInScope":
         "Criteria for a vehicle target derived from UNECE R152, each with what a simulation cannot show.",
     "scoreCommandPathInScope":
@@ -51,20 +60,26 @@ OUT_OF_SCOPE = {
         "How well the candidate holds speed, distance and lane. These functions run; no case judges them.",
     "driverInteractionOutOfScope": "Driver monitoring, driver override and deactivation.",
     "warningPresentationOutOfScope":
-        "Presentation of the warning to a driver. The increment judges the warning request at the system "
-        "boundary.",
+        "Presentation of the warning to a driver, and the modes of that warning. The increment judges the warning "
+        "request at the system boundary and the time of that request. The product line requires a collision "
+        "warning to the driver; this increment answers that requirement in part only.",
     "existingAEBSOutOfScope": "Changing the Autoware-based AEBS or reusing its evidence for this candidate.",
     "candidateTuningOutOfScope":
         "Training the candidate's networks, or tuning the candidate or a scenario until a case passes.",
     "onRoadOperationOutOfScope":
         "On-road operation, production readiness, safety approval, compliance, type approval or certification.",
 }
-#: assumption -> the phrase that states its premise
+#: assumption -> the phrase that states its premise, and a further statement that the framing decided
 ASSUMPTIONS = {
-    "asmSimulatorPathUsable": "works with the simulator release of the driving bench",
-    "asmProcessorInferenceSufficient": "run on a processor alone, without a graphics card",
-    "asmBenchReuse": "Their results for the first application are not evidence for this one.",
-    "asmSimulatedConfigurationStandsIn": "A verdict holds for that simulated configuration only.",
+    "asmSimulatorPathUsable": ("works with the simulator release of the driving bench",
+                               "can be taken from it without a change to its decision logic"),
+    "asmProcessorInferenceSufficient": ("run on a processor alone, without a graphics card",
+                                        "fast enough for its control cycle in closed loop"),
+    "asmBenchReuse": ("can carry a second application",
+                      "Their results for the first application are not evidence for this one."),
+    "asmSimulatedConfigurationStandsIn": (
+        "stand in for the vehicle, the surface and the test target that the source regulation prescribes",
+        "A verdict holds for that simulated configuration only."),
 }
 #: gap -> the phrase that states what is open
 GAPS = {
@@ -73,10 +88,25 @@ GAPS = {
     "gapWarningOutput": "That interface carries no warning.",
     "gapCandidateBehaviorUnverified": "No closed-loop result of the application exists on the DE4SDV bench.",
     "gapScoreIntegration": "no binding to Eclipse S-CORE communication and no S-CORE supervision",
-    "gapCameraImageAndGeometry": "The simulator's images differ from them.",
+    "gapCameraImageAndGeometry": "The simulator's images are not images of that dataset.",
     "gapCandidateAdmission": "This increment admits no member and changes no scope decision.",
     "gapUpstreamContactAndRights": "The upstream maintainers are not yet involved.",
 }
+#: gap -> the label of its open point in the guide
+OPEN_POINTS = {
+    "gapVehicleTargetCriteria": "No criteria for a vehicle target",
+    "gapNoSeparateEmergencyFunction": "No emergency function apart from the speed planner",
+    "gapWarningOutput": "No warning output",
+    "gapCandidateBehaviorUnverified": "No result on the DE4SDV bench",
+    "gapScoreIntegration": "No Eclipse S-CORE binding",
+    "gapCameraImageAndGeometry": "Simulated images",
+    "gapCandidateAdmission": "No admission",
+    "gapUpstreamContactAndRights": "No upstream contact and no rights clearance",
+}
+#: a past form of what a candidate does in a run: a framing reports no run
+PAST_BEHAVIOR = re.compile(r"(?i)\b(?:braked|warned|stopped|collided|avoided|detected|passed|failed)\b")
+#: an affirmative claim of approval or admission
+APPROVAL = re.compile(r"(?i)\b(?:compliant|complies|certified|homologated|type-approved|admitted)\b")
 
 
 def _raw() -> str:
@@ -95,7 +125,15 @@ def _doc(declaration: str) -> str:
 
 
 def _declared(kind: str) -> set[str]:
-    return set(re.findall(rf"\bpart\s+(\w+)\s*:\s*{kind}\b", _code()))
+    """The parts of the kind, with or without a short name."""
+    return set(re.findall(rf"\bpart\s+(?:<'[^']*'>\s*)?(\w+)\s*:\s*{kind}\b", _code()))
+
+
+def _row(path: Path, first_cell: str) -> str:
+    """The one table row of the file whose first cell starts with the text."""
+    rows = [line for line in path.read_text(encoding="utf-8").splitlines() if line.startswith(f"| {first_cell}")]
+    assert len(rows) == 1, f"{path.name}: {len(rows)} rows start with {first_cell!r}"
+    return rows[0]
 
 
 def _flat(text: str) -> str:
@@ -157,34 +195,56 @@ def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
         assert phrase in increment, phrase
     problem = _doc("requirement driverAssistanceProblem : ProblemStatement")
     for phrase in ("The product line holds AEBS for a vehicle target as common content",
+                   "to detect an imminent forward collision with a vehicle target, to warn the driver and to "
+                   "command emergency braking",
                    "DE4SDV does not know whether its warning and braking meet those requirements",
                    "the model holds no regulation-derived criteria for a vehicle target"):
         assert phrase in problem, phrase
     question = _doc("part driverAssistanceQuestion : IncrementEngineeringQuestion")
-    for phrase in ("with its commands on the Eclipse S-CORE path of the driving bench",
-                   "meet the product line's requirements to warn of and to brake for a vehicle target",
+    for phrase in ("with its commands on the Eclipse S-CORE command path",
+                   "request the warning and command the braking that the product line requires for a vehicle "
+                   "target",
                    "criteria derived from UNECE R152 judge its closed-loop behavior in simulation",
-                   "Where it does not, what does the platform have to add?",
                    "A verdict for each requirement and scenario answers this.",
                    "A recording of a run that looks right does not."):
         assert phrase in question, phrase
+    assert question.count("?") == 1, "an increment answers one engineering question"
     decision = _doc("part driverAssistanceDecision : IncrementLifecycleDecision")
     for phrase in ("whose own warning and braking stand for the common capability",
                    "a candidate that needs named additions from the platform, or not at all",
                    "executed cases with a pass or a fail for each requirement of the increment",
+                   "The additions are named from the requirements that fail and from the gaps of this increment; "
+                   "the increment builds none of them.",
                    "A fail is a result to record.",
                    "no reason to change a scenario or a criterion until the candidate passes"):
         assert phrase in decision, phrase
     system = _doc("part def DriverAssistanceSystem")
-    for phrase in ("In: the front-camera image and the vehicle speed.",
-                   "Out: the driving command and the warning request.",
-                   "not a member product",
+    # the three sentences that state the boundary are pinned whole: one more item inside is a change of the boundary
+    for phrase in ("Candidate System 1 boundary. In: the front-camera image and the vehicle speed. Inside: "
+                   "perception of the lane and of the closest object in the path, speed and steering planning, "
+                   "and the warning and braking decision. Out: the driving command and the warning request.",
+                   "The Eclipse S-CORE command path that carries the driving command to the actuation is platform "
+                   "content of System 1. It is outside this boundary, and it is not an enabling system.",
+                   "The candidate is a proposed application system, not a member product",
                    "this increment admits no member to the governed product-line scope"):
         assert phrase in system, phrase
     environment = _doc("part driverAssistanceVerificationEnvironment : System2EngineeringAndAssuranceSystem")
-    for phrase in ("They are not vehicle features",
-                   "is an instrument here, not a driver warning function"):
+    for phrase in ("CARLA renders the camera image and moves the vehicle and the targets.",
+                   "Cloud hosts, the scenario runner, the evaluators and the recordings enable engineering and "
+                   "verification. They are not vehicle features and not contents of the candidate System 1 "
+                   "boundary.",
+                   "it serves as an instrument. The increment does not judge it as a warning to the driver."):
         assert phrase in environment, phrase
+
+
+def test_the_candidate_definition_declares_nothing_and_system_2_is_one_part_beside_it():
+    code = _code()
+    assert braced_body(code, "part def DriverAssistanceSystem").split() == ["doc"], \
+        "phase 0 states the candidate boundary in words; its parts and ports follow in phases 2 and 3"
+    assert _declared("System2EngineeringAndAssuranceSystem") == {"driverAssistanceVerificationEnvironment"}
+    assert re.search(r"(?m)^  part driverAssistanceVerificationEnvironment : System2EngineeringAndAssuranceSystem\b",
+                     code), "the enabling system is a part of the package, not of the candidate"
+    assert _declared("DriverAssistanceSystem") == {"candidateDriverAssistanceSystem"}
 
 
 def test_scope_items_are_the_agreed_closed_sets():
@@ -199,20 +259,35 @@ def test_scope_items_are_the_agreed_closed_sets():
     assert "InScopeItem" not in scope_body and "OutOfScopeItem" not in scope_body, \
         "scope items are package-level parts: a nested item is not in the scope gate's population"
     scope = _doc("part driverAssistanceScope : IncrementScope")
-    for phrase in ("for a vehicle target ahead in its lane",
+    for phrase in ("The warning request and the braking of the candidate for a vehicle target ahead in its lane",
                    "in closed loop with a rendered camera image",
                    "for one configuration and with at most ten requirements",
                    "a stationary target, a slower moving target, and two in which no reaction is due",
                    "Implementation is not part of this framing slice."):
         assert phrase in scope, phrase
+    # the requirements that the scope names as the source of the increment's own are requirements of the AEBS model
+    named = re.findall(r"REQ-AEBS-\d{3}", scope)
+    assert named == ["REQ-AEBS-002", "REQ-AEBS-003", "REQ-AEBS-008", "REQ-AEBS-012"]
+    aebs = AEBS_REQUIREMENTS.read_text(encoding="utf-8")
+    statements = {
+        "REQ-AEBS-002": "providing a collision warning to the driver",
+        "REQ-AEBS-003": "commanding emergency braking",
+        "REQ-AEBS-008": "shall not issue an AEBS collision warning",
+        "REQ-AEBS-012": "shall not command AEBS emergency braking",
+    }
+    for identity in named:
+        declared = re.findall(rf"requirement\s+(\w+)\s*:\s*\w+\s*\{{\s*doc\s*/\*\s*{identity}\b", aebs)
+        assert len(declared) == 1, f"{identity} is one requirement of the AEBS model: {declared}"
+        assert statements[identity] in _flat(braced_body(aebs, f"requirement {declared[0]} :")), identity
 
 
 def test_assumptions_are_premises_and_gaps_are_open_points():
     code = _code()
     assert _declared("IncrementAssumption") == set(ASSUMPTIONS)
     assert _declared("IncrementGap") == set(GAPS)
-    for name, phrase in ASSUMPTIONS.items():
-        assert phrase in _doc(f"part {name} : IncrementAssumption"), name
+    for name, phrases in ASSUMPTIONS.items():
+        for phrase in phrases:
+            assert phrase in _doc(f"part {name} : IncrementAssumption"), (name, phrase)
     for name, phrase in GAPS.items():
         assert phrase in _doc(f"part {name} : IncrementGap"), name
     assert "disposition" not in code, "a gap has no disposition before the baseline decision of phase 11"
@@ -221,26 +296,43 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
         assert "readiness probe" in _doc(f"part {name} : IncrementAssumption"), name
     criteria = _doc("part gapVehicleTargetCriteria : IncrementGap")
     for phrase in ("cover the pedestrian and the bicycle target",
-                   "it defers the promotion of quantified thresholds into System 1 obligations",
+                   "its detection criteria for a vehicle target, the timing, modality and observability of its "
+                   "collision warning, the activation conditions and the braking demand profile of its emergency "
+                   "braking, and its non-activation and false-reaction constraints",
+                   "It defers the promotion of quantified thresholds into System 1 obligations.",
+                   "gives their parameters as guidance, not as a test",
                    "It also has to state whose obligation each criterion is."):
         assert phrase in criteria, phrase
     emergency = _doc("part gapNoSeparateEmergencyFunction : IncrementGap")
     for phrase in ("At the inspected revision",
-                   "The product line holds a protected emergency command path as common content.",
-                   "The lifecycle decision turns on it."):
+                   "Whether the candidate's braking can stand for the common capability, or the platform has to "
+                   "add an independent function, is open. The lifecycle decision turns on it.",
+                   "The product line also holds the independence of the protected emergency command path as "
+                   "common content."):
         assert phrase in emergency, phrase
     warning = _doc("part gapWarningOutput : IncrementGap")
     for phrase in ("At the inspected revision",
                    "writes its steering and its acceleration to its vehicle interface",
-                   "The warnings go to the application's own display and to its own data log.",
+                   "The warnings go to the application's own display and to its own data log, each only when it "
+                   "is switched on.",
                    "is an output that the application does not have",
                    "without a change to the application's decision logic, is open"):
         assert phrase in warning, phrase
     unverified = _doc("part gapCandidateBehaviorUnverified : IncrementGap")
-    for phrase in ("an error in the speed planner, which the inspected revision still has",
-                   "A fail is a likely first result.",
+    for phrase in ("lists what the project's own open changes report: an error in the speed planner and "
+                   "closed-loop cases that fail",
+                   "None of these changes starts from the inspected revision, and DE4SDV has run neither that "
+                   "revision nor the changes.",
                    "is a different candidate, and its verdicts are reported apart"):
         assert phrase in unverified, phrase
+    # the framing states nothing of its own about a defect of the inspected revision, and forecasts no result
+    for phrase in ("inspected revision still has", "likely first result"):
+        assert phrase not in _flat(_raw()), phrase
+    admission = _doc("part gapCandidateAdmission : IncrementGap")
+    for phrase in ("The governed scope holds two planned reference members.",
+                   "and the independence of the protected emergency command path",
+                   "does not fit that content"):
+        assert phrase in admission, phrase
     rights = _doc("part gapUpstreamContactAndRights : IncrementGap")
     for phrase in ("show them a result about their project before it is published",
                    "No upstream contact, endorsement or rights clearance is asserted."):
@@ -286,6 +378,30 @@ def test_the_framing_claims_no_verification_no_admission_and_no_compliance():
         assert phrase in _flat(header.replace("*", "")), phrase
     for word in ("compliance", "type approval", "certification", "production readiness"):
         assert word in OUT_OF_SCOPE["onRoadOperationOutOfScope"], word
+
+
+def test_no_text_of_the_framing_reports_a_run_an_approval_or_an_admission():
+    visionpilot = _row(GLOSSARY, "VisionPilot |")
+    criterion = _row(GLOSSARY, "Regulation-derived criterion |")
+    index_row = _row(INDEX, "[VisionPilot]")
+    texts = {
+        MODEL.name: _raw(),
+        GUIDE.name: GUIDE.read_text(encoding="utf-8"),
+        "glossary row VisionPilot": visionpilot,
+        "glossary row Regulation-derived criterion": criterion,
+        "index row": index_row,
+    }
+    for name, text in texts.items():
+        assert not PAST_BEHAVIOR.findall(text), f"{name} reports behavior in a run: {PAST_BEHAVIOR.findall(text)}"
+        assert not APPROVAL.findall(text), f"{name}: {APPROVAL.findall(text)}"
+    # each of these texts says what the candidate is not, in its own sentence
+    assert "In DE4SDV a candidate application under evaluation, not a member product." in visionpilot
+    assert "the closest object in its path and commands steering and acceleration" in visionpilot
+    assert "(../../textual-notation-of-model/packages/features/driving/driver-assistance-upstream.md)" in visionpilot
+    assert "with the result pass, fail or inconclusive" in criterion
+    assert "Meeting it is not a statement of compliance, type approval or certification." in criterion
+    assert "Candidate application of the driver-assistance increment." in index_row
+    assert "It is read for the framing. No bench builds or runs it." in index_row
 
 
 def test_the_identity_is_declared_once_and_its_subject_is_registered():
@@ -337,35 +453,83 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "../../textual-notation-of-model/packages/features/driving/driver-assistance-upstream.md"):
         assert f"]({target})" in guide, target
     flat = _flat(guide)
-    open_points = guide.split("## What the framing already records as open", 1)[1].split("\n## ", 1)[0]
-    assert len(re.findall(r"(?m)^- \*\*", open_points)) == len(GAPS), \
-        "the guide lists one open point for each gap of the model"
     for phrase in ("No implementation, run, result, product-line admission or compliance is claimed.",
+                   "The additions are named from the requirements that fail and from the gaps of this increment; "
+                   "the increment builds none of them.",
                    "It is no statement about compliance or type approval.",
                    "Starting this increment launches no compute and authorizes no spend.",
                    "The framing's boundary concern does not open Phase 1."):
         assert phrase in flat, phrase
+    boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
+    for phrase in ("The candidate driver-assistance system is a proposed **System 1** subject.",
+                   "is platform content of **System 1**: it is outside the candidate's boundary, and it is not an "
+                   "enabler.",
+                   "CARLA, the cloud hosts, the scenario runner, the evaluators and the recordings are **System 2** "
+                   "enablers, not vehicle features.",
+                   "it serves as an instrument. The increment does not judge it as a warning to the driver."):
+        assert phrase in boundaries, phrase
+    assert boundaries.count("**System 1**") == 2 and boundaries.count("**System 2**") == 1
+
+
+def test_the_guide_lists_each_gap_as_an_open_point_in_the_models_own_words():
+    order = re.findall(r"\bpart\s+(?:<'[^']*'>\s*)?(\w+)\s*:\s*IncrementGap\b", _code())
+    assert order == list(OPEN_POINTS) == list(GAPS), "one open point for each gap, in the model's order"
+    guide = GUIDE.read_text(encoding="utf-8")
+    open_points = guide.split("## What the framing already records as open", 1)[1].split("\n## ", 1)[0]
+    bullets = re.findall(r"(?ms)^- \*\*(.+?)\*\*\s+\(`(\w+)`\)\.\s+(.*?)(?=^- \*\*|\n\n)", open_points)
+    assert len(re.findall(r"(?m)^- ", open_points)) == len(bullets), "every bullet has a label and names its gap"
+    assert [(name, label) for label, name, _body in bullets] == list(OPEN_POINTS.items())
+    for _label, name, body in bullets:
+        assert len(body.split()) >= 8, f"{name}: an open point says what is open"
+        assert _flat(body) in _doc(f"part {name} : IncrementGap"), \
+            f"{name}: the open point is not a passage of the gap's own text"
 
 
 def test_the_upstream_record_pins_what_the_framing_read():
     record = UPSTREAM_RECORD.read_text(encoding="utf-8")
     flat = _flat(record)
     pinned = re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/([^/)\s]+)", record)
-    assert len(pinned) == 13 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
+    assert len(pinned) == 14 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
     assert f"commit `{PIN}`" in flat
+    network = re.findall(r"github\.com/autowarefoundation/auto_speed([^)\s]*)", record)
+    assert network == [f"/tree/{AUTOSPEED_PIN}"], "the record links the network's repository at one commit"
+    assert f"commit `{AUTOSPEED_PIN}`" in flat
     # what the model's gaps rest on is in the record, in the record's own words
-    for phrase in ("The code has no emergency function apart from that planner.",
+    for phrase in ("Its release tag `v1.2` is commit `9a96c3e771f9e79e91b6ccfcbf2ce860530024c8`, an ancestor of the "
+                   "inspected commit.",
+                   "The code has no emergency function apart from that planner.",
                    "It carries no warning.",
+                   "each only when the application configuration switches it on",
+                   "The draft lists warning requests among the outputs of the element.",
                    "The inspected commit holds no binding to Eclipse S-CORE communication and no S-CORE supervision.",
-                   "DE4SDV has reproduced none of their results.",
-                   "None of the three starts from the inspected commit",
-                   "The speed planner of the inspected commit takes the relative speed in the same way.",
-                   "says that it is trained on the OpenLane dataset",
+                   "This repository holds no reproduction of their results.",
+                   "None of the three starts from the inspected commit.",
+                   "Pull requests 427 and 423 branch from the default branch as it was on 2026-09-11.",
+                   "The inspected commit holds none of the 123 commits that led to that state",
+                   "Pull request 448 branches from the default branch as it was on 2026-10-09.",
+                   "for the application's vehicle at 9.4 m/s, a stopped object ahead and a 20 m gap, an "
+                   "acceleration of +1.48 m/s² before the change and −3.62 m/s² after it",
+                   "runs the loop step of the application, bound to Python and with the pull request's own "
+                   "correction of a sign in the lateral control",
+                   "the vehicle that cuts in is hit, the pedestrian that steps out is hit and never braked for, "
+                   "and the straight junction passes",
+                   "Its description lists no warning among their contents.",
+                   "says that the AutoSpeed 2.0 network is trained on the OpenLane dataset",
+                   "DE4SDV has not checked that the weights in the application's repository are the ones that this "
+                   "README describes.",
                    "DE4SDV has built and run nothing of this upstream project.",
                    "The clauses for a vehicle target are not yet anchored there."):
         assert phrase in flat, phrase
-    contact = record.split("## Upstream contact", 1)[1]
+    # the record states what the open changes say, and nothing of DE4SDV's own about a defect of the inspected commit
+    assert "takes the relative speed in the same way" not in flat
+    body, contact = record.split("## Upstream contact", 1)
     assert _flat(contact).startswith("None. DE4SDV has posted nothing in this project")
+    # outside that section the record tells of no exchange with the project
+    exchange = re.compile(
+        r"(?i)\bDE4SDV (?:has )?(?:confirmed|agreed|asked|contacted|told|informed|reported|discussed|posted|opened|"
+        r"sent)\b|\b(?:maintainers?|authors?|project) (?:has |have )?(?:confirmed|agreed|answered|replied|approved|"
+        r"endorsed)\b|\bwith its author\b")
+    assert not exchange.findall(_flat(body)), exchange.findall(_flat(body))
     index = INDEX.read_text(encoding="utf-8")
     assert "(textual-notation-of-model/packages/features/driving/driver-assistance-upstream.md)" in index
     assert "(https://github.com/autowarefoundation/vision_pilot)" in index

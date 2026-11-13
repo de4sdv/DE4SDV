@@ -6,8 +6,8 @@
 | AutoE2E | Autoware Foundation camera-based learned planning model; consumes camera and ego-motion history and predicts future acceleration/curvature samples. A model, not a complete Autoware deployment. |
 | CARLA | Driving simulator providing simulated sensors, vehicle dynamics and scenarios; an engineering and verification environment, not a vehicle product feature. |
 | Closed-loop driving | Driving in which planner/controller output affects the vehicle and the resulting sensor/vehicle state feeds subsequent planning. A prediction overlay on an independently driven vehicle does not establish this feedback. |
-| VisionPilot | Autoware Foundation driver-assistance application for one front camera; it perceives the lane and the closest vehicle in the path and commands speed and steering. In DE4SDV a candidate application under evaluation, not a member product. |
-| Regulation-derived criterion | A pass/fail condition taken from the test provisions of a regulation and applied to a recorded run of a stated configuration. Meeting it is not a statement of compliance, type approval or certification. |
+| VisionPilot | Autoware Foundation driver-assistance application for one front camera; it perceives the lane and the closest object in its path and commands steering and acceleration. In DE4SDV a candidate application under evaluation, not a member product. See the [upstream record](../../textual-notation-of-model/packages/features/driving/driver-assistance-upstream.md). |
+| Regulation-derived criterion | A condition taken from the requirements and the test provisions of a regulation and applied to a recorded run of a stated configuration, with the result pass, fail or inconclusive. Meeting it is not a statement of compliance, type approval or certification. |
 | MBSE | Model-Based Systems Engineering. |
 | SysML v2 | Next-generation Systems Modeling Language and related API concepts. |
 | Concern | Any topic of interest for one or more stakeholders, such as functionality, variability, safety, security, compliance, cost, or evolvability; the questions a view must answer. |

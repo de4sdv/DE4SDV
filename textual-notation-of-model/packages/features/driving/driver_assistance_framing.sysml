@@ -17,13 +17,13 @@ package DE4SDV_DriverAssistanceFraming {
   part <'INC-DRIVING-002'> driverAssistanceIncrement : DriverAssistanceIncrement {
     doc /*
      * Owner-requested increment on a camera-only driver-assistance
-     * application as a candidate for a further member product. VisionPilot
-     * of the Autoware Foundation is the application that the owner named.
+     * application as a candidate for a further member product. VisionPilot of
+     * the Autoware Foundation is the application that the owner named.
      * Eclipse S-CORE is the integration path, and CARLA is the enabling
      * closed-loop verification environment. The increment judges the
-     * candidate's warning and braking for a vehicle target. It does not
-     * change the Autoware-based AEBS. All phases retain this identity. This
-     * package holds only Phase 0.
+     * candidate's warning request and its braking for a vehicle target. It
+     * does not change the Autoware-based AEBS. All phases retain this
+     * identity. This package holds only Phase 0.
      */
   }
 
@@ -49,12 +49,11 @@ package DE4SDV_DriverAssistanceFraming {
   part driverAssistanceQuestion : IncrementEngineeringQuestion {
     doc /*
      * Does a camera-only driver-assistance application, with its commands on
-     * the Eclipse S-CORE path of the driving bench, meet the product line's
-     * requirements to warn of and to brake for a vehicle target, when
+     * the Eclipse S-CORE command path, request the warning and command the
+     * braking that the product line requires for a vehicle target, when
      * criteria derived from UNECE R152 judge its closed-loop behavior in
-     * simulation? Where it does not, what does the platform have to add?
-     * A verdict for each requirement and scenario answers this. A recording
-     * of a run that looks right does not.
+     * simulation? A verdict for each requirement and scenario answers this. A
+     * recording of a run that looks right does not.
      */
   }
 
@@ -64,46 +63,57 @@ package DE4SDV_DriverAssistanceFraming {
      * whose own warning and braking stand for the common capability, as a
      * candidate that needs named additions from the platform, or not at all.
      * The decision rests on executed cases with a pass or a fail for each
-     * requirement of the increment. A fail is a result to record. It is no
+     * requirement of the increment. The additions are named from the
+     * requirements that fail and from the gaps of this increment; the
+     * increment builds none of them. A fail is a result to record. It is no
      * reason to change a scenario or a criterion until the candidate passes.
      */
   }
 
   part def DriverAssistanceSystem {
     doc /*
-     * Candidate System 1 boundary. In: the front-camera image and the
-     * vehicle speed. Inside: perception of the lane and of the closest
-     * vehicle in the path, speed and steering planning, and the warning and
-     * braking decision. Out: the driving command and the warning request.
-     * It is a proposed application system, not a member product: this
-     * increment admits no member to the governed product-line scope.
-     * Actors, interfaces and the product-line classification follow in
-     * phases 2 and 3.
+     * Candidate System 1 boundary. In: the front-camera image and the vehicle
+     * speed. Inside: perception of the lane and of the closest object in the
+     * path, speed and steering planning, and the warning and braking
+     * decision. Out: the driving command and the warning request. The Eclipse
+     * S-CORE command path that carries the driving command to the actuation
+     * is platform content of System 1. It is outside this boundary, and it is
+     * not an enabling system. Phases 6 to 8 decide its realization. The
+     * candidate is a proposed application system, not a member product: this
+     * increment admits no member to the governed product-line scope. Phases 2
+     * and 3 add the actors, the interfaces and the product-line
+     * classification.
      */
   }
   part candidateDriverAssistanceSystem : DriverAssistanceSystem;
 
   part driverAssistanceScope : IncrementScope {
     doc /*
-     * Warning and braking of the candidate for a vehicle target ahead in its
-     * lane, in closed loop with a rendered camera image, for one
-     * configuration and with at most ten requirements. The scenarios are a
-     * stationary target, a slower moving target, and two in which no
-     * reaction is due. Closed-loop execution and its evidence belong to
-     * Phase 10 of this same increment. A readiness probe comes before the
-     * architecture rests on what it tests. Implementation is not part of
-     * this framing slice.
+     * The warning request and the braking of the candidate for a vehicle
+     * target ahead in its lane, in closed loop with a rendered camera image,
+     * for one configuration and with at most ten requirements. Phase 5
+     * derives those requirements from the product line's requirements on the
+     * collision warning, the emergency braking and the false reaction
+     * (REQ-AEBS-002, REQ-AEBS-003, REQ-AEBS-008 and REQ-AEBS-012). The
+     * scenarios are a stationary target, a slower moving target, and two in
+     * which no reaction is due. Closed-loop execution and its evidence belong
+     * to Phase 10 of this same increment. A readiness probe comes before the
+     * architecture rests on what it tests. Implementation is not part of this
+     * framing slice.
      */
   }
 
   part vehicleTargetResponseInScope : InScopeItem {
     doc /*
-     * Warning and braking for a stationary and for a slower moving vehicle
-     * target ahead.
+     * The warning request and the braking for a stationary and for a slower
+     * moving vehicle target ahead.
      */
   }
   part noReactionInScope : InScopeItem {
-    doc /* Two scenarios in which neither a warning nor braking is due. */
+    doc /*
+     * Two scenarios in which neither a warning nor braking is due, taken from
+     * the false-reaction scenarios of the regulation.
+     */
   }
   part vehicleTargetCriteriaInScope : InScopeItem {
     doc /*
@@ -138,8 +148,10 @@ package DE4SDV_DriverAssistanceFraming {
   }
   part warningPresentationOutOfScope : OutOfScopeItem {
     doc /*
-     * Presentation of the warning to a driver. The increment judges the
-     * warning request at the system boundary.
+     * Presentation of the warning to a driver, and the modes of that warning.
+     * The increment judges the warning request at the system boundary and the
+     * time of that request. The product line requires a collision warning to
+     * the driver; this increment answers that requirement in part only.
      */
   }
   part existingAEBSOutOfScope : OutOfScopeItem {
@@ -163,9 +175,9 @@ package DE4SDV_DriverAssistanceFraming {
      * CARLA renders the camera image and moves the vehicle and the targets.
      * Cloud hosts, the scenario runner, the evaluators and the recordings
      * enable engineering and verification. They are not vehicle features and
-     * not contents of the candidate System 1 boundary. An AAOS SDV display
-     * that shows the warning is an instrument here, not a driver warning
-     * function.
+     * not contents of the candidate System 1 boundary. Where an AAOS SDV
+     * display shows the warning in this increment, it serves as an
+     * instrument. The increment does not judge it as a warning to the driver.
      */
   }
 
@@ -187,10 +199,10 @@ package DE4SDV_DriverAssistanceFraming {
   }
   part asmBenchReuse : IncrementAssumption {
     doc /*
-     * The Eclipse S-CORE path, the actuation adapter and the evaluator
-     * structure of the closed-loop driving bench can carry a second
-     * application. They are reuse candidates. Their results for the first
-     * application are not evidence for this one.
+     * The Eclipse S-CORE command path and the actuation adapter of the
+     * closed-loop driving increment, and the evaluator structure of its
+     * bench, can carry a second application. They are reuse candidates. Their
+     * results for the first application are not evidence for this one.
      */
   }
   part asmSimulatedConfigurationStandsIn : IncrementAssumption {
@@ -206,24 +218,31 @@ package DE4SDV_DriverAssistanceFraming {
     doc /*
      * The regulation-derived criteria of record cover the pedestrian and the
      * bicycle target. None exists for a vehicle target. The AEBS model
-     * records its detection, warning, braking and non-activation criteria
-     * for a vehicle target as undefined, and it defers the promotion of
-     * quantified thresholds into System 1 obligations. Phase 5 has to
-     * derive the criteria with their provenance: the approach speeds, the
-     * target's speed, the time of the warning before the braking, the
-     * braking demand and the speed at impact. It also has to state whose
-     * obligation each criterion is.
+     * records as undefined its detection criteria for a vehicle target, the
+     * timing, modality and observability of its collision warning, the
+     * activation conditions and the braking demand profile of its emergency
+     * braking, and its non-activation and false-reaction constraints. It
+     * defers the promotion of quantified thresholds into System 1
+     * obligations. Phase 5 has to derive the criteria with their provenance:
+     * the approach speeds, the target's speed, the time of the warning before
+     * the braking, the braking demand and the speed at impact. For the two
+     * scenarios without a reaction, the regulation lists false-reaction
+     * scenarios for an assessment and gives their parameters as guidance, not
+     * as a test. Phase 5 has to select the two and to state their criterion.
+     * It also has to state whose obligation each criterion is.
      */
   }
   part gapNoSeparateEmergencyFunction : IncrementGap {
     doc /*
      * At the inspected revision the application marks its forward-collision
      * warning and its emergency braking from the acceleration that its speed
-     * planner computes. It has no emergency function apart from that
-     * planner. The product line holds a protected emergency command path as
-     * common content. Whether the candidate's braking can stand for the
-     * common capability, or the platform has to add an independent function,
-     * is open. The lifecycle decision turns on it.
+     * planner computes. It has no emergency function apart from that planner.
+     * Whether the candidate's braking can stand for the common capability, or
+     * the platform has to add an independent function, is open. The lifecycle
+     * decision turns on it. The product line also holds the independence of
+     * the protected emergency command path as common content. How a candidate
+     * whose braking leaves in its one driving command keeps that independence
+     * is open as well.
      */
   }
   part gapWarningOutput : IncrementGap {
@@ -231,20 +250,22 @@ package DE4SDV_DriverAssistanceFraming {
      * At the inspected revision the application writes its steering and its
      * acceleration to its vehicle interface. That interface carries no
      * warning. The warnings go to the application's own display and to its
-     * own data log. A warning request at the system boundary is an output
-     * that the application does not have. Whether the increment reads the
-     * warning from that data log, or from an output that is added without a
-     * change to the application's decision logic, is open.
+     * own data log, each only when it is switched on. A warning request at
+     * the system boundary is an output that the application does not have.
+     * Whether the increment reads the warning from that data log, or from an
+     * output that is added without a change to the application's decision
+     * logic, is open.
      */
   }
   part gapCandidateBehaviorUnverified : IncrementGap {
     doc /*
      * No closed-loop result of the application exists on the DE4SDV bench.
      * The upstream record lists what the project's own open changes report:
-     * an error in the speed planner, which the inspected revision still has,
-     * and closed-loop cases that fail. A fail is a likely first result. A
-     * build that carries a change which upstream has not merged is a
-     * different candidate, and its verdicts are reported apart.
+     * an error in the speed planner and closed-loop cases that fail. None of
+     * these changes starts from the inspected revision, and DE4SDV has run
+     * neither that revision nor the changes. A build that carries a change
+     * which upstream has not merged is a different candidate, and its
+     * verdicts are reported apart.
      */
   }
   part gapScoreIntegration : IncrementGap {
@@ -258,23 +279,26 @@ package DE4SDV_DriverAssistanceFraming {
   }
   part gapCameraImageAndGeometry : IncrementGap {
     doc /*
-     * The application's object detection was trained on recorded road
-     * images. The simulator's images differ from them. Whether the
-     * application detects the simulated target at the distances that the
-     * criteria need is not known. Its distance estimate depends on a camera
-     * calibration that has to match the simulated camera.
+     * The README of the application's object-detection network names the
+     * dataset that the network is trained on. The simulator's images are not
+     * images of that dataset. Whether the application detects the simulated
+     * target at the distances that the criteria need is not known. Its
+     * distance estimate depends on a camera calibration that has to match the
+     * simulated camera.
      */
   }
   part gapCandidateAdmission : IncrementGap {
     doc /*
-     * The governed scope admits two member products and holds the Autoware
-     * application, the sensing baseline and the protected emergency command
-     * path as common content. A camera-only application that is not the
-     * Autoware application does not fit that content. This increment admits
-     * no member and changes no scope decision. Phase 3 classifies the
-     * candidate and names the scope decisions that the owner would have to
-     * take. Phase 9 establishes configuration applicability before any
-     * member-product claim.
+     * The governed scope holds two planned reference members. Its common
+     * content is the AEBS for a vehicle target, the Autoware application, the
+     * Linux and ROS 2 runtime of Autoware, the sensing baseline with LiDAR,
+     * camera, inertial measurement and wheel odometry, and the independence
+     * of the protected emergency command path. A camera-only application that
+     * is not the Autoware application does not fit that content. This
+     * increment admits no member and changes no scope decision. Phase 3
+     * classifies the candidate and names the scope decisions that the owner
+     * would have to take. Phase 9 establishes configuration applicability
+     * before any member-product claim.
      */
   }
   part gapUpstreamContactAndRights : IncrementGap {
