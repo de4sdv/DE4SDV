@@ -192,18 +192,29 @@ One JSON file is named by the run record; the commander and the adapter read it:
 
 ## 8. Run record (REQ-DRIVING-033, -034, -035)
 
-`run_record.json` is written by inferPlan before the first plan and then frozen. Its identity is the first 16 hex digits of its SHA-256.
+`run_record.json` is written once, when the agent starts: after the planner's engine is built and, in a run with CARLA, the simulator is attached, and before S-CORE communication and FEO start, so before the first plan (`WriteRunRecordNow` in `agent/cc/agent_ffi.cpp`, which hands the fields to `write_run_record` of the planner package). A refused start writes it too (REQ-DRIVING-035). An agent whose `inference` is `stub` writes none. The record is then frozen: an existing record is never overwritten. Its identity is the first 16 hex digits of its SHA-256.
 
-It holds the `RetainedDrivingRunEvidence` fields known at start:
-- configurationIdentity, checkpointSha256, autoE2ESourceRevision, configurationSha256;
-- scoreFEORevision (with the event-trigger patch SHA-256), scoreCommunicationVersion, scoreLifecycleVersion, scoreSOMEIPGatewayCommit;
-- simulatorBuild, scenario, executionEnvironmentIdentity;
+It holds these fields of `RetainedDrivingRunEvidence`, as the agent writes them (`WriteRunRecordNow` in `agent/cc/agent_ffi.cpp`):
+- checkpointSha256: the SHA-256 of the checkpoint file that the planner configuration names, computed by the planner at start;
+- scoreFEORevision: the `score_feo_revision` of the agent configuration, `unknown` when it names none;
+- simulatorBuild: `CARLA` and the version the simulator server reports when the agent attaches, or `fake world (stage 1b)`;
+- scenario: the `scenario` of the agent configuration, `degradedInputOrPlan` when it names none;
 - contractIdentity = `de4sdv.driving.icd.v2`.
 
+It does not hold the other fields of `RetainedDrivingRunEvidence`. The agent configuration has no entry for them, and the writer has no key for them:
+- configurationIdentity, autoE2ESourceRevision, configurationSha256;
+- scoreCommunicationVersion, scoreLifecycleVersion, scoreSOMEIPGatewayCommit, executionEnvironmentIdentity;
+- receiptSha256, modelRevision, runRecordIdentity, simulationClockSpan, wallClockSpan;
+- rawObservationArtifact, benchRecordingArtifact, independentObserverIdentity, claimBoundary.
+
 It also holds:
-- the cuDNN version, the parity result, the warm-up step count and the command law;
-- C4: `campaignId`, `runRole`, `scenarioVariant {fault, entrySpeedMps, aaosMode, checkpointCase}`, `inputReplay {sourceRun, digest}`;
-- C7: `checkpointPath`, `configurationPath`, `vehicleConfiguration {path, sha256}`, `navigationMap {path, sha256}`, `route {path, sha256}`, `writtenAtMonoNs`, `writtenAtRealNs`.
+- `stage` and `setup`: the stage of the bench, and what the planner's set-up returned: the checkpoint identity check, the engine, and the engine's record with the cuDNN version, the parity result and the warm-up step count (no engine record after a refused start);
+- `commandLaw`: the command law that the vehicle configuration names;
+- C4: `campaignId`, `runRole`, `scenarioVariant {fault, entrySpeedMps, aaosMode, checkpointCase}`;
+- C7: `checkpointPath`, `configurationPath`, `vehicleConfiguration {path, sha256}`, `writtenAtMonoNs`, `writtenAtRealNs`;
+- A19: `navigationMap {path, sha256}`, `route {path, sha256}`, `cameraProfile {path, sha256}`, each only when the configuration names the file.
+
+The agent writes no `inputReplay {sourceRun, digest}`. C4 of the evaluators' change list (`case-evaluators/OBSERVABLES.md`) names it, and `case-evaluators/evaluate_campaign.py` reads its digest for VC-DRIVING-018; only the synthetic runs of `case-evaluators/make_synthetic_run.py` carry it.
 
 The checkpoint itself is retained once per campaign, not per run.
 
