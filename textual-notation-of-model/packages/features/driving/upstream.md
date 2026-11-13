@@ -2,6 +2,8 @@
 
 These are inspection anchors of the driving increments, not an adopted
 dependency set or an execution manifest. No upstream implementation is vendored.
+The VisionPilot section and the statements about VisionPilot belong to
+INC-DRIVING-002; the rest of the record belongs to INC-DRIVING-001.
 
 ## AutoE2E
 

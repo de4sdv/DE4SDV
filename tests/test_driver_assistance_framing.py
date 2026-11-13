@@ -45,18 +45,19 @@ PACKAGE_USAGE = re.compile(r"(?m)^  (part|requirement|concern)\s+(?:<'[^']*'>\s*
 #: in-scope item -> the statement it makes
 IN_SCOPE = {
     "vehicleTargetResponseInScope":
-        "The collision warning and the braking for a stationary and for a slower moving vehicle target ahead.",
-    "warningOnDisplayInScope":
-        "The collision warning as the AAOS SDV display shows it to the driver: whether it is shown, and when, "
-        "relative to the start of the braking.",
+        "The warning request and the braking for a stationary and for a slower moving vehicle target ahead.",
+    "driverWarningInScope":
+        "The collision warning that the AAOS SDV gives the driver in two modes, on its display and as a sound: "
+        "whether each mode is given, and when, relative to the warning request and to the start of the emergency "
+        "braking.",
     "noReactionInScope":
         "Two scenarios in which neither a warning nor braking is due, taken from the false-reaction scenarios of "
         "the regulation.",
     "vehicleTargetCriteriaInScope":
         "Criteria for a vehicle target derived from UNECE R152, each with what a simulation cannot show.",
     "scoreCommandPathInScope":
-        "The candidate's commands reach the simulated vehicle, and its warning reaches the display, through Eclipse "
-        "S-CORE; no bypass.",
+        "The candidate's commands reach the simulated vehicle, and its warning request reaches the AAOS SDV, through "
+        "Eclipse S-CORE; no bypass.",
     "verdictEvidenceInScope":
         "A pass or a fail for each requirement and scenario, bound to the candidate revision that ran.",
 }
@@ -66,9 +67,13 @@ OUT_OF_SCOPE = {
     "cruiseAndLaneKeepingQualityOutOfScope":
         "How well the candidate holds speed, distance and lane. These functions run; no case judges them.",
     "driverInteractionOutOfScope": "Driver monitoring, driver override and deactivation.",
-    "furtherWarningModesOutOfScope":
-        "Acoustic and haptic modes of the collision warning. The regulation asks for the warning in at least two "
-        "modes; this increment judges one, the optical warning on the display.",
+    "furtherWarningProvisionsOutOfScope":
+        "The haptic mode of the collision warning, the regulation's further rules on the warning signals (their "
+        "description, the failure and unavailability signals, their check at ignition and their visibility in "
+        "daylight), and whether a driver perceives the warning. The regulation asks for the warning in at least two "
+        "modes; this increment judges two, the warning on the display and the sound, by whether and when each is "
+        "given. The product line's requirement of a collision warning to the driver is answered that far and no "
+        "further.",
     "existingAEBSOutOfScope": "Changing the Autoware-based AEBS or reusing its evidence for this candidate.",
     "candidateTuningOutOfScope":
         "Training the candidate's networks, or tuning the candidate or a scenario until a case passes.",
@@ -83,7 +88,10 @@ ASSUMPTIONS = {
                                         "fast enough for its control cycle in closed loop"),
     "asmBenchReuse": ("can carry a second application",
                       "the path to the AAOS SDV display of the closed-loop driving increment",
-                      "Their results for the first application are not evidence for this one."),
+                      "Their results for the first application are not evidence for this one.",
+                      "That increment built its path to the display to show the driving state, with no deadline for "
+                      "its delivery; whether the path carries a warning in time is for a readiness probe or Phase 7 "
+                      "to show."),
     "asmSimulatedConfigurationStandsIn": (
         "stand in for the vehicle, the surface and the test target that the source regulation prescribes",
         "A verdict holds for that simulated configuration only."),
@@ -98,6 +106,7 @@ GAPS = {
     "gapCameraImageAndGeometry": "The simulator's images are not images of that dataset.",
     "gapCandidateAdmission": "This increment admits no member and changes no scope decision.",
     "gapUpstreamContactAndRights": "The upstream maintainers are not yet involved.",
+    "gapDriverHmiInProductLine": "that revision of the governed scope is made outside this increment.",
 }
 #: gap -> the label of its open point in the guide
 OPEN_POINTS = {
@@ -109,6 +118,7 @@ OPEN_POINTS = {
     "gapCameraImageAndGeometry": "Simulated images",
     "gapCandidateAdmission": "No admission",
     "gapUpstreamContactAndRights": "No upstream contact and no rights clearance",
+    "gapDriverHmiInProductLine": "The HMI display's place in the product line",
 }
 #: a past form of what a candidate does in a run: a framing reports no run
 PAST_BEHAVIOR = re.compile(r"(?i)\b(?:braked|warned|stopped|collided|avoided|detected|passed|failed)\b")
@@ -208,8 +218,8 @@ def test_increment_declares_the_phase_zero_shape():
 def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
     increment = _doc(f"part <'{IDENTITY}'> driverAssistanceIncrement : DriverAssistanceIncrement")
     for phrase in ("VisionPilot of the Autoware Foundation is the application that the owner named.",
-                   "The increment judges the candidate's collision warning, as the AAOS SDV display shows it to the "
-                   "driver, and its braking for a vehicle target.",
+                   "The increment judges the candidate's warning request and braking for a vehicle target, and the "
+                   "collision warning that the AAOS SDV then gives the driver on its display and as a sound.",
                    "It does not change the Autoware-based AEBS.",
                    "This package holds only Phase 0."):
         assert phrase in increment, phrase
@@ -222,8 +232,8 @@ def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
         assert phrase in problem, phrase
     question = _doc("part driverAssistanceQuestion : IncrementEngineeringQuestion")
     for phrase in ("with its commands on the Eclipse S-CORE command path",
-                   "show the driver its collision warning on the AAOS SDV display and command the braking that the "
-                   "product line requires for a vehicle target",
+                   "request the collision warning and command the braking that the product line requires for a "
+                   "vehicle target, with the warning shown on the AAOS SDV display and sounded,",
                    "criteria derived from UNECE R152 judge its closed-loop behavior in simulation",
                    "A verdict for each requirement and scenario answers this.",
                    "A recording of a run that looks right does not."):
@@ -243,21 +253,24 @@ def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
     for phrase in ("Candidate System 1 boundary. In: the front-camera image and the vehicle speed. Inside: "
                    "perception of the lane and of the closest object in the path, speed and steering planning, "
                    "and the warning and braking decision. Out: the driving command and the warning request.",
-                   "The Eclipse S-CORE command path that carries the driving command to the actuation is platform "
-                   "content of System 1. The AAOS SDV display that shows the collision warning to the driver is "
-                   "System 1 content too: the HMI display that the product line holds as an optional feature. Both "
-                   "are outside this boundary, and neither is an enabling system.",
+                   "Two parts of System 1 are outside this boundary, and neither is an enabling system: the Eclipse "
+                   "S-CORE path that carries the driving command to the actuation and the warning request to the "
+                   "AAOS SDV, and the AAOS SDV, which gives the driver the collision warning on its display and as a "
+                   "sound.",
                    "The candidate is a proposed application system, not a member product",
                    "this increment admits no member to the governed product-line scope"):
         assert phrase in system, phrase
     environment = _doc("part driverAssistanceVerificationEnvironment : System2EngineeringAndAssuranceSystem")
     for phrase in ("CARLA renders the camera image and moves the vehicle and the targets.",
-                   "Cloud hosts, the scenario runner, the evaluators, the capture of the display and the recordings "
-                   "enable engineering and verification. They are not vehicle features and not contents of the "
-                   "candidate System 1 boundary.",
-                   "The capture of the display observes it and is no part of it."):
+                   "Cloud hosts, the scenario runner, the evaluators, the capture of the display and of the sound, "
+                   "and the recordings enable engineering and verification. They are not vehicle features and not "
+                   "contents of the candidate System 1 boundary.",
+                   "The capture observes the AAOS SDV and is no part of it."):
         assert phrase in environment, phrase
-    # the owner's decision of 2026-11-13: the display shows the warning as part of the system, not as an instrument
+    # the display's place in the product line is an open point of its own, not a statement of the boundary
+    assert "optional" not in system
+    # the owner's decisions of 2026-11-13: the display shows the warning as part of the system, not as an instrument,
+    # and the warning is given in two modes
     assert "instrument" not in _flat(_raw())
 
 
@@ -283,8 +296,8 @@ def test_scope_items_are_the_agreed_closed_sets():
     assert "InScopeItem" not in scope_body and "OutOfScopeItem" not in scope_body, \
         "scope items are package-level parts: a nested item is not in the scope gate's population"
     scope = _doc("part driverAssistanceScope : IncrementScope")
-    for phrase in ("The collision warning that the AAOS SDV display shows the driver and the braking of the "
-                   "candidate, for a vehicle target ahead in its lane",
+    for phrase in ("The warning request and the braking of the candidate for a vehicle target ahead in its lane, and "
+                   "the collision warning that the AAOS SDV then gives the driver on its display and as a sound,",
                    "in closed loop with a rendered camera image",
                    "for one configuration and with at most ten requirements",
                    "a stationary target, a slower moving target, and two in which no reaction is due",
@@ -340,10 +353,27 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
                    "writes its steering and its acceleration to its vehicle interface",
                    "The warnings go to the application's own visualization and to its own data log, each only "
                    "when it is switched on.",
-                   "A warning request at the system boundary, which the AAOS SDV display needs, is an output that "
-                   "the application does not have.",
-                   "without a change to the application's decision logic, is open"):
+                   "A warning request at the system boundary, which the AAOS SDV needs, is an output that the "
+                   "application does not have.",
+                   "Whether it can be added without a change to the application's decision logic is open.",
+                   "The data log can give the evaluators a record of the warnings, not the warning for the driver."):
         assert phrase in warning, phrase
+    assert "How its driving command, its warning request and its state enter the S-CORE path without a bypass is " \
+           "open." in _doc("part gapScoreIntegration : IncrementGap")
+    hmi = _doc("part gapDriverHmiInProductLine : IncrementGap")
+    for phrase in ("The feature model holds the HMI display as an optional feature that requires the AAOS SDV guest, "
+                   "and neither governed member selects it, while the product line requires every member product to "
+                   "warn the driver.",
+                   "The owner decided on 2026-11-13 that every member product has an HMI display, realized "
+                   "according to the member's integration mode;",
+                   "assumes that the HMI of the S-CORE-integrated member is the visualization of the AEBS "
+                   "visualization increment, an informational display and not the AEBS driver warning.",
+                   "The AEBS visualization increment keeps that visualization in System 2, out of every System 1 "
+                   "feature configuration.",
+                   "Here the display is System 1 content that gives the collision warning, so it is not that "
+                   "visualization.",
+                   "Phase 3 classifies the candidate's display and sound against the scope as it then stands."):
+        assert phrase in hmi, phrase
     unverified = _doc("part gapCandidateBehaviorUnverified : IncrementGap")
     for phrase in ("No closed-loop result of the application exists on the DE4SDV bench, and DE4SDV has run "
                    "neither the inspected revision nor a change to it.",
@@ -476,7 +506,10 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
     assert cells_out == list(OUT_OF_SCOPE.values()), "the table's out-of-scope column is the model's items"
     for target in ("../../textual-notation-of-model/packages/features/driving/driver_assistance_framing.sysml",
                    "../../textual-notation-of-model/packages/features/driving/VIEWS.md",
-                   "../../textual-notation-of-model/packages/features/driving/upstream.md#visionpilot"):
+                   "../../textual-notation-of-model/packages/features/driving/upstream.md#visionpilot",
+                   "../../textual-notation-of-model/packages/features/driving/upstream.md"
+                   "#questions-requiring-upstream-engagement",
+                   "../../methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml"):
         assert f"]({target})" in guide, target
     flat = _flat(guide)
     for phrase in ("No implementation, run, result, product-line admission or compliance is claimed.",
@@ -484,19 +517,19 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "the increment builds none of them.",
                    "It is no statement about compliance or type approval.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The framing's boundary concern does not open Phase 1."):
+                   "The framing's boundary concern does not open Phase 1.",
+                   "the clauses for a vehicle target are not yet anchored there."):
         assert phrase in flat, phrase
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
     for phrase in ("The candidate driver-assistance system is a proposed **System 1** subject.",
-                   "carries its driving command to the actuation is platform content of **System 1**.",
-                   "The AAOS SDV display that shows its collision warning to the driver is **System 1** content "
-                   "too: the HMI display that the product line holds as an optional feature.",
-                   "Both are outside the candidate's boundary, and neither is an enabler.",
-                   "CARLA, the cloud hosts, the scenario runner, the evaluators, the capture of the display and the "
-                   "recordings are **System 2** enablers, not vehicle features.",
-                   "The capture of the display observes it and is no part of it."):
+                   "Two parts of **System 1** are outside its boundary, and neither is an enabler: the Eclipse S-CORE "
+                   "path that carries its driving command to the actuation and its warning request to the AAOS SDV, "
+                   "and the AAOS SDV, which gives the driver the collision warning on its display and as a sound.",
+                   "CARLA, the cloud hosts, the scenario runner, the evaluators, the capture of the display and of the "
+                   "sound, and the recordings are **System 2** enablers, not vehicle features.",
+                   "The capture observes the AAOS SDV and is no part of it."):
         assert phrase in boundaries, phrase
-    assert boundaries.count("**System 1**") == 3 and boundaries.count("**System 2**") == 1
+    assert boundaries.count("**System 1**") == 2 and boundaries.count("**System 2**") == 1
     assert "instrument" not in flat, "the display shows the warning as part of the system"
 
 
@@ -521,6 +554,9 @@ def test_the_upstream_record_pins_what_the_framing_read():
     assert not FORMER_RECORD.exists(), "one upstream record for the folder"
     record = UPSTREAM_RECORD.read_text(encoding="utf-8")
     assert record.startswith("# Driving: upstream provenance\n")
+    intro = _flat(record.split("\n## ", 1)[0])
+    assert ("The VisionPilot section and the statements about VisionPilot belong to INC-DRIVING-002; the rest of the "
+            "record belongs to INC-DRIVING-001.") in intro, "the record says whose each statement is"
     section = _record_section(record, "VisionPilot")
     pinned = re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/([^/)\s]+)", record)
     assert len(pinned) == 11 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
@@ -529,7 +565,12 @@ def test_the_upstream_record_pins_what_the_framing_read():
     network = re.findall(r"github\.com/autowarefoundation/auto_speed([^)\s]*)", record)
     assert network == [f"/tree/{AUTOSPEED_PIN}"], "the record links the network's repository at one commit"
     text = _link_text(section)
-    for phrase in (f"commit `{PIN}` of the branch `main`",
+    for phrase in ("Read for the framing of INC-DRIVING-002 on 2026-11-13: Autoware Foundation VisionPilot, "
+                   f"commit `{PIN}` of the branch `main`, with an Apache-2.0 licence file.",
+                   "Which revision a bench runs is a decision of phase 8.",
+                   "Application loop: one process that reads the camera image and the vehicle speed and writes a "
+                   "steering and an acceleration command.",
+                   "Closed-loop simulator path: CARLA 0.9.16 over ROS 2.",
                    "Its release tag `v1.2` is commit `9a96c3e771f9e79e91b6ccfcbf2ce860530024c8`, an ancestor of the "
                    "inspected commit.",
                    "DE4SDV has built and run nothing of this project, and vendors nothing of it.",
@@ -544,17 +585,22 @@ def test_the_upstream_record_pins_what_the_framing_read():
                    "DE4SDV has not checked that the weights in the application's repository are the ones that this "
                    "README describes, and has not read the terms of the weights or of that dataset."):
         assert phrase in text, phrase
-    for phrase in ("still has", "relative speed", "wrong sign"):
-        assert phrase not in text, phrase
     assert not re.search(r"(?i)\bpull requests?\b", text), "the section restates no pull request of the project"
-    exchange = re.compile(
-        r"(?i)\bDE4SDV (?:has )?(?:confirmed|agreed|asked|contacted|told|informed|reported|discussed|posted|opened|"
-        r"sent)\b|\b(?:maintainers?|authors?|project) (?:has |have )?(?:confirmed|agreed|answered|replied|approved|"
-        r"endorsed)\b|\bwith its author\b")
-    assert not exchange.findall(text), exchange.findall(text)
+    # A reading of DE4SDV's own about the pinned code, or a reply of the project, is in no part of the record. What
+    # DE4SDV sent stands in the closed-loop increment's contact text, so its own exchanges are looked for where this
+    # increment writes: the VisionPilot section and its questions.
+    for phrase in ("still has", "relative speed", "wrong sign"):
+        assert phrase not in _flat(record), phrase
+    reply = re.compile(r"(?i)\b(?:maintainers?|authors?|project) (?:has |have )?(?:confirmed|agreed|answered|replied|"
+                       r"approved|endorsed)\b|\bwith its author\b")
+    assert not reply.findall(_flat(record)), reply.findall(_flat(record))
+    exchange = re.compile(r"(?i)\bDE4SDV (?:has )?(?:confirmed|agreed|asked|contacted|told|informed|reported|discussed|"
+                          r"posted|opened|sent)\b")
     questions = _record_section(record, "Questions requiring upstream engagement")
     assert questions.count("\nVisionPilot:\n") == 1
     asks = questions.split("\nVisionPilot:\n", 1)[1]
+    for part in (text, _flat(asks)):
+        assert not exchange.findall(part), exchange.findall(part)
     assert len(re.findall(r"(?m)^- ", asks)) == 5, "five questions for the maintainers of the project"
     for phrase in ("Which revision and which configuration does the project support for a closed-loop run in the "
                    "simulator?",
@@ -562,7 +608,8 @@ def test_the_upstream_record_pins_what_the_framing_read():
                    "permit the intended use and the publication of results?"):
         assert phrase in _flat(asks), phrase
     contact = _flat(_record_section(record, "Upstream contact"))
-    assert "In the VisionPilot repository DE4SDV has posted nothing." in contact
+    about = [sentence for sentence in re.split(r"(?<=\.) ", contact) if re.search(r"(?i)vision.?pilot", sentence)]
+    assert about == ["In the VisionPilot repository DE4SDV has posted nothing."], about
     index_row = _row(INDEX, "[VisionPilot]")
     assert "[Driving upstream record](textual-notation-of-model/packages/features/driving/upstream.md)" in index_row
     assert "(https://github.com/autowarefoundation/vision_pilot)" in index_row
