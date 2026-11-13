@@ -479,14 +479,24 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
 
   item def EgoMotionSample {
     doc /*
-     * One sample of the vehicle's own motion: its speed, its longitudinal
-     * and lateral acceleration and its yaw rate, as ISQ quantities, with its
-     * sample time in simulation time (REQ-DRIVING-030). The curvature of the
-     * checkpoint's history (REQ-DRIVING-008) is no sampled quantity: the
-     * checkpoint's data derive it from the yaw rate and the speed. Under the
-     * bounded deviation of asmSourceAuthenticity, the driving system gives
-     * the checkpoint yaw rate and curvature as zero.
+     * One sample of the vehicle's own motion: its position and its heading in
+     * the frame of the route's map, its speed, its longitudinal and lateral
+     * acceleration and its yaw rate, as ISQ quantities, with its sample time
+     * in simulation time (REQ-DRIVING-030). The position is two lengths along
+     * the axes of the map's plane, and the heading is the direction of the
+     * vehicle's longitudinal axis in that plane. From the positions the
+     * system works out the speed and acceleration of the checkpoint's history
+     * (REQ-DRIVING-008); at the position and heading of a step it draws the
+     * two rasters of the route and its map (REQ-DRIVING-006,
+     * REQ-DRIVING-007). The curvature of the checkpoint's history
+     * (REQ-DRIVING-008) is no sampled quantity: the checkpoint's data derive
+     * it from the yaw rate and the speed. Under the bounded deviation of
+     * asmSourceAuthenticity, the driving system gives the checkpoint yaw rate
+     * and curvature as zero.
      */
+    attribute positionX : ISQ::LengthValue;
+    attribute positionY : ISQ::LengthValue;
+    attribute heading : ISQ::AngularMeasureValue;
     attribute speed : ISQ::SpeedValue;
     attribute longitudinalAcceleration : ISQ::AccelerationValue;
     attribute lateralAcceleration : ISQ::AccelerationValue;
@@ -497,9 +507,9 @@ package DE4SDV_ClosedLoopDrivingFunctionalArchitecture {
   item def EgoMotionInput :> EgoMotionState {
     doc /*
      * The vehicle's motion as it enters the driving system at its input: its
-     * samples in the order of their sample times, and the vehicle's position
-     * at each, from which the system works out the history REQ-DRIVING-008
-     * asks for.
+     * samples in the order of their sample times, each with the vehicle's
+     * position and heading, from which the system works out the history
+     * REQ-DRIVING-008 asks for.
      */
     item sample : EgoMotionSample[*] ordered;
   }

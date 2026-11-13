@@ -5,17 +5,17 @@ behavior from a prediction overlay on a separately driven car. This increment
 proposes the former: real camera-based learned planning, a functional S-CORE
 integration path, and an AAOS SDV application showing genuine plan/state/health.
 
-**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 capability classification, Phase 4 stakeholder needs, Phase 5
-requirements, Phase 6 functional architecture, Phase 7 logical architecture
-and Phase 8 physical/software realization, proposal.** No implementation,
-build, successful driving run, performance result or product-line admission
-is claimed.
+**Status: baselined (Phase 11).** The baseline accepts the model of phases
+0 to 10 and the bench as built, and no evidence: every verification case is
+Not started, and the bench's verdicts are drafts. No driving-quality,
+performance, safety or product-line admission claim follows; see
+[Baseline (Phase 11)](#baseline-phase-11).
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_framing.sysml):
-  `INC-DRIVING-001`, its engineering question, charter, scope and open gaps.
+  `INC-DRIVING-001`, its engineering question, charter, scope, open gaps and
+  baseline decision.
 - [SysML operational context](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_operational_context.sysml):
   the Phase 2 context, operational behavior and story.
 - [SysML capability classification](../../textual-notation-of-model/packages/features/driving/closed_loop_driving_capability_classification.sysml):
@@ -38,12 +38,15 @@ is claimed.
 - [Syside review views](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifacts, not a runtime architecture claim.
 - [Upstream provenance and questions](../../textual-notation-of-model/packages/features/driving/upstream.md).
+- [Bench](../../implementation/closed-loop-driving-bench/README.md): the
+  implementation the baseline accepts as built, with its claim boundary and
+  known limits. Its verdicts are drafts, not evidence of record.
 
 Orkun Yilmaz owns the increment. One identity covers phases 0 through 11;
 CARLA closed-loop verification belongs to Phase 10 of this increment, with
 readiness probes earlier in phases 6 through 8.
 
-## Intended outcome, not an implemented architecture
+## Intended outcome
 
 The learned planner's output must influence steering and acceleration through
 the S-CORE functional path and a controller back to CARLA. A direct bypass or
@@ -352,13 +355,17 @@ signal specification: a `CameraImageInput` is one image per position, the
 six of `CameraPosition` in the order REQ-DRIVING-003 fixes, each with its
 capture time in simulation time, its size in pixels and its camera's
 calibration, from which the projection operator of REQ-DRIVING-005 is
-built; an `EgoMotionInput` is the samples of the vehicle's speed,
-longitudinal and lateral acceleration and yaw rate as ISQ quantities, each
-with its sample time, and the vehicle's position at each, from which the
-checkpoint's history is worked out the source's way (REQ-DRIVING-008). The checkpoint gets the history's yaw rate and curvature
-as zero (REQ-DRIVING-008), the bounded deviation of the owner's decision of
-2026-11-09 that GAP-DRIVING-010 records: fed back in the closed loop, the
-checkpoint's own yaw history turned its plans off the lane.
+built; an `EgoMotionInput` is the samples of the vehicle's motion, each an
+`EgoMotionSample`: the vehicle's position and heading in the frame of the
+route's map, its speed, longitudinal and lateral acceleration and yaw rate,
+as ISQ quantities, with its sample time. From the positions the
+checkpoint's history is worked out the source's way (REQ-DRIVING-008), and
+at the position and heading of a step the two rasters of the route and its
+map are drawn (REQ-DRIVING-006, REQ-DRIVING-007). The checkpoint gets the
+history's yaw rate and curvature as zero (REQ-DRIVING-008), the bounded
+deviation of the owner's decision of 2026-11-09 that GAP-DRIVING-010
+records: fed back in the closed loop, the checkpoint's own yaw history
+turned its plans off the lane.
 
 GAP-DRIVING-011 records a separate limit, accepted on the owner's decision of
 2026-11-10: the pinned checkpoint takes no turn from the route. With the same
@@ -567,9 +574,9 @@ REQ-DRIVING-028 constrain. The owner's picks of 2026-11-06, as amended on
   rounding-level kernel changes and pinned libraries (torch 2.7.1, triton
   3.3.1, cuDNN 9.26.0.51). The pick of 2026-11-06, an inference engine over
   an ONNX export, failed at the export: the exporter ran out of 64 GB of
-  memory. The stack's parity with the reference is an assumption
-  (ASM-DRIVING-002) with GAP-DRIVING-003 behind it until phase 10 measures
-  it on the bench.
+  memory. The stack's parity with the reference stays an assumption
+  (ASM-DRIVING-002) with GAP-DRIVING-003 behind it: no recorded run of
+  phase 10 gave the parity case VC-DRIVING-002 a pass or a fail.
 - **S-CORE at v0.10.0** (reference_integration `ca2a5f03`): Communication
   v0.6.0, Lifecycle v0.10.0, Logging v0.2.6, Time v0.3.1, Configuration
   Management v0.3.1. FEO (GAP-DRIVING-001, built beside them with eight
@@ -819,24 +826,63 @@ This is the first slice: the cases, not the runs. The owner's picks of
   readiness probes the owner authorized on 2026-11-06 were read from
   2026-11-07 to 2026-11-09, and Phase 8's amendment fixes the hosts, the
   topology and the capture (three hosts, separate recordings per host).
-  Still open: the three hosts have not run together, and the evidence record
-  does not yet name the hosts, their images and the recordings' clocks.
+  The three hosts ran together on 2026-11-10 (two closed-loop runs). Still
+  open: no evidence record exists, so none names the hosts, their images and
+  the recordings' clocks. The baseline defers it.
+
+## Baseline (Phase 11)
+
+`closed_loop_driving_framing.sysml` holds the baseline decision of the
+increment, `closedLoopDrivingBaselineDecision` (BL-DRIVING-001-P11), and each
+of the 15 gap records states the disposition the baseline gives it. The
+framing view shows the decision beside the framing decision it answers.
+
+- **Accepted: the integration as built.** The model of phases 0 to 10 and the
+  bench under `implementation/closed-loop-driving-bench/`. The framing
+  decision asked whether to retain the closed-loop integration; the baseline
+  retains it, on drafts and not on evidence of record.
+- **No evidence is accepted.** The increment closes without evidence records:
+  the owner ended its runs on 2026-11-11, the recorded runs were made on the
+  bench's branches before the merge, and the merged bench has not run. Every
+  case is Not started and every requirement keeps NotStarted. The evaluators'
+  verdicts are drafts. In the three closed-loop runs after the corrections of
+  GAP-DRIVING-012, 12 of the 23 cases those runs judge pass in all three,
+  VC-DRIVING-001 fails in two, and six are inconclusive for evidence the runs
+  did not record. Twelve cases have no pass and no fail in any recorded run:
+  VC-DRIVING-002, -005, -011, -012, -016, -033 and -035 (inconclusive wherever
+  judged), -014, -024 and -028 (no run injected their fault), -018 and -019
+  (their runs were not made).
+- **Known limits: accepted, still open.** GAP-DRIVING-010 to GAP-DRIVING-013,
+  and two framing gaps. `gapClosedLoopPerformance`: nothing measured is
+  real-time operation on target hardware, and the simulator's frame rate and
+  capture targets have no requirement and no case. `gapModelInputAndFeedback`:
+  matching interfaces did not make useful driving, and only the injected
+  faults are covered.
+- **Deferred to a later increment.** GAP-DRIVING-001, -003, -006, -007 and
+  -009, and four framing gaps. `gapTransportAndControl`: the runs that stop
+  the S-CORE communication and the runs of the observation scenario.
+  `gapProductLineAdmission`: the member decision that amends ADR 0014.
+  `gapAdoptionAndRights`: no adoption approval, no rights clearance.
+  `gapBoundedCloudCampaign`: the machines are stopped, and the remaining
+  allowance goes to a later increment.
+- **Withdrawn.** None.
+
+The bench's own limits are in its README:
+[Known limits](../../implementation/closed-loop-driving-bench/README.md#known-limits).
 
 ## Next obligation and execution limits
 
-Use the reviewed revision's **Method Check** export to identify the first
-unmet model-content obligation; it is not proof that earlier engineering
-work is complete. The next work is the **second slice of Phase 10**: the
-bench on three hosts, the runs of the 35 cases and their evidence records
-with the bench recordings, then the member
-decision that amends ADR 0014 and the baseline of Phase 11. Do
-not jump from this context to implementation or claim a passed runtime
-gate.
+The increment ended at its baseline decision. Use the reviewed revision's
+**Method Check** export to see the state of the model-content gates; it is not
+proof that earlier engineering work is complete. A later increment takes up
+what the baseline deferred: a run of the merged bench with its evidence
+records, the cases no recorded run judged, the member decision that amends ADR
+0014 and the clearances. Do not read the baseline as a passed runtime gate.
 
 Before deep adoption, involve upstream maintainers and resolve source,
 checkpoint and data-use terms. Before a paid cloud run, refresh the regional
 quote, capacity/storage and available credit; obtain campaign authorization and
-verify bounded shutdown plus evidence export. Starting this increment does not
+verify bounded shutdown plus evidence export. Starting an increment does not
 launch compute or authorize spend.
 
 ## Check a model change

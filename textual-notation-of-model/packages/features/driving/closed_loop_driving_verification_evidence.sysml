@@ -188,15 +188,16 @@ package DE4SDV_ClosedLoopDrivingVerificationEvidence {
     doc /*
      * Open: the environment's identity in the evidence record. All of the
      * probes the owner authorized on 2026-11-06 were read from 2026-11-07 to
-     * 2026-11-09, and phase 8's amendment of 2026-11-09 fixes the hosts,
-     * the topology and the capture: three hosts, the simulator host and the
+     * 2026-11-09, and phase 8's amendment of 2026-11-09 fixes the hosts, the
+     * topology and the capture: three hosts, the simulator host and the
      * S-CORE host joined by the bench network, the guests on the guest host
      * reached over the VXLAN segment, and separate real-time recordings per
-     * host under the recording rule of RetainedDrivingRunEvidence. Still
-     * open: the three hosts have not yet run together (GAP-DRIVING-007), and
-     * the record does not yet name the hosts, their images and the clocks of
-     * the recordings. The next slice adds the environment's identity to the
-     * evidence record and closes this gap. Deferred to that slice.
+     * host under the recording rule of RetainedDrivingRunEvidence. The three
+     * hosts ran together on 2026-11-10 (GAP-DRIVING-007). Still open: no
+     * evidence record exists, so none names the hosts, their images and the
+     * clocks of the recordings. The slice that adds the environment's
+     * identity to the evidence record was not made in this increment; the
+     * baseline defers it to a later increment.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }

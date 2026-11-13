@@ -42,6 +42,7 @@ DRIVING = ROOT / "textual-notation-of-model/packages/features/driving"
 MODEL = DRIVING / "closed_loop_driving_functional_architecture.sysml"
 NEEDS_REQUIREMENTS = DRIVING / "closed_loop_driving_needs_requirements.sysml"
 FRAMING = DRIVING / "closed_loop_driving_framing.sysml"
+GUIDE = ROOT / "docs/guides/closed-loop-driving-increment.md"
 PACKAGE = "DE4SDV_ClosedLoopDrivingFunctionalArchitecture"
 FLOW = "ClosedLoopDrivingFunctionalFlow"
 FLOW_USAGE = "closedLoopDrivingFunctionalFlow"
@@ -68,9 +69,21 @@ EXCHANGE_TYPE_ITEMS = {"CameraImage", "EgoMotionSample"}
 CAMERA_POSITIONS = ["front", "frontLeft", "frontRight", "rearLeft", "rear", "rearRight"]
 CAMERA_IMAGE_ATTRIBUTES = {"position": "CameraPosition", "captureTime": "ISQ::DurationValue",
                            "widthPixels": "Positive", "heightPixels": "Positive"}
-EGO_MOTION_SAMPLE_ATTRIBUTES = {"speed": "ISQ::SpeedValue", "longitudinalAcceleration": "ISQ::AccelerationValue",
+EGO_MOTION_SAMPLE_ATTRIBUTES = {"positionX": "ISQ::LengthValue", "positionY": "ISQ::LengthValue",
+                                "heading": "ISQ::AngularMeasureValue", "speed": "ISQ::SpeedValue",
+                                "longitudinalAcceleration": "ISQ::AccelerationValue",
                                 "lateralAcceleration": "ISQ::AccelerationValue", "yawRate": "ISQ::AngularVelocityValue",
                                 "sampleTime": "ISQ::DurationValue"}
+#: The words the sample's doc and the guide use for the attributes of the motion sample, in the order both list
+#: them. Every attribute has its word here: a new attribute fails the test until the two texts name it.
+EGO_MOTION_SAMPLE_WORDS = (
+    ("position", ("positionX", "positionY")),
+    ("heading", ("heading",)),
+    ("speed", ("speed",)),
+    ("longitudinal and lateral acceleration", ("longitudinalAcceleration", "lateralAcceleration")),
+    ("yaw rate", ("yawRate",)),
+    ("sample time", ("sampleTime",)),
+)
 PHASE_2_ITEMS = ("CameraImages", "EgoMotionState", "Route", "VehicleMotionCommand", "DrivingOperationalState")
 
 #: The flow's own parameters: the phase 2 items crossing the boundary of the driving system.
@@ -540,10 +553,59 @@ def test_the_exchange_types_describe_the_sensing_without_a_signal_specification(
     assert "the driving system derives it from the yaw rate" not in motion_doc
     assert "the vehicle's" in motion_doc or "of the vehicle" in motion_doc, "whose motion it is"
     # the owner decision of 2026-11-10 on VC-DRIVING-008: the history's speed and acceleration are worked out from the
-    # vehicle's positions, as the source does, not kept from the samples
-    assert ("its samples in the order of their sample times, and the vehicle's position at each, from which the "
-            "system works out the history REQ-DRIVING-008 asks for") in motion_doc
+    # vehicle's positions, as the source does, not kept from the samples; since the owner's decision of 2026-11-13
+    # each sample types that position, with the heading
+    assert ("its samples in the order of their sample times, each with the vehicle's position and heading, from "
+            "which the system works out the history REQ-DRIVING-008 asks for") in motion_doc
     assert "from which the system keeps the history" not in motion_doc
+
+
+def test_the_motion_sample_types_the_position_and_heading_the_input_names():
+    """The owner's decision of 2026-11-13: the vehicle's position, which the ego-motion input named in its text
+    while no feature typed it, is typed in the model. A sample carries the position as two lengths and the heading
+    as an angle, ISQ quantities in the frame of the route's map. REQ-DRIVING-008 has the history worked out from
+    the positions, and the two rasters of REQ-DRIVING-006 and REQ-DRIVING-007 are drawn at the position and heading
+    of the step. The test reads the model and the guide; it does not read the bench, whose source of the pose the
+    realization's tests hold (MAP-DRIVING-EGO-MOTION)."""
+    sample = braced_body(_code(), "item def EgoMotionSample")
+    declared = dict(re.findall(r"\battribute\s+(\w+)\s*:\s*([\w:]+)\s*;", sample))
+    assert len(re.findall(r"\battribute\b", sample)) == len(declared), "every attribute has the one typed form, once"
+    assert {name: declared.get(name) for name in ("positionX", "positionY", "heading")} == {
+        "positionX": "ISQ::LengthValue", "positionY": "ISQ::LengthValue", "heading": "ISQ::AngularMeasureValue"}
+    worded = [name for _, names in EGO_MOTION_SAMPLE_WORDS for name in names]
+    assert sorted(worded) == sorted(declared), "an attribute of the sample without its word, or a word without one"
+    position, heading, speed, accelerations, yaw_rate, sample_time = (word for word, _ in EGO_MOTION_SAMPLE_WORDS)
+    # one fact stated twice: the sample's doc opens with what its attributes type, each by its word
+    sample_doc = _doc("item def EgoMotionSample")
+    assert sample_doc.startswith(
+        f"One sample of the vehicle's own motion: its {position} and its {heading} in the frame of the route's map, "
+        f"its {speed}, its {accelerations} and its {yaw_rate}, as ISQ quantities, with its {sample_time} in "
+        "simulation time (REQ-DRIVING-030). "), sample_doc[:270]
+    # what the position and the heading are, and what the system takes them for
+    for sentence in (
+        "The position is two lengths along the axes of the map's plane, and the heading is the direction of the "
+        "vehicle's longitudinal axis in that plane.",
+        "From the positions the system works out the speed and acceleration of the checkpoint's history "
+        "(REQ-DRIVING-008); at the position and heading of a step it draws the two rasters of the route and its map "
+        "(REQ-DRIVING-006, REQ-DRIVING-007).",
+    ):
+        assert sentence in sample_doc, sentence
+    assert "the vehicle's position at each" not in _doc("item def EgoMotionInput :> EgoMotionState"), \
+        "the position is a feature of the sample, no longer a text beside the samples"
+    # the requirements the doc names say what it takes from them
+    requirements = NEEDS_REQUIREMENTS.read_text(encoding="utf-8")
+    statements = {number: _flat(braced_body(requirements, f"requirement <'REQ-DRIVING-{number}'>")
+                                .split("attribute :>> source")[0]) for number in ("006", "007", "008")}
+    assert "worked out from the vehicle's positions" in statements["008"]
+    assert "the map of the roads around the vehicle as the map_context raster" in statements["006"]
+    assert "the route from navigation as the route_mask raster" in statements["007"]
+    # the guide lists the sample's content in the same words and the same order
+    guide = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    assert ("an `EgoMotionInput` is the samples of the vehicle's motion, each an `EgoMotionSample`: the vehicle's "
+            f"{position} and {heading} in the frame of the route's map, its {speed}, {accelerations} and {yaw_rate}, "
+            f"as ISQ quantities, with its {sample_time}. From the positions") in guide
+    assert ("at the position and heading of a step the two rasters of the route and its map are drawn "
+            "(REQ-DRIVING-006, REQ-DRIVING-007).") in guide
 
 
 def test_the_functions_name_no_technology_platform_or_claim():
