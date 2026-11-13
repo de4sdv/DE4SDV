@@ -105,6 +105,8 @@ Each record's own Status section is authoritative.
   authority](0022-adopt-pleml-as-product-line-authority.md)
 - [ADR 0025: End SOME/IP in an SDV Core VM for the S-CORE-integrated
   member](0025-end-someip-in-an-sdv-core-vm.md)
+- [ADR 0026: An HMI display in every member
+  product](0026-hmi-display-in-every-member-product.md)
 
 ## Template
 
