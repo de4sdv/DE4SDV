@@ -355,13 +355,17 @@ signal specification: a `CameraImageInput` is one image per position, the
 six of `CameraPosition` in the order REQ-DRIVING-003 fixes, each with its
 capture time in simulation time, its size in pixels and its camera's
 calibration, from which the projection operator of REQ-DRIVING-005 is
-built; an `EgoMotionInput` is the samples of the vehicle's speed,
-longitudinal and lateral acceleration and yaw rate as ISQ quantities, each
-with its sample time, and the vehicle's position at each, from which the
-checkpoint's history is worked out the source's way (REQ-DRIVING-008). The checkpoint gets the history's yaw rate and curvature
-as zero (REQ-DRIVING-008), the bounded deviation of the owner's decision of
-2026-11-09 that GAP-DRIVING-010 records: fed back in the closed loop, the
-checkpoint's own yaw history turned its plans off the lane.
+built; an `EgoMotionInput` is the samples of the vehicle's motion, each an
+`EgoMotionSample`: the vehicle's position and heading in the frame of the
+route's map, its speed, longitudinal and lateral acceleration and yaw rate,
+as ISQ quantities, with its sample time. From the positions the
+checkpoint's history is worked out the source's way (REQ-DRIVING-008), and
+at the position and heading of a step the two rasters of the route and its
+map are drawn (REQ-DRIVING-006, REQ-DRIVING-007). The checkpoint gets the
+history's yaw rate and curvature as zero (REQ-DRIVING-008), the bounded
+deviation of the owner's decision of 2026-11-09 that GAP-DRIVING-010
+records: fed back in the closed loop, the checkpoint's own yaw history
+turned its plans off the lane.
 
 GAP-DRIVING-011 records a separate limit, accepted on the owner's decision of
 2026-11-10: the pinned checkpoint takes no turn from the route. With the same

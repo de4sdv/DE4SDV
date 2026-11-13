@@ -782,8 +782,8 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   part def SimulatedEgoMotionSource {
     doc /*
      * The rig's motion sensing: it reads the simulated ego vehicle's
-     * vehicle state, its velocity, acceleration and angular velocity, from
-     * the simulator's physics each step and stamps the sample with the
+     * vehicle state, its pose, velocity, acceleration and angular velocity,
+     * from the simulator's physics each step and stamps the sample with the
      * simulation time (REQ-DRIVING-030). That is ground truth: a vehicle's
      * inertial measurement unit and wheel odometry add noise, bias and
      * latency the bench does not have (ASM-DRIVING-004). The curvature the

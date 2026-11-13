@@ -1361,8 +1361,10 @@ def test_the_guide_says_the_history_is_worked_out_from_the_positions():
     flat = " ".join(GUIDE.read_text(encoding="utf-8").split())
     assert ("64 motion samples 100 ms apart before the step, worked out from the vehicle's positions, with yaw rate "
             "and curvature given as zero (008)") in flat
-    assert ("each with its sample time, and the vehicle's position at each, from which the checkpoint's history is "
-            "worked out the source's way (REQ-DRIVING-008).") in flat
+    # since the owner's decision of 2026-11-13 the sample types the position, and the guide names none beside it
+    assert ("From the positions the checkpoint's history is worked out the source's way (REQ-DRIVING-008), and at "
+            "the position and heading of a step") in flat
+    assert "and the vehicle's position at each" not in flat
 
 
 def test_the_guide_explains_the_lane_gap_right_after_the_route_gap():
@@ -1689,3 +1691,20 @@ def test_the_texts_that_left_work_to_phase_10_say_what_phase_10_did():
     flat = " ".join(GUIDE.read_text(encoding="utf-8").split())
     assert GUIDE_PARITY in flat, "the guide's planner bullet"
     assert "until phase 10 measures" not in flat, "the guide still waits for phase 10"
+
+
+def test_the_simulated_motion_source_names_the_pose_the_functional_sample_types():
+    """The owner's decision of 2026-11-13: the vehicle's position is typed in the model. The functional sample
+    types the vehicle's position and heading, so the bench's source of the ego motion names the pose among what it
+    reads from the simulator, as the mapping record names the simulator's transform. The test reads the three
+    texts; it does not read the bench's code."""
+    motion_doc = _doc("part def SimulatedEgoMotionSource")
+    assert ("it reads the simulated ego vehicle's vehicle state, its pose, velocity, acceleration and angular "
+            "velocity, from the simulator's physics each step") in motion_doc
+    record = braced_body(_raw(), "item <'MAP-DRIVING-EGO-MOTION'>")
+    assert "(its transform, velocity and acceleration vectors, angular velocity)" in record
+    functional = strip_comments(
+        (DRIVING / "closed_loop_driving_functional_architecture.sysml").read_text(encoding="utf-8"))
+    sample = braced_body(functional, "item def EgoMotionSample ")
+    assert dict(re.findall(r"\battribute\s+(position\w*|heading)\s*:\s*([\w:]+)\s*;", sample)) == {
+        "positionX": "ISQ::LengthValue", "positionY": "ISQ::LengthValue", "heading": "ISQ::AngularMeasureValue"}
