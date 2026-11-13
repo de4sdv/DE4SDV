@@ -2,13 +2,24 @@
 
 ## Status
 
-Proposed
+Accepted
 
-This draft comes from phase 9 of INC-MW-011 (2026-10-22). The owner accepts
-or rejects it in phase 12, after the runnable proof of phase 10. Until then
-it changes nothing: the governed scope, its validator and the admission rule
-stay as [ADR 0014](0014-ratify-initial-aebs-product-line-scope.md) and
-[ADR 0022](0022-adopt-pleml-as-product-line-authority.md) set them.
+The owner accepted this record on 2026-11-13, in the words "accept adr 23".
+It was drafted as `Proposed` in phase 9 of INC-MW-011 (2026-10-22). The
+draft named the runnable proof of phase 10 as an input of the owner's
+decision in phase 12. The owner accepted it before that proof. The draft
+itself called the staging the owner's choice for this member, not a rule,
+and [ADR 0014](0014-ratify-initial-aebs-product-line-scope.md) keeps
+membership independent of evidence status. The runnable proof stays an
+obligation of INC-MW-011 phase 10: it is evidence about the member, not a
+condition of its membership (decision 8).
+
+The governed scope, its validator and the admission rule change in the pull
+requests that the Consequences name. Until the scope pull request lands, the
+model still admits only the two members that ADR 0014 and
+[ADR 0022](0022-adopt-pleml-as-product-line-authority.md) govern. On the same
+day the owner made the HMI display common to every member (ADR 0026).
+Decisions 1, 2, 3, 5 and 6 follow that decision.
 
 ## Context
 
@@ -86,6 +97,9 @@ Two configurations matter here:
   display has no governed-scope element. Its `kvm` and guest choices realize
   AAOS Integrated, so admission also reports the missing AAOS SDV partner.
 
+These texts describe the model as phase 9 left it. ADR 0026 changes two of
+its facts: every member selects the HMI display, and C010 goes.
+
 The product models state where each layer runs. The platform-stack superset
 connects Eclipse S-CORE and AUTOSAR Adaptive to the main-side operating
 system, and the guest middleware to the guest operating system. Only the
@@ -108,11 +122,26 @@ same day the owner placed the AAOS-integrated member on one chip: Autoware
 on the Linux host, with the AAOS SDV guest under KVM. On 2026-10-22 the
 owner chose the two-sided tree, with the display as an optional capability.
 
+On 2026-11-13 the owner made the HMI display common to every member, with a
+realization that follows the integration mode (ADR 0026). In the same
+message he accepted this record: "accept adr 23". So:
+
+- The decision on this record in phase 12, after the phase-10 proof
+  (2026-10-21), is replaced by the acceptance of 2026-11-13 (decision 8).
+  The third alternative of Integration Mode stays.
+- The display as an optional capability (2026-10-22) is replaced by the
+  common display of ADR 0026 (2026-11-13). The two-sided tree stays.
+- The one-chip AAOS-integrated member (2026-10-21) stays. Its guest without
+  a display is replaced by ADR 0026 (2026-11-13): that member gets a display
+  in its AAOS SDV guest.
+
 ## Decision
 
 The DE4SDV AEBS product line gets a third planned member, through a third
-alternative of Vehicle Platform Integration Mode. The decision takes effect
-only when the owner accepts this record in phase 12 (decision 8).
+alternative of Vehicle Platform Integration Mode. The owner accepted this
+record on 2026-11-13 (decision 8). The governed scope records the member,
+and admission follows, when the scope pull request of the Consequences
+lands.
 
 1. **A third planned member.** The **S-CORE-Integrated Autoware AEBS
    Reference Member** runs on one SoC:
@@ -120,7 +149,8 @@ only when the owner accepts this record in phase 12 (decision 8).
      command path stay on the Linux main side;
    - Eclipse S-CORE on the main side is the middleware that Autoware
      integrates with, through the derived adapter;
-   - an AAOS SDV guest under KVM shows the AEBS HMI on a display;
+   - an AAOS SDV guest under KVM shows the AEBS HMI on a display, the HMI
+     display that ADR 0026 makes common to every member;
    - the one-way cross-domain HMI path carries the AEBS signals from the main
      side into the guest.
 
@@ -131,9 +161,11 @@ only when the owner accepts this record in phase 12 (decision 8).
    alternative, **S-CORE Integrated**. Integration Mode stays the only
    admitted product variability. Each of its alternatives characterizes
    exactly one planned member. The integration-mode decision still binds
-   during Development, for S-CORE Integrated too: its middleware, guest side
-   and display are fixed when the member is engineered. The HMI display binds
-   with the alternative. No later binding is admitted.
+   during Development, for S-CORE Integrated too: its middleware and guest
+   side are fixed when the member is engineered. The HMI display also binds
+   during Development, as common content of every member (ADR 0026), not
+   with the alternative. No later binding is admitted. The draft bound the
+   display with the alternative; ADR 0026 replaced that on 2026-11-13.
 3. **What S-CORE Integrated derives.**
    - **A new topology.** The S-CORE two-domain topology is a new derived
      realization. The Linux main side with Eclipse S-CORE is also the KVM
@@ -147,16 +179,24 @@ only when the owner accepts this record in phase 12 (decision 8).
      alternatives. The adapter stays a derived realization, never a feature
      or a manual product choice.
    - **Eclipse S-CORE is admitted.** It leaves the reference-only set, and
-     `eclipseSCORE` corresponds to S-CORE Integrated. A configuration that
-     pairs it with a reference-only application, such as Apollo or
-     Openpilot, stays not admitted.
-   - **The display.** The HMI display distinguishes the S-CORE member from
-     the AAOS-integrated member. So `hmiDisplay` corresponds to S-CORE
-     Integrated, and an admitted S-CORE member selects it.
+     `eclipseSCORE` corresponds to S-CORE Integrated. It is the choice that
+     tells the S-CORE member apart from the AAOS-integrated member. A
+     configuration that pairs it with a reference-only application, such as
+     Apollo or Openpilot, stays not admitted.
+   - **The display.** The HMI display is common content of every member
+     (ADR 0026). So it tells no member apart and corresponds to no
+     alternative. An admitted S-CORE member selects it, as every member
+     does. Its place derives from the alternative: in this member, the AAOS
+     SDV guest. The draft had `hmiDisplay` correspond to S-CORE Integrated;
+     ADR 0026 replaced that on 2026-11-13.
    - **CLS-MW-004.** The feature candidate CLS-MW-004, an AAOS SDV HMI guest
      next to the Linux host, gets S-CORE Integrated as its counterpart, not
-     AAOS Integrated. In the feature model, `hmiDisplay` carries that
-     difference.
+     AAOS Integrated (owner decision of 2026-10-21). The characteristic sets
+     the member apart from the standalone member. In the feature model,
+     `kvm`, `guestAndroid` and `guestAndroidSDV` carry that difference, and
+     the member shares them with the AAOS-integrated member. `eclipseSCORE`,
+     not `hmiDisplay`, carries the difference from the AAOS-integrated
+     member.
 4. **Shared realizations are read by intersection.** Decision 3 makes `kvm`,
    `guestAndroid` and `guestAndroidSDV` realize two alternatives: AAOS
    Integrated and S-CORE Integrated. So a configuration realizes the one
@@ -167,10 +207,10 @@ only when the owner accepts this record in phase 12 (decision 8).
 5. **The common content stays common.** The five common contents of ADR 0014
    stay common to the three members. They are Vehicle-Target AEBS, Autoware,
    the Linux/ROS 2 Autoware runtime, the current sensing baseline and
-   protected emergency-command-path independence. The S-CORE member runs
-   Autoware on Linux on the main side (C011). It keeps the AEBS emergency
-   intervention command path inside the Linux host, outside the integration
-   layer (ASM-MW-028). "Common" is a scope classification, not evidence about
+   protected emergency-command-path independence. ADR 0026 adds a sixth, an
+   HMI display. The S-CORE member runs Autoware on Linux on the main side
+   (C011). It keeps the AEBS emergency intervention command path inside the
+   Linux host, outside the integration layer (ASM-MW-028). "Common" is a scope classification, not evidence about
    that content. REQ-MW-006, GAP-MW-029 and GAP-MW-033 stay open.
 6. **The role decides, not the software identity.** In the S-CORE member, the
    HMI application in the AAOS SDV guest is System 1 content. It is part of
@@ -180,7 +220,8 @@ only when the owner accepts this record in phase 12 (decision 8).
    member. Both classifications hold, because the role of an element in its
    product decides its classification. Visualization instrumentation stays
    an excluded System 2 concern. The HMI is an informational display, not the
-   AEBS driver warning (ASM-MW-024).
+   AEBS driver warning (ASM-MW-024). ADR 0026 puts a display in every member
+   but does not decide what a display shows, so this decision stands.
 7. **A second scope decision record, validated.** The governed scope records
    this decision in a second `ProductLineScopeDecisionRecord` that governs
    the scope, like the initial record and with its decision authority. Today
@@ -189,25 +230,31 @@ only when the owner accepts this record in phase 12 (decision 8).
    alternative, the new derived realization and the smaller reference-only
    set. The semantic tests change with them, including the test that refuses
    a third member.
-8. **Staged acceptance.**
-   - **Inputs.** The owner accepts or rejects this record in phase 12. The
-     inputs are the realization coverage of phase 8 and the retained
-     evidence of the runnable proof of phase 10. A green job is not
-     acceptance.
-   - **Until then.** The S-CORE configuration stays valid and not admitted.
-     The configured product that phase 9 adds for it does not specialize a
-     member-product type. Phase-10 evidence binds to its configuration
-     identity (proposed: MW-CONFIG-002). In phase 12 the configured product
-     specializes the new member definition, as the AAOS-integrated configured
-     member does.
-   - **On rejection.** Eclipse S-CORE stays reference-only, and no scope
-     element has to be withdrawn. The ADR 0022 note on the guest side stays
-     in force, because it does not depend on this record.
-   - **Membership and evidence.** Staging is the owner's choice for this
-     member, not a new rule. Membership stays independent of evidence status,
-     as ADR 0014 says.
+8. **Acceptance before the proof.**
+   - **Accepted.** The owner accepted this record on 2026-11-13: "accept adr
+     23". This replaces the staged acceptance of the draft (owner decision
+     of 2026-10-21). Under it, the owner was to accept or reject the record
+     in phase 12, with the realization coverage of phase 8 and the retained
+     evidence of the phase-10 runnable proof as inputs.
+   - **Membership and evidence.** Membership stays independent of evidence
+     status, as ADR 0014 says. The staging was the owner's choice for this
+     member, not a rule. The runnable proof stays the phase-10 obligation of
+     INC-MW-011. It is evidence about the member, not a condition of its
+     membership.
+   - **What happens now.** The S-CORE configuration, MW-CONFIG-002, stays
+     valid. When the scope pull request lands, it is admitted, and the
+     configured product that phase 9 adds for it specializes the new member
+     definition, as the AAOS-integrated configured member does. Until then
+     it specializes no member-product type. The scope model, its validator,
+     the admission rule and the receipts change in the pull requests that
+     the Consequences name. Phase-10 evidence binds to the configuration
+     identity MW-CONFIG-002.
+   - **On a failed proof.** The member stays a member until a later scope
+     decision removes it under the ADR 0014 change control. Removing it
+     takes a withdrawal record, a scope edit and a release. The ADR 0022
+     note on the guest side does not depend on this record.
 
-Phase 12 takes the final names from the
+The scope pull request takes the final names from the
 [naming conventions](../naming/naming-conventions.md). These proposals follow
 the names of the AAOS-integrated elements:
 
@@ -228,8 +275,8 @@ the names of the AAOS-integrated elements:
 | 2. A named planned member and owner       | Decision 1                       |
 | 3. Common, variable and derived elements  | Decisions 2 to 6                 |
 | 4. A justified lifecycle binding          | Decision 2: Development          |
-| 5. A reviewed scope decision              | This record, in phase 12         |
-| 6. The scope model and semantic tests     | Decision 7, in phase 12          |
+| 5. A reviewed scope decision              | This record, accepted 2026-11-13 |
+| 6. The scope model and semantic tests     | Decision 7, in the scope PR      |
 
 The problem statement names its stakeholders, among them the product-line
 engineer, the system architect and the open-source reviewer. The driver is
@@ -271,7 +318,7 @@ Clauses are quoted.
   implementation and evidence status.
 - ADR 0014: the Development binding, and no later product-decision binding.
 - ADR 0014: the common content (decision 5), which a future member decision
-  can still reopen.
+  can still reopen. ADR 0026 adds the HMI display to it.
 - ADR 0014: "System 2 engineering environments, CI runners, simulations,
   benchmarks, evidence campaigns, and visualization instrumentation remain
   outside System 1 product variability" (decision 6).
@@ -282,10 +329,15 @@ Clauses are quoted.
 
 ### Alternatives
 
-- **Admit the member now, in phase 9.** ADR 0014 allows it, because
-  membership is independent of evidence status. It was not chosen: a failed
-  proof would then need a withdrawal record, a scope edit and a release.
-  GAP-MW-035 and GAP-MW-038 make that risk real.
+- **Admit the member before the proof.** ADR 0014 allows it, because
+  membership is independent of evidence status. On 2026-10-21 it was not
+  chosen: a failed proof would then need a withdrawal record, a scope edit
+  and a release, and GAP-MW-035 and GAP-MW-038 make that risk real. On
+  2026-11-13 the owner accepted the record before the proof all the same,
+  and that cost now applies (decision 8).
+- **Staged acceptance in phase 12.** The path of the draft (owner decision
+  of 2026-10-21): no scope change before the proof, so a failed proof costs
+  only a rejected draft. The acceptance of 2026-11-13 replaced it.
 - **Keep Eclipse S-CORE reference-only.** The system of interest of
   INC-MW-011 is then part of a member product that never becomes one, and
   the problem statement stays open.
@@ -300,8 +352,9 @@ Clauses are quoted.
   makes an alternative selectable only for a planned member that requires
   it.
 - **The S-CORE member as a variant of AAOS Integrated.** The two members
-  differ in the middleware that Autoware integrates with and in the HMI
-  display. One alternative cannot characterize both members.
+  differ in the middleware that Autoware integrates with. One alternative
+  cannot characterize both members. The draft also named the HMI display as
+  a difference; ADR 0026 makes the display common to both.
 
 ## Consequences
 
@@ -312,28 +365,33 @@ Benefits:
   as the other members.
 - **Exact admission.** Each alternative characterizes one member. Unplanned
   combinations, such as Standalone with Eclipse S-CORE, stay not admitted.
-- **No withdrawal on a failed proof.** The scope model does not change before
-  phase 12. A failed proof costs a rejected draft, not a withdrawal record,
-  a scope edit and a release.
 - **The requirements follow the member.** Under rule 5 of the increment
   workflow, the INC-MW-011 requirements vary with `autoware` and
-  `eclipseSCORE`. The HMI-path requirements also vary with `hmiDisplay`,
-  through the dependencies that phase 9 adds. So they apply to the S-CORE
-  member and to no other governed member.
+  `eclipseSCORE`. So they apply to the S-CORE member and to no other
+  governed member. The HMI-path requirements also vary with `hmiDisplay`,
+  through the dependencies that phase 9 adds. Once every member selects the
+  display (ADR 0026), those dependencies set no member apart:
+  `eclipseSCORE` alone keeps the HMI-path requirements to the S-CORE member.
 
 Costs and risks:
 
-- **Phase-12 work.**
+- **A failed proof costs a withdrawal.** The record is accepted before the
+  runnable proof. If the proof fails and the owner removes the member, that
+  takes a withdrawal record, a scope edit and a release. GAP-MW-035 and
+  GAP-MW-038 can still stop the proof. The staging of the draft would have
+  cost only a rejected draft.
+- **Follow-up work.**
   - An implementation pull request changes the admission rule first
     (decision 4).
   - One scope pull request then changes the scope model, the validator and
     its tests, the correspondences and the CLS-MW-004 trace. The receipts,
     the projection headers, the Gate C review record and the product-line
-    docs follow.
-  - `hmiDisplay` drops `#UnassignedBindingTime`, because the display binds
-    with its alternative (decision 2). It then distinguishes a governed
-    member, so it leaves the table of features that distinguish no member
-    yet.
+    docs follow. The same pull request can carry the scope change of
+    ADR 0026.
+  - `hmiDisplay` drops `#UnassignedBindingTime` and binds during
+    Development, as common content of every member (ADR 0026), not with an
+    alternative. Every member then selects it, so it leaves the table of
+    features that distinguish no member yet.
   - ADR 0014 gets a marked note and stays `Accepted`.
   - A release follows with the INC-MW-011 baseline.
 - **A third member to keep.** Every later feature-model change must keep
@@ -349,8 +407,9 @@ Costs and risks:
 
 This ADR does not:
 
-- admit the member, or change the scope model, its validator, the admission
-  rule or a receipt before phase 12;
+- change the scope model, its validator, the admission rule or a receipt by
+  itself: the pull requests that the Consequences name do that;
+- make the runnable proof a condition of membership;
 - choose the transport of the cross-domain HMI path;
 - set the success criteria of the runnable proof: the INC-MW-011
   requirements and phase 10 own them;
@@ -375,6 +434,10 @@ This ADR does not:
 - [ADR 0022: Adopt PLEML as the product-line authority](0022-adopt-pleml-as-product-line-authority.md):
   validity and admission, the amended derived-realization clause and its
   note on the guest side.
+- [ADR 0025: End SOME/IP in an SDV Core VM](0025-end-someip-in-an-sdv-core-vm.md):
+  the guest side of this member, with an SDV Core VM and an IVI VM.
+- ADR 0026, an HMI display in every member product: the common display of
+  decisions 1, 2, 3, 5 and 6.
 - [Governed product-line scope](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
 - [SDV feature model](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml)
 - [S-CORE reference configuration](../../model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml)
