@@ -334,8 +334,12 @@ def test_the_environment_gap_is_deferred_and_names_the_probes_and_the_capture() 
     for phrase in ["the probes the owner authorized on 2026-11-06", "were read from 2026-11-07 to 2026-11-09",
                    "three hosts", "the bench network", "the VXLAN segment", "GAP-DRIVING-007",
                    "separate real-time recordings per host", "the environment's identity",
-                   "the three hosts have not yet run together"]:
+                   "The three hosts ran together on 2026-11-10 (GAP-DRIVING-007)",
+                   "no evidence record exists", "was not made in this increment",
+                   "the baseline defers it to a later increment"]:
         assert phrase in doc, phrase
+    for phrase in ["the three hosts have not yet run together", "The next slice adds", "Deferred to that slice"]:
+        assert phrase not in doc, phrase
     assert "side by side and both clocks visible" not in doc and "nothing of phase 10 is built before they are read" not in doc
     head = " ".join(raw[:raw.index("package ")].split())
     assert "stay open until then" not in head and "fixed by the readiness probes" in head
@@ -431,3 +435,6 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
     assert "tests/test_closed_loop_driving_verification_evidence.py" in guide
     assert "closed_loop_driving_verification_evidence.sysml" in guide
     assert "The next work is **Phase 10**" not in guide
+    flat = " ".join(section.split())
+    assert "The three hosts ran together on 2026-11-10" in flat and "no evidence record exists" in flat
+    assert "the three hosts have not run together" not in flat

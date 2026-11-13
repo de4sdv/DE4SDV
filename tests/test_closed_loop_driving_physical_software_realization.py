@@ -295,8 +295,13 @@ RENAMED_AWAY = ("asmExportedModelStandsForTheCheckpoint", "gapModelExportAndPari
 GAP_MENTIONS = {
     "GAP-DRIVING-001": ("v1.0.5", "313b3d84", "known_good", "event trigger", "single_version_override", "Rust"),
     "GAP-DRIVING-003": ("PyTorch", "parity", "tolerance", "REQ-DRIVING-035", "ONNX"),
-    "GAP-DRIVING-006": ("VSIDL", "GAP-MW-038"),
-    "GAP-DRIVING-007": ("GPU", "KVM", "gapBoundedCloudCampaign", "three hosts", "VXLAN"),
+    "GAP-DRIVING-006": ("VSIDL", "GAP-MW-038", "in two closed-loop runs on three hosts (2026-11-10)",
+                        "4,891 and 4,536 receipts", "489,339 and 512,389 fields compared",
+                        "SELinux permissive", "no evidence record binds them"),
+    "GAP-DRIVING-007": ("GPU", "KVM", "gapBoundedCloudCampaign", "three hosts", "VXLAN",
+                        "ran in one session with two closed-loop runs (2026-11-10)",
+                        "each host in its own region", "the merged bench has not run",
+                        "the hosts are stopped"),
     "GAP-DRIVING-010": ("asmSourceAuthenticity", "owner decision of 2026-11-09", "experiment/closed-loop/RESULTS.md",
                         "readiness probe", "REQ-DRIVING-008", "yaw rate and curvature as zero",
                         "Revisit when upstream publishes"),
@@ -312,6 +317,19 @@ GAP_MENTIONS = {
     "ASM-DRIVING-002": ("PyTorch", "rounding", "REQ-DRIVING-033", "tolerance"),
     "ASM-DRIVING-003": ("pacer", "bench network", "synchronous mode"),
     "ASM-DRIVING-004": ("rendered", "ground truth", "noise", "latency", "camera", "motion", "1920"),
+}
+#: The runs of 2026-11-10 did what these two gaps called open (the typed message, the three hosts in one
+#: session), so the baseline corrects their texts and keeps them deferred for what the runs did not show.
+#: The sentences the runs made false are gone.
+GAPS_THE_RUNS_ANSWERED_IN_PART = {
+    "GAP-DRIVING-006": (
+        "is phase 10 work with its own readiness probe",
+        "which leaves the typed message as the open part",
+    ),
+    "GAP-DRIVING-007": (
+        "The three hosts have not run in one session",
+        "crosses two regions untested",
+    ),
 }
 #: The route decision of 2026-11-10 (GAP-DRIVING-011), as the gap states it: what was measured on the pinned
 #: checkpoint, what upstream's code and evaluation say about the route, what it means for the scenario's route, and
@@ -968,6 +986,11 @@ def test_the_assumptions_and_gaps_of_the_realization_are_recorded_with_short_nam
     for short in GAPS:
         body = braced_body(code, f"part <'{short}'>")
         assert "attribute :>> disposition = LifecycleDisposition::" in body, short
+    for short, phrases in GAPS_THE_RUNS_ANSWERED_IN_PART.items():
+        doc = _doc(f"part <'{short}'> {GAPS[short]} : IncrementGap")
+        for phrase in phrases:
+            assert phrase not in doc, (short, phrase)
+        assert "LifecycleDisposition::deferred;" in braced_body(code, f"part <'{short}'>"), short
     # retired and renamed on the amendment of 2026-11-09: no record, no reference left in the code
     for short, name in RETIRED.items():
         assert short not in code and name not in raw, short
@@ -1297,7 +1320,8 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
     assert "Two of the gaps, GAP-DRIVING-010 and GAP-DRIVING-011" not in flat, "GAP-DRIVING-012 is accepted too"
     assert "follow-up PR carries the amendment" not in flat, "the amendment landed"
     assert "The next work is **Phase 8**" not in guide and "The next work is **Phase 9**" not in guide
-    assert re.search(r"The next work is (\*\*Phase 1[01]\*\*|the \*\*second slice of Phase 10\*\*)", guide), "phases 8 and 9 landed"
+    assert "The next work is" not in flat and "The increment ended at its baseline decision." in flat, \
+        "the increment is baselined"
     assert "tests/test_closed_loop_driving_physical_software_realization.py" in guide
 
 
@@ -1601,3 +1625,67 @@ def test_what_is_left_in_each_record_is_the_evidence_of_cases_that_are_not_start
     route = _record_value("MAP-DRIVING-ROUTE", "timingQualityAndState")
     assert "announced to the input activity again at a fixed period of simulation time" in route
     assert re.search(r"sends `RouteAnnouncement` .* every \d+ ms of simulation time", _icd_sections()[9])
+
+
+# -- phase 11: what phase 10 did with the work these texts left to it ---------------------------------------------
+
+#: Four texts of this package left work to phase 10 and spoke of it as ahead. At the baseline decision each says
+#: what phase 10 did with that work, and the words that spoke of it as ahead are gone. Key: the element's
+#: declaration. Value: what the text states now, and the words it must no longer hold. The runs behind the
+#: statements are not in the repository, and the bench's verdicts on them are drafts.
+AFTER_PHASE_10 = {
+    "comment phase8TransportSettled about gapTransportAndControl": (
+        "Since phase 8: phase 10 authored the contract ids and the VSIDL message, and the bench keeps them "
+        "where MAP-DRIVING-OPERATIONAL-STATE names them;",
+        "Open: the contract ids and the VSIDL message (phase 10)",
+    ),
+    "comment phase8ConversionPlacement about gapModelInputAndFeedback": (
+        "Phase 10 built the conversions in these places and ran them in the closed loop; "
+        "gapModelInputAndFeedback says at the baseline decision what the runs found.",
+        "designed and measured in phase 10",
+    ),
+    "part <'ASM-DRIVING-001'> asmFixedOrderCycleCarriesTheLoop : IncrementAssumption": (
+        "Phase 10 ran the agent as one program in the closed loop: the planning period is kept with almost no "
+        "margin and was narrowly missed in some runs (GAP-DRIVING-013). No evidence of record holds this, so it "
+        "stays an assumption.",
+        "unmeasured until phase 10",
+    ),
+    "part <'ASM-DRIVING-002'> asmPlannerStackStandsForTheCheckpoint : IncrementAssumption": (
+        "No recorded run of phase 10 gave VC-DRIVING-002, the case that compares each plan with the reference's "
+        "inference on the recorded inputs, a pass or a fail, so this stays an assumption with GAP-DRIVING-003 "
+        "behind it, not a result.",
+        "Until phase 10 measures it",
+    ),
+}
+#: The conversion comment points to its gap, so the gap must say it: the first sentence of the gap's paragraph at
+#: the baseline decision, which names the comment.
+CONVERSION_POINTER = (
+    "At the baseline decision: the conversions between the simulator and the checkpoint are realized where "
+    "phase 8 placed them (phase8ConversionPlacement) and ran in the closed loop."
+)
+#: The guide's bullet on the planner repeats the last sentence of ASM-DRIVING-002.
+GUIDE_PARITY = (
+    "The stack's parity with the reference stays an assumption (ASM-DRIVING-002) with GAP-DRIVING-003 behind "
+    "it: no recorded run of phase 10 gave the parity case VC-DRIVING-002 a pass or a fail."
+)
+
+
+def _text_of(declaration: str) -> str:
+    """The flat text of a comment's body, or of a part's doc, found by the element's declaration."""
+    if not declaration.startswith("comment "):
+        return _doc(declaration)
+    found = re.findall(re.escape(declaration) + r"\s*/\*(.*?)\*/", _raw(), re.S)
+    assert len(found) == 1, declaration
+    return _flat(found[0])
+
+
+def test_the_texts_that_left_work_to_phase_10_say_what_phase_10_did():
+    for declaration, (now, gone) in AFTER_PHASE_10.items():
+        text = _text_of(declaration)
+        assert now in text, (declaration, now)
+        assert gone not in text, (declaration, gone)
+    gap = _doc("part gapModelInputAndFeedback : IncrementGap", FRAMING.read_text(encoding="utf-8"))
+    assert CONVERSION_POINTER in gap, "the gap the conversion comment points to does not say it"
+    flat = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    assert GUIDE_PARITY in flat, "the guide's planner bullet"
+    assert "until phase 10 measures" not in flat, "the guide still waits for phase 10"

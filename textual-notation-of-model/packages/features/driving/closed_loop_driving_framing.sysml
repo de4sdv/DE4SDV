@@ -1,7 +1,9 @@
 /*
- * DE4SDV closed-loop driving capability: Phase 0 framing and Phase 1 concerns.
+ * DE4SDV closed-loop driving capability: Phase 0 framing, Phase 1 concerns and
+ * the baseline decision of Phase 11.
  * One increment spans framing, realization and CARLA verification.
- * No implementation, runtime result or product-line admission is asserted.
+ * The framing asserts no implementation, runtime result or product-line
+ * admission; the baseline decision states what the increment reached.
  */
 package DE4SDV_ClosedLoopDrivingFraming {
   private import DE4SDV_MethodContext::*;
@@ -20,8 +22,8 @@ package DE4SDV_ClosedLoopDrivingFraming {
      * middleware audit or an extension of the existing AEBS behavior.
      * AutoE2E, Eclipse S-CORE and AAOS SDV are integration candidates named
      * by the owner; CARLA is the enabling closed-loop verification environment.
-     * All phases retain this identity. This package holds Phase 0 and the
-     * Phase 1 concerns.
+     * All phases retain this identity. This package holds Phase 0, the
+     * Phase 1 concerns and the baseline decision of Phase 11.
      */
   }
 
@@ -156,7 +158,17 @@ package DE4SDV_ClosedLoopDrivingFraming {
      * control deadlines and freshness limits before the readiness probe.
      * Poor checkpoint performance is an early hold/redirect condition, not
      * a reason to replace closed-loop actuation with a prediction overlay.
+     *
+     * At the baseline decision: the planning period is measured on the bench
+     * host, and GAP-DRIVING-013 states the runs and their margin. The
+     * rendered frame rate and the capture rate of the simulator are not
+     * judged: no requirement and no verification case carries the 20 rendered
+     * frames per second or the 24 fps capture target. Nothing measured is
+     * real-time operation on target hardware or a performance promise
+     * (counterClaimNoRealTimeOnTarget). Accepted as a known limit; the gap
+     * stays open.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
   part gapModelInputAndFeedback : IncrementGap {
     doc /*
@@ -169,7 +181,20 @@ package DE4SDV_ClosedLoopDrivingFraming {
      * Control conversion and feedback need verification. CARLA imagery
      * introduces domain shift; interface compatibility alone cannot establish
      * useful driving, stability or collision outcomes.
+     *
+     * At the baseline decision: the conversions between the simulator and the
+     * checkpoint are realized where phase 8 placed them
+     * (phase8ConversionPlacement) and ran in the closed loop. The runs found
+     * two errors of the bench, one in the control conversion and one in the
+     * actuation conversion, and both were corrected (GAP-DRIVING-012). What
+     * this gap warned of holds: with matching interfaces the pinned
+     * checkpoint needs the bounded deviation of its motion history
+     * (GAP-DRIVING-010), takes no turn from the route (GAP-DRIVING-011) and
+     * keeps no lane (GAP-DRIVING-012). The degraded-input cases cover the
+     * faults they inject and no other (counterClaimBoundedFaults). Accepted
+     * as a known limit; the gap stays open.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
   part gapTransportAndControl : IncrementGap {
     doc /*
@@ -179,7 +204,18 @@ package DE4SDV_ClosedLoopDrivingFraming {
      * consumes genuine plan/state/health; its display is not in the fast
      * control loop. Invalid, late, lost or stale plans need a defined
      * stop/disable response in simulation and retained fault-path evidence.
+     *
+     * At the baseline decision: the design this gap asks for exists. S-CORE
+     * is on the functional path (phase8TransportSettled), the observer on the
+     * IVI VM consumed the typed plan, vehicle state and health in two runs
+     * (GAP-DRIVING-006), and REQ-DRIVING-020 to REQ-DRIVING-029 define the
+     * stop response. The evidence it asks for is incomplete: no recorded run
+     * has judged that plans and commands pass over S-CORE (VC-DRIVING-014),
+     * the stop on lost commands (VC-DRIVING-028), or that planning is
+     * independent of the observation (VC-DRIVING-018 and VC-DRIVING-019).
+     * Deferred to a later increment with those runs.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   part gapProductLineAdmission : IncrementGap {
     doc /*
@@ -188,7 +224,15 @@ package DE4SDV_ClosedLoopDrivingFraming {
      * driving capability and identify needed owner scope decisions; Phase 9
      * must establish configuration applicability before any member-product
      * claim. Simulator or cloud selection must not become a vehicle feature.
+     *
+     * At the baseline decision: phase 3 classified the capability and named
+     * the owner scope decisions (memberDecisionScopeInputs), and phase 9 gave
+     * DRIVING-CONFIG-001, a valid configuration that is not admitted. The
+     * member decision that amends ADR 0014 has not been made, and this
+     * baseline admits no member product (counterClaimNoMembership). Deferred
+     * to a later increment.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   part gapAdoptionAndRights : IncrementGap {
     doc /*
@@ -197,7 +241,14 @@ package DE4SDV_ClosedLoopDrivingFraming {
      * resolve checkpoint/data terms before distribution or public evidence.
      * An open-source code license is not checkpoint-use clearance. No
      * upstream contact, adoption approval or rights clearance is asserted.
+     *
+     * At the baseline decision: DE4SDV posted in the upstream repositories on
+     * 2026-11-11 (upstream.md of this folder, Upstream contact). No adoption
+     * approval and no rights clearance exists, and the checkpoint's terms
+     * stay unresolved (counterClaimCheckpointRightsAndTransfer). Deferred to
+     * a later increment.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   part gapBoundedCloudCampaign : IncrementGap {
     doc /*
@@ -207,7 +258,14 @@ package DE4SDV_ClosedLoopDrivingFraming {
      * enforce a bounded shutdown with evidence exported first. Quota is not
      * spend authorization and budget alerts are not a shutdown mechanism.
      * This framing starts no compute resources and grants no paid-run approval.
+     *
+     * At the baseline decision: the owner authorized the campaign and its
+     * runs were made. The owner ended the runs of this increment on
+     * 2026-11-11 and keeps the remaining allowance for a later increment; the
+     * machines are stopped, not deleted. Deferred with that allowance: a
+     * further paid run needs the same conditions.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   part closedLoopDrivingCharter : IncrementCharter {
@@ -376,6 +434,58 @@ package DE4SDV_ClosedLoopDrivingFraming {
     stakeholder reviewer : OpenSourceReviewer;
   }
 
+  part closedLoopDrivingBaselineDecision : IncrementBaselineDecision {
+    doc /*
+     * BL-DRIVING-001-P11. The baseline of INC-DRIVING-001 accepts the
+     * closed-loop driving integration as built: the model of phases 0 to 10
+     * and the bench that implements it. The pinned AutoE2E checkpoint plans
+     * inside an Eclipse S-CORE FEO agent, its commands reach the simulated
+     * vehicle through the actuation adapter alone, and plan, vehicle state
+     * and health reach the observer on the IVI VM of AAOS SDV as a typed
+     * message. This answers the framing decision (closedLoopDrivingDecision):
+     * the integration is retained, on the drafts named below and not on
+     * evidence of record.
+     *
+     * It accepts no evidence. The increment closes without evidence records:
+     * the owner ended its runs on 2026-11-11, the recorded runs were made on
+     * the bench's branches before the merge, and the merged bench has not
+     * run. Every verification case and every requirement keeps NotStarted.
+     * The verdicts of the bench's evaluators are drafts: in the three
+     * closed-loop runs after the corrections of GAP-DRIVING-012, 12 of the 23
+     * cases those runs judge pass in all three, VC-DRIVING-001 fails in two,
+     * and VC-DRIVING-002, -005, -011, -012, -016 and -033 are inconclusive in
+     * all three for evidence the runs did not record. Twelve cases have no
+     * pass and no fail in any recorded run: those six and VC-DRIVING-035,
+     * inconclusive wherever they were judged; VC-DRIVING-014, -024 and -028,
+     * whose faults no run injected; and VC-DRIVING-018 and -019, whose runs
+     * were not made.
+     *
+     * Accepted as known limits, still open in this baseline: the bounded
+     * deviation of the motion history (GAP-DRIVING-010), the route from which
+     * the checkpoint takes no turn (GAP-DRIVING-011), the lane it does not
+     * keep (GAP-DRIVING-012), the planning period kept with almost no margin
+     * (GAP-DRIVING-013), the performance limits of gapClosedLoopPerformance
+     * and the input and feedback limits of gapModelInputAndFeedback.
+     *
+     * Deferred to a later increment: FEO outside the pinned S-CORE baseline
+     * (GAP-DRIVING-001), the unproven parity of the planner stack
+     * (GAP-DRIVING-003), the evidence of record for the typed topic
+     * (GAP-DRIVING-006), the three-host bench on the merged tree
+     * (GAP-DRIVING-007), the environment's identity in the evidence record
+     * (GAP-DRIVING-009), the runs gapTransportAndControl still asks for, the
+     * member decision of gapProductLineAdmission, the clearances of
+     * gapAdoptionAndRights and the campaign of gapBoundedCloudCampaign.
+     *
+     * No gap is withdrawn.
+     *
+     * No driving-quality, real-time, safety, certification, compliance,
+     * homologation or membership claim follows from this baseline, and no
+     * acceptance of evidence. The bench is engineering equipment, and its
+     * sensors and vehicle dynamics are simulated.
+     */
+    attribute :>> disposition = LifecycleDisposition::accepted;
+  }
+
   view closedLoopDrivingFramingView {
     viewpoint closedLoopDrivingFramingViewpoint : IncrementFramingViewpoint {
       frame closedLoopDrivingBoundary;
@@ -392,6 +502,7 @@ package DE4SDV_ClosedLoopDrivingFraming {
     expose closedLoopDrivingProblem;
     expose closedLoopDrivingQuestion;
     expose closedLoopDrivingDecision;
+    expose closedLoopDrivingBaselineDecision;
     expose candidateDrivingSystem;
     expose closedLoopDrivingScope;
     expose closedLoopDrivingBoundary;

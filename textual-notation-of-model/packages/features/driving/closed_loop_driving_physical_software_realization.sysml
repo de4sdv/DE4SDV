@@ -1243,9 +1243,10 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * actuation adapter alone touches the simulator's vehicle control: no
      * planner-to-simulator bypass exists. AAOS SDV consumes the plan, the
      * vehicle state and the health as a typed Data Tunnel topic over the
-     * gateway chain; the observer sends nothing back. Open: the contract
-     * ids and the VSIDL message (phase 10); the actuation-side stop reaches
-     * the publisher since the amendment of 2026-11-06
+     * gateway chain; the observer sends nothing back. Since phase 8: phase 10
+     * authored the contract ids and the VSIDL message, and the bench keeps
+     * them where MAP-DRIVING-OPERATIONAL-STATE names them; the actuation-side
+     * stop reaches the publisher since the amendment of 2026-11-06
      * (MAP-DRIVING-ACTUATION-STATE); the in-process hops are settled by the
      * owner's reading (reqPlansAndCommandsOverSCOREReading).
      */
@@ -1272,8 +1273,9 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * side, plan to acceleration and steering angle, in the vehicle command
      * activity (MAP-DRIVING-COMMAND); the actuation side, acceleration and
      * steering angle to throttle, brake and steer, in the actuation adapter
-     * (MAP-DRIVING-VEHICLE-CONTROL). The conversions are designed and
-     * measured in phase 10.
+     * (MAP-DRIVING-VEHICLE-CONTROL). Phase 10 built the conversions in these
+     * places and ran them in the closed loop; gapModelInputAndFeedback says
+     * at the baseline decision what the runs found.
      */
 
   /* ───────────── Assumptions and gaps of the realization ───────────── */
@@ -1291,8 +1293,11 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * per external event, Rust and C++ activities built against the v0.10.0
      * modules, and planning took a median of 90 to 91 ms per plan on a card
      * of its own in the closed loop, which leaves the three other
-     * activities less than 10 ms. The agent as one program is unmeasured
-     * until phase 10. If it fails, the fallback is ALT-DRIVING-PLAINAPPS-001.
+     * activities less than 10 ms. Phase 10 ran the agent as one program in
+     * the closed loop: the planning period is kept with almost no margin and
+     * was narrowly missed in some runs (GAP-DRIVING-013). No evidence of
+     * record holds this, so it stays an assumption. If it fails, the fallback
+     * is ALT-DRIVING-PLAINAPPS-001.
      */
   }
 
@@ -1309,8 +1314,10 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
      * probe its fp32 output stayed within 9.83e-05 of the reference, and its
      * bf16 output differed from the fp32 reference by 6.49e-03 on average
      * and 1.68e-02 at most, against 6.21e-03 and 1.60e-02 for the unmodified
-     * code's own bf16 rounding. Until phase 10 measures it on the bench this
-     * is an assumption with GAP-DRIVING-003 behind it, not a result.
+     * code's own bf16 rounding. No recorded run of phase 10 gave
+     * VC-DRIVING-002, the case that compares each plan with the reference's
+     * inference on the recorded inputs, a pass or a fail, so this stays an
+     * assumption with GAP-DRIVING-003 behind it, not a result.
      */
   }
 
@@ -1393,18 +1400,19 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
 
   part <'GAP-DRIVING-006'> gapTypedOperationalStateTopicUnproven : IncrementGap {
     doc /*
-     * Open: decision 4 takes the production path with a typed topic, a
-     * VSIDL message for the driving operational state published by the Data
-     * Tunnel of SDV Core from the SOME/IP interop and consumed by the
-     * observer through the SDV Gateway on the IVI VM. INC-MW-011 proved the
-     * chain for opaque frames on the AEBS member, not for a typed message;
-     * the SOME/IP stack on the AAOS guest is untested there too (GAP-MW-038).
-     * Which VSIDL types the interop maps, how the three publications share
-     * one message, and whether the observer application can be built
-     * against the pinned AAOS SDV revision is phase 10 work with its own
-     * readiness probe. A readiness probe carried INC-MW-011's opaque frame
-     * between two hosts into the AEBS observer of an IVI VM, which leaves
-     * the typed message as the open part.
+     * Open: decision 4 takes the production path with a typed topic, a VSIDL
+     * message for the driving operational state published by the Data Tunnel
+     * of SDV Core from the SOME/IP interop and consumed by the observer
+     * through the SDV Gateway on the IVI VM. INC-MW-011 proved the chain for
+     * opaque frames on the AEBS member, not for a typed message; the SOME/IP
+     * stack on the AAOS guest is untested there too (GAP-MW-038). The bench
+     * then carried the typed message in two closed-loop runs on three hosts
+     * (2026-11-10): the observer on the IVI VM recorded 4,891 and 4,536
+     * receipts of plan, vehicle state and health, and every field of them
+     * equals what the publisher sent (489,339 and 512,389 fields compared).
+     * What stays open: both runs had the IVI VM's SELinux permissive, both
+     * were made on the bench's branches before the merge, and no evidence
+     * record binds them.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -1412,16 +1420,17 @@ package DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization {
   part <'GAP-DRIVING-007'> gapThreeHostBenchUnjoined : IncrementGap {
     doc /*
      * Open: the bench is three hosts (owner decision of 2026-11-09): the
-     * S-CORE host with the planner's GPU, the simulator host with its own
-     * GPU and the guest host with KVM for the two AAOS SDV guests, cloud
-     * machines provisioned under the owner's campaign authorization; the
-     * framing's gapBoundedCloudCampaign governs the spend. The readiness
-     * probes ran them in pairs: the simulator host with the S-CORE host's
-     * planner, and the SOME/IP gateway with the guests over a VXLAN segment
-     * between two hosts of one region. The three hosts have not run in one
-     * session, the VXLAN segment from the S-CORE host to the guest host
-     * crosses two regions untested, and the hosts exist only while the
-     * campaign keeps them. Nothing here launches compute.
+     * S-CORE host with the planner's GPU, the simulator host with its own GPU
+     * and the guest host with KVM for the two AAOS SDV guests, cloud machines
+     * provisioned under the owner's campaign authorization; the framing's
+     * gapBoundedCloudCampaign governs the spend. The readiness probes ran
+     * them in pairs. The three hosts then ran in one session with two
+     * closed-loop runs (2026-11-10), each host in its own region, with the
+     * VXLAN segment from the S-CORE host to the guest host across two of
+     * them. What stays open: those runs were made on the bench's branches
+     * before the merge, the merged bench has not run, and the hosts are
+     * stopped and exist only while the campaign keeps them. Nothing here
+     * launches compute.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
