@@ -361,7 +361,7 @@ def evaluate_campaign(root: Path) -> dict:
         else:
             skipped[cid] = (f"{len(runs)} run(s); no multi-run case of this campaign "
                             "(use evaluate_run.py per run)")
-    summary = {"pass": 0, "fail": 0, "inconclusive": 0, "error": 0}
+    summary = dict.fromkeys(cases.VERDICTS, 0)
     for v in out.values():
         summary[v["verdict"]] = summary.get(v["verdict"], 0) + 1
     return {"schema": "de4sdv.driving.campaign-verdicts.v1",

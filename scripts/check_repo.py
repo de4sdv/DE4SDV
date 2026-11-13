@@ -29,6 +29,11 @@ except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import generate_scenario_manifest
 
 try:
+    from scripts import generate_driving_case_catalogue
+except ImportError:  # Direct execution sets scripts/ as sys.path[0].
+    import generate_driving_case_catalogue
+
+try:
     from scripts import verify_generated_chain
 except ImportError:  # Direct execution sets scripts/ as sys.path[0].
     import verify_generated_chain
@@ -173,6 +178,9 @@ def main() -> int:
     aebs_bench_errors = validate_aebs_executable_bench.validate_bench(root)
     model_sync_errors = check_model_sync.run_all_checks()
     manifest_errors = generate_scenario_manifest.run_check_errors()
+    # The case evaluators of the closed-loop driving bench read this catalogue
+    # of the model's outcomes, verdict rule, scenarios and cases.
+    driving_catalogue_errors = generate_driving_case_catalogue.run_check_errors(root)
     naming_errors = check_naming.run_all_checks()
     # The frozen records the runtime still serves are never regenerated; the
     # frozen-record check pins their bytes and checks their bindings at their
@@ -222,6 +230,11 @@ def main() -> int:
         for error in manifest_errors:
             print(f"- {error}")
 
+    if driving_catalogue_errors:
+        print("Repository check failed. Driving case catalogue errors:")
+        for error in driving_catalogue_errors:
+            print(f"- {error}")
+
     if naming_errors:
         print("Repository check failed. Naming errors (docs/naming/naming-conventions.md):")
         for error in naming_errors:
@@ -268,6 +281,7 @@ def main() -> int:
         or aebs_bench_errors
         or model_sync_errors
         or manifest_errors
+        or driving_catalogue_errors
         or naming_errors
         or frozen_record_errors
         or native_grounding_errors
