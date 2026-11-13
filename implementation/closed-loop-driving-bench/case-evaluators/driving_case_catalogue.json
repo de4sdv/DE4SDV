@@ -1,0 +1,242 @@
+{
+  "schema": "de4sdv.driving.case-catalogue.v1",
+  "generated_from": [
+    "textual-notation-of-model/packages/features/driving/closed_loop_driving_verification_evidence.sysml",
+    "textual-notation-of-model/packages/features/driving/closed_loop_driving_needs_requirements.sysml"
+  ],
+  "outcomes": [
+    "passBoundedVerification",
+    "passBoundedValidation",
+    "failObservedBehavior",
+    "inconclusiveMissingEvidence",
+    "blockedTargetRuntime",
+    "errorEvidence"
+  ],
+  "verdicts": {
+    "passBoundedVerification": "pass",
+    "passBoundedValidation": "pass",
+    "failObservedBehavior": "fail",
+    "inconclusiveMissingEvidence": "inconclusive",
+    "blockedTargetRuntime": "inconclusive",
+    "errorEvidence": "error"
+  },
+  "verdict_otherwise": "inconclusive",
+  "scenarios": [
+    "closedLoopRoute",
+    "degradedInputOrPlan",
+    "aaosUnavailable",
+    "checkpointRefusal"
+  ],
+  "cases": [
+    {
+      "id": "VC-DRIVING-001",
+      "usage": "planPerStepVerification",
+      "definition": "PlanPerStepVerification",
+      "requirement": "REQ-DRIVING-001"
+    },
+    {
+      "id": "VC-DRIVING-002",
+      "usage": "planByCheckpointInferenceVerification",
+      "definition": "PlanByCheckpointInferenceVerification",
+      "requirement": "REQ-DRIVING-002"
+    },
+    {
+      "id": "VC-DRIVING-003",
+      "usage": "cameraImagesInCheckpointFormVerification",
+      "definition": "CameraImagesInCheckpointFormVerification",
+      "requirement": "REQ-DRIVING-003"
+    },
+    {
+      "id": "VC-DRIVING-004",
+      "usage": "cameraHistoryVerification",
+      "definition": "CameraHistoryVerification",
+      "requirement": "REQ-DRIVING-004"
+    },
+    {
+      "id": "VC-DRIVING-005",
+      "usage": "projectionOperatorsVerification",
+      "definition": "ProjectionOperatorsVerification",
+      "requirement": "REQ-DRIVING-005"
+    },
+    {
+      "id": "VC-DRIVING-006",
+      "usage": "mapContextRasterVerification",
+      "definition": "MapContextRasterVerification",
+      "requirement": "REQ-DRIVING-006"
+    },
+    {
+      "id": "VC-DRIVING-007",
+      "usage": "routeMaskRasterVerification",
+      "definition": "RouteMaskRasterVerification",
+      "requirement": "REQ-DRIVING-007"
+    },
+    {
+      "id": "VC-DRIVING-008",
+      "usage": "egoMotionHistoryVerification",
+      "definition": "EgoMotionHistoryVerification",
+      "requirement": "REQ-DRIVING-008"
+    },
+    {
+      "id": "VC-DRIVING-009",
+      "usage": "holdUntilHistoriesCompleteVerification",
+      "definition": "HoldUntilHistoriesCompleteVerification",
+      "requirement": "REQ-DRIVING-009"
+    },
+    {
+      "id": "VC-DRIVING-010",
+      "usage": "historiesFromCapturedInputsVerification",
+      "definition": "HistoriesFromCapturedInputsVerification",
+      "requirement": "REQ-DRIVING-010"
+    },
+    {
+      "id": "VC-DRIVING-011",
+      "usage": "commandsFromNewestValidPlanVerification",
+      "definition": "CommandsFromNewestValidPlanVerification",
+      "requirement": "REQ-DRIVING-011"
+    },
+    {
+      "id": "VC-DRIVING-012",
+      "usage": "commandsWithinActuationLimitsVerification",
+      "definition": "CommandsWithinActuationLimitsVerification",
+      "requirement": "REQ-DRIVING-012"
+    },
+    {
+      "id": "VC-DRIVING-013",
+      "usage": "planWithinPlanningPeriodVerification",
+      "definition": "PlanWithinPlanningPeriodVerification",
+      "requirement": "REQ-DRIVING-013"
+    },
+    {
+      "id": "VC-DRIVING-014",
+      "usage": "plansAndCommandsOverSCOREVerification",
+      "definition": "PlansAndCommandsOverSCOREVerification",
+      "requirement": "REQ-DRIVING-014"
+    },
+    {
+      "id": "VC-DRIVING-015",
+      "usage": "publishPlansVerification",
+      "definition": "PublishPlansVerification",
+      "requirement": "REQ-DRIVING-015"
+    },
+    {
+      "id": "VC-DRIVING-016",
+      "usage": "publishVehicleStateVerification",
+      "definition": "PublishVehicleStateVerification",
+      "requirement": "REQ-DRIVING-016"
+    },
+    {
+      "id": "VC-DRIVING-017",
+      "usage": "publishHealthPeriodicallyVerification",
+      "definition": "PublishHealthPeriodicallyVerification",
+      "requirement": "REQ-DRIVING-017"
+    },
+    {
+      "id": "VC-DRIVING-018",
+      "usage": "plansIndependentOfObservationVerification",
+      "definition": "PlansIndependentOfObservationVerification",
+      "requirement": "REQ-DRIVING-018"
+    },
+    {
+      "id": "VC-DRIVING-019",
+      "usage": "planningTimeIndependentOfObservationVerification",
+      "definition": "PlanningTimeIndependentOfObservationVerification",
+      "requirement": "REQ-DRIVING-019"
+    },
+    {
+      "id": "VC-DRIVING-020",
+      "usage": "stopResponseDecelerationVerification",
+      "definition": "StopResponseDecelerationVerification",
+      "requirement": "REQ-DRIVING-020"
+    },
+    {
+      "id": "VC-DRIVING-021",
+      "usage": "stopResponseSteeringHeldVerification",
+      "definition": "StopResponseSteeringHeldVerification",
+      "requirement": "REQ-DRIVING-021"
+    },
+    {
+      "id": "VC-DRIVING-022",
+      "usage": "standstillAfterStopVerification",
+      "definition": "StandstillAfterStopVerification",
+      "requirement": "REQ-DRIVING-022"
+    },
+    {
+      "id": "VC-DRIVING-023",
+      "usage": "stopOnDegradedCameraImagesVerification",
+      "definition": "StopOnDegradedCameraImagesVerification",
+      "requirement": "REQ-DRIVING-023"
+    },
+    {
+      "id": "VC-DRIVING-024",
+      "usage": "stopOnDegradedMotionVerification",
+      "definition": "StopOnDegradedMotionVerification",
+      "requirement": "REQ-DRIVING-024"
+    },
+    {
+      "id": "VC-DRIVING-025",
+      "usage": "stopOnDegradedRouteVerification",
+      "definition": "StopOnDegradedRouteVerification",
+      "requirement": "REQ-DRIVING-025"
+    },
+    {
+      "id": "VC-DRIVING-026",
+      "usage": "stopOnStalePlanVerification",
+      "definition": "StopOnStalePlanVerification",
+      "requirement": "REQ-DRIVING-026"
+    },
+    {
+      "id": "VC-DRIVING-027",
+      "usage": "stopOnInvalidPlanVerification",
+      "definition": "StopOnInvalidPlanVerification",
+      "requirement": "REQ-DRIVING-027"
+    },
+    {
+      "id": "VC-DRIVING-028",
+      "usage": "stopOnLostCommandsVerification",
+      "definition": "StopOnLostCommandsVerification",
+      "requirement": "REQ-DRIVING-028"
+    },
+    {
+      "id": "VC-DRIVING-029",
+      "usage": "publishStopVerification",
+      "definition": "PublishStopVerification",
+      "requirement": "REQ-DRIVING-029"
+    },
+    {
+      "id": "VC-DRIVING-030",
+      "usage": "stampInputsVerification",
+      "definition": "StampInputsVerification",
+      "requirement": "REQ-DRIVING-030"
+    },
+    {
+      "id": "VC-DRIVING-031",
+      "usage": "stampPlansVerification",
+      "definition": "StampPlansVerification",
+      "requirement": "REQ-DRIVING-031"
+    },
+    {
+      "id": "VC-DRIVING-032",
+      "usage": "stampCommandsVerification",
+      "definition": "StampCommandsVerification",
+      "requirement": "REQ-DRIVING-032"
+    },
+    {
+      "id": "VC-DRIVING-033",
+      "usage": "recordRunIdentityVerification",
+      "definition": "RecordRunIdentityVerification",
+      "requirement": "REQ-DRIVING-033"
+    },
+    {
+      "id": "VC-DRIVING-034",
+      "usage": "plansNameRunRecordVerification",
+      "definition": "PlansNameRunRecordVerification",
+      "requirement": "REQ-DRIVING-034"
+    },
+    {
+      "id": "VC-DRIVING-035",
+      "usage": "refuseUnpinnedCheckpointVerification",
+      "definition": "RefuseUnpinnedCheckpointVerification",
+      "requirement": "REQ-DRIVING-035"
+    }
+  ]
+}

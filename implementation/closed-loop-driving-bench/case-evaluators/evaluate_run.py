@@ -8,8 +8,9 @@ verdicts.json:
     {
       "schema": "de4sdv.driving.case-verdicts.v1",
       "run": {...},
-      "cases": {"VC-DRIVING-001": {outcome, verdict, measured, thresholds,
-                                   evidence, missing, notes, icd_changes}, ...},
+      "cases": {"VC-DRIVING-001": {vc, requirement, outcome, verdict, measured,
+                                   thresholds, evidence, missing, notes,
+                                   icd_changes, amendments}, ...},
       "skipped": {"VC-DRIVING-018": "campaign case ..."},
       "summary": {"pass": n, "fail": n, "inconclusive": n, "error": n}
     }
@@ -45,15 +46,20 @@ def evaluate(run_dir: str | Path, only: list[str] | None = None) -> dict:
     except (RunFormatError, MissingEvidence) as exc:
         # No run record: nothing can be selected. Every case is an error, which
         # is what an unreadable record is, not a pass and not a silent skip.
+        # The case objects are the cases with an evaluator of their own; the
+        # summary counts every case of the model as an error.
+        error = cases.VERDICT[cases.ERROR]
         return {
             "schema": "de4sdv.driving.case-verdicts.v1",
             "run": {"path": str(root), "readable": False, "error": str(exc)},
-            "cases": {vc: {"vc": vc, "outcome": cases.ERROR, "verdict": "error",
+            "cases": {vc: {"vc": vc,
+                           "requirement": cases.REQUIREMENT[vc],
+                           "outcome": cases.ERROR, "verdict": error,
                            "measured": {}, "thresholds": {}, "evidence": [],
                            "missing": [], "notes": [str(exc)], "icd_changes": []}
                       for vc in sorted(cases.CASES)},
             "skipped": {},
-            "summary": {"pass": 0, "fail": 0, "inconclusive": 0, "error": 35},
+            "summary": {**dict.fromkeys(cases.VERDICTS, 0), error: len(cases.CASE_IDS)},
         }
 
     conflicts = cases.label_conflicts(run)
@@ -67,7 +73,7 @@ def evaluate(run_dir: str | Path, only: list[str] | None = None) -> dict:
     out: dict[str, dict] = {}
     skipped: dict[str, str] = {}
     for vc in selected:
-        if vc in ("VC-DRIVING-018", "VC-DRIVING-019"):
+        if vc in cases.CAMPAIGN_CASES:
             skipped[vc] = ("campaign case: it needs the four runs of SC-DRIVING-004; "
                            "run evaluate_campaign.py")
             continue
@@ -81,7 +87,7 @@ def evaluate(run_dir: str | Path, only: list[str] | None = None) -> dict:
 
     # a case whose evaluator chose not to apply itself (e.g. REQ-029 on a run
     # without a stop) is reported in skipped, never dropped silently
-    summary = {"pass": 0, "fail": 0, "inconclusive": 0, "error": 0}
+    summary = dict.fromkeys(cases.VERDICTS, 0)
     for v in out.values():
         summary[v["verdict"]] = summary.get(v["verdict"], 0) + 1
     return {

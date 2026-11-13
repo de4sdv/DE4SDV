@@ -99,6 +99,9 @@ def _passing_gate_mocks():
         mock.patch.object(check_repo.validate_aebs_executable_bench, "validate_bench", return_value=[]),
         mock.patch.object(check_repo.check_model_sync, "run_all_checks", return_value=[]),
         mock.patch.object(check_repo.generate_scenario_manifest, "run_check_errors", return_value=[]),
+        # The driving case catalogue gate passes too, so that a test of another gate never runs the real
+        # catalogue check unseen (tests/test_closed_loop_driving_case_catalogue.py holds its own sentinel).
+        mock.patch.object(check_repo.generate_driving_case_catalogue, "run_check_errors", return_value=[]),
         mock.patch.object(check_repo.check_naming, "run_all_checks", return_value=[]),
         mock.patch.object(check_repo.verify_generated_chain, "frozen_record_errors", return_value=[]),
         mock.patch.object(check_repo.generate_native_grounding_projection, "run_check_errors", return_value=[]),
@@ -138,11 +141,15 @@ DELETED_FILES = (
 def test_check_repo_runs_the_frozen_record_check_and_fails_when_it_fails():
     source = (ROOT / "scripts/check_repo.py").read_text(encoding="utf-8")
     assert "verify_generated_chain.frozen_record_errors" in source
+    # The driving case catalogue gate is mocked to pass with the other gates, so that only the frozen-record
+    # sentinel decides the result (tests/test_closed_loop_driving_case_catalogue.py holds the catalogue's own).
     with mock.patch.object(check_repo, "find_duplicate_global_packages", return_value={}), \
             mock.patch.object(check_repo.validate_aebs_executable_bench, "validate_bench",
                               return_value=[]), \
             mock.patch.object(check_repo.check_model_sync, "run_all_checks", return_value=[]), \
             mock.patch.object(check_repo.generate_scenario_manifest, "run_check_errors",
+                              return_value=[]), \
+            mock.patch.object(check_repo.generate_driving_case_catalogue, "run_check_errors",
                               return_value=[]), \
             mock.patch.object(check_repo.check_naming, "run_all_checks", return_value=[]), \
             mock.patch.object(check_repo.verify_generated_chain, "frozen_record_errors",
