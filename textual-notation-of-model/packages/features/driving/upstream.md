@@ -149,7 +149,18 @@ time on the owner's word:
   closed-loop results with the yaw-rate and curvature history zeroed, and a
   route experiment.
 
-DE4SDV has opened no pull request in either repository. This record does not
-follow the replies. No compatibility endorsement, adoption approval or rights
-clearance is asserted. Each further message to maintainers remains an
+On 2026-11-12, on the owner's word, DE4SDV posted a
+[comment on issue 1430 of S-CORE communication](https://github.com/eclipse-score/communication/issues/1430#issuecomment-6832871010),
+the upstream thread on a process that aborts when it destroys a subscribed
+proxy. The middleware model records that defect as GAP-MW-041; on this bench it
+is the core dump of gatewayd at the stop of a run. The comment reports DE4SDV's
+unreviewed feasibility runs of 2026-11-03 with the change that a pull request of
+that project proposes (SOME/IP gateway at f30d5668, communication 0.6.0): without
+the change, 34 of 34 stops of a subscribed gatewayd ended with SIGABRT; with it,
+34 of 34 ended with exit code 0. The pull request is not merged, and the pins of
+the bench do not carry the change. DE4SDV closed the issue on the same day.
+
+DE4SDV has opened no pull request in any of these repositories. This record
+does not follow the replies. No compatibility endorsement, adoption approval or
+rights clearance is asserted. Each further message to maintainers remains an
 owner-authorized action.

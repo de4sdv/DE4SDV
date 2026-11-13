@@ -228,7 +228,16 @@ monitored command dumped core`). It happened in every run on the bench, on the h
 that built it and through the packaged loader alike, and only after the stop was
 requested: the publications of the run are complete (the wire capture is closed by
 its own process). It is recorded here so that the line in `gatewayd.log` is not read
-as a failure of the run. Not analysed further; a finding for the gateway's owners.
+as a failure of the run. The middleware model records the cause as GAP-MW-041, in
+`textual-notation-of-model/packages/features/middleware/middleware_score_physical_software_realization.sysml`:
+gatewayd destroys its subscribed proxies when it stops, and the communication library
+then aborts the process. The gap names SIGTERM; gatewayd takes SIGINT through the
+same handler (`score/gatewayd/main.cpp` at the pinned commit d9eac670). DE4SDV
+reported the defect to the communication project on 2026-10-22. A change proposed
+there removed the abort in DE4SDV's runs of 2026-11-03, which used another revision
+of the gateway. It is not merged, and the pins of the bench do not carry it
+(`textual-notation-of-model/packages/features/driving/upstream.md`, "Upstream
+contact").
 
 - **Detect:** `tail -2 <run>/gatewayd.log`.
 - **Cost if hit:** none for the evidence; a stop that waits for a clean exit code

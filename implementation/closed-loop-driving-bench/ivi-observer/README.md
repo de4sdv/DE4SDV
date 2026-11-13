@@ -45,7 +45,7 @@ amendment and the owner's word.
 | `interop/acl/ivi_observer_subscriber.textproto` | the observer's subject grant | the IVI SD agent (at boot) |
 | `interop/acl/ivi_broker_object_policy.textproto` | the broker's object policy on the IVI (cross-VM read) | the IVI SD agent (at boot) |
 | `app/` | the observer: typed subscriber of the three units, mapper, record writer, screen (drawing, model, layout, plan geometry and numbers), JVM tests | `m De4sdvDrivingStateObserver De4sdvDrivingStateObserverTests` |
-| `codec/icd_table.py` | the 43-field table, hand-copied from ICD §3 — the single source the artifacts are held to | the tests, the generator, the codec |
+| `codec/icd_table.py` | the 43-field table, a copy of ICD §3: a repository test holds the copy to §3 (`tests/test_closed_loop_driving_bench_documents.py`), and the artifacts are held to the copy | the tests, the generator, the codec |
 | `codec/someip_struct.py` | the **independent** encoder/decoder of the §3 struct (no C++ read), with a CLI | the tests, the VM gates, the vector check |
 | `scripts/probe_aosp_tree.sh` | read-only probe of the facts option B rests on (7 checks) | the VM, before any build |
 | `scripts/stage_sdv_core_interop.sh` | check/stage/validate (G1b)/build/revert the SDV Core overlay | the VM |
