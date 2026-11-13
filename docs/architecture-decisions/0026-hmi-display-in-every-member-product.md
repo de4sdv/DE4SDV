@@ -52,10 +52,11 @@ informational display, not the AEBS driver warning" (ASM-MW-024).
 
 ### INC-DRIVING-002
 
-In draft pull request 525 (INC-DRIVING-002), the owner decided on 2026-11-13
-that the AAOS SDV display shows the driver the collision warning of the
-increment's candidate. The framing of that increment calls this display "the
-HMI display that the product line holds as an optional feature".
+On 2026-11-13, in draft pull request 525 (INC-DRIVING-002), the owner
+decided that the AAOS SDV gives the driver the collision warning of that
+increment's candidate, on its display and as a sound. The framing of that
+increment states no place of the display in the product line. It holds that
+place as an open gap, together with the owner's question below.
 
 ### The owner's question
 
@@ -151,7 +152,8 @@ Clauses are quoted.
 **Retained:**
 
 - ADR 0014: "“Common” means common within these two governed planned
-  members. It does not mean permanently common to DE4SDV."
+  members. It does not mean permanently common to DE4SDV." With ADR 0023,
+  accepted on the same day, the governed planned members are three.
 - ADR 0014: "System 2 engineering environments, CI runners, simulations,
   benchmarks, evidence campaigns, and visualization instrumentation remain
   outside System 1 product variability." The display of this record is
@@ -180,9 +182,11 @@ Costs and risks:
   scope pull request lands, the standalone member selects a display that
   has no realization. "Common" is a scope classification, not evidence
   about that content. The scope pull request records the gap in the model.
-- **The AAOS-integrated member needs a display.** Its realization models a
+- **A gap in the AAOS-integrated member.** Its realization models a
   headless guest. Its guest now needs a display. The VM layout of a guest is
-  realization content, as ADR 0025 says for the S-CORE member.
+  realization content, as ADR 0025 says for the S-CORE member. The scope
+  pull request records this gap in the model too, next to the gap of the
+  standalone member.
 - **The scope pull request.** It changes:
   - the scope model: the sixth common content, and the portfolio texts;
   - the validator and its semantic tests;
