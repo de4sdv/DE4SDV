@@ -32,6 +32,8 @@ PACKAGES = ROOT / "textual-notation-of-model" / "packages"
 CHARTERS = {
     "INC-DRIVING-001": ("features/driving/closed_loop_driving_framing.sysml",
                         "closedLoopDrivingCharter", "DRIVING001", 12),
+    "INC-DRIVING-002": ("features/driving/driver_assistance_framing.sysml",
+                        "driverAssistanceCharter", "DRIVING002", 1),
     "INC-AEBS-010": ("features/aebs/aebs_visualization_framing.sysml",
                      "visualizationTraceObligations", "AEBS010", 7),
     "INC-MW-011": ("features/middleware/middleware_score_framing.sysml",
