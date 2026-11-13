@@ -1049,6 +1049,26 @@ def test_each_upstream_source_a_gap_cites_is_listed_in_the_provenance_record():
         assert f"/{pin}/{path})" in provenance, path
 
 
+def test_the_provenance_record_states_what_was_sent_and_not_the_state_of_a_thread():
+    # "Upstream contact" in upstream.md records each message DE4SDV sent: when, where, what it says and asks. Who
+    # answered, whether a thread is open and whether a pull request there is merged change after the message, and a
+    # sentence on them goes stale: one did within hours, when the thread it called closed was reopened. The section
+    # says that it follows none of these, dates the one state it needs, and holds no sentence on them in the wordings
+    # listed here (other wordings pass).
+    provenance = (DRIVING / "upstream.md").read_text(encoding="utf-8")
+    assert provenance.count("\n## Upstream contact\n") == 1
+    contact = _flat(provenance.split("\n## Upstream contact\n", 1)[1].split("\n## ", 1)[0])
+    assert ("This record states what DE4SDV sent. It follows neither the replies, nor whether a thread is open, nor "
+            "whether a pull request there is merged.") in contact
+    assert "When the comment was posted, the pull request was not merged; the pins of the bench do not carry" in contact
+    stale = re.findall(r"(?i)\b(?:closed|reopened) the (?:issue|thread)\b"
+                       r"|\bthe (?:issue|thread|pull request) is (?:not )?(?:open|closed|merged)\b"
+                       r"|\b(?:no|without an?) (?:answer|reply)\b"
+                       r"|\b(?:nobody|no one|no maintainer) (?:has )?(?:answered|replied)\b"
+                       r"|\bnot (?:been |yet )?(?:answered|replied)\b", contact)
+    assert not stale, stale
+
+
 def test_the_route_gap_records_that_the_checkpoint_takes_no_turn_from_the_route():
     # The route decision of 2026-11-10 (GAP-DRIVING-011): the scenario's route needs no branch choice, and the model
     # records the limit as one gap, accepted, right after the history gap.
