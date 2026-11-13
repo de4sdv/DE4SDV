@@ -182,8 +182,12 @@ def test_the_case_ids_are_unique_in_the_model() -> None:
     ids = []
     for path in sorted((ROOT / "textual-notation-of-model").rglob("*.sysml")):
         ids += re.findall(r"<'(VC-[A-Z0-9-]+)'>", path.read_text(encoding="utf-8"))
-    driving = [i for i in ids if i.startswith("VC-DRIVING-")]
-    assert len(driving) == CASE_COUNT and len(set(ids)) == len(ids)
+    assert len(set(ids)) == len(ids), "a verification-case id is declared once in the model"
+    # the cases of this increment are the ones its own packages declare: another increment of the driving folder
+    # takes the next numbers of the same series
+    driving = [i for path in INCREMENT_FILES
+               for i in re.findall(r"<'(VC-DRIVING-[A-Z0-9-]+)'>", path.read_text(encoding="utf-8"))]
+    assert len(driving) == CASE_COUNT
 
 
 def test_no_case_has_started_and_each_states_its_scenario_and_bench() -> None:
