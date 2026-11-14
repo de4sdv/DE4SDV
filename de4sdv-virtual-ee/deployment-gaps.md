@@ -73,9 +73,13 @@ changed what the host enforces:
 
 Two things did **not** close, and both are stated rather than papered over:
 
-- **Our own images are still local tags.** The lock pins published refs by digest
-  (KUKSA, vxota, vxprobe); `localhost/de4sdv/zone-ecu:9` and `can-gw:4` have no
-  digest to record. Pinning and signing them needs a registry first.
+- **Our own images are now pinned by digest**, through a registry on the host
+  (`127.0.0.1:5000`): `localhost:5000/de4sdv/zone-ecu@sha256:84f26533…` and
+  `…/can-gw@sha256:1a85cad1…`. Proven by moving the tag to a different image and
+  re-converging: the zone still ran the pinned digest. The caveat is the registry
+  itself — a lab fixture on loopback, plain HTTP, no authentication — so these refs
+  are not publishable as they stand; a distributed image needs a registry with TLS
+  and auth, and the source of truth for that is the operator's, not this repo.
 - **`resources:` is declarative only.** The descriptor now declares per-device CPU
   and memory, and vxedge validates the block — but nothing in 0.30.0 applies it.
   `podman inspect` reports `CpuQuota=0 Memory=0` on every payload and infra

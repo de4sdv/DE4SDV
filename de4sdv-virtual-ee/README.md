@@ -69,10 +69,11 @@ deployment-gaps.md            the deployment plane a production SDV needs, and w
 ```
 
 `vehicle/` is a `vxp/1` package, not a folder of documents: it is locked, packed to
-`sha256:3886296e…`, signed with a lab key, and the host runs it only because the
-policy found that verification record. What the lock does **not** cover is our own
-two images, which are still local tags. [`deployment-gaps.md`](deployment-gaps.md)
-says what that costs and what closing it would take.
+`sha256:45ac175e…`, signed with a lab key, and the host runs it only because the
+policy found that verification record. Its two images are pinned by digest from a
+registry on the host, and a moved tag does not change what runs. That registry is a
+lab fixture on loopback with no auth, so the refs are not publishable as they stand
+— [`deployment-gaps.md`](deployment-gaps.md) says what publishing would need.
 
 `vss/metadata.json` is generated from the mapping by stripping `dbc2vss` and
 `vss2dbc`; the two must never be edited apart.

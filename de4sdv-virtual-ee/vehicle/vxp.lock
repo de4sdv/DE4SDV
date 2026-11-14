@@ -6,7 +6,7 @@ locked_with: 0.30.0
 files:
   .vxpignore: sha256:c953533d8cf47707bb9d2432a790ee7008c7d6f5f7db23c7e1ef81f5f03834e8
   main.yaml: sha256:327ed44effe11b12ac83c277977e15181562faa33cbc3fde6d33a299c5b2b64c
-  parts.yaml: sha256:3593a1a61fc07f1f547d6aa5e24a6ccba5be251a6637823cb6ec9cffd2b74923
+  parts.yaml: sha256:a2343d20312de6959ee334bc5533a1566df9f88eac346994f3ec7c669ae1cc78
   vehicle.yaml: sha256:f0b0ffab56f2646208e5f58963229e1c013a2dd32cd71fb170128d49feecaf7e
   vxp.yaml: sha256:b1d9d5f5c2517b4f672bcd3280a3b57de8b30c6b07df70f9a5908cc9a82f6175
 parts: []
@@ -17,4 +17,8 @@ images:
   digest: sha256:b3f22650146dcae004589d311fcd8f231bd2e058f8cb50a7d2a766519210fd6d
 - ref: ghcr.io/vxedge/parts/svc/ota/app/vxota
   digest: sha256:38dc26f33a08dc0af3085e86caa07eb697559200d52c12e3730a7cd2e78e213d
+- ref: localhost:5000/de4sdv/can-gw:4
+  digest: sha256:1a85cad119a900104880cf44d72f05234aa3441dbb0379675dae19595ca7e173
+- ref: localhost:5000/de4sdv/zone-ecu:9
+  digest: sha256:84f265334c5fec1c92e5aa1c1730cf339b42585e5cd8b792163712f310ee3253
 vendored: []

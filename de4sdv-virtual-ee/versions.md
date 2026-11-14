@@ -17,6 +17,38 @@ source at a pinned commit. The repository contains no upstream source file.
 | [SDV Simulation 5](https://github.com/nsengupta/sdv_simulation_5) | `ca0c733` — inspected, **not used** | Apache-2.0 | not built, not run | its private CMD/ACK/NACK codec was the thing this contract replaces |
 | [cannelloni](https://github.com/mguentner/cannelloni) | `v2.1.2` — **replaced, no longer used** | **GPL-2.0** (`gpl-2.0.txt`; GitHub's detector reports none because the file is not named `LICENSE`) | was built from source inside the images; now only the comparison numbers in the README survive | the first pass carried CAN over UDP with it; `transport/bridge.py` replaced it |
 | Ubuntu / GCP kernel | 24.04.5 LTS, `7.0.0-1017-gcp` | — | cloud image | host: `netem`/`htb`, `vcan`/`vxcan`, Open vSwitch |
+| [cosign](https://github.com/sigstore/cosign) | `v3.1.4` (release binary, SHA-256 checked against the release's `cosign_checksums.txt`) | Apache-2.0 | host tool, not in any image | signs and verifies the packed package |
+| [registry](https://github.com/distribution/distribution) | `2` — `docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278` | Apache-2.0 | container on the testbed host, `127.0.0.1:5000` | holds the two DE4SDV images so the baseline can name them by digest |
+
+## What is inside the images
+
+The stack is not "GPL-free"; it is **free of copyleft in code DE4SDV writes and
+links**. Those are different claims and only the second one is true.
+
+| Inside the zone image | Licence | How it is used |
+|---|---|---|
+| DE4SDV code (`zone_ecu.py`, `bridge.py`) | Apache-2.0 | ours |
+| OpenBSW reference application | Apache-2.0 | compiled in, run as a process |
+| KUKSA CAN Provider, `kuksa-client` | Apache-2.0 | imported / run |
+| `python-can` | **LGPL-3.0** | imported by the plant model and the gateway router |
+| `cantools` | MIT | imported |
+| `tini` | MIT | PID 1 in the container |
+| `iproute2`, `can-utils`, `git` | **GPL-2.0** | unmodified Debian packages, invoked as programs |
+| `libstdc++6` | GPL-3.0 with the GCC runtime exception | shared library the OpenBSW build needs |
+
+What follows if DE4SDV publishes an image:
+
+- **Apache-2.0 components** need their licence and NOTICE carried with the
+  distribution — OpenBSW and the KUKSA pieces each have one.
+- **`python-can` is LGPL-3.0.** It is imported, not linked into a compiled binary,
+  and it is replaceable source, so the relinking condition is satisfied as long as
+  its licence text ships and the package stays swappable. Do not vendor a patched
+  copy.
+- **The GPL-2.0 tools are unmodified distribution packages.** Debian ships their
+  copyright files in `/usr/share/doc/*/copyright`; a published image carries those
+  unchanged and points at the Debian archive for source.
+- **No copyleft is linked into DE4SDV code**, and the only component that was
+  (cannelloni, GPL-2.0) was replaced rather than shipped.
 
 `transport/bridge.py` is DE4SDV's own code, not an upstream component: about 200
 lines, Apache-2.0 like the rest of the repository.
