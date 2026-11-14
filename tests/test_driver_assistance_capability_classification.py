@@ -198,6 +198,8 @@ def test_a_view_frames_the_classification_concern_and_exposes_only_the_candidate
                      view)
     assert re.findall(r"\bexpose\s+([^;]+);", code) == [CANDIDATE]
     assert re.search(r"\bfilter\s+@\s*SysML::PartUsage\s*;", view)
+    assert re.search(r"\battribute\s*:>>\s*includeReferenceElements\s*=\s*true\s*;", view), \
+        "the table includes the candidate's reference elements, as the other table views of the increments do"
     assert re.findall(r"\bview\s+(\w+)\s*:>\s*columnViews\b", view) == ["ID", "Classification", "Rationale"]
 
 
