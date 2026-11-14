@@ -70,6 +70,56 @@ def braced_body(source: str, declaration: str) -> str:
     raise AssertionError(f"unclosed declaration: {declaration}")
 
 
+#: a package at the top level of a file: the method allows one global package per file, so a nested package is
+#: not a package that a charter can name
+_PACKAGE_RE = re.compile(r"(?m)^package\s+(\w+)\s*\{")
+_SHORT_NAME_RE = re.compile(r"<'([^']+)'>")
+
+
+def charter_package_files(charter_file: Path, charter: str) -> tuple[Path, ...]:
+    """Return the model files of the packages a charter names in ``expectedArtifacts``.
+
+    An increment's packages are the ones its charter names. A features folder
+    can hold more than one increment, so a test of one increment reads this
+    list and not every file of the folder. The packages are looked up in the
+    charter's folder, each as the top-level package of exactly one file; the
+    files come back sorted. A value that is not a plain package name is
+    refused, not skipped.
+    """
+    code = strip_comments(charter_file.read_text(encoding="utf-8"))
+    body = braced_body(code, f"part {charter} : IncrementCharter")
+    artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", body, re.DOTALL)
+    assert artifacts, f"charter {charter} lists no expectedArtifacts"
+    named = re.findall(r'"([^"]*)"', artifacts.group(1))
+    assert named, f"charter {charter} names no package"
+    not_plain = [value for value in named if not re.fullmatch(r"\w+", value)]
+    assert not not_plain, f"charter {charter} names values that are not plain package names: {not_plain}"
+    declared: dict[str, list[Path]] = {}
+    for path in sorted(charter_file.parent.glob("*.sysml")):
+        for package in _PACKAGE_RE.findall(strip_comments(path.read_text(encoding="utf-8"))):
+            declared.setdefault(package, []).append(path)
+    unresolved = [package for package in named if len(declared.get(package, [])) != 1]
+    assert not unresolved, f"charter {charter} names packages without exactly one file in its folder: {unresolved}"
+    return tuple(sorted({declared[package][0] for package in named}))
+
+
+def short_name_declarations(pattern: str, roots: tuple[Path, ...]) -> dict[str, list[Path]]:
+    """Return, for each short name that matches the pattern, the model files that declare it.
+
+    A file is listed once for each occurrence, so a short name that is
+    declared once has a list of one. The raw text is read: a short name in a
+    comment counts, because a reader and a search find it there too.
+    """
+    wanted = re.compile(pattern)
+    declared: dict[str, list[Path]] = {}
+    for root in roots:
+        for path in sorted(root.rglob("*.sysml")):
+            for short in _SHORT_NAME_RE.findall(path.read_text(encoding="utf-8")):
+                if wanted.fullmatch(short):
+                    declared.setdefault(short, []).append(path)
+    return declared
+
+
 def requirement_block(model_text: str, element_name: str) -> str | None:
     """Return the full block of the named requirement usage, or None."""
     match = re.search(

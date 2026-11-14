@@ -10,7 +10,10 @@ authors model content, the deterministic evaluation judges it.
 
 For an owner-requested Phase 0 example that separates a candidate driving
 function from its simulator and evidence bench, see
-[Closed-loop driving increment](closed-loop-driving-increment.md).
+[Closed-loop driving increment](closed-loop-driving-increment.md). For a
+framing that judges a candidate application against requirements the product
+line already holds, see
+[Driver-assistance increment](driver-assistance-increment.md).
 
 The method of an increment is the workflow its charter declares
 ([`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)).
