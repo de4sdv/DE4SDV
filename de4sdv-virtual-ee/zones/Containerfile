@@ -7,17 +7,6 @@
 # bookworm ships iproute2 + can-utils, which is all the CAN side needs.
 ARG PYTHON_IMAGE=python:3.12-slim-bookworm
 
-# cannelloni carries the zone's whole bus over UDP to the central gateway.
-# Built from a pinned tag because it is not packaged for Debian/Ubuntu.
-FROM ${PYTHON_IMAGE} AS canbuild
-RUN apt-get update \
- && apt-get install -y --no-install-recommends cmake make g++ libasio-dev git ca-certificates \
- && rm -rf /var/lib/apt/lists/*
-ARG CANNELLONI_REF=v2.1.2
-RUN git clone --depth 1 --branch "${CANNELLONI_REF}" https://github.com/mguentner/cannelloni.git /src
-WORKDIR /src
-RUN cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-Wno-error=restrict' >/dev/null && cmake --build build -j"$(nproc)"
-
 FROM ${PYTHON_IMAGE}
 
 ARG KUKSA_CAN_PROVIDER_REF=0.5.1
@@ -26,8 +15,6 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       iproute2 can-utils git tini \
  && rm -rf /var/lib/apt/lists/*
-
-COPY --from=canbuild /src/build/cannelloni /usr/local/bin/cannelloni
 
 # The provider is not published to PyPI and ships no packaging metadata, so it
 # is cloned at a pinned tag and run from source. Pin, never float.
@@ -44,6 +31,9 @@ COPY vss/ /opt/zone/vss/
 COPY zones/entrypoint.sh /opt/zone/entrypoint.sh
 COPY zones/zone_ecu.py /opt/zone/zone_ecu.py
 COPY zones/dbc_feeder.ini /opt/zone/dbc_feeder.ini
+# The bus tunnel is DE4SDV code, not a third-party binary: plain CAN frames over
+# UDP, no batching, and no copyleft in an image we might publish.
+COPY transport/bridge.py /opt/zone/bridge.py
 
 ENV PATH="/opt/zone:${PATH}" \
     PYTHONUNBUFFERED=1 \
@@ -54,5 +44,5 @@ ENV PATH="/opt/zone:${PATH}" \
 
 RUN chmod +x /opt/zone/entrypoint.sh
 
-# tini reaps both children (provider + plant model) and forwards signals.
+# tini reaps every child (provider, plant model, bridge) and forwards signals.
 ENTRYPOINT ["/usr/bin/tini", "--", "/opt/zone/entrypoint.sh"]

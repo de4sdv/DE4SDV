@@ -46,16 +46,18 @@ vss/mapping/vss_dbc.json      VSS tree + dbc2vss/vss2dbc per leaf (source of tru
 vss/mapping/headlamp.json     per-zone mapping, generated (a zone's provider gets only its own signals)
 vss/mapping/wiper.json
 vss/metadata.json             same tree, stripped: reference copy of what the broker holds
-zones/Containerfile           zone image: provider at a pinned tag + plant model
-gateway/Containerfile         central gateway image: cannelloni + router
+zones/Containerfile           zone image: provider at a pinned tag + plant model + bridge
+gateway/Containerfile         central gateway image: bridge + router
+transport/bridge.py           CAN over UDP: fixed framing, one frame per datagram
 gateway/router.py             per-frame allow-list between two zone buses
-gateway/entrypoint.sh         creates both buses, starts the tunnels and the router
-zones/entrypoint.sh           creates this zone's vcan, runs provider + plant
+gateway/entrypoint.sh         creates both buses, starts the bridges and the router
+zones/entrypoint.sh           creates this zone's vcan, waits for the broker, runs provider + plant
 zones/zone_ecu.py             headlamp/wiper plant, acknowledges the sequence
 zones/dbc_feeder.ini          provider config, templated per zone
 checks/check_contract.py      DBC ↔ mapping ↔ defaults consistency
 checks/build_zone_mappings.py generates the per-zone mappings from the full tree
 checks/test_zone_ecu.py       plant model and frame round-trip tests
+checks/test_bridge.py         bridge framing: round-trip, padding, malformed input
 ```
 
 `vss/metadata.json` is generated from the mapping by stripping `dbc2vss` and
@@ -154,12 +156,12 @@ travel with every cell: one host, generic kernel, userspace timestamps
 
 ## Gate 2b result — CAN routed over the vehicle Ethernet (testbed, 2026-11-14)
 
-The buses now meet, at a gateway that decides what may cross:
+The buses meet at a gateway that decides what may cross:
 
 ```text
-zone-fl vcan0 ──cannelloni/UDP over the adas slice──▶ central vcan-front
-                                                     │  router allow-list
-                          zone-rl vcan0 ◀──UDP──────── vcan-rear
+zone-fl vcan0 ──DE4SDV bridge, UDP over the adas slice──▶ central vcan-front
+                                                          │  router allow-list
+                            zone-rl vcan0 ◀──UDP─────────── vcan-rear
 ```
 
 Policy is per frame, not per link: `0x181` (headlamp status) may be published
@@ -167,22 +169,47 @@ rear-ward, `0x180` (headlamp command) may not; `0x281` (wiper status) travels
 front-ward, `0x280` (wiper command) does not. A zone observes its neighbours; no
 zone actuates another's hardware.
 
+The transport is [`transport/bridge.py`](transport/bridge.py): one CAN frame
+becomes one UDP datagram, fixed 17-byte framing, no batching. It exists because
+the first pass used a GPL-2.0 third-party tunnel, and an image we might publish
+should not carry copyleft to move bytes. Every measurement below is that bridge.
+
+| transport | direction | pairs | median | min / max |
+|---|---|---:|---|---|
+| DE4SDV bridge | headlamp status front→rear | 138 | **0.79 ms** | 0.57 / 2.63 |
+| DE4SDV bridge | wiper status rear→front | 138 | **0.77 ms** | 0.49 / 2.58 |
+
+A pair is one frame seen on both buses, matched by payload; the delta is taken
+between the two `candump -ta` stamps on the same host clock. 139 and 140 status
+frames were published in the window, so the pairing covered all but one or two.
+
+Denied directions, counted on the wire and at the gateway: **10** command frames
+of `0x180` on the front bus, **0** on the rear; **10** of `0x280` on the rear,
+**0** on the front. The gateway's own counters, printed when it was stopped:
+
+```text
+front->rear.denied.0x180     21
+front->rear.forwarded.0x181  1816
+rear->front.denied.0x280     20
+rear->front.forwarded.0x281  1815
+```
+
+### What the replaced tunnel would have taught us
+
+The first pass used cannelloni, and its numbers are kept because the lesson is
+about measurement, not about that project:
+
 | configuration | direction | n | median | min / max |
 |---|---|---:|---|---|
-| cannelloni default buffer (100 ms) | headlamp status front→rear | 5 | **77.71 ms** | 28.90 / 159.33 |
-| cannelloni default buffer (100 ms) | wiper status rear→front | 5 | **52.02 ms** | 23.44 / 94.34 |
-| explicit `-t 1000` (1 ms) | headlamp status front→rear | 8 | **2.96 ms** | 1.78 / 3.18 |
-| explicit `-t 1000` (1 ms) | wiper status rear→front | 8 | **2.99 ms** | 2.76 / 3.58 |
+| default buffer (100 ms) | headlamp status front→rear | 5 | 77.71 ms | 28.90 / 159.33 |
+| default buffer (100 ms) | wiper status rear→front | 5 | 52.02 ms | 23.44 / 94.34 |
+| explicit 1 ms timeout | headlamp status front→rear | 8 | 2.96 ms | 1.78 / 3.18 |
+| explicit 1 ms timeout | wiper status rear→front | 8 | 2.99 ms | 2.76 / 3.58 |
 
-Denied directions: **0** frames of `0x180` on the rear bus, **0** frames of
-`0x280` on the front bus, with the gateway counters reporting exactly one refusal
-each.
-
-The first two rows are the finding worth keeping: a routed-path number is only as
-meaningful as the transport's buffering configuration. cannelloni holds frames for
-100 ms by default, which made the gateway look 25× slower than it is. Setting the
-timeout explicitly moved the median from 78 ms to 3 ms without touching the
-topology.
+A routed-path number is only as meaningful as the transport's buffering. The
+default held frames for 100 ms and made the gateway look 25× slower than it was;
+the same topology read 3 ms with the timeout set. The bridge has no such knob,
+which is why it cannot be silently misconfigured into a 100 ms path.
 
 Caveat that travels with every row: two UDP hops and one userspace router on one
 host — no switch, no PHY, no contending traffic. These are not production
@@ -208,6 +235,23 @@ What this does **not** yet show: the ECU sitting behind the gateway, so a
 diagnostic crosses the routed path. It ran on the testbed host's own `vcan0`,
 beside the vehicle rather than inside it. The plan's "light state machine" is
 covered by this directory's own plant model, not by OpenBSW's demo routines.
+
+## Findings from the routed run
+
+Two more defects were only visible once the buses were actually joined:
+
+1. **A zone died on a boot-order race.** The front zone's provider started before
+   KUKSA answered and hit `connection refused`; the entrypoint treated any dead
+   child as a dead zone and tore it down. The vehicle came up reporting three
+   zones while one was silent — the failure mode a zonal architecture must not
+   have. Fixed: the entrypoint waits (up to 60 s) for the broker's port, and the
+   provider is supervised and restarted, so only the plant exiting takes a zone
+   down.
+2. **A short command frame is rejected, and that is correct.** `cansend` with a
+   one-byte payload produced `undecodable command frame` and the plant kept its
+   state: cantools refuses a frame shorter than the DBC message. Commands carry
+   the full 8 bytes. Worth knowing before concluding that a plant "ignores" the
+   bus.
 
 ## Findings from the first run
 

@@ -18,7 +18,6 @@ set -eu
 : "${ZONE_MAPPING:=/opt/zone/vss/mapping/${ZONE_ECU}.json}"
 : "${KUKSA_ADDRESS:=grpc://127.0.0.1:55555}"
 : "${CAN_TUNNEL_REMOTE:=}"
-: "${CAN_TUNNEL_TIMEOUT:=1000}"   # cannelloni buffer timeout, microseconds
 
 if ! ip link show "${ZONE_CHANNEL}" >/dev/null 2>&1; then
   ip link add dev "${ZONE_CHANNEL}" type vcan
@@ -28,11 +27,14 @@ echo "[zone] ${ZONE_CHANNEL} up ($(ip -br link show "${ZONE_CHANNEL}"))"
 
 # Optional: carry this zone's bus across the slice to the central gateway.
 # Without it the zone is a closed segment — which is exactly scope A.
+# The bridge is DE4SDV's own: one frame in, one datagram out, no buffering.
 tunnel_pid=""
 if [ -n "${CAN_TUNNEL_REMOTE}" ]; then
   : "${CAN_TUNNEL_RPORT:?CAN_TUNNEL_RPORT is required with CAN_TUNNEL_REMOTE}"
   : "${CAN_TUNNEL_LPORT:?CAN_TUNNEL_LPORT is required with CAN_TUNNEL_REMOTE}"
-  cannelloni -I "${ZONE_CHANNEL}" -R "${CAN_TUNNEL_REMOTE}" -r "${CAN_TUNNEL_RPORT}" -l "${CAN_TUNNEL_LPORT}" -t "${CAN_TUNNEL_TIMEOUT}" \
+  python -u /opt/zone/bridge.py --can "${ZONE_CHANNEL}" \
+      --remote "${CAN_TUNNEL_REMOTE}:${CAN_TUNNEL_RPORT}" \
+      --listen "${CAN_TUNNEL_LPORT}" \
     2>&1 | sed -u 's/^/[tunnel] /' &
   tunnel_pid=$!
   echo "[zone] bus tunnel to ${CAN_TUNNEL_REMOTE}:${CAN_TUNNEL_RPORT} (listen ${CAN_TUNNEL_LPORT})"
@@ -44,12 +46,45 @@ sed -e "s|@@ZONE_DBC@@|${ZONE_DBC}|" \
     -e "s|@@KUKSA_ADDRESS@@|${KUKSA_ADDRESS}|" \
     /opt/zone/dbc_feeder.ini > /tmp/dbc_feeder.ini
 
-# The ini keys alone did not enable val2dbc in 0.5.1; the flags are explicit.
-python /opt/provider/dbcfeeder.py \
-      --config /tmp/dbc_feeder.ini \
-      --dbc-default /opt/zone/dbc/dbc_default_values.json \
-      --dbc2val --val2dbc \
-      2>&1 | sed -u 's/^/[provider] /' &
+# The broker may still be starting when the zone does. Waiting for it beats a
+# boot-order race that killed a whole zone on the testbed: the front zone's
+# provider hit "connection refused" three seconds early and the entrypoint took
+# the zone down, so the vehicle came up with a silent zone.
+broker_host_port="${KUKSA_ADDRESS#grpc://}"
+broker_host="${broker_host_port%%:*}"
+broker_port="${broker_host_port##*:}"
+i=0
+while [ "$i" -lt 60 ]; do
+  if python - "$broker_host" "$broker_port" <<'PY'
+import socket, sys
+s = socket.socket()
+s.settimeout(0.5)
+sys.exit(0 if s.connect_ex((sys.argv[1], int(sys.argv[2]))) == 0 else 1)
+PY
+  then
+    echo "[zone] broker ${broker_host}:${broker_port} reachable after ${i}s"
+    break
+  fi
+  i=$((i + 1))
+  sleep 1
+done
+if [ "$i" -ge 60 ]; then
+  echo "[zone] broker unreachable after 60s; starting the provider anyway" >&2
+fi
+
+# The provider is supervised: a broker restart must not take the zone down.
+# The plant is the zone — if it exits, the zone exits.
+(
+  while :; do
+    python /opt/provider/dbcfeeder.py \
+          --config /tmp/dbc_feeder.ini \
+          --dbc-default /opt/zone/dbc/dbc_default_values.json \
+          --dbc2val --val2dbc \
+          2>&1 | sed -u 's/^/[provider] /'
+    echo "[provider] exited; restarting in 2s" >&2
+    sleep 2
+  done
+) &
 provider_pid=$!
 
 python /opt/zone/zone_ecu.py \
