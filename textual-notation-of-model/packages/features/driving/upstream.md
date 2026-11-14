@@ -184,12 +184,21 @@ line:
 - [VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp#L13-L36):
   lines 13 and 14 lower the speed limit in curves, line 34 adds the
   car-following term only while an object in the path is tracked, and line 36
-  returns the acceleration with no bound.
+  returns the configured acceleration times one less the free-road term and
+  the car-following term; both terms are zero or more, so the result is at
+  most the configured acceleration.
 - [VisionPilot/config/vision_pilot.conf](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/config/vision_pilot.conf#L20):
   line 20 sets a speed limit of 33.3 m/s.
 - [VisionPilot/modules/middleware_interfaces/ros2_interface/vehicle_ros2_interface/src/vehicle_ros2_interface.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/middleware_interfaces/ros2_interface/vehicle_ros2_interface/src/vehicle_ros2_interface.cpp#L25-L26):
   lines 25 and 26 create its only two publishers, for the steering and the
   acceleration.
+- [VisionPilot/modules/sensing/vehicle_interface/src/can_interface.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/sensing/vehicle_interface/src/can_interface.cpp#L4-L12):
+  lines 4 to 8 return a speed of 0.0, and lines 10 to 12 take the steering
+  and the acceleration in a function with an empty body.
+- [VisionPilot/modules/sensing/vehicle_interface/src/file_interface.cpp](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/sensing/vehicle_interface/src/file_interface.cpp#L37-L61):
+  lines 37 to 57 return the next speed read from a file, and lines 59 to 61
+  take the steering and the acceleration in a function with an empty body.
+  The camera source has a file of the same name in another folder.
 
 ## Questions requiring upstream engagement
 
