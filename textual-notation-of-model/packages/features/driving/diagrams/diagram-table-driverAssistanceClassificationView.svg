@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="928" height="554" viewBox="0 0 928 554" role="img" aria-labelledby="title description">
+  <title id="title">table-driverAssistanceClassificationView</title>
+  <desc id="description">table-driverAssistanceClassificationView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="928" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-driverAssistanceClassificationView</text>
+  <rect x="0" y="54" width="208" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="208" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="220" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="220" dy="0">Classification</tspan>
+  </text>
+  <rect x="568" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="580" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="580" dy="0">Rationale</tspan>
+  </text>
+  <rect x="0" y="94" width="208" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">visionPilotDrivingStack</tspan>
+  </text>
+  <rect x="208" y="94" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="220" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="220" dy="0">ProductLineFeatureCandidate,</tspan>
+    <tspan x="220" dy="20">ProductLineCharacteristic</tspan>
+  </text>
+  <rect x="568" y="94" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="580" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="580" dy="0">VisionPilot as the vehicle application</tspan>
+    <tspan x="580" dy="20">distinguishes a camera-only driver-</tspan>
+    <tspan x="580" dy="20">assistance member from the Autoware</tspan>
+    <tspan x="580" dy="20">members and from the AutoE2E candidate. At</tspan>
+    <tspan x="580" dy="20">the pinned revision it reads one front-</tspan>
+    <tspan x="580" dy="20">camera image and the vehicle speed, and</tspan>
+    <tspan x="580" dy="20">writes steering and acceleration. It</tspan>
+    <tspan x="580" dy="20">requires the camera, so phase 9 adds a</tspan>
+    <tspan x="580" dy="20">requiresFeatures constraint and leaves</tspan>
+    <tspan x="580" dy="20">LiDAR and radar selectable. It requires</tspan>
+    <tspan x="580" dy="20">Linux on the main side: its camera source</tspan>
+    <tspan x="580" dy="20">uses V4L2, a Linux interface. ROS 2 is a</tspan>
+    <tspan x="580" dy="20">build option, which its upstream simulator</tspan>
+    <tspan x="580" dy="20">path uses. Phase 9 adds the Linux</tspan>
+    <tspan x="580" dy="20">constraint as well. It needs a middleware</tspan>
+    <tspan x="580" dy="20">adapter to Eclipse S-CORE, which phase 8</tspan>
+    <tspan x="580" dy="20">realizes first and phase 9 derives. It</tspan>
+    <tspan x="580" dy="20">also runs a speed-following and a lane-</tspan>
+    <tspan x="580" dy="20">keeping function, which no case of this</tspan>
+    <tspan x="580" dy="20">increment judges. Phase 9 decides whether</tspan>
+    <tspan x="580" dy="20">the configuration selects them. Acceptance</tspan>
+    <tspan x="580" dy="20">waits for the member decision.</tspan>
+  </text>
+</svg>
