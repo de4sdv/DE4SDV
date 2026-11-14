@@ -63,6 +63,7 @@ checks/make_sbom.sh           regenerate the committed CycloneDX SBOMs from the 
 sbom/                         CycloneDX 1.7 for both images, gzipped, plus how to regenerate
 upstream-reports/             two upstream defects, drafted and not filed
 orchestration/                Ankaios spike: the same workloads under a second orchestrator
+landscape.md                  all 37 Eclipse SDV projects: use, track, or skip, with reasons
 vehicle/vehicle.yaml          the vehicle composition: zones, devices, links, services
 vehicle/parts.yaml            the software baseline: images, capabilities, per-zone env
 vehicle/main.yaml             the experiment: slices, what is under test, method
