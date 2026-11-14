@@ -84,9 +84,11 @@ def test_the_candidate_needs_the_camera_and_linux_and_leaves_lidar_selectable():
     assert "It requires the camera, so phase 9 adds a requiresFeatures constraint and leaves LiDAR and radar " \
            "selectable." in doc
     assert "requires Linux on the main side" in doc
-    assert "V4L2" in doc and "ROS 2 is a build option only" in doc
-    assert "Phase 9 adds that constraint after phase 8 builds the candidate." in doc
-    for wrong in ("requires LiDAR", "requires the LiDAR", "LiDAR is required", "requires ROS 2"):
+    assert "its camera source uses V4L2, a Linux interface." in doc
+    assert "ROS 2 is a build option, which its upstream simulator path uses." in doc
+    assert "Phase 9 adds the Linux constraint as well." in doc
+    for wrong in ("requires LiDAR", "requires the LiDAR", "LiDAR is required", "requires ROS 2", "needs neither ROS 2",
+                  "build option only"):
         assert wrong not in doc, wrong
 
 
@@ -132,12 +134,16 @@ def test_the_scope_decisions_the_admission_gap_asks_for_are_named_against_it():
                    "ADR 0023 decision 5", "gapNoSeparateEmergencyFunction"):
         assert phrase in text, phrase
     runtime = _item(text, "Linux and ROS 2 runtime of Autoware")
-    assert "needs neither ROS 2 nor the Autoware runtime" in runtime
+    assert "the candidate runs on Linux and does not use the Autoware runtime" in runtime
+    assert "ROS 2 is a build option of the candidate, which its upstream simulator path uses" in runtime, \
+        "the upstream simulator path runs over ROS 2, so the slice does not say the candidate needs none"
+    assert "needs neither ROS 2" not in text
     assert re.search(r"\bis open\.$", runtime), \
         "whether the runtime content narrows to Linux or stops being common is stated as open"
     assert "Eclipse S-CORE is reference-only" in text and "valid and not admitted" in text
-    assert f"ADR 0023, accepted, makes it the S-CORE-integrated alternative {TAKES_EFFECT} in the model" in text
-    assert "needs no new alternative" in text
+    assert "ADR 0023, accepted, takes Eclipse S-CORE out of the reference-only set into the S-CORE-integrated " \
+        f"alternative {TAKES_EFFECT} in the model" in text
+    assert "then realizes that alternative and needs no new one" in text
 
 
 def test_the_display_and_the_sound_are_classified_against_the_hmi_gap():
@@ -155,8 +161,9 @@ def test_the_display_and_the_sound_are_classified_against_the_hmi_gap():
 def test_the_header_gives_each_unrecorded_item_its_reason():
     header = _flat(_raw().split("package ", 1)[0])
     for phrase in ("INC-DRIVING-002, phase 3", "VisionPilot", "common by default and get no record",
-                   "the feature model already makes LiDAR optional", "Eclipse S-CORE", "middleware adapter",
-                   "display", "sound"):
+                   "the feature model already makes LiDAR optional", "display", "sound",
+                   "Eclipse S-CORE gets none: the feature model already holds it as a middleware alternative",
+                   "The middleware adapter gets none: it is a derived realization"):
         assert phrase in header, phrase
 
 

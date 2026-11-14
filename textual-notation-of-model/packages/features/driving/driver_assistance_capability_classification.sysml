@@ -5,11 +5,11 @@
  * a member product, VisionPilot as the vehicle application, as a feature
  * candidate. Core elements are common by default and get no record.
  * Camera-only sensing adds no record: the feature model already makes LiDAR
- * optional. The display and the sound get no candidate; the comment on the
- * HMI gap gives the reasons. Eclipse S-CORE gets none: it is an integration
- * mode, not a characteristic of this member, and the comment on the admission
- * gap reads it. The middleware adapter gets none: phase 9 derives it from the
- * configuration.
+ * optional. The display and the sound get no candidate; the comment on the HMI
+ * gap gives the reasons. Eclipse S-CORE gets none: the feature model already
+ * holds it as a middleware alternative, and the comment on the admission gap
+ * reads its admission. The middleware adapter gets none: it is a derived
+ * realization, which phase 9 derives from the configuration.
  */
 
 package DE4SDV_DriverAssistanceCapabilityClassification {
@@ -22,18 +22,18 @@ package DE4SDV_DriverAssistanceCapabilityClassification {
   part visionPilotDrivingStack : ProductLineFeatureCandidate {
     doc /*
      * VisionPilot as the vehicle application distinguishes a camera-only
-     * driver-assistance member from the Autoware members and from the
-     * AutoE2E candidate. At the pinned revision it reads one front-camera
-     * image and the vehicle speed, and writes steering and acceleration. It
-     * requires the camera, so phase 9 adds a requiresFeatures constraint and
-     * leaves LiDAR and radar selectable. It requires Linux on the main side:
-     * its camera interface is V4L2, and ROS 2 is a build option only. Phase 9
-     * adds that constraint after phase 8 builds the candidate. It needs a
-     * middleware adapter to Eclipse S-CORE, which phase 8 realizes first and
-     * phase 9 derives. It also runs a speed-following and a lane-keeping
-     * function, which no case of this increment judges. Phase 9 decides
-     * whether the configuration selects them. Acceptance waits for the member
-     * decision.
+     * driver-assistance member from the Autoware members and from the AutoE2E
+     * candidate. At the pinned revision it reads one front-camera image and
+     * the vehicle speed, and writes steering and acceleration. It requires the
+     * camera, so phase 9 adds a requiresFeatures constraint and leaves LiDAR
+     * and radar selectable. It requires Linux on the main side: its camera
+     * source uses V4L2, a Linux interface. ROS 2 is a build option, which its
+     * upstream simulator path uses. Phase 9 adds the Linux constraint as well.
+     * It needs a middleware adapter to Eclipse S-CORE, which phase 8 realizes
+     * first and phase 9 derives. It also runs a speed-following and a
+     * lane-keeping function, which no case of this increment judges. Phase 9
+     * decides whether the configuration selects them. Acceptance waits for the
+     * member decision.
      */
   }
   dependency visionPilotCandidateOfDeferredDrivingStackVariability
@@ -58,14 +58,16 @@ package DE4SDV_DriverAssistanceCapabilityClassification {
      *   driving member. The candidate has to meet both;
      *   gapNoSeparateEmergencyFunction holds what is open.
      * - The Linux and ROS 2 runtime of Autoware: the candidate runs on Linux
-     *   and needs neither ROS 2 nor the Autoware runtime. Whether that common
+     *   and does not use the Autoware runtime. ROS 2 is a build option of the
+     *   candidate, which its upstream simulator path uses. Whether that common
      *   content narrows to Linux on the main side and stays common, or stops
      *   being common, is open.
      * - The integration mode: on the model as it stands, Eclipse S-CORE is
      *   reference-only, so a configuration of the candidate with it is valid
-     *   and not admitted. ADR 0023, accepted, makes it the S-CORE-integrated
-     *   alternative once its scope pull request takes effect in the model.
-     *   The candidate then needs no new alternative.
+     *   and not admitted. ADR 0023, accepted, takes Eclipse S-CORE out of the
+     *   reference-only set into the S-CORE-integrated alternative once its
+     *   scope pull request takes effect in the model. A configuration of the
+     *   candidate with it then realizes that alternative and needs no new one.
      */
 
   comment driverHmiClassification about DE4SDV_DriverAssistanceFraming::gapDriverHmiInProductLine
