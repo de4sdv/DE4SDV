@@ -107,6 +107,47 @@ What that does not cover: per-segment latency (T0–T5), restart and loss behavi
 concurrent commands, and repeatability. Those are gate 2, and their numbers belong
 in a table with sample counts, not in prose.
 
+## Gate 2 result — failure matrix (testbed, 2026-11-14)
+
+3 repetitions per scenario, 6 iterations per repetition per arm, 150 records.
+
+| scenario | arm | n | converged | S1 med/p95 ms | S2 med/p95 ms | S3 med/p95 ms |
+|---|---|---:|---:|---|---|---|
+| baseline | headlamp | 18 | 18/18 | 3.49 / 4.35 | 26.59 / 82.94 | 6.40 / 106.06 |
+| baseline | wiper | 18 | 18/18 | 3.34 / 4.12 | 59.50 / 88.07 | 6.17 / 105.98 |
+| concurrency | headlamp | 18 | 18/18 | 3.34 / 4.51 | 68.99 / 93.68 | 6.08 / 106.80 |
+| concurrency | wiper | 18 | 18/18 | 3.65 / 6.08 | 41.26 / 95.68 | 7.70 / 107.73 |
+| impairment | headlamp | 18 | 18/18 | 3.20 / 4.09 | 55.58 / 84.17 | 29.77 / 134.81 |
+| impairment | wiper | 18 | 18/18 | 3.18 / 4.90 | 27.57 / 83.12 | 26.27 / 164.73 |
+| linkloss down | headlamp | 3 | 0/3 | — | — | — |
+| linkloss up | headlamp | 18 | 18/18 | 3.15 / 3.49 | 38.19 / 83.83 | 4.72 / 105.62 |
+| restart down | headlamp | 3 | 0/3 | — | — | — |
+| restart up | headlamp | 18 | 18/18 | — | — | — |
+
+**Cross-zone frames observed on the wrong bus: 0** across all 150 records.
+
+Four things these numbers say, and one they refuse to say:
+
+1. **S2 is the status period, not the ECU.** Median 26–69 ms with p95 near 85–95 ms
+   against a 100 ms status period: the acknowledgement lands on the next periodic
+   status frame, not on an event. The loop is faster than the contract's reporting
+   cadence; an immediate status-on-command would cut S2 to S1's scale.
+2. **Impairment moves S3 and nothing else.** 20 ms ± 5 ms delay and 1 % loss on the
+   zone's `eth0` took S3 from 6.2 ms to ~28 ms while S1 stayed at 3.2 ms. That is
+   scope A's honest claim, measured: only gRPC crosses the slice; the CAN bus is
+   zone-local.
+3. **Failure is detectable by timeout, and recovery is automatic.** With the zone
+   stopped or its link down, the value never converged (0/3); after recovery 18/18
+   converged. No silent staleness.
+4. **Concurrency costs nothing measurable.** Both ECUs commanded at the same
+   instant: 18/18 each, S1 unchanged.
+
+What the numbers refuse to say: nothing here is a bus-latency measurement. T1
+(provider receive) and T4 (provider publish) happen inside `kuksa-can-provider`
+and are not instrumented; they sit inside S1 and S3 by construction. Caveats that
+travel with every cell: one host, generic kernel, userspace timestamps
+(`candump` realtime vs `time.time()`), 2 ms poll granularity on t5.
+
 ## Findings from the first run
 
 Four defects were only visible with the pieces actually running:
