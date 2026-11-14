@@ -157,6 +157,15 @@ What the framing's gaps rest on, at the inspected commit:
   repository are the ones that this README describes, and has not read the
   terms of the weights or of that dataset.
 
+Read for the classification of INC-DRIVING-002 on 2026-11-14, at the same
+commit:
+
+- [Vehicle interface implementations](https://github.com/autowarefoundation/vision_pilot/tree/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/sensing/vehicle_interface/src):
+  the CAN implementation, which the application pairs with its live camera
+  source, is a placeholder that reads a speed of zero and writes nothing. The
+  file implementation writes nothing either. Only the build with the ROS 2
+  interface carries the steering and the acceleration to a vehicle.
+
 ## Questions requiring upstream engagement
 
 AutoE2E:

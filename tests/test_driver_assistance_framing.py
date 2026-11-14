@@ -285,7 +285,7 @@ def test_increment_declares_the_phase_zero_shape():
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
-        PACKAGE, "DE4SDV_DriverAssistanceOperationalContext",
+        PACKAGE, "DE4SDV_DriverAssistanceOperationalContext", "DE4SDV_DriverAssistanceCapabilityClassification",
     ], "the charter names only the packages that hold content today"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
@@ -583,7 +583,8 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context, proposal.**" in _flat(guide)
+    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and Phase 3 classification, "
+            "proposal.**") in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part driverAssistanceQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -607,7 +608,7 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "the increment builds none of them.",
                    "It is no statement about compliance or type approval.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The next model obligation is **Phase 3**, owed by review",
+                   "The next model obligation is **Phase 4**: the stakeholder needs",
                    "the clauses for a vehicle target are not yet anchored there."):
         assert phrase in flat, phrase
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
@@ -639,7 +640,7 @@ def test_the_guide_lists_each_gap_as_an_open_point_in_the_models_own_words():
 
 def test_the_upstream_record_pins_what_the_framing_read():
     # The folder keeps one upstream record. Its VisionPilot section holds what this framing read: the inspected
-    # commit, the licence, and the files that the gaps rest on. It restates no pull request of the project and no
+    # commit, the licence, and the files that the gaps rest on; and the one file the classification (phase 3) read. It restates no pull request of the project and no
     # reading of DE4SDV's own; the questions for the maintainers and the contact stand in the record's shared sections.
     assert not FORMER_RECORD.exists(), "one upstream record for the folder"
     record = UPSTREAM_RECORD.read_text(encoding="utf-8")
@@ -649,8 +650,8 @@ def test_the_upstream_record_pins_what_the_framing_read():
             "record belongs to INC-DRIVING-001.") in intro, "the record says whose each statement is"
     section = _record_section(record, "VisionPilot")
     pinned = re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/([^/)\s]+)", record)
-    assert len(pinned) == 11 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
-    assert len(re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/", section)) == 11, \
+    assert len(pinned) == 12 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
+    assert len(re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/", section)) == 12, \
         "the files of the project are linked in its section only"
     network = re.findall(r"github\.com/autowarefoundation/auto_speed([^)\s]*)", record)
     assert network == [f"/tree/{AUTOSPEED_PIN}"], "the record links the network's repository at one commit"

@@ -8,9 +8,9 @@ increment asks that of a camera-only driver-assistance application,
 [VisionPilot](https://github.com/autowarefoundation/vision_pilot) of the
 Autoware Foundation.
 
-**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational
-context, proposal.** No implementation, run, result, product-line
-admission or compliance is claimed.
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context
+and Phase 3 classification, proposal.** No implementation, run, result,
+product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -142,6 +142,62 @@ holds the candidate as a black box and the System 1 parts around it.
 `tests/test_driver_assistance_operational_context.py` pins the boundary, the
 bindings, the scenarios, the flows, the views and the traces to Phase 0.
 
+## Capability classification (Phase 3)
+
+The increment adds one characteristic that distinguishes member products:
+**VisionPilot as the vehicle application**, the feature candidate
+`visionPilotDrivingStack` of the
+[capability classification](../../textual-notation-of-model/packages/features/driving/driver_assistance_capability_classification.sysml).
+It traces to the driving-stack variability that the governed scope defers and
+answers the framing's admission gap (`gapCandidateAdmission`). Core elements
+are common by default and get no record.
+
+- **Inputs and outputs:** at the pinned revision the application reads one
+  front-camera image and the vehicle speed, and writes steering and
+  acceleration.
+- **Sensing and runtime:** the candidate requires the camera, so Phase 9 adds a
+  `requiresFeatures` constraint and leaves LiDAR and radar selectable.
+  Camera-only sensing gets no record of its own: the feature model already
+  makes LiDAR optional. The candidate also requires Linux on the main side: its
+  live camera source uses V4L2, a Linux interface. ROS 2 is a build option,
+  which its upstream simulator path uses; at the pinned revision only that
+  build carries steering and acceleration to a vehicle.
+- **Why the feature model waits for Phase 9:** the candidate needs a middleware
+  adapter to Eclipse S-CORE, which Phase 8 realizes first and Phase 9 derives.
+  Phase 9 also decides whether the configuration selects the application's
+  speed-following and lane-keeping functions, which no case of this increment
+  judges. They get no record of their own: the feature model already holds them
+  as optional features. Nor do the application's lane-departure warnings, which
+  come with it and which no case judges either.
+- **Scope decisions:** the candidate would be a new planned member; Autoware
+  and LiDAR stop being common at its admission; Vehicle-Target AEBS and the
+  independence of the protected emergency command path stay common, and the
+  candidate has to meet both (`gapNoSeparateEmergencyFunction`). Three items
+  are open. First, the Linux and ROS 2 runtime of Autoware: the candidate does
+  not use the Autoware runtime, and ROS 2 is a build option of it. Second, the
+  integration mode: ADR 0023, accepted, takes Eclipse S-CORE out of the
+  reference-only set into the S-CORE-integrated alternative once its scope pull
+  request takes effect, but each integration-mode alternative characterizes
+  exactly one planned member, so whether the candidate shares that alternative
+  or needs its own is open. Third, the sound (below). On the model as it stands
+  no configuration of the candidate exists; once Phase 9 adds it, a
+  configuration is valid, but the scope does not admit it. A comment on the
+  admission gap records these decisions, and the member decision amends ADR
+  0014 with them. This increment admits nothing.
+- **Display and sound** (`gapDriverHmiInProductLine`): neither is a feature
+  candidate. ADR 0026, accepted, gives every member a display, so it tells no
+  member apart; the feature model keeps `hmiDisplay` optional only so that
+  configurations which are not members can leave it out. No member differs by a
+  warning mode either. Whether the acoustic warning becomes common content of
+  the driver warning is open. A comment on the HMI gap records both.
+- **View:** the table view `driverAssistanceClassificationView` exposes only
+  the candidate.
+
+`tests/test_driver_assistance_capability_classification.py` pins the
+candidate, its two traces, the two comments and the view. The Phase 3 gate
+checks only that each recorded characteristic is a feature candidate or
+deferred scope; review judges the classification.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -213,11 +269,9 @@ type approval.
 
 Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is
-**Phase 3**, owed by review: `gapCandidateAdmission` and
-`gapDriverHmiInProductLine` ask it to classify the candidate, and its display
-and sound, against the scope as it then stands, and to name the scope
-decisions that the owner would have to take. The Method Check reads Phase 3
-as vacuous, so its next gate will be in Phase 4.
+**Phase 4**: the stakeholder needs, elaborated from the Phase 1 concerns; its
+first gate is `needHasStatement`. Do not jump from this classification to
+implementation, and claim no runtime gate.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
@@ -231,7 +285,8 @@ authorizes no spend.
 Run `sysand sync`, `python scripts/check_repo.py`,
 `python scripts/smoke_test.py` and
 `python -m pytest tests/test_driver_assistance_framing.py
-tests/test_driver_assistance_operational_context.py -q`. These are
+tests/test_driver_assistance_operational_context.py
+tests/test_driver_assistance_capability_classification.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed
 validator is available, or request the maintainer-run **Privileged Syside

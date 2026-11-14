@@ -1,0 +1,136 @@
+/*
+ * DE4SDV driver-assistance capability classification model slice.
+ *
+ * INC-DRIVING-002, phase 3, records the one characteristic that distinguishes
+ * a member product, VisionPilot as the vehicle application, as a feature
+ * candidate. Core elements are common by default and get no record.
+ * Camera-only sensing adds no record: the feature model already makes LiDAR
+ * optional. The speed-following and lane-keeping functions get none: the
+ * feature model already holds them as the optional features
+ * adaptiveCruiseControl and laneKeepAssist, which the governed scope does not
+ * hold. The lane-departure warnings get none: they come with the application
+ * that the candidate records, and no case of this increment judges them. The
+ * display and the sound get no candidate; the comment on the HMI gap gives the
+ * reasons. Eclipse S-CORE gets none: the feature model already holds it as a
+ * middleware alternative, and the comment on the admission gap reads its
+ * admission. The middleware adapter gets none: it is a derived realization,
+ * which phase 9 derives from the configuration.
+ */
+
+package DE4SDV_DriverAssistanceCapabilityClassification {
+  private import DE4SDV_ProductLine::*;
+  private import DE4SDV_Stakeholders::*;
+  private import DE4SDV_MethodViewpoints::*;
+  private import SysideViews::**;
+  private import Views::*;
+
+  part visionPilotDrivingStack : ProductLineFeatureCandidate {
+    doc /*
+     * VisionPilot as the vehicle application distinguishes a camera-only
+     * driver-assistance member from the Autoware members and from the AutoE2E
+     * candidate. At the pinned revision it reads one front-camera image and
+     * the vehicle speed, and writes steering and acceleration. It requires the
+     * camera, so phase 9 adds a requiresFeatures constraint and leaves LiDAR
+     * and radar selectable. It requires Linux on the main side: its live
+     * camera source uses V4L2, a Linux interface. ROS 2 is a build option,
+     * which its upstream simulator path uses. Phase 9 adds the Linux
+     * constraint as well. It needs a middleware adapter to Eclipse S-CORE,
+     * which phase 8 realizes first and phase 9 derives. It also runs a
+     * speed-following and a lane-keeping function, which no case of this
+     * increment judges. Phase 9 decides whether the configuration selects
+     * them. It raises lane-departure warnings as well, which no case judges
+     * either. Acceptance waits for the member decision.
+     */
+  }
+  dependency visionPilotCandidateOfDeferredDrivingStackVariability
+    from visionPilotDrivingStack
+    to DE4SDV_AEBSProductLineScope::deferredVariabilitySet::drivingStackVariability;
+  dependency visionPilotCandidateAnswersCandidateAdmissionGap
+    from visionPilotDrivingStack
+    to DE4SDV_DriverAssistanceFraming::gapCandidateAdmission;
+
+  comment memberDecisionScopeInputs about DE4SDV_DriverAssistanceFraming::gapCandidateAdmission
+    /*
+     * Phase 3 names the scope decisions that admitting the candidate would
+     * need. The member decision takes them by amending ADR 0014; this
+     * increment admits nothing.
+     * - The candidate would be a new planned member.
+     * - Autoware and LiDAR stop being common when it is admitted:
+     *   driving-stack and sensing variability leave deferral. Phase 3 of
+     *   INC-DRIVING-001 identified the same for the driving member.
+     * - Vehicle-Target AEBS and the independence of the protected emergency
+     *   command path stay common. ADR 0023 decision 5 keeps them common to the
+     *   three members it accepts, and INC-DRIVING-001 keeps them for the
+     *   driving member. The candidate has to meet both;
+     *   gapNoSeparateEmergencyFunction holds what is open.
+     * - The Linux and ROS 2 runtime of Autoware: the candidate runs on Linux
+     *   and does not use the Autoware runtime. ROS 2 is a build option of the
+     *   candidate, which its upstream simulator path uses. At the pinned
+     *   revision only that build carries steering and acceleration to a
+     *   vehicle: its CAN interface is a placeholder. Whether that common
+     *   content narrows to the part such a member uses and stays common, or
+     *   stops being common, is open.
+     * - The integration mode: on the model as it stands no configuration of
+     *   the candidate exists. Once phase 9 adds the candidate with its adapter
+     *   rule, a configuration of it is valid and not admitted until the member
+     *   decision; with Eclipse S-CORE, which is reference-only today, it is
+     *   not admitted on that count as well. ADR 0023, accepted, takes Eclipse
+     *   S-CORE out of the reference-only set into the S-CORE-integrated
+     *   alternative once its scope pull request takes effect in the model. A
+     *   configuration of the candidate with Eclipse S-CORE and the AAOS SDV
+     *   guest then realizes that alternative, read by intersection (ADR 0023
+     *   decision 4). Each integration-mode alternative characterizes exactly
+     *   one planned member (ADR 0023 decision 2), and that one characterizes
+     *   the S-CORE member. Whether the candidate shares it, which would amend
+     *   that decision, or needs an alternative of its own, is open.
+     */
+
+  comment driverHmiClassification about DE4SDV_DriverAssistanceFraming::gapDriverHmiInProductLine
+    /*
+     * Phase 3 classifies the candidate's display and sound against the scope.
+     * - The display: no feature candidate. ADR 0026, accepted, gives every
+     *   member a display, so it tells no member apart. The feature model
+     *   already holds it as hmiDisplay, optional only so that configurations
+     *   which are not members can leave it out (ADR 0026 decision 6). The
+     *   governed scope gets the display as common content with the scope pull
+     *   request of ADR 0026. The application's own visualization is not the
+     *   member's display.
+     * - The sound: neither the feature model nor the governed scope holds a
+     *   warning mode, and no member differs by one, so the sound is no
+     *   feature candidate. Whether the acoustic warning becomes common
+     *   content of the driver warning is open for the member decision.
+     */
+
+  concern driverAssistanceClassificationConcern : ProductLineCapabilityClassificationConcern {
+    doc /*
+     * Product-line engineers and systems engineers need VisionPilot
+     * identified as the feature candidate that distinguishes a camera-only
+     * driver-assistance member, with what it requires of the sensing and the
+     * runtime, and the deferred scope it turns into variability.
+     */
+    subject;
+    stakeholder productLineEngineer : ProductLineEngineer;
+    stakeholder systemsEngineer : SystemsEngineer;
+  }
+
+  view driverAssistanceClassificationView : TVD::TableView {
+    viewpoint selectedProductLineClassificationViewpoint : ProductLineClassificationViewpoint {
+      frame driverAssistanceClassificationConcern;
+    }
+
+    expose visionPilotDrivingStack;
+    filter @ SysML::PartUsage;
+    attribute :>> includeReferenceElements = true;
+    attribute :>> maxRowHeight = 300;
+    view ID :> columnViews {
+      attribute :>> featureToRender = CT::declaredName;
+    }
+    view Classification :> columnViews {
+      attribute :>> featureToRender = CT::heritage;
+    }
+    view Rationale :> columnViews {
+      attribute :>> featureToRender = CT::documentation;
+      attribute :>> columnWidth = 360;
+    }
+  }
+}
