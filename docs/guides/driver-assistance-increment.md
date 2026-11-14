@@ -203,25 +203,27 @@ deferred scope; review judges the classification.
 The [stakeholder needs](../../textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml)
 say what the parties of the Phase 1 concerns expect of the candidate. Each
 need is held by the parties it serves and leads its source with the concern
-it comes from. Each has one planned stakeholder review on a Phase 2 scenario,
-carried out by the roles that check the answer.
+it comes from. Each has one planned stakeholder review on the Phase 2
+scenarios it covers, carried out by the roles that check the answer.
 
 - `NEED-DRIVING-008`: the candidate requests the warning and commands the
   braking when a collision with a stationary or a slower moving vehicle ahead
   is imminent. Vehicle occupants and road users. Reviewed by `SC-DRIVING-016`
-  on `SC-DRIVING-012`.
+  on `SC-DRIVING-012` and `SC-DRIVING-013`.
 - `NEED-DRIVING-009`: no warning and no emergency braking when no collision
   is imminent. Vehicle occupants and road users. Reviewed by `SC-DRIVING-017`
-  on `SC-DRIVING-014`.
+  on `SC-DRIVING-014` and `SC-DRIVING-015`.
 - `NEED-DRIVING-010`: a warning request at the candidate's boundary, so that
   the AAOS SDV warns the driver on its display and as a sound. Vehicle
-  occupants. Reviewed by `SC-DRIVING-018` on `SC-DRIVING-013`.
+  occupants. Reviewed by `SC-DRIVING-018` on `SC-DRIVING-012` and
+  `SC-DRIVING-013`.
 - `NEED-DRIVING-011`: the driving command and the warning request pass
   through Eclipse S-CORE, with no exchange around it. Systems engineers and
   product-line engineers. Reviewed by `SC-DRIVING-019` on `SC-DRIVING-012`.
 - `NEED-DRIVING-012`: each run identifies the candidate revision and the
   configuration it ran with. Verification engineers and product-line
-  engineers. Reviewed by `SC-DRIVING-020` on `SC-DRIVING-015`.
+  engineers. Reviewed by `SC-DRIVING-020` on all four
+  scenarios.
 
 Two concerns get no need of their own. The criteria for a vehicle target and
 the independence of the braking command are questions of the roles that check

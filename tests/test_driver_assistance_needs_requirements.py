@@ -38,13 +38,26 @@ NEEDS = {
         "NEED-DRIVING-012", {"VerificationEngineer", "ProductLineEngineer"}, "candidateVerdictConcern"),
 }
 
-#: need -> (the short name of its planned review, the phase 2 use case the review depends on)
+#: need -> (the short name of its planned review, the phase 2 use cases the review depends on: each scenario its
+#: need's source names)
 VALIDATION = {
-    "needWarnAndBrakeForVehicleAhead": ("SC-DRIVING-016", "warnAndBrakeForStationaryVehicle"),
-    "needNoReactionWithoutImminentCollision": ("SC-DRIVING-017", "noReactionToStationaryVehicleBeyondTheCurve"),
-    "needWarningRequestForTheDriver": ("SC-DRIVING-018", "warnAndBrakeForSlowerVehicle"),
-    "needCommandsAndWarningThroughSCORE": ("SC-DRIVING-019", "warnAndBrakeForStationaryVehicle"),
-    "needRunsIdentifyTheCandidate": ("SC-DRIVING-020", "noReactionToVehicleAheadTurningOff"),
+    "needWarnAndBrakeForVehicleAhead": ("SC-DRIVING-016", ("warnAndBrakeForStationaryVehicle",
+                                                           "warnAndBrakeForSlowerVehicle")),
+    "needNoReactionWithoutImminentCollision": ("SC-DRIVING-017", ("noReactionToStationaryVehicleBeyondTheCurve",
+                                                                  "noReactionToVehicleAheadTurningOff")),
+    "needWarningRequestForTheDriver": ("SC-DRIVING-018", ("warnAndBrakeForStationaryVehicle",
+                                                          "warnAndBrakeForSlowerVehicle")),
+    "needCommandsAndWarningThroughSCORE": ("SC-DRIVING-019", ("warnAndBrakeForStationaryVehicle",)),
+    "needRunsIdentifyTheCandidate": ("SC-DRIVING-020", ("warnAndBrakeForStationaryVehicle", "warnAndBrakeForSlowerVehicle",
+                                                        "noReactionToStationaryVehicleBeyondTheCurve",
+                                                        "noReactionToVehicleAheadTurningOff")),
+}
+#: phase 2 use case -> its scenario identity
+SCENARIOS = {
+    "warnAndBrakeForStationaryVehicle": "SC-DRIVING-012",
+    "warnAndBrakeForSlowerVehicle": "SC-DRIVING-013",
+    "noReactionToStationaryVehicleBeyondTheCurve": "SC-DRIVING-014",
+    "noReactionToVehicleAheadTurningOff": "SC-DRIVING-015",
 }
 
 #: reviewer-question concerns: no need of their own; a need's source names them and its planned review checks them
@@ -53,7 +66,8 @@ REVIEWED_CONCERNS = {
     "emergencyBrakingIndependenceConcern": (
         "needWarnAndBrakeForVehicleAhead",
         "can safety experts and product-line engineers tell which element of the candidate gave the braking "
-        "command, and whether it left the candidate in the driving command or apart from it?"),
+        "command, whether it left the candidate in the driving command or apart from it, and how that command keeps "
+        "the independence of the protected emergency command path?"),
     "vehicleTargetCriteriaConcern": (
         "needWarnAndBrakeForVehicleAhead",
         "by the criteria for a vehicle target that phase 5 derives"),
@@ -182,32 +196,34 @@ def test_each_need_has_one_planned_review_on_a_phase_2_use_case():
     code = _code()
     context = strip_comments(CONTEXT.read_text(encoding="utf-8"))
     plans = _plans()
-    assert sorted(plans) == sorted(short for short, _use_case in VALIDATION.values())
+    assert sorted(plans) == sorted(short for short, _use_cases in VALIDATION.values())
     associations = re.findall(
         r"\bconnection\s+\w+\s*:\s*ValidationPlanningAssociation\s+connect\s+(\w+)\s+to\s+(\w+)\s*;", code)
     dependencies = re.findall(r"\bdependency\s+\w+\s+from\s+(\w+)\s+to\s+([\w:]+)\s*;", code)
-    for need, (plan_short, use_case) in VALIDATION.items():
+    for need, (plan_short, use_cases) in VALIDATION.items():
         plan = plans[plan_short]
         assert associations.count((need, plan)) == 1, (need, plan)
         assert _plan_doc(plan_short).startswith(f"For {NEEDS[need][0]}, a planned stakeholder review."), plan
-        assert [target for source, target in dependencies if source == plan] == [f"{CONTEXT_PACKAGE}::{use_case}"], \
-            (plan, use_case)
-        assert re.search(rf"\buse\s+case\s+{use_case}\s*\{{", context), use_case
+        assert sorted(target for source, target in dependencies if source == plan) == \
+            sorted(f"{CONTEXT_PACKAGE}::{use_case}" for use_case in use_cases), (plan, use_cases)
+        for use_case in use_cases:
+            assert re.search(rf"\buse\s+case\s+{use_case}\s*\{{", context), use_case
+        source = _attribute(_need(need), "source")
+        for use_case in use_cases:
+            assert SCENARIOS[use_case] in source or (
+                "SC-DRIVING-012 to SC-DRIVING-015" in source), (need, "its review covers the scenarios its source names")
     assert len(associations) == len(NEEDS), "one planned review per need"
     # Phase 2 owns SC-DRIVING-012 to SC-DRIVING-015; the planned reviews continue the numbering.
     assert not re.search(r"<'SC-DRIVING-0(?:0\d|1[0-5])'>", code)
 
 
 def test_each_planned_review_names_the_scenario_it_watches():
-    scenarios = {
-        "warnAndBrakeForStationaryVehicle": "SC-DRIVING-012",
-        "warnAndBrakeForSlowerVehicle": "SC-DRIVING-013",
-        "noReactionToStationaryVehicleBeyondTheCurve": "SC-DRIVING-014",
-        "noReactionToVehicleAheadTurningOff": "SC-DRIVING-015",
-    }
-    for plan_short, use_case in VALIDATION.values():
+    for plan_short, use_cases in VALIDATION.values():
         doc = _plan_doc(plan_short)
-        assert f"({scenarios[use_case]})" in doc, (plan_short, use_case)
+        for use_case in use_cases:
+            assert SCENARIOS[use_case] in doc, (plan_short, use_case)
+        assert set(re.findall(r"SC-DRIVING-01[2-5]", doc)) == {SCENARIOS[use_case] for use_case in use_cases}, \
+            f"{plan_short} names exactly the scenarios it watches"
         assert doc.count("?") >= 1, f"{plan_short} asks its question"
 
 
@@ -264,6 +280,9 @@ def test_the_input_contract_is_a_comment_for_phase_5_not_a_need():
                    "VisionPilot/modules/safety_guardian/planning/src/planning.cpp:113-121"):
         assert phrase in comment, phrase
     assert not re.search(r"-?\d+\.\d+\s*(?:m/s|<|<=)", comment), "the comment states no threshold of the planner"
+    assert "Nothing in the code orders the warning before the braking; phase 5 derives the criterion for the time " \
+        "between them." in comment, "a fact of the code, not a relaxation of the criterion"
+    assert not re.search(r"(?i)\bneed not\b", comment)
 
 
 def test_two_tables_frame_the_needs_concern_and_show_needs_and_planned_reviews():
@@ -310,7 +329,7 @@ def test_the_guide_has_a_phase_4_section_and_names_phase_5_next():
     section = " ".join(guide.split("## Stakeholder needs (Phase 4)", 1)[1].split("\n## ", 1)[0].split())
     for short, _roles, _concern in NEEDS.values():
         assert short in section, short
-    for plan_short, _use_case in VALIDATION.values():
+    for plan_short, _use_cases in VALIDATION.values():
         assert plan_short in section, plan_short
     assert "tests/test_driver_assistance_needs_requirements.py" in section
     flat = " ".join(guide.split())  # Markdown: a line may open with bold text, which _flat would strip

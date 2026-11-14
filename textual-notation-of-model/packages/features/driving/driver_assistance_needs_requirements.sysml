@@ -5,7 +5,8 @@
  * driver-assistance system, the system of interest the charter declares.
  * Each need is held by the parties it serves and leads its source with the
  * phase 1 concern it derives from. Each has one planned stakeholder review on
- * a scenario of phase 2, carried out by the roles that check the answer. Two
+ * the scenarios of phase 2 it covers, carried out by the roles that check the
+ * answer. Two
  * concerns are reviewer questions: a need's source names them and its review
  * checks them. Phase 5 adds the requirements to this package. No safety,
  * on-road or production-readiness claim is made, and no member product is
@@ -88,60 +89,71 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
      * - The forward-collision warning and the emergency braking are two
      *   ranges of the acceleration that one speed planner computes
      *   (VisionPilot/modules/safety_guardian/planning/src/planning.cpp:113-121).
-     *   The warning need not come before the braking; phase 5 derives that
-     *   criterion.
+     *   Nothing in the code orders the warning before the braking; phase 5
+     *   derives the criterion for the time between them.
      */
 
   /* ───────────────── Phase 4: planned stakeholder reviews ───────────────── */
 
   part <'SC-DRIVING-016'> vehicleAheadResponseValidationPlan : ValidationPlanningScenario {
     doc /* For NEED-DRIVING-008, a planned stakeholder review. While the
-         * stationary vehicle target scenario runs (SC-DRIVING-012), can
-         * verification engineers and compliance engineers confirm, by the
-         * criteria for a vehicle target that phase 5 derives, that the
-         * candidate requests the warning and that its driving command brakes
-         * the vehicle, and that no autopilot, replay or overlay acts instead
-         * of the candidate? And can safety experts and product-line engineers
-         * tell which element of the candidate gave the braking command, and
-         * whether it left the candidate in the driving command or apart from
-         * it? */
+         * stationary and the slower moving vehicle target scenarios run
+         * (SC-DRIVING-012 and SC-DRIVING-013), can verification engineers and
+         * compliance engineers confirm, by the criteria for a vehicle target
+         * that phase 5 derives, that the candidate requests the warning and
+         * that its driving command brakes the vehicle, and that no autopilot,
+         * replay or overlay acts instead of the candidate? And can safety
+         * experts and product-line engineers tell which element of the
+         * candidate gave the braking command, whether it left the candidate in
+         * the driving command or apart from it, and how that command keeps the
+         * independence of the protected emergency command path? */
   }
   connection vehicleAheadResponseValidationPlanning : ValidationPlanningAssociation
     connect needWarnAndBrakeForVehicleAhead to vehicleAheadResponseValidationPlan;
   dependency vehicleAheadResponseValidationFromStationaryTargetScenario
     from vehicleAheadResponseValidationPlan
     to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForStationaryVehicle;
+  dependency vehicleAheadResponseValidationFromSlowerTargetScenario
+    from vehicleAheadResponseValidationPlan
+    to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForSlowerVehicle;
 
   part <'SC-DRIVING-017'> noReactionValidationPlan : ValidationPlanningScenario {
     doc /* For NEED-DRIVING-009, a planned stakeholder review. While the
          * vehicle drives through the curve past the stationary vehicle beyond
-         * the guard pipes (SC-DRIVING-014), can verification engineers and
-         * compliance engineers confirm, by the criterion that phase 5 states
-         * for the scenario, that the candidate requests no warning and
+         * the guard pipes (SC-DRIVING-014), and while it follows the vehicle
+         * ahead that turns off (SC-DRIVING-015), can verification engineers
+         * and compliance engineers confirm, by the criterion that phase 5
+         * states for each scenario, that the candidate requests no warning and
          * commands no emergency braking, and that the candidate's own driving
-         * command moved the vehicle throughout the run? */
+         * command moved the vehicle throughout each run? */
   }
   connection noReactionValidationPlanning : ValidationPlanningAssociation
     connect needNoReactionWithoutImminentCollision to noReactionValidationPlan;
   dependency noReactionValidationFromCurveScenario
     from noReactionValidationPlan
     to DE4SDV_DriverAssistanceOperationalContext::noReactionToStationaryVehicleBeyondTheCurve;
+  dependency noReactionValidationFromTurningOffScenario
+    from noReactionValidationPlan
+    to DE4SDV_DriverAssistanceOperationalContext::noReactionToVehicleAheadTurningOff;
 
   part <'SC-DRIVING-018'> driverWarningValidationPlan : ValidationPlanningScenario {
     doc /* For NEED-DRIVING-010, a planned stakeholder review. While the
-         * slower moving vehicle target scenario runs (SC-DRIVING-013), can
-         * safety experts and verification engineers confirm that each warning
-         * request of the candidate reached the AAOS SDV, that the AAOS SDV
-         * gave the warning on its display and as a sound, and when each mode
-         * began relative to the warning request and to the start of the
-         * emergency braking, with no recording or overlay in place of either
-         * mode? */
+         * stationary and the slower moving vehicle target scenarios run
+         * (SC-DRIVING-012 and SC-DRIVING-013), can safety experts and
+         * verification engineers confirm that each warning request of the
+         * candidate reached the AAOS SDV, that the AAOS SDV gave the warning
+         * on its display and as a sound, and when each mode began relative to
+         * the warning request and to the start of the emergency braking, with
+         * no recording or overlay in place of either mode? */
   }
   connection driverWarningValidationPlanning : ValidationPlanningAssociation
     connect needWarningRequestForTheDriver to driverWarningValidationPlan;
   dependency driverWarningValidationFromSlowerTargetScenario
     from driverWarningValidationPlan
     to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForSlowerVehicle;
+  dependency driverWarningValidationFromStationaryTargetScenario
+    from driverWarningValidationPlan
+    to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForStationaryVehicle;
 
   part <'SC-DRIVING-019'> scoreCommandAndWarningPathValidationPlan : ValidationPlanningScenario {
     doc /* For NEED-DRIVING-011, a planned stakeholder review. While the
@@ -158,20 +170,28 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForStationaryVehicle;
 
   part <'SC-DRIVING-020'> candidateIdentityValidationPlan : ValidationPlanningScenario {
-    doc /* For NEED-DRIVING-012, a planned stakeholder review. After a run of
-         * the scenario in which the vehicle ahead turns off (SC-DRIVING-015),
-         * can verification engineers and product-line engineers bind its
-         * verdict to the candidate revision and the configuration that the
-         * run identifies, and confirm that a build with a change that upstream
-         * has not merged identifies itself as a different candidate? In this
-         * scenario no warning and no braking ties the verdict to the
-         * candidate, so the identity of the run does. */
+    doc /* For NEED-DRIVING-012, a planned stakeholder review. After each run
+         * of the four scenarios (SC-DRIVING-012, SC-DRIVING-013,
+         * SC-DRIVING-014 and SC-DRIVING-015), can verification engineers and
+         * product-line engineers bind its verdict to the candidate revision
+         * and the configuration that the run identifies, and confirm that a
+         * build with a change that upstream has not merged identifies itself
+         * as a different candidate? */
   }
   connection candidateIdentityValidationPlanning : ValidationPlanningAssociation
     connect needRunsIdentifyTheCandidate to candidateIdentityValidationPlan;
   dependency candidateIdentityValidationFromTurningOffScenario
     from candidateIdentityValidationPlan
     to DE4SDV_DriverAssistanceOperationalContext::noReactionToVehicleAheadTurningOff;
+  dependency candidateIdentityValidationFromStationaryTargetScenario
+    from candidateIdentityValidationPlan
+    to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForStationaryVehicle;
+  dependency candidateIdentityValidationFromSlowerTargetScenario
+    from candidateIdentityValidationPlan
+    to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForSlowerVehicle;
+  dependency candidateIdentityValidationFromCurveScenario
+    from candidateIdentityValidationPlan
+    to DE4SDV_DriverAssistanceOperationalContext::noReactionToStationaryVehicleBeyondTheCurve;
 
   /* ─────────────────────────────── Views ─────────────────────────────── */
 
