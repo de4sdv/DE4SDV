@@ -435,7 +435,7 @@ Compliance engineers and verification engineers need each requirement of the dri
 - **Viewpoint:** `selectedRequirementDefinitionViewpoint` (`SystemRequirementDefinitionViewpoint`)
 - **View type:** `TVD::TableView`
 - **Concern:** `driverAssistanceRequirementTraceConcern`
-- **Exposes:** `reqEmergencyBrakingForImminentCollision`, `reqImpactSpeedWithinLimit`, `reqDrivingCommandOverSCORE`, `reqIsolateEmergencyBrakingFromSCORE`, `reqWithholdWarningRequest`, `reqWithholdEmergencyBraking`, `reqWarningRequestBeforeEmergencyBraking`, `reqWarningRequestOverSCORE`, `reqRecordCandidateIdentity`
+- **Exposes:** `reqEmergencyBrakingForImminentCollision`, `reqImpactSpeedWithinLimit`, `reqDrivingCommandOverSCORE`, `reqDetectableDrivingCommand`, `reqWithholdWarningRequest`, `reqWithholdEmergencyBraking`, `reqWarningRequestBeforeEmergencyBraking`, `reqWarningRequestOverSCORE`, `reqRecordCandidateIdentity`
 
 - **Diagram status:** Published from the committed SysIDE SVG.
 
