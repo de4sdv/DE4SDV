@@ -27,6 +27,7 @@ npx markdownlint "**/*.md"
 - `textual-notation-of-model/` — system model assets
 - `sysmlv2-api/` — SysML v2 API integration assets
 - `simulation/` — FMU/FMI/SSP integration assets
+- `de4sdv-virtual-ee/` — zonal E/E signal contract in software: DBC frames, VSS mapping, zone plant model
 - `model-based-product-line-engineering/` — feature models, configurations, shared assets, product models, the governed product-line scope
 - `compliance/` — safety, security, UNECE and homologation evidence structure
 - `devsecops/` — CI/CD, SBOM, security checks, policy-as-code notes

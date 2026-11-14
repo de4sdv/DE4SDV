@@ -1,0 +1,8 @@
+{
+  "Headlamp_Low_Req": 0,
+  "Headlamp_High_Req": 0,
+  "Headlamp_Cmd_Seq": 0,
+  "Wiper_Mode_Req": 0,
+  "Wiper_Interval_ms": 0,
+  "Wiper_Cmd_Seq": 0
+}

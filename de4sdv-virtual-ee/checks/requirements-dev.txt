@@ -1,0 +1,4 @@
+# Offline checks for the virtual E/E signal contract.
+# Pinned: the DBC is the contract, so the parser that validates it is pinned too.
+cantools==45.1.2
+python-can==4.6.1

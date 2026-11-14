@@ -1,0 +1,65 @@
+VERSION ""
+
+NS_ :
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: Central RearZone
+
+BO_ 640 DE4SDV_Wiper_Cmd: 8 Central
+ SG_ Wiper_Mode_Req : 0|3@1+ (1,0) [0|5] "" RearZone
+ SG_ Wiper_Interval_ms : 8|8@1+ (10,0) [0|2550] "ms" RearZone
+ SG_ Wiper_Cmd_Seq : 16|8@1+ (1,0) [0|255] "" RearZone
+
+BO_ 641 DE4SDV_Wiper_Status: 8 RearZone
+ SG_ Wiper_Mode_State : 0|3@1+ (1,0) [0|5] "" Central
+ SG_ Wiper_Position_pct : 8|7@1+ (1,0) [0|100] "%" Central
+ SG_ Wiper_Position_Reached : 16|1@1+ (1,0) [0|1] "" Central
+ SG_ Wiper_Error : 17|1@1+ (1,0) [0|1] "" Central
+ SG_ Wiper_Seq_Ack : 24|8@1+ (1,0) [0|255] "" Central
+
+VAL_ 640 Wiper_Mode_Req 0 "OFF" 1 "SLOW" 2 "MEDIUM" 3 "FAST" 4 "INTERVAL" 5 "RAIN_SENSOR" ;
+VAL_ 641 Wiper_Mode_State 0 "OFF" 1 "SLOW" 2 "MEDIUM" 3 "FAST" 4 "INTERVAL" 5 "RAIN_SENSOR" ;
+
+CM_ BO_ 640 "Wiper command from central compute to the rear zone ECU.";
+CM_ BO_ 641 "Wiper status from the rear zone ECU. Wiper_Position_Reached and Wiper_Seq_Ack are the tell-back the demo binaries never sent.";
+CM_ SG_ 640 Wiper_Mode_Req "Requested wipe mode, values match the VSS Wiping.Mode enumeration.";
+CM_ SG_ 640 Wiper_Interval_ms "Interval period for INTERVAL mode, in milliseconds (factor 10).";
+CM_ SG_ 640 Wiper_Cmd_Seq "Monotonic command sequence number, 0-255 wrap. Echoed in Wiper_Seq_Ack.";
+CM_ SG_ 641 Wiper_Mode_State "Actual wipe mode.";
+CM_ SG_ 641 Wiper_Position_pct "Actual wiper position, 0 = park, 100 = full sweep.";
+CM_ SG_ 641 Wiper_Position_Reached "1 when the wiper has reached the position commanded for the current sequence number. This is the acknowledgement.";
+CM_ SG_ 641 Wiper_Error "1 if the zone ECU reports a wiper fault.";
+CM_ SG_ 641 Wiper_Seq_Ack "Sequence number of the last accepted command.";
+
+BA_DEF_ BO_ "GenMsgCycleTime" INT 0 65535;
+BA_DEF_DEF_ "GenMsgCycleTime" 100;
+BA_ "GenMsgCycleTime" BO_ 641 100;

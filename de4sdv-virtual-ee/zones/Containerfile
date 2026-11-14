@@ -1,0 +1,45 @@
+# DE4SDV virtual E/E — zone ECU image
+#
+# One image serves every zone: the ECU personality (headlamp | wiper) is a
+# runtime argument, not a build variant, so a zone is a manifest decision.
+#
+# Debian slim rather than Ubuntu: this image never runs vxedge binaries, and
+# bookworm ships iproute2 + can-utils, which is all the CAN side needs.
+ARG PYTHON_IMAGE=python:3.12-slim-bookworm
+
+FROM ${PYTHON_IMAGE}
+
+ARG KUKSA_CAN_PROVIDER_REF=0.5.1
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      iproute2 can-utils git tini \
+ && rm -rf /var/lib/apt/lists/*
+
+# The provider is not published to PyPI and ships no packaging metadata, so it
+# is cloned at a pinned tag and run from source. Pin, never float.
+RUN git clone --depth 1 --branch "${KUKSA_CAN_PROVIDER_REF}" \
+      https://github.com/eclipse-kuksa/kuksa-can-provider /opt/provider \
+ && pip install --no-cache-dir -r /opt/provider/requirements.txt
+
+# Plant model + measurement helpers.
+RUN pip install --no-cache-dir cantools==45.1.2 python-can==4.6.1
+
+WORKDIR /opt/zone
+COPY dbc/ /opt/zone/dbc/
+COPY vss/ /opt/zone/vss/
+COPY zones/entrypoint.sh /opt/zone/entrypoint.sh
+COPY zones/zone_ecu.py /opt/zone/zone_ecu.py
+COPY zones/dbc_feeder.ini /opt/zone/dbc_feeder.ini
+
+ENV PATH="/opt/zone:${PATH}" \
+    PYTHONUNBUFFERED=1 \
+    ZONE_ECU=headlamp \
+    ZONE_DBC=/opt/zone/dbc/headlamp.dbc \
+    ZONE_CHANNEL=vcan0 \
+    KUKSA_ADDRESS=grpc://127.0.0.1:55555
+
+RUN chmod +x /opt/zone/entrypoint.sh
+
+# tini reaps both children (provider + plant model) and forwards signals.
+ENTRYPOINT ["/usr/bin/tini", "--", "/opt/zone/entrypoint.sh"]

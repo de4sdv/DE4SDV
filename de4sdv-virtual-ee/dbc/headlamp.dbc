@@ -1,0 +1,60 @@
+VERSION ""
+
+NS_ :
+	NS_DESC_
+	CM_
+	BA_DEF_
+	BA_
+	VAL_
+	CAT_DEF_
+	CAT_
+	FILTER
+	BA_DEF_DEF_
+	EV_DATA_
+	ENVVAR_DATA_
+	SGTYPE_
+	SGTYPE_VAL_
+	BA_DEF_SGTYPE_
+	BA_SGTYPE_
+	SIG_TYPE_REF_
+	VAL_TABLE_
+	SIG_GROUP_
+	SIG_VALTYPE_
+	SIGTYPE_VALTYPE_
+	BO_TX_BU_
+	BA_DEF_REL_
+	BA_REL_
+	BA_DEF_DEF_REL_
+	BU_SG_REL_
+	BU_EV_REL_
+	BU_BO_REL_
+	SG_MUL_VAL_
+
+BS_:
+
+BU_: Central FrontZone
+
+BO_ 384 DE4SDV_Headlamp_Cmd: 8 Central
+ SG_ Headlamp_Low_Req : 0|1@1+ (1,0) [0|1] "" FrontZone
+ SG_ Headlamp_High_Req : 1|1@1+ (1,0) [0|1] "" FrontZone
+ SG_ Headlamp_Cmd_Seq : 8|8@1+ (1,0) [0|255] "" FrontZone
+
+BO_ 385 DE4SDV_Headlamp_Status: 8 FrontZone
+ SG_ Headlamp_Low_On : 0|1@1+ (1,0) [0|1] "" Central
+ SG_ Headlamp_High_On : 1|1@1+ (1,0) [0|1] "" Central
+ SG_ Headlamp_Fault : 2|1@1+ (1,0) [0|1] "" Central
+ SG_ Headlamp_Seq_Ack : 8|8@1+ (1,0) [0|255] "" Central
+
+CM_ BO_ 384 "Headlamp command from central compute to the front zone ECU.";
+CM_ BO_ 385 "Headlamp status from the front zone ECU. Headlamp_Seq_Ack carries the sequence number of the last accepted command (the acknowledgement).";
+CM_ SG_ 384 Headlamp_Low_Req "1 requests the low beam on, 0 requests it off.";
+CM_ SG_ 384 Headlamp_High_Req "1 requests the high beam on, 0 requests it off.";
+CM_ SG_ 384 Headlamp_Cmd_Seq "Monotonic command sequence number, 0-255 wrap. Echoed in Headlamp_Seq_Ack.";
+CM_ SG_ 385 Headlamp_Low_On "Actual low beam state.";
+CM_ SG_ 385 Headlamp_High_On "Actual high beam state.";
+CM_ SG_ 385 Headlamp_Fault "1 if the zone ECU reports a lamp fault.";
+CM_ SG_ 385 Headlamp_Seq_Ack "Sequence number of the last accepted command.";
+
+BA_DEF_ BO_ "GenMsgCycleTime" INT 0 65535;
+BA_DEF_DEF_ "GenMsgCycleTime" 100;
+BA_ "GenMsgCycleTime" BO_ 385 100;
