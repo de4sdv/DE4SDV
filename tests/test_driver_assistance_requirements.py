@@ -66,6 +66,19 @@ REQUIREMENTS = {
 #: The charter's scope: one configuration and at most ten requirements.
 SCOPE_CAP = 10
 
+#: requirement -> its source, exactly: what it derives from is a decision of phase 5
+SOURCES = {
+    "reqEmergencyBrakingForImminentCollision": "NEED-DRIVING-008; SRC-UNECE-R152 emergency braking; REQ-AEBS-003; gap gapVehicleTargetCriteria; scenarios SC-DRIVING-012 and SC-DRIVING-013",
+    "reqImpactSpeedWithinLimit": "NEED-DRIVING-008; SRC-UNECE-R152 speed reduction by braking demand; REQ-AEBS-003; gap gapVehicleTargetCriteria; scenarios SC-DRIVING-012 and SC-DRIVING-013",
+    "reqDrivingCommandOverSCORE": "NEED-DRIVING-008; scope item scoreCommandPathInScope; gap gapScoreIntegration; scenarios SC-DRIVING-012 to SC-DRIVING-015",
+    "reqIsolateEmergencyBrakingFromSCORE": "NEED-DRIVING-008; REQ-MW-006; gap gapNoSeparateEmergencyFunction; emergencyBrakingIndependenceConcern",
+    "reqWithholdWarningRequest": "NEED-DRIVING-009; SRC-UNECE-R152 false reaction avoidance; REQ-AEBS-008; gap gapVehicleTargetCriteria; scenarios SC-DRIVING-014 and SC-DRIVING-015",
+    "reqWithholdEmergencyBraking": "NEED-DRIVING-009; SRC-UNECE-R152 false reaction avoidance; REQ-AEBS-012; gap gapVehicleTargetCriteria; scenarios SC-DRIVING-014 and SC-DRIVING-015",
+    "reqWarningRequestBeforeEmergencyBraking": "NEED-DRIVING-010; SRC-UNECE-R152 collision warning; REQ-AEBS-002; gap gapWarningOutput; scenarios SC-DRIVING-012 and SC-DRIVING-013",
+    "reqWarningRequestOverSCORE": "NEED-DRIVING-010; scope item scoreCommandPathInScope; gaps gapWarningOutput and gapScoreIntegration; scenarios SC-DRIVING-012 and SC-DRIVING-013",
+    "reqRecordCandidateIdentity": "NEED-DRIVING-011; gap gapCandidateBehaviorUnverified; scenarios SC-DRIVING-012 to SC-DRIVING-015",
+}
+
 #: requirement -> the fragments its statement, its rationale and its success criteria must carry
 FRAGMENTS = {
     "reqEmergencyBrakingForImminentCollision": {
@@ -108,7 +121,8 @@ FRAGMENTS = {
     },
     "reqWarningRequestBeforeEmergencyBraking": {
         "statement": ("at its boundary", "at least 1.0 s of simulation time before the start of its emergency braking"),
-        "rationale": ("SRC-UNECE-R152", "REQ-AEBS-002", "0.8 s", "0.2 s", "wall-clock time", "AAOS SDV",
+        "rationale": ("SRC-UNECE-R152", "REQ-AEBS-002", "0.8 s", "Of the 1.0 s, 0.2 s is allotted",
+                      "each mode is due within 0.2 s of wall-clock time after the request", "AAOS SDV",
                       "planning.cpp:113-121", "The obligation is the candidate's", "A simulation cannot show"),
         "criteria": ("1.0 s of simulation time", "first emergency braking", "each judged run"),
     },
@@ -136,6 +150,15 @@ TERM_VALUES = ("20 to 22 km/h", "40 to 42 km/h", "58 to 60 km/h", "30 to 32 km/h
                "38 to 40 km/h", "at most 25 m radius", "at least 4 s", "within 0.2 m", "at least 2 s",
                "at least 5.0 m/s²", "35 km/h at 60 km/h", "0 km/h up to 42 km/h", "run twice, and both runs count",
                "Wall-clock time")
+#: The rules the terms fix, each a decision of phase 5.
+TERM_RULES = ("It starts with the first such command after a command for less.",
+              "take a collision as imminent in every judged run",
+              "and in no run of SC-DRIVING-014 or SC-DRIVING-015",
+              "until the vehicle hits the target or comes to the speed of the target",
+              "is reported with what it missed and is not judged",
+              "that is not the newest command of the driver-assistance system",
+              "a loss, a delay, a repetition or a corruption of a message on it",
+              "Between two of these speeds, the limit of the higher one applies.")
 #: What the gap comment on gapVehicleTargetCriteria must name: the requirements, the obligations and what stays open.
 GAP_FRAGMENTS = ("REQ-DRIVING-036", "REQ-DRIVING-037", "REQ-DRIVING-040", "REQ-DRIVING-041", "REQ-DRIVING-042",
                  "System 2", "AAOS SDV", "0.2 s", "SC-DRIVING-014", "SC-DRIVING-015", "Open:")
@@ -242,6 +265,7 @@ def test_each_source_leads_with_its_need_and_wraps_in_its_column():
     for name, (_short, need, _kind, _method) in REQUIREMENTS.items():
         source = _attribute(_requirement(name), "source")
         assert source.startswith(NEED_SHORT[need]), (name, source)
+        assert source == SOURCES[name], (name, source)
         longest = max(source.split(), key=len)
         assert len(longest) <= 40, (name, longest)
 
@@ -310,6 +334,8 @@ def test_the_terms_of_the_requirements_are_defined_once_in_the_package():
         assert f"- {head}:" in text, head
     for value in TERM_VALUES:
         assert value in text, value
+    for rule in TERM_RULES:
+        assert rule in text, rule
 
 
 def test_the_vehicle_target_criteria_gap_records_what_phase_5_fixed_and_what_stays_open():
