@@ -231,8 +231,9 @@ not the needs, ask that no autopilot, replay or overlay acts instead of the
 candidate. No need states a number: Phase 5 derives the criteria, their limits
 and the time of the warning before the braking. VisionPilot's runtime contract
 at the pinned revision is a comment for Phase 5: only its ROS 2 build reads a
-real speed and commands a vehicle. The speed-following, lane-keeping and
-lane-departure functions get no need, since no case judges them.
+live speed and commands a vehicle, and its warnings reach only its own
+visualization and log. The speed-following, lane-keeping and lane-departure
+functions get no need, since no case judges them.
 
 `tests/test_driver_assistance_needs_requirements.py` pins the needs, their
 holders and sources, the planned reviews and their scenarios, and the

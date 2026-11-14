@@ -27,8 +27,8 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     stakeholder occupant : VehicleOccupant;
     stakeholder roadUser : RoadUser;
     require constraint statement { language "English" /* Vehicle occupants and road users need the driver-assistance system to request the collision warning and to command the braking of the vehicle when a collision with a stationary or a slower moving vehicle ahead in its lane is imminent. */ }
-    attribute :>> source = "INC-DRIVING-002 vehicleTargetResponseConcern, emergencyBrakingIndependenceConcern, scoreCommandAndWarningPathConcern, vehicleTargetCriteriaConcern, scope items vehicleTargetResponseInScope and scoreCommandPathInScope, gaps gapNoSeparateEmergencyFunction, gapScoreIntegration and gapCameraImageAndGeometry, assumption asmBenchReuse, scenarios SC-DRIVING-012 and SC-DRIVING-013";
-    attribute :>> rationale = "The warning lets the driver act, and the braking is meant to avoid or lessen the collision when the driver does not act in time. The need states what they expect, not how well the candidate meets it, and carries no safety claim. Phase 5 derives the criteria for a vehicle target and their limits (gapVehicleTargetCriteria).";
+    attribute :>> source = "INC-DRIVING-002 vehicleTargetResponseConcern, emergencyBrakingIndependenceConcern, scoreCommandAndWarningPathConcern, vehicleTargetCriteriaConcern, scope items vehicleTargetResponseInScope, scoreCommandPathInScope and vehicleTargetCriteriaInScope, gaps gapNoSeparateEmergencyFunction, gapScoreIntegration, gapVehicleTargetCriteria and gapCameraImageAndGeometry, assumption asmBenchReuse, scenarios SC-DRIVING-012 and SC-DRIVING-013";
+    attribute :>> rationale = "The warning lets the driver act, and the braking is meant to avoid or lessen the collision when the driver does not act in time. The need states what they expect, not how well the candidate meets it, and carries no safety claim. Phase 5 derives the criteria for a vehicle target and their limits (gapVehicleTargetCriteria). Phase 5 also derives from this need the requirements on the Eclipse S-CORE path of the warning request and the braking command, and on the independence of that command: its source names their concerns, and SC-DRIVING-016 asks their questions.";
   }
 
   requirement <'NEED-DRIVING-009'> needNoReactionWithoutImminentCollision : StakeholderNeedCandidate {
@@ -45,7 +45,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     stakeholder occupant : VehicleOccupant;
     require constraint statement { language "English" /* Vehicle occupants need the driver-assistance system to give a warning request at its boundary when a collision with a vehicle ahead in its lane is imminent, so that the AAOS SDV warns the driver on its display and as a sound. */ }
     attribute :>> source = "INC-DRIVING-002 driverWarningSequenceConcern, scope item driverWarningInScope, gap gapWarningOutput, scenarios SC-DRIVING-012 and SC-DRIVING-013";
-    attribute :>> rationale = "The driver can act on a warning only if it reaches the display and the sound of the AAOS SDV. At the inspected revision the application has no warning output at its boundary; its warnings go to its own visualization and data log (gapWarningOutput). Phase 5 states when each mode is due relative to the warning request and to the start of the emergency braking. Whether a driver perceives the warning is out of scope.";
+    attribute :>> rationale = "The driver can act on a warning only if it reaches the display and the sound of the AAOS SDV. NEED-DRIVING-008 needs the candidate to request the warning; this need adds that the request leaves the candidate at its boundary, where the AAOS SDV takes it. At the inspected revision the application has no warning output at its boundary; its warnings go to its own visualization and data log (gapWarningOutput). Phase 5 states when each mode is due relative to the warning request and to the start of the emergency braking. Whether a driver perceives the warning is out of scope.";
   }
 
   requirement <'NEED-DRIVING-011'> needRunsIdentifyTheCandidate : StakeholderNeedCandidate {
@@ -54,7 +54,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     stakeholder productLineEngineer : ProductLineEngineer;
     require constraint statement { language "English" /* Verification engineers and product-line engineers need each run of the driver-assistance system to identify the candidate revision and the configuration it ran with, so that each verdict is bound to what ran. */ }
     attribute :>> source = "INC-DRIVING-002 candidateVerdictConcern, scope item verdictEvidenceInScope, gap gapCandidateBehaviorUnverified, scenarios SC-DRIVING-012 to SC-DRIVING-015";
-    attribute :>> rationale = "The lifecycle decision rests on a verdict for each requirement and scenario, and a verdict holds only for the candidate that ran. A build with a change that upstream has not merged is a different candidate. The scenario and the simulated configuration belong to System 2 and are pinned there, so this need covers only what the candidate itself runs.";
+    attribute :>> rationale = "The lifecycle decision rests on a verdict for each requirement and scenario, and a verdict holds only for the candidate that ran. A build with a change that upstream has not merged is a different candidate. The candidate's configuration includes its run-time settings, such as its source mode. The scenario and the simulated configuration belong to System 2 and are pinned there, so this need covers only what the candidate itself runs.";
   }
 
   comment visionPilotContractAtPin about needWarnAndBrakeForVehicleAhead, needWarningRequestForTheDriver
@@ -66,22 +66,36 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
      *   (VisionPilot/app/vision_pilot.cpp:117, 142, 174).
      * - The ROS 2 build (ENABLE_ROS2_INTERFACE,
      *   VisionPilot/app/vision_pilot.cpp:59-64) reads the camera image and
-     *   the speed from topics and writes the commands to topics.
-     * - The file build reads a video and a speed file, and its vehicle write
-     *   does nothing
+     *   the speed from topics and writes the commands to topics. Its vehicle
+     *   interface publishes steering and acceleration, and no warning
+     *   (VisionPilot/modules/middleware_interfaces/ros2_interface/vehicle_ros2_interface/src/vehicle_ros2_interface.cpp:25-26).
+     * - The build without ROS 2 has two source modes, which the configuration
+     *   key source.mode chooses at run time
+     *   (VisionPilot/app/vision_pilot.cpp:65-78). The video mode reads a
+     *   video and a speed file, and its vehicle write does nothing
      *   (VisionPilot/modules/sensing/vehicle_interface/src/file_interface.cpp:37-61).
-     * - The live V4L2 build pairs with a CAN vehicle interface whose read
-     *   returns zero and whose write does nothing
+     *   The V4L2 mode pairs a live camera with a CAN vehicle interface whose
+     *   read returns zero and whose write does nothing
      *   (VisionPilot/modules/sensing/vehicle_interface/src/can_interface.cpp:4-12;
      *   VisionPilot/app/vision_pilot.cpp:73-78).
-     * So at the pin only the ROS 2 build gives a real speed and commands a
+     * So at the pin only the ROS 2 build reads a live speed and commands a
      * vehicle.
      * - The forward-collision warning and the emergency braking are two
      *   ranges of the acceleration that one speed planner computes
      *   (VisionPilot/modules/safety_guardian/planning/src/planning.cpp:113-121).
      *   One planning cycle flags at most one of the two, and nothing in the
-     *   code orders the warning before the braking; phase 5 derives the
-     *   criterion for the time between them.
+     *   code orders the warning before the braking.
+     * - The two flags command nothing. The planned acceleration is written to
+     *   the vehicle in every cycle, with no limit or latch between the planner
+     *   and the write
+     *   (VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp:36;
+     *   VisionPilot/app/vision_pilot.cpp:157, 174), so the vehicle already
+     *   decelerates in a warning cycle. The flags reach only the
+     *   application's own visualization and log, each when it is switched on
+     *   (VisionPilot/app/vision_pilot.cpp:177-185).
+     * - Phase 5 derives the criterion for the time between the warning and
+     *   the emergency braking, and what marks the start of the emergency
+     *   braking.
      */
 
   /* ───────────────── Phase 4: planned stakeholder reviews ───────────────── */
@@ -93,15 +107,18 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
          * compliance engineers confirm, by the criteria for a vehicle target
          * that phase 5 derives, that the candidate requests the warning and
          * that its driving command brakes the vehicle, and that no autopilot,
-         * replay or overlay acts instead of the candidate? Can systems
-         * engineers and product-line engineers confirm that every driving
-         * command passed through Eclipse S-CORE to the actuation and every
-         * warning request through S-CORE to the AAOS SDV, and that no other
-         * exchange carried them? And can safety experts and product-line
-         * engineers tell which element of the candidate gave the braking
-         * command, whether it left the candidate in the driving command or
-         * apart from it, and whether that command keeps the independence of
-         * the protected emergency command path? */
+         * replay or overlay acts instead of the candidate? Can they trace each
+         * of those criteria to the provision of UNECE R152 it is derived from,
+         * to the product-line requirement it judges and whose obligation it
+         * is, and name what the runs cannot show of it? Can systems engineers
+         * and product-line engineers confirm that every driving command passed
+         * through Eclipse S-CORE to the actuation and every warning request
+         * through S-CORE to the AAOS SDV, and that no other exchange carried
+         * them? And can safety experts and product-line engineers tell which
+         * element of the candidate gave the braking command, whether it left
+         * the candidate in the driving command or apart from it, and whether
+         * that command keeps the independence of the protected emergency
+         * command path? */
   }
   connection vehicleAheadResponseValidationPlanning : ValidationPlanningAssociation
     connect needWarnAndBrakeForVehicleAhead to vehicleAheadResponseValidationPlan;
@@ -135,11 +152,11 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     doc /* For NEED-DRIVING-010, a planned stakeholder review. While the
          * stationary and the slower moving vehicle target scenarios run
          * (SC-DRIVING-012 and SC-DRIVING-013), can safety experts and
-         * verification engineers confirm that each warning request of the
-         * candidate reached the AAOS SDV, that the AAOS SDV gave the warning
-         * on its display and as a sound, and when each mode began relative to
-         * the warning request and to the start of the emergency braking, with
-         * no recording or overlay in place of either mode? */
+         * verification engineers confirm that the AAOS SDV gave each warning
+         * that the candidate requested on its display and as a sound, and when
+         * each mode began relative to the warning request and to the start of
+         * the emergency braking, with no recording or overlay in place of
+         * either mode? */
   }
   connection driverWarningValidationPlanning : ValidationPlanningAssociation
     connect needWarningRequestForTheDriver to driverWarningValidationPlan;

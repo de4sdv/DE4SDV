@@ -59,28 +59,49 @@ SCENARIOS = {
 
 #: reviewer-question concerns: their roles check the answer rather than use it, so they lead no need; a need's
 #: source names them and its planned review asks their question, carried out by their roles
-#: concern -> (the need whose source names it, the question of that need's review that checks it)
+#: concern -> (the need whose source names it, the phrase of its review that names the asking roles, the question)
 REVIEWED_CONCERNS = {
     "emergencyBrakingIndependenceConcern": (
         "needWarnAndBrakeForVehicleAhead",
-        "can safety experts and product-line engineers tell which element of the candidate gave the braking "
-        "command, whether it left the candidate in the driving command or apart from it, and whether that command "
-        "keeps the independence of the protected emergency command path?"),
+        "can safety experts and product-line engineers tell which element of the candidate gave the braking command,",
+        "whether it left the candidate in the driving command or apart from it, and whether that command keeps the "
+        "independence of the protected emergency command path?"),
     "scoreCommandAndWarningPathConcern": (
         "needWarnAndBrakeForVehicleAhead",
-        "Can systems engineers and product-line engineers confirm that every driving command passed through Eclipse "
-        "S-CORE to the actuation and every warning request through S-CORE to the AAOS SDV, and that no other "
-        "exchange carried them?"),
+        "Can systems engineers and product-line engineers confirm",
+        "that every driving command passed through Eclipse S-CORE to the actuation and every warning request through "
+        "S-CORE to the AAOS SDV, and that no other exchange carried them?"),
     "vehicleTargetCriteriaConcern": (
         "needWarnAndBrakeForVehicleAhead",
         "can verification engineers and compliance engineers confirm, by the criteria for a vehicle target that "
-        "phase 5 derives,"),
+        "phase 5 derives,",
+        "Can they trace each of those criteria to the provision of UNECE R152 it is derived from, to the "
+        "product-line requirement it judges and whose obligation it is, and name what the runs cannot show of it?"),
 }
-#: a stakeholder definition -> how a review question names its members
+#: a stakeholder definition -> how a review question or the guide names its members
 ROLE_WORDS = {
     "SafetyExpert": "safety experts", "ProductLineEngineer": "product-line engineers",
     "SystemsEngineer": "systems engineers", "ComplianceEngineer": "compliance engineers",
-    "VerificationEngineer": "verification engineers",
+    "VerificationEngineer": "verification engineers", "VehicleOccupant": "vehicle occupants",
+    "RoadUser": "road users",
+}
+#: every role word a review question could name
+ALL_ROLE_WORDS = (*ROLE_WORDS.values(), "system architects", "software developers", "maintainers")
+#: plan -> the roles that carry out the review: the roles that check the answer
+REVIEWERS = {
+    "SC-DRIVING-016": {"verification engineers", "compliance engineers", "systems engineers", "product-line engineers",
+                       "safety experts"},
+    "SC-DRIVING-017": {"verification engineers", "compliance engineers"},
+    "SC-DRIVING-018": {"safety experts", "verification engineers"},
+    "SC-DRIVING-019": {"verification engineers", "product-line engineers"},
+}
+#: the parties who hold the operational needs never check them
+NOT_CHECKERS = {"vehicle occupants", "road users"}
+#: the anti-cheating question of each review that watches a run
+ANTI_CHEATING_QUESTIONS = {
+    "SC-DRIVING-016": "and that no autopilot, replay or overlay acts instead of the candidate?",
+    "SC-DRIVING-017": "and that the candidate's own driving command moved the vehicle throughout each run?",
+    "SC-DRIVING-018": "with no recording or overlay in place of either mode?",
 }
 
 #: the phase 1 concerns this phase reads: every non-boundary concern of the framing
@@ -98,6 +119,163 @@ UNJUDGED = re.compile(r"(?i)\b(?:speed-following|lane-keeping|lane keeping|lane-
 ANTI_CHEATING = re.compile(r"(?i)\b(?:autopilot|replay\w*|overlay\w*|recording|acts? instead|stands? in)\b")
 #: a value with a unit is phase 5's, derived with its provenance; a need states none
 NUMBER_WITH_UNIT = re.compile(r"\b\d+(?:[.,]\d+)?\s*(?:ms|s|m|km/h|m/s|m/s2|m/s²|g|Hz|%|px|mm|°)(?![\w/])")
+#: the digits a need's statement or rationale may carry: phase numbers, System 2, ROS 2 and identifiers
+ALLOWED_DIGITS = re.compile(r"\b(?:[Pp]hases? \d+(?: to \d+)?|System 2|ROS 2|[A-Z]+-[A-Z]+-\d{3})\b")
+#: a number in words with a unit: a limit in disguise
+NUMBER_WORDS = re.compile(r"(?i)\b(?:one|two|three|four|five|six|seven|eight|nine|ten|twenty|thirty|half)\s+(?:a\s+)?"
+                          r"(?:seconds?|milliseconds?|metres?|meters?|kilometres?|kilometers?|km/h)\b")
+#: a clause or section number of an external source: the repository names its source records only
+CLAUSE_NUMBER = re.compile(r"(?i)\b(?:annex|paragraph|clause|appendix|section)\s+\d|§\s*\d|\b\d+(?:\.\d+){2,}\b")
+#: a positive safety claim; "no safety claim" is the non-claim
+SAFETY_CLAIM = re.compile(r"(?i)(?<!no )\bsaf(?:e|ety|ely)\b")
+#: the non-claim sentence of the header
+HEADER_NON_CLAIM = "No safety, on-road or production-readiness claim is made, and no member product is claimed."
+#: need -> how the guide's bullet names its holders
+GUIDE_HOLDERS = {
+    "NEED-DRIVING-008": "Vehicle occupants and road users.",
+    "NEED-DRIVING-009": "Vehicle occupants and road users.",
+    "NEED-DRIVING-010": "Vehicle occupants.",
+    "NEED-DRIVING-011": "Verification engineers and product-line engineers, who use the run identity in their own work.",
+}
+
+# The reviewed texts, pinned whole (whitespace flattened). A change to a need, a review or the contract comment is a
+# change of the reviewed content: update the pin in the same commit, on purpose.
+#: need -> its statement
+STATEMENTS = {
+    "needWarnAndBrakeForVehicleAhead": (
+        "Vehicle occupants and road users need the driver-assistance system to request the "
+        "collision warning and to command the braking of the vehicle when a collision with a "
+        "stationary or a slower moving vehicle ahead in its lane is imminent."),
+    "needNoReactionWithoutImminentCollision": (
+        "Vehicle occupants and road users need the driver-assistance system to request no "
+        "collision warning and to command no emergency braking when no collision with a vehicle "
+        "ahead is imminent, as when a stationary vehicle stands beyond a curve or a vehicle ahead "
+        "turns off."),
+    "needWarningRequestForTheDriver": (
+        "Vehicle occupants need the driver-assistance system to give a warning request at its "
+        "boundary when a collision with a vehicle ahead in its lane is imminent, so that the AAOS "
+        "SDV warns the driver on its display and as a sound."),
+    "needRunsIdentifyTheCandidate": (
+        "Verification engineers and product-line engineers need each run of the driver-assistance "
+        "system to identify the candidate revision and the configuration it ran with, so that "
+        "each verdict is bound to what ran."),
+}
+#: need -> its source
+SOURCES = {
+    "needWarnAndBrakeForVehicleAhead": (
+        "INC-DRIVING-002 vehicleTargetResponseConcern, emergencyBrakingIndependenceConcern, "
+        "scoreCommandAndWarningPathConcern, vehicleTargetCriteriaConcern, scope items "
+        "vehicleTargetResponseInScope, scoreCommandPathInScope and vehicleTargetCriteriaInScope, "
+        "gaps gapNoSeparateEmergencyFunction, gapScoreIntegration, gapVehicleTargetCriteria and "
+        "gapCameraImageAndGeometry, assumption asmBenchReuse, scenarios SC-DRIVING-012 and "
+        "SC-DRIVING-013"),
+    "needNoReactionWithoutImminentCollision": (
+        "INC-DRIVING-002 vehicleTargetResponseConcern, vehicleTargetCriteriaConcern, scope item "
+        "noReactionInScope, gap gapVehicleTargetCriteria, scenarios SC-DRIVING-014 and "
+        "SC-DRIVING-015"),
+    "needWarningRequestForTheDriver": (
+        "INC-DRIVING-002 driverWarningSequenceConcern, scope item driverWarningInScope, gap "
+        "gapWarningOutput, scenarios SC-DRIVING-012 and SC-DRIVING-013"),
+    "needRunsIdentifyTheCandidate": (
+        "INC-DRIVING-002 candidateVerdictConcern, scope item verdictEvidenceInScope, gap "
+        "gapCandidateBehaviorUnverified, scenarios SC-DRIVING-012 to SC-DRIVING-015"),
+}
+#: need -> its rationale
+RATIONALES = {
+    "needWarnAndBrakeForVehicleAhead": (
+        "The warning lets the driver act, and the braking is meant to avoid or lessen the "
+        "collision when the driver does not act in time. The need states what they expect, not "
+        "how well the candidate meets it, and carries no safety claim. Phase 5 derives the "
+        "criteria for a vehicle target and their limits (gapVehicleTargetCriteria). Phase 5 also "
+        "derives from this need the requirements on the Eclipse S-CORE path of the warning "
+        "request and the braking command, and on the independence of that command: its source "
+        "names their concerns, and SC-DRIVING-016 asks their questions."),
+    "needNoReactionWithoutImminentCollision": (
+        "An emergency braking with no collision imminent puts the traffic behind the vehicle at "
+        "risk, and a needless warning teaches the driver to ignore the next one. Phase 5 confirms "
+        "the two scenarios and states their criterion (gapVehicleTargetCriteria)."),
+    "needWarningRequestForTheDriver": (
+        "The driver can act on a warning only if it reaches the display and the sound of the AAOS "
+        "SDV. NEED-DRIVING-008 needs the candidate to request the warning; this need adds that "
+        "the request leaves the candidate at its boundary, where the AAOS SDV takes it. At the "
+        "inspected revision the application has no warning output at its boundary; its warnings "
+        "go to its own visualization and data log (gapWarningOutput). Phase 5 states when each "
+        "mode is due relative to the warning request and to the start of the emergency braking. "
+        "Whether a driver perceives the warning is out of scope."),
+    "needRunsIdentifyTheCandidate": (
+        "The lifecycle decision rests on a verdict for each requirement and scenario, and a "
+        "verdict holds only for the candidate that ran. A build with a change that upstream has "
+        "not merged is a different candidate. The candidate's configuration includes its run-time "
+        "settings, such as its source mode. The scenario and the simulated configuration belong "
+        "to System 2 and are pinned there, so this need covers only what the candidate itself "
+        "runs."),
+}
+#: plan -> its review question
+PLAN_DOCS = {
+    "SC-DRIVING-016": (
+        "For NEED-DRIVING-008, a planned stakeholder review. While the stationary and the slower "
+        "moving vehicle target scenarios run (SC-DRIVING-012 and SC-DRIVING-013), can "
+        "verification engineers and compliance engineers confirm, by the criteria for a vehicle "
+        "target that phase 5 derives, that the candidate requests the warning and that its "
+        "driving command brakes the vehicle, and that no autopilot, replay or overlay acts "
+        "instead of the candidate? Can they trace each of those criteria to the provision of "
+        "UNECE R152 it is derived from, to the product-line requirement it judges and whose "
+        "obligation it is, and name what the runs cannot show of it? Can systems engineers and "
+        "product-line engineers confirm that every driving command passed through Eclipse S-CORE "
+        "to the actuation and every warning request through S-CORE to the AAOS SDV, and that no "
+        "other exchange carried them? And can safety experts and product-line engineers tell "
+        "which element of the candidate gave the braking command, whether it left the candidate "
+        "in the driving command or apart from it, and whether that command keeps the independence "
+        "of the protected emergency command path?"),
+    "SC-DRIVING-017": (
+        "For NEED-DRIVING-009, a planned stakeholder review. While the vehicle drives through the "
+        "curve past the stationary vehicle beyond the guard pipes (SC-DRIVING-014), and while it "
+        "follows the vehicle ahead that turns off (SC-DRIVING-015), can verification engineers "
+        "and compliance engineers confirm, by the criterion that phase 5 states for each "
+        "scenario, that the candidate requests no warning and commands no emergency braking, and "
+        "that the candidate's own driving command moved the vehicle throughout each run?"),
+    "SC-DRIVING-018": (
+        "For NEED-DRIVING-010, a planned stakeholder review. While the stationary and the slower "
+        "moving vehicle target scenarios run (SC-DRIVING-012 and SC-DRIVING-013), can safety "
+        "experts and verification engineers confirm that the AAOS SDV gave each warning that the "
+        "candidate requested on its display and as a sound, and when each mode began relative to "
+        "the warning request and to the start of the emergency braking, with no recording or "
+        "overlay in place of either mode?"),
+    "SC-DRIVING-019": (
+        "For NEED-DRIVING-011, a planned stakeholder review. After each run of the four scenarios "
+        "(SC-DRIVING-012, SC-DRIVING-013, SC-DRIVING-014 and SC-DRIVING-015), can verification "
+        "engineers and product-line engineers bind its verdict to the candidate revision and the "
+        "configuration that the run identifies, and confirm that a build with a change that "
+        "upstream has not merged identifies itself as a different candidate?"),
+}
+#: the pinned runtime contract of VisionPilot, kept for phase 5
+CONTRACT = (
+    "The runtime contract of VisionPilot at commit 014e0e7a56ee8e597c2cab8175233f74edd9b856, kept "
+    "for phase 5. - The application reads one camera frame and the vehicle speed, and writes "
+    "steering and acceleration (VisionPilot/app/vision_pilot.cpp:117, 142, 174). - The ROS 2 "
+    "build (ENABLE_ROS2_INTERFACE, VisionPilot/app/vision_pilot.cpp:59-64) reads the camera image "
+    "and the speed from topics and writes the commands to topics. Its vehicle interface publishes "
+    "steering and acceleration, and no warning "
+    "(VisionPilot/modules/middleware_interfaces/ros2_interface/vehicle_ros2_interface/src/vehicle_ros2_interface.cpp:25-26). "
+    "- The build without ROS 2 has two source modes, which the configuration key source.mode "
+    "chooses at run time (VisionPilot/app/vision_pilot.cpp:65-78). The video mode reads a video "
+    "and a speed file, and its vehicle write does nothing "
+    "(VisionPilot/modules/sensing/vehicle_interface/src/file_interface.cpp:37-61). The V4L2 mode "
+    "pairs a live camera with a CAN vehicle interface whose read returns zero and whose write "
+    "does nothing (VisionPilot/modules/sensing/vehicle_interface/src/can_interface.cpp:4-12; "
+    "VisionPilot/app/vision_pilot.cpp:73-78). So at the pin only the ROS 2 build reads a live "
+    "speed and commands a vehicle. - The forward-collision warning and the emergency braking are "
+    "two ranges of the acceleration that one speed planner computes "
+    "(VisionPilot/modules/safety_guardian/planning/src/planning.cpp:113-121). One planning cycle "
+    "flags at most one of the two, and nothing in the code orders the warning before the braking. "
+    "- The two flags command nothing. The planned acceleration is written to the vehicle in every "
+    "cycle, with no limit or latch between the planner and the write "
+    "(VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp:36; "
+    "VisionPilot/app/vision_pilot.cpp:157, 174), so the vehicle already decelerates in a warning "
+    "cycle. The flags reach only the application's own visualization and log, each when it is "
+    "switched on (VisionPilot/app/vision_pilot.cpp:177-185). - Phase 5 derives the criterion for "
+    "the time between the warning and the emergency braking, and what marks the start of the "
+    "emergency braking.")
 
 
 def _raw() -> str:
@@ -173,6 +351,9 @@ def test_each_need_has_a_statement_its_holders_a_source_a_rationale_and_the_syst
         source = _attribute(body, "source")
         assert source.startswith(f"{INCREMENT} {concern},"), (name, source)
         assert len(_attribute(body, "rationale")) > 60, name
+        assert _statement(body) == STATEMENTS[name], (name, "statement")
+        assert source == SOURCES[name], (name, "source")
+        assert _attribute(body, "rationale") == RATIONALES[name], (name, "rationale")
 
 
 def test_each_need_is_held_by_holders_of_its_first_source_concern():
@@ -196,12 +377,14 @@ def test_every_non_boundary_concern_of_phase_1_is_named_in_a_source():
 
 def test_a_reviewer_question_concern_is_named_by_a_need_and_checked_by_its_review():
     leading = {concern for _short, _roles, concern in NEEDS.values()}
-    for concern, (need, phrase) in REVIEWED_CONCERNS.items():
+    for concern, (need, asked_by, question) in REVIEWED_CONCERNS.items():
         assert concern not in leading, f"{concern} is a reviewer question and leads no need"
         assert concern in _attribute(_need(need), "source"), (concern, need)
-        assert phrase in _plan_doc(VALIDATION[need][0]), (concern, phrase)
+        doc = _plan_doc(VALIDATION[need][0])
+        assert asked_by in doc and question in doc, (concern, "its review asks the concern's question")
+        assert doc.index(asked_by) < doc.index(question), concern
         for role in _framing_holders(concern):
-            assert ROLE_WORDS[role] in phrase.lower(), (concern, role, "the concern's own roles ask its question")
+            assert ROLE_WORDS[role] in asked_by.lower(), (concern, role, "the concern's own roles ask its question")
     assert "Three concerns are reviewer questions: a need's source names them and its review checks them." \
         in _flat(_raw()), "the header counts the reviewer questions"
 
@@ -240,6 +423,11 @@ def test_each_planned_review_names_the_scenario_it_watches():
         assert set(re.findall(r"SC-DRIVING-01[2-5]", doc)) == {SCENARIOS[use_case] for use_case in use_cases}, \
             f"{plan_short} names exactly the scenarios it watches"
         assert doc.count("?") >= 1, f"{plan_short} asks its question"
+        assert doc == PLAN_DOCS[plan_short], (plan_short, "the reviewed question")
+        reviewers = {words for words in ALL_ROLE_WORDS if words in doc.lower()}
+        assert reviewers == REVIEWERS[plan_short], (plan_short, reviewers)
+        assert not reviewers & NOT_CHECKERS, (plan_short, "the holders of an operational need never check it")
+    assert set(REVIEWERS) == {plan_short for plan_short, _use_cases in VALIDATION.values()}
 
 
 def test_no_need_uses_excluded_wording_an_unjudged_function_or_an_anti_cheating_clause():
@@ -247,34 +435,27 @@ def test_no_need_uses_excluded_wording_an_unjudged_function_or_an_anti_cheating_
         text = _need_text(name)
         assert not EXCLUDED.findall(text), (name, EXCLUDED.findall(text))
         assert not UNJUDGED.findall(text), (name, UNJUDGED.findall(text))
-        assert not ANTI_CHEATING.findall(_statement(_need(name))), (name, ANTI_CHEATING.findall(text))
-    # the clause is a question of the planned reviews that watch the warning and the braking
-    assert "and that no autopilot, replay or overlay acts instead of the candidate?" in _plan_doc("SC-DRIVING-016")
-    assert "with no recording or overlay in place of either mode?" in _plan_doc("SC-DRIVING-018")
+        assert not ANTI_CHEATING.findall(text), (name, ANTI_CHEATING.findall(text))
+        assert not SAFETY_CLAIM.findall(text), (name, SAFETY_CLAIM.findall(text))
+    raw = _raw()
+    assert not CLAUSE_NUMBER.findall(raw), CLAUSE_NUMBER.findall(raw)
+    # the clause is a question of each planned review that watches a run
+    for plan_short, question in ANTI_CHEATING_QUESTIONS.items():
+        assert question in _plan_doc(plan_short), plan_short
 
 
-def test_no_need_states_a_number_with_a_unit():
+def test_no_need_states_a_number():
     # The thresholds, the timing of the warning before the braking and the other limits are phase 5's.
     for name in NEEDS:
-        text = _flat(_need(name))
+        body = _need(name)
+        text = _flat(body)
         assert not NUMBER_WITH_UNIT.findall(text), (name, NUMBER_WITH_UNIT.findall(text))
+        for part in (_statement(body), _attribute(body, "rationale")):
+            assert not re.search(r"\d", ALLOWED_DIGITS.sub("", part)), (name, "a digit outside the identifiers", part)
+            assert not NUMBER_WORDS.findall(part), (name, NUMBER_WORDS.findall(part))
     for name in ("needWarnAndBrakeForVehicleAhead", "needNoReactionWithoutImminentCollision",
                  "needWarningRequestForTheDriver"):
         assert "Phase 5" in _attribute(_need(name), "rationale"), f"{name}: the rationale leaves its limits to phase 5"
-
-
-def test_the_need_statements_say_what_their_holders_expect():
-    statements = {name: _statement(_need(name)) for name in NEEDS}
-    for phrase, name in (
-            ("Vehicle occupants and road users need the driver-assistance system to request the collision warning "
-             "and to command the braking of the vehicle when a collision with a stationary or a slower moving "
-             "vehicle ahead in its lane is imminent.", "needWarnAndBrakeForVehicleAhead"),
-            ("Vehicle occupants and road users need the driver-assistance system to request no collision warning "
-             "and to command no emergency braking when no collision with a vehicle ahead is imminent",
-             "needNoReactionWithoutImminentCollision"),
-            ("so that the AAOS SDV warns the driver on its display and as a sound", "needWarningRequestForTheDriver"),
-            ("to identify the candidate revision and the configuration it ran with", "needRunsIdentifyTheCandidate")):
-        assert phrase in statements[name], (name, phrase)
 
 
 def test_the_input_contract_is_a_comment_for_phase_5_not_a_need():
@@ -284,18 +465,9 @@ def test_the_input_contract_is_a_comment_for_phase_5_not_a_need():
     targets = [target.strip() for target in match.group(2).split(",")]
     assert targets == ["needWarnAndBrakeForVehicleAhead", "needWarningRequestForTheDriver"], targets
     comment = _flat(match.group(3))
-    for phrase in (f"commit {VISIONPILOT_PIN}",
-                   "VisionPilot/app/vision_pilot.cpp:117, 142, 174",
-                   "ENABLE_ROS2_INTERFACE, VisionPilot/app/vision_pilot.cpp:59-64",
-                   "VisionPilot/modules/sensing/vehicle_interface/src/file_interface.cpp:37-61",
-                   "VisionPilot/modules/sensing/vehicle_interface/src/can_interface.cpp:4-12",
-                   "only the ROS 2 build gives a real speed and commands a vehicle",
-                   "VisionPilot/modules/safety_guardian/planning/src/planning.cpp:113-121"):
-        assert phrase in comment, phrase
+    assert comment == CONTRACT, "the runtime contract at the pin, as reviewed"
+    assert f"commit {VISIONPILOT_PIN}" in comment
     assert not re.search(r"-?\d+\.\d+\s*(?:m/s|<|<=)", comment), "the comment states no threshold of the planner"
-    assert "One planning cycle flags at most one of the two, and nothing in the code orders the warning before the " \
-        "braking; phase 5 derives the criterion for the time between them." in comment, \
-        "facts of the code, not a relaxation of the criterion"
     assert not re.search(r"(?i)\bneed not\b", comment)
 
 
@@ -322,6 +494,7 @@ def test_two_tables_frame_the_needs_concern_and_show_needs_and_planned_reviews()
     assert "filter @ SysML::RequirementUsage;" in needs_body
     assert re.search(r"\bview\s+ID\s*:>\s*columnViews\s*\{[^}]*CT::reqId\s*;", needs_body)
     assert re.search(r'CT::constraintLanguage\s*\{\s*attribute\s+constraintName\s*=\s*"statement"\s*;', needs_body)
+    assert re.search(r'attribute\s+constraintLanguage\s*=\s*"English"\s*;', needs_body)
     assert re.search(r'CT::attributeValue\s*\{\s*attribute\s+attributeName\s*=\s*"source"\s*;', needs_body)
     plans_body = braced_body(code, f"view {plans_view} : TVD::TableView")
     assert "filter @ SysML::PartUsage;" in plans_body
@@ -346,6 +519,22 @@ def test_the_guide_has_a_phase_4_section_and_names_phase_5_next():
     for plan_short, _use_cases in VALIDATION.values():
         assert plan_short in section, plan_short
     assert "tests/test_driver_assistance_needs_requirements.py" in section
+    raw_section = guide.split("## Stakeholder needs (Phase 4)", 1)[1].split("\n## ", 1)[0]
+    bullets = {match[1]: " ".join(match[2].split())
+               for match in re.finditer(r"(?ms)^- `(NEED-DRIVING-\d{3})`:(.*?)(?=^- `|^\s*$)", raw_section)}
+    assert sorted(bullets) == sorted(short for short, _roles, _concern in NEEDS.values())
+    for name, (short, roles, _concern) in NEEDS.items():
+        assert GUIDE_HOLDERS[short] in bullets[short], (short, "the guide names the holders")
+        named = {words for words in ALL_ROLE_WORDS if words in bullets[short].lower()}
+        assert named == {ROLE_WORDS[role] for role in roles}, (short, named)
+    assert "Three concerns get no need of their own" in section and len(REVIEWED_CONCERNS) == 3
+    assert "only its ROS 2 build reads a live speed and commands a vehicle" in section
+    assert not CLAUSE_NUMBER.findall(raw_section), CLAUSE_NUMBER.findall(raw_section)
     flat = " ".join(guide.split())  # Markdown: a line may open with bold text, which _flat would strip
     assert "The next model obligation is **Phase 5**: the requirements" in flat
     assert "its first gate is `requirementHasStatement`" in flat
+
+
+def test_the_header_states_its_non_claims():
+    header = _flat(_raw().split("\npackage ", 1)[0])
+    assert HEADER_NON_CLAIM in header, "the header keeps its non-claims"
