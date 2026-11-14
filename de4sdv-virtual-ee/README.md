@@ -41,13 +41,16 @@ Three deliberate choices:
 dbc/headlamp.dbc              frame layout, VAL_ tables, comments
 dbc/wiper.dbc
 dbc/dbc_default_values.json   every signal of every transmitted frame (--dbc_default)
-vss/mapping/vss_dbc.json      VSS tree + dbc2vss/vss2dbc per leaf
-vss/metadata.json             same tree, stripped: what the databroker is given
+vss/mapping/vss_dbc.json      VSS tree + dbc2vss/vss2dbc per leaf (source of truth)
+vss/mapping/headlamp.json     per-zone mapping, generated (a zone's provider gets only its own signals)
+vss/mapping/wiper.json
+vss/metadata.json             same tree, stripped: reference copy of what the broker holds
 zones/Containerfile           zone image: provider at a pinned tag + plant model
 zones/entrypoint.sh           creates this zone's vcan, runs provider + plant
 zones/zone_ecu.py             headlamp/wiper plant, acknowledges the sequence
 zones/dbc_feeder.ini          provider config, templated per zone
 checks/check_contract.py      DBC ↔ mapping ↔ defaults consistency
+checks/build_zone_mappings.py generates the per-zone mappings from the full tree
 checks/test_zone_ecu.py       plant model and frame round-trip tests
 ```
 
@@ -88,10 +91,38 @@ Build the image from this directory:
 podman build -f de4sdv-virtual-ee/zones/Containerfile -t localhost/de4sdv/zone-ecu:1 de4sdv-virtual-ee
 ```
 
-## What this does not prove
+## Gate 1 result (testbed, 2026-11-14)
 
-No frame has yet crossed a real virtual bus to a real broker through this
-contract; the provider and plant have not run together. The offline checks prove
-the contract is consistent and the plant acknowledges correctly — nothing about
-latency, ordering, or the databroker. Gate 1 evidence is the next step, and the
-report must state the segment latencies rather than a single end-to-end number.
+The loop closed on a `vx-de4sdv-ee` vehicle (Ubuntu 24.04, kernel 7.0.0-1017-gcp,
+vxedge 0.30.0): three container zones, two VLAN slices, KUKSA on the central node.
+
+- **Headlamp**: target `Low.IsOn=true` → `0x180 01` on the front zone's bus →
+  `0x181 01` 29 ms later → broker value `True`.
+- **Wiper**: target `Mode=FAST` → `0x280 03` → status payloads climbing
+  `03 00 → 03 14 → 03 28 → 03 3C → 03 50` (position 0 → 80 %) → broker value `FAST`.
+- **Cross-zone leakage**: 0 headlamp frames on the wiper bus, 0 wiper frames on the
+  headlamp bus, in both directions.
+
+What that does not cover: per-segment latency (T0–T5), restart and loss behaviour,
+concurrent commands, and repeatability. Those are gate 2, and their numbers belong
+in a table with sample counts, not in prose.
+
+## Findings from the first run
+
+Four defects were only visible with the pieces actually running:
+
+1. `Message.encode(..., choices=True)` — cantools has no such kwarg; drop it.
+2. The provider's flag is `--dbc-default`, not `--dbc_default`.
+3. `val2dbc = True` in the ini did not enable the direction in 0.5.1; pass
+   `--val2dbc` explicitly.
+4. **One mapping per zone.** A provider given the full tree rejects every leaf owned
+   by another zone (`mapped to CAN signal … not used in any message definition`).
+   `checks/build_zone_mappings.py` generates them from the single source tree.
+
+A fifth was a real crash: decoding with `decode_choices=True` feeds the plant a
+`NamedSignalValue`, and an `int()` on it kills the ECU on the first enumerated
+command. The plant now accepts both forms and a test pins that behaviour.
+
+The broker runs vxedge's own full VSS 6.0 metadata (`vss_release_6.0.json`), not
+this directory's `metadata.json`; the file is kept as the reference of what this
+contract expects the tree to contain.

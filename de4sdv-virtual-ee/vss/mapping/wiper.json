@@ -1,0 +1,86 @@
+{
+  "Vehicle": {
+    "type": "branch",
+    "children": {
+      "Body": {
+        "type": "branch",
+        "children": {
+          "Windshield": {
+            "type": "branch",
+            "description": "Windshield signals.",
+            "children": {
+              "Front": {
+                "type": "branch",
+                "description": "Front windshield.",
+                "children": {
+                  "Wiping": {
+                    "type": "branch",
+                    "description": "Front wiper system.",
+                    "children": {
+                      "Mode": {
+                        "datatype": "string",
+                        "type": "actuator",
+                        "allowed": [
+                          "OFF",
+                          "SLOW",
+                          "MEDIUM",
+                          "FAST",
+                          "INTERVAL",
+                          "RAIN_SENSOR"
+                        ],
+                        "description": "Requested wipe mode. The command arrives as actuator_target, the mode the zone ECU reports as value.",
+                        "dbc2vss": {
+                          "signal": "Wiper_Mode_State",
+                          "interval_ms": 100
+                        },
+                        "vss2dbc": {
+                          "signal": "Wiper_Mode_Req"
+                        }
+                      },
+                      "System": {
+                        "type": "branch",
+                        "description": "Wiper system state.",
+                        "children": {
+                          "ActualPosition": {
+                            "datatype": "float",
+                            "type": "actuator",
+                            "min": 0,
+                            "max": 100,
+                            "unit": "percent",
+                            "description": "Actual wiper position reported by the zone ECU, 0 = park, 100 = full sweep.",
+                            "dbc2vss": {
+                              "signal": "Wiper_Position_pct",
+                              "interval_ms": 100
+                            }
+                          },
+                          "IsPositionReached": {
+                            "datatype": "boolean",
+                            "type": "sensor",
+                            "description": "True when the wiper reached the position commanded for the current sequence number. This is the acknowledgement the reference demo never sent.",
+                            "dbc2vss": {
+                              "signal": "Wiper_Position_Reached",
+                              "interval_ms": 100
+                            }
+                          },
+                          "IsWiperError": {
+                            "datatype": "boolean",
+                            "type": "sensor",
+                            "description": "True if the zone ECU reports a wiper fault.",
+                            "dbc2vss": {
+                              "signal": "Wiper_Error",
+                              "interval_ms": 200
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -15,6 +15,7 @@ set -eu
 : "${ZONE_DBC:?ZONE_DBC must point at this zone's DBC}"
 : "${ZONE_ECU:?ZONE_ECU must be headlamp or wiper}"
 : "${ZONE_CHANNEL:=vcan0}"
+: "${ZONE_MAPPING:=/opt/zone/vss/mapping/${ZONE_ECU}.json}"
 : "${KUKSA_ADDRESS:=grpc://127.0.0.1:55555}"
 
 if ! ip link show "${ZONE_CHANNEL}" >/dev/null 2>&1; then
@@ -25,12 +26,15 @@ echo "[zone] ${ZONE_CHANNEL} up ($(ip -br link show "${ZONE_CHANNEL}"))"
 
 sed -e "s|@@ZONE_DBC@@|${ZONE_DBC}|" \
     -e "s|@@ZONE_CHANNEL@@|${ZONE_CHANNEL}|" \
+    -e "s|@@ZONE_MAPPING@@|${ZONE_MAPPING}|" \
     -e "s|@@KUKSA_ADDRESS@@|${KUKSA_ADDRESS}|" \
     /opt/zone/dbc_feeder.ini > /tmp/dbc_feeder.ini
 
+# The ini keys alone did not enable val2dbc in 0.5.1; the flags are explicit.
 python /opt/provider/dbcfeeder.py \
       --config /tmp/dbc_feeder.ini \
-      --dbc_default /opt/zone/dbc/dbc_default_values.json \
+      --dbc-default /opt/zone/dbc/dbc_default_values.json \
+      --dbc2val --val2dbc \
       2>&1 | sed -u 's/^/[provider] /' &
 provider_pid=$!
 

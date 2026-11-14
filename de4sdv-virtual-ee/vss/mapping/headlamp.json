@@ -1,0 +1,78 @@
+{
+  "Vehicle": {
+    "type": "branch",
+    "children": {
+      "Body": {
+        "type": "branch",
+        "children": {
+          "Lights": {
+            "type": "branch",
+            "description": "Exterior lights.",
+            "children": {
+              "Beam": {
+                "type": "branch",
+                "description": "Headlamp beam signals.",
+                "children": {
+                  "Low": {
+                    "type": "branch",
+                    "description": "Low beam.",
+                    "children": {
+                      "IsOn": {
+                        "datatype": "boolean",
+                        "type": "actuator",
+                        "description": "Low beam on/off. The command arrives as actuator_target, the state reported by the zone ECU as value.",
+                        "dbc2vss": {
+                          "signal": "Headlamp_Low_On",
+                          "interval_ms": 100
+                        },
+                        "vss2dbc": {
+                          "signal": "Headlamp_Low_Req"
+                        }
+                      },
+                      "IsDefect": {
+                        "datatype": "boolean",
+                        "type": "sensor",
+                        "description": "Low beam defect reported by the zone ECU.",
+                        "dbc2vss": {
+                          "signal": "Headlamp_Fault",
+                          "interval_ms": 200
+                        }
+                      }
+                    }
+                  },
+                  "High": {
+                    "type": "branch",
+                    "description": "High beam.",
+                    "children": {
+                      "IsOn": {
+                        "datatype": "boolean",
+                        "type": "actuator",
+                        "description": "High beam on/off. The command arrives as actuator_target, the state reported by the zone ECU as value.",
+                        "dbc2vss": {
+                          "signal": "Headlamp_High_On",
+                          "interval_ms": 100
+                        },
+                        "vss2dbc": {
+                          "signal": "Headlamp_High_Req"
+                        }
+                      },
+                      "IsDefect": {
+                        "datatype": "boolean",
+                        "type": "sensor",
+                        "description": "High beam defect reported by the zone ECU.",
+                        "dbc2vss": {
+                          "signal": "Headlamp_Fault",
+                          "interval_ms": 200
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

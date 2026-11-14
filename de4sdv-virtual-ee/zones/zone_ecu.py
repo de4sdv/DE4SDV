@@ -34,6 +34,15 @@ COMMAND_SUFFIX = "_Cmd"
 STATUS_SUFFIX = "_Status"
 
 
+def _num(value) -> int:
+    """cantools returns a NamedSignalValue for enumerated signals; accept both.
+
+    Decoding with choices on makes the logs readable ("FAST" rather than 3), but
+    a plant that assumes an int dies on the first enumerated command it sees.
+    """
+    return int(getattr(value, "value", value))
+
+
 class HeadlampPlant:
     def __init__(self) -> None:
         self.low = False
@@ -41,9 +50,9 @@ class HeadlampPlant:
         self.ack = 0
 
     def apply(self, decoded: dict) -> bool:
-        seq = decoded["Headlamp_Cmd_Seq"]
-        low = bool(decoded["Headlamp_Low_Req"])
-        high = bool(decoded["Headlamp_High_Req"])
+        seq = _num(decoded["Headlamp_Cmd_Seq"])
+        low = bool(_num(decoded["Headlamp_Low_Req"]))
+        high = bool(_num(decoded["Headlamp_High_Req"]))
         changed = (low, high) != (self.low, self.high) or seq != self.ack
         self.low, self.high, self.ack = low, high, seq
         return changed
@@ -71,8 +80,8 @@ class WiperPlant:
         self.visited_full = False
 
     def apply(self, decoded: dict) -> bool:
-        seq = decoded["Wiper_Cmd_Seq"]
-        mode = int(decoded["Wiper_Mode_Req"])
+        seq = _num(decoded["Wiper_Cmd_Seq"])
+        mode = _num(decoded["Wiper_Mode_Req"])
         changed = mode != self.mode or seq != self.ack
         if changed:
             self.mode, self.ack = mode, seq
@@ -155,7 +164,7 @@ def main() -> int:
             last_status = now
 
             if now >= next_status:
-                payload = status.encode(plant.status(), scaling=True, choices=True)
+                payload = status.encode(plant.status(), scaling=True)
                 bus.send(can.Message(arbitration_id=status.frame_id, data=payload, is_extended_id=False))
                 next_status = now + args.period
     except KeyboardInterrupt:

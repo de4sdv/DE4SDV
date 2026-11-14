@@ -74,6 +74,24 @@ def test_frames_roundtrip() -> None:
     for name in ("headlamp.dbc", "wiper.dbc"):
         db.add_dbc_file(str(ROOT / "dbc" / name))
 
+    # the ECU must accept what the real decode path hands it: a NamedSignalValue
+    # for enumerated signals (decode_choices stays on for readable logs).
+    wiper_cmd = db.get_message_by_name("DE4SDV_Wiper_Cmd")
+    wire = wiper_cmd.encode({"Wiper_Mode_Req": "FAST", "Wiper_Interval_ms": 0, "Wiper_Cmd_Seq": 11})
+    decoded_choices = wiper_cmd.decode(wire, decode_choices=True)
+    check(
+        "enum decode yields NamedSignalValue",
+        type(decoded_choices["Wiper_Mode_Req"]).__name__ == "NamedSignalValue",
+        f"got {type(decoded_choices['Wiper_Mode_Req'])}",
+    )
+    plant = WiperPlant()
+    plant.apply(decoded_choices)
+    check(
+        "plant accepts the decoded enum form (the field bug)",
+        plant.status()["Wiper_Mode_State"] == 3,
+        f"got {plant.status()['Wiper_Mode_State']}",
+    )
+
     headlamp = db.get_message_by_name("DE4SDV_Headlamp_Status")
     payload = headlamp.encode(
         {"Headlamp_Low_On": 1, "Headlamp_High_On": 0, "Headlamp_Fault": 0, "Headlamp_Seq_Ack": 42}
