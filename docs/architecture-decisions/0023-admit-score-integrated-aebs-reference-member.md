@@ -16,10 +16,10 @@ condition of its membership (decision 8).
 
 The governed scope, its validator and the admission rule change in the pull
 requests that the Consequences name. Until the scope pull request lands, the
-model still admits only the two members that ADR 0014 and
-[ADR 0022](0022-adopt-pleml-as-product-line-authority.md) govern. On the same
-day the owner made the HMI display common to every member (ADR 0026).
-Decisions 1, 2, 3, 5 and 6 follow that decision.
+model still admits only the two members that ADR 0014 and [ADR
+0022](0022-adopt-pleml-as-product-line-authority.md) govern. On the same day
+the owner made the HMI display common to every member (ADR 0026). Decisions 1,
+2, 3 and 5 follow that decision; decision 6 leaves open what the display shows.
 
 ## Context
 
@@ -190,13 +190,16 @@ lands.
      SDV guest. The draft had `hmiDisplay` correspond to S-CORE Integrated;
      ADR 0026 replaced that on 2026-11-13.
    - **CLS-MW-004.** The feature candidate CLS-MW-004, an AAOS SDV HMI guest
-     next to the Linux host, gets S-CORE Integrated as its counterpart, not
-     AAOS Integrated (owner decision of 2026-10-21). The characteristic sets
-     the member apart from the standalone member. In the feature model,
-     `kvm`, `guestAndroid` and `guestAndroidSDV` carry that difference, and
-     the member shares them with the AAOS-integrated member. `eclipseSCORE`,
-     not `hmiDisplay`, carries the difference from the AAOS-integrated
-     member.
+     next to the Linux host, was to get S-CORE Integrated as its counterpart,
+     not AAOS Integrated (owner decision of 2026-10-21). That decision predates
+     ADR 0026: since 2026-11-13 the AAOS-integrated member also has a display
+     in its AAOS SDV guest, so the characteristic holds for both integrated
+     alternatives and sets them apart from the standalone member. `kvm`,
+     `guestAndroid` and `guestAndroidSDV` carry it, and both integrated members
+     select them. `eclipseSCORE`, not `hmiDisplay`, carries the difference from
+     the AAOS-integrated member. Before the scope pull request re-points the
+     trace, the owner decides whether the counterpart becomes both integrated
+     alternatives or stays S-CORE Integrated.
 4. **Shared realizations are read by intersection.** Decision 3 makes `kvm`,
    `guestAndroid` and `guestAndroidSDV` realize two alternatives: AAOS
    Integrated and S-CORE Integrated. So a configuration realizes the one
@@ -214,15 +217,20 @@ lands.
    scope classification, not evidence about that content. REQ-MW-006,
    GAP-MW-029 and GAP-MW-033 stay open.
 6. **The role decides, not the software identity.** In the S-CORE member, the
-   HMI application in the AAOS SDV guest is System 1 content. It is part of
-   the member product, outside the system of interest of INC-MW-011.
-   INC-AEBS-010 classifies the same visualization application as System 2
-   instrumentation, in an instrumented specialization of the AAOS-integrated
-   member. Both classifications hold, because the role of an element in its
-   product decides its classification. Visualization instrumentation stays
-   an excluded System 2 concern. The HMI is an informational display, not the
-   AEBS driver warning (ASM-MW-024). ADR 0026 puts a display in every member
-   but does not decide what a display shows, so this decision stands.
+   HMI application in the AAOS SDV guest is System 1 content. It is part of the
+   member product, outside the system of interest of INC-MW-011. INC-AEBS-010
+   classifies the same visualization application as System 2 instrumentation,
+   in an instrumented specialization of the AAOS-integrated member. Both
+   classifications hold, because the role of an element in its product decides
+   its classification. Visualization instrumentation stays an excluded System 2
+   concern. INC-MW-011 assumes that this HMI application is an informational
+   display, not the AEBS driver warning (ASM-MW-024). That is an assumption of
+   the increment about the application it reuses, not a scope decision about
+   the display of the member. Whether the display of this member also gives the
+   AEBS driver warning of REQ-AEBS-002 is open: ADR 0026 leaves what a display
+   shows to the AEBS requirements and architecture, and this record does not
+   decide it either. If the AEBS requirements put the driver warning on this
+   display, ASM-MW-024 and the read-only HMI path are reopened in INC-MW-011.
 7. **A second scope decision record, validated.** The governed scope records
    this decision in a second `ProductLineScopeDecisionRecord` that governs
    the scope, like the initial record and with its decision authority. Today
@@ -307,6 +315,9 @@ Clauses are quoted.
   amends it. The ADR 0022 note on the guest side (2026-10-22) applies it to
   the guest groups and to the partner role of `middleware`. The list of the
   clause gains the S-CORE two-domain topology (decision 3).
+- ADR 0014: "“Common” means common within these two governed planned members":
+  within the three governed planned members (decision 5). It still does not
+  mean permanently common to DE4SDV.
 
 **Decided here, though left open earlier:**
 
@@ -382,17 +393,20 @@ Costs and risks:
   GAP-MW-038 can still stop the proof. The staging of the draft would have
   cost only a rejected draft.
 - **Follow-up work.**
-  - An implementation pull request changes the admission rule first
-    (decision 4).
-  - One scope pull request then changes the scope model, the validator and
-    its tests, the correspondences and the CLS-MW-004 trace. The receipts,
-    the projection headers, the Gate C review record and the product-line
-    docs follow. The same pull request can carry the scope change of
-    ADR 0026.
-  - `hmiDisplay` drops `#UnassignedBindingTime` and binds during
-    Development, as common content of every member (ADR 0026), not with an
-    alternative. Every member then selects it, so it leaves the table of
-    features that distinguish no member yet.
+  - An implementation pull request changes the admission rule first (decision
+    4). It keeps the reviewed verdicts; if a reason text changes, it refreshes
+    the receipts offline.
+  - One scope pull request then changes the scope model, the validator and its
+    tests, the correspondences and the CLS-MW-004 trace. The receipts, the
+    projection headers, the Gate C review record and the product-line docs
+    follow. So do the privileged Syside validation of the scope model and,
+    after the merge, a privileged ingestion of the served model. The same pull
+    request can carry the scope change of ADR 0026.
+  - `hmiDisplay` drops `#UnassignedBindingTime` and binds during Development,
+    as common content of every member (ADR 0026), not with an alternative. It
+    then corresponds to common content, and some configurations leave it out,
+    so it leaves the table of features that distinguish no member yet, as
+    `autoware` and `linux` are not in it.
   - ADR 0014 gets a marked note and stays `Accepted`.
   - A release follows with the INC-MW-011 baseline.
 - **A third member to keep.** Every later feature-model change must keep
@@ -412,6 +426,8 @@ This ADR does not:
   itself: the pull requests that the Consequences name do that;
 - make the runnable proof a condition of membership;
 - choose the transport of the cross-domain HMI path;
+- decide whether the HMI display of the S-CORE member gives the AEBS driver
+  warning (ADR 0026);
 - set the success criteria of the runnable proof: the INC-MW-011
   requirements and phase 10 own them;
 - fix the final names or the textual form of the scope change;
@@ -438,7 +454,7 @@ This ADR does not:
 - [ADR 0025: End SOME/IP in an SDV Core VM](0025-end-someip-in-an-sdv-core-vm.md):
   the guest side of this member, with an SDV Core VM and an IVI VM.
 - ADR 0026, an HMI display in every member product: the common display of
-  decisions 1, 2, 3, 5 and 6.
+  decisions 1, 2, 3 and 5, and the open question of decision 6.
 - [Governed product-line scope](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
 - [SDV feature model](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml)
 - [S-CORE reference configuration](../../model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml)
