@@ -1,0 +1,48 @@
+apiVersion: v1
+# The same three workloads the vxedge vehicle runs, expressed as Ankaios workloads.
+# What Ankaios does NOT provide is the network fabric: the podman network and the
+# per-container namespace below are ours, which is exactly the split this spike is
+# meant to show.
+workloads:
+  zone-fl:
+    runtime: podman
+    agent: agent_vm
+    restartPolicy: ALWAYS
+    runtimeConfig: |
+      image: localhost:5000/de4sdv/zone-ecu@sha256:7d2a051e86ce5e3af8fdf8b4d9241b467c3f5ae1410989de7fb02ee0c0284359
+      commandOptions: ["--cap-add=NET_ADMIN", "--network", "ee-adas:ip=10.100.0.11",
+                       "-e", "ZONE_ECU=headlamp",
+                       "-e", "ZONE_DBC=/opt/zone/dbc/headlamp.dbc",
+                       "-e", "ZONE_CHANNEL=vcan0",
+                       "-e", "KUKSA_ADDRESS=grpc://10.100.0.50:55555",
+                       "-e", "CAN_TUNNEL_REMOTE=10.100.0.50",
+                       "-e", "CAN_TUNNEL_RPORT=10001",
+                       "-e", "CAN_TUNNEL_LPORT=20001"]
+  zone-rl:
+    runtime: podman
+    agent: agent_vm
+    restartPolicy: ALWAYS
+    runtimeConfig: |
+      image: localhost:5000/de4sdv/zone-ecu@sha256:7d2a051e86ce5e3af8fdf8b4d9241b467c3f5ae1410989de7fb02ee0c0284359
+      commandOptions: ["--cap-add=NET_ADMIN", "--network", "ee-adas:ip=10.100.0.13",
+                       "-e", "ZONE_ECU=wiper",
+                       "-e", "ZONE_DBC=/opt/zone/dbc/wiper.dbc",
+                       "-e", "ZONE_CHANNEL=vcan0",
+                       "-e", "ZONE_UDS_ECU=1",
+                       "-e", "KUKSA_ADDRESS=grpc://10.100.0.50:55555",
+                       "-e", "CAN_TUNNEL_REMOTE=10.100.0.50",
+                       "-e", "CAN_TUNNEL_RPORT=10002",
+                       "-e", "CAN_TUNNEL_LPORT=20002"]
+  gateway:
+    runtime: podman
+    agent: agent_vm
+    restartPolicy: ALWAYS
+    runtimeConfig: |
+      image: localhost:5000/de4sdv/can-gw@sha256:1a85cad119a900104880cf44d72f05234aa3441dbb0379675dae19595ca7e173
+      commandOptions: ["--cap-add=NET_ADMIN", "--network", "ee-adas:ip=10.100.0.50",
+                       "-e", "GW_FRONT_PEER=10.100.0.11",
+                       "-e", "GW_REAR_PEER=10.100.0.13",
+                       "-e", "GW_FRONT_LISTEN=10001",
+                       "-e", "GW_REAR_LISTEN=10002",
+                       "-e", "GW_FRONT_PEER_PORT=20001",
+                       "-e", "GW_REAR_PEER_PORT=20002"]

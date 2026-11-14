@@ -62,6 +62,7 @@ checks/update_with_rollback.sh  apply a package, gate on the zone working, roll 
 checks/make_sbom.sh           regenerate the committed CycloneDX SBOMs from the images
 sbom/                         CycloneDX 1.7 for both images, gzipped, plus how to regenerate
 upstream-reports/             two upstream defects, drafted and not filed
+orchestration/                Ankaios spike: the same workloads under a second orchestrator
 vehicle/vehicle.yaml          the vehicle composition: zones, devices, links, services
 vehicle/parts.yaml            the software baseline: images, capabilities, per-zone env
 vehicle/main.yaml             the experiment: slices, what is under test, method

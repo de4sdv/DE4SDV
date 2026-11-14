@@ -21,6 +21,11 @@ source at a pinned commit. The repository contains no upstream source file.
 | [registry](https://github.com/distribution/distribution) | `2` — `docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278` | Apache-2.0 | container on the testbed host, `127.0.0.1:5000`, TLS with a private CA and htpasswd auth | holds the two DE4SDV images so the baseline can name them by digest |
 | [syft](https://github.com/anchore/syft) | `v1.57.1` (release binary) | Apache-2.0 | host tool, not in any image | generates the CycloneDX SBOMs in `sbom/` |
 
+Evaluated, not used: [Ankaios](https://github.com/eclipse-ankaios/ankaios) `v1.1.0`
+(Apache-2.0) hosted the same three workloads during a spike —
+[`orchestration/README.md`](orchestration/README.md). Nothing in this stack depends on
+it, which is why it is not in the table above.
+
 ## What is inside the images
 
 The stack is not "GPL-free"; it is **free of copyleft in code DE4SDV writes and
