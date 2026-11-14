@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="794" viewBox="0 0 1200 794" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="834" viewBox="0 0 1200 834" role="img" aria-labelledby="title description">
   <title id="title">table-driverAssistanceNeedsView</title>
   <desc id="description">table-driverAssistanceNeedsView. Generated from SysIDE grid CSV.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
@@ -22,15 +22,15 @@
   <text x="852" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">Source</tspan>
   </text>
-  <rect x="0" y="94" width="152" height="260" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="0" y="94" width="152" height="300" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">NEED-DRIVING-008</tspan>
   </text>
-  <rect x="152" y="94" width="328" height="260" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="152" y="94" width="328" height="300" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="164" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="164" dy="0">needWarnAndBrakeForVehicleAhead</tspan>
   </text>
-  <rect x="480" y="94" width="360" height="260" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="480" y="94" width="360" height="300" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="492" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="492" dy="0">Vehicle occupants and road users need the</tspan>
     <tspan x="492" dy="20">driver-assistance system to request the</tspan>
@@ -39,31 +39,33 @@
     <tspan x="492" dy="20">with a stationary or a slower moving</tspan>
     <tspan x="492" dy="20">vehicle ahead in its lane is imminent.</tspan>
   </text>
-  <rect x="840" y="94" width="360" height="260" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="840" y="94" width="360" height="300" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="852" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">INC-DRIVING-002</tspan>
     <tspan x="852" dy="20">vehicleTargetResponseConcern,</tspan>
     <tspan x="852" dy="20">emergencyBrakingIndependenceConcern,</tspan>
     <tspan x="852" dy="20">scoreCommandAndWarningPathConcern,</tspan>
     <tspan x="852" dy="20">vehicleTargetCriteriaConcern, scope items</tspan>
-    <tspan x="852" dy="20">vehicleTargetResponseInScope and</tspan>
-    <tspan x="852" dy="20">scoreCommandPathInScope, gaps</tspan>
+    <tspan x="852" dy="20">vehicleTargetResponseInScope,</tspan>
+    <tspan x="852" dy="20">scoreCommandPathInScope and</tspan>
+    <tspan x="852" dy="20">vehicleTargetCriteriaInScope, gaps</tspan>
     <tspan x="852" dy="20">gapNoSeparateEmergencyFunction,</tspan>
-    <tspan x="852" dy="20">gapScoreIntegration and</tspan>
+    <tspan x="852" dy="20">gapScoreIntegration,</tspan>
+    <tspan x="852" dy="20">gapVehicleTargetCriteria and</tspan>
     <tspan x="852" dy="20">gapCameraImageAndGeometry, assumption</tspan>
     <tspan x="852" dy="20">asmBenchReuse, scenarios SC-DRIVING-012</tspan>
     <tspan x="852" dy="20">and SC-DRIVING-013</tspan>
   </text>
-  <rect x="0" y="354" width="152" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="394" width="152" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">NEED-DRIVING-009</tspan>
   </text>
-  <rect x="152" y="354" width="328" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="164" y="378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="152" y="394" width="328" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="164" dy="0">needNoReactionWithoutImminentCollision</tspan>
   </text>
-  <rect x="480" y="354" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="480" y="394" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="492" dy="0">Vehicle occupants and road users need the</tspan>
     <tspan x="492" dy="20">driver-assistance system to request no</tspan>
     <tspan x="492" dy="20">collision warning and to command no</tspan>
@@ -72,8 +74,8 @@
     <tspan x="492" dy="20">stationary vehicle stands beyond a curve</tspan>
     <tspan x="492" dy="20">or a vehicle ahead turns off.</tspan>
   </text>
-  <rect x="840" y="354" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="394" width="360" height="160" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">INC-DRIVING-002</tspan>
     <tspan x="852" dy="20">vehicleTargetResponseConcern,</tspan>
     <tspan x="852" dy="20">vehicleTargetCriteriaConcern, scope item</tspan>
@@ -81,16 +83,16 @@
     <tspan x="852" dy="20">gapVehicleTargetCriteria, scenarios SC-</tspan>
     <tspan x="852" dy="20">DRIVING-014 and SC-DRIVING-015</tspan>
   </text>
-  <rect x="0" y="514" width="152" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="554" width="152" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">NEED-DRIVING-010</tspan>
   </text>
-  <rect x="152" y="514" width="328" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="164" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="152" y="554" width="328" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="164" dy="0">needWarningRequestForTheDriver</tspan>
   </text>
-  <rect x="480" y="514" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="480" y="554" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="492" dy="0">Vehicle occupants need the driver-</tspan>
     <tspan x="492" dy="20">assistance system to give a warning</tspan>
     <tspan x="492" dy="20">request at its boundary when a collision</tspan>
@@ -98,24 +100,24 @@
     <tspan x="492" dy="20">imminent, so that the AAOS SDV warns the</tspan>
     <tspan x="492" dy="20">driver on its display and as a sound.</tspan>
   </text>
-  <rect x="840" y="514" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="554" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">INC-DRIVING-002</tspan>
     <tspan x="852" dy="20">driverWarningSequenceConcern, scope item</tspan>
     <tspan x="852" dy="20">driverWarningInScope, gap</tspan>
     <tspan x="852" dy="20">gapWarningOutput, scenarios SC-DRIVING-012</tspan>
     <tspan x="852" dy="20">and SC-DRIVING-013</tspan>
   </text>
-  <rect x="0" y="654" width="152" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="694" width="152" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">NEED-DRIVING-011</tspan>
   </text>
-  <rect x="152" y="654" width="328" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="164" y="678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="152" y="694" width="328" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="164" dy="0">needRunsIdentifyTheCandidate</tspan>
   </text>
-  <rect x="480" y="654" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="480" y="694" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="492" dy="0">Verification engineers and product-line</tspan>
     <tspan x="492" dy="20">engineers need each run of the driver-</tspan>
     <tspan x="492" dy="20">assistance system to identify the</tspan>
@@ -123,8 +125,8 @@
     <tspan x="492" dy="20">it ran with, so that each verdict is bound</tspan>
     <tspan x="492" dy="20">to what ran.</tspan>
   </text>
-  <rect x="840" y="654" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="678" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="694" width="360" height="140" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="718" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">INC-DRIVING-002 candidateVerdictConcern,</tspan>
     <tspan x="852" dy="20">scope item verdictEvidenceInScope, gap</tspan>
     <tspan x="852" dy="20">gapCandidateBehaviorUnverified, scenarios</tspan>
