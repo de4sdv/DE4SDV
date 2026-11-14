@@ -188,6 +188,27 @@ Caveat that travels with every row: two UDP hops and one userspace router on one
 host — no switch, no PHY, no contending traffic. These are not production
 Ethernet numbers.
 
+## Gate 3 result — OpenBSW POSIX as a zonal ECU (testbed, 2026-11-14)
+
+Eclipse OpenBSW's reference application built and ran as an ECU on a virtual bus.
+
+| Step | Result |
+|---|---|
+| Build (`cmake --preset posix-freertos`) | 450/450 targets, exit 0 · `app.referenceApp.elf`, 1 265 176 bytes |
+| Lifecycle | runs level by level, `Initialize level 1 done current=0 target=9`, independently of any other process |
+| Addressing | DoCAN, ISO 15765-4 OBD — tester `0x7E0`, ECU `0x7E8` |
+| UDS | request `7E0 02 10 03` → response `7E8 06 50 03 00 32 01 F4` in 0.8 ms |
+
+`0x50` is the positive DiagnosticSessionControl response; `0x0032` and `0x01F4`
+are the ECU's P2 (50 ms) and P2* (500 × 10 ms) session timings. The 0.8 ms is one
+exchange on a virtual bus, not a latency distribution — the gate-2 harness is what
+produces those.
+
+What this does **not** yet show: the ECU sitting behind the gateway, so a
+diagnostic crosses the routed path. It ran on the testbed host's own `vcan0`,
+beside the vehicle rather than inside it. The plan's "light state machine" is
+covered by this directory's own plant model, not by OpenBSW's demo routines.
+
 ## Findings from the first run
 
 Four defects were only visible with the pieces actually running:
