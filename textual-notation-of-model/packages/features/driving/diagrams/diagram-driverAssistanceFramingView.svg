@@ -571,7 +571,7 @@
   <text x="823" y="1294" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">    )</tspan></text>
   <text x="823" y="1306" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expectedArtifacts :&gt;&gt; expectedArtifacts = (</tspan></text>
   <text x="823" y="1318" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_DriverAssistanceFraming", "DE4SDV_DriverAssistanceOperationalContext",</tspan></text>
-  <text x="823" y="1330" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_DriverAssistanceCapabilityClassification",</tspan></text>
+  <text x="823" y="1330" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "DE4SDV_DriverAssistanceCapabilityClassification", "DE4SDV_DriverAssistanceNeedsRequirements",</tspan></text>
   <text x="823" y="1342" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">    )</tspan></text>
   <text x="823" y="1354" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">expectedReviewEvidence :&gt;&gt; expectedReviewEvidence = (</tspan></text>
   <text x="823" y="1366" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">        "owner confirmation of the engineering question and the scope",</tspan></text>
