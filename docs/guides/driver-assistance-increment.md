@@ -185,11 +185,11 @@ are common by default and get no record.
   admission gap records these decisions, and the member decision amends ADR
   0014 with them. This increment admits nothing.
 - **Display and sound** (`gapDriverHmiInProductLine`): neither is a feature
-  candidate. On the model as it stands the HMI display is an optional feature;
-  ADR 0026, accepted, makes a display common content of every member once its
-  scope pull request takes effect. No member differs by a warning mode.
-  Whether the acoustic warning becomes common content of the driver warning
-  is open. A comment on the HMI gap records both.
+  candidate. ADR 0026, accepted, gives every member a display, so it tells no
+  member apart; the feature model keeps `hmiDisplay` optional only so that
+  configurations which are not members can leave it out. No member differs by a
+  warning mode either. Whether the acoustic warning becomes common content of
+  the driver warning is open. A comment on the HMI gap records both.
 - **View:** the table view `driverAssistanceClassificationView` exposes only
   the candidate.
 

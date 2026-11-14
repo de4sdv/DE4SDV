@@ -161,10 +161,16 @@ def test_the_scope_decisions_the_admission_gap_asks_for_are_named_against_it():
 
 def test_the_display_and_the_sound_are_classified_against_the_hmi_gap():
     text = _comment(HMI_GAP)
-    assert "optional feature that requires the AAOS SDV guest" in text
-    assert f"ADR 0026, accepted, makes a display common content of every member {TAKES_EFFECT}" in text
-    assert "Under neither reading is it a feature candidate of this member." in text
-    assert "The application's own visualization is not the member's display." in text
+    display = _item(text, "The display:")
+    for phrase in ("The display: no feature candidate.",
+                   "ADR 0026, accepted, gives every member a display, so it tells no member apart.",
+                   "The feature model already holds it as hmiDisplay, optional only so that configurations which are "
+                   "not members can leave it out (ADR 0026 decision 6).",
+                   "The governed scope gets the display as common content with the scope pull request of ADR 0026.",
+                   "The application's own visualization is not the member's display."):
+        assert phrase in display, phrase
+    for wrong in ("Under neither reading", "on the model as it stands", "requires the AAOS SDV guest"):
+        assert wrong not in display, f"the display is stated once, by layer, not as two readings: {wrong}"
     assert "no member differs by one, so the sound is no feature candidate" in text
     sound = _item(text, "The sound:")
     assert re.search(r"Whether the acoustic warning becomes common content of the driver warning is open\b",
@@ -225,7 +231,9 @@ def test_the_guide_states_the_classification_and_admits_nothing():
     flat = " ".join(section.group(1).split())
     for phrase in ("`visionPilotDrivingStack`", "Three items are open.", "This increment admits nothing.",
                    "only that build carries steering and acceleration to a vehicle",
-                   "characterizes exactly one planned member"):
+                   "characterizes exactly one planned member",
+                   "the feature model keeps `hmiDisplay` optional only so that configurations which are not members "
+                   "can leave it out"):
         assert phrase in flat, phrase
     for wrong in ("admits the candidate", "needs no new", "needs neither ROS 2"):
         assert wrong not in flat, wrong

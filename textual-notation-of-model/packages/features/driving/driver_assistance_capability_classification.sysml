@@ -88,12 +88,13 @@ package DE4SDV_DriverAssistanceCapabilityClassification {
   comment driverHmiClassification about DE4SDV_DriverAssistanceFraming::gapDriverHmiInProductLine
     /*
      * Phase 3 classifies the candidate's display and sound against the scope.
-     * - The display: on the model as it stands, the HMI display is an optional
-     *   feature that requires the AAOS SDV guest. ADR 0026, accepted, makes a
-     *   display common content of every member once its scope pull request
-     *   takes effect. Under neither reading is it a feature candidate of this
-     *   member. The application's own visualization is not the member's
-     *   display.
+     * - The display: no feature candidate. ADR 0026, accepted, gives every
+     *   member a display, so it tells no member apart. The feature model
+     *   already holds it as hmiDisplay, optional only so that configurations
+     *   which are not members can leave it out (ADR 0026 decision 6). The
+     *   governed scope gets the display as common content with the scope pull
+     *   request of ADR 0026. The application's own visualization is not the
+     *   member's display.
      * - The sound: neither the feature model nor the governed scope holds a
      *   warning mode, and no member differs by one, so the sound is no
      *   feature candidate. Whether the acoustic warning becomes common
