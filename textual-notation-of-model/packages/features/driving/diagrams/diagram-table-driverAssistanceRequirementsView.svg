@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="2030" height="3974" viewBox="0 0 2030 3974" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="2030" height="5194" viewBox="0 0 2030 5194" role="img" aria-labelledby="title description">
   <title id="title">table-driverAssistanceRequirementsView</title>
   <desc id="description">table-driverAssistanceRequirementsView. Generated from SysIDE grid CSV.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
@@ -34,45 +34,53 @@
   <text x="1682" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="1682" dy="0">Criteria</tspan>
   </text>
-  <rect x="0" y="94" width="144" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="0" y="94" width="144" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">REQ-DRIVING-036</tspan>
   </text>
-  <rect x="144" y="94" width="336" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="144" y="94" width="336" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="156" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="156" dy="0">reqEmergencyBrakingForImminentCollision</tspan>
   </text>
-  <rect x="480" y="94" width="360" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="480" y="94" width="360" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="492" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="492" dy="0">When a collision with a vehicle ahead is</tspan>
-    <tspan x="492" dy="20">imminent, the driver-assistance system</tspan>
-    <tspan x="492" dy="20">shall command a deceleration of at least</tspan>
-    <tspan x="492" dy="20">5.0 m/s².</tspan>
+    <tspan x="492" dy="0">While the needed deceleration to a vehicle</tspan>
+    <tspan x="492" dy="20">ahead is at least 5.0 m/s², the driver-</tspan>
+    <tspan x="492" dy="20">assistance system shall command a</tspan>
+    <tspan x="492" dy="20">deceleration of at least 5.0 m/s².</tspan>
   </text>
-  <rect x="840" y="94" width="360" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="840" y="94" width="360" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="852" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">NEED-DRIVING-008; SRC-UNECE-R152 emergency</tspan>
     <tspan x="852" dy="20">braking; REQ-AEBS-003; gap</tspan>
     <tspan x="852" dy="20">gapVehicleTargetCriteria; scenarios SC-</tspan>
     <tspan x="852" dy="20">DRIVING-012 and SC-DRIVING-013</tspan>
   </text>
-  <rect x="1200" y="94" width="360" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="1200" y="94" width="360" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="1212" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1212" dy="0">Derived from the emergency braking of the</tspan>
     <tspan x="1212" dy="20">car to car scenario of the source</tspan>
     <tspan x="1212" dy="20">regulation (SRC-UNECE-R152), which asks</tspan>
     <tspan x="1212" dy="20">for a braking demand of at least 5.0 m/s²</tspan>
-    <tspan x="1212" dy="20">once the system has detected an imminent</tspan>
-    <tspan x="1212" dy="20">collision, and from REQ-AEBS-003. The</tspan>
-    <tspan x="1212" dy="20">requirement states the condition that the</tspan>
-    <tspan x="1212" dy="20">tests of the source regulation set up, an</tspan>
-    <tspan x="1212" dy="20">imminent collision, rather than the</tspan>
-    <tspan x="1212" dy="20">detection of it by the system. The</tspan>
+    <tspan x="1212" dy="20">once the system has detected the</tspan>
+    <tspan x="1212" dy="20">possibility of an imminent collision, and</tspan>
+    <tspan x="1212" dy="20">from REQ-AEBS-003. The requirement states</tspan>
+    <tspan x="1212" dy="20">that condition in the world of the</tspan>
+    <tspan x="1212" dy="20">vehicle, by the needed deceleration,</tspan>
+    <tspan x="1212" dy="20">rather than as a detection by the system:</tspan>
+    <tspan x="1212" dy="20">once avoiding a vehicle ahead needs 5.0</tspan>
+    <tspan x="1212" dy="20">m/s², a smaller command no longer avoids</tspan>
+    <tspan x="1212" dy="20">it. Up to a closing speed of 144 km/h a</tspan>
+    <tspan x="1212" dy="20">needed deceleration of 5.0 m/s² comes with</tspan>
+    <tspan x="1212" dy="20">a time to collision of at most 4.0 s, so</tspan>
+    <tspan x="1212" dy="20">that the collision is then imminent and</tspan>
+    <tspan x="1212" dy="20">REQ-DRIVING-041 lets the braking start;</tspan>
+    <tspan x="1212" dy="20">the settings close at 60 km/h at most. The</tspan>
     <tspan x="1212" dy="20">obligation is the candidate's: the demand</tspan>
     <tspan x="1212" dy="20">is in its command. At 014e0e7a the</tspan>
-    <tspan x="1212" dy="20">candidate writes its planned acceleration</tspan>
-    <tspan x="1212" dy="20">to the vehicle in every cycle that has an</tspan>
-    <tspan x="1212" dy="20">inference result, with no limit or latch</tspan>
+    <tspan x="1212" dy="20">candidate writes the acceleration that its</tspan>
+    <tspan x="1212" dy="20">speed planner returns to the vehicle in</tspan>
+    <tspan x="1212" dy="20">each cycle that has an inference result</tspan>
     <tspan x="1212" dy="20">(longitudinal_planning.cpp:36;</tspan>
     <tspan x="1212" dy="20">vision_pilot.cpp:138, 157, 174), so it</tspan>
     <tspan x="1212" dy="20">already decelerates while it flags a</tspan>
@@ -83,27 +91,31 @@
     <tspan x="1212" dy="20">vehicle, which turn the demand into a</tspan>
     <tspan x="1212" dy="20">deceleration.</tspan>
   </text>
-  <rect x="1560" y="94" width="110" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="1560" y="94" width="110" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="1572" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1572" dy="0">test</tspan>
   </text>
-  <rect x="1670" y="94" width="360" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="1670" y="94" width="360" height="660" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="1682" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="1682" dy="0">Met when the driver-assistance system</tspan>
-    <tspan x="1682" dy="20">commands a deceleration of at least 5.0</tspan>
-    <tspan x="1682" dy="20">m/s² within the functional part of each</tspan>
-    <tspan x="1682" dy="20">judged run.</tspan>
+    <tspan x="1682" dy="0">Met when every setting of SC-DRIVING-012</tspan>
+    <tspan x="1682" dy="20">and SC-DRIVING-013 is judged, and in each</tspan>
+    <tspan x="1682" dy="20">judged run the last driving command of the</tspan>
+    <tspan x="1682" dy="20">driver-assistance system holds a</tspan>
+    <tspan x="1682" dy="20">deceleration of at least 5.0 m/s² at each</tspan>
+    <tspan x="1682" dy="20">instant of the functional part at which</tspan>
+    <tspan x="1682" dy="20">the needed deceleration to the target is</tspan>
+    <tspan x="1682" dy="20">at least 5.0 m/s².</tspan>
   </text>
-  <rect x="0" y="594" width="144" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="754" width="144" height="660" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">REQ-DRIVING-037</tspan>
   </text>
-  <rect x="144" y="594" width="336" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="156" y="618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="144" y="754" width="336" height="660" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="156" dy="0">reqImpactSpeedWithinLimit</tspan>
   </text>
-  <rect x="480" y="594" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="480" y="754" width="360" height="660" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="492" dy="0">When a collision with a vehicle ahead is</tspan>
     <tspan x="492" dy="20">imminent, the driver-assistance system</tspan>
     <tspan x="492" dy="20">shall brake the vehicle to a relative</tspan>
@@ -111,25 +123,33 @@
     <tspan x="492" dy="20">relative impact speed for the relative</tspan>
     <tspan x="492" dy="20">approach speed.</tspan>
   </text>
-  <rect x="840" y="594" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="754" width="360" height="660" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">NEED-DRIVING-008; SRC-UNECE-R152 speed</tspan>
     <tspan x="852" dy="20">reduction by braking demand; REQ-AEBS-003;</tspan>
     <tspan x="852" dy="20">gap gapVehicleTargetCriteria; scenarios</tspan>
     <tspan x="852" dy="20">SC-DRIVING-012 and SC-DRIVING-013</tspan>
   </text>
-  <rect x="1200" y="594" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1212" y="618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="1212" dy="0">Derived from the speed reduction by</tspan>
-    <tspan x="1212" dy="20">braking demand of the car to car scenario</tspan>
-    <tspan x="1212" dy="20">of the source regulation (SRC-UNECE-R152),</tspan>
-    <tspan x="1212" dy="20">with the test speeds of its warning and</tspan>
-    <tspan x="1212" dy="20">activation tests with a stationary and a</tspan>
-    <tspan x="1212" dy="20">moving vehicle target, and from REQ-</tspan>
-    <tspan x="1212" dy="20">AEBS-003. The limits and the test speeds</tspan>
-    <tspan x="1212" dy="20">are those of a car in running order,</tspan>
-    <tspan x="1212" dy="20">because the simulated vehicle carries no</tspan>
-    <tspan x="1212" dy="20">load. The source sets the limits for</tspan>
+  <rect x="1200" y="754" width="360" height="660" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1212" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1212" dy="0">This is a performance requirement on the</tspan>
+    <tspan x="1212" dy="20">outcome of the braking. Derived from the</tspan>
+    <tspan x="1212" dy="20">speed reduction by braking demand of the</tspan>
+    <tspan x="1212" dy="20">car to car scenario of the source</tspan>
+    <tspan x="1212" dy="20">regulation (SRC-UNECE-R152), with the test</tspan>
+    <tspan x="1212" dy="20">speeds of its warning and activation tests</tspan>
+    <tspan x="1212" dy="20">with a stationary and a moving vehicle</tspan>
+    <tspan x="1212" dy="20">target, and from REQ-AEBS-003. The limits</tspan>
+    <tspan x="1212" dy="20">and the test speeds are those of a car in</tspan>
+    <tspan x="1212" dy="20">running order, because the simulated</tspan>
+    <tspan x="1212" dy="20">vehicle carries no load. The relative</tspan>
+    <tspan x="1212" dy="20">approach speed is taken when the collision</tspan>
+    <tspan x="1212" dy="20">becomes imminent; at a constant approach</tspan>
+    <tspan x="1212" dy="20">speed it is the speed of the setting less</tspan>
+    <tspan x="1212" dy="20">that of the target, which gives a limit of</tspan>
+    <tspan x="1212" dy="20">0 km/h in each setting except SC-</tspan>
+    <tspan x="1212" dy="20">DRIVING-012 at 60 km/h, where it is 35</tspan>
+    <tspan x="1212" dy="20">km/h. The source sets the limits for</tspan>
     <tspan x="1212" dy="20">unobstructed targets on a flat and dry</tspan>
     <tspan x="1212" dy="20">road, with the centre lines at most 0.2 m</tspan>
     <tspan x="1212" dy="20">apart, in daylight and on a straight road;</tspan>
@@ -145,43 +165,42 @@
     <tspan x="1212" dy="20">surface, the illumination and the test</tspan>
     <tspan x="1212" dy="20">masses.</tspan>
   </text>
-  <rect x="1560" y="594" width="110" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1572" y="618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1560" y="754" width="110" height="660" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1572" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1572" dy="0">test</tspan>
   </text>
-  <rect x="1670" y="594" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1682" y="618" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="1682" dy="0">Met when the relative impact speed is 0</tspan>
-    <tspan x="1682" dy="20">km/h in each judged run of SC-DRIVING-012</tspan>
-    <tspan x="1682" dy="20">at 20 km/h and at 42 km/h and of SC-</tspan>
-    <tspan x="1682" dy="20">DRIVING-013 at 30 km/h and at 60 km/h, and</tspan>
-    <tspan x="1682" dy="20">at most 35 km/h in each judged run of SC-</tspan>
-    <tspan x="1682" dy="20">DRIVING-012 at 60 km/h.</tspan>
+  <rect x="1670" y="754" width="360" height="660" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1682" y="778" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1682" dy="0">Met when every setting of SC-DRIVING-012</tspan>
+    <tspan x="1682" dy="20">and SC-DRIVING-013 is judged, and the</tspan>
+    <tspan x="1682" dy="20">relative impact speed of each judged run</tspan>
+    <tspan x="1682" dy="20">is at most the maximum relative impact</tspan>
+    <tspan x="1682" dy="20">speed for its relative approach speed.</tspan>
   </text>
-  <rect x="0" y="1094" width="144" height="400" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1414" width="144" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">REQ-DRIVING-038</tspan>
   </text>
-  <rect x="144" y="1094" width="336" height="400" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="156" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="144" y="1414" width="336" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="156" dy="0">reqDrivingCommandOverSCORE</tspan>
   </text>
-  <rect x="480" y="1094" width="360" height="400" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="480" y="1414" width="360" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="492" dy="0">The driver-assistance system shall give</tspan>
     <tspan x="492" dy="20">its driving command to the actuation of</tspan>
     <tspan x="492" dy="20">the vehicle only over the Eclipse S-CORE</tspan>
     <tspan x="492" dy="20">path.</tspan>
   </text>
-  <rect x="840" y="1094" width="360" height="400" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="1414" width="360" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">NEED-DRIVING-008; scope item</tspan>
     <tspan x="852" dy="20">scoreCommandPathInScope; gap</tspan>
     <tspan x="852" dy="20">gapScoreIntegration; scenarios SC-</tspan>
     <tspan x="852" dy="20">DRIVING-012 to SC-DRIVING-015</tspan>
   </text>
-  <rect x="1200" y="1094" width="360" height="400" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1212" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1200" y="1414" width="360" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1212" y="1438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1212" dy="0">This is a design constraint: the increment</tspan>
     <tspan x="1212" dy="20">judges the candidate on the S-CORE path of</tspan>
     <tspan x="1212" dy="20">the product line. A path around it, such</tspan>
@@ -190,24 +209,31 @@
     <tspan x="1212" dy="20">brake while S-CORE carries nothing. At</tspan>
     <tspan x="1212" dy="20">014e0e7a only the ROS 2 build of the</tspan>
     <tspan x="1212" dy="20">application reads a live speed and</tspan>
-    <tspan x="1212" dy="20">commands a vehicle</tspan>
-    <tspan x="1212" dy="20">(vision_pilot.cpp:59-78); its vehicle</tspan>
-    <tspan x="1212" dy="20">interface publishes steering and</tspan>
-    <tspan x="1212" dy="20">acceleration to topics</tspan>
-    <tspan x="1212" dy="20">(vehicle_ros2_interface.cpp:25-26), and</tspan>
-    <tspan x="1212" dy="20">the application has no binding to S-CORE</tspan>
+    <tspan x="1212" dy="20">commands a vehicle. That build connects to</tspan>
+    <tspan x="1212" dy="20">topics (vision_pilot.cpp:59-64) and</tspan>
+    <tspan x="1212" dy="20">publishes the steering and the</tspan>
+    <tspan x="1212" dy="20">acceleration</tspan>
+    <tspan x="1212" dy="20">(vehicle_ros2_interface.cpp:25-26); the</tspan>
+    <tspan x="1212" dy="20">build without ROS 2 takes its vehicle</tspan>
+    <tspan x="1212" dy="20">interface by the key source.mode</tspan>
+    <tspan x="1212" dy="20">(vision_pilot.cpp:65-78): its CAN</tspan>
+    <tspan x="1212" dy="20">interface reads a speed of zero and writes</tspan>
+    <tspan x="1212" dy="20">nothing (can_interface.cpp:4-12), and its</tspan>
+    <tspan x="1212" dy="20">file interface reads recorded speeds and</tspan>
+    <tspan x="1212" dy="20">writes nothing (file_interface.cpp:37-61).</tspan>
+    <tspan x="1212" dy="20">The application has no binding to S-CORE</tspan>
     <tspan x="1212" dy="20">(gapScoreIntegration). Phases 6 to 8</tspan>
     <tspan x="1212" dy="20">decide how the command enters the S-CORE</tspan>
     <tspan x="1212" dy="20">path. The no-autopilot, replay or overlay</tspan>
     <tspan x="1212" dy="20">condition of the planned reviews is a</tspan>
     <tspan x="1212" dy="20">criterion of this requirement.</tspan>
   </text>
-  <rect x="1560" y="1094" width="110" height="400" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1572" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1560" y="1414" width="110" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1572" y="1438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1572" dy="0">test</tspan>
   </text>
-  <rect x="1670" y="1094" width="360" height="400" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1682" y="1118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1670" y="1414" width="360" height="540" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1682" y="1438" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1682" dy="0">Met when, in every run of SC-DRIVING-012</tspan>
     <tspan x="1682" dy="20">to SC-DRIVING-015, every driving command</tspan>
     <tspan x="1682" dy="20">that reaches the actuation is matched in</tspan>
@@ -225,85 +251,91 @@
     <tspan x="1682" dy="20">command reaches the actuation after the</tspan>
     <tspan x="1682" dy="20">stop.</tspan>
   </text>
-  <rect x="0" y="1494" width="144" height="380" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="1954" width="144" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">REQ-DRIVING-039</tspan>
   </text>
-  <rect x="144" y="1494" width="336" height="380" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="156" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="156" dy="0">reqIsolateEmergencyBrakingFromSCORE</tspan>
+  <rect x="144" y="1954" width="336" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="156" dy="0">reqDetectableDrivingCommand</tspan>
   </text>
-  <rect x="480" y="1494" width="360" height="380" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="492" dy="0">The driver-assistance system shall prevent</tspan>
-    <tspan x="492" dy="20">each failure of the Eclipse S-CORE path</tspan>
-    <tspan x="492" dy="20">from causing an uncommanded emergency</tspan>
-    <tspan x="492" dy="20">braking.</tspan>
+  <rect x="480" y="1954" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driver-assistance system shall give</tspan>
+    <tspan x="492" dy="20">each driving command in a form that lets</tspan>
+    <tspan x="492" dy="20">the actuation detect its loss, delay,</tspan>
+    <tspan x="492" dy="20">repetition or corruption on the Eclipse</tspan>
+    <tspan x="492" dy="20">S-CORE path.</tspan>
   </text>
-  <rect x="840" y="1494" width="360" height="380" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="1954" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">NEED-DRIVING-008; REQ-MW-006; gap</tspan>
     <tspan x="852" dy="20">gapNoSeparateEmergencyFunction;</tspan>
     <tspan x="852" dy="20">emergencyBrakingIndependenceConcern</tspan>
   </text>
-  <rect x="1200" y="1494" width="360" height="380" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1212" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="1212" dy="0">The product line holds the independence of</tspan>
-    <tspan x="1212" dy="20">the protected emergency command path as</tspan>
-    <tspan x="1212" dy="20">common content, which REQ-MW-006 states: a</tspan>
-    <tspan x="1212" dy="20">failure of the middleware integration path</tspan>
-    <tspan x="1212" dy="20">may cause no uncontrolled emergency</tspan>
-    <tspan x="1212" dy="20">intervention command, whatever its</tspan>
-    <tspan x="1212" dy="20">realization. At 014e0e7a the candidate's</tspan>
-    <tspan x="1212" dy="20">braking leaves in its one driving command</tspan>
-    <tspan x="1212" dy="20">(vision_pilot.cpp:157, 174), which REQ-</tspan>
-    <tspan x="1212" dy="20">DRIVING-038 sends over the Eclipse S-CORE</tspan>
-    <tspan x="1212" dy="20">path (gapNoSeparateEmergencyFunction). A</tspan>
-    <tspan x="1212" dy="20">path apart from S-CORE for an emergency</tspan>
-    <tspan x="1212" dy="20">braking command would be the product</tspan>
-    <tspan x="1212" dy="20">line's protected path, not a bypass of the</tspan>
-    <tspan x="1212" dy="20">driving command, which REQ-DRIVING-038</tspan>
-    <tspan x="1212" dy="20">still covers. The analysis rests on the</tspan>
-    <tspan x="1212" dy="20">realization that phase 8 records and makes</tspan>
-    <tspan x="1212" dy="20">no freedom-from-interference claim.</tspan>
+  <rect x="1200" y="1954" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1212" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1212" dy="0">This is a design constraint on the form of</tspan>
+    <tspan x="1212" dy="20">the driving command. The product line</tspan>
+    <tspan x="1212" dy="20">holds the independence of the protected</tspan>
+    <tspan x="1212" dy="20">emergency command path as common content:</tspan>
+    <tspan x="1212" dy="20">REQ-MW-006 obliges its products to prevent</tspan>
+    <tspan x="1212" dy="20">a failure of the middleware integration</tspan>
+    <tspan x="1212" dy="20">path from causing an uncontrolled</tspan>
+    <tspan x="1212" dy="20">emergency intervention command, whatever</tspan>
+    <tspan x="1212" dy="20">its realization. The candidate cannot keep</tspan>
+    <tspan x="1212" dy="20">a path outside itself from failing. Its</tspan>
+    <tspan x="1212" dy="20">share is a command whose loss, delay,</tspan>
+    <tspan x="1212" dy="20">repetition or corruption the actuation can</tspan>
+    <tspan x="1212" dy="20">detect; rejecting what the actuation</tspan>
+    <tspan x="1212" dy="20">detects is the share of the product that</tspan>
+    <tspan x="1212" dy="20">holds the path, under REQ-MW-006, and</tspan>
+    <tspan x="1212" dy="20">phases 6 to 8 allocate both. At 014e0e7a</tspan>
+    <tspan x="1212" dy="20">the candidate's braking leaves in its one</tspan>
+    <tspan x="1212" dy="20">driving command (vision_pilot.cpp:157,</tspan>
+    <tspan x="1212" dy="20">174), which REQ-DRIVING-038 sends over the</tspan>
+    <tspan x="1212" dy="20">Eclipse S-CORE path</tspan>
+    <tspan x="1212" dy="20">(gapNoSeparateEmergencyFunction). The</tspan>
+    <tspan x="1212" dy="20">analysis rests on the realization that</tspan>
+    <tspan x="1212" dy="20">phase 8 records and makes no freedom-from-</tspan>
+    <tspan x="1212" dy="20">interference claim.</tspan>
   </text>
-  <rect x="1560" y="1494" width="110" height="380" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1572" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1560" y="1954" width="110" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1572" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1572" dy="0">analyze</tspan>
   </text>
-  <rect x="1670" y="1494" width="360" height="380" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1682" y="1518" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1670" y="1954" width="360" height="500" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1682" y="1978" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1682" dy="0">Met when the analysis of the realization</tspan>
     <tspan x="1682" dy="20">that phase 8 records shows, for a loss, a</tspan>
     <tspan x="1682" dy="20">delay, a repetition and a corruption of a</tspan>
-    <tspan x="1682" dy="20">message on the Eclipse S-CORE path, that</tspan>
-    <tspan x="1682" dy="20">none can cause an uncommanded emergency</tspan>
-    <tspan x="1682" dy="20">braking, and names the element of the</tspan>
-    <tspan x="1682" dy="20">realization that prevents each.</tspan>
+    <tspan x="1682" dy="20">driving command on the Eclipse S-CORE</tspan>
+    <tspan x="1682" dy="20">path, the part of the command by which the</tspan>
+    <tspan x="1682" dy="20">actuation detects it.</tspan>
   </text>
-  <rect x="0" y="1874" width="144" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="1898" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="2454" width="144" height="620" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="2478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">REQ-DRIVING-040</tspan>
   </text>
-  <rect x="144" y="1874" width="336" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="156" y="1898" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="144" y="2454" width="336" height="620" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="2478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="156" dy="0">reqWithholdWarningRequest</tspan>
   </text>
-  <rect x="480" y="1874" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="1898" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="492" dy="0">While no collision with a vehicle ahead is</tspan>
-    <tspan x="492" dy="20">imminent, the driver-assistance system</tspan>
-    <tspan x="492" dy="20">shall withhold its warning request.</tspan>
+  <rect x="480" y="2454" width="360" height="620" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="2478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driver-assistance system shall start</tspan>
+    <tspan x="492" dy="20">its warning request only while a collision</tspan>
+    <tspan x="492" dy="20">with a vehicle ahead is imminent.</tspan>
   </text>
-  <rect x="840" y="1874" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="1898" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="2454" width="360" height="620" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="2478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">NEED-DRIVING-009; SRC-UNECE-R152 false</tspan>
     <tspan x="852" dy="20">reaction avoidance; REQ-AEBS-008; gap</tspan>
     <tspan x="852" dy="20">gapVehicleTargetCriteria; scenarios SC-</tspan>
-    <tspan x="852" dy="20">DRIVING-014 and SC-DRIVING-015</tspan>
+    <tspan x="852" dy="20">DRIVING-012 to SC-DRIVING-015</tspan>
   </text>
-  <rect x="1200" y="1874" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1212" y="1898" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1200" y="2454" width="360" height="620" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1212" y="2478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1212" dy="0">Derived from the false reaction avoidance</tspan>
     <tspan x="1212" dy="20">of the source regulation (SRC-UNECE-R152),</tspan>
     <tspan x="1212" dy="20">which asks the system to minimise</tspan>
@@ -315,54 +347,62 @@
     <tspan x="1212" dy="20">list, the curved road with guard pipes and</tspan>
     <tspan x="1212" dy="20">a stationary object (SC-DRIVING-014) and</tspan>
     <tspan x="1212" dy="20">the turn of a vehicle ahead (SC-</tspan>
-    <tspan x="1212" dy="20">DRIVING-015). In each, any warning is a</tspan>
-    <tspan x="1212" dy="20">false reaction, so the criterion is none.</tspan>
-    <tspan x="1212" dy="20">The source gives the speeds and the times</tspan>
-    <tspan x="1212" dy="20">to collision of these scenarios as</tspan>
-    <tspan x="1212" dy="20">guidance, not as a test: the settings take</tspan>
-    <tspan x="1212" dy="20">their approach speeds, and each run</tspan>
-    <tspan x="1212" dy="20">records the rest. The obligation is the</tspan>
+    <tspan x="1212" dy="20">DRIVING-015). At the speeds and the times</tspan>
+    <tspan x="1212" dy="20">to collision that the source names for</tspan>
+    <tspan x="1212" dy="20">them no collision is imminent, so any</tspan>
+    <tspan x="1212" dy="20">warning there is a false reaction. The</tspan>
+    <tspan x="1212" dy="20">source gives those values as guidance, not</tspan>
+    <tspan x="1212" dy="20">as a test: the settings take their</tspan>
+    <tspan x="1212" dy="20">approach speeds, and System 2 records the</tspan>
+    <tspan x="1212" dy="20">rest in each run. The requirement binds</tspan>
+    <tspan x="1212" dy="20">the start of each warning request in every</tspan>
+    <tspan x="1212" dy="20">run, in SC-DRIVING-012 and SC-DRIVING-013</tspan>
+    <tspan x="1212" dy="20">too before the collision becomes imminent.</tspan>
+    <tspan x="1212" dy="20">It binds the start rather than the whole</tspan>
+    <tspan x="1212" dy="20">request, because braking can end the</tspan>
+    <tspan x="1212" dy="20">imminence while the warning goes on, which</tspan>
+    <tspan x="1212" dy="20">the source allows. The obligation is the</tspan>
     <tspan x="1212" dy="20">candidate's; the settings are System 2's.</tspan>
     <tspan x="1212" dy="20">A simulation cannot show the variety of</tspan>
     <tspan x="1212" dy="20">real roads that the assessment of the</tspan>
     <tspan x="1212" dy="20">source covers.</tspan>
   </text>
-  <rect x="1560" y="1874" width="110" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1572" y="1898" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1560" y="2454" width="110" height="620" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1572" y="2478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1572" dy="0">test</tspan>
   </text>
-  <rect x="1670" y="1874" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1682" y="1898" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="1682" dy="0">Met when the driver-assistance system</tspan>
-    <tspan x="1682" dy="20">gives no warning request in either run of</tspan>
-    <tspan x="1682" dy="20">SC-DRIVING-014 and of SC-DRIVING-015, and</tspan>
-    <tspan x="1682" dy="20">each run records the speeds and the times</tspan>
-    <tspan x="1682" dy="20">to collision that the guidance of the</tspan>
-    <tspan x="1682" dy="20">source regulation names for its scenario.</tspan>
+  <rect x="1670" y="2454" width="360" height="620" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1682" y="2478" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1682" dy="0">Met when, in every run of SC-DRIVING-012</tspan>
+    <tspan x="1682" dy="20">to SC-DRIVING-015, a collision with a</tspan>
+    <tspan x="1682" dy="20">vehicle ahead is imminent at the start of</tspan>
+    <tspan x="1682" dy="20">each warning request of the driver-</tspan>
+    <tspan x="1682" dy="20">assistance system.</tspan>
   </text>
-  <rect x="0" y="2334" width="144" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="2358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="3074" width="144" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">REQ-DRIVING-041</tspan>
   </text>
-  <rect x="144" y="2334" width="336" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="156" y="2358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="144" y="3074" width="336" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="156" dy="0">reqWithholdEmergencyBraking</tspan>
   </text>
-  <rect x="480" y="2334" width="360" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="2358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="492" dy="0">While no collision with a vehicle ahead is</tspan>
-    <tspan x="492" dy="20">imminent, the driver-assistance system</tspan>
-    <tspan x="492" dy="20">shall withhold emergency braking.</tspan>
+  <rect x="480" y="3074" width="360" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driver-assistance system shall start</tspan>
+    <tspan x="492" dy="20">an emergency braking only while a</tspan>
+    <tspan x="492" dy="20">collision with a vehicle ahead is</tspan>
+    <tspan x="492" dy="20">imminent.</tspan>
   </text>
-  <rect x="840" y="2334" width="360" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="2358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="3074" width="360" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">NEED-DRIVING-009; SRC-UNECE-R152 false</tspan>
     <tspan x="852" dy="20">reaction avoidance; REQ-AEBS-012; gap</tspan>
     <tspan x="852" dy="20">gapVehicleTargetCriteria; scenarios SC-</tspan>
-    <tspan x="852" dy="20">DRIVING-014 and SC-DRIVING-015</tspan>
+    <tspan x="852" dy="20">DRIVING-012 to SC-DRIVING-015</tspan>
   </text>
-  <rect x="1200" y="2334" width="360" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1212" y="2358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1200" y="3074" width="360" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1212" y="3098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1212" dy="0">Derived from the false reaction avoidance</tspan>
     <tspan x="1212" dy="20">of the source regulation (SRC-UNECE-R152),</tspan>
     <tspan x="1212" dy="20">which asks the system to avoid emergency</tspan>
@@ -372,55 +412,72 @@
     <tspan x="1212" dy="20">the curve and for the vehicle ahead</tspan>
     <tspan x="1212" dy="20">(longitudinal_planning.cpp:13-14, 34);</tspan>
     <tspan x="1212" dy="20">only a command for 5.0 m/s² or more is an</tspan>
-    <tspan x="1212" dy="20">emergency braking. The obligation is the</tspan>
+    <tspan x="1212" dy="20">emergency braking. The requirement binds</tspan>
+    <tspan x="1212" dy="20">the start of each emergency braking in</tspan>
+    <tspan x="1212" dy="20">every run, in SC-DRIVING-012 and SC-</tspan>
+    <tspan x="1212" dy="20">DRIVING-013 too before the collision</tspan>
+    <tspan x="1212" dy="20">becomes imminent. It binds the start</tspan>
+    <tspan x="1212" dy="20">rather than the whole braking, because a</tspan>
+    <tspan x="1212" dy="20">braking harder than the needed</tspan>
+    <tspan x="1212" dy="20">deceleration lowers it below 1.0 m/s²</tspan>
+    <tspan x="1212" dy="20">before the vehicle stops, which ends the</tspan>
+    <tspan x="1212" dy="20">imminence. The obligation is the</tspan>
     <tspan x="1212" dy="20">candidate's; the settings are System 2's.</tspan>
     <tspan x="1212" dy="20">A simulation cannot show the variety of</tspan>
     <tspan x="1212" dy="20">real roads that the assessment of the</tspan>
     <tspan x="1212" dy="20">source covers.</tspan>
   </text>
-  <rect x="1560" y="2334" width="110" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1572" y="2358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1560" y="3074" width="110" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1572" y="3098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1572" dy="0">test</tspan>
   </text>
-  <rect x="1670" y="2334" width="360" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1682" y="2358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="1682" dy="0">Met when the driver-assistance system</tspan>
-    <tspan x="1682" dy="20">commands no deceleration of 5.0 m/s² or</tspan>
-    <tspan x="1682" dy="20">more in either run of SC-DRIVING-014 and</tspan>
-    <tspan x="1682" dy="20">of SC-DRIVING-015.</tspan>
+  <rect x="1670" y="3074" width="360" height="480" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1682" y="3098" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1682" dy="0">Met when, in every run of SC-DRIVING-012</tspan>
+    <tspan x="1682" dy="20">to SC-DRIVING-015, a collision with a</tspan>
+    <tspan x="1682" dy="20">vehicle ahead is imminent at the start of</tspan>
+    <tspan x="1682" dy="20">each emergency braking of the driver-</tspan>
+    <tspan x="1682" dy="20">assistance system.</tspan>
   </text>
-  <rect x="0" y="2634" width="144" height="700" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="2658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="3554" width="144" height="840" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">REQ-DRIVING-042</tspan>
   </text>
-  <rect x="144" y="2634" width="336" height="700" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="156" y="2658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="144" y="3554" width="336" height="840" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="156" dy="0">reqWarningRequestBeforeEmergencyBraking</tspan>
   </text>
-  <rect x="480" y="2634" width="360" height="700" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="2658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="480" y="3554" width="360" height="840" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="492" dy="0">When a collision with a vehicle ahead is</tspan>
     <tspan x="492" dy="20">imminent, the driver-assistance system</tspan>
     <tspan x="492" dy="20">shall give a warning request at its</tspan>
     <tspan x="492" dy="20">boundary at least 1.0 s of simulation time</tspan>
     <tspan x="492" dy="20">before the start of its emergency braking.</tspan>
   </text>
-  <rect x="840" y="2634" width="360" height="700" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="2658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="3554" width="360" height="840" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">NEED-DRIVING-010; SRC-UNECE-R152 collision</tspan>
     <tspan x="852" dy="20">warning; REQ-AEBS-002; gap</tspan>
     <tspan x="852" dy="20">gapWarningOutput; scenarios SC-DRIVING-012</tspan>
     <tspan x="852" dy="20">and SC-DRIVING-013</tspan>
   </text>
-  <rect x="1200" y="2634" width="360" height="700" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1212" y="2658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1200" y="3554" width="360" height="840" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1212" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1212" dy="0">Derived from the collision warning of the</tspan>
     <tspan x="1212" dy="20">car to car scenario of the source</tspan>
     <tspan x="1212" dy="20">regulation (SRC-UNECE-R152), which asks</tspan>
     <tspan x="1212" dy="20">for the warning to the driver at the</tspan>
     <tspan x="1212" dy="20">latest 0.8 s before the start of the</tspan>
     <tspan x="1212" dy="20">emergency braking, and from REQ-AEBS-002.</tspan>
-    <tspan x="1212" dy="20">The obligation is the candidate's for the</tspan>
+    <tspan x="1212" dy="20">The source asks for the warning where the</tspan>
+    <tspan x="1212" dy="20">relative speed is above the speed up to</tspan>
+    <tspan x="1212" dy="20">which the vehicle can avoid the collision;</tspan>
+    <tspan x="1212" dy="20">NEED-DRIVING-010 asks for the request</tspan>
+    <tspan x="1212" dy="20">whenever a collision with a vehicle ahead</tspan>
+    <tspan x="1212" dy="20">in its lane is imminent, and the</tspan>
+    <tspan x="1212" dy="20">requirement follows the need. The</tspan>
+    <tspan x="1212" dy="20">obligation is the candidate's for the</tspan>
     <tspan x="1212" dy="20">request and for its lead of 1.0 s. Of the</tspan>
     <tspan x="1212" dy="20">1.0 s, 0.2 s is allotted from the warning</tspan>
     <tspan x="1212" dy="20">request to the start of each mode of the</tspan>
@@ -432,60 +489,63 @@
     <tspan x="1212" dy="20">the request, and so at least 0.8 s before</tspan>
     <tspan x="1212" dy="20">the start of the emergency braking while</tspan>
     <tspan x="1212" dy="20">the simulation runs no faster than wall-</tspan>
-    <tspan x="1212" dy="20">clock time, a condition of the bench. The</tspan>
-    <tspan x="1212" dy="20">source lets the warning come as late as</tspan>
-    <tspan x="1212" dy="20">the start of the emergency braking when</tspan>
-    <tspan x="1212" dy="20">the collision cannot be anticipated in</tspan>
-    <tspan x="1212" dy="20">time; in SC-DRIVING-012 and SC-DRIVING-013</tspan>
-    <tspan x="1212" dy="20">the target is ahead in the lane from the</tspan>
-    <tspan x="1212" dy="20">start of the run, so the exception does</tspan>
-    <tspan x="1212" dy="20">not apply. At 014e0e7a the application has</tspan>
-    <tspan x="1212" dy="20">no warning output at its boundary, and its</tspan>
-    <tspan x="1212" dy="20">forward-collision warning and its</tspan>
-    <tspan x="1212" dy="20">emergency braking are two ranges of one</tspan>
-    <tspan x="1212" dy="20">planned acceleration, with nothing that</tspan>
-    <tspan x="1212" dy="20">orders the first before the second</tspan>
+    <tspan x="1212" dy="20">clock time, which is the obligation of</tspan>
+    <tspan x="1212" dy="20">System 2. The source lets the warning come</tspan>
+    <tspan x="1212" dy="20">as late as the start of the emergency</tspan>
+    <tspan x="1212" dy="20">braking when the collision cannot be</tspan>
+    <tspan x="1212" dy="20">anticipated in time; in each setting at a</tspan>
+    <tspan x="1212" dy="20">constant approach speed the collision</tspan>
+    <tspan x="1212" dy="20">becomes imminent at least 1.11 s before a</tspan>
+    <tspan x="1212" dy="20">needed deceleration of 5.0 m/s², so the</tspan>
+    <tspan x="1212" dy="20">exception is not taken. At 014e0e7a the</tspan>
+    <tspan x="1212" dy="20">application has no warning output at its</tspan>
+    <tspan x="1212" dy="20">boundary, and its forward-collision</tspan>
+    <tspan x="1212" dy="20">warning and its emergency braking are two</tspan>
+    <tspan x="1212" dy="20">ranges of one planned acceleration</tspan>
     <tspan x="1212" dy="20">(planning.cpp:113-121; gapWarningOutput).</tspan>
     <tspan x="1212" dy="20">A simulation cannot show whether a driver</tspan>
     <tspan x="1212" dy="20">perceives the warning.</tspan>
   </text>
-  <rect x="1560" y="2634" width="110" height="700" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1572" y="2658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1560" y="3554" width="110" height="840" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1572" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1572" dy="0">test</tspan>
   </text>
-  <rect x="1670" y="2634" width="360" height="700" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1682" y="2658" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="1682" dy="0">Met when the driver-assistance system</tspan>
-    <tspan x="1682" dy="20">gives a warning request at its boundary in</tspan>
-    <tspan x="1682" dy="20">each judged run, and, in each judged run</tspan>
-    <tspan x="1682" dy="20">with an emergency braking, at least 1.0 s</tspan>
-    <tspan x="1682" dy="20">of simulation time before the start of the</tspan>
-    <tspan x="1682" dy="20">first emergency braking of the run.</tspan>
+  <rect x="1670" y="3554" width="360" height="840" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1682" y="3578" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1682" dy="0">Met when every setting of SC-DRIVING-012</tspan>
+    <tspan x="1682" dy="20">and SC-DRIVING-013 is judged, and in each</tspan>
+    <tspan x="1682" dy="20">judged run in which the collision with the</tspan>
+    <tspan x="1682" dy="20">target becomes imminent the driver-</tspan>
+    <tspan x="1682" dy="20">assistance system gives a warning request</tspan>
+    <tspan x="1682" dy="20">at its boundary, at least 1.0 s of</tspan>
+    <tspan x="1682" dy="20">simulation time before the start of the</tspan>
+    <tspan x="1682" dy="20">first emergency braking of the run when</tspan>
+    <tspan x="1682" dy="20">the run has one.</tspan>
   </text>
-  <rect x="0" y="3334" width="144" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="3358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="4394" width="144" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">REQ-DRIVING-043</tspan>
   </text>
-  <rect x="144" y="3334" width="336" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="156" y="3358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="144" y="4394" width="336" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="4418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="156" dy="0">reqWarningRequestOverSCORE</tspan>
   </text>
-  <rect x="480" y="3334" width="360" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="3358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="480" y="4394" width="360" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="4418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="492" dy="0">The driver-assistance system shall give</tspan>
     <tspan x="492" dy="20">its warning request to the AAOS SDV only</tspan>
     <tspan x="492" dy="20">over the Eclipse S-CORE path.</tspan>
   </text>
-  <rect x="840" y="3334" width="360" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="3358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="4394" width="360" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="4418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">NEED-DRIVING-010; scope item</tspan>
     <tspan x="852" dy="20">scoreCommandPathInScope; gaps</tspan>
     <tspan x="852" dy="20">gapWarningOutput and gapScoreIntegration;</tspan>
     <tspan x="852" dy="20">scenarios SC-DRIVING-012 and SC-</tspan>
     <tspan x="852" dy="20">DRIVING-013</tspan>
   </text>
-  <rect x="1200" y="3334" width="360" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1212" y="3358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1200" y="4394" width="360" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1212" y="4418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1212" dy="0">This is a design constraint: the warning</tspan>
     <tspan x="1212" dy="20">reaches the driver through the S-CORE path</tspan>
     <tspan x="1212" dy="20">of the product line to the AAOS SDV. At</tspan>
@@ -500,12 +560,12 @@
     <tspan x="1212" dy="20">decide how the request leaves the</tspan>
     <tspan x="1212" dy="20">candidate.</tspan>
   </text>
-  <rect x="1560" y="3334" width="110" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1572" y="3358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1560" y="4394" width="110" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1572" y="4418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1572" dy="0">test</tspan>
   </text>
-  <rect x="1670" y="3334" width="360" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1682" y="3358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1670" y="4394" width="360" height="280" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1682" y="4418" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1682" dy="0">Met when, in every run of SC-DRIVING-012</tspan>
     <tspan x="1682" dy="20">and SC-DRIVING-013, every warning request</tspan>
     <tspan x="1682" dy="20">that reaches the AAOS SDV is matched in</tspan>
@@ -518,32 +578,28 @@
     <tspan x="1682" dy="20">request reaches the AAOS SDV after the</tspan>
     <tspan x="1682" dy="20">stop.</tspan>
   </text>
-  <rect x="0" y="3614" width="144" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="12" y="3638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+  <rect x="0" y="4674" width="144" height="520" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="4698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">REQ-DRIVING-044</tspan>
   </text>
-  <rect x="144" y="3614" width="336" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="156" y="3638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="144" y="4674" width="336" height="520" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="156" y="4698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="156" dy="0">reqRecordCandidateIdentity</tspan>
   </text>
-  <rect x="480" y="3614" width="360" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="492" y="3638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
-    <tspan x="492" dy="0">The driver-assistance system shall record,</tspan>
-    <tspan x="492" dy="20">before its first driving command of each</tspan>
-    <tspan x="492" dy="20">run, the upstream revision of its source,</tspan>
-    <tspan x="492" dy="20">the difference between its source and that</tspan>
-    <tspan x="492" dy="20">revision, the SHA-256 of each network file</tspan>
-    <tspan x="492" dy="20">it loads and the SHA-256 of its</tspan>
-    <tspan x="492" dy="20">configuration.</tspan>
+  <rect x="480" y="4674" width="360" height="520" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="492" y="4698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="492" dy="0">The driver-assistance system shall record</tspan>
+    <tspan x="492" dy="20">its candidate identity before its first</tspan>
+    <tspan x="492" dy="20">driving command of each run.</tspan>
   </text>
-  <rect x="840" y="3614" width="360" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="852" y="3638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="840" y="4674" width="360" height="520" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="852" y="4698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="852" dy="0">NEED-DRIVING-011; gap</tspan>
     <tspan x="852" dy="20">gapCandidateBehaviorUnverified; scenarios</tspan>
     <tspan x="852" dy="20">SC-DRIVING-012 to SC-DRIVING-015</tspan>
   </text>
-  <rect x="1200" y="3614" width="360" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1212" y="3638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1200" y="4674" width="360" height="520" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1212" y="4698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1212" dy="0">Another engineer can rerun a run only from</tspan>
     <tspan x="1212" dy="20">what it names, and a build with a change</tspan>
     <tspan x="1212" dy="20">that upstream has not merged is a</tspan>
@@ -551,32 +607,40 @@
     <tspan x="1212" dy="20">difference tells them apart. Source,</tspan>
     <tspan x="1212" dy="20">network files and configuration are pinned</tspan>
     <tspan x="1212" dy="20">separately, because none of them fixes the</tspan>
-    <tspan x="1212" dy="20">others. The configuration includes the</tspan>
-    <tspan x="1212" dy="20">run-time settings: at 014e0e7a the key</tspan>
-    <tspan x="1212" dy="20">source.mode chooses at run time where the</tspan>
-    <tspan x="1212" dy="20">camera image and the speed come from</tspan>
+    <tspan x="1212" dy="20">others; the configuration is pinned by the</tspan>
+    <tspan x="1212" dy="20">SHA-256 of each of its files and by the</tspan>
+    <tspan x="1212" dy="20">settings of its launch, so that another</tspan>
+    <tspan x="1212" dy="20">engineer can check each. The configuration</tspan>
+    <tspan x="1212" dy="20">includes the run-time settings: at</tspan>
+    <tspan x="1212" dy="20">014e0e7a, in a build without ROS 2, the</tspan>
+    <tspan x="1212" dy="20">key source.mode chooses where the camera</tspan>
+    <tspan x="1212" dy="20">image and the speed come from</tspan>
     <tspan x="1212" dy="20">(vision_pilot.cpp:65-78), and the key</tspan>
-    <tspan x="1212" dy="20">speed_limit sets the speed that the</tspan>
-    <tspan x="1212" dy="20">candidate drives at</tspan>
-    <tspan x="1212" dy="20">(vision_pilot.conf:20). The scenario and</tspan>
-    <tspan x="1212" dy="20">the simulated configuration belong to</tspan>
-    <tspan x="1212" dy="20">System 2 and are pinned there.</tspan>
+    <tspan x="1212" dy="20">speed_limit sets the highest speed that</tspan>
+    <tspan x="1212" dy="20">the candidate's planner drives toward</tspan>
+    <tspan x="1212" dy="20">(vision_pilot.conf:20). Like the run</tspan>
+    <tspan x="1212" dy="20">identity of the closed-loop driving</tspan>
+    <tspan x="1212" dy="20">increment (REQ-DRIVING-033), the record is</tspan>
+    <tspan x="1212" dy="20">a behaviour of the candidate in each run,</tspan>
+    <tspan x="1212" dy="20">which phase 6 allocates to a function. The</tspan>
+    <tspan x="1212" dy="20">scenario and the simulated configuration</tspan>
+    <tspan x="1212" dy="20">belong to System 2 and are pinned there.</tspan>
   </text>
-  <rect x="1560" y="3614" width="110" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1572" y="3638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1560" y="4674" width="110" height="520" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1572" y="4698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1572" dy="0">test</tspan>
   </text>
-  <rect x="1670" y="3614" width="360" height="360" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
-  <text x="1682" y="3638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+  <rect x="1670" y="4674" width="360" height="520" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1682" y="4698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="1682" dy="0">Met when every run of SC-DRIVING-012 to</tspan>
     <tspan x="1682" dy="20">SC-DRIVING-015 has the record before its</tspan>
     <tspan x="1682" dy="20">first driving command; when another</tspan>
     <tspan x="1682" dy="20">engineer who checks out the named</tspan>
     <tspan x="1682" dy="20">revision, applies the recorded difference</tspan>
-    <tspan x="1682" dy="20">and hashes the named network files and the</tspan>
-    <tspan x="1682" dy="20">configuration obtains the recorded values;</tspan>
-    <tspan x="1682" dy="20">and when a build with one change that</tspan>
-    <tspan x="1682" dy="20">upstream has not merged records a non-</tspan>
-    <tspan x="1682" dy="20">empty difference.</tspan>
+    <tspan x="1682" dy="20">and hashes the named network files and</tspan>
+    <tspan x="1682" dy="20">configuration files obtains the recorded</tspan>
+    <tspan x="1682" dy="20">values; and when a build with one change</tspan>
+    <tspan x="1682" dy="20">that upstream has not merged records a</tspan>
+    <tspan x="1682" dy="20">non-empty difference.</tspan>
   </text>
 </svg>
