@@ -4,7 +4,7 @@
 
 Accepted
 
-The owner accepted this record on 2026-11-13, in the words "accept adr 23".
+The owner accepted this record on 2026-11-13.
 It was drafted as `Proposed` in phase 9 of INC-MW-011 (2026-10-22). The
 draft named the runnable proof of phase 10 as an input of the owner's
 decision in phase 12. The owner accepted it before that proof. The draft
@@ -20,6 +20,10 @@ model still admits only the two members that ADR 0014 and [ADR
 0022](0022-adopt-pleml-as-product-line-authority.md) govern. On the same day
 the owner made the HMI display common to every member (ADR 0026). Decisions 1,
 2, 3 and 5 follow that decision; decision 6 leaves open what the display shows.
+
+> Note (2026-11-14): this record was merged on 2026-11-14, before the contact
+> with the S-CORE maintainers that its Consequences plan before acceptance. No
+> message has been sent to them.
 
 ## Context
 
@@ -123,8 +127,8 @@ on the Linux host, with the AAOS SDV guest under KVM. On 2026-10-22 the
 owner chose the two-sided tree, with the display as an optional capability.
 
 On 2026-11-13 the owner made the HMI display common to every member, with a
-realization that follows the integration mode (ADR 0026). In the same
-message he accepted this record: "accept adr 23". So:
+realization that follows the integration mode (ADR 0026), and accepted this
+record. So:
 
 - The decision on this record in phase 12, after the phase-10 proof
   (2026-10-21), is replaced by the acceptance of 2026-11-13 (decision 8).
@@ -453,8 +457,9 @@ This ADR does not:
   note on the guest side.
 - [ADR 0025: End SOME/IP in an SDV Core VM](0025-end-someip-in-an-sdv-core-vm.md):
   the guest side of this member, with an SDV Core VM and an IVI VM.
-- ADR 0026, an HMI display in every member product: the common display of
-  decisions 1, 2, 3 and 5, and the open question of decision 6.
+- [ADR 0026: An HMI display in every member product](0026-hmi-display-in-every-member-product.md):
+  the common display of decisions 1, 2, 3 and 5, and the open question of
+  decision 6.
 - [Governed product-line scope](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
 - [SDV feature model](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml)
 - [S-CORE reference configuration](../../model-based-product-line-engineering/feature-configurations/middleware_autoware_score_reference.sysml)
