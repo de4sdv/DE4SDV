@@ -8,8 +8,9 @@ increment asks that of a camera-only driver-assistance application,
 [VisionPilot](https://github.com/autowarefoundation/vision_pilot) of the
 Autoware Foundation.
 
-**Status: Phase 0 framing and Phase 1 concerns, proposal.** No
-implementation, run, result, product-line admission or compliance is claimed.
+**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational
+context, proposal.** No implementation, run, result, product-line
+admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -107,6 +108,40 @@ The Phase 1 gates check that each concern has native stakeholders and a
 frame, and that one concern is not the boundary concern. They do not judge
 whether the stakeholder, risk and viewpoint coverage is adequate; review does.
 
+## Operational context and story (Phase 2)
+
+Phase 2 implements the boundary that Phase 0 draws and does not move it. The
+[operational context](../../textual-notation-of-model/packages/features/driving/driver_assistance_operational_context.sysml)
+holds the candidate as a black box and the System 1 parts around it.
+
+- **System of interest:** `candidateSystem`, typed by
+  `DriverAssistanceSystem`, the charter's system of interest. No nested parts
+  until the architecture phases.
+- **Context:** the vehicle, the road environment, a stationary and a moving
+  vehicle target, the Eclipse S-CORE path (`SCORECommandAndWarningPath`), the
+  AAOS SDV (the guest definition of INC-MW-011, imported alone) with the
+  warning presentation, and the driver. The S-CORE path and the AAOS SDV stay
+  outside the candidate, as the Phase 1 concern on the path says.
+- **Flows across the boundary:** the front-camera image and the vehicle speed
+  in; the driving command and the warning request out, both through the
+  S-CORE path. The driver only receives the collision warning.
+- **Story:** `driverAssistanceStory` includes one use case per scenario:
+  `SC-DRIVING-012`, a stationary vehicle target ahead; `SC-DRIVING-013`, a
+  slower moving vehicle target ahead; `SC-DRIVING-014`, a stationary vehicle
+  just outside the guard pipes of a curve; `SC-DRIVING-015`, a vehicle ahead
+  that turns off at a corner while the vehicle goes straight on. The last two
+  follow situations of the regulation's false-reaction scenarios. Phase 2
+  proposes them; Phase 5 confirms the selection and states the criterion
+  (`gapVehicleTargetCriteria`).
+- **Views:** a context view and a story view. The story view also frames
+  `vehicleTargetResponseConcern`, which Phase 1 says the story answers.
+- **System 2 stays out:** CARLA, the cloud hosts, the scenario runner, the
+  evaluators, the capture and the recordings stay in
+  `driverAssistanceVerificationEnvironment`.
+
+`tests/test_driver_assistance_operational_context.py` pins the boundary, the
+bindings, the scenarios, the flows, the views and the traces to Phase 0.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -178,9 +213,11 @@ type approval.
 
 Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is
-**Phase 2**, the operational context: exactly one context holding the
-candidate, with a story whose use cases bind it and the context actors. Phase
-2 draws the boundary that Phase 0 states.
+**Phase 3**, owed by review: `gapCandidateAdmission` and
+`gapDriverHmiInProductLine` ask it to classify the candidate, and its display
+and sound, against the scope as it then stands, and to name the scope
+decisions that the owner would have to take. The Method Check reads Phase 3
+as vacuous, so its next gate will be in Phase 4.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
@@ -193,7 +230,8 @@ authorizes no spend.
 
 Run `sysand sync`, `python scripts/check_repo.py`,
 `python scripts/smoke_test.py` and
-`python -m pytest tests/test_driver_assistance_framing.py -q`. These are
+`python -m pytest tests/test_driver_assistance_framing.py
+tests/test_driver_assistance_operational_context.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed
 validator is available, or request the maintainer-run **Privileged Syside

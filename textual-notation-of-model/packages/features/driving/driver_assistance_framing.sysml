@@ -368,7 +368,10 @@ package DE4SDV_DriverAssistanceFraming {
       MethodPhase::phase10_vvEvidence,
       MethodPhase::phase11_baseline
     );
-    attribute :>> expectedArtifacts = ("DE4SDV_DriverAssistanceFraming");
+    attribute :>> expectedArtifacts = (
+      "DE4SDV_DriverAssistanceFraming",
+      "DE4SDV_DriverAssistanceOperationalContext"
+    );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",
       "independent review of the System 1 and System 2 boundary and the nonclaims",
