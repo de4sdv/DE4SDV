@@ -17,6 +17,8 @@ import sys
 from pathlib import Path
 
 from sysml_shapes import braced_body, strip_comments
+from test_saf_domains import SAF_FILE, _domains
+from test_views_per_phase import _canonical_list
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -121,8 +123,9 @@ OPEN_POINTS = {
     "gapDriverHmiInProductLine": "The HMI display's place in the product line",
 }
 #: Phase 1: concern -> (its SAF or DE4SDV concern definition, the in-scope items its doc names first, its native
-#: stakeholders in order, the sentences that state its question, and the later phase that answers it). One concern
-#: per question; a concern is held by the parties whose interest it states, not only by the roles that check it.
+#: stakeholders in order, the sentences that state its question, and the views that answer it as (phase, viewpoint
+#: definition) pairs, read from the doc's answer). One concern per question; a concern is held by the parties whose
+#: interest it states, not only by the roles that check it.
 PHASE1_CONCERNS = {
     "vehicleTargetResponseConcern": (
         "OperationalCapabilityConcern", ("vehicleTargetResponseInScope", "noReactionInScope"),
@@ -132,7 +135,7 @@ PHASE1_CONCERNS = {
          "is imminent.",
          "It states what they expect, not how well the candidate meets it: no safety or on-road claim follows from "
          "it."),
-        "Answered by the operational story of phase 2."),
+        ((2, "OperationalStoryViewpoint"),)),
     "emergencyBrakingIndependenceConcern": (
         "PhysicalFunctionalMappingConcern", ("vehicleTargetResponseInScope",),
         [("safetyExpert", "SafetyExpert"), ("productLineEngineer", "ProductLineEngineer")],
@@ -142,26 +145,26 @@ PHASE1_CONCERNS = {
          "emergency command path that the product line holds as common content.",
          "Whether the candidate's braking can stand for the common capability turns on it, and so does the lifecycle "
          "decision."),
-        "Answered by the physical-logical mapping of phase 8."),
+        ((8, "PhysicalLogicalMappingViewpoint"), (8, "PhysicalInternalExchangeViewpoint"))),
     "driverWarningSequenceConcern": (
-        "FunctionalBehaviorConcern", ("driverWarningInScope",),
+        "SystemProcessConcern", ("driverWarningInScope",),
         [("occupant", "VehicleOccupant"), ("safetyExpert", "SafetyExpert")],
         ("The driver, a vehicle occupant, needs a warning of an imminent collision on the display and as a sound.",
          "Safety experts need to see the sequence from the candidate's warning request to each of the two modes of "
          "the warning and to the start of the emergency braking, and the time between them, independent of the "
          "software that realizes it.",
          "Whether a driver perceives the warning is out of scope."),
-        "Answered by the system process of phase 6."),
+        ((6, "SystemProcessViewpoint"),)),
     "scoreCommandAndWarningPathConcern": (
-        "PhysicalContextExchangeConcern", ("scoreCommandPathInScope",),
+        "PhysicalInternalExchangeConcern", ("scoreCommandPathInScope",),
         [("systemsEngineer", "SystemsEngineer"), ("productLineEngineer", "ProductLineEngineer")],
-        ("Systems engineers and product-line engineers need to see which items cross the candidate's boundary to "
-         "the Eclipse S-CORE path: the driving command to the actuation and the warning request to the AAOS SDV, "
-         "with no exchange beside S-CORE.",
+        ("Systems engineers and product-line engineers need to see the driving command pass from the candidate "
+         "through Eclipse S-CORE elements to the actuation, and the warning request through S-CORE to the AAOS SDV, "
+         "with no exchange beside S-CORE, and the boundary interface by which each leaves the candidate.",
          "(gapWarningOutput, gapScoreIntegration)",
-         "Typed for Eclipse S-CORE and the AAOS SDV as context of the candidate, as phase 0 draws its boundary; if "
-         "phase 2 places them inside, the question becomes a physical internal exchange."),
-        "Answered by the view of the claimed path in phase 8."),
+         "The candidate's boundary stays as phase 0 draws it: the path is an internal exchange of the realization "
+         "that holds the candidate, the S-CORE path and the AAOS SDV, which phases 6 to 8 decide."),
+        ((8, "PhysicalInternalExchangeViewpoint"),)),
     "vehicleTargetCriteriaConcern": (
         "RegulatoryScopeWithoutComplianceClaimConcern", ("vehicleTargetCriteriaInScope",),
         [("complianceEngineer", "ComplianceEngineer"), ("verificationEngineer", "VerificationEngineer")],
@@ -170,7 +173,7 @@ PHASE1_CONCERNS = {
          "it is, and what a simulation cannot show of it (gapVehicleTargetCriteria).",
          "A criterion met in simulation holds for the simulated configuration only "
          "(asmSimulatedConfigurationStandsIn) and is no statement about compliance or type approval."),
-        "Answered by the requirement definition table of phase 5."),
+        ((5, "SystemRequirementDefinitionViewpoint"),)),
     "candidateVerdictConcern": (
         "ArgumentationAssuranceConcern", ("verdictEvidenceInScope",),
         [("productLineEngineer", "ProductLineEngineer"), ("verificationEngineer", "VerificationEngineer")],
@@ -178,8 +181,10 @@ PHASE1_CONCERNS = {
          "for each requirement and scenario, each bound to the candidate revision that ran and to the simulated "
          "configuration.",
          "A build that carries a change that upstream has not merged is a different candidate, with its verdicts "
-         "reported apart (gapCandidateBehaviorUnverified), and a fail stays a recorded result."),
-        "Answered by the argumentation assurance view of phase 10."),
+         "reported apart (gapCandidateBehaviorUnverified), and a fail stays a recorded result.",
+         "A fail that a mismatch of the simulated camera image or of the camera calibration may explain stays a "
+         "fail, and names gapCameraImageAndGeometry."),
+        ((10, "ArgumentationAssuranceViewpoint"),)),
 }
 #: the SAF or DE4SDV catalogue file that declares each definition a Phase 1 concern is typed by
 CATALOGUES = {
@@ -191,6 +196,17 @@ CATALOGUES = {
 PAST_BEHAVIOR = re.compile(r"(?i)\b(?:braked|warned|stopped|collided|avoided|detected|passed|failed)\b")
 #: an affirmative claim of approval or admission
 APPROVAL = re.compile(r"(?i)\b(?:compliant|complies|certified|homologated|type-approved|admitted)\b")
+#: the words by which a concern's doc names a view that answers it -> the viewpoint definition of that view
+VIEW_PHRASES = {
+    "operational story": "OperationalStoryViewpoint",
+    "requirement definition table": "SystemRequirementDefinitionViewpoint",
+    "system process": "SystemProcessViewpoint",
+    "physical-logical mapping": "PhysicalLogicalMappingViewpoint",
+    "view of the claimed path": "PhysicalInternalExchangeViewpoint",
+    "argumentation assurance view": "ArgumentationAssuranceViewpoint",
+}
+#: a sentence of a concern's doc that says by which views the concern is answered
+ANSWER_SENTENCE = re.compile(r"[^.]*\banswered\b[^.]*\.", re.I)
 
 
 def _raw() -> str:
@@ -474,8 +490,9 @@ def test_the_framing_view_frames_the_boundary_and_exposes_every_usage():
 
     view = braced_body(code, "view driverAssistanceFramingView")
     viewpoint = braced_body(view, "viewpoint driverAssistanceFramingViewpoint : IncrementFramingViewpoint")
-    assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == ["driverAssistanceBoundary", *PHASE1_CONCERNS], \
-        "the one framing viewpoint frames every concern of the increment, the boundary first"
+    frames = re.findall(r"\bframe\s+(\w+)\s*;", viewpoint)
+    assert frames[0] == "driverAssistanceBoundary" and sorted(frames[1:]) == sorted(PHASE1_CONCERNS) \
+        and len(frames) == len(set(frames)), "the one framing viewpoint frames every concern of the increment once"
     assert len(re.findall(r"\bview\s+\w+\s*\{", code)) == 1, "phases 0 and 1 share one view"
     assert "render asTreeDiagram;" in view
     exposed = re.findall(r"\bexpose\s+(\w+)\s*;", view)
@@ -687,6 +704,17 @@ def test_the_upstream_record_pins_what_the_framing_read():
     assert "(https://github.com/autowarefoundation/vision_pilot)" in index_row
 
 
+def _answers(doc: str) -> set[tuple[int, str]]:
+    """The (phase, viewpoint definition) pairs that the answer sentences of a concern's doc name."""
+    phrases = "|".join(re.escape(phrase) for phrase in VIEW_PHRASES)
+    found = set()
+    for sentence in ANSWER_SENTENCE.findall(doc):
+        pairs = re.findall(rf"\b({phrases}) (?:of|in) phase (\d+)\b", sentence)
+        assert pairs, f"an answer that names no view of the method: {sentence.strip()}"
+        found.update((int(phase), VIEW_PHRASES[phrase]) for phrase, phase in pairs)
+    return found
+
+
 def _concern_doc(name: str, kind: str) -> str:
     return " ".join(re.sub(r"(?m)^\s*\*\s?", "", DOC.search(braced_body(_raw(), f"concern {name} : {kind}")).group(1))
                     .split())
@@ -711,8 +739,7 @@ def test_phase_one_frames_one_concern_for_each_question_of_the_scope():
         assert doc.startswith(lead), f"{name}: the doc opens with the in-scope items it answers: {doc[:80]}"
         for sentence in sentences:
             assert sentence in doc, (name, sentence)
-        assert answer in doc, (name, answer)
-        assert answer.startswith("Answered by"), name
+        assert _answers(doc) == set(answer), (name, sorted(_answers(doc)))
         answered.update(items)
     in_scope = _declared("InScopeItem")
     assert answered == in_scope, f"in-scope items without a concern: {sorted(in_scope - answered)}"
@@ -726,8 +753,6 @@ def test_every_stakeholder_of_the_problem_holds_a_phase_one_concern_and_the_bene
     held = {role for _kind, _items, holders, *_rest in PHASE1_CONCERNS.values() for _name, role in holders}
     assert roles <= held, f"problem stakeholders that hold no Phase 1 concern: {sorted(roles - held)}"
     assert held - roles == {"VehicleOccupant", "RoadUser"}, sorted(held - roles)
-    assert PHASE1_CONCERNS["vehicleTargetResponseConcern"][2] == [("occupant", "VehicleOccupant"),
-                                                                  ("roadUser", "RoadUser")]
     assert "private import DE4SDV_Stakeholders::*;" in _code()
     operational = _concern_doc("vehicleTargetResponseConcern", "OperationalCapabilityConcern")
     assert "Reviewers need" not in operational and "engineers" not in operational
@@ -750,9 +775,24 @@ def test_the_guide_lists_the_phase_one_concerns_with_their_holders():
         < guide.index("## What the framing already records as open")
     section = _flat(guide.split("## Concerns (Phase 1)", 1)[1].split("\n## ", 1)[0])
     bullets = re.findall(r"- \*\*[^*]+\*\* `(\w+)`", section)
-    assert bullets == list(PHASE1_CONCERNS), "one bullet for each Phase 1 concern, in the model's order"
+    model_order = re.findall(r"\bconcern\s+(\w+)\s*:", _code())
+    assert model_order[0] == "driverAssistanceBoundary" and sorted(model_order[1:]) == sorted(PHASE1_CONCERNS)
+    assert bullets == model_order[1:], "one bullet for each Phase 1 concern, in the model's order"
     for phrase in ("The framing viewpoint frames all six until those views exist.",
                    "They do not judge whether the stakeholder, risk and viewpoint coverage is adequate; review does."):
         assert phrase in section, phrase
-    model_order = re.findall(r"\bconcern\s+(\w+)\s*:", _code())
-    assert model_order == ["driverAssistanceBoundary", *PHASE1_CONCERNS]
+
+
+def test_each_phase_one_concern_is_answered_by_a_view_of_its_phase_in_its_saf_domain():
+    # The views that answer a concern are views the method lists for their phase. A concern typed by an SAF
+    # definition is answered in the SAF domain of that definition: rule 15's domain advisory reads that property
+    # once the views exist. The DE4SDV-typed concern is outside rule 15; its phase is still checked.
+    listed = _canonical_list()
+    domains = _domains(SAF_FILE.read_text(encoding="utf-8"))
+    for name, (kind, _items, _holders, _sentences, answers) in PHASE1_CONCERNS.items():
+        assert answers, f"{name} names no view that answers it"
+        for phase, viewpoint in answers:
+            assert viewpoint in listed[phase], f"{name}: {viewpoint} is not a view the method lists for phase {phase}"
+            if kind in domains:
+                assert domains[viewpoint] == domains[kind], \
+                    f"{name}: {kind} is in the {domains[kind]} domain, {viewpoint} in {domains[viewpoint]}"

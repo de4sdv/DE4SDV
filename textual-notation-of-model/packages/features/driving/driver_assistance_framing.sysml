@@ -423,20 +423,22 @@ package DE4SDV_DriverAssistanceFraming {
     doc /*
      * vehicleTargetResponseInScope, braking part. Safety experts and
      * product-line engineers need to see which software element of the
-     * candidate realizes the emergency braking, whether it is a function
-     * apart from the speed planner (gapNoSeparateEmergencyFunction), and how
-     * its braking command keeps the independence of the protected emergency
+     * candidate realizes the emergency braking, whether it is a function apart
+     * from the speed planner (gapNoSeparateEmergencyFunction), and how its
+     * braking command keeps the independence of the protected emergency
      * command path that the product line holds as common content. Whether the
-     * candidate's braking can stand for the common capability turns on it,
-     * and so does the lifecycle decision. Answered by the physical-logical
-     * mapping of phase 8.
+     * candidate's braking can stand for the common capability turns on it, and
+     * so does the lifecycle decision. Answered by the physical-logical mapping
+     * of phase 8 for the element that realizes the emergency braking, and by
+     * the view of the claimed path in phase 8 for the independence of its
+     * braking command.
      */
     subject;
     stakeholder safetyExpert : SafetyExpert;
     stakeholder productLineEngineer : ProductLineEngineer;
   }
 
-  concern driverWarningSequenceConcern : FunctionalBehaviorConcern {
+  concern driverWarningSequenceConcern : SystemProcessConcern {
     doc /*
      * driverWarningInScope. The driver, a vehicle occupant, needs a warning
      * of an imminent collision on the display and as a sound. Safety
@@ -452,19 +454,20 @@ package DE4SDV_DriverAssistanceFraming {
     stakeholder safetyExpert : SafetyExpert;
   }
 
-  concern scoreCommandAndWarningPathConcern : PhysicalContextExchangeConcern {
+  concern scoreCommandAndWarningPathConcern : PhysicalInternalExchangeConcern {
     doc /*
      * scoreCommandPathInScope. Systems engineers and product-line engineers
-     * need to see which items cross the candidate's boundary to the Eclipse
-     * S-CORE path: the driving command to the actuation and the warning
-     * request to the AAOS SDV, with no exchange beside S-CORE. At the
-     * inspected revision the candidate has neither a warning output nor an
-     * S-CORE binding (gapWarningOutput, gapScoreIntegration), and a run that
-     * bypasses S-CORE does not judge the candidate on the command path of the
-     * question. Typed for Eclipse S-CORE and the AAOS SDV as context of the
-     * candidate, as phase 0 draws its boundary; if phase 2 places them inside,
-     * the question becomes a physical internal exchange. Answered by the view
-     * of the claimed path in phase 8.
+     * need to see the driving command pass from the candidate through Eclipse
+     * S-CORE elements to the actuation, and the warning request through S-CORE
+     * to the AAOS SDV, with no exchange beside S-CORE, and the boundary
+     * interface by which each leaves the candidate. At the inspected revision
+     * the candidate has neither a warning output nor an S-CORE binding
+     * (gapWarningOutput, gapScoreIntegration), and a run that bypasses S-CORE
+     * does not judge the candidate on the command path of the question. The
+     * candidate's boundary stays as phase 0 draws it: the path is an internal
+     * exchange of the realization that holds the candidate, the S-CORE path
+     * and the AAOS SDV, which phases 6 to 8 decide. Answered by the view of
+     * the claimed path in phase 8.
      */
     subject;
     stakeholder systemsEngineer : SystemsEngineer;
@@ -492,11 +495,13 @@ package DE4SDV_DriverAssistanceFraming {
     doc /*
      * verdictEvidenceInScope. Product-line engineers and verification
      * engineers need the lifecycle decision to rest on a pass or a fail for
-     * each requirement and scenario, each bound to the candidate revision
-     * that ran and to the simulated configuration. A build that carries a
-     * change that upstream has not merged is a different candidate, with its
-     * verdicts reported apart (gapCandidateBehaviorUnverified), and a fail
-     * stays a recorded result. Answered by the argumentation assurance view
+     * each requirement and scenario, each bound to the candidate revision that
+     * ran and to the simulated configuration. A build that carries a change
+     * that upstream has not merged is a different candidate, with its verdicts
+     * reported apart (gapCandidateBehaviorUnverified), and a fail stays a
+     * recorded result. A fail that a mismatch of the simulated camera image or
+     * of the camera calibration may explain stays a fail, and names
+     * gapCameraImageAndGeometry. Answered by the argumentation assurance view
      * of phase 10.
      */
     subject;

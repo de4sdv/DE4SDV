@@ -80,24 +80,28 @@ frames all six until those views exist.
   software element of the candidate realizes the emergency braking, and how
   its braking command keeps the independence of the protected emergency
   command path. Physical functional mapping; safety experts and product-line
-  engineers. Answered in Phase 8; the lifecycle decision turns on it.
+  engineers. Answered in Phase 8, by the physical-logical mapping and by the
+  view of the claimed path; the lifecycle decision turns on it.
 - **Driver warning:** `driverWarningSequenceConcern`. The sequence from the
   warning request to the display, the sound and the start of the emergency
-  braking. Functional behavior; the driver as a vehicle occupant, and safety
+  braking. System process; the driver as a vehicle occupant, and safety
   experts. Answered by the system process of Phase 6.
 - **Eclipse S-CORE command path:** `scoreCommandAndWarningPathConcern`. The
-  driving command and the warning request cross to the S-CORE path, with no
-  exchange beside it. Physical context exchange; systems engineers and
-  product-line engineers. Answered in Phase 8.
+  driving command and the warning request pass from the candidate through the
+  S-CORE path, with no exchange beside it. Physical internal exchange of the
+  realization that Phases 6 to 8 decide; the candidate's boundary stays as
+  Phase 0 draws it. Systems engineers and product-line engineers. Answered by
+  the view of the claimed path in Phase 8.
 - **Criteria for a vehicle target:** `vehicleTargetCriteriaConcern`. Each
   criterion traced to the regulation, to the product-line requirement it
   judges and to whose obligation it is, with what a simulation cannot show.
   Regulatory scope without a compliance claim; compliance engineers and
   verification engineers. Answered by the requirements of Phase 5.
 - **Verdicts:** `candidateVerdictConcern`. A pass or a fail for each
-  requirement and scenario, bound to the candidate revision that ran.
-  Argumentation assurance; product-line engineers and verification engineers.
-  Answered in Phase 10.
+  requirement and scenario, bound to the candidate revision that ran. A fail
+  that the simulated camera image may explain stays a fail. Argumentation
+  assurance; product-line engineers and verification engineers. Answered in
+  Phase 10.
 
 The Phase 1 gates check that each concern has native stakeholders and a
 frame, and that one concern is not the boundary concern. They do not judge
@@ -176,9 +180,7 @@ Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is
 **Phase 2**, the operational context: exactly one context holding the
 candidate, with a story whose use cases bind it and the context actors. Phase
-2 draws the boundary that Phase 0 states; if it places Eclipse S-CORE or the
-AAOS SDV inside the candidate, `scoreCommandAndWarningPathConcern` becomes a
-physical internal exchange.
+2 draws the boundary that Phase 0 states.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
