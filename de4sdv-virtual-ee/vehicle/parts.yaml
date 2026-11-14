@@ -1,8 +1,8 @@
 kind: baseline
 id: bl-vx-de4sdv-ee
 parts:
-- ref: localhost:5000/de4sdv/zone-ecu:9
-  digest: sha256:84f265334c5fec1c92e5aa1c1730cf339b42585e5cd8b792163712f310ee3253
+- ref: localhost:5000/de4sdv/zone-ecu:10
+  digest: sha256:7d2a051e86ce5e3af8fdf8b4d9241b467c3f5ae1410989de7fb02ee0c0284359
   target_ids:
   - fn-fl
   run:
@@ -15,8 +15,8 @@ parts:
       CAN_TUNNEL_REMOTE: 10.100.0.50
       CAN_TUNNEL_RPORT: '10001'
       CAN_TUNNEL_LPORT: '20001'
-- ref: localhost:5000/de4sdv/zone-ecu:9
-  digest: sha256:84f265334c5fec1c92e5aa1c1730cf339b42585e5cd8b792163712f310ee3253
+- ref: localhost:5000/de4sdv/zone-ecu:10
+  digest: sha256:7d2a051e86ce5e3af8fdf8b4d9241b467c3f5ae1410989de7fb02ee0c0284359
   target_ids:
   - fn-rl
   run:

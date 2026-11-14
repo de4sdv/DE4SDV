@@ -76,11 +76,13 @@ fi
 # The plant is the zone — if it exits, the zone exits.
 (
   while :; do
+    [ -f /tmp/zone-stopping ] && break
     python /opt/provider/dbcfeeder.py \
           --config /tmp/dbc_feeder.ini \
           --dbc-default /opt/zone/dbc/dbc_default_values.json \
           --dbc2val --val2dbc \
           2>&1 | sed -u 's/^/[provider] /'
+    [ -f /tmp/zone-stopping ] && break
     echo "[provider] exited; restarting in 2s" >&2
     sleep 2
   done
@@ -111,10 +113,15 @@ if [ "${ZONE_UDS_ECU:-0}" = "1" ]; then
 fi
 
 term() {
+  # Tell the provider supervisor to stop restarting, then take the children down.
+  : > /tmp/zone-stopping
   kill -TERM "${provider_pid}" "${ecu_pid}" 2>/dev/null || true
   [ -n "${tunnel_pid}" ] && kill -TERM "${tunnel_pid}" 2>/dev/null || true
   [ -n "${uds_pid}" ] && kill -TERM "${uds_pid}" 2>/dev/null || true
-  wait 2>/dev/null || true
+  # No `wait` here. The provider runs under a supervisor, so waiting for every child
+  # waits forever on that supervisor — which is how a zone whose plant had died kept
+  # its container "running" while it published nothing. The container must exit so the
+  # orchestrator, and whoever is watching, can see the zone is gone.
   exit 0
 }
 trap term INT TERM
