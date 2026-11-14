@@ -3,7 +3,7 @@
 from pathlib import Path
 import re
 
-from sysml_shapes import braced_body, strip_comments
+from sysml_shapes import braced_body, charter_package_files, strip_comments
 
 ROOT = Path(__file__).resolve().parents[1]
 DRIVING = ROOT / "textual-notation-of-model/packages/features/driving"
@@ -13,6 +13,8 @@ MODEL = DRIVING / "closed_loop_driving_needs_requirements.sysml"
 PACKAGE = "DE4SDV_ClosedLoopDrivingNeedsRequirements"
 CONTEXT_PACKAGE = "DE4SDV_ClosedLoopDrivingOperationalContext"
 SYSTEM_OF_INTEREST = "DE4SDV_ClosedLoopDrivingFraming::candidateDrivingSystem"
+#: the files of the packages this increment's charter names; the driving folder holds more than one increment
+INCREMENT_FILES = charter_package_files(FRAMING, "closedLoopDrivingCharter")
 
 #: Each need: its short name, the stakeholder roles that hold it, and the FIRST phase 1 concern its
 #: source names. A need is held by the parties it serves, so each role set is a subset of the
@@ -85,7 +87,7 @@ def test_the_needs_are_exactly_the_seven_of_phase_4_with_unique_short_names():
     assert re.search(rf"\bpackage\s+{PACKAGE}\s*\{{", code)
     declared = re.findall(r"\brequirement\s+<'([^']+)'>\s+(\w+)\s*:\s*StakeholderNeedCandidate\b", code)
     assert declared == [(short, name) for name, (short, _roles, _concern) in NEEDS.items()]
-    elsewhere = [path.name for path in DRIVING.glob("*.sysml") if path != MODEL
+    elsewhere = [path.name for path in INCREMENT_FILES if path != MODEL
                  and re.search(r"<'NEED-DRIVING-\d{3}'>", path.read_text(encoding="utf-8"))]
     assert not elsewhere, f"NEED-DRIVING short names are declared only here: {elsewhere}"
 

@@ -3,7 +3,7 @@
 from pathlib import Path
 import re
 
-from sysml_shapes import braced_body, strip_comments
+from sysml_shapes import braced_body, charter_package_files, strip_comments
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "textual-notation-of-model/packages/features/driving/closed_loop_driving_framing.sysml"
@@ -212,7 +212,9 @@ def test_the_occupant_holds_the_operational_concern_and_the_two_reuse_concerns()
 
 # -- phase 11: the baseline decision ------------------------------------------------------------------------------
 
-DRIVING = MODEL.parent
+#: The files of the packages this increment's charter names. The driving folder holds more than one increment, so
+#: the checks of this increment read these files and not every file of the folder.
+INCREMENT_FILES = charter_package_files(MODEL, "closedLoopDrivingCharter")
 GUIDE = ROOT / "docs/guides/closed-loop-driving-increment.md"
 BASELINE = "part closedLoopDrivingBaselineDecision : IncrementBaselineDecision"
 #: The disposition the baseline decision gives each gap record of the increment: the six framing gaps by name, the
@@ -341,10 +343,24 @@ def _in_order(statements, text: str, what: str) -> None:
         position = text.index(statement)
 
 
+def test_the_checks_of_this_increment_read_the_nine_packages_its_charter_names():
+    assert [path.name for path in INCREMENT_FILES] == [
+        "closed_loop_driving_capability_classification.sysml",
+        "closed_loop_driving_framing.sysml",
+        "closed_loop_driving_functional_architecture.sysml",
+        "closed_loop_driving_logical_architecture.sysml",
+        "closed_loop_driving_needs_requirements.sysml",
+        "closed_loop_driving_operational_context.sysml",
+        "closed_loop_driving_physical_software_realization.sysml",
+        "closed_loop_driving_variability_configuration.sysml",
+        "closed_loop_driving_verification_evidence.sysml",
+    ]
+
+
 def _gap_records() -> dict[str, str]:
     """Every IncrementGap part of the increment's packages, by short name or else by name, with its body."""
     records = {}
-    for path in sorted(DRIVING.glob("*.sysml")):
+    for path in INCREMENT_FILES:
         code = strip_comments(path.read_text(encoding="utf-8"))
         for short, name in re.findall(r"\bpart\s+(?:<'([^']+)'>\s+)?(\w+)\s*:\s*IncrementGap\s*\{", code):
             declaration = f"part <'{short}'> {name} : IncrementGap" if short else f"part {name} : IncrementGap"
@@ -354,7 +370,7 @@ def _gap_records() -> dict[str, str]:
 
 
 def test_the_increment_has_one_baseline_decision_beside_its_framing_decision():
-    codes = {path.name: strip_comments(path.read_text(encoding="utf-8")) for path in sorted(DRIVING.glob("*.sysml"))}
+    codes = {path.name: strip_comments(path.read_text(encoding="utf-8")) for path in INCREMENT_FILES}
     declared = [(name, found) for name, code in codes.items()
                 for found in re.findall(r"\bpart\s+(\w+)\s*:\s*(?:\w+::)?IncrementBaselineDecision\b", code)]
     assert declared == [(MODEL.name, "closedLoopDrivingBaselineDecision")], "exactly one, in the framing package"
