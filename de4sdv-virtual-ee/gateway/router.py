@@ -16,8 +16,9 @@ dropped frames are visible in the stats rather than silently disappearing.
 
 Echo guard: if a transport ever re-injects a frame the gateway just forwarded,
 the identical (id, payload) arriving within ECHO_WINDOW_S is dropped instead of
-ping-ponging. cannelloni does not echo today; the guard keeps a future transport
-from turning a demo into a broadcast storm.
+ping-ponging. The DE4SDV bridge does not echo (a SocketCAN socket does not see
+its own frames), but a router peer that re-injected would turn the path into a
+broadcast storm, so the guard stays.
 """
 
 from __future__ import annotations
