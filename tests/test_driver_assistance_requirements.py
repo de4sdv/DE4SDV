@@ -18,6 +18,7 @@ review settled on top of them:
 - one requirement definition table, the one view the method names for phase 5, which answers the criteria
   concern of the framing;
 - the guide's phase 5 section and the next obligation, phase 6;
+- the upstream record, which gives each file that a rationale cites with its path at the pin;
 - no claim the charter excludes, and no feature link before phase 9 adds the feature.
 
 The tests read the model text; they do not parse SysML. They state their own constants.
@@ -32,6 +33,8 @@ from sysml_shapes import braced_body, strip_comments
 
 ROOT = Path(__file__).resolve().parents[1]
 GUIDE = ROOT / "docs/guides/driver-assistance-increment.md"
+UPSTREAM_RECORD = ROOT / "textual-notation-of-model/packages/features/driving/upstream.md"
+PIN = "014e0e7a56ee8e597c2cab8175233f74edd9b856"
 DRIVING = ROOT / "textual-notation-of-model/packages/features/driving"
 MODEL = DRIVING / "driver_assistance_needs_requirements.sysml"
 SUBJECT_LINE = "subject driverAssistanceSystem :> DE4SDV_DriverAssistanceFraming::candidateDriverAssistanceSystem;"
@@ -404,3 +407,15 @@ def test_the_guide_states_phase_5_and_the_next_obligation():
     flat = " ".join(guide.split())  # Markdown: a line may open with bold text
     assert "The next model obligation is **Phase 6**: the functional architecture" in flat
     assert "its first gate is `functionalRequirementAllocatedToFunction`" in flat
+
+
+def test_the_upstream_record_gives_each_cited_file_with_its_path():
+    # The header says so: the rationales name the files of VisionPilot by file name, upstream.md by path and line.
+    record = UPSTREAM_RECORD.read_text(encoding="utf-8")
+    paths = re.findall(r"\[VisionPilot/([^\]]+)\]\(https://github\.com/autowarefoundation/vision_pilot/blob/"
+                       rf"{PIN}/VisionPilot/\1#L\d+(?:-L\d+)?\)", record)
+    cited = set()
+    for name in REQUIREMENTS:
+        cited |= set(re.findall(r"\b([\w.]+\.(?:cpp|hpp|conf)):\d", _texts(name)["rationale"]))
+    assert len(cited) == 5, cited
+    assert sorted(cited) == sorted(path.rsplit("/", 1)[-1] for path in paths), (cited, paths)

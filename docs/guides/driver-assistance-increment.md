@@ -9,8 +9,9 @@ increment asks that of a camera-only driver-assistance application,
 Autoware Foundation.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 classification and Phase 4 stakeholder needs, proposal.** No
-implementation, run, result, product-line admission or compliance is claimed.
+Phase 3 classification, Phase 4 stakeholder needs and Phase 5 requirements,
+proposal.** No implementation, run, result, product-line admission or
+compliance is claimed.
 
 ## Authoritative frame
 
@@ -229,17 +230,145 @@ use it, so each is a question for a planned review. `NEED-DRIVING-008` names
 all three in its source, and `SC-DRIVING-016` asks them. The planned reviews,
 not the needs, ask that no autopilot, replay or overlay acts instead of the
 candidate. No need states a number: Phase 5 derives the criteria, their limits
-and the time of the warning before the braking. VisionPilot's runtime contract
-at the pinned revision is a comment for Phase 5: only its ROS 2 build reads a
-live speed and commands a vehicle, and its warnings reach only its own
-visualization and log. The speed-following, lane-keeping and lane-departure
-functions get no need, since no case judges them.
+and the time of the warning before the braking. Phase 4 kept VisionPilot's
+runtime contract at the pinned revision as a comment for Phase 5, whose
+rationales now state it: only its ROS 2 build reads a live speed and commands
+a vehicle, and its warnings reach only its own visualization and log. The
+speed-following, lane-keeping and lane-departure functions get no need, since
+no case judges them.
 
 `tests/test_driver_assistance_needs_requirements.py` pins the needs, their
 holders and sources, the planned reviews and their scenarios, and the
 wording a need may not use. The Phase 4 gates check that each need has a
 statement, a stakeholder, a source, a rationale and a planned review; review
 judges whether the needs are the right ones.
+
+## Requirements (Phase 5)
+
+The [requirements](../../textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml)
+derive what the candidate driver-assistance system shall do from the four
+needs. There are nine, within the scope's cap of ten. Each has one subject,
+the candidate, one verification method and its success criteria. Five are
+functional; Phase 6 allocates each of those to a function.
+
+- `REQ-DRIVING-036` `reqEmergencyBrakingForImminentCollision`, from
+  `NEED-DRIVING-008`, functional, test: commands 5.0 m/s² or more when a
+  collision is imminent.
+- `REQ-DRIVING-037` `reqImpactSpeedWithinLimit`, from `NEED-DRIVING-008`,
+  performance, test: hits a vehicle target no faster than the limit of the
+  regulation for a car.
+- `REQ-DRIVING-038` `reqDrivingCommandOverSCORE`, from `NEED-DRIVING-008`,
+  design constraint, test: gives its driving command only over the Eclipse
+  S-CORE path.
+- `REQ-DRIVING-039` `reqIsolateEmergencyBrakingFromSCORE`, from
+  `NEED-DRIVING-008`, independence constraint, analyze: no failure of the
+  S-CORE path causes an emergency braking that the candidate did not command.
+- `REQ-DRIVING-040` `reqWithholdWarningRequest`, from `NEED-DRIVING-009`,
+  functional, test: no warning request while no collision is imminent.
+- `REQ-DRIVING-041` `reqWithholdEmergencyBraking`, from `NEED-DRIVING-009`,
+  functional, test: no emergency braking while no collision is imminent.
+- `REQ-DRIVING-042` `reqWarningRequestBeforeEmergencyBraking`, from
+  `NEED-DRIVING-010`, functional, test: the warning request at least 1.0 s of
+  simulation time before the emergency braking starts.
+- `REQ-DRIVING-043` `reqWarningRequestOverSCORE`, from `NEED-DRIVING-010`,
+  design constraint, test: gives its warning request to the AAOS SDV only over
+  the Eclipse S-CORE path.
+- `REQ-DRIVING-044` `reqRecordCandidateIdentity`, from `NEED-DRIVING-011`,
+  functional, test: each run records the upstream revision, the local
+  difference, the network files and the configuration.
+
+One table, the requirement definition table that the framing names, shows each
+requirement with its statement, source, rationale, verification method and
+success criteria. It answers the criteria concern of Phase 1,
+`vehicleTargetCriteriaConcern`: the source and the rationale of each criterion
+for a vehicle target name the provision of the regulation it comes from, the
+product-line requirement it judges, whose obligation it is and what a
+simulation cannot show of it.
+
+**The terms that carry the criteria.** The package defines each term once.
+
+- *Emergency braking* is a command of the candidate for a deceleration of at
+  least 5.0 m/s², the braking demand of the regulation. It starts with the
+  first such command after a command for less. The candidate marks its own
+  emergency braking for a planned deceleration beyond 5.0 m/s²; when it slows
+  the vehicle for a curve or for a vehicle ahead by less, that is no emergency
+  braking.
+- A collision is *imminent* where the tests of the regulation make it so: in
+  every judged run of `SC-DRIVING-012` and `SC-DRIVING-013`, and in no run of
+  `SC-DRIVING-014` or `SC-DRIVING-015`. The regulation gives the word no
+  value, and the requirements set none.
+- A *setting* is a scenario with an approach speed and its tolerance: the
+  stationary target of `SC-DRIVING-012` at 20, 42 and 60 km/h; the target of
+  `SC-DRIVING-013`, moving at 20 km/h, at 30 and 60 km/h; the curve of
+  `SC-DRIVING-014` at 30 km/h; and the vehicle ahead of `SC-DRIVING-015` at 40
+  km/h. The speeds of the first two scenarios are test speeds of the
+  regulation, those of the last two come from its guidance. Each setting runs
+  twice, and both runs count.
+- A *judged run* is a run of `SC-DRIVING-012` or `SC-DRIVING-013` with the
+  approach of the test of the regulation: the vehicle travels straight, its
+  centre line within 0.2 m of that of the target, for at least 2 s before the
+  *functional part*. That part starts at the latest instant at which the
+  vehicle travels at its approach speed, within the tolerance, with a time to
+  collision of at least 4 s, and ends when the vehicle hits the target or
+  comes to its speed. A run that misses this, or has no functional part, is
+  reported with what it missed and is not judged.
+
+**Whose obligation each criterion is.**
+
+- The candidate's: the braking demand, the speed at impact, the warning
+  request and its lead of 1.0 s, and no reaction where none is due. For the
+  speed at impact, the simulated vehicle and its brakes stand in for a real
+  one.
+- The Eclipse S-CORE path's and the AAOS SDV's: 0.2 s of that lead. Each mode
+  of the warning, on the display and as a sound, is due within 0.2 s of
+  wall-clock time after the request, and so at least 0.8 s before the start of
+  the emergency braking while the simulation runs no faster than wall-clock
+  time, a condition of the bench. Phases 6 to 8 allocate it.
+- System 2's: the settings, the scenarios and the simulated configuration.
+
+A run shows nothing of what a simulation cannot show of a criterion; the
+rationale of each criterion names it. Among it are the target that the
+regulation prescribes, the measured road surface, the illumination, the test
+masses, and the service brakes and the anti-lock function of a real vehicle.
+
+**Values set in Phase 5.** Each is a choice of this increment, not of the
+regulation:
+
+1. The emergency braking starts with the first command for 5.0 m/s² or more
+   after a command for less: the demand value of the regulation, and the bound
+   of the candidate's own emergency band.
+2. Imminence follows the tests of the regulation, not a threshold that the
+   regulation does not give.
+3. 0.2 s of the lead of 1.0 s is the share of the S-CORE path and the AAOS
+   SDV; the regulation asks for the warning to the driver at the latest 0.8 s
+   before the start of the emergency braking.
+4. The limits are those of a car in running order, because the simulated
+   vehicle carries no load.
+5. Each setting runs twice and both runs count, so a run that misses its
+   criterion stays in the result and no repeated run takes its place.
+6. The functional part starts at the latest instant that the approach allows,
+   so the bench does not choose it.
+7. Where no reaction is due, the criterion is none: no warning request and no
+   emergency braking. The approach speeds of those two scenarios come from the
+   guidance of the regulation, which gives their speeds and times to
+   collision; each run records the rest.
+8. The independence of the emergency braking from the S-CORE path follows the
+   protected emergency command path of the product line (`REQ-MW-006`), and an
+   analysis of the realization of Phase 8 shows it.
+
+The rationales state VisionPilot's runtime contract at the pinned revision,
+which Phase 4 kept as a comment for Phase 5; the comment is gone. They cite
+the files of the application by file name and line, and
+[upstream.md](../../textual-notation-of-model/packages/features/driving/upstream.md#visionpilot)
+gives each with its path.
+
+`tests/test_driver_assistance_requirements.py` pins the requirements, their
+needs, kinds and methods, the values that each statement, rationale and
+criterion carries, the terms, the gap record, the table, the wording a
+statement may not use and the path of each file that a rationale cites. The
+Phase 5 gates check that each requirement has a statement, derives from a
+need, has one subject and one verification method; review judges whether they
+are the right ones.
 
 ## What the framing already records as open
 
@@ -312,9 +441,10 @@ type approval.
 
 Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is
-**Phase 5**: the requirements, derived from the Phase 4 needs; its first gate
-is `requirementHasStatement`. Do not jump from the needs to implementation,
-and claim no runtime gate.
+**Phase 6**: the functional architecture, which allocates each functional
+requirement to a function; its first gate is
+`functionalRequirementAllocatedToFunction`. Do not jump from the requirements
+to implementation, and claim no runtime gate.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
