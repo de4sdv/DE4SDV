@@ -43,6 +43,25 @@ Supporting software that these projects need, such as ROS 2 and Bazel, is
 installed and pinned by the bench scripts and container images. It is not
 listed here.
 
+## Virtual E/E testbed
+
+The software zonal E/E testbed under
+[`de4sdv-virtual-ee/`](de4sdv-virtual-ee/README.md) runs these projects. None of
+them is vendored: each is fetched as a pinned release, built inside a container
+image from a pinned tag, or built from source at a pinned commit.
+
+| Project | What DE4SDV uses it for | Version recorded in | Read more |
+|---|---|---|---|
+| [vxedge](https://github.com/vxedge/vxedge) | Orchestration of the software E/E: gateway, slices, zones, services and signal plane. | [Components and licences](de4sdv-virtual-ee/versions.md) | [Testbed README](de4sdv-virtual-ee/README.md) |
+| [KUKSA Databroker](https://github.com/eclipse-kuksa/kuksa-databroker) | VSS broker of the signal plane. | The same record | The same README |
+| [KUKSA CAN Provider](https://github.com/eclipse-kuksa/kuksa-can-provider) | DBC ↔ VSS bridge inside each zone, both directions. | The same record | The same README |
+| [cannelloni](https://github.com/mguentner/cannelloni) | CAN-over-UDP transport between a zone and the central gateway. GPL-2.0, the only copyleft component; it runs as a separate process and is not linked into DE4SDV code. | The same record | The same README |
+| [OpenBSW](https://github.com/eclipse-openbsw/openbsw) | Reference ECU on a virtual bus: lifecycle and UDS over DoCAN. | The same record | The same README |
+| [SDV Simulation 5](https://github.com/nsengupta/sdv_simulation_5) | Inspected only: its private actuator codec is what the modelled signal contract replaces. It is not built and not run. | The same record | The same README |
+
+The licence of every component, and what a copyleft component means for a
+distributed image, is stated in that one record rather than repeated here.
+
 ## Modeling tools
 
 | Project | What DE4SDV uses it for | Version recorded in | Read more |

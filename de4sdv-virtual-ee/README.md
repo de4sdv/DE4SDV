@@ -38,6 +38,7 @@ Three deliberate choices:
 ## Files
 
 ```text
+versions.md                   pins and licences of every upstream component
 dbc/headlamp.dbc              frame layout, VAL_ tables, comments
 dbc/wiper.dbc
 dbc/dbc_default_values.json   every signal of every transmitted frame (--dbc_default)
