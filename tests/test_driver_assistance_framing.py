@@ -583,7 +583,7 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing and Phase 1 concerns, proposal.**" in guide
+    assert "**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational\ncontext, proposal.**" in guide
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part driverAssistanceQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -607,7 +607,7 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "the increment builds none of them.",
                    "It is no statement about compliance or type approval.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The next model obligation is **Phase 2**, the operational context",
+                   "The next model obligation is **Phase 3**, owed by review",
                    "the clauses for a vehicle target are not yet anchored there."):
         assert phrase in flat, phrase
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
