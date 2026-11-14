@@ -159,26 +159,31 @@ are common by default and get no record.
   `requiresFeatures` constraint and leaves LiDAR and radar selectable.
   Camera-only sensing gets no record of its own: the feature model already
   makes LiDAR optional. The candidate also requires Linux on the main side: its
-  camera source uses V4L2, a Linux interface. ROS 2 is a build option, which
-  its upstream simulator path uses.
-- **Why the feature model waits for Phase 9:** the candidate needs a
-  middleware adapter to Eclipse S-CORE, which Phase 8 realizes first and
-  Phase 9 derives. Phase 9 also decides whether the configuration selects the
-  application's speed-following and lane-keeping functions, which no case of
-  this increment judges.
+  live camera source uses V4L2, a Linux interface. ROS 2 is a build option,
+  which its upstream simulator path uses; at the pinned revision only that
+  build carries steering and acceleration to a vehicle.
+- **Why the feature model waits for Phase 9:** the candidate needs a middleware
+  adapter to Eclipse S-CORE, which Phase 8 realizes first and Phase 9 derives.
+  Phase 9 also decides whether the configuration selects the application's
+  speed-following and lane-keeping functions, which no case of this increment
+  judges. They get no record of their own: the feature model already holds them
+  as optional features. Nor do the application's lane-departure warnings, which
+  come with it and which no case judges either.
 - **Scope decisions:** the candidate would be a new planned member; Autoware
   and LiDAR stop being common at its admission; Vehicle-Target AEBS and the
   independence of the protected emergency command path stay common, and the
-  candidate has to meet both (`gapNoSeparateEmergencyFunction`). The candidate
-  does not use the Autoware runtime, and ROS 2 is a build option of it. Whether
-  the Linux and ROS 2 runtime of Autoware narrows to Linux on the main side and
-  stays common, or stops being common, is open. On the model as it stands
-  Eclipse S-CORE is reference-only, so a configuration of the candidate with it
-  is valid, but the scope does not admit it; ADR 0023, accepted, takes Eclipse
-  S-CORE out of the reference-only set into the S-CORE-integrated alternative
-  once its scope pull request takes effect. A comment on the admission gap
-  records these decisions, and the member decision amends ADR 0014 with them.
-  This increment admits nothing.
+  candidate has to meet both (`gapNoSeparateEmergencyFunction`). Three items
+  are open. First, the Linux and ROS 2 runtime of Autoware: the candidate does
+  not use the Autoware runtime, and ROS 2 is a build option of it. Second, the
+  integration mode: ADR 0023, accepted, takes Eclipse S-CORE out of the
+  reference-only set into the S-CORE-integrated alternative once its scope pull
+  request takes effect, but each integration-mode alternative characterizes
+  exactly one planned member, so whether the candidate shares that alternative
+  or needs its own is open. Third, the sound (below). On the model as it stands
+  no configuration of the candidate exists; once Phase 9 adds it, a
+  configuration is valid, but the scope does not admit it. A comment on the
+  admission gap records these decisions, and the member decision amends ADR
+  0014 with them. This increment admits nothing.
 - **Display and sound** (`gapDriverHmiInProductLine`): neither is a feature
   candidate. On the model as it stands the HMI display is an optional feature;
   ADR 0026, accepted, makes a display common content of every member once its

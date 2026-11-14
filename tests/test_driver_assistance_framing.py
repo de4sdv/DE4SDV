@@ -640,7 +640,7 @@ def test_the_guide_lists_each_gap_as_an_open_point_in_the_models_own_words():
 
 def test_the_upstream_record_pins_what_the_framing_read():
     # The folder keeps one upstream record. Its VisionPilot section holds what this framing read: the inspected
-    # commit, the licence, and the files that the gaps rest on. It restates no pull request of the project and no
+    # commit, the licence, and the files that the gaps rest on; and the one file the classification (phase 3) read. It restates no pull request of the project and no
     # reading of DE4SDV's own; the questions for the maintainers and the contact stand in the record's shared sections.
     assert not FORMER_RECORD.exists(), "one upstream record for the folder"
     record = UPSTREAM_RECORD.read_text(encoding="utf-8")
@@ -650,8 +650,8 @@ def test_the_upstream_record_pins_what_the_framing_read():
             "record belongs to INC-DRIVING-001.") in intro, "the record says whose each statement is"
     section = _record_section(record, "VisionPilot")
     pinned = re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/([^/)\s]+)", record)
-    assert len(pinned) == 11 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
-    assert len(re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/", section)) == 11, \
+    assert len(pinned) == 12 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
+    assert len(re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/", section)) == 12, \
         "the files of the project are linked in its section only"
     network = re.findall(r"github\.com/autowarefoundation/auto_speed([^)\s]*)", record)
     assert network == [f"/tree/{AUTOSPEED_PIN}"], "the record links the network's repository at one commit"

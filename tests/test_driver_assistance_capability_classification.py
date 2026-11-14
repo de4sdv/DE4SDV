@@ -16,6 +16,7 @@ ADMISSION_GAP = "DE4SDV_DriverAssistanceFraming::gapCandidateAdmission"
 HMI_GAP = "DE4SDV_DriverAssistanceFraming::gapDriverHmiInProductLine"
 DEFERRED_DRIVING_STACK = "DE4SDV_AEBSProductLineScope::deferredVariabilitySet::drivingStackVariability"
 TAKES_EFFECT = "once its scope pull request takes effect"
+GUIDE = ROOT / "docs/guides/driver-assistance-increment.md"
 
 #: The product-line characteristic kinds of the method kernel. Phase 3 records the feature-model delta
 #: only (increment-workflow rule 10): a common capability is never a record, and this increment adds
@@ -84,7 +85,7 @@ def test_the_candidate_needs_the_camera_and_linux_and_leaves_lidar_selectable():
     assert "It requires the camera, so phase 9 adds a requiresFeatures constraint and leaves LiDAR and radar " \
            "selectable." in doc
     assert "requires Linux on the main side" in doc
-    assert "its camera source uses V4L2, a Linux interface." in doc
+    assert "its live camera source uses V4L2, a Linux interface." in doc
     assert "ROS 2 is a build option, which its upstream simulator path uses." in doc
     assert "Phase 9 adds the Linux constraint as well." in doc
     for wrong in ("requires LiDAR", "requires the LiDAR", "LiDAR is required", "requires ROS 2", "needs neither ROS 2",
@@ -97,6 +98,7 @@ def test_the_candidate_defers_the_adapter_and_its_other_functions_and_waits_for_
     assert "middleware adapter to Eclipse S-CORE, which phase 8 realizes first and phase 9 derives" in doc
     assert "speed-following and a lane-keeping function, which no case of this increment judges" in doc
     assert "Phase 9 decides whether the configuration selects them." in doc
+    assert "It raises lane-departure warnings as well, which no case judges either." in doc
     assert "Acceptance waits for the member decision." in doc
 
 
@@ -123,27 +125,38 @@ def test_no_dependency_points_to_an_element_the_model_does_not_hold():
     # the slice names them in comments and never as a dependency target.
     for _name, _source, target in _dependencies(_code()):
         assert target in (DEFERRED_DRIVING_STACK, ADMISSION_GAP), target
-        assert not re.search(r"(?i)score|integrated|display|hmi|commonCore", target), target
 
 
 def test_the_scope_decisions_the_admission_gap_asks_for_are_named_against_it():
     text = _comment(ADMISSION_GAP)
     for phrase in ("this increment admits nothing", "ADR 0014", "a new planned member",
-                   "Autoware and LiDAR stop being common", "driving-stack and sensing variability leave deferral",
-                   "INC-DRIVING-001", "Vehicle-Target AEBS", "protected emergency command path",
-                   "ADR 0023 decision 5", "gapNoSeparateEmergencyFunction"):
+                   "Autoware and LiDAR stop being common when it is admitted",
+                   "driving-stack and sensing variability leave deferral", "INC-DRIVING-001",
+                   "Vehicle-Target AEBS and the independence of the protected emergency command path stay common.",
+                   "ADR 0023 decision 5 keeps them common to the three members it accepts",
+                   "gapNoSeparateEmergencyFunction"):
         assert phrase in text, phrase
+    for wrong in ("stay common;", "become variable", "makes them variable", "needs no new one", "needs neither ROS 2",
+                  "three accepted members"):
+        assert wrong not in text, wrong
     runtime = _item(text, "Linux and ROS 2 runtime of Autoware")
     assert "the candidate runs on Linux and does not use the Autoware runtime" in runtime
     assert "ROS 2 is a build option of the candidate, which its upstream simulator path uses" in runtime, \
         "the upstream simulator path runs over ROS 2, so the slice does not say the candidate needs none"
-    assert "needs neither ROS 2" not in text
-    assert re.search(r"\bis open\.$", runtime), \
-        "whether the runtime content narrows to Linux or stops being common is stated as open"
-    assert "Eclipse S-CORE is reference-only" in text and "valid and not admitted" in text
-    assert "ADR 0023, accepted, takes Eclipse S-CORE out of the reference-only set into the S-CORE-integrated " \
-        f"alternative {TAKES_EFFECT} in the model" in text
-    assert "then realizes that alternative and needs no new one" in text
+    assert "At the pinned revision only that build carries steering and acceleration to a vehicle: its CAN " \
+        "interface is a placeholder." in runtime
+    assert re.search(r"\bis open\.$", runtime), "what the runtime content becomes is stated as open"
+    integration = _item(text, "The integration mode")
+    for phrase in ("on the model as it stands no configuration of the candidate exists",
+                   "a configuration of it is valid and not admitted until the member decision",
+                   "with Eclipse S-CORE, which is reference-only today, it is not admitted on that count as well",
+                   "ADR 0023, accepted, takes Eclipse S-CORE out of the reference-only set into the "
+                   f"S-CORE-integrated alternative {TAKES_EFFECT} in the model",
+                   "read by intersection (ADR 0023 decision 4)",
+                   "Each integration-mode alternative characterizes exactly one planned member (ADR 0023 decision 2)"):
+        assert phrase in integration, phrase
+    assert re.search(r"\bis open\.$", integration), \
+        "whether the candidate shares the S-CORE-integrated alternative or needs its own is stated as open"
 
 
 def test_the_display_and_the_sound_are_classified_against_the_hmi_gap():
@@ -161,7 +174,11 @@ def test_the_display_and_the_sound_are_classified_against_the_hmi_gap():
 def test_the_header_gives_each_unrecorded_item_its_reason():
     header = _flat(_raw().split("package ", 1)[0])
     for phrase in ("INC-DRIVING-002, phase 3", "VisionPilot", "common by default and get no record",
-                   "the feature model already makes LiDAR optional", "display", "sound",
+                   "Camera-only sensing adds no record: the feature model already makes LiDAR optional.",
+                   "display", "sound",
+                   "The speed-following and lane-keeping functions get none: the feature model already holds them as "
+                   "the optional features adaptiveCruiseControl and laneKeepAssist",
+                   "The lane-departure warnings get none: they come with the application that the candidate records",
                    "Eclipse S-CORE gets none: the feature model already holds it as a middleware alternative",
                    "The middleware adapter gets none: it is a derived realization"):
         assert phrase in header, phrase
@@ -188,7 +205,7 @@ def test_the_charter_names_the_classification_package():
     charter = braced_body(strip_comments(FRAMING.read_text(encoding="utf-8")),
                           "part driverAssistanceCharter : IncrementCharter")
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-1] == PACKAGE, \
+    assert artifacts and PACKAGE in re.findall(r'"([^"]+)"', artifacts.group(1)), \
         "the charter's expected artifacts must name the package that now holds phase 3 content"
 
 
@@ -198,3 +215,30 @@ def test_the_slice_carries_no_external_clause_or_claim_wording():
                  "owner direction"):
         assert word not in flat, word
     assert not re.search(r"(?i)\b(?:paragraph|clause|annex)\s+\d", flat)
+
+
+def test_the_guide_states_the_classification_and_admits_nothing():
+    section = re.search(r"(?ms)^## Capability classification \(Phase 3\)\n(.*?)(?=^## )", GUIDE.read_text(encoding="utf-8"))
+    assert section, "the guide has a Phase 3 section"
+    flat = " ".join(section.group(1).split())
+    for phrase in ("`visionPilotDrivingStack`", "Three items are open.", "This increment admits nothing.",
+                   "only that build carries steering and acceleration to a vehicle",
+                   "characterizes exactly one planned member"):
+        assert phrase in flat, phrase
+    for wrong in ("admits the candidate", "needs no new", "needs neither ROS 2"):
+        assert wrong not in flat, wrong
+
+
+def test_the_upstream_record_holds_the_vehicle_interface_reading_at_the_pin():
+    # The runtime item rests on the vehicle interface implementations at the inspected commit; the folder's one
+    # upstream record holds that reading with its date and its link at the pin.
+    record = " ".join((DRIVING / "upstream.md").read_text(encoding="utf-8").split())
+    section = record.split("## VisionPilot", 1)[1].split("## Questions requiring upstream engagement", 1)[0]
+    assert "Read for the classification of INC-DRIVING-002 on 2026-11-14, at the same commit:" in section
+    assert ("vision_pilot/tree/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/sensing/vehicle_interface/"
+            "src") in section
+    for phrase in ("the CAN implementation, which the application pairs with its live camera source, is a placeholder "
+                   "that reads a speed of zero and writes nothing.",
+                   "The file implementation writes nothing either.",
+                   "Only the build with the ROS 2 interface carries the steering and the acceleration to a vehicle."):
+        assert phrase in section, phrase

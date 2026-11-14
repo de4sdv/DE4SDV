@@ -5,11 +5,16 @@
  * a member product, VisionPilot as the vehicle application, as a feature
  * candidate. Core elements are common by default and get no record.
  * Camera-only sensing adds no record: the feature model already makes LiDAR
- * optional. The display and the sound get no candidate; the comment on the HMI
- * gap gives the reasons. Eclipse S-CORE gets none: the feature model already
- * holds it as a middleware alternative, and the comment on the admission gap
- * reads its admission. The middleware adapter gets none: it is a derived
- * realization, which phase 9 derives from the configuration.
+ * optional. The speed-following and lane-keeping functions get none: the
+ * feature model already holds them as the optional features
+ * adaptiveCruiseControl and laneKeepAssist, which the governed scope does not
+ * hold. The lane-departure warnings get none: they come with the application
+ * that the candidate records, and no case of this increment judges them. The
+ * display and the sound get no candidate; the comment on the HMI gap gives the
+ * reasons. Eclipse S-CORE gets none: the feature model already holds it as a
+ * middleware alternative, and the comment on the admission gap reads its
+ * admission. The middleware adapter gets none: it is a derived realization,
+ * which phase 9 derives from the configuration.
  */
 
 package DE4SDV_DriverAssistanceCapabilityClassification {
@@ -26,14 +31,15 @@ package DE4SDV_DriverAssistanceCapabilityClassification {
      * candidate. At the pinned revision it reads one front-camera image and
      * the vehicle speed, and writes steering and acceleration. It requires the
      * camera, so phase 9 adds a requiresFeatures constraint and leaves LiDAR
-     * and radar selectable. It requires Linux on the main side: its camera
-     * source uses V4L2, a Linux interface. ROS 2 is a build option, which its
-     * upstream simulator path uses. Phase 9 adds the Linux constraint as well.
-     * It needs a middleware adapter to Eclipse S-CORE, which phase 8 realizes
-     * first and phase 9 derives. It also runs a speed-following and a
-     * lane-keeping function, which no case of this increment judges. Phase 9
-     * decides whether the configuration selects them. Acceptance waits for the
-     * member decision.
+     * and radar selectable. It requires Linux on the main side: its live
+     * camera source uses V4L2, a Linux interface. ROS 2 is a build option,
+     * which its upstream simulator path uses. Phase 9 adds the Linux
+     * constraint as well. It needs a middleware adapter to Eclipse S-CORE,
+     * which phase 8 realizes first and phase 9 derives. It also runs a
+     * speed-following and a lane-keeping function, which no case of this
+     * increment judges. Phase 9 decides whether the configuration selects
+     * them. It raises lane-departure warnings as well, which no case judges
+     * either. Acceptance waits for the member decision.
      */
   }
   dependency visionPilotCandidateOfDeferredDrivingStackVariability
@@ -53,21 +59,30 @@ package DE4SDV_DriverAssistanceCapabilityClassification {
      *   driving-stack and sensing variability leave deferral. Phase 3 of
      *   INC-DRIVING-001 identified the same for the driving member.
      * - Vehicle-Target AEBS and the independence of the protected emergency
-     *   command path stay common. ADR 0023 decision 5 keeps them common to
-     *   the three accepted members, and INC-DRIVING-001 keeps them for the
+     *   command path stay common. ADR 0023 decision 5 keeps them common to the
+     *   three members it accepts, and INC-DRIVING-001 keeps them for the
      *   driving member. The candidate has to meet both;
      *   gapNoSeparateEmergencyFunction holds what is open.
      * - The Linux and ROS 2 runtime of Autoware: the candidate runs on Linux
      *   and does not use the Autoware runtime. ROS 2 is a build option of the
-     *   candidate, which its upstream simulator path uses. Whether that common
-     *   content narrows to Linux on the main side and stays common, or stops
-     *   being common, is open.
-     * - The integration mode: on the model as it stands, Eclipse S-CORE is
-     *   reference-only, so a configuration of the candidate with it is valid
-     *   and not admitted. ADR 0023, accepted, takes Eclipse S-CORE out of the
-     *   reference-only set into the S-CORE-integrated alternative once its
-     *   scope pull request takes effect in the model. A configuration of the
-     *   candidate with it then realizes that alternative and needs no new one.
+     *   candidate, which its upstream simulator path uses. At the pinned
+     *   revision only that build carries steering and acceleration to a
+     *   vehicle: its CAN interface is a placeholder. Whether that common
+     *   content narrows to the part such a member uses and stays common, or
+     *   stops being common, is open.
+     * - The integration mode: on the model as it stands no configuration of
+     *   the candidate exists. Once phase 9 adds the candidate with its adapter
+     *   rule, a configuration of it is valid and not admitted until the member
+     *   decision; with Eclipse S-CORE, which is reference-only today, it is
+     *   not admitted on that count as well. ADR 0023, accepted, takes Eclipse
+     *   S-CORE out of the reference-only set into the S-CORE-integrated
+     *   alternative once its scope pull request takes effect in the model. A
+     *   configuration of the candidate with Eclipse S-CORE and the AAOS SDV
+     *   guest then realizes that alternative, read by intersection (ADR 0023
+     *   decision 4). Each integration-mode alternative characterizes exactly
+     *   one planned member (ADR 0023 decision 2), and that one characterizes
+     *   the S-CORE member. Whether the candidate shares it, which would amend
+     *   that decision, or needs an alternative of its own, is open.
      */
 
   comment driverHmiClassification about DE4SDV_DriverAssistanceFraming::gapDriverHmiInProductLine
