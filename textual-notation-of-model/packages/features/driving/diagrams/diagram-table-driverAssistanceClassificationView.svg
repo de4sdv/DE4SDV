@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="928" height="554" viewBox="0 0 928 554" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="928" height="594" viewBox="0 0 928 594" role="img" aria-labelledby="title description">
   <title id="title">table-driverAssistanceClassificationView</title>
   <desc id="description">table-driverAssistanceClassificationView. Generated from SysIDE grid CSV.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
@@ -18,16 +18,16 @@
   <text x="580" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="580" dy="0">Rationale</tspan>
   </text>
-  <rect x="0" y="94" width="208" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="0" y="94" width="208" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">visionPilotDrivingStack</tspan>
   </text>
-  <rect x="208" y="94" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="208" y="94" width="360" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="220" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="220" dy="0">ProductLineFeatureCandidate,</tspan>
     <tspan x="220" dy="20">ProductLineCharacteristic</tspan>
   </text>
-  <rect x="568" y="94" width="360" height="460" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="568" y="94" width="360" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="580" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="580" dy="0">VisionPilot as the vehicle application</tspan>
     <tspan x="580" dy="20">distinguishes a camera-only driver-</tspan>
@@ -39,17 +39,19 @@
     <tspan x="580" dy="20">requires the camera, so phase 9 adds a</tspan>
     <tspan x="580" dy="20">requiresFeatures constraint and leaves</tspan>
     <tspan x="580" dy="20">LiDAR and radar selectable. It requires</tspan>
-    <tspan x="580" dy="20">Linux on the main side: its camera source</tspan>
-    <tspan x="580" dy="20">uses V4L2, a Linux interface. ROS 2 is a</tspan>
-    <tspan x="580" dy="20">build option, which its upstream simulator</tspan>
-    <tspan x="580" dy="20">path uses. Phase 9 adds the Linux</tspan>
-    <tspan x="580" dy="20">constraint as well. It needs a middleware</tspan>
-    <tspan x="580" dy="20">adapter to Eclipse S-CORE, which phase 8</tspan>
-    <tspan x="580" dy="20">realizes first and phase 9 derives. It</tspan>
-    <tspan x="580" dy="20">also runs a speed-following and a lane-</tspan>
-    <tspan x="580" dy="20">keeping function, which no case of this</tspan>
-    <tspan x="580" dy="20">increment judges. Phase 9 decides whether</tspan>
-    <tspan x="580" dy="20">the configuration selects them. Acceptance</tspan>
+    <tspan x="580" dy="20">Linux on the main side: its live camera</tspan>
+    <tspan x="580" dy="20">source uses V4L2, a Linux interface. ROS 2</tspan>
+    <tspan x="580" dy="20">is a build option, which its upstream</tspan>
+    <tspan x="580" dy="20">simulator path uses. Phase 9 adds the</tspan>
+    <tspan x="580" dy="20">Linux constraint as well. It needs a</tspan>
+    <tspan x="580" dy="20">middleware adapter to Eclipse S-CORE,</tspan>
+    <tspan x="580" dy="20">which phase 8 realizes first and phase 9</tspan>
+    <tspan x="580" dy="20">derives. It also runs a speed-following</tspan>
+    <tspan x="580" dy="20">and a lane-keeping function, which no case</tspan>
+    <tspan x="580" dy="20">of this increment judges. Phase 9 decides</tspan>
+    <tspan x="580" dy="20">whether the configuration selects them. It</tspan>
+    <tspan x="580" dy="20">raises lane-departure warnings as well,</tspan>
+    <tspan x="580" dy="20">which no case judges either. Acceptance</tspan>
     <tspan x="580" dy="20">waits for the member decision.</tspan>
   </text>
 </svg>
