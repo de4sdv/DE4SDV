@@ -33,12 +33,11 @@ SCENARIOS = {
         "SC-DRIVING-012", "stationaryVehicleTarget", "stationary vehicle target ahead in its lane", True),
     "warnAndBrakeForSlowerVehicle": (
         "SC-DRIVING-013", "movingVehicleTarget", "slower moving vehicle target ahead in its lane", True),
-    "noReactionToStationaryVehiclesBesideThePath": (
-        "SC-DRIVING-014", "stationaryVehicleTarget", "stationary vehicles in the adjacent lanes, none in its path",
-        False),
-    "noReactionToVehicleLeavingTheLane": (
-        "SC-DRIVING-015", "movingVehicleTarget", "turns off and leaves the path before a collision is imminent",
-        False),
+    "noReactionToStationaryVehicleBeyondTheCurve": (
+        "SC-DRIVING-014", "stationaryVehicleTarget",
+        "a stationary vehicle stands just beyond the guard rail, on the extension of the lane", False),
+    "noReactionToVehicleAheadTurningOff": (
+        "SC-DRIVING-015", "movingVehicleTarget", "turns off at a corner, while the vehicle goes straight on", False),
 }
 WARNING_ACTORS = {"scorePath", "aaosSDVGuest::warningPresentation", "driver"}
 
@@ -147,7 +146,8 @@ def test_the_story_holds_the_four_scenarios_with_their_targets_and_conditions():
             assert WARNING_ACTORS <= bound, f"{name}: the warning reaches the driver"
         else:
             assert "requests no warning and commands no emergency braking" in doc, name
-            assert "false-reaction scenarios" in doc, name
+            assert "The regulation lists this situation among its false-reaction scenarios; phase 5 makes the " \
+                "selection and states the criterion (gapVehicleTargetCriteria)." in doc, name
             assert not (bound & {"aaosSDVGuest::warningPresentation", "driver"}), f"{name}: no warning is due"
     ids = re.findall(r"SC-DRIVING-\d{3}", raw)
     assert sorted(set(ids)) == sorted(s[0] for s in SCENARIOS.values()), "only the four new scenario identities"

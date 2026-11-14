@@ -95,10 +95,10 @@ package DE4SDV_DriverAssistanceOperationalContext {
       doc /* The road and the lanes of the scenario: what the front camera sees and where the vehicle drives. */
     }
     part stationaryVehicleTarget : VehicleTarget {
-      doc /* A vehicle that stands still, in the vehicle's lane or beside its path. */
+      doc /* A vehicle that stands still: ahead in the vehicle's lane, or outside the road beyond a curve. */
     }
     part movingVehicleTarget : VehicleTarget {
-      doc /* A vehicle that drives ahead, slower than the vehicle or leaving its lane. */
+      doc /* A vehicle that drives ahead in the vehicle's lane: slower than the vehicle, or turning off at a corner. */
     }
     part scorePath : SCORECommandAndWarningPath {
       doc /* The Eclipse S-CORE path that carries the driving command to the actuation and the warning request to the AAOS SDV. */
@@ -179,7 +179,7 @@ package DE4SDV_DriverAssistanceOperationalContext {
   use case def AssistDriverForVehicleTargetAhead :> SYSMODSystemUseCaseBase {
     doc /* The candidate in operation: it warns and brakes for a vehicle target ahead in its lane, and does neither when no collision is imminent. */
     attribute redefines ucMotivation = "Vehicle occupants and road users need the vehicle to warn its driver and to brake when a collision with a vehicle ahead in its lane is imminent, and to do neither when it is not.";
-    attribute redefines ucTrigger = "The vehicle drives with the candidate active, and its front camera and speed deliver input while a vehicle target is ahead in its lane or beside its path.";
+    attribute redefines ucTrigger = "The vehicle drives with the candidate active, and its front camera and speed deliver input while a vehicle target is ahead in its lane or in view outside its path.";
     attribute redefines ucResult = "For a vehicle target ahead in the lane, the warning request leads to the collision warning on the display and as a sound, and the driving command brakes the vehicle; where no collision is imminent, neither a warning nor braking is given.";
 
     objective {
@@ -213,8 +213,8 @@ package DE4SDV_DriverAssistanceOperationalContext {
     first start;
     then include warnAndBrakeForStationaryVehicle;
     then include warnAndBrakeForSlowerVehicle;
-    then include noReactionToStationaryVehiclesBesideThePath;
-    then include noReactionToVehicleLeavingTheLane;
+    then include noReactionToStationaryVehicleBeyondTheCurve;
+    then include noReactionToVehicleAheadTurningOff;
     then done;
   }
 
@@ -262,7 +262,7 @@ package DE4SDV_DriverAssistanceOperationalContext {
     then done;
   }
 
-  use case noReactionToStationaryVehiclesBesideThePath {
+  use case noReactionToStationaryVehicleBeyondTheCurve {
     subject candidateSystem : DriverAssistanceSystem = driverAssistanceOperationalContext::candidateSystem;
     actor vehicle : SubjectVehicle = driverAssistanceOperationalContext::vehicle;
     actor roadEnvironment : RoadEnvironment = driverAssistanceOperationalContext::roadEnvironment;
@@ -271,10 +271,14 @@ package DE4SDV_DriverAssistanceOperationalContext {
 
     objective {
       doc /*
-       * SC-DRIVING-014 (no reaction, stationary vehicles beside the path):
-       * the vehicle passes stationary vehicles in the adjacent lanes, none in
-       * its path, taken from the regulation's false-reaction scenarios; the
-       * candidate requests no warning and commands no emergency braking.
+       * SC-DRIVING-014 (no reaction, stationary vehicle beyond a curve): the
+       * vehicle drives through a tight curve with a guard rail on its outer
+       * side, and a stationary vehicle stands just beyond the guard rail, on
+       * the extension of the lane: ahead of the vehicle before the curve turns
+       * it away, never in its path. The candidate requests no warning and
+       * commands no emergency braking. The regulation lists this situation
+       * among its false-reaction scenarios; phase 5 makes the selection and
+       * states the criterion (gapVehicleTargetCriteria).
        */
     }
 
@@ -282,7 +286,7 @@ package DE4SDV_DriverAssistanceOperationalContext {
     then done;
   }
 
-  use case noReactionToVehicleLeavingTheLane {
+  use case noReactionToVehicleAheadTurningOff {
     subject candidateSystem : DriverAssistanceSystem = driverAssistanceOperationalContext::candidateSystem;
     actor vehicle : SubjectVehicle = driverAssistanceOperationalContext::vehicle;
     actor roadEnvironment : RoadEnvironment = driverAssistanceOperationalContext::roadEnvironment;
@@ -291,10 +295,13 @@ package DE4SDV_DriverAssistanceOperationalContext {
 
     objective {
       doc /*
-       * SC-DRIVING-015 (no reaction, vehicle leaving the lane): a vehicle
-       * ahead in the lane turns off and leaves the path before a collision is
-       * imminent, taken from the regulation's false-reaction scenarios; the
-       * candidate requests no warning and commands no emergency braking.
+       * SC-DRIVING-015 (no reaction, vehicle ahead turning off): the vehicle
+       * follows a vehicle ahead in its lane that slows down and turns off at a
+       * corner, while the vehicle goes straight on; no collision becomes
+       * imminent. The candidate requests no warning and commands no emergency
+       * braking. The regulation lists this situation among its false-reaction
+       * scenarios; phase 5 makes the selection and states the criterion
+       * (gapVehicleTargetCriteria).
        */
     }
 
