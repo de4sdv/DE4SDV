@@ -284,8 +284,9 @@ def test_increment_declares_the_phase_zero_shape():
         "phase10_vvEvidence", "phase11_baseline",
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [PACKAGE], \
-        "the charter names only the package that holds content today"
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
+        PACKAGE, "DE4SDV_DriverAssistanceOperationalContext",
+    ], "the charter names only the packages that hold content today"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
         "owner confirmation of the engineering question and the scope",
