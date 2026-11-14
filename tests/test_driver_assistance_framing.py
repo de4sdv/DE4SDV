@@ -583,7 +583,7 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational\ncontext, proposal.**" in guide
+    assert "**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context, proposal.**" in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part driverAssistanceQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"

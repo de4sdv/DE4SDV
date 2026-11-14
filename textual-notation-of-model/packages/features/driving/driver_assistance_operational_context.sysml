@@ -95,7 +95,7 @@ package DE4SDV_DriverAssistanceOperationalContext {
       doc /* The road and the lanes of the scenario: what the front camera sees and where the vehicle drives. */
     }
     part stationaryVehicleTarget : VehicleTarget {
-      doc /* A vehicle that stands still: ahead in the vehicle's lane, or outside the road beyond a curve. */
+      doc /* A vehicle that stands still: ahead in the vehicle's lane, or just outside the guard pipes of a curve. */
     }
     part movingVehicleTarget : VehicleTarget {
       doc /* A vehicle that drives ahead in the vehicle's lane: slower than the vehicle, or turning off at a corner. */
@@ -272,13 +272,15 @@ package DE4SDV_DriverAssistanceOperationalContext {
     objective {
       doc /*
        * SC-DRIVING-014 (no reaction, stationary vehicle beyond a curve): the
-       * vehicle drives through a tight curve with a guard rail on its outer
-       * side, and a stationary vehicle stands just beyond the guard rail, on
-       * the extension of the lane: ahead of the vehicle before the curve turns
-       * it away, never in its path. The candidate requests no warning and
-       * commands no emergency braking. The regulation lists this situation
-       * among its false-reaction scenarios; phase 5 makes the selection and
-       * states the criterion (gapVehicleTargetCriteria).
+       * vehicle drives through a tight curve with guard pipes on its outer
+       * side, and a stationary vehicle stands just outside the guard pipes, on
+       * the extension of the centre of the lane: ahead of the vehicle before
+       * the curve turns it away, never in its path. The candidate requests no
+       * warning and commands no emergency braking. The regulation's
+       * false-reaction scenarios include this situation, as a curved road with
+       * guard pipes and a stationary object. Phase 2 proposes it; phase 5
+       * confirms the selection and states the criterion
+       * (gapVehicleTargetCriteria).
        */
     }
 
@@ -299,8 +301,9 @@ package DE4SDV_DriverAssistanceOperationalContext {
        * follows a vehicle ahead in its lane that slows down and turns off at a
        * corner, while the vehicle goes straight on; no collision becomes
        * imminent. The candidate requests no warning and commands no emergency
-       * braking. The regulation lists this situation among its false-reaction
-       * scenarios; phase 5 makes the selection and states the criterion
+       * braking. The regulation's false-reaction scenarios include this
+       * situation, as a right or left turn of a forward vehicle. Phase 2
+       * proposes it; phase 5 confirms the selection and states the criterion
        * (gapVehicleTargetCriteria).
        */
     }

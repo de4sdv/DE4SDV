@@ -128,10 +128,11 @@ holds the candidate as a black box and the System 1 parts around it.
 - **Story:** `driverAssistanceStory` includes one use case per scenario:
   `SC-DRIVING-012`, a stationary vehicle target ahead; `SC-DRIVING-013`, a
   slower moving vehicle target ahead; `SC-DRIVING-014`, a stationary vehicle
-  just beyond the guard rail of a curve; `SC-DRIVING-015`, a vehicle ahead that
-  turns off at a corner while the vehicle goes straight on. The regulation
-  lists the last two among its false-reaction scenarios; Phase 5 makes the
-  selection and states the criterion (`gapVehicleTargetCriteria`).
+  just outside the guard pipes of a curve; `SC-DRIVING-015`, a vehicle ahead
+  that turns off at a corner while the vehicle goes straight on. The last two
+  follow situations of the regulation's false-reaction scenarios. Phase 2
+  proposes them; Phase 5 confirms the selection and states the criterion
+  (`gapVehicleTargetCriteria`).
 - **Views:** a context view and a story view. The story view also frames
   `vehicleTargetResponseConcern`, which Phase 1 says the story answers.
 - **System 2 stays out:** CARLA, the cloud hosts, the scenario runner, the
