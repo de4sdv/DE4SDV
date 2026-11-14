@@ -4,11 +4,14 @@
 
 Accepted
 
-The owner took the decision on 2026-11-13. It takes effect in the model with
-the scope pull request that the Consequences name. Until then the governed
-scope, the feature model and the member configurations stay as
-[ADR 0014](0014-ratify-initial-aebs-product-line-scope.md) and
-[ADR 0022](0022-adopt-pleml-as-product-line-authority.md) set them.
+The owner took the decision on 2026-11-13. Decisions 1 to 3 are option A as he
+chose it. Decisions 4 to 6 work out its consequences for the binding and for
+admission. They were drafted after his choice, and he accepted them with this
+record. It takes effect in the model with the scope pull request that the
+Consequences name. Until then the governed scope, the feature model and the
+member configurations stay as [ADR
+0014](0014-ratify-initial-aebs-product-line-scope.md) and [ADR
+0022](0022-adopt-pleml-as-product-line-authority.md) set them.
 
 ## Context
 
@@ -45,10 +48,11 @@ such a warning to the driver: no member selects a display, and no shared
 asset implements one.
 
 The displays that exist play other roles. INC-AEBS-010 keeps its AEBS
-visualization in System 2, as engineering and evidence instrumentation, out
-of every System 1 feature configuration. It also keeps production driver-HMI
-suitability out of scope. In the S-CORE member of ADR 0023, the HMI is "an
-informational display, not the AEBS driver warning" (ASM-MW-024).
+visualization in System 2, as engineering and evidence instrumentation, out of
+every System 1 feature configuration. It also keeps production driver-HMI
+suitability out of scope. INC-MW-011 assumes that the HMI application of the
+S-CORE member of ADR 0023 is "an informational display, not the AEBS driver
+warning" (ASM-MW-024).
 
 ### INC-DRIVING-002
 
@@ -98,18 +102,24 @@ The owner chose option A on 2026-11-13.
 5. **No selectable feature for members.** The display is not an
    independently selectable product feature. Every member configuration
    selects it, and one without it is not admitted.
-6. **Configurations that are not members.** Validity and admission stay
-   apart, as ADR 0022 sets them. `hmiDisplay` stays an optional feature of
-   the feature model, `[0..1]`, and corresponds to the new common content.
-   Admission then asks every member configuration to select it, by its rule
-   that every common asset that features represent is represented by all
-   members. A configuration that is not a member keeps its validity
-   verdict: the reference-only Apollo on QNX configuration, the AutoE2E
-   reference, the invalid fixture and the parity probes. Admission judges
-   them as before, with one more rule: without the display, a
-   configuration is not admitted. `hmiDisplay` then works like `autoware`
-   and `linux`: features that correspond to common content and that a
-   reference-only configuration can leave out.
+6. **Configurations that are not members.** Validity and admission stay apart,
+   as ADR 0022 sets them. `hmiDisplay` stays an optional feature of the feature
+   model, `[0..1]`, and corresponds to the new common content. Admission then
+   asks every configuration to select it, by its rule that every feature that
+   represents a common asset is selected. A configuration that is not a member
+   keeps its validity verdict: the reference-only Apollo on QNX configuration,
+   the AutoE2E reference, the invalid fixture and the parity probes. Admission
+   judges them as before, with one more rule: without the display, a
+   configuration is not admitted. `hmiDisplay` then works like `autoware` and
+   `linux`: features that correspond to common content and that a
+   reference-only configuration can leave out. This departs from the pattern of
+   ADR 0022 decision 2, where a common capability of the catalogue becomes
+   common content with no PLEML feature, as Vehicle-Target AEBS did. The
+   display keeps its PLEML feature because configurations that are not members
+   leave it out, and INC-MW-011 has four requirement dependencies on it under
+   rule 5 of the increment workflow. Like `lidar`, it is then a configurable
+   option of the catalogue that corresponds to common content, not a feature in
+   the sense of ontology rule R001.
 
 ### Change control
 
@@ -140,6 +150,11 @@ Clauses are quoted.
   the standalone topology holds a Linux-side display, and the split topology
   holds the display in the AAOS SDV guest (decision 2).
 
+**Amended** (ADR 0022):
+
+- Decision 2, "Common capabilities are not features": the HMI display is a
+  common capability that keeps its PLEML feature `hmiDisplay` (decision 6).
+
 **Replaced owner decisions:**
 
 - 2026-10-22, recorded in ADR 0023 as "the two-sided tree, with the display
@@ -151,9 +166,9 @@ Clauses are quoted.
 
 **Retained:**
 
-- ADR 0014: "“Common” means common within these two governed planned
-  members. It does not mean permanently common to DE4SDV." With ADR 0023,
-  accepted on the same day, the governed planned members are three.
+- ADR 0014: "“Common” means common within these two governed planned members.
+  It does not mean permanently common to DE4SDV." ADR 0023 amends "two" to the
+  three governed planned members; the second sentence is retained.
 - ADR 0014: "System 2 engineering environments, CI runners, simulations,
   benchmarks, evidence campaigns, and visualization instrumentation remain
   outside System 1 product variability." The display of this record is
@@ -163,6 +178,18 @@ Clauses are quoted.
   product variability, bound during Development.
 - ADR 0022: PLEML is the configuration-validity authority, and the governed
   scope is the admission authority.
+
+### Alternatives
+
+- **Option B: the display and an AAOS SDV guest in every member.** Not chosen:
+  the standalone member would become AAOS-integrated.
+- **A mandatory feature, `hmiDisplay[1]`.** Not chosen: every valid
+  configuration would need the display, member or not, so validity would take
+  over what admission decides, which ADR 0022 keeps apart.
+- **Common content without a feature, as Vehicle-Target AEBS.** This follows
+  ADR 0022 decision 2. Not chosen: the four INC-MW-011 requirement dependencies
+  on `hmiDisplay` would need another anchor, and a configuration that is not a
+  member could no longer leave the display out.
 
 ## Consequences
 
@@ -190,15 +217,31 @@ Costs and risks:
 - **The scope pull request.** It changes:
   - the scope model: the sixth common content, and the portfolio texts;
   - the validator and its semantic tests;
-  - the feature model: C010 goes, `hmiDisplay` drops
-    `#UnassignedBindingTime`, gets a correspondence to the common content,
-    and loses the comment that it distinguishes no governed member;
+  - the feature model: C010 goes, `hmiDisplay` drops `#UnassignedBindingTime`,
+    gets a correspondence to the common content, and its comment is rewritten:
+    every member selects it, it corresponds to the common content, and no
+    shared asset implements it yet;
   - every member configuration: each selects `hmiDisplay[1]`, and the
     AAOS-integrated configuration drops "no HMI display";
   - the product models, regenerated from fresh receipts of the privileged
     PLE authority workflow;
-  - the product-line docs, among them the table of features that
-    distinguish no member yet.
+  - the product-line docs, among them the table of features that distinguish no
+    member yet;
+  - the Gate C review record, and marked notes in ADR 0014 and ADR 0022, which
+    stay `Accepted`;
+  - a scope decision record for this record in the scope model, next to the one
+    of ADR 0023;
+  - the reviewed verdicts and reasons in
+    `tests/test_ple_authority_receipts.py`, where the receipts change them;
+  - the model texts that state the optional display, C010 or a member without a
+    display: the platform stack, the INC-MW-011, INC-AEBS-010 and
+    INC-DRIVING-001 configuration packages, and the configurations README;
+  - a configuration-management note in MW-CONFIG-001: the INC-MW-010 records
+    stay retained against the earlier content and are not edited.
+- **Where the gaps and the runs go.** The two gaps are recorded in an increment
+  that the scope pull request names. The scope change needs the privileged
+  Syside validation, and the served model needs a privileged ingestion after
+  the merge.
 - **With ADR 0023.** One scope pull request can carry both records. With
   both, the display is common to three members. `hmiDisplay` then
   corresponds to common content, not to S-CORE Integrated, and
@@ -206,14 +249,14 @@ Costs and risks:
 - **Requirement dependencies.** The INC-MW-011 HMI-path requirements depend
   on `hmiDisplay`. Once every member selects the display, those
   dependencies set no member apart.
-- **One probe changes its admission.** The parity probe
+- **One probe selects the display.** The parity probe
   `vehicle_target_aebs_off_probe` is valid and admitted today, with
-  `hmiDisplay[0]`. Under decision 6 it is no longer admitted, unless the
-  scope pull request has it select the display. Its validity does not
-  change. No other verdict changes. The members select the display and stay
-  admitted. The other configurations are not admitted today. None selects
-  the display without the AAOS SDV guest, so removing C010 changes no
-  validity verdict.
+  `hmiDisplay[0]`. The scope pull request has it select the display, so it
+  still probes only the common vehicle-target AEBS switched off, and it stays
+  admitted. Its validity does not change. No other verdict changes. The members
+  select the display and stay admitted. The other configurations are not
+  admitted today. None selects the display without the AAOS SDV guest, so
+  removing C010 changes no validity verdict.
 
 ## Non-decisions
 
