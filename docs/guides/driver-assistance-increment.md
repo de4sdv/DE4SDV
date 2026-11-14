@@ -8,9 +8,9 @@ increment asks that of a camera-only driver-assistance application,
 [VisionPilot](https://github.com/autowarefoundation/vision_pilot) of the
 Autoware Foundation.
 
-**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context
-and Phase 3 classification, proposal.** No implementation, run, result,
-product-line admission or compliance is claimed.
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
+Phase 3 classification and Phase 4 stakeholder needs, proposal.** No
+implementation, run, result, product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -198,6 +198,48 @@ candidate, its two traces, the two comments and the view. The Phase 3 gate
 checks only that each recorded characteristic is a feature candidate or
 deferred scope; review judges the classification.
 
+## Stakeholder needs (Phase 4)
+
+The [stakeholder needs](../../textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml)
+say what the parties of the Phase 1 concerns expect of the candidate. Each
+need is held by the parties it serves and leads its source with the concern
+it comes from. Each has one planned stakeholder review on a Phase 2 scenario,
+carried out by the roles that check the answer.
+
+- `NEED-DRIVING-008`: the candidate requests the warning and commands the
+  braking when a collision with a stationary or a slower moving vehicle ahead
+  is imminent. Vehicle occupants and road users. Reviewed by `SC-DRIVING-016`
+  on `SC-DRIVING-012`.
+- `NEED-DRIVING-009`: no warning and no emergency braking when no collision
+  is imminent. Vehicle occupants and road users. Reviewed by `SC-DRIVING-017`
+  on `SC-DRIVING-014`.
+- `NEED-DRIVING-010`: a warning request at the candidate's boundary, so that
+  the AAOS SDV warns the driver on its display and as a sound. Vehicle
+  occupants. Reviewed by `SC-DRIVING-018` on `SC-DRIVING-013`.
+- `NEED-DRIVING-011`: the driving command and the warning request pass
+  through Eclipse S-CORE, with no exchange around it. Systems engineers and
+  product-line engineers. Reviewed by `SC-DRIVING-019` on `SC-DRIVING-012`.
+- `NEED-DRIVING-012`: each run identifies the candidate revision and the
+  configuration it ran with. Verification engineers and product-line
+  engineers. Reviewed by `SC-DRIVING-020` on `SC-DRIVING-015`.
+
+Two concerns get no need of their own. The criteria for a vehicle target and
+the independence of the braking command are questions of the roles that check
+the answer. `NEED-DRIVING-008` names both in its source, and `SC-DRIVING-016`
+asks them. The planned reviews, not the needs, ask that no autopilot, replay
+or overlay acts instead of the candidate. No need states a number: Phase 5
+derives the criteria, their limits and the time of the warning before the
+braking. VisionPilot's runtime contract at the pinned revision is a comment
+for Phase 5: only its ROS 2 build reads a real speed and commands a vehicle.
+The speed-following, lane-keeping and lane-departure functions get no need,
+since no case judges them.
+
+`tests/test_driver_assistance_needs_requirements.py` pins the needs, their
+holders and sources, the planned reviews and their scenarios, and the
+wording a need may not use. The Phase 4 gates check that each need has a
+statement, a stakeholder, a source, a rationale and a planned review; review
+judges whether the needs are the right ones.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -269,9 +311,9 @@ type approval.
 
 Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is
-**Phase 4**: the stakeholder needs, elaborated from the Phase 1 concerns; its
-first gate is `needHasStatement`. Do not jump from this classification to
-implementation, and claim no runtime gate.
+**Phase 5**: the requirements, derived from the Phase 4 needs; its first gate
+is `requirementHasStatement`. Do not jump from the needs to implementation,
+and claim no runtime gate.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
@@ -286,7 +328,8 @@ Run `sysand sync`, `python scripts/check_repo.py`,
 `python scripts/smoke_test.py` and
 `python -m pytest tests/test_driver_assistance_framing.py
 tests/test_driver_assistance_operational_context.py
-tests/test_driver_assistance_capability_classification.py -q`. These are
+tests/test_driver_assistance_capability_classification.py
+tests/test_driver_assistance_needs_requirements.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed
 validator is available, or request the maintainer-run **Privileged Syside
