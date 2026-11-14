@@ -1,0 +1,58 @@
+kind: vehicle
+id: vx-de4sdv-ee
+class: road
+subtype: car
+
+# The phase-3 gate target: one document brings up three zones on two backends, a central compute
+# node and a service placed on a slice. Guests stay probes: this vehicle proves provisioning and
+# slice isolation, not application behaviour.
+#
+# adas and infotainment deliberately share one /24. A flow across them fails because of the VLAN,
+# not because no route exists, so its failure says something about the slice.
+zones:
+  front-left: {}
+  front-right: {}
+  rear-left: {}
+  central: {}
+
+devices:
+  zone-fl: { role: zone-controller, zone: front-left, backend: container }
+  zone-fr: { role: zone-controller, zone: front-right, backend: container }
+  zone-rl: { role: zone-controller, zone: rear-left, backend: container }
+  hpc1: { role: hpc, zone: central, backend: container }
+
+functions:
+  fn-fl: { deployed_on: zone-fl }
+  fn-fr: { deployed_on: zone-fr }
+  fn-rl: { deployed_on: zone-rl }
+  fn-hpc: { deployed_on: hpc1 }
+
+links:
+  - id: link-fl
+    endpoints: [{ node: zone-fl, port: eth0, ip: 10.100.0.11/24 }]
+    slice: adas
+  - id: link-fr
+    endpoints: [{ node: zone-fr, port: eth0, ip: 10.100.0.31/24 }]
+    slice: infotainment
+  - id: link-rl
+    endpoints: [{ node: zone-rl, port: eth0, ip: 10.100.0.13/24 }]
+    slice: adas
+  - id: link-hpc
+    endpoints: [{ node: hpc1, port: eth0, ip: 10.100.0.50/24 }]
+    slice: adas
+
+services:
+  ota:
+    id: ota-01
+    type: ota
+    image: { url: ghcr.io/vxedge/parts/svc/ota/app/vxota@sha256:38dc26f33a08dc0af3085e86caa07eb697559200d52c12e3730a7cd2e78e213d, kind: container }
+    on: hpc1
+    config: { artifacts: ./ota-store, listen: "0.0.0.0:9900" }
+
+signal_plane:
+  kuksa:
+    image:
+      url: ghcr.io/eclipse-kuksa/kuksa-databroker@sha256:529d8c6d3cc223362667672978bcb8f92c4d356b25aedd336e7a2e004d7279bd
+      kind: container
+    on: hpc1
+    config: { listen: "0.0.0.0:55555" }

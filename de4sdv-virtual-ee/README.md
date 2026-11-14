@@ -58,7 +58,16 @@ checks/check_contract.py      DBC ↔ mapping ↔ defaults consistency
 checks/build_zone_mappings.py generates the per-zone mappings from the full tree
 checks/test_zone_ecu.py       plant model and frame round-trip tests
 checks/test_bridge.py         bridge framing: round-trip, padding, malformed input
+vehicle/vehicle.yaml          the vehicle composition: zones, devices, links, services
+vehicle/parts.yaml            the software baseline: images, capabilities, per-zone env
+deployment-gaps.md            the deployment plane a production SDV needs, and what is missing here
 ```
+
+`vehicle/` is the deployment descriptor these gate results were produced with, copied
+from the testbed unchanged. It is a local build, not a distribution: the two DE4SDV
+images are referenced by tag rather than digest and are unsigned, and the baseline
+was never locked. [`deployment-gaps.md`](deployment-gaps.md) states exactly what
+that costs and what closing it would take.
 
 `vss/metadata.json` is generated from the mapping by stripping `dbc2vss` and
 `vss2dbc`; the two must never be edited apart.

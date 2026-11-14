@@ -1,0 +1,47 @@
+kind: baseline
+id: bl-vx-de4sdv-ee
+parts:
+- ref: localhost/de4sdv/zone-ecu:9
+  target_ids:
+  - fn-fl
+  run:
+    cap_add:
+    - NET_ADMIN
+    env:
+      ZONE_ECU: headlamp
+      ZONE_DBC: /opt/zone/dbc/headlamp.dbc
+      KUKSA_ADDRESS: grpc://10.100.0.50:55555
+      CAN_TUNNEL_REMOTE: 10.100.0.50
+      CAN_TUNNEL_RPORT: '10001'
+      CAN_TUNNEL_LPORT: '20001'
+- ref: localhost/de4sdv/zone-ecu:9
+  target_ids:
+  - fn-rl
+  run:
+    cap_add:
+    - NET_ADMIN
+    env:
+      ZONE_ECU: wiper
+      ZONE_DBC: /opt/zone/dbc/wiper.dbc
+      KUKSA_ADDRESS: grpc://10.100.0.50:55555
+      CAN_TUNNEL_REMOTE: 10.100.0.50
+      CAN_TUNNEL_RPORT: '10002'
+      CAN_TUNNEL_LPORT: '20002'
+      ZONE_UDS_ECU: '1'
+- ref: localhost/de4sdv/can-gw:4
+  target_ids:
+  - fn-hpc
+  run:
+    cap_add:
+    - NET_ADMIN
+    env:
+      GW_FRONT_PEER: 10.100.0.11
+      GW_REAR_PEER: 10.100.0.13
+      GW_FRONT_LISTEN: '10001'
+      GW_REAR_LISTEN: '10002'
+      GW_FRONT_PEER_PORT: '20001'
+      GW_REAR_PEER_PORT: '20002'
+- ref: ghcr.io/vxedge/parts/agent/probe/app/vxprobe:0.1.1
+  digest: sha256:b3f22650146dcae004589d311fcd8f231bd2e058f8cb50a7d2a766519210fd6d
+  target_ids:
+  - fn-fr
