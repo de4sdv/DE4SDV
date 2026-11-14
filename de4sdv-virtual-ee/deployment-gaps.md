@@ -87,6 +87,17 @@ Two things did **not** close, and both are stated rather than papered over:
   model. This is an upstream gap, not a configuration mistake: declare it anyway
   (it is the right document) and do not claim enforcement.
 
+- **An update can be applied, rejected and rolled back.** Two signed packages name
+  the same vehicle: A (`sha256:4f801214…`) runs, B (`sha256:fb741dae…`) dies on a
+  missing DBC. The orchestrator reports both as `up`, so the gate that catches B is
+  ours — `checks/update_with_rollback.sh` probes the zone's own status frame, fails
+  the candidate, re-applies A, and confirms the zone publishes again (exit 2).
+
+  This is the control flow of an update, not a SUMS: there are no A/B banks, no
+  automatic revert inside an ECU update manager, and no over-the-air transfer — the
+  packages are applied from the host. The `vxota` service runs and its artifacts are
+  never shipped through it.
+
 The runbook for all of it is [`deploy/README.md`](deploy/README.md).
 
 ## The gap, ranked, as originally found

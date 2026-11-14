@@ -133,6 +133,41 @@ Two independent gates, both proven by trying to run a package that should fail:
 
 Both refused before provisioning: no container was created by either attempt.
 
+## 6b. Update, health gate, rollback
+
+`checks/update_with_rollback.sh <candidate> <fallback> [zone] [signal-id]` applies a
+package, gates on the zone actually working, and rolls back if it does not.
+
+**The gate is ours because the orchestrator has none.** A package whose zone dies on
+a missing file converges "successfully": `experiment up` reports the vehicle up while
+the zone is gone. Measured on the testbed — the rear zone died on a missing DBC,
+`up` still returned `succeeded`, and the container was `exited` moments later.
+
+The probe is the zone's own status frame, filtered by CAN id (`candump -n 1
+vcan0,281:7FF`). A frame bridged in from another zone is not evidence, and a running
+container that publishes nothing is exactly the failure the gate exists for.
+
+```text
+[update] candidate: /opt/ee/vehicle-pkg-b
+[update] health gate FAILED: no 281 from vx-zone-rl-payload within 12s
+[update] rolling back to /opt/ee/vehicle-pkg
+[update] rolled back: vx-zone-rl-payload is publishing again
+```
+
+Exit codes: `0` accepted, `2` rolled back, `3` unhealthy even after rollback.
+
+The two sides of that run, both signed and verified on the host:
+
+| | package digest | what happened |
+|---|---|---|
+| A, accepted | `sha256:4f801214…` | zone publishes 30 status frames in 3 s |
+| B, rejected | `sha256:fb741dae…` | zone exits, no status frames |
+
+**What this is not.** There are no A/B banks and no automatic rollback: B is a second
+signed package, the revert is an orchestrated `experiment up` of A, and the gate is a
+script. A production SUMS has the bank switch and the revert in the ECU's own update
+manager, and that is the part this testbed does not model.
+
 ## 7. The daemon as a unit
 
 ```bash

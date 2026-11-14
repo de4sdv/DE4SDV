@@ -58,6 +58,7 @@ checks/check_contract.py      DBC ↔ mapping ↔ defaults consistency
 checks/build_zone_mappings.py generates the per-zone mappings from the full tree
 checks/test_zone_ecu.py       plant model and frame round-trip tests
 checks/test_bridge.py         bridge framing: round-trip, padding, malformed input
+checks/update_with_rollback.sh  apply a package, gate on the zone working, roll back if it does not
 vehicle/vehicle.yaml          the vehicle composition: zones, devices, links, services
 vehicle/parts.yaml            the software baseline: images, capabilities, per-zone env
 vehicle/main.yaml             the experiment: slices, what is under test, method
