@@ -21,9 +21,9 @@ model still admits only the two members that ADR 0014 and [ADR
 the owner made the HMI display common to every member (ADR 0026). Decisions 1,
 2, 3 and 5 follow that decision; decision 6 leaves open what the display shows.
 
-> Note (2026-11-14): this record was merged on 2026-11-14, before the contact
-> with the S-CORE maintainers that its Consequences plan before acceptance. No
-> message has been sent to them.
+> Note (2026-11-14): this record was merged on 2026-11-14 without the contact
+> with the S-CORE maintainers that its Consequences plan before acceptance. On
+> 2026-11-14 the owner decided that there is no such contact.
 
 ## Context
 
@@ -244,11 +244,11 @@ lands.
    set. The semantic tests change with them, including the test that refuses
    a third member.
 8. **Acceptance before the proof.**
-   - **Accepted.** The owner accepted this record on 2026-11-13: "accept adr
-     23". This replaces the staged acceptance of the draft (owner decision
-     of 2026-10-21). Under it, the owner was to accept or reject the record
-     in phase 12, with the realization coverage of phase 8 and the retained
-     evidence of the phase-10 runnable proof as inputs.
+   - **Accepted.** The owner accepted this record on 2026-11-13. This replaces
+     the staged acceptance of the draft (owner decision of 2026-10-21). Under
+     it, the owner was to accept or reject the record in phase 12, with the
+     realization coverage of phase 8 and the retained evidence of the phase-10
+     runnable proof as inputs.
    - **Membership and evidence.** Membership stays independent of evidence
      status, as ADR 0014 says. The staging was the owner's choice for this
      member, not a rule. The runnable proof stays the phase-10 obligation of
