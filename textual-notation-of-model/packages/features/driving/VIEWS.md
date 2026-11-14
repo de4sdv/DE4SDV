@@ -407,7 +407,7 @@ Systems engineers and product-line engineers need the stakeholder needs of the c
 - **Viewpoint:** `selectedNeedsViewpoint` (`StakeholderRequirementDefinitionViewpoint`)
 - **View type:** `TVD::TableView`
 - **Concern:** `driverAssistanceNeedsConcern`
-- **Exposes:** `needWarnAndBrakeForVehicleAhead`, `needNoReactionWithoutImminentCollision`, `needWarningRequestForTheDriver`, `needCommandsAndWarningThroughSCORE`, `needRunsIdentifyTheCandidate`
+- **Exposes:** `needWarnAndBrakeForVehicleAhead`, `needNoReactionWithoutImminentCollision`, `needWarningRequestForTheDriver`, `needRunsIdentifyTheCandidate`
 
 - **Diagram status:** Not yet published in this folder.
 
@@ -421,7 +421,7 @@ Systems engineers and product-line engineers need the stakeholder needs of the c
 - **Viewpoint:** `selectedNeedValidationViewpoint` (`StakeholderRequirementDefinitionViewpoint`)
 - **View type:** `TVD::TableView`
 - **Concern:** `driverAssistanceNeedsConcern`
-- **Exposes:** `vehicleAheadResponseValidationPlan`, `noReactionValidationPlan`, `driverWarningValidationPlan`, `scoreCommandAndWarningPathValidationPlan`, `candidateIdentityValidationPlan`
+- **Exposes:** `vehicleAheadResponseValidationPlan`, `noReactionValidationPlan`, `driverWarningValidationPlan`, `candidateIdentityValidationPlan`
 
 - **Diagram status:** Not yet published in this folder.
 

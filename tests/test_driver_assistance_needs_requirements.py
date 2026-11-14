@@ -1,8 +1,8 @@
 """Content pins for the driver-assistance stakeholder needs (INC-DRIVING-002, phase 4), not semantic validation.
 
 Each need is held by the parties it serves, leads its source with the phase 1 concern it derives from, and has
-one planned stakeholder review on a phase 2 use case. The roles that check the answer stay on the reviews. The
-tests read the model text; they do not parse SysML.
+one planned stakeholder review on the phase 2 use cases it covers. The roles that check the answer stay on the
+reviews. The tests read the model text; they do not parse SysML.
 """
 
 from __future__ import annotations
@@ -32,10 +32,8 @@ NEEDS = {
         "NEED-DRIVING-009", {"VehicleOccupant", "RoadUser"}, "vehicleTargetResponseConcern"),
     "needWarningRequestForTheDriver": (
         "NEED-DRIVING-010", {"VehicleOccupant"}, "driverWarningSequenceConcern"),
-    "needCommandsAndWarningThroughSCORE": (
-        "NEED-DRIVING-011", {"SystemsEngineer", "ProductLineEngineer"}, "scoreCommandAndWarningPathConcern"),
     "needRunsIdentifyTheCandidate": (
-        "NEED-DRIVING-012", {"VerificationEngineer", "ProductLineEngineer"}, "candidateVerdictConcern"),
+        "NEED-DRIVING-011", {"VerificationEngineer", "ProductLineEngineer"}, "candidateVerdictConcern"),
 }
 
 #: need -> (the short name of its planned review, the phase 2 use cases the review depends on: each scenario its
@@ -47,8 +45,7 @@ VALIDATION = {
                                                                   "noReactionToVehicleAheadTurningOff")),
     "needWarningRequestForTheDriver": ("SC-DRIVING-018", ("warnAndBrakeForStationaryVehicle",
                                                           "warnAndBrakeForSlowerVehicle")),
-    "needCommandsAndWarningThroughSCORE": ("SC-DRIVING-019", ("warnAndBrakeForStationaryVehicle",)),
-    "needRunsIdentifyTheCandidate": ("SC-DRIVING-020", ("warnAndBrakeForStationaryVehicle", "warnAndBrakeForSlowerVehicle",
+    "needRunsIdentifyTheCandidate": ("SC-DRIVING-019", ("warnAndBrakeForStationaryVehicle", "warnAndBrakeForSlowerVehicle",
                                                         "noReactionToStationaryVehicleBeyondTheCurve",
                                                         "noReactionToVehicleAheadTurningOff")),
 }
@@ -60,17 +57,30 @@ SCENARIOS = {
     "noReactionToVehicleAheadTurningOff": "SC-DRIVING-015",
 }
 
-#: reviewer-question concerns: no need of their own; a need's source names them and its planned review checks them
-#: concern -> (the need whose source names it, a phrase of that need's review that checks it)
+#: reviewer-question concerns: their roles check the answer rather than use it, so they lead no need; a need's
+#: source names them and its planned review asks their question, carried out by their roles
+#: concern -> (the need whose source names it, the question of that need's review that checks it)
 REVIEWED_CONCERNS = {
     "emergencyBrakingIndependenceConcern": (
         "needWarnAndBrakeForVehicleAhead",
         "can safety experts and product-line engineers tell which element of the candidate gave the braking "
-        "command, whether it left the candidate in the driving command or apart from it, and how that command keeps "
-        "the independence of the protected emergency command path?"),
+        "command, whether it left the candidate in the driving command or apart from it, and whether that command "
+        "keeps the independence of the protected emergency command path?"),
+    "scoreCommandAndWarningPathConcern": (
+        "needWarnAndBrakeForVehicleAhead",
+        "Can systems engineers and product-line engineers confirm that every driving command passed through Eclipse "
+        "S-CORE to the actuation and every warning request through S-CORE to the AAOS SDV, and that no other "
+        "exchange carried them?"),
     "vehicleTargetCriteriaConcern": (
         "needWarnAndBrakeForVehicleAhead",
-        "by the criteria for a vehicle target that phase 5 derives"),
+        "can verification engineers and compliance engineers confirm, by the criteria for a vehicle target that "
+        "phase 5 derives,"),
+}
+#: a stakeholder definition -> how a review question names its members
+ROLE_WORDS = {
+    "SafetyExpert": "safety experts", "ProductLineEngineer": "product-line engineers",
+    "SystemsEngineer": "systems engineers", "ComplianceEngineer": "compliance engineers",
+    "VerificationEngineer": "verification engineers",
 }
 
 #: the phase 1 concerns this phase reads: every non-boundary concern of the framing
@@ -190,6 +200,10 @@ def test_a_reviewer_question_concern_is_named_by_a_need_and_checked_by_its_revie
         assert concern not in leading, f"{concern} is a reviewer question and leads no need"
         assert concern in _attribute(_need(need), "source"), (concern, need)
         assert phrase in _plan_doc(VALIDATION[need][0]), (concern, phrase)
+        for role in _framing_holders(concern):
+            assert ROLE_WORDS[role] in phrase.lower(), (concern, role, "the concern's own roles ask its question")
+    assert "Three concerns are reviewer questions: a need's source names them and its review checks them." \
+        in _flat(_raw()), "the header counts the reviewer questions"
 
 
 def test_each_need_has_one_planned_review_on_a_phase_2_use_case():
@@ -209,9 +223,10 @@ def test_each_need_has_one_planned_review_on_a_phase_2_use_case():
         for use_case in use_cases:
             assert re.search(rf"\buse\s+case\s+{use_case}\s*\{{", context), use_case
         source = _attribute(_need(need), "source")
-        for use_case in use_cases:
-            assert SCENARIOS[use_case] in source or (
-                "SC-DRIVING-012 to SC-DRIVING-015" in source), (need, "its review covers the scenarios its source names")
+        named = set(SCENARIOS.values()) if "SC-DRIVING-012 to SC-DRIVING-015" in source \
+            else set(re.findall(r"SC-DRIVING-01[2-5]", source))
+        assert named == {SCENARIOS[use_case] for use_case in use_cases}, \
+            (need, "its review watches exactly the scenarios its source names")
     assert len(associations) == len(NEEDS), "one planned review per need"
     # Phase 2 owns SC-DRIVING-012 to SC-DRIVING-015; the planned reviews continue the numbering.
     assert not re.search(r"<'SC-DRIVING-0(?:0\d|1[0-5])'>", code)
@@ -258,8 +273,6 @@ def test_the_need_statements_say_what_their_holders_expect():
              "and to command no emergency braking when no collision with a vehicle ahead is imminent",
              "needNoReactionWithoutImminentCollision"),
             ("so that the AAOS SDV warns the driver on its display and as a sound", "needWarningRequestForTheDriver"),
-            ("through Eclipse S-CORE, with no exchange on either path that goes around it",
-             "needCommandsAndWarningThroughSCORE"),
             ("to identify the candidate revision and the configuration it ran with", "needRunsIdentifyTheCandidate")):
         assert phrase in statements[name], (name, phrase)
 
@@ -280,8 +293,9 @@ def test_the_input_contract_is_a_comment_for_phase_5_not_a_need():
                    "VisionPilot/modules/safety_guardian/planning/src/planning.cpp:113-121"):
         assert phrase in comment, phrase
     assert not re.search(r"-?\d+\.\d+\s*(?:m/s|<|<=)", comment), "the comment states no threshold of the planner"
-    assert "Nothing in the code orders the warning before the braking; phase 5 derives the criterion for the time " \
-        "between them." in comment, "a fact of the code, not a relaxation of the criterion"
+    assert "One planning cycle flags at most one of the two, and nothing in the code orders the warning before the " \
+        "braking; phase 5 derives the criterion for the time between them." in comment, \
+        "facts of the code, not a relaxation of the criterion"
     assert not re.search(r"(?i)\bneed not\b", comment)
 
 

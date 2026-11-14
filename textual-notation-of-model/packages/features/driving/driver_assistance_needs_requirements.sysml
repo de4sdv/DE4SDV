@@ -6,11 +6,10 @@
  * Each need is held by the parties it serves and leads its source with the
  * phase 1 concern it derives from. Each has one planned stakeholder review on
  * the scenarios of phase 2 it covers, carried out by the roles that check the
- * answer. Two
- * concerns are reviewer questions: a need's source names them and its review
- * checks them. Phase 5 adds the requirements to this package. No safety,
- * on-road or production-readiness claim is made, and no member product is
- * claimed.
+ * answer. Three concerns are reviewer questions: a need's source names them
+ * and its review checks them. Phase 5 adds the requirements to this package.
+ * No safety, on-road or production-readiness claim is made, and no member
+ * product is claimed.
  */
 
 package DE4SDV_DriverAssistanceNeedsRequirements {
@@ -28,8 +27,8 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     stakeholder occupant : VehicleOccupant;
     stakeholder roadUser : RoadUser;
     require constraint statement { language "English" /* Vehicle occupants and road users need the driver-assistance system to request the collision warning and to command the braking of the vehicle when a collision with a stationary or a slower moving vehicle ahead in its lane is imminent. */ }
-    attribute :>> source = "INC-DRIVING-002 vehicleTargetResponseConcern, emergencyBrakingIndependenceConcern, vehicleTargetCriteriaConcern, scope item vehicleTargetResponseInScope, gaps gapNoSeparateEmergencyFunction and gapCameraImageAndGeometry, scenarios SC-DRIVING-012 and SC-DRIVING-013";
-    attribute :>> rationale = "Occupants and road users are protected from the collision only if the vehicle warns and brakes for the vehicle ahead. The need states what they expect, not how well the candidate meets it, and carries no safety claim. Phase 5 derives the criteria for a vehicle target and their limits (gapVehicleTargetCriteria).";
+    attribute :>> source = "INC-DRIVING-002 vehicleTargetResponseConcern, emergencyBrakingIndependenceConcern, scoreCommandAndWarningPathConcern, vehicleTargetCriteriaConcern, scope items vehicleTargetResponseInScope and scoreCommandPathInScope, gaps gapNoSeparateEmergencyFunction, gapScoreIntegration and gapCameraImageAndGeometry, assumption asmBenchReuse, scenarios SC-DRIVING-012 and SC-DRIVING-013";
+    attribute :>> rationale = "The warning lets the driver act, and the braking is meant to avoid or lessen the collision when the driver does not act in time. The need states what they expect, not how well the candidate meets it, and carries no safety claim. Phase 5 derives the criteria for a vehicle target and their limits (gapVehicleTargetCriteria).";
   }
 
   requirement <'NEED-DRIVING-009'> needNoReactionWithoutImminentCollision : StakeholderNeedCandidate {
@@ -49,16 +48,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> rationale = "The driver can act on a warning only if it reaches the display and the sound of the AAOS SDV. At the inspected revision the application has no warning output at its boundary; its warnings go to its own visualization and data log (gapWarningOutput). Phase 5 states when each mode is due relative to the warning request and to the start of the emergency braking. Whether a driver perceives the warning is out of scope.";
   }
 
-  requirement <'NEED-DRIVING-011'> needCommandsAndWarningThroughSCORE : StakeholderNeedCandidate {
-    subject driverAssistanceSystem :> DE4SDV_DriverAssistanceFraming::candidateDriverAssistanceSystem;
-    stakeholder systemsEngineer : SystemsEngineer;
-    stakeholder productLineEngineer : ProductLineEngineer;
-    require constraint statement { language "English" /* Systems engineers and product-line engineers need the driving command of the driver-assistance system to reach the actuation of the vehicle, and its warning request to reach the AAOS SDV, through Eclipse S-CORE, with no exchange on either path that goes around it. */ }
-    attribute :>> source = "INC-DRIVING-002 scoreCommandAndWarningPathConcern, scope item scoreCommandPathInScope, gaps gapScoreIntegration and gapWarningOutput, assumption asmBenchReuse, scenario SC-DRIVING-012";
-    attribute :>> rationale = "The engineering question judges the candidate on the Eclipse S-CORE command path. A run whose commands or warning go around S-CORE judges another integration. Phases 6 to 8 decide how the path is realized; the candidate's boundary stays as phase 0 draws it.";
-  }
-
-  requirement <'NEED-DRIVING-012'> needRunsIdentifyTheCandidate : StakeholderNeedCandidate {
+  requirement <'NEED-DRIVING-011'> needRunsIdentifyTheCandidate : StakeholderNeedCandidate {
     subject driverAssistanceSystem :> DE4SDV_DriverAssistanceFraming::candidateDriverAssistanceSystem;
     stakeholder verificationEngineer : VerificationEngineer;
     stakeholder productLineEngineer : ProductLineEngineer;
@@ -89,8 +79,9 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
      * - The forward-collision warning and the emergency braking are two
      *   ranges of the acceleration that one speed planner computes
      *   (VisionPilot/modules/safety_guardian/planning/src/planning.cpp:113-121).
-     *   Nothing in the code orders the warning before the braking; phase 5
-     *   derives the criterion for the time between them.
+     *   One planning cycle flags at most one of the two, and nothing in the
+     *   code orders the warning before the braking; phase 5 derives the
+     *   criterion for the time between them.
      */
 
   /* ───────────────── Phase 4: planned stakeholder reviews ───────────────── */
@@ -102,11 +93,15 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
          * compliance engineers confirm, by the criteria for a vehicle target
          * that phase 5 derives, that the candidate requests the warning and
          * that its driving command brakes the vehicle, and that no autopilot,
-         * replay or overlay acts instead of the candidate? And can safety
-         * experts and product-line engineers tell which element of the
-         * candidate gave the braking command, whether it left the candidate in
-         * the driving command or apart from it, and how that command keeps the
-         * independence of the protected emergency command path? */
+         * replay or overlay acts instead of the candidate? Can systems
+         * engineers and product-line engineers confirm that every driving
+         * command passed through Eclipse S-CORE to the actuation and every
+         * warning request through S-CORE to the AAOS SDV, and that no other
+         * exchange carried them? And can safety experts and product-line
+         * engineers tell which element of the candidate gave the braking
+         * command, whether it left the candidate in the driving command or
+         * apart from it, and whether that command keeps the independence of
+         * the protected emergency command path? */
   }
   connection vehicleAheadResponseValidationPlanning : ValidationPlanningAssociation
     connect needWarnAndBrakeForVehicleAhead to vehicleAheadResponseValidationPlan;
@@ -148,29 +143,15 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
   }
   connection driverWarningValidationPlanning : ValidationPlanningAssociation
     connect needWarningRequestForTheDriver to driverWarningValidationPlan;
-  dependency driverWarningValidationFromSlowerTargetScenario
-    from driverWarningValidationPlan
-    to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForSlowerVehicle;
   dependency driverWarningValidationFromStationaryTargetScenario
     from driverWarningValidationPlan
     to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForStationaryVehicle;
+  dependency driverWarningValidationFromSlowerTargetScenario
+    from driverWarningValidationPlan
+    to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForSlowerVehicle;
 
-  part <'SC-DRIVING-019'> scoreCommandAndWarningPathValidationPlan : ValidationPlanningScenario {
-    doc /* For NEED-DRIVING-011, a planned stakeholder review. While the
-         * stationary vehicle target scenario runs (SC-DRIVING-012), can
-         * systems engineers and product-line engineers confirm that every
-         * driving command passed through Eclipse S-CORE to the actuation and
-         * every warning request through S-CORE to the AAOS SDV, and that no
-         * other exchange carried them? */
-  }
-  connection scoreCommandAndWarningPathValidationPlanning : ValidationPlanningAssociation
-    connect needCommandsAndWarningThroughSCORE to scoreCommandAndWarningPathValidationPlan;
-  dependency scoreCommandAndWarningPathValidationFromStationaryTargetScenario
-    from scoreCommandAndWarningPathValidationPlan
-    to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForStationaryVehicle;
-
-  part <'SC-DRIVING-020'> candidateIdentityValidationPlan : ValidationPlanningScenario {
-    doc /* For NEED-DRIVING-012, a planned stakeholder review. After each run
+  part <'SC-DRIVING-019'> candidateIdentityValidationPlan : ValidationPlanningScenario {
+    doc /* For NEED-DRIVING-011, a planned stakeholder review. After each run
          * of the four scenarios (SC-DRIVING-012, SC-DRIVING-013,
          * SC-DRIVING-014 and SC-DRIVING-015), can verification engineers and
          * product-line engineers bind its verdict to the candidate revision
@@ -180,9 +161,6 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
   }
   connection candidateIdentityValidationPlanning : ValidationPlanningAssociation
     connect needRunsIdentifyTheCandidate to candidateIdentityValidationPlan;
-  dependency candidateIdentityValidationFromTurningOffScenario
-    from candidateIdentityValidationPlan
-    to DE4SDV_DriverAssistanceOperationalContext::noReactionToVehicleAheadTurningOff;
   dependency candidateIdentityValidationFromStationaryTargetScenario
     from candidateIdentityValidationPlan
     to DE4SDV_DriverAssistanceOperationalContext::warnAndBrakeForStationaryVehicle;
@@ -192,6 +170,9 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
   dependency candidateIdentityValidationFromCurveScenario
     from candidateIdentityValidationPlan
     to DE4SDV_DriverAssistanceOperationalContext::noReactionToStationaryVehicleBeyondTheCurve;
+  dependency candidateIdentityValidationFromTurningOffScenario
+    from candidateIdentityValidationPlan
+    to DE4SDV_DriverAssistanceOperationalContext::noReactionToVehicleAheadTurningOff;
 
   /* ─────────────────────────────── Views ─────────────────────────────── */
 
@@ -215,7 +196,6 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     expose needWarnAndBrakeForVehicleAhead;
     expose needNoReactionWithoutImminentCollision;
     expose needWarningRequestForTheDriver;
-    expose needCommandsAndWarningThroughSCORE;
     expose needRunsIdentifyTheCandidate;
     filter @ SysML::RequirementUsage;
     attribute :>> includeReferenceElements = true;
@@ -249,7 +229,6 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     expose vehicleAheadResponseValidationPlan;
     expose noReactionValidationPlan;
     expose driverWarningValidationPlan;
-    expose scoreCommandAndWarningPathValidationPlan;
     expose candidateIdentityValidationPlan;
     filter @ SysML::PartUsage;
     attribute :>> includeReferenceElements = true;

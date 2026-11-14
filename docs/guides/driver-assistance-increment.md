@@ -210,31 +210,29 @@ scenarios it covers, carried out by the roles that check the answer.
   braking when a collision with a stationary or a slower moving vehicle ahead
   is imminent. Vehicle occupants and road users. Reviewed by `SC-DRIVING-016`
   on `SC-DRIVING-012` and `SC-DRIVING-013`.
-- `NEED-DRIVING-009`: no warning and no emergency braking when no collision
-  is imminent. Vehicle occupants and road users. Reviewed by `SC-DRIVING-017`
-  on `SC-DRIVING-014` and `SC-DRIVING-015`.
+- `NEED-DRIVING-009`: no warning and no emergency braking when no collision is
+  imminent. Vehicle occupants and road users. Reviewed by `SC-DRIVING-017` on
+  `SC-DRIVING-014` and `SC-DRIVING-015`.
 - `NEED-DRIVING-010`: a warning request at the candidate's boundary, so that
   the AAOS SDV warns the driver on its display and as a sound. Vehicle
   occupants. Reviewed by `SC-DRIVING-018` on `SC-DRIVING-012` and
   `SC-DRIVING-013`.
-- `NEED-DRIVING-011`: the driving command and the warning request pass
-  through Eclipse S-CORE, with no exchange around it. Systems engineers and
-  product-line engineers. Reviewed by `SC-DRIVING-019` on `SC-DRIVING-012`.
-- `NEED-DRIVING-012`: each run identifies the candidate revision and the
+- `NEED-DRIVING-011`: each run identifies the candidate revision and the
   configuration it ran with. Verification engineers and product-line
-  engineers. Reviewed by `SC-DRIVING-020` on all four
-  scenarios.
+  engineers, who use the run identity in their own work. Reviewed by
+  `SC-DRIVING-019` on all four scenarios.
 
-Two concerns get no need of their own. The criteria for a vehicle target and
-the independence of the braking command are questions of the roles that check
-the answer. `NEED-DRIVING-008` names both in its source, and `SC-DRIVING-016`
-asks them. The planned reviews, not the needs, ask that no autopilot, replay
-or overlay acts instead of the candidate. No need states a number: Phase 5
-derives the criteria, their limits and the time of the warning before the
-braking. VisionPilot's runtime contract at the pinned revision is a comment
-for Phase 5: only its ROS 2 build reads a real speed and commands a vehicle.
-The speed-following, lane-keeping and lane-departure functions get no need,
-since no case judges them.
+Three concerns get no need of their own: the criteria for a vehicle target,
+the Eclipse S-CORE path of the command and the warning request, and the
+independence of the braking command. Their roles check the answer rather than
+use it, so each is a question for a planned review. `NEED-DRIVING-008` names
+all three in its source, and `SC-DRIVING-016` asks them. The planned reviews,
+not the needs, ask that no autopilot, replay or overlay acts instead of the
+candidate. No need states a number: Phase 5 derives the criteria, their limits
+and the time of the warning before the braking. VisionPilot's runtime contract
+at the pinned revision is a comment for Phase 5: only its ROS 2 build reads a
+real speed and commands a vehicle. The speed-following, lane-keeping and
+lane-departure functions get no need, since no case judges them.
 
 `tests/test_driver_assistance_needs_requirements.py` pins the needs, their
 holders and sources, the planned reviews and their scenarios, and the
