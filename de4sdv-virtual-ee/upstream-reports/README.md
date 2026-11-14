@@ -1,0 +1,72 @@
+# Upstream reports — drafted, not posted
+
+Two defects found while building this testbed. Both belong to the project that owns
+them, not in a local workaround. Neither has been filed: posting is the owner's call,
+and the rule for this project is that upstream contact happens deliberately.
+
+## 1. vxedge: `resources:` is validated but never applied
+
+**What the schema promises.** A device may declare `resources: { cpu, memory }`
+(`vehicle.yaml`, and the scaffold uses it: `hpc1: { …, resources: { cpu: 4, memory: 8 } }`).
+`vxedge` parses it into `model::Resources { cpu, memory_gb, gpu }` and validates it.
+
+**What happens.** Nothing applies it. With `zone-fl: { resources: { cpu: 1, memory: 2 } }`
+in the manifest and the vehicle up:
+
+```text
+vx-zone-fl-payload   CpuQuota=0            Memory=0
+vx-zone-fl-infra     CpuQuota=0 NanoCpus=0 Memory=0
+```
+
+In the 0.30.0 source, `Resources` has no consumer outside `model/`: no container
+backend reads `cpu` or `memory_gb` to set `--cpus`/`--memory`, and no VM backend
+reads them to size a domain.
+
+**Why it matters.** A declared limit that is silently dropped is worse than no field:
+the descriptor looks like it partitions resources, and a node that escapes its
+ceiling takes the rest of the vehicle with it.
+
+**Reported as:** schema and backend disagree; either apply it on the container
+backend or refuse the block with a typed error.
+
+## 2. vxedge: `up` has no post-start health gate
+
+**What happens.** A package whose payload dies on start still converges:
+
+```text
+[100%] experiment.up experiment `de4sdv-virtual-ee` up — … 3 zone(s) …
+experiment.up: succeeded
+```
+
+while the rear zone's process tree was already gone:
+
+```text
+[provider] FileNotFoundError: … /opt/zone/dbc/wiper-v2.dbc
+[zone] a child exited; taking the zone down
+podman inspect … status=exited exit=0
+```
+
+**Why it matters.** The orchestrator's own status is the only signal a deployment can
+act on. If `up` reports success for a dead zone, an update has no failure to roll
+back from, and a monitoring system built on vxAPI sees a healthy vehicle.
+
+**What the testbed does about it.** `checks/update_with_rollback.sh` probes the zone's
+own status frame and reverts. That is a workaround at the caller, not a fix.
+
+**Reported as:** a staged converge could verify each node is running before the job
+reports success — at minimum, a node whose container exits during `up` should fail
+the converge with a typed reason rather than report `succeeded`.
+
+## What is not drafted here
+
+- **No control-plane identity.** vxedge's own documentation states that its Unix
+  socket has filesystem permissions but no peer-credential check, and that audit
+  records carry no caller identity. That is a known, documented gap, not a new one —
+  reporting it would be noise.
+- **`vxota-probe` missing from the release tarball.** The crate is in the upstream
+  repository, but the 0.30.0 install ships only `vxota`. Worth mentioning in a
+  release note rather than filing a defect; the fetch path was exercised with a
+  plain HTTP client and content addressing.
+- **`vxota publish --signing-key` help says "hex-encoded … seed" while the argument
+  is a file path.** One-line documentation fix; the error is `Os { code: 2 }` with no
+  hint, which cost a debugging cycle. Worth a doc issue.

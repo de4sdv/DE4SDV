@@ -58,29 +58,44 @@ The lock can only pin an image that has a digest, and a locally built image has
 none until it is pushed. The testbed runs a registry on the host:
 
 ```bash
+# TLS + htpasswd, so the refs have the shape a published registry would
+mkdir -p /opt/ee/registry-tls && cd /opt/ee/registry-tls
+openssl req -x509 -newkey rsa:4096 -nodes -days 365 -keyout domain.key -out domain.crt \
+  -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+head -c 18 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' > registry-pass && chmod 600 registry-pass
+podman run --rm --entrypoint htpasswd docker.io/library/httpd:2 \
+  -Bbn de4sdv "$(cat registry-pass)" > htpasswd
+
 podman run -d --name ee-registry -p 127.0.0.1:5000:5000 \
-  -v /opt/ee/registry:/var/lib/registry:Z \
+  -v /opt/ee/registry:/var/lib/registry:Z -v /opt/ee/registry-tls:/certs:Z \
+  -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt \
+  -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key \
+  -e REGISTRY_AUTH=htpasswd -e REGISTRY_AUTH_HTPASSWD_REALM=de4sdv \
+  -e REGISTRY_AUTH_HTPASSWD_PATH=/certs/htpasswd \
   docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278
 
-# Podman treats plain HTTP as an error until the registry is declared insecure;
-# without this the pull fails with "server gave HTTP response to HTTPS client".
-printf '[[registry]]\nlocation = "localhost:5000"\ninsecure = true\n' \
-  | sudo tee /etc/containers/registries.conf.d/999-ee-registry.conf
-systemctl --user restart podman.socket
+# podman must trust the CA and hold the credentials, or the pull 401s / fails TLS
+sudo mkdir -p /etc/containers/certs.d/localhost:5000
+sudo cp domain.crt /etc/containers/certs.d/localhost:5000/ca.crt
+podman login --tls-verify=true -u de4sdv -p "$(cat registry-pass)" localhost:5000
 
-podman push --tls-verify=false localhost/de4sdv/zone-ecu:9 localhost:5000/de4sdv/zone-ecu:9
-podman push --tls-verify=false localhost/de4sdv/can-gw:4   localhost:5000/de4sdv/can-gw:4
+podman push --tls-verify=true localhost/de4sdv/zone-ecu:10 localhost:5000/de4sdv/zone-ecu:10
+podman push --tls-verify=true localhost/de4sdv/can-gw:4   localhost:5000/de4sdv/can-gw:4
 ```
 
-A push does not create a local ref, so the digest is read from the registry, not
-from `podman inspect`:
+Measured on the testbed: unauthenticated `GET /v2/` is **401**, authenticated is
+**200**. A push does not create a local ref, so the digest is read from the registry
+(GET, not HEAD — the header is only on the body response):
 
 ```bash
-curl -sI -H "Accept: application/vnd.oci.image.manifest.v1+json" \
-  http://127.0.0.1:5000/v2/de4sdv/zone-ecu/manifests/9 \
-  | tr -d '\r' | awk -F': ' '/Docker-Content-Digest/{print $2}'
-# sha256:84f265334c5fec1c92e5aa1c1730cf339b42585e5cd8b792163712f310ee3253
+curl -s -D - -o /dev/null -u "de4sdv:$(cat registry-pass)" \
+  --cacert domain.crt -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+  https://localhost:5000/v2/de4sdv/zone-ecu/manifests/10 \
+  | tr -d '\r' | grep -i docker-content-digest
+# docker-content-digest: sha256:7d2a051e86ce5e3af8fdf8b4d9241b467c3f5ae1410989de7fb02ee0c0284359
 ```
+
+The digests did not change when the transport did — they are content, not transport.
 
 `parts.yaml` names the tag **and** the digest, and the lock records five images
 instead of three.
@@ -167,6 +182,55 @@ The two sides of that run, both signed and verified on the host:
 signed package, the revert is an orchestrated `experiment up` of A, and the gate is a
 script. A production SUMS has the bank switch and the revert in the ECU's own update
 manager, and that is the part this testbed does not model.
+
+## 6c. Over the air: publish, fetch, verify, apply
+
+The update in 6b was applied from the host. The same signed artifact can travel
+through the vehicle network instead — the OTA service (`vxota`) is a TUF-style store
+inside the vehicle, and a zone can fetch from it over its own slice.
+
+```bash
+# 1. publish, inside the store the OTA service serves
+vxota publish --artifacts-dir ota-store \
+  --file de4sdv-virtual-ee-0.2.0.vxp --name de4sdv-virtual-ee-0.2.0.vxp \
+  --signing-key .ota-root.key          # a PATH: the argument is a file, not the hex seed
+vxota publish --artifacts-dir ota-store \
+  --file de4sdv-virtual-ee-0.2.0.vxp.sigstore.json \
+  --name de4sdv-virtual-ee-0.2.0.vxp.sigstore.json --signing-key .ota-root.key
+```
+
+```bash
+# 2-3. fetch and check from inside a zone (python: no curl in the image)
+podman exec -i vx-zone-fl-payload python - <<'PY'
+import hashlib, json, urllib.request
+base = "http://10.100.0.50:9900"
+t = json.loads(urllib.request.urlopen(base + "/targets.json", timeout=10).read())["signed"]["targets"]
+for name in ("de4sdv-virtual-ee-0.2.0.vxp", "de4sdv-virtual-ee-0.2.0.vxp.sigstore.json"):
+    e = t[name]
+    d = urllib.request.urlopen(base + "/artifacts/" + e["sha256"], timeout=30).read()
+    print(name, len(d), "bytes, digest ok =", hashlib.sha256(d).hexdigest() == e["sha256"])
+    open("/tmp/" + name, "wb").write(d)
+PY
+```
+
+Measured:
+
+```text
+de4sdv-virtual-ee-0.2.0.vxp: 11776 bytes, digest ok=True
+de4sdv-virtual-ee-0.2.0.vxp.sigstore.json: 387 bytes, digest ok=True
+vxedge pkg verify → signer key:sha256:5a2e2d2b… (the host's trusted key)
+vxedge pkg unpack → digest sha256:fb741dae… (the published digest)
+```
+
+Then the gate from 6b decides: the fetched package fails its health check and the
+host returns to the previous baseline.
+
+**What this is still not.** There is no A/B bank and no revert inside an ECU update
+manager; the fetch client is a short Python script because `vxota-probe` is not in
+the 0.30.0 tarball, and the TUF root/targets signature is present in the metadata but
+verified here by digest plus the package signature, not by a TUF client. The pieces a
+reviewer would ask about — signed artifact, content address, transfer over the vehicle
+network, verification before use, gate, revert — are all present and measured.
 
 ## 7. The daemon as a unit
 

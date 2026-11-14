@@ -18,7 +18,8 @@ source at a pinned commit. The repository contains no upstream source file.
 | [cannelloni](https://github.com/mguentner/cannelloni) | `v2.1.2` — **replaced, no longer used** | **GPL-2.0** (`gpl-2.0.txt`; GitHub's detector reports none because the file is not named `LICENSE`) | was built from source inside the images; now only the comparison numbers in the README survive | the first pass carried CAN over UDP with it; `transport/bridge.py` replaced it |
 | Ubuntu / GCP kernel | 24.04.5 LTS, `7.0.0-1017-gcp` | — | cloud image | host: `netem`/`htb`, `vcan`/`vxcan`, Open vSwitch |
 | [cosign](https://github.com/sigstore/cosign) | `v3.1.4` (release binary, SHA-256 checked against the release's `cosign_checksums.txt`) | Apache-2.0 | host tool, not in any image | signs and verifies the packed package |
-| [registry](https://github.com/distribution/distribution) | `2` — `docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278` | Apache-2.0 | container on the testbed host, `127.0.0.1:5000` | holds the two DE4SDV images so the baseline can name them by digest |
+| [registry](https://github.com/distribution/distribution) | `2` — `docker.io/library/registry@sha256:46faa9a1ae6813194b53921a370f2f4f8c5e1aae228a89bceafef5847a6a3278` | Apache-2.0 | container on the testbed host, `127.0.0.1:5000`, TLS with a private CA and htpasswd auth | holds the two DE4SDV images so the baseline can name them by digest |
+| [syft](https://github.com/anchore/syft) | `v1.57.1` (release binary) | Apache-2.0 | host tool, not in any image | generates the CycloneDX SBOMs in `sbom/` |
 
 ## What is inside the images
 
