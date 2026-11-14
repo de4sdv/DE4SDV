@@ -68,7 +68,7 @@ FRAGMENTS = {
     "reqEmergencyBrakingForImminentCollision": {
         "statement": ("imminent", "shall command a deceleration of at least 5.0 m/s²"),
         "rationale": ("SRC-UNECE-R152", "REQ-AEBS-003", "014e0e7a", "planning.cpp:118", "longitudinal_planning.cpp:36",
-                      "vision_pilot.cpp:157, 174", "The obligation is the candidate's", "A simulation cannot show"),
+                      "vision_pilot.cpp:138, 157, 174", "The obligation is the candidate's", "A simulation cannot show"),
         "criteria": ("at least 5.0 m/s²", "functional part", "each judged run"),
     },
     "reqImpactSpeedWithinLimit": {
