@@ -64,16 +64,16 @@ place as an open gap, together with the owner's question below.
 
 ### The owner's question
 
-On 2026-11-13 the owner asked: "so the hmi display is currently optional? i
-think it should be a common thing, every product needs an hmi display."
+On 2026-11-13 the owner noted that the HMI display is optional today and asked
+for one in every member product. Two options were put to him:
 
-Two options were put to him. Option A, as offered: "The display becomes
-common to all members. How it's built follows the integration mode: in the
-AAOS SDV guest on the integrated members, and a Linux-side display on the
-standalone member (doesn't exist yet, so it's recorded as a gap)". Its cost:
-"C010 goes, and the standalone member stays standalone". Option B: the
-display and an AAOS SDV guest in every member, so the standalone member
-would in effect become AAOS-integrated.
+- **Option A:** the display becomes common to all members, and its realization
+  follows the integration mode: in the AAOS SDV guest on the integrated
+  members, and a Linux-side display on the standalone member, which does not
+  exist yet and is recorded as a gap. Constraint C010 goes, and the standalone
+  member stays standalone.
+- **Option B:** the display and an AAOS SDV guest in every member, so the
+  standalone member would in effect become AAOS-integrated.
 
 The owner chose option A on 2026-11-13.
 
@@ -283,8 +283,8 @@ This ADR does not:
   validity and admission.
 - [ADR 0025: End SOME/IP in an SDV Core VM](0025-end-someip-in-an-sdv-core-vm.md):
   the VM layout of a guest as realization content.
-- ADR 0023, admit the S-CORE-integrated AEBS reference member (pull request
-  422).
+- [ADR 0023: Admit the S-CORE-integrated AEBS reference member](0023-admit-score-integrated-aebs-reference-member.md):
+  the S-CORE-integrated member and its third alternative.
 - [Governed product-line scope](../../model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml)
 - [SDV feature model](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml)
 - [Standalone member configuration](../../model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml)
