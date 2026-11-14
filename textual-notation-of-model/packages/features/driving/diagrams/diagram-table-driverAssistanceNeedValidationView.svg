@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="656" height="1434" viewBox="0 0 656 1434" role="img" aria-labelledby="title description">
+  <title id="title">table-driverAssistanceNeedValidationView</title>
+  <desc id="description">table-driverAssistanceNeedValidationView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="656" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-driverAssistanceNeedValidationView</text>
+  <rect x="0" y="54" width="296" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">Plan</tspan>
+  </text>
+  <rect x="296" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="308" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="308" dy="0">Review</tspan>
+  </text>
+  <rect x="0" y="94" width="296" height="520" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">vehicleAheadResponseValidationPlan</tspan>
+  </text>
+  <rect x="296" y="94" width="360" height="520" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="308" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="308" dy="0">For NEED-DRIVING-008, a planned</tspan>
+    <tspan x="308" dy="20">stakeholder review. While the stationary</tspan>
+    <tspan x="308" dy="20">and the slower moving vehicle target</tspan>
+    <tspan x="308" dy="20">scenarios run (SC-DRIVING-012 and SC-</tspan>
+    <tspan x="308" dy="20">DRIVING-013), can verification engineers</tspan>
+    <tspan x="308" dy="20">and compliance engineers confirm, by the</tspan>
+    <tspan x="308" dy="20">criteria for a vehicle target that phase 5</tspan>
+    <tspan x="308" dy="20">derives, that the candidate requests the</tspan>
+    <tspan x="308" dy="20">warning and that its driving command</tspan>
+    <tspan x="308" dy="20">brakes the vehicle, and that no autopilot,</tspan>
+    <tspan x="308" dy="20">replay or overlay acts instead of the</tspan>
+    <tspan x="308" dy="20">candidate? Can systems engineers and</tspan>
+    <tspan x="308" dy="20">product-line engineers confirm that every</tspan>
+    <tspan x="308" dy="20">driving command passed through Eclipse</tspan>
+    <tspan x="308" dy="20">S-CORE to the actuation and every warning</tspan>
+    <tspan x="308" dy="20">request through S-CORE to the AAOS SDV,</tspan>
+    <tspan x="308" dy="20">and that no other exchange carried them?</tspan>
+    <tspan x="308" dy="20">And can safety experts and product-line</tspan>
+    <tspan x="308" dy="20">engineers tell which element of the</tspan>
+    <tspan x="308" dy="20">candidate gave the braking command,</tspan>
+    <tspan x="308" dy="20">whether it left the candidate in the</tspan>
+    <tspan x="308" dy="20">driving command or apart from it, and</tspan>
+    <tspan x="308" dy="20">whether that command keeps the</tspan>
+    <tspan x="308" dy="20">independence of the protected emergency</tspan>
+    <tspan x="308" dy="20">command path?</tspan>
+  </text>
+  <rect x="0" y="614" width="296" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">noReactionValidationPlan</tspan>
+  </text>
+  <rect x="296" y="614" width="360" height="300" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="308" y="638" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="308" dy="0">For NEED-DRIVING-009, a planned</tspan>
+    <tspan x="308" dy="20">stakeholder review. While the vehicle</tspan>
+    <tspan x="308" dy="20">drives through the curve past the</tspan>
+    <tspan x="308" dy="20">stationary vehicle beyond the guard pipes</tspan>
+    <tspan x="308" dy="20">(SC-DRIVING-014), and while it follows the</tspan>
+    <tspan x="308" dy="20">vehicle ahead that turns off (SC-</tspan>
+    <tspan x="308" dy="20">DRIVING-015), can verification engineers</tspan>
+    <tspan x="308" dy="20">and compliance engineers confirm, by the</tspan>
+    <tspan x="308" dy="20">criterion that phase 5 states for each</tspan>
+    <tspan x="308" dy="20">scenario, that the candidate requests no</tspan>
+    <tspan x="308" dy="20">warning and commands no emergency braking,</tspan>
+    <tspan x="308" dy="20">and that the candidate's own driving</tspan>
+    <tspan x="308" dy="20">command moved the vehicle throughout each</tspan>
+    <tspan x="308" dy="20">run?</tspan>
+  </text>
+  <rect x="0" y="914" width="296" height="280" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">driverWarningValidationPlan</tspan>
+  </text>
+  <rect x="296" y="914" width="360" height="280" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="308" y="938" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="308" dy="0">For NEED-DRIVING-010, a planned</tspan>
+    <tspan x="308" dy="20">stakeholder review. While the stationary</tspan>
+    <tspan x="308" dy="20">and the slower moving vehicle target</tspan>
+    <tspan x="308" dy="20">scenarios run (SC-DRIVING-012 and SC-</tspan>
+    <tspan x="308" dy="20">DRIVING-013), can safety experts and</tspan>
+    <tspan x="308" dy="20">verification engineers confirm that each</tspan>
+    <tspan x="308" dy="20">warning request of the candidate reached</tspan>
+    <tspan x="308" dy="20">the AAOS SDV, that the AAOS SDV gave the</tspan>
+    <tspan x="308" dy="20">warning on its display and as a sound, and</tspan>
+    <tspan x="308" dy="20">when each mode began relative to the</tspan>
+    <tspan x="308" dy="20">warning request and to the start of the</tspan>
+    <tspan x="308" dy="20">emergency braking, with no recording or</tspan>
+    <tspan x="308" dy="20">overlay in place of either mode?</tspan>
+  </text>
+  <rect x="0" y="1194" width="296" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">candidateIdentityValidationPlan</tspan>
+  </text>
+  <rect x="296" y="1194" width="360" height="240" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="308" y="1218" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="308" dy="0">For NEED-DRIVING-011, a planned</tspan>
+    <tspan x="308" dy="20">stakeholder review. After each run of the</tspan>
+    <tspan x="308" dy="20">four scenarios (SC-DRIVING-012, SC-</tspan>
+    <tspan x="308" dy="20">DRIVING-013, SC-DRIVING-014 and SC-</tspan>
+    <tspan x="308" dy="20">DRIVING-015), can verification engineers</tspan>
+    <tspan x="308" dy="20">and product-line engineers bind its</tspan>
+    <tspan x="308" dy="20">verdict to the candidate revision and the</tspan>
+    <tspan x="308" dy="20">configuration that the run identifies, and</tspan>
+    <tspan x="308" dy="20">confirm that a build with a change that</tspan>
+    <tspan x="308" dy="20">upstream has not merged identifies itself</tspan>
+    <tspan x="308" dy="20">as a different candidate?</tspan>
+  </text>
+</svg>
