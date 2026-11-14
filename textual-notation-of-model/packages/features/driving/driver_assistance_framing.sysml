@@ -1,5 +1,6 @@
 /*
- * DE4SDV camera-only driver assistance: Phase 0 framing only.
+ * DE4SDV camera-only driver assistance: Phase 0 framing and the Phase 1
+ * concerns only.
  * One increment spans framing, realization and closed-loop verification.
  * The framing asserts no implementation, no runtime result, no product-line
  * admission and no compliance.
@@ -10,6 +11,7 @@ package DE4SDV_DriverAssistanceFraming {
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;
+  private import SAF_Viewpoints::*;
   private import Views::*;
 
   part def DriverAssistanceIncrement :> EngineeringIncrement;
@@ -24,7 +26,7 @@ package DE4SDV_DriverAssistanceFraming {
      * braking for a vehicle target, and the collision warning that the AAOS
      * SDV then gives the driver on its display and as a sound. It does not
      * change the Autoware-based AEBS. All phases retain this identity. This
-     * package holds only Phase 0.
+     * package holds Phase 0 and the Phase 1 concerns.
      */
   }
 
@@ -396,9 +398,126 @@ package DE4SDV_DriverAssistanceFraming {
      */
   }
 
+  /* Phase 1: one concern per question of the in-scope items, held by the
+   * parties whose interest it states, not only by the roles that check the
+   * answer. Each is typed by the SAF or DE4SDV concern that asks its question
+   * and names the view of a later phase that answers it; that is the
+   * viewpoint selection of this phase. The framing viewpoint frames all of
+   * them until then. */
+  concern vehicleTargetResponseConcern : OperationalCapabilityConcern {
+    doc /*
+     * vehicleTargetResponseInScope and noReactionInScope, operational part.
+     * Vehicle occupants and road users need the vehicle to warn its driver
+     * and to brake when a collision with a stationary or a slower moving
+     * vehicle ahead in its lane is imminent, and to do neither when no
+     * collision is imminent. It states what they expect, not how well the
+     * candidate meets it: no safety or on-road claim follows from it.
+     * Answered by the operational story of phase 2.
+     */
+    subject;
+    stakeholder occupant : VehicleOccupant;
+    stakeholder roadUser : RoadUser;
+  }
+
+  concern emergencyBrakingIndependenceConcern : PhysicalFunctionalMappingConcern {
+    doc /*
+     * vehicleTargetResponseInScope, braking part. Safety experts and
+     * product-line engineers need to see which software element of the
+     * candidate realizes the emergency braking, whether it is a function apart
+     * from the speed planner (gapNoSeparateEmergencyFunction), and how its
+     * braking command keeps the independence of the protected emergency
+     * command path that the product line holds as common content. Whether the
+     * candidate's braking can stand for the common capability turns on it, and
+     * so does the lifecycle decision. Answered by the physical-logical mapping
+     * of phase 8 for the element that realizes the emergency braking, and by
+     * the view of the claimed path in phase 8 for the independence of its
+     * braking command.
+     */
+    subject;
+    stakeholder safetyExpert : SafetyExpert;
+    stakeholder productLineEngineer : ProductLineEngineer;
+  }
+
+  concern driverWarningSequenceConcern : SystemProcessConcern {
+    doc /*
+     * driverWarningInScope. The driver, a vehicle occupant, needs a warning
+     * of an imminent collision on the display and as a sound. Safety
+     * experts need to see the sequence from the candidate's warning request
+     * to each of the two modes of the warning and to the start of the
+     * emergency braking, and the time between them, independent of the
+     * software that realizes it. Phase 5 states the time of the warning
+     * before the braking as a criterion. Answered by the system process of
+     * phase 6. Whether a driver perceives the warning is out of scope.
+     */
+    subject;
+    stakeholder occupant : VehicleOccupant;
+    stakeholder safetyExpert : SafetyExpert;
+  }
+
+  concern scoreCommandAndWarningPathConcern : PhysicalInternalExchangeConcern {
+    doc /*
+     * scoreCommandPathInScope. Systems engineers and product-line engineers
+     * need to see the driving command pass from the candidate through Eclipse
+     * S-CORE elements to the actuation, and the warning request through S-CORE
+     * to the AAOS SDV, with no exchange beside S-CORE, and the boundary
+     * interface by which each leaves the candidate. At the inspected revision
+     * the candidate has neither a warning output nor an S-CORE binding
+     * (gapWarningOutput, gapScoreIntegration), and a run that bypasses S-CORE
+     * does not judge the candidate on the command path of the question. The
+     * candidate's boundary stays as phase 0 draws it: the path is an internal
+     * exchange of the realization that holds the candidate, the S-CORE path
+     * and the AAOS SDV, which phases 6 to 8 decide. Answered by the view of
+     * the claimed path in phase 8.
+     */
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder productLineEngineer : ProductLineEngineer;
+  }
+
+  concern vehicleTargetCriteriaConcern : RegulatoryScopeWithoutComplianceClaimConcern {
+    doc /*
+     * vehicleTargetCriteriaInScope. Compliance engineers and verification
+     * engineers need each criterion for a vehicle target traced to the
+     * provision of UNECE R152 it is derived from, with the product-line
+     * requirement it judges, whose obligation it is, and what a simulation
+     * cannot show of it (gapVehicleTargetCriteria). A criterion met in
+     * simulation holds for the simulated configuration only
+     * (asmSimulatedConfigurationStandsIn) and is no statement about
+     * compliance or type approval. Answered by the requirement definition
+     * table of phase 5.
+     */
+    subject;
+    stakeholder complianceEngineer : ComplianceEngineer;
+    stakeholder verificationEngineer : VerificationEngineer;
+  }
+
+  concern candidateVerdictConcern : ArgumentationAssuranceConcern {
+    doc /*
+     * verdictEvidenceInScope. Product-line engineers and verification
+     * engineers need the lifecycle decision to rest on a pass or a fail for
+     * each requirement and scenario, each bound to the candidate revision that
+     * ran and to the simulated configuration. A build that carries a change
+     * that upstream has not merged is a different candidate, with its verdicts
+     * reported apart (gapCandidateBehaviorUnverified), and a fail stays a
+     * recorded result. A fail that a mismatch of the simulated camera image or
+     * of the camera calibration may explain stays a fail, and names
+     * gapCameraImageAndGeometry. Answered by the argumentation assurance view
+     * of phase 10.
+     */
+    subject;
+    stakeholder productLineEngineer : ProductLineEngineer;
+    stakeholder verificationEngineer : VerificationEngineer;
+  }
+
   view driverAssistanceFramingView {
     viewpoint driverAssistanceFramingViewpoint : IncrementFramingViewpoint {
       frame driverAssistanceBoundary;
+      frame vehicleTargetResponseConcern;
+      frame emergencyBrakingIndependenceConcern;
+      frame driverWarningSequenceConcern;
+      frame scoreCommandAndWarningPathConcern;
+      frame vehicleTargetCriteriaConcern;
+      frame candidateVerdictConcern;
     }
     expose DriverAssistanceIncrement;
     expose driverAssistanceIncrement;
@@ -408,6 +527,12 @@ package DE4SDV_DriverAssistanceFraming {
     expose candidateDriverAssistanceSystem;
     expose driverAssistanceScope;
     expose driverAssistanceBoundary;
+    expose vehicleTargetResponseConcern;
+    expose emergencyBrakingIndependenceConcern;
+    expose driverWarningSequenceConcern;
+    expose scoreCommandAndWarningPathConcern;
+    expose vehicleTargetCriteriaConcern;
+    expose candidateVerdictConcern;
     expose vehicleTargetResponseInScope;
     expose driverWarningInScope;
     expose noReactionInScope;

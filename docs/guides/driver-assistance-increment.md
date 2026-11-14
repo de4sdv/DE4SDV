@@ -8,14 +8,14 @@ increment asks that of a camera-only driver-assistance application,
 [VisionPilot](https://github.com/autowarefoundation/vision_pilot) of the
 Autoware Foundation.
 
-**Status: Phase 0 framing proposal.** No implementation, run, result,
-product-line admission or compliance is claimed.
+**Status: Phase 0 framing and Phase 1 concerns, proposal.** No
+implementation, run, result, product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/driving/driver_assistance_framing.sysml):
-  `INC-DRIVING-002`, its engineering question, charter, scope, assumptions and
-  open gaps.
+  `INC-DRIVING-002`, its engineering question, charter, scope, assumptions,
+  open gaps and Phase 1 concerns.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/driving/upstream.md#visionpilot)
@@ -61,6 +61,51 @@ warning, the emergency braking and the false reaction. The regulation-derived
 criteria of record are in
 [`aebs-regulatory-source.yaml`](../../methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml);
 the clauses for a vehicle target are not yet anchored there.
+
+## Concerns (Phase 1)
+
+A verdict is only useful if it answers the questions of the people who rely
+on it. Phase 1 names those questions: one concern per question of the
+in-scope items, held by the parties whose interest it states. The occupants
+and the road users hold their own concern beside the engineering roles. Each
+concern is typed by the SAF or DE4SDV concern that asks its question, and its
+text names the view of a later phase that answers it. The framing viewpoint
+frames all six until those views exist.
+
+- **Vehicle target and no reaction:** `vehicleTargetResponseConcern`. The
+  vehicle warns its driver and brakes when a collision with a vehicle ahead is
+  imminent, and does neither otherwise. Operational capability; vehicle
+  occupants and road users. Answered by the operational story of Phase 2.
+- **Vehicle target, braking:** `emergencyBrakingIndependenceConcern`. Which
+  software element of the candidate realizes the emergency braking, and how
+  its braking command keeps the independence of the protected emergency
+  command path. Physical functional mapping; safety experts and product-line
+  engineers. Answered in Phase 8, by the physical-logical mapping and by the
+  view of the claimed path; the lifecycle decision turns on it.
+- **Driver warning:** `driverWarningSequenceConcern`. The sequence from the
+  warning request to the display, the sound and the start of the emergency
+  braking. System process; the driver as a vehicle occupant, and safety
+  experts. Answered by the system process of Phase 6.
+- **Eclipse S-CORE command path:** `scoreCommandAndWarningPathConcern`. The
+  driving command and the warning request pass from the candidate through the
+  S-CORE path, with no exchange beside it. Physical internal exchange of the
+  realization that Phases 6 to 8 decide; the candidate's boundary stays as
+  Phase 0 draws it. Systems engineers and product-line engineers. Answered by
+  the view of the claimed path in Phase 8.
+- **Criteria for a vehicle target:** `vehicleTargetCriteriaConcern`. Each
+  criterion traced to the regulation, to the product-line requirement it
+  judges and to whose obligation it is, with what a simulation cannot show.
+  Regulatory scope without a compliance claim; compliance engineers and
+  verification engineers. Answered by the requirements of Phase 5.
+- **Verdicts:** `candidateVerdictConcern`. A pass or a fail for each
+  requirement and scenario, bound to the candidate revision that ran. A fail
+  that the simulated camera image may explain stays a fail. Argumentation
+  assurance; product-line engineers and verification engineers. Answered in
+  Phase 10.
+
+The Phase 1 gates check that each concern has native stakeholders and a
+frame, and that one concern is not the boundary concern. They do not judge
+whether the stakeholder, risk and viewpoint coverage is adequate; review does.
 
 ## What the framing already records as open
 
@@ -132,10 +177,10 @@ type approval.
 ## Next obligation and execution limits
 
 Use the Method Check of the reviewed pull request to select the next
-obligation, not the phase number alone. The framing's boundary concern does
-not open Phase 1. The next model obligation is **Phase 1 concern framing**: at
-least one concern of the engineering scope, held by the parties whose interest
-it states.
+obligation, not the phase number alone. The next model obligation is
+**Phase 2**, the operational context: exactly one context holding the
+candidate, with a story whose use cases bind it and the context actors. Phase
+2 draws the boundary that Phase 0 states.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
