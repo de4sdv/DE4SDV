@@ -1,0 +1,5 @@
+# Build outputs and runtime state never enter the package digest.
+#
+# The OTA artifact store is produced by the vehicle build and served at runtime; it
+# must be present on the host but is not an input to what the package *is*.
+ota-store/

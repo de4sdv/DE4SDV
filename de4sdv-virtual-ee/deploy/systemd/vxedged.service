@@ -1,0 +1,22 @@
+[Unit]
+Description=vxedge control plane (vxAPI) for the DE4SDV virtual E/E testbed
+Documentation=https://github.com/vxedge/docs/blob/main/ARCHITECTURE.md
+# The daemon reconciles containers and the gateway; docker/podman's user socket
+# must exist first, which is why this is a user unit with a socket dependency
+# rather than a system one.
+After=podman.socket network-online.target
+Wants=podman.socket
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/vxedged --listen unix:///run/user/%U/vxedge.sock --runtime-dir /run/user/%U/vxedge
+Restart=on-failure
+RestartSec=3
+# A converge that stops half-way leaves containers behind; the next start
+# reconciles them, so restarting is the correct response rather than staying down.
+# Trust policy: without this file any package runs. The host is expected to carry
+# one at /etc/vxedge/trust.yaml under `require_signed` (see deploy/trust.yaml.example).
+# It is read from the daemon's default path, so no flag is needed here.
+
+[Install]
+WantedBy=default.target

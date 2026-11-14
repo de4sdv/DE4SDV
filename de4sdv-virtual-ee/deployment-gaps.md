@@ -53,7 +53,39 @@ rollback, resource partitioning, fault-tolerant supervision, timing guarantees, 
 any certification statement. A single host with virtual buses and one userspace
 router cannot carry those claims.
 
-## The cheapest way to close it, in order
+## What has been closed since
+
+Items 1–4 of the list below are done and proven on the testbed. The two that
+changed what the host enforces:
+
+- **The vehicle is a locked, signed `vxp/1` package.** `vehicle/vxp.lock` pins the
+  five files; `vxedge pkg pack` produces `sha256:3886296e…`; the package is signed
+  with a host-local cosign key and verified, which writes a record keyed by that
+  digest.
+- **The host requires signatures.** `/etc/vxedge/trust.yaml` carries
+  `require_signed: true` and the lab public key. A package whose files changed
+  without a new lock is refused as `LOCK_MISMATCH`; one that was changed, re-locked
+  and never signed is refused as `SIGNATURE_INVALID`. Both refused before anything
+  was provisioned.
+- **The daemon runs as a systemd user unit** with `Restart=on-failure` and linger,
+  and after a restart it reconciled the gateway (`state=3`, 4/4 endpoints) with the
+  policy still loaded.
+
+Two things did **not** close, and both are stated rather than papered over:
+
+- **Our own images are still local tags.** The lock pins published refs by digest
+  (KUKSA, vxota, vxprobe); `localhost/de4sdv/zone-ecu:9` and `can-gw:4` have no
+  digest to record. Pinning and signing them needs a registry first.
+- **`resources:` is declarative only.** The descriptor now declares per-device CPU
+  and memory, and vxedge validates the block — but nothing in 0.30.0 applies it.
+  `podman inspect` reports `CpuQuota=0 Memory=0` on every payload and infra
+  container, and in the source the `Resources` struct has no consumer outside the
+  model. This is an upstream gap, not a configuration mistake: declare it anyway
+  (it is the right document) and do not claim enforcement.
+
+The runbook for all of it is [`deploy/README.md`](deploy/README.md).
+
+## The gap, ranked, as originally found
 
 1. **Lock the baseline** (`vxedge pkg lock`) and stop passing `--unlocked`. Minutes.
 2. **Digest-pin our own images** in `parts.yaml`, then sign them and add a trust

@@ -1,0 +1,26 @@
+kind: experiment
+id: de4sdv-virtual-ee
+# The package entry. A vxp/1 workspace builds from an experiment: the experiment names
+# what is under test and which software is on it, the vehicle says what exists, the
+# baseline says what runs. Splitting them this way is what lets an update change the
+# baseline without touching the vehicle.
+vehicles: [vx-de4sdv-ee]
+baseline: bl-vx-de4sdv-ee
+
+# The vehicle names a slice; this document defines what the name means. Both slices are
+# VLANs on the gateway's bridge, so a cross-slice flow fails on the VLAN rather than on
+# a missing route.
+network:
+  slices:
+    - { id: adas, mode: vlan, vlan: 101 }
+    - { id: infotainment, mode: vlan, vlan: 103 }
+
+# Not a measurement campaign: this package exists to bring the vehicle up and to be
+# verified, so the method block is the minimum a run needs.
+method:
+  duration_s: 60
+  repetitions: 1
+  warmup_s: 5
+
+results:
+  artifact_dir: results/

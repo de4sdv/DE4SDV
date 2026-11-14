@@ -1,0 +1,8 @@
+schema: vxp/1
+# The package descriptor. `entry` names the document a runner reads first; the
+# baseline and the rest travel beside it and the lock covers them all.
+id: local/de4sdv-virtual-ee
+version: 0.1.0
+entry: main.yaml
+requires:
+  gpu: none

@@ -3,9 +3,10 @@ id: vx-de4sdv-ee
 class: road
 subtype: car
 
-# The phase-3 gate target: one document brings up three zones on two backends, a central compute
-# node and a service placed on a slice. Guests stay probes: this vehicle proves provisioning and
-# slice isolation, not application behaviour.
+# The virtual E/E vehicle: three zones and a central compute node, all containers on one
+# rootless-Podman daemon, with the signal plane and the OTA service placed on hpc1.
+# Application behaviour lives in the parts (zonal ECU plants, the reference ECU, the
+# gateway); this document only says what exists and where it runs.
 #
 # adas and infotainment deliberately share one /24. A flow across them fails because of the VLAN,
 # not because no route exists, so its failure says something about the slice.
@@ -15,11 +16,15 @@ zones:
   rear-left: {}
   central: {}
 
+# resources is a limit, not a reservation: the host has 4 vCPU and the zones are allowed
+# to oversubscribe it, because what they do is mostly waiting on a bus. Declaring a limit
+# at all is the point - an undeclared node has no ceiling, and one escaping node takes
+# the rest of the vehicle down with it.
 devices:
-  zone-fl: { role: zone-controller, zone: front-left, backend: container }
-  zone-fr: { role: zone-controller, zone: front-right, backend: container }
-  zone-rl: { role: zone-controller, zone: rear-left, backend: container }
-  hpc1: { role: hpc, zone: central, backend: container }
+  zone-fl: { role: zone-controller, zone: front-left, backend: container, resources: { cpu: 1, memory: 2 } }
+  zone-fr: { role: zone-controller, zone: front-right, backend: container, resources: { cpu: 1, memory: 2 } }
+  zone-rl: { role: zone-controller, zone: rear-left, backend: container, resources: { cpu: 1, memory: 4 } }
+  hpc1: { role: hpc, zone: central, backend: container, resources: { cpu: 2, memory: 6 } }
 
 functions:
   fn-fl: { deployed_on: zone-fl }
@@ -45,14 +50,14 @@ services:
   ota:
     id: ota-01
     type: ota
-    image: { url: ghcr.io/vxedge/parts/svc/ota/app/vxota@sha256:38dc26f33a08dc0af3085e86caa07eb697559200d52c12e3730a7cd2e78e213d, kind: container }
+    image: { url: "ghcr.io/vxedge/parts/svc/ota/app/vxota@sha256:38dc26f33a08dc0af3085e86caa07eb697559200d52c12e3730a7cd2e78e213d", kind: container }
     on: hpc1
     config: { artifacts: ./ota-store, listen: "0.0.0.0:9900" }
 
 signal_plane:
   kuksa:
     image:
-      url: ghcr.io/eclipse-kuksa/kuksa-databroker@sha256:529d8c6d3cc223362667672978bcb8f92c4d356b25aedd336e7a2e004d7279bd
+      url: "ghcr.io/eclipse-kuksa/kuksa-databroker@sha256:529d8c6d3cc223362667672978bcb8f92c4d356b25aedd336e7a2e004d7279bd"
       kind: container
     on: hpc1
     config: { listen: "0.0.0.0:55555" }

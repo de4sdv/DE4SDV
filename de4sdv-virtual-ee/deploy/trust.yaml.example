@@ -1,0 +1,13 @@
+# Example host trust policy for a lab that requires signed packages.
+#
+# Copy to /etc/vxedge/trust.yaml (the daemon's default policy path) and point
+# `public_key` at the cosign public key this host trusts. The path is resolved
+# relative to this file, so keeping the key beside the policy is the simple case.
+#
+# Under `require_signed`, `up` and `Plan` refuse a package whose digest has no
+# verification record here, and refuse an inline manifest or a bare directory
+# outright — neither has a package digest to verify. That is the point: the host
+# runs what it has verified, not what it was handed.
+require_signed: true
+signers:
+  - { kind: key, public_key: /etc/vxedge/lab.pub }

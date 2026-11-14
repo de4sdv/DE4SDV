@@ -60,14 +60,19 @@ checks/test_zone_ecu.py       plant model and frame round-trip tests
 checks/test_bridge.py         bridge framing: round-trip, padding, malformed input
 vehicle/vehicle.yaml          the vehicle composition: zones, devices, links, services
 vehicle/parts.yaml            the software baseline: images, capabilities, per-zone env
+vehicle/main.yaml             the experiment: slices, what is under test, method
+vehicle/vxp.yaml, vxp.lock    the package descriptor and its lock (five files pinned)
+deploy/README.md              lock, sign, verify, run — and what the host refuses
+deploy/trust.yaml.example     the host policy: require signed packages
+deploy/systemd/vxedged.service  the daemon as a user unit
 deployment-gaps.md            the deployment plane a production SDV needs, and what is missing here
 ```
 
-`vehicle/` is the deployment descriptor these gate results were produced with, copied
-from the testbed unchanged. It is a local build, not a distribution: the two DE4SDV
-images are referenced by tag rather than digest and are unsigned, and the baseline
-was never locked. [`deployment-gaps.md`](deployment-gaps.md) states exactly what
-that costs and what closing it would take.
+`vehicle/` is a `vxp/1` package, not a folder of documents: it is locked, packed to
+`sha256:3886296e…`, signed with a lab key, and the host runs it only because the
+policy found that verification record. What the lock does **not** cover is our own
+two images, which are still local tags. [`deployment-gaps.md`](deployment-gaps.md)
+says what that costs and what closing it would take.
 
 `vss/metadata.json` is generated from the mapping by stripping `dbc2vss` and
 `vss2dbc`; the two must never be edited apart.
