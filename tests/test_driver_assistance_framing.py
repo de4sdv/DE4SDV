@@ -584,8 +584,8 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification and "
-            "Phase 4 stakeholder needs, proposal.**") in _flat(guide)
+    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "
+            "Phase 4 stakeholder needs and Phase 5 requirements, proposal.**") in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part driverAssistanceQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -609,7 +609,7 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "the increment builds none of them.",
                    "It is no statement about compliance or type approval.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The next model obligation is **Phase 5**: the requirements",
+                   "The next model obligation is **Phase 6**: the functional architecture",
                    "the clauses for a vehicle target are not yet anchored there."):
         assert phrase in flat, phrase
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
@@ -651,8 +651,8 @@ def test_the_upstream_record_pins_what_the_framing_read():
             "record belongs to INC-DRIVING-001.") in intro, "the record says whose each statement is"
     section = _record_section(record, "VisionPilot")
     pinned = re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/([^/)\s]+)", record)
-    assert len(pinned) == 12 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
-    assert len(re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/", section)) == 12, \
+    assert len(pinned) == 19 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
+    assert len(re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/", section)) == 19, \
         "the files of the project are linked in its section only"
     network = re.findall(r"github\.com/autowarefoundation/auto_speed([^)\s]*)", record)
     assert network == [f"/tree/{AUTOSPEED_PIN}"], "the record links the network's repository at one commit"

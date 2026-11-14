@@ -248,34 +248,6 @@ PLAN_DOCS = {
         "configuration that the run identifies, and confirm that a build with a change that "
         "upstream has not merged identifies itself as a different candidate?"),
 }
-#: the pinned runtime contract of VisionPilot, kept for phase 5
-CONTRACT = (
-    "The runtime contract of VisionPilot at commit 014e0e7a56ee8e597c2cab8175233f74edd9b856, kept "
-    "for phase 5. - The application reads one camera frame and the vehicle speed, and writes "
-    "steering and acceleration (VisionPilot/app/vision_pilot.cpp:117, 142, 174). - The ROS 2 "
-    "build (ENABLE_ROS2_INTERFACE, VisionPilot/app/vision_pilot.cpp:59-64) reads the camera image "
-    "and the speed from topics and writes the commands to topics. Its vehicle interface publishes "
-    "steering and acceleration, and no warning "
-    "(VisionPilot/modules/middleware_interfaces/ros2_interface/vehicle_ros2_interface/src/vehicle_ros2_interface.cpp:25-26). "
-    "- The build without ROS 2 has two source modes, which the configuration key source.mode "
-    "chooses at run time (VisionPilot/app/vision_pilot.cpp:65-78). The video mode reads a video "
-    "and a speed file, and its vehicle write does nothing "
-    "(VisionPilot/modules/sensing/vehicle_interface/src/file_interface.cpp:37-61). The V4L2 mode "
-    "pairs a live camera with a CAN vehicle interface whose read returns zero and whose write "
-    "does nothing (VisionPilot/modules/sensing/vehicle_interface/src/can_interface.cpp:4-12; "
-    "VisionPilot/app/vision_pilot.cpp:73-78). So at the pin only the ROS 2 build reads a live "
-    "speed and commands a vehicle. - The forward-collision warning and the emergency braking are "
-    "two ranges of the acceleration that one speed planner computes "
-    "(VisionPilot/modules/safety_guardian/planning/src/planning.cpp:113-121). One planning cycle "
-    "flags at most one of the two, and nothing in the code orders the warning before the braking. "
-    "- The two flags command nothing. The planned acceleration is written to the vehicle in every "
-    "cycle, with no limit or latch between the planner and the write "
-    "(VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp:36; "
-    "VisionPilot/app/vision_pilot.cpp:157, 174), so the vehicle already decelerates in a warning "
-    "cycle. The flags reach only the application's own visualization and log, each when it is "
-    "switched on (VisionPilot/app/vision_pilot.cpp:177-185). - Phase 5 derives the criterion for "
-    "the time between the warning and the emergency braking, and what marks the start of the "
-    "emergency braking.")
 
 
 def _raw() -> str:
@@ -458,17 +430,8 @@ def test_no_need_states_a_number():
         assert "Phase 5" in _attribute(_need(name), "rationale"), f"{name}: the rationale leaves its limits to phase 5"
 
 
-def test_the_input_contract_is_a_comment_for_phase_5_not_a_need():
-    raw = _raw()
-    match = re.search(r"\bcomment\s+(\w+)\s+about\s+([\w,\s]+?)\s*/\*(.*?)\*/", raw, re.S)
-    assert match, "the pinned input contract is kept as a comment about the needs it serves"
-    targets = [target.strip() for target in match.group(2).split(",")]
-    assert targets == ["needWarnAndBrakeForVehicleAhead", "needWarningRequestForTheDriver"], targets
-    comment = _flat(match.group(3))
-    assert comment == CONTRACT, "the runtime contract at the pin, as reviewed"
-    assert f"commit {VISIONPILOT_PIN}" in comment
-    assert not re.search(r"-?\d+\.\d+\s*(?:m/s|<|<=)", comment), "the comment states no threshold of the planner"
-    assert not re.search(r"(?i)\bneed not\b", comment)
+def test_phase_5_states_the_input_contract_as_requirements():
+    assert "visionPilotContractAtPin" not in _raw()
 
 
 def test_two_tables_frame_the_needs_concern_and_show_needs_and_planned_reviews():
@@ -478,7 +441,8 @@ def test_two_tables_frame_the_needs_concern_and_show_needs_and_planned_reviews()
     concern = braced_body(code, f"concern {concerns[0]} : StakeholderNeedsConcern")
     assert re.search(r"\bsubject\s*;", concern)
     assert set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", concern)) == {"SystemsEngineer", "ProductLineEngineer"}
-    views = re.findall(r"\bview\s+(\w+)\s*:\s*TVD::TableView\b", code)
+    views = [view for view in re.findall(r"\bview\s+(\w+)\s*:\s*TVD::TableView\b", code)
+             if re.search(rf"\bframe\s+{concerns[0]}\s*;", braced_body(code, f"view {view} : TVD::TableView"))]
     assert len(views) == 2
     exposed = {}
     for view in views:
@@ -530,9 +494,6 @@ def test_the_guide_has_a_phase_4_section_and_names_phase_5_next():
     assert "Three concerns get no need of their own" in section and len(REVIEWED_CONCERNS) == 3
     assert "only its ROS 2 build reads a live speed and commands a vehicle" in section
     assert not CLAUSE_NUMBER.findall(raw_section), CLAUSE_NUMBER.findall(raw_section)
-    flat = " ".join(guide.split())  # Markdown: a line may open with bold text, which _flat would strip
-    assert "The next model obligation is **Phase 5**: the requirements" in flat
-    assert "its first gate is `requirementHasStatement`" in flat
 
 
 def test_the_header_states_its_non_claims():
