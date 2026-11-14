@@ -138,6 +138,7 @@ FRAGMENTS = {
     "reqWithholdEmergencyBraking": {
         "statement": ("shall start an emergency braking only while a collision with a vehicle ahead is imminent",),
         "rationale": ("SRC-UNECE-R152", "REQ-AEBS-012", "longitudinal_planning.cpp:13-14, 34",
+                      "only a command for 5.0 m/s² or more is an emergency braking",
                        "binds the start of each emergency braking in every run",
                        "lowers it below 1.0 m/s² before the vehicle stops", "The obligation is the candidate's",
                        "A simulation cannot show"),
@@ -173,12 +174,36 @@ FRAGMENTS = {
     },
 }
 
-#: Every term the requirements use in a sense of their own, each defined once in the terms comment, in its order.
-TERM_HEADS = ("Vehicle", "Vehicle ahead", "Target", "Run", "Setting", "Functional part", "Judged run",
-               "Time to collision", "Needed deceleration", "Imminent collision", "Driving command", "Actuation",
-               "Boundary", "Warning request", "Emergency braking", "Eclipse S-CORE path", "Communication record",
-               "Configuration", "Network file", "Upstream revision", "Candidate identity", "Relative approach speed",
-               "Relative impact speed", "Maximum relative impact speed", "Simulation time")
+#: Every term the requirements use in a sense of their own, each defined once in the terms comment, in its order, with
+#: the sentence that defines it.
+TERM_DEFINITIONS = {
+    "Vehicle": "the vehicle that the driver-assistance system drives.",
+    "Vehicle ahead": "a vehicle ahead of the vehicle in its lane.",
+    "Target": "the vehicle ahead in a run of SC-DRIVING-012 or SC-DRIVING-013.",
+    "Run": "one execution of the driver-assistance system on one scenario, from its start to its end.",
+    "Setting": "a scenario with an approach speed and its tolerance.",
+    "Functional part": "the part of a run of SC-DRIVING-012 or SC-DRIVING-013 from the latest instant at which the vehicle travels at its approach speed within the tolerance with a time to collision of at least 4 s, until the vehicle hits the target or comes to the speed of the target.",
+    "Judged run": "a run of SC-DRIVING-012 or SC-DRIVING-013 in which the vehicle travels straight, with its centre line within 0.2 m of that of the target, for at least 2 s before its functional part.",
+    "Time to collision": "the distance from the vehicle to the vehicle ahead in the direction of travel, divided by the speed at which the vehicle closes on it.",
+    "Needed deceleration": "the constant deceleration at which the vehicle, from its present speed, would come to the speed of the vehicle ahead just as it reaches it, the vehicle ahead keeping its present speed: the square of the speed at which the vehicle closes on it, divided by twice the distance from the vehicle to it in the direction of travel.",
+    "Imminent collision": "a collision with a vehicle ahead to which the vehicle has a time to collision of at most 4.0 s and a needed deceleration of at least 1.0 m/s².",
+    "Driving command": "the steering and acceleration command that the driver-assistance system gives the actuation of the vehicle.",
+    "Actuation": "the interface at which the vehicle takes the driving commands.",
+    "Boundary": "the interface at which the outputs of the driver-assistance system leave it for the Eclipse S-CORE path.",
+    "Warning request": "the output by which the driver-assistance system asks the AAOS SDV to give the driver the collision warning.",
+    "Emergency braking": "a command of the driver-assistance system for a deceleration of at least 5.0 m/s², in its driving command or apart from it.",
+    "Eclipse S-CORE path": "the part of System 1 outside the driver-assistance system that carries its driving command to the actuation and its warning request to the AAOS SDV.",
+    "Communication record": "the record that System 2 keeps of each message on the Eclipse S-CORE path, with its simulation time.",
+    "Configuration": "every setting that the driver-assistance system reads at its start, from its files and its launch.",
+    "Network file": "a file of trained weights or of the structure of a network that the driver-assistance system loads.",
+    "Upstream revision": "the commit of the upstream repository from which the source of the driver-assistance system is built.",
+    "Candidate identity": "the upstream revision, the difference between the source of the driver-assistance system and that revision, the SHA-256 of each network file it loads, the SHA-256 of each file of its configuration and the settings of its launch, verbatim.",
+    "Relative approach speed": "the speed at which the vehicle closes on the vehicle ahead when the collision becomes imminent.",
+    "Relative impact speed": "the speed at which the vehicle closes on the vehicle ahead when they touch; 0 km/h when they do not touch.",
+    "Maximum relative impact speed": "the limit of the source regulation for a car in running order, by relative approach speed: 0 km/h up to 42 km/h, 15 km/h at 45 km/h, 25 km/h at 50 km/h, 30 km/h at 55 km/h and 35 km/h at 60 km/h.",
+    "Simulation time": "the time of the simulated world.",
+}
+TERM_HEADS = tuple(TERM_DEFINITIONS)
 #: The values the terms fix: the settings, the functional part, the judged run, the imminence, the emergency braking
 #: and the whole limit table of the speed at impact.
 TERM_VALUES = ("20 to 22 km/h", "40 to 42 km/h", "58 to 60 km/h", "30 to 32 km/h", "18 to 20 km/h", "28 to 30 km/h",
@@ -253,6 +278,16 @@ GUIDE_FACTS = (
 GUIDE_DECISIONS = 12
 #: The kind that the guide names for a requirement that is not functional; its rationale opens with it.
 GUIDE_KINDS = ("performance", "design constraint")
+#: The lines that the upstream record links for each cited file.
+RECORD_ANCHORS = {
+    "vision_pilot.cpp": (59, 185),
+    "planning.cpp": (113, 121),
+    "longitudinal_planning.cpp": (13, 36),
+    "vision_pilot.conf": (20, 20),
+    "vehicle_ros2_interface.cpp": (25, 26),
+    "can_interface.cpp": (4, 12),
+    "file_interface.cpp": (37, 61),
+}
 #: What the upstream record says that each cited line does, whole.
 RECORD_FACTS = (
     "lines 59 to 64 build the ROS 2 interfaces",
@@ -434,6 +469,8 @@ def test_the_terms_of_the_requirements_are_defined_once_in_the_package():
     heads = tuple(re.findall(r"(?m)^\s*\*\s+- ([^:\n]+):", match.group(1)))
     assert heads == TERM_HEADS, heads
     text = _flat(match.group(1))
+    for head, definition in TERM_DEFINITIONS.items():
+        assert f"- {head}: {definition}" in text, head
     for value in TERM_VALUES:
         assert value in text, value
     for rule in TERM_RULES:
@@ -585,6 +622,7 @@ def test_the_upstream_record_gives_each_cited_file_with_its_path():
     # each line that a rationale cites lies inside the lines that the record links for its file
     anchors = {path.rsplit("/", 1)[-1]: (int(first), int(last or first)) for path, first, last in re.findall(
         r"\[VisionPilot/([^\]]+)\]\([^)]*#L(\d+)(?:-L(\d+))?\)", record)}
+    assert anchors == RECORD_ANCHORS, anchors
     for name in REQUIREMENTS:
         for file, lines in re.findall(r"\b([\w.]+\.(?:cpp|hpp|conf)):(\d+(?:-\d+)?(?:, \d+(?:-\d+)?)*)",
                                       _texts(name)["rationale"]):
