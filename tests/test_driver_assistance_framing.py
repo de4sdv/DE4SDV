@@ -1,9 +1,9 @@
 """Content pins for the framing of the driver-assistance increment, not semantic validation.
 
-The framing of INC-DRIVING-002 is Phase 0 only. These tests hold its structure to the
-method's Phase 0 shape, pin each decided statement by its own phrase, and hold the guide
-and the VisionPilot section of the folder's upstream record to the model. They read the
-model text; they do not parse SysML.
+The framing of INC-DRIVING-002 holds Phase 0 and the Phase 1 concerns. These tests hold its
+structure to the method's Phase 0 and Phase 1 shapes, pin each decided statement by its own
+phrase, and hold the guide and the VisionPilot section of the folder's upstream record to the
+model. They read the model text; they do not parse SysML.
 
 What they do not hold: a sentence that no pin names can change inside a doc of the model
 or inside that section, and a report of a run in words that the scan for past behavior
@@ -120,6 +120,73 @@ OPEN_POINTS = {
     "gapUpstreamContactAndRights": "No upstream contact and no rights clearance",
     "gapDriverHmiInProductLine": "The HMI display's place in the product line",
 }
+#: Phase 1: concern -> (its SAF or DE4SDV concern definition, the in-scope items its doc names first, its native
+#: stakeholders in order, the sentences that state its question, and the later phase that answers it). One concern
+#: per question; a concern is held by the parties whose interest it states, not only by the roles that check it.
+PHASE1_CONCERNS = {
+    "vehicleTargetResponseConcern": (
+        "OperationalCapabilityConcern", ("vehicleTargetResponseInScope", "noReactionInScope"),
+        [("occupant", "VehicleOccupant"), ("roadUser", "RoadUser")],
+        ("Vehicle occupants and road users need the vehicle to warn its driver and to brake when a collision with a "
+         "stationary or a slower moving vehicle ahead in its lane is imminent, and to do neither when no collision "
+         "is imminent.",
+         "It states what they expect, not how well the candidate meets it: no safety or on-road claim follows from "
+         "it."),
+        "Answered by the operational story of phase 2."),
+    "emergencyBrakingIndependenceConcern": (
+        "PhysicalFunctionalMappingConcern", ("vehicleTargetResponseInScope",),
+        [("safetyExpert", "SafetyExpert"), ("productLineEngineer", "ProductLineEngineer")],
+        ("Safety experts and product-line engineers need to see which software element of the candidate realizes "
+         "the emergency braking, whether it is a function apart from the speed planner "
+         "(gapNoSeparateEmergencyFunction), and how its braking command keeps the independence of the protected "
+         "emergency command path that the product line holds as common content.",
+         "Whether the candidate's braking can stand for the common capability turns on it, and so does the lifecycle "
+         "decision."),
+        "Answered by the physical-logical mapping of phase 8."),
+    "driverWarningSequenceConcern": (
+        "FunctionalBehaviorConcern", ("driverWarningInScope",),
+        [("occupant", "VehicleOccupant"), ("safetyExpert", "SafetyExpert")],
+        ("The driver, a vehicle occupant, needs a warning of an imminent collision on the display and as a sound.",
+         "Safety experts need to see the sequence from the candidate's warning request to each of the two modes of "
+         "the warning and to the start of the emergency braking, and the time between them, independent of the "
+         "software that realizes it.",
+         "Whether a driver perceives the warning is out of scope."),
+        "Answered by the system process of phase 6."),
+    "scoreCommandAndWarningPathConcern": (
+        "PhysicalContextExchangeConcern", ("scoreCommandPathInScope",),
+        [("systemsEngineer", "SystemsEngineer"), ("productLineEngineer", "ProductLineEngineer")],
+        ("Systems engineers and product-line engineers need to see which items cross the candidate's boundary to "
+         "the Eclipse S-CORE path: the driving command to the actuation and the warning request to the AAOS SDV, "
+         "with no exchange beside S-CORE.",
+         "(gapWarningOutput, gapScoreIntegration)",
+         "Typed for Eclipse S-CORE and the AAOS SDV as context of the candidate, as phase 0 draws its boundary; if "
+         "phase 2 places them inside, the question becomes a physical internal exchange."),
+        "Answered by the view of the claimed path in phase 8."),
+    "vehicleTargetCriteriaConcern": (
+        "RegulatoryScopeWithoutComplianceClaimConcern", ("vehicleTargetCriteriaInScope",),
+        [("complianceEngineer", "ComplianceEngineer"), ("verificationEngineer", "VerificationEngineer")],
+        ("Compliance engineers and verification engineers need each criterion for a vehicle target traced to the "
+         "provision of UNECE R152 it is derived from, with the product-line requirement it judges, whose obligation "
+         "it is, and what a simulation cannot show of it (gapVehicleTargetCriteria).",
+         "A criterion met in simulation holds for the simulated configuration only "
+         "(asmSimulatedConfigurationStandsIn) and is no statement about compliance or type approval."),
+        "Answered by the requirement definition table of phase 5."),
+    "candidateVerdictConcern": (
+        "ArgumentationAssuranceConcern", ("verdictEvidenceInScope",),
+        [("productLineEngineer", "ProductLineEngineer"), ("verificationEngineer", "VerificationEngineer")],
+        ("Product-line engineers and verification engineers need the lifecycle decision to rest on a pass or a fail "
+         "for each requirement and scenario, each bound to the candidate revision that ran and to the simulated "
+         "configuration.",
+         "A build that carries a change that upstream has not merged is a different candidate, with its verdicts "
+         "reported apart (gapCandidateBehaviorUnverified), and a fail stays a recorded result."),
+        "Answered by the argumentation assurance view of phase 10."),
+}
+#: the SAF or DE4SDV catalogue file that declares each definition a Phase 1 concern is typed by
+CATALOGUES = {
+    "SAF_Viewpoints": ROOT / "textual-notation-of-model/packages/methods/saf/SAF_Viewpoints.sysml",
+    "DE4SDV_MethodViewpoints":
+        ROOT / "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml",
+}
 #: a past form of what a candidate does in a run: a framing reports no run
 PAST_BEHAVIOR = re.compile(r"(?i)\b(?:braked|warned|stopped|collided|avoided|detected|passed|failed)\b")
 #: an affirmative claim of approval or admission
@@ -221,7 +288,7 @@ def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
                    "The increment judges the candidate's warning request and braking for a vehicle target, and the "
                    "collision warning that the AAOS SDV then gives the driver on its display and as a sound.",
                    "It does not change the Autoware-based AEBS.",
-                   "This package holds only Phase 0."):
+                   "This package holds Phase 0 and the Phase 1 concerns."):
         assert phrase in increment, phrase
     problem = _doc("requirement driverAssistanceProblem : ProblemStatement")
     for phrase in ("The product line holds AEBS for a vehicle target as common content",
@@ -401,11 +468,15 @@ def test_the_framing_view_frames_the_boundary_and_exposes_every_usage():
     assert lines[0] == "subject increment : DriverAssistanceIncrement;"
     assert re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", boundary) == ["SystemsEngineer", "VerificationEngineer"]
     assert dict(re.findall(r"\bconcern\s+(\w+)\s*:\s*(\w+)\s*\{", code)) == {
-        "driverAssistanceBoundary": "IncrementBoundaryConcern"}, "Phase 0 frames the boundary concern only"
+        "driverAssistanceBoundary": "IncrementBoundaryConcern",
+        **{name: spec[0] for name, spec in PHASE1_CONCERNS.items()}}, \
+        "the boundary concern of Phase 0 and the concerns of Phase 1, no other"
 
     view = braced_body(code, "view driverAssistanceFramingView")
     viewpoint = braced_body(view, "viewpoint driverAssistanceFramingViewpoint : IncrementFramingViewpoint")
-    assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == ["driverAssistanceBoundary"]
+    assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == ["driverAssistanceBoundary", *PHASE1_CONCERNS], \
+        "the one framing viewpoint frames every concern of the increment, the boundary first"
+    assert len(re.findall(r"\bview\s+\w+\s*\{", code)) == 1, "phases 0 and 1 share one view"
     assert "render asTreeDiagram;" in view
     exposed = re.findall(r"\bexpose\s+(\w+)\s*;", view)
     assert len(exposed) == len(set(exposed)), "an element is exposed once"
@@ -428,7 +499,8 @@ def test_the_framing_claims_no_verification_no_admission_and_no_compliance():
     assert "ProductLineMemberProduct" not in raw, "the candidate is not typed as a member product"
     assert not re.search(r"(?i)\b(?:compliant|complies|certified|homologated|type-approved)\b", raw)
     header = raw.split("package", 1)[0]
-    for phrase in ("Phase 0 framing only", "no implementation", "no runtime result", "no product-line",
+    for phrase in ("Phase 0 framing and the Phase 1 concerns only", "no implementation", "no runtime result",
+                   "no product-line",
                    "no compliance"):
         assert phrase in _flat(header.replace("*", "")), phrase
     for word in ("compliance", "type approval", "certification", "production readiness"):
@@ -493,7 +565,7 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing proposal.**" in guide
+    assert "**Status: Phase 0 framing and Phase 1 concerns, proposal.**" in guide
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part driverAssistanceQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -517,7 +589,7 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "the increment builds none of them.",
                    "It is no statement about compliance or type approval.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The framing's boundary concern does not open Phase 1.",
+                   "The next model obligation is **Phase 2**, the operational context",
                    "the clauses for a vehicle target are not yet anchored there."):
         assert phrase in flat, phrase
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
@@ -613,3 +685,74 @@ def test_the_upstream_record_pins_what_the_framing_read():
     index_row = _row(INDEX, "[VisionPilot]")
     assert "[Driving upstream record](textual-notation-of-model/packages/features/driving/upstream.md)" in index_row
     assert "(https://github.com/autowarefoundation/vision_pilot)" in index_row
+
+
+def _concern_doc(name: str, kind: str) -> str:
+    return " ".join(re.sub(r"(?m)^\s*\*\s?", "", DOC.search(braced_body(_raw(), f"concern {name} : {kind}")).group(1))
+                    .split())
+
+
+def test_phase_one_frames_one_concern_for_each_question_of_the_scope():
+    code = _code()
+    assert "private import SAF_Viewpoints::*;" in code, "the SAF concern definitions come from the catalogue"
+    assert not re.search(r"\b(?:concern|viewpoint|part) def\b(?! (?:DriverAssistanceIncrement|DriverAssistanceSystem)\b)",
+                         code), "concern types and stakeholders come from the catalogues and the kernel, never the slice"
+    catalogues = {name: path.read_text(encoding="utf-8") for name, path in CATALOGUES.items()}
+    answered = set()
+    for name, (kind, items, holders, sentences, answer) in PHASE1_CONCERNS.items():
+        assert sum(bool(re.search(rf"\bconcern def {kind}\b", text)) for text in catalogues.values()) == 1, \
+            f"{name}: {kind} is a concern definition of exactly one catalogue"
+        body = braced_body(code, f"concern {name} : {kind}")
+        parameters = [line.strip() for line in body.splitlines() if line.strip() and line.strip() != "doc"]
+        assert parameters[0] == "subject;", f"{name}: the subject is the first parameter"
+        assert re.findall(r"\bstakeholder\s+(\w+)\s*:\s*(\w+)\s*;", body) == holders, name
+        doc = _concern_doc(name, kind)
+        lead = ", ".join(items[:-1]) + (" and " if len(items) > 1 else "") + items[-1]
+        assert doc.startswith(lead), f"{name}: the doc opens with the in-scope items it answers: {doc[:80]}"
+        for sentence in sentences:
+            assert sentence in doc, (name, sentence)
+        assert answer in doc, (name, answer)
+        assert answer.startswith("Answered by"), name
+        answered.update(items)
+    in_scope = _declared("InScopeItem")
+    assert answered == in_scope, f"in-scope items without a concern: {sorted(in_scope - answered)}"
+
+
+def test_every_stakeholder_of_the_problem_holds_a_phase_one_concern_and_the_beneficiaries_hold_their_own():
+    # The concerns' holders are the parties whose interest each states: the five roles of the problem statement and
+    # the people the warning and the braking serve. The occupant and the road user hold the operational concern alone.
+    problem = braced_body(_code(), "requirement driverAssistanceProblem : ProblemStatement")
+    roles = set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", problem))
+    held = {role for _kind, _items, holders, *_rest in PHASE1_CONCERNS.values() for _name, role in holders}
+    assert roles <= held, f"problem stakeholders that hold no Phase 1 concern: {sorted(roles - held)}"
+    assert held - roles == {"VehicleOccupant", "RoadUser"}, sorted(held - roles)
+    assert PHASE1_CONCERNS["vehicleTargetResponseConcern"][2] == [("occupant", "VehicleOccupant"),
+                                                                  ("roadUser", "RoadUser")]
+    assert "private import DE4SDV_Stakeholders::*;" in _code()
+    operational = _concern_doc("vehicleTargetResponseConcern", "OperationalCapabilityConcern")
+    assert "Reviewers need" not in operational and "engineers" not in operational
+
+
+def test_the_phase_one_concerns_claim_no_result_and_name_no_unread_record():
+    names = set(re.findall(r"\bpart\s+(?:<'[^']*'>\s*)?(\w+)\s*:\s*(?:IncrementGap|IncrementAssumption|InScopeItem)\b",
+                           _code()))
+    for name, (kind, *_rest) in PHASE1_CONCERNS.items():
+        doc = _concern_doc(name, kind)
+        named = set(re.findall(r"\b((?:gap|asm)[A-Z]\w+|\w+InScope)\b", doc))
+        assert named <= names, f"{name} names a record the framing does not declare: {sorted(named - names)}"
+        assert not PAST_BEHAVIOR.findall(doc) and not APPROVAL.findall(doc), name
+        assert not re.search(r"\b\d+(?:\.\d+)?\s*(?:s|m|km/h|m/s)\b", doc), f"{name}: a criterion value is phase 5's"
+
+
+def test_the_guide_lists_the_phase_one_concerns_with_their_holders():
+    guide = GUIDE.read_text(encoding="utf-8")
+    assert guide.index("## What the increment judges") < guide.index("## Concerns (Phase 1)") \
+        < guide.index("## What the framing already records as open")
+    section = _flat(guide.split("## Concerns (Phase 1)", 1)[1].split("\n## ", 1)[0])
+    bullets = re.findall(r"- \*\*[^*]+\*\* `(\w+)`", section)
+    assert bullets == list(PHASE1_CONCERNS), "one bullet for each Phase 1 concern, in the model's order"
+    for phrase in ("The framing viewpoint frames all six until those views exist.",
+                   "They do not judge whether the stakeholder, risk and viewpoint coverage is adequate; review does."):
+        assert phrase in section, phrase
+    model_order = re.findall(r"\bconcern\s+(\w+)\s*:", _code())
+    assert model_order == ["driverAssistanceBoundary", *PHASE1_CONCERNS]
