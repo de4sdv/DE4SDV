@@ -46,6 +46,9 @@ vss/mapping/headlamp.json     per-zone mapping, generated (a zone's provider get
 vss/mapping/wiper.json
 vss/metadata.json             same tree, stripped: reference copy of what the broker holds
 zones/Containerfile           zone image: provider at a pinned tag + plant model
+gateway/Containerfile         central gateway image: cannelloni + router
+gateway/router.py             per-frame allow-list between two zone buses
+gateway/entrypoint.sh         creates both buses, starts the tunnels and the router
 zones/entrypoint.sh           creates this zone's vcan, runs provider + plant
 zones/zone_ecu.py             headlamp/wiper plant, acknowledges the sequence
 zones/dbc_feeder.ini          provider config, templated per zone
@@ -147,6 +150,42 @@ What the numbers refuse to say: nothing here is a bus-latency measurement. T1
 and are not instrumented; they sit inside S1 and S3 by construction. Caveats that
 travel with every cell: one host, generic kernel, userspace timestamps
 (`candump` realtime vs `time.time()`), 2 ms poll granularity on t5.
+
+## Gate 2b result — CAN routed over the vehicle Ethernet (testbed, 2026-11-14)
+
+The buses now meet, at a gateway that decides what may cross:
+
+```text
+zone-fl vcan0 ──cannelloni/UDP over the adas slice──▶ central vcan-front
+                                                     │  router allow-list
+                          zone-rl vcan0 ◀──UDP──────── vcan-rear
+```
+
+Policy is per frame, not per link: `0x181` (headlamp status) may be published
+rear-ward, `0x180` (headlamp command) may not; `0x281` (wiper status) travels
+front-ward, `0x280` (wiper command) does not. A zone observes its neighbours; no
+zone actuates another's hardware.
+
+| configuration | direction | n | median | min / max |
+|---|---|---:|---|---|
+| cannelloni default buffer (100 ms) | headlamp status front→rear | 5 | **77.71 ms** | 28.90 / 159.33 |
+| cannelloni default buffer (100 ms) | wiper status rear→front | 5 | **52.02 ms** | 23.44 / 94.34 |
+| explicit `-t 1000` (1 ms) | headlamp status front→rear | 8 | **2.96 ms** | 1.78 / 3.18 |
+| explicit `-t 1000` (1 ms) | wiper status rear→front | 8 | **2.99 ms** | 2.76 / 3.58 |
+
+Denied directions: **0** frames of `0x180` on the rear bus, **0** frames of
+`0x280` on the front bus, with the gateway counters reporting exactly one refusal
+each.
+
+The first two rows are the finding worth keeping: a routed-path number is only as
+meaningful as the transport's buffering configuration. cannelloni holds frames for
+100 ms by default, which made the gateway look 25× slower than it is. Setting the
+timeout explicitly moved the median from 78 ms to 3 ms without touching the
+topology.
+
+Caveat that travels with every row: two UDP hops and one userspace router on one
+host — no switch, no PHY, no contending traffic. These are not production
+Ethernet numbers.
 
 ## Findings from the first run
 

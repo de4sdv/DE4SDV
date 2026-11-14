@@ -17,12 +17,26 @@ set -eu
 : "${ZONE_CHANNEL:=vcan0}"
 : "${ZONE_MAPPING:=/opt/zone/vss/mapping/${ZONE_ECU}.json}"
 : "${KUKSA_ADDRESS:=grpc://127.0.0.1:55555}"
+: "${CAN_TUNNEL_REMOTE:=}"
+: "${CAN_TUNNEL_TIMEOUT:=1000}"   # cannelloni buffer timeout, microseconds
 
 if ! ip link show "${ZONE_CHANNEL}" >/dev/null 2>&1; then
   ip link add dev "${ZONE_CHANNEL}" type vcan
 fi
 ip link set "${ZONE_CHANNEL}" up
 echo "[zone] ${ZONE_CHANNEL} up ($(ip -br link show "${ZONE_CHANNEL}"))"
+
+# Optional: carry this zone's bus across the slice to the central gateway.
+# Without it the zone is a closed segment — which is exactly scope A.
+tunnel_pid=""
+if [ -n "${CAN_TUNNEL_REMOTE}" ]; then
+  : "${CAN_TUNNEL_RPORT:?CAN_TUNNEL_RPORT is required with CAN_TUNNEL_REMOTE}"
+  : "${CAN_TUNNEL_LPORT:?CAN_TUNNEL_LPORT is required with CAN_TUNNEL_REMOTE}"
+  cannelloni -I "${ZONE_CHANNEL}" -R "${CAN_TUNNEL_REMOTE}" -r "${CAN_TUNNEL_RPORT}" -l "${CAN_TUNNEL_LPORT}" -t "${CAN_TUNNEL_TIMEOUT}" \
+    2>&1 | sed -u 's/^/[tunnel] /' &
+  tunnel_pid=$!
+  echo "[zone] bus tunnel to ${CAN_TUNNEL_REMOTE}:${CAN_TUNNEL_RPORT} (listen ${CAN_TUNNEL_LPORT})"
+fi
 
 sed -e "s|@@ZONE_DBC@@|${ZONE_DBC}|" \
     -e "s|@@ZONE_CHANNEL@@|${ZONE_CHANNEL}|" \
@@ -48,13 +62,19 @@ ecu_pid=$!
 
 term() {
   kill -TERM "${provider_pid}" "${ecu_pid}" 2>/dev/null || true
+  [ -n "${tunnel_pid}" ] && kill -TERM "${tunnel_pid}" 2>/dev/null || true
   wait 2>/dev/null || true
   exit 0
 }
 trap term INT TERM
 
-# Exit as soon as either child does, and report which.
-while kill -0 "${provider_pid}" 2>/dev/null && kill -0 "${ecu_pid}" 2>/dev/null; do
+alive() {
+  kill -0 "${provider_pid}" 2>/dev/null && kill -0 "${ecu_pid}" 2>/dev/null || return 1
+  [ -n "${tunnel_pid}" ] && { kill -0 "${tunnel_pid}" 2>/dev/null || return 1; }
+  return 0
+}
+
+while alive; do
   sleep 1
 done
 wait -n "${provider_pid}" "${ecu_pid}" 2>/dev/null || true

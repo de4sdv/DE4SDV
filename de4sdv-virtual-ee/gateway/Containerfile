@@ -1,0 +1,31 @@
+# DE4SDV zonal CAN gateway (central node)
+#
+# Two buses arrive here over the slice (cannelloni over UDP), each from one zone.
+# The gateway forwards between them under a per-frame allow-list, so the vehicle
+# network exists as a routed path rather than a set of isolated segments.
+FROM python:3.12-slim-bookworm AS builder
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends cmake make g++ libasio-dev git ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+ARG CANNELLONI_REF=v2.1.2
+RUN git clone --depth 1 --branch "${CANNELLONI_REF}" https://github.com/mguentner/cannelloni.git /src
+WORKDIR /src
+RUN cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-Wno-error=restrict' >/dev/null && cmake --build build -j"$(nproc)"
+
+
+FROM python:3.12-slim-bookworm
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends iproute2 can-utils tini \
+ && rm -rf /var/lib/apt/lists/* \
+ && pip install --no-cache-dir python-can==4.6.1
+
+COPY --from=builder /src/build/cannelloni /usr/local/bin/cannelloni
+COPY gateway/router.py /opt/gw/router.py
+COPY gateway/entrypoint.sh /opt/gw/entrypoint.sh
+RUN chmod +x /opt/gw/entrypoint.sh
+
+ENV PYTHONUNBUFFERED=1
+ENTRYPOINT ["/usr/bin/tini", "--", "/opt/gw/entrypoint.sh"]
