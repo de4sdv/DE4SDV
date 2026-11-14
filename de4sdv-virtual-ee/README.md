@@ -46,7 +46,7 @@ vss/mapping/vss_dbc.json      VSS tree + dbc2vss/vss2dbc per leaf (source of tru
 vss/mapping/headlamp.json     per-zone mapping, generated (a zone's provider gets only its own signals)
 vss/mapping/wiper.json
 vss/metadata.json             same tree, stripped: reference copy of what the broker holds
-zones/Containerfile           zone image: provider at a pinned tag + plant model + bridge
+zones/Containerfile           zone image: provider at a pinned tag + plant model + bridge + reference ECU
 gateway/Containerfile         central gateway image: bridge + router
 transport/bridge.py           CAN over UDP: fixed framing, one frame per datagram
 gateway/router.py             per-frame allow-list between two zone buses
@@ -231,10 +231,50 @@ are the ECU's P2 (50 ms) and P2* (500 × 10 ms) session timings. The 0.8 ms is o
 exchange on a virtual bus, not a latency distribution — the gate-2 harness is what
 produces those.
 
-What this does **not** yet show: the ECU sitting behind the gateway, so a
-diagnostic crosses the routed path. It ran on the testbed host's own `vcan0`,
-beside the vehicle rather than inside it. The plan's "light state machine" is
-covered by this directory's own plant model, not by OpenBSW's demo routines.
+What this section did not yet show: the ECU sitting behind the gateway. It ran
+on the testbed host's own `vcan0`, beside the vehicle rather than inside it.
+[Gate 3b](#gate-3b-result--the-diagnostic-crosses-the-routed-path-testbed-2026-11-14)
+closes that. The plan's "light state machine" is covered by this directory's own
+plant model, not by OpenBSW's demo routines.
+
+## Gate 3b result — the diagnostic crosses the routed path (testbed, 2026-11-14)
+
+The reference ECU now lives inside the rear zone container, on the same bus as
+the wiper plant — a zonal controller hosting several functions, which is what
+that image is for. Only a zone started with `ZONE_UDS_ECU=1` runs it.
+
+A tester on the **front** bus sends a single-frame UDS request. Nothing else in
+the topology changes:
+
+```text
+front vcan0   7E0  02 10 03                                   ← tester
+                    │  bridge → gateway, policy 0x7E0 front→rear
+rear  vcan0        7E0  02 10 03                  +0.73 ms
+                    OpenBSW reference ECU answers
+rear  vcan0        7E8  06 50 03 00 32 01 F4 CC
+front vcan0   7E8  06 50 03 00 32 01 F4 CC        +0.67 ms back, 2.5 ms round trip
+```
+
+| claim | evidence |
+|---|---|
+| the request crossed | 1 frame of `0x7E0` on each bus, forward in **0.73 ms** |
+| the answer came back | 1 frame of `0x7E8` on each bus, `06 50 03 00 32 01 F4 CC`, back in **0.67 ms** |
+| the gateway did it | `front->rear.forwarded.0x7E0 2`, `rear->front.forwarded.0x7E8 2` |
+| actuators are still refused | probe `0x180` on the rear bus: none on the front, `rear->front.denied.0x180 1` |
+
+The 2.5 ms round trip is the two forwarded hops plus the ECU's own processing; the
+0.73/0.67 ms figures are the hops alone.
+
+One frame the contract does not define: the reference app publishes `0x558`, four
+bytes with an incrementing counter, about once a second. The policy has no row for
+it, so it was refused and never reached the front bus — an allow-list refusing an
+ECU's own demo frame is the policy working. A blocklist would have leaked it.
+
+Building OpenBSW inside the image cost two toolchain facts worth keeping: the
+presets need CMake ≥ 3.28.3 (bookworm ships 3.25, so the build stage pins it from
+pip), and the code generators run the image's `/usr/local/bin/python3.12`, which
+cannot see Debian's apt packages — `pyyaml`, `jinja2` and `jsonschema` come from
+pip at the versions the testbed used.
 
 ## Findings from the routed run
 

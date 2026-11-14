@@ -36,10 +36,15 @@ ECHO_WINDOW_S = 0.05
 
 # direction -> allowed CAN ids
 POLICY: dict[str, set[int]] = {
-    "front->rear": {0x181},  # headlamp status may be published vehicle-wide
-    "rear->front": {0x281},  # wiper status may be published vehicle-wide
+    # headlamp status, plus the diagnostic request a tester on the front segment
+    # sends to the rear zone's ECU through the gateway
+    "front->rear": {0x181, 0x7E0},
+    # wiper status, plus that ECU's diagnostic response on its way back
+    "rear->front": {0x281, 0x7E8},
 }
-# deliberately absent: 0x180 headlamp command, 0x280 wiper command
+# deliberately absent: 0x180 headlamp command, 0x280 wiper command.
+# Diagnostics are allowed to cross because a tester reaches a zonal ECU through the
+# gateway; actuator commands are not, because a zone must not drive another's load.
 
 stop = threading.Event()
 stats: Counter = Counter()

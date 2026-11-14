@@ -95,9 +95,25 @@ python /opt/zone/zone_ecu.py \
 
 ecu_pid=$!
 
+# Optional: this zone also hosts the OpenBSW reference ECU, which answers UDS over
+# DoCAN. It shares the zone's bus with the plant, because that is what a zonal
+# controller is — several functions on one node, one segment. A diagnostic sent to
+# 0x7E0 on the far side of the gateway reaches it through the router.
+uds_pid=""
+if [ "${ZONE_UDS_ECU:-0}" = "1" ]; then
+  if [ "${ZONE_CHANNEL}" = "vcan0" ]; then
+    /opt/zone/openbsw/referenceApp 2>&1 | sed -u 's/^/[openbsw] /' &
+    uds_pid=$!
+    echo "[zone] OpenBSW reference ECU on ${ZONE_CHANNEL}: UDS 0x7E0 request, 0x7E8 response"
+  else
+    echo "[zone] ZONE_UDS_ECU=1 needs vcan0: the reference app binds that name" >&2
+  fi
+fi
+
 term() {
   kill -TERM "${provider_pid}" "${ecu_pid}" 2>/dev/null || true
   [ -n "${tunnel_pid}" ] && kill -TERM "${tunnel_pid}" 2>/dev/null || true
+  [ -n "${uds_pid}" ] && kill -TERM "${uds_pid}" 2>/dev/null || true
   wait 2>/dev/null || true
   exit 0
 }

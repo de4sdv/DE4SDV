@@ -7,13 +7,46 @@
 # bookworm ships iproute2 + can-utils, which is all the CAN side needs.
 ARG PYTHON_IMAGE=python:3.12-slim-bookworm
 
+# The reference ECU is built here, not fetched as a binary: OpenBSW publishes no
+# POSIX artefacts, and a build from a pinned commit is the only version we can
+# state. It is compiled in this stage so the runtime image keeps a libc of its
+# own rather than the builder's.
+FROM ${PYTHON_IMAGE} AS openbsw
+
+ARG OPENBSW_COMMIT=b9ad52761e87cd93f09fe002c6fc955e999dc4a0
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential ninja-build git python3 python3-jinja2 ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+# Bookworm ships CMake 3.25, and the project's presets declare 3.28.3 as their
+# minimum (preset schema version 6), so the build pins the version that was proven
+# on the testbed rather than the distribution's older one.
+#
+# The code generators run the base image's /usr/local/bin/python3.12, which does
+# not see Debian's apt packages, so their dependencies come from pip too.
+RUN pip install --no-cache-dir \
+      cmake==3.28.3 \
+      pyyaml==6.0.1 jinja2==3.1.2 jsonschema==4.10.3
+
+RUN git init -q /src \
+ && cd /src \
+ && git remote add origin https://github.com/eclipse-openbsw/openbsw.git \
+ && git fetch -q --depth 1 origin "${OPENBSW_COMMIT}" \
+ && git checkout -q FETCH_HEAD
+
+WORKDIR /src
+RUN cmake --preset posix-freertos >/dev/null \
+ && cmake --build --preset posix-freertos --parallel
+
 FROM ${PYTHON_IMAGE}
 
 ARG KUKSA_CAN_PROVIDER_REF=0.5.1
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
-      iproute2 can-utils git tini \
+      iproute2 can-utils git tini libstdc++6 \
  && rm -rf /var/lib/apt/lists/*
 
 # The provider is not published to PyPI and ships no packaging metadata, so it
@@ -34,12 +67,17 @@ COPY zones/dbc_feeder.ini /opt/zone/dbc_feeder.ini
 # The bus tunnel is DE4SDV code, not a third-party binary: plain CAN frames over
 # UDP, no batching, and no copyleft in an image we might publish.
 COPY transport/bridge.py /opt/zone/bridge.py
+# Built in the stage above; started only when this zone hosts the ECU.
+COPY --from=openbsw /src/build/posix-freertos/executables/referenceApp/application/Release/app.referenceApp.elf \
+     /opt/zone/openbsw/referenceApp
+RUN chmod +x /opt/zone/openbsw/referenceApp
 
 ENV PATH="/opt/zone:${PATH}" \
     PYTHONUNBUFFERED=1 \
     ZONE_ECU=headlamp \
     ZONE_DBC=/opt/zone/dbc/headlamp.dbc \
     ZONE_CHANNEL=vcan0 \
+    ZONE_UDS_ECU=0 \
     KUKSA_ADDRESS=grpc://127.0.0.1:55555
 
 RUN chmod +x /opt/zone/entrypoint.sh
