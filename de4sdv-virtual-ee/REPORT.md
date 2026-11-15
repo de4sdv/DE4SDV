@@ -246,6 +246,17 @@ rebuilds from source; they cannot pull our artifacts. That is a deliberate lab
 fixture, not an oversight — publishing them is a separate decision with a cost
 and an owner.
 
+## 8b. State of this testbed
+
+**Closed as an increment on 2026-11-15.** Every gate in the feasibility plan and
+every gate in the backbone increment has a result, the archives are committed, and
+nothing here is half-built: what does not exist is listed as not existing, with the
+reason.
+
+The open items are all *candidates*, not commitments: a trunk (which would make B3
+measurable and a vehicle span hosts), OpenSOVD for the diagnostic surface, the OTA
+client and A/B banks, and multi-host when vxedge provisions its VXLAN tunnel kind.
+
 ## 9. Recommended next step
 
 **Multi-host is blocked, not skipped.** vxedge 0.30's daemon listens on `unix://`

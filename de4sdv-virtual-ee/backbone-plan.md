@@ -1,8 +1,13 @@
 # Ethernet backbone increment — scope
 
-Status: **B1, B2, B3 and B4 done** (2026-11-15). B3's result is negative and
-specific: the schedule renders and touches nothing, because this vehicle has no
-trunk traffic for it to shape.
+Status: **closed 2026-11-15.** B1, B2, B3 and B4 are done; B3's result is negative
+and specific — the schedule renders exactly as declared and touches nothing,
+because this vehicle has no trunk traffic for it to shape.
+
+What would reopen it: a peer behind the gateway uplink. That is one piece of work
+(tunnel or a second host on the far side of `vxup0`) and it unblocks two things at
+once — gate timing becomes measurable, and a vehicle can span hosts. Until then,
+the gate schedule stays declared and unexercised, and no TSN claim is made.
 
 ## Why this, and not another feature
 
