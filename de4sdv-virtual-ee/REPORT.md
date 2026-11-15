@@ -271,6 +271,15 @@ closure is a fail-closed demo, policy-aware failure matrix, service-plane regres
 executed-byte identities, current digest-bound SBOMs and independent review.
 Historical gate numbers alone do not close those obligations.
 
+The repaired images were built, digest-pinned and exercised on the testbed on
+2026-11-15. Three consecutive demo runs and three service-plane runs passed on
+those exact images, and a signed package was accepted, rolled back on a broken
+candidate, and refused in a foreign workspace. The routed failure matrix did
+**not** pass: link-loss recovery failed in 3 of 6 up-records and teardown left two
+gateway ports behind. That run is retained as a finding, not relabelled. The
+current verdict, executed identities and every non-claim are in
+[`ACCEPTANCE.md`](ACCEPTANCE.md).
+
 A trunk, OpenSOVD, device-side OTA/A-B banks and multi-host remain candidates,
 not additions to this repair. External engagement is outside this change.
 
