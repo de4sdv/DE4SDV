@@ -461,8 +461,8 @@ Three decisions shape the functional architecture:
   system with its issue time, a sequence count and a check value. By them the
   actuation can detect a delay, a loss or a repetition, and a corruption of
   the command on the path (`REQ-DRIVING-039`). Rejecting what it detects is
-  the share of the product that holds the path (`REQ-MW-006`), which Phases 7
-  and 8 allocate.
+  the share of the product that holds the path (`REQ-MW-006`), which Phase 8
+  allocates.
 
 Each requirement but two is allocated (`allocatedTo`) to the functions that
 carry it: the five functional requirements the gate asks for, and the speed at
@@ -485,7 +485,7 @@ with the sequence and its times:
 - the warning request at the boundary at least 1.0 s of simulation time before
   the start of the emergency braking (`REQ-DRIVING-042`);
 - each mode of the warning within 0.2 s of wall-clock time after the request,
-  the share of the S-CORE path and the AAOS SDV, which Phases 7 and 8 divide
+  the share of the S-CORE path and the AAOS SDV, which Phase 8 divides
   between them;
 - so each mode at least 0.8 s before the emergency braking, while the
   simulation runs no faster than wall-clock time, which is the obligation of

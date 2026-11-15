@@ -620,7 +620,7 @@ def test_the_process_states_the_sequence_and_the_times_of_the_warning():
                    "time after the request",
                    "so that each mode starts at least 0.8 s before the emergency braking while the simulation runs "
                    "no faster than wall-clock time, which is the obligation of System 2",
-                   "Phases 7 and 8 divide the 0.2 s between the path and the warning presentation."):
+                   "Phase 8 divides the 0.2 s between the path and the warning presentation."):
         assert phrase in doc, phrase
     terms = _terms()
     assert "Of the 1.0 s, 0.2 s is allotted from the warning request to the start of each mode of the warning" in terms
@@ -775,9 +775,11 @@ def test_the_guide_has_a_phase_6_section_and_names_phase_7_next():
     for phrase in ("the warning request at the boundary at least 1.0 s of simulation time before the start of the "
                    "emergency braking (`REQ-DRIVING-042`);",
                    "each mode of the warning within 0.2 s of wall-clock time after the request, the share of the "
-                   "S-CORE path and the AAOS SDV, which Phases 7 and 8 divide between them;",
+                   "S-CORE path and the AAOS SDV, which Phase 8 divides between them;",
                    "so each mode at least 0.8 s before the emergency braking, while the simulation runs no faster "
-                   "than wall-clock time, which is the obligation of System 2."):
+                   "than wall-clock time, which is the obligation of System 2.",
+                   "Rejecting what it detects is the share of the product that holds the path (`REQ-MW-006`), "
+                   "which Phase 8 allocates."):
         assert phrase in section, phrase
     flat = " ".join(guide.split())
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "

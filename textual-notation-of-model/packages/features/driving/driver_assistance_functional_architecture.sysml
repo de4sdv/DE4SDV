@@ -121,7 +121,7 @@ package DE4SDV_DriverAssistanceFunctionalArchitecture {
      * vehicle and changes what its front camera sees next. By its form it can
      * detect a command lost, delayed, repeated or corrupted on the path;
      * rejecting what it detects is the share of the product that holds the
-     * path (REQ-MW-006), which phases 7 and 8 allocate.
+     * path (REQ-MW-006), which phase 8 allocates.
      */
     in drivingCommand : DrivingCommand;
   }
@@ -298,9 +298,9 @@ package DE4SDV_DriverAssistanceFunctionalArchitecture {
      * presentation start each mode of the warning within 0.2 s of wall-clock
      * time after the request, so that each mode starts at least 0.8 s before
      * the emergency braking while the simulation runs no faster than
-     * wall-clock time, which is the obligation of System 2. Phases 7 and 8
-     * divide the 0.2 s between the path and the warning presentation. No
-     * transport, display or sound technology is fixed here.
+     * wall-clock time, which is the obligation of System 2. Phase 8 divides
+     * the 0.2 s between the path and the warning presentation. No transport,
+     * display or sound technology is fixed here.
      */
     ref part vehicle : SubjectVehicle = driverAssistanceOperationalContext::vehicle {
       doc /* The vehicle of phase 2: its front camera and motion sensing give the input, and its actuation applies the driving command. */
