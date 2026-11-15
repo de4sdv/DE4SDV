@@ -387,3 +387,17 @@ def test_the_records_that_adr_0027_amends_point_to_it() -> None:
         note = _dated_note(amended)
         assert f"[ADR 0027]({ADR_0027})" in note, amended
         assert change in note, amended
+
+
+def test_adr_0027_is_accepted_with_the_fallback_of_decision_8() -> None:
+    text = (ADR_DIR / ADR_0027).read_text(encoding="utf-8")
+    assert text.split("## Status\n\n", 1)[1].splitlines()[0] == "Accepted"
+    record = _flat(text)
+    assert ("They were drafted after his choices, and on 2026-11-15 he accepted them with this record, decision 8 "
+            "with the fallback for INC-DRIVING-002 that it states.") in record
+    assert ("INC-DRIVING-002 binds directly in its phase 9 if the evaluator change and the move have merged by the "
+            "time its phase 8 merges. Otherwise its phase 9 declares its links in rule 5's dependency form, and the "
+            "move takes them along.") in record
+    assert ("move into the feature-model document, and with them those of INC-DRIVING-002 if its phase 9 declared "
+            "them in the dependency form.") in record
+    assert "he decides on them with this record" not in record

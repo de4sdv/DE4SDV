@@ -51,10 +51,13 @@ candidate passes.
 |---|---|
 | The warning request and the braking for a stationary and for a slower moving vehicle target ahead. | Pedestrian and bicycle targets. |
 | The collision warning that the AAOS SDV gives the driver in two modes, on its display and as a sound: whether each mode is given, and when, relative to the warning request and to the start of the emergency braking. | How well the candidate holds speed, distance and lane. These functions run; no case judges them. |
-| Two scenarios in which neither a warning nor braking is due, taken from the false-reaction scenarios of the regulation. | Driver monitoring, driver override and deactivation. |
-| Criteria for a vehicle target derived from UNECE R152, each with what a simulation cannot show. | The haptic mode of the collision warning, the regulation's further rules on the warning signals (their description, the failure and unavailability signals, their check at ignition and their visibility in daylight), and whether a driver perceives the warning. The regulation asks for the warning in at least two modes; this increment judges two, the warning on the display and the sound, by whether and when each is given. The product line's requirement of a collision warning to the driver is answered that far and no further. |
-| The candidate's commands reach the simulated vehicle, and its warning request reaches the AAOS SDV, through Eclipse S-CORE; no bypass. | Changing the Autoware-based AEBS or reusing its evidence for this candidate. |
-| A pass or a fail for each requirement and scenario, bound to the candidate revision that ran. | Training the candidate's networks, or tuning the candidate or a scenario until a case passes. |
+| Two scenarios in which neither a warning nor braking is due, taken from the false-reaction scenarios of the regulation. | The candidate's lane-departure warning and lane-departure avoidance. They come with the application; no case judges them. |
+| Criteria for a vehicle target derived from UNECE R152, each with what a simulation cannot show. | The candidate's intelligent speed assistance, which its documentation bases on speed-limit map data. No run of this increment gives it map data, and no case judges it. |
+| The candidate's commands reach the simulated vehicle, and its warning request reaches the AAOS SDV, through Eclipse S-CORE; no bypass. | The candidate's hands-free mode as a product function: driving one lane of a highway without the driver's hands. The candidate drives the vehicle in the runs, but no case judges the mode. |
+| A pass or a fail for each requirement and scenario, bound to the candidate revision that ran. | Driver monitoring, driver override and deactivation. |
+| | The haptic mode of the collision warning, the regulation's further rules on the warning signals (their description, the failure and unavailability signals, their check at ignition and their visibility in daylight), and whether a driver perceives the warning. The regulation asks for the warning in at least two modes; this increment judges two, the warning on the display and the sound, by whether and when each is given. The product line's requirement of a collision warning to the driver is answered that far and no further. |
+| | Changing the Autoware-based AEBS or reusing its evidence for this candidate. |
+| | Training the candidate's networks, or tuning the candidate or a scenario until a case passes. |
 | | On-road operation, production readiness, safety approval, compliance, type approval or certification. |
 
 The scope is one configuration and at most ten requirements. Phase 5 derives
@@ -134,6 +137,17 @@ holds the candidate as a black box and the System 1 parts around it.
   follow situations of the regulation's false-reaction scenarios. Phase 2
   proposes them; Phase 5 confirms the selection and states the criterion
   (`gapVehicleTargetCriteria`).
+- **Declared conditions:** the candidate's documentation declares its
+  hands-free mode only for highways and motorways with clearly marked lane
+  lines, in fair weather and visibility, at up to 70 mph and away from
+  construction zones and roadwork, with a human driver supervising it at all
+  times. Supervision falls under driver monitoring, which is out of scope, so
+  the road, the weather and the speed place each scenario. `SC-DRIVING-012` and
+  `SC-DRIVING-013` are set on a highway-type road in fair weather, inside these
+  conditions. `SC-DRIVING-014` and `SC-DRIVING-015` lie outside them, since a
+  tight curve and a turn at a corner are no highway situations. They stay in
+  the scope, and Phase 10 reports their runs apart
+  (`gapDeclaredOperatingConditions`).
 - **Views:** a context view and a story view. The story view also frames
   `vehicleTargetResponseConcern`, which Phase 1 says the story answers.
 - **System 2 stays out:** CARLA, the cloud hosts, the scenario runner, the
@@ -168,7 +182,8 @@ are common by default and get no record.
   Phase 9 also decides whether the configuration selects the application's
   speed-following and lane-keeping functions, which no case of this increment
   judges. They get no record of their own: the feature model already holds them
-  as optional features. Nor do the application's lane-departure warnings, which
+  as optional features. Nor do the application's lane-departure warning and
+  avoidance, its intelligent speed assistance and its hands-free mode, which
   come with it and which no case judges either.
 - **Scope decisions:** the candidate would be a new planned member; Autoware
   and LiDAR stop being common at its admission; Vehicle-Target AEBS and the
@@ -623,6 +638,20 @@ Each point is a gap of the model, in the model's own words.
   detects the simulated target at the distances that the criteria need is not
   known. Its distance estimate depends on a camera calibration that has to
   match the simulated camera.
+- **Two scenarios outside the declared conditions**
+  (`gapDeclaredOperatingConditions`). The candidate's documentation declares
+  its hands-free mode only for highways and motorways with clearly marked lane
+  lines, in fair weather and visibility, at up to 70 mph (about 113 km/h) and
+  away from construction zones and roadwork, with a human driver supervising it
+  at all times. Supervision by a driver falls under driver monitoring, which is
+  out of scope (driverInteractionOutOfScope); the road, the weather and the
+  speed place each scenario. The scenarios with a stationary and with a slower
+  moving vehicle target ahead in the lane run on a highway-type road in fair
+  weather, inside these conditions. The two scenarios in which no reaction is
+  due lie outside the declared conditions: a tight curve with guard pipes and a
+  turn at a corner are no highway situations. Both come from the regulation's
+  false-reaction scenarios and stay in the scope. Phase 10 reports the runs
+  outside the declared conditions apart from the runs inside them.
 - **No admission** (`gapCandidateAdmission`). This increment admits no member
   and changes no scope decision. Phase 3 classifies the candidate and names
   the scope decisions that the owner would have to take.

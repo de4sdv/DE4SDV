@@ -200,6 +200,17 @@ line:
   take the steering and the acceleration in a function with an empty body.
   The camera source has a file of the same name in another folder.
 
+Read for an amendment of the framing and the operational context of
+INC-DRIVING-002 on 2026-11-15, at the same commit:
+
+- [Documentation index](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/github-io/docs-index.md):
+  it lists the application's driver-assistance functions, among them an
+  intelligent speed assist that uses speed-limit map data and a single-lane
+  hands-free highway autopilot. It declares the hands-free mode only for
+  highways and motorways with clearly marked lane lines, in fair weather and
+  visibility, at up to 70 mph and away from construction zones and roadwork,
+  with a human driver supervising it at all times.
+
 ## Questions requiring upstream engagement
 
 AutoE2E:

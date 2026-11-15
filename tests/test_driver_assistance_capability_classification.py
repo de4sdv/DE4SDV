@@ -99,6 +99,8 @@ def test_the_candidate_defers_the_adapter_and_its_other_functions_and_waits_for_
     assert "speed-following and a lane-keeping function, which no case of this increment judges" in doc
     assert "Phase 9 decides whether the configuration selects them." in doc
     assert "It raises lane-departure warnings as well, which no case judges either." in doc
+    assert ("Its documentation also describes a lane-departure avoidance, an intelligent speed assistance and a "
+            "hands-free highway mode, which come with it and which no case judges either.") in doc
     assert "Acceptance waits for the member decision." in doc
 
 
@@ -184,7 +186,9 @@ def test_the_header_gives_each_unrecorded_item_its_reason():
                    "display", "sound",
                    "The speed-following and lane-keeping functions get none: the feature model already holds them as "
                    "the optional features adaptiveCruiseControl and laneKeepAssist",
-                   "The lane-departure warnings get none: they come with the application that the candidate records",
+                   "The lane-departure warning and avoidance, the intelligent speed assistance and the hands-free "
+                   "mode get none: they come with the application that the candidate records, and no case of this "
+                   "increment judges them.",
                    "Eclipse S-CORE gets none: the feature model already holds it as a middleware alternative",
                    "The middleware adapter gets none: it is a derived realization"):
         assert phrase in header, phrase
@@ -233,7 +237,9 @@ def test_the_guide_states_the_classification_and_admits_nothing():
                    "only that build carries steering and acceleration to a vehicle",
                    "characterizes exactly one planned member",
                    "the feature model keeps `hmiDisplay` optional only so that configurations which are not members "
-                   "can leave it out"):
+                   "can leave it out",
+                   "Nor do the application's lane-departure warning and avoidance, its intelligent speed assistance "
+                   "and its hands-free mode, which come with it and which no case judges either."):
         assert phrase in flat, phrase
     for wrong in ("admits the candidate", "needs no new", "needs neither ROS 2"):
         assert wrong not in flat, wrong

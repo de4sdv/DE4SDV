@@ -157,6 +157,26 @@ package DE4SDV_DriverAssistanceFraming {
      * run; no case judges them.
      */
   }
+  part laneDepartureFunctionsOutOfScope : OutOfScopeItem {
+    doc /*
+     * The candidate's lane-departure warning and lane-departure avoidance.
+     * They come with the application; no case judges them.
+     */
+  }
+  part speedAssistanceOutOfScope : OutOfScopeItem {
+    doc /*
+     * The candidate's intelligent speed assistance, which its documentation
+     * bases on speed-limit map data. No run of this increment gives it map
+     * data, and no case judges it.
+     */
+  }
+  part handsFreeModeOutOfScope : OutOfScopeItem {
+    doc /*
+     * The candidate's hands-free mode as a product function: driving one lane
+     * of a highway without the driver's hands. The candidate drives the
+     * vehicle in the runs, but no case judges the mode.
+     */
+  }
   part driverInteractionOutOfScope : OutOfScopeItem {
     doc /* Driver monitoring, driver override and deactivation. */
   }
@@ -304,6 +324,24 @@ package DE4SDV_DriverAssistanceFraming {
      * target at the distances that the criteria need is not known. Its
      * distance estimate depends on a camera calibration that has to match the
      * simulated camera.
+     */
+  }
+  part gapDeclaredOperatingConditions : IncrementGap {
+    doc /*
+     * The candidate's documentation declares its hands-free mode only for
+     * highways and motorways with clearly marked lane lines, in fair weather
+     * and visibility, at up to 70 mph (about 113 km/h) and away from
+     * construction zones and roadwork, with a human driver supervising it at
+     * all times. Supervision by a driver falls under driver monitoring, which
+     * is out of scope (driverInteractionOutOfScope); the road, the weather and
+     * the speed place each scenario. The scenarios with a stationary and with
+     * a slower moving vehicle target ahead in the lane run on a highway-type
+     * road in fair weather, inside these conditions. The two scenarios in
+     * which no reaction is due lie outside the declared conditions: a tight
+     * curve with guard pipes and a turn at a corner are no highway situations.
+     * Both come from the regulation's false-reaction scenarios and stay in the
+     * scope. Phase 10 reports the runs outside the declared conditions apart
+     * from the runs inside them.
      */
   }
   part gapCandidateAdmission : IncrementGap {
@@ -548,6 +586,9 @@ package DE4SDV_DriverAssistanceFraming {
     expose verdictEvidenceInScope;
     expose pedestrianAndBicycleTargetsOutOfScope;
     expose cruiseAndLaneKeepingQualityOutOfScope;
+    expose laneDepartureFunctionsOutOfScope;
+    expose speedAssistanceOutOfScope;
+    expose handsFreeModeOutOfScope;
     expose driverInteractionOutOfScope;
     expose furtherWarningProvisionsOutOfScope;
     expose existingAEBSOutOfScope;
@@ -565,6 +606,7 @@ package DE4SDV_DriverAssistanceFraming {
     expose gapCandidateBehaviorUnverified;
     expose gapScoreIntegration;
     expose gapCameraImageAndGeometry;
+    expose gapDeclaredOperatingConditions;
     expose gapCandidateAdmission;
     expose gapUpstreamContactAndRights;
     expose gapDriverHmiInProductLine;
