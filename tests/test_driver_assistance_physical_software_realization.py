@@ -307,6 +307,18 @@ OWNER_DECISION = (
     "Before phase 10 builds, the VisionPilot maintainers are shown a draft of the warning output and the interface "
     "seam; nothing is posted without the owner.",
 )
+#: The owner's second decision of 2026-11-15, after the readiness probe, as the package head records it.
+GPU_DECISION = (
+    "On 2026-11-15 the owner also chose a GPU of its own for the S-CORE host, an NVIDIA L4, for the candidate's "
+    "networks, which run with the CUDA provider that upstream's configuration sets "
+    "(VisionPilot/config/vision_pilot.conf:11 at the pin): the GPU decision of 2026-11-15.",
+    "The readiness probe of this phase found the processor alone too slow for the 0.1 s cycle, so "
+    "asmProcessorInferenceSufficient does not hold (phase8ProcessorInferenceNotHeld).",
+)
+#: What the GPU decision and the readiness probe retired, anywhere in the model and the guide.
+RETIRED_HOST_STATEMENTS = ("stays open until the readiness probe", "run on the CPU provider", "engine.provider = cpu",
+                           "readiness probe pending", "that the CPU keeps the cycle", "with one C++ standard library",
+                           "Whether the S-CORE host needs a GPU", "Whether it needs a GPU")
 CARRIED_OVER = (
     "Clock, the clock decision of 2026-11-08: CARLA 0.9.16 in synchronous mode with a fixed step of 0.1 s, ticked by a "
     "world-side pacer at wall-clock pace.",
@@ -318,12 +330,11 @@ CARRIED_OVER = (
     "Simulation/CARLA/ROS2/src/carla_bridge_bringup/scripts/config_carla.py:192-240",
     "Hosts, the three-host decision of 2026-11-09: the S-CORE host, the simulator host, and the guest host with KVM for "
     "the two AAOS SDV guests, with a VXLAN segment from the S-CORE host into the guests' bridge.",
-    "Whether the S-CORE host needs a GPU stays open until the readiness probe: the candidate's networks run on the CPU "
-    "provider (asmProcessorInferenceSufficient).",
     f"Revision: the bench runs VisionPilot at {PIN}, upstream's main on 2026-11-15; the tag v1.2 (9a96c3e7) is an older "
     "ancestor.",
 )
-CONFIGURATION = ("engine.provider = cpu", "model.precision = fp32", "visualization_on = false",
+CONFIGURATION = ("engine.provider = cuda, as upstream's configuration sets it (vision_pilot.conf:11)",
+                 "model.precision = fp32", "visualization_on = false",
                  "rrd_on = true for the evaluators' record of the warnings", "speed_limit set per scenario by System 2")
 ALTERNATIVES = ("ALT-DRIVING-WARNFROMCOMMAND-001", "ALT-DRIVING-ROS2BRIDGE-001")
 #: comment -> the records it is about
@@ -333,6 +344,8 @@ COMMENTS = {
     "phase8EmergencyFunctionAnswered": ("gapNoSeparateEmergencyFunction",),
     "phase8CandidateBuildCarriesTheSCOREInterface": ("gapCandidateBehaviorUnverified",),
     "reqDetectableDrivingCommandRejection": ("reqDetectableDrivingCommand", ADAPTER),
+    "phase8ProcessorInferenceNotHeld": ("asmProcessorInferenceSufficient",),
+    "phase8SimulatorPathHeld": ("asmSimulatorPathUsable",),
 }
 #: what each comment must state
 COMMENT_STATEMENTS = {
@@ -341,10 +354,17 @@ COMMENT_STATEMENTS = {
         "after vision_pilot.cpp:174", "The decision logic under VisionPilot/modules/ is not changed.",
         "gapCandidateBehaviorUnverified", "rrd_on = true", "it is no warning request"),
     "phase8ScoreIntegrationPlaced": (
-        "Placement decided, readiness probe pending:", "the owner's choice of 2026-11-15", "Launch Manager",
-        "with no hop beside S-CORE before them", "mw::com, the simulator's C++ client library, ONNX Runtime, OpenCV and "
-        "the Rerun SDK with one C++ standard library", "asmProcessorInferenceSufficient",
-        "that the candidate record reaches the vehicle interface, which subscribes after the record was published"),
+        "Placement decided, readiness items open:", "the owner's choice of 2026-11-15", "Launch Manager",
+        "with no hop beside S-CORE before them",
+        "The readiness probe of 2026-11-15 built one process with the S-CORE toolchain that links mw::com, the "
+        "simulator's C++ client library, ONNX Runtime, OpenCV and the Rerun SDK, and ran it",
+        "Its ONNX Runtime was the prebuilt build for the processor, which loads a second C++ standard library into "
+        "the process beside the binary's own.",
+        "Open before phase 10: the link with the build of ONNX Runtime for CUDA that the GPU decision of 2026-11-15 "
+        "needs;",
+        "whether the process may hold a second C++ standard library or builds ONNX Runtime with the S-CORE toolchain;",
+        "and that the candidate record reaches the vehicle interface, which subscribes after the record was "
+        "published: the probe did not test it."),
     "phase8EmergencyFunctionAnswered": (
         "Answered for the realization, not closed:",
         "the warning requester and the driving commander are both allocated to the planner module",
@@ -358,6 +378,24 @@ COMMENT_STATEMENTS = {
         "the owner's choice of 2026-11-15", "a change that upstream has not merged",
         "Every verdict names the build, 014e0e7a with the DE4SDV S-CORE interface",
         "the record of REQ-DRIVING-044 carries the difference"),
+    "phase8ProcessorInferenceNotHeld": (
+        "Does not hold, by the readiness probe of this phase on 2026-11-15:",
+        "on a host with eight vCPUs and the CPU provider, the candidate took longer than the 0.1 s cycle for every "
+        "image measured, most of it in its three networks in fp32, so its loop left most images unprocessed.",
+        "With the CUDA provider on an NVIDIA L4 that it shared with the simulator, the candidate's ROS 2 build gave a "
+        "command for every step of the simulator in the minute measured.",
+        "The owner then chose a GPU of the S-CORE host for the networks (the GPU decision of 2026-11-15), so the bench "
+        "topology rests on that GPU, not on the processor.",
+        "Whether the S-CORE host's own GPU keeps the cycle with the S-CORE build is not shown yet: every run reports "
+        "the images dropped, and phase 10 judges no run whose judged window holds one (MAP-DRIVING-DA-CAMERA-IMAGE)."),
+    "phase8SimulatorPathHeld": (
+        "Holds, by the readiness probe of this phase on 2026-11-15:",
+        "upstream's simulator path at the pin, CARLA 0.9.16 with its ROS 2 interface and upstream's two bridge nodes, "
+        "ran in synchronous mode with a fixed step of 0.1 s",
+        "with the CUDA provider the candidate's ROS 2 build gave a command for every step in the minute measured, with "
+        "no change to its source.",
+        "The S-CORE path of this realization takes the commands from the same loop through the DE4SDV S-CORE "
+        "interface module instead of ROS 2."),
     "reqDetectableDrivingCommandRejection": (
         "its issue time, a sequence count from 1 in each run and a CRC-32 check value",
         "detects a loss or a repetition by the sequence count, a corruption by the check value and a delay by the issue "
@@ -617,6 +655,7 @@ def test_the_candidate_stays_one_process_with_five_modules_in_the_order_of_the_l
     for phrase in ("one Linux process", f"VisionPilot at {PIN} built with the DE4SDV S-CORE interface module and "
                    "without ROS 2", "Launch Manager of S-CORE Lifecycle", "(vision_pilot.cpp:59-79)",
                    "after the write at vision_pilot.cpp:174", "a readiness item",
+                   "ONNX Runtime with its CUDA provider",
                    "no hops between processes; across processes it speaks mw::com only", *CONFIGURATION):
         assert phrase in doc, phrase
 
@@ -712,8 +751,8 @@ def test_the_score_host_holds_the_candidate_and_beside_it_the_share_of_the_path(
                    "for the further run of REQ-DRIVING-038"):
         assert phrase in launch, phrase
     doc = _doc(f"part def {HOST}")
-    for phrase in ("the three-host decision of 2026-11-09", "Whether it needs a GPU stays open until the readiness probe",
-                   "asmProcessorInferenceSufficient", "VXLAN", "192.168.98.1"):
+    for phrase in ("the three-host decision of 2026-11-09", "x86_64 Linux with a GPU of its own, an NVIDIA L4, for the "
+                   "candidate's networks (the GPU decision of 2026-11-15)", "VXLAN", "192.168.98.1"):
         assert phrase in doc, phrase
     for layer in ("LinuxPlatform", "EclipseSCORE", "AndroidHLOS", "AndroidSDVMiddleware", "OSHypervisorInterface"):
         assert f"private import DE4SDV_SDVPlatformStack::{layer};" in code, layer
@@ -838,6 +877,8 @@ def test_the_warning_requester_and_the_driving_commander_share_the_planner_modul
         assert phrase in doc, phrase
     assert "is realized in the process as the warnings of the same plan" not in doc
     assessor = _doc("part def VisionPilotPerceptionAndFusion :> PhysicalAllocationElement")
+    assert ("the three networks AutoSpeed, AutoSteer and AutoDrive on ONNX Runtime with the CUDA provider in fp32 on "
+            "the S-CORE host's GPU (vision_pilot.cpp:96-98, 138; onnx_engine.cpp:36-38, 63-76)") in assessor
     for phrase in ("They compute no time to collision, no needed deceleration and no imminence",
                    "They read no vehicle speed: the speed reaches the planner only."):
         assert phrase in assessor, phrase
@@ -1051,6 +1092,10 @@ def test_the_package_head_records_the_owner_decision_of_2026_11_15():
         assert statement in head, statement
     for statement in CARRIED_OVER:
         assert statement in head, statement
+    for statement in GPU_DECISION:
+        assert statement in head, statement
+    assert head.index(GPU_DECISION[0]) < head.index("Carried over from the dated decisions of INC-DRIVING-001"), \
+        "a decision of this phase, not one carried over"
     for alternative in ALTERNATIVES:
         assert alternative in head, alternative
     assert ("the simulator receives the candidate's steering unchanged and the planned acceleration, as on that path. "
@@ -1060,6 +1105,14 @@ def test_the_package_head_records_the_owner_decision_of_2026_11_15():
                    "signal mapping is no interoperability claim",
                    "Nothing in this package claims a requirement met or a case run."):
         assert phrase in head, phrase
+
+
+def test_the_gpu_decision_retires_the_processor_statements():
+    """The readiness probe and the GPU decision of 2026-11-15 settle what phase 8 left open: no text keeps it open."""
+    model = _flat(_raw())
+    guide = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    for statement in RETIRED_HOST_STATEMENTS:
+        assert statement not in model and statement not in guide, statement
 
 
 def test_the_comments_record_what_phase_8_settled_on_the_framing_records():
@@ -1074,6 +1127,8 @@ def test_the_comments_record_what_phase_8_settled_on_the_framing_records():
     for gap in ("gapNoSeparateEmergencyFunction", "gapWarningOutput", "gapCandidateBehaviorUnverified",
                 "gapScoreIntegration"):
         assert f"private import DE4SDV_DriverAssistanceFraming::{gap};" in code, gap
+    for assumption in ("asmProcessorInferenceSufficient", "asmSimulatorPathUsable"):
+        assert f"private import DE4SDV_DriverAssistanceFraming::{assumption};" in code, assumption
     assert "private import DE4SDV_DriverAssistanceNeedsRequirements::reqDetectableDrivingCommand;" in code
 
 
@@ -1238,6 +1293,9 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                    "hashes every configuration, calibration, manifest and network file the candidate's process reads",
                    "CARLA 0.9.16 in synchronous mode with a fixed step of 0.1 s, paced at wall-clock speed",
                    "2026-11-08", "2026-11-09",
+                   "On 2026-11-15 the owner also chose a GPU of its own for the S-CORE host, an NVIDIA L4, for the "
+                   "candidate's networks",
+                   "the readiness probe of Phase 8 found the processor alone too slow for the 0.1 s cycle",
                    "tests/test_driver_assistance_physical_software_realization.py"):
         assert phrase in section, phrase
     assert "VisionPilot/" not in section and ".cpp" not in section, "the guide carries no upstream paths"
@@ -1265,11 +1323,14 @@ def test_the_upstream_record_names_what_phase_8_read_at_the_pin():
                  "vehicle_ros2_interface.cpp",
                  "VisionPilot/modules/common/include/common/types.hpp",
                  "VisionPilot/modules/config/src/vision_pilot_config.cpp",
+                 "VisionPilot/modules/engine/src/onnx_engine.cpp",
                  "Simulation/CARLA/ROS2/src/carla_bridge_bringup/scripts/config_carla.py",
                  "Simulation/CARLA/ROS2/config/carla916.json",
                  "Simulation/CARLA/ROS2/src/carla_control_publisher/carla_control_publisher/"
                  "carla_control_publisher_node.py"):
         assert f"https://github.com/autowarefoundation/vision_pilot/blob/{PIN}/{path}" in section, path
+    assert f"https://github.com/autowarefoundation/vision_pilot/blob/{PIN}/VisionPilot/config/vision_pilot.conf#L11-L17" \
+        in section, "the provider and the precision of the configuration that upstream ships"
     assert ("https://github.com/carla-simulator/carla/blob/0.9.16/Docs/python_api.md#carlavehicleackermanncontrol"
             in section), "the API reference of the simulator's Ackermann control, at the release the bench runs"
     assert ("https://github.com/carla-simulator/carla/blob/0.9.16/LibCarla/source/carla/ros2/subscribers/"
@@ -1283,6 +1344,10 @@ def test_the_upstream_record_names_what_phase_8_read_at_the_pin():
                    "line 49 gives the steering to the Ackermann control's steering angle without a change",
                    "line 12 sets the control's steer to the message's steering angle",
                    "run the simulator in synchronous mode with a fixed step of 0.1 s",
+                   "lines 32 to 46 create the session for the configured provider, cpu, cuda or tensorrt, and refuse "
+                   "any other; lines 63 to 76 create the CUDA session, with ONNX Runtime's CUDA execution provider on "
+                   "the configured device",
+                   "line 11 sets the provider to cuda and line 17 the precision to fp32",
                    "steer in rad, positive to the right, steer_speed in rad/s, speed in m/s, acceleration in m/s² and "
                    "jerk in m/s³, each with a default of 0.0"):
         assert phrase in text, phrase

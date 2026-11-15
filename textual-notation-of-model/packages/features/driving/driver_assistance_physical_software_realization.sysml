@@ -24,6 +24,14 @@
  * phase 10 builds, the VisionPilot maintainers are shown a draft of the
  * warning output and the interface seam; nothing is posted without the owner.
  *
+ * On 2026-11-15 the owner also chose a GPU of its own for the S-CORE host, an
+ * NVIDIA L4, for the candidate's networks, which run with the CUDA provider
+ * that upstream's configuration sets (VisionPilot/config/vision_pilot.conf:11
+ * at the pin): the GPU decision of 2026-11-15. The readiness probe of this
+ * phase found the processor alone too slow for the 0.1 s cycle, so
+ * asmProcessorInferenceSufficient does not hold
+ * (phase8ProcessorInferenceNotHeld).
+ *
  * Carried over from the dated decisions of INC-DRIVING-001
  * (closed_loop_driving_physical_software_realization.sysml):
  *
@@ -42,9 +50,7 @@
  * - Hosts, the three-host decision of 2026-11-09: the S-CORE host, the
  *   simulator host, and the guest host with KVM for the two AAOS SDV
  *   guests, with a VXLAN segment from the S-CORE host into the guests'
- *   bridge. Whether the S-CORE host needs a GPU stays open until the
- *   readiness probe: the candidate's networks run on the CPU provider
- *   (asmProcessorInferenceSufficient).
+ *   bridge.
  *
  * What follows from the phase 7 elements and the defaults of this phase:
  *
@@ -120,6 +126,8 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
   private import DE4SDV_DriverAssistanceFraming::gapWarningOutput;
   private import DE4SDV_DriverAssistanceFraming::gapCandidateBehaviorUnverified;
   private import DE4SDV_DriverAssistanceFraming::gapScoreIntegration;
+  private import DE4SDV_DriverAssistanceFraming::asmProcessorInferenceSufficient;
+  private import DE4SDV_DriverAssistanceFraming::asmSimulatorPathUsable;
   private import DE4SDV_DriverAssistanceFraming::emergencyBrakingIndependenceConcern;
   private import DE4SDV_DriverAssistanceFraming::scoreCommandAndWarningPathConcern;
   private import DE4SDV_DriverAssistanceOperationalContext::FrontCameraImage;
@@ -350,9 +358,10 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * Carries the vehicle-ahead assessor of phase 7: the upstream modules of
      * the candidate at the pin, unchanged, that turn the image into the
      * assessment. They are the image preprocessing, the three networks
-     * AutoSpeed, AutoSteer and AutoDrive on ONNX Runtime with the CPU
-     * provider in fp32 (vision_pilot.cpp:96-98, 138), and the longitudinal
-     * and lateral fusion. They give the closest object in the path with its
+     * AutoSpeed, AutoSteer and AutoDrive on ONNX Runtime with the CUDA
+     * provider in fp32 on the S-CORE host's GPU (vision_pilot.cpp:96-98,
+     * 138; onnx_engine.cpp:36-38, 63-76), and the longitudinal and lateral
+     * fusion. They give the closest object in the path with its
      * distance and its velocity, negative while it approaches
      * (longitudinal_fusion.hpp:13-18), and the geometry of the lane. They compute no time to collision, no needed
      * deceleration and no imminence, so the assessment of phase 6 is
@@ -445,17 +454,19 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * the loop (vision_pilot.cpp:59-79), and its loop hands the plan's
      * warnings to the warning request publisher after the write at
      * vision_pilot.cpp:174. The process links mw::com, the simulator's C++
-     * client library, ONNX Runtime, OpenCV and the Rerun SDK, a readiness
-     * item. It runs its five modules in the order of the loop, once per
-     * frame: the camera interface, the perception and fusion, the planner,
-     * then the vehicle interface and the warning request publisher. Inside
+     * client library, ONNX Runtime with its CUDA provider, OpenCV and the
+     * Rerun SDK, a readiness item. It runs its five modules in the order of
+     * the loop, once per frame: the camera interface, the perception and
+     * fusion, the planner, then the vehicle interface and the warning
+     * request publisher. Inside
      * the process the image, the assessment, the speed, the plan and the
      * warnings are hand-offs, and the interface module passes the capture
      * time of the frame from the camera interface to the vehicle interface
      * and the warning request publisher: no hops between processes; across
      * processes it speaks mw::com only. Its configuration: engine.provider =
-     * cpu, model.precision = fp32, visualization_on = false, rrd_on = true
-     * for the evaluators' record of the warnings, and speed_limit set per
+     * cuda, as upstream's configuration sets it (vision_pilot.conf:11),
+     * model.precision = fp32, visualization_on = false, rrd_on = true for
+     * the evaluators' record of the warnings, and speed_limit set per
      * scenario by System 2.
      */
     port frontCameraImageIn : FrontCameraStreamIn;
@@ -657,12 +668,11 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
   part def DriverAssistanceSCOREHost {
     doc /*
      * The S-CORE host of the bench (the three-host decision of 2026-11-09,
-     * carried over): x86_64 Linux. It owns its platform layer, the software
-     * realization of the candidate and, beside it, the share of the S-CORE
-     * path on the host: the actuation adapter and the S-CORE services.
-     * Whether it needs a GPU stays open until the readiness probe: the
-     * candidate's networks run on the CPU provider
-     * (asmProcessorInferenceSufficient). The camera stream and the speed
+     * carried over): x86_64 Linux with a GPU of its own, an NVIDIA L4, for
+     * the candidate's networks (the GPU decision of 2026-11-15). It owns its
+     * platform layer, the software realization of the candidate and, beside
+     * it, the share of the S-CORE path on the host: the actuation adapter
+     * and the S-CORE services. The camera stream and the speed
      * arrive from the simulator host over the bench network for the
      * candidate's process, the simulation clock and the speed for the
      * actuation adapter, and the Ackermann control leaves for the simulator
@@ -1044,18 +1054,52 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
 
   comment phase8ScoreIntegrationPlaced about gapScoreIntegration
     /*
-     * Placement decided, readiness probe pending: the candidate's process
+     * Placement decided, readiness items open: the candidate's process
      * becomes an Eclipse S-CORE application through the DE4SDV S-CORE
      * interface module (the owner's choice of 2026-11-15), started and
      * supervised by the Launch Manager. Its driving command and its warning
      * request enter the S-CORE path on mw::com events at the boundary of the
      * process, with no hop beside S-CORE before them; its state enters no
-     * path, since no requirement asks for it. The readiness probe has to show
-     * that one process links mw::com, the simulator's C++ client library,
-     * ONNX Runtime, OpenCV and the Rerun SDK with one C++ standard library,
-     * that the CPU keeps the cycle (asmProcessorInferenceSufficient), and
-     * that the candidate record reaches the vehicle interface, which
-     * subscribes after the record was published.
+     * path, since no requirement asks for it. The readiness probe of
+     * 2026-11-15 built one process with the S-CORE toolchain that links
+     * mw::com, the simulator's C++ client library, ONNX Runtime, OpenCV and
+     * the Rerun SDK, and ran it: one network, one frame conversion, one data
+     * log, mw::com events to a second process, and the simulator's client
+     * connected to the server. Its ONNX Runtime was the prebuilt build for
+     * the processor, which loads a second C++ standard library into the
+     * process beside the binary's own. Open before phase 10: the link with
+     * the build of ONNX Runtime for CUDA that the GPU decision of 2026-11-15
+     * needs; whether the process may hold a second C++ standard library or
+     * builds ONNX Runtime with the S-CORE toolchain; and that the candidate
+     * record reaches the vehicle interface, which subscribes after the record
+     * was published: the probe did not test it.
+     */
+
+  comment phase8ProcessorInferenceNotHeld about asmProcessorInferenceSufficient
+    /*
+     * Does not hold, by the readiness probe of this phase on 2026-11-15: on a
+     * host with eight vCPUs and the CPU provider, the candidate took longer
+     * than the 0.1 s cycle for every image measured, most of it in its three
+     * networks in fp32, so its loop left most images unprocessed. With the
+     * CUDA provider on an NVIDIA L4 that it shared with the simulator, the
+     * candidate's ROS 2 build gave a command for every step of the simulator
+     * in the minute measured. The owner then chose a GPU of the S-CORE host
+     * for the networks (the GPU decision of 2026-11-15), so the bench
+     * topology rests on that GPU, not on the processor. Whether the S-CORE
+     * host's own GPU keeps the cycle with the S-CORE build is not shown yet:
+     * every run reports the images dropped, and phase 10 judges no run whose
+     * judged window holds one (MAP-DRIVING-DA-CAMERA-IMAGE).
+     */
+
+  comment phase8SimulatorPathHeld about asmSimulatorPathUsable
+    /*
+     * Holds, by the readiness probe of this phase on 2026-11-15: upstream's
+     * simulator path at the pin, CARLA 0.9.16 with its ROS 2 interface and
+     * upstream's two bridge nodes, ran in synchronous mode with a fixed step
+     * of 0.1 s, and with the CUDA provider the candidate's ROS 2 build gave a
+     * command for every step in the minute measured, with no change to its
+     * source. The S-CORE path of this realization takes the commands from the
+     * same loop through the DE4SDV S-CORE interface module instead of ROS 2.
      */
 
   comment phase8EmergencyFunctionAnswered about gapNoSeparateEmergencyFunction

@@ -233,6 +233,12 @@ that day. The model cites these files by file name and line:
 - [Configuration reader](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/config/src/vision_pilot_config.cpp#L117-L146):
   lines 117 to 146 read the provider, the precision, the speed limit, the
   visualization switch and the data-log switch from the configuration.
+- [Configuration](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/config/vision_pilot.conf#L11-L17):
+  line 11 sets the provider to cuda and line 17 the precision to fp32.
+- [Engine](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/engine/src/onnx_engine.cpp#L32-L76):
+  lines 32 to 46 create the session for the configured provider, cpu, cuda or
+  tensorrt, and refuse any other; lines 63 to 76 create the CUDA session, with
+  ONNX Runtime's CUDA execution provider on the configured device.
 - [Simulator setup](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Simulation/CARLA/ROS2/src/carla_bridge_bringup/scripts/config_carla.py#L192-L240):
   lines 192 to 240 run the simulator in synchronous mode with a fixed step of
   0.1 s.

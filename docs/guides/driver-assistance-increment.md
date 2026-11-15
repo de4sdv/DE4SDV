@@ -684,6 +684,16 @@ request to each mode of the warning, Phase 8 gives 0.1 s for the path and
 0.1 s for the presentation; the start of the sound on the guest is unmeasured,
 and the split is revisited when it is measured.
 
+On 2026-11-15 the owner also chose a GPU of its own for the S-CORE host, an
+NVIDIA L4, for the candidate's networks: the readiness probe of Phase 8 found
+the processor alone too slow for the 0.1 s cycle, so the framing's assumption
+that the networks run on a processor alone does not hold. The candidate runs
+with the CUDA provider that its own configuration sets. The probe also ran
+upstream's simulator path with CARLA 0.9.16 as the framing assumed. Still to be
+shown before Phase 10: the one S-CORE process linked with the build of ONNX
+Runtime for CUDA, and the candidate record reaching a vehicle interface that
+subscribes after it was published.
+
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
 upstream's own simulator path does, and gives the simulator the candidate's
 steering unchanged, as that path does. The VSS steering angle of the driving
