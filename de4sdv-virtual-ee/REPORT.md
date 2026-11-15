@@ -110,8 +110,10 @@ Two things the table says that prose usually hides:
 - **No timing determinism.** Every process shares one kernel clock; scheduler
   jitter is real and unmeasured.
 - **No time synchronisation is possible in this topology** — with one kernel
-  there is only one clock to synchronise. gPTP across nodes needs separate
-  kernels (§9).
+  there is only one clock to synchronise. Measured on two hosts: **0.198 ms**
+  offset just after boot, **44 µs** once chrony converges, and PTP unicast locks
+  but does not beat it — [`time-sync.md`](time-sync.md) has the numbers and what a
+  cross-host claim would need.
 - **No Ethernet backbone, no SOME/IP, no service discovery.** The vehicle network
   modelled here is CAN plus VLAN-separated IP.
 - **No safety, no security certification.** No secure boot, no MACsec, no IDS,
@@ -164,17 +166,29 @@ and an owner.
 
 ## 9. Recommended next step
 
-**Multi-host, with gPTP.** Distribution is the one gap that changes what the
-numbers mean: two hosts have two clocks, which makes time synchronisation real
-instead of theatre, and it exercises the transport in the configuration it was
-designed for. It also removes the single-kernel caveat from §5.
+**Multi-host is blocked, not skipped.** vxedge 0.30's daemon listens on `unix://`
+only — "TCP+mTLS arrives with the auth work" — so a second host cannot join a
+vehicle, and `network.time_sync` is single-host by construction. Waiting on that
+is a platform dependency; faking it with a hand-assembled second host would
+produce a topology the orchestrator does not know about.
 
-Concretely: one zone on a second VM, gateway on the first, the bridge over the
-tunnel, `network.time_sync: { kind: gptp, followers: [...] }` on the experiment,
-and an A/B: offsets with time sync off, then on, plus a re-run of the routed
-latency with node-side timestamps.
+**Time sync is settled as a measurement problem, not a deployment one.**
+[`time-sync.md`](time-sync.md) measures both hosts: 0.198 ms offset just after
+boot, 44 µs once chrony converges, and PTP unicast locks (16 µs median, 135 µs
+tail) without beating the platform, because every timestamp here is software on a
+virtual NIC. So the rule for any future cross-host run is: measure the offset in
+the same window, state it, correct by it. No PTP service to operate.
 
-After that, in order of value: **OpenSOVD** for the diagnostic surface (our
-gateway already proves the path a real SOVD server would use), then the OTA
-client gap, then A/B banks. SIL Kit and openDuT stay optional, with the triggers
-recorded in `landscape.md`.
+What is actually available to do next, in order of value:
+
+1. **OpenSOVD** — the diagnostic surface. The gateway already proves the path a
+   real SOVD server would use, and vehicle diagnostics is where a production
+   zonal architecture spends most of its wire time.
+2. **The OTA client gap** — `vxota` serves content-addressed, resumable
+   artifacts, but nothing on the vehicle consumes them; "over the air" is still
+   host-applied.
+3. **A/B banks with automatic revert** — today's rollback is an orchestrated
+   `experiment up` of package A, not a device-side bank switch.
+4. **Multi-host**, when vxedge ships its remote API.
+
+SIL Kit and openDuT stay optional, with the triggers recorded in `landscape.md`.

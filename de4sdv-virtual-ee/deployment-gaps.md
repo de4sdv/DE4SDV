@@ -53,6 +53,15 @@ rollback, resource partitioning, fault-tolerant supervision, timing guarantees, 
 any certification statement. A single host with virtual buses and one userspace
 router cannot carry those claims.
 
+## Single host, by construction
+
+The daemon listens on `unix://` only — "TCP+mTLS arrives with the auth work" — so
+no second host can join a vehicle, and `network.time_sync` cannot span hosts: its
+follower reads the host clock and only measures the path. That is a platform
+boundary, not a configuration to find. [`time-sync.md`](time-sync.md) measures what
+a cross-host claim would cost (0.198 ms just after boot, 44 µs in steady state)
+and what it would need.
+
 ## What has been closed since
 
 Items 1–4 of the list below are done and proven on the testbed. The two that

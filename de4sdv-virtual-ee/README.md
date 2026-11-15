@@ -62,6 +62,8 @@ checks/update_with_rollback.sh  apply a package, gate on the zone working, roll 
 checks/make_sbom.sh           regenerate the committed CycloneDX SBOMs from the images
 checks/run_demo.sh            one command: up, capture, drive, diagnose, tear down, archive
 checks/demo_measure.py        the archive's numbers: segments, routed pairs, leaks
+checks/timesync_probe.py      clock offset between two hosts, four-timestamp exchange
+time-sync.md                  what a cross-host time claim costs, measured, with PTP tried
 results/                      the committed demo archive, with its own manifest
 REPORT.md                     the feasibility report: gates, demo numbers, limits
 sbom/                         CycloneDX 1.7 for both images, gzipped, plus how to regenerate
