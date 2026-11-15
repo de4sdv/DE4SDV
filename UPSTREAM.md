@@ -52,15 +52,35 @@ image from a pinned tag, or built from source at a pinned commit.
 
 | Project | What DE4SDV uses it for | Version recorded in | Read more |
 |---|---|---|---|
-| [vxedge](https://github.com/vxedge/vxedge) | Orchestration of the software E/E: gateway, slices, zones, services and signal plane. | [Components and licences](de4sdv-virtual-ee/versions.md) | [Testbed README](de4sdv-virtual-ee/README.md) |
+| [vxedge](https://github.com/vxedge/vxedge) and its [documentation](https://github.com/vxedge/docs) | Orchestration of the software E/E: gateway, slices, zones, services and signal plane. | [Components and licences](de4sdv-virtual-ee/versions.md) | [Testbed README](de4sdv-virtual-ee/README.md) |
 | [KUKSA Databroker](https://github.com/eclipse-kuksa/kuksa-databroker) | VSS broker of the signal plane. | The same record | The same README |
 | [KUKSA CAN Provider](https://github.com/eclipse-kuksa/kuksa-can-provider) | DBC ↔ VSS bridge inside each zone, both directions. | The same record | The same README |
 | [cannelloni](https://github.com/mguentner/cannelloni) | Carried CAN over UDP in the first pass; replaced by DE4SDV's own [`transport/bridge.py`](de4sdv-virtual-ee/transport/bridge.py), so the stack carries no copyleft. GPL-2.0, which is why it was replaced rather than kept. | The same record | The same README |
 | [OpenBSW](https://github.com/eclipse-openbsw/openbsw) | Reference ECU on a virtual bus: lifecycle and UDS over DoCAN. | The same record | The same README |
 | [SDV Simulation 5](https://github.com/nsengupta/sdv_simulation_5) | Inspected only: its private actuator codec is what the modelled signal contract replaces. It is not built and not run. | The same record | The same README |
+| [Distribution](https://github.com/distribution/distribution) | Registry image on the testbed host. It holds the two DE4SDV images by digest, so a moved tag cannot change what runs. | The same record | [`deploy/README.md`](de4sdv-virtual-ee/deploy/README.md) |
+| [cosign](https://github.com/sigstore/cosign) | Signs the `vxp/1` package. The host verifies the record before provisioning anything. | The same record | [`deploy/README.md`](de4sdv-virtual-ee/deploy/README.md) |
+| [syft](https://github.com/anchore/syft) | Generates the CycloneDX SBOMs committed under [`sbom/`](de4sdv-virtual-ee/sbom/README.md). | The same record | [`sbom/README.md`](de4sdv-virtual-ee/sbom/README.md) |
 
 The licence of every component, and what a copyleft component means for a
 distributed image, is stated in that one record rather than repeated here.
+
+## Surveyed and not adopted
+
+[`landscape.md`](de4sdv-virtual-ee/landscape.md) classifies every Eclipse SDV
+project as use, track or skip. The rows below are named there and in the
+testbed's documents. None of them is built or run: the row records a decision,
+not a dependency.
+
+| Project | Why it is named and not used |
+|---|---|
+| [Eclipse Ankaios](https://github.com/eclipse-ankaios/ankaios) | A second orchestrator was tried against the same workloads; vxedge was kept for its networking, supply chain and measurements. The spike is in [`de4sdv-virtual-ee/orchestration/`](de4sdv-virtual-ee/orchestration/README.md). |
+| [Eclipse BlueChi](https://github.com/eclipse-bluechi/bluechi) | Tracked: systemd/D-Bus service control across nodes, not container orchestration. |
+| [Eclipse Leda](https://github.com/eclipse-leda/leda) | Tracked: a distribution image for a target, not part of this testbed. |
+| [Eclipse openDuT](https://github.com/eclipse-opendut/opendut) | Tracked: distributed test benches; its trigger is the two-host CARLA bench, not this one. |
+| [Eclipse OpenSOVD](https://github.com/eclipse-opensovd/opensovd) | The next candidate for the diagnostic surface. Not integrated. |
+| [Eclipse OpenXilEnv](https://github.com/eclipse-openxilenv/openxilenv) | Tracked: a SIL environment that overlaps the plant models this testbed writes itself. |
+| [Vector SIL Kit](https://github.com/vectorgrp/sil-kit) | Tracked: simulation-time synchronisation and Vector tool interop. Adopting it means replacing the SocketCAN path, so it waits for that trigger. |
 
 ## Modeling tools
 
