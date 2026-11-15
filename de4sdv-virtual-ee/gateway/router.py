@@ -14,11 +14,15 @@ The policy is the point of the exercise, not the forwarding:
 Every decision is counted, so "denied" is a number rather than a claim, and the
 dropped frames are visible in the stats rather than silently disappearing.
 
-Echo guard: if a transport ever re-injects a frame the gateway just forwarded,
-the identical (id, payload) arriving within ECHO_WINDOW_S is dropped instead of
-ping-ponging. The DE4SDV bridge does not echo (a SocketCAN socket does not see
-its own frames), but a router peer that re-injected would turn the path into a
-broadcast storm, so the guard stays.
+No echo guard. A frame the gateway forwards cannot come back to it as a new
+frame: a SocketCAN socket does not receive its own transmissions
+(`CAN_RAW_RECV_OWN_MSGS` is off), the DE4SDV bridge does not echo either, and
+the two allow-lists are disjoint, so even a re-injected frame would be refused
+by the opposite direction rather than loop. Identical frames repeated by a
+sender (an ISO-TP consecutive frame after its sequence number wraps, a status
+that did not change) are legitimate traffic and are all forwarded. If a
+transport that echoes is ever added, loop prevention belongs on that transport's
+receive path, not in a content filter here.
 """
 
 from __future__ import annotations
@@ -31,8 +35,6 @@ import time
 from collections import Counter
 
 import can
-
-ECHO_WINDOW_S = 0.05
 
 # direction -> allowed CAN ids
 POLICY: dict[str, set[int]] = {
@@ -56,24 +58,11 @@ def bump(key: str, n: int = 1) -> None:
         stats[key] += n
 
 
-def forwarded_recently(seen: dict[tuple[int, bytes], float], key: tuple[int, bytes]) -> bool:
-    now = time.monotonic()
-    for k, ts in list(seen.items()):
-        if now - ts > ECHO_WINDOW_S:
-            del seen[k]
-    return key in seen
-
-
 def pump(src_name: str, dst_name: str, src_bus: can.BusABC, dst_bus: can.BusABC, direction: str) -> None:
     allowed = POLICY[direction]
-    seen: dict[tuple[int, bytes], float] = {}
     while not stop.is_set():
         frame = src_bus.recv(timeout=0.1)
         if frame is None:
-            continue
-        key = (frame.arbitration_id, bytes(frame.data))
-        if forwarded_recently(seen, key):
-            bump(f"{direction}.echo_dropped")
             continue
         if frame.arbitration_id not in allowed:
             bump(f"{direction}.denied.0x{frame.arbitration_id:03X}")
@@ -81,7 +70,6 @@ def pump(src_name: str, dst_name: str, src_bus: can.BusABC, dst_bus: can.BusABC,
         dst_bus.send(
             can.Message(arbitration_id=frame.arbitration_id, data=frame.data, is_extended_id=frame.is_extended_id)
         )
-        seen[key] = time.monotonic()
         bump(f"{direction}.forwarded.0x{frame.arbitration_id:03X}")
 
 
