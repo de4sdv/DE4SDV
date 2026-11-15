@@ -6,6 +6,7 @@ import re
 from sysml_shapes import braced_body, strip_comments
 
 ROOT = Path(__file__).resolve().parents[1]
+GUIDE = ROOT / "docs/guides/driver-assistance-increment.md"
 DRIVING = ROOT / "textual-notation-of-model/packages/features/driving"
 FRAMING = DRIVING / "driver_assistance_framing.sysml"
 MODEL = DRIVING / "driver_assistance_operational_context.sysml"
@@ -183,6 +184,9 @@ def test_the_story_holds_the_four_scenarios_with_their_targets_and_conditions():
         assert condition in doc, f"{name}: the scenario's condition"
         bound = set(re.findall(rf"=\s*{CONTEXT}::([\w:]+)\s*;", body))
         if regulation_scenario is None:
+            assert doc.endswith("The scenario is set on a highway-type road with clearly marked lanes, in fair "
+                                "weather and away from roadwork: inside the conditions that the candidate's "
+                                "documentation declares (gapDeclaredOperatingConditions)."), name
             assert "requests the warning" in doc and "brakes the vehicle" in doc, name
             assert WARNING_ACTORS <= bound, f"{name}: the warning reaches the driver"
         else:
@@ -191,6 +195,9 @@ def test_the_story_holds_the_four_scenarios_with_their_targets_and_conditions():
             assert "Phase 2 proposes it; phase 5 confirms the selection and states the criterion " \
                 "(gapVehicleTargetCriteria)." in doc, f"{name}: phase 5 makes the selection that phase 0 gives it"
             assert not (bound & {"aaosSDVGuest::warningPresentation", "driver"}), f"{name}: no warning is due"
+            assert doc.endswith("is no highway situation: the scenario lies outside the conditions that the "
+                                "candidate's documentation declares, and phase 10 reports its runs apart "
+                                "(gapDeclaredOperatingConditions)."), name
     ids = re.findall(r"SC-DRIVING-\d{3}", raw)
     assert sorted(set(ids)) == sorted(s[0] for s in SCENARIOS.values()), "only the four new scenario identities"
 
@@ -252,9 +259,28 @@ def test_dependencies_trace_the_story_and_the_context_to_phase_zero():
         ("SCORECommandAndWarningPath", f"{FRAMING_PACKAGE}::gapScoreIntegration"),
         ("DriverWarningPresentation", f"{FRAMING_PACKAGE}::gapDriverHmiInProductLine"),
         ("WarningRequest", f"{FRAMING_PACKAGE}::gapWarningOutput"),
+        ("noReactionToStationaryVehicleBeyondTheCurve", f"{FRAMING_PACKAGE}::gapDeclaredOperatingConditions"),
+        ("noReactionToVehicleAheadTurningOff", f"{FRAMING_PACKAGE}::gapDeclaredOperatingConditions"),
     }
     assert found == expected
     framing = strip_comments(FRAMING.read_text(encoding="utf-8"))
     for _, supplier in expected:
         name = supplier.split("::")[-1]
         assert re.search(rf"\b(?:requirement|part)\s+{name}\s*:", framing), f"{name} is a phase 0 record"
+
+
+def test_the_guide_places_each_scenario_in_the_declared_conditions():
+    section = re.search(r"(?ms)^## Operational context and story \(Phase 2\)\n(.*?)(?=^## )",
+                        GUIDE.read_text(encoding="utf-8"))
+    assert section, "the guide has a Phase 2 section"
+    flat = " ".join(section.group(1).split())
+    for phrase in ("**Declared conditions:** the candidate's documentation declares its hands-free mode only for "
+                   "highways and motorways with clearly marked lane lines, in fair weather and visibility, at up to "
+                   "70 mph and away from construction zones and roadwork, with a human driver supervising it at all "
+                   "times.",
+                   "`SC-DRIVING-012` and `SC-DRIVING-013` are set on a highway-type road in fair weather, inside these "
+                   "conditions.",
+                   "`SC-DRIVING-014` and `SC-DRIVING-015` lie outside them, since a tight curve and a turn at a corner "
+                   "are no highway situations. They stay in the scope, and Phase 10 reports their runs apart "
+                   "(`gapDeclaredOperatingConditions`)."):
+        assert phrase in flat, phrase

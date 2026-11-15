@@ -114,7 +114,8 @@ PHASE1_CONCERNS = {
 EXCLUDED = re.compile(r"(?i)\b(?:certif\w*|homologat\w*|complian\w*|complies|approv\w*|type.approv\w*|admi(?:t|ss)\w*|"
                       r"on-road|member products?|UNECE|R152|passe[sd]|fail(?:s|ed))\b")
 #: functions that run but that no case judges: no need of their own and no words in a need
-UNJUDGED = re.compile(r"(?i)\b(?:speed-following|lane-keeping|lane keeping|lane-departure|cruise)\b")
+UNJUDGED = re.compile(r"(?i)\b(?:speed-following|lane-keeping|lane keeping|lane-departure|cruise|speed assist\w*|"
+                      r"hands-free)\b")
 #: an anti-cheating clause belongs to a planned review's question, not to a need
 ANTI_CHEATING = re.compile(r"(?i)\b(?:autopilot|replay\w*|overlay\w*|recording|acts? instead|stands? in)\b")
 #: a value with a unit is phase 5's, derived with its provenance; a need states none
