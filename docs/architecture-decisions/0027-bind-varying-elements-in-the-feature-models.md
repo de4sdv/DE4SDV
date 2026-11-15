@@ -107,8 +107,12 @@ realization, with no helper feature and no implies constraint.
 - The pedestrian and bicycle target requirements of the AEBS
   (REQ-AEBS-010, REQ-AEBS-011, REQ-AEBS-014 and REQ-AEBS-015). They have no
   link, while the feature model holds the optional features
-  `pedestrianDetection` and `bicycleDetection`. Either the requirements or the
-  features are classified wrongly; the migration brings this to the owner.
+  `pedestrianDetection` and `bicycleDetection`. The model records their
+  applicability as open (GAP-AEBS-REQ-015 and GAP-AEBS-REQ-016).
+- The eight product requirements of INC-MW-005. Each concerns the middleware
+  integration boundary and reads as core, while a member product can have no
+  vehicle-level middleware (`middleware::none`). The migration brings their
+  classification to the owner.
 - Which requirements a receipt lists. A requirement whose subject is the
   increment or an element of System 2 belongs to no member product; the
   evaluator change defines the population.
