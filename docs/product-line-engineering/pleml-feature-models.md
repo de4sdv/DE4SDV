@@ -189,7 +189,7 @@ configuration of their family selects, or that every one selects:
 
 | Family | In every configuration | In no configuration | In no governed member yet, with no governed-scope element |
 |---|---|---|---|
-| SDV product line (6 configurations) | none | Openpilot, AUTOSAR Adaptive, main-side Android, ACRN, and the four capabilities of the catalogue | the HMI display |
+| SDV product line (6 configurations) | none | Openpilot, AUTOSAR Adaptive, main-side Android, ACRN, and pedestrian and bicycle detection | the HMI display, adaptive cruise control and lane-keep assist |
 | Engineering execution environments (2) | none | the Intel x86-64 nested-KVM host, the x86-64 Linux AOSP build, and nested-KVM Cuttlefish | none |
 | Vehicle-target execution environments (1) | NXP compute, Zephyr and native Zephyr | the three "no concrete" choices | none |
 

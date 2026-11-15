@@ -768,16 +768,20 @@ product line.
   VisionPilot, Eclipse S-CORE, Linux and KVM on the main side, Android with the
   AAOS SDV middleware in the guest, the camera alone and the HMI display, as
   DRIVING-CONFIG-001 does with AutoE2E. It selects no pedestrian or bicycle
-  detection. No requirement of the increment names the display, so no
+  detection. It selects adaptive cruise control and lane-keep assist:
+  VisionPilot runs a speed-following and a lane-keeping function, which no case
+  of this increment judges.
+  No requirement of the increment names the display, so no
   requirement depends on `hmiDisplay`. The privileged PLE authority run of the
   pull request cuts the receipt, and the configurator generates the projection
   `DriverAssistanceVisionPilotSCOREReference` from it. By the model's reading
   of the correspondences the configuration is **valid, and the governed scope
   does not admit it**: the driving stack is deferred variability, Eclipse
-  S-CORE is reference-only, the display is outside the governed scope, the
-  guest side realizes the AAOS-integrated alternative without its middleware,
-  and the configuration does not represent the common content (no Autoware, no
-  LiDAR). The receipt records the verdict.
+  S-CORE is reference-only, the display, adaptive cruise control and lane-keep
+  assist are outside the governed scope, the guest side realizes the
+  AAOS-integrated alternative without its middleware, and the configuration
+  does not represent the common content (no Autoware, no LiDAR). The receipt
+  records the verdict.
 - **The configured product.** `DRIVING-CONFIG-002` pairs the projection with
   the Phase 8 realization of the driver-assistance system and binds nothing.
   Phase 8 kept the S-CORE path outside the boundary of Phase 0, so the S-CORE

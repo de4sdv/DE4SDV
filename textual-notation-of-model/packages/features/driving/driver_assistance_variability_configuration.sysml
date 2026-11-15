@@ -28,10 +28,11 @@
  * The configuration is valid and not admitted. The model's reading of the
  * correspondences gives three reasons, and the receipt of the privileged
  * PLE authority run records the verdict. First, the selections visionPilot,
- * eclipseSCORE and hmiDisplay are content the governed scope does not
- * admit: the driving stack is deferred variability, Eclipse S-CORE is
- * reference-only, and the HMI display has no element in the governed
- * scope. Second, the guest side realizes the AAOS-integrated alternative
+ * eclipseSCORE, hmiDisplay, adaptiveCruiseControl and laneKeepAssist are
+ * content the governed scope does not admit: the driving stack is deferred
+ * variability, Eclipse S-CORE is reference-only, and the HMI display,
+ * adaptive cruise control and lane-keep assist have no element in the
+ * governed scope. Second, the guest side realizes the AAOS-integrated alternative
  * without its middleware androidSDV. Third, the configuration does not
  * represent the common content: no Autoware, no LiDAR. So the configured
  * product specializes no member-product type. ADR 0014 bounds the existing
@@ -85,6 +86,11 @@ package DE4SDV_DriverAssistanceVariabilityConfiguration {
      * content of phase 8. No requirement of the increment names the display:
      * the warning requirements name the warning request, so this package
      * adds no requirement dependency on hmiDisplay.
+     * Adaptive cruise control and lane-keep assist have no shared asset
+     * either, and the projection lists them too. VisionPilot runs a
+     * speed-following and a lane-keeping function, which no case of
+     * INC-DRIVING-002 judges and no requirement of the increment names, so
+     * no requirement depends on those two features.
      *
      * The definition specializes no member-product type, because the
      * configuration is not admitted. If the member decision after phase 10

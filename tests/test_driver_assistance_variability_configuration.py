@@ -49,8 +49,8 @@ SELECTIONS = {
     "capabilities": ("1", ()),
     "pedestrianDetection": ("0", ()),
     "bicycleDetection": ("0", ()),
-    "adaptiveCruiseControl": ("0", ()),
-    "laneKeepAssist": ("0", ()),
+    "adaptiveCruiseControl": ("1", ()),
+    "laneKeepAssist": ("1", ()),
     "hmiDisplay": ("1", ()),
 }
 
@@ -262,6 +262,8 @@ def test_the_configuration_selects_visionpilot_on_eclipse_score_with_an_aaos_sdv
     docs = _docs(CONFIGURATION)
     assert "C014 requires the camera and leaves the others selectable" in docs
     assert "Vehicle-target AEBS only (no pedestrian or bicycle detection)." in docs
+    assert ("It selects adaptive cruise control and lane-keep assist: VisionPilot runs a speed-following and a "
+            "lane-keeping function, which no case of INC-DRIVING-002 judges.") in docs
 
 
 def test_the_authority_runner_lists_the_configuration_beside_the_driving_one() -> None:
@@ -459,12 +461,14 @@ def test_the_receipt_records_what_the_configured_product_states() -> None:
     selected = set(record["selected"])
     assert {"platformStack.visionPilot", "platformStack.eclipseSCORE", "platformStack.linux", "platformStack.kvm",
             "platformStack.guestAndroid", "platformStack.guestAndroidSDV", "sensingBoundary.camera",
-            "capabilities.hmiDisplay"} <= selected
+            "capabilities.hmiDisplay", "capabilities.adaptiveCruiseControl", "capabilities.laneKeepAssist"} <= selected
     assert not {"sensingBoundary.lidar", "sensingBoundary.radar", "platformStack.autoware",
                 "platformStack.androidSDV"} & selected
     reasons = " ".join(record["admission"]["reasons"])
     for reason in ("platformStack.visionPilot: deferred drivingStackVariability", "reference-only eclipseSCORE",
-                   "capabilities.hmiDisplay: not in the governed scope", "misses derived realizations of aaosIntegrated",
+                   "capabilities.hmiDisplay: not in the governed scope",
+                   "capabilities.adaptiveCruiseControl: not in the governed scope",
+                   "capabilities.laneKeepAssist: not in the governed scope", "misses derived realizations of aaosIntegrated",
                    "does not represent the common content"):
         assert reason in reasons, reason
 
@@ -479,13 +483,15 @@ def test_the_model_reading_of_admission_gives_the_reasons_the_slice_states() -> 
     alternative, blocking = ple.admission(ple._tree(family)[1], correspondences, family_elements, selected)
     assert alternative == "vehiclePlatformIntegrationMode::aaosIntegrated"
     for reason in ("visionPilot: deferred", "eclipseSCORE: reference-only", "hmiDisplay: not in the governed scope",
+                   "adaptiveCruiseControl: not in the governed scope", "laneKeepAssist: not in the governed scope",
                    "a derived realization of vehiclePlatformIntegrationMode::aaosIntegrated is missing in middleware",
                    "InitialCommonCoreEngineeringContent::autowareApplication is not represented: autoware is not selected",
                    "InitialCommonCoreEngineeringContent::currentSensingBaseline is not represented: lidar is not selected"):
         assert reason in blocking, reason
     docs = _docs(SLICE)
     for statement in ("the driving stack is deferred variability", "Eclipse S-CORE is reference-only",
-                      "the HMI display has no element in the governed scope",
+                      "the HMI display, adaptive cruise control and lane-keep assist have no element in the governed scope",
+                      "Adaptive cruise control and lane-keep assist have no shared asset either",
                       "realizes the AAOS-integrated alternative without its middleware androidSDV",
                       "does not represent the common content: no Autoware, no LiDAR"):
         assert statement in docs, statement
@@ -625,7 +631,8 @@ def test_the_guide_describes_phase_9_and_its_decisions() -> None:
     section = " ".join(guide.split("## Variability and configuration (Phase 9)", 1)[1].split("\n## ", 1)[0].split())
     for text in (IDENTITY, "`visionPilot`", "C014", "C015", "`androidSDV`", "`autosarAdaptive`", "`noMiddleware`",
                  "`visionPilotToSCORE`", "valid, and the governed scope does not admit it", "`hmiDisplay`",
-                 "receipt", "2026-11-06",
+                 "receipt", "2026-11-06", "It selects adaptive cruise control and lane-keep assist",
+                 "the display, adaptive cruise control and lane-keep assist are outside the governed scope",
                  "2026-11-14", "`assistanceSystemOnVisionPilotFeature`", "`eclipseSCORE`", "No check reads them",
                  "(../../textual-notation-of-model/packages/features/driving/"
                  "driver_assistance_variability_configuration.sysml)",

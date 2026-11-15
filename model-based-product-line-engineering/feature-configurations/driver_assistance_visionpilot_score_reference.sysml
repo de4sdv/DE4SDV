@@ -23,7 +23,10 @@ package DE4SDV_DriverAssistanceVisionPilotSCOREReferenceConfiguration {
              * VisionPilot reads one front-camera image, so LiDAR and radar
              * are absent (C014 requires the camera and leaves the others
              * selectable). Vehicle-target AEBS only (no pedestrian or
-             * bicycle detection). */
+             * bicycle detection). It selects adaptive cruise control and
+             * lane-keep assist: VisionPilot runs a speed-following and a
+             * lane-keeping function, which no case of INC-DRIVING-002
+             * judges. */
         @ProductModelProjectionName {
             partDefinitionName = "DriverAssistanceVisionPilotSCOREReference";
         }
@@ -49,8 +52,8 @@ package DE4SDV_DriverAssistanceVisionPilotSCOREReferenceConfiguration {
         #feature occurrence :>> capabilities[1] {
             #feature occurrence :>> pedestrianDetection[0];
             #feature occurrence :>> bicycleDetection[0];
-            #feature occurrence :>> adaptiveCruiseControl[0];
-            #feature occurrence :>> laneKeepAssist[0];
+            #feature occurrence :>> adaptiveCruiseControl[1];
+            #feature occurrence :>> laneKeepAssist[1];
             #feature occurrence :>> hmiDisplay[1];
         }
     }
