@@ -14,9 +14,18 @@ T1 (provider receive) and T4 (provider publish) are *not* observable without
 instrumenting kuksa-can-provider, so they are not claimed: S1 (t0->t2) and
 S3 (t3->t5) contain them by construction and the report says so.
 
-A denied-by-routing result would show zero frames and no reply; a denied-by-
-policy result shows frames. The leakage counters make that distinction explicit
-instead of inferred.
+Isolation follows the gateway's directional policy (gateway/router.py): a
+zone's status frame is routed to the other zone's bus and must be seen there,
+its command frame must never be. Each capture of the other bus is counted once
+per run, in one `"kind": "isolation"` record per arm; a capture without the
+routed status is missing evidence, because zero forbidden frames on a path
+nobody exercised proves nothing.
+
+The `-down` records of the restart and linkloss scenarios pass only when the
+expected negative is observed: the client wrote the target and the value did
+not converge while the zone was down. A client that never wrote is missing
+evidence, not an outage. The exit code is 0 only when every record met its
+expectation and every isolation record holds.
 """
 
 from __future__ import annotations
@@ -53,8 +62,44 @@ ARMS = {
     ),
 }
 STATUS_ID = {"headlamp": 0x181, "wiper": 0x281}
+# The gateway's policy seen from the other zone's bus: status crosses, commands do not.
+ROUTED_STATUS = STATUS_ID
+DENIED_COMMAND = {"headlamp": 0x180, "wiper": 0x280}
 ZONE = {"headlamp": "vx-zone-fl-payload", "wiper": "vx-zone-rl-payload"}
 OTHER = {"headlamp": "vx-zone-rl-payload", "wiper": "vx-zone-fl-payload"}
+
+
+def expected_outcome(label: str | None) -> str:
+    """`-down` records are taken while the zone is stopped or cut off."""
+    return "no-converge" if (label or "").endswith("-down") else "converge"
+
+
+def command_problem(rec: dict) -> str | None:
+    """None when a command record shows what its scenario expects."""
+    if rec.get("t0") is None:
+        return "missing evidence: the client never wrote the target"
+    if (rec.get("expected") or expected_outcome(rec.get("label"))) == "converge":
+        return None if rec.get("ok") else "did not converge"
+    return "converged while the zone was down" if rec.get("ok") else None
+
+
+def isolation_counts(arm: str, other_frames) -> dict:
+    """Count one capture of the other zone's bus, once."""
+    return {
+        "routed_status_id": f"0x{ROUTED_STATUS[arm]:03X}",
+        "routed_status_frames": sum(1 for _, fid, _ in other_frames if fid == ROUTED_STATUS[arm]),
+        "denied_command_id": f"0x{DENIED_COMMAND[arm]:03X}",
+        "denied_command_frames": sum(1 for _, fid, _ in other_frames if fid == DENIED_COMMAND[arm]),
+        "frames": len(other_frames),
+    }
+
+
+def isolation_problem(iso: dict) -> str | None:
+    if iso.get("denied_command_frames", 0) > 0:
+        return f"{iso['denied_command_frames']} forbidden command frames on the other bus"
+    if not iso.get("routed_status_frames"):
+        return "missing evidence: no routed status on the other bus, the path was not exercised"
+    return None
 
 
 def sh(cmd: str, timeout: int = 60) -> subprocess.CompletedProcess:
@@ -237,6 +282,7 @@ def main() -> int:
 
     # re-correlate now that the captures are complete
     for rec in records:
+        rec.pop("leaks", None)  # isolation is judged per capture below, not per command
         arm = rec.get("arm")
         if not arm or not rec.get("t0"):
             continue
@@ -254,24 +300,31 @@ def main() -> int:
         rec["s3"] = (rec["t5"] - t3) if (t3 and rec.get("t5")) else None
         rec["total"] = (rec["t5"] - rec["t0"]) if rec.get("t5") else None
         rec["cmd_seen"], rec["ack_seen"] = t2 is not None, t3 is not None
-        # Only this ECU's frame ids on the other zone's bus count as leakage.
-        # The other bus constantly carries its own status frames, so counting
-        # every known id there would report thousands of false positives.
-        own_ids = {0x180, 0x181} if arm == "headlamp" else {0x280, 0x281}
-        rec["leaks"] = {
-            "other_bus_frames_of_this_ecu": sum(1 for _, fid, _ in other[arm] if fid in own_ids),
-        }
         # A steady state can put a matching frame on the bus with no new command
         # behind it, so frame presence is not evidence in the down-state records.
         rec["frame_presence_is_evidence"] = bool(rec.get("ok"))
 
+    for rec in records:
+        rec["expected"] = expected_outcome(rec.get("label"))
+        rec["problem"] = command_problem(rec)
+    isolation = []
+    for arm in ARMS:
+        iso = {"kind": "isolation", "label": args.scenario, "rep": args.rep, "arm": arm,
+               "bus": OTHER[arm], **isolation_counts(arm, other[arm])}
+        iso["problem"] = isolation_problem(iso)
+        isolation.append(iso)
+
     with open(args.out, "a") as fh:
-        for rec in records:
+        for rec in records + isolation:
             fh.write(json.dumps(rec) + "\n")
 
     ok = sum(1 for r in records if r.get("ok"))
-    print(f"{args.scenario} rep{args.rep}: {ok}/{len(records)} converged -> {args.out}")
-    return 0 if ok == len(records) else 1
+    bad = [r for r in records + isolation if r["problem"]]
+    print(f"{args.scenario} rep{args.rep}: {ok}/{len(records)} converged, "
+          f"{len(bad)} unmet expectations -> {args.out}")
+    for r in bad:
+        print(f"  {r.get('kind', 'command')} {r.get('label')} {r.get('arm')} idx={r.get('idx')}: {r['problem']}")
+    return 0 if records and not bad else 1
 
 
 if __name__ == "__main__":
