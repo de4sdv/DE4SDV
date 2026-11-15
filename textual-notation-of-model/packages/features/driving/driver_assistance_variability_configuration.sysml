@@ -23,7 +23,9 @@
  * declared with their clients, in the rule's dependency form: the framing
  * links the system of interest to the feature visionPilot, and the
  * requirements package links each requirement that names the Eclipse
- * S-CORE path to the feature eclipseSCORE. This package holds none of them.
+ * S-CORE path to the feature eclipseSCORE and each requirement that names
+ * the warning request, which asks the AAOS SDV for the warning, to the
+ * feature guestAndroidSDV. This package holds none of them.
  *
  * The configuration is valid and not admitted. The model's reading of the
  * correspondences gives three reasons, and the receipt of the privileged

@@ -802,9 +802,12 @@ product line.
   clients: `assistanceSystemOnVisionPilotFeature` from the system of interest
   to `visionPilot` in the framing, and one dependency each from REQ-DRIVING-038,
   REQ-DRIVING-039, REQ-DRIVING-042 and REQ-DRIVING-043 to `eclipseSCORE` in the
-  requirements package. The requirements follow their subject to VisionPilot;
-  each of the four adds the middleware that its statement names, directly or
-  through the term *boundary*. No check reads them:
+  requirements package. REQ-DRIVING-040, REQ-DRIVING-042 and REQ-DRIVING-043
+  also depend on `guestAndroidSDV`: their term *warning request* asks the AAOS
+  SDV for the warning, and the guest-middleware group has a none alternative.
+  The requirements follow their subject to VisionPilot; each link adds a
+  middleware that the statement names, directly or through a term. No check
+  reads them:
   `tests/test_driver_assistance_variability_configuration.py` pins each link,
   and that no feature-model or configuration document names an element of the
   increment.

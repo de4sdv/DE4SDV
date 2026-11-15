@@ -328,6 +328,13 @@ REQUIREMENT_LINKS = {
     "reqWarningRequestBeforeEmergencyBrakingOnEclipseSCORE": ("reqWarningRequestBeforeEmergencyBraking", "eclipseSCORE"),
     "reqWarningRequestOverSCOREOnEclipseSCORE": ("reqWarningRequestOverSCORE", "eclipseSCORE"),
 }
+#: The requirements whose term warning request names the AAOS SDV, which the guest-middleware group can leave out.
+GUEST_LINKS = {
+    "reqWithholdWarningRequestOnGuestAndroidSDV": ("reqWithholdWarningRequest", "guestAndroidSDV"),
+    "reqWarningRequestBeforeEmergencyBrakingOnGuestAndroidSDV": ("reqWarningRequestBeforeEmergencyBraking",
+                                                                "guestAndroidSDV"),
+    "reqWarningRequestOverSCOREOnGuestAndroidSDV": ("reqWarningRequestOverSCORE", "guestAndroidSDV"),
+}
 
 #: projection selection -> (variation, variant, the definition the variant is typed by)
 LAYERS = {
@@ -521,7 +528,7 @@ def test_each_requirement_that_names_the_score_path_links_to_eclipse_score() -> 
     the hand-over to the S-CORE path. No requirement repeats its subject's link."""
     links = _feature_links(NEEDS)
     assert {name: link for name, link in links.items() if link[1] == "eclipseSCORE"} == REQUIREMENT_LINKS
-    assert links == REQUIREMENT_LINKS
+    assert links == {**REQUIREMENT_LINKS, **GUEST_LINKS}
     raw = NEEDS.read_text(encoding="utf-8")
     for client, identifier in (("reqDrivingCommandOverSCORE", "038"), ("reqDetectableDrivingCommand", "039"),
                                ("reqWarningRequestBeforeEmergencyBraking", "042"), ("reqWarningRequestOverSCORE", "043")):
@@ -642,3 +649,22 @@ def test_the_guide_describes_phase_9_and_its_decisions() -> None:
         assert count not in section, "the guide quotes no count the receipt has not produced"
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
     assert "tests/test_driver_assistance_variability_configuration.py" in check
+
+
+def test_each_requirement_that_names_the_warning_request_links_to_the_aaos_sdv_guest_middleware() -> None:
+    """The term warning request is the output by which the system asks the AAOS SDV for the collision warning, and
+    the guest-middleware group has a none alternative: REQ-DRIVING-040, -042 and -043 apply only where the AAOS SDV
+    guest middleware is selected. 042 and 043 then carry two links of their own, which the dependency form reads as
+    both."""
+    links = _feature_links(NEEDS)
+    assert {name: link for name, link in links.items() if link[1] == "guestAndroidSDV"} == GUEST_LINKS
+    raw = NEEDS.read_text(encoding="utf-8")
+    statements = dict(re.findall(r"requirement <'(REQ-DRIVING-\d+)'> \w+ : \w+ \{\s*subject [^;]+;\s*require constraint "
+                                 r"statement \{ language \"English\" /\* (.*?) \*/ \}", raw, re.S))
+    assert sorted(i for i, s in statements.items() if "warning request" in s) == [
+        "REQ-DRIVING-040", "REQ-DRIVING-042", "REQ-DRIVING-043"]
+    assert ("Warning request: the output by which the driver-assistance system asks the AAOS SDV to give the driver "
+            "the collision warning.") in _docs(NEEDS)
+    section = " ".join(GUIDE.read_text(encoding="utf-8").split("## Variability and configuration (Phase 9)", 1)[1]
+                       .split("\n## ", 1)[0].split())
+    assert "`guestAndroidSDV`" in section

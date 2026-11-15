@@ -370,6 +370,23 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
   dependency reqWarningRequestOverSCOREOnEclipseSCORE
     from reqWarningRequestOverSCORE
     to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::eclipseSCORE;
+  /* REQ-DRIVING-040, REQ-DRIVING-042 and REQ-DRIVING-043 name the warning
+   * request, the output by which the system asks the AAOS SDV to give the
+   * driver the collision warning, and REQ-DRIVING-043 names the AAOS SDV
+   * itself. The guest-middleware group has a none alternative, so each
+   * applies only where the AAOS SDV guest middleware is selected and depends
+   * on the feature guestAndroidSDV. REQ-DRIVING-042 and REQ-DRIVING-043 then
+   * carry two links of their own; in the dependency form, several links name
+   * all their features. */
+  dependency reqWithholdWarningRequestOnGuestAndroidSDV
+    from reqWithholdWarningRequest
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::guestAndroidSDV;
+  dependency reqWarningRequestBeforeEmergencyBrakingOnGuestAndroidSDV
+    from reqWarningRequestBeforeEmergencyBraking
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::guestAndroidSDV;
+  dependency reqWarningRequestOverSCOREOnGuestAndroidSDV
+    from reqWarningRequestOverSCORE
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::guestAndroidSDV;
 
   connection emergencyBrakingForImminentCollisionDerivation : DerivesFromNeed
     connect needWarnAndBrakeForVehicleAhead to reqEmergencyBrakingForImminentCollision;
