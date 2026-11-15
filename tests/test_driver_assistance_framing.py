@@ -287,6 +287,7 @@ def test_increment_declares_the_phase_zero_shape():
     assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
         PACKAGE, "DE4SDV_DriverAssistanceOperationalContext", "DE4SDV_DriverAssistanceCapabilityClassification",
         "DE4SDV_DriverAssistanceNeedsRequirements", "DE4SDV_DriverAssistanceFunctionalArchitecture",
+        "DE4SDV_DriverAssistanceLogicalArchitecture",
     ], "the charter names only the packages that hold content today"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
@@ -585,8 +586,8 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "
-            "Phase 4 stakeholder needs, Phase 5 requirements and Phase 6 functional architecture, proposal.**") \
-        in _flat(guide)
+            "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture and Phase 7 logical "
+            "architecture, proposal.**") in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part driverAssistanceQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -610,7 +611,7 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "the increment builds none of them.",
                    "It is no statement about compliance or type approval.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The next model obligation is **Phase 7**: the logical architecture",
+                   "The next model obligation is **Phase 8**: the physical and software realization",
                    "the clauses for a vehicle target are not yet anchored there."):
         assert phrase in flat, phrase
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])

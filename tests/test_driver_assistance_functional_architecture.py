@@ -783,8 +783,10 @@ def test_the_guide_has_a_phase_6_section_and_names_phase_7_next():
         assert phrase in section, phrase
     flat = " ".join(guide.split())
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "
-            "Phase 4 stakeholder needs, Phase 5 requirements and Phase 6 functional architecture, proposal.**") in flat
-    assert ("The next model obligation is **Phase 7**: the logical architecture, which allocates each function to a "
-            "logical element; its first gate is `functionAllocatedToLogicalElement`.") in flat
+            "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture and Phase 7 logical "
+            "architecture, proposal.**") in flat
+    assert ("The next model obligation is **Phase 8**: the physical and software realization, which allocates each "
+            "logical element to a physical element; its first gate is `logicalElementAllocatedToPhysicalElement`.") \
+        in flat
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
     assert "tests/test_driver_assistance_functional_architecture.py" in check
