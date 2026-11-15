@@ -65,6 +65,17 @@ then, the YAML authority of ADR 0014 stays in force.
 > included. In the feature model, `guestAndroid` and `guestAndroidSDV`
 > correspond to AAOS Integrated, and `noGuestOS` and `noGuestMiddleware` to
 > Standalone. The decision itself is unchanged.
+>
+> Note (2026-11-15):
+> [ADR 0027](0027-bind-varying-elements-in-the-feature-models.md) amends
+> decisions 3 and 5. The integrity of the bindings covers the binding of a
+> varying element and the link that follows a derived adapter. The receipts
+> list the elements and the requirements of each member product. Decision 4
+> stands and is extended: an element that by itself needs an application and a
+> middleware follows the derived adapter, with no helper feature and no
+> implies constraint. The confinement of decision 1 stands: the link is owned
+> in a feature-model package, so the package of the bound element does not
+> import PLEML. The decision itself is unchanged.
 
 ## Context
 

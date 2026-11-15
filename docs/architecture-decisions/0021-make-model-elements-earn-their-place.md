@@ -18,6 +18,16 @@ Proposed
 > configuration evaluator binds requirement variants. Rule 5 of the
 > [increment workflow](../../methodologies/sysmod-sysmlv2/increment-workflow.md#method-rules-and-the-increment-workflow-model)
 > states the current rule. The decision text below is unchanged.
+>
+> Note (2026-11-15): the note of 2026-10-22 says that phase 9 binds no
+> requirement variant to a feature until the PLEML configuration evaluator
+> binds requirement variants. Under
+> [ADR 0027](0027-bind-varying-elements-in-the-feature-models.md), phase 9
+> binds the system of interest, or an element that needs more than its
+> subject brings, by one link in the feature-model document, and the
+> configuration evaluator reads it. Until the evaluator change lands and the
+> existing links have moved, rule 5's dependency form governs. The decision
+> text below is unchanged.
 
 ## Context
 

@@ -109,6 +109,8 @@ Each record's own Status section is authoritative.
   member](0025-end-someip-in-an-sdv-core-vm.md)
 - [ADR 0026: An HMI display in every member
   product](0026-hmi-display-in-every-member-product.md)
+- [ADR 0027: Bind varying elements to features in the feature
+  models](0027-bind-varying-elements-in-the-feature-models.md)
 
 ## Template
 

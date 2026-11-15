@@ -275,8 +275,10 @@ before requirements and architecture; core elements are common by default
 and get no record. Phase 9 takes the variation points that accumulated
 through phases 6–8 (sensor suite options, middleware alternatives, platform
 stack choices) and assembles them into configured product models.
-Requirements are not among them: a requirement varies with the features that
-bring its system of interest (rule 5 of the
+Requirements are no variation points: a requirement varies with the features
+that bring its system of interest, and Phase 9 binds that system of interest,
+or a requirement that needs more, by one link in the feature-model document
+(rule 5 of the
 [increment workflow](increment-workflow.md#method-rules-and-the-increment-workflow-model)).
 A feature candidate from Phase 3 becomes a variation point in Phase 9 once
 member-product variability is shown; core elements are shared assets.
