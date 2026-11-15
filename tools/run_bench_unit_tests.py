@@ -32,6 +32,11 @@ class GitInventoryError(RuntimeError):
 # (bench packages imported as bare modules by their tests).
 SUITES: list[dict[str, object]] = [
     {
+        "name": "virtual-ee (contract, runtime and evidence)",
+        "tests": ["de4sdv-virtual-ee/checks/tests"],
+        "pythonpath": [],
+    },
+    {
         "name": "aaos-sdv-reference-interop-bench",
         "tests": [
             "implementation/aaos-sdv-reference-interop-bench/tests",

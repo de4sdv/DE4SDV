@@ -18,9 +18,9 @@ transport, E2E protection, segmentation for payloads over the UDP MTU, and
 session handling. Endpoints are static, which is the trade the increment's scope
 records.
 
-The point of owning this file rather than depending on a stack is the same as
-for `transport/bridge.py`: the wire format stays inspectable in a capture, and
-no third-party licence or behaviour enters an image we might publish.
+The small codec keeps the experiment's supported wire fields inspectable. It is
+not a full middleware stack, and its source licence says nothing about the
+licences of other components included in a container image.
 """
 
 from __future__ import annotations

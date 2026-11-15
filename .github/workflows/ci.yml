@@ -39,6 +39,7 @@ jobs:
         run: >-
           python -m pip install --disable-pip-version-check
           PyYAML==6.0.2 pytest sysand==0.1.0 -r requirements-mcp.txt
+          -r de4sdv-virtual-ee/checks/requirements-dev.txt
 
       - name: Sync pinned SysML dependencies
         run: sysand sync

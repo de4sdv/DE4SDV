@@ -9,6 +9,11 @@ virtual E/E feasibility plan. The control-plane side (vxedge vehicle, gateway,
 slices, zone provisioning) lives on the testbed host; what is versioned here is
 everything that must survive the testbed.
 
+**Acceptance status: reopened after review.** Historical measurements remain
+useful, but do not establish acceptance of the repaired revision. Current closure
+requires fail-closed verdicts, the routed failure matrix, full executed-input
+identity and exact-image inventories. See [`REPORT.md`](REPORT.md).
+
 ## Signal contract
 
 Two frames per ECU, request and status. Every status frame carries the sequence
@@ -41,7 +46,7 @@ Three deliberate choices:
 versions.md                   pins and licences of every upstream component
 dbc/headlamp.dbc              frame layout, VAL_ tables, comments
 dbc/wiper.dbc
-dbc/dbc_default_values.json   every signal of every transmitted frame (--dbc_default)
+dbc/dbc_default_values.json   every signal of every transmitted frame (--dbc-default)
 vss/mapping/vss_dbc.json      VSS tree + dbc2vss/vss2dbc per leaf (source of truth)
 vss/mapping/headlamp.json     per-zone mapping, generated (a zone's provider gets only its own signals)
 vss/mapping/wiper.json
@@ -74,7 +79,7 @@ backbone-plan.md              scope of the next increment: Ethernet spine, servi
 results/                      the committed demo archive, with its own manifest
 REPORT.md                     the feasibility report: gates, demo numbers, limits
 sbom/                         CycloneDX 1.7 for both images, gzipped, plus how to regenerate
-upstream-reports/             two upstream defects, drafted and not filed
+upstream-reports/             local observations, not approved upstream reports
 orchestration/                Ankaios spike: the same workloads under a second orchestrator
 landscape.md                  all 37 Eclipse SDV projects: use, track, or skip, with reasons
 vehicle/vehicle.yaml          the vehicle composition: zones, devices, links, services
@@ -90,9 +95,10 @@ deployment-gaps.md            the deployment plane a production SDV needs, and w
 `vehicle/` is a `vxp/1` package, not a folder of documents: it is locked, packed to
 `sha256:45ac175e…`, signed with a lab key, and the host runs it only because the
 policy found that verification record. Its two images are pinned by digest from a
-registry on the host, and a moved tag does not change what runs. That registry is a
-lab fixture on loopback with no auth, so the refs are not publishable as they stand
-— [`deployment-gaps.md`](deployment-gaps.md) says what publishing would need.
+registry on the host, and a moved tag does not change what runs. The loopback
+registry uses private-CA TLS and operator-owned authentication; it is not a public
+image distribution endpoint. [`deployment-gaps.md`](deployment-gaps.md) and
+[`versions.md`](versions.md) separate deployment from publication obligations.
 
 `vss/metadata.json` is generated from the mapping by stripping `dbc2vss` and
 `vss2dbc`; the two must never be edited apart.
@@ -103,8 +109,12 @@ lab fixture on loopback with no auth, so the refs are not publishable as they st
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r de4sdv-virtual-ee/checks/requirements-dev.txt
 python de4sdv-virtual-ee/checks/check_contract.py
-python de4sdv-virtual-ee/checks/test_zone_ecu.py
+python -m pytest de4sdv-virtual-ee/checks/tests -q
 ```
+
+The collectable suite executes the original standalone contract/plant/bridge/
+codec checks plus refusal-path tests. CI registers it in the isolated bench
+runner, with its declared dependencies; passing root tests alone is not coverage.
 
 `check_contract.py` proves the four-way consistency: both DBCs parse, every
 mapping signal exists, the defaults cover every frame the provider may transmit,
@@ -146,9 +156,11 @@ de4sdv-virtual-ee/checks/run_demo.sh --keep     # leave the vehicle up to look a
 It writes `results/<utc>-<sha>/` with `manifest.json` (sha, lock hash, image
 digests, OTA root), four `candump` traces, `slice.pcap`, `commands.jsonl`,
 `uds.txt`, the container logs, `gateway-stats.txt`, and `summary.json`/`.txt`.
-It exits non-zero if a denied frame crossed, nothing converged, or the
-diagnostic did not come back. A committed run is under `results/`, and
-[`REPORT.md`](REPORT.md) reads it.
+Current acceptance requires every declared transition, nonempty required captures,
+matched command/status and routed evidence, forbidden-command isolation, a genuine
+positive UDS response and an executed-input identity. Missing evidence must fail,
+not be read as zero leakage. Earlier committed runs are historical, not repaired
+revision acceptance; [`REPORT.md`](REPORT.md) states the boundary.
 
 ## Run the backbone measurement
 
@@ -184,7 +196,11 @@ in a table with sample counts, not in prose.
 
 ## Gate 2 result — failure matrix (testbed, 2026-11-14)
 
-3 repetitions per scenario, 6 iterations per repetition per arm, 150 records.
+Historical pre-router campaign: 3 repetitions per scenario, 6 iterations per
+repetition per arm, 150 records. The original raw matrix is not committed.
+Its zero-foreign-frame rule is not applicable after intentionally routing status
+frames; the current matrix must distinguish permitted statuses from forbidden
+commands and count each capture once.
 
 | scenario | arm | n | converged | S1 med/p95 ms | S2 med/p95 ms | S3 med/p95 ms |
 |---|---|---:|---:|---|---|---|
@@ -238,10 +254,12 @@ rear-ward, `0x180` (headlamp command) may not; `0x281` (wiper status) travels
 front-ward, `0x280` (wiper command) does not. A zone observes its neighbours; no
 zone actuates another's hardware.
 
-The transport is [`transport/bridge.py`](transport/bridge.py): one CAN frame
-becomes one UDP datagram, fixed 17-byte framing, no batching. It exists because
-the first pass used a GPL-2.0 third-party tunnel, and an image we might publish
-should not carry copyleft to move bytes. Every measurement below is that bridge.
+The transport is [`transport/bridge.py`](transport/bridge.py): one classic CAN
+frame per 17-byte datagram, with no batching. The initial feasibility pass ran
+cannelloni as a separate program; the current recipes use a smaller,
+non-compatible framing protocol. [`versions.md`](versions.md) records that
+history without claiming clean-room authorship or whole-image licence clearance.
+The comparison below is historical; its original raw campaign is not committed.
 
 | transport | direction | pairs | median | min / max |
 |---|---|---:|---|---|

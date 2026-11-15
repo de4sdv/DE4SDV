@@ -64,8 +64,8 @@ COPY vss/ /opt/zone/vss/
 COPY zones/entrypoint.sh /opt/zone/entrypoint.sh
 COPY zones/zone_ecu.py /opt/zone/zone_ecu.py
 COPY zones/dbc_feeder.ini /opt/zone/dbc_feeder.ini
-# The bus tunnel is DE4SDV code, not a third-party binary: plain CAN frames over
-# UDP, no batching, and no copyleft in an image we might publish.
+# One classic CAN frame per datagram, using the testbed's D4E1 framing.
+# Image-level third-party licences remain documented in versions.md.
 COPY transport/bridge.py /opt/zone/bridge.py
 # The backbone service endpoint: the same zone controller exposes a service on
 # the spine as it does a CAN function on the edge.

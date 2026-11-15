@@ -1,28 +1,31 @@
 # Virtual E/E — feasibility report
 
-What was built, what it proves, what it does not. Every number here has a
-sample count and an archive behind it. Written against the success definition in
-the feasibility plan: a zero-licence-cost, reproducible, functional
-software-in-the-loop zonal demonstrator, with an honest statement of what each
-gate did and did not prove.
+Historical feasibility measurements and the acceptance boundary for this
+software-in-the-loop zonal demonstrator. Existing archives are retained unchanged.
+Some early campaigns have only the reported figures, not committed raw records;
+those figures are not exact-revision acceptance evidence.
+
+**Review status: acceptance reopened.** The original evaluators could admit
+incomplete or failed runs, the routing topology outgrew the old isolation check,
+and the source/image identities were incomplete. Local repairs and fresh
+committed-input execution must be verified before this increment is called closed.
 
 Date: 2026-11-15. Testbed: GCP `e2-standard-4`, Ubuntu 24.04, kernel
 7.0.0-1017-gcp, vxedge 0.30.0, rootless Podman.
 
 ## 1. Verdict
 
-**The architecture works and the gates pass. The demonstrator is real but
-narrow: one host, CAN only, containers on one kernel.**
+**The historical runs show a narrow functional demonstrator: one host,
+virtual CAN, routed UDP, a small SOME/IP service plane, and containers on one
+kernel. They do not prove acceptance of the repaired revision.**
 
-- Functional: both functions close the loop through the signal plane, one
-  diagnostic crosses a policy gateway to an ECU in another zone, and nothing
-  crosses that the policy denies.
-- Cost: **≈ €0.75** of compute so far (a test day is ~€1.50), **€0** of software licences. No copyleft in
-  code DE4SDV writes or links (see §7 for the precise claim).
-- Reproducible **by rebuild**, not by pull: every input is pinned and every
-  image is built from a pinned commit, but the images live in a loopback
-  registry, so a stranger cannot `experiment up` this package without building
-  it first (§8).
+- Historical captures show closed loops, a routed diagnostic and policy counters.
+  Their summaries can be recomputed, but the old pass conditions were incomplete.
+- The earlier compute estimate was approximately €0.75, not a current billing
+  record. No paid software licence was required; that does not remove third-party
+  licence or distribution obligations (§7).
+- Image identities are digest-pinned; rebuilding is not fully hermetic (§8).
+  Images remain in an operator-owned loopback registry, not a public registry.
 - Not production, not certified, and not a latency predictor (§5).
 
 ## 2. What exists
@@ -54,7 +57,13 @@ gateway that decides per frame. Policy, counted on the wire and at the gateway:
 | front → rear | `0x181` (headlamp status), `0x7E0` (diagnostic request) | `0x180` (headlamp command) |
 | rear → front | `0x281` (wiper status), `0x7E8` (diagnostic response) | `0x280` (wiper command) |
 
-## 3. Gates
+## 3. Historical gate reports
+
+The table records the earlier reported outcomes, not current-head acceptance.
+The original raw gate-2 matrix and several earlier comparison campaigns are not
+committed here. The later demo archive is not a substitute for those raw runs.
+Its twelve-command scenario also differs from the current sixteen-transition
+driver; do not relabel its manifest or apply a new acceptance label to it.
 
 | gate | what it had to show | result | evidence |
 |---|---|---|---|
@@ -196,21 +205,23 @@ Archive: `results/20261115T022807Z-04ee8739-gate-schedule/`.
   offset just after boot, **44 µs** once chrony converges, and PTP unicast locks
   but does not beat it — [`time-sync.md`](time-sync.md) has the numbers and what a
   cross-host claim would need.
-- **No Ethernet backbone, no SOME/IP, no service discovery.** The vehicle network
-  modelled here is CAN plus VLAN-separated IP.
+- **Only a narrow Ethernet service plane.** The owned SOME/IP subset exercises
+  static endpoints, methods and events. There is no service discovery, complete
+  middleware implementation, physical switch/PHY, or inter-host trunk.
 - **No safety, no security certification.** No secure boot, no MACsec, no IDS,
   no ASIL claim.
 
 ## 6. What broke while building it
 
-Each of these cost real time; all are fixed and visible in the code.
+These historical implementation problems informed the current recipes. This
+list is not an assertion that every runtime or acceptance defect is closed.
 
 | symptom | cause | fix |
 |---|---|---|
 | a zone died at boot, `vehicle status` still said up | the provider hit `connection refused` before the broker answered; the entrypoint treated any dead child as a dead zone | bounded 60 s wait on the broker port, provider supervised, only the plant exiting ends the zone |
 | teardown hung forever | `wait` on a supervisor that restarts forever | stop flag, no `wait`; teardown returns |
 | a broken package reported `succeeded` | the orchestrator has no health gate | our own probe on the zone's **own** status frame |
-| the routed path read 25× slow | the first transport buffered 100 ms by default | wrote `transport/bridge.py`: one frame, one datagram, no buffer knob (and no GPL) |
+| the routed path read 25× slow | the first transport buffered 100 ms by default | selected a narrow single-frame `transport/bridge.py`; separate component licensing/provenance review remains necessary |
 | `pkg lock` rejected the package id | the name after `/` must equal the experiment id | `id: de4sdv-virtual-ee` |
 | `podman` refused the registry | plain HTTP to `localhost:5000` | `[[registry]] insecure = true` drop-in |
 | a push left no local image | push goes to the registry, not to local storage | read the digest from the registry API |
@@ -221,41 +232,47 @@ Each of these cost real time; all are fixed and visible in the code.
 
 ## 7. Licence position
 
-Not "GPL-free". The accurate claim:
+The images contain GPL/LGPL and other third-party components. `python-can` is
+imported by the Python application; Debian tools run as separate programs.
+Neither Python imports nor container packaging remove the applicable obligations.
 
-- **No copyleft in code DE4SDV writes or links.** The one copyleft component in
-  the first pass (a GPL-2.0 CAN tunnel) was removed and replaced with our own
-  transport.
-- Imported LGPL: `python-can` (LGPL-3.0), dynamically, unmodified.
-- Unmodified GPL programs used as tools: `iproute2`, `can-utils`, `git`.
-- `libstdc++6` under GPL-3.0 **with the GCC runtime exception**.
+Removing cannelloni from the recipes removes that component, not every copyleft
+component. The replacement's declared source licence is not proof of clean-room
+authorship. [`versions.md`](versions.md) records the factual provenance boundary,
+component licences and the review needed before distributing exact images.
 
-Per-image component counts and the licence distribution are in `sbom/`
-(CycloneDX 1.7: 5 427 components for the zone image, 3 474 for the gateway).
+[`sbom/`](sbom/README.md) describes digest-bound inventory generation. The original
+zone-image-10 inventory is historical, not evidence for later zone images; quote
+counts only from an inventory whose binding check passes for the current baseline.
+An inventory is not legal clearance.
 
 ## 8. Reproducibility
 
-**By rebuild: yes.** The lock pins five images by digest, the container files pin
-their upstream commits, `versions.md` records every version and licence, and the
-demo's `manifest.json` records the lock hash, the OTA root and every image digest
-for the run it belongs to.
+**Rebuildable recipes, not a byte-reproducible build claim.** Application sources
+and executable images have pins, but base-image tags and distribution package
+resolution do not make the full build hermetic. Rebuilding may produce a different
+image digest. A run must identify the resulting images, not assume equality.
 
-**By pull: no.** `localhost:5000` is a loopback registry without authentication
-and the package is signed with a lab key that stays on the testbed. A third party
-rebuilds from source; they cannot pull our artifacts. That is a deliberate lab
-fixture, not an oversight — publishing them is a separate decision with a cost
-and an owner.
+The earlier archives carry short/stale or unknown Git identities and do not bind
+all executed harness/configuration bytes. Preserve those identities as recorded.
+New acceptance needs a committed checkout, full commit/tree identity, scoped
+cleanliness, content-addressed runtime inputs, locked images and active deployment
+identity, checked before and after execution.
+
+**By public pull: no.** The registry is loopback-only, with private-CA TLS and
+operator-owned authentication. The lab signing key and credentials stay on the
+host. A third party builds and signs their own package; making images public is
+a separate approval and distribution-compliance decision.
 
 ## 8b. State of this testbed
 
-**Closed as an increment on 2026-11-15.** Every gate in the feasibility plan and
-every gate in the backbone increment has a result, the archives are committed, and
-nothing here is half-built: what does not exist is listed as not existing, with the
-reason.
+**The earlier closure claim is withdrawn pending repaired acceptance.** Required
+closure is a fail-closed demo, policy-aware failure matrix, service-plane regression,
+executed-byte identities, current digest-bound SBOMs and independent review.
+Historical gate numbers alone do not close those obligations.
 
-The open items are all *candidates*, not commitments: a trunk (which would make B3
-measurable and a vehicle span hosts), OpenSOVD for the diagnostic surface, the OTA
-client and A/B banks, and multi-host when vxedge provisions its VXLAN tunnel kind.
+A trunk, OpenSOVD, device-side OTA/A-B banks and multi-host remain candidates,
+not additions to this repair. External engagement is outside this change.
 
 ## 9. Recommended next step
 
@@ -272,16 +289,12 @@ tail) without beating the platform, because every timestamp here is software on 
 virtual NIC. So the rule for any future cross-host run is: measure the offset in
 the same window, state it, correct by it. No PTP service to operate.
 
-What is actually available to do next, in order of value:
+The next action is **repair and rerun this increment**, not another feature.
+First make the DBC/VSS restbus campaign independently reproducible: both directions,
+repeated commands, outage/restart expectations, permitted and forbidden traffic,
+and exact executed inputs. Only then consider a bounded interoperability campaign.
 
-1. **OpenSOVD** — the diagnostic surface. The gateway already proves the path a
-   real SOVD server would use, and vehicle diagnostics is where a production
-   zonal architecture spends most of its wire time.
-2. **The OTA client gap** — `vxota` serves content-addressed, resumable
-   artifacts, but nothing on the vehicle consumes them; "over the air" is still
-   host-applied.
-3. **A/B banks with automatic revert** — today's rollback is an orchestrated
-   `experiment up` of package A, not a device-side bank switch.
-4. **Multi-host**, when vxedge ships its remote API.
+OpenSOVD, a device-side OTA client, A/B banks and multi-host stay deferred. None is
+needed to establish whether this demonstrator's current verdicts are trustworthy.
 
 SIL Kit and openDuT stay optional, with the triggers recorded in `landscape.md`.

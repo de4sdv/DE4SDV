@@ -7,7 +7,7 @@ Proves four things without a VM, a bus or a databroker:
 2. every signal referenced by the VSS mapping exists in a DBC, and every signal
    that the mapping claims to carry in each direction is really there;
 3. ``dbc_default_values.json`` covers every signal of every frame the provider
-   may transmit (``vss2dbc``), which is what ``--dbc_default`` refuses to start
+   may transmit (``vss2dbc``), which is what ``--dbc-default`` refuses to start
    without;
 4. every enumerated VSS leaf with ``allowed`` values agrees with the DBC ``VAL_``
    table it is mapped from, so a VSS client can never receive a label the
@@ -56,6 +56,7 @@ def walk(node: dict, path: str = "Vehicle"):
 
 
 def main() -> int:
+    errors.clear()
     db, mapping = load_contract()
 
     signals = {s.name: (m.name, s) for m in db.messages for s in m.signals}
@@ -85,22 +86,28 @@ def main() -> int:
 
         allowed = leaf.get("allowed")
         if allowed:
-            # every label the VSS client may see must be a DBC value-table entry
-            names = {s for _, s in dbc2vss if _ == path}
-            for sig_name in names:
+            allowed_labels = {str(value) for value in allowed}
+            for direction in ("dbc2vss", "vss2dbc"):
+                block = leaf.get(direction)
+                if not block or block["signal"] not in signals:
+                    continue
+                sig_name = block["signal"]
                 sig = signals[sig_name][1]
                 if sig.choices is None:
                     fail(f"{path}: VSS enumerates {allowed} but DBC signal {sig_name} has no VAL_ table")
                     continue
-                missing = [v for v in allowed if v not in sig.choices.values()]
+                labels = {str(value) for value in sig.choices.values()}
+                # A status must never publish a label the broker rejects; every
+                # allowed actuator target must be encodable in the command DBC.
+                missing = labels - allowed_labels if direction == "dbc2vss" else allowed_labels - labels
                 if missing:
-                    fail(f"{path}: VSS allows {missing} but DBC {sig_name} enumerates {sorted(sig.choices.values())}")
+                    fail(f"{path}.{direction}: incompatible labels {sorted(missing)}; VSS {sorted(allowed_labels)}, DBC {sorted(labels)}")
 
     print(f"OK    mapping: {len(vss2dbc)} vss2dbc, {len(dbc2vss)} dbc2vss, {len(leaves)} leaf(s)")
 
     defaults = json.loads(DEFAULTS.read_text())
     sent_frames = {
-        signals[sig][0] for sig in (s for _, s in vss2dbc)
+        signals[sig][0] for sig in (s for _, s in vss2dbc) if sig in signals
     }
     for frame in sorted(sent_frames):
         for sig in [s.name for s in messages[frame].signals]:

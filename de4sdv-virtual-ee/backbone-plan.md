@@ -1,13 +1,15 @@
 # Ethernet backbone increment — scope
 
-Status: **closed 2026-11-15.** B1, B2, B3 and B4 are done; B3's result is negative
-and specific — the schedule renders exactly as declared and touches nothing,
-because this vehicle has no trunk traffic for it to shape.
+Status: **acceptance reopened after review.** The earlier B1/B2/B4 measurements
+are retained as historical, not exact-revision acceptance for the repaired code.
+B3's bounded result is unchanged: the schedule renders, but this vehicle's
+zone-to-zone service traffic bypasses the gated uplink. Closure also needs the
+repaired runtime, verdicts and executed-input identity; see [`REPORT.md`](REPORT.md).
 
-What would reopen it: a peer behind the gateway uplink. That is one piece of work
-(tunnel or a second host on the far side of `vxup0`) and it unblocks two things at
-once — gate timing becomes measurable, and a vehicle can span hosts. Until then,
-the gate schedule stays declared and unexercised, and no TSN claim is made.
+A later extension could place a peer behind the gateway uplink to measure gate
+timing. That alone would not provide multi-host orchestration. Neither extension
+is part of the acceptance repair; the existing traffic still bypasses the gated
+port, so no timing-effect or production-TSN claim is made.
 
 ## Why this, and not another feature
 
@@ -16,11 +18,11 @@ gateway, an ECU answering diagnostics through it. What a production zonal E/E
 adds on top is an **Ethernet spine** carrying service traffic between the HPC and
 the zone controllers, with CAN surviving only at the zone edge.
 
-Today the only thing crossing a slice is KUKSA gRPC — the topology diagram in
-[`README.md`](README.md) says so. That means the architecture we simulate has no
-service plane, no TSN scheduling on the spine, and no place for a diagnostics
-protocol that is not CAN-based. Those are architecture decisions a simulation is
-supposed to test before hardware exists.
+Before this increment, only the signal-plane traffic crossed a slice. The
+implemented subset now adds static-endpoint methods and events between zone
+controllers. It remains a narrow service-plane experiment: no discovery, no
+inter-host trunk, and no measured gate effect on the vehicle's existing path.
+Those limits are architecture questions, not reasons to call the plane absent.
 
 ## What it builds on (verified on the testbed, 2026-11-15)
 

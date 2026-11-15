@@ -1,8 +1,10 @@
-# Upstream reports — drafted, not posted
+# Upstream observations — local notes only
 
-Three defects found while building this testbed. Each belongs to the project that
-owns it, not in a local workaround. None has been filed: posting is the owner's call,
-and the rule for this project is that upstream contact happens deliberately.
+Three observations from the pinned testbed build. These are local working notes,
+not reviewed issue text, commitments, or evidence of an upstream defect on the
+current default branch. Declared limitations and unimplemented fields need to be
+distinguished from broken promises before any report is proposed. No upstream
+contact or contribution is part of this change.
 
 ## 1. vxedge: `resources:` is validated but never applied
 
@@ -26,7 +28,7 @@ reads them to size a domain.
 the descriptor looks like it partitions resources, and a node that escapes its
 ceiling takes the rest of the vehicle with it.
 
-**Reported as:** schema and backend disagree; either apply it on the container
+**Possible report, not sent:** schema and backend disagree; either apply it on the container
 backend or refuse the block with a typed error.
 
 ## 2. vxedge: `up` has no post-start health gate
@@ -53,7 +55,7 @@ back from, and a monitoring system built on vxAPI sees a healthy vehicle.
 **What the testbed does about it.** `checks/update_with_rollback.sh` probes the zone's
 own status frame and reverts. That is a workaround at the caller, not a fix.
 
-**Reported as:** a staged converge could verify each node is running before the job
+**Possible report, not sent:** a staged converge could verify each node is running before the job
 reports success — at minimum, a node whose container exits during `up` should fail
 the converge with a typed reason rather than report `succeeded`.
 
@@ -78,7 +80,7 @@ channel's QoS" is then attributed to nothing. The `carried_by` validation makes 
 worse rather than better, because a checked reference suggests the rest is checked
 too.
 
-**Reported as:** either implement the three fields or reject them at load with a
+**Possible report, not sent:** either implement the three fields or reject them at load with a
 typed error — a manifest that declares a deadline should not load silently when no
 backend will honour it.
 
