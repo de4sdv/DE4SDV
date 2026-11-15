@@ -251,8 +251,11 @@ zone-fl vcan0 ──DE4SDV bridge, UDP over the adas slice──▶ central vcan
 
 Policy is per frame, not per link: `0x181` (headlamp status) may be published
 rear-ward, `0x180` (headlamp command) may not; `0x281` (wiper status) travels
-front-ward, `0x280` (wiper command) does not. A zone observes its neighbours; no
-zone actuates another's hardware.
+front-ward, `0x280` (wiper command) does not. This is a CAN forwarding policy,
+not an actuator-authorization guarantee. The bridge admits only its configured
+peer address/port; that is not authentication. Source-address forgery and broker
+client authorization have not been tested, so this demonstrator does not prove
+isolation from a malicious node on the shared slice.
 
 The transport is [`transport/bridge.py`](transport/bridge.py): one classic CAN
 frame per 17-byte datagram, with no batching. The initial feasibility pass ran
