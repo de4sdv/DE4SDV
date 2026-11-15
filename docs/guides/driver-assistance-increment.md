@@ -9,8 +9,8 @@ increment asks that of a camera-only driver-assistance application,
 Autoware Foundation.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 classification, Phase 4 stakeholder needs, Phase 5 requirements and
-Phase 6 functional architecture, proposal.** No implementation, run, result,
+Phase 3 classification, Phase 4 stakeholder needs, Phase 5 requirements,
+Phase 6 functional architecture and Phase 7 logical architecture, proposal.** No implementation, run, result,
 product-line admission or compliance is claimed.
 
 ## Authoritative frame
@@ -520,6 +520,77 @@ interfaces and the five views. The Phase 6 gates check that a function exists
 and that each functional requirement is allocated to one; review judges
 whether they are the right ones.
 
+## Logical architecture (Phase 7)
+
+The
+[logical architecture](../../textual-notation-of-model/packages/features/driving/driver_assistance_logical_architecture.sysml)
+answers what technology-independent logical elements realize the four
+functions. The decomposition subject is the system of interest itself:
+`DriverAssistanceLogicalSystem` specializes the functional boundary of Phase 6,
+keeps its four ports and owns the system's inside, one level below the
+boundary. The context elements of Phase 2 stay outside and undivided. The
+package's one usage of the definition, `driverAssistanceLogicalSystem`, exists
+for the views, which draw usages; it is the same system as the context's
+`candidateSystem`, not a second one.
+
+The owner decided on four logical elements, one per function (2026-11-15):
+
+- **Identity recorder** carries the identification of the candidate. The record
+  covers the network and configuration files of the other elements and comes
+  before any command, so Phase 8 realizes it beside the software that gives the
+  commands.
+- **Vehicle-ahead assessor** carries the assessment of the vehicle ahead: the
+  one producer of the assessment that both decisions take, and the only element
+  that reads the front-camera image (`gapCameraImageAndGeometry`).
+- **Warning requester** carries the request of the collision warning and is its
+  only source. It stands alone so that Phase 8 can place the request on a
+  realization of its own (`gapWarningOutput`).
+- **Driving commander** carries the commanding of the vehicle: the one command
+  source, with the emergency braking as a mode of its one function
+  (`gapNoSeparateEmergencyFunction` stays open).
+
+Each function is allocated to its element by a native allocation from the
+definition-nested function usage Phase 6 allocated the requirements to; the
+allocation is a responsibility assignment, not a realization, deployment or
+runtime claim. The exchanges are connections between typed ports. The boundary
+items are delegated from the inherited ports: the front-camera image to the
+assessor, the vehicle speed to the assessor and to the driving commander, the
+driving command from the driving commander and the warning request from the
+warning requester. Inside, the assessment goes from the assessor to the warning
+requester and to the driving commander, the warning state from the warning
+requester to the driving commander, and the candidate record from the identity
+recorder to the driving commander. The warning state carries the order of
+REQ-DRIVING-042 across two elements, and the candidate record that of
+REQ-DRIVING-044. Nothing runs from the driving commander to another element.
+REQ-DRIVING-038 and REQ-DRIVING-043 stay with Phase 8, which carries them by
+the elements it places on the path; Phase 8 places each exchange on a
+technology. No element, port or exchange names a computer, a process, a
+transport or a signal catalogue.
+
+What crosses the boundary agrees in three places: the boundary flows of the
+operational context, the ports of Phase 6 and the delegations of Phase 7. No
+state output crosses the boundary: no requirement asks for one, and a port
+would need an item of Phase 6. There is no driver input, since the driver only
+receives, and no configuration port, since the configuration is read at start
+and the calibration travels with the image. Phase 7 shows no timing: whether
+the reused path carries the warning in time is for the readiness probe of
+Phase 8 to show.
+
+Three concerns of this phase are held by the parties they serve: the structure
+by system architects and software developers, the function mapping by system
+architects and verification engineers, and the internal exchanges by systems
+engineers and software developers. One view answers each, per the method's list
+of views per phase: the structure as a tree of the SAF System Structure
+Definition viewpoint, the mapping as a matrix of function by logical element of
+the System Function Mapping viewpoint, and the exchanges as an interconnection
+of the System Internal Exchange viewpoint. The phase publishes three views,
+listed in
+[`VIEWS.md`](../../textual-notation-of-model/packages/features/driving/VIEWS.md).
+
+`tests/test_driver_assistance_logical_architecture.py` pins the system, the
+elements and their ports, the exchanges, the allocations, the views and the
+guide.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -591,9 +662,10 @@ type approval.
 
 Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is
-**Phase 7**: the logical architecture, which allocates each function to a
-logical element; its first gate is `functionAllocatedToLogicalElement`. Do not
-jump from the functions to implementation, and claim no runtime gate.
+**Phase 8**: the physical and software realization, which allocates each
+logical element to a physical element; its first gate is
+`logicalElementAllocatedToPhysicalElement`. Do not jump from the logical
+elements to implementation, and claim no runtime gate.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
@@ -612,6 +684,7 @@ tests/test_driver_assistance_capability_classification.py
 tests/test_driver_assistance_needs_requirements.py
 tests/test_driver_assistance_requirements.py
 tests/test_driver_assistance_functional_architecture.py
+tests/test_driver_assistance_logical_architecture.py
 tests/test_trace_allocation_completeness.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed
