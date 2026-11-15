@@ -25,8 +25,11 @@ sys.path.insert(0, str(CHECKS))
 import update_health as uh  # noqa: E402
 
 VEHICLE = CHECKS.parent / "vehicle"
-ZONE_DIGEST = "sha256:eb443219ea6af305bdc928c476a5f38234bfe4ea3dcbe0c63f8304397bdf1b85"
-GW_DIGEST = "sha256:1a85cad119a900104880cf44d72f05234aa3441dbb0379675dae19595ca7e173"
+# Expected runtime identities come from the independently retained native scan,
+# not the resolver under test or a duplicated older deployment pin.
+SCANNED_IMAGES = json.loads((CHECKS.parent / "sbom/inventory.json").read_text())["baseline_images"]
+ZONE_DIGEST = SCANNED_IMAGES["zone-ecu"].rsplit("@", 1)[1]
+GW_DIGEST = SCANNED_IMAGES["can-gw"].rsplit("@", 1)[1]
 
 
 def test_default_deadline_covers_the_zone_broker_wait():

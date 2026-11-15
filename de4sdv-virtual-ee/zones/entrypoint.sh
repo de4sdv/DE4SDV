@@ -19,6 +19,10 @@ set -eu
 : "${KUKSA_ADDRESS:=grpc://127.0.0.1:55555}"
 : "${CAN_TUNNEL_REMOTE:=}"
 
+# A container restart keeps its writable layer, including the last stop marker.
+# Clear it before the provider supervisor decides whether this boot may run.
+rm -f /tmp/zone-stopping
+
 if ! ip link show "${ZONE_CHANNEL}" >/dev/null 2>&1; then
   ip link add dev "${ZONE_CHANNEL}" type vcan
 fi

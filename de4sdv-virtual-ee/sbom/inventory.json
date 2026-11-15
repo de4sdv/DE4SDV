@@ -1,0 +1,61 @@
+{
+  "schema": "de4sdv-ee-sbom/2",
+  "baseline_images": {
+    "can-gw": "localhost:5000/de4sdv/can-gw@sha256:e9e045ca1dc30d586c11e4d9f024d4cf89e73b0def105a3957974c5ae44d5a54",
+    "zone-ecu": "localhost:5000/de4sdv/zone-ecu@sha256:3575160558de3093d07fd6f6c2c157dbbe77a3161a1d7e430ccfef3e41b4596a"
+  },
+  "images": [
+    {
+      "role": "can-gw",
+      "file": "can-gw.cdx.json.gz",
+      "sha256": "8b615a9d95ccbea9f63f1e8dc5245b569c3f114723fd6ad428d3a6c04ef0655c",
+      "components": 3474,
+      "source": {
+        "userInput": "localhost:5000/de4sdv/can-gw@sha256:e9e045ca1dc30d586c11e4d9f024d4cf89e73b0def105a3957974c5ae44d5a54",
+        "manifestDigest": "sha256:c78c0c97fd454100d7d119f42bc9ca22500ba2d63f625936f69bd8df0a421b07",
+        "imageID": "sha256:a2291302cc6a59b3280ec79e0e7e6df1dbc018a8ba7dfeaa46d42796ae426ad4",
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "podman": {
+        "imageID": "a2291302cc6a59b3280ec79e0e7e6df1dbc018a8ba7dfeaa46d42796ae426ad4",
+        "repoDigests": [
+          "localhost:5000/de4sdv/can-gw@sha256:667d76a1f8cdb7580785f93b0b425e177aa1efbbd8f87f206e86226d650218f0",
+          "localhost:5000/de4sdv/can-gw@sha256:e9e045ca1dc30d586c11e4d9f024d4cf89e73b0def105a3957974c5ae44d5a54"
+        ],
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "scanner": {
+        "name": "syft",
+        "version": "1.57.1"
+      }
+    },
+    {
+      "role": "zone-ecu",
+      "file": "zone-ecu.cdx.json.gz",
+      "sha256": "78f4d2caa3091d6c70989a8efa79d01e1f5e8e75ceae9188b01039284ba8cb28",
+      "components": 5427,
+      "source": {
+        "userInput": "localhost:5000/de4sdv/zone-ecu@sha256:3575160558de3093d07fd6f6c2c157dbbe77a3161a1d7e430ccfef3e41b4596a",
+        "manifestDigest": "sha256:2d244b6b475ad40442f4fa9a1b74586ac399a013e0da03b6fdcbf34c47627475",
+        "imageID": "sha256:694d6817ad4d461f1c8e1d1936c821cbd2d689cc044babac94f1a1c88f588b0e",
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "podman": {
+        "imageID": "694d6817ad4d461f1c8e1d1936c821cbd2d689cc044babac94f1a1c88f588b0e",
+        "repoDigests": [
+          "localhost:5000/de4sdv/zone-ecu@sha256:27e03f26fddcd949584bd9e9859913193409cc402225dcde05fa695b8ecebe1f",
+          "localhost:5000/de4sdv/zone-ecu@sha256:3575160558de3093d07fd6f6c2c157dbbe77a3161a1d7e430ccfef3e41b4596a"
+        ],
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "scanner": {
+        "name": "syft",
+        "version": "1.57.1"
+      }
+    }
+  ]
+}

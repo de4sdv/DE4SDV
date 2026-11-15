@@ -26,11 +26,9 @@ CHECKS = Path(__file__).resolve().parents[1]
 SCRIPT = CHECKS / "update_with_rollback.sh"
 VEHICLE = CHECKS.parent / "vehicle"
 ZONE = "vx-zone-rl-payload"
-# vehicle/parts.yaml: the part deployed on fn-rl, which runs on device zone-rl
-RL_IMAGE = (
-    "localhost:5000/de4sdv/zone-ecu:11"
-    "@sha256:eb443219ea6af305bdc928c476a5f38234bfe4ea3dcbe0c63f8304397bdf1b85"
-)
+# Native scan receipt: the actual image independently bound to this baseline.
+# Keep stubs on that identity when the reviewed payload is rebuilt.
+RL_IMAGE = json.loads((CHECKS.parent / "sbom/inventory.json").read_text())["baseline_images"]["zone-ecu"]
 OTHER_DIGEST_IMAGE = "localhost:5000/de4sdv/zone-ecu:10@sha256:" + "ab" * 32
 FRAME_281 = "  vcan0  281   [8]  00 00 01 00 00 00 00 00"
 
