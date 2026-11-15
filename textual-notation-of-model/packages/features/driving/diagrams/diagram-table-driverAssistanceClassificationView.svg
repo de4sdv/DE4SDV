@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="928" height="594" viewBox="0 0 928 594" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="928" height="694" viewBox="0 0 928 694" role="img" aria-labelledby="title description">
   <title id="title">table-driverAssistanceClassificationView</title>
   <desc id="description">table-driverAssistanceClassificationView. Generated from SysIDE grid CSV.</desc>
   <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
@@ -18,16 +18,16 @@
   <text x="580" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="580" dy="0">Rationale</tspan>
   </text>
-  <rect x="0" y="94" width="208" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="0" y="94" width="208" height="600" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
     <tspan x="12" dy="0">visionPilotDrivingStack</tspan>
   </text>
-  <rect x="208" y="94" width="360" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="208" y="94" width="360" height="600" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="220" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="220" dy="0">ProductLineFeatureCandidate,</tspan>
     <tspan x="220" dy="20">ProductLineCharacteristic</tspan>
   </text>
-  <rect x="568" y="94" width="360" height="500" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="568" y="94" width="360" height="600" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
   <text x="580" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
     <tspan x="580" dy="0">VisionPilot as the vehicle application</tspan>
     <tspan x="580" dy="20">distinguishes a camera-only driver-</tspan>
@@ -51,7 +51,12 @@
     <tspan x="580" dy="20">of this increment judges. Phase 9 decides</tspan>
     <tspan x="580" dy="20">whether the configuration selects them. It</tspan>
     <tspan x="580" dy="20">raises lane-departure warnings as well,</tspan>
-    <tspan x="580" dy="20">which no case judges either. Acceptance</tspan>
-    <tspan x="580" dy="20">waits for the member decision.</tspan>
+    <tspan x="580" dy="20">which no case judges either. Its</tspan>
+    <tspan x="580" dy="20">documentation also describes a lane-</tspan>
+    <tspan x="580" dy="20">departure avoidance, an intelligent speed</tspan>
+    <tspan x="580" dy="20">assistance and a hands-free highway mode,</tspan>
+    <tspan x="580" dy="20">which come with it and which no case</tspan>
+    <tspan x="580" dy="20">judges either. Acceptance waits for the</tspan>
+    <tspan x="580" dy="20">member decision.</tspan>
   </text>
 </svg>
