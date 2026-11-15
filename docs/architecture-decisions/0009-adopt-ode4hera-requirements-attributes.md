@@ -97,6 +97,14 @@ such a link is common to every member product. Rule 5 of the
 states the rule, and says that no check reads these links yet. No requirement
 carries a field or an attribute for product-line applicability.
 
+> Note (2026-11-15): under
+> [ADR 0027](0027-bind-varying-elements-in-the-feature-models.md), one link
+> in the feature-model document binds a varying element to its feature, and
+> the configuration evaluator reads it. Until the evaluator change lands and
+> the existing links have moved, the dependency form of rule 5 governs, and no
+> check reads it. No requirement carries a field or an attribute for
+> product-line applicability, as before. The decision text is unchanged.
+
 On 2026-11-12 DE4SDV [withdrew the proposal](https://github.com/ode4hera/SysML-v2-Requirements-Management/issues/4#issuecomment-6832007212)
 in that issue and closed it. The message says that the model already states
 the product-line information. It shows the dependency that DE4SDV uses and the

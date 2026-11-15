@@ -126,31 +126,48 @@ These method rules apply to every increment:
    increment (advisory). Requirements are shared assets. A requirement
    varies with the features that bring its system of interest into a member
    product.
-   - **Links.** These existing links name such a feature:
-     - a dependency of the requirement or of its system of interest on the
-       feature;
-     - such a dependency on a variant bound to the feature, on a variant
-       that a derivation rule derives from it, or on that variant's
-       definition;
-     - the typing of the system of interest by the definition of such a
-       variant.
-   - **Named features.** A definition names a feature only when it types no
-     other bound or derived variant. Otherwise, link to the variant itself.
-     A derived variant names every premise of the rule that derives it.
-     When the links name more than one feature, the requirement applies to
-     a member product that selects all of them.
-   - **Placement.** Declare these dependencies with the requirement or its
-     system of interest, outside the feature-model and configuration
-     documents.
-   - **Core.** A requirement with no such link is core, common to every
-     member product. An element that only restates such a link does not
-     earn its place (rule 11). No check reads these links.
-   - **Requirement variants.** The
+   - **Bindings.** By the owner's decision of 2026-11-14 (rule-5 option A),
+     the shared assets are one superset: an element is in every member
+     product unless one link binds it. The link is owned in the feature-model
+     document, next to the platform-stack bindings. The element carries
+     nothing: no attribute and no metadata (ADR 0009).
+   - **One feature.** A PLEML `#FeatureBinding` dependency binds an element
+     that one feature brings, with the element as client and the feature as
+     supplier.
+   - **Through the subject.** Bind the system of interest once; its
+     requirements follow it. A requirement applies where its subject applies
+     and where its own link applies. A requirement gets its own link only for
+     what its subject does not bring. A link that repeats its subject's does
+     not earn its place (rule 11).
+   - **A pair.** An element that by itself needs an application and a
+     middleware follows the adapter that the derivation rules derive for the
+     pair. This is the owner's decision of 2026-11-15. One link of the DE4SDV
+     derivation vocabulary names that derived variant, and the variant names
+     every premise of the rule that derives it. The pair form serves only an
+     element whose subject carries neither premise.
+   - **One link.** An element carries at most one link, and two links on one
+     element are not read as both. A combination that neither form covers
+     goes to the owner before it is modeled.
+   - **Core.** A requirement whose subject has no link, and that has none of
+     its own, is core: common to every member product.
+   - **Reader.** Once its change lands, the
      [PLEML configuration evaluator](../../docs/product-line-engineering/pleml-configuration-evaluation.md)
-     binds only the variations of a feature model's projection owner, such
-     as `SDVPlatformStack`, one per feature group. Binding a requirement
-     variant to a feature in phase 9 therefore waits until the evaluator
-     binds requirement variants.
+     reads both forms, and each configuration's receipt lists the
+     requirements of its member product
+     ([ADR 0027](../../docs/architecture-decisions/0027-bind-varying-elements-in-the-feature-models.md)).
+   - **Until then.** Today the evaluator refuses a binding whose client is no
+     shared-asset variant, and the pair link has no kernel definition. Until
+     both land and the existing links have moved, the dependency form
+     governs, and no slice declares a link the evaluator refuses.
+   - **Dependency form.** A dependency of the requirement or of its system of
+     interest names a feature: one on the feature, on a variant bound to it
+     or derived from it, or on that variant's definition. So does typing the
+     system of interest by such a definition. A definition names a feature
+     only when it types no other bound or derived variant. A derived variant
+     names every premise of the rule that derives it. These dependencies are
+     declared with the requirement or its system of interest, outside the
+     feature-model and configuration documents. Several of them name all
+     their features. No check reads them.
 6. **Verification.** Each verification case verifies at least one requirement
    of the increment, and every in-scope requirement is verified by at least
    one verification case.
