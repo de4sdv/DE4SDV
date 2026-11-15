@@ -1,27 +1,27 @@
 {
   "schema": "de4sdv-ee-sbom/2",
   "baseline_images": {
-    "can-gw": "localhost:5000/de4sdv/can-gw@sha256:e9e045ca1dc30d586c11e4d9f024d4cf89e73b0def105a3957974c5ae44d5a54",
-    "zone-ecu": "localhost:5000/de4sdv/zone-ecu@sha256:3575160558de3093d07fd6f6c2c157dbbe77a3161a1d7e430ccfef3e41b4596a"
+    "can-gw": "localhost:5000/de4sdv/can-gw@sha256:b7ed54a23abeb0dec5a5a257c5953ae1bd2a34f25061b526be3cb21abdff45b0",
+    "zone-ecu": "localhost:5000/de4sdv/zone-ecu@sha256:d51b87895690d7bca6bd6fb5d519b66e8b4d64f1b8c34836000e4aefaf2b0e14"
   },
   "images": [
     {
       "role": "can-gw",
       "file": "can-gw.cdx.json.gz",
-      "sha256": "8b615a9d95ccbea9f63f1e8dc5245b569c3f114723fd6ad428d3a6c04ef0655c",
+      "sha256": "01d0fec9c209e2b97121dd32cf922aaf734c9e74b332aa86f0206c34a5a67f94",
       "components": 3474,
       "source": {
-        "userInput": "localhost:5000/de4sdv/can-gw@sha256:e9e045ca1dc30d586c11e4d9f024d4cf89e73b0def105a3957974c5ae44d5a54",
-        "manifestDigest": "sha256:c78c0c97fd454100d7d119f42bc9ca22500ba2d63f625936f69bd8df0a421b07",
-        "imageID": "sha256:a2291302cc6a59b3280ec79e0e7e6df1dbc018a8ba7dfeaa46d42796ae426ad4",
+        "userInput": "localhost:5000/de4sdv/can-gw@sha256:b7ed54a23abeb0dec5a5a257c5953ae1bd2a34f25061b526be3cb21abdff45b0",
+        "manifestDigest": "sha256:55b12b579fb2d2b309966fcbd1a45baf276365242a24998b2a85783966445ca3",
+        "imageID": "sha256:efaa34d9ffb8f85ba69551479e7f1eade883b1ccfa150f68c4b26c076b3bc68c",
         "architecture": "amd64",
         "os": "linux"
       },
       "podman": {
-        "imageID": "a2291302cc6a59b3280ec79e0e7e6df1dbc018a8ba7dfeaa46d42796ae426ad4",
+        "imageID": "efaa34d9ffb8f85ba69551479e7f1eade883b1ccfa150f68c4b26c076b3bc68c",
         "repoDigests": [
-          "localhost:5000/de4sdv/can-gw@sha256:667d76a1f8cdb7580785f93b0b425e177aa1efbbd8f87f206e86226d650218f0",
-          "localhost:5000/de4sdv/can-gw@sha256:e9e045ca1dc30d586c11e4d9f024d4cf89e73b0def105a3957974c5ae44d5a54"
+          "localhost:5000/de4sdv/can-gw@sha256:6b3d779732dc8c1edc1a680019cc967b92d1e8161ad9a0ad2bf8641790b45670",
+          "localhost:5000/de4sdv/can-gw@sha256:b7ed54a23abeb0dec5a5a257c5953ae1bd2a34f25061b526be3cb21abdff45b0"
         ],
         "architecture": "amd64",
         "os": "linux"
@@ -34,20 +34,20 @@
     {
       "role": "zone-ecu",
       "file": "zone-ecu.cdx.json.gz",
-      "sha256": "78f4d2caa3091d6c70989a8efa79d01e1f5e8e75ceae9188b01039284ba8cb28",
+      "sha256": "bb385b0cc557fefc84a844740a55c3a8c9e5d2ff2766faf949dfb4ddedeaaab4",
       "components": 5427,
       "source": {
-        "userInput": "localhost:5000/de4sdv/zone-ecu@sha256:3575160558de3093d07fd6f6c2c157dbbe77a3161a1d7e430ccfef3e41b4596a",
-        "manifestDigest": "sha256:2d244b6b475ad40442f4fa9a1b74586ac399a013e0da03b6fdcbf34c47627475",
-        "imageID": "sha256:694d6817ad4d461f1c8e1d1936c821cbd2d689cc044babac94f1a1c88f588b0e",
+        "userInput": "localhost:5000/de4sdv/zone-ecu@sha256:d51b87895690d7bca6bd6fb5d519b66e8b4d64f1b8c34836000e4aefaf2b0e14",
+        "manifestDigest": "sha256:ab407eaf26aee5d7b309edd560e813b564063dc78bd9d9f5abc25387e1e0c90d",
+        "imageID": "sha256:42ff989956a68588594845e01a61ace6c21cdb18701c89f02d2ddd39d379e81f",
         "architecture": "amd64",
         "os": "linux"
       },
       "podman": {
-        "imageID": "694d6817ad4d461f1c8e1d1936c821cbd2d689cc044babac94f1a1c88f588b0e",
+        "imageID": "42ff989956a68588594845e01a61ace6c21cdb18701c89f02d2ddd39d379e81f",
         "repoDigests": [
-          "localhost:5000/de4sdv/zone-ecu@sha256:27e03f26fddcd949584bd9e9859913193409cc402225dcde05fa695b8ecebe1f",
-          "localhost:5000/de4sdv/zone-ecu@sha256:3575160558de3093d07fd6f6c2c157dbbe77a3161a1d7e430ccfef3e41b4596a"
+          "localhost:5000/de4sdv/zone-ecu@sha256:d51b87895690d7bca6bd6fb5d519b66e8b4d64f1b8c34836000e4aefaf2b0e14",
+          "localhost:5000/de4sdv/zone-ecu@sha256:e7dc83e8c92c20c4ad413813c293e83111e81c6dd3f26ef2ca7baab25c253e31"
         ],
         "architecture": "amd64",
         "os": "linux"

@@ -36,6 +36,14 @@ The offline check verifies the exact current baseline, source binding and file
 hashes. It does not rescan image contents, provide a signed attestation, audit
 licence detection, or establish compliance.
 
+## Current inventory
+
+`inventory.json` identifies the current pair by immutable baseline reference,
+native image/config ID and compressed inventory hash. It was generated on the
+bench that built and pulled the repaired images, then checked again offline.
+CI also runs that offline check; editing an image pin without regenerating its
+inventory is a failure. Counts alone cannot identify an image.
+
 ## Historical inventories
 
 The pair originally committed with this increment described `zone-ecu:10`

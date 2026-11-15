@@ -6,7 +6,7 @@ locked_with: 0.30.0
 files:
   .vxpignore: sha256:c953533d8cf47707bb9d2432a790ee7008c7d6f5f7db23c7e1ef81f5f03834e8
   main.yaml: sha256:0255c253529008a18aa3a854685a6bb20a9e46b684d7ae7bfbda54593b825c62
-  parts.yaml: sha256:80c043300d46e0ca6ea8e0c5936d2f555f6d0e8e9db1228ebf77702b3ebd5d59
+  parts.yaml: sha256:046540884fd6c3acbba4bf4da898fe023e31ae4d5d03ac59cf73108fbfb623cf
   vehicle.yaml: sha256:f0b0ffab56f2646208e5f58963229e1c013a2dd32cd71fb170128d49feecaf7e
   vxp.yaml: sha256:b1d9d5f5c2517b4f672bcd3280a3b57de8b30c6b07df70f9a5908cc9a82f6175
 parts: []
@@ -17,8 +17,8 @@ images:
   digest: sha256:b3f22650146dcae004589d311fcd8f231bd2e058f8cb50a7d2a766519210fd6d
 - ref: ghcr.io/vxedge/parts/svc/ota/app/vxota
   digest: sha256:38dc26f33a08dc0af3085e86caa07eb697559200d52c12e3730a7cd2e78e213d
-- ref: localhost:5000/de4sdv/can-gw:pr532-6ab76452bed3
-  digest: sha256:e9e045ca1dc30d586c11e4d9f024d4cf89e73b0def105a3957974c5ae44d5a54
-- ref: localhost:5000/de4sdv/zone-ecu:pr532-6ab76452bed3
-  digest: sha256:3575160558de3093d07fd6f6c2c157dbbe77a3161a1d7e430ccfef3e41b4596a
+- ref: localhost:5000/de4sdv/can-gw:pr532-f7fd7a8f26ce
+  digest: sha256:b7ed54a23abeb0dec5a5a257c5953ae1bd2a34f25061b526be3cb21abdff45b0
+- ref: localhost:5000/de4sdv/zone-ecu:pr532-f7fd7a8f26ce
+  digest: sha256:d51b87895690d7bca6bd6fb5d519b66e8b4d64f1b8c34836000e4aefaf2b0e14
 vendored: []

@@ -1,8 +1,8 @@
 kind: baseline
 id: bl-vx-de4sdv-ee
 parts:
-- ref: localhost:5000/de4sdv/zone-ecu:pr532-6ab76452bed3
-  digest: sha256:3575160558de3093d07fd6f6c2c157dbbe77a3161a1d7e430ccfef3e41b4596a
+- ref: localhost:5000/de4sdv/zone-ecu:pr532-f7fd7a8f26ce
+  digest: sha256:d51b87895690d7bca6bd6fb5d519b66e8b4d64f1b8c34836000e4aefaf2b0e14
   target_ids:
   - fn-fl
   run:
@@ -22,8 +22,8 @@ parts:
       SOMEIP_PEERS: 10.100.0.13:30510
       SOMEIP_PERIOD_MS: '100'
       SOMEIP_DEADLINE_MS: '50'
-- ref: localhost:5000/de4sdv/zone-ecu:pr532-6ab76452bed3
-  digest: sha256:3575160558de3093d07fd6f6c2c157dbbe77a3161a1d7e430ccfef3e41b4596a
+- ref: localhost:5000/de4sdv/zone-ecu:pr532-f7fd7a8f26ce
+  digest: sha256:d51b87895690d7bca6bd6fb5d519b66e8b4d64f1b8c34836000e4aefaf2b0e14
   target_ids:
   - fn-rl
   run:
@@ -42,8 +42,8 @@ parts:
       SOMEIP_PROVIDER: 10.100.0.11:30490
       SOMEIP_CALL_PERIOD_MS: '500'
       SOMEIP_DEADLINE_MS: '50'
-- ref: localhost:5000/de4sdv/can-gw:pr532-6ab76452bed3
-  digest: sha256:e9e045ca1dc30d586c11e4d9f024d4cf89e73b0def105a3957974c5ae44d5a54
+- ref: localhost:5000/de4sdv/can-gw:pr532-f7fd7a8f26ce
+  digest: sha256:b7ed54a23abeb0dec5a5a257c5953ae1bd2a34f25061b526be3cb21abdff45b0
   target_ids:
   - fn-hpc
   run:
