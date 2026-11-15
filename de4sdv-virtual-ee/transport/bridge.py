@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """DE4SDV CAN-over-UDP bridge.
 
-Carries one SocketCAN bus across the vehicle Ethernet. This replaces the
-third-party tunnel the testbed used first: the payload is plain CAN frames, so a
-fixed 17-byte datagram is enough, and owning it keeps the whole distributed stack
-under DE4SDV's Apache-2.0 licence instead of pulling a GPL-2.0 binary into every
-image we would ever publish.
+Carries one SocketCAN bus across the vehicle Ethernet to one configured peer.
+This replaces the third-party tunnel the testbed used first. The scope is
+deliberately small: classic CAN data frames only, one fixed 17-byte datagram per
+frame, so the protocol can be read in full here and in a capture. (Replacing that
+dependency says nothing about the licence obligations of the other components in
+an image; those are tracked with the image, not here.)
 
 Design decisions worth stating:
 
@@ -18,14 +19,21 @@ Design decisions worth stating:
 * **Fixed-size framing.** A magic + version prefix, a 32-bit CAN id with the
   extended flag in bit 31, the DLC and eight data bytes. No length prefix, no
   parser state, and a malformed datagram is dropped and counted rather than
-  resynchronised.
-* **It is a wire, not a router.** Filtering belongs to the gateway policy; this
-  moves bytes.
+  resynchronised. Remote-request and error flags, and a standard id wider than
+  11 bits, are malformed here.
+* **One peer.** Only datagrams whose source address and port are the configured
+  `--remote` reach the bus; any other sender is dropped and counted as
+  `foreign_peer`. A source address is not authentication: this keeps a stray or
+  misrouted sender off the bus, and it is no defence against a node that can
+  forge that address. Isolation against such a node is the network's job.
+* **It is a wire, not a router.** Per-frame filtering belongs to the gateway
+  policy; this moves well-formed frames between one bus and one peer.
 """
 
 from __future__ import annotations
 
 import argparse
+import errno
 import select
 import signal
 import socket
@@ -37,6 +45,9 @@ from dataclasses import dataclass, field
 MAGIC = b"D4E1"  # version 1 of the DE4SDV CAN-over-UDP framing
 HEADER = struct.Struct("!4sIB8s")  # magic, can_id (bit31 = extended), dlc, data
 CAN_EFF_FLAG = 0x80000000
+CAN_RTR_FLAG = 0x40000000
+CAN_ERR_FLAG = 0x20000000
+CAN_SFF_MASK = 0x7FF  # a standard frame has an 11-bit id
 CAN_FRAME = struct.Struct("=IB3x8s")  # Linux struct can_frame: id, dlc, pad, data
 MAX_DLC = 8
 
@@ -62,8 +73,15 @@ def decode_frame(packet: bytes) -> tuple[int, bytes, bool]:
         raise FramingError(f"bad magic {magic!r}")
     if dlc > MAX_DLC:
         raise FramingError(f"dlc {dlc} exceeds {MAX_DLC}")
+    # Only data frames are carried: a remote request or an error frame from the
+    # network has no place on the bus, so the flag is refused, not passed through.
+    if wire_id & (CAN_RTR_FLAG | CAN_ERR_FLAG):
+        raise FramingError("remote and error frames are not carried")
     extended = bool(wire_id & CAN_EFF_FLAG)
-    return wire_id & ~CAN_EFF_FLAG, data[:dlc], extended
+    can_id = wire_id & ~CAN_EFF_FLAG
+    if not extended and can_id > CAN_SFF_MASK:
+        raise FramingError(f"standard can_id {can_id:#x} exceeds 11 bits")
+    return can_id, data[:dlc], extended
 
 
 @dataclass
@@ -93,7 +111,14 @@ def open_udp(listen_port: int) -> socket.socket:
     return sock
 
 
+def resolve_peer(remote: tuple[str, int]) -> tuple[str, int]:
+    """The (IPv4 address, port) a datagram must come from to reach the bus."""
+    info = socket.getaddrinfo(remote[0], remote[1], socket.AF_INET, socket.SOCK_DGRAM)
+    return str(info[0][4][0]), remote[1]
+
+
 def run(interface: str, remote: tuple[str, int], listen_port: int) -> int:
+    peer = resolve_peer(remote)
     can_sock = open_can(interface)
     udp_sock = open_udp(listen_port)
     counters = Counters()
@@ -136,8 +161,14 @@ def run(interface: str, remote: tuple[str, int], listen_port: int) -> int:
                     counters.drop("udp_send_failed")
             else:
                 try:
-                    packet, _ = udp_sock.recvfrom(HEADER.size * 2)
+                    packet, sender = udp_sock.recvfrom(HEADER.size * 2)
                 except BlockingIOError:
+                    continue
+                if sender[:2] != peer:
+                    # Only the configured peer may put frames on this bus. A source
+                    # address is not authentication; it keeps a misrouted or stray
+                    # sender on the slice off the bus, and the count makes it visible.
+                    counters.drop("foreign_peer")
                     continue
                 try:
                     can_id, data, extended = decode_frame(packet)
@@ -145,7 +176,16 @@ def run(interface: str, remote: tuple[str, int], listen_port: int) -> int:
                     counters.drop(f"decode:{exc}")
                     continue
                 wire_id = can_id | (CAN_EFF_FLAG if extended else 0)
-                can_sock.send(CAN_FRAME.pack(wire_id, len(data), data))
+                try:
+                    can_sock.send(CAN_FRAME.pack(wire_id, len(data), data))
+                except OSError as exc:
+                    # A full transmit queue loses this frame, as a busy bus would; any
+                    # other error (interface down, socket gone) ends the bridge so its
+                    # supervisor sees it.
+                    if exc.errno not in (errno.EAGAIN, errno.ENOBUFS):
+                        raise
+                    counters.drop("can_send_failed")
+                    continue
                 counters.udp_to_can += 1
 
     print(
