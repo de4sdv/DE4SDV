@@ -10,20 +10,25 @@ Proves, from OUTSIDE the server, that:
   - the deployment-specific project/commit from the status tuple is served;
   - the known element reqCommandEmergencyBraking is retrievable by its API
     UUID through the standard element path;
-  - full-model pagination exceeds 50,000 elements;
+  - full-model pagination exceeds 50,000 elements; each element page has its
+    own read limit (``--page-timeout``), and the report records the slowest
+    page against it;
   - the Ask viewer serves the deployment: its startup check passed, it
     serves the ``sai-`` semantic authority and the served model the status
     document records, and its warm-up reached ``ready`` (its corpus passed the
     served-model check). Nothing is declared by the operator; ``invalid``
     always fails.
 
-Exits nonzero on any failure. Read-only: the script never sends a mutation
-payload beyond the method probes (which carry no body and must be rejected).
+Exits nonzero on any failure. A transport failure (a timeout, a reset
+connection) is a fail verdict like any other and is written to ``--json``.
+Read-only: the script never sends a mutation payload beyond the method probes
+(which carry no body and must be rejected).
 
 Usage:
   python3 verify_public_api.py \
       [--base-url https://sysml-api.de4sdv.org] [--ask-url https://viewer.de4sdv.org] \
-      [--json OUT.json] [--skip-full-pagination] [--semantic-ready-timeout SECONDS]
+      [--json OUT.json] [--skip-full-pagination] [--semantic-ready-timeout SECONDS] \
+      [--page-timeout SECONDS]
 """
 from __future__ import annotations
 
@@ -31,6 +36,7 @@ import argparse
 import json
 import sys
 import time
+from http.client import HTTPException
 from pathlib import Path
 from typing import Any
 from urllib import request as urlrequest
@@ -52,6 +58,10 @@ MUTATION_METHODS = ("POST", "PUT", "PATCH", "DELETE")
 NONSTANDARD_METHOD = "BREW"
 PAGINATION_PAGE_SIZE = 5_000
 MAX_PAGINATION_PAGES = 1_000
+# Read limit for one element page. The generic request limit of fetch() is
+# too short for a full page: at 123,361 elements (2026-11-15) a 5,000-element
+# page took 58-62 s, and the time grows with the page size.
+PAGE_READ_TIMEOUT_SECONDS = 300.0
 
 
 class VerificationError(RuntimeError):
@@ -80,7 +90,7 @@ def require(condition: bool, message: str) -> None:
         raise VerificationError(message)
 
 
-def fetch(url: str, *, method: str = "GET", timeout: int = 60):
+def fetch(url: str, *, method: str = "GET", timeout: float = 60):
     request = urlrequest.Request(url, method=method)
     try:
         with urlrequest.urlopen(request, timeout=timeout) as response:
@@ -276,9 +286,19 @@ def check_model(base_url: str, status_doc: dict[str, Any]) -> dict[str, Any]:
 
 
 def check_pagination_and_known_element(
-    base_url: str, project_id: str, commit_id: str
+    base_url: str,
+    project_id: str,
+    commit_id: str,
+    *,
+    page_timeout: float = PAGE_READ_TIMEOUT_SECONDS,
+    page_seconds: list[float] | None = None,
 ) -> int:
-    """Follow rel=next Link headers; prove pagination and the known element."""
+    """Follow rel=next Link headers; prove pagination and the known element.
+
+    Each element page is read with ``page_timeout``; a page that does not
+    answer in time fails with its number and the limit. ``page_seconds``,
+    when given, receives the time of every page.
+    """
     url: str | None = (
         f"{base_url}/projects/{project_id}/commits/{commit_id}/elements"
         f"?page%5Bsize%5D={PAGINATION_PAGE_SIZE}"
@@ -294,7 +314,16 @@ def check_pagination_and_known_element(
             f"pagination exceeded {MAX_PAGINATION_PAGES} pages",
         )
         seen_urls.add(url)
-        status, headers, body = fetch(url)
+        started = time.monotonic()
+        try:
+            status, headers, body = fetch(url, timeout=page_timeout)
+        except TimeoutError as exc:
+            raise VerificationError(
+                f"page {pages + 1} of the full pagination did not answer within "
+                f"{page_timeout:.0f}s: {url}"
+            ) from exc
+        if page_seconds is not None:
+            page_seconds.append(time.monotonic() - started)
         require(status == 200, f"{url} returned {status}")
         elements = json.loads(body.decode("utf-8"))
         require(isinstance(elements, list), f"{url} did not return a list")
@@ -332,6 +361,12 @@ def main() -> int:
         help="seconds to wait for the Ask semantic warm-up (the first full corpus "
              "load and its served-model check; about 10-11 minutes measured)",
     )
+    parser.add_argument(
+        "--page-timeout", type=float, default=PAGE_READ_TIMEOUT_SECONDS,
+        help="seconds one element page of the full pagination may take "
+             "(default %(default)s; a 5,000-element page took 58-62 s at "
+             "123,361 elements)",
+    )
     args = parser.parse_args()
     base = args.base_url.rstrip("/")
 
@@ -358,14 +393,33 @@ def main() -> int:
             args.ask_url, status_doc, ready=False, timeout_seconds=300.0)
 
         if not args.skip_full_pagination:
-            total = check_pagination_and_known_element(base, model["project"], model["commit"])
+            page_seconds: list[float] = []
+            total = check_pagination_and_known_element(
+                base, model["project"], model["commit"],
+                page_timeout=args.page_timeout, page_seconds=page_seconds)
             report["paginated_elements"] = total
+            slowest = max(page_seconds)
+            report["pagination"] = {
+                "pages": len(page_seconds),
+                "page_size": PAGINATION_PAGE_SIZE,
+                "page_read_timeout_seconds": args.page_timeout,
+                "slowest_page_seconds": round(slowest, 1),
+                "total_seconds": round(sum(page_seconds), 1),
+            }
+            if slowest > args.page_timeout / 2:
+                print(
+                    f"WARNING: the slowest element page took {slowest:.0f}s, more than "
+                    f"half of the {args.page_timeout:.0f}s page limit",
+                    file=sys.stderr,
+                )
 
         report["ask_semantic_ready"] = wait_for_ask_semantic_runtime(
             args.ask_url, status_doc, ready=True, timeout_seconds=args.semantic_ready_timeout)
 
         report["verdict"] = "pass"
-    except (VerificationError, URLError, json.JSONDecodeError) as exc:
+    # OSError covers URLError, TimeoutError and reset connections;
+    # HTTPException covers a broken HTTP response. Each is a fail verdict.
+    except (VerificationError, OSError, HTTPException, json.JSONDecodeError) as exc:
         report["verdict"] = "fail"
         report["error"] = str(exc)
         if args.json:
