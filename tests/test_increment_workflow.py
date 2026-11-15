@@ -5,6 +5,10 @@ phase, in method order) and, inside the step definitions, MethodCheck metadata
 usages about step parameters that encode the accepted method rules. These tests
 lock that encoding. They are text checks, not a SysML parser; licensed SysML
 validation stays the authority for syntax and semantics.
+
+Rule 5 has two homes, the method document and the doc of SpecifyRequirements in
+the kernel. The last tests keep the two in step, and keep the decision records
+that ADR 0027 amends pointing at it.
 """
 
 from __future__ import annotations
@@ -298,3 +302,88 @@ def test_inc_aebs_010_is_declared_with_identifier_and_charter() -> None:
     assert packages and packages <= declared, packages - declared
     evidence = re.search(r"attribute\s+:>>\s+expectedReviewEvidence\s*=\s*\(([^)]*)\)\s*;", body).group(1)
     assert all(item.strip() for item in re.findall(r'"([^"]*)"', evidence))
+
+
+ADR_DIR = MODEL_ROOT.parent / "docs/architecture-decisions"
+ADR_0027 = "0027-bind-varying-elements-in-the-feature-models.md"
+# What rule 5 states in both homes, in words the two share once whitespace and comment stars are flattened.
+RULE_5_SHARED = (
+    "By the owner's decision of 2026-11-14 (rule-5 option A)",
+    "the shared assets are one superset: an element is in every member product unless one link",
+    "The element carries nothing",
+    "FeatureBinding",
+    "Bind the system of interest once; its requirements follow it.",
+    "A requirement gets its own link only for what its subject does not bring",
+    "An element that by itself needs an application and a middleware follows the adapter that the derivation "
+    "rules derive for the pair",
+    "This is the owner's decision of 2026-11-15",
+    "names every premise of",
+    "An element carries at most one link",
+    "goes to the owner",
+    "A requirement whose subject has no link, and that has none of its own, is core",
+    "the dependency form governs",
+    "Several of them name all their features",
+)
+# Sentences of the rule before 2026-11-15 that no home may keep.
+RULE_5_RETIRED = (
+    "When the links name more than one feature",
+    "waits until the evaluator binds requirement variants",
+    "binds only the variations of a feature model's projection owner",
+)
+# Each record that ADR 0027 amends carries one dated note that links it and states what changes.
+AMENDED_RECORDS = {
+    "0009-adopt-ode4hera-requirements-attributes.md": "the dependency form of rule 5 governs",
+    "0021-make-model-elements-earn-their-place.md": "rule 5's dependency form governs",
+    "0022-adopt-pleml-as-product-line-authority.md": "amends decisions 3 and 5",
+}
+
+
+def _flat(text: str) -> str:
+    return " ".join(text.split())
+
+
+def _rule_5_homes() -> tuple[str, str]:
+    """Rule 5 in the method document and in the doc of SpecifyRequirements, flattened."""
+    document = WORKFLOW_DOC.read_text(encoding="utf-8")
+    start = document.index("5. **Requirement.**")
+    section = document[start:document.index("6. **Verification.**", start)]
+    kernel = WORKFLOW_FILE.read_text(encoding="utf-8")
+    head = kernel.index("action def SpecifyRequirements :> IncrementStep")
+    comment = kernel[kernel.index("doc /*", head):kernel.index("*/", head)]
+    return _flat(section), _flat(re.sub(r"^\s*\*", " ", comment, flags=re.MULTILINE))
+
+
+def _dated_note(record: str) -> str:
+    lines = (ADR_DIR / record).read_text(encoding="utf-8").splitlines()
+    starts = [index for index, line in enumerate(lines) if line.startswith("> Note (2026-11-15):")]
+    assert len(starts) == 1, record
+    note = []
+    for line in lines[starts[0]:]:
+        if not line.startswith(">") or not line[1:].strip():
+            break
+        note.append(line[1:])
+    return _flat(" ".join(note))
+
+
+def test_rule_5_states_the_same_binding_rule_in_both_homes() -> None:
+    for home in _rule_5_homes():
+        assert not [phrase for phrase in RULE_5_SHARED if phrase not in home]
+        assert not [phrase for phrase in RULE_5_RETIRED if phrase in home]
+
+
+def test_rule_5_keeps_the_dependency_form_until_the_evaluator_reads_the_links() -> None:
+    section, _ = _rule_5_homes()
+    assert ("Until both land and the existing links have moved, the dependency form governs, and no slice "
+            "declares a link the evaluator refuses.") in section
+    assert f"(../../docs/architecture-decisions/{ADR_0027})" in section
+
+
+def test_the_records_that_adr_0027_amends_point_to_it() -> None:
+    record = _flat((ADR_DIR / ADR_0027).read_text(encoding="utf-8"))
+    assert ("The owner took decisions 1 to 4 and 7 on 2026-11-14, as rule-5 option A, and decision 5 on "
+            "2026-11-15, as the form for a pair. Decisions 6 and 8 work out their consequences.") in record
+    assert f"]({ADR_0027})" in (ADR_DIR / "README.md").read_text(encoding="utf-8")
+    for amended, change in AMENDED_RECORDS.items():
+        note = _dated_note(amended)
+        assert f"[ADR 0027]({ADR_0027})" in note, amended
+        assert change in note, amended

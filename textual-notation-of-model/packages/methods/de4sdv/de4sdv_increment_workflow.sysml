@@ -360,23 +360,27 @@ package DE4SDV_IncrementWorkflow {
          * a requirement's subject is the system of interest the charter declares, never
          * the increment; a requirement states its success criteria. A requirement
          * varies with the features that bring its system of interest into a member
-         * product. These existing links name such a feature:
-         * - a dependency of the requirement or of its system of interest on the feature;
-         * - such a dependency on a variant bound to the feature, on a variant that a
-         *   derivation rule derives from it, or on that variant's definition;
-         * - the typing of the system of interest by the definition of such a variant.
-         * A definition names a feature only when it types no other bound or derived
-         * variant. Otherwise, link to the variant itself. A derived variant names
-         * every premise of the rule that derives it. When the links name more than
-         * one feature, the requirement applies to a member product that selects all
-         * of them. Declare these dependencies with the requirement or its system of
-         * interest, outside the feature-model and configuration documents. A
-         * requirement with no such link is core, common to every member product. An
-         * element that only restates such a link does not earn its place. No check
-         * reads these links. The PLEML configuration evaluator binds only the
-         * variations of a feature model's projection owner, one per feature group.
-         * Binding a requirement variant to a feature in phase 9 therefore waits until
-         * the evaluator binds requirement variants. */
+         * product. By the owner's decision of 2026-11-14 (rule-5 option A), the shared
+         * assets are one superset: an element is in every member product unless one
+         * link, owned in the feature-model document, binds it. The element carries
+         * nothing.
+         * A PLEML FeatureBinding binds an element that one feature brings, the element
+         * as client. Bind the system of interest once; its requirements follow it. A
+         * requirement gets its own link only for what its subject does not bring, and
+         * a link that repeats its subject's does not earn its place. An element that
+         * by itself needs an application and a middleware follows the adapter that
+         * the derivation rules derive for the pair. This is the owner's decision of
+         * 2026-11-15: one link of the derivation vocabulary names the derived variant,
+         * which names every premise of its rule. An element carries at most one link,
+         * and a combination that neither form covers goes to the owner. A requirement
+         * whose subject has no link, and that has none of its own, is core. The
+         * configuration evaluator reads both forms. Until it does and the existing
+         * links have moved, the dependency form governs: a dependency of the
+         * requirement or of its system of interest on the feature, on a variant bound
+         * to it or derived from it, or on that variant's definition, or the typing of
+         * the system of interest by such a definition, declared outside the
+         * feature-model and configuration documents. Several of them name all their
+         * features, and no check reads them. */
     attribute :>> phase = MethodPhase::phase5_requirements;
     in requirement needs[0..*] : StakeholderNeedCandidate;
     out requirement requirements[1..*] : RequirementCandidate;
