@@ -28,6 +28,7 @@ receive path, not in a content filter here.
 from __future__ import annotations
 
 import argparse
+import errno
 import signal
 import sys
 import threading
@@ -48,9 +49,16 @@ POLICY: dict[str, set[int]] = {
 # Diagnostics are allowed to cross because a tester reaches a zonal ECU through the
 # gateway; actuator commands are not, because a zone must not drive another's load.
 
+# A full transmit queue is back-pressure: the frame is lost, as on a busy bus, and
+# counted; the direction keeps forwarding. python-can's SocketCAN backend reports
+# it as CanOperationError with ENOBUFS or EAGAIN, or with no errno when the send
+# timed out ("Transmit buffer full"). Any other send error ends the pump.
+TRANSIENT_SEND_ERRORS = {errno.ENOBUFS, errno.EAGAIN, None}
+
 stop = threading.Event()
 stats: Counter = Counter()
 lock = threading.Lock()
+died: dict[str, str] = {}  # direction -> why its pump stopped
 
 
 def bump(key: str, n: int = 1) -> None:
@@ -59,6 +67,20 @@ def bump(key: str, n: int = 1) -> None:
 
 
 def pump(src_name: str, dst_name: str, src_bus: can.BusABC, dst_bus: can.BusABC, direction: str) -> None:
+    """Forward one direction until stopped. A pump that cannot go on records why
+    and stops the gateway: half a gateway must not look like a running one."""
+    try:
+        forward(src_bus, dst_bus, direction)
+    except Exception as exc:
+        code = getattr(exc, "error_code", None)
+        name = errno.errorcode.get(code, "") if isinstance(code, int) else ""
+        with lock:
+            died[direction] = " ".join(part for part in (type(exc).__name__, name, str(exc)) if part)
+        stop.set()
+        raise
+
+
+def forward(src_bus: can.BusABC, dst_bus: can.BusABC, direction: str) -> None:
     allowed = POLICY[direction]
     while not stop.is_set():
         frame = src_bus.recv(timeout=0.1)
@@ -67,9 +89,16 @@ def pump(src_name: str, dst_name: str, src_bus: can.BusABC, dst_bus: can.BusABC,
         if frame.arbitration_id not in allowed:
             bump(f"{direction}.denied.0x{frame.arbitration_id:03X}")
             continue
-        dst_bus.send(
-            can.Message(arbitration_id=frame.arbitration_id, data=frame.data, is_extended_id=frame.is_extended_id)
-        )
+        try:
+            dst_bus.send(
+                can.Message(arbitration_id=frame.arbitration_id, data=frame.data, is_extended_id=frame.is_extended_id)
+            )
+        except can.CanOperationError as exc:
+            if exc.error_code not in TRANSIENT_SEND_ERRORS:
+                raise
+            reason = errno.errorcode[exc.error_code] if exc.error_code else "buffer_full"
+            bump(f"{direction}.send_error.{reason}")
+            continue
         bump(f"{direction}.forwarded.0x{frame.arbitration_id:03X}")
 
 
@@ -106,12 +135,17 @@ def main() -> int:
     signal.signal(signal.SIGTERM, shutdown)
     signal.signal(signal.SIGINT, shutdown)
 
-    while not stop.is_set():
-        time.sleep(1)
+    while not stop.wait(1):
+        pass
     for t in threads:
         t.join(timeout=2)
     front.shutdown()
     rear.shutdown()
+    if died:
+        for direction, why in sorted(died.items()):
+            print(f"gateway: {direction} pump died: {why}", file=sys.stderr, flush=True)
+        report()
+        return 1
     return 0
 
 

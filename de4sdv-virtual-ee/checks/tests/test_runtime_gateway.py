@@ -12,6 +12,8 @@ Run:  python -m pytest de4sdv-virtual-ee/checks/tests/test_runtime_gateway.py
 
 from __future__ import annotations
 
+import errno
+import subprocess
 import sys
 import threading
 import time
@@ -52,12 +54,32 @@ class Segment:
         self.node.shutdown()
 
 
+class FailingOnceBus(VirtualBus):
+    """A gateway bus whose first send fails the way python-can's SocketCAN send
+    fails: CanOperationError, with the errno (or none, for "Transmit buffer full")."""
+
+    error_code: int | None = None
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.failures_left = 1
+
+    def send(self, msg, timeout=None):
+        if self.failures_left:
+            self.failures_left -= 1
+            raise can.CanOperationError("Failed to transmit", self.error_code)
+        super().send(msg, timeout)
+
+
 @pytest.fixture
 def gateway():
     """Front and rear segments with both of the router's pumps running."""
+    yield from running_gateway(Segment("front"), Segment("rear"))
+
+
+def running_gateway(front: Segment, rear: Segment):
     router.stop.clear()
     router.stats.clear()
-    front, rear = Segment("front"), Segment("rear")
     threads = [
         threading.Thread(target=router.pump, args=("front", "rear", front.gateway, rear.gateway, "front->rear"), daemon=True),
         threading.Thread(target=router.pump, args=("rear", "front", rear.gateway, front.gateway, "rear->front"), daemon=True),
@@ -108,3 +130,69 @@ def test_a_frame_reinjected_on_the_destination_segment_is_refused_not_looped(gat
 
     assert front.received() == []
     assert router.stats["rear->front.denied.0x181"] == 1, dict(router.stats)
+
+
+@pytest.mark.parametrize("error_code", [errno.ENOBUFS, errno.EAGAIN, None], ids=["ENOBUFS", "EAGAIN", "buffer-full"])
+def test_a_transient_send_error_loses_one_frame_and_the_direction_keeps_forwarding(error_code):
+    class Flaky(FailingOnceBus):
+        pass
+
+    Flaky.error_code = error_code
+    for front, rear, threads in running_gateway(Segment("front"), Segment("rear", Flaky)):
+        front.node.send(can.Message(arbitration_id=0x181, data=b"\x01", is_extended_id=False))
+        time.sleep(0.1)
+        front.node.send(can.Message(arbitration_id=0x181, data=b"\x02", is_extended_id=False))
+
+        arrived = [bytes(m.data) for m in rear.received()]
+        pump_alive = threads[0].is_alive()
+
+    assert arrived == [b"\x02"], dict(router.stats)
+    assert pump_alive
+    assert sum(v for k, v in router.stats.items() if k.startswith("front->rear.send_error")) == 1, dict(router.stats)
+
+
+# --- the process: a pump that cannot go on must take the gateway down, visibly.
+
+LAUNCH_ROUTER = """
+import errno, sys, threading, time
+sys.path.insert(0, sys.argv[1])
+import can
+from can.interfaces.virtual import VirtualBus
+import router
+
+class InterfaceDown(VirtualBus):
+    def send(self, msg, timeout=None):
+        raise can.CanOperationError("Failed to transmit: Network is down", errno.ENETDOWN)
+
+def bus(interface, channel, **kwargs):
+    return (InterfaceDown if channel == "vcan-rear" else VirtualBus)(channel=channel)
+
+can.Bus = bus
+
+def tester():
+    time.sleep(0.3)
+    VirtualBus(channel="vcan-front").send(
+        can.Message(arbitration_id=0x181, data=b"\\x01", is_extended_id=False))
+
+threading.Thread(target=tester, daemon=True).start()
+sys.argv = ["router.py"]
+sys.exit(router.main())
+"""
+
+
+def test_a_pump_that_dies_takes_the_gateway_process_down_with_a_failure_status():
+    proc = subprocess.Popen(
+        [sys.executable, "-c", LAUNCH_ROUTER, str(GATEWAY)],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+    )
+    try:
+        out, _ = proc.communicate(timeout=6)
+        rc = proc.returncode
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        out, _ = proc.communicate()
+        rc = None
+
+    assert rc is not None, f"gateway still running 6 s after a pump died:\n{out}"
+    assert rc != 0, out
+    assert "front->rear" in out and "ENETDOWN" in out, out
