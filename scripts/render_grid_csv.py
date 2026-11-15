@@ -109,6 +109,18 @@ GRID_METADATA = {
         "modes (state usages)",
         "",
     ),
+    "matrix-driverAssistanceRequirementFunctionMappingView": GridMetadata(
+        "Driver-assistance requirement-function mapping",
+        "Maps the requirements of the driver-assistance system to the system functions that carry them.",
+        "requirements (requirement usages)",
+        "system functions (action usages)",
+    ),
+    "table-driverAssistanceModeDependenceTableView": GridMetadata(
+        "Driver-assistance system modes",
+        "The modes of the driver-assistance system and the functions whose behavior differs in each.",
+        "modes (state usages)",
+        "",
+    ),
     "table-middlewareProductLineClassificationView": GridMetadata(
         "Middleware product-line classification",
         "Classifies middleware characteristics and attaches each rationale to its element.",
