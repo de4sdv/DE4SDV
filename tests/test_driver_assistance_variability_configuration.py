@@ -235,3 +235,346 @@ def test_no_feature_model_configuration_or_product_model_document_names_an_incre
                      "candidateDriverAssistanceSystem", "DE4SDV_DriverAssistanceVariabilityConfiguration"):
             assert name not in text, (path.name, name)
         assert not re.search(r"\bREQ-DRIVING-0(?:3[6-9]|4[0-4])\b", text), path.name
+
+
+# == the phase 9 package: the configured product DRIVING-CONFIG-002 ==============================================
+
+import hashlib  # noqa: E402
+import json  # noqa: E402
+
+DRIVING = ROOT / "textual-notation-of-model" / "packages" / "features" / "driving"
+SLICE = DRIVING / "driver_assistance_variability_configuration.sysml"
+PHYSICAL = DRIVING / "driver_assistance_physical_software_realization.sysml"
+DRIVING_001_PHYSICAL = DRIVING / "closed_loop_driving_physical_software_realization.sysml"
+FRAMING = DRIVING / "driver_assistance_framing.sysml"
+NEEDS = DRIVING / "driver_assistance_needs_requirements.sysml"
+VIEWS_INDEX = DRIVING / "VIEWS.md"
+DRIVING_001_SLICE = DRIVING / "closed_loop_driving_variability_configuration.sysml"
+MW_SLICE = ROOT / "textual-notation-of-model" / "packages" / "features" / "middleware" / (
+    "middleware_score_variability_configuration.sysml")
+RECEIPT = PLE / "feature-models" / "receipts" / "sdv_product_line.receipt.json"
+PRODUCT_MODEL = PLE / "product-models" / "driver_assistance_visionpilot_score_reference.sysml"
+GUIDE = ROOT / "docs" / "guides" / "driver-assistance-increment.md"
+
+PACKAGE = "DE4SDV_DriverAssistanceVariabilityConfiguration"
+PRODUCT_DEF = "DriverAssistanceVisionPilotSCOREConfiguredProduct"
+IDENTITY = "DRIVING-CONFIG-002"
+FEATURE = "DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::"
+#: Rule 5, dependency form, owned with their clients: the system of interest brings VisionPilot; each requirement
+#: whose statement or terms name the Eclipse S-CORE path adds the middleware (link name -> (client, feature)).
+SUBJECT_LINKS = {"assistanceSystemOnVisionPilotFeature": ("candidateDriverAssistanceSystem", "visionPilot")}
+REQUIREMENT_LINKS = {
+    "reqDrivingCommandOverSCOREOnEclipseSCORE": ("reqDrivingCommandOverSCORE", "eclipseSCORE"),
+    "reqDetectableDrivingCommandOnEclipseSCORE": ("reqDetectableDrivingCommand", "eclipseSCORE"),
+    "reqWarningRequestBeforeEmergencyBrakingOnEclipseSCORE": ("reqWarningRequestBeforeEmergencyBraking", "eclipseSCORE"),
+    "reqWarningRequestOverSCOREOnEclipseSCORE": ("reqWarningRequestOverSCORE", "eclipseSCORE"),
+}
+
+#: projection selection -> (variation, variant, the definition the variant is typed by)
+LAYERS = {
+    "vehicleApplication": ("vehicleApplication", "visionPilot", "VisionPilotStack"),
+    "middleware": ("middleware", "eclipseSCORE", "EclipseSCORE"),
+    "osPlatform": ("osPlatform", "linux", "LinuxPlatform"),
+    "hypervisor": ("hypervisor", "kvm", "KVMHypervisor"),
+    "guestOSPlatform": ("guestOSPlatform", "android", "AndroidHLOS"),
+    "guestMiddleware": ("guestMiddleware", "androidSDV", "AndroidSDVMiddleware"),
+    "applicationMiddlewareAdapter": ("applicationMiddlewareAdapter", "visionPilotToSCORE", "VisionPilotToSCOREAdapter"),
+}
+#: phase-8 context part -> (the file that defines it, the composed layer part, the projection selection that types it)
+CONTEXT_LAYERS = [
+    ("DriverAssistanceSCOREHost", PHYSICAL, "os", "osPlatform"),
+    ("DriverAssistanceSCOREHost", PHYSICAL, "scoreServices", "middleware"),
+    ("DriverAssistanceSimulatorHost", PHYSICAL, "os", "osPlatform"),
+    ("AAOSGuestHost", DRIVING_001_PHYSICAL, "os", "osPlatform"),
+    ("AAOSGuestHost", DRIVING_001_PHYSICAL, "hypervisor", "hypervisor"),
+    ("DriverAssistanceSDVCoreGuest", PHYSICAL, "os", "guestOSPlatform"),
+    ("DriverAssistanceSDVCoreGuest", PHYSICAL, "sdvMiddleware", "guestMiddleware"),
+    ("DriverAssistanceIVIGuest", PHYSICAL, "os", "guestOSPlatform"),
+]
+_TYPED_BY = r"\b(?:ref\s+)?part\s+\w+\s*(?:\[[^\]]*\]\s*)?:(?![:>])[^;{{]*\b{definition}\b"
+
+
+def _product_body() -> str:
+    return _body(_code(SLICE), rf"\bpart\s+def\s+{PRODUCT_DEF}\s*:>\s*ProductLineConfiguredProduct\s*\{{")
+
+
+def _receipt_record() -> dict:
+    receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+    (model,) = [m for m in receipt["evaluation"]["feature_models"] if m["feature_model"] == "SDVProductLineFeatureModel"]
+    (record,) = [c for c in model["configurations"] if c["configuration"] == CONFIGURATION_NAME]
+    return record
+
+
+def test_the_configured_product_pairs_the_projection_with_the_assistance_realization() -> None:
+    """The shape of INC-DRIVING-001 and INC-MW-011: the projection and the phase-8 system of interest, no variant
+    chosen here."""
+    own = _own(_product_body())
+    assert re.findall(r"\b(?:ref\s+)?part\s+(\w+)\s*:", own) == ["platformStack", "assistanceSoftware"]
+    assert f"part platformStack : {PROJECTION};" in own
+    assert "part assistanceSoftware : DriverAssistanceSoftwareRealization;" in own
+    assert ":>>" not in _product_body(), "the product redefines no feature of its parts"
+    assert "ref part" not in own, "the product composes both of its parts"
+    assert re.search(r"\bprivate import DE4SDV_DriverAssistancePhysicalSoftwareRealization::"
+                     r"DriverAssistanceSoftwareRealization;", _code(SLICE))
+
+
+def test_the_configured_product_binds_nothing_because_the_realization_composes_no_platform_layer() -> None:
+    """Phase 8 kept the S-CORE path outside the boundary of phase 0: the services sit on the S-CORE host beside the
+    realization, so no part of the realization is the selected middleware, unlike INC-DRIVING-001. The adapter is
+    three modules of the candidate's process, no program of its own: a dependency, not a binding."""
+    code = _code(PHYSICAL)
+    realization = _own(_body(code, r"\bpart\s+def\s+DriverAssistanceSoftwareRealization\s*:>\s*DriverAssistanceSystem\s*\{"))
+    assert re.findall(r"\bpart\s+(\w+)\s*:\s*(\w+);", realization) == [
+        ("identityRecording", "CandidateIdentityRecordingApplication"), ("visionPilotApplication", "VisionPilotSCOREApplication")]
+    host = _own(_body(code, r"\bpart\s+def\s+DriverAssistanceSCOREHost\b[^{;]*\{"))
+    assert re.search(r"(?<!ref )\bpart scoreServices : EclipseSCORE\b", host), "the host composes the S-CORE services"
+    assert not re.search(r"\bbind(?:ing)?\b", _product_body()), "no binding in the configured product"
+    docs = _docs(SLICE)
+    for phrase in ("No binding.", "the platform stack is the only composer of it in this product",
+                   "no part of the realization is the adapter either"):
+        assert phrase in docs, phrase
+
+
+def test_the_slice_types_no_part_by_a_platform_layer_definition() -> None:
+    """The projection and the realization carry the layer types; the slice restates none of them."""
+    code = _code(SLICE)
+    for definition in [*(definition for _variation, _variant, definition in LAYERS.values()), "SDVPlatformStack"]:
+        assert not re.search(_TYPED_BY.format(definition=definition), code), f"the slice types a part by {definition}"
+
+
+def test_the_configured_product_is_no_member_product() -> None:
+    """Valid, not admitted: the definition specializes the kernel's configured product and nothing else."""
+    code = _code(SLICE)
+    assert re.findall(r":>(?!>)\s*([\w:]+)", code) == ["ProductLineConfiguredProduct"]
+    assert not re.search(r"\bspecializes\b", code)
+    assert "ProductLineMemberProduct" not in code
+    assert re.findall(r"\bpart <'([A-Z-]+\d+)'> (\w+) : (\w+)\s*\{", code) == [(IDENTITY, "configuredProduct", PRODUCT_DEF)]
+
+
+def test_the_configured_product_traces_the_realization_the_adapter_the_application_and_the_admission_gap() -> None:
+    code = " ".join(_code(SLICE).split())
+    application = "configuredProduct::assistanceSoftware::visionPilotApplication"
+    for statement in (
+            "dependency configuredAssistanceSoftwareTrace from configuredProduct::assistanceSoftware to "
+            "DE4SDV_DriverAssistancePhysicalSoftwareRealization::driverAssistancePhysicalSystem::scoreHost::"
+            "assistanceSoftware;",
+            f"dependency derivedAdapterIsTheInterfaceModule from {application}::cameraInterface, "
+            f"{application}::vehicleInterface, {application}::warningRequestPublisher to "
+            "configuredProduct::platformStack::applicationMiddlewareAdapter;",
+            f"dependency candidateProcessRunsTheSelectedApplication from {application}::perceptionAndFusion, "
+            f"{application}::safetyGuardianPlanner to configuredProduct::platformStack::vehicleApplication;",
+            "dependency configuredProductAdmissionGap from configuredProduct to "
+            "DE4SDV_DriverAssistanceFraming::gapCandidateAdmission;"):
+        assert statement in code, statement
+    assert len(re.findall(r"\bdependency\b", code)) == 4, "the slice declares no rule-5 link: they live with their clients"
+    modules = _own(_body(_code(PHYSICAL), r"\bpart\s+def\s+VisionPilotSCOREApplication\s*\{"))
+    assert re.findall(r"\bpart\s+(\w+)\s*:", modules) == ["cameraInterface", "perceptionAndFusion", "safetyGuardianPlanner",
+                                                         "vehicleInterface", "warningRequestPublisher"]
+
+
+# -- the receipt and the model's reading of admission ------------------------------------------------------------
+
+
+def test_driving_config_002_is_bound_to_the_exact_receipt() -> None:
+    """One receipt, four holders of its digest: DRIVING-CONFIG-002, DRIVING-CONFIG-001, MW-CONFIG-002 and the
+    projection header. Receipt-bound: the licensed PLE authority run cuts the receipt and the configurator writes
+    the projection, and each digest is rebound to it."""
+    digest = hashlib.sha256(RECEIPT.read_bytes()).hexdigest()
+    pattern = r'attribute receiptSha256 : ScalarValues::String = "([0-9a-f]{64})";'
+    assert re.findall(pattern, SLICE.read_text(encoding="utf-8")) == [digest], "DRIVING-CONFIG-002 binds another receipt"
+    for holder in (DRIVING_001_SLICE, MW_SLICE):
+        assert re.findall(pattern, holder.read_text(encoding="utf-8")) == [digest], holder.name
+    (header,) = re.findall(r"\* Receipt SHA-256: ([0-9a-f]{64})", PRODUCT_MODEL.read_text(encoding="utf-8"))
+    assert header == digest, "the committed projection was generated from another receipt"
+
+
+def test_the_receipt_records_what_the_configured_product_states() -> None:
+    """Valid, the adapter derived for the pair with Eclipse S-CORE, not admitted for the documented reasons.
+    Receipt-bound: the record exists once the licensed PLE authority run has cut the receipt."""
+    record = _receipt_record()
+    assert record["projection_name"] == PROJECTION
+    assert record["valid"] is True and record["admission"]["admitted"] is False
+    assert {d["variation"]: d["variant"] for d in record["derived_variants"]} == {
+        selection: variant for selection, (_variation, variant, _definition) in LAYERS.items()}
+    (rule,) = [d for d in record["derived_variants"] if "rule" in d]
+    assert (rule["variation"], rule["variant"], rule["rule"]) == (
+        "applicationMiddlewareAdapter", "visionPilotToSCORE", "visionPilotEclipseSCORERule")
+    selected = set(record["selected"])
+    assert {"platformStack.visionPilot", "platformStack.eclipseSCORE", "platformStack.linux", "platformStack.kvm",
+            "platformStack.guestAndroid", "platformStack.guestAndroidSDV", "sensingBoundary.camera",
+            "capabilities.hmiDisplay"} <= selected
+    assert not {"sensingBoundary.lidar", "sensingBoundary.radar", "platformStack.autoware",
+                "platformStack.androidSDV"} & selected
+    reasons = " ".join(record["admission"]["reasons"])
+    for reason in ("platformStack.visionPilot: deferred drivingStackVariability", "reference-only eclipseSCORE",
+                   "capabilities.hmiDisplay: not in the governed scope", "misses derived realizations of aaosIntegrated",
+                   "does not represent the common content"):
+        assert reason in reasons, reason
+
+
+def test_the_model_reading_of_admission_gives_the_reasons_the_slice_states() -> None:
+    """Before the receipt: the stated reading of the correspondences (test_ple_authority_model.admission) blocks the
+    configuration for the reasons the package doc names, and realizes the AAOS-integrated alternative only in part."""
+    from tests import test_ple_authority_model as ple
+
+    family, selected = ple._configuration_selection(CONFIGURATION.relative_to(ROOT).as_posix())
+    correspondences, family_elements = ple._correspondences(family)
+    alternative, blocking = ple.admission(ple._tree(family)[1], correspondences, family_elements, selected)
+    assert alternative == "vehiclePlatformIntegrationMode::aaosIntegrated"
+    for reason in ("visionPilot: deferred", "eclipseSCORE: reference-only", "hmiDisplay: not in the governed scope",
+                   "a derived realization of vehiclePlatformIntegrationMode::aaosIntegrated is missing in middleware",
+                   "InitialCommonCoreEngineeringContent::autowareApplication is not represented: autoware is not selected",
+                   "InitialCommonCoreEngineeringContent::currentSensingBaseline is not represented: lidar is not selected"):
+        assert reason in blocking, reason
+    docs = _docs(SLICE)
+    for statement in ("the driving stack is deferred variability", "Eclipse S-CORE is reference-only",
+                      "the HMI display has no element in the governed scope",
+                      "realizes the AAOS-integrated alternative without its middleware androidSDV",
+                      "does not represent the common content: no Autoware, no LiDAR"):
+        assert statement in docs, statement
+
+
+# -- the links of rule 5 -------------------------------------------------------------------------------------------
+
+
+def _feature_links(path: Path) -> dict[str, tuple[str, str]]:
+    code = _code(path)
+    links = {name: (client, feature) for name, client, feature in re.findall(
+        rf"\bdependency\s+(\w+)\s+from\s+(\w+)\s+to\s+{re.escape(FEATURE)}(\w+)\s*;", code)}
+    assert len(links) == code.count("DE4SDV_SDVProductLineFeatureModel"), f"a feature reference of another form in {path.name}"
+    return links
+
+
+def test_the_system_of_interest_links_to_the_feature_visionpilot_in_the_framing() -> None:
+    """What phase 5 promised: phase 9 links the system of interest to the feature it enters a member product with,
+    in rule 5's dependency form, next to the system of interest."""
+    assert _feature_links(FRAMING) == SUBJECT_LINKS
+    assert "systemOfInterest = candidateDriverAssistanceSystem;" in " ".join(_code(FRAMING).split())
+
+
+def test_each_requirement_that_names_the_score_path_links_to_eclipse_score() -> None:
+    """Through the subject first: the subject brings VisionPilot, so a requirement links only what it adds. 038 and
+    043 name the Eclipse S-CORE path, 039 the path on which the actuation detects a failure, and 042 its boundary,
+    the hand-over to the S-CORE path. No requirement repeats its subject's link."""
+    links = _feature_links(NEEDS)
+    assert {name: link for name, link in links.items() if link[1] == "eclipseSCORE"} == REQUIREMENT_LINKS
+    assert links == REQUIREMENT_LINKS
+    raw = NEEDS.read_text(encoding="utf-8")
+    for client, identifier in (("reqDrivingCommandOverSCORE", "038"), ("reqDetectableDrivingCommand", "039"),
+                               ("reqWarningRequestBeforeEmergencyBraking", "042"), ("reqWarningRequestOverSCORE", "043")):
+        assert re.search(rf"\brequirement <'REQ-DRIVING-{identifier}'> {client} :", raw), client
+    statements = dict(re.findall(r"requirement <'(REQ-DRIVING-\d+)'> \w+ : \w+ \{\s*subject [^;]+;\s*require constraint "
+                                 r"statement \{ language \"English\" /\* (.*?) \*/ \}", raw, re.S))
+    assert len(statements) == 9
+    assert sorted(i for i, s in statements.items() if "Eclipse S-CORE path" in s) == [
+        "REQ-DRIVING-038", "REQ-DRIVING-039", "REQ-DRIVING-043"]
+    assert "at its boundary" in statements["REQ-DRIVING-042"]
+    assert ("Boundary: the interface at which the outputs of the driver-assistance system leave it for the Eclipse "
+            "S-CORE path.") in _docs(NEEDS)
+
+
+def test_no_link_starts_from_the_realization_or_sits_in_a_feature_model_document() -> None:
+    """A link from the phase-8 realization is no counted kind (it left INC-DRIVING-001's requirements reading as core);
+    the links live with the requirements and the system of interest, never in the phase 9 package."""
+    for path in sorted(DRIVING.glob("driver_assistance_*.sysml")):
+        if path in (FRAMING, NEEDS):
+            continue
+        assert "DE4SDV_SDVProductLineFeatureModel" not in _code(path), path.name
+    assert not re.search(r"\bdependency\s+\w+\s+from\s+DriverAssistanceSoftwareRealization\b", _code(SLICE))
+
+
+def test_no_driver_assistance_requirement_depends_on_the_hmi_display() -> None:
+    """No requirement statement names a display, so no OnHMIDisplay dependency exists, and the slice says why."""
+    raw = NEEDS.read_text(encoding="utf-8")
+    assert "hmiDisplay" not in _code(NEEDS)
+    statements = re.findall(r"requirement <'REQ-DRIVING-\d+'> \w+ : \w+ \{\s*subject [^;]+;\s*require constraint "
+                            r"statement \{ language \"English\" /\* (.*?) \*/ \}", raw, re.S)
+    assert len(statements) == 9 and not [s for s in statements if re.search(r"\b(display|screen)\b", s, re.I)]
+    assert "this package adds no requirement dependency on hmiDisplay" in _docs(SLICE)
+
+
+# -- the physical context, the views, the charter and the guide ----------------------------------------------------
+
+
+def test_the_context_layers_of_phase_8_are_typed_by_the_selected_variants() -> None:
+    """The product does not compose the physical context; this pin keeps its host and guest layers the definitions
+    of the variants the configuration selects, so the bench of phase 8 is the configured product's."""
+    stack = _code(PLATFORM_STACK)
+    for _selection, (variation, variant, definition) in LAYERS.items():
+        variants = _body(stack, rf"\bvariation part {variation} : \w+\s*\{{")
+        assert re.search(rf"\bvariant (?:ref )?part {variant} : {definition}\b", variants), variant
+    for context_def, path, layer, selection in CONTEXT_LAYERS:
+        definition = LAYERS[selection][2]
+        body = _own(_body(_code(path), rf"\bpart def {context_def}\b[^{{;]*\{{"))
+        assert re.search(rf"(?<!ref )\bpart {layer} : {definition}\b", body), f"{context_def}.{layer} is not a {definition}"
+    system = _own(_body(_code(PHYSICAL), r"\bpart def DriverAssistancePhysicalSystem\b[^{;]*\{"))
+    assert "part guestHost : AAOSGuestHost;" in system
+
+
+def test_the_projection_redefines_the_selected_layers() -> None:
+    """Receipt-bound: the configurator writes the projection from the receipt of the licensed run."""
+    projection = _code(PRODUCT_MODEL)
+    assert re.search(rf"\bpart def {PROJECTION} :> SDVPlatformStack\s*\{{", projection)
+    for selection, (variation, variant, _definition) in LAYERS.items():
+        assert re.search(rf"\bpart :>> {selection} = {variation}::{variant};", projection), selection
+
+
+def test_the_two_phase_9_views_frame_the_two_concerns_and_publish_the_configured_product() -> None:
+    code = _code(SLICE)
+    for view, viewpoint, concern in [
+        ("driverAssistanceProductLineConfigurationView", "ProductLineConfigurationViewpoint",
+         "assistanceProductLineConfigurationConcern"),
+        ("driverAssistanceProductModelAssemblyView", "ProductModelAssemblyViewpoint", "assistanceProductModelAssemblyConcern"),
+    ]:
+        body = _body(code, rf"\bview {view}\s*\{{")
+        assert re.search(rf"\bviewpoint \w+ : {viewpoint}\s*\{{\s*frame {concern};", " ".join(body.split()))
+        assert "render asTreeDiagram;" in body and "attribute maxCompartmentEntries = 0;" in body
+        assert "attribute showAnnotationRows = false;" in body
+        assert re.search(rf"\bconcern {concern} : {viewpoint.replace('Viewpoint', 'Concern')}\s*\{{", code)
+    configuration = _own(_body(code, r"\bview driverAssistanceProductLineConfigurationView\s*\{"))
+    aliases = ["selectedVehicleApplication", "selectedMiddleware", "selectedOperatingSystem", "selectedHypervisor",
+               "selectedGuestOperatingSystem", "selectedGuestMiddleware", "selectedApplicationMiddlewareAdapter"]
+    assert re.findall(r"\bexpose (\w+);", configuration) == [PROJECTION, *aliases]
+    declared = dict(re.findall(rf"\balias (\w+)\s+for {PROJECTION}::(\w+);", " ".join(code.split())))
+    assert declared == dict(zip(aliases, LAYERS)), declared
+    assembly = _own(_body(code, r"\bview driverAssistanceProductModelAssemblyView\s*\{"))
+    assert re.findall(r"\bexpose ([\w:]+);", assembly) == [
+        PRODUCT_DEF, f"{PRODUCT_DEF}::platformStack", f"{PRODUCT_DEF}::assistanceSoftware", "configuredProduct"], (
+        "phase 11's applicablePhaseContentPublished reads the configured-product usage")
+    assert "filter not (@ SysML::AllocationUsage);" in assembly
+
+
+def test_the_views_index_lists_the_two_phase_9_views() -> None:
+    """VIEWS.md comes from scripts/generate_view_index.py; the renders come from the licensed Syside run."""
+    index = VIEWS_INDEX.read_text(encoding="utf-8")
+    section = index.split("## `driver_assistance_variability_configuration.sysml`", 1)[1].split("\n## ", 1)[0]
+    assert re.findall(r"^### `(\w+)`", section, re.M) == ["driverAssistanceProductLineConfigurationView",
+                                                         "driverAssistanceProductModelAssemblyView"]
+
+
+def test_the_charter_names_the_phase_9_package_after_phase_8() -> None:
+    artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", FRAMING.read_text(encoding="utf-8"), re.S)
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-2:] == [
+        "DE4SDV_DriverAssistancePhysicalSoftwareRealization", PACKAGE]
+    assert re.findall(r"(?m)^package\s+(\w+)\s*\{", _code(SLICE)) == [PACKAGE], "one global package per file"
+
+
+def test_the_guide_describes_phase_9_and_its_decisions() -> None:
+    guide = GUIDE.read_text(encoding="utf-8")
+    order = [guide.index(heading) for heading in ("## Physical and software realization (Phase 8)",
+                                                  "## Variability and configuration (Phase 9)",
+                                                  "## What the framing already records as open")]
+    assert order == sorted(order)
+    section = " ".join(guide.split("## Variability and configuration (Phase 9)", 1)[1].split("\n## ", 1)[0].split())
+    for text in (IDENTITY, "`visionPilot`", "C014", "C015", "`androidSDV`", "`autosarAdaptive`", "`noMiddleware`",
+                 "`visionPilotToSCORE`", "valid, and the governed scope does not admit it", "`hmiDisplay`",
+                 "receipt", "2026-11-06",
+                 "2026-11-14", "`assistanceSystemOnVisionPilotFeature`", "`eclipseSCORE`", "No check reads them",
+                 "(../../textual-notation-of-model/packages/features/driving/"
+                 "driver_assistance_variability_configuration.sysml)",
+                 "tests/test_driver_assistance_variability_configuration.py"):
+        assert text in section, text
+    for count in ("215,040", "17,680", "832"):
+        assert count not in section, "the guide quotes no count the receipt has not produced"
+    check = " ".join(guide.split("## Check the framing change", 1)[1].split())
+    assert "tests/test_driver_assistance_variability_configuration.py" in check
