@@ -694,6 +694,18 @@ shown before Phase 10: the one S-CORE process linked with the build of ONNX
 Runtime for CUDA, and the candidate record reaching a vehicle interface that
 subscribes after it was published.
 
+On the same day the owner chose CARLA 1.0 on Unreal Engine 5.8 for the bench's
+simulator, in place of CARLA 0.9.16 on Unreal Engine 4, and the build that the
+readiness probe ran: commit `14ac3b1a50` of CARLA's branch `ue58-dev`, two
+commits after the tag `1.0`, from CARLA's weekly package of 2026-11-15, of which
+DE4SDV keeps a copy
+([`upstream.md`](../../textual-notation-of-model/packages/features/driving/upstream.md)).
+The probe ran its server in synchronous mode with the 0.1 s step at wall-clock
+pace on one NVIDIA L4, and its C++ client library, which needs C++20, inside an
+S-CORE process whose other code stays C++17. Upstream's camera rig sits on a
+vehicle that CARLA 1.0 does not have, so the bench mounts the camera on another
+one. The candidate itself has not yet driven on CARLA 1.0.
+
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
 upstream's own simulator path does, and gives the simulator the candidate's
 steering unchanged, as that path does. The VSS steering angle of the driving

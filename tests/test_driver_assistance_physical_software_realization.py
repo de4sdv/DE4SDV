@@ -15,7 +15,8 @@ what the phase settled on top of it:
   guests and the warning presentation are context realizations, typed by no kernel class;
 - the actuation adapter rejects a detected failed command and applies nothing in its place, and has no stop response;
 - the clock and the three hosts are INC-DRIVING-001's decisions of 2026-11-08 and 2026-11-09, carried over;
-- the simulator receives CARLA's Ackermann control, typed by the fields of the 0.9.16 API reference;
+- the simulator is CARLA 1.0 on Unreal Engine 5.8 (the simulator decision of 2026-11-15) and receives CARLA's
+  Ackermann control, typed by the fields of its API reference, the same as in 0.9.16;
 - VSS only at the ports: the command, the speed and the warning request; the 0.2 s share of REQ-DRIVING-042 is divided
   0.1 s for the path and 0.1 s for the presentation;
 - the two path requirements are carried by a dependency from the publishing definitions;
@@ -152,7 +153,7 @@ VSS_IMPORTS = {
     "Vehicle_ADAS_Driving_Command_SteeringAngle": "DE4SDV_VSS_Extensions",
     "Vehicle_ADAS_AEBS_DriverWarning_IsActive": "DE4SDV_VSS_Extensions",
 }
-#: The fields of carla.VehicleAckermannControl in the Python API reference of CARLA 0.9.16, in its order
+#: The fields of carla.VehicleAckermannControl in the Python API reference of CARLA 1.0 (as in 0.9.16), in its order
 ACKERMANN_FIELDS = [("steer", "Real"), ("steerSpeed", "Real"), ("speed", "Real"), ("acceleration", "Real"),
                     ("jerk", "Real")]
 
@@ -282,7 +283,8 @@ STEERING_RULE = (
     "steer, positive to the right, as upstream's own simulator path does, which gives the steering to CARLA's steer "
     "without a change (vehicle_ros2_interface.cpp:67, carla_control_publisher_node.py:49), and the VSS steering angle "
     "is positive to the left (ASM-DRIVING-006). At the actuation adapter, for CARLA's Ackermann control, whose steer is "
-    "positive to the right (the Python API reference of CARLA 0.9.16): steer = -steeringAngle * pi / 180 in rad, so "
+    "positive to the right (the Python API references of CARLA 1.0 and of CARLA 0.9.16, which upstream's path runs): "
+    "steer = -steeringAngle * pi / 180 in rad, so "
     "the simulator receives the candidate's steering unchanged, as on upstream's path;"
 )
 #: the rejection the adapter applies, as the command record states it (review R10, P2)
@@ -315,6 +317,24 @@ GPU_DECISION = (
     "The readiness probe of this phase found the processor alone too slow for the 0.1 s cycle, so "
     "asmProcessorInferenceSufficient does not hold (phase8ProcessorInferenceNotHeld).",
 )
+#: The commit of CARLA that the simulator decision of 2026-11-15 pins, the build that the readiness probe ran.
+CARLA_COMMIT = "14ac3b1a502da45a44506cb2ed82ab800f1baf4c"
+#: The owner's third decision of 2026-11-15, after the readiness probe, as the package head records it.
+SIMULATOR_DECISION = (
+    "On 2026-11-15 the owner also chose CARLA 1.0 on Unreal Engine 5.8 for the bench's simulator, in place of CARLA "
+    "0.9.16 on Unreal Engine 4, and the build that the readiness probe of this phase ran: commit "
+    f"{CARLA_COMMIT} of CARLA's branch ue58-dev, two commits after the tag 1.0, from CARLA's weekly package of "
+    "that day, of which DE4SDV keeps a copy (upstream.md): the simulator decision of 2026-11-15.",
+    "The probe ran its server in synchronous mode with the fixed step of 0.1 s at wall-clock pace on one NVIDIA L4, "
+    "and its C++ client library inside an S-CORE process; synchronous mode, the fixed step and the pacer of the clock "
+    "decision of 2026-11-08 stay.",
+)
+#: What the simulator decision retired, anywhere in the model and the guide: the bench's own simulator, client and
+#: API reference are CARLA 1.0's. CARLA 0.9.16 stays named where it is upstream's path or the record of 2026-11-08.
+RETIRED_SIMULATOR_STATEMENTS = ("the C++ client library of CARLA 0.9.16", "System 2: CARLA 0.9.16",
+                                "simulator client library of CARLA 0.9.16",
+                                "(the Python API reference of CARLA 0.9.16)",
+                                "Python API reference of CARLA 0.9.16 (five floats")
 #: What the GPU decision and the readiness probe retired, anywhere in the model and the guide.
 RETIRED_HOST_STATEMENTS = ("stays open until the readiness probe", "run on the CPU provider", "engine.provider = cpu",
                            "readiness probe pending", "that the CPU keeps the cycle", "with one C++ standard library",
@@ -358,6 +378,10 @@ COMMENT_STATEMENTS = {
         "with no hop beside S-CORE before them",
         "The readiness probe of 2026-11-15 built one process with the S-CORE toolchain that links mw::com, the "
         "simulator's C++ client library, ONNX Runtime, OpenCV and the Rerun SDK, and ran it",
+        "It then built the same process with the C++ client library of CARLA 1.0, which needs C++20: only the unit "
+        "that calls the library was compiled as C++20, the rest of the process as C++17.",
+        "Run against a CARLA 1.0 server, it gave the same network, data log and mw::com events, every front-camera "
+        "image at the rig's size, and an Ackermann control that moved the ego vehicle.",
         "Its ONNX Runtime was the prebuilt build for the processor, which loads a second C++ standard library into "
         "the process beside the binary's own.",
         "Open before phase 10: the link with the build of ONNX Runtime for CUDA that the GPU decision of 2026-11-15 "
@@ -395,7 +419,12 @@ COMMENT_STATEMENTS = {
         "with the CUDA provider the candidate's ROS 2 build gave a command for every step in the minute measured, with "
         "no change to its source.",
         "The S-CORE path of this realization takes the commands from the same loop through the DE4SDV S-CORE "
-        "interface module instead of ROS 2."),
+        "interface module instead of ROS 2.",
+        "The simulator of this realization is CARLA 1.0 (the simulator decision of 2026-11-15): the probe ran its "
+        "server in synchronous mode with the fixed step at wall-clock pace, with the bench's front camera and a "
+        "recording camera, on one NVIDIA L4, and drove its ego vehicle from a client inside an S-CORE process "
+        "(phase8ScoreIntegrationPlaced).",
+        "The candidate itself has not yet driven on CARLA 1.0: its passes in the probe ran on CARLA 0.9.16."),
     "reqDetectableDrivingCommandRejection": (
         "its issue time, a sequence count from 1 in each run and a CRC-32 check value",
         "detects a loss or a repetition by the sequence count, a corruption by the check value and a delay by the issue "
@@ -698,7 +727,9 @@ def test_the_simulator_receives_the_ackermann_control_the_adapter_applies_and_no
     body = braced_body(_code(), "item def SimulatorAckermannControl")
     assert re.findall(r"\battribute\s+(\w+)\s*:\s*(\w+)\s*;", body) == ACKERMANN_FIELDS
     doc = _doc("item def SimulatorAckermannControl")
-    for phrase in ("the only thing that does", "carla.VehicleAckermannControl", "Python API reference of CARLA 0.9.16",
+    for phrase in ("the only thing that does", "carla.VehicleAckermannControl",
+                   "in the Python API reference of CARLA 1.0, the same as in CARLA 0.9.16 (five floats in the client "
+                   "library's VehicleAckermannControl)",
                    "steer, the desired steering angle in rad, positive to the right",
                    "steerSpeed, the steering velocity in rad/s", "speed, the desired speed in m/s",
                    "acceleration, the desired acceleration in m/s²", "jerk, the desired jerk in m/s³",
@@ -778,10 +809,14 @@ def test_the_simulator_server_carries_the_front_camera_rig_and_keeps_the_clock_o
     rig_doc = _doc("part def FrontCameraRig")
     for phrase in ("one front camera", "1920 by 1280 pixels", "field of view of 50 degrees",
                    "Simulation/CARLA/ROS2/config/carla916.json:5-15", "H.yaml", "gapCameraImageAndGeometry",
-                   "ground truth"):
+                   "ground truth",
+                   "It sits on vehicle.lincoln.mkz_2020 (carla916.json:2), which CARLA 1.0 does not have, so the bench "
+                   "mounts the camera on another vehicle."):
         assert phrase in rig_doc, phrase
     server_doc = _doc("part def DriverAssistanceSimulationServer")
-    for phrase in ("System 2", "CARLA 0.9.16", "It runs in synchronous mode with a fixed step of 0.1 s",
+    for phrase in ("The simulator server, System 2: CARLA 1.0 on Unreal Engine 5.8, at 14ac3b1a50 (the simulator "
+                   "decision of 2026-11-15), which renders the front camera of the ego vehicle",
+                   "It runs in synchronous mode with a fixed step of 0.1 s",
                    "world-side pacer", "the clock decision of 2026-11-08",
                    "Simulation time is the time of the world snapshot, in seconds since the scenario started",
                    "Three clients", "The autopilot and the traffic manager have no control of the ego vehicle"):
@@ -1094,8 +1129,10 @@ def test_the_package_head_records_the_owner_decision_of_2026_11_15():
         assert statement in head, statement
     for statement in GPU_DECISION:
         assert statement in head, statement
-    assert head.index(GPU_DECISION[0]) < head.index("Carried over from the dated decisions of INC-DRIVING-001"), \
-        "a decision of this phase, not one carried over"
+    for statement in SIMULATOR_DECISION:
+        assert statement in head, statement
+    assert head.index(GPU_DECISION[0]) < head.index(SIMULATOR_DECISION[0]) < head.index(
+        "Carried over from the dated decisions of INC-DRIVING-001"), "decisions of this phase, not ones carried over"
     for alternative in ALTERNATIVES:
         assert alternative in head, alternative
     assert ("the simulator receives the candidate's steering unchanged and the planned acceleration, as on that path. "
@@ -1113,6 +1150,25 @@ def test_the_gpu_decision_retires_the_processor_statements():
     guide = " ".join(GUIDE.read_text(encoding="utf-8").split())
     for statement in RETIRED_HOST_STATEMENTS:
         assert statement not in model and statement not in guide, statement
+
+
+def test_the_simulator_decision_moves_the_bench_to_carla_1_0():
+    """The simulator decision of 2026-11-15: the bench's server, its client library and the contract strings name
+    CARLA 1.0; CARLA 0.9.16 stays where it is upstream's path or the clock record of 2026-11-08."""
+    model = _flat(_raw())
+    guide = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    for statement in RETIRED_SIMULATOR_STATEMENTS:
+        assert statement not in model and statement not in guide, statement
+    camera = _doc("part def SCORECameraInterface :> PhysicalAllocationElement")
+    assert ("A client of the simulator, the C++ client library of CARLA 1.0, receives the front-camera images over "
+            "the bench network") in camera
+    assert _record_value("MAP-DRIVING-DA-CAMERA-IMAGE", "softwareContractArtifact").startswith(
+        "in: the camera sensor stream of the simulator client library of CARLA 1.0, an RGB camera as in upstream's "
+        "rig (Simulation/CARLA/ROS2/config/carla916.json:5-15), candidate;")
+    assert _record_value("MAP-DRIVING-DA-VEHICLE-SPEED", "softwareContractArtifact").startswith(
+        "in: the velocity of the ego vehicle in the world snapshot of the simulator client library of CARLA 1.0, "
+        "candidate;")
+    assert CARRIED_OVER[0] in _head(), "the clock record of 2026-11-08 stays as it was decided"
 
 
 def test_the_comments_record_what_phase_8_settled_on_the_framing_records():
@@ -1296,6 +1352,14 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                    "On 2026-11-15 the owner also chose a GPU of its own for the S-CORE host, an NVIDIA L4, for the "
                    "candidate's networks",
                    "the readiness probe of Phase 8 found the processor alone too slow for the 0.1 s cycle",
+                   "On the same day the owner chose CARLA 1.0 on Unreal Engine 5.8 for the bench's simulator, in place "
+                   "of CARLA 0.9.16 on Unreal Engine 4, and the build that the readiness probe ran",
+                   "commit `14ac3b1a50` of CARLA's branch `ue58-dev`, two commits after the tag `1.0`, from CARLA's "
+                   "weekly package of 2026-11-15, of which DE4SDV keeps a copy",
+                   "its C++ client library, which needs C++20, inside an S-CORE process whose other code stays C++17",
+                   "Upstream's camera rig sits on a vehicle that CARLA 1.0 does not have, so the bench mounts the "
+                   "camera on another one.",
+                   "The candidate itself has not yet driven on CARLA 1.0.",
                    "tests/test_driver_assistance_physical_software_realization.py"):
         assert phrase in section, phrase
     assert "VisionPilot/" not in section and ".cpp" not in section, "the guide carries no upstream paths"
@@ -1331,8 +1395,11 @@ def test_the_upstream_record_names_what_phase_8_read_at_the_pin():
         assert f"https://github.com/autowarefoundation/vision_pilot/blob/{PIN}/{path}" in section, path
     assert f"https://github.com/autowarefoundation/vision_pilot/blob/{PIN}/VisionPilot/config/vision_pilot.conf#L11-L17" \
         in section, "the provider and the precision of the configuration that upstream ships"
+    assert (f"https://github.com/carla-simulator/carla/blob/{CARLA_COMMIT}/Docs/python_api.md"
+            "#carlavehicleackermanncontrol" in section), "the API reference of the Ackermann control the bench runs"
     assert ("https://github.com/carla-simulator/carla/blob/0.9.16/Docs/python_api.md#carlavehicleackermanncontrol"
-            in section), "the API reference of the simulator's Ackermann control, at the release the bench runs"
+            in section), "the API reference of the release that upstream's simulator path runs"
+    assert "line 2 names the vehicle, `vehicle.lincoln.mkz_2020`, and lines 5 to 15 attach one RGB camera" in text
     assert ("https://github.com/carla-simulator/carla/blob/0.9.16/LibCarla/source/carla/ros2/subscribers/"
             "AckermannControlSubscriber.cpp") in section
     assert "lateral_planning.cpp" not in section and "lateral_fusion.hpp" not in section, "the model cites neither"
@@ -1351,6 +1418,29 @@ def test_the_upstream_record_names_what_phase_8_read_at_the_pin():
                    "steer in rad, positive to the right, steer_speed in rad/s, speed in m/s, acceleration in m/s² and "
                    "jerk in m/s³, each with a default of 0.0"):
         assert phrase in text, phrase
+
+
+def test_the_upstream_record_pins_the_carla_build_of_the_simulator_decision():
+    """The simulator decision of 2026-11-15 pins a weekly build that CARLA overwrites: the record names it by commit,
+    version string, package and digest, and says that DE4SDV keeps the copy. INC-DRIVING-001's bench keeps 0.9.16."""
+    record = UPSTREAM.read_text(encoding="utf-8")
+    section = " ".join(record.split("\n## CARLA\n", 1)[1].split("\n## ", 1)[0].split())
+    for phrase in ("The driver-assistance bench of INC-DRIVING-002 runs CARLA 1.0 on Unreal Engine 5.8 instead "
+                   "(the simulator decision of 2026-11-15 in [its realization]"
+                   "(driver_assistance_physical_software_realization.sysml)):",
+                   f"[`{CARLA_COMMIT}`](https://github.com/carla-simulator/carla/tree/{CARLA_COMMIT}) of the branch "
+                   "`ue58-dev`, two commits after the tag",
+                   "(`a1770de89a6b93cda10b03f6eabb2a7a4ffb0f1d`), and a descendant of the inspected commit.",
+                   "The server and the client built from it report the version `1.0-14ac3b1a5`.",
+                   "The build is CARLA's weekly package for Linux of 2026-11-15, `CARLA_UE5_Weekly.tar.gz`: "
+                   "14,096,474,749 bytes, SHA-256 "
+                   "`2e45cc695a2b570a5a4dec3cc127b43f5a4b6bd99abb1e8716cf9ac063c94cca`.",
+                   "CARLA replaces that download every week and had published no package of 1.0 on 2026-11-15, so "
+                   "DE4SDV keeps a copy of this one.",
+                   f"(https://github.com/carla-simulator/carla/blob/{CARLA_COMMIT}/CMake/Common.cmake#L5-L6), "
+                   "lines 5 and 6), and the package has no `vehicle.lincoln.mkz_2020`."):
+        assert phrase in section, phrase
+    assert "The bench runs release 0.9.16: tag" in section, "INC-DRIVING-001's bench keeps its release"
 
 
 def test_every_upstream_file_the_model_cites_by_line_is_in_the_upstream_record():

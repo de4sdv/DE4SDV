@@ -32,6 +32,17 @@
  * asmProcessorInferenceSufficient does not hold
  * (phase8ProcessorInferenceNotHeld).
  *
+ * On 2026-11-15 the owner also chose CARLA 1.0 on Unreal Engine 5.8 for the
+ * bench's simulator, in place of CARLA 0.9.16 on Unreal Engine 4, and the build
+ * that the readiness probe of this phase ran: commit
+ * 14ac3b1a502da45a44506cb2ed82ab800f1baf4c of CARLA's branch ue58-dev, two
+ * commits after the tag 1.0, from CARLA's weekly package of that day, of which
+ * DE4SDV keeps a copy (upstream.md): the simulator decision of 2026-11-15. The
+ * probe ran its server in synchronous mode with the fixed step of 0.1 s at
+ * wall-clock pace on one NVIDIA L4, and its C++ client library inside an S-CORE
+ * process; synchronous mode, the fixed step and the pacer of the clock decision
+ * of 2026-11-08 stay.
+ *
  * Carried over from the dated decisions of INC-DRIVING-001
  * (closed_loop_driving_physical_software_realization.sysml):
  *
@@ -213,20 +224,20 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
 
   item def SimulatorAckermannControl {
     doc /*
-     * The information that crosses to the simulator, and the only thing
-     * that does: the Ackermann control that the actuation adapter applies to
-     * the ego vehicle through the simulator client, the five fields of
-     * carla.VehicleAckermannControl in the Python API reference of CARLA
-     * 0.9.16 (five floats in the client library's VehicleAckermannControl):
-     * steer, the desired steering angle in rad, positive to the right;
-     * steerSpeed, the steering velocity in rad/s, where zero changes the
-     * angle as quickly as possible; speed, the desired speed in m/s;
-     * acceleration, the desired acceleration in m/s²; and jerk, the desired
-     * jerk in m/s³; each defaults to 0.0. The adapter sets steer, speed,
-     * acceleration and jerk, as upstream's own simulator path sets them
+     * The information that crosses to the simulator, and the only thing that
+     * does: the Ackermann control that the actuation adapter applies to the ego
+     * vehicle through the simulator client, the five fields of
+     * carla.VehicleAckermannControl in the Python API reference of CARLA 1.0,
+     * the same as in CARLA 0.9.16 (five floats in the client library's
+     * VehicleAckermannControl): steer, the desired steering angle in rad,
+     * positive to the right; steerSpeed, the steering velocity in rad/s, where
+     * zero changes the angle as quickly as possible; speed, the desired speed
+     * in m/s; acceleration, the desired acceleration in m/s²; and jerk, the
+     * desired jerk in m/s³; each defaults to 0.0. The adapter sets steer,
+     * speed, acceleration and jerk, as upstream's own simulator path sets them
      * (carla_control_publisher_node.py:43-54 at the pin); steerSpeed stays at
-     * its default of 0.0. The driving command ends at the adapter; this is what the
-     * simulated vehicle receives.
+     * its default of 0.0. The driving command ends at the adapter; this is what
+     * the simulated vehicle receives.
      */
     attribute steer : Real;
     attribute steerSpeed : Real;
@@ -338,16 +349,16 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * perception and fusion: the camera input of the candidate's process, a
      * module of the DE4SDV S-CORE interface in C++ that implements the
      * candidate's camera interface. A client of the simulator, the C++ client
-     * library of CARLA 0.9.16, receives the front-camera images over the
-     * bench network, and the module hands the newest one to the loop as the
-     * frame that vision_pilot.cpp:117 takes; it drops older images and counts
-     * each image it drops, as upstream's own camera interface counts its
-     * dropped frames. The frame goes to the loop without a time
+     * library of CARLA 1.0, receives the front-camera images over the bench
+     * network, and the module hands the newest one to the loop as the frame
+     * that vision_pilot.cpp:117 takes; it drops older images and counts each
+     * image it drops, as upstream's own camera interface counts its dropped
+     * frames. The frame goes to the loop without a time
      * (camera_interface.hpp:18): the module keeps its capture time, the
-     * simulation time of the world snapshot the image was rendered in, and
-     * the vehicle interface and the warning request publisher, modules of the
-     * same interface, read it in the same pass of the loop. In a vehicle a
-     * camera driver would stand here.
+     * simulation time of the world snapshot the image was rendered in, and the
+     * vehicle interface and the warning request publisher, modules of the same
+     * interface, read it in the same pass of the loop. In a vehicle a camera
+     * driver would stand here.
      */
     port frontCameraImageIn : FrontCameraStreamIn;
     port imageOut : FrontCameraStreamOut;
@@ -561,20 +572,21 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
 
   part def DriverAssistanceSimulationServer {
     doc /*
-     * The simulator server, System 2: CARLA 0.9.16, which renders the front
-     * camera of the ego vehicle and simulates its dynamics, the road and the
-     * targets, so it stands for the vehicle and the road environment of the
+     * The simulator server, System 2: CARLA 1.0 on Unreal Engine 5.8, at
+     * 14ac3b1a50 (the simulator decision of 2026-11-15), which renders the
+     * front camera of the ego vehicle and simulates its dynamics, the road and
+     * the targets, so it stands for the vehicle and the road environment of the
      * phase 2 context on the bench. It runs in synchronous mode with a fixed
      * step of 0.1 s, and a world-side pacer of the bench's scenario tooling
      * ticks it at wall-clock pace, so no element of the candidate or of the
-     * path ticks the world (the clock decision of 2026-11-08). Simulation
-     * time is the time of the world snapshot, in seconds since the scenario
-     * started; each camera image carries the simulation time of the snapshot
-     * it was rendered in. Three clients connect to it over the bench network:
-     * the camera interface and the vehicle interface of the candidate's
-     * process, and the actuation adapter. The autopilot and the traffic
-     * manager have no control of the ego vehicle. Its one sensor is the front
-     * camera of the rig below.
+     * path ticks the world (the clock decision of 2026-11-08). Simulation time
+     * is the time of the world snapshot, in seconds since the scenario started;
+     * each camera image carries the simulation time of the snapshot it was
+     * rendered in. Three clients connect to it over the bench network: the
+     * camera interface and the vehicle interface of the candidate's process,
+     * and the actuation adapter. The autopilot and the traffic manager have no
+     * control of the ego vehicle. Its one sensor is the front camera of the rig
+     * below.
      */
     port frontCameraStreamOut : FrontCameraStreamOut;
     port vehicleSpeedOut : VehicleSpeedSampleOut;
@@ -586,16 +598,17 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
 
   part def FrontCameraRig {
     doc /*
-     * The bench's sensor, System 2: one front camera attached to the
-     * simulated ego vehicle, standing for the vehicle's front camera of the
-     * phase 2 context. Upstream's own rig at the pin is one RGB camera of
-     * 1920 by 1280 pixels with a field of view of 50 degrees, at the pose
-     * that Simulation/CARLA/ROS2/config/carla916.json:5-15 gives. The
-     * candidate estimates distances through the homography of H.yaml, which
-     * has to match the simulated camera (gapCameraImageAndGeometry). The
-     * speed comes from the world snapshot, ground truth, not from a sensor.
-     * No connection, binding or port inside: the server's ports carry the
-     * stream.
+     * The bench's sensor, System 2: one front camera attached to the simulated
+     * ego vehicle, standing for the vehicle's front camera of the phase 2
+     * context. Upstream's own rig at the pin is one RGB camera of 1920 by 1280
+     * pixels with a field of view of 50 degrees, at the pose that
+     * Simulation/CARLA/ROS2/config/carla916.json:5-15 gives. It sits on
+     * vehicle.lincoln.mkz_2020 (carla916.json:2), which CARLA 1.0 does not
+     * have, so the bench mounts the camera on another vehicle. The candidate
+     * estimates distances through the homography of H.yaml, which has to match
+     * the simulated camera (gapCameraImageAndGeometry). The speed comes from
+     * the world snapshot, ground truth, not from a sensor. No connection,
+     * binding or port inside: the server's ports carry the stream.
      */
     part frontCamera : SimulatedFrontCamera;
   }
@@ -854,7 +867,7 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
        * through the simulator client. An image is no vehicle signal.
        */
       attribute :>> semanticSource = "the front-camera image of the ego vehicle, rendered by the simulator: image frames, no vehicle signal, so no VSS typing applies; the receiving contract is the candidate's camera interface at 014e0e7a";
-      attribute :>> softwareContractArtifact = "in: the camera sensor stream of the simulator client library of CARLA 0.9.16, an RGB camera as in upstream's rig (Simulation/CARLA/ROS2/config/carla916.json:5-15), candidate; out: the frame that the candidate's loop takes (vision_pilot.cpp:117), candidate";
+      attribute :>> softwareContractArtifact = "in: the camera sensor stream of the simulator client library of CARLA 1.0, an RGB camera as in upstream's rig (Simulation/CARLA/ROS2/config/carla916.json:5-15), candidate; out: the frame that the candidate's loop takes (vision_pilot.cpp:117), candidate";
       attribute :>> softwareContractMessage = "in: one RGB image per simulation step with its frame number and simulation time, candidate; out: one image per pass of the loop, candidate";
       attribute :>> softwareContractField = "in: raw image buffer, width, height, field of view, frame number and simulation time, exact per the client library; out: the image to the loop, candidate, and its capture time to the vehicle interface and the warning request publisher inside the interface module, candidate";
       attribute :>> dataTypeAndUnit = "in: 8-bit BGRA pixels, 1920 by 1280 at a field of view of 50 degrees in upstream's rig; out: 8-bit BGR pixels; the capture time in simulation seconds";
@@ -878,7 +891,7 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
        * VehicleSpeedSamplePayload types the speed by COVESA VSS.
        */
       attribute :>> semanticSource = "the speed of the ego vehicle from the simulator's world snapshot, typed at the port by COVESA VSS Vehicle_Speed [km/h]";
-      attribute :>> softwareContractArtifact = "in: the velocity of the ego vehicle in the world snapshot of the simulator client library of CARLA 0.9.16, candidate; out: the value that the candidate's vehicle interface read returns to the loop (vehicle_interface.hpp:11, vision_pilot.cpp:142), candidate";
+      attribute :>> softwareContractArtifact = "in: the velocity of the ego vehicle in the world snapshot of the simulator client library of CARLA 1.0, candidate; out: the value that the candidate's vehicle interface read returns to the loop (vehicle_interface.hpp:11, vision_pilot.cpp:142), candidate";
       attribute :>> softwareContractMessage = "in: the velocity vector per world snapshot, candidate; out: VehicleSpeedSamplePayload, one per pass of the loop, candidate";
       attribute :>> softwareContractField = "in: velocity x, y and z and the frame of the snapshot, exact per the client library; out: speed, sampleTime, exact";
       attribute :>> dataTypeAndUnit = "in: float m/s; at the port: speed : Vehicle_Speed km/h and sampleTime in simulation seconds; the candidate's planner takes m/s";
@@ -978,7 +991,7 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
       attribute :>> softwareContractField = "out: acceleration, steeringAngle, issueTime, sequenceCount, checkValue, exact";
       attribute :>> dataTypeAndUnit = "out: acceleration float m/s^2, negative decelerates; steeringAngle float degrees, positive to the left; issueTime in simulation seconds; sequenceCount an unsigned 32-bit count from 1 in each run; checkValue the CRC-32 over the other fields";
       attribute :>> timingQualityAndState = "one command per plan; none before the candidate record has arrived (REQ-DRIVING-044); the issue time is the capture simulation time of the frame the command was computed from";
-      attribute :>> transformationRule = "acceleration unchanged; steeringAngle = -steering[1] * 180 / pi: the integration takes the candidate's steering in the sign of CARLA's steer, positive to the right, as upstream's own simulator path does, which gives the steering to CARLA's steer without a change (vehicle_ros2_interface.cpp:67, carla_control_publisher_node.py:49), and the VSS steering angle is positive to the left (ASM-DRIVING-006). At the actuation adapter, for CARLA's Ackermann control, whose steer is positive to the right (the Python API reference of CARLA 0.9.16): steer = -steeringAngle * pi / 180 in rad, so the simulator receives the candidate's steering unchanged, as on upstream's path; speed = max(0, v + 2 * acceleration) with v the speed of the ego vehicle in the newest world snapshot, acceleration unchanged and jerk = 10.0, as upstream's own simulator path sets them (carla_control_publisher_node.py:44-53); steerSpeed stays at its default of 0.0. The adapter rejects a command whose sequence count is not one more than that of the last accepted, whose check value fails or whose issue time is older than the newest world time by more than one step, and applies nothing in its place (REQ-DRIVING-039, REQ-MW-006)";
+      attribute :>> transformationRule = "acceleration unchanged; steeringAngle = -steering[1] * 180 / pi: the integration takes the candidate's steering in the sign of CARLA's steer, positive to the right, as upstream's own simulator path does, which gives the steering to CARLA's steer without a change (vehicle_ros2_interface.cpp:67, carla_control_publisher_node.py:49), and the VSS steering angle is positive to the left (ASM-DRIVING-006). At the actuation adapter, for CARLA's Ackermann control, whose steer is positive to the right (the Python API references of CARLA 1.0 and of CARLA 0.9.16, which upstream's path runs): steer = -steeringAngle * pi / 180 in rad, so the simulator receives the candidate's steering unchanged, as on upstream's path; speed = max(0, v + 2 * acceleration) with v the speed of the ego vehicle in the newest world snapshot, acceleration unchanged and jerk = 10.0, as upstream's own simulator path sets them (carla_control_publisher_node.py:44-53); steerSpeed stays at its default of 0.0. The adapter rejects a command whose sequence count is not one more than that of the last accepted, whose check value fails or whose issue time is older than the newest world time by more than one step, and applies nothing in its place (REQ-DRIVING-039, REQ-MW-006)";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "run the calibrations of ASM-DRIVING-005 and ASM-DRIVING-006, then bring the verification cases of REQ-DRIVING-036, -038, -039 and -044 to evidence of record; none is started";
@@ -1054,25 +1067,30 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
 
   comment phase8ScoreIntegrationPlaced about gapScoreIntegration
     /*
-     * Placement decided, readiness items open: the candidate's process
-     * becomes an Eclipse S-CORE application through the DE4SDV S-CORE
-     * interface module (the owner's choice of 2026-11-15), started and
-     * supervised by the Launch Manager. Its driving command and its warning
-     * request enter the S-CORE path on mw::com events at the boundary of the
-     * process, with no hop beside S-CORE before them; its state enters no
-     * path, since no requirement asks for it. The readiness probe of
-     * 2026-11-15 built one process with the S-CORE toolchain that links
-     * mw::com, the simulator's C++ client library, ONNX Runtime, OpenCV and
-     * the Rerun SDK, and ran it: one network, one frame conversion, one data
-     * log, mw::com events to a second process, and the simulator's client
-     * connected to the server. Its ONNX Runtime was the prebuilt build for
-     * the processor, which loads a second C++ standard library into the
-     * process beside the binary's own. Open before phase 10: the link with
-     * the build of ONNX Runtime for CUDA that the GPU decision of 2026-11-15
-     * needs; whether the process may hold a second C++ standard library or
-     * builds ONNX Runtime with the S-CORE toolchain; and that the candidate
-     * record reaches the vehicle interface, which subscribes after the record
-     * was published: the probe did not test it.
+     * Placement decided, readiness items open: the candidate's process becomes
+     * an Eclipse S-CORE application through the DE4SDV S-CORE interface module
+     * (the owner's choice of 2026-11-15), started and supervised by the Launch
+     * Manager. Its driving command and its warning request enter the S-CORE
+     * path on mw::com events at the boundary of the process, with no hop beside
+     * S-CORE before them; its state enters no path, since no requirement asks
+     * for it. The readiness probe of 2026-11-15 built one process with the
+     * S-CORE toolchain that links mw::com, the simulator's C++ client library,
+     * ONNX Runtime, OpenCV and the Rerun SDK, and ran it: one network, one
+     * frame conversion, one data log, mw::com events to a second process, and
+     * the simulator's client connected to the server. It then built the same
+     * process with the C++ client library of CARLA 1.0, which needs C++20: only
+     * the unit that calls the library was compiled as C++20, the rest of the
+     * process as C++17. Run against a CARLA 1.0 server, it gave the same
+     * network, data log and mw::com events, every front-camera image at the
+     * rig's size, and an Ackermann control that moved the ego vehicle. Its ONNX
+     * Runtime was the prebuilt build for the processor, which loads a second
+     * C++ standard library into the process beside the binary's own. Open
+     * before phase 10: the link with the build of ONNX Runtime for CUDA that
+     * the GPU decision of 2026-11-15 needs; whether the process may hold a
+     * second C++ standard library or builds ONNX Runtime with the S-CORE
+     * toolchain; and that the candidate record reaches the vehicle interface,
+     * which subscribes after the record was published: the probe did not test
+     * it.
      */
 
   comment phase8ProcessorInferenceNotHeld about asmProcessorInferenceSufficient
@@ -1095,11 +1113,18 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
     /*
      * Holds, by the readiness probe of this phase on 2026-11-15: upstream's
      * simulator path at the pin, CARLA 0.9.16 with its ROS 2 interface and
-     * upstream's two bridge nodes, ran in synchronous mode with a fixed step
-     * of 0.1 s, and with the CUDA provider the candidate's ROS 2 build gave a
+     * upstream's two bridge nodes, ran in synchronous mode with a fixed step of
+     * 0.1 s, and with the CUDA provider the candidate's ROS 2 build gave a
      * command for every step in the minute measured, with no change to its
      * source. The S-CORE path of this realization takes the commands from the
      * same loop through the DE4SDV S-CORE interface module instead of ROS 2.
+     * The simulator of this realization is CARLA 1.0 (the simulator decision of
+     * 2026-11-15): the probe ran its server in synchronous mode with the fixed
+     * step at wall-clock pace, with the bench's front camera and a recording
+     * camera, on one NVIDIA L4, and drove its ego vehicle from a client inside
+     * an S-CORE process (phase8ScoreIntegrationPlaced). The candidate itself
+     * has not yet driven on CARLA 1.0: its passes in the probe ran on CARLA
+     * 0.9.16.
      */
 
   comment phase8EmergencyFunctionAnswered about gapNoSeparateEmergencyFunction
