@@ -232,7 +232,10 @@ package DE4SDV_DriverAssistanceOperationalContext {
        * approaches a stationary vehicle target ahead in its lane; the
        * candidate requests the warning, the AAOS SDV warns the driver on the
        * display and as a sound, and the candidate's driving command brakes
-       * the vehicle.
+       * the vehicle. The scenario is set on a highway-type road with clearly
+       * marked lanes, in fair weather and away from roadwork: inside the
+       * conditions that the candidate's documentation declares
+       * (gapDeclaredOperatingConditions).
        */
     }
 
@@ -254,7 +257,10 @@ package DE4SDV_DriverAssistanceOperationalContext {
        * approaches a slower moving vehicle target ahead in its lane; the
        * candidate requests the warning, the AAOS SDV warns the driver on the
        * display and as a sound, and the candidate's driving command brakes
-       * the vehicle.
+       * the vehicle. The scenario is set on a highway-type road with clearly
+       * marked lanes, in fair weather and away from roadwork: inside the
+       * conditions that the candidate's documentation declares
+       * (gapDeclaredOperatingConditions).
        */
     }
 
@@ -280,7 +286,10 @@ package DE4SDV_DriverAssistanceOperationalContext {
        * false-reaction scenarios include this situation, as a curved road with
        * guard pipes and a stationary object. Phase 2 proposes it; phase 5
        * confirms the selection and states the criterion
-       * (gapVehicleTargetCriteria).
+       * (gapVehicleTargetCriteria). A tight curve with guard pipes is no
+       * highway situation: the scenario lies outside the conditions that the
+       * candidate's documentation declares, and phase 10 reports its runs
+       * apart (gapDeclaredOperatingConditions).
        */
     }
 
@@ -304,7 +313,10 @@ package DE4SDV_DriverAssistanceOperationalContext {
        * braking. The regulation's false-reaction scenarios include this
        * situation, as a right or left turn of a forward vehicle. Phase 2
        * proposes it; phase 5 confirms the selection and states the criterion
-       * (gapVehicleTargetCriteria).
+       * (gapVehicleTargetCriteria). A turn at a corner is no highway
+       * situation: the scenario lies outside the conditions that the
+       * candidate's documentation declares, and phase 10 reports its runs
+       * apart (gapDeclaredOperatingConditions).
        */
     }
 
@@ -334,6 +346,12 @@ package DE4SDV_DriverAssistanceOperationalContext {
   dependency noReactionScenariosOnCriteriaGap
     from driverAssistanceStory
     to DE4SDV_DriverAssistanceFraming::gapVehicleTargetCriteria;
+  dependency curveScenarioOutsideDeclaredConditions
+    from noReactionToStationaryVehicleBeyondTheCurve
+    to DE4SDV_DriverAssistanceFraming::gapDeclaredOperatingConditions;
+  dependency turnScenarioOutsideDeclaredConditions
+    from noReactionToVehicleAheadTurningOff
+    to DE4SDV_DriverAssistanceFraming::gapDeclaredOperatingConditions;
 
   concern driverAssistanceContextConcern : OperationalContextConcern {
     doc /*

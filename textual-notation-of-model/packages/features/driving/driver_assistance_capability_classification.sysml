@@ -8,7 +8,8 @@
  * optional. The speed-following and lane-keeping functions get none: the
  * feature model already holds them as the optional features
  * adaptiveCruiseControl and laneKeepAssist, which the governed scope does not
- * hold. The lane-departure warnings get none: they come with the application
+ * hold. The lane-departure warning and avoidance, the intelligent speed
+ * assistance and the hands-free mode get none: they come with the application
  * that the candidate records, and no case of this increment judges them. The
  * display and the sound get no candidate; the comment on the HMI gap gives the
  * reasons. Eclipse S-CORE gets none: the feature model already holds it as a
@@ -39,7 +40,10 @@ package DE4SDV_DriverAssistanceCapabilityClassification {
      * speed-following and a lane-keeping function, which no case of this
      * increment judges. Phase 9 decides whether the configuration selects
      * them. It raises lane-departure warnings as well, which no case judges
-     * either. Acceptance waits for the member decision.
+     * either. Its documentation also describes a lane-departure avoidance, an
+     * intelligent speed assistance and a hands-free highway mode, which come
+     * with it and which no case judges either. Acceptance waits for the member
+     * decision.
      */
   }
   dependency visionPilotCandidateOfDeferredDrivingStackVariability
