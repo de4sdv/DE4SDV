@@ -6,15 +6,19 @@
 # script brings the vehicle up, waits for both roles, lets them run, collects the
 # JSON lines they log, and scores the run.
 #
-#   results/<utc>-<sha>-backbone/
+#   results/<utc>-<head12>-backbone/
 #     provider.log     the provider container's log (kept on the testbed)
 #     client.log       the client container's log (kept on the testbed)
 #     provider.jsonl   only the service records, what the reader consumes
 #     client.jsonl
 #     summary.json     method RTT, event latency, jitter, misses
-#     manifest.json    sha, lock hash, image digests, kernel
+#     manifest.json    full head and tree, identity digest, lock hash, kernel
+#     identity-before.json / identity-after.json  committed inputs, re-verified
 #
-# Exit code: non-zero if the method never answered or no event arrived.
+# Exit code: non-zero if the method never answered, no event arrived, a log
+# could not be collected, or an input changed during the run. The run starts
+# only from a clean, committed Git checkout (checks/run_identity.py).
+# HOST_PY overrides the evaluator interpreter.
 #
 # Usage: checks/run_backbone.sh [--duration 30] [--keep]
 set -euo pipefail
@@ -35,12 +39,22 @@ PACKAGE="$ROOT/vehicle"
 FL_CTR=vx-zone-fl-payload
 RL_CTR=vx-zone-rl-payload
 
-SHA="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || cat "$ROOT/.git-sha" 2>/dev/null || echo unknown)"
-OUT="$ROOT/results/$(date -u +%Y%m%dT%H%M%SZ)-$SHA-backbone"
-mkdir -p "$OUT"
+HOST_PY="${HOST_PY:-python3}"
 
 say() { printf '[backbone] %s\n' "$*"; }
 die() { printf '[backbone] FAILED: %s\n' "$*" >&2; exit 1; }
+REQUIRED_ERRORS=()
+required_fail() { say "REQUIRED STEP FAILED: $*"; REQUIRED_ERRORS+=("$*"); }
+
+IDENTITY_TMP="$(mktemp)"
+"$HOST_PY" "$ROOT/checks/run_identity.py" capture --scope "$ROOT" --out "$IDENTITY_TMP" \
+  || { rm -f "$IDENTITY_TMP"; die "run identity rejected (see above); commit or remove local changes"; }
+HEAD_SHA="$("$HOST_PY" -c 'import json,sys; print(json.load(open(sys.argv[1]))["git"]["head"])' "$IDENTITY_TMP")"
+HEAD_TREE="$("$HOST_PY" -c 'import json,sys; print(json.load(open(sys.argv[1]))["git"]["tree"])' "$IDENTITY_TMP")"
+OUT="$ROOT/results/$(date -u +%Y%m%dT%H%M%SZ)-${HEAD_SHA:0:12}-backbone"
+mkdir -p "$OUT"
+mv "$IDENTITY_TMP" "$OUT/identity-before.json"
+IDENTITY_SHA256="$(sha256sum "$OUT/identity-before.json" | cut -d' ' -f1)"
 
 teardown() {
   [ "${TORN_DOWN:-0}" -eq 1 ] && return 0
@@ -71,7 +85,10 @@ fi
 {
   echo "{"
   echo "  \"when_utc\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\","
-  echo "  \"git_sha\": \"$SHA\","
+  echo "  \"git_sha\": \"$HEAD_SHA\","
+  echo "  \"git_head\": \"$HEAD_SHA\","
+  echo "  \"git_tree\": \"$HEAD_TREE\","
+  echo "  \"identity_sha256\": \"$IDENTITY_SHA256\","
   echo "  \"vxedge\": \"$(vxedge --version 2>/dev/null | head -1)\","
   echo "  \"lock_sha256\": \"$(sha256sum "$PACKAGE/vxp.lock" 2>/dev/null | cut -d' ' -f1)\","
   echo "  \"host\": \"$(uname -srmo)\","
@@ -101,21 +118,34 @@ say "running for ${DURATION}s"
 sleep "$DURATION"
 
 say "collecting"
-podman logs "$FL_CTR" >"$OUT/provider.log" 2>&1 || true
-podman logs "$RL_CTR" >"$OUT/client.log" 2>&1 || true
+podman logs "$FL_CTR" >"$OUT/provider.log" 2>&1 || required_fail "provider log could not be collected from $FL_CTR"
+podman logs "$RL_CTR" >"$OUT/client.log" 2>&1 || required_fail "client log could not be collected from $RL_CTR"
 grep -E '^\s*\[someip\] \{' "$OUT/provider.log" | sed -E 's/^\s*\[someip\] //' >"$OUT/provider.jsonl" || true
 grep -E '^\s*\[someip\] \{' "$OUT/client.log" | sed -E 's/^\s*\[someip\] //' >"$OUT/client.jsonl" || true
 
 teardown
 
+IDENTITY_RC=0
+"$HOST_PY" "$ROOT/checks/run_identity.py" verify --identity "$OUT/identity-before.json" \
+  --out "$OUT/identity-after.json" || IDENTITY_RC=$?
+
 set +e
-python3 "$ROOT/checks/backbone_measure.py" \
+"$HOST_PY" "$ROOT/checks/backbone_measure.py" \
   --provider-log "$OUT/provider.jsonl" \
   --client-log "$OUT/client.jsonl" \
   --out "$OUT/summary.json" >"$OUT/summary.txt" 2>&1
 RC=$?
 set -e
 cat "$OUT/summary.txt"
+if [ "$IDENTITY_RC" -ne 0 ]; then
+  say "inputs changed during the run (identity-after.json)"
+  RC=1
+fi
+if [ "${#REQUIRED_ERRORS[@]}" -ne 0 ]; then
+  printf '%s\n' "${REQUIRED_ERRORS[@]}" >"$OUT/required-errors.txt"
+  say "required steps failed: $(printf '%s; ' "${REQUIRED_ERRORS[@]}")"
+  RC=1
+fi
 say "verdict: $([ $RC -eq 0 ] && echo PASS || echo FAIL)"
 say "archive: $OUT"
 exit $RC

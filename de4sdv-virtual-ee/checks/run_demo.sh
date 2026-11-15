@@ -6,8 +6,11 @@
 # diagnostic through the gateway, then tears the vehicle down and writes an
 # archive a stranger can read:
 #
-#   results/<utc>-<sha>/
-#     manifest.json        what ran: sha, vxedge, lock hash, image digests, kernel
+#   results/<utc>-<head12>/
+#     manifest.json        what ran: full head and tree, identity digest, vxedge,
+#                          lock hash, image digests, kernel
+#     identity-before.json the committed inputs this run started from
+#     identity-after.json  the same inputs re-verified after the run
 #     candump-*.log        four buses, absolute timestamps, one clock domain
 #     commands.jsonl       what was commanded, with the client's t0 and t5
 #     uds.txt              the tester's own output
@@ -15,8 +18,16 @@
 #     summary.json         the numbers, and what they do not claim
 #     summary.txt          the same, readable
 #
-# The exit code is the demo's verdict: non-zero means a denied frame crossed,
-# nothing converged, or the diagnostic did not come back.
+# The exit code is the demo's verdict: non-zero means a required capture, copy,
+# priming or diagnostic step failed, the declared command matrix was not met
+# command by command, a denied frame crossed, a routed path carried nothing, the
+# diagnostic was not a positive answer, or an input changed during the run.
+#
+# The run starts only from a clean, committed Git checkout (checks/run_identity.py);
+# a tree copied without .git, with or without a .git-sha file, is refused.
+#
+# Host paths, overridable per run: HOST_PY (evaluators), CLIENT_PY (KUKSA
+# client venv), UDS_PY, UDS_TOOL, UDS_CFG (OpenBSW UdsTool).
 #
 # Usage: checks/run_demo.sh [--duration 45] [--keep]
 set -euo pipefail
@@ -38,19 +49,32 @@ PACKAGE="$ROOT/vehicle"
 FL_CTR=vx-zone-fl-payload
 RL_CTR=vx-zone-rl-payload
 GW_CTR=vx-hpc1-payload
-CLIENT_PY=/home/mrk/kv/bin/python
-UDS_PY=/home/mrk/uds/bin/python
-UDS_TOOL=/opt/ee/openbsw/tools/UdsTool/udsTool.py
-UDS_CFG=/opt/ee/openbsw/tools/UdsTool/app/canConfig.json
-
-# The tree is synced without .git, so the sha has to arrive with it: the caller
-# writes .git-sha next to the tree it copies.
-SHA="$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || cat "$ROOT/.git-sha" 2>/dev/null || echo unknown)"
-OUT="$ROOT/results/$(date -u +%Y%m%dT%H%M%SZ)-$SHA"
-mkdir -p "$OUT/logs"
+HOST_PY="${HOST_PY:-python3}"
+CLIENT_PY="${CLIENT_PY:-/home/mrk/kv/bin/python}"
+UDS_PY="${UDS_PY:-/home/mrk/uds/bin/python}"
+UDS_TOOL="${UDS_TOOL:-/opt/ee/openbsw/tools/UdsTool/udsTool.py}"
+UDS_CFG="${UDS_CFG:-/opt/ee/openbsw/tools/UdsTool/app/canConfig.json}"
+SCENARIO=alternating-8
 
 say() { printf '[demo] %s\n' "$*"; }
 die() { printf '[demo] FAILED: %s\n' "$*" >&2; exit 1; }
+# A required step that fails does not stop the collection, but fails the run.
+REQUIRED_ERRORS=()
+required_fail() { say "REQUIRED STEP FAILED: $*"; REQUIRED_ERRORS+=("$*"); }
+
+# Bind the run to committed bytes before anything executes: full head and tree,
+# a clean scope, every tracked input by content, and the external UDS tool.
+IDENTITY_TMP="$(mktemp)"
+"$HOST_PY" "$ROOT/checks/run_identity.py" capture --scope "$ROOT" \
+  --extra uds_tool="$UDS_TOOL" --extra uds_config="$UDS_CFG" --out "$IDENTITY_TMP" \
+  || { rm -f "$IDENTITY_TMP"; die "run identity rejected (see above); commit or remove local changes"; }
+HEAD_SHA="$("$HOST_PY" -c 'import json,sys; print(json.load(open(sys.argv[1]))["git"]["head"])' "$IDENTITY_TMP")"
+HEAD_TREE="$("$HOST_PY" -c 'import json,sys; print(json.load(open(sys.argv[1]))["git"]["tree"])' "$IDENTITY_TMP")"
+HEAD_BRANCH="$("$HOST_PY" -c 'import json,sys; print(json.load(open(sys.argv[1]))["git"]["branch"] or "detached")' "$IDENTITY_TMP")"
+OUT="$ROOT/results/$(date -u +%Y%m%dT%H%M%SZ)-${HEAD_SHA:0:12}"
+mkdir -p "$OUT/logs"
+mv "$IDENTITY_TMP" "$OUT/identity-before.json"
+IDENTITY_SHA256="$(sha256sum "$OUT/identity-before.json" | cut -d' ' -f1)"
 
 pid_of() { podman inspect -f '{{.State.Pid}}' "$1" 2>/dev/null; }
 
@@ -104,8 +128,12 @@ fi
   cat <<JSON
 {
   "when_utc": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-  "git_sha": "$SHA",
-  "git_branch": "$(git -C "$ROOT" rev-parse --abbrev-ref HEAD 2>/dev/null || cat "$ROOT/.git-branch" 2>/dev/null || echo unknown)",
+  "git_sha": "$HEAD_SHA",
+  "git_head": "$HEAD_SHA",
+  "git_tree": "$HEAD_TREE",
+  "git_branch": "$HEAD_BRANCH",
+  "identity_sha256": "$IDENTITY_SHA256",
+  "scenario": "$SCENARIO",
   "vxedge": "$(vxedge --version 2>/dev/null | head -1)",
   "lock_sha256": "$(sha256sum "$PACKAGE/vxp.lock" 2>/dev/null | cut -d' ' -f1)",
   "ota_root_sha256": "$(sha256sum "$PACKAGE/ota-store/root.json" 2>/dev/null | cut -d' ' -f1)",
@@ -162,10 +190,12 @@ done
 # no bus event to time, only the next periodic status frame to mis-attribute.
 say "priming: headlamp off, wiper off, so every captured command is a transition"
 gw_pid="$(pid_of "$GW_CTR")"
+# A plant left in an unknown state turns the first command into a possible
+# non-transition, so a failed prime ends the run here.
 sudo nsenter -n -t "$gw_pid" -- "$CLIENT_PY" "$ROOT/checks/measure_client.py" \
-  Vehicle.Body.Lights.Beam.Low.IsOn false 3.0 >/dev/null 2>&1 || say "headlamp prime did not converge"
+  Vehicle.Body.Lights.Beam.Low.IsOn false 3.0 >/dev/null 2>&1 || die "headlamp prime did not converge"
 sudo nsenter -n -t "$gw_pid" -- "$CLIENT_PY" "$ROOT/checks/measure_client.py" \
-  Vehicle.Body.Windshield.Front.Wiping.Mode OFF 3.0 >/dev/null 2>&1 || say "wiper prime did not converge"
+  Vehicle.Body.Windshield.Front.Wiping.Mode OFF 3.0 >/dev/null 2>&1 || die "wiper prime did not converge"
 sleep 1
 
 CAP_S=$((DURATION + 20))
@@ -200,9 +230,9 @@ drive() { # arm path on off value...
       say "$arm: client produced no record"
       continue
     fi
-    python3 -c 'import json,sys; r=json.loads(sys.argv[1]); r.update(arm=sys.argv[2],on=sys.argv[3],off=sys.argv[4]); print(json.dumps(r))' \
+    "$HOST_PY" -c 'import json,sys; r=json.loads(sys.argv[1]); r.update(arm=sys.argv[2],on=sys.argv[3],off=sys.argv[4]); print(json.dumps(r))' \
       "$rec" "$arm" "$on" "$off" >>"$OUT/commands.jsonl"
-    say "$arm -> $value: $(python3 -c 'import json,sys;r=json.loads(sys.argv[1]);print("converged" if r.get("ok") else "DID NOT CONVERGE")' "$rec")"
+    say "$arm -> $value: $("$HOST_PY" -c 'import json,sys;r=json.loads(sys.argv[1]);print("converged" if r.get("ok") else "DID NOT CONVERGE")' "$rec")"
     sleep 1
   done
 }
@@ -210,11 +240,17 @@ drive() { # arm path on off value...
 : >"$OUT/commands.jsonl"
 # Every step changes the value. A repeated value is not a transition: the
 # provider has nothing new to send, so it would time nothing and pollute the
-# table with a frame that belongs to the next command.
+# table with a frame that belongs to the next command. These two lines are
+# scenario alternating-8 in checks/demo_measure.py; change both together.
+# drive() takes the on/off labels first, then the values: the earlier call
+# passed eight words, so two became labels and each arm drove six commands
+# (the twelve-command historical archives).
 say "driving the headlamp through the front zone"
-drive headlamp Vehicle.Body.Lights.Beam.Low.IsOn true false true false true false true false
+drive headlamp Vehicle.Body.Lights.Beam.Low.IsOn true false \
+  true false true false true false true false
 say "driving the wiper through the rear zone"
-drive wiper Vehicle.Body.Windshield.Front.Wiping.Mode FAST OFF FAST OFF FAST OFF FAST OFF
+drive wiper Vehicle.Body.Windshield.Front.Wiping.Mode FAST OFF \
+  FAST OFF FAST OFF FAST OFF FAST OFF
 
 # --- diagnostic across the gateway ------------------------------------------
 say "sending one UDS session request from the front bus to the rear ECU"
@@ -222,25 +258,39 @@ if [ -x "$UDS_PY" ] && [ -f "$UDS_TOOL" ]; then
   fl_pid="$(pid_of "$FL_CTR")"
   sudo nsenter -n -t "$fl_pid" -- "$UDS_PY" "$UDS_TOOL" session \
     --can --channel vcan0 --txid 7E0 --rxid 7E8 --id 3 --config "$UDS_CFG" \
-    >"$OUT/uds.txt" 2>&1 || say "UdsTool exited non-zero (output kept)"
+    >"$OUT/uds.txt" 2>&1 || required_fail "UdsTool exited $? (output kept in uds.txt)"
   tail -3 "$OUT/uds.txt" | sed 's/^/[demo]   /'
 else
   echo "UdsTool not installed on this host: $UDS_TOOL" >"$OUT/uds.txt"
-  say "UdsTool missing — the diagnostic step is recorded as not run"
+  required_fail "UdsTool missing: $UDS_PY / $UDS_TOOL"
 fi
 
 # --- collect ----------------------------------------------------------------
-wait $CAP1 $CAP2 $CAP3 $CAP4 2>/dev/null || true
+# candump runs under `timeout`, so 124 is its normal end; anything else is a
+# capture that did not run for the whole window.
+wait_capture() { # pid name
+  local rc=0
+  wait "$1" || rc=$?
+  [ "$rc" -eq 0 ] || [ "$rc" -eq 124 ] || required_fail "capture $2 exited $rc"
+}
+wait_capture "$CAP1" demo-fl
+wait_capture "$CAP2" demo-rl
+wait_capture "$CAP3" demo-gwf
+wait_capture "$CAP4" demo-gwr
 if [ -n "$CAP5" ]; then
   wait "$CAP5" 2>/dev/null || true
   sudo chown "$(id -u):$(id -g)" "$OUT/slice.pcap" 2>/dev/null || true
   pcap_packets="$(tcpdump -r "$OUT/slice.pcap" 2>/dev/null | wc -l | tr -d ' ')"
   say "packet capture: ${pcap_packets:-0} datagrams of the CAN-over-Ethernet path"
 fi
-podman exec "$FL_CTR" cat /tmp/demo-fl.log >"$OUT/candump-front-left.log" 2>/dev/null || true
-podman exec "$RL_CTR" cat /tmp/demo-rl.log >"$OUT/candump-rear-left.log" 2>/dev/null || true
-podman exec "$GW_CTR" cat /tmp/demo-gwf.log >"$OUT/candump-gw-front.log" 2>/dev/null || true
-podman exec "$GW_CTR" cat /tmp/demo-gwr.log >"$OUT/candump-gw-rear.log" 2>/dev/null || true
+copy_capture() { # container source destination
+  podman exec "$1" cat "$2" >"$OUT/$3" 2>>"$OUT/logs/capture-copy.log" \
+    || required_fail "capture copy failed: $1:$2 -> $3"
+}
+copy_capture "$FL_CTR" /tmp/demo-fl.log candump-front-left.log
+copy_capture "$RL_CTR" /tmp/demo-rl.log candump-rear-left.log
+copy_capture "$GW_CTR" /tmp/demo-gwf.log candump-gw-front.log
+copy_capture "$GW_CTR" /tmp/demo-gwr.log candump-gw-rear.log
 for ctr in "$FL_CTR" "$RL_CTR" "$GW_CTR"; do
   podman logs "$ctr" >"$OUT/logs/$ctr.log" 2>&1 || true
 done
@@ -255,18 +305,34 @@ grep -A20 'gateway stats' "$OUT/logs/$GW_CTR.log" >"$OUT/gateway-stats.txt" 2>/d
 # because they are what a reader diffs.
 gzip -9 "$OUT"/logs/*.log 2>/dev/null || true
 
+# Re-verify every input the run started from; a change means the archive does
+# not describe one revision.
+IDENTITY_RC=0
+"$HOST_PY" "$ROOT/checks/run_identity.py" verify --identity "$OUT/identity-before.json" \
+  --out "$OUT/identity-after.json" || IDENTITY_RC=$?
+
 set +e
-python3 "$ROOT/checks/demo_measure.py" \
+"$HOST_PY" "$ROOT/checks/demo_measure.py" \
   --fl "$OUT/candump-front-left.log" \
   --rl "$OUT/candump-rear-left.log" \
   --gw-front "$OUT/candump-gw-front.log" \
   --gw-rear "$OUT/candump-gw-rear.log" \
   --commands "$OUT/commands.jsonl" \
   --uds "$OUT/uds.txt" \
+  --scenario "$SCENARIO" \
   --out "$OUT/summary.json" >"$OUT/summary.txt" 2>&1
 RC=$?
 set -e
 cat "$OUT/summary.txt"
+if [ "$IDENTITY_RC" -ne 0 ]; then
+  say "inputs changed during the run (identity-after.json)"
+  RC=1
+fi
+if [ "${#REQUIRED_ERRORS[@]}" -ne 0 ]; then
+  printf '%s\n' "${REQUIRED_ERRORS[@]}" >"$OUT/required-errors.txt"
+  say "required steps failed: $(printf '%s; ' "${REQUIRED_ERRORS[@]}")"
+  RC=1
+fi
 say "verdict: $([ $RC -eq 0 ] && echo PASS || echo FAIL)"
 say "archive: $OUT"
 exit $RC
