@@ -68,6 +68,7 @@ service/backbone_service.py   the spine endpoint, one role per container, JSON l
 checks/test_someip.py         14 wire-format tests: roundtrip, every refusal
 checks/run_backbone.sh        bring the vehicle up, run the service, measure it, archive
 checks/backbone_measure.py    method RTT, event latency, jitter, deadline and period misses
+checks/gate_probe.py          paced probes across a gated egress, arrival stamped at the far end
 time-sync.md                  what a cross-host time claim costs, measured, with PTP tried
 backbone-plan.md              scope of the next increment: Ethernet spine, service plane, TSN
 results/                      the committed demo archive, with its own manifest

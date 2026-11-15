@@ -126,9 +126,59 @@ the service — 12/12 commands converged, the diagnostic crossed the gateway, th
 policy leaked nothing. The spine did not disturb the edge. Its summary is kept
 under `results/20261115T022218Z-04ee8739-regression/`.
 
-Not yet: **B3**, the gate schedule. The TSN capability is verified on this host
-(see [`backbone-plan.md`](backbone-plan.md)) but no schedule has been rendered on
-the vehicle, and this run says nothing about TSN.
+**B3**, the gate schedule, is §4c: rendered exactly as declared, and provably
+inert on this traffic because nothing here crosses the gated port.
+
+## 4c. The gate schedule — rendered, and inert where we can see it (B3)
+
+`network.shaping` is in the experiment: a 10 ms cycle, the `adas` class open for
+the first 5 ms, `infotainment` and unclassified traffic for the second. vxedge
+rendered it exactly as declared, on the gateway uplink (host-level, `vxup0p` ↔
+`vxup0`):
+
+```text
+qdisc taprio 100: dev vxup0 root refcnt 4 tc 3 map 0 1 2 0 0 0 0 0 0 0 0 0 0 0 0 0
+queues offset 0 count 1 offset 1 count 1 offset 2 count 1
+clockid TAI  base-time 0 cycle-time 10000000 cycle-time-extension 0
+    index 0 cmd S gatemask 0x2 interval 5000000
+    index 1 cmd S gatemask 0x5 interval 5000000
+```
+
+Three classes, one queue each, `clsact` in front of it, `pfifo` per class. The
+declared windows are the rendered windows.
+
+**It does nothing to the traffic this vehicle carries, and that is the finding.**
+Every device sits on `vxbr0`; zone-to-zone service traffic never leaves the
+bridge, so it never reaches the gated uplink. The A/B, same service, same host:
+
+| | HTB (default) | gate schedule |
+|---|---|---|
+| method median | 0.351 ms (n=203) | 0.391 ms (n=120) |
+| method p95 | 0.576 ms | 0.549 ms |
+| event median | 0.260 ms (n=1013) | 0.233 ms (n=599) |
+| event p95 | 0.376 ms | 0.362 ms |
+| event max | 3.041 ms | 3.130 ms |
+| jitter | 0.499 ms | 0.257 ms |
+| misses | 0 of 1013 | 0 of 599 |
+
+The differences are run-to-run noise in both directions, including one where the
+gated run looks better. **Zero measurable effect is the correct reading**: the
+gate is on a port this traffic never uses.
+
+What the gate did show, at the gate itself: while the schedule was in force the
+qdisc held packets in per-class queues — `87 pkt` sent, a `239p` backlog in the
+`adas` class, `0` dropped, `0` requeues — while the other two classes drained.
+So the schedule queues by class as designed.
+
+**What could not be measured:** arrival timing behind the gate. The uplink is a
+bridge port with no L3 peer (its far side is a veth with link-local addresses
+only), so a probe sent across it enters the gate, is queued, and is delivered to
+no receiver. `checks/gate_probe.py` is the tool for that measurement and it could
+not complete here; the honest statement is that this topology has **no trunk**, and
+a zonal E/E's TSN applies to the trunk. Gate timing needs a peer on the far side —
+another host, a tunnel, or a device placed behind the uplink.
+
+Archive: `results/20261115T022807Z-04ee8739-gate-schedule/`.
 
 ## 5. What the numbers do not say
 

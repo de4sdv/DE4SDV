@@ -1,0 +1,1 @@
+error: no vxedge experiment workspace found in /opt/ee/de4sdv-virtual-ee: expected a `vxp.yaml` here. Run `vxedge experiment new <name>` to create one, `cd` into an existing workspace, or point at one with `--chdir <dir>`.

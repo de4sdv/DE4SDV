@@ -1,0 +1,8 @@
+{
+  "when_utc": "2026-11-15T02:28:08Z",
+  "git_sha": "unknown",
+  "vxedge": "vxedge 0.30.0",
+  "lock_sha256": "9058bcf8956b152787035085abb2d76ce46f981a35322e3f0a49e370238550ab",
+  "host": "Linux 7.0.0-1017-gcp x86_64 GNU/Linux",
+  "clock": "one host, one CLOCK_REALTIME: service stamps and reader share it"
+}

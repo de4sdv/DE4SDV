@@ -1,7 +1,8 @@
 # Ethernet backbone increment — scope
 
-Status: **B1, B2 and B4 done** (2026-11-15); **B3 not started**. This is the
-increment that adds the one architectural layer the testbed did not have.
+Status: **B1, B2, B3 and B4 done** (2026-11-15). B3's result is negative and
+specific: the schedule renders and touches nothing, because this vehicle has no
+trunk traffic for it to shape.
 
 ## Why this, and not another feature
 
@@ -73,7 +74,7 @@ edge. The gateway keeps deciding what crosses, exactly as now.
 | **B0** feasibility *(done)* | the host can render a gate schedule and vxedge accepts the block | `tc qdisc show` carries `taprio` with the declared windows; a kernel without `sch_taprio` fails `vxp lock` |
 | **B1** spine — **done** | service traffic crosses the Ethernet spine | method answered and event delivered, n = 203 calls and 1 013 events ([`REPORT.md`](REPORT.md#4b-the-ethernet-spine--first-cut-b1-b2-b4)) |
 | **B2** service measurement — **done** | latency and jitter with sample counts | method **0.351 ms** median, event **0.260 ms** median, jitter 0.499 ms, 0 deadline misses of 1 013 |
-| **B3** TSN | the gate schedule changes something measurable, or provably does not | qdisc rendered with the declared windows; A/B against the HTB baseline with both numbers stated |
+| **B3** TSN — **done** | the gate schedule changes something measurable, or provably does not | rendered as declared (`taprio`, 10 ms cycle, two windows, 3 classes); A/B shows **no effect** (0.391 vs 0.351 ms median) because zone traffic never leaves `vxbr0`; the gate queues by class where it is ([`REPORT.md`](REPORT.md#4c-the-gate-schedule--rendered-and-inert-where-we-can-see-it-b3)) |
 | **B4** regression — **done** | the CAN edge is untouched | `checks/run_demo.sh` exited 0 on the same image: 12/12 converged, diagnostic crossed, no leak |
 | **B5** honesty | limits written down before the numbers | no switch, no PHY, software timestamps, no service discovery, no E2E, one host |
 

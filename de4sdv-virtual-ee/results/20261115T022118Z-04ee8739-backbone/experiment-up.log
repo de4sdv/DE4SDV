@@ -1,0 +1,21 @@
+[ 10%] experiment.up gateway: bridge, slices, endpoints
+[ 30%] experiment.up gateway: provisioning bridge + uplink
+[ 30%] experiment.up gateway: applying slice VLANs + HTB queue tree
+[ 30%] experiment.up gateway: attaching zone endpoints
+[ 30%] experiment.up gateway: applying tunnels
+[ 30%] experiment.up gateway: verifying observed state
+[ 30%] experiment.up gateway: vxgateway up — bridge vxbr0 + uplink vxup0 @ 1000 mbit; slices: [adas (vlan 101, 1..1 mbit, prio 4), infotainment (vlan 103, 1..1 mbit, prio 4)]; 4 endpoint(s)
+[ 40%] experiment.up zone 1/3: zone-fl (up)
+[ 40%] experiment.up zone zone-fl: starting node 1/1: zone-fl (Container)
+[ 46%] experiment.up zone 2/3: zone-fr (up)
+[ 46%] experiment.up zone zone-fr: starting node 1/1: zone-fr (Container)
+[ 53%] experiment.up zone 3/3: zone-rl (up)
+[ 53%] experiment.up zone zone-rl: starting node 1/1: zone-rl (Container)
+[ 53%] experiment.up zone zone-rl: zone `zone-rl` up: 1 node(s)
+[ 60%] experiment.up compute 1/1: hpc1 (up)
+[ 60%] experiment.up compute hpc1: starting node 1/1: hpc1 (Container)
+[ 72%] experiment.up signal plane: kuksa-databroker on hpc1 (up)
+[ 75%] experiment.up service ota: up
+[ 90%] experiment.up service ota: starting ota service
+[100%] experiment.up experiment `de4sdv-virtual-ee` up — gateway, 3 zone(s), 1 compute(s), no time sync declared, signal plane up on `hpc1`, 1 service(s). Traffic is not started by `up`: run `vxedge traffic up`.
+experiment.up: succeeded

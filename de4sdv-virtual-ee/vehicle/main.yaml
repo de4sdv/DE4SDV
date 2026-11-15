@@ -14,6 +14,15 @@ network:
   slices:
     - { id: adas, mode: vlan, vlan: 101 }
     - { id: infotainment, mode: vlan, vlan: 103 }
+  # IEEE 802.1Qbv gate schedule on the gateway uplink, rendered as `taprio` in
+  # software mode. A 10 ms cycle: the adas class is open for the first half, the
+  # infotainment slice and unclassified traffic for the second. Validation refuses
+  # a class that no window opens, which is why `default` appears.
+  shaping:
+    kind: gate-schedule
+    windows:
+      - { id: adas-open, open: [adas], duration_us: 5000 }
+      - { id: rest-open, open: [infotainment, default], duration_us: 5000 }
 
 # Not a measurement campaign: this package exists to bring the vehicle up and to be
 # verified, so the method block is the minimum a run needs.
