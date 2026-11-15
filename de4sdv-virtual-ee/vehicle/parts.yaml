@@ -1,8 +1,8 @@
 kind: baseline
 id: bl-vx-de4sdv-ee
 parts:
-- ref: localhost:5000/de4sdv/zone-ecu:10
-  digest: sha256:7d2a051e86ce5e3af8fdf8b4d9241b467c3f5ae1410989de7fb02ee0c0284359
+- ref: localhost:5000/de4sdv/zone-ecu:11
+  digest: sha256:eb443219ea6af305bdc928c476a5f38234bfe4ea3dcbe0c63f8304397bdf1b85
   target_ids:
   - fn-fl
   run:
@@ -15,8 +15,15 @@ parts:
       CAN_TUNNEL_REMOTE: 10.100.0.50
       CAN_TUNNEL_RPORT: '10001'
       CAN_TUNNEL_LPORT: '20001'
-- ref: localhost:5000/de4sdv/zone-ecu:10
-  digest: sha256:7d2a051e86ce5e3af8fdf8b4d9241b467c3f5ae1410989de7fb02ee0c0284359
+      # The same controller exposes a service on the spine: it publishes a state
+      # event and serves one method. Static endpoints by design (no SD).
+      SOMEIP_ROLE: provider
+      SOMEIP_PORT: '30490'
+      SOMEIP_PEERS: 10.100.0.13:30510
+      SOMEIP_PERIOD_MS: '100'
+      SOMEIP_DEADLINE_MS: '50'
+- ref: localhost:5000/de4sdv/zone-ecu:11
+  digest: sha256:eb443219ea6af305bdc928c476a5f38234bfe4ea3dcbe0c63f8304397bdf1b85
   target_ids:
   - fn-rl
   run:
@@ -30,6 +37,11 @@ parts:
       CAN_TUNNEL_RPORT: '10002'
       CAN_TUNNEL_LPORT: '20002'
       ZONE_UDS_ECU: '1'
+      SOMEIP_ROLE: client
+      SOMEIP_PORT: '30510'
+      SOMEIP_PROVIDER: 10.100.0.11:30490
+      SOMEIP_CALL_PERIOD_MS: '500'
+      SOMEIP_DEADLINE_MS: '50'
 - ref: localhost:5000/de4sdv/can-gw:4
   digest: sha256:1a85cad119a900104880cf44d72f05234aa3441dbb0379675dae19595ca7e173
   target_ids:

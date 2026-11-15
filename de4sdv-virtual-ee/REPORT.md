@@ -98,6 +98,38 @@ Two things the table says that prose usually hides:
   caught the value one status period later. The median over six is stable; a
   single run's S3 on its own is not a result.
 
+## 4b. The Ethernet spine — first cut (B1, B2, B4)
+
+The zone controllers now also expose a service on the spine: an event at 10 Hz and
+one method at 2 Hz, speaking a DE4SDV-owned SOME/IP subset — the 16-byte header,
+methods, events, static endpoints, no discovery ([`service/someip.py`](service/someip.py),
+14 tests). Archive:
+[`results/20261115T022118Z-04ee8739-backbone/`](results/20261115T022118Z-04ee8739-backbone/).
+
+| claim | number |
+|---|---|
+| method round trip | **0.351 ms** median, p95 0.576 ms, max 6.508 ms (n=203) |
+| event latency, provider stamp to client receipt | **0.260 ms** median, p95 0.376 ms, max 3.041 ms (n=1013) |
+| event jitter | 0.499 ms (stdev of the inter-arrival gaps) |
+| deadline misses, 50 ms | **0** |
+| period misses, 1.5 × the 100 ms period | **0** |
+| missing inside the observed sequence | **0**, across seq 1–1013 |
+| window | 101.2 s |
+
+Both endpoints are containers on one host and both stamps come from one clock, so
+these are functional numbers, not production Ethernet numbers. The provider's log
+and the client's are cut at different instants, which is why the table reports the
+sequence span the client holds instead of comparing two line counts.
+
+**B4, the regression gate:** the CAN demo re-ran on the same image that carries
+the service — 12/12 commands converged, the diagnostic crossed the gateway, the
+policy leaked nothing. The spine did not disturb the edge. Its summary is kept
+under `results/20261115T022218Z-04ee8739-regression/`.
+
+Not yet: **B3**, the gate schedule. The TSN capability is verified on this host
+(see [`backbone-plan.md`](backbone-plan.md)) but no schedule has been rendered on
+the vehicle, and this run says nothing about TSN.
+
 ## 5. What the numbers do not say
 
 - **Not a bus-latency measurement.** The providers are not instrumented: T1

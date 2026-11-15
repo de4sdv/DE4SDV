@@ -112,12 +112,23 @@ if [ "${ZONE_UDS_ECU:-0}" = "1" ]; then
   fi
 fi
 
+# Optional: this zone controller also exposes a service on the Ethernet spine.
+# The provider publishes an event and serves a method; the client calls it. A
+# dead service is a dead claim, so it is supervised like the tunnel.
+someip_pid=""
+if [ -n "${SOMEIP_ROLE:-}" ]; then
+  python -u /opt/zone/backbone_service.py 2>&1 | sed -u 's/^/[someip] /' &
+  someip_pid=$!
+  echo "[zone] SOME/IP role=${SOMEIP_ROLE} port=${SOMEIP_PORT:-default} on the spine"
+fi
+
 term() {
   # Tell the provider supervisor to stop restarting, then take the children down.
   : > /tmp/zone-stopping
   kill -TERM "${provider_pid}" "${ecu_pid}" 2>/dev/null || true
   [ -n "${tunnel_pid}" ] && kill -TERM "${tunnel_pid}" 2>/dev/null || true
   [ -n "${uds_pid}" ] && kill -TERM "${uds_pid}" 2>/dev/null || true
+  [ -n "${someip_pid}" ] && kill -TERM "${someip_pid}" 2>/dev/null || true
   # No `wait` here. The provider runs under a supervisor, so waiting for every child
   # waits forever on that supervisor — which is how a zone whose plant had died kept
   # its container "running" while it published nothing. The container must exit so the
@@ -129,6 +140,7 @@ trap term INT TERM
 alive() {
   kill -0 "${provider_pid}" 2>/dev/null && kill -0 "${ecu_pid}" 2>/dev/null || return 1
   [ -n "${tunnel_pid}" ] && { kill -0 "${tunnel_pid}" 2>/dev/null || return 1; }
+  [ -n "${someip_pid}" ] && { kill -0 "${someip_pid}" 2>/dev/null || return 1; }
   return 0
 }
 

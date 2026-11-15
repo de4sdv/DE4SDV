@@ -63,6 +63,11 @@ checks/make_sbom.sh           regenerate the committed CycloneDX SBOMs from the 
 checks/run_demo.sh            one command: up, capture, drive, diagnose, tear down, archive
 checks/demo_measure.py        the archive's numbers: segments, routed pairs, leaks
 checks/timesync_probe.py      clock offset between two hosts, four-timestamp exchange
+service/someip.py             the SOME/IP subset: header, methods, events, no discovery
+service/backbone_service.py   the spine endpoint, one role per container, JSON lines out
+checks/test_someip.py         14 wire-format tests: roundtrip, every refusal
+checks/run_backbone.sh        bring the vehicle up, run the service, measure it, archive
+checks/backbone_measure.py    method RTT, event latency, jitter, deadline and period misses
 time-sync.md                  what a cross-host time claim costs, measured, with PTP tried
 backbone-plan.md              scope of the next increment: Ethernet spine, service plane, TSN
 results/                      the committed demo archive, with its own manifest
@@ -143,6 +148,22 @@ digests, OTA root), four `candump` traces, `slice.pcap`, `commands.jsonl`,
 It exits non-zero if a denied frame crossed, nothing converged, or the
 diagnostic did not come back. A committed run is under `results/`, and
 [`REPORT.md`](REPORT.md) reads it.
+
+## Run the backbone measurement
+
+The zone controllers also expose a service on the Ethernet spine: an event at
+10 Hz and one method at 2 Hz, speaking the SOME/IP subset in `service/`. The
+script brings the vehicle up, waits for both roles, runs, collects the JSON lines
+the service writes, and scores the run.
+
+```bash
+de4sdv-virtual-ee/checks/run_backbone.sh            # ~2 min, exit code is the verdict
+```
+
+It writes `results/<utc>-<sha>-backbone/` with `provider.jsonl`, `client.jsonl`,
+`manifest.json` and `summary.json`/`.txt`. A committed run is under `results/`,
+and [`REPORT.md`](REPORT.md) §4b reads it. [`backbone-plan.md`](backbone-plan.md)
+says what the increment is and which gates remain.
 
 ## Gate 1 result (testbed, 2026-11-14)
 

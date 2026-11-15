@@ -1,7 +1,7 @@
 # Ethernet backbone increment — scope
 
-Status: **scoped, not started.** This is the next increment for the virtual E/E
-testbed. It adds the one architectural layer the testbed does not have.
+Status: **B1, B2 and B4 done** (2026-11-15); **B3 not started**. This is the
+increment that adds the one architectural layer the testbed did not have.
 
 ## Why this, and not another feature
 
@@ -71,10 +71,10 @@ edge. The gateway keeps deciding what crosses, exactly as now.
 | gate | what it has to show | pass criterion |
 |---|---|---|
 | **B0** feasibility *(done)* | the host can render a gate schedule and vxedge accepts the block | `tc qdisc show` carries `taprio` with the declared windows; a kernel without `sch_taprio` fails `vxp lock` |
-| **B1** spine | service traffic crosses the Ethernet spine | method call returns and an event is delivered to both zone clients, n ≥ 100 |
-| **B2** service measurement | latency and jitter with sample counts | method RTT and event latency reported as median/p95/max, n ≥ 200, plus deadline misses |
+| **B1** spine — **done** | service traffic crosses the Ethernet spine | method answered and event delivered, n = 203 calls and 1 013 events ([`REPORT.md`](REPORT.md#4b-the-ethernet-spine--first-cut-b1-b2-b4)) |
+| **B2** service measurement — **done** | latency and jitter with sample counts | method **0.351 ms** median, event **0.260 ms** median, jitter 0.499 ms, 0 deadline misses of 1 013 |
 | **B3** TSN | the gate schedule changes something measurable, or provably does not | qdisc rendered with the declared windows; A/B against the HTB baseline with both numbers stated |
-| **B4** regression | the CAN edge is untouched | `checks/run_demo.sh` still exits 0 on the same archive shape |
+| **B4** regression — **done** | the CAN edge is untouched | `checks/run_demo.sh` exited 0 on the same image: 12/12 converged, diagnostic crossed, no leak |
 | **B5** honesty | limits written down before the numbers | no switch, no PHY, software timestamps, no service discovery, no E2E, one host |
 
 ## Risks, with the mitigation each needs

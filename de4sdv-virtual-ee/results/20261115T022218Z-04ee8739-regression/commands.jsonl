@@ -1,0 +1,12 @@
+{"path": "Vehicle.Body.Lights.Beam.Low.IsOn", "value": true, "t0": 1794709349.1724427, "t5": 1794709349.2634745, "ok": true, "polls": 22, "poll_s": 0.002, "arm": "headlamp", "on": "true", "off": "false"}
+{"path": "Vehicle.Body.Lights.Beam.Low.IsOn", "value": false, "t0": 1794709350.7325459, "t5": 1794709350.765831, "ok": true, "polls": 8, "poll_s": 0.002, "arm": "headlamp", "on": "true", "off": "false"}
+{"path": "Vehicle.Body.Lights.Beam.Low.IsOn", "value": true, "t0": 1794709352.2078433, "t5": 1794709352.2725534, "ok": true, "polls": 15, "poll_s": 0.002, "arm": "headlamp", "on": "true", "off": "false"}
+{"path": "Vehicle.Body.Lights.Beam.Low.IsOn", "value": false, "t0": 1794709353.7460935, "t5": 1794709353.7749896, "ok": true, "polls": 7, "poll_s": 0.002, "arm": "headlamp", "on": "true", "off": "false"}
+{"path": "Vehicle.Body.Lights.Beam.Low.IsOn", "value": true, "t0": 1794709355.2537062, "t5": 1794709355.3767138, "ok": true, "polls": 29, "poll_s": 0.002, "arm": "headlamp", "on": "true", "off": "false"}
+{"path": "Vehicle.Body.Lights.Beam.Low.IsOn", "value": false, "t0": 1794709356.8400602, "t5": 1794709356.9799807, "ok": true, "polls": 34, "poll_s": 0.002, "arm": "headlamp", "on": "true", "off": "false"}
+{"path": "Vehicle.Body.Windshield.Front.Wiping.Mode", "value": "FAST", "t0": 1794709358.4451091, "t5": 1794709358.479168, "ok": true, "polls": 8, "poll_s": 0.002, "arm": "wiper", "on": "FAST", "off": "OFF"}
+{"path": "Vehicle.Body.Windshield.Front.Wiping.Mode", "value": "OFF", "t0": 1794709359.9491117, "t5": 1794709359.986099, "ok": true, "polls": 9, "poll_s": 0.002, "arm": "wiper", "on": "FAST", "off": "OFF"}
+{"path": "Vehicle.Body.Windshield.Front.Wiping.Mode", "value": "FAST", "t0": 1794709361.43569, "t5": 1794709361.4876077, "ok": true, "polls": 13, "poll_s": 0.002, "arm": "wiper", "on": "FAST", "off": "OFF"}
+{"path": "Vehicle.Body.Windshield.Front.Wiping.Mode", "value": "OFF", "t0": 1794709362.965792, "t5": 1794709363.092365, "ok": true, "polls": 29, "poll_s": 0.002, "arm": "wiper", "on": "FAST", "off": "OFF"}
+{"path": "Vehicle.Body.Windshield.Front.Wiping.Mode", "value": "FAST", "t0": 1794709364.5566201, "t5": 1794709364.5919802, "ok": true, "polls": 9, "poll_s": 0.002, "arm": "wiper", "on": "FAST", "off": "OFF"}
+{"path": "Vehicle.Body.Windshield.Front.Wiping.Mode", "value": "OFF", "t0": 1794709366.0600312, "t5": 1794709366.197891, "ok": true, "polls": 33, "poll_s": 0.002, "arm": "wiper", "on": "FAST", "off": "OFF"}

@@ -67,6 +67,10 @@ COPY zones/dbc_feeder.ini /opt/zone/dbc_feeder.ini
 # The bus tunnel is DE4SDV code, not a third-party binary: plain CAN frames over
 # UDP, no batching, and no copyleft in an image we might publish.
 COPY transport/bridge.py /opt/zone/bridge.py
+# The backbone service endpoint: the same zone controller exposes a service on
+# the spine as it does a CAN function on the edge.
+COPY service/someip.py /opt/zone/someip.py
+COPY service/backbone_service.py /opt/zone/backbone_service.py
 # Built in the stage above; started only when this zone hosts the ECU.
 COPY --from=openbsw /src/build/posix-freertos/executables/referenceApp/application/Release/app.referenceApp.elf \
      /opt/zone/openbsw/referenceApp

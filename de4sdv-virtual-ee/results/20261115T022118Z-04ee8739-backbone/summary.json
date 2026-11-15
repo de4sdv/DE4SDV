@@ -1,0 +1,34 @@
+{
+  "clock": "one host, one CLOCK_REALTIME: the service stamps and the reader share it",
+  "window_s": 101.2,
+  "declared": {
+    "event_period_ms": 100,
+    "deadline_ms": 50,
+    "method_period_ms": 500
+  },
+  "method": {
+    "n": 203,
+    "median_ms": 0.351,
+    "p95_ms": 0.576,
+    "min_ms": 0.237,
+    "max_ms": 6.508
+  },
+  "events": {
+    "provider_events_logged": 1006,
+    "received": 1013,
+    "span": {
+      "first": 1,
+      "last": 1013,
+      "distinct": 1013,
+      "missing": 0
+    },
+    "median_ms": 0.26,
+    "p95_ms": 0.376,
+    "min_ms": 0.144,
+    "max_ms": 3.041,
+    "jitter_ms": 0.499,
+    "deadline_misses": 0,
+    "period_misses": 0
+  },
+  "served": 201
+}

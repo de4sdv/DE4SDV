@@ -1,0 +1,84 @@
+{
+  "frames_per_bus": {
+    "front-left": {
+      "0x180": 6,
+      "0x181": 499,
+      "0x281": 499,
+      "0x7E0": 1,
+      "0x7E8": 1
+    },
+    "rear-left": {
+      "0x181": 499,
+      "0x280": 6,
+      "0x281": 499,
+      "0x558": 50,
+      "0x7E0": 1,
+      "0x7E8": 1
+    },
+    "gw-front": {
+      "0x180": 6,
+      "0x181": 499,
+      "0x281": 499,
+      "0x7E0": 1,
+      "0x7E8": 1
+    },
+    "gw-rear": {
+      "0x181": 499,
+      "0x280": 6,
+      "0x281": 499,
+      "0x558": 50,
+      "0x7E0": 1,
+      "0x7E8": 1
+    }
+  },
+  "leaks": {
+    "0x180_on_rear_side": 0,
+    "0x280_on_front_side": 0
+  },
+  "routed": {
+    "headlamp_status_front_to_rear": {
+      "n": 499,
+      "median_ms": 0.941,
+      "min_ms": 0.517,
+      "max_ms": 3.856
+    },
+    "wiper_status_rear_to_front": {
+      "n": 499,
+      "median_ms": 0.903,
+      "min_ms": 0.667,
+      "max_ms": 3.573
+    },
+    "uds_request_front_to_rear": {
+      "n": 1,
+      "median_ms": 1.039,
+      "min_ms": 1.039,
+      "max_ms": 1.039
+    },
+    "uds_response_rear_to_front": {
+      "n": 1,
+      "median_ms": 1.307,
+      "min_ms": 1.307,
+      "max_ms": 1.307
+    }
+  }
+}
+
+command  value   trans  conv  S1 ms   S2 ms   S3 ms   total ms
+headlamp True    True   True     3.81   82.99    4.23   91.03
+headlamp False   True   True     3.50   26.20    3.60   33.28
+headlamp True    True   True     3.35   54.00    7.36   64.71
+headlamp False   True   True     2.74   20.04    6.11   28.90
+headlamp True    True   True     3.95   13.39  105.67  123.01
+headlamp False   True   True     3.54   31.31  105.08  139.92
+wiper    FAST    True   True     3.89   27.13    3.04   34.06
+wiper    OFF     True   True     3.73   26.41    6.85   36.99
+wiper    FAST    True   True     3.58   43.18    5.16   51.92
+wiper    OFF     True   True     3.65   15.98  106.94  126.57
+wiper    FAST    True   True     3.21   28.85    3.31   35.36
+wiper    OFF     True   True     3.34   28.23  106.28  137.86
+
+per arm, transitions only (median with the sample count):
+  headlamp  S1    3.52 (n=6)  S2   28.75 (n=6)  S3    6.73 (n=6)  total   77.87 (n=6)
+  wiper     S1    3.61 (n=6)  S2   27.68 (n=6)  S3    6.01 (n=6)  total   44.45 (n=6)
+
+UDS positive response: True
