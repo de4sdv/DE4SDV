@@ -80,6 +80,7 @@ not a dependency.
 | [Eclipse openDuT](https://github.com/eclipse-opendut/opendut) | Tracked: distributed test benches; its trigger is the two-host CARLA bench, not this one. |
 | [Eclipse OpenSOVD](https://github.com/eclipse-opensovd/opensovd) | The next candidate for the diagnostic surface. Not integrated. |
 | [Eclipse OpenXilEnv](https://github.com/eclipse-openxilenv/openxilenv) | Tracked: a SIL environment that overlaps the plant models this testbed writes itself. |
+| [vsomeip](https://github.com/COVESA/vsomeip) (COVESA) | Candidate for the SOME/IP service plane of the backbone increment. Not adopted: the increment's scope prefers an owned subset. MPL-2.0. |
 | [Vector SIL Kit](https://github.com/vectorgrp/sil-kit) | Tracked: simulation-time synchronisation and Vector tool interop. Adopting it means replacing the SocketCAN path, so it waits for that trigger. |
 
 ## Modeling tools

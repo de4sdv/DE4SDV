@@ -1,7 +1,7 @@
 # Upstream reports — drafted, not posted
 
-Two defects found while building this testbed. Both belong to the project that owns
-them, not in a local workaround. Neither has been filed: posting is the owner's call,
+Three defects found while building this testbed. Each belongs to the project that
+owns it, not in a local workaround. None has been filed: posting is the owner's call,
 and the rule for this project is that upstream contact happens deliberately.
 
 ## 1. vxedge: `resources:` is validated but never applied
@@ -56,6 +56,31 @@ own status frame and reverts. That is a workaround at the caller, not a fix.
 **Reported as:** a staged converge could verify each node is running before the job
 reports success — at minimum, a node whose container exits during `up` should fail
 the converge with a typed reason rather than report `succeeded`.
+
+## 3. vxedge: two more model fields that read like constraints and are not
+
+`resources:` (report 1) is not the only one. Two more fields are parsed, validated
+and then never consumed by a plan:
+
+- **`channels:`** — `Channel { id, from, to, protocol, qos, carried_by }`, where
+  `protocol` is one of `Dds | SomeIp | Zenoh | Can | Udp | Tcp` and `qos` carries
+  `deadline_ms`, `reliability` and `rate_hz`. `carried_by` is validated against the
+  links, which reads as a reachability check. In 0.30.0 the field appears only in
+  `model/`, `entities.rs` (listing) and `workspace.rs` (inventory); no provisioning
+  code reads it. Declaring a SOME/IP channel with a 10 ms deadline changes nothing
+  about the run.
+- **`asil:`** on a function — present in the workspace model and never used
+  downstream.
+
+**Why it matters.** The same reason as `resources`: a descriptor that a reader takes
+as a constraint silently becomes decoration, and a measurement attributed to "the
+channel's QoS" is then attributed to nothing. The `carried_by` validation makes this
+worse rather than better, because a checked reference suggests the rest is checked
+too.
+
+**Reported as:** either implement the three fields or reject them at load with a
+typed error — a manifest that declares a deadline should not load silently when no
+backend will honour it.
 
 ## What is not drafted here
 

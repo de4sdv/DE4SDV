@@ -64,6 +64,7 @@ checks/run_demo.sh            one command: up, capture, drive, diagnose, tear do
 checks/demo_measure.py        the archive's numbers: segments, routed pairs, leaks
 checks/timesync_probe.py      clock offset between two hosts, four-timestamp exchange
 time-sync.md                  what a cross-host time claim costs, measured, with PTP tried
+backbone-plan.md              scope of the next increment: Ethernet spine, service plane, TSN
 results/                      the committed demo archive, with its own manifest
 REPORT.md                     the feasibility report: gates, demo numbers, limits
 sbom/                         CycloneDX 1.7 for both images, gzipped, plus how to regenerate
