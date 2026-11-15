@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1216" height="284" viewBox="0 0 1216 284" role="img" aria-labelledby="title description">
+  <title id="title">Driver-assistance logical-to-software mapping</title>
+  <desc id="description">Maps the four logical elements of the driver-assistance system to the six software elements that realize them: the identity recording application and the five modules of the candidate's S-CORE process, whose planner carries both the warning requester and the driving commander.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="1216" height="84" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">Driver-assistance logical-to-software mapping</text>
+  <text x="12" y="62" font-family="Inter, Arial, sans-serif" font-size="13" fill="#d9e2f2">Rows ↓: logical elements (part usages)   |   Columns →: software elements (part usages)</text>
+  <rect x="0" y="84" width="184" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0"></tspan>
+  </text>
+  <rect x="184" y="84" width="160" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="196" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="196" dy="0">identityRecording</tspan>
+  </text>
+  <rect x="344" y="84" width="144" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="356" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="356" dy="0">cameraInterface</tspan>
+  </text>
+  <rect x="488" y="84" width="176" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="500" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="500" dy="0">perceptionAndFusion</tspan>
+  </text>
+  <rect x="664" y="84" width="192" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="676" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="676" dy="0">safetyGuardianPlanner</tspan>
+  </text>
+  <rect x="856" y="84" width="152" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="868" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="868" dy="0">vehicleInterface</tspan>
+  </text>
+  <rect x="1008" y="84" width="208" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1020" y="108" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="1020" dy="0">warningRequestPublisher</tspan>
+  </text>
+  <rect x="0" y="124" width="184" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">identityRecorder</tspan>
+  </text>
+  <rect x="184" y="124" width="160" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="187" y="127" width="154" height="34" rx="5" fill="#dff4e5"/>
+  <text x="264.0" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="264.0" dy="0">↗</tspan>
+  </text>
+  <rect x="344" y="124" width="144" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="356" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="356" dy="0"></tspan>
+  </text>
+  <rect x="488" y="124" width="176" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="500" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="500" dy="0"></tspan>
+  </text>
+  <rect x="664" y="124" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="676" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="676" dy="0"></tspan>
+  </text>
+  <rect x="856" y="124" width="152" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="868" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="868" dy="0"></tspan>
+  </text>
+  <rect x="1008" y="124" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1020" y="148" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1020" dy="0"></tspan>
+  </text>
+  <rect x="0" y="164" width="184" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">vehicleAheadAssessor</tspan>
+  </text>
+  <rect x="184" y="164" width="160" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="196" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="196" dy="0"></tspan>
+  </text>
+  <rect x="344" y="164" width="144" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="347" y="167" width="138" height="34" rx="5" fill="#dff4e5"/>
+  <text x="416.0" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="416.0" dy="0">↗</tspan>
+  </text>
+  <rect x="488" y="164" width="176" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="491" y="167" width="170" height="34" rx="5" fill="#dff4e5"/>
+  <text x="576.0" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="576.0" dy="0">↗</tspan>
+  </text>
+  <rect x="664" y="164" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="676" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="676" dy="0"></tspan>
+  </text>
+  <rect x="856" y="164" width="152" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="868" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="868" dy="0"></tspan>
+  </text>
+  <rect x="1008" y="164" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1020" y="188" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1020" dy="0"></tspan>
+  </text>
+  <rect x="0" y="204" width="184" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">warningRequester</tspan>
+  </text>
+  <rect x="184" y="204" width="160" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="196" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="196" dy="0"></tspan>
+  </text>
+  <rect x="344" y="204" width="144" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="356" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="356" dy="0"></tspan>
+  </text>
+  <rect x="488" y="204" width="176" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="500" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="500" dy="0"></tspan>
+  </text>
+  <rect x="664" y="204" width="192" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="667" y="207" width="186" height="34" rx="5" fill="#dff4e5"/>
+  <text x="760.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="760.0" dy="0">↗</tspan>
+  </text>
+  <rect x="856" y="204" width="152" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="868" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="868" dy="0"></tspan>
+  </text>
+  <rect x="1008" y="204" width="208" height="40" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="1011" y="207" width="202" height="34" rx="5" fill="#dff4e5"/>
+  <text x="1112.0" y="228" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="1112.0" dy="0">↗</tspan>
+  </text>
+  <rect x="0" y="244" width="184" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">drivingCommander</tspan>
+  </text>
+  <rect x="184" y="244" width="160" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="196" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="196" dy="0"></tspan>
+  </text>
+  <rect x="344" y="244" width="144" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="356" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="356" dy="0"></tspan>
+  </text>
+  <rect x="488" y="244" width="176" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="500" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="500" dy="0"></tspan>
+  </text>
+  <rect x="664" y="244" width="192" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="667" y="247" width="186" height="34" rx="5" fill="#dff4e5"/>
+  <text x="760.0" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="760.0" dy="0">↗</tspan>
+  </text>
+  <rect x="856" y="244" width="152" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <rect x="859" y="247" width="146" height="34" rx="5" fill="#dff4e5"/>
+  <text x="932.0" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="middle">
+    <tspan x="932.0" dy="0">↗</tspan>
+  </text>
+  <rect x="1008" y="244" width="208" height="40" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="1020" y="268" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="1020" dy="0"></tspan>
+  </text>
+</svg>
