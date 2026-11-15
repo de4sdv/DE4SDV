@@ -2,13 +2,14 @@
 
 ## Status
 
-Proposed
+Accepted
 
 The owner took decisions 1 to 4 and 7 on 2026-11-14, as rule-5 option A, and
 decision 5 on 2026-11-15, as the form for a pair. Decisions 6 and 8 work out
-their consequences. They were drafted after his choices, and he decides on
-them with this record. Until the order of decision 8 is complete, rule 5's
-dependency form stays in force.
+their consequences. They were drafted after his choices, and on 2026-11-15 he
+accepted them with this record, decision 8 with the fallback for
+INC-DRIVING-002 that it states. Until the order of decision 8 is complete,
+rule 5's dependency form stays in force.
 
 ## Context
 
@@ -69,8 +70,11 @@ no configuration selects (ADR 0022 decision 4).
 8. **Order.** Rule 5 states the form first. The evaluator and the receipt
    format follow, then the privileged receipts, then the move of the existing
    links of INC-MW-011 and INC-DRIVING-001. INC-DRIVING-002 binds directly in
-   its phase 9. Until the existing links have moved, rule 5's dependency form
-   governs, and no slice declares a link that the evaluator refuses.
+   its phase 9 if the evaluator change and the move have merged by the time
+   its phase 8 merges. Otherwise its phase 9 declares its links in rule 5's
+   dependency form, and the move takes them along. Until the existing links
+   have moved, rule 5's dependency form governs, and no slice declares a link
+   that the evaluator refuses.
 
 This amends ADR 0022 decision 3: the integrity of the bindings covers both
 forms. It amends decision 5: the receipts list each member product's
@@ -92,8 +96,14 @@ realization, with no helper feature and no implies constraint.
   the receipt readers and the feature-model documentation need their changes.
   Each lands in its own pull request.
 - **Migration.** The six links counted at `65129d60` move into the
-  feature-model document. The tests that keep requirement names out of the
-  feature-model documents turn around.
+  feature-model document, and with them those of INC-DRIVING-002 if its
+  phase 9 declared them in the dependency form. The tests that keep
+  requirement names out of the feature-model documents turn around.
+- **INC-DRIVING-002.** Its phase-10 evidence will bind the configuration that
+  its phase 9 adds, as the evidence of INC-DRIVING-001 binds
+  DRIVING-CONFIG-001. With the fallback of decision 8, that phase 9 does not
+  wait for the evaluator work. The cost is its links written twice, and only
+  when that work is late.
 - **Ontology.** `specifiesFeature` stays a vocabulary-only relation. Its range
   is the kernel class Feature, not a PLEML feature, so a binding does not
   realize it.
