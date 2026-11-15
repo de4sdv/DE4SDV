@@ -694,9 +694,9 @@ def test_the_simulator_server_carries_the_front_camera_rig_and_keeps_the_clock_o
                    "ground truth"):
         assert phrase in rig_doc, phrase
     server_doc = _doc("part def DriverAssistanceSimulationServer")
-    for phrase in ("System 2", "CARLA 0.9.16", "synchronous mode with a fixed step of 0.1 s", "world-side pacer",
-                   "the clock decision of 2026-11-08", "frame index times 0.1 s", "Three clients",
-                   "The autopilot and the traffic manager have no control of the ego vehicle"):
+    for phrase in ("System 2", "CARLA 0.9.16", "It runs in synchronous mode with a fixed step of 0.1 s",
+                   "world-side pacer", "the clock decision of 2026-11-08", "frame index times 0.1 s",
+                   "Three clients", "The autopilot and the traffic manager have no control of the ego vehicle"):
         assert phrase in server_doc, phrase
     simulator = _body_of_definition(SIMULATOR_HOST)
     assert _owned(simulator) == [("os", "LinuxPlatform"), ("carlaServer", "DriverAssistanceSimulationServer")]
@@ -897,6 +897,17 @@ def test_the_warning_request_record_divides_the_share_of_the_path_and_the_presen
     assert timing.endswith(WARNING_SHARE_BASIS)
 
 
+def test_a_warning_is_requested_for_the_forward_collision_warning_and_for_the_emergency_braking():
+    """Both ranges of the one planned acceleration request the warning, so a plan that goes straight to the
+    emergency braking still requests one. The rule is stated three times, and each copy is pinned."""
+    rule = _record_value("MAP-DRIVING-DA-WARNING-REQUEST", "transformationRule")
+    assert rule.startswith("requested = the plan's warnings hold FCW or AEB; ")
+    assert ("requested is true while the plan holds a forward-collision warning or an emergency braking"
+            in _doc("part def SCOREWarningRequestPublisher"))
+    assert _record_value("MAP-DRIVING-DA-WARNING-STATE", "softwareContractField").endswith(
+        "the publisher reads FCW and AEB")
+
+
 def test_the_command_record_places_the_detectable_form_the_rejection_and_the_steering_sign():
     unit = _record_value("MAP-DRIVING-DA-COMMAND", "dataTypeAndUnit")
     for phrase in ("steeringAngle float degrees, positive to the left", "issueTime in simulation seconds",
@@ -1095,7 +1106,10 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                    "applies nothing in place of a rejected command", "no stop response",
                    "0.1 s for the path and 0.1 s for the presentation", "`ASM-DRIVING-005`",
                    "`reqDrivingCommandOverSCORE`", "`reqWarningRequestOverSCORE`",
-                   "positive to the left", "positive to the right", "2026-11-08", "2026-11-09",
+                   "The candidate's steering is positive to the left, like the VSS steering angle; CARLA's steer is "
+                   "positive to the right, so the adapter changes its sign.",
+                   "CARLA 0.9.16 in synchronous mode with a fixed step of 0.1 s, paced at wall-clock speed",
+                   "2026-11-08", "2026-11-09",
                    "tests/test_driver_assistance_physical_software_realization.py"):
         assert phrase in section, phrase
     assert "VisionPilot/" not in section and ".cpp" not in section, "the guide carries no upstream paths"
@@ -1126,3 +1140,9 @@ def test_the_upstream_record_names_what_phase_8_read_at_the_pin():
         assert f"https://github.com/autowarefoundation/vision_pilot/blob/{PIN}/{path}" in section, path
     assert ("https://github.com/carla-simulator/carla/blob/0.9.16/Docs/python_api.md#carlavehicleackermanncontrol"
             in section), "the API reference of the simulator's Ackermann control, at the release the bench runs"
+    for phrase in ("line 16 takes the lateral axis as positive to the left, and line 29 the curvature as positive in "
+                   "a left turn", "so the steering has the sign of the curvature",
+                   "run the simulator in synchronous mode with a fixed step of 0.1 s",
+                   "steer in rad, positive to the right, steer_speed in rad/s, speed in m/s, acceleration in m/s² and "
+                   "jerk in m/s³, each with a default of 0.0"):
+        assert phrase in text, phrase
