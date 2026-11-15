@@ -115,6 +115,12 @@ GRID_METADATA = {
         "requirements (requirement usages)",
         "system functions (action usages)",
     ),
+    "matrix-driverAssistanceFunctionMappingView": GridMetadata(
+        "Driver-assistance function-to-logical-element mapping",
+        "Maps the four functions of the driver-assistance system to the four logical elements that carry them.",
+        "system functions (action usages)",
+        "logical elements (part usages)",
+    ),
     "table-driverAssistanceModeDependenceTableView": GridMetadata(
         "Driver-assistance system modes",
         "The modes of the driver-assistance system and the functions whose behavior differs in each.",
