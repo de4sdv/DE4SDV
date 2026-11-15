@@ -16,6 +16,8 @@ Environment:
     SOMEIP_PEERS             provider only: comma-separated host:port subscribers
     SOMEIP_PERIOD_MS         event period (default 100)
     SOMEIP_CALL_PERIOD_MS    client method period (default 500)
+    SOMEIP_CALL_TIMEOUT_MS   client: a call unanswered this long is given up and
+                             logged as `method_timeout` (default 2000)
     SOMEIP_SERVICE_ID        default 0x1234
     SOMEIP_METHOD_ID         default 0x0001
     SOMEIP_EVENT_ID          default 0x8001
@@ -25,6 +27,11 @@ The event payload carries the send timestamp as an application field
 (`seq` + `t_send_ns`). It is not part of SOME/IP: a real service would carry
 whatever its interface defines. It exists so one-way latency can be measured on
 a single clock domain, and the report says so.
+
+Session ids are SOME/IP's, kept apart from those application counters: each role
+counts its sessions 1..0xFFFF and wraps to 1, while `seq` and the client's call
+number keep counting. A client call is pending until its reply, its timeout, or
+the moment its session id comes round again, whichever is first.
 """
 
 from __future__ import annotations
@@ -41,6 +48,17 @@ import time
 import someip
 
 PAYLOAD = struct.Struct("!IQ")  # seq, t_send_ns
+SESSION_MAX = 0xFFFF
+
+
+def next_session(session: int) -> int:
+    """SOME/IP session id after `session`: 1..0xFFFF, wrapping to 1, never 0.
+
+    0x0000 means "no session handling", so a role that counts sessions skips it.
+    The session id is a protocol identity, distinct from the application's own
+    sequence numbers, which keep counting across the wrap.
+    """
+    return session % SESSION_MAX + 1
 
 
 def env_int(name: str, default: int) -> int:
@@ -77,6 +95,7 @@ class Provider:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((os.environ.get("SOMEIP_BIND", "0.0.0.0"), self.port))
         self.seq = 0
+        self.event_session = 0
         self.stop = False
         self.served = 0
         self.bad = 0
@@ -124,11 +143,12 @@ class Provider:
 
     def _publish(self) -> None:
         self.seq += 1
+        self.event_session = next_session(self.event_session)
         now = time.time_ns()
         payload = PAYLOAD.pack(self.seq, now)
         for host, port in self.peers:
             self.sock.sendto(
-                someip.notification(self.service, self.event, 0, self.seq, payload),
+                someip.notification(self.service, self.event, 0, self.event_session, payload),
                 (host, port),
             )
         log(kind="event_sent", seq=self.seq, t_send_ns=now, peers=len(self.peers))
@@ -140,6 +160,7 @@ class Client:
         self.method = env_int("SOMEIP_METHOD_ID", 0x0001)
         self.event = env_int("SOMEIP_EVENT_ID", 0x8001)
         self.call_period = env_int("SOMEIP_CALL_PERIOD_MS", 500) / 1000.0
+        self.call_timeout_ns = env_int("SOMEIP_CALL_TIMEOUT_MS", 2000) * 1_000_000
         self.deadline_ms = env_int("SOMEIP_DEADLINE_MS", 50)
         self.port = env_int("SOMEIP_PORT", 30510)
         peers = hostports(os.environ.get("SOMEIP_PROVIDER", ""))
@@ -149,9 +170,12 @@ class Client:
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((os.environ.get("SOMEIP_BIND", "0.0.0.0"), self.port))
+        self.calls = 0
         self.session = 0
         self.answered = 0
-        self.pending: dict[int, int] = {}
+        self.timeouts = 0
+        # session id -> (call number, send stamp), in send order
+        self.pending: dict[int, tuple[int, int]] = {}
         self.stop = False
 
     def run(self) -> int:
@@ -168,16 +192,37 @@ class Client:
                 next_call += self.call_period
                 if next_call < time.monotonic():
                     next_call = time.monotonic() + self.call_period
-        log(kind="client_down", calls=self.session, answered=self.answered)
+        log(kind="client_down", calls=self.calls, answered=self.answered, timeouts=self.timeouts)
         return 0
 
     def _call(self) -> None:
-        self.session += 1
-        self.pending[self.session] = time.time_ns()
+        self._expire(time.time_ns())
+        self.calls += 1
+        self.session = next_session(self.session)
+        if self.session in self.pending:
+            # The session id came round before the call holding it timed out. A
+            # reply to that id now answers this call, so the old one is retired.
+            self._retire(self.session, time.time_ns(), "session_reused")
+        self.pending[self.session] = (self.calls, time.time_ns())
         datagram = someip.request(
-            self.service, self.method, 0x0001, self.session, struct.pack("!I", self.session)
+            self.service, self.method, 0x0001, self.session, struct.pack("!I", self.calls)
         )
         self.sock.sendto(datagram, self.provider)
+
+    def _expire(self, now: int) -> None:
+        """Give up on calls older than the timeout, so pending stays bounded and
+        a reply that arrives after it is not taken for an answer. Pending is in
+        send order, so the scan stops at the first call still inside it."""
+        while self.pending:
+            session, (_call, sent) = next(iter(self.pending.items()))
+            if now - sent <= self.call_timeout_ns:
+                return
+            self._retire(session, now, "timeout")
+
+    def _retire(self, session: int, now: int, reason: str) -> None:
+        call, sent = self.pending.pop(session)
+        self.timeouts += 1
+        log(kind="method_timeout", session=session, call=call, age_ns=now - sent, reason=reason)
 
     def _receive(self) -> None:
         try:
@@ -191,10 +236,12 @@ class Client:
         if header.service_id != self.service:
             return
         if header.message_type == someip.RESPONSE and header.method_id == self.method:
-            sent = self.pending.pop(header.session_id, None)
-            if sent is not None:
+            entry = self.pending.pop(header.session_id, None)
+            if entry is not None:
+                call, sent = entry
                 self.answered += 1
-                log(kind="method_rtt", session=header.session_id, rtt_ns=time.time_ns() - sent)
+                log(kind="method_rtt", session=header.session_id, call=call,
+                    rtt_ns=time.time_ns() - sent)
         elif header.message_type == someip.NOTIFICATION and header.method_id == self.event:
             if len(payload) == PAYLOAD.size:
                 seq, t_send = PAYLOAD.unpack(payload)
