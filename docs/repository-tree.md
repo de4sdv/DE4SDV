@@ -24,6 +24,7 @@ This is a maintained orientation map, not a hand-copied file inventory. Run
 | `approach/` | Process set, ontology, and framework material |
 | `methodologies/` | Reusable engineering methods and increment guidance |
 | `implementation/` | Reference implementations and bounded execution evidence |
+| `de4sdv-virtual-ee/` | Zonal E/E feasibility testbed: zonal topology, per-frame CAN gateway policy, service plane and gate schedule, with committed run evidence; a demonstrator on one host, not a member-product claim |
 | `de4sdv/` | Semantic API baseline and query services |
 | `deployment/` | Reproducible deployment assets for public services |
 | `tools/` | Model viewer and tool integrations |

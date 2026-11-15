@@ -35,3 +35,12 @@ configuration or model validation as runtime proof.
   actuation adapter, state publisher, navigation, typed IVI observer and the
   verification-case evaluators. Bench tooling, stand-ins and evaluators, not
   evidence of record.
+
+- [`de4sdv-virtual-ee`](../de4sdv-virtual-ee/README.md)
+  — zonal E/E feasibility testbed, not tied to an increment: four zones in
+  containers, a per-frame CAN gateway, an OpenBSW ECU answering UDS through it,
+  an owned SOME/IP service plane and a rendered 802.1Qbv gate schedule. Gates
+  0a–3b and B1–B4 carry measured results in
+  [`REPORT.md`](../de4sdv-virtual-ee/REPORT.md). A feasibility demonstrator on
+  one host: not evidence of record for any member product, and no TSN or
+  distribution claim beyond what that report states.

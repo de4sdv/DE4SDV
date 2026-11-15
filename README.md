@@ -121,6 +121,7 @@ making the managed twin boundary explicit.
 | `textual-notation-of-model/` | System model assets and examples |
 | `model-based-product-line-engineering/` | Feature models, configurations, shared assets, product models |
 | `implementation/` | Reference implementations with reproducible evidence (see `implementation/README.md`) |
+| `de4sdv-virtual-ee/` | Zonal E/E feasibility testbed: four zones in containers, a per-frame CAN gateway, a reference ECU answering diagnostics through it, a service plane and a rendered gate schedule; measured gates in `de4sdv-virtual-ee/REPORT.md` |
 | `deployment/` | Public service deployment assets and operations guidance |
 | `compliance/` | Safety, security, UNECE, homologation-related evidence placeholders |
 | `continuous-homologation/` | Continuous compliance and approval evidence workflow |
