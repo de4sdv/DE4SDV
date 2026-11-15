@@ -10,7 +10,8 @@ Autoware Foundation.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
 Phase 3 classification, Phase 4 stakeholder needs, Phase 5 requirements,
-Phase 6 functional architecture and Phase 7 logical architecture, proposal.** No implementation, run, result,
+Phase 6 functional architecture, Phase 7 logical architecture and Phase 8
+physical and software realization, proposal.** No implementation, run, result,
 product-line admission or compliance is claimed.
 
 ## Authoritative frame
@@ -606,6 +607,134 @@ listed in
 elements and their ports, the exchanges, the allocations, the views and the
 guide.
 
+## Physical and software realization (Phase 8)
+
+The
+[physical and software realization](../../textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml)
+answers what software, hardware and deployment elements realize the four logical
+elements, and on which technology the driving command and the warning request
+travel. On 2026-11-15 the owner chose that the candidate's process becomes an
+Eclipse S-CORE application through a DE4SDV S-CORE interface module: an S-CORE
+branch beside the existing interface selection in the application's main
+function, before its loop, and one hand-off of the warnings that the planner
+already computes, in the loop. The decision logic of the candidate is unchanged.
+Every build on the S-CORE path carries this change, which upstream has not
+merged, so every verdict names the build, 014e0e7a with the DE4SDV S-CORE
+interface, and the candidate record of REQ-DRIVING-044 carries the difference
+(`gapCandidateBehaviorUnverified`). Before Phase 10 builds, the VisionPilot
+maintainers are shown a draft of the warning output and the interface seam;
+nothing is posted without the owner.
+
+The candidate stays one process. Six software elements carry the four logical
+elements:
+
+- - **Identity recording application** carries the identity recorder: an S-CORE
+  application of its own, started first, that hashes every configuration,
+  calibration, manifest and network file the candidate's process reads and
+  publishes the candidate record on an mw::com event. The candidate publishes no
+  driving command before the record has arrived.
+- - **Camera interface** (DE4SDV) and **perception and fusion** (upstream,
+  unchanged) carry the vehicle-ahead assessor. The camera interface hands the
+  newest image to the loop and counts the images it drops: the candidate's
+  fusion takes two processed frames as 0.1 s apart, so Phase 10 judges no run
+  with a dropped image in its judged window. The candidate computes no time to
+  collision, no needed deceleration and no imminence, so the assessment is
+  realized in part; Phase 10 judges the imminence from the simulator's ground
+  truth.
+- - **Safety guardian planner** (upstream, unchanged) carries both the warning
+  requester and the driving commander: the warning requester and the driving
+  commander share the planner module, since the forward-collision warning and
+  the emergency braking are two ranges of one planned acceleration
+  (`gapNoSeparateEmergencyFunction` stays open). Its warnings go to the warning
+  request publisher; the warning state that Phase 7 passes from the requester to
+  the commander has no realization in the candidate.
+- **Vehicle interface** (DE4SDV) carries the driving commander's output: it
+  adds the issue time, a sequence count and a 32-bit cyclic redundancy check
+  value and publishes the command on an mw::com event.
+- **Warning request publisher** (DE4SDV) carries the warning requester's
+  output: it publishes the warning request on an mw::com event.
+
+Each logical element is allocated to the elements that carry it, seven
+allocations in all; an allocation is a responsibility assignment, no
+deployment or runtime claim. The vehicle interface carries
+`reqDrivingCommandOverSCORE` and the warning request publisher
+`reqWarningRequestOverSCORE`, each by a dependency from its definition.
+
+The S-CORE path and the AAOS SDV stay outside the candidate, as Phase 0 drew
+them. Their realizations on the bench carry no logical element: the actuation
+adapter, an S-CORE application with a simulator client; the SOME/IP gateway
+of the S-CORE services; the SDV Core VM; and the IVI VM with the warning
+presentation, a build item of the bench that shows the warning on the display
+and plays a sound. The adapter rejects a command whose sequence count, check
+value or issue time fails and applies nothing in place of a rejected command:
+the simulator keeps the last valid control. The adapter has no stop response.
+REQ-DRIVING-038's success criterion runs the stop scenario with the S-CORE
+path shut down and requires that no driving command reaches the actuation after
+the stop; a stop or neutral control applied by the adapter would blur that
+run, and no requirement of this increment asks for one.
+
+Two decisions of INC-DRIVING-001 carry over: the clock decision of 2026-11-08
+(CARLA 0.9.16 in synchronous mode with a fixed step of 0.1 s, paced at
+wall-clock speed, issue times in simulation time) and the three-host decision
+of 2026-11-09 (the S-CORE host, the simulator host and the guest host with
+KVM, joined to the guests by a VXLAN segment). The warning request takes the
+chain that INC-DRIVING-001 ran into the AAOS SDV, with a new message type that
+stays open until Phase 10. Of the 0.2 s that REQ-DRIVING-042 allots from the
+request to each mode of the warning, Phase 8 gives 0.1 s for the path and
+0.1 s for the presentation; the start of the sound on the guest is unmeasured,
+and the split is revisited when it is measured.
+
+On 2026-11-15 the owner also chose a GPU of its own for the S-CORE host, an
+NVIDIA L4, for the candidate's networks: the readiness probe of Phase 8 found
+the processor alone too slow for the 0.1 s cycle, so the framing's assumption
+that the networks run on a processor alone does not hold. The candidate runs
+with the CUDA provider that its own configuration sets. The probe also ran
+upstream's simulator path with CARLA 0.9.16 as the framing assumed. Still to be
+shown before Phase 10: the one S-CORE process linked with the build of ONNX
+Runtime for CUDA, and the candidate record reaching a vehicle interface that
+subscribes after it was published.
+
+On the same day the owner chose CARLA 1.0 on Unreal Engine 5.8 for the bench's
+simulator, in place of CARLA 0.9.16 on Unreal Engine 4, and the build that the
+readiness probe ran: commit `14ac3b1a50` of CARLA's branch `ue58-dev`, two
+commits after the tag `1.0`, from CARLA's weekly package of 2026-11-15, of which
+DE4SDV keeps a copy
+([`upstream.md`](../../textual-notation-of-model/packages/features/driving/upstream.md)).
+The probe ran its server in synchronous mode with the 0.1 s step at wall-clock
+pace on one NVIDIA L4, and its C++ client library, which needs C++20, inside an
+S-CORE process whose other code stays C++17. Upstream's camera rig sits on a
+vehicle that CARLA 1.0 does not have, so the bench mounts the camera on another
+one. The candidate itself has not yet driven on CARLA 1.0.
+
+The adapter drives the simulated vehicle by CARLA's Ackermann control, as
+upstream's own simulator path does, and gives the simulator the candidate's
+steering unchanged, as that path does. The VSS steering angle of the driving
+command is positive to the left, so the vehicle interface writes the negative of
+the candidate's steering, which the integration takes in the sign of CARLA's
+steer, positive to the right. `ASM-DRIVING-006` assumes that this sign turns the
+vehicle back toward its lane centre, and `ASM-DRIVING-005` that the simulated
+vehicle follows the commanded deceleration up to 5.0 m/s²; a calibration run
+before Phase 10 shows both. VSS types the items at the ports only: the command's
+acceleration and steering angle, the speed and the warning request. Eight signal
+mappings record each crossing into a software contract; a mapping is no
+interoperability claim.
+
+Two concerns of this phase are held by the parties they serve: the structure
+by system architects and software developers, the logical-to-software mapping
+by system architects and verification engineers. Three views answer them and
+the two Physical concerns of Phase 1: the structure as a tree, the mapping as
+a matrix of logical element by software element, and the S-CORE path as an
+interconnection of the S-CORE host. The functional-mapping concern is framed
+on the matrix and on the path view, not by a matrix of function by software
+element. The views are listed in
+[`VIEWS.md`](../../textual-notation-of-model/packages/features/driving/VIEWS.md)
+once the licensed render has run.
+
+`tests/test_driver_assistance_physical_software_realization.py` pins the
+elements and their ports, the context realizations, the allocations, the
+dependencies, the signal mappings, the records Phase 8 settles, the views and
+this section.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -691,10 +820,10 @@ type approval.
 
 Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is
-**Phase 8**: the physical and software realization, which allocates each
-logical element to a physical element; its first gate is
-`logicalElementAllocatedToPhysicalElement`. Do not jump from the logical
-elements to implementation, and claim no runtime gate.
+**Phase 9**: variability and configuration, which makes the realization a
+configured product of the product line; its first gate is
+`incrementHasConfiguredProduct`. Do not jump from the realization to
+implementation, and claim no runtime gate.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
@@ -714,6 +843,7 @@ tests/test_driver_assistance_needs_requirements.py
 tests/test_driver_assistance_requirements.py
 tests/test_driver_assistance_functional_architecture.py
 tests/test_driver_assistance_logical_architecture.py
+tests/test_driver_assistance_physical_software_realization.py
 tests/test_trace_allocation_completeness.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed

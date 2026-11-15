@@ -62,6 +62,23 @@ names the release and records no digest of the installed package. Each run
 record carries the version that the simulator server reports, as
 `simulatorBuild`.
 
+The driver-assistance bench of INC-DRIVING-002 runs CARLA 1.0 on Unreal Engine
+5.8 instead (the simulator decision of 2026-11-15 in [its
+realization](driver_assistance_physical_software_realization.sysml)): commit
+[`14ac3b1a502da45a44506cb2ed82ab800f1baf4c`](https://github.com/carla-simulator/carla/tree/14ac3b1a502da45a44506cb2ed82ab800f1baf4c)
+of the branch `ue58-dev`, two commits after the tag
+[`1.0`](https://github.com/carla-simulator/carla/tree/1.0)
+(`a1770de89a6b93cda10b03f6eabb2a7a4ffb0f1d`), and a descendant of the inspected
+commit. The server and the client built from it report the version
+`1.0-14ac3b1a5`. The build is CARLA's weekly package for Linux of 2026-11-15,
+`CARLA_UE5_Weekly.tar.gz`: 14,096,474,749 bytes, SHA-256
+`2e45cc695a2b570a5a4dec3cc127b43f5a4b6bd99abb1e8716cf9ac063c94cca`. CARLA
+replaces that download every week and had published no package of 1.0 on
+2026-11-15, so DE4SDV keeps a copy of this one. The client library is built as
+C++20
+([`CMake/Common.cmake`](https://github.com/carla-simulator/carla/blob/14ac3b1a502da45a44506cb2ed82ab800f1baf4c/CMake/Common.cmake#L5-L6),
+lines 5 and 6), and the package has no `vehicle.lincoln.mkz_2020`.
+
 The documented Autoware end-to-end example concerns VAD, not proof of an
 AutoE2E connector. The bench's
 [interface control document](../../../../implementation/closed-loop-driving-bench/interfaces/ICD.md)
@@ -210,6 +227,58 @@ INC-DRIVING-002 on 2026-11-15, at the same commit:
   highways and motorways with clearly marked lane lines, in fair weather and
   visibility, at up to 70 mph and away from construction zones and roadwork,
   with a human driver supervising it at all times.
+
+Read for the physical and software realization of INC-DRIVING-002 on
+2026-11-15, at the same commit, which phase 8 takes for the bench with the
+DE4SDV S-CORE interface module. The branch `main` was still at that commit on
+that day. The model cites these files by file name and line:
+
+- [Longitudinal fusion](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp#L13-L41):
+  lines 13 to 18 give the closest object in the path with its distance and its
+  velocity, negative while it approaches, and line 40 a nominal step of 0.10
+  s.
+- [Inference pipeline](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/models/src/inference.cpp#L150-L208):
+  lines 152 to 154 keep the previous and the current processed frame, and
+  lines 206 and 207 update the fusion without a step.
+- [Camera interface](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/sensing/camera_interface/include/camera_interface/camera_interface.hpp#L18):
+  line 18 returns the newest image alone.
+- [Vehicle interface for ROS 2](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/middleware_interfaces/ros2_interface/vehicle_ros2_interface/src/vehicle_ros2_interface.cpp#L64-L68):
+  lines 64 to 68 publish the steering that the loop writes as it is.
+- [Common types](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/common/include/common/types.hpp#L26-L38):
+  lines 26 to 38 declare the warnings and the plan, an acceleration, a
+  steering sequence and a list of warnings.
+- [Configuration reader](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/config/src/vision_pilot_config.cpp#L117-L146):
+  lines 117 to 146 read the provider, the precision, the speed limit, the
+  visualization switch and the data-log switch from the configuration.
+- [Configuration](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/config/vision_pilot.conf#L11-L17):
+  line 11 sets the provider to cuda and line 17 the precision to fp32.
+- [Engine](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/engine/src/onnx_engine.cpp#L32-L76):
+  lines 32 to 46 create the session for the configured provider, cpu, cuda or
+  tensorrt, and refuse any other; lines 63 to 76 create the CUDA session, with
+  ONNX Runtime's CUDA execution provider on the configured device.
+- [Simulator setup](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Simulation/CARLA/ROS2/src/carla_bridge_bringup/scripts/config_carla.py#L192-L240):
+  lines 192 to 240 run the simulator in synchronous mode with a fixed step of
+  0.1 s.
+- [Simulated vehicle and camera](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Simulation/CARLA/ROS2/config/carla916.json#L2-L15):
+  line 2 names the vehicle, `vehicle.lincoln.mkz_2020`, and lines 5 to 15
+  attach one RGB camera of 1920 by 1280 pixels with a field of view of 50
+  degrees.
+- [Simulator control publisher](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Simulation/CARLA/ROS2/src/carla_control_publisher/carla_control_publisher/carla_control_publisher_node.py#L43-L54):
+  lines 43 to 54 drive the simulated vehicle by an Ackermann control: a
+  desired speed of the current speed plus twice the planned acceleration, not
+  below zero, the planned acceleration, the steering angle and a jerk of
+  10.0 m/s³; line 49 gives the steering to the Ackermann control's steering
+  angle without a change.
+- The fields of the simulator's Ackermann control, in the
+  [Python API reference of CARLA 1.0](https://github.com/carla-simulator/carla/blob/14ac3b1a502da45a44506cb2ed82ab800f1baf4c/Docs/python_api.md#carlavehicleackermanncontrol)
+  at the commit the bench runs, as in the
+  [one of CARLA 0.9.16](https://github.com/carla-simulator/carla/blob/0.9.16/Docs/python_api.md#carlavehicleackermanncontrol)
+  that upstream's simulator path runs: steer in rad, positive to the right,
+  steer_speed in rad/s, speed in m/s,
+  acceleration in m/s² and jerk in m/s³, each with a default of 0.0.
+- [The simulator's ROS 2 Ackermann subscriber](https://github.com/carla-simulator/carla/blob/0.9.16/LibCarla/source/carla/ros2/subscribers/AckermannControlSubscriber.cpp#L12):
+  in CARLA 0.9.16, line 12 sets the control's steer to the message's steering
+  angle.
 
 ## Questions requiring upstream engagement
 

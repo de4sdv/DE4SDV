@@ -121,6 +121,14 @@ GRID_METADATA = {
         "system functions (action usages)",
         "logical elements (part usages)",
     ),
+    "matrix-driverAssistancePhysicalLogicalMappingView": GridMetadata(
+        "Driver-assistance logical-to-software mapping",
+        "Maps the four logical elements of the driver-assistance system to the six software elements that realize "
+        "them: the identity recording application and the five modules of the candidate's S-CORE process, whose "
+        "planner carries both the warning requester and the driving commander.",
+        "logical elements (part usages)",
+        "software elements (part usages)",
+    ),
     "table-driverAssistanceModeDependenceTableView": GridMetadata(
         "Driver-assistance system modes",
         "The modes of the driver-assistance system and the functions whose behavior differs in each.",
