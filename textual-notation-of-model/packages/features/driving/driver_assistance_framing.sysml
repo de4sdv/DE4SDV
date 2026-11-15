@@ -1,6 +1,7 @@
 /*
  * DE4SDV camera-only driver assistance: Phase 0 framing and the Phase 1
- * concerns only.
+ * concerns only, beside the link of rule 5 that phase 9 declares with the
+ * system of interest.
  * One increment spans framing, realization and closed-loop verification.
  * The framing asserts no implementation, no runtime result, no product-line
  * admission and no compliance.
@@ -91,6 +92,14 @@ package DE4SDV_DriverAssistanceFraming {
      */
   }
   part candidateDriverAssistanceSystem : DriverAssistanceSystem;
+  /* Rule 5 of the increment workflow, in its dependency form, declared with
+   * the system of interest (phase 9): the candidate enters a member product
+   * only with the feature visionPilot, which phase 9 added to the feature
+   * model. Its requirements follow it; a requirement links a feature of its
+   * own only for what this subject does not bring. */
+  dependency assistanceSystemOnVisionPilotFeature
+    from candidateDriverAssistanceSystem
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::visionPilot;
 
   part driverAssistanceScope : IncrementScope {
     doc /*
@@ -413,7 +422,8 @@ package DE4SDV_DriverAssistanceFraming {
       "DE4SDV_DriverAssistanceNeedsRequirements",
       "DE4SDV_DriverAssistanceFunctionalArchitecture",
       "DE4SDV_DriverAssistanceLogicalArchitecture",
-      "DE4SDV_DriverAssistancePhysicalSoftwareRealization"
+      "DE4SDV_DriverAssistancePhysicalSoftwareRealization",
+      "DE4SDV_DriverAssistanceVariabilityConfiguration"
     );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",
