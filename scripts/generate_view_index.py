@@ -181,6 +181,13 @@ KNOWN_PRESENTATION_NOTES = {
         "`ClosedLoopDrivingFunctionalFlow`, and the requirements each function "
         "carries are in `closedLoopDrivingRequirementFunctionMappingView`."
     ),
+    "driverAssistanceFunctionBreakdownView": (
+        "SysIDE lists the items and the four functions of "
+        "`driverAssistanceFunctionalFlow` but does not draw the flows between "
+        "them. The flows are modeled in the source, in the action definition "
+        "`DriverAssistanceFunctionalFlow`, and the requirements each function "
+        "carries are in `driverAssistanceRequirementFunctionMappingView`."
+    ),
     "middlewareAdapterBoundaryExchangeView": (
         "The adapter and the AAOS SDV boundary are dashed «ref part» boxes. The "
         "boundary refers to them; in the configured member `MW-CONFIG-001` the "

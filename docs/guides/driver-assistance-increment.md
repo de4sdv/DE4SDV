@@ -9,9 +9,9 @@ increment asks that of a camera-only driver-assistance application,
 Autoware Foundation.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 classification, Phase 4 stakeholder needs and Phase 5 requirements,
-proposal.** No implementation, run, result, product-line admission or
-compliance is claimed.
+Phase 3 classification, Phase 4 stakeholder needs, Phase 5 requirements and
+Phase 6 functional architecture, proposal.** No implementation, run, result,
+product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -417,6 +417,109 @@ Phase 5 gates check that each requirement has a statement, derives from a
 need, has one subject and one verification method; review judges whether they
 are the right ones.
 
+## Functional architecture (Phase 6)
+
+The [functional architecture](../../textual-notation-of-model/packages/features/driving/driver_assistance_functional_architecture.sysml)
+breaks the candidate driver-assistance system down into four functions, in the
+order of one step:
+
+- **`identifyCandidate`** records the candidate identity before the first
+  driving command of each run;
+- **`assessVehicleAhead`** perceives the lane and the closest vehicle ahead in
+  it from the front-camera image and works out, with the vehicle's speed, the
+  time to collision, the needed deceleration and whether a collision is
+  imminent;
+- **`requestWarning`** starts the warning request at the boundary when a
+  collision becomes imminent, and starts none while no collision is;
+- **`commandVehicle`** gives the one driving command: none before the identity
+  is recorded, lane and speed following below 5.0 m/s² of deceleration, and
+  the emergency braking.
+
+They are `AllocatableFunction` actions of the functional flow
+`DriverAssistanceFunctionalFlow`. The flow takes the front-camera image and
+the vehicle speed of Phase 2 in, and gives the driving command and the warning
+request out. Inside, the functions exchange the assessment of the vehicle
+ahead, the state of the warning request and the record of the candidate
+identity. The functions state what the system has to do, not what the
+candidate does at its inspected revision, which has no warning output at its
+boundary (`gapWarningOutput`); Phase 8 maps them to its software.
+
+Three decisions shape the functional architecture:
+
+- **One command path.** The emergency braking is a mode of `commandVehicle`,
+  not a second source of commands, and only `commandVehicle` gives a driving
+  command. The braking leaves in the driving command, as the term of Phase 5
+  allows. Whether the candidate's braking can stand for the common capability
+  stays open (`gapNoSeparateEmergencyFunction`); a function apart from the
+  command would decide it in advance.
+- **The warning request first.** `requestWarning` starts the request with the
+  imminence of the collision, and `commandVehicle` takes the state of the
+  request and starts an emergency braking only after it. In each setting at a
+  constant approach speed the collision becomes imminent at least 1.11 s
+  before 5.0 m/s² is needed, which gives the lead of `REQ-DRIVING-042`.
+- **A command the actuation can check.** Each driving command leaves the
+  system with its issue time, a sequence count and a check value. By them the
+  actuation can detect a delay, a loss or a repetition, and a corruption of
+  the command on the path (`REQ-DRIVING-039`). Rejecting what it detects is
+  the share of the product that holds the path (`REQ-MW-006`), which Phases 7
+  and 8 allocate.
+
+Each requirement but two is allocated (`allocatedTo`) to the functions that
+carry it: the five functional requirements the gate asks for, and the speed at
+impact and the form of the command to `commandVehicle`. `REQ-DRIVING-038` and
+`REQ-DRIVING-043`, the Eclipse S-CORE path of the driving command and of the
+warning request, are carried by no function. They constrain how the two
+outputs travel to the actuation and to the AAOS SDV, and Phase 8 places the
+S-CORE elements on those exchanges. An allocation assigns responsibility only;
+it claims no satisfaction.
+
+The system in operation is the process `DriverAssistanceSystemProcess`. Its
+participants are the parts of the operational context of Phase 2, each the
+swim lane of its functions: the vehicle's front camera and motion sensing give
+the image and the speed, and the S-CORE path carries the driving command to
+the actuation and the warning request to the warning presentation of the AAOS
+SDV, which gives the driver the collision warning on the display and as a
+sound. The process answers the Phase 1 concern `driverWarningSequenceConcern`
+with the sequence and its times:
+
+- the warning request at the boundary at least 1.0 s of simulation time before
+  the start of the emergency braking (`REQ-DRIVING-042`);
+- each mode of the warning within 0.2 s of wall-clock time after the request,
+  the share of the S-CORE path and the AAOS SDV, which Phases 7 and 8 divide
+  between them;
+- so each mode at least 0.8 s before the emergency braking, while the
+  simulation runs no faster than wall-clock time, which is the obligation of
+  System 2.
+
+The modes of `DriverAssistanceModes` follow from the requirements: identifying
+until the identity is recorded, with no driving command; assisting, with no
+collision imminent; warning, while a collision is imminent and before an
+emergency braking; and the emergency braking, until the collision is no longer
+imminent. The conceptual interfaces are the four ports of
+`DriverAssistanceFunctionalBoundary`, the system at its boundary: the image
+and the speed in, each with its time, and the driving command and the warning
+request out. Their items carry ISQ quantities; no vehicle signal specification
+is used, and the signal typing starts at Phase 8.
+
+Five views publish the architecture, one per SAF question:
+
+- the breakdown `driverAssistanceFunctionBreakdownView`, which lists the items
+  and the four functions of the flow but draws no item flows;
+- the matrix `driverAssistanceRequirementFunctionMappingView`, with the
+  requirements in rows and the functions in columns;
+- the process `driverAssistanceSystemProcessView`, with its participants as
+  swim lanes and the items that cross the boundary;
+- the table `driverAssistanceModeDependenceTableView` of the modes and what
+  the functions that depend on them do in each;
+- the tree `driverAssistanceFunctionalInterfaceView` of the four port
+  definitions, each with its directed item.
+
+`tests/test_driver_assistance_functional_architecture.py` pins the functions,
+their flows and allocations, the process with its times, the modes, the
+interfaces and the five views. The Phase 6 gates check that a function exists
+and that each functional requirement is allocated to one; review judges
+whether they are the right ones.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -488,10 +591,9 @@ type approval.
 
 Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is
-**Phase 6**: the functional architecture, which allocates each functional
-requirement to a function; its first gate is
-`functionalRequirementAllocatedToFunction`. Do not jump from the requirements
-to implementation, and claim no runtime gate.
+**Phase 7**: the logical architecture, which allocates each function to a
+logical element; its first gate is `functionAllocatedToLogicalElement`. Do not
+jump from the functions to implementation, and claim no runtime gate.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
@@ -507,7 +609,10 @@ Run `sysand sync`, `python scripts/check_repo.py`,
 `python -m pytest tests/test_driver_assistance_framing.py
 tests/test_driver_assistance_operational_context.py
 tests/test_driver_assistance_capability_classification.py
-tests/test_driver_assistance_needs_requirements.py -q`. These are
+tests/test_driver_assistance_needs_requirements.py
+tests/test_driver_assistance_requirements.py
+tests/test_driver_assistance_functional_architecture.py
+tests/test_trace_allocation_completeness.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed
 validator is available, or request the maintainer-run **Privileged Syside

@@ -372,7 +372,8 @@ package DE4SDV_DriverAssistanceFraming {
       "DE4SDV_DriverAssistanceFraming",
       "DE4SDV_DriverAssistanceOperationalContext",
       "DE4SDV_DriverAssistanceCapabilityClassification",
-      "DE4SDV_DriverAssistanceNeedsRequirements"
+      "DE4SDV_DriverAssistanceNeedsRequirements",
+      "DE4SDV_DriverAssistanceFunctionalArchitecture"
     );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",
