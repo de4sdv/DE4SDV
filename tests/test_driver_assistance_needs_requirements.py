@@ -469,7 +469,9 @@ def test_the_charter_lists_the_needs_package():
     framing = strip_comments(FRAMING.read_text(encoding="utf-8"))
     charter = braced_body(framing, "part driverAssistanceCharter : IncrementCharter")
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-1] == PACKAGE
+    assert artifacts
+    names = re.findall(r'"([^"]+)"', artifacts.group(1))
+    assert names.index(PACKAGE) == names.index("DE4SDV_DriverAssistanceCapabilityClassification") + 1
     assert MODEL in charter_package_files(FRAMING, "driverAssistanceCharter")
 
 
