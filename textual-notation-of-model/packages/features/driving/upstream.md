@@ -211,6 +211,41 @@ INC-DRIVING-002 on 2026-11-15, at the same commit:
   visibility, at up to 70 mph and away from construction zones and roadwork,
   with a human driver supervising it at all times.
 
+Read for the physical and software realization of INC-DRIVING-002 on
+2026-11-15, at the same commit, which phase 8 takes for the bench with the
+DE4SDV S-CORE interface module. The branch `main` was still at that commit on
+that day. The model cites these files by file name and line:
+
+- [Lateral planner](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/planning/src/lateral_planning.cpp#L76-L151):
+  lines 81 and 147 take the feed-forward steering angle as the arctangent of
+  the wheelbase times the curvature, and line 106 the commanded curvature as
+  the tangent of the steering angle over the wheelbase, so the steering has
+  the sign of the curvature.
+- [Lateral fusion](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/fusion/include/fusion/lateral_fusion.hpp#L14-L29):
+  line 16 takes the lateral axis as positive to the left, and line 29 the
+  curvature as positive in a left turn.
+- [Common types](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/common/include/common/types.hpp#L26-L38):
+  lines 26 to 38 declare the warnings and the plan, an acceleration, a
+  steering sequence and a list of warnings.
+- [Configuration reader](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/config/src/vision_pilot_config.cpp#L117-L146):
+  lines 117 to 146 read the provider, the precision, the speed limit, the
+  visualization switch and the data-log switch from the configuration.
+- [Simulator setup](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Simulation/CARLA/ROS2/src/carla_bridge_bringup/scripts/config_carla.py#L192-L240):
+  lines 192 to 240 run the simulator in synchronous mode with a fixed step of
+  0.1 s.
+- [Simulated vehicle and camera](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Simulation/CARLA/ROS2/config/carla916.json#L5-L15):
+  lines 5 to 15 attach one RGB camera of 1920 by 1280 pixels with a field of
+  view of 50 degrees.
+- [Simulator control publisher](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/Simulation/CARLA/ROS2/src/carla_control_publisher/carla_control_publisher/carla_control_publisher_node.py#L43-L54):
+  lines 43 to 54 drive the simulated vehicle by an Ackermann control: a
+  desired speed of the current speed plus twice the planned acceleration, not
+  below zero, the planned acceleration, the steering angle and a jerk of
+  10.0 m/s³.
+- The fields of the simulator's Ackermann control, in the
+  [Python API reference of CARLA 0.9.16](https://github.com/carla-simulator/carla/blob/0.9.16/Docs/python_api.md#carlavehicleackermanncontrol):
+  steer in rad, positive to the right, steer_speed in rad/s, speed in m/s,
+  acceleration in m/s² and jerk in m/s³, each with a default of 0.0.
+
 ## Questions requiring upstream engagement
 
 AutoE2E:

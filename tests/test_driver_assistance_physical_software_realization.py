@@ -158,13 +158,17 @@ APPLICATION_PARTS = [("cameraInterface", "SCORECameraInterface"), ("perceptionAn
                      ("safetyGuardianPlanner", "VisionPilotSafetyGuardianPlanner"),
                      ("vehicleInterface", "SCOREVehicleInterface"),
                      ("warningRequestPublisher", "SCOREWarningRequestPublisher")]
-#: The connections of the candidate's process: boundary delegations, then the hand-offs in the order of the loop.
+#: The delegations of the candidate's process are binds, as the precedent's realization binds its own ports: the
+#: S-CORE path view draws them as edges between exposed ports.
+APPLICATION_BINDS = {
+    ("frontCameraImageIn", "cameraInterface.frontCameraImageIn"),
+    ("vehicleSpeedIn", "vehicleInterface.vehicleSpeedIn"),
+    ("candidateRecordIn", "vehicleInterface.candidateRecordIn"),
+    ("drivingCommandOut", "vehicleInterface.drivingCommandOut"),
+    ("warningRequestOut", "warningRequestPublisher.warningRequestOut"),
+}
+#: The hand-offs of the candidate's process, in the order of the loop.
 APPLICATION_CONNECTIONS = {
-    "frontCameraImageDelegation": ("frontCameraImageIn", "cameraInterface.frontCameraImageIn"),
-    "vehicleSpeedDelegation": ("vehicleSpeedIn", "vehicleInterface.vehicleSpeedIn"),
-    "candidateRecordDelegation": ("candidateRecordIn", "vehicleInterface.candidateRecordIn"),
-    "drivingCommandDelegation": ("vehicleInterface.drivingCommandOut", "drivingCommandOut"),
-    "warningRequestDelegation": ("warningRequestPublisher.warningRequestOut", "warningRequestOut"),
     "imageHandOff": ("cameraInterface.imageOut", "perceptionAndFusion.imageIn"),
     "assessmentHandOff": ("perceptionAndFusion.assessmentOut", "safetyGuardianPlanner.assessmentIn"),
     "vehicleSpeedHandOff": ("vehicleInterface.vehicleSpeedOut", "safetyGuardianPlanner.vehicleSpeedIn"),
@@ -181,12 +185,14 @@ REALIZATION_CONNECTIONS = {
     "candidateRecordOverSCORECommunication": ("identityRecording.candidateRecordOut",
                                               "visionPilotApplication.candidateRecordIn"),
 }
+HOST_BINDS = {
+    ("frontCameraImageIn", "assistanceSoftware.frontCameraImageIn"),
+    ("vehicleSpeedIn", "assistanceSoftware.vehicleSpeedIn"),
+    ("simulationClockIn", "actuationAdapter.simulationClockIn"),
+    ("ackermannControlOut", "actuationAdapter.ackermannControlOut"),
+    ("warningRequestOut", "scoreServices.someipd.warningRequestOut"),
+}
 HOST_CONNECTIONS = {
-    "frontCameraImageDelegation": ("frontCameraImageIn", "assistanceSoftware.frontCameraImageIn"),
-    "vehicleSpeedDelegation": ("vehicleSpeedIn", "assistanceSoftware.vehicleSpeedIn"),
-    "simulationClockDelegation": ("simulationClockIn", "actuationAdapter.simulationClockIn"),
-    "ackermannControlDelegation": ("actuationAdapter.ackermannControlOut", "ackermannControlOut"),
-    "warningRequestDelegation": ("scoreServices.someipd.warningRequestOut", "warningRequestOut"),
     "drivingCommandOverSCORECommunication": ("assistanceSoftware.drivingCommandOut", "actuationAdapter.drivingCommandIn"),
     "warningRequestOverSCORECommunication": ("assistanceSoftware.warningRequestOut",
                                              "scoreServices.gatewayd.warningRequestIn"),
@@ -559,8 +565,9 @@ def test_the_candidate_stays_one_process_with_five_modules_in_the_order_of_the_l
     assert _owned(body) == APPLICATION_PARTS
     assert _named_connections(body) == APPLICATION_CONNECTIONS
     assert len(_connections(body)) == len(APPLICATION_CONNECTIONS)
-    assert not re.search(r"\b(flow|bind)\b", body)
-    for _name, (source, target) in APPLICATION_CONNECTIONS.items():
+    assert _binds(body) == APPLICATION_BINDS
+    assert not re.search(r"\bflow\b", body)
+    for source, target in [*APPLICATION_CONNECTIONS.values(), *APPLICATION_BINDS]:
         for end in (source, target):
             if "." in end:
                 part, port = end.split(".")
@@ -651,7 +658,7 @@ def test_the_score_host_holds_the_candidate_and_beside_it_the_share_of_the_path(
     for process in GATEWAY_PROCESSES:
         assert _ports(braced_body(services, f"part {process} ")) == GATEWAY_PORTS, process
     assert _named_connections(host) == HOST_CONNECTIONS and len(_connections(host)) == len(HOST_CONNECTIONS)
-    assert _binds(host) == set() and "flow" not in host
+    assert _binds(host) == HOST_BINDS and "flow" not in host
     launch = _doc("part launchManager", braced_body(_raw(), f"part def {HOST}"))
     for phrase in ("starts the identity recording application before the candidate's process",
                    "for the further run of REQ-DRIVING-038"):
@@ -804,11 +811,10 @@ def test_the_mw_com_hops_are_named_on_the_score_host_and_in_the_realization():
     assert host["warningRequestOverSCORECommunication"] == ("assistanceSoftware.warningRequestOut",
                                                            "scoreServices.gatewayd.warningRequestIn")
     into_adapter = [name for name, (_, target) in host.items() if target.startswith("actuationAdapter.")]
-    assert sorted(into_adapter) == ["drivingCommandOverSCORECommunication", "simulationClockDelegation"], \
+    assert into_adapter == ["drivingCommandOverSCORECommunication"], \
         "the driving command reaches the actuation adapter on the mw::com event only"
-    to_ackermann = [name for name, (_, target) in host.items() if target == "ackermannControlOut"]
-    assert to_ackermann == ["ackermannControlDelegation"]
-    assert host["ackermannControlDelegation"][0] == "actuationAdapter.ackermannControlOut", \
+    bound = _binds(_body_of_definition(HOST))
+    assert [inner for outer, inner in bound if outer == "ackermannControlOut"] == ["actuationAdapter.ackermannControlOut"], \
         "the adapter alone writes the simulator's control"
 
 
@@ -1007,7 +1013,7 @@ def test_the_tree_and_the_path_view_take_the_forms_the_precedent_rendered():
     assert "filter not (@ SysML::BindingConnectorAsUsage);" in tree, "a bind draws as a box with two ends in a tree"
     path = braced_body(code, f"view {PATH_VIEW}")
     assert "attribute depth = -1;" in path and "attribute showAnnotationRows = false;" in path
-    assert "BindingConnectorAsUsage" not in path, "the realization's binds draw as edges between exposed ports"
+    assert "BindingConnectorAsUsage" not in path, "the host's and the process's binds draw as edges between exposed ports"
     doc = _doc(f"view {PATH_VIEW}")
     for phrase in ("scoreCommandAndWarningPathConcern", "emergencyBrakingIndependenceConcern",
                    "the only element that writes the simulator's Ackermann control",
