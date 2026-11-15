@@ -18,17 +18,18 @@
   <path d="M 34,922 H 342 A 6,6 0 0 1 348,928 V 952 A 6,6 0 0 1 342,958 H 34 A 6,6 0 0 1 28,952 V 928 A 6,6 0 0 1 34,922 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 34,922 H 342 A 6,6 0 0 1 348,928 V 952 A 6,6 0 0 1 342,958 H 34 A 6,6 0 0 1 28,952 V 928 A 6,6 0 0 1 34,922 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
   <path d="M 408,334 H 600 A 6,6 0 0 1 606,340 V 364 A 6,6 0 0 1 600,370 H 408 A 6,6 0 0 1 402,364 V 340 A 6,6 0 0 1 408,334 Z" fill="#FFFFFF" fill-opacity="1.000"/>
-  <path d="M 384,741 H 606 A 6,6 0 0 1 612,747 V 771 A 6,6 0 0 1 606,777 H 384 A 6,6 0 0 1 378,771 V 747 A 6,6 0 0 1 384,741 Z" fill="#FFFFFF" fill-opacity="1.000"/>
+  <path d="M 384,719 H 606 A 6,6 0 0 1 612,725 V 783 A 6,6 0 0 1 606,789 H 384 A 6,6 0 0 1 378,783 V 725 A 6,6 0 0 1 384,719 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 441,922 H 578 A 6,6 0 0 1 584,928 V 952 A 6,6 0 0 1 578,958 H 441 A 6,6 0 0 1 435,952 V 928 A 6,6 0 0 1 441,922 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 383,1131 H 607 A 6,6 0 0 1 613,1137 V 1161 A 6,6 0 0 1 607,1167 H 383 A 6,6 0 0 1 377,1161 V 1137 A 6,6 0 0 1 383,1131 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 425,1437 H 594 A 6,6 0 0 1 600,1443 V 1467 A 6,6 0 0 1 594,1473 H 425 A 6,6 0 0 1 419,1467 V 1443 A 6,6 0 0 1 425,1437 Z" fill="#FFFFFF" fill-opacity="1.000"/>
   <path d="M 408,334 H 600 A 6,6 0 0 1 606,340 V 364 A 6,6 0 0 1 600,370 H 408 A 6,6 0 0 1 402,364 V 340 A 6,6 0 0 1 408,334 Z" fill="#C8DCE6" fill-opacity="1.000"/>
-  <path d="M 384,741 H 606 A 6,6 0 0 1 612,747 V 771 A 6,6 0 0 1 606,777 H 384 A 6,6 0 0 1 378,771 V 747 A 6,6 0 0 1 384,741 Z" fill="#C8DCE6" fill-opacity="1.000"/>
+  <path d="M 384,719 H 606 A 6,6 0 0 1 612,725 V 755 H 378 V 725 A 6,6 0 0 1 384,719 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 441,922 H 578 A 6,6 0 0 1 584,928 V 952 A 6,6 0 0 1 578,958 H 441 A 6,6 0 0 1 435,952 V 928 A 6,6 0 0 1 441,922 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 383,1131 H 607 A 6,6 0 0 1 613,1137 V 1161 A 6,6 0 0 1 607,1167 H 383 A 6,6 0 0 1 377,1161 V 1137 A 6,6 0 0 1 383,1131 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 425,1437 H 594 A 6,6 0 0 1 600,1443 V 1467 A 6,6 0 0 1 594,1473 H 425 A 6,6 0 0 1 419,1467 V 1443 A 6,6 0 0 1 425,1437 Z" fill="#C8DCE6" fill-opacity="1.000"/>
   <path d="M 408,334 H 600 A 6,6 0 0 1 606,340 V 364 A 6,6 0 0 1 600,370 H 408 A 6,6 0 0 1 402,364 V 340 A 6,6 0 0 1 408,334 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="8 4"/>
-  <path d="M 384,741 H 606 A 6,6 0 0 1 612,747 V 771 A 6,6 0 0 1 606,777 H 384 A 6,6 0 0 1 378,771 V 747 A 6,6 0 0 1 384,741 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="8 4"/>
+  <polyline points="378,755 612,755" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5"/>
+  <path d="M 384,719 H 606 A 6,6 0 0 1 612,725 V 783 A 6,6 0 0 1 606,789 H 384 A 6,6 0 0 1 378,783 V 725 A 6,6 0 0 1 384,719 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="8 4"/>
   <path d="M 441,922 H 578 A 6,6 0 0 1 584,928 V 952 A 6,6 0 0 1 578,958 H 441 A 6,6 0 0 1 435,952 V 928 A 6,6 0 0 1 441,922 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="8 4"/>
   <path d="M 383,1131 H 607 A 6,6 0 0 1 613,1137 V 1161 A 6,6 0 0 1 607,1167 H 383 A 6,6 0 0 1 377,1161 V 1137 A 6,6 0 0 1 383,1131 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="8 4"/>
   <path d="M 425,1437 H 594 A 6,6 0 0 1 600,1443 V 1467 A 6,6 0 0 1 594,1473 H 425 A 6,6 0 0 1 419,1467 V 1443 A 6,6 0 0 1 425,1437 Z" fill="none" stroke="#336680" stroke-opacity="1.000" stroke-width="0.5" stroke-dasharray="8 4"/>
@@ -140,9 +141,9 @@
   <polyline points="998.312,473 999.875,473 999.875,321 1004,321" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="998.312,481.2 1004,481.2" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="998.312,489 999.875,489 999.875,652 1004,652" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="361.312,932 373.875,932 373.875,760 378,760" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="625.312,755 636.875,755 636.875,687 643,687" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
-  <polyline points="625.312,763 696,763" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="361.312,932 373.875,932 373.875,754 378,754" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="625.312,750 636.875,750 636.875,687 643,687" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
+  <polyline points="625.312,758 696,758" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="944.312,766 1093,766" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="1257.312,766 1363,766" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
   <polyline points="361.312,940.4 435,940.4" fill="none" stroke="#1A1A1A" stroke-opacity="1.000" stroke-width="0.5"/>
@@ -204,10 +205,10 @@
   <g transform="translate(348,932) rotate(0) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 5.75,0 L 13.75,4 L 21.75,0 L 13.75,-4 Z" fill="black" stroke="black" stroke-width="1.5" data-render="filled"/>
   </g>
-  <g transform="translate(612,755) rotate(0) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+  <g transform="translate(612,750) rotate(0) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 5.75,0 L 13.75,4 L 21.75,0 L 13.75,-4 Z" fill="black" stroke="black" stroke-width="1.5" data-render="filled"/>
   </g>
-  <g transform="translate(612,763) rotate(0) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
+  <g transform="translate(612,758) rotate(0) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
     <path d="M 5.75,0 L 13.75,4 L 21.75,0 L 13.75,-4 Z" fill="black" stroke="black" stroke-width="1.5" data-render="filled"/>
   </g>
   <g transform="translate(931,766) rotate(0) scale(0.75) translate(-4,-0)" fill="#1A1A1A" fill-opacity="1.000">
@@ -352,8 +353,10 @@
   <text x="1168.5" y="692.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
   <text x="1012" y="708" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">warningRequestIn : WarningRequestEventIn</tspan></text>
   <text x="1012" y="720" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">warningRequestOut : WarningRequestEventOut</tspan></text>
-  <text x="495" y="753" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
-  <text x="495" y="769" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^simulatorHost : DriverAssistanceSimulatorHost</tspan></text>
+  <text x="495" y="731" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
+  <text x="495" y="747" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^simulatorHost : DriverAssistanceSimulatorHost</tspan></text>
+  <text x="495" y="765.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
+  <text x="386" y="781" font-family="Roboto, sans-serif" font-size="10" text-anchor="start"><tspan fill="#1A1A1A" fill-opacity="1.000">^vehicleSpeedOut</tspan></text>
   <text x="734" y="658" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">«part»</tspan></text>
   <text x="734" y="674" font-family="Roboto, sans-serif" font-size="10" text-anchor="middle"><tspan fill="#1A1A1A" fill-opacity="1.000" font-weight="700">^os : LinuxPlatform</tspan></text>
   <text x="734" y="692.4" font-family="Roboto, sans-serif" font-size="8" text-anchor="middle"><tspan fill="#336680" fill-opacity="1.000" font-style="italic">ports</tspan></text>
