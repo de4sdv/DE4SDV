@@ -39,7 +39,7 @@ ref = args[0]
 with open(os.environ["SCAN_LOG"], "a") as f: f.write(ref + "\\n")
 digest = ref.split("@")[-1] if "@" in ref else "sha256:" + "0" * 64
 native = {"source": {"type": "image", "name": ref, "metadata": {
-    "userInput": ref, "imageID": "sha256:" + "d" * 64,
+    "userInput": ref, "imageID": os.environ.get("WRONG_IMAGE_ID", "sha256:" + "d" * 64),
     "manifestDigest": os.environ.get("WRONG_DIGEST", digest),
     "repoDigests": [ref], "architecture": "amd64", "os": "linux"
 }}, "descriptor": {"name": "syft", "version": "1.57.1"}}
@@ -50,6 +50,12 @@ for index, arg in enumerate(args):
         pathlib.Path(path).write_text(json.dumps(native if fmt == "syft-json" else cdx))
 ''')
     scanner.chmod(0o755)
+    podman = root / "bin/podman"
+    podman.write_text(f"#!{sys.executable}\n" + '''import json, os, sys
+ref = sys.argv[3]
+print(json.dumps({"imageID": "d" * 64, "repoDigests": [] if os.environ.get("MISSING_REPO_DIGEST") else [ref], "architecture": "amd64", "os": "linux"}))
+''')
+    podman.chmod(0o755)
     env = {**os.environ, "PATH": str(root / "bin") + os.pathsep + os.environ["PATH"], "SCAN_LOG": str(root / "calls"), "PYTHON": sys.executable}
     return root, env
 
@@ -68,11 +74,29 @@ def test_generator_scans_digest_refs_from_the_baseline(tmp_path):
 
 def test_generator_rejects_scanner_source_for_a_different_image(tmp_path):
     root, env = fixture(tmp_path)
-    env["WRONG_DIGEST"] = "sha256:" + "c" * 64
+    env["WRONG_IMAGE_ID"] = "sha256:" + "c" * 64
     result = subprocess.run(["sh", str(root / "checks/make_sbom.sh")], env=env, text=True, capture_output=True, timeout=20)
     assert result.returncode == 1
-    assert "scanner manifest digest differs from the baseline" in result.stdout
+    assert "scanner image ID differs from the inspected image" in result.stdout
     assert not (root / "sbom/inventory.json").exists()
+
+
+def test_podman_export_manifest_can_differ_while_image_binding_matches(tmp_path):
+    # The real scanner's Podman export changes the manifest representation, not
+    # the image/config identity; it must bind via native RepoDigests + image ID.
+    root, env = fixture(tmp_path)
+    env["WRONG_DIGEST"] = "sha256:" + "c" * 64
+    result = subprocess.run(["sh", str(root / "checks/make_sbom.sh")], env=env, text=True, capture_output=True, timeout=20)
+    assert result.returncode == 0, "a verified Podman export must be scannable: " + result.stdout + result.stderr
+
+
+def test_inspected_image_must_resolve_the_exact_locked_repo_digest(tmp_path):
+    root, env = fixture(tmp_path)
+    env["MISSING_REPO_DIGEST"] = "1"
+    result = subprocess.run(["sh", str(root / "checks/make_sbom.sh")], env=env, text=True, capture_output=True, timeout=20)
+    assert result.returncode == 1, "a requested ref alone cannot establish its image binding"
+    assert "locked ref absent from inspected RepoDigests" in result.stdout
+    assert not (root / "calls").exists()
 
 
 def test_generator_rejects_parts_lock_mismatch_before_scanning(tmp_path):

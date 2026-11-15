@@ -16,7 +16,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 ROLES = {"zone-ecu", "can-gw"}
 DIGEST = re.compile(r"sha256:[0-9a-f]{64}\Z")
-SCHEMA = "de4sdv-ee-sbom/1"
+SCHEMA = "de4sdv-ee-sbom/2"
 
 
 def require_digest(value):
@@ -53,16 +53,40 @@ def baseline_images(root):
     return dict(sorted(images.items()))
 
 
-def checked_source(document, ref):
+def checked_podman(document, ref):
+    image_id = document.get("imageID")
+    if not isinstance(image_id, str) or not re.fullmatch(r"[0-9a-f]{64}", image_id):
+        raise ValueError("invalid native Podman image ID")
+    digests = document.get("repoDigests")
+    if not isinstance(digests, list) or any(not isinstance(value, str) for value in digests) or ref not in digests:
+        raise ValueError("locked ref absent from inspected RepoDigests")
+    for key in ("architecture", "os"):
+        if not isinstance(document.get(key), str) or not document[key]:
+            raise ValueError(f"native image {key} missing")
+    return {key: document[key] for key in ("imageID", "repoDigests", "architecture", "os")}
+
+
+def inspect_image(ref):
+    # Query only identity fields: never retain image config, environment or auth.
+    template = '{"imageID":"{{.Id}}","repoDigests":{{json .RepoDigests}},"architecture":"{{.Architecture}}","os":"{{.Os}}"}'
+    result = subprocess.run(["podman", "image", "inspect", ref, "--format", template], check=True, text=True, capture_output=True)
+    return checked_podman(json.loads(result.stdout), ref)
+
+
+def checked_source(document, ref, podman):
+    binding = checked_podman(podman, ref)
     source = document.get("source", {})
     meta = source.get("metadata", {})
-    digest = ref.rsplit("@", 1)[1]
     if source.get("type") != "image" or meta.get("userInput") != ref:
         raise ValueError("scanner source does not identify the requested image")
-    if require_digest(meta.get("manifestDigest")) != digest:
-        raise ValueError("scanner manifest digest differs from the baseline")
-    require_digest(meta.get("imageID"))
-    # Retain source identity, not raw image config, environment or registry auth.
+    require_digest(meta.get("manifestDigest"))
+    # Podman export can reserialize an OCI manifest: that export digest is not
+    # the locked registry digest. Bind the scanner's image/config ID to native
+    # image inspection, whose RepoDigests must contain the exact locked ref.
+    if require_digest(meta.get("imageID")) != "sha256:" + binding["imageID"]:
+        raise ValueError("scanner image ID differs from the inspected image")
+    if any(meta.get(key) != binding[key] for key in ("architecture", "os")):
+        raise ValueError("scanner platform differs from the inspected image")
     return {key: meta[key] for key in ("userInput", "manifestDigest", "imageID", "architecture", "os")}
 
 
@@ -86,7 +110,7 @@ def check_inventory(root, out):
             raise ValueError(f"{role}: empty or invalid CycloneDX inventory")
         if len(doc["components"]) != record.get("components"):
             raise ValueError(f"{role}: component count mismatch")
-        checked_source({"source": {"type": "image", "metadata": record.get("source", {})}}, images[role])
+        checked_source({"source": {"type": "image", "metadata": record.get("source", {})}}, images[role], record.get("podman", {}))
     return receipt
 
 
@@ -100,11 +124,15 @@ def generate(root, out):
         for role, ref in images.items():
             cdx = temp / (role + ".cdx.json")
             native = temp / (role + ".syft.json")
+            binding = inspect_image(ref)
             subprocess.run(["syft", ref, "-o", f"cyclonedx-json={cdx}", "-o", f"syft-json={native}"], check=True)
             raw = cdx.read_bytes()
             doc = json.loads(raw)
             native_doc = json.loads(native.read_text())
-            source = checked_source(native_doc, ref)
+            source = checked_source(native_doc, ref, binding)
+            after_binding = inspect_image(ref)
+            if any(binding[key] != after_binding[key] for key in ("imageID", "architecture", "os")):
+                raise ValueError("native image binding changed during the scan")
             if doc.get("bomFormat") != "CycloneDX" or not doc.get("components"):
                 raise ValueError(f"{role}: scanner returned an empty or invalid SBOM")
             descriptor = native_doc.get("descriptor", {})
@@ -113,7 +141,7 @@ def generate(root, out):
             data = gzip.compress(raw, mtime=0)
             filename = role + ".cdx.json.gz"
             blobs[filename] = data
-            receipt["images"].append({"role": role, "file": filename, "sha256": hashlib.sha256(data).hexdigest(), "components": len(doc["components"]), "source": source, "scanner": {"name": descriptor["name"], "version": descriptor["version"]}})
+            receipt["images"].append({"role": role, "file": filename, "sha256": hashlib.sha256(data).hexdigest(), "components": len(doc["components"]), "source": source, "podman": after_binding, "scanner": {"name": descriptor["name"], "version": descriptor["version"]}})
     # Neither old inventory is replaced until both scans and identities passed.
     for filename, data in blobs.items():
         (out / filename).write_bytes(data)

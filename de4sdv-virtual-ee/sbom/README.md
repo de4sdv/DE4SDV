@@ -20,11 +20,17 @@ The generator resolves `zone-ecu` and `can-gw` from
 has no mutable-tag defaults or image override environment variables.
 
 Both CycloneDX and Syft's native source metadata are produced by the same scan.
-The generator rejects a source whose manifest digest or requested reference does
-not match the baseline. `inventory.json` retains the scanner version, manifest
-digest, image/config ID, architecture, OS, component count and SHA-256 of each
-compressed CycloneDX file. Raw image config and environment are not retained.
-Both scans must succeed before either previous inventory is replaced.
+Native Podman inspection must resolve the exact locked reference in `RepoDigests`.
+The scanner's image/config ID and platform must match that inspected image, and
+the binding is rechecked after the scan. A Podman export can reserialize the
+manifest, so its scanner-reported manifest digest is retained but is **not**
+substituted for the locked OCI digest.
+
+`inventory.json` retains the scanner version, requested immutable reference,
+export-manifest digest, image/config ID, native repository-digest relation,
+platform, component count and compressed-file SHA-256. Raw image config and
+environment are not retained. Both scans must succeed before either previous
+inventory is replaced.
 
 The offline check verifies the exact current baseline, source binding and file
 hashes. It does not rescan image contents, provide a signed attestation, audit
