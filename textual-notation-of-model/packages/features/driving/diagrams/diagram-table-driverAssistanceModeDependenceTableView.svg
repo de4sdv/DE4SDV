@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="754" viewBox="0 0 512 754" role="img" aria-labelledby="title description">
+  <title id="title">Driver-assistance system modes</title>
+  <desc id="description">The modes of the driver-assistance system and the functions whose behavior differs in each.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="512" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">Driver-assistance system modes</text>
+  <rect x="0" y="54" width="152" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">Mode</tspan>
+  </text>
+  <rect x="152" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">DependentFunctions</tspan>
+  </text>
+  <rect x="0" y="94" width="152" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">identifying</tspan>
+  </text>
+  <rect x="152" y="94" width="360" height="80" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">The candidate identity of the run is not</tspan>
+    <tspan x="164" dy="20">yet recorded: commandVehicle gives no</tspan>
+    <tspan x="164" dy="20">driving command (REQ-DRIVING-044).</tspan>
+  </text>
+  <rect x="0" y="174" width="152" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">assisting</tspan>
+  </text>
+  <rect x="152" y="174" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="198" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">No collision with a vehicle ahead is</tspan>
+    <tspan x="164" dy="20">imminent: requestWarning starts no warning</tspan>
+    <tspan x="164" dy="20">request (REQ-DRIVING-040), and</tspan>
+    <tspan x="164" dy="20">commandVehicle follows the lane and keeps</tspan>
+    <tspan x="164" dy="20">the speed and the distance to the vehicle</tspan>
+    <tspan x="164" dy="20">ahead with a deceleration below 5.0 m/s²</tspan>
+    <tspan x="164" dy="20">and starts no emergency braking (REQ-</tspan>
+    <tspan x="164" dy="20">DRIVING-041).</tspan>
+  </text>
+  <rect x="0" y="354" width="152" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">warning</tspan>
+  </text>
+  <rect x="152" y="354" width="360" height="180" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="378" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">A collision with a vehicle ahead is</tspan>
+    <tspan x="164" dy="20">imminent and no emergency braking has</tspan>
+    <tspan x="164" dy="20">started: requestWarning gives the warning</tspan>
+    <tspan x="164" dy="20">request from the start of the imminence</tspan>
+    <tspan x="164" dy="20">(REQ-DRIVING-042), and commandVehicle</tspan>
+    <tspan x="164" dy="20">starts the emergency braking once the</tspan>
+    <tspan x="164" dy="20">needed deceleration reaches 5.0 m/s²,</tspan>
+    <tspan x="164" dy="20">after the request has started.</tspan>
+  </text>
+  <rect x="0" y="534" width="152" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">emergencyBraking</tspan>
+  </text>
+  <rect x="152" y="534" width="360" height="220" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="164" y="558" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="164" dy="0">From the first command for 5.0 m/s² or</tspan>
+    <tspan x="164" dy="20">more until the collision is no longer</tspan>
+    <tspan x="164" dy="20">imminent: commandVehicle commands a</tspan>
+    <tspan x="164" dy="20">deceleration of at least 5.0 m/s² while</tspan>
+    <tspan x="164" dy="20">the needed deceleration is at least 5.0</tspan>
+    <tspan x="164" dy="20">m/s² (REQ-DRIVING-036), and brakes the</tspan>
+    <tspan x="164" dy="20">vehicle to a relative impact speed of at</tspan>
+    <tspan x="164" dy="20">most the maximum relative impact speed for</tspan>
+    <tspan x="164" dy="20">the relative approach speed (REQ-</tspan>
+    <tspan x="164" dy="20">DRIVING-037).</tspan>
+  </text>
+</svg>
