@@ -36,6 +36,7 @@ VERDICTS = {
         "middlewareAutowareAAOSSDVReference": (True, "aaosIntegrated", "autowareToAAOSSDV", []),
         "middlewareAutowareSCOREReference": (True, None, "autowareToSCORE", []),
         "closedLoopDrivingAutoE2ESCOREReference": (True, None, "autoE2EToSCORE", []),
+        "driverAssistanceVisionPilotSCOREReference": (True, None, "visionPilotToSCORE", []),
         "apolloQNXQVMVariant": (True, None, "apolloToSCORE", []),
         "invalidSCOREAndroidVariant": (False, None, None, ["C001", "C011"]),
     },
