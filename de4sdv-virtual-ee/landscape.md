@@ -28,6 +28,13 @@ Both Apache-2.0. Neither is a dependency today.
 | [Muto](https://projects.eclipse.org/projects/automotive.muto) | Runtime for dynamically composable ROS stacks | relevant to Autoware, not to this testbed |
 | [Zenoh](https://projects.eclipse.org/projects/iot.zenoh) | Pub/sub transport with low overhead | used by the blueprint's fleet stack, not by us |
 
+Named by the feasibility plan and deliberately left optional — not Eclipse projects:
+
+| Project | What it offers | The trigger to adopt it |
+|---|---|---|
+| [Vector SIL Kit](https://github.com/vectorgrp/sil-kit) (MIT, 218★, v5.0.8, pushed 2026-11-13) | A registry plus participants over virtual CAN, Ethernet, LIN and FlexRay buses, with pub/sub, RPC and an orchestration service for lifecycle and **simulation-time synchronisation** | Adopt when DE4SDV needs **reproducible simulated time** or **Vector-tool interop** (CANoe/CANape). It is not an upgrade to the zonal E/E path: our ECU binds SocketCAN and the gateway routes real frames, and moving to virtual buses would trade that evidence for abstraction — and need a CAN↔SIL Kit bridge nobody ships openly |
+| [openDuT](https://github.com/eclipse-opendut/opendut) (Apache-2.0, 51★, pushed 2026-11-13) | Framework for automating test and validation across distributed benches | Adopt for the two-host CARLA/SDV bench, not for this testbed |
+
 ## In use, or already decided
 
 | Project | Status |
