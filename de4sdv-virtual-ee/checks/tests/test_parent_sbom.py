@@ -39,9 +39,9 @@ ref = args[0]
 with open(os.environ["SCAN_LOG"], "a") as f: f.write(ref + "\\n")
 digest = ref.split("@")[-1] if "@" in ref else "sha256:" + "0" * 64
 native = {"source": {"type": "image", "name": ref, "metadata": {
-    "userInput": ref, "imageID": os.environ.get("WRONG_IMAGE_ID", "sha256:" + "d" * 64),
+    "userInput": os.environ.get("WRONG_USER_INPUT", ref), "imageID": os.environ.get("WRONG_IMAGE_ID", "sha256:" + "d" * 64),
     "manifestDigest": os.environ.get("WRONG_DIGEST", digest),
-    "repoDigests": [ref], "architecture": "amd64", "os": "linux"
+    "repoDigests": [ref], "architecture": os.environ.get("SCANNER_ARCH", "amd64"), "os": os.environ.get("SCANNER_OS", "linux")
 }}, "descriptor": {"name": "syft", "version": "1.57.1"}}
 cdx = {"bomFormat": "CycloneDX", "specVersion": "1.7", "metadata": {"component": {"type": "container", "name": ref}}, "components": [{"name": "synthetic-package", "version": "1"}]}
 for index, arg in enumerate(args):
@@ -51,9 +51,13 @@ for index, arg in enumerate(args):
 ''')
     scanner.chmod(0o755)
     podman = root / "bin/podman"
-    podman.write_text(f"#!{sys.executable}\n" + '''import json, os, sys
+    podman.write_text(f"#!{sys.executable}\n" + '''import json, os, pathlib, sys
 ref = sys.argv[3]
-print(json.dumps({"imageID": "d" * 64, "repoDigests": [] if os.environ.get("MISSING_REPO_DIGEST") else [ref], "architecture": "amd64", "os": "linux"}))
+count_path = pathlib.Path(os.environ["SCAN_LOG"] + ".inspects")
+count = int(count_path.read_text()) + 1 if count_path.exists() else 1
+count_path.write_text(str(count))
+image_id = "e" * 64 if os.environ.get("CHANGE_NATIVE_ID") and count == 2 else "d" * 64
+print(json.dumps({"imageID": image_id, "repoDigests": [] if os.environ.get("MISSING_REPO_DIGEST") else [ref], "architecture": "amd64", "os": "linux"}))
 ''')
     podman.chmod(0o755)
     env = {**os.environ, "PATH": str(root / "bin") + os.pathsep + os.environ["PATH"], "SCAN_LOG": str(root / "calls"), "PYTHON": sys.executable}
