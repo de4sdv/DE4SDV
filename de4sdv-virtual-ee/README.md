@@ -60,6 +60,10 @@ checks/test_zone_ecu.py       plant model and frame round-trip tests
 checks/test_bridge.py         bridge framing: round-trip, padding, malformed input
 checks/update_with_rollback.sh  apply a package, gate on the zone working, roll back if it does not
 checks/make_sbom.sh           regenerate the committed CycloneDX SBOMs from the images
+checks/run_demo.sh            one command: up, capture, drive, diagnose, tear down, archive
+checks/demo_measure.py        the archive's numbers: segments, routed pairs, leaks
+results/                      the committed demo archive, with its own manifest
+REPORT.md                     the feasibility report: gates, demo numbers, limits
 sbom/                         CycloneDX 1.7 for both images, gzipped, plus how to regenerate
 upstream-reports/             two upstream defects, drafted and not filed
 orchestration/                Ankaios spike: the same workloads under a second orchestrator
@@ -117,6 +121,25 @@ Build the image from this directory:
 ```bash
 podman build -f de4sdv-virtual-ee/zones/Containerfile -t localhost/de4sdv/zone-ecu:1 de4sdv-virtual-ee
 ```
+
+## Run the demo
+
+One command produces the whole thing: bring the vehicle up, prime both plants,
+capture four buses and the CAN-over-Ethernet datagrams, drive eight value
+changes per function, send one diagnostic from the front bus to the rear ECU,
+tear down, and score the run.
+
+```bash
+de4sdv-virtual-ee/checks/run_demo.sh            # ~90 s, exit code is the verdict
+de4sdv-virtual-ee/checks/run_demo.sh --keep     # leave the vehicle up to look at it
+```
+
+It writes `results/<utc>-<sha>/` with `manifest.json` (sha, lock hash, image
+digests, OTA root), four `candump` traces, `slice.pcap`, `commands.jsonl`,
+`uds.txt`, the container logs, `gateway-stats.txt`, and `summary.json`/`.txt`.
+It exits non-zero if a denied frame crossed, nothing converged, or the
+diagnostic did not come back. A committed run is under `results/`, and
+[`REPORT.md`](REPORT.md) reads it.
 
 ## Gate 1 result (testbed, 2026-11-14)
 

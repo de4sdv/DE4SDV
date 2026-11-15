@@ -1,0 +1,212 @@
+{
+  "claimed_clock": "one host, one kernel CLOCK_REALTIME: candump -ta and the client share it",
+  "not_claimed": [
+    "T1 provider receive",
+    "T4 provider publish",
+    "any bus latency from S1 or S3"
+  ],
+  "frames_per_bus": {
+    "front-left": {
+      "0x180": 6,
+      "0x181": 799,
+      "0x281": 799,
+      "0x7E0": 1,
+      "0x7E8": 1
+    },
+    "rear-left": {
+      "0x181": 798,
+      "0x280": 6,
+      "0x281": 798,
+      "0x558": 80,
+      "0x7E0": 1,
+      "0x7E8": 1
+    },
+    "gw-front": {
+      "0x180": 6,
+      "0x181": 798,
+      "0x281": 798,
+      "0x7E0": 1,
+      "0x7E8": 1
+    },
+    "gw-rear": {
+      "0x181": 798,
+      "0x280": 6,
+      "0x281": 798,
+      "0x558": 80,
+      "0x7E0": 1,
+      "0x7E8": 1
+    }
+  },
+  "leaks": {
+    "0x180_on_rear_side": 0,
+    "0x280_on_front_side": 0
+  },
+  "routed": {
+    "headlamp_status_front_to_rear": {
+      "n": 798,
+      "median_ms": 0.835,
+      "min_ms": 0.482,
+      "max_ms": 2.52
+    },
+    "wiper_status_rear_to_front": {
+      "n": 798,
+      "median_ms": 0.782,
+      "min_ms": 0.55,
+      "max_ms": 2.794
+    },
+    "uds_request_front_to_rear": {
+      "n": 1,
+      "median_ms": 0.827,
+      "min_ms": 0.827,
+      "max_ms": 0.827
+    },
+    "uds_response_rear_to_front": {
+      "n": 1,
+      "median_ms": 0.651,
+      "min_ms": 0.651,
+      "max_ms": 0.651
+    }
+  },
+  "commands": [
+    {
+      "arm": "headlamp",
+      "value": true,
+      "transition": true,
+      "converged": true,
+      "polls": 20,
+      "s1_target_to_bus_ms": 2.672,
+      "s2_bus_turnaround_ms": 67.954,
+      "s3_bus_to_app_ms": 3.029,
+      "total_ms": 73.656
+    },
+    {
+      "arm": "headlamp",
+      "value": false,
+      "transition": true,
+      "converged": true,
+      "polls": 18,
+      "s1_target_to_bus_ms": 2.834,
+      "s2_bus_turnaround_ms": 58.331,
+      "s3_bus_to_app_ms": 3.659,
+      "total_ms": 64.825
+    },
+    {
+      "arm": "headlamp",
+      "value": true,
+      "transition": true,
+      "converged": true,
+      "polls": 21,
+      "s1_target_to_bus_ms": 3.204,
+      "s2_bus_turnaround_ms": 67.394,
+      "s3_bus_to_app_ms": 6.203,
+      "total_ms": 76.802
+    },
+    {
+      "arm": "headlamp",
+      "value": false,
+      "transition": true,
+      "converged": true,
+      "polls": 46,
+      "s1_target_to_bus_ms": 2.895,
+      "s2_bus_turnaround_ms": 63.606,
+      "s3_bus_to_app_ms": 103.003,
+      "total_ms": 169.505
+    },
+    {
+      "arm": "headlamp",
+      "value": true,
+      "transition": true,
+      "converged": true,
+      "polls": 18,
+      "s1_target_to_bus_ms": 2.567,
+      "s2_bus_turnaround_ms": 59.531,
+      "s3_bus_to_app_ms": 3.118,
+      "total_ms": 65.216
+    },
+    {
+      "arm": "headlamp",
+      "value": false,
+      "transition": true,
+      "converged": true,
+      "polls": 49,
+      "s1_target_to_bus_ms": 2.958,
+      "s2_bus_turnaround_ms": 68.541,
+      "s3_bus_to_app_ms": 105.117,
+      "total_ms": 176.615
+    },
+    {
+      "arm": "wiper",
+      "value": "FAST",
+      "transition": true,
+      "converged": true,
+      "polls": 20,
+      "s1_target_to_bus_ms": 2.9,
+      "s2_bus_turnaround_ms": 65.036,
+      "s3_bus_to_app_ms": 3.435,
+      "total_ms": 71.372
+    },
+    {
+      "arm": "wiper",
+      "value": "OFF",
+      "transition": true,
+      "converged": true,
+      "polls": 13,
+      "s1_target_to_bus_ms": 2.817,
+      "s2_bus_turnaround_ms": 44.8,
+      "s3_bus_to_app_ms": 3.494,
+      "total_ms": 51.111
+    },
+    {
+      "arm": "wiper",
+      "value": "FAST",
+      "transition": true,
+      "converged": true,
+      "polls": 24,
+      "s1_target_to_bus_ms": 2.632,
+      "s2_bus_turnaround_ms": 78.31,
+      "s3_bus_to_app_ms": 3.716,
+      "total_ms": 84.658
+    },
+    {
+      "arm": "wiper",
+      "value": "OFF",
+      "transition": true,
+      "converged": true,
+      "polls": 22,
+      "s1_target_to_bus_ms": 2.592,
+      "s2_bus_turnaround_ms": 69.609,
+      "s3_bus_to_app_ms": 5.731,
+      "total_ms": 77.932
+    },
+    {
+      "arm": "wiper",
+      "value": "FAST",
+      "transition": true,
+      "converged": true,
+      "polls": 25,
+      "s1_target_to_bus_ms": 2.849,
+      "s2_bus_turnaround_ms": 81.868,
+      "s3_bus_to_app_ms": 3.815,
+      "total_ms": 88.532
+    },
+    {
+      "arm": "wiper",
+      "value": "OFF",
+      "transition": true,
+      "converged": true,
+      "polls": 48,
+      "s1_target_to_bus_ms": 2.662,
+      "s2_bus_turnaround_ms": 70.746,
+      "s3_bus_to_app_ms": 102.897,
+      "total_ms": 176.305
+    }
+  ],
+  "uds": {
+    "positive_response": true,
+    "excerpt": [
+      "<class 'udsoncan.client.Client'>",
+      "5003003201f4 ",
+      " <PositiveResponse: [DiagnosticSessionControl] - 5 data bytes at 0x755941e99490>"
+    ]
+  }
+}

@@ -1,0 +1,3 @@
+<class 'udsoncan.client.Client'>
+5003003201f4 
+ <PositiveResponse: [DiagnosticSessionControl] - 5 data bytes at 0x755941e99490>

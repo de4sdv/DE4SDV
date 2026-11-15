@@ -1,0 +1,17 @@
+{
+  "when_utc": "2026-11-15T00:54:22Z",
+  "git_sha": "657d64c6",
+  "git_branch": "feat/virtual-ee-can-contract",
+  "vxedge": "vxedge 0.30.0",
+  "lock_sha256": "3054e3695da5ee06f753a205f4c1029d997ec59f08281ce3f6c972312569558f",
+  "ota_root_sha256": "e635d29d9523387a00cfbc6733482e7348fb9dbdb0a25990615e2d4ea144ef4c",
+  "host": "Linux 7.0.0-1017-gcp x86_64 GNU/Linux",
+  "kernel_clock": "candump -ta and every process share CLOCK_REALTIME on one host",
+  "images": [
+    {"ref": "ghcr.io/eclipse-kuksa/kuksa-databroker", "digest": "sha256:529d8c6d3cc223362667672978bcb8f92c4d356b25aedd336e7a2e004d7279bd"},
+    {"ref": "ghcr.io/vxedge/parts/agent/probe/app/vxprobe:0.1.1", "digest": "sha256:b3f22650146dcae004589d311fcd8f231bd2e058f8cb50a7d2a766519210fd6d"},
+    {"ref": "ghcr.io/vxedge/parts/svc/ota/app/vxota", "digest": "sha256:38dc26f33a08dc0af3085e86caa07eb697559200d52c12e3730a7cd2e78e213d"},
+    {"ref": "localhost:5000/de4sdv/can-gw:4", "digest": "sha256:1a85cad119a900104880cf44d72f05234aa3441dbb0379675dae19595ca7e173"},
+    {"ref": "localhost:5000/de4sdv/zone-ecu:10", "digest": "sha256:7d2a051e86ce5e3af8fdf8b4d9241b467c3f5ae1410989de7fb02ee0c0284359"}
+  ]
+}

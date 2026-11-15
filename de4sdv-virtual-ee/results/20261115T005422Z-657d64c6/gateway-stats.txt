@@ -1,0 +1,10 @@
+gateway stats:
+  front->rear.denied.0x180               7
+  front->rear.forwarded.0x181            915
+  front->rear.forwarded.0x7E0            1
+  rear->front.denied.0x280               7
+  rear->front.denied.0x558               91
+  rear->front.forwarded.0x281            915
+  rear->front.forwarded.0x7E8            1
+  policy front->rear: ['0x181', '0x7e0']
+  policy rear->front: ['0x281', '0x7e8']
