@@ -68,6 +68,15 @@ OUT_OF_SCOPE = {
     "pedestrianAndBicycleTargetsOutOfScope": "Pedestrian and bicycle targets.",
     "cruiseAndLaneKeepingQualityOutOfScope":
         "How well the candidate holds speed, distance and lane. These functions run; no case judges them.",
+    "laneDepartureFunctionsOutOfScope":
+        "The candidate's lane-departure warning and lane-departure avoidance. They come with the application; no case "
+        "judges them.",
+    "speedAssistanceOutOfScope":
+        "The candidate's intelligent speed assistance, which its documentation bases on speed-limit map data. No run "
+        "of this increment gives it map data, and no case judges it.",
+    "handsFreeModeOutOfScope":
+        "The candidate's hands-free mode as a product function: driving one lane of a highway without the driver's "
+        "hands. The candidate drives the vehicle in the runs, but no case judges the mode.",
     "driverInteractionOutOfScope": "Driver monitoring, driver override and deactivation.",
     "furtherWarningProvisionsOutOfScope":
         "The haptic mode of the collision warning, the regulation's further rules on the warning signals (their "
@@ -106,6 +115,8 @@ GAPS = {
     "gapCandidateBehaviorUnverified": "No closed-loop result of the application exists on the DE4SDV bench",
     "gapScoreIntegration": "no binding to Eclipse S-CORE communication and no S-CORE supervision",
     "gapCameraImageAndGeometry": "The simulator's images are not images of that dataset.",
+    "gapDeclaredOperatingConditions":
+        "The two scenarios in which no reaction is due lie outside the declared conditions",
     "gapCandidateAdmission": "This increment admits no member and changes no scope decision.",
     "gapUpstreamContactAndRights": "The upstream maintainers are not yet involved.",
     "gapDriverHmiInProductLine": "that revision of the governed scope is made outside this increment.",
@@ -118,6 +129,7 @@ OPEN_POINTS = {
     "gapCandidateBehaviorUnverified": "No result on the DE4SDV bench",
     "gapScoreIntegration": "No Eclipse S-CORE binding",
     "gapCameraImageAndGeometry": "Simulated images",
+    "gapDeclaredOperatingConditions": "Two scenarios outside the declared conditions",
     "gapCandidateAdmission": "No admission",
     "gapUpstreamContactAndRights": "No upstream contact and no rights clearance",
     "gapDriverHmiInProductLine": "The HMI display's place in the product line",
@@ -479,6 +491,36 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
         assert phrase in rights, phrase
 
 
+def test_the_declared_operating_conditions_place_the_four_scenarios():
+    gap = _doc("part gapDeclaredOperatingConditions : IncrementGap")
+    for phrase in ("The candidate's documentation declares its hands-free mode only for highways and motorways with "
+                   "clearly marked lane lines, in fair weather and visibility, at up to 70 mph (about 113 km/h) and "
+                   "away from construction zones and roadwork, with a human driver supervising it at all times.",
+                   "Supervision by a driver falls under driver monitoring, which is out of scope "
+                   "(driverInteractionOutOfScope); the road, the weather and the speed place each scenario.",
+                   "The scenarios with a stationary and with a slower moving vehicle target ahead in the lane run on a "
+                   "highway-type road in fair weather, inside these conditions.",
+                   "The two scenarios in which no reaction is due lie outside the declared conditions: a tight curve "
+                   "with guard pipes and a turn at a corner are no highway situations.",
+                   "Both come from the regulation's false-reaction scenarios and stay in the scope.",
+                   "Phase 10 reports the runs outside the declared conditions apart from the runs inside them."):
+        assert phrase in gap, phrase
+    assert "driverInteractionOutOfScope" in OUT_OF_SCOPE
+    # the conditions are the project's own declaration, read at the inspected commit
+    section = _record_section(UPSTREAM_RECORD.read_text(encoding="utf-8"), "VisionPilot")
+    assert (f"[Documentation index](https://github.com/autowarefoundation/vision_pilot/blob/{PIN}"
+            "/github-io/docs-index.md)") in section
+    flat = _flat(section)
+    for phrase in ("Read for an amendment of the framing and the operational context of INC-DRIVING-002 on "
+                   "2026-11-15, at the same commit:",
+                   "it lists the application's driver-assistance functions, among them an intelligent speed assist "
+                   "that uses speed-limit map data and a single-lane hands-free highway autopilot.",
+                   "It declares the hands-free mode only for highways and motorways with clearly marked lane lines, in "
+                   "fair weather and visibility, at up to 70 mph and away from construction zones and roadwork, with "
+                   "a human driver supervising it at all times."):
+        assert phrase in flat, phrase
+
+
 def test_the_framing_view_frames_the_boundary_and_exposes_every_usage():
     code = _code()
     boundary = braced_body(code, "concern driverAssistanceBoundary : IncrementBoundaryConcern")
@@ -652,8 +694,8 @@ def test_the_upstream_record_pins_what_the_framing_read():
             "record belongs to INC-DRIVING-001.") in intro, "the record says whose each statement is"
     section = _record_section(record, "VisionPilot")
     pinned = re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/([^/)\s]+)", record)
-    assert len(pinned) == 19 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
-    assert len(re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/", section)) == 19, \
+    assert len(pinned) == 20 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
+    assert len(re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/", section)) == 20, \
         "the files of the project are linked in its section only"
     network = re.findall(r"github\.com/autowarefoundation/auto_speed([^)\s]*)", record)
     assert network == [f"/tree/{AUTOSPEED_PIN}"], "the record links the network's repository at one commit"
