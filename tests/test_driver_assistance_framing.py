@@ -695,8 +695,8 @@ def test_the_upstream_record_pins_what_the_framing_read():
             "record belongs to INC-DRIVING-001.") in intro, "the record says whose each statement is"
     section = _record_section(record, "VisionPilot")
     pinned = re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/([^/)\s]+)", record)
-    assert len(pinned) == 27 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
-    assert len(re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/", section)) == 27, \
+    assert len(pinned) == 29 and set(pinned) == {PIN}, "every file link of the record is at the inspected commit"
+    assert len(re.findall(r"github\.com/autowarefoundation/vision_pilot/(?:blob|tree)/", section)) == 29, \
         "the files of the project are linked in its section only"
     network = re.findall(r"github\.com/autowarefoundation/auto_speed([^)\s]*)", record)
     assert network == [f"/tree/{AUTOSPEED_PIN}"], "the record links the network's repository at one commit"

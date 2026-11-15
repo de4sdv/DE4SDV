@@ -85,11 +85,11 @@ PORTS = {
     "SCORECameraInterface": {"frontCameraImageIn": "FrontCameraStreamIn", "imageOut": "FrontCameraStreamOut"},
     "VisionPilotPerceptionAndFusion": {"imageIn": "FrontCameraStreamIn", "assessmentOut": "AssessmentResultOut"},
     "VisionPilotSafetyGuardianPlanner": {"assessmentIn": "AssessmentResultIn", "vehicleSpeedIn": "VehicleSpeedSampleIn",
-                                         "planOut": "PlannedCommandOut", "warningStateOut": "PlannedWarningsOut"},
+                                         "planOut": "PlannedCommandOut", "plannedWarningsOut": "PlannedWarningsOut"},
     "SCOREVehicleInterface": {"vehicleSpeedIn": "VehicleSpeedSampleIn", "vehicleSpeedOut": "VehicleSpeedSampleOut",
                               "planIn": "PlannedCommandIn", "candidateRecordIn": "CandidateRecordEventIn",
                               "drivingCommandOut": "DrivingCommandEventOut"},
-    "SCOREWarningRequestPublisher": {"warningStateIn": "PlannedWarningsIn",
+    "SCOREWarningRequestPublisher": {"plannedWarningsIn": "PlannedWarningsIn",
                                      "warningRequestOut": "WarningRequestEventOut"},
     APPLICATION: {"frontCameraImageIn": "FrontCameraStreamIn", "vehicleSpeedIn": "VehicleSpeedSampleIn",
                   "candidateRecordIn": "CandidateRecordEventIn", "drivingCommandOut": "DrivingCommandEventOut",
@@ -97,14 +97,14 @@ PORTS = {
     REALIZATION: {"frontCameraImageIn": "FrontCameraStreamIn", "vehicleSpeedIn": "VehicleSpeedSampleIn",
                   "drivingCommandOut": "DrivingCommandEventOut", "warningRequestOut": "WarningRequestEventOut"},
     ADAPTER: {"drivingCommandIn": "DrivingCommandEventIn", "simulationClockIn": "SimulationClockIn",
-              "ackermannControlOut": "AckermannControlOut"},
+              "vehicleSpeedIn": "VehicleSpeedSampleIn", "ackermannControlOut": "AckermannControlOut"},
     "DriverAssistanceSimulationServer": {"frontCameraStreamOut": "FrontCameraStreamOut",
                                          "vehicleSpeedOut": "VehicleSpeedSampleOut",
                                          "simulationClockOut": "SimulationClockOut",
                                          "ackermannControlIn": "AckermannControlIn"},
     HOST: {"frontCameraImageIn": "FrontCameraStreamIn", "vehicleSpeedIn": "VehicleSpeedSampleIn",
-           "simulationClockIn": "SimulationClockIn", "ackermannControlOut": "AckermannControlOut",
-           "warningRequestOut": "WarningRequestEventOut"},
+           "simulationClockIn": "SimulationClockIn", "adapterVehicleSpeedIn": "VehicleSpeedSampleIn",
+           "ackermannControlOut": "AckermannControlOut", "warningRequestOut": "WarningRequestEventOut"},
     SIMULATOR_HOST: {"frontCameraStreamOut": "FrontCameraStreamOut", "vehicleSpeedOut": "VehicleSpeedSampleOut",
                      "simulationClockOut": "SimulationClockOut", "ackermannControlIn": "AckermannControlIn"},
     "DriverAssistanceSDVCoreGuest": {"someIpIn": "WarningRequestEventIn", "topicOut": "DataTunnelPort"},
@@ -123,8 +123,8 @@ PORT_ITEMS = {
     "AssessmentResultIn": ("in", "assessment", "VehicleAheadAssessment"),
     "PlannedCommandOut": ("out", "plannedCommand", "DrivingCommand"),
     "PlannedCommandIn": ("in", "plannedCommand", "DrivingCommand"),
-    "PlannedWarningsOut": ("out", "warningState", "WarningRequestState"),
-    "PlannedWarningsIn": ("in", "warningState", "WarningRequestState"),
+    "PlannedWarningsOut": ("out", "plannedWarnings", "PlannedWarnings"),
+    "PlannedWarningsIn": ("in", "plannedWarnings", "PlannedWarnings"),
     "DrivingCommandEventOut": ("out", "drivingCommand", "DrivingCommandEventPayload"),
     "DrivingCommandEventIn": ("in", "drivingCommand", "DrivingCommandEventPayload"),
     "WarningRequestEventOut": ("out", "warningRequest", "WarningRequestEventPayload"),
@@ -144,6 +144,8 @@ PAYLOADS = {
     "WarningRequestEventPayload": ("WarningRequest", {"requested": "Vehicle_ADAS_AEBS_DriverWarning_IsActive",
                                                       "issueTime": "Real"}),
 }
+#: the plan's warnings as the planner hands them to the publisher: a phase 8 item, not phase 7's warning state (R7)
+PLANNED_WARNINGS = {"forwardCollisionWarning": "Boolean", "emergencyBraking": "Boolean"}
 VSS_IMPORTS = {
     "Vehicle_Speed": "COVESA_VSS::SignalDefinitions",
     "Vehicle_ADAS_Driving_Command_Acceleration": "DE4SDV_VSS_Extensions",
@@ -173,7 +175,8 @@ APPLICATION_CONNECTIONS = {
     "assessmentHandOff": ("perceptionAndFusion.assessmentOut", "safetyGuardianPlanner.assessmentIn"),
     "vehicleSpeedHandOff": ("vehicleInterface.vehicleSpeedOut", "safetyGuardianPlanner.vehicleSpeedIn"),
     "plannedCommandHandOff": ("safetyGuardianPlanner.planOut", "vehicleInterface.planIn"),
-    "plannedWarningsHandOff": ("safetyGuardianPlanner.warningStateOut", "warningRequestPublisher.warningStateIn"),
+    "plannedWarningsHandOff": ("safetyGuardianPlanner.plannedWarningsOut",
+                               "warningRequestPublisher.plannedWarningsIn"),
 }
 REALIZATION_BINDS = {
     ("frontCameraImageIn", "visionPilotApplication.frontCameraImageIn"),
@@ -189,6 +192,7 @@ HOST_BINDS = {
     ("frontCameraImageIn", "assistanceSoftware.frontCameraImageIn"),
     ("vehicleSpeedIn", "assistanceSoftware.vehicleSpeedIn"),
     ("simulationClockIn", "actuationAdapter.simulationClockIn"),
+    ("adapterVehicleSpeedIn", "actuationAdapter.vehicleSpeedIn"),
     ("ackermannControlOut", "actuationAdapter.ackermannControlOut"),
     ("warningRequestOut", "scoreServices.someipd.warningRequestOut"),
 }
@@ -207,6 +211,7 @@ SIMULATOR_HOST_CONNECTIONS = {
 SYSTEM_CONNECTIONS = {
     "frontCameraStreamOverBenchNetwork": ("simulatorHost.frontCameraStreamOut", "scoreHost.frontCameraImageIn"),
     "vehicleSpeedOverBenchNetwork": ("simulatorHost.vehicleSpeedOut", "scoreHost.vehicleSpeedIn"),
+    "vehicleSpeedToActuationOverBenchNetwork": ("simulatorHost.vehicleSpeedOut", "scoreHost.adapterVehicleSpeedIn"),
     "simulationClockOverBenchNetwork": ("simulatorHost.simulationClockOut", "scoreHost.simulationClockIn"),
     "ackermannControlOverBenchNetwork": ("scoreHost.ackermannControlOut", "simulatorHost.ackermannControlIn"),
     "warningRequestOverSOMEIPAcrossVXLANSegment": ("scoreHost.warningRequestOut", "sdvCoreGuest.someIpIn"),
@@ -227,8 +232,9 @@ SIGNAL_MAPPINGS = {
     "vehicleAheadAssessmentMapping": ("vehicleAheadAssessor",
                                       "visionPilotApplication::perceptionAndFusion::assessmentOut",
                                       "MAP-DRIVING-DA-ASSESSMENT"),
-    "plannedWarningsMapping": ("warningRequester", "visionPilotApplication::safetyGuardianPlanner::warningStateOut",
-                               "MAP-DRIVING-DA-WARNING-STATE"),
+    "plannedWarningsMapping": ("warningRequester",
+                               "visionPilotApplication::safetyGuardianPlanner::plannedWarningsOut",
+                               "MAP-DRIVING-DA-PLANNED-WARNINGS"),
     "plannedCommandMapping": ("drivingCommander", "visionPilotApplication::safetyGuardianPlanner::planOut",
                               "MAP-DRIVING-DA-PLAN"),
     "drivingCommandMapping": ("drivingCommander", "visionPilotApplication::vehicleInterface::drivingCommandOut",
@@ -247,14 +253,14 @@ RECORD_REQUIREMENTS = {
     "MAP-DRIVING-DA-CAMERA-IMAGE": {36, 40, 41},
     "MAP-DRIVING-DA-VEHICLE-SPEED": {36, 37},
     "MAP-DRIVING-DA-ASSESSMENT": {40, 41},
-    "MAP-DRIVING-DA-WARNING-STATE": {40, 42},
+    "MAP-DRIVING-DA-PLANNED-WARNINGS": {40, 42},
     "MAP-DRIVING-DA-PLAN": {36, 37, 41},
     "MAP-DRIVING-DA-COMMAND": {36, 38, 39, 44},
     "MAP-DRIVING-DA-WARNING-REQUEST": {40, 42, 43},
     "MAP-DRIVING-DA-CANDIDATE-RECORD": {44},
 }
 #: the records whose item is no vehicle signal and that say so where the method reads it
-NO_VEHICLE_SIGNAL = ("MAP-DRIVING-DA-CAMERA-IMAGE", "MAP-DRIVING-DA-ASSESSMENT", "MAP-DRIVING-DA-WARNING-STATE",
+NO_VEHICLE_SIGNAL = ("MAP-DRIVING-DA-CAMERA-IMAGE", "MAP-DRIVING-DA-ASSESSMENT", "MAP-DRIVING-DA-PLANNED-WARNINGS",
                      "MAP-DRIVING-DA-PLAN", "MAP-DRIVING-DA-CANDIDATE-RECORD")
 
 #: The division of REQ-DRIVING-042's 0.2 s share, as the warning-request record states it.
@@ -264,23 +270,34 @@ WARNING_SHARE = (
     "for the presentation, from the receipt to the first displayed frame with the warning and to the start of the sound."
 )
 WARNING_SHARE_BASIS = (
-    "Basis: the same chain carried events in a readiness probe of INC-DRIVING-001 with p50 15.5 ms and p99 15.9 ms end "
-    "to end, with a clock-offset bound of ±24 ms; the start of the sound on the guest is unmeasured, and the split is "
-    "revisited when it is measured"
+    "Basis: the latency of the same chain was measured in a readiness probe of INC-DRIVING-001; the start of the sound "
+    "on the guest is unmeasured, and the split is revisited when it is measured"
 )
-#: The steering sign: the candidate's against the VSS signal's and CARLA's, with the upstream lines it rests on.
+#: figures whose record lies outside the repository stay out of the model and the guide (review R8)
+UNRECORDED_FIGURES = ("15.5 ms", "15.9 ms", "±24 ms")
+#: The steering sign: the integration takes the candidate's steering as upstream's own simulator path does, unchanged
+#: into CARLA's steer; the VSS steering angle, positive to the left, is its negative (review R1, ASM-DRIVING-006).
 STEERING_RULE = (
-    "steeringAngle = steering[1] * 180 / pi: the candidate's steering is positive to the left, as its curvature is "
-    "(lateral_fusion.hpp:29) and as its lateral planner follows that curvature (lateral_planning.cpp:81, 106, 147), the "
-    "sign of the VSS steering angle. At the actuation adapter, for CARLA's Ackermann control, whose steer is positive to "
-    "the right (the Python API reference of CARLA 0.9.16): steer = -steeringAngle * pi / 180 in rad;"
+    "steeringAngle = -steering[1] * 180 / pi: the integration takes the candidate's steering in the sign of CARLA's "
+    "steer, positive to the right, as upstream's own simulator path does, which gives the steering to CARLA's steer "
+    "without a change (vehicle_ros2_interface.cpp:67, carla_control_publisher_node.py:49), and the VSS steering angle "
+    "is positive to the left (ASM-DRIVING-006). At the actuation adapter, for CARLA's Ackermann control, whose steer is "
+    "positive to the right (the Python API reference of CARLA 0.9.16): steer = -steeringAngle * pi / 180 in rad, so "
+    "the simulator receives the candidate's steering unchanged, as on upstream's path;"
+)
+#: the rejection the adapter applies, as the command record states it (review R10, P2)
+REJECTION_RULE = (
+    "The adapter rejects a command whose sequence count is not one more than that of the last accepted, whose check "
+    "value fails or whose issue time is older than the newest world time by more than one step, and applies nothing "
+    "in its place (REQ-DRIVING-039, REQ-MW-006)"
 )
 #: The owner's decision of 2026-11-15, as the package head records it.
 OWNER_DECISION = (
     "On 2026-11-15 the owner chose that the candidate's process becomes an Eclipse S-CORE application through a DE4SDV "
-    "S-CORE interface module: an S-CORE branch beside the existing interface selection in the application's main loop "
-    "(VisionPilot/app/vision_pilot.cpp:59-79 at the pin) and one hand-off of the warnings that the planner already "
-    "computes, after vision_pilot.cpp:174; the decision logic under VisionPilot/modules/ is unchanged.",
+    "S-CORE interface module: an S-CORE branch beside the existing interface selection in the application's main "
+    "function, before its loop (VisionPilot/app/vision_pilot.cpp:59-79 at the pin), and one hand-off of the warnings "
+    "that the planner already computes, in the loop after vision_pilot.cpp:174; the decision logic under "
+    "VisionPilot/modules/ is unchanged.",
     "It is a small change with an upstream path: upstream's own safety element description lists warning requests "
     "among the outputs and calls the interface technology implementation dependent "
     "(Functional_Safety/SAFETY_ELEMENT_OUT_OF_CONTEXT.md:95-104 at the pin).",
@@ -293,9 +310,11 @@ OWNER_DECISION = (
 CARRIED_OVER = (
     "Clock, the clock decision of 2026-11-08: CARLA 0.9.16 in synchronous mode with a fixed step of 0.1 s, ticked by a "
     "world-side pacer at wall-clock pace.",
-    "Simulation time is the frame index times 0.1 s; the issue time of a driving command and of a warning request is "
-    "the capture simulation time of the frame it was computed from; the 0.2 s share of REQ-DRIVING-042 is wall-clock "
-    "time.",
+    "Simulation time is the time of the world snapshot, in seconds since the scenario started, one step of 0.1 s per "
+    "frame; each camera image carries the simulation time of the snapshot it was rendered in.",
+    "The issue time of a driving command and of a warning request is the capture simulation time of the frame it was "
+    "computed from, so it and the newest world time that the actuation adapter compares it with are read on one "
+    "clock; the 0.2 s share of REQ-DRIVING-042 is wall-clock time.",
     "Simulation/CARLA/ROS2/src/carla_bridge_bringup/scripts/config_carla.py:192-240",
     "Hosts, the three-host decision of 2026-11-09: the S-CORE host, the simulator host, and the guest host with KVM for "
     "the two AAOS SDV guests, with a VXLAN segment from the S-CORE host into the guests' bridge.",
@@ -324,11 +343,14 @@ COMMENT_STATEMENTS = {
     "phase8ScoreIntegrationPlaced": (
         "Placement decided, readiness probe pending:", "the owner's choice of 2026-11-15", "Launch Manager",
         "with no hop beside S-CORE before them", "mw::com, the simulator's C++ client library, ONNX Runtime, OpenCV and "
-        "the Rerun SDK with one C++ standard library", "asmProcessorInferenceSufficient"),
+        "the Rerun SDK with one C++ standard library", "asmProcessorInferenceSufficient",
+        "that the candidate record reaches the vehicle interface, which subscribes after the record was published"),
     "phase8EmergencyFunctionAnswered": (
         "Answered for the realization, not closed:",
         "the warning requester and the driving commander are both allocated to the planner module",
         "The independence of a protected emergency command path is not realized by the candidate.",
+        "The exchange of phase 7 from the warning requester to the driving commander, the warning state, has no "
+        "realization in the candidate: the warning and the braking come from the one planned acceleration.",
         "REQ-DRIVING-039's detectable command and the actuation adapter's rejection of what it detects",
         "Whether the candidate's braking can stand for the common capability stays with the member decision after the "
         "evidence of phase 10."),
@@ -349,6 +371,9 @@ ADAPTER_STATEMENTS = (
     "repetition), whose check value fails (a corruption), or whose issue time is older than the newest world time by "
     "more than one step of 0.1 s (a delay): the share of the product that holds the path (REQ-MW-006).",
     "It applies nothing in place of a rejected command: the simulator keeps the last valid control.",
+    "The issue time and the newest world time are simulation times of world snapshots, on one clock.",
+    "Its simulator client takes the simulation time and the speed of the ego vehicle from the newest world snapshot: "
+    "the delay check needs the time, the speed rule of MAP-DRIVING-DA-COMMAND the speed.",
     "It has no stop response of its own.",
     "REQ-DRIVING-038's success criterion runs SC-DRIVING-012 with the S-CORE path stopped and requires that no driving "
     "command reaches the actuation after the stop; a stop or a neutral control applied by the adapter would blur that "
@@ -356,11 +381,25 @@ ADAPTER_STATEMENTS = (
     "applying the rejected command.",
     "The autopilot of the ego vehicle stays off.",
 )
-ASSUMPTIONS = {"ASM-DRIVING-005": "asmActuationFollowsCommandedDeceleration"}
+ASSUMPTIONS = {"ASM-DRIVING-005": "asmActuationFollowsCommandedDeceleration",
+               "ASM-DRIVING-006": "asmCandidateSteeringTurnsTowardLaneCentre"}
 ASSUMPTION_STATEMENTS = (
     "The actuation adapter's Ackermann control makes the simulated ego vehicle follow the commanded acceleration up "
     "to a deceleration of 5.0 m/s², so that REQ-DRIVING-036 and REQ-DRIVING-037 cannot fail for the bench.",
     "A calibration run before phase 10 shows it",
+    "No evidence of record holds it, so it stays an assumption.",
+)
+#: the steering sign the integration rests on (review R1)
+STEERING_ASSUMPTION_STATEMENTS = (
+    "The candidate's steering, given to the simulator by the rule of MAP-DRIVING-DA-COMMAND, turns the simulated ego "
+    "vehicle back toward its lane centre.",
+    "The rule takes the candidate's steering in the sign of CARLA's steer, positive to the right, as upstream's own "
+    "simulator path does",
+    "that path gives the steering to CARLA's steer without a change (vehicle_ros2_interface.cpp:67 and "
+    "carla_control_publisher_node.py:49 at the pin)",
+    "With the other sign the lateral control would diverge in the first run.",
+    "with the ego vehicle placed to the right of its lane centre, the candidate's commands turn it left, by the sign "
+    "of the yaw rate",
     "No evidence of record holds it, so it stays an assumption.",
 )
 #: the two dependencies that carry the path requirements (owed since phase 6): from a part definition, never a
@@ -599,9 +638,18 @@ def test_the_port_definitions_carry_one_item_each_in_one_direction():
         assert re.findall(r"\b(in|out)\s+item\s+(\w+)\s*:\s*(\w+)\s*;", body) == [(direction, item, item_type)], port_def
     for item in ("FrontCameraImage", "VehicleSpeed", "DrivingCommand", "WarningRequest"):
         assert f"private import DE4SDV_DriverAssistanceOperationalContext::{item};" in code, item
-    for item in ("VehicleAheadAssessment", "WarningRequestState", "CandidateIdentityRecord"):
+    for item in ("VehicleAheadAssessment", "CandidateIdentityRecord"):
         assert f"private import DE4SDV_DriverAssistanceFunctionalArchitecture::{item};" in code, item
-    assert re.findall(r"\bitem\s+def\s+(\w+)", code) == [*PAYLOADS, "SimulatorAckermannControl"]
+    assert "WarningRequestState" not in code, "the hand-off carries the plan's warnings, not phase 7's warning state"
+    assert re.findall(r"\bitem\s+def\s+(\w+)", code) == [*PAYLOADS, "PlannedWarnings", "SimulatorAckermannControl"]
+    body = braced_body(code, "item def PlannedWarnings ")
+    assert dict(re.findall(r"\battribute\s+(\w+)\s*:\s*(\w+)\s*;", body)) == PLANNED_WARNINGS
+    doc = _doc("item def PlannedWarnings ")
+    for phrase in ("(Plan in types.hpp:34-38 at the pin)", "FCW, AEB, LLDW and RLDW of Warning (types.hpp:26-32)",
+                   "The publisher reads FCW and AEB.", "no vehicle signal",
+                   "phase 7's warning state, whether the request has started and when, is formed from it at the "
+                   "publisher"):
+        assert phrase in doc, phrase
     # the simulation clock is INC-DRIVING-001's item and ports, reused, never redeclared
     for port_def in ("SimulationClockOut", "SimulationClockIn"):
         assert f"private import DE4SDV_ClosedLoopDrivingPhysicalSoftwareRealization::{port_def};" in code
@@ -695,7 +743,8 @@ def test_the_simulator_server_carries_the_front_camera_rig_and_keeps_the_clock_o
         assert phrase in rig_doc, phrase
     server_doc = _doc("part def DriverAssistanceSimulationServer")
     for phrase in ("System 2", "CARLA 0.9.16", "It runs in synchronous mode with a fixed step of 0.1 s",
-                   "world-side pacer", "the clock decision of 2026-11-08", "frame index times 0.1 s",
+                   "world-side pacer", "the clock decision of 2026-11-08",
+                   "Simulation time is the time of the world snapshot, in seconds since the scenario started",
                    "Three clients", "The autopilot and the traffic manager have no control of the ego vehicle"):
         assert phrase in server_doc, phrase
     simulator = _body_of_definition(SIMULATOR_HOST)
@@ -778,12 +827,16 @@ def test_the_warning_requester_and_the_driving_commander_share_the_planner_modul
     assert {logical for logical, path in ALLOCATIONS.values() if path == planner} == {"warningRequester",
                                                                                      "drivingCommander"}
     doc = _doc("part def VisionPilotSafetyGuardianPlanner :> PhysicalAllocationElement")
-    for phrase in ("two ranges of that one planned acceleration", "(planning.cpp:113-121)",
+    for phrase in ("two ranges of that one planned acceleration: the warning from -5.0 to -3.0 m/s², the emergency "
+                   "braking below -5.0 m/s² (planning.cpp:113-121)",
                    "At the pin there is no emergency function apart from this planner",
-                   "the warning state of phase 7 is realized in the process as the warnings of the same plan",
-                   "REQ-DRIVING-042's order holds only if the planned acceleration passes through the warning range "
-                   "first; phase 10 judges it."):
+                   "The plan's warnings go to the warning request publisher, which forms the warning request from "
+                   "them; the exchange of phase 7 from the warning requester to the driving commander, the warning "
+                   "state, has no realization in the candidate",
+                   "REQ-DRIVING-042 holds only if the planned acceleration reaches -3.0 m/s² at least 1.0 s of "
+                   "simulation time before it falls below -5.0 m/s²; phase 10 judges it."):
         assert phrase in doc, phrase
+    assert "is realized in the process as the warnings of the same plan" not in doc
     assessor = _doc("part def VisionPilotPerceptionAndFusion :> PhysicalAllocationElement")
     for phrase in ("They compute no time to collision, no needed deceleration and no imminence",
                    "They read no vehicle speed: the speed reaches the planner only."):
@@ -895,17 +948,24 @@ def test_the_warning_request_record_divides_the_share_of_the_path_and_the_presen
     timing = _flat(_record_value("MAP-DRIVING-DA-WARNING-REQUEST", "timingQualityAndState"))
     assert WARNING_SHARE in timing
     assert timing.endswith(WARNING_SHARE_BASIS)
+    for figure in UNRECORDED_FIGURES:
+        assert figure not in _raw() and figure not in GUIDE.read_text(encoding="utf-8"), figure
 
 
 def test_a_warning_is_requested_for_the_forward_collision_warning_and_for_the_emergency_braking():
     """Both ranges of the one planned acceleration request the warning, so a plan that goes straight to the
     emergency braking still requests one. The rule is stated three times, and each copy is pinned."""
     rule = _record_value("MAP-DRIVING-DA-WARNING-REQUEST", "transformationRule")
-    assert rule.startswith("requested = the plan's warnings hold FCW or AEB; ")
-    assert ("requested is true while the plan holds a forward-collision warning or an emergency braking"
-            in _doc("part def SCOREWarningRequestPublisher"))
-    assert _record_value("MAP-DRIVING-DA-WARNING-STATE", "softwareContractField").endswith(
+    assert rule.startswith("requested = the plan's warnings hold FCW or AEB; issueTime = the capture simulation time "
+                           "of the frame the plan was computed from; ")
+    publisher = _doc("part def SCOREWarningRequestPublisher")
+    assert "requested is true while the plan holds a forward-collision warning or an emergency braking" in publisher
+    assert ("the issue time is the capture simulation time of the frame the plan was computed from, which the "
+            "interface module keeps from the camera interface for the pass") in publisher
+    assert _record_value("MAP-DRIVING-DA-PLANNED-WARNINGS", "softwareContractField").endswith(
         "the publisher reads FCW and AEB")
+    assert _record_value("MAP-DRIVING-DA-PLANNED-WARNINGS", "transformationRule").startswith(
+        "FCW for a planned acceleration from -5.0 to -3.0 m/s², AEB below -5.0 m/s² (planning.cpp:113-121)")
 
 
 def test_the_command_record_places_the_detectable_form_the_rejection_and_the_steering_sign():
@@ -914,15 +974,72 @@ def test_the_command_record_places_the_detectable_form_the_rejection_and_the_ste
                    "sequenceCount an unsigned 32-bit count from 1 in each run",
                    "checkValue the CRC-32 over the other fields"):
         assert phrase in unit, phrase
+    # the sign of the VSS steering angle is the extension's, read from the extension (review R10, P4)
+    extension = braced_body(EXTENSIONS.read_text(encoding="utf-8"),
+                            "@VssSignalMetadata about Vehicle_ADAS_Driving_Command_SteeringAngle")
+    assert "Positive = degrees to the left." in extension
     timing = _record_value("MAP-DRIVING-DA-COMMAND", "timingQualityAndState")
-    assert "none before the candidate record has arrived (REQ-DRIVING-044)" in timing
+    assert timing == ("one command per plan; none before the candidate record has arrived (REQ-DRIVING-044); the "
+                      "issue time is the capture simulation time of the frame the command was computed from")
     rule = _record_value("MAP-DRIVING-DA-COMMAND", "transformationRule")
-    assert STEERING_RULE in rule
-    for phrase in ("speed = max(0, v + 2 * acceleration)", "acceleration unchanged and jerk = 10.0",
-                   "(carla_control_publisher_node.py:44-53); steerSpeed stays at its default of 0.0",
-                   "applies nothing in its place (REQ-DRIVING-039, REQ-MW-006)"):
+    assert rule.startswith("acceleration unchanged; " + STEERING_RULE)
+    assert "steeringAngle = steering[1]" not in rule and "lateral_" not in _raw(), "the sign follows upstream's path"
+    for phrase in ("speed = max(0, v + 2 * acceleration) with v the speed of the ego vehicle in the newest world "
+                   "snapshot", "acceleration unchanged and jerk = 10.0",
+                   "(carla_control_publisher_node.py:44-53); steerSpeed stays at its default of 0.0"):
         assert phrase in rule, phrase
-    assert _record_value("MAP-DRIVING-DA-COMMAND", "nextAction").startswith("run the calibration of ASM-DRIVING-005")
+    assert rule.endswith(REJECTION_RULE)
+    # the second copy of the sign, in the plan record (each copy is pinned)
+    assert _record_value("MAP-DRIVING-DA-PLAN", "dataTypeAndUnit") == (
+        "acceleration float m/s², negative decelerates; steering a tyre angle in rad, taken in the sign of CARLA's "
+        "steer, positive to the right, as upstream's own simulator path takes it (ASM-DRIVING-006)")
+    assert _record_value("MAP-DRIVING-DA-COMMAND", "nextAction").startswith(
+        "run the calibrations of ASM-DRIVING-005 and ASM-DRIVING-006")
+
+
+def test_the_capture_time_travels_inside_the_interface_module_and_dropped_images_are_counted():
+    """Review R2, R3 and R4: the frame reaches the loop without a time, so the interface module keeps it; the
+    candidate's fusion takes two processed frames as 0.1 s apart, so each dropped image is counted and a run with one
+    in its judged window is not judged; the issue time and the world time are read on one clock."""
+    camera = _doc("part def SCORECameraInterface :> PhysicalAllocationElement")
+    for phrase in ("drops older images and counts each image it drops, as upstream's own camera interface counts its "
+                   "dropped frames",
+                   "The frame goes to the loop without a time (camera_interface.hpp:18): the module keeps its capture "
+                   "time, the simulation time of the world snapshot the image was rendered in, and the vehicle "
+                   "interface and the warning request publisher, modules of the same interface, read it in the same "
+                   "pass of the loop."):
+        assert phrase in camera, phrase
+    vehicle = _doc("part def SCOREVehicleInterface :> PhysicalAllocationElement")
+    assert ("adds the issue time, the capture simulation time of the frame the command was computed from, which the "
+            "interface module keeps from the camera interface for the pass,") in vehicle
+    timing = _record_value("MAP-DRIVING-DA-CAMERA-IMAGE", "timingQualityAndState")
+    assert timing == ("one image per 0.1 s of simulation time; the camera interface hands on the newest image, drops "
+                      "older ones and counts each image it drops; the candidate's fusion takes two processed frames "
+                      "as 0.1 s apart, its nominal step, since no step is passed to it (longitudinal_fusion.hpp:40, "
+                      "inference.cpp:206-207), so every run reports the images dropped, and phase 10 judges no run "
+                      "whose judged window holds a dropped image; the capture time is the simulation time of the "
+                      "world snapshot the image was rendered in")
+    field = _record_value("MAP-DRIVING-DA-CAMERA-IMAGE", "softwareContractField")
+    assert field.endswith("out: the image to the loop, candidate, and its capture time to the vehicle interface and "
+                          "the warning request publisher inside the interface module, candidate")
+    assert "frame index" not in _raw() and "frame index" not in GUIDE.read_text(encoding="utf-8")
+
+
+def test_the_texts_place_the_seam_the_hashes_and_the_record_delivery_as_the_pinned_code_does():
+    """Review R5, R13 and R11: the interface selection runs once in the main function, the record hashes what the
+    process reads for its configuration, and the delivery of the record to a later subscriber is a readiness item."""
+    assert "main loop (VisionPilot/app/vision_pilot.cpp:59-79" not in _head()
+    application = _doc(f"part def {APPLICATION}")
+    assert ("Its main function takes the S-CORE branch beside the existing interface selection before the loop "
+            "(vision_pilot.cpp:59-79), and its loop hands the plan's warnings to the warning request publisher after "
+            "the write at vision_pilot.cpp:174.") in application
+    hashed = "the SHA-256 of each configuration, calibration, manifest and network file that the candidate's process reads"
+    recorder = _doc("part def CandidateIdentityRecordingApplication :> PhysicalAllocationElement")
+    assert hashed in recorder and "opens" not in recorder
+    assert hashed in _record_value("MAP-DRIVING-DA-CANDIDATE-RECORD", "softwareContractField")
+    assert _record_value("MAP-DRIVING-DA-CANDIDATE-RECORD", "timingQualityAndState").endswith(
+        "the record has to reach the vehicle interface, which subscribes after it was published; how mw::com "
+        "delivers it is a readiness item (phase8ScoreIntegrationPlaced)")
 
 
 # -- what the package records --------------------------------------------------------------------------------------
@@ -936,6 +1053,9 @@ def test_the_package_head_records_the_owner_decision_of_2026_11_15():
         assert statement in head, statement
     for alternative in ALTERNATIVES:
         assert alternative in head, alternative
+    assert ("the simulator receives the candidate's steering unchanged and the planned acceleration, as on that path. "
+            "That the vehicle follows the commanded deceleration is ASM-DRIVING-005, and that the candidate's steering "
+            "turns it toward its lane centre is ASM-DRIVING-006.") in head
     for phrase in ("An allocation here is a responsibility assignment, no deployment, execution or runtime claim; a "
                    "signal mapping is no interoperability claim",
                    "Nothing in this package claims a requirement met or a case run."):
@@ -961,10 +1081,13 @@ def test_the_assumption_of_the_realization_is_recorded_with_its_short_name_and_n
     code = _code()
     assert dict(re.findall(r"\bpart\s+<'(ASM-DRIVING-\d{3})'>\s+(\w+)\s*:\s*IncrementAssumption\s*\{", code)) == ASSUMPTIONS
     assert not re.search(r"<'GAP-DRIVING-\d{3}'>", code), "the open points stay with the framing's records"
-    assert len(re.findall(r"<'(?:ASM|GAP)-[A-Z]+-\d{3}'>", code)) == 1
+    assert len(re.findall(r"<'(?:ASM|GAP)-[A-Z]+-\d{3}'>", code)) == 2
     doc = _doc("part <'ASM-DRIVING-005'> asmActuationFollowsCommandedDeceleration : IncrementAssumption")
     for statement in ASSUMPTION_STATEMENTS:
         assert statement in doc, statement
+    steering = _doc("part <'ASM-DRIVING-006'> asmCandidateSteeringTurnsTowardLaneCentre : IncrementAssumption")
+    for statement in STEERING_ASSUMPTION_STATEMENTS:
+        assert statement in steering, statement
     assert "private import DE4SDV_MethodContext::*;" in code
 
 
@@ -1106,13 +1229,19 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                    "applies nothing in place of a rejected command", "no stop response",
                    "0.1 s for the path and 0.1 s for the presentation", "`ASM-DRIVING-005`",
                    "`reqDrivingCommandOverSCORE`", "`reqWarningRequestOverSCORE`",
-                   "The candidate's steering is positive to the left, like the VSS steering angle; CARLA's steer is "
-                   "positive to the right, so the adapter changes its sign.",
+                   "gives the simulator the candidate's steering unchanged, as that path does",
+                   "so the vehicle interface writes the negative of the candidate's steering, which the integration "
+                   "takes in the sign of CARLA's steer, positive to the right",
+                   "`ASM-DRIVING-006`", "counts the images it drops",
+                   "an S-CORE branch beside the existing interface selection in the application's main function, "
+                   "before its loop",
+                   "hashes every configuration, calibration, manifest and network file the candidate's process reads",
                    "CARLA 0.9.16 in synchronous mode with a fixed step of 0.1 s, paced at wall-clock speed",
                    "2026-11-08", "2026-11-09",
                    "tests/test_driver_assistance_physical_software_realization.py"):
         assert phrase in section, phrase
     assert "VisionPilot/" not in section and ".cpp" not in section, "the guide carries no upstream paths"
+    assert "like the VSS steering angle" not in section and "changes its sign" not in section, "review R1"
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "
             "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
             "architecture and Phase 8 physical and software realization, proposal.**") in flat
@@ -1129,8 +1258,11 @@ def test_the_upstream_record_names_what_phase_8_read_at_the_pin():
     text = " ".join(section.split())
     assert ("Read for the physical and software realization of INC-DRIVING-002 on 2026-11-15, at the same commit, "
             "which phase 8 takes for the bench with the DE4SDV S-CORE interface module") in text
-    for path in ("VisionPilot/modules/safety_guardian/planning/src/lateral_planning.cpp",
-                 "VisionPilot/modules/safety_guardian/fusion/include/fusion/lateral_fusion.hpp",
+    for path in ("VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp",
+                 "VisionPilot/modules/models/src/inference.cpp",
+                 "VisionPilot/modules/sensing/camera_interface/include/camera_interface/camera_interface.hpp",
+                 "VisionPilot/modules/middleware_interfaces/ros2_interface/vehicle_ros2_interface/src/"
+                 "vehicle_ros2_interface.cpp",
                  "VisionPilot/modules/common/include/common/types.hpp",
                  "VisionPilot/modules/config/src/vision_pilot_config.cpp",
                  "Simulation/CARLA/ROS2/src/carla_bridge_bringup/scripts/config_carla.py",
@@ -1140,9 +1272,25 @@ def test_the_upstream_record_names_what_phase_8_read_at_the_pin():
         assert f"https://github.com/autowarefoundation/vision_pilot/blob/{PIN}/{path}" in section, path
     assert ("https://github.com/carla-simulator/carla/blob/0.9.16/Docs/python_api.md#carlavehicleackermanncontrol"
             in section), "the API reference of the simulator's Ackermann control, at the release the bench runs"
-    for phrase in ("line 16 takes the lateral axis as positive to the left, and line 29 the curvature as positive in "
-                   "a left turn", "so the steering has the sign of the curvature",
+    assert ("https://github.com/carla-simulator/carla/blob/0.9.16/LibCarla/source/carla/ros2/subscribers/"
+            "AckermannControlSubscriber.cpp") in section
+    assert "lateral_planning.cpp" not in section and "lateral_fusion.hpp" not in section, "the model cites neither"
+    for phrase in ("lines 13 to 18 give the closest object in the path with its distance and its velocity, negative "
+                   "while it approaches, and line 40 a nominal step of 0.10 s",
+                   "lines 152 to 154 keep the previous and the current processed frame, and lines 206 and 207 update "
+                   "the fusion without a step", "line 18 returns the newest image alone",
+                   "lines 64 to 68 publish the steering that the loop writes as it is",
+                   "line 49 gives the steering to the Ackermann control's steering angle without a change",
+                   "line 12 sets the control's steer to the message's steering angle",
                    "run the simulator in synchronous mode with a fixed step of 0.1 s",
                    "steer in rad, positive to the right, steer_speed in rad/s, speed in m/s, acceleration in m/s² and "
                    "jerk in m/s³, each with a default of 0.0"):
         assert phrase in text, phrase
+
+
+def test_every_upstream_file_the_model_cites_by_line_is_in_the_upstream_record():
+    """Review R9, generalized: each file that the model cites by line is read in upstream.md, by its file name."""
+    record = UPSTREAM.read_text(encoding="utf-8")
+    cited = sorted(set(re.findall(r"([\w./-]+\.(?:cpp|hpp|py|json|md)):\d", _raw())))
+    assert len(cited) >= 12, cited
+    assert not [path for path in cited if path.rsplit("/", 1)[-1] not in record]

@@ -216,14 +216,17 @@ Read for the physical and software realization of INC-DRIVING-002 on
 DE4SDV S-CORE interface module. The branch `main` was still at that commit on
 that day. The model cites these files by file name and line:
 
-- [Lateral planner](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/planning/src/lateral_planning.cpp#L76-L151):
-  lines 81 and 147 take the feed-forward steering angle as the arctangent of
-  the wheelbase times the curvature, and line 106 the commanded curvature as
-  the tangent of the steering angle over the wheelbase, so the steering has
-  the sign of the curvature.
-- [Lateral fusion](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/fusion/include/fusion/lateral_fusion.hpp#L14-L29):
-  line 16 takes the lateral axis as positive to the left, and line 29 the
-  curvature as positive in a left turn.
+- [Longitudinal fusion](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp#L13-L41):
+  lines 13 to 18 give the closest object in the path with its distance and its
+  velocity, negative while it approaches, and line 40 a nominal step of 0.10
+  s.
+- [Inference pipeline](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/models/src/inference.cpp#L150-L208):
+  lines 152 to 154 keep the previous and the current processed frame, and
+  lines 206 and 207 update the fusion without a step.
+- [Camera interface](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/sensing/camera_interface/include/camera_interface/camera_interface.hpp#L18):
+  line 18 returns the newest image alone.
+- [Vehicle interface for ROS 2](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/middleware_interfaces/ros2_interface/vehicle_ros2_interface/src/vehicle_ros2_interface.cpp#L64-L68):
+  lines 64 to 68 publish the steering that the loop writes as it is.
 - [Common types](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/common/include/common/types.hpp#L26-L38):
   lines 26 to 38 declare the warnings and the plan, an acceleration, a
   steering sequence and a list of warnings.
@@ -240,11 +243,15 @@ that day. The model cites these files by file name and line:
   lines 43 to 54 drive the simulated vehicle by an Ackermann control: a
   desired speed of the current speed plus twice the planned acceleration, not
   below zero, the planned acceleration, the steering angle and a jerk of
-  10.0 m/s³.
+  10.0 m/s³; line 49 gives the steering to the Ackermann control's steering
+  angle without a change.
 - The fields of the simulator's Ackermann control, in the
   [Python API reference of CARLA 0.9.16](https://github.com/carla-simulator/carla/blob/0.9.16/Docs/python_api.md#carlavehicleackermanncontrol):
   steer in rad, positive to the right, steer_speed in rad/s, speed in m/s,
   acceleration in m/s² and jerk in m/s³, each with a default of 0.0.
+- [The simulator's ROS 2 Ackermann subscriber](https://github.com/carla-simulator/carla/blob/0.9.16/LibCarla/source/carla/ros2/subscribers/AckermannControlSubscriber.cpp#L12):
+  in CARLA 0.9.16, line 12 sets the control's steer to the message's steering
+  angle.
 
 ## Questions requiring upstream engagement
 

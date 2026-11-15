@@ -611,16 +611,16 @@ guide.
 
 The
 [physical and software realization](../../textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml)
-answers what software, hardware and deployment elements realize the four
-logical elements, and on which technology the driving command and the warning
-request travel. On 2026-11-15 the owner chose that the candidate's process
-becomes an Eclipse S-CORE application through a DE4SDV S-CORE interface
-module: an S-CORE branch beside the existing interface selection in the
-application's main loop, and one hand-off of the warnings that the planner
-already computes. The decision logic of the candidate is unchanged. Every
-build on the S-CORE path carries this change, which upstream has not merged,
-so every verdict names the build, 014e0e7a with the DE4SDV S-CORE interface,
-and the candidate record of REQ-DRIVING-044 carries the difference
+answers what software, hardware and deployment elements realize the four logical
+elements, and on which technology the driving command and the warning request
+travel. On 2026-11-15 the owner chose that the candidate's process becomes an
+Eclipse S-CORE application through a DE4SDV S-CORE interface module: an S-CORE
+branch beside the existing interface selection in the application's main
+function, before its loop, and one hand-off of the warnings that the planner
+already computes, in the loop. The decision logic of the candidate is unchanged.
+Every build on the S-CORE path carries this change, which upstream has not
+merged, so every verdict names the build, 014e0e7a with the DE4SDV S-CORE
+interface, and the candidate record of REQ-DRIVING-044 carries the difference
 (`gapCandidateBehaviorUnverified`). Before Phase 10 builds, the VisionPilot
 maintainers are shown a draft of the warning output and the interface seam;
 nothing is posted without the owner.
@@ -628,21 +628,26 @@ nothing is posted without the owner.
 The candidate stays one process. Six software elements carry the four logical
 elements:
 
-- **Identity recording application** carries the identity recorder: an S-CORE
-  application of its own, started first, that hashes every file the
-  candidate's process opens and publishes the candidate record on an mw::com
-  event. The candidate publishes no driving command before the record has
-  arrived.
-- **Camera interface** (DE4SDV) and **perception and fusion** (upstream,
-  unchanged) carry the vehicle-ahead assessor. The candidate computes no time to
+- - **Identity recording application** carries the identity recorder: an S-CORE
+  application of its own, started first, that hashes every configuration,
+  calibration, manifest and network file the candidate's process reads and
+  publishes the candidate record on an mw::com event. The candidate publishes no
+  driving command before the record has arrived.
+- - **Camera interface** (DE4SDV) and **perception and fusion** (upstream,
+  unchanged) carry the vehicle-ahead assessor. The camera interface hands the
+  newest image to the loop and counts the images it drops: the candidate's
+  fusion takes two processed frames as 0.1 s apart, so Phase 10 judges no run
+  with a dropped image in its judged window. The candidate computes no time to
   collision, no needed deceleration and no imminence, so the assessment is
   realized in part; Phase 10 judges the imminence from the simulator's ground
   truth.
-- **Safety guardian planner** (upstream, unchanged) carries both the warning
+- - **Safety guardian planner** (upstream, unchanged) carries both the warning
   requester and the driving commander: the warning requester and the driving
   commander share the planner module, since the forward-collision warning and
   the emergency braking are two ranges of one planned acceleration
-  (`gapNoSeparateEmergencyFunction` stays open).
+  (`gapNoSeparateEmergencyFunction` stays open). Its warnings go to the warning
+  request publisher; the warning state that Phase 7 passes from the requester to
+  the commander has no realization in the candidate.
 - **Vehicle interface** (DE4SDV) carries the driving commander's output: it
   adds the issue time, a sequence count and a 32-bit cyclic redundancy check
   value and publishes the command on an mw::com event.
@@ -680,13 +685,16 @@ request to each mode of the warning, Phase 8 gives 0.1 s for the path and
 and the split is revisited when it is measured.
 
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
-upstream's own simulator path does. The candidate's steering is positive to
-the left, like the VSS steering angle; CARLA's steer is positive to the right,
-so the adapter changes its sign. `ASM-DRIVING-005` assumes that the simulated
+upstream's own simulator path does, and gives the simulator the candidate's
+steering unchanged, as that path does. The VSS steering angle of the driving
+command is positive to the left, so the vehicle interface writes the negative of
+the candidate's steering, which the integration takes in the sign of CARLA's
+steer, positive to the right. `ASM-DRIVING-006` assumes that this sign turns the
+vehicle back toward its lane centre, and `ASM-DRIVING-005` that the simulated
 vehicle follows the commanded deceleration up to 5.0 m/s²; a calibration run
-before Phase 10 shows it. VSS types the items at the ports only: the command's
-acceleration and steering angle, the speed and the warning request. Eight
-signal mappings record each crossing into a software contract; a mapping is no
+before Phase 10 shows both. VSS types the items at the ports only: the command's
+acceleration and steering angle, the speed and the warning request. Eight signal
+mappings record each crossing into a software contract; a mapping is no
 interoperability claim.
 
 Two concerns of this phase are held by the parties they serve: the structure
