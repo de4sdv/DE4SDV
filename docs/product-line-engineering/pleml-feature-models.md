@@ -19,7 +19,7 @@ switch, and the Git history keeps the versions that S7 deleted.
 
 | Family | Feature model | Configurations |
 |---|---|---|
-| SDV product line | [`sdv_product_line.sysml`](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml) | the four SDV configurations, plus the invalid fixture and the 17 parity probes under `fixtures/` |
+| SDV product line | [`sdv_product_line.sysml`](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml) | the six SDV configurations, plus the invalid fixture and the 17 parity probes under `fixtures/` |
 | Engineering execution environments (System 2) | [`engineering_execution_environments.sysml`](../../model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml) | `inc_aebs_009a_jetson.sysml`, `apple_silicon_macos_candidate.sysml` |
 | Vehicle-target execution environments (System 1) | [`vehicle_execution_environments.sysml`](../../model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml) | `nxp_zephyr_vehicle_target_candidate.sysml` |
 
@@ -324,8 +324,8 @@ replays the receipt and generates the projection of one valid configuration
 of the served model. It labels each selection outside the projection by its
 PLEML feature path, and the members of a group by their feature names. It
 refuses to project a fixture (exit 2); `--check-only` reports a fixture's
-verdict. Each of the seven committed projections regenerates from its
-receipt byte for byte. The public CI replays every committed receipt
+verdict. Each committed projection regenerates from its receipt byte for
+byte. The public CI replays every committed receipt
 (`python scripts/run_pleml_configuration_evaluation.py replay ...`).
 A projection is a derived product model, and an increment can complete it in a configured product ([product models](../../model-based-product-line-engineering/product-models/README.md#derived-product-models-and-configured-products)).
 

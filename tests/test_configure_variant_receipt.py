@@ -1,8 +1,8 @@
 """The configurator, the product-model projection writer of the PLEML receipts (ADR 0022).
 
 The writer of ``tools/configure_variant.py`` generates the projection of one
-configuration of a committed PLEML receipt after replaying it offline. Each of
-the seven committed projections regenerates from its receipt byte for byte.
+configuration of a committed PLEML receipt after replaying it offline. Each
+committed projection regenerates from its receipt byte for byte.
 The ordering and labelling rules of the receipt content are unit-tested on a
 synthetic record, and the provenance helpers of the writer on synthetic
 files.

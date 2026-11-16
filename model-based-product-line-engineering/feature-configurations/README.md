@@ -28,7 +28,7 @@ claim. Evidence status is metadata about the configuration, not a feature.
 
 The receipts of the feature models record each configuration's verdict, its
 derived variants and its admission by the governed scope. A configuration can
-be valid without being admitted: of the seven configurations above, the
+be valid without being admitted: of the nine configurations above, the
 fixture aside, the two reference members are admitted.
 
 ## PLEML configurations

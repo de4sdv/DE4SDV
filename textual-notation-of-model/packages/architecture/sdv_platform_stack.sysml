@@ -510,11 +510,14 @@ package DE4SDV_SDVPlatformStack {
   part def VisionPilotToSCOREAdapter :> ApplicationMiddlewareAdapterLayer {
     doc /*
      * The DE4SDV S-CORE interface module of the VisionPilot process of
-     * INC-DRIVING-002 phase 8: its camera interface, its vehicle interface
-     * and its warning request publisher speak S-CORE Communication (mw::com)
-     * for the candidate's process, so the adapter is no program of its own.
-     * Derived for the pair VisionPilot and Eclipse S-CORE; no other pairing
-     * of VisionPilot has an adapter.
+     * INC-DRIVING-002 phase 8. It runs inside the candidate's process, so
+     * the adapter is no program of its own. On S-CORE Communication
+     * (mw::com), the vehicle interface publishes the driving command and
+     * subscribes to the candidate record, and the warning request publisher
+     * publishes the warning request. The camera images and the speed of the
+     * ego vehicle come from the simulator's client library, not from
+     * mw::com. Derived for the pair VisionPilot and Eclipse S-CORE; no other
+     * pairing of VisionPilot has an adapter.
      */
   }
 
