@@ -1587,3 +1587,44 @@ def test_admission_blocks_only_on_selected_choices_and_leaves() -> None:
         "InitialCommonCoreEngineeringContent::linuxROS2AutowareRuntime is not represented: linux is not selected"]
     assert admission(features, correspondences, family_elements, integrated | {"hmiDisplay"})[1] == [
         "hmiDisplay: not in the governed scope"]
+
+
+_COUNT_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+                "eleven": 11, "twelve": 12}
+
+
+def test_the_product_line_documents_count_the_committed_configurations() -> None:
+    """The counts that the feature-model document and the configurations README state follow the committed
+    configurations and the closed world: the configurations, the SDV configurations, the SDV configurations that
+    select the HMI display, and the split of the valid SDV selections. Nothing compared them before, and three of
+    them went stale."""
+    doc = " ".join((ROOT / "docs" / "product-line-engineering" / "pleml-feature-models.md").read_text(
+        encoding="utf-8").split())
+    readme = " ".join((ROOT / CONFIGURATIONS_DIR / "README.md").read_text(encoding="utf-8").split())
+    texts = {path.name: path.read_text(encoding="utf-8") for path in sorted((ROOT / CONFIGURATIONS_DIR).glob("*.sysml"))}
+    sdv = [name for name, text in texts.items() if "SDVProductLineFeatureTree" in text]
+    display = [name for name in sdv if re.search(r"\bhmiDisplay\[1\]", texts[name])]
+
+    def count(pattern: str, text: str) -> int:
+        match = re.search(pattern, text)
+        assert match, pattern
+        word = match.group(1)
+        return int(word) if word.isdigit() else _COUNT_WORDS[word]
+
+    assert count(r"of the (\w+) configurations above, the fixture aside", readme) == len(texts)
+    assert count(r"the (\w+) SDV configurations, plus the invalid fixture", doc) == len(sdv)
+    assert count(r"\| SDV product line \((\d+) configurations\) \| none \|", doc) == len(sdv)
+    assert count(r"of the (\w+) configurations, the \w+ Eclipse S-CORE configurations", doc) == len(sdv)
+    assert count(r"of the \w+ configurations, the (\w+) Eclipse S-CORE configurations", doc) == len(display)
+    assert display and all(re.search(r"\beclipseSCORE\[1\]", texts[name]) for name in display)
+    split = re.search(
+        r"The ([\d,]+) valid SDV selections are (\d+) valid platform and display selections of Autoware, Openpilot "
+        r"and Apollo, each with the (\d+) choices of the sensors and the four other capabilities, which no constraint "
+        r"names, and (\d+) valid platform and display selections each of AutoE2E and VisionPilot \(Linux; Eclipse "
+        r"S-CORE, the one pair with a rule\), each with the (\w+) sensor choices that keep the camera and the (\d+) "
+        r"choices of the four other capabilities", doc)
+    assert split, "the split of the valid SDV selections"
+    total, shared, choices, own, sensors, capabilities = split.groups()
+    valid = sum(number for verdict, number in CLOSED_WORLD["sdv"].items() if verdict[0])
+    assert int(total.replace(",", "")) == valid
+    assert int(shared) * int(choices) + 2 * int(own) * _COUNT_WORDS[sensors] * int(capabilities) == valid

@@ -178,9 +178,66 @@ def test_the_shared_asset_carries_the_two_variants_the_binding_and_the_rule_targ
     adapter_doc = " ".join(re.sub(r"^\s*\*\s?", "", _body(raw, r"\bpart def VisionPilotToSCOREAdapter :> "
                                                           r"ApplicationMiddlewareAdapterLayer\s*\{"), flags=re.M).split())
     for phrase in ("The DE4SDV S-CORE interface module of the VisionPilot process", "no program of its own",
-                   "no other pairing of VisionPilot has an adapter"):
+                   "no other pairing of VisionPilot has an adapter",
+                   "On S-CORE Communication (mw::com), the vehicle interface publishes the driving command and "
+                   "subscribes to the candidate record, and the warning request publisher publishes the warning "
+                   "request.",
+                   "The camera images and the speed of the ego vehicle come from the simulator's client library, not "
+                   "from mw::com."):
         assert phrase in adapter_doc, phrase
+    # Phase 8's camera interface takes its images from the simulator's client (SCORECameraInterface): the adapter
+    # names the camera once, in the sentence that says so.
+    assert adapter_doc.count("camera") == 1, adapter_doc
 
+
+# -- the non-claims of the phase ----------------------------------------------------------------------------------
+
+#: Affirmative forms of a claim the phase does not make: an approval, or a configuration, product or member admitted.
+CLAIM_PATTERNS = (
+    r"\bapprov",
+    r"\b(?:is|are|was|were|be|been|and)\s+admitted\b(?!\s+to\s+no\b)",
+    r"\badmitted\s+(?:member|configuration|product)\b",
+)
+
+
+def _shared_asset_docs() -> str:
+    """The two VisionPilot shared assets of the platform stack, VisionPilotStack and VisionPilotToSCOREAdapter, with
+    the leading asterisks of their comment lines dropped and whitespace collapsed."""
+    raw = PLATFORM_STACK.read_text(encoding="utf-8")
+    bodies = (_body(raw, r"\bpart def VisionPilotStack :> VehicleApplicationLayer\s*\{"),
+              _body(raw, r"\bpart def VisionPilotToSCOREAdapter :> ApplicationMiddlewareAdapterLayer\s*\{"))
+    return " ".join(re.sub(r"^\s*\*\s?", "", "\n".join(bodies), flags=re.M).split())
+
+
+def _guide_phase_9() -> str:
+    """The phase 9 section of the guide, whitespace collapsed."""
+    text = GUIDE.read_text(encoding="utf-8")
+    start = text.index("## Variability and configuration (Phase 9)")
+    return " ".join(text[start : text.index("\n## ", start)].split())
+
+
+def test_the_phase_9_texts_state_their_non_claims() -> None:
+    """The configuration is valid and admitted to no member, the configured product is configuration evidence only,
+    and the VisionPilot stack is a candidate realization that assumes no conformance. An edit that drops or turns
+    one of these statements fails here."""
+    slice_docs, assets = _docs(SLICE), _shared_asset_docs()
+    assert "The configuration is valid and not admitted." in slice_docs
+    assert ("Configuration evidence only. This usage proves no candidate, adapter, gateway or presentation behavior "
+            "and no requirement satisfaction.") in slice_docs
+    assert "Valid and not admitted: VisionPilot" in _docs(CONFIGURATION)
+    assert ("Status: candidate realization, admitted to no member; the driver-assistance increment's phase 8 places "
+            "it, phase 10 judges it.") in assets
+    assert "No conformance to DE4SDV boundary contracts is assumed without evidence." in assets
+
+
+def test_no_phase_9_text_claims_an_approval_or_an_admission() -> None:
+    """The texts are read with their comments, so a claim placed in a comment fails too."""
+    texts = {"phase 9 package": _docs(SLICE), "configuration": _docs(CONFIGURATION),
+             "VisionPilot shared assets": _shared_asset_docs(), "guide, phase 9 section": _guide_phase_9()}
+    for name, prose in texts.items():
+        for pattern in CLAIM_PATTERNS:
+            match = re.search(pattern, prose, re.IGNORECASE)
+            assert match is None, (name, match.group(0) if match else None)
 
 # -- the feature configuration ------------------------------------------------------------------------------------
 
