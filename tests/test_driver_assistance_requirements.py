@@ -517,13 +517,21 @@ def test_the_phase_4_contract_comment_is_now_stated_in_the_rationales():
     assert "visionPilotContractAtPin" not in _raw()
 
 
-def test_no_requirement_links_a_feature_before_phase_9_adds_it():
-    # Phase 3 records VisionPilot as the feature candidate visionPilotDrivingStack; phase 9 adds it to the feature
-    # model. Until then no requirement and not the system of interest depends on a feature.
+def test_the_requirements_name_features_only_in_their_rule_5_dependencies():
+    # Phase 3 records VisionPilot as the feature candidate visionPilotDrivingStack; phase 9 added it to the feature
+    # model and links the system of interest to it in the framing. The requirements follow their subject, so none
+    # names visionPilot; a requirement names a feature only in a dependency declared with it, for what its subject
+    # does not bring. tests/test_driver_assistance_variability_configuration.py pins each link.
     code = _code()
     assert not re.search(r"\bimport\s+DE4SDV_ProductLine\w*", code)
-    assert "DE4SDV_SDVProductLineFeatureModel" not in code
     assert "visionPilotDrivingStack" not in code
+    feature = "DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::"
+    links = re.findall(rf"\bdependency\s+(\w+)\s+from\s+(\w+)\s+to\s+{re.escape(feature)}(\w+)\s*;", code)
+    assert links and len(links) == code.count("DE4SDV_SDVProductLineFeatureModel")
+    for name, client, target in links:
+        assert client in REQUIREMENTS, client
+        assert name == f"{client}On{target[0].upper()}{target[1:]}", name
+        assert target != "visionPilot", "the requirements follow their subject to visionPilot"
 
 
 def _columns(body: str) -> list[str]:
@@ -588,8 +596,8 @@ def test_the_guide_states_phase_5_and_the_next_obligation():
     assert not CLAUSE_NUMBER.findall(raw_section), CLAUSE_NUMBER.findall(raw_section)
     assert "VisionPilot/" not in raw_section, "the guide carries no upstream paths"
     flat = " ".join(guide.split())  # Markdown: a line may open with bold text
-    assert "The next model obligation is **Phase 9**: variability and configuration" in flat
-    assert "its first gate is `incrementHasConfiguredProduct`" in flat
+    assert "The next model obligation is **Phase 10**: verification and evidence" in flat
+    assert "its first gate is `verificationCaseVerifiesRequirement`" in flat
     section = " ".join(raw_section.split())
     for fact in GUIDE_FACTS:
         assert fact in section, fact

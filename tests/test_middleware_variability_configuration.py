@@ -311,6 +311,7 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
                 ("platformStack.openpilot", "platformStack.eclipseSCORE"): "openpilotToSCORE",
                 ("platformStack.apollo", "platformStack.eclipseSCORE"): "apolloToSCORE",
                 ("platformStack.autoE2E", "platformStack.eclipseSCORE"): "autoE2EToSCORE",
+                ("platformStack.visionPilot", "platformStack.eclipseSCORE"): "visionPilotToSCORE",
                 ("platformStack.autoware", "platformStack.noMiddleware"): "none",
                 ("platformStack.openpilot", "platformStack.noMiddleware"): "none",
                 ("platformStack.apollo", "platformStack.noMiddleware"): "none",

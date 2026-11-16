@@ -348,6 +348,46 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> verificationStatus = VVStatus::NotStarted;
   }
 
+  /* Rule 5 of the increment workflow, in its dependency form, declared with
+   * the requirements (phase 9). Their subject brings VisionPilot: the framing
+   * links the system of interest to the feature visionPilot. A requirement
+   * links a feature of its own only for what its subject does not bring.
+   * REQ-DRIVING-038 and REQ-DRIVING-043 give their output only over the
+   * Eclipse S-CORE path, REQ-DRIVING-039 makes a failure on that path
+   * detectable, and REQ-DRIVING-042 times the warning request at the
+   * boundary, the interface at which the outputs leave for that path. Each
+   * applies only where Eclipse S-CORE is selected, so each depends on the
+   * feature eclipseSCORE. */
+  dependency reqDrivingCommandOverSCOREOnEclipseSCORE
+    from reqDrivingCommandOverSCORE
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::eclipseSCORE;
+  dependency reqDetectableDrivingCommandOnEclipseSCORE
+    from reqDetectableDrivingCommand
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::eclipseSCORE;
+  dependency reqWarningRequestBeforeEmergencyBrakingOnEclipseSCORE
+    from reqWarningRequestBeforeEmergencyBraking
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::eclipseSCORE;
+  dependency reqWarningRequestOverSCOREOnEclipseSCORE
+    from reqWarningRequestOverSCORE
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::eclipseSCORE;
+  /* REQ-DRIVING-040, REQ-DRIVING-042 and REQ-DRIVING-043 name the warning
+   * request, the output by which the system asks the AAOS SDV to give the
+   * driver the collision warning, and REQ-DRIVING-043 names the AAOS SDV
+   * itself. The guest-middleware group has a none alternative, so each
+   * applies only where the AAOS SDV guest middleware is selected and depends
+   * on the feature guestAndroidSDV. REQ-DRIVING-042 and REQ-DRIVING-043 then
+   * carry two links of their own; in the dependency form, several links name
+   * all their features. */
+  dependency reqWithholdWarningRequestOnGuestAndroidSDV
+    from reqWithholdWarningRequest
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::guestAndroidSDV;
+  dependency reqWarningRequestBeforeEmergencyBrakingOnGuestAndroidSDV
+    from reqWarningRequestBeforeEmergencyBraking
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::guestAndroidSDV;
+  dependency reqWarningRequestOverSCOREOnGuestAndroidSDV
+    from reqWarningRequestOverSCORE
+    to DE4SDV_SDVProductLineFeatureModel::SDVProductLineFeatureTree::platformStack::guestAndroidSDV;
+
   connection emergencyBrakingForImminentCollisionDerivation : DerivesFromNeed
     connect needWarnAndBrakeForVehicleAhead to reqEmergencyBrakingForImminentCollision;
   connection impactSpeedWithinLimitDerivation : DerivesFromNeed

@@ -113,7 +113,7 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * Configuration evidence only. This usage proves no provider, transport,
      * gateway, adapter or HMI behavior and no requirement satisfaction.
      */
-    attribute receiptSha256 : ScalarValues::String = "b5fe031941baa6f43d7b8ab2c48b5d0bee992c2afe53d1cb4d1f21fc56bdcae1";
+    attribute receiptSha256 : ScalarValues::String = "848262167497d033b87d4ae90c6f54d3b0edd4c851f80480cd07d8cd860a34a1";
   }
 
   dependency configuredIntegrationLayerTrace

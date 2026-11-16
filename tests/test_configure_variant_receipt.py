@@ -1,8 +1,8 @@
 """The configurator, the product-model projection writer of the PLEML receipts (ADR 0022).
 
 The writer of ``tools/configure_variant.py`` generates the projection of one
-configuration of a committed PLEML receipt after replaying it offline. Each of
-the seven committed projections regenerates from its receipt byte for byte.
+configuration of a committed PLEML receipt after replaying it offline. Each
+committed projection regenerates from its receipt byte for byte.
 The ordering and labelling rules of the receipt content are unit-tested on a
 synthetic record, and the provenance helpers of the writer on synthetic
 files.
@@ -53,7 +53,7 @@ def _run(*arguments: str) -> subprocess.CompletedProcess:
                           check=False, timeout=120)
 
 
-def test_eight_committed_projections_name_their_configuration() -> None:
+def test_nine_committed_projections_name_their_configuration() -> None:
     from scripts import run_ple_authority as runner
 
     assert sorted(PROJECTIONS) == sorted(runner.CONFIGURATIONS)
@@ -103,7 +103,7 @@ def test_the_configurator_projects_exactly_the_member_configurations() -> None:
     served = {source for source in sources if configurator.served_configuration({"source": source})}
     assert served == set(runner.CONFIGURATIONS) == set(PROJECTIONS)
     assert sources - served == set(runner.FIXTURES)
-    assert len(served) == 8 and len(runner.FIXTURES) == 18
+    assert len(served) == 9 and len(runner.FIXTURES) == 18
 
 
 @pytest.mark.parametrize("name", ["radarOnlySensingProbe", "invalidSCOREAndroidVariant"])

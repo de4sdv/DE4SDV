@@ -104,6 +104,33 @@ package DE4SDV_SDVProductLineFeatureModel {
                     in occurrence constrainedFeatures = new FeatureOperand(that, (androidSDV, autosarAdaptive, noMiddleware));
                 }
             }
+            #feature occurrence <'F-PLATFORM-VEHICLE-APPLICATION-VISIONPILOT'> visionPilot[0..1] :> vehicleApplication default null {
+                doc /* VisionPilot as the vehicle application: the camera-only
+                     * driver-assistance candidate of INC-DRIVING-002 (phase 3
+                     * candidate visionPilotDrivingStack of 2026-11-14, added in
+                     * phase 9). It reads one front-camera image and takes no
+                     * LiDAR or radar input, so it requires the camera feature
+                     * and leaves LiDAR and radar selectable. */
+                assert constraint <'C014'> visionPilotRequiresCamera :> requiresFeatures {
+                    doc /* VisionPilot reads one front-camera image: the camera
+                         * is required, LiDAR and radar stay selectable. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, sensingBoundary::camera);
+                }
+                assert constraint <'C015'> visionPilotRequiresLinux :> requiresFeatures {
+                    doc /* VisionPilot requires Linux on the main side: its live
+                         * camera source uses V4L2, a Linux interface, and the
+                         * phase 8 realization runs it as one Linux process. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, linux);
+                }
+                assert constraint visionPilotExcludesUnsupportedMiddleware :> xorFeatures {
+                    doc /* No derivation rule exists for VisionPilot with Android
+                         * SDV, AUTOSAR Adaptive or no middleware, so the three
+                         * pairs are unsupported: the one adapter is the DE4SDV
+                         * S-CORE interface module of its process on Eclipse
+                         * S-CORE. */
+                    in occurrence constrainedFeatures = new FeatureOperand(that, (androidSDV, autosarAdaptive, noMiddleware));
+                }
+            }
 
             #feature occurrence <'F-PLATFORM-MIDDLEWARE'> middleware[1] {
                 doc /* The middleware that the vehicle application integrates
@@ -263,6 +290,9 @@ package DE4SDV_SDVProductLineFeatureModel {
     #FeatureBinding dependency vehicleApplicationAutoE2EBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::vehicleApplication::autoE2E
         to SDVProductLineFeatureTree::platformStack::autoE2E;
+    #FeatureBinding dependency vehicleApplicationVisionPilotBinding
+        from DE4SDV_SDVPlatformStack::SDVPlatformStack::vehicleApplication::visionPilot
+        to SDVProductLineFeatureTree::platformStack::visionPilot;
 
     #FeatureBinding dependency middlewareEclipseSCOREBinding
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::middleware::eclipseSCORE
@@ -319,8 +349,9 @@ package DE4SDV_SDVProductLineFeatureModel {
      * configuration selects its variant: exactly one rule must match a valid
      * configuration, and a configuration that matches none or several is
      * rejected. Each rule's premises are one alternative of each source
-     * feature. With the exclusions of Openpilot and Apollo, the eight rules
-     * cover all twelve application-middleware pairs, each exactly once.
+     * feature. The ten rules and the exclusions of Openpilot, Apollo,
+     * AutoE2E and VisionPilot cover all twenty application-middleware pairs,
+     * each exactly once.
      */
     #DerivedVariation dependency <'D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER'> applicationMiddlewareAdapterDerivation
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter
@@ -350,6 +381,10 @@ package DE4SDV_SDVProductLineFeatureModel {
     #DerivationRule dependency autoE2EEclipseSCORERule
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter::autoE2EToSCORE
         to SDVProductLineFeatureTree::platformStack::autoE2E,
+           SDVProductLineFeatureTree::platformStack::eclipseSCORE;
+    #DerivationRule dependency visionPilotEclipseSCORERule
+        from DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter::visionPilotToSCORE
+        to SDVProductLineFeatureTree::platformStack::visionPilot,
            SDVProductLineFeatureTree::platformStack::eclipseSCORE;
     #DerivationRule dependency autowareNoMiddlewareRule
         from DE4SDV_SDVPlatformStack::SDVPlatformStack::applicationMiddlewareAdapter::none
@@ -405,6 +440,9 @@ package DE4SDV_SDVProductLineFeatureModel {
         to DE4SDV_AEBSProductLineScope::ReferenceOnlyAlternativeSet::openpilot;
     dependency autoE2ECorrespondsToDrivingStackVariability
         from SDVProductLineFeatureTree::platformStack::autoE2E
+        to DE4SDV_AEBSProductLineScope::DeferredVariabilitySet::drivingStackVariability;
+    dependency visionPilotCorrespondsToDrivingStackVariability
+        from SDVProductLineFeatureTree::platformStack::visionPilot
         to DE4SDV_AEBSProductLineScope::DeferredVariabilitySet::drivingStackVariability;
     dependency apolloCorrespondsToReferenceOnlyApollo
         from SDVProductLineFeatureTree::platformStack::apollo
@@ -499,10 +537,11 @@ package DE4SDV_SDVProductLineFeatureModel {
          * as not in the governed scope. */
 
     comment about SDVProductLineFeatureTree::capabilities::hmiDisplay
-        /* The HMI display distinguishes no governed member yet: of the
-         * configurations, only the Eclipse S-CORE configuration selects it,
-         * and that configuration is not admitted. It has no governed-scope
-         * element, so admission reports it as not in the governed scope.
+        /* The HMI display distinguishes no governed member yet: the
+         * configurations that select it, the Eclipse S-CORE configurations of
+         * INC-MW-011, INC-DRIVING-001 and INC-DRIVING-002, are not admitted.
+         * It has no governed-scope element, so admission reports it as not in
+         * the governed scope.
          * No shared asset implements the display yet, so no feature binding
          * resolves it: like the sensing and the other capability selections,
          * each projection lists it among the selections that SysML does not

@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "43a7bc604cc561771f580af626ebf0f0e7caff2e06c38bc87f9609b570c5d446",
+    "content_sha256": "536d1e25437523bbdcc7f56c1652e1c489c4fbe32602de864833580c781bd70a",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "a187a596041311715bd7269e638d33da4275932512576bb5ee31ae5dad0259e5"
+    "sha256": "7b9730b61c891d85217328f9fbe64c31bc65b1622958a90fc423a92aea11ce68"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -13,7 +13,7 @@
           {
             "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
             "derived_variation": "applicationMiddlewareAdapter",
-            "pairs": 16,
+            "pairs": 20,
             "rows": [
               {
                 "exclusions": [],
@@ -174,14 +174,54 @@
                   "platformStack.noMiddleware"
                 ],
                 "rules": []
+              },
+              {
+                "exclusions": [],
+                "pair": [
+                  "platformStack.visionPilot",
+                  "platformStack.eclipseSCORE"
+                ],
+                "rules": [
+                  "visionPilotEclipseSCORERule"
+                ]
+              },
+              {
+                "exclusions": [
+                  "visionPilotExcludesUnsupportedMiddleware"
+                ],
+                "pair": [
+                  "platformStack.visionPilot",
+                  "platformStack.androidSDV"
+                ],
+                "rules": []
+              },
+              {
+                "exclusions": [
+                  "visionPilotExcludesUnsupportedMiddleware"
+                ],
+                "pair": [
+                  "platformStack.visionPilot",
+                  "platformStack.autosarAdaptive"
+                ],
+                "rules": []
+              },
+              {
+                "exclusions": [
+                  "visionPilotExcludesUnsupportedMiddleware"
+                ],
+                "pair": [
+                  "platformStack.visionPilot",
+                  "platformStack.noMiddleware"
+                ],
+                "rules": []
               }
             ],
             "source_groups": [
               "platformStack.vehicleApplication",
               "platformStack.middleware"
             ],
-            "with_exclusion": 7,
-            "with_rule": 9
+            "with_exclusion": 10,
+            "with_rule": 10
           }
         ],
         "bindings": [
@@ -226,6 +266,17 @@
             "feature_short_name": "F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E",
             "variant": "autoE2E",
             "variant_id": "7a065f22-46e5-5cf9-a7bf-6023832b487c",
+            "variation": "vehicleApplication",
+            "variation_id": "220db22f-ef58-5fba-9073-4a2154c344b1"
+          },
+          {
+            "binding": "vehicleApplicationVisionPilotBinding",
+            "element_id": "49cadd75-fee3-5ccd-a318-9fab25b35a89",
+            "feature": "platformStack.visionPilot",
+            "feature_id": "9fc8857f-0b23-59e7-b14b-bb6af3c38b43",
+            "feature_short_name": "F-PLATFORM-VEHICLE-APPLICATION-VISIONPILOT",
+            "variant": "visionPilot",
+            "variant_id": "b6ee4158-ef59-5ca1-9011-e859c2f7ac41",
             "variation": "vehicleApplication",
             "variation_id": "220db22f-ef58-5fba-9073-4a2154c344b1"
           },
@@ -563,6 +614,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -746,6 +798,7 @@
               "platformStack.qnx": "enabled",
               "platformStack.qvm": "enabled",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "omitted",
               "sensingBoundary.lidar": "enabled",
@@ -928,6 +981,192 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
+              "sensingBoundary": "enabled",
+              "sensingBoundary.camera": "enabled",
+              "sensingBoundary.lidar": "omitted",
+              "sensingBoundary.perceptionSensors": "enabled",
+              "sensingBoundary.radar": "omitted"
+            },
+            "valid": true
+          },
+          {
+            "admission": {
+              "admitted": false,
+              "alternative": "aaosIntegrated",
+              "alternatives_realized": {
+                "aaosIntegrated": [
+                  "platformStack.kvm",
+                  "platformStack.guestAndroid",
+                  "platformStack.guestAndroidSDV"
+                ]
+              },
+              "common_content": [
+                {
+                  "asset": "autowareApplication",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "platformStack.autoware"
+                  ],
+                  "represented_by": [
+                    "platformStack.autoware"
+                  ]
+                },
+                {
+                  "asset": "currentSensingBaseline",
+                  "complete": false,
+                  "exempted": [],
+                  "missing": [
+                    "sensingBoundary.lidar"
+                  ],
+                  "represented_by": [
+                    "sensingBoundary.lidar",
+                    "sensingBoundary.camera"
+                  ]
+                },
+                {
+                  "asset": "linuxROS2AutowareRuntime",
+                  "complete": true,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": [
+                    "platformStack.linux"
+                  ]
+                },
+                {
+                  "asset": "protectedEmergencyCommandPathIndependence",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                },
+                {
+                  "asset": "vehicleTargetAEBS",
+                  "complete": null,
+                  "exempted": [],
+                  "missing": [],
+                  "represented_by": []
+                }
+              ],
+              "evaluated": true,
+              "notes": [
+                "platformStack.vehicleApplication is a variation point; governed: deferred drivingStackVariability",
+                "sensingBoundary.perceptionSensors is a variation point; governed: deferred sensingVariability"
+              ],
+              "reasons": [
+                "selects content the governed scope does not admit: platformStack.visionPilot: deferred drivingStackVariability | platformStack.eclipseSCORE: reference-only eclipseSCORE | capabilities.adaptiveCruiseControl: not in the governed scope | capabilities.laneKeepAssist: not in the governed scope | capabilities.hmiDisplay: not in the governed scope",
+                "misses derived realizations of aaosIntegrated: platformStack.middleware = platformStack.androidSDV",
+                "does not represent the common content: autowareApplication (missing platformStack.autoware); currentSensingBaseline (missing sensingBoundary.lidar)"
+              ]
+            },
+            "configuration": "driverAssistanceVisionPilotSCOREReference",
+            "derived_variants": [
+              {
+                "derivation": "D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER",
+                "rule": "visionPilotEclipseSCORERule",
+                "variant": "visionPilotToSCORE",
+                "variant_id": "3f218304-a226-5387-8bb9-884d358b51f4",
+                "variation": "applicationMiddlewareAdapter"
+              },
+              {
+                "binding": "guestMiddlewareAndroidSDVBinding",
+                "variant": "androidSDV",
+                "variant_id": "b2a42812-989d-5511-beae-413f8316bf53",
+                "variation": "guestMiddleware"
+              },
+              {
+                "binding": "guestOSPlatformAndroidBinding",
+                "variant": "android",
+                "variant_id": "bbffe2c8-6872-5e78-8244-397edf4baf79",
+                "variation": "guestOSPlatform"
+              },
+              {
+                "binding": "hypervisorKVMBinding",
+                "variant": "kvm",
+                "variant_id": "81032cdb-ae10-58eb-b691-ca5cc2b8ade0",
+                "variation": "hypervisor"
+              },
+              {
+                "binding": "middlewareEclipseSCOREBinding",
+                "variant": "eclipseSCORE",
+                "variant_id": "db135c9e-c653-5275-8a88-409a0fa4afea",
+                "variation": "middleware"
+              },
+              {
+                "binding": "osPlatformLinuxBinding",
+                "variant": "linux",
+                "variant_id": "a6fea382-a4e0-55ec-b42f-736e915fcd02",
+                "variation": "osPlatform"
+              },
+              {
+                "binding": "vehicleApplicationVisionPilotBinding",
+                "variant": "visionPilot",
+                "variant_id": "b6ee4158-ef59-5ca1-9011-e859c2f7ac41",
+                "variation": "vehicleApplication"
+              }
+            ],
+            "description": "Driver-assistance reference configuration on one SoC:\nVisionPilot on Eclipse S-CORE on Linux on the main side, which\nis also the KVM host, and an AAOS SDV guest under KVM that\ngives the collision warning on a display. Camera only:\nVisionPilot reads one front-camera image, so LiDAR and radar\nare absent (C014 requires the camera and leaves the others\nselectable). Vehicle-target AEBS only (no pedestrian or\nbicycle detection). It selects adaptive cruise control and\nlane-keep assist: VisionPilot runs a speed-following and a\nlane-keeping function, which no case of INC-DRIVING-002\njudges.",
+            "element_id": "a8a52ceb-4747-546c-a21f-e5bb21220c8f",
+            "projection_name": "DriverAssistanceVisionPilotSCOREReference",
+            "reasons": [],
+            "selected": [
+              "capabilities",
+              "capabilities.adaptiveCruiseControl",
+              "capabilities.hmiDisplay",
+              "capabilities.laneKeepAssist",
+              "platformStack",
+              "platformStack.eclipseSCORE",
+              "platformStack.guestAndroid",
+              "platformStack.guestAndroidSDV",
+              "platformStack.guestMiddleware",
+              "platformStack.guestOperatingSystem",
+              "platformStack.hypervisor",
+              "platformStack.kvm",
+              "platformStack.linux",
+              "platformStack.middleware",
+              "platformStack.operatingSystem",
+              "platformStack.vehicleApplication",
+              "platformStack.visionPilot",
+              "sensingBoundary",
+              "sensingBoundary.camera",
+              "sensingBoundary.perceptionSensors"
+            ],
+            "source": "model-based-product-line-engineering/feature-configurations/driver_assistance_visionpilot_score_reference.sysml",
+            "states": {
+              "capabilities": "enabled",
+              "capabilities.adaptiveCruiseControl": "enabled",
+              "capabilities.bicycleDetection": "disabled",
+              "capabilities.hmiDisplay": "enabled",
+              "capabilities.laneKeepAssist": "enabled",
+              "capabilities.pedestrianDetection": "disabled",
+              "platformStack": "enabled",
+              "platformStack.acrn": "omitted",
+              "platformStack.android": "omitted",
+              "platformStack.androidSDV": "omitted",
+              "platformStack.apollo": "omitted",
+              "platformStack.autoE2E": "omitted",
+              "platformStack.autosarAdaptive": "omitted",
+              "platformStack.autoware": "omitted",
+              "platformStack.eclipseSCORE": "enabled",
+              "platformStack.guestAndroid": "enabled",
+              "platformStack.guestAndroidSDV": "enabled",
+              "platformStack.guestMiddleware": "enabled",
+              "platformStack.guestOperatingSystem": "enabled",
+              "platformStack.hypervisor": "enabled",
+              "platformStack.kvm": "enabled",
+              "platformStack.linux": "enabled",
+              "platformStack.middleware": "enabled",
+              "platformStack.noGuestMiddleware": "omitted",
+              "platformStack.noGuestOperatingSystem": "omitted",
+              "platformStack.noHypervisor": "omitted",
+              "platformStack.noMiddleware": "omitted",
+              "platformStack.openpilot": "omitted",
+              "platformStack.operatingSystem": "enabled",
+              "platformStack.qnx": "omitted",
+              "platformStack.qvm": "omitted",
+              "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "enabled",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "omitted",
@@ -1089,6 +1328,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "omitted",
               "sensingBoundary.lidar": "enabled",
@@ -1267,6 +1507,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -1416,6 +1657,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -1565,6 +1807,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -1745,6 +1988,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -1921,6 +2165,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -2108,6 +2353,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -2286,6 +2532,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "omitted",
@@ -2429,6 +2676,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -2607,6 +2855,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "omitted",
               "sensingBoundary.lidar": "enabled",
@@ -2786,6 +3035,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -2963,6 +3213,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -3112,6 +3363,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -3261,6 +3513,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -3441,6 +3694,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -3621,6 +3875,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -3801,6 +4056,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "omitted",
               "sensingBoundary.lidar": "omitted",
@@ -3976,6 +4232,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -4151,6 +4408,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -4329,6 +4587,7 @@
               "platformStack.qnx": "omitted",
               "platformStack.qvm": "omitted",
               "platformStack.vehicleApplication": "enabled",
+              "platformStack.visionPilot": "omitted",
               "sensingBoundary": "enabled",
               "sensingBoundary.camera": "enabled",
               "sensingBoundary.lidar": "enabled",
@@ -4418,6 +4677,47 @@
               "platformStack.noMiddleware"
             ],
             "owner": "platformStack.autoE2E",
+            "pair_exclusion": true,
+            "short_name": null
+          },
+          {
+            "element_id": "61804cc1-87a2-5dd4-b9c3-84687ad19fc4",
+            "kind": "requires",
+            "operand_a": [
+              "platformStack.visionPilot"
+            ],
+            "operand_b": [
+              "sensingBoundary.camera"
+            ],
+            "owner": "platformStack.visionPilot",
+            "pair_exclusion": false,
+            "short_name": "C014"
+          },
+          {
+            "element_id": "43dc971b-b61a-5c65-89d9-0a17bdb6bfdc",
+            "kind": "requires",
+            "operand_a": [
+              "platformStack.visionPilot"
+            ],
+            "operand_b": [
+              "platformStack.linux"
+            ],
+            "owner": "platformStack.visionPilot",
+            "pair_exclusion": false,
+            "short_name": "C015"
+          },
+          {
+            "element_id": "c9a207dc-303f-5096-b078-b6a256900304",
+            "kind": "xor",
+            "operand_a": [
+              "platformStack.visionPilot"
+            ],
+            "operand_b": [
+              "platformStack.androidSDV",
+              "platformStack.autosarAdaptive",
+              "platformStack.noMiddleware"
+            ],
+            "owner": "platformStack.visionPilot",
             "pair_exclusion": true,
             "short_name": null
           },
@@ -4564,6 +4864,14 @@
             "correspondence": "autoE2ECorrespondsToDrivingStackVariability",
             "element_id": "1e723696-a82d-50b1-9f3b-06181dbb9171",
             "feature": "platformStack.autoE2E",
+            "governed": "drivingStackVariability",
+            "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3"
+          },
+          {
+            "classification": "deferred",
+            "correspondence": "visionPilotCorrespondsToDrivingStackVariability",
+            "element_id": "82df189e-10e0-5fac-b4a9-fab3d477ab6e",
+            "feature": "platformStack.visionPilot",
             "governed": "drivingStackVariability",
             "governed_id": "d5cdb8e3-7771-52bb-89b6-3a7428147fe3"
           },
@@ -4796,6 +5104,16 @@
                 "rule": "autoE2EEclipseSCORERule"
               },
               {
+                "element_id": "2a684ce2-3ce5-50f8-bfea-57dd845348cd",
+                "premises": [
+                  "platformStack.visionPilot",
+                  "platformStack.eclipseSCORE"
+                ],
+                "result": "visionPilotToSCORE",
+                "result_id": "3f218304-a226-5387-8bb9-884d358b51f4",
+                "rule": "visionPilotEclipseSCORERule"
+              },
+              {
                 "element_id": "fea7ce6d-1274-505f-81d4-bbfd9b54d872",
                 "premises": [
                   "platformStack.autoware",
@@ -4859,7 +5177,8 @@
               "platformStack.autoware",
               "platformStack.openpilot",
               "platformStack.apollo",
-              "platformStack.autoE2E"
+              "platformStack.autoE2E",
+              "platformStack.visionPilot"
             ],
             "multiplicity": {
               "lower": 1,
@@ -4929,6 +5248,21 @@
             "owner": "platformStack",
             "path": "platformStack.autoE2E",
             "short_name": "F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E",
+            "unassigned": false
+          },
+          {
+            "binding_time": "Development",
+            "element_id": "9fc8857f-0b23-59e7-b14b-bb6af3c38b43",
+            "group": "platformStack.vehicleApplication",
+            "members": [],
+            "multiplicity": {
+              "lower": 0,
+              "upper": 1
+            },
+            "name": "visionPilot",
+            "owner": "platformStack",
+            "path": "platformStack.visionPilot",
+            "short_name": "F-PLATFORM-VEHICLE-APPLICATION-VISIONPILOT",
             "unassigned": false
           },
           {
@@ -5448,6 +5782,7 @@
       "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
       "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
       "model-based-product-line-engineering/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
+      "model-based-product-line-engineering/feature-configurations/driver_assistance_visionpilot_score_reference.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
       "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
@@ -5497,6 +5832,7 @@
     "model-based-product-line-engineering/feature-configurations/aebs_autoware_linux_lidar_camera.sysml",
     "model-based-product-line-engineering/feature-configurations/apollo_qnx_qvm.sysml",
     "model-based-product-line-engineering/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
+    "model-based-product-line-engineering/feature-configurations/driver_assistance_visionpilot_score_reference.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/invalid_score_android.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/adaptive_cruise_control_probe.sysml",
     "model-based-product-line-engineering/feature-configurations/fixtures/parity-probes/apollo_android_sdv_pair_probe.sysml",
@@ -5521,8 +5857,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "149e2ffcb5c40d280eeb68344838a670e49c1eeb",
-    "executor_revision": "149e2ffcb5c40d280eeb68344838a670e49c1eeb"
+    "bundle_git_commit": "4985c9a82b007e1f44e5d3e5203d4b655bd668b3",
+    "executor_revision": "4985c9a82b007e1f44e5d3e5203d4b655bd668b3"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -5561,6 +5897,12 @@
       "path": "model-based-product-line-engineering/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
       "sha256": "beff58616091361d0f4df152611e71b5bde523cc08aebd8c86675830f03049c3",
       "size": 3007
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/driver_assistance_visionpilot_score_reference.sysml",
+      "sha256": "4886836d4f9fe06f6f7e41070355630f914a23ff4d96ad22ecb85024029d0023",
+      "size": 3216
     },
     {
       "authority": "pleml-fixture",
@@ -5703,8 +6045,8 @@
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "a259b8a6736d81f204a7eaeb9f7a2bb13729a8658d1513f66eb40388dd91321f",
-      "size": 33593
+      "sha256": "13b9900ecd143115567bf23e04f549e57b0ac1293bc5c1cf713486b43fdc29f3",
+      "size": 36405
     },
     {
       "authority": "pleml-feature-model",
@@ -5727,8 +6069,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "616dfce419346bf31cdfd9db1b54a3ecc99c577ad808d4e70dc22bdb96493557",
-      "size": 31905
+      "sha256": "c59fc960e235158086e33bdd3a8bd2e5b650c3d2e6584bdc1cb685614fd45aac",
+      "size": 33478
     },
     {
       "authority": "reviewed",

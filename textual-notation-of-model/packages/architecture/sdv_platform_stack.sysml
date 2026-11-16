@@ -79,6 +79,7 @@ package DE4SDV_SDVPlatformStack {
       variant part openpilot : OpenpilotStack;
       variant part apollo : ApolloStack;
       variant part autoE2E : AutoE2EStack;
+      variant part visionPilot : VisionPilotStack;
     }
 
     variation part middleware : MiddlewareLayer {
@@ -97,6 +98,7 @@ package DE4SDV_SDVPlatformStack {
       variant part openpilotToSCORE : OpenpilotToSCOREAdapter;
       variant part apolloToSCORE : ApolloToSCOREAdapter;
       variant part autoE2EToSCORE : AutoE2EToSCOREAdapter;
+      variant part visionPilotToSCORE : VisionPilotToSCOREAdapter;
       variant part none[0]; /* no adapter when no vehicle-level middleware */
     }
 
@@ -472,6 +474,21 @@ package DE4SDV_SDVPlatformStack {
      */
   }
 
+  part def VisionPilotStack :> VehicleApplicationLayer {
+    doc /*
+     * VisionPilot (Autoware Foundation vision_pilot): a camera-only
+     * driver-assistance application that plans steering and acceleration
+     * from one front-camera image and the vehicle speed, one Linux process
+     * with its own loop, built without ROS 2 on the DE4SDV bench.
+     * License: Apache 2.0 for the source; the terms of its network weights
+     * are read separately (INC-DRIVING-002).
+     * Status: candidate realization, admitted to no member; the
+     * driver-assistance increment's phase 8 places it, phase 10 judges it.
+     * No conformance to DE4SDV boundary contracts is assumed without
+     * evidence.
+     */
+  }
+
   part def AutowareToSCOREAdapter :> ApplicationMiddlewareAdapterLayer {
     doc /*
      * Adapts Autoware ROS 2 topics to Eclipse S-CORE LoLa IPC.
@@ -487,6 +504,20 @@ package DE4SDV_SDVPlatformStack {
      * processes, so the adapter is no program of its own. Derived for the
      * pair AutoE2E and Eclipse S-CORE; no other pairing of AutoE2E has an
      * adapter.
+     */
+  }
+
+  part def VisionPilotToSCOREAdapter :> ApplicationMiddlewareAdapterLayer {
+    doc /*
+     * The DE4SDV S-CORE interface module of the VisionPilot process of
+     * INC-DRIVING-002 phase 8. It runs inside the candidate's process, so
+     * the adapter is no program of its own. On S-CORE Communication
+     * (mw::com), the vehicle interface publishes the driving command and
+     * subscribes to the candidate record, and the warning request publisher
+     * publishes the warning request. The camera images and the speed of the
+     * ego vehicle come from the simulator's client library, not from
+     * mw::com. Derived for the pair VisionPilot and Eclipse S-CORE; no other
+     * pairing of VisionPilot has an adapter.
      */
   }
 

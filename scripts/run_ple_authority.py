@@ -65,6 +65,7 @@ CONFIGURATIONS = (
     f"{PLE}/feature-configurations/middleware_autoware_aaos_sdv_reference.sysml",
     f"{PLE}/feature-configurations/middleware_autoware_score_reference.sysml",
     f"{PLE}/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
+    f"{PLE}/feature-configurations/driver_assistance_visionpilot_score_reference.sysml",
     f"{PLE}/feature-configurations/apollo_qnx_qvm.sysml",
     f"{PLE}/feature-configurations/inc_aebs_009a_jetson.sysml",
     f"{PLE}/feature-configurations/apple_silicon_macos_candidate.sysml",

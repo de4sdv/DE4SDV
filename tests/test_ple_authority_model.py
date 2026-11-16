@@ -15,7 +15,7 @@ validator, and the evaluator of step S2 owns the semantics. They pin:
 - the shape of each feature model: one feature ID per feature, no element for
   common content (decision 2), the groups and their multiplicities, the
   Development binding time and the unassigned binding times;
-- the agreement check over the twelve application-middleware pairs: exactly
+- the agreement check over the twenty application-middleware pairs: exactly
   one derivation rule for each allowed pair and exactly one exclusion for each
   unsupported one;
 - the exclusions and the requires constraints of the SDV product line;
@@ -124,6 +124,8 @@ SDV_REQUIRES = {
     "C011": ("autoware", {"linux"}),
     "C012": ("autoE2E", {"camera"}),
     "C013": ("autoE2E", {"linux"}),
+    "C014": ("visionPilot", {"camera"}),
+    "C015": ("visionPilot", {"linux"}),
 }
 
 #: The correspondences of the SDV features to the governed scope, by feature ID: the
@@ -138,6 +140,7 @@ SDV_CORRESPONDENCES = {
     "F-PLATFORM-VEHICLE-APPLICATION-OPENPILOT": {"ReferenceOnlyAlternativeSet::openpilot"},
     "F-PLATFORM-VEHICLE-APPLICATION-APOLLO": {"ReferenceOnlyAlternativeSet::apollo"},
     "F-PLATFORM-VEHICLE-APPLICATION-AUTOE2E": {"DeferredVariabilitySet::drivingStackVariability"},
+    "F-PLATFORM-VEHICLE-APPLICATION-VISIONPILOT": {"DeferredVariabilitySet::drivingStackVariability"},
     "F-PLATFORM-MIDDLEWARE-ECLIPSE-SCORE": {"ReferenceOnlyAlternativeSet::eclipseSCORE"},
     "F-PLATFORM-MIDDLEWARE-ANDROID-SDV": {"vehiclePlatformIntegrationMode::aaosIntegrated"},
     "F-PLATFORM-MIDDLEWARE-AUTOSAR-ADAPTIVE": {"ReferenceOnlyAlternativeSet::autosarAdaptive"},
@@ -600,9 +603,9 @@ def _exclusions(by_name: dict[str, Feature]) -> list[tuple[Feature, dict]]:
 
 def test_the_sdv_exclusions_are_the_reviewed_constraints() -> None:
     """C001, C003, C004 and C005 are exclusions, each owned by one choice and excluding choices of another
-    group; C002 and C006 are dropped rules with no constraint (below). The three pair exclusions of Openpilot,
-    Apollo and AutoE2E carry no ID. Every SDV constraint is an exclusion or one of the reviewed requires
-    constraints; no implies constraint exists."""
+    group; C002 and C006 are dropped rules with no constraint (below). The four pair exclusions of Openpilot,
+    Apollo, AutoE2E and VisionPilot carry no ID. Every SDV constraint is an exclusion or one of the reviewed
+    requires constraints; no implies constraint exists."""
     by_name = _by_name(_tree(FAMILIES["sdv"])[1])
     identified = {constraint["id"]: (owner.name, set(constraint["operands"]))
                   for owner, constraint in _exclusions(by_name) if constraint["id"]}
@@ -611,14 +614,15 @@ def test_the_sdv_exclusions_are_the_reviewed_constraints() -> None:
         group = by_name[owner].parent
         assert group and all(by_name[name].parent not in (None, group) for name in excluded), identifier
     kinds = Counter(constraint["kind"] for feature in by_name.values() for constraint in feature.constraints)
-    assert kinds == {"xorFeatures": len(SDV_EXCLUSIONS) + 3, "requiresFeatures": len(SDV_REQUIRES)}, kinds
+    assert kinds == {"xorFeatures": len(SDV_EXCLUSIONS) + 4, "requiresFeatures": len(SDV_REQUIRES)}, kinds
 
 
 def test_the_sdv_requires_constraints_are_the_reviewed_constraints() -> None:
-    """C007 to C011 (INC-MW-011 phase 9) and C012, C013 (INC-DRIVING-001 phase 9) are requires constraints,
-    each with its constraint ID, owned by one feature and requiring one choice of another group: the guest
-    side, its hypervisor, the AAOS SDV partner, the HMI display, Autoware's Linux, and AutoE2E's camera and
-    Linux. Each owner other than the HMI display is a choice of a group."""
+    """C007 to C011 (INC-MW-011 phase 9), C012, C013 (INC-DRIVING-001 phase 9) and C014, C015 (INC-DRIVING-002
+    phase 9) are requires constraints, each with its constraint ID, owned by one feature and requiring one choice
+    of another group: the guest side, its hypervisor, the AAOS SDV partner, the HMI display, Autoware's Linux,
+    AutoE2E's camera and Linux, and VisionPilot's camera and Linux. Each owner other than the HMI display is a
+    choice of a group."""
     by_name = _by_name(_tree(FAMILIES["sdv"])[1])
     identified = {constraint["id"]: (owner.name, set(constraint["operands"]))
                   for owner in by_name.values() for constraint in owner.constraints
@@ -706,7 +710,7 @@ def test_the_derived_variation_and_its_rules_target_the_superset_and_no_binding(
                    if dependency.metadata == "FeatureBinding")
 
 
-def test_the_agreement_check_covers_all_sixteen_pairs_exactly_once() -> None:
+def test_the_agreement_check_covers_all_twenty_pairs_exactly_once() -> None:
     family = FAMILIES["sdv"]
     by_name = _by_name(_tree(family)[1])
     applications = {_qualified(family, feature) for feature in by_name.values() if feature.parent == "vehicleApplication"}
@@ -729,10 +733,10 @@ def test_the_agreement_check_covers_all_sixteen_pairs_exactly_once() -> None:
             covered.setdefault((_qualified(family, owner), _qualified(family, by_name[name])),
                                []).append(f"exclusion {constraint['name']}")
     every = {(application, middleware) for application in applications for middleware in middlewares}
-    assert len(every) == 16 and set(covered) == every
+    assert len(every) == 20 and set(covered) == every
     assert all(len(statements) == 1 for statements in covered.values()), covered
-    assert sum(1 for statements in covered.values() if statements[0].startswith("rule")) == len(rules) == 9
-    assert exclusion_owners == 3
+    assert sum(1 for statements in covered.values() if statements[0].startswith("rule")) == len(rules) == 10
+    assert exclusion_owners == 4
 
 
 def _rationale(raw: str, owner: str) -> str:
@@ -892,11 +896,15 @@ def _model_verdict(features: list[Feature], rules: list[Dependency], selected: s
 #: phase 9, and the test computes it with the lexical model above, over the model text only. On 2026-10-22,
 #: in the phase-9 review, a one-off run of the DE4SDV evaluator over a hand-built synthetic mirror of the
 #: tree (revision 1fb1250f) agreed with it selection by selection. That run is not in the repository, and CI
-#: does not repeat it. Of the 172,032 SDV selections, 16,848 are valid: 143 valid platform and display
+#: does not repeat it. Of the 215,040 SDV selections, 17,680 are valid: 143 valid platform and display
 #: selections of the three earlier applications, each with the 112 choices of the sensors and the four other
 #: capabilities, which no constraint names, and, since INC-DRIVING-001 phase 9 (2026-11-06), 13 valid AutoE2E
 #: platform and display selections (Linux, C013; Eclipse S-CORE, the one pair with a rule), each with the 4
-#: sensor choices that keep the camera (C012) and the 16 choices of the four other capabilities.
+#: sensor choices that keep the camera (C012) and the 16 choices of the four other capabilities. Since
+#: INC-DRIVING-002 phase 9, VisionPilot adds the same 13 x 4 x 16 = 832 valid selections (C014, C015 and its
+#: one rule with Eclipse S-CORE). Its 95 buckets of its own are AutoE2E's with C014, C015 and
+#: visionPilotToSCORE in place of C012, C013 and autoE2EToSCORE; the 7,360 VisionPilot selections that no
+#: constraint of its own rejects add to 13 shared buckets, as AutoE2E's do.
 CLOSED_WORLD = {
     "sdv": {
         (False, ('C001', 'C007'), False, None): 672,
@@ -904,40 +912,60 @@ CLOSED_WORLD = {
         (False, ('C001', 'C007', 'C010', 'C011'), False, None): 112,
         (False, ('C001', 'C007', 'C010', 'C012', 'C013'), False, None): 48,
         (False, ('C001', 'C007', 'C010', 'C013'), False, None): 64,
+        (False, ('C001', 'C007', 'C010', 'C014', 'C015'), False, None): 48,
+        (False, ('C001', 'C007', 'C010', 'C015'), False, None): 64,
         (False, ('C001', 'C007', 'C011'), False, None): 336,
         (False, ('C001', 'C007', 'C012', 'C013'), False, None): 144,
         (False, ('C001', 'C007', 'C013'), False, None): 192,
+        (False, ('C001', 'C007', 'C014', 'C015'), False, None): 144,
+        (False, ('C001', 'C007', 'C015'), False, None): 192,
         (False, ('C001', 'C008'), False, None): 1792,
         (False, ('C001', 'C008', 'C011'), False, None): 896,
         (False, ('C001', 'C008', 'C012', 'C013'), False, None): 384,
         (False, ('C001', 'C008', 'C013'), False, None): 512,
+        (False, ('C001', 'C008', 'C014', 'C015'), False, None): 384,
+        (False, ('C001', 'C008', 'C015'), False, None): 512,
         (False, ('C001', 'C010'), False, None): 1568,
         (False, ('C001', 'C010', 'C011'), False, None): 784,
         (False, ('C001', 'C010', 'C012', 'C013'), False, None): 336,
         (False, ('C001', 'C010', 'C013'), False, None): 448,
+        (False, ('C001', 'C010', 'C014', 'C015'), False, None): 336,
+        (False, ('C001', 'C010', 'C015'), False, None): 448,
         (False, ('C001', 'C011'), False, None): 1456,
         (False, ('C001', 'C012', 'C013'), False, None): 624,
         (False, ('C001', 'C013'), False, None): 832,
+        (False, ('C001', 'C014', 'C015'), False, None): 624,
+        (False, ('C001', 'C015'), False, None): 832,
         (False, ('C001',), False, None): 2912,
         (False, ('C003', 'C007'), True, None): 672,
         (False, ('C003', 'C007', 'C010'), True, None): 224,
         (False, ('C003', 'C007', 'C010', 'C011'), False, None): 112,
         (False, ('C003', 'C007', 'C010', 'C012', 'C013'), True, None): 48,
         (False, ('C003', 'C007', 'C010', 'C013'), True, None): 64,
+        (False, ('C003', 'C007', 'C010', 'C014', 'C015'), True, None): 48,
+        (False, ('C003', 'C007', 'C010', 'C015'), True, None): 64,
         (False, ('C003', 'C007', 'C011'), False, None): 336,
         (False, ('C003', 'C007', 'C012', 'C013'), True, None): 144,
         (False, ('C003', 'C007', 'C013'), True, None): 192,
+        (False, ('C003', 'C007', 'C014', 'C015'), True, None): 144,
+        (False, ('C003', 'C007', 'C015'), True, None): 192,
         (False, ('C003', 'C008'), True, None): 1792,
         (False, ('C003', 'C008', 'C011'), False, None): 896,
         (False, ('C003', 'C008', 'C012', 'C013'), True, None): 384,
         (False, ('C003', 'C008', 'C013'), True, None): 512,
+        (False, ('C003', 'C008', 'C014', 'C015'), True, None): 384,
+        (False, ('C003', 'C008', 'C015'), True, None): 512,
         (False, ('C003', 'C010'), True, None): 1568,
         (False, ('C003', 'C010', 'C011'), False, None): 784,
         (False, ('C003', 'C010', 'C012', 'C013'), True, None): 336,
         (False, ('C003', 'C010', 'C013'), True, None): 448,
+        (False, ('C003', 'C010', 'C014', 'C015'), True, None): 336,
+        (False, ('C003', 'C010', 'C015'), True, None): 448,
         (False, ('C003', 'C011'), False, None): 1456,
         (False, ('C003', 'C012', 'C013'), True, None): 624,
         (False, ('C003', 'C013'), True, None): 832,
+        (False, ('C003', 'C014', 'C015'), True, None): 624,
+        (False, ('C003', 'C015'), True, None): 832,
         (False, ('C003',), True, None): 2912,
         (False, ('C004', 'C008'), False, None): 896,
         (False, ('C004', 'C008'), True, None): 896,
@@ -946,14 +974,22 @@ CLOSED_WORLD = {
         (False, ('C004', 'C008', 'C012', 'C013'), True, None): 288,
         (False, ('C004', 'C008', 'C013'), False, None): 128,
         (False, ('C004', 'C008', 'C013'), True, None): 384,
+        (False, ('C004', 'C008', 'C014', 'C015'), False, None): 96,
+        (False, ('C004', 'C008', 'C014', 'C015'), True, None): 288,
+        (False, ('C004', 'C008', 'C015'), False, None): 128,
+        (False, ('C004', 'C008', 'C015'), True, None): 384,
         (False, ('C004', 'C009'), True, None): 448,
         (False, ('C004', 'C009', 'C010'), True, None): 448,
         (False, ('C004', 'C009', 'C010', 'C011'), False, None): 224,
         (False, ('C004', 'C009', 'C010', 'C012', 'C013'), True, None): 96,
         (False, ('C004', 'C009', 'C010', 'C013'), True, None): 128,
+        (False, ('C004', 'C009', 'C010', 'C014', 'C015'), True, None): 96,
+        (False, ('C004', 'C009', 'C010', 'C015'), True, None): 128,
         (False, ('C004', 'C009', 'C011'), False, None): 224,
         (False, ('C004', 'C009', 'C012', 'C013'), True, None): 96,
         (False, ('C004', 'C009', 'C013'), True, None): 128,
+        (False, ('C004', 'C009', 'C014', 'C015'), True, None): 96,
+        (False, ('C004', 'C009', 'C015'), True, None): 128,
         (False, ('C004', 'C010'), False, None): 896,
         (False, ('C004', 'C010'), True, None): 448,
         (False, ('C004', 'C010', 'C011'), False, None): 672,
@@ -961,11 +997,19 @@ CLOSED_WORLD = {
         (False, ('C004', 'C010', 'C012', 'C013'), True, None): 192,
         (False, ('C004', 'C010', 'C013'), False, None): 128,
         (False, ('C004', 'C010', 'C013'), True, None): 256,
+        (False, ('C004', 'C010', 'C014', 'C015'), False, None): 96,
+        (False, ('C004', 'C010', 'C014', 'C015'), True, None): 192,
+        (False, ('C004', 'C010', 'C015'), False, None): 128,
+        (False, ('C004', 'C010', 'C015'), True, None): 256,
         (False, ('C004', 'C011'), False, None): 1568,
         (False, ('C004', 'C012', 'C013'), False, None): 192,
         (False, ('C004', 'C012', 'C013'), True, None): 480,
         (False, ('C004', 'C013'), False, None): 256,
         (False, ('C004', 'C013'), True, None): 640,
+        (False, ('C004', 'C014', 'C015'), False, None): 192,
+        (False, ('C004', 'C014', 'C015'), True, None): 480,
+        (False, ('C004', 'C015'), False, None): 256,
+        (False, ('C004', 'C015'), True, None): 640,
         (False, ('C004',), False, None): 1792,
         (False, ('C004',), True, None): 1344,
         (False, ('C005', 'C008'), False, None): 896,
@@ -975,14 +1019,22 @@ CLOSED_WORLD = {
         (False, ('C005', 'C008', 'C012', 'C013'), True, None): 288,
         (False, ('C005', 'C008', 'C013'), False, None): 128,
         (False, ('C005', 'C008', 'C013'), True, None): 384,
+        (False, ('C005', 'C008', 'C014', 'C015'), False, None): 96,
+        (False, ('C005', 'C008', 'C014', 'C015'), True, None): 288,
+        (False, ('C005', 'C008', 'C015'), False, None): 128,
+        (False, ('C005', 'C008', 'C015'), True, None): 384,
         (False, ('C005', 'C009'), True, None): 448,
         (False, ('C005', 'C009', 'C010'), True, None): 448,
         (False, ('C005', 'C009', 'C010', 'C011'), False, None): 224,
         (False, ('C005', 'C009', 'C010', 'C012', 'C013'), True, None): 96,
         (False, ('C005', 'C009', 'C010', 'C013'), True, None): 128,
+        (False, ('C005', 'C009', 'C010', 'C014', 'C015'), True, None): 96,
+        (False, ('C005', 'C009', 'C010', 'C015'), True, None): 128,
         (False, ('C005', 'C009', 'C011'), False, None): 224,
         (False, ('C005', 'C009', 'C012', 'C013'), True, None): 96,
         (False, ('C005', 'C009', 'C013'), True, None): 128,
+        (False, ('C005', 'C009', 'C014', 'C015'), True, None): 96,
+        (False, ('C005', 'C009', 'C015'), True, None): 128,
         (False, ('C005', 'C010'), False, None): 896,
         (False, ('C005', 'C010'), True, None): 448,
         (False, ('C005', 'C010', 'C011'), False, None): 672,
@@ -990,27 +1042,41 @@ CLOSED_WORLD = {
         (False, ('C005', 'C010', 'C012', 'C013'), True, None): 192,
         (False, ('C005', 'C010', 'C013'), False, None): 128,
         (False, ('C005', 'C010', 'C013'), True, None): 256,
+        (False, ('C005', 'C010', 'C014', 'C015'), False, None): 96,
+        (False, ('C005', 'C010', 'C014', 'C015'), True, None): 192,
+        (False, ('C005', 'C010', 'C015'), False, None): 128,
+        (False, ('C005', 'C010', 'C015'), True, None): 256,
         (False, ('C005', 'C011'), False, None): 1568,
         (False, ('C005', 'C012', 'C013'), False, None): 192,
         (False, ('C005', 'C012', 'C013'), True, None): 480,
         (False, ('C005', 'C013'), False, None): 256,
         (False, ('C005', 'C013'), True, None): 640,
+        (False, ('C005', 'C014', 'C015'), False, None): 192,
+        (False, ('C005', 'C014', 'C015'), True, None): 480,
+        (False, ('C005', 'C015'), False, None): 256,
+        (False, ('C005', 'C015'), True, None): 640,
         (False, ('C005',), False, None): 1792,
         (False, ('C005',), True, None): 1344,
         (False, ('C007', 'C009'), False, None): 112,
-        (False, ('C007', 'C009'), True, None): 736,
+        (False, ('C007', 'C009'), True, None): 800,
         (False, ('C007', 'C009', 'C010'), False, None): 112,
-        (False, ('C007', 'C009', 'C010'), True, None): 736,
+        (False, ('C007', 'C009', 'C010'), True, None): 800,
         (False, ('C007', 'C009', 'C010', 'C011'), False, None): 224,
         (False, ('C007', 'C009', 'C010', 'C012'), True, None): 48,
         (False, ('C007', 'C009', 'C010', 'C012', 'C013'), True, None): 96,
         (False, ('C007', 'C009', 'C010', 'C013'), True, None): 128,
+        (False, ('C007', 'C009', 'C010', 'C014'), True, None): 48,
+        (False, ('C007', 'C009', 'C010', 'C014', 'C015'), True, None): 96,
+        (False, ('C007', 'C009', 'C010', 'C015'), True, None): 128,
         (False, ('C007', 'C009', 'C011'), False, None): 224,
         (False, ('C007', 'C009', 'C012'), True, None): 48,
         (False, ('C007', 'C009', 'C012', 'C013'), True, None): 96,
         (False, ('C007', 'C009', 'C013'), True, None): 128,
-        (False, ('C007', 'C010'), False, None): 1520,
-        (False, ('C007', 'C010'), True, None): 576,
+        (False, ('C007', 'C009', 'C014'), True, None): 48,
+        (False, ('C007', 'C009', 'C014', 'C015'), True, None): 96,
+        (False, ('C007', 'C009', 'C015'), True, None): 128,
+        (False, ('C007', 'C010'), False, None): 1584,
+        (False, ('C007', 'C010'), True, None): 704,
         (False, ('C007', 'C010', 'C011'), False, None): 448,
         (False, ('C007', 'C010', 'C012'), False, None): 48,
         (False, ('C007', 'C010', 'C012'), True, None): 96,
@@ -1018,6 +1084,12 @@ CLOSED_WORLD = {
         (False, ('C007', 'C010', 'C012', 'C013'), True, None): 144,
         (False, ('C007', 'C010', 'C013'), False, None): 64,
         (False, ('C007', 'C010', 'C013'), True, None): 192,
+        (False, ('C007', 'C010', 'C014'), False, None): 48,
+        (False, ('C007', 'C010', 'C014'), True, None): 96,
+        (False, ('C007', 'C010', 'C014', 'C015'), False, None): 48,
+        (False, ('C007', 'C010', 'C014', 'C015'), True, None): 144,
+        (False, ('C007', 'C010', 'C015'), False, None): 64,
+        (False, ('C007', 'C010', 'C015'), True, None): 192,
         (False, ('C007', 'C011'), False, None): 1792,
         (False, ('C007', 'C012'), False, None): 144,
         (False, ('C007', 'C012'), True, None): 384,
@@ -1025,8 +1097,14 @@ CLOSED_WORLD = {
         (False, ('C007', 'C012', 'C013'), True, None): 624,
         (False, ('C007', 'C013'), False, None): 192,
         (False, ('C007', 'C013'), True, None): 832,
-        (False, ('C007',), False, None): 4784,
-        (False, ('C007',), True, None): 3200,
+        (False, ('C007', 'C014'), False, None): 144,
+        (False, ('C007', 'C014'), True, None): 384,
+        (False, ('C007', 'C014', 'C015'), False, None): 144,
+        (False, ('C007', 'C014', 'C015'), True, None): 624,
+        (False, ('C007', 'C015'), False, None): 192,
+        (False, ('C007', 'C015'), True, None): 832,
+        (False, ('C007',), False, None): 4976,
+        (False, ('C007',), True, None): 3712,
         (False, ('C008', 'C011'), False, None): 3584,
         (False, ('C008', 'C012'), False, None): 384,
         (False, ('C008', 'C012'), True, None): 1152,
@@ -1034,20 +1112,32 @@ CLOSED_WORLD = {
         (False, ('C008', 'C012', 'C013'), True, None): 1344,
         (False, ('C008', 'C013'), False, None): 256,
         (False, ('C008', 'C013'), True, None): 1792,
-        (False, ('C008',), False, None): 11264,
-        (False, ('C008',), True, None): 8704,
+        (False, ('C008', 'C014'), False, None): 384,
+        (False, ('C008', 'C014'), True, None): 1152,
+        (False, ('C008', 'C014', 'C015'), False, None): 192,
+        (False, ('C008', 'C014', 'C015'), True, None): 1344,
+        (False, ('C008', 'C015'), False, None): 256,
+        (False, ('C008', 'C015'), True, None): 1792,
+        (False, ('C008',), False, None): 11776,
+        (False, ('C008',), True, None): 10240,
         (False, ('C009', 'C010'), False, None): 784,
-        (False, ('C009', 'C010'), True, None): 4256,
+        (False, ('C009', 'C010'), True, None): 4704,
         (False, ('C009', 'C010', 'C011'), False, None): 1120,
         (False, ('C009', 'C010', 'C012'), True, None): 336,
         (False, ('C009', 'C010', 'C012', 'C013'), True, None): 480,
         (False, ('C009', 'C010', 'C013'), True, None): 640,
+        (False, ('C009', 'C010', 'C014'), True, None): 336,
+        (False, ('C009', 'C010', 'C014', 'C015'), True, None): 480,
+        (False, ('C009', 'C010', 'C015'), True, None): 640,
         (False, ('C009', 'C011'), False, None): 1120,
         (False, ('C009', 'C012'), True, None): 336,
         (False, ('C009', 'C012', 'C013'), True, None): 480,
         (False, ('C009', 'C013'), True, None): 640,
+        (False, ('C009', 'C014'), True, None): 336,
+        (False, ('C009', 'C014', 'C015'), True, None): 480,
+        (False, ('C009', 'C015'), True, None): 640,
         (False, ('C009',), False, None): 784,
-        (False, ('C009',), True, None): 4256,
+        (False, ('C009',), True, None): 4704,
         (False, ('C010', 'C011'), False, None): 1792,
         (False, ('C010', 'C012'), False, None): 336,
         (False, ('C010', 'C012'), True, None): 672,
@@ -1055,8 +1145,14 @@ CLOSED_WORLD = {
         (False, ('C010', 'C012', 'C013'), True, None): 624,
         (False, ('C010', 'C013'), False, None): 192,
         (False, ('C010', 'C013'), True, None): 832,
-        (False, ('C010',), False, None): 8848,
-        (False, ('C010',), True, None): 3136,
+        (False, ('C010', 'C014'), False, None): 336,
+        (False, ('C010', 'C014'), True, None): 672,
+        (False, ('C010', 'C014', 'C015'), False, None): 144,
+        (False, ('C010', 'C014', 'C015'), True, None): 624,
+        (False, ('C010', 'C015'), False, None): 192,
+        (False, ('C010', 'C015'), True, None): 832,
+        (False, ('C010',), False, None): 9296,
+        (False, ('C010',), True, None): 4032,
         (False, ('C011',), False, None): 4032,
         (False, ('C012', 'C013'), False, None): 240,
         (False, ('C012', 'C013'), True, None): 1488,
@@ -1064,7 +1160,13 @@ CLOSED_WORLD = {
         (False, ('C012',), True, None): 1536,
         (False, ('C013',), False, None): 320,
         (False, ('C013',), True, None): 1984,
-        (False, (), True, None): 9216,
+        (False, ('C014', 'C015'), False, None): 240,
+        (False, ('C014', 'C015'), True, None): 1488,
+        (False, ('C014',), False, None): 624,
+        (False, ('C014',), True, None): 1536,
+        (False, ('C015',), False, None): 320,
+        (False, ('C015',), True, None): 1984,
+        (False, (), True, None): 11264,
         (True, (), False, 'apolloToSCORE'): 2016,
         (True, (), False, 'autoE2EToSCORE'): 832,
         (True, (), False, 'autowareToAAOSSDV'): 672,
@@ -1072,6 +1174,7 @@ CLOSED_WORLD = {
         (True, (), False, 'autowareToSCORE'): 1456,
         (True, (), False, 'none'): 8400,
         (True, (), False, 'openpilotToSCORE'): 2016,
+        (True, (), False, 'visionPilotToSCORE'): 832,
     },
     "engineering": {
         (False, ('C-ENG-AOSP-HOST-REQUIRES-LINUX-X86-64', 'C-ENG-AOSP-HOST-REQUIRES-NESTED-KVM'), False, None): 4,
@@ -1128,8 +1231,24 @@ def test_the_closed_world_keeps_its_verdicts_on_every_structurally_valid_selecti
     for selected in _structural_selections(features):
         valid, ids, pair, variant = _model_verdict(features, rules, selected)
         histogram[(valid, tuple(sorted(ids)), pair, variant)] += 1
-    assert sum(histogram.values()) == {"sdv": 172032, "engineering": 27, "vehicle": 8}[name]
+    assert sum(histogram.values()) == {"sdv": 215040, "engineering": 27, "vehicle": 8}[name]
     assert dict(histogram) == CLOSED_WORLD[name]
+
+
+def test_the_feature_model_document_quotes_the_closed_world_and_the_pair_coverage() -> None:
+    """The figures of the closed world in docs/product-line-engineering/pleml-feature-models.md are the reviewed
+    table's: structurally valid selections, valid ones and verdict classes per family, and the pair coverage of the
+    agreement check. INC-DRIVING-001 left them at their earlier values, because nothing compared them."""
+    doc = (ROOT / "docs" / "product-line-engineering" / "pleml-feature-models.md").read_text(encoding="utf-8")
+    for name, label in (("sdv", "SDV product line"), ("engineering", "Engineering execution environments"),
+                        ("vehicle", "Vehicle-target execution environments")):
+        table = CLOSED_WORLD[name]
+        row = f"| {label} | {sum(table.values()):,} | {sum(v for k, v in table.items() if k[0]):,} | {len(table)} |"
+        assert row in doc, row
+    flat = " ".join(doc.split())
+    assert ("The ten derivation rules and the exclusions of Openpilot, Apollo, AutoE2E and VisionPilot cover all "
+            "twenty application-middleware pairs, each exactly once") in flat
+    assert "twelve application-middleware pairs" not in flat and "all eight derivation rules" not in flat
 
 
 def test_the_closed_world_check_catches_a_dropped_exclusion() -> None:
@@ -1468,3 +1587,44 @@ def test_admission_blocks_only_on_selected_choices_and_leaves() -> None:
         "InitialCommonCoreEngineeringContent::linuxROS2AutowareRuntime is not represented: linux is not selected"]
     assert admission(features, correspondences, family_elements, integrated | {"hmiDisplay"})[1] == [
         "hmiDisplay: not in the governed scope"]
+
+
+_COUNT_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
+                "eleven": 11, "twelve": 12}
+
+
+def test_the_product_line_documents_count_the_committed_configurations() -> None:
+    """The counts that the feature-model document and the configurations README state follow the committed
+    configurations and the closed world: the configurations, the SDV configurations, the SDV configurations that
+    select the HMI display, and the split of the valid SDV selections. Nothing compared them before, and three of
+    them went stale."""
+    doc = " ".join((ROOT / "docs" / "product-line-engineering" / "pleml-feature-models.md").read_text(
+        encoding="utf-8").split())
+    readme = " ".join((ROOT / CONFIGURATIONS_DIR / "README.md").read_text(encoding="utf-8").split())
+    texts = {path.name: path.read_text(encoding="utf-8") for path in sorted((ROOT / CONFIGURATIONS_DIR).glob("*.sysml"))}
+    sdv = [name for name, text in texts.items() if "SDVProductLineFeatureTree" in text]
+    display = [name for name in sdv if re.search(r"\bhmiDisplay\[1\]", texts[name])]
+
+    def count(pattern: str, text: str) -> int:
+        match = re.search(pattern, text)
+        assert match, pattern
+        word = match.group(1)
+        return int(word) if word.isdigit() else _COUNT_WORDS[word]
+
+    assert count(r"of the (\w+) configurations above, the fixture aside", readme) == len(texts)
+    assert count(r"the (\w+) SDV configurations, plus the invalid fixture", doc) == len(sdv)
+    assert count(r"\| SDV product line \((\d+) configurations\) \| none \|", doc) == len(sdv)
+    assert count(r"of the (\w+) configurations, the \w+ Eclipse S-CORE configurations", doc) == len(sdv)
+    assert count(r"of the \w+ configurations, the (\w+) Eclipse S-CORE configurations", doc) == len(display)
+    assert display and all(re.search(r"\beclipseSCORE\[1\]", texts[name]) for name in display)
+    split = re.search(
+        r"The ([\d,]+) valid SDV selections are (\d+) valid platform and display selections of Autoware, Openpilot "
+        r"and Apollo, each with the (\d+) choices of the sensors and the four other capabilities, which no constraint "
+        r"names, and (\d+) valid platform and display selections each of AutoE2E and VisionPilot \(Linux; Eclipse "
+        r"S-CORE, the one pair with a rule\), each with the (\w+) sensor choices that keep the camera and the (\d+) "
+        r"choices of the four other capabilities", doc)
+    assert split, "the split of the valid SDV selections"
+    total, shared, choices, own, sensors, capabilities = split.groups()
+    valid = sum(number for verdict, number in CLOSED_WORLD["sdv"].items() if verdict[0])
+    assert int(total.replace(",", "")) == valid
+    assert int(shared) * int(choices) + 2 * int(own) * _COUNT_WORDS[sensors] * int(capabilities) == valid

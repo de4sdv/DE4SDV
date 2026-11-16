@@ -10,15 +10,19 @@ Autoware Foundation.
 
 **Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
 Phase 3 classification, Phase 4 stakeholder needs, Phase 5 requirements,
-Phase 6 functional architecture, Phase 7 logical architecture and Phase 8
-physical and software realization, proposal.** No implementation, run, result,
-product-line admission or compliance is claimed.
+Phase 6 functional architecture, Phase 7 logical architecture, Phase 8
+physical and software realization and Phase 9 variability and configuration,
+proposal.** No implementation, run, result, product-line admission or
+compliance is claimed.
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/driving/driver_assistance_framing.sysml):
   `INC-DRIVING-002`, its engineering question, charter, scope, assumptions,
   open gaps and Phase 1 concerns.
+- [SysML variability and configuration](../../textual-notation-of-model/packages/features/driving/driver_assistance_variability_configuration.sysml):
+  the Phase 9 configured product DRIVING-CONFIG-002, bound to the receipt of
+  its feature configuration.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/driving/upstream.md#visionpilot)
@@ -735,6 +739,86 @@ elements and their ports, the context realizations, the allocations, the
 dependencies, the signal mappings, the records Phase 8 settles, the views and
 this section.
 
+## Variability and configuration (Phase 9)
+
+[`driver_assistance_variability_configuration.sysml`](../../textual-notation-of-model/packages/features/driving/driver_assistance_variability_configuration.sysml)
+answers which product of the line the driver-assistance system belongs to, and
+with which selections. Phase 3 recorded VisionPilot as the feature candidate
+`visionPilotDrivingStack` on 2026-11-14; Phase 9 makes it a feature of the SDV
+product line.
+
+- **The feature.** `visionPilot` joins the vehicle-application group of the
+  feature model (`F-PLATFORM-VEHICLE-APPLICATION-VISIONPILOT`) with two
+  requires constraints: C014 on the camera, which leaves LiDAR and radar
+  selectable, and C015 on Linux on the main side, whose V4L2 interface the live
+  camera source uses. It corresponds to the driving-stack variability that the
+  governed scope defers. Its pairing with the middlewares takes the form chosen
+  for AutoE2E on 2026-11-06: an exclusion of `androidSDV`, `autosarAdaptive` and
+  `noMiddleware`, because no derivation rule exists for those pairs, and one
+  derivation rule for the pair with Eclipse S-CORE that derives the adapter
+  `visionPilotToSCORE`. An exclusion lifts when an adapter and its rule are
+  added; a requires constraint on `eclipseSCORE` would freeze the bench
+  architecture into the line.
+- **The shared asset.** `sdv_platform_stack.sysml` gains the two variants that
+  the binding and the rule target: `visionPilot : VisionPilotStack` and
+  `visionPilotToSCORE : VisionPilotToSCOREAdapter`. The adapter is the DE4SDV
+  S-CORE interface module of Phase 8, three modules of the candidate's process
+  and no program of its own.
+- **The configuration.** `driverAssistanceVisionPilotSCOREReference` selects
+  VisionPilot, Eclipse S-CORE, Linux and KVM on the main side, Android with the
+  AAOS SDV middleware in the guest, the camera alone and the HMI display, as
+  DRIVING-CONFIG-001 does with AutoE2E. It selects no pedestrian or bicycle
+  detection. It selects adaptive cruise control and lane-keep assist:
+  VisionPilot runs a speed-following and a lane-keeping function, which no case
+  of this increment judges.
+  No requirement of the increment names the display, so no
+  requirement depends on `hmiDisplay`. The privileged PLE authority run of the
+  pull request cuts the receipt, and the configurator generates the projection
+  `DriverAssistanceVisionPilotSCOREReference` from it. By the model's reading
+  of the correspondences the configuration is **valid, and the governed scope
+  does not admit it**: the driving stack is deferred variability, Eclipse
+  S-CORE is reference-only, the display, adaptive cruise control and lane-keep
+  assist are outside the governed scope, the guest side realizes the
+  AAOS-integrated alternative without its middleware, and the configuration
+  does not represent the common content (no Autoware, no LiDAR). The receipt
+  records the verdict.
+- **The configured product.** `DRIVING-CONFIG-002` pairs the projection with
+  the Phase 8 realization of the driver-assistance system and binds nothing.
+  Phase 8 kept the S-CORE path outside the boundary of Phase 0, so the S-CORE
+  services sit on the host beside the realization, and the platform stack is
+  the only composer of the selected middleware; INC-DRIVING-001's realization
+  composes its services and binds them. The derived adapter and the selected
+  application are dependencies, not parts: the adapter is the three modules of
+  the interface module, and the perception and planner modules run the
+  application. The product does not compose the physical context; a test keeps
+  the host and guest layers of that context typed by the definitions of the
+  selected variants. The identity binds the SHA-256 of the receipt, and Phase 10
+  evidence binds the identity. The definition specializes no member-product
+  type: the member decision that amends ADR 0014 follows the runnable proof, as
+  the framing's admission gap asks.
+- **The links of rule 5.** Until the configuration evaluator reads links of
+  increment elements and the existing links have moved, rule 5 takes its
+  dependency form (ADR 0027 decision 8). The links are declared with their
+  clients: `assistanceSystemOnVisionPilotFeature` from the system of interest
+  to `visionPilot` in the framing, and one dependency each from REQ-DRIVING-038,
+  REQ-DRIVING-039, REQ-DRIVING-042 and REQ-DRIVING-043 to `eclipseSCORE` in the
+  requirements package. REQ-DRIVING-040, REQ-DRIVING-042 and REQ-DRIVING-043
+  also depend on `guestAndroidSDV`: their term *warning request* asks the AAOS
+  SDV for the warning, and the guest-middleware group has a none alternative.
+  The requirements follow their subject to VisionPilot; each link adds a
+  middleware that the statement names, directly or through a term. No check
+  reads them:
+  `tests/test_driver_assistance_variability_configuration.py` pins each link,
+  and that no feature-model or configuration document names an element of the
+  increment.
+
+Two views answer the phase's questions, both trees: the selections of the
+projection (Product Line Configuration viewpoint) and the assembly of the
+product with its two parts and the configured-product usage (Product Model
+Assembly viewpoint). Their diagrams come from the licensed Syside run;
+[`VIEWS.md`](../../textual-notation-of-model/packages/features/driving/VIEWS.md)
+lists the views.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -820,10 +904,10 @@ type approval.
 
 Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is
-**Phase 9**: variability and configuration, which makes the realization a
-configured product of the product line; its first gate is
-`incrementHasConfiguredProduct`. Do not jump from the realization to
-implementation, and claim no runtime gate.
+**Phase 10**: verification and evidence, which judges the configured product
+DRIVING-CONFIG-002 in closed loop; its first gate is
+`verificationCaseVerifiesRequirement`. Do not jump from the configured product
+to implementation, and claim no runtime gate.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
@@ -844,6 +928,8 @@ tests/test_driver_assistance_requirements.py
 tests/test_driver_assistance_functional_architecture.py
 tests/test_driver_assistance_logical_architecture.py
 tests/test_driver_assistance_physical_software_realization.py
+tests/test_driver_assistance_variability_configuration.py
+tests/test_ple_authority_model.py tests/test_ple_authority_receipts.py
 tests/test_trace_allocation_completeness.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
 verification. Use `python scripts/validate_sysml.py` where a licensed

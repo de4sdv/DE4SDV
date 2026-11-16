@@ -19,7 +19,7 @@ switch, and the Git history keeps the versions that S7 deleted.
 
 | Family | Feature model | Configurations |
 |---|---|---|
-| SDV product line | [`sdv_product_line.sysml`](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml) | the four SDV configurations, plus the invalid fixture and the 17 parity probes under `fixtures/` |
+| SDV product line | [`sdv_product_line.sysml`](../../model-based-product-line-engineering/feature-models/sdv_product_line.sysml) | the six SDV configurations, plus the invalid fixture and the 17 parity probes under `fixtures/` |
 | Engineering execution environments (System 2) | [`engineering_execution_environments.sysml`](../../model-based-product-line-engineering/feature-models/engineering_execution_environments.sysml) | `inc_aebs_009a_jetson.sysml`, `apple_silicon_macos_candidate.sysml` |
 | Vehicle-target execution environments (System 1) | [`vehicle_execution_environments.sysml`](../../model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml) | `nxp_zephyr_vehicle_target_candidate.sysml` |
 
@@ -59,7 +59,7 @@ How the catalogue was restated:
   vehicle-target feature model names its none choices `noConcrete<Group>`,
   like its superset variants. With KVM the main side is the KVM host. The
   `middleware` group is the middleware that the vehicle application
-  integrates with, so its eight derivation rules stay. The optional
+  integrates with, so its derivation rules stay. The optional
   capability `hmiDisplay` has no shared asset yet. Five requires constraints
   relate the sides: C007 `noHypervisor` requires `noGuestOperatingSystem`,
   C008 `guestAndroidSDV` requires `guestAndroid`, C009 `androidSDV` requires
@@ -75,8 +75,9 @@ How the catalogue was restated:
   (`F-PLATFORM-GUEST-OS-NONE`).
 - **Derivation.** The application-middleware adapter is a derived variation,
   `D-ASSET-APPLICATION-MIDDLEWARE-ADAPTER`, with the eight rules of the
-  catalogue as derivation rules. A derived variant is never a feature, and no
-  binding or configuration entry targets one.
+  catalogue as derivation rules. INC-DRIVING-001 and INC-DRIVING-002 each
+  added the rule of their application with Eclipse S-CORE. A derived variant
+  is never a feature, and no binding or configuration entry targets one.
 - **Correspondences.** Each SDV feature that restates a governed-scope element
   has a dependency to it; the governed scope classifies it. A derived
   realization of an admitted alternative corresponds to that alternative.
@@ -93,11 +94,11 @@ How the catalogue was restated:
 
 ## The closed world
 
-The eight derivation rules and the exclusions of Openpilot and Apollo cover
-all twelve application-middleware pairs, each exactly once: a rule for each
-allowed pair and an exclusion for each unsupported one. Each rule has one
-application and one middleware premise. Until S7 the rule table was also
-compared with the catalogue's row by row. A configuration that matches no
+The ten derivation rules and the exclusions of Openpilot, Apollo, AutoE2E and
+VisionPilot cover all twenty application-middleware pairs, each exactly once: a
+rule for each allowed pair and an exclusion for each unsupported one. Each rule
+has one application and one middleware premise. Until S7 the rule table was
+also compared with the catalogue's row by row. A configuration that matches no
 rule or several is rejected.
 
 The allowed lists of C001 and C003 stay the reviewed source in the rationale
@@ -127,14 +128,18 @@ the repository, and CI does not repeat it.
 
 | Feature model | Structurally valid selections | Valid | Verdict classes |
 |---|---|---|---|
-| SDV product line | 129,024 | 16,016 | 78 |
+| SDV product line | 215,040 | 17,680 | 268 |
 | Engineering execution environments | 27 | 3 | 10 |
 | Vehicle-target execution environments | 8 | 2 | 7 |
 
-The 16,016 valid SDV selections are 143 valid platform and display
-selections, each with the 112 choices of the sensors and the four other
-capabilities, which no constraint names. Each valid selection derives
-exactly one adapter, and all eight derivation rules stay reachable.
+The 17,680 valid SDV selections are 143 valid platform and display
+selections of Autoware, Openpilot and Apollo, each with the 112 choices of the
+sensors and the four other capabilities, which no constraint names, and 13
+valid platform and display selections each of AutoE2E and VisionPilot (Linux;
+Eclipse S-CORE, the one pair with a rule), each with the four sensor choices
+that keep the camera and the 16 choices of the four other capabilities. Each
+valid selection derives exactly one adapter, and all ten derivation rules stay
+reachable.
 
 ## Admission
 
@@ -164,9 +169,13 @@ configuration is admitted when all of these hold:
 
 So the two governed members of ADR 0014 are admitted: the standalone member
 (`aebs_autoware_linux_lidar_camera`) and the AAOS-integrated member
-(`middleware_autoware_aaos_sdv_reference`). The two reference configurations
-(Eclipse S-CORE, `middleware_autoware_score_reference`, and Apollo on QNX)
-are not admitted. Neither is any
+(`middleware_autoware_aaos_sdv_reference`). The other SDV configurations are
+not admitted: the Eclipse S-CORE reference configuration
+(`middleware_autoware_score_reference`), Apollo on QNX, and the driving
+configurations of INC-DRIVING-001 (`closed_loop_driving_autoe2e_score_reference`)
+and INC-DRIVING-002 (`driver_assistance_visionpilot_score_reference`), whose
+applications correspond to the deferred driving-stack variability. Neither is
+any
 configuration of the two execution-environment families: the engineering
 family is the excluded System 2 concern, and the vehicle-target family is
 the deferred vehicle runtime variability. A test computes these verdicts from
@@ -180,13 +189,14 @@ configuration of their family selects, or that every one selects:
 
 | Family | In every configuration | In no configuration | In no governed member yet, with no governed-scope element |
 |---|---|---|---|
-| SDV product line (4 configurations) | LiDAR | Openpilot, AUTOSAR Adaptive, main-side Android, ACRN, and the four capabilities of the catalogue | the HMI display |
+| SDV product line (6 configurations) | none | Openpilot, AUTOSAR Adaptive, main-side Android, ACRN, and pedestrian and bicycle detection | the HMI display, adaptive cruise control and lane-keep assist |
 | Engineering execution environments (2) | none | the Intel x86-64 nested-KVM host, the x86-64 Linux AOSP build, and nested-KVM Cuttlefish | none |
 | Vehicle-target execution environments (1) | NXP compute, Zephyr and native Zephyr | the three "no concrete" choices | none |
 
 The HMI display (INC-MW-011 phase 9) is an option that no governed member
-selects yet: of the four configurations, only the Eclipse S-CORE reference
-configuration selects it, and that configuration is not admitted. No shared
+selects yet: of the six configurations, the three Eclipse S-CORE
+configurations of INC-MW-011, INC-DRIVING-001 and INC-DRIVING-002 select it,
+and none of them is admitted. No shared
 asset implements the display yet, so no feature binding resolves it. Like the
 sensing and the other capability selections, each projection lists it among
 the selections that SysML does not resolve.
@@ -314,8 +324,8 @@ replays the receipt and generates the projection of one valid configuration
 of the served model. It labels each selection outside the projection by its
 PLEML feature path, and the members of a group by their feature names. It
 refuses to project a fixture (exit 2); `--check-only` reports a fixture's
-verdict. Each of the seven committed projections regenerates from its
-receipt byte for byte. The public CI replays every committed receipt
+verdict. Each committed projection regenerates from its receipt byte for
+byte. The public CI replays every committed receipt
 (`python scripts/run_pleml_configuration_evaluation.py replay ...`).
 A projection is a derived product model, and an increment can complete it in a configured product ([product models](../../model-based-product-line-engineering/product-models/README.md#derived-product-models-and-configured-products)).
 
