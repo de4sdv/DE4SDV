@@ -1,8 +1,8 @@
 {
   "elements": {
-    "content_sha256": "43a7bc604cc561771f580af626ebf0f0e7caff2e06c38bc87f9609b570c5d446",
+    "content_sha256": "536d1e25437523bbdcc7f56c1652e1c489c4fbe32602de864833580c781bd70a",
     "path": "pleml-feature-models.elements.json.xz",
-    "sha256": "a187a596041311715bd7269e638d33da4275932512576bb5ee31ae5dad0259e5"
+    "sha256": "7b9730b61c891d85217328f9fbe64c31bc65b1622958a90fc423a92aea11ce68"
   },
   "evaluation": {
     "admission_authority": "model-based-product-line-engineering/scoping/de4sdv_aebs_product_line_scope.sysml",
@@ -675,8 +675,8 @@
   ],
   "native_expression_executed": false,
   "provenance": {
-    "bundle_git_commit": "149e2ffcb5c40d280eeb68344838a670e49c1eeb",
-    "executor_revision": "149e2ffcb5c40d280eeb68344838a670e49c1eeb"
+    "bundle_git_commit": "4985c9a82b007e1f44e5d3e5203d4b655bd668b3",
+    "executor_revision": "4985c9a82b007e1f44e5d3e5203d4b655bd668b3"
   },
   "qualified": false,
   "schema": "de4sdv.pleml-configuration-receipt/v2",
@@ -715,6 +715,12 @@
       "path": "model-based-product-line-engineering/feature-configurations/closed_loop_driving_autoe2e_score_reference.sysml",
       "sha256": "beff58616091361d0f4df152611e71b5bde523cc08aebd8c86675830f03049c3",
       "size": 3007
+    },
+    {
+      "authority": "pleml-feature-configuration",
+      "path": "model-based-product-line-engineering/feature-configurations/driver_assistance_visionpilot_score_reference.sysml",
+      "sha256": "4886836d4f9fe06f6f7e41070355630f914a23ff4d96ad22ecb85024029d0023",
+      "size": 3216
     },
     {
       "authority": "pleml-fixture",
@@ -857,8 +863,8 @@
     {
       "authority": "pleml-feature-model",
       "path": "model-based-product-line-engineering/feature-models/sdv_product_line.sysml",
-      "sha256": "a259b8a6736d81f204a7eaeb9f7a2bb13729a8658d1513f66eb40388dd91321f",
-      "size": 33593
+      "sha256": "13b9900ecd143115567bf23e04f549e57b0ac1293bc5c1cf713486b43fdc29f3",
+      "size": 36405
     },
     {
       "authority": "pleml-feature-model",
@@ -881,8 +887,8 @@
     {
       "authority": "reviewed",
       "path": "textual-notation-of-model/packages/architecture/sdv_platform_stack.sysml",
-      "sha256": "616dfce419346bf31cdfd9db1b54a3ecc99c577ad808d4e70dc22bdb96493557",
-      "size": 31905
+      "sha256": "c59fc960e235158086e33bdd3a8bd2e5b650c3d2e6584bdc1cb685614fd45aac",
+      "size": 33478
     },
     {
       "authority": "reviewed",

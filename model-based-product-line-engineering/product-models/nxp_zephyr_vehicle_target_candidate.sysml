@@ -6,8 +6,8 @@
  * Shared-assets model: textual-notation-of-model/packages/architecture/execution_environments.sysml
  * Shared-assets model SHA-256: f35675c21dced2604c813b4a366b0cfbdd6a410ccb58539cb387188e89e538fc
  * Receipt: model-based-product-line-engineering/feature-models/receipts/vehicle_execution_environments.receipt.json
- * Receipt SHA-256: 1bda72f8f78e27beae0b38a4ae0f391d85094f5e77a70894764521930b5ec3c6
- * Elements SHA-256: a187a596041311715bd7269e638d33da4275932512576bb5ee31ae5dad0259e5
+ * Receipt SHA-256: 72f1c5e3f4110eabc1c16b8d152cf373cb7ead4c62fd32014ad1a7152818a823
+ * Elements SHA-256: 7b9730b61c891d85217328f9fbe64c31bc65b1622958a90fc423a92aea11ce68
  * Feature configuration: model-based-product-line-engineering/feature-configurations/nxp_zephyr_vehicle_target_candidate.sysml (nxpZephyrVehicleTargetCandidate)
  * Feature configuration SHA-256: 73159664de143098d2f4a9d46f8aea6ec47aa401840d528c828610bde0f23e10
  * PLEML feature model: model-based-product-line-engineering/feature-models/vehicle_execution_environments.sysml
