@@ -290,8 +290,8 @@ by file name and line:
   resized image of the networks and hand the drawn image to the data log,
   which lines 184 and 185 write when the data log is switched on.
 - [Visual interface](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/visualization/include/visualization/visual_interface.hpp#L56-L89):
-  lines 56 to 89 declare the interface of the application's displays, and
-  lines 77 to 82 the function that draws the display from the image, the
+  lines 56 to 89 declare the interface of the application's visualization,
+  and lines 77 to 82 the function that draws a frame of it from the image, the
   inference result, the plan, the speed and the speed limit.
 
 ## Questions requiring upstream engagement

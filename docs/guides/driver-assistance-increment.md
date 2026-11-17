@@ -718,15 +718,16 @@ written as 0.1 s of simulation time instead of one step. On the same day the
 owner chose an NVIDIA RTX PRO 6000 for the simulator host: at the new step, with
 the front camera and a recording camera of 1920 by 1080 pixels, one NVIDIA L4
 did not keep wall-clock pace in a readiness probe, and the RTX PRO 6000 did.
-The owner also chose that the bench records the candidate's own display,
-upstream's visualization, with each run. A DE4SDV display recorder in the
-candidate's process draws it on a thread of its own from a copy that the loop
-hands over after it writes the command, and encodes it with the video encoder
-of the S-CORE host's GPU; upstream's drawing in the loop stays switched off.
-The recorder only observes and carries no logical element, but every build on
-the S-CORE path carries it, so the candidate record holds it and every verdict
-names it. That the candidate keeps its timing with the recorder running is a
-readiness item of Phase 8.
+The owner also chose that the bench records the candidate's own visualization
+with each run: upstream's drawing of what the candidate perceives and plans over
+its camera image. It is not the driver's display; it goes only into the bench's
+recording. A DE4SDV visualization recorder in the candidate's process draws it
+on a thread of its own from a copy that the loop hands over after it writes the
+command, and encodes it with the video encoder of the S-CORE host's GPU;
+upstream's drawing in the loop stays switched off. The recorder only observes
+and carries no logical element, but every build on the S-CORE path carries it,
+so the candidate record holds it and every verdict names it. That the candidate
+keeps its timing with the recorder running is a readiness item of Phase 8.
 
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
 upstream's own simulator path does, and gives the simulator the candidate's

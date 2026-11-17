@@ -19,8 +19,9 @@ what the phase settled on top of it:
   Ackermann control, typed by the fields of its API reference, the same as in 0.9.16;
 - the amendment of 2026-11-17: a fixed step of 0.05 s with the front camera at one image per 0.1 s (the step
   decision; limits once written in steps are written in simulation time), an NVIDIA RTX PRO 6000 for the simulator
-  host (the simulator host decision), and the candidate's own display drawn by a DE4SDV display recorder in its process,
-  an observer of System 2 and no module of the loop (the display decision);
+  host (the simulator host decision), and the candidate's own visualization drawn by a DE4SDV visualization recorder
+  in its process, an observer of System 2 and no module of the loop that goes only into the bench's recording and is
+  not the driver's display (the visualization decision);
 - VSS only at the ports: the command, the speed and the warning request; the 0.2 s share of REQ-DRIVING-042 is divided
   0.1 s for the path and 0.1 s for the presentation;
 - the two path requirements are carried by a dependency from the publishing definitions;
@@ -334,7 +335,8 @@ SIMULATOR_DECISION = (
     "decision of 2026-11-08 stay.",
 )
 #: The owner's three decisions of 2026-11-17, as the package head records them, in this order after the decisions of
-#: 2026-11-15: the step, the simulator host after the readiness probes of 2026-11-16 and 2026-11-17, the display.
+#: 2026-11-15: the step, the simulator host after the readiness probes of 2026-11-16 and 2026-11-17, the
+#: visualization.
 STEP_DECISION = (
     "On 2026-11-17 the owner chose a fixed step of 0.05 s for the bench's simulator, so that the bench's recording view "
     "can be rendered at 20 frames per second: a camera renders at most once per step.",
@@ -349,24 +351,26 @@ SIMULATOR_HOST_DECISION = (
     "keep wall-clock pace in the readiness probe of 2026-11-16, and one NVIDIA RTX PRO 6000 did in the readiness probe "
     "of 2026-11-17: the simulator host decision of 2026-11-17.",
 )
-DISPLAY_DECISION = (
-    "On 2026-11-17 the owner also chose that the bench records the candidate's own display, upstream's visualization "
-    "at the pin, with each run.",
-    "A DE4SDV display recorder in the candidate's process draws it on a thread of its own, from a second hand-off in "
-    "the loop after vision_pilot.cpp:174, and encodes it with the video encoder of the S-CORE host's GPU: an observer "
-    "of System 2 that carries no logical element.",
+VISUALIZATION_DECISION = (
+    "On 2026-11-17 the owner also chose that the bench records the candidate's own visualization with each run: "
+    "upstream's drawing, at the pin, of what the candidate perceives and plans over its camera image.",
+    "It is not the driver's display: it goes only into the bench's recording.",
+    "A DE4SDV visualization recorder in the candidate's process draws it on a thread of its own, from a second "
+    "hand-off in the loop after vision_pilot.cpp:174, and encodes it with the video encoder of the S-CORE host's GPU: "
+    "an observer of System 2 that carries no logical element.",
     "The configuration keeps visualization_on = false, so upstream's drawing in the loop stays off.",
     "That the candidate keeps its timing with the recorder running is a readiness item of this phase "
-    "(phase8DisplayRecorderPlaced): the display decision of 2026-11-17.",
+    "(phase8VisualizationRecorderPlaced): the visualization decision of 2026-11-17.",
     "The draft shown to the VisionPilot maintainers includes this hand-off.",
 )
 #: What the step decision of 2026-11-17 retired, anywhere in the model and the guide: limits and rates written in
 #: steps. The clock record of 2026-11-08 keeps its own step of 0.1 s as it was decided.
 RETIRED_STEP_STATEMENTS = ("more than one step of 0.1 s", "by more than one step,", "one RGB image per simulation step",
                            "It runs in synchronous mode with a fixed step of 0.1 s")
-#: The display recorder as the candidate's process describes it: beside the loop, an observer, no module.
-DISPLAY_RECORDER = (
-    "Beside the loop, on a thread of its own, runs the DE4SDV display recorder of the display decision of 2026-11-17, "
+#: The visualization recorder as the candidate's process describes it: beside the loop, an observer, no module.
+VISUALIZATION_RECORDER = (
+    "Beside the loop, on a thread of its own, runs the DE4SDV visualization recorder of the visualization decision of "
+    "2026-11-17, "
     "an observer of System 2: a second hand-off after the write at vision_pilot.cpp:174 gives it a copy of the pass's "
     "image, inference result, plan and speed.",
     "From the copy it draws upstream's visualization at the pin, the drawing that visualization_on = true would do in "
@@ -413,7 +417,7 @@ COMMENTS = {
     "reqDetectableDrivingCommandRejection": ("reqDetectableDrivingCommand", ADAPTER),
     "phase8ProcessorInferenceNotHeld": ("asmProcessorInferenceSufficient",),
     "phase8SimulatorPathHeld": ("asmSimulatorPathUsable",),
-    "phase8DisplayRecorderPlaced": ("gapCandidateBehaviorUnverified",),
+    "phase8VisualizationRecorderPlaced": ("gapCandidateBehaviorUnverified",),
 }
 #: what each comment must state
 COMMENT_STATEMENTS = {
@@ -477,11 +481,12 @@ COMMENT_STATEMENTS = {
         "2026-11-16 and kept it on one NVIDIA RTX PRO 6000 in the readiness probe of 2026-11-17 (the simulator host "
         "decision of 2026-11-17).",
         "The candidate itself has not yet driven on CARLA 1.0: its passes in the probe ran on CARLA 0.9.16."),
-    "phase8DisplayRecorderPlaced": (
-        "What the display decision of 2026-11-17 means for this gap: every build on the S-CORE path also carries the "
-        "DE4SDV display recorder and its hand-off after vision_pilot.cpp:174, a change that upstream has not merged.",
+    "phase8VisualizationRecorderPlaced": (
+        "What the visualization decision of 2026-11-17 means for this gap: every build on the S-CORE path also carries "
+        "the DE4SDV visualization recorder and its hand-off after vision_pilot.cpp:174, a change that upstream has not "
+        "merged.",
         "The record of REQ-DRIVING-044 carries it in the difference, and every verdict names the build as 014e0e7a with "
-        "the DE4SDV S-CORE interface and the display recorder.",
+        "the DE4SDV S-CORE interface and the visualization recorder.",
         "The recorder only observes: it takes copies after the command is written, and it gives nothing back to the "
         "loop, to the candidate's inputs or to its outputs."),
     "reqDetectableDrivingCommandRejection": (
@@ -746,11 +751,13 @@ def test_the_candidate_stays_one_process_with_five_modules_in_the_order_of_the_l
                    "ONNX Runtime with its CUDA provider",
                    "no hops between processes; across processes it speaks mw::com only", *CONFIGURATION):
         assert phrase in doc, phrase
-    # the display decision of 2026-11-17: an observer of System 2 beside the loop, described, never a module or a part
-    for phrase in DISPLAY_RECORDER:
+    # the visualization decision of 2026-11-17: an observer of System 2 beside the loop, described, never a module or a
+    # part
+    for phrase in VISUALIZATION_RECORDER:
         assert phrase in doc, phrase
-    assert doc.index("speaks mw::com only") < doc.index(DISPLAY_RECORDER[0]) < doc.index("Its configuration:")
-    assert not re.search(r"\bpart\s+def\s+\w*Display\w*", _code()), "the recorder carries no element of the candidate"
+    assert doc.index("speaks mw::com only") < doc.index(VISUALIZATION_RECORDER[0]) < doc.index("Its configuration:")
+    assert not re.search(r"\bpart\s+def\s+\w*(?:Display|Visuali[sz]ation|Recorder)\w*", _code()), \
+        "the recorder carries no element of the candidate"
 
 
 @pytest.mark.parametrize("definition", sorted(PORTS), ids=sorted(PORTS))
@@ -1217,10 +1224,10 @@ def test_the_package_head_records_the_owner_decision_of_2026_11_15():
 
 def test_the_package_head_records_the_decisions_of_2026_11_17_after_those_of_2026_11_15():
     head = _head()
-    for statement in (*STEP_DECISION, *SIMULATOR_HOST_DECISION, *DISPLAY_DECISION):
+    for statement in (*STEP_DECISION, *SIMULATOR_HOST_DECISION, *VISUALIZATION_DECISION):
         assert statement in head, statement
     assert head.index(SIMULATOR_DECISION[-1]) < head.index(STEP_DECISION[0]) < head.index(
-        SIMULATOR_HOST_DECISION[0]) < head.index(DISPLAY_DECISION[0]) < head.index(
+        SIMULATOR_HOST_DECISION[0]) < head.index(VISUALIZATION_DECISION[0]) < head.index(
         "Carried over from the dated decisions of INC-DRIVING-001"), "this phase's decisions in the order of their days"
     # the decisions of 2026-11-15 and the clock record of 2026-11-08 stay as they were decided
     assert SIMULATOR_DECISION[1] in head and CARRIED_OVER[0] in head and CARRIED_OVER[1] in head
@@ -1464,8 +1471,9 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                    "the actuation adapter's delay limit is written as 0.1 s of simulation time instead of one step",
                    "On the same day the owner chose an NVIDIA RTX PRO 6000 for the simulator host",
                    "one NVIDIA L4 did not keep wall-clock pace in a readiness probe, and the RTX PRO 6000 did",
-                   "The owner also chose that the bench records the candidate's own display, upstream's "
-                   "visualization, with each run.",
+                   "The owner also chose that the bench records the candidate's own visualization with each run: "
+                   "upstream's drawing of what the candidate perceives and plans over its camera image.",
+                   "It is not the driver's display; it goes only into the bench's recording.",
                    "upstream's drawing in the loop stays switched off",
                    "That the candidate keeps its timing with the recorder running is a readiness item of Phase 8.",
                    "tests/test_driver_assistance_physical_software_realization.py"):
@@ -1534,8 +1542,9 @@ def test_the_upstream_record_names_what_phase_8_read_at_the_pin():
                    "jerk in m/s³, each with a default of 0.0",
                    "When the visualization is switched on, lines 176 to 181 draw it in the loop onto the cropped and "
                    "resized image of the networks and hand the drawn image to the data log",
-                   "lines 77 to 82 the function that draws the display from the image, the inference result, the "
-                   "plan, the speed and the speed limit"):
+                   "lines 56 to 89 declare the interface of the application's visualization, and lines 77 to 82 "
+                   "the function that draws a frame of it from the image, the inference result, the plan, the speed "
+                   "and the speed limit"):
         assert phrase in text, phrase
 
 

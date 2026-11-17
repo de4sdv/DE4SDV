@@ -59,14 +59,16 @@
  * readiness probe of 2026-11-17: the simulator host decision of 2026-11-17.
  *
  * On 2026-11-17 the owner also chose that the bench records the candidate's
- * own display, upstream's visualization at the pin, with each run. A DE4SDV
- * display recorder in the candidate's process draws it on a thread of its
- * own, from a second hand-off in the loop after vision_pilot.cpp:174, and
- * encodes it with the video encoder of the S-CORE host's GPU: an observer of
- * System 2 that carries no logical element. The configuration keeps
- * visualization_on = false, so upstream's drawing in the loop stays off. That
- * the candidate keeps its timing with the recorder running is a readiness item
- * of this phase (phase8DisplayRecorderPlaced): the display decision of
+ * own visualization with each run: upstream's drawing, at the pin, of what the
+ * candidate perceives and plans over its camera image. It is not the driver's
+ * display: it goes only into the bench's recording. A DE4SDV visualization
+ * recorder in the candidate's process draws it on a thread of its own, from a
+ * second hand-off in the loop after vision_pilot.cpp:174, and encodes it with
+ * the video encoder of the S-CORE host's GPU: an observer of System 2 that
+ * carries no logical element. The configuration keeps visualization_on = false,
+ * so upstream's drawing in the loop stays off. That the candidate keeps its
+ * timing with the recorder running is a readiness item of this phase
+ * (phase8VisualizationRecorderPlaced): the visualization decision of
  * 2026-11-17. The draft shown to the VisionPilot maintainers includes this
  * hand-off.
  *
@@ -502,21 +504,20 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * time of the frame from the camera interface to the vehicle interface
      * and the warning request publisher: no hops between processes; across
      * processes it speaks mw::com only. Beside the loop, on a thread of its
-     * own, runs the DE4SDV display recorder of the display decision of
-     * 2026-11-17, an observer of System 2: a second hand-off after the write
+     * own, runs the DE4SDV visualization recorder of the visualization decision
+     * of 2026-11-17, an observer of System 2: a second hand-off after the write
      * at vision_pilot.cpp:174 gives it a copy of the pass's image, inference
      * result, plan and speed. From the copy it draws upstream's visualization
-     * at the pin, the drawing that visualization_on = true would do in the
-     * loop (vision_pilot.cpp:176-181, visual_interface.hpp:77-82), and it
-     * encodes each drawn image with the video encoder of the host's GPU into
-     * the bench's recording. The loop never waits for it: a hand-off that
-     * finds it busy replaces the copy that waits and is counted. It is no
-     * module of the loop, carries no logical element and sends nothing to any
-     * element of the candidate or of the path. Its configuration:
-     * engine.provider = cuda, as upstream's configuration sets it
-     * (vision_pilot.conf:11), model.precision = fp32, visualization_on =
-     * false, rrd_on = true for the evaluators' record of the warnings, and
-     * speed_limit set per scenario by System 2.
+     * at the pin, the drawing that visualization_on = true would do in the loop
+     * (vision_pilot.cpp:176-181, visual_interface.hpp:77-82), and it encodes
+     * each drawn image with the video encoder of the host's GPU into the
+     * bench's recording. The loop never waits for it: a hand-off that finds it
+     * busy replaces the copy that waits and is counted. It is no module of the
+     * loop, carries no logical element and sends nothing to any element of the
+     * candidate or of the path. Its configuration: engine.provider = cuda, as
+     * upstream's configuration sets it (vision_pilot.conf:11), model.precision
+     * = fp32, visualization_on = false, rrd_on = true for the evaluators'
+     * record of the warnings, and speed_limit set per scenario by System 2.
      */
     port frontCameraImageIn : FrontCameraStreamIn;
     port vehicleSpeedIn : VehicleSpeedSampleIn;
@@ -1201,18 +1202,18 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * REQ-DRIVING-044 carries the difference (MAP-DRIVING-DA-CANDIDATE-RECORD).
      */
 
-  comment phase8DisplayRecorderPlaced about gapCandidateBehaviorUnverified
+  comment phase8VisualizationRecorderPlaced about gapCandidateBehaviorUnverified
     /*
-     * What the display decision of 2026-11-17 means for this gap: every build
-     * on the S-CORE path also carries the DE4SDV display recorder and its
-     * hand-off after vision_pilot.cpp:174, a change that upstream has not
-     * merged. The record of REQ-DRIVING-044 carries it in the difference, and
-     * every verdict names the build as 014e0e7a with the DE4SDV S-CORE
-     * interface and the display recorder. The recorder only observes: it takes
-     * copies after the command is written, and it gives nothing back to the
-     * loop, to the candidate's inputs or to its outputs. Readiness item, open
-     * until the readiness probe of this phase has run: that the candidate keeps
-     * its timing with the recorder running, the time from an image to its
+     * What the visualization decision of 2026-11-17 means for this gap: every
+     * build on the S-CORE path also carries the DE4SDV visualization recorder
+     * and its hand-off after vision_pilot.cpp:174, a change that upstream has
+     * not merged. The record of REQ-DRIVING-044 carries it in the difference,
+     * and every verdict names the build as 014e0e7a with the DE4SDV S-CORE
+     * interface and the visualization recorder. The recorder only observes: it
+     * takes copies after the command is written, and it gives nothing back to
+     * the loop, to the candidate's inputs or to its outputs. Readiness item,
+     * open until the readiness probe of this phase has run: that the candidate
+     * keeps its timing with the recorder running, the time from an image to its
      * command and the images dropped, measured with the recorder on and off in
      * one build on an NVIDIA L4.
      */
