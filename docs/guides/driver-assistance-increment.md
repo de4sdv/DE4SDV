@@ -726,8 +726,12 @@ on a thread of its own from a copy that the loop hands over after it writes the
 command, and encodes it with the video encoder of the S-CORE host's GPU;
 upstream's drawing in the loop stays switched off. The recorder only observes
 and carries no logical element, but every build on the S-CORE path carries it,
-so the candidate record holds it and every verdict names it. That the candidate
-keeps its timing with the recorder running is a readiness item of Phase 8.
+so the candidate record holds it and every verdict names it. A readiness probe
+measured its cost: with the recorder on, the candidate gave its command about
+2 ms later at the median and about 6 ms later at the 99th percentile, 0.8 ms
+over the bound that the probe had set, and dropped no more images. The owner
+kept the recorder in every run, so that each run's recording shows the run that
+is judged, and every verdict states the delay.
 
 The owner also chose to keep the collision warning on the application of the IVI
 VM for this increment. The High Availability Renderer of Android SDV's display

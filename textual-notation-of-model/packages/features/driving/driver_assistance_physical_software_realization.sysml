@@ -58,19 +58,20 @@
  * readiness probe of 2026-11-16, and one NVIDIA RTX PRO 6000 did in the
  * readiness probe of 2026-11-17: the simulator host decision of 2026-11-17.
  *
- * On 2026-11-17 the owner also chose that the bench records the candidate's
- * own visualization with each run: upstream's drawing, at the pin, of what the
+ * On 2026-11-17 the owner also chose that the bench records the candidate's own
+ * visualization with each run: upstream's drawing, at the pin, of what the
  * candidate perceives and plans over its camera image. It is not the driver's
  * display: it goes only into the bench's recording. A DE4SDV visualization
  * recorder in the candidate's process draws it on a thread of its own, from a
  * second hand-off in the loop after vision_pilot.cpp:174, and encodes it with
  * the video encoder of the S-CORE host's GPU: an observer of System 2 that
  * carries no logical element. The configuration keeps visualization_on = false,
- * so upstream's drawing in the loop stays off. That the candidate keeps its
- * timing with the recorder running is a readiness item of this phase
- * (phase8VisualizationRecorderPlaced): the visualization decision of
- * 2026-11-17. The draft shown to the VisionPilot maintainers includes this
- * hand-off.
+ * so upstream's drawing in the loop stays off. With the recorder running the
+ * candidate gives its command a few milliseconds later, by the readiness probe
+ * of the recorder on 2026-11-17, and the owner kept the recorder in every run
+ * with that delay stated in each verdict (phase8VisualizationRecorderPlaced):
+ * the visualization decision of 2026-11-17. The draft shown to the VisionPilot
+ * maintainers includes this hand-off.
  *
  * Carried over from the dated decisions of INC-DRIVING-001
  * (closed_loop_driving_physical_software_realization.sysml):
@@ -1219,11 +1220,21 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * and every verdict names the build as 014e0e7a with the DE4SDV S-CORE
      * interface and the visualization recorder. The recorder only observes: it
      * takes copies after the command is written, and it gives nothing back to
-     * the loop, to the candidate's inputs or to its outputs. Readiness item,
-     * open until the readiness probe of this phase has run: that the candidate
-     * keeps its timing with the recorder running, the time from an image to its
-     * command and the images dropped, measured with the recorder on and off in
-     * one build on an NVIDIA L4.
+     * the loop, to the candidate's inputs or to its outputs. What it costs, by
+     * the readiness probe of the recorder on 2026-11-17: one build on one
+     * NVIDIA L4 replayed a recorded front-camera clip of 70 s at the camera's
+     * pace of 0.1 s, three times with the recorder off and three times with it
+     * on, in pairs. With the recorder on, the time from an image to its command
+     * rose from 41.6 ms to 43.6 ms at the median and from 59.3 ms to 65.1 ms at
+     * the 99th percentile; the longest took 67.5 ms off and 69.5 ms on. The
+     * images dropped did not change: in each arm one pass of the loop ran over
+     * the 0.1 s cycle. The probe's bound, at most 5 ms more at the 99th
+     * percentile, was missed by 0.8 ms. On 2026-11-17 the owner kept the
+     * recorder in every run, so that each run's recording shows the run that is
+     * judged, and every verdict states the delay. The delay acts alike on the
+     * warning request and the braking command, which leave the same pass of the
+     * loop, and comes before the 0.2 s from the request to each mode of the
+     * warning.
      */
 
   comment reqDetectableDrivingCommandRejection about reqDetectableDrivingCommand, DrivingCommandActuationAdapter

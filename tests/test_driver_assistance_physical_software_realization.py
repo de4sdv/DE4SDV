@@ -21,7 +21,9 @@ what the phase settled on top of it:
   decision; limits once written in steps are written in simulation time), an NVIDIA RTX PRO 6000 for the simulator
   host (the simulator host decision), and the candidate's own visualization drawn by a DE4SDV visualization recorder
   in its process, an observer of System 2 and no module of the loop that goes only into the bench's recording and is
-  not the driver's display (the visualization decision);
+  not the driver's display (the visualization decision); its readiness probe found the command a few milliseconds
+  later with the recorder on, 0.8 ms over the probe's bound, and the owner kept the recorder in every run with the
+  delay stated;
 - VSS only at the ports: the command, the speed and the warning request; the 0.2 s share of REQ-DRIVING-042 is divided
   0.1 s for the path and 0.1 s for the presentation;
 - the two path requirements are carried by a dependency from the publishing definitions;
@@ -359,7 +361,8 @@ VISUALIZATION_DECISION = (
     "hand-off in the loop after vision_pilot.cpp:174, and encodes it with the video encoder of the S-CORE host's GPU: "
     "an observer of System 2 that carries no logical element.",
     "The configuration keeps visualization_on = false, so upstream's drawing in the loop stays off.",
-    "That the candidate keeps its timing with the recorder running is a readiness item of this phase "
+    "With the recorder running the candidate gives its command a few milliseconds later, by the readiness probe of "
+    "the recorder on 2026-11-17, and the owner kept the recorder in every run with that delay stated in each verdict "
     "(phase8VisualizationRecorderPlaced): the visualization decision of 2026-11-17.",
     "The draft shown to the VisionPilot maintainers includes this hand-off.",
 )
@@ -380,6 +383,9 @@ VISUALIZATION_RECORDER = (
     "It is no module of the loop, carries no logical element and sends nothing to any element of the candidate or of "
     "the path.",
 )
+#: What the readiness probe of the recorder closed, anywhere in the model and the guide: the open readiness item.
+RETIRED_RECORDER_STATEMENTS = ("Readiness item, open until the readiness probe of this phase has run",
+                               "keeps its timing with the recorder running is a readiness item")
 #: What the simulator decision retired, anywhere in the model and the guide: the bench's own simulator, client and
 #: API reference are CARLA 1.0's. CARLA 0.9.16 stays named where it is upstream's path or the record of 2026-11-08.
 RETIRED_SIMULATOR_STATEMENTS = ("the C++ client library of CARLA 0.9.16", "System 2: CARLA 0.9.16",
@@ -499,7 +505,19 @@ COMMENT_STATEMENTS = {
         "The record of REQ-DRIVING-044 carries it in the difference, and every verdict names the build as 014e0e7a with "
         "the DE4SDV S-CORE interface and the visualization recorder.",
         "The recorder only observes: it takes copies after the command is written, and it gives nothing back to the "
-        "loop, to the candidate's inputs or to its outputs."),
+        "loop, to the candidate's inputs or to its outputs.",
+        # the readiness item answered by the readiness probe of the recorder, and the owner's choice of 2026-11-17
+        "What it costs, by the readiness probe of the recorder on 2026-11-17: one build on one NVIDIA L4 replayed a "
+        "recorded front-camera clip of 70 s at the camera's pace of 0.1 s, three times with the recorder off and three "
+        "times with it on, in pairs.",
+        "With the recorder on, the time from an image to its command rose from 41.6 ms to 43.6 ms at the median and "
+        "from 59.3 ms to 65.1 ms at the 99th percentile; the longest took 67.5 ms off and 69.5 ms on.",
+        "The images dropped did not change: in each arm one pass of the loop ran over the 0.1 s cycle.",
+        "The probe's bound, at most 5 ms more at the 99th percentile, was missed by 0.8 ms.",
+        "On 2026-11-17 the owner kept the recorder in every run, so that each run's recording shows the run that is "
+        "judged, and every verdict states the delay.",
+        "The delay acts alike on the warning request and the braking command, which leave the same pass of the loop, "
+        "and comes before the 0.2 s from the request to each mode of the warning."),
     "reqDetectableDrivingCommandRejection": (
         "its issue time, a sequence count from 1 in each run and a CRC-32 check value",
         "detects a loss or a repetition by the sequence count, a corruption by the check value and a delay by the issue "
@@ -1275,6 +1293,18 @@ def test_the_gpu_decision_retires_the_processor_statements():
         assert statement not in model and statement not in guide, statement
 
 
+def test_the_recorder_probe_closes_the_readiness_item():
+    """The readiness probe of the recorder on 2026-11-17 answered the readiness item: no text keeps it open, and the
+    package head, the comment and the guide state the measured delay and the owner's choice to keep the recorder."""
+    model = _flat(_raw())
+    guide = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    for statement in RETIRED_RECORDER_STATEMENTS:
+        assert statement not in model and statement not in guide, statement
+    comment = _comment("phase8VisualizationRecorderPlaced")
+    assert comment.index("41.6 ms to 43.6 ms") < comment.index("missed by 0.8 ms") < comment.index(
+        "the owner kept the recorder in every run")
+
+
 def test_the_simulator_decision_moves_the_bench_to_carla_1_0():
     """The simulator decision of 2026-11-15: the bench's server, its client library and the contract strings name
     CARLA 1.0; CARLA 0.9.16 stays where it is upstream's path or the clock record of 2026-11-08."""
@@ -1492,7 +1522,11 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                    "upstream's drawing of what the candidate perceives and plans over its camera image.",
                    "It is not the driver's display; it goes only into the bench's recording.",
                    "upstream's drawing in the loop stays switched off",
-                   "That the candidate keeps its timing with the recorder running is a readiness item of Phase 8.",
+                   "A readiness probe measured its cost: with the recorder on, the candidate gave its command about 2 "
+                   "ms later at the median and about 6 ms later at the 99th percentile, 0.8 ms over the bound that the "
+                   "probe had set, and dropped no more images.",
+                   "The owner kept the recorder in every run, so that each run's recording shows the run that is "
+                   "judged, and every verdict states the delay.",
                    "The owner also chose to keep the collision warning on the application of the IVI VM for this "
                    "increment.",
                    "The High Availability Renderer of Android SDV's display safety, which draws the safety-relevant "
