@@ -44,6 +44,7 @@ CHARTERS = {
     "INC-DRIVING-002": ("features/driving/driver_assistance_framing.sysml", "driverAssistanceCharter"),
     "INC-AEBS-010": ("features/aebs/aebs_visualization_framing.sysml", "visualizationTraceObligations"),
     "INC-MW-011": ("features/middleware/middleware_score_framing.sysml", "scoreMiddlewareCharter"),
+    "INC-EE-001": ("features/ee/ee_architecture_framing.sysml", "eeArchitectureCharter"),
 }
 
 #: package-name suffix -> the phases whose content the package holds

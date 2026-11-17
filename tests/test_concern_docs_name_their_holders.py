@@ -38,6 +38,8 @@ CHARTERS = {
                      "visualizationTraceObligations", "AEBS010", 7),
     "INC-MW-011": ("features/middleware/middleware_score_framing.sysml",
                    "scoreMiddlewareCharter", "MW011", 17),
+    "INC-EE-001": ("features/ee/ee_architecture_framing.sysml",
+                   "eeArchitectureCharter", "EE001", 1),
 }
 
 #: kernel stakeholder role -> the words a doc uses for it (singular; plurals contain it)
