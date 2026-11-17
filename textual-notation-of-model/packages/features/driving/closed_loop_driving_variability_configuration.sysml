@@ -112,6 +112,11 @@ package DE4SDV_ClosedLoopDrivingVariabilityConfiguration {
      * adapter autoE2EToSCORE, and not admitted. A receipt re-cut keeps this
      * identity and rebinds receiptSha256 here. The pull request that rebinds
      * it states whether the configuration's own receipt record changed.
+     * By the decision of 2026-11-17, the record has not changed when its
+     * only difference is added states omitted for features that it does
+     * not select, and every other entry is the same: validity, reasons,
+     * derived variants with their variant ids, admission, the selected
+     * features, projection name, source, description and element id.
      * Evidence that binds DRIVING-CONFIG-001 also records the receipt
      * SHA-256 it ran against.
      *

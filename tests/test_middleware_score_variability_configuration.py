@@ -194,7 +194,8 @@ def test_the_configured_product_is_no_member_product_before_phase_12() -> None:
 
 def test_mw_config_002_is_bound_to_the_exact_receipt() -> None:
     """The phase-10 evidence binds MW-CONFIG-002, so a receipt re-cut keeps the identity and rebinds
-    receiptSha256 in the slice."""
+    receiptSha256 in the slice. The slice states what counts as a change of the configuration's own receipt record
+    (decision of 2026-11-17)."""
     text = SLICE.read_text(encoding="utf-8")
     holders = sorted(path.relative_to(ROOT).as_posix() for root in MODEL_ROOTS for path in root.rglob("*.sysml")
                      if "<'MW-CONFIG-002'>" in path.read_text(encoding="utf-8"))
@@ -208,6 +209,13 @@ def test_mw_config_002_is_bound_to_the_exact_receipt() -> None:
         f"MW-CONFIG-002 binds the receipt {bound}, the projection names {header}, and the committed receipt "
         f"is {committed}: rebind receiptSha256 of MW-CONFIG-002 to the new receipt, and state in the pull "
         f"request whether the configuration's own receipt record changed")
+    docs = " ".join(re.sub(r"^\s*\*\s?", "", text, flags=re.M).split())
+    assert ("The pull request that rebinds it states whether the configuration's own receipt record changed. By "
+            "the decision of 2026-11-17, the record has not changed when its only difference is added states omitted "
+            "for features that it does not select, and every other entry is the same: validity, reasons, derived "
+            "variants with their variant ids, admission, the selected features, projection name, source, description "
+            "and element id."
+            ) in docs, "MW-CONFIG-002 no longer states what counts as a change of its own receipt record"
 
 
 def test_the_receipt_records_what_the_configured_product_states() -> None:
