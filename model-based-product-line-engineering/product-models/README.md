@@ -70,6 +70,18 @@ of INC-MW-009 and the configured product
 [`MW-CONFIG-002`](../../textual-notation-of-model/packages/features/middleware/middleware_score_variability_configuration.sysml)
 of INC-MW-011.
 
+`MW-CONFIG-002`, `DRIVING-CONFIG-001` and `DRIVING-CONFIG-002` bind the
+SHA-256 of the receipt as `receiptSha256`. A receipt re-cut keeps their
+identities and rebinds that digest, and the pull request that rebinds it
+states whether each configuration's own receipt record changed. By the
+decision of 2026-11-17, a record has not changed when its only difference is
+added states omitted for features that it does not select, and every other
+entry is the same: validity, reasons, derived variants with their variant ids,
+admission, the selected features, projection name, source, description and
+element id. An omitted mandatory feature counts as selected
+([configuration evaluation](../../docs/product-line-engineering/pleml-configuration-evaluation.md#what-it-decides)),
+so a new mandatory feature changes the record.
+
 Only content that varies across member products belongs in the shared
 assets. Content that one product needs stays in the slice of its increment
 and enters through the configured product.

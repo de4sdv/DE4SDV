@@ -444,7 +444,8 @@ def test_the_configured_product_traces_the_realization_the_adapter_the_applicati
 def test_driving_config_002_is_bound_to_the_exact_receipt() -> None:
     """One receipt, four holders of its digest: DRIVING-CONFIG-002, DRIVING-CONFIG-001, MW-CONFIG-002 and the
     projection header. Receipt-bound: the licensed PLE authority run cuts the receipt and the configurator writes
-    the projection, and each digest is rebound to it."""
+    the projection, and each digest is rebound to it. The slice states what counts as a change of the
+    configuration's own receipt record (decision of 2026-11-17)."""
     digest = hashlib.sha256(RECEIPT.read_bytes()).hexdigest()
     pattern = r'attribute receiptSha256 : ScalarValues::String = "([0-9a-f]{64})";'
     assert re.findall(pattern, SLICE.read_text(encoding="utf-8")) == [digest], "DRIVING-CONFIG-002 binds another receipt"
@@ -452,6 +453,12 @@ def test_driving_config_002_is_bound_to_the_exact_receipt() -> None:
         assert re.findall(pattern, holder.read_text(encoding="utf-8")) == [digest], holder.name
     (header,) = re.findall(r"\* Receipt SHA-256: ([0-9a-f]{64})", PRODUCT_MODEL.read_text(encoding="utf-8"))
     assert header == digest, "the committed projection was generated from another receipt"
+    assert ("The pull request that rebinds it states whether the configuration's own receipt record changed. By "
+            "the decision of 2026-11-17, the record has not changed when its only difference is added states omitted "
+            "for features that it does not select, and every other entry is the same: validity, reasons, derived "
+            "variants with their variant ids, admission, the selected features, projection name, source, description "
+            "and element id."
+            ) in _docs(SLICE), "DRIVING-CONFIG-002 no longer states what counts as a change of its own receipt record"
 
 
 def test_the_receipt_records_what_the_configured_product_states() -> None:
