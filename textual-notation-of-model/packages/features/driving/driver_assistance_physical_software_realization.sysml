@@ -43,6 +43,33 @@
  * process; synchronous mode, the fixed step and the pacer of the clock decision
  * of 2026-11-08 stay.
  *
+ * On 2026-11-17 the owner chose a fixed step of 0.05 s for the bench's
+ * simulator, so that the bench's recording view can be rendered at 20 frames
+ * per second: a camera renders at most once per step. The front camera keeps
+ * one image per 0.1 s of simulation time, every second step, so the candidate
+ * still receives images 0.1 s apart, the spacing that its fusion takes for two
+ * processed frames. Synchronous mode and the world-side pacer of the clock
+ * decision of 2026-11-08 stay, and the limits that were written in steps are
+ * written in simulation time: the step decision of 2026-11-17.
+ *
+ * On 2026-11-17 the owner also chose an NVIDIA RTX PRO 6000 for the simulator
+ * host. At the step of 0.05 s, with the front camera and a recording camera of
+ * 1920 by 1080 pixels, one NVIDIA L4 did not keep wall-clock pace in the
+ * readiness probe of 2026-11-16, and one NVIDIA RTX PRO 6000 did in the
+ * readiness probe of 2026-11-17: the simulator host decision of 2026-11-17.
+ *
+ * On 2026-11-17 the owner also chose that the bench records the candidate's
+ * own display, upstream's visualization at the pin, with each run. A DE4SDV
+ * display recorder in the candidate's process draws it on a thread of its
+ * own, from a second hand-off in the loop after vision_pilot.cpp:174, and
+ * encodes it with the video encoder of the S-CORE host's GPU: an observer of
+ * System 2 that carries no logical element. The configuration keeps
+ * visualization_on = false, so upstream's drawing in the loop stays off. That
+ * the candidate keeps its timing with the recorder running is a readiness item
+ * of this phase (phase8DisplayRecorderPlaced): the display decision of
+ * 2026-11-17. The draft shown to the VisionPilot maintainers includes this
+ * hand-off.
+ *
  * Carried over from the dated decisions of INC-DRIVING-001
  * (closed_loop_driving_physical_software_realization.sysml):
  *
@@ -474,11 +501,22 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * warnings are hand-offs, and the interface module passes the capture
      * time of the frame from the camera interface to the vehicle interface
      * and the warning request publisher: no hops between processes; across
-     * processes it speaks mw::com only. Its configuration: engine.provider =
-     * cuda, as upstream's configuration sets it (vision_pilot.conf:11),
-     * model.precision = fp32, visualization_on = false, rrd_on = true for
-     * the evaluators' record of the warnings, and speed_limit set per
-     * scenario by System 2.
+     * processes it speaks mw::com only. Beside the loop, on a thread of its
+     * own, runs the DE4SDV display recorder of the display decision of
+     * 2026-11-17, an observer of System 2: a second hand-off after the write
+     * at vision_pilot.cpp:174 gives it a copy of the pass's image, inference
+     * result, plan and speed. From the copy it draws upstream's visualization
+     * at the pin, the drawing that visualization_on = true would do in the
+     * loop (vision_pilot.cpp:176-181, visual_interface.hpp:77-82), and it
+     * encodes each drawn image with the video encoder of the host's GPU into
+     * the bench's recording. The loop never waits for it: a hand-off that
+     * finds it busy replaces the copy that waits and is counted. It is no
+     * module of the loop, carries no logical element and sends nothing to any
+     * element of the candidate or of the path. Its configuration:
+     * engine.provider = cuda, as upstream's configuration sets it
+     * (vision_pilot.conf:11), model.precision = fp32, visualization_on =
+     * false, rrd_on = true for the evaluators' record of the warnings, and
+     * speed_limit set per scenario by System 2.
      */
     port frontCameraImageIn : FrontCameraStreamIn;
     port vehicleSpeedIn : VehicleSpeedSampleIn;
@@ -547,9 +585,9 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * command whose sequence count is not one more than that of the last
      * accepted command (a loss or a repetition), whose check value fails (a
      * corruption), or whose issue time is older than the newest world time by
-     * more than one step of 0.1 s (a delay): the share of the product that
-     * holds the path (REQ-MW-006). The issue time and the newest world time
-     * are simulation times of world snapshots, on one clock. It applies
+     * more than 0.1 s of simulation time (a delay): the share of the product
+     * that holds the path (REQ-MW-006). The issue time and the newest world
+     * time are simulation times of world snapshots, on one clock. It applies
      * nothing in place of a rejected command: the simulator keeps the last
      * valid control. It has no stop response of its own. REQ-DRIVING-038's
      * success criterion runs SC-DRIVING-012 with the S-CORE path stopped and
@@ -577,16 +615,17 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * front camera of the ego vehicle and simulates its dynamics, the road and
      * the targets, so it stands for the vehicle and the road environment of the
      * phase 2 context on the bench. It runs in synchronous mode with a fixed
-     * step of 0.1 s, and a world-side pacer of the bench's scenario tooling
-     * ticks it at wall-clock pace, so no element of the candidate or of the
-     * path ticks the world (the clock decision of 2026-11-08). Simulation time
-     * is the time of the world snapshot, in seconds since the scenario started;
-     * each camera image carries the simulation time of the snapshot it was
-     * rendered in. Three clients connect to it over the bench network: the
-     * camera interface and the vehicle interface of the candidate's process,
-     * and the actuation adapter. The autopilot and the traffic manager have no
-     * control of the ego vehicle. Its one sensor is the front camera of the rig
-     * below.
+     * step of 0.05 s (the step decision of 2026-11-17), and a world-side pacer
+     * of the bench's scenario tooling ticks it at wall-clock pace, so no
+     * element of the candidate or of the path ticks the world (the clock
+     * decision of 2026-11-08). Simulation time is the time of the world
+     * snapshot, in seconds since the scenario started; each camera image
+     * carries the simulation time of the snapshot it was rendered in. Three
+     * clients connect to it over the bench network: the camera interface and
+     * the vehicle interface of the candidate's process, and the actuation
+     * adapter. The autopilot and the traffic manager have no control of the ego
+     * vehicle. Its one sensor is the front camera of the rig below; the camera
+     * of the bench's recording view stands for no sensor of the vehicle.
      */
     port frontCameraStreamOut : FrontCameraStreamOut;
     port vehicleSpeedOut : VehicleSpeedSampleOut;
@@ -600,8 +639,10 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
     doc /*
      * The bench's sensor, System 2: one front camera attached to the simulated
      * ego vehicle, standing for the vehicle's front camera of the phase 2
-     * context. Upstream's own rig at the pin is one RGB camera of 1920 by 1280
-     * pixels with a field of view of 50 degrees, at the pose that
+     * context. It renders one image per 0.1 s of simulation time, every second
+     * step of the server (the step decision of 2026-11-17). Upstream's own rig
+     * at the pin is one RGB camera of 1920 by 1280 pixels with a field of view
+     * of 50 degrees, at the pose that
      * Simulation/CARLA/ROS2/config/carla916.json:5-15 gives. It sits on
      * vehicle.lincoln.mkz_2020 (carla916.json:2), which CARLA 1.0 does not
      * have, so the bench mounts the camera on another vehicle. The candidate
@@ -760,7 +801,8 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
     doc /*
      * The simulator host of the bench (the three-host decision of
      * 2026-11-09, carried over): x86_64 Linux with its own GPU for the
-     * simulator's rendering. It owns its platform layer and the simulator
+     * simulator's rendering, an NVIDIA RTX PRO 6000 (the simulator host
+     * decision of 2026-11-17). It owns its platform layer and the simulator
      * server. The camera stream, the speed and the simulation clock leave
      * it, and the Ackermann control enters it, over the bench network to and
      * from the S-CORE host.
@@ -868,7 +910,7 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
        */
       attribute :>> semanticSource = "the front-camera image of the ego vehicle, rendered by the simulator: image frames, no vehicle signal, so no VSS typing applies; the receiving contract is the candidate's camera interface at 014e0e7a";
       attribute :>> softwareContractArtifact = "in: the camera sensor stream of the simulator client library of CARLA 1.0, an RGB camera as in upstream's rig (Simulation/CARLA/ROS2/config/carla916.json:5-15), candidate; out: the frame that the candidate's loop takes (vision_pilot.cpp:117), candidate";
-      attribute :>> softwareContractMessage = "in: one RGB image per simulation step with its frame number and simulation time, candidate; out: one image per pass of the loop, candidate";
+      attribute :>> softwareContractMessage = "in: one RGB image per 0.1 s of simulation time, every second simulation step (the step decision of 2026-11-17), with its frame number and simulation time, candidate; out: one image per pass of the loop, candidate";
       attribute :>> softwareContractField = "in: raw image buffer, width, height, field of view, frame number and simulation time, exact per the client library; out: the image to the loop, candidate, and its capture time to the vehicle interface and the warning request publisher inside the interface module, candidate";
       attribute :>> dataTypeAndUnit = "in: 8-bit BGRA pixels, 1920 by 1280 at a field of view of 50 degrees in upstream's rig; out: 8-bit BGR pixels; the capture time in simulation seconds";
       attribute :>> timingQualityAndState = "one image per 0.1 s of simulation time; the camera interface hands on the newest image, drops older ones and counts each image it drops; the candidate's fusion takes two processed frames as 0.1 s apart, its nominal step, since no step is passed to it (longitudinal_fusion.hpp:40, inference.cpp:206-207), so every run reports the images dropped, and phase 10 judges no run whose judged window holds a dropped image; the capture time is the simulation time of the world snapshot the image was rendered in";
@@ -991,7 +1033,7 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
       attribute :>> softwareContractField = "out: acceleration, steeringAngle, issueTime, sequenceCount, checkValue, exact";
       attribute :>> dataTypeAndUnit = "out: acceleration float m/s^2, negative decelerates; steeringAngle float degrees, positive to the left; issueTime in simulation seconds; sequenceCount an unsigned 32-bit count from 1 in each run; checkValue the CRC-32 over the other fields";
       attribute :>> timingQualityAndState = "one command per plan; none before the candidate record has arrived (REQ-DRIVING-044); the issue time is the capture simulation time of the frame the command was computed from";
-      attribute :>> transformationRule = "acceleration unchanged; steeringAngle = -steering[1] * 180 / pi: the integration takes the candidate's steering in the sign of CARLA's steer, positive to the right, as upstream's own simulator path does, which gives the steering to CARLA's steer without a change (vehicle_ros2_interface.cpp:67, carla_control_publisher_node.py:49), and the VSS steering angle is positive to the left (ASM-DRIVING-006). At the actuation adapter, for CARLA's Ackermann control, whose steer is positive to the right (the Python API references of CARLA 1.0 and of CARLA 0.9.16, which upstream's path runs): steer = -steeringAngle * pi / 180 in rad, so the simulator receives the candidate's steering unchanged, as on upstream's path; speed = max(0, v + 2 * acceleration) with v the speed of the ego vehicle in the newest world snapshot, acceleration unchanged and jerk = 10.0, as upstream's own simulator path sets them (carla_control_publisher_node.py:44-53); steerSpeed stays at its default of 0.0. The adapter rejects a command whose sequence count is not one more than that of the last accepted, whose check value fails or whose issue time is older than the newest world time by more than one step, and applies nothing in its place (REQ-DRIVING-039, REQ-MW-006)";
+      attribute :>> transformationRule = "acceleration unchanged; steeringAngle = -steering[1] * 180 / pi: the integration takes the candidate's steering in the sign of CARLA's steer, positive to the right, as upstream's own simulator path does, which gives the steering to CARLA's steer without a change (vehicle_ros2_interface.cpp:67, carla_control_publisher_node.py:49), and the VSS steering angle is positive to the left (ASM-DRIVING-006). At the actuation adapter, for CARLA's Ackermann control, whose steer is positive to the right (the Python API references of CARLA 1.0 and of CARLA 0.9.16, which upstream's path runs): steer = -steeringAngle * pi / 180 in rad, so the simulator receives the candidate's steering unchanged, as on upstream's path; speed = max(0, v + 2 * acceleration) with v the speed of the ego vehicle in the newest world snapshot, acceleration unchanged and jerk = 10.0, as upstream's own simulator path sets them (carla_control_publisher_node.py:44-53); steerSpeed stays at its default of 0.0. The adapter rejects a command whose sequence count is not one more than that of the last accepted, whose check value fails or whose issue time is older than the newest world time by more than 0.1 s of simulation time, and applies nothing in its place (REQ-DRIVING-039, REQ-MW-006)";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "run the calibrations of ASM-DRIVING-005 and ASM-DRIVING-006, then bring the verification cases of REQ-DRIVING-036, -038, -039 and -044 to evidence of record; none is started";
@@ -1120,11 +1162,16 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * same loop through the DE4SDV S-CORE interface module instead of ROS 2.
      * The simulator of this realization is CARLA 1.0 (the simulator decision of
      * 2026-11-15): the probe ran its server in synchronous mode with the fixed
-     * step at wall-clock pace, with the bench's front camera and a recording
-     * camera, on one NVIDIA L4, and drove its ego vehicle from a client inside
-     * an S-CORE process (phase8ScoreIntegrationPlaced). The candidate itself
-     * has not yet driven on CARLA 1.0: its passes in the probe ran on CARLA
-     * 0.9.16.
+     * step of 0.1 s at wall-clock pace, with the bench's front camera and a
+     * recording camera, on one NVIDIA L4, and drove its ego vehicle from a
+     * client inside an S-CORE process (phase8ScoreIntegrationPlaced). At the
+     * step of 0.05 s of the step decision of 2026-11-17, with the front camera
+     * and a recording camera of 1920 by 1080 pixels, the same server did not
+     * keep wall-clock pace on one NVIDIA L4 in the readiness probe of
+     * 2026-11-16 and kept it on one NVIDIA RTX PRO 6000 in the readiness probe
+     * of 2026-11-17 (the simulator host decision of 2026-11-17). The candidate
+     * itself has not yet driven on CARLA 1.0: its passes in the probe ran on
+     * CARLA 0.9.16.
      */
 
   comment phase8EmergencyFunctionAnswered about gapNoSeparateEmergencyFunction
@@ -1152,6 +1199,22 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * every build is such a different candidate. Every verdict names the
      * build, 014e0e7a with the DE4SDV S-CORE interface, and the record of
      * REQ-DRIVING-044 carries the difference (MAP-DRIVING-DA-CANDIDATE-RECORD).
+     */
+
+  comment phase8DisplayRecorderPlaced about gapCandidateBehaviorUnverified
+    /*
+     * What the display decision of 2026-11-17 means for this gap: every build
+     * on the S-CORE path also carries the DE4SDV display recorder and its
+     * hand-off after vision_pilot.cpp:174, a change that upstream has not
+     * merged. The record of REQ-DRIVING-044 carries it in the difference, and
+     * every verdict names the build as 014e0e7a with the DE4SDV S-CORE
+     * interface and the display recorder. The recorder only observes: it takes
+     * copies after the command is written, and it gives nothing back to the
+     * loop, to the candidate's inputs or to its outputs. Readiness item, open
+     * until the readiness probe of this phase has run: that the candidate keeps
+     * its timing with the recorder running, the time from an image to its
+     * command and the images dropped, measured with the recorder on and off in
+     * one build on an NVIDIA L4.
      */
 
   comment reqDetectableDrivingCommandRejection about reqDetectableDrivingCommand, DrivingCommandActuationAdapter

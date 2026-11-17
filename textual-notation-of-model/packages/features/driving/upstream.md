@@ -280,6 +280,20 @@ that day. The model cites these files by file name and line:
   in CARLA 0.9.16, line 12 sets the control's steer to the message's steering
   angle.
 
+Read for an amendment of the physical and software realization of
+INC-DRIVING-002 on 2026-11-17, at the same commit. The model cites these files
+by file name and line:
+
+- [Application loop](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/app/vision_pilot.cpp#L174-L185):
+  line 174 writes the steering and the acceleration. When the visualization is
+  switched on, lines 176 to 181 draw it in the loop onto the cropped and
+  resized image of the networks and hand the drawn image to the data log,
+  which lines 184 and 185 write when the data log is switched on.
+- [Visual interface](https://github.com/autowarefoundation/vision_pilot/blob/014e0e7a56ee8e597c2cab8175233f74edd9b856/VisionPilot/modules/visualization/include/visualization/visual_interface.hpp#L56-L89):
+  lines 56 to 89 declare the interface of the application's displays, and
+  lines 77 to 82 the function that draws the display from the image, the
+  inference result, the plan, the speed and the speed limit.
+
 ## Questions requiring upstream engagement
 
 AutoE2E:

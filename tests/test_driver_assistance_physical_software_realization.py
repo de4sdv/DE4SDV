@@ -17,6 +17,10 @@ what the phase settled on top of it:
 - the clock and the three hosts are INC-DRIVING-001's decisions of 2026-11-08 and 2026-11-09, carried over;
 - the simulator is CARLA 1.0 on Unreal Engine 5.8 (the simulator decision of 2026-11-15) and receives CARLA's
   Ackermann control, typed by the fields of its API reference, the same as in 0.9.16;
+- the amendment of 2026-11-17: a fixed step of 0.05 s with the front camera at one image per 0.1 s (the step
+  decision; limits once written in steps are written in simulation time), an NVIDIA RTX PRO 6000 for the simulator
+  host (the simulator host decision), and the candidate's own display drawn by a DE4SDV display recorder in its process,
+  an observer of System 2 and no module of the loop (the display decision);
 - VSS only at the ports: the command, the speed and the warning request; the 0.2 s share of REQ-DRIVING-042 is divided
   0.1 s for the path and 0.1 s for the presentation;
 - the two path requirements are carried by a dependency from the publishing definitions;
@@ -290,8 +294,8 @@ STEERING_RULE = (
 #: the rejection the adapter applies, as the command record states it (review R10, P2)
 REJECTION_RULE = (
     "The adapter rejects a command whose sequence count is not one more than that of the last accepted, whose check "
-    "value fails or whose issue time is older than the newest world time by more than one step, and applies nothing "
-    "in its place (REQ-DRIVING-039, REQ-MW-006)"
+    "value fails or whose issue time is older than the newest world time by more than 0.1 s of simulation time, and "
+    "applies nothing in its place (REQ-DRIVING-039, REQ-MW-006)"
 )
 #: The owner's decision of 2026-11-15, as the package head records it.
 OWNER_DECISION = (
@@ -328,6 +332,49 @@ SIMULATOR_DECISION = (
     "The probe ran its server in synchronous mode with the fixed step of 0.1 s at wall-clock pace on one NVIDIA L4, "
     "and its C++ client library inside an S-CORE process; synchronous mode, the fixed step and the pacer of the clock "
     "decision of 2026-11-08 stay.",
+)
+#: The owner's three decisions of 2026-11-17, as the package head records them, in this order after the decisions of
+#: 2026-11-15: the step, the simulator host after the readiness probes of 2026-11-16 and 2026-11-17, the display.
+STEP_DECISION = (
+    "On 2026-11-17 the owner chose a fixed step of 0.05 s for the bench's simulator, so that the bench's recording view "
+    "can be rendered at 20 frames per second: a camera renders at most once per step.",
+    "The front camera keeps one image per 0.1 s of simulation time, every second step, so the candidate still receives "
+    "images 0.1 s apart, the spacing that its fusion takes for two processed frames.",
+    "Synchronous mode and the world-side pacer of the clock decision of 2026-11-08 stay, and the limits that were "
+    "written in steps are written in simulation time: the step decision of 2026-11-17.",
+)
+SIMULATOR_HOST_DECISION = (
+    "On 2026-11-17 the owner also chose an NVIDIA RTX PRO 6000 for the simulator host.",
+    "At the step of 0.05 s, with the front camera and a recording camera of 1920 by 1080 pixels, one NVIDIA L4 did not "
+    "keep wall-clock pace in the readiness probe of 2026-11-16, and one NVIDIA RTX PRO 6000 did in the readiness probe "
+    "of 2026-11-17: the simulator host decision of 2026-11-17.",
+)
+DISPLAY_DECISION = (
+    "On 2026-11-17 the owner also chose that the bench records the candidate's own display, upstream's visualization "
+    "at the pin, with each run.",
+    "A DE4SDV display recorder in the candidate's process draws it on a thread of its own, from a second hand-off in "
+    "the loop after vision_pilot.cpp:174, and encodes it with the video encoder of the S-CORE host's GPU: an observer "
+    "of System 2 that carries no logical element.",
+    "The configuration keeps visualization_on = false, so upstream's drawing in the loop stays off.",
+    "That the candidate keeps its timing with the recorder running is a readiness item of this phase "
+    "(phase8DisplayRecorderPlaced): the display decision of 2026-11-17.",
+    "The draft shown to the VisionPilot maintainers includes this hand-off.",
+)
+#: What the step decision of 2026-11-17 retired, anywhere in the model and the guide: limits and rates written in
+#: steps. The clock record of 2026-11-08 keeps its own step of 0.1 s as it was decided.
+RETIRED_STEP_STATEMENTS = ("more than one step of 0.1 s", "by more than one step,", "one RGB image per simulation step",
+                           "It runs in synchronous mode with a fixed step of 0.1 s")
+#: The display recorder as the candidate's process describes it: beside the loop, an observer, no module.
+DISPLAY_RECORDER = (
+    "Beside the loop, on a thread of its own, runs the DE4SDV display recorder of the display decision of 2026-11-17, "
+    "an observer of System 2: a second hand-off after the write at vision_pilot.cpp:174 gives it a copy of the pass's "
+    "image, inference result, plan and speed.",
+    "From the copy it draws upstream's visualization at the pin, the drawing that visualization_on = true would do in "
+    "the loop (vision_pilot.cpp:176-181, visual_interface.hpp:77-82), and it encodes each drawn image with the video "
+    "encoder of the host's GPU into the bench's recording.",
+    "The loop never waits for it: a hand-off that finds it busy replaces the copy that waits and is counted.",
+    "It is no module of the loop, carries no logical element and sends nothing to any element of the candidate or of "
+    "the path.",
 )
 #: What the simulator decision retired, anywhere in the model and the guide: the bench's own simulator, client and
 #: API reference are CARLA 1.0's. CARLA 0.9.16 stays named where it is upstream's path or the record of 2026-11-08.
@@ -366,6 +413,7 @@ COMMENTS = {
     "reqDetectableDrivingCommandRejection": ("reqDetectableDrivingCommand", ADAPTER),
     "phase8ProcessorInferenceNotHeld": ("asmProcessorInferenceSufficient",),
     "phase8SimulatorPathHeld": ("asmSimulatorPathUsable",),
+    "phase8DisplayRecorderPlaced": ("gapCandidateBehaviorUnverified",),
 }
 #: what each comment must state
 COMMENT_STATEMENTS = {
@@ -421,10 +469,21 @@ COMMENT_STATEMENTS = {
         "The S-CORE path of this realization takes the commands from the same loop through the DE4SDV S-CORE "
         "interface module instead of ROS 2.",
         "The simulator of this realization is CARLA 1.0 (the simulator decision of 2026-11-15): the probe ran its "
-        "server in synchronous mode with the fixed step at wall-clock pace, with the bench's front camera and a "
-        "recording camera, on one NVIDIA L4, and drove its ego vehicle from a client inside an S-CORE process "
+        "server in synchronous mode with the fixed step of 0.1 s at wall-clock pace, with the bench's front camera and "
+        "a recording camera, on one NVIDIA L4, and drove its ego vehicle from a client inside an S-CORE process "
         "(phase8ScoreIntegrationPlaced).",
+        "At the step of 0.05 s of the step decision of 2026-11-17, with the front camera and a recording camera of 1920 "
+        "by 1080 pixels, the same server did not keep wall-clock pace on one NVIDIA L4 in the readiness probe of "
+        "2026-11-16 and kept it on one NVIDIA RTX PRO 6000 in the readiness probe of 2026-11-17 (the simulator host "
+        "decision of 2026-11-17).",
         "The candidate itself has not yet driven on CARLA 1.0: its passes in the probe ran on CARLA 0.9.16."),
+    "phase8DisplayRecorderPlaced": (
+        "What the display decision of 2026-11-17 means for this gap: every build on the S-CORE path also carries the "
+        "DE4SDV display recorder and its hand-off after vision_pilot.cpp:174, a change that upstream has not merged.",
+        "The record of REQ-DRIVING-044 carries it in the difference, and every verdict names the build as 014e0e7a with "
+        "the DE4SDV S-CORE interface and the display recorder.",
+        "The recorder only observes: it takes copies after the command is written, and it gives nothing back to the "
+        "loop, to the candidate's inputs or to its outputs."),
     "reqDetectableDrivingCommandRejection": (
         "its issue time, a sequence count from 1 in each run and a CRC-32 check value",
         "detects a loss or a repetition by the sequence count, a corruption by the check value and a delay by the issue "
@@ -436,7 +495,7 @@ ADAPTER_STATEMENTS = (
     "It carries no logical element; it is a share of the S-CORE path, which is outside the candidate.",
     "rejects a command whose sequence count is not one more than that of the last accepted command (a loss or a "
     "repetition), whose check value fails (a corruption), or whose issue time is older than the newest world time by "
-    "more than one step of 0.1 s (a delay): the share of the product that holds the path (REQ-MW-006).",
+    "more than 0.1 s of simulation time (a delay): the share of the product that holds the path (REQ-MW-006).",
     "It applies nothing in place of a rejected command: the simulator keeps the last valid control.",
     "The issue time and the newest world time are simulation times of world snapshots, on one clock.",
     "Its simulator client takes the simulation time and the speed of the ego vehicle from the newest world snapshot: "
@@ -687,6 +746,11 @@ def test_the_candidate_stays_one_process_with_five_modules_in_the_order_of_the_l
                    "ONNX Runtime with its CUDA provider",
                    "no hops between processes; across processes it speaks mw::com only", *CONFIGURATION):
         assert phrase in doc, phrase
+    # the display decision of 2026-11-17: an observer of System 2 beside the loop, described, never a module or a part
+    for phrase in DISPLAY_RECORDER:
+        assert phrase in doc, phrase
+    assert doc.index("speaks mw::com only") < doc.index(DISPLAY_RECORDER[0]) < doc.index("Its configuration:")
+    assert not re.search(r"\bpart\s+def\s+\w*Display\w*", _code()), "the recorder carries no element of the candidate"
 
 
 @pytest.mark.parametrize("definition", sorted(PORTS), ids=sorted(PORTS))
@@ -811,18 +875,25 @@ def test_the_simulator_server_carries_the_front_camera_rig_and_keeps_the_clock_o
                    "Simulation/CARLA/ROS2/config/carla916.json:5-15", "H.yaml", "gapCameraImageAndGeometry",
                    "ground truth",
                    "It sits on vehicle.lincoln.mkz_2020 (carla916.json:2), which CARLA 1.0 does not have, so the bench "
-                   "mounts the camera on another vehicle."):
+                   "mounts the camera on another vehicle.",
+                   "It renders one image per 0.1 s of simulation time, every second step of the server (the step "
+                   "decision of 2026-11-17)."):
         assert phrase in rig_doc, phrase
     server_doc = _doc("part def DriverAssistanceSimulationServer")
     for phrase in ("The simulator server, System 2: CARLA 1.0 on Unreal Engine 5.8, at 14ac3b1a50 (the simulator "
                    "decision of 2026-11-15), which renders the front camera of the ego vehicle",
-                   "It runs in synchronous mode with a fixed step of 0.1 s",
-                   "world-side pacer", "the clock decision of 2026-11-08",
+                   "It runs in synchronous mode with a fixed step of 0.05 s (the step decision of 2026-11-17), and a "
+                   "world-side pacer of the bench's scenario tooling ticks it at wall-clock pace",
+                   "the clock decision of 2026-11-08",
+                   "Its one sensor is the front camera of the rig below; the camera of the bench's recording view "
+                   "stands for no sensor of the vehicle.",
                    "Simulation time is the time of the world snapshot, in seconds since the scenario started",
                    "Three clients", "The autopilot and the traffic manager have no control of the ego vehicle"):
         assert phrase in server_doc, phrase
     simulator = _body_of_definition(SIMULATOR_HOST)
     assert _owned(simulator) == [("os", "LinuxPlatform"), ("carlaServer", "DriverAssistanceSimulationServer")]
+    assert ("x86_64 Linux with its own GPU for the simulator's rendering, an NVIDIA RTX PRO 6000 (the simulator host "
+            "decision of 2026-11-17).") in _doc(f"part def {SIMULATOR_HOST}")
     assert _named_connections(simulator) == SIMULATOR_HOST_CONNECTIONS
     into_server = [name for name, (_, target) in SIMULATOR_HOST_CONNECTIONS.items() if target.startswith("carlaServer.")]
     assert into_server == ["ackermannControlDelegation"], "the Ackermann control is the only thing the simulator receives"
@@ -1144,6 +1215,34 @@ def test_the_package_head_records_the_owner_decision_of_2026_11_15():
         assert phrase in head, phrase
 
 
+def test_the_package_head_records_the_decisions_of_2026_11_17_after_those_of_2026_11_15():
+    head = _head()
+    for statement in (*STEP_DECISION, *SIMULATOR_HOST_DECISION, *DISPLAY_DECISION):
+        assert statement in head, statement
+    assert head.index(SIMULATOR_DECISION[-1]) < head.index(STEP_DECISION[0]) < head.index(
+        SIMULATOR_HOST_DECISION[0]) < head.index(DISPLAY_DECISION[0]) < head.index(
+        "Carried over from the dated decisions of INC-DRIVING-001"), "this phase's decisions in the order of their days"
+    # the decisions of 2026-11-15 and the clock record of 2026-11-08 stay as they were decided
+    assert SIMULATOR_DECISION[1] in head and CARRIED_OVER[0] in head and CARRIED_OVER[1] in head
+
+
+def test_the_step_decision_writes_the_step_limits_in_simulation_time():
+    """The step decision of 2026-11-17 halves the step: a limit written as one step would halve with it, so the
+    delay limit and the camera rate are written in simulation time, as they were meant (0.1 s)."""
+    model = _flat(_raw())
+    guide = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    for statement in RETIRED_STEP_STATEMENTS:
+        assert statement not in model and statement not in guide, statement
+    assert REJECTION_RULE in _record_value("MAP-DRIVING-DA-COMMAND", "transformationRule")
+    assert _record_value("MAP-DRIVING-DA-CAMERA-IMAGE", "softwareContractMessage") == (
+        "in: one RGB image per 0.1 s of simulation time, every second simulation step (the step decision of "
+        "2026-11-17), with its frame number and simulation time, candidate; out: one image per pass of the loop, "
+        "candidate")
+    assert _record_value("MAP-DRIVING-DA-CAMERA-IMAGE", "timingQualityAndState").startswith(
+        "one image per 0.1 s of simulation time;")
+    assert "0.05 s" not in _doc(f"part def {ADAPTER}"), "the delay limit stays 0.1 s of simulation time"
+
+
 def test_the_gpu_decision_retires_the_processor_statements():
     """The readiness probe and the GPU decision of 2026-11-15 settle what phase 8 left open: no text keeps it open."""
     model = _flat(_raw())
@@ -1360,6 +1459,15 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                    "Upstream's camera rig sits on a vehicle that CARLA 1.0 does not have, so the bench mounts the "
                    "camera on another one.",
                    "The candidate itself has not yet driven on CARLA 1.0.",
+                   "On 2026-11-17 the owner chose a fixed step of 0.05 s for the bench's simulator, so that the "
+                   "bench's recording view can be rendered at 20 frames per second.",
+                   "the actuation adapter's delay limit is written as 0.1 s of simulation time instead of one step",
+                   "On the same day the owner chose an NVIDIA RTX PRO 6000 for the simulator host",
+                   "one NVIDIA L4 did not keep wall-clock pace in a readiness probe, and the RTX PRO 6000 did",
+                   "The owner also chose that the bench records the candidate's own display, upstream's "
+                   "visualization, with each run.",
+                   "upstream's drawing in the loop stays switched off",
+                   "That the candidate keeps its timing with the recorder running is a readiness item of Phase 8.",
                    "tests/test_driver_assistance_physical_software_realization.py"):
         assert phrase in section, phrase
     assert "VisionPilot/" not in section and ".cpp" not in section, "the guide carries no upstream paths"
@@ -1405,6 +1513,11 @@ def test_the_upstream_record_names_what_phase_8_read_at_the_pin():
     assert ("https://github.com/carla-simulator/carla/blob/0.9.16/LibCarla/source/carla/ros2/subscribers/"
             "AckermannControlSubscriber.cpp") in section
     assert "lateral_planning.cpp" not in section and "lateral_fusion.hpp" not in section, "the model cites neither"
+    assert ("Read for an amendment of the physical and software realization of INC-DRIVING-002 on 2026-11-17, at the "
+            "same commit.") in text
+    for path in ("VisionPilot/app/vision_pilot.cpp#L174-L185",
+                 "VisionPilot/modules/visualization/include/visualization/visual_interface.hpp#L56-L89"):
+        assert f"https://github.com/autowarefoundation/vision_pilot/blob/{PIN}/{path}" in section, path
     for phrase in ("lines 13 to 18 give the closest object in the path with its distance and its velocity, negative "
                    "while it approaches, and line 40 a nominal step of 0.10 s",
                    "lines 152 to 154 keep the previous and the current processed frame, and lines 206 and 207 update "
@@ -1418,7 +1531,11 @@ def test_the_upstream_record_names_what_phase_8_read_at_the_pin():
                    "the configured device",
                    "line 11 sets the provider to cuda and line 17 the precision to fp32",
                    "steer in rad, positive to the right, steer_speed in rad/s, speed in m/s, acceleration in m/s² and "
-                   "jerk in m/s³, each with a default of 0.0"):
+                   "jerk in m/s³, each with a default of 0.0",
+                   "When the visualization is switched on, lines 176 to 181 draw it in the loop onto the cropped and "
+                   "resized image of the networks and hand the drawn image to the data log",
+                   "lines 77 to 82 the function that draws the display from the image, the inference result, the "
+                   "plan, the speed and the speed limit"):
         assert phrase in text, phrase
 
 

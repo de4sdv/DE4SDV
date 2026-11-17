@@ -710,6 +710,24 @@ S-CORE process whose other code stays C++17. Upstream's camera rig sits on a
 vehicle that CARLA 1.0 does not have, so the bench mounts the camera on another
 one. The candidate itself has not yet driven on CARLA 1.0.
 
+On 2026-11-17 the owner chose a fixed step of 0.05 s for the bench's simulator,
+so that the bench's recording view can be rendered at 20 frames per second. The
+front camera keeps one image per 0.1 s, every second step, so the candidate
+still receives images 0.1 s apart, and the actuation adapter's delay limit is
+written as 0.1 s of simulation time instead of one step. On the same day the
+owner chose an NVIDIA RTX PRO 6000 for the simulator host: at the new step, with
+the front camera and a recording camera of 1920 by 1080 pixels, one NVIDIA L4
+did not keep wall-clock pace in a readiness probe, and the RTX PRO 6000 did.
+The owner also chose that the bench records the candidate's own display,
+upstream's visualization, with each run. A DE4SDV display recorder in the
+candidate's process draws it on a thread of its own from a copy that the loop
+hands over after it writes the command, and encodes it with the video encoder
+of the S-CORE host's GPU; upstream's drawing in the loop stays switched off.
+The recorder only observes and carries no logical element, but every build on
+the S-CORE path carries it, so the candidate record holds it and every verdict
+names it. That the candidate keeps its timing with the recorder running is a
+readiness item of Phase 8.
+
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
 upstream's own simulator path does, and gives the simulator the candidate's
 steering unchanged, as that path does. The VSS steering angle of the driving
