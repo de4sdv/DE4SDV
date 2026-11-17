@@ -294,6 +294,26 @@ by file name and line:
   and lines 77 to 82 the function that draws a frame of it from the image, the
   inference result, the plan, the speed and the speed limit.
 
+## Android SDV display safety
+
+Read for the alternative `ALT-DRIVING-HARWARNING-001` of the physical and
+software realization of INC-DRIVING-002 on 2026-11-17, at commit `951af0fd` of
+the display safety project, the head of its branch `android17-release`:
+
+- [Vehicle data catalog](https://android.googlesource.com/platform/packages/services/display_safety/+/951af0fd68b691a69bab68542c981291ad4cf1c3/service/vehicledata/sdv_vehicledata_catalog_v1/vehicledata_system.vsidl):
+  the publisher of the telltale status has 21 topics, from the oil pressure to
+  the emergency light; none is a collision warning.
+- [User interface model](https://android.googlesource.com/platform/packages/services/display_safety/+/951af0fd68b691a69bab68542c981291ad4cf1c3/reference/harry-app-core/src/ui/model.rs):
+  the reference application binds the telltale symbols of its design, from the
+  seatbelt to the turn signals; none is a collision warning.
+- [Chimes](https://android.googlesource.com/platform/packages/services/display_safety/+/951af0fd68b691a69bab68542c981291ad4cf1c3/service/harry-prebuilt/data/assets/sdv/config/harry-chimes-config.json):
+  the reference configuration has three chimes, an alert, a welcome sound and a
+  seatbelt alert; none is a collision warning.
+- [Display safety](https://source.android.com/docs/automotive/sdv/display-safety),
+  the page of 2026-09-24: the High Availability Renderer draws the
+  safety-relevant and regulatory elements of the cluster display in SDV Media,
+  and Google provides reference implementations that carmakers customize.
+
 ## Questions requiring upstream engagement
 
 AutoE2E:

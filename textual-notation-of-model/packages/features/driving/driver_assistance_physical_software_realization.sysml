@@ -132,6 +132,14 @@
  * - ALT-DRIVING-ROS2BRIDGE-001: the unchanged ROS 2 build with a DE4SDV
  *   bridge from ROS 2 to mw::com. A ROS 2 hop before S-CORE is a hop beside
  *   it under REQ-DRIVING-038, and the ROS 2 build gives no warning.
+ * - ALT-DRIVING-HARWARNING-001: the High Availability Renderer of Android SDV's
+ *   display safety shows the collision warning on the cluster display behind
+ *   the steering wheel and sounds it, in a third guest, SDV Media, instead of
+ *   the application on the IVI VM. Android SDV's vehicle data has no collision
+ *   signal and the renderer's reference application no collision symbol or
+ *   chime (upstream.md), so DE4SDV would add all three and a bridge from SDV
+ *   Core to SDV Media. Not selected by the owner on 2026-11-17 for this
+ *   increment.
  *
  * The S-CORE path and the AAOS SDV are System 1 parts outside the
  * candidate (driver_assistance_operational_context.sysml): the actuation

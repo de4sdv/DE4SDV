@@ -407,7 +407,18 @@ CARRIED_OVER = (
 CONFIGURATION = ("engine.provider = cuda, as upstream's configuration sets it (vision_pilot.conf:11)",
                  "model.precision = fp32", "visualization_on = false",
                  "rrd_on = true for the evaluators' record of the warnings", "speed_limit set per scenario by System 2")
-ALTERNATIVES = ("ALT-DRIVING-WARNFROMCOMMAND-001", "ALT-DRIVING-ROS2BRIDGE-001")
+ALTERNATIVES = ("ALT-DRIVING-WARNFROMCOMMAND-001", "ALT-DRIVING-ROS2BRIDGE-001", "ALT-DRIVING-HARWARNING-001")
+#: The alternative of 2026-11-17 for the warning's presentation, as the package head records it.
+HAR_ALTERNATIVE = (
+    "ALT-DRIVING-HARWARNING-001: the High Availability Renderer of Android SDV's display safety shows the collision "
+    "warning on the cluster display behind the steering wheel and sounds it, in a third guest, SDV Media, instead of "
+    "the application on the IVI VM.",
+    "Android SDV's vehicle data has no collision signal and the renderer's reference application no collision symbol "
+    "or chime (upstream.md), so DE4SDV would add all three and a bridge from SDV Core to SDV Media.",
+    "Not selected by the owner on 2026-11-17 for this increment.",
+)
+#: The pin of Android SDV's display safety project that the record of the alternative read.
+DISPLAY_SAFETY_COMMIT = "951af0fd68b691a69bab68542c981291ad4cf1c3"
 #: comment -> the records it is about
 COMMENTS = {
     "phase8WarningOutputPlaced": ("gapWarningOutput",),
@@ -1231,6 +1242,12 @@ def test_the_package_head_records_the_decisions_of_2026_11_17_after_those_of_202
         "Carried over from the dated decisions of INC-DRIVING-001"), "this phase's decisions in the order of their days"
     # the decisions of 2026-11-15 and the clock record of 2026-11-08 stay as they were decided
     assert SIMULATOR_DECISION[1] in head and CARRIED_OVER[0] in head and CARRIED_OVER[1] in head
+    # the alternative of 2026-11-17 for the warning's presentation: recorded and not selected
+    for statement in HAR_ALTERNATIVE:
+        assert statement in head, statement
+    assert head.index("Alternatives recorded and not selected:") < head.index("ALT-DRIVING-ROS2BRIDGE-001") < \
+        head.index(HAR_ALTERNATIVE[0]) < head.index("The S-CORE path and the AAOS SDV are System 1 parts"), \
+        "the third alternative closes the list"
 
 
 def test_the_step_decision_writes_the_step_limits_in_simulation_time():
@@ -1476,8 +1493,17 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                    "It is not the driver's display; it goes only into the bench's recording.",
                    "upstream's drawing in the loop stays switched off",
                    "That the candidate keeps its timing with the recorder running is a readiness item of Phase 8.",
+                   "The owner also chose to keep the collision warning on the application of the IVI VM for this "
+                   "increment.",
+                   "The High Availability Renderer of Android SDV's display safety, which draws the safety-relevant "
+                   "parts of the cluster display behind the steering wheel in a guest of its own, SDV Media, was "
+                   "considered and not selected "
+                   "(`ALT-DRIVING-HARWARNING-001`): Android SDV's vehicle data has no collision signal and the "
+                   "renderer's reference application no collision symbol or chime, so DE4SDV would add all three and a "
+                   "bridge from SDV Core to SDV Media.",
                    "tests/test_driver_assistance_physical_software_realization.py"):
         assert phrase in section, phrase
+    assert "- - " not in section, "each software element is one bullet"
     assert "VisionPilot/" not in section and ".cpp" not in section, "the guide carries no upstream paths"
     assert "like the VSS steering angle" not in section and "changes its sign" not in section, "review R1"
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "
@@ -1490,6 +1516,34 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
     assert "The next model obligation is **Phase 8**" not in flat
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
     assert "tests/test_driver_assistance_physical_software_realization.py" in check
+
+
+def test_the_upstream_record_names_what_the_alternative_of_2026_11_17_read():
+    record = UPSTREAM.read_text(encoding="utf-8")
+    assert record.index("\n## VisionPilot\n") < record.index("\n## Android SDV display safety\n") < record.index(
+        "\n## Questions requiring upstream engagement\n")
+    section = record.split("\n## Android SDV display safety\n", 1)[1].split("\n## ", 1)[0]
+    text = " ".join(section.split())
+    assert ("Read for the alternative `ALT-DRIVING-HARWARNING-001` of the physical and software realization of "
+            "INC-DRIVING-002 on 2026-11-17, at commit `951af0fd` of the display safety project, the head of its "
+            "branch `android17-release`:") in text
+    base = f"https://android.googlesource.com/platform/packages/services/display_safety/+/{DISPLAY_SAFETY_COMMIT}/"
+    for path, finding in (
+            ("service/vehicledata/sdv_vehicledata_catalog_v1/vehicledata_system.vsidl",
+             "the publisher of the telltale status has 21 topics, from the oil pressure to the emergency light; none "
+             "is a collision warning."),
+            ("reference/harry-app-core/src/ui/model.rs",
+             "the reference application binds the telltale symbols of its design, from the seatbelt to the turn "
+             "signals; none is a collision warning."),
+            ("service/harry-prebuilt/data/assets/sdv/config/harry-chimes-config.json",
+             "the reference configuration has three chimes, an alert, a welcome sound and a seatbelt alert; none is a "
+             "collision warning.")):
+        assert f"({base}{path}):" in section, path
+        assert finding in text, finding
+    assert len(re.findall(r"android\.googlesource\.com/", record)) == 3, "every source link of the record is pinned"
+    assert ("[Display safety](https://source.android.com/docs/automotive/sdv/display-safety), the page of 2026-09-24: "
+            "the High Availability Renderer draws the safety-relevant and regulatory elements of the cluster display "
+            "in SDV Media, and Google provides reference implementations that carmakers customize.") in text
 
 
 def test_the_upstream_record_names_what_phase_8_read_at_the_pin():

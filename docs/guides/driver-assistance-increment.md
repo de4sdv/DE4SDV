@@ -632,12 +632,12 @@ nothing is posted without the owner.
 The candidate stays one process. Six software elements carry the four logical
 elements:
 
-- - **Identity recording application** carries the identity recorder: an S-CORE
+- **Identity recording application** carries the identity recorder: an S-CORE
   application of its own, started first, that hashes every configuration,
   calibration, manifest and network file the candidate's process reads and
   publishes the candidate record on an mw::com event. The candidate publishes no
   driving command before the record has arrived.
-- - **Camera interface** (DE4SDV) and **perception and fusion** (upstream,
+- **Camera interface** (DE4SDV) and **perception and fusion** (upstream,
   unchanged) carry the vehicle-ahead assessor. The camera interface hands the
   newest image to the loop and counts the images it drops: the candidate's
   fusion takes two processed frames as 0.1 s apart, so Phase 10 judges no run
@@ -645,7 +645,7 @@ elements:
   collision, no needed deceleration and no imminence, so the assessment is
   realized in part; Phase 10 judges the imminence from the simulator's ground
   truth.
-- - **Safety guardian planner** (upstream, unchanged) carries both the warning
+- **Safety guardian planner** (upstream, unchanged) carries both the warning
   requester and the driving commander: the warning requester and the driving
   commander share the planner module, since the forward-collision warning and
   the emergency braking are two ranges of one planned acceleration
@@ -728,6 +728,14 @@ upstream's drawing in the loop stays switched off. The recorder only observes
 and carries no logical element, but every build on the S-CORE path carries it,
 so the candidate record holds it and every verdict names it. That the candidate
 keeps its timing with the recorder running is a readiness item of Phase 8.
+
+The owner also chose to keep the collision warning on the application of the IVI
+VM for this increment. The High Availability Renderer of Android SDV's display
+safety, which draws the safety-relevant parts of the cluster display behind the
+steering wheel in a guest of its own, SDV Media, was considered and not selected
+(`ALT-DRIVING-HARWARNING-001`): Android SDV's vehicle data has no collision
+signal and the renderer's reference application no collision symbol or chime, so
+DE4SDV would add all three and a bridge from SDV Core to SDV Media.
 
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
 upstream's own simulator path does, and gives the simulator the candidate's
