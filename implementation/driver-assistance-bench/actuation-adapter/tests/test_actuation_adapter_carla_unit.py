@@ -147,3 +147,19 @@ def test_main_compiles_for_syntax_against_the_mwcom_mock(tmp_path: Path) -> None
          str(MAIN)],
         check=True, cwd=tmp_path,
     )
+
+
+def test_lifecycle_client_compiles_for_syntax_against_the_api_declarations(tmp_path: Path) -> None:
+    """lifecycle_client_score.cpp against the Lifecycle v0.10.0 API as ../launch-manager/tests/lifecycle_mock
+    declares it; the real compile is the S-CORE Bazel build's."""
+    compiler = shutil.which("g++")
+    if compiler is None:
+        pytest.skip("g++ is not installed")
+    mock = BENCH / "launch-manager" / "tests" / "lifecycle_mock"
+    assert (mock / "score" / "mw" / "lifecycle" / "alive.h").is_file()
+    subprocess.run(
+        [str(compiler), "-std=c++17", "-Wall", "-Wextra", "-Werror", "-pedantic", "-fsyntax-only",
+         "-isystem", str(mock), f"-I{ADAPTER}", f"-I{BENCH / 'interfaces' / 'include'}",
+         str(ADAPTER / "lifecycle_client_score.cpp")],
+        check=True, cwd=tmp_path,
+    )

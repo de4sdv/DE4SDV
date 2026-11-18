@@ -2,7 +2,7 @@
 // driving bench's ICD section 6: every record has t_mono_ns, t_real_ns, host,
 // component, event, seq and data (run_log.h); events are in.<port> and
 // out.<port> for each crossing, drop, error and the lifecycle events start,
-// config, ready and stop; every time field names its clock by its suffix
+// config, ready, supervision (alive_ticker.h) and stop; every time field names its clock by its suffix
 // (_sim_s: simulation seconds, _mono_s: monotonic seconds); non-finite numbers
 // are null; components log stamps and the evaluators compute (no latencies,
 // no ages).

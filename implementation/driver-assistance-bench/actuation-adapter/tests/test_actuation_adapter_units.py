@@ -30,6 +30,11 @@ BINARIES = {
         ADAPTER / "adapter_config.cpp",
         ADAPTER / "json_lite.cpp",
     ],
+    "alive_ticker_test": [
+        HERE / "alive_ticker_test.cpp",
+        ADAPTER / "alive_ticker.cpp",
+        ADAPTER / "json_lite.cpp",
+    ],
     "adapter_shell_test": [
         HERE / "adapter_shell_test.cpp",
         HERE / "fake_simulator_client.cpp",

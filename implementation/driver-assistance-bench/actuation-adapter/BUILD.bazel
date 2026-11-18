@@ -5,6 +5,8 @@
 # for the S-CORE workspace of build item B2, which does not exist yet. The
 # labels below are what that workspace has to provide:
 #   - S-CORE Communication v0.6.0       @score_communication//score/mw/com
+#   - S-CORE Lifecycle v0.10.0          @score_lifecycle//score/launch_manager:alive_cc
+#                                       and :lifecycle_cc (report_running)
 #   - the bench's interface headers     //de4sdv_da_bench/interfaces:driver_assistance
 #     (interfaces/include, payloads.h)
 # Nothing here has been built with Bazel; the host's g++ builds the pure parts
@@ -68,6 +70,40 @@ cc_library(
     deps = [":actuation_core"],
 )
 
+# The alive supervision by the Launch Manager (C++17): the ticker, and the
+# client on S-CORE Lifecycle v0.10.0.
+cc_library(
+    name = "alive_ticker",
+    srcs = ["alive_ticker.cpp"],
+    hdrs = ["alive_ticker.h"],
+    includes = ["."],
+    deps = [
+        ":adapter_config",
+        ":adapter_shell",
+    ],
+)
+
+cc_library(
+    name = "lifecycle_client_score",
+    srcs = ["lifecycle_client_score.cpp"],
+    includes = ["."],
+    deps = [
+        ":alive_ticker",
+        "@score_lifecycle//score/launch_manager:alive_cc",
+        "@score_lifecycle//score/launch_manager:lifecycle_cc",
+    ],
+)
+
+cc_binary(
+    name = "alive_ticker_test",
+    srcs = [
+        "tests/alive_ticker_test.cpp",
+        "tests/check.h",
+    ],
+    includes = ["tests"],
+    deps = [":alive_ticker"],
+)
+
 # The CARLA 1.0 client (14ac3b1a50) unit: C++20, the client's own standard
 # (DA-P8 h, owner decision h-a). @libcarla is the 1.0 bundle of the 17
 # archives in the link order of DA-P8 h (libcarla10.BUILD); the B2 workspace
@@ -88,6 +124,8 @@ cc_binary(
     deps = [
         ":adapter_config",
         ":adapter_shell",
+        ":alive_ticker",
+        ":lifecycle_client_score",
         ":simulator_client_carla",
         "//de4sdv_da_bench/interfaces:driver_assistance",
         "@score_communication//score/mw/com",
