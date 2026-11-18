@@ -632,10 +632,12 @@ already computes, in the loop. The decision logic of the candidate is unchanged.
 Every build on the S-CORE path carries this change, which upstream has not
 merged, so every verdict names the build, 014e0e7a with the DE4SDV S-CORE
 interface, and the candidate record of REQ-DRIVING-044 carries the difference
-(`gapCandidateBehaviorUnverified`). After the scenarios of Phase 10 have run in
-CARLA, the VisionPilot maintainers are shown a draft of the warning output and
-the interface seam, with the results (the upstream contact decision of
-2026-11-18); nothing is posted without the owner.
+(`gapCandidateBehaviorUnverified`).
+
+On 2026-11-18 the owner chose that nothing goes upstream before the scenarios of
+Phase 10 have run in CARLA: then the VisionPilot maintainers are shown a draft
+of the warning output and the interface seam, with the results; nothing is
+posted without the owner (the upstream contact decision of 2026-11-18).
 
 The candidate stays one process. Six software elements carry the four logical
 elements:

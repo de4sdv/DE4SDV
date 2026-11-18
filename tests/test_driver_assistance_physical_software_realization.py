@@ -1796,9 +1796,10 @@ def test_every_upstream_file_the_model_cites_by_line_is_in_the_upstream_record()
 
 
 #: The upstream contact decision of 2026-11-18: the draft goes to the VisionPilot maintainers after the CARLA runs.
-CONTACT_IN_GUIDE = ("After the scenarios of Phase 10 have run in CARLA, the VisionPilot maintainers are shown a draft of "
-                    "the warning output and the interface seam, with the results (the upstream contact decision of "
-                    "2026-11-18); nothing is posted without the owner.")
+CONTACT_IN_GUIDE = ("On 2026-11-18 the owner chose that nothing goes upstream before the scenarios of Phase 10 have "
+                    "run in CARLA: then the VisionPilot maintainers are shown a draft of the warning output and the "
+                    "interface seam, with the results; nothing is posted without the owner (the upstream contact "
+                    "decision of 2026-11-18).")
 #: The contact as it stood before that decision, anywhere in the model and the guide.
 RETIRED_CONTACT_STATEMENTS = ("Before phase 10 builds, the VisionPilot maintainers are shown a draft",
                               "Before Phase 10 builds, the VisionPilot maintainers are shown a draft",
@@ -1816,3 +1817,16 @@ def test_the_upstream_contact_decision_moves_the_draft_after_the_carla_runs():
         assert statement not in model and statement not in guide, statement
     assert CONTACT_IN_GUIDE in guide
     assert CONTACT_DECISION[0] in _head()
+
+
+def test_the_guide_records_the_upstream_contact_decision_apart_from_that_of_2026_11_15():
+    """The guide's Phase 8 account of the S-CORE interface decision of 2026-11-15 ends at the candidate record; the
+    upstream contact decision of 2026-11-18 is its own paragraph after it."""
+    text = GUIDE.read_text(encoding="utf-8")
+    paragraphs = [" ".join(p.split()) for p in text.split("\n\n")]
+    interface = [p for p in paragraphs if p.startswith("The [physical and software realization]")]
+    assert len(interface) == 1
+    assert interface[0].endswith("(`gapCandidateBehaviorUnverified`).")
+    assert "upstream contact decision" not in interface[0]
+    following = paragraphs[paragraphs.index(interface[0]) + 1]
+    assert following == CONTACT_IN_GUIDE
