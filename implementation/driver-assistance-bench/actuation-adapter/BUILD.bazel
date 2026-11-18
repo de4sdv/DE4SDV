@@ -1,0 +1,34 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): actuation adapter.
+#
+# The shell structure of the closed-loop driving bench's actuation adapter
+# (implementation/closed-loop-driving-bench/actuation-adapter/BUILD.bazel),
+# for the S-CORE workspace of build item B2, which does not exist yet. The
+# labels below are what that workspace has to provide:
+#   - S-CORE Communication v0.6.0       @score_communication//score/mw/com
+#   - the bench's interface headers     //de4sdv_da_bench/interfaces:driver_assistance
+#     (interfaces/include, payloads.h)
+# Nothing here has been built with Bazel; the host's g++ builds the pure parts
+# (tests/test_actuation_adapter_units.py).
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "mw_com_config_actuation_adapter.json",
+    "config/adapter.json",
+])
+
+# The run configuration (C++17).
+cc_library(
+    name = "adapter_config",
+    srcs = [
+        "adapter_config.cpp",
+        "json_lite.cpp",
+    ],
+    hdrs = [
+        "adapter_config.h",
+        "json_lite.h",
+        "run_log.h",
+    ],
+    includes = ["."],
+)
