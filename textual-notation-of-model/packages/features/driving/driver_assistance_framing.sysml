@@ -423,7 +423,8 @@ package DE4SDV_DriverAssistanceFraming {
       "DE4SDV_DriverAssistanceFunctionalArchitecture",
       "DE4SDV_DriverAssistanceLogicalArchitecture",
       "DE4SDV_DriverAssistancePhysicalSoftwareRealization",
-      "DE4SDV_DriverAssistanceVariabilityConfiguration"
+      "DE4SDV_DriverAssistanceVariabilityConfiguration",
+      "DE4SDV_DriverAssistanceVerificationEvidence"
     );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",

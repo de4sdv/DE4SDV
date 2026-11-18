@@ -631,8 +631,9 @@ def test_the_views_index_lists_the_two_phase_9_views() -> None:
 
 def test_the_charter_names_the_phase_9_package_after_phase_8() -> None:
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", FRAMING.read_text(encoding="utf-8"), re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-2:] == [
-        "DE4SDV_DriverAssistancePhysicalSoftwareRealization", PACKAGE]
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[-3:] == [
+        "DE4SDV_DriverAssistancePhysicalSoftwareRealization", PACKAGE,
+        "DE4SDV_DriverAssistanceVerificationEvidence"], "phase 10 follows phase 9 in the charter"
     assert re.findall(r"(?m)^package\s+(\w+)\s*\{", _code(SLICE)) == [PACKAGE], "one global package per file"
 
 

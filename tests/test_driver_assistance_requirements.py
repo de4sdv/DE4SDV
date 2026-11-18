@@ -13,6 +13,8 @@ review settled on top of them:
 - the criteria for a vehicle target, each derived from the source regulation and a product-line requirement, with
   whose obligation it is and what a simulation cannot show of it; a setting counts only when both of its runs are
   judged;
+- the further run with the S-CORE path stopped, no run of a setting and no judged run, read only by the stop clauses
+  of REQ-DRIVING-038 and REQ-DRIVING-043 (the stop-run decision of 2026-11-18, recorded in the package head);
 - the no-autopilot, replay or overlay condition of the planned reviews as a success criterion, never as wording of
   a statement;
 - the time of the warning request before the emergency braking in simulation time, its share for the path and the
@@ -221,6 +223,9 @@ TERM_RULES = ("It starts with the first such command after a command for less.",
                "until the vehicle hits the target or comes to the speed of the target",
                "is reported with what it missed and is not judged",
                "A setting of SC-DRIVING-012 or SC-DRIVING-013 is judged when both of its runs are judged runs.",
+               "The further run of SC-DRIVING-012 in which the Eclipse S-CORE path of the driver-assistance system is "
+               "stopped, which REQ-DRIVING-038 and REQ-DRIVING-043 name, is no run of a setting and no judged run, and "
+               "only the stop clauses of those two requirements read it (the stop-run decision of 2026-11-18).",
                "a loss, a delay, a repetition or a corruption of a message on it",
                "the SHA-256 of each file of its configuration and the settings of its launch, verbatim",
                "the speed at which the vehicle closes on the vehicle ahead when the collision becomes imminent",
@@ -266,6 +271,9 @@ GUIDE_FACTS = (
     "its centre line within 0.2 m of that of the target, for at least 2 s",
     "with a time to collision of at least 4 s",
     "A setting is judged when both of its runs are",
+    "The further run of `SC-DRIVING-012` that stops the Eclipse S-CORE path, which `REQ-DRIVING-038` and "
+    "`REQ-DRIVING-043` name, is no run of a setting and no judged run; only the stop clauses of those two requirements "
+    "read it (the stop-run decision of 2026-11-18).",
     "and so at least 0.8 s before the start of the emergency braking",
     "0.2 s of the lead of 1.0 s is the share of the S-CORE path and the AAOS SDV",
     "the regulation asks for the warning to the driver at the latest 0.8 s before the start of the emergency braking",
@@ -511,6 +519,40 @@ def test_the_header_states_phase_5():
         assert fragment in header, fragment
 
 
+#: The stop-run decision of 2026-11-18, the amendment of the terms, as the package head records it.
+STOP_RUN_DECISION = ("On 2026-11-18 the owner amended the terms: the further run of SC-DRIVING-012 in which the "
+                     "Eclipse S-CORE path of the driver-assistance system is stopped is no run of a setting and no "
+                     "judged run, and only the stop clauses of REQ-DRIVING-038 and REQ-DRIVING-043 read it: the "
+                     "stop-run decision of 2026-11-18.")
+#: The names the amendment had before it was recorded as a decision; one name stays (review R2 of the 10a review).
+RETIRED_STOP_RUN_NAMES = ("an amendment of the terms of 2026-11-18", "since their amendment of 2026-11-18",
+                          "amended on 2026-11-18")
+
+
+def test_the_package_head_records_the_stop_run_decision():
+    """The amendment of the accepted phase 5 terms is a dated decision of the package head, after the account of
+    phase 5, and the model and the guide call it by one name."""
+    match = re.search(r"/\*(.*?)\*/", _raw(), re.S)
+    header = _flat(match.group(1))
+    assert header.count(STOP_RUN_DECISION) == 1
+    assert header.index("Phase 5: the requirements derived from these needs") < header.index(STOP_RUN_DECISION) < \
+        header.index("No safety, on-road or production-readiness claim is made"), "after phase 5, before the limits"
+    assert not re.search(r"(?i)\bthe owner (?:said|answered|wrote)\b", header), "a decision, never a quote"
+    driving = ROOT / "textual-notation-of-model" / "packages" / "features" / "driving"
+    texts = {path.name: _flat(path.read_text(encoding="utf-8"))
+             for path in (driving / "driver_assistance_needs_requirements.sysml",
+                          driving / "driver_assistance_verification_evidence.sysml")}
+    texts["guide"] = " ".join((ROOT / "docs" / "guides" / "driver-assistance-increment.md").read_text(
+        encoding="utf-8").split())
+    for name, text in texts.items():
+        for retired in RETIRED_STOP_RUN_NAMES:
+            assert retired not in text, (name, retired)
+    # the decision's name: in the head and the term of phase 5, the slice header and the setting doc, and the guide
+    assert texts["driver_assistance_needs_requirements.sysml"].count("the stop-run decision of 2026-11-18") == 2
+    assert texts["driver_assistance_verification_evidence.sysml"].count("the stop-run decision of 2026-11-18") == 2
+    assert texts["guide"].count("the stop-run decision of 2026-11-18") == 2
+
+
 def test_the_phase_4_contract_comment_is_now_stated_in_the_rationales():
     # Phase 4 kept the runtime contract of VisionPilot at the pin as a comment for phase 5. Phase 5 states its
     # facts in the rationales, so the comment no longer earns its place.
@@ -597,7 +639,7 @@ def test_the_guide_states_phase_5_and_the_next_obligation():
     assert "VisionPilot/" not in raw_section, "the guide carries no upstream paths"
     flat = " ".join(guide.split())  # Markdown: a line may open with bold text
     assert "The next model obligation is **Phase 10**: verification and evidence" in flat
-    assert "its first gate is `verificationCaseVerifiesRequirement`" in flat
+    assert "`verificationCaseVerifiesRequirement` and `requirementVerifiedByVerificationCase` read" in flat
     section = " ".join(raw_section.split())
     for fact in GUIDE_FACTS:
         assert fact in section, fact

@@ -300,7 +300,7 @@ def test_increment_declares_the_phase_zero_shape():
         PACKAGE, "DE4SDV_DriverAssistanceOperationalContext", "DE4SDV_DriverAssistanceCapabilityClassification",
         "DE4SDV_DriverAssistanceNeedsRequirements", "DE4SDV_DriverAssistanceFunctionalArchitecture",
         "DE4SDV_DriverAssistanceLogicalArchitecture", "DE4SDV_DriverAssistancePhysicalSoftwareRealization",
-        "DE4SDV_DriverAssistanceVariabilityConfiguration",
+        "DE4SDV_DriverAssistanceVariabilityConfiguration", "DE4SDV_DriverAssistanceVerificationEvidence",
     ], "the charter names only the packages that hold content today"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
@@ -630,8 +630,8 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
     assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "
             "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
-            "architecture, Phase 8 physical and software realization and Phase 9 variability and configuration, "
-            "proposal.**") in _flat(guide)
+            "architecture, Phase 8 physical and software realization, Phase 9 variability and configuration and the "
+            "first slice of Phase 10 verification and evidence, proposal.**") in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part driverAssistanceQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
