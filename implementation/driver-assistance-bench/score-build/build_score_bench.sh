@@ -549,7 +549,13 @@ step bundle
 B=$ROOT/bundle
 rm -rf "$B" && mkdir -p "$B/bin" "$B/lib" "$B/config/visionpilot" "$B/config/gateway" "$B/config/launch_manager" \
   "$B/config/actuation_adapter" "$B/share/visionpilot" "$B/facts"
-SB=$(bazel_feo info --config=x86_64-linux -c opt bazel-bin)
+# The output directory of the build above from cquery: `bazel info --config=x86_64-linux` stops with "Repository
+# '@@score_bazel_platforms' is not defined" (the config's --platforms label), while cquery resolves it as the build did.
+VPO=$(bazel_feo cquery --config=x86_64-linux -c opt --output=files //visionpilot:VisionPilot 2>/dev/null | tail -n 1)
+[ "${VPO%/visionpilot/VisionPilot}" != "$VPO" ] || die "cquery gave no output file of //visionpilot:VisionPilot ($VPO)"
+SB=$(bazel_feo info execution_root)/${VPO%/visionpilot/VisionPilot}
+[ -f "$SB/visionpilot/VisionPilot" ] || die "no VisionPilot binary under $SB"
+echo "S-CORE bazel-bin: $SB"
 # bin/ holds the binary names of the Launch Manager configuration (binary_name): vision_pilot, actuation_adapter,
 # gatewayd, someipd; identity_recorder joins with lane B4. launch_manager is the daemon, ort_cuda_check the GPU check.
 cp -L "$SB/visionpilot/VisionPilot" "$B/bin/vision_pilot"
