@@ -20,21 +20,37 @@
  * the needs stays planned in phase 4 (SC-DRIVING-016 to SC-DRIVING-019). This
  * slice adds no validation case.
  *
+ * Where the requirements leave a reading to the cases, the cases read them so.
+ * A setting that is not judged, a run that is missing and a run whose record
+ * shows a dropped image within the window that a case judges give
+ * inconclusiveMissingEvidence, never pass; for a criterion over every run, that
+ * window is the whole run. The further run of SC-DRIVING-012 in which the
+ * Eclipse S-CORE path of the driver-assistance system is stopped is read by the
+ * cases that read every run of SC-DRIVING-012 and by the stop clauses of
+ * REQ-DRIVING-038 and REQ-DRIVING-043; the cases of the judged runs do not read
+ * it until the terms of the requirements settle whether it is a judged run. In
+ * that run the candidate's process keeps running and the path's carriers of the
+ * driving command and of the warning request are stopped. No case judges when
+ * the display and the sound give the warning
+ * (counterClaimWarningModesNotJudgedHere).
+ *
  * The outcome vocabulary and the verdict map are this increment's own, with the
  * six literals of INC-DRIVING-001's. The evidence record is one record per run,
  * read by every case of that run: it binds DRIVING-CONFIG-002 and the receipt
  * digest, the model revision, the candidate identity record of REQ-DRIVING-044,
  * the candidate build with the stated delay of the visualization recorder, the
- * pins of the S-CORE platform, of the SOME/IP gateway and of the guest images,
- * the simulator build, the scenario and the setting, and the two clock spans.
- * The claims of the increment are stated now, one per phase 1 concern whose
- * question the cases answer, each supported by an argument that cites the
- * planned cases; vehicleTargetCriteriaConcern is answered by the requirement
- * definition table of phase 5, and no run answers it. The counter-claims are
- * the framing's non-claims, each tied to the record that keeps it open. A claim
- * stated before its evidence is a claim to be proven, not a result. This slice
- * makes no result, evidence, acceptance, safety, compliance or certification
- * claim, and no claim about UNECE R152.
+ * pins of the S-CORE platform and of the SOME/IP gateway, the simulator build,
+ * the scenario, the setting and the simulated configuration, the two clock
+ * spans, the hosts with the S-CORE host's GPU and the guest images, the message
+ * type of the warning request, and the criteria record and the revision of the
+ * evaluators. The claims of the increment are stated now, one per phase 1
+ * concern whose question the cases answer, each supported by an argument that
+ * cites the planned cases; vehicleTargetCriteriaConcern is answered by the
+ * requirement definition table of phase 5, and no run answers it. The
+ * counter-claims are the framing's non-claims, each tied to the record that
+ * keeps it open. A claim stated before its evidence is a claim to be proven,
+ * not a result. This slice makes no result, evidence, acceptance, safety,
+ * compliance or certification claim, and no claim about UNECE R152.
  */
 package DE4SDV_DriverAssistanceVerificationEvidence {
   private import DE4SDV_MethodContext::*;
@@ -51,6 +67,9 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
   private import DE4SDV_DriverAssistanceFraming::furtherWarningProvisionsOutOfScope;
   private import DE4SDV_DriverAssistanceFraming::gapCandidateAdmission;
   private import DE4SDV_DriverAssistanceFraming::gapUpstreamContactAndRights;
+  private import DE4SDV_DriverAssistanceFraming::gapVehicleTargetCriteria;
+  private import DE4SDV_DriverAssistanceFraming::candidateTuningOutOfScope;
+  private import DE4SDV_DriverAssistanceFraming::asmBenchReuse;
   private import VerificationCases::*;
   private import VerificationMethodKind::*;
   private import SAF_Viewpoints::*;
@@ -87,6 +106,8 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * Eclipse S-CORE path of the driver-assistance system is stopped, which
      * REQ-DRIVING-038 and REQ-DRIVING-043 name, is a fifteenth run at one of
      * the three settings of SC-DRIVING-012; the next slice chooses which.
+     * VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 do not read it until
+     * the terms of the requirements settle whether it is a judged run.
      */
     stationaryAt20;
     stationaryAt42;
@@ -151,30 +172,44 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * the delay of the recorder that every verdict of the run states: the
      * readiness probe of the recorder on 2026-11-17 measured 2.0 ms more at the
      * median and 5.8 ms more at the 99th percentile from an image to its
-     * command, and a run that measures its own delay states that.
+     * command, on an S-CORE host with an NVIDIA L4; a run on another host
+     * states the delay it measures, and so does a run that measures its own
+     * delay.
      *
      * scoreLifecycleVersion, scoreCommunicationVersion and
      * scoreSOMEIPGatewayCommit are the pins of the S-CORE platform and of the
-     * SOME/IP gateway that the run built; guestImageBuilds names the builds of
-     * the SDV Core image and of the IVI image; simulatorBuild is the simulator
+     * SOME/IP gateway that the run built; simulatorBuild is the simulator
      * server's. scenario and setting name the run's scenario and setting, and
      * runIdentity names the run within its setting: the first or the second
      * run, or the further run in which the Eclipse S-CORE path is stopped.
-     * simulationClockSpan and wallClockSpan are the two clocks of the run, kept
-     * apart. rawObservationArtifact names the retained records: the candidate
-     * identity record, the driving commands and the warning requests at the
-     * boundary, the communication records of the Eclipse S-CORE path, the log
-     * of the actuation adapter, the simulator's ground truth of the vehicle and
-     * of each vehicle ahead and its record of the control of the vehicle, the
-     * images that the camera interface dropped, the log of the warning
-     * presentation and the candidate's data log. By the rule of phase 8, phase
-     * 10 judges no run whose judged window holds a dropped image
-     * (MAP-DRIVING-DA-CAMERA-IMAGE). benchRecordingArtifact names the bench's
-     * recording of the run with the candidate's visualization that the recorder
-     * draws. independentEngineerIdentity names the engineer who re-derived the
-     * candidate identity. claimBoundary states what the record proves and what
-     * it does not. A missing or partial record gives inconclusive, never pass.
-     * No record exists yet.
+     * simulatedConfiguration names the simulated configuration of the run: the
+     * blueprints of the ego vehicle and of the other vehicles of the scenario,
+     * the map and the road, the weather, the fixed step of 0.05 s and
+     * synchronous mode, and the camera rig; a digest of the scenario definition
+     * that fixes them is enough. simulationClockSpan and wallClockSpan are the
+     * two clocks of the run, kept apart. executionEnvironmentIdentity names the
+     * three hosts of the run, the simulator host, the S-CORE host with its GPU
+     * and the guest host, and the builds of the SDV Core image and of the IVI
+     * image. contractIdentity names the message type of the warning request on
+     * the guests, which phase 8 left open until phase 10 (GAP-DRIVING-014).
+     * criteriaRecordIdentity names the criteria record that the evaluators of
+     * the run read, and evaluatorRevision the revision of those evaluators, so
+     * that each verdict names the criteria and the evaluators that gave it
+     * (gapVehicleTargetCriteria). rawObservationArtifact names the retained
+     * records: the candidate identity record, the driving commands and the
+     * warning requests at the boundary, the communication records of the
+     * Eclipse S-CORE path, the log of the actuation adapter, the simulator's
+     * ground truth of the vehicle and of each vehicle ahead and its record of
+     * the control of the vehicle, the images that the camera interface dropped,
+     * the log of the warning presentation and the candidate's data log. By the
+     * rule of phase 8, phase 10 judges no run whose judged window holds a
+     * dropped image (MAP-DRIVING-DA-CAMERA-IMAGE); for a criterion over every
+     * run, the judged window is the whole run. benchRecordingArtifact names the
+     * bench's recording of the run with the candidate's visualization that the
+     * recorder draws. independentEngineerIdentity names the engineer who
+     * re-derived the candidate identity. claimBoundary states what the record
+     * proves and what it does not. A missing or partial record gives
+     * inconclusive, never pass. No record exists yet.
      */
     attribute configurationIdentity : ScalarValues::String;
     attribute receiptSha256 : ScalarValues::String;
@@ -190,13 +225,17 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
     attribute scoreLifecycleVersion : ScalarValues::String;
     attribute scoreCommunicationVersion : ScalarValues::String;
     attribute scoreSOMEIPGatewayCommit : ScalarValues::String;
-    attribute guestImageBuilds : ScalarValues::String;
     attribute simulatorBuild : ScalarValues::String;
     attribute scenario : AssistanceScenarioIdentity;
     attribute setting : AssistanceSettingIdentity;
     attribute runIdentity : ScalarValues::String;
+    attribute simulatedConfiguration : ScalarValues::String;
     attribute simulationClockSpan : ScalarValues::String;
     attribute wallClockSpan : ScalarValues::String;
+    attribute executionEnvironmentIdentity : ScalarValues::String;
+    attribute contractIdentity : ScalarValues::String;
+    attribute criteriaRecordIdentity : ScalarValues::String;
+    attribute evaluatorRevision : ScalarValues::String;
     attribute rawObservationArtifact : ScalarValues::String;
     attribute benchRecordingArtifact : ScalarValues::String;
     attribute independentEngineerIdentity : ScalarValues::String;
@@ -254,14 +293,18 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * toolchain; that the candidate record reaches the vehicle interface, which
      * subscribes after the record was published; the candidate driving on CARLA
      * 1.0, which it has not done yet; whether the S-CORE host's own GPU keeps
-     * the candidate's cycle with the S-CORE build; and the capture of the start
-     * of the sound on the IVI guest, which is unmeasured. The calibration runs
-     * of ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged run.
+     * the candidate's cycle with the S-CORE build; the capture of the start of
+     * the sound on the IVI guest, which is unmeasured; the typed message of the
+     * warning request on the guests, open until phase 10; and the draft of the
+     * warning output and the interface seam shown to the VisionPilot
+     * maintainers before phase 10 builds. The calibration runs of
+     * ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged run.
      * Each probe runs only on the owner's word, and nothing of phase 10 is
      * built before the probes are read.
      *
-     * The next slice adds the environment's identity to the evidence record,
-     * plans the runs and closes this gap. Deferred to that slice.
+     * The evidence record already holds executionEnvironmentIdentity and
+     * contractIdentity; the next slice fills them, plans the runs and closes
+     * this gap. Deferred to that slice.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -349,17 +392,21 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
   verification def DrivingCommandOverSCOREVerification {
     doc /*
      * Test of REQ-DRIVING-038. collectData retains the record of each of the
-     * fourteen runs of the seven settings and of the further run of
-     * SC-DRIVING-012 in which the Eclipse S-CORE path of the driver-assistance
-     * system is stopped: the driving commands at the boundary and at the
-     * actuation, the communication records of the Eclipse S-CORE path and the
-     * simulator's record of the control of the vehicle. processData matches
-     * every driving command that reaches the actuation to a driving command of
-     * the driver-assistance system in the communication records, checks that
-     * the autopilot and the traffic manager of the simulator have no control of
-     * the vehicle at any time of a run and that no recorded, replayed, scripted
-     * or overlaid control reaches its actuation, and checks that in the further
-     * run no driving command reaches the actuation after the stop.
+     * fourteen runs of the seven settings of SC-DRIVING-012 to SC-DRIVING-015
+     * and of the further run of SC-DRIVING-012 in which the Eclipse S-CORE path
+     * of the driver-assistance system is stopped: the driving commands at the
+     * boundary and at the actuation, the communication records of the Eclipse
+     * S-CORE path and the simulator's record of the control of the vehicle.
+     * processData matches every driving command that reaches the actuation to a
+     * driving command of the driver-assistance system in the communication
+     * records, checks that the autopilot and the traffic manager of the
+     * simulator have no control of the vehicle at any time of a run and that no
+     * recorded, replayed, scripted or overlaid control reaches its actuation,
+     * and checks that in the further run no driving command reaches the
+     * actuation after the stop. Every criterion met gives
+     * passBoundedVerification; a criterion not met gives failObservedBehavior.
+     * A run that is missing, or whose record shows a dropped image within the
+     * run, gives inconclusiveMissingEvidence, never pass.
      */
     subject verifiedBench : DriverAssistanceVerificationBench;
     objective drivingCommandOverSCOREObjective {
@@ -420,11 +467,16 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * Test of REQ-DRIVING-040. collectData retains the record of each run of
      * SC-DRIVING-012 to SC-DRIVING-015: the warning requests of the
      * driver-assistance system at its boundary with their simulation times, and
-     * the simulator's ground truth of the vehicle and of each vehicle ahead.
+     * the simulator's ground truth of the vehicle and of each vehicle ahead. As
+     * phase 5 states, System 2 records in each of the runs of SC-DRIVING-014
+     * and SC-DRIVING-015 the speeds and the times to collision that the
+     * guidance of the source names for the scenario, and the record holds them.
      * processData finds the start of each warning request and checks, by the
      * terms of the requirements, that a collision with a vehicle ahead is
      * imminent at it. Every start at an imminent collision gives
      * passBoundedVerification; a start without one gives failObservedBehavior.
+     * A run that is missing, or whose record shows a dropped image within the
+     * run, gives inconclusiveMissingEvidence, never pass.
      */
     subject verifiedBench : DriverAssistanceVerificationBench;
     objective withholdWarningRequestObjective {
@@ -452,12 +504,17 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * Test of REQ-DRIVING-041. collectData retains the record of each run of
      * SC-DRIVING-012 to SC-DRIVING-015: the driving commands of the
      * driver-assistance system with their simulation times, and the simulator's
-     * ground truth of the vehicle and of each vehicle ahead. processData finds
-     * the start of each emergency braking, the first command for a deceleration
-     * of at least 5.0 m/s² after a command for less, and checks, by the terms
-     * of the requirements, that a collision with a vehicle ahead is imminent at
+     * ground truth of the vehicle and of each vehicle ahead. As phase 5 states,
+     * System 2 records in each of the runs of SC-DRIVING-014 and SC-DRIVING-015
+     * the speeds and the times to collision that the guidance of the source
+     * names for the scenario, and the record holds them. processData finds the
+     * start of each emergency braking, the first command for a deceleration of
+     * at least 5.0 m/s² after a command for less, and checks, by the terms of
+     * the requirements, that a collision with a vehicle ahead is imminent at
      * it. Every start at an imminent collision gives passBoundedVerification; a
-     * start without one gives failObservedBehavior.
+     * start without one gives failObservedBehavior. A run that is missing, or
+     * whose record shows a dropped image within the run, gives
+     * inconclusiveMissingEvidence, never pass.
      */
     subject verifiedBench : DriverAssistanceVerificationBench;
     objective withholdEmergencyBrakingObjective {
@@ -528,6 +585,10 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * request that reaches the AAOS SDV to a warning request of the
      * driver-assistance system in the communication records, and checks that in
      * the further run no warning request reaches the AAOS SDV after the stop.
+     * Every criterion met gives passBoundedVerification; a criterion not met
+     * gives failObservedBehavior. A run that is missing, or whose record shows
+     * a dropped image within the run, gives inconclusiveMissingEvidence, never
+     * pass.
      */
     subject verifiedBench : DriverAssistanceVerificationBench;
     objective warningRequestOverSCOREObjective {
@@ -560,7 +621,11 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * and the record of a build with one change that upstream has not merged.
      * processData checks that every run has the record before its first driving
      * command, that the values obtained equal the recorded ones, and that the
-     * record of that build holds a non-empty difference.
+     * record of that build holds a non-empty difference. Every criterion met
+     * gives passBoundedVerification; a criterion not met gives
+     * failObservedBehavior. A run that is missing, or whose record shows a
+     * dropped image within the run, gives inconclusiveMissingEvidence, never
+     * pass.
      */
     subject verifiedBench : DriverAssistanceVerificationBench;
     objective recordCandidateIdentityObjective {
@@ -589,10 +654,13 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * (AssistanceScenarioIdentity::stationaryTarget) and SC-DRIVING-013
      * (AssistanceScenarioIdentity::slowerTarget). Settings: stationaryAt20,
      * stationaryAt42, stationaryAt60, slowerAt30 and slowerAt60. Runs: the two
-     * runs of each setting, ten runs. Bench: the S-CORE host with the
-     * candidate's process, the identity recording application and the actuation
-     * adapter under the Launch Manager, the simulator host with CARLA 1.0 and
-     * the front camera, and the guest host with the SDV Core VM and the IVI VM.
+     * runs of each setting, ten runs. The further run of SC-DRIVING-012 with
+     * the Eclipse S-CORE path stopped is not among the runs that this case
+     * reads until the terms of the requirements settle whether it is a judged
+     * run. Bench: the S-CORE host with the candidate's process, the identity
+     * recording application and the actuation adapter under the Launch Manager,
+     * the simulator host with CARLA 1.0 and the front camera, and the guest
+     * host with the SDV Core VM and the IVI VM.
      */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> driverAssistanceVerificationBench;
@@ -604,10 +672,13 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * (AssistanceScenarioIdentity::stationaryTarget) and SC-DRIVING-013
      * (AssistanceScenarioIdentity::slowerTarget). Settings: stationaryAt20,
      * stationaryAt42, stationaryAt60, slowerAt30 and slowerAt60. Runs: the two
-     * runs of each setting, ten runs. Bench: the S-CORE host with the
-     * candidate's process, the identity recording application and the actuation
-     * adapter under the Launch Manager, the simulator host with CARLA 1.0 and
-     * the front camera, and the guest host with the SDV Core VM and the IVI VM.
+     * runs of each setting, ten runs. The further run of SC-DRIVING-012 with
+     * the Eclipse S-CORE path stopped is not among the runs that this case
+     * reads until the terms of the requirements settle whether it is a judged
+     * run. Bench: the S-CORE host with the candidate's process, the identity
+     * recording application and the actuation adapter under the Launch Manager,
+     * the simulator host with CARLA 1.0 and the front camera, and the guest
+     * host with the SDV Core VM and the IVI VM.
      */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> driverAssistanceVerificationBench;
@@ -627,10 +698,12 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * host with the candidate's process, the identity recording application and
      * the actuation adapter under the Launch Manager, the simulator host with
      * CARLA 1.0 and the front camera, and the guest host with the SDV Core VM
-     * and the IVI VM, and for the further run the stop of the candidate's
-     * S-CORE path through the Launch Manager. The runs of SC-DRIVING-014 and
-     * SC-DRIVING-015 are reported apart from the runs inside the declared
-     * operating conditions (gapDeclaredOperatingConditions).
+     * and the IVI VM. In the further run the candidate's process keeps running,
+     * and the path's carriers of the driving command and of the warning request
+     * are stopped through the Launch Manager; which processes these are is
+     * fixed in the next slice. The runs of SC-DRIVING-014 and SC-DRIVING-015
+     * are reported apart from the runs inside the declared operating conditions
+     * (gapDeclaredOperatingConditions).
      */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> driverAssistanceVerificationBench;
@@ -696,10 +769,13 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * (AssistanceScenarioIdentity::stationaryTarget) and SC-DRIVING-013
      * (AssistanceScenarioIdentity::slowerTarget). Settings: stationaryAt20,
      * stationaryAt42, stationaryAt60, slowerAt30 and slowerAt60. Runs: the two
-     * runs of each setting, ten runs. Bench: the S-CORE host with the
-     * candidate's process, the identity recording application and the actuation
-     * adapter under the Launch Manager, the simulator host with CARLA 1.0 and
-     * the front camera, and the guest host with the SDV Core VM and the IVI VM.
+     * runs of each setting, ten runs. The further run of SC-DRIVING-012 with
+     * the Eclipse S-CORE path stopped is not among the runs that this case
+     * reads until the terms of the requirements settle whether it is a judged
+     * run. Bench: the S-CORE host with the candidate's process, the identity
+     * recording application and the actuation adapter under the Launch Manager,
+     * the simulator host with CARLA 1.0 and the front camera, and the guest
+     * host with the SDV Core VM and the IVI VM.
      */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> driverAssistanceVerificationBench;
@@ -716,8 +792,10 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * Bench: the S-CORE host with the candidate's process, the identity
      * recording application and the actuation adapter under the Launch Manager,
      * the simulator host with CARLA 1.0 and the front camera, and the guest
-     * host with the SDV Core VM and the IVI VM, and for the further run the
-     * stop of the candidate's S-CORE path through the Launch Manager.
+     * host with the SDV Core VM and the IVI VM. In the further run the
+     * candidate's process keeps running, and the path's carriers of the driving
+     * command and of the warning request are stopped through the Launch
+     * Manager; which processes these are is fixed in the next slice.
      */
     @VerificationMethod{ kind = (test, analyze); }
     subject verifiedBench :> driverAssistanceVerificationBench;
@@ -779,12 +857,15 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * Answers vehicleTargetResponseConcern. For DRIVING-CONFIG-002 on the
      * bench, in the judged runs of every setting of SC-DRIVING-012 and
      * SC-DRIVING-013, the driver-assistance system commands a deceleration of
-     * at least 5.0 m/s² while the needed deceleration to the target is at least
-     * 5.0 m/s² and brakes the vehicle to a relative impact speed of at most the
-     * maximum for its relative approach speed; and in every run of
-     * SC-DRIVING-012 to SC-DRIVING-015 it starts a warning request and an
-     * emergency braking only while a collision with a vehicle ahead is
-     * imminent. A claim to be proven: no case has started.
+     * at least 5.0 m/s² at each instant of the functional part at which the
+     * needed deceleration to the target is at least 5.0 m/s², brakes the
+     * vehicle to a relative impact speed of at most the maximum for its
+     * relative approach speed and, when the collision with the target becomes
+     * imminent, gives a warning request at its boundary at least 1.0 s of
+     * simulation time before the start of the first emergency braking of the
+     * run; and in every run of SC-DRIVING-012 to SC-DRIVING-015 it starts a
+     * warning request and an emergency braking only while a collision with a
+     * vehicle ahead is imminent. A claim to be proven: no case has started.
      */
     subject claimSubject : DriverAssistanceVerificationBench;
     require constraint {
@@ -892,10 +973,10 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
   requirement vehicleTargetResponseArgument : DriverAssistanceArgument {
     doc /*
      * Argues the success criteria of the requirements that VC-DRIVING-036,
-     * VC-DRIVING-037, VC-DRIVING-040 and VC-DRIVING-041 verify, each from the
-     * retained record of its runs or of its analysis; the argument holds once
-     * every cited case has a pass verdict and fails with any fail; an
-     * inconclusive or error verdict leaves it open.
+     * VC-DRIVING-037, VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-042 verify,
+     * each from the retained record of its runs; the argument holds once every
+     * cited case has a pass verdict and fails with any fail; an inconclusive or
+     * error verdict leaves it open.
      */
     subject bench : DriverAssistanceVerificationBench;
   }
@@ -913,9 +994,9 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
   requirement driverWarningSequenceArgument : DriverAssistanceArgument {
     doc /*
      * Argues the success criteria of the requirements that VC-DRIVING-040 and
-     * VC-DRIVING-042 verify, each from the retained record of its runs or of
-     * its analysis; the argument holds once every cited case has a pass verdict
-     * and fails with any fail; an inconclusive or error verdict leaves it open.
+     * VC-DRIVING-042 verify, each from the retained record of its runs; the
+     * argument holds once every cited case has a pass verdict and fails with
+     * any fail; an inconclusive or error verdict leaves it open.
      */
     subject bench : DriverAssistanceVerificationBench;
   }
@@ -923,9 +1004,9 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
   requirement scoreCommandAndWarningPathArgument : DriverAssistanceArgument {
     doc /*
      * Argues the success criteria of the requirements that VC-DRIVING-038 and
-     * VC-DRIVING-043 verify, each from the retained record of its runs or of
-     * its analysis; the argument holds once every cited case has a pass verdict
-     * and fails with any fail; an inconclusive or error verdict leaves it open.
+     * VC-DRIVING-043 verify, each from the retained record of its runs; the
+     * argument holds once every cited case has a pass verdict and fails with
+     * any fail; an inconclusive or error verdict leaves it open.
      */
     subject bench : DriverAssistanceVerificationBench;
   }
@@ -1038,6 +1119,26 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
     subject bench : DriverAssistanceVerificationBench;
   }
 
+  requirement counterClaimNoTuningToPass : DriverAssistanceCounterClaim {
+    doc /*
+     * No verdict comes from training the candidate's networks, or from
+     * tuning the candidate or a scenario until a case passes: a fail stays a
+     * recorded result (candidateTuningOutOfScope).
+     */
+    subject bench : DriverAssistanceVerificationBench;
+  }
+
+  requirement counterClaimReusedBenchNotEvidence : DriverAssistanceCounterClaim {
+    doc /*
+     * The bench reuses the Eclipse S-CORE command path, the actuation adapter,
+     * the path to the AAOS SDV display and the evaluator structure of
+     * INC-DRIVING-001; their results for that increment's application are no
+     * evidence for this candidate, and each case reads only the records of
+     * its own runs (asmBenchReuse).
+     */
+    subject bench : DriverAssistanceVerificationBench;
+  }
+
   requirement counterClaimBenchOpenNoVerdict : DriverAssistanceCounterClaim {
     doc /*
      * No case has started and no evidence record exists; the readiness items of
@@ -1062,7 +1163,8 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
     to emergencyBrakingDemandVerification,
       impactSpeedWithinLimitVerification,
       withholdWarningRequestVerification,
-      withholdEmergencyBrakingVerification;
+      withholdEmergencyBrakingVerification,
+      warningRequestBeforeEmergencyBrakingVerification;
   dependency emergencyBrakingIndependenceArgumentCitesCases
     from emergencyBrakingIndependenceArgument
     to drivingCommandOverSCOREVerification,
@@ -1084,6 +1186,8 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
     from counterClaimRenderedCameraImages to gapCameraImageAndGeometry;
   dependency counterClaimNoComplianceOrApprovalBoundTo
     from counterClaimNoComplianceOrApproval to onRoadOperationOutOfScope;
+  dependency counterClaimNoComplianceOrApprovalBoundToCriteria
+    from counterClaimNoComplianceOrApproval to gapVehicleTargetCriteria;
   dependency counterClaimOutsideDeclaredConditionsBoundTo
     from counterClaimOutsideDeclaredConditions to gapDeclaredOperatingConditions;
   dependency counterClaimNoIndependentEmergencyPathBoundTo
@@ -1096,6 +1200,10 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
     from counterClaimNoMemberProduct to gapCandidateAdmission;
   dependency counterClaimNoUpstreamEndorsementOrRightsBoundTo
     from counterClaimNoUpstreamEndorsementOrRights to gapUpstreamContactAndRights;
+  dependency counterClaimNoTuningToPassBoundTo
+    from counterClaimNoTuningToPass to candidateTuningOutOfScope;
+  dependency counterClaimReusedBenchNotEvidenceBoundTo
+    from counterClaimReusedBenchNotEvidence to asmBenchReuse;
   dependency counterClaimBenchOpenNoVerdictBoundTo
     from counterClaimBenchOpenNoVerdict to gapAssistanceVerificationEnvironmentOpen;
 
@@ -1124,10 +1232,10 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * The assurance structure of the increment before any run: the five claims,
      * the argument that supports each and the cases it cites, the nine cases,
      * the evidence record of a run and the record of the analysis, the bench
-     * and the environment gap, and the ten counter-claims with the records that
-     * keep them open, those records exposed beside them. It frames the phase 1
-     * concern of the Architecture Management domain beside the phase's own
-     * concern, so that it is answered in its domain.
+     * and the environment gap, and the twelve counter-claims with the records
+     * that keep them open, those records exposed beside them. It frames the
+     * phase 1 concern of the Architecture Management domain beside the phase's
+     * own concern, so that it is answered in its domain.
      */
     expose vehicleTargetResponseClaim;
     expose emergencyBrakingIndependenceClaim;
@@ -1148,6 +1256,8 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
     expose counterClaimWarningModesNotJudgedHere;
     expose counterClaimNoMemberProduct;
     expose counterClaimNoUpstreamEndorsementOrRights;
+    expose counterClaimNoTuningToPass;
+    expose counterClaimReusedBenchNotEvidence;
     expose counterClaimBenchOpenNoVerdict;
     expose emergencyBrakingDemandVerification;
     expose impactSpeedWithinLimitVerification;
@@ -1165,12 +1275,15 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
     expose asmSimulatedConfigurationStandsIn;
     expose gapCameraImageAndGeometry;
     expose onRoadOperationOutOfScope;
+    expose gapVehicleTargetCriteria;
     expose gapDeclaredOperatingConditions;
     expose gapNoSeparateEmergencyFunction;
     expose gapCandidateBehaviorUnverified;
     expose furtherWarningProvisionsOutOfScope;
     expose gapCandidateAdmission;
     expose gapUpstreamContactAndRights;
+    expose candidateTuningOutOfScope;
+    expose asmBenchReuse;
     expose claimSupportedByVehicleTargetResponseArgument;
     expose claimSupportedByEmergencyBrakingIndependenceArgument;
     expose claimSupportedByDriverWarningSequenceArgument;
@@ -1184,12 +1297,15 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
     expose counterClaimSimulatedConfigurationOnlyBoundTo;
     expose counterClaimRenderedCameraImagesBoundTo;
     expose counterClaimNoComplianceOrApprovalBoundTo;
+    expose counterClaimNoComplianceOrApprovalBoundToCriteria;
     expose counterClaimOutsideDeclaredConditionsBoundTo;
     expose counterClaimNoIndependentEmergencyPathBoundTo;
     expose counterClaimBuildWithUnmergedChangesBoundTo;
     expose counterClaimWarningModesNotJudgedHereBoundTo;
     expose counterClaimNoMemberProductBoundTo;
     expose counterClaimNoUpstreamEndorsementOrRightsBoundTo;
+    expose counterClaimNoTuningToPassBoundTo;
+    expose counterClaimReusedBenchNotEvidenceBoundTo;
     expose counterClaimBenchOpenNoVerdictBoundTo;
     attribute maxCompartmentEntries = 0;
     attribute showAnnotationRows = false;

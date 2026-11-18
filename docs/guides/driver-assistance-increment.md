@@ -871,11 +871,15 @@ no case has started, no evidence record exists, and every requirement keeps
   SC-DRIVING-012 at 20, 42 and 60 km/h, SC-DRIVING-013 at 30 and 60 km/h,
   SC-DRIVING-014 at 30 km/h and SC-DRIVING-015 at 40 km/h, fourteen runs. A
   fifteenth run of SC-DRIVING-012, the stop run, stops the S-CORE path of the
-  candidate, as REQ-DRIVING-038 and REQ-DRIVING-043 ask; the next slice
-  chooses its setting. It is a run of SC-DRIVING-012 too, so the cases that
-  read every run of SC-DRIVING-012 read it. The runs of SC-DRIVING-014 and
-  SC-DRIVING-015 lie outside the candidate's declared operating conditions
-  and are reported apart.
+  candidate, as REQ-DRIVING-038 and REQ-DRIVING-043 ask; the next slice chooses
+  its setting. It is a run of SC-DRIVING-012 too, so the cases that read every
+  run of SC-DRIVING-012 read it. The cases of the judged runs, VC-DRIVING-036,
+  VC-DRIVING-037 and VC-DRIVING-042, leave it out until the Phase 5 terms settle
+  whether it is a judged run. In the stop run the candidate's process keeps
+  running, and the Launch Manager stops the path's carriers of the driving
+  command and of the warning request; the next slice fixes which processes these
+  are. The runs of SC-DRIVING-014 and SC-DRIVING-015 lie outside the candidate's
+  declared operating conditions and are reported apart.
 
 | Case | Requirement | Runs it reads | Method |
 |---|---|---|---|
@@ -889,40 +893,51 @@ no case has started, no evidence record exists, and every requirement keeps
 | VC-DRIVING-043 | REQ-DRIVING-043, warning request only over S-CORE | the ten runs and the stop run | test |
 | VC-DRIVING-044 | REQ-DRIVING-044, candidate identity record | the fourteen runs and the stop run | test |
 
-- **Outcome and verdict.** The increment's own `AssistanceEvidenceOutcome`
-  has the six literals of INC-DRIVING-001's vocabulary.
+- **Outcome and verdict.** The increment's own `AssistanceEvidenceOutcome` has
+  the six literals of INC-DRIVING-001's vocabulary.
   `MapAssistanceEvidenceOutcomeToVerdict` maps the two pass outcomes to pass,
   `failObservedBehavior` to fail, `errorEvidence` to error and the rest to
   inconclusive. Missing or partial evidence, and a setting whose runs are not
-  judged, is inconclusive, never pass.
+  judged, is inconclusive, never pass. In the cases that read every run, a run
+  that is missing, or whose record shows a dropped image within the run, is
+  inconclusive too: for them the judged window is the whole run.
 - **One evidence record per run.** Every case that reads a run reads its
   `RetainedAssistanceRunEvidence`: DRIVING-CONFIG-002 and the receipt digest,
   the model revision, the candidate identity record of REQ-DRIVING-044, the
   build (VisionPilot at 014e0e7a with the DE4SDV S-CORE interface and the
-  visualization recorder) with the recorder's stated delay, the pins of the
-  S-CORE platform, the SOME/IP gateway and the guest images, the simulator
-  build, the scenario and the setting, and the simulation-clock and
-  wall-clock spans, kept apart. The analysis of REQ-DRIVING-039 keeps its own
-  record, `RetainedCommandFormAnalysis`.
+  visualization recorder) with the recorder's stated delay, measured on an
+  S-CORE host with an NVIDIA L4 (a run on another host states its own), the pins
+  of the S-CORE platform and the SOME/IP gateway, the simulator build, the
+  scenario, the setting and the simulated configuration (the vehicles, the map
+  and road, the weather, the 0.05 s step in synchronous mode and the camera
+  rig), the simulation-clock and wall-clock spans, kept apart, the three hosts
+  with the S-CORE host's GPU and the guest images, the message type of the
+  warning request, and the criteria record with the revision of the evaluators
+  that read it. The analysis of REQ-DRIVING-039 keeps its own record,
+  `RetainedCommandFormAnalysis`.
 - **Claims before evidence.** Five claims, one for each Phase 1 concern whose
   question the cases answer, each with an argument that cites its cases.
-  `vehicleTargetCriteriaConcern` has no claim: the requirement table of Phase
-  5 answers it, and no run does. Ten counter-claims restate the framing's
-  non-claims, each tied to its record: the simulated configuration, the
-  rendered camera images, no compliance or approval and nothing about UNECE
-  R152, the runs outside the declared conditions, no independent emergency
-  path, the build with changes that upstream has not merged, the warning
-  modes that the planned review SC-DRIVING-018 observes, no membership, no
-  upstream endorsement or rights clearance, and the open test environment.
-  The claims, arguments and counter-claims specialize the kernel's assurance
-  kinds; nothing is satisfied.
-- **The test environment** stays open as GAP-DRIVING-014, which continues
-  the readiness items of Phase 8 until the probes run: the link with the
-  build of ONNX Runtime for CUDA in the S-CORE process, a second C++ standard
-  library in that process, the candidate record reaching a late subscriber,
-  the candidate on CARLA 1.0, the S-CORE build's cycle on the host's own GPU,
-  and the capture of the sound on the IVI guest. Each probe runs only on the
-  owner's word.
+  `vehicleTargetCriteriaConcern` has no claim: the requirement table of Phase 5
+  answers it, and no run does. Twelve counter-claims restate the framing's
+  non-claims, each tied to its record: the simulated configuration, the rendered
+  camera images, no compliance or approval and nothing about UNECE R152 (tied
+  also to `gapVehicleTargetCriteria`), the runs outside the declared conditions,
+  no independent emergency path, the build with changes that upstream has not
+  merged, the warning modes that the planned review SC-DRIVING-018 observes, no
+  membership, no upstream endorsement or rights clearance, no tuning until a
+  case passes, no evidence from the reused bench's earlier results, and the open
+  test environment. The claims, arguments and counter-claims specialize the
+  kernel's assurance kinds; nothing is satisfied.
+- **The test environment** stays open as GAP-DRIVING-014, which continues the
+  readiness items of Phase 8 until the probes run: the link with the build of
+  ONNX Runtime for CUDA in the S-CORE process, a second C++ standard library in
+  that process, the candidate record reaching a late subscriber, the candidate
+  on CARLA 1.0, the S-CORE build's cycle on the host's own GPU, the capture of
+  the sound on the IVI guest, the typed message of the warning request on the
+  guests, open until Phase 10, and the draft of the warning output and the
+  interface seam shown to the VisionPilot maintainers before Phase 10 builds;
+  and the calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 come before
+  the first judged run. Each probe runs only on the owner's word.
 - **No validation case.** The validation of the needs stays planned in
   Phase 4 (SC-DRIVING-016 to SC-DRIVING-019).
 

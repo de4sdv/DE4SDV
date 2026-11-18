@@ -46,6 +46,25 @@ STOP_RUN = ("the further run of SC-DRIVING-012 in which the Eclipse S-CORE path 
             "is stopped")
 APART = ("The runs of SC-DRIVING-014 and SC-DRIVING-015 are reported apart from the runs inside the declared "
          "operating conditions (gapDeclaredOperatingConditions).")
+#: the cases of the judged runs leave the stop run out until the phase 5 terms settle whether it is a judged run
+STOP_RUN_PENDING = ("The further run of SC-DRIVING-012 with the Eclipse S-CORE path stopped is not among the runs that "
+                    "this case reads until the terms of the requirements settle whether it is a judged run.")
+#: in the stop run the candidate keeps running and the path's carriers stop; the next slice names the processes
+STOP_RUN_CARRIERS = ("In the further run the candidate's process keeps running, and the path's carriers of the driving "
+                     "command and of the warning request are stopped through the Launch Manager; which processes these "
+                     "are is fixed in the next slice.")
+#: the outcome of a case of the judged runs when a setting is not judged, and of a case over every run
+NOT_JUDGED_OUTCOME = "a setting that is not judged gives inconclusiveMissingEvidence, never pass."
+EVERY_RUN_OUTCOME = ("A run that is missing, or whose record shows a dropped image within the run, gives "
+                     "inconclusiveMissingEvidence, never pass.")
+#: what phase 5 asks System 2 to record in each run of SC-DRIVING-014 and SC-DRIVING-015, in phase 5's own words
+GUIDANCE = "the speeds and the times to collision that the guidance of the source names for the scenario"
+#: the parts of a success criterion that its case must restate: the values, the scenarios and the stop clause
+CRITERION_VALUE = re.compile(r"\d+\.\d+ (?:m/s²|s\b)")
+CRITERION_SCOPE = re.compile(r"SC-DRIVING-012 (?:to SC-DRIVING-015|and SC-DRIVING-013)")
+CRITERION_STOP = re.compile(r"in one further run of (SC-DRIVING-012 in which the Eclipse S-CORE path of the "
+                            r"driver-assistance system is stopped), (no [\w ]+? after the stop)")
+NUMBER_WORDS = {5: "Five", 7: "Seven", 10: "ten", 12: "Twelve", 14: "fourteen"}
 
 #: requirement number -> (the settings the case reads, the count phrase of its runs, whether it reads the stop run,
 #: the requirement's verification method); the criteria of each requirement name them
@@ -63,7 +82,7 @@ CASE_RUNS = {
 
 #: claim -> (the phase 1 concern it answers, the requirement numbers its argument cites)
 CLAIMS = {
-    "vehicleTargetResponse": ("vehicleTargetResponseConcern", [36, 37, 40, 41]),
+    "vehicleTargetResponse": ("vehicleTargetResponseConcern", [36, 37, 40, 41, 42]),
     "emergencyBrakingIndependence": ("emergencyBrakingIndependenceConcern", [38, 39]),
     "driverWarningSequence": ("driverWarningSequenceConcern", [40, 42]),
     "scoreCommandAndWarningPath": ("scoreCommandAndWarningPathConcern", [38, 43]),
@@ -71,26 +90,53 @@ CLAIMS = {
 }
 #: the phase 1 concern whose question no run answers, and so no claim
 UNCLAIMED_CONCERN = "vehicleTargetCriteriaConcern"
-#: counter-claim -> (the record that keeps it open, its file)
+#: counter-claim -> (the records that keep it open, in the order of its ties, and their file); the first tie of each
+#: is named <counter-claim>BoundTo, a further one <counter-claim>BoundTo<suffix>
 COUNTER_CLAIMS = {
-    "SimulatedConfigurationOnly": ("asmSimulatedConfigurationStandsIn", FRAMING),
-    "RenderedCameraImages": ("gapCameraImageAndGeometry", FRAMING),
-    "NoComplianceOrApproval": ("onRoadOperationOutOfScope", FRAMING),
-    "OutsideDeclaredConditions": ("gapDeclaredOperatingConditions", FRAMING),
-    "NoIndependentEmergencyPath": ("gapNoSeparateEmergencyFunction", FRAMING),
-    "BuildWithUnmergedChanges": ("gapCandidateBehaviorUnverified", FRAMING),
-    "WarningModesNotJudgedHere": ("furtherWarningProvisionsOutOfScope", FRAMING),
-    "NoMemberProduct": ("gapCandidateAdmission", FRAMING),
-    "NoUpstreamEndorsementOrRights": ("gapUpstreamContactAndRights", FRAMING),
-    "BenchOpenNoVerdict": (GAP_NAME, SLICE),
+    "SimulatedConfigurationOnly": (["asmSimulatedConfigurationStandsIn"], FRAMING),
+    "RenderedCameraImages": (["gapCameraImageAndGeometry"], FRAMING),
+    "NoComplianceOrApproval": (["onRoadOperationOutOfScope", "gapVehicleTargetCriteria"], FRAMING),
+    "OutsideDeclaredConditions": (["gapDeclaredOperatingConditions"], FRAMING),
+    "NoIndependentEmergencyPath": (["gapNoSeparateEmergencyFunction"], FRAMING),
+    "BuildWithUnmergedChanges": (["gapCandidateBehaviorUnverified"], FRAMING),
+    "WarningModesNotJudgedHere": (["furtherWarningProvisionsOutOfScope"], FRAMING),
+    "NoMemberProduct": (["gapCandidateAdmission"], FRAMING),
+    "NoUpstreamEndorsementOrRights": (["gapUpstreamContactAndRights"], FRAMING),
+    "NoTuningToPass": (["candidateTuningOutOfScope"], FRAMING),
+    "ReusedBenchNotEvidence": (["asmBenchReuse"], FRAMING),
+    "BenchOpenNoVerdict": ([GAP_NAME], SLICE),
 }
+#: the tie names of each counter-claim, in the order of its records
+TIE_SUFFIXES = {"NoComplianceOrApproval": ["", "Criteria"]}
 RUN_ATTRIBUTES = [
     "configurationIdentity", "receiptSha256", "modelRevision", "candidateRecordIdentity", "upstreamRevision",
     "sourceDifference", "networkFileSha256", "configurationFileSha256", "launchSettings", "candidateBuild",
     "visualizationRecorderDelay", "scoreLifecycleVersion", "scoreCommunicationVersion", "scoreSOMEIPGatewayCommit",
-    "guestImageBuilds", "simulatorBuild", "scenario", "setting", "runIdentity", "simulationClockSpan",
-    "wallClockSpan", "rawObservationArtifact", "benchRecordingArtifact", "independentEngineerIdentity",
-    "claimBoundary"]
+    "simulatorBuild", "scenario", "setting", "runIdentity", "simulatedConfiguration", "simulationClockSpan",
+    "wallClockSpan", "executionEnvironmentIdentity", "contractIdentity", "criteriaRecordIdentity", "evaluatorRevision",
+    "rawObservationArtifact", "benchRecordingArtifact", "independentEngineerIdentity", "claimBoundary"]
+#: the readiness items of GAP-DRIVING-014: (its phrase in the model, its phrase in the guide)
+GAP_ITEMS = [
+    ("the link of the S-CORE process with the build of ONNX Runtime for CUDA",
+     "the link with the build of ONNX Runtime for CUDA in the S-CORE process"),
+    ("whether that process may hold a second C++ standard library",
+     "a second C++ standard library in that process"),
+    ("that the candidate record reaches the vehicle interface, which subscribes after the record was published",
+     "the candidate record reaching a late subscriber"),
+    ("the candidate driving on CARLA 1.0, which it has not done yet", "the candidate on CARLA 1.0"),
+    ("whether the S-CORE host's own GPU keeps the candidate's cycle with the S-CORE build",
+     "the S-CORE build's cycle on the host's own GPU"),
+    ("the capture of the start of the sound on the IVI guest, which is unmeasured",
+     "the capture of the sound on the IVI guest"),
+    ("the typed message of the warning request on the guests, open until phase 10",
+     "the typed message of the warning request on the guests, open until Phase 10"),
+    ("the draft of the warning output and the interface seam shown to the VisionPilot maintainers before phase 10 "
+     "builds",
+     "the draft of the warning output and the interface seam shown to the VisionPilot maintainers before Phase 10 "
+     "builds"),
+    ("The calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged run.",
+     "the calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged run"),
+]
 ANALYSIS_ATTRIBUTES = ["configurationIdentity", "receiptSha256", "modelRevision", "analyzedRealization",
                        "analystIdentity", "claimBoundary"]
 OUTCOMES = ["passBoundedVerification", "passBoundedValidation", "failObservedBehavior",
@@ -137,6 +183,18 @@ def _requirements() -> dict[int, tuple[str, str]]:
     return found
 
 
+def _criteria() -> dict[int, str]:
+    """Requirement number -> its success criteria, from the phase 5 package."""
+    raw = REQUIREMENTS.read_text(encoding="utf-8")
+    found = {}
+    for match in re.finditer(r"requirement <'REQ-DRIVING-(\d{3})'> (\w+) : \w*RequirementCandidate \{", raw):
+        body = _body(raw[match.start():], re.escape(match[0]))
+        (criteria,) = re.findall(r'attribute :>> successCriteria = "([^"]+)";', body)
+        found[int(match[1])] = criteria
+    assert sorted(found) == NUMBERS
+    return found
+
+
 def _usages() -> dict[int, tuple[str, str, str]]:
     """Case number -> (usage name, definition name, raw usage body with its doc)."""
     raw = SLICE.read_text(encoding="utf-8")
@@ -161,8 +219,8 @@ def _definition_docs() -> dict[str, str]:
 
 def test_each_requirement_of_the_increment_is_verified_by_exactly_one_case() -> None:
     """Nine requirements, nine cases VC-DRIVING-036 to -044, each objective verifying the requirement of its own
-    number with its subject bound to the realization on the bench (decision 1 of 2026-11-18: one case per
-    requirement)."""
+    number with its subject bound to the realization on the bench, by the evidence decisions of 2026-11-18 (one
+    case per requirement)."""
     requirements = _requirements()
     usages = _usages()
     definitions = _definitions()
@@ -212,6 +270,8 @@ def test_no_case_has_started_and_each_states_its_scenarios_settings_runs_and_ben
         if count:
             assert f"Runs: the two runs of each setting, {count}" in doc, usage
         assert (STOP_RUN in doc) is stop, usage
+        assert (STOP_RUN_PENDING in doc) is (count == "ten runs" and not stop), usage
+        assert (STOP_RUN_CARRIERS in doc) is (number in (38, 43)), usage
         assert (APART in doc) is ("curveAt30" in settings), usage
         kinds = "(test, analyze)" if method == "test" else "analyze"
         assert f"@VerificationMethod{{ kind = {kinds}; }}" in body, usage
@@ -249,6 +309,43 @@ def test_each_case_collects_by_its_requirements_method_and_analyzes_against_the_
         assert f"doc /* {lead} of REQ-DRIVING-0{number}. collectData retains" in docs[definition], definition
 
 
+def test_each_case_restates_the_values_scenarios_and_stop_clause_of_its_requirements_criteria() -> None:
+    """A case checks the criterion its requirement states (the evidence decisions of 2026-11-18, one case per
+    requirement): every value of the criterion (5.0 m/s², 1.0 s), its range of scenarios and its stop clause,
+    extracted from ``successCriteria``, appear in the case definition's doc as often as in the criterion. The
+    cases of the judged runs map a setting that is not judged, and the cases over every run a missing run or one with
+    a dropped image, to inconclusiveMissingEvidence; the cases over SC-DRIVING-014 and SC-DRIVING-015 record what
+    phase 5 asks System 2 to record there."""
+    criteria = _criteria()
+    docs = _definition_docs()
+    found_values = found_scopes = found_stops = 0
+    for number, (usage, definition, _) in _usages().items():
+        doc, text = docs[definition], criteria[number]
+        values = CRITERION_VALUE.findall(text)
+        for value in set(values):
+            assert doc.count(value) >= values.count(value), (usage, value)
+        scopes = CRITERION_SCOPE.findall(text)
+        for scope in scopes:
+            assert scope in doc, (usage, scope)
+        stop = CRITERION_STOP.search(text)
+        assert bool(stop) is (number in (38, 43)), usage
+        if stop:
+            assert f"the further run of {stop[1]}" in doc, usage
+            assert f"checks that in the further run {stop[2]}." in doc, usage
+        judged = "SC-DRIVING-013 is judged" in text
+        assert (NOT_JUDGED_OUTCOME in doc) is judged, usage
+        assert (EVERY_RUN_OUTCOME in doc) is (not judged and CASE_RUNS[number][3] == "test"), usage
+        assert (GUIDANCE in doc) is (number in (40, 41)), usage
+        found_values += len(values)
+        found_scopes += len(scopes)
+        found_stops += bool(stop)
+    assert (found_values, found_scopes, found_stops) == (3, 8, 2), "the extraction must not be vacuous"
+    phase5 = _docs(REQUIREMENTS)
+    assert f"System 2 records in each of their runs {GUIDANCE}." in phase5, "phase 5's own words"
+    assert ("As phase 5 states, System 2 records in each of the runs of SC-DRIVING-014 and SC-DRIVING-015 "
+            f"{GUIDANCE}, and the record holds them.") in docs["WithholdWarningRequestVerification"]
+
+
 def test_every_case_is_performed_by_the_verification_system_once() -> None:
     system = _body(_code(SLICE), r"\bpart driverAssistanceVerificationSystem \{")
     performed = re.findall(r"\bperform (\w+);", system)
@@ -277,8 +374,9 @@ def test_no_validation_case_is_added_and_the_phase_4_reviews_stay_planned() -> N
 
 
 def test_the_outcome_vocabulary_is_the_increments_own_with_the_six_shared_literals() -> None:
-    """Decision 2 of 2026-11-18: an own enum and verdict map with the precedent's six literals; the mapping is
-    total, only the two pass literals give pass, error gives error and every other outcome inconclusive."""
+    """The evidence decisions of 2026-11-18 (the outcome vocabulary): an own enum and verdict map with the
+    precedent's six literals; the mapping is total, only the two pass literals give pass, error gives error and every
+    other outcome inconclusive."""
     code = _code(SLICE)
     assert re.findall(r"(\w+);", _body(code, r"\benum def AssistanceEvidenceOutcome \{")) == OUTCOMES
     calc = " ".join(_body(code, r"\bcalc def MapAssistanceEvidenceOutcomeToVerdict \{").split())
@@ -298,29 +396,72 @@ def test_the_outcome_vocabulary_is_the_increments_own_with_the_six_shared_litera
     assert "Each setting runs twice and both runs count: fourteen runs." in docs
     assert ("is a fifteenth run at one of the three settings of SC-DRIVING-012; the next slice chooses which."
             in docs)
+    assert ("VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 do not read it until the terms of the requirements "
+            "settle whether it is a judged run.") in docs
     assert "A missing or partial record gives inconclusive, never pass." in docs
 
 
+def test_the_slice_header_states_the_readings_the_cases_make() -> None:
+    """The header lists the readings that the requirements leave to the cases: the inconclusive outcomes, the judged
+    window over every run, which cases read the stop run, what the stop run stops, and the warning modes."""
+    header = _flat(SLICE.read_text(encoding="utf-8").split("*/", 1)[0])
+    for phrase in ("Where the requirements leave a reading to the cases, the cases read them so.",
+                   "A setting that is not judged, a run that is missing and a run whose record shows a dropped image "
+                   "within the window that a case judges give inconclusiveMissingEvidence, never pass; for a "
+                   "criterion over every run, that window is the whole run.",
+                   "is read by the cases that read every run of SC-DRIVING-012 and by the stop clauses of "
+                   "REQ-DRIVING-038 and REQ-DRIVING-043; the cases of the judged runs do not read it until the terms "
+                   "of the requirements settle whether it is a judged run.",
+                   "In that run the candidate's process keeps running and the path's carriers of the driving command "
+                   "and of the warning request are stopped.",
+                   "No case judges when the display and the sound give the warning "
+                   "(counterClaimWarningModesNotJudgedHere)."):
+        assert phrase in header, phrase
+
+
 def test_the_run_record_binds_the_identities_the_decision_names() -> None:
-    """Decision 4 of 2026-11-18: one retained record per run, read by every case of that run, with the candidate
-    identity of REQ-DRIVING-044, the configured product and its receipt digest, the model revision, the build and
-    the recorder's delay, the platform, gateway and simulator pins, the scenario and setting, and both clocks."""
+    """The evidence decisions of 2026-11-18 (the evidence record): one retained record per run, read by every case of
+    that run, with the candidate identity of REQ-DRIVING-044, the configured product and its receipt digest, the
+    model revision, the build and the recorder's delay, the platform, gateway and simulator pins, the scenario, the
+    setting and the simulated configuration, both clocks, the hosts and guest images, the warning-request contract,
+    and the criteria record with the evaluators' revision."""
     code = _code(SLICE)
     record = _body(code, rf"\bitem def {RUN_RECORD} \{{")
     assert re.findall(r"\battribute (\w+) : ", record) == RUN_ATTRIBUTES
     assert "attribute scenario : AssistanceScenarioIdentity;" in record
     assert "attribute setting : AssistanceSettingIdentity;" in record
+    assert "guestImageBuilds" not in code, "the guest images are part of executionEnvironmentIdentity"
     docs = _docs(SLICE)
     for phrase in (f"every case that reads the run reads this record ({DECISIONS})",
                    "It binds DRIVING-CONFIG-002 as its configurationIdentity.",
+                   "receiptSha256 is the SHA-256 of the receipt the run ran against, as DRIVING-CONFIG-002 asks of the "
+                   "evidence that binds it; if it differs from the receiptSha256 of DRIVING-CONFIG-002, the verdict "
+                   "holds for DRIVING-CONFIG-002 only if the configuration's own receipt record did not change, which "
+                   "the pull request that rebinds the digest states.",
                    "candidateRecordIdentity names the candidate identity record of REQ-DRIVING-044 of the run",
                    "VisionPilot at 014e0e7a with the DE4SDV S-CORE interface and the DE4SDV visualization recorder",
                    "the readiness probe of the recorder on 2026-11-17 measured 2.0 ms more at the median and 5.8 ms "
-                   "more at the 99th percentile from an image to its command",
+                   "more at the 99th percentile from an image to its command, on an S-CORE host with an NVIDIA L4; a "
+                   "run on another host states the delay it measures",
+                   "simulatedConfiguration names the simulated configuration of the run: the blueprints of the ego "
+                   "vehicle and of the other vehicles of the scenario, the map and the road, the weather, the fixed "
+                   "step of 0.05 s and synchronous mode, and the camera rig; a digest of the scenario definition that "
+                   "fixes them is enough.",
                    "simulationClockSpan and wallClockSpan are the two clocks of the run, kept apart.",
-                   "phase 10 judges no run whose judged window holds a dropped image (MAP-DRIVING-DA-CAMERA-IMAGE)",
+                   "executionEnvironmentIdentity names the three hosts of the run, the simulator host, the S-CORE host "
+                   "with its GPU and the guest host, and the builds of the SDV Core image and of the IVI image.",
+                   "contractIdentity names the message type of the warning request on the guests, which phase 8 left "
+                   "open until phase 10 (GAP-DRIVING-014).",
+                   "criteriaRecordIdentity names the criteria record that the evaluators of the run read, and "
+                   "evaluatorRevision the revision of those evaluators, so that each verdict names the criteria and "
+                   "the evaluators that gave it (gapVehicleTargetCriteria).",
+                   "phase 10 judges no run whose judged window holds a dropped image (MAP-DRIVING-DA-CAMERA-IMAGE); "
+                   "for a criterion over every run, the judged window is the whole run.",
                    "A missing or partial record gives inconclusive, never pass. No record exists yet."):
         assert phrase in docs, phrase
+    physical = _docs(PHYSICAL)
+    for source in ("with a new message type for the warning request, open until phase 10", "one NVIDIA L4", "0.05 s"):
+        assert source in physical, source
     analysis = _body(code, rf"\bitem def {ANALYSIS_RECORD} \{{")
     assert re.findall(r"\battribute (\w+) : ", analysis) == ANALYSIS_ATTRIBUTES
     assert "The evidence record of the analysis of REQ-DRIVING-039, which reads the realization and no run." in docs
@@ -349,29 +490,28 @@ def test_the_bench_refers_to_the_realization_in_driving_config_002() -> None:
 
 
 def test_the_environment_gap_is_deferred_and_continues_the_readiness_items_of_phase_8() -> None:
-    """Decision 5 of 2026-11-18: the test environment stays a gap that continues the phase 8 readiness items until
-    the probes run."""
+    """The evidence decisions of 2026-11-18 (the test environment): it stays a gap that continues the phase 8
+    readiness items until the probes run, the two items of the warning request among them; the record already holds
+    the environment's and the contract's identity, which the next slice fills."""
     raw = SLICE.read_text(encoding="utf-8")
     gap = _body(raw, rf"\bpart <'{GAP}'> {GAP_NAME} : IncrementGap \{{")
     assert "attribute :>> disposition = LifecycleDisposition::deferred;" in gap
     doc = _flat(gap)
-    for phrase in (f"continue here until the probes run ({DECISIONS})",
-                   "the link of the S-CORE process with the build of ONNX Runtime for CUDA",
-                   "whether that process may hold a second C++ standard library",
-                   "that the candidate record reaches the vehicle interface, which subscribes after the record was "
-                   "published",
-                   "the candidate driving on CARLA 1.0, which it has not done yet",
-                   "whether the S-CORE host's own GPU keeps the candidate's cycle with the S-CORE build",
-                   "the capture of the start of the sound on the IVI guest, which is unmeasured",
-                   "The calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged run.",
-                   "nothing of phase 10 is built before the probes are read",
-                   "Deferred to that slice."):
+    for phrase in ([f"continue here until the probes run ({DECISIONS})"] + [model for model, _ in GAP_ITEMS]
+                   + ["nothing of phase 10 is built before the probes are read",
+                      "The evidence record already holds executionEnvironmentIdentity and contractIdentity; the next "
+                      "slice fills them, plans the runs and closes this gap.",
+                      "Deferred to that slice."]):
         assert phrase in doc, phrase
+    assert "adds the environment's identity" not in doc
     physical = _docs(PHYSICAL)
     for source in ("Open before phase 10: the link with the build of ONNX Runtime for CUDA",
                    "The candidate itself has not yet driven on CARLA 1.0",
                    "Whether the S-CORE host's own GPU keeps the cycle with the S-CORE build is not shown yet",
-                   "the start of the sound on the guest is unmeasured"):
+                   "the start of the sound on the guest is unmeasured",
+                   "with a new message type for the warning request, open until phase 10",
+                   "Before phase 10 builds, the VisionPilot maintainers are shown a draft of the warning output and "
+                   "the interface seam"):
         assert source in physical, source
     ids = sorted(set(re.findall(r"GAP-DRIVING-\d{3}", "".join(
         p.read_text(encoding="utf-8") for p in DRIVING.glob("*.sysml")))))
@@ -383,11 +523,14 @@ def test_the_environment_gap_is_deferred_and_continues_the_readiness_items_of_ph
 
 
 def test_each_claim_answers_one_phase_1_concern_and_its_argument_cites_the_right_cases() -> None:
-    """Decision 3 of 2026-11-18: claims now, one per answered phase 1 concern, each argument citing the planned
-    cases; vehicleTargetCriteriaConcern, answered by the phase 5 table, has none."""
+    """The evidence decisions of 2026-11-18 (claims now): one claim per answered phase 1 concern, each argument
+    citing the planned cases; vehicleTargetCriteriaConcern, answered by the phase 5 table, has none. Each claim
+    restates every value of the criteria of the requirements its argument cites; only the argument that cites the
+    analysis of REQ-DRIVING-039 reads an analysis."""
     code = _code(SLICE)
     raw = SLICE.read_text(encoding="utf-8")
     usages = {n: u for n, (u, _, _) in _usages().items()}
+    criteria = _criteria()
     framing = _code(FRAMING)
     phase1 = re.findall(r"\bconcern (\w+) : (\w+Concern) \{", framing)
     assert sorted(c for c, _ in phase1 if c != "driverAssistanceBoundary") == sorted(
@@ -405,8 +548,16 @@ def test_each_claim_answers_one_phase_1_concern_and_its_argument_cites_the_right
         argument = _flat(_body(raw, rf"\brequirement {stem}Argument : DriverAssistanceArgument \{{"))
         assert re.findall(r"VC-DRIVING-0(\d\d)", argument) == [str(n) for n in numbers], stem
         assert "the argument holds once every cited case has a pass verdict and fails with any fail" in argument
+        assert ("or of its analysis" in argument) is (39 in numbers), stem
+        for value in {v for n in numbers for v in CRITERION_VALUE.findall(criteria[n])}:
+            assert value in head, (stem, value)
         assert re.search(rf"dependency claimSupportedBy{stem[0].upper() + stem[1:]}Argument\s+from {stem}Argument "
                          rf"to {stem}Claim;", code)
+    vehicle_target = _flat(_body(raw, r"\brequirement vehicleTargetResponseClaim : DriverAssistanceClaim \{"))
+    assert ("commands a deceleration of at least 5.0 m/s² at each instant of the functional part at which the "
+            "needed deceleration to the target is at least 5.0 m/s²") in vehicle_target
+    assert ("gives a warning request at its boundary at least 1.0 s of simulation time before the start of the "
+            "first emergency braking of the run") in vehicle_target
     assert re.findall(r"\brequirement (\w+)Claim : DriverAssistanceClaim \{", code) == list(CLAIMS)
     assert UNCLAIMED_CONCERN not in " ".join(re.findall(r"Answers (\w+)\.", raw))
     assert ("vehicleTargetCriteriaConcern is answered by the requirement definition table of phase 5, and no run "
@@ -423,19 +574,30 @@ def test_each_claim_answers_one_phase_1_concern_and_its_argument_cites_the_right
 def test_each_counter_claim_restates_a_non_claim_of_the_framing_and_is_tied_to_its_record() -> None:
     code = _code(SLICE)
     raw = SLICE.read_text(encoding="utf-8")
-    for stem, (target, home) in COUNTER_CLAIMS.items():
+    for stem, (targets, home) in COUNTER_CLAIMS.items():
         doc = _flat(_body(raw, rf"\brequirement counterClaim{stem} : DriverAssistanceCounterClaim \{{"))
-        assert re.search(rf"dependency counterClaim{stem}BoundTo\s+from counterClaim{stem} to {target};", code), stem
-        assert re.search(rf"\bpart (<'[A-Z0-9-]+'> )?{target} : \w+ \{{", _code(home)), (stem, target)
-        named = target if home is not SLICE else GAP
-        assert f"{named})." in doc or f"{named}, " in doc or f", {named})" in doc or f"names {named}" in doc, stem
-        if home is not SLICE:
-            assert f"private import DE4SDV_DriverAssistanceFraming::{target};" in code, target
+        ties = re.findall(rf"dependency (counterClaim{stem}BoundTo\w*)\s+from counterClaim{stem} to (\w+);", code)
+        assert ties == [(f"counterClaim{stem}BoundTo{suffix}", target)
+                        for suffix, target in zip(TIE_SUFFIXES.get(stem, [""]), targets)], stem
+        for target in targets:
+            assert re.search(rf"\bpart (<'[A-Z0-9-]+'> )?{target} : \w+ \{{", _code(home)), (stem, target)
+            named = target if home is not SLICE else GAP
+            assert f"{named})." in doc or f"{named}, " in doc or f", {named})" in doc or f"names {named}" in doc, \
+                (stem, named)
+            if home is not SLICE:
+                assert f"private import DE4SDV_DriverAssistanceFraming::{target};" in code, target
     assert re.findall(r"\brequirement counterClaim(\w+) : DriverAssistanceCounterClaim \{", code) == list(COUNTER_CLAIMS)
     docs = _docs(SLICE)
     assert ("No on-road, production-readiness, safety-approval, compliance, type-approval or certification claim, and "
             "none about UNECE R152") in docs
     assert "whether and when the display and the sound give the warning is the planned review SC-DRIVING-018" in docs
+    assert ("No verdict comes from training the candidate's networks, or from tuning the candidate or a scenario "
+            "until a case passes: a fail stays a recorded result (candidateTuningOutOfScope).") in docs
+    assert ("their results for that increment's application are no evidence for this candidate, and each case reads "
+            "only the records of its own runs (asmBenchReuse).") in docs
+    framing = _docs(FRAMING)
+    assert "tuning the candidate or a scenario until a case passes" in framing
+    assert "Their results for the first application are not evidence for this one." in framing
 
 
 def test_the_slice_makes_no_result_compliance_or_regulation_claim() -> None:
@@ -464,10 +626,15 @@ def test_the_assurance_view_frames_the_phase_1_assurance_concern_and_links_every
     expected = ([f"{s}Claim" for s in CLAIMS] + [f"{s}Argument" for s in CLAIMS]
                 + [f"counterClaim{s}" for s in COUNTER_CLAIMS] + usages
                 + [RUN_RECORD, ANALYSIS_RECORD, BENCH_DEF, GAP_NAME]
-                + [target for target, home in COUNTER_CLAIMS.values() if home is not SLICE]
+                + [target for targets, home in COUNTER_CLAIMS.values() if home is not SLICE for target in targets]
                 + [f"claimSupportedBy{s[0].upper() + s[1:]}Argument" for s in CLAIMS]
-                + [f"{s}ArgumentCitesCases" for s in CLAIMS] + [f"counterClaim{s}BoundTo" for s in COUNTER_CLAIMS])
+                + [f"{s}ArgumentCitesCases" for s in CLAIMS]
+                + [f"counterClaim{s}BoundTo{suffix}" for s in COUNTER_CLAIMS for suffix in TIE_SUFFIXES.get(s, [""])])
     assert exposed == expected
+    assert len(exposed) == 70, "the count of exposed elements"
+    view_doc = _flat(_body(SLICE.read_text(encoding="utf-8"), r"\bview driverAssistanceAssuranceView \{"))
+    assert (f"the {NUMBER_WORDS[len(CLAIMS)].lower()} claims" in view_doc
+            and f"the {NUMBER_WORDS[len(COUNTER_CLAIMS)].lower()} counter-claims" in view_doc)
     assert "render asTreeDiagram;" in view and "attribute maxCompartmentEntries = 0;" in view
     assert len(re.findall(r"\bview \w+", code)) == 1, "one view in the phase"
     concern = _body(code, r"\bconcern driverAssistanceArgumentationAssuranceConcern : ArgumentationAssuranceConcern \{")
@@ -518,18 +685,54 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
     section = " ".join(raw_section.split())
     for text in ("VC-DRIVING-036", "VC-DRIVING-044", "DRIVING-CONFIG-002", "**One case per requirement.**",
                  "`NotStarted`", "2026-11-18", GAP, "the stop run", "simulation-clock and wall-clock spans",
-                 "Ten counter-claims", "Five claims", "Argumentation Assurance", "**No validation case.**",
+                 f"{NUMBER_WORDS[len(COUNTER_CLAIMS)]} counter-claims", f"{NUMBER_WORDS[len(CLAIMS)]} claims",
+                 "Argumentation Assurance", "**No validation case.**",
                  "`candidateVerdictConcern`", "`vehicleTargetCriteriaConcern` has no claim",
                  "Missing or partial evidence, and a setting whose runs are not judged, is inconclusive, never pass.",
+                 "In the cases that read every run, a run that is missing, or whose record shows a dropped image "
+                 "within the run, is inconclusive too: for them the judged window is the whole run.",
+                 "measured on an S-CORE host with an NVIDIA L4 (a run on another host states its own)",
+                 "the simulated configuration (the vehicles, the map and road, the weather, the 0.05 s step in "
+                 "synchronous mode and the camera rig)",
+                 "the three hosts with the S-CORE host's GPU and the guest images, the message type of the warning "
+                 "request, and the criteria record with the revision of the evaluators that read it",
+                 "(tied also to `gapVehicleTargetCriteria`)", "no tuning until a case passes",
+                 "no evidence from the reused bench's earlier results",
+                 "In the stop run the candidate's process keeps running, and the Launch Manager stops the path's "
+                 "carriers of the driving command and of the warning request; the next slice fixes which processes "
+                 "these are.",
+                 "The cases of the judged runs, VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042, leave it out "
+                 "until the Phase 5 terms settle whether it is a judged run.",
                  "(../../textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml)"):
         assert text in section, text
-    rows = re.findall(r"^\| (VC-DRIVING-\d{3}) \| (REQ-DRIVING-\d{3}), [^|]+ \| ([^|]+) \| (\w+) \|$", raw_section, re.M)
-    assert [(case, requirement) for case, requirement, _, _ in rows] == [
+    # the settings and their count, from the enum literals, as the guide and the enum doc state them
+    speeds: dict[str, list[str]] = {}
+    for setting, scenario in SETTINGS.items():
+        speeds.setdefault(SC_IDS[scenario], []).append(re.findall(r"\d+$", setting)[0])
+    parts = [f"{sc} at {', '.join(v[:-1]) + ' and ' + v[-1] if len(v) > 1 else v[0]} km/h" for sc, v in speeds.items()]
+    setting_doc = _flat(_body(SLICE.read_text(encoding="utf-8"), r"\benum def AssistanceSettingIdentity \{"))
+    for part in parts:
+        assert part in setting_doc, part
+    runs = NUMBER_WORDS[2 * len(SETTINGS)]
+    assert (f"**The runs.** {NUMBER_WORDS[len(SETTINGS)]} settings, each run twice, both runs counting: "
+            f"{', '.join(parts[:-1])} and {parts[-1]}, {runs} runs.") in section
+    # each readiness item of GAP-DRIVING-014, in the guide's words
+    gap_bullet = section.split("**The test environment**", 1)[1].split("- **", 1)[0]
+    for _, phrase in GAP_ITEMS:
+        assert phrase in gap_bullet, phrase
+    criteria = _criteria()
+    rows = re.findall(r"^\| (VC-DRIVING-\d{3}) \| (REQ-DRIVING-\d{3}), ([^|]+) \| ([^|]+) \| (\w+) \|$", raw_section,
+                      re.M)
+    assert [(case, requirement) for case, requirement, _, _, _ in rows] == [
         (f"VC-DRIVING-0{n}", f"REQ-DRIVING-0{n}") for n in NUMBERS]
-    for (_, _, runs, method), number in zip(rows, NUMBERS):
+    for (_, _, title, runs, method), number in zip(rows, NUMBERS):
         settings, count, stop, model_method = CASE_RUNS[number]
         assert method == {"test": "test", "analyze": "analysis"}[model_method], number
         assert (count or "no run") in runs and ("the stop run" in runs) is stop, number
+        # a value in the table is its requirement's (the warning request 1.0 s before the emergency braking)
+        values = CRITERION_VALUE.findall(title)
+        assert all(value in criteria[number] for value in values), number
+        assert (values == ["1.0 s"]) is (number == 42), number
     assert "instrument" not in section
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
     assert "tests/test_driver_assistance_verification_evidence.py" in check
