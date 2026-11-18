@@ -9,8 +9,11 @@
   S-CORE header; the real compile is the S-CORE Bazel build's.
 - src/lifecycle_bindings.cpp: a syntax check against declarations of the Lifecycle v0.10.0 API
   (launch-manager/tests/lifecycle_mock), which are no S-CORE header either.
-- the patch series: the new files of 0002 equal module/, the shas equal patches/SHA256SUMS, 0001 is the VIS8 patch,
-  and every line 0002 adds to upstream C++ outside the enum sits under ENABLE_SCORE_INTERFACE.
+- the patch series: the new files of 0002 equal module/, the shas equal patches/SHA256SUMS, 0001 is the VIS8 patch
+  with the sim_time_s column of frames.csv (brief item B3) and its upstream hunks unchanged, and every line 0002 adds
+  to upstream C++ outside the enum sits under ENABLE_SCORE_INTERFACE.
+- the sim_time_s column: a functional run of the patched recorder with a stand-in ffmpeg, when a VisionPilot clone
+  (VISIONPILOT_CLONE), ONNX Runtime and Eigen headers (ORT_INCLUDE, EIGEN_INCLUDE) and pkg-config's opencv4 are there.
 """
 
 from __future__ import annotations
@@ -35,6 +38,10 @@ MWCOM_MOCK = ROOT.parents[1] / "closed-loop-driving-bench" / "state-publisher" /
 LIFECYCLE_MOCK = ROOT.parent / "launch-manager" / "tests" / "lifecycle_mock"
 PIN = "014e0e7a56ee8e597c2cab8175233f74edd9b856"
 VIS8_SHA256 = "29a1f5d0a087b05f1b8e2e2d57cd6fd5f818d9a2d996fe2b0256f254c2a5ad27"  # the VIS8 patch as delivered
+# sha256 of the upstream-file sections (VisionPilot/CMakeLists.txt, app/CMakeLists.txt, app/vision_pilot.cpp) of the
+# VIS8 patch as delivered, joined by newlines; computed with Python's hashlib from that file. B3 leaves them unchanged.
+VIS8_UPSTREAM_SECTIONS_SHA256 = "9775468e4909bb58d427081625d6b2593d10222b7ca1c6bf43ea2b1d9722b70b"
+RECORDER_PREFIX = "VisionPilot/modules/de4sdv/visualization_recorder/"
 PATCH_MODULE_PREFIX = "VisionPilot/modules/de4sdv/score_interface/"
 UPSTREAM_HEADERS = [
     "modules/sensing/camera_interface/include/camera_interface/camera_interface.hpp",
@@ -211,7 +218,99 @@ def test_patch_shas() -> None:
     assert set(sums) == {"0001-de4sdv-visualization-recorder.diff", "0002-de4sdv-score-interface.diff"}
     for name, digest in sums.items():
         assert hashlib.sha256((PATCHES / name).read_bytes()).hexdigest() == digest, name
-    assert sums["0001-de4sdv-visualization-recorder.diff"] == VIS8_SHA256
+    # 0001 is no longer the VIS8 patch byte for byte: B3 added the sim_time_s column (test below)
+    assert sums["0001-de4sdv-visualization-recorder.diff"] != VIS8_SHA256
+
+
+def _sections(diff: str) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    current = None
+    for line in diff.split("\n"):
+        if line.startswith("diff --git "):
+            current = line.split(" b/", 1)[1]
+            out[current] = []
+        if current is not None:
+            out[current].append(line)
+    return out
+
+
+def test_0001_keeps_the_vis8_upstream_hunks_and_adds_the_sim_time_column() -> None:
+    sections = _sections((PATCHES / "0001-de4sdv-visualization-recorder.diff").read_text())
+    upstream = [p for p in sections if not p.startswith(RECORDER_PREFIX)]
+    assert upstream == ["VisionPilot/CMakeLists.txt", "VisionPilot/app/CMakeLists.txt", "VisionPilot/app/vision_pilot.cpp"]
+    joined = "\n".join("\n".join(sections[p]) for p in upstream)
+    assert hashlib.sha256(joined.encode()).hexdigest() == VIS8_UPSTREAM_SECTIONS_SHA256
+    header = "\n".join(sections[RECORDER_PREFIX + "include/de4sdv/visualization_recorder.hpp"])
+    source = "\n".join(sections[RECORDER_PREFIX + "src/visualization_recorder.cpp"])
+    assert "+        void set_pass_sim_time(double sim_time_s) { pass_sim_time_s_ = sim_time_s; }" in header
+    assert '+                               "t_encoded_ns,sim_time_s\\n");' in source
+    assert '+                        std::fprintf(csv_, "%llu,%llu,%lld,%lld,%lld,%lld,%lld,%s\\n",' in source
+    # the time is taken for one hand-off only, never carried into the next pass
+    assert "+        pass_sim_time_s_ = std::numeric_limits<double>::quiet_NaN();" in source
+
+
+def test_0002_hands_the_pass_capture_time_to_the_recorder() -> None:
+    files = _patch_files((PATCHES / "0002-de4sdv-score-interface.diff").read_text())
+    added = [line[1:].strip() for line in files["VisionPilot/app/vision_pilot.cpp"] if line.startswith("+")]
+    call = "visualization_recorder->set_pass_sim_time(score_interface->pass_capture_time_s());"
+    assert call in added
+    publish = added.index("if (score_interface) score_interface->warning_request_publisher().Publish(plan);")
+    assert publish < added.index(call)  # in the same guarded block, before the recorder's hand-off
+    context = files["VisionPilot/app/vision_pilot.cpp"]
+    handoff = next(i for i, line in enumerate(context) if "DE4SDV VIS8: the one hand-off" in line)
+    assert next(i for i, line in enumerate(context) if call in line) < handoff
+
+
+def test_visualization_recorder_writes_the_sim_time_column(tmp_path: Path) -> None:
+    clone = os.environ.get("VISIONPILOT_CLONE")
+    ort, eigen = os.environ.get("ORT_INCLUDE"), os.environ.get("EIGEN_INCLUDE")
+    if not clone or not ort or not eigen:
+        pytest.skip("needs VISIONPILOT_CLONE, ORT_INCLUDE and EIGEN_INCLUDE")
+    if subprocess.run(["git", "-C", clone, "cat-file", "-e", PIN + "^{commit}"], capture_output=True).returncode:
+        pytest.skip(f"{clone} does not hold {PIN}")
+    opencv_include = _opencv_include()
+    if opencv_include is None:
+        pytest.skip("no OpenCV 4 headers")
+    libs = ["-lopencv_videoio", "-lopencv_imgcodecs", "-lopencv_imgproc", "-lopencv_highgui", "-lopencv_core"]
+    tree = tmp_path / "vp"
+    subprocess.run(["git", "clone", "-q", "--shared", "--no-checkout", clone, str(tree)], check=True)
+    subprocess.run(["git", "-C", str(tree), "sparse-checkout", "set", "--no-cone", "/*", "!*.onnx", "!*.pt", "!*.pth",
+                    "!*.mp4"], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(tree), "checkout", "-q", PIN], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(tree), "apply", str(PATCHES / "0001-de4sdv-visualization-recorder.diff")],
+                   check=True)
+    vp = tree / "VisionPilot"
+    includes = [f"-I{d}" for d in sorted((vp / "modules").rglob("include")) if d.is_dir()]
+    binary = tmp_path / "sim_time_test"
+    subprocess.run([_compiler(), "-std=c++17", "-O1", *includes, f"-I{ort}", f"-I{eigen}", f"-I{opencv_include}",
+                    str(HERE / "visualization_recorder_sim_time_test.cpp"),
+                    str(vp / "modules/de4sdv/visualization_recorder/src/visualization_recorder.cpp"),
+                    str(vp / "modules/visualization/src/visual_interface.cpp"), "-o", str(binary),
+                    *libs, "-lpthread"], check=True)
+    fake = tmp_path / "bin"
+    fake.mkdir()
+    (fake / "ffmpeg").write_text("#!/bin/sh\ncat > /dev/null\n")
+    (fake / "ffmpeg").chmod(0o755)
+    video = tmp_path / "visualization.mkv"
+    env = {**os.environ, "PATH": f"{fake}:{os.environ['PATH']}", "DE4SDV_VISUALIZATION_RECORD": str(video),
+           "DE4SDV_VISUALIZATION_ENCODER": "ffmpeg"}
+    result = subprocess.run([str(binary), "30"], capture_output=True, text=True, env=env, timeout=120)
+    assert result.returncode == 0, result.stdout + result.stderr
+    rows = (tmp_path / "visualization.mkv.frames.csv").read_text().splitlines()
+    assert rows[0].split(",")[-1] == "sim_time_s"
+    assert len(rows) > 10
+    seen_empty = seen_time = False
+    for row in rows[1:]:
+        cells = row.split(",")
+        assert len(cells) == len(rows[0].split(","))
+        frame_id = int(cells[1])
+        if frame_id % 3 == 0:
+            assert cells[-1] == "", row  # no time given for this pass, none inherited
+            seen_empty = True
+        else:
+            assert math.isclose(float(cells[-1]), 100.0 + 0.05 * frame_id, abs_tol=5e-7), row
+            seen_time = True
+    assert seen_empty and seen_time
 
 
 def test_upstream_cpp_additions_are_guarded() -> None:

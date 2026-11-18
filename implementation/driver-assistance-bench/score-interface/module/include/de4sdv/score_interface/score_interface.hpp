@@ -10,6 +10,7 @@
 #pragma once
 
 #include <cstdio>
+#include <limits>
 #include <memory>
 #include <mutex>
 #include <string>
@@ -47,6 +48,11 @@ class ScoreInterface {
   // The end of a pass of the loop that handled a frame: one alive notification (CycleSupervision), none once SIGTERM
   // has arrived.
   void CycleCompleted();
+  // The capture simulation time of the frame of this pass (MAP-DRIVING-DA-CAMERA-IMAGE), NaN before the first: the
+  // loop hands it to the visualization recorder, whose frames.csv then aligns by simulation time (brief item B3).
+  double pass_capture_time_s() const {
+    return clock_.valid ? clock_.capture_time_s : std::numeric_limits<double>::quiet_NaN();
+  }
 
   // The run's counters as one JSON object.
   std::string Summary() const;

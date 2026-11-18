@@ -188,9 +188,11 @@ static void TestCaptureTimeCarriedPerPass() {
   auto camera = rig.module->camera();
   auto vehicle = rig.module->vehicle();
   rig.record->pending.push_back(fakes::GoodRecord());
+  EXPECT(std::isnan(rig.module->pass_capture_time_s()));  // no frame yet (B3: frames.csv's sim_time_s empty)
 
   rig.client->Deliver(21, 1.05, 4, 2);
   EXPECT(!camera->get_latest_frame().empty());
+  EXPECT(rig.module->pass_capture_time_s() == 1.05);
   vehicle->write(0.1, -4.0);
   rig.module->warning_request_publisher().Publish(MakePlan(-4.0, {Warning::FCW}));
 
@@ -206,6 +208,7 @@ static void TestCaptureTimeCarriedPerPass() {
   rig.client->Deliver(27, 1.35, 4, 2);
   EXPECT(!camera->get_latest_frame().empty());
   rig.client->Deliver(29, 1.45, 4, 2);
+  EXPECT(rig.module->pass_capture_time_s() == 1.35);  // the pass's, not the newest arrival's
   vehicle->write(0.0, -1.0);
   rig.module->warning_request_publisher().Publish(MakePlan(-1.0, {}));
 

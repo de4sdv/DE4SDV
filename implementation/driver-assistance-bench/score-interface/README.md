@@ -13,7 +13,7 @@ S-CORE. It ships as a patch series against the pin, so upstream's code is not co
 
 | Path | Content |
 |---|---|
-| `patches/0001-de4sdv-visualization-recorder.diff` | the VIS8 visualization recorder, byte-identical to the probe's patch (sha256 `29a1f5d0…`) |
+| `patches/0001-de4sdv-visualization-recorder.diff` | the VIS8 visualization recorder (the probe's patch, sha256 `29a1f5d0…`) with the `sim_time_s` column of `frames.csv` (brief item B3); its upstream hunks are the probe's, unchanged |
 | `patches/0002-de4sdv-score-interface.diff` | the S-CORE interface; it applies on top of 0001 |
 | `patches/SHA256SUMS` | the sha256 of both patches |
 | `module/` | the new files of 0002, as they land in `VisionPilot/modules/de4sdv/score_interface/`. A test checks that they equal the patch |
@@ -40,6 +40,7 @@ The mapping ids are those of the phase 8 realization,
 | `vision_pilot.cpp`, the S-CORE branch beside `:59-79` | starts the module and takes its camera and vehicle interfaces | MAP-DRIVING-DA-CAMERA-IMAGE, MAP-DRIVING-DA-VEHICLE-SPEED, MAP-DRIVING-DA-COMMAND, MAP-DRIVING-DA-CANDIDATE-RECORD |
 | `vision_pilot.cpp`, after `:174` | the warning hand-off: one event per plan | MAP-DRIVING-DA-PLANNED-WARNINGS, MAP-DRIVING-DA-WARNING-REQUEST |
 | `vision_pilot.cpp`, the loop head | leaves the loop on SIGTERM, so that `Rerun::shutdown()` (`:189`) and the recorder's stop run | none (supervision) |
+| `vision_pilot.cpp`, after `:174`, in the same block | the pass's capture simulation time to the visualization recorder, for its `frames.csv` (brief item B3) | MAP-DRIVING-DA-CAMERA-IMAGE |
 | `vision_pilot.cpp`, the end of a pass, after the recorder's loop stamps | `CycleCompleted()`: one alive notification to the Launch Manager per pass that handled a frame | none (the supervision decision of 2026-11-18) |
 
 The new files map to the model's parts as follows:
@@ -53,6 +54,24 @@ The new files map to the model's parts as follows:
     before a well-formed candidate record has arrived (MAP-DRIVING-DA-CANDIDATE-RECORD, REQ-DRIVING-044).
 - `ScoreWarningRequestPublisher` is SCOREWarningRequestPublisher (MAP-DRIVING-DA-WARNING-REQUEST). `requested` is
   true when the plan's warnings hold FCW or AEB. It sends the 8 bytes of `EncodeWarningRequestSomeip`.
+
+## The visualization's simulation time (brief item B3)
+
+VIS8 stamped each frame of the visualization at its arrival in the loop, because the file interface has no capture
+time. The cut of the bench's recording aligns the visualization with the chase view by the simulation time of the
+world tick (`../recording/compose_side_by_side.py --inset`), so `<video>.frames.csv` needs that time:
+
+- 0001 adds `VisualizationRecorder::set_pass_sim_time(double)`. It holds the time for the next `submit()` only,
+  and then clears it. The worker writes it as the last column, `sim_time_s`, with six decimals. The field is empty
+  when the loop gave no time, as in upstream's file mode. The recorder's other columns, its threads and its
+  hand-off stay as VIS8 measured them. 0001's hunks in upstream's files are byte-identical to the probe's patch.
+- 0002 calls it in its guarded block after the warning hand-off, before the recorder's hand-off, with
+  `ScoreInterface::pass_capture_time_s()`. That is the capture simulation time the camera interface keeps for the
+  pass (MAP-DRIVING-DA-CAMERA-IMAGE), the same time the driving command carries as its issue time.
+
+The recorder runs only when `DE4SDV_VISUALIZATION_RECORD` names its video. The Launch Manager configuration's
+`vision_pilot` environment does not set it yet (`../launch-manager/config/launch_manager_config.json`), so it is
+open for the Launch Manager lane.
 
 ## Supervision by the Launch Manager
 
@@ -104,6 +123,10 @@ clone of the pin, that test is skipped.
 - The camera role of the front camera comes from the world side (B7). The module requires it in its settings.
 
 ## Running the tests
+
+`test_visualization_recorder_writes_the_sim_time_column` builds the patched recorder with upstream's visualization at
+the pin, and runs it through the ffmpeg route with a stand-in ffmpeg. It needs `VISIONPILOT_CLONE`, `ORT_INCLUDE`,
+`EIGEN_INCLUDE` and OpenCV 4. Without them it is skipped.
 
 ```bash
 python -m pytest -q implementation/driver-assistance-bench/score-interface/tests
