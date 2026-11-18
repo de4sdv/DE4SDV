@@ -9,22 +9,34 @@ namespace de4sdv::driver_assistance::actuation::test {
 inline int g_failures = 0;
 inline int g_checks = 0;
 
-inline void Check(bool condition, const char* expression, const char* file, int line) {
+inline void Check(bool condition, const char* expression, const char* file, int line,
+                  const char* function) {
   ++g_checks;
   if (!condition) {
     ++g_failures;
-    std::printf("FAIL %s:%d: %s\n", file, line, expression);
+    std::printf("FAIL %s:%d: %s: %s\n", file, line, function, expression);
   }
 }
 
 // Exact comparison of doubles, printed with all digits on failure.
 inline void CheckEq(double actual, double expected, const char* expression, const char* file,
-                    int line) {
+                    int line, const char* function) {
   ++g_checks;
   if (!(actual == expected)) {
     ++g_failures;
-    std::printf("FAIL %s:%d: %s (actual %.17g, expected %.17g)\n", file, line, expression, actual,
-                expected);
+    std::printf("FAIL %s:%d: %s: %s (actual %.17g, expected %.17g)\n", file, line, function,
+                expression, actual, expected);
+  }
+}
+
+// Comparison of doubles within an absolute tolerance.
+inline void CheckNear(double actual, double expected, double tolerance, const char* expression,
+                      const char* file, int line, const char* function) {
+  ++g_checks;
+  if (!(std::fabs(actual - expected) <= tolerance)) {
+    ++g_failures;
+    std::printf("FAIL %s:%d: %s: %s (actual %.17g, expected %.17g, tolerance %.3g)\n", file,
+                line, function, expression, actual, expected, tolerance);
   }
 }
 
@@ -40,9 +52,14 @@ inline int Finish(const char* name) {
 
 }  // namespace de4sdv::driver_assistance::actuation::test
 
-#define CHECK(condition) \
-  ::de4sdv::driver_assistance::actuation::test::Check((condition), #condition, __FILE__, __LINE__)
-#define CHECK_EQ_D(actual, expected)                                                       \
-  ::de4sdv::driver_assistance::actuation::test::CheckEq((actual), (expected),              \
-                                                        #actual " == " #expected, __FILE__, \
-                                                        __LINE__)
+#define CHECK(condition)                                                                  \
+  ::de4sdv::driver_assistance::actuation::test::Check((condition), #condition, __FILE__, __LINE__, \
+                                                      __func__)
+#define CHECK_EQ_D(actual, expected)                                                         \
+  ::de4sdv::driver_assistance::actuation::test::CheckEq((actual), (expected),                \
+                                                        #actual " == " #expected, __FILE__,   \
+                                                        __LINE__, __func__)
+#define CHECK_NEAR(actual, expected, tolerance)                                               \
+  ::de4sdv::driver_assistance::actuation::test::CheckNear((actual), (expected), (tolerance),  \
+                                                          #actual " ~= " #expected, __FILE__, \
+                                                          __LINE__, __func__)

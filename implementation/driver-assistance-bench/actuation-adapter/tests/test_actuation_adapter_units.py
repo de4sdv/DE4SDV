@@ -21,6 +21,10 @@ INCLUDE = ADAPTER.parent / "interfaces" / "include"
 FLAGS = ["-Wall", "-Wextra", "-Werror", "-pedantic", f"-I{ADAPTER}", f"-I{HERE}", f"-I{INCLUDE}"]
 
 BINARIES = {
+    "actuation_core_test": [
+        HERE / "actuation_core_test.cpp",
+        ADAPTER / "actuation_core.cpp",
+    ],
     "adapter_config_test": [
         HERE / "adapter_config_test.cpp",
         ADAPTER / "adapter_config.cpp",

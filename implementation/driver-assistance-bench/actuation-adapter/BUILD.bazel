@@ -9,6 +9,7 @@
 #     (interfaces/include, payloads.h)
 # Nothing here has been built with Bazel; the host's g++ builds the pure parts
 # (tests/test_actuation_adapter_units.py).
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
 load("@rules_cc//cc:cc_library.bzl", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
@@ -31,4 +32,23 @@ cc_library(
         "run_log.h",
     ],
     includes = ["."],
+)
+
+# The logic core: the rules of MAP-DRIVING-DA-COMMAND (C++17).
+cc_library(
+    name = "actuation_core",
+    srcs = ["actuation_core.cpp"],
+    hdrs = ["actuation_core.h"],
+    includes = ["."],
+    deps = ["//de4sdv_da_bench/interfaces:driver_assistance"],
+)
+
+cc_binary(
+    name = "actuation_core_test",
+    srcs = [
+        "tests/actuation_core_test.cpp",
+        "tests/check.h",
+    ],
+    includes = ["tests"],
+    deps = [":actuation_core"],
 )
