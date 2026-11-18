@@ -597,7 +597,7 @@ def test_the_guide_states_phase_5_and_the_next_obligation():
     assert "VisionPilot/" not in raw_section, "the guide carries no upstream paths"
     flat = " ".join(guide.split())  # Markdown: a line may open with bold text
     assert "The next model obligation is **Phase 10**: verification and evidence" in flat
-    assert "its first gate is `verificationCaseVerifiesRequirement`" in flat
+    assert "`verificationCaseVerifiesRequirement` and `requirementVerifiedByVerificationCase` read" in flat
     section = " ".join(raw_section.split())
     for fact in GUIDE_FACTS:
         assert fact in section, fact
