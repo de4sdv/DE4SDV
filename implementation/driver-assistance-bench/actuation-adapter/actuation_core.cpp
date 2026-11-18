@@ -57,20 +57,28 @@ void ActuationCore::OnWorldSnapshot(const WorldSnapshot& snapshot) {
 
 CommandDecision ActuationCore::OnCommand(const DrivingCommandEventPayload& command) {
   CommandDecision decision;
-  decision.lastAcceptedSequence = last_accepted_;
+  decision.referenceSequence = reference_;
   decision.worldKnown = has_world_;
   decision.world = world_;
   decision.crcOk = DrivingCommandCheckValue(command) == command.checkValue;
 
-  // 64 bits, so that the count after 0xFFFFFFFF does not wrap to 0.
-  const std::uint64_t expected = static_cast<std::uint64_t>(last_accepted_) + 1u;
-  const std::uint64_t sequence = command.sequenceCount;
+  // 1. Corruption; the reference stays.
   if (!decision.crcOk) {
     decision.reason = DropReason::kCorruption;
-  } else if (sequence > expected) {
-    decision.reason = DropReason::kLoss;
-  } else if (sequence < expected) {
+    return decision;
+  }
+  // 64 bits, so that reference + 1 cannot wrap.
+  const std::uint64_t reference = reference_;
+  const std::uint64_t sequence = command.sequenceCount;
+  // 2. Repetition, also of an older count; the reference stays.
+  if (sequence <= reference) {
     decision.reason = DropReason::kRepetition;
+    return decision;
+  }
+  // 3. and 4. The count is greater: it becomes the reference, whatever the verdict.
+  reference_ = command.sequenceCount;
+  if (sequence > reference + 1u) {
+    decision.reason = DropReason::kLoss;
   } else if (!has_world_ || IssueTimeTooOld(command.issueTime, world_.simTimeS)) {
     decision.reason = DropReason::kDelay;
   }
@@ -79,7 +87,6 @@ CommandDecision ActuationCore::OnCommand(const DrivingCommandEventPayload& comma
   decision.accepted = true;
   decision.control = ToAckermannControl(command, world_.speedMps);
   decision.controlFinite = AllFinite(decision.control);
-  last_accepted_ = command.sequenceCount;
   return decision;
 }
 

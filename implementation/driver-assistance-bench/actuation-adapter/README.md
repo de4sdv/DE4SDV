@@ -34,16 +34,19 @@ It does not:
 ## Rules and their source
 
 All come from the signal mapping `MAP-DRIVING-DA-COMMAND` (PSR:1032-1051, the `transformationRule` at
-PSR:1046) and the part def. `tests/test_actuation_adapter_model_rules.py` reads the numbers from the model
-file at test time and compares them with `actuation_core.h`.
+PSR:1046) and the part def, except the reference count. That comes from the owner decision of 2026-11-18,
+which replaces the rule's "the last accepted"; the model amendment that states it is not on this branch yet,
+so PSR:1046 still reads "the last accepted". `tests/test_actuation_adapter_model_rules.py` reads the numbers
+from the model file at test time and compares them with `actuation_core.h`.
 
 | Rule | Implemented as | PSR |
 |---|---|---|
-| Corruption | `DrivingCommandCheckValue(command) != checkValue` (ICD.md's CRC32), checked first | 1046, 596-597 |
-| Loss | `sequenceCount > lastAccepted + 1` | 1046, 594-596 |
-| Repetition | `sequenceCount <= lastAccepted` | 1046, 594-596 |
-| First command | the last accepted count starts at 0, so the first command must carry 1 ("from 1 in each run") | 1044 |
-| Delay | `round(newest * 1000) - round(issue * 1000) > 100`, in whole milliseconds | 1046, 597-600 |
+| Reference count | the highest `sequenceCount` among the commands received in the run whose check value holds; 0 before the first | owner decision |
+| Corruption | `DrivingCommandCheckValue(command) != checkValue` (ICD.md's CRC32), checked first; the reference stays | 1046, 596-597 |
+| Repetition | `sequenceCount <= reference`, also an older count; the reference stays | 1046, 594-596 |
+| Loss | `sequenceCount > reference + 1`: the command that reveals the gap is rejected and its count becomes the reference | 1046, 594-596 |
+| First command | the reference starts at 0, so the first command must carry 1 ("from 1 in each run") | 1044 |
+| Delay | for `sequenceCount == reference + 1`: `round(newest * 1000) - round(issue * 1000) > 100`, in whole milliseconds; the count becomes the reference, accepted or not | 1046, 597-600 |
 | Nothing in its place | a rejected command is logged and dropped | 1046, 600-602 |
 | Steer | `-steeringAngle * pi / 180` rad, positive to the right | 1046, 270-271 |
 | Speed | `max(0, v + 2 * acceleration)`, v from the newest snapshot | 1046, 608-612 |
@@ -52,19 +55,21 @@ file at test time and compares them with `actuation_core.h`.
 The constants match upstream's own simulator path at `014e0e7a`
 (`Simulation/CARLA/ROS2/src/carla_control_publisher/carla_control_publisher/carla_control_publisher_node.py:44-53`).
 
+What the reference count costs: a late command or a repetition costs that one command; a loss or a
+corruption costs the missing command and the next one, which reveals it. No single fault makes later valid
+commands fail. A lost count that arrives late is a repetition.
+
 Readings the model leaves open, flagged for the lead:
 
-- **A loss latches.** A count "not one more than that of the last accepted" is rejected, and the last
-  accepted count does not move on a rejection. After one lost, delayed or corrupted command, every later
-  command is rejected until the missing count arrives, which for a real loss is never.
 - **Check order.** The check value first (a corrupted count or time cannot be trusted), then the count, then
-  the time; one reason per drop.
+  the time; one reason per drop. The owner decision states the same order.
 - **Delay boundary.** The 0.05 s step makes every simulation time a whole number of milliseconds (ICD.md), so
   two steps are not a delay, although `12.55 - 12.45` is `0.10000000000000142` as doubles.
-- **No snapshot yet, or a time that is not finite**: rejected as a delay. An issue time newer than the newest
-  world time is accepted; the model rejects only an older one.
-- **A non-finite control**: the core accepts the command (its count advances); the shell does not send the
-  control and logs an `error`.
+- **No snapshot yet, or a time that is not finite**: rejected as a delay, so its count, if it is the next one,
+  becomes the reference as for any delay. An issue time newer than the newest world time is accepted; the
+  model rejects only an older one.
+- **A non-finite control**: the core accepts the command (its count becomes the reference); the shell does
+  not send the control and logs an `error`.
 
 ## Records
 
@@ -74,10 +79,12 @@ this component's proposal.
 | Event | Data |
 |---|---|
 | `in.world_snapshot` | `frame`, `t_sim_s`, `egoPresent`, `speed_mps`, `kept` |
-| `in.driving_command` | `seq`, `crc_ok`, `issueTime_sim_s`, `newestWorldTime_sim_s`, `verdict` and the command's fields |
-| `drop` | `reason` (`loss`, `repetition`, `corruption`, `delay`), `seq`, `lastAcceptedSeq` and both times |
+| `in.driving_command` | `seq`, `crc_ok`, `issueTime_sim_s`, `newestWorldTime_sim_s`, `verdict`, `referenceSeq` and the command's fields |
+| `drop` | `reason` (`loss`, `repetition`, `corruption`, `delay`), `seq`, `referenceSeq` and both times |
 | `out.ackermann_control` | `frame`, `t_sim_s` (of the newest snapshot), `seq` and the five floats given to the client |
 | lifecycle | `start`, `config`, `ready`, `error`, `stop` |
+
+`referenceSeq` is the reference count the decision was made against, before the command.
 
 ## mw::com values pending the B6 manifests
 
@@ -126,4 +133,5 @@ That probe runs the simulator host and the S-CORE host together.
 - **ASM-DRIVING-006** (PSR:1269-1285): the steering sign on the simulated vehicle. With the ego vehicle placed
   to the right of its lane centre, the candidate's commands turn it left, by the sign of the yaw rate.
 - **The drops of a real run.** The candidate's issue times must stay within 0.1 s of simulation time of the
-  newest snapshot; because a loss latches, a single drop ends actuation for the rest of the run.
+  newest snapshot; each drop costs at most two commands, during which the simulator keeps the last valid
+  control.

@@ -23,21 +23,25 @@
 //  * Rejection. "The adapter rejects a command whose sequence count is not one
 //    more than that of the last accepted, whose check value fails or whose
 //    issue time is older than the newest world time by more than 0.1 s of
-//    simulation time, and applies nothing in its place". The last accepted
-//    count starts at 0, since the count runs "from 1 in each run"
-//    (dataTypeAndUnit), so the first command of a run has to carry 1.
+//    simulation time, and applies nothing in its place". The owner decision of
+//    2026-11-18 replaces "the last accepted" with a reference count, and the
+//    model amendment, not yet in this model, is to state the same: the
+//    reference is the highest sequence count among the commands received in
+//    the run whose check value holds. It starts at 0, since the count runs
+//    "from 1 in each run" (dataTypeAndUnit).
 //    The part def names the reasons: "(a loss or a repetition)", "(a
-//    corruption)", "(a delay)". Here a count above last+1 is a loss and a
-//    count at or below the last accepted one is a repetition.
-//    Read literally, "the last accepted" stays where it was after a
-//    rejection, so the command that reveals a gap is rejected, and so is every
-//    later one whose count is not last accepted + 1: after a loss, or after any
-//    rejection, the run applies no further command unless the lost count
-//    itself still arrives. This is the stricter of the readings and the one
-//    implemented; README.md flags it.
-//    Order of the checks: the check value first, since a corrupted command's
-//    sequence count and issue time cannot be trusted; then the sequence count;
-//    then the issue time. One reason per rejection.
+//    corruption)", "(a delay)". In this order, one reason per rejection:
+//      1. the check value fails: a corruption; the reference stays (a
+//         corrupted command's count and issue time cannot be trusted);
+//      2. the count is not greater than the reference: a repetition, also for
+//         an older count; the reference stays;
+//      3. the count is more than one greater: a loss, detected by the command
+//         that reveals the gap; the reference becomes the count;
+//      4. the count is exactly one greater: accepted, unless its issue time
+//         is a delay (below); the reference becomes the count either way.
+//    So a delay or a repetition costs that one command; a loss or a
+//    corruption costs the missing command and the next one, which reveals it;
+//    no single fault makes later valid commands fail.
 //  * Delay. The issue time and the newest world time are simulation seconds
 //    on one clock (PSR part def). They are compared in whole milliseconds,
 //    each rounded to the nearest one: the bench's 0.05 s step makes every
@@ -100,9 +104,9 @@ struct CommandDecision {
   DropReason reason = DropReason::kNone;
   bool crcOk = false;
   bool worldKnown = false;
-  WorldSnapshot world;                     // the newest snapshot at the decision
-  std::uint32_t lastAcceptedSequence = 0;  // before this command
-  AckermannControl control;                // set when accepted
+  WorldSnapshot world;                  // the newest snapshot at the decision
+  std::uint32_t referenceSequence = 0;  // the reference before this command
+  AckermannControl control;             // set when accepted
   // All five fields of control are finite. The model has no rule for a
   // command whose values give a non-finite control; the shell does not send
   // one to the simulator and logs an error (README.md, open question).
@@ -126,14 +130,16 @@ class ActuationCore {
 
   CommandDecision OnCommand(const DrivingCommandEventPayload& command);
 
-  std::uint32_t LastAcceptedSequence() const { return last_accepted_; }
+  // The highest sequence count among the commands received whose check value
+  // holds; 0 before the first.
+  std::uint32_t ReferenceSequence() const { return reference_; }
   bool HasWorld() const { return has_world_; }
   const WorldSnapshot& NewestWorld() const { return world_; }
 
  private:
   bool has_world_ = false;
   WorldSnapshot world_;
-  std::uint32_t last_accepted_ = 0;
+  std::uint32_t reference_ = 0;
 };
 
 }  // namespace de4sdv::driver_assistance::actuation

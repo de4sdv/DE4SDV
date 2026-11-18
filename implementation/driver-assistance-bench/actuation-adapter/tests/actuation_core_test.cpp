@@ -74,53 +74,66 @@ void TestDropReasonNames() {
 
 // ------------------------------------------------------------------ sequence
 
-// The count runs "from 1 in each run": the first command carries 1.
+// The count runs "from 1 in each run": the reference starts at 0, so the first
+// command carries 1.
 void TestFirstCommandOfARunCarriesOne() {
   ActuationCore core = CoreAt10s();
-  CHECK(core.LastAcceptedSequence() == 0);
+  CHECK(core.ReferenceSequence() == 0);
   const CommandDecision first = core.OnCommand(Command(1, 10.0));
   CHECK(Accepted(first));
   CHECK(first.crcOk);
-  CHECK(first.lastAcceptedSequence == 0);
-  CHECK(core.LastAcceptedSequence() == 1);
+  CHECK(first.referenceSequence == 0);
+  CHECK(core.ReferenceSequence() == 1);
 }
 
+// A first command with 2 reveals that 1 is missing: a loss, and counting
+// resumes from 2.
 void TestFirstCommandWithTwoIsALoss() {
   ActuationCore core = CoreAt10s();
   CHECK(Rejected(core.OnCommand(Command(2, 10.0)), DropReason::kLoss));
-  CHECK(core.LastAcceptedSequence() == 0);
+  CHECK(core.ReferenceSequence() == 2);
+  CHECK(Accepted(core.OnCommand(Command(3, 10.0))));
+  CHECK(core.ReferenceSequence() == 3);
 }
 
 void TestFirstCommandWithZeroIsARepetition() {
   ActuationCore core = CoreAt10s();
   CHECK(Rejected(core.OnCommand(Command(0, 10.0)), DropReason::kRepetition));
-  CHECK(core.LastAcceptedSequence() == 0);
+  CHECK(core.ReferenceSequence() == 0);
 }
 
 void TestConsecutiveCommandsAreAccepted() {
   ActuationCore core = CoreAt10s();
   for (std::uint32_t n = 1; n <= 5; ++n) {
-    CHECK(Accepted(core.OnCommand(Command(n, 10.0))));
-    CHECK(core.LastAcceptedSequence() == n);
+    const CommandDecision decision = core.OnCommand(Command(n, 10.0));
+    CHECK(Accepted(decision));
+    CHECK(decision.referenceSequence == n - 1);
+    CHECK(core.ReferenceSequence() == n);
   }
 }
 
-// A repeat is rejected and leaves the chain intact: the next count is accepted.
-void TestRepeatIsRejectedAndTheNextCountIsAccepted() {
+// A repetition costs only itself, also a repetition of an older count: the
+// reference stays and the next count is accepted.
+void TestARepetitionCostsOnlyItself() {
   ActuationCore core = CoreAt10s();
   CHECK(Accepted(core.OnCommand(Command(1, 10.0))));
   CHECK(Accepted(core.OnCommand(Command(2, 10.0))));
-  const CommandDecision repeat = core.OnCommand(Command(2, 10.0));
+  CHECK(Accepted(core.OnCommand(Command(3, 10.0))));
+  const CommandDecision repeat = core.OnCommand(Command(3, 10.0));
   CHECK(Rejected(repeat, DropReason::kRepetition));
   CHECK(repeat.crcOk);
-  CHECK(repeat.lastAcceptedSequence == 2);
-  CHECK(Rejected(core.OnCommand(Command(1, 10.0)), DropReason::kRepetition));
-  CHECK(core.LastAcceptedSequence() == 2);
-  CHECK(Accepted(core.OnCommand(Command(3, 10.0))));
+  CHECK(repeat.referenceSequence == 3);
+  CHECK(core.ReferenceSequence() == 3);
+  const CommandDecision older = core.OnCommand(Command(1, 10.0));
+  CHECK(Rejected(older, DropReason::kRepetition));
+  CHECK(older.referenceSequence == 3);
+  CHECK(core.ReferenceSequence() == 3);
+  CHECK(Accepted(core.OnCommand(Command(4, 10.0))));
+  CHECK(core.ReferenceSequence() == 4);
 }
 
 // A gap against a repeat: the command that reveals the gap is a loss, not a
-// repetition, and it is rejected.
+// repetition; it is rejected, and the reference becomes its count.
 void TestGapIsALossAndTheRevealingCommandIsRejected() {
   ActuationCore core = CoreAt10s();
   CHECK(Accepted(core.OnCommand(Command(1, 10.0))));
@@ -128,29 +141,36 @@ void TestGapIsALossAndTheRevealingCommandIsRejected() {
   const CommandDecision gap = core.OnCommand(Command(4, 10.0));
   CHECK(Rejected(gap, DropReason::kLoss));
   CHECK(gap.crcOk);
-  CHECK(gap.lastAcceptedSequence == 2);
-  CHECK(core.LastAcceptedSequence() == 2);
+  CHECK(gap.referenceSequence == 2);
+  CHECK(core.ReferenceSequence() == 4);
 }
 
-// "Not one more than that of the last accepted": after a gap every later count
-// is not last accepted + 1, so each is rejected as a loss, until the missing
-// count itself arrives.
-void TestAfterAGapLaterCountsStayRejected() {
+// A loss costs the missing command and the next one, which reveals it; the
+// one after is accepted. The missing count, arriving late, is a repetition.
+void TestALossCostsTheMissingCommandAndTheNext() {
   ActuationCore core = CoreAt10s();
   CHECK(Accepted(core.OnCommand(Command(1, 10.0))));
+  CHECK(core.ReferenceSequence() == 1);
+  // 2 is lost.
   CHECK(Rejected(core.OnCommand(Command(3, 10.0)), DropReason::kLoss));
-  CHECK(Rejected(core.OnCommand(Command(4, 10.0)), DropReason::kLoss));
-  CHECK(Rejected(core.OnCommand(Command(5, 10.0)), DropReason::kLoss));
-  CHECK(Rejected(core.OnCommand(Command(3, 10.0)), DropReason::kLoss));
-  CHECK(core.LastAcceptedSequence() == 1);
-  CHECK(Accepted(core.OnCommand(Command(2, 10.0))));
-  CHECK(Accepted(core.OnCommand(Command(3, 10.0))));
+  CHECK(core.ReferenceSequence() == 3);
+  const CommandDecision next = core.OnCommand(Command(4, 10.0));
+  CHECK(Accepted(next));
+  CHECK(next.referenceSequence == 3);
+  CHECK(core.ReferenceSequence() == 4);
+  CHECK(Accepted(core.OnCommand(Command(5, 10.0))));
+  CHECK(core.ReferenceSequence() == 5);
+  CHECK(Rejected(core.OnCommand(Command(2, 10.0)), DropReason::kRepetition));
+  CHECK(core.ReferenceSequence() == 5);
+  CHECK(Accepted(core.OnCommand(Command(6, 10.0))));
 }
 
-// A count far ahead of the last accepted one is a loss.
+// A count far ahead of the reference is a loss, and becomes the reference.
 void TestAFarCountIsALoss() {
   ActuationCore core = CoreAt10s();
   CHECK(Rejected(core.OnCommand(Command(0xFFFFFFFFu, 10.0)), DropReason::kLoss));
+  CHECK(core.ReferenceSequence() == 0xFFFFFFFFu);
+  CHECK(Rejected(core.OnCommand(Command(1, 10.0)), DropReason::kRepetition));
 }
 
 // ------------------------------------------------------------------ corruption
@@ -162,7 +182,7 @@ void TestCorruptedFieldIsACorruption() {
   const CommandDecision decision = core.OnCommand(command);
   CHECK(Rejected(decision, DropReason::kCorruption));
   CHECK(!decision.crcOk);
-  CHECK(core.LastAcceptedSequence() == 0);
+  CHECK(core.ReferenceSequence() == 0);
 }
 
 void TestCorruptedCheckValueIsACorruption() {
@@ -197,18 +217,40 @@ void TestCorruptionIsCheckedFirst() {
   DrivingCommandEventPayload old = Command(2, 9.0);
   old.checkValue ^= 1u;
   CHECK(Rejected(core.OnCommand(old), DropReason::kCorruption));
-  CHECK(core.LastAcceptedSequence() == 1);
+  CHECK(core.ReferenceSequence() == 1);
 }
 
-// After a corruption the corrupted count was never accepted: the next count
-// is a loss (the same literal reading as after a gap).
-void TestAfterACorruptionTheNextCountIsALoss() {
+// A corruption costs the corrupted command and the next one: the corrupted
+// count does not move the reference, so the next count reveals a gap and is a
+// loss; the one after is accepted.
+void TestACorruptionCostsItAndTheNext() {
   ActuationCore core = CoreAt10s();
   CHECK(Accepted(core.OnCommand(Command(1, 10.0))));
   DrivingCommandEventPayload bad = Command(2, 10.0);
   bad.checkValue ^= 1u;
+  const CommandDecision corrupted = core.OnCommand(bad);
+  CHECK(Rejected(corrupted, DropReason::kCorruption));
+  CHECK(corrupted.referenceSequence == 1);
+  CHECK(core.ReferenceSequence() == 1);
+  const CommandDecision next = core.OnCommand(Command(3, 10.0));
+  CHECK(Rejected(next, DropReason::kLoss));
+  CHECK(next.referenceSequence == 1);
+  CHECK(core.ReferenceSequence() == 3);
+  CHECK(Accepted(core.OnCommand(Command(4, 10.0))));
+  CHECK(core.ReferenceSequence() == 4);
+}
+
+// A corrupted count far ahead does not move the reference: the next count is
+// accepted.
+void TestACorruptedCountDoesNotMoveTheReference() {
+  ActuationCore core = CoreAt10s();
+  CHECK(Accepted(core.OnCommand(Command(1, 10.0))));
+  DrivingCommandEventPayload bad = Command(2, 10.0);
+  bad.sequenceCount = 900;  // changed after the check value was computed
   CHECK(Rejected(core.OnCommand(bad), DropReason::kCorruption));
-  CHECK(Rejected(core.OnCommand(Command(3, 10.0)), DropReason::kLoss));
+  CHECK(core.ReferenceSequence() == 1);
+  CHECK(Accepted(core.OnCommand(Command(2, 10.0))));
+  CHECK(core.ReferenceSequence() == 2);
 }
 
 // ------------------------------------------------------------------ delay
@@ -286,7 +328,8 @@ void TestDelayedCommandIsRejected() {
   CHECK(late.crcOk);
   CHECK(late.worldKnown);
   CHECK_EQ_D(late.world.simTimeS, 12.45);
-  CHECK(core.LastAcceptedSequence() == 1);
+  CHECK(late.referenceSequence == 1);
+  CHECK(core.ReferenceSequence() == 2);
 }
 
 void TestBoundaryCommandIsAccepted() {
@@ -309,20 +352,33 @@ void TestWithoutAWorldSnapshotACommandIsADelay() {
   CHECK(Rejected(decision, DropReason::kDelay));
   CHECK(!decision.worldKnown);
   CHECK(decision.crcOk);
+  CHECK(core.ReferenceSequence() == 1);
 }
 
-// A gapped and delayed command is a loss: the sequence is checked before the time.
+// A gapped and late command is a loss: the sequence is checked before the
+// time. The reference becomes its count.
 void TestSequenceIsCheckedBeforeTheTime() {
   ActuationCore core = CoreAt10s();
-  CHECK(Rejected(core.OnCommand(Command(2, 9.0)), DropReason::kLoss));
+  const CommandDecision decision = core.OnCommand(Command(2, 9.0));
+  CHECK(Rejected(decision, DropReason::kLoss));
+  CHECK(decision.referenceSequence == 0);
+  CHECK(core.ReferenceSequence() == 2);
+  CHECK(Accepted(core.OnCommand(Command(3, 10.0))));
 }
 
-// After a delay the delayed count was never accepted: the next count is a loss.
-void TestAfterADelayTheNextCountIsALoss() {
+// A late command costs only itself: the reference becomes its count, and the
+// next in-order command is accepted.
+void TestALateCommandCostsOnlyItself() {
   ActuationCore core = CoreAt10s();
   CHECK(Accepted(core.OnCommand(Command(1, 10.0))));
-  CHECK(Rejected(core.OnCommand(Command(2, 9.85)), DropReason::kDelay));
-  CHECK(Rejected(core.OnCommand(Command(3, 10.0)), DropReason::kLoss));
+  const CommandDecision late = core.OnCommand(Command(2, 9.85));
+  CHECK(Rejected(late, DropReason::kDelay));
+  CHECK(late.referenceSequence == 1);
+  CHECK(core.ReferenceSequence() == 2);
+  const CommandDecision next = core.OnCommand(Command(3, 10.0));
+  CHECK(Accepted(next));
+  CHECK(next.referenceSequence == 2);
+  CHECK(core.ReferenceSequence() == 3);
 }
 
 // ------------------------------------------------------------------ world snapshots
@@ -443,15 +499,16 @@ int main() {
   TestFirstCommandWithTwoIsALoss();
   TestFirstCommandWithZeroIsARepetition();
   TestConsecutiveCommandsAreAccepted();
-  TestRepeatIsRejectedAndTheNextCountIsAccepted();
+  TestARepetitionCostsOnlyItself();
   TestGapIsALossAndTheRevealingCommandIsRejected();
-  TestAfterAGapLaterCountsStayRejected();
+  TestALossCostsTheMissingCommandAndTheNext();
   TestAFarCountIsALoss();
   TestCorruptedFieldIsACorruption();
   TestCorruptedCheckValueIsACorruption();
   TestEveryFieldIsCovered();
   TestCorruptionIsCheckedFirst();
-  TestAfterACorruptionTheNextCountIsALoss();
+  TestACorruptionCostsItAndTheNext();
+  TestACorruptedCountDoesNotMoveTheReference();
   TestBoundaryPairsReallyMissOneTenth();
   TestExactlyOneTenthIsNotADelay();
   TestExactlyOneTenthOfAccumulatedStepsIsNotADelay();
@@ -462,7 +519,7 @@ int main() {
   TestTheNewestWorldTimeIsUsed();
   TestWithoutAWorldSnapshotACommandIsADelay();
   TestSequenceIsCheckedBeforeTheTime();
-  TestAfterADelayTheNextCountIsALoss();
+  TestALateCommandCostsOnlyItself();
   TestOlderOrRepeatedFramesAreIgnored();
   TestControlFieldsOfAnAcceptedCommand();
   TestSpeedRuleVectors();

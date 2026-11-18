@@ -136,28 +136,30 @@ def test_each_rejection_reason_and_nothing_applied(driver: Path, tmp_path: Path)
         command(1, 12.35, -1.0, 2.0),           # accepted
         command(1, 12.35, -1.0, 2.0),           # repetition
         command(2, 12.35, -6.0, 20.0, True),    # corruption
-        command(2, 12.30, -6.0, 20.0),          # delay: 150 ms
-        command(4, 12.45, -6.0, 20.0),          # loss
-        command(5, 12.45, -6.0, 20.0),          # loss: the last accepted is still 1
+        command(2, 12.30, -6.0, 20.0),          # delay: 150 ms; counting resumes from 2
+        command(4, 12.45, -6.0, 20.0),          # loss: 3 is missing; counting resumes from 4
+        command(5, 12.45, -0.5, -4.0),          # accepted
     ]
     applied, records = run(driver, tmp_path, script)
-    assert applied == [expected_control(-1.0, 2.0, 5.0)]
-    assert [d["reason"] for d in events(records, "drop")] == [
-        "repetition", "corruption", "delay", "loss", "loss"]
-    verdicts = [(d["seq"], d["crc_ok"], d["verdict"]) for d in events(records, "in.driving_command")]
-    assert verdicts == [(1, True, "accepted"), (1, True, "rejected"), (2, False, "rejected"),
-                        (2, True, "rejected"), (4, True, "rejected"), (5, True, "rejected")]
-    assert len(events(records, "out.ackermann_control")) == 1
+    assert applied == [expected_control(-1.0, 2.0, 5.0), expected_control(-0.5, -4.0, 5.0)]
+    drops = events(records, "drop")
+    assert [(d["seq"], d["reason"], d["referenceSeq"]) for d in drops] == [
+        (1, "repetition", 1), (2, "corruption", 1), (2, "delay", 1), (4, "loss", 2)]
+    verdicts = [(d["seq"], d["crc_ok"], d["verdict"], d["referenceSeq"])
+                for d in events(records, "in.driving_command")]
+    assert verdicts == [(1, True, "accepted", 0), (1, True, "rejected", 1), (2, False, "rejected", 1),
+                        (2, True, "rejected", 1), (4, True, "rejected", 2), (5, True, "accepted", 4)]
+    assert len(events(records, "out.ackermann_control")) == 2
 
 
 def test_a_gap_against_a_repeat(driver: Path, tmp_path: Path) -> None:
     script = ["world 10 0.5 3.0", command(1, 0.5), command(2, 0.5), command(2, 0.5), command(3, 0.5),
-              command(5, 0.5), command(4, 0.5)]
+              command(5, 0.5), command(4, 0.5), command(6, 0.5)]
     applied, records = run(driver, tmp_path, script)
-    assert len(applied) == 4  # 1, 2, 3 and the late 4
+    assert len(applied) == 4  # 1, 2, 3 and 6; the late 4 is a repetition of an older count
     drops = events(records, "drop")
-    assert [(d["seq"], d["reason"], d["lastAcceptedSeq"]) for d in drops] == [
-        (2, "repetition", 2), (5, "loss", 3)]
+    assert [(d["seq"], d["reason"], d["referenceSeq"]) for d in drops] == [
+        (2, "repetition", 2), (5, "loss", 3), (4, "repetition", 5)]
 
 
 def boundary_pairs() -> list[tuple[float, float]]:
@@ -184,7 +186,7 @@ def test_delay_boundary_misses_exactly_one_tenth(driver: Path, tmp_path: Path) -
 
 
 def test_delay_just_above_one_tenth(driver: Path, tmp_path: Path) -> None:
-    script = ["world 1 12.45 2.0", command(1, 12.349), "world 2 12.5 2.0", command(1, 12.35)]
+    script = ["world 1 12.45 2.0", command(1, 12.349), "world 2 12.5 2.0", command(2, 12.35)]
     applied, records = run(driver, tmp_path, script)
     assert applied == []
     assert [d["reason"] for d in events(records, "drop")] == ["delay", "delay"]
@@ -193,11 +195,12 @@ def test_delay_just_above_one_tenth(driver: Path, tmp_path: Path) -> None:
 def test_first_command_of_a_run(driver: Path, tmp_path: Path) -> None:
     script = [command(1, 0.0), "world 1 0.05 0.0", command(2, 0.05), command(1, 0.05, 1.0)]
     applied, records = run(driver, tmp_path, script)
-    # Before any snapshot the age cannot be shown: a delay; then 2 is a loss; then 1 is accepted.
-    assert [d["reason"] for d in events(records, "drop")] == ["delay", "loss"]
+    # Before any snapshot the age cannot be shown: 1 is a delay, and counting resumes from it;
+    # then 2 is accepted; then 1 is a repetition.
+    assert [(d["seq"], d["reason"]) for d in events(records, "drop")] == [(1, "delay"), (1, "repetition")]
     first = events(records, "in.driving_command")[0]
     assert first["newestWorldTime_sim_s"] is None and first["newestWorldFrame"] is None
-    assert applied == [expected_control(1.0, 0.0, 0.0)]
+    assert applied == [expected_control(0.0, 0.0, 0.0)]
 
 
 def test_no_ego_vehicle_in_the_snapshot(driver: Path, tmp_path: Path) -> None:

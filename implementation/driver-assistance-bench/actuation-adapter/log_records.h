@@ -13,15 +13,18 @@
 //   in.world_snapshot      {frame, t_sim_s, egoPresent, speed_mps, kept}
 //   in.driving_command     {seq, crc_ok, issueTime_sim_s, newestWorldTime_sim_s,
 //                           newestWorldFrame, verdict, acceleration, steeringAngle,
-//                           checkValue, lastAcceptedSeq, arrival_mono_s}
-//   drop                   {reason, seq, lastAcceptedSeq, issueTime_sim_s,
+//                           checkValue, referenceSeq, arrival_mono_s}
+//   drop                   {reason, seq, referenceSeq, issueTime_sim_s,
 //                           newestWorldTime_sim_s}
 //   out.ackermann_control  {frame, t_sim_s, seq, steer, steerSpeed, speed,
 //                           acceleration, jerk, controlSource}
 //
 // seq inside data is the command's sequenceCount; the record's own seq is the
-// log's counter. newestWorldTime_sim_s and newestWorldFrame are null before the
-// first world snapshot. out.ackermann_control holds the five floats the
+// log's counter. referenceSeq is the reference count the decision was made
+// against, before this command (actuation_core.h): the highest sequence count
+// among the earlier commands whose check value holds, 0 before the first.
+// newestWorldTime_sim_s and newestWorldFrame are null before the first world
+// snapshot. out.ackermann_control holds the five floats the
 // simulator client was given, in the model's names (SimulatorAckermannControl),
 // with the frame and time of the newest snapshot at the application.
 #pragma once
@@ -66,7 +69,7 @@ inline std::string InDrivingCommand(const DrivingCommandEventPayload& command,
          Tag("acceleration", JsonNumber(command.acceleration)) + "," +
          Tag("steeringAngle", JsonNumber(command.steeringAngle)) + "," +
          Tag("checkValue", detail::Unsigned(command.checkValue)) + "," +
-         Tag("lastAcceptedSeq", detail::Unsigned(decision.lastAcceptedSequence)) + "," +
+         Tag("referenceSeq", detail::Unsigned(decision.referenceSequence)) + "," +
          Tag("arrival_mono_s", JsonNumber(arrivalMonoS)) + "}";
 }
 
@@ -76,7 +79,7 @@ inline std::string Drop(const DrivingCommandEventPayload& command,
   const std::string newestTime = decision.worldKnown ? JsonNumber(decision.world.simTimeS) : "null";
   return "{" + Tag("reason", JsonString(DropReasonName(decision.reason))) + "," +
          Tag("seq", detail::Unsigned(command.sequenceCount)) + "," +
-         Tag("lastAcceptedSeq", detail::Unsigned(decision.lastAcceptedSequence)) + "," +
+         Tag("referenceSeq", detail::Unsigned(decision.referenceSequence)) + "," +
          Tag("issueTime_sim_s", JsonNumber(command.issueTime)) + "," +
          Tag("newestWorldTime_sim_s", newestTime) + "}";
 }

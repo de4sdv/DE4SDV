@@ -127,7 +127,7 @@ void TestAcceptedCommandIsAppliedAndLogged() {
   CHECK_EQ_D(Num(in, "newestWorldTime_sim_s"), 12.45);
   CHECK_EQ_D(Num(in, "newestWorldFrame"), 249.0);
   CHECK(Str(in, "verdict") == "accepted");
-  CHECK_EQ_D(Num(in, "lastAcceptedSeq"), 0.0);
+  CHECK_EQ_D(Num(in, "referenceSeq"), 0.0);
   CHECK_EQ_D(Num(in, "arrival_mono_s"), 100.25);
   const Record* out = &b.sink.records[2];
   CHECK_EQ_D(Num(out, "frame"), 249.0);
@@ -162,8 +162,12 @@ void TestEachRejectionIsLoggedAndNothingIsApplied() {
     CHECK(Str(drops[1], "reason") == "corruption");
     CHECK(Str(drops[2], "reason") == "delay");
     CHECK(Str(drops[3], "reason") == "loss");
+    // The reference each decision was made against: the delayed 2 moved it.
+    CHECK_EQ_D(Num(drops[0], "referenceSeq"), 1.0);
+    CHECK_EQ_D(Num(drops[1], "referenceSeq"), 1.0);
+    CHECK_EQ_D(Num(drops[2], "referenceSeq"), 1.0);
     CHECK_EQ_D(Num(drops[3], "seq"), 4.0);
-    CHECK_EQ_D(Num(drops[3], "lastAcceptedSeq"), 1.0);
+    CHECK_EQ_D(Num(drops[3], "referenceSeq"), 2.0);
     CHECK_EQ_D(Num(drops[2], "issueTime_sim_s"), 12.30);
     CHECK_EQ_D(Num(drops[2], "newestWorldTime_sim_s"), 12.45);
   }
@@ -179,21 +183,46 @@ void TestEachRejectionIsLoggedAndNothingIsApplied() {
 }
 
 // After a rejection the simulator keeps the last valid control: no record, no
-// call, the control the fake holds is the accepted one.
+// call, the control the fake holds is the accepted one. Six late commands, each
+// in order, each rejected.
 void TestNothingIsAppliedAfterARejection() {
   Bench b;
   b.shell.OnSnapshot(Snapshot(10, 0.50, 4.0));
   b.shell.OnCommand(Command(1, 0.50, 1.0F, -3.0F), 1.0);
   const sim::AppliedAckermannControl kept = fake::Applied().back();
-  for (std::uint32_t n = 3; n <= 8; ++n) {
+  for (std::uint32_t n = 2; n <= 7; ++n) {
     b.shell.OnSnapshot(Snapshot(10 + n, 0.50 + 0.05 * n, 4.0));
-    b.shell.OnCommand(Command(n, 0.50 + 0.05 * n, -5.0F, 30.0F), 1.0 + n);
+    b.shell.OnCommand(Command(n, 0.30, -5.0F, 30.0F), 1.0 + n);  // 200 ms or more older
   }
   CHECK(fake::Applied().size() == 1);
   CHECK_EQ_D(fake::Applied().back().speed, kept.speed);
   CHECK_EQ_D(fake::Applied().back().steer, kept.steer);
-  CHECK(b.Events("drop").size() == 6);
+  const auto drops = b.Events("drop");
+  CHECK(drops.size() == 6);
+  for (const Record* drop : drops) CHECK(Str(drop, "reason") == "delay");
   CHECK(b.Events("out.ackermann_control").size() == 1);
+}
+
+// No single fault makes later valid commands fail: after a loss the command
+// that reveals it is dropped and the next one is applied.
+void TestAfterALossTheNextCommandIsApplied() {
+  Bench b;
+  b.shell.OnSnapshot(Snapshot(10, 0.50, 4.0));
+  b.shell.OnCommand(Command(1, 0.50), 1.0);
+  b.shell.OnCommand(Command(3, 0.50), 1.1);  // 2 lost: 3 reveals it
+  b.shell.OnCommand(Command(4, 0.50, 1.0F), 1.2);
+  CHECK(fake::Applied().size() == 2);
+  if (fake::Applied().size() == 2) CHECK_EQ_D(fake::Applied().back().speed, 6.0F);
+  const auto drops = b.Events("drop");
+  CHECK(drops.size() == 1);
+  if (!drops.empty()) {
+    CHECK(Str(drops[0], "reason") == "loss");
+    CHECK_EQ_D(Num(drops[0], "seq"), 3.0);
+    CHECK_EQ_D(Num(drops[0], "referenceSeq"), 1.0);
+  }
+  const auto ins = b.Events("in.driving_command");
+  CHECK(ins.size() == 3);
+  if (ins.size() == 3) CHECK_EQ_D(Num(ins[2], "referenceSeq"), 3.0);
 }
 
 void TestARefusedApplicationIsAnError() {
@@ -276,15 +305,25 @@ void TestAttachToSimulatorRegistersTheHandler() {
   if (!fake::Applied().empty()) CHECK_EQ_D(fake::Applied().front().speed, 3.0F);
 }
 
-// The first command of a run carries 1.
+// The first command of a run carries 1. A first command with 2 is a loss, and
+// counting resumes from it: a later 1 is a repetition, 3 is applied.
 void TestTheFirstCommandOfARun() {
   Bench b;
   b.shell.OnSnapshot(Snapshot(10, 0.50, 0.0));
   b.shell.OnCommand(Command(2, 0.50), 1.0);
   CHECK(fake::Applied().empty());
-  b.shell.OnCommand(Command(1, 0.50, 1.0F), 1.1);
+  b.shell.OnCommand(Command(1, 0.50), 1.1);
+  CHECK(fake::Applied().empty());
+  b.shell.OnCommand(Command(3, 0.50, 1.0F), 1.2);
   CHECK(fake::Applied().size() == 1);
   if (!fake::Applied().empty()) CHECK_EQ_D(fake::Applied().front().speed, 2.0F);
+  const auto drops = b.Events("drop");
+  CHECK(drops.size() == 2);
+  if (drops.size() == 2) {
+    CHECK(Str(drops[0], "reason") == "loss");
+    CHECK(Str(drops[1], "reason") == "repetition");
+    CHECK_EQ_D(Num(drops[1], "referenceSeq"), 2.0);
+  }
 }
 
 }  // namespace
@@ -293,6 +332,7 @@ int main() {
   TestAcceptedCommandIsAppliedAndLogged();
   TestEachRejectionIsLoggedAndNothingIsApplied();
   TestNothingIsAppliedAfterARejection();
+  TestAfterALossTheNextCommandIsApplied();
   TestARefusedApplicationIsAnError();
   TestANonFiniteControlIsNotSent();
   TestEveryWorldSnapshotIsLogged();

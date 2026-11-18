@@ -72,6 +72,9 @@ def test_steer_rule_and_sign() -> None:
 
 def test_rejection_rule_and_reasons() -> None:
     rule = transformation_rule()
+    # The model on this branch still says "the last accepted". The owner decision of 2026-11-18
+    # replaces it with a reference count (actuation_core.h), and the code follows the decision. When
+    # the model amendment lands, this assertion fails and takes the amended text.
     assert ("rejects a command whose sequence count is not one more than that of the last accepted, "
             "whose check value fails") in rule
     assert "applies nothing in its place" in rule
