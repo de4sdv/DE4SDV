@@ -150,6 +150,29 @@ The probes must show what these tests cannot:
   loads in the S-CORE binary; the second-libstdc++ assumption holds for the planner; `nvh264enc` encodes natively.
 - The first closed-loop probe: the process runs against CARLA 1.0.
 
+## The p10-1 check (`scripts/p10_1_check.sh`)
+
+`ENTRY_SCORE_P10_1` of `../session/entrypoints.env`, run as `p10_1_check.sh <out>` on the S-CORE host. It writes one
+line per check, `PASS`, `FAIL` or `NOT RUN` with its detail, into `<out>/p10_1_verdicts.txt` and
+`p10_1_verdicts.json`. It exits 1 on any FAIL. A NOT RUN is no pass: the line says what is missing.
+
+| Check | What it shows | Needs |
+|---|---|---|
+| C1 | the Launch Manager takes the full and the path-only configuration; the recorder reports running before `vision_pilot` and `actuation_adapter` start; `gatewayd` starts after `someipd` | the bundle |
+| C2 | `LCM_ALIVE_INTERFACE_PATH` is set in the candidate's and the adapter's environment; both log the start of their supervision; no expiry in `DA_P10_1_ALIVE_HOLD_S` | a ticking world |
+| C3 | a SIGSTOPped candidate leads to the expiry and `fallback_run_target` in the Launch Manager's log; the candidate and the adapter are gone; the recorder, `someipd` and `gatewayd` run on with the same pids | a ticking world |
+| C4 | mw::com takes the ASIL B command path: the candidate sent driving commands and the adapter accepted one | a ticking world |
+| C5 | `gatewayd` (QM) receives from a process of global ASIL B: three sends of the test publisher, matched by `GATEWAYD_RX_REGEX` in the Launch Manager's log | `GATEWAYD_RX_REGEX` (else NOT RUN) |
+| C6 | no pass after the first of the three networks on the CUDA provider takes longer than 0.4 s (`ort_cuda_check`, `DA_P10_1_CUDA_RUNS` runs each) | the bundle's `ort_cuda_check` |
+| C7 | the candidate record reaches a subscriber that subscribes after the first publication (`candidate_record_probe`), with the file's digest | the bundle's probe |
+| C8 | the candidate on a replayed clip: always NOT RUN, since the S-CORE interface module has no clip replayer and the brief's B0 clip replayer is not in the bench | — |
+
+C2 to C4 need the candidate's first completed pass, so a CARLA 1.0 server with a world that ticks at
+`DA_P10_1_CARLA_HOST`. The caller starts the world side's pacer. Without it they are NOT RUN. C6 times each network
+alone, one after another, not the loop's pass with its pre- and post-processing. The dry runs
+(`tests/test_p10_1_check.py`) use the fake Launch Manager of `../score-path/tests/` and stand-ins for the probe and
+`ort_cuda_check`. They show the verdict logic only.
+
 ## Fallback (brief R3)
 
 Use it if the `bazel` stage fails and cannot be fixed in time. Run `fallback_cmake_build.sh --root /opt/da-b2` after

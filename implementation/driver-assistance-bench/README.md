@@ -24,7 +24,7 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 | `ivi-warning/injector/` | The p10-3 test publisher of the warning request (event 7412): a sequence of true and false edges with issue times, each send logged with the S-CORE host's real and monotonic clocks; evidence of the path, not of the candidate |
 | `launch-manager/` | The S-CORE host's Launch Manager configuration: the start order, the alive supervision of the candidate's process and the adapter, and the recovery target without both |
 | `actuation-adapter/` | The actuation end of the S-CORE path: rejects a lost, repeated, corrupted or delayed driving command and applies an accepted one as CARLA's Ackermann control |
-| `score-build/` | The S-CORE build of VisionPilot: the Bazel workspace, the build script, the GPU runtime of the S-CORE host and the fallback CMake route |
+| `score-build/` | The S-CORE build of VisionPilot: the Bazel workspace, the build script, the GPU runtime of the S-CORE host and the fallback CMake route; the p10-1 check (`scripts/p10_1_check.sh`) |
 | `world-side/` | The simulator host's world side on CARLA 1.0: SC-DRIVING-012 with its entry-condition checks and setting records, the ASM-DRIVING-005/006 calibrations and the camera calibration file |
 | `session/` | The bench session orchestrator: starts the simulator, S-CORE and guest hosts in order, runs each host's steps, stops everything it started, against a cost cap |
 | `recording/` | The chase-view recorder, the IVI display capture with its clock, and the side-by-side composition of the two captures |
