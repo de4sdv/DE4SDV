@@ -18,8 +18,10 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 | `interfaces/` | The interface control document, its machine-readable ids (`service_ids.json`) and the payload header that the components share |
 | `score-interface/` | The VisionPilot patch series: the visualization recorder and the DE4SDV S-CORE interface module |
 | `score-path/config/` | The S-CORE host's configs of the warning request: gatewayd, someipd and their mw::com manifests |
+| `score-path/scripts/` | The S-CORE host's session entries: stage the bundle, start the Launch Manager as root and wait for its readiness, stop it with SIGTERM and collect every log; the path-only configuration without the candidate |
 | `identity-recorder/` | The identity recorder (B4): hashes every input of the candidate, writes the candidate record into the run folder, offers it on event 7413 to late subscribers and reports running; the late-subscriber probe of p10-1 |
 | `ivi-warning/` | The warning request on the guests: the Data Tunnel message, the SOME/IP mapping, the ACLs and the SDV Core staging |
+| `ivi-warning/injector/` | The p10-3 test publisher of the warning request (event 7412): a sequence of true and false edges with issue times, each send logged with the S-CORE host's real and monotonic clocks; evidence of the path, not of the candidate |
 | `launch-manager/` | The S-CORE host's Launch Manager configuration: the start order, the alive supervision of the candidate's process and the adapter, and the recovery target without both |
 | `actuation-adapter/` | The actuation end of the S-CORE path: rejects a lost, repeated, corrupted or delayed driving command and applies an accepted one as CARLA's Ackermann control |
 | `score-build/` | The S-CORE build of VisionPilot: the Bazel workspace, the build script, the GPU runtime of the S-CORE host and the fallback CMake route |
