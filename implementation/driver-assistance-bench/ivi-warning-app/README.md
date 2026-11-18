@@ -80,7 +80,7 @@ and `De4sdvCollisionWarningPresentationTests` with the IVI product's recorded va
 `install` pushes the subject grant, the broker object policy and the APK into `/vendor/priv-app`,
 then reboots the IVI VM. Every push is checked: its exit status and the guest copy's sha256 against
 the host file; after the reboot the guest APK's sha256 must equal the built APK's. The broker object
-policy follows lead decision B10/B12-3: the script asks the guest whether the file exists
+policy follows the lead's decision 3 for B10 and B12: the script asks the guest whether the file exists
 (`present` or `absent`; any other answer, or a read that fails or is incomplete, stops the
 install), keeps the guest's original as `object-policy.guest.<sha256>.textproto` in the run
 directory without ever overwriting it, appends our blocks only when neither our ACL name nor our

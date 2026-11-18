@@ -182,7 +182,7 @@ _reboot() {
 }
 
 # The broker object policy has one file per IVI VM; another increment's subscriber (the
-# INC-DRIVING-001 observer) may already own it. Lead decision B10/B12-3: merge our blocks into it,
+# INC-DRIVING-001 observer) may already own it. The lead's decision 3 for B10 and B12: merge our blocks into it,
 # idempotently, and log the sha256 before and after and the appended blocks. Sets POLICY_LINES.
 merge_object_policy() { # <guest policy path>
   local policy="$1" ours="$ACLS/ivi_broker_object_policy.textproto" state sha_before sha_after want

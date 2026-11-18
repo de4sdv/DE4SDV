@@ -4,7 +4,7 @@ They pin what the install must do on a guest (review R5, R6, R10, R17 of fc74de1
 
 * every push is checked: a failed or a silently corrupt push fails the install, and the APK on
   the guest after the reboot must have the host APK's sha256;
-* the broker object policy is merged per lead decision B10/B12-3: the existence of the guest's
+* the broker object policy is merged per the lead's decision 3 for B10 and B12: the existence of the guest's
   file is probed explicitly, a failed read stops the install, the guest's original is kept under its
   own digest and never overwritten, a second install leaves the merged file as it is, and the
   sha256 before and after and the appended blocks are logged and written into the identity;
@@ -132,6 +132,14 @@ def test_a_silently_corrupt_apk_push_fails_the_install(tmp_path):
     ran = guest.install(FAKE_CORRUPT_PUSH="*.apk")
     assert ran.returncode != 0
     assert "has sha256" in ran.stdout
+
+
+def test_an_apk_that_is_not_the_built_one_after_the_reboot_fails_the_install(tmp_path):
+    guest = Guest(tmp_path)
+    ran = guest.install(FAKE_REBOOT_WRITES=f"{APK_GUEST}=an apk the reboot brought back")
+    assert ran.returncode != 0
+    assert "guest APK differs after the reboot" in ran.stdout
+    assert not (guest.run_dir / "ivi-warning-app-identity.txt").exists()
 
 
 def test_a_failed_acl_push_fails_the_install(tmp_path):

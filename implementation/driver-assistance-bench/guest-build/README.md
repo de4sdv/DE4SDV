@@ -26,7 +26,7 @@ failure. B12 writes nothing into the 2026-11-17 kit's `~/aaos-build/identity/` o
 | `core` | detects B11 on the SDV Core side (below); only when missing: `stage_sdv_core_interop.sh validate` (stage and the catalog build G1b), then a plain incremental `m` for `sdv_core_cf-cp2a-eng`. Either way it writes the core image hashes into the identity and says whether they equal the record | only when needed |
 | `ivi` | stages and builds the app as a module under `sdv_ivi_cf-cp2a-userdebug`, runs its JVM tests with the tree's JDK, and fails if the IVI images changed (stat and the record) | the app module |
 | `boot` | `launch_two_vms.sh up`. Existing groups need `GUESTS=fresh` (remove the groups and create them on the current images) or `GUESTS=reuse` (both already booted). It refuses to run inside a systemd unit, whose cgroup takes the guests down | nothing |
-| `install` | the app's ACLs and APK on the IVI VM, reboot, PackageManager check; every push checked, the guest APK's sha256 must equal the host's; the broker object policy merged and logged (lead decision B10/B12-3) | nothing |
+| `install` | the app's ACLs and APK on the IVI VM, reboot, PackageManager check; every push checked, the guest APK's sha256 must equal the host's; the broker object policy merged and logged (the lead's decision 3 for B10 and B12) | nothing |
 | `verify` | the SDV Core VM's stack config carries 0x4dee, 0x4df0 and 0x4df1 and its broker APEX names the unit; the app starts and its `initComms` succeeds through the gateway; `getenforce` of both guests is recorded | nothing |
 | `stop` | `cvd --group_name=<g> stop` for both groups, then no `crosvm` may be left | nothing |
 

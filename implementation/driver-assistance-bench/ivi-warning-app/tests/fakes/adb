@@ -11,6 +11,7 @@ FAKE_GUEST_<port> is set), every call is appended to FAKE_CALLS. Faults are inje
   FAKE_LOGCAT=<file>         what logcat -d prints
   FAKE_ENFORCE=<mode>        getenforce before any setenforce (default Enforcing)
   FAKE_NO_UNIT_IN_APEX=1     the core's broker APEX config does not name the unit
+  FAKE_REBOOT_WRITES=<p>=<t> a reboot leaves the text <t> at the guest path <p> (an overlay lost)
 """
 import fnmatch
 import os
@@ -44,6 +45,12 @@ if not args:
     sys.exit(1)
 cmd = args[0]
 maybe_hang(cmd)
+if cmd == "reboot" and os.environ.get("FAKE_REBOOT_WRITES"):
+    path, text = os.environ["FAKE_REBOOT_WRITES"].split("=", 1)
+    os.makedirs(os.path.dirname(g(path)), exist_ok=True)
+    with open(g(path), "w", encoding="utf-8") as f:
+        f.write(text + "\n")
+    sys.exit(0)
 if cmd in ("root", "connect", "wait-for-device", "wait-for-disconnect", "reboot", "uninstall", "disconnect"):
     sys.exit(0)
 if cmd == "remount":
