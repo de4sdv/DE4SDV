@@ -1,0 +1,29 @@
+// DE4SDV INC-DRIVING-002, the driver-assistance bench: the typed warning-request message as the
+// IVI warning presentation's compile-time type. Draft, bench-only, not yet validated.
+//
+// The proto itself is NOT in this folder: it is ../../ivi-warning/contract/
+// de4sdv_driving_collision_warning_request.proto, the one source the SDV Core catalog also takes.
+// ../scripts/stage_ivi_warning_app.sh copies it beside this file in the AOSP tree, unchanged
+// (Soong cannot reach outside a module's directory).
+//
+// The proto imports sdv/vsidl/v1/annotations.proto (the catalog's publication annotations),
+// which imports google/protobuf/descriptor.proto: both directories go on the include path, as in
+// the INC-DRIVING-001 observer's contract/Android.bp. Lite code keeps no options, so the
+// generated class needs nothing beyond libprotobuf-java-lite.
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+java_library {
+    name: "de4sdv_collision_warning_request_proto_java",
+    srcs: ["de4sdv_driving_collision_warning_request.proto"],
+    proto: {
+        type: "lite",
+        include_dirs: [
+            "system/software_defined_vehicle/vsidl/language/src/protos",
+            "external/protobuf/src",
+        ],
+    },
+    sdk_version: "system_current",
+    owner: "de4sdv",
+}

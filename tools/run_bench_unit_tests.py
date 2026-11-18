@@ -90,6 +90,8 @@ SUITES: list[dict[str, object]] = [
             "implementation/driver-assistance-bench/score-interface/tests",
             "implementation/driver-assistance-bench/ivi-warning/tests",
             "implementation/driver-assistance-bench/actuation-adapter/tests",
+            "implementation/driver-assistance-bench/ivi-warning-app/tests",
+            "implementation/driver-assistance-bench/guest-build/tests",
         ],
         "pythonpath": [],
     },
