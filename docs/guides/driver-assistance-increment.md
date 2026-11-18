@@ -632,12 +632,12 @@ nothing is posted without the owner.
 The candidate stays one process. Six software elements carry the four logical
 elements:
 
-- - **Identity recording application** carries the identity recorder: an S-CORE
+- **Identity recording application** carries the identity recorder: an S-CORE
   application of its own, started first, that hashes every configuration,
   calibration, manifest and network file the candidate's process reads and
   publishes the candidate record on an mw::com event. The candidate publishes no
   driving command before the record has arrived.
-- - **Camera interface** (DE4SDV) and **perception and fusion** (upstream,
+- **Camera interface** (DE4SDV) and **perception and fusion** (upstream,
   unchanged) carry the vehicle-ahead assessor. The camera interface hands the
   newest image to the loop and counts the images it drops: the candidate's
   fusion takes two processed frames as 0.1 s apart, so Phase 10 judges no run
@@ -645,7 +645,7 @@ elements:
   collision, no needed deceleration and no imminence, so the assessment is
   realized in part; Phase 10 judges the imminence from the simulator's ground
   truth.
-- - **Safety guardian planner** (upstream, unchanged) carries both the warning
+- **Safety guardian planner** (upstream, unchanged) carries both the warning
   requester and the driving commander: the warning requester and the driving
   commander share the planner module, since the forward-collision warning and
   the emergency braking are two ranges of one planned acceleration
@@ -709,6 +709,37 @@ pace on one NVIDIA L4, and its C++ client library, which needs C++20, inside an
 S-CORE process whose other code stays C++17. Upstream's camera rig sits on a
 vehicle that CARLA 1.0 does not have, so the bench mounts the camera on another
 one. The candidate itself has not yet driven on CARLA 1.0.
+
+On 2026-11-17 the owner chose a fixed step of 0.05 s for the bench's simulator,
+so that the bench's recording view can be rendered at 20 frames per second. The
+front camera keeps one image per 0.1 s, every second step, so the candidate
+still receives images 0.1 s apart, and the actuation adapter's delay limit is
+written as 0.1 s of simulation time instead of one step. On the same day the
+owner chose an NVIDIA RTX PRO 6000 for the simulator host: at the new step, with
+the front camera and a recording camera of 1920 by 1080 pixels, one NVIDIA L4
+did not keep wall-clock pace in a readiness probe, and the RTX PRO 6000 did.
+The owner also chose that the bench records the candidate's own visualization
+with each run: upstream's drawing of what the candidate perceives and plans over
+its camera image. It is not the driver's display; it goes only into the bench's
+recording. A DE4SDV visualization recorder in the candidate's process draws it
+on a thread of its own from a copy that the loop hands over after it writes the
+command, and encodes it with the video encoder of the S-CORE host's GPU;
+upstream's drawing in the loop stays switched off. The recorder only observes
+and carries no logical element, but every build on the S-CORE path carries it,
+so the candidate record holds it and every verdict names it. A readiness probe
+measured its cost: with the recorder on, the candidate gave its command about
+2 ms later at the median and about 6 ms later at the 99th percentile, 0.8 ms
+over the bound that the probe had set, and dropped no more images. The owner
+kept the recorder in every run, so that each run's recording shows the run that
+is judged, and every verdict states the delay.
+
+The owner also chose to keep the collision warning on the application of the IVI
+VM for this increment. The High Availability Renderer of Android SDV's display
+safety, which draws the safety-relevant parts of the cluster display behind the
+steering wheel in a guest of its own, SDV Media, was considered and not selected
+(`ALT-DRIVING-HARWARNING-001`): Android SDV's vehicle data has no collision
+signal and the renderer's reference application no collision symbol or chime, so
+DE4SDV would add all three and a bridge from SDV Core to SDV Media.
 
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
 upstream's own simulator path does, and gives the simulator the candidate's
