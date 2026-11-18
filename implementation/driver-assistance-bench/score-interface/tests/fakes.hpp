@@ -62,6 +62,22 @@ inline da::CandidateRecordEventPayload GoodRecord() {
   return r;
 }
 
+// The Launch Manager's lifecycle client: records each call in order ("running", "alive").
+struct LifecycleClient : si::LifecycleClient {
+  std::vector<std::string> calls;
+  bool running_ok = true;
+  bool ReportRunning() override {
+    calls.push_back("running");
+    return running_ok;
+  }
+  void ReportAlive() override { calls.push_back("alive"); }
+  int Count(const std::string& name) const {
+    int n = 0;
+    for (const auto& c : calls) n += (c == name) ? 1 : 0;
+    return n;
+  }
+};
+
 struct SimulatorClient : si::SimulatorClient {
   ImageHandler handler;
   bool attached = false;

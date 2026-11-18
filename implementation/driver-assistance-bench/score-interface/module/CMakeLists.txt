@@ -4,13 +4,14 @@
 #
 #   DE4SDV_DA_INTERFACES_INCLUDE_DIR  the bench's interfaces/include (de4sdv/driver_assistance/payloads.h), used in
 #                                     place, never copied
-#   DE4SDV_SCORE_BINDINGS             a library or target that defines MakeLolaPorts and MakeCarlaClient
-#                                     (seams.hpp): src/lola_bindings.cpp and src/carla_client.cpp need mw::com and the
-#                                     CARLA 1.0 client, which only the Bazel build provides
+#   DE4SDV_SCORE_BINDINGS             a library or target that defines MakeLolaPorts, MakeCarlaClient and
+#                                     MakeLifecycleClient (seams.hpp): src/lola_bindings.cpp, src/carla_client.cpp and
+#                                     src/lifecycle_bindings.cpp need mw::com, the CARLA 1.0 client and S-CORE
+#                                     Lifecycle, which only the Bazel build provides
 cmake_minimum_required(VERSION 3.22.1)
 
 set(DE4SDV_DA_INTERFACES_INCLUDE_DIR "" CACHE PATH "DE4SDV driver-assistance bench interfaces/include")
-set(DE4SDV_SCORE_BINDINGS "" CACHE STRING "library defining MakeLolaPorts and MakeCarlaClient")
+set(DE4SDV_SCORE_BINDINGS "" CACHE STRING "library defining MakeLolaPorts, MakeCarlaClient and MakeLifecycleClient")
 if(NOT EXISTS "${DE4SDV_DA_INTERFACES_INCLUDE_DIR}/de4sdv/driver_assistance/payloads.h")
     message(FATAL_ERROR "ENABLE_SCORE_INTERFACE needs DE4SDV_DA_INTERFACES_INCLUDE_DIR with "
                         "de4sdv/driver_assistance/payloads.h")

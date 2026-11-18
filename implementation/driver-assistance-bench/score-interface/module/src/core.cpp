@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <utility>
 
 namespace de4sdv::score_interface {
 
@@ -171,6 +172,33 @@ bool WarningRequestWriter::Write(bool requested) {
          ",\"mono_ns\":" + std::to_string(MonotonicNs()) + ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
   }
   return sent;
+}
+
+CycleSupervision::CycleSupervision(LifecycleClient* client, LineLog log) : client_(client), log_(std::move(log)) {}
+
+void CycleSupervision::CycleCompleted(bool stop_requested) {
+  if (stop_requested) stopped_ = true;
+  if (client_ == nullptr || stopped_) return;
+  if (!started_) {
+    started_ = true;
+    running_reported_ = client_->ReportRunning();
+    if (log_) {
+      log_(std::string(running_reported_ ? "{\"kind\":\"supervision.start\"" : "{\"kind\":\"error.supervision\",\"what\":\"report_running failed\"") +
+           ",\"mono_ns\":" + std::to_string(MonotonicNs()) + ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
+    }
+  }
+  client_->ReportAlive();
+  ++alive_reported_;
+}
+
+void CycleSupervision::Stop() {
+  stopped_ = true;
+  if (client_ == nullptr || stop_logged_) return;
+  stop_logged_ = true;
+  if (log_) {
+    log_("{\"kind\":\"supervision.stop\",\"alive_reported\":" + std::to_string(alive_reported_) +
+         ",\"mono_ns\":" + std::to_string(MonotonicNs()) + ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
+  }
 }
 
 }  // namespace de4sdv::score_interface

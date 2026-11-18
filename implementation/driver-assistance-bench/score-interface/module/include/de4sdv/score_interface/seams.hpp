@@ -1,10 +1,11 @@
 // DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
 //
-// The two seams of the module. Everything behind them is a separate translation unit that only the S-CORE Bazel
+// The three seams of the module. Everything behind them is a separate translation unit that only the S-CORE Bazel
 // build compiles:
 //   - SimulatorClient: the CARLA 1.0 C++ client (src/carla_client.cpp, C++20);
-//   - MwComPorts: the LoLa/mw::com skeletons and the proxy (src/lola_bindings.cpp, C++17).
-// The module's own units see only these abstract interfaces, so the unit tests replace both with fakes.
+//   - MwComPorts: the LoLa/mw::com skeletons and the proxy (src/lola_bindings.cpp, C++17);
+//   - LifecycleClient: S-CORE Lifecycle's report_running and Alive API (src/lifecycle_bindings.cpp, C++17).
+// The module's own units see only these abstract interfaces, so the unit tests replace them with fakes.
 #pragma once
 
 #include <cstddef>
@@ -88,6 +89,21 @@ struct CarlaSettings {
   std::string hero_role;
   std::string camera_role;
 };
+
+// The Launch Manager of S-CORE Lifecycle v0.10.0 as the module sees it, for the supervision decision of 2026-11-18:
+// the Launch Manager supervises the candidate's process by its alive notifications.
+class LifecycleClient {
+ public:
+  virtual ~LifecycleClient() = default;
+  // score_mw_lifecycle_report_running(): the process is ready; the Launch Manager then starts its alive supervision.
+  virtual bool ReportRunning() = 0;
+  // score::mw::lifecycle::Alive::ReportAlive(): one alive notification. Called from one thread only.
+  virtual void ReportAlive() = 0;
+};
+
+// Defined in src/lifecycle_bindings.cpp (S-CORE Lifecycle v0.10.0). nullptr, with the reason, when the Launch Manager
+// did not start this process as a supervised component (LCM_ALIVE_INTERFACE_PATH unset) or the Alive instance fails.
+std::unique_ptr<LifecycleClient> MakeLifecycleClient(std::string* reason);
 
 // Defined in src/carla_client.cpp (C++20, CARLA 1.0 client library).
 std::unique_ptr<SimulatorClient> MakeCarlaClient(const CarlaSettings& settings);

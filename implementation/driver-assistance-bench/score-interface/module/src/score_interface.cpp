@@ -6,6 +6,8 @@
 #include <string>
 #include <utility>
 
+#include "de4sdv/score_interface/stop_signal.hpp"
+
 namespace de4sdv::score_interface {
 
 std::unique_ptr<ScoreInterface> ScoreInterface::Start() {
@@ -22,13 +24,45 @@ std::unique_ptr<ScoreInterface> ScoreInterface::Start() {
     return nullptr;
   }
   std::unique_ptr<SimulatorClient> client = MakeCarlaClient(settings.carla);
-  auto module = Start(settings, std::move(ports), std::move(client), &error);
+  std::string off_reason;
+  std::unique_ptr<LifecycleClient> lifecycle = MakeLifecycleClient(&off_reason);
+  if (!lifecycle) std::fprintf(stderr, "[DE4SDV] S-CORE interface: unsupervised: %s\n", off_reason.c_str());
+  auto module = Start(settings, std::move(ports), std::move(client), std::move(lifecycle), off_reason, &error);
   if (!module) std::fprintf(stderr, "[DE4SDV] S-CORE interface: %s\n", error.c_str());
   return module;
 }
 
 std::unique_ptr<ScoreInterface> ScoreInterface::Start(const Settings& settings, MwComPorts ports,
                                                       std::unique_ptr<SimulatorClient> client, std::string* error) {
+  return Start(settings, std::move(ports), std::move(client), nullptr, "no lifecycle client given", error);
+}
+
+namespace {
+
+// A reason as a JSON string body: quotes, backslashes and control characters escaped.
+std::string Escaped(const std::string& text) {
+  std::string out;
+  for (const char c : text) {
+    if (c == '"' || c == '\\') {
+      out += '\\';
+      out += c;
+    } else if (static_cast<unsigned char>(c) < 0x20) {
+      char buf[8];
+      std::snprintf(buf, sizeof buf, "\\u%04x", static_cast<unsigned>(static_cast<unsigned char>(c)));
+      out += buf;
+    } else {
+      out += c;
+    }
+  }
+  return out;
+}
+
+}  // namespace
+
+std::unique_ptr<ScoreInterface> ScoreInterface::Start(const Settings& settings, MwComPorts ports,
+                                                      std::unique_ptr<SimulatorClient> client,
+                                                      std::unique_ptr<LifecycleClient> lifecycle,
+                                                      const std::string& off_reason, std::string* error) {
   if (!ports.command || !ports.warning || !ports.record || !client) {
     *error = "a port or the simulator client is missing";
     return nullptr;
@@ -54,6 +88,8 @@ std::unique_ptr<ScoreInterface> ScoreInterface::Start(const Settings& settings, 
   m->vehicle_ = std::make_shared<ScoreVehicleInterface>(
       [raw_client](EgoVelocity* v) { return raw_client->NewestEgoVelocity(v); }, m->command_writer_.get(), m->log_);
   m->publisher_ = std::make_unique<ScoreWarningRequestPublisher>(m->warning_writer_.get());
+  m->lifecycle_ = std::move(lifecycle);
+  m->supervision_ = std::make_unique<CycleSupervision>(m->lifecycle_.get(), m->log_);
 
   if (!m->client_->Attach(error)) return nullptr;
   ScoreCameraInterface* camera = m->camera_.get();
@@ -63,10 +99,19 @@ std::unique_ptr<ScoreInterface> ScoreInterface::Start(const Settings& settings, 
   m->camera_->SetOpen(true);
   m->Log(std::string("{\"kind\":\"start\",\"mono_ns\":") + std::to_string(MonotonicNs()) +
          ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
+  if (!m->lifecycle_) {
+    m->Log("{\"kind\":\"supervision.off\",\"reason\":\"" + Escaped(off_reason) + "\",\"mono_ns\":" +
+           std::to_string(MonotonicNs()) + ",\"real_ns\":" + std::to_string(RealtimeNs()) + "}");
+  }
   return m;
 }
 
+void ScoreInterface::CycleCompleted() {
+  if (supervision_) supervision_->CycleCompleted(StopRequested());
+}
+
 ScoreInterface::~ScoreInterface() {
+  if (supervision_) supervision_->Stop();  // no alive notification after this
   if (client_) client_->Stop();  // no image callback after this
   const std::string summary = Summary();
   std::fprintf(stderr, "[DE4SDV] S-CORE interface summary %s\n", summary.c_str());
@@ -101,6 +146,7 @@ std::string ScoreInterface::Summary() const {
   s += ",\"warning_events_send_failed\":" + std::to_string(wc.send_failed);
   s += ",\"warning_events_not_encodable\":" + std::to_string(wc.not_encodable);
   s += ",\"speed_unavailable\":" + std::to_string(vehicle_ ? vehicle_->speed_unavailable() : 0);
+  s += ",\"alive_reported\":" + std::to_string(supervision_ ? supervision_->alive_reported() : 0);
   s += ",\"mono_ns\":" + std::to_string(MonotonicNs()) + "}";
   return s;
 }

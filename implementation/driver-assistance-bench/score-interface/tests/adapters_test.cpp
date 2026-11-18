@@ -1,7 +1,7 @@
 // Unit tests of the DE4SDV S-CORE interface's adapters on upstream's seams (camera_interface.hpp,
 // vehicle_interface.hpp, types.hpp at 014e0e7a) and of the module as the loop uses it (score_interface.hpp), with
-// fakes for mw::com and the CARLA 1.0 client. The two factories of seams.hpp are defined below as fakes, in place
-// of src/lola_bindings.cpp and src/carla_client.cpp.
+// fakes for mw::com, the CARLA 1.0 client and S-CORE Lifecycle. The three factories of seams.hpp are defined below
+// as fakes, in place of src/lola_bindings.cpp, src/carla_client.cpp and src/lifecycle_bindings.cpp.
 //
 // Build (test_score_interface.py): g++ -std=c++17 against upstream's headers extracted from the pin, OpenCV 4 and
 // the bench's interfaces/include; links the module's portable sources and opencv_core.
@@ -30,13 +30,15 @@ static int failures = 0;
     }                                                             \
   } while (0)
 
-// The fakes the no-argument Start() gets from the two factories.
+// The fakes the no-argument Start() gets from the three factories.
 static fakes::CommandSink* g_command = nullptr;
 static fakes::WarningSink* g_warning = nullptr;
 static fakes::RecordSource* g_record = nullptr;
 static fakes::SimulatorClient* g_client = nullptr;
 static std::string g_mw_com_config;
 static si::CarlaSettings g_carla;
+static fakes::LifecycleClient* g_lifecycle = nullptr;
+static bool g_lifecycle_available = true;
 
 namespace de4sdv::score_interface {
 std::unique_ptr<SimulatorClient> MakeCarlaClient(const CarlaSettings& settings) {
@@ -44,6 +46,16 @@ std::unique_ptr<SimulatorClient> MakeCarlaClient(const CarlaSettings& settings) 
   auto c = std::make_unique<fakes::SimulatorClient>();
   g_client = c.get();
   return c;
+}
+std::unique_ptr<LifecycleClient> MakeLifecycleClient(std::string* reason) {
+  if (!g_lifecycle_available) {
+    *reason = "not started by the Launch Manager (test)";
+    g_lifecycle = nullptr;
+    return nullptr;
+  }
+  auto l = std::make_unique<fakes::LifecycleClient>();
+  g_lifecycle = l.get();
+  return l;
 }
 MwComPorts MakeLolaPorts(const std::string& mw_com_config_path, std::string* /*error*/) {
   g_mw_com_config = mw_com_config_path;
@@ -299,11 +311,68 @@ static void TestStartReadsSettingsAndUsesFactories(const std::string& dir) {
   EXPECT(g_mw_com_config == "/opt/de4sdv/etc/mw_com_config.json");
   EXPECT(g_carla.host == "192.0.2.10" && g_carla.camera_role == "front_camera_test" && g_carla.port == 2000);
   EXPECT(g_client != nullptr && g_client->started);
+  EXPECT(g_lifecycle != nullptr);
+  module->CycleCompleted();
+  EXPECT(g_lifecycle != nullptr && g_lifecycle->Count("alive") == 1);
   module.reset();
+  g_lifecycle_available = false;
+  module = si::ScoreInterface::Start();  // unsupervised: no failure
+  EXPECT(module != nullptr && g_lifecycle == nullptr);
+  module.reset();
+  g_lifecycle_available = true;
   setenv(si::kSettingsPathVariable, (dir + "/no_such.conf").c_str(), 1);
   EXPECT(si::ScoreInterface::Start() == nullptr);
   unsetenv(si::kSettingsPathVariable);
   std::remove(conf.c_str());
+}
+
+// The supervision decision of 2026-11-18 through the module: one alive notification per completed pass, the first
+// pass reports the process running, and the log says when the supervision starts and stops. That no notification
+// follows a stop request is checked in core_test, with an explicit flag: SIGTERM's flag cannot be cleared here.
+static void TestCycleCompletedReportsAlive(const std::string& dir) {
+  const std::string log = dir + "/score_interface_supervision.jsonl";
+  std::remove(log.c_str());
+  si::MwComPorts ports;
+  ports.command = std::make_unique<fakes::CommandSink>();
+  ports.warning = std::make_unique<fakes::WarningSink>();
+  ports.record = std::make_unique<fakes::RecordSource>();
+  auto lifecycle = std::make_unique<fakes::LifecycleClient>();
+  fakes::LifecycleClient* lc = lifecycle.get();
+  si::Settings settings;
+  settings.log_path = log;
+  std::string error;
+  auto module = si::ScoreInterface::Start(settings, std::move(ports), std::make_unique<fakes::SimulatorClient>(),
+                                          std::move(lifecycle), "", &error);
+  EXPECT(module != nullptr);
+  EXPECT(lc->calls.empty());  // nothing at Start: the network sessions and the first frame come later
+  for (int i = 0; i < 3; ++i) module->CycleCompleted();
+  EXPECT((lc->calls == std::vector<std::string>{"running", "alive", "alive", "alive"}));
+  EXPECT(module->Summary().find("\"alive_reported\":3") != std::string::npos);
+  module.reset();
+  int starts = 0, stops = 0, offs = 0;
+  for (const auto& l : Lines(log)) {
+    starts += l.find("\"kind\":\"supervision.start\"") != std::string::npos;
+    stops += l.find("\"kind\":\"supervision.stop\",\"alive_reported\":3") != std::string::npos;
+    offs += l.find("\"kind\":\"supervision.off\"") != std::string::npos;
+  }
+  EXPECT(starts == 1 && stops == 1 && offs == 0);
+  std::remove(log.c_str());
+}
+
+static void TestUnsupervisedRunIsLogged(const std::string& dir) {
+  const std::string log = dir + "/score_interface_unsupervised.jsonl";
+  std::remove(log.c_str());
+  Rig rig = MakeRig(log);  // no lifecycle client
+  EXPECT(rig.module != nullptr);
+  rig.module->CycleCompleted();
+  rig.module.reset();
+  int offs = 0, starts = 0;
+  for (const auto& l : Lines(log)) {
+    offs += l.find("\"kind\":\"supervision.off\",\"reason\":\"no lifecycle client given\"") != std::string::npos;
+    starts += l.find("\"kind\":\"supervision.start\"") != std::string::npos;
+  }
+  EXPECT(offs == 1 && starts == 0);
+  std::remove(log.c_str());
 }
 
 int main() {
@@ -316,6 +385,8 @@ int main() {
   TestOneWarningEventPerPlan();
   TestReadGivesSpeedInMetersPerSecond();
   TestStartReadsSettingsAndUsesFactories(dir);
+  TestCycleCompletedReportsAlive(dir);
+  TestUnsupervisedRunIsLogged(dir);
   if (failures != 0) {
     std::printf("adapters_test: %d failed\n", failures);
     return 1;

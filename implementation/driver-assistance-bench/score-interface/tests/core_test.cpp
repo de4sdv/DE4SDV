@@ -290,6 +290,81 @@ static void TestStopSignal() {
   EXPECT(si::StopRequested());
 }
 
+// The supervision decision of 2026-11-18: one alive notification per completed pass, the first pass also reports
+// the process running, nothing after a stop request.
+static void TestCycleSupervisionOneAlivePerCycle() {
+  fakes::LifecycleClient lc;
+  std::vector<std::string> lines;
+  si::CycleSupervision sup(&lc, [&lines](const std::string& l) { lines.push_back(l); });
+  EXPECT(!sup.running_reported());
+  EXPECT(lc.calls.empty());  // nothing before the first completed pass
+  sup.CycleCompleted(false);
+  EXPECT(sup.running_reported());
+  EXPECT((lc.calls == std::vector<std::string>{"running", "alive"}));
+  for (int i = 0; i < 9; ++i) sup.CycleCompleted(false);
+  EXPECT(lc.Count("running") == 1);
+  EXPECT(lc.Count("alive") == 10);
+  EXPECT(sup.alive_reported() == 10u);
+  // the start of the supervision is logged once, at the first pass
+  int starts = 0;
+  for (const auto& l : lines) starts += l.find("\"kind\":\"supervision.start\"") != std::string::npos ? 1 : 0;
+  EXPECT(starts == 1);
+  EXPECT(!lines.empty() && lines.front().find("\"kind\":\"supervision.start\"") != std::string::npos);
+}
+
+static void TestCycleSupervisionNoneAfterStop() {
+  fakes::LifecycleClient lc;
+  std::vector<std::string> lines;
+  si::CycleSupervision sup(&lc, [&lines](const std::string& l) { lines.push_back(l); });
+  sup.CycleCompleted(false);
+  sup.CycleCompleted(false);
+  sup.CycleCompleted(true);   // the stop request arrived during this pass
+  sup.CycleCompleted(false);  // and stays: never an alive again
+  EXPECT(lc.Count("alive") == 2);
+  EXPECT(sup.alive_reported() == 2u);
+  sup.Stop();
+  sup.Stop();  // idempotent
+  EXPECT(lc.Count("alive") == 2);
+  int stops = 0;
+  for (const auto& l : lines) {
+    if (l.find("\"kind\":\"supervision.stop\"") != std::string::npos) {
+      ++stops;
+      EXPECT(l.find("\"alive_reported\":2") != std::string::npos);
+    }
+  }
+  EXPECT(stops == 1);
+}
+
+static void TestCycleSupervisionStopBeforeFirstPass() {
+  fakes::LifecycleClient lc;
+  si::CycleSupervision sup(&lc, nullptr);
+  sup.CycleCompleted(true);  // a stop before the first completed pass: the process never reports running
+  EXPECT(lc.calls.empty());
+  EXPECT(!sup.running_reported());
+}
+
+static void TestCycleSupervisionRunningFails() {
+  fakes::LifecycleClient lc;
+  lc.running_ok = false;
+  std::vector<std::string> lines;
+  si::CycleSupervision sup(&lc, [&lines](const std::string& l) { lines.push_back(l); });
+  sup.CycleCompleted(false);
+  EXPECT(!sup.running_reported());
+  bool logged = false;
+  for (const auto& l : lines) logged |= l.find("\"kind\":\"error.supervision\"") != std::string::npos;
+  EXPECT(logged);
+  // the alive notifications still go out: the Launch Manager decides, by its ready timeout
+  EXPECT(lc.Count("alive") == 1);
+}
+
+static void TestCycleSupervisionWithoutClient() {
+  si::CycleSupervision sup(nullptr, nullptr);
+  sup.CycleCompleted(false);
+  sup.Stop();
+  EXPECT(sup.alive_reported() == 0u);
+  EXPECT(!sup.running_reported());
+}
+
 static void PrintVectors() {
   const double steer[] = {0.1, -0.05, 0.0, 0.5235987755982988, -0.0123456789};
   const double accel[] = {-4.0, -5.5, 0.0, 2.5, -3.0000001};
@@ -335,6 +410,11 @@ int main(int argc, char** argv) {
   TestSequenceAndCaptureTimePerPass();
   TestWarningRequestOneEventPerWrite();
   TestSettings(dir != nullptr ? dir : ".");
+  TestCycleSupervisionOneAlivePerCycle();
+  TestCycleSupervisionNoneAfterStop();
+  TestCycleSupervisionStopBeforeFirstPass();
+  TestCycleSupervisionRunningFails();
+  TestCycleSupervisionWithoutClient();
   TestStopSignal();
   if (failures != 0) {
     std::printf("core_test: %d failed\n", failures);
