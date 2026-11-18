@@ -232,7 +232,7 @@ timeout (420 s) covers the time from its start to the go file.
 | ASM-DRIVING-005/006 | `calibration.py`, `calib-decel`, `calib-steer` | `test_world_side_calibrations.py` |
 | Camera calibration file | `camera_calibration.py`, `camera-capture` | `test_world_side_camera_calibration.py` |
 
-The test with upstream's script needs the VisionPilot clone (`DE4SDV_VP_CLONE`) and a Python with OpenCV
+The test with upstream's script needs the VisionPilot clone (`VISIONPILOT_CLONE`) and a Python with OpenCV
 (`DE4SDV_CV_PYTHON`, default `/usr/bin/python3`). Without them it is skipped.
 
 ## What the local tests cannot show

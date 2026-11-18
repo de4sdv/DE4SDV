@@ -19,7 +19,7 @@ import camera_calibration as cc
 from conftest import run_main
 
 HERE = Path(__file__).resolve().parent
-VP_CLONE = Path(os.environ.get("DE4SDV_VP_CLONE", "/home/mrk/.hermes/cache/scratch/vis8/check/vp"))
+VP_CLONE = Path(os.environ.get("VISIONPILOT_CLONE", Path.home() / "de4sdv-upstream" / "vision_pilot"))
 CV_PYTHON = os.environ.get("DE4SDV_CV_PYTHON", "/usr/bin/python3")
 RIG = {"width": 1920, "height": 1280, "fov": 50.0, "x": 1.544 - 2.45, "y": 0.0243, "z": 2.116,
        "pitch": -0.11, "yaw": -0.23, "roll": -0.10}

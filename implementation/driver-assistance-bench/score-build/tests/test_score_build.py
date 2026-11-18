@@ -12,9 +12,9 @@ checked without it:
 - the pinned GPU runtime covers every CUDA library that the pinned ONNX Runtime CUDA provider needs;
 - C++ files that name fixed-width integer types include <cstdint>.
 
-Upstream is read from a local clone of VisionPilot (VISIONPILOT_CLONE, default the probe clone) with git show at the
-pin; without the clone those tests are skipped. The ONNX Runtime package check runs when the package file is present
-(DA_B2_ORT_NUPKG).
+Upstream is read from a local clone of VisionPilot (VISIONPILOT_CLONE, default ~/de4sdv-upstream/vision_pilot) with
+git show at the pin; without the clone those tests are skipped. The ONNX Runtime package check runs when the package
+file is present (DA_B2_ORT_NUPKG).
 """
 
 from __future__ import annotations
@@ -37,8 +37,9 @@ SCRIPTS = ["build_score_bench.sh", "install_gpu_runtime.sh", "fallback_cmake_bui
 VP_BUILD = BUILD_DIR / "workspace" / "visionpilot.BUILD.bazel"
 PATCHES = BENCH / "score-interface" / "patches"
 PIN = "014e0e7a56ee8e597c2cab8175233f74edd9b856"
-CLONE = Path(os.environ.get("VISIONPILOT_CLONE", "/home/mrk/.hermes/cache/scratch/vis8/check/vp"))
-ORT_NUPKG = Path(os.environ.get("DA_B2_ORT_NUPKG", "/home/mrk/.hermes/cache/scratch/da-b2/ort-gpu-linux-1.26.0.nupkg"))
+CLONE = Path(os.environ.get("VISIONPILOT_CLONE", Path.home() / "de4sdv-upstream" / "vision_pilot"))
+ORT_NUPKG = Path(os.environ.get("DA_B2_ORT_NUPKG",
+                                Path.home() / "de4sdv-upstream" / "nuget" / "ort-gpu-linux-1.26.0.nupkg"))
 
 
 def pins() -> dict[str, str]:
