@@ -87,6 +87,7 @@ SUITES: list[dict[str, object]] = [
         "name": "driver-assistance-bench (INC-DRIVING-002)",
         "tests": [
             "implementation/driver-assistance-bench/interfaces/tests",
+            "implementation/driver-assistance-bench/ivi-warning/tests",
         ],
         "pythonpath": [],
     },
