@@ -17,6 +17,9 @@ line already holds, see
 that builds on another increment's configuration and bench, see
 [HMI display increment](hmi-display-increment.md).
 
+For a framing that carries a driving command across the vehicle network to an
+actuation ECU, see [E/E architecture increment](ee-architecture-increment.md).
+
 The method of an increment is the workflow its charter declares
 ([`DE4SDV_IncrementWorkflow`](../../textual-notation-of-model/packages/methods/de4sdv/de4sdv_increment_workflow.sysml)).
 The tools reach it through native relations from validated identity: the
