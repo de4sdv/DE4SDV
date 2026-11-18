@@ -175,6 +175,52 @@ $PY $WS/da_world_side.py run --map Town04 --setting SC-DRIVING-012@20 --start $S
 Each subcommand exits 0 when it completed. It exits 2 on a bench error, written to `simulator/error.json`. `--dry-run`
 prints the plan without a client.
 
+## The session's entries (`scripts/`)
+
+A bench session (`../session/`) runs these on the simulator host, with the bench folder as the working directory and
+`SIM_PY` set to the CARLA 1.0 venv's Python:
+
+| Script | Entry | What it runs | Exit |
+|---|---|---|---|
+| `warmup.sh <out>` | `ENTRY_SIM_WARMUP` | `survey` with SC-DRIVING-012@60 (the longest need), the first candidate as the session's road in `world_start.json`, then `warmup` with SC-DRIVING-012@20 | 0; 2 a bench error; 3 no road |
+| `calibrate.sh <out>` | `ENTRY_SIM_CALIBRATE` | `calib-decel` (20, 42, 60 km/h; 1 to 5 m/s²), then `camera-capture` with the checkerboard the session took from the pin; both with role `de4sdv_calibration`, before any S-CORE side start | 0; the world side's status |
+| `run_scenario.sh <out> <scenario> <setting>` | `ENTRY_SIM_RUN` | `run` (SC-DRIVING-012) or `calib-steer` (ASM-DRIVING-006), at the session's road, with the handshake below | 0; 2 a bench error; 64 bad arguments |
+
+`camera_calibration.py make-h` needs OpenCV, which the simulator host's venv does not carry, so the session runs it
+on the lead host on the fetched capture. It puts `H.yaml` and `homography_C_matrix.yaml` on the S-CORE host and
+names that folder in `DA_CAMERA_CALIBRATION_DIR` for every S-CORE side start, before the identity record.
+
+The handshake of a run (`--go-file`, `--release-file`):
+
+1. the world spawns the hero, its camera and the target and writes `simulator/ready.json`; it does not tick;
+2. the session starts the S-CORE side and touches `<out>/go`: the first paced tick follows (`--go-wait-s`, 900 s;
+   without the file the run is a bench error and has no tick);
+3. at the run's end (contact, at rest, cap) the world writes the entry checks, the setting record and
+   `simulator/run_end.json`, and keeps ticking (phase `hold`, in `hold.jsonl`, not in `world.jsonl`);
+4. the session stops the S-CORE side, then touches `<out>/release`; the world leaves synchronous mode
+   (`--release-wait-s`, 300 s, ends the hold anyway).
+
+So the Launch Manager stops while the world still ticks (`../launch-manager/README.md`), and the candidate's ready
+timeout (420 s) covers the time from its start to the go file.
+
+## What each run also records
+
+- **`simulator/tick_times.csv`**, `sim_time_s,unix_s`: one row for every tick of the process, the setup and teardown
+  ticks included. `sim_time_s` is the snapshot's `elapsed_seconds` after the tick, `unix_s` this host's real time
+  when the tick returned. It is the chase view's time base: `../recording/compose_side_by_side.py --tick-times`.
+- **In every setting record**, `benchReadings.travelsStraight`: the bench reads "travels straight" as a heading
+  within 2 deg of the target's (lead answer of 2026-11-18; the model gives no number yet).
+- **`runFlags`** in the setting record of a run (rewritten at its end): where the functional part starts (time,
+  speed, time to collision) and `tooFast`, true when the speed rose above the tolerance after that start. The
+  literal entry check stays as it is; the evaluators decide what the flag means. Leaving the band downward after
+  the start is the braking and is only reported (`firstBelowToleranceS`).
+- **`hero.wheelbase`**: the hero's wheelbase against `vision_pilot.conf`'s `L = 2.860` (`:21` at the pin, which
+  stays upstream's), `flagged` when they differ by more than 2 %. CARLA 1.0's `WheelPhysicsControl` has no wheel
+  position (`PythonAPI/carla/src/Control.cpp:439-462` at `14ac3b1a50`), so the physics control is recorded and the
+  wheel positions come from the wheel bones (`get_bone_names`, `get_bone_world_transforms`, `Actor.cpp:123,126`
+  there). No position gives `unmeasured`, never a pass. Upstream's comment calls `L` "Front axle to CoG" and the
+  wheelbase "L = Lf + Lr"; the lead reads `L` as the wheelbase.
+
 ## Requirements, code and tests
 
 | What | Where | Tests (`tests/`) |
@@ -182,6 +228,7 @@ prints the plan without a client.
 | The fake CARLA 1.0 (brief B0) | `tests/fake_carla/carla/` | `test_world_side_fake_carla.py` |
 | Settings and entry checks | `scenarios.py` | `test_world_side_scenarios.py`, `test_world_side_run.py` |
 | Spawn, rig, target, records, pacing, teardown, no control | `da_world_side.py` | `test_world_side_run.py` |
+| Session entries, handshake, tick times, setting-record flags, wheelbase | `scripts/`, `da_world_side.py` | `test_world_side_scripts.py` |
 | ASM-DRIVING-005/006 | `calibration.py`, `calib-decel`, `calib-steer` | `test_world_side_calibrations.py` |
 | Camera calibration file | `camera_calibration.py`, `camera-capture` | `test_world_side_camera_calibration.py` |
 
@@ -212,5 +259,6 @@ The first closed loop must show the following on CARLA 1.0:
 - The model has no number for "travels straight". This bench proposes a heading within 2 deg of the target's.
 - The model names `H.yaml` as the calibration the candidate reads. The candidate also reads
   `homography_C_matrix.yaml`, which upstream derives from `H.yaml`, so the identity record should hash both.
-- The CARLA vehicle's front axle to center-of-gravity distance (`vision_pilot.conf:21`, `L = 2.860`) is upstream's
-  value for its own vehicle. Whether the bench sets it for `vehicle.lincoln.mkz` is open.
+- `L = 2.860` (`vision_pilot.conf:21`) stays upstream's value (lead answer of 2026-11-18); each run records the
+  hero's wheelbase against it (above). Whether the wheel bones of `vehicle.lincoln.mkz` carry the word "wheel" in
+  CARLA 1.0 is unverified.

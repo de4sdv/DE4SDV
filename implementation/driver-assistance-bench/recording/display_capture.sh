@@ -17,7 +17,8 @@
 #   audio_flinger_<when>.txt  dumpsys media.audio_flinger at the start and the end: the sound route (brief R8)
 #   logcat.txt              the guest's log of the window, epoch time stamps (the app's receipt, frame and sound
 #                           records, and any player start)
-#   app_record_<name>       the app's own timestamp record, if APP_RECORD_PATHS names files that exist
+#   app_record_<name>       the app's own timestamp record, if APP_RECORD_PATHS names files that exist (@user@ in a
+#                           path is replaced by the IVI's current user)
 #   capture.json            the list of the files with their sha256, the display ids, and how the capture ended
 #
 # The sound is not recorded as audio: no capture route from the Cuttlefish guest's audio to the host is known yet
@@ -97,7 +98,11 @@ done
 stills end
 a shell dumpsys media.audio_flinger > "$OUT/audio_flinger_end.txt" 2>&1
 a logcat -d -v epoch -T "$LOGCAT_FROM" > "$OUT/logcat.txt" 2>&1 || a logcat -d -v epoch > "$OUT/logcat.txt" 2>&1
+# @user@ in a path: the IVI's current user (an AAOS IVI may run its apps as a secondary user; the app's files are
+# under /data/user/<user>/<package>/), as ivi-warning-app/scripts/stage_ivi_warning_app.sh pull reads it
+GUSER=$(a shell am get-current-user 2>/dev/null | tr -d '\r'); case "$GUSER" in ''|*[!0-9]*) GUSER=0 ;; esac
 for p in ${APP_RECORD_PATHS:-}; do
+  p=${p//@user@/$GUSER}
   a pull "$p" "$OUT/app_record_$(basename "$p")" > /dev/null 2>&1 || echo "app record $p: not on the guest" >> "$OUT/app_record_missing.txt"
 done
 bash "$CLOCK" measure "$OUT" capture_end > /dev/null || echo "WARNING: no clock measurement at the end"

@@ -204,3 +204,29 @@ def evaluate_entry(ticks: list[dict], st: Setting) -> dict:
     }
     out["judgedRun"] = bool(out["functionalPart"]["met"] and out["straightBefore"]["met"])
     return out
+
+
+def tolerance_after_start(ticks: list[dict], st: Setting, entry: dict) -> dict:
+    """The flag of lead answer B7.2 (2026-11-18): where the functional part starts, and whether the vehicle went
+    above the tolerance after that start (a run too fast for its setting). BENCH READING: only leaving the band
+    upward is flagged; leaving it downward after the start is the braking the run is about, and is reported."""
+    fp = entry.get("functionalPart") or {}
+    out: dict = {"rule": "the speed above the tolerance after the functional part started",
+                 "toleranceKmh": [st.low_kmh, st.high_kmh], "functionalStartS": fp.get("startS"),
+                 "functionalStartFrame": fp.get("startFrame"), "functionalStartSpeedKmh": fp.get("startSpeedKmh"),
+                 "functionalStartTtcS": fp.get("startTtcS"), "tooFast": None}
+    if not fp.get("met"):
+        out["note"] = "no functional part: nothing to flag"
+        return out
+    rows = [_tick_values(t) for t in ticks]
+    after = [r for r in rows if r["t"] is not None and r["speed"] is not None
+             and fp["startS"] < r["t"] <= fp["endS"] + 1e-9]
+    above = [r for r in after if r["speed"] * 3.6 > st.high_kmh + 1e-9]
+    below = [r for r in after if r["speed"] * 3.6 < st.low_kmh - 1e-9]
+    out.update({
+        "tooFast": bool(above),
+        "firstAboveToleranceS": above[0]["t"] if above else None,
+        "maxSpeedKmhAfterStart": round(max(r["speed"] for r in after) * 3.6, 3) if after else None,
+        "firstBelowToleranceS": below[0]["t"] if below else None,
+    })
+    return out

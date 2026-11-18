@@ -15,8 +15,17 @@ order, and stops everything it started on every exit.
 | Kind | Hosts, in start order | Steps after the starts |
 |---|---|---|
 | `p10-1` | S-CORE host | the S-CORE build check (`ENTRY_SCORE_P10_1`) |
-| `p10-3` | S-CORE host, guest host | guests up, VXLAN both ends, S-CORE side up, IVI clock set, display capture on, injected warning requests, capture off, S-CORE side down |
-| `p10-2` | simulator host, S-CORE host, guest host | CARLA server, CARLA reachable from the S-CORE host, guests up, VXLAN, S-CORE side up (VisionPilot connects to CARLA), warm-up with the chase recorder, optional calibration runs, IVI clock set, display capture on, chase recorder on, the scenario run, capture off, S-CORE side down |
+| `p10-3` | S-CORE host, guest host | guests created fresh, the app and its ACLs installed and verified, VXLAN both ends, S-CORE side up (someipd offers 0x4df1 at 192.168.98.1:30511), the SD multicast route, the broker's unit registration, the app restarted, IVI clock set, display capture on, injected warning requests, capture off, S-CORE side down |
+| `p10-2` | simulator host, S-CORE host, guest host | CARLA server, CARLA reachable from the S-CORE host, the guests as in `p10-3`, warm-up with the chase recorder (no candidate), ASM-DRIVING-005 and the camera capture (no candidate), the calibration file made on the lead host and put on the S-CORE host, then the ASM-DRIVING-006 run and two runs of SC-DRIVING-012 at 20 km/h, each with its own S-CORE side start and stop, recorder and display window (below) |
+
+Each run of `p10-2` (`world_run` in the script): the chase recorder (runs only), the world side spawns and writes
+`ready.json`, the S-CORE side starts with the calibration file, the offer checks and the window open (runs only: the
+unit, `am start -S`, the IVI clock, the capture), the go file, `run_end.json`, the S-CORE side stops while the world
+still ticks, the release file, the world side and the recorder end, the capture ends. The session log's last
+`SEQUENCE` line lists every step in order; `tests/test_session_dryrun.py` pins it for each kind.
+
+The order of `p10-3` is the one the guest host's operator gave on 2026-11-18 (`guest-prep-20261118`): the VXLAN up,
+the offer, the multicast route, then the broker's unit registration, then the IVI clock just before the window.
 
 Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
 
@@ -26,12 +35,25 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
 - One GPU per project: the session refuses to start when another GPU VM runs in a project it starts a GPU VM in.
 - A VM found running before the session is not adopted: the session refuses.
 - The guest host starts only with `--owner-ok-guest-host`.
-- Every VM is registered for the stop before its start call. The EXIT trap stops the GPU hosts, then stops the guests
-  with `cvd stop` (the guest build recipe's `smoke_boot.sh --stop-only`), then their host, and waits for
-  `TERMINATED`. It lists the VMs of both projects at the end. Nothing is created or deleted.
+- Every VM is registered for the stop before its start call. The EXIT trap stops the GPU hosts, then the guests
+  (`GUEST_STOP_CMD`: `remote/guest_stop.sh`, `cvd stop` of every group; not the kit's `smoke_boot.sh`, whose image
+  records are stale since 2026-11-17), then checks itself that no `crosvm` is left, retries once, and only then stops
+  their host. Guests that do not stop keep their host running: the session says `GUEST HOST LEFT RUNNING` and exits
+  11. It waits for `TERMINATED` and lists the VMs of both projects at the end. Nothing is created or deleted.
 - A watchdog writes `cost.log` every 30 s (an upper bound: from each start call, at the hourly prices in
-  `hosts.env`) and ends the session at the cap. Each VM also gets `shutdown -h` at the cap plus 10 min, should the
-  lead host lose the session.
+  `hosts.env`) and ends the session at the cap. Each VM also gets a power-off at the cap plus 10 min, should the
+  lead host lose the session (`remote/safety_net.sh`): `shutdown -h` on the GPU hosts; on the guest host a timer
+  that runs `GUEST_STOP_CMD` first and powers off only when no `crosvm` is left (lead answer B13.3).
+- Every internal IP comes from gcloud at run time (`networkInterfaces[0].networkIP`) and goes into `session.json`;
+  none is configured. Owner decision D5 of 2026-11-18 put the simulator host on `carla-net` (10.10.0.2 today), with
+  SSH only from Google's IAP range: `SIM_SSH_IAP=1` (the default in `hosts.env`) sends every ssh and scp to that host
+  with `--tunnel-through-iap`; `SIM_SSH_IAP=0` is the direct path. The S-CORE host's move to its reserved
+  10.164.0.20 needs no change here. The CARLA port check from the S-CORE host stays in every `p10-2`.
+- SELinux: the guests run as they boot (Enforcing), and `getenforce` of both guests is recorded at the bring-up and
+  at every window (`app_restart_<window>.txt`). The owner allowed a permissive fallback on 2026-11-18: a `p10-3`
+  session runs Enforcing first; only if the Gateway lookup fails (the prepare step's `verify` reports no
+  `initComms`) does the lead run the session again with `--permissive-ivi`. That sets the IVI guest permissive
+  (never the SDV Core guest), and `session.json` marks every result of the session `conditional_on_permissive_ivi`.
 - Before any VM starts, the session builds the kit (the bench folder at `HEAD`, or as on disk with
   `--kit-from-worktree`), and checks that every entry point the kind needs is in it and executable. Each host's
   upload is checked by its sha256.
@@ -40,7 +62,8 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   and status. A fetched folder whose `session_id` is not this session's fails the session.
 
 Exit codes: 0 done; 2 refused before any start; 3 no capacity or preempted; 4 SSH or upload failed; 5 a step failed;
-6 start refused; 9 dry run refused; 10 cost cap; 11 a stop not confirmed; 129/130/143 signals.
+6 start refused; 9 dry run refused; 10 cost cap; 11 a stop not confirmed or the guest host left running with its
+guests; 129/130/143 signals.
 
 ## Command lines for the lead
 
@@ -52,10 +75,13 @@ cd <integrated worktree>
 S=implementation/driver-assistance-bench/session
 mkdir -p ~/.hermes/cache/scratch/b13-dry && export FAKE_DIR=~/.hermes/cache/scratch/b13-dry DA_GCLOUD=$PWD/$S/tests/fake_gcloud.py
 bash $S/da_session.sh --kind p10-1 --dry-run --evidence-root ~/.hermes/cache/scratch/b13-dry/ev   # checks the kit
+# p10-2 also needs, before any start: VP_CLONE (a VisionPilot clone holding the pin) and CV_PY with OpenCV
 unset FAKE_DIR DA_GCLOUD
 
 bash $S/da_session.sh --kind p10-1 2>&1 | tee -a ~/p10-1.out                          # the S-CORE build check, 2026-11-19
-bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host 2>&1 | tee -a ~/p10-3.out    # the warning on the guests, with the owner's OK
+bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host 2>&1 | tee -a ~/p10-3.out    # the warning on the guests, Enforcing
+# only if that session's guest_prepare reports no initComms (the Gateway lookup): again, marked conditional
+bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --permissive-ivi 2>&1 | tee -a ~/p10-3.out
 bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host 2>&1 | tee -a ~/p10-2.out    # the first closed loop, 2026-11-20
 ```
 
@@ -84,32 +110,45 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | Variable | Host | Arguments | Owner | Contract |
 |---|---|---|---|---|
 | `ENTRY_SCORE_P10_1` | S-CORE | `<out>` | S-CORE build lane | the build check, the clip replay, the late subscriber; its verdicts in `<out>` |
-| `ENTRY_SCORE_START` | S-CORE | `<out> <carla_host or none>` | Launch Manager lane | starts the Launch Manager with its processes (identity recorder first); returns 0 when they run |
+| `ENTRY_SCORE_START` | S-CORE | `<out> <carla_host or none>`; env `DA_CAMERA_CALIBRATION_DIR` (`p10-2`) | Launch Manager lane | starts the Launch Manager with its processes (identity recorder first); copies `H.yaml` and `homography_C_matrix.yaml` from `DA_CAMERA_CALIBRATION_DIR` into the candidate's working directory before the identity record; returns 0 when they run, without waiting for a camera image (the world holds its first tick until the session's go file); called once per run, each with its own `<out>`; someipd offers 0x4df1 |
 | `ENTRY_SCORE_INJECT` | S-CORE | `<out>` | warning-app lane | `p10-3`: publishes test warning requests on the candidate's mw::com event; returns when done |
-| `ENTRY_SCORE_STOP` | S-CORE | `<out>` | Launch Manager lane | ends the processes (SIGTERM, so the candidate's `.rrd` and the visualization file are finished) and collects their files |
+| `ENTRY_SCORE_STOP` | S-CORE | `<out>` (the start's) | Launch Manager lane | ends the processes (SIGTERM, so the candidate's `.rrd` and the visualization file are finished) and collects their files; the world still ticks meanwhile |
 | `ENTRY_SIM_SETUP` | simulator | `<out>` | this lane: `remote/sim_setup.sh` | CARLA server up on port 2000, NVENC test, free disk |
-| `ENTRY_SIM_WARMUP` | simulator | `<out>` | world-side lane | the warm-up pass with every camera; it spawns a hero with role `hero` |
-| `ENTRY_SIM_CALIBRATE` | simulator | `<out>` | calibration lane (optional) | the ASM-DRIVING-005/006 runs |
-| `ENTRY_SIM_RUN` | simulator | `<out> <scenario> <setting>` | world-side lane | one run (default `SC-DRIVING-012 20kmh`), its world record in `<out>`; leaves synchronous mode at the end |
+| `ENTRY_SIM_WARMUP` | simulator | `<out>` | `../world-side/scripts/warmup.sh` | the survey, the session's road in `world_start.json`, the warm-up pass with every camera (hero role `hero`, moved by pose) |
+| `ENTRY_SIM_CALIBRATE` | simulator | `<out>` | `../world-side/scripts/calibrate.sh` | ASM-DRIVING-005 and the camera capture, role `de4sdv_calibration`, no candidate; required for `p10-2` |
+| `ENTRY_SIM_RUN` | simulator | `<out> <scenario> <setting>` | `../world-side/scripts/run_scenario.sh` | one run (`SC-DRIVING-012 20kmh`, or `ASM-DRIVING-006 20kmh`), detached, with the go/release handshake (`../world-side/README.md`); its records in `<out>/simulator/` |
 | `ENTRY_SIM_RECORD` | simulator | `--out <dir>` | this lane: `../recording/chase_recorder.py` | started before the warm-up and before the run, ends on its own |
-| `ENTRY_GUEST_UP` | guest | `<out>` | this lane: `remote/guest_up.sh` | both guests booted, `setenforce 0`, identity and APK sha256 recorded |
-| `ENTRY_GUEST_PREPARE` | guest | `<out>` | guest build lane (optional) | install the app, push ACLs |
+| `ENTRY_GUEST_UP` | guest | `<out>` | this lane: `remote/guest_up.sh` | both guests created fresh (`launch_two_vms.sh down`, `up`) and booted; `getenforce` recorded, `setenforce 0` on the IVI only with `IVI_PERMISSIVE=1` |
+| `ENTRY_GUEST_PREPARE` | guest | `<out>` | this lane: `remote/guest_prepare.sh` | the guest build script's `install` (ACLs, APK, IVI reboot) and `verify`, unchanged; required, since fresh guests start empty |
+| `ENTRY_GUEST_APP_RESTART` | guest | `<out> <window>` | this lane: `remote/app_restart.sh` | `am start -S -W -n $APP_COMPONENT`, the APK's sha256 and both guests' `getenforce`, before each window |
+| `ENTRY_GUEST_OFFER_CHECK` | guest | `route\|unit <out>` | this lane: `remote/offer_check.sh` | the SD multicast route to `cvd-ebr`; the broker's registration of the unit (a guessed log pattern, see the script) |
 | `ENTRY_GUEST_CLOCK` | guest | `set <out>` | this lane: `remote/ivi_clock.sh` | IVI clock set from the guest host's, offset and bound recorded |
 | `ENTRY_GUEST_CAPTURE` | guest | `start\|stop <out>` | this lane: `../recording/display_capture.sh` | the display capture |
 | `ENTRY_VXLAN` | guest, S-CORE | `guest-host\|host-half add <peer ip>` | this lane: `remote/cross_vm_guest_bridge.sh` | the VXLAN segment, the S-CORE host at 192.168.98.1 (INC-DRIVING-001's script, unchanged) |
 
-`GUEST_STOP_CMD` (default `bash $HOME/aaos-build/recipe/smoke_boot.sh --stop-only`) must print
-`crosvm_processes_after_stop: 0`; otherwise the session warns and still stops the host.
+`GUEST_STOP_CMD` (default `remote/guest_stop.sh` in the kit) stops the guests; the session then counts `crosvm` on the
+guest host itself and never stops the host while one is left.
+
+The app's values come from the app (`APP_PACKAGE`, `APP_COMPONENT`: `../ivi-warning-app/app/AndroidManifest.xml`;
+`APP_RECORD_PATHS`: `WarningRecord.java`'s `files/warning.jsonl` under `/data/user/@user@/<package>/`, the IVI's
+current user read at the capture). The session passes them to the guest entries; a test checks them against the
+manifest and the code.
 
 ## Tests
 
 `tests/test_session_dryrun.py` runs the real script with `--dry-run` against `tests/fake_gcloud.py`, a stateful fake
-that logs every call: the start order of each kind, the 30 s check and a reclaimed G4, capacity rounds, a quota
-error, a failed step, the cost cap, SIGTERM, the guests stopped before their host, the refusals (no owner OK, a
-running VM, another GPU VM, a missing or non-executable entry, an existing session folder, a real gcloud in a dry
-run, dry-run knobs in a real session), a foreign fetch, and that the dry run prints every call. The stubs in
-`tests/stubs/` stand for the other lanes' entries; they never run.
+that logs every call: the full step sequence of each kind, the start order and the 30 s check and a reclaimed G4,
+capacity rounds, a quota error, a failed step, the cost cap, SIGTERM, the guests stopped before their host and a
+host kept running when they do not stop, the guest host's safety net, IAP on and off, IPs read from gcloud, the
+calibration file on the S-CORE host before every start, the refusals (no owner OK, a running VM, another GPU VM, a
+missing or non-executable entry, no calibrate or prepare entry, the pin missing from `VP_CLONE`, an existing session
+folder, a real gcloud in a dry run, dry-run knobs in a real session), a foreign fetch, and that the dry run prints
+every call. `tests/test_remote_scripts.py` runs the guest-host scripts and the safety net against fake `cvd`,
+`adb`, `pgrep`, `sudo` and `ip`. The stubs in `tests/stubs/` stand for the S-CORE side's entries (another lane's)
+and for `make-h` in dry runs; they never run on a host.
 
-What the dry runs cannot show, and the sessions must: the real SSH and scp paths and their times, the gcloud output
-formats the fake imitates, the VXLAN between the S-CORE host and the guest host, the CARLA port from the S-CORE host
-to the simulator host in the other project (brief R5, owner decision D5), whether `launch_two_vms.sh up` resumes stopped guests, and the real costs.
+What the dry runs cannot show, and the sessions must: the real SSH and scp paths (IAP included) and their times, the
+gcloud output formats the fake imitates, the VXLAN between the S-CORE host and the guest host, the CARLA port from
+the S-CORE host to the simulator host on `carla-net` (brief R5, D5), the broker's log line for the unit's
+registration, that the S-CORE side's start returns before the first image, the systemd timer of the guest host's
+safety net, and the real costs.

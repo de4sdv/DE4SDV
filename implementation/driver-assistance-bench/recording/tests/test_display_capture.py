@@ -58,8 +58,11 @@ def test_capture_brackets_each_recording_with_the_guest_clock(tmp_path: Path, en
     for s in segs:
         assert s["host_before_s"] <= s["host_after_s"]
         assert s["guest_before_s"] <= s["guest_after_s"] <= s["guest_end_s"]
-        # the fake guest clock runs 0.25 s ahead: the bracket's reads are guest-clock values
-        assert 0.2 < s["guest_before_s"] - s["host_before_s"] < 0.3
+        # the fake guest clock runs 0.25 s (FAKE_GUEST_OFFSET) ahead of this host's. Both guest reads happen inside
+        # the host's bracket, so on this host's clock they lie between host_before_s and host_after_s; the bound is
+        # the bracket's own round trip, which a loaded host widens, never a fixed window (1 ms: print rounding)
+        assert s["host_before_s"] - 1e-3 <= s["guest_before_s"] - 0.25 <= s["guest_after_s"] - 0.25 \
+            <= s["host_after_s"] + 1e-3
     adb = calls(Path(env["FAKE_ADB_DIR"]))
     rec = [c for c in adb if any("screenrecord" in a for a in c)]
     assert len(rec) == len(segs)
@@ -117,3 +120,18 @@ def test_clock_set_brings_the_guest_clock_to_this_host(tmp_path: Path, env: dict
     assert abs(last["offset_s"]) <= last["bound_s"] + 0.03
     sets = [c for c in calls(Path(env["FAKE_ADB_DIR"])) if any("toybox date -s @" in a for a in c)]
     assert 1 <= len(sets) <= 2
+
+
+def test_the_app_record_is_pulled_from_the_current_users_files(tmp_path: Path, env: dict[str, str]) -> None:
+    record = tmp_path / "warning.jsonl"
+    record.write_text('{"event": "receipt"}\n')
+    out = tmp_path / "cap"
+    env = dict(env, SEGMENT_S="1", FAKE_APP_RECORD=str(record),
+               APP_RECORD_PATHS="/data/user/@user@/org.de4sdv.collisionwarning/files/warning.jsonl")
+    p = subprocess.run(["bash", str(CAPTURE), "start", str(out), "--max-s", "1"], env=env, capture_output=True,
+                       text=True, timeout=60)
+    assert p.returncode == 0, p.stdout + p.stderr
+    assert (out / "app_record_warning.jsonl").read_text() == record.read_text()
+    pulls = [c for c in calls(Path(env["FAKE_ADB_DIR"])) if "pull" in c and any("warning.jsonl" in a for a in c)]
+    assert pulls and pulls[0][pulls[0].index("pull") + 1] == \
+        "/data/user/10/org.de4sdv.collisionwarning/files/warning.jsonl"

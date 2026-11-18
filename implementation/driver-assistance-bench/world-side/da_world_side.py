@@ -15,6 +15,14 @@ Subcommands (all print one JSON line per event to stdout and write their files u
   calib-decel   the ASM-DRIVING-005 run: the world side commands the adapter's Ackermann rule itself
   camera-capture  the camera-calibration frame: upstream's checkerboards laid on the road, one front image
 
+Every tick this process makes is also a row of ``simulator/tick_times.csv`` (``sim_time_s,unix_s``: the snapshot's
+elapsed seconds after the tick and this host's real time when the tick returned), the chase view's time base for
+``recording/compose_side_by_side.py --tick-times``. ``run`` and ``calib-steer`` take an optional handshake with the
+session (``--go-file``, ``--release-file``): the world spawns, writes ``ready.json`` and holds its first tick until
+the go file appears (the S-CORE side starts meanwhile); after the run's end it writes ``run_end.json`` and keeps
+ticking until the release file appears, so the session can stop the S-CORE side before the world stops ticking
+(launch-manager/README.md, "What the session must do").
+
 Needs Python 3.10 with the ``carla`` module of the CARLA 1.0 package (14ac3b1a50) on the simulator host. It
 imports ``carla`` only when it connects, so ``--dry-run`` runs anywhere.
 """
@@ -67,6 +75,13 @@ STRAIGHT_STEP_M = 5.0
 STRAIGHT_YAW_MAX_DEG = 0.5      # survey: heading change over the stretch
 STRAIGHT_LATERAL_MAX_M = 0.3    # survey: distance of each waypoint from the start's line
 MIN_SAME_DIRECTION_LANES = 2    # survey: a highway-type road, proxy: two driving lanes in one direction
+# Lead answer B7.4 of 2026-11-18: upstream's L stays; the run records the hero's wheelbase against it and flags a
+# difference of more than 2 %. vision_pilot.conf:21 at the pin reads "L = 2.860  # Front axle to CoG (m).
+# Wheelbase L = Lf + Lr"; the lead reads it as the wheelbase.
+VISION_PILOT_L_M = 2.860
+WHEELBASE_FLAG_PCT = 2.0
+WHEELBASE_PLAUSIBLE_M = (1.5, 5.0)
+GO_POLL_S = 0.5                 # handshake: how often the world side looks for the go and release files
 
 
 class BenchError(Exception):
@@ -161,8 +176,10 @@ class WorldSide:
 
     def __init__(self, args: argparse.Namespace, *, client_factory: Callable[[str, int], Any] | None = None,
                  clock: Callable[[], float] = time.monotonic, sleep: Callable[[float], None] = time.sleep,
-                 stop_requested: threading.Event | None = None, out: Callable[[str], None] = print):
+                 stop_requested: threading.Event | None = None, out: Callable[[str], None] = print,
+                 wall: Callable[[], float] = time.time):
         self.args = args
+        self.wall = wall
         self.client_factory = client_factory
         self.clock, self.sleep = clock, sleep
         self.stop_requested = stop_requested or threading.Event()
@@ -191,6 +208,9 @@ class WorldSide:
         self.ticks_written = 0
         self.first_elapsed: float | None = None
         self._torn_down = False
+        self.tick_times_path = self.sim_dir / "tick_times.csv"
+        self._tick_times = None
+        self.world_ticks = 0
 
     # ------------------------------------------------------------- logging
     def event(self, name: str, **data) -> None:
@@ -431,11 +451,27 @@ class WorldSide:
         return mine
 
     # --------------------------------------------------------------- ticks
+    def tick(self) -> int:
+        """One world tick, and its row in tick_times.csv: the snapshot's elapsed seconds after the tick and this
+        host's real time when the tick returned. Every tick of this process goes through here, the unpaced setup
+        and teardown ticks included, so that every chase frame finds its tick."""
+        frame = int(self.world.tick())
+        unix_s = self.wall()
+        sim_s = float(self.world.get_snapshot().timestamp.elapsed_seconds)
+        if self._tick_times is None:
+            self._tick_times = self.tick_times_path.open("a", encoding="utf-8")
+            if self._tick_times.tell() == 0:
+                self._tick_times.write("sim_time_s,unix_s\n")
+        self._tick_times.write(f"{sim_s:.6f},{unix_s:.6f}\n")
+        self._tick_times.flush()
+        self.world_ticks += 1
+        return frame
+
     def settle(self, ticks: int = SETTLE_TICKS) -> None:
         """Unpaced setup ticks: CARLA realizes a new actor only at the next tick, and the hero drops onto its
         suspension. Not part of any run; no world record."""
         for _ in range(ticks):
-            self.world.tick()
+            self.tick()
         self.event("settled", ticks=ticks, frame=self.world.get_snapshot().frame)
 
     def paced_tick(self) -> tuple[int, float, float]:
@@ -443,7 +479,7 @@ class WorldSide:
         if self.tick_starts and start - self.tick_starts[-1] > STALL_S:
             self.stalls.append({"afterFrame": self._last_frame, "gapS": round(start - self.tick_starts[-1], 4)})
         self.tick_starts.append(start)
-        frame = int(self.world.tick())
+        frame = self.tick()
         self._last_frame = frame
         end = self.clock()
         self.pacer.finish_turn(end)
@@ -539,12 +575,15 @@ class WorldSide:
         # Destroying in synchronous mode takes effect at the next tick: one tick before leaving it.
         try:
             if self.original_settings is not None:
-                self.world.tick()
+                self.tick()
         except Exception:  # noqa: BLE001
             pass
         self.restore_settings()
         if self.world_log is not None:
             self.world_log.close()
+        if self._tick_times is not None:
+            self._tick_times.close()
+            self._tick_times = None
         self.side_log.close()
 
     def pacing_summary(self) -> dict:
@@ -589,6 +628,71 @@ def _scenario_setup(ws: WorldSide, *, lateral_m: float, with_target: bool, role:
     return st, start, ahead
 
 
+def _vec(v) -> dict | None:
+    if v is None:
+        return None
+    return {k: num(getattr(v, k, None)) for k in ("x", "y", "z")}
+
+
+def hero_wheelbase(hero) -> dict:
+    """The hero's wheelbase against vision_pilot.conf's L (lead answer B7.4): flagged when they differ by more
+    than 2 %. Read from the physics control; CARLA 1.0's WheelPhysicsControl carries no wheel position
+    (PythonAPI/carla/src/Control.cpp:439-462 at 14ac3b1a50: axle_type, offset, radius, ...), so the wheel
+    positions then come from the vehicle's wheel bones (Actor.cpp:123,126 there: get_bone_names,
+    get_bone_world_transforms). The method used is part of the record; no wheelbase is never a pass."""
+    rec: dict = {"visionPilotLM": VISION_PILOT_L_M, "flagAbovePct": WHEELBASE_FLAG_PCT,
+                 "visionPilotLComment": "vision_pilot.conf:21: Front axle to CoG (m). Wheelbase L = Lf + Lr",
+                 "wheelbaseM": None, "method": None, "deviationPct": None, "flagged": None}
+    t = hero.get_transform()
+    yaw = math.radians(t.rotation.yaw)
+    fwd = (math.cos(yaw), math.sin(yaw))
+
+    def along(x: float, y: float) -> float:
+        return (x - t.location.x) * fwd[0] + (y - t.location.y) * fwd[1]
+
+    longitudinal: list[float] = []
+    try:
+        pc = hero.get_physics_control()
+        wheels = list(getattr(pc, "wheels", []) or [])
+        rec["physicsControl"] = {
+            "mass": num(getattr(pc, "mass", None)), "centerOfMass": _vec(getattr(pc, "center_of_mass", None)),
+            "wheels": [{"axleType": str(getattr(w, "axle_type", None)), "offset": _vec(getattr(w, "offset", None)),
+                        "radius": num(getattr(w, "wheel_radius", None)),
+                        "maxSteerAngleDeg": num(getattr(w, "max_steer_angle", None)),
+                        "position": _vec(getattr(w, "position", None))} for w in wheels]}
+        if wheels and all(getattr(w, "position", None) is not None for w in wheels):
+            # CARLA 0.9's WheelPhysicsControl.position: world position in centimeters
+            longitudinal = [along(w.position.x / 100.0, w.position.y / 100.0) for w in wheels]
+            rec["method"] = "physics control: wheel positions (cm, world)"
+    except Exception as exc:  # noqa: BLE001
+        rec["physicsControlError"] = str(exc)
+    if not longitudinal:
+        try:
+            names = list(hero.get_bone_names())
+            transforms = list(hero.get_bone_world_transforms())
+            bones = [(n, tr) for n, tr in zip(names, transforms) if "wheel" in str(n).lower()]
+            rec["wheelBones"] = [n for n, _ in bones]
+            longitudinal = [along(tr.location.x, tr.location.y) for _, tr in bones]
+            rec["method"] = "wheel bones' world transforms (the physics control has no wheel position)"
+        except Exception as exc:  # noqa: BLE001
+            rec["bonesError"] = str(exc)
+    if len(longitudinal) >= 2:
+        mean = sum(longitudinal) / len(longitudinal)
+        front = [x for x in longitudinal if x > mean]
+        rear = [x for x in longitudinal if x < mean]
+        if front and rear:
+            wb = sum(front) / len(front) - sum(rear) / len(rear)
+            if WHEELBASE_PLAUSIBLE_M[0] <= wb <= WHEELBASE_PLAUSIBLE_M[1]:
+                rec["wheelbaseM"] = round(wb, 4)
+                rec["deviationPct"] = round(abs(wb - VISION_PILOT_L_M) / VISION_PILOT_L_M * 100.0, 3)
+                rec["flagged"] = rec["deviationPct"] > WHEELBASE_FLAG_PCT
+            else:
+                rec["implausible"] = f"{wb:.4f} m is outside {list(WHEELBASE_PLAUSIBLE_M)} m (units?)"
+    if rec["wheelbaseM"] is None:
+        rec["unmeasured"] = "no wheel positions to compute the wheelbase from"
+    return rec
+
+
 def setting_record(ws: WorldSide, st: scenarios.Setting, kind: str, ahead_m: float | None, lateral_m: float,
                    run_cap_s: float) -> dict:
     hero_bb = ws.hero.bounding_box
@@ -598,8 +702,14 @@ def setting_record(ws: WorldSide, st: scenarios.Setting, kind: str, ahead_m: flo
         "hero": {"actor_id": ws.hero.id, "type_id": ws.hero.type_id, "role": HERO_ROLE, "lateralOffsetM": lateral_m,
                  "boundingBox": {"x": num(hero_bb.location.x), "z": num(hero_bb.location.z),
                                  "extent": [num(hero_bb.extent.x), num(hero_bb.extent.y), num(hero_bb.extent.z)]},
-                 "frontBumperXM": num(hero_bb.location.x + hero_bb.extent.x)},
+                 "frontBumperXM": num(hero_bb.location.x + hero_bb.extent.x),
+                 "wheelbase": hero_wheelbase(ws.hero)},
         "frontCamera": ws.camera_info,
+        # Lead answer B7.1 of 2026-11-18: the bench's reading of "travels straight", stated in every record
+        "benchReadings": {"travelsStraight": f"the heading within {scenarios.STRAIGHT_HEADING_MAX_DEG} deg of the "
+                                             "target's heading",
+                          "straightHeadingMaxDeg": scenarios.STRAIGHT_HEADING_MAX_DEG,
+                          "atRestMps": scenarios.AT_REST_MPS},
         "target": getattr(ws, "target_info", None) if ahead_m is not None else None,
         "runCapS": run_cap_s,
         "controlOfTheHero": "the actuation adapter only; this process applies no control to the hero, no "
@@ -654,19 +764,66 @@ def cmd_run(ws: WorldSide, kind: str = "run") -> dict:
     ready.write_text(json.dumps({"hero_role": HERO_ROLE, "camera_role": CAMERA_ROLE,
                                  "hero_actor_id": ws.hero.id, "camera_actor_id": ws.camera.id}))
     ws.event("ready", path=str(ready))
+    if ws.args.go_file:
+        waited = _wait_for_file(ws, Path(ws.args.go_file), float(ws.args.go_wait_s))
+        if waited is None:
+            raise BenchError(f"no go file {ws.args.go_file} within {ws.args.go_wait_s} s: the run did not start")
+        ws.event("go", path=ws.args.go_file, waitedS=round(waited, 3))
     ticks, reason = _run_loop(ws, cap, kind, end_on_target=with_target)
     summary = {"kind": kind, "setting": st.setting_id, "endReason": reason, "ticks": len(ticks),
                "worldSideControlCallsOnTheHero": ws.control_calls, "pacing": ws.pacing_summary()}
     if with_target:
         summary["entry"] = scenarios.evaluate_entry(ticks, st)
         (ws.sim_dir / "entry_checks.json").write_text(json.dumps(summary["entry"], indent=1))
+        # Lead answer B7.2: the literal check stays; the record flags a hero above the tolerance after the
+        # functional part started, and says where that part starts. The evaluators decide.
+        record["runFlags"] = scenarios.tolerance_after_start(ticks, st, summary["entry"])
+        (ws.sim_dir / "setting_record.json").write_text(json.dumps(record, indent=1))
     else:
         summary["steering"] = calibration.analyse_steering(ticks, lateral)
         (ws.sim_dir / "calibration_steering.json").write_text(json.dumps(
             calibration.steering_record(summary["steering"], record), indent=1))
     (ws.sim_dir / "summary.json").write_text(json.dumps(summary, indent=1))
+    (ws.sim_dir / "run_end.json").write_text(json.dumps({"endReason": reason, "ticks": len(ticks)}))
     ws.event("end", reason=reason, ticks=len(ticks), stalls=len(ws.stalls))
+    if ws.args.release_file:
+        summary["hold"] = _hold_until_release(ws, Path(ws.args.release_file), float(ws.args.release_wait_s))
+        (ws.sim_dir / "summary.json").write_text(json.dumps(summary, indent=1))
     return summary
+
+
+def _wait_for_file(ws: WorldSide, path: Path, wait_s: float) -> float | None:
+    """Waits without ticking (synchronous mode: the world stands still) until ``path`` exists; the waited
+    seconds, or None at the time-out or on a stop request."""
+    t0 = ws.clock()
+    while not path.exists():
+        if ws.stop_requested.is_set() or ws.clock() - t0 >= wait_s:
+            return None
+        ws.sleep(GO_POLL_S)
+    return ws.clock() - t0
+
+
+def _hold_until_release(ws: WorldSide, path: Path, wait_s: float) -> dict:
+    """After the run: paced ticks go on (phase ``hold``, in hold.jsonl, not in the run's world.jsonl) until the
+    session's release file appears, so that the S-CORE side is stopped while the world still ticks."""
+    log = JsonlWriter(ws.sim_dir / "hold.jsonl")
+    ws.pacer.start_phase()
+    t0, n, how = ws.clock(), 0, "release file"
+    try:
+        while not path.exists():
+            if ws.stop_requested.is_set():
+                how = "stop requested"
+                break
+            if ws.clock() - t0 >= wait_s:
+                how = f"no release file within {wait_s} s"
+                break
+            frame, duration, lateness = ws.paced_tick()
+            log.write("tick", ws.tick_record(frame, duration, lateness, "hold"))
+            n += 1
+    finally:
+        log.close()
+    ws.event("released", how=how, holdTicks=n)
+    return {"holdTicks": n, "endedBy": how, "file": str(path)}
 
 
 def cmd_warmup(ws: WorldSide) -> dict:
@@ -718,7 +875,7 @@ def cmd_calib_decel(ws: WorldSide) -> dict:
             passes.append({"approachKmh": v_kmh, "commandedDecelMps2": decel, "samples": samples})
             ws.hero.destroy()
             ws._spawned.remove(ws.hero)
-            ws.world.tick()
+            ws.tick()
     record = calibration.decel_record([calibration.analyse_decel(p) for p in passes], {
         "setting": st.setting_id, "map": ws.map.name, "start": ws.start_info,
         "vehicle": ws.vehicle_blueprint().id, "simulator": ws.versions, "stepS": STEP_S,
@@ -811,7 +968,7 @@ def cmd_camera_capture(ws: WorldSide) -> dict:
     images: list = []
     ws.camera.listen(images.append)
     for _ in range(int(ws.args.capture_ticks)):
-        ws.world.tick()
+        ws.tick()
     ws.camera.stop()
     if not images:
         raise BenchError("the front camera delivered no image")
@@ -869,6 +1026,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--far-m", type=float, default=camcal.DEFAULT_FAR_M)
     p.add_argument("--half-spacing-m", type=float, default=camcal.DEFAULT_HALF_SPACING_M)
     p.add_argument("--capture-ticks", type=int, default=20)
+    p.add_argument("--go-file", default=None,
+                   help="run, calib-steer: after ready.json, hold the first tick until this file exists")
+    p.add_argument("--go-wait-s", type=float, default=900.0)
+    p.add_argument("--release-file", default=None,
+                   help="run, calib-steer: after the run, keep ticking (hold.jsonl) until this file exists")
+    p.add_argument("--release-wait-s", type=float, default=300.0)
     p.add_argument("--dry-run", action="store_true", help="print the plan; no client")
     return p
 
@@ -888,7 +1051,8 @@ COMMANDS = {"survey": cmd_survey, "warmup": cmd_warmup, "run": cmd_run,
 
 
 def main(argv: Iterable[str] | None = None, *, client_factory=None, clock=time.monotonic, sleep=time.sleep,
-         stop_requested: threading.Event | None = None, out: Callable[[str], None] = print) -> int:
+         stop_requested: threading.Event | None = None, out: Callable[[str], None] = print,
+         wall: Callable[[], float] = time.time) -> int:
     args = build_parser().parse_args(list(argv) if argv is not None else None)
     if args.role is None:
         args.role = CALIBRATION_ROLE if args.command in ("calib-decel", "camera-capture") else HERO_ROLE
@@ -904,7 +1068,8 @@ def main(argv: Iterable[str] | None = None, *, client_factory=None, clock=time.m
     if stop_requested is None and threading.current_thread() is threading.main_thread():
         for sig in (signal.SIGINT, signal.SIGTERM):
             signal.signal(sig, lambda *_: stop.set())
-    ws = WorldSide(args, client_factory=client_factory, clock=clock, sleep=sleep, stop_requested=stop, out=out)
+    ws = WorldSide(args, client_factory=client_factory, clock=clock, sleep=sleep, stop_requested=stop, out=out,
+                   wall=wall)
     try:
         COMMANDS[args.command](ws)
         return 0
