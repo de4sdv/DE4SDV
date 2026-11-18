@@ -8,6 +8,9 @@ that the bench implements. Where the model leaves a value open, this document gi
 **proposal**. Proposals are fixed for implementation, but none is model content until the phase 10b pull
 request types it.
 
+[`service_ids.json`](service_ids.json) carries the ids of the tables below in machine-readable form;
+`tests/test_service_ids.py` keeps it equal to them.
+
 ## mw::com events (S-CORE host)
 
 | Mapping | Event | Instance specifier | Service id | Payload | Status |
