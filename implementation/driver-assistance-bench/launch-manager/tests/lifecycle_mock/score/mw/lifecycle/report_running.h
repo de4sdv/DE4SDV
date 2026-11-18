@@ -3,12 +3,12 @@
 // syntax check on the host. The real header comes from //score/launch_manager:lifecycle_cc in the S-CORE Bazel build.
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace score::mw::lifecycle {
 void report_running() noexcept;
 }  // namespace score::mw::lifecycle
 
 extern "C" {
-int8_t score_mw_lifecycle_report_running(void);
+std::int8_t score_mw_lifecycle_report_running(void);  // int8_t in upstream's C declaration
 }

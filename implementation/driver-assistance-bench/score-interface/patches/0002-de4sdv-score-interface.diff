@@ -1069,16 +1069,17 @@ index 00000000..5f7bd27f
 +}  // namespace de4sdv::score_interface
 diff --git a/VisionPilot/modules/de4sdv/score_interface/src/core.cpp b/VisionPilot/modules/de4sdv/score_interface/src/core.cpp
 new file mode 100644
-index 00000000..592ce377
+index 00000000..db3958b7
 --- /dev/null
 +++ b/VisionPilot/modules/de4sdv/score_interface/src/core.cpp
-@@ -0,0 +1,204 @@
+@@ -0,0 +1,205 @@
 +// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot). See core.hpp.
 +#include "de4sdv/score_interface/core.hpp"
 +
 +#include <time.h>
 +
 +#include <cmath>
++#include <cstdint>
 +#include <cstdio>
 +#include <cstdlib>
 +#include <cstring>
