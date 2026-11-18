@@ -91,6 +91,8 @@ export PATH=$ROOT/tools/cmake/bin:$PATH
 # multiarch directory of the host glibc's bits/ headers; in a compile with the S-CORE sysroot they clash with the
 # sysroot's glibc ("'__fpclassify' has not been declared"). GStreamer and GLib need no header from there, so
 # pkg-config treats it as a system directory and leaves it out, for OpenCV's configure and the thirdparty stage.
+# CMake's FindPkgConfig sets PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1, which would bring both directories back (and
+# /usr/include itself): OpenCV's configure gets the wrapper $ROOT/tools/pkg-config-score, which unsets it.
 export PKG_CONFIG_SYSTEM_INCLUDE_PATH=/usr/include:/usr/include/x86_64-linux-gnu
 
 WS=$ROOT/ws                 # the S-CORE workspace (FEO 313b3d84 + the bench's packages)
@@ -331,12 +333,26 @@ if ! is_done opencv; then
   fetch opencv-4.6.0.tar.gz "$OPENCV_URL" "$OPENCV_SHA256"
   rm -rf "$ROOT/src/opencv-4.6.0" "$ROOT/src/opencv-build"
   tar -xzf "$ROOT/dl/opencv-4.6.0.tar.gz" -C "$ROOT/src"
+  cat > "$ROOT/tools/pkg-config-score" <<'EOF'
+#!/bin/sh
+# pkg-config for CMake configures with the S-CORE sysroot (build_score_bench.sh): no host system include directory
+unset PKG_CONFIG_ALLOW_SYSTEM_CFLAGS
+export PKG_CONFIG_SYSTEM_INCLUDE_PATH=/usr/include:/usr/include/x86_64-linux-gnu
+exec /usr/bin/pkg-config "$@"
+EOF
+  chmod 0755 "$ROOT/tools/pkg-config-score"
+  PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 "$ROOT/tools/pkg-config-score" --cflags-only-I gstreamer-app-1.0 gstreamer-video-1.0 \
+    | tr ' ' '\n' > "$ROOT/facts/pkg-config-score-gstreamer.txt"
+  if grep -qxE -- '-I/usr/include(/x86_64-linux-gnu)?' "$ROOT/facts/pkg-config-score-gstreamer.txt"; then
+    die "pkg-config-score still returns a host system include directory"
+  fi
   # Static, with the S-CORE gcc; the image codecs from OpenCV's own sources; videoio with the GStreamer back end
   # (the visualization recorder's nvh264enc pipeline), found through pkg-config on the host (C libraries); highgui
   # without a GUI back end (visualization_on = false on the bench).
   cmake -S "$ROOT/src/opencv-4.6.0" -B "$ROOT/src/opencv-build" -G Ninja -DCMAKE_TOOLCHAIN_FILE="$ROOT/score-gcc.cmake" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$TP/opencv" -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH \
+    -DPKG_CONFIG_EXECUTABLE="$ROOT/tools/pkg-config-score" \
     -DBUILD_LIST=core,imgproc,imgcodecs,videoio,highgui -DBUILD_SHARED_LIBS=OFF \
     -DWITH_GSTREAMER=ON -DWITH_FFMPEG=OFF -DWITH_V4L=OFF -DWITH_1394=OFF -DWITH_GTK=OFF -DWITH_QT=OFF -DWITH_VTK=OFF \
     -DWITH_OPENGL=OFF -DWITH_IPP=OFF -DWITH_ITT=OFF -DWITH_OPENCL=OFF -DWITH_CUDA=OFF -DWITH_EIGEN=OFF -DWITH_LAPACK=OFF \
@@ -349,6 +365,11 @@ if ! is_done opencv; then
   grep -E "^--\s+GStreamer:" "$ROOT/logs/opencv-cmake.log" || true
   grep -qE "^--\s+GStreamer:\s+YES" "$ROOT/logs/opencv-cmake.log" \
     || die "OpenCV found no GStreamer (see $ROOT/logs/opencv-cmake.log); the recorder's nvh264enc path needs it"
+  grep -E "^GSTREAMER_[a-z]+_INCLUDE_DIRS:" "$ROOT/src/opencv-build/CMakeCache.txt" | tr ';=' '\n\n' \
+    > "$ROOT/facts/opencv-gstreamer-include-dirs.txt"
+  if grep -qxE '/usr/include(/x86_64-linux-gnu)?' "$ROOT/facts/opencv-gstreamer-include-dirs.txt"; then
+    die "OpenCV's GStreamer include directories hold a host system directory (CMakeCache.txt)"
+  fi
   ninja -C "$ROOT/src/opencv-build" -j "$JOBS" install > "$ROOT/logs/opencv-build.log" 2>&1 \
     || { grep -m10 -E " error|FAILED" "$ROOT/logs/opencv-build.log"; die "OpenCV build failed"; }
   mark_done opencv
