@@ -41,7 +41,9 @@
 //         is a delay (below); the reference becomes the count either way.
 //    So a delay or a repetition costs that one command; a loss or a
 //    corruption costs the missing command and the next one, which reveals it;
-//    no single fault makes later valid commands fail.
+//    none of them makes later valid commands fail. A corruption that the
+//    check value misses is not one of them: with a higher count it would
+//    become the reference, and later valid commands would be repetitions.
 //  * Delay. The issue time and the newest world time are simulation seconds
 //    on one clock (PSR part def). They are compared in whole milliseconds,
 //    each rounded to the nearest one: the bench's 0.05 s step makes every

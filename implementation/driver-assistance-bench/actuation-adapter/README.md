@@ -56,8 +56,10 @@ The constants match upstream's own simulator path at `014e0e7a`
 (`Simulation/CARLA/ROS2/src/carla_control_publisher/carla_control_publisher/carla_control_publisher_node.py:44-53`).
 
 What the reference count costs: a late command or a repetition costs that one command; a loss or a
-corruption costs the missing command and the next one, which reveals it. No single fault makes later valid
-commands fail. A lost count that arrives late is a repetition.
+corruption costs the missing command and the next one, which reveals it. None of them makes later valid
+commands fail. A corruption that the check value misses is not one of them: with a higher count it would become
+the reference count, and later valid commands would be rejected as repetitions. A lost count that arrives late is a
+repetition.
 
 Readings the model leaves open, flagged for the lead:
 

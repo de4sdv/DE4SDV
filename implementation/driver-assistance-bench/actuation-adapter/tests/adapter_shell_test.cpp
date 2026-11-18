@@ -203,7 +203,7 @@ void TestNothingIsAppliedAfterARejection() {
   CHECK(b.Events("out.ackermann_control").size() == 1);
 }
 
-// No single fault makes later valid commands fail: after a loss the command
+// A loss makes no later valid command fail: after a loss the command
 // that reveals it is dropped and the next one is applied.
 void TestAfterALossTheNextCommandIsApplied() {
   Bench b;
