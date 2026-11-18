@@ -1,0 +1,640 @@
+diff --git a/VisionPilot/CMakeLists.txt b/VisionPilot/CMakeLists.txt
+index 3c64d775..d1cb1fa3 100644
+--- a/VisionPilot/CMakeLists.txt
++++ b/VisionPilot/CMakeLists.txt
+@@ -77,6 +77,9 @@ add_subdirectory(modules/sensing/camera_interface)
+ 
+ add_subdirectory(modules/visualization)
+ 
++# DE4SDV VIS8: visualization recorder (side thread, NVENC) and loop stamps
++add_subdirectory(modules/de4sdv/visualization_recorder)
++
+ # Tests
+ if(BUILD_TESTING)
+     add_subdirectory(tests)
+diff --git a/VisionPilot/app/CMakeLists.txt b/VisionPilot/app/CMakeLists.txt
+index dbabce81..7be62763 100644
+--- a/VisionPilot/app/CMakeLists.txt
++++ b/VisionPilot/app/CMakeLists.txt
+@@ -32,6 +32,7 @@ target_link_libraries(VisionPilot
+     camera_interface
+     image_preprocessing
+     visualization
++    de4sdv_visualization_recorder  # DE4SDV VIS8
+ )
+ 
+ # Suppress unresolved-symbol errors from system shared libs (gdal→curl, ICU from miniforge3)
+diff --git a/VisionPilot/app/vision_pilot.cpp b/VisionPilot/app/vision_pilot.cpp
+index a759fac2..f72d19a6 100644
+--- a/VisionPilot/app/vision_pilot.cpp
++++ b/VisionPilot/app/vision_pilot.cpp
+@@ -16,6 +16,8 @@
+ #include <models/inference.hpp>
+ #include <planning/planning.hpp>
+ #include <visualization/debug_display.hpp>
++#include <de4sdv/visualization_recorder.hpp>  // DE4SDV VIS8: visualization recorder (side thread, NVENC)
++#include <de4sdv/loop_stamps.hpp>       // DE4SDV VIS8: loop timing stamps
+ 
+ #include <camera_interface/v4l2_camera_interface.hpp>
+ #include <camera_interface/file_interface.hpp>
+@@ -112,6 +114,18 @@ int main(int argc, char** argv)
+     cv::Mat frame, warped, resized;
+     bool h_resized_set = false;
+     cv::Mat H = load_matrix("H.yaml", "H");
++
++    // DE4SDV VIS8: visualization recorder, on when DE4SDV_VISUALIZATION_RECORD is set (same binary either way). It
++    // draws upstream's visualization on its own thread, so it refuses to run beside upstream's in-loop drawing.
++    std::unique_ptr<de4sdv::VisualizationRecorder> visualization_recorder = de4sdv::VisualizationRecorder::from_env(net_size);
++    if (visualization_recorder && cfg.visualization_on)
++    {
++        VP_WARN("[DE4SDV] visualization recorder disabled: visualization_on = true draws in the loop thread");
++        visualization_recorder->stop();
++        visualization_recorder.reset();
++    }
++    de4sdv::LoopStamps loop_stamps;  // DE4SDV VIS8: preallocated, filled every pass, written at exit
++
+     while (true)
+     {
+         frame = camera_interface->get_latest_frame();
+@@ -121,6 +135,9 @@ int main(int argc, char** argv)
+             std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             continue;
+         }
++        const int64_t t_arrive = de4sdv::now_ns();  // DE4SDV VIS8
++        int64_t t_write = 0, t_handoff = 0;          // DE4SDV VIS8
++        uint64_t stamp_frame_id = 0;                 // DE4SDV VIS8
+ 
+         preprocessor.preprocess(frame, warped, resized, net_size);
+         cv::Size frame_size = frame.size();
+@@ -172,6 +189,13 @@ int main(int argc, char** argv)
+                 r->cipo.velocity_ms);
+ 
+             vehicle_interface->write(plan.steering.empty() ? 0.0 : plan.steering[1], plan.acceleration);
++            t_write = de4sdv::now_ns();  // DE4SDV VIS8
++
++            // DE4SDV VIS8: the one hand-off (copies, swaps into a single-slot mailbox, returns).
++            if (visualization_recorder)
++                visualization_recorder->submit(resized, *r, plan, ego_v, pipeline.H_resized(), cfg.speed_limit, t_arrive);
++            t_handoff = de4sdv::now_ns();  // DE4SDV VIS8
++            stamp_frame_id = r->frame_id;  // DE4SDV VIS8
+ 
+             cv::Mat viz;  // output visualization image (empty when viz is off)
+             if (cfg.visualization_on)
+@@ -184,9 +208,12 @@ int main(int argc, char** argv)
+             if (cfg.rrd_on)
+                 logging::Rerun::log_frame(r->frame_id, frame, warped, resized, *r, plan, ego_v, viz);
+         }
++        loop_stamps.push(stamp_frame_id, t_arrive, t_write, t_handoff, de4sdv::now_ns());  // DE4SDV VIS8
+     }
+ 
+     if (cfg.rrd_on) logging::Rerun::shutdown();  // flush & close .rrd
++    if (visualization_recorder) visualization_recorder->stop();  // DE4SDV VIS8: drain, close the encoder, summary
++    loop_stamps.dump();                               // DE4SDV VIS8
+ 
+     // stop() returns true on a clean shutdown; translate that to a 0 exit code
+     // so VisionPilot can be supervised as a batch/oneshot job (a successful run
+diff --git a/VisionPilot/modules/de4sdv/visualization_recorder/CMakeLists.txt b/VisionPilot/modules/de4sdv/visualization_recorder/CMakeLists.txt
+new file mode 100644
+index 00000000..d1d88b07
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/visualization_recorder/CMakeLists.txt
+@@ -0,0 +1,26 @@
++# DE4SDV visualization recorder (readiness probe VIS8, draft; not part of upstream VisionPilot).
++# Derives from upstream's VisualInterface (visualization module) to reuse its protected build_frame().
++cmake_minimum_required(VERSION 3.22.1)
++
++find_package(OpenCV REQUIRED COMPONENTS core imgproc videoio)
++find_package(Threads REQUIRED)
++
++add_library(de4sdv_visualization_recorder
++        src/visualization_recorder.cpp
++)
++
++target_include_directories(de4sdv_visualization_recorder
++        PUBLIC
++        ${CMAKE_CURRENT_SOURCE_DIR}/include
++)
++
++target_link_libraries(de4sdv_visualization_recorder
++        PUBLIC
++        visualization
++        opencv_core
++        opencv_imgproc
++        opencv_videoio
++        Threads::Threads
++)
++
++target_compile_features(de4sdv_visualization_recorder PUBLIC cxx_std_17)
+diff --git a/VisionPilot/modules/de4sdv/visualization_recorder/include/de4sdv/loop_stamps.hpp b/VisionPilot/modules/de4sdv/visualization_recorder/include/de4sdv/loop_stamps.hpp
+new file mode 100644
+index 00000000..faeb5a9f
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/visualization_recorder/include/de4sdv/loop_stamps.hpp
+@@ -0,0 +1,86 @@
++// DE4SDV loop stamps (readiness probe VIS8, draft; not part of upstream VisionPilot).
++//
++// Four steady_clock reads per loop pass into a buffer allocated before the loop; written to a CSV only at
++// exit. The code runs identically whether the visualization recorder is on or off, so both arms of the probe carry
++// the same instrumentation. Stamps (steady_clock = CLOCK_MONOTONIC on Linux, ns):
++//   t_arrive   get_latest_frame() returned a non-empty frame
++//   t_write    vehicle_interface->write() returned (0 when the pass made no plan)
++//   t_handoff  the recorder hand-off returned (equals a no-op check when the recorder is off; 0 without a plan)
++//   t_end      end of the pass (after upstream's visualization and .rrd logging), i.e. the next read starts
++// Switch: DE4SDV_LOOP_STAMPS=<csv path> writes the file at exit; capacity DE4SDV_LOOP_STAMPS_CAP (default
++// 8192 passes). The buffer is filled in every run; when it is full, later passes are counted, not stored.
++#ifndef DE4SDV__LOOP_STAMPS_HPP_
++#define DE4SDV__LOOP_STAMPS_HPP_
++
++#include <chrono>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <string>
++#include <vector>
++
++namespace de4sdv
++{
++    inline int64_t now_ns()
++    {
++        return std::chrono::duration_cast<std::chrono::nanoseconds>(
++                   std::chrono::steady_clock::now().time_since_epoch())
++            .count();
++    }
++
++    class LoopStamps
++    {
++    public:
++        struct Row
++        {
++            uint64_t frame_id;
++            int64_t t_arrive, t_write, t_handoff, t_end;
++        };
++
++        LoopStamps()
++        {
++            if (const char* p = std::getenv("DE4SDV_LOOP_STAMPS")) path_ = p;
++            std::size_t cap = 8192;
++            if (const char* c = std::getenv("DE4SDV_LOOP_STAMPS_CAP")) cap = std::strtoull(c, nullptr, 10);
++            rows_.reserve(cap > 0 ? cap : 1);
++        }
++
++        // Called once per pass, at its end; never allocates (capacity reserved above).
++        void push(uint64_t frame_id, int64_t t_arrive, int64_t t_write, int64_t t_handoff, int64_t t_end)
++        {
++            if (rows_.size() < rows_.capacity())
++                rows_.push_back(Row{frame_id, t_arrive, t_write, t_handoff, t_end});
++            else
++                ++overflow_;
++        }
++
++        void dump() const
++        {
++            if (path_.empty()) return;
++            std::FILE* f = std::fopen(path_.c_str(), "w");
++            if (!f)
++            {
++                std::fprintf(stderr, "[DE4SDV] loop stamps: cannot open %s\n", path_.c_str());
++                return;
++            }
++            std::fprintf(f, "pass,frame_id,t_arrive_ns,t_write_ns,t_handoff_ns,t_end_ns\n");
++            for (std::size_t i = 0; i < rows_.size(); ++i)
++            {
++                const Row& r = rows_[i];
++                std::fprintf(f, "%zu,%llu,%lld,%lld,%lld,%lld\n", i, static_cast<unsigned long long>(r.frame_id),
++                             static_cast<long long>(r.t_arrive), static_cast<long long>(r.t_write),
++                             static_cast<long long>(r.t_handoff), static_cast<long long>(r.t_end));
++            }
++            std::fclose(f);
++            std::fprintf(stderr, "[DE4SDV] loop stamps: %zu passes written to %s, %llu not stored (buffer full)\n",
++                         rows_.size(), path_.c_str(), static_cast<unsigned long long>(overflow_));
++        }
++
++    private:
++        std::string path_;
++        std::vector<Row> rows_;
++        uint64_t overflow_ = 0;
++    };
++}  // namespace de4sdv
++
++#endif  // DE4SDV__LOOP_STAMPS_HPP_
+diff --git a/VisionPilot/modules/de4sdv/visualization_recorder/include/de4sdv/visualization_recorder.hpp b/VisionPilot/modules/de4sdv/visualization_recorder/include/de4sdv/visualization_recorder.hpp
+new file mode 100644
+index 00000000..3fc4cd42
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/visualization_recorder/include/de4sdv/visualization_recorder.hpp
+@@ -0,0 +1,141 @@
++// DE4SDV visualization recorder (readiness probe VIS8, draft; not part of upstream VisionPilot).
++//
++// Records VisionPilot's visualization (upstream's VisualInterface::build_frame: path corridor coloured by the
++// planned acceleration, AutoSpeed boxes with the in-path object's distance, ego speed, speed-limit box,
++// collision / brake / lane-departure icons) to an H.264 video encoded by NVENC, WITHOUT drawing in the
++// application's loop thread.
++//
++// The loop makes ONE hand-off per plan, right after vehicle_interface->write(): submit() deep-copies the
++// network-size image (`resized`, before any in-loop drawing), the InferenceFrameResult, the Plan, the ego
++// speed, H_resized and the speed limit into a single-slot mailbox and returns. It never waits for the worker
++// and never touches the encoder: the mailbox is a triple buffer handed over by one atomic exchange (no lock
++// the worker could hold), and the wake-up is a sem_post. If the worker is still busy, the new item replaces
++// the waiting one and a drop is counted. A worker thread draws (build_frame) on its own copy and writes the
++// frame to the encoder.
++//
++// Run-time switches (environment, read once at start; the binary is the same whether on or off):
++//   DE4SDV_VISUALIZATION_RECORD        output video path (".mkv" recommended); unset or empty = recorder off
++//   DE4SDV_VISUALIZATION_ENCODER       "gst" (default: OpenCV VideoWriter -> GStreamer nvh264enc) or
++//                                "ffmpeg" (pipe to `ffmpeg ... -c:v h264_nvenc`, needs ffmpeg in the image)
++//   DE4SDV_VISUALIZATION_BITRATE_KBPS  encoder bitrate, default 4000
++//   DE4SDV_VISUALIZATION_GST_ENCODER   GStreamer element for "gst", default nvh264enc (alternative: nvcudah264enc)
++//   DE4SDV_VISUALIZATION_FPS           nominal frame rate written into the container, default 10 (the real
++//                                times are in the sidecar CSV)
++// Sidecar files next to the video: <video>.frames.csv (one row per encoded frame) and <video>.summary.txt.
++#ifndef DE4SDV__VISUALIZATION_RECORDER_HPP_
++#define DE4SDV__VISUALIZATION_RECORDER_HPP_
++
++#include <semaphore.h>
++
++#include <atomic>
++#include <cstdint>
++#include <cstdio>
++#include <memory>
++#include <string>
++#include <thread>
++
++#include <opencv2/core.hpp>
++#include <visualization/visual_interface.hpp>
++
++namespace de4sdv
++{
++    namespace detail
++    {
++        class FrameSink;  // encoder back-end (GStreamer or ffmpeg pipe), defined in visualization_recorder.cpp
++    }
++
++    struct VisualizationRecorderOptions
++    {
++        std::string path;                 // output video; empty = disabled
++        std::string encoder = "gst";      // "gst" | "ffmpeg"
++        int bitrate_kbps = 4000;
++        double fps = 10.0;
++        cv::Size frame_size{1024, 512};   // the network-size image the loop hands over
++    };
++
++    struct VisualizationRecorderStats
++    {
++        uint64_t submitted = 0;   // hand-offs from the loop
++        uint64_t dropped = 0;     // waiting items replaced by a newer one (worker busy)
++        uint64_t written = 0;     // frames accepted by the encoder
++        uint64_t failed = 0;      // frames the worker could not draw or encode
++        bool encoder_open = false;  // the encoder opened at construction
++        std::string encoder_desc;
++    };
++
++    class VisualizationRecorder final : public VisualInterface
++    {
++    public:
++        // Reads the environment; returns nullptr when DE4SDV_VISUALIZATION_RECORD is unset or empty.
++        static std::unique_ptr<VisualizationRecorder> from_env(cv::Size frame_size);
++
++        explicit VisualizationRecorder(const VisualizationRecorderOptions& opt);
++        ~VisualizationRecorder() override;
++        VisualizationRecorder(const VisualizationRecorder&) = delete;
++        VisualizationRecorder& operator=(const VisualizationRecorder&) = delete;
++
++        // The loop's single hand-off. Deep copies into the loop's own buffer, publishes it with one atomic
++        // exchange, posts the worker's semaphore, returns. Wait-free: no lock, no wait on the worker or the
++        // encoder. t_arrive_ns: the loop's arrival stamp of this frame
++        // (steady_clock), carried into the sidecar CSV.
++        void submit(const cv::Mat& resized,
++                    const visionpilot::models::InferenceFrameResult& result,
++                    const Plan& plan,
++                    double ego_speed_ms,
++                    const cv::Mat& H_resized,
++                    double speed_limit_ms,
++                    int64_t t_arrive_ns);
++
++        // VisualInterface: the recorder is fed by submit(), never by the in-loop visualize() path.
++        bool visualize(cv::Mat&, const visionpilot::models::InferenceFrameResult&, const Plan&, double,
++                       const cv::Mat&, double) override
++        {
++            return true;
++        }
++
++        // Drains the waiting item, joins the worker, closes the encoder and writes the summary. Idempotent.
++        bool stop() override;
++
++        VisualizationRecorderStats stats() const;
++
++    private:
++        struct Item
++        {
++            cv::Mat image;
++            visionpilot::models::InferenceFrameResult result;
++            Plan plan{};
++            double ego_speed_ms = 0.0;
++            cv::Mat H_resized;
++            double speed_limit_ms = 0.0;
++            uint64_t frame_id = 0;
++            int64_t t_arrive_ns = 0;
++            int64_t t_submit_ns = 0;
++        };
++
++        void worker_main();
++        void write_summary();
++
++        VisualizationRecorderOptions opt_;
++        std::unique_ptr<detail::FrameSink> sink_;
++        bool encoder_opened_ = false;  // recorded at construction (the sink reads closed after stop())
++        std::FILE* csv_ = nullptr;
++
++        // Mailbox = triple buffer. buf_[back_] is the loop's, buf_[front_] the worker's, and middle_ holds the
++        // index of the waiting item plus kNew while the worker has not taken it. Buffers circulate by index,
++        // so the steady state allocates nothing.
++        static constexpr unsigned kNew = 4u;
++        Item buf_[3];
++        unsigned back_ = 0;   // loop thread only
++        unsigned front_ = 1;  // worker thread only
++        std::atomic<unsigned> middle_{2u};
++        std::atomic<bool> stopping_{false};
++        sem_t wake_;
++        std::thread worker_;
++        bool stopped_ = false;
++
++        std::atomic<uint64_t> submitted_{0}, dropped_{0}, written_{0}, failed_{0};
++        uint64_t video_index_ = 0;
++    };
++}  // namespace de4sdv
++
++#endif  // DE4SDV__VISUALIZATION_RECORDER_HPP_
+diff --git a/VisionPilot/modules/de4sdv/visualization_recorder/src/visualization_recorder.cpp b/VisionPilot/modules/de4sdv/visualization_recorder/src/visualization_recorder.cpp
+new file mode 100644
+index 00000000..486fcc2e
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/visualization_recorder/src/visualization_recorder.cpp
+@@ -0,0 +1,268 @@
++// DE4SDV visualization recorder (readiness probe VIS8, draft). See the header for the design and the switches.
++#include <de4sdv/visualization_recorder.hpp>
++#include <de4sdv/loop_stamps.hpp>
++
++#include <opencv2/videoio.hpp>
++
++#include <pthread.h>
++#include <signal.h>
++
++#include <cerrno>
++#include <cstdlib>
++#include <cstring>
++#include <exception>
++#include <string>
++#include <utility>
++
++namespace de4sdv
++{
++    // ── Encoder back-ends ────────────────────────────────────────────────────────
++    namespace detail
++    {
++        class FrameSink
++        {
++        public:
++            virtual ~FrameSink() = default;
++            virtual bool is_open() const = 0;
++            virtual bool write(const cv::Mat& bgr) = 0;  // worker thread only
++            virtual void close() = 0;
++            std::string desc;
++        };
++
++        // OpenCV VideoWriter on a GStreamer pipeline: appsrc (BGR, set by OpenCV) -> NV12 -> NVENC H.264.
++        class GstSink final : public FrameSink
++        {
++        public:
++            GstSink(const VisualizationRecorderOptions& o, const std::string& element)
++            {
++                desc = "appsrc ! videoconvert ! video/x-raw,format=NV12 ! " + element +
++                       " bitrate=" + std::to_string(o.bitrate_kbps) +
++                       " ! h264parse ! matroskamux ! filesink location=" + o.path;
++                w_.open(desc, cv::CAP_GSTREAMER, 0, o.fps, o.frame_size, true);
++            }
++            bool is_open() const override { return w_.isOpened(); }
++            bool write(const cv::Mat& bgr) override
++            {
++                w_.write(bgr);  // OpenCV copies the pixels into a GstBuffer
++                return true;
++            }
++            void close() override { w_.release(); }  // sends EOS: the muxer finalizes the file
++
++        private:
++            cv::VideoWriter w_;
++        };
++
++        // Raw BGR frames through a pipe into ffmpeg's h264_nvenc (needs ffmpeg in the image).
++        class FfmpegSink final : public FrameSink
++        {
++        public:
++            explicit FfmpegSink(const VisualizationRecorderOptions& o) : bytes_(o.frame_size.area() * 3)
++            {
++                desc = "ffmpeg -hide_banner -loglevel warning -nostdin -y -f rawvideo -pix_fmt bgr24 -s " +
++                       std::to_string(o.frame_size.width) + "x" + std::to_string(o.frame_size.height) +
++                       " -r " + std::to_string(o.fps) + " -i - -c:v h264_nvenc -b:v " +
++                       std::to_string(o.bitrate_kbps) + "k -pix_fmt yuv420p '" + o.path + "' 2> '" + o.path +
++                       ".ffmpeg.log'";
++                p_ = ::popen(desc.c_str(), "w");
++            }
++            ~FfmpegSink() override { close(); }
++            bool is_open() const override { return p_ != nullptr; }
++            bool write(const cv::Mat& bgr) override
++            {
++                if (!p_ || !bgr.isContinuous() || bgr.total() * bgr.elemSize() != bytes_) return false;
++                return std::fwrite(bgr.data, 1, bytes_, p_) == bytes_;  // EPIPE, not SIGPIPE (blocked in the worker)
++            }
++            void close() override
++            {
++                if (p_)
++                {
++                    const int rc = ::pclose(p_);
++                    p_ = nullptr;
++                    std::fprintf(stderr, "[DE4SDV] visualization recorder: ffmpeg exit status %d\n", rc);
++                }
++            }
++
++        private:
++            std::FILE* p_ = nullptr;
++            std::size_t bytes_;
++        };
++    }  // namespace detail
++
++    // ── Construction ─────────────────────────────────────────────────────────────
++    std::unique_ptr<VisualizationRecorder> VisualizationRecorder::from_env(cv::Size frame_size)
++    {
++        const char* p = std::getenv("DE4SDV_VISUALIZATION_RECORD");
++        if (!p || !*p) return nullptr;
++        VisualizationRecorderOptions o;
++        o.path = p;
++        o.frame_size = frame_size;
++        if (const char* e = std::getenv("DE4SDV_VISUALIZATION_ENCODER"); e && *e) o.encoder = e;
++        if (const char* b = std::getenv("DE4SDV_VISUALIZATION_BITRATE_KBPS"); b && *b) o.bitrate_kbps = std::atoi(b);
++        if (const char* f = std::getenv("DE4SDV_VISUALIZATION_FPS"); f && *f) o.fps = std::atof(f);
++        if (o.bitrate_kbps <= 0) o.bitrate_kbps = 4000;
++        if (o.fps <= 0.0) o.fps = 10.0;
++        return std::make_unique<VisualizationRecorder>(o);
++    }
++
++    VisualizationRecorder::VisualizationRecorder(const VisualizationRecorderOptions& opt) : opt_(opt)
++    {
++        // Everything slow (GStreamer init and plugin scan, encoder session, ffmpeg spawn) happens here, on the
++        // main thread before the loop starts.
++        if (opt_.encoder == "ffmpeg")
++        {
++            sink_ = std::make_unique<detail::FfmpegSink>(opt_);
++        }
++        else
++        {
++            const char* el = std::getenv("DE4SDV_VISUALIZATION_GST_ENCODER");
++            sink_ = std::make_unique<detail::GstSink>(opt_, (el && *el) ? el : "nvh264enc");
++        }
++        encoder_opened_ = sink_->is_open();
++        std::fprintf(stderr, "[DE4SDV] visualization recorder: encoder %s: %s\n", encoder_opened_ ? "OPEN" : "FAILED",
++                     sink_->desc.c_str());
++
++        const std::string csv = opt_.path + ".frames.csv";
++        csv_ = std::fopen(csv.c_str(), "w");
++        if (csv_)
++            std::fprintf(csv_, "video_index,frame_id,t_arrive_ns,t_submit_ns,t_worker_start_ns,t_drawn_ns,"
++                               "t_encoded_ns\n");
++
++        // Preallocate the three image buffers so the first hand-offs do not allocate either.
++        for (Item& it : buf_) it.image.create(opt_.frame_size, CV_8UC3);
++
++        sem_init(&wake_, 0, 0);
++        worker_ = std::thread(&VisualizationRecorder::worker_main, this);
++    }
++
++    VisualizationRecorder::~VisualizationRecorder()
++    {
++        stop();
++        sem_destroy(&wake_);
++    }
++
++    // ── Loop side: the single hand-off ───────────────────────────────────────────
++    void VisualizationRecorder::submit(const cv::Mat& resized,
++                                 const visionpilot::models::InferenceFrameResult& result,
++                                 const Plan& plan,
++                                 double ego_speed_ms,
++                                 const cv::Mat& H_resized,
++                                 double speed_limit_ms,
++                                 int64_t t_arrive_ns)
++    {
++        submitted_.fetch_add(1, std::memory_order_relaxed);
++        Item& it = buf_[back_];
++        resized.copyTo(it.image);  // deep copy into the loop's own buffer (no allocation once sized)
++        it.result = result;         // plain data + one vector (capacity reused)
++        it.plan = plan;
++        it.ego_speed_ms = ego_speed_ms;
++        H_resized.copyTo(it.H_resized);
++        it.speed_limit_ms = speed_limit_ms;
++        it.frame_id = result.frame_id;
++        it.t_arrive_ns = t_arrive_ns;
++        it.t_submit_ns = now_ns();
++        // Publish: the filled buffer becomes the waiting one; the loop gets the previous waiting buffer back.
++        const unsigned old = middle_.exchange(back_ | kNew, std::memory_order_acq_rel);
++        back_ = old & 3u;
++        if (old & kNew) dropped_.fetch_add(1, std::memory_order_relaxed);  // replaced before the worker took it
++        sem_post(&wake_);  // never waits
++    }
++
++    // ── Worker side ──────────────────────────────────────────────────────────────
++    void VisualizationRecorder::worker_main()
++    {
++        sigset_t s;
++        sigemptyset(&s);
++        sigaddset(&s, SIGPIPE);
++        pthread_sigmask(SIG_BLOCK, &s, nullptr);  // a dead ffmpeg gives EPIPE here, never kills the process
++        pthread_setname_np(pthread_self(), "de4sdv-visrec");
++
++        for (;;)
++        {
++            if (!(middle_.load(std::memory_order_acquire) & kNew))
++            {
++                if (stopping_.load(std::memory_order_acquire)) break;  // stopping and nothing left to draw
++                while (sem_wait(&wake_) != 0 && errno == EINTR) {}
++                continue;
++            }
++            // Take the waiting buffer; hand the drawn one back as the (not new) middle.
++            front_ = middle_.exchange(front_, std::memory_order_acq_rel) & 3u;
++            Item& work = buf_[front_];
++            const int64_t t0 = now_ns();
++            bool ok = false;
++            try
++            {
++                build_frame(work.image, work.result, work.plan, work.ego_speed_ms, work.H_resized,
++                            work.speed_limit_ms);
++                const int64_t t1 = now_ns();
++                ok = sink_ && sink_->is_open() && sink_->write(work.image);
++                const int64_t t2 = now_ns();
++                if (ok)
++                {
++                    written_.fetch_add(1, std::memory_order_relaxed);
++                    if (csv_)
++                        std::fprintf(csv_, "%llu,%llu,%lld,%lld,%lld,%lld,%lld\n",
++                                     static_cast<unsigned long long>(video_index_),
++                                     static_cast<unsigned long long>(work.frame_id),
++                                     static_cast<long long>(work.t_arrive_ns),
++                                     static_cast<long long>(work.t_submit_ns), static_cast<long long>(t0),
++                                     static_cast<long long>(t1), static_cast<long long>(t2));
++                    ++video_index_;
++                }
++            }
++            catch (const std::exception& e)
++            {
++                std::fprintf(stderr, "[DE4SDV] visualization recorder: frame %llu failed: %s\n",
++                             static_cast<unsigned long long>(work.frame_id), e.what());
++            }
++            if (!ok) failed_.fetch_add(1, std::memory_order_relaxed);
++        }
++    }
++
++    bool VisualizationRecorder::stop()
++    {
++        if (stopped_) return true;
++        stopped_ = true;
++        stopping_.store(true, std::memory_order_release);
++        sem_post(&wake_);
++        if (worker_.joinable()) worker_.join();  // the worker draws the waiting item first
++        if (sink_) sink_->close();
++        if (csv_)
++        {
++            std::fclose(csv_);
++            csv_ = nullptr;
++        }
++        write_summary();
++        return true;
++    }
++
++    VisualizationRecorderStats VisualizationRecorder::stats() const
++    {
++        VisualizationRecorderStats s;
++        s.submitted = submitted_.load();
++        s.dropped = dropped_.load();
++        s.written = written_.load();
++        s.failed = failed_.load();
++        s.encoder_open = encoder_opened_;
++        s.encoder_desc = sink_ ? sink_->desc : std::string();
++        return s;
++    }
++
++    void VisualizationRecorder::write_summary()
++    {
++        const VisualizationRecorderStats s = stats();
++        char line[512];
++        std::snprintf(line, sizeof(line),
++                      "submitted=%llu dropped=%llu written=%llu failed=%llu encoder=%s encoder_open=%d "
++                      "bitrate_kbps=%d fps=%.3f size=%dx%d",
++                      static_cast<unsigned long long>(s.submitted), static_cast<unsigned long long>(s.dropped),
++                      static_cast<unsigned long long>(s.written), static_cast<unsigned long long>(s.failed),
++                      opt_.encoder.c_str(), s.encoder_open ? 1 : 0, opt_.bitrate_kbps, opt_.fps, opt_.frame_size.width,
++                      opt_.frame_size.height);
++        std::fprintf(stderr, "[DE4SDV] visualization recorder: %s\n", line);
++        if (std::FILE* f = std::fopen((opt_.path + ".summary.txt").c_str(), "w"))
++        {
++            std::fprintf(f, "%s\npipeline=%s\n", line, s.encoder_desc.c_str());
++            std::fclose(f);
++        }
++    }
++}  // namespace de4sdv
