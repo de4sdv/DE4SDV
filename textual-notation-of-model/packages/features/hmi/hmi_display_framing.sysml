@@ -267,13 +267,18 @@ package DE4SDV_HmiDisplayFraming {
      * lane, its path and its detections only inside its own visualization, and
      * only when that visualization is built with it, which upstream's build
      * does not do by default. The configuration that the driver-assistance
-     * increment realizes for the candidate also switches the visualization
-     * off. None of the outputs that the driver-assistance increment realizes
-     * for the candidate, its driving command and its warning request among
-     * them, carries the scene. Whether the scene can leave the candidate's
-     * process without a change to what it perceives and plans is open. A build
-     * of the candidate that adds such an output differs from the build that
-     * the driver-assistance increment judges.
+     * increment realizes for the candidate keeps the visualization in the
+     * candidate's loop off. That increment's visualization recorder, an
+     * observer of System 2 in the candidate's process, draws upstream's
+     * visualization into the bench's recording only, from a copy that a second
+     * hand-off in the loop gives it. With the recorder the candidate gives its
+     * command a few milliseconds later (phase8VisualizationRecorderPlaced).
+     * None of the outputs that the driver-assistance increment realizes for
+     * the candidate, its driving command and its warning request among them,
+     * carries the scene. Whether the scene can leave the candidate's process
+     * without a change to what it perceives and plans is open. A build of the
+     * candidate that adds such an output differs from the build that the
+     * driver-assistance increment judges.
      */
   }
   part gapHmiSceneContent : IncrementGap {
@@ -318,10 +323,12 @@ package DE4SDV_HmiDisplayFraming {
      * The driver-assistance increment realizes the collision warning with an
      * app in the IVI VM, a build item of its bench, and allots 0.1 s of the
      * 0.2 s from the warning request to each mode to the path to that app and
-     * 0.1 s to the app. Whether a build of this display replaces that app in
-     * the VisionPilot configuration, and how the 0.2 s divides on a path to
-     * the SDV Media VM, is open. The realization and the verdicts of the
-     * driver-assistance increment stay as they are.
+     * 0.1 s to the app. Its realization records the high availability renderer
+     * for that warning as an alternative that the owner did not select for it
+     * on 2026-11-17 (ALT-DRIVING-HARWARNING-001). Whether a build of this
+     * display replaces that app in the VisionPilot configuration, and how the
+     * 0.2 s divides on a path to the SDV Media VM, is open. The realization
+     * and the verdicts of the driver-assistance increment stay as they are.
      */
   }
   part gapHmiWarningAvailability : IncrementGap {

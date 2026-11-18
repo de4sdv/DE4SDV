@@ -82,7 +82,12 @@ Each point is a gap of the model, in the model's own words.
 - **No scene output** (`gapHmiSceneOutput`). At the inspected revision the
   candidate builds a top-down scene of its lane, its path and its detections
   only inside its own visualization, and only when that visualization is built
-  with it, which upstream's build does not do by default.
+  with it, which upstream's build does not do by default. The configuration
+  that the driver-assistance increment realizes for the candidate keeps the
+  visualization in the candidate's loop off. That increment's visualization
+  recorder, an observer of System 2 in the candidate's process, draws
+  upstream's visualization into the bench's recording only, from a copy that a
+  second hand-off in the loop gives it.
 - **What the scene can carry** (`gapHmiSceneContent`). The candidate's
   detections carry a level of their place relative to its path, such as in its
   lane or in the next, not a type of object.
@@ -95,9 +100,11 @@ Each point is a gap of the model, in the model's own words.
   driver-assistance increment realizes the collision warning with an app in the
   IVI VM, a build item of its bench, and allots 0.1 s of the 0.2 s from the
   warning request to each mode to the path to that app and 0.1 s to the app.
-  Whether a build of this display replaces that app in the VisionPilot
-  configuration, and how the 0.2 s divides on a path to the SDV Media VM, is
-  open.
+  Its realization records the high availability renderer for that warning as an
+  alternative that the owner did not select for it on 2026-11-17
+  (ALT-DRIVING-HARWARNING-001). Whether a build of this display replaces that
+  app in the VisionPilot configuration, and how the 0.2 s divides on a path to
+  the SDV Media VM, is open.
 - **No indication that the warning is unavailable**
   (`gapHmiWarningAvailability`). At the inspected revision the candidate gives
   no indication that its warning is unavailable, and the driver-assistance

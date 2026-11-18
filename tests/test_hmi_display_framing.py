@@ -174,6 +174,11 @@ def _flat(text: str) -> str:
     return " ".join(text.split())
 
 
+def _prose(text: str) -> str:
+    """The text without block-comment leaders and line breaks, so that a wrapped sentence reads as one."""
+    return _flat(re.sub(r"(?m)^\s*\*\s?", "", text))
+
+
 def _link_text(markdown: str) -> str:
     """The text of a Markdown passage with each link reduced to its words, without line breaks."""
     return _flat(re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", markdown))
@@ -357,11 +362,25 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
                    "plans is open.",
                    "A build of the candidate that adds such an output differs from the build that the "
                    "driver-assistance increment judges.",
-                   "The configuration that the driver-assistance increment realizes for the candidate also switches "
-                   "the visualization off."):
+                   "The configuration that the driver-assistance increment realizes for the candidate keeps the "
+                   "visualization in the candidate's loop off.",
+                   "That increment's visualization recorder, an observer of System 2 in the candidate's process, draws "
+                   "upstream's visualization into the bench's recording only, from a copy that a second hand-off in "
+                   "the loop gives it.",
+                   "With the recorder the candidate gives its command a few milliseconds later "
+                   "(phase8VisualizationRecorderPlaced)."):
         assert phrase in output, phrase
-    # the configuration of the judged candidate switches the visualization off
-    assert "visualization_on = false" in _flat(DRIVING_REALIZATION.read_text(encoding="utf-8"))
+    # the judged configuration keeps the visualization in the loop off, and the driver-assistance increment's
+    # recorder draws it from a second hand-off into the bench's recording only, a few milliseconds later
+    driving_realization = _prose(DRIVING_REALIZATION.read_text(encoding="utf-8"))
+    for phrase in ("The configuration keeps visualization_on = false, so upstream's drawing in the loop stays off.",
+                   "It is not the driver's display: it goes only into the bench's recording.",
+                   "from a second hand-off in the loop after vision_pilot.cpp:174",
+                   "an observer of System 2 that carries no logical element",
+                   "With the recorder running the candidate gives its command a few milliseconds later"):
+        assert phrase in driving_realization, phrase
+    assert re.search(r"(?m)^  comment phase8VisualizationRecorderPlaced about ",
+                     DRIVING_REALIZATION.read_text(encoding="utf-8"))
     content = _doc("part gapHmiSceneContent : IncrementGap")
     for phrase in ("carries a distance and a speed from the candidate's fusion",
                    "labels the closest object with its projected position instead of the fused distance. Such "
@@ -393,8 +412,17 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
     for phrase in ("The driver-assistance increment realizes the collision warning with an app in the IVI VM, a build "
                    "item of its bench, and allots 0.1 s of the 0.2 s from the warning request to each mode to the "
                    "path to that app and 0.1 s to the app.",
+                   "Its realization records the high availability renderer for that warning as an alternative that "
+                   "the owner did not select for it on 2026-11-17 (ALT-DRIVING-HARWARNING-001).",
                    "The realization and the verdicts of the driver-assistance increment stay as they are."):
         assert phrase in presentation, phrase
+    # the driver-assistance increment's realization records that alternative as not selected for it
+    item = re.search(r"(?m)^ \* - ALT-DRIVING-HARWARNING-001:(.*\n(?: \*   .*\n)*)",
+                     DRIVING_REALIZATION.read_text(encoding="utf-8"))
+    assert item, "the driver-assistance realization records the renderer as an alternative"
+    alternative = _prose(item.group(1))
+    assert "the High Availability Renderer of Android SDV's display safety shows the collision warning" in alternative
+    assert "Not selected by the owner on 2026-11-17 for this increment." in alternative
     realization = _flat(_doc("part def CollisionWarningPresentationApplication :> DriverWarningPresentation",
                              DRIVING_REALIZATION.read_text(encoding="utf-8")))
     assert "0.1 s is the path's" in realization and "0.1 s is this application's" in realization
