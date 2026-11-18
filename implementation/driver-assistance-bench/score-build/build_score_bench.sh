@@ -340,8 +340,9 @@ if ! is_done opencv; then
     -DBUILD_JPEG=ON -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_opencv_apps=OFF -DBUILD_JAVA=OFF \
     -DBUILD_opencv_python3=OFF -DCV_TRACE=OFF > "$ROOT/logs/opencv-cmake.log" 2>&1 \
     || { tail -30 "$ROOT/logs/opencv-cmake.log"; die "OpenCV configure failed"; }
-  grep -E "^\s+GStreamer:" "$ROOT/logs/opencv-cmake.log" || true
-  grep -qE "^\s+GStreamer:\s+YES" "$ROOT/logs/opencv-cmake.log" \
+  # CMake prefixes its status lines with "--": the summary line reads "--     GStreamer:   YES (1.20.3)"
+  grep -E "^--\s+GStreamer:" "$ROOT/logs/opencv-cmake.log" || true
+  grep -qE "^--\s+GStreamer:\s+YES" "$ROOT/logs/opencv-cmake.log" \
     || die "OpenCV found no GStreamer (see $ROOT/logs/opencv-cmake.log); the recorder's nvh264enc path needs it"
   ninja -C "$ROOT/src/opencv-build" -j "$JOBS" install > "$ROOT/logs/opencv-build.log" 2>&1 \
     || { grep -m10 -E " error|FAILED" "$ROOT/logs/opencv-build.log"; die "OpenCV build failed"; }
