@@ -1,0 +1,18 @@
+# Driver-assistance bench (INC-DRIVING-002)
+
+Status: under construction, not yet validated. Nothing in this folder has run on the bench yet.
+
+INC-DRIVING-002 judges VisionPilot at `014e0e7a56ee8e597c2cab8175233f74edd9b856` on the Eclipse S-CORE path. The
+bench has three hosts:
+
+- the simulator host, which runs CARLA 1.0 at a fixed step of 0.05 s;
+- the S-CORE host, which runs the candidate, the identity recorder, the actuation adapter, gatewayd and someipd;
+- the guest host, which runs the AAOS SDV guests that present the warning.
+
+The SysML model is the authority for what this bench implements, in particular the phase 8 realization
+`textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml` and the
+phase 10 verification cases. The guide is `docs/guides/driver-assistance-increment.md`.
+
+| Folder | Content |
+|---|---|
+| `interfaces/` | The interface control document and the payload header that the components share |
