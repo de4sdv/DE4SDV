@@ -19,13 +19,18 @@
 // receive loop ends before the snapshots stop. The adapter publishes nothing:
 // the model gives it no output on S-CORE communication.
 //
+// Supervision (the supervision decision of 2026-11-18): once subscribed, the
+// adapter reports running to the Launch Manager, and its receive loop gives one
+// alive notification per 0.1 s (alive_ticker.h). The values the Launch Manager
+// checks them against are in ../launch-manager/README.md.
+//
 // Usage:
 //   actuation_adapter --run-dir <dir> --config <adapter.json> [--host-name score]
 // MW_COM_CONFIG names this process's mw::com configuration
 // (mw_com_config_actuation_adapter.json).
 //
 // Log: <run_dir>/<host-name>/actuationAdapter.jsonl (log_records.h): start,
-// config, ready, in.world_snapshot, in.driving_command, drop,
+// config, ready, supervision, in.world_snapshot, in.driving_command, drop,
 // out.ackermann_control, error, stop.
 #include <atomic>
 #include <chrono>
@@ -34,12 +39,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <thread>
 #include <unistd.h>
 
 #include "adapter_config.h"
 #include "adapter_shell.h"
+#include "alive_ticker.h"
 #include "de4sdv/driver_assistance/payloads.h"
 #include "log_records.h"
 #include "run_log.h"
@@ -54,6 +61,9 @@ using de4sdv::driver_assistance::MonotonicSeconds;
 using de4sdv::driver_assistance::RunLog;
 using de4sdv::driver_assistance::actuation::AdapterConfig;
 using de4sdv::driver_assistance::actuation::AdapterShell;
+using de4sdv::driver_assistance::actuation::AliveTicker;
+using de4sdv::driver_assistance::actuation::LifecycleClient;
+using de4sdv::driver_assistance::actuation::MakeLifecycleClient;
 using de4sdv::driver_assistance::actuation::AttachToSimulator;
 using de4sdv::driver_assistance::actuation::LoadAdapterConfigFile;
 using de4sdv::driver_assistance::actuation::RecordWriter;
@@ -71,6 +81,9 @@ struct DrivingCommandInterface : public Trait::Base {
 using DrivingCommandProxy = score::mw::com::AsProxy<DrivingCommandInterface>;
 
 constexpr const char* kDrivingCommandSpecifier = "de4sdv/driver_assistance/driving_command";
+
+// One alive notification per command cycle of 0.1 s (../launch-manager/README.md).
+constexpr double kAlivePeriodS = 0.1;
 
 std::atomic<bool> g_stop{false};
 void OnSignal(int /*signal*/) { g_stop.store(true); }
@@ -217,8 +230,13 @@ int main(int argc, char** argv) {
   }
 
   writer.Write("ready", "{}");
+  std::string supervision_off_reason;
+  const std::unique_ptr<LifecycleClient> lifecycle = MakeLifecycleClient(&supervision_off_reason);
+  AliveTicker alive(lifecycle.get(), kAlivePeriodS, &writer);
+  alive.Start(MonotonicSeconds(), supervision_off_reason);
   bool receive_failed = false;
   while (!g_stop.load()) {
+    alive.Tick(MonotonicSeconds(), g_stop.load());
     const auto received = proxy.driving_command.GetNewSamples(
         [&shell](score::mw::com::SamplePtr<DrivingCommandEventPayload> sample) {
           shell.OnCommand(*sample, MonotonicSeconds());
@@ -230,6 +248,7 @@ int main(int argc, char** argv) {
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
   }
+  alive.Stop(MonotonicSeconds());
   if (receive_failed) writer.Write("error", records::Error("GetNewSamples failed"));
 
   // The receive loop has ended; now the snapshots.

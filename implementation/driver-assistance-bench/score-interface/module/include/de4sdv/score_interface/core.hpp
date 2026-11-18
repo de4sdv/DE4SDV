@@ -152,6 +152,30 @@ class WarningRequestWriter {
   Counters counters_{};
 };
 
+// The alive supervision of the candidate's process (the supervision decision of 2026-11-18). The loop calls
+// CycleCompleted() once at the end of each pass that handled a frame. The first such pass reports the process running
+// before its alive notification, so the Launch Manager starts supervising after the network sessions, the first
+// frame and the first inference, which its ready timeout covers instead. Every pass gives one alive notification.
+// Once a stop is requested, no notification follows. A null client: no supervision, nothing is reported.
+class CycleSupervision {
+ public:
+  CycleSupervision(LifecycleClient* client, LineLog log);
+  void CycleCompleted(bool stop_requested);
+  // Ends the supervision on the module's side: no notification after it, and one supervision.stop line.
+  void Stop();
+  std::uint64_t alive_reported() const { return alive_reported_; }
+  bool running_reported() const { return running_reported_; }
+
+ private:
+  LifecycleClient* client_;
+  LineLog log_;
+  bool started_ = false;
+  bool running_reported_ = false;
+  bool stopped_ = false;
+  bool stop_logged_ = false;
+  std::uint64_t alive_reported_ = 0;
+};
+
 // Monotonic and real time of the host, ns, for the event log (the path share of REQ-DRIVING-042 is wall-clock).
 std::int64_t MonotonicNs();
 std::int64_t RealtimeNs();

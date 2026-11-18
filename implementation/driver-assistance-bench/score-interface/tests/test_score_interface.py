@@ -7,6 +7,8 @@
   where either is missing.
 - src/lola_bindings.cpp: a syntax check against the closed-loop driving bench's local mw::com mock, which is no
   S-CORE header; the real compile is the S-CORE Bazel build's.
+- src/lifecycle_bindings.cpp: a syntax check against declarations of the Lifecycle v0.10.0 API
+  (launch-manager/tests/lifecycle_mock), which are no S-CORE header either.
 - the patch series: the new files of 0002 equal module/, the shas equal patches/SHA256SUMS, 0001 is the VIS8 patch,
   and every line 0002 adds to upstream C++ outside the enum sits under ENABLE_SCORE_INTERFACE.
 """
@@ -30,6 +32,7 @@ MODULE = ROOT / "module"
 PATCHES = ROOT / "patches"
 INTERFACES = ROOT.parent / "interfaces" / "include"
 MWCOM_MOCK = ROOT.parents[1] / "closed-loop-driving-bench" / "state-publisher" / "tests" / "mock"
+LIFECYCLE_MOCK = ROOT.parent / "launch-manager" / "tests" / "lifecycle_mock"
 PIN = "014e0e7a56ee8e597c2cab8175233f74edd9b856"
 VIS8_SHA256 = "29a1f5d0a087b05f1b8e2e2d57cd6fd5f818d9a2d996fe2b0256f254c2a5ad27"  # the VIS8 patch as delivered
 PATCH_MODULE_PREFIX = "VisionPilot/modules/de4sdv/score_interface/"
@@ -147,6 +150,17 @@ def test_lola_bindings_syntax_against_local_mock() -> None:
     subprocess.run(
         [_compiler(), "-std=c++17", "-Wall", "-Wextra", "-Werror", "-fsyntax-only", f"-I{MODULE / 'include'}",
          f"-I{INTERFACES}", f"-I{MWCOM_MOCK}", str(MODULE / "src" / "lola_bindings.cpp")],
+        check=True,
+    )
+
+
+def test_lifecycle_bindings_syntax_against_the_api_declarations() -> None:
+    """src/lifecycle_bindings.cpp against the Lifecycle v0.10.0 API as launch-manager/tests/lifecycle_mock declares
+    it; the real compile is the S-CORE Bazel build's."""
+    subprocess.run(
+        [_compiler(), "-std=c++17", "-Wall", "-Wextra", "-Werror", "-pedantic", "-fsyntax-only",
+         f"-I{MODULE / 'include'}", f"-I{INTERFACES}", f"-I{LIFECYCLE_MOCK}",
+         str(MODULE / "src" / "lifecycle_bindings.cpp")],
         check=True,
     )
 

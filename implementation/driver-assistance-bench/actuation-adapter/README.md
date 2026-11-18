@@ -82,8 +82,20 @@ this component's proposal.
 | `drop` | `reason` (`loss`, `repetition`, `corruption`, `delay`), `seq`, `referenceSeq` and both times |
 | `out.ackermann_control` | `frame`, `t_sim_s` (of the newest snapshot), `seq` and the five floats given to the client |
 | lifecycle | `start`, `config`, `ready`, `error`, `stop` |
+| `supervision` | `state` `start` (`period_s`, `running_reported`), `stop` (`alive_reported`), `off` or `error` (`reason`), and `t_mono_s` |
 
 `referenceSeq` is the reference count the decision was made against, before the command.
+
+## Supervision by the Launch Manager
+
+The supervision decision of 2026-11-18 has the Launch Manager supervise the adapter by its alive notifications
+(`alive_ticker.h`). Once subscribed to the command event, after the `ready` record, the adapter reports running;
+from then on its receive loop gives one alive notification per 0.1 s, whether or not a command arrives, and none
+after a stop signal. After a stall of the loop it gives one notification and then the period again, never a burst.
+`lifecycle_client_score.cpp` is the client on Lifecycle v0.10.0 (`alive_cc`, `lifecycle_cc`). Without
+`LCM_ALIVE_INTERFACE_PATH`, that is, not started by the Launch Manager as a supervised component, the adapter runs
+unsupervised and records `supervision` with `state` `off`. The values, the run targets and the reaction are in
+[`../launch-manager/README.md`](../launch-manager/README.md).
 
 ## mw::com values pending the B6 manifests
 
@@ -97,6 +109,10 @@ pending the B6 manifests; the candidate's configuration must say the same:
 | Event id, instance id, binding | 1, 1, SHM |
 | Subscribers | 1, the adapter |
 | Sample slots | 25, as INC-DRIVING-001's driving command event (7404), the same kind of event: one command per plan, from the planner's process to the actuation adapter |
+| ASIL level | `B` on the instance and `global.asil-level` `B`, by the supervision decision of 2026-11-18; Communication v0.6.0 requires the global level with it. No ASIL claim |
+| Application id | 3413, distinct from the host's other processes, which share one uid |
+
+The candidate's side is `../score-path/config/mw_com_config_vision_pilot.json`.
 
 ## Files and tests
 
@@ -120,8 +136,8 @@ their text. The main is compiled for syntax against the closed-loop bench's mw::
   not compiled. At stop, a snapshot callback already running when `RemoveOnTick` returns is not waited for.
 - **The mw::com binding works.** The real proxy finds, subscribes to and receives the event with the values
   above.
-- **The labels resolve**: `//de4sdv_da_bench/interfaces:driver_assistance`, `@libcarla//:client` and
-  `@score_communication//score/mw/com`.
+- **The labels resolve**: `//de4sdv_da_bench/interfaces:driver_assistance`, `@libcarla//:client`,
+  `@score_communication//score/mw/com` and `@score_lifecycle//score/launch_manager:alive_cc` and `:lifecycle_cc`.
 
 ## What the second phase 10 probe must show
 

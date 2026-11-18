@@ -40,6 +40,7 @@ The mapping ids are those of the phase 8 realization,
 | `vision_pilot.cpp`, the S-CORE branch beside `:59-79` | starts the module and takes its camera and vehicle interfaces | MAP-DRIVING-DA-CAMERA-IMAGE, MAP-DRIVING-DA-VEHICLE-SPEED, MAP-DRIVING-DA-COMMAND, MAP-DRIVING-DA-CANDIDATE-RECORD |
 | `vision_pilot.cpp`, after `:174` | the warning hand-off: one event per plan | MAP-DRIVING-DA-PLANNED-WARNINGS, MAP-DRIVING-DA-WARNING-REQUEST |
 | `vision_pilot.cpp`, the loop head | leaves the loop on SIGTERM, so that `Rerun::shutdown()` (`:189`) and the recorder's stop run | none (supervision) |
+| `vision_pilot.cpp`, the end of a pass, after the recorder's loop stamps | `CycleCompleted()`: one alive notification to the Launch Manager per pass that handled a frame | none (the supervision decision of 2026-11-18) |
 
 The new files map to the model's parts as follows:
 
@@ -53,6 +54,26 @@ The new files map to the model's parts as follows:
 - `ScoreWarningRequestPublisher` is SCOREWarningRequestPublisher (MAP-DRIVING-DA-WARNING-REQUEST). `requested` is
   true when the plan's warnings hold FCW or AEB. It sends the 8 bytes of `EncodeWarningRequestSomeip`.
 
+## Supervision by the Launch Manager
+
+The supervision decision of 2026-11-18 has S-CORE Lifecycle's Launch Manager supervise the candidate's process by
+its alive notifications. `CycleSupervision` (in `core.hpp`) does the module's part:
+
+- the loop calls `CycleCompleted()` at the end of each pass that handled a frame, after the recorder's loop stamps;
+  each call gives one alive notification (`Alive::ReportAlive`);
+- the first such pass first reports the process running (`score_mw_lifecycle_report_running`). The Launch Manager
+  starts supervising only then, so the network sessions, the first frame and the first inference fall under its
+  ready timeout, not under the alive supervision;
+- once SIGTERM has arrived, no notification follows;
+- the event log gets `supervision.start` at the first pass, `supervision.stop` with the count at the end, and
+  `supervision.off` with the reason when the process runs unsupervised (no `LCM_ALIVE_INTERFACE_PATH`, that is, the
+  Launch Manager did not start it as a supervised component). The summary holds `alive_reported`.
+
+`src/lifecycle_bindings.cpp` is the real client, on `//score/launch_manager:lifecycle_cc` and `:alive_cc` of
+Lifecycle v0.10.0. The supervision values, the run targets and the reaction are in
+[`../launch-manager/README.md`](../launch-manager/README.md). There is no ASIL claim: VisionPilot and its GPU
+libraries are not developed or qualified to ASIL B.
+
 The module, the visualization recorder and these hunks make up the source difference against the pin. The candidate
 record of REQ-DRIVING-044 carries that difference (MAP-DRIVING-DA-CANDIDATE-RECORD). It is the diff of both patches,
 0001 and 0002, never empty.
@@ -62,7 +83,9 @@ record of REQ-DRIVING-044 carries that difference (MAP-DRIVING-DA-CANDIDATE-RECO
 - `module/src/lola_bindings.cpp` holds the mw::com skeletons and the proxy. It needs the S-CORE Communication headers.
   Here it only passes a syntax check against the closed-loop driving bench's local mock, which is not S-CORE.
 - `module/src/carla_client.cpp` is the one C++20 unit; it needs the CARLA 1.0 client. Nothing here compiles it.
-- The patched VisionPilot as a whole has not been built or linked. Both binding units are left to the S-CORE Bazel
+- `module/src/lifecycle_bindings.cpp` needs S-CORE Lifecycle. Here it only passes a syntax check against
+  declarations of the Lifecycle v0.10.0 API in `../launch-manager/tests/lifecycle_mock/`, which are not S-CORE code.
+- The patched VisionPilot as a whole has not been built or linked. The three binding units are left to the S-CORE Bazel
   build, item B2 of the implementation brief.
 
 `check_patch.sh` can run a syntax check of the patched `vision_pilot.cpp` and `vision_pilot_config.cpp`, with the
