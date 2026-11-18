@@ -73,10 +73,22 @@ def test_closed_loop_driving_subject_is_registered():
     assert _sysml_errors(text) == []
 
 
+def test_hmi_display_subject_is_registered():
+    """The HMI display has its own identity, not a driving, AEBS or transport ID."""
+    text = "part <'INC-HMI-001'> hmiDisplayIncrement : HmiDisplayIncrement;\n"
+    assert _sysml_errors(text) == []
+
+
 def test_valid_legacy_subject_mw_is_accepted():
     """MW is a registered subject namespace; E-MW-011 is a grandfathered
     legacy identity and stays valid (stable, provenance-bearing)."""
     assert _yaml_errors("evidence_id: E-MW-011\n") == []
+
+
+def test_ee_architecture_subject_is_registered():
+    """The E/E architecture has its own identity, not a driving, AEBS or middleware ID."""
+    text = "part <'INC-EE-001'> eeArchitectureIncrement : EEArchitectureIncrement;\n"
+    assert _sysml_errors(text) == []
 
 
 def test_grandfathered_legacy_identities_are_closed_sets():

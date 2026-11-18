@@ -384,7 +384,9 @@ _CONFIG_IDENTITY = re.compile(
 REGISTERED_SUBJECTS = {
     "AEBS",
     "DRIVING",  # automated-driving planning and control, distinct from AEBS
+    "HMI",  # the HMI display: what it shows the driver and how it is drawn
     "MW",  # legacy registered code; canonical spelling is `middleware`
+    "EE",  # the E/E architecture: the vehicle network between the central computer and the actuators
     "UNECE",
     "EXAMPLE",  # reserved for method tests and throwaway increments (decision D12)
 }
