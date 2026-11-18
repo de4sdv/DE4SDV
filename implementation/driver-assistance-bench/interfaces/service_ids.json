@@ -1,0 +1,106 @@
+{
+  "_comment": [
+    "DE4SDV driver-assistance bench (INC-DRIVING-002): the ids of the S-CORE path and the guests.",
+    "Draft, not yet validated. Section icd is the machine-readable copy of the ids that ICD.md proposes;",
+    "interfaces/tests/test_service_ids.py keeps it equal to ICD.md's tables. Section lane_choices holds",
+    "the values the warning path's configs need that ICD.md does not fix; each is a proposal of the",
+    "warning-contract lane, open for the lead, except where its source names the model.",
+    "The model is the authority: the signal mappings MAP-DRIVING-DA-COMMAND, MAP-DRIVING-DA-WARNING-REQUEST",
+    "and MAP-DRIVING-DA-CANDIDATE-RECORD of driver_assistance_physical_software_realization.sysml.",
+    "None of these ids is model content until the phase 10b pull request types it."
+  ],
+  "icd": {
+    "status": "ICD.md proposal: fixed for the implementation, not model content",
+    "mw_com_events": [
+      {
+        "mapping": "MAP-DRIVING-DA-COMMAND",
+        "event": "driving_command",
+        "instance_specifier": "de4sdv/driver_assistance/driving_command",
+        "service_id": 7411
+      },
+      {
+        "mapping": "MAP-DRIVING-DA-WARNING-REQUEST",
+        "event": "warning_request",
+        "instance_specifier": "de4sdv/driver_assistance/warning_request",
+        "service_id": 7412
+      },
+      {
+        "mapping": "MAP-DRIVING-DA-CANDIDATE-RECORD",
+        "event": "candidate_record",
+        "instance_specifier": "de4sdv/driver_assistance/candidate_record",
+        "service_id": 7413
+      }
+    ],
+    "warning_request_someip_payload": {
+      "byte_order": "big-endian",
+      "length_field": "none",
+      "size": 8,
+      "fields": [
+        {"offset": 0, "name": "requested", "type": "UINT32"},
+        {"offset": 4, "name": "issue_time_sim_ms", "type": "UINT32"}
+      ]
+    },
+    "someip_warning_request": {
+      "service_id": "0x4df1",
+      "instance_id": "0x0001",
+      "eventgroup_id": "0x0001",
+      "event_id": "0x8001",
+      "transport": "reliable",
+      "protocol": "TCP",
+      "port": 30511
+    },
+    "data_tunnel": {
+      "message": "de4sdv.driving.v1.CollisionWarningRequest",
+      "fields": [
+        {"name": "requested", "number": 1, "type": "uint32"},
+        {"name": "issue_time_sim_ms", "number": 2, "type": "uint32"}
+      ],
+      "service_unit": "de4sdv-driving-warning-request"
+    },
+    "someip_kept": [
+      {"service_id": "0x4dee", "port": 30509, "owner": "closed-loop driving bench", "status": "kept"},
+      {"service_id": "0x4df0", "port": 30510, "owner": "closed-loop driving bench", "status": "kept"}
+    ]
+  },
+  "lane_choices": {
+    "status": "warning-contract lane proposal, not in ICD.md: open for the lead unless the source says model",
+    "mw_com_warning_request": {
+      "service_type_name": "/de4sdv/driver_assistance/WarningRequest",
+      "event_id": 1,
+      "instance_id": 1,
+      "binding": "SHM",
+      "number_of_sample_slots": 20,
+      "max_subscribers": 1,
+      "sample_type": "PreSerializedData<2048>",
+      "source": "the INC-DRIVING-001 kit's 7406 entry (slots 20, one subscriber, PreSerializedData<2048>); the candidate's own manifest must say the same"
+    },
+    "gateway": {
+      "service_type_name": "de4sdv_driver_assistance_warning_request",
+      "service_version_major": 1,
+      "service_version_minor": 0,
+      "serialization_config_type": "NullSerializerConfig",
+      "max_message_size": 2048,
+      "gatewayd_application_id": 3410,
+      "someipd_application_id": 3411,
+      "source": "the INC-DRIVING-001 kit's gateway config, with new names and application ids"
+    },
+    "someipd_vsomeip": {
+      "unicast": "192.168.98.1",
+      "netmask": "255.255.255.0",
+      "network": "de4sdvda",
+      "application": {"name": "someipd", "id": "0x0100"},
+      "source": "unicast: the model (the S-CORE host takes 192.168.98.1 on the VXLAN segment); the rest: the INC-DRIVING-001 kit, with a new network name"
+    },
+    "sdv_core_broker": {
+      "package": "com.android.sdv.someip",
+      "bundle": "SomeIpBroker",
+      "catalog_dir": "de4sdv_driver_assistance",
+      "source": "the platform's SOME/IP broker, as the INC-DRIVING-001 interop names it; the catalog directory is new"
+    },
+    "ivi_subscriber": {
+      "package": "org.de4sdv.collisionwarning",
+      "bundle": "CollisionWarningPresentation",
+      "source": "lane proposal for the IVI app (B10), which must claim the same subject"
+    }
+  }
+}
