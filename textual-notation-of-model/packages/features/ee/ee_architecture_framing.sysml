@@ -1,5 +1,5 @@
 /*
- * DE4SDV E/E architecture: Phase 0 framing only.
+ * DE4SDV E/E architecture: Phase 0 framing and the Phase 1 concerns only.
  * One increment spans framing, realization and verification on a virtual
  * vehicle. The framing asserts no implementation, no runtime result, no
  * product-line admission and no compliance.
@@ -10,6 +10,7 @@ package DE4SDV_EEArchitectureFraming {
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;
+  private import SAF_Viewpoints::*;
   private import Views::*;
 
   part def EEArchitectureIncrement :> EngineeringIncrement;
@@ -19,12 +20,14 @@ package DE4SDV_EEArchitectureFraming {
      * Owner-requested increment on the electrical/electronic (E/E)
      * architecture of the product line: the vehicle network between the
      * central computer and the actuators. The owner decided on 2026-11-17 to
-     * start this increment and to frame it now. Its later phases depend on
-     * the baseline of the driver-assistance increment, INC-DRIVING-002, whose
-     * driving command it carries, and start on a further decision of the
-     * owner. This framing changes neither the platform stack, the governed
-     * product-line scope nor another increment. All phases retain this
-     * identity. This package holds only Phase 0.
+     * start this increment and to frame it now, and on 2026-11-18 to carry
+     * out Phases 1 to 3 of this increment before the baseline of the
+     * driver-assistance increment, INC-DRIVING-002, whose driving command it
+     * carries. Phase 4 onward and the testbed with its readiness probe wait
+     * for that baseline and for a further decision of the owner. This framing
+     * changes neither the platform stack, the governed product-line scope nor
+     * another increment. All phases retain this identity. This package holds
+     * Phase 0 and the Phase 1 concerns.
      */
   }
 
@@ -405,9 +408,125 @@ package DE4SDV_EEArchitectureFraming {
      */
   }
 
+  /* Phase 1: one concern per question of the in-scope items, held by the
+   * parties whose interest it states, not only by the roles that check the
+   * answer. Each is typed by the SAF concern that asks its question and
+   * names the view of a later phase that answers it; that is the viewpoint
+   * selection of this phase. The framing viewpoint frames all of them until
+   * then. */
+  concern eeVehicleCommandConcern : OperationalCapabilityConcern {
+    doc /*
+     * eeCommandFlowInScope and eeNetworkFaultsInScope, operational part.
+     * Vehicle occupants and road users need the vehicle to act on the driving
+     * command that its central computer gives across the vehicle network,
+     * whichever route the command takes, and to act on no command that a
+     * fault of the network has made invalid on its way. It states what they
+     * expect, not how well the network meets it: no safety, timing or
+     * performance claim for a vehicle network follows from it. Answered by
+     * the operational story of phase 2.
+     */
+    subject;
+    stakeholder occupant : VehicleOccupant;
+    stakeholder roadUser : RoadUser;
+  }
+
+  concern eeTopologyStructureConcern : PhysicalStructureConcern {
+    doc /*
+     * eeTopologyInScope. System architects and product-line engineers need to
+     * see which elements make up the one topology of the vehicle network and
+     * in which role each is used: the network side of the central computer,
+     * the Ethernet backbone, the two zone controllers as gateways between the
+     * backbone and CAN, the CAN bus of each zone, the direct link that passes
+     * no zone controller, and the actuation ECU on CAN. The lifecycle
+     * decision is whether the product line admits this topology as its
+     * reference vehicle network. How it relates to the platform stack and to
+     * the vehicle network boundary of the AAOS SDV middleware is open for
+     * phases 2 and 3 (gapEEStackAndNetworkBoundary). Answered by the physical
+     * structure definition of phase 8.
+     */
+    subject;
+    stakeholder systemArchitect : SystemArchitect;
+    stakeholder productLineEngineer : ProductLineEngineer;
+  }
+
+  concern eeCommandItemConcern : PhysicalLogicalItemMappingConcern {
+    doc /*
+     * eeCommandFlowInScope. Systems engineers and safety experts need to see
+     * which exchange item of the vehicle network carries the driving command
+     * on each part of its way, on the Ethernet backbone, through a zone
+     * controller and on CAN, and whether each keeps the parts of the command
+     * by which the actuation detects its loss, delay, repetition or
+     * corruption, including where a zone controller repacks it from Ethernet
+     * to CAN (gapEEActuationEnd). The form and the cadence of the command are
+     * those that the driver-assistance increment fixes at its baseline
+     * (asmEECommandFromDrivingBaseline). Answered by the view of the claimed
+     * path in phase 8.
+     */
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder safetyExpert : SafetyExpert;
+  }
+
+  concern eeCommandRouteExchangeConcern : PhysicalInternalExchangeConcern {
+    doc /*
+     * eeCommandRouteInScope. System architects and systems engineers need to
+     * see, on each of the two routes, which elements of the vehicle network
+     * exchange the driving command on its way from the network side of the
+     * central computer to the actuation ECU, through the Ethernet backbone
+     * and a zone controller or over the direct link, and the boundary
+     * interface by which the command enters the network from the Eclipse
+     * S-CORE path (asmEEScoreCommandSource). This increment takes neither
+     * route as given (gapEEZoneRouteInVehicles), and phases 6 to 8 decide the
+     * medium of the direct link. Answered by the view of the claimed path in
+     * phase 8.
+     */
+    subject;
+    stakeholder systemArchitect : SystemArchitect;
+    stakeholder systemsEngineer : SystemsEngineer;
+  }
+
+  concern eeNetworkFaultResponseConcern : SystemProcessConcern {
+    doc /*
+     * eeNetworkFaultsInScope. Safety experts and systems engineers need to
+     * see the sequence from each fault of the vehicle network on the route of
+     * the command, a link of that route that goes down and a command that is
+     * lost, delayed, repeated or corrupted, to its detection at the actuation
+     * and to the response that follows there, independent of the elements
+     * that realize it. A time limit on a response counts on the clock of the
+     * virtual vehicle. No safety argument follows from it. Answered by the
+     * system process of phase 6.
+     */
+    subject;
+    stakeholder safetyExpert : SafetyExpert;
+    stakeholder systemsEngineer : SystemsEngineer;
+  }
+
+  concern eeRouteVerdictConcern : ArgumentationAssuranceConcern {
+    doc /*
+     * eeVerdictEvidenceInScope. Product-line engineers and verification
+     * engineers need the lifecycle decision to rest on a pass or a fail for
+     * each requirement of the increment on each route, each bound to the
+     * route, the topology, the configuration and the revision that ran, from
+     * the replay of a recorded command stream whose binding to the revision
+     * that made it is open (gapEERecordedCommandStream). A verdict holds for
+     * the software testbed only (asmEESoftwareTestbedStandsIn) and is no
+     * timing claim for a vehicle network, and a fail stays a recorded result.
+     * Answered by the argumentation assurance view of phase 10.
+     */
+    subject;
+    stakeholder productLineEngineer : ProductLineEngineer;
+    stakeholder verificationEngineer : VerificationEngineer;
+  }
+
   view eeArchitectureFramingView {
     viewpoint eeArchitectureFramingViewpoint : IncrementFramingViewpoint {
       frame eeArchitectureBoundary;
+      frame eeVehicleCommandConcern;
+      frame eeTopologyStructureConcern;
+      frame eeCommandItemConcern;
+      frame eeCommandRouteExchangeConcern;
+      frame eeNetworkFaultResponseConcern;
+      frame eeRouteVerdictConcern;
     }
     expose EEArchitectureIncrement;
     expose eeArchitectureIncrement;
@@ -417,6 +536,12 @@ package DE4SDV_EEArchitectureFraming {
     expose eeVehicleNetworkSystem;
     expose eeArchitectureScope;
     expose eeArchitectureBoundary;
+    expose eeVehicleCommandConcern;
+    expose eeTopologyStructureConcern;
+    expose eeCommandItemConcern;
+    expose eeCommandRouteExchangeConcern;
+    expose eeNetworkFaultResponseConcern;
+    expose eeRouteVerdictConcern;
     expose eeTopologyInScope;
     expose eeCommandFlowInScope;
     expose eeCommandRouteInScope;
