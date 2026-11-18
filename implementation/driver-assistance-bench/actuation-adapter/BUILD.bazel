@@ -52,3 +52,33 @@ cc_binary(
     includes = ["tests"],
     deps = [":actuation_core"],
 )
+
+# The shell and the records (C++17). The simulator client is a plain function
+# interface (simulator_client.h).
+cc_library(
+    name = "adapter_shell",
+    srcs = ["adapter_shell.cpp"],
+    hdrs = [
+        "adapter_shell.h",
+        "log_records.h",
+        "run_log.h",
+        "simulator_client.h",
+    ],
+    includes = ["."],
+    deps = [":actuation_core"],
+)
+
+cc_binary(
+    name = "adapter_shell_test",
+    srcs = [
+        "tests/adapter_shell_test.cpp",
+        "tests/check.h",
+        "tests/fake_simulator_client.cpp",
+        "tests/fake_simulator_client.h",
+    ],
+    includes = ["tests"],
+    deps = [
+        ":adapter_config",
+        ":adapter_shell",
+    ],
+)

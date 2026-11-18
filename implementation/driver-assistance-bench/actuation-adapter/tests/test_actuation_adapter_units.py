@@ -30,6 +30,13 @@ BINARIES = {
         ADAPTER / "adapter_config.cpp",
         ADAPTER / "json_lite.cpp",
     ],
+    "adapter_shell_test": [
+        HERE / "adapter_shell_test.cpp",
+        HERE / "fake_simulator_client.cpp",
+        ADAPTER / "adapter_shell.cpp",
+        ADAPTER / "actuation_core.cpp",
+        ADAPTER / "json_lite.cpp",
+    ],
 }
 
 ARGUMENTS = {
