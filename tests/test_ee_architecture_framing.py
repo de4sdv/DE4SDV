@@ -64,7 +64,6 @@ IN_SCOPE = {
     "eeCommandFlowInScope":
         "The driving command of the driver-assistance increment, down from its source on the central computer to "
         "an actuation ECU on CAN.",
-    "eeSpeedFlowInScope": "The vehicle speed, up from an ECU on CAN to the central computer.",
     "eeCommandRouteInScope":
         "Two routes of the driving command to the actuation ECU: through the Ethernet backbone and a zone "
         "controller, and over the direct link.",
@@ -89,6 +88,8 @@ OUT_OF_SCOPE = {
                               "modes such as sleep and wake.",
     "eeVariabilityOutOfScope": "A second topology, and any variability of the E/E architecture in the product "
                                "line.",
+    "eeSensorDataOutOfScope": "Sensor data, such as the vehicle speed, up from an ECU on CAN to the central "
+                              "computer.",
     "eeClosedLoopOutOfScope": "Closed loop with a driving simulator through the vehicle network.",
     "eeHardwareEffectsOutOfScope":
         "Effects of hardware: the physical layer, bit timing on CAN and the timing of microcontrollers.",
@@ -117,7 +118,6 @@ GAPS = {
     "gapEESafetyPathArchitecture": "Whether a verdict on them bears on that choice is open",
     "gapEEZoneRouteInVehicles": "Whether vehicles carry a driving command through a zone controller is open",
     "gapEEActuationEnd": "keeps the detection end to end, is open",
-    "gapEEVehicleSpeedSources": "which requirement of this increment judges it, is open",
     "gapEEBrakeHandoff": "Whether a result of this increment meets that obligation for the AEBS is open",
     "gapEEStackAndNetworkBoundary": "How the vehicle network of this increment relates to them is open",
     "gapEENetworkInProductLine": "The governed product-line scope has no element for the vehicle network.",
@@ -129,7 +129,6 @@ OPEN_POINTS = {
     "gapEESafetyPathArchitecture": "The safety-path architecture",
     "gapEEZoneRouteInVehicles": "The zone route in vehicles",
     "gapEEActuationEnd": "The actuation end",
-    "gapEEVehicleSpeedSources": "The vehicle speed in the model",
     "gapEEBrakeHandoff": "The hand-off to the brake ECU",
     "gapEEStackAndNetworkBoundary": "The platform stack and the network boundary",
     "gapEENetworkInProductLine": "The vehicle network's place in the product line",
@@ -312,10 +311,9 @@ def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
                    "its source on the central computer gives. Inside: the vehicle network of one topology, with the "
                    "network side of the central computer, one Ethernet backbone, two zone controllers that act as "
                    "gateways between the backbone and CAN, a CAN bus in each zone, and a direct link from the "
-                   "central computer to the actuation ECU that passes no zone controller, as the other route; an "
-                   "actuation ECU on CAN that receives the command and acts on it; and an ECU on CAN that gives "
-                   "the vehicle speed. Out: the command that the actuation ECU applies, and the vehicle speed at "
-                   "the central computer.",
+                   "central computer to the actuation ECU that passes no zone controller, as the other route; and "
+                   "an actuation ECU on CAN that receives the command and acts on it. Out: the command that the "
+                   "actuation ECU applies.",
                    "Phases 6 to 8 decide the realization, with the medium of the direct link.",
                    "Two parts of System 1 are outside this boundary, and neither is an enabling system: the source "
                    "of the driving command on the central computer, and the Eclipse S-CORE path that carries the "
@@ -396,7 +394,7 @@ def test_scope_items_are_the_agreed_closed_sets():
                    "that the model asks of the command paths of earlier increments, on each of two routes:",
                    "one topology that holds both routes, with one central computer, two zone controllers and one "
                    "Ethernet backbone,",
-                   "two flows, the driving command down and the vehicle speed up,",
+                   "one flow, the driving command down to the actuation ECU,",
                    "for one configuration and with at most ten requirements",
                    "Phase 5 derives those requirements from the needs of Phase 4 and from REQ-DRIVING-028, "
                    "REQ-DRIVING-039 and REQ-MW-006.",
@@ -407,6 +405,11 @@ def test_scope_items_are_the_agreed_closed_sets():
                    "A readiness probe comes before the architecture rests on what it tests.",
                    "Implementation is not part of this framing slice."):
         assert phrase in scope, phrase
+    # the owner decided on 2026-11-18 that the increment carries the driving command only; the speed is out of scope
+    carried = {"the scope": scope, "the System 1 boundary": _doc("part def EEVehicleNetworkSystem")}
+    carried.update({name: _doc(f"part {name} : InScopeItem") for name in IN_SCOPE})
+    assert not [name for name, text in carried.items() if re.search(r"(?i)\bspeeds?\b", text)], \
+        "the increment carries no vehicle speed"
 
 
 def test_assumptions_are_premises_and_gaps_are_open_points():
@@ -470,8 +473,11 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
                    "The adapter of the closed-loop driving increment applies the stop response of REQ-DRIVING-028.",
                    "The adapter of the driver-assistance increment rejects a command whose sequence count, check "
                    "value or issue time fails, and has no stop response.",
+                   "It turns an accepted command into the simulator's control by a rule that takes the speed of the "
+                   "ego vehicle from the newest world snapshot (MAP-DRIVING-DA-COMMAND).",
                    "This increment puts the actuation in an ECU on CAN.",
                    "Which element then holds each of these duties,",
+                   "where the actuation end takes a vehicle speed if its conversion of the command needs one,",
                    "whether the driving command with its issue time, sequence count and check value fits a CAN "
                    "frame,",
                    "whether a zone controller that repacks the command from Ethernet to CAN keeps the detection end "
@@ -481,7 +487,11 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
     assistance = _flat(DRIVER_ASSISTANCE_REALIZATION.read_text(encoding="utf-8").replace("*", ""))
     for phrase in ("It has no stop response of its own.",
                    "no requirement of this increment asks for a stop response",
-                   "rejects a command whose sequence count is not one more than that of the last accepted command"):
+                   "rejects a command whose sequence count is not one more than that of the last accepted command",
+                   # the speed at the actuation end that the gap names
+                   "An accepted command becomes the simulator's Ackermann control by the rule of "
+                   "MAP-DRIVING-DA-COMMAND. Its simulator client takes the simulation time and the speed of the ego "
+                   "vehicle from the newest world snapshot"):
         assert phrase in assistance, phrase
     payload = braced_body(strip_comments(DRIVER_ASSISTANCE_REALIZATION.read_text(encoding="utf-8")),
                           "item def DrivingCommandEventPayload :> DrivingCommand")
@@ -489,27 +499,6 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
         "acceleration", "steeringAngle", "issueTime", "sequenceCount", "checkValue"]
     assert "REQ-DRIVING-028 counts its 200 ms on this clock at the actuation adapter." in _flat(
         CLOSED_LOOP_REALIZATION.read_text(encoding="utf-8").replace("*", ""))
-
-    speed = _doc("part gapEEVehicleSpeedSources : IncrementGap")
-    for phrase in ("The model carries the vehicle speed in earlier increments.",
-                   "The driver-assistance realization reads it from the simulator's world snapshot, typed by COVESA "
-                   "VSS, for its planner (MAP-DRIVING-DA-VEHICLE-SPEED) and for its actuation adapter.",
-                   "Requirements of the middleware integration layer on Eclipse S-CORE ask it to deliver a "
-                   "reference vehicle speed to Autoware (REQ-MW-010 to REQ-MW-013) and none to the AEB node "
-                   "(REQ-MW-020).",
-                   "Which of these consumers the speed from an ECU on CAN feeds, on which route, and which "
-                   "requirement of this increment judges it, is open."):
-        assert phrase in speed, phrase
-    assert "item <'MAP-DRIVING-DA-VEHICLE-SPEED'>" in DRIVER_ASSISTANCE_REALIZATION.read_text(encoding="utf-8")
-    assert "VehicleSpeedSamplePayload types the speed by COVESA VSS." in assistance
-    for identity in ("REQ-MW-010", "REQ-MW-011", "REQ-MW-012", "REQ-MW-013", "REQ-MW-020"):
-        assert f"requirement <'{identity}'>" in score_requirements, identity
-    # they are requirements on the integration layer, so the gap states them as what is asked
-    deliver = braced_body(score_requirements, "requirement <'REQ-MW-010'> reqDeliverReferenceVehicleSpeed :")
-    assert "subject integrationLayer :> DE4SDV_MiddlewareSCOREFraming::scoreMiddlewareIntegrationLayer;" in deliver
-    assert "The middleware integration layer shall deliver each finite reference vehicle speed sample" in deliver
-    assert "shall deliver no reference vehicle speed sample to the velocity input of the Autoware AEB node." in \
-        score_requirements
 
     handoff = _doc("part gapEEBrakeHandoff : IncrementGap")
     for phrase in ("records the hand-off from the vehicle interface to the brake ECU and actuator as an open "
@@ -738,6 +727,7 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
         assert phrase in boundaries, phrase
     assert not re.search(r"(?i)\bsettle|\binform the choice", boundaries), \
         "the guide claims no more for the safety path than the model's gap"
+    assert not re.search(r"(?i)\bspeeds?\b", boundaries), "the guide's System 1 subject carries no vehicle speed"
     assert boundaries.count("**System 1**") == 2 and boundaries.count("**System 2**") == 1
 
 

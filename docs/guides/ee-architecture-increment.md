@@ -76,10 +76,11 @@ until the network passes.
 |---|---|
 | One topology of the vehicle network: one central computer, two zone controllers, one Ethernet backbone between them, a CAN bus at the edge of each zone, and a direct link from the central computer to the actuation ECU that passes no zone controller. | Claims on the timing of the vehicle network, such as latency and jitter budgets, and time synchronisation between its nodes. |
 | The driving command of the driver-assistance increment, down from its source on the central computer to an actuation ECU on CAN. | Traffic shaping, and the behavior of the command under competing load on the network. |
-| The vehicle speed, up from an ECU on CAN to the central computer. | Diagnostics and software update of the ECUs through the zone controllers. |
-| Two routes of the driving command to the actuation ECU: through the Ethernet backbone and a zone controller, and over the direct link. | Security hardening: segmentation, authenticated messages and link protection. |
-| Faults of the vehicle network on the route of the command: one link of that route that goes down, and a command that is lost, delayed, repeated or corrupted on its way. | Redundancy, the operation of the vehicle after the loss of a whole zone, and power modes such as sleep and wake. |
-| A pass or a fail for each requirement of the increment on each route, on a virtual vehicle, from the replay of a recorded command stream, bound to the route, the topology, the configuration and the revision that ran. | A second topology, and any variability of the E/E architecture in the product line. |
+| Two routes of the driving command to the actuation ECU: through the Ethernet backbone and a zone controller, and over the direct link. | Diagnostics and software update of the ECUs through the zone controllers. |
+| Faults of the vehicle network on the route of the command: one link of that route that goes down, and a command that is lost, delayed, repeated or corrupted on its way. | Security hardening: segmentation, authenticated messages and link protection. |
+| A pass or a fail for each requirement of the increment on each route, on a virtual vehicle, from the replay of a recorded command stream, bound to the route, the topology, the configuration and the revision that ran. | Redundancy, the operation of the vehicle after the loss of a whole zone, and power modes such as sleep and wake. |
+| | A second topology, and any variability of the E/E architecture in the product line. |
+| | Sensor data, such as the vehicle speed, up from an ECU on CAN to the central computer. |
 | | Closed loop with a driving simulator through the vehicle network. |
 | | Effects of hardware: the physical layer, bit timing on CAN and the timing of microcontrollers. |
 | | Any safety argument, including freedom from interference, and any compliance, type approval or certification claim. |
@@ -123,20 +124,15 @@ Each point is a gap of the model, in the model's own words.
   The adapter of the closed-loop driving increment applies the stop response
   of REQ-DRIVING-028. The adapter of the driver-assistance increment rejects a
   command whose sequence count, check value or issue time fails, and has no
-  stop response. This increment puts the actuation in an ECU on CAN. Which
-  element then holds each of these duties, whether the driving command with
-  its issue time, sequence count and check value fits a CAN frame, and whether
-  a zone controller that repacks the command from Ethernet to CAN keeps the
-  detection end to end, is open. This framing changes neither adapter.
-- **The vehicle speed in the model** (`gapEEVehicleSpeedSources`). The model
-  carries the vehicle speed in earlier increments. The driver-assistance
-  realization reads it from the simulator's world snapshot, typed by COVESA
-  VSS, for its planner (MAP-DRIVING-DA-VEHICLE-SPEED) and for its actuation
-  adapter. Requirements of the middleware integration layer on Eclipse S-CORE
-  ask it to deliver a reference vehicle speed to Autoware (REQ-MW-010 to
-  REQ-MW-013) and none to the AEB node (REQ-MW-020). Which of these consumers
-  the speed from an ECU on CAN feeds, on which route, and which requirement of
-  this increment judges it, is open.
+  stop response. It turns an accepted command into the simulator's control by
+  a rule that takes the speed of the ego vehicle from the newest world
+  snapshot (MAP-DRIVING-DA-COMMAND). This increment puts the actuation in an
+  ECU on CAN. Which element then holds each of these duties, where the
+  actuation end takes a vehicle speed if its conversion of the command needs
+  one, whether the driving command with its issue time, sequence count and
+  check value fits a CAN frame, and whether a zone controller that repacks the
+  command from Ethernet to CAN keeps the detection end to end, is open. This
+  framing changes neither adapter.
 - **The hand-off to the brake ECU** (`gapEEBrakeHandoff`). The AEBS
   realization records the hand-off from the vehicle interface to the brake ECU
   and actuator as an open integration obligation, and deferred the boundary of
@@ -180,15 +176,15 @@ them supports, are in the
 The vehicle network of one topology is a proposed **System 1** subject: the
 network side of the central computer, the Ethernet backbone, two zone
 controllers as gateways to CAN, a CAN bus in each zone, a direct link that
-passes no zone controller as the other route, an actuation ECU that receives
-the command and acts on it, and an ECU that gives the vehicle speed. Two parts
-of **System 1** are outside its boundary, and neither is an enabler: the
-source of the driving command on the central computer, and the Eclipse S-CORE
-path that carries the command to the vehicle network. The software testbed
-that stands for the vehicle network, its host, the replay of the command
-stream, the fault injection, the model of the vehicle, the records and the
-evaluators are **System 2** enablers, not vehicle features. The testbed with
-its model of the vehicle is the virtual vehicle of this increment.
+passes no zone controller as the other route, and an actuation ECU that
+receives the command and acts on it. Two parts of **System 1** are outside its
+boundary, and neither is an enabler: the source of the driving command on the
+central computer, and the Eclipse S-CORE path that carries the command to the
+vehicle network. The software testbed that stands for the vehicle network, its
+host, the replay of the command stream, the fault injection, the model of the
+vehicle, the records and the evaluators are **System 2** enablers, not vehicle
+features. The testbed with its model of the vehicle is the virtual vehicle of
+this increment.
 
 The testbed gives functional behavior, not hardware timing: a time that it
 measures is the testbed's. It is no safety argument: whether a verdict of this

@@ -96,18 +96,16 @@ package DE4SDV_EEArchitectureFraming {
      * side of the central computer, one Ethernet backbone, two zone
      * controllers that act as gateways between the backbone and CAN, a CAN
      * bus in each zone, and a direct link from the central computer to the
-     * actuation ECU that passes no zone controller, as the other route; an
-     * actuation ECU on CAN that receives the command and acts on it; and an
-     * ECU on CAN that gives the vehicle speed. Out: the command that the
-     * actuation ECU applies, and the vehicle speed at the central computer.
-     * Two parts of System 1 are outside this boundary, and neither is an
-     * enabling system: the source of the driving command on the central
-     * computer, and the Eclipse S-CORE path that carries the command to the
-     * vehicle network. Phases 2 and 3 add the actors, the interfaces and the
-     * product-line classification, and Phases 6 to 8 decide the realization,
-     * with the medium of the direct link. The vehicle network is not a member
-     * product: this increment admits no member to the governed product-line
-     * scope.
+     * actuation ECU that passes no zone controller, as the other route; and
+     * an actuation ECU on CAN that receives the command and acts on it. Out:
+     * the command that the actuation ECU applies. Two parts of System 1 are
+     * outside this boundary, and neither is an enabling system: the source of
+     * the driving command on the central computer, and the Eclipse S-CORE
+     * path that carries the command to the vehicle network. Phases 2 and 3
+     * add the actors, the interfaces and the product-line classification, and
+     * Phases 6 to 8 decide the realization, with the medium of the direct
+     * link. The vehicle network is not a member product: this increment
+     * admits no member to the governed product-line scope.
      */
   }
   part eeVehicleNetworkSystem : EEVehicleNetworkSystem;
@@ -118,9 +116,9 @@ package DE4SDV_EEArchitectureFraming {
      * network, the properties that the model asks of the command paths of
      * earlier increments, on each of two routes: one topology that holds both
      * routes, with one central computer, two zone controllers and one
-     * Ethernet backbone, two flows, the driving command down and the vehicle
-     * speed up, for one configuration and with at most ten requirements.
-     * Phase 5 derives those requirements from the needs of Phase 4 and from
+     * Ethernet backbone, one flow, the driving command down to the actuation
+     * ECU, for one configuration and with at most ten requirements. Phase 5
+     * derives those requirements from the needs of Phase 4 and from
      * REQ-DRIVING-028, REQ-DRIVING-039 and REQ-MW-006. The evidence comes
      * from the replay of a recorded command stream on a virtual vehicle, in
      * Phase 10 of this same increment. A time limit of a requirement counts
@@ -144,9 +142,6 @@ package DE4SDV_EEArchitectureFraming {
      * The driving command of the driver-assistance increment, down from its
      * source on the central computer to an actuation ECU on CAN.
      */
-  }
-  part eeSpeedFlowInScope : InScopeItem {
-    doc /* The vehicle speed, up from an ECU on CAN to the central computer. */
   }
   part eeCommandRouteInScope : InScopeItem {
     doc /*
@@ -198,6 +193,12 @@ package DE4SDV_EEArchitectureFraming {
     doc /*
      * A second topology, and any variability of the E/E architecture in the
      * product line.
+     */
+  }
+  part eeSensorDataOutOfScope : OutOfScopeItem {
+    doc /*
+     * Sensor data, such as the vehicle speed, up from an ECU on CAN to the
+     * central computer.
      */
   }
   part eeClosedLoopOutOfScope : OutOfScopeItem {
@@ -293,25 +294,16 @@ package DE4SDV_EEArchitectureFraming {
      * host that runs Eclipse S-CORE. The adapter of the closed-loop driving
      * increment applies the stop response of REQ-DRIVING-028. The adapter of
      * the driver-assistance increment rejects a command whose sequence count,
-     * check value or issue time fails, and has no stop response. This
-     * increment puts the actuation in an ECU on CAN. Which element then holds
-     * each of these duties, whether the driving command with its issue time,
-     * sequence count and check value fits a CAN frame, and whether a zone
-     * controller that repacks the command from Ethernet to CAN keeps the
-     * detection end to end, is open. This framing changes neither adapter.
-     */
-  }
-  part gapEEVehicleSpeedSources : IncrementGap {
-    doc /*
-     * The model carries the vehicle speed in earlier increments. The
-     * driver-assistance realization reads it from the simulator's world
-     * snapshot, typed by COVESA VSS, for its planner
-     * (MAP-DRIVING-DA-VEHICLE-SPEED) and for its actuation adapter.
-     * Requirements of the middleware integration layer on Eclipse S-CORE ask
-     * it to deliver a reference vehicle speed to Autoware (REQ-MW-010 to
-     * REQ-MW-013) and none to the AEB node (REQ-MW-020). Which of these
-     * consumers the speed from an ECU on CAN feeds, on which route, and which
-     * requirement of this increment judges it, is open.
+     * check value or issue time fails, and has no stop response. It turns an
+     * accepted command into the simulator's control by a rule that takes the
+     * speed of the ego vehicle from the newest world snapshot
+     * (MAP-DRIVING-DA-COMMAND). This increment puts the actuation in an ECU
+     * on CAN. Which element then holds each of these duties, where the
+     * actuation end takes a vehicle speed if its conversion of the command
+     * needs one, whether the driving command with its issue time, sequence
+     * count and check value fits a CAN frame, and whether a zone controller
+     * that repacks the command from Ethernet to CAN keeps the detection end
+     * to end, is open. This framing changes neither adapter.
      */
   }
   part gapEEBrakeHandoff : IncrementGap {
@@ -427,7 +419,6 @@ package DE4SDV_EEArchitectureFraming {
     expose eeArchitectureBoundary;
     expose eeTopologyInScope;
     expose eeCommandFlowInScope;
-    expose eeSpeedFlowInScope;
     expose eeCommandRouteInScope;
     expose eeNetworkFaultsInScope;
     expose eeVerdictEvidenceInScope;
@@ -437,6 +428,7 @@ package DE4SDV_EEArchitectureFraming {
     expose eeSecurityOutOfScope;
     expose eeRedundancyOutOfScope;
     expose eeVariabilityOutOfScope;
+    expose eeSensorDataOutOfScope;
     expose eeClosedLoopOutOfScope;
     expose eeHardwareEffectsOutOfScope;
     expose eeSafetyClaimOutOfScope;
@@ -448,7 +440,6 @@ package DE4SDV_EEArchitectureFraming {
     expose gapEESafetyPathArchitecture;
     expose gapEEZoneRouteInVehicles;
     expose gapEEActuationEnd;
-    expose gapEEVehicleSpeedSources;
     expose gapEEBrakeHandoff;
     expose gapEEStackAndNetworkBoundary;
     expose gapEENetworkInProductLine;
