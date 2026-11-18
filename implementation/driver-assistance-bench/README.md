@@ -20,3 +20,4 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 | `score-path/config/` | The S-CORE host's configs of the warning request: gatewayd, someipd and their mw::com manifests |
 | `ivi-warning/` | The warning request on the guests: the Data Tunnel message, the SOME/IP mapping, the ACLs and the SDV Core staging |
 | `actuation-adapter/` | The actuation end of the S-CORE path: rejects a lost, repeated, corrupted or delayed driving command and applies an accepted one as CARLA's Ackermann control |
+| `world-side/` | The simulator host's world side on CARLA 1.0: SC-DRIVING-012 with its entry-condition checks and setting records, the ASM-DRIVING-005/006 calibrations and the camera calibration file |
