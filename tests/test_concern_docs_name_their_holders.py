@@ -34,6 +34,8 @@ CHARTERS = {
                         "closedLoopDrivingCharter", "DRIVING001", 12),
     "INC-DRIVING-002": ("features/driving/driver_assistance_framing.sysml",
                         "driverAssistanceCharter", "DRIVING002", 7),
+    "INC-HMI-001": ("features/hmi/hmi_display_framing.sysml",
+                    "hmiDisplayCharter", "HMI001", 1),
     "INC-AEBS-010": ("features/aebs/aebs_visualization_framing.sysml",
                      "visualizationTraceObligations", "AEBS010", 7),
     "INC-MW-011": ("features/middleware/middleware_score_framing.sysml",
