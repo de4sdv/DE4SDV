@@ -3,7 +3,9 @@
      Bench-only, draft. The package is the subject the SD agent grants
      (../../ivi-warning/interop/acl/ivi_warning_subscriber.textproto). Installed over adb into
      /vendor/priv-app by ../scripts/stage_ivi_warning_app.sh; it uses the image's Java SDV Gateway
-     client (libsdvgatewayclient-java-sdk), as the INC-DRIVING-001 observer does. -->
+     client (libsdvgatewayclient-java-sdk), as the INC-DRIVING-001 observer does.
+     configChanges: an AAOS day/night switch (uiMode) or a display change must not recreate the
+     activity in a window: that would start a second Gateway client while the first closes. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.de4sdv.collisionwarning">
 
@@ -22,7 +24,7 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:screenOrientation="landscape"
-            android:configChanges="orientation|screenSize|keyboardHidden">
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|uiMode|density">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

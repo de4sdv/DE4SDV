@@ -27,6 +27,7 @@ java_library {
     name: "de4sdv_collision_warning_model",
     srcs: [
         "src/org/de4sdv/collisionwarning/PresentationTimeline.java",
+        "src/org/de4sdv/collisionwarning/RecordWriter.java",
         "src/org/de4sdv/collisionwarning/ScreenText.java",
         "src/org/de4sdv/collisionwarning/WarningRecord.java",
         "src/org/de4sdv/collisionwarning/WarningRequestReducer.java",
@@ -42,6 +43,7 @@ android_app {
     srcs: ["src/**/*.java"],
     exclude_srcs: [
         "src/org/de4sdv/collisionwarning/PresentationTimeline.java",
+        "src/org/de4sdv/collisionwarning/RecordWriter.java",
         "src/org/de4sdv/collisionwarning/ScreenText.java",
         "src/org/de4sdv/collisionwarning/WarningRecord.java",
         "src/org/de4sdv/collisionwarning/WarningRequestReducer.java",
@@ -67,7 +69,7 @@ android_app {
     },
 }
 
-// JVM tests of the edge logic, the record format, the timeline, the tone and the screen text.
+// JVM tests of the edge logic, the record format and writer, the timeline, the tone and the screen text.
 // `m` builds them but does not run them; the guest-build script runs them with the tree's JDK.
 java_test {
     name: "De4sdvCollisionWarningPresentationTests",
