@@ -763,7 +763,7 @@ whose count is one greater is accepted unless its issue time is older than the
 newest world time by more than 0.1 s of simulation time, when it is rejected as
 a delay; either way counting continues from it. A late command or a repetition
 costs that one command; a loss or a corruption costs the missing command and the
-next one, which reveals it; no single fault makes later valid commands fail.
+next one, which reveals it; none of them makes later valid commands fail.
 
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
 upstream's own simulator path does, and gives the simulator the candidate's

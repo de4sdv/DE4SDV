@@ -321,7 +321,7 @@ COUNTING_DECISION = (
 )
 #: What the receiving rule costs, in the adapter's doc, the comment the analysis reads and the guide.
 COUNTING_COST = ("A late command or a repetition costs that one command; a loss or a corruption costs the missing "
-                 "command and the next one, which reveals it; no single fault makes later valid commands fail.")
+                 "command and the next one, which reveals it; none of them makes later valid commands fail.")
 #: the receiving rule as merged before the adapter counting decision of 2026-11-18: gone from the model and the guide
 RETIRED_COUNTING_STATEMENTS = ("the last accepted command (a loss or a repetition)",
                                "not one more than that of the last accepted")

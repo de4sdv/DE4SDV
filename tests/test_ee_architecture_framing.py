@@ -490,6 +490,7 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
                    # the three fields the gap names, in the adapter's order (the adapter counting decision of
                    # 2026-11-18)
                    "The adapter checks the check value first, then the sequence count, then the issue time.",
+                   "A command whose check value fails is rejected (a corruption)",
                    # the speed at the actuation end that the gap names
                    "An accepted command becomes the simulator's Ackermann control by the rule of "
                    "MAP-DRIVING-DA-COMMAND. Its simulator client takes the simulation time and the speed of the ego "

@@ -622,7 +622,7 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * rejected (a delay); in both cases its count becomes the reference count.
      * A late command or a repetition costs that one command; a loss or a
      * corruption costs the missing command and the next one, which reveals it;
-     * no single fault makes later valid commands fail. Rejecting what it
+     * none of them makes later valid commands fail. Rejecting what it
      * detects is the share of the product that holds the path (REQ-MW-006). The
      * issue time and the newest world time are simulation times of world
      * snapshots, on one clock. It applies nothing in place of a rejected
@@ -1277,7 +1277,7 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * check value holds (the adapter counting decision of 2026-11-18;
      * DrivingCommandActuationAdapter states the rule): a late command or a
      * repetition costs that one command; a loss or a corruption costs the
-     * missing command and the next one, which reveals it; no single fault makes
+     * missing command and the next one, which reveals it; none of them makes
      * later valid commands fail. The analysis of REQ-DRIVING-039 reads this
      * record; it makes no freedom-from-interference claim.
      */
