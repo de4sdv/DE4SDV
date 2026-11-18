@@ -46,9 +46,13 @@ STOP_RUN = ("the further run of SC-DRIVING-012 in which the Eclipse S-CORE path 
             "is stopped")
 APART = ("The runs of SC-DRIVING-014 and SC-DRIVING-015 are reported apart from the runs inside the declared "
          "operating conditions (gapDeclaredOperatingConditions).")
-#: the cases of the judged runs leave the stop run out until the phase 5 terms settle whether it is a judged run
-STOP_RUN_PENDING = ("The further run of SC-DRIVING-012 with the Eclipse S-CORE path stopped is not among the runs that "
-                    "this case reads until the terms of the requirements settle whether it is a judged run.")
+#: the phase 5 terms, amended on 2026-11-18: the stop run is no run of a setting and no judged run, and only the
+#: stop clauses of REQ-DRIVING-038 and REQ-DRIVING-043 read it
+TERMS_AMENDMENT = ("The further run of SC-DRIVING-012 in which the Eclipse S-CORE path of the driver-assistance system "
+                   "is stopped, which REQ-DRIVING-038 and REQ-DRIVING-043 name, is no run of a setting and no judged "
+                   "run, and only the stop clauses of those two requirements read it (an amendment of the terms of "
+                   "2026-11-18).")
+STOP_CLAUSE_ONLY = f"{STOP_RUN}, which only the stop clause reads."
 #: in the stop run the candidate keeps running and the path's carriers stop; the next slice names the processes
 STOP_RUN_CARRIERS = ("In the further run the candidate's process keeps running, and the path's carriers of the driving "
                      "command and of the warning request are stopped through the Launch Manager; which processes these "
@@ -73,11 +77,11 @@ CASE_RUNS = {
     37: (TARGET_SETTINGS, "ten runs", False, "test"),
     38: (list(SETTINGS), "fourteen runs", True, "test"),
     39: ([], None, False, "analyze"),
-    40: (list(SETTINGS), "fourteen runs", True, "test"),
-    41: (list(SETTINGS), "fourteen runs", True, "test"),
+    40: (list(SETTINGS), "fourteen runs", False, "test"),
+    41: (list(SETTINGS), "fourteen runs", False, "test"),
     42: (TARGET_SETTINGS, "ten runs", False, "test"),
     43: (TARGET_SETTINGS, "ten runs", True, "test"),
-    44: (list(SETTINGS), "fourteen runs", True, "test"),
+    44: (list(SETTINGS), "fourteen runs", False, "test"),
 }
 
 #: claim -> (the phase 1 concern it answers, the requirement numbers its argument cites)
@@ -270,7 +274,8 @@ def test_no_case_has_started_and_each_states_its_scenarios_settings_runs_and_ben
         if count:
             assert f"Runs: the two runs of each setting, {count}" in doc, usage
         assert (STOP_RUN in doc) is stop, usage
-        assert (STOP_RUN_PENDING in doc) is (count == "ten runs" and not stop), usage
+        assert (STOP_CLAUSE_ONLY in doc) is stop, usage
+        assert "which is a run of SC-DRIVING-012 too" not in doc and "settle whether it is a judged run" not in doc
         assert (STOP_RUN_CARRIERS in doc) is (number in (38, 43)), usage
         assert (APART in doc) is ("curveAt30" in settings), usage
         kinds = "(test, analyze)" if method == "test" else "analyze"
@@ -340,6 +345,17 @@ def test_each_case_restates_the_values_scenarios_and_stop_clause_of_its_requirem
         found_scopes += len(scopes)
         found_stops += bool(stop)
     assert (found_values, found_scopes, found_stops) == (3, 8, 2), "the extraction must not be vacuous"
+    # by the amended terms, the clauses over every run read the runs of the settings only
+    for name in ("WithholdWarningRequestVerification", "WithholdEmergencyBrakingVerification",
+                 "RecordCandidateIdentityVerification"):
+        assert ("collectData retains the record of each of the fourteen runs of SC-DRIVING-012 to SC-DRIVING-015:"
+                in docs[name]), name
+    assert "processData matches, in each of the fourteen runs, every driving command" in docs[
+        "DrivingCommandOverSCOREVerification"]
+    assert "at any time of those runs" in docs["DrivingCommandOverSCOREVerification"]
+    assert "processData matches, in each of the ten runs, every warning request" in docs[
+        "WarningRequestOverSCOREVerification"]
+    assert TERMS_AMENDMENT in _docs(REQUIREMENTS), "the phase 5 terms carry the amendment"
     phase5 = _docs(REQUIREMENTS)
     assert f"System 2 records in each of their runs {GUIDANCE}." in phase5, "phase 5's own words"
     assert ("As phase 5 states, System 2 records in each of the runs of SC-DRIVING-014 and SC-DRIVING-015 "
@@ -394,10 +410,10 @@ def test_the_outcome_vocabulary_is_the_increments_own_with_the_six_shared_litera
     assert set(re.findall(r"AssistanceScenarioIdentity::(\w+)", raw)) == set(SC_IDS)
     docs = _docs(SLICE)
     assert "Each setting runs twice and both runs count: fourteen runs." in docs
-    assert ("is a fifteenth run at one of the three settings of SC-DRIVING-012; the next slice chooses which."
-            in docs)
-    assert ("VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 do not read it until the terms of the requirements "
-            "settle whether it is a judged run.") in docs
+    assert ("REQ-DRIVING-038 and REQ-DRIVING-043 name, is no run of a setting and no judged run, and only the stop "
+            "clauses of those two requirements read it (the terms of the requirements, amended on 2026-11-18); the "
+            "next slice chooses its approach speed.") in docs
+    assert "fifteenth" not in docs and "at one of the three settings" not in docs
     assert "A missing or partial record gives inconclusive, never pass." in docs
 
 
@@ -409,9 +425,9 @@ def test_the_slice_header_states_the_readings_the_cases_make() -> None:
                    "A setting that is not judged, a run that is missing and a run whose record shows a dropped image "
                    "within the window that a case judges give inconclusiveMissingEvidence, never pass; for a "
                    "criterion over every run, that window is the whole run.",
-                   "is read by the cases that read every run of SC-DRIVING-012 and by the stop clauses of "
-                   "REQ-DRIVING-038 and REQ-DRIVING-043; the cases of the judged runs do not read it until the terms "
-                   "of the requirements settle whether it is a judged run.",
+                   "is no run of a setting and no judged run, and only the stop clauses of REQ-DRIVING-038 and "
+                   "REQ-DRIVING-043 read it, as the terms of the requirements state since their amendment of "
+                   "2026-11-18.",
                    "In that run the candidate's process keeps running and the path's carriers of the driving command "
                    "and of the warning request are stopped.",
                    "No case judges when the display and the sound give the warning "
@@ -443,6 +459,8 @@ def test_the_run_record_binds_the_identities_the_decision_names() -> None:
                    "the readiness probe of the recorder on 2026-11-17 measured 2.0 ms more at the median and 5.8 ms "
                    "more at the 99th percentile from an image to its command, on an S-CORE host with an NVIDIA L4; a "
                    "run on another host states the delay it measures",
+                   "runIdentity names the run: the first or the second run of its setting, or the further run in "
+                   "which the Eclipse S-CORE path is stopped, which is no run of a setting.",
                    "simulatedConfiguration names the simulated configuration of the run: the blueprints of the ego "
                    "vehicle and of the other vehicles of the scenario, the map and the road, the weather, the fixed "
                    "step of 0.05 s and synchronous mode, and the camera rig; a digest of the scenario definition that "
@@ -701,8 +719,9 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
                  "In the stop run the candidate's process keeps running, and the Launch Manager stops the path's "
                  "carriers of the driving command and of the warning request; the next slice fixes which processes "
                  "these are.",
-                 "The cases of the judged runs, VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042, leave it out "
-                 "until the Phase 5 terms settle whether it is a judged run.",
+                 "By the Phase 5 terms, as amended on 2026-11-18, it is no run of a setting and no judged run, and "
+                 "only the stop clauses of those two requirements read it, in VC-DRIVING-038 and VC-DRIVING-043; the "
+                 "next slice chooses its approach speed.",
                  "(../../textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml)"):
         assert text in section, text
     # the settings and their count, from the enum literals, as the guide and the enum doc state them
@@ -733,7 +752,8 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
         values = CRITERION_VALUE.findall(title)
         assert all(value in criteria[number] for value in values), number
         assert (values == ["1.0 s"]) is (number == 42), number
-    assert "instrument" not in section
+    assert "instrument" not in section and "fifteenth" not in section
+    assert all(("for the stop clause" in runs) is CASE_RUNS[number][2] for (_, _, _, runs, _), number in zip(rows, NUMBERS))
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
     assert "tests/test_driver_assistance_verification_evidence.py" in check
     flat = " ".join(guide.split())

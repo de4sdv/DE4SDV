@@ -13,6 +13,8 @@ review settled on top of them:
 - the criteria for a vehicle target, each derived from the source regulation and a product-line requirement, with
   whose obligation it is and what a simulation cannot show of it; a setting counts only when both of its runs are
   judged;
+- the further run with the S-CORE path stopped, no run of a setting and no judged run, read only by the stop clauses
+  of REQ-DRIVING-038 and REQ-DRIVING-043 (an amendment of the terms of 2026-11-18);
 - the no-autopilot, replay or overlay condition of the planned reviews as a success criterion, never as wording of
   a statement;
 - the time of the warning request before the emergency braking in simulation time, its share for the path and the
@@ -221,6 +223,9 @@ TERM_RULES = ("It starts with the first such command after a command for less.",
                "until the vehicle hits the target or comes to the speed of the target",
                "is reported with what it missed and is not judged",
                "A setting of SC-DRIVING-012 or SC-DRIVING-013 is judged when both of its runs are judged runs.",
+               "The further run of SC-DRIVING-012 in which the Eclipse S-CORE path of the driver-assistance system is "
+               "stopped, which REQ-DRIVING-038 and REQ-DRIVING-043 name, is no run of a setting and no judged run, and "
+               "only the stop clauses of those two requirements read it (an amendment of the terms of 2026-11-18).",
                "a loss, a delay, a repetition or a corruption of a message on it",
                "the SHA-256 of each file of its configuration and the settings of its launch, verbatim",
                "the speed at which the vehicle closes on the vehicle ahead when the collision becomes imminent",
@@ -266,6 +271,9 @@ GUIDE_FACTS = (
     "its centre line within 0.2 m of that of the target, for at least 2 s",
     "with a time to collision of at least 4 s",
     "A setting is judged when both of its runs are",
+    "The further run of `SC-DRIVING-012` that stops the Eclipse S-CORE path, which `REQ-DRIVING-038` and "
+    "`REQ-DRIVING-043` name, is no run of a setting and no judged run; only the stop clauses of those two requirements "
+    "read it (an amendment of the terms of 2026-11-18).",
     "and so at least 0.8 s before the start of the emergency braking",
     "0.2 s of the lead of 1.0 s is the share of the S-CORE path and the AAOS SDV",
     "the regulation asks for the warning to the driver at the latest 0.8 s before the start of the emergency braking",

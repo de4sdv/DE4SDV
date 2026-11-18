@@ -352,7 +352,11 @@ simulation cannot show of it.
   to its speed. A run that misses this, or has no functional part, is reported
   with what it missed and is not judged. A setting is judged when both of its
   runs are; a setting with a run that is not judged meets none of the criteria
-  of `REQ-DRIVING-036`, `REQ-DRIVING-037` and `REQ-DRIVING-042`.
+  of `REQ-DRIVING-036`, `REQ-DRIVING-037` and `REQ-DRIVING-042`. The further run
+  of `SC-DRIVING-012` that stops the Eclipse S-CORE path, which
+  `REQ-DRIVING-038` and `REQ-DRIVING-043` name, is no run of a setting and no
+  judged run; only the stop clauses of those two requirements read it (an
+  amendment of the terms of 2026-11-18).
 
 **Whose obligation each criterion is.**
 
@@ -870,28 +874,28 @@ no case has started, no evidence record exists, and every requirement keeps
 - **The runs.** Seven settings, each run twice, both runs counting:
   SC-DRIVING-012 at 20, 42 and 60 km/h, SC-DRIVING-013 at 30 and 60 km/h,
   SC-DRIVING-014 at 30 km/h and SC-DRIVING-015 at 40 km/h, fourteen runs. A
-  fifteenth run of SC-DRIVING-012, the stop run, stops the S-CORE path of the
-  candidate, as REQ-DRIVING-038 and REQ-DRIVING-043 ask; the next slice chooses
-  its setting. It is a run of SC-DRIVING-012 too, so the cases that read every
-  run of SC-DRIVING-012 read it. The cases of the judged runs, VC-DRIVING-036,
-  VC-DRIVING-037 and VC-DRIVING-042, leave it out until the Phase 5 terms settle
-  whether it is a judged run. In the stop run the candidate's process keeps
-  running, and the Launch Manager stops the path's carriers of the driving
-  command and of the warning request; the next slice fixes which processes these
-  are. The runs of SC-DRIVING-014 and SC-DRIVING-015 lie outside the candidate's
-  declared operating conditions and are reported apart.
+  further run of SC-DRIVING-012, the stop run, stops the S-CORE path of the
+  candidate, as REQ-DRIVING-038 and REQ-DRIVING-043 ask. By the Phase 5 terms,
+  as amended on 2026-11-18, it is no run of a setting and no judged run, and
+  only the stop clauses of those two requirements read it, in VC-DRIVING-038 and
+  VC-DRIVING-043; the next slice chooses its approach speed. In the stop run the
+  candidate's process keeps running, and the Launch Manager stops the path's
+  carriers of the driving command and of the warning request; the next slice
+  fixes which processes these are. The runs of SC-DRIVING-014 and SC-DRIVING-015
+  lie outside the candidate's declared operating conditions and are reported
+  apart.
 
 | Case | Requirement | Runs it reads | Method |
 |---|---|---|---|
 | VC-DRIVING-036 | REQ-DRIVING-036, braking demand | the ten runs of SC-DRIVING-012 and SC-DRIVING-013 | test |
 | VC-DRIVING-037 | REQ-DRIVING-037, impact speed | the ten runs of SC-DRIVING-012 and SC-DRIVING-013 | test |
-| VC-DRIVING-038 | REQ-DRIVING-038, driving command only over S-CORE | the fourteen runs and the stop run | test |
+| VC-DRIVING-038 | REQ-DRIVING-038, driving command only over S-CORE | the fourteen runs and the stop run, for the stop clause | test |
 | VC-DRIVING-039 | REQ-DRIVING-039, detectable driving command | no run: the Phase 8 realization | analysis |
-| VC-DRIVING-040 | REQ-DRIVING-040, no warning request without an imminent collision | the fourteen runs and the stop run | test |
-| VC-DRIVING-041 | REQ-DRIVING-041, no emergency braking without an imminent collision | the fourteen runs and the stop run | test |
+| VC-DRIVING-040 | REQ-DRIVING-040, no warning request without an imminent collision | the fourteen runs | test |
+| VC-DRIVING-041 | REQ-DRIVING-041, no emergency braking without an imminent collision | the fourteen runs | test |
 | VC-DRIVING-042 | REQ-DRIVING-042, warning request 1.0 s before the emergency braking | the ten runs of SC-DRIVING-012 and SC-DRIVING-013 | test |
-| VC-DRIVING-043 | REQ-DRIVING-043, warning request only over S-CORE | the ten runs and the stop run | test |
-| VC-DRIVING-044 | REQ-DRIVING-044, candidate identity record | the fourteen runs and the stop run | test |
+| VC-DRIVING-043 | REQ-DRIVING-043, warning request only over S-CORE | the ten runs and the stop run, for the stop clause | test |
+| VC-DRIVING-044 | REQ-DRIVING-044, candidate identity record | the fourteen runs | test |
 
 - **Outcome and verdict.** The increment's own `AssistanceEvidenceOutcome` has
   the six literals of INC-DRIVING-001's vocabulary.
