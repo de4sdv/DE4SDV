@@ -15,4 +15,6 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 
 | Folder | Content |
 |---|---|
-| `interfaces/` | The interface control document and the payload header that the components share |
+| `interfaces/` | The interface control document, its machine-readable ids (`service_ids.json`) and the payload header that the components share |
+| `score-path/config/` | The S-CORE host's configs of the warning request: gatewayd, someipd and their mw::com manifests |
+| `ivi-warning/` | The warning request on the guests: the Data Tunnel message, the SOME/IP mapping, the ACLs and the SDV Core staging |
