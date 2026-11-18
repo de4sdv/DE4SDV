@@ -46,12 +46,50 @@ STOP_RUN = ("the further run of SC-DRIVING-012 in which the Eclipse S-CORE path 
             "is stopped")
 APART = ("The runs of SC-DRIVING-014 and SC-DRIVING-015 are reported apart from the runs inside the declared "
          "operating conditions (gapDeclaredOperatingConditions).")
-#: the phase 5 terms, amended on 2026-11-18: the stop run is no run of a setting and no judged run, and only the
-#: stop clauses of REQ-DRIVING-038 and REQ-DRIVING-043 read it
+#: the phase 5 terms since the stop-run decision of 2026-11-18: the stop run is no run of a setting and no judged
+#: run, and only the stop clauses of REQ-DRIVING-038 and REQ-DRIVING-043 read it
+STOP_RUN_DECISION = "the stop-run decision of 2026-11-18"
 TERMS_AMENDMENT = ("The further run of SC-DRIVING-012 in which the Eclipse S-CORE path of the driver-assistance system "
                    "is stopped, which REQ-DRIVING-038 and REQ-DRIVING-043 name, is no run of a setting and no judged "
-                   "run, and only the stop clauses of those two requirements read it (an amendment of the terms of "
-                   "2026-11-18).")
+                   f"run, and only the stop clauses of those two requirements read it ({STOP_RUN_DECISION}).")
+#: the run scope of each claim, in the words of the cases its argument cites: the fourteen runs of the settings, the
+#: ten runs of SC-DRIVING-012 and SC-DRIVING-013, the judged runs, and the stop run only where a stop clause reads it
+#: (the stop-run decision of 2026-11-18; review R1 of the 10a review)
+CLAIM_RUN_SCOPES = {
+    "vehicleTargetResponse": (
+        "in the judged runs of every setting of SC-DRIVING-012 and SC-DRIVING-013, the driver-assistance system",
+        "run; and in each of the fourteen runs of SC-DRIVING-012 to SC-DRIVING-015 it starts a warning request and "
+        "an emergency braking only while a collision with a vehicle ahead is imminent.",
+    ),
+    # the realization that phase 8 records, and no run
+    "emergencyBrakingIndependence": (),
+    "driverWarningSequence": (
+        "In each judged run of SC-DRIVING-012 and SC-DRIVING-013 in which the collision with the target becomes "
+        "imminent,",
+        "and in each of the fourteen runs of SC-DRIVING-012 to SC-DRIVING-015 it starts a warning request only while "
+        "a collision with a vehicle ahead is imminent.",
+    ),
+    "scoreCommandAndWarningPath": (
+        "In each of the fourteen runs of SC-DRIVING-012 to SC-DRIVING-015 every driving command that reaches the "
+        "actuation, and in each of the ten runs of SC-DRIVING-012 and SC-DRIVING-013 every warning request that "
+        "reaches the AAOS SDV, is matched",
+        "; in those fourteen runs the autopilot and the traffic manager of the simulator have no control of the "
+        "vehicle, and no recorded,",
+        "; and in the further run of SC-DRIVING-012 with the path stopped neither the command nor the request "
+        "arrives after the stop.",
+    ),
+    "candidateVerdict": (
+        "Each verdict that rests on the fourteen runs of SC-DRIVING-012 to SC-DRIVING-015 is bound to the candidate "
+        "that ran: the candidate identity record of each of those runs, there before its first driving command",
+        "; and the evidence record of each of those runs binds DRIVING-CONFIG-002",
+        "The record of the further run of SC-DRIVING-012 with the path stopped carries the candidate identity "
+        "values as well, and no case checks them, because only the stop clauses of REQ-DRIVING-038 and "
+        "REQ-DRIVING-043 read that run.",
+    ),
+}
+#: the claims that name the further run: the one whose cases read the stop clauses of the path, and the one that
+#: states that no case checks the candidate identity values of that run
+STOP_RUN_CLAIMS = ("scoreCommandAndWarningPath", "candidateVerdict")
 STOP_CLAUSE_ONLY = f"{STOP_RUN}, which only the stop clause reads."
 #: in the stop run the candidate keeps running and the path's carriers stop; the next slice names the processes
 STOP_RUN_CARRIERS = ("In the further run the candidate's process keeps running, and the path's carriers of the driving "
@@ -411,8 +449,8 @@ def test_the_outcome_vocabulary_is_the_increments_own_with_the_six_shared_litera
     docs = _docs(SLICE)
     assert "Each setting runs twice and both runs count: fourteen runs." in docs
     assert ("REQ-DRIVING-038 and REQ-DRIVING-043 name, is no run of a setting and no judged run, and only the stop "
-            "clauses of those two requirements read it (the terms of the requirements, amended on 2026-11-18); the "
-            "next slice chooses its approach speed.") in docs
+            f"clauses of those two requirements read it ({STOP_RUN_DECISION}); the next slice chooses its approach "
+            "speed.") in docs
     assert "fifteenth" not in docs and "at one of the three settings" not in docs
     assert "A missing or partial record gives inconclusive, never pass." in docs
 
@@ -426,8 +464,7 @@ def test_the_slice_header_states_the_readings_the_cases_make() -> None:
                    "within the window that a case judges give inconclusiveMissingEvidence, never pass; for a "
                    "criterion over every run, that window is the whole run.",
                    "is no run of a setting and no judged run, and only the stop clauses of REQ-DRIVING-038 and "
-                   "REQ-DRIVING-043 read it, as the terms of the requirements state since their amendment of "
-                   "2026-11-18.",
+                   f"REQ-DRIVING-043 read it, as the terms of the requirements state since {STOP_RUN_DECISION}.",
                    "In that run the candidate's process keeps running and the path's carriers of the driving command "
                    "and of the warning request are stopped.",
                    "No case judges when the display and the sound give the warning "
@@ -445,7 +482,8 @@ def test_the_run_record_binds_the_identities_the_decision_names() -> None:
     record = _body(code, rf"\bitem def {RUN_RECORD} \{{")
     assert re.findall(r"\battribute (\w+) : ", record) == RUN_ATTRIBUTES
     assert "attribute scenario : AssistanceScenarioIdentity;" in record
-    assert "attribute setting : AssistanceSettingIdentity;" in record
+    # the further run is no run of a setting: its record has no setting (review R6 of the 10a review)
+    assert "attribute setting : AssistanceSettingIdentity[0..1];" in record
     assert "guestImageBuilds" not in code, "the guest images are part of executionEnvironmentIdentity"
     docs = _docs(SLICE)
     for phrase in (f"every case that reads the run reads this record ({DECISIONS})",
@@ -459,6 +497,8 @@ def test_the_run_record_binds_the_identities_the_decision_names() -> None:
                    "the readiness probe of the recorder on 2026-11-17 measured 2.0 ms more at the median and 5.8 ms "
                    "more at the 99th percentile from an image to its command, on an S-CORE host with an NVIDIA L4; a "
                    "run on another host states the delay it measures",
+                   "scenario names the run's scenario; setting names its setting for a run of a setting and is left "
+                   "empty for the further run;",
                    "runIdentity names the run: the first or the second run of its setting, or the further run in "
                    "which the Eclipse S-CORE path is stopped, which is no run of a setting.",
                    "simulatedConfiguration names the simulated configuration of the run: the blueprints of the ego "
@@ -528,8 +568,9 @@ def test_the_environment_gap_is_deferred_and_continues_the_readiness_items_of_ph
                    "Whether the S-CORE host's own GPU keeps the cycle with the S-CORE build is not shown yet",
                    "the start of the sound on the guest is unmeasured",
                    "with a new message type for the warning request, open until phase 10",
-                   "After the scenarios of phase 10 have run in CARLA, the VisionPilot maintainers are shown a draft "
-                   "of the warning output and the interface seam"):
+                   "On 2026-11-18 the owner chose that nothing goes upstream before the scenarios of phase 10 have "
+                   "run in CARLA: then the VisionPilot maintainers are shown a draft of the warning output and the "
+                   "interface seam"):
         assert source in physical, source
     ids = sorted(set(re.findall(r"GAP-DRIVING-\d{3}", "".join(
         p.read_text(encoding="utf-8") for p in DRIVING.glob("*.sysml")))))
@@ -571,6 +612,20 @@ def test_each_claim_answers_one_phase_1_concern_and_its_argument_cites_the_right
             assert value in head, (stem, value)
         assert re.search(rf"dependency claimSupportedBy{stem[0].upper() + stem[1:]}Argument\s+from {stem}Argument "
                          rf"to {stem}Claim;", code)
+    # the run scope of each claim is that of its cases: no claim reads "every run" or "each run" and so takes the
+    # stop run in; the stop run comes in only beside a stop clause, and in candidateVerdictClaim as its stated limit
+    assert list(CLAIM_RUN_SCOPES) == list(CLAIMS)
+    for stem in CLAIMS:
+        claim = _flat(_body(raw, rf"\brequirement {stem}Claim : DriverAssistanceClaim \{{"))
+        head = claim.split(f"subject claimSubject : {BENCH_DEF};", 1)[0]
+        positions = []
+        for scope in CLAIM_RUN_SCOPES[stem]:
+            assert head.count(scope) == 1, (stem, scope)
+            positions.append(head.index(scope))
+        assert positions == sorted(positions), stem
+        assert not re.search(r"\b(?:every|each|all) runs?\b|\bstop run\b|\bfifteen\b", head), stem
+        stop_mentions = head.count("the further run of SC-DRIVING-012 with the path stopped")
+        assert stop_mentions == (stem in STOP_RUN_CLAIMS), stem
     vehicle_target = _flat(_body(raw, r"\brequirement vehicleTargetResponseClaim : DriverAssistanceClaim \{"))
     assert ("commands a deceleration of at least 5.0 m/s² at each instant of the functional part at which the "
             "needed deceleration to the target is at least 5.0 m/s²") in vehicle_target
@@ -719,7 +774,8 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
                  "In the stop run the candidate's process keeps running, and the Launch Manager stops the path's "
                  "carriers of the driving command and of the warning request; the next slice fixes which processes "
                  "these are.",
-                 "By the Phase 5 terms, as amended on 2026-11-18, it is no run of a setting and no judged run, and "
+                 f"By the Phase 5 terms, as {STOP_RUN_DECISION} amended them, it is no run of a setting and no "
+                 "judged run, and "
                  "only the stop clauses of those two requirements read it, in VC-DRIVING-038 and VC-DRIVING-043; the "
                  "next slice chooses its approach speed.",
                  "(../../textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml)"):

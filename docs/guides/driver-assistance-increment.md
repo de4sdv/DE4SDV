@@ -355,8 +355,8 @@ simulation cannot show of it.
   of `REQ-DRIVING-036`, `REQ-DRIVING-037` and `REQ-DRIVING-042`. The further run
   of `SC-DRIVING-012` that stops the Eclipse S-CORE path, which
   `REQ-DRIVING-038` and `REQ-DRIVING-043` name, is no run of a setting and no
-  judged run; only the stop clauses of those two requirements read it (an
-  amendment of the terms of 2026-11-18).
+  judged run; only the stop clauses of those two requirements read it (the
+  stop-run decision of 2026-11-18).
 
 **Whose obligation each criterion is.**
 
@@ -751,20 +751,21 @@ DE4SDV would add all three and a bridge from SDV Core to SDV Media.
 
 On 2026-11-18 the owner chose how the actuation adapter counts the commands it
 receives: from the last received command whose check value holds, so that one
-lost, corrupted or late command does not make every later command fail its
-sequence count. The adapter checks the check value, then the sequence count,
-then the issue time. Its reference count is the highest sequence count among the
-commands of the run whose check value holds; it is 0 when the run starts, and
-the vehicle interface counts from 1. A command whose check value fails is
-rejected as a corruption and leaves the reference count as it is. A command
-whose count is not greater than the reference count is rejected as a repetition
-and leaves the reference count as it is. A command whose count is more than one
-greater reveals a loss: it is rejected, and counting resumes from it. A command
-whose count is one greater is accepted unless its issue time is older than the
-newest world time by more than 0.1 s of simulation time, when it is rejected as
-a delay; either way counting continues from it. A late command or a repetition
-costs that one command; a loss or a corruption costs the missing command and the
-next one, which reveals it; none of them makes later valid commands fail.
+lost or late command, or one whose corruption the check value detects, does not
+make every later command fail its sequence count. The adapter checks the check
+value, then the sequence count, then the issue time. Its reference count is the
+highest sequence count among the earlier commands of the run whose check value
+holds; it is 0 when the run starts, and the vehicle interface counts from 1. A
+command whose check value fails is rejected as a corruption and leaves the
+reference count as it is. A command whose count is not greater than the
+reference count is rejected as a repetition and leaves the reference count as it
+is. A command whose count is more than one greater reveals a loss: it is
+rejected, and counting resumes from it. A command whose count is one greater is
+accepted unless its issue time is older than the newest world time by more than
+0.1 s of simulation time, when it is rejected as a delay; either way counting
+continues from it. A late command or a repetition costs that one command; a loss
+or a corruption costs the lost or corrupted command and the next one, which
+reveals the gap; none of them makes later valid commands fail.
 
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
 upstream's own simulator path does, and gives the simulator the candidate's
@@ -894,14 +895,14 @@ no case has started, no evidence record exists, and every requirement keeps
   SC-DRIVING-014 at 30 km/h and SC-DRIVING-015 at 40 km/h, fourteen runs. A
   further run of SC-DRIVING-012, the stop run, stops the S-CORE path of the
   candidate, as REQ-DRIVING-038 and REQ-DRIVING-043 ask. By the Phase 5 terms,
-  as amended on 2026-11-18, it is no run of a setting and no judged run, and
-  only the stop clauses of those two requirements read it, in VC-DRIVING-038 and
-  VC-DRIVING-043; the next slice chooses its approach speed. In the stop run the
-  candidate's process keeps running, and the Launch Manager stops the path's
-  carriers of the driving command and of the warning request; the next slice
-  fixes which processes these are. The runs of SC-DRIVING-014 and SC-DRIVING-015
-  lie outside the candidate's declared operating conditions and are reported
-  apart.
+  as the stop-run decision of 2026-11-18 amended them, it is no run of a setting
+  and no judged run, and only the stop clauses of those two requirements read
+  it, in VC-DRIVING-038 and VC-DRIVING-043; the next slice chooses its approach
+  speed. In the stop run the candidate's process keeps running, and the Launch
+  Manager stops the path's carriers of the driving command and of the warning
+  request; the next slice fixes which processes these are. The runs of
+  SC-DRIVING-014 and SC-DRIVING-015 lie outside the candidate's declared
+  operating conditions and are reported apart.
 
 | Case | Requirement | Runs it reads | Method |
 |---|---|---|---|

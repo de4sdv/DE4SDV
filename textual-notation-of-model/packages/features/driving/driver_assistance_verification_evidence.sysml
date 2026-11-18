@@ -27,11 +27,11 @@
  * window is the whole run. The further run of SC-DRIVING-012 in which the
  * Eclipse S-CORE path of the driver-assistance system is stopped is no run of a
  * setting and no judged run, and only the stop clauses of REQ-DRIVING-038 and
- * REQ-DRIVING-043 read it, as the terms of the requirements state since their
- * amendment of 2026-11-18. In that run the candidate's process keeps running
- * and the path's carriers of the driving command and of the warning request are
- * stopped. No case judges when the display and the sound give the warning
- * (counterClaimWarningModesNotJudgedHere).
+ * REQ-DRIVING-043 read it, as the terms of the requirements state since the
+ * stop-run decision of 2026-11-18. In that run the candidate's process keeps
+ * running and the path's carriers of the driving command and of the warning
+ * request are stopped. No case judges when the display and the sound give the
+ * warning (counterClaimWarningModesNotJudgedHere).
  *
  * The outcome vocabulary and the verdict map are this increment's own, with the
  * six literals of INC-DRIVING-001's. The evidence record is one record per run,
@@ -105,7 +105,7 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * Eclipse S-CORE path of the driver-assistance system is stopped, which
      * REQ-DRIVING-038 and REQ-DRIVING-043 name, is no run of a setting and no
      * judged run, and only the stop clauses of those two requirements read it
-     * (the terms of the requirements, amended on 2026-11-18); the next slice
+     * (the stop-run decision of 2026-11-18); the next slice
      * chooses its approach speed.
      */
     stationaryAt20;
@@ -178,20 +178,20 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * scoreLifecycleVersion, scoreCommunicationVersion and
      * scoreSOMEIPGatewayCommit are the pins of the S-CORE platform and of the
      * SOME/IP gateway that the run built; simulatorBuild is the simulator
-     * server's. scenario and setting name the run's scenario and, for a run of
-     * a setting, its setting; runIdentity names the run: the first or the
-     * second run of its setting, or the further run in which the Eclipse S-CORE
-     * path is stopped, which is no run of a setting. simulatedConfiguration
-     * names the simulated configuration of the run: the blueprints of the ego
-     * vehicle and of the other vehicles of the scenario, the map and the road,
-     * the weather, the fixed step of 0.05 s and synchronous mode, and the
-     * camera rig; a digest of the scenario definition that fixes them is
-     * enough. simulationClockSpan and wallClockSpan are the two clocks of the
-     * run, kept apart. executionEnvironmentIdentity names the three hosts of
-     * the run, the simulator host, the S-CORE host with its GPU and the guest
-     * host, and the builds of the SDV Core image and of the IVI image.
-     * contractIdentity names the message type of the warning request on the
-     * guests, which phase 8 left open until phase 10 (GAP-DRIVING-014).
+     * server's. scenario names the run's scenario; setting names its setting
+     * for a run of a setting and is left empty for the further run; runIdentity
+     * names the run: the first or the second run of its setting, or the further
+     * run in which the Eclipse S-CORE path is stopped, which is no run of a
+     * setting. simulatedConfiguration names the simulated configuration of the
+     * run: the blueprints of the ego vehicle and of the other vehicles of the
+     * scenario, the map and the road, the weather, the fixed step of 0.05 s and
+     * synchronous mode, and the camera rig; a digest of the scenario definition
+     * that fixes them is enough. simulationClockSpan and wallClockSpan are the
+     * two clocks of the run, kept apart. executionEnvironmentIdentity names the
+     * three hosts of the run, the simulator host, the S-CORE host with its GPU
+     * and the guest host, and the builds of the SDV Core image and of the IVI
+     * image. contractIdentity names the message type of the warning request on
+     * the guests, which phase 8 left open until phase 10 (GAP-DRIVING-014).
      * criteriaRecordIdentity names the criteria record that the evaluators of
      * the run read, and evaluatorRevision the revision of those evaluators, so
      * that each verdict names the criteria and the evaluators that gave it
@@ -227,7 +227,7 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
     attribute scoreSOMEIPGatewayCommit : ScalarValues::String;
     attribute simulatorBuild : ScalarValues::String;
     attribute scenario : AssistanceScenarioIdentity;
-    attribute setting : AssistanceSettingIdentity;
+    attribute setting : AssistanceSettingIdentity[0..1];
     attribute runIdentity : ScalarValues::String;
     attribute simulatedConfiguration : ScalarValues::String;
     attribute simulationClockSpan : ScalarValues::String;
@@ -852,9 +852,10 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * relative approach speed and, when the collision with the target becomes
      * imminent, gives a warning request at its boundary at least 1.0 s of
      * simulation time before the start of the first emergency braking of the
-     * run; and in every run of SC-DRIVING-012 to SC-DRIVING-015 it starts a
-     * warning request and an emergency braking only while a collision with a
-     * vehicle ahead is imminent. A claim to be proven: no case has started.
+     * run; and in each of the fourteen runs of SC-DRIVING-012 to SC-DRIVING-015
+     * it starts a warning request and an emergency braking only while a
+     * collision with a vehicle ahead is imminent. A claim to be proven: no case
+     * has started.
      */
     subject claimSubject : DriverAssistanceVerificationBench;
     require constraint {
@@ -896,7 +897,8 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * SC-DRIVING-012 and SC-DRIVING-013 in which the collision with the target
      * becomes imminent, the driver-assistance system gives a warning request at
      * its boundary at least 1.0 s of simulation time before the start of the
-     * first emergency braking of the run, and in every run it starts a warning
+     * first emergency braking of the run, and in each of the fourteen runs of
+     * SC-DRIVING-012 to SC-DRIVING-015 it starts a warning
      * request only while a collision with a vehicle ahead is imminent. A claim
      * to be proven: no case has started.
      */
@@ -914,16 +916,18 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
 
   requirement scoreCommandAndWarningPathClaim : DriverAssistanceClaim {
     doc /*
-     * Answers scoreCommandAndWarningPathConcern. In every run of SC-DRIVING-012
-     * to SC-DRIVING-015 every driving command that reaches the actuation, and
-     * in every run of SC-DRIVING-012 and SC-DRIVING-013 every warning request
-     * that reaches the AAOS SDV, is matched in the communication records of the
-     * Eclipse S-CORE path to an output of the driver-assistance system; the
-     * autopilot and the traffic manager of the simulator have no control of the
-     * vehicle, and no recorded, replayed, scripted or overlaid control reaches
-     * its actuation; and in the further run of SC-DRIVING-012 with the path
-     * stopped neither the command nor the request arrives after the stop. A
-     * claim to be proven: no case has started.
+     * Answers scoreCommandAndWarningPathConcern. In each of the fourteen runs
+     * of SC-DRIVING-012 to SC-DRIVING-015 every driving command that reaches
+     * the actuation, and in each of the ten runs of SC-DRIVING-012 and
+     * SC-DRIVING-013 every warning request that reaches the AAOS SDV, is
+     * matched in the communication records of the
+     * Eclipse S-CORE path to an output of the driver-assistance system; in
+     * those fourteen runs the autopilot and the traffic manager of the
+     * simulator have no control of the vehicle, and no recorded, replayed,
+     * scripted or overlaid control reaches its actuation; and in the further
+     * run of SC-DRIVING-012 with the path stopped neither the command nor the
+     * request arrives after the stop. A claim to be proven: no case has
+     * started.
      */
     subject claimSubject : DriverAssistanceVerificationBench;
     require constraint {
@@ -938,15 +942,20 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
 
   requirement candidateVerdictClaim : DriverAssistanceClaim {
     doc /*
-     * Answers candidateVerdictConcern. Each verdict of the increment is bound
-     * to the candidate that ran: the candidate identity record of each run,
+     * Answers candidateVerdictConcern. Each verdict that rests on the fourteen
+     * runs of SC-DRIVING-012 to SC-DRIVING-015 is bound to the candidate that
+     * ran: the candidate identity record of each of those runs,
      * there before its first driving command and re-derived by another
      * engineer, names the upstream revision and the difference of the build,
      * which carries the DE4SDV S-CORE interface and the visualization recorder,
      * so that a verdict holds for that build and states the recorder's delay;
-     * and the evidence record of each run binds DRIVING-CONFIG-002 and its
-     * receipt, the model revision, the pins and the simulated configuration. A
-     * fail stays a recorded result. A claim to be proven: no case has started.
+     * and the evidence record of each of those runs binds DRIVING-CONFIG-002
+     * and its receipt, the model revision, the pins and the simulated
+     * configuration. The record of the further run of SC-DRIVING-012 with the
+     * path stopped carries the candidate identity values as well, and no case
+     * checks them, because only the stop clauses of REQ-DRIVING-038 and
+     * REQ-DRIVING-043 read that run. A fail stays a recorded result. A claim to
+     * be proven: no case has started.
      */
     subject claimSubject : DriverAssistanceVerificationBench;
     require constraint {

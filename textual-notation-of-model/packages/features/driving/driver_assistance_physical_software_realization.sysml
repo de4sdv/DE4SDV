@@ -20,11 +20,7 @@
  * pin). The consequence is recorded with gapCandidateBehaviorUnverified:
  * every build on the S-CORE path carries this change, which upstream has not
  * merged, so every verdict names the build: 014e0e7a with the DE4SDV S-CORE
- * interface, and REQ-DRIVING-044's record carries the difference. After the
- * scenarios of phase 10 have run in CARLA, the VisionPilot maintainers are
- * shown a draft of the warning output and the interface seam, with the
- * results (the upstream contact decision of 2026-11-18); nothing is posted
- * without the owner.
+ * interface, and REQ-DRIVING-044's record carries the difference.
  *
  * On 2026-11-15 the owner also chose a GPU of its own for the S-CORE host, an
  * NVIDIA L4, for the candidate's networks, which run with the CUDA provider
@@ -86,6 +82,11 @@
  * keeps its count, one more than that of the command before it, and the limit
  * of 0.1 s of simulation time stays (DrivingCommandActuationAdapter): the
  * adapter counting decision of 2026-11-18.
+ *
+ * On 2026-11-18 the owner chose that nothing goes upstream before the scenarios
+ * of phase 10 have run in CARLA: then the VisionPilot maintainers are shown a
+ * draft of the warning output and the interface seam, with the results; nothing
+ * is posted without the owner: the upstream contact decision of 2026-11-18.
  *
  * Carried over from the dated decisions of INC-DRIVING-001
  * (closed_loop_driving_physical_software_realization.sysml):
@@ -622,9 +623,12 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * than the reference count is accepted unless its issue time is older than
      * the newest world time by more than 0.1 s of simulation time, when it is
      * rejected (a delay); in both cases its count becomes the reference count.
-     * A late command or a repetition costs that one command; a loss or a
-     * corruption costs the missing command and the next one, which reveals it;
-     * none of them makes later valid commands fail. Rejecting what it
+     * A command that arrives before the adapter has a world snapshot, or whose
+     * issue time is not a finite number, counts as older than the limit and is
+     * rejected as a delay. A late command or a repetition costs that one
+     * command; a loss or a corruption costs the lost or corrupted command and
+     * the next one, which reveals the gap; none of them makes later valid
+     * commands fail. Rejecting what it
      * detects is the share of the product that holds the path (REQ-MW-006). The
      * issue time and the newest world time are simulation times of world
      * snapshots, on one clock. It applies nothing in place of a rejected
@@ -1279,9 +1283,9 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * check value holds (the adapter counting decision of 2026-11-18;
      * DrivingCommandActuationAdapter states the rule): a late command or a
      * repetition costs that one command; a loss or a corruption costs the
-     * missing command and the next one, which reveals it; none of them makes
-     * later valid commands fail. The analysis of REQ-DRIVING-039 reads this
-     * record; it makes no freedom-from-interference claim.
+     * lost or corrupted command and the next one, which reveals the gap; none
+     * of them makes later valid commands fail. The analysis of REQ-DRIVING-039
+     * reads this record; it makes no freedom-from-interference claim.
      */
 
   /* ───────────── The assumption of the realization ───────────── */
