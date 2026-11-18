@@ -338,8 +338,9 @@ OWNER_DECISION = (
     "The consequence is recorded with gapCandidateBehaviorUnverified: every build on the S-CORE path carries this "
     "change, which upstream has not merged, so every verdict names the build: 014e0e7a with the DE4SDV S-CORE "
     "interface, and REQ-DRIVING-044's record carries the difference.",
-    "Before phase 10 builds, the VisionPilot maintainers are shown a draft of the warning output and the interface "
-    "seam; nothing is posted without the owner.",
+    "After the scenarios of phase 10 have run in CARLA, the VisionPilot maintainers are shown a draft of the warning "
+    "output and the interface seam, with the results (the upstream contact decision of 2026-11-18); nothing is "
+    "posted without the owner.",
 )
 #: The owner's second decision of 2026-11-15, after the readiness probe, as the package head records it.
 GPU_DECISION = (
@@ -1757,3 +1758,28 @@ def test_every_upstream_file_the_model_cites_by_line_is_in_the_upstream_record()
     cited = sorted(set(re.findall(r"([\w./-]+\.(?:cpp|hpp|py|json|md)):\d", _raw())))
     assert len(cited) >= 12, cited
     assert not [path for path in cited if path.rsplit("/", 1)[-1] not in record]
+
+
+#: The upstream contact decision of 2026-11-18: the draft goes to the VisionPilot maintainers after the CARLA runs.
+CONTACT_IN_GUIDE = ("After the scenarios of Phase 10 have run in CARLA, the VisionPilot maintainers are shown a draft of "
+                    "the warning output and the interface seam, with the results (the upstream contact decision of "
+                    "2026-11-18); nothing is posted without the owner.")
+#: The contact as it stood before that decision, anywhere in the model and the guide.
+RETIRED_CONTACT_STATEMENTS = ("Before phase 10 builds, the VisionPilot maintainers are shown a draft",
+                              "Before Phase 10 builds, the VisionPilot maintainers are shown a draft",
+                              "shown to the VisionPilot maintainers before phase 10 builds",
+                              "shown to the VisionPilot maintainers before Phase 10 builds")
+
+
+def test_the_upstream_contact_decision_moves_the_draft_after_the_carla_runs():
+    """The upstream contact decision of 2026-11-18: nothing goes upstream before the scenarios of phase 10 have run
+    in CARLA; the draft of the warning output and the interface seam then goes with the results."""
+    evidence = DRIVING / "driver_assistance_verification_evidence.sysml"
+    model = _flat(_raw()) + " " + _flat(evidence.read_text(encoding="utf-8"))
+    guide = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    for statement in RETIRED_CONTACT_STATEMENTS:
+        assert statement not in model and statement not in guide, statement
+    assert CONTACT_IN_GUIDE in guide
+    assert ("After the scenarios of phase 10 have run in CARLA, the VisionPilot maintainers are shown a draft of the "
+            "warning output and the interface seam, with the results (the upstream contact decision of 2026-11-18)"
+            ) in _flat(_head())

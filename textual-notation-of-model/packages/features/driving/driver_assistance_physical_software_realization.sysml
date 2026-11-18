@@ -20,9 +20,11 @@
  * pin). The consequence is recorded with gapCandidateBehaviorUnverified:
  * every build on the S-CORE path carries this change, which upstream has not
  * merged, so every verdict names the build: 014e0e7a with the DE4SDV S-CORE
- * interface, and REQ-DRIVING-044's record carries the difference. Before
- * phase 10 builds, the VisionPilot maintainers are shown a draft of the
- * warning output and the interface seam; nothing is posted without the owner.
+ * interface, and REQ-DRIVING-044's record carries the difference. After the
+ * scenarios of phase 10 have run in CARLA, the VisionPilot maintainers are
+ * shown a draft of the warning output and the interface seam, with the
+ * results (the upstream contact decision of 2026-11-18); nothing is posted
+ * without the owner.
  *
  * On 2026-11-15 the owner also chose a GPU of its own for the S-CORE host, an
  * NVIDIA L4, for the candidate's networks, which run with the CUDA provider

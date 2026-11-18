@@ -294,11 +294,12 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * subscribes after the record was published; the candidate driving on CARLA
      * 1.0, which it has not done yet; whether the S-CORE host's own GPU keeps
      * the candidate's cycle with the S-CORE build; the capture of the start of
-     * the sound on the IVI guest, which is unmeasured; the typed message of the
-     * warning request on the guests, open until phase 10; and the draft of the
-     * warning output and the interface seam shown to the VisionPilot
-     * maintainers before phase 10 builds. The calibration runs of
-     * ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged run.
+     * the sound on the IVI guest, which is unmeasured; and the typed message of
+     * the warning request on the guests, open until phase 10. The calibration
+     * runs of ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged
+     * run. The draft of the warning output and the interface seam is shown to
+     * the VisionPilot maintainers after the scenarios of phase 10 have run in
+     * CARLA, with the results (the upstream contact decision of 2026-11-18).
      * Each probe runs only on the owner's word, and nothing of phase 10 is
      * built before the probes are read.
      *

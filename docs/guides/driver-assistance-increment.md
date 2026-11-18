@@ -632,9 +632,10 @@ already computes, in the loop. The decision logic of the candidate is unchanged.
 Every build on the S-CORE path carries this change, which upstream has not
 merged, so every verdict names the build, 014e0e7a with the DE4SDV S-CORE
 interface, and the candidate record of REQ-DRIVING-044 carries the difference
-(`gapCandidateBehaviorUnverified`). Before Phase 10 builds, the VisionPilot
-maintainers are shown a draft of the warning output and the interface seam;
-nothing is posted without the owner.
+(`gapCandidateBehaviorUnverified`). After the scenarios of Phase 10 have run in
+CARLA, the VisionPilot maintainers are shown a draft of the warning output and
+the interface seam, with the results (the upstream contact decision of
+2026-11-18); nothing is posted without the owner.
 
 The candidate stays one process. Six software elements carry the four logical
 elements:
@@ -955,10 +956,11 @@ no case has started, no evidence record exists, and every requirement keeps
   that process, the candidate record reaching a late subscriber, the candidate
   on CARLA 1.0, the S-CORE build's cycle on the host's own GPU, the capture of
   the sound on the IVI guest, the typed message of the warning request on the
-  guests, open until Phase 10, and the draft of the warning output and the
-  interface seam shown to the VisionPilot maintainers before Phase 10 builds;
-  and the calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 come before
-  the first judged run. Each probe runs only on the owner's word.
+  guests, open until Phase 10; and the calibration runs of ASM-DRIVING-005 and
+  ASM-DRIVING-006 come before the first judged run. The draft of the warning
+  output and the interface seam is shown to the VisionPilot maintainers after
+  the scenarios of Phase 10 have run in CARLA, with the results (the upstream
+  contact decision of 2026-11-18). Each probe runs only on the owner's word.
 - **No validation case.** The validation of the needs stays planned in
   Phase 4 (SC-DRIVING-016 to SC-DRIVING-019).
 

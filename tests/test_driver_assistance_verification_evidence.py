@@ -134,10 +134,10 @@ GAP_ITEMS = [
      "the capture of the sound on the IVI guest"),
     ("the typed message of the warning request on the guests, open until phase 10",
      "the typed message of the warning request on the guests, open until Phase 10"),
-    ("the draft of the warning output and the interface seam shown to the VisionPilot maintainers before phase 10 "
-     "builds",
-     "the draft of the warning output and the interface seam shown to the VisionPilot maintainers before Phase 10 "
-     "builds"),
+    ("The draft of the warning output and the interface seam is shown to the VisionPilot maintainers after the "
+     "scenarios of phase 10 have run in CARLA, with the results (the upstream contact decision of 2026-11-18).",
+     "The draft of the warning output and the interface seam is shown to the VisionPilot maintainers after the "
+     "scenarios of Phase 10 have run in CARLA, with the results (the upstream contact decision of 2026-11-18)."),
     ("The calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged run.",
      "the calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged run"),
 ]
@@ -528,8 +528,8 @@ def test_the_environment_gap_is_deferred_and_continues_the_readiness_items_of_ph
                    "Whether the S-CORE host's own GPU keeps the cycle with the S-CORE build is not shown yet",
                    "the start of the sound on the guest is unmeasured",
                    "with a new message type for the warning request, open until phase 10",
-                   "Before phase 10 builds, the VisionPilot maintainers are shown a draft of the warning output and "
-                   "the interface seam"):
+                   "After the scenarios of phase 10 have run in CARLA, the VisionPilot maintainers are shown a draft "
+                   "of the warning output and the interface seam"):
         assert source in physical, source
     ids = sorted(set(re.findall(r"GAP-DRIVING-\d{3}", "".join(
         p.read_text(encoding="utf-8") for p in DRIVING.glob("*.sysml")))))
