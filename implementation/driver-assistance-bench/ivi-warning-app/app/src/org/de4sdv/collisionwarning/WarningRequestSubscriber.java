@@ -233,11 +233,14 @@ final class WarningRequestSubscriber {
         final String vm = publisher.serviceUnitIdentifier == null || publisher.serviceUnitIdentifier.fqin == null
                 ? PUBLISHER_VM : publisher.serviceUnitIdentifier.fqin.sdvVmName;
         try {
-            // fetchLastMessageOnSubscribe: the last message again on every (re)subscription; the
-            // reducer refuses it as stale when its issue time is not newer.
+            // No last-message fetch: the app is restarted before each window with no request
+            // shown, and the publication's last message can be the true of an earlier run, which
+            // would start a warning nobody requested in this one. The next plan's event follows
+            // within one simulation step. Within a run a reordered or repeated message is still
+            // refused by the reducer as stale.
             subscription = client.subscribeToPublicationByName(vm, PUBLISHER_PACKAGE, PUBLISHER_BUNDLE, UNIT,
                     (sub, notification) -> post(() -> onNotification(sub, notification)),
-                    /* fetchLastMessageOnSubscribe= */ true);
+                    /* fetchLastMessageOnSubscribe= */ false);
             final String slot = subscription.metadata == null ? "?"
                     : subscription.metadata.messageSizeBytes + " B x " + subscription.metadata.messageCount;
             sink.onConfig("subscribed", vm + ":" + PUBLISHER_PACKAGE + "." + PUBLISHER_BUNDLE + "/" + UNIT

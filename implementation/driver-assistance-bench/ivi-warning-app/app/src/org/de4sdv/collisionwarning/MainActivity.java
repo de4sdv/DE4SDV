@@ -131,18 +131,19 @@ public final class MainActivity extends Activity
         if (verdict.shows()) {
             requests = reducer.requests();
             timeline.onStart(request, tMonoNs);
-            sound.start(request);
+            // The screen change is posted first (it does not block), then the sound starts here.
             main.postAtFrontOfQueue(() -> {
                 view.show(request);
                 view.getViewTreeObserver().registerFrameCommitCallback(() -> onWarningCommitted(request));
             });
+            sound.start(request);
         } else if (verdict.clears()) {
             timeline.onClear(request);
-            sound.stop(request);
             main.postAtFrontOfQueue(() -> {
                 view.clear();
                 record("display_cleared", "request", request);
             });
+            sound.stop(request);
         }
         // The receipt line after the start calls: writing it first would delay the warning.
         recordAt(tMonoNs, tRealNs, "receipt", "seq", receipts, "requested", requested,

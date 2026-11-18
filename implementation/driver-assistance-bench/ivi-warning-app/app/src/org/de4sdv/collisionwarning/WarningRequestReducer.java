@@ -17,8 +17,7 @@
 //              (README, "Deviations").
 //   IDLE       requested = 0 while nothing is shown.
 //   STALE      issue_time_sim_ms not later than the last accepted message's: a repeated or
-//              reordered plan (the gateway's last-message fetch on a resubscription delivers the
-//              last message again). Refused; changes nothing.
+//              reordered plan. Refused; changes nothing.
 //   MALFORMED  requested not 0 or 1 (the ICD carries the boolean as UINT32 0 or 1), or an issue
 //              time outside uint32. Refused; changes nothing.
 //

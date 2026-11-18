@@ -92,6 +92,9 @@ and the reducer refuses times that are not newer.
   request (`CLEAR` on `requested` 0). A lead or owner decision can change that.
 - Before its first message the app holds no request, as after a false event, so a first `true`
   shows the warning.
+- The subscription does not fetch the publication's last message: after the restart before a
+  window it could be the `true` of an earlier run. The next plan's event follows within one
+  simulation step.
 - Staleness is judged by issue time only; there is no age check against the IVI clock, and the
   warning stays shown if the stream stops while it is shown.
 - The sound: a 2000 Hz beep, 150 ms on and 100 ms off, `USAGE_ALARM`, transient focus requested

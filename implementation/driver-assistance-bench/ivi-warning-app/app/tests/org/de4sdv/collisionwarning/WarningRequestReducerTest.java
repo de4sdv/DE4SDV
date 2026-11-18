@@ -69,7 +69,7 @@ public class WarningRequestReducerTest {
     public void aRepeatedOrOlderIssueTimeIsStaleAndChangesNothing() {
         final WarningRequestReducer r = new WarningRequestReducer();
         r.onMessage(1, 100);
-        // The same plan again (the gateway's last-message fetch on a resubscription) and an older one.
+        // The same plan again and an older one.
         assertEquals(WarningRequestReducer.Verdict.STALE, v(r, 1, 100));
         assertEquals(WarningRequestReducer.Verdict.STALE, v(r, 0, 100));
         assertEquals(WarningRequestReducer.Verdict.STALE, v(r, 0, 50));
