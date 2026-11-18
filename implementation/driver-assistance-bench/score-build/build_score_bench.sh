@@ -87,6 +87,11 @@ git_at() {
 bazel_feo() { "$ROOT/tools/bazel-$BAZEL_FEO_VERSION" "$@"; }
 bazel_gw() { "$ROOT/tools/bazel-$BAZEL_GATEWAY_VERSION" "$@"; }
 export PATH=$ROOT/tools/cmake/bin:$PATH
+# Ubuntu 22.04's GStreamer .pc files pull in libunwind's -I/usr/include/x86_64-linux-gnu (Requires.private), the
+# multiarch directory of the host glibc's bits/ headers; in a compile with the S-CORE sysroot they clash with the
+# sysroot's glibc ("'__fpclassify' has not been declared"). GStreamer and GLib need no header from there, so
+# pkg-config treats it as a system directory and leaves it out, for OpenCV's configure and the thirdparty stage.
+export PKG_CONFIG_SYSTEM_INCLUDE_PATH=/usr/include:/usr/include/x86_64-linux-gnu
 
 WS=$ROOT/ws                 # the S-CORE workspace (FEO 313b3d84 + the bench's packages)
 GW=$ROOT/src/gateway        # the SOME/IP gateway workspace (inc_someip_gateway d9eac670)
@@ -409,7 +414,9 @@ if ! is_done thirdparty; then
   gst_includes=""
   # shellcheck disable=SC2086
   for d in $(pkg-config --cflags-only-I $GST_MODULES | tr ' ' '\n' | sed -n 's/^-I//p' | sort -u); do
-    [ "$d" != /usr/include ] || die "pkg-config returned /usr/include as a GStreamer include directory"
+    case "$d" in
+      /usr/include|/usr/include/x86_64-linux-gnu) die "pkg-config returned $d as a GStreamer include directory" ;;
+    esac
     name=$(echo "${d#/}" | tr '/' '_')
     cp -a "$d" "$TP/hostinc/gstreamer/$name"
     gst_includes="$gst_includes\"hostinc/gstreamer/$name\", "
