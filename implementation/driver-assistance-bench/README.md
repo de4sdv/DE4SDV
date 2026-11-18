@@ -20,4 +20,5 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 | `score-path/config/` | The S-CORE host's configs of the warning request: gatewayd, someipd and their mw::com manifests |
 | `ivi-warning/` | The warning request on the guests: the Data Tunnel message, the SOME/IP mapping, the ACLs and the SDV Core staging |
 | `actuation-adapter/` | The actuation end of the S-CORE path: rejects a lost, repeated, corrupted or delayed driving command and applies an accepted one as CARLA's Ackermann control |
+| `session/` | The bench session orchestrator: starts the simulator, S-CORE and guest hosts in order, runs each host's steps, stops everything it started, against a cost cap |
 | `recording/` | The chase-view recorder, the IVI display capture with its clock, and the side-by-side composition of the two captures |
