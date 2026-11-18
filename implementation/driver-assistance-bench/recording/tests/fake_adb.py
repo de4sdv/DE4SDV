@@ -67,6 +67,8 @@ if argv[:1] == ["shell"]:
     if m:
         st["offset"] = float(m.group(1)) - time.time()
         done("")
+    if c.strip() == "am get-current-user":
+        done("10\r\n")   # an AAOS IVI runs its apps as a secondary user
     if "dumpsys media.audio_flinger" in c:
         done("Libraries loaded:\r\n Output thread 0x7 type 0 (MIXER):\r\n  Standby: yes\r\n")
     done("")

@@ -10,7 +10,9 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_FAIL_STEP     a step name whose `host_step.sh run|status` fails
   FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering
   FAKE_SSH_DOWN      a VM name that never answers SSH
-  FAKE_GUEST_STOP_FAIL  1: the guests' stop reports a crosvm process left
+  FAKE_GUEST_STOP_FAIL  1: a crosvm process stays after every guests' stop; once: after the first stop only
+  FAKE_IP            "vm:ip,..."  internal IPs other than the defaults (the session must read them from gcloud)
+  FAKE_NO_FILE       a substring: `test -e <path>` of a matching path never finds it (the step keeps "running")
   FAKE_FOREIGN_FETCH    1: a fetched tarball carries another session's id
   FAKE_NO_STOP       a VM name that stays RUNNING after a stop
 """
@@ -32,7 +34,7 @@ with open(os.path.join(D, "calls.log"), "a") as f:
     f.write(json.dumps([round(time.time(), 3)] + argv) + "\n")
 
 VMS = {  # name: (project, accelerator, internal IP)
-    "de4sdv-probe-g4-carla": ("de4sdv-carla-d19a", "nvidia-rtx-pro-6000", "10.164.0.2"),
+    "de4sdv-probe-g4-carla": ("de4sdv-carla-d19a", "nvidia-rtx-pro-6000", "10.10.0.2"),   # carla-net (D5)
     "de4sdv-probe-da8-carla": ("project-f2215f73-3d53-48a7-895", "nvidia-l4", "10.164.0.5"),
     "de4sdv-aaos-build": ("project-f2215f73-3d53-48a7-895", "", "10.164.0.6"),
 }
@@ -114,7 +116,7 @@ if words[:3] == ["compute", "instances", "describe"]:
         err("ERROR: (gcloud.compute.instances.describe) Could not fetch resource:\n - The resource was not found\n")
     fmt = opt("--format") or ""
     if "networkIP" in fmt:
-        out(VMS[n][2] + "\n")
+        out(kv("FAKE_IP").get(n, VMS[n][2]) + "\n")
     s = st["vm"][n]
     pre = kv("FAKE_PREEMPT")
     if s == "RUNNING" and n in pre and n not in st["preempted"]:
@@ -160,8 +162,28 @@ if words[:2] == ["compute", "ssh"]:
     if "shutdown -h" in c:
         mm = re.search(r"\+(\d+)", c)
         out("safety-net-%s\n" % (mm.group(1) if mm else "?"))
-    if "smoke_boot.sh --stop-only" in c:
-        out("crosvm_processes_after_stop: %s\n" % ("1" if os.environ.get("FAKE_GUEST_STOP_FAIL") == "1" else "0"))
+    mm = re.search(r"safety_net\.sh arm (\d+)", c)
+    if mm:
+        out("safety-net-%s\n" % mm.group(1))
+    gfail = os.environ.get("FAKE_GUEST_STOP_FAIL", "")
+    if "guest_stop.sh" in c:
+        st["guest_stops"] = st.get("guest_stops", 0) + 1
+    left = "1" if gfail == "1" or (gfail == "once" and st.get("guest_stops", 0) < 2) else "0"
+    if "guest_stop.sh" in c:
+        out("crosvm_processes_after_stop: %s\n" % left)
+    if "pgrep -c -x crosvm" in c:
+        out(left + "\n")
+    if c.startswith("test -e "):
+        path = c.split()[2]
+        nf = os.environ.get("FAKE_NO_FILE")
+        if nf and nf in path:
+            out("running\n")
+        out("present\n")
+    if c.startswith("touch "):
+        out("touched\n")
+    if "sha256sum H.yaml" in c:
+        files = st.get("files", {}).get(n, {})
+        out("".join("%s  %s\n" % (files[b], b) for b in ("H.yaml", "homography_C_matrix.yaml") if b in files))
     if m:
         action, step = m.group(1), m.group(2)
         fail = os.environ.get("FAKE_FAIL_STEP") == step
@@ -202,13 +224,25 @@ if words[:2] == ["compute", "scp"]:
         n = dst.split(":", 1)[0]
         if st["vm"].get(n) != "RUNNING":
             err("scp: connection refused (fake)\n", 1)
-        st["kit_sha"][n] = hashlib.sha256(open(src[0], "rb").read()).hexdigest()
+        for f in src:
+            sha = hashlib.sha256(open(f, "rb").read()).hexdigest()
+            if os.path.basename(f).startswith("kit.tgz") or "/tmp/da-kit-" in dst:
+                st["kit_sha"][n] = sha
+            else:
+                st.setdefault("files", {}).setdefault(n, {})[os.path.basename(f)] = sha
         out("")
     n = src[0].split(":", 1)[0]
-    p = os.path.join(D, "%s_out.tgz" % n)
-    if not os.path.exists(p):
-        err("scp: no such file (fake)\n", 1)
-    shutil.copy(p, os.path.join(dst, "out.tgz"))
+    if st["vm"].get(n) != "RUNNING":
+        err("scp: connection refused (fake)\n", 1)
+    for f in src:
+        path = f.split(":", 1)[1]
+        if path.endswith("/out.tgz"):
+            p = os.path.join(D, "%s_out.tgz" % n)
+            if not os.path.exists(p):
+                err("scp: no such file (fake)\n", 1)
+            shutil.copy(p, os.path.join(dst, "out.tgz"))
+        else:  # any other file: a stand-in with its remote path as content
+            open(os.path.join(dst, os.path.basename(path)), "w").write("fake %s\n" % path)
     out("")
 
 err("fake gcloud: unhandled call: %s\n" % " ".join(argv), 2)

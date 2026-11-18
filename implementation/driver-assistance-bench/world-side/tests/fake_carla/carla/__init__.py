@@ -214,6 +214,21 @@ class BlueprintLibrary:
         return iter([b.copy() for b in self._blueprints])
 
 
+class WheelPhysicsControl:
+    def __init__(self, axle_type: int = 0, offset=None, wheel_radius: float = 35.0, max_steer_angle: float = 70.0):
+        self.axle_type = axle_type
+        self.offset = offset if offset is not None else Vector3D(0.0, 0.0, 0.0)
+        self.wheel_radius = wheel_radius
+        self.max_steer_angle = max_steer_angle
+
+
+class VehiclePhysicsControl:
+    def __init__(self, wheels=None, mass: float = 1500.0, center_of_mass=None):
+        self.wheels = list(wheels or [])
+        self.mass = mass
+        self.center_of_mass = center_of_mass if center_of_mass is not None else Vector3D(0.0, 0.0, 0.0)
+
+
 VEHICLE_SHAPES = {                      # extent (half sizes, m), wheelbase (m)
     "vehicle.lincoln.mkz": ((2.45, 1.05, 0.75), 2.85),
     "vehicle.tesla.model3": ((2.40, 1.05, 0.75), 2.87),
@@ -430,6 +445,38 @@ class Actor:
 
     def set_simulate_physics(self, enabled: bool = True) -> None:
         self._state.simulate_physics = bool(enabled)
+
+    # CARLA 1.0's physics control: WheelPhysicsControl has axle_type, offset, radius, ... but no wheel position
+    # (PythonAPI/carla/src/Control.cpp:439-462 at 14ac3b1a50); the wheel positions are the wheel bones'.
+    def get_physics_control(self):
+        if not self._state.wheelbase:
+            raise RuntimeError("not a vehicle")
+        wheels = [WheelPhysicsControl(axle_type=0 if i < 2 else 1) for i in range(4)]
+        return VehiclePhysicsControl(wheels=wheels, mass=1800.0, center_of_mass=Vector3D(0.0, 0.0, 0.0))
+
+    def _wheel_points(self):
+        ex, ey = self._state.bounding_box.extent.x, self._state.bounding_box.extent.y
+        half = self._state.wheelbase / 2.0
+        return [("Wheel_Front_Left", half, -ey), ("Wheel_Front_Right", half, ey),
+                ("Wheel_Rear_Left", -half, -ey), ("Wheel_Rear_Right", -half, ey)]
+
+    def get_bone_names(self):
+        if not self._state.wheelbase:
+            return []
+        return ["Root", "Body"] + [n for n, _, _ in self._wheel_points()]
+
+    def get_bone_world_transforms(self):
+        if not self._state.wheelbase:
+            return []
+        t = self.get_transform()
+        yaw = math.radians(t.rotation.yaw)
+        out = [Transform(Location(t.location.x, t.location.y, t.location.z), Rotation(0.0, t.rotation.yaw, 0.0))
+               for _ in range(2)]
+        for _name, ax, ay in self._wheel_points():
+            out.append(Transform(Location(t.location.x + ax * math.cos(yaw) - ay * math.sin(yaw),
+                                          t.location.y + ax * math.sin(yaw) + ay * math.cos(yaw), 0.35),
+                                 Rotation(0.0, t.rotation.yaw, 0.0)))
+        return out
 
     def apply_texture(self, material_parameter, texture) -> None:
         self._state.textures.append((material_parameter, texture))

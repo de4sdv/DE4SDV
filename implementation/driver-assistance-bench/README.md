@@ -22,6 +22,8 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 | `launch-manager/` | The S-CORE host's Launch Manager configuration: the start order, the alive supervision of the candidate's process and the adapter, and the recovery target without both |
 | `actuation-adapter/` | The actuation end of the S-CORE path: rejects a lost, repeated, corrupted or delayed driving command and applies an accepted one as CARLA's Ackermann control |
 | `score-build/` | The S-CORE build of VisionPilot: the Bazel workspace, the build script, the GPU runtime of the S-CORE host and the fallback CMake route |
-| `world-side/` | The simulator host's world side on CARLA 1.0: SC-DRIVING-012 with its entry-condition checks and setting records, the ASM-DRIVING-005/006 calibrations and the camera calibration file |
+| `ivi-warning-app/` | The warning presentation on the IVI guest (`CollisionWarningPresentationApplication`): the app that shows the warning on the display and starts the sound, with its timestamp record |
+| `guest-build/` | The incremental guest build on the guest host: adds the SDV Core side of the warning request and the IVI app to the kept AAOS SDV images, installs and verifies them, stops the guests |
+| `world-side/` | The simulator host's world side on CARLA 1.0: SC-DRIVING-012 with its entry-condition checks and setting records, the ASM-DRIVING-005/006 calibrations, the camera calibration file and the session entries (`scripts/`) |
 | `session/` | The bench session orchestrator: starts the simulator, S-CORE and guest hosts in order, runs each host's steps, stops everything it started, against a cost cap |
 | `recording/` | The chase-view recorder, the IVI display capture with its clock, and the side-by-side composition of the two captures |
