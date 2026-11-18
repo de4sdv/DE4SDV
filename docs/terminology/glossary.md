@@ -3,6 +3,10 @@
 | Term | Working definition |
 |---|---|
 | SDV | Software-Defined Vehicle; a vehicle whose behavior and value are increasingly defined by software capabilities. |
+| E/E architecture | Electrical/electronic architecture: the computers, ECUs and networks of a vehicle and how its functions and signals are spread over them. In a zonal E/E architecture the vehicle network joins a central computer to zone controllers over an Ethernet backbone, with buses such as CAN at the edge of each zone. The product line has no reference E/E architecture; the [E/E architecture increment](../guides/ee-architecture-increment.md) frames its vehicle network. |
+| Central computer | The computer of a zonal vehicle that runs most of its applications and reaches sensors and actuators through the vehicle network. |
+| Zone controller | An ECU that serves one physical zone of a vehicle: a gateway between the Ethernet backbone and the buses of its zone, such as CAN or LIN, to which the sensors, actuators and ECUs of the zone connect. See the [upstream record](../../textual-notation-of-model/packages/features/ee/upstream.md#zone-controller-route). |
+| CAN | Controller Area Network: a serial bus that joins ECUs. In the E/E architecture increment it is a bus at the edge of a zone, between a zone controller and the ECUs of its zone. |
 | AutoE2E | Autoware Foundation camera-based learned planning model; consumes camera and ego-motion history and predicts future acceleration/curvature samples. A model, not a complete Autoware deployment. |
 | CARLA | Driving simulator providing simulated sensors, vehicle dynamics and scenarios; an engineering and verification environment, not a vehicle product feature. |
 | Closed-loop driving | Driving in which planner/controller output affects the vehicle and the resulting sensor/vehicle state feeds subsequent planning. A prediction overlay on an independently driven vehicle does not establish this feedback. |
