@@ -1,24 +1,21 @@
 name: deploy-viewer
 
-# Publishes the static HTML model viewer to the native GitHub Pages URL:
-#   - on every push to main
-#   - weekly (new branches and open PRs appear in the Revision picker)
-#   - manually via workflow_dispatch
+# Publishes the static HTML model viewer to the native GitHub Pages URL on
+# every push to main and on manual runs (workflow_dispatch).
 #
 # The published site shows committed content only (no local working tree):
-# the generator runs with --public --refs auto, building the root site from
-# the pushed branch plus one sub-site per branch/PR head. Collaborators
-# pick any revision from the header picker; everything is prebuilt, so no
-# on-demand server is needed. The production custom hostname is owned by the
-# Caddy deployment; Pages remains the browse-only engineering mirror and
-# emergency GET fallback.
+# the generator runs with --public --no-prs and builds the pushed branch
+# alone. Pages refuses a site whose uncompressed artifact is over 10 GiB, and
+# one sub-site per branch and pull request head took the mirror past that
+# limit on 2026-11-18, so no other revision is built here; the local server
+# (python -m tools.sysml_html_viewer.serve) opens any branch or pull request.
+# The production custom hostname is owned by the Caddy deployment; Pages
+# remains the browse-only engineering mirror and emergency GET fallback.
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-  schedule:
-    - cron: "17 3 * * 1" # every Monday 03:17 UTC
 
 permissions:
   contents: read
@@ -37,19 +34,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Fetch all branches and PR heads
-        run: |
-          git fetch origin "+refs/heads/*:refs/remotes/origin/*"
-          git fetch origin "+refs/pull/*/head:refs/pull/*/head"
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Generate the viewer (committed content only)
+      - name: Generate the viewer (committed content of the pushed branch)
         run: |
           python -m tools.sysml_html_viewer.generate \
-            --repo . --out site --refs auto --public
+            --repo . --out site --public --no-prs
 
       - name: Install gate dependencies
         run: python -m pip install --disable-pip-version-check PyYAML==6.0.2 sysand==0.1.0

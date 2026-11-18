@@ -20,9 +20,7 @@
  * pin). The consequence is recorded with gapCandidateBehaviorUnverified:
  * every build on the S-CORE path carries this change, which upstream has not
  * merged, so every verdict names the build: 014e0e7a with the DE4SDV S-CORE
- * interface, and REQ-DRIVING-044's record carries the difference. Before
- * phase 10 builds, the VisionPilot maintainers are shown a draft of the
- * warning output and the interface seam; nothing is posted without the owner.
+ * interface, and REQ-DRIVING-044's record carries the difference.
  *
  * On 2026-11-15 the owner also chose a GPU of its own for the S-CORE host, an
  * NVIDIA L4, for the candidate's networks, which run with the CUDA provider
@@ -72,6 +70,23 @@
  * with that delay stated in each verdict (phase8VisualizationRecorderPlaced):
  * the visualization decision of 2026-11-17. The draft shown to the VisionPilot
  * maintainers includes this hand-off.
+ *
+ * On 2026-11-18 the owner chose how the actuation adapter counts the driving
+ * commands it receives: from the last received command whose check value holds,
+ * not from the last accepted command. Counted from the last accepted command,
+ * one lost, corrupted or late command makes the next command fail its sequence
+ * count, and with it every later one, so the simulator would keep the last
+ * valid control for the rest of the run. A repetition is still rejected; the
+ * command that reveals a gap is rejected, and counting resumes from it; a
+ * corrupted or a late command is rejected as before. The vehicle interface
+ * keeps its count, one more than that of the command before it, and the limit
+ * of 0.1 s of simulation time stays (DrivingCommandActuationAdapter): the
+ * adapter counting decision of 2026-11-18.
+ *
+ * On 2026-11-18 the owner chose that nothing goes upstream before the scenarios
+ * of phase 10 have run in CARLA: then the VisionPilot maintainers are shown a
+ * draft of the warning output and the interface seam, with the results; nothing
+ * is posted without the owner: the upstream contact decision of 2026-11-18.
  *
  * Carried over from the dated decisions of INC-DRIVING-001
  * (closed_loop_driving_physical_software_realization.sysml):
@@ -591,26 +606,44 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * realization: an S-CORE application of its own, in C++, DE4SDV code,
      * with a client of the simulator over the bench network. It carries no
      * logical element; it is a share of the S-CORE path, which is outside the
-     * candidate. It subscribes to the driving command event and rejects a
-     * command whose sequence count is not one more than that of the last
-     * accepted command (a loss or a repetition), whose check value fails (a
-     * corruption), or whose issue time is older than the newest world time by
-     * more than 0.1 s of simulation time (a delay): the share of the product
-     * that holds the path (REQ-MW-006). The issue time and the newest world
-     * time are simulation times of world snapshots, on one clock. It applies
-     * nothing in place of a rejected command: the simulator keeps the last
-     * valid control. It has no stop response of its own. REQ-DRIVING-038's
-     * success criterion runs SC-DRIVING-012 with the S-CORE path stopped and
-     * requires that no driving command reaches the actuation after the stop;
-     * a stop or a neutral control applied by the adapter would blur that run,
-     * no requirement of this increment asks for a stop response, and the
-     * share of REQ-MW-006 placed here is not applying the rejected command.
-     * An accepted command becomes the simulator's Ackermann control by the
-     * rule of MAP-DRIVING-DA-COMMAND. Its simulator client takes the
-     * simulation time and the speed of the ego vehicle from the newest world
-     * snapshot: the delay check needs the time, the speed rule of
-     * MAP-DRIVING-DA-COMMAND the speed. The autopilot of the ego vehicle
-     * stays off.
+     * candidate. It subscribes to the driving command event and checks each
+     * command against a reference count: the highest sequence count among the
+     * commands received earlier in the run whose check value holds, which is
+     * the count of the last such command that was not rejected as a repetition
+     * (the adapter counting decision of 2026-11-18). The reference count is 0
+     * at the start of each run, and the vehicle interface counts from 1 in each
+     * run, so the first command is one more. The adapter checks the check value
+     * first, then the sequence count, then the issue time. A command whose
+     * check value fails is rejected (a corruption) and leaves the reference
+     * count unchanged. A command whose sequence count is not greater than the
+     * reference count is rejected (a repetition) and leaves the reference count
+     * unchanged. A command whose sequence count is more than one greater than
+     * the reference count is rejected (a loss is detected), and its count
+     * becomes the reference count. A command whose sequence count is one more
+     * than the reference count is accepted unless its issue time is older than
+     * the newest world time by more than 0.1 s of simulation time, when it is
+     * rejected (a delay); in both cases its count becomes the reference count.
+     * A command that arrives before the adapter has a world snapshot, or whose
+     * issue time is not a finite number, counts as older than the limit and is
+     * rejected as a delay. A late command or a repetition costs that one
+     * command; a loss or a corruption costs the lost or corrupted command and
+     * the next one, which reveals the gap; none of them makes later valid
+     * commands fail. Rejecting what it
+     * detects is the share of the product that holds the path (REQ-MW-006). The
+     * issue time and the newest world time are simulation times of world
+     * snapshots, on one clock. It applies nothing in place of a rejected
+     * command: the simulator keeps the last valid control. It has no stop
+     * response of its own. REQ-DRIVING-038's success criterion runs
+     * SC-DRIVING-012 with the S-CORE path stopped and requires that no driving
+     * command reaches the actuation after the stop; a stop or a neutral control
+     * applied by the adapter would blur that run, no requirement of this
+     * increment asks for a stop response, and the share of REQ-MW-006 placed
+     * here is not applying the rejected command. An accepted command becomes
+     * the simulator's Ackermann control by the rule of MAP-DRIVING-DA-COMMAND.
+     * Its simulator client takes the simulation time and the speed of the ego
+     * vehicle from the newest world snapshot: the delay check needs the time,
+     * the speed rule of MAP-DRIVING-DA-COMMAND the speed. The autopilot of the
+     * ego vehicle stays off.
      */
     port drivingCommandIn : DrivingCommandEventIn;
     port simulationClockIn : SimulationClockIn;
@@ -1043,7 +1076,7 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
       attribute :>> softwareContractField = "out: acceleration, steeringAngle, issueTime, sequenceCount, checkValue, exact";
       attribute :>> dataTypeAndUnit = "out: acceleration float m/s^2, negative decelerates; steeringAngle float degrees, positive to the left; issueTime in simulation seconds; sequenceCount an unsigned 32-bit count from 1 in each run; checkValue the CRC-32 over the other fields";
       attribute :>> timingQualityAndState = "one command per plan; none before the candidate record has arrived (REQ-DRIVING-044); the issue time is the capture simulation time of the frame the command was computed from";
-      attribute :>> transformationRule = "acceleration unchanged; steeringAngle = -steering[1] * 180 / pi: the integration takes the candidate's steering in the sign of CARLA's steer, positive to the right, as upstream's own simulator path does, which gives the steering to CARLA's steer without a change (vehicle_ros2_interface.cpp:67, carla_control_publisher_node.py:49), and the VSS steering angle is positive to the left (ASM-DRIVING-006). At the actuation adapter, for CARLA's Ackermann control, whose steer is positive to the right (the Python API references of CARLA 1.0 and of CARLA 0.9.16, which upstream's path runs): steer = -steeringAngle * pi / 180 in rad, so the simulator receives the candidate's steering unchanged, as on upstream's path; speed = max(0, v + 2 * acceleration) with v the speed of the ego vehicle in the newest world snapshot, acceleration unchanged and jerk = 10.0, as upstream's own simulator path sets them (carla_control_publisher_node.py:44-53); steerSpeed stays at its default of 0.0. The adapter rejects a command whose sequence count is not one more than that of the last accepted, whose check value fails or whose issue time is older than the newest world time by more than 0.1 s of simulation time, and applies nothing in its place (REQ-DRIVING-039, REQ-MW-006)";
+      attribute :>> transformationRule = "acceleration unchanged; steeringAngle = -steering[1] * 180 / pi: the integration takes the candidate's steering in the sign of CARLA's steer, positive to the right, as upstream's own simulator path does, which gives the steering to CARLA's steer without a change (vehicle_ros2_interface.cpp:67, carla_control_publisher_node.py:49), and the VSS steering angle is positive to the left (ASM-DRIVING-006). At the actuation adapter, for CARLA's Ackermann control, whose steer is positive to the right (the Python API references of CARLA 1.0 and of CARLA 0.9.16, which upstream's path runs): steer = -steeringAngle * pi / 180 in rad, so the simulator receives the candidate's steering unchanged, as on upstream's path; speed = max(0, v + 2 * acceleration) with v the speed of the ego vehicle in the newest world snapshot, acceleration unchanged and jerk = 10.0, as upstream's own simulator path sets them (carla_control_publisher_node.py:44-53); steerSpeed stays at its default of 0.0. The adapter checks the check value, then the sequence count, then the issue time, against the reference count, the highest sequence count among the commands received earlier in the run whose check value holds, 0 at the start of the run: it rejects a command whose check value fails, whose sequence count is not one more than the reference count, or whose issue time is older than the newest world time by more than 0.1 s of simulation time, and applies nothing in its place; the count of a command whose check value holds and whose count is greater than the reference count becomes the reference count, whether the command is accepted or not (REQ-DRIVING-039, REQ-MW-006, the adapter counting decision of 2026-11-18)";
       attribute :>> disposition = SignalMappingDisposition::candidate;
       attribute :>> owner = "DE4SDV maintainers";
       attribute :>> nextAction = "run the calibrations of ASM-DRIVING-005 and ASM-DRIVING-006, then bring the verification cases of REQ-DRIVING-036, -038, -039 and -044 to evidence of record; none is started";
@@ -1244,10 +1277,15 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * its issue time, a sequence count from 1 in each run and a CRC-32 check
      * value (MAP-DRIVING-DA-COMMAND). The actuation adapter, a context
      * realization of the S-CORE path, detects a loss or a repetition by the
-     * sequence count, a corruption by the check value and a delay by the
-     * issue time against the newest world time, rejects the command and
-     * applies nothing in its place. The analysis of REQ-DRIVING-039 reads
-     * this record; it makes no freedom-from-interference claim.
+     * sequence count, a corruption by the check value and a delay by the issue
+     * time against the newest world time, rejects the command and applies
+     * nothing in its place. It counts from the last received command whose
+     * check value holds (the adapter counting decision of 2026-11-18;
+     * DrivingCommandActuationAdapter states the rule): a late command or a
+     * repetition costs that one command; a loss or a corruption costs the
+     * lost or corrupted command and the next one, which reveals the gap; none
+     * of them makes later valid commands fail. The analysis of REQ-DRIVING-039
+     * reads this record; it makes no freedom-from-interference claim.
      */
 
   /* ───────────── The assumption of the realization ───────────── */
