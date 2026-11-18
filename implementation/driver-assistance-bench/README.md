@@ -16,3 +16,4 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 | Folder | Content |
 |---|---|
 | `interfaces/` | The interface control document and the payload header that the components share |
+| `score-interface/` | The VisionPilot patch series: the visualization recorder and the DE4SDV S-CORE interface module |
