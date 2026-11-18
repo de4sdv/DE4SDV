@@ -1,0 +1,110 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): actuation adapter.
+#
+# The shell structure of the closed-loop driving bench's actuation adapter
+# (implementation/closed-loop-driving-bench/actuation-adapter/BUILD.bazel),
+# for the S-CORE workspace of build item B2, which does not exist yet. The
+# labels below are what that workspace has to provide:
+#   - S-CORE Communication v0.6.0       @score_communication//score/mw/com
+#   - the bench's interface headers     //de4sdv_da_bench/interfaces:driver_assistance
+#     (interfaces/include, payloads.h)
+# Nothing here has been built with Bazel; the host's g++ builds the pure parts
+# (tests/test_actuation_adapter_units.py).
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "mw_com_config_actuation_adapter.json",
+    "config/adapter.json",
+])
+
+# The run configuration (C++17).
+cc_library(
+    name = "adapter_config",
+    srcs = [
+        "adapter_config.cpp",
+        "json_lite.cpp",
+    ],
+    hdrs = [
+        "adapter_config.h",
+        "json_lite.h",
+        "run_log.h",
+    ],
+    includes = ["."],
+)
+
+# The logic core: the rules of MAP-DRIVING-DA-COMMAND (C++17).
+cc_library(
+    name = "actuation_core",
+    srcs = ["actuation_core.cpp"],
+    hdrs = ["actuation_core.h"],
+    includes = ["."],
+    deps = ["//de4sdv_da_bench/interfaces:driver_assistance"],
+)
+
+cc_binary(
+    name = "actuation_core_test",
+    srcs = [
+        "tests/actuation_core_test.cpp",
+        "tests/check.h",
+    ],
+    includes = ["tests"],
+    deps = [":actuation_core"],
+)
+
+# The shell and the records (C++17). The simulator client is a plain function
+# interface (simulator_client.h); the binary links the CARLA 1.0 unit below.
+cc_library(
+    name = "adapter_shell",
+    srcs = ["adapter_shell.cpp"],
+    hdrs = [
+        "adapter_shell.h",
+        "log_records.h",
+        "run_log.h",
+        "simulator_client.h",
+    ],
+    includes = ["."],
+    deps = [":actuation_core"],
+)
+
+# The CARLA 1.0 client (14ac3b1a50) unit: C++20, the client's own standard
+# (DA-P8 h, owner decision h-a). @libcarla is the 1.0 bundle of the 17
+# archives in the link order of DA-P8 h (libcarla10.BUILD); the B2 workspace
+# provides it.
+cc_library(
+    name = "simulator_client_carla",
+    srcs = ["simulator_client_carla.cpp"],
+    hdrs = ["simulator_client.h"],
+    copts = ["-std=c++20"],
+    includes = ["."],
+    deps = ["@libcarla//:client"],
+)
+
+cc_binary(
+    name = "actuation_adapter",
+    srcs = ["actuation_adapter_main.cpp"],
+    linkopts = ["-lpthread"],
+    deps = [
+        ":adapter_config",
+        ":adapter_shell",
+        ":simulator_client_carla",
+        "//de4sdv_da_bench/interfaces:driver_assistance",
+        "@score_communication//score/mw/com",
+    ],
+)
+
+cc_binary(
+    name = "adapter_shell_test",
+    srcs = [
+        "tests/adapter_shell_test.cpp",
+        "tests/check.h",
+        "tests/fake_simulator_client.cpp",
+        "tests/fake_simulator_client.h",
+    ],
+    includes = ["tests"],
+    deps = [
+        ":adapter_config",
+        ":adapter_shell",
+    ],
+)

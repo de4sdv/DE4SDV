@@ -19,3 +19,4 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 | `score-interface/` | The VisionPilot patch series: the visualization recorder and the DE4SDV S-CORE interface module |
 | `score-path/config/` | The S-CORE host's configs of the warning request: gatewayd, someipd and their mw::com manifests |
 | `ivi-warning/` | The warning request on the guests: the Data Tunnel message, the SOME/IP mapping, the ACLs and the SDV Core staging |
+| `actuation-adapter/` | The actuation end of the S-CORE path: rejects a lost, repeated, corrupted or delayed driving command and applies an accepted one as CARLA's Ackermann control |
