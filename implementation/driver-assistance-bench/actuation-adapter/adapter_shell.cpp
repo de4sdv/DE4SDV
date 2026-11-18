@@ -1,6 +1,7 @@
 #include "adapter_shell.h"
 
 #include <cmath>
+#include <cstdint>
 #include <utility>
 
 #include "log_records.h"

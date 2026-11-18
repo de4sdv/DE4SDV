@@ -41,6 +41,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <memory>
 #include <mutex>

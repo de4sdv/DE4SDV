@@ -1,6 +1,7 @@
 #include "json_lite.h"
 
 #include <cerrno>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 
