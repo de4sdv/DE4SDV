@@ -16,3 +16,4 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 | Folder | Content |
 |---|---|
 | `interfaces/` | The interface control document and the payload header that the components share |
+| `actuation-adapter/` | The actuation end of the S-CORE path: rejects a lost, repeated, corrupted or delayed driving command and applies an accepted one as CARLA's Ackermann control |

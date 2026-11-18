@@ -37,7 +37,7 @@
                         {
                             "eventName": "driving_command",
                             "numberOfSampleSlots": 25,
-                            "maxSubscribers": 3
+                            "maxSubscribers": 1
                         }
                     ]
                 }

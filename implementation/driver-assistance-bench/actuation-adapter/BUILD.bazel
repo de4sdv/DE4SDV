@@ -54,7 +54,7 @@ cc_binary(
 )
 
 # The shell and the records (C++17). The simulator client is a plain function
-# interface (simulator_client.h).
+# interface (simulator_client.h); the binary links the CARLA 1.0 unit below.
 cc_library(
     name = "adapter_shell",
     srcs = ["adapter_shell.cpp"],
@@ -66,6 +66,32 @@ cc_library(
     ],
     includes = ["."],
     deps = [":actuation_core"],
+)
+
+# The CARLA 1.0 client (14ac3b1a50) unit: C++20, the client's own standard
+# (DA-P8 h, owner decision h-a). @libcarla is the 1.0 bundle of the 17
+# archives in the link order of DA-P8 h (libcarla10.BUILD); the B2 workspace
+# provides it.
+cc_library(
+    name = "simulator_client_carla",
+    srcs = ["simulator_client_carla.cpp"],
+    hdrs = ["simulator_client.h"],
+    copts = ["-std=c++20"],
+    includes = ["."],
+    deps = ["@libcarla//:client"],
+)
+
+cc_binary(
+    name = "actuation_adapter",
+    srcs = ["actuation_adapter_main.cpp"],
+    linkopts = ["-lpthread"],
+    deps = [
+        ":adapter_config",
+        ":adapter_shell",
+        ":simulator_client_carla",
+        "//de4sdv_da_bench/interfaces:driver_assistance",
+        "@score_communication//score/mw/com",
+    ],
 )
 
 cc_binary(
