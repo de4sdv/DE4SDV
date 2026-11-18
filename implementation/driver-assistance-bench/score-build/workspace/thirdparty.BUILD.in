@@ -64,14 +64,14 @@ cc_library(
     deps = [":gstreamer_headers"],
 )
 
+# The archives in link order: the SDK, then the rerun_c it calls, then Arrow, then Arrow's bundled dependencies. A
+# glob sorts them by name (libarrow first), and the static link then leaves the SDK's Arrow and rerun_c references
+# undefined.
 cc_library(
     name = "rerun",
-    srcs = glob([
-        "rerun/lib/librerun_sdk.a",
-        "rerun/lib/librerun_c*.a",
+    srcs = ["rerun/lib/librerun_sdk.a"] + glob(["rerun/lib/librerun_c*.a"]) + [
         "rerun/lib/libarrow.a",
-        "rerun/lib/libarrow_bundled*.a",
-    ]),
+    ] + glob(["rerun/lib/libarrow_bundled*.a"]),
     hdrs = glob([
         "rerun/include/**/*.hpp",
         "rerun/include/**/*.h",
