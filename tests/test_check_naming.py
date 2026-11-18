@@ -85,6 +85,12 @@ def test_valid_legacy_subject_mw_is_accepted():
     assert _yaml_errors("evidence_id: E-MW-011\n") == []
 
 
+def test_ee_architecture_subject_is_registered():
+    """The E/E architecture has its own identity, not a driving, AEBS or middleware ID."""
+    text = "part <'INC-EE-001'> eeArchitectureIncrement : EEArchitectureIncrement;\n"
+    assert _sysml_errors(text) == []
+
+
 def test_grandfathered_legacy_identities_are_closed_sets():
     """Retired grammars accept ONLY the enumerated identities."""
     for identity in sorted(check_naming._GRANDFATHERED_IDENTITIES):
