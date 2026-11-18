@@ -66,9 +66,17 @@ of [`../ivi-warning/contract/`](../ivi-warning/contract/) and the tree's Gateway
 to `samples/de4sdv_collision_warning/`, then builds the modules `De4sdvCollisionWarningPresentation`
 and `De4sdvCollisionWarningPresentationTests` with the IVI product's recorded variant
 (`sdv_ivi_cf-cp2a-userdebug`) only. Another variant makes the build system delete the IVI images.
-`install` pushes the subject grant, the broker object policy (merged into the guest's file
-when another subscriber already owns it) and the APK into `/vendor/priv-app`, then reboots the IVI
-VM. [`../guest-build/`](../guest-build/) runs these steps on the guest host.
+`install` pushes the subject grant, the broker object policy and the APK into `/vendor/priv-app`,
+then reboots the IVI VM. Every push is checked: its exit status and the guest copy's sha256 against
+the host file; after the reboot the guest APK's sha256 must equal the built APK's. The broker object
+policy follows lead decision B10/B12-3: the script asks the guest whether the file exists
+(`present` or `absent`; any other answer, or a read that fails or is incomplete, stops the
+install), keeps the guest's original as `object-policy.guest.<sha256>.textproto` in the run
+directory without ever overwriting it, appends our blocks only when neither our ACL name nor our
+`include` line is in the file (both there: left as it is; one of them: refused), reads the file back
+after the push, and logs `object_policy_sha256_before`, `object_policy_sha256_after` and every
+appended line, the same lines going into the identity file. Every adb call is bounded by
+`ADB_TIMEOUT_S` (120 s). [`../guest-build/`](../guest-build/) runs these steps on the guest host.
 
 Restart the app before each window (`start`, `am start -S`): issue times restart with every run,
 and the reducer refuses times that are not newer.
@@ -85,6 +93,10 @@ and the reducer refuses times that are not newer.
   `javac` on `PATH`) these skip.
 - `test_app_build_files.py`: the manifest package, the modules and their split, the proto module,
   and the ids in the code against `service_ids.json` and the ACLs.
+- `test_stage_install.py`: `install` and `stage` against a fake adb (`tests/fakes/adb`): failed and
+  corrupt pushes, the APK sha256 check, the object-policy merge (install, merge, idempotent second
+  run, kept original, logged digests and blocks, a failed read, an unclear answer, a partial merge),
+  a wedged adb, and the Gateway client source gate.
 
 ## Deviations and choices
 
