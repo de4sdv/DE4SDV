@@ -11,7 +11,7 @@ a command that the path lost, delayed, repeated or corrupted (REQ-DRIVING-039) a
 (REQ-MW-006). The adapter is the actuation end of that path: the part def `DrivingCommandActuationAdapter` of
 the phase 8 realization
 (`textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml`,
-cited below as PSR, lines 588-619).
+cited below as PSR).
 
 ## What it does and does not do
 
@@ -27,49 +27,46 @@ It does not:
 
 - run a PI loop or any other controller;
 - run a watchdog, stop the vehicle or apply a neutral control. The model gives it no stop response
-  (PSR:601-607), so after a rejection the simulator keeps the last valid control;
-- set the autopilot or apply any other control (PSR:612-613);
+  (the part def: "It has no stop response of its own"), so after a rejection the simulator keeps the last valid
+  control;
+- set the autopilot or apply any other control (the part def: "The autopilot of the ego vehicle stays off");
 - tick the world, or publish anything on S-CORE communication.
 
 ## Rules and their source
 
-All come from the signal mapping `MAP-DRIVING-DA-COMMAND` (PSR:1032-1051, the `transformationRule` at
-PSR:1046) and the part def, except the reference count. That comes from the owner decision of 2026-11-18,
-which replaces the rule's "the last accepted"; the model amendment that states it is not on this branch yet,
-so PSR:1046 still reads "the last accepted". `tests/test_actuation_adapter_model_rules.py` reads the numbers
-from the model file at test time and compares them with `actuation_core.h`.
+All come from the `transformationRule` of the signal mapping `MAP-DRIVING-DA-COMMAND` ("rule" below) and the
+part def `DrivingCommandActuationAdapter` ("part def"), as the adapter counting decision of 2026-11-18 amended
+them. `tests/test_actuation_adapter_model_rules.py` reads the rule and the numbers from the model file at test
+time and compares them with `actuation_core.h`.
 
-| Rule | Implemented as | PSR |
+| Rule | Implemented as | PSR element |
 |---|---|---|
-| Reference count | the highest `sequenceCount` among the commands received in the run whose check value holds; 0 before the first | owner decision |
-| Corruption | `DrivingCommandCheckValue(command) != checkValue` (ICD.md's CRC32), checked first; the reference stays | 1046, 596-597 |
-| Repetition | `sequenceCount <= reference`, also an older count; the reference stays | 1046, 594-596 |
-| Loss | `sequenceCount > reference + 1`: the command that reveals the gap is rejected and its count becomes the reference | 1046, 594-596 |
-| First command | the reference starts at 0, so the first command must carry 1 ("from 1 in each run") | 1044 |
-| Delay | for `sequenceCount == reference + 1`: `round(newest * 1000) - round(issue * 1000) > 100`, in whole milliseconds; the count becomes the reference, accepted or not | 1046, 597-600 |
-| Nothing in its place | a rejected command is logged and dropped | 1046, 600-602 |
-| Steer | `-steeringAngle * pi / 180` rad, positive to the right | 1046, 270-271 |
-| Speed | `max(0, v + 2 * acceleration)`, v from the newest snapshot | 1046, 608-612 |
-| Acceleration, jerk, steer speed | unchanged; `10.0`; `0.0` | 1046, 271-277 |
+| Reference count | the highest `sequenceCount` among the commands received earlier in the run whose check value holds; 0 before the first | rule, part def |
+| Corruption | `DrivingCommandCheckValue(command) != checkValue` (ICD.md's CRC32), checked first; the reference stays | rule, part def |
+| Repetition | `sequenceCount <= reference`, also an older count; the reference stays | rule, part def |
+| Loss | `sequenceCount > reference + 1`: the command that reveals the gap is rejected and its count becomes the reference | rule, part def |
+| First command | the reference starts at 0, so the first command must carry 1 ("from 1 in each run") | `dataTypeAndUnit`, part def |
+| Delay | for `sequenceCount == reference + 1`: `round(newest * 1000) - round(issue * 1000) > 100`, in whole milliseconds; the count becomes the reference, accepted or not; no snapshot yet, or a time that is not finite, is a delay | rule, part def |
+| Nothing in its place | a rejected command is logged and dropped | rule, part def |
+| Steer | `-steeringAngle * pi / 180` rad, positive to the right | rule |
+| Speed | `max(0, v + 2 * acceleration)`, v from the newest snapshot | rule, part def |
+| Acceleration, jerk, steer speed | unchanged; `10.0`; `0.0` | rule |
 
 The constants match upstream's own simulator path at `014e0e7a`
 (`Simulation/CARLA/ROS2/src/carla_control_publisher/carla_control_publisher/carla_control_publisher_node.py:44-53`).
 
 What the reference count costs: a late command or a repetition costs that one command; a loss or a
-corruption costs the missing command and the next one, which reveals it. None of them makes later valid
-commands fail. A corruption that the check value misses is not one of them: with a higher count it would become
-the reference count, and later valid commands would be rejected as repetitions. A lost count that arrives late is a
-repetition.
+corruption costs the lost or corrupted command and the next one, which reveals the gap. None of them makes later
+valid commands fail. A corruption that the check value misses is not one of them: with a higher count it would
+become the reference count, and later valid commands would be rejected as repetitions. A gap of k lost commands
+in a row costs k + 1 commands: the k lost ones and the one that reveals the gap. A lost count that arrives late is
+a repetition.
 
-Readings the model leaves open, flagged for the lead:
+Readings the model leaves open:
 
-- **Check order.** The check value first (a corrupted count or time cannot be trusted), then the count, then
-  the time; one reason per drop. The owner decision states the same order.
 - **Delay boundary.** The 0.05 s step makes every simulation time a whole number of milliseconds (ICD.md), so
   two steps are not a delay, although `12.55 - 12.45` is `0.10000000000000142` as doubles.
-- **No snapshot yet, or a time that is not finite**: rejected as a delay, so its count, if it is the next one,
-  becomes the reference as for any delay. An issue time newer than the newest world time is accepted; the
-  model rejects only an older one.
+- **An issue time newer than the newest world time** is accepted; the model rejects only an older one.
 - **A non-finite control**: the core accepts the command (its count becomes the reference); the shell does
   not send the control and logs an `error`.
 
@@ -130,10 +127,10 @@ their text. The main is compiled for syntax against the closed-loop bench's mw::
 
 That probe runs the simulator host and the S-CORE host together.
 
-- **ASM-DRIVING-005** (PSR:1255-1267): the commanded against the achieved deceleration up to 5.0 m/s², with a
+- **ASM-DRIVING-005**: the commanded against the achieved deceleration up to 5.0 m/s², with a
   jerk of 10.0, on the scenario's vehicle and road.
-- **ASM-DRIVING-006** (PSR:1269-1285): the steering sign on the simulated vehicle. With the ego vehicle placed
+- **ASM-DRIVING-006**: the steering sign on the simulated vehicle. With the ego vehicle placed
   to the right of its lane centre, the candidate's commands turn it left, by the sign of the yaw rate.
 - **The drops of a real run.** The candidate's issue times must stay within 0.1 s of simulation time of the
-  newest snapshot; each drop costs at most two commands, during which the simulator keeps the last valid
-  control.
+  newest snapshot. A single drop costs at most two commands, and a gap of k lost commands k + 1, during which
+  the simulator keeps the last valid control.

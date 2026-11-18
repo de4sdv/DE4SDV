@@ -2,6 +2,7 @@
 // Build: g++ -std=c++17 -Wall -Wextra -Werror -I../include payloads_test.cpp
 #include "de4sdv/driver_assistance/payloads.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <limits>

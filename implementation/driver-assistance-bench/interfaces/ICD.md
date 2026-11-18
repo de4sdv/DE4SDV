@@ -80,5 +80,5 @@ REQ-DRIVING-042 allots 0.2 s of wall-clock time from the request to each mode of
 
 The actuation adapter rejects a command whose issue time is more than 0.1 s of simulation time older than the
 newest world time. It also rejects a command it detects as lost, repeated or corrupted, and applies nothing in
-its place. It counts from the highest sequence count among the commands of the run whose check value
-holds: a count not above it is a repetition, a count more than one above it reveals a loss.
+its place. It counts from the highest sequence count among the earlier commands of the run whose check
+value holds: a count not above it is a repetition, a count more than one above it reveals a loss.

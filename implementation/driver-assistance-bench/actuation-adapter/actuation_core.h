@@ -20,17 +20,17 @@
 //
 // Rules, each from MAP-DRIVING-DA-COMMAND's transformationRule:
 //
-//  * Rejection. "The adapter rejects a command whose sequence count is not one
-//    more than that of the last accepted, whose check value fails or whose
-//    issue time is older than the newest world time by more than 0.1 s of
-//    simulation time, and applies nothing in its place". The owner decision of
-//    2026-11-18 replaces "the last accepted" with a reference count, and the
-//    model amendment, not yet in this model, is to state the same: the
-//    reference is the highest sequence count among the commands received in
-//    the run whose check value holds. It starts at 0, since the count runs
-//    "from 1 in each run" (dataTypeAndUnit).
-//    The part def names the reasons: "(a loss or a repetition)", "(a
-//    corruption)", "(a delay)". In this order, one reason per rejection:
+//  * Rejection. "The adapter checks the check value, then the sequence count,
+//    then the issue time, against the reference count, the highest sequence
+//    count among the commands received earlier in the run whose check value
+//    holds, 0 at the start of the run: it rejects a command whose check value
+//    fails, whose sequence count is not one more than the reference count, or
+//    whose issue time is older than the newest world time by more than 0.1 s
+//    of simulation time, and applies nothing in its place" (the adapter
+//    counting decision of 2026-11-18). The count runs "from 1 in each run"
+//    (dataTypeAndUnit), so the first command carries 1.
+//    The part def names the reasons: "(a corruption)", "(a repetition)", "(a
+//    loss is detected)", "(a delay)". In this order, one reason per rejection:
 //      1. the check value fails: a corruption; the reference stays (a
 //         corrupted command's count and issue time cannot be trusted);
 //      2. the count is not greater than the reference: a repetition, also for
@@ -40,10 +40,11 @@
 //      4. the count is exactly one greater: accepted, unless its issue time
 //         is a delay (below); the reference becomes the count either way.
 //    So a delay or a repetition costs that one command; a loss or a
-//    corruption costs the missing command and the next one, which reveals it;
-//    none of them makes later valid commands fail. A corruption that the
-//    check value misses is not one of them: with a higher count it would
-//    become the reference, and later valid commands would be repetitions.
+//    corruption costs the lost or corrupted command and the next one, which
+//    reveals the gap; none of them makes later valid commands fail. A
+//    corruption that the check value misses is not one of them: with a higher
+//    count it would become the reference, and later valid commands would be
+//    repetitions.
 //  * Delay. The issue time and the newest world time are simulation seconds
 //    on one clock (PSR part def). They are compared in whole milliseconds,
 //    each rounded to the nearest one: the bench's 0.05 s step makes every
@@ -52,7 +53,7 @@
 //    0.10000000000000142). A command exactly 100 ms older is not "more than
 //    0.1 s" older and passes. Without a world snapshot, or with a time that is
 //    not finite, the age cannot be shown to be within 0.1 s: the command is
-//    rejected as a delay (the stricter reading; the model does not say).
+//    rejected as a delay, as the part def states.
 //  * Control. An accepted command becomes the simulator's Ackermann control:
 //    steer = -steeringAngle * pi / 180 in rad; speed = max(0, v + 2 *
 //    acceleration) with v the ego vehicle's speed in the newest world

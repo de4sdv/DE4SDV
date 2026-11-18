@@ -3,6 +3,7 @@
 // Usage: golden_warning_bytes <requested 0|1> <issue time s> [<requested> <issue time> ...]
 #include "de4sdv/driver_assistance/payloads.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 

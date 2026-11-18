@@ -71,16 +71,27 @@ def test_steer_rule_and_sign() -> None:
 
 
 def test_rejection_rule_and_reasons() -> None:
-    rule = transformation_rule()
-    # The model on this branch still says "the last accepted". The owner decision of 2026-11-18
-    # replaces it with a reference count (actuation_core.h), and the code follows the decision. When
-    # the model amendment lands, this assertion fails and takes the amended text.
-    assert ("rejects a command whose sequence count is not one more than that of the last accepted, "
-            "whose check value fails") in rule
-    assert "applies nothing in its place" in rule
+    rule = " ".join(transformation_rule().split())
+    # The rule as the adapter counting decision of 2026-11-18 amended it (actuation_core.h).
+    assert ("The adapter checks the check value, then the sequence count, then the issue time, against the "
+            "reference count, the highest sequence count among the commands received earlier in the run whose "
+            "check value holds, 0 at the start of the run") in rule
+    assert ("it rejects a command whose check value fails, whose sequence count is not one more than the "
+            "reference count, or whose issue time is older than the newest world time by more than 0.1 s of "
+            "simulation time, and applies nothing in its place") in rule
+    assert ("the count of a command whose check value holds and whose count is greater than the reference "
+            "count becomes the reference count, whether the command is accepted or not") in rule
+    assert "last accepted" not in rule
     part = " ".join(re.sub(r"\s*\n\s*\*\s?", " ", adapter_part_def()).split())
-    assert "(a loss or a repetition)" in part
-    assert "(a corruption)" in part
-    assert "(a delay)" in part
+    assert ("checks each command against a reference count: the highest sequence count among the commands "
+            "received earlier in the run whose check value holds") in part
+    assert "The reference count is 0 at the start of each run" in part
+    assert "The adapter checks the check value first, then the sequence count, then the issue time." in part
+    assert "rejected (a corruption) and leaves the reference count unchanged" in part
+    assert "rejected (a repetition) and leaves the reference count unchanged" in part
+    assert "rejected (a loss is detected), and its count becomes the reference count" in part
+    assert "rejected (a delay); in both cases its count becomes the reference count" in part
+    assert ("A command that arrives before the adapter has a world snapshot, or whose issue time is not a finite "
+            "number, counts as older than the limit and is rejected as a delay.") in part
     assert "It has no stop response of its own." in part
     assert "The autopilot of the ego vehicle stays off." in part
