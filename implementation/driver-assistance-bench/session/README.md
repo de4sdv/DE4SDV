@@ -47,8 +47,9 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
 - Every internal IP comes from gcloud at run time (`networkInterfaces[0].networkIP`) and goes into `session.json`;
   none is configured. Owner decision D5 of 2026-11-18 put the simulator host on `carla-net` (10.10.0.2 today), with
   SSH only from Google's IAP range: `SIM_SSH_IAP=1` (the default in `hosts.env`) sends every ssh and scp to that host
-  with `--tunnel-through-iap`; `SIM_SSH_IAP=0` is the direct path. The S-CORE host's move to its reserved
-  10.164.0.20 needs no change here. The CARLA port check from the S-CORE host stays in every `p10-2`.
+  with `--tunnel-through-iap`; `SIM_SSH_IAP=0` is the direct path. The S-CORE host keeps 10.164.0.5: GCP does not
+  change a VM's primary internal address in place, so since 2026-11-18 the CARLA rule admits 10.164.0.5/32 instead
+  of the reserved 10.164.0.20. The CARLA port check from the S-CORE host stays in every `p10-2`.
 - SELinux: the guests run as they boot (Enforcing), and `getenforce` of both guests is recorded at the bring-up and
   at every window (`app_restart_<window>.txt`). The owner allowed a permissive fallback on 2026-11-18: a `p10-3`
   session runs Enforcing first; only if the Gateway lookup fails (the prepare step's `verify` reports no

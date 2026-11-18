@@ -461,7 +461,7 @@ def test_sim_ssh_iap_tunnels_every_ssh_and_scp_to_the_simulator_host_only(tmp_pa
 
 
 def test_every_internal_ip_comes_from_gcloud(tmp_path: Path) -> None:
-    ips = {G4: "10.10.0.7", L4: "10.164.0.20", GH: "10.164.0.33"}   # the D5 placement, say
+    ips = {G4: "10.10.0.7", L4: "10.164.0.20", GH: "10.164.0.33"}   # made-up addresses only the fake gcloud knows
     r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_IP=",".join(f"{k}:{v}" for k, v in ips.items()))
     assert r.rc == 0, r.log
     assert "/dev/tcp/10.10.0.7/2000" in r.command(r.ssh(L4, "run carla_reach")[0])
