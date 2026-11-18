@@ -748,6 +748,23 @@ steering wheel in a guest of its own, SDV Media, was considered and not selected
 signal and the renderer's reference application no collision symbol or chime, so
 DE4SDV would add all three and a bridge from SDV Core to SDV Media.
 
+On 2026-11-18 the owner chose how the actuation adapter counts the commands it
+receives: from the last received command whose check value holds, so that one
+lost, corrupted or late command does not make every later command fail its
+sequence count. The adapter checks the check value, then the sequence count,
+then the issue time. Its reference count is the highest sequence count among the
+commands of the run whose check value holds; it is 0 when the run starts, and
+the vehicle interface counts from 1. A command whose check value fails is
+rejected as a corruption and leaves the reference count as it is. A command
+whose count is not greater than the reference count is rejected as a repetition
+and leaves the reference count as it is. A command whose count is more than one
+greater reveals a loss: it is rejected, and counting resumes from it. A command
+whose count is one greater is accepted unless its issue time is older than the
+newest world time by more than 0.1 s of simulation time, when it is rejected as
+a delay; either way counting continues from it. A late command or a repetition
+costs that one command; a loss or a corruption costs the missing command and the
+next one, which reveals it; no single fault makes later valid commands fail.
+
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
 upstream's own simulator path does, and gives the simulator the candidate's
 steering unchanged, as that path does. The VSS steering angle of the driving

@@ -14,6 +14,8 @@ what the phase settled on top of it:
 - the S-CORE path and the AAOS SDV stay outside the candidate: the actuation adapter, the gateway processes, the
   guests and the warning presentation are context realizations, typed by no kernel class;
 - the actuation adapter rejects a detected failed command and applies nothing in its place, and has no stop response;
+  by the adapter counting decision of 2026-11-18 it counts from the last received command whose check value holds,
+  so no single lost, corrupted or late command makes the later valid commands fail;
 - the clock and the three hosts are INC-DRIVING-001's decisions of 2026-11-08 and 2026-11-09, carried over;
 - the simulator is CARLA 1.0 on Unreal Engine 5.8 (the simulator decision of 2026-11-15) and receives CARLA's
   Ackermann control, typed by the fields of its API reference, the same as in 0.9.16;
@@ -294,12 +296,35 @@ STEERING_RULE = (
     "steer = -steeringAngle * pi / 180 in rad, so "
     "the simulator receives the candidate's steering unchanged, as on upstream's path;"
 )
-#: the rejection the adapter applies, as the command record states it (review R10, P2)
+#: the rejection the adapter applies, as the command record states it (review R10, P2; the adapter counting decision
+#: of 2026-11-18)
 REJECTION_RULE = (
-    "The adapter rejects a command whose sequence count is not one more than that of the last accepted, whose check "
-    "value fails or whose issue time is older than the newest world time by more than 0.1 s of simulation time, and "
-    "applies nothing in its place (REQ-DRIVING-039, REQ-MW-006)"
+    "The adapter checks the check value, then the sequence count, then the issue time, against the reference count, "
+    "the highest sequence count among the commands received earlier in the run whose check value holds, 0 at the "
+    "start of the run: it rejects a command whose check value fails, whose sequence count is not one more than the "
+    "reference count, or whose issue time is older than the newest world time by more than 0.1 s of simulation "
+    "time, and applies nothing in its place; the count of a command whose check value holds and whose count is "
+    "greater than the reference count becomes the reference count, whether the command is accepted or not "
+    "(REQ-DRIVING-039, REQ-MW-006, the adapter counting decision of 2026-11-18)"
 )
+#: The adapter counting decision of 2026-11-18, as the package head records it.
+COUNTING_DECISION = (
+    "On 2026-11-18 the owner chose how the actuation adapter counts the driving commands it receives: from the last "
+    "received command whose check value holds, not from the last accepted command.",
+    "Counted from the last accepted command, one lost, corrupted or late command makes the next command fail its "
+    "sequence count, and with it every later one, so the simulator would keep the last valid control for the rest "
+    "of the run.",
+    "A repetition is still rejected; the command that reveals a gap is rejected, and counting resumes from it; a "
+    "corrupted or a late command is rejected as before.",
+    "The vehicle interface keeps its count, one more than that of the command before it, and the limit of 0.1 s of "
+    "simulation time stays (DrivingCommandActuationAdapter): the adapter counting decision of 2026-11-18.",
+)
+#: What the receiving rule costs, in the adapter's doc, the comment the analysis reads and the guide.
+COUNTING_COST = ("A late command or a repetition costs that one command; a loss or a corruption costs the missing "
+                 "command and the next one, which reveals it; no single fault makes later valid commands fail.")
+#: the receiving rule as merged before the adapter counting decision of 2026-11-18: gone from the model and the guide
+RETIRED_COUNTING_STATEMENTS = ("the last accepted command (a loss or a repetition)",
+                               "not one more than that of the last accepted")
 #: The owner's decision of 2026-11-15, as the package head records it.
 OWNER_DECISION = (
     "On 2026-11-15 the owner chose that the candidate's process becomes an Eclipse S-CORE application through a DE4SDV "
@@ -522,14 +547,33 @@ COMMENT_STATEMENTS = {
         "its issue time, a sequence count from 1 in each run and a CRC-32 check value",
         "detects a loss or a repetition by the sequence count, a corruption by the check value and a delay by the issue "
         "time against the newest world time, rejects the command and applies nothing in its place",
+        # the effect of the adapter counting decision of 2026-11-18, which the analysis of REQ-DRIVING-039 reads
+        "It counts from the last received command whose check value holds (the adapter counting decision of "
+        "2026-11-18; DrivingCommandActuationAdapter states the rule):",
+        COUNTING_COST.replace("A late", "a late"),
         "it makes no freedom-from-interference claim"),
 }
 #: The actuation adapter: the rejection, nothing applied in its place, no stop response, and why (decision D7b).
 ADAPTER_STATEMENTS = (
     "It carries no logical element; it is a share of the S-CORE path, which is outside the candidate.",
-    "rejects a command whose sequence count is not one more than that of the last accepted command (a loss or a "
-    "repetition), whose check value fails (a corruption), or whose issue time is older than the newest world time by "
-    "more than 0.1 s of simulation time (a delay): the share of the product that holds the path (REQ-MW-006).",
+    # the receiving rule, by the adapter counting decision of 2026-11-18: the reference count, its start, the order
+    # of the checks, and what each outcome does to the reference count
+    "It subscribes to the driving command event and checks each command against a reference count: the highest "
+    "sequence count among the commands received earlier in the run whose check value holds, which is the count of "
+    "the last such command that was not rejected as a repetition (the adapter counting decision of 2026-11-18).",
+    "The reference count is 0 at the start of each run, and the vehicle interface counts from 1 in each run, so the "
+    "first command is one more.",
+    "The adapter checks the check value first, then the sequence count, then the issue time.",
+    "A command whose check value fails is rejected (a corruption) and leaves the reference count unchanged.",
+    "A command whose sequence count is not greater than the reference count is rejected (a repetition) and leaves "
+    "the reference count unchanged.",
+    "A command whose sequence count is more than one greater than the reference count is rejected (a loss is "
+    "detected), and its count becomes the reference count.",
+    "A command whose sequence count is one more than the reference count is accepted unless its issue time is older "
+    "than the newest world time by more than 0.1 s of simulation time, when it is rejected (a delay); in both cases "
+    "its count becomes the reference count.",
+    COUNTING_COST,
+    "Rejecting what it detects is the share of the product that holds the path (REQ-MW-006).",
     "It applies nothing in place of a rejected command: the simulator keeps the last valid control.",
     "The issue time and the newest world time are simulation times of world snapshots, on one clock.",
     "Its simulator client takes the simulation time and the speed of the ego vehicle from the newest world snapshot: "
@@ -1268,6 +1312,35 @@ def test_the_package_head_records_the_decisions_of_2026_11_17_after_those_of_202
         "the third alternative closes the list"
 
 
+def test_the_package_head_records_the_adapter_counting_decision_after_those_of_2026_11_17():
+    head = _head()
+    for statement in COUNTING_DECISION:
+        assert statement in head, statement
+    assert head.index(VISUALIZATION_DECISION[-1]) < head.index(COUNTING_DECISION[0]) < head.index(
+        "Carried over from the dated decisions of INC-DRIVING-001"), "this phase's decisions in the order of their days"
+    assert not re.search(r"(?i)\bthe owner (?:said|answered|wrote)\b", head), "a decision, never a quote"
+
+
+def test_the_adapter_counts_from_the_last_received_command_whose_check_value_holds():
+    """The adapter counting decision of 2026-11-18: one lost, corrupted or late command no longer makes every
+    later command fail the sequence count; the sender's count and the 0.1 s limit stay as they were."""
+    doc = _doc(f"part def {ADAPTER}")
+    # the checks in their order: the check value, then the sequence count, then the issue time
+    order = [doc.index(phrase) for phrase in ("A command whose check value fails is rejected (a corruption)",
+                                              "is rejected (a repetition)", "is rejected (a loss is detected)",
+                                              "when it is rejected (a delay)")]
+    assert order == sorted(order), "the rule reads in the order of the checks"
+    model = _flat(_raw())
+    guide = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    for statement in RETIRED_COUNTING_STATEMENTS:
+        assert statement not in model and statement not in guide, statement
+    assert model.count(COUNTING_COST) == 1 and "(the adapter counting decision of 2026-11-18)" in doc
+    # the record keeps the 0.1 s limit and the sender's count from 1 in each run
+    assert "0.05 s" not in doc and "more than 0.1 s of simulation time" in REJECTION_RULE
+    assert "sequenceCount an unsigned 32-bit count from 1 in each run" in _record_value(
+        "MAP-DRIVING-DA-COMMAND", "dataTypeAndUnit")
+
+
 def test_the_step_decision_writes_the_step_limits_in_simulation_time():
     """The step decision of 2026-11-17 halves the step: a limit written as one step would halve with it, so the
     delay limit and the camera rate are written in simulation time, as they were meant (0.1 s)."""
@@ -1535,6 +1608,23 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                    "(`ALT-DRIVING-HARWARNING-001`): Android SDV's vehicle data has no collision signal and the "
                    "renderer's reference application no collision symbol or chime, so DE4SDV would add all three and a "
                    "bridge from SDV Core to SDV Media.",
+                   # the adapter counting decision of 2026-11-18
+                   "On 2026-11-18 the owner chose how the actuation adapter counts the commands it receives: from "
+                   "the last received command whose check value holds, so that one lost, corrupted or late command "
+                   "does not make every later command fail its sequence count.",
+                   "The adapter checks the check value, then the sequence count, then the issue time.",
+                   "Its reference count is the highest sequence count among the commands of the run whose check "
+                   "value holds; it is 0 when the run starts, and the vehicle interface counts from 1.",
+                   "A command whose check value fails is rejected as a corruption and leaves the reference count as "
+                   "it is.",
+                   "A command whose count is not greater than the reference count is rejected as a repetition and "
+                   "leaves the reference count as it is.",
+                   "A command whose count is more than one greater reveals a loss: it is rejected, and counting "
+                   "resumes from it.",
+                   "A command whose count is one greater is accepted unless its issue time is older than the newest "
+                   "world time by more than 0.1 s of simulation time, when it is rejected as a delay; either way "
+                   "counting continues from it.",
+                   COUNTING_COST,
                    "tests/test_driver_assistance_physical_software_realization.py"):
         assert phrase in section, phrase
     assert "- - " not in section, "each software element is one bullet"
