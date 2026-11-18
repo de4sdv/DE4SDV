@@ -471,19 +471,26 @@ echo "$GATEWAY_PRE_SERIALIZED_DATA_SHA256  $H" | sha256sum -c --quiet - || die "
 # ---------------------------------------------------------------------------------------------------------------------
 step bazel
 cd "$WS"
-# stage the bench's packages: //visionpilot, //de4sdv_da_bench/{interfaces,actuation-adapter,score-build/workspace}
+# stage the bench's packages: //visionpilot, //de4sdv_da_bench/{interfaces,actuation-adapter,score-build/workspace},
+# //de4sdv_da_bench/identity-recorder (B4) and //de4sdv_da_bench/ivi-warning/injector (P10-3's test publisher)
 rm -rf "$WS/visionpilot" "$OVERLAY"
 mkdir -p "$WS/visionpilot" "$OVERLAY/interfaces" "$OVERLAY/actuation-adapter" "$OVERLAY/score-build/workspace/gateway_include/score/serializer"
+mkdir -p "$OVERLAY/identity-recorder" "$OVERLAY/ivi-warning/injector"
 (cd "$VP/VisionPilot" && tar --exclude='*.onnx' --exclude='*.pt' --exclude='*.pth' --exclude='*.mp4' -cf - .) | tar -xf - -C "$WS/visionpilot"
 cp "$HERE/workspace/visionpilot.BUILD.bazel" "$WS/visionpilot/BUILD.bazel"
 cp -a "$BENCH/interfaces/include" "$OVERLAY/interfaces/"
 cp "$HERE/workspace/interfaces.BUILD.bazel" "$OVERLAY/interfaces/BUILD.bazel"
 (cd "$BENCH/actuation-adapter" && tar --exclude='.build' --exclude='__pycache__' -cf - .) | tar -xf - -C "$OVERLAY/actuation-adapter"
+for pkg in identity-recorder ivi-warning/injector; do
+  (cd "$BENCH/$pkg" && tar --exclude='tests' --exclude='__pycache__' -cf - .) | tar -xf - -C "$OVERLAY/$pkg"
+done
 cp "$HERE/workspace/BUILD.bazel" "$HERE/workspace/ort_cuda_check.cpp" "$OVERLAY/score-build/workspace/"
 cp "$CB/libcarla10.BUILD" "$ROOT/thirdparty.BUILD" "$OVERLAY/score-build/workspace/"
 cp "$H" "$OVERLAY/score-build/workspace/gateway_include/score/serializer/"
 TARGETS=(//visionpilot:VisionPilot //de4sdv_da_bench/actuation-adapter:actuation_adapter
-         //de4sdv_da_bench/score-build/workspace:ort_cuda_check)
+         //de4sdv_da_bench/score-build/workspace:ort_cuda_check
+         //de4sdv_da_bench/identity-recorder:identity_recorder //de4sdv_da_bench/identity-recorder:candidate_record_probe
+         //de4sdv_da_bench/ivi-warning/injector:warning_injector)
 start=$(date +%s)
 if ! bazel_feo build --config=x86_64-linux -c opt --jobs="$JOBS" --features=-treat_warnings_as_errors "${TARGETS[@]}" \
     > "$ROOT/logs/score-bazel.log" 2>&1; then
@@ -503,6 +510,8 @@ rm -rf "$B" && mkdir -p "$B/bin" "$B/lib" "$B/config/visionpilot" "$B/config/gat
 SB=$(bazel_feo info --config=x86_64-linux -c opt bazel-bin)
 cp -L "$SB/visionpilot/VisionPilot" "$SB/de4sdv_da_bench/actuation-adapter/actuation_adapter" \
       "$SB/de4sdv_da_bench/score-build/workspace/ort_cuda_check" "$B/bin/"
+cp -L "$SB/de4sdv_da_bench/identity-recorder/identity_recorder" "$SB/de4sdv_da_bench/identity-recorder/candidate_record_probe" \
+      "$SB/de4sdv_da_bench/ivi-warning/injector/warning_injector" "$B/bin/"
 cp -L "$GB/score/gatewayd/gatewayd" "$GB/score/someipd/someipd" "$B/bin/"
 cp -L "$TP/onnxruntime/lib/libonnxruntime.so.1" "$TP/onnxruntime/lib/libonnxruntime_providers_cuda.so" \
       "$TP/onnxruntime/lib/libonnxruntime_providers_shared.so" "$B/lib/"
