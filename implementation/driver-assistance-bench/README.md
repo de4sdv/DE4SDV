@@ -22,3 +22,4 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 | `launch-manager/` | The S-CORE host's Launch Manager configuration: the start order, the alive supervision of the candidate's process and the adapter, and the recovery target without both |
 | `actuation-adapter/` | The actuation end of the S-CORE path: rejects a lost, repeated, corrupted or delayed driving command and applies an accepted one as CARLA's Ackermann control |
 | `score-build/` | The S-CORE build of VisionPilot: the Bazel workspace, the build script, the GPU runtime of the S-CORE host and the fallback CMake route |
+| `world-side/` | The simulator host's world side on CARLA 1.0: SC-DRIVING-012 with its entry-condition checks and setting records, the ASM-DRIVING-005/006 calibrations and the camera calibration file |
