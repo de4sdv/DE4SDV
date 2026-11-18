@@ -1,0 +1,360 @@
+"""Local checks of the S-CORE build of VisionPilot (INC-DRIVING-002, build item B2).
+
+The Bazel build itself needs the x86_64 S-CORE toolchain and runs on the build VM. These tests check what can be
+checked without it:
+
+- the shell scripts parse (bash -n);
+- every direct download goes through the sha256-checked fetch helper with a pinned sha256, every git source through
+  the commit-checked helper with a pinned commit;
+- the overlay BUILD file of VisionPilot names exactly the source files that upstream's CMake build compiles in the
+  bench's configuration, plus those of the patch series, and each of them exists at the pin or in a patch;
+- the workspace edits the build script makes find their anchors in the repository's FEO bench diff;
+- the pinned GPU runtime covers every CUDA library that the pinned ONNX Runtime CUDA provider needs;
+- C++ files that name fixed-width integer types include <cstdint>.
+
+Upstream is read from a local clone of VisionPilot (VISIONPILOT_CLONE, default the probe clone) with git show at the
+pin; without the clone those tests are skipped. The ONNX Runtime package check runs when the package file is present
+(DA_B2_ORT_NUPKG).
+"""
+
+from __future__ import annotations
+
+import hashlib
+import os
+import re
+import shutil
+import subprocess
+import zipfile
+from pathlib import Path
+
+import pytest
+
+HERE = Path(__file__).resolve().parent
+BUILD_DIR = HERE.parent
+BENCH = BUILD_DIR.parent
+REPO = BENCH.parent.parent
+SCRIPTS = ["build_score_bench.sh", "install_gpu_runtime.sh", "fallback_cmake_build.sh", "pins.sh"]
+VP_BUILD = BUILD_DIR / "workspace" / "visionpilot.BUILD.bazel"
+PATCHES = BENCH / "score-interface" / "patches"
+PIN = "014e0e7a56ee8e597c2cab8175233f74edd9b856"
+CLONE = Path(os.environ.get("VISIONPILOT_CLONE", "/home/mrk/.hermes/cache/scratch/vis8/check/vp"))
+ORT_NUPKG = Path(os.environ.get("DA_B2_ORT_NUPKG", "/home/mrk/.hermes/cache/scratch/da-b2/ort-gpu-linux-1.26.0.nupkg"))
+
+
+def pins() -> dict[str, str]:
+    """The variables of pins.sh as bash sees them."""
+    out = subprocess.run(
+        ["bash", "-c", 'set -a; source "$1"; set +a; env -0', "_", str(BUILD_DIR / "pins.sh")],
+        check=True, capture_output=True, env={"PATH": os.environ.get("PATH", "/usr/bin:/bin")},
+    ).stdout.decode()
+    return dict(item.split("=", 1) for item in out.split("\0") if "=" in item)
+
+
+def archive_rows(text: str) -> list[list[str]]:
+    return [line.split("|") for line in text.strip().splitlines() if line.strip()]
+
+
+def have_clone() -> bool:
+    if shutil.which("git") is None or not (CLONE / ".git").exists():
+        return False
+    return subprocess.run(["git", "-C", str(CLONE), "cat-file", "-e", PIN], capture_output=True).returncode == 0
+
+
+def upstream(path: str) -> str:
+    return subprocess.run(["git", "-C", str(CLONE), "show", f"{PIN}:VisionPilot/{path}"],
+                          check=True, capture_output=True, text=True).stdout
+
+
+def upstream_exists(path: str) -> bool:
+    return subprocess.run(["git", "-C", str(CLONE), "cat-file", "-e", f"{PIN}:VisionPilot/{path}"],
+                          capture_output=True).returncode == 0
+
+
+def patch_added_files() -> dict[str, str]:
+    """Files the patch series creates, with their content."""
+    files: dict[str, str] = {}
+    for patch in sorted(PATCHES.glob("*.diff")):
+        current = None
+        lines: list[str] = []
+        new_file = False
+        for line in patch.read_text().splitlines():
+            if line.startswith("diff --git"):
+                if current and new_file:
+                    files[current] = "\n".join(lines)
+                current, lines, new_file = None, [], False
+            elif line.startswith("--- /dev/null"):
+                new_file = True
+            elif line.startswith("+++ b/VisionPilot/"):
+                current = line[len("+++ b/VisionPilot/"):]
+            elif current and line.startswith("+"):
+                lines.append(line[1:])
+        if current and new_file:
+            files[current] = "\n".join(lines)
+    return files
+
+
+# Conditions of upstream's CMake files that are off in the bench's configuration (CMake options of the build).
+OFF_CONDITIONS = ("BUILD_TESTING", "ENABLE_OCCUPANCY", "ENABLE_ROS2_INTERFACE")
+
+
+def cmake_sources(text: str, module_dir: str) -> set[str]:
+    """The .cpp files a CMakeLists.txt compiles with the bench's options, as paths under VisionPilot/."""
+    text = "\n".join(line.split("#", 1)[0] for line in text.splitlines())
+    sources: set[str] = set()
+    skip_depth = 0
+    depth = 0
+    for match in re.finditer(r"(\w+)\s*\(([^()]*(?:\([^()]*\)[^()]*)*)\)", text, flags=re.S):
+        command, args = match.group(1).lower(), match.group(2)
+        if command == "if":
+            depth += 1
+            if skip_depth == 0 and any(c in args for c in OFF_CONDITIONS):
+                skip_depth = depth
+            continue
+        if command == "endif":
+            if skip_depth == depth:
+                skip_depth = 0
+            depth -= 1
+            continue
+        if skip_depth:
+            continue
+        if command in ("add_library", "add_executable", "target_sources", "list"):
+            for token in args.split():
+                if token.endswith(".cpp"):
+                    sources.add(os.path.normpath(os.path.join(module_dir, token)))
+    return sources
+
+
+def top_level_subdirectories(text: str) -> list[str]:
+    dirs = []
+    skip = False
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if line.lower().startswith("if"):
+            skip = any(c in line for c in OFF_CONDITIONS)
+        elif line.lower().startswith("endif"):
+            skip = False
+        elif not skip:
+            m = re.match(r"add_subdirectory\(\s*([^\s)]+)", line)
+            if m:
+                dirs.append(m.group(1))
+    return dirs
+
+
+def build_sources() -> set[str]:
+    return set(re.findall(r'"((?:app|modules)/[^"]+\.cpp)"', VP_BUILD.read_text()))
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("script", SCRIPTS)
+def test_shell_scripts_parse(script: str) -> None:
+    result = subprocess.run(["bash", "-n", str(BUILD_DIR / script)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+
+
+def test_pins_are_well_formed() -> None:
+    p = pins()
+    shas = {k: v for k, v in p.items() if k.endswith("_SHA256")}
+    assert len(shas) >= 12
+    for key, value in shas.items():
+        assert re.fullmatch(r"[0-9a-f]{64}", value), key
+    commits = {k: v for k, v in p.items() if k.endswith("_COMMIT")}
+    assert set(commits) == {"VP_COMMIT", "FEO_COMMIT", "GATEWAY_COMMIT", "CARLA_COMMIT"}
+    for key, value in commits.items():
+        assert re.fullmatch(r"[0-9a-f]{40}", value), key
+    assert p["VP_COMMIT"] == PIN
+    assert p["CARLA_COMMIT"].startswith("14ac3b1a50")
+    assert p["GATEWAY_COMMIT"].startswith("d9eac670")
+    assert p["FEO_COMMIT"].startswith("313b3d84")
+    for row in archive_rows(p["CUDA_ARCHIVES"]) + archive_rows(p["CUDNN_ARCHIVES"]):
+        assert len(row) == 4, row
+        name, rel, sha, size = row
+        assert re.fullmatch(r"[0-9a-f]{64}", sha), name
+        assert size.isdigit() and int(size) > 0, name
+        assert rel.startswith(name + "/linux-x86_64/") and rel.endswith("-archive.tar.xz"), rel
+
+
+def test_pinned_cuda_runtime_covers_the_providers_needs() -> None:
+    p = pins()
+    provider = {"libcudart": "cuda_cudart", "libcublas": "libcublas", "libcublasLt": "libcublas",
+                "libcufft": "libcufft", "libcurand": "libcurand", "libcudnn": "cudnn"}
+    names = {row[0]: row[1] for row in archive_rows(p["CUDA_ARCHIVES"]) + archive_rows(p["CUDNN_ARCHIVES"])}
+    needed = p["ORT_CUDA_NEEDED"].split()
+    assert len(needed) == 6
+    for soname in needed:
+        stem, major = soname.split(".so.")
+        assert provider[stem] in names, soname
+        # every CUDA library of the CUDA 12 major release (cuFFT 11 and cuRAND 10 ship with CUDA 12), cuDNN 9
+        rel = names[provider[stem]]
+        if stem == "libcudnn":
+            assert major == "9" and "_cuda12-archive" in rel
+        elif stem in ("libcudart", "libcublas", "libcublasLt"):
+            assert major == "12" and re.search(r"-12\.8\.", rel), rel
+    assert p["CUDA_VERSION"].startswith("12.8")
+
+
+def _function_body(text: str, name: str) -> str:
+    start = text.index(f"{name}() {{")
+    end = text.index("\n}\n", start)
+    return text[start:end]
+
+
+@pytest.mark.parametrize("script", ["build_score_bench.sh", "install_gpu_runtime.sh", "fallback_cmake_build.sh"])
+def test_every_download_is_pinned_by_sha256(script: str) -> None:
+    text = (BUILD_DIR / script).read_text()
+    assert "wget" not in text
+    curl_lines = [line for line in text.splitlines() if re.search(r"\bcurl\b", line) and not line.lstrip().startswith("#")]
+    if script == "fallback_cmake_build.sh":
+        assert not curl_lines  # it downloads nothing of its own
+        return
+    body = _function_body(text, "fetch")
+    for line in curl_lines:
+        assert line in body, f"curl outside the sha256-checked fetch helper: {line}"
+    assert 'sha256sum -c --quiet' in body
+    calls = [line.strip() for line in text.splitlines() if re.match(r"\s*fetch\s", line)]
+    assert calls
+    for call in calls:
+        args = re.findall(r'"\$\([^)]*\)"|"[^"]*"|\S+', call)[1:]
+        assert len(args) >= 3, call
+        assert re.fullmatch(r'"?\$(\{)?[A-Z_]*SHA256(\})?"?|"\$sha"', args[2]), call
+
+
+def test_every_git_source_is_pinned_by_commit() -> None:
+    text = (BUILD_DIR / "build_score_bench.sh").read_text()
+    calls = re.findall(r"^git_at (.+)$", text, flags=re.M)
+    assert len(calls) == 4
+    for call in calls:
+        assert re.search(r'"\$[A-Z]+_URL" "\$[A-Z]+_COMMIT"$', call), call
+    body = _function_body(text, "git_at")
+    assert 'rev-parse HEAD)" = "$commit"' in body
+    # the only clones are local and shared
+    for line in text.splitlines():
+        if "git clone" in line:
+            assert "--shared" in line, line
+
+
+@pytest.mark.skipif(not have_clone(), reason="no VisionPilot clone holding the pin (VISIONPILOT_CLONE)")
+def test_overlay_names_exactly_the_cmake_sources() -> None:
+    expected: set[str] = set()
+    top = upstream("CMakeLists.txt")
+    subdirs = top_level_subdirectories(top)
+    assert "modules/visualization" in subdirs and "app" in subdirs
+    assert not any("ros2" in d for d in subdirs)
+    for d in subdirs:
+        expected |= cmake_sources(upstream(f"{d}/CMakeLists.txt"), d)
+    # the patch series: two modules added by add_subdirectory in the top-level CMakeLists.txt
+    p1 = (PATCHES / "0001-de4sdv-visualization-recorder.diff").read_text()
+    p2 = (PATCHES / "0002-de4sdv-score-interface.diff").read_text()
+    assert "+add_subdirectory(modules/de4sdv/visualization_recorder)" in p1
+    assert "+    add_subdirectory(modules/de4sdv/score_interface)" in p2
+    added = patch_added_files()
+    for d in ("modules/de4sdv/visualization_recorder", "modules/de4sdv/score_interface"):
+        expected |= cmake_sources(added[f"{d}/CMakeLists.txt"], d)
+    # DE4SDV_SCORE_BINDINGS of 0002: the two binding units, which only the S-CORE build compiles
+    expected |= {"modules/de4sdv/score_interface/src/lola_bindings.cpp",
+                 "modules/de4sdv/score_interface/src/carla_client.cpp"}
+    # what the bench configuration compiles, and what it leaves out
+    assert "modules/visualization/src/webrtc_stream.cpp" in expected
+    assert "modules/visualization/src/debug_display.cpp" not in expected
+    assert "modules/models/src/trt_engine.cpp" not in expected
+    assert len(expected) == 30
+    assert build_sources() == expected
+
+
+@pytest.mark.skipif(not have_clone(), reason="no VisionPilot clone holding the pin (VISIONPILOT_CLONE)")
+def test_overlay_paths_exist_at_the_pin_or_in_a_patch() -> None:
+    added = patch_added_files()
+    text = VP_BUILD.read_text()
+    for path in build_sources():
+        assert upstream_exists(path) or path in added, path
+    for inc in re.findall(r'"(modules/[^"*]+/include)"', text):
+        has_header = any(a.startswith(inc + "/") for a in added)
+        if not has_header:
+            listing = subprocess.run(["git", "-C", str(CLONE), "ls-tree", "-r", "--name-only", PIN,
+                                      f"VisionPilot/{inc}"], capture_output=True, text=True, check=True).stdout
+            has_header = bool(listing.strip())
+        assert has_header, inc
+
+
+def test_overlay_names_every_module_source_of_the_score_interface() -> None:
+    module_sources = {f"modules/de4sdv/score_interface/src/{p.name}" for p in
+                      (BENCH / "score-interface" / "module" / "src").glob("*.cpp")}
+    assert len(module_sources) == 7
+    assert module_sources <= build_sources()
+    text = VP_BUILD.read_text()
+    carla = text[text.index('name = "de4sdv_score_carla_client"'):]
+    carla = carla[:carla.index(")\n")]
+    assert 'copts = ["-std=c++20"]' in carla
+    assert text.count("-std=c++20") == 1  # only the CARLA unit is C++20
+    assert 'defines = ["ENABLE_SCORE_INTERFACE=1"]' in text
+
+
+def test_workspace_edits_find_their_anchors() -> None:
+    diff = (REPO / "implementation/closed-loop-driving-bench/agent/workspace/feo-313b3d84-bench.diff").read_text()
+    added = "\n".join(line[1:] for line in diff.splitlines() if line.startswith("+") and not line.startswith("+++"))
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    old = 'build_file = "//probe/carla:libcarla.BUILD",\n    path = "/opt/carla-d/libcarla-install",'
+    assert added.count(old) == 1
+    assert "old = 'build_file = \"//probe/carla:libcarla.BUILD\",\\n    path = \"/opt/carla-d/libcarla-install\",'" in script
+    assert len(re.findall(r'\n# WP2a \(slice 10b\).*?\n\)\n', added + "\n", flags=re.S)) == 1
+    assert "new_local_repository = use_repo_rule(" in added
+    fragment = (BUILD_DIR / "workspace" / "MODULE.fragment.bazel").read_text()
+    assert 'name = "da_b2_thirdparty"' in fragment and "@ROOT@/thirdparty" in fragment
+    assert '"//de4sdv_da_bench/score-build/workspace:thirdparty.BUILD"' in fragment
+
+
+def test_thirdparty_placeholders_are_all_filled_by_the_script() -> None:
+    template = (BUILD_DIR / "workspace" / "thirdparty.BUILD.in").read_text()
+    placeholders = set(re.findall(r"@HOST_[A-Z_]+@", template))
+    assert placeholders == {"@HOST_GSTREAMER_LIBS@", "@HOST_SOLVER_LIBS@", "@HOST_GSTREAMER_INCLUDES@"}
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    for ph in placeholders:
+        assert f's|{ph}|' in script, ph
+    assert '! grep -q "@HOST_"' in script
+
+
+def test_labels_the_bench_packages_need_are_provided() -> None:
+    adapter = (BENCH / "actuation-adapter" / "BUILD.bazel").read_text()
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    interfaces = (BUILD_DIR / "workspace" / "interfaces.BUILD.bazel").read_text()
+    assert "//de4sdv_da_bench/interfaces:driver_assistance" in adapter
+    assert 'name = "driver_assistance"' in interfaces
+    assert (BENCH / "interfaces" / "include" / "de4sdv" / "driver_assistance" / "payloads.h").is_file()
+    assert 'OVERLAY=$WS/de4sdv_da_bench' in script
+    assert 'cp "$HERE/workspace/interfaces.BUILD.bazel" "$OVERLAY/interfaces/BUILD.bazel"' in script
+    assert '"@libcarla//:client"' in adapter and "libcarla10.BUILD" in script
+    ws_build = (BUILD_DIR / "workspace" / "BUILD.bazel").read_text()
+    for label in re.findall(r'"(//de4sdv_da_bench/score-build/workspace:[a-z_]+)"', VP_BUILD.read_text()):
+        assert f'name = "{label.split(":")[1]}"' in ws_build, label
+    for target in ("//visionpilot:VisionPilot", "//de4sdv_da_bench/actuation-adapter:actuation_adapter",
+                   "//de4sdv_da_bench/score-build/workspace:ort_cuda_check"):
+        assert target in script
+
+
+@pytest.mark.skipif(not ORT_NUPKG.is_file() or shutil.which("readelf") is None,
+                    reason="the ONNX Runtime package is not on this host (DA_B2_ORT_NUPKG)")
+def test_ort_package_matches_its_pins(tmp_path: Path) -> None:
+    p = pins()
+    assert hashlib.sha256(ORT_NUPKG.read_bytes()).hexdigest() == p["ORT_SHA256"]
+    with zipfile.ZipFile(ORT_NUPKG) as z:
+        for member, key in (("libonnxruntime.so", "ORT_LIBONNXRUNTIME_SHA256"),
+                            ("libonnxruntime_providers_cuda.so", "ORT_PROVIDERS_CUDA_SHA256"),
+                            ("libonnxruntime_providers_shared.so", "ORT_PROVIDERS_SHARED_SHA256")):
+            z.extract(f"runtimes/linux-x64/native/{member}", tmp_path)
+            data = (tmp_path / "runtimes/linux-x64/native" / member).read_bytes()
+            assert hashlib.sha256(data).hexdigest() == p[key], member
+    out = subprocess.run(["readelf", "-d", str(tmp_path / "runtimes/linux-x64/native/libonnxruntime_providers_cuda.so")],
+                         check=True, capture_output=True, text=True).stdout
+    needed = re.findall(r"\(NEEDED\)\s+Shared library: \[([^\]]+)\]", out)
+    cuda = [n for n in needed if re.match(r"lib(cu|nv)", n)]
+    assert cuda == p["ORT_CUDA_NEEDED"].split()
+
+
+def test_cpp_files_include_cstdint_where_they_name_fixed_width_types() -> None:
+    files = [f for f in BUILD_DIR.rglob("*") if f.suffix in (".cpp", ".hpp", ".h")]
+    assert files
+    for f in files:
+        text = f.read_text()
+        if re.search(r"\b(std::)?u?int(8|16|32|64)_t\b", text):
+            assert "#include <cstdint>" in text, f.name

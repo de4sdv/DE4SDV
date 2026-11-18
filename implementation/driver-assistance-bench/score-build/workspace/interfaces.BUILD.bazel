@@ -1,0 +1,12 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): BUILD.bazel of the package //de4sdv_da_bench/interfaces in the
+# S-CORE workspace. build_score_bench.sh stages the bench's interfaces/ folder there with this file; the label is the
+# one actuation-adapter/BUILD.bazel names.
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "driver_assistance",
+    hdrs = ["include/de4sdv/driver_assistance/payloads.h"],
+    includes = ["include"],
+)

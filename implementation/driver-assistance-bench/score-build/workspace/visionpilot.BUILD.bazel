@@ -1,0 +1,285 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): the overlay BUILD file of VisionPilot for the S-CORE workspace.
+#
+# build_score_bench.sh copies VisionPilot/ of 014e0e7a56ee8e597c2cab8175233f74edd9b856, with the patch series
+# 0001 (visualization recorder) and 0002 (DE4SDV S-CORE interface) applied, into the package //visionpilot of the
+# S-CORE workspace, and this file as its BUILD.bazel. No upstream file is edited beyond the two patches.
+#
+# One cc_library per target of upstream's CMake build, with that target's sources, in the configuration the bench
+# builds (CMake options): GPU on, ENABLE_ROS2_INTERFACE off, BUILD_TESTING off, ENABLE_OCCUPANCY off, ENABLE_RERUN on
+# (rrd_on = true is the evaluators' record), the WebRTC sources on (vision_pilot.cpp:80-82 constructs the streamer
+# unconditionally, so the link needs them), ENABLE_SCORE_INTERFACE on. tests/test_score_build.py checks that the
+# sources below are exactly those of upstream's CMake build and the patch series.
+#
+# The module include directories form one header library, because upstream's headers include each other across
+# modules in a cycle (models and fusion, logging and models). Every library is alwayslink, so that the cycles in the
+# static link (models and fusion, logging and everything) do not depend on the archive order.
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+TP = "@da_b2_thirdparty//"
+
+# add_compile_definitions(ENABLE_SCORE_INTERFACE=1) of 0002's CMakeLists.txt: defined for every target.
+cc_library(
+    name = "build_definitions",
+    defines = ["ENABLE_SCORE_INTERFACE=1"],
+)
+
+cc_library(
+    name = "module_headers",
+    hdrs = glob([
+        "modules/common/include/**/*.hpp",
+        "modules/config/include/**/*.hpp",
+        "modules/engine/include/**/*.hpp",
+        "modules/logging/include/**/*.hpp",
+        "modules/models/include/**/*.hpp",
+        "modules/safety_guardian/fusion/include/**/*.hpp",
+        "modules/safety_guardian/planning/include/**/*.hpp",
+        "modules/sensing/camera_interface/include/**/*.hpp",
+        "modules/sensing/image_preprocessing/include/**/*.hpp",
+        "modules/sensing/vehicle_interface/include/**/*.hpp",
+        "modules/visualization/include/**/*.hpp",
+        "modules/de4sdv/visualization_recorder/include/**/*.hpp",
+    ]),
+    includes = [
+        "modules/common/include",
+        "modules/config/include",
+        "modules/engine/include",
+        "modules/logging/include",
+        "modules/models/include",
+        "modules/safety_guardian/fusion/include",
+        "modules/safety_guardian/planning/include",
+        "modules/sensing/camera_interface/include",
+        "modules/sensing/image_preprocessing/include",
+        "modules/sensing/vehicle_interface/include",
+        "modules/visualization/include",
+        "modules/de4sdv/visualization_recorder/include",
+    ],
+    deps = [
+        ":build_definitions",
+        TP + ":eigen",
+        TP + ":onnxruntime",
+        TP + ":opencv",
+    ],
+)
+
+# modules/logging/CMakeLists.txt: ENABLE_RERUN and the Rerun SDK are private to logging.
+cc_library(
+    name = "logging",
+    srcs = ["modules/logging/src/logger.cpp"],
+    local_defines = ["ENABLE_RERUN"],
+    alwayslink = True,
+    deps = [
+        ":module_headers",
+        TP + ":rerun",
+    ],
+)
+
+cc_library(
+    name = "config",
+    srcs = ["modules/config/src/vision_pilot_config.cpp"],
+    alwayslink = True,
+    deps = [":module_headers"],
+)
+
+cc_library(
+    name = "common",
+    srcs = ["modules/common/src/utils.cpp"],
+    alwayslink = True,
+    deps = [":module_headers"],
+)
+
+cc_library(
+    name = "image_preprocessing",
+    srcs = ["modules/sensing/image_preprocessing/src/image_preprocessor.cpp"],
+    alwayslink = True,
+    deps = [":module_headers"],
+)
+
+cc_library(
+    name = "engine",
+    srcs = ["modules/engine/src/onnx_engine.cpp"],
+    alwayslink = True,
+    deps = [":module_headers"],
+)
+
+cc_library(
+    name = "models",
+    srcs = [
+        "modules/models/src/auto_drive.cpp",
+        "modules/models/src/auto_speed.cpp",
+        "modules/models/src/auto_steer.cpp",
+        "modules/models/src/inference.cpp",
+    ],
+    alwayslink = True,
+    deps = [":module_headers"],
+)
+
+cc_library(
+    name = "fusion",
+    srcs = [
+        "modules/safety_guardian/fusion/src/lateral_fusion.cpp",
+        "modules/safety_guardian/fusion/src/longitudinal_fusion.cpp",
+    ],
+    alwayslink = True,
+    deps = [":module_headers"],
+)
+
+# modules/safety_guardian/planning/CMakeLists.txt: HAVE_CSTDDEF and Ipopt are private to planning.
+cc_library(
+    name = "planning",
+    srcs = [
+        "modules/safety_guardian/planning/src/lateral_planning.cpp",
+        "modules/safety_guardian/planning/src/longitudinal_planning.cpp",
+        "modules/safety_guardian/planning/src/planning.cpp",
+    ],
+    local_defines = ["HAVE_CSTDDEF"],
+    alwayslink = True,
+    deps = [
+        ":module_headers",
+        TP + ":cppad_ipopt",
+    ],
+)
+
+cc_library(
+    name = "vehicle_interface",
+    srcs = [
+        "modules/sensing/vehicle_interface/src/can_interface.cpp",
+        "modules/sensing/vehicle_interface/src/file_interface.cpp",
+    ],
+    alwayslink = True,
+    deps = [":module_headers"],
+)
+
+cc_library(
+    name = "camera_interface",
+    srcs = [
+        "modules/sensing/camera_interface/src/file_interface.cpp",
+        "modules/sensing/camera_interface/src/v4l2_camera_interface.cpp",
+    ],
+    linkopts = ["-lpthread"],
+    alwayslink = True,
+    deps = [":module_headers"],
+)
+
+# modules/visualization/CMakeLists.txt with its WebRTC sources found: ENABLE_WEBRTC public, GST_USE_UNSTABLE_API
+# private. Boost is CARLA's Boost (the same headers as the CARLA client in this process), nlohmann from Ubuntu.
+cc_library(
+    name = "visualization",
+    srcs = [
+        "modules/visualization/src/local_display.cpp",
+        "modules/visualization/src/visual_interface.cpp",
+        "modules/visualization/src/webrtc_stream.cpp",
+    ],
+    defines = ["ENABLE_WEBRTC=1"],
+    local_defines = ["GST_USE_UNSTABLE_API=1"],
+    linkopts = ["-lpthread"],
+    alwayslink = True,
+    deps = [
+        ":module_headers",
+        TP + ":boost_headers",
+        TP + ":gstreamer_webrtc",
+        TP + ":nlohmann_json",
+    ],
+)
+
+# 0001: modules/de4sdv/visualization_recorder/CMakeLists.txt
+cc_library(
+    name = "de4sdv_visualization_recorder",
+    srcs = ["modules/de4sdv/visualization_recorder/src/visualization_recorder.cpp"],
+    linkopts = ["-lpthread"],
+    alwayslink = True,
+    deps = [
+        ":module_headers",
+        ":visualization",
+    ],
+)
+
+# 0002: the headers of the S-CORE interface module; seams.hpp is the plain function interface between the portable
+# part and the two binding units (MakeLolaPorts, MakeCarlaClient).
+cc_library(
+    name = "de4sdv_score_interface_headers",
+    hdrs = ["modules/de4sdv/score_interface/include/de4sdv/score_interface/seams.hpp"],
+    includes = ["modules/de4sdv/score_interface/include"],
+    deps = ["//de4sdv_da_bench/interfaces:driver_assistance"],
+)
+
+# 0002: modules/de4sdv/score_interface/CMakeLists.txt, the portable part (C++17).
+cc_library(
+    name = "de4sdv_score_interface",
+    srcs = [
+        "modules/de4sdv/score_interface/src/adapters.cpp",
+        "modules/de4sdv/score_interface/src/core.cpp",
+        "modules/de4sdv/score_interface/src/score_interface.cpp",
+        "modules/de4sdv/score_interface/src/settings.cpp",
+        "modules/de4sdv/score_interface/src/stop_signal.cpp",
+    ],
+    hdrs = glob(
+        ["modules/de4sdv/score_interface/include/**/*.hpp"],
+        exclude = ["modules/de4sdv/score_interface/include/de4sdv/score_interface/seams.hpp"],
+    ),
+    includes = ["modules/de4sdv/score_interface/include"],
+    alwayslink = True,
+    deps = [
+        ":de4sdv_score_interface_headers",
+        ":module_headers",
+    ],
+)
+
+# DE4SDV_SCORE_BINDINGS of 0002: the mw::com skeletons and the record proxy (MAP-DRIVING-DA-COMMAND,
+# MAP-DRIVING-DA-WARNING-REQUEST, MAP-DRIVING-DA-CANDIDATE-RECORD), C++17.
+cc_library(
+    name = "de4sdv_score_lola_bindings",
+    srcs = ["modules/de4sdv/score_interface/src/lola_bindings.cpp"],
+    alwayslink = True,
+    deps = [
+        ":de4sdv_score_interface_headers",
+        "//de4sdv_da_bench/score-build/workspace:gateway_pre_serialized_data",
+        "@score_communication//score/mw/com",
+    ],
+)
+
+# DE4SDV_SCORE_BINDINGS of 0002: the CARLA 1.0 client (MAP-DRIVING-DA-CAMERA-IMAGE, MAP-DRIVING-DA-VEHICLE-SPEED), the
+# one C++20 unit (DA-P8 h; owner decision h-a, option (a)). Bazel puts copts after the toolchain's -std=c++17.
+cc_library(
+    name = "de4sdv_score_carla_client",
+    srcs = ["modules/de4sdv/score_interface/src/carla_client.cpp"],
+    copts = ["-std=c++20"],
+    alwayslink = True,
+    deps = [
+        ":de4sdv_score_interface_headers",
+        "@libcarla//:client",
+    ],
+)
+
+# app/CMakeLists.txt: the executable VisionPilot. The runpath lets the bundle's bin/ find libonnxruntime.so.1 in
+# ../lib; --allow-shlib-undefined as upstream sets it, here because the Ubuntu 22.04 libraries the binary links
+# (GStreamer, Ipopt, CppAD) carry glibc symbol versions newer than the S-CORE sysroot's glibc 2.31.
+cc_binary(
+    name = "VisionPilot",
+    srcs = ["app/vision_pilot.cpp"],
+    linkopts = [
+        "-Wl,--allow-shlib-undefined",
+        "-Wl,-rpath,$$ORIGIN/../lib",
+        "-lpthread",
+        "-ldl",
+    ],
+    deps = [
+        ":camera_interface",
+        ":common",
+        ":config",
+        ":de4sdv_score_carla_client",
+        ":de4sdv_score_interface",
+        ":de4sdv_score_lola_bindings",
+        ":de4sdv_visualization_recorder",
+        ":engine",
+        ":fusion",
+        ":image_preprocessing",
+        ":logging",
+        ":models",
+        ":planning",
+        ":vehicle_interface",
+        ":visualization",
+    ],
+)
