@@ -28,6 +28,10 @@ HOST_MANIFESTS = {
     "gatewayd": BENCH / "score-path" / "config" / "mw_com_config_gatewayd_warning.json",
     "someipd": BENCH / "score-path" / "config" / "mw_com_config_someipd_warning.json",
 }
+# The p10-1/p10-3 test publisher of the warning request runs in the candidate's place (never beside it) and takes the
+# candidate's global ASIL B, so that gatewayd (QM) receives from an ASIL B process as it will from the candidate. It
+# names no ASIL B instance and not the command (ivi-warning/injector/README.md).
+STAND_IN_FOR_THE_CANDIDATE = BENCH / "ivi-warning" / "injector" / "mw_com_config_warning_injector.json"
 
 
 def manifests() -> list[Path]:
@@ -72,7 +76,17 @@ def test_only_the_command_is_asil_b() -> None:
                 if instance.get("asil-level") == "B":
                     assert entry["instanceSpecifier"] == COMMAND, (path, entry["instanceSpecifier"])
         if data.get("global", {}).get("asil-level") == "B":
-            assert path in naming_the_command(), path
+            assert path in naming_the_command() or path == STAND_IN_FOR_THE_CANDIDATE, path
+
+
+def test_the_stand_in_for_the_candidate_has_its_warning_instance_and_its_global_asil_b() -> None:
+    stand_in = json.loads(STAND_IN_FOR_THE_CANDIDATE.read_text(encoding="utf-8"))
+    candidate = json.loads(HOST_MANIFESTS["vision_pilot"].read_text(encoding="utf-8"))
+    warning = "de4sdv/driver_assistance/warning_request"
+    assert [e["instanceSpecifier"] for e in stand_in["serviceInstances"]] == [warning]
+    assert stand_in["global"]["asil-level"] == candidate["global"]["asil-level"] == "B"
+    assert _events(STAND_IN_FOR_THE_CANDIDATE)[warning] == _events(HOST_MANIFESTS["vision_pilot"])[warning]
+    assert all(i["asil-level"] == "QM" for e in stand_in["serviceInstances"] for i in e["instances"])
 
 
 def _events(path: Path) -> dict[str, tuple]:
