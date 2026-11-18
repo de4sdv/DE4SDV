@@ -25,6 +25,12 @@
  * visionPilotDrivingStack, and phase 9 adds that feature to the feature model
  * and links the system of interest to it.
  *
+ * On 2026-11-18 the owner amended the terms: the further run of SC-DRIVING-012
+ * in which the Eclipse S-CORE path of the driver-assistance system is stopped
+ * is no run of a setting and no judged run, and only the stop clauses of
+ * REQ-DRIVING-038 and REQ-DRIVING-043 read it: the stop-run decision of
+ * 2026-11-18.
+ *
  * No safety, on-road or production-readiness claim is made, and no member
  * product is claimed.
  */
@@ -197,7 +203,12 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
      *   of the target, for at least 2 s before its functional part. A run
      *   that misses this, or has no functional part, is reported with what it
      *   missed and is not judged. A setting of SC-DRIVING-012 or
-     *   SC-DRIVING-013 is judged when both of its runs are judged runs.
+     *   SC-DRIVING-013 is judged when both of its runs are judged runs. The
+     *   further run of SC-DRIVING-012 in which the Eclipse S-CORE path of
+     *   the driver-assistance system is stopped, which REQ-DRIVING-038 and
+     *   REQ-DRIVING-043 name, is no run of a setting and no judged run, and
+     *   only the stop clauses of those two requirements read it (the stop-run
+     *   decision of 2026-11-18).
      * - Time to collision: the distance from the vehicle to the vehicle ahead
      *   in the direction of travel, divided by the speed at which the vehicle
      *   closes on it. It has no value while the vehicle does not close on the
