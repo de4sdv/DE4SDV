@@ -28,9 +28,10 @@
 #     the only directory it replaces is the app's own staging directory in samples/;
 #   * no VM start or stop, no gcloud, no push, no commit. It changes the SELinux mode only when
 #     IVI_PERMISSIVE=1 is set, and records the mode either way. Under the default (Enforcing) a
-#     failed Gateway lookup stops the run and prints the rerun command with IVI_PERMISSIVE=1; whether
-#     that rerun is allowed is the owner's decision;
+#     failed Gateway lookup stops the run and prints the rerun command with IVI_PERMISSIVE=1 (the
+#     owner allowed that fallback on 2026-11-18; its results are conditional on a permissive IVI);
 #   * its own files go to $AB/b12-<date>/{logs,identity,work}, never into the kit's identity/ or logs/;
+#     a B12_DIR, LOGS, IDENT or WORK inside them is refused (exit 2);
 #   * every adb call is bounded (ADB_TIMEOUT_S), so a wedged adb fails the step instead of hanging.
 #
 # Idempotent: every step detects what is already there. The SDV Core detection, exactly:
@@ -96,6 +97,25 @@ BROKER_ACL="$SAMPLES/some_ip/config/broker_apex/someip_acl.textproto"
 SUMMARY="$IDENT/b12-summary.txt"
 BOOTED_MARK="$WORK/guests-booted-by-this-run"
 
+# Never into the 2026-11-17 kit's own folders: refuse B12_DIR, LOGS, IDENT or WORK at or under
+# $AB/logs or $AB/identity (exit 2, before anything is created).
+inside_kit_dirs() { # <path> -> 0 when it is $AB/logs, $AB/identity or below one of them
+  local path kit
+  path="$(realpath -m -- "$1")"
+  for kit in "$AB/logs" "$AB/identity"; do
+    kit="$(realpath -m -- "$kit")"
+    case "$path/" in "$kit/"*) return 0 ;; esac
+  done
+  return 1
+}
+for _var in B12_DIR LOGS IDENT WORK; do
+  if inside_kit_dirs "${!_var}"; then
+    printf '%s [b12] ERROR: %s=%s is inside the 2026-11-17 kit'"'"'s logs/ or identity/ under %s; B12 writes only below its own B12_DIR (default %s)\n' \
+      "$(date -u +%FT%T.%3NZ)" "$_var" "${!_var}" "$AB" "$AB/b12-<date>"
+    exit 2
+  fi
+done
+unset _var
 mkdir -p "$LOGS" "$IDENT" "$WORK"
 
 ts() { date -u +%FT%T.%3NZ; }
@@ -414,10 +434,15 @@ verify() {
   note "verify: app up (SELinux IVI ${ivi_mode:-unknown}); its lines in $IDENT/b12-app-logcat.txt"
 }
 
-# The command that reruns this run with a permissive IVI (b12_launch.sh passes its own).
+# The command that reruns with a permissive IVI: the caller's own (B12_RERUN_CMD; b12_launch.sh
+# passes one), else `all` again for an `all` run, else `verify` again on the same guests.
+B12_MODE=step
 rerun_cmd() {
   if [ -n "${B12_RERUN_CMD:-}" ]; then printf '%s' "$B12_RERUN_CMD"
-  else printf 'cd %q && IVI_PERMISSIVE=1 GUESTS=fresh B12_DIR=%q ./build_guests_incremental.sh all' "$HERE" "$B12_DIR-permissive"
+  elif [ "$B12_MODE" = all ]; then
+    printf 'cd %q && IVI_PERMISSIVE=1 GUESTS=fresh B12_DIR=%q ./build_guests_incremental.sh all' "$HERE" "$B12_DIR-permissive"
+  else
+    printf 'cd %q && IVI_PERMISSIVE=1 B12_DIR=%q ./build_guests_incremental.sh verify' "$HERE" "$B12_DIR"
   fi
 }
 
@@ -485,6 +510,7 @@ on_exit() {
 }
 
 all() {
+  B12_MODE=all
   rm -f -- "$BOOTED_MARK"
   trap 'on_signal 129 HUP' HUP
   trap 'on_signal 130 INT' INT

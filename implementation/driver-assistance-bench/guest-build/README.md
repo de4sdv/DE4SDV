@@ -136,6 +136,35 @@ the host deadline to at least 2.5 h. A permissive rerun adds about 30 min (the m
 incremental; boot, install and verify again). The script puts no timeout on `m`; `up` is bounded
 (1800 s) and every adb call by `ADB_TIMEOUT_S`.
 
+## The second caller: the session's guest prepare
+
+The session (`../session/remote/guest_prepare.sh`) creates the guests fresh itself
+(`launch_two_vms.sh down`, then `up`) and calls `install`, then `verify`, directly from an SSH step,
+not through `b12_launch.sh`. For that caller:
+
+- **Needs:** the app built by an earlier `ivi` step (any day: the APK in
+  `out/target/product/sdv_ivi_cf/vendor/priv-app/`); both guests booted (adb `0.0.0.0:6521` SDV Core,
+  `0.0.0.0:6522` IVI). No `GUESTS` value: only `boot` reads it. No booted marker: `install` and
+  `verify` alone never start, create, remove or stop a guest, so stopping them on failure stays the
+  session's job.
+- **Environment:** `B12_DIR` (set one per session; default `$AB/b12-<UTC date of the call>`),
+  `IVI_PERMISSIVE` (`0` default: the IVI stays Enforcing; `1`: `verify` sets the IVI permissive and
+  reads it back, and every result is conditional on a permissive IVI), optionally `B12_RERUN_CMD` (the
+  command `verify` prints when the Gateway lookup fails under Enforcing; default: `verify` again with
+  `IVI_PERMISSIVE=1` and the same `B12_DIR`), `AB`, `AOSP_TOP`, `ADB_TIMEOUT_S`, `VERIFY_WAIT_S`. Do not
+  set `LOGS`, `IDENT` or `WORK`: they default below `B12_DIR`, and a value at or below the 2026-11-17
+  kit's `$AB/logs` or `$AB/identity` is refused.
+- **Files** (below `B12_DIR`): `logs/b12-install.log`, `logs/b12-verify.log`,
+  `identity/b12-summary.txt` (appended by each step; `preflight` alone truncates it),
+  `identity/ivi-warning-app-identity.txt` (APK sha256 host and guest, the object-policy digests and
+  appended lines, SELinux at install), `identity/b12-app-logcat.txt` (the app's logcat lines after
+  verify), `work/app/` (the install's run directory: the guest's original object policy as
+  `object-policy.guest.<sha256>.textproto`, the merged file, the identity), `work/app-verify.out`.
+- **Exit status:** `0` passed; `1` the step failed (the last `ERROR:` line says why; under Enforcing a
+  failed Gateway lookup prints `the rerun command:` first); `2` refused before anything ran (a
+  `B12_DIR`, `LOGS`, `IDENT` or `WORK` inside the kit's folders) or an unknown step; `128+n` killed by
+  signal `n` (single steps set no traps).
+
 ## Tests
 
 `tests/` runs in the `driver-assistance-bench (INC-DRIVING-002)` suite, against a synthetic tree
@@ -150,6 +179,10 @@ whose `lunch` and `m` only record their arguments, a fake adb
   under running guests and of a tree whose `broker.vsidl` lacks the message, `all` passing, the
   guest stop on a failure after boot and on HUP, INT and TERM, none before boot, the Enforcing stop
   with its rerun command, the permissive run, the broker APEX check, and B12's own directories;
+- `test_guest_build_caller.py`: the session's interface above: `install` and `verify` on guests the
+  caller booted, with its own `B12_DIR` on another day than the `ivi` build, `IVI_PERMISSIVE` passed
+  through, the rerun command of a lone `verify`, the exit statuses, and the refusal of the kit's
+  `logs/` and `identity/`;
 - `test_b12_launch.py`: the launcher's sha256 and commit checks, the fresh extraction, the detached
   run's result line and records, the guest stop on failure and on `abort`, the rerun command.
 
