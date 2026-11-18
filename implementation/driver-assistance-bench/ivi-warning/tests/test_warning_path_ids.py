@@ -28,6 +28,9 @@ GATEWAY = SCORE / "someip_gateway_config_warning.json"
 GATEWAYD_MW_COM = SCORE / "mw_com_config_gatewayd_warning.json"
 SOMEIPD_MW_COM = SCORE / "mw_com_config_someipd_warning.json"
 SOMEIPD_VSOMEIP = SCORE / "vsomeip_someipd_warning.json"
+GUEST_VSOMEIP = BENCH / "ivi-warning" / "interop" / "vsomeip_config.json"
+MAPPING = BENCH / "ivi-warning" / "interop" / "de4sdv_driving_collision_warning_request.vsidl"
+PEER_PLACEHOLDER = "__SCORE_SOMEIP_PEER__"
 
 WARNING = next(e for e in ICD["mw_com_events"] if e["mapping"] == "MAP-DRIVING-DA-WARNING-REQUEST")
 SOMEIP = ICD["someip_warning_request"]
@@ -123,6 +126,36 @@ def test_someipd_vsomeip_offers_the_warning_service_at_the_score_address() -> No
     assert "unreliable" not in service
     assert service["events"] == [{"event": SOMEIP["event_id"], "is_field": "false", "is_reliable": "true"}]
     assert service["eventgroups"] == [{"eventgroup": SOMEIP["eventgroup_id"], "events": [SOMEIP["event_id"]]}]
+
+
+def test_sdv_core_stack_config_consumes_the_warning_service_from_the_score_side() -> None:
+    config = _json(GUEST_VSOMEIP)
+    services = {int(s["service"], 16): s for s in config["services"]}
+    service = services[SERVICE_ID]
+    assert int(service["instance"], 16) == INSTANCE_ID
+    assert service["unicast"] == PEER_PLACEHOLDER  # rendered at staging with SCORE_SOMEIP_PEER
+    assert int(service["reliable"]["port"]) == SOMEIP["port"]
+    assert service["events"] == [{"event": SOMEIP["event_id"], "is_field": "false", "is_reliable": "true"}]
+    assert service["eventgroups"] == [{"eventgroup": SOMEIP["eventgroup_id"], "events": [SOMEIP["event_id"]]}]
+    assert {"service": SOMEIP["service_id"], "instance": SOMEIP["instance_id"]} in config["secure-services"]
+    port = str(SOMEIP["port"])
+    assert {"address": PEER_PLACEHOLDER,
+            "reliable": [{"first": port, "last": port, "type": "secure"}]} in config["acceptances"]
+    for kept in ICD["someip_kept"]:
+        assert int(services[int(kept["service_id"], 16)]["reliable"]["port"]) == kept["port"]
+    # Both ends of the SOME/IP link run service discovery on the same group and port.
+    someipd = _json(SOMEIPD_VSOMEIP)["service-discovery"]
+    guest = config["service-discovery"]
+    for key in ("enable", "multicast", "port", "protocol"):
+        assert guest[key] == someipd[key], key
+
+
+def test_vsidl_mapping_carries_the_ids() -> None:
+    mapping = MAPPING.read_text(encoding="utf-8")
+    assert re.findall(r"someip_service_id: (0x[0-9a-f]{4})", mapping) == [SOMEIP["service_id"]]
+    assert re.findall(r"instance_id: (0x[0-9a-f]{4})", mapping) == [SOMEIP["instance_id"]]
+    assert re.findall(r"group_id: (0x[0-9a-f]{4})", mapping) == [SOMEIP["eventgroup_id"]]
+    assert re.findall(r"event_id: (0x[0-9a-f]{4})", mapping) == [SOMEIP["event_id"]]
 
 
 def test_no_closed_loop_driving_service_in_the_score_configs() -> None:

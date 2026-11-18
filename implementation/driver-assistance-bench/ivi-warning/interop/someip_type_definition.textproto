@@ -1,0 +1,28 @@
+# DE4SDV INC-DRIVING-002, the driver-assistance bench: the warning request on the guests.
+# Draft, bench-only, not yet validated.
+#
+# The SomeIpStruct of the warning request: the 8 bytes of interfaces/ICD.md that the candidate
+# writes with EncodeWarningRequestSomeip (interfaces/include/de4sdv/driver_assistance/payloads.h)
+# and gatewayd copies unread onto SOME/IP service 0x4df1, event 0x8001. This file is the canonical
+# copy; de4sdv_driving_collision_warning_request.vsidl is generated from it by
+# scripts/gen_someip_vsidl.py.
+#
+# The rules this block encodes (the AOSP SOME/IP type definition rules as the closed-loop driving
+# bench's interop applies them, and ICD.md):
+#   * length_field_size: ZERO -- no struct length field; the S-CORE side writes none, and no
+#     4-byte prefix either (the payload starts with `requested`).
+#   * big-endian -- the broker's configuration on this image; nothing to say here.
+#   * field_name equals the protobuf field name of de4sdv.driving.v1.CollisionWarningRequest
+#     exactly: the broker fills the message BY NAME in REFLECTION mode.
+#   * UINT32 only: `requested` is 0 or 1, the issue time is whole simulation milliseconds.
+type_definition {
+  length_field_size: ZERO
+  field {
+    field_name: "requested"
+    field_type { someip_primitive: UINT32 }
+  }
+  field {
+    field_name: "issue_time_sim_ms"
+    field_type { someip_primitive: UINT32 }
+  }
+}

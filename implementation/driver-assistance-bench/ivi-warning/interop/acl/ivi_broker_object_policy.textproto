@@ -1,0 +1,26 @@
+# DE4SDV INC-DRIVING-002, the driver-assistance bench: the warning request on the guests.
+# Draft, bench-only, not yet validated.
+#
+# The broker's object policy on the IVI VM. A cross-VM subscriber needs the remote publisher's
+# object policy as well as its own subject grant: the IVI SD agent builds the authorization guard
+# of the broker's unit from this package and bundle's policy, so the service_units entry must
+# name the warning presentation as a reader of the unit (the form of the closed-loop driving
+# bench's ivi-observer/interop/acl/ivi_broker_object_policy.textproto).
+#
+# Installed at
+#   /product/etc/sdv_authz_acls/com.android.sdv.someip/SomeIpBroker.textproto
+# That is the path of the earlier increments' broker object policies too: installing this file
+# replaces theirs. If another increment's subscriber must work on the same IVI VM, merge their
+# blocks into one file; the SD agent exits when a second file names one subject.
+subscriber {
+  message: "de4sdv.driving.v1.CollisionWarningRequest"
+  topic: "de4sdv-driving-warning-request"
+}
+acls {
+  name: "CollisionWarningPresentationReader"
+  include: "org.de4sdv.collisionwarning.CollisionWarningPresentation"
+}
+service_units {
+  name: "de4sdv-driving-warning-request"
+  acl_names: "CollisionWarningPresentationReader"
+}

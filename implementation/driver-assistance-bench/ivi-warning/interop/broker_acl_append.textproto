@@ -1,0 +1,12 @@
+# DE4SDV INC-DRIVING-002, the driver-assistance bench: the warning request on the guests.
+# Draft, bench-only, not yet validated.
+#
+# Appended once to the SOME/IP broker's authorization policy in the SDV Core VM
+# (samples/some_ip/config/broker_apex/someip_acl.textproto in the AOSP tree), beside the entries
+# of the earlier increments: the broker may publish the warning request's service unit with the
+# typed message. scripts/stage_sdv_core_interop.sh appends it and greps for the unit, so a second
+# run does not append it twice. One SOME/IP event, one service unit (SINGLE_PUB).
+publisher {
+  message: "de4sdv.driving.v1.CollisionWarningRequest"
+  topic: "de4sdv-driving-warning-request"
+}
