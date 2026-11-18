@@ -40,7 +40,8 @@ implementation/driver-assistance-bench/score-build/build_score_bench.sh --root /
 
 It ends with `=== BUILD OK`, the sha256 of each binary and library, and `/opt/da-b2/da-b2-bundle.tgz`. A failure
 prints `BUILD FAILED in stage <stage>: <reason>` and the log path, under `/opt/da-b2/logs/`. A rerun skips the stages
-that finished (`/opt/da-b2/.done-<stage>`).
+that finished (`/opt/da-b2/.done-<stage>`). The preflight asks for 70 GB free under the root; `--min-free-gb N` lowers
+that for a rerun with finished stages or for a run that a disk guard watches. Each stage line prints the free bytes.
 
 On the S-CORE host, copy the bundle and run:
 

@@ -7,6 +7,8 @@
 #   implementation/driver-assistance-bench/score-build/build_score_bench.sh [--root DIR] [--jobs N]
 #     --root DIR  work and output directory (default /opt/da-b2); the bundle is DIR/bundle, logs are DIR/logs/
 #     --jobs N    parallel compile jobs for CMake and Bazel (default: nproc)
+#     --min-free-gb N  free disk (GiB) the preflight asks for under DIR (default 70, the estimate for a cold build);
+#                 a rerun with finished stages, or a run watched by a disk guard, may ask for less
 #
 # Idempotent: each stage leaves DIR/.done-<stage> and is skipped on a rerun; delete the mark to redo a stage. The
 # downloads are kept in DIR/dl and checked against pins.sh on every run. Every step is logged; the script stops at the
@@ -26,10 +28,12 @@ source "$HERE/pins.sh"
 
 ROOT=/opt/da-b2
 JOBS=$(nproc)
+MIN_FREE_GB=70
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) ROOT=${2:?--root needs a directory}; shift 2 ;;
     --jobs) JOBS=${2:?--jobs needs a number}; shift 2 ;;
+    --min-free-gb) MIN_FREE_GB=${2:?--min-free-gb needs a number}; shift 2 ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "unknown argument $1" >&2; exit 2 ;;
   esac
@@ -45,7 +49,7 @@ exec > >(tee -a "$LOG") 2>&1
 STAGE=init
 die() { echo "BUILD FAILED in stage $STAGE: $*"; echo "log: $LOG"; exit 1; }
 trap 'rc=$?; echo "BUILD FAILED in stage $STAGE: command \"$BASH_COMMAND\" exited $rc (line $LINENO)"; echo "log: $LOG"; exit $rc' ERR
-step() { STAGE=$1; echo; echo "=== stage $1 $(date -u +%FT%TZ)"; }
+step() { STAGE=$1; echo; echo "=== stage $1 $(date -u +%FT%TZ) free $(df -B1 --output=avail "$ROOT" | tail -1 | tr -dc 0-9) B"; }
 is_done() { [ -f "$ROOT/.done-$1" ]; }
 mark_done() { touch "$ROOT/.done-$1"; echo "=== stage $1 done $(date -u +%FT%TZ)"; }
 
@@ -99,7 +103,7 @@ step preflight
 . /etc/os-release
 [ "${VERSION_ID:-}" = "22.04" ] || die "this host runs ${PRETTY_NAME:-unknown}; build on Ubuntu 22.04, the S-CORE host's release, because the binary links Ubuntu 22.04 libraries (GStreamer, Ipopt, CppAD)"
 free_gb=$(df -BG --output=avail "$ROOT" | tail -1 | tr -dc 0-9)
-[ "$free_gb" -ge 70 ] || die "only ${free_gb} GB free under $ROOT; the build needs about 70 GB"
+[ "$free_gb" -ge "$MIN_FREE_GB" ] || die "only ${free_gb} GB free under $ROOT; the build asks for $MIN_FREE_GB GB (--min-free-gb; a cold build needs about 70 GB)"
 echo "host $(hostname) $(nproc) vCPU $(free -g | awk '/Mem:/{print $2}') GB RAM, ${free_gb} GB free, ${PRETTY_NAME}"
 (cd "$BENCH/score-interface/patches" && sha256sum -c SHA256SUMS) || die "the patch series differs from its SHA256SUMS"
 for f in "$BENCH/actuation-adapter/BUILD.bazel" "$BENCH/interfaces/include/de4sdv/driver_assistance/payloads.h" \
@@ -595,6 +599,7 @@ grep -q "ORT_CUDA_CHECK PASS" "$B/facts/ort_cuda_check_cpu.txt" || die "ort_cuda
 tar -czf "$ROOT/da-b2-bundle.tgz" -C "$ROOT" bundle
 echo
 echo "=== BUILD OK $(date -u +%FT%TZ)"
+echo "free under $ROOT: $(df -B1 --output=avail "$ROOT" | tail -1 | tr -dc 0-9) B"
 echo "bundle: $B ($(du -sh "$B" | cut -f1)); archive $ROOT/da-b2-bundle.tgz sha256 $(sha256sum "$ROOT/da-b2-bundle.tgz" | cut -c1-64)"
 echo "binaries and libraries (sha256):"
 (cd "$B" && sha256sum bin/* lib/*)
