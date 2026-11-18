@@ -103,7 +103,7 @@ free_gb=$(df -BG --output=avail "$ROOT" | tail -1 | tr -dc 0-9)
 echo "host $(hostname) $(nproc) vCPU $(free -g | awk '/Mem:/{print $2}') GB RAM, ${free_gb} GB free, ${PRETTY_NAME}"
 (cd "$BENCH/score-interface/patches" && sha256sum -c SHA256SUMS) || die "the patch series differs from its SHA256SUMS"
 for f in "$BENCH/actuation-adapter/BUILD.bazel" "$BENCH/interfaces/include/de4sdv/driver_assistance/payloads.h" \
-         "$BENCH/score-path/config/gateway_overlay.BUILD.bazel" \
+         "$BENCH/score-path/config/gateway_overlay.BUILD.bazel" "$BENCH/launch-manager/config/launch_manager_config.json" \
          "$REPO/implementation/closed-loop-driving-bench/agent/workspace/feo-313b3d84-bench.diff"; do
   [ -f "$f" ] || die "missing $f; run from a full checkout of the repository"
 done
@@ -179,6 +179,9 @@ text = text.replace(old, new)
 text, n = re.subn(r'\n# WP2a \(slice 10b\).*?\n\)\n', '\n', text, flags=re.S)
 assert n == 1, "the bench diff's @python312 entry was not found once"
 assert 'new_local_repository = use_repo_rule(' in text
+# S-CORE Lifecycle v0.10.0, the version of the Launch Manager configuration and the lifecycle clients (B6)
+life = 'bazel_dep(name = "score_lifecycle")\nsingle_version_override(\n    module_name = "score_lifecycle",\n    version = "0.10.0",\n)'
+assert text.count(life) == 1 and text.count('module_name = "score_lifecycle"') == 1, "score_lifecycle is not 0.10.0 once"
 text += '\n' + open(fragment).read().replace('@ROOT@', root)
 open(path, 'w').write(text)
 print("MODULE.bazel: @libcarla -> the CARLA 1.0 bundle, @python312 dropped, @da_b2_thirdparty added")
@@ -471,27 +474,39 @@ echo "$GATEWAY_PRE_SERIALIZED_DATA_SHA256  $H" | sha256sum -c --quiet - || die "
 # ---------------------------------------------------------------------------------------------------------------------
 step bazel
 cd "$WS"
-# stage the bench's packages: //visionpilot, //de4sdv_da_bench/{interfaces,actuation-adapter,score-build/workspace}
+# stage the bench's packages: //visionpilot, //de4sdv_da_bench/{interfaces,actuation-adapter,launch-manager,
+# score-build/workspace}
 rm -rf "$WS/visionpilot" "$OVERLAY"
-mkdir -p "$WS/visionpilot" "$OVERLAY/interfaces" "$OVERLAY/actuation-adapter" "$OVERLAY/score-build/workspace/gateway_include/score/serializer"
+mkdir -p "$WS/visionpilot" "$OVERLAY/interfaces" "$OVERLAY/actuation-adapter" "$OVERLAY/launch-manager" \
+  "$OVERLAY/score-build/workspace/gateway_include/score/serializer"
 (cd "$VP/VisionPilot" && tar --exclude='*.onnx' --exclude='*.pt' --exclude='*.pth' --exclude='*.mp4' -cf - .) | tar -xf - -C "$WS/visionpilot"
 cp "$HERE/workspace/visionpilot.BUILD.bazel" "$WS/visionpilot/BUILD.bazel"
 cp -a "$BENCH/interfaces/include" "$OVERLAY/interfaces/"
 cp "$HERE/workspace/interfaces.BUILD.bazel" "$OVERLAY/interfaces/BUILD.bazel"
 (cd "$BENCH/actuation-adapter" && tar --exclude='.build' --exclude='__pycache__' -cf - .) | tar -xf - -C "$OVERLAY/actuation-adapter"
+cp "$BENCH/launch-manager/config/launch_manager_config.json" "$OVERLAY/launch-manager/"
+cp "$HERE/workspace/launch_manager.BUILD.bazel" "$OVERLAY/launch-manager/BUILD.bazel"
 cp "$HERE/workspace/BUILD.bazel" "$HERE/workspace/ort_cuda_check.cpp" "$OVERLAY/score-build/workspace/"
 cp "$CB/libcarla10.BUILD" "$ROOT/thirdparty.BUILD" "$OVERLAY/score-build/workspace/"
 cp "$H" "$OVERLAY/score-build/workspace/gateway_include/score/serializer/"
+# the identity recorder (lane B4) joins TARGETS and the bundle once its package exists
 TARGETS=(//visionpilot:VisionPilot //de4sdv_da_bench/actuation-adapter:actuation_adapter
-         //de4sdv_da_bench/score-build/workspace:ort_cuda_check)
+         //de4sdv_da_bench/score-build/workspace:ort_cuda_check
+         @score_lifecycle//score/launch_manager:launch_manager //de4sdv_da_bench/launch-manager:de4sdv_lm_config)
 start=$(date +%s)
 if ! bazel_feo build --config=x86_64-linux -c opt --jobs="$JOBS" --features=-treat_warnings_as_errors "${TARGETS[@]}" \
     > "$ROOT/logs/score-bazel.log" 2>&1; then
   grep -E "^ERROR|error:|undefined reference" "$ROOT/logs/score-bazel.log" | sed -n 1,30p
-  die "Bazel build of VisionPilot, the actuation adapter or ort_cuda_check failed"
+  die "Bazel build of VisionPilot, the actuation adapter, ort_cuda_check, the Launch Manager or its configuration failed"
 fi
 tail -n 8 "$ROOT/logs/score-bazel.log"
 echo "bazel build: $(( $(date +%s) - start )) s"
+bazel_feo mod explain score_lifecycle score_communication score_baselibs > "$ROOT/facts/score-mod-explain.txt" 2>&1 || true
+life_versions=$(grep -o -E 'score_lifecycle@[^ ,)]*' "$ROOT/facts/score-mod-explain.txt" | sort -u | tr '\n' ' ' || true)
+echo "score_lifecycle as resolved: ${life_versions:-not shown by bazel mod explain}"
+for v in $life_versions; do
+  [ "$v" = "score_lifecycle@0.10.0" ] || die "Bazel resolved $v, not score_lifecycle@0.10.0 (facts/score-mod-explain.txt)"
+done
 bazel_feo aquery --config=x86_64-linux -c opt 'mnemonic("CppCompile", //visionpilot:de4sdv_score_carla_client)' 2>/dev/null \
   | grep -o -E "x86_64-unknown-linux-gnu-g\+\+|-std=[a-z+0-9]*" | sort | uniq -c > "$ROOT/facts/carla_unit_std.txt" || true
 cat "$ROOT/facts/carla_unit_std.txt"
@@ -499,10 +514,23 @@ cat "$ROOT/facts/carla_unit_std.txt"
 # ---------------------------------------------------------------------------------------------------------------------
 step bundle
 B=$ROOT/bundle
-rm -rf "$B" && mkdir -p "$B/bin" "$B/lib" "$B/config/visionpilot" "$B/config/gateway" "$B/share/visionpilot" "$B/facts"
+rm -rf "$B" && mkdir -p "$B/bin" "$B/lib" "$B/config/visionpilot" "$B/config/gateway" "$B/config/launch_manager" \
+  "$B/config/actuation_adapter" "$B/share/visionpilot" "$B/facts"
 SB=$(bazel_feo info --config=x86_64-linux -c opt bazel-bin)
-cp -L "$SB/visionpilot/VisionPilot" "$SB/de4sdv_da_bench/actuation-adapter/actuation_adapter" \
+# bin/ holds the binary names of the Launch Manager configuration (binary_name): vision_pilot, actuation_adapter,
+# gatewayd, someipd; identity_recorder joins with lane B4. launch_manager is the daemon, ort_cuda_check the GPU check.
+cp -L "$SB/visionpilot/VisionPilot" "$B/bin/vision_pilot"
+cp -L "$SB/de4sdv_da_bench/actuation-adapter/actuation_adapter" \
       "$SB/de4sdv_da_bench/score-build/workspace/ort_cuda_check" "$B/bin/"
+LMD=$(find -L "$SB/external" -path '*score_lifecycle*/score/launch_manager/src/daemon/launch_manager' -type f -print -quit)
+[ -n "$LMD" ] || die "no launch_manager daemon under $SB/external"
+cp -L "$LMD" "$B/bin/launch_manager"
+LMC=$(find -L "$SB/de4sdv_da_bench/launch-manager" -name 'launch_manager_config.bin' -type f -print -quit)
+[ -n "$LMC" ] || die "no launch_manager_config.bin under $SB/de4sdv_da_bench/launch-manager"
+cp -L "$LMC" "$B/config/launch_manager/"
+cp "$BENCH/launch-manager/config/launch_manager_config.json" "$B/config/launch_manager/"
+cp "$BENCH/actuation-adapter/mw_com_config_actuation_adapter.json" "$BENCH/actuation-adapter/config/adapter.json" \
+   "$B/config/actuation_adapter/"
 cp -L "$GB/score/gatewayd/gatewayd" "$GB/score/someipd/someipd" "$B/bin/"
 cp -L "$TP/onnxruntime/lib/libonnxruntime.so.1" "$TP/onnxruntime/lib/libonnxruntime_providers_cuda.so" \
       "$TP/onnxruntime/lib/libonnxruntime_providers_shared.so" "$B/lib/"
@@ -536,18 +564,28 @@ dpkg-query -W -f='${Package}=${Version}\n' $APT_RUNTIME coinor-libipopt1v5 coino
     readelf -d "$f" | grep -E "NEEDED|RUNPATH|RPATH" || true
     echo "max GLIBC $(objdump -T "$f" | grep -o 'GLIBC_[0-9.]*' | sort -V -u | tail -1)"
   done
-  echo "== VisionPilot symbols"
-  V=$B/bin/VisionPilot
+  echo "== vision_pilot symbols"
+  V=$B/bin/vision_pilot
   echo "carla::client $(nm -C "$V" | grep -c 'carla::client::')"
   echo "score::mw::com $(nm -C "$V" | grep -c 'score::mw::com')"
+  echo "score::mw::lifecycle $(nm -C "$V" | grep -c 'score::mw::lifecycle')"
   echo "cv:: $(nm -C "$V" | grep -c ' cv::')"; echo "rerun:: $(nm -C "$V" | grep -c 'rerun::')"
   echo "CARLA version strings: $(strings "$V" | grep -E '^1\.0(-[0-9a-f]{9})?(-dirty)?$' | sort -u | tr '\n' ' ')"
+  echo "== actuation_adapter symbols"
+  echo "score::mw::lifecycle $(nm -C "$B/bin/actuation_adapter" | grep -c 'score::mw::lifecycle')"
   echo "== ldd with the bundle's lib/"
   for f in "$B"/bin/*; do echo "-- $(basename "$f")"; LD_LIBRARY_PATH=$B/lib ldd "$f" || true; done
 } > "$B/facts/binary_checks.txt" 2>&1
-if LD_LIBRARY_PATH=$B/lib ldd "$B/bin/VisionPilot" | grep "not found"; then die "VisionPilot has unresolved libraries"; fi
-strings "$B/bin/VisionPilot" > "$B/facts/VisionPilot.strings"
-grep -q -E '^1\.0-14ac3b1a5$' "$B/facts/VisionPilot.strings" || die "VisionPilot does not hold the CARLA client version string 1.0-14ac3b1a5"
+if LD_LIBRARY_PATH=$B/lib ldd "$B/bin/vision_pilot" | grep "not found"; then die "vision_pilot has unresolved libraries"; fi
+# both supervised processes hold the Lifecycle v0.10.0 client (report_running and the Alive API)
+for f in vision_pilot actuation_adapter; do
+  nm -C "$B/bin/$f" > "$ROOT/facts/$f.nm"
+  for sym in score_mw_lifecycle_report_running 'score::mw::lifecycle::Alive::ReportAlive'; do
+    grep -q -F "$sym" "$ROOT/facts/$f.nm" || die "$f does not hold the Lifecycle client symbol $sym"
+  done
+done
+strings "$B/bin/vision_pilot" > "$B/facts/vision_pilot.strings"
+grep -q -E '^1\.0-14ac3b1a5$' "$B/facts/vision_pilot.strings" || die "vision_pilot does not hold the CARLA client version string 1.0-14ac3b1a5"
 # the ORT check on this host: the CUDA provider is in the build; loading it needs the GPU host (install_gpu_runtime.sh)
 "$B/bin/ort_cuda_check" --cpu-only "$B/share/visionpilot/modules/models/weights/autosteer_fp32.onnx" 3 \
   > "$B/facts/ort_cuda_check_cpu.txt" 2>&1 || true

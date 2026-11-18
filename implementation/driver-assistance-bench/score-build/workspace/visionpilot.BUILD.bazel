@@ -253,9 +253,25 @@ cc_library(
     ],
 )
 
-# app/CMakeLists.txt: the executable VisionPilot. The runpath lets the bundle's bin/ find libonnxruntime.so.1 in
-# ../lib; --allow-shlib-undefined as upstream sets it, here because the Ubuntu 22.04 libraries the binary links
-# (GStreamer, Ipopt, CppAD) carry glibc symbol versions newer than the S-CORE sysroot's glibc 2.31.
+# DE4SDV_SCORE_BINDINGS of 0002: the lifecycle client on S-CORE Lifecycle v0.10.0 (MakeLifecycleClient), the alive
+# supervision of the candidate's process by the Launch Manager (launch-manager/README.md), C++17. score_lifecycle
+# 0.10.0 is a bazel_dep of the S-CORE workspace (the bench diff's MODULE.bazel hunk).
+cc_library(
+    name = "de4sdv_score_lifecycle_bindings",
+    srcs = ["modules/de4sdv/score_interface/src/lifecycle_bindings.cpp"],
+    alwayslink = True,
+    deps = [
+        ":de4sdv_score_interface_headers",
+        "@score_lifecycle//score/launch_manager:alive_cc",
+        "@score_lifecycle//score/launch_manager:lifecycle_cc",
+    ],
+)
+
+# app/CMakeLists.txt: the executable VisionPilot. The bundle installs it as bin/vision_pilot, the binary_name of the
+# Launch Manager configuration (launch-manager/config/launch_manager_config.json). The runpath lets the bundle's bin/
+# find libonnxruntime.so.1 in ../lib; --allow-shlib-undefined as upstream sets it, here because the Ubuntu 22.04
+# libraries the binary links (GStreamer, Ipopt, CppAD) carry glibc symbol versions newer than the S-CORE sysroot's
+# glibc 2.31.
 cc_binary(
     name = "VisionPilot",
     srcs = ["app/vision_pilot.cpp"],
@@ -271,6 +287,7 @@ cc_binary(
         ":config",
         ":de4sdv_score_carla_client",
         ":de4sdv_score_interface",
+        ":de4sdv_score_lifecycle_bindings",
         ":de4sdv_score_lola_bindings",
         ":de4sdv_visualization_recorder",
         ":engine",

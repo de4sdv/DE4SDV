@@ -144,6 +144,13 @@ def build_sources() -> set[str]:
     return set(re.findall(r'"((?:app|modules)/[^"]+\.cpp)"', VP_BUILD.read_text()))
 
 
+def binding_units(added: dict[str, str]) -> set[str]:
+    """The .cpp files patch 0002 adds to the score_interface module that its own CMakeLists.txt does not compile."""
+    d = "modules/de4sdv/score_interface"
+    patched = {p for p in added if p.startswith(f"{d}/src/") and p.endswith(".cpp")}
+    return patched - cmake_sources(added[f"{d}/CMakeLists.txt"], d)
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 
 
@@ -251,14 +258,17 @@ def test_overlay_names_exactly_the_cmake_sources() -> None:
     added = patch_added_files()
     for d in ("modules/de4sdv/visualization_recorder", "modules/de4sdv/score_interface"):
         expected |= cmake_sources(added[f"{d}/CMakeLists.txt"], d)
-    # DE4SDV_SCORE_BINDINGS of 0002: the two binding units, which only the S-CORE build compiles
-    expected |= {"modules/de4sdv/score_interface/src/lola_bindings.cpp",
-                 "modules/de4sdv/score_interface/src/carla_client.cpp"}
+    # DE4SDV_SCORE_BINDINGS of 0002: the binding units the patch adds beside its CMake sources, which only the S-CORE
+    # build compiles (mw::com, the CARLA 1.0 client, S-CORE Lifecycle)
+    bindings = binding_units(added)
+    assert bindings == {"modules/de4sdv/score_interface/src/lola_bindings.cpp",
+                        "modules/de4sdv/score_interface/src/carla_client.cpp",
+                        "modules/de4sdv/score_interface/src/lifecycle_bindings.cpp"}
+    expected |= bindings
     # what the bench configuration compiles, and what it leaves out
     assert "modules/visualization/src/webrtc_stream.cpp" in expected
     assert "modules/visualization/src/debug_display.cpp" not in expected
     assert "modules/models/src/trt_engine.cpp" not in expected
-    assert len(expected) == 30
     assert build_sources() == expected
 
 
@@ -278,9 +288,12 @@ def test_overlay_paths_exist_at_the_pin_or_in_a_patch() -> None:
 
 
 def test_overlay_names_every_module_source_of_the_score_interface() -> None:
+    # the module's sources in the repository are the ones patch 0002 adds, and the overlay compiles every one
     module_sources = {f"modules/de4sdv/score_interface/src/{p.name}" for p in
                       (BENCH / "score-interface" / "module" / "src").glob("*.cpp")}
-    assert len(module_sources) == 7
+    added = patch_added_files()
+    patched = {p for p in added if p.startswith("modules/de4sdv/score_interface/src/") and p.endswith(".cpp")}
+    assert module_sources == patched
     assert module_sources <= build_sources()
     text = VP_BUILD.read_text()
     carla = text[text.index('name = "de4sdv_score_carla_client"'):]
@@ -288,6 +301,17 @@ def test_overlay_names_every_module_source_of_the_score_interface() -> None:
     assert 'copts = ["-std=c++20"]' in carla
     assert text.count("-std=c++20") == 1  # only the CARLA unit is C++20
     assert 'defines = ["ENABLE_SCORE_INTERFACE=1"]' in text
+    # the lifecycle unit links S-CORE Lifecycle's two client libraries (launch-manager/README.md) into VisionPilot
+    life = text[text.index('name = "de4sdv_score_lifecycle_bindings"'):]
+    life = life[:life.index("\n)\n")]
+    assert '"modules/de4sdv/score_interface/src/lifecycle_bindings.cpp"' in life
+    assert '"@score_lifecycle//score/launch_manager:alive_cc"' in life
+    assert '"@score_lifecycle//score/launch_manager:lifecycle_cc"' in life
+    binary = text[text.index('name = "VisionPilot"'):]
+    assert '":de4sdv_score_lifecycle_bindings"' in binary
+    fallback = (BUILD_DIR / "workspace" / "fallback.BUILD.bazel").read_text()
+    for unit in ("de4sdv_score_carla_client", "de4sdv_score_lifecycle_bindings", "de4sdv_score_lola_bindings"):
+        assert f'"//visionpilot:{unit}"' in fallback, unit
 
 
 def test_workspace_edits_find_their_anchors() -> None:
@@ -328,8 +352,42 @@ def test_labels_the_bench_packages_need_are_provided() -> None:
     for label in re.findall(r'"(//de4sdv_da_bench/score-build/workspace:[a-z_]+)"', VP_BUILD.read_text()):
         assert f'name = "{label.split(":")[1]}"' in ws_build, label
     for target in ("//visionpilot:VisionPilot", "//de4sdv_da_bench/actuation-adapter:actuation_adapter",
-                   "//de4sdv_da_bench/score-build/workspace:ort_cuda_check"):
+                   "//de4sdv_da_bench/score-build/workspace:ort_cuda_check",
+                   "@score_lifecycle//score/launch_manager:launch_manager",
+                   "//de4sdv_da_bench/launch-manager:de4sdv_lm_config"):
         assert target in script
+    # the adapter's Lifecycle labels resolve in the workspace: score_lifecycle is a bazel_dep of the bench diff at
+    # 0.10.0, which the workspace stage asserts
+    for label in re.findall(r'"(@score_lifecycle//[^"]+)"', adapter):
+        assert label in ("@score_lifecycle//score/launch_manager:alive_cc",
+                         "@score_lifecycle//score/launch_manager:lifecycle_cc"), label
+    assert 'module_name = "score_lifecycle",\n    version = "0.10.0",' in added_lines_of_bench_diff()
+    assert 'module_name = "score_lifecycle",\\n    version = "0.10.0",' in script
+    lm_build = (BUILD_DIR / "workspace" / "launch_manager.BUILD.bazel").read_text()
+    assert 'load("@score_lifecycle//:defs.bzl", "launch_manager_config")' in lm_build
+    assert 'name = "de4sdv_lm_config"' in lm_build and 'config = "launch_manager_config.json"' in lm_build
+    assert 'cp "$BENCH/launch-manager/config/launch_manager_config.json" "$OVERLAY/launch-manager/"' in script
+
+
+def added_lines_of_bench_diff() -> str:
+    diff = (REPO / "implementation/closed-loop-driving-bench/agent/workspace/feo-313b3d84-bench.diff").read_text()
+    return "\n".join(line[1:] for line in diff.splitlines() if line.startswith("+") and not line.startswith("+++"))
+
+
+def test_bundle_bin_holds_the_launch_manager_binary_names() -> None:
+    """bin/ of the bundle is the Launch Manager's bin_dir: every binary_name except the identity recorder (lane B4)."""
+    import json
+    config = json.loads((BENCH / "launch-manager" / "config" / "launch_manager_config.json").read_text())
+    names = {c["component_properties"]["binary_name"] for c in config["components"].values()}
+    assert names == {"identity_recorder", "someipd", "gatewayd", "vision_pilot", "actuation_adapter"}
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    bundle = script[script.index("step bundle"):]
+    assert 'cp -L "$SB/visionpilot/VisionPilot" "$B/bin/vision_pilot"' in bundle
+    assert '"$SB/de4sdv_da_bench/actuation-adapter/actuation_adapter"' in bundle
+    assert 'cp -L "$GB/score/gatewayd/gatewayd" "$GB/score/someipd/someipd" "$B/bin/"' in bundle
+    assert 'cp -L "$LMD" "$B/bin/launch_manager"' in bundle
+    assert "bin/VisionPilot" not in bundle
+    assert "identity_recorder" not in re.sub(r"#.*", "", bundle)  # not built tonight
 
 
 @pytest.mark.skipif(not ORT_NUPKG.is_file() or shutil.which("readelf") is None,

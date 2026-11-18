@@ -23,9 +23,9 @@ This folder holds the build and the GPU runtime for the S-CORE host. The first p
 | `install_gpu_runtime.sh` | For the S-CORE host (L4, Ubuntu 22.04, driver 580). It installs the CUDA and cuDNN runtime, then checks the CUDA provider and `nvh264enc` |
 | `fallback_cmake_build.sh` | The fallback of brief risk R3: upstream's CMake build, linking a Bazel-built static archive of the binding units. Ready, not run |
 | `pins.sh` | Every pinned input: commits, URLs, sha256 values, apt versions |
-| `workspace/visionpilot.BUILD.bazel` | The overlay BUILD file of VisionPilot: one `cc_library` per CMake target, and the `VisionPilot` binary |
+| `workspace/visionpilot.BUILD.bazel` | The overlay BUILD file of VisionPilot: one `cc_library` per CMake target, the three binding units, and the `VisionPilot` binary (installed as `bin/vision_pilot`) |
 | `workspace/thirdparty.BUILD.in` | `@da_b2_thirdparty`: ONNX Runtime, OpenCV, Rerun, Eigen, CppAD/Ipopt, Boost headers, GStreamer |
-| `workspace/MODULE.fragment.bazel`, `BUILD.bazel`, `interfaces.BUILD.bazel`, `fallback.BUILD.bazel` | The workspace's own repository and packages |
+| `workspace/MODULE.fragment.bazel`, `BUILD.bazel`, `interfaces.BUILD.bazel`, `launch_manager.BUILD.bazel`, `fallback.BUILD.bazel` | The workspace's own repository and packages |
 | `workspace/ort_cuda_check.cpp` | A small binary. It loads ONNX Runtime's CUDA provider and runs a network on it |
 | `tests/` | Local checks (pytest), registered in `tools/run_bench_unit_tests.py` |
 
@@ -71,8 +71,8 @@ the CARLA client; OpenCV, Arrow, VisionPilot and the gateway come on top. It dow
 | `rerun` | Rerun C++ SDK 0.34.1 and its Arrow 18, static | run e |
 | `thirdparty` | ONNX Runtime 1.26.0 GPU (shared), Eigen 5.0.0, the CppAD and Ipopt headers, CARLA's Boost headers, nlohmann json, GStreamer include directories | new |
 | `gateway` | inc_someip_gateway `d9eac670`: gatewayd, someipd, the null serializer and the warning's config binary (`score-path/config/`), at communication 0.6.0, baselibs 0.2.17 and lifecycle 0.10.0 | probe P5, brief R4 |
-| `bazel` | `//visionpilot:VisionPilot`, `//de4sdv_da_bench/actuation-adapter:actuation_adapter`, `//de4sdv_da_bench/score-build/workspace:ort_cuda_check` | new |
-| `bundle` | `bin/`, `lib/`, `config/`, the networks, the icons; binary checks; `ort_cuda_check --cpu-only`; `SHA256SUMS` | new |
+| `bazel` | `//visionpilot:VisionPilot`, `//de4sdv_da_bench/actuation-adapter:actuation_adapter`, `//de4sdv_da_bench/score-build/workspace:ort_cuda_check`, the Launch Manager daemon `@score_lifecycle//score/launch_manager:launch_manager` and `//de4sdv_da_bench/launch-manager:de4sdv_lm_config` (Lifecycle's own schema check, mapping and flatbuffer of `launch-manager/config/launch_manager_config.json`) | new |
+| `bundle` | `bin/` with the Launch Manager's binary names (`vision_pilot`, `actuation_adapter`, `gatewayd`, `someipd`) plus `launch_manager` and `ort_cuda_check`; `lib/`; `config/` (`launch_manager/` with the flatbuffer, `gateway/`, `actuation_adapter/`, `visionpilot/`); the networks, the icons; binary checks, the Lifecycle client symbols in both supervised binaries; `ort_cuda_check --cpu-only`; `SHA256SUMS` | new |
 
 The `visionpilot` stage first runs `score-interface/check_patch.sh`. It then copies `VisionPilot/` of the pin with
 patches 0001 and 0002 into the package `//visionpilot`, with the overlay as its `BUILD.bazel`. No upstream file
@@ -83,9 +83,13 @@ changes beyond the two patches. The overlay mirrors upstream's CMake targets. Ba
 
 Mapping ids:
 
-- The two binding units carry the S-CORE ports. `lola_bindings.cpp` carries MAP-DRIVING-DA-COMMAND,
+- Two of the three binding units carry the S-CORE ports. `lola_bindings.cpp` carries MAP-DRIVING-DA-COMMAND,
   MAP-DRIVING-DA-WARNING-REQUEST and MAP-DRIVING-DA-CANDIDATE-RECORD. `carla_client.cpp` carries
-  MAP-DRIVING-DA-CAMERA-IMAGE and MAP-DRIVING-DA-VEHICLE-SPEED.
+  MAP-DRIVING-DA-CAMERA-IMAGE and MAP-DRIVING-DA-VEHICLE-SPEED. The third, `lifecycle_bindings.cpp`, is the
+  candidate's lifecycle client on S-CORE Lifecycle v0.10.0 (`:alive_cc` and `:lifecycle_cc`), for the Launch
+  Manager's alive supervision (`../launch-manager/README.md`).
+- S-CORE Lifecycle 0.10.0 is declared once, by the bench diff's `MODULE.bazel` hunk; the `workspace` stage checks
+  that declaration and the `bazel` stage records the resolved version (`facts/score-mod-explain.txt`).
 - `carla_client.cpp` is the one C++20 unit (run h, owner decision h-a). Everything else builds at the toolchain's
   C++17.
 
@@ -139,8 +143,9 @@ The tests check five things:
 
 - The scripts parse.
 - Every download goes through the sha256-checked helper, and every git source through the commit-checked helper.
-- The overlay names exactly the 30 source files that upstream's CMake build compiles in the bench configuration,
-  plus the patch series. They read upstream at the pin with `git show`.
+- The overlay names exactly the source files that upstream's CMake build compiles in the bench configuration,
+  plus the patch series' CMake sources and its binding units. They read upstream at the pin with `git show` and the
+  series from the patch files; the module's sources in the repository must equal those the patch adds.
 - The workspace edits find their anchors, and the pinned CUDA runtime covers the provider's needs.
 - C++ files include `<cstdint>`.
 
@@ -155,18 +160,18 @@ The probes must show what these tests cannot:
 Use it if the `bazel` stage fails and cannot be fixed in time. Run `fallback_cmake_build.sh --root /opt/da-b2` after
 `build_score_bench.sh` has finished its `thirdparty` stage. It has two steps:
 
-1. Bazel builds `cc_static_library` `//de4sdv_da_bench/score-build/fallback:de4sdv_score_bindings`, the two binding
-   units with mw::com. Its facade is `seams.hpp`, which uses plain types.
+1. Bazel builds `cc_static_library` `//de4sdv_da_bench/score-build/fallback:de4sdv_score_bindings`, the three binding
+   units with mw::com, the CARLA client and Lifecycle. Its facade is `seams.hpp`, which uses plain types.
 2. Upstream's CMake builds VisionPilot with Ubuntu's g++ 12, as is. It sets `-DENABLE_SCORE_INTERFACE=ON` and
    `DE4SDV_SCORE_BINDINGS` = the archive, CARLA's 17 archives and the archive's link options. ONNX Runtime and Rerun
    come from the main build; OpenCV, Ipopt, CppAD and GStreamer from Ubuntu.
 
-The script replaces `bundle/bin/VisionPilot` and keeps the Bazel binary as `VisionPilot.bazel`, if there is one.
+The script replaces `bundle/bin/vision_pilot` and keeps the Bazel binary as `vision_pilot.bazel`, if there is one.
 
 ## Not done here (deferred)
 
-- The identity recorder (B4) and the Launch Manager configuration (B6) are not built here. The `bazel` stage has one
-  target list; add their labels when those lanes land.
+- The identity recorder (B4) is not built here yet. The `bazel` stage has one target list; add its label and its
+  `bin/identity_recorder` copy when that lane lands.
 - VisionPilot's mw::com configuration and the run configuration (`source.mode = score`, `engine.provider = cuda`) are
   B6 and B13 inputs. The bundle carries upstream's `config/` unchanged.
 - `ldconfig` makes the CUDA libraries visible system-wide on the S-CORE host. No `LD_LIBRARY_PATH` is set.
