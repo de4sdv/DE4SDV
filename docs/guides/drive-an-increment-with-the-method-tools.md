@@ -13,7 +13,9 @@ function from its simulator and evidence bench, see
 [Closed-loop driving increment](closed-loop-driving-increment.md). For a
 framing that judges a candidate application against requirements the product
 line already holds, see
-[Driver-assistance increment](driver-assistance-increment.md).
+[Driver-assistance increment](driver-assistance-increment.md). For a framing
+that builds on another increment's configuration and bench, see
+[HMI display increment](hmi-display-increment.md).
 
 For a framing that carries a driving command across the vehicle network to an
 actuation ECU, see [E/E architecture increment](ee-architecture-increment.md).
