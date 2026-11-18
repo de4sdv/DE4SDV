@@ -587,10 +587,13 @@ mkdir -p "$B/share/visionpilot/modules/models/weights"
 cp "$ROOT"/src/vp-pin/VisionPilot/modules/models/weights/*.onnx "$B/share/visionpilot/modules/models/weights/"
 cp "$BENCH"/score-interface/patches/*.diff "$BENCH/score-interface/patches/SHA256SUMS" "$B/facts/"
 cp "$ROOT"/facts/*.txt "$ROOT"/facts/*.diff "$B/facts/" 2>/dev/null || true
-# the run-time packages of the S-CORE host, with this host's versions (install_gpu_runtime.sh installs them)
-# shellcheck disable=SC2086
-dpkg-query -W -f='${Package}=${Version}\n' $APT_RUNTIME coinor-libipopt1v5 coinor-libipopt-dev libcppad-dev \
-  > "$B/facts/apt-runtime-packages.txt" 2>/dev/null || true
+# the run-time packages of the S-CORE host (install_gpu_runtime.sh installs them): name=version where this host has
+# the package installed, the bare name where it has not (dpkg-query prints "name=" for a package it knows but has
+# not installed, and apt-get refuses an empty version)
+for p in $APT_RUNTIME coinor-libipopt1v5 coinor-libipopt-dev libcppad-dev; do
+  v=$(dpkg-query -W -f='${db:Status-Abbrev}|${Version}' "$p" 2>/dev/null || true)
+  case "$v" in ii*) echo "$p=${v#*|}" ;; *) echo "$p" ;; esac
+done > "$B/facts/apt-runtime-packages.txt"
 {
   echo "VisionPilot $VP_COMMIT with $(cat "$BENCH/score-interface/patches/SHA256SUMS" | tr '\n' ' ')"
   echo "FEO $FEO_COMMIT; gateway $GATEWAY_COMMIT; CARLA $CARLA_COMMIT; ONNX Runtime $ORT_VERSION (nuget sha256 $ORT_SHA256)"
