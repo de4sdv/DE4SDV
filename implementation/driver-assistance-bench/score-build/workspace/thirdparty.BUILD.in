@@ -1,0 +1,114 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): the third-party libraries of the S-CORE workspace, repository
+# @da_b2_thirdparty (new_local_repository at <root>/thirdparty). build_score_bench.sh fills the directory and writes
+# this file there with @HOST_GSTREAMER_LIBS@ and @HOST_SOLVER_LIBS@ replaced by the full paths of the Ubuntu 22.04
+# shared libraries, and @HOST_GSTREAMER_INCLUDES@ by the copies of the GStreamer and GLib include directories under
+# hostinc/gstreamer/ (all resolved with pkg-config on the build host). No host include root (/usr/include) enters a
+# compile: the S-CORE toolchain keeps its own sysroot headers.
+#
+#   onnxruntime   ONNX Runtime 1.26.0, Microsoft's prebuilt GPU package (shared; it loads the CUDA provider and,
+#                 with it, the host's libstdc++: a second C++ runtime beside the binary's static one, the assumption
+#                 of owner decision 5a)
+#   opencv        OpenCV 4.6.0 core, imgproc, imgcodecs, videoio (GStreamer back end), highgui (no GUI back end),
+#                 static, built with the S-CORE gcc 12.2.0
+#   rerun         Rerun C++ SDK 0.34.1 and its Arrow C++, static, built with the S-CORE gcc 12.2.0
+#   eigen         Eigen 5.0.0 headers
+#   cppad_ipopt   CppAD 2021.00.00.8 headers and Ipopt 3.11.9 headers (as coin-or/), the Ubuntu 22.04 shared libraries
+#   boost_headers the Boost headers of the CARLA 1.0 client build (one Boost in the process)
+#   nlohmann_json the Ubuntu 22.04 nlohmann-json3-dev headers
+#   gstreamer_webrtc  the GStreamer libraries VisionPilot's WebRTC sources use (C libraries of Ubuntu 22.04)
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+HOST_GSTREAMER_LIBS = [@HOST_GSTREAMER_LIBS@]
+
+HOST_SOLVER_LIBS = [@HOST_SOLVER_LIBS@]
+
+cc_library(
+    name = "onnxruntime",
+    srcs = ["onnxruntime/lib/libonnxruntime.so.1"],
+    hdrs = glob(["onnxruntime/include/*.h"]),
+    includes = ["onnxruntime/include"],
+)
+
+cc_library(
+    name = "gstreamer_headers",
+    hdrs = glob(["hostinc/gstreamer/**/*.h"]),
+    includes = [@HOST_GSTREAMER_INCLUDES@],
+)
+
+cc_library(
+    name = "opencv",
+    srcs = [
+        "opencv/lib/libopencv_highgui.a",
+        "opencv/lib/libopencv_videoio.a",
+        "opencv/lib/libopencv_imgcodecs.a",
+        "opencv/lib/libopencv_imgproc.a",
+        "opencv/lib/libopencv_core.a",
+    ] + glob(["opencv/lib/opencv4/3rdparty/*.a"]),
+    hdrs = glob([
+        "opencv/include/opencv4/**/*.hpp",
+        "opencv/include/opencv4/**/*.h",
+    ]),
+    includes = ["opencv/include/opencv4"],
+    linkopts = HOST_GSTREAMER_LIBS + [
+        "-lpthread",
+        "-ldl",
+    ],
+    linkstatic = True,
+)
+
+cc_library(
+    name = "gstreamer_webrtc",
+    linkopts = HOST_GSTREAMER_LIBS,
+    deps = [":gstreamer_headers"],
+)
+
+cc_library(
+    name = "rerun",
+    srcs = glob([
+        "rerun/lib/librerun_sdk.a",
+        "rerun/lib/librerun_c*.a",
+        "rerun/lib/libarrow.a",
+        "rerun/lib/libarrow_bundled*.a",
+    ]),
+    hdrs = glob([
+        "rerun/include/**/*.hpp",
+        "rerun/include/**/*.h",
+    ]),
+    includes = ["rerun/include"],
+    linkopts = [
+        "-lpthread",
+        "-ldl",
+        "-lm",
+    ],
+    linkstatic = True,
+)
+
+cc_library(
+    name = "eigen",
+    hdrs = glob(["eigen/Eigen/**"]),
+    includes = ["eigen"],
+)
+
+cc_library(
+    name = "cppad_ipopt",
+    hdrs = glob([
+        "solver/include/cppad/**",
+        "solver/include/coin-or/**",
+    ]),
+    includes = ["solver/include"],
+    linkopts = HOST_SOLVER_LIBS,
+)
+
+cc_library(
+    name = "boost_headers",
+    hdrs = glob(["boost/include/boost/**"]),
+    includes = ["boost/include"],
+)
+
+cc_library(
+    name = "nlohmann_json",
+    hdrs = glob(["hostinc/nlohmann/**"]),
+    includes = ["hostinc"],
+)
