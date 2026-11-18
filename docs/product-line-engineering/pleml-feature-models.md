@@ -159,7 +159,16 @@ configuration is admitted when all of these hold:
   as a whole, so its classification applies to every configuration of the
   family.
 - The selections realize exactly one admitted alternative and select every
-  derived realization of it.
+  derived realization of it. A shared realization is read by intersection
+  ([ADR 0023](../architecture-decisions/0023-admit-score-integrated-aebs-reference-member.md),
+  decision 4): each selected choice or leaf with an alternative
+  correspondence names a set of alternatives, and so does a family that
+  corresponds to an alternative as a whole. The configuration realizes the
+  one alternative that all these sets share. When there is no such set, or
+  the sets share no alternative or more than one, it is not admitted. A
+  choice or leaf with no alternative correspondence does not narrow the
+  intersection. While every choice corresponds to one alternative, this
+  gives the same verdicts as the union of the alternatives.
 - Every common asset that features represent is represented by all of them.
   A choice is exempt only where the realized alternative selects another
   member of its group. Since INC-MW-011 phase 9 no member needs that

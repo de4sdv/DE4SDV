@@ -1194,10 +1194,20 @@ class _FeatureModel:
         classifies its variation point and never blocks. Each selected choice
         or leaf blocks unless one of its correspondences is admissible, and
         one without a correspondence is not in the governed scope; a family
-        correspondence applies to every configuration of the tree. The
-        selection must realize exactly one admitted alternative, select its
-        derived realization in every group that has one, and represent every
-        common element that features correspond to.
+        correspondence applies to every configuration of the tree.
+
+        Shared realizations are read by intersection (ADR 0023, decision 4):
+        each considered item with an admitted-alternative correspondence
+        contributes the set of its alternatives, and the selection realizes
+        the one alternative all those sets have in common. A selection with
+        no such set, or whose sets share no alternative or more than one, is
+        not admitted; items without an alternative correspondence do not
+        narrow the intersection. The reasons keep the texts of the union
+        reading, which name every alternative an item corresponds to, and
+        ``alternatives_realized`` keeps the paths per alternative. The
+        selection must also select the derived realization of the realized
+        alternative in every group that has one, and represent every common
+        element that features correspond to.
         """
         if self.scope is None:
             return {"evaluated": False, "admitted": None, "reasons": ["no governed scope among the evaluated elements"]}
@@ -1220,19 +1230,24 @@ class _FeatureModel:
             considered.append((feature.path, items))
         blocking: list[str] = []
         realized: dict[str, list[str]] = {}
+        shared: set[str] | None = None
         for label, items in considered:
             if not items:
                 blocking.append(f"{label}: not in the governed scope")
                 continue
+            alternatives = set()
             for item in items:
                 if item["classification"] == "admitted-alternative":
                     realized.setdefault(item["governed"], []).append(label)
+                    alternatives.add(item["governed"])
+            if alternatives:
+                shared = alternatives if shared is None else shared & alternatives
             if not {item["classification"] for item in items} & ADMISSIBLE:
                 blocking.append(f"{label}: {described(items)}")
         reasons = []
         if blocking:
             reasons.append("selects content the governed scope does not admit: " + " | ".join(blocking))
-        alternative = next(iter(realized)) if len(realized) == 1 else None
+        alternative = next(iter(shared)) if shared is not None and len(shared) == 1 else None
         if not realized:
             reasons.append("realizes no admitted alternative")
         elif alternative is None:

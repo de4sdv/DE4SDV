@@ -98,7 +98,20 @@ A configuration is admitted when all of these hold:
   governed scope. A family correspondence counts for every configuration of
   its tree;
 - the selection realizes exactly one admitted alternative, and in every group
-  where a member corresponds to that alternative, it selects such a member;
+  where a member corresponds to that alternative, it selects such a member.
+  The alternative is read by intersection
+  ([ADR 0023](../architecture-decisions/0023-admit-score-integrated-aebs-reference-member.md),
+  decision 4): each selected choice or leaf with an alternative
+  correspondence, and the family if it corresponds to an alternative,
+  contributes its set of alternatives, and the realized alternative is the
+  one all these sets share. A selection with no set, or whose sets share no
+  alternative or more than one, is not admitted. The reasons keep their
+  texts: "realizes no admitted alternative" when there is no set, and
+  otherwise "realizes more than one admitted alternative: " followed by
+  every alternative that any of them corresponds to. `alternatives_realized`
+  lists the paths per alternative for every alternative correspondence, so
+  it can name an alternative the configuration does not realize; the
+  realized one is `alternative`;
 - every choice or leaf that corresponds to a common element is selected. A
   choice is exempt where the alternative's derived realization selects another
   member of its group, because the feature model has one slot there. Common

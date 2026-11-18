@@ -1492,7 +1492,11 @@ def admission(features: list[Feature], correspondences: dict[str, set[str]], fam
     ``correspondences`` maps a feature to the governed elements it corresponds
     to, and ``family_elements`` holds the family-level ones. Only selected
     choices and leaves block: a grouping feature carries no admission, and a
-    group feature's correspondence never blocks.
+    group feature's correspondence never blocks. A shared realization is read
+    by intersection (ADR 0023, decision 4): the realized alternative is the
+    one that the family and every chosen feature with an alternative
+    correspondence have in common, and the count in the text is that of all
+    their alternatives.
     """
     groups = {feature.parent for feature in features if feature.parent}
     owners = {feature.path[-2] for feature in features if len(feature.path) > 1}
@@ -1505,11 +1509,14 @@ def admission(features: list[Feature], correspondences: dict[str, set[str]], fam
         kinds = _classes(correspondences.get(name, set()))
         if not kinds & ADMISSIBLE:
             blocking.append(f"{name}: {', '.join(sorted(kinds)) or 'not in the governed scope'}")
-    realized = {element for name in chosen for element in correspondences.get(name, set())
-                if _classes({element}) == {"admitted-alternative"}}
-    if len(realized) != 1:
+    alternatives = [{element for element in elements if _classes({element}) == {"admitted-alternative"}}
+                    for elements in (family_elements, *(correspondences.get(name, set()) for name in sorted(chosen)))]
+    alternatives = [found for found in alternatives if found]
+    realized = set().union(*alternatives)
+    shared = set.intersection(*alternatives) if alternatives else set()
+    if len(shared) != 1:
         return None, [*blocking, f"realizes {len(realized)} admitted alternatives"]
-    [alternative] = realized
+    [alternative] = shared
     realizations = {name for name in choices if alternative in correspondences.get(name, set())}
     slots = {choices[name].parent for name in realizations}
     for slot in sorted(slots):
@@ -1587,6 +1594,30 @@ def test_admission_blocks_only_on_selected_choices_and_leaves() -> None:
         "InitialCommonCoreEngineeringContent::linuxROS2AutowareRuntime is not represented: linux is not selected"]
     assert admission(features, correspondences, family_elements, integrated | {"hmiDisplay"})[1] == [
         "hmiDisplay: not in the governed scope"]
+
+
+def test_admission_reads_a_shared_realization_by_intersection() -> None:
+    """ADR 0023 decision 4 on a synthetic tree: ``sharedHypervisor`` corresponds to two admitted
+    alternatives, and the middleware choice narrows it to one."""
+    def feature(name: str, parent: str | None, path: tuple[str, ...] = ("stack",)) -> Feature:
+        return Feature(name, name, "[0..1]" if parent else "[1]", parent, False, False, (*path, name))
+
+    features = [feature("stack", None, ()), feature("middleware", None), feature("hypervisor", None),
+                feature("scoreMiddleware", "middleware"), feature("aaosMiddleware", "middleware"),
+                feature("noMiddleware", "middleware"), feature("sharedHypervisor", "hypervisor")]
+    aaos, score = "vehiclePlatformIntegrationMode::aaosIntegrated", "vehiclePlatformIntegrationMode::scoreIntegrated"
+    correspondences = {"sharedHypervisor": {aaos, score}, "scoreMiddleware": {score}, "aaosMiddleware": {aaos},
+                       "noMiddleware": {"vehiclePlatformIntegrationMode::standalone"}}
+    assert admission(features, correspondences, set(), {"scoreMiddleware", "sharedHypervisor"}) == (score, [])
+    assert admission(features, correspondences, set(), {"aaosMiddleware", "sharedHypervisor"}) == (aaos, [])
+    assert admission(features, correspondences, set(), {"sharedHypervisor"}) == (
+        None, ["realizes 2 admitted alternatives"])
+    assert admission(features, correspondences, set(), {"noMiddleware", "sharedHypervisor"}) == (
+        None, ["realizes 3 admitted alternatives"])
+    # The family's own alternative takes part in the intersection, as it does in the evaluator.
+    assert admission(features, correspondences, {score}, {"scoreMiddleware", "sharedHypervisor"}) == (score, [])
+    assert admission(features, correspondences, {score}, {"aaosMiddleware", "sharedHypervisor"}) == (
+        None, ["realizes 2 admitted alternatives"])
 
 
 _COUNT_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
