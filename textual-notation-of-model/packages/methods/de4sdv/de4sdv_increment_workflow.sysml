@@ -482,28 +482,33 @@ package DE4SDV_IncrementWorkflow {
          * electrical/electronic topology: ECUs and controllers as network nodes, buses
          * and links, the frames on them, connectors and I/O. The physical/software
          * realization is phase 8 with both kinds. An ECU or controller that software
-         * runs on is declared in the E/E realization, and the software realization
-         * imports it to deploy software on it. The checks of phase 8 read both kinds
-         * alike: they find physical elements by their type in the packages the charter
-         * names, not by how a package's name ends. Phase 8 packages merged before this
-         * rule keep their content. An increment with no E/E topology has only a software
-         * realization. No kind exists for mechanical elements until an increment has
-         * them inside its boundary. Rules: each logical element of the increment is
-         * allocated to at least one physical element (allocatedTo). The increment's
-         * physical elements are the PhysicalAllocationElement usages its packages own at
-         * any depth and the ones its own allocations name. Advisory: each physical
-         * element carries a logical element. Advisory, the system-to-software
-         * signal-mapping control: a physical element that realizes a logical element and
-         * has a port with a directed feature, of its own, of its definition, of a
-         * feature it narrows or of a connected port, is a crossing, and each logical
-         * element it realizes has a SystemToSoftwareSignalMappingCandidate allocation,
-         * owned by a package of the increment, to a physical element of the increment
-         * that realizes it or a port of one, whose LogicalToSoftwareSignalMappingRecords
-         * each state a disposition, an owner and a next action, and when notApplicable
-         * why; each record of a signal mapping states the semantic source, or the item
-         * at its port is VSS-typed. An allocation is no deployment, execution or runtime
-         * claim, and a mapping no runtime-interoperability claim; the
-         * realization-readiness control stays with review. */
+         * runs on is declared in the E/E realization; the software realization imports
+         * it and does not declare it again. An import lets the software realization
+         * refer to the ECU. It does not assign software to the ECU, and the method
+         * defines no relation for that yet. The checks of phase 8 read both kinds alike:
+         * they find physical elements by their type, in the packages the charter names
+         * and among the targets of the increment's own allocations, not by how a
+         * package's name ends. They do not check which kind holds an element, where an
+         * ECU is declared, or what a package imports. Phase 8 packages merged before
+         * this rule keep their names and their content. An increment with no E/E
+         * topology has only a software realization. No kind exists for mechanical
+         * elements until an increment has them inside its boundary. Rules: each logical
+         * element of the increment is allocated to at least one physical element
+         * (allocatedTo). The increment's physical elements are the
+         * PhysicalAllocationElement usages its packages own at any depth and the ones
+         * its own allocations name. Advisory: each physical element carries a logical
+         * element. Advisory, the system-to-software signal-mapping control: a physical
+         * element that realizes a logical element and has a port with a directed
+         * feature, of its own, of its definition, of a feature it narrows or of a
+         * connected port, is a crossing, and each logical element it realizes has a
+         * SystemToSoftwareSignalMappingCandidate allocation, owned by a package of the
+         * increment, to a physical element of the increment that realizes it or a port
+         * of one, whose LogicalToSoftwareSignalMappingRecords each state a disposition,
+         * an owner and a next action, and when notApplicable why; each record of a
+         * signal mapping states the semantic source, or the item at its port is
+         * VSS-typed. An allocation is no deployment, execution or runtime claim, and a
+         * mapping no runtime-interoperability claim; the realization-readiness control
+         * stays with review. */
     attribute :>> phase = MethodPhase::phase8_physicalRealization;
     in part logicalElements[1..*] : LogicalAllocationElement;
     out part physicalElements[1..*] : PhysicalAllocationElement;
