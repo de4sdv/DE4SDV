@@ -16,6 +16,9 @@
 #   --kit-from-worktree    upload the bench folder as it is on disk (default: as committed at HEAD)
 #   --kit-extra <dir>      also upload <dir> as <bench>/extra/ (stub entries in the dry-run tests)
 #   --carla-host <ip>      CARLA's address for the S-CORE side (default: the simulator host's internal IP, from gcloud)
+#   --remote-env NAME=VALUE  a per-session setting of a remote entry (repeatable): NAME must be on the allow-list
+#                          (REMOTE_ENV_guest, REMOTE_ENV_score below); it goes to every step on that name's host and
+#                          into session.json. Never taken from this shell's environment
 #   --permissive-ivi       the IVI guest is set permissive (setenforce 0); every result of the session is then
 #                          conditional on a permissive IVI, and session.json says so. Default: the guests as they
 #                          boot (Enforcing); their mode is recorded at every window either way
@@ -44,7 +47,7 @@ BENCH_REL=implementation/driver-assistance-bench
 . "$HERE/entrypoints.env"
 
 KIND=""; DRY=0; CAP=""; OWNER_OK_GUEST=0; WITHOUT_GUEST=0; SID=""; KIT_FROM=head; KIT_EXTRA=""; CARLA_HOST=""
-IVI_PERMISSIVE=0
+IVI_PERMISSIVE=0; RENV_ARGS=()
 EVID=${DA_EVIDENCE_ROOT:-$HOME/.hermes/outputs/inc-driving-002/phase10/sessions}
 BENCH_TREE=$(cd -- "$HERE/../../.." && pwd)
 while [ $# -gt 0 ]; do
@@ -61,7 +64,8 @@ while [ $# -gt 0 ]; do
     --kit-extra) KIT_EXTRA=$(cd -- "${2:?}" && pwd); shift 2 ;;
     --carla-host) CARLA_HOST=${2:?}; shift 2 ;;
     --permissive-ivi) IVI_PERMISSIVE=1; shift ;;
-    -h|--help) sed -n '2,36p' "$0"; exit 0 ;;
+    --remote-env) RENV_ARGS+=("${2:?}"); shift 2 ;;
+    -h|--help) sed -n '2,39p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -73,6 +77,25 @@ case "$KIND" in
          CAP=${CAP:-$CAP_EUR_P10_2} ;;
   *) echo "--kind p10-1|p10-3|p10-2 is required" >&2; exit 2 ;;
 esac
+
+# per-session settings of the remote entries (R6): only the names on its host's list below, and only when given on
+# purpose with --remote-env NAME=VALUE (S4: an exported variable of the calling shell, another worker's UNIT_WAIT_S
+# say, never reaches a step). Each goes to every step on that host (`env NAME=value` before the command) and into
+# session.json, so a guessed pattern or a time-out is changed for the next session without a commit
+REMOTE_ENV_guest="UNIT_REGISTERED_RE UNIT_NEGATION_RE BROKER_ERROR_RE UNIT_WAIT_S B12_DIR VERIFY_WAIT_S ADB_TIMEOUT_S
+                  UP_TIMEOUT_S CLOCK_READS CLOCK_MAX_OFFSET_S START_WAIT_S"
+REMOTE_ENV_score="DA_P10_1_CARLA_HOST GATEWAYD_RX_REGEX DA_P10_1_LATE_WAIT_S DA_P10_1_CUDA_RUNS DA_P10_1_ALIVE_HOLD_S
+                  DA_P10_1_STALL_HOLD_S DA_P10_1_SUPERVISED_WAIT_S"
+REMOTE_ENV_sim=""
+declare -A RVAL=()
+for _x in "${RENV_ARGS[@]}"; do
+  [[ "$_x" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || { echo "refused: --remote-env takes NAME=VALUE, not '$_x'"; exit 2; }
+  _n=${_x%%=*}
+  [[ " $(echo $REMOTE_ENV_guest $REMOTE_ENV_score $REMOTE_ENV_sim) " == *" $_n "* ]] \
+    || { echo "refused: --remote-env $_n is not on the allow-list: $(echo $REMOTE_ENV_guest $REMOTE_ENV_score $REMOTE_ENV_sim)"; exit 2; }
+  [ -n "${RVAL[$_n]+x}" ] && { echo "refused: --remote-env $_n given twice"; exit 2; }
+  RVAL[$_n]=${_x#*=}
+done
 
 # the cap: a positive number of EUR (R21)
 [[ "$CAP" =~ ^[0-9]+(\.[0-9]+)?$ ]] && awk -v c="$CAP" 'BEGIN { exit !(c > 0) }' \
@@ -352,7 +375,7 @@ write_record() {
   LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" RECEIPTS="${RECEIPTS:-}" \
   FETCH_OK="$FETCH_OK" FETCH_BAD="$FETCH_BAD $(for r in "${STARTED[@]}"; do case " $FETCHED " in *" $r "*) ;; *) echo "$r" ;; esac; done)" \
   ENDED_BY="$ENDED_BY" \
-  RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${!n}"; done)" python3 - <<'PY'
+  RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
 p10_1 = os.path.join(e["IN"], "p10_1_summary.json")
@@ -393,20 +416,13 @@ trap 'on_signal HUP 129' HUP
 log "SESSION_START $SID kind=$KIND hosts=${ROLES[*]} cap=$CAP EUR dry_run=$DRY sim_ssh_iap=$SIM_SSH_IAP permissive_ivi=$IVI_PERMISSIVE"
 [ "$IVI_PERMISSIVE" = 1 ] && log "every result of this session is conditional on a permissive IVI (--permissive-ivi)"
 
-# per-session settings of the remote entries (R6): a name on its host's list below that is set in this host's
-# environment goes to every step on that host (`env NAME=value` before the command) and into session.json, so a
-# guessed pattern or a time-out is changed for the next session without a commit
-REMOTE_ENV_guest="UNIT_REGISTERED_RE UNIT_NEGATION_RE BROKER_ERROR_RE UNIT_WAIT_S B12_DIR VERIFY_WAIT_S ADB_TIMEOUT_S
-                  UP_TIMEOUT_S CLOCK_READS CLOCK_MAX_OFFSET_S START_WAIT_S"
-REMOTE_ENV_score="DA_P10_1_CARLA_HOST GATEWAYD_RX_REGEX DA_P10_1_LATE_WAIT_S DA_P10_1_CUDA_RUNS DA_P10_1_ALIVE_HOLD_S
-                  DA_P10_1_STALL_HOLD_S DA_P10_1_SUPERVISED_WAIT_S"
-REMOTE_ENV_sim=""
+# the --remote-env settings, per host, in the order of its list
 REMOTE_ENV_SET=""
 for _r in guest score sim; do
   _l="REMOTE_ENV_$_r"; _a=()
   for _n in ${!_l}; do
-    [ -n "${!_n+x}" ] || continue
-    _a+=("$_n=${!_n}"); REMOTE_ENV_SET="$REMOTE_ENV_SET $_r:$_n"
+    [ -n "${RVAL[$_n]+x}" ] || continue
+    _a+=("$_n=${RVAL[$_n]}"); REMOTE_ENV_SET="$REMOTE_ENV_SET $_r:$_n"
   done
   if [ ${#_a[@]} -gt 0 ]; then printf -v "RENV_$_r" '%s ' "env$(q "${_a[@]}")"; else printf -v "RENV_$_r" '%s' ""; fi
 done

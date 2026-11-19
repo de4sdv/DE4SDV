@@ -202,14 +202,19 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_VXLAN` | guest, S-CORE | `guest-host\|host-half add <peer ip>` | this lane: `remote/cross_vm_guest_bridge.sh` | the VXLAN segment, the S-CORE host at 192.168.98.1 (INC-DRIVING-001's script, unchanged) |
 
 Per-session settings of the remote entries: gcloud ssh does not carry the lead host's environment, so the session
-passes a fixed list of names, each set in its own environment, to every step on that name's host as `env
-NAME=value` before the command, logs the names and records the values in `session.json` (`remote_env`). The lists
+passes the settings given with `--remote-env NAME=VALUE` (repeatable) to every step on that name's host as `env
+NAME=value` before the command, logs the names and records the values in `session.json` (`remote_env`). A name off
+the allow-list, a malformed or a repeated option is refused (exit 2) before anything starts. A variable merely
+exported in the calling shell never reaches a step: the lead's shared terminal has exported other workers'
+`UNIT_WAIT_S` and `ADB` before, and `UNIT_WAIT_S=0` would fail a paid `p10-3`'s unit check at once. The allow-lists
 (`REMOTE_ENV_guest`, `REMOTE_ENV_score` in `da_session.sh`): on the guest host `UNIT_REGISTERED_RE`,
 `UNIT_NEGATION_RE`, `BROKER_ERROR_RE`, `UNIT_WAIT_S` (`remote/offer_check.sh`), `B12_DIR`, `VERIFY_WAIT_S`,
 `ADB_TIMEOUT_S`, `UP_TIMEOUT_S` (the guest build script), `CLOCK_READS`, `CLOCK_MAX_OFFSET_S` (`remote/ivi_clock.sh`),
 `START_WAIT_S` (`remote/app_restart.sh`); on the S-CORE host `DA_P10_1_CARLA_HOST`, `GATEWAYD_RX_REGEX` and the
 `DA_P10_1_*` waits of `p10_1_check.sh`. A changed guess of the first `p10-3` (the broker's line, say) is then a setting
-of the next session, not a commit.
+of the next session, not a commit. The `hosts.env` and `entrypoints.env` names (`ENTRY_*`, `GUEST_STOP_CMD`, the VMs,
+the caps) can still be overridden from the environment, for the dry runs: start every real session from `env -i`, as
+the blocks below do.
 
 `GUEST_STOP_CMD` (default `remote/guest_stop.sh` in the kit) stops the guests; the session then counts `crosvm` on the
 guest host itself and never stops the host while one is left.

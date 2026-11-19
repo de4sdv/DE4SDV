@@ -690,8 +690,8 @@ def test_the_app_entries_match_the_app_manifest_and_its_record() -> None:
 
 def test_per_session_settings_reach_the_steps_of_their_host_only(tmp_path: Path) -> None:
     # R6: a guessed pattern or time-out of a remote entry changes for a session without a commit
-    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", UNIT_REGISTERED_RE="unit .* registered", UNIT_WAIT_S="600",
-            GATEWAYD_RX_REGEX="rx [0-9]+", NOT_ON_THE_LIST="x")
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", "--remote-env", "UNIT_REGISTERED_RE=unit .* registered",
+            "--remote-env", "UNIT_WAIT_S=600", "--remote-env", "GATEWAYD_RX_REGEX=rx [0-9]+", NOT_ON_THE_LIST="x")
     assert r.rc == 0, r.log
     unit = r.command(r.ssh(GH, "start unit_inject")[0])
     assert "env UNIT_REGISTERED_RE=unit\\ .\\*\\ registered UNIT_WAIT_S=600 bash" in unit
@@ -703,6 +703,26 @@ def test_per_session_settings_reach_the_steps_of_their_host_only(tmp_path: Path)
     rec = json.loads((r.incoming / "session.json").read_text())
     assert rec["remote_env"] == {"guest": {"UNIT_REGISTERED_RE": "unit .* registered", "UNIT_WAIT_S": "600"},
                                  "score": {"GATEWAYD_RX_REGEX": "rx [0-9]+"}}
+
+
+def test_an_exported_setting_never_reaches_a_remote_step(tmp_path: Path) -> None:
+    # S4: another worker's UNIT_WAIT_S=0 exported in the shell made a paid P10-3's unit check fail at once; only the
+    # --remote-env option sets a remote entry's setting
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", UNIT_WAIT_S="0", START_WAIT_S="1", B12_DIR="/lead/path",
+            GATEWAYD_RX_REGEX="x")
+    assert r.rc == 0, r.log
+    for name in ("UNIT_WAIT_S", "START_WAIT_S", "B12_DIR", "GATEWAYD_RX_REGEX"):
+        assert not any(name in a for c in r.calls for a in c), name
+    assert "per-session settings" not in r.log
+    assert json.loads((r.incoming / "session.json").read_text())["remote_env"] == {}
+
+
+@pytest.mark.parametrize("opts", [("--remote-env", "NOT_ON_THE_LIST=x"), ("--remote-env", "UNIT_WAIT_S"),
+                                  ("--remote-env", "UNIT_WAIT_S=1", "--remote-env", "UNIT_WAIT_S=2"),
+                                  ("--remote-env", "GUEST_STOP_CMD=true")])
+def test_a_remote_setting_off_the_allow_list_or_malformed_is_refused(tmp_path: Path, opts: tuple) -> None:
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", *opts)
+    assert r.rc == 2 and "--remote-env" in r.stdout and not r.calls, r.stdout
 
 
 def test_without_per_session_settings_the_commands_are_unchanged(tmp_path: Path) -> None:
