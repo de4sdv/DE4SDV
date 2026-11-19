@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -21,6 +23,9 @@ REMOTE = HERE.parent / "remote"
 FAKES = {
     "sudo": '#!/bin/bash\necho "sudo $*" >> "$FAKE/calls.log"\n[ "$1" = shutdown ] || [ "$1" = systemd-run ] && exit 0\n'
             'exec "$@"\n',
+    "systemctl": '#!/bin/bash\necho "systemctl $*" >> "$FAKE/calls.log"\n'
+                 'last="${@: -1}"; [ "$1" = list-timers ] && [ ! -e "$FAKE/no_timer" ] && '
+                 'echo "Thu 2026-11-19 12:00:00 UTC 4h left - - $last ${last%.timer}.service"\nexit 0\n',
     "pgrep": '#!/bin/bash\necho "pgrep $*" >> "$FAKE/calls.log"\nn=$(cat "$FAKE/crosvm" 2>/dev/null || echo 0)\n'
              'echo "$n"; [ "$n" != 0 ]\n',
     "cvd": '#!/bin/bash\necho "cvd $*" >> "$FAKE/calls.log"\n'
@@ -29,15 +34,19 @@ FAKES = {
            '> "$FAKE/crosvm"; } ;; esac\n',
     "ip": '#!/bin/bash\necho "ip $*" >> "$FAKE/calls.log"\n'
           'case "$*" in "route get"*) echo "multicast 224.0.0.251 dev ${FAKE_ROUTE_DEV:-cvd-ebr} table local";; esac\n',
-    "adb": '#!/bin/bash\necho "adb $*" >> "$FAKE/calls.log"\n[ "$1" = -s ] && shift 2\nc="$*"\n'
+    "adb": '#!/bin/bash\necho "adb $*" >> "$FAKE/calls.log"\nserial=""\n[ "$1" = -s ] && { serial=$2; shift 2; }\nc="$*"\n'
            'case "$c" in\n'
            '  "shell getprop sys.boot_completed") echo 1 ;;\n'
-           '  "shell getenforce") echo Enforcing ;;\n'
+           '  "shell getenforce") cat "$FAKE/mode_$serial" 2>/dev/null || echo Enforcing ;;\n'
            '  "shell pm path "*) [ -e "$FAKE/no_app" ] || echo "package:/vendor/priv-app/App/App.apk" ;;\n'
            '  "shell sha256sum "*) echo "abc123  $3" ;;\n'
            '  "shell am start"*) echo "Starting: Intent { cmp=$6 }"; echo "Status: ok" ;;\n'
            '  "shell pidof "*) [ -e "$FAKE/no_pid" ] || echo 4242 ;;\n'
            '  "logcat -d") cat "$FAKE/logcat" 2>/dev/null ;;\n'
+           '  "logcat -d -T "*) cat "$FAKE/logcat_since_mark" 2>/dev/null ;;\n'
+           '  "shell date +%s.%N") LC_ALL=C awk -v o="$(cat "$FAKE/guest_off" 2>/dev/null || echo 0)" -v t="$(date +%s.%N)" '
+           '\'BEGIN { printf "%.6f\\n", t + o }\' ;;\n'
+           '  "shell toybox date -s "*) [ -e "$FAKE/clock_settable" ] && echo 0 > "$FAKE/guest_off" ;;\n'
            'esac\nexit 0\n',
 }
 
@@ -123,55 +132,122 @@ def test_safety_net_arm_on_the_guest_host_is_a_timer_that_fires_the_stop(tmp_pat
     d, env = fake
     net = _kit(tmp_path)
     p = sh(str(net), "arm", "12", "bash $HOME/da-kit/S1/bench/session/remote/guest_stop.sh", env=env)
-    assert p.returncode == 0 and p.stdout.strip() == "safety-net-12"
+    assert p.returncode == 0 and p.stdout.strip().splitlines()[-1] == "safety-net-12"
     (timer,) = [c for c in calls(d) if c.startswith("sudo systemd-run")]
     assert "--on-active=12min" in timer and "--unit=da-safety-net-S1" in timer
     assert timer.endswith("safety_net.sh fire bash $HOME/da-kit/S1/bench/session/remote/guest_stop.sh")
     assert not any("shutdown" in c for c in calls(d))
 
 
-def test_safety_net_arm_elsewhere_is_a_plain_shutdown(tmp_path: Path, fake) -> None:
+def test_safety_net_arm_elsewhere_is_a_poweroff_timer_and_lists_it(tmp_path: Path, fake) -> None:
+    # R15: not shutdown -h +N, whose last 5 minutes write /run/nologin
     d, env = fake
     p = sh(str(_kit(tmp_path)), "arm", "12", env=env)
-    assert p.returncode == 0 and p.stdout.strip() == "safety-net-12"
-    assert calls(d) == ["sudo shutdown -h +12"]
+    assert p.returncode == 0 and p.stdout.strip().splitlines()[-1] == "safety-net-12"
+    assert "timer: " in p.stdout and "da-safety-net-S1.timer" in p.stdout
+    (timer,) = [c for c in calls(d) if c.startswith("sudo systemd-run")]
+    assert "--on-active=12min" in timer and timer.endswith("/bin/systemctl poweroff")
+    assert not any("shutdown" in c for c in calls(d))
+
+
+def test_safety_net_arm_without_a_listed_timer_is_not_armed(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "no_timer").touch()
+    net = _kit(tmp_path)
+    for args in (("arm", "12"), ("arm", "12", "bash stop.sh")):
+        p = sh(str(net), *args, env=env)
+        assert p.returncode == 1 and "safety-net-12" not in p.stdout.splitlines()
 
 
 # ------------------------------------------------------------------------------------ guest_prepare.sh
 
 
 def _build_script(tmp_path: Path, fail: str = "") -> Path:
+    """A stand-in with the real script's layout (guest-build/build_guests_incremental.sh: LOGS, IDENT and WORK derived
+    under B12_DIR, step logs b12-<step>.log, the summary and the app's identity under identity/, verify's output in
+    work/app-verify.out). It refuses a caller's LOGS, IDENT or WORK outright (exit 2): the session sets none."""
     s = tmp_path / "build_guests_incremental.sh"
-    s.write_text('#!/bin/bash\necho "build $1 IVI_PERMISSIVE=$IVI_PERMISSIVE" >> "$FAKE/calls.log"\n'
-                 'mkdir -p "$LOGS" "$IDENT"; echo "log of $1" > "$LOGS/b12-$1.log"\n'
+    s.write_text('#!/bin/bash\n'
+                 'echo "build $1 IVI_PERMISSIVE=$IVI_PERMISSIVE B12_DIR=$B12_DIR" >> "$FAKE/calls.log"\n'
+                 'echo "rerun $B12_RERUN_CMD" >> "$FAKE/calls.log"\n'
+                 '[ -n "${LOGS+x}${IDENT+x}${WORK+x}" ] && { echo "caller set LOGS/IDENT/WORK" >> "$FAKE/calls.log"; '
+                 'exit 2; }\n'
+                 'LOGS=$B12_DIR/logs; IDENT=$B12_DIR/identity; WORK=$B12_DIR/work\n'
+                 'mkdir -p "$LOGS" "$IDENT" "$WORK"; echo "log of $1" > "$LOGS/b12-$1.log"\n'
                  'echo "$(date -u) $1: done" >> "$IDENT/b12-summary.txt"\n'
                  '[ "$1" = install ] && echo "apk_guest_sha256: abc" > "$IDENT/ivi-warning-app-identity.txt"\n'
+                 '[ "$1" = verify ] && { echo "initComms ok" > "$WORK/app-verify.out"; '
+                 'echo "logcat line" > "$IDENT/b12-app-logcat.txt"; }\n'
                  f'[ "$1" = "{fail}" ] && exit 1\nexit 0\n')
     return s
 
 
 def test_guest_prepare_runs_install_then_verify_and_keeps_their_records(tmp_path: Path, fake) -> None:
     d, env = fake
-    env = dict(env, GUEST_BUILD_SCRIPT=str(_build_script(tmp_path)), AB=str(tmp_path / "ab"))
-    (tmp_path / "ab" / "identity").mkdir(parents=True)
-    (tmp_path / "ab" / "identity" / "b12-summary.txt").write_text("an earlier run\n")
+    ab = tmp_path / "ab"
+    env = dict(env, GUEST_BUILD_SCRIPT=str(_build_script(tmp_path)), AB=str(ab), DA_SESSION_ID="s1")
+    (ab / "b12-session-s1" / "identity").mkdir(parents=True)
+    (ab / "b12-session-s1" / "identity" / "b12-summary.txt").write_text("an earlier run\n")
     out = tmp_path / "out"
     p = sh(str(REMOTE / "guest_prepare.sh"), str(out), env=env)
     assert p.returncode == 0, p.stdout + p.stderr
     assert [c for c in calls(d) if c.startswith("build")] == \
-        ["build install IVI_PERMISSIVE=0", "build verify IVI_PERMISSIVE=0"]
-    assert (out / "b12-install.log").exists() and (out / "b12-verify.log").exists()
-    assert (out / "ivi-warning-app-identity.txt").exists()
+        [f"build install IVI_PERMISSIVE=0 B12_DIR={ab}/b12-session-s1",
+         f"build verify IVI_PERMISSIVE=0 B12_DIR={ab}/b12-session-s1"]
+    for name in ("b12-install.log", "b12-verify.log", "ivi-warning-app-identity.txt", "b12-app-logcat.txt",
+                 "app-verify.out"):
+        assert (out / name).exists(), name
     assert "an earlier run" not in (out / "b12-summary-this-run.txt").read_text()
 
 
 def test_guest_prepare_stops_at_a_failed_install(tmp_path: Path, fake) -> None:
     d, env = fake
     env = dict(env, GUEST_BUILD_SCRIPT=str(_build_script(tmp_path, fail="install")), AB=str(tmp_path / "ab"),
-               IVI_PERMISSIVE="1")
-    p = sh(str(REMOTE / "guest_prepare.sh"), str(tmp_path / "out"), env=env)
+               IVI_PERMISSIVE="1", DA_SESSION_ID="s1")
+    out = tmp_path / "out"
+    p = sh(str(REMOTE / "guest_prepare.sh"), str(out), env=env)
     assert p.returncode == 1
-    assert [c for c in calls(d) if c.startswith("build")] == ["build install IVI_PERMISSIVE=1"]
+    assert [c for c in calls(d) if c.startswith("build")] == \
+        [f"build install IVI_PERMISSIVE=1 B12_DIR={tmp_path}/ab/b12-session-s1"]
+    assert (out / "b12-install.log").exists()   # the failed step's log is kept
+
+
+def test_guest_prepare_never_hands_the_build_script_logs_ident_or_work(tmp_path: Path, fake) -> None:
+    d, env = fake
+    ab = tmp_path / "ab"   # the 2026-11-17 kit's folders, which the real script refuses with exit 2
+    env = dict(env, GUEST_BUILD_SCRIPT=str(_build_script(tmp_path)), AB=str(ab), DA_SESSION_ID="s1",
+               LOGS=str(ab / "logs"), IDENT=str(ab / "identity"), WORK=str(ab / "work"))
+    p = sh(str(REMOTE / "guest_prepare.sh"), str(tmp_path / "out"), env=env)
+    assert p.returncode == 0, p.stdout + p.stderr
+    assert "caller set LOGS/IDENT/WORK" not in calls(d)
+
+
+def test_guest_prepare_refuses_without_a_session_id(tmp_path: Path, fake) -> None:
+    d, env = fake
+    env = {k: v for k, v in env.items() if k != "DA_SESSION_ID"}
+    env.update(GUEST_BUILD_SCRIPT=str(_build_script(tmp_path)), AB=str(tmp_path / "ab"))
+    p = sh(str(REMOTE / "guest_prepare.sh"), str(tmp_path / "out"), env=env)
+    assert p.returncode == 1 and "no DA_SESSION_ID" in p.stdout
+    assert not [c for c in calls(d) if c.startswith("build")]
+
+
+def test_guest_prepare_names_the_session_as_the_permissive_rerun(tmp_path: Path, fake) -> None:
+    d, env = fake
+    env = dict(env, GUEST_BUILD_SCRIPT=str(_build_script(tmp_path)), AB=str(tmp_path / "ab"), DA_SESSION_ID="s1")
+    assert sh(str(REMOTE / "guest_prepare.sh"), str(tmp_path / "out"), env=env).returncode == 0
+    reruns = [c for c in calls(d) if c.startswith("rerun ")]
+    assert reruns and all("da_session.sh" in c and "--permissive-ivi" in c for c in reruns)
+    assert not any("build_guests_incremental.sh" in c for c in reruns)
+
+
+def test_guest_prepare_collects_where_the_guest_build_script_writes() -> None:
+    script = (HERE.parent.parent / "guest-build" / "build_guests_incremental.sh").read_text()
+    for line in (': "${LOGS:=$B12_DIR/logs}"', ': "${IDENT:=$B12_DIR/identity}"', ': "${WORK:=$B12_DIR/work}"',
+                 'SUMMARY="$IDENT/b12-summary.txt"', 'tee -a "$LOGS/b12-$1.log"', '> "$WORK/app-verify.out"',
+                 '> "$IDENT/b12-app-logcat.txt"', 'cp -f "$identity" "$IDENT/"',
+                 'local identity="$WORK/app/ivi-warning-app-identity.txt"',
+                 'if [ -n "${B12_RERUN_CMD:-}" ]; then printf \'%s\' "$B12_RERUN_CMD"'):
+        assert line in script, line
 
 
 def test_guest_prepare_wraps_steps_the_guest_build_script_has() -> None:
@@ -268,3 +344,150 @@ def test_guest_up_creates_fresh_guests_and_sets_permissive_only_when_marked(tmp_
     assert setenforce == (["adb -s 0.0.0.0:6522 shell setenforce 0"] if permissive == "1" else [])
     ident = (tmp_path / "o" / "guest_identity.txt").read_text()
     assert ident.count("getenforce ") == 2
+
+
+@pytest.mark.parametrize("line", [
+    "I SomeIpBroker: unit {unit} unregistered",
+    "W SomeIpBroker: unit {unit} not registered: no provider of 0x4df1 yet",
+    "W SomeIpBroker: failed to register unit {unit}",
+])
+def test_the_unit_check_refuses_a_negated_registration(tmp_path: Path, fake, line: str) -> None:
+    # R7: a line naming the unit and "regist" that says the opposite is no registration
+    d, env = fake
+    unit, _ = _ids()
+    (d / "logcat").write_text("11-19 08:00:00.000 1 2 " + line.format(unit=unit) + "\n")
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_WAIT_S="0"))
+    assert p.returncode == 1 and "no registration" in p.stdout, p.stdout
+
+
+def test_the_unit_check_reads_only_the_log_since_the_mark(tmp_path: Path, fake) -> None:
+    # R7: a broker error that names the service from before the S-CORE side's start (the offer) is no failure of
+    # the check after it; the mark is the SDV Core guest's clock read before the start
+    d, env = fake
+    unit, service = _ids()
+    reg = f"11-19 08:00:01.000 1 2 I SomeIpBroker: registered unit {unit}\n"
+    (d / "logcat").write_text(f"11-19 07:59:00.000 1 2 E someip_broker_agent: service {service[2:]} not available\n"
+                              + reg)
+    (d / "logcat_since_mark").write_text(reg)
+    (d / "guest_off").write_text("0\n")
+    mark = tmp_path / "mark"
+    m = sh(str(REMOTE / "offer_check.sh"), "mark", str(mark), env=env)
+    assert m.returncode == 0 and m.stdout.startswith("LOGCAT_MARK "), m.stdout
+    since = (mark / "logcat_since.txt").read_text().strip()
+    assert re.fullmatch(r"\d+\.\d{3}", since)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark), env=dict(env, UNIT_WAIT_S="0"))
+    assert p.returncode == 0, p.stdout
+    assert f"adb -s 0.0.0.0:6521 logcat -d -T {since}" in calls(d)
+    whole = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o2"), env=dict(env, UNIT_WAIT_S="0"))
+    assert whole.returncode == 1 and "broker errors" in whole.stdout     # the same log read since the boot
+
+
+def test_the_receipts_of_a_window_are_counted(tmp_path: Path, fake) -> None:
+    d, env = fake
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    p = sh(str(REMOTE / "offer_check.sh"), "receipts", str(cap), env=env)
+    assert p.returncode == 0 and p.stdout.strip() == "RECEIPTS 0"
+    (cap / "app_record_warning.jsonl").write_text('{"a": 1}\n{"a": 2}\n')
+    p = sh(str(REMOTE / "offer_check.sh"), "receipts", str(cap), env=env)
+    assert p.stdout.strip() == "RECEIPTS 2"
+
+
+def test_the_neighbour_caches_of_both_guests_are_flushed(tmp_path: Path, fake) -> None:
+    # R18: the S-CORE host takes 192.168.98.1 over the VXLAN with another MAC
+    d, env = fake
+    p = sh(str(REMOTE / "offer_check.sh"), "neigh", str(tmp_path / "o"), env=env)
+    assert p.returncode == 0, p.stdout + p.stderr
+    flush = [c for c in calls(d) if "ip neigh flush" in c]
+    assert flush == ["adb -s 0.0.0.0:6521 shell ip neigh flush dev eth1",
+                     "adb -s 0.0.0.0:6522 shell ip neigh flush dev eth1"]
+
+
+# ------------------------------------------------------------------- the session's SELinux mark (R16)
+
+
+@pytest.mark.parametrize("ivi, permissive, rc", [
+    ("Enforcing", "0", 0), ("Permissive", "0", 1), ("Enforcing", "1", 1), ("Permissive", "1", 0)])
+def test_app_restart_fails_when_the_ivi_mode_is_not_the_sessions_mark(tmp_path: Path, fake, ivi: str,
+                                                                      permissive: str, rc: int) -> None:
+    # owner decision (b) of 2026-11-18: Enforcing unless the session is marked --permissive-ivi, then Permissive
+    d, env = fake
+    (d / "mode_0.0.0.0:6522").write_text(ivi + "\n")
+    p = sh(str(REMOTE / "app_restart.sh"), str(tmp_path / "o"), "w1", env=dict(env, IVI_PERMISSIVE=permissive, **APP))
+    assert p.returncode == rc, p.stdout + p.stderr
+    starts = [c for c in calls(d) if " am start" in c]
+    assert len(starts) == (1 if rc == 0 else 0)                # never a window on a guest off the mark
+    if rc:
+        assert "FAIL SELinux on the ivi guest" in p.stdout
+
+
+def test_app_restart_fails_on_a_permissive_sdv_core_guest(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "mode_0.0.0.0:6521").write_text("Permissive\n")
+    p = sh(str(REMOTE / "app_restart.sh"), str(tmp_path / "o"), "w1", env=dict(env, IVI_PERMISSIVE="1", **APP))
+    assert p.returncode == 1 and "FAIL SELinux on the core guest" in p.stdout
+
+
+# ------------------------------------------------------------------------------------ ivi_clock.sh (R17)
+
+
+def _clock_lines(out: Path) -> list[dict]:
+    return [json.loads(line) for line in (out / "clock.jsonl").read_text().splitlines()]
+
+
+def test_ivi_clock_set_brings_the_offset_within_its_limit_and_writes_json_in_any_locale(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "guest_off").write_text("5\n")
+    (d / "clock_settable").touch()
+    out = tmp_path / "clk"
+    p = sh(str(REMOTE / "ivi_clock.sh"), "set", str(out), env=dict(env, CLOCK_READS="3", LC_ALL="de_DE.UTF-8"))
+    assert p.returncode == 0, p.stdout + p.stderr
+    lines = _clock_lines(out)                                # json.loads fails on "5,016991"
+    assert lines[0]["label"] == "before_set" and abs(lines[0]["offset_s"] - 5) < 1
+    assert abs(lines[-1]["offset_s"]) <= 0.1 and lines[-1]["bound_s"] >= 0
+
+
+def test_ivi_clock_set_fails_when_the_set_has_no_effect(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "guest_off").write_text("5\n")                     # the guest ignores date -s
+    out = tmp_path / "clk"
+    p = sh(str(REMOTE / "ivi_clock.sh"), "set", str(out), env=dict(env, CLOCK_READS="3"))
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert "FAIL the IVI clock is" in p.stderr
+    assert abs(_clock_lines(out)[-1]["offset_s"] - 5) < 1
+
+
+def test_ivi_clock_measure_only_records(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "guest_off").write_text("2\n")
+    out = tmp_path / "clk"
+    p = sh(str(REMOTE / "ivi_clock.sh"), "measure", str(out), "end", env=dict(env, CLOCK_READS="2"))
+    assert p.returncode == 0
+    (line,) = _clock_lines(out)
+    assert line["label"] == "end" and line["reads"] == 2 and not any("date -s" in c for c in calls(d))
+
+
+# ------------------------------------------------------------------------------------------ host_step.sh
+
+
+def test_host_step_detached_step_reports_its_status_tail_and_answers_a_signal(tmp_path: Path, fake) -> None:
+    # R10: the session starts every step detached, polls its status and reads its tail; at a time-out it signals it
+    d, env = fake
+    kit = tmp_path / "home" / "da-kit" / "S1"
+    (kit / "bench" / "session" / "remote").mkdir(parents=True)
+    (kit / "session_id").write_text("S1\n")
+    hs = kit / "bench" / "session" / "remote" / "host_step.sh"
+    hs.write_bytes((REMOTE / "host_step.sh").read_bytes())
+    assert sh(str(hs), "start", "quick", "--", "bash", "-c", "echo hello", env=env).returncode == 0
+    deadline = time.monotonic() + 10
+    while sh(str(hs), "status", "quick", env=env).stdout.strip() != "rc 0" and time.monotonic() < deadline:
+        time.sleep(0.1)
+    tail = sh(str(hs), "tail", "quick", env=env).stdout
+    assert "hello" in tail and tail.strip().endswith("=== quick end rc=0")
+    assert sh(str(hs), "start", "slow", "--", "sleep", "30", env=env).returncode == 0
+    assert sh(str(hs), "status", "slow", env=env).stdout.strip() == "running"
+    assert "signalled slow (TERM)" in sh(str(hs), "signal", "slow", "TERM", env=env).stdout
+    deadline = time.monotonic() + 10
+    while not sh(str(hs), "status", "slow", env=env).stdout.startswith("rc ") and time.monotonic() < deadline:
+        time.sleep(0.1)
+    assert sh(str(hs), "status", "slow", env=env).stdout.strip() in ("rc 143", "rc 255")

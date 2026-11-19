@@ -5,6 +5,7 @@
 #   host_step.sh start  <step> -- <command...>   run detached (setsid nohup); returns at once
 #   host_step.sh status <step>                   prints "rc <N>", "running" or "absent"
 #   host_step.sh signal <step> [INT|TERM]        signals the detached step's process group
+#   host_step.sh tail   <step>                   the last 20 lines of the step's log
 #   host_step.sh pack                            tars the host's output folder to <kit>/out.tgz, prints its sha256
 #
 # Layout (made by the orchestrator's upload): ~/da-kit/<session id>/{session_id, bench/, out/}. This script lives in
@@ -19,7 +20,7 @@ DA_SESSION_ID=$(cat "$KIT/session_id" 2>/dev/null || echo unknown)
 export DA_BENCH DA_OUT DA_SESSION_ID
 mkdir -p "$DA_OUT"
 
-ACTION=${1:?run|start|status|signal|pack}; shift
+ACTION=${1:?run|start|status|tail|signal|pack}; shift
 case "$ACTION" in
   run|start)
     STEP=${1:?step name}; shift
@@ -52,6 +53,11 @@ case "$ACTION" in
     elif [ -s "$DA_OUT/$STEP.pid" ]; then echo "rc 255"   # ended without writing its status (killed)
     else echo absent; fi
     ;;
+  tail)
+    STEP=${1:?step name}
+    tail -n 20 "$DA_OUT/$STEP.log" 2>/dev/null
+    [ -s "$DA_OUT/$STEP.rc" ] && echo "=== $STEP end rc=$(cat "$DA_OUT/$STEP.rc")"
+    ;;
   signal)
     STEP=${1:?step name}; SIG=${2:-INT}
     PID=$(cat "$DA_OUT/$STEP.pid" 2>/dev/null) || { echo "no pid for $STEP"; exit 1; }
@@ -63,5 +69,5 @@ case "$ACTION" in
     tar -czf "$KIT/out.tgz" -C "$KIT" out
     sha256sum "$KIT/out.tgz" | cut -d' ' -f1
     ;;
-  *) echo "usage: host_step.sh run|start|status|signal|pack ..." >&2; exit 2 ;;
+  *) echo "usage: host_step.sh run|start|status|tail|signal|pack ..." >&2; exit 2 ;;
 esac

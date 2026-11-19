@@ -8,13 +8,24 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_PREEMPT       "vm:n"  the n-th status read after the VM came up returns TERMINATED (once)
   FAKE_GPU_RUNNING   "project:name"  another GPU VM running in that project
   FAKE_FAIL_STEP     a step name whose `host_step.sh run|status` fails
-  FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering
+  FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering; a detached
+                     step (`start`) reads "running" for that long after its start
   FAKE_SSH_DOWN      a VM name that never answers SSH
   FAKE_GUEST_STOP_FAIL  1: a crosvm process stays after every guests' stop; once: after the first stop only
   FAKE_IP            "vm:ip,..."  internal IPs other than the defaults (the session must read them from gcloud)
   FAKE_NO_FILE       a substring: `test -e <path>` of a matching path never finds it (the step keeps "running")
   FAKE_FOREIGN_FETCH    1: a fetched tarball carries another session's id
   FAKE_NO_STOP       a VM name that stays RUNNING after a stop
+  FAKE_SLOW_GUEST_STOP  seconds: the guests' stop (guest_stop.sh, not the safety net's arming) takes that long
+  FAKE_LOST_AFTER    "vm:text"  the VM is reclaimed (TERMINATED) right after the first ssh whose command has text
+  FAKE_PACK_ADD      "arcname=local file,..."  more files in every packed out.tgz (a fetched verdicts file, say)
+  FAKE_KIT_EXISTS    a VM name that already holds ~/da-kit/<session id>
+  FAKE_ARM_FAIL      a VM name whose safety net's arming fails
+  FAKE_SLOW_FETCH    seconds: the scp of a host's out.tgz takes that long
+  FAKE_FETCH_FAIL    a VM name whose out.tgz scp fails
+  FAKE_RECEIPTS      the line count `offer_check.sh receipts` reports for a window's app record (default 2)
+  FAKE_DESCRIBE_FLAKE   "vm:n"  once any stop call was made, the next n status reads of the VM fail (a transient
+                        gcloud error: a token refresh, a network blip)
 """
 import fcntl
 import hashlib
@@ -117,6 +128,10 @@ if words[:3] == ["compute", "instances", "describe"]:
     fmt = opt("--format") or ""
     if "networkIP" in fmt:
         out(kv("FAKE_IP").get(n, VMS[n][2]) + "\n")
+    flake = kv("FAKE_DESCRIBE_FLAKE")
+    if n in flake and st.get("stop_seen") and st.setdefault("flaked", {}).get(n, 0) < int(flake[n]):
+        st["flaked"][n] = st["flaked"].get(n, 0) + 1
+        err("ERROR: (gcloud.compute.instances.describe) There was a problem refreshing your current auth tokens\n")
     s = st["vm"][n]
     pre = kv("FAKE_PREEMPT")
     if s == "RUNNING" and n in pre and n not in st["preempted"]:
@@ -142,6 +157,7 @@ if words[:3] == ["compute", "instances", "start"]:
 
 if words[:3] == ["compute", "instances", "stop"]:
     n = words[3]
+    st["stop_seen"] = True
     if os.environ.get("FAKE_NO_STOP") != n:
         st["vm"][n] = "TERMINATED"
     out("Stopping instance(s) %s (async).\n" % n)
@@ -154,9 +170,14 @@ if words[:2] == ["compute", "ssh"]:
     c = opt("--command") or ""
     if st["vm"].get(n) != "RUNNING" or os.environ.get("FAKE_SSH_DOWN") == n:
         err("ssh: connect to host 192.0.2.10 port 22: Connection refused\n", 255)
+    lost = kv("FAKE_LOST_AFTER")
+    if n in lost and lost[n] in c:
+        st["vm"][n] = "TERMINATED"   # reclaimed right after this call (which still answers)
     if c == "true":
         out("")
-    m = re.search(r"host_step\.sh (run|start|status|signal|pack)\s*(\S*)", c)
+    m = re.search(r"host_step\.sh (run|start|status|tail|signal|pack)\s*(\S*)", c)
+    if "sha256sum /tmp/da-kit-" in c and os.environ.get("FAKE_KIT_EXISTS") == n:
+        out("KIT_EXISTS\n", 3)
     if "sha256sum /tmp/da-kit-" in c:
         out("%s  /tmp/da-kit.tgz\n" % st["kit_sha"].get(n, "none"))
     if "shutdown -h" in c:
@@ -164,10 +185,19 @@ if words[:2] == ["compute", "ssh"]:
         out("safety-net-%s\n" % (mm.group(1) if mm else "?"))
     mm = re.search(r"safety_net\.sh arm (\d+)", c)
     if mm:
-        out("safety-net-%s\n" % mm.group(1))
+        if os.environ.get("FAKE_ARM_FAIL") == n:
+            out("sudo: a terminal is required to read the password\n", 1)
+        out("timer: Thu 2026-11-19 12:00:00 UTC 4h left - - da-safety-net.timer\nsafety-net-%s\n" % mm.group(1))
     gfail = os.environ.get("FAKE_GUEST_STOP_FAIL", "")
     if "guest_stop.sh" in c:
         st["guest_stops"] = st.get("guest_stops", 0) + 1
+        slow = os.environ.get("FAKE_SLOW_GUEST_STOP")
+        if slow:
+            save()
+            fcntl.flock(lockf, fcntl.LOCK_UN)
+            time.sleep(float(slow))
+            fcntl.flock(lockf, fcntl.LOCK_EX)
+            st = json.load(open(SF))
     left = "1" if gfail == "1" or (gfail == "once" and st.get("guest_stops", 0) < 2) else "0"
     if "guest_stop.sh" in c:
         out("crosvm_processes_after_stop: %s\n" % left)
@@ -188,6 +218,8 @@ if words[:2] == ["compute", "ssh"]:
         action, step = m.group(1), m.group(2)
         fail = os.environ.get("FAKE_FAIL_STEP") == step
         if action == "run":
+            if " receipts " in c:
+                sys.stdout.write("RECEIPTS %s\n" % os.environ.get("FAKE_RECEIPTS", "2"))
             hang = kv("FAKE_HANG_STEP").get(step)
             if hang:
                 save()
@@ -196,11 +228,25 @@ if words[:2] == ["compute", "ssh"]:
                 fcntl.flock(lockf, fcntl.LOCK_EX)
                 st = json.load(open(SF))
             out("=== %s end rc=%d (fake)\n" % (step, 1 if fail else 0), 1 if fail else 0)
+        key = "%s:%s" % (n, step)
         if action == "start":
+            st.setdefault("started", {})[key] = time.time()
+            if " receipts " in c:
+                st.setdefault("tails", {})[key] = "RECEIPTS %s\n" % os.environ.get("FAKE_RECEIPTS", "2")
             out("started %s pid 4242\n" % step)
         if action == "status":
+            # a detached step runs for its FAKE_HANG_STEP seconds from its start (or ends at once), then reports
+            if key in st.get("signalled", {}):
+                out("rc 143\n")
+            t0 = st.get("started", {}).get(key)
+            hang = kv("FAKE_HANG_STEP").get(step)
+            if t0 is not None and hang and time.time() - t0 < float(hang):
+                out("running\n")
             out("rc %d\n" % (1 if fail else 0))
+        if action == "tail":
+            out(st.get("tails", {}).get(key, "") + "=== %s end rc=%d (fake)\n" % (step, 1 if fail else 0))
         if action == "signal":
+            st.setdefault("signalled", {})[key] = c.split()[-1]
             out("signalled %s\n" % step)
         if action == "pack":
             sid = re.search(r"da-kit/([^/]+)/", c).group(1)
@@ -208,7 +254,11 @@ if words[:2] == ["compute", "ssh"]:
                 sid = "19700101T000000Z"
             buf = io.BytesIO()
             with tarfile.open(fileobj=buf, mode="w:gz") as t:
-                for name, data in (("out/session_id", (sid + "\n").encode()), ("out/FAKE.txt", b"fake\n")):
+                files = [("out/session_id", (sid + "\n").encode()), ("out/FAKE.txt", b"fake\n")]
+                for spec in filter(None, os.environ.get("FAKE_PACK_ADD", "").split(",")):
+                    arc, local = spec.split("=", 1)
+                    files.append((arc, open(local, "rb").read()))
+                for name, data in files:
                     ti = tarfile.TarInfo(name)
                     ti.size = len(data)
                     t.addfile(ti, io.BytesIO(data))
@@ -234,9 +284,18 @@ if words[:2] == ["compute", "scp"]:
     n = src[0].split(":", 1)[0]
     if st["vm"].get(n) != "RUNNING":
         err("scp: connection refused (fake)\n", 1)
+    slow = os.environ.get("FAKE_SLOW_FETCH")
+    if slow and any(x.endswith("/out.tgz") for x in src):
+        save()
+        fcntl.flock(lockf, fcntl.LOCK_UN)
+        time.sleep(float(slow))
+        fcntl.flock(lockf, fcntl.LOCK_EX)
+        st = json.load(open(SF))
     for f in src:
         path = f.split(":", 1)[1]
         if path.endswith("/out.tgz"):
+            if os.environ.get("FAKE_FETCH_FAIL") == n:
+                err("scp: connection closed (fake)\n", 1)
             p = os.path.join(D, "%s_out.tgz" % n)
             if not os.path.exists(p):
                 err("scp: no such file (fake)\n", 1)

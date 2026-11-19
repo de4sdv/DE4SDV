@@ -8,8 +8,11 @@
 # A measurement is Cristian's method over adb: N reads of the guest clock, each bracketed by this host's clock; the
 # read with the shortest round trip gives offset = guest - (host_before + host_after) / 2, bound = round trip / 2.
 # The set is `toybox date -s @<epoch>` in one guest shell (sntp -s leaves this image's clock where it was).
-# env: ADB, IVI_ADB (0.0.0.0:6522), CLOCK_READS (15), CLOCK_SET_AGAIN_S (0.02: a second set if the offset is larger)
+# `set` fails when the offset left after the sets is larger than CLOCK_MAX_OFFSET_S (R17): the window's times would
+# not hold. env: ADB, IVI_ADB (0.0.0.0:6522), CLOCK_READS (15), CLOCK_SET_AGAIN_S (0.02: a second set if the offset
+# is larger), CLOCK_MAX_OFFSET_S (0.1), ADB_TO_S (30, every adb call)
 set -uo pipefail
+export LC_ALL=C   # awk and printf write decimal points: clock.jsonl stays JSON under any remote locale (R17)
 ACTION=${1:?set|measure}; OUT=${2:?out dir}; LABEL=${3:-$ACTION}
 mkdir -p "$OUT"
 : "${AOSP_TOP:=$HOME/aosp}"
@@ -19,7 +22,7 @@ IVI_ADB=${IVI_ADB:-0.0.0.0:6522}; N=${CLOCK_READS:-15}; AGAIN=${CLOCK_SET_AGAIN_
 measure() {   # measure <label>: prints one JSON line and appends it to clock.jsonl
   local i h1 g h2 best="" line
   for i in $(seq 1 "$N"); do
-    h1=$(date +%s.%N); g=$("$ADB" -s "$IVI_ADB" shell date +%s.%N 2>/dev/null | tr -d '\r'); h2=$(date +%s.%N)
+    h1=$(date +%s.%N); g=$(adbt -s "$IVI_ADB" shell date +%s.%N 2>/dev/null | tr -d '\r'); h2=$(date +%s.%N)
     [ -n "$g" ] || continue
     best=$(awk -v h1="$h1" -v g="$g" -v h2="$h2" -v best="$best" 'BEGIN {
       rtt = h2 - h1; split(best, b, " ");
@@ -30,17 +33,23 @@ measure() {   # measure <label>: prints one JSON line and appends it to clock.js
   echo "$line" | tee -a "$OUT/clock.jsonl"
 }
 offset_of() { sed -E 's/.*"offset_s": (-?[0-9.]+).*/\1/'; }
+adbt() { timeout "${ADB_TO_S:-30}" "$ADB" "$@"; }
 
 case "$ACTION" in
   set)
     measure before_set > /dev/null || exit 1
-    "$ADB" -s "$IVI_ADB" shell "toybox date -s @$(date +%s.%N) > /dev/null" || exit 1
+    adbt -s "$IVI_ADB" shell "toybox date -s @$(date +%s.%N) > /dev/null" || exit 1
     L=$(measure after_set) || exit 1
     if awk -v o="$(echo "$L" | offset_of)" -v a="$AGAIN" 'BEGIN { exit !(o > a || -o > a) }'; then
       # one more set that takes the measured offset off (the adb latency of the first set)
       O=$(echo "$L" | offset_of)
-      "$ADB" -s "$IVI_ADB" shell "toybox date -s @$(awk -v t="$(date +%s.%N)" -v o="$O" 'BEGIN { printf "%.6f", t - o }') > /dev/null"
+      adbt -s "$IVI_ADB" shell "toybox date -s @$(awk -v t="$(date +%s.%N)" -v o="$O" 'BEGIN { printf "%.6f", t - o }') > /dev/null"
       measure after_second_set > /dev/null || exit 1
+    fi
+    LEFT=$(tail -1 "$OUT/clock.jsonl" | offset_of)
+    if awk -v o="$LEFT" -v m="${CLOCK_MAX_OFFSET_S:-0.1}" 'BEGIN { exit !(o > m || -o > m) }'; then
+      echo "FAIL the IVI clock is $LEFT s off after the set (limit ${CLOCK_MAX_OFFSET_S:-0.1} s): the set had no effect" >&2
+      tail -1 "$OUT/clock.jsonl"; exit 1
     fi
     ;;
   measure) measure "$LABEL" > /dev/null || exit 1 ;;
