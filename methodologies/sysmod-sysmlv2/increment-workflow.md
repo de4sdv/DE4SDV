@@ -523,6 +523,23 @@ items of phases 6 and 7 stay technology-independent, and an item is typed
 where it enters a software contract at a phase 8 port (rule 13; owner decision
 of 2026-11-04).
 
+Phase 8 has two kinds of realization package. The software realization
+(`…PhysicalSoftwareRealization`) holds the software, the platforms it runs on
+(operating systems, hypervisors, virtual machines, bench hosts) and its
+deployment. The E/E realization (`…PhysicalEERealization`) holds the vehicle's
+electrical/electronic topology: ECUs and controllers as network nodes, buses
+and links, the frames on them, connectors and I/O. Wherever this document or
+the kernel speaks of the physical/software realization, it means phase 8 with
+both kinds. In SAF, the physical structure of a system breaks down into
+hardware, software and mechanical elements within one physical domain; the two
+kinds divide phase 8's content within that domain, and both use the phase 8
+views of the list below. An ECU or controller that software runs on is
+declared in the E/E realization, and the software realization imports it to
+deploy software on it. Phase 8 packages merged before this rule keep their
+content. An increment with no E/E topology has only a software realization. No
+kind exists for mechanical elements until an increment has them inside its
+boundary (owner decision of 2026-11-19).
+
 ### Views per phase
 
 Each phase publishes one view per SAF question it answers, never two forms of
