@@ -152,3 +152,53 @@ def test_composition_refuses_a_frames_csv_that_does_not_match_the_video(run_dir:
                        capture_output=True, text=True, timeout=120)
     assert r.returncode != 0
     assert "40 frames" in r.stderr
+
+
+def test_composition_lists_the_held_spans_and_never_calls_a_boundary_gap_free(run_dir: Path) -> None:
+    """Two segments with 1.0 s between segment 1's last frame and segment 2's first frame: the manifest lists that
+    span as a segment boundary (its output frames, its length, the capture's bounds), says the output is not
+    gap-free, and the IVI clock line under the display says the display was not recorded over those frames."""
+    cap = run_dir / "cap"
+    flat_video(cap / "seg_1.mp4", [display_level(j) for j in range(10)], 108, 60, 10)   # 0.0 .. 0.9 s
+    flat_video(cap / "seg_2.mp4", [display_level(10 + j) for j in range(10)], 108, 60, 10)
+    g1 = T0 + DISP0 + OFFSET
+    g2 = g1 + 0.9 + 1.0
+    (cap / "capture.json").write_text(json.dumps({
+        "segments": [{"segment": 1, "file": "seg_1.mp4", "guest_before_s": g1 - 0.02, "guest_after_s": g1,
+                      "guest_end_s": g1 + 1.0},
+                     {"segment": 2, "file": "seg_2.mp4", "guest_before_s": g2 - 0.02, "guest_after_s": g2,
+                      "guest_end_s": g2 + 1.0}],
+        "boundaries": [{"after_segment": 1, "before_segment": 2, "unrecorded_min_s": 0.88,
+                        "unrecorded_max_s": 1.12}],
+        "clock": [{"label": "capture_start", "offset_s": OFFSET, "bound_s": 0.004}]}))
+    out = run_dir / "video"
+    r = subprocess.run([sys.executable, str(COMPOSE), "--chase", str(run_dir / "chase_view.mp4"),
+                        "--display-capture", str(cap), "--out", str(out), "--lossless", "--duration-s", "1.6",
+                        "--start-unix", repr(T0 + START)], capture_output=True, text=True, timeout=600)
+    assert r.returncode == 0, r.stdout + r.stderr
+    man = json.loads((out / "manifest.json").read_text())
+    d = man["display"]
+    assert d["gap_free"] is False
+    (b,) = [h for h in d["held_spans"] if h["kind"] == "segment boundary"]
+    assert (b["after_segment"], b["before_segment"]) == (1, 2)
+    assert b["held_s"] == pytest.approx(1.0, abs=1e-6)
+    assert (b["capture_unrecorded_min_s"], b["capture_unrecorded_max_s"]) == (0.88, 1.12)
+    # output frame k shows time START + k/20 after T0; segment 1's last frame is at DISP0 + 0.9, segment 2's first
+    # at DISP0 + 1.9: from frame 18 on, segment 1's last frame is held to the output's end (1.6 s: 32 or 33 frames)
+    assert man["output"]["frames"] in (32, 33)
+    assert (b["first_output_frame"], b["last_output_frame"]) == (18, man["output"]["frames"] - 1)
+    assert "segment boundary" in r.stdout
+    cmds = (out / "work" / "clocks.cmd").read_text()
+    assert "not recorded" in cmds
+
+
+def test_composition_of_one_segment_makes_no_gap_free_claim(run_dir: Path) -> None:
+    out = run_dir / "video"
+    r = subprocess.run([sys.executable, str(COMPOSE), "--chase", str(run_dir / "chase_view.mp4"),
+                        "--display-capture", str(run_dir / "cap"), "--out", str(out), "--lossless",
+                        "--duration-s", "1.0", "--start-unix", repr(T0 + START)], capture_output=True, text=True,
+                       timeout=600)
+    assert r.returncode == 0, r.stdout + r.stderr
+    d = json.loads((out / "manifest.json").read_text())["display"]
+    assert d["gap_free"] is None and "static display" in d["gap_free_rule"]
+    assert not [h for h in d["held_spans"] if h["kind"] == "segment boundary"]

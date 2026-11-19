@@ -13,7 +13,12 @@ Knobs that let a test order the events itself, with no reliance on the host's sp
                       long pull of a large segment during which a stop request comes
   FAKE_HOLD_POLL      "<n>:<path>": a poll (kill -0) of the n-th recording answers only once <path> exists (at most
                       60 s), as a stop request that comes just when the recording reaches its time limit
+  FAKE_HOLD_INT       "<n>:<path>": the kill -INT of the n-th recording is answered only once <path> exists (at most
+                      60 s), as a recording that reaches its time limit between the alive poll and the signal
   FAKE_CALL_DELAY_S   every call takes this much longer (a loaded host)
+  FAKE_PULL_DELAY_S   every pull of a segment takes this much longer (a large segment over a slow link)
+  FAKE_PULL_FAIL      "<n>": the pull of seg_<n>.mp4 fails
+  FAKE_DF_AVAIL_KB    the free space df -k reports for /data (default 4000000)
 """
 import fcntl
 import json
@@ -42,6 +47,9 @@ def hold(knob, matches):
 
 hold("FAKE_HOLD_PULL", lambda n: "pull" in argv and any(a.endswith("/seg_%s.mp4" % n) for a in argv))
 hold("FAKE_HOLD_POLL", lambda n: any(re.search(r"kill -0 %d\b" % (3999 + int(n)), a) for a in argv))
+hold("FAKE_HOLD_INT", lambda n: any(re.search(r"kill -INT %d\b" % (3999 + int(n)), a) for a in argv))
+if "pull" in argv and argv[-2].endswith(".mp4"):
+    time.sleep(float(os.environ.get("FAKE_PULL_DELAY_S", "0")))
 lockf = open(SF + ".lock", "a")
 fcntl.flock(lockf, fcntl.LOCK_EX)
 st = json.load(open(SF)) if os.path.exists(SF) else {"offset": float(os.environ.get("FAKE_GUEST_OFFSET", "0.25")),
@@ -57,6 +65,14 @@ def done(s="", rc=0):
 
 def guest_now():
     return time.time() + st["offset"]
+
+
+def alive(r):
+    if not r or r["ended"]:
+        return False
+    if os.environ.get("FAKE_LIMIT_DIR"):
+        return not os.path.exists(os.path.join(os.environ["FAKE_LIMIT_DIR"], "limit_%d" % r["n"]))
+    return time.time() - r["start"] < r["limit"]
 
 
 if argv[:1] == ["-s"]:
@@ -79,18 +95,20 @@ if argv[:1] == ["shell"]:
         done("%.9f\r\npid=%d\r\n%.9f\r\n" % (before, pid, guest_now()))
     m = re.search(r"kill -0 (\d+)", c)
     if m:
-        r = st["recs"].get(m.group(1))
-        if os.environ.get("FAKE_LIMIT_DIR"):
-            at_limit = r and os.path.exists(os.path.join(os.environ["FAKE_LIMIT_DIR"], "limit_%d" % r["n"]))
-        else:
-            at_limit = r and time.time() - r["start"] >= r["limit"]
-        alive = r and not r["ended"] and not at_limit
-        done("alive\r\n" if alive else "")
+        done("alive\r\n" if alive(st["recs"].get(m.group(1))) else "")
     m = re.search(r"kill -INT (\d+)", c)
+    if m:   # a guest shell `kill -INT <pid> 2>/dev/null && echo sent`: the signal reaches a live recording only
+        r = st["recs"][m.group(1)]
+        live = alive(r)
+        r["ended"] = True
+        r["int"] = live
+        done("sent\r\n" if live and "echo sent" in c else "")
+    m = re.search(r"stat -c %s (\S+\.mp4)", c)
     if m:
-        st["recs"][m.group(1)]["ended"] = True
-        st["recs"][m.group(1)]["int"] = True
-        done("")
+        done("%d\r\n" % os.path.getsize(os.environ["FAKE_SEG_MP4"]))
+    if re.search(r"\bdf -k /data\b", c):
+        done("Filesystem     1K-blocks    Used Available Use%% Mounted on\r\n/dev/block/dm-9 8000000 %d %s 1%% /data\r\n"
+             % (100, os.environ.get("FAKE_DF_AVAIL_KB", "4000000")))
     m = re.search(r"toybox date -s @([0-9.]+)", c)
     if m:
         st["offset"] = float(m.group(1)) - time.time()
@@ -106,6 +124,9 @@ if argv[:3] == ["exec-out", "screencap", "-d"]:
 if argv[:1] == ["pull"]:
     src, dst = argv[1], argv[2]
     if src.endswith(".mp4"):
+        if os.environ.get("FAKE_PULL_FAIL") and src.endswith("/seg_%s.mp4" % os.environ["FAKE_PULL_FAIL"]):
+            sys.stderr.write("adb: error: failed to copy '%s': connection reset\n" % src)
+            done("", 1)
         shutil.copy(os.environ["FAKE_SEG_MP4"], dst)
         done("1 file pulled\n")
     if os.environ.get("FAKE_APP_RECORD") and src.endswith(os.path.basename(os.environ["FAKE_APP_RECORD"])):
