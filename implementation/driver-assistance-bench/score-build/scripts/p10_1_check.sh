@@ -71,6 +71,9 @@ OUT=${1:?usage: p10_1_check.sh <out>}
 : "${DA_P10_1_CUT_STOP_S:=100}"
 mkdir -p "$OUT"
 exec > >(tee -a "$OUT/p10_1_check.log") 2>&1
+# the tee gets the step's group signal with this script: a write to it before the cut handler runs must fail, not
+# end the script by SIGPIPE (a handler, not an ignore, so no child inherits it)
+trap : PIPE
 VERDICTS=$OUT/p10_1_verdicts.txt
 : > "$VERDICTS"
 verdict() {   # verdict PASS|FAIL|NOT_RUN <check> <detail>

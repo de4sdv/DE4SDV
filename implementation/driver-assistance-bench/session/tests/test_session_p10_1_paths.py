@@ -60,8 +60,10 @@ def test_v1_a_term_during_the_check_stops_its_score_side_from_the_session_too(tm
 
 
 def test_v1_the_cap_during_the_check_stops_its_score_side_from_the_session_too(tmp_path: Path) -> None:
-    r = run(tmp_path, "p10-1", "--cap-eur", "2", SCORE_EUR_H="3600", FAKE_HANG_STEP="p10_1:30")
+    # EUR 10 at 3600 EUR/h: the cap comes about 10 s after the S-CORE host's start, while the check runs
+    r = run(tmp_path, "p10-1", "--cap-eur", "10", SCORE_EUR_H="3600", FAKE_HANG_STEP="p10_1:90")
     assert r.rc == 10, r.log
+    assert r.ssh(L4, "host_step.sh start p10_1"), r.log
     _score_stop_of_the_check(r)
     assert_invariants(r)
 
@@ -144,5 +146,5 @@ def test_v2_v7_the_readme_lists_exit_12_and_the_best_p10_1_outcome() -> None:
     codes = re.search(r"Exit codes: (.*?)\n\n", text, re.S).group(1)
     assert "12 a p10-1 check FAILed" in " ".join(codes.split()), codes
     one = " ".join(text.split())
-    assert "the best a p10-1 session can read" in one
+    assert "The best a p10-1 session can read is not a pass." in one
     assert "2 of 8 checks NOT RUN: C5_gatewayd_receives_from_asil_b_process, C8_candidate_on_a_replayed_clip" in one
