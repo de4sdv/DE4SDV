@@ -1978,3 +1978,46 @@ def test_p10_2_records_each_runs_rerun_record_kept_on_the_score_host(tmp_path: P
     assert rec["not_fetched_from_hosts"]["score"] == [
         {"path": "out/score_run1/score_side/vision_pilot/visionpilot.rrd", "bytes": 4729613610}]
     assert "kept on the S-CORE host, not fetched: run1 4729613610 B sha256 " + "b" * 64 in r.log
+
+
+# ------------------------------------------- F4 of the first recorded p10-2: a chase recorder's failure is recorded
+# In 20261119T174606Z the run's recorder ended rc 1 ("ego or camera deleted by another client", 0 frames), the
+# session took the end path and skipped receipts_run1 and the whole of run 2, although the window's capture and the
+# app's records were there. A recorder that ended with its own rc is the window's result: recorded per run
+# (session.json chase_view: complete, rc, the recorder summary's end), named in the p10-2 report, and the session
+# goes on with the window's capture stop, its receipts and the next run.
+REC_END = "ego or camera deleted by another client"
+
+
+def test_f4_a_chase_recorder_that_ends_rc_1_is_recorded_and_the_session_goes_on(tmp_path: Path) -> None:
+    summary = tmp_path / "summary.json"
+    summary.write_text(json.dumps({"ego_id": 152, "written": 0, "end": REC_END, "ffmpeg_rc": 0}, indent=1))
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_STEP_RC="rec_run1:1",
+            FAKE_PACK_ADD=f"out/rec_run1/summary.json={summary}")
+    assert r.rc == 0, r.log
+    assert r.sequence() == p10_2_seq(), r.sequence()
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["exit_code"] == 0 and rec["failed_step"] is None, (rec["exit_code"], rec["failed_step"])
+    assert rec["chase_view"] == {"run1": {"complete": False, "rc": 1, "end": REC_END},
+                                 "run2": {"complete": True, "rc": 0, "end": None}}, rec["chase_view"]
+    assert rec["app_record_receipts"] == {"run1": 2, "run2": 2}, rec["app_record_receipts"]
+    assert rec["p10_2"]["chase_view_complete"] is False, rec["p10_2"]
+    assert "CHASE VIEW NOT COMPLETE IN RUN run1: the recorder ended rc 1" in r.log
+    assert f"p10-2 chase view NOT complete: run1 (recorder rc 1: {REC_END})" in r.log
+
+
+def test_f4_a_good_p10_2_reports_every_chase_view_complete(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-2", "--without-guest-host")
+    assert r.rc == 0, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["chase_view"] == {"run1": {"complete": True, "rc": 0, "end": None},
+                                 "run2": {"complete": True, "rc": 0, "end": None}}, rec["chase_view"]
+    assert rec["p10_2"]["chase_view_complete"] is True and "p10-2 chase view complete: run1, run2" in r.log
+
+
+def test_f4_a_chase_recorder_still_running_after_its_bound_still_ends_the_session(tmp_path: Path) -> None:
+    # guard: a recorder that never ends would attach to the next run's hero; only its own end is a result
+    r = run(tmp_path, "p10-2", "--without-guest-host", FAKE_HANG_STEP="rec_run1:30", DA_T_T_REC_END="1")
+    assert r.rc == 5, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["failed_step"] == "rec_run1" and not r.ssh(G4, "start world_run2")

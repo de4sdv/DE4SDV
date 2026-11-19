@@ -118,6 +118,14 @@ Each run's facts go to `session.json` `score_runs.<run>` (`calib_steer`, `run1`,
     the longest run's 23,645,000,000 B are also needed on the stage's filesystem.
   - A short disk ends the session there: exit 5, `failed_step` `disk_check`, "DISK SPACE SHORT" in `session.log`.
     `session.json` `score_disk_check` holds the rate, the planned seconds, the need and the host's answer.
+- **The chase view.** A chase recorder that ends with its own exit status, 0 or not, is a result of its run's
+  window, never a failed step. `session.json` `chase_view.<run>` holds `complete` (rc 0), `rc` and the end its
+  `summary.json` names, read from the fetched files. The `p10-2` report line says "chase view complete" or "chase
+  view NOT complete" with each run's rc and end, and `p10_2.chase_view_complete` says the same. The session goes on
+  with the window's capture stop, its receipts and the next run. Only a recorder still running at `T_REC_END`
+  (it would attach to the next run's hero) or a lost host ends the session. Why: in 20261119T174606Z the run's
+  recorder ended rc 1 ("ego or camera deleted by another client", no frame), and the session skipped
+  `receipts_run1` and the whole of run 2. The recorder's own fix is another lane's.
 
 The order of `p10-3` is the one the guest host's operator gave on 2026-11-18 (`guest-prep-20261118`): the VXLAN up,
 the offer, the multicast route, then the unit gate, then the IVI clock just before the window. Before the S-CORE

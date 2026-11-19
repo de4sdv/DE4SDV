@@ -229,6 +229,7 @@ WORLD_UP=""; STEP_RC=""; P10_1_RC=""; ALLOW_RC=""   # the detached world sides n
 # the window whose display capture is open (from window_open's capture start to window_close's end of it), the tries
 # of its stop at the session's end, and each capture's end: <w>:<end>:<rc>:<closed by>:<guest files kept 0|1> (Q1, Q2)
 CAP_OPEN=""; CAP_TRY=0; CAPTURES=""
+CHASE=""   # each recorded run's chase recorder end: <run>:<rc> (F4)
 
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
 say() { printf '%s\n' "$*" >&3 2>/dev/null || true; }   # a dry run's command line on stdout
@@ -679,6 +680,25 @@ print("; ".join(parts) or "none recorded")
 PY
 )
   log "p10-2 candidate Rerun records (rrd_on = true), kept on the S-CORE host, not fetched: $rrd"
+  # each run's chase view: complete only when its recorder ended rc 0; the summary's end from the fetched files (F4)
+  local cgood=() cbad=() crc cend
+  for n in $(seq 1 "$P10_2_RUNS"); do
+    w=run$n; x=$(tr ' ' '\n' <<< "$CHASE" | grep "^$w:" | tail -1)
+    [ -n "$x" ] || { cbad+=("$w (no end of its recorder recorded: the session ended before it)"); continue; }
+    crc=${x#*:}
+    if [ "$crc" = 0 ]; then cgood+=("$w"); continue; fi
+    cend=$(python3 -c 'import json, sys
+try:
+    print(json.load(open(sys.argv[1], encoding="utf-8")).get("end") or "")
+except (OSError, ValueError, AttributeError):
+    print("")' "$IN/sim/out/rec_$w/summary.json")
+    cbad+=("$w (recorder rc $crc: ${cend:-no summary fetched})")
+  done
+  if [ ${#cbad[@]} = 0 ]; then
+    CHASE_COMPLETE=1; log "p10-2 chase view complete: $(printf '%s, ' "${cgood[@]}" | sed 's/, $//')"
+  else
+    CHASE_COMPLETE=0; log "p10-2 chase view NOT complete: $(printf '%s; ' "${cbad[@]}" | sed 's/; $//')"
+  fi
   if [[ " ${ROLES[*]} " != *" guest "* ]]; then
     P10_2_COMPLETE=none; P10_2_REASON="no display capture: --without-guest-host"; log "p10-2: $P10_2_REASON"; return 0
   fi
@@ -752,6 +772,7 @@ write_record() {
   CAMCAL_SOURCE="$CAMCAL_SOURCE" CAMCAL_REASON="$CAMCAL_REASON" CAMCAL_XCHECK="$CAMCAL_XCHECK" \
   CAMCAL_PRECHECK="$CAMCAL_PRECHECK" DISK_RC="${DISK_RC:-}" DISK_LINE="${DISK_LINE:-}" NEED_DISK="${NEED_DISK:-}" \
   NEED_DISK_STAGE="${NEED_DISK_STAGE:-}" RRD_RATE_BPS="$RRD_RATE_BPS" ROLES_ALL="${STARTED[*]}" \
+  CHASE="$CHASE" CHASE_COMPLETE="${CHASE_COMPLETE:-}" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
@@ -790,6 +811,14 @@ for role in e["ROLES_ALL"].split():
     except OSError:
         continue
     excluded[role] = [{"path": r[0], "bytes": int(r[1]) if r[1:] and r[1].isdigit() else None} for r in rows if r[0]]
+chase = {}
+for x in e["CHASE"].split():
+    run, rc = x.split(":", 1)
+    try:
+        end = json.load(open(os.path.join(e["IN"], "sim", "out", "rec_" + run, "summary.json"))).get("end")
+    except (OSError, ValueError, AttributeError):
+        end = None
+    chase[run] = {"complete": rc == "0", "rc": int(rc) if rc.isdigit() else None, "end": end}
 disk = None
 if e["KIND"] == "p10-2" and e["NEED_DISK"]:
     words = e["DISK_LINE"].split()[1:]
@@ -824,6 +853,7 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "p10_1": json.load(open(p10_1)) if os.path.exists(p10_1) else None,
            "score_runs": score_runs if e["KIND"] == "p10-2" else None,
            "score_disk_check": disk,
+           "chase_view": chase,
            "not_fetched_from_hosts": excluded,
            "app_record_receipts": {w: (int(n) if n.isdigit() else None)
                                    for w, n in (x.split("=", 1) for x in e["RECEIPTS"].split() if "=" in x)},
@@ -838,7 +868,8 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
                                    "closed_by": by.replace("_", " "), "guest_files_kept": k == "1"}
                                for w, end, rc, by, k in (x.split(":", 4) for x in e["CAPTURES"].split())},
            "p10_2": {"display_recording_complete": {"1": True, "0": False}.get(e["P10_2_COMPLETE"]),
-                     "reason": e["P10_2_REASON"], "conditional_on_permissive_ivi": e["PERM"] == "1", **camcal}
+                     "reason": e["P10_2_REASON"], "conditional_on_permissive_ivi": e["PERM"] == "1",
+                     "chase_view_complete": {"1": True, "0": False}.get(e["CHASE_COMPLETE"]), **camcal}
                     if e["KIND"] == "p10-2" else None},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
@@ -1246,7 +1277,19 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another
   rstep score "score_stop_$w" "$T_SCORE_START" bash "$ENTRY_SCORE_STOP" "$(od "score_$w")"; SCORE_UP=""
   rtouch sim "$o/release" || log "WARNING no release file for $w: the world side ends at its own hold limit"
   rwait sim "world_$w" "$T_RELEASE" || { abort 5 "the world side of $w did not end well"; }
-  if [ "$rec" = 1 ]; then rwait sim "rec_$w" "$T_REC_END" || { abort 5 "the recorder of $w did not end well"; }; fi
+  # the chase recorder's own end, rc 0 or not, is a result of the run's window (F4 of 20261119T174606Z: its rc 1 ended
+  # the session and skipped receipts_run1 and run 2): recorded per run (session.json chase_view), the window's capture
+  # stop, receipts and the next run go on. Only a recorder still running at its bound (it would attach to the next
+  # run's hero) or a lost host ends the session
+  if [ "$rec" = 1 ]; then
+    if rwait sim "rec_$w" "$T_REC_END"; then CHASE="$CHASE $w:0"
+    elif [[ "$ROUT" =~ ^rc\ ([0-9]+)$ ]]; then
+      CHASE="$CHASE $w:${BASH_REMATCH[1]}"; STEP_FAIL=""   # rwait named the recorder: a recorded result, not a failed step
+      log "CHASE VIEW NOT COMPLETE IN RUN $w: the recorder ended rc ${BASH_REMATCH[1]} (its summary's end goes to session.json chase_view); the window's capture stop, its receipts and the next run go on"
+    else
+      abort 5 "the recorder of $w did not end well (${ROUT:-no answer})"
+    fi
+  fi
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then window_close "$w"; fi
   # a stop that had to kill, with another run to come: this run is complete and recorded, but the next one would
   # start from a suspect state while every VM bills; the session ends here (the lead's decision, S7)
