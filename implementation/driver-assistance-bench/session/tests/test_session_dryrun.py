@@ -1001,6 +1001,17 @@ def test_a_session_id_of_an_archived_session_is_refused(tmp_path: Path) -> None:
     assert r.rc == 2 and "is taken by" in r.stdout and not r.calls
 
 
+@pytest.mark.parametrize("sid", ["x;touch PWN", "*", "T*", "../escape", ".hidden", "-T", "a b", "T$(id)"])
+def test_a_session_id_outside_its_alphabet_is_refused(tmp_path: Path, sid: str) -> None:
+    # S6: the id goes unquoted into remote commands (~/da-kit/<id>, mkdir, tar -C, the safety net's unit)
+    args = [a if a != "T" else sid for a in args_for(tmp_path, "p10-1")]
+    p = subprocess.run(args, env=env_for(tmp_path), capture_output=True, text=True, timeout=60)
+    assert p.returncode == 2 and "refused: session id" in p.stdout, p.stdout + p.stderr
+    assert not (tmp_path / "fake" / "calls.log").exists()
+    assert not (tmp_path / "ev").exists() or not any((tmp_path / "ev").iterdir())
+    assert not (tmp_path / "escape").exists() and not (tmp_path / "incoming_..").exists()
+
+
 def test_a_session_id_with_a_kit_on_the_host_is_refused(tmp_path: Path) -> None:
     r = run(tmp_path, "p10-1", FAKE_KIT_EXISTS=L4)
     assert r.rc == 4 and "exists on de4sdv-probe-da8-carla" in r.log

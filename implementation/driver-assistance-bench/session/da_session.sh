@@ -10,7 +10,7 @@
 #   --owner-ok-guest-host  required for p10-3 and p10-2: the owner's OK to start de4sdv-aaos-build this session
 #   --without-guest-host   p10-2 on the simulator host and the S-CORE host only (no display capture)
 #   --cap-eur <EUR>        cost cap of this session (default per kind in hosts.env)
-#   --session-id <id>      default: UTC time stamp
+#   --session-id <id>      default: UTC time stamp; letters, digits, '.', '_', '-', first a letter or digit
 #   --evidence-root <dir>  default: ~/.hermes/outputs/inc-driving-002/phase10/sessions
 #   --bench-tree <dir>     the repository whose bench folder is uploaded (default: this script's repository)
 #   --kit-from-worktree    upload the bench folder as it is on disk (default: as committed at HEAD)
@@ -128,6 +128,9 @@ else
 fi
 
 SID=${SID:-$(date -u +%Y%m%dT%H%M%SZ)}
+# the id goes unquoted into remote paths and commands (~/da-kit/<id>, mkdir, tar -C, the safety net's unit): letters,
+# digits, '.', '_' and '-' only, never first a '.' or a '-' (S6)
+[[ "$SID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "refused: session id '$SID' (allowed: ^[A-Za-z0-9][A-Za-z0-9._-]*\$)"; exit 2; }
 IN=$EVID/incoming_$SID
 [ -e "$IN" ] && { echo "refused: $IN exists (one folder per session)"; exit 2; }
 # an archived session keeps its id in its folder's name (rule 15: incoming_<id> renamed to session<N>_..._<id>) or
