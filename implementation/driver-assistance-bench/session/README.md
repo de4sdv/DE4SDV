@@ -209,7 +209,7 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
   /bin/bash $S/da_session.sh --kind p10-1 --session-id "$SID"
 # follow:  tail -f ~/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID/session.log
-# end it early, if ever: systemctl --user kill --kill-whom=main -s TERM da-session-$SID
+# end it early, if ever: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (systemd 249 here: --kill-who)
 # done when: systemctl --user is-active da-session-$SID prints "inactive"; then read session.json:
 #   exit_code (11 = a VM is left running: stop it by hand at once), p10_1.line, p10_1.passed
 ```

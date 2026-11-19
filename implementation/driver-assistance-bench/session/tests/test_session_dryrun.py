@@ -1269,6 +1269,10 @@ def test_the_readme_starts_sessions_only_from_a_clean_environment_in_a_unit_that
     text = (HERE.parent / "README.md").read_text()
     assert "never `kill -9` a session" in text.lower()
     assert "systemctl list-unit-files | grep -i -E 'cvd|cuttlefish'" in text     # S1's assumption, checked once
+    # T3 of the closure review of f67241db: the lead host's systemd 249 refuses --kill-whom; p10-1's block says
+    # --kill-who=main
+    p10_1 = text.split("### `p10-1`", 1)[1].split("\n### ", 1)[0]
+    assert "systemctl --user kill --kill-who=main -s TERM da-session-$SID" in p10_1 and "--kill-whom" not in p10_1
 
 
 # ------------------------------------------------- the review's surviving mutants Y12-Y16 (S12; Y02 above, with S1)
