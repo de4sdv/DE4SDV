@@ -358,8 +358,8 @@ def test_increment_declares_the_phase_zero_shape():
 
 def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
     increment = _doc(f"part <'{IDENTITY}'> eeArchitectureIncrement : EEArchitectureIncrement")
-    for phrase in ("Owner-requested increment on the electrical/electronic (E/E) architecture of the product line: "
-                   "the vehicle network between the central computer and the actuators.",
+    for phrase in ("Owner-requested increment on a first part of the electrical/electronic (E/E) architecture of the "
+                   "product line: the vehicle network between the central computer and an actuation ECU on CAN.",
                    *PHASES_BEFORE_BASELINE,
                    "This framing changes neither the platform stack, the governed product-line scope nor another "
                    "increment.",
@@ -739,6 +739,9 @@ def test_no_text_of_the_framing_reports_a_run_an_approval_or_an_admission():
     assert "(../guides/ee-architecture-increment.md)" in texts["glossary row E/E architecture |"]
     assert "In a zonal E/E architecture the vehicle network joins" in texts["glossary row E/E architecture |"], \
         "the row describes a zonal architecture as one kind, not as every E/E architecture"
+    assert ("the computers, ECUs, sensors and actuators of a vehicle, the networks that join them and the power "
+            "distribution that supplies them") in texts["glossary row E/E architecture |"], \
+        "the row names the sensors, actuators and power distribution of an E/E architecture"
     assert "(../../textual-notation-of-model/packages/features/ee/upstream.md#zone-controller-route)" in \
         texts["glossary row Zone controller |"]
 
@@ -754,7 +757,8 @@ def test_the_identity_is_declared_once_and_its_subject_is_registered():
     assert IDENTITY.split("-")[1] in check_naming.REGISTERED_SUBJECTS
     naming_row = _row(NAMING, "`EE` |")
     for phrase in ("| E/E architecture |",
-                   "The vehicle network between the central computer and the actuators",
+                   "The computers, ECUs, sensors and actuators of a vehicle, the networks that join them and the "
+                   "power distribution that supplies them;",
                    "Registration allocates identities, not product-line admission or production readiness."):
         assert phrase in naming_row, phrase
     assert check_naming.check_identifier_tokens_in_text(_raw(), display_path=MODEL.name, suffix=".sysml") == []
