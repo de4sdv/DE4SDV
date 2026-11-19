@@ -12,14 +12,14 @@ asks whether the path of a driving command keeps, across that network, the
 properties that the model asks of the command paths of earlier increments. It
 judges two routes: through a zone controller, and over a direct link.
 
-**Status: Phase 0 framing proposal.** No implementation, run, result,
-product-line admission or compliance is claimed.
+**Status: Phase 0 framing and Phase 1 concerns, proposal.** No implementation,
+run, result, product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/ee/ee_architecture_framing.sysml):
-  `INC-EE-001`, its engineering question, charter, scope, assumptions and
-  open gaps.
+  `INC-EE-001`, its engineering question, charter, scope, assumptions,
+  open gaps and Phase 1 concerns.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/ee/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/ee/upstream.md):
@@ -90,6 +90,58 @@ most ten requirements. Phase 5 derives those requirements from the needs of
 Phase 4 and from REQ-DRIVING-028, REQ-DRIVING-039 and REQ-MW-006. A time limit
 of a requirement counts on the clock of the virtual vehicle, and a verdict on
 it is no timing claim for a vehicle network.
+
+## Concerns (Phase 1)
+
+A verdict is only useful if it answers the questions of the people who rely on
+it. Phase 1 names those questions: one concern per question of the in-scope
+items, held by the parties whose interest it states. The vehicle occupants and
+the road users hold their own concern beside the engineering roles. Each
+concern is typed by the SAF concern that asks its question, and its text names
+the view of a later phase that answers it. The framing viewpoint frames all
+six until those views exist.
+
+- **The driving command, operational part:** `eeVehicleCommandConcern`. The
+  vehicle acts on the driving command that its central computer gives,
+  whichever route the command takes, and on no command that a fault of the
+  network has made invalid. No safety, timing or performance claim for a
+  vehicle network follows from it. Operational capability; vehicle occupants
+  and road users. Answered by the operational story of Phase 2.
+- **The topology:** `eeTopologyStructureConcern`. Which elements make up the
+  one topology, and the role of each: the network side of the central
+  computer, the backbone, the two zone controllers as gateways to CAN, the CAN
+  bus of each zone, the direct link and the actuation ECU. The lifecycle
+  decision is whether the product line admits this topology as its reference
+  vehicle network. Physical structure; system architects and product-line
+  engineers. Answered by the physical structure definition of Phase 8.
+- **The command on the network:** `eeCommandItemConcern`. Which exchange item
+  carries the command on the backbone, through a zone controller and on CAN,
+  and whether each keeps the parts of the command by which the actuation
+  detects its loss, delay, repetition or corruption. The form of the command
+  is the one that the driver-assistance increment fixes at its baseline.
+  Physical-logical item mapping; systems engineers and safety experts.
+  Answered by the view of the claimed path in Phase 8.
+- **The two routes:** `eeCommandRouteExchangeConcern`. Which elements exchange
+  the command on each route, through a zone controller or over the direct
+  link, and the boundary interface by which it enters the network from the
+  Eclipse S-CORE path. Neither route is taken as given. Physical internal
+  exchange; system architects and systems engineers. Answered by the view of
+  the claimed path in Phase 8.
+- **Faults of the network:** `eeNetworkFaultResponseConcern`. The sequence
+  from each fault on the route, a link that goes down or a command lost,
+  delayed, repeated or corrupted, to its detection at the actuation and the
+  response there, independent of the elements that realize it. System process;
+  safety experts and systems engineers. Answered by the system process of
+  Phase 6.
+- **Verdicts:** `eeRouteVerdictConcern`. A pass or a fail for each requirement
+  on each route, bound to the route, the topology, the configuration and the
+  revision that ran. A verdict holds for the software testbed only and is no
+  timing claim for a vehicle network. Argumentation assurance; product-line
+  engineers and verification engineers. Answered in Phase 10.
+
+The Phase 1 gates check that each concern has native stakeholders and a frame,
+and that one concern is not the boundary concern. They do not judge whether
+the stakeholder, risk and viewpoint coverage is adequate; review does.
 
 ## What the framing already records as open
 
@@ -194,12 +246,14 @@ containment criteria and any freedom-from-interference claim stay open.
 ## Next obligation and execution limits
 
 Use the Method Check of the reviewed pull request to select the next
-obligation, not the phase number alone. The framing's boundary concern does
-not open Phase 1. The next model obligation is **Phase 1 concern framing**: at
-least one concern of the engineering scope, held by the parties whose interest
-it states. The later phases of this increment depend on the baseline of the
-driver-assistance increment, whose driving command it carries, and start on a
-further decision of the owner.
+obligation, not the phase number alone. The next model obligation is **Phase
+2**, the operational context: exactly one context holding the vehicle network,
+with a story whose use cases bind it and the context actors. Phase 2 draws the
+boundary that Phase 0 states. The owner decided on 2026-11-18 to carry out
+Phases 1 to 3 of this increment before the baseline of the driver-assistance
+increment, whose driving command it carries. Phase 4 onward and the testbed
+with its readiness probe wait for that baseline and for a further decision of
+the owner.
 
 The testbed is chosen after a readiness probe. Before a paid cloud run,
 refresh the regional price, the capacity and the available credit, obtain the
