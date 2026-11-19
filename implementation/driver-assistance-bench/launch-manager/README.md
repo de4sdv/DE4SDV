@@ -97,7 +97,7 @@ inference) under its ready timeout of 420 s, not under the supervision. The adap
 has subscribed.
 
 Open (run 20261119T134840Z): the first pass runs no network. Upstream's pipeline returns no result for the first frame
-(`VisionPilot/modules/models/src/inference.cpp:150-158` at 014e0e7a: a two-frame buffer), so the module reports
+(`VisionPilot/modules/models/src/inference.cpp:152-159` at 014e0e7a: a two-frame buffer), so the module reports
 running after a 6 ms pass, and the first inference (723 ms on the L4's CUDA provider) falls into the supervision and
 trips it. Fixing it needs a bundle rebuild (`score-interface` patch 0002); until then p10-1's C2 and C4 cannot pass.
 

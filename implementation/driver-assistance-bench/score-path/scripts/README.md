@@ -101,7 +101,7 @@ that file verbatim, so the record shows the mode.
   `score/mw/log/detail/registry_aware_recorder_factory.cpp:129-132`,
   `score/mw/log/configuration/configuration.h:113-116`):
   the line p10-1's C3 reads is a warning and shows (`Alive Supervision ( vision_pilot ) switched to EXPIRED , ...`,
-  Lifecycle v0.10.0 `alive_monitor/details/supervision/Alive.cpp:556-566`), while its info and debug lines do not.
+  Lifecycle v0.10.0 `alive_monitor/details/supervision/Alive.cpp:554-573`), while its info and debug lines do not.
   The switch to `fallback_run_target` after a supervision failure has no line at that level:
   `handleRecoveryRequest` (`process_group_manager/process_group_manager.cpp:335-370`) logs only at debug, and the
   warning `Problem discovered, activating recovery state: fallback_run_target` (`:406`) comes only from a graph in

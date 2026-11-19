@@ -17,7 +17,7 @@ Knobs: FAKE_LM_IGNORE_TERM=1 ignores SIGTERM; FAKE_LM_EXIT_AFTER_S=<s> ends with
 FAKE_LM_SUPERVISE=1 emulates the alive supervision of the supervised components as the real daemon at Lifecycle v0.10.0
 (2afae116) reacts on the L4 (p10-1 run 20261119T134840Z): a component whose process is SIGSTOPped for more than 0.6 s
 gets the two warnings "Alive Supervision ( <name> ) switched to FAILED , ..." and "... switched to EXPIRED , ..."
-(alive_monitor/details/supervision/Alive.cpp:556-566), in the daemon's console format. The switch to
+(alive_monitor/details/supervision/Alive.cpp:554-573), in the daemon's console format. The switch to
 fallback_run_target logs nothing at the daemon's warning level (handleRecoveryRequest,
 process_group_manager/process_group_manager.cpp:335-370, logs only at debug). Each component outside
 fallback_run_target gets SIGTERM, without SIGCONT, and SIGKILL after its shutdown_timeout_ms, with the warning
