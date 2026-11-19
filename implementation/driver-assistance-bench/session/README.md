@@ -82,10 +82,13 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   `session.json` says what ended the session (`ended_by`: `steps`, `step <name>`, `signal <SIG>`, `cap`, `fetch`, or
   the exit and its message) and which hosts were fetched (`fetched`, `not_fetched`).
 - Every step runs detached on its host (`remote/host_step.sh start`) and is polled with SSH calls of at most 60 s
-  (`status`, then `tail` for its last lines): a dropped connection costs one poll, not the step. At a step's time-out
-  the session sends the step TERM on its host and waits (6 polls) for its end before it fails, so the trap's
-  guests' stop never races a guest launch that still runs. Only the S-CORE side's stop after a failure
-  (`score_stop_on_failure`) runs in the foreground of one call (bounded at 120 s in the trap).
+  (`status`, then `tail` for its last lines): a dropped connection costs one poll, not the step. A step reads
+  `running` while any process of its process group lives, its leader gone or not. At a step's time-out the session
+  sends the step TERM on its host and waits (6 polls) for its end before it fails; a signal or the cap during a
+  step does the same in the exit trap, before the S-CORE side's stop and before any stop. So the trap's guests' stop
+  never races a guest launch that still runs; a guest step still alive after its TERM keeps the guest host running
+  (`GUEST HOST LEFT RUNNING`, exit 11) whatever the `crosvm` count. Only the S-CORE side's stop after a failure
+  (`score_stop_on_failure`) runs in the foreground of one call (bounded in the trap).
 - A poll that fails reads the host's status: a host found stopped (a Spot preemption) ends the session at once with
   exit 3; it is not fetched (`not_fetched`, `ended_by` `host lost: <role>`), and the other hosts are collected and
   fetched as after any failure.

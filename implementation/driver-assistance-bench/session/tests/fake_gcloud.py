@@ -11,6 +11,7 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering; a detached
                      step (`start`) reads "running" for that long after its start
   FAKE_SSH_DOWN      a VM name that never answers SSH
+  FAKE_STEP_IGNORES_TERM  a step name that keeps reading "running" after its signal (its FAKE_HANG_STEP time)
   FAKE_SSH_DOWN_AFTER  "vm:text"  the VM stops answering SSH right after the first ssh call (to any VM) whose
                      command has text (an SSH loss mid-session; the VM keeps running)
   FAKE_GUEST_STOP_FAIL  1: a crosvm process stays after every guests' stop; once: after the first stop only
@@ -241,7 +242,7 @@ if words[:2] == ["compute", "ssh"]:
             out("started %s pid 4242\n" % step)
         if action == "status":
             # a detached step runs for its FAKE_HANG_STEP seconds from its start (or ends at once), then reports
-            if key in st.get("signalled", {}):
+            if key in st.get("signalled", {}) and os.environ.get("FAKE_STEP_IGNORES_TERM") != step:
                 out("rc 143\n")
             t0 = st.get("started", {}).get(key)
             hang = kv("FAKE_HANG_STEP").get(step)

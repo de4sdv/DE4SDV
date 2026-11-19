@@ -513,3 +513,27 @@ def test_host_step_detached_step_reports_its_status_tail_and_answers_a_signal(tm
     while not sh(str(hs), "status", "slow", env=env).stdout.startswith("rc ") and time.monotonic() < deadline:
         time.sleep(0.1)
     assert sh(str(hs), "status", "slow", env=env).stdout.strip() in ("rc 143", "rc 255")
+
+
+def test_host_step_status_reads_running_while_any_process_of_the_step_lives(tmp_path: Path, fake) -> None:
+    # S2: after a TERM the step's leader is gone at once, while its command still cleans up; "rc 255" then let the
+    # trap stop the guests and their host under a launch that still ran
+    d, env = fake
+    kit = tmp_path / "home" / "da-kit" / "S1"
+    (kit / "bench" / "session" / "remote").mkdir(parents=True)
+    (kit / "session_id").write_text("S1\n")
+    hs = kit / "bench" / "session" / "remote" / "host_step.sh"
+    hs.write_bytes((REMOTE / "host_step.sh").read_bytes())
+    child = tmp_path / "child.sh"
+    child.write_text("trap 'sleep 3; echo child cleanup done; exit 0' TERM\nsleep 30 & wait\n")
+    assert sh(str(hs), "start", "gstep", "--", "bash", str(child), env=env).returncode == 0
+    time.sleep(0.5)
+    assert sh(str(hs), "status", "gstep", env=env).stdout.strip() == "running"
+    assert "signalled gstep (TERM)" in sh(str(hs), "signal", "gstep", "TERM", env=env).stdout
+    time.sleep(0.5)
+    assert sh(str(hs), "status", "gstep", env=env).stdout.strip() == "running"   # the cleanup still runs
+    deadline = time.monotonic() + 15
+    while sh(str(hs), "status", "gstep", env=env).stdout.strip() == "running" and time.monotonic() < deadline:
+        time.sleep(0.2)
+    assert sh(str(hs), "status", "gstep", env=env).stdout.strip().startswith("rc ")
+    assert "child cleanup done" in (kit / "out" / "gstep.log").read_text()

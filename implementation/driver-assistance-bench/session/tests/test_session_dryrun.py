@@ -867,6 +867,41 @@ def test_a_step_past_its_time_out_is_signalled_on_its_host_before_the_guests_sto
     assert_invariants(r)
 
 
+@pytest.mark.parametrize("step, more", [("guest_up", ()), ("guest_prepare", ())])
+def test_a_signal_during_a_guest_step_signals_the_step_before_the_guests_stop(tmp_path: Path, step: str,
+                                                                              more: tuple) -> None:
+    # S2: a Ctrl-C, a kill or the cap during the guests' launch: the trap TERMs the running step on its host and
+    # waits for its end before the S-CORE side's stop, the fetch and any guests' stop
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", *more, FAKE_HANG_STEP=f"{step}:60")
+    wait_for_call(tmp_path, lambda c: any(f"host_step.sh status {step}" in a for a in c))
+    time.sleep(0.3)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    sig = r.ssh(GH, f"host_step.sh signal {step} TERM")
+    assert sig, r.log
+    after = [i for i in r.ssh(GH, f"host_step.sh status {step}") if i > sig[0]]
+    assert after and after[0] < r.guest_stops()[0] < r.stops(GH)[0]
+    assert sig[0] < r.ssh(GH, "host_step.sh pack")[0]
+    assert f"step {step} after the TERM: rc 143" in r.log
+    assert_invariants(r)
+
+
+def test_a_guest_step_alive_after_its_term_keeps_the_guest_host_running(tmp_path: Path) -> None:
+    # S2: a launch that outlives its TERM may still create guests: a crosvm count of 0 then proves nothing
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="guest_up:60",
+              FAKE_STEP_IGNORES_TERM="guest_up", DA_T_STEP_TERM_POLLS="2")
+    wait_for_call(tmp_path, lambda c: any("host_step.sh status guest_up" in a for a in c))
+    time.sleep(0.3)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 11, r.log
+    assert r.ssh(GH, "host_step.sh signal guest_up TERM") and r.guest_stops()
+    assert not r.stops(GH) and r.state[GH] == "RUNNING"
+    assert "step guest_up did not end after its TERM" in r.log
+    assert r.stops(L4) and r.state[L4] == "TERMINATED"
+
+
 def test_a_host_lost_mid_run_ends_the_session_at_once_and_is_not_fetched(tmp_path: Path) -> None:
     # R12: polls of a reclaimed G4 ran until T_RUN, then its fetch tried 600 + 1200 s
     t0 = time.monotonic()

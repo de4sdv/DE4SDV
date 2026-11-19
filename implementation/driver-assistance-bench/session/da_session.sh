@@ -126,6 +126,7 @@ trap '' PIPE
 MAIN_PID=$$; WD_PID=""; CHILD=""; STARTED=(); STEP_FAIL=""; FINAL_RC=""; ENDED_BY=""; UPLOADED=""; SCORE_UP=""
 FETCHED=""; FETCH_OK=""; FETCH_BAD=""
 GUEST_STEP_SENT=0   # 1 from the first step sent to the guest host on: from then on guests may run there (S1)
+CUR_STEP=""; GUEST_STEP_RUNNING=""   # "<role> <step>" of the step rstep waits for; a guest step alive after its TERM
 
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
 say() { printf '%s\n' "$*" >&3 2>/dev/null || true; }   # a dry run's command line on stdout
@@ -176,6 +177,21 @@ ge() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a >= b) }'; }
 q() { printf ' %q' "$@"; }   # words quoted for the remote shell
 GSTOP=${GUEST_STOP_CMD//\$DA_SESSION_ID/$SID}
 crosvm_left() { run_fg ssh_l guest 60 "pgrep -c -x crosvm || true" 2>/dev/null | tail -1 | tr -dc 0-9; }
+step_down() {   # in the trap: the step rstep waited for, if any: TERM on its host, its end awaited (bounded) (S2)
+  [ -n "$CUR_STEP" ] || return 0
+  local r=${CUR_STEP%% *} s=${CUR_STEP#* } i prc=0; CUR_STEP=""
+  case " ${LOST:-} " in *" $r "*) return 0 ;; esac
+  log "step $s still runs on $(var "$r" VM): TERM to it there, then its end (up to $STEP_TERM_POLLS polls), before any stop"
+  rsignal "$r" "$s" TERM
+  for i in $(seq 1 "$STEP_TERM_POLLS"); do
+    rpoll "$r" "$HS status $s"; prc=$?
+    [ "$prc" = 3 ] && break   # the host is gone (preempted): nothing runs there
+    case "$ROUT" in "rc "*|absent) break ;; esac
+    sleep "$POLL_S"
+  done
+  log "step $s after the TERM: ${ROUT:-unknown}"
+  case "$ROUT" in "rc "*|absent) ;; *) [ "$prc" != 3 ] && [ "$r" = guest ] && GUEST_STEP_RUNNING=$s ;; esac
+}
 
 # ───────────── exit trap: stop what this session started ─────────────
 cleanup() {
@@ -188,6 +204,9 @@ cleanup() {
   [ -f "$IN/.cap_reached" ] && rc=10
   [ -n "$WD_PID" ] && { pkill -P "$WD_PID" 2>/dev/null; kill "$WD_PID" 2>/dev/null; }
   [ -n "$CHILD" ] && kill_tree "$CHILD"   # an interrupted SSH step: its local client and timeout too
+  # the step still running on its host (a signal or the cap during it): TERM to it there, and its end awaited, before
+  # the S-CORE side's stop and any stop; a guest launch never races the guests' stop (S2)
+  step_down
   [ -f "$IN/.cap_reached" ] && ENDED_BY=cap
   [ -n "$ENDED_BY" ] || ENDED_BY="exit $rc"
   # the S-CORE side's stop, its only collector, while the world may still tick (R8); then, bounded, the fetch of
@@ -206,6 +225,7 @@ cleanup() {
     GC_TO=300 gc "$r" compute instances stop "$(var "$r" VM)" --zone "$(var "$r" ZONE)" --async --quiet 2>&1 | one >> "$LOG"
   done
   if [ "$guest" = 1 ]; then
+    [ -n "$GUEST_STEP_RUNNING" ] && log "step $GUEST_STEP_RUNNING may still run on $(var guest VM) after its TERM: the guests' stop, and the host is kept whatever the count"
     # a failed status read is read again; only a stopped host counts as "no guests" (R2)
     for i in $(seq 1 "$STATUS_TRIES"); do
       st=$(vmst guest); [ "$st" != UNKNOWN ] && break
@@ -244,11 +264,15 @@ cleanup() {
           [ "$left" = 0 ] && break
         done ;;
     esac
-    if [ "$left" = 0 ]; then
+    if [ "$left" = 0 ] && [ -z "$GUEST_STEP_RUNNING" ]; then
       log "stopping $(var guest VM) (guest)"
       GC_TO=300 gc guest compute instances stop "$(var guest VM)" --zone "$(var guest ZONE)" --async --quiet 2>&1 | one >> "$LOG"
     else
-      log "GUEST HOST LEFT RUNNING: the guests did not stop (crosvm '${left:-unknown}'). Stop them by hand (cvd stop, no crosvm left), then the host"
+      if [ -n "$GUEST_STEP_RUNNING" ]; then
+        log "GUEST HOST LEFT RUNNING: step $GUEST_STEP_RUNNING did not end after its TERM (crosvm '${left:-unknown}'). End it, stop the guests by hand (cvd stop, no crosvm left), then the host"
+      else
+        log "GUEST HOST LEFT RUNNING: the guests did not stop (crosvm '${left:-unknown}'). Stop them by hand (cvd stop, no crosvm left), then the host"
+      fi
       GUEST_LEFT=1
     fi
   fi
@@ -618,20 +642,22 @@ rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on 
   log "step $s on $(var "$r" VM): $*"; SEQ+=("$r:$s")
   local end=$(( $(date +%s) + to )) rc="" absent=0 i
   [ "$r" = guest ] && GUEST_STEP_SENT=1
+  CUR_STEP="$r $s"   # from before its start call: an answer lost on the way may still have started it
   routall ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
   while :; do   # a start whose answer was lost may still have started: the status decides
     rpoll "$r" "$HS status $s"
     [ $? = 3 ] && { STEP_FAIL=$s; abort 3 "step $s: $(var "$r" VM) is gone"; }
     case "$ROUT" in
-      "rc "*) rc=${ROUT#rc }; break ;;
-      absent) absent=$((absent + 1)); [ "$absent" -ge 3 ] && { rc=255; log "step $s never started"; break; } ;;
+      "rc "*) rc=${ROUT#rc }; CUR_STEP=""; break ;;
+      absent) absent=$((absent + 1)); [ "$absent" -ge 3 ] && { rc=255; CUR_STEP=""; log "step $s never started"; break; } ;;
     esac
     if [ "$(date +%s)" -ge "$end" ]; then
       log "step $s still ${ROUT:-unknown} after $to s: TERM to the step on its host, then its end"
       rsignal "$r" "$s" TERM
       for i in $(seq 1 "$STEP_TERM_POLLS"); do
-        rpoll "$r" "$HS status $s"; case "$ROUT" in "rc "*) break ;; esac; nap "$POLL_S"
+        rpoll "$r" "$HS status $s"; case "$ROUT" in "rc "*) CUR_STEP=""; break ;; esac; nap "$POLL_S"
       done
+      # a step still alive stays in CUR_STEP: the trap sends it TERM again and waits once more before any stop
       log "step $s after the TERM: ${ROUT:-unknown}"; rc=124; break
     fi
     nap "$POLL_S"
