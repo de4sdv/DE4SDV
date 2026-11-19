@@ -853,6 +853,22 @@ def test_the_cap_names_itself_as_the_end(tmp_path: Path) -> None:
     assert rec["ended_by"] == "cap" and rec["fetched"] == ["score"]
 
 
+def test_a_signal_before_the_steps_still_fetches_an_uploaded_host(tmp_path: Path) -> None:
+    # the trap's fetch and the S-CORE side's stop were defined only after the SSH and upload section: a signal or the
+    # cap there gave "fetch: command not found", and the uploaded host stopped unfetched
+    p = popen(tmp_path, "p10-2", "--without-guest-host", FAKE_SSH_DOWN=L4, DA_T_SSH_TRIES="2000")
+    wait_for_call(tmp_path, lambda c: c[2:4] == ["compute", "ssh"] and c[4] == L4)
+    time.sleep(0.3)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    assert "command not found" not in r.stdout, r.stdout
+    assert r.ssh(G4, "host_step.sh pack") and r.ssh(G4, "host_step.sh pack")[0] < r.stops(G4)[0]
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["fetched"] == ["sim"] and rec["not_fetched"] == ["score"]
+    assert_invariants(r)
+
+
 def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> None:
     # R19: a fetch scp inside a pipeline made the trap (and the cap) wait for the whole scp
     p = popen(tmp_path, "p10-1", FAKE_SLOW_FETCH="15")

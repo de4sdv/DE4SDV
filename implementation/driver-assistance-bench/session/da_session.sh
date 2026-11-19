@@ -205,6 +205,10 @@ cost_now() { awk -v now="$(date +%s.%N)" '{ s += (now - $2) * $3 / 3600 } END { 
 ge() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a >= b) }'; }
 q() { printf ' %q' "$@"; }   # words quoted for the remote shell
 GSTOP=${GUEST_STOP_CMD//\$DA_SESSION_ID/$SID}
+# defined before the exit trap can run: a trap's fetch before the steps (the cap or a signal during the SSH and
+# upload section) expanded an unset HS under set -u, and that fetch ended silently
+HS="bash \$HOME/da-kit/$SID/bench/session/remote/host_step.sh"
+od() { echo "\$HOME/da-kit/$SID/out/$1"; }   # a step's output folder on the remote host
 crosvm_left() { run_fg ssh_l guest 60 "pgrep -c -x crosvm || true" 2>/dev/null | tail -1 | tr -dc 0-9; }
 step_down() {   # in the trap: the step rstep waited for, if any: TERM on its host, its end awaited (bounded) (S2)
   [ -n "$CUR_STEP" ] || return 0
@@ -221,6 +225,132 @@ step_down() {   # in the trap: the step rstep waited for, if any: TERM on its ho
   log "step $s after the TERM: ${ROUT:-unknown}"
   case "$ROUT" in "rc "*|absent) ;; *) [ "$prc" != 3 ] && [ "$r" = guest ] && GUEST_STEP_RUNNING=$s ;; esac
 }
+
+# the remote-step helpers, defined before the exit trap can run: a trap during the starts or the SSH and upload
+# section (a signal, the cap) called score_down and fetch before their definitions ("command not found"), and an
+# uploaded host was stopped unfetched
+host_lost() {   # host_lost <role> <status>: a host gone mid-session (preempted): no fetch, no more polls (R12)
+  log "$(var "$1" VM) is $2 during the session (preempted or stopped): its files stay on its disk"
+  LOST="${LOST:-} $1"; FETCHED="$FETCHED $1"; FETCH_BAD="$FETCH_BAD $1"; ENDED_BY="host lost: $1 ($2)"
+  [ "$1" = score ] && SCORE_UP=""
+}
+rpoll() {   # rpoll <role> <remote command>: one short poll, its last line in ROUT; 3 when the host is gone (R12)
+  local st
+  if rout ssh_l "$1" 60 "$2"; then ROUT=$(tail -1 <<< "$ROUT"); return 0; fi
+  ROUT=""; st=$(vmst "$1")
+  case "$st" in TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED) host_lost "$1" "$st"; return 3 ;; esac
+  return 1
+}
+rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on its host and polled; a failure ends
+  # the session. No SSH call lasts longer than a poll, so a dropped connection or this host's time-out never leaves
+  # a step running on unseen: at the time-out the step is signalled on its host and its end awaited (R10)
+  local r=$1 s=$2 to=$3; shift 3
+  log "step $s on $(var "$r" VM): $*"; SEQ+=("$r:$s")
+  local end=$(( $(date +%s) + to )) rc="" absent=0 i
+  [ "$r" = guest ] && GUEST_STEP_SENT=1
+  CUR_STEP="$r $s"   # from before its start call: an answer lost on the way may still have started it
+  routall ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
+  while :; do   # a start whose answer was lost may still have started: the status decides
+    rpoll "$r" "$HS status $s"
+    [ $? = 3 ] && { STEP_FAIL=$s; abort 3 "step $s: $(var "$r" VM) is gone"; }
+    case "$ROUT" in
+      "rc "*) rc=${ROUT#rc }; CUR_STEP=""; break ;;
+      absent) absent=$((absent + 1)); [ "$absent" -ge 3 ] && { rc=255; CUR_STEP=""; log "step $s never started"; break; } ;;
+    esac
+    if [ "$(date +%s)" -ge "$end" ]; then
+      log "step $s still ${ROUT:-unknown} after $to s: TERM to the step on its host, then its end"
+      rsignal "$r" "$s" TERM
+      for i in $(seq 1 "$STEP_TERM_POLLS"); do
+        rpoll "$r" "$HS status $s"; case "$ROUT" in "rc "*) CUR_STEP=""; break ;; esac; nap "$POLL_S"
+      done
+      # a step still alive stays in CUR_STEP: the trap sends it TERM again and waits once more before any stop
+      log "step $s after the TERM: ${ROUT:-unknown}"; rc=124; break
+    fi
+    nap "$POLL_S"
+  done
+  rout ssh_l "$r" 60 "$HS tail $s"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
+  log "step $s rc=$rc"
+  # every stop of the S-CORE side has run its collection, whatever its code; each is recorded per run (S7)
+  case "$s" in score_stop*) SCORE_UP=""; STOPS="$STOPS ${SCORE_RUN:-none}:$s:$rc" ;; esac
+  if [ "$rc" = 7 ] && [[ "$s" == score_stop* ]]; then
+    # stop_score_side.sh exit 7: stopped and collected, something had to be killed. Not a failure; recorded
+    # (session.json score_stops, stop_killed). Exit 8, collection failed, stays a failure (the lead's decision)
+    log "step $s rc=7: the S-CORE side of ${SCORE_RUN:-none} stopped and its records collected, but something had to be killed (stop_killed, recorded; not a failure)"
+    STOP_KILLED_LAST=$s; return 0
+  fi
+  if [ "$rc" != 0 ]; then
+    STEP_FAIL=$s; abort 5 "step $s failed (rc $rc)"
+  fi
+}
+rstart() { local r=$1 s=$2; shift 2; log "start $s on $(var "$r" VM): $*"; SEQ+=("$r:$s&")
+  [ "$r" = guest ] && GUEST_STEP_SENT=1
+  run_fg ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*" >> "$IN/$r.steps.out" 2>&1 || { STEP_FAIL=$s; abort 5 "start of $s failed"; }; }
+rsignal() { run_fg ssh_l "$1" 60 "$HS signal $2 ${3:-INT}" >> "$IN/$1.steps.out" 2>&1; }
+rwait() {   # rwait <role> <step> <timeout_s>: waits for a detached step's status
+  local r=$1 s=$2 end st; end=$(( $(date +%s) + $3 )); SEQ+=("$r:wait-$s")
+  while :; do
+    rpoll "$r" "$HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
+    case "$st" in "rc "*) log "step $s ${st}"; [ "$st" = "rc 0" ] && return 0; STEP_FAIL=$s; return 1 ;; esac
+    [ "$(date +%s)" -ge "$end" ] && { log "step $s still ${st:-unknown} after $3 s"; STEP_FAIL=$s; return 1; }
+    nap "$POLL_S"
+  done
+}
+rwaitfile() {   # rwait_file <role> <step> <remote file> <timeout_s>: the file of a running detached step
+  local r=$1 s=$2 f=$3 end st; end=$(( $(date +%s) + $4 )); SEQ+=("$r:file-${f##*/}")
+  while :; do
+    rpoll "$r" "test -e $f && echo present || $HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
+    case "$st" in
+      present) log "step $s: ${f##*/} present"; return 0 ;;
+      "rc "*) log "step $s ended ($st) before ${f##*/}"; STEP_FAIL=$s; return 1 ;;
+    esac
+    [ "$(date +%s)" -ge "$end" ] && { log "step $s: no ${f##*/} after $4 s"; STEP_FAIL=$s; return 1; }
+    nap "$POLL_S"
+  done
+}
+rtouch() {   # rtouch <role> <remote file> [<timeout_s>]: a handshake file of the world side
+  log "touch ${2##*/} on $(var "$1" VM): $2"; SEQ+=("$1:touch-${2##*/}")
+  rout ssh_l "$1" "${3:-60}" "touch $2 && echo touched"; [[ "$ROUT" == *touched* ]]
+}
+fetch() {   # fetch <role>: the host's output folder into incoming_<id>/<role>/, checked against this session's id
+  local r=$1 sha got
+  case " $FETCHED " in *" $r "*) return 0 ;; esac
+  FETCHED="$FETCHED $r"
+  fetch_one "$r" && { FETCH_OK="$FETCH_OK $r"; return 0; }
+  FETCH_BAD="$FETCH_BAD $r"; return 1
+}
+fetch_one() {
+  local r=$1 sha got
+  rout ssh_l "$r" "${FETCH_PACK_TO:-600}" "$HS pack"; sha=$(tail -1 <<< "$ROUT")
+  mkdir -p "$IN/$r"
+  routall scp_r "$r" "${FETCH_SCP_TO:-1200}" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"
+  printf '%s\n' "$ROUT" | one >> "$LOG"
+  got=$(sha256sum "$IN/$r/out.tgz" 2>/dev/null | cut -d' ' -f1)
+  [ -n "$got" ] && [ "$got" = "$sha" ] || { log "fetch from $(var "$r" VM) failed or changed (remote '$sha', local '$got')"; return 1; }
+  tar -xzf "$IN/$r/out.tgz" -C "$IN/$r" || return 1
+  [ "$(cat "$IN/$r/out/session_id" 2>/dev/null)" = "$SID" ] || { log "fetched files of $(var "$r" VM) are not this session's"; return 1; }
+  log "fetched $(var "$r" VM): out.tgz $got"
+  return 0
+}
+score_down() {   # the S-CORE side, if this session started it and has not stopped it: its stop is its only collector (R8)
+  [ -n "$SCORE_UP" ] || return 0
+  local o=$SCORE_UP rc; SCORE_UP=""
+  log "the S-CORE side is up ($o): its stop, which collects its records, before the fetch"
+  run_fg ssh_l score "${T_SCORE_DOWN:-$T_SCORE_START}" "$HS run score_stop_on_failure -- $(renv score)bash $ENTRY_SCORE_STOP $o" \
+    >> "$IN/score.steps.out" 2>&1; rc=$?
+  log "step score_stop_on_failure rc=$rc$([ "$rc" = 7 ] && echo ": stopped and collected, something had to be killed (stop_killed, recorded)")"
+  STOPS="$STOPS ${SCORE_RUN:-none}:score_stop_on_failure:$rc"
+}
+abort() {   # a failure after the starts: the S-CORE side's stop, the fetch, the exit (3 when a host was lost)
+  local code=$1; shift
+  [ -n "${LOST:-}" ] && code=3
+  score_down; fetch_all; fail "$code" "$*"
+}
+fetch_all() { local r ok=0; for r in "${STARTED[@]}"; do fetch "$r" || ok=1; done; return $ok; }
+ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never configured: D5 may move the hosts)
+  local ip; ip=$(vmip "$1"); [ -n "$ip" ] || abort 5 "no internal IP of $(var "$1" VM) from gcloud"
+  IPS="${IPS:-} $1=$ip"; printf -v "$2" '%s' "$ip"
+}
+
 
 # ───────────── exit trap: stop what this session started ─────────────
 cleanup() {
@@ -375,11 +505,14 @@ PY
   log "$line"
 }
 write_record() {
+  # the hosts not fetched, computed before the assignments below: one of them, STARTED="${STARTED[*]}", turns the
+  # array into one word for the rest of that command, and the loop then read "sim score" as one host
+  local nf r; nf="$FETCH_BAD $(for r in "${STARTED[@]}"; do case " $FETCHED " in *" $r "*) ;; *) echo "$r" ;; esac; done)"
   KIND="$KIND" SID="$SID" RC="$1" CAP="$CAP" IN="$IN" STARTED="${STARTED[*]}" STEP_FAIL="$STEP_FAIL" \
   KIT_SHA="${KIT_SHA:-}" BENCH_COMMIT="${BENCH_COMMIT:-}" WT_CHANGES="${WT_CHANGES:-}" DRY="$DRY" \
   IAP="$SIM_SSH_IAP" PERM="$IVI_PERMISSIVE" IPS="${IPS:-}" CAMCAL="${CAMCAL_SHA:-}" VM_AFTER="${VM_AFTER:-}" \
   LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" RECEIPTS="${RECEIPTS:-}" \
-  FETCH_OK="$FETCH_OK" FETCH_BAD="$FETCH_BAD $(for r in "${STARTED[@]}"; do case " $FETCHED " in *" $r "*) ;; *) echo "$r" ;; esac; done)" \
+  FETCH_OK="$FETCH_OK" FETCH_BAD="$nf" \
   ENDED_BY="$ENDED_BY" STOPS="$STOPS" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
@@ -646,130 +779,6 @@ for r in "${ROLES[@]}"; do
 done
 
 # ───────────── 4. the steps of the session kind ─────────────
-HS="bash \$HOME/da-kit/$SID/bench/session/remote/host_step.sh"
-od() { echo "\$HOME/da-kit/$SID/out/$1"; }   # a step's output folder on the remote host
-host_lost() {   # host_lost <role> <status>: a host gone mid-session (preempted): no fetch, no more polls (R12)
-  log "$(var "$1" VM) is $2 during the session (preempted or stopped): its files stay on its disk"
-  LOST="${LOST:-} $1"; FETCHED="$FETCHED $1"; FETCH_BAD="$FETCH_BAD $1"; ENDED_BY="host lost: $1 ($2)"
-  [ "$1" = score ] && SCORE_UP=""
-}
-rpoll() {   # rpoll <role> <remote command>: one short poll, its last line in ROUT; 3 when the host is gone (R12)
-  local st
-  if rout ssh_l "$1" 60 "$2"; then ROUT=$(tail -1 <<< "$ROUT"); return 0; fi
-  ROUT=""; st=$(vmst "$1")
-  case "$st" in TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED) host_lost "$1" "$st"; return 3 ;; esac
-  return 1
-}
-rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on its host and polled; a failure ends
-  # the session. No SSH call lasts longer than a poll, so a dropped connection or this host's time-out never leaves
-  # a step running on unseen: at the time-out the step is signalled on its host and its end awaited (R10)
-  local r=$1 s=$2 to=$3; shift 3
-  log "step $s on $(var "$r" VM): $*"; SEQ+=("$r:$s")
-  local end=$(( $(date +%s) + to )) rc="" absent=0 i
-  [ "$r" = guest ] && GUEST_STEP_SENT=1
-  CUR_STEP="$r $s"   # from before its start call: an answer lost on the way may still have started it
-  routall ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
-  while :; do   # a start whose answer was lost may still have started: the status decides
-    rpoll "$r" "$HS status $s"
-    [ $? = 3 ] && { STEP_FAIL=$s; abort 3 "step $s: $(var "$r" VM) is gone"; }
-    case "$ROUT" in
-      "rc "*) rc=${ROUT#rc }; CUR_STEP=""; break ;;
-      absent) absent=$((absent + 1)); [ "$absent" -ge 3 ] && { rc=255; CUR_STEP=""; log "step $s never started"; break; } ;;
-    esac
-    if [ "$(date +%s)" -ge "$end" ]; then
-      log "step $s still ${ROUT:-unknown} after $to s: TERM to the step on its host, then its end"
-      rsignal "$r" "$s" TERM
-      for i in $(seq 1 "$STEP_TERM_POLLS"); do
-        rpoll "$r" "$HS status $s"; case "$ROUT" in "rc "*) CUR_STEP=""; break ;; esac; nap "$POLL_S"
-      done
-      # a step still alive stays in CUR_STEP: the trap sends it TERM again and waits once more before any stop
-      log "step $s after the TERM: ${ROUT:-unknown}"; rc=124; break
-    fi
-    nap "$POLL_S"
-  done
-  rout ssh_l "$r" 60 "$HS tail $s"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
-  log "step $s rc=$rc"
-  # every stop of the S-CORE side has run its collection, whatever its code; each is recorded per run (S7)
-  case "$s" in score_stop*) SCORE_UP=""; STOPS="$STOPS ${SCORE_RUN:-none}:$s:$rc" ;; esac
-  if [ "$rc" = 7 ] && [[ "$s" == score_stop* ]]; then
-    # stop_score_side.sh exit 7: stopped and collected, something had to be killed. Not a failure; recorded
-    # (session.json score_stops, stop_killed). Exit 8, collection failed, stays a failure (the lead's decision)
-    log "step $s rc=7: the S-CORE side of ${SCORE_RUN:-none} stopped and its records collected, but something had to be killed (stop_killed, recorded; not a failure)"
-    STOP_KILLED_LAST=$s; return 0
-  fi
-  if [ "$rc" != 0 ]; then
-    STEP_FAIL=$s; abort 5 "step $s failed (rc $rc)"
-  fi
-}
-rstart() { local r=$1 s=$2; shift 2; log "start $s on $(var "$r" VM): $*"; SEQ+=("$r:$s&")
-  [ "$r" = guest ] && GUEST_STEP_SENT=1
-  run_fg ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*" >> "$IN/$r.steps.out" 2>&1 || { STEP_FAIL=$s; abort 5 "start of $s failed"; }; }
-rsignal() { run_fg ssh_l "$1" 60 "$HS signal $2 ${3:-INT}" >> "$IN/$1.steps.out" 2>&1; }
-rwait() {   # rwait <role> <step> <timeout_s>: waits for a detached step's status
-  local r=$1 s=$2 end st; end=$(( $(date +%s) + $3 )); SEQ+=("$r:wait-$s")
-  while :; do
-    rpoll "$r" "$HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
-    case "$st" in "rc "*) log "step $s ${st}"; [ "$st" = "rc 0" ] && return 0; STEP_FAIL=$s; return 1 ;; esac
-    [ "$(date +%s)" -ge "$end" ] && { log "step $s still ${st:-unknown} after $3 s"; STEP_FAIL=$s; return 1; }
-    nap "$POLL_S"
-  done
-}
-rwaitfile() {   # rwait_file <role> <step> <remote file> <timeout_s>: the file of a running detached step
-  local r=$1 s=$2 f=$3 end st; end=$(( $(date +%s) + $4 )); SEQ+=("$r:file-${f##*/}")
-  while :; do
-    rpoll "$r" "test -e $f && echo present || $HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
-    case "$st" in
-      present) log "step $s: ${f##*/} present"; return 0 ;;
-      "rc "*) log "step $s ended ($st) before ${f##*/}"; STEP_FAIL=$s; return 1 ;;
-    esac
-    [ "$(date +%s)" -ge "$end" ] && { log "step $s: no ${f##*/} after $4 s"; STEP_FAIL=$s; return 1; }
-    nap "$POLL_S"
-  done
-}
-rtouch() {   # rtouch <role> <remote file> [<timeout_s>]: a handshake file of the world side
-  log "touch ${2##*/} on $(var "$1" VM): $2"; SEQ+=("$1:touch-${2##*/}")
-  rout ssh_l "$1" "${3:-60}" "touch $2 && echo touched"; [[ "$ROUT" == *touched* ]]
-}
-fetch() {   # fetch <role>: the host's output folder into incoming_<id>/<role>/, checked against this session's id
-  local r=$1 sha got
-  case " $FETCHED " in *" $r "*) return 0 ;; esac
-  FETCHED="$FETCHED $r"
-  fetch_one "$r" && { FETCH_OK="$FETCH_OK $r"; return 0; }
-  FETCH_BAD="$FETCH_BAD $r"; return 1
-}
-fetch_one() {
-  local r=$1 sha got
-  rout ssh_l "$r" "${FETCH_PACK_TO:-600}" "$HS pack"; sha=$(tail -1 <<< "$ROUT")
-  mkdir -p "$IN/$r"
-  routall scp_r "$r" "${FETCH_SCP_TO:-1200}" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"
-  printf '%s\n' "$ROUT" | one >> "$LOG"
-  got=$(sha256sum "$IN/$r/out.tgz" 2>/dev/null | cut -d' ' -f1)
-  [ -n "$got" ] && [ "$got" = "$sha" ] || { log "fetch from $(var "$r" VM) failed or changed (remote '$sha', local '$got')"; return 1; }
-  tar -xzf "$IN/$r/out.tgz" -C "$IN/$r" || return 1
-  [ "$(cat "$IN/$r/out/session_id" 2>/dev/null)" = "$SID" ] || { log "fetched files of $(var "$r" VM) are not this session's"; return 1; }
-  log "fetched $(var "$r" VM): out.tgz $got"
-  return 0
-}
-score_down() {   # the S-CORE side, if this session started it and has not stopped it: its stop is its only collector (R8)
-  [ -n "$SCORE_UP" ] || return 0
-  local o=$SCORE_UP rc; SCORE_UP=""
-  log "the S-CORE side is up ($o): its stop, which collects its records, before the fetch"
-  run_fg ssh_l score "${T_SCORE_DOWN:-$T_SCORE_START}" "$HS run score_stop_on_failure -- $(renv score)bash $ENTRY_SCORE_STOP $o" \
-    >> "$IN/score.steps.out" 2>&1; rc=$?
-  log "step score_stop_on_failure rc=$rc$([ "$rc" = 7 ] && echo ": stopped and collected, something had to be killed (stop_killed, recorded)")"
-  STOPS="$STOPS ${SCORE_RUN:-none}:score_stop_on_failure:$rc"
-}
-abort() {   # a failure after the starts: the S-CORE side's stop, the fetch, the exit (3 when a host was lost)
-  local code=$1; shift
-  [ -n "${LOST:-}" ] && code=3
-  score_down; fetch_all; fail "$code" "$*"
-}
-fetch_all() { local r ok=0; for r in "${STARTED[@]}"; do fetch "$r" || ok=1; done; return $ok; }
-ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never configured: D5 may move the hosts)
-  local ip; ip=$(vmip "$1"); [ -n "$ip" ] || abort 5 "no internal IP of $(var "$1" VM) from gcloud"
-  IPS="${IPS:-} $1=$ip"; printf -v "$2" '%s' "$ip"
-}
-
 # the environment the remote entries get from this session's configuration (entrypoints.env)
 GENV="env$(q "APP_PACKAGE=$APP_PACKAGE" "APP_COMPONENT=$APP_COMPONENT" "APP_RECORD_PATHS=$APP_RECORD_PATHS" "IVI_PERMISSIVE=$IVI_PERMISSIVE")"
 SENV="env$(q "SIM_PY=$SIM_PY")"
