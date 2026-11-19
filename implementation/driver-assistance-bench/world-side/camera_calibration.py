@@ -51,6 +51,17 @@ DEFAULT_FAR_M = 13.0
 DEFAULT_HALF_SPACING_M = 1.6     # board centers left and right of the vehicle's center line (proposal)
 AGREE_RANGE_M = (10.0, 60.0)     # PROPOSAL: the cross-check range ahead of the bumper
 AGREE_TOLERANCE = 0.02           # PROPOSAL: upstream's H and the settings' H agree within 2 % of the distance
+# The calibration file's sources, chosen only by make-h's --source flag (the session's --camcal), never by a fallback:
+# - checkerboard: upstream's procedure on the captured frame (the default);
+# - settings: the homography of the road plane from the simulated camera's settings and pose (H_settings).
+SOURCES = ("checkerboard", "settings")
+SETTINGS_REASON = (
+    "the lead's decision of 2026-11-19 for p10-2 (owner informed): CARLA 1.0's apply_texture sets only material "
+    "parameters named BaseColor, Difuse, Normal, Emissive or ORMH (CarlaGameModeBase.cpp:505-548 at 14ac3b1a50) and "
+    "the engine plane's material (/Engine/BasicShapes/Plane) has none of them, so the boards render flat grey and "
+    "upstream's calc_front_camera_homography.py finds 0 boards; H.yaml is the homography of the road plane from the "
+    "simulated camera's known pose and lens")
+SETTINGS_CROSS_CHECK = "not run: no board rendered"
 
 PIXEL_CENTER = 0.5               # OpenCV's pixel-center convention, see ground_to_image
 Matrix = list[list[float]]
@@ -482,11 +493,50 @@ def run_upstream_c(python: str, script: Path, h_yaml: Path, work: Path, out_yaml
     return {"returncode": done.returncode, "stdout": done.stdout, "stderr": done.stderr[-4000:]}
 
 
-def make_h(capture_path: Path, vp_clone: Path, python: str, out_dir: Path) -> dict:
-    capture_path, vp_clone, out_dir = capture_path.resolve(), vp_clone.resolve(), out_dir.resolve()
+def make_h_settings(capture_path: Path, vp_clone: Path, python: str, out_dir: Path) -> dict:
+    """The settings source: H.yaml from H_settings of the road plane (z = 0 above the capture's groundZ), in upstream's
+    H.yaml layout; homography_C_matrix.yaml from it by upstream's find_homography_C_matrix.py, as upstream's build
+    derives it (VisionPilot/CMakeLists.txt:49-53). Upstream's calc script does not run, so there is no cross-check;
+    the capture's frame and its pre-check verdict stay in the record as evidence."""
     capture = json.loads(capture_path.read_text())
     frame = capture_path.parent / capture["frame"]["path"]
+    up = out_dir / "upstream"
+    up.mkdir(exist_ok=True)
+    data = upstream_blob(vp_clone, UPSTREAM_C)
+    (up / Path(UPSTREAM_C).name).write_bytes(data)
+    camera = camera_in_ground_frame(capture)
+    h_set = image_to_ground(camera, 0.0)
+    h_yaml = out_dir / "H.yaml"
+    h_yaml.write_text(write_opencv_yaml(h_set, "H"))
+    c_yaml = out_dir / "homography_C_matrix.yaml"
+    crun = run_upstream_c(python, up / Path(UPSTREAM_C).name, h_yaml, out_dir / "c_work", c_yaml)
+    record = {"recordVersion": 1, "kind": "camera-calibration-file", "source": "settings",
+              "sourceReason": SETTINGS_REASON, "crossCheck": SETTINGS_CROSS_CHECK,
+              "capture": {"path": str(capture_path), "sha256": sha256(capture_path.read_bytes())},
+              "frame": {"path": str(frame), "sha256": sha256(frame.read_bytes()) if frame.is_file() else None},
+              "capturePrecheck": {k: capture.get("precheck", {}).get(k) for k in ("passed", "reason", "enforced")},
+              "upstreamScripts": {UPSTREAM_C: {"sha256": sha256(data), "pin": VP_PIN}},
+              "opencvVersion": opencv_version(python), "cameraInGroundFrame": camera, "planeZM": 0.0,
+              "H_settings": h_set, "files": {"H.yaml": {"path": str(h_yaml), "sha256": sha256(h_yaml.read_bytes())}},
+              "cMatrixRun": crun}
+    if crun["returncode"] == 0 and c_yaml.is_file():
+        record["files"]["homography_C_matrix.yaml"] = {"path": str(c_yaml), "sha256": sha256(c_yaml.read_bytes())}
+        record["result"] = "written"
+    else:
+        record["result"] = "upstream's find_homography_C_matrix.py failed; no homography_C_matrix.yaml"
+    (out_dir / "camera_calibration_record.json").write_text(json.dumps(record, indent=1))
+    return record
+
+
+def make_h(capture_path: Path, vp_clone: Path, python: str, out_dir: Path, source: str = "checkerboard") -> dict:
+    if source not in SOURCES:
+        raise ValueError(f"unknown camera calibration source {source!r}")
+    capture_path, vp_clone, out_dir = capture_path.resolve(), vp_clone.resolve(), out_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    if source == "settings":
+        return make_h_settings(capture_path, vp_clone, python, out_dir)
+    capture = json.loads(capture_path.read_text())
+    frame = capture_path.parent / capture["frame"]["path"]
     up = out_dir / "upstream"
     up.mkdir(exist_ok=True)
     blobs = {}
@@ -496,7 +546,7 @@ def make_h(capture_path: Path, vp_clone: Path, python: str, out_dir: Path) -> di
         blobs[path] = {"sha256": sha256(data), "pin": VP_PIN}
     h_yaml = out_dir / "H.yaml"
     calc = run_upstream_calc(python, up / Path(UPSTREAM_CALC).name, frame, h_yaml, capture["upstreamArgs"], out_dir)
-    record = {"recordVersion": 1, "kind": "camera-calibration-file", "decision": "the owner's decision 6 of "
+    record = {"recordVersion": 1, "kind": "camera-calibration-file", "source": "checkerboard", "decision": "the owner's decision 6 of "
               "2026-11-18: an H.yaml for the CARLA camera computed with upstream's script, hashed and named in "
               "every verdict", "capture": {"path": str(capture_path), "sha256": sha256(capture_path.read_bytes())},
               "frame": {"path": str(frame), "sha256": sha256(frame.read_bytes())}, "upstreamScripts": blobs,
@@ -535,6 +585,9 @@ def main(argv=None) -> int:
     mk.add_argument("--vp-clone", required=True, type=Path, help="a VisionPilot clone holding the pin")
     mk.add_argument("--python", default=sys.executable, help="a Python with OpenCV and numpy")
     mk.add_argument("--out-dir", required=True, type=Path)
+    mk.add_argument("--source", choices=SOURCES, default="checkerboard",
+                    help="checkerboard: upstream's procedure on the captured frame (default); settings: H from the "
+                         "simulated camera's settings and pose (no board frame needed, no cross-check)")
     pr = sub.add_parser("predict", help="pixel positions of the board centers from the camera settings")
     pr.add_argument("--front-bumper-x", type=float, required=True, help="the hero's bumper x in its frame, m")
     pr.add_argument("--near-m", type=float, default=DEFAULT_NEAR_M)
@@ -542,7 +595,7 @@ def main(argv=None) -> int:
     pr.add_argument("--half-spacing-m", type=float, default=DEFAULT_HALF_SPACING_M)
     a = p.parse_args(argv)
     if a.command == "make-h":
-        record = make_h(a.capture, a.vp_clone, a.python, a.out_dir)
+        record = make_h(a.capture, a.vp_clone, a.python, a.out_dir, a.source)
         print(json.dumps({k: record.get(k) for k in ("result", "files")}, indent=1))
         return 0 if record.get("result") == "written" else 1
     from da_world_side import FRONT_CAMERA  # noqa: WPS433

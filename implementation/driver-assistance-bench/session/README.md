@@ -426,9 +426,35 @@ lookup fails under Enforcing on these images (SELinux, above). Every result of t
 permissive IVI: `session.json` says so (`conditional_on_permissive_ivi`, also in its `p10_2` report), and so must
 every write-up of it.
 
+A `p10-2` session also runs with `--camcal settings` (the lead's decision of 2026-11-19, owner informed): the
+candidate's `H.yaml` is the homography of the road plane computed from the simulated camera's known pose and lens
+(`camera_calibration.py make-h --source settings`, `H_settings`), in upstream's `H.yaml` layout, and
+`homography_C_matrix.yaml` is derived from it by upstream's `find_homography_C_matrix.py`, as upstream's build does
+(VisionPilot/CMakeLists.txt:49-53 at 014e0e7a).
+
+- Why: CARLA 1.0's `apply_texture` sets only material parameters named BaseColor, Difuse, Normal, Emissive or ORMH
+  (CarlaGameModeBase.cpp:505-548 at 14ac3b1a50), and the material of the engine plane the boards are laid on
+  (`/Engine/BasicShapes/Plane`) has none of them. On the real G4 the boards render flat grey, and upstream's
+  calc_front_camera_homography.py finds 0 boards, so the default source would end the session at camera-capture.
+- What is checked: on four full-contrast boards rendered at the bench camera's real G4 pose, upstream's own
+  procedure agrees with this `H.yaml` to 0.30 % of the distance at 10-60 m (the bench's tolerance is 2 %; the test
+  `test_gate_settings_h_yaml_agrees_with_upstreams_procedure_on_full_contrast_boards_at_the_g4_pose`).
+- What is lost: upstream's procedure is not exercised on a real frame, and the session has no real-frame
+  cross-check. `session.json` records `camera_calibration_source` `settings` with its reason and
+  `camera_calibration_cross_check` "not run: no board rendered" (also in its `p10_2` report).
+- camera-capture still runs and keeps its frame as evidence. Its board pre-check is recorded
+  (`camera_capture_precheck`) and does not end the session. With the default source (`--camcal checkerboard`)
+  nothing changes: a failing frame ends the session at camera-capture.
+- The source comes only from the flag, never from a fallback: a make-h whose record names another source ends the
+  session at `make_h`.
+- `gapCameraImageAndGeometry` stays open: the settings' homography is only as right as the camera settings the
+  world side reads back, and no real frame has confirmed it.
+
 ```bash
 C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
 # --permissive-ivi: every result of the session is conditional on a permissive IVI (the lead's decision of 2026-11-19)
+# --camcal settings: H.yaml from the simulated camera's settings and pose, not from a board frame (the boards render
+# flat grey: CarlaGameModeBase.cpp:505-548 at 14ac3b1a50); no real-frame cross-check; gapCameraImageAndGeometry open
 cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1
 S=implementation/driver-assistance-bench/session
 # the dry run needs the VisionPilot clone at the pin (VP_CLONE, default ~/de4sdv-upstream/vision_pilot); make-h is
@@ -436,13 +462,13 @@ S=implementation/driver-assistance-bench/session
 D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
 env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
   DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" \
-  bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --permissive-ivi --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+  bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --permissive-ivi --camcal settings --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
 SID=$(date -u +%Y%m%dT%H%M%SZ)
 systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
   -p StandardOutput=append:$HOME/p10-2-$SID.out -p StandardError=append:$HOME/p10-2-$SID.out \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
-  /bin/bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --permissive-ivi --session-id "$SID"
+  /bin/bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --permissive-ivi --camcal settings --session-id "$SID"
 # end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (never kill -9)
 ```
 
@@ -510,7 +536,7 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_SCORE_STOP` | S-CORE | `<out>` (the start's) | Launch Manager lane | ends the processes (SIGTERM, so the candidate's `.rrd` and the visualization file are finished) and collects their files; the world still ticks meanwhile |
 | `ENTRY_SIM_SETUP` | simulator | `<out>` | this lane: `remote/sim_setup.sh` | CARLA server up on port 2000, NVENC test, free disk; the world side's map (`WORLD_MAP` of `world-side/scripts/common.sh`) in the server's `get_available_maps()`, or it fails naming the AdditionalMaps pack (`world-side/README.md`, "The maps pack") |
 | `ENTRY_SIM_WARMUP` | simulator | `<out>` | `../world-side/scripts/warmup.sh` | the survey, the session's road in `world_start.json`, the warm-up pass with every camera (hero role `hero`, moved by pose) |
-| `ENTRY_SIM_CALIBRATE` | simulator | `<out>` | `../world-side/scripts/calibrate.sh` | ASM-DRIVING-005 and the camera capture, role `de4sdv_calibration`, no candidate; required for `p10-2` |
+| `ENTRY_SIM_CALIBRATE` | simulator | `<out> <checkerboard or settings>` (the session's `--camcal`) | `../world-side/scripts/calibrate.sh` | ASM-DRIVING-005 and the camera capture, role `de4sdv_calibration`, no candidate; required for `p10-2` |
 | `ENTRY_SIM_RUN` | simulator | `<out> <scenario> <setting>` | `../world-side/scripts/run_scenario.sh` | one run (`SC-DRIVING-012 20kmh`, or `ASM-DRIVING-006 20kmh`), detached, with the go/release handshake (`../world-side/README.md`); its records in `<out>/simulator/`; in `p10-1` the world of `P10_1_SCENARIO` `P10_1_SETTING` with `RELEASE_WAIT_S` above the check's bound |
 | `ENTRY_SIM_RECORD` | simulator | `--out <dir>` | this lane: `../recording/chase_recorder.py` | started before the warm-up and before the run, ends on its own |
 | `ENTRY_GUEST_UP` | guest | `<out>` | this lane: `remote/guest_up.sh` | both guests created fresh (`launch_two_vms.sh down`, `up`) and booted; `getenforce` recorded, `setenforce 0` on the IVI only with `IVI_PERMISSIVE=1` |

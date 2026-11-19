@@ -173,6 +173,30 @@ def test_calibrate_needs_the_checkerboard(tmp_path: Path) -> None:
     assert p.returncode == 2 and "no checkerboard" in p.stdout
 
 
+def test_calibrate_with_the_settings_source_records_the_precheck_and_refuses_an_unknown_source(tmp_path: Path) -> None:
+    # p10-2's settings source: camera-capture still runs and keeps its frame, its pre-check is recorded, never ends the
+    # step; the default (checkerboard) still enforces it; any other source is refused before the world side runs
+    board = tmp_path / "board.png"
+    board.write_bytes(camcal.bgra_to_png(bytes([0, 0, 0, 255, 255, 255, 255, 255] * 8), 4, 4))
+    env = script_env(tmp_path, WORLD_START="35:-2:0.0", CALIB_SPEEDS="20", CALIB_DECELS="5",
+                     CHECKERBOARD=str(board), FAKE_TEXTURE_TAKES="NoSuchParameter")
+    out = tmp_path / "s"
+    p = subprocess.run(["bash", str(SCRIPTS / "calibrate.sh"), str(out), "settings"], env=env, capture_output=True,
+                       text=True, timeout=180)
+    assert p.returncode == 0, p.stdout + p.stderr
+    assert "--precheck record" in p.stdout and "CALIBRATE_DONE" in p.stdout
+    cap = json.loads((out / "camcal" / "simulator" / "camera_capture.json").read_text())
+    assert cap["precheck"]["passed"] is False and cap["precheck"]["enforced"] is False
+    assert (out / "camcal" / "simulator" / "calibration_frame.png").stat().st_size > 0
+    p = subprocess.run(["bash", str(SCRIPTS / "calibrate.sh"), str(tmp_path / "k"), "checkerboard"], env=env,
+                       capture_output=True, text=True, timeout=180)
+    assert p.returncode == 2 and "--precheck on" in p.stdout, p.stdout + p.stderr
+    p = subprocess.run(["bash", str(SCRIPTS / "calibrate.sh"), str(tmp_path / "g"), "guess"], env=env,
+                       capture_output=True, text=True, timeout=30)
+    assert p.returncode == 2 and "unknown camera calibration source" in p.stdout
+    assert not (tmp_path / "g" / "calib_decel").exists()
+
+
 # ----------------------------------------------------------------------------------- in process, fake clock
 
 

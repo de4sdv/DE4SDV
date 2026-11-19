@@ -340,3 +340,143 @@ def test_r1_upstreams_loop_in_the_precheck_finds_no_board_on_the_real_frame_and_
                           env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
     assert done.returncode == 0, done.stderr[-2000:]
     assert json.loads(done.stdout.strip().splitlines()[-1]) == [0, 4]
+
+
+# ------------------------------------------------------------------ the settings source (p10-2, the lead's decision of
+# 2026-11-19): CARLA 1.0's apply_texture never reaches the engine plane's material (CarlaGameModeBase.cpp:505-548 at
+# 14ac3b1a50), so p10-2's H.yaml comes from the simulated camera's settings and pose, not from a board frame
+
+def _g4_capture() -> dict:
+    # camera_capture.json of this lane's G4 rehearsal (Town06_Opt, CARLA 1.0-14ac3b1a5): the bench camera's real pose
+    cap = json.loads((DATA / "town06_g4_capture.json").read_text())
+    assert cap["frame"]["sha256"].startswith("b1f3ea3e") and cap["map"] == "Carla/Maps/Town06_Opt"
+    return cap
+
+
+def _settings_h(tmp_path: Path) -> tuple[dict, list]:
+    cap = _g4_capture()
+    (tmp_path / "cap").mkdir()
+    (tmp_path / "cap" / "camera_capture.json").write_text(json.dumps(cap))
+    (tmp_path / "cap" / "calibration_frame.png").write_bytes(cc.bgra_to_png(bytes([90, 90, 90, 255]) * 16, 4, 4))
+    rec = cc.make_h(tmp_path / "cap" / "camera_capture.json", VP_CLONE, CV_PYTHON, tmp_path / "set", source="settings")
+    return rec, cc.read_opencv_yaml((tmp_path / "set" / "H.yaml").read_text(), "H")
+
+
+@pytest.mark.skipif(not ((VP_CLONE / ".git").exists() and _cv_python_ok()),
+                    reason="needs the VisionPilot clone and a Python with OpenCV")
+def test_gate_settings_h_yaml_agrees_with_upstreams_procedure_on_full_contrast_boards_at_the_g4_pose(tmp_path):
+    # The gate of the settings source: upstream's own procedure (calc_front_camera_homography.py, unchanged, through
+    # make-h's two shims) on four perfectly rendered boards at the bench camera's real G4 pose (1920x1280, FOV 50) must
+    # agree with the H.yaml that make-h --source settings writes, within the bench's AGREE_TOLERANCE (2 %, 10-60 m).
+    # The boards lie on the road (lift 0), the plane the settings' H describes; the render casts rays through
+    # CARLA's camera vectors, independently of the matrix homography (tests/synthetic_render.py)
+    rec_set, h_file = _settings_h(tmp_path)
+    cap = _g4_capture()
+    cap["boardLiftM"] = 0.0
+    cap["frame"] = {"path": "board_frame.png"}
+    board = tmp_path / "board.png"
+    board.write_bytes(cc.upstream_blob(VP_CLONE, cc.UPSTREAM_BOARD))
+    spec = tmp_path / "spec.json"
+    spec.write_text(json.dumps({"camera": cc.camera_in_ground_frame(cap),
+                                "boards": [list(v) for v in cap["upstreamArgs"].values()],
+                                "board_m": cap["boardSizeM"], "plane_z": 0.0}))
+    subprocess.run([CV_PYTHON, str(HERE / "synthetic_render.py"), str(spec), str(board),
+                    str(tmp_path / "board_frame.png")], check=True)
+    (tmp_path / "board_capture.json").write_text(json.dumps(cap))
+    rec_up = cc.make_h(tmp_path / "board_capture.json", VP_CLONE, CV_PYTHON, tmp_path / "up")
+    assert rec_up["result"] == "written", rec_up["upstreamRun"]["stderr"]
+    assert len(rec_up["upstreamRun"]["imagePoints"]) == 4
+    check = cc.cross_check(rec_up["H_upstream"], h_file)
+    print("gate: upstream's H against the settings' H.yaml, max |relErrX| 10-60 m:", check["maxRelErrXInRange"])
+    assert cc.AGREE_TOLERANCE == 0.02
+    assert check["agreeWithinProposal"] is True and check["maxRelErrXInRange"] <= 0.02, check
+    # the same convention, not only the same scale: lateral positions agree too (|dY| < 5 cm at 10-60 m)
+    for p in check["points"]:
+        if 10.0 <= p["X"] <= 60.0:
+            assert abs(p["upstreamY"] - p["Y"]) < 0.05, p
+
+
+@pytest.mark.skipif(not ((VP_CLONE / ".git").exists() and _cv_python_ok()),
+                    reason="needs the VisionPilot clone and a Python with OpenCV")
+def test_make_h_settings_writes_upstreams_h_yaml_from_the_camera_settings_and_records_why(tmp_path):
+    rec, h_file = _settings_h(tmp_path)
+    cap = _g4_capture()
+    assert rec["result"] == "written"
+    assert rec["source"] == "settings"
+    assert "CarlaGameModeBase.cpp:505-548" in rec["sourceReason"] and "14ac3b1a50" in rec["sourceReason"]
+    assert rec["crossCheck"] == "not run: no board rendered"
+    # H.yaml: the settings' homography of the road plane (z = 0 above groundZ) in upstream's FileStorage layout
+    text = (tmp_path / "set" / "H.yaml").read_text()
+    assert text.startswith("%YAML:1.0\n---\nH: !!opencv-matrix\n")
+    want = cc.image_to_ground(cc.camera_in_ground_frame(cap), 0.0)
+    assert all(abs(a - b) <= 1e-12 * max(1.0, abs(b)) for ra, rb in zip(h_file, want) for a, b in zip(ra, rb))
+    assert rec["H_settings"] == want and rec["planeZM"] == 0.0
+    # upstream's calc script never ran; its find_homography_C_matrix.py derived the second file from that H.yaml
+    assert "upstreamRun" not in rec and list(rec["upstreamScripts"]) == [cc.UPSTREAM_C]
+    assert rec["cMatrixRun"]["returncode"] == 0
+    for name in ("H.yaml", "homography_C_matrix.yaml"):
+        entry = rec["files"][name]
+        assert entry["sha256"] == cc.sha256(Path(entry["path"]).read_bytes())
+    # the capture's frame stays evidence, and its pre-check verdict is recorded, not enforced
+    assert rec["frame"]["sha256"] == cc.sha256((tmp_path / "cap" / "calibration_frame.png").read_bytes())
+    assert rec["capturePrecheck"]["passed"] is False and "washed out" in rec["capturePrecheck"]["reason"]
+
+
+def test_make_h_takes_its_source_only_from_the_flag(tmp_path):
+    # never a silent fallback: the default is upstream's procedure on the frame; an unknown source is refused
+    with pytest.raises(SystemExit) as e:
+        cc.main(["make-h", "--capture", "x", "--vp-clone", "y", "--out-dir", str(tmp_path), "--source", "guess"])
+    assert e.value.code == 2
+    seen = {}
+
+    def fake(capture, clone, python, out, source):
+        seen["source"] = source
+        return {"result": "written", "files": {}}
+    orig = cc.make_h
+    cc.make_h = fake
+    try:
+        assert cc.main(["make-h", "--capture", "x", "--vp-clone", "y", "--out-dir", str(tmp_path)]) == 0
+        assert seen["source"] == "checkerboard"
+        assert cc.main(["make-h", "--capture", "x", "--vp-clone", "y", "--out-dir", str(tmp_path),
+                        "--source", "settings"]) == 0
+        assert seen["source"] == "settings"
+    finally:
+        cc.make_h = orig
+
+
+@pytest.mark.skipif(not ((VP_CLONE / ".git").exists() and _cv_python_ok()),
+                    reason="needs the VisionPilot clone and a Python with OpenCV")
+def test_make_h_checkerboard_on_a_washed_out_frame_writes_nothing_and_never_falls_back(tmp_path):
+    # the real Town06_Opt frame (4x downscaled fixture, scaled back): upstream's script finds no board, so the
+    # default source writes no H.yaml; it never falls back to the settings
+    cap = json.loads((DATA / "town06_washed_out_capture.json").read_text())
+    w, h, raw = _bgra_from_grey_png(DATA / "town06_washed_out_frame_x4.png", 4)
+    (tmp_path / "f.png").write_bytes(cc.bgra_to_png(raw, w, h))
+    cap["frame"] = {"path": "f.png"}
+    (tmp_path / "c.json").write_text(json.dumps(cap))
+    rec = cc.make_h(tmp_path / "c.json", VP_CLONE, CV_PYTHON, tmp_path / "out")
+    assert rec["source"] == "checkerboard"
+    assert rec["result"].startswith("upstream's script found no homography")
+    assert not (tmp_path / "out" / "H.yaml").exists() and "H_settings" not in rec
+
+
+def test_camera_capture_precheck_record_keeps_a_washed_out_frame_without_failing(tmp_path, server, factory, clock,
+                                                                                  monkeypatch):
+    # with the settings source the capture's frame is evidence only: --precheck record judges and records the frame
+    # and ends 0; --precheck on (the default, the checkerboard source) still exits 2 on the same frame
+    monkeypatch.setenv("FAKE_TEXTURE_TAKES", "NoSuchParameter")
+    board = tmp_path / "board.png"
+    board.write_bytes(_png(8, 8, [[(0, 0, 0, 255) if (x // 2 + y // 2) % 2 else (255, 255, 255, 255)
+                                   for x in range(8)] for y in range(8)]))
+    rc, _ = run_main(["camera-capture", "--run-dir", str(tmp_path / "c"), "--checkerboard", str(board),
+                      "--precheck", "record"], factory, clock)
+    assert rc == 0
+    cap = json.loads((tmp_path / "c" / "simulator" / "camera_capture.json").read_text())
+    assert cap["precheck"]["passed"] is False and "washed out" in cap["precheck"]["reason"], cap["precheck"]
+    assert cap["precheck"]["enforced"] is False
+    assert (tmp_path / "c" / "simulator" / "calibration_frame.png").is_file()
+    rc, _ = run_main(["camera-capture", "--run-dir", str(tmp_path / "d"), "--checkerboard", str(board)],
+                     factory, clock)
+    assert rc == 2
+    cap = json.loads((tmp_path / "d" / "simulator" / "camera_capture.json").read_text())
+    assert cap["precheck"]["enforced"] is True

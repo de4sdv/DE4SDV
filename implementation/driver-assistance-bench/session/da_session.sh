@@ -23,6 +23,11 @@
 #   --permissive-ivi       the IVI guest is set permissive (setenforce 0); every result of the session is then
 #                          conditional on a permissive IVI, and session.json says so. Default: the guests as they
 #                          boot (Enforcing); their mode is recorded at every window either way
+#   --camcal checkerboard|settings  p10-2's camera calibration source (default checkerboard): checkerboard runs
+#                          upstream's procedure on the captured frame and ends the session on a failing frame;
+#                          settings writes H.yaml from the simulated camera's settings and pose (make-h --source
+#                          settings), keeps the frame as evidence with its pre-check recorded only, and runs no
+#                          cross-check. Taken only from this flag, never as a fallback; session.json records it
 #   --dry-run              use the fake gcloud in $DA_GCLOUD; print every command; shorter waits (DA_T_* knobs)
 #
 # Every internal IP comes from gcloud at run time; none is configured. SIM_SSH_IAP=1 (hosts.env) sends every ssh and
@@ -49,7 +54,7 @@ BENCH_REL=implementation/driver-assistance-bench
 unset GC_TO   # a gcloud call's time-out is the session's own (gc: 120 s, the trap: 30 s), never the caller's (S10)
 
 KIND=""; DRY=0; CAP=""; OWNER_OK_GUEST=0; WITHOUT_GUEST=0; SID=""; KIT_FROM=head; KIT_EXTRA=""; CARLA_HOST=""
-IVI_PERMISSIVE=0; RENV_ARGS=()
+IVI_PERMISSIVE=0; RENV_ARGS=(); CAMCAL_SOURCE=checkerboard; CAMCAL_GIVEN=0
 EVID=${DA_EVIDENCE_ROOT:-$HOME/.hermes/outputs/inc-driving-002/phase10/sessions}
 BENCH_TREE=$(cd -- "$HERE/../../.." && pwd)
 while [ $# -gt 0 ]; do
@@ -67,7 +72,8 @@ while [ $# -gt 0 ]; do
     --carla-host) CARLA_HOST=${2:?}; shift 2 ;;
     --permissive-ivi) IVI_PERMISSIVE=1; shift ;;
     --remote-env) RENV_ARGS+=("${2:?}"); shift 2 ;;
-    -h|--help) sed -n '2,39p' "$0"; exit 0 ;;
+    --camcal) CAMCAL_SOURCE=${2:?}; CAMCAL_GIVEN=1; shift 2 ;;
+    -h|--help) sed -n '2,44p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -79,6 +85,18 @@ case "$KIND" in
          CAP=${CAP:-$CAP_EUR_P10_2} ;;
   *) echo "--kind p10-1|p10-3|p10-2 is required" >&2; exit 2 ;;
 esac
+# the camera calibration's source: only from --camcal (the lead's decision of 2026-11-19 for p10-2), never a fallback
+case "$CAMCAL_SOURCE" in
+  checkerboard|settings) ;;
+  *) echo "refused: --camcal takes checkerboard or settings, not '$CAMCAL_SOURCE'"; exit 2 ;;
+esac
+[ "$CAMCAL_GIVEN" = 1 ] && [ "$KIND" != p10-2 ] && { echo "refused: --camcal is for p10-2 only (no other kind makes a calibration file)"; exit 2; }
+if [ "$CAMCAL_SOURCE" = settings ]; then
+  CAMCAL_REASON="the lead's decision of 2026-11-19 (owner informed): CARLA 1.0's apply_texture sets only material parameters named BaseColor, Difuse, Normal, Emissive or ORMH (CarlaGameModeBase.cpp:505-548 at 14ac3b1a50) and the engine plane's material has none of them, so the boards render flat grey and upstream's script finds 0 boards; H.yaml comes from the simulated camera's settings and pose"
+else
+  CAMCAL_REASON="upstream's procedure (Calibration/calc_front_camera_homography.py at the VisionPilot pin) on the captured frame"
+fi
+CAMCAL_XCHECK=""; CAMCAL_PRECHECK=""
 
 # per-session settings of the remote entries (R6): only the names on its host's list below, and only when given on
 # purpose with --remote-env NAME=VALUE (S4: an exported variable of the calling shell, another worker's UNIT_WAIT_S
@@ -639,6 +657,7 @@ p10_2_report() {   # p10-2's display recording is complete only when every recor
   local n w x e rc by k why=() PERM_NOTE=""
   # R2 of the closure check of 7befc3c1: a --permissive-ivi session's report says so, as session.json does
   [ "$IVI_PERMISSIVE" = 1 ] && PERM_NOTE=" (conditional on a permissive IVI)"
+  log "p10-2 camera calibration source: $CAMCAL_SOURCE ($CAMCAL_REASON); cross-check: ${CAMCAL_XCHECK:-not reached (no make_h)}"
   if [[ " ${ROLES[*]} " != *" guest "* ]]; then
     P10_2_COMPLETE=none; P10_2_REASON="no display capture: --without-guest-host"; log "p10-2: $P10_2_REASON"; return 0
   fi
@@ -709,12 +728,20 @@ write_record() {
   TERMED_AFTER="$TERMED_AFTER" TERMED_FAIL="$TERMED_FAIL" P10_3_PASSED="${P10_3_PASSED:-}" \
   P10_3_REASON="${P10_3_REASON:-}" CROSVM_BEFORE="${CROSVM_BEFORE:-}" CAPTURES="$CAPTURES" \
   P10_2_COMPLETE="${P10_2_COMPLETE:-}" P10_2_REASON="${P10_2_REASON:-}" \
+  CAMCAL_SOURCE="$CAMCAL_SOURCE" CAMCAL_REASON="$CAMCAL_REASON" CAMCAL_XCHECK="$CAMCAL_XCHECK" \
+  CAMCAL_PRECHECK="$CAMCAL_PRECHECK" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
 p10_1 = os.path.join(e["IN"], "p10_1_summary.json")
 ips = dict(x.split("=", 1) for x in e["IPS"].split() if "=" in x)
 starts = [l.split() for l in open(os.path.join(e["IN"], "starts.tsv")) if l.strip()]
+camcal = {"camera_calibration_source": e["CAMCAL_SOURCE"], "camera_calibration_source_reason": e["CAMCAL_REASON"],
+          "camera_calibration_cross_check": e["CAMCAL_XCHECK"] or None} if e["KIND"] == "p10-2" else {}
+try:
+    precheck = json.loads(e["CAMCAL_PRECHECK"]) if e["CAMCAL_PRECHECK"] else None
+except ValueError:
+    precheck = None
 renv = {}
 for line in e["RENV"].splitlines():
     role, name, value = (line.split("\t", 2) + ["", ""])[:3]
@@ -726,6 +753,10 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "bench_commit": e["BENCH_COMMIT"] or None, "worktree_changes": e["WT_CHANGES"] or None,
            "sim_ssh_iap": e["IAP"] == "1", "internal_ips_from_gcloud": ips,
            "camera_calibration_sha256": dict(x.split("=", 1) for x in e["CAMCAL"].split() if "=" in x) or None,
+           "camera_calibration_source": camcal.get("camera_calibration_source"),
+           "camera_calibration_source_reason": camcal.get("camera_calibration_source_reason"),
+           "camera_calibration_cross_check": camcal.get("camera_calibration_cross_check"),
+           "camera_capture_precheck": precheck,
            "conditional_on_permissive_ivi": e["PERM"] == "1",
            "vm_status_after": dict(x.split("=", 1) for x in e["VM_AFTER"].split() if "=" in x),
            "left_running": e["LEFT"].split(), "exit_code_without_left_running": int(e["RC_STEPS"]),
@@ -748,7 +779,7 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
                                    "closed_by": by.replace("_", " "), "guest_files_kept": k == "1"}
                                for w, end, rc, by, k in (x.split(":", 4) for x in e["CAPTURES"].split())},
            "p10_2": {"display_recording_complete": {"1": True, "0": False}.get(e["P10_2_COMPLETE"]),
-                     "reason": e["P10_2_REASON"], "conditional_on_permissive_ivi": e["PERM"] == "1"}
+                     "reason": e["P10_2_REASON"], "conditional_on_permissive_ivi": e["PERM"] == "1", **camcal}
                     if e["KIND"] == "p10-2" else None},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
@@ -765,6 +796,7 @@ trap 'on_signal HUP 129' HUP
 
 log "SESSION_START $SID kind=$KIND hosts=${ROLES[*]} cap=$CAP EUR dry_run=$DRY sim_ssh_iap=$SIM_SSH_IAP permissive_ivi=$IVI_PERMISSIVE"
 [ "$IVI_PERMISSIVE" = 1 ] && log "every result of this session is conditional on a permissive IVI (--permissive-ivi)"
+[ "$KIND" = p10-2 ] && log "camera calibration source: $CAMCAL_SOURCE (--camcal): $CAMCAL_REASON"
 
 # the --remote-env settings, per host, in the order of its list
 REMOTE_ENV_SET=""
@@ -1130,23 +1162,52 @@ port_test() {   # p10-1: CARLA's ports on the simulator host, from the S-CORE ho
 make_h() {   # on this host: the capture from the simulator host, make-h, both files onto the S-CORE host
   local d=$IN/camcal src="da-kit/$SID/out/calibrate/camcal/simulator" vm f rc loc got
   vm=$(var sim VM); mkdir -p "$d/capture"; SEQ+=("lead:make_h")
-  log "step make_h on this host: the camera capture from $vm, then camera_calibration.py make-h"
+  log "step make_h on this host: the camera capture from $vm, then camera_calibration.py make-h --source $CAMCAL_SOURCE"
   routall scp_r sim 300 "$vm:$src/camera_capture.json" "$vm:$src/calibration_frame.png" "$d/capture/"
   printf '%s\n' "$ROUT" | one >> "$LOG"
   [ -s "$d/capture/camera_capture.json" ] && [ -s "$d/capture/calibration_frame.png" ] \
     || { STEP_FAIL=make_h; abort 5 "make_h: the camera capture did not arrive"; }
   if [ -n "$MAKE_H" ]; then
-    timeout "$T_MAKE_H" "$MAKE_H" --capture "$d/capture/camera_capture.json" --out-dir "$d/h" > "$d/make_h.log" 2>&1; rc=$?
+    timeout "$T_MAKE_H" "$MAKE_H" --capture "$d/capture/camera_capture.json" --out-dir "$d/h" \
+      --source "$CAMCAL_SOURCE" > "$d/make_h.log" 2>&1; rc=$?
   else
     mkdir -p "$d/code" && tar -xzf "$KIT" -C "$d/code" bench/world-side
     timeout "$T_MAKE_H" "$CV_PY" "$d/code/bench/world-side/camera_calibration.py" make-h \
       --capture "$d/capture/camera_capture.json" --vp-clone "$VP_CLONE" --python "$CV_PY" --out-dir "$d/h" \
-      > "$d/make_h.log" 2>&1; rc=$?
+      --source "$CAMCAL_SOURCE" > "$d/make_h.log" 2>&1; rc=$?
   fi
   log "step make_h rc=$rc"
   for f in H.yaml homography_C_matrix.yaml; do
     [ "$rc" = 0 ] && [ -s "$d/h/$f" ] || { STEP_FAIL=make_h; abort 5 "make_h: no $f (see camcal/make_h.log)"; }
   done
+  # never a silent fallback: make-h's record must name the source this session's --camcal chose
+  local made
+  made=$(python3 - "$d/h/camera_calibration_record.json" "$d/capture/camera_capture.json" "$d/camcal_facts.json" \
+    "$CAMCAL_SOURCE" <<'PY'
+import json, sys
+try:
+    rec = json.load(open(sys.argv[1], encoding="utf-8"))
+except (OSError, ValueError):
+    rec = {}
+try:
+    pre = json.load(open(sys.argv[2], encoding="utf-8")).get("precheck")
+except (OSError, ValueError, AttributeError):
+    pre = None
+x = rec.get("crossCheck")
+if isinstance(x, dict):
+    x = "maxRelErrXInRange %s (tolerance %s), agreeWithinProposal %s" % (x.get("maxRelErrXInRange"),
+                                                                         x.get("tolerance"), x.get("agreeWithinProposal"))
+if sys.argv[4] == "settings":   # upstream's script ran on no board frame: no cross-check exists
+    x = "not run: no board rendered"
+json.dump({"precheck": pre, "cross_check": x or "not in make-h's record"}, open(sys.argv[3], "w"))
+print(rec.get("source") if isinstance(rec, dict) else None)
+PY
+)
+  [ "$made" = "$CAMCAL_SOURCE" ] \
+    || { STEP_FAIL=make_h; abort 5 "make_h: the record names the source $made, not --camcal $CAMCAL_SOURCE"; }
+  CAMCAL_XCHECK=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["cross_check"])' "$d/camcal_facts.json")
+  CAMCAL_PRECHECK=$(python3 -c 'import json, sys; print(json.dumps(json.load(open(sys.argv[1]))["precheck"]))' "$d/camcal_facts.json")
+  log "camera calibration source $CAMCAL_SOURCE; cross-check: $CAMCAL_XCHECK; the capture's pre-check (recorded$([ "$CAMCAL_SOURCE" = settings ] && echo ', not enforced')): $CAMCAL_PRECHECK"
   loc=$(cd "$d/h" && sha256sum H.yaml homography_C_matrix.yaml)
   CAMCAL_SHA=$(echo "$loc" | awk '{printf "%s=%s ", $2, $1}')
   run_fg ssh_l score 60 "mkdir -p da-kit/$SID/camera_calibration" > /dev/null 2>&1
@@ -1218,7 +1279,8 @@ case "$KIND" in
     rwait sim rec_warmup "$T_REC_END" || { abort 5 "the warm-up's recorder did not end well: no recorded run"; }
     # ASM-DRIVING-005 and the camera capture, without candidate or adapter; then the calibration file, which the
     # S-CORE side copies into the candidate's working directory before its identity record
-    rstep sim calibrate "$T_CALIBRATE" "$SENV" bash "$ENTRY_SIM_CALIBRATE" "$(od calibrate)"
+    # its second argument is the calibration source: with settings the capture's pre-check is recorded, not enforced
+    rstep sim calibrate "$T_CALIBRATE" "$SENV" bash "$ENTRY_SIM_CALIBRATE" "$(od calibrate)" "$CAMCAL_SOURCE"
     make_h
     [ "$P10_2_CALIB_STEER" = 1 ] && world_run calib_steer ASM-DRIVING-006 "$P10_2_SETTING" 0 "$([ "$P10_2_RUNS" -ge 1 ] && echo 1 || echo 0)"
     for n in $(seq 1 "$P10_2_RUNS"); do

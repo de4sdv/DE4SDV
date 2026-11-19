@@ -1015,13 +1015,15 @@ def cmd_camera_capture(ws: WorldSide) -> dict:
     }
     # the frame judged here, at capture time, with a named reason (R1): a washed-out frame used to fail only at the
     # session's make_h on the lead host, about 25 min of all three hosts later
+    # --precheck record (the session's settings source): the verdict is recorded and never ends the capture
     if ws.args.precheck == "off":
         capture["precheck"] = {"passed": None, "reason": "--precheck off"}
     else:
         capture["precheck"] = camcal.precheck(capture, raw, image.width, image.height,
                                               min_spread=int(ws.args.precheck_min_spread))
+    capture["precheck"]["enforced"] = ws.args.precheck == "on"
     (ws.sim_dir / "camera_capture.json").write_text(json.dumps(capture, indent=1))
-    if capture["precheck"]["passed"] is False:
+    if capture["precheck"]["passed"] is False and capture["precheck"]["enforced"]:
         ws.event("end", reason="pre-check failed", frame=image.frame, precheck=capture["precheck"]["reason"])
         raise BenchError("camera-capture pre-check failed: " + capture["precheck"]["reason"]
                          + " (camera_capture.json precheck; the frame is kept)")
@@ -1064,8 +1066,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="camera-capture: carla.MaterialParameter names the checkerboard is applied as, comma-separated")
     p.add_argument("--weather", default=camcal.DEFAULT_WEATHER,
                    help="camera-capture: a carla.WeatherParameters preset, or 'keep'")
-    p.add_argument("--precheck", choices=["on", "off"], default="on",
-                   help="camera-capture: judge the frame (board contrast; OpenCV's board count where OpenCV is there)")
+    p.add_argument("--precheck", choices=["on", "record", "off"], default="on",
+                   help="camera-capture: judge the frame (board contrast; OpenCV's board count where OpenCV is there); "
+                        "on: a failing frame exits 2; record: the verdict is recorded only (the settings source)")
     p.add_argument("--precheck-min-spread", type=int, default=camcal.PRECHECK_MIN_SPREAD)
     p.add_argument("--board-lift-m", type=float, default=0.01)
     p.add_argument("--near-m", type=float, default=camcal.DEFAULT_NEAR_M)

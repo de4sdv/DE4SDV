@@ -1573,6 +1573,67 @@ def test_r8_abort_ends_a_step_alive_after_its_time_out_before_any_fetch(tmp_path
     assert len(sig) == 2 and pack and sig[1] < pack[0], (sig, pack)
 
 
+def test_the_readme_p10_2_block_takes_the_camera_calibration_from_the_settings() -> None:
+    # the lead's decision of 2026-11-19 (owner informed): CARLA 1.0's apply_texture never reaches the engine plane's
+    # material (CarlaGameModeBase.cpp:505-548 at 14ac3b1a50), so the boards render flat grey and upstream's script
+    # finds 0 boards; p10-2's H.yaml comes from the simulated camera's settings, chosen by the flag only
+    lines = [c for c in _readme_block("p10-2") if "da_session.sh" in c and not c.startswith("#")]
+    assert len(lines) == 2 and sum("--dry-run" in c for c in lines) == 1, lines
+    assert all("--kind p10-2 --owner-ok-guest-host --permissive-ivi --camcal settings" in c for c in lines), lines
+    block = " ".join(_readme_block("p10-2"))
+    assert "CarlaGameModeBase.cpp:505-548" in block and "gapCameraImageAndGeometry" in block, block
+
+
+def test_p10_2_with_camcal_settings_makes_h_from_the_settings_and_records_why(tmp_path: Path) -> None:
+    # the README's p10-2 line as written: calibrate keeps the capture with its pre-check recorded only, make-h runs
+    # with --source settings, and session.json and its p10_2 report name the source, the reason and the cross-check
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", "--permissive-ivi", "--camcal", "settings")
+    assert r.rc == 0, r.log
+    assert r.sequence() == p10_2_seq(), r.sequence()
+    cal = r.command(r.ssh(G4, "start calibrate")[0])
+    assert re.search(r"calibrate\.sh \S+/calibrate settings$", cal), cal
+    made = json.loads((r.incoming / "camcal" / "h" / "camera_calibration_record.json").read_text())
+    assert made["source"] == "settings", made
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["camera_calibration_source"] == "settings"
+    assert "CarlaGameModeBase.cpp:505-548" in rec["camera_calibration_source_reason"]
+    assert rec["camera_calibration_cross_check"] == "not run: no board rendered"
+    for k in ("camera_calibration_source", "camera_calibration_source_reason", "camera_calibration_cross_check"):
+        assert rec["p10_2"][k] == rec[k], rec["p10_2"]
+    assert re.search(r"p10-2 camera calibration source: settings \(.*CarlaGameModeBase\.cpp:505-548.*\); "
+                     r"cross-check: not run: no board rendered", r.log), r.log
+    # the default: upstream's procedure on the frame, its pre-check enforced, as before
+    r2 = run(tmp_path / "b", "p10-2", "--owner-ok-guest-host", "--permissive-ivi")
+    assert r2.rc == 0 and r2.sequence() == p10_2_seq()
+    assert re.search(r"calibrate\.sh \S+/calibrate checkerboard$", r2.command(r2.ssh(G4, "start calibrate")[0]))
+    rec2 = json.loads((r2.incoming / "session.json").read_text())
+    assert rec2["camera_calibration_source"] == "checkerboard" and rec2["p10_2"]["camera_calibration_source"] == \
+        "checkerboard"
+    made2 = json.loads((r2.incoming / "camcal" / "h" / "camera_calibration_record.json").read_text())
+    assert made2["source"] == "checkerboard"
+
+
+@pytest.mark.parametrize("more, needle", [
+    (("--kind", "p10-2", "--owner-ok-guest-host", "--camcal", "guess"), "--camcal takes checkerboard or settings"),
+    (("--kind", "p10-3", "--owner-ok-guest-host", "--camcal", "settings"), "--camcal is for p10-2 only"),
+])
+def test_camcal_refusals_before_any_start(tmp_path: Path, more: tuple, needle: str) -> None:
+    r = run(tmp_path, more[1], *more[2:])
+    assert r.rc == 2, r.stdout + r.log
+    assert needle in r.stdout + r.log
+    assert not r.index(lambda c: "start" in c or "stop" in c)
+
+
+def test_p10_2_make_h_whose_record_names_another_source_ends_the_session(tmp_path: Path) -> None:
+    # never a silent fallback: the record of make-h must name the source the flag chose, or the session ends at make_h
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", "--camcal", "settings", STUB_MAKE_H_SOURCE="checkerboard")
+    assert r.rc == 5, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["failed_step"] == "make_h"
+    assert "make_h: the record names the source checkerboard, not --camcal settings" in r.log
+    assert not r.ssh(L4, "start score_start_")
+
+
 def test_the_readme_ends_a_session_early_with_the_spelling_systemd_249_knows() -> None:
     # T3: the lead host's systemd 249 refuses --kill-whom ("unrecognized option"); --kill-who works there
     text = (HERE.parent / "README.md").read_text()

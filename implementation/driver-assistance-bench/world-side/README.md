@@ -154,6 +154,36 @@ render of the same geometry passes.
 
 If the frame shows no boards, the procedure stops there and reports. It does not fall back to the computed H.
 
+**The settings source (p10-2).** The lead decided on 2026-11-19, with the owner informed, that p10-2's calibration
+file comes from the simulated camera's settings, because no board renders (above). The source is chosen only by a
+flag: `make-h --source settings`, set by the session's `--camcal settings`. The default stays `--source
+checkerboard`, upstream's procedure on the frame, and it never falls back to the settings.
+
+- What it writes: `H.yaml` holds `H_settings`, the homography of the road plane (z = 0 above the capture's
+  `groundZ`). It is computed from the front camera's world pose and the hero's at the capture, and from the lens
+  (1920x1280, FOV 50). It uses upstream's `H.yaml` layout (image (u, v) to ground (X forward, Y left), h33 = 1).
+  `homography_C_matrix.yaml` is derived from it by upstream's `find_homography_C_matrix.py`, unchanged, as upstream's
+  build does (VisionPilot/CMakeLists.txt:49-53 at 014e0e7a).
+- What the record holds: `camera_calibration_record.json` records `source` `settings`, the reason (`sourceReason`)
+  and `crossCheck` "not run: no board rendered". It also keeps the frame's sha256 and the capture's pre-check
+  verdict (`capturePrecheck`).
+- The capture with this source: `calibrate.sh <out> settings` still runs `camera-capture` and keeps its frame. It
+  runs with `--precheck record`, so the verdict goes into `camera_capture.json` (`precheck.enforced` false) and a
+  washed-out frame does not end the step.
+- The gate: the model needs only that the candidate's homography matches the simulated camera
+  (`gapCameraImageAndGeometry`); it names no calibration procedure. The gate is
+  `test_gate_settings_h_yaml_agrees_with_upstreams_procedure_on_full_contrast_boards_at_the_g4_pose`. It renders four
+  full-contrast boards at the real G4 capture's camera pose (`tests/data/town06_g4_capture.json`) and runs upstream's
+  unchanged script on them through make-h's shims. Upstream's H agrees with the settings' `H.yaml` to 0.30 % of the
+  distance at 10-60 m (`AGREE_TOLERANCE` 2 %), and laterally to within 5 cm.
+- A real-frame sanity view: the real Town06_Opt capture frame, warped into a bird's-eye view with this `H.yaml`. Its
+  four lane lines run straight and parallel (fitted angles within 0.05 deg of each other), 3.49-3.51 m apart, and the
+  boards' gray squares sit where they were placed. The record is under
+  `~/.hermes/outputs/inc-driving-002/phase10/p10-2-ready-20261119/`.
+- What is lost: upstream's procedure is not exercised on a real frame, and no real-frame cross-check exists. The
+  settings' H is only as right as the camera settings the world side reads back from the simulator.
+  `gapCameraImageAndGeometry` stays open.
+
 ## The maps pack
 
 The highways come with CARLA's AdditionalMaps pack, not with the base package. The base package's server lists four
@@ -239,6 +269,7 @@ $PY $WS/da_world_side.py camera-capture --map Town06_Opt --start $START \
     --checkerboard $R/checkerboard-bw-4x4.png --run-dir $R/camcal
 python3 $WS/camera_calibration.py make-h --capture $R/camcal/simulator/camera_capture.json \
     --vp-clone <VisionPilot clone> --out-dir $R/camcal/h
+#    (p10-2: add --precheck record to camera-capture and --source settings to make-h, see "The settings source")
 #    -> H.yaml and homography_C_matrix.yaml into the candidate's working directory, before the identity record
 # 5. ASM-DRIVING-006: the world side first, then the S-CORE side once simulator/ready.json exists
 $PY $WS/da_world_side.py calib-steer --map Town06_Opt --setting SC-DRIVING-012@20 --start $START --run-dir $R/calib_steer
@@ -257,7 +288,7 @@ A bench session (`../session/`) runs these on the simulator host, with the bench
 | Script | Entry | What it runs | Exit |
 |---|---|---|---|
 | `warmup.sh <out>` | `ENTRY_SIM_WARMUP` | `survey` with SC-DRIVING-012@60 (the longest need), the first candidate as the session's road in `world_start.json`, then `warmup` with SC-DRIVING-012@20 | 0; 2 a bench error; 3 no road |
-| `calibrate.sh <out>` | `ENTRY_SIM_CALIBRATE` | `calib-decel` (20, 42, 60 km/h; 1 to 5 m/s²), then `camera-capture` with the checkerboard the session took from the pin; both with role `de4sdv_calibration`, before any S-CORE side start | 0; the world side's status |
+| `calibrate.sh <out> [checkerboard\|settings]` | `ENTRY_SIM_CALIBRATE` | `calib-decel` (20, 42, 60 km/h; 1 to 5 m/s²), then `camera-capture` with the checkerboard the session took from the pin; both with role `de4sdv_calibration`, before any S-CORE side start. The second argument is the session's `--camcal`: `checkerboard` (default) enforces the capture's pre-check (`--precheck on`), `settings` records it only (`--precheck record`) | 0; the world side's status; 2 an unknown source |
 | `run_scenario.sh <out> <scenario> <setting>` | `ENTRY_SIM_RUN` | `run` (SC-DRIVING-012) or `calib-steer` (ASM-DRIVING-006), at the session's road, with the handshake below | 0; 2 a bench error; 64 bad arguments |
 
 `camera_calibration.py make-h` needs OpenCV, which the simulator host's venv does not carry, so the session runs it
