@@ -140,24 +140,101 @@ them.
 
 ## Command lines for the lead
 
-Run from the integrated bench tree (the other lanes' entries merged in), on the lead host. A dry run first, then the
-session. Run a session detached from the terminal, its output into a file (`nohup ... > file 2>&1 &`, or
-`systemd-run --user`), never behind a pipe whose reader can go away; end a background session with SIGTERM (bash
-ignores SIGINT in a background job of a non-interactive shell):
+Rules behind every block, from the second review of the session runner (S3, S4):
+
+- Run from a detached worktree pinned to the integration commit under test: the kit is `git archive HEAD` of it.
+- Start every session, the dry runs too, from a clean environment (`env -i`). An exported `UNIT_WAIT_S`, `B12_DIR`,
+  `ADB`, `ENTRY_*`, `GUEST_STOP_CMD` or `DA_T_*` of the shell never reaches the session; a per-session setting of a
+  remote entry goes only through `--remote-env NAME=VALUE`.
+- Run the session in a user unit that never SIGKILLs its exit trap: `KillMode=mixed`, `TimeoutStopSec=infinity`,
+  `SendSIGHUP=no`. The trap needs far longer than systemd's default 90 s stop time-out: the running step's TERM
+  and its end, the S-CORE side's stop and the fetch (bounded together at 5 min), the guests' stop (up to 2 x 5 min),
+  then the stop polls (5 min per VM). Not `nohup ... &` (the lead's terminal tool refuses it, and a tool-tracked
+  background job dies with the agent), not a plain `systemd-run --user`, not `timeout -k`.
+- End a session early only with SIGTERM to its main process. **Never `kill -9` a session**, and never use a launcher
+  that SIGKILLs at a stop time-out: a SIGKILL skips the trap, leaves the VMs running and writes no `session.json`.
+- Linger is on for the lead's user (`loginctl show-user mrk -p Linger` gives `Linger=yes`), so the unit outlives the
+  lead's login.
+
+Once, before the first real session, read-only: the real gcloud works from a clean environment.
 
 ```bash
-cd <integrated worktree>
-S=implementation/driver-assistance-bench/session
-mkdir -p ~/.hermes/cache/scratch/b13-dry && export FAKE_DIR=~/.hermes/cache/scratch/b13-dry DA_GCLOUD=$PWD/$S/tests/fake_gcloud.py
-bash $S/da_session.sh --kind p10-1 --dry-run --evidence-root ~/.hermes/cache/scratch/b13-dry/ev   # checks the kit
-# p10-2 also needs, before any start: VP_CLONE (a VisionPilot clone holding the pin) and CV_PY with OpenCV
-unset FAKE_DIR DA_GCLOUD
+env -i HOME="$HOME" PATH=/usr/bin:/bin ~/google-cloud-sdk/bin/gcloud --configuration=de4sdv-gcp config list
+```
 
-nohup bash $S/da_session.sh --kind p10-1 >> ~/p10-1.out 2>&1 &                       # the S-CORE build check, 2026-11-19
-nohup bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host >> ~/p10-3.out 2>&1 &  # the warning on the guests, Enforcing
-# only if that session's guest_prepare reports no initComms (the Gateway lookup): again, marked conditional
-nohup bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --permissive-ivi >> ~/p10-3.out 2>&1 &
-nohup bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host >> ~/p10-2.out 2>&1 &  # the first closed loop, 2026-11-20
+### P10-1 (the S-CORE host only)
+
+```bash
+# one detached worktree at the integration commit under test (C: its full SHA)
+git -C /home/mrk/de4sdv-worktrees/da-integration worktree add --detach /home/mrk/de4sdv-worktrees/p10-$C $C
+cd /home/mrk/de4sdv-worktrees/p10-$C
+S=implementation/driver-assistance-bench/session
+# a dry run first, with the tests' fake gcloud (the fake's state in its own folder)
+D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
+env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
+  bash $S/da_session.sh --kind p10-1 --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"   # expect 0
+# the session: a user unit that never SIGKILLs the trap, a clean environment, its own output file
+SID=$(date -u +%Y%m%dT%H%M%SZ)
+systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
+  -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
+  -p StandardOutput=append:$HOME/p10-1-$SID.out -p StandardError=append:$HOME/p10-1-$SID.out \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /bin/bash $S/da_session.sh --kind p10-1 --session-id "$SID"
+# follow:  tail -f ~/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID/session.log
+# end it early, if ever: systemctl --user kill --kill-whom=main -s TERM da-session-$SID
+# done when: systemctl --user is-active da-session-$SID prints "inactive"; then read session.json:
+#   exit_code (11 = a VM is left running: stop it by hand at once), p10_1.line, p10_1.passed
+```
+
+### P10-3 (the S-CORE host and the protected guest host, Enforcing)
+
+```bash
+cd /home/mrk/de4sdv-worktrees/p10-$C     # the same pinned worktree as for P10-1
+S=implementation/driver-assistance-bench/session
+D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
+env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
+  bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+SID=$(date -u +%Y%m%dT%H%M%SZ)
+systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
+  -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
+  -p StandardOutput=append:$HOME/p10-3-$SID.out -p StandardError=append:$HOME/p10-3-$SID.out \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /bin/bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --session-id "$SID"
+# a per-session setting only on purpose, as an option, e.g. after the kind:
+#   --remote-env 'UNIT_REGISTERED_RE=<the broker line>' --remote-env UNIT_WAIT_S=300
+# only if guest_prepare reports no initComms: a NEW session, same block, with --permissive-ivi added
+# end it early: systemctl --user kill --kill-whom=main -s TERM da-session-$SID   (the trap TERMs the running step first)
+# after it: exit_code 11 or "GUEST HOST LEFT RUNNING" in session.log = the guest host bills; follow the log's line
+```
+
+Once, at the first P10-3, while the guest host runs (after `session.log` shows its `kit ok` line), the operator checks
+the assumption behind the stop of a guest host that got no guest step and never answered SSH (S1): nothing on the
+guest host's image starts Cuttlefish at boot. On the guest host:
+
+```bash
+systemctl list-unit-files | grep -i -E 'cvd|cuttlefish'   # expected: no output, or only units "disabled"
+```
+
+An enabled unit there voids the assumption: tell the lead before the next session, and do not rely on that stop.
+
+### P10-2 (all three hosts)
+
+```bash
+cd /home/mrk/de4sdv-worktrees/p10-$C
+S=implementation/driver-assistance-bench/session
+# the dry run needs the VisionPilot clone at the pin (VP_CLONE, default ~/de4sdv-upstream/vision_pilot); make-h is
+# the tests' stand-in there (the fake's capture files are no images); the session itself checks CV_PY's OpenCV
+D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
+env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
+  DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" \
+  bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+SID=$(date -u +%Y%m%dT%H%M%SZ)
+systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
+  -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
+  -p StandardOutput=append:$HOME/p10-2-$SID.out -p StandardError=append:$HOME/p10-2-$SID.out \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /bin/bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --session-id "$SID"
+# end it early: systemctl --user kill --kill-whom=main -s TERM da-session-$SID
 ```
 
 Then compose the video from the fetched files (see `../recording/README.md`).

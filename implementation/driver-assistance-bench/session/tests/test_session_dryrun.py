@@ -1013,3 +1013,42 @@ def test_the_cap_must_be_a_positive_number(tmp_path: Path, cap: str) -> None:
     # R21: "6EUR" wrote no session.json and made the watchdog compare strings
     r = run(tmp_path, "p10-1", "--cap-eur", cap)
     assert r.rc == 2 and "--cap-eur must be a positive number" in r.stdout and not r.calls
+
+
+# ------------------------------------------------------------------------- the README's command lines (S3)
+
+
+def _readme_commands() -> list[str]:
+    """The command lines of the README's bash blocks, continuations joined, comments dropped."""
+    text = (HERE.parent / "README.md").read_text()
+    lines = []
+    for block in re.findall(r"```bash\n(.*?)```", text, re.S):
+        for line in block.replace("\\\n", " ").splitlines():
+            code = line.strip()
+            if code and not code.startswith("#"):
+                lines.append(re.sub(r"\s+", " ", code))
+    return lines
+
+
+def test_the_readme_starts_sessions_only_from_a_clean_environment_in_a_unit_that_never_sigkills_the_trap() -> None:
+    # S3: `nohup ... &` is refused by the lead's terminal tool, and systemd-run's defaults SIGKILL the exit trap 90 s
+    # after a stop: no VM stopped, no session.json. S4: a session starts from env -i
+    cmds = _readme_commands()
+    sessions = [c for c in cmds if "da_session.sh" in c and "--dry-run" not in c]
+    dry = [c for c in cmds if "da_session.sh" in c and "--dry-run" in c]
+    assert {k for k in ("p10-1", "p10-3", "p10-2") if any(f"--kind {k}" in c for c in sessions)} == \
+        {"p10-1", "p10-3", "p10-2"}
+    assert {k for k in ("p10-1", "p10-3", "p10-2") if any(f"--kind {k}" in c for c in dry)} == \
+        {"p10-1", "p10-3", "p10-2"}
+    for c in sessions:
+        assert c.startswith("systemd-run --user "), c
+        for prop in ("-p KillMode=mixed", "-p TimeoutStopSec=infinity", "-p SendSIGHUP=no"):
+            assert prop in c, (prop, c)
+        assert "/usr/bin/env -i " in c and c.index("/usr/bin/env -i ") < c.index("da_session.sh"), c
+    for c in dry:
+        assert c.startswith("env -i "), c
+    for c in cmds:
+        assert "nohup" not in c and not c.endswith("&") and "kill -9" not in c and "-s KILL" not in c, c
+    text = (HERE.parent / "README.md").read_text()
+    assert "never `kill -9` a session" in text.lower()
+    assert "systemctl list-unit-files | grep -i -E 'cvd|cuttlefish'" in text     # S1's assumption, checked once
