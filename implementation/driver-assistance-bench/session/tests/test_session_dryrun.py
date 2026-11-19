@@ -136,9 +136,42 @@ def args_for(tmp: Path, kind: str, *more: str) -> list[str]:
 
 
 def run(tmp: Path, kind: str, *more: str, timeout: float = 120, **extra: str) -> Run:
-    proc = subprocess.run(args_for(tmp, kind, *more), env=env_for(tmp, **extra), capture_output=True, text=True,
-                          timeout=timeout)
-    return Run(tmp, proc)
+    # the session in its own process group, which a time-out ends whole: a session SIGKILLed alone would leave its
+    # cost watchdog behind (R5)
+    p = subprocess.Popen(args_for(tmp, kind, *more), env=env_for(tmp, **extra), stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, text=True, start_new_session=True)
+    try:
+        out, err = p.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL)
+        p.communicate()
+        raise
+    return Run(tmp, rc=p.returncode, stdout=out)
+
+
+def popen(tmp: Path, kind: str, *more: str, **extra: str) -> subprocess.Popen:
+    """The session in the background, in its own process group (as a terminal runs it): signals go to the group."""
+    return subprocess.Popen(args_for(tmp, kind, *more), env=env_for(tmp, **extra), stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT, text=True, start_new_session=True)
+
+
+def wait_for_call(tmp: Path, pred, timeout: float = 60) -> None:
+    calls = tmp / "fake" / "calls.log"
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if calls.exists() and any(pred(json.loads(line)[1:]) for line in calls.read_text().splitlines()):
+            return
+        time.sleep(0.05)
+    raise AssertionError("call not seen")
+
+
+def finish(tmp: Path, p: subprocess.Popen, timeout: float = 90) -> Run:
+    try:
+        out, _ = p.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        os.killpg(p.pid, signal.SIGKILL)
+        out, _ = p.communicate()
+    return Run(tmp, rc=p.returncode, stdout=out)
 
 
 def assert_invariants(r: Run) -> None:
@@ -260,6 +293,43 @@ def test_sigterm_mid_session_stops_the_started_vms(tmp_path: Path) -> None:
     assert "signal TERM" in r.log
     assert r.guest_stops()[0] < r.stops(GH)[0]
     assert_invariants(r)
+
+
+def _is_guest_stop(c: list[str]) -> bool:
+    return c[2:4] == ["compute", "ssh"] and any("guest_stop.sh" in a for a in c) and \
+        not any("safety_net.sh" in a for a in c)
+
+
+@pytest.mark.parametrize("sig, rc", [(signal.SIGINT, 130), (signal.SIGHUP, 129), (signal.SIGTERM, 143)])
+def test_a_second_signal_during_the_exit_trap_does_not_end_it(tmp_path: Path, sig, rc: int) -> None:
+    # R1: a terminal's Ctrl-C (or a hangup) goes to the whole process group; a second one while the trap stops the
+    # guests must not end the trap before the guest host's stop, SESSION_END and session.json
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="inject:30", FAKE_SLOW_GUEST_STOP="3")
+    wait_for_call(tmp_path, lambda c: any("run inject" in a for a in c))
+    time.sleep(0.5)
+    os.killpg(p.pid, sig)
+    wait_for_call(tmp_path, _is_guest_stop)
+    time.sleep(0.3)
+    os.killpg(p.pid, sig)
+    r = finish(tmp_path, p)
+    assert r.rc == rc, r.log
+    assert f"signal {sig.name[3:]}" in r.log and f"SESSION_END T rc={rc}" in r.log
+    assert (r.incoming / "session.json").exists()
+    assert r.guest_stops()[0] < r.stops(GH)[0]
+    assert_invariants(r)
+
+
+@pytest.mark.parametrize("flakes, rc", [("1", 0), ("99", 11)])
+def test_a_failed_status_read_never_stops_the_guest_host_before_its_guests(tmp_path: Path, flakes: str,
+                                                                           rc: int) -> None:
+    # R2: a status read of the guest host that fails in the trap (once, or every time) is no "no guests": the
+    # guests' stop runs, and the host stops only after this session's crosvm count of 0
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_DESCRIBE_FLAKE=f"{GH}:{flakes}", DA_T_STOP_TRIES="3")
+    assert r.rc == rc, r.log
+    assert "no guest can run there" not in r.log
+    stops = r.guest_stops()
+    assert stops and stops[0] < r.ssh(GH, "pgrep -c -x crosvm")[0] < r.stops(GH)[0]
+    assert r.state[GH] == "TERMINATED"
 
 
 def test_guest_host_needs_the_owners_ok(tmp_path: Path) -> None:

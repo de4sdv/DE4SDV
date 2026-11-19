@@ -15,6 +15,9 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_NO_FILE       a substring: `test -e <path>` of a matching path never finds it (the step keeps "running")
   FAKE_FOREIGN_FETCH    1: a fetched tarball carries another session's id
   FAKE_NO_STOP       a VM name that stays RUNNING after a stop
+  FAKE_SLOW_GUEST_STOP  seconds: the guests' stop (guest_stop.sh, not the safety net's arming) takes that long
+  FAKE_DESCRIBE_FLAKE   "vm:n"  once any stop call was made, the next n status reads of the VM fail (a transient
+                        gcloud error: a token refresh, a network blip)
 """
 import fcntl
 import hashlib
@@ -117,6 +120,10 @@ if words[:3] == ["compute", "instances", "describe"]:
     fmt = opt("--format") or ""
     if "networkIP" in fmt:
         out(kv("FAKE_IP").get(n, VMS[n][2]) + "\n")
+    flake = kv("FAKE_DESCRIBE_FLAKE")
+    if n in flake and st.get("stop_seen") and st.setdefault("flaked", {}).get(n, 0) < int(flake[n]):
+        st["flaked"][n] = st["flaked"].get(n, 0) + 1
+        err("ERROR: (gcloud.compute.instances.describe) There was a problem refreshing your current auth tokens\n")
     s = st["vm"][n]
     pre = kv("FAKE_PREEMPT")
     if s == "RUNNING" and n in pre and n not in st["preempted"]:
@@ -142,6 +149,7 @@ if words[:3] == ["compute", "instances", "start"]:
 
 if words[:3] == ["compute", "instances", "stop"]:
     n = words[3]
+    st["stop_seen"] = True
     if os.environ.get("FAKE_NO_STOP") != n:
         st["vm"][n] = "TERMINATED"
     out("Stopping instance(s) %s (async).\n" % n)
@@ -168,6 +176,13 @@ if words[:2] == ["compute", "ssh"]:
     gfail = os.environ.get("FAKE_GUEST_STOP_FAIL", "")
     if "guest_stop.sh" in c:
         st["guest_stops"] = st.get("guest_stops", 0) + 1
+        slow = os.environ.get("FAKE_SLOW_GUEST_STOP")
+        if slow:
+            save()
+            fcntl.flock(lockf, fcntl.LOCK_UN)
+            time.sleep(float(slow))
+            fcntl.flock(lockf, fcntl.LOCK_EX)
+            st = json.load(open(SF))
     left = "1" if gfail == "1" or (gfail == "once" and st.get("guest_stops", 0) < 2) else "0"
     if "guest_stop.sh" in c:
         out("crosvm_processes_after_stop: %s\n" % left)

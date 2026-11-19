@@ -75,13 +75,13 @@ esac
 
 # waits, seconds; a dry run may shorten them through DA_T_<NAME>, a real session refuses those knobs
 PREEMPT_CHECK_S=30; ROUND_PAUSE_S=45; START_DEADLINE_S=1800; RUNNING_WAIT_S=120; SSH_TRIES=20; SSH_PAUSE_S=10
-POLL_S=20; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10
+POLL_S=20; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 T_UNIT=300
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
-       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT)
+       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -150,7 +150,10 @@ crosvm_left() { run_fg ssh_l guest 60 "pgrep -c -x crosvm || true" 2>/dev/null |
 # ───────────── exit trap: stop what this session started ─────────────
 cleanup() {
   local rc=$? r st i
-  trap - EXIT INT TERM HUP
+  # no signal ends the trap before its stops (R1): a second Ctrl-C, HUP or TERM, or the watchdog's TERM, is ignored
+  # here, and the trap runs on to the guests' stop, their host's stop and session.json
+  trap '' INT TERM HUP
+  trap - EXIT
   [ -n "$FINAL_RC" ] && rc=$FINAL_RC
   [ -f "$IN/.cap_reached" ] && rc=10
   [ -n "$WD_PID" ] && { pkill -P "$WD_PID" 2>/dev/null; kill "$WD_PID" 2>/dev/null; }
@@ -163,21 +166,28 @@ cleanup() {
     GC_TO=300 gc "$r" compute instances stop "$(var "$r" VM)" --zone "$(var "$r" ZONE)" --async --quiet 2>&1 | one >> "$LOG"
   done
   if [ "$guest" = 1 ]; then
-    st=$(vmst guest)
+    # a failed status read is read again; only a stopped host counts as "no guests" (R2)
+    for i in $(seq 1 "$STATUS_TRIES"); do
+      st=$(vmst guest); [ "$st" != UNKNOWN ] && break
+      log "status read of $(var guest VM) failed (try $i of $STATUS_TRIES)"; sleep "$STOP_POLL_S"
+    done
     local left="" try out
-    if [ "$st" = RUNNING ]; then
-      # the guests' stop, then this session's own check that no crosvm is left; never a stop of the host with
-      # guests running (lead answer B13.3; the guest-prep-20261118 operator's route)
-      for try in 1 2; do
-        log "stopping the guests before their host (try $try): $GSTOP"
-        out=$(ssh_l guest 300 "$GSTOP" 2>&1); echo "$out" | sanitize >> "$IN/guest_stop.out"
-        left=$(crosvm_left)
-        log "crosvm processes left on $(var guest VM): ${left:-unknown}"
-        [ "$left" = 0 ] && break
-      done
-    else
-      log "guest host status $st: no guest can run there"; left=0
-    fi
+    case "$st" in
+      TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED)
+        log "guest host status $st: no guest can run there"; left=0 ;;
+      *)
+        # RUNNING, or any other status, a status still unknown included: the guests' stop, then this session's own
+        # check that no crosvm is left; never a stop of the host with guests running, and never one without this
+        # session's crosvm count of 0 (lead answer B13.3; the guest-prep-20261118 operator's route)
+        [ "$st" = RUNNING ] || log "guest host status $st: the guests' stop all the same, and the host only after a crosvm count of 0"
+        for try in 1 2; do
+          log "stopping the guests before their host (try $try): $GSTOP"
+          out=$(ssh_l guest 300 "$GSTOP" 2>&1); echo "$out" | sanitize >> "$IN/guest_stop.out"
+          left=$(crosvm_left)
+          log "crosvm processes left on $(var guest VM): ${left:-unknown}"
+          [ "$left" = 0 ] && break
+        done ;;
+    esac
     if [ "$left" = 0 ]; then
       log "stopping $(var guest VM) (guest)"
       GC_TO=300 gc guest compute instances stop "$(var guest VM)" --zone "$(var guest ZONE)" --async --quiet 2>&1 | one >> "$LOG"
@@ -223,7 +233,7 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
 }
-on_signal() { log "signal $1"; FINAL_RC=$2; [ -f "$IN/.cap_reached" ] && FINAL_RC=10; exit "$FINAL_RC"; }
+on_signal() { trap '' INT TERM HUP; log "signal $1"; FINAL_RC=$2; [ -f "$IN/.cap_reached" ] && FINAL_RC=10; exit "$FINAL_RC"; }
 trap cleanup EXIT
 trap 'on_signal TERM 143' TERM
 trap 'on_signal INT 130' INT

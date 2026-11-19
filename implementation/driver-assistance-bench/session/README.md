@@ -40,6 +40,10 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   records are stale since 2026-11-17), then checks itself that no `crosvm` is left, retries once, and only then stops
   their host. Guests that do not stop keep their host running: the session says `GUEST HOST LEFT RUNNING` and exits
   11. It waits for `TERMINATED` and lists the VMs of both projects at the end. Nothing is created or deleted.
+- The exit trap ignores INT, TERM and HUP while it runs: a second Ctrl-C, a hangup or the watchdog's TERM never ends
+  it before the guest host's stop and `session.json`. A failed status read of the guest host is read again; only a
+  stopped host (`TERMINATED`, `STOPPING`, `SUSPENDED`) counts as "no guests". Any other status, one still unknown
+  included, gets the guests' stop, and the host stops only after the session's own `crosvm` count read 0.
 - A watchdog writes `cost.log` every 30 s (an upper bound: from each start call, at the hourly prices in
   `hosts.env`) and ends the session at the cap. Each VM also gets a power-off at the cap plus 10 min, should the
   lead host lose the session (`remote/safety_net.sh`): `shutdown -h` on the GPU hosts; on the guest host a timer
