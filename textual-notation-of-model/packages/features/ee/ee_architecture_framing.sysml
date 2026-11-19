@@ -17,17 +17,17 @@ package DE4SDV_EEArchitectureFraming {
 
   part <'INC-EE-001'> eeArchitectureIncrement : EEArchitectureIncrement {
     doc /*
-     * Owner-requested increment on the electrical/electronic (E/E)
-     * architecture of the product line: the vehicle network between the
-     * central computer and the actuators. The owner decided on 2026-11-17 to
-     * start this increment and to frame it now, and on 2026-11-18 to carry
-     * out Phases 1 to 3 of this increment before the baseline of the
-     * driver-assistance increment, INC-DRIVING-002, whose driving command it
-     * carries. Phase 4 onward and the testbed with its readiness probe wait
-     * for that baseline and for a further decision of the owner. This framing
-     * changes neither the platform stack, the governed product-line scope nor
-     * another increment. All phases retain this identity. This package holds
-     * Phase 0 and the Phase 1 concerns.
+     * Owner-requested increment on a first part of the electrical/electronic
+     * (E/E) architecture of the product line: the vehicle network between the
+     * central computer and an actuation ECU on CAN. The owner decided on
+     * 2026-11-17 to start this increment and to frame it now, and on
+     * 2026-11-18 to carry out Phases 1 to 3 of this increment before the
+     * baseline of the driver-assistance increment, INC-DRIVING-002, whose
+     * driving command it carries. Phase 4 onward and the testbed with its
+     * readiness probe wait for that baseline and for a further decision of
+     * the owner. This framing changes neither the platform stack, the
+     * governed product-line scope nor another increment. All phases retain
+     * this identity. This package holds Phase 0 and the Phase 1 concerns.
      */
   }
 
@@ -379,7 +379,8 @@ package DE4SDV_EEArchitectureFraming {
     );
     attribute :>> expectedArtifacts = (
       "DE4SDV_EEArchitectureFraming",
-      "DE4SDV_EEArchitectureOperationalContext"
+      "DE4SDV_EEArchitectureOperationalContext",
+      "DE4SDV_EEArchitectureCapabilityClassification"
     );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",
