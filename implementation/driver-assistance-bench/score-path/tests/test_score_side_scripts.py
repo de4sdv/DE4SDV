@@ -262,6 +262,10 @@ def test_full_start_then_stop(bench: dict, tmp_path: Path) -> None:
     assert lm_log.index("started someipd") < lm_log.index("started gatewayd")
     stub_log = (root / "run/score/stubs/vision_pilot.log").read_text()
     assert f"cwd {root}/vision_pilot" in stub_log and "LCM_ALIVE_INTERFACE_PATH=/fake/alive/vision_pilot" in stub_log
+    # the daemon's environment: the configured one only, no HOME; LibCarla's cache dir instead (as on the L4)
+    for name in ("vision_pilot", "actuation_adapter"):
+        line = (root / f"run/score/stubs/{name}.log").read_text().splitlines()[0]
+        assert f"HOME= CARLA_CACHE_DIR={root}/run/carla_cache" in line, line
     # a second start is refused while this one runs
     again = run(START, str(tmp_path / "again"), "10.164.0.2", env=bench["env"])
     assert again.returncode == 4

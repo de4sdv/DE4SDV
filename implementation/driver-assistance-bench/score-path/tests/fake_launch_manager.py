@@ -10,7 +10,8 @@ components of the initial run target in dependency order with the merged setting
 process_arguments, environmental_variables, working_dir), waits for a component of type Reporting until its run log
 reports running
 (the identity recorder's lifecycle record) and for the others until their process runs, logs each step, and on
-SIGTERM stops the components in reverse order with SIGTERM and exits 0.
+SIGTERM stops the components in reverse order with SIGTERM and exits 0. Each component gets exactly its configured
+environment, as from the daemon (nothing inherited), plus the test knobs DA_TEST_*, DA_STUB_* and FAKE_*.
 
 Knobs: FAKE_LM_IGNORE_TERM=1 ignores SIGTERM; FAKE_LM_EXIT_AFTER_S=<s> ends with status 3 after s seconds;
 FAKE_LM_SUPERVISE=1 emulates the alive supervision of the supervised components: a component whose process is
@@ -31,6 +32,7 @@ from pathlib import Path
 STAGE = Path.cwd()
 CONFIG = json.loads((STAGE / "config" / "launch_manager_config.json").read_text())
 STOP = False
+TEST_KNOBS = ("DA_TEST_", "DA_STUB_", "FAKE_")
 
 
 def log(text: str) -> None:
@@ -41,8 +43,10 @@ def merged(name: str) -> dict:
     defaults = CONFIG["defaults"]
     comp = CONFIG["components"][name]
     dc = {**defaults["deployment_config"], **comp.get("deployment_config", {})}
-    env = {**defaults["deployment_config"].get("environmental_variables", {}),
-           **comp.get("deployment_config", {}).get("environmental_variables", {})}
+    # a component's own list replaces the defaults' list, as each component of the bench's file repeats
+    # LD_LIBRARY_PATH
+    env = comp.get("deployment_config", {}).get("environmental_variables",
+                                                defaults["deployment_config"].get("environmental_variables", {}))
     cp = comp["component_properties"]
     profile = {**defaults["component_properties"]["application_profile"], **cp.get("application_profile", {})}
     return {"binary": os.path.join(dc["bin_dir"], cp["binary_name"]), "args": cp.get("process_arguments", []),
@@ -115,7 +119,9 @@ def main() -> int:
     procs: dict[str, subprocess.Popen] = {}
     for name in order(initial):
         s = merged(name)
-        env = {**os.environ, **s["env"]}
+        # Like the daemon: exactly the configured environment (Lifecycle v0.10.0 process_launcher.cpp:395), nothing
+        # inherited (no HOME, no PATH), plus the test knobs of the stubs and the recorder's driver
+        env = {**{k: v for k, v in os.environ.items() if k.startswith(TEST_KNOBS)}, **s["env"]}
         if s["type"] in ("Reporting_And_Supervised",):
             env["LCM_ALIVE_INTERFACE_PATH"] = f"/fake/alive/{name}"
         procs[name] = subprocess.Popen([s["binary"], *s["args"]], cwd=s["cwd"], env=env)

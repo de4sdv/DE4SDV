@@ -1,7 +1,9 @@
 #!/bin/bash
 # A stub component for the dry runs of the S-CORE side's scripts. Test code only. It logs its start (arguments,
 # working directory and the variables the Launch Manager sets) and its stop into <run>/score/stubs/<name>.log, and
-# runs until SIGTERM. Beside that, to stand for the real processes' records in the dry runs of p10_1_check.sh:
+# runs until SIGTERM. As vision_pilot or actuation_adapter it dies of SIGSEGV without HOME and CARLA_CACHE_DIR, as the
+# real binaries do (LibCarla's static initializer). Beside that, to stand for the real processes' records in the dry
+# runs of p10_1_check.sh:
 #   - as vision_pilot it writes supervision.start and two out.driving_command lines into log.path of its interface
 #     settings once LCM_ALIVE_INTERFACE_PATH is set, and visionpilot.rrd into its working directory at the stop;
 #   - as actuation_adapter it writes a supervision start and an accepted in.driving_command into
@@ -15,7 +17,16 @@ done
 [ -n "$run" ] || run=$(cd "$(dirname "$0")/.." && pwd)/run
 mkdir -p "$run/score/stubs"
 log=$run/score/stubs/$name.log
-echo "start $name pid $$ cwd $PWD args $* MW_COM_CONFIG=${MW_COM_CONFIG:-} LCM_ALIVE_INTERFACE_PATH=${LCM_ALIVE_INTERFACE_PATH:-}" >> "$log"
+echo "start $name pid $$ cwd $PWD args $* MW_COM_CONFIG=${MW_COM_CONFIG:-} LCM_ALIVE_INTERFACE_PATH=${LCM_ALIVE_INTERFACE_PATH:-} HOME=${HOME:-} CARLA_CACHE_DIR=${CARLA_CACHE_DIR:-}" >> "$log"
+# vision_pilot and actuation_adapter link LibCarla's client, whose static initializer takes getenv("HOME") unchecked
+# when CARLA_CACHE_DIR is unset (CARLA 14ac3b1a50 LibCarla/source/carla/client/FileTransfer.cpp:17-31): without both
+# the real binaries die of SIGSEGV before main, as on the L4 in session 5
+case "$name" in
+  vision_pilot|actuation_adapter)
+    if [ -z "${CARLA_CACHE_DIR:-}" ] && [ -z "${HOME+set}" ]; then
+      echo "segfault $name: no HOME and no CARLA_CACHE_DIR" >> "$log"; kill -SEGV $$
+    fi ;;
+esac
 stop() {
   echo "stop $name" >> "$log"
   [ "$name" = vision_pilot ] && echo "synthetic rrd" > visionpilot.rrd
