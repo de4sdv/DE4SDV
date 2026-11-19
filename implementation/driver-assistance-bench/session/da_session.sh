@@ -440,7 +440,7 @@ start_watchdog() {
   WD_PID=$!; disown "$WD_PID"
   log "cost watchdog pid $WD_PID (ends with the session)"
 }
-start_vm() {   # start_vm <role>: returns 0 when RUNNING (for the simulator host: still RUNNING after the check)
+start_vm() {   # start_vm <role>: returns 0 when RUNNING, and still RUNNING after the preemption check
   local r=$1 vm zone deadline n=0 out rc st c i
   vm=$(var "$r" VM); zone=$(var "$r" ZONE); deadline=$(( $(date +%s) + START_DEADLINE_S ))
   while :; do
@@ -452,18 +452,23 @@ start_vm() {   # start_vm <role>: returns 0 when RUNNING (for the simulator host
     if [ "$st" != RUNNING ] && [ "$st" != TERMINATED ] && [ "$st" != UNKNOWN ]; then
       for i in $(seq 1 $(( RUNNING_WAIT_S / 10 + 1 ))); do st=$(vmst "$r"); [ "$st" = RUNNING ] && break; nap "$(( RUNNING_WAIT_S < 10 ? 1 : 10 ))"; done
     fi
+    if [ "$rc" = 0 ] && [ "$st" = TERMINATED ]; then
+      # a start accepted and the Spot VM already reclaimed: the next round, as a preemption (R11)
+      log "start round $n of $vm: rc=0, but TERMINATED already (reclaimed)"
+      [ "$(date +%s)" -ge "$deadline" ] && { log "start deadline reached"; return 3; }
+      nap "$ROUND_PAUSE_S"; continue
+    fi
     if [ "$st" = RUNNING ]; then
       log "start round $n of $vm: rc=$rc, RUNNING"
-      if [ "$r" = sim ]; then
-        log "preemption check: $vm must still be RUNNING in $PREEMPT_CHECK_S s"
-        nap "$PREEMPT_CHECK_S"; st=$(vmst "$r")
-        if [ "$st" != RUNNING ]; then
-          log "$vm $st $PREEMPT_CHECK_S s after RUNNING (preempted)"
-          [ "$(date +%s)" -ge "$deadline" ] && { log "start deadline reached"; return 3; }
-          nap "$ROUND_PAUSE_S"; continue
-        fi
-        log "$vm still RUNNING after $PREEMPT_CHECK_S s"
+      # every host is Spot: each must still run after the check (rule 4b; the L4 and the guest host too, R11)
+      log "preemption check: $vm must still be RUNNING in $PREEMPT_CHECK_S s"
+      nap "$PREEMPT_CHECK_S"; st=$(vmst "$r")
+      if [ "$st" != RUNNING ]; then
+        log "$vm $st $PREEMPT_CHECK_S s after RUNNING (preempted)"
+        [ "$(date +%s)" -ge "$deadline" ] && { log "start deadline reached"; return 3; }
+        nap "$ROUND_PAUSE_S"; continue
       fi
+      log "$vm still RUNNING after $PREEMPT_CHECK_S s"
       return 0
     fi
     c=$(classify "$out")
@@ -481,10 +486,12 @@ for r in "${ROLES[@]}"; do
 done
 
 # ───────────── 3. SSH, the kit, the safety net ─────────────
-ssh_ready() {
-  local r=$1 i
+ssh_ready() {   # 0 ready, 3 the VM was reclaimed meanwhile (R11), 1 no SSH
+  local r=$1 i st
   for i in $(seq 1 "$SSH_TRIES"); do
     run_fg ssh_l "$r" 45 true > /dev/null 2>&1 && return 0   # gcloud's own exit code (SKB rule 5)
+    st=$(vmst "$r")
+    case "$st" in TERMINATED|STOPPING|STOPPED) log "$(var "$r" VM) is $st while waiting for SSH (reclaimed)"; return 3 ;; esac
     nap "$SSH_PAUSE_S"
   done
   return 1
@@ -502,14 +509,21 @@ upload() {
   gmin=$(( CAP_S / 60 + SAFETY_MARGIN_MIN ))
   local net="bash ~/da-kit/$SID/bench/session/remote/safety_net.sh arm $gmin"
   [ "$r" = guest ] && net="$net$(q "$GSTOP")"
-  run_fg ssh_l "$r" 60 "$net" 2>/dev/null | grep -q "safety-net-$gmin" \
-    && log "$(var "$r" VM): kit ok, power-off safety net in $gmin min$([ "$r" = guest ] && echo ", the guests' stop first")" \
-    || log "WARNING $(var "$r" VM): safety net not confirmed (the watchdog and the trap still stop it)"
+  # no host runs on without its safety net: an arming that is not confirmed ends the session (R15)
+  rout ssh_l "$r" 60 "$net"
+  if ! grep -q -x "safety-net-$gmin" <<< "$ROUT"; then
+    log "safety net of $(var "$r" VM) not armed: $(printf '%s\n' "$ROUT" | one)"; return 2
+  fi
+  log "$(var "$r" VM): kit ok, power-off safety net in $gmin min$([ "$r" = guest ] && echo ", the guests' stop first"): $(grep '^timer: ' <<< "$ROUT" | one)"
   return 0
 }
 for r in "${ROLES[@]}"; do
-  ssh_ready "$r" || fail 4 "no SSH to $(var "$r" VM)"
-  upload "$r" || fail 4 "upload of the kit to $(var "$r" VM) failed"
+  ssh_ready "$r"; rc=$?
+  [ "$rc" = 3 ] && fail 3 "$(var "$r" VM) was reclaimed before SSH answered"
+  [ "$rc" = 0 ] || fail 4 "no SSH to $(var "$r" VM)"
+  upload "$r"; rc=$?
+  [ "$rc" = 2 ] && { UPLOADED="$UPLOADED $r"; fail 4 "the safety net of $(var "$r" VM) is not armed: no host runs without it"; }
+  [ "$rc" = 0 ] || fail 4 "upload of the kit to $(var "$r" VM) failed"
   UPLOADED="$UPLOADED $r"
 done
 

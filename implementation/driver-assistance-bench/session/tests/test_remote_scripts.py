@@ -22,6 +22,9 @@ REMOTE = HERE.parent / "remote"
 FAKES = {
     "sudo": '#!/bin/bash\necho "sudo $*" >> "$FAKE/calls.log"\n[ "$1" = shutdown ] || [ "$1" = systemd-run ] && exit 0\n'
             'exec "$@"\n',
+    "systemctl": '#!/bin/bash\necho "systemctl $*" >> "$FAKE/calls.log"\n'
+                 'last="${@: -1}"; [ "$1" = list-timers ] && [ ! -e "$FAKE/no_timer" ] && '
+                 'echo "Thu 2026-11-19 12:00:00 UTC 4h left - - $last ${last%.timer}.service"\nexit 0\n',
     "pgrep": '#!/bin/bash\necho "pgrep $*" >> "$FAKE/calls.log"\nn=$(cat "$FAKE/crosvm" 2>/dev/null || echo 0)\n'
              'echo "$n"; [ "$n" != 0 ]\n',
     "cvd": '#!/bin/bash\necho "cvd $*" >> "$FAKE/calls.log"\n'
@@ -128,18 +131,31 @@ def test_safety_net_arm_on_the_guest_host_is_a_timer_that_fires_the_stop(tmp_pat
     d, env = fake
     net = _kit(tmp_path)
     p = sh(str(net), "arm", "12", "bash $HOME/da-kit/S1/bench/session/remote/guest_stop.sh", env=env)
-    assert p.returncode == 0 and p.stdout.strip() == "safety-net-12"
+    assert p.returncode == 0 and p.stdout.strip().splitlines()[-1] == "safety-net-12"
     (timer,) = [c for c in calls(d) if c.startswith("sudo systemd-run")]
     assert "--on-active=12min" in timer and "--unit=da-safety-net-S1" in timer
     assert timer.endswith("safety_net.sh fire bash $HOME/da-kit/S1/bench/session/remote/guest_stop.sh")
     assert not any("shutdown" in c for c in calls(d))
 
 
-def test_safety_net_arm_elsewhere_is_a_plain_shutdown(tmp_path: Path, fake) -> None:
+def test_safety_net_arm_elsewhere_is_a_poweroff_timer_and_lists_it(tmp_path: Path, fake) -> None:
+    # R15: not shutdown -h +N, whose last 5 minutes write /run/nologin
     d, env = fake
     p = sh(str(_kit(tmp_path)), "arm", "12", env=env)
-    assert p.returncode == 0 and p.stdout.strip() == "safety-net-12"
-    assert calls(d) == ["sudo shutdown -h +12"]
+    assert p.returncode == 0 and p.stdout.strip().splitlines()[-1] == "safety-net-12"
+    assert "timer: " in p.stdout and "da-safety-net-S1.timer" in p.stdout
+    (timer,) = [c for c in calls(d) if c.startswith("sudo systemd-run")]
+    assert "--on-active=12min" in timer and timer.endswith("/bin/systemctl poweroff")
+    assert not any("shutdown" in c for c in calls(d))
+
+
+def test_safety_net_arm_without_a_listed_timer_is_not_armed(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "no_timer").touch()
+    net = _kit(tmp_path)
+    for args in (("arm", "12"), ("arm", "12", "bash stop.sh")):
+        p = sh(str(net), *args, env=env)
+        assert p.returncode == 1 and "safety-net-12" not in p.stdout.splitlines()
 
 
 # ------------------------------------------------------------------------------------ guest_prepare.sh

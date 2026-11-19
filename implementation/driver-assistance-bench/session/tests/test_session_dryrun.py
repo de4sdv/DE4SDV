@@ -772,3 +772,46 @@ def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> Non
     assert r.rc == 143, r.log
     assert time.monotonic() - t0 < 8, "the trap waited for the fetch"
     assert_invariants(r)
+
+
+# --------------------------------------------------------------------------- the safety net and Spot (R15, R11)
+
+
+@pytest.mark.parametrize("vm", [L4, GH])
+def test_a_safety_net_that_does_not_arm_ends_the_session(tmp_path: Path, vm: str) -> None:
+    # R15: no host runs on without its backstop for the lead host's loss
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_ARM_FAIL=vm)
+    assert r.rc == 4, r.log
+    assert "is not armed" in r.log and not r.ssh(GH, "run guest_up")
+    assert_invariants(r)
+
+
+def test_the_safety_net_timer_is_in_the_log(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1")
+    assert r.rc == 0
+    assert re.search(r"power-off safety net in \d+ min: timer: .*da-safety-net", r.log)
+
+
+@pytest.mark.parametrize("vm", [G4, L4, GH])
+def test_a_start_reclaimed_before_the_first_status_read_is_a_new_round(tmp_path: Path, vm: str) -> None:
+    # R11: rc 0 with TERMINATED is a reclaimed Spot start, not "other, no retry"
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_PREEMPT=f"{vm}:1")
+    assert r.rc == 0, r.log
+    assert len(r.starts(vm)) == 2 and "reclaimed" in r.log
+    assert_invariants(r)
+
+
+@pytest.mark.parametrize("vm", [L4, GH])
+def test_every_host_gets_the_preemption_check(tmp_path: Path, vm: str) -> None:
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_PREEMPT=f"{vm}:2")
+    assert r.rc == 0, r.log
+    assert len(r.starts(vm)) == 2 and "(preempted)" in r.log
+    assert_invariants(r)
+
+
+def test_a_host_reclaimed_while_waiting_for_ssh_ends_the_session_as_preempted(tmp_path: Path) -> None:
+    # R11: ssh_ready polled 20 x 55 s without a status read
+    r = run(tmp_path, "p10-1", FAKE_SSH_DOWN=L4, FAKE_PREEMPT=f"{L4}:3")
+    assert r.rc == 3, r.log
+    assert "while waiting for SSH (reclaimed)" in r.log
+    assert len(r.ssh(L4, "true")) == 1

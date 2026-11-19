@@ -16,6 +16,7 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_FOREIGN_FETCH    1: a fetched tarball carries another session's id
   FAKE_NO_STOP       a VM name that stays RUNNING after a stop
   FAKE_SLOW_GUEST_STOP  seconds: the guests' stop (guest_stop.sh, not the safety net's arming) takes that long
+  FAKE_ARM_FAIL      a VM name whose safety net's arming fails
   FAKE_SLOW_FETCH    seconds: the scp of a host's out.tgz takes that long
   FAKE_FETCH_FAIL    a VM name whose out.tgz scp fails
   FAKE_RECEIPTS      the line count `offer_check.sh receipts` reports for a window's app record (default 2)
@@ -175,7 +176,9 @@ if words[:2] == ["compute", "ssh"]:
         out("safety-net-%s\n" % (mm.group(1) if mm else "?"))
     mm = re.search(r"safety_net\.sh arm (\d+)", c)
     if mm:
-        out("safety-net-%s\n" % mm.group(1))
+        if os.environ.get("FAKE_ARM_FAIL") == n:
+            out("sudo: a terminal is required to read the password\n", 1)
+        out("timer: Thu 2026-11-19 12:00:00 UTC 4h left - - da-safety-net.timer\nsafety-net-%s\n" % mm.group(1))
     gfail = os.environ.get("FAKE_GUEST_STOP_FAIL", "")
     if "guest_stop.sh" in c:
         st["guest_stops"] = st.get("guest_stops", 0) + 1

@@ -38,8 +38,10 @@ host, and the app's record and logcat lines in `capture_inject/`; then pin both 
 
 Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
 
-- The simulator host starts first and must still be `RUNNING` 30 s later; a reclaimed start is retried in rounds
-  (45 s pauses, 30 min deadline) before the next host starts. A capacity refusal is retried; a quota or other error
+- The simulator host starts first. Every host (all three are Spot) must still be `RUNNING` 30 s after its start; a
+  reclaimed start (also one accepted with rc 0 and already `TERMINATED` at the first status read) is retried in
+  rounds (45 s pauses, 30 min deadline) before the next host starts. A host found stopped while the session waits
+  for its SSH ends the session as preempted (exit 3). A capacity refusal is retried; a quota or other error
   ends the session.
 - One GPU per project: the session refuses to start when another GPU VM runs in a project it starts a GPU VM in.
 - A VM found running before the session is not adopted: the session refuses.
@@ -62,8 +64,10 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   substitution: a signal or the cap ends the session at once, not after a fetch's 20-minute copy.
 - A watchdog writes `cost.log` every 30 s (an upper bound: from each start call, at the hourly prices in
   `hosts.env`) and ends the session at the cap. Each VM also gets a power-off at the cap plus 10 min, should the
-  lead host lose the session (`remote/safety_net.sh`): `shutdown -h` on the GPU hosts; on the guest host a timer
-  that runs `GUEST_STOP_CMD` first and powers off only when no `crosvm` is left (lead answer B13.3).
+  lead host lose the session (`remote/safety_net.sh`): on the GPU hosts a transient system timer that runs
+  `systemctl poweroff` (not `shutdown -h +N`, whose last 5 minutes lock out a login); on the guest host a timer that
+  runs `GUEST_STOP_CMD` first and powers off only when no `crosvm` is left (lead answer B13.3). The arming lists its
+  timer (`systemctl list-timers`, logged); a host whose timer is not listed ends the session (exit 4) before any step.
 - Every internal IP comes from gcloud at run time (`networkInterfaces[0].networkIP`) and goes into `session.json`;
   none is configured. Owner decision D5 of 2026-11-18 put the simulator host on `carla-net` (10.10.0.2 today), with
   SSH only from Google's IAP range: `SIM_SSH_IAP=1` (the default in `hosts.env`) sends every ssh and scp to that host
