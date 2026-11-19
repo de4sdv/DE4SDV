@@ -443,6 +443,32 @@ def test_guests_that_do_not_stop_keep_their_host_running(tmp_path: Path) -> None
     assert r.stops(L4) and r.state[L4] == "TERMINATED"
 
 
+def test_a_guest_host_that_never_answered_ssh_and_got_no_guest_step_is_stopped(tmp_path: Path) -> None:
+    # S1: started by this session, never reached over SSH, so never sent a guest step: no guest can run there (the
+    # image starts no Cuttlefish at boot). It was left running, unarmed, billing; now it stops after a bounded wait
+    t0 = time.monotonic()
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_SSH_DOWN=GH, DA_T_GUEST_NOSSH_S="1")
+    assert r.rc == 4, r.log
+    assert r.stops(GH) and r.state[GH] == "TERMINATED"
+    assert "never answered SSH" in r.log and "nothing on its image starts Cuttlefish at boot" in r.log
+    assert "GUEST HOST LEFT RUNNING" not in r.log and not r.guest_stops()
+    assert time.monotonic() - t0 < 60
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["left_running"] == [] and rec["vm_status_after"]["guest"] == "TERMINATED"
+    assert_invariants(r)
+
+
+def test_an_ssh_loss_after_a_guest_step_keeps_the_guest_host_running(tmp_path: Path) -> None:
+    # R2, S12 (Y02): once a guest step went out, guests may run; an unknown crosvm count (no SSH in the trap) never
+    # stops their host
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_FAIL_STEP="inject",
+            FAKE_SSH_DOWN_AFTER=f"{GH}:score_stop_on_failure", DA_T_GUEST_NOSSH_S="1")
+    assert r.rc == 11, r.log
+    assert r.guest_stops() and not r.stops(GH) and r.state[GH] == "RUNNING"
+    assert "crosvm processes left on de4sdv-aaos-build: unknown" in r.log and "GUEST HOST LEFT RUNNING" in r.log
+    assert r.stops(L4) and r.state[L4] == "TERMINATED"
+
+
 def test_a_second_guest_stop_that_works_lets_the_host_stop(tmp_path: Path) -> None:
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_GUEST_STOP_FAIL="once")
     assert r.rc == 0, r.log

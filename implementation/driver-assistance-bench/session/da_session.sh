@@ -81,12 +81,14 @@ esac
 # waits, seconds; a dry run may shorten them through DA_T_<NAME>, a real session refuses those knobs
 PREEMPT_CHECK_S=30; ROUND_PAUSE_S=45; START_DEADLINE_S=1800; RUNNING_WAIT_S=120; SSH_TRIES=20; SSH_PAUSE_S=10
 POLL_S=20; STEP_TERM_POLLS=6; GO_LIMIT_S=380; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
+GUEST_NOSSH_S=180
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 T_UNIT=300
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
-       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S)
+       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
+       GUEST_NOSSH_S)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -123,6 +125,7 @@ exec 3>&1   # a dry run prints every command here, outside the command substitut
 trap '' PIPE
 MAIN_PID=$$; WD_PID=""; CHILD=""; STARTED=(); STEP_FAIL=""; FINAL_RC=""; ENDED_BY=""; UPLOADED=""; SCORE_UP=""
 FETCHED=""; FETCH_OK=""; FETCH_BAD=""
+GUEST_STEP_SENT=0   # 1 from the first step sent to the guest host on: from then on guests may run there (S1)
 
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
 say() { printf '%s\n' "$*" >&3 2>/dev/null || true; }   # a dry run's command line on stdout
@@ -217,7 +220,23 @@ cleanup() {
         # check that no crosvm is left; never a stop of the host with guests running, and never one without this
         # session's crosvm count of 0 (lead answer B13.3; the guest-prep-20261118 operator's route)
         [ "$st" = RUNNING ] || log "guest host status $st: the guests' stop all the same, and the host only after a crosvm count of 0"
-        for try in 1 2; do
+        local ssh_ok=1 t_end
+        if [ "$GUEST_STEP_SENT" = 0 ]; then
+          # no guest step went out, so no guest can run there unless its image starts Cuttlefish at boot, which it
+          # does not (assumption, checked once by the operator: README, the P10-3 block). Without SSH the host
+          # would stay up, unarmed and billing (S1): SSH is tried for a bounded time, then the host is stopped
+          ssh_ok=0; t_end=$(( $(date +%s) + GUEST_NOSSH_S ))
+          while :; do
+            run_fg ssh_l guest 45 true > /dev/null 2>&1 && { ssh_ok=1; break; }
+            [ "$(date +%s)" -ge "$t_end" ] && break
+            sleep "$SSH_PAUSE_S"
+          done
+          if [ "$ssh_ok" = 0 ]; then
+            log "GUEST HOST STOPPED WITHOUT A CROSVM COUNT: $(var guest VM) never answered SSH within $GUEST_NOSSH_S s in the trap and got no guest step from this session, so no guest can run there (assumption: nothing on its image starts Cuttlefish at boot)"
+            left=0
+          fi
+        fi
+        [ "$ssh_ok" = 1 ] && for try in 1 2; do
           log "stopping the guests before their host (try $try): $GSTOP"
           out=$(ssh_l guest 300 "$GSTOP" 2>&1); echo "$out" | sanitize >> "$IN/guest_stop.out"
           left=$(crosvm_left)
@@ -598,6 +617,7 @@ rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on 
   local r=$1 s=$2 to=$3; shift 3
   log "step $s on $(var "$r" VM): $*"; SEQ+=("$r:$s")
   local end=$(( $(date +%s) + to )) rc="" absent=0 i
+  [ "$r" = guest ] && GUEST_STEP_SENT=1
   routall ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
   while :; do   # a start whose answer was lost may still have started: the status decides
     rpoll "$r" "$HS status $s"
@@ -624,6 +644,7 @@ rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on 
   fi
 }
 rstart() { local r=$1 s=$2; shift 2; log "start $s on $(var "$r" VM): $*"; SEQ+=("$r:$s&")
+  [ "$r" = guest ] && GUEST_STEP_SENT=1
   run_fg ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*" >> "$IN/$r.steps.out" 2>&1 || { STEP_FAIL=$s; abort 5 "start of $s failed"; }; }
 rsignal() { run_fg ssh_l "$1" 60 "$HS signal $2 ${3:-INT}" >> "$IN/$1.steps.out" 2>&1; }
 rwait() {   # rwait <role> <step> <timeout_s>: waits for a detached step's status

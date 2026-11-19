@@ -70,6 +70,12 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   it before the guest host's stop and `session.json`. A failed status read of the guest host is read again; only a
   stopped host (`TERMINATED`, `STOPPING`, `SUSPENDED`) counts as "no guests". Any other status, one still unknown
   included, gets the guests' stop, and the host stops only after the session's own `crosvm` count read 0.
+- One exception, so that a guest host this session could never reach does not bill on unarmed (S1): when the session
+  sent the guest host no step at all (no `guest_up`, so no guest was launched) and the host does not answer SSH in
+  the trap, the trap tries SSH for up to `GUEST_NOSSH_S` (180 s) more, then stops the host without a `crosvm` count
+  and says `GUEST HOST STOPPED WITHOUT A CROSVM COUNT`. This rests on one assumption: **nothing on the guest host's
+  image starts Cuttlefish at boot**. The operator checks it once (the P10-3 block below). Once a guest step was sent,
+  an unknown count keeps the host running, as above.
 - A failure after the S-CORE side started (a failed step, a wait that timed out, a signal, the cap) first runs the
   S-CORE side's stop (`ENTRY_SCORE_STOP`, step `score_stop_on_failure`), its only collector, then fetches. A signal or
   the cap fetches every host whose files were not fetched yet, bounded (120 s pack, 300 s copy), before its stop.

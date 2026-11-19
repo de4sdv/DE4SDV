@@ -11,6 +11,8 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering; a detached
                      step (`start`) reads "running" for that long after its start
   FAKE_SSH_DOWN      a VM name that never answers SSH
+  FAKE_SSH_DOWN_AFTER  "vm:text"  the VM stops answering SSH right after the first ssh call (to any VM) whose
+                     command has text (an SSH loss mid-session; the VM keeps running)
   FAKE_GUEST_STOP_FAIL  1: a crosvm process stays after every guests' stop; once: after the first stop only
   FAKE_IP            "vm:ip,..."  internal IPs other than the defaults (the session must read them from gcloud)
   FAKE_NO_FILE       a substring: `test -e <path>` of a matching path never finds it (the step keeps "running")
@@ -168,8 +170,11 @@ if words[:2] == ["compute", "instances"] and len(words) > 2 and words[2] in ("de
 if words[:2] == ["compute", "ssh"]:
     n = words[2]
     c = opt("--command") or ""
-    if st["vm"].get(n) != "RUNNING" or os.environ.get("FAKE_SSH_DOWN") == n:
+    if st["vm"].get(n) != "RUNNING" or os.environ.get("FAKE_SSH_DOWN") == n or n in st.get("ssh_down", []):
         err("ssh: connect to host 192.0.2.10 port 22: Connection refused\n", 255)
+    for vm, text in kv("FAKE_SSH_DOWN_AFTER").items():
+        if text in c and vm not in st.setdefault("ssh_down", []):
+            st["ssh_down"].append(vm)
     lost = kv("FAKE_LOST_AFTER")
     if n in lost and lost[n] in c:
         st["vm"][n] = "TERMINATED"   # reclaimed right after this call (which still answers)
