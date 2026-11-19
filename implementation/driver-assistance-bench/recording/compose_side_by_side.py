@@ -21,6 +21,16 @@ Alignment, all on real (UTC) time:
   * an inset frame is the newest visualization frame whose capture simulation time is at or before the simulation
     time of the chase frame shown (--inset-time-column, default sim_time_s). The inset is composited here, after the
     run, and the manifest says so.
+Held frames: between two display frames the pane holds the earlier one. manifest.json lists, as display.held_spans,
+every such span at a segment boundary (the display was not recorded there: the capture's bounds are quoted with it)
+and every other one of at least --held-span-min-s (a display that did not change, or an encoder stall: the frame
+times cannot tell them apart). Over a boundary span the IVI clock line says the display was not recorded since the
+frame shown. A segment whose pull failed (no file) is left out and listed as a span of kind "segment not pulled",
+from its launch to its end read on the IVI clock. display.gap_free is false when a boundary falls in the output or a
+segment was not pulled, and null otherwise: no output is called gap-free.
+Boundary bounds: the capture leaves each boundary's upper bound to this script (capture.json not_filled_here). It is
+computed here from the segments' packet times (ffprobe -show_entries packet, no decode, --probe-timeout-s per file)
+and the capture's guest clock reads, and written to display.boundaries.
 The raw files are only read; their sha256 are taken before and after and must be equal. manifest.json lists the
 sources with their sha256 and every offset used; timeline.csv gives the source frame of each output frame.
 """
@@ -61,6 +71,19 @@ def frame_pts(path: str) -> list[float]:
                         "frame=best_effort_timestamp_time", "-of", "csv=p=0", path],
                        capture_output=True, text=True, check=True)
     return [float(x.split(",")[0]) for x in r.stdout.split() if x.strip() and x.strip() != "N/A"]
+
+
+def packet_pts(path: str, timeout_s: float = 120) -> tuple[list[float] | None, str]:
+    """Presentation times of every packet (no decode), sorted, under a time bound: (times, "") or (None, why)."""
+    try:
+        r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time",
+                            "-of", "csv=p=0", path], capture_output=True, text=True, timeout=timeout_s)
+    except subprocess.TimeoutExpired:
+        return None, "the packet probe did not end within %g s" % timeout_s
+    pts = sorted(float(x.split(",")[0]) for x in r.stdout.split() if x.strip() and x.strip() != "N/A")
+    if r.returncode != 0 or not pts:
+        return None, "the packet probe failed (rc %d): %s" % (r.returncode, r.stderr.strip()[:200])
+    return pts, ""
 
 
 def read_csv(path: str) -> list[dict[str, str]]:
@@ -156,6 +179,9 @@ def main(argv: list[str] | None = None) -> int:
                                          "run. Right: the IVI display.")
     ap.add_argument("--crf", default="18")
     ap.add_argument("--lossless", action="store_true", help="libx264 -qp 0 (tests)")
+    ap.add_argument("--held-span-min-s", type=float, default=0.5,
+                    help="list held display frames within a segment from this length on (boundaries: always)")
+    ap.add_argument("--probe-timeout-s", type=float, default=120, help="bound of one segment's packet probe")
     a = ap.parse_args(argv)
     for tool in ("ffmpeg", "ffprobe"):
         if shutil.which(tool) is None:
@@ -165,7 +191,12 @@ def main(argv: list[str] | None = None) -> int:
     capture = json.load(open(os.path.join(cap_dir, "capture.json")))
     chase_csv = a.chase_frames or a.chase + ".frames.csv"
     sources = [a.chase, chase_csv, os.path.join(cap_dir, "capture.json")]
-    seg_files = [os.path.join(cap_dir, s["file"]) for s in capture["segments"]]
+    # a segment whose pull failed has no file: the others are composed, its span is listed (kind "segment not pulled")
+    segs = [s for s in capture["segments"] if s.get("pulled", True) and os.path.exists(os.path.join(cap_dir, s["file"]))]
+    missing = [s for s in capture["segments"] if s not in segs]
+    if not segs:
+        sys.exit("no segment file of the display capture is here")
+    seg_files = [os.path.join(cap_dir, s["file"]) for s in segs]
     sources += seg_files
     if a.tick_times:
         sources.append(a.tick_times)
@@ -195,14 +226,37 @@ def main(argv: list[str] | None = None) -> int:
     # display frames: IVI clock, then this host's clock
     clock = {c["label"]: c for c in capture.get("clock", [])}
     off = clock.get("capture_start", {}).get("offset_s")
-    disp_ivi, seg_info = [], []
-    for s, f in zip(capture["segments"], seg_files):
+    disp_ivi, disp_seg, seg_info, spans = [], [], [], {}
+    for n_seg, (s, f) in enumerate(zip(segs, seg_files), 1):
         pts = frame_pts(f)
         t0 = float(s["guest_after_s"]) + a.display_t0_correction_s
         disp_ivi += [t0 + p - pts[0] for p in pts]
-        seg_info.append({"file": s["file"], "frames": len(pts), "first_pts_s": pts[0],
+        disp_seg += [s.get("segment", n_seg)] * len(pts)
+        pk, why = packet_pts(f, a.probe_timeout_s)
+        spans[s.get("segment", n_seg)] = (pk[-1] - pk[0]) if pk else None
+        seg_info.append({"file": s["file"], "frames": len(pts), "first_pts_s": pts[0], "last_pts_s": pts[-1],
+                         "packets": len(pk) if pk else None, "first_packet_pts_s": pk[0] if pk else None,
+                         "last_packet_pts_s": pk[-1] if pk else None, "packet_probe": why or "ok",
                          "guest_before_s": s["guest_before_s"], "guest_after_s": s["guest_after_s"], "t0_ivi_s": t0})
     disp_t = [t - (off or 0.0) for t in disp_ivi]
+    # each boundary's upper bound on the unrecorded span, on the guest clock (the rule the capture's README states)
+    by_seg = {s.get("segment"): s for s in capture["segments"]}
+    boundaries = []
+    for b in capture.get("boundaries", []):
+        sa, sb = by_seg.get(b["after_segment"], {}), by_seg.get(b["before_segment"], {})
+        da, db = spans.get(b["after_segment"]), spans.get(b["before_segment"])
+        hi = None
+        if da is not None and db is not None and sb.get("guest_end_s") is not None:
+            hi = (sb["guest_end_s"] - db) - (sa["guest_before_s"] + da)
+        boundaries.append({
+            "after_segment": b["after_segment"], "before_segment": b["before_segment"],
+            "unrecorded_min_s": b.get("unrecorded_min_s"), "unrecorded_max_s": hi,
+            "unrecorded_max_rule": "upper bound from the packet times here: (guest_end_s of the later segment - its "
+                                   "packet span) - (guest_before_s of the earlier one + its packet span); a display "
+                                   "that did not change near either side makes it larger, never smaller; null when "
+                                   "a segment has no file or its packet probe failed",
+            "capture_unrecorded_max_s": b.get("unrecorded_max_s")})
+    bound_of = {(b["after_segment"], b["before_segment"]): b for b in boundaries}
 
     # inset frames: capture simulation time
     inset_sim = []
@@ -227,6 +281,43 @@ def main(argv: list[str] | None = None) -> int:
     pd = [pick(disp_t, t) for t in times]
     pi = [pick(inset_sim, chase_sim[c]) if (a.inset and c >= 0) else -1 for c in pc]
 
+    # held display frames: the output frames that show display frame i while frame i+1 is not yet due
+    bounds = {(b["after_segment"], b["before_segment"]): b for b in capture.get("boundaries", [])}
+    held, not_recorded = [], {}
+    for i in range(len(disp_t) - 1):
+        boundary = disp_seg[i] != disp_seg[i + 1]
+        if not boundary and disp_t[i + 1] - disp_t[i] < a.held_span_min_s:
+            continue
+        k0, k1 = bisect.bisect_left(times, disp_t[i]), bisect.bisect_left(times, disp_t[i + 1]) - 1
+        lo, hi = min(disp_t[i], disp_t[i + 1]), max(disp_t[i], disp_t[i + 1])
+        if k0 > k1 and not (boundary and lo <= times[-1] and hi >= times[0]):
+            continue   # outside the output (a boundary whose frame times overlap is listed when it lies inside)
+        span = {"kind": "segment boundary" if boundary else "within a segment",
+                "held_s": disp_t[i + 1] - disp_t[i], "first_output_frame": k0, "last_output_frame": k1,
+                "from_ivi_s": disp_ivi[i], "to_ivi_s": disp_ivi[i + 1], "from_utc": utc(disp_ivi[i]),
+                "to_utc": utc(disp_ivi[i + 1])}
+        if boundary:
+            b = bounds.get((disp_seg[i], disp_seg[i + 1]), {})
+            mine = bound_of.get((disp_seg[i], disp_seg[i + 1]), {}).get("unrecorded_max_s")
+            # the capture's own figure where an older capture wrote one, else the one computed here
+            span.update({"after_segment": disp_seg[i], "before_segment": disp_seg[i + 1],
+                         "capture_unrecorded_min_s": b.get("unrecorded_min_s"),
+                         "capture_unrecorded_max_s": b.get("unrecorded_max_s") if b.get("unrecorded_max_s")
+                         is not None else mine})
+            for k in range(k0, k1 + 1):
+                not_recorded[k] = disp_ivi[i]
+        if k0 > k1:
+            span.update({"first_output_frame": None, "last_output_frame": None})
+        held.append(span)
+    for s in missing:   # the span of a segment that was not pulled: from its launch to its end read
+        lo, hi = s.get("guest_before_s"), s.get("guest_end_s")
+        k0 = bisect.bisect_left(times, lo - (off or 0.0)) if lo is not None else None
+        k1 = bisect.bisect_left(times, hi - (off or 0.0)) - 1 if hi is not None else None
+        inside = k0 is not None and k1 is not None and k0 <= k1
+        held.append({"kind": "segment not pulled", "segment": s.get("segment"), "file": s.get("file"),
+                     "from_ivi_s": lo, "to_ivi_s": hi, "first_output_frame": k0 if inside else None,
+                     "last_output_frame": k1 if inside else None})
+
     work = os.path.join(a.out, "work")
     os.makedirs(work, exist_ok=True)
     retime([a.chase], pc, PANE_W, PANE_H, a.fps, os.path.join(work, "pane_chase.mkv"))
@@ -241,6 +332,8 @@ def main(argv: list[str] | None = None) -> int:
         for k, t in enumerate(times):
             sim = "simulation time %.2f s" % chase_sim[pc[k]] if pc[k] >= 0 else "simulation time: no frame yet"
             ivi = "IVI clock %s UTC" % utc(disp_ivi[pd[k]]) if pd[k] >= 0 else "IVI clock: no frame yet"
+            if k in not_recorded:
+                ivi = "IVI display not recorded since %s UTC (segment boundary)" % utc(not_recorded[k])
             at = max(0.0, (k - 0.5) / a.fps)
             if sim != last[0]:
                 cmds.append("%.4f drawtext@sim reinit 'text=%s';" % (at, esc(sim)))
@@ -285,7 +378,14 @@ def main(argv: list[str] | None = None) -> int:
                   "last_sim_time_s": chase_sim[-1]},
         "display": {"segments": seg_info, "display_t0_correction_s": a.display_t0_correction_s,
                     "ivi_offset_to_host_s": off, "ivi_offset_bound_s": clock.get("capture_start", {}).get("bound_s"),
-                    "t0_rule": "guest clock read just after the screenrecord launch, plus the correction"},
+                    "t0_rule": "guest clock read just after the screenrecord launch, plus the correction",
+                    "held_spans": held, "boundaries": boundaries,
+                    "gap_free": False if any(h["kind"] in ("segment boundary", "segment not pulled") for h in held)
+                    else None,
+                    "gap_free_rule": "false when a segment boundary falls in the output (the display was not "
+                                     "recorded there) or a segment was not pulled; otherwise null: a hold within a "
+                                     "segment is a static display or an encoder stall, which the frame times cannot "
+                                     "tell apart"},
         "inset": ({"file": os.path.abspath(a.inset), "join": "newest frame with %s <= the chase frame's simulation "
                    "time" % a.inset_time_column, "composited": "after the run, in this composition"}
                   if a.inset else None),
@@ -297,6 +397,12 @@ def main(argv: list[str] | None = None) -> int:
     }
     json.dump(manifest, open(os.path.join(a.out, "manifest.json"), "w"), indent=1)
     print("composed %d frames (%.2f s) from %s into %s" % (n, n / a.fps, utc(start), video))
+    for h in held:
+        if h["kind"] == "segment boundary":
+            print("display not recorded at the segment boundary %d/%d: held %.3f s over output frames %s..%s "
+                  "(capture's bounds %s..%s s)" % (h["after_segment"], h["before_segment"], h["held_s"],
+                                                   h["first_output_frame"], h["last_output_frame"],
+                                                   h["capture_unrecorded_min_s"], h["capture_unrecorded_max_s"]))
     return 0
 
 
