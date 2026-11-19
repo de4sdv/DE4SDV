@@ -238,7 +238,9 @@ step_down() {   # in the trap: the step rstep waited for, if any: TERM on its ho
   case "$ROUT" in "rc "*|absent) ;; *) [ "$prc" != 3 ] && [ "$r" = guest ] && GUEST_STEP_RUNNING=$s ;; esac
   # the step's own last FAIL line (guest_up: "FAIL launch ended by TERM ..."): session.json names the step this TERM
   # cut, and how it ended, so a cut launch is never only an exit code 143 (T1)
-  if [ "$prc" != 3 ] && rout ssh_l "$r" "$(bnd 60)" "$HS tail $s"; then
+  # whatever its exit status: `host_step.sh tail` exits 1 for a step killed before it wrote its .rc, the TERM's case
+  if [ "$prc" != 3 ]; then
+    rout ssh_l "$r" "$(bnd 60)" "$HS tail $s"
     printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"; fl=$(grep '^FAIL ' <<< "$ROUT" | tail -1)
   fi
   log "step $s ended by the session's TERM: ${fl:-no FAIL line in its tail} (status after the TERM: $after)"
