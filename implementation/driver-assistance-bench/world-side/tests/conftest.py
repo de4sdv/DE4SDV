@@ -73,7 +73,7 @@ def clock():
 
 @pytest.fixture
 def server(clock):
-    srv = carla._Server("Carla/Maps/Town04")
+    srv = carla._Server("Carla/Maps/Town06_Opt")
     srv.clock = clock
     return srv
 

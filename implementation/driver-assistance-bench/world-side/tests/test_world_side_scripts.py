@@ -57,7 +57,7 @@ def test_warmup_surveys_with_the_longest_setting_records_the_road_and_warms_up(t
     p = subprocess.run(["bash", str(SCRIPTS / "warmup.sh"), str(tmp_path / "out" / "warmup")], env=env,
                        capture_output=True, text=True, timeout=120)
     assert p.returncode == 0, p.stdout + p.stderr
-    assert "+ " in p.stdout and "survey --map Town04 --port 2000 --setting SC-DRIVING-012@60" in p.stdout
+    assert "+ " in p.stdout and "survey --map Town06_Opt --port 2000 --setting SC-DRIVING-012@60" in p.stdout
     survey = json.loads((tmp_path / "out" / "warmup" / "survey" / "simulator" / "survey.json").read_text())
     assert survey["neededM"] == 320.0                     # 280 m ahead + 40 m, the 60 km/h setting
     state = json.loads((tmp_path / "out" / "world_start.json").read_text())
@@ -130,7 +130,7 @@ def test_the_steering_calibration_runs_as_calib_steer_on_the_setting_road(tmp_pa
     (out / "release").touch()
     log, _ = p.communicate(timeout=60)
     assert p.returncode == 0, log
-    assert "calib-steer --map Town04" in log and "--setting SC-DRIVING-012@20" in log
+    assert "calib-steer --map Town06_Opt" in log and "--setting SC-DRIVING-012@20" in log
     rec = json.loads((out / "simulator" / "setting_record.json").read_text())
     assert rec["kind"] == "calib-steer" and rec["hero"]["lateralOffsetM"] == 0.5
     assert rec["benchReadings"]["straightHeadingMaxDeg"] == 2.0

@@ -74,7 +74,7 @@ It does not:
 | "Travels straight": heading within 2 deg of the target's | `STRAIGHT_HEADING_MAX_DEG` | proposal |
 | Target 150 / 220 / 280 m ahead, run cap 90 s | `Setting` | proposal |
 | `speed_limit` at the middle of the tolerance (5.833 m/s at 20 km/h) | `Setting.speed_limit_mps` | proposal |
-| Map Town04, a straight with two lanes in one direction | `DEFAULT_MAP`, `survey` | brief R7, proposal |
+| Map Town06_Opt (AdditionalMaps pack), a straight with two lanes in one direction | `DEFAULT_MAP`, `survey` | brief R7, proposal; the map by the real server's survey ("The maps pack") |
 | Calibration tolerances, windows, the 0.5 m offset | `calibration.py` | proposal |
 | Boards 2.5 m at 8 and 13 m, +-1.6 m | `camera_calibration.py` | proposal |
 
@@ -143,6 +143,69 @@ things are unverified:
 
 If the frame shows no boards, the procedure stops there and reports. It does not fall back to the computed H.
 
+## The maps pack
+
+The highways come with CARLA's AdditionalMaps pack, not with the base package. The base package's server lists four
+maps (EmptyMap, Town10HD_Opt, Town12, Town15). `load_world` takes only a name that `get_available_maps()` lists, so a
+host without the pack refuses the world side's map, and so does a near name. The paid p10-1 of 20261119T123937Z
+ended at its warm-up that way.
+
+What the real server showed (1.0-14ac3b1a5 on the G4, 2026-11-19; the probe's facts are in
+`inc-driving-002/phase10/p10-1-world-maps-20261119/FACTS.md` under the lead host's outputs):
+
+- with the pack, the server lists sixteen maps, bare names, among them `Town04_Opt` and `Town06_Opt`;
+  `load_world('Town04_Opt')` took 3.4 s;
+- on `Town04_Opt` the longest straight under the survey's rule is 235 m. That is short of the 320 m of
+  SC-DRIVING-012@60 (the warm-up's survey) and of the 300 m of `calib-decel`. So the world side uses `Town06_Opt`,
+  whose straights reach 400 m and more;
+- on `Town06_Opt` the world side's whole p10-1 and p10-2 sequence ran. The survey, the warm-up, the run's handshake
+  (ready.json, go, run_end.json, release), `calib-decel`, `camera-capture` and `calib-steer` all exited 0;
+- there is no `vehicle.lincoln.mkz_2020`. `VEHICLE_CANDIDATES` falls back to `vehicle.lincoln.mkz`. The target
+  `vehicle.tesla.model3` and `static.prop.mesh` are in the library.
+
+The map name is set in one place for the session: `DEFAULT_MAP` in `da_world_side.py` and `WORLD_MAP` in
+`scripts/common.sh`, which a test keeps equal. The session's `sim_setup.sh` checks that `WORLD_MAP` is in the
+server's `get_available_maps()` before it reports the server ready. Without the pack it fails with
+`FAIL map(s) not on the server: Town06_Opt ...`, so a session ends at sim_setup and not at the warm-up.
+
+### One-time install on the simulator host
+
+`sim_setup.sh` does not install the pack. Install it once on the host's disk. It survives VM stops, and a server
+start picks it up. The package's own `README` says to install a pack with
+`python3 Tools/carla_pack.py install <pack>.tar.gz --server .`. That command reads a tarball file and extracts it
+into `CarlaUnreal/Packs/<Pack>`. On the G4 the same steps run as a stream instead, so that the sha256 is checked
+while streaming and no 6.8 GB tarball stays on the disk. The steps are the `install` command's own: extract into a
+staging folder in `Packs/`, `verify`, check against the server, move.
+
+- the object: `gs://de4sdv-carla-d19a-packages/carla-1.0-14ac3b1a5/CARLA_UE5_Weekly_AdditionalMaps.tar.gz`;
+- its size and sha256: 6830970575 bytes, sha256 `33678e7c1571892f15df71a88feb2000dadacc0f71ae8e72f9e45813d60930d6`;
+- the install path on the G4: `/opt/sim20g4/pkg/Carla-1.0-Linux-Shipping/CarlaUnreal/Packs/AdditionalMaps`;
+- the disk it takes: 7.3 GB; `sim_setup.sh` needs 8 GiB free after it.
+
+Run it on the simulator host, as the user that runs CARLA. The VM's own token reads the bucket (scope
+`devstorage.read_only`):
+
+```bash
+CR=$(cat /opt/sim20g4/carla_root)                    # /opt/sim20g4/pkg/Carla-1.0-Linux-Shipping
+PACKS=$CR/CarlaUnreal/Packs; STAGE=$PACKS/.AdditionalMaps.stage
+OBJ=carla-1.0-14ac3b1a5%2FCARLA_UE5_Weekly_AdditionalMaps.tar.gz
+WANT=33678e7c1571892f15df71a88feb2000dadacc0f71ae8e72f9e45813d60930d6
+TOKEN=$(curl -s -H 'Metadata-Flavor: Google' \
+  http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token |
+  python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])')
+[ ! -e "$PACKS/AdditionalMaps" ] && mkdir -p "$STAGE" || exit 1
+curl -sS --fail -H @<(printf 'Authorization: Bearer %s\n' "$TOKEN") \
+  "https://storage.googleapis.com/storage/v1/b/de4sdv-carla-d19a-packages/o/$OBJ?alt=media" |
+  tee >(sha256sum | cut -d' ' -f1 > ~/maps.sha256) | tar -xzf - -C "$STAGE" || exit 1
+sleep 2; [ "$(cat ~/maps.sha256)" = "$WANT" ] || { echo "sha256 mismatch: not installed"; exit 1; }
+python3 "$CR/Tools/carla_pack.py" verify "$STAGE/AdditionalMaps" || exit 1                  # OK: 35 files verified
+python3 "$CR/Tools/carla_pack.py" inspect "$STAGE/AdditionalMaps" --server "$CR" || exit 1  # Compatible: yes
+mv "$STAGE/AdditionalMaps" "$PACKS/AdditionalMaps" && rmdir "$STAGE"
+```
+
+On 2026-11-19 this took 42 s on the G4 (`maps_install.log` in the facts folder). Then start CARLA again
+(`sim_setup.sh`) and look for `Town06_Opt` in `server_probe.txt`'s `available_maps` line.
+
 ## Commands on the simulator host (the first closed loop)
 
 Python: the G4's CARLA 1.0 venv (the package's cp310 wheel). `$WS` is this folder, `$R` the session's run root. The
@@ -153,23 +216,23 @@ order matters: the candidate and the adapter attach to `role_name hero` and must
 PY=<the CARLA 1.0 venv>/bin/python
 git -C <VisionPilot clone> show 014e0e7a:Calibration/checkerboard-bw-4x4.png > $R/checkerboard-bw-4x4.png
 # 1. road: one start for every setting, from the longest need (60 km/h: 280 + 40 m)
-$PY $WS/da_world_side.py survey --map Town04 --setting SC-DRIVING-012@60 --run-dir $R/survey
+$PY $WS/da_world_side.py survey --map Town06_Opt --setting SC-DRIVING-012@60 --run-dir $R/survey
 START=<candidates[0].start from $R/survey/simulator/survey.json>
 # 2. warm-up pass, hero, front camera and target along the road (the recorder may attach)
-$PY $WS/da_world_side.py warmup --map Town04 --setting SC-DRIVING-012@20 --start $START --run-dir $R/warmup
+$PY $WS/da_world_side.py warmup --map Town06_Opt --setting SC-DRIVING-012@20 --start $START --run-dir $R/warmup
 # 3. ASM-DRIVING-005, no candidate client running
-$PY $WS/da_world_side.py calib-decel --map Town04 --setting SC-DRIVING-012@20 --start $START \
+$PY $WS/da_world_side.py calib-decel --map Town06_Opt --setting SC-DRIVING-012@20 --start $START \
     --speeds 20,42,60 --decels 1,2,3,4,5 --run-dir $R/calib_decel
 # 4. camera calibration frame, no candidate client running; then the file, on a host with OpenCV
-$PY $WS/da_world_side.py camera-capture --map Town04 --start $START \
+$PY $WS/da_world_side.py camera-capture --map Town06_Opt --start $START \
     --checkerboard $R/checkerboard-bw-4x4.png --run-dir $R/camcal
 python3 $WS/camera_calibration.py make-h --capture $R/camcal/simulator/camera_capture.json \
     --vp-clone <VisionPilot clone> --out-dir $R/camcal/h
 #    -> H.yaml and homography_C_matrix.yaml into the candidate's working directory, before the identity record
 # 5. ASM-DRIVING-006: the world side first, then the S-CORE side once simulator/ready.json exists
-$PY $WS/da_world_side.py calib-steer --map Town04 --setting SC-DRIVING-012@20 --start $START --run-dir $R/calib_steer
+$PY $WS/da_world_side.py calib-steer --map Town06_Opt --setting SC-DRIVING-012@20 --start $START --run-dir $R/calib_steer
 # 6. SC-DRIVING-012 at 20 km/h, twice; speed_limit = 5.833 (the setting record's candidateSpeedLimitMps)
-$PY $WS/da_world_side.py run --map Town04 --setting SC-DRIVING-012@20 --start $START --run-dir $R/run1
+$PY $WS/da_world_side.py run --map Town06_Opt --setting SC-DRIVING-012@20 --start $START --run-dir $R/run1
 ```
 
 Each subcommand exits 0 when it completed. It exits 2 on a bench error, written to `simulator/error.json`. `--dry-run`
@@ -240,7 +303,8 @@ The test with upstream's script needs the VisionPilot clone (`VISIONPILOT_CLONE`
 The first closed loop must show the following on CARLA 1.0:
 
 - `vehicle.lincoln.mkz` is in the library;
-- Town04 loads, and the survey finds a straight of 320 m with two lanes in one direction;
+- Town06_Opt loads, and the survey finds a straight of 320 m with two lanes in one direction (shown on the G4 on
+  2026-11-19, "The maps pack");
 - the camera delivers one 1920 x 1280 image per 0.1 s at the 0.05 s step, and the first frames' stall stays in the
   warm-up;
 - a hero with no control stays at rest until the adapter's first command;

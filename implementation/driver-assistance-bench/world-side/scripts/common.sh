@@ -5,13 +5,14 @@
 # entries read it there, so every run of the session starts at the same road:lane:s. WORLD_START=road:lane:s
 # skips the survey.
 #
-# env: SIM_PY (the CARLA 1.0 venv's Python; default python3), WORLD_MAP (Town04), CARLA_PORT (2000),
+# env: SIM_PY (the CARLA 1.0 venv's Python; default python3), WORLD_MAP (Town06_Opt: from CARLA's AdditionalMaps
+#      pack, by the exact name the server lists; world-side/README.md "The maps pack"), CARLA_PORT (2000),
 #      WORLD_STATE (see above), WORLD_START.
 WS_SCRIPTS=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 WS=$(cd -- "$WS_SCRIPTS/.." && pwd)
 BENCH=$(cd -- "$WS/.." && pwd)
 PY=${SIM_PY:-python3}
-WORLD_MAP=${WORLD_MAP:-Town04}
+WORLD_MAP=${WORLD_MAP:-Town06_Opt}
 CARLA_PORT=${CARLA_PORT:-2000}
 
 ws_state_file() {   # ws_state_file <out>: the session's state file of the road
