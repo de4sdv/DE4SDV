@@ -16,6 +16,8 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_FOREIGN_FETCH    1: a fetched tarball carries another session's id
   FAKE_NO_STOP       a VM name that stays RUNNING after a stop
   FAKE_SLOW_GUEST_STOP  seconds: the guests' stop (guest_stop.sh, not the safety net's arming) takes that long
+  FAKE_SLOW_FETCH    seconds: the scp of a host's out.tgz takes that long
+  FAKE_FETCH_FAIL    a VM name whose out.tgz scp fails
   FAKE_RECEIPTS      the line count `offer_check.sh receipts` reports for a window's app record (default 2)
   FAKE_DESCRIBE_FLAKE   "vm:n"  once any stop call was made, the next n status reads of the VM fail (a transient
                         gcloud error: a token refresh, a network blip)
@@ -252,9 +254,18 @@ if words[:2] == ["compute", "scp"]:
     n = src[0].split(":", 1)[0]
     if st["vm"].get(n) != "RUNNING":
         err("scp: connection refused (fake)\n", 1)
+    slow = os.environ.get("FAKE_SLOW_FETCH")
+    if slow and any(x.endswith("/out.tgz") for x in src):
+        save()
+        fcntl.flock(lockf, fcntl.LOCK_UN)
+        time.sleep(float(slow))
+        fcntl.flock(lockf, fcntl.LOCK_EX)
+        st = json.load(open(SF))
     for f in src:
         path = f.split(":", 1)[1]
         if path.endswith("/out.tgz"):
+            if os.environ.get("FAKE_FETCH_FAIL") == n:
+                err("scp: connection closed (fake)\n", 1)
             p = os.path.join(D, "%s_out.tgz" % n)
             if not os.path.exists(p):
                 err("scp: no such file (fake)\n", 1)

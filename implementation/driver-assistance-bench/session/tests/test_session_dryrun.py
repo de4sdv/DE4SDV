@@ -704,3 +704,71 @@ def test_the_unit_check_reads_the_log_since_the_mark_before_the_score_start(tmp_
     mark, start, unit = r.ssh(GH, "run logmark_inject"), r.ssh(L4, "run score_start"), r.ssh(GH, "run unit_inject")
     assert mark[0] < start[0] < unit[0]
     assert r.command(unit[0]).endswith("unit $HOME/da-kit/T/out/unit_inject $HOME/da-kit/T/out/logmark_inject")
+
+
+# ------------------------------------------------------------------- failures after the S-CORE side's start (R8, R13)
+
+
+def test_a_failure_after_the_score_start_stops_the_score_side_before_the_fetch(tmp_path: Path) -> None:
+    # R8: the S-CORE side's stop is the only collector of its records; a failure after its start runs it, then fetches
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_FAIL_STEP="unit_inject")
+    assert r.rc == 5, r.log
+    stop = r.ssh(L4, "run score_stop_on_failure")
+    assert len(stop) == 1 and r.command(stop[0]).endswith("stop_score_side.sh $HOME/da-kit/T/out/score")
+    assert r.ssh(L4, "run score_start")[0] < stop[0] < r.ssh(L4, "host_step.sh pack")[0] < r.stops(L4)[0]
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["ended_by"] == "step unit_inject" and rec["fetched"] == ["score", "guest"] and rec["not_fetched"] == []
+    assert_invariants(r)
+
+
+def test_a_failure_before_the_score_start_or_after_its_stop_does_not_stop_it_again(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_FAIL_STEP="guest_prepare")
+    assert r.rc == 5 and not r.ssh(L4, "score_stop"), r.log
+    r2 = run(tmp_path / "b", "p10-2", "--owner-ok-guest-host", FAKE_FAIL_STEP="world_calib_steer")
+    assert r2.rc == 5 and r2.ssh(L4, "run score_stop_calib_steer") and not r2.ssh(L4, "score_stop_on_failure")
+
+
+def test_a_signal_stops_the_score_side_and_fetches_every_host_before_its_stop(tmp_path: Path) -> None:
+    # R8, R13: a signal mid-window (the inject step) still collects the S-CORE side and fetches both hosts (bounded),
+    # and session.json says what ended the session and what was fetched
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="inject:30")
+    wait_for_call(tmp_path, lambda c: any("run inject" in a for a in c))
+    time.sleep(0.5)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    stop = r.ssh(L4, "run score_stop_on_failure")
+    assert stop and stop[0] < r.ssh(L4, "host_step.sh pack")[0] < r.stops(L4)[0]
+    assert r.ssh(GH, "host_step.sh pack")[0] < r.guest_stops()[0]
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["ended_by"] == "signal TERM" and sorted(rec["fetched"]) == ["guest", "score"]
+    assert (r.incoming / "score" / "out" / "session_id").read_text().strip() == "T"
+    assert_invariants(r)
+
+
+def test_a_failed_fetch_is_named_in_the_record(tmp_path: Path) -> None:
+    # R13: exit 5 with failed_step null said nothing about which host's files are missing
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_FETCH_FAIL=GH)
+    assert r.rc == 5, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["ended_by"] == "fetch" and rec["fetched"] == ["score"] and rec["not_fetched"] == ["guest"]
+
+
+def test_the_cap_names_itself_as_the_end(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1", "--cap-eur", "2", SCORE_EUR_H="3600", FAKE_HANG_STEP="p10_1:30")
+    assert r.rc == 10, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["ended_by"] == "cap" and rec["fetched"] == ["score"]
+
+
+def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> None:
+    # R19: a fetch scp inside a pipeline made the trap (and the cap) wait for the whole scp
+    p = popen(tmp_path, "p10-1", FAKE_SLOW_FETCH="15")
+    wait_for_call(tmp_path, lambda c: c[2:4] == ["compute", "scp"] and any(a.endswith("/out.tgz") for a in c))
+    time.sleep(0.5)
+    t0 = time.monotonic()
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    assert time.monotonic() - t0 < 8, "the trap waited for the fetch"
+    assert_invariants(r)

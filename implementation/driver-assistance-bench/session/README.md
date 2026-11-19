@@ -53,6 +53,13 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   it before the guest host's stop and `session.json`. A failed status read of the guest host is read again; only a
   stopped host (`TERMINATED`, `STOPPING`, `SUSPENDED`) counts as "no guests". Any other status, one still unknown
   included, gets the guests' stop, and the host stops only after the session's own `crosvm` count read 0.
+- A failure after the S-CORE side started (a failed step, a wait that timed out, a signal, the cap) first runs the
+  S-CORE side's stop (`ENTRY_SCORE_STOP`, step `score_stop_on_failure`), its only collector, then fetches. A signal or
+  the cap fetches every host whose files were not fetched yet, bounded (120 s pack, 300 s copy), before its stop.
+  `session.json` says what ended the session (`ended_by`: `steps`, `step <name>`, `signal <SIG>`, `cap`, `fetch`, or
+  the exit and its message) and which hosts were fetched (`fetched`, `not_fetched`).
+- Every remote call whose output the session reads writes it to a file first, never through a pipe or a command
+  substitution: a signal or the cap ends the session at once, not after a fetch's 20-minute copy.
 - A watchdog writes `cost.log` every 30 s (an upper bound: from each start call, at the hourly prices in
   `hosts.env`) and ends the session at the cap. Each VM also gets a power-off at the cap plus 10 min, should the
   lead host lose the session (`remote/safety_net.sh`): `shutdown -h` on the GPU hosts; on the guest host a timer
