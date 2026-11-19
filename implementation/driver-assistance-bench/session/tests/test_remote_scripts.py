@@ -634,6 +634,14 @@ CORE_LINES = (
     "11-19 09:57:17.000   542   666 I sdv_someip_stack_agent: SUBSCRIBE(1222): [1234.0001.0001:8001:1]\n")
 IVI_SDV = ("11-19 09:56:00.000   600   601 I SdvServiceManager: main::mesh::manager: connected to instance1\n"
            "11-19 09:56:00.100   700   701 I SomeIpBroker: started\n")
+# a mesh line under neither tag: the diagnostics keep it by its own word, not as a SdvServiceManager line
+IVI_MESH_ONLY = "11-19 09:56:00.200   710   711 W sdv_sd_agent: sd_mesh peer instance3 unreachable\n"
+# the app's line from before the offer (the real session's last IVI line): only in the IVI buffer since boot, never
+# in the log since the mark; a fail at run 2 is diagnosed from these lines
+PRE_OFFER_WAITING = ("11-19 09:56:10.887  3205  3235 I DE4SDV_COLLISION_WARNING: event=lifecycle t_mono_ns=34209898502 "
+                     "t_real_ns=1795082170887000000 phase=link link=WAITING detail=\"discovery started; waiting for the "
+                     "broker's unit de4sdv-driving-warning-request\"\n")
+IVI_BOOT = PRE_OFFER_WAITING + IVI_SDV + IVI_MESH_ONLY + LINK_WAITING
 DIAG_FILES = ("ivi_collision_warning_since_boot.txt", "ivi_sdv_service_manager_broker_mesh.txt",
               "core_sdv_service_manager_since_mark.txt", "core_someip_service.txt", "net_core.txt", "net_ivi.txt")
 
@@ -651,9 +659,11 @@ def _diag_present(out: Path) -> None:
     diag = out / "diag"
     for f in DIAG_FILES:
         assert (diag / f).exists(), f
-    assert "link=WAITING" in (diag / "ivi_collision_warning_since_boot.txt").read_text()
+    app = (diag / "ivi_collision_warning_since_boot.txt").read_text()
+    assert PRE_OFFER_WAITING in app and LINK_WAITING in app     # every app line since boot, the pre-offer one too
     sdv = (diag / "ivi_sdv_service_manager_broker_mesh.txt").read_text()
-    assert "SdvServiceManager" in sdv and "SomeIpBroker" in sdv and "mesh" in sdv
+    assert "I SdvServiceManager: main::mesh::manager" in sdv and "I SomeIpBroker: started" in sdv
+    assert IVI_MESH_ONLY in sdv                                  # a mesh line under another tag
     assert "SdvServiceManagerServer" in (diag / "core_sdv_service_manager_since_mark.txt").read_text()
     someip = (diag / "core_someip_service.txt").read_text()
     assert "4df1.0001.8001" in someip and "1234.0001" not in someip
@@ -684,7 +694,7 @@ def test_the_unit_gate_waits_for_the_apps_subscribed_line_since_the_ivi_mark(tmp
     mark = _app_mark(tmp_path, d, env)
     (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
     (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING)
-    (d / f"logcat_{CORE_IVI}").write_text(LINK_WAITING + IVI_SDV)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
     (d / f"late_{CORE_IVI}").write_text(LINK_SUBSCRIBED)   # SUBSCRIBED only from the 4th read of the IVI log on
     (d / f"late_after_{CORE_IVI}").write_text("3\n")
     t0 = time.monotonic()
@@ -710,7 +720,7 @@ def test_the_unit_gate_fails_without_a_subscribed_line_and_saves_every_diagnosti
     mark = _app_mark(tmp_path, d, env)
     (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
     (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING)
-    (d / f"logcat_{CORE_IVI}").write_text(LINK_WAITING + IVI_SDV)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
     p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
            env=dict(env, UNIT_WAIT_S="1", POLL_S="0.2"))
     assert p.returncode == 1 and "FAIL" in p.stdout and "link=SUBSCRIBED" in p.stdout, p.stdout
@@ -727,7 +737,7 @@ def test_the_unit_gate_fails_at_once_on_an_unavailable_link_with_its_detail(tmp_
     (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
     # UNAVAILABLE first, a SUBSCRIBED after it: the first decisive line since the mark decides, whatever the poll
     (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING + LINK_UNAVAILABLE + LINK_SUBSCRIBED.replace(":17", ":19"))
-    (d / f"logcat_{CORE_IVI}").write_text(LINK_WAITING + IVI_SDV)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
     t0 = time.monotonic()
     p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
            env=dict(env, UNIT_WAIT_S="60", POLL_S="0.2"))
@@ -742,7 +752,7 @@ def test_the_unit_gate_keeps_the_core_broker_error_check(tmp_path: Path, fake) -
     (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES + "11-19 09:57:18.000 1 2 E someip_broker_agent: no "
                                                      "mapping for service 4df1\n")
     (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_SUBSCRIBED)
-    (d / f"logcat_{CORE_IVI}").write_text(LINK_WAITING + IVI_SDV)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
     p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark), env=dict(env, UNIT_WAIT_S="0"))
     assert p.returncode == 1 and "broker errors" in p.stdout, p.stdout
     _diag_present(tmp_path / "o")
@@ -753,7 +763,7 @@ def test_the_core_source_ignores_the_apps_line_and_saves_diagnostics_on_its_fail
     mark = _app_mark(tmp_path, d, env)
     (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
     (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_SUBSCRIBED)
-    (d / f"logcat_{CORE_IVI}").write_text(LINK_WAITING + IVI_SDV)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
     p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
            env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="0"))
     assert p.returncode == 1 and "no registration" in p.stdout and "source core" in p.stdout, p.stdout
@@ -761,6 +771,26 @@ def test_the_core_source_ignores_the_apps_line_and_saves_diagnostics_on_its_fail
     bad = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o2"), str(mark),
              env=dict(env, UNIT_SOURCE="broker", UNIT_WAIT_S="0"))
     assert bad.returncode == 2 and "UNIT_SOURCE" in bad.stdout + bad.stderr
+
+
+def test_the_core_source_decides_from_the_core_log_and_never_reads_the_ivi(tmp_path: Path, fake) -> None:
+    # UNIT_SOURCE=core keeps the earlier gate whole: a registration line in the core's log passes it, the IVI app's
+    # lines are never read (not even an UNAVAILABLE one), and no app_link_lines.txt is made
+    d, env = fake
+    unit, _ = _ids()
+    mark = _app_mark(tmp_path, d, env)
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES + f"11-19 09:57:18.000 1 2 I SomeIpBroker: registered "
+                                                     f"unit {unit}\n")
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_UNAVAILABLE)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT + LINK_UNAVAILABLE)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
+           env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="5", POLL_S="0.2"))
+    assert p.returncode == 0 and f"UNIT_REGISTERED {unit} source=core" in p.stdout, p.stdout
+    assert "UNAVAILABLE" not in p.stdout
+    assert [c for c in calls(d) if c.startswith(f"adb -s {CORE_SER} logcat")], calls(d)
+    assert not [c for c in calls(d) if c.startswith(f"adb -s {CORE_IVI} logcat")], calls(d)
+    assert not (tmp_path / "o" / "app_link_lines.txt").exists()
+    assert unit in (tmp_path / "o" / "unit_lines.txt").read_text()
 
 
 def test_a_missing_ivi_mark_fails_the_app_gate(tmp_path: Path, fake) -> None:
@@ -786,7 +816,7 @@ def test_the_diagnostics_of_a_failed_unit_gate_come_back_with_the_sessions_fetch
         (rem / name).write_bytes((REMOTE / name).read_bytes())
     (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
     (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING)
-    (d / f"logcat_{CORE_IVI}").write_text(LINK_WAITING + IVI_SDV)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
     hs, oc, out = str(rem / "host_step.sh"), "session/remote/offer_check.sh", kit / "out"
     assert sh(hs, "run", "logmark_inject", "--", "bash", oc, "mark", str(out / "logmark_inject"), env=env).returncode == 0
     r = sh(hs, "run", "unit_inject", "--", "bash", oc, "unit", str(out / "unit_inject"), str(out / "logmark_inject"),
