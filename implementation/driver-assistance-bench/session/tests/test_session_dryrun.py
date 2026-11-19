@@ -192,17 +192,92 @@ def assert_invariants(r: Run) -> None:
             assert r.stops(vm) and r.stops(vm)[-1] > r.starts(vm)[-1], vm
 
 
-def test_p10_1_touches_only_the_score_host(tmp_path: Path) -> None:
+def test_p10_1_starts_the_simulator_host_first_and_runs_the_check_while_the_world_ticks(tmp_path: Path) -> None:
+    # lead decision of 2026-11-19, part 2: p10-1 also takes the simulator host, so C1-C4 run against a ticking world
     r = run(tmp_path, "p10-1")
     assert r.rc == 0, r.stdout + r.log
-    assert len(r.starts(L4)) == 1 and not r.starts(G4) and not r.starts(GH)
-    assert not r.stops(G4) and not r.stops(GH)
-    step = r.ssh(L4, "host_step.sh start p10_1")
-    assert step and r.starts(L4)[0] < step[0] < r.stops(L4)[0]
+    assert len(r.starts(G4)) == 1 and len(r.starts(L4)) == 1 and not r.starts(GH) and not r.stops(GH)
+    assert r.starts(G4)[0] < r.starts(L4)[0]
+    # the world ticks from the go file on until the release file: the check runs in between, and the release comes
+    # only after it ended (the check stops its own Launch Manager start while the world still ticks)
+    go, step = r.ssh(G4, "world_p10_1/go"), r.ssh(L4, "host_step.sh start p10_1")
+    ends = [i for i in r.ssh(L4, "host_step.sh status p10_1")]
+    release = r.ssh(G4, "world_p10_1/release")
+    assert go and step and ends and release and go[0] < step[0] < ends[-1] < release[0]
+    assert r.starts(L4)[0] < step[0] < r.stops(L4)[0]
     assert_invariants(r)
     rec = json.loads((r.incoming / "session.json").read_text())
-    assert rec["exit_code"] == 0 and rec["started"] == ["score"] and rec["kind"] == "p10-1"
+    assert rec["exit_code"] == 0 and rec["started"] == ["sim", "score"] and rec["kind"] == "p10-1"
+    assert rec["fetched"] == ["sim", "score"]
     assert (r.incoming / "score" / "out" / "session_id").read_text().strip() == "T"
+
+
+def test_p10_1_gives_the_check_the_simulator_hosts_address_from_gcloud_never_the_callers(tmp_path: Path) -> None:
+    # DA_P10_1_CARLA_HOST comes from the session's own simulator host (hosts.env's VM, its IP read from gcloud),
+    # never from the caller's environment
+    r = run(tmp_path, "p10-1", FAKE_IP=f"{G4}:10.10.0.7", DA_P10_1_CARLA_HOST="192.0.2.99")
+    assert r.rc == 0, r.log
+    (step,) = [r.command(i) for i in r.ssh(L4, "host_step.sh start p10_1")]
+    assert step.endswith("host_step.sh start p10_1 -- env DA_P10_1_CARLA_HOST=10.10.0.7 bash extra/p10_1_check.sh "
+                         "$HOME/da-kit/T/out/p10_1"), step
+    assert not any("192.0.2.99" in a for c in r.calls for a in c)
+    assert json.loads((r.incoming / "session.json").read_text())["internal_ips_from_gcloud"]["sim"] == "10.10.0.7"
+
+
+def test_p10_1_refuses_the_carla_host_as_a_remote_setting(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1", "--remote-env", "DA_P10_1_CARLA_HOST=192.0.2.99")
+    assert r.rc == 2 and "not on the allow-list" in r.stdout and not r.calls, r.stdout
+
+
+def test_p10_1_port_test_is_the_first_cross_host_step_and_logs_each_port(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1")
+    assert r.rc == 0, r.log
+    (pt,) = r.index(lambda c: c[2:4] == ["compute", "ssh"] and c[4] == L4 and "/dev/tcp/" in " ".join(c))
+    cmd = r.command(pt)
+    for port in ("2000", "2001", "2002"):
+        assert port in cmd
+    assert "timeout 5 bash -c" in cmd and "10.10.0.2" in cmd       # bounded, to the address from gcloud
+    assert r.ssh(G4, "host_step.sh status sim_setup")[-1] < pt < r.ssh(G4, "host_step.sh start warmup")[0]
+    assert ("PORT TEST from de4sdv-probe-da8-carla to the simulator host 10.10.0.2: tcp 2000 open, tcp 2001 open, "
+            "tcp 2002 open") in r.log
+
+
+@pytest.mark.parametrize("closed, seen", [("2000", "tcp 2000 closed"), ("2002", "tcp 2002 closed"),
+                                          ("*", "tcp 2000 no answer")])
+def test_p10_1_a_closed_carla_port_ends_the_session_before_any_launch_manager_start(tmp_path: Path, closed: str,
+                                                                                    seen: str) -> None:
+    # "*": the port test's SSH call answers nothing at all (a time-out, say): no port counts as open
+    r = run(tmp_path, "p10-1", FAKE_PORT_CLOSED=closed)
+    assert r.rc == 5, r.log
+    assert seen in r.log and "PORT TEST FAILED" in r.log
+    assert "no Launch Manager start" in r.log
+    assert not r.ssh(L4, "host_step.sh start p10_1") and not r.ssh(G4, "host_step.sh start world_p10_1")
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["failed_step"] == "port_test" and rec["exit_code"] == 5
+    assert_invariants(r)
+
+
+def test_p10_1_world_keeps_ticking_for_as_long_as_the_check_may_run(tmp_path: Path) -> None:
+    # after run_end.json the world side holds (ticks) until the release file or RELEASE_WAIT_S: that hold must cover
+    # the check's own bound (T_P10_1), or the world would stop ticking under the check's part 3
+    r = run(tmp_path, "p10-1")
+    assert r.rc == 0, r.log
+    (cmd,) = [r.command(i) for i in r.ssh(G4, "host_step.sh start world_p10_1")]
+    m = re.search(r"RELEASE_WAIT_S=(\d+) ", cmd)
+    assert m and int(m.group(1)) > 5400, cmd
+    assert cmd.endswith("run_scenario.sh $HOME/da-kit/T/out/world_p10_1 SC-DRIVING-012 20kmh"), cmd
+    assert not r.ssh(G4, "host_step.sh start rec_")                  # no recording: p10-1 judges no driving
+
+
+@pytest.mark.parametrize("entry", ["ENTRY_SIM_SETUP", "ENTRY_SIM_WARMUP", "ENTRY_SIM_RUN"])
+def test_p10_1_checks_the_simulator_hosts_entries_before_any_start(tmp_path: Path, entry: str) -> None:
+    r = run(tmp_path, "p10-1", **{entry: "extra/does_not_exist.sh"})
+    assert r.rc == 2 and "entry points not ready in the kit" in r.log, r.log
+    assert not r.starts(G4) and not r.starts(L4)
+
+
+def test_p10_1_cap_defaults_to_3_50_eur_for_both_hosts() -> None:
+    assert _hosts_env("CAP_EUR_P10_1") == ["3.50"]
 
 
 def test_p10_3_starts_score_then_guest_and_stops_guests_before_their_host(tmp_path: Path) -> None:
@@ -362,7 +437,7 @@ def test_a_vm_that_does_not_stop_is_stopped_again_and_overrides_every_exit_code(
     assert len(r.stops(L4)) == 3                             # the first stop, then again at polls 3 and 6
     rec = json.loads((r.incoming / "session.json").read_text())
     assert rec["exit_code"] == 11 and rec["exit_code_without_left_running"] == 5 and rec["failed_step"] == "p10_1"
-    assert rec["left_running"] == [L4] and rec["vm_status_after"] == {"score": "RUNNING"}
+    assert rec["left_running"] == [L4] and rec["vm_status_after"] == {"sim": "TERMINATED", "score": "RUNNING"}
     last = r.log.strip().splitlines()[-1]
     assert "VMS LEFT RUNNING" in last and L4 in last
     assert "VMS LEFT RUNNING" in r.stdout.strip().splitlines()[-1]
@@ -518,7 +593,12 @@ def test_the_dry_run_prints_every_command(tmp_path: Path) -> None:
 # the offer, the multicast route, the broker's unit, the IVI clock just before the window). Written out here, not
 # taken from the script.
 
-P10_1_SEQ = ["score:p10_1"]
+# p10-1 (lead decision of 2026-11-19, part 2): CARLA up, the port test as the first cross-host step, the session's
+# road (the warm-up entry's survey), the world spawned, its go before the check (the world ticks through the check's
+# three parts) and its release only after the check ended (the check stops its own Launch Manager starts while the
+# world still ticks); no recorder, no calibration (p10-1 judges no driving and no geometry)
+P10_1_SEQ = ["sim:sim_setup", "score:port_test", "sim:warmup", "sim:world_p10_1&", "sim:file-ready.json", "sim:touch-go",
+             "score:p10_1", "sim:file-run_end.json", "sim:touch-release", "sim:wait-world_p10_1"]
 GUEST_UP_SEQ = ["guest:guest_up", "guest:guest_prepare", "guest:vxlan_guest", "score:vxlan_score", "guest:neigh_flush"]
 P10_3_SEQ = GUEST_UP_SEQ + [
     "guest:logmark_inject", "score:score_start", "guest:mcast_route", "guest:unit_inject", "guest:app_restart_inject",
@@ -728,8 +808,8 @@ def test_a_remote_setting_off_the_allow_list_or_malformed_is_refused(tmp_path: P
 def test_without_per_session_settings_the_commands_are_unchanged(tmp_path: Path) -> None:
     r = run(tmp_path, "p10-1")
     assert r.rc == 0, r.log
-    assert r.command(r.ssh(L4, "start p10_1")[0]).endswith("host_step.sh start p10_1 -- bash extra/p10_1_check.sh "
-                                                        "$HOME/da-kit/T/out/p10_1")
+    assert r.command(r.ssh(L4, "start p10_1")[0]).endswith(
+        "host_step.sh start p10_1 -- env DA_P10_1_CARLA_HOST=10.10.0.2 bash extra/p10_1_check.sh $HOME/da-kit/T/out/p10_1")
     assert json.loads((r.incoming / "session.json").read_text())["remote_env"] == {}
 
 
@@ -850,7 +930,7 @@ def test_the_cap_names_itself_as_the_end(tmp_path: Path) -> None:
     r = run(tmp_path, "p10-1", "--cap-eur", "2", SCORE_EUR_H="3600", FAKE_HANG_STEP="p10_1:30")
     assert r.rc == 10, r.log
     rec = json.loads((r.incoming / "session.json").read_text())
-    assert rec["ended_by"] == "cap" and rec["fetched"] == ["score"]
+    assert rec["ended_by"] == "cap" and rec["fetched"] == ["sim", "score"]
 
 
 def _call_times(tmp: Path, pred) -> list[float]:
@@ -917,7 +997,8 @@ def test_the_traps_status_reads_wait_30_s_at_most_and_ignore_an_exported_gc_to(t
 
 def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> None:
     # R19: a fetch scp inside a pipeline made the trap (and the cap) wait for the whole scp
-    p = popen(tmp_path, "p10-1", FAKE_SLOW_FETCH="15")
+    # p10-1 fetches the simulator host first: its copy is the slow one, the S-CORE host's is fetched in the trap
+    p = popen(tmp_path, "p10-1", FAKE_SLOW_FETCH=f"{G4}:15")
     wait_for_call(tmp_path, lambda c: c[2:4] == ["compute", "scp"] and any(a.endswith("/out.tgz") for a in c))
     time.sleep(0.5)
     t0 = time.monotonic()
@@ -925,8 +1006,11 @@ def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> Non
     r = finish(tmp_path, p)
     assert r.rc == 143, r.log
     assert time.monotonic() - t0 < 8, "the trap waited for the fetch"
+    copies = r.index(lambda c: c[2:4] == ["compute", "scp"] and any(a.startswith(G4 + ":") and a.endswith("/out.tgz")
+                                                                     for a in c))
+    assert len(copies) == 1                                       # the interrupted fetch is not tried again
     rec = json.loads((r.incoming / "session.json").read_text())
-    assert rec["fetched"] == [] and rec["not_fetched"] == ["score"]     # the interrupted fetch is named
+    assert rec["fetched"] == ["score"] and rec["not_fetched"] == ["sim"]   # the interrupted fetch is named
     assert_invariants(r)
 
 
@@ -1201,10 +1285,11 @@ def test_the_safety_net_fires_at_the_cap_plus_the_pre_stop_bound_plus_its_margin
     # Y12: a deadline far after the cap passed every test; it is (CAP_S + 300 s) / 60 + 10 min from the arming
     r = run(tmp_path, "p10-1")
     assert r.rc == 0, r.log
-    cap, eur_h = (float(x) for x in _hosts_env("CAP_EUR_P10_1", "SCORE_EUR_H"))
-    gmin = (int(cap / eur_h * 3600) + 300) // 60 + 10
-    (arm,) = [r.command(i) for i in r.ssh(L4, "safety_net.sh arm")]
-    assert re.search(rf"safety_net\.sh arm {gmin}$", arm), (arm, gmin)
+    cap, sim_h, score_h = (float(x) for x in _hosts_env("CAP_EUR_P10_1", "SIM_EUR_H", "SCORE_EUR_H"))
+    gmin = (int(cap / (sim_h + score_h) * 3600) + 300) // 60 + 10
+    for vm in (G4, L4):
+        (arm,) = [r.command(i) for i in r.ssh(vm, "safety_net.sh arm")]
+        assert re.search(rf"safety_net\.sh arm {gmin}$", arm), (vm, arm, gmin)
     assert f"power-off safety net in {gmin} min" in r.log
 
 

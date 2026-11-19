@@ -26,11 +26,13 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_PACK_ADD      "arcname=local file,..."  more files in every packed out.tgz (a fetched verdicts file, say)
   FAKE_KIT_EXISTS    a VM name that already holds ~/da-kit/<session id>
   FAKE_ARM_FAIL      a VM name whose safety net's arming fails
-  FAKE_SLOW_FETCH    seconds: the scp of a host's out.tgz takes that long
+  FAKE_SLOW_FETCH    seconds, or "vm:seconds": the scp of a host's out.tgz (of that VM only) takes that long
   FAKE_FETCH_FAIL    a VM name whose out.tgz scp fails
   FAKE_RECEIPTS      the line count `offer_check.sh receipts` reports for a window's app record (default 2)
   FAKE_DESCRIBE_FLAKE   "vm:n"  once any stop call was made, the next n status reads of the VM fail (a transient
                         gcloud error: a token refresh, a network blip)
+  FAKE_PORT_CLOSED   "port,..."  the p10-1 port test (`for p in <ports>; do ... </dev/tcp/<host>/$p ...`, not a step)
+                     finds these CARLA ports closed; every other port it names answers. "*": the call prints nothing
 """
 import fcntl
 import hashlib
@@ -224,6 +226,12 @@ if words[:2] == ["compute", "ssh"]:
         out("present\n")
     if c.startswith("touch "):
         out("touched\n")
+    mm = re.match(r"for p in ([0-9 ]+); do .*</dev/tcp/", c)
+    if mm and "host_step.sh" not in c:
+        closed = os.environ.get("FAKE_PORT_CLOSED", "").split(",")
+        if closed == ["*"]:
+            out("")
+        out("".join("tcp %s %s\n" % (p, "closed" if p in closed else "open") for p in mm.group(1).split()))
     if "sha256sum H.yaml" in c:
         files = st.get("files", {}).get(n, {})
         out("".join("%s  %s\n" % (files[b], b) for b in ("H.yaml", "homography_C_matrix.yaml") if b in files))
@@ -299,6 +307,8 @@ if words[:2] == ["compute", "scp"]:
     if st["vm"].get(n) != "RUNNING":
         err("scp: connection refused (fake)\n", 1)
     slow = os.environ.get("FAKE_SLOW_FETCH")
+    if slow and ":" in slow:
+        slow = slow.split(":", 1)[1] if slow.split(":", 1)[0] == n else None
     if slow and any(x.endswith("/out.tgz") for x in src):
         save()
         fcntl.flock(lockf, fcntl.LOCK_UN)
