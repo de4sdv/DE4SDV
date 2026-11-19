@@ -11,7 +11,18 @@ tell which client applied a control: the world side, or a stand-in for the actua
   second, and the yaw rate is ``v * tan(steer) / wheelbase`` (CARLA yaw is clockwise seen from above);
 - a collision event when two vehicle bounding boxes overlap along a straight road;
 - a map of straight lanes along +x (two driving lanes in one direction), with waypoints, ``next`` and a
-  junction zone, and textures applied to actors (recorded, not rendered).
+  junction zone, and textures applied to actors (recorded, not rendered);
+- with ``_Server.actor_list_at_last_tick`` set (or FAKE_CARLA_LAST_TICK_ACTORS=1), a synchronous world that is not
+  ticking: a client's ``get_actors()`` and ``get_snapshot()`` give the actors of the last tick, so an actor spawned
+  since (by any client, the caller's own camera included) appears only after the next tick. The real CARLA 1.0
+  server did this in session 20261119T174606Z: the chase recorder's own camera (157) was missing from its actor list
+  while the world side waited for the go without ticking. Each tick's ``WorldSnapshot`` holds that tick's actors
+  (``find``, ``has_actor``, ``len``, iteration). A client that connected after the last tick lists no actor at all
+  until the next one: on the real server (G4, 2026-11-19) a second client connecting in such a pause listed 0 actors
+  and a snapshot of frame 0 for 85 s, then 98 actors at the first tick after the go. Off by default, so the world
+  side's own tests keep the live list;
+- ``_SHARED_SERVER``: when a test sets it, ``Client(host, port)`` without ``_server`` joins that server, so a
+  program that creates its own client (the chase recorder) shares the world with the test's world side.
 
 The API names follow the Python bindings of CARLA at 14ac3b1a502da45a44506cb2ed82ab800f1baf4c
 (PythonAPI/carla/src/World.cpp, Actor.cpp, Map.cpp, Control.cpp, read on 2026-11-18).
@@ -146,10 +157,28 @@ class Timestamp:
         self.frame, self.elapsed_seconds = int(frame), float(elapsed_seconds)
 
 
+class ActorSnapshot:
+    def __init__(self, actor_id: int):
+        self.id = int(actor_id)
+
+
 class WorldSnapshot:
-    def __init__(self, frame: int, elapsed_seconds: float):
+    def __init__(self, frame: int, elapsed_seconds: float, actor_ids=()):
         self.frame = int(frame)
         self.timestamp = Timestamp(frame, elapsed_seconds)
+        self._ids = tuple(int(i) for i in actor_ids)
+
+    def find(self, actor_id: int):
+        return ActorSnapshot(actor_id) if int(actor_id) in self._ids else None
+
+    def has_actor(self, actor_id: int) -> bool:
+        return int(actor_id) in self._ids
+
+    def __len__(self) -> int:
+        return len(self._ids)
+
+    def __iter__(self):
+        return iter([ActorSnapshot(i) for i in self._ids])
 
 
 class WorldSettings:
@@ -638,6 +667,10 @@ class _Server:
         self.pre_tick_hooks: list = []       # called with (server) before the physics step
         self.object_names = ["Road_Road_Town04_1", "Road_Marking_Town04_1"]
         self.named_textures: list = []
+        self.actor_list_at_last_tick = os.environ.get("FAKE_CARLA_LAST_TICK_ACTORS") == "1"
+        self.tick_actor_ids: tuple = ()      # the actors of the last tick (none before the first)
+        self.ticks = 0                       # ticks since the server started (frame also moves on load_world)
+        self.tick_callback_ids: dict = {}
 
     def _textured_boards(self) -> list:
         """The flat boards the camera can see: static.prop.mesh actors with a texture applied as a parameter that
@@ -706,7 +739,9 @@ class _Server:
             self.step_vehicle(state, dt)
         self._collisions(vehicles)
         self._sensors()
-        snapshot = WorldSnapshot(self.frame, self.elapsed)
+        self.ticks += 1
+        self.tick_actor_ids = tuple(self.actors)
+        snapshot = WorldSnapshot(self.frame, self.elapsed, self.tick_actor_ids)
         for callback in list(self.tick_callbacks):
             callback(snapshot)
         return self.frame
@@ -775,11 +810,21 @@ class World:
     def get_blueprint_library(self) -> BlueprintLibrary:
         return self._server.blueprints
 
+    def _listed_ids(self) -> tuple:
+        if self._server.actor_list_at_last_tick:
+            if self._client._connect_ticks == self._server.ticks:
+                return ()                    # this client has received no tick yet
+            return tuple(i for i in self._server.tick_actor_ids if i in self._server.actors)
+        return tuple(self._server.actors)
+
     def get_snapshot(self) -> WorldSnapshot:
-        return WorldSnapshot(self._server.frame, self._server.elapsed)
+        if self._server.actor_list_at_last_tick and self._client._connect_ticks == self._server.ticks:
+            return WorldSnapshot(0, 0.0, ())
+        return WorldSnapshot(self._server.frame, self._server.elapsed, self._listed_ids())
 
     def get_actors(self, actor_ids=None) -> ActorList:
-        states = list(self._server.actors.values())
+        listed = set(self._listed_ids())
+        states = [s for s in list(self._server.actors.values()) if s.id in listed]
         if actor_ids is not None:
             states = [s for s in states if s.id in set(actor_ids)]
         return ActorList(Actor(self._client, s) for s in states)
@@ -790,10 +835,14 @@ class World:
 
     def on_tick(self, callback) -> int:
         self._server.tick_callbacks.append(callback)
-        return len(self._server.tick_callbacks)
+        callback_id = len(self._server.tick_callback_ids) + 1
+        self._server.tick_callback_ids[callback_id] = callback
+        return callback_id
 
     def remove_on_tick(self, callback_id: int) -> None:
-        pass
+        callback = self._server.tick_callback_ids.pop(callback_id, None)
+        if callback is not None and callback in self._server.tick_callbacks:
+            self._server.tick_callbacks.remove(callback)
 
     def tick(self, seconds: float = 10.0) -> int:
         if not self._server.settings.synchronous_mode:
@@ -837,6 +886,9 @@ class World:
         self._server.named_textures.append((object_name, material_parameter, texture))
 
 
+_SHARED_SERVER = None
+
+
 class TrafficManager:
     def __init__(self, server, port: int):
         self.port = port
@@ -852,7 +904,8 @@ class Client:
     def __init__(self, host: str, port: int = 2000, worker_threads: int = 0, *, _server=None,
                  name: str = "world_side"):
         self.host, self.port = host, int(port)
-        self._server = _server or _Server("Carla/Maps/Town10HD_Opt")
+        self._server = _server or _SHARED_SERVER or _Server("Carla/Maps/Town10HD_Opt")
+        self._connect_ticks = self._server.ticks
         self.name = name
         self.timeout = 5.0
         self.load_calls: list[str] = []
