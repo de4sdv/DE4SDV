@@ -19,6 +19,9 @@ Knobs that let a test order the events itself, with no reliance on the host's sp
   FAKE_PULL_DELAY_S   every pull of a segment takes this much longer (a large segment over a slow link)
   FAKE_PULL_FAIL      "<n>": the pull of seg_<n>.mp4 fails
   FAKE_DF_AVAIL_KB    the free space df -k reports for /data (default 4000000)
+  FAKE_ALIVE_TAIL_S   a poll (kill -0) of a live recording writes "alive", then after this many seconds one more
+                      empty line: adb's output still coming after the match (a reader that stops at the match, such
+                      as grep -q, makes that write fail with SIGPIPE, and adb's status non-zero)
 """
 import fcntl
 import json
@@ -95,7 +98,18 @@ if argv[:1] == ["shell"]:
         done("%.9f\r\npid=%d\r\n%.9f\r\n" % (before, pid, guest_now()))
     m = re.search(r"kill -0 (\d+)", c)
     if m:
-        done("alive\r\n" if alive(st["recs"].get(m.group(1))) else "")
+        live = alive(st["recs"].get(m.group(1)))
+        tail = float(os.environ.get("FAKE_ALIVE_TAIL_S", "0"))
+        if live and tail > 0:
+            json.dump(st, open(SF, "w"))
+            fcntl.flock(lockf, fcntl.LOCK_UN)
+            sys.stdout.write("alive\r\n")
+            sys.stdout.flush()
+            time.sleep(tail)
+            sys.stdout.write("\r\n")
+            sys.stdout.flush()   # a reader that is gone: BrokenPipeError, a non-zero exit, as adb's SIGPIPE
+            sys.exit(0)
+        done("alive\r\n" if live else "")
     m = re.search(r"kill -INT (\d+)", c)
     if m:   # a guest shell `kill -INT <pid> 2>/dev/null && echo sent`: the signal reaches a live recording only
         r = st["recs"][m.group(1)]

@@ -64,6 +64,9 @@ most two segments (about 340 MB at 8 Mbit/s). The capture reads `df -k /data` at
 that is free; the IVI guest's `/data` size is not in the guest-build records, so `capture.json` keeps the free space
 it read (`guest_data_free_kb`). A failed pull keeps the guest file, names it (`pull_failures`, `guest_dir_kept`) and
 says so in `capture.done`; the capture still ends with exit 0, so the session still pulls the app's records.
+`capture.json` and `capture.done` are written, and the guest's folder removed, only after every pull ended. The alive
+poll reads adb's whole answer and compares it: a reader that stops at its match (`grep -q`) under `pipefail` can give
+adb SIGPIPE, and the failed poll would take a live recording as ended.
 
 How to read the numbers: `capture.json` has one `boundaries` entry per boundary, on the guest clock:
 
@@ -140,7 +143,9 @@ every offset used.
   segment 2 starts while segment 1's pull is held; a failed pull (`FAKE_PULL_FAIL`) is reported and keeps the guest
   file; a SIGINT that finds the recording ended says `time-limit`; the stop waits for a 6 s pull
   (`FAKE_PULL_DELAY_S`) and gives up at its cap; the fast poll finds the end with `POLL_S` at 8 s; the gap bounds
-  are recomputed with ffprobe.
+  are recomputed with ffprobe. With the last segment's pull held past the stop, `capture.json` and `capture.done`
+  come after it, with that file's sha256; with segment 1's pull held, segment 3 starts and the stop reaches it; an
+  adb that writes more after `alive` (`FAKE_ALIVE_TAIL_S`) does not end a live recording.
 - `tests/test_compose_side_by_side.py`: on flat-level synthetic videos made with ffmpeg, the pane pixels of every
   output frame show the source frame the test computes from the synthetic times, a chase stall included; the
   manifest's digests; the refusals; a 1 s hold at a segment boundary listed with its output frames, the output not

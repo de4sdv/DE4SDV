@@ -149,7 +149,9 @@ seg_limit
 if launch "$K"; then
   while :; do
     seg_end=time-limit
-    while a shell "kill -0 $pid 2>/dev/null && echo alive" 2>/dev/null | grep -q alive; do
+    # adb's whole answer is read (tr reads to the end), then compared: under pipefail, a reader that stops at the
+    # match (grep -q) can give adb SIGPIPE, and the failed pipeline would read a live recording as ended
+    while v=$(a shell "kill -0 $pid 2>/dev/null && echo alive" 2>/dev/null | tr -d '\r'); [ "$v" = alive ]; do
       if [ -e "$OUT/STOP" ] && [ "$seg_end" != stop ]; then
         # SIGINT finishes the file. A recording that reached its time limit since the poll is gone: kill fails,
         # nothing is sent, and the segment says time-limit

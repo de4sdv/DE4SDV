@@ -264,6 +264,132 @@ def test_the_next_segment_starts_while_the_last_one_is_pulled(tmp_path: Path, en
     assert not list(out.glob("*.pending"))
 
 
+def test_the_capture_ends_only_after_the_last_pull_ended(tmp_path: Path, env: dict[str, str]) -> None:
+    """The pull of the last segment (seg_2, the end of the drive) is held past the stop. capture.json and
+    capture.done are written, and the guest's files removed, only once that pull ended; capture.json lists seg_2 as
+    pulled, with the sha256 of the complete file. A capture that ended beside a running pull would leave the last
+    segment missing (or truncated) in the evidence."""
+    out = tmp_path / "cap"
+    limits = tmp_path / "limits"
+    limits.mkdir()
+    release = tmp_path / "release_pull"
+    fake = Path(env["FAKE_ADB_DIR"])
+    env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits), FAKE_HOLD_PULL="2:%s" % release)
+    p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "60"], env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    stop = None
+    try:
+        wait_until("first recording", lambda: len(recordings(fake)) >= 1, p)
+        (limits / "limit_1").touch()
+        wait_until("second recording", lambda: len(recordings(fake)) >= 2, p)
+        stop = subprocess.Popen(["bash", str(CAPTURE), "stop", str(out), "--wait-s", "30"], env=env,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        wait_until("the held pull of seg_2",
+                   lambda: any("pull" in c and c[-2].endswith("/seg_2.mp4") for c in calls(fake)), p)
+        # the capture's tail runs up to the end's clock measurement (calls after the logcat); then only the pull
+        # holds it. Give it a bounded time to (wrongly) finish beside the pull
+        wait_until("the end's logcat", lambda: any(c[:1] == ["logcat"] or "logcat" in c for c in calls(fake)), p)
+        until = time.monotonic() + 3
+        while time.monotonic() < until and not (out / "capture.done").exists() and p.poll() is None:
+            time.sleep(0.02)
+        assert not (out / "capture.done").exists(), "capture.done written while the pull of seg_2 ran"
+        assert not (out / "capture.json").exists(), "capture.json written while the pull of seg_2 ran"
+    finally:
+        t_release = time.time()
+        release.touch()
+    log, _ = p.communicate(timeout=60)
+    s_out, _ = stop.communicate(timeout=60)
+    assert p.returncode == 0, log
+    assert stop.returncode == 0, s_out + log
+    assert (out / "capture.done").stat().st_mtime >= t_release
+    assert (out / "capture.json").stat().st_mtime >= t_release
+    cap = json.loads((out / "capture.json").read_text())
+    s2 = cap["segments"][1]
+    assert s2["file"] == "seg_2.mp4" and s2["pulled"] is True
+    complete = hashlib.sha256(Path(env["FAKE_SEG_MP4"]).read_bytes()).hexdigest()
+    assert s2["sha256"] == cap["sha256"]["seg_2.mp4"] == complete
+    assert hashlib.sha256((out / "seg_2.mp4").read_bytes()).hexdigest() == complete
+    # the guest file of seg_2 (by its own rm or the folder's) goes only after its pull ended
+    gone = [t for t, c in stamped(fake) if any("rm -rf /data/local/tmp/da_capture" in a
+                                               or "rm -f /data/local/tmp/da_capture/seg_2" in a for a in c)]
+    assert gone and min(gone) >= t_release, (gone, t_release)
+
+
+def test_a_pull_slower_than_a_segment_delays_neither_the_next_launch_nor_the_stop(tmp_path: Path,
+                                                                                env: dict[str, str]) -> None:
+    """The pull of seg_1 is held (a pull that takes longer than a segment): seg_2 reaches its limit and seg_3
+    starts, and then a stop reaches seg_3 within the poll bound, all while that pull still runs. A pull run in
+    the loop, even after the next launch, would hold the alive poll: no end of seg_2 seen, no stop found."""
+    out = tmp_path / "cap"
+    limits = tmp_path / "limits"
+    limits.mkdir()
+    release = tmp_path / "release_pull"
+    fake = Path(env["FAKE_ADB_DIR"])
+    env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits), FAKE_HOLD_PULL="1:%s" % release)
+    p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "60"], env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    held = lambda: any("pull" in c and c[-2].endswith("/seg_1.mp4") for c in calls(fake))
+    try:
+        wait_until("first recording", lambda: len(recordings(fake)) >= 1, p)
+        (limits / "limit_1").touch()
+        wait_until("second recording and the held pull of seg_1", lambda: len(recordings(fake)) >= 2 and held(), p)
+        (limits / "limit_2").touch()
+        # POLL_S is 0.05 s here: a few polls and one launch, not the pull's time
+        wait_until("third recording while seg_1 is pulled", lambda: len(recordings(fake)) >= 3, p, timeout_s=10)
+        (out / "STOP").touch()
+        wait_until("the stop's signal to seg_3 while seg_1 is pulled",
+                   lambda: any(any("kill -INT 4002" in a for a in c) for c in calls(fake)), p, timeout_s=10)
+        assert not (out / "seg_1.mp4").exists()   # the pull is still held
+    finally:
+        release.touch()
+    log, _ = p.communicate(timeout=60)
+    assert p.returncode == 0, log
+    cap = json.loads((out / "capture.json").read_text())
+    assert [s["end"] for s in cap["segments"]] == ["time-limit", "time-limit", "stop"]
+    assert [s["pulled"] for s in cap["segments"]] == [True, True, True]
+
+
+def test_a_live_recording_is_not_taken_as_ended_when_adb_writes_after_alive(tmp_path: Path,
+                                                                           env: dict[str, str]) -> None:
+    """The alive poll's adb writes "alive" and then more (FAKE_ALIVE_TAIL_S). A reader that stops at the match
+    (grep -q under pipefail) gives adb SIGPIPE and the poll a failed status: a live recording would read ended, its
+    file be pulled while it is written, and a second screenrecord start beside it. The poll reads the whole answer."""
+    out = tmp_path / "cap"
+    limits = tmp_path / "limits"
+    limits.mkdir()
+    fake = Path(env["FAKE_ADB_DIR"])
+    env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits), FAKE_ALIVE_TAIL_S="0.2")
+    p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "60"], env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    polls = lambda: [c for c in calls(fake) if any("kill -0 4000" in a for a in c)]
+    try:
+        wait_until("first recording", lambda: len(recordings(fake)) >= 1, p)
+        wait_until("three polls of the live recording (or a second recording)",
+                   lambda: len(polls()) >= 3 or len(recordings(fake)) >= 2, p)
+        assert len(recordings(fake)) == 1, "a second recording started beside the live first one"
+        assert not any("pull" in c and c[-2].endswith("/seg_1.mp4") for c in calls(fake)), \
+            "the live recording's file was pulled"
+        (limits / "limit_1").touch()
+        wait_until("second recording", lambda: len(recordings(fake)) >= 2, p)
+    finally:
+        (out / "STOP").touch()
+    log, _ = p.communicate(timeout=60)
+    assert p.returncode == 0, log
+    cap = json.loads((out / "capture.json").read_text())
+    assert [s["end"] for s in cap["segments"]] == ["time-limit", "stop"]
+
+
+def test_no_adb_answer_is_read_by_a_reader_that_stops_at_its_match() -> None:
+    """Under pipefail, `adb ... | grep -q` (or head, grep -m) can give adb SIGPIPE: the pipeline then fails though
+    the answer matched. The display capture and the IVI clock read adb's whole answer and compare the value."""
+    import re
+    for script in (CAPTURE, CLOCK):
+        for n, line in enumerate(script.read_text().splitlines(), 1):
+            code = line.split("#", 1)[0] if not line.lstrip().startswith("#") else ""
+            if re.search(r"(\ba |\badbt |\$ADB\b|\badb\b)[^|]*\|.*\b(grep -[a-zA-Z]*[qm]|head)\b", code):
+                raise AssertionError("%s:%d reads adb with a reader that stops early: %s" % (script.name, n, line))
+
+
 def test_a_failed_pull_is_reported_and_keeps_the_guest_file(tmp_path: Path, env: dict[str, str]) -> None:
     out, fake, p, stop, _ = two_segments(tmp_path, env, FAKE_PULL_FAIL="1")
     log, _ = p.communicate(timeout=60)
