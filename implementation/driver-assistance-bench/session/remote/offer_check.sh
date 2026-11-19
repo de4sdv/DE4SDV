@@ -25,9 +25,15 @@
 #                                    lines: both legs). On any FAIL, diag/ (below) before the exit
 #   offer_check.sh neigh <out_dir>   flushes both guests' neighbour caches (ip neigh flush dev $GUEST_IF), so they
 #                                    learn the S-CORE host's MAC for 192.168.98.1 over the VXLAN
-#   offer_check.sh receipts <capture_dir>
-#                                    counts the lines of the app's records in a window's capture; prints
-#                                    "RECEIPTS <n>" and exits 0 either way (the session says it loudly when 0)
+#   offer_check.sh receipts <capture_dir> [<app_restart record>]
+#                                    counts the receipt events of the window in the app's records of its capture
+#                                    (app_record_*.jsonl): the lines whose "event" is "receipt" after the window's app
+#                                    start. The record is appended (RecordWriter.java) and every app start writes
+#                                    lifecycle, link and status lines, so a line count is never 0 (W1 of the re-check
+#                                    at 437a833b). With the app_restart record, the window's start is the last run of
+#                                    "lifecycle" "start" lines, and only if they carry its "pid <n>" line's pid;
+#                                    without it, the last "lifecycle" "start" line. Prints "RECEIPTS <n>" and exits 0
+#                                    either way (the session says it loudly when 0)
 # The unit, the service id and the broker's tag come from the bench's interfaces/service_ids.json. Why the app's line
 # (T6 of the p10-3 record of 2026-11-19): the SDV Core guest's broker logged no line naming the unit at its default
 # level; the core's SOME/IP stack agent logged `REGISTER EVENT(...)` and `SUBSCRIBE(...)` for 4df1, and only the IVI
@@ -81,7 +87,29 @@ case "$ACTION" in
     echo "NEIGH_FLUSHED $GUEST_IF"
     ;;
   receipts)
-    n=$(cat "$OUT"/app_record_*.jsonl 2>/dev/null | grep -c . || true)
+    RREC=${3:-}; PID=""
+    if [ -n "$RREC" ]; then
+      PID=$(sed -n 's/^pid \([0-9][0-9]*\)\( .*\)\{0,1\}$/\1/p' "$RREC" 2>/dev/null | tail -1)
+      if [ -z "$PID" ]; then
+        echo "no pid of the window's app start in $RREC: no receipt event counted"; echo "RECEIPTS 0"; exit 0
+      fi
+    fi
+    shopt -s nullglob; recs=("$OUT"/app_record_*.jsonl); shopt -u nullglob
+    [ ${#recs[@]} -gt 0 ] || { echo "no app record in $OUT"; echo "RECEIPTS 0"; exit 0; }
+    # the app's JSON keys (WarningRecord.json): every line opens with {"event":"<e>", a start is "lifecycle" with
+    # "phase":"start","pid":<n> first; mawk has no {n} intervals, so index() and a plain match()
+    n=$(awk -v pid="$PID" '
+      FNR == 1 { tot += n; n = 0; inwin = 0; last = "" }
+      index($0, "{\"event\":\"lifecycle\",") == 1 && match($0, /,"phase":"start","pid":[0-9]+/) {
+        p = substr($0, RSTART + 23, RLENGTH - 23)
+        if (pid == "") { n = 0; inwin = 1 }
+        else if (p == pid) { if (last != p) n = 0; inwin = 1 }
+        else { n = 0; inwin = 0 }
+        last = p; next
+      }
+      inwin && index($0, "{\"event\":\"receipt\",") == 1 { n++ }
+      END { print tot + n }' "${recs[@]}")
+    echo "receipt events since the window's app start${PID:+ (pid $PID)}: ${n:-0}, in $(cat "${recs[@]}" | grep -c .) record line(s)"
     echo "RECEIPTS ${n:-0}"
     ;;
   unit)
@@ -128,10 +156,11 @@ print(d["icd"]["data_tunnel"]["service_unit"], d["icd"]["someip_warning_request"
     # on any FAIL, before the exit: what a reader needs to tell which leg broke (every adb call bounded by ADB_TO_S)
     diagnose() {
       local D=$OUT/diag g f
-      mkdir -p "$D"
+      DIAG_DONE=1; mkdir -p "$D"
       adbt -s "$IVI_ADB" logcat -d 2>/dev/null | tr -d '\r' > "$D/ivi_logcat_since_boot.txt"
       grep -F "$APP_TAG" "$D/ivi_logcat_since_boot.txt" > "$D/ivi_collision_warning_since_boot.txt"
-      grep -E "SdvServiceManager|SomeIpBroker|[Mm]esh" "$D/ivi_logcat_since_boot.txt" \
+      # never the app's own lines: its start line names the broker (publisher=...SomeIpBroker) (W6)
+      grep -v -F "$APP_TAG" "$D/ivi_logcat_since_boot.txt" | grep -E "SdvServiceManager|SomeIpBroker|[Mm]esh" \
         > "$D/ivi_sdv_service_manager_broker_mesh.txt"
       [ -e "$OUT/core_logcat.txt" ] || adbt -s "$CORE_ADB" logcat -d 2>/dev/null | tr -d '\r' > "$OUT/core_logcat.txt"
       grep -F "SdvServiceManagerServer" "$OUT/core_logcat.txt" > "$D/core_sdv_service_manager_since_mark.txt"
@@ -145,7 +174,8 @@ print(d["icd"]["data_tunnel"]["service_unit"], d["icd"]["someip_warning_request"
       context
       echo "DIAGNOSTICS $D:$(cd "$D" && for f in *.txt; do printf ' %s(%s)' "$f" "$(grep -c . "$f")"; done)"
     }
-    fail_unit() { echo "FAIL $*"; diagnose; exit 1; }
+    DIAG_DONE=""
+    fail_unit() { echo "FAIL $*"; [ -n "$DIAG_DONE" ] || diagnose; exit 1; }   # the diagnostics once (T_UNIT, W4)
     end=$(( $(date +%s) + ${UNIT_WAIT_S:-120} ))
     while :; do
       if [ -n "$SINCE" ]; then adbt -s "$CORE_ADB" logcat -d -T "$SINCE" 2>/dev/null
@@ -163,9 +193,10 @@ print(d["icd"]["data_tunnel"]["service_unit"], d["icd"]["someip_warning_request"
         echo "FAIL broker errors for the service:"; head -5 "$OUT/broker_errors.txt"; diagnose; exit 1
       fi
       if [ "$SRC" = app ]; then
-        # SUBSCRIBED anywhere since the mark passes, whatever the poll that reads it. UNAVAILABLE never decides: the
-        # app logs it for every failed initComms, subscribe or read and retries after RETRY_DELAY_MS (5 s)
-        sub=$(grep -E " link=SUBSCRIBED( |$)" "$OUT/app_link_lines.txt" | head -1)
+        # the last link line since the mark decides: SUBSCRIBED passes, a later WAITING or UNAVAILABLE says the link
+        # dropped, so the gate waits on (W5). UNAVAILABLE never decides: the app logs it for every failed initComms,
+        # subscribe or read and retries after RETRY_DELAY_MS (5 s)
+        sub=$(tail -1 "$OUT/app_link_lines.txt" | grep -E " link=SUBSCRIBED( |$)")
         nun=$(grep -c -E " link=UNAVAILABLE( |$)" "$OUT/app_link_lines.txt")
         lun=$(grep -E " link=UNAVAILABLE( |$)" "$OUT/app_link_lines.txt" | tail -1); lun=${lun#* detail=}
         if [ -n "$sub" ]; then
@@ -180,8 +211,16 @@ print(d["icd"]["data_tunnel"]["service_unit"], d["icd"]["someip_warning_request"
       if [ "$(date +%s)" -ge "$end" ]; then
         if [ "$SRC" = app ]; then
           last=$(tail -1 "$OUT/app_link_lines.txt"); last=${last#* link=}
+          # with none since the mark, the last one before it (from the IVI log since boot): a naming problem is
+          # logged once, at the app's start, before the mark (W3)
+          before=""
+          if [ -z "$last" ]; then
+            diagnose
+            before=$(grep -E "$LINK_RE" "$OUT/diag/ivi_collision_warning_since_boot.txt" | tail -1)
+            before="; last link line before the mark: ${before:-none}"
+          fi
           fail_unit "no 'phase=link link=SUBSCRIBED' line of the IVI app for $UNIT within ${UNIT_WAIT_S:-120} s" \
-            "(last link line: ${last:-none since the mark}; UNAVAILABLE lines since the mark: ${nun:-0}${lun:+; the last: $lun})"
+            "(last link line: ${last:-none since the mark}$before; UNAVAILABLE lines since the mark: ${nun:-0}${lun:+; the last: $lun})"
         fi
         fail_unit "no registration of $UNIT within ${UNIT_WAIT_S:-120} s (source core)"
       fi

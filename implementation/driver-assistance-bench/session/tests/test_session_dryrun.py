@@ -125,7 +125,8 @@ class Run:
 
 # the per-session settings of the remote entries (da_session.sh REMOTE_ENV_*): a test sets them only on purpose
 REMOTE_ENV = ("UNIT_SOURCE", "UNIT_REGISTERED_RE", "UNIT_NEGATION_RE", "BROKER_ERROR_RE", "UNIT_WAIT_S", "B12_DIR", "VERIFY_WAIT_S",
-              "ADB_TIMEOUT_S", "UP_TIMEOUT_S", "CLOCK_READS", "CLOCK_MAX_OFFSET_S", "START_WAIT_S", "DA_P10_1_CARLA_HOST",
+              "ADB_TIMEOUT_S", "UP_TIMEOUT_S", "CLOCK_READS", "CLOCK_MAX_OFFSET_S", "START_WAIT_S", "APP_SUBSCRIBE_WAIT_S",
+              "DA_P10_1_CARLA_HOST",
               "GATEWAYD_RX_REGEX", "DA_P10_1_LATE_WAIT_S", "DA_P10_1_CUDA_RUNS", "DA_P10_1_ALIVE_HOLD_S",
               "DA_P10_1_STALL_HOLD_S", "DA_P10_1_SUPERVISED_WAIT_S")
 
@@ -764,7 +765,7 @@ def test_the_window_counts_the_app_records_receipts_and_says_so_loudly_when_none
     # R7: a window whose app record holds no receipt did not carry, whatever the unit check said
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host")
     assert r.rc == 0, r.log
-    assert "window inject: 2 line(s) in the app's record" in r.log
+    assert "window inject: 2 receipt event(s) in the app's record since the window's app start" in r.log
     assert json.loads((r.incoming / "session.json").read_text())["app_record_receipts"] == {"inject": 2}
     r0 = run(tmp_path / "b", "p10-3", "--owner-ok-guest-host", FAKE_RECEIPTS="0")
     assert "NO RECEIPT IN THE APP'S RECORD OF WINDOW inject" in r0.log
@@ -781,9 +782,94 @@ def test_p10_3_is_passed_only_with_a_receipt_in_every_windows_app_record(tmp_pat
     r0 = run(tmp_path / "b", "p10-3", "--owner-ok-guest-host", FAKE_RECEIPTS="0")
     assert r0.rc == 0, r0.log   # the exit code stays the documented one: the steps ran
     rec0 = json.loads((r0.incoming / "session.json").read_text())["p10_3"]
-    assert rec0["passed"] is False and "no receipt in the app's record of window inject" in rec0["reason"], rec0
+    assert rec0["passed"] is False and "no receipt event since the app's start in the record of window inject" \
+        in rec0["reason"], rec0
     assert "p10-3 NOT passed:" in r0.log
     assert json.loads((run(tmp_path / "c", "p10-1").incoming / "session.json").read_text())["p10_3"] is None
+
+
+def _record(tmp_path: Path, name: str, receipts_after_the_start: int) -> Path:
+    """An app record in the app's own JSONL format (WarningRecord.json): guest_prepare's start (pid 3205), a stop,
+    the window's restart (pid 4242, the fake's restart record), each start with its lifecycle, link and status lines."""
+    def jl(event: str, **kv) -> str:
+        return json.dumps({"event": event, "t_mono_ns": 1, "t_real_ns": 2, **kv}, separators=(",", ":")) + "\n"
+    def start(pid: int) -> str:
+        return (jl("lifecycle", phase="start", pid=pid, unit="de4sdv-driving-warning-request")
+                + jl("lifecycle", phase="link", link="SUBSCRIBED", detail="instance1")
+                + jl("status", link="SUBSCRIBED", receipts=0, requests=0, refused=0))
+    text = (start(3205) + jl("receipt", seq=1, request=1, verdict="ACCEPTED") + jl("lifecycle", phase="stop", receipts=1)
+            + start(4242) + "".join(jl("receipt", seq=i, request=i, verdict="ACCEPTED")
+                                    for i in range(1, receipts_after_the_start + 1)))
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    (tmp_path / name).write_text(text)
+    return tmp_path / name
+
+
+def test_p10_3_with_no_receipt_since_the_windows_app_start_is_not_passed(tmp_path: Path) -> None:
+    # W1 of the re-check at 437a833b: the record is appended and every app start writes lifecycle, link and status
+    # lines, so a line count was never 0 and p10_3.passed read true with zero receipts
+    r = run(tmp_path / "a", "p10-3", "--owner-ok-guest-host", FAKE_APP_RECORD=str(_record(tmp_path, "r0.jsonl", 0)))
+    assert r.rc == 0, r.log
+    j = json.loads((r.incoming / "session.json").read_text())
+    assert j["app_record_receipts"] == {"inject": 0}, j["app_record_receipts"]
+    assert j["p10_3"]["passed"] is False and "no receipt event" in j["p10_3"]["reason"], j["p10_3"]
+    assert "NO RECEIPT IN THE APP'S RECORD OF WINDOW inject" in r.log
+    i = r.ssh(GH, "start receipts_inject")[0]
+    assert r.command(i).endswith("receipts $HOME/da-kit/T/out/capture_inject $HOME/da-kit/T/out/app_restart/"
+                                 "app_restart_inject.txt"), r.command(i)
+    r2 = run(tmp_path / "b", "p10-3", "--owner-ok-guest-host", FAKE_APP_RECORD=str(_record(tmp_path, "r2.jsonl", 2)))
+    j2 = json.loads((r2.incoming / "session.json").read_text())
+    assert j2["app_record_receipts"] == {"inject": 2} and j2["p10_3"]["passed"] is True, j2["p10_3"]
+    assert "receipt events since the window's app start" in j2["p10_3"]["reason"], j2["p10_3"]
+
+
+def test_p10_2_windows_count_only_receipt_events_since_their_app_start(tmp_path: Path) -> None:
+    r = run(tmp_path / "a", "p10-2", "--owner-ok-guest-host", FAKE_APP_RECORD=str(_record(tmp_path, "r0.jsonl", 0)))
+    assert r.rc == 0, r.log
+    got = json.loads((r.incoming / "session.json").read_text())["app_record_receipts"]
+    assert got and set(got.values()) == {0}, got
+    for w in got:
+        assert f"NO RECEIPT IN THE APP'S RECORD OF WINDOW {w}" in r.log
+        i = r.ssh(GH, f"start receipts_{w}")[0]
+        assert r.command(i).endswith(f"app_restart/app_restart_{w}.txt"), r.command(i)
+
+
+def _bounds(r: Run) -> dict[str, int]:
+    line = [x for x in r.log.splitlines() if " step bounds: " in x]
+    assert line, r.log
+    return {k: int(v) for k, v in re.findall(r"(\w+) (\d+) s", line[-1].split(" step bounds: ", 1)[1])}
+
+
+def test_the_unit_and_app_restart_bounds_follow_their_waits(tmp_path: Path) -> None:
+    # W4: T_UNIT = UNIT_WAIT_S + 240 (the last poll: 2 reads of 30 s and POLL_S 5; on a fail the diagnostics: 4 adb
+    # calls of 30 s). W2: the app restart's step = START_WAIT_S + APP_SUBSCRIBE_WAIT_S + 10 adb calls of 30 s
+    b = _bounds(run(tmp_path / "a", "p10-3", "--owner-ok-guest-host"))
+    assert b["unit"] == 360 and b["app_restart"] == 335, b
+    b = _bounds(run(tmp_path / "b", "p10-3", "--owner-ok-guest-host", "--remote-env", "UNIT_WAIT_S=300",
+                    "--remote-env", "APP_SUBSCRIBE_WAIT_S=60", "--remote-env", "START_WAIT_S=10"))
+    assert b["unit"] == 540 and b["app_restart"] == 370, b
+    readme = (HERE.parent / "README.md").read_text()   # the README's own example is the 540 s case above
+    assert re.findall(r"--remote-env UNIT_WAIT_S=(\d+)", readme) == ["300"]
+    r = run(tmp_path / "c", "p10-3", "--owner-ok-guest-host", "--remote-env", "UNIT_WAIT_S=2m")
+    assert r.rc == 2 and "UNIT_WAIT_S" in r.stdout and not r.starts(GH), r.stdout
+
+
+def test_the_app_restart_step_is_bounded_by_t_app_restart(tmp_path: Path) -> None:
+    # m35 of the lane's harness: the step's bound is T_APP_RESTART, not T_STEP (300 s here): a step that hangs 30 s
+    # past a T_APP_RESTART of 2 s is signalled at its time-out
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="app_restart_inject:30", DA_T_T_APP_RESTART="2")
+    assert r.rc == 5, r.log
+    sig = r.ssh(GH, "host_step.sh signal app_restart_inject TERM")
+    assert sig and sig[0] < r.ssh(GH, "host_step.sh tail app_restart_inject")[0], r.log
+    assert "step app_restart_inject rc=124" in r.log, r.log
+    assert not r.ssh(GH, "start ivi_clock_inject")
+
+
+def test_the_app_subscribe_wait_is_a_per_session_setting(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", "--remote-env", "APP_SUBSCRIBE_WAIT_S=45")
+    assert r.rc == 0, r.log
+    i = r.ssh(GH, "start app_restart_inject")[0]
+    assert "APP_SUBSCRIBE_WAIT_S=45" in r.command(i), r.command(i)
 
 
 def test_the_unit_check_reads_the_log_since_the_mark_before_the_score_start(tmp_path: Path) -> None:

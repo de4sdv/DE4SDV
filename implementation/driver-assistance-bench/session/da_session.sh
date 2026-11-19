@@ -84,7 +84,7 @@ esac
 # say, never reaches a step). Each goes to every step on that host (`env NAME=value` before the command) and into
 # session.json, so a guessed pattern or a time-out is changed for the next session without a commit
 REMOTE_ENV_guest="UNIT_SOURCE UNIT_REGISTERED_RE UNIT_NEGATION_RE BROKER_ERROR_RE UNIT_WAIT_S B12_DIR VERIFY_WAIT_S ADB_TIMEOUT_S
-                  UP_TIMEOUT_S CLOCK_READS CLOCK_MAX_OFFSET_S START_WAIT_S"
+                  UP_TIMEOUT_S CLOCK_READS CLOCK_MAX_OFFSET_S START_WAIT_S APP_SUBSCRIBE_WAIT_S"
 REMOTE_ENV_score="DA_P10_1_CARLA_HOST GATEWAYD_RX_REGEX DA_P10_1_LATE_WAIT_S DA_P10_1_CUDA_RUNS DA_P10_1_ALIVE_HOLD_S
                   DA_P10_1_STALL_HOLD_S DA_P10_1_SUPERVISED_WAIT_S"
 REMOTE_ENV_sim=""
@@ -114,10 +114,19 @@ PRESTOP_S=300; TRAP_PACK_S=120; TRAP_SCP_S=300
 TRAP_GC_TO_S=30   # each gcloud status read in the trap: on a gcloud outage the stop loop must not sit for hours (S10)
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
-T_UNIT=360   # UNIT_WAIT_S (120) and its last poll, then on a fail the diagnostics (3 adb calls of 30 s at most)
+# the bounds of the steps whose waits are per-session settings follow them (W4, W2 of the re-check at 437a833b):
+# unit_<w>: UNIT_WAIT_S, its last poll (2 adb reads of 30 s and POLL_S 5), then on a fail the diagnostics (4 adb calls
+# of 30 s): UNIT_WAIT_S + 185, kept as UNIT_WAIT_S + 240. app_restart_<w>: START_WAIT_S + APP_SUBSCRIBE_WAIT_S + 10 adb
+# calls of 30 s (8 before the wait, the wait's last read, and POLL_S 1)
+for _n in UNIT_WAIT_S START_WAIT_S APP_SUBSCRIBE_WAIT_S; do
+  [ -z "${RVAL[$_n]+x}" ] || [[ "${RVAL[$_n]}" =~ ^[0-9]+$ ]] \
+    || { echo "refused: --remote-env $_n must be a whole number of seconds, not '${RVAL[$_n]}'"; exit 2; }
+done
+T_UNIT=$(( ${RVAL[UNIT_WAIT_S]:-120} + 240 ))
+T_APP_RESTART=$(( ${RVAL[START_WAIT_S]:-5} + ${RVAL[APP_SUBSCRIBE_WAIT_S]:-30} + 300 ))
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
-       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
+       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT T_APP_RESTART STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
        GUEST_NOSSH_S GO_SSH_S PRESTOP_S)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
@@ -517,7 +526,8 @@ cleanup() {
   [ -n "$LEFT_RUNNING" ] && log "VMS LEFT RUNNING, THEY BILL: STOP THEM BY HAND NOW:$LEFT_RUNNING (exit 11 in place of $RC_STEPS)"
   exit "$rc"
 }
-p10_3_report() {   # p10-3 is passed only when its steps ended with 0 and every window's app record holds a receipt;
+p10_3_report() {   # p10-3 is passed only when its steps ended with 0 and every window's app record holds a receipt
+  # event since the window's app start (window_close);
   # exit 0 alone means its steps ran (T4). One line in session.log, and session.json's p10_3 (passed, reason)
   local x w n bad="" good="" why=()
   for x in ${RECEIPTS:-}; do
@@ -526,9 +536,10 @@ p10_3_report() {   # p10-3 is passed only when its steps ended with 0 and every 
   done
   [ "${RC_STEPS:-1}" = 0 ] || why+=("the steps did not end with 0 (exit ${RC_STEPS:-unknown})")
   [ -n "$bad$good" ] || why+=("no window's app record was read")
-  for w in $bad; do why+=("no receipt in the app's record of window $w"); done
+  for w in $bad; do why+=("no receipt event since the app's start in the record of window $w"); done
   if [ ${#why[@]} = 0 ]; then
-    P10_3_PASSED=1; P10_3_REASON="the steps ended with 0 and every window's app record holds receipts:$good"
+    P10_3_PASSED=1
+    P10_3_REASON="the steps ended with 0 and every window's app record holds receipt events since the window's app start:$good"
     log "p10-3 passed: $P10_3_REASON"
   else
     P10_3_PASSED=0; P10_3_REASON=$(printf '%s; ' "${why[@]}"); P10_3_REASON=${P10_3_REASON%; }
@@ -642,6 +653,8 @@ for _r in guest score sim; do
 done
 renv() { local n="RENV_$1"; printf '%s' "${!n}"; }
 [ -n "$REMOTE_ENV_SET" ] && log "per-session settings for the remote entries:$REMOTE_ENV_SET (values in session.json)"
+[[ " ${ROLES[*]} " == *" guest "* ]] && log "step bounds: unit $T_UNIT s (UNIT_WAIT_S + 240), app_restart $T_APP_RESTART s (START_WAIT_S +" \
+  "APP_SUBSCRIBE_WAIT_S + 300)"
 
 # ───────────── 1. preflight: nothing below starts a VM unless every check holds ─────────────
 fail() {
@@ -893,7 +906,7 @@ logmark() {   # the SDV Core guest's clock just before an S-CORE side start: the
 }
 window_open() {   # the app restarted, then the IVI clock set just before the window (R9), then the capture
   local w=$1
-  rstep guest "app_restart_$w" "$T_STEP" "$GENV" bash "$ENTRY_GUEST_APP_RESTART" "$(od app_restart)" "$w"
+  rstep guest "app_restart_$w" "$T_APP_RESTART" "$GENV" bash "$ENTRY_GUEST_APP_RESTART" "$(od app_restart)" "$w"
   rstep guest "ivi_clock_$w" "$T_STEP" bash "$ENTRY_GUEST_CLOCK" set "$(od "ivi_clock_$w")"
   rstart guest "capture_$w" "$GENV" bash "$ENTRY_GUEST_CAPTURE" start "$(od "capture_$w")"
 }
@@ -901,14 +914,18 @@ window_close() {
   local w=$1
   rstep guest "capture_stop_$w" "$T_CAPTURE_END" bash "$ENTRY_GUEST_CAPTURE" stop "$(od "capture_$w")"
   rwait guest "capture_$w" "$T_CAPTURE_END" || { abort 5 "the display capture of $w did not end well"; }
-  # the app's own record of the window: no receipt means the path did not carry, whatever the steps said (R7)
-  rstep guest "receipts_$w" "$T_STEP" bash "$ENTRY_GUEST_OFFER_CHECK" receipts "$(od "capture_$w")"
+  # the app's own record of the window: no receipt means the path did not carry, whatever the steps said (R7). Only
+  # the receipt events after the window's app start count (the start of the pid app_restart.sh read), never the
+  # record's lines: it is appended, and every start writes lifecycle, link and status lines (W1)
+  rstep guest "receipts_$w" "$T_STEP" bash "$ENTRY_GUEST_OFFER_CHECK" receipts "$(od "capture_$w")" \
+    "$(od app_restart)/app_restart_$w.txt"
   local n; n=$(grep -o 'RECEIPTS [0-9]*' "$IN/guest.steps.out" | tail -1 | cut -d' ' -f2)
   RECEIPTS="${RECEIPTS:-} $w=${n:-unknown}"
   if [ "${n:-0}" = 0 ]; then
-    log "NO RECEIPT IN THE APP'S RECORD OF WINDOW $w (${n:-no count}): the warning path did not carry; see guest/out/capture_$w/"
+    log "NO RECEIPT IN THE APP'S RECORD OF WINDOW $w (${n:-no count}) since the window's app start: the warning path" \
+      "did not carry; see guest/out/capture_$w/"
   else
-    log "window $w: $n line(s) in the app's record"
+    log "window $w: $n receipt event(s) in the app's record since the window's app start"
   fi
 }
 world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another run follows 0|1>: one run with its own

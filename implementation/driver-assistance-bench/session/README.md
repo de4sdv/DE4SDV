@@ -45,9 +45,16 @@ side starts, the session marks both guests' clocks (`logmark_<w>`), each on its 
 `logcat_since.txt`, the IVI guest's into `ivi_logcat_since.txt`. The unit gate (`unit_<w>`) then reads each guest's
 log only since its own mark, so neither a broker error from before the offer fails it nor a line from an earlier
 boot or run passes it. After the VXLAN both guests' neighbour caches are flushed (they learn the S-CORE host's MAC
-for 192.168.98.1 at once). After each window the session counts the lines of the app's own record in the capture
-(`app_record_receipts` in `session.json`) and says `NO RECEIPT IN THE APP'S RECORD OF WINDOW <w>` when there are
-none: only the app's record shows that a request arrived.
+for 192.168.98.1 at once). Before each window `remote/app_restart.sh` restarts the app (`am start -S -W`) and waits
+up to `APP_SUBSCRIBE_WAIT_S` (30 s) for the new process's own `phase=link link=SUBSCRIBED` line, read by its pid in
+the IVI log since an IVI-clock mark taken right before `am start`: the restart kills the process the unit gate saw
+subscribe. The new pid's last link line decides (a later `WAITING` or `UNAVAILABLE` means the link dropped, so it waits
+on); `UNAVAILABLE` lines are counted and named, never decisive; at the bound the step fails with the new pid's link
+lines. After each window the session counts the receipt events of the app's own record in the capture: the lines whose
+`"event"` is `"receipt"` after the window's app start (the start line of the pid `app_restart.sh` read), never the
+record's lines, since the record is appended and every app start writes lifecycle, link and status lines
+(`app_record_receipts` in `session.json`). It says `NO RECEIPT IN THE APP'S RECORD OF WINDOW <w>` when there are none:
+only the app's record shows that a request arrived. The same count serves `p10-3` and each recorded `p10-2` run.
 
 ### The unit gate of `p10-3` (and of each recorded `p10-2` run)
 
@@ -56,8 +63,10 @@ What it waits for (`remote/offer_check.sh unit`, `UNIT_SOURCE=app`, the default)
 its continuous discovery listener (`addListenerForServiceUnitChangeByName`) has seen the broker's unit
 `de4sdv-driving-warning-request` and its subscription succeeded. The app subscribes to that one unit only. It waits
 up to `UNIT_WAIT_S` (120 s), polling every 5 s, and logs the bound, the source and both marks in its first line.
-A `link=SUBSCRIBED` line since the IVI mark passes, whatever the poll that reads it
-(`UNIT_SUBSCRIBED <unit> source=app`). `link=UNAVAILABLE` never decides: the app logs it for every failed
+The last link line since the IVI mark decides, whatever the poll that reads it: `link=SUBSCRIBED` passes
+(`UNIT_SUBSCRIBED <unit> source=app`); a later `link=WAITING` or `link=UNAVAILABLE` says the link dropped, so the gate
+waits on. At the bound with no link line since the mark, the FAIL line also names the app's last link line before the
+mark (a naming problem is logged once, at the app's start). `link=UNAVAILABLE` never decides: the app logs it for every failed
 `initComms`, subscribe or read and retries after 5 s (`RETRY_DELAY_MS` in `WarningRequestSubscriber.java`), so the gate
 counts those lines, names the last one's detail, and keeps waiting for `link=SUBSCRIBED` up to its bound; `link=WAITING`
 keeps waiting too. Until 2026-11-19 the gate failed at once on the first `UNAVAILABLE`; that was changed before the
@@ -267,12 +276,13 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   /bin/bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --permissive-ivi --session-id "$SID"
 # every result is conditional on the permissive IVI (the lead's decision of 2026-11-19); getenforce is recorded per run
 # a per-session setting only on purpose, as an option, e.g. after the kind:
-#   --remote-env UNIT_WAIT_S=300   (the unit gate's bound; --remote-env UNIT_SOURCE=core: the earlier core-log gate)
+#   --remote-env UNIT_WAIT_S=300   (the unit gate's bound; its step bound follows: UNIT_WAIT_S + 240 s;
+#   --remote-env UNIT_SOURCE=core: the earlier core-log gate)
 # end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (or systemctl --user stop; never kill -9;
 #   the trap TERMs the running step first and waits for its end, a guest launch included, before any stop)
 # after it: exit_code 11 or "GUEST HOST LEFT RUNNING" in session.log = the guest host bills; follow the log's line
 # exit 0 alone is not a pass (it means the steps ran): read p10_3.passed and p10_3.reason in session.json
-#   (app_record_receipts.inject > 0), conditional_on_permissive_ivi (true), and step_ended_by_term after an early end
+#   (app_record_receipts.inject > 0: receipt events since the window's app start), conditional_on_permissive_ivi (true), and step_ended_by_term after an early end
 ```
 
 Once, at the first `p10-3`, while the guest host runs (after `session.log` shows its `kit ok` line), the operator checked
@@ -358,8 +368,8 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_SIM_RECORD` | simulator | `--out <dir>` | this lane: `../recording/chase_recorder.py` | started before the warm-up and before the run, ends on its own |
 | `ENTRY_GUEST_UP` | guest | `<out>` | this lane: `remote/guest_up.sh` | both guests created fresh (`launch_two_vms.sh down`, `up`) and booted; `getenforce` recorded, `setenforce 0` on the IVI only with `IVI_PERMISSIVE=1` |
 | `ENTRY_GUEST_PREPARE` | guest | `<out>` | this lane: `remote/guest_prepare.sh` | the guest build script's `install` (ACLs, APK, IVI reboot) and `verify`, unchanged, as its second caller: one `B12_DIR` per session (`$AB/b12-session-<id>`), no `LOGS`, `IDENT` or `WORK`; required, since fresh guests start empty |
-| `ENTRY_GUEST_APP_RESTART` | guest | `<out> <window>` | this lane: `remote/app_restart.sh` | `am start -S -W -n $APP_COMPONENT`, the APK's sha256 and both guests' `getenforce`, before each window; exit 1 when a guest's mode is not the session's mark |
-| `ENTRY_GUEST_OFFER_CHECK` | guest | `route\|mark\|neigh <out>`, `unit <out> <mark>`, `receipts <capture>` | this lane: `remote/offer_check.sh` | the SD multicast route to `cvd-ebr`; both guests' clocks before each S-CORE side start, each its own (`mark`); the IVI app's `link=SUBSCRIBED` line in the IVI log since its mark, `link=UNAVAILABLE` a fail, no broker error for 4df1 in the core log since its mark, the context lines kept and `diag/` on a fail (`unit`; `UNIT_SOURCE=core`: the earlier core-log pattern, `UNIT_REGISTERED_RE`, `UNIT_NEGATION_RE`); both guests' neighbour caches flushed after the VXLAN (`neigh`); the lines of the app's record after each window (`receipts`) |
+| `ENTRY_GUEST_APP_RESTART` | guest | `<out> <window>` | this lane: `remote/app_restart.sh` | `am start -S -W -n $APP_COMPONENT`, the APK's sha256 and both guests' `getenforce`, before each window; exit 1 when a guest's mode is not the session's mark, or when the new process logs no `link=SUBSCRIBED` as its last link line since the IVI mark within `APP_SUBSCRIBE_WAIT_S` |
+| `ENTRY_GUEST_OFFER_CHECK` | guest | `route\|mark\|neigh <out>`, `unit <out> <mark>`, `receipts <capture> <restart record>` | this lane: `remote/offer_check.sh` | the SD multicast route to `cvd-ebr`; both guests' clocks before each S-CORE side start, each its own (`mark`); the IVI app's last link line in the IVI log since its mark `link=SUBSCRIBED`, `link=UNAVAILABLE` counted, never decisive, no broker error for 4df1 in the core log since its mark, the context lines kept and `diag/` on a fail (`unit`; `UNIT_SOURCE=core`: the earlier core-log pattern, `UNIT_REGISTERED_RE`, `UNIT_NEGATION_RE`); both guests' neighbour caches flushed after the VXLAN (`neigh`); the receipt events of the app's record since the window's app start, after each window (`receipts`) |
 | `ENTRY_GUEST_CLOCK` | guest | `set <out>` | this lane: `remote/ivi_clock.sh` | IVI clock set from the guest host's, offset and bound recorded; exit 1 when the offset left is above `CLOCK_MAX_OFFSET_S` (0.1 s) |
 | `ENTRY_GUEST_CAPTURE` | guest | `start\|stop <out>` | this lane: `../recording/display_capture.sh` | the display capture |
 | `ENTRY_VXLAN` | guest, S-CORE | `guest-host\|host-half add <peer ip>` | this lane: `remote/cross_vm_guest_bridge.sh` | the VXLAN segment, the S-CORE host at 192.168.98.1 (INC-DRIVING-001's script, unchanged) |
@@ -373,7 +383,9 @@ exported in the calling shell never reaches a step: the lead's shared terminal h
 (`REMOTE_ENV_guest`, `REMOTE_ENV_score` in `da_session.sh`): on the guest host `UNIT_SOURCE`, `UNIT_REGISTERED_RE`,
 `UNIT_NEGATION_RE`, `BROKER_ERROR_RE`, `UNIT_WAIT_S` (`remote/offer_check.sh`), `B12_DIR`, `VERIFY_WAIT_S`,
 `ADB_TIMEOUT_S`, `UP_TIMEOUT_S` (the guest build script), `CLOCK_READS`, `CLOCK_MAX_OFFSET_S` (`remote/ivi_clock.sh`),
-`START_WAIT_S` (`remote/app_restart.sh`); on the S-CORE host `DA_P10_1_CARLA_HOST`, `GATEWAYD_RX_REGEX` and the
+`START_WAIT_S`, `APP_SUBSCRIBE_WAIT_S` (`remote/app_restart.sh`). `UNIT_WAIT_S`, `START_WAIT_S` and
+`APP_SUBSCRIBE_WAIT_S` must be whole seconds, and the step bounds follow them (logged as `step bounds:`): the unit
+gate's `UNIT_WAIT_S + 240` s, the app restart's `START_WAIT_S + APP_SUBSCRIBE_WAIT_S + 300` s; on the S-CORE host `DA_P10_1_CARLA_HOST`, `GATEWAYD_RX_REGEX` and the
 `DA_P10_1_*` waits of `p10_1_check.sh`. A changed guess of the first `p10-3` (the broker's line, say) is then a setting
 of the next session, not a commit. The `hosts.env` and `entrypoints.env` names (`ENTRY_*`, `GUEST_STOP_CMD`, the VMs,
 the caps) can still be overridden from the environment, for the dry runs: start every real session from `env -i`, as
