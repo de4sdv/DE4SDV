@@ -324,9 +324,10 @@ Rules behind every block, from the second review of the session runner (S3, S4):
   `ADB`, `ENTRY_*`, `GUEST_STOP_CMD` or `DA_T_*` of the shell never reaches the session; a per-session setting of a
   remote entry goes only through `--remote-env NAME=VALUE`.
 - Run the session in a user unit that never SIGKILLs its exit trap: `KillMode=mixed`, `TimeoutStopSec=infinity`,
-  `SendSIGHUP=no`. The trap needs far longer than systemd's default 90 s stop time-out: the running step's TERM
-  and its end, the S-CORE side's stop and the fetch (bounded together at 5 min), the guests' stop (up to 2 x 5 min),
-  then the stop polls (5 min per VM). Not `nohup ... &` (the lead's terminal tool refuses it, and a tool-tracked
+  `SendSIGHUP=no`. The trap needs far longer than systemd's default 90 s stop time-out: the pre-stop phase (the
+  running step's TERM and its end, the open capture's stop, the S-CORE side's stop, the world side's end and the
+  fetches, bounded together per kind at 26 to 38 min: "The exit trap's pre-stop budget" below), the guests' stop (up
+  to 2 x 5 min), then the stop polls (5 min per VM). Not `nohup ... &` (the lead's terminal tool refuses it, and a tool-tracked
   background job dies with the agent), not a plain `systemd-run --user`, not `timeout -k`.
 - End a session early only with SIGTERM to its main process. **Never `kill -9` a session**, and never use a launcher
   that SIGKILLs at a stop time-out: a SIGKILL skips the trap, leaves the VMs running and writes no `session.json`.
@@ -472,11 +473,14 @@ slots of the kind's hosts (`pre-stop budget:` in `session.log`):
 
 `tests/test_session_dryrun.py` checks these sums against the script's defaults and pins a dry run in which the
 capture's stop and the S-CORE side's stop both run to their bounds and the guest host is still fetched before the
-guests' stop. The cost watchdog still ends the session at the cap; each VM's safety net fires at the cap plus the
-kind's budget plus 10 min, counted from its arming, so it never cuts the phase. At its bounds the phase costs, past
-the cap, about EUR 1.03 in p10-1 (2.37 EUR/h), EUR 0.33 in p10-3 (0.754 EUR/h), EUR 1.67 in p10-2 (2.641 EUR/h)
-and EUR 1.03 in p10-2 without the guest host. One limit remains: a gcloud status read after a failed poll
-(`TRAP_GC_TO_S`, 30 s) can run past its slot's end; the safety net's 10 min margin holds it.
+guests' stop. `tests/test_prestop_slots.py` runs the trap's pre-stop section with every SSH, scp and status call
+hanging to its bound (1/20 scale) and pins that each host's fetch keeps its slot. The cost watchdog still ends the
+session at the cap; each VM's safety net fires at the cap plus the kind's budget plus 10 min, counted from its
+arming, so it never cuts the phase. At its bounds the phase costs, past the cap, about EUR 1.03 in p10-1
+(2.37 EUR/h), EUR 0.33 in p10-3 (0.754 EUR/h), EUR 1.67 in p10-2 (2.641 EUR/h) and EUR 1.03 in p10-2 without the
+guest host. That is the phase alone. The worst case past the cap adds the watchdog's 30 s, the guests' stop (up to
+2 x (300 + 60) s on the guest host, 0.271 EUR/h) and the GPU hosts' stop until TERMINATED (about 1 to 2 min): about
+EUR 1.1 in p10-1, EUR 0.4 in p10-3, EUR 1.8 in p10-2 and EUR 1.1 in p10-2 without the guest host.
 
 ## Durations and costs
 
