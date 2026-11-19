@@ -8,6 +8,7 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_PREEMPT       "vm:n"  the n-th status read after the VM came up returns TERMINATED (once)
   FAKE_GPU_RUNNING   "project:name"  another GPU VM running in that project
   FAKE_FAIL_STEP     a step name whose `host_step.sh run|status` fails
+  FAKE_STEP_RC       "step:rc,..."  the exit status a detached step reports (status, tail) in place of 0
   FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering; a detached
                      step (`start`) reads "running" for that long after its start
   FAKE_SSH_DOWN      a VM name that never answers SSH
@@ -223,6 +224,7 @@ if words[:2] == ["compute", "ssh"]:
     if m:
         action, step = m.group(1), m.group(2)
         fail = os.environ.get("FAKE_FAIL_STEP") == step
+        code = int(kv("FAKE_STEP_RC").get(step, 1 if fail else 0))
         if action == "run":
             if " receipts " in c:
                 sys.stdout.write("RECEIPTS %s\n" % os.environ.get("FAKE_RECEIPTS", "2"))
@@ -248,9 +250,9 @@ if words[:2] == ["compute", "ssh"]:
             hang = kv("FAKE_HANG_STEP").get(step)
             if t0 is not None and hang and time.time() - t0 < float(hang):
                 out("running\n")
-            out("rc %d\n" % (1 if fail else 0))
+            out("rc %d\n" % code)
         if action == "tail":
-            out(st.get("tails", {}).get(key, "") + "=== %s end rc=%d (fake)\n" % (step, 1 if fail else 0))
+            out(st.get("tails", {}).get(key, "") + "=== %s end rc=%d (fake)\n" % (step, code))
         if action == "signal":
             st.setdefault("signalled", {})[key] = c.split()[-1]
             out("signalled %s\n" % step)

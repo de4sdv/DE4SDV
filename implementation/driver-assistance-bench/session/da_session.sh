@@ -152,6 +152,7 @@ trap '' PIPE
 MAIN_PID=$$; WD_PID=""; CHILD=""; STARTED=(); STEP_FAIL=""; FINAL_RC=""; ENDED_BY=""; UPLOADED=""; SCORE_UP=""
 FETCHED=""; FETCH_OK=""; FETCH_BAD=""
 GUEST_STEP_SENT=0   # 1 from the first step sent to the guest host on: from then on guests may run there (S1)
+SCORE_RUN=""; STOPS=""; STOP_KILLED_LAST=""   # the run of the S-CORE side up; each of its stops: run:step:rc (S7)
 CUR_STEP=""; GUEST_STEP_RUNNING=""   # "<role> <step>" of the step rstep waits for; a guest step alive after its TERM
 
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
@@ -377,7 +378,7 @@ write_record() {
   IAP="$SIM_SSH_IAP" PERM="$IVI_PERMISSIVE" IPS="${IPS:-}" CAMCAL="${CAMCAL_SHA:-}" VM_AFTER="${VM_AFTER:-}" \
   LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" RECEIPTS="${RECEIPTS:-}" \
   FETCH_OK="$FETCH_OK" FETCH_BAD="$FETCH_BAD $(for r in "${STARTED[@]}"; do case " $FETCHED " in *" $r "*) ;; *) echo "$r" ;; esac; done)" \
-  ENDED_BY="$ENDED_BY" \
+  ENDED_BY="$ENDED_BY" STOPS="$STOPS" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
@@ -400,6 +401,9 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "left_running": e["LEFT"].split(), "exit_code_without_left_running": int(e["RC_STEPS"]),
            "remote_env": renv, "fetched": e["FETCH_OK"].split(), "not_fetched": e["FETCH_BAD"].split(),
            "ended_by": e["ENDED_BY"] or None,
+           "score_stops": {run: {"step": step, "rc": int(rc) if rc.lstrip("-").isdigit() else None,
+                                 "stop_killed": rc == "7"}
+                           for run, step, rc in (x.split(":", 2) for x in e["STOPS"].split())},
            "p10_1": json.load(open(p10_1)) if os.path.exists(p10_1) else None,
            "app_record_receipts": {w: (int(n) if n.isdigit() else None)
                                    for w, n in (x.split("=", 1) for x in e["RECEIPTS"].split() if "=" in x)}},
@@ -683,8 +687,15 @@ rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on 
   done
   rout ssh_l "$r" 60 "$HS tail $s"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
   log "step $s rc=$rc"
+  # every stop of the S-CORE side has run its collection, whatever its code; each is recorded per run (S7)
+  case "$s" in score_stop*) SCORE_UP=""; STOPS="$STOPS ${SCORE_RUN:-none}:$s:$rc" ;; esac
+  if [ "$rc" = 7 ] && [[ "$s" == score_stop* ]]; then
+    # stop_score_side.sh exit 7: stopped and collected, something had to be killed. Not a failure; recorded
+    # (session.json score_stops, stop_killed). Exit 8, collection failed, stays a failure (the lead's decision)
+    log "step $s rc=7: the S-CORE side of ${SCORE_RUN:-none} stopped and its records collected, but something had to be killed (stop_killed, recorded; not a failure)"
+    STOP_KILLED_LAST=$s; return 0
+  fi
   if [ "$rc" != 0 ]; then
-    case "$s" in score_stop*) SCORE_UP="" ;; esac   # a failed stop of the S-CORE side has run its collection
     STEP_FAIL=$s; abort 5 "step $s failed (rc $rc)"
   fi
 }
@@ -743,7 +754,8 @@ score_down() {   # the S-CORE side, if this session started it and has not stopp
   log "the S-CORE side is up ($o): its stop, which collects its records, before the fetch"
   run_fg ssh_l score "${T_SCORE_DOWN:-$T_SCORE_START}" "$HS run score_stop_on_failure -- $(renv score)bash $ENTRY_SCORE_STOP $o" \
     >> "$IN/score.steps.out" 2>&1; rc=$?
-  log "step score_stop_on_failure rc=$rc"
+  log "step score_stop_on_failure rc=$rc$([ "$rc" = 7 ] && echo ": stopped and collected, something had to be killed (stop_killed, recorded)")"
+  STOPS="$STOPS ${SCORE_RUN:-none}:score_stop_on_failure:$rc"
 }
 abort() {   # a failure after the starts: the S-CORE side's stop, the fetch, the exit (3 when a host was lost)
   local code=$1; shift
@@ -805,13 +817,15 @@ window_close() {
     log "window $w: $n line(s) in the app's record"
   fi
 }
-world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1>: one run with its own S-CORE side
-  local w=$1 sc=$2 se=$3 rec=$4 o; o=$(od "world_$w")
+world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another run follows 0|1>: one run with its own
+  # S-CORE side
+  local w=$1 sc=$2 se=$3 rec=$4 more=${5:-0} o; o=$(od "world_$w")
   [ "$rec" = 1 ] && rstart sim "rec_$w" "$SIM_PY" "$ENTRY_SIM_RECORD" --out "$(od "rec_$w")"
   rstart sim "world_$w" "$SENV" bash "$ENTRY_SIM_RUN" "$o" "$sc" "$se"
   rwaitfile sim "world_$w" "$o/simulator/ready.json" "$T_READY" || { abort 5 "the world side of $w is not ready"; }
   # the S-CORE side after ready.json (the hero stands), with the camera calibration file of this session
   [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ] && logmark "$w"
+  SCORE_RUN=$w
   rstep score "score_start_$w" "$T_SCORE_START" env "DA_CAMERA_CALIBRATION_DIR=$CAMCAL_DIR" bash "$ENTRY_SCORE_START" \
     "$(od "score_$w")" "$CARLA_HOST"
   SCORE_UP=$(od "score_$w"); local t_up; t_up=$(date +%s)
@@ -833,6 +847,12 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1>: one run
   rwait sim "world_$w" "$T_RELEASE" || { abort 5 "the world side of $w did not end well"; }
   if [ "$rec" = 1 ]; then rwait sim "rec_$w" "$T_REC_END" || { abort 5 "the recorder of $w did not end well"; }; fi
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then window_close "$w"; fi
+  # a stop that had to kill, with another run to come: this run is complete and recorded, but the next one would
+  # start from a suspect state while every VM bills; the session ends here (the lead's decision, S7)
+  if [ "$STOP_KILLED_LAST" = "score_stop_$w" ] && [ "$more" = 1 ]; then
+    STEP_FAIL="score_stop_$w"; ENDED_BY="score_stop_$w had to kill (rc 7) and another run would follow"
+    abort 5 "the S-CORE stop of $w had to kill (rc 7): no further run from a suspect state"
+  fi
 }
 make_h() {   # on this host: the capture from the simulator host, make-h, both files onto the S-CORE host
   local d=$IN/camcal src="da-kit/$SID/out/calibrate/camcal/simulator" vm f rc loc got
@@ -876,6 +896,7 @@ case "$KIND" in
     # IVI clock just before the window
     guest_bring_up
     logmark inject
+    SCORE_RUN=inject
     rstep score score_start "$T_SCORE_START" bash "$ENTRY_SCORE_START" "$(od score)" none
     SCORE_UP=$(od score)
     offer_checks inject
@@ -900,8 +921,10 @@ case "$KIND" in
     # S-CORE side copies into the candidate's working directory before its identity record
     rstep sim calibrate "$T_CALIBRATE" "$SENV" bash "$ENTRY_SIM_CALIBRATE" "$(od calibrate)"
     make_h
-    [ "$P10_2_CALIB_STEER" = 1 ] && world_run calib_steer ASM-DRIVING-006 "$P10_2_SETTING" 0
-    for n in $(seq 1 "$P10_2_RUNS"); do world_run "run$n" "$P10_2_SCENARIO" "$P10_2_SETTING" 1; done
+    [ "$P10_2_CALIB_STEER" = 1 ] && world_run calib_steer ASM-DRIVING-006 "$P10_2_SETTING" 0 "$([ "$P10_2_RUNS" -ge 1 ] && echo 1 || echo 0)"
+    for n in $(seq 1 "$P10_2_RUNS"); do
+      world_run "run$n" "$P10_2_SCENARIO" "$P10_2_SETTING" 1 "$([ "$n" -lt "$P10_2_RUNS" ] && echo 1 || echo 0)"
+    done
     ;;
 esac
 log "SEQUENCE ${SEQ[*]}"

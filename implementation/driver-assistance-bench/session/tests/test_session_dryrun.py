@@ -792,6 +792,52 @@ def test_a_signal_stops_the_score_side_and_fetches_every_host_before_its_stop(tm
     assert_invariants(r)
 
 
+# ------------------------------------------------------------- the S-CORE side's stop that had to kill (S7)
+
+
+def test_a_final_score_stop_that_had_to_kill_is_recorded_and_does_not_fail_the_session(tmp_path: Path) -> None:
+    # S7: stop_score_side.sh exit 7 = stopped and collected, something had to be killed: the evidence is complete
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_STEP_RC="score_stop:7")
+    assert r.rc == 0, r.log
+    assert "step score_stop rc=7" in r.log and "had to be killed" in r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["score_stops"] == {"inject": {"step": "score_stop", "rc": 7, "stop_killed": True}}
+    assert rec["failed_step"] is None and rec["fetched"] == ["score", "guest"]
+    assert_invariants(r)
+
+
+def test_p10_2_final_score_stop_that_had_to_kill_is_recorded_and_the_session_passes(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-2", "--without-guest-host", FAKE_STEP_RC="score_stop_run2:7")
+    assert r.rc == 0, r.log
+    stops = json.loads((r.incoming / "session.json").read_text())["score_stops"]
+    assert stops["run2"] == {"step": "score_stop_run2", "rc": 7, "stop_killed": True}
+    assert stops["run1"]["stop_killed"] is False and stops["calib_steer"]["rc"] == 0
+    assert r.sequence() == p10_2_seq(guest=False)
+
+
+@pytest.mark.parametrize("step, nxt", [("score_stop_calib_steer", "world_run1"), ("score_stop_run1", "world_run2")])
+def test_p10_2_a_score_stop_that_had_to_kill_before_another_run_ends_the_session(tmp_path: Path, step: str,
+                                                                               nxt: str) -> None:
+    # S7, the lead's decision: the next run would start from a suspect state while three VMs bill
+    r = run(tmp_path, "p10-2", "--without-guest-host", FAKE_STEP_RC=f"{step}:7")
+    assert r.rc == 5, r.log
+    assert not r.ssh(G4, f"start {nxt}")
+    w = step[len("score_stop_"):]
+    assert r.ssh(G4, f"world_{w}/release") and r.ssh(G4, f"status world_{w}")    # the run itself completed
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["score_stops"][w] == {"step": step, "rc": 7, "stop_killed": True}
+    assert rec["failed_step"] == step and "had to kill" in rec["ended_by"]
+    assert not r.ssh(L4, "score_stop_on_failure")
+    assert_invariants(r)
+
+
+def test_a_score_stop_whose_collection_failed_still_fails_the_session(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_STEP_RC="score_stop:8")
+    assert r.rc == 5, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["failed_step"] == "score_stop" and rec["score_stops"]["inject"]["stop_killed"] is False
+
+
 def test_a_failed_fetch_is_named_in_the_record(tmp_path: Path) -> None:
     # R13: exit 5 with failed_step null said nothing about which host's files are missing
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_FETCH_FAIL=GH)

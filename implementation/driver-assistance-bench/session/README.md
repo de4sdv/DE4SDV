@@ -79,6 +79,10 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
 - A failure after the S-CORE side started (a failed step, a wait that timed out, a signal, the cap) first runs the
   S-CORE side's stop (`ENTRY_SCORE_STOP`, step `score_stop_on_failure`), its only collector, then fetches. A signal or
   the cap fetches every host whose files were not fetched yet, bounded (120 s pack, 300 s copy), before its stop.
+  An S-CORE side's stop that exits 7 (`stop_score_side.sh`: stopped and collected, something had to be killed) is
+  no failure: `session.log` says so, and `session.json` records every stop per run (`score_stops`: `step`, `rc`,
+  `stop_killed`). In `p10-2` such a stop with another run to come ends the session after that run (exit 5): the
+  next run would start from a suspect state while every VM bills. Exit 8 (collection failed) fails the session.
   `session.json` says what ended the session (`ended_by`: `steps`, `step <name>`, `signal <SIG>`, `cap`, `fetch`, or
   the exit and its message) and which hosts were fetched (`fetched`, `not_fetched`).
 - Every step runs detached on its host (`remote/host_step.sh start`) and is polled with SSH calls of at most 60 s
