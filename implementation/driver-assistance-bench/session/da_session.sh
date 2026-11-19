@@ -509,10 +509,29 @@ cleanup() {
       --format='value(name,zone.basename(),status)' 2>/dev/null | sed "s/^/VM after session [$p]: /" >> "$LOG"
   done
   [ "$KIND" = p10-1 ] && [ -n "$UPLOADED" ] && p10_1_report
+  [ "$KIND" = p10-3 ] && p10_3_report
   write_record "$rc"
   log "SESSION_END $SID rc=$rc"
   [ -n "$LEFT_RUNNING" ] && log "VMS LEFT RUNNING, THEY BILL: STOP THEM BY HAND NOW:$LEFT_RUNNING (exit 11 in place of $RC_STEPS)"
   exit "$rc"
+}
+p10_3_report() {   # p10-3 is passed only when its steps ended with 0 and every window's app record holds a receipt;
+  # exit 0 alone means its steps ran (T4). One line in session.log, and session.json's p10_3 (passed, reason)
+  local x w n bad="" good="" why=()
+  for x in ${RECEIPTS:-}; do
+    w=${x%%=*}; n=${x#*=}
+    case "$n" in ""|*[!0-9]*|0) bad="$bad $w" ;; *) good="$good $w($n)" ;; esac
+  done
+  [ "${RC_STEPS:-1}" = 0 ] || why+=("the steps did not end with 0 (exit ${RC_STEPS:-unknown})")
+  [ -n "$bad$good" ] || why+=("no window's app record was read")
+  for w in $bad; do why+=("no receipt in the app's record of window $w"); done
+  if [ ${#why[@]} = 0 ]; then
+    P10_3_PASSED=1; P10_3_REASON="the steps ended with 0 and every window's app record holds receipts:$good"
+    log "p10-3 passed: $P10_3_REASON"
+  else
+    P10_3_PASSED=0; P10_3_REASON=$(printf '%s; ' "${why[@]}"); P10_3_REASON=${P10_3_REASON%; }
+    log "p10-3 NOT passed: $P10_3_REASON"
+  fi
 }
 p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE host alone: which of the 8 did not run
   # or failed, from the fetched p10_1_verdicts.json, in one line of session.log and in session.json (p10_1)
@@ -557,7 +576,8 @@ write_record() {
   LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" RECEIPTS="${RECEIPTS:-}" \
   FETCH_OK="$FETCH_OK" FETCH_BAD="$nf" \
   ENDED_BY="$ENDED_BY" STOPS="$STOPS" TERMED_STEP="$TERMED_STEP" TERMED_NAME="$TERMED_NAME" \
-  TERMED_AFTER="$TERMED_AFTER" TERMED_FAIL="$TERMED_FAIL" \
+  TERMED_AFTER="$TERMED_AFTER" TERMED_FAIL="$TERMED_FAIL" P10_3_PASSED="${P10_3_PASSED:-}" \
+  P10_3_REASON="${P10_3_REASON:-}" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
@@ -588,7 +608,9 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
                                    for w, n in (x.split("=", 1) for x in e["RECEIPTS"].split() if "=" in x)},
            "step_ended_by_term": {"host": e["TERMED_STEP"], "step": e["TERMED_NAME"],
                                   "status_after_term": e["TERMED_AFTER"], "fail_line": e["TERMED_FAIL"] or None}
-                                 if e["TERMED_STEP"] else None},
+                                 if e["TERMED_STEP"] else None,
+           "p10_3": {"passed": e["P10_3_PASSED"] == "1", "reason": e["P10_3_REASON"]}
+                    if e["KIND"] == "p10-3" else None},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
 }

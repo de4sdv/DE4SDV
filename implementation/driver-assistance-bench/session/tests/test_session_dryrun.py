@@ -744,6 +744,21 @@ def test_the_window_counts_the_app_records_receipts_and_says_so_loudly_when_none
     assert json.loads((r0.incoming / "session.json").read_text())["app_record_receipts"] == {"inject": 0}
 
 
+def test_p10_3_is_passed_only_with_a_receipt_in_every_windows_app_record(tmp_path: Path) -> None:
+    # T4: with no receipt in the app's record a p10-3 exits 0 (its steps ran) and read like a pass
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host")
+    assert r.rc == 0, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())["p10_3"]
+    assert rec["passed"] is True and "inject" in rec["reason"], rec
+    assert "p10-3 passed:" in r.log
+    r0 = run(tmp_path / "b", "p10-3", "--owner-ok-guest-host", FAKE_RECEIPTS="0")
+    assert r0.rc == 0, r0.log   # the exit code stays the documented one: the steps ran
+    rec0 = json.loads((r0.incoming / "session.json").read_text())["p10_3"]
+    assert rec0["passed"] is False and "no receipt in the app's record of window inject" in rec0["reason"], rec0
+    assert "p10-3 NOT passed:" in r0.log
+    assert json.loads((run(tmp_path / "c", "p10-1").incoming / "session.json").read_text())["p10_3"] is None
+
+
 def test_the_unit_check_reads_the_log_since_the_mark_before_the_score_start(tmp_path: Path) -> None:
     # R7: the mark is the SDV Core guest's clock just before the S-CORE side starts; the unit check names it
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host")
@@ -1275,3 +1290,45 @@ def test_a_guest_host_found_stopping_in_the_trap_is_stopped_without_a_count(tmp_
     assert f"guest host status {status}: no guest can run there" in r.log
     assert r.stops(GH) and r.state[GH] == "TERMINATED" and not r.guest_stops()
     assert_invariants(r)
+
+
+def _readme_block(kind: str) -> list[str]:
+    """The lines (comments kept) of the bash block under the README's heading for <kind>."""
+    text = (HERE.parent / "README.md").read_text()
+    m = re.search(r"^### `" + re.escape(kind) + r"`.*?\n```bash\n(.*?)```", text, re.S | re.M)
+    assert m, kind
+    return [re.sub(r"\s+", " ", ln.strip()) for ln in m.group(1).replace("\\\n", " ").splitlines() if ln.strip()]
+
+
+def test_the_readme_p10_3_block_runs_permissive_from_its_start() -> None:
+    # T2: the lead's decision of 2026-11-19: p10-3 runs with --permissive-ivi from its start (B12's Enforcing run
+    # failed the Gateway lookup on the same images); an Enforcing p10-3 only costs a session
+    lines = [c for c in _readme_block("p10-3") if "da_session.sh" in c and not c.startswith("#")]
+    assert len(lines) == 2 and any("--dry-run" in c for c in lines), lines
+    assert all("--kind p10-3 --owner-ok-guest-host --permissive-ivi" in c for c in lines), lines
+    text = (HERE.parent / "README.md").read_text()
+    assert "conditional on a permissive IVI" in text and "getenforce" in text
+
+
+def test_the_readme_ends_a_session_early_with_the_spelling_systemd_249_knows() -> None:
+    # T3: the lead host's systemd 249 refuses --kill-whom ("unrecognized option"); --kill-who works there
+    text = (HERE.parent / "README.md").read_text()
+    assert "--kill-whom" not in text
+    for kind in ("p10-1", "p10-3", "p10-2"):
+        assert any("systemctl --user kill --kill-who=main -s TERM da-session-$SID" in c for c in _readme_block(kind)), kind
+
+
+def test_the_readme_p10_3_and_p10_2_blocks_set_c_and_stop_when_the_cd_fails() -> None:
+    # T5: in a new shell C is empty, the cd failed and the block went on in the current directory, whose HEAD the
+    # session then shipped
+    for kind in ("p10-3", "p10-2"):
+        code = [c for c in _readme_block(kind) if not c.startswith("#")]
+        assert code[0].startswith("C="), (kind, code[0])
+        (cd,) = [c for c in code if c.startswith("cd ")]
+        assert cd.startswith("cd /home/mrk/de4sdv-worktrees/p10-$C") and re.search(r"\|\| exit 1(\s|$)", cd), cd
+
+
+def test_the_readme_says_exit_0_of_p10_3_alone_is_not_a_pass() -> None:
+    # T4
+    block = " ".join(_readme_block("p10-3"))
+    assert "exit 0 alone is not a pass" in block and "p10_3.passed" in block
