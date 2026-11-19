@@ -11,6 +11,7 @@ any FAIL.
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -148,7 +149,8 @@ def test_without_a_simulator_a_failed_path_start_fails_c1(setup: dict, tmp_path:
 
 def test_with_a_ticking_world_every_check_runs(setup: dict, tmp_path: Path) -> None:
     rc, v, stdout = run_check(setup, tmp_path / "out", DA_P10_1_CARLA_HOST="127.0.0.1", DA_P10_1_SKIP_PORT_CHECK="1",
-                              FAKE_LM_SUPERVISE="1", DA_CAMERA_CALIBRATION_DIR=str(setup["calibration"]), GATEWAYD_RX_REGEX="fake gatewayd forwarded",
+                              FAKE_LM_SUPERVISE="1", DA_P10_1_STALL_HOLD_S="20",
+                              DA_CAMERA_CALIBRATION_DIR=str(setup["calibration"]), GATEWAYD_RX_REGEX="fake gatewayd forwarded",
                               DA_STUB_GATEWAYD_LINE="fake gatewayd forwarded 0x4df1")
     assert rc == 0, stdout
     for check in ("C1", "C2", "C3", "C4", "C5", "C6", "C7"):
@@ -158,18 +160,60 @@ def test_with_a_ticking_world_every_check_runs(setup: dict, tmp_path: Path) -> N
     named = json.loads((tmp_path / "out" / "full" / "camera_calibration.json").read_text())
     assert named["dir"] == str(setup["calibration"].resolve())  # the session's calibration when it is given
     events = (tmp_path / "out" / "full" / "score_side" / "supervision_events.txt").read_text()
-    assert "EXPIRED" in events and "fallback_run_target" in events
+    # the real daemon's lines (run 20261119T134840Z): the expiry and the SIGKILL after the shutdown time-out; the
+    # switch itself has no line at its warning level
+    assert "( vision_pilot ) switched to EXPIRED" in events and "( vision_pilot ) did not respond to SIGTERM" in events
+    assert "the Launch Manager ended vision_pilot and actuation_adapter" in v["C3"][1]
 
 
 def test_a_candidate_that_is_not_taken_off_fails(setup: dict, tmp_path: Path) -> None:
     rc, v, _ = run_check(setup, tmp_path / "out", DA_P10_1_CARLA_HOST="127.0.0.1", DA_P10_1_SKIP_PORT_CHECK="1")
     assert rc == 1
-    assert v["C3"][0] == "FAIL" and "no switch to fallback_run_target" in v["C3"][1]
+    assert v["C3"][0] == "FAIL", v["C3"]
+    assert "no expiry of vision_pilot" in v["C3"][1] and "vision_pilot still there after 2 s" in v["C3"][1], v["C3"]
     assert v["C2"][0] == "PASS"
     # p10-1 judges no geometry: without the session's calibration, upstream's stands in for the full start, named
     named = json.loads((tmp_path / "out" / "full" / "camera_calibration.json").read_text())
     assert named["source"] == "DA_CAMERA_CALIBRATION_DIR" and named["dir"].endswith("/out/p10_1_calibration")
     assert "stand-in" in (tmp_path / "out" / "p10_1_calibration" / "SOURCE.txt").read_text()
+
+
+def test_c3_waits_for_the_sigkill_after_the_candidates_shutdown_time_out(setup: dict, tmp_path: Path) -> None:
+    # Run 20261119T134840Z, Lifecycle v0.10.0: the switch to fallback_run_target sends SIGTERM, which a SIGSTOPped
+    # vision_pilot keeps pending, and SIGKILL only after its shutdown_timeout_ms (10 s): a 3 s hold read "still there".
+    # The fake daemon does the same, so the check must wait for the end, up to its bound, and not stop at a fixed hold
+    rc, v, stdout = run_check(setup, tmp_path / "out", DA_P10_1_CARLA_HOST="127.0.0.1", DA_P10_1_SKIP_PORT_CHECK="1",
+                              FAKE_LM_SUPERVISE="1", DA_P10_1_STALL_HOLD_S="20")
+    assert v["C3"][0] == "PASS", (v["C3"], stdout)
+    took = float(re.search(r"within ([0-9.]+) s", v["C3"][1]).group(1))
+    assert 10 <= took <= 20, v["C3"]
+
+
+def test_c3_fails_when_the_reaction_does_not_come_within_its_bound(setup: dict, tmp_path: Path) -> None:
+    rc, v, _ = run_check(setup, tmp_path / "out", DA_P10_1_CARLA_HOST="127.0.0.1", DA_P10_1_SKIP_PORT_CHECK="1",
+                         FAKE_LM_SUPERVISE="1", DA_P10_1_STALL_HOLD_S="4")
+    assert rc == 1 and v["C3"][0] == "FAIL", v["C3"]
+    assert "vision_pilot still there after 4 s" in v["C3"][1], v["C3"]
+
+
+def test_the_stall_bound_covers_the_candidates_shutdown_time_out() -> None:
+    config = json.loads((BENCH / "launch-manager" / "config" / "launch_manager_config.json").read_text())
+    shutdown_s = config["components"]["vision_pilot"]["deployment_config"]["shutdown_timeout_ms"] / 1000
+    cycle_s = config["components"]["vision_pilot"]["component_properties"]["application_profile"][
+        "alive_supervision"]["reporting_cycle_ms"] / 1000
+    hold = float(re.search(r'DA_P10_1_STALL_HOLD_S:=([0-9.]+)', SCRIPT.read_text()).group(1))
+    # the expiry (two failed cycles and one evaluation) plus the SIGTERM wait, with 5 s to spare
+    assert hold >= 3 * cycle_s + shutdown_s + 5, hold
+
+
+def test_a_candidate_that_ended_before_the_stall_is_no_c3_pass(setup: dict, tmp_path: Path) -> None:
+    # Run 20261119T134840Z: C2's expiry had already ended vision_pilot, the SIGSTOP went to a gone pid ("kill: (6486):
+    # No such process") and C3 read the log as if it had stalled a running candidate
+    rc, v, stdout = run_check(setup, tmp_path / "out", DA_P10_1_CARLA_HOST="127.0.0.1", DA_P10_1_SKIP_PORT_CHECK="1",
+                              FAKE_LM_SUPERVISE="1", DA_STUB_VP_EXIT_AFTER_S="0.3")
+    assert rc == 1
+    assert v["C3"][0] == "FAIL" and "had ended before the stall" in v["C3"][1], v["C3"]
+    assert "SIGSTOP to vision_pilot" not in stdout and "No such process" not in stdout, stdout
 
 
 def test_a_slow_cuda_pass_fails(setup: dict, tmp_path: Path) -> None:

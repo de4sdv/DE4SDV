@@ -15,8 +15,11 @@
 #      environment, both log the start of their supervision and none is off, and for DA_P10_1_ALIVE_HOLD_S the
 #      Launch Manager logs no expiry while both run
 #   C3 stalled_candidate_fallback             a SIGSTOPped vision_pilot leads to fallback_run_target: the Launch
-#      Manager's log has the expiry and the switch, vision_pilot and the adapter are gone, the recorder, someipd and
-#      gatewayd run on with the same pids
+#      Manager's log has vision_pilot's expiry, and the Launch Manager ends vision_pilot and the adapter (the switch,
+#      which Lifecycle v0.10.0 logs only at debug level) within DA_P10_1_STALL_HOLD_S, while the recorder, someipd and
+#      gatewayd run on with the same pids. Both must run when the stall begins, else C3 FAILs unjudged. The switch's
+#      SIGTERM stays pending in a stopped process, so vision_pilot ends only by the SIGKILL after its
+#      shutdown_timeout_ms (10 s): the bound covers that
 #   C4 asil_b_command_path                    mw::com takes the driving command's ASIL B deployment: the candidate
 #      sent commands and the adapter accepted one
 #   C5 gatewayd_receives_from_asil_b_process  gatewayd (QM) takes the warning request from a process of global ASIL
@@ -39,7 +42,7 @@
 #
 # Settings: DA_CAMERA_CALIBRATION_DIR (unset), DA_P10_1_CARLA_HOST (none), GATEWAYD_RX_REGEX (unset), DA_P10_1_C5_WAIT_S
 # (5, whole seconds: C5's bound for the 3 receive lines), DA_P10_1_LATE_WAIT_S (3), DA_P10_1_CUDA_RUNS
-# (20), DA_P10_1_ALIVE_HOLD_S (10), DA_P10_1_STALL_HOLD_S (3), DA_P10_1_SUPERVISED_WAIT_S (420),
+# (20), DA_P10_1_ALIVE_HOLD_S (10), DA_P10_1_STALL_HOLD_S (20: C3's bound for the reaction), DA_P10_1_SUPERVISED_WAIT_S (420),
 # DA_P10_1_ORT_TIMEOUT_S (300: each ort_cuda_check run), DA_P10_1_PROBE_TIMEOUT_S (60: the late subscriber's probe),
 # DA_P10_1_CUT_STOP_S (100: the cut's stop), and those of ../../score-path/scripts/lib_score_side.sh.
 #
@@ -62,7 +65,7 @@ OUT=${1:?usage: p10_1_check.sh <out>}
 : "${DA_P10_1_LATE_WAIT_S:=3}"
 : "${DA_P10_1_CUDA_RUNS:=20}"
 : "${DA_P10_1_ALIVE_HOLD_S:=10}"
-: "${DA_P10_1_STALL_HOLD_S:=3}"
+: "${DA_P10_1_STALL_HOLD_S:=20}"
 : "${DA_P10_1_SUPERVISED_WAIT_S:=420}"
 : "${DA_P10_1_SKIP_PORT_CHECK:=0}"
 : "${DA_P10_1_C5_WAIT_S:=5}"
@@ -349,24 +352,37 @@ else
     keep=""
     for name in identity_recorder someipd gatewayd; do keep="$keep $name=$(ss_pids_of "$name" | head -1)"; done
     lines_before=$(wc -l < "$LM_LOG" 2>/dev/null || echo 0)
-    if [ -n "$vp" ]; then
-      $DA_SUDO kill -STOP "$vp"
-      ss_log "SIGSTOP to vision_pilot ($vp); holding ${DA_P10_1_STALL_HOLD_S} s"
-      sleep "$DA_P10_1_STALL_HOLD_S"
+    problems="" took=""
+    if ! ss_alive "$vp" || ! ss_alive "$ad"; then
+      # Run 20261119T134840Z: C2's expiry had already ended both, and the SIGSTOP went to a gone pid. A stall of a
+      # process that is not there shows no reaction to it.
+      problems=" not judged: vision_pilot (${vp:-no pid}) or actuation_adapter (${ad:-no pid}) had ended before the stall;"
+      ss_log "C3:$problems no SIGSTOP"
+    elif ! $DA_SUDO kill -STOP "$vp"; then
+      problems=" the SIGSTOP to vision_pilot ($vp) failed;"
+    else
+      stall_t0=$(date +%s.%N)
+      ss_log "SIGSTOP to vision_pilot ($vp); up to ${DA_P10_1_STALL_HOLD_S} s for the Launch Manager to end it and the adapter"
+      stall_end=$(( $(date +%s) + ${DA_P10_1_STALL_HOLD_S%.*} ))
+      while [ -n "$(ss_pids_of vision_pilot)$(ss_pids_of actuation_adapter)" ] && [ "$(date +%s)" -le "$stall_end" ]; do
+        sleep 0.5
+      done
+      took=$(awk -v a="$stall_t0" -v b="$(date +%s.%N)" 'BEGIN { printf "%.1f", b - a }')
+      after=$(tail -n +"$((lines_before + 1))" "$LM_LOG" 2>/dev/null)
+      grep -q -i 'alive supervision.*vision_pilot.*expired' <<< "$after" ||
+        problems="$problems no expiry of vision_pilot in the Launch Manager's log;"
+      [ -z "$(ss_pids_of vision_pilot)" ] || problems="$problems vision_pilot still there after ${DA_P10_1_STALL_HOLD_S} s;"
+      [ -z "$(ss_pids_of actuation_adapter)" ] ||
+        problems="$problems actuation_adapter still there after ${DA_P10_1_STALL_HOLD_S} s;"
     fi
-    after=$(tail -n +"$((lines_before + 1))" "$LM_LOG" 2>/dev/null)
-    problems=""
-    grep -q -i 'expired' <<< "$after" || problems="$problems no expiry in the Launch Manager's log;"
-    grep -q 'fallback_run_target' <<< "$after" || problems="$problems no switch to fallback_run_target;"
-    [ -z "$(ss_pids_of vision_pilot)" ] || problems="$problems vision_pilot still there;"
-    [ -z "$(ss_pids_of actuation_adapter)" ] || problems="$problems actuation_adapter still there;"
     for kv in $keep; do
       name=${kv%%=*} pid=${kv#*=}
       [ -n "$pid" ] && ss_alive "$pid" || problems="$problems $name did not run on;"
     done
     if [ -z "$problems" ]; then
-      verdict PASS C3_stalled_candidate_fallback "expiry and switch to fallback_run_target logged; the recorder," \
-        "someipd and gatewayd ran on ($keep )"
+      verdict PASS C3_stalled_candidate_fallback "vision_pilot's expiry logged; the Launch Manager ended vision_pilot" \
+        "and actuation_adapter within $took s of the SIGSTOP (the switch to fallback_run_target, logged at debug" \
+        "level only); the recorder, someipd and gatewayd ran on ($keep )"
     else
       verdict FAIL C3_stalled_candidate_fallback "$problems"
     fi

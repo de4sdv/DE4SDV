@@ -100,14 +100,19 @@ that file verbatim, so the record shows the mode.
   stage and falls back to console logging at warning level (baselibs v0.2.17
   `score/mw/log/detail/registry_aware_recorder_factory.cpp:129-132`,
   `score/mw/log/configuration/configuration.h:113-116`):
-  the lines p10-1's C3 reads are warnings and show (`Alive Supervision (...) switched to EXPIRED`, Lifecycle
-  v0.10.0 `alive_monitor/details/supervision/Alive.cpp:505`; `Problem discovered, activating recovery state:
-  fallback_run_target`, `process_group_manager/process_group_manager.cpp:406`), while its info and debug lines do
-  not. So the stage needs no logging configuration.
+  the line p10-1's C3 reads is a warning and shows (`Alive Supervision ( vision_pilot ) switched to EXPIRED , ...`,
+  Lifecycle v0.10.0 `alive_monitor/details/supervision/Alive.cpp:554-573`), while its info and debug lines do not.
+  The switch to `fallback_run_target` after a supervision failure has no line at that level:
+  `handleRecoveryRequest` (`process_group_manager/process_group_manager.cpp:335-370`) logs only at debug, and the
+  warning `Problem discovered, activating recovery state: fallback_run_target` (`:406`) comes only from a graph in
+  an undefined state, not from a supervision failure (p10-1 run 20261119T134840Z: an expiry, the switch's stops,
+  and no such line). So C3 judges the switch by its effect, and the stage needs no logging configuration.
 - The bundle holds `bin/identity_recorder` and, for p10-1 and p10-3, `bin/candidate_record_probe` and
   `bin/warning_injector`. The `bazel` stage builds them and the bundle step copies them.
-- The Launch Manager logs the expiry of an alive supervision and the switch to `fallback_run_target` on its
-  standard output. `stop_score_side.sh` copies the lines that match `expired`, `run target`, `fallback`,
+- The Launch Manager logs the expiry of an alive supervision on its standard output; the switch to
+  `fallback_run_target` stops each component outside it with SIGTERM and, after its `shutdown_timeout_ms`, SIGKILL
+  with the warning `Process ( <name> ) did not respond to SIGTERM, sending SIGKILL`
+  (`process_group_manager/details/process_info_node.cpp:488-509`). `stop_score_side.sh` copies the lines that match `expired`, `run target`, `fallback`,
   `supervision`, `SIGKILL` or `terminat` (any case). The exact wording is upstream's, and only p10-1 shows it.
 
 ## Tests

@@ -16,8 +16,8 @@ The increment uses S-CORE's own mechanisms:
 
 - the Launch Manager's alive supervision of the candidate's process (`vision_pilot`) and of the actuation adapter;
 - the driving command's mw::com deployment at ASIL B (provider and consumer, below);
-- reaction (a): on a supervision failure the Launch Manager kills the process (SIGKILL) and switches to a run target
-  without the candidate's process and the adapter, so no further driving command reaches the vehicle. The simulator
+- reaction (a): on a supervision failure the Launch Manager switches to a run target without the candidate's process
+  and the adapter, ending both, so no further driving command reaches the vehicle. The simulator
   keeps its last control, as in the stop run. The run's records log the event.
 
 There is no stop response and no safe state; that stays a recorded gap. Health Monitor deadline monitoring is not
@@ -25,10 +25,16 @@ used. There is no ASIL claim: VisionPilot and its GPU libraries are not develope
 deployment is S-CORE's mechanism on the command's path, nothing more.
 
 At Lifecycle v0.10.0 (`eclipse-score/lifecycle` tag `v0.10.0`, `2afae116`, the version that reference_integration
-v0.10.0 pins) the reaction is upstream's own: on a supervision failure the Launch Manager sends SIGKILL, then acts
-as for a crash (`docs/features/lifecycle/architecture/_assets/launch_manager_supervision_failure.puml`), and the
-recovery action of a run target can only switch to `fallback_run_target`
-(`scripts/config_mapping/lifecycle_config.py:696-706`). `fallback_run_target` is therefore the recovery target.
+v0.10.0 pins) the reaction is upstream's own, and the recovery action of a run target can only switch to
+`fallback_run_target` (`scripts/config_mapping/lifecycle_config.py:696-706`). `fallback_run_target` is therefore the
+recovery target. The daemon's code, not the design drawing
+(`docs/features/lifecycle/architecture/_assets/launch_manager_supervision_failure.puml`, which shows a SIGKILL), sets
+the timing: a supervision failure queues the switch (`process_group_manager/process_group_manager.cpp:335-370`, with
+no log line above debug level), and the switch stops each component outside the target with SIGTERM, then SIGKILL
+after its `shutdown_timeout_ms` (`process_group_manager/details/process_info_node.cpp:488-509`). The p10-1 run
+20261119T134840Z on the L4 shows it: the adapter wrote its `supervision` `stop` and `stop` records 1 ms after the
+expiry, and the candidate ran its shutdown path. A SIGSTOPped candidate keeps the SIGTERM pending and ends by the
+SIGKILL 10 s later.
 
 ## The file
 
@@ -86,18 +92,24 @@ v0.10.0):
   trips.
 
 The supervision starts only when the process reports running. The candidate reports running after its first
-completed pass, so its start (the attach to the hero, the network sessions, the first frame and the first
-inference) falls under its ready timeout of 420 s, not under the supervision. The adapter reports running once it
+completed pass, meant to put its start (the attach to the hero, the network sessions, the first frame and the first
+inference) under its ready timeout of 420 s, not under the supervision. The adapter reports running once it
 has subscribed.
+
+Open (run 20261119T134840Z): the first pass runs no network. Upstream's pipeline returns no result for the first frame
+(`VisionPilot/modules/models/src/inference.cpp:152-159` at 014e0e7a: a two-frame buffer), so the module reports
+running after a 6 ms pass, and the first inference (723 ms on the L4's CUDA provider) falls into the supervision and
+trips it. Fixing it needs a bundle rebuild (`score-interface` patch 0002); until then p10-1's C2 and C4 cannot pass.
 
 ## What the evidence record must say (contract for B9)
 
 - The module's event log has `supervision.start` (first completed pass), `supervision.stop` with `alive_reported`,
   or `supervision.off` with the reason; the summary line has `alive_reported`.
 - The adapter's log has `supervision` records with `state` `start`, `stop`, `off` or `error`.
-- A supervision failure leaves no record in either process, since SIGKILL ends it. The record of the run must take
-  it from the Launch Manager's own log (its `Alive Supervision (...) switched to EXPIRED` and the run target switch),
-  and must show that both processes ended without a `supervision.stop` or `stop` record.
+- The record of a supervision failure comes from the Launch Manager's own log (its `Alive Supervision (...)
+  switched to EXPIRED`; the run target switch has no line at its warning level) and from the processes' ends: the
+  switch's SIGTERM gives the adapter's `supervision` `stop` and `stop` records, and a stalled candidate's end is the
+  SIGKILL warning `Process ( vision_pilot ) did not respond to SIGTERM, sending SIGKILL`.
 - A world stall makes the candidate miss its notifications too. A supervision failure whose last notification lies
   just before a late world tick (more than 0.2 s after the one before) is a bench event, not the candidate's fault.
 
