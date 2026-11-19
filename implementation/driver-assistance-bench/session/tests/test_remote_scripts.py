@@ -141,37 +141,91 @@ def test_safety_net_arm_elsewhere_is_a_plain_shutdown(tmp_path: Path, fake) -> N
 
 
 def _build_script(tmp_path: Path, fail: str = "") -> Path:
+    """A stand-in with the real script's layout (guest-build/build_guests_incremental.sh: LOGS, IDENT and WORK derived
+    under B12_DIR, step logs b12-<step>.log, the summary and the app's identity under identity/, verify's output in
+    work/app-verify.out). It refuses a caller's LOGS, IDENT or WORK outright (exit 2): the session sets none."""
     s = tmp_path / "build_guests_incremental.sh"
-    s.write_text('#!/bin/bash\necho "build $1 IVI_PERMISSIVE=$IVI_PERMISSIVE" >> "$FAKE/calls.log"\n'
-                 'mkdir -p "$LOGS" "$IDENT"; echo "log of $1" > "$LOGS/b12-$1.log"\n'
+    s.write_text('#!/bin/bash\n'
+                 'echo "build $1 IVI_PERMISSIVE=$IVI_PERMISSIVE B12_DIR=$B12_DIR" >> "$FAKE/calls.log"\n'
+                 'echo "rerun $B12_RERUN_CMD" >> "$FAKE/calls.log"\n'
+                 '[ -n "${LOGS+x}${IDENT+x}${WORK+x}" ] && { echo "caller set LOGS/IDENT/WORK" >> "$FAKE/calls.log"; '
+                 'exit 2; }\n'
+                 'LOGS=$B12_DIR/logs; IDENT=$B12_DIR/identity; WORK=$B12_DIR/work\n'
+                 'mkdir -p "$LOGS" "$IDENT" "$WORK"; echo "log of $1" > "$LOGS/b12-$1.log"\n'
                  'echo "$(date -u) $1: done" >> "$IDENT/b12-summary.txt"\n'
                  '[ "$1" = install ] && echo "apk_guest_sha256: abc" > "$IDENT/ivi-warning-app-identity.txt"\n'
+                 '[ "$1" = verify ] && { echo "initComms ok" > "$WORK/app-verify.out"; '
+                 'echo "logcat line" > "$IDENT/b12-app-logcat.txt"; }\n'
                  f'[ "$1" = "{fail}" ] && exit 1\nexit 0\n')
     return s
 
 
 def test_guest_prepare_runs_install_then_verify_and_keeps_their_records(tmp_path: Path, fake) -> None:
     d, env = fake
-    env = dict(env, GUEST_BUILD_SCRIPT=str(_build_script(tmp_path)), AB=str(tmp_path / "ab"))
-    (tmp_path / "ab" / "identity").mkdir(parents=True)
-    (tmp_path / "ab" / "identity" / "b12-summary.txt").write_text("an earlier run\n")
+    ab = tmp_path / "ab"
+    env = dict(env, GUEST_BUILD_SCRIPT=str(_build_script(tmp_path)), AB=str(ab), DA_SESSION_ID="s1")
+    (ab / "b12-session-s1" / "identity").mkdir(parents=True)
+    (ab / "b12-session-s1" / "identity" / "b12-summary.txt").write_text("an earlier run\n")
     out = tmp_path / "out"
     p = sh(str(REMOTE / "guest_prepare.sh"), str(out), env=env)
     assert p.returncode == 0, p.stdout + p.stderr
     assert [c for c in calls(d) if c.startswith("build")] == \
-        ["build install IVI_PERMISSIVE=0", "build verify IVI_PERMISSIVE=0"]
-    assert (out / "b12-install.log").exists() and (out / "b12-verify.log").exists()
-    assert (out / "ivi-warning-app-identity.txt").exists()
+        [f"build install IVI_PERMISSIVE=0 B12_DIR={ab}/b12-session-s1",
+         f"build verify IVI_PERMISSIVE=0 B12_DIR={ab}/b12-session-s1"]
+    for name in ("b12-install.log", "b12-verify.log", "ivi-warning-app-identity.txt", "b12-app-logcat.txt",
+                 "app-verify.out"):
+        assert (out / name).exists(), name
     assert "an earlier run" not in (out / "b12-summary-this-run.txt").read_text()
 
 
 def test_guest_prepare_stops_at_a_failed_install(tmp_path: Path, fake) -> None:
     d, env = fake
     env = dict(env, GUEST_BUILD_SCRIPT=str(_build_script(tmp_path, fail="install")), AB=str(tmp_path / "ab"),
-               IVI_PERMISSIVE="1")
-    p = sh(str(REMOTE / "guest_prepare.sh"), str(tmp_path / "out"), env=env)
+               IVI_PERMISSIVE="1", DA_SESSION_ID="s1")
+    out = tmp_path / "out"
+    p = sh(str(REMOTE / "guest_prepare.sh"), str(out), env=env)
     assert p.returncode == 1
-    assert [c for c in calls(d) if c.startswith("build")] == ["build install IVI_PERMISSIVE=1"]
+    assert [c for c in calls(d) if c.startswith("build")] == \
+        [f"build install IVI_PERMISSIVE=1 B12_DIR={tmp_path}/ab/b12-session-s1"]
+    assert (out / "b12-install.log").exists()   # the failed step's log is kept
+
+
+def test_guest_prepare_never_hands_the_build_script_logs_ident_or_work(tmp_path: Path, fake) -> None:
+    d, env = fake
+    ab = tmp_path / "ab"   # the 2026-11-17 kit's folders, which the real script refuses with exit 2
+    env = dict(env, GUEST_BUILD_SCRIPT=str(_build_script(tmp_path)), AB=str(ab), DA_SESSION_ID="s1",
+               LOGS=str(ab / "logs"), IDENT=str(ab / "identity"), WORK=str(ab / "work"))
+    p = sh(str(REMOTE / "guest_prepare.sh"), str(tmp_path / "out"), env=env)
+    assert p.returncode == 0, p.stdout + p.stderr
+    assert "caller set LOGS/IDENT/WORK" not in calls(d)
+
+
+def test_guest_prepare_refuses_without_a_session_id(tmp_path: Path, fake) -> None:
+    d, env = fake
+    env = {k: v for k, v in env.items() if k != "DA_SESSION_ID"}
+    env.update(GUEST_BUILD_SCRIPT=str(_build_script(tmp_path)), AB=str(tmp_path / "ab"))
+    p = sh(str(REMOTE / "guest_prepare.sh"), str(tmp_path / "out"), env=env)
+    assert p.returncode == 1 and "no DA_SESSION_ID" in p.stdout
+    assert not [c for c in calls(d) if c.startswith("build")]
+
+
+def test_guest_prepare_names_the_session_as_the_permissive_rerun(tmp_path: Path, fake) -> None:
+    d, env = fake
+    env = dict(env, GUEST_BUILD_SCRIPT=str(_build_script(tmp_path)), AB=str(tmp_path / "ab"), DA_SESSION_ID="s1")
+    assert sh(str(REMOTE / "guest_prepare.sh"), str(tmp_path / "out"), env=env).returncode == 0
+    reruns = [c for c in calls(d) if c.startswith("rerun ")]
+    assert reruns and all("da_session.sh" in c and "--permissive-ivi" in c for c in reruns)
+    assert not any("build_guests_incremental.sh" in c for c in reruns)
+
+
+def test_guest_prepare_collects_where_the_guest_build_script_writes() -> None:
+    script = (HERE.parent.parent / "guest-build" / "build_guests_incremental.sh").read_text()
+    for line in (': "${LOGS:=$B12_DIR/logs}"', ': "${IDENT:=$B12_DIR/identity}"', ': "${WORK:=$B12_DIR/work}"',
+                 'SUMMARY="$IDENT/b12-summary.txt"', 'tee -a "$LOGS/b12-$1.log"', '> "$WORK/app-verify.out"',
+                 '> "$IDENT/b12-app-logcat.txt"', 'cp -f "$identity" "$IDENT/"',
+                 'local identity="$WORK/app/ivi-warning-app-identity.txt"',
+                 'if [ -n "${B12_RERUN_CMD:-}" ]; then printf \'%s\' "$B12_RERUN_CMD"'):
+        assert line in script, line
 
 
 def test_guest_prepare_wraps_steps_the_guest_build_script_has() -> None:
