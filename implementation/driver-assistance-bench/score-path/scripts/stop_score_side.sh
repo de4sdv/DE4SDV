@@ -15,7 +15,9 @@
 #    component's log), what the candidate wrote into its working directory (.rrd, the visualization and its
 #    frames.csv), the staged configuration, the state, the clocks at both ends, and the Launch Manager's own lines
 #    on the supervision (Alive Supervision ... EXPIRED, the run target switch) in supervision_events.txt, since a
-#    killed process records nothing itself. SHA256SUMS over everything collected.
+#    killed process records nothing itself. SHA256SUMS over everything collected. The candidate's Rerun record
+#    (.rrd) is collected as a hard link where the stage and <out> share a filesystem (else a copy); its path, size and
+#    sha256 go to <out>/candidate_rrd.json. It stays on this host: host_step.sh pack leaves every .rrd out.
 #
 # 4. Only after a complete collection, marks the stage collected ($DA_STAGE/state/collected): start_score_side.sh
 #    clears a stage only with that mark.
@@ -85,7 +87,7 @@ collect() {   # collect <source> <name in C>
   [ -e "$1" ] || return 0
   $DA_SUDO cp -a "$1" "$C/$2" || return 1
 }
-ok=0
+ok=0; RRD_HOW=""
 collect "$DA_STAGE/state" state || ok=1
 collect "$DA_STAGE/run" run || ok=1
 collect "$DA_STAGE/config" config || ok=1
@@ -97,6 +99,15 @@ if [ -d "$DA_STAGE/vision_pilot" ]; then
     rel=${f#"$DA_STAGE/vision_pilot/"}
     case "$rel" in config/*|modules/*|assets/*) continue ;; esac
     mkdir -p "$C/vision_pilot/$(dirname "$rel")"
+    # the candidate's Rerun record (rrd_on = true, the evaluators' record; 4.7 GB for calib_steer of
+    # 20261119T174606Z): a hard link where the stage and <out> share a filesystem, so the disk holds it once;
+    # otherwise a copy. It stays on this host: the pack leaves it out (host_step.sh), candidate_rrd.json names it
+    case "$rel" in
+      *.rrd)
+        if $DA_SUDO ln "$f" "$C/vision_pilot/$rel" 2>/dev/null; then RRD_HOW="$RRD_HOW $rel=hard_link"
+        else $DA_SUDO cp -a "$f" "$C/vision_pilot/$rel" || ok=1; RRD_HOW="$RRD_HOW $rel=copy"; fi
+        continue ;;
+    esac
     $DA_SUDO cp -a "$f" "$C/vision_pilot/$rel" || ok=1
   done < <(find "$DA_STAGE/vision_pilot" -type f -print0 2>/dev/null)
 fi
@@ -106,6 +117,19 @@ if [ -r "$C/state/launch_manager.log" ]; then
     > "$C/supervision_events.txt" || true
 fi
 (cd "$C" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS) || ok=1
+# each Rerun record kept on this host: its path, size and sha256 (the one SHA256SUMS holds), computed here, in
+# <out>/candidate_rrd.json and one CANDIDATE_RRD line each
+RRD_JSON="["; sep=""
+for x in $RRD_HOW; do
+  rel=${x%=*}; how=${x##*=}; f=$C/vision_pilot/$rel
+  sum=$(awk -v want="./vision_pilot/$rel" '{ p = $0; sub(/^[0-9a-f]+  /, "", p); if (p == want) print $1 }' "$C/SHA256SUMS" 2>/dev/null)
+  size=$(stat -c %s "$f" 2>/dev/null || echo null)
+  RRD_JSON="$RRD_JSON$sep
+ {\"path\": \"$f\", \"bytes\": $size, \"sha256\": $([ -n "$sum" ] && echo "\"$sum\"" || echo null), \"stage_path\": \"$DA_STAGE/vision_pilot/$rel\", \"collected_as\": \"${how//_/ }\"}"
+  sep=,
+  ss_log "CANDIDATE_RRD path=$f bytes=$size sha256=${sum:-none} collected_as=$how (kept on this host; the pack leaves it out)"
+done
+printf '%s\n]\n' "$RRD_JSON" > "$OUT/candidate_rrd.json"
 [ "$ok" = 0 ] || { ss_log "COLLECTION INCOMPLETE"; [ "$RC" = 0 ] && RC=8; }
 # the mark that lets the next start clear the stage: only after a complete collection
 if [ "$ok" = 0 ] && [ -d "$DA_STAGE/state" ]; then

@@ -100,6 +100,24 @@ Each run's facts go to `session.json` `score_runs.<run>` (`calib_steer`, `run1`,
   it in `staged`, and ends the session before the go (exit 5, `failed_step` `score_start_<run>`) when the value is
   not the run's or the identity record does not hash the staged conf. The fetched `score_<run>/vision_pilot.conf`
   and `score_<run>/score_config.json` carry the same.
+- **The candidate's Rerun record.** `rrd_on = true` is the model's (PSR: the evaluators' record of the warnings),
+  so it stays on. calib_steer's `visionpilot.rrd` of 20261119T174606Z was 4,729,613,610 B, and the S-CORE host's
+  `out.tgz` took from 18:13 to about 18:32 to copy. So the record stays on the S-CORE host as the evaluators'
+  record, to be fetched by a separate step later:
+  - `stop_score_side.sh` collects it as a hard link where the stage and `<out>` share a filesystem, so the disk
+    holds it once, and writes its path, size and sha256, computed on the host, to `score_<run>/candidate_rrd.json`.
+  - `host_step.sh pack` leaves every `*.rrd` out and lists each with its size in `out/pack_excluded.tsv`.
+  - `session.json` has `score_runs.<run>.candidate_rrd` and `not_fetched_from_hosts`, and the `p10-2` report line
+    names each record kept on the S-CORE host. Nothing on any host is deleted.
+- **The disk check.** The first step of a `p10-2` is `score:disk_check` (`ENTRY_SCORE_DISK`), before the simulator
+  host's setup and any run, so a short disk costs the least.
+  - The budget is the measured rate, 113 MB per second of candidate running (4.73 GB in about 42 s), times each
+    run's planned running, plus 10 % and 5 GB. A run's planned running is its setting's run cap (90 s) plus 60 s of
+    hold until its S-CORE stop.
+  - For the three runs that is 450 s: 60,935,000,000 B where the stage and `<out>` share a filesystem. Otherwise
+    the longest run's 23,645,000,000 B are also needed on the stage's filesystem.
+  - A short disk ends the session there: exit 5, `failed_step` `disk_check`, "DISK SPACE SHORT" in `session.log`.
+    `session.json` `score_disk_check` holds the rate, the planned seconds, the need and the host's answer.
 
 The order of `p10-3` is the one the guest host's operator gave on 2026-11-18 (`guest-prep-20261118`): the VXLAN up,
 the offer, the multicast route, then the unit gate, then the IVI clock just before the window. Before the S-CORE
@@ -555,6 +573,7 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_SIM_WARMUP` | simulator | `<out>` | `../world-side/scripts/warmup.sh` | the survey, the session's road in `world_start.json`, the warm-up pass with every camera (hero role `hero`, moved by pose) |
 | `ENTRY_SIM_CALIBRATE` | simulator | `<out> <checkerboard or settings>` (the session's `--camcal`) | `../world-side/scripts/calibrate.sh` | ASM-DRIVING-005 and the camera capture, role `de4sdv_calibration`, no candidate; required for `p10-2` |
 | `ENTRY_SIM_RUN` | simulator | `<out> <scenario> <setting>` | `../world-side/scripts/run_scenario.sh` | one run (`SC-DRIVING-012 20kmh`, or `ASM-DRIVING-006 20kmh`), detached, with the go/release handshake (`../world-side/README.md`); its records in `<out>/simulator/`; in `p10-1` the world of `P10_1_SCENARIO` `P10_1_SETTING` with `RELEASE_WAIT_S` above the check's bound |
+| `ENTRY_SCORE_DISK` | S-CORE | `<out> <need_bytes> <need_stage_bytes>` | this lane: `../score-path/scripts/disk_check.sh` | `p10-2`'s first step: exit 0 when `<out>`'s filesystem has `<need_bytes>` free (and the stage's `<need_stage_bytes>` when it is another filesystem), 9 ("DISK SPACE SHORT") otherwise; one `DISK_CHECK` line and `<out>/disk_check.json`; deletes nothing |
 | `ENTRY_SIM_RECORD` | simulator | `--out <dir>` | this lane: `../recording/chase_recorder.py` | started before the warm-up and before the run, ends on its own |
 | `ENTRY_GUEST_UP` | guest | `<out>` | this lane: `remote/guest_up.sh` | both guests created fresh (`launch_two_vms.sh down`, `up`) and booted; `getenforce` recorded, `setenforce 0` on the IVI only with `IVI_PERMISSIVE=1` |
 | `ENTRY_GUEST_PREPARE` | guest | `<out>` | this lane: `remote/guest_prepare.sh` | the guest build script's `install` (ACLs, APK, IVI reboot) and `verify`, unchanged, as its second caller: one `B12_DIR` per session (`$AB/b12-session-<id>`), no `LOGS`, `IDENT` or `WORK`; required, since fresh guests start empty |

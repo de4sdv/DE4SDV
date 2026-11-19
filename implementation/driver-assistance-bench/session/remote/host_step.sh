@@ -7,7 +7,8 @@
 #                                                process group lives, its leader gone or not) or "absent"
 #   host_step.sh signal <step> [INT|TERM]        signals the detached step's process group
 #   host_step.sh tail   <step>                   the last 20 lines of the step's log
-#   host_step.sh pack                            tars the host's output folder to <kit>/out.tgz, prints its sha256
+#   host_step.sh pack                            tars the host's output folder to <kit>/out.tgz, prints its sha256;
+#                                                every *.rrd stays out of it, listed in out/pack_excluded.tsv
 #
 # Layout (made by the orchestrator's upload): ~/da-kit/<session id>/{session_id, bench/, out/}. This script lives in
 # bench/session/remote/. Each step writes out/<step>.log and, when it ends, out/<step>.rc. The command runs with
@@ -70,7 +71,10 @@ case "$ACTION" in
     ;;
   pack)
     cp "$KIT/session_id" "$DA_OUT/session_id"
-    tar -czf "$KIT/out.tgz" -C "$KIT" out
+    # the candidate's Rerun records stay on this host (4.7 GB for 42 s of calib_steer in 20261119T174606Z): each is
+    # listed with its size in out/pack_excluded.tsv and left out of the pack; nothing is deleted
+    (cd "$KIT" && find out -type f -name '*.rrd' -printf '%p\t%s\n' | sort) > "$DA_OUT/pack_excluded.tsv"
+    tar -czf "$KIT/out.tgz" --exclude='*.rrd' -C "$KIT" out
     sha256sum "$KIT/out.tgz" | cut -d' ' -f1
     ;;
   *) echo "usage: host_step.sh run|start|status|tail|signal|pack ..." >&2; exit 2 ;;

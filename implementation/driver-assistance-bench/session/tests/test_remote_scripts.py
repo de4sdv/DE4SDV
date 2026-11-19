@@ -1195,3 +1195,31 @@ def test_host_step_status_reads_running_while_any_process_of_the_step_lives(tmp_
         time.sleep(0.2)
     assert sh(str(hs), "status", "gstep", env=env).stdout.strip().startswith("rc ")
     assert "child cleanup done" in (kit / "out" / "gstep.log").read_text()
+
+
+# ------------------------------------------------- F3 of the first recorded p10-2: the pack leaves the .rrd on the host
+
+
+def test_the_pack_leaves_every_rerun_record_on_the_host_and_lists_it(tmp_path: Path) -> None:
+    """calib_steer's visionpilot.rrd (4.7 GB) made the S-CORE host's out.tgz 3.74 GB and its copy ran past 18 min.
+    The pack excludes *.rrd, lists each with its size in out/pack_excluded.tsv (in the pack), and deletes nothing."""
+    kit = tmp_path / "home" / "da-kit" / "S1"
+    rem = kit / "bench" / "session" / "remote"
+    rem.mkdir(parents=True)
+    (rem / "host_step.sh").write_bytes((REMOTE / "host_step.sh").read_bytes())
+    (kit / "session_id").write_text("S1\n")
+    vp = kit / "out" / "score_run1" / "score_side" / "vision_pilot"
+    vp.mkdir(parents=True)
+    (vp / "visionpilot.rrd").write_bytes(b"r" * 4096)
+    (vp / "frames.csv").write_text("frame\n")
+    (kit / "out" / "score_run1" / "candidate_rrd.json").write_text("[]\n")
+    p = subprocess.run(["bash", str(rem / "host_step.sh"), "pack"], capture_output=True, text=True,
+                       env={**os.environ, "HOME": str(tmp_path / "home")})
+    assert p.returncode == 0, p.stderr
+    with tarfile.open(kit / "out.tgz") as t:
+        names = set(t.getnames())
+        listed = t.extractfile("out/pack_excluded.tsv").read().decode()
+    assert not [n for n in names if n.endswith(".rrd")], names
+    assert "out/score_run1/score_side/vision_pilot/frames.csv" in names and "out/score_run1/candidate_rrd.json" in names
+    assert listed.splitlines() == ["out/score_run1/score_side/vision_pilot/visionpilot.rrd\t4096"], listed
+    assert (vp / "visionpilot.rrd").stat().st_size == 4096   # still on the host's disk

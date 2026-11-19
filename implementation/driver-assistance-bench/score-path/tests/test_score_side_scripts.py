@@ -615,3 +615,53 @@ def test_a_start_without_a_speed_limit_says_upstreams_value_stays(bench: dict, t
         assert "SCORE_CONFIG speed_limit=33.3 speed_limit_requested=none" in started.stdout
     finally:
         run(STOP, str(out), env=bench["env"])
+
+
+# --- F3 of the first recorded p10-2: the candidate's Rerun record stays on the host, recorded --------------------
+
+DISK_CHECK = SCRIPTS / "disk_check.sh"
+
+
+def test_the_stop_keeps_the_rerun_record_as_a_link_and_records_its_path_size_and_hash(bench: dict,
+                                                                                       tmp_path: Path) -> None:
+    """rrd_on = true is the model's (PSR, the evaluators' record of the warnings); in calib_steer of 20261119T174606Z
+    the record was 4,729,613,610 B. The stop collects it as a hard link where the stage and <out> share a
+    filesystem (no second copy on the disk), and records path, size and sha256, computed on the host, in
+    <out>/candidate_rrd.json; the sha256 is the one SHA256SUMS holds."""
+    out = tmp_path / "out"
+    assert run(START, str(out), "10.164.0.2", env=bench["env"]).returncode == 0
+    stopped = run(STOP, str(out), env=bench["env"])
+    assert stopped.returncode == 0, stopped.stdout + stopped.stderr
+    collected = out / "score_side" / "vision_pilot" / "visionpilot.rrd"
+    staged = bench["stage"] / "vision_pilot" / "visionpilot.rrd"
+    assert collected.is_file() and staged.is_file()
+    assert os.stat(collected).st_ino == os.stat(staged).st_ino   # one file on the disk, two names
+    data = collected.read_bytes()
+    sums = dict(reversed(line.split("  ", 1)) for line in (out / "score_side" / "SHA256SUMS").read_text().splitlines())
+    rrd = json.loads((out / "candidate_rrd.json").read_text())
+    assert rrd == [{"path": str(collected), "bytes": len(data), "sha256": hashlib.sha256(data).hexdigest(),
+                    "stage_path": str(staged), "collected_as": "hard link"}], rrd
+    assert sums["./vision_pilot/visionpilot.rrd"] == rrd[0]["sha256"]
+    assert "CANDIDATE_RRD " in stopped.stdout
+
+
+def _disk(out: Path, stage: Path, need_out: int, need_stage: int, env: dict) -> subprocess.CompletedProcess:
+    return subprocess.run(["bash", str(DISK_CHECK), str(out), str(need_out), str(need_stage)], capture_output=True,
+                          text=True, env={**env, "DA_STAGE": str(stage)}, timeout=30)
+
+
+def test_the_disk_check_passes_with_room_and_records_it(tmp_path: Path) -> None:
+    out, stage = tmp_path / "out", tmp_path / "x" / "de4sdv-da-bench"
+    p = _disk(out, stage, 1000, 10, dict(os.environ))
+    assert p.returncode == 0, p.stdout + p.stderr
+    rec = json.loads((out / "disk_check.json").read_text())
+    assert rec["enough"] is True and rec["same_filesystem"] is True and rec["need_bytes"] == 1000
+    assert rec["avail_bytes"] >= 1000 and "DISK_CHECK ok " in p.stdout
+
+
+def test_the_disk_check_fails_named_when_space_is_short(tmp_path: Path) -> None:
+    out, stage = tmp_path / "out", tmp_path / "x" / "de4sdv-da-bench"
+    p = _disk(out, stage, 10 ** 18, 10, dict(os.environ))
+    assert p.returncode == 9, p.stdout + p.stderr
+    assert "DISK SPACE SHORT" in p.stdout and "DISK_CHECK short " in p.stdout
+    assert json.loads((out / "disk_check.json").read_text())["enough"] is False

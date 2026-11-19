@@ -623,7 +623,9 @@ def _p10_2_run(n: int, first: bool, guest: bool = True) -> list[str]:
 
 
 def p10_2_seq(guest: bool = True) -> list[str]:
-    return (["sim:sim_setup", "score:carla_reach"] + (GUEST_UP_SEQ if guest else []) + [
+    # F3 of 20261119T174606Z: the S-CORE host's disk check is the first step, before any run and before the
+    # simulator host's setup, so a short disk costs the least
+    return (["score:disk_check", "sim:sim_setup", "score:carla_reach"] + (GUEST_UP_SEQ if guest else []) + [
         "sim:rec_warmup&", "sim:warmup", "sim:wait-rec_warmup", "sim:calibrate", "lead:make_h",
         "sim:world_calib_steer&", "sim:file-ready.json", "score:score_start_calib_steer", "sim:touch-go",
         "sim:file-run_end.json", "score:score_stop_calib_steer", "sim:touch-release", "sim:wait-world_calib_steer"]
@@ -1919,3 +1921,60 @@ def test_p10_2_a_staged_conf_without_the_runs_speed_limit_ends_the_session_befor
     assert "does not carry the run's speed limit" in r.log
     assert not r.ssh(G4, "world_calib_steer/go")
     assert_invariants(r)
+
+
+# ------------------------------------------- F3 of the first recorded p10-2: the Rerun records stay on the host
+# The measured rate: calib_steer's visionpilot.rrd, 4,729,613,610 B for about 42 s of candidate running, about
+# 113 MB/s. A run's planned running: its setting's run cap (scenarios.py: 90 s) plus 60 s of hold until its S-CORE
+# stop. The budget: the rate times the running seconds, plus 10 % and 5 GB.
+RRD_RATE = 113_000_000
+RUN_RUNNING_S = 90 + 60
+
+
+def _budget(seconds: int) -> int:
+    return RRD_RATE * seconds * 11 // 10 + 5_000_000_000
+
+
+def test_p10_2_checks_the_score_hosts_disk_for_every_runs_rerun_record_first(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host",
+            FAKE_TAIL_ADD="disk_check:DISK_CHECK ok need_bytes=1 avail_bytes=2 same_filesystem=1")
+    assert r.rc == 0, r.log
+    check = r.ssh(L4, "start disk_check")
+    assert check and check[0] < r.ssh(G4, "start sim_setup")[0]
+    words = r.command(check[0]).split()
+    assert words[-2:] == [str(_budget(3 * RUN_RUNNING_S)), str(_budget(RUN_RUNNING_S))], words
+    rec = json.loads((r.incoming / "session.json").read_text())
+    d = rec["score_disk_check"]
+    assert d["rate_bytes_per_s"] == RRD_RATE and d["need_bytes"] == _budget(3 * RUN_RUNNING_S)
+    assert d["planned_running_s"] == {"calib_steer": RUN_RUNNING_S, "run1": RUN_RUNNING_S, "run2": RUN_RUNNING_S}
+    assert d["rc"] == 0 and d["result"] == {"need_bytes": "1", "avail_bytes": "2", "same_filesystem": "1"}, d
+    assert rec["score_runs"]["run1"]["planned_running_s"] == RUN_RUNNING_S
+
+
+def test_p10_2_a_short_disk_ends_the_session_named_before_any_run(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_STEP_RC="disk_check:9")
+    assert r.rc == 5, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["failed_step"] == "disk_check" and rec["score_disk_check"]["rc"] == 9, rec["failed_step"]
+    assert "DISK SPACE SHORT on de4sdv-probe-da8-carla" in r.log
+    assert not r.ssh(G4, "start sim_setup") and not r.ssh(G4, "start world_")
+    assert_invariants(r)
+
+
+def test_p10_2_records_each_runs_rerun_record_kept_on_the_score_host(tmp_path: Path) -> None:
+    rrd = [{"path": "/home/x/da-kit/T/out/score_run1/score_side/vision_pilot/visionpilot.rrd", "bytes": 4729613610,
+            "sha256": "b" * 64, "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+            "collected_as": "hard link"}]
+    f = tmp_path / "rrd.json"
+    f.write_text(json.dumps(rrd))
+    ex = tmp_path / "ex.tsv"
+    ex.write_text("out/score_run1/score_side/vision_pilot/visionpilot.rrd\t4729613610\n")
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host",
+            FAKE_PACK_ADD=f"out/score_run1/candidate_rrd.json={f},out/pack_excluded.tsv={ex}")
+    assert r.rc == 0, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["score_runs"]["run1"]["candidate_rrd"] == rrd
+    assert rec["score_runs"]["run2"]["candidate_rrd"] is None
+    assert rec["not_fetched_from_hosts"]["score"] == [
+        {"path": "out/score_run1/score_side/vision_pilot/visionpilot.rrd", "bytes": 4729613610}]
+    assert "kept on the S-CORE host, not fetched: run1 4729613610 B sha256 " + "b" * 64 in r.log

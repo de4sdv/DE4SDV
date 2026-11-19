@@ -145,6 +145,11 @@ for _n in UNIT_WAIT_S START_WAIT_S APP_SUBSCRIBE_WAIT_S; do
 done
 T_UNIT=$(( ${RVAL[UNIT_WAIT_S]:-120} + 240 ))
 T_APP_RESTART=$(( ${RVAL[START_WAIT_S]:-5} + ${RVAL[APP_SUBSCRIBE_WAIT_S]:-30} + 300 ))
+# the S-CORE host's disk check before p10-2's first run (F3 of 20261119T174606Z): the candidate's Rerun record grows at
+# the measured rate (calib_steer: 4,729,613,610 B in about 42 s of candidate running, about 113 MB/s) and stays on the
+# host; a run's planned running is its setting's run cap plus RRD_HOLD_S of hold until its S-CORE stop (the poll of
+# run_end.json and the stop's start call); the need is the rate times those seconds, plus 10 % and 5 GB
+RRD_RATE_BPS=113000000; RRD_HOLD_S=60; RRD_MARGIN_B=5000000000
 CARLA_PORTS="2000 2001 2002"   # p10-1's port test: CARLA's ports that carla-net admits from the S-CORE host
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
@@ -658,6 +663,22 @@ p10_2_report() {   # p10-2's display recording is complete only when every recor
   # R2 of the closure check of 7befc3c1: a --permissive-ivi session's report says so, as session.json does
   [ "$IVI_PERMISSIVE" = 1 ] && PERM_NOTE=" (conditional on a permissive IVI)"
   log "p10-2 camera calibration source: $CAMCAL_SOURCE ($CAMCAL_REASON); cross-check: ${CAMCAL_XCHECK:-not reached (no make_h)}"
+  # the candidate's Rerun records (rrd_on = true) stay on the S-CORE host: each one's size and sha256, from the host
+  local rrd; rrd=$(python3 - "$IN/score/out" <<'PY'
+import json, os, sys
+parts = []
+for name in sorted(os.listdir(sys.argv[1])) if os.path.isdir(sys.argv[1]) else []:
+    try:
+        rows = json.load(open(os.path.join(sys.argv[1], name, "candidate_rrd.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        continue
+    for r in rows if isinstance(rows, list) else []:
+        parts.append("%s %s B sha256 %s (%s)" % (name[len("score_"):] if name.startswith("score_") else name,
+                                                r.get("bytes"), r.get("sha256"), r.get("path")))
+print("; ".join(parts) or "none recorded")
+PY
+)
+  log "p10-2 candidate Rerun records (rrd_on = true), kept on the S-CORE host, not fetched: $rrd"
   if [[ " ${ROLES[*]} " != *" guest "* ]]; then
     P10_2_COMPLETE=none; P10_2_REASON="no display capture: --without-guest-host"; log "p10-2: $P10_2_REASON"; return 0
   fi
@@ -729,7 +750,8 @@ write_record() {
   P10_3_REASON="${P10_3_REASON:-}" CROSVM_BEFORE="${CROSVM_BEFORE:-}" CAPTURES="$CAPTURES" \
   P10_2_COMPLETE="${P10_2_COMPLETE:-}" P10_2_REASON="${P10_2_REASON:-}" \
   CAMCAL_SOURCE="$CAMCAL_SOURCE" CAMCAL_REASON="$CAMCAL_REASON" CAMCAL_XCHECK="$CAMCAL_XCHECK" \
-  CAMCAL_PRECHECK="$CAMCAL_PRECHECK" \
+  CAMCAL_PRECHECK="$CAMCAL_PRECHECK" DISK_RC="${DISK_RC:-}" DISK_LINE="${DISK_LINE:-}" NEED_DISK="${NEED_DISK:-}" \
+  NEED_DISK_STAGE="${NEED_DISK_STAGE:-}" RRD_RATE_BPS="$RRD_RATE_BPS" ROLES_ALL="${STARTED[*]}" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
@@ -755,6 +777,27 @@ for run, d in score_runs.items():
             d[key] = float(d[key])
     if "staged" in d:   # the start's SCORE_CONFIG words; None: the start printed none
         d["staged"] = dict(w.split("=", 1) for w in d["staged"].split() if "=" in w) or None
+    if "planned_running_s" in d:
+        d["planned_running_s"] = int(d["planned_running_s"])
+    try:   # the stop's record of the candidate's Rerun record, kept on the S-CORE host (computed there)
+        d["candidate_rrd"] = json.load(open(os.path.join(e["IN"], "score", "out", "score_" + run, "candidate_rrd.json")))
+    except (OSError, ValueError):
+        d["candidate_rrd"] = None
+excluded = {}
+for role in e["ROLES_ALL"].split():
+    try:
+        rows = [l.rstrip("\n").split("\t") for l in open(os.path.join(e["IN"], role, "out", "pack_excluded.tsv"))]
+    except OSError:
+        continue
+    excluded[role] = [{"path": r[0], "bytes": int(r[1]) if r[1:] and r[1].isdigit() else None} for r in rows if r[0]]
+disk = None
+if e["KIND"] == "p10-2" and e["NEED_DISK"]:
+    words = e["DISK_LINE"].split()[1:]
+    disk = {"rate_bytes_per_s": int(e["RRD_RATE_BPS"]), "margin": "10 % and 5000000000 B",
+            "planned_running_s": {r: d.get("planned_running_s") for r, d in score_runs.items()},
+            "need_bytes": int(e["NEED_DISK"]), "need_stage_bytes": int(e["NEED_DISK_STAGE"]),
+            "rc": int(e["DISK_RC"]) if e["DISK_RC"].isdigit() else None,
+            "result": dict(w.split("=", 1) for w in words if "=" in w) or None}
 renv = {}
 for line in e["RENV"].splitlines():
     role, name, value = (line.split("\t", 2) + ["", ""])[:3]
@@ -780,6 +823,8 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
                            for run, step, rc in (x.split(":", 2) for x in e["STOPS"].split())},
            "p10_1": json.load(open(p10_1)) if os.path.exists(p10_1) else None,
            "score_runs": score_runs if e["KIND"] == "p10-2" else None,
+           "score_disk_check": disk,
+           "not_fetched_from_hosts": excluded,
            "app_record_receipts": {w: (int(n) if n.isdigit() else None)
                                    for w, n in (x.split("=", 1) for x in e["RECEIPTS"].split() if "=" in x)},
            "step_ended_by_term": {"host": e["TERMED_STEP"], "step": e["TERMED_NAME"],
@@ -885,7 +930,7 @@ case "$KIND" in
   p10-1) NEED+=("$ENTRY_SIM_SETUP" "$ENTRY_SIM_WARMUP" "$ENTRY_SIM_RUN" "$ENTRY_SCORE_P10_1" world-side/da_world_side.py) ;;
   p10-3) NEED+=("${GUEST_NEED[@]}" "$ENTRY_SCORE_START" "$ENTRY_SCORE_INJECT" "$ENTRY_SCORE_STOP") ;;
   p10-2) NEED+=("$ENTRY_SIM_SETUP" "$ENTRY_SIM_WARMUP" "$ENTRY_SIM_CALIBRATE" "$ENTRY_SIM_RUN" "$ENTRY_SIM_RECORD"
-                "$ENTRY_SCORE_START" "$ENTRY_SCORE_STOP" world-side/da_world_side.py world-side/camera_calibration.py)
+                "$ENTRY_SCORE_START" "$ENTRY_SCORE_STOP" "$ENTRY_SCORE_DISK" world-side/da_world_side.py world-side/camera_calibration.py)
          [ "$WITHOUT_GUEST" = 1 ] || NEED+=("${GUEST_NEED[@]}") ;;
 esac
 MISSING=$(python3 - "$KIT" "${NEED[@]}" <<'PY'
@@ -914,20 +959,25 @@ for r in "${ROLES[@]}"; do
 done
 # each run's setting and speed_limit (F2), from world-side/scenarios.py through run_setting.py, before any VM starts;
 # score_runs.tsv holds what session.json's score_runs says per run: <run> <key> <value>
-declare -A RUN_SET=() RUN_SPEED=() RUN_CAP=()
+declare -A RUN_SET=() RUN_SPEED=() RUN_CAP=(); PLAN_TOTAL_S=0; PLAN_MAX_S=0; DISK_RC=""; DISK_LINE=""
 srun() { printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$IN/score_runs.tsv"; }
 plan_run() {   # plan_run <label> <scenario> <setting>
   local line id sp cap lo hi
   line=$(python3 "$HERE/run_setting.py" "$2" "$3" 2>&1) || fail 2 "refused: no setting for $1 ($2 $3): $line"
   read -r id sp cap lo hi <<< "$line"
   RUN_SET[$1]=$id; RUN_SPEED[$1]=$sp; RUN_CAP[$1]=$cap
-  srun "$1" setting "$id"; srun "$1" speed_limit_mps "$sp"; srun "$1" run_cap_s "$cap"
+  local plan=$(( ${cap%.*} + RRD_HOLD_S ))
+  PLAN_TOTAL_S=$(( PLAN_TOTAL_S + plan )); [ "$plan" -gt "$PLAN_MAX_S" ] && PLAN_MAX_S=$plan
+  srun "$1" setting "$id"; srun "$1" speed_limit_mps "$sp"; srun "$1" run_cap_s "$cap"; srun "$1" planned_running_s "$plan"
   srun "$1" speed_limit_source "world-side/scenarios.py $id: the middle of its tolerance $lo to $hi km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)"
   log "run $1: setting $id, the candidate's speed_limit $sp m/s (the middle of $lo to $hi km/h), run cap $cap s"
 }
 if [ "$KIND" = p10-2 ]; then
   [ "$P10_2_CALIB_STEER" = 1 ] && plan_run calib_steer ASM-DRIVING-006 "$P10_2_SETTING"
   for _n in $(seq 1 "$P10_2_RUNS"); do plan_run "run$_n" "$P10_2_SCENARIO" "$P10_2_SETTING"; done
+  NEED_DISK=$(( RRD_RATE_BPS * PLAN_TOTAL_S * 11 / 10 + RRD_MARGIN_B ))
+  NEED_DISK_STAGE=$(( RRD_RATE_BPS * PLAN_MAX_S * 11 / 10 + RRD_MARGIN_B ))
+  log "disk budget of the S-CORE host for the candidate's Rerun records: $RRD_RATE_BPS B/s x $PLAN_TOTAL_S s of planned running, plus 10 % and $RRD_MARGIN_B B: $NEED_DISK B ($NEED_DISK_STAGE B for the longest run in the stage)"
 fi
 EUR_H=0; for r in "${ROLES[@]}"; do EUR_H=$(awk -v a="$EUR_H" -v b="$(var "$r" EUR_H)" 'BEGIN{print a+b}'); done
 CAP_S=$(awk -v c="$CAP" -v h="$EUR_H" 'BEGIN{printf "%d", c / h * 3600}')
@@ -1151,6 +1201,15 @@ score_config_check() {   # score_config_check <label> <the start's SCORE_CONFIG 
   fi
   log "speed_limit ${RUN_SPEED[$w]} m/s for $w staged, and the identity record hashes that vision_pilot.conf: $cfg"
 }
+disk_check() {   # p10-2's first step: room on the S-CORE host for every run's Rerun record, which stays there (F3)
+  ALLOW_RC=9 rstep score disk_check "$T_STEP" bash "$ENTRY_SCORE_DISK" "$(od disk_check)" "$NEED_DISK" "$NEED_DISK_STAGE"
+  DISK_RC=$STEP_RC; DISK_LINE=$(grep -o 'DISK_CHECK .*' <<< "$ROUT" | tail -1)
+  if [ "$DISK_RC" = 9 ]; then
+    STEP_FAIL=disk_check
+    abort 5 "DISK SPACE SHORT on $(var score VM): the candidate's Rerun records of this session need $NEED_DISK B ($PLAN_TOTAL_S s of planned running at $RRD_RATE_BPS B/s, plus 10 % and $RRD_MARGIN_B B); no run starts: ${DISK_LINE:-no DISK_CHECK line}"
+  fi
+  log "disk check on $(var score VM): ${DISK_LINE:-no DISK_CHECK line} (need $NEED_DISK B)"
+}
 world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another run follows 0|1>: one run with its own
   # S-CORE side
   local w=$1 sc=$2 se=$3 rec=$4 more=${5:-0} o; o=$(od "world_$w")
@@ -1318,6 +1377,7 @@ case "$KIND" in
     rstep score score_stop "$T_SCORE_START" bash "$ENTRY_SCORE_STOP" "$(od score)"; SCORE_UP=""
     ;;
   p10-2)
+    disk_check
     rstep sim sim_setup "$T_SIM_SETUP" bash "$ENTRY_SIM_SETUP" "$(od sim_setup)"
     [ -n "$CARLA_HOST" ] || ipof sim CARLA_HOST
     log "CARLA host for the S-CORE side: $CARLA_HOST"
