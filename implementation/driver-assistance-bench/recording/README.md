@@ -34,7 +34,9 @@ Run by the session (`--out` only); by hand: `/opt/sim20g4/venv/bin/python chase_
 
 `display_capture.sh start <dir>` (detached) and `display_capture.sh stop <dir>`. The guest clock is read with
 `date +%s.%N` in the same guest shell immediately before and after the backgrounded `screenrecord`, whose output goes
-to `/dev/null` so the call returns at once. `stop` sends SIGINT, so the file is finished. The clock offset to the
+to `/dev/null` so the call returns at once. `stop` sends SIGINT, so the file is finished. A stop that comes after a
+segment ended by its time limit (while its file is pulled) starts no new segment: that last segment says
+`time-limit`, the capture's `end` says `stop`. The clock offset to the
 guest host is measured with `../session/remote/ivi_clock.sh measure` (Cristian's method: 15 reads, the shortest
 round trip gives the offset and a bound of half of it).
 
@@ -75,8 +77,10 @@ every offset used.
   a fake CARLA module (`tests/fake_carla/`) with the real ffmpeg: spawn pose and mount, frame count by ffprobe, the
   frames CSV, the label of 20 fps, the fallback named; a simulator that answers late; one that never answers.
 - `tests/test_display_capture.py`: against a fake adb whose guest clock runs 0.25 s ahead: the bracket in one guest
-  shell, segments ended by the time limit and by the stop (SIGINT), the stills per display, the sha256 of every file,
-  the measured offset within its bound; the clock set brings the offset to within the bound.
+  shell, segments ended by the time limit and by the stop (SIGINT), a stop during a segment's pull, the stills per
+  display, the sha256 of every file, the measured offset within its bound; the clock set brings the offset to within
+  the bound. The test orders the events through the fake (`FAKE_LIMIT_DIR`, `FAKE_HOLD_PULL`), never by a sleep, and
+  runs the bracket once more with every adb call 0.25 s slower (`FAKE_CALL_DELAY_S`), as on a loaded host.
 - `tests/test_compose_side_by_side.py`: on flat-level synthetic videos made with ffmpeg, the pane pixels of every
   output frame show the source frame the test computes from the synthetic times, a chase stall included; the
   manifest's digests; the refusals.
