@@ -96,6 +96,12 @@ def test_the_p10_1_time_out_covers_the_check_and_ends_a_hung_check_before_the_ca
     assert round(cap_s) == 5316                                   # EUR 3.50 at 1.887 + 0.483 EUR/h
     before = _session("T_SIM_SETUP") + 60 + _session("T_WARMUP") + _session("T_READY")   # 60: the port test's call
     term_wait = _session("STEP_TERM_POLLS") * _session("POLL_S")
-    assert before + t + term_wait + _session("PRESTOP_S") < cap_s, (before, t, term_wait, cap_s)
+    assert before + t + term_wait < cap_s, (before, t, term_wait, cap_s)
+    # P1: past the step's time-out the stops and fetches may run into the cap; the trap's pre-stop phase then holds
+    # each at its bound (p10-1's budget, test_session_dryrun.py test_p1_...), and the safety net fires after it:
+    # (CAP_S + that budget) / 60 + SAFETY_MARGIN_MIN, counted from the arming
+    text = (SESSION_DIR / "da_session.sh").read_text()
+    assert "gmin=$(( (CAP_S + PRESTOP_S) / 60 + SAFETY_MARGIN_MIN ))" in text
+    assert "PRESTOP_S=$PRE_SUM" in text
     # the world holds longer than the check may run (RELEASE_WAIT_S = T_P10_1 + T_STEP)
     assert "RELEASE_WAIT_S=$(( T_P10_1 + T_STEP ))" in (SESSION_DIR / "da_session.sh").read_text()

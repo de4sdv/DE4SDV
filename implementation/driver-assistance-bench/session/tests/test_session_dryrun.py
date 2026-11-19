@@ -1450,11 +1450,13 @@ def _hosts_env(*names: str) -> list[str]:
 
 
 def test_the_safety_net_fires_at_the_cap_plus_the_pre_stop_bound_plus_its_margin(tmp_path: Path) -> None:
-    # Y12: a deadline far after the cap passed every test; it is (CAP_S + 300 s) / 60 + 10 min from the arming
+    # Y12: a deadline far after the cap passed every test; it is (CAP_S + the kind's pre-stop budget) / 60 + 10 min
+    # from the arming (P1: the budget is the sum of the trap's step bounds, test_p1_...)
     r = run(tmp_path, "p10-1")
     assert r.rc == 0, r.log
     cap, sim_h, score_h = (float(x) for x in _hosts_env("CAP_EUR_P10_1", "SIM_EUR_H", "SCORE_EUR_H"))
-    gmin = (int(cap / (sim_h + score_h) * 3600) + 300) // 60 + 10
+    pre = _prestop_sums("p10-1", dict(_prestop_defaults(), POLL_S=1))["total"]
+    gmin = (int(cap / (sim_h + score_h) * 3600) + pre) // 60 + 10
     for vm in (G4, L4):
         (arm,) = [r.command(i) for i in r.ssh(vm, "safety_net.sh arm")]
         assert re.search(rf"safety_net\.sh arm {gmin}$", arm), (vm, arm, gmin)
@@ -1684,3 +1686,90 @@ def test_q3_q4_the_readme_shows_both_sums_at_the_sessions_defaults() -> None:
     assert re.search(r"= --wait-cap-s +(\d+) s", readme).group(1) == str(want["wait_cap"])
     assert re.search(r"= --max-s of a p10-2 window +(\d+) s", readme).group(1) == str(want["p10-2"])
     assert re.search(r"= --max-s of the p10-3 window +(\d+) s", readme).group(1) == str(want["p10-3"])
+
+
+# ───────────── P1: the exit trap's pre-stop phase holds each of its steps at its bound ─────────────
+def _prestop_sums(kind: str, d: dict[str, int]) -> dict[str, int]:
+    """The test's own pre-stop budget (P1): the running step's end (its TERM's call 60 s, STEP_TERM_POLLS waits of
+    POLL_S, the last poll 60 s, its tail 60 s); the open window's capture stop (guest kinds: T_CAPTURE_END, then its
+    status poll 60 s); the S-CORE side's stop (TRAP_SCORE_S); the world side's end (sim kinds: its release and TERM
+    call 60 s, 3 polls of 60 s and POLL_S); each host's fetch (TRAP_PACK_S + TRAP_SCP_S)."""
+    hosts = {"p10-1": ["sim", "score"], "p10-3": ["score", "guest"], "p10-2": ["sim", "score", "guest"],
+             "p10-2-without-guest": ["sim", "score"]}[kind]
+    p = d["POLL_S"]
+    parts = {"step": 60 + d["STEP_TERM_POLLS"] * p + 60 + 60, "score": d["TRAP_SCORE_S"],
+             "fetch": len(hosts) * (d["TRAP_PACK_S"] + d["TRAP_SCP_S"])}
+    if "guest" in hosts:
+        parts["capture"] = d["T_CAPTURE_END"] + 60
+    if "sim" in hosts:
+        parts["world"] = 60 + 3 * (60 + p)
+    parts["total"] = sum(parts.values())
+    return parts
+
+
+def _prestop_defaults() -> dict[str, int]:
+    text = SESSION.read_text()
+    return {k: int(re.search(r"\b%s=(\d+)\b" % k, text).group(1))
+            for k in ("T_CAPTURE_END", "POLL_S", "STEP_TERM_POLLS", "TRAP_SCORE_S", "TRAP_PACK_S", "TRAP_SCP_S")}
+
+
+_KIND_ARGS = {"p10-1": ("p10-1",), "p10-3": ("p10-3", "--owner-ok-guest-host"),
+              "p10-2": ("p10-2", "--owner-ok-guest-host"), "p10-2-without-guest": ("p10-2", "--without-guest-host")}
+
+
+@pytest.mark.parametrize("kind", list(_KIND_ARGS))
+def test_p1_the_pre_stop_phase_is_the_sum_of_its_steps_bounds_and_the_safety_net_holds_it(tmp_path: Path,
+                                                                                          kind: str) -> None:
+    # P1: PRESTOP_S was 300 s for every kind, while capture_down alone may use T_CAPTURE_END 240 s of it: with the
+    # capture's and the S-CORE side's stops at their bounds the guest host's fetch was skipped. The phase is now the
+    # sum of the bounds of every step the trap runs before a VM stops, per kind, and the safety net counts it
+    r = run(tmp_path, *_KIND_ARGS[kind])
+    assert r.rc == 0, r.log
+    want = _prestop_sums(kind, dict(_prestop_defaults(), POLL_S=1))   # the dry run's POLL_S 0.1 as a whole second
+    m = re.search(r"pre-stop budget: (\d+) s \(([^)]*)\)", r.log)
+    assert m and int(m.group(1)) == want["total"], (m and m.group(0), want)
+    for k, v in want.items():
+        if k != "total":
+            assert "%s %d" % (k, v) in m.group(2), (k, v, m.group(2))
+    cap_s = int(re.search(r"the cap of [0-9.]+ EUR is (\d+) s", r.log).group(1))
+    gmin = (cap_s + want["total"]) // 60 + 10
+    assert re.findall(r"power-off safety net in (\d+) min", r.log) and \
+        set(re.findall(r"power-off safety net in (\d+) min", r.log)) == {str(gmin)}, (gmin, r.log)
+
+
+def test_p1_the_readme_shows_the_pre_stop_sums_of_every_kind_at_the_sessions_defaults() -> None:
+    readme = (HERE.parent / "README.md").read_text()
+    d = _prestop_defaults()
+    for kind, label in (("p10-1", "p10-1"), ("p10-3", "p10-3"), ("p10-2", "p10-2 with the guest host"),
+                        ("p10-2-without-guest", "p10-2 --without-guest-host")):
+        m = re.search(r"\| %s \| (\d+) s \|" % re.escape(label), readme)
+        assert m and int(m.group(1)) == _prestop_sums(kind, d)["total"], (label, m and m.group(0))
+
+
+def test_p1_with_the_capture_and_score_stops_at_their_bounds_the_guest_host_is_still_fetched(tmp_path: Path) -> None:
+    # P1: a TERM inside a recorded window whose capture stop and S-CORE stop both run to their bounds: each is cut at
+    # its own bound, the world side gets its release, and the guest host is still packed and fetched before the
+    # guests' stop
+    p = popen(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_NO_FILE="world_run1/simulator/run_end",
+              FAKE_HANG_STEP="capture_down1_run1:120,score_stop_on_failure:120",
+              DA_T_T_CAPTURE_END="8", DA_T_TRAP_SCORE_S="6")
+    wait_for_call(tmp_path, lambda c: any("start capture_run1 " in a for a in c), timeout=120)
+    time.sleep(0.5)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p, timeout=150)
+    assert r.rc == 143, r.log
+    cmds = (r.incoming / "commands.log").read_text()
+    assert re.search(r"run capture_down1_run1 -- .* \[timeout 8 s\]", cmds), cmds
+    assert re.search(r"run score_stop_on_failure -- .* \[timeout 6 s\]", cmds), cmds
+    t_cap = _call_times(tmp_path, lambda c: any("run capture_down1_run1" in a for a in c))
+    t_score = _call_times(tmp_path, lambda c: any("run score_stop_on_failure" in a for a in c))
+    t_pack = _call_times(tmp_path, lambda c: c[2:4] == ["compute", "ssh"] and c[4] == GH
+                         and any("host_step.sh pack" in a for a in c))
+    assert t_cap and t_score and t_pack and t_cap[0] + 7 < t_score[0] and t_score[0] + 5 < t_pack[0], \
+        (t_cap, t_score, t_pack)
+    assert r.ssh(GH, "host_step.sh pack")[0] < r.guest_stops()[0]
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert set(rec["fetched"]) == {"sim", "score", "guest"} and rec["not_fetched"] == [], rec
+    assert rec["display_capture"]["run1"]["closed_by"] == "session end", rec["display_capture"]
+    assert "pre-stop phase's bound reached" not in r.log, r.log
+    assert_invariants(r)

@@ -73,9 +73,10 @@ the late subscriber's probe 60 s, the test publisher about 40 s, C5's wait 5 s, 
 networks at `DA_P10_1_ORT_TIMEOUT_S` 300 s each; part 3: the port probe 10 s, staging and start 180 s, the
 supervised wait 420 s, the alive hold 10 s, the stall hold 3 s, the stop about 90 s), plus a margin of about 20 %.
 With every step before it at its own bound (`sim_setup` 1200 s, the port test's call 60 s, `warmup` 900 s,
-`ready.json` 300 s), the step's time-out, its TERM wait (6 polls of 20 s) and the pre-stop phase (300 s) end within
-5280 s, before the cap's 5316 s of both hosts (EUR 3.50 at 1.887 + 0.483 EUR/h). `tests/test_p10_1_bounds.py` checks
-both from the scripts' defaults.
+`ready.json` 300 s), the step's time-out and its TERM wait (6 polls of 20 s) end within 4980 s, before the cap's
+5316 s of both hosts (EUR 3.50 at 1.887 + 0.483 EUR/h). Past that point the S-CORE side's stop and the fetches may
+run into the cap; the exit trap then holds each at its bound within p10-1's pre-stop budget of 1560 s ("The exit
+trap's pre-stop budget"). `tests/test_p10_1_bounds.py` checks both from the scripts' defaults.
 
 Each run of `p10-2` (`world_run` in the script): the chase recorder (runs only), the world side spawns and writes
 `ready.json`, the S-CORE side starts with the calibration file, the offer checks and the window open (runs only: the
@@ -241,9 +242,9 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
 - A failure after the S-CORE side started (a failed step, a wait that timed out, a signal, the cap) first runs the
   S-CORE side's stop (`ENTRY_SCORE_STOP`, step `score_stop_on_failure`), its only collector, then fetches. A signal or
   the cap fetches every host whose files were not fetched yet (120 s pack, 300 s copy at most), before its stop.
-  The trap's whole pre-stop phase (the running step's end, the S-CORE side's stop, the fetches) is bounded at
-  `PRESTOP_S` (300 s): a host it cannot fetch within it is stopped unfetched (`not_fetched`; its files stay on its
-  disk). A GPU host with nothing left to collect or fetch (no kit on it, or already fetched) stops first, at the
+  The trap's whole pre-stop phase (the running step's end, the open window's capture stop, the S-CORE side's stop,
+  the world side's end, the fetches) is bounded at `PRESTOP_S`, the kind's pre-stop budget (below): a host it cannot
+  fetch within it is stopped unfetched (`not_fetched`; its files stay on its disk). A GPU host with nothing left to collect or fetch (no kit on it, or already fetched) stops first, at the
   start of the trap. A fetch the signal interrupted is not tried again and is named in `not_fetched`.
   An S-CORE side's stop that exits 7 (`stop_score_side.sh`: stopped and collected, something had to be killed) is
   no failure: `session.log` says so, and `session.json` records every stop per run (`score_stops`: `step`, `rc`,
@@ -266,7 +267,7 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   substitution: a signal or the cap ends the session at once, not after a fetch's 20-minute copy.
 - A watchdog writes `cost.log` every 30 s (an upper bound: from each start call, at the hourly prices in
   `hosts.env`) and ends the session at the cap. Each VM also gets a power-off at the cap plus the trap's pre-stop bound
-  (5 min) plus 10 min, counted from its arming, should the
+  (the kind's pre-stop budget, below) plus 10 min, counted from its arming, should the
   lead host lose the session (`remote/safety_net.sh`): on the GPU hosts a transient system timer that runs
   `systemctl poweroff` (not `shutdown -h +N`, whose last 5 minutes lock out a login); on the guest host a timer that
   runs `GUEST_STOP_CMD` first and powers off only when no `crosvm` is left (lead answer B13.3). The arming lists its
@@ -438,6 +439,34 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
 ```
 
 Then compose the video from the fetched files (see `../recording/README.md`).
+
+### The exit trap's pre-stop budget
+
+On a signal or the cost cap, the exit trap runs these steps before any VM stops, each in a slot of its own bound, so a
+step that runs to its bound never takes another step's time. The pre-stop phase (`PRESTOP_S`) is the sum of the
+slots of the kind's hosts (`pre-stop budget:` in `session.log`):
+
+- the running step's end: its TERM's call (60 s), `STEP_TERM_POLLS` waits of `POLL_S` (6 of 20 s), the last poll
+  (60 s) and its tail (60 s): 300 s;
+- the open window's capture stop (guest kinds): `T_CAPTURE_END` (240 s), then its status poll (60 s): 300 s;
+- the S-CORE side's stop: `TRAP_SCORE_S`, 120 s;
+- the world side's end (simulator kinds): its release and TERM call (60 s), then 3 polls of 60 s and `POLL_S`: 300 s;
+- each host's fetch: `TRAP_PACK_S` (120 s) to pack and `TRAP_SCP_S` (300 s) to copy: 420 s per host.
+
+| Kind | Pre-stop budget | Its parts (step, capture, score, world, fetch) |
+|---|---|---|
+| p10-1 | 1560 s | 300 + 0 + 120 + 300 + 2 x 420 |
+| p10-3 | 1560 s | 300 + 300 + 120 + 0 + 2 x 420 |
+| p10-2 with the guest host | 2280 s | 300 + 300 + 120 + 300 + 3 x 420 |
+| p10-2 --without-guest-host | 1560 s | 300 + 0 + 120 + 300 + 2 x 420 |
+
+`tests/test_session_dryrun.py` checks these sums against the script's defaults and pins a dry run in which the
+capture's stop and the S-CORE side's stop both run to their bounds and the guest host is still fetched before the
+guests' stop. The cost watchdog still ends the session at the cap; each VM's safety net fires at the cap plus the
+kind's budget plus 10 min, counted from its arming, so it never cuts the phase. At its bounds the phase costs, past
+the cap, about EUR 1.03 in p10-1 (2.37 EUR/h), EUR 0.33 in p10-3 (0.754 EUR/h), EUR 1.67 in p10-2 (2.641 EUR/h)
+and EUR 1.03 in p10-2 without the guest host. One limit remains: a gcloud status read after a failed poll
+(`TRAP_GC_TO_S`, 30 s) can run past its slot's end; the safety net's 10 min margin holds it.
 
 ## Durations and costs
 

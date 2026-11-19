@@ -110,9 +110,10 @@ PREEMPT_CHECK_S=30; ROUND_PAUSE_S=45; START_DEADLINE_S=1800; RUNNING_WAIT_S=120;
 # before the start step's own SSH call, and 40 s are kept for the go's SSH call (IAP to the G4, GO_SSH_S at most)
 POLL_S=20; STEP_TERM_POLLS=6; GO_LIMIT_S=380; GO_SSH_S=35; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
 GUEST_NOSSH_S=180
-# the exit trap's pre-stop phase (the running step's end, the S-CORE side's stop, the fetches) is bounded as a whole
-# (S9); within it each fetch at most TRAP_PACK_S to pack and TRAP_SCP_S to copy
-PRESTOP_S=300; TRAP_PACK_S=120; TRAP_SCP_S=300
+# the exit trap's pre-stop phase is bounded as a whole (S9), and each step in it has its own slot (P1, below): each
+# fetch at most TRAP_PACK_S to pack and TRAP_SCP_S to copy, the S-CORE side's stop TRAP_SCORE_S. PRESTOP_S is derived
+# per kind from those bounds (a dry run's DA_T_PRESTOP_S caps the whole phase below that sum)
+PRESTOP_S=""; TRAP_PACK_S=120; TRAP_SCP_S=300; TRAP_SCORE_S=120
 TRAP_GC_TO_S=30   # each gcloud status read in the trap: on a gcloud outage the stop loop must not sit for hours (S10)
 T_P10_1=2400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=240; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
@@ -130,7 +131,7 @@ CARLA_PORTS="2000 2001 2002"   # p10-1's port test: CARLA's ports that carla-net
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
        T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT T_APP_RESTART STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
-       GUEST_NOSSH_S GO_SSH_S PRESTOP_S)
+       GUEST_NOSSH_S GO_SSH_S PRESTOP_S TRAP_PACK_S TRAP_SCP_S TRAP_SCORE_S)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -158,6 +159,20 @@ CAP_WAIT_S=$(( T_CAPTURE_END - 60 - 2 - 60 - CAP_P )); [ "$CAP_WAIT_S" -ge 1 ] |
 if [ "$KIND" = p10-3 ]; then CAP_MAX_S=$(( (60 + T_INJECT + CAP_P + 120) + 60 ))
 else CAP_MAX_S=$(( GO_SSH_S + (T_RUN + CAP_P + 60) + (60 + T_SCORE_START + CAP_P + 120) + 60 + (T_RELEASE + CAP_P + 60)
                    + (T_REC_END + CAP_P + 60) + 60 )); fi
+# the exit trap's pre-stop budget (P1; README "The exit trap's pre-stop budget"): every step the trap runs before a VM
+# stops gets a slot of its own bound, and the phase is the sum of the slots of this kind's hosts, so no step can use
+# another's time: the running step's end (step: its TERM's call 60 s, STEP_TERM_POLLS waits of POLL_S, the last poll
+# 60 s, its tail 60 s); the open window's capture stop (capture, guest kinds: T_CAPTURE_END, then its status poll
+# 60 s); the S-CORE side's stop (score: TRAP_SCORE_S); the world side's end (world, sim kinds: its release and TERM
+# call 60 s, 3 polls of 60 s and POLL_S); each host's fetch (fetch: TRAP_PACK_S + TRAP_SCP_S per host)
+PRE_STEP_S=$(( 60 + STEP_TERM_POLLS * CAP_P + 60 + 60 )); PRE_CAP_S=$(( T_CAPTURE_END + 60 )); PRE_SCORE_S=$TRAP_SCORE_S
+PRE_WORLD_S=$(( 60 + 3 * (60 + CAP_P) )); PRE_FETCH_S=$(( TRAP_PACK_S + TRAP_SCP_S ))
+PRE_SUM=$(( PRE_STEP_S + PRE_SCORE_S + ${#ROLES[@]} * PRE_FETCH_S )); PRE_PARTS="step $PRE_STEP_S"
+[[ " ${ROLES[*]} " == *" guest "* ]] && { PRE_SUM=$(( PRE_SUM + PRE_CAP_S )); PRE_PARTS="$PRE_PARTS, capture $PRE_CAP_S"; }
+PRE_PARTS="$PRE_PARTS, score $PRE_SCORE_S"
+[[ " ${ROLES[*]} " == *" sim "* ]] && { PRE_SUM=$(( PRE_SUM + PRE_WORLD_S )); PRE_PARTS="$PRE_PARTS, world $PRE_WORLD_S"; }
+PRE_PARTS="$PRE_PARTS, fetch $(( ${#ROLES[@]} * PRE_FETCH_S ))"
+[ -n "$PRESTOP_S" ] || PRESTOP_S=$PRE_SUM
 
 SID=${SID:-$(date -u +%Y%m%dT%H%M%SZ)}
 # the id goes unquoted into remote paths and commands (~/da-kit/<id>, mkdir, tar -C, the safety net's unit): letters,
@@ -186,7 +201,7 @@ FETCHED=""; FETCH_OK=""; FETCH_BAD=""
 GUEST_STEP_SENT=0   # 1 from the first step sent to the guest host on: from then on guests may run there (S1)
 SCORE_RUN=""; STOPS=""; STOP_KILLED_LAST=""   # the run of the S-CORE side up; each of its stops: run:step:rc (S7)
 TERMED_STEP=""; TERMED_NAME=""; TERMED_AFTER=""; TERMED_FAIL=""   # the step the trap's TERM cut (step_down)
-CUR_STEP=""; GUEST_STEP_RUNNING=""; FETCHING=""; PRE_END=""   # "<role> <step>" of the step rstep waits for; a guest step alive after its TERM
+CUR_STEP=""; GUEST_STEP_RUNNING=""; FETCHING=""; PRE_END=""; PHASE_END=""   # "<role> <step>" of the step rstep waits for; a guest step alive after its TERM
 WORLD_UP=""; STEP_RC=""; P10_1_RC=""; ALLOW_RC=""   # the detached world sides not seen ending (world_down); rstep's last rc
 # the window whose display capture is open (from window_open's capture start to window_close's end of it), the tries
 # of its stop at the session's end, and each capture's end: <w>:<end>:<rc>:<closed by>:<guest files kept 0|1> (Q1, Q2)
@@ -243,6 +258,9 @@ q() { printf ' %q' "$@"; }   # words quoted for the remote shell
 bnd() { [ -n "$PRE_END" ] || { echo "$1"; return; }; local l=$(( PRE_END - $(date +%s) )); [ "$l" -lt 1 ] && l=1
   [ "$l" -lt "$1" ] && echo "$l" || echo "$1"; }
 pre_left() { [ -z "$PRE_END" ] || [ "$(date +%s)" -lt "$PRE_END" ]; }
+# slot <s>: the next step of the pre-stop phase gets <s> seconds, never past the phase's end (P1): a step that runs
+# to its bound leaves every later step its own
+slot() { local e=$(( $(date +%s) + $1 )); [ "$e" -gt "$PHASE_END" ] && e=$PHASE_END; PRE_END=$e; }
 GSTOP=${GUEST_STOP_CMD//\$DA_SESSION_ID/$SID}
 # defined before the exit trap can run: a trap's fetch before the steps (the cap or a signal during the SSH and
 # upload section) expanded an unset HS under set -u, and that fetch ended silently
@@ -466,8 +484,7 @@ cleanup() {
   # the pre-stop phase, bounded as a whole (S9): after the cap every VM bills on while it runs, and the safety nets
   # fire at the cap plus this bound plus their margin. First the GPU hosts with nothing left to collect or fetch
   # (no kit there, or already fetched, no S-CORE side up, no step running) stop at once
-  PRE_END=$(( $(date +%s) + PRESTOP_S ))
-  log "pre-stop phase, $PRESTOP_S s at most: the running step's end, the S-CORE side's stop, the fetches"
+  log "pre-stop phase, $PRESTOP_S s at most ($PRE_PARTS): the running step's end, the open capture's stop, the S-CORE side's stop, the world side's end, the fetches"
   for r in "${gpu[@]}"; do
     case " $UPLOADED " in *" $r "*) case " $FETCHED " in *" $r "*) ;; *) continue ;; esac ;; esac
     [ "$r" = score ] && [ -n "$SCORE_UP" ] && continue
@@ -476,18 +493,22 @@ cleanup() {
     GC_TO=300 gc "$r" compute instances stop "$(var "$r" VM)" --zone "$(var "$r" ZONE)" --async --quiet 2>&1 | one >> "$LOG"
     early="$early $r"
   done
+  PHASE_END=$(( $(date +%s) + PRESTOP_S )); PRE_END=$PHASE_END
   # the step still running on its host (a signal or the cap during it): TERM to it there, and its end awaited, before
-  # the S-CORE side's stop and any stop; a guest launch never races the guests' stop (S2)
-  step_down
+  # the S-CORE side's stop and any stop; a guest launch never races the guests' stop (S2). Each step below runs in its
+  # own slot (P1)
+  slot "$PRE_STEP_S"; step_down
   # a window still open: its capture's stop before any fetch of the guest host (Q1)
-  pre_left && capture_down
+  slot "$PRE_CAP_S"; pre_left && capture_down
   # the S-CORE side's stop, its only collector, while the world may still tick (R8); then the fetch of every host
   # whose evidence was not fetched yet (a signal, the cap), before its stop (R13); all within the phase's bound
-  if pre_left; then T_SCORE_DOWN=$(bnd 120) score_down
+  slot "$PRE_SCORE_S"
+  if pre_left; then T_SCORE_DOWN=$(bnd "$TRAP_SCORE_S") score_down
   elif [ -n "$SCORE_UP" ]; then log "the pre-stop phase's bound reached: no stop of the S-CORE side by the session (its records stay incomplete on its disk)"; fi
-  pre_left && world_down
+  slot "$PRE_WORLD_S"; pre_left && world_down
   for r in $UPLOADED; do
     case " $FETCHED " in *" $r "*) continue ;; esac
+    slot "$PRE_FETCH_S"
     if ! pre_left; then
       log "the pre-stop phase's bound reached: $(var "$r" VM) not fetched (its files stay on its disk)"
       FETCHED="$FETCHED $r"; FETCH_BAD="$FETCH_BAD $r"; continue
@@ -495,7 +516,7 @@ cleanup() {
     log "fetching $(var "$r" VM) before its stop (pack at most $TRAP_PACK_S s, copy at most $TRAP_SCP_S s, within the pre-stop phase)"
     FETCH_PACK_TO=$TRAP_PACK_S FETCH_SCP_TO=$TRAP_SCP_S fetch "$r"
   done
-  PRE_END=""
+  PRE_END=""; PHASE_END=""
   # the other GPU hosts (they cost most), without waiting
   for r in "${gpu[@]}"; do
     case " $early " in *" $r "*) continue ;; esac
@@ -753,6 +774,7 @@ for _r in guest score sim; do
 done
 renv() { local n="RENV_$1"; printf '%s' "${!n}"; }
 [ -n "$REMOTE_ENV_SET" ] && log "per-session settings for the remote entries:$REMOTE_ENV_SET (values in session.json)"
+log "pre-stop budget: $PRESTOP_S s ($PRE_PARTS); safety net at the cap plus it plus $SAFETY_MARGIN_MIN min"
 [[ " ${ROLES[*]} " == *" guest "* ]] && log "step bounds: unit $T_UNIT s (UNIT_WAIT_S + 240), app_restart $T_APP_RESTART s (START_WAIT_S +" \
   "APP_SUBSCRIBE_WAIT_S + 300)"
 [[ " ${ROLES[*]} " == *" guest "* ]] && log "display capture caps: --max-s $CAP_MAX_S (the longest $KIND window that ends" \
