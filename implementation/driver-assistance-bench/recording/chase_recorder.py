@@ -14,9 +14,15 @@ INC-DRIVING-001's recorder v3 (outputs/slice10b/WP2/session10_scripts/l4_recorde
     arrival_unix_s), so that a cut can place each frame at the simulation time and at the real time of its tick;
   * SIGTERM and SIGINT end the recording cleanly (the file is finished).
 The camera stands for no sensor of the vehicle (the simulator server's doc in the phase 8 model). The recorder
-attaches to the first hero that appears after it starts and ends when the world leaves synchronous mode, when the hero
-or the camera is deleted, or at --max-s. Exit status 0 only if it attached and wrote frames (the lap rule needs a
-recorder that wrote frames).
+attaches to the first hero (role --role-name) that appears after it starts and ends when the world leaves synchronous
+mode, when the hero or the camera is deleted, when the simulator does not answer --poll-errors-max polls in a row, or
+at --max-s. Exit status 0 only if it attached and wrote frames (the lap rule needs a recorder that wrote frames).
+
+Deletion is judged on the world's ticks only (TickLiveness, from each tick's snapshot), never from get_actors() between
+ticks: in a synchronous world that is not ticking (the world side waits for the session's go, up to 380 s), a client's
+actor list is the state of the last tick, so the camera this recorder spawned in the pause is missing from it. An actor
+counts as deleted only when a tick after its first appearance lacks it (p10-2 session 20261119T174606Z, run 1: the old
+check ended the recording in the pause with 0 frames). A failed poll (a time-out during a long tick) is a transient.
 """
 from __future__ import annotations
 
@@ -68,7 +74,32 @@ def choose_encoder(requested: str, nvenc_ok) -> tuple[str, str | None]:
     return "libx264", "the NVENC test encode failed: libx264 on the CPU (it loads the simulator host's CPU)"
 
 
-def main() -> int:
+class TickLiveness:
+    """Whether the hero and the camera are still in the world, judged from the world's tick snapshots only.
+
+    The hero was found in an actor list, which is the state of a tick, so it has appeared already; the camera appears
+    in the first tick after its spawn. An actor is gone when a tick after its first appearance lacks it; the first
+    verdict stands. on_tick is the world's on_tick callback (any snapshot with .frame and .find(actor_id))."""
+
+    def __init__(self, ego_id: int, camera_id: int) -> None:
+        self.ego_id, self.camera_id = ego_id, camera_id
+        self.appeared = {ego_id: True, camera_id: False}
+        self.camera_first_frame = None
+        self.ticks = 0
+        self.gone = None
+
+    def on_tick(self, snapshot) -> None:
+        self.ticks += 1
+        for actor_id in (self.ego_id, self.camera_id):
+            if snapshot.find(actor_id) is not None:
+                if not self.appeared[actor_id] and actor_id == self.camera_id:
+                    self.camera_first_frame = snapshot.frame
+                self.appeared[actor_id] = True
+            elif self.appeared[actor_id] and self.gone is None:
+                self.gone = {"actor": actor_id, "frame": snapshot.frame}
+
+
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--out", required=True)
     ap.add_argument("--video", default="chase_view.mp4")
@@ -86,7 +117,13 @@ def main() -> int:
     ap.add_argument("--max-s", type=float, default=1800.0)
     ap.add_argument("--sim-wait-s", type=float, default=120.0)
     ap.add_argument("--ffmpeg-grace-s", type=float, default=20.0)
-    a = ap.parse_args()
+    ap.add_argument("--poll-errors-max", type=int, default=6,
+                    help="end after this many failed polls of the world's settings in a row (each up to 10 s)")
+    return ap
+
+
+def main() -> int:
+    a = build_parser().parse_args()
 
     import carla  # the simulator host's CARLA 1.0 wheel; imported here so that the helpers above test without it
 
@@ -100,7 +137,8 @@ def main() -> int:
     st = {"version": 4, "view": dict(VIEW_B, own_pitch_deg=round(own_pitch, 2), attachment="SpringArmGhost",
                                       width=a.width, height=a.height, fov=a.fov, sensor_tick=a.sensor_tick, fps=a.fps),
           "ego_id": None, "frames": 0, "first_frame": None, "last_frame": None, "gaps": [], "size_errors": 0,
-          "queued": 0, "dropped": 0, "written": 0, "write_errors": 0, "end": None}
+          "queued": 0, "dropped": 0, "written": 0, "write_errors": 0, "end": None, "liveness": "tick snapshots",
+          "poll_errors": 0}
 
     # 1. the simulator's world first: a restarted server listens before its map is loaded
     while True:
@@ -179,6 +217,8 @@ def main() -> int:
             st["dropped"] += 1   # the stream callback never blocks; the drop is counted
 
     cam = None
+    tick_id = None
+    live = None
     try:
         if ego is None:
             st["end"] = "stopped before a hero appeared" if stop.is_set() else "no new hero within --max-s"
@@ -192,25 +232,45 @@ def main() -> int:
                                  carla.Rotation(pitch=own_pitch))
             cam = world.spawn_actor(bp, tf, attach_to=ego, attachment_type=carla.AttachmentType.SpringArmGhost)
             st["camera_id"] = cam.id
+            live = TickLiveness(ego.id, cam.id)
+            tick_id = world.on_tick(live.on_tick)
             cam.listen(on_view)
             st["attach_after_s"] = round(time.time() - t_start, 1)
             seen_sync = False
+            errors_in_row = 0
             while time.time() - t_start < a.max_s:
                 if stop.wait(1.0):
                     st["end"] = "signal"
                     break
-                sync = world.get_settings().synchronous_mode
+                if live.gone is not None:
+                    st["end"] = "ego or camera deleted by another client"
+                    st["gone"] = live.gone
+                    break
+                try:
+                    sync = world.get_settings().synchronous_mode
+                except RuntimeError as exc:          # a time-out during a long tick: a transient
+                    st["poll_errors"] += 1
+                    st["last_poll_error"] = str(exc)
+                    errors_in_row += 1
+                    if errors_in_row >= a.poll_errors_max:
+                        st["end"] = "the simulator did not answer %d polls in a row" % errors_in_row
+                        break
+                    continue
+                errors_in_row = 0
                 seen_sync = seen_sync or sync
                 if seen_sync and not sync:
                     st["end"] = "world left synchronous mode (end of run)"
                     break
-                actors = world.get_actors()
-                if actors.find(ego.id) is None or actors.find(cam.id) is None:
-                    st["end"] = "ego or camera deleted by another client"
-                    break
             else:
                 st["end"] = "max-s"
     finally:
+        if live is not None:
+            st["ticks_seen"], st["camera_first_frame"] = live.ticks, live.camera_first_frame
+        if tick_id is not None:
+            try:
+                world.remove_on_tick(tick_id)
+            except RuntimeError:
+                pass
         if cam is not None:
             try:
                 cam.stop()
