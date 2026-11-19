@@ -450,11 +450,7 @@ Then compose the video from the fetched files (see `../recording/README.md`).
 
 ### The exit trap's pre-stop budget
 
-On a signal or the cost cap, the exit trap runs these steps before any VM stops, each in a slot of its own bound. A
-slot never reaches into the time the later slots reserve (the sum of their bounds), and every call inside a slot (the
-status reads after a failed poll and the sleeps between polls too) is cut to what the slot has left, so a step that
-runs to its bound never takes a fetch's time: an earlier step's overrun of a second or two shortens the next earlier
-step, never a fetch. The pre-stop phase (`PRESTOP_S`) is the sum of the
+On a signal or the cost cap, the exit trap runs these steps before any VM stops, each in a slot of its own bound. The pre-stop phase (`PRESTOP_S`) is the sum of the
 slots of the kind's hosts (`pre-stop budget:` in `session.log`):
 
 - the running step's end: its TERM's call (60 s), `STEP_TERM_POLLS` waits of `POLL_S` (6 of 20 s), the last poll
@@ -473,14 +469,18 @@ slots of the kind's hosts (`pre-stop budget:` in `session.log`):
 
 `tests/test_session_dryrun.py` checks these sums against the script's defaults and pins a dry run in which the
 capture's stop and the S-CORE side's stop both run to their bounds and the guest host is still fetched before the
-guests' stop. `tests/test_prestop_slots.py` runs the trap's pre-stop section with every SSH, scp and status call
-hanging to its bound (1/20 scale) and pins that each host's fetch keeps its slot. The cost watchdog still ends the
-session at the cap; each VM's safety net fires at the cap plus the kind's budget plus 10 min, counted from its
+guests' stop. The cost watchdog still ends the session at the cap; each VM's safety net fires at the cap plus the kind's budget plus 10 min, counted from its
 arming, so it never cuts the phase. At its bounds the phase costs, past the cap, about EUR 1.03 in p10-1
 (2.37 EUR/h), EUR 0.33 in p10-3 (0.754 EUR/h), EUR 1.67 in p10-2 (2.641 EUR/h) and EUR 1.03 in p10-2 without the
 guest host. That is the phase alone. The worst case past the cap adds the watchdog's 30 s, the guests' stop (up to
 2 x (300 + 60) s on the guest host, 0.271 EUR/h) and the GPU hosts' stop until TERMINATED (about 1 to 2 min): about
 EUR 1.1 in p10-1, EUR 0.4 in p10-3, EUR 1.8 in p10-2 and EUR 1.1 in p10-2 without the guest host.
+
+One limit remains (R5 of the closure check of 7befc3c1, open): a slot can overrun, and the overrun comes out of the
+last fetch, the guest host's. A failed poll's status read (`TRAP_GC_TO_S`, 30 s) and a sleep after the last poll run
+past their slot's end. With every call hanging to its bound, the closure check's scaled harness cut the guest host's
+fetch by about a quarter (110 s of 420 at full scale); with healthy SSH the overrun is only the last sleep (about
+22 s). The phase still ends at its bound, and a host whose slot is gone is recorded as not fetched.
 
 ## Durations and costs
 
