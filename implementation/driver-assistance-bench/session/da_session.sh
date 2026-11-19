@@ -250,10 +250,44 @@ cleanup() {
     "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" compute instances list \
       --format='value(name,zone.basename(),status)' 2>/dev/null | sed "s/^/VM after session [$p]: /" >> "$LOG"
   done
+  [ "$KIND" = p10-1 ] && [ -n "$UPLOADED" ] && p10_1_report
   write_record "$rc"
   log "SESSION_END $SID rc=$rc"
   [ -n "$LEFT_RUNNING" ] && log "VMS LEFT RUNNING, THEY BILL: STOP THEM BY HAND NOW:$LEFT_RUNNING (exit 11 in place of $RC_STEPS)"
   exit "$rc"
+}
+p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE host alone: which of the 8 did not run
+  # or failed, from the fetched p10_1_verdicts.json, in one line of session.log and in session.json (p10_1)
+  local f=$IN/score/out/p10_1/p10_1_verdicts.json line
+  line=$(python3 - "$f" "$IN/p10_1_summary.json" <<'PY'
+import json, sys
+ids = ["C%d" % i for i in range(1, 9)]
+try:
+    rows = json.load(open(sys.argv[1], encoding="utf-8"))["checks"]
+    found = True
+except (OSError, ValueError, KeyError, TypeError):
+    rows, found = [], False
+by = {}
+for r in rows:
+    by.setdefault(str(r.get("check", "")).split("_", 1)[0], r)
+def name(k):
+    return by[k]["check"] if k in by else k + " (no verdict)"
+not_run = [name(k) for k in ids if k not in by or by[k].get("verdict") == "NOT RUN"]
+failed = [name(k) for k in ids if k in by and by[k].get("verdict") == "FAIL"]
+passed = [name(k) for k in ids if k in by and by[k].get("verdict") == "PASS"]
+line = "P10-1: %d of 8 checks NOT RUN" % len(not_run) + (": " + ", ".join(not_run) if not_run else "")
+if failed:
+    line += "; FAIL: " + ", ".join(failed)
+if not found:
+    line += "; no p10_1_verdicts.json fetched"
+ok = not not_run and not failed and found
+line += "; P10-1 passed" if ok else "; P10-1 NOT passed"
+json.dump({"line": line, "verdicts_file_fetched": found, "not_run": not_run, "fail": failed, "pass": passed,
+           "passed": ok}, open(sys.argv[2], "w"), indent=1)
+print(line)
+PY
+)
+  log "$line"
 }
 write_record() {
   KIND="$KIND" SID="$SID" RC="$1" CAP="$CAP" IN="$IN" STARTED="${STARTED[*]}" STEP_FAIL="$STEP_FAIL" \
@@ -265,6 +299,7 @@ write_record() {
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${!n}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
+p10_1 = os.path.join(e["IN"], "p10_1_summary.json")
 ips = dict(x.split("=", 1) for x in e["IPS"].split() if "=" in x)
 starts = [l.split() for l in open(os.path.join(e["IN"], "starts.tsv")) if l.strip()]
 renv = {}
@@ -283,6 +318,7 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "left_running": e["LEFT"].split(), "exit_code_without_left_running": int(e["RC_STEPS"]),
            "remote_env": renv, "fetched": e["FETCH_OK"].split(), "not_fetched": e["FETCH_BAD"].split(),
            "ended_by": e["ENDED_BY"] or None,
+           "p10_1": json.load(open(p10_1)) if os.path.exists(p10_1) else None,
            "app_record_receipts": {w: (int(n) if n.isdigit() else None)
                                    for w, n in (x.split("=", 1) for x in e["RECEIPTS"].split() if "=" in x)}},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)

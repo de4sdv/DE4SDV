@@ -18,6 +18,7 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_NO_STOP       a VM name that stays RUNNING after a stop
   FAKE_SLOW_GUEST_STOP  seconds: the guests' stop (guest_stop.sh, not the safety net's arming) takes that long
   FAKE_LOST_AFTER    "vm:text"  the VM is reclaimed (TERMINATED) right after the first ssh whose command has text
+  FAKE_PACK_ADD      "arcname=local file,..."  more files in every packed out.tgz (a fetched verdicts file, say)
   FAKE_ARM_FAIL      a VM name whose safety net's arming fails
   FAKE_SLOW_FETCH    seconds: the scp of a host's out.tgz takes that long
   FAKE_FETCH_FAIL    a VM name whose out.tgz scp fails
@@ -250,7 +251,11 @@ if words[:2] == ["compute", "ssh"]:
                 sid = "19700101T000000Z"
             buf = io.BytesIO()
             with tarfile.open(fileobj=buf, mode="w:gz") as t:
-                for name, data in (("out/session_id", (sid + "\n").encode()), ("out/FAKE.txt", b"fake\n")):
+                files = [("out/session_id", (sid + "\n").encode()), ("out/FAKE.txt", b"fake\n")]
+                for spec in filter(None, os.environ.get("FAKE_PACK_ADD", "").split(",")):
+                    arc, local = spec.split("=", 1)
+                    files.append((arc, open(local, "rb").read()))
+                for name, data in files:
                     ti = tarfile.TarInfo(name)
                     ti.size = len(data)
                     t.addfile(ti, io.BytesIO(data))

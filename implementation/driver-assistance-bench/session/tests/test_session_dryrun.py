@@ -854,3 +854,47 @@ def test_a_host_lost_mid_run_ends_the_session_at_once_and_is_not_fetched(tmp_pat
     assert rec["ended_by"].startswith("host lost: sim") and "sim" in rec["not_fetched"]
     assert r.ssh(L4, "run score_stop_on_failure")             # the S-CORE side still collected
     assert_invariants(r)
+
+
+# ------------------------------------------------------------- the p10-1 session's report (R9, the reporting half)
+
+P10_1_CHECKS = ["C1_launch_manager_config_and_start_order", "C2_alive_notifications", "C3_stalled_candidate_fallback",
+                "C4_asil_b_command_path", "C5_gatewayd_receives_from_asil_b_process", "C6_cuda_pass_time",
+                "C7_candidate_record_late_subscriber", "C8_candidate_on_a_replayed_clip"]
+
+
+def _verdicts(tmp: Path, verdicts: dict[str, str]) -> str:
+    """A p10_1_verdicts.json in p10_1_check.sh's form ({"checks": [{verdict, check, detail}]})."""
+    f = tmp / "p10_1_verdicts.json"
+    f.write_text(json.dumps({"checks": [{"verdict": v, "check": c, "detail": "d"} for c, v in verdicts.items()]}))
+    return f"out/p10_1/p10_1_verdicts.json={f}"
+
+
+def test_a_p10_1_session_names_its_not_run_checks_and_is_not_reported_passed(tmp_path: Path) -> None:
+    # a p10-1 session runs only the checks that need the S-CORE host alone: C2-C4 need a ticking CARLA world, C5
+    # GATEWAYD_RX_REGEX, C8 a replayer; the record must never read as P10-1 passed
+    (tmp_path / "v").mkdir()
+    v = {c: "PASS" for c in P10_1_CHECKS}
+    v.update({c: "NOT RUN" for c in P10_1_CHECKS if c[:2] in ("C2", "C3", "C4", "C5", "C8")})
+    v["C6_cuda_pass_time"] = "FAIL"
+    r = run(tmp_path, "p10-1", FAKE_PACK_ADD=_verdicts(tmp_path / "v", v))
+    line = ("P10-1: 5 of 8 checks NOT RUN: C2_alive_notifications, C3_stalled_candidate_fallback, "
+            "C4_asil_b_command_path, C5_gatewayd_receives_from_asil_b_process, C8_candidate_on_a_replayed_clip; "
+            "FAIL: C6_cuda_pass_time; P10-1 NOT passed")
+    assert line in r.log, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())["p10_1"]
+    assert rec["line"] == line and rec["passed"] is False and rec["fail"] == ["C6_cuda_pass_time"]
+    assert [c[:2] for c in rec["not_run"]] == ["C2", "C3", "C4", "C5", "C8"]
+
+
+def test_a_p10_1_session_with_every_check_passed_or_no_verdicts(tmp_path: Path) -> None:
+    (tmp_path / "v").mkdir()
+    r = run(tmp_path, "p10-1", FAKE_PACK_ADD=_verdicts(tmp_path / "v", {c: "PASS" for c in P10_1_CHECKS}))
+    rec = json.loads((r.incoming / "session.json").read_text())["p10_1"]
+    assert rec["passed"] is True and rec["line"] == "P10-1: 0 of 8 checks NOT RUN; P10-1 passed"
+    r2 = run(tmp_path / "b", "p10-1")                        # no verdicts file in the fetched folder
+    rec2 = json.loads((r2.incoming / "session.json").read_text())["p10_1"]
+    assert rec2["passed"] is False and rec2["verdicts_file_fetched"] is False
+    assert "P10-1: 8 of 8 checks NOT RUN" in r2.log and "P10-1 NOT passed" in r2.log
+    r3 = run(tmp_path / "c", "p10-3", "--owner-ok-guest-host")
+    assert json.loads((r3.incoming / "session.json").read_text())["p10_1"] is None
