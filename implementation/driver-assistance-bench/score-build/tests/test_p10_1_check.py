@@ -75,7 +75,8 @@ def setup(tmp_path: Path, binaries: dict):
     s["env"].update({"DA_P10_1_LATE_WAIT_S": "0.5", "DA_P10_1_CUDA_RUNS": "5", "DA_P10_1_ALIVE_HOLD_S": "1",
                      "DA_P10_1_STALL_HOLD_S": "2", "DA_P10_1_SUPERVISED_WAIT_S": "10", "DA_INJECT_LEAD_IN_S": "0.2",
                      "DA_INJECT_TAIL_S": "0.1", "DA_TEST_SINK_FILE": str(tmp_path / "sent.hex")})
-    for key in ("DA_P10_1_CARLA_HOST", "GATEWAYD_RX_REGEX", "DA_STUB_GATEWAYD_LINE", "FAKE_ORT_MS"):
+    for key in ("DA_P10_1_CARLA_HOST", "GATEWAYD_RX_REGEX", "DA_STUB_GATEWAYD_LINE", "FAKE_ORT_MS",
+                "DA_CAMERA_CALIBRATION_DIR"):
         s["env"].pop(key, None)
     yield s
     subprocess.run(["bash", str(BENCH / "score-path" / "scripts" / "stop_score_side.sh"), str(tmp_path / "cleanup")],
@@ -105,6 +106,10 @@ def test_without_a_simulator(setup: dict, tmp_path: Path) -> None:
     assert v["C8"][0] == "NOT RUN" and "clip replayer" in v["C8"][1]
     assert len((tmp_path / "sent.hex").read_text().split()) == 3  # the 3 sends of C5 went out
     assert "P10-1: 3 PASS, 0 FAIL, 5 NOT RUN" in stdout
+    # p10-1 is no judged run: without the session's calibration, upstream's stands in, named as such
+    named = json.loads((tmp_path / "out" / "full" / "camera_calibration.json").read_text())
+    assert named["source"] == "DA_CAMERA_CALIBRATION_DIR" and named["dir"].endswith("/out/p10_1_calibration")
+    assert "stand-in" in (tmp_path / "out" / "p10_1_calibration" / "SOURCE.txt").read_text()
     # the evidence of both starts is collected
     for part in ("path", "full"):
         assert (tmp_path / "out" / part / "score_side" / "run" / "score" / "candidate_record.json").is_file()
@@ -112,13 +117,15 @@ def test_without_a_simulator(setup: dict, tmp_path: Path) -> None:
 
 def test_with_a_ticking_world_every_check_runs(setup: dict, tmp_path: Path) -> None:
     rc, v, stdout = run_check(setup, tmp_path / "out", DA_P10_1_CARLA_HOST="127.0.0.1", DA_P10_1_SKIP_PORT_CHECK="1",
-                              FAKE_LM_SUPERVISE="1", GATEWAYD_RX_REGEX="fake gatewayd forwarded",
+                              FAKE_LM_SUPERVISE="1", DA_CAMERA_CALIBRATION_DIR=str(setup["calibration"]), GATEWAYD_RX_REGEX="fake gatewayd forwarded",
                               DA_STUB_GATEWAYD_LINE="fake gatewayd forwarded 0x4df1")
     assert rc == 0, stdout
     for check in ("C1", "C2", "C3", "C4", "C5", "C6", "C7"):
         assert v[check][0] == "PASS", (check, v[check])
     assert v["C8"][0] == "NOT RUN"
     assert "the candidate sent 2 commands, the adapter accepted 1" in v["C4"][1]
+    named = json.loads((tmp_path / "out" / "full" / "camera_calibration.json").read_text())
+    assert named["dir"] == str(setup["calibration"].resolve())  # the session's calibration when it is given
     events = (tmp_path / "out" / "full" / "score_side" / "supervision_events.txt").read_text()
     assert "EXPIRED" in events and "fallback_run_target" in events
 

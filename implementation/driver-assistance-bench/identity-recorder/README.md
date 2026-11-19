@@ -24,7 +24,9 @@ the Launch Manager starts first (MAP-DRIVING-DA-CANDIDATE-RECORD in
    - the launch settings of every component, with the component's `deployment_config` over the defaults;
    - `vision_pilot.conf`, `H.yaml` and `homography_C_matrix.yaml` by upstream's own lookup at the pin. That is
      `config/<name>` in the candidate's working directory, else `/usr/share/visionpilot/config/<name>`
-     (`VisionPilot/modules/common/src/utils.cpp:3-12`);
+     (`VisionPilot/modules/common/src/utils.cpp:3-12`). The last two are the session's camera calibration
+     (`DA_CAMERA_CALIBRATION_DIR`), which the start stages and names in `<out>/camera_calibration.json`
+     (`../score-path/scripts/README.md`);
    - the three networks `autodrive`, `autosteer` and `autospeed` `_<model.precision>.onnx`
      (`modules/models/src/inference.cpp:72-73,102-104`);
    - the interface configuration (`DE4SDV_SCORE_INTERFACE_CONFIG`) and the candidate's mw::com manifest that its

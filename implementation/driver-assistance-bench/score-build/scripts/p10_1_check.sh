@@ -28,11 +28,13 @@
 #      published (candidate_record_probe), and its digest is the file's
 #   C8 candidate_on_a_replayed_clip           NOT RUN: the S-CORE interface module has no clip replayer
 #
+# The full start needs DA_CAMERA_CALIBRATION_DIR; without it, upstream's calibration from the bundle stands in, copied
+# into <out>/p10_1_calibration and named there (p10-1 judges nothing on the geometry).
 # C2 to C4 need the candidate's first completed pass, so images: a CARLA 1.0 server at DA_P10_1_CARLA_HOST with a
 # world that ticks (the world side's pacer, started by the caller). Without it they are NOT RUN. C1, C5 to C7 need no
 # simulator: C1 starts the full configuration against a CARLA host nobody serves and stops it after the start order.
 #
-# Settings: DA_P10_1_CARLA_HOST (none), GATEWAYD_RX_REGEX (unset), DA_P10_1_LATE_WAIT_S (3), DA_P10_1_CUDA_RUNS
+# Settings: DA_CAMERA_CALIBRATION_DIR (unset), DA_P10_1_CARLA_HOST (none), GATEWAYD_RX_REGEX (unset), DA_P10_1_LATE_WAIT_S (3), DA_P10_1_CUDA_RUNS
 # (20), DA_P10_1_ALIVE_HOLD_S (10), DA_P10_1_STALL_HOLD_S (3), DA_P10_1_SUPERVISED_WAIT_S (420), and those of
 # ../../score-path/scripts/lib_score_side.sh.
 set -uo pipefail
@@ -187,6 +189,19 @@ if [ "$carla" != none ]; then
   fi
 fi
 [ "$have_world" = 1 ] || carla=127.0.0.1   # nobody serves it: enough for the start order
+# Mode full needs a camera calibration (start_score_side.sh). p10-1 is no judged run: without the session's
+# DA_CAMERA_CALIBRATION_DIR, upstream's calibration from the bundle stands in, copied into <out> and named as such.
+if [ -z "${DA_CAMERA_CALIBRATION_DIR:-}" ]; then
+  export DA_CAMERA_CALIBRATION_DIR=$OUT/p10_1_calibration
+  mkdir -p "$DA_CAMERA_CALIBRATION_DIR"
+  if ! cp "$DA_B2_BUNDLE/config/visionpilot/H.yaml" "$DA_B2_BUNDLE/config/visionpilot/homography_C_matrix.yaml" \
+      "$DA_CAMERA_CALIBRATION_DIR/"; then
+    ss_log "the bundle lacks upstream's calibration in $DA_B2_BUNDLE/config/visionpilot: the full start refuses"
+  fi
+  echo "p10-1 stand-in: upstream's calibration from $DA_B2_BUNDLE/config/visionpilot, not the CARLA camera's" \
+    > "$DA_CAMERA_CALIBRATION_DIR/SOURCE.txt"
+  ss_log "no DA_CAMERA_CALIBRATION_DIR: upstream's calibration stands in for the full start (no judged run)"
+fi
 not_run_candidate() {
   local why="needs the candidate's first pass: a CARLA 1.0 server with a ticking world at DA_P10_1_CARLA_HOST, or a clip replayer (none in score-interface)"
   verdict NOT_RUN C2_alive_notifications "$why"

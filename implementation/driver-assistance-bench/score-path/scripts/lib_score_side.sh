@@ -42,6 +42,32 @@ ss_start_s() {
   awk -v t="$ticks" -v h="$hz" 'BEGIN { printf "%.3f\n", t / h }'
 }
 
+# The program a process runs, as ss_pids_of reads it: the first word of its command line, or the second after an
+# interpreter (the stub components and the fake Launch Manager of the dry-run tests). Fails without a command line.
+ss_program_of() {
+  local -a argv=()
+  [ -r "/proc/${1:-none}/cmdline" ] || return 1
+  mapfile -d '' -t argv < "/proc/$1/cmdline" 2>/dev/null
+  [ "${#argv[@]}" -gt 0 ] || return 1
+  if [[ ${argv[0]} =~ (^|/)(ba)?sh$|(^|/)python3?$ ]]; then echo "${argv[1]:-}"; else echo "${argv[0]}"; fi
+}
+
+# Prints the pid of a Launch Manager that really runs, and succeeds, else fails: the state's pid when it is alive
+# and the program it runs is the state's LM_BIN (a pid reused by another process does not count, even one whose
+# later arguments name LM_BIN), or any process that runs $DA_STAGE/bin/launch_manager.
+ss_lm_running() {
+  local pid bin program
+  pid=$(ss_state LM_PID) bin=$(ss_state LM_BIN)
+  if [ -n "$pid" ] && ss_alive "$pid" && [ -n "$bin" ] && program=$(ss_program_of "$pid") &&
+       [ "$program" = "$bin" ]; then
+    echo "$pid"
+    return 0
+  fi
+  pid=$(ss_pids_of launch_manager | head -1)
+  [ -n "$pid" ] && { echo "$pid"; return 0; }
+  return 1
+}
+
 # A value of the state file.
 ss_state() { sed -n "s/^$1=//p" "$SCORE_SIDE_STATE" 2>/dev/null | tail -1; }
 

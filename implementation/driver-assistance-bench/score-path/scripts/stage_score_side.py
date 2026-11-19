@@ -22,6 +22,13 @@ VisionPilotSCOREApplication): source.mode = score, engine.provider = cuda, model
 visualization_on = false, rrd_on = true; speed_limit is upstream's unless --speed-limit is given (set per setting
 by the world side). Every other line stays as upstream has it (L = 2.860 included, the lead's answer B7 item 4).
 
+The camera calibration (H.yaml and homography_C_matrix.yaml) comes from --calibration-dir, which
+start_score_side.sh fills from DA_CAMERA_CALIBRATION_DIR, the session's calibration of the CARLA camera. Mode full
+refuses without it and never takes the bundle's files: those are upstream's calibration of another camera, and a
+judged run on them would use the wrong geometry. Only mode path, which runs no candidate, falls back to the bundle's
+files when no directory is given. Which calibration was staged (its source, and the sha256 of both files at the
+source and in the stage) goes to <stage>/state/camera_calibration.json; the identity record hashes the staged files.
+
 It prints a JSON summary (the files staged and their sha256) and writes it to <stage>/state/staging.json.
 Exit status: 0 staged; 2 usage; 3 a required input is missing.
 """
@@ -109,6 +116,37 @@ def override_conf(text: str, overrides: dict[str, str]) -> str:
     return "\n".join(lines) + "\n"
 
 
+CALIBRATION_FILES = ("H.yaml", "homography_C_matrix.yaml")
+
+
+def stage_calibration(args: argparse.Namespace, root: Path, put) -> dict:
+    """Stages the camera calibration into the candidate's config/ and records which one it was."""
+    given = args.calibration_dir
+    if given is not None:
+        missing = [n for n in CALIBRATION_FILES if not (given / n).is_file()]
+        if missing:
+            raise Missing(f"camera calibration: DA_CAMERA_CALIBRATION_DIR {given} lacks {' and '.join(missing)}")
+        source, kind = given, "DA_CAMERA_CALIBRATION_DIR"
+    elif args.mode == "full":
+        raise Missing("camera calibration: mode full needs DA_CAMERA_CALIBRATION_DIR (--calibration-dir) with "
+                      "H.yaml and homography_C_matrix.yaml; it never falls back to the bundle's upstream files")
+    else:
+        source, kind = args.bundle / "config" / "visionpilot", "bundle fallback (mode path, no candidate runs)"
+        missing = [n for n in CALIBRATION_FILES if not (source / n).is_file()]
+        if missing:
+            raise Missing(f"camera calibration: no DA_CAMERA_CALIBRATION_DIR, and the bundle lacks "
+                          f"{' and '.join(missing)}")
+    files = {}
+    for name in CALIBRATION_FILES:
+        staged = root / "vision_pilot" / "config" / name
+        put(source / name, staged)
+        files[name] = {"source_path": str((source / name).resolve()), "source_sha256": sha256(source / name),
+                       "staged_path": str(staged), "staged_sha256": sha256(staged)}
+    record = {"mode": args.mode, "source": kind, "dir": str(source.resolve()), "files": files}
+    (root / "state" / "camera_calibration.json").write_text(json.dumps(record, indent=1) + "\n")
+    return record
+
+
 def stage(args: argparse.Namespace) -> dict:
     bundle, root, bench = args.bundle, args.stage, args.bench
     if root.name != "de4sdv-da-bench" and not args.allow_any_stage:
@@ -177,17 +215,7 @@ def stage(args: argparse.Namespace) -> dict:
     conf = root / "vision_pilot" / "config" / "vision_pilot.conf"
     conf.write_text(override_conf(upstream_conf.read_text(encoding="utf-8"), overrides))
     staged[str(conf)] = sha256(conf)
-    calibration = None
-    for candidate in [args.calibration_dir, bundle / "config" / "visionpilot"]:
-        if candidate is not None and (candidate / "H.yaml").is_file() and \
-                (candidate / "homography_C_matrix.yaml").is_file():
-            calibration = candidate
-            break
-    if calibration is None:
-        raise Missing("calibration: no directory with both H.yaml and homography_C_matrix.yaml "
-                      "(give --calibration-dir or DA_CALIBRATION_DIR)")
-    for name in ("H.yaml", "homography_C_matrix.yaml"):
-        put(calibration / name, root / "vision_pilot" / "config" / name)
+    calibration_record = stage_calibration(args, root, put)
     weights = sorted((bundle / "share" / "visionpilot" / "modules" / "models" / "weights").glob("*.onnx"))
     if not weights:
         raise Missing("no network (*.onnx) in the bundle")
@@ -210,7 +238,7 @@ def stage(args: argparse.Namespace) -> dict:
         raise Missing(f"upstream revision: '{revision}' is not 40 lowercase hex digits")
     (root / "facts" / "upstream_revision.txt").write_text(revision + "\n")
     summary = {"stage": str(root), "mode": args.mode, "carla_host": args.carla_host, "bundle": str(bundle),
-               "calibration_dir": str(calibration), "upstream_revision": revision,
+               "camera_calibration": calibration_record, "upstream_revision": revision,
                "serialized_launch_config": (root / "etc" / "launch_manager_config.bin").is_file(),
                "files": dict(sorted(staged.items()))}
     (root / "state" / "staging.json").write_text(json.dumps(summary, indent=1) + "\n")
@@ -224,7 +252,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--bench", type=Path, default=BENCH)
     parser.add_argument("--mode", choices=MODES, required=True)
     parser.add_argument("--carla-host", required=True, help="the simulator host, or none (mode path)")
-    parser.add_argument("--calibration-dir", type=Path)
+    parser.add_argument("--calibration-dir", type=Path,
+                        help="the camera calibration (DA_CAMERA_CALIBRATION_DIR); required in mode full")
     parser.add_argument("--speed-limit")
     parser.add_argument("--upstream-revision", required=True)
     parser.add_argument("--require-serialized", action="store_true",

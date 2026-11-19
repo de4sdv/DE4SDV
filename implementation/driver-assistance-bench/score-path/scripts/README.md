@@ -21,6 +21,40 @@ collect what it leaves behind.
 | `derive_path_only_config.py` | (helper) | derives `../config/launch_manager_config_path_only.json` from the Launch Manager lane's file. `supervised_path` loses `vision_pilot` and `actuation_adapter`, and everything else stays. `--check` fails when the committed file is stale |
 | `lib_score_side.sh` | (sourced) | the settings (`DA_STAGE`, `DA_B2_BUNDLE`, `DA_SUDO`, `DA_PYTHON`), the process lookup by staged path, the state file and the clock record |
 
+## The camera calibration
+
+The session gives the calibration of the CARLA camera as `DA_CAMERA_CALIBRATION_DIR` (a directory with `H.yaml` and
+`homography_C_matrix.yaml`). Every p10-2 run passes it: `env DA_CAMERA_CALIBRATION_DIR=<dir> bash
+start_score_side.sh <out> <carla_host>`. The start passes it to the staging helper as `--calibration-dir`. That is
+the only name.
+
+- Mode full refuses to start without it (exit 3, before the stage is touched). It never takes the bundle's
+  `config/visionpilot/` files, which are upstream's calibration of another camera: a judged run on them would use the
+  wrong geometry. A directory that lacks one of the two files is refused in both modes.
+- Mode path runs no candidate. There, and only when no directory is given, the bundle's files stand in, because
+  the identity recorder hashes the staged files.
+- Each start writes `<out>/camera_calibration.json`: the mode, the source (`DA_CAMERA_CALIBRATION_DIR` or the
+  mode-path fallback), the directory, and for each file its source path, the source's sha256, the staged path and
+  the staged sha256. The candidate record hashes the staged files, so the record and this file agree.
+- p10-1 (`../../score-build/scripts/p10_1_check.sh`) is no judged run. Without the session's directory, it copies
+  upstream's files into `<out>/p10_1_calibration/` with a `SOURCE.txt` that names them as a stand-in, and starts with
+  that directory.
+
+## Repeated starts and stops
+
+One p10-2 starts and stops the S-CORE side three times (calib_steer, run1, run2), each with its own `<out>`, while the
+world keeps ticking.
+
+- The start refuses with exit 4 only while a Launch Manager really runs: the state's pid is alive and its command
+  line is the state's `LM_BIN`, or a process runs `$DA_STAGE/bin/launch_manager`. A stale pid that another process
+  reused counts as nothing, and the stop never signals such a process either.
+- The stop marks the stage `state/collected` only after a complete collection. A start clears the stage only with
+  that mark. Without it (a stop that never ran or failed), the start first collects the stage into
+  `<out>/previous_stage/`, which also ends staged processes left without a Launch Manager. If that collection
+  fails, the start refuses (exit 3) and leaves the stage as it is.
+- The start never waits for a camera image or for the candidate's report. The world holds its first tick until the
+  session's go file, which the session writes after the start returns.
+
 ## Mode path
 
 The p10-3 test publisher (`../../ivi-warning/injector/`) offers the candidate's warning-request instance, so the

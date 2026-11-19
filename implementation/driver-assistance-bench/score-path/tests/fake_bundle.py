@@ -80,14 +80,19 @@ def make_bundle(root: Path, record_driver: Path, extra_bins: dict[str, str] | No
     (ldconf / "de4sdv-cuda-12.8.1.conf").write_text(f"# synthetic\n{gpu}\n")
     (gpu / "libcudart.so.12").write_bytes(b"synthetic cudart")
     (gpu / "libcudnn.so.9").write_bytes(b"synthetic cudnn")
+    # the session's camera calibration of the CARLA camera (world-side/camera_calibration.py), synthetic here
+    calibration = root / "camera_calibration"
+    calibration.mkdir(exist_ok=True)
+    (calibration / "H.yaml").write_text("H: synthetic session calibration\n")
+    (calibration / "homography_C_matrix.yaml").write_text("C: synthetic session calibration\n")
     stage = root / "de4sdv-da-bench"
     env = {**os.environ, "DA_STAGE": str(stage), "DA_B2_BUNDLE": str(bundle), "DA_SUDO": "", "DA_TEST_SERVE": "1",
            "DA_TEST_LDCONFIG_DIR": str(ldconf), "DA_TEST_SYSTEM_ROOT": str(root / "nosystem"),
-           "DA_START_TIMEOUT_S": "30", "DA_STOP_TIMEOUT_S": "15"}
-    for key in ("FAKE_LM_IGNORE_TERM", "FAKE_LM_EXIT_AFTER_S", "FAKE_LM_SUPERVISE", "DA_CALIBRATION_DIR",
+           "DA_START_TIMEOUT_S": "30", "DA_STOP_TIMEOUT_S": "15", "DA_CAMERA_CALIBRATION_DIR": str(calibration)}
+    for key in ("FAKE_LM_IGNORE_TERM", "FAKE_LM_EXIT_AFTER_S", "FAKE_LM_SUPERVISE",
                 "DA_SPEED_LIMIT"):
         env.pop(key, None)
-    return {"bundle": bundle, "stage": stage, "env": env, "ldconf": ldconf, "root": root}
+    return {"bundle": bundle, "stage": stage, "env": env, "ldconf": ldconf, "root": root, "calibration": calibration}
 
 
 def staged_processes(stage: Path) -> list[str]:

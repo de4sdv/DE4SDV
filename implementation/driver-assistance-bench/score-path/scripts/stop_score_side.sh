@@ -17,6 +17,9 @@
 #    on the supervision (Alive Supervision ... EXPIRED, the run target switch) in supervision_events.txt, since a
 #    killed process records nothing itself. SHA256SUMS over everything collected.
 #
+# 4. Only after a complete collection, marks the stage collected ($DA_STAGE/state/collected): start_score_side.sh
+#    clears a stage only with that mark.
+#
 # Exit status: 0 stopped and collected (or nothing was running); 7 something had to be killed; 8 the collection
 # failed.
 set -uo pipefail
@@ -39,7 +42,8 @@ else
 fi
 ss_clock_record > "$OUT/clock_stop.txt"
 
-if [ -n "$LM_PID" ] && ss_alive "$LM_PID"; then
+# only a Launch Manager that really runs gets the signal (never a process that reused a stale pid)
+if LM_PID=$(ss_lm_running); then
   $DA_SUDO kill -TERM "$LM_PID" 2>/dev/null || ss_log "SIGTERM to $LM_PID failed"
   ss_log "SIGTERM sent to the Launch Manager"
   deadline=$(( $(date +%s) + DA_STOP_TIMEOUT_S ))
@@ -95,6 +99,10 @@ if [ -r "$C/state/launch_manager.log" ]; then
 fi
 (cd "$C" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS) || ok=1
 [ "$ok" = 0 ] || { ss_log "COLLECTION INCOMPLETE"; [ "$RC" = 0 ] && RC=8; }
+# the mark that lets the next start clear the stage: only after a complete collection
+if [ "$ok" = 0 ] && [ -d "$DA_STAGE/state" ]; then
+  echo "collected into $C $(date -u +%FT%TZ)" | $DA_SUDO tee "$DA_STAGE/state/collected" > /dev/null
+fi
 ss_log "collected $(wc -l < "$C/SHA256SUMS" 2>/dev/null || echo 0) files into $C"
 
 if [ -f "$SCORE_SIDE_STATE" ]; then

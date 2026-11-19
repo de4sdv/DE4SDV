@@ -12,6 +12,8 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
+import signal
 import subprocess
 import sys
 import time
@@ -96,7 +98,7 @@ def stage(setup: dict, *extra: str, mode: str = "full", carla: str = "10.164.0.2
 
 
 def test_staging_lays_out_what_the_launch_manager_configuration_names(bench: dict) -> None:
-    result = stage(bench, "--speed-limit", "5.833")
+    result = stage(bench, "--speed-limit", "5.833", "--calibration-dir", str(bench["calibration"]))
     assert result.returncode == 0, result.stderr
     root = bench["stage"]
     config = json.loads((root / "config" / "launch_manager_config.json").read_text())
@@ -146,15 +148,9 @@ def test_staging_in_path_mode_takes_the_path_only_configuration(bench: dict) -> 
 
 
 def test_staging_refuses_what_it_lacks(bench: dict) -> None:
-    (bench["bundle"] / "config" / "visionpilot" / "homography_C_matrix.yaml").unlink()
-    result = stage(bench)
-    assert result.returncode == 3 and "calibration" in result.stderr
-    calibration = bench["root"] / "calib"
-    calibration.mkdir()
-    (calibration / "H.yaml").write_text("H: from the world side\n")
-    (calibration / "homography_C_matrix.yaml").write_text("C: from the world side\n")
+    calibration = bench["calibration"]
     assert stage(bench, "--calibration-dir", str(calibration)).returncode == 0
-    assert (bench["stage"] / "vision_pilot/config/H.yaml").read_text() == "H: from the world side\n"
+    assert (bench["stage"] / "vision_pilot/config/H.yaml").read_text() == "H: synthetic session calibration\n"
     (bench["bundle"] / "etc" / "launch_manager_config.bin").unlink()
     result = stage(bench, "--calibration-dir", str(calibration), "--require-serialized")
     assert result.returncode == 3 and "serialized" in result.stderr
@@ -275,8 +271,169 @@ def test_the_entries_are_the_sessions() -> None:
     assert "ENTRY_SCORE_START:=score-path/scripts/start_score_side.sh" in env
     assert "ENTRY_SCORE_STOP:=score-path/scripts/stop_score_side.sh" in env
     session = (BENCH / "session" / "da_session.sh").read_text()
-    assert 'bash "$ENTRY_SCORE_START" "$(od score)" "${CARLA_HOST:-none}"' in session
-    assert 'bash "$ENTRY_SCORE_STOP" "$(od score)"' in session
+    # the session lane's calls: "$(od score)" at this base, "$(od "score_$w")" per p10-2 run after the session lane
+    assert re.search(r'bash "\$ENTRY_SCORE_START" \\?\s*"\$\(od "?score', session)
+    assert re.search(r'bash "\$ENTRY_SCORE_STOP" "\$\(od "?score', session)
     for script in (START, STOP):
         assert os.access(script, os.X_OK)
         assert subprocess.run(["bash", "-n", str(script)]).returncode == 0
+
+
+# --- the camera calibration (the session lane's contract of 2026-11-18) ------------------------------------------
+
+
+def _sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_staging_never_falls_back_to_the_bundle_in_mode_full(bench: dict) -> None:
+    # the bundle has both upstream files, and still mode full refuses without the session's calibration
+    assert (bench["bundle"] / "config" / "visionpilot" / "H.yaml").is_file()
+    result = stage(bench)
+    assert result.returncode == 3 and "DA_CAMERA_CALIBRATION_DIR" in result.stderr
+    assert not (bench["stage"] / "vision_pilot" / "config" / "H.yaml").exists()
+    # a given directory that lacks a file is refused in both modes, never completed from the bundle
+    partial = bench["root"] / "partial"
+    partial.mkdir()
+    (partial / "H.yaml").write_text("H: alone\n")
+    for mode, carla in (("full", "10.164.0.2"), ("path", "none")):
+        result = stage(bench, "--calibration-dir", str(partial), mode=mode, carla=carla)
+        assert result.returncode == 3 and "homography_C_matrix.yaml" in result.stderr, mode
+    # mode path runs no candidate: there the bundle's files may stand in, and the record says so
+    assert stage(bench, mode="path", carla="none").returncode == 0
+    record = json.loads((bench["stage"] / "state" / "camera_calibration.json").read_text())
+    assert record["source"].startswith("bundle fallback (mode path")
+    assert record["files"]["H.yaml"]["source_sha256"] == _sha(bench["bundle"] / "config" / "visionpilot" / "H.yaml")
+
+
+def test_start_refuses_mode_full_without_the_calibration(bench: dict, tmp_path: Path) -> None:
+    env = {k: v for k, v in bench["env"].items() if k != "DA_CAMERA_CALIBRATION_DIR"}
+    started = run(START, str(tmp_path / "out"), "10.164.0.2", env=env)
+    assert started.returncode == 3 and "DA_CAMERA_CALIBRATION_DIR" in started.stdout
+    assert not bench["stage"].exists()  # refused before anything was staged or cleared
+    assert fake_bundle.staged_processes(bench["stage"]) == []
+
+
+def test_the_calibration_has_one_name() -> None:
+    for path in [*(BENCH / "score-path" / "scripts").iterdir(), BENCH / "score-build" / "scripts" / "p10_1_check.sh"]:
+        if path.is_file():
+            assert "DA_CALIBRATION_DIR" not in path.read_text(), path
+    start = START.read_text()
+    assert '--calibration-dir "$DA_CAMERA_CALIBRATION_DIR"' in start
+
+
+def test_the_start_names_the_staged_calibration_and_the_record_hashes_it(bench: dict, tmp_path: Path) -> None:
+    out = tmp_path / "out"
+    started = run(START, str(out), "10.164.0.2", env=bench["env"])
+    assert started.returncode == 0, started.stdout + started.stderr
+    named = json.loads((out / "camera_calibration.json").read_text())
+    assert named["source"] == "DA_CAMERA_CALIBRATION_DIR" and named["mode"] == "full"
+    assert named["dir"] == str(bench["calibration"].resolve())
+    record = json.loads((bench["stage"] / "run" / "score" / "candidate_record.json").read_text())
+    by_path = {item["path"]: item["sha256"] for item in record["configuration_files"]}
+    for name in ("H.yaml", "homography_C_matrix.yaml"):
+        entry = named["files"][name]
+        assert entry["source_sha256"] == _sha(bench["calibration"] / name) == entry["staged_sha256"]
+        assert by_path[entry["staged_path"]] == entry["source_sha256"], name
+    assert run(STOP, str(out), env=bench["env"]).returncode == 0
+
+
+# --- one p10-2: three starts and stops, each with its own <out> ---------------------------------------------------
+
+
+def test_start_stop_three_times_like_one_p10_2(bench: dict, tmp_path: Path) -> None:
+    records = {}
+    for label in ("calib_steer", "run1", "run2"):
+        out = tmp_path / f"score_{label}"
+        started = run(START, str(out), "10.164.0.2", env=bench["env"])
+        assert started.returncode == 0, (label, started.stdout)
+        assert not (out / "previous_stage").exists(), label  # the stop before collected everything
+        stopped = run(STOP, str(out), env=bench["env"])
+        assert stopped.returncode == 0, (label, stopped.stdout)
+        assert fake_bundle.staged_processes(bench["stage"]) == [], label
+        records[label] = state(out / "score_side_state.env")["RECORD_SHA256"]
+    assert len(set(records.values())) == 3
+    for label, digest in records.items():  # every run's files stay as its stop collected them
+        collected = tmp_path / f"score_{label}" / "score_side"
+        assert _sha(collected / "run" / "score" / "candidate_record.json") == digest, label
+        for line in (collected / "SHA256SUMS").read_text().splitlines():
+            sha, rel = line.split("  ", 1)
+            assert _sha(collected / rel) == sha, (label, rel)
+
+
+def _kill_the_launch_manager(out: Path) -> list[str]:
+    s = state(out / "score_side_state.env")
+    os.kill(int(s["LM_PID"]), signal.SIGKILL)  # a stop that never runs: the components are left behind
+    time.sleep(0.5)
+    return [s[f"PID_{n}"] for n in ("identity_recorder", "someipd", "gatewayd")]
+
+
+def test_a_start_first_collects_what_no_stop_collected(bench: dict, tmp_path: Path) -> None:
+    first = tmp_path / "score_run1"
+    assert run(START, str(first), "10.164.0.2", env=bench["env"]).returncode == 0
+    first_record = state(first / "score_side_state.env")["RECORD_SHA256"]
+    orphans = _kill_the_launch_manager(first)
+    assert fake_bundle.staged_processes(bench["stage"])  # components without a Launch Manager
+    second = tmp_path / "score_run2"
+    started = run(START, str(second), "10.164.0.2", env=bench["env"])
+    assert started.returncode == 0, started.stdout  # no exit 4: no Launch Manager ran
+    kept = second / "previous_stage" / "score_side" / "run" / "score" / "candidate_record.json"
+    assert _sha(kept) == first_record
+    for pid in orphans:
+        assert not Path(f"/proc/{pid}").exists() or "Z" in Path(f"/proc/{pid}/stat").read_text().split()[2]
+    assert state(second / "score_side_state.env")["RECORD_SHA256"] != first_record
+    assert run(STOP, str(second), env=bench["env"]).returncode == 0
+
+
+def test_a_start_that_cannot_collect_the_previous_stage_clears_nothing(bench: dict, tmp_path: Path) -> None:
+    first = tmp_path / "score_run1"
+    assert run(START, str(first), "10.164.0.2", env=bench["env"]).returncode == 0
+    _kill_the_launch_manager(first)
+    record = bench["stage"] / "run" / "score" / "candidate_record.json"
+    before = _sha(record)
+    second = tmp_path / "score_run2"
+    (second / "previous_stage").mkdir(parents=True)
+    (second / "previous_stage" / "score_side").write_text("in the way\n")  # the collection cannot write here
+    started = run(START, str(second), "10.164.0.2", env=bench["env"])
+    assert started.returncode == 3 and "could not be collected" in started.stdout
+    assert _sha(record) == before  # the stage is left as it is
+
+
+def test_exit_4_only_for_a_launch_manager_that_really_runs(bench: dict, tmp_path: Path) -> None:
+    first = tmp_path / "score_run1"
+    assert run(START, str(first), "10.164.0.2", env=bench["env"]).returncode == 0
+    assert run(START, str(tmp_path / "again"), "10.164.0.2", env=bench["env"]).returncode == 4
+    assert run(STOP, str(first), env=bench["env"]).returncode == 0
+    # A stale state whose pid now belongs to another process (pid reuse) is no running Launch Manager: neither a
+    # process that runs something else, nor one whose later arguments name the Launch Manager's binary.
+    lm_bin = f"{bench['stage']}/bin/launch_manager"
+    for n, argv in enumerate((["sleep", "60"], [sys.executable, "-c", "import time; time.sleep(60)", lm_bin])):
+        other = subprocess.Popen(argv)
+        try:
+            (bench["stage"] / "state" / "score_side.env").write_text(
+                f"LM_PID={other.pid}\nLM_BIN={lm_bin}\nSTATE=up\n")
+            assert lm_bin not in Path(f"/proc/{other.pid}/cmdline").read_bytes().decode().split("\0")[:1]
+            second = tmp_path / f"score_reused_{n}"
+            started = run(START, str(second), "10.164.0.2", env=bench["env"])
+            assert started.returncode == 0, (argv, started.stdout)
+            assert "REFUSED" not in started.stdout
+            assert other.poll() is None, argv  # never signalled
+            assert run(STOP, str(second), env=bench["env"]).returncode == 0
+            assert other.poll() is None, argv  # the stop never signals it either
+        finally:
+            other.kill()
+            other.wait()
+
+
+def test_the_start_does_not_wait_for_a_camera_image(bench: dict, tmp_path: Path) -> None:
+    # no world ticks here: the candidate never gets an image and never reports running, and the start still returns
+    out = tmp_path / "out"
+    began = time.monotonic()
+    started = run(START, str(out), "10.164.0.2", env={**bench["env"], "DA_START_TIMEOUT_S": "60"})
+    assert started.returncode == 0, started.stdout
+    assert time.monotonic() - began < 30
+    assert "start the world pacer within 420 s" in started.stdout
+    script = START.read_text()
+    assert "score_interface.jsonl" not in script  # nothing of the candidate's own log gates the start
+    assert script.count("running_reported") == 1  # the recorder's report only
+    assert run(STOP, str(out), env=bench["env"]).returncode == 0

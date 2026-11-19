@@ -4,17 +4,25 @@
 #
 #   start_score_side.sh <out> <carla_host or none>
 #
+# 0. Refuses (exit 4) only while a Launch Manager really runs: the state's pid is alive and is a Launch Manager, or a
+#    process runs $DA_STAGE/bin/launch_manager. If the stage holds files that no stop has collected (a start whose
+#    stop never ran or failed), it first runs stop_score_side.sh into <out>/previous_stage (which also ends staged
+#    processes left without a Launch Manager); if that collection fails, it refuses (exit 3) and clears nothing.
+#    One p10-2 starts and stops three times (calib_steer, run1, run2), each with its own <out>.
 # 1. Stages the bundle and the bench's configs under $DA_STAGE (/tmp/de4sdv-da-bench) with stage_score_side.py:
 #    mode full with a CARLA host (all five processes), mode path with none (the warning path only: the identity
 #    recorder, someipd and gatewayd; the candidate's process and the adapter are started by no run target, so the
-#    P10-3 test publisher can offer the candidate's warning event).
+#    P10-3 test publisher can offer the candidate's warning event). The camera calibration comes from
+#    DA_CAMERA_CALIBRATION_DIR (H.yaml and homography_C_matrix.yaml): mode full refuses without it (exit 3) and
+#    never takes the bundle's upstream files; mode path falls back to them. Which one was staged, with the sha256 of
+#    both files, goes to <out>/camera_calibration.json; the identity record hashes the staged files.
 # 2. Starts the Launch Manager as root, detached, in $DA_STAGE (LM_BIN, default $DA_STAGE/bin/launch_manager, with
 #    LM_ARGS). It reads the serialized configuration staged at $DA_STAGE/etc/launch_manager_config.bin.
 # 3. Waits (DA_START_TIMEOUT_S, default 120) until the Launch Manager runs, the identity recorder has written and
 #    offered the record and reported running, someipd and gatewayd run, and in mode full the processes of
-#    vision_pilot and actuation_adapter exist. It does NOT wait for the candidate to report running: that needs the
-#    world's images, so the session starts the world pacer next, within the candidate's ready timeout of 420 s
-#    (launch-manager/README.md "What the session must do").
+#    vision_pilot and actuation_adapter exist. It does NOT wait for the candidate to report running or for a camera
+#    image: the world holds its first tick until the session's go file, which the session writes after this start
+#    returns, within the candidate's ready timeout of 420 s (launch-manager/README.md "What the session must do").
 # 4. Writes the state ($DA_STAGE/state/score_side.env, a copy in <out>) for stop_score_side.sh and the other entries.
 #
 # Exit status: 0 up; 2 usage; 3 staging failed; 4 already running; 5 the Launch Manager ended; 6 not up in time
@@ -37,23 +45,32 @@ exec > >(tee -a "$LOG") 2>&1
 if [ "$CARLA" = none ]; then MODE=path; COMPONENTS=$COMPONENTS_PATH; else MODE=full; COMPONENTS=$COMPONENTS_FULL; fi
 ss_log "start_score_side: mode $MODE, CARLA host $CARLA, stage $DA_STAGE, bundle $DA_B2_BUNDLE"
 
-old=$(ss_state LM_PID)
-if [ -n "$old" ] && ss_alive "$old"; then
-  ss_log "REFUSED: a Launch Manager of an earlier start still runs (pid $old); run stop_score_side.sh first"
+if running=$(ss_lm_running); then
+  ss_log "REFUSED: a Launch Manager of an earlier start still runs (pid $running); run stop_score_side.sh first"
   exit 4
 fi
-for name in $COMPONENTS_FULL launch_manager; do
-  if [ -n "$(ss_pids_of "$name")" ]; then
-    ss_log "REFUSED: $DA_STAGE/bin/$name already runs (pids $(ss_pids_of "$name" | tr '\n' ' '))"
-    exit 4
+if [ "$MODE" = full ] && [ -z "${DA_CAMERA_CALIBRATION_DIR:-}" ]; then
+  ss_log "REFUSED: mode full needs DA_CAMERA_CALIBRATION_DIR (the session's H.yaml and homography_C_matrix.yaml);" \
+    "it never stages the bundle's upstream calibration"
+  exit 3
+fi
+# never clear files that no stop has collected yet
+if [ -d "$DA_STAGE/state" ] && [ ! -f "$DA_STAGE/state/collected" ]; then
+  ss_log "the stage holds files no stop has collected (previous <out>: $(ss_state OUT)): collecting them first"
+  bash "$HERE/stop_score_side.sh" "$OUT/previous_stage"
+  rc=$?
+  if [ ! -f "$DA_STAGE/state/collected" ]; then
+    ss_log "REFUSED: the previous stage could not be collected (stop exit $rc); $DA_STAGE is left as it is"
+    exit 3
   fi
-done
+  ss_log "previous stage collected into $OUT/previous_stage (stop exit $rc)"
+fi
 
 # shellcheck source=../../score-build/pins.sh
 . "$BENCH/score-build/pins.sh"
 stage_args=(--bundle "$DA_B2_BUNDLE" --stage "$DA_STAGE" --mode "$MODE" --carla-host "$CARLA"
             --upstream-revision "$VP_COMMIT" --require-serialized)
-[ -n "${DA_CALIBRATION_DIR:-}" ] && stage_args+=(--calibration-dir "$DA_CALIBRATION_DIR")
+[ -n "${DA_CAMERA_CALIBRATION_DIR:-}" ] && stage_args+=(--calibration-dir "$DA_CAMERA_CALIBRATION_DIR")
 [ -n "${DA_SPEED_LIMIT:-}" ] && stage_args+=(--speed-limit "$DA_SPEED_LIMIT")
 [ "$DA_STAGE" != /tmp/de4sdv-da-bench ] && stage_args+=(--allow-any-stage)
 if [ -n "$DA_SUDO" ]; then
@@ -65,6 +82,9 @@ if ! "$DA_PYTHON" "$HERE/stage_score_side.py" "${stage_args[@]}"; then
   exit 3
 fi
 cp "$DA_STAGE/state/staging.json" "$OUT/staging.json"
+cp "$DA_STAGE/state/camera_calibration.json" "$OUT/camera_calibration.json"
+ss_log "camera calibration: $(sed -n 's/.*"source": "\(.*\)",/\1/p' "$OUT/camera_calibration.json" | head -1)" \
+  "from $(sed -n 's/.*"dir": "\(.*\)",/\1/p' "$OUT/camera_calibration.json" | head -1)"
 [ -x "$LM_BIN" ] || { ss_log "no Launch Manager binary at $LM_BIN"; exit 3; }
 
 ss_clock_record > "$OUT/clock_start.txt"
