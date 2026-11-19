@@ -193,9 +193,10 @@ env -i HOME="$HOME" PATH=/usr/bin:/bin ~/google-cloud-sdk/bin/gcloud --configura
 ### `p10-1` (the simulator host and the S-CORE host)
 
 ```bash
-# one detached worktree at the integration commit under test (C: its full SHA)
+# one detached worktree at the integration commit under test
+C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
 git -C /home/mrk/de4sdv-worktrees/da-integration worktree add --detach /home/mrk/de4sdv-worktrees/p10-$C $C
-cd /home/mrk/de4sdv-worktrees/p10-$C
+cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1
 S=implementation/driver-assistance-bench/session
 # a dry run first, with the tests' fake gcloud (the fake's state in its own folder)
 D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
@@ -209,7 +210,7 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
   /bin/bash $S/da_session.sh --kind p10-1 --session-id "$SID"
 # follow:  tail -f ~/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID/session.log
-# end it early, if ever: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (systemd 249 here: --kill-who)
+# end it early, if ever: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (never kill -9)
 # done when: systemctl --user is-active da-session-$SID prints "inactive"; then read session.json:
 #   exit_code (11 = a VM is left running: stop it by hand at once), p10_1.line, p10_1.passed
 ```

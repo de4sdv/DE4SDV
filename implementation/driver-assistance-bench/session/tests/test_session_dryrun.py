@@ -1275,6 +1275,19 @@ def test_the_readme_starts_sessions_only_from_a_clean_environment_in_a_unit_that
     assert "systemctl --user kill --kill-who=main -s TERM da-session-$SID" in p10_1 and "--kill-whom" not in p10_1
 
 
+def test_the_readme_p10_1_block_sets_c_and_stops_when_the_cd_fails() -> None:
+    # T5 of the closure review of f67241db, for p10-1: in a new shell C is empty, the cd fails and the block went on in
+    # the current directory, whose HEAD the session then shipped
+    text = (HERE.parent / "README.md").read_text()
+    block = text.split("### `p10-1`", 1)[1].split("\n### ", 1)[0]
+    (body,) = re.findall(r"```bash\n(.*?)```", block, re.S)
+    code = [re.sub(r"\s+", " ", line.strip()) for line in body.replace("\\\n", " ").splitlines()
+            if line.strip() and not line.strip().startswith("#")]
+    assert code[0].startswith("C="), code[0]
+    (cd,) = [c for c in code if c.startswith("cd ")]
+    assert cd.startswith("cd /home/mrk/de4sdv-worktrees/p10-$C") and re.search(r"\|\| exit 1(\s|$)", cd), cd
+
+
 # ------------------------------------------------- the review's surviving mutants Y12-Y16 (S12; Y02 above, with S1)
 
 
