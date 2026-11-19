@@ -115,8 +115,12 @@ def test_v3_a_world_that_never_gets_ready_is_ended_before_the_fetch(tmp_path: Pa
 
 def test_v3_p10_2_a_term_during_a_run_ends_its_world_side_before_the_fetch(tmp_path: Path) -> None:
     p = popen(tmp_path, "p10-2", "--without-guest-host", FAKE_NO_FILE="world_run1/simulator/run_end.json",
-              FAKE_HANG_STEP="world_run1:60")
-    wait_for_call(tmp_path, lambda c: any("world_run1/go" in a for a in c))
+              FAKE_HANG_STEP="world_run1:90")
+    try:
+        wait_for_call(tmp_path, lambda c: any("world_run1/go" in a for a in c), timeout=90)
+    except AssertionError:
+        p.kill()
+        raise AssertionError(p.communicate()[0][-3000:])
     time.sleep(0.5)
     p.send_signal(15)
     r = finish(tmp_path, p)

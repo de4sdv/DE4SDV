@@ -264,7 +264,7 @@ def test_p10_1_world_keeps_ticking_for_as_long_as_the_check_may_run(tmp_path: Pa
     assert r.rc == 0, r.log
     (cmd,) = [r.command(i) for i in r.ssh(G4, "host_step.sh start world_p10_1")]
     m = re.search(r"RELEASE_WAIT_S=(\d+) ", cmd)
-    assert m and int(m.group(1)) > 5400, cmd
+    assert m and int(m.group(1)) > 2400, cmd   # T_P10_1 2400 s (review V5 of 58f0039c)
     assert cmd.endswith("run_scenario.sh $HOME/da-kit/T/out/world_p10_1 SC-DRIVING-012 20kmh"), cmd
     assert not r.ssh(G4, "host_step.sh start rec_")                  # no recording: p10-1 judges no driving
 
@@ -344,7 +344,11 @@ def test_a_failed_step_stops_every_started_vm_guests_first(tmp_path: Path) -> No
     for vm in VMS:
         assert r.stops(vm)
     assert r.guest_stops()[0] < r.stops(GH)[0]
-    assert not r.ssh(G4, "touch") and not r.ssh(G4, "world_run1")   # nothing after the failed step
+    # nothing after the failed step but the end of the world side already started (review V3 of 58f0039c)
+    assert [r.command(i) for i in r.ssh(G4, "touch")] == [
+        "touch $HOME/da-kit/T/out/world_calib_steer/release; bash $HOME/da-kit/T/bench/session/remote/host_step.sh "
+        "signal world_calib_steer TERM"]
+    assert not r.ssh(G4, "world_run1")
     assert r.ssh(L4, "host_step.sh pack")                    # the evidence so far is fetched
     assert json.loads((r.incoming / "session.json").read_text())["failed_step"] == "score_start_calib_steer"
     assert_invariants(r)
