@@ -78,7 +78,11 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   an unknown count keeps the host running, as above.
 - A failure after the S-CORE side started (a failed step, a wait that timed out, a signal, the cap) first runs the
   S-CORE side's stop (`ENTRY_SCORE_STOP`, step `score_stop_on_failure`), its only collector, then fetches. A signal or
-  the cap fetches every host whose files were not fetched yet, bounded (120 s pack, 300 s copy), before its stop.
+  the cap fetches every host whose files were not fetched yet (120 s pack, 300 s copy at most), before its stop.
+  The trap's whole pre-stop phase (the running step's end, the S-CORE side's stop, the fetches) is bounded at
+  `PRESTOP_S` (300 s): a host it cannot fetch within it is stopped unfetched (`not_fetched`; its files stay on its
+  disk). A GPU host with nothing left to collect or fetch (no kit on it, or already fetched) stops first, at the
+  start of the trap. A fetch the signal interrupted is not tried again and is named in `not_fetched`.
   An S-CORE side's stop that exits 7 (`stop_score_side.sh`: stopped and collected, something had to be killed) is
   no failure: `session.log` says so, and `session.json` records every stop per run (`score_stops`: `step`, `rc`,
   `stop_killed`). In `p10-2` such a stop with another run to come ends the session after that run (exit 5): the
@@ -99,7 +103,8 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
 - Every remote call whose output the session reads writes it to a file first, never through a pipe or a command
   substitution: a signal or the cap ends the session at once, not after a fetch's 20-minute copy.
 - A watchdog writes `cost.log` every 30 s (an upper bound: from each start call, at the hourly prices in
-  `hosts.env`) and ends the session at the cap. Each VM also gets a power-off at the cap plus 10 min, should the
+  `hosts.env`) and ends the session at the cap. Each VM also gets a power-off at the cap plus the trap's pre-stop bound
+  (5 min) plus 10 min, counted from its arming, should the
   lead host lose the session (`remote/safety_net.sh`): on the GPU hosts a transient system timer that runs
   `systemctl poweroff` (not `shutdown -h +N`, whose last 5 minutes lock out a login); on the guest host a timer that
   runs `GUEST_STOP_CMD` first and powers off only when no `crosvm` is left (lead answer B13.3). The arming lists its

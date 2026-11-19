@@ -853,6 +853,11 @@ def test_the_cap_names_itself_as_the_end(tmp_path: Path) -> None:
     assert rec["ended_by"] == "cap" and rec["fetched"] == ["score"]
 
 
+def _call_times(tmp: Path, pred) -> list[float]:
+    return [json.loads(line)[0] for line in (tmp / "fake" / "calls.log").read_text().splitlines()
+            if pred(json.loads(line)[1:])]
+
+
 def test_a_signal_before_the_steps_still_fetches_an_uploaded_host(tmp_path: Path) -> None:
     # the trap's fetch and the S-CORE side's stop were defined only after the SSH and upload section: a signal or the
     # cap there gave "fetch: command not found", and the uploaded host stopped unfetched
@@ -869,6 +874,34 @@ def test_a_signal_before_the_steps_still_fetches_an_uploaded_host(tmp_path: Path
     assert_invariants(r)
 
 
+def test_the_pre_stop_phase_of_the_trap_is_bounded_as_a_whole(tmp_path: Path) -> None:
+    # S9: after the cap or a signal the trap fetched every host before any stop, each with its own bound (120 s
+    # pack, 300 s copy): up to 23 min past the cap with every VM billing. The whole phase now has one bound
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="inject:60", FAKE_SLOW_FETCH="6",
+              DA_T_PRESTOP_S="3")
+    wait_for_call(tmp_path, lambda c: any("start inject" in a for a in c))
+    time.sleep(0.5)
+    t0 = time.time()
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    first_stop = min(_call_times(tmp_path, lambda c: c[2:5] == ["compute", "instances", "stop"]))
+    assert first_stop - t0 < 9, first_stop - t0
+    assert "pre-stop phase" in r.log
+    assert_invariants(r)
+
+
+def test_on_the_cap_a_host_with_nothing_to_fetch_stops_first(tmp_path: Path) -> None:
+    # S9: the S-CORE host never answered SSH (no kit, nothing to collect or fetch): it stops before the simulator
+    # host's fetch, not after it
+    r = run(tmp_path, "p10-2", "--without-guest-host", "--cap-eur", "0.01", FAKE_SSH_DOWN=L4, SCORE_EUR_H="3.6",
+            DA_T_SSH_TRIES="2000")
+    assert r.rc == 10, r.log
+    assert "COST CAP reached" in r.log
+    assert r.stops(L4)[0] < r.ssh(G4, "host_step.sh pack")[0] < r.stops(G4)[0]
+    assert_invariants(r)
+
+
 def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> None:
     # R19: a fetch scp inside a pipeline made the trap (and the cap) wait for the whole scp
     p = popen(tmp_path, "p10-1", FAKE_SLOW_FETCH="15")
@@ -879,6 +912,8 @@ def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> Non
     r = finish(tmp_path, p)
     assert r.rc == 143, r.log
     assert time.monotonic() - t0 < 8, "the trap waited for the fetch"
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["fetched"] == [] and rec["not_fetched"] == ["score"]     # the interrupted fetch is named
     assert_invariants(r)
 
 

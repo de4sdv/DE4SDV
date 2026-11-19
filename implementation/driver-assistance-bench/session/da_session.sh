@@ -107,13 +107,16 @@ PREEMPT_CHECK_S=30; ROUND_PAUSE_S=45; START_DEADLINE_S=1800; RUNNING_WAIT_S=120;
 # before the start step's own SSH call, and 40 s are kept for the go's SSH call (IAP to the G4, GO_SSH_S at most)
 POLL_S=20; STEP_TERM_POLLS=6; GO_LIMIT_S=380; GO_SSH_S=35; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
 GUEST_NOSSH_S=180
+# the exit trap's pre-stop phase (the running step's end, the S-CORE side's stop, the fetches) is bounded as a whole
+# (S9); within it each fetch at most TRAP_PACK_S to pack and TRAP_SCP_S to copy
+PRESTOP_S=300; TRAP_PACK_S=120; TRAP_SCP_S=300
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 T_UNIT=300
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
        T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
-       GUEST_NOSSH_S GO_SSH_S)
+       GUEST_NOSSH_S GO_SSH_S PRESTOP_S)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -155,7 +158,7 @@ MAIN_PID=$$; WD_PID=""; CHILD=""; STARTED=(); STEP_FAIL=""; FINAL_RC=""; ENDED_B
 FETCHED=""; FETCH_OK=""; FETCH_BAD=""
 GUEST_STEP_SENT=0   # 1 from the first step sent to the guest host on: from then on guests may run there (S1)
 SCORE_RUN=""; STOPS=""; STOP_KILLED_LAST=""   # the run of the S-CORE side up; each of its stops: run:step:rc (S7)
-CUR_STEP=""; GUEST_STEP_RUNNING=""   # "<role> <step>" of the step rstep waits for; a guest step alive after its TERM
+CUR_STEP=""; GUEST_STEP_RUNNING=""; FETCHING=""; PRE_END=""   # "<role> <step>" of the step rstep waits for; a guest step alive after its TERM
 
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
 say() { printf '%s\n' "$*" >&3 2>/dev/null || true; }   # a dry run's command line on stdout
@@ -166,7 +169,7 @@ var() { local n="${1^^}_$2"; echo "${!n}"; }   # var <role> VM|PROJECT|ZONE|EUR_
 gc() {   # gc <role> <gcloud args...>: every call is printed (dry run) and kept in commands.log
   local role=$1; shift
   local p; p=$(var "$role" PROJECT)
-  echo "$(date -u +%FT%T.%3NZ) + gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p $*" >> "$CMDS"
+  echo "$(date -u +%FT%T.%3NZ) + gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p $* [timeout ${GC_TO:-120} s]" >> "$CMDS"
   [ "$DRY" = 1 ] && say "+ gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p $*"
   timeout "${GC_TO:-120}" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" "$@"
 }
@@ -180,12 +183,12 @@ ssh_r() {   # ssh_r <role> <timeout_s> <remote command>
     "$(var "$role" VM)" --zone "$(var "$role" ZONE)" $(iap "$role") --command "$cmd" < /dev/null
 }
 ssh_l() {   # logged ssh: the command goes to commands.log (and to stderr in a dry run)
-  echo "$(date -u +%FT%T.%3NZ) + ssh $1: $3" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ ssh $1: $3"
+  echo "$(date -u +%FT%T.%3NZ) + ssh $1: $3 [timeout $2 s]" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ ssh $1: $3"
   ssh_r "$@"
 }
 scp_r() {   # scp_r <role> <timeout_s> <src...> <dst>
   local role=$1 to=$2; shift 2
-  echo "$(date -u +%FT%T.%3NZ) + scp $role: $*" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ scp $role: $*"
+  echo "$(date -u +%FT%T.%3NZ) + scp $role: $* [timeout $to s]" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ scp $role: $*"
   # shellcheck disable=SC2046
   timeout "$to" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$(var "$role" PROJECT)" compute scp \
     --zone "$(var "$role" ZONE)" $(iap "$role") "$@" < /dev/null
@@ -204,6 +207,10 @@ routall() { local f="$IN/.rout"; run_fg "$@" > "$f" 2>&1; local rc=$?; ROUT=$(ca
 cost_now() { awk -v now="$(date +%s.%N)" '{ s += (now - $2) * $3 / 3600 } END { printf "%.3f", s + 0 }' "$STARTS"; }
 ge() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a >= b) }'; }
 q() { printf ' %q' "$@"; }   # words quoted for the remote shell
+# in the trap's pre-stop phase (PRE_END set): a time-out cut to the time left of the phase, at least 1 s
+bnd() { [ -n "$PRE_END" ] || { echo "$1"; return; }; local l=$(( PRE_END - $(date +%s) )); [ "$l" -lt 1 ] && l=1
+  [ "$l" -lt "$1" ] && echo "$l" || echo "$1"; }
+pre_left() { [ -z "$PRE_END" ] || [ "$(date +%s)" -lt "$PRE_END" ]; }
 GSTOP=${GUEST_STOP_CMD//\$DA_SESSION_ID/$SID}
 # defined before the exit trap can run: a trap's fetch before the steps (the cap or a signal during the SSH and
 # upload section) expanded an unset HS under set -u, and that fetch ended silently
@@ -217,9 +224,10 @@ step_down() {   # in the trap: the step rstep waited for, if any: TERM on its ho
   log "step $s still runs on $(var "$r" VM): TERM to it there, then its end (up to $STEP_TERM_POLLS polls), before any stop"
   rsignal "$r" "$s" TERM
   for i in $(seq 1 "$STEP_TERM_POLLS"); do
-    rpoll "$r" "$HS status $s"; prc=$?
+    rpoll "$r" "$HS status $s" "$(bnd 60)"; prc=$?
     [ "$prc" = 3 ] && break   # the host is gone (preempted): nothing runs there
     case "$ROUT" in "rc "*|absent) break ;; esac
+    pre_left || { log "the pre-stop phase's bound reached while step $s still reads ${ROUT:-unknown}"; break; }
     sleep "$POLL_S"
   done
   log "step $s after the TERM: ${ROUT:-unknown}"
@@ -234,9 +242,10 @@ host_lost() {   # host_lost <role> <status>: a host gone mid-session (preempted)
   LOST="${LOST:-} $1"; FETCHED="$FETCHED $1"; FETCH_BAD="$FETCH_BAD $1"; ENDED_BY="host lost: $1 ($2)"
   [ "$1" = score ] && SCORE_UP=""
 }
-rpoll() {   # rpoll <role> <remote command>: one short poll, its last line in ROUT; 3 when the host is gone (R12)
+rpoll() {   # rpoll <role> <remote command> [<timeout_s>]: one short poll, its last line in ROUT; 3 when the host is
+  # gone (R12)
   local st
-  if rout ssh_l "$1" 60 "$2"; then ROUT=$(tail -1 <<< "$ROUT"); return 0; fi
+  if rout ssh_l "$1" "${3:-60}" "$2"; then ROUT=$(tail -1 <<< "$ROUT"); return 0; fi
   ROUT=""; st=$(vmst "$1")
   case "$st" in TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED) host_lost "$1" "$st"; return 3 ;; esac
   return 1
@@ -314,15 +323,15 @@ rtouch() {   # rtouch <role> <remote file> [<timeout_s>]: a handshake file of th
 fetch() {   # fetch <role>: the host's output folder into incoming_<id>/<role>/, checked against this session's id
   local r=$1 sha got
   case " $FETCHED " in *" $r "*) return 0 ;; esac
-  FETCHED="$FETCHED $r"
-  fetch_one "$r" && { FETCH_OK="$FETCH_OK $r"; return 0; }
-  FETCH_BAD="$FETCH_BAD $r"; return 1
+  FETCHED="$FETCHED $r"; FETCHING=$r   # a fetch a signal interrupts is recorded as not fetched
+  fetch_one "$r" && { FETCHING=""; FETCH_OK="$FETCH_OK $r"; return 0; }
+  FETCHING=""; FETCH_BAD="$FETCH_BAD $r"; return 1
 }
 fetch_one() {
   local r=$1 sha got
-  rout ssh_l "$r" "${FETCH_PACK_TO:-600}" "$HS pack"; sha=$(tail -1 <<< "$ROUT")
+  rout ssh_l "$r" "$(bnd "${FETCH_PACK_TO:-600}")" "$HS pack"; sha=$(tail -1 <<< "$ROUT")
   mkdir -p "$IN/$r"
-  routall scp_r "$r" "${FETCH_SCP_TO:-1200}" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"
+  routall scp_r "$r" "$(bnd "${FETCH_SCP_TO:-1200}")" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"
   printf '%s\n' "$ROUT" | one >> "$LOG"
   got=$(sha256sum "$IN/$r/out.tgz" 2>/dev/null | cut -d' ' -f1)
   [ -n "$got" ] && [ "$got" = "$sha" ] || { log "fetch from $(var "$r" VM) failed or changed (remote '$sha', local '$got')"; return 1; }
@@ -363,23 +372,45 @@ cleanup() {
   [ -f "$IN/.cap_reached" ] && rc=10
   [ -n "$WD_PID" ] && { pkill -P "$WD_PID" 2>/dev/null; kill "$WD_PID" 2>/dev/null; }
   [ -n "$CHILD" ] && kill_tree "$CHILD"   # an interrupted SSH step: its local client and timeout too
+  [ -f "$IN/.cap_reached" ] && ENDED_BY=cap
+  [ -n "$ENDED_BY" ] || ENDED_BY="exit $rc"
+  # a fetch the signal interrupted is not tried again (the session ends at once, R19); it is recorded as not fetched
+  if [ -n "$FETCHING" ]; then log "the fetch from $(var "$FETCHING" VM) was interrupted: not fetched"; FETCH_BAD="$FETCH_BAD $FETCHING"; FETCHING=""; fi
+  local gpu=() guest=0 early=""
+  for r in "${STARTED[@]}"; do if [ "$r" = guest ]; then guest=1; else gpu+=("$r"); fi; done
+  # the pre-stop phase, bounded as a whole (S9): after the cap every VM bills on while it runs, and the safety nets
+  # fire at the cap plus this bound plus their margin. First the GPU hosts with nothing left to collect or fetch
+  # (no kit there, or already fetched, no S-CORE side up, no step running) stop at once
+  PRE_END=$(( $(date +%s) + PRESTOP_S ))
+  log "pre-stop phase, $PRESTOP_S s at most: the running step's end, the S-CORE side's stop, the fetches"
+  for r in "${gpu[@]}"; do
+    case " $UPLOADED " in *" $r "*) case " $FETCHED " in *" $r "*) ;; *) continue ;; esac ;; esac
+    [ "$r" = score ] && [ -n "$SCORE_UP" ] && continue
+    [ "${CUR_STEP%% *}" = "$r" ] && continue
+    log "stopping $(var "$r" VM) ($r) first: nothing left to collect or fetch there"
+    GC_TO=300 gc "$r" compute instances stop "$(var "$r" VM)" --zone "$(var "$r" ZONE)" --async --quiet 2>&1 | one >> "$LOG"
+    early="$early $r"
+  done
   # the step still running on its host (a signal or the cap during it): TERM to it there, and its end awaited, before
   # the S-CORE side's stop and any stop; a guest launch never races the guests' stop (S2)
   step_down
-  [ -f "$IN/.cap_reached" ] && ENDED_BY=cap
-  [ -n "$ENDED_BY" ] || ENDED_BY="exit $rc"
-  # the S-CORE side's stop, its only collector, while the world may still tick (R8); then, bounded, the fetch of
-  # every host whose evidence was not fetched yet (a signal, the cap), before any stop (R13)
-  T_SCORE_DOWN=120 score_down
+  # the S-CORE side's stop, its only collector, while the world may still tick (R8); then the fetch of every host
+  # whose evidence was not fetched yet (a signal, the cap), before its stop (R13); all within the phase's bound
+  if pre_left; then T_SCORE_DOWN=$(bnd 120) score_down
+  elif [ -n "$SCORE_UP" ]; then log "the pre-stop phase's bound reached: no stop of the S-CORE side by the session (its records stay incomplete on its disk)"; fi
   for r in $UPLOADED; do
     case " $FETCHED " in *" $r "*) continue ;; esac
-    log "fetching $(var "$r" VM) before its stop (bounded)"
-    FETCH_PACK_TO=120 FETCH_SCP_TO=300 fetch "$r"
+    if ! pre_left; then
+      log "the pre-stop phase's bound reached: $(var "$r" VM) not fetched (its files stay on its disk)"
+      FETCHED="$FETCHED $r"; FETCH_BAD="$FETCH_BAD $r"; continue
+    fi
+    log "fetching $(var "$r" VM) before its stop (pack at most $TRAP_PACK_S s, copy at most $TRAP_SCP_S s, within the pre-stop phase)"
+    FETCH_PACK_TO=$TRAP_PACK_S FETCH_SCP_TO=$TRAP_SCP_S fetch "$r"
   done
-  local gpu=() guest=0
-  for r in "${STARTED[@]}"; do if [ "$r" = guest ]; then guest=1; else gpu+=("$r"); fi; done
-  # the GPU hosts first (they cost most), without waiting
+  PRE_END=""
+  # the other GPU hosts (they cost most), without waiting
   for r in "${gpu[@]}"; do
+    case " $early " in *" $r "*) continue ;; esac
     log "stopping $(var "$r" VM) ($r)"
     GC_TO=300 gc "$r" compute instances stop "$(var "$r" VM)" --zone "$(var "$r" ZONE)" --async --quiet 2>&1 | one >> "$LOG"
   done
@@ -757,7 +788,9 @@ upload() {
   [ "$got" = "$KIT_SHA" ] || { log "kit on $(var "$r" VM): sha256 '$got', expected $KIT_SHA"; return 1; }
   # safety net: the VM powers itself off a little after the cap, should this host lose the session
   # (the guest host: the guests' stop first, and no power-off while a crosvm is left; safety_net.sh)
-  gmin=$(( CAP_S / 60 + SAFETY_MARGIN_MIN ))
+  # the cap, plus the trap's pre-stop phase bound (the S-CORE host's power-off never cuts its own fetch, S9), plus the
+  # margin for the trap's stops
+  gmin=$(( (CAP_S + PRESTOP_S) / 60 + SAFETY_MARGIN_MIN ))
   local net="bash ~/da-kit/$SID/bench/session/remote/safety_net.sh arm $gmin"
   [ "$r" = guest ] && net="$net$(q "$GSTOP")"
   # no host runs on without its safety net: an arming that is not confirmed ends the session (R15)
