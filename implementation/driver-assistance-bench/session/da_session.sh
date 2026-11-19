@@ -454,11 +454,12 @@ capture_down() {   # a window still open when the session ends (an abort, a sign
   log "step capture_down${CAP_TRY}_$w rc=$rc: $(grep -o 'capture ended ([a-z-]*).*' "$f" | tail -1); capture_$w ${ROUT:-unknown}"
   capture_end "$w" "session end" "$crc" "$f"; rm -f "$f"
 }
-abort() {   # a failure after the starts: the open window's capture stop, the S-CORE side's stop, the world side's end,
-  # the fetch, the exit (3 when a host was lost)
+abort() {   # a failure after the starts: a step still alive after rstep's own TERM (its TERM again and its end, R8 of
+  # the closure check of 7befc3c1: the fetch came before the trap's step_down), the open window's capture stop, the
+  # S-CORE side's stop, the world side's end, the fetch, the exit (3 when a host was lost)
   local code=$1; shift
   [ -n "${LOST:-}" ] && code=3
-  capture_down; score_down; world_down; fetch_all; fail "$code" "$*"
+  step_down; capture_down; score_down; world_down; fetch_all; fail "$code" "$*"
 }
 fetch_all() { local r ok=0; for r in "${STARTED[@]}"; do fetch "$r" || ok=1; done; return $ok; }
 ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never configured: D5 may move the hosts)

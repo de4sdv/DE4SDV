@@ -1561,6 +1561,18 @@ def test_p10_2_with_permissive_ivi_marks_the_session_and_its_report(tmp_path: Pa
     assert rec2["conditional_on_permissive_ivi"] is False and rec2["p10_2"]["conditional_on_permissive_ivi"] is False
 
 
+def test_r8_abort_ends_a_step_alive_after_its_time_out_before_any_fetch(tmp_path: Path) -> None:
+    # R8 of the closure check of 7befc3c1: after its own time-out rstep keeps a step still alive in CUR_STEP and
+    # aborts; abort() fetched before the trap's step_down sent the TERM again and waited, so a late-ending step's last
+    # records missed the fetch. Now abort() runs step_down first
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="guest_up:30", DA_T_T_GUEST_UP="1",
+            FAKE_STEP_IGNORES_TERM="guest_up", DA_T_STEP_TERM_POLLS="2")
+    assert r.rc == 11, r.log
+    sig = r.ssh(GH, "host_step.sh signal guest_up TERM")
+    pack = r.ssh(GH, "host_step.sh pack")
+    assert len(sig) == 2 and pack and sig[1] < pack[0], (sig, pack)
+
+
 def test_the_readme_ends_a_session_early_with_the_spelling_systemd_249_knows() -> None:
     # T3: the lead host's systemd 249 refuses --kill-whom ("unrecognized option"); --kill-who works there
     text = (HERE.parent / "README.md").read_text()
