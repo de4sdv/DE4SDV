@@ -47,10 +47,10 @@ def build_record_driver(out_dir: Path) -> Path:
 def make_bundle(root: Path, record_driver: Path, extra_bins: dict[str, str] | None = None) -> dict:
     bundle = root / "bundle"
     for d in ("bin", "lib", "config/gateway", "config/visionpilot", "share/visionpilot/modules/models/weights",
-              "share/visionpilot/assets", "facts", "etc"):
+              "share/visionpilot/assets", "facts", "config/launch_manager"):
         (bundle / d).mkdir(parents=True, exist_ok=True)
     stub = TESTS / "stub_component.sh"
-    for name in ("VisionPilot", "actuation_adapter", "gatewayd", "someipd"):
+    for name in ("vision_pilot", "actuation_adapter", "gatewayd", "someipd"):
         shutil.copy(stub, bundle / "bin" / name)
     shutil.copy(record_driver, bundle / "bin" / "identity_recorder")
     shutil.copy(TESTS / "fake_launch_manager.py", bundle / "bin" / "launch_manager")
@@ -71,8 +71,12 @@ def make_bundle(root: Path, record_driver: Path, extra_bins: dict[str, str] | No
     patches = BENCH / "score-interface" / "patches"
     for p in sorted(patches.glob("*.diff")) + [patches / "SHA256SUMS"]:
         shutil.copy(p, bundle / "facts" / p.name)
-    (bundle / "etc" / "launch_manager_config.bin").write_bytes(b"synthetic flatbuffer full")
-    (bundle / "etc" / "launch_manager_config_path_only.bin").write_bytes(b"synthetic flatbuffer path")
+    # config/launch_manager/: each .bin beside the JSON it was converted from (build_score_bench.sh's bundle step)
+    launch = bundle / "config" / "launch_manager"
+    (launch / "launch_manager_config.bin").write_bytes(b"synthetic flatbuffer full")
+    (launch / "launch_manager_config_path_only.bin").write_bytes(b"synthetic flatbuffer path")
+    shutil.copy(BENCH / "launch-manager" / "config" / "launch_manager_config.json", launch)
+    shutil.copy(BENCH / "score-path" / "config" / "launch_manager_config_path_only.json", launch)
     ldconf = root / "ld.so.conf.d"
     gpu = root / "gpu" / "lib"
     ldconf.mkdir(exist_ok=True)

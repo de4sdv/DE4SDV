@@ -4,13 +4,15 @@
 The layout is the Launch Manager lane's contract (launch-manager/README.md "What the session must do") and the
 paths of launch-manager/config/launch_manager_config.json:
 
-  bin/          vision_pilot (the bundle's VisionPilot), actuation_adapter, gatewayd, someipd, identity_recorder,
-                and, when the bundle has them, candidate_record_probe, warning_injector, ort_cuda_check
+  bin/          vision_pilot, actuation_adapter, gatewayd, someipd, identity_recorder, and, when the bundle has
+                them, launch_manager, candidate_record_probe, warning_injector, ort_cuda_check
   lib/          the bundle's lib/ (ONNX Runtime, the gateway's serializer, vsomeip)
   config/       launch_manager_config.json (the full file, or the path-only one in mode path), the mw::com
                 manifests of every process, the gateway's config binary and vsomeip config, adapter.json with the
                 CARLA host, and de4sdv_score_interface.conf with mw_com.config naming mw_com_config_vision_pilot.json
-  etc/          the serialized Launch Manager configuration of the mode, from the bundle's etc/
+  etc/          launch_manager_config.bin: the serialized Launch Manager configuration of the mode, from the
+                bundle's config/launch_manager/ (the daemon's default path, etc/launch_manager_config.bin
+                relative to its working directory, Lifecycle v0.10.0 score/launch_manager/src/daemon/src/run.cpp)
   vision_pilot/ the candidate's working directory: config/vision_pilot.conf, config/H.yaml,
                 config/homography_C_matrix.yaml, modules/models/weights/*.onnx, assets/
   facts/        the source difference (the bundle's patches and SHA256SUMS) and upstream_revision.txt, which the
@@ -28,6 +30,14 @@ refuses without it and never takes the bundle's files: those are upstream's cali
 judged run on them would use the wrong geometry. Only mode path, which runs no candidate, falls back to the bundle's
 files when no directory is given. Which calibration was staged (its source, and the sha256 of both files at the
 source and in the stage) goes to <stage>/state/camera_calibration.json; the identity record hashes the staged files.
+
+The bundle is build_score_bench.sh's (score-build/README.md, the bundle step): bin/<binary_name> of the Launch
+Manager configuration, config/launch_manager/ with each configuration's .bin (Lifecycle v0.10.0's
+launch_manager_config rule) beside the JSON it was converted from, config/gateway/, config/visionpilot/,
+share/visionpilot/, lib/ and facts/. The .bin of the mode is staged only when the JSON beside it in the bundle is
+byte for byte the bench's file of the mode, the file staged as config/launch_manager_config.json and hashed into the
+identity record: otherwise the daemon would run a configuration the record does not name. With
+--require-serialized (start_score_side.sh), a missing .bin or JSON refuses too.
 
 It prints a JSON summary (the files staged and their sha256) and writes it to <stage>/state/staging.json.
 Exit status: 0 staged; 2 usage; 3 a required input is missing.
@@ -57,7 +67,7 @@ CONF_OVERRIDES = {
 }
 
 # bundle name -> staged name; the Launch Manager configuration names the staged ones.
-REQUIRED_BINARIES = {"VisionPilot": "vision_pilot", "actuation_adapter": "actuation_adapter",
+REQUIRED_BINARIES = {"vision_pilot": "vision_pilot", "actuation_adapter": "actuation_adapter",
                      "gatewayd": "gatewayd", "someipd": "someipd", "identity_recorder": "identity_recorder"}
 OPTIONAL_BINARIES = {"candidate_record_probe": "candidate_record_probe", "warning_injector": "warning_injector",
                      "ort_cuda_check": "ort_cuda_check", "launch_manager": "launch_manager"}
@@ -74,6 +84,8 @@ MANIFESTS = [
 ]
 LAUNCH_CONFIGS = {"full": "launch-manager/config/launch_manager_config.json",
                   "path": "score-path/config/launch_manager_config_path_only.json"}
+# The bundle's config/launch_manager/: the .bin of each mode, converted from the JSON of the same stem beside it.
+BUNDLE_LAUNCH_DIR = Path("config") / "launch_manager"
 SERIALIZED = {"full": "launch_manager_config.bin", "path": "launch_manager_config_path_only.bin"}
 
 
@@ -147,6 +159,25 @@ def stage_calibration(args: argparse.Namespace, root: Path, put) -> dict:
     return record
 
 
+def stage_serialized(args: argparse.Namespace, root: Path, put) -> dict | None:
+    """Stages the bundle's .bin of the mode as etc/launch_manager_config.bin, when the JSON it was converted from is
+    the bench's file of the mode."""
+    source_json = args.bench / LAUNCH_CONFIGS[args.mode]
+    serialized = args.bundle / BUNDLE_LAUNCH_DIR / SERIALIZED[args.mode]
+    built_from = serialized.with_suffix(".json")
+    if not serialized.is_file() or not built_from.is_file():
+        if args.require_serialized:
+            raise Missing(f"serialized Launch Manager configuration: {serialized} or the JSON beside it is missing")
+        return None
+    if sha256(built_from) != sha256(source_json):
+        raise Missing(f"serialized Launch Manager configuration: {serialized} was converted from {built_from}, "
+                      f"which differs from the bench's {LAUNCH_CONFIGS[args.mode]}: rebuild the bundle from this "
+                      "checkout")
+    put(serialized, root / "etc" / "launch_manager_config.bin")
+    return {"bundle_path": str(serialized), "sha256": sha256(serialized), "built_from": str(built_from),
+            "built_from_sha256": sha256(built_from), "bench_json": LAUNCH_CONFIGS[args.mode]}
+
+
 def stage(args: argparse.Namespace) -> dict:
     bundle, root, bench = args.bundle, args.stage, args.bench
     if root.name != "de4sdv-da-bench" and not args.allow_any_stage:
@@ -201,11 +232,7 @@ def stage(args: argparse.Namespace) -> dict:
     ]) + "\n"
     (root / "config" / "de4sdv_score_interface.conf").write_text(interface)
     staged[str(root / "config" / "de4sdv_score_interface.conf")] = sha256(root / "config" / "de4sdv_score_interface.conf")
-    serialized = bundle / "etc" / SERIALIZED[args.mode]
-    if serialized.is_file():
-        put(serialized, root / "etc" / "launch_manager_config.bin")
-    elif args.require_serialized:
-        raise Missing(f"serialized Launch Manager configuration: {serialized} is missing")
+    serialized_record = stage_serialized(args, root, put)
 
     # the candidate's working directory
     upstream_conf = need(bundle / "config" / "visionpilot" / "vision_pilot.conf", "upstream vision_pilot.conf")
@@ -239,7 +266,7 @@ def stage(args: argparse.Namespace) -> dict:
     (root / "facts" / "upstream_revision.txt").write_text(revision + "\n")
     summary = {"stage": str(root), "mode": args.mode, "carla_host": args.carla_host, "bundle": str(bundle),
                "camera_calibration": calibration_record, "upstream_revision": revision,
-               "serialized_launch_config": (root / "etc" / "launch_manager_config.bin").is_file(),
+               "serialized_launch_config": serialized_record,
                "files": dict(sorted(staged.items()))}
     (root / "state" / "staging.json").write_text(json.dumps(summary, indent=1) + "\n")
     return summary

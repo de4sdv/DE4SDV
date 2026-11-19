@@ -147,11 +147,32 @@ def test_staging_in_path_mode_takes_the_path_only_configuration(bench: dict) -> 
     assert "carla.host = none" in (root / "config" / "de4sdv_score_interface.conf").read_text()
 
 
+@pytest.mark.parametrize("mode,carla,json_name", [
+    ("full", "10.164.0.2", "launch_manager_config.json"), ("path", "none", "launch_manager_config_path_only.json")])
+def test_staging_takes_a_serialized_configuration_only_beside_the_benchs_json(bench: dict, mode: str, carla: str,
+                                                                            json_name: str) -> None:
+    launch = bench["bundle"] / "config" / "launch_manager"
+    ok = stage(bench, "--calibration-dir", str(bench["calibration"]), "--require-serialized", mode=mode, carla=carla)
+    assert ok.returncode == 0, ok.stderr
+    record = json.loads((bench["stage"] / "state" / "staging.json").read_text())["serialized_launch_config"]
+    assert record["built_from"] == str(launch / json_name) and record["bundle_path"].endswith(
+        json_name.replace(".json", ".bin"))
+    assert record["built_from_sha256"] == hashlib.sha256((launch / json_name).read_bytes()).hexdigest()
+    # a .bin converted from another JSON than the bench's: the daemon would run what the record does not name
+    (launch / json_name).write_text((launch / json_name).read_text() + "\n")
+    stale = stage(bench, "--calibration-dir", str(bench["calibration"]), mode=mode, carla=carla)
+    assert stale.returncode == 3 and "differs from the bench's" in stale.stderr
+    (launch / json_name).unlink()  # no JSON beside the .bin: cannot tell what it was converted from
+    missing = stage(bench, "--calibration-dir", str(bench["calibration"]), "--require-serialized", mode=mode,
+                    carla=carla)
+    assert missing.returncode == 3 and "the JSON beside it is missing" in missing.stderr
+
+
 def test_staging_refuses_what_it_lacks(bench: dict) -> None:
     calibration = bench["calibration"]
     assert stage(bench, "--calibration-dir", str(calibration)).returncode == 0
     assert (bench["stage"] / "vision_pilot/config/H.yaml").read_text() == "H: synthetic session calibration\n"
-    (bench["bundle"] / "etc" / "launch_manager_config.bin").unlink()
+    (bench["bundle"] / "config" / "launch_manager" / "launch_manager_config.bin").unlink()
     result = stage(bench, "--calibration-dir", str(calibration), "--require-serialized")
     assert result.returncode == 3 and "serialized" in result.stderr
     (bench["bundle"] / "bin" / "gatewayd").unlink()
@@ -437,3 +458,34 @@ def test_the_start_does_not_wait_for_a_camera_image(bench: dict, tmp_path: Path)
     assert "score_interface.jsonl" not in script  # nothing of the candidate's own log gates the start
     assert script.count("running_reported") == 1  # the recorder's report only
     assert run(STOP, str(out), env=bench["env"]).returncode == 0
+
+
+# --- application ids ---------------------------------------------------------------------------------------------
+
+
+def test_every_mw_com_manifest_of_the_bench_has_its_own_application_id() -> None:
+    """Every process of the S-CORE host runs with uid 0 (the Launch Manager configuration's defaults), so mw::com
+    (LoLa) tells them apart by applicationID alone. The test publisher (3415) and the record probe (3416) are this
+    lane's proposals; no other manifest of the bench, staged or not, may take an id twice."""
+    ids: dict[int, list[str]] = {}
+    for path in sorted(BENCH.rglob("*.json")):
+        if "tests" in path.relative_to(BENCH).parts:
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        if "applicationID" not in text:
+            continue
+        for value in re.findall(r'"applicationID"\s*:\s*(\d+)', text):
+            ids.setdefault(int(value), []).append(str(path.relative_to(BENCH)))
+    assert {k: v for k, v in ids.items() if len(v) > 1} == {}
+    assert ids == {3410: ["score-path/config/mw_com_config_gatewayd_warning.json"],
+                   3411: ["score-path/config/mw_com_config_someipd_warning.json"],
+                   3412: ["score-path/config/mw_com_config_vision_pilot.json"],
+                   3413: ["actuation-adapter/mw_com_config_actuation_adapter.json"],
+                   3414: ["identity-recorder/mw_com_config_identity_recorder.json"],
+                   3415: ["ivi-warning/injector/mw_com_config_warning_injector.json"],
+                   3416: ["identity-recorder/mw_com_config_candidate_record_probe.json"]}
+    for config in (LAUNCH, PATH_ONLY):
+        data = json.loads(config.read_text())
+        assert data["defaults"]["deployment_config"]["sandbox"]["uid"] == 0, config
+        for name, component in data["components"].items():
+            assert "sandbox" not in component.get("deployment_config", {}), (config, name)

@@ -64,9 +64,27 @@ that file verbatim, so the record shows the mode.
 
 ## What these scripts assume of the other lanes
 
-- The bundle (`/opt/da-b2/bundle`, `../../score-build/`) holds `bin/launch_manager` and the serialized
-  configurations `etc/launch_manager_config.bin` and `etc/launch_manager_config_path_only.bin`. These are Lifecycle
-  v0.10.0's converter output of the two JSON files. B2 does not produce them yet, and the start refuses without them.
+- The bundle (`/opt/da-b2/bundle`) is the bundle step of `../../score-build/build_score_bench.sh`. The staging
+  reads these paths of it:
+
+  | Bundle path | Produced by | Read by |
+  |---|---|---|
+  | `bin/vision_pilot`, `bin/actuation_adapter`, `bin/gatewayd`, `bin/someipd` | the S-CORE build | `stage_score_side.py` (required) |
+  | `bin/launch_manager` | the S-CORE build (`@score_lifecycle//score/launch_manager:launch_manager`) | `stage_score_side.py`; `start_score_side.sh` refuses without it |
+  | `bin/identity_recorder`; `bin/candidate_record_probe`, `bin/warning_injector`, `bin/ort_cuda_check` | the build-target commit of this lane; the S-CORE build | `stage_score_side.py` (the first required) |
+  | `config/launch_manager/launch_manager_config.bin` and `.json` | Lifecycle v0.10.0's `launch_manager_config` rule, `//de4sdv_da_bench/launch-manager:de4sdv_lm_config`; the JSON is the converted file | `stage_score_side.py`, mode full |
+  | `config/launch_manager/launch_manager_config_path_only.bin` and `.json` | the same rule, `:de4sdv_lm_config_path_only`, over `../config/launch_manager_config_path_only.json` | `stage_score_side.py`, mode path |
+  | `config/gateway/someip_gateway_config_warning.bin` | the gateway build | `stage_score_side.py` |
+  | `config/visionpilot/vision_pilot.conf`, `H.yaml`, `homography_C_matrix.yaml` | upstream's `config/`; the C matrix by upstream's `scripts/find_homography_C_matrix.py`, as upstream's CMake build makes it | `stage_score_side.py`; the calibration only in mode path and p10-1 |
+  | `share/visionpilot/modules/models/weights/*.onnx`, `share/visionpilot/assets/` | the S-CORE build | `stage_score_side.py` |
+  | `lib/*`, `facts/*.diff`, `facts/SHA256SUMS` | the S-CORE build | `stage_score_side.py` |
+
+  The staging takes a `.bin` only when the JSON beside it is byte for byte the bench's file of the mode, the file
+  it stages as `config/launch_manager_config.json` and the identity recorder hashes. Otherwise the daemon would run
+  a configuration that the record does not name, and the staging refuses (exit 3). The start passes
+  `--require-serialized`, so a missing `.bin` or JSON refuses too. The daemon reads
+  `etc/launch_manager_config.bin` relative to its working directory, the stage (Lifecycle v0.10.0
+  `score/launch_manager/src/daemon/src/run.cpp`).
 - The bundle holds `bin/identity_recorder` and, for p10-1 and p10-3, `bin/candidate_record_probe` and
   `bin/warning_injector`. These are the build-target commit of this lane.
 - The Launch Manager logs the expiry of an alive supervision and the switch to `fallback_run_target` on its

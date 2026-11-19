@@ -29,7 +29,10 @@ is in them.
   type `PreSerializedData<2048>` with `size` = 8 and the bytes of `EncodeWarningRequestSomeip`.
   gatewayd copies `data[0..size)` unread, so nothing may stand in front of the struct.
 - The Launch Manager config ([`../../launch-manager/`](../../launch-manager/README.md)): application ids
-  3410 to 3414 belong to gatewayd, someipd, the candidate, the adapter and the identity recorder.
+  3410 to 3414 belong to gatewayd, someipd, the candidate, the adapter and the identity recorder. 3415 is the
+  p10-3 test publisher's and 3416 the candidate record probe's (this lane's proposals). Every process of the host
+  runs with uid 0, so the application id alone tells them apart; the seven are distinct, and a test checks that
+  across every mw::com manifest of the bench.
 - The identity recorder's manifest: the candidate record as `/de4sdv/driver_assistance/CandidateRecord`,
   service id 7413, event `candidate_record` with id 1, instance 1, QM, 2 slots, one subscriber. These values,
   except the id and the names that ICD.md fixes, are this lane's proposal; the recorder must say the same.
