@@ -67,13 +67,18 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   and status. A fetched folder whose `session_id` is not this session's fails the session.
 
 Exit codes: 0 done; 2 refused before any start; 3 no capacity or preempted; 4 SSH or upload failed; 5 a step failed;
-6 start refused; 9 dry run refused; 10 cost cap; 11 a stop not confirmed or the guest host left running with its
-guests; 129/130/143 signals.
+6 start refused; 9 dry run refused; 10 cost cap; 11 a VM left running (the guest host with its guests, or a VM not
+`TERMINATED` after its stop, called again every minute of the 5-minute poll), in place of every other code;
+129/130/143 signals. `session.json` keeps the code 11 replaced (`exit_code_without_left_running`), every started VM's
+status after the session (`vm_status_after`) and the VMs left running (`left_running`); the session's last line names
+them.
 
 ## Command lines for the lead
 
 Run from the integrated bench tree (the other lanes' entries merged in), on the lead host. A dry run first, then the
-session:
+session. Run a session detached from the terminal, its output into a file (`nohup ... > file 2>&1 &`, or
+`systemd-run --user`), never behind a pipe whose reader can go away; end a background session with SIGTERM (bash
+ignores SIGINT in a background job of a non-interactive shell):
 
 ```bash
 cd <integrated worktree>
@@ -83,11 +88,11 @@ bash $S/da_session.sh --kind p10-1 --dry-run --evidence-root ~/.hermes/cache/scr
 # p10-2 also needs, before any start: VP_CLONE (a VisionPilot clone holding the pin) and CV_PY with OpenCV
 unset FAKE_DIR DA_GCLOUD
 
-bash $S/da_session.sh --kind p10-1 2>&1 | tee -a ~/p10-1.out                          # the S-CORE build check, 2026-11-19
-bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host 2>&1 | tee -a ~/p10-3.out    # the warning on the guests, Enforcing
+nohup bash $S/da_session.sh --kind p10-1 >> ~/p10-1.out 2>&1 &                       # the S-CORE build check, 2026-11-19
+nohup bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host >> ~/p10-3.out 2>&1 &  # the warning on the guests, Enforcing
 # only if that session's guest_prepare reports no initComms (the Gateway lookup): again, marked conditional
-bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --permissive-ivi 2>&1 | tee -a ~/p10-3.out
-bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host 2>&1 | tee -a ~/p10-2.out    # the first closed loop, 2026-11-20
+nohup bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --permissive-ivi >> ~/p10-3.out 2>&1 &
+nohup bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host >> ~/p10-2.out 2>&1 &  # the first closed loop, 2026-11-20
 ```
 
 Then compose the video from the fetched files (see `../recording/README.md`).

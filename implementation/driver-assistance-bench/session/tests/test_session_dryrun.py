@@ -332,6 +332,64 @@ def test_a_failed_status_read_never_stops_the_guest_host_before_its_guests(tmp_p
     assert r.state[GH] == "TERMINATED"
 
 
+def test_a_broken_stdout_neither_ends_the_session_nor_empties_its_log(tmp_path: Path) -> None:
+    # R3: the README's outer `| tee` killed with its terminal: the reader of the session's stdout goes away
+    p = popen(tmp_path, "p10-1")
+    for _ in range(3):
+        p.stdout.readline()
+    p.stdout.close()
+    p.wait(timeout=120)
+    r = Run(tmp_path, rc=p.returncode)
+    assert r.rc == 0, r.log
+    assert "session steps done" in r.log and "SESSION_END T rc=0" in r.log
+    assert json.loads((r.incoming / "session.json").read_text())["exit_code"] == 0
+    assert_invariants(r)
+
+
+def test_a_vm_that_does_not_stop_is_stopped_again_and_overrides_every_exit_code(tmp_path: Path) -> None:
+    # R4: a failed step (exit 5) with a VM still running after its stop exits 11, names the VM last, and records it
+    r = run(tmp_path, "p10-1", FAKE_FAIL_STEP="p10_1", FAKE_NO_STOP=L4, DA_T_STOP_TRIES="7",
+            DA_T_STOP_AGAIN_EVERY="3")
+    assert r.rc == 11, r.log
+    assert len(r.stops(L4)) == 3                             # the first stop, then again at polls 3 and 6
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["exit_code"] == 11 and rec["exit_code_without_left_running"] == 5 and rec["failed_step"] == "p10_1"
+    assert rec["left_running"] == [L4] and rec["vm_status_after"] == {"score": "RUNNING"}
+    last = r.log.strip().splitlines()[-1]
+    assert "VMS LEFT RUNNING" in last and L4 in last
+    assert "VMS LEFT RUNNING" in r.stdout.strip().splitlines()[-1]
+
+
+def test_a_good_session_records_every_vm_terminated(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host")
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert r.rc == 0 and rec["left_running"] == [] and rec["exit_code_without_left_running"] == 0
+    assert rec["vm_status_after"] == {"score": "TERMINATED", "guest": "TERMINATED"}
+
+
+def test_the_cost_watchdog_ends_with_a_session_killed_without_its_trap(tmp_path: Path) -> None:
+    # R5: a SIGKILLed session (a tool time-out, the OOM killer) runs no trap; its watchdog must not live on and
+    # later signal a PID number that may belong to another process
+    p = popen(tmp_path, "p10-1", FAKE_HANG_STEP="p10_1:20")
+    try:
+        wait_for_call(tmp_path, lambda c: any("run p10_1" in a for a in c))
+        inc = next((tmp_path / "ev").glob("incoming_*"))
+        time.sleep(0.5)
+        p.kill()
+        p.wait(timeout=10)
+        time.sleep(1.0)                                      # 5 rounds of the watchdog (DA_T_WATCH_S 0.2)
+        n = len((inc / "cost.log").read_text().splitlines())
+        time.sleep(1.5)
+        assert len((inc / "cost.log").read_text().splitlines()) == n, "the watchdog outlived its session"
+        assert re.search(r"cost watchdog pid \d+", (inc / "session.log").read_text())
+    finally:
+        try:
+            os.killpg(p.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        p.communicate()
+
+
 def test_guest_host_needs_the_owners_ok(tmp_path: Path) -> None:
     r = run(tmp_path, "p10-3")
     assert r.rc == 2

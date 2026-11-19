@@ -31,8 +31,9 @@
 # never deleted; nothing is created or deleted.
 #
 # Exit codes: 0 done; 2 refused before any VM start; 3 no capacity or preempted; 4 SSH or upload failed; 5 a step
-# failed; 6 start refused (quota or error); 9 dry run refused; 10 cost cap reached; 11 a stop not confirmed after an
-# otherwise good session; 129/130/143 signals.
+# failed; 6 start refused (quota or error); 9 dry run refused; 10 cost cap reached; 11 a VM left running (the guest
+# host with its guests, or a stop not confirmed), in place of every other code (session.json keeps the code it
+# replaced, the VMs' status after the session and the VMs left running); 129/130/143 signals.
 set -uo pipefail
 export LC_ALL=C   # awk and printf read and write decimal points
 HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
@@ -75,13 +76,13 @@ esac
 
 # waits, seconds; a dry run may shorten them through DA_T_<NAME>, a real session refuses those knobs
 PREEMPT_CHECK_S=30; ROUND_PAUSE_S=45; START_DEADLINE_S=1800; RUNNING_WAIT_S=120; SSH_TRIES=20; SSH_PAUSE_S=10
-POLL_S=20; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5
+POLL_S=20; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 T_UNIT=300
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
-       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES)
+       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -104,9 +105,13 @@ mkdir -p "$IN" || exit 2
 LOG=$IN/session.log; CMDS=$IN/commands.log; COST=$IN/cost.log; STARTS=$IN/starts.tsv
 : > "$STARTS"
 exec 3>&1   # a dry run prints every command here, outside the command substitutions that capture output
+# a broken stdout (the reader of `... | tee` gone with its terminal) must neither end the session nor lose a line of
+# session.log (R3): SIGPIPE is ignored, every line goes to the file first, and a failed write to stdout is dropped
+trap '' PIPE
 MAIN_PID=$$; WD_PID=""; CHILD=""; STARTED=(); STEP_FAIL=""; FINAL_RC=""
 
-log() { echo "$(date -u +%FT%TZ) $*" | tee -a "$LOG"; }
+log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
+say() { printf '%s\n' "$*" >&3 2>/dev/null || true; }   # a dry run's command line on stdout
 # never log account e-mail addresses or quota limits
 sanitize() { sed -E -e 's/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/<email>/g' -e '/[Ll][Ii][Mm][Ii][Tt]/d'; }
 one() { sanitize | tr '\n' ' ' | tr -s ' ' | cut -c1-300; }
@@ -115,7 +120,7 @@ gc() {   # gc <role> <gcloud args...>: every call is printed (dry run) and kept 
   local role=$1; shift
   local p; p=$(var "$role" PROJECT)
   echo "$(date -u +%FT%T.%3NZ) + gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p $*" >> "$CMDS"
-  [ "$DRY" = 1 ] && echo "+ gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p $*" >&3
+  [ "$DRY" = 1 ] && say "+ gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p $*"
   timeout "${GC_TO:-120}" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" "$@"
 }
 vmst() { gc "$1" compute instances describe "$(var "$1" VM)" --zone "$(var "$1" ZONE)" --format='value(status)' 2>/dev/null || echo UNKNOWN; }
@@ -128,12 +133,12 @@ ssh_r() {   # ssh_r <role> <timeout_s> <remote command>
     "$(var "$role" VM)" --zone "$(var "$role" ZONE)" $(iap "$role") --command "$cmd" < /dev/null
 }
 ssh_l() {   # logged ssh: the command goes to commands.log (and to stderr in a dry run)
-  echo "$(date -u +%FT%T.%3NZ) + ssh $1: $3" >> "$CMDS"; [ "$DRY" = 1 ] && echo "+ ssh $1: $3" >&3
+  echo "$(date -u +%FT%T.%3NZ) + ssh $1: $3" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ ssh $1: $3"
   ssh_r "$@"
 }
 scp_r() {   # scp_r <role> <timeout_s> <src...> <dst>
   local role=$1 to=$2; shift 2
-  echo "$(date -u +%FT%T.%3NZ) + scp $role: $*" >> "$CMDS"; [ "$DRY" = 1 ] && echo "+ scp $role: $*" >&3
+  echo "$(date -u +%FT%T.%3NZ) + scp $role: $*" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ scp $role: $*"
   # shellcheck disable=SC2046
   timeout "$to" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$(var "$role" PROJECT)" compute scp \
     --zone "$(var "$role" ZONE)" $(iap "$role") "$@" < /dev/null
@@ -196,28 +201,46 @@ cleanup() {
       GUEST_LEFT=1
     fi
   fi
+  # every VM this session started must read TERMINATED; one that does not is stopped again every few polls, and
+  # a VM left running overrides every other exit code with 11 (R4)
+  LEFT_RUNNING=""; VM_AFTER=""
   for r in "${STARTED[@]}"; do
-    [ "$r" = guest ] && [ "${GUEST_LEFT:-0}" = 1 ] && { log "status after the session: $(var guest VM) $(vmst guest) (left running)"; rc=11; continue; }
-    for i in $(seq 1 "$STOP_TRIES"); do st=$(vmst "$r"); [ "$st" = TERMINATED ] && break; sleep "$STOP_POLL_S"; done
+    if [ "$r" = guest ] && [ "${GUEST_LEFT:-0}" = 1 ]; then
+      st=$(vmst guest); log "status after the session: $(var guest VM) $st (left running)"
+      LEFT_RUNNING="$LEFT_RUNNING $(var guest VM)"; VM_AFTER="$VM_AFTER $r=$st"; continue
+    fi
+    for i in $(seq 1 "$STOP_TRIES"); do
+      st=$(vmst "$r"); [ "$st" = TERMINATED ] && break
+      if [ $(( i % STOP_AGAIN_EVERY )) = 0 ]; then
+        log "$(var "$r" VM) still $st: stop call again"
+        GC_TO=300 gc "$r" compute instances stop "$(var "$r" VM)" --zone "$(var "$r" ZONE)" --async --quiet 2>&1 | one >> "$LOG"
+      fi
+      sleep "$STOP_POLL_S"
+    done
     log "status after stop: $(var "$r" VM) $st"
-    [ "$st" = TERMINATED ] || { log "STOP NOT CONFIRMED for $(var "$r" VM): stop it by hand now"; [ "$rc" = 0 ] && rc=11; }
+    VM_AFTER="$VM_AFTER $r=$st"
+    [ "$st" = TERMINATED ] || { log "STOP NOT CONFIRMED for $(var "$r" VM): stop it by hand now"; LEFT_RUNNING="$LEFT_RUNNING $(var "$r" VM)"; }
   done
+  RC_STEPS=$rc
+  [ -n "$LEFT_RUNNING" ] && rc=11
   [ -s "$STARTS" ] && echo "$(date -u +%FT%TZ) final cost $(cost_now) EUR of cap $CAP EUR (upper bound: from each start call to now)" | tee -a "$COST" >> "$LOG"
   # every VM of both projects, after the session (SKB: list both projects after every session)
   for p in $(for r in sim score guest; do var "$r" PROJECT; done | sort -u); do
     echo "$(date -u +%FT%T.%3NZ) + gcloud --project=$p compute instances list" >> "$CMDS"
-    [ "$DRY" = 1 ] && echo "+ gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p compute instances list" >&3
+    [ "$DRY" = 1 ] && say "+ gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p compute instances list"
     "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" compute instances list \
       --format='value(name,zone.basename(),status)' 2>/dev/null | sed "s/^/VM after session [$p]: /" >> "$LOG"
   done
   write_record "$rc"
   log "SESSION_END $SID rc=$rc"
+  [ -n "$LEFT_RUNNING" ] && log "VMS LEFT RUNNING, THEY BILL: STOP THEM BY HAND NOW:$LEFT_RUNNING (exit 11 in place of $RC_STEPS)"
   exit "$rc"
 }
 write_record() {
   KIND="$KIND" SID="$SID" RC="$1" CAP="$CAP" IN="$IN" STARTED="${STARTED[*]}" STEP_FAIL="$STEP_FAIL" \
   KIT_SHA="${KIT_SHA:-}" BENCH_COMMIT="${BENCH_COMMIT:-}" WT_CHANGES="${WT_CHANGES:-}" DRY="$DRY" \
-  IAP="$SIM_SSH_IAP" PERM="$IVI_PERMISSIVE" IPS="${IPS:-}" CAMCAL="${CAMCAL_SHA:-}" python3 - <<'PY'
+  IAP="$SIM_SSH_IAP" PERM="$IVI_PERMISSIVE" IPS="${IPS:-}" CAMCAL="${CAMCAL_SHA:-}" VM_AFTER="${VM_AFTER:-}" \
+  LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" python3 - <<'PY'
 import json, os
 e = os.environ
 ips = dict(x.split("=", 1) for x in e["IPS"].split() if "=" in x)
@@ -229,7 +252,9 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "bench_commit": e["BENCH_COMMIT"] or None, "worktree_changes": e["WT_CHANGES"] or None,
            "sim_ssh_iap": e["IAP"] == "1", "internal_ips_from_gcloud": ips,
            "camera_calibration_sha256": dict(x.split("=", 1) for x in e["CAMCAL"].split() if "=" in x) or None,
-           "conditional_on_permissive_ivi": e["PERM"] == "1"},
+           "conditional_on_permissive_ivi": e["PERM"] == "1",
+           "vm_status_after": dict(x.split("=", 1) for x in e["VM_AFTER"].split() if "=" in x),
+           "left_running": e["LEFT"].split(), "exit_code_without_left_running": int(e["RC_STEPS"])},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
 }
@@ -336,16 +361,25 @@ register_start() {   # before the start call: from here on the trap stops this V
   for x in "${STARTED[@]}"; do [ "$x" = "$r" ] && return 0; done
   STARTED+=("$r"); echo "$r $(date +%s.%N) $(var "$r" EUR_H)" >> "$STARTS"
 }
+pstart() { local s; s=$(cat "/proc/$1/stat" 2>/dev/null) || return 1; s=${s##*) }; set -- $s; echo "${20}"; }
+MAIN_START=$(pstart "$MAIN_PID")
+# the session itself, not a later process with its PID number (the start time in /proc/<pid>/stat, field 22)
+main_alive() { if [ -n "$MAIN_START" ]; then [ "$(pstart "$MAIN_PID")" = "$MAIN_START" ]; else kill -0 "$MAIN_PID" 2>/dev/null; fi; }
 start_watchdog() {
+  # ends with the session, even one killed without its trap (SIGKILL, the OOM killer), and never signals a PID
+  # that is no longer the session's (R5)
   ( trap - EXIT TERM INT HUP
     while sleep "$WATCH_S"; do
+      main_alive || exit 0
       c=$(cost_now); echo "$(date -u +%FT%TZ) cost $c EUR of cap $CAP EUR" >> "$COST"
       if ge "$c" "$CAP"; then
+        main_alive || exit 0
         echo "$(date -u +%FT%TZ) COST CAP reached: $c EUR >= $CAP EUR; ending the session" | tee -a "$LOG" >> "$COST"
         : > "$IN/.cap_reached"; kill -TERM "$MAIN_PID"; exit 0
       fi
     done ) 2> /dev/null &
   WD_PID=$!; disown "$WD_PID"
+  log "cost watchdog pid $WD_PID (ends with the session)"
 }
 start_vm() {   # start_vm <role>: returns 0 when RUNNING (for the simulator host: still RUNNING after the check)
   local r=$1 vm zone deadline n=0 out rc st c i
@@ -410,6 +444,7 @@ upload() {
   run_fg ssh_l "$r" 60 "$net" 2>/dev/null | grep -q "safety-net-$gmin" \
     && log "$(var "$r" VM): kit ok, power-off safety net in $gmin min$([ "$r" = guest ] && echo ", the guests' stop first")" \
     || log "WARNING $(var "$r" VM): safety net not confirmed (the watchdog and the trap still stop it)"
+  return 0
 }
 for r in "${ROLES[@]}"; do
   ssh_ready "$r" || fail 4 "no SSH to $(var "$r" VM)"
@@ -467,6 +502,7 @@ fetch() {   # fetch <role>: the host's output folder into incoming_<id>/<role>/,
   tar -xzf "$IN/$r/out.tgz" -C "$IN/$r" || return 1
   [ "$(cat "$IN/$r/out/session_id" 2>/dev/null)" = "$SID" ] || { log "fetched files of $(var "$r" VM) are not this session's"; return 1; }
   log "fetched $(var "$r" VM): out.tgz $got"
+  return 0
 }
 fetch_all() { local r ok=0; for r in "${STARTED[@]}"; do fetch "$r" || ok=1; done; return $ok; }
 ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never configured: D5 may move the hosts)
