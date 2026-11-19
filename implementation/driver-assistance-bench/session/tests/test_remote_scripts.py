@@ -26,8 +26,8 @@ FAKES = {
     "systemctl": '#!/bin/bash\necho "systemctl $*" >> "$FAKE/calls.log"\n'
                  'last="${@: -1}"; [ "$1" = list-timers ] && [ ! -e "$FAKE/no_timer" ] && '
                  'echo "Thu 2026-11-19 12:00:00 UTC 4h left - - $last ${last%.timer}.service"\nexit 0\n',
-    "pgrep": '#!/bin/bash\necho "pgrep $*" >> "$FAKE/calls.log"\nn=$(cat "$FAKE/crosvm" 2>/dev/null || echo 0)\n'
-             'echo "$n"; [ "$n" != 0 ]\n',
+    "pgrep": '#!/bin/bash\necho "pgrep $*" >> "$FAKE/calls.log"\n[ -e "$FAKE/pgrep_error" ] && exit 2\n'
+             'n=$(cat "$FAKE/crosvm" 2>/dev/null || echo 0)\necho "$n"; [ "$n" != 0 ]\n',
     "cvd": '#!/bin/bash\necho "cvd $*" >> "$FAKE/calls.log"\n'
            'if [ "$1" = fleet ]; then echo \'{"groups": [{"group_name": "cvd_1"}, {"group_name": "cvd_2"}]}\'; exit 0; fi\n'
            'case "$*" in *stop*) [ -e "$FAKE/stubborn" ] || { n=$(cat "$FAKE/crosvm"); echo $((n > 0 ? n - 1 : 0)) '
@@ -97,6 +97,16 @@ def test_guest_stop_fails_when_a_crosvm_is_left(fake) -> None:
     assert len([c for c in calls(d) if c.startswith("cvd --group_name")]) == 4      # two tries
 
 
+def test_guest_stop_fails_when_the_crosvm_count_fails(fake) -> None:
+    # S11: a pgrep that errors (rc 2, no output) is no count of 0
+    d, env = fake
+    (d / "crosvm").write_text("0\n")
+    (d / "pgrep_error").touch()
+    p = sh(str(REMOTE / "guest_stop.sh"), env=env)
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert p.stdout.strip().splitlines()[-1] == "crosvm_processes_after_stop: unknown"
+
+
 # --------------------------------------------------------------------------------------- safety_net.sh
 
 
@@ -126,6 +136,18 @@ def test_safety_net_never_powers_off_with_guests_running(tmp_path: Path, fake) -
     assert p.returncode == 1
     assert "guests stop" in calls(d) and not any("shutdown" in c for c in calls(d))
     assert "NOT powering off" in (net.parents[3] / "safety_net.log").read_text()
+
+
+def test_safety_net_never_powers_off_when_the_crosvm_count_fails(tmp_path: Path, fake) -> None:
+    # S11: a pgrep that errors (rc 2, no output) counted as "no crosvm left", and the fire powered off
+    d, env = fake
+    net = _kit(tmp_path)
+    (d / "pgrep_error").touch()
+    p = sh(str(net), "fire", f'echo "guests stop" >> "{d}/calls.log"; echo 0 > "{d}/crosvm"', env=env)
+    assert p.returncode == 1
+    assert "guests stop" in calls(d) and not any("shutdown" in c or "poweroff" in c for c in calls(d))
+    log = (net.parents[3] / "safety_net.log").read_text()
+    assert "crosvm count unknown" in log and "NOT powering off" in log
 
 
 def test_safety_net_arm_on_the_guest_host_is_a_timer_that_fires_the_stop(tmp_path: Path, fake) -> None:
