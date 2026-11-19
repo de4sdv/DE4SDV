@@ -123,9 +123,17 @@ class Run:
         return lines[-1].split(" SEQUENCE ", 1)[1].split()
 
 
+# the per-session settings of the remote entries (da_session.sh REMOTE_ENV_*): a test sets them only on purpose
+REMOTE_ENV = ("UNIT_REGISTERED_RE", "UNIT_NEGATION_RE", "BROKER_ERROR_RE", "UNIT_WAIT_S", "B12_DIR", "VERIFY_WAIT_S",
+              "ADB_TIMEOUT_S", "UP_TIMEOUT_S", "CLOCK_READS", "CLOCK_MAX_OFFSET_S", "START_WAIT_S", "DA_P10_1_CARLA_HOST",
+              "GATEWAYD_RX_REGEX", "DA_P10_1_LATE_WAIT_S", "DA_P10_1_CUDA_RUNS", "DA_P10_1_ALIVE_HOLD_S",
+              "DA_P10_1_STALL_HOLD_S", "DA_P10_1_SUPERVISED_WAIT_S")
+
+
 def env_for(tmp: Path, **extra: str) -> dict[str, str]:
     (tmp / "fake").mkdir(parents=True, exist_ok=True)
-    env = dict(os.environ, FAKE_DIR=str(tmp / "fake"), DA_GCLOUD=str(FAKE), TMPDIR=str(tmp), **FAST, **STUB_ENTRIES)
+    env = {k: v for k, v in os.environ.items() if k not in REMOTE_ENV}
+    env.update(FAKE_DIR=str(tmp / "fake"), DA_GCLOUD=str(FAKE), TMPDIR=str(tmp), **FAST, **STUB_ENTRIES)
     env.update(extra)
     return env
 
@@ -648,3 +656,31 @@ def test_the_app_entries_match_the_app_manifest_and_its_record() -> None:
     assert env[0] == package
     assert env[1] == f"{package}/{launcher[0]}"
     assert env[2] == f"/data/user/@user@/{package}/files/{record}"
+
+
+# ------------------------------------------------------------------------------- per-session settings (R6)
+
+
+def test_per_session_settings_reach_the_steps_of_their_host_only(tmp_path: Path) -> None:
+    # R6: a guessed pattern or time-out of a remote entry changes for a session without a commit
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", UNIT_REGISTERED_RE="unit .* registered", UNIT_WAIT_S="600",
+            GATEWAYD_RX_REGEX="rx [0-9]+", NOT_ON_THE_LIST="x")
+    assert r.rc == 0, r.log
+    unit = r.command(r.ssh(GH, "run unit_inject")[0])
+    assert "env UNIT_REGISTERED_RE=unit\\ .\\*\\ registered UNIT_WAIT_S=600 bash" in unit
+    for i in r.ssh(GH, "host_step.sh run") + r.ssh(GH, "host_step.sh start"):
+        assert "UNIT_WAIT_S=600" in r.command(i) and "GATEWAYD_RX_REGEX" not in r.command(i)
+    for i in r.ssh(L4, "host_step.sh run"):
+        assert "GATEWAYD_RX_REGEX=" in r.command(i) and "UNIT_WAIT_S" not in r.command(i)
+    assert not any("NOT_ON_THE_LIST" in a for c in r.calls for a in c)
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["remote_env"] == {"guest": {"UNIT_REGISTERED_RE": "unit .* registered", "UNIT_WAIT_S": "600"},
+                                 "score": {"GATEWAYD_RX_REGEX": "rx [0-9]+"}}
+
+
+def test_without_per_session_settings_the_commands_are_unchanged(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1")
+    assert r.rc == 0, r.log
+    assert r.command(r.ssh(L4, "run p10_1")[0]).endswith("host_step.sh run p10_1 -- bash extra/p10_1_check.sh "
+                                                        "$HOME/da-kit/T/out/p10_1")
+    assert json.loads((r.incoming / "session.json").read_text())["remote_env"] == {}

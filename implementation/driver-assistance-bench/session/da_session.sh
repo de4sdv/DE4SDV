@@ -240,11 +240,16 @@ write_record() {
   KIND="$KIND" SID="$SID" RC="$1" CAP="$CAP" IN="$IN" STARTED="${STARTED[*]}" STEP_FAIL="$STEP_FAIL" \
   KIT_SHA="${KIT_SHA:-}" BENCH_COMMIT="${BENCH_COMMIT:-}" WT_CHANGES="${WT_CHANGES:-}" DRY="$DRY" \
   IAP="$SIM_SSH_IAP" PERM="$IVI_PERMISSIVE" IPS="${IPS:-}" CAMCAL="${CAMCAL_SHA:-}" VM_AFTER="${VM_AFTER:-}" \
-  LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" python3 - <<'PY'
+  LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" \
+  RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${!n}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
 ips = dict(x.split("=", 1) for x in e["IPS"].split() if "=" in x)
 starts = [l.split() for l in open(os.path.join(e["IN"], "starts.tsv")) if l.strip()]
+renv = {}
+for line in e["RENV"].splitlines():
+    role, name, value = (line.split("\t", 2) + ["", ""])[:3]
+    renv.setdefault(role, {})[name] = value
 json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]), "dry_run": e["DRY"] == "1",
            "cap_eur": float(e["CAP"]), "started": e["STARTED"].split(),
            "start_calls_unix_s": {r: float(t) for r, t, _ in starts}, "eur_per_hour": {r: float(p) for r, _, p in starts},
@@ -254,7 +259,8 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "camera_calibration_sha256": dict(x.split("=", 1) for x in e["CAMCAL"].split() if "=" in x) or None,
            "conditional_on_permissive_ivi": e["PERM"] == "1",
            "vm_status_after": dict(x.split("=", 1) for x in e["VM_AFTER"].split() if "=" in x),
-           "left_running": e["LEFT"].split(), "exit_code_without_left_running": int(e["RC_STEPS"])},
+           "left_running": e["LEFT"].split(), "exit_code_without_left_running": int(e["RC_STEPS"]),
+           "remote_env": renv},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
 }
@@ -266,6 +272,26 @@ trap 'on_signal HUP 129' HUP
 
 log "SESSION_START $SID kind=$KIND hosts=${ROLES[*]} cap=$CAP EUR dry_run=$DRY sim_ssh_iap=$SIM_SSH_IAP permissive_ivi=$IVI_PERMISSIVE"
 [ "$IVI_PERMISSIVE" = 1 ] && log "every result of this session is conditional on a permissive IVI (--permissive-ivi)"
+
+# per-session settings of the remote entries (R6): a name on its host's list below that is set in this host's
+# environment goes to every step on that host (`env NAME=value` before the command) and into session.json, so a
+# guessed pattern or a time-out is changed for the next session without a commit
+REMOTE_ENV_guest="UNIT_REGISTERED_RE UNIT_NEGATION_RE BROKER_ERROR_RE UNIT_WAIT_S B12_DIR VERIFY_WAIT_S ADB_TIMEOUT_S
+                  UP_TIMEOUT_S CLOCK_READS CLOCK_MAX_OFFSET_S START_WAIT_S"
+REMOTE_ENV_score="DA_P10_1_CARLA_HOST GATEWAYD_RX_REGEX DA_P10_1_LATE_WAIT_S DA_P10_1_CUDA_RUNS DA_P10_1_ALIVE_HOLD_S
+                  DA_P10_1_STALL_HOLD_S DA_P10_1_SUPERVISED_WAIT_S"
+REMOTE_ENV_sim=""
+REMOTE_ENV_SET=""
+for _r in guest score sim; do
+  _l="REMOTE_ENV_$_r"; _a=()
+  for _n in ${!_l}; do
+    [ -n "${!_n+x}" ] || continue
+    _a+=("$_n=${!_n}"); REMOTE_ENV_SET="$REMOTE_ENV_SET $_r:$_n"
+  done
+  if [ ${#_a[@]} -gt 0 ]; then printf -v "RENV_$_r" '%s ' "env$(q "${_a[@]}")"; else printf -v "RENV_$_r" '%s' ""; fi
+done
+renv() { local n="RENV_$1"; printf '%s' "${!n}"; }
+[ -n "$REMOTE_ENV_SET" ] && log "per-session settings for the remote entries:$REMOTE_ENV_SET (values in session.json)"
 
 # ───────────── 1. preflight: nothing below starts a VM unless every check holds ─────────────
 fail() { FINAL_RC=$1; shift; log "$*"; exit "$FINAL_RC"; }
@@ -457,12 +483,12 @@ od() { echo "\$HOME/da-kit/$SID/out/$1"; }   # a step's output folder on the rem
 rstep() {   # rstep <role> <step> <timeout_s> <command...>: foreground step; a failure ends the session
   local r=$1 s=$2 to=$3; shift 3
   log "step $s on $(var "$r" VM): $*"; SEQ+=("$r:$s")
-  run_fg ssh_l "$r" "$to" "$HS run $s -- $*" >> "$IN/$r.steps.out" 2>&1; local rc=$?
+  run_fg ssh_l "$r" "$to" "$HS run $s -- $(renv "$r")$*" >> "$IN/$r.steps.out" 2>&1; local rc=$?
   log "step $s rc=$rc"
   [ "$rc" = 0 ] || { STEP_FAIL=$s; fetch_all; fail 5 "step $s failed (rc $rc)"; }
 }
 rstart() { local r=$1 s=$2; shift 2; log "start $s on $(var "$r" VM): $*"; SEQ+=("$r:$s&")
-  run_fg ssh_l "$r" 60 "$HS start $s -- $*" >> "$IN/$r.steps.out" 2>&1 || { STEP_FAIL=$s; fetch_all; fail 5 "start of $s failed"; }; }
+  run_fg ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*" >> "$IN/$r.steps.out" 2>&1 || { STEP_FAIL=$s; fetch_all; fail 5 "start of $s failed"; }; }
 rsignal() { run_fg ssh_l "$1" 60 "$HS signal $2 ${3:-INT}" >> "$IN/$1.steps.out" 2>&1; }
 rwait() {   # rwait <role> <step> <timeout_s>: waits for a detached step's status
   local r=$1 s=$2 end st; end=$(( $(date +%s) + $3 )); SEQ+=("$r:wait-$s")
