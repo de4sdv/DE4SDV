@@ -509,10 +509,12 @@ echo "$GATEWAY_PRE_SERIALIZED_DATA_SHA256  $H" | sha256sum -c --quiet - || die "
 step bazel
 cd "$WS"
 # stage the bench's packages: //visionpilot, //de4sdv_da_bench/{interfaces,actuation-adapter,launch-manager,
-# score-build/workspace}
+# score-build/workspace}, //de4sdv_da_bench/identity-recorder (B4) and //de4sdv_da_bench/ivi-warning/injector (P10-3's
+# test publisher)
 rm -rf "$WS/visionpilot" "$OVERLAY"
 mkdir -p "$WS/visionpilot" "$OVERLAY/interfaces" "$OVERLAY/actuation-adapter" "$OVERLAY/launch-manager" \
   "$OVERLAY/score-build/workspace/gateway_include/score/serializer"
+mkdir -p "$OVERLAY/identity-recorder" "$OVERLAY/ivi-warning/injector"
 (cd "$VP/VisionPilot" && tar --exclude='*.onnx' --exclude='*.pt' --exclude='*.pth' --exclude='*.mp4' -cf - .) | tar -xf - -C "$WS/visionpilot"
 cp "$HERE/workspace/visionpilot.BUILD.bazel" "$WS/visionpilot/BUILD.bazel"
 cp -a "$BENCH/interfaces/include" "$OVERLAY/interfaces/"
@@ -521,19 +523,23 @@ cp "$HERE/workspace/interfaces.BUILD.bazel" "$OVERLAY/interfaces/BUILD.bazel"
 cp "$BENCH/launch-manager/config/launch_manager_config.json" "$BENCH/score-path/config/launch_manager_config_path_only.json" \
   "$OVERLAY/launch-manager/"
 cp "$HERE/workspace/launch_manager.BUILD.bazel" "$OVERLAY/launch-manager/BUILD.bazel"
+for pkg in identity-recorder ivi-warning/injector; do
+  (cd "$BENCH/$pkg" && tar --exclude='tests' --exclude='__pycache__' -cf - .) | tar -xf - -C "$OVERLAY/$pkg"
+done
 cp "$HERE/workspace/BUILD.bazel" "$HERE/workspace/ort_cuda_check.cpp" "$OVERLAY/score-build/workspace/"
 cp "$CB/libcarla10.BUILD" "$ROOT/thirdparty.BUILD" "$OVERLAY/score-build/workspace/"
 cp "$H" "$OVERLAY/score-build/workspace/gateway_include/score/serializer/"
-# the identity recorder (lane B4) joins TARGETS and the bundle once its package exists
 TARGETS=(//visionpilot:VisionPilot //de4sdv_da_bench/actuation-adapter:actuation_adapter
          //de4sdv_da_bench/score-build/workspace:ort_cuda_check
          @score_lifecycle//score/launch_manager:launch_manager //de4sdv_da_bench/launch-manager:de4sdv_lm_config
-         //de4sdv_da_bench/launch-manager:de4sdv_lm_config_path_only)
+         //de4sdv_da_bench/launch-manager:de4sdv_lm_config_path_only
+         //de4sdv_da_bench/identity-recorder:identity_recorder //de4sdv_da_bench/identity-recorder:candidate_record_probe
+         //de4sdv_da_bench/ivi-warning/injector:warning_injector)
 start=$(date +%s)
 if ! bazel_feo build --config=x86_64-linux -c opt --jobs="$JOBS" --features=-treat_warnings_as_errors "${TARGETS[@]}" \
     > "$ROOT/logs/score-bazel.log" 2>&1; then
   grep -E "^ERROR|error:|undefined reference" "$ROOT/logs/score-bazel.log" | sed -n 1,30p
-  die "Bazel build of VisionPilot, the actuation adapter, ort_cuda_check, the Launch Manager or its configuration failed"
+  die "Bazel build of VisionPilot, the actuation adapter, ort_cuda_check, the Launch Manager, its configurations, the identity recorder, its probe or the test publisher failed"
 fi
 tail -n 8 "$ROOT/logs/score-bazel.log"
 echo "bazel build: $(( $(date +%s) - start )) s"
@@ -560,10 +566,13 @@ SB=$(bazel_feo info execution_root)/${VPO%/visionpilot/VisionPilot}
 [ -f "$SB/visionpilot/VisionPilot" ] || die "no VisionPilot binary under $SB"
 echo "S-CORE bazel-bin: $SB"
 # bin/ holds the binary names of the Launch Manager configuration (binary_name): vision_pilot, actuation_adapter,
-# gatewayd, someipd; identity_recorder joins with lane B4. launch_manager is the daemon, ort_cuda_check the GPU check.
+# gatewayd, someipd, identity_recorder. launch_manager is the daemon, ort_cuda_check the GPU check, candidate_record_probe
+# p10-1's late subscriber and warning_injector P10-3's test publisher.
 cp -L "$SB/visionpilot/VisionPilot" "$B/bin/vision_pilot"
 cp -L "$SB/de4sdv_da_bench/actuation-adapter/actuation_adapter" \
       "$SB/de4sdv_da_bench/score-build/workspace/ort_cuda_check" "$B/bin/"
+cp -L "$SB/de4sdv_da_bench/identity-recorder/identity_recorder" "$SB/de4sdv_da_bench/identity-recorder/candidate_record_probe" \
+      "$SB/de4sdv_da_bench/ivi-warning/injector/warning_injector" "$B/bin/"
 LMD=$(find -L "$SB/external" -path '*score_lifecycle*/score/launch_manager/src/daemon/launch_manager' -type f -print -quit)
 [ -n "$LMD" ] || die "no launch_manager daemon under $SB/external"
 cp -L "$LMD" "$B/bin/launch_manager"

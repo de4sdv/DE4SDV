@@ -42,7 +42,7 @@ index 7be62763..faad4514 100644
      PRIVATE
      config           # VisionPilotConfig, load_vision_pilot_config
 diff --git a/VisionPilot/app/vision_pilot.cpp b/VisionPilot/app/vision_pilot.cpp
-index f72d19a6..f3d2b75c 100644
+index f72d19a6..722e98e2 100644
 --- a/VisionPilot/app/vision_pilot.cpp
 +++ b/VisionPilot/app/vision_pilot.cpp
 @@ -18,6 +18,10 @@
@@ -95,7 +95,7 @@ index f72d19a6..f3d2b75c 100644
          frame = camera_interface->get_latest_frame();
          if (frame.empty())
          {
-@@ -190,6 +212,11 @@ int main(int argc, char** argv)
+@@ -190,6 +212,14 @@ int main(int argc, char** argv)
  
              vehicle_interface->write(plan.steering.empty() ? 0.0 : plan.steering[1], plan.acceleration);
              t_write = de4sdv::now_ns();  // DE4SDV VIS8
@@ -103,11 +103,14 @@ index f72d19a6..f3d2b75c 100644
 +            // DE4SDV S-CORE interface: the one hand-off of the plan's warnings, one event per plan
 +            // (MAP-DRIVING-DA-WARNING-REQUEST)
 +            if (score_interface) score_interface->warning_request_publisher().Publish(plan);
++            // DE4SDV S-CORE interface: the pass's capture simulation time for the visualization's frames.csv (B3)
++            if (score_interface && visualization_recorder)
++                visualization_recorder->set_pass_sim_time(score_interface->pass_capture_time_s());
 +#endif
  
              // DE4SDV VIS8: the one hand-off (copies, swaps into a single-slot mailbox, returns).
              if (visualization_recorder)
-@@ -209,6 +236,10 @@ int main(int argc, char** argv)
+@@ -209,6 +239,10 @@ int main(int argc, char** argv)
                  logging::Rerun::log_frame(r->frame_id, frame, warped, resized, *r, plan, ego_v, viz);
          }
          loop_stamps.push(stamp_frame_id, t_arrive, t_write, t_handoff, de4sdv::now_ns());  // DE4SDV VIS8
@@ -455,10 +458,10 @@ index 00000000..9afdd787
 +}  // namespace de4sdv::score_interface
 diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_interface.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_interface.hpp
 new file mode 100644
-index 00000000..b6ce0f56
+index 00000000..4bf1a0e3
 --- /dev/null
 +++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_interface.hpp
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,80 @@
 +// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
 +//
 +// The module as the loop sees it: the S-CORE branch beside vision_pilot.cpp:59-79 calls Start() when
@@ -471,6 +474,7 @@ index 00000000..b6ce0f56
 +#pragma once
 +
 +#include <cstdio>
++#include <limits>
 +#include <memory>
 +#include <mutex>
 +#include <string>
@@ -508,6 +512,11 @@ index 00000000..b6ce0f56
 +  // The end of a pass of the loop that handled a frame: one alive notification (CycleSupervision), none once SIGTERM
 +  // has arrived.
 +  void CycleCompleted();
++  // The capture simulation time of the frame of this pass (MAP-DRIVING-DA-CAMERA-IMAGE), NaN before the first: the
++  // loop hands it to the visualization recorder, whose frames.csv then aligns by simulation time (brief item B3).
++  double pass_capture_time_s() const {
++    return clock_.valid ? clock_.capture_time_s : std::numeric_limits<double>::quiet_NaN();
++  }
 +
 +  // The run's counters as one JSON object.
 +  std::string Summary() const;

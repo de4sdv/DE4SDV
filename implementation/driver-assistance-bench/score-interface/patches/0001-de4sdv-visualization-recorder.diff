@@ -219,10 +219,10 @@ index 00000000..faeb5a9f
 +#endif  // DE4SDV__LOOP_STAMPS_HPP_
 diff --git a/VisionPilot/modules/de4sdv/visualization_recorder/include/de4sdv/visualization_recorder.hpp b/VisionPilot/modules/de4sdv/visualization_recorder/include/de4sdv/visualization_recorder.hpp
 new file mode 100644
-index 00000000..3fc4cd42
+index 00000000..dceab32d
 --- /dev/null
 +++ b/VisionPilot/modules/de4sdv/visualization_recorder/include/de4sdv/visualization_recorder.hpp
-@@ -0,0 +1,141 @@
+@@ -0,0 +1,149 @@
 +// DE4SDV visualization recorder (readiness probe VIS8, draft; not part of upstream VisionPilot).
 +//
 +// Records VisionPilot's visualization (upstream's VisualInterface::build_frame: path corridor coloured by the
@@ -247,6 +247,8 @@ index 00000000..3fc4cd42
 +//   DE4SDV_VISUALIZATION_FPS           nominal frame rate written into the container, default 10 (the real
 +//                                times are in the sidecar CSV)
 +// Sidecar files next to the video: <video>.frames.csv (one row per encoded frame) and <video>.summary.txt.
++// frames.csv's last column, sim_time_s, is the capture simulation time of the frame the visualization drew, when
++// the loop gave one with set_pass_sim_time() (the DE4SDV S-CORE interface does, DE4SDV B3); empty otherwise.
 +#ifndef DE4SDV__VISUALIZATION_RECORDER_HPP_
 +#define DE4SDV__VISUALIZATION_RECORDER_HPP_
 +
@@ -255,6 +257,7 @@ index 00000000..3fc4cd42
 +#include <atomic>
 +#include <cstdint>
 +#include <cstdio>
++#include <limits>
 +#include <memory>
 +#include <string>
 +#include <thread>
@@ -311,6 +314,9 @@ index 00000000..3fc4cd42
 +                    double speed_limit_ms,
 +                    int64_t t_arrive_ns);
 +
++        // DE4SDV B3: the capture simulation time of this pass's frame, for the next submit() only (loop thread).
++        void set_pass_sim_time(double sim_time_s) { pass_sim_time_s_ = sim_time_s; }
++
 +        // VisualInterface: the recorder is fed by submit(), never by the in-loop visualize() path.
 +        bool visualize(cv::Mat&, const visionpilot::models::InferenceFrameResult&, const Plan&, double,
 +                       const cv::Mat&, double) override
@@ -335,6 +341,7 @@ index 00000000..3fc4cd42
 +            uint64_t frame_id = 0;
 +            int64_t t_arrive_ns = 0;
 +            int64_t t_submit_ns = 0;
++            double sim_time_s = std::numeric_limits<double>::quiet_NaN();  // DE4SDV B3
 +        };
 +
 +        void worker_main();
@@ -351,6 +358,7 @@ index 00000000..3fc4cd42
 +        static constexpr unsigned kNew = 4u;
 +        Item buf_[3];
 +        unsigned back_ = 0;   // loop thread only
++        double pass_sim_time_s_ = std::numeric_limits<double>::quiet_NaN();  // loop thread only (DE4SDV B3)
 +        unsigned front_ = 1;  // worker thread only
 +        std::atomic<unsigned> middle_{2u};
 +        std::atomic<bool> stopping_{false};
@@ -366,10 +374,10 @@ index 00000000..3fc4cd42
 +#endif  // DE4SDV__VISUALIZATION_RECORDER_HPP_
 diff --git a/VisionPilot/modules/de4sdv/visualization_recorder/src/visualization_recorder.cpp b/VisionPilot/modules/de4sdv/visualization_recorder/src/visualization_recorder.cpp
 new file mode 100644
-index 00000000..486fcc2e
+index 00000000..0d392aff
 --- /dev/null
 +++ b/VisionPilot/modules/de4sdv/visualization_recorder/src/visualization_recorder.cpp
-@@ -0,0 +1,268 @@
+@@ -0,0 +1,273 @@
 +// DE4SDV visualization recorder (readiness probe VIS8, draft). See the header for the design and the switches.
 +#include <de4sdv/visualization_recorder.hpp>
 +#include <de4sdv/loop_stamps.hpp>
@@ -380,6 +388,7 @@ index 00000000..486fcc2e
 +#include <signal.h>
 +
 +#include <cerrno>
++#include <cmath>
 +#include <cstdlib>
 +#include <cstring>
 +#include <exception>
@@ -497,7 +506,7 @@ index 00000000..486fcc2e
 +        csv_ = std::fopen(csv.c_str(), "w");
 +        if (csv_)
 +            std::fprintf(csv_, "video_index,frame_id,t_arrive_ns,t_submit_ns,t_worker_start_ns,t_drawn_ns,"
-+                               "t_encoded_ns\n");
++                               "t_encoded_ns,sim_time_s\n");
 +
 +        // Preallocate the three image buffers so the first hand-offs do not allocate either.
 +        for (Item& it : buf_) it.image.create(opt_.frame_size, CV_8UC3);
@@ -532,6 +541,8 @@ index 00000000..486fcc2e
 +        it.frame_id = result.frame_id;
 +        it.t_arrive_ns = t_arrive_ns;
 +        it.t_submit_ns = now_ns();
++        it.sim_time_s = pass_sim_time_s_;  // DE4SDV B3: this pass's capture simulation time, or NaN
++        pass_sim_time_s_ = std::numeric_limits<double>::quiet_NaN();
 +        // Publish: the filled buffer becomes the waiting one; the loop gets the previous waiting buffer back.
 +        const unsigned old = middle_.exchange(back_ | kNew, std::memory_order_acq_rel);
 +        back_ = old & 3u;
@@ -571,13 +582,15 @@ index 00000000..486fcc2e
 +                if (ok)
 +                {
 +                    written_.fetch_add(1, std::memory_order_relaxed);
++                    char sim[32] = "";  // DE4SDV B3: empty when the loop gave no simulation time
++                    if (std::isfinite(work.sim_time_s)) std::snprintf(sim, sizeof sim, "%.6f", work.sim_time_s);
 +                    if (csv_)
-+                        std::fprintf(csv_, "%llu,%llu,%lld,%lld,%lld,%lld,%lld\n",
++                        std::fprintf(csv_, "%llu,%llu,%lld,%lld,%lld,%lld,%lld,%s\n",
 +                                     static_cast<unsigned long long>(video_index_),
 +                                     static_cast<unsigned long long>(work.frame_id),
 +                                     static_cast<long long>(work.t_arrive_ns),
 +                                     static_cast<long long>(work.t_submit_ns), static_cast<long long>(t0),
-+                                     static_cast<long long>(t1), static_cast<long long>(t2));
++                                     static_cast<long long>(t1), static_cast<long long>(t2), sim);
 +                    ++video_index_;
 +                }
 +            }

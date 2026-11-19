@@ -72,8 +72,12 @@ the CARLA client; OpenCV, Arrow, VisionPilot and the gateway come on top. It dow
 | `rerun` | Rerun C++ SDK 0.34.1 and its Arrow 18, static | run e |
 | `thirdparty` | ONNX Runtime 1.26.0 GPU (shared), Eigen 5.0.0, the CppAD and Ipopt headers, CARLA's Boost headers, nlohmann json, GStreamer include directories | new |
 | `gateway` | inc_someip_gateway `d9eac670`: gatewayd, someipd, the null serializer and the warning's config binary (`score-path/config/`), at communication 0.6.0, baselibs 0.2.17 and lifecycle 0.10.0 | probe P5, brief R4 |
-| `bazel` | `//visionpilot:VisionPilot`, `//de4sdv_da_bench/actuation-adapter:actuation_adapter`, `//de4sdv_da_bench/score-build/workspace:ort_cuda_check`, the Launch Manager daemon `@score_lifecycle//score/launch_manager:launch_manager` and `//de4sdv_da_bench/launch-manager:de4sdv_lm_config` (Lifecycle's own schema check, mapping and flatbuffer of `launch-manager/config/launch_manager_config.json`) | new |
-| `bundle` | `bin/` with the Launch Manager's binary names (`vision_pilot`, `actuation_adapter`, `gatewayd`, `someipd`) plus `launch_manager` and `ort_cuda_check`; `lib/`; `config/` (`launch_manager/` with the flatbuffer, `gateway/`, `actuation_adapter/`, `visionpilot/`); the networks, the icons; binary checks, the Lifecycle client symbols in both supervised binaries; `ort_cuda_check --cpu-only`; `SHA256SUMS` | new |
+| `bazel` | `//visionpilot:VisionPilot`, `//de4sdv_da_bench/actuation-adapter:actuation_adapter`, `//de4sdv_da_bench/score-build/workspace:ort_cuda_check`, the Launch Manager daemon `@score_lifecycle//score/launch_manager:launch_manager`, `//de4sdv_da_bench/launch-manager:de4sdv_lm_config` and `:de4sdv_lm_config_path_only` (Lifecycle's own schema check, mapping and flatbuffer of `launch-manager/config/launch_manager_config.json` and of `score-path/config/launch_manager_config_path_only.json`), the identity recorder and its late subscriber `//de4sdv_da_bench/identity-recorder:identity_recorder` and `:candidate_record_probe`, and P10-3's test publisher `//de4sdv_da_bench/ivi-warning/injector:warning_injector` | new |
+| `bundle` | `bin/` with the Launch Manager's binary names (`vision_pilot`, `actuation_adapter`, `gatewayd`, `someipd`, `identity_recorder`) plus `launch_manager`, `ort_cuda_check`, `candidate_record_probe` and `warning_injector`; `lib/`; `config/` (`launch_manager/` with both flatbuffers beside their JSON, `gateway/`, `actuation_adapter/`, `visionpilot/` with upstream's files and the derived `homography_C_matrix.yaml`); the networks, the icons; binary checks, the Lifecycle client symbols in both supervised binaries; `ort_cuda_check --cpu-only`; `SHA256SUMS` | new |
+
+The bundle is the input of `../score-path/scripts/stage_score_side.py`. Every path that the staging requires or reads
+when present comes from the `bundle` stage; `tests/test_score_build.py` checks that contract statically, from both
+scripts.
 
 The `visionpilot` stage first runs `score-interface/check_patch.sh`. It then copies `VisionPilot/` of the pin with
 patches 0001 and 0002 into the package `//visionpilot`, with the overlay as its `BUILD.bazel`. No upstream file
@@ -156,6 +160,29 @@ The probes must show what these tests cannot:
   loads in the S-CORE binary; the second-libstdc++ assumption holds for the planner; `nvh264enc` encodes natively.
 - The first closed-loop probe: the process runs against CARLA 1.0.
 
+## The p10-1 check (`scripts/p10_1_check.sh`)
+
+`ENTRY_SCORE_P10_1` of `../session/entrypoints.env`, run as `p10_1_check.sh <out>` on the S-CORE host. It writes one
+line per check, `PASS`, `FAIL` or `NOT RUN` with its detail, into `<out>/p10_1_verdicts.txt` and
+`p10_1_verdicts.json`. It exits 1 on any FAIL. A NOT RUN is no pass: the line says what is missing.
+
+| Check | What it shows | Needs |
+|---|---|---|
+| C1 | the Launch Manager takes the full and the path-only configuration; the recorder reports running before `vision_pilot` and `actuation_adapter` start; `gatewayd` starts after `someipd` | the bundle |
+| C2 | `LCM_ALIVE_INTERFACE_PATH` is set in the candidate's and the adapter's environment; both log the start of their supervision; no expiry in `DA_P10_1_ALIVE_HOLD_S` | a ticking world |
+| C3 | a SIGSTOPped candidate leads to the expiry and `fallback_run_target` in the Launch Manager's log; the candidate and the adapter are gone; the recorder, `someipd` and `gatewayd` run on with the same pids | a ticking world |
+| C4 | mw::com takes the ASIL B command path: the candidate sent driving commands and the adapter accepted one | a ticking world |
+| C5 | `gatewayd` (QM) receives from a process of global ASIL B: three sends of the test publisher, matched by `GATEWAYD_RX_REGEX` in the Launch Manager's log | `GATEWAYD_RX_REGEX` (else NOT RUN) |
+| C6 | no pass after the first of the three networks on the CUDA provider takes longer than 0.4 s (`ort_cuda_check`, `DA_P10_1_CUDA_RUNS` runs each) | the bundle's `ort_cuda_check` |
+| C7 | the candidate record reaches a subscriber that subscribes after the first publication (`candidate_record_probe`), with the file's digest | the bundle's probe |
+| C8 | the candidate on a replayed clip: always NOT RUN, since the S-CORE interface module has no clip replayer and the brief's B0 clip replayer is not in the bench | — |
+
+C2 to C4 need the candidate's first completed pass, so a CARLA 1.0 server with a world that ticks at
+`DA_P10_1_CARLA_HOST`. The caller starts the world side's pacer. Without it they are NOT RUN. C6 times each network
+alone, one after another, not the loop's pass with its pre- and post-processing. The dry runs
+(`tests/test_p10_1_check.py`) use the fake Launch Manager of `../score-path/tests/` and stand-ins for the probe and
+`ort_cuda_check`. They show the verdict logic only.
+
 ## Fallback (brief R3)
 
 Use it if the `bazel` stage fails and cannot be fixed in time. Run `fallback_cmake_build.sh --root /opt/da-b2` after
@@ -171,8 +198,6 @@ The script replaces `bundle/bin/vision_pilot` and keeps the Bazel binary as `vis
 
 ## Not done here (deferred)
 
-- The identity recorder (B4) is not built here yet. The `bazel` stage has one target list; add its label and its
-  `bin/identity_recorder` copy when that lane lands.
 - VisionPilot's mw::com configuration and the run configuration (`source.mode = score`, `engine.provider = cuda`) are
   B6 and B13 inputs. The bundle carries upstream's `config/` unchanged.
 - `ldconfig` makes the CUDA libraries visible system-wide on the S-CORE host. No `LD_LIBRARY_PATH` is set.

@@ -9,6 +9,9 @@ checked without it:
 - the overlay BUILD file of VisionPilot names exactly the source files that upstream's CMake build compiles in the
   bench's configuration, plus those of the patch series, and each of them exists at the pin or in a patch;
 - the workspace edits the build script makes find their anchors in the repository's FEO bench diff;
+- the bundle contract: every path that score-path/scripts/stage_score_side.py requires, or reads when present, is
+  produced by the bundle step (read statically from both scripts), each binary copied from Bazel's output is a target
+  of the bazel stage in a staged package;
 - the pinned GPU runtime covers every CUDA library that the pinned ONNX Runtime CUDA provider needs;
 - C++ files that name fixed-width integer types include <cstdint>.
 
@@ -409,7 +412,7 @@ def added_lines_of_bench_diff() -> str:
 
 
 def test_bundle_bin_holds_the_launch_manager_binary_names() -> None:
-    """bin/ of the bundle is the Launch Manager's bin_dir: every binary_name except the identity recorder (lane B4)."""
+    """bin/ of the bundle is the Launch Manager's bin_dir: every binary_name of its configuration."""
     import json
     config = json.loads((BENCH / "launch-manager" / "config" / "launch_manager_config.json").read_text())
     names = {c["component_properties"]["binary_name"] for c in config["components"].values()}
@@ -421,7 +424,219 @@ def test_bundle_bin_holds_the_launch_manager_binary_names() -> None:
     assert 'cp -L "$GB/score/gatewayd/gatewayd" "$GB/score/someipd/someipd" "$B/bin/"' in bundle
     assert 'cp -L "$LMD" "$B/bin/launch_manager"' in bundle
     assert "bin/VisionPilot" not in bundle
-    assert "identity_recorder" not in re.sub(r"#.*", "", bundle)  # not built tonight
+    produced = {p for p in bundle_step_outputs(script)[0] if p.startswith("bin/")}
+    assert {f"bin/{n}" for n in names} <= produced
+
+
+# --- the bundle contract: stage_score_side.py reads, build_score_bench.sh's bundle step produces --------------------
+
+STAGE_PY = BENCH / "score-path" / "scripts" / "stage_score_side.py"
+
+
+def _shell_commands(text: str) -> list[str]:
+    """The commands of a shell fragment: comments dropped, continuation lines joined, for-loops over literal words
+    unrolled (the loop variable substituted in the body)."""
+    lines = [ln for ln in text.replace("\\\n", " ").splitlines() if not ln.lstrip().startswith("#")]
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        m = re.match(r"\s*for (\w+) in ([^;$]+); do\s*$", lines[i])
+        if m:
+            var, words = m.group(1), m.group(2).split()
+            j = i + 1
+            while lines[j].strip() != "done":
+                j += 1
+            for w in words:
+                for body in lines[i + 1:j]:
+                    out.append(body.replace("${%s}" % var, w).replace("$" + var, w))
+            i = j + 1
+            continue
+        out.append(lines[i])
+        i += 1
+    return out
+
+
+def bundle_step_outputs(script: str) -> tuple[set[str], list[tuple[str, str]], set[str]]:
+    """What the bundle step of build_score_bench.sh writes under $B, read statically: the bundle-relative paths (a
+    source glob stays a glob, "<dir>/." contents become "<dest>/<from:dir>"), each (bundle path, source) pair, and the
+    bundle-relative directories copied as a whole."""
+    import shlex
+    bundle = script[script.index("\nstep bundle\n"):]
+    produced: set[str] = set()
+    pairs: list[tuple[str, str]] = []
+    whole_dirs: set[str] = set()
+    found: dict[str, str] = {}  # X=$(find ... -name "<name>" ...): $X is a file of that name
+    for cmd in _shell_commands(bundle):
+        m = re.match(r"""\s*(\w+)=\$\(find .*-name ['"]([^'"]+)['"]""", cmd)
+        if m:
+            found[m.group(1)] = m.group(2)
+        body = cmd.strip().lstrip("(").split("&&")[-1].strip()
+        if body.startswith("cp "):
+            body = re.split(r"\s(?:2>|\|\|)", body)[0]
+            words = [w for w in shlex.split(body)[1:] if not w.startswith("-")]
+            dest, sources = words[-1], words[:-1]
+            if not dest.startswith("$B/"):
+                continue
+            rel = dest[len("$B/"):]
+            for src in sources:
+                if src.startswith("$") and src[1:] in found:
+                    src = found[src[1:]]
+                if src.endswith("/."):
+                    path = rel.rstrip("/") + "/<from:" + src[:-2] + ">"
+                elif rel.endswith("/"):
+                    path = rel + src.rstrip("/").rsplit("/", 1)[-1]
+                else:
+                    path = rel
+                    if "-a" in shlex.split(body):
+                        whole_dirs.add(rel)
+                produced.add(path)
+                pairs.append((path, src))
+        for m in re.finditer(r'--output "\$B/([^"]+)"', cmd):
+            produced.add(m.group(1))
+            pairs.append((m.group(1), "--output"))
+    if re.search(r'\(cd "\$B" && find \. -type f ! -name SHA256SUMS -print0 \| sort -z \| xargs -0 sha256sum '
+                 r'> SHA256SUMS\)', bundle):
+        produced.add("SHA256SUMS")
+    return produced, pairs, whole_dirs
+
+
+def _literal(node):
+    import ast
+    return ast.literal_eval(node)
+
+
+def staging_reads() -> tuple[dict[str, bool], list[str]]:
+    """The bundle paths stage_score_side.py reads, read statically from its constants and its bundle expressions:
+    {bundle-relative path or glob: required}, and every bundle expression of the script as a path prefix."""
+    import ast
+    text = STAGE_PY.read_text()
+    tree = ast.parse(text)
+    consts: dict[str, object] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            try:
+                consts[node.targets[0].id] = _literal(node.value)
+            except ValueError:
+                pass
+    assert re.search(r'^BUNDLE_LAUNCH_DIR = Path\("config"\) / "launch_manager"$', text, flags=re.M)
+    launch_dir = "config/launch_manager"
+    reads: dict[str, bool] = {}
+    for name in consts["REQUIRED_BINARIES"]:
+        reads[f"bin/{name}"] = True
+    for name in consts["OPTIONAL_BINARIES"]:
+        reads[f"bin/{name}"] = False
+    for serialized in consts["SERIALIZED"].values():
+        reads[f"{launch_dir}/{serialized}"] = False
+        reads[f"{launch_dir}/{serialized[:-len('.bin')]}.json"] = False
+    for name in consts["CALIBRATION_FILES"]:
+        reads[f"config/visionpilot/{name}"] = False  # the fallback of mode path; p10-1 copies them too
+    reads.update({
+        "lib/*": True,
+        "config/gateway/someip_gateway_config_warning.bin": True,
+        "config/visionpilot/vision_pilot.conf": True,
+        "share/visionpilot/modules/models/weights/*.onnx": True,
+        "share/visionpilot/assets": False,
+        "facts/*.diff": True,
+        "facts/SHA256SUMS": False,
+    })
+    # every expression on the bundle in the script, as its literal prefix: none may read outside the paths above
+    prefixes = []
+    for m in re.finditer(r'(?:args\.)?bundle((?:\s*/\s*(?:"[^"]+"|BUNDLE_LAUNCH_DIR))+)', text):
+        parts = re.findall(r'"([^"]+)"|(BUNDLE_LAUNCH_DIR)', m.group(1))
+        prefixes.append("/".join(a or launch_dir for a, _ in [(p[0], p[1]) for p in parts]))
+    return reads, prefixes
+
+
+def _covers(produced: set[str], path: str) -> bool:
+    import fnmatch
+    return any(p == path or fnmatch.fnmatchcase(p, path) or fnmatch.fnmatchcase(path, p) for p in produced)
+
+
+def test_the_bundle_step_produces_every_path_the_staging_reads() -> None:
+    """The bundle contract: every path that score-path/scripts/stage_score_side.py requires, or reads when present,
+    is produced by the bundle step of build_score_bench.sh, before the bundle's SHA256SUMS is taken."""
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    produced, pairs, _ = bundle_step_outputs(script)
+    reads, prefixes = staging_reads()
+    assert {"bin/identity_recorder", "bin/candidate_record_probe", "bin/warning_injector"} <= set(reads)
+    # the staging reads nothing the list above does not name
+    for prefix in prefixes:
+        assert any(r == prefix or r.startswith(prefix + "/") for r in reads), prefix
+    # upstream's config/ comes in whole: its files at the pin stand for "<from:$VP/VisionPilot/config>"
+    upstream_config = "config/visionpilot/<from:$VP/VisionPilot/config>"
+    assert upstream_config in produced
+    expanded = set(produced)
+    if have_clone():
+        listing = subprocess.run(["git", "-C", str(CLONE), "ls-tree", "--name-only", f"{PIN}:VisionPilot/config"],
+                                 check=True, capture_output=True, text=True).stdout.split()
+        added = {p.split("/", 1)[1] for p in patch_added_files() if p.startswith("config/")}
+        expanded |= {f"config/visionpilot/{n}" for n in set(listing) | added}
+    else:
+        expanded |= {"config/visionpilot/vision_pilot.conf", "config/visionpilot/H.yaml"}
+    missing = [path for path in reads if not _covers(expanded, path)]
+    assert not missing, missing
+    # the sums are taken last, over every file: nothing is written into $B after them
+    bundle = script[script.index("\nstep bundle\n"):]
+    sums = bundle.index('(cd "$B" && find . -type f ! -name SHA256SUMS')
+    assert not re.search(r'"\$B/', bundle[sums:].split("tar -czf", 1)[0].split("\n", 1)[1])
+    assert "SHA256SUMS" in produced
+
+
+def test_the_bundle_binaries_are_built_targets_of_staged_packages() -> None:
+    """Each bin/ entry copied from Bazel's output is a target of the bazel stage, in a package that the overlay
+    stages from the repository and that declares it."""
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    bazel = script[script.index("\nstep bazel\n"):script.index("\nstep bundle\n")]
+    targets = set(re.search(r"TARGETS=\(([^)]*)\)", bazel).group(1).split())
+    _, pairs, _ = bundle_step_outputs(script)
+    from_bazel = [(path, src) for path, src in pairs if src.startswith("$SB/de4sdv_da_bench/")]
+    names = {path for path, _ in from_bazel}
+    assert {"bin/identity_recorder", "bin/candidate_record_probe", "bin/warning_injector", "bin/actuation_adapter",
+            "bin/ort_cuda_check"} <= names
+    for path, src in from_bazel:
+        pkg, name = src[len("$SB/de4sdv_da_bench/"):].rsplit("/", 1)
+        assert f"//de4sdv_da_bench/{pkg}:{name}" in targets, src
+        assert path == f"bin/{name}"
+        build = BENCH / pkg / "BUILD.bazel"
+        if pkg == "score-build/workspace":
+            build = BUILD_DIR / "workspace" / "BUILD.bazel"
+        assert re.search(r'cc_binary\(\s*name = "%s"' % re.escape(name), build.read_text()), (pkg, name)
+    commands = _shell_commands(bazel)
+    for pkg in ("identity-recorder", "ivi-warning/injector"):
+        assert any(f'"$OVERLAY/{pkg}"' in c and c.lstrip().startswith("mkdir -p") for c in commands), pkg
+        assert any(f'(cd "$BENCH/{pkg}" && tar' in c and f'-C "$OVERLAY/{pkg}"' in c for c in commands), pkg
+    # the labels those packages need resolve in the workspace
+    ws_build = (BUILD_DIR / "workspace" / "BUILD.bazel").read_text()
+    adapter = (BENCH / "actuation-adapter" / "BUILD.bazel").read_text()
+    for pkg in ("identity-recorder", "ivi-warning/injector"):
+        for label in re.findall(r'"(//de4sdv_da_bench/[^"]+|@score_[a-z]+//[^"]+)"', (BENCH / pkg / "BUILD.bazel").read_text()):
+            if label.startswith("//de4sdv_da_bench/score-build/workspace:"):
+                assert f'name = "{label.split(":")[1]}"' in ws_build, label
+            elif label.startswith("//de4sdv_da_bench/actuation-adapter:"):
+                assert f'name = "{label.split(":")[1]}"' in adapter, label
+            elif label.startswith("//de4sdv_da_bench/interfaces:"):
+                assert label == "//de4sdv_da_bench/interfaces:driver_assistance", label
+            else:
+                assert label in ("@score_communication//score/mw/com",
+                                 "@score_lifecycle//score/launch_manager:lifecycle_cc"), label
+
+
+def test_every_repository_source_of_the_bundle_exists() -> None:
+    """The bundle step's sources from this checkout (and from the pin, with the clone) exist."""
+    import glob
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    _, pairs, _ = bundle_step_outputs(script)
+    for _, src in pairs:
+        if src.startswith("$BENCH/"):
+            assert glob.glob(str(BENCH / src[len("$BENCH/"):])), src
+    if have_clone():
+        for rel in ("assets", "config", "scripts/find_homography_C_matrix.py"):
+            assert upstream_exists(rel), rel
+        weights = subprocess.run(["git", "-C", str(CLONE), "ls-tree", "--name-only",
+                                  f"{PIN}:VisionPilot/modules/models/weights"],
+                                 check=True, capture_output=True, text=True).stdout.split()
+        assert any(w.endswith(".onnx") for w in weights)
+        assert "--output" in upstream("scripts/find_homography_C_matrix.py")
 
 
 @pytest.mark.skipif(not ORT_NUPKG.is_file() or shutil.which("readelf") is None,
