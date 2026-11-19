@@ -24,7 +24,32 @@ FAKE_ADB = HERE / "fake_adb.py"
 
 
 def calls(d: Path) -> list[list[str]]:
-    return [json.loads(line)[1:] for line in (d / "calls.log").read_text().splitlines()]
+    return [c for _, c in stamped(d)]
+
+
+def stamped(d: Path) -> list[tuple[float, list[str]]]:
+    """The fake's calls with the time each began (this host's clock)."""
+    p = d / "calls.log"
+    lines = []
+    for line in (p.read_text().splitlines() if p.exists() else []):
+        try:
+            lines.append(json.loads(line))
+        except json.JSONDecodeError:   # a line the fake is still writing
+            break
+    return [(c[0], c[1:]) for c in lines]
+
+
+def recordings(d: Path) -> list[list[str]]:
+    return [c for c in calls(d) if any("screenrecord" in a for a in c)]
+
+
+def wait_until(what: str, cond, p: subprocess.Popen, timeout_s: float = 60) -> None:
+    """Wait for a state of the capture (the test orders the events itself; no sleep stands in for an order)."""
+    until = time.monotonic() + timeout_s
+    while not cond():
+        assert p.poll() is None, "the capture ended before %s: %s" % (what, p.communicate()[0])
+        assert time.monotonic() < until, "no %s within %s s" % (what, timeout_s)
+        time.sleep(0.01)
 
 
 @pytest.fixture()
@@ -40,12 +65,26 @@ def env(tmp_path: Path) -> dict[str, str]:
                 CLOCK_READS="5", LC_ALL="C")
 
 
-def test_capture_brackets_each_recording_with_the_guest_clock(tmp_path: Path, env: dict[str, str]) -> None:
+@pytest.mark.parametrize("call_delay_s", ["0", "0.25"], ids=["idle-host", "loaded-host"])
+def test_capture_brackets_each_recording_with_the_guest_clock(tmp_path: Path, env: dict[str, str],
+                                                              call_delay_s: str) -> None:
     out = tmp_path / "cap"
-    env = dict(env, SEGMENT_S="1")
+    limits = tmp_path / "limits"
+    limits.mkdir()
+    fake = Path(env["FAKE_ADB_DIR"])
+    # the fake's recordings reach their time limit when this test says so, not on this host's clock: the stop
+    # then comes while the second recording runs on a fast host and on a loaded one alike (a fixed sleep did not)
+    env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits), FAKE_CALL_DELAY_S=call_delay_s)
     p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "30"], env=env,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    time.sleep(2.5)   # the first segment ends by its time limit, the second is running
+    wait_until("first recording", lambda: len(recordings(fake)) >= 1, p)
+    # past the first recording's 1 s on this host's clock it still runs: two polls of it after that time
+    t_limit = [t for t, c in stamped(fake) if any("screenrecord" in a for a in c)][0] + 1.2
+    later = lambda: [c for t, c in stamped(fake) if t >= t_limit]
+    wait_until("two calls after the first recording's time on this host's clock", lambda: len(later()) >= 2, p)
+    assert all(any("kill -0" in a for a in c) for c in later()[:2]), later()[:2]
+    (limits / "limit_1").touch()   # the first segment ends by its time limit
+    wait_until("second recording", lambda: len(recordings(fake)) >= 2, p)
     stop = subprocess.run(["bash", str(CAPTURE), "stop", str(out), "--wait-s", "30"], env=env, capture_output=True,
                           text=True, timeout=60)
     log, _ = p.communicate(timeout=60)
@@ -53,8 +92,8 @@ def test_capture_brackets_each_recording_with_the_guest_clock(tmp_path: Path, en
     assert p.returncode == 0, log
     cap = json.loads((out / "capture.json").read_text())
     segs = cap["segments"]
-    assert len(segs) >= 2
-    assert segs[0]["end"] == "time-limit" and segs[-1]["end"] == "stop"
+    assert [s["end"] for s in segs] == ["time-limit", "stop"]
+    assert cap["end"] == "stop"
     for s in segs:
         assert s["host_before_s"] <= s["host_after_s"]
         assert s["guest_before_s"] <= s["guest_after_s"] <= s["guest_end_s"]
@@ -88,6 +127,40 @@ def test_capture_brackets_each_recording_with_the_guest_clock(tmp_path: Path, en
     assert (out / "audio_flinger_start.txt").exists() and (out / "audio_flinger_end.txt").exists()
     assert "receipt" in (out / "logcat.txt").read_text()
     assert "no audio capture" in cap["sound"]
+
+
+@pytest.mark.parametrize("window", ["poll", "pull"])
+def test_a_stop_after_a_segments_time_limit_starts_no_new_segment(tmp_path: Path, env: dict[str, str],
+                                                                   window: str) -> None:
+    """The stop comes just after a segment reached its time limit: at the poll that finds it ended (before its end
+    marker) or while its file is pulled (after it). Those are the windows of the flaky run on x86. No new segment
+    starts, and the last segment says truly how it ended."""
+    out = tmp_path / "cap"
+    limits = tmp_path / "limits"
+    limits.mkdir()
+    (limits / "limit_1").touch()
+    fake = Path(env["FAKE_ADB_DIR"])
+    held = {"poll": lambda c: any("kill -0 4000" in a for a in c),
+            "pull": lambda c: "pull" in c and c[-1].endswith("/seg_1.mp4")}[window]
+    env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits))
+    env["FAKE_HOLD_" + window.upper()] = "1:%s" % (out / "STOP")   # the held call answers once the stop came
+    p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "30"], env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    wait_until("the held call", lambda: any(held(c) for c in calls(fake)), p)
+    stop = subprocess.run(["bash", str(CAPTURE), "stop", str(out), "--wait-s", "30"], env=env, capture_output=True,
+                          text=True, timeout=60)
+    log, _ = p.communicate(timeout=60)
+    assert stop.returncode == 0, stop.stdout + log
+    assert p.returncode == 0, log
+    cap = json.loads((out / "capture.json").read_text())
+    assert cap["end"] == "stop"
+    assert [s["end"] for s in cap["segments"]] == ["time-limit"]
+    assert len(recordings(fake)) == 1
+    assert not any(any("kill -INT" in a for a in c) for c in calls(fake))
+    s = cap["segments"][0]
+    assert s["guest_before_s"] <= s["guest_after_s"] <= s["guest_end_s"]
+    assert s["sha256"] == hashlib.sha256((out / "seg_1.mp4").read_bytes()).hexdigest()
+    assert (out / "capture.done").read_text() == "capture ended (stop), 1 segment(s)\n"
 
 
 def test_capture_ends_at_its_limit_without_a_stop(tmp_path: Path, env: dict[str, str]) -> None:
