@@ -168,17 +168,23 @@ line per check, `PASS`, `FAIL` or `NOT RUN` with its detail, into `<out>/p10_1_v
 
 | Check | What it shows | Needs |
 |---|---|---|
-| C1 | the Launch Manager takes the full and the path-only configuration; the recorder reports running before `vision_pilot` and `actuation_adapter` start; `gatewayd` starts after `someipd` | the bundle |
+| C1 | the Launch Manager takes the full and the path-only configuration; the recorder reports running before `vision_pilot` and `actuation_adapter` start; `gatewayd` starts after `someipd` | the bundle; for the full configuration a CARLA 1.0 server at `DA_P10_1_CARLA_HOST` (else NOT RUN, or FAIL when the path part failed) |
 | C2 | `LCM_ALIVE_INTERFACE_PATH` is set in the candidate's and the adapter's environment; both log the start of their supervision; no expiry in `DA_P10_1_ALIVE_HOLD_S` | a ticking world |
 | C3 | a SIGSTOPped candidate leads to the expiry and `fallback_run_target` in the Launch Manager's log; the candidate and the adapter are gone; the recorder, `someipd` and `gatewayd` run on with the same pids | a ticking world |
 | C4 | mw::com takes the ASIL B command path: the candidate sent driving commands and the adapter accepted one | a ticking world |
-| C5 | `gatewayd` (QM) receives from a process of global ASIL B: three sends of the test publisher, matched by `GATEWAYD_RX_REGEX` in the Launch Manager's log | `GATEWAYD_RX_REGEX` (else NOT RUN) |
+| C5 | `gatewayd` (QM) receives from a process of global ASIL B: three sends of the test publisher, matched by `GATEWAYD_RX_REGEX` in the Launch Manager's log | a receive line of `gatewayd`, which as built prints none per sample (else NOT RUN; `p10-3` judges the receipt on the guest) |
 | C6 | no pass after the first of the three networks on the CUDA provider takes longer than 0.4 s (`ort_cuda_check`, `DA_P10_1_CUDA_RUNS` runs each) | the bundle's `ort_cuda_check` |
 | C7 | the candidate record reaches a subscriber that subscribes after the first publication (`candidate_record_probe`), with the file's digest | the bundle's probe |
 | C8 | the candidate on a replayed clip: always NOT RUN, since the S-CORE interface module has no clip replayer and the brief's B0 clip replayer is not in the bench | — |
 
 C2 to C4 need the candidate's first completed pass, so a CARLA 1.0 server with a world that ticks at
-`DA_P10_1_CARLA_HOST`. The caller starts the world side's pacer. Without it they are NOT RUN. C6 times each network
+`DA_P10_1_CARLA_HOST`. The caller starts the world side's pacer. Without it they are NOT RUN. C1's full configuration
+needs that server too: the real `vision_pilot` and `actuation_adapter` exit at once on a refused CARLA connection, and
+the Launch Manager then switches to `fallback_run_target` (S-CORE build session 5 on the L4, 2026-11-19). So without
+`DA_P10_1_CARLA_HOST`, or when its port 2000 does not answer, the check never starts the full configuration: C1 is
+NOT RUN, its line names the reason and the path part's result, and it is FAIL when the path part failed. `gatewayd` prints
+no line per received sample (the same session: only its offer lines), so C5 stays NOT RUN without a pattern, and
+`p10-3` judges the receipt on the guest. C6 times each network
 alone, one after another, not the loop's pass with its pre- and post-processing. The dry runs
 (`tests/test_p10_1_check.py`) use the fake Launch Manager of `../score-path/tests/` and stand-ins for the probe and
 `ort_cuda_check`. They show the verdict logic only.

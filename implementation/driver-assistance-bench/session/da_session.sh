@@ -505,8 +505,9 @@ cleanup() {
   [ -n "$LEFT_RUNNING" ] && log "VMS LEFT RUNNING, THEY BILL: STOP THEM BY HAND NOW:$LEFT_RUNNING (exit 11 in place of $RC_STEPS)"
   exit "$rc"
 }
-p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE host alone: which of the 8 did not run
-  # or failed, from the fetched p10_1_verdicts.json, in one line of session.log and in session.json (p10_1)
+p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE host alone (without a CARLA server C1's
+  # full start and C2-C4 are NOT RUN, C5 without a receive line of gatewayd, C8 without a replayer): which of the 8 did
+  # not run or failed, from the fetched p10_1_verdicts.json, in one line of session.log and in session.json (p10_1)
   local f=$IN/score/out/p10_1/p10_1_verdicts.json line
   line=$(python3 - "$f" "$IN/p10_1_summary.json" <<'PY'
 import json, sys

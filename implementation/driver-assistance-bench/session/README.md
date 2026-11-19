@@ -18,10 +18,15 @@ order, and stops everything it started on every exit.
 | `p10-3` | S-CORE host, guest host | guests created fresh, the app and its ACLs installed and verified, VXLAN both ends, S-CORE side up (someipd offers 0x4df1 at 192.168.98.1:30511), the SD multicast route, the broker's unit registration, the app restarted, IVI clock set, display capture on, injected warning requests, capture off, S-CORE side down |
 | `p10-2` | simulator host, S-CORE host, guest host | CARLA server, CARLA reachable from the S-CORE host, the guests as in `p10-3`, warm-up with the chase recorder (no candidate), ASM-DRIVING-005 and the camera capture (no candidate), the calibration file made on the lead host and put on the S-CORE host, then the ASM-DRIVING-006 run and two runs of SC-DRIVING-012 at 20 km/h, each with its own S-CORE side start and stop, recorder and display window (below) |
 
-A `p10-1` session judges only the checks of `p10_1_check.sh` that need the S-CORE host alone. C2 to C4 (the alive
-notifications, the stalled-candidate fallback, the ASIL B command path) need a ticking CARLA world
-(`DA_P10_1_CARLA_HOST` and the world side's pacer), C5 needs `GATEWAYD_RX_REGEX` (a per-session setting), and C8 has
-no clip replayer yet, so the check writes NOT RUN for them in such a session. After the fetch the session reads
+A `p10-1` session judges only the checks of `p10_1_check.sh` that need the S-CORE host alone. C1's full
+configuration needs a CARLA 1.0 server: the real `vision_pilot` and `actuation_adapter` exit at once on a refused
+CARLA connection (S-CORE build session 5 on the L4, 2026-11-19), so without `DA_P10_1_CARLA_HOST` the check never
+starts it, and C1 is NOT RUN with that reason and its path part's result (FAIL when the path part failed). C2 to C4
+(the alive notifications, the stalled-candidate fallback, the ASIL B command path) need a ticking CARLA world
+(`DA_P10_1_CARLA_HOST` and the world side's pacer). C5 needs a receive line of `gatewayd`, which prints none per
+received sample (the same session: only its offer lines), so it stays NOT RUN and `p10-3` judges the receipt on the
+guest. C8 has no clip replayer yet. The check writes NOT RUN for each of them in such a session. After the fetch the
+session reads
 `score/out/p10_1/p10_1_verdicts.json` and writes one line into `session.log`, and the same into `session.json`
 (`p10_1`: the line, `not_run`, `fail`, `pass`, `passed`):
 

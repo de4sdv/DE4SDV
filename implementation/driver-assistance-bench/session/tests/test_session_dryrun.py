@@ -1064,20 +1064,21 @@ def _verdicts(tmp: Path, verdicts: dict[str, str]) -> str:
 
 
 def test_a_p10_1_session_names_its_not_run_checks_and_is_not_reported_passed(tmp_path: Path) -> None:
-    # a p10-1 session runs only the checks that need the S-CORE host alone: C2-C4 need a ticking CARLA world, C5
-    # GATEWAYD_RX_REGEX, C8 a replayer; the record must never read as P10-1 passed
+    # a p10-1 session without a CARLA server runs only the checks that need the S-CORE host alone: C1's full start
+    # and C2-C4 need a CARLA server (C2-C4 a ticking world), C5 a receive line of gatewayd, C8 a replayer; the record
+    # must never read as P10-1 passed
     (tmp_path / "v").mkdir()
     v = {c: "PASS" for c in P10_1_CHECKS}
-    v.update({c: "NOT RUN" for c in P10_1_CHECKS if c[:2] in ("C2", "C3", "C4", "C5", "C8")})
+    v.update({c: "NOT RUN" for c in P10_1_CHECKS if c[:2] in ("C1", "C2", "C3", "C4", "C5", "C8")})
     v["C6_cuda_pass_time"] = "FAIL"
     r = run(tmp_path, "p10-1", FAKE_PACK_ADD=_verdicts(tmp_path / "v", v))
-    line = ("P10-1: 5 of 8 checks NOT RUN: C2_alive_notifications, C3_stalled_candidate_fallback, "
-            "C4_asil_b_command_path, C5_gatewayd_receives_from_asil_b_process, C8_candidate_on_a_replayed_clip; "
-            "FAIL: C6_cuda_pass_time; P10-1 NOT passed")
+    line = ("P10-1: 6 of 8 checks NOT RUN: C1_launch_manager_config_and_start_order, C2_alive_notifications, "
+            "C3_stalled_candidate_fallback, C4_asil_b_command_path, C5_gatewayd_receives_from_asil_b_process, "
+            "C8_candidate_on_a_replayed_clip; FAIL: C6_cuda_pass_time; P10-1 NOT passed")
     assert line in r.log, r.log
     rec = json.loads((r.incoming / "session.json").read_text())["p10_1"]
     assert rec["line"] == line and rec["passed"] is False and rec["fail"] == ["C6_cuda_pass_time"]
-    assert [c[:2] for c in rec["not_run"]] == ["C2", "C3", "C4", "C5", "C8"]
+    assert [c[:2] for c in rec["not_run"]] == ["C1", "C2", "C3", "C4", "C5", "C8"]
 
 
 def test_a_p10_1_session_with_every_check_passed_or_no_verdicts(tmp_path: Path) -> None:

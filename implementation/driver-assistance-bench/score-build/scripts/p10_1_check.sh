@@ -21,7 +21,8 @@
 #      sent commands and the adapter accepted one
 #   C5 gatewayd_receives_from_asil_b_process  gatewayd (QM) takes the warning request from a process of global ASIL
 #      B: the test publisher (the candidate's manifest values) sends, and gatewayd's output matches
-#      GATEWAYD_RX_REGEX once per send
+#      GATEWAYD_RX_REGEX once per send. gatewayd as built prints no line per received sample (session 5 on the L4:
+#      only its offer lines), so without that pattern C5 is NOT RUN and p10-3 judges the receipt on the guest
 #   C6 cuda_pass_time                         no pass after the first of the three networks on the CUDA provider
 #      (ort_cuda_check, the S-CORE toolchain's ONNX Runtime) takes longer than 0.4 s
 #   C7 candidate_record_late_subscriber       the candidate record reaches a subscriber that subscribes after it was
@@ -30,9 +31,11 @@
 #
 # The full start needs DA_CAMERA_CALIBRATION_DIR; without it, upstream's calibration from the bundle stands in, copied
 # into <out>/p10_1_calibration and named there (p10-1 judges nothing on the geometry).
-# C2 to C4 need the candidate's first completed pass, so images: a CARLA 1.0 server at DA_P10_1_CARLA_HOST with a
-# world that ticks (the world side's pacer, started by the caller). Without it they are NOT RUN. C1, C5 to C7 need no
-# simulator: C1 starts the full configuration against a CARLA host nobody serves and stops it after the start order.
+# C1's full part and C2 to C4 need a CARLA 1.0 server at DA_P10_1_CARLA_HOST whose port 2000 answers; C2 to C4 also a
+# world that ticks (the world side's pacer, started by the caller), since they need the candidate's first completed
+# pass. The real vision_pilot and actuation_adapter exit at once on a refused CARLA connection (session 5 on the L4),
+# so without such a server the full configuration is never started: C1 is NOT RUN, with the reason and its path
+# part's result (FAIL when the path part failed), and C2 to C4 are NOT RUN. C5 to C7 need no simulator.
 #
 # Settings: DA_CAMERA_CALIBRATION_DIR (unset), DA_P10_1_CARLA_HOST (none), GATEWAYD_RX_REGEX (unset), DA_P10_1_LATE_WAIT_S (3), DA_P10_1_CUDA_RUNS
 # (20), DA_P10_1_ALIVE_HOLD_S (10), DA_P10_1_STALL_HOLD_S (3), DA_P10_1_SUPERVISED_WAIT_S (420), and those of
@@ -126,8 +129,9 @@ if bash "$SP/start_score_side.sh" "$OUT/path" none; then
   if [ "$irc" != 0 ]; then
     verdict FAIL C5_gatewayd_receives_from_asil_b_process "the test publisher exited $irc (see $OUT/inject)"
   elif [ -z "$GATEWAYD_RX_REGEX" ]; then
-    verdict NOT_RUN C5_gatewayd_receives_from_asil_b_process "3 sends went out; no receive line of gatewayd is" \
-      "known (set GATEWAYD_RX_REGEX); P10-3 shows the receipt on the guest"
+    verdict NOT_RUN C5_gatewayd_receives_from_asil_b_process "3 sends went out; gatewayd prints no line per received" \
+      "sample (its output as built: session 5), so no GATEWAYD_RX_REGEX can count the receipts here; p10-3 judges" \
+      "the receipt on the guest"
   else
     hits=$(tail -n +"$((lines_before + 1))" "$LM_LOG" | grep -c -E "$GATEWAYD_RX_REGEX" || true)
     if [ "$hits" -ge 3 ]; then
@@ -177,30 +181,17 @@ else
   fi
 fi
 
-# Part 3: the full configuration and the candidate.
+# Part 3: the full configuration and the candidate, only against a CARLA server that answers.
 ss_log "part 3: the full configuration"
 carla=$DA_P10_1_CARLA_HOST
-have_world=0
+have_world=0 no_world="no DA_P10_1_CARLA_HOST"
 if [ "$carla" != none ]; then
   if [ "$DA_P10_1_SKIP_PORT_CHECK" = 1 ] || timeout 10 bash -c "</dev/tcp/$carla/2000" 2>/dev/null; then
     have_world=1
   else
-    ss_log "CARLA port 2000 at $carla does not answer: the candidate's checks do not run"
+    no_world="CARLA port 2000 at $carla does not answer"
+    ss_log "$no_world: the candidate's checks do not run"
   fi
-fi
-[ "$have_world" = 1 ] || carla=127.0.0.1   # nobody serves it: enough for the start order
-# Mode full needs a camera calibration (start_score_side.sh). p10-1 is no judged run: without the session's
-# DA_CAMERA_CALIBRATION_DIR, upstream's calibration from the bundle stands in, copied into <out> and named as such.
-if [ -z "${DA_CAMERA_CALIBRATION_DIR:-}" ]; then
-  export DA_CAMERA_CALIBRATION_DIR=$OUT/p10_1_calibration
-  mkdir -p "$DA_CAMERA_CALIBRATION_DIR"
-  if ! cp "$DA_B2_BUNDLE/config/visionpilot/H.yaml" "$DA_B2_BUNDLE/config/visionpilot/homography_C_matrix.yaml" \
-      "$DA_CAMERA_CALIBRATION_DIR/"; then
-    ss_log "the bundle lacks upstream's calibration in $DA_B2_BUNDLE/config/visionpilot: the full start refuses"
-  fi
-  echo "p10-1 stand-in: upstream's calibration from $DA_B2_BUNDLE/config/visionpilot, not the CARLA camera's" \
-    > "$DA_CAMERA_CALIBRATION_DIR/SOURCE.txt"
-  ss_log "no DA_CAMERA_CALIBRATION_DIR: upstream's calibration stands in for the full start (no judged run)"
 fi
 not_run_candidate() {
   local why="needs the candidate's first pass: a CARLA 1.0 server with a ticking world at DA_P10_1_CARLA_HOST, or a clip replayer (none in score-interface)"
@@ -208,20 +199,43 @@ not_run_candidate() {
   verdict NOT_RUN C3_stalled_candidate_fallback "$why"
   verdict NOT_RUN C4_asil_b_command_path "$why"
 }
-if ! bash "$SP/start_score_side.sh" "$OUT/full" "$carla"; then
-  verdict FAIL C1_launch_manager_config_and_start_order "the full start failed (see $OUT/full); path part: ${path_order:-ok}"
+if [ "$have_world" != 1 ]; then
+  # Session 5 on the real L4: the real vision_pilot and actuation_adapter exit at once on a refused CARLA
+  # connection, so a full start against a host nobody serves can never pass. It is not started; C1 is NOT RUN with
+  # its path part's result, or FAIL when that part failed.
+  ss_log "part 3: not started ($no_world)"
+  why="the full start needs a CARLA 1.0 server ($no_world): vision_pilot and actuation_adapter exit at once on a refused connection; path part:"
+  if [ -z "$path_order" ]; then
+    verdict NOT_RUN C1_launch_manager_config_and_start_order "$why ok"
+  else
+    verdict FAIL C1_launch_manager_config_and_start_order "$why $path_order"
+  fi
   not_run_candidate
 else
-  full_order=$(order_check full)
-  if [ -z "$path_order$full_order" ]; then
-    verdict PASS C1_launch_manager_config_and_start_order "recorder reported running before vision_pilot and" \
-      "actuation_adapter started; gatewayd after someipd; in both configurations"
-  else
-    verdict FAIL C1_launch_manager_config_and_start_order "full:${full_order:- ok} path:${path_order:- ok}"
+  # Mode full needs a camera calibration (start_score_side.sh). p10-1 is no judged run: without the session's
+  # DA_CAMERA_CALIBRATION_DIR, upstream's calibration from the bundle stands in, copied into <out> and named as such.
+  if [ -z "${DA_CAMERA_CALIBRATION_DIR:-}" ]; then
+    export DA_CAMERA_CALIBRATION_DIR=$OUT/p10_1_calibration
+    mkdir -p "$DA_CAMERA_CALIBRATION_DIR"
+    if ! cp "$DA_B2_BUNDLE/config/visionpilot/H.yaml" "$DA_B2_BUNDLE/config/visionpilot/homography_C_matrix.yaml" \
+        "$DA_CAMERA_CALIBRATION_DIR/"; then
+      ss_log "the bundle lacks upstream's calibration in $DA_B2_BUNDLE/config/visionpilot: the full start refuses"
+    fi
+    echo "p10-1 stand-in: upstream's calibration from $DA_B2_BUNDLE/config/visionpilot, not the CARLA camera's" \
+      > "$DA_CAMERA_CALIBRATION_DIR/SOURCE.txt"
+    ss_log "no DA_CAMERA_CALIBRATION_DIR: upstream's calibration stands in for the full start (no judged run)"
   fi
-  if [ "$have_world" != 1 ]; then
+  if ! bash "$SP/start_score_side.sh" "$OUT/full" "$carla"; then
+    verdict FAIL C1_launch_manager_config_and_start_order "the full start failed (see $OUT/full); path part: ${path_order:-ok}"
     not_run_candidate
   else
+    full_order=$(order_check full)
+    if [ -z "$path_order$full_order" ]; then
+      verdict PASS C1_launch_manager_config_and_start_order "recorder reported running before vision_pilot and" \
+        "actuation_adapter started; gatewayd after someipd; in both configurations"
+    else
+      verdict FAIL C1_launch_manager_config_and_start_order "full:${full_order:- ok} path:${path_order:- ok}"
+    fi
     SI_LOG=$DA_STAGE/run/score/score_interface.jsonl
     AD_LOG=$DA_STAGE/run/score/actuationAdapter.jsonl
     deadline=$(( $(date +%s) + DA_P10_1_SUPERVISED_WAIT_S ))
@@ -280,8 +294,8 @@ else
     else
       verdict FAIL C3_stalled_candidate_fallback "$problems"
     fi
+    bash "$SP/stop_score_side.sh" "$OUT/full"
   fi
-  bash "$SP/stop_score_side.sh" "$OUT/full"
 fi
 
 verdict NOT_RUN C8_candidate_on_a_replayed_clip "the S-CORE interface module has no clip replayer (score-interface:" \
