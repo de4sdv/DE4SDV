@@ -342,8 +342,8 @@ def test_increment_declares_the_phase_zero_shape():
         "phase10_vvEvidence", "phase11_baseline",
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [PACKAGE], \
-        "the charter names only the package that holds content today"
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
+        PACKAGE, "DE4SDV_EEArchitectureOperationalContext"], "the charter names only the packages that hold content"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
         "owner confirmation of the engineering question and the scope",
@@ -779,7 +779,7 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing and Phase 1 concerns, proposal.**" in guide
+    assert "**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context, proposal.**" in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part eeArchitectureQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -822,8 +822,8 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "verdicts.",
                    "A fail is a result to record.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The next model obligation is **Phase 2**, the operational context: exactly one context holding "
-                   "the vehicle network, with a story whose use cases bind it and the context actors.",
+                   "The next model obligation is **Phase 3**, the capability classification: the feature-model "
+                   "delta of this increment, which review judges.",
                    "The owner decided on 2026-11-18 to carry out Phases 1 to 3 of this increment before the "
                    "baseline of the driver-assistance increment, whose driving command it carries.",
                    "Phase 4 onward and the testbed with its readiness probe wait for that baseline and for a "
@@ -1071,7 +1071,8 @@ def test_the_guide_lists_the_phase_one_concerns_with_their_holders():
         "the guide's Phase 1 list names no field of the command: its form is INC-DRIVING-002's until its baseline"
     for phrase in ("held by the parties whose interest it states.",
                    "The vehicle occupants and the road users hold their own concern beside the engineering roles.",
-                   "The framing viewpoint frames all six until those views exist.",
+                   "The framing viewpoint frames all six, and a view of a later phase that answers a concern frames "
+                   "it as well.",
                    "They do not judge whether the stakeholder, risk and viewpoint coverage is adequate; review does."):
         assert phrase in flat, phrase
 

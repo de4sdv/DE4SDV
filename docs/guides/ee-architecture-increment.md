@@ -12,14 +12,17 @@ asks whether the path of a driving command keeps, across that network, the
 properties that the model asks of the command paths of earlier increments. It
 judges two routes: through a zone controller, and over a direct link.
 
-**Status: Phase 0 framing and Phase 1 concerns, proposal.** No implementation,
-run, result, product-line admission or compliance is claimed.
+**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context,
+proposal.** No implementation, run, result, product-line admission or
+compliance is claimed.
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/ee/ee_architecture_framing.sysml):
   `INC-EE-001`, its engineering question, charter, scope, assumptions,
   open gaps and Phase 1 concerns.
+- [SysML operational context](../../textual-notation-of-model/packages/features/ee/ee_architecture_operational_context.sysml):
+  the Phase 2 context of the vehicle network and its story of four scenarios.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/ee/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/ee/upstream.md):
@@ -99,7 +102,7 @@ items, held by the parties whose interest it states. The vehicle occupants and
 the road users hold their own concern beside the engineering roles. Each
 concern is typed by the SAF concern that asks its question, and its text names
 the view of a later phase that answers it. The framing viewpoint frames all
-six until those views exist.
+six, and a view of a later phase that answers a concern frames it as well.
 
 - **The driving command, operational part:** `eeVehicleCommandConcern`. The
   vehicle acts on the driving command that its central computer gives,
@@ -142,6 +145,41 @@ six until those views exist.
 The Phase 1 gates check that each concern has native stakeholders and a frame,
 and that one concern is not the boundary concern. They do not judge whether
 the stakeholder, risk and viewpoint coverage is adequate; review does.
+
+## Operational context and story (Phase 2)
+
+Phase 2 draws the boundary that Phase 0 states and does not move it. One
+operational context holds the vehicle network as a black box. Inside the
+vehicle network: the network side of the central computer, the Ethernet
+backbone, the two zone controllers, a CAN bus in each zone, the direct link
+and the actuation ECU. Around it: the source of the driving command
+(`DrivingCommandSource`), the Eclipse S-CORE path and the vehicle, which takes
+the applied command and sends nothing back. The command crosses the boundary
+once in, from the S-CORE path, and once out, to the vehicle. The central
+computer lies across the boundary, so the context draws no part for it. The
+testbed, the replay, the fault injection, the vehicle model, the records and
+the evaluators stay in `eeVerificationEnvironment`.
+
+It imports two names of the operational context of the driver-assistance
+increment, `DrivingCommand` and `SCORECommandAndWarningPath`: names, not the
+form of the command. The form and the cadence of the command are those that
+the driver-assistance increment fixes at its baseline
+(`asmEECommandFromDrivingBaseline`).
+
+The story holds four scenarios. `SC-EE-001` carries the command through a zone
+controller, `SC-EE-002` over the direct link, `SC-EE-003` covers a command
+that is lost, delayed, repeated or corrupted on either route, and `SC-EE-004`
+a link of the route that goes down, after which the vehicle gets the stop
+response. The stop response comes from the engineering question and
+REQ-DRIVING-028 of the closed-loop driving increment, not from the
+driver-assistance increment, whose adapter has no stop response
+(`gapEEActuationEnd`). The criteria and their limits are fixed with the
+requirements in Phase 5, and the verdict for each route comes from Phase 10.
+No timing, safety or compliance claim for a vehicle network is made.
+
+The context view frames `eeArchitectureContextConcern`. The story view frames
+`eeArchitectureStoryConcern` and the Phase 1 concern
+`eeVehicleCommandConcern`, which the story answers.
 
 ## What the framing already records as open
 
@@ -247,13 +285,14 @@ containment criteria and any freedom-from-interference claim stay open.
 
 Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is **Phase
-2**, the operational context: exactly one context holding the vehicle network,
-with a story whose use cases bind it and the context actors. Phase 2 draws the
-boundary that Phase 0 states. The owner decided on 2026-11-18 to carry out
-Phases 1 to 3 of this increment before the baseline of the driver-assistance
-increment, whose driving command it carries. Phase 4 onward and the testbed
-with its readiness probe wait for that baseline and for a further decision of
-the owner.
+3**, the capability classification: the feature-model delta of this increment,
+which review judges. With an empty delta the one blocking check of Phase 3 has
+nothing to evaluate, so the Method Check names its next obligation in Phase 4
+and lists Phase 3 as vacuous, with a prompt for review. The owner decided on
+2026-11-18 to carry out Phases 1 to 3 of this increment before the baseline of
+the driver-assistance increment, whose driving command it carries. Phase 4
+onward and the testbed with its readiness probe wait for that baseline and for
+a further decision of the owner.
 
 The testbed is chosen after a readiness probe. Before a paid cloud run,
 refresh the regional price, the capacity and the available credit, obtain the
