@@ -75,7 +75,8 @@ def setup(tmp_path: Path, binaries: dict):
     s["env"].update({"DA_P10_1_LATE_WAIT_S": "0.5", "DA_P10_1_CUDA_RUNS": "5", "DA_P10_1_ALIVE_HOLD_S": "1",
                      "DA_P10_1_STALL_HOLD_S": "2", "DA_P10_1_SUPERVISED_WAIT_S": "10", "DA_INJECT_LEAD_IN_S": "0.2",
                      "DA_INJECT_TAIL_S": "0.1", "DA_TEST_SINK_FILE": str(tmp_path / "sent.hex")})
-    for key in ("DA_P10_1_CARLA_HOST", "GATEWAYD_RX_REGEX", "DA_STUB_GATEWAYD_LINE", "FAKE_ORT_MS",
+    for key in ("DA_P10_1_CARLA_HOST", "GATEWAYD_RX_REGEX", "DA_STUB_GATEWAYD_LINE", "DA_STUB_GATEWAYD_PER_SEND",
+                "DA_P10_1_C5_WAIT_S", "FAKE_ORT_MS",
                 "DA_CAMERA_CALIBRATION_DIR"):
         s["env"].pop(key, None)
     yield s
@@ -95,24 +96,54 @@ def run_check(setup: dict, out: Path, **env: str) -> tuple[int, dict[str, tuple[
 
 
 def test_without_a_simulator(setup: dict, tmp_path: Path) -> None:
+    # session 5 on the real L4: the full start against a CARLA host nobody serves cannot pass, since the real
+    # vision_pilot and actuation_adapter exit at once on a refused connection. Without a CARLA host the full
+    # configuration is never started: C1 is NOT RUN with that reason and its path part's result
     rc, v, stdout = run_check(setup, tmp_path / "out")
     assert rc == 0, stdout
-    assert v["C1"][0] == "PASS"
+    assert v["C1"][0] == "NOT RUN", v["C1"]
+    assert "the full start needs a CARLA 1.0 server" in v["C1"][1] and "no DA_P10_1_CARLA_HOST" in v["C1"][1]
+    assert v["C1"][1].endswith("path part: ok"), v["C1"]
     assert v["C6"][0] == "PASS" and "worst of 4 later passes 180.0 ms" in v["C6"][1]
     assert v["C7"][0] == "PASS"
-    assert v["C5"][0] == "NOT RUN" and "GATEWAYD_RX_REGEX" in v["C5"][1]
+    # session 5: gatewayd prints no line per received sample; p10-3 judges the receipt on the guest
+    assert v["C5"][0] == "NOT RUN" and "gatewayd prints no line per received sample" in v["C5"][1]
+    assert "p10-3 judges the receipt on the guest" in v["C5"][1]
     for check in ("C2", "C3", "C4"):
         assert v[check][0] == "NOT RUN" and "CARLA" in v[check][1], check
     assert v["C8"][0] == "NOT RUN" and "clip replayer" in v["C8"][1]
     assert len((tmp_path / "sent.hex").read_text().split()) == 3  # the 3 sends of C5 went out
-    assert "P10-1: 3 PASS, 0 FAIL, 5 NOT RUN" in stdout
-    # p10-1 is no judged run: without the session's calibration, upstream's stands in, named as such
-    named = json.loads((tmp_path / "out" / "full" / "camera_calibration.json").read_text())
-    assert named["source"] == "DA_CAMERA_CALIBRATION_DIR" and named["dir"].endswith("/out/p10_1_calibration")
-    assert "stand-in" in (tmp_path / "out" / "p10_1_calibration" / "SOURCE.txt").read_text()
-    # the evidence of both starts is collected
-    for part in ("path", "full"):
-        assert (tmp_path / "out" / part / "score_side" / "run" / "score" / "candidate_record.json").is_file()
+    assert "P10-1: 2 PASS, 0 FAIL, 6 NOT RUN" in stdout
+    # the full configuration was never started, so no stand-in calibration was staged for it
+    assert not (tmp_path / "out" / "full").exists()
+    assert not (tmp_path / "out" / "p10_1_calibration").exists()
+    assert "part 3: not started" in stdout
+    # the evidence of the path start is collected
+    assert (tmp_path / "out" / "path" / "score_side" / "run" / "score" / "candidate_record.json").is_file()
+
+
+def test_a_carla_host_that_does_not_answer_starts_no_full_configuration(setup: dict, tmp_path: Path) -> None:
+    import socket
+    with socket.socket() as s:   # the check's own port probe must find 127.0.0.1:2000 closed
+        if s.connect_ex(("127.0.0.1", 2000)) == 0:
+            pytest.skip("something listens on 127.0.0.1:2000 here")
+    rc, v, stdout = run_check(setup, tmp_path / "out", DA_P10_1_CARLA_HOST="127.0.0.1")
+    assert rc == 0, stdout
+    assert v["C1"][0] == "NOT RUN", v["C1"]
+    assert "the full start needs a CARLA 1.0 server" in v["C1"][1]
+    assert "CARLA port 2000 at 127.0.0.1 does not answer" in v["C1"][1]
+    for check in ("C2", "C3", "C4"):
+        assert v[check][0] == "NOT RUN", check
+    assert not (tmp_path / "out" / "full").exists()
+
+
+def test_without_a_simulator_a_failed_path_start_fails_c1(setup: dict, tmp_path: Path) -> None:
+    # the part that ran failed: never hidden behind the NOT RUN of the full part
+    rc, v, _ = run_check(setup, tmp_path / "out", FAKE_LM_EXIT_AFTER_S="0.01")
+    assert rc == 1
+    assert v["C1"][0] == "FAIL" and "the path-only start failed" in v["C1"][1], v["C1"]
+    assert "the full start needs a CARLA 1.0 server" in v["C1"][1]
+    assert not (tmp_path / "out" / "full").exists()
 
 
 def test_with_a_ticking_world_every_check_runs(setup: dict, tmp_path: Path) -> None:
@@ -135,6 +166,10 @@ def test_a_candidate_that_is_not_taken_off_fails(setup: dict, tmp_path: Path) ->
     assert rc == 1
     assert v["C3"][0] == "FAIL" and "no switch to fallback_run_target" in v["C3"][1]
     assert v["C2"][0] == "PASS"
+    # p10-1 judges no geometry: without the session's calibration, upstream's stands in for the full start, named
+    named = json.loads((tmp_path / "out" / "full" / "camera_calibration.json").read_text())
+    assert named["source"] == "DA_CAMERA_CALIBRATION_DIR" and named["dir"].endswith("/out/p10_1_calibration")
+    assert "stand-in" in (tmp_path / "out" / "p10_1_calibration" / "SOURCE.txt").read_text()
 
 
 def test_a_slow_cuda_pass_fails(setup: dict, tmp_path: Path) -> None:
@@ -142,6 +177,26 @@ def test_a_slow_cuda_pass_fails(setup: dict, tmp_path: Path) -> None:
     assert v["C6"][0] == "PASS"  # the first pass may be slow
     rc, v, _ = run_check(setup, tmp_path / "out2", FAKE_ORT_MS="150,140")
     assert rc == 1 and v["C6"][0] == "FAIL" and "worst of 4 later passes 420.0 ms" in v["C6"][1]
+
+
+def test_c5_waits_within_its_bound_for_a_late_third_receive_line(setup: dict, tmp_path: Path) -> None:
+    # under load the third receive line came later than the old fixed 1 s wait, and C5 FAILed falsely (f67241db,
+    # bench_unit); the stub gatewayd prints one line per send, the third 2.5 s after it
+    rc, v, stdout = run_check(setup, tmp_path / "out", GATEWAYD_RX_REGEX="fake gatewayd forwarded",
+                              DA_STUB_GATEWAYD_LINE="fake gatewayd forwarded 0x4df1",
+                              DA_STUB_GATEWAYD_PER_SEND="0,0,2.5")
+    assert v["C5"][0] == "PASS", v["C5"]
+    assert "3 lines match 'fake gatewayd forwarded' for 3 sends" in v["C5"][1]
+    assert "C5: up to 5 s for 3 lines matching" in stdout       # the bound is logged
+
+
+def test_c5_fails_after_its_bound_when_the_third_receive_line_never_comes(setup: dict, tmp_path: Path) -> None:
+    rc, v, stdout = run_check(setup, tmp_path / "out", GATEWAYD_RX_REGEX="fake gatewayd forwarded",
+                              DA_STUB_GATEWAYD_LINE="fake gatewayd forwarded 0x4df1",
+                              DA_STUB_GATEWAYD_PER_SEND="0,0,-")
+    assert rc == 1 and v["C5"][0] == "FAIL", v["C5"]
+    assert "2 lines match 'fake gatewayd forwarded' for 3 sends within 5 s" in v["C5"][1]
+    assert "C5: up to 5 s for 3 lines matching" in stdout
 
 
 def test_a_silent_gatewayd_fails(setup: dict, tmp_path: Path) -> None:

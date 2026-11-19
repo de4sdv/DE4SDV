@@ -14,14 +14,30 @@ order, and stops everything it started on every exit.
 
 | Kind | Hosts, in start order | Steps after the starts |
 |---|---|---|
-| `p10-1` | S-CORE host | the S-CORE build check (`ENTRY_SCORE_P10_1`) |
+| `p10-1` | simulator host, S-CORE host | CARLA server, the port test (CARLA's tcp 2000-2002 from the S-CORE host), the session's road (the warm-up entry's survey and pass, no recorder), the world spawned (`ready.json`), the go, the S-CORE build check (`ENTRY_SCORE_P10_1`) with `DA_P10_1_CARLA_HOST` set to the simulator host, `run_end.json`, the release, the world side's end |
 | `p10-3` | S-CORE host, guest host | guests created fresh, the app and its ACLs installed and verified, VXLAN both ends, S-CORE side up (someipd offers 0x4df1 at 192.168.98.1:30511), the SD multicast route, the IVI app's subscription to the unit (its own `link=SUBSCRIBED` line), the app restarted, IVI clock set, display capture on, injected warning requests, capture off, S-CORE side down |
 | `p10-2` | simulator host, S-CORE host, guest host | CARLA server, CARLA reachable from the S-CORE host, the guests as in `p10-3`, warm-up with the chase recorder (no candidate), ASM-DRIVING-005 and the camera capture (no candidate), the calibration file made on the lead host and put on the S-CORE host, then the ASM-DRIVING-006 run and two runs of SC-DRIVING-012 at 20 km/h, each with its own S-CORE side start and stop, recorder and display window (below) |
 
-A `p10-1` session judges only the checks of `p10_1_check.sh` that need the S-CORE host alone. C2 to C4 (the alive
-notifications, the stalled-candidate fallback, the ASIL B command path) need a ticking CARLA world
-(`DA_P10_1_CARLA_HOST` and the world side's pacer), C5 needs `GATEWAYD_RX_REGEX` (a per-session setting), and C8 has
-no clip replayer yet, so the check writes NOT RUN for them in such a session. After the fetch the session reads
+C1's full configuration needs a CARLA 1.0 server: the real `vision_pilot` and `actuation_adapter` exit at once on a
+refused CARLA connection (S-CORE build session 5 on the L4, 2026-11-19). Without `DA_P10_1_CARLA_HOST`, or when its
+port 2000 does not answer, `p10_1_check.sh` never starts it, and C1 is NOT RUN with that reason and its path part's
+result (FAIL when the path part failed). C2 to C4 (the alive notifications, the stalled-candidate fallback, the ASIL B
+command path) need a ticking CARLA world. So a `p10-1` session also starts the simulator host (owner's approval of
+2026-11-19) and runs the check while the world ticks: the world side's handshake of a `p10-2` run, with the go
+before the check (the world ticks through its three parts, the full start in the third) and the release only after
+the check ended, so the check stops its own Launch Manager starts while the world still ticks. The world side holds
+(ticks) after `run_end.json` until the release file or `RELEASE_WAIT_S`, which the session sets above the check's
+bound (`T_P10_1` plus 5 min). The session sets `DA_P10_1_CARLA_HOST` itself, to the simulator host's internal address
+read from gcloud (or `--carla-host`); it is not a `--remote-env` setting and never comes from the caller's shell.
+Before the warm-up, the port test connects from the S-CORE host to CARLA's tcp 2000, 2001 and 2002 (5 s each) and
+logs one `PORT TEST` line; a closed port ends the session (exit 5, `failed_step` `port_test`) before any Launch
+Manager start. No warm-up lap is judged: the warm-up entry runs because its survey writes the session's road
+(`world_start.json`), without which `run_scenario.sh` refuses; its pass with the hero moved by pose takes well under a
+minute. No calibration: p10-1 judges no geometry, so the check's own stand-in (upstream's `H.yaml` from the bundle,
+named as such in `p10_1_calibration/SOURCE.txt`) stays, and the session spends no `calibrate` step and no `make-h`.
+C5 needs a receive line of `gatewayd`, which prints none per received sample (session 5: only its offer lines), so it
+stays NOT RUN and `p10-3` judges the receipt on the guest. C8 has no clip replayer yet. After the fetch the session
+reads
 `score/out/p10_1/p10_1_verdicts.json` and writes one line into `session.log`, and the same into `session.json`
 (`p10_1`: the line, `not_run`, `fail`, `pass`, `passed`):
 
@@ -32,6 +48,34 @@ P10-1: <n> of 8 checks NOT RUN: <ids>; FAIL: <ids>; P10-1 NOT passed
 The FAIL part appears only when a check failed, and the line ends with "passed" in place of "NOT passed" only when
 all 8 passed. A missing verdicts file counts all 8 as NOT RUN. Exit 0 of a `p10-1` session means its steps ran; it
 never means that the check passed: read `p10_1.passed`.
+
+The best a p10-1 session can read is not a pass. C5 (no receive line of `gatewayd`) and C8 (no clip replayer) are
+NOT RUN in every p10-1, so a clean paid session ends with exit 0 and this line, the expected best outcome:
+
+```text
+P10-1: 2 of 8 checks NOT RUN: C5_gatewayd_receives_from_asil_b_process, C8_candidate_on_a_replayed_clip; P10-1 NOT passed
+```
+
+A check that FAILs is the check's result, not a failed step: `p10_1_check.sh` exits 1, and the session still waits
+for `run_end.json`, releases the world, waits for the world side's end, logs its `SEQUENCE` line and fetches both
+hosts, then exits 12. Any other exit of the check is a failed step (exit 5). The check starts its own Launch Manager
+with `setsid`, which the step's TERM does not reach. A cut (a signal, the cap, or the step's time-out `T_P10_1`)
+therefore runs the check's own handler: it stops and collects the open start into `p10_1/path/` or `p10_1/full/`
+(`score_side/`), bounded, and writes `p10_1_verdicts.json` with the verdicts judged so far and the rest NOT RUN, the cut
+named (`cut` in the file, and "the check was cut by ..." in the line). The session marks the S-CORE side up during
+the step, so its trap also runs the stop, into `p10_1/trap_stop/`. `stop_score_side.sh` runs one stop of a stage at a
+time, so the second stop finds nothing running and only collects. On every trap or abort path a world side that has
+not ended gets its release file and then a TERM, after the S-CORE side's stop and before the simulator host's fetch
+(`p10-2` runs too).
+
+`T_P10_1` is 2400 s: the check's longest run from its own defaults is about 1990 s (part 1: staging and start 180 s,
+the late subscriber's probe 60 s, the test publisher about 40 s, C5's wait 5 s, the stop about 90 s; part 2: 3
+networks at `DA_P10_1_ORT_TIMEOUT_S` 300 s each; part 3: the port probe 10 s, staging and start 180 s, the
+supervised wait 420 s, the alive hold 10 s, the stall hold 3 s, the stop about 90 s), plus a margin of about 20 %.
+With every step before it at its own bound (`sim_setup` 1200 s, the port test's call 60 s, `warmup` 900 s,
+`ready.json` 300 s), the step's time-out, its TERM wait (6 polls of 20 s) and the pre-stop phase (300 s) end within
+5280 s, before the cap's 5316 s of both hosts (EUR 3.50 at 1.887 + 0.483 EUR/h). `tests/test_p10_1_bounds.py` checks
+both from the scripts' defaults.
 
 Each run of `p10-2` (`world_run` in the script): the chase recorder (runs only), the world side spawns and writes
 `ready.json`, the S-CORE side starts with the calibration file, the offer checks and the window open (runs only: the
@@ -175,7 +219,8 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   SSH only from Google's IAP range: `SIM_SSH_IAP=1` (the default in `hosts.env`) sends every ssh and scp to that host
   with `--tunnel-through-iap`; `SIM_SSH_IAP=0` is the direct path. The S-CORE host keeps 10.164.0.5: GCP does not
   change a VM's primary internal address in place, so since 2026-11-18 the CARLA rule admits 10.164.0.5/32 instead
-  of the reserved 10.164.0.20. The CARLA port check from the S-CORE host stays in every `p10-2`.
+  of the reserved 10.164.0.20. The CARLA port check from the S-CORE host stays in every `p10-2`, and every `p10-1`
+  has its port test of tcp 2000-2002.
 - SELinux: the SDV Core guest runs as it boots (Enforcing). A `p10-3` session runs with `--permissive-ivi` from its
   start (the lead's decision of 2026-11-19): B12's Enforcing run on the same images failed the IVI app's Gateway
   lookup (`ISdvGateway/default not declared`), so an Enforcing `p10-3` would only cost a session. The option sets the
@@ -205,7 +250,8 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   and status. A fetched folder whose `session_id` is not this session's fails the session.
 
 Exit codes: 0 done; 2 refused before any start; 3 no capacity or preempted; 4 SSH or upload failed; 5 a step failed;
-6 start refused; 9 dry run refused; 10 cost cap; 11 a VM left running (the guest host with its guests, or a VM not
+6 start refused; 9 dry run refused; 10 cost cap; 12 a p10-1 check FAILed (every step ran, the world was released and
+both hosts fetched; `p10_1.fail` names the checks); 11 a VM left running (the guest host with its guests, or a VM not
 `TERMINATED` after its stop, called again every minute of the 5-minute poll), in place of every other code;
 129/130/143 signals. `session.json` keeps the code 11 replaced (`exit_code_without_left_running`), every started VM's
 status after the session (`vm_status_after`) and the VMs left running (`left_running`); the session's last line names
@@ -235,12 +281,13 @@ Once, before the first real session, read-only: the real gcloud works from a cle
 env -i HOME="$HOME" PATH=/usr/bin:/bin ~/google-cloud-sdk/bin/gcloud --configuration=de4sdv-gcp config list
 ```
 
-### `p10-1` (the S-CORE host only)
+### `p10-1` (the simulator host and the S-CORE host)
 
 ```bash
-# one detached worktree at the integration commit under test (C: its full SHA)
+# one detached worktree at the integration commit under test
+C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
 git -C /home/mrk/de4sdv-worktrees/da-integration worktree add --detach /home/mrk/de4sdv-worktrees/p10-$C $C
-cd /home/mrk/de4sdv-worktrees/p10-$C
+cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1
 S=implementation/driver-assistance-bench/session
 # a dry run first, with the tests' fake gcloud (the fake's state in its own folder)
 D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
@@ -341,7 +388,7 @@ Expected lengths are PLAN's for each probe; prices from `hosts.env` (Spot, europ
 
 | Kind | Hosts and EUR/h | Expected | Expected cost | Default cap (time at the cap) |
 |---|---|---|---|---|
-| `p10-1` | L4 0.483 | about 2 h | about EUR 0.97 | EUR 2.00 (4.1 h) |
+| `p10-1` | G4 1.887 + L4 0.483 | about 45 min (an estimate from the steps, not yet measured: the starts, both uploads, the CARLA start, the warm-up, the check about 10 min, the fetch and the stops) | about EUR 1.80 | EUR 3.50 (1.5 h), approved by the owner on 2026-11-19 |
 | `p10-3` | L4 0.483 + guest host 0.271 | about 3 h | about EUR 2.26 | EUR 3.50 (4.6 h) |
 | `p10-2` | G4 1.887 + L4 0.483 + guest host 0.271 | about 1.5 h | about EUR 3.96 | EUR 6.00 (2.3 h) |
 
@@ -357,14 +404,14 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 
 | Variable | Host | Arguments | Owner | Contract |
 |---|---|---|---|---|
-| `ENTRY_SCORE_P10_1` | S-CORE | `<out>` | S-CORE build lane | the build check, the clip replay, the late subscriber; its verdicts in `<out>` |
+| `ENTRY_SCORE_P10_1` | S-CORE | `<out>`; env `DA_P10_1_CARLA_HOST` (`p10-1`: the simulator host's address, set by the session) | S-CORE build lane | the build check, the clip replay, the late subscriber; its verdicts in `<out>`; started after the world's go, so its full start finds a ticking world |
 | `ENTRY_SCORE_START` | S-CORE | `<out> <carla_host or none>`; env `DA_CAMERA_CALIBRATION_DIR` (`p10-2`) | Launch Manager lane | starts the Launch Manager with its processes (identity recorder first); copies `H.yaml` and `homography_C_matrix.yaml` from `DA_CAMERA_CALIBRATION_DIR` into the candidate's working directory before the identity record; returns 0 when they run, without waiting for a camera image (the world holds its first tick until the session's go file); called once per run, each with its own `<out>`; someipd offers 0x4df1 |
 | `ENTRY_SCORE_INJECT` | S-CORE | `<out>` | warning-app lane | `p10-3`: publishes test warning requests on the candidate's mw::com event; returns when done |
 | `ENTRY_SCORE_STOP` | S-CORE | `<out>` (the start's) | Launch Manager lane | ends the processes (SIGTERM, so the candidate's `.rrd` and the visualization file are finished) and collects their files; the world still ticks meanwhile |
 | `ENTRY_SIM_SETUP` | simulator | `<out>` | this lane: `remote/sim_setup.sh` | CARLA server up on port 2000, NVENC test, free disk |
 | `ENTRY_SIM_WARMUP` | simulator | `<out>` | `../world-side/scripts/warmup.sh` | the survey, the session's road in `world_start.json`, the warm-up pass with every camera (hero role `hero`, moved by pose) |
 | `ENTRY_SIM_CALIBRATE` | simulator | `<out>` | `../world-side/scripts/calibrate.sh` | ASM-DRIVING-005 and the camera capture, role `de4sdv_calibration`, no candidate; required for `p10-2` |
-| `ENTRY_SIM_RUN` | simulator | `<out> <scenario> <setting>` | `../world-side/scripts/run_scenario.sh` | one run (`SC-DRIVING-012 20kmh`, or `ASM-DRIVING-006 20kmh`), detached, with the go/release handshake (`../world-side/README.md`); its records in `<out>/simulator/` |
+| `ENTRY_SIM_RUN` | simulator | `<out> <scenario> <setting>` | `../world-side/scripts/run_scenario.sh` | one run (`SC-DRIVING-012 20kmh`, or `ASM-DRIVING-006 20kmh`), detached, with the go/release handshake (`../world-side/README.md`); its records in `<out>/simulator/`; in `p10-1` the world of `P10_1_SCENARIO` `P10_1_SETTING` with `RELEASE_WAIT_S` above the check's bound |
 | `ENTRY_SIM_RECORD` | simulator | `--out <dir>` | this lane: `../recording/chase_recorder.py` | started before the warm-up and before the run, ends on its own |
 | `ENTRY_GUEST_UP` | guest | `<out>` | this lane: `remote/guest_up.sh` | both guests created fresh (`launch_two_vms.sh down`, `up`) and booted; `getenforce` recorded, `setenforce 0` on the IVI only with `IVI_PERMISSIVE=1` |
 | `ENTRY_GUEST_PREPARE` | guest | `<out>` | this lane: `remote/guest_prepare.sh` | the guest build script's `install` (ACLs, APK, IVI reboot) and `verify`, unchanged, as its second caller: one `B12_DIR` per session (`$AB/b12-session-<id>`), no `LOGS`, `IDENT` or `WORK`; required, since fresh guests start empty |
@@ -385,8 +432,9 @@ exported in the calling shell never reaches a step: the lead's shared terminal h
 `ADB_TIMEOUT_S`, `UP_TIMEOUT_S` (the guest build script), `CLOCK_READS`, `CLOCK_MAX_OFFSET_S` (`remote/ivi_clock.sh`),
 `START_WAIT_S`, `APP_SUBSCRIBE_WAIT_S` (`remote/app_restart.sh`). `UNIT_WAIT_S`, `START_WAIT_S` and
 `APP_SUBSCRIBE_WAIT_S` must be whole seconds, and the step bounds follow them (logged as `step bounds:`): the unit
-gate's `UNIT_WAIT_S + 240` s, the app restart's `START_WAIT_S + APP_SUBSCRIBE_WAIT_S + 300` s; on the S-CORE host `DA_P10_1_CARLA_HOST`, `GATEWAYD_RX_REGEX` and the
-`DA_P10_1_*` waits of `p10_1_check.sh`. A changed guess of the first `p10-3` (the broker's line, say) is then a setting
+gate's `UNIT_WAIT_S + 240` s, the app restart's `START_WAIT_S + APP_SUBSCRIBE_WAIT_S + 300` s; on the S-CORE host
+`GATEWAYD_RX_REGEX` and the `DA_P10_1_*` waits of `p10_1_check.sh` (not `DA_P10_1_CARLA_HOST`, which `p10-1` sets
+from its own simulator host). A changed guess of the first `p10-3` (the broker's line, say) is then a setting
 of the next session, not a commit. The `hosts.env` and `entrypoints.env` names (`ENTRY_*`, `GUEST_STOP_CMD`, the VMs,
 the caps) can still be overridden from the environment, for the dry runs: start every real session from `env -i`, as
 the blocks below do.
@@ -411,7 +459,10 @@ folder, a real gcloud in a dry run, dry-run knobs in a real session, a session i
 `--remote-env` off the allow-list), a foreign fetch, and that the dry run prints every call. Since the second review
 also: a signal or the cap during a guest step (the step's TERM before the guests' stop), a guest host never reached
 over SSH, an SSH loss after a guest step, an S-CORE stop's exit 7 and 8, the go clock, the trap's bounded pre-stop
-phase and its 30 s status reads, the safety net's deadline, and the README's launch lines themselves. `tests/test_remote_scripts.py` runs the guest-host scripts and the safety net against fake `cvd`,
+phase and its 30 s status reads, the safety net's deadline, and the README's launch lines themselves. Since the
+owner's approval of p10-1 with the simulator host: its sequence, the port test (each port logged, a closed port ends
+the session before any Launch Manager start), the check's `DA_P10_1_CARLA_HOST` from gcloud only, the world's hold
+above the check's bound, and the cap of EUR 3.50. `tests/test_remote_scripts.py` runs the guest-host scripts and the safety net against fake `cvd`,
 `adb`, `pgrep`, `sudo` and `ip`. The stubs in `tests/stubs/` stand for the S-CORE side's entries (another lane's)
 and for `make-h` in dry runs; they never run on a host.
 

@@ -21,7 +21,8 @@
 #      sent commands and the adapter accepted one
 #   C5 gatewayd_receives_from_asil_b_process  gatewayd (QM) takes the warning request from a process of global ASIL
 #      B: the test publisher (the candidate's manifest values) sends, and gatewayd's output matches
-#      GATEWAYD_RX_REGEX once per send
+#      GATEWAYD_RX_REGEX once per send. gatewayd as built prints no line per received sample (session 5 on the L4:
+#      only its offer lines), so without that pattern C5 is NOT RUN and p10-3 judges the receipt on the guest
 #   C6 cuda_pass_time                         no pass after the first of the three networks on the CUDA provider
 #      (ort_cuda_check, the S-CORE toolchain's ONNX Runtime) takes longer than 0.4 s
 #   C7 candidate_record_late_subscriber       the candidate record reaches a subscriber that subscribes after it was
@@ -30,13 +31,24 @@
 #
 # The full start needs DA_CAMERA_CALIBRATION_DIR; without it, upstream's calibration from the bundle stands in, copied
 # into <out>/p10_1_calibration and named there (p10-1 judges nothing on the geometry).
-# C2 to C4 need the candidate's first completed pass, so images: a CARLA 1.0 server at DA_P10_1_CARLA_HOST with a
-# world that ticks (the world side's pacer, started by the caller). Without it they are NOT RUN. C1, C5 to C7 need no
-# simulator: C1 starts the full configuration against a CARLA host nobody serves and stops it after the start order.
+# C1's full part and C2 to C4 need a CARLA 1.0 server at DA_P10_1_CARLA_HOST whose port 2000 answers; C2 to C4 also a
+# world that ticks (the world side's pacer, started by the caller), since they need the candidate's first completed
+# pass. The real vision_pilot and actuation_adapter exit at once on a refused CARLA connection (session 5 on the L4),
+# so without such a server the full configuration is never started: C1 is NOT RUN, with the reason and its path
+# part's result (FAIL when the path part failed), and C2 to C4 are NOT RUN. C5 to C7 need no simulator.
 #
-# Settings: DA_CAMERA_CALIBRATION_DIR (unset), DA_P10_1_CARLA_HOST (none), GATEWAYD_RX_REGEX (unset), DA_P10_1_LATE_WAIT_S (3), DA_P10_1_CUDA_RUNS
-# (20), DA_P10_1_ALIVE_HOLD_S (10), DA_P10_1_STALL_HOLD_S (3), DA_P10_1_SUPERVISED_WAIT_S (420), and those of
-# ../../score-path/scripts/lib_score_side.sh.
+# Settings: DA_CAMERA_CALIBRATION_DIR (unset), DA_P10_1_CARLA_HOST (none), GATEWAYD_RX_REGEX (unset), DA_P10_1_C5_WAIT_S
+# (5, whole seconds: C5's bound for the 3 receive lines), DA_P10_1_LATE_WAIT_S (3), DA_P10_1_CUDA_RUNS
+# (20), DA_P10_1_ALIVE_HOLD_S (10), DA_P10_1_STALL_HOLD_S (3), DA_P10_1_SUPERVISED_WAIT_S (420),
+# DA_P10_1_ORT_TIMEOUT_S (300: each ort_cuda_check run), DA_P10_1_PROBE_TIMEOUT_S (60: the late subscriber's probe),
+# DA_P10_1_CUT_STOP_S (100: the cut's stop), and those of ../../score-path/scripts/lib_score_side.sh.
+#
+# A cut (TERM, INT or HUP: the session's step TERM, its time-out, the cap) never leaves the Launch Manager this check
+# started: it runs with setsid, so the step's group signal does not reach it. The handler stops it with
+# stop_score_side.sh into the open part's folder (path/ or full/, else cut_stop/), bounded by DA_P10_1_CUT_STOP_S and in
+# a session of its own (a second TERM to the step cannot cut the collection), writes p10_1_verdicts.txt and .json with
+# the verdicts judged so far and "NOT RUN <check>: cut by <signal> ..." for the rest (the json's "cut" names the
+# signal, the part and the stop's exit status), and exits 128 + the signal's number.
 set -uo pipefail
 HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 BENCH=$(cd -- "$HERE/../.." && pwd)
@@ -53,8 +65,15 @@ OUT=${1:?usage: p10_1_check.sh <out>}
 : "${DA_P10_1_STALL_HOLD_S:=3}"
 : "${DA_P10_1_SUPERVISED_WAIT_S:=420}"
 : "${DA_P10_1_SKIP_PORT_CHECK:=0}"
+: "${DA_P10_1_C5_WAIT_S:=5}"
+: "${DA_P10_1_ORT_TIMEOUT_S:=300}"
+: "${DA_P10_1_PROBE_TIMEOUT_S:=60}"
+: "${DA_P10_1_CUT_STOP_S:=100}"
 mkdir -p "$OUT"
 exec > >(tee -a "$OUT/p10_1_check.log") 2>&1
+# the tee gets the step's group signal with this script: a write to it before the cut handler runs must fail, not
+# end the script by SIGPIPE (a handler, not an ignore, so no child inherits it)
+trap : PIPE
 VERDICTS=$OUT/p10_1_verdicts.txt
 : > "$VERDICTS"
 verdict() {   # verdict PASS|FAIL|NOT_RUN <check> <detail>
@@ -65,6 +84,51 @@ verdict() {   # verdict PASS|FAIL|NOT_RUN <check> <detail>
 REC_LOG=$DA_STAGE/run/score/identityRecorder.jsonl
 LM_LOG=$DA_STAGE/state/launch_manager.log
 json_num() { sed -n "s/.*\"$2\":\([0-9.e+-]*\).*/\1/p" <<< "$1" | head -1; }
+CHECKS="C1_launch_manager_config_and_start_order C2_alive_notifications C3_stalled_candidate_fallback
+  C4_asil_b_command_path C5_gatewayd_receives_from_asil_b_process C6_cuda_pass_time
+  C7_candidate_record_late_subscriber C8_candidate_on_a_replayed_clip"
+write_json() {   # write_json [<signal> <part> <stop rc>]: p10_1_verdicts.json from the .txt (and the cut, if any)
+  "$DA_PYTHON" - "$VERDICTS" "$OUT/p10_1_verdicts.json" "$@" << 'EOF'
+import json, re, sys
+rows = []
+for line in open(sys.argv[1], encoding="utf-8"):
+    m = re.match(r"(PASS|FAIL|NOT RUN) (\S+): (.*)", line.rstrip("\n"))
+    if m:
+        rows.append({"verdict": m.group(1), "check": m.group(2), "detail": m.group(3)})
+doc = {"checks": rows}
+if len(sys.argv) > 3:
+    doc["cut"] = {"signal": sys.argv[3], "part": sys.argv[4], "stop_rc": sys.argv[5]}
+json.dump(doc, open(sys.argv[2], "w", encoding="utf-8"), indent=1)
+EOF
+}
+
+# the cut (see the header): the open start stopped and collected, the verdicts so far kept, the rest NOT RUN
+PART="setup" PART_OUT=""
+on_cut() {
+  local sig=$1 num=$2 src stop_rc=none c
+  trap '' TERM INT HUP PIPE
+  # the tee of this script's output had the step's group signal too: the log file directly from here on
+  exec >> "$OUT/p10_1_check.log" 2>&1
+  ss_log "CUT by $sig during part $PART"
+  src=$PART_OUT
+  [ -z "$src" ] && ss_lm_running > /dev/null && src=$OUT/cut_stop
+  if [ -n "$src" ]; then
+    ss_log "the cut's stop of the S-CORE side into $src (at most $DA_P10_1_CUT_STOP_S s)"
+    setsid -w timeout --foreground "$DA_P10_1_CUT_STOP_S" bash "$SP/stop_score_side.sh" "$src" < /dev/null
+    stop_rc=$?
+    ss_log "the cut's stop: rc $stop_rc"
+  fi
+  for c in $CHECKS; do
+    grep -q "^[A-Z ]* ${c}: " "$VERDICTS" 2>/dev/null ||
+      verdict NOT_RUN "$c" "cut by $sig during part $PART before this check's verdict"
+  done
+  write_json "$sig" "$PART" "$stop_rc"
+  ss_log "P10-1: cut by $sig during part $PART"
+  exit $(( 128 + num ))
+}
+trap 'on_cut TERM 15' TERM
+trap 'on_cut INT 2' INT
+trap 'on_cut HUP 1' HUP
 
 # The recorder's report, in monotonic ns.
 reported_mono_ns() { json_num "$(ss_last_event "$REC_LOG" lifecycle)" t_mono_ns; }
@@ -95,13 +159,15 @@ ss_clock_record > "$OUT/clock_start.txt"
 
 # Part 1: the warning path alone (the path-only configuration): the late subscriber and gatewayd.
 ss_log "part 1: the warning path"
+PART="1 (the warning path)" PART_OUT=$OUT/path
 if bash "$SP/start_score_side.sh" "$OUT/path" none; then
   path_order=$(order_check path)
   # C7: subscribe after the record was published
   probe=$DA_STAGE/bin/candidate_record_probe
   if [ -x "$probe" ]; then
     first_pub=$(json_num "$(grep -F '"event":"publish"' "$REC_LOG" | head -1)" t_real_ns)
-    $DA_SUDO env MW_COM_CONFIG="$DA_STAGE/config/mw_com_config_candidate_record_probe.json" "$probe" \
+    timeout --foreground "$DA_P10_1_PROBE_TIMEOUT_S" $DA_SUDO env \
+      MW_COM_CONFIG="$DA_STAGE/config/mw_com_config_candidate_record_probe.json" "$probe" \
       --wait-s "$DA_P10_1_LATE_WAIT_S" --timeout-s 10 --out "$OUT/late_subscriber.json" > /dev/null
     rc=$?
     sub=$(json_num "$(cat "$OUT/late_subscriber.json" 2>/dev/null)" subscribed_real_ns)
@@ -122,21 +188,32 @@ if bash "$SP/start_score_side.sh" "$OUT/path" none; then
   DA_INJECT_SEQUENCE=$OUT/p10_1_sequence.txt bash "$BENCH/ivi-warning/scripts/inject_warning_requests.sh" \
     "$OUT/inject"
   irc=$?
-  sleep 1
   if [ "$irc" != 0 ]; then
     verdict FAIL C5_gatewayd_receives_from_asil_b_process "the test publisher exited $irc (see $OUT/inject)"
   elif [ -z "$GATEWAYD_RX_REGEX" ]; then
-    verdict NOT_RUN C5_gatewayd_receives_from_asil_b_process "3 sends went out; no receive line of gatewayd is" \
-      "known (set GATEWAYD_RX_REGEX); P10-3 shows the receipt on the guest"
+    verdict NOT_RUN C5_gatewayd_receives_from_asil_b_process "3 sends went out; gatewayd prints no line per received" \
+      "sample (its output as built: session 5), so no GATEWAYD_RX_REGEX can count the receipts here; p10-3 judges" \
+      "the receipt on the guest"
   else
-    hits=$(tail -n +"$((lines_before + 1))" "$LM_LOG" | grep -c -E "$GATEWAYD_RX_REGEX" || true)
-    if [ "$hits" -ge 3 ]; then
+    # a bounded poll for the 3 receive lines, never a fixed wait: under load the third came after a fixed 1 s
+    # (f67241db, bench_unit) and C5 FAILed falsely
+    ss_log "C5: up to ${DA_P10_1_C5_WAIT_S} s for 3 lines matching '$GATEWAYD_RX_REGEX' in the Launch Manager's log"
+    c5_end=$(( $(date +%s%N) + ${DA_P10_1_C5_WAIT_S%.*} * 1000000000 ))
+    while :; do
+      hits=$(tail -n +"$((lines_before + 1))" "$LM_LOG" | grep -c -E "$GATEWAYD_RX_REGEX" || true)
+      [ "${hits:-0}" -ge 3 ] && break
+      [ "$(date +%s%N)" -ge "$c5_end" ] && break
+      sleep 0.2
+    done
+    if [ "${hits:-0}" -ge 3 ]; then
       verdict PASS C5_gatewayd_receives_from_asil_b_process "$hits lines match '$GATEWAYD_RX_REGEX' for 3 sends"
     else
-      verdict FAIL C5_gatewayd_receives_from_asil_b_process "$hits lines match '$GATEWAYD_RX_REGEX' for 3 sends"
+      verdict FAIL C5_gatewayd_receives_from_asil_b_process "${hits:-0} lines match '$GATEWAYD_RX_REGEX' for 3 sends" \
+        "within ${DA_P10_1_C5_WAIT_S} s"
     fi
   fi
   bash "$SP/stop_score_side.sh" "$OUT/path"
+  PART_OUT=""
 else
   path_order="the path-only start failed (see $OUT/path)"
   verdict FAIL C7_candidate_record_late_subscriber "the warning path did not start"
@@ -145,6 +222,7 @@ fi
 
 # Part 2: the CUDA passes, outside the Launch Manager.
 ss_log "part 2: the networks on the CUDA provider"
+PART="2 (the CUDA passes)" PART_OUT=""
 ort=$DA_B2_BUNDLE/bin/ort_cuda_check
 weights=$DA_B2_BUNDLE/share/visionpilot/modules/models/weights
 if [ ! -x "$ort" ]; then
@@ -153,7 +231,7 @@ else
   : > "$OUT/cuda_runs.txt"
   ok=1
   for net in autodrive autosteer autospeed; do
-    if ! "$ort" "$weights/${net}_fp32.onnx" "$DA_P10_1_CUDA_RUNS" > "$OUT/ort_${net}.txt" 2>&1 ||
+    if ! timeout --foreground "$DA_P10_1_ORT_TIMEOUT_S" "$ort" "$weights/${net}_fp32.onnx" "$DA_P10_1_CUDA_RUNS" > "$OUT/ort_${net}.txt" 2>&1 ||
        ! grep -q "ORT_CUDA_CHECK PASS" "$OUT/ort_${net}.txt"; then
       ok=0
     fi
@@ -177,30 +255,18 @@ else
   fi
 fi
 
-# Part 3: the full configuration and the candidate.
+# Part 3: the full configuration and the candidate, only against a CARLA server that answers.
 ss_log "part 3: the full configuration"
+PART="3 (the full configuration)"
 carla=$DA_P10_1_CARLA_HOST
-have_world=0
+have_world=0 no_world="no DA_P10_1_CARLA_HOST"
 if [ "$carla" != none ]; then
-  if [ "$DA_P10_1_SKIP_PORT_CHECK" = 1 ] || timeout 10 bash -c "</dev/tcp/$carla/2000" 2>/dev/null; then
+  if [ "$DA_P10_1_SKIP_PORT_CHECK" = 1 ] || timeout --foreground 10 bash -c "</dev/tcp/$carla/2000" 2>/dev/null; then
     have_world=1
   else
-    ss_log "CARLA port 2000 at $carla does not answer: the candidate's checks do not run"
+    no_world="CARLA port 2000 at $carla does not answer"
+    ss_log "$no_world: the candidate's checks do not run"
   fi
-fi
-[ "$have_world" = 1 ] || carla=127.0.0.1   # nobody serves it: enough for the start order
-# Mode full needs a camera calibration (start_score_side.sh). p10-1 is no judged run: without the session's
-# DA_CAMERA_CALIBRATION_DIR, upstream's calibration from the bundle stands in, copied into <out> and named as such.
-if [ -z "${DA_CAMERA_CALIBRATION_DIR:-}" ]; then
-  export DA_CAMERA_CALIBRATION_DIR=$OUT/p10_1_calibration
-  mkdir -p "$DA_CAMERA_CALIBRATION_DIR"
-  if ! cp "$DA_B2_BUNDLE/config/visionpilot/H.yaml" "$DA_B2_BUNDLE/config/visionpilot/homography_C_matrix.yaml" \
-      "$DA_CAMERA_CALIBRATION_DIR/"; then
-    ss_log "the bundle lacks upstream's calibration in $DA_B2_BUNDLE/config/visionpilot: the full start refuses"
-  fi
-  echo "p10-1 stand-in: upstream's calibration from $DA_B2_BUNDLE/config/visionpilot, not the CARLA camera's" \
-    > "$DA_CAMERA_CALIBRATION_DIR/SOURCE.txt"
-  ss_log "no DA_CAMERA_CALIBRATION_DIR: upstream's calibration stands in for the full start (no judged run)"
 fi
 not_run_candidate() {
   local why="needs the candidate's first pass: a CARLA 1.0 server with a ticking world at DA_P10_1_CARLA_HOST, or a clip replayer (none in score-interface)"
@@ -208,20 +274,44 @@ not_run_candidate() {
   verdict NOT_RUN C3_stalled_candidate_fallback "$why"
   verdict NOT_RUN C4_asil_b_command_path "$why"
 }
-if ! bash "$SP/start_score_side.sh" "$OUT/full" "$carla"; then
-  verdict FAIL C1_launch_manager_config_and_start_order "the full start failed (see $OUT/full); path part: ${path_order:-ok}"
+if [ "$have_world" != 1 ]; then
+  # Session 5 on the real L4: the real vision_pilot and actuation_adapter exit at once on a refused CARLA
+  # connection, so a full start against a host nobody serves can never pass. It is not started; C1 is NOT RUN with
+  # its path part's result, or FAIL when that part failed.
+  ss_log "part 3: not started ($no_world)"
+  why="the full start needs a CARLA 1.0 server ($no_world): vision_pilot and actuation_adapter exit at once on a refused connection; path part:"
+  if [ -z "$path_order" ]; then
+    verdict NOT_RUN C1_launch_manager_config_and_start_order "$why ok"
+  else
+    verdict FAIL C1_launch_manager_config_and_start_order "$why $path_order"
+  fi
   not_run_candidate
 else
-  full_order=$(order_check full)
-  if [ -z "$path_order$full_order" ]; then
-    verdict PASS C1_launch_manager_config_and_start_order "recorder reported running before vision_pilot and" \
-      "actuation_adapter started; gatewayd after someipd; in both configurations"
-  else
-    verdict FAIL C1_launch_manager_config_and_start_order "full:${full_order:- ok} path:${path_order:- ok}"
+  # Mode full needs a camera calibration (start_score_side.sh). p10-1 is no judged run: without the session's
+  # DA_CAMERA_CALIBRATION_DIR, upstream's calibration from the bundle stands in, copied into <out> and named as such.
+  if [ -z "${DA_CAMERA_CALIBRATION_DIR:-}" ]; then
+    export DA_CAMERA_CALIBRATION_DIR=$OUT/p10_1_calibration
+    mkdir -p "$DA_CAMERA_CALIBRATION_DIR"
+    if ! cp "$DA_B2_BUNDLE/config/visionpilot/H.yaml" "$DA_B2_BUNDLE/config/visionpilot/homography_C_matrix.yaml" \
+        "$DA_CAMERA_CALIBRATION_DIR/"; then
+      ss_log "the bundle lacks upstream's calibration in $DA_B2_BUNDLE/config/visionpilot: the full start refuses"
+    fi
+    echo "p10-1 stand-in: upstream's calibration from $DA_B2_BUNDLE/config/visionpilot, not the CARLA camera's" \
+      > "$DA_CAMERA_CALIBRATION_DIR/SOURCE.txt"
+    ss_log "no DA_CAMERA_CALIBRATION_DIR: upstream's calibration stands in for the full start (no judged run)"
   fi
-  if [ "$have_world" != 1 ]; then
+  PART_OUT=$OUT/full
+  if ! bash "$SP/start_score_side.sh" "$OUT/full" "$carla"; then
+    verdict FAIL C1_launch_manager_config_and_start_order "the full start failed (see $OUT/full); path part: ${path_order:-ok}"
     not_run_candidate
   else
+    full_order=$(order_check full)
+    if [ -z "$path_order$full_order" ]; then
+      verdict PASS C1_launch_manager_config_and_start_order "recorder reported running before vision_pilot and" \
+        "actuation_adapter started; gatewayd after someipd; in both configurations"
+    else
+      verdict FAIL C1_launch_manager_config_and_start_order "full:${full_order:- ok} path:${path_order:- ok}"
+    fi
     SI_LOG=$DA_STAGE/run/score/score_interface.jsonl
     AD_LOG=$DA_STAGE/run/score/actuationAdapter.jsonl
     deadline=$(( $(date +%s) + DA_P10_1_SUPERVISED_WAIT_S ))
@@ -280,8 +370,9 @@ else
     else
       verdict FAIL C3_stalled_candidate_fallback "$problems"
     fi
+    bash "$SP/stop_score_side.sh" "$OUT/full"
   fi
-  bash "$SP/stop_score_side.sh" "$OUT/full"
+  PART_OUT=""
 fi
 
 verdict NOT_RUN C8_candidate_on_a_replayed_clip "the S-CORE interface module has no clip replayer (score-interface:" \
@@ -292,14 +383,7 @@ ss_clock_record > "$OUT/clock_end.txt"
 fails=$(grep -c '^FAIL ' "$VERDICTS" || true)
 passes=$(grep -c '^PASS ' "$VERDICTS" || true)
 notrun=$(grep -c '^NOT RUN ' "$VERDICTS" || true)
-"$DA_PYTHON" - "$VERDICTS" "$OUT/p10_1_verdicts.json" << 'EOF'
-import json, re, sys
-rows = []
-for line in open(sys.argv[1], encoding="utf-8"):
-    m = re.match(r"(PASS|FAIL|NOT RUN) (\S+): (.*)", line.rstrip("\n"))
-    if m:
-        rows.append({"verdict": m.group(1), "check": m.group(2), "detail": m.group(3)})
-json.dump({"checks": rows}, open(sys.argv[2], "w", encoding="utf-8"), indent=1)
-EOF
+PART="the summary"
+write_json
 ss_log "P10-1: $passes PASS, $fails FAIL, $notrun NOT RUN"
 [ "${fails:-0}" = 0 ]
