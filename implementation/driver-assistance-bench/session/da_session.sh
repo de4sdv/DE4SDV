@@ -114,7 +114,7 @@ GUEST_NOSSH_S=180
 # (S9); within it each fetch at most TRAP_PACK_S to pack and TRAP_SCP_S to copy
 PRESTOP_S=300; TRAP_PACK_S=120; TRAP_SCP_S=300
 TRAP_GC_TO_S=30   # each gcloud status read in the trap: on a gcloud outage the stop loop must not sit for hours (S10)
-T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
+T_P10_1=2400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 T_UNIT=300
 CARLA_PORTS="2000 2001 2002"   # p10-1's port test: CARLA's ports that carla-net admits from the S-CORE host
@@ -165,6 +165,7 @@ GUEST_STEP_SENT=0   # 1 from the first step sent to the guest host on: from then
 SCORE_RUN=""; STOPS=""; STOP_KILLED_LAST=""   # the run of the S-CORE side up; each of its stops: run:step:rc (S7)
 TERMED_STEP=""; TERMED_NAME=""; TERMED_AFTER=""; TERMED_FAIL=""   # the step the trap's TERM cut (step_down)
 CUR_STEP=""; GUEST_STEP_RUNNING=""; FETCHING=""; PRE_END=""   # "<role> <step>" of the step rstep waits for; a guest step alive after its TERM
+WORLD_UP=""; STEP_RC=""; P10_1_RC=""; ALLOW_RC=""   # the detached world sides not seen ending (world_down); rstep's last rc
 
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
 say() { printf '%s\n' "$*" >&3 2>/dev/null || true; }   # a dry run's command line on stdout
@@ -294,7 +295,7 @@ rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on 
     nap "$POLL_S"
   done
   rout ssh_l "$r" 60 "$HS tail $s"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
-  log "step $s rc=$rc"
+  log "step $s rc=$rc"; STEP_RC=$rc
   # every stop of the S-CORE side has run its collection, whatever its code; each is recorded per run (S7)
   case "$s" in score_stop*) SCORE_UP=""; STOPS="$STOPS ${SCORE_RUN:-none}:$s:$rc" ;; esac
   if [ "$rc" = 7 ] && [[ "$s" == score_stop* ]]; then
@@ -303,19 +304,21 @@ rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on 
     log "step $s rc=7: the S-CORE side of ${SCORE_RUN:-none} stopped and its records collected, but something had to be killed (stop_killed, recorded; not a failure)"
     STOP_KILLED_LAST=$s; return 0
   fi
-  if [ "$rc" != 0 ]; then
+  # ALLOW_RC: an exit status the caller judges itself (p10-1's check: 1 is a FAIL verdict, not a step failure)
+  if [ "$rc" != 0 ] && [ "$rc" != "${ALLOW_RC:-0}" ]; then
     STEP_FAIL=$s; abort 5 "step $s failed (rc $rc)"
   fi
 }
 rstart() { local r=$1 s=$2; shift 2; log "start $s on $(var "$r" VM): $*"; SEQ+=("$r:$s&")
   [ "$r" = guest ] && GUEST_STEP_SENT=1
+  case "$r:$s" in sim:world_*) WORLD_UP="$WORLD_UP $s" ;; esac   # from before its start call, as CUR_STEP
   run_fg ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*" >> "$IN/$r.steps.out" 2>&1 || { STEP_FAIL=$s; abort 5 "start of $s failed"; }; }
 rsignal() { run_fg ssh_l "$1" 60 "$HS signal $2 ${3:-INT}" >> "$IN/$1.steps.out" 2>&1; }
 rwait() {   # rwait <role> <step> <timeout_s>: waits for a detached step's status
   local r=$1 s=$2 end st; end=$(( $(date +%s) + $3 )); SEQ+=("$r:wait-$s")
   while :; do
     rpoll "$r" "$HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
-    case "$st" in "rc "*) log "step $s ${st}"; [ "$st" = "rc 0" ] && return 0; STEP_FAIL=$s; return 1 ;; esac
+    case "$st" in "rc "*) world_ended "$s"; log "step $s ${st}"; [ "$st" = "rc 0" ] && return 0; STEP_FAIL=$s; return 1 ;; esac
     [ "$(date +%s)" -ge "$end" ] && { log "step $s still ${st:-unknown} after $3 s"; STEP_FAIL=$s; return 1; }
     nap "$POLL_S"
   done
@@ -326,7 +329,7 @@ rwaitfile() {   # rwait_file <role> <step> <remote file> <timeout_s>: the file o
     rpoll "$r" "test -e $f && echo present || $HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
     case "$st" in
       present) log "step $s: ${f##*/} present"; return 0 ;;
-      "rc "*) log "step $s ended ($st) before ${f##*/}"; STEP_FAIL=$s; return 1 ;;
+      "rc "*) world_ended "$s"; log "step $s ended ($st) before ${f##*/}"; STEP_FAIL=$s; return 1 ;;
     esac
     [ "$(date +%s)" -ge "$end" ] && { log "step $s: no ${f##*/} after $4 s"; STEP_FAIL=$s; return 1; }
     nap "$POLL_S"
@@ -365,10 +368,29 @@ score_down() {   # the S-CORE side, if this session started it and has not stopp
   log "step score_stop_on_failure rc=$rc$([ "$rc" = 7 ] && echo ": stopped and collected, something had to be killed (stop_killed, recorded)")"
   STOPS="$STOPS ${SCORE_RUN:-none}:score_stop_on_failure:$rc"
 }
-abort() {   # a failure after the starts: the S-CORE side's stop, the fetch, the exit (3 when a host was lost)
+world_ended() { local s; WORLD_UP=$(for s in $WORLD_UP; do [ "$s" = "$1" ] || printf ' %s' "$s"; done); }
+world_down() {   # a detached world side not seen ending (a trap or abort path): after the S-CORE side's stop, its
+  # release file, then a TERM to its step, its end awaited (bounded), before the simulator host's fetch packs it
+  local s i
+  case " ${LOST:-} " in *" sim "*) WORLD_UP=""; return 0 ;; esac
+  for s in $WORLD_UP; do
+    log "the world side $s still runs on $(var sim VM): its release file, then a TERM to it, before the fetch"
+    rout ssh_l sim "$(bnd 60)" "touch $(od "$s")/release; $HS signal $s TERM"
+    for i in 1 2 3; do
+      rpoll sim "$HS status $s" "$(bnd 60)"; [ $? = 3 ] && break
+      case "$ROUT" in "rc "*|absent) break ;; esac
+      pre_left || break
+      nap "$POLL_S"
+    done
+    log "world side $s after its release and TERM: ${ROUT:-unknown}"
+  done
+  WORLD_UP=""
+}
+abort() {   # a failure after the starts: the S-CORE side's stop, the world side's end, the fetch, the exit (3 when a
+  # host was lost)
   local code=$1; shift
   [ -n "${LOST:-}" ] && code=3
-  score_down; fetch_all; fail "$code" "$*"
+  score_down; world_down; fetch_all; fail "$code" "$*"
 }
 fetch_all() { local r ok=0; for r in "${STARTED[@]}"; do fetch "$r" || ok=1; done; return $ok; }
 ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never configured: D5 may move the hosts)
@@ -415,6 +437,7 @@ cleanup() {
   # whose evidence was not fetched yet (a signal, the cap), before its stop (R13); all within the phase's bound
   if pre_left; then T_SCORE_DOWN=$(bnd 120) score_down
   elif [ -n "$SCORE_UP" ]; then log "the pre-stop phase's bound reached: no stop of the S-CORE side by the session (its records stay incomplete on its disk)"; fi
+  pre_left && world_down
   for r in $UPLOADED; do
     case " $FETCHED " in *" $r "*) continue ;; esac
     if ! pre_left; then
@@ -546,10 +569,11 @@ p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE
 import json, sys
 ids = ["C%d" % i for i in range(1, 9)]
 try:
-    rows = json.load(open(sys.argv[1], encoding="utf-8"))["checks"]
+    doc = json.load(open(sys.argv[1], encoding="utf-8"))
+    rows, cut = doc["checks"], doc.get("cut")
     found = True
-except (OSError, ValueError, KeyError, TypeError):
-    rows, found = [], False
+except (OSError, ValueError, KeyError, TypeError, AttributeError):
+    rows, found, cut = [], False, None
 by = {}
 for r in rows:
     by.setdefault(str(r.get("check", "")).split("_", 1)[0], r)
@@ -563,10 +587,12 @@ if failed:
     line += "; FAIL: " + ", ".join(failed)
 if not found:
     line += "; no p10_1_verdicts.json fetched"
+if cut:
+    line += "; the check was cut by %s during part %s" % (cut.get("signal"), cut.get("part"))
 ok = not not_run and not failed and found
 line += "; P10-1 passed" if ok else "; P10-1 NOT passed"
 json.dump({"line": line, "verdicts_file_fetched": found, "not_run": not_run, "fail": failed, "pass": passed,
-           "passed": ok}, open(sys.argv[2], "w"), indent=1)
+           "passed": ok, "cut": cut}, open(sys.argv[2], "w"), indent=1)
 print(line)
 PY
 )
@@ -1012,7 +1038,14 @@ case "$KIND" in
       "$o" "$P10_1_SCENARIO" "$P10_1_SETTING"
     rwaitfile sim world_p10_1 "$o/simulator/ready.json" "$T_READY" || { abort 5 "the world side of p10-1 is not ready"; }
     rtouch sim "$o/go" || { STEP_FAIL=world_p10_1; abort 5 "no go file for p10-1"; }
-    rstep score p10_1 "$T_P10_1" env "DA_P10_1_CARLA_HOST=$CARLA_HOST" bash "$ENTRY_SCORE_P10_1" "$(od p10_1)"
+    # the check starts and stops its own Launch Manager (setsid: the step's TERM does not reach it). Marked up for
+    # the step, so a cut, the cap or the time-out also has the session's trap stop and collect it, into
+    # p10_1/trap_stop, after the check's own cut handler (stop_score_side.sh runs one stop of a stage at a time).
+    # Exit 1 is the check's FAIL verdict: the world is released and both hosts fetched all the same, then exit 12
+    SCORE_RUN=p10_1; SCORE_UP="$(od p10_1)/trap_stop"
+    ALLOW_RC=1 rstep score p10_1 "$T_P10_1" env "DA_P10_1_CARLA_HOST=$CARLA_HOST" bash "$ENTRY_SCORE_P10_1" "$(od p10_1)"
+    SCORE_UP=""; P10_1_RC=$STEP_RC
+    [ "$P10_1_RC" = 1 ] && log "step p10_1 rc=1: a check FAILed (the check's verdict, not a step failure): the world is released and both hosts fetched, then exit 12"
     rwaitfile sim world_p10_1 "$o/simulator/run_end.json" "$T_RUN" || { abort 5 "the world side of p10-1 did not end its run"; }
     rtouch sim "$o/release" || log "WARNING no release file for p10-1: the world side ends at its own hold limit"
     rwait sim world_p10_1 "$T_RELEASE" || { abort 5 "the world side of p10-1 did not end well"; }
@@ -1057,5 +1090,6 @@ log "SEQUENCE ${SEQ[*]}"
 fetch_all || { ENDED_BY=fetch; fail 5 "evidence fetch incomplete"; }
 ENDED_BY=steps
 log "session steps done; the files are in $IN"
+if [ "$P10_1_RC" = 1 ]; then ENDED_BY="steps; the p10_1 check FAILed"; FINAL_RC=12; exit 12; fi
 FINAL_RC=0
 exit 0

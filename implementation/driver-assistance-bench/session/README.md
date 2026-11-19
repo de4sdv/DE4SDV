@@ -49,6 +49,34 @@ The FAIL part appears only when a check failed, and the line ends with "passed" 
 all 8 passed. A missing verdicts file counts all 8 as NOT RUN. Exit 0 of a `p10-1` session means its steps ran; it
 never means that the check passed: read `p10_1.passed`.
 
+The best a p10-1 session can read is not a pass. C5 (no receive line of `gatewayd`) and C8 (no clip replayer) are
+NOT RUN in every p10-1, so a clean paid session ends with exit 0 and this line, the expected best outcome:
+
+```text
+P10-1: 2 of 8 checks NOT RUN: C5_gatewayd_receives_from_asil_b_process, C8_candidate_on_a_replayed_clip; P10-1 NOT passed
+```
+
+A check that FAILs is the check's result, not a failed step: `p10_1_check.sh` exits 1, and the session still waits
+for `run_end.json`, releases the world, waits for the world side's end, logs its `SEQUENCE` line and fetches both
+hosts, then exits 12. Any other exit of the check is a failed step (exit 5). The check starts its own Launch Manager
+with `setsid`, which the step's TERM does not reach. A cut (a signal, the cap, or the step's time-out `T_P10_1`)
+therefore runs the check's own handler: it stops and collects the open start into `p10_1/path/` or `p10_1/full/`
+(`score_side/`), bounded, and writes `p10_1_verdicts.json` with the verdicts judged so far and the rest NOT RUN, the cut
+named (`cut` in the file, and "the check was cut by ..." in the line). The session marks the S-CORE side up during
+the step, so its trap also runs the stop, into `p10_1/trap_stop/`. `stop_score_side.sh` runs one stop of a stage at a
+time, so the second stop finds nothing running and only collects. On every trap or abort path a world side that has
+not ended gets its release file and then a TERM, after the S-CORE side's stop and before the simulator host's fetch
+(`p10-2` runs too).
+
+`T_P10_1` is 2400 s: the check's longest run from its own defaults is about 1990 s (part 1: staging and start 180 s,
+the late subscriber's probe 60 s, the test publisher about 40 s, C5's wait 5 s, the stop about 90 s; part 2: 3
+networks at `DA_P10_1_ORT_TIMEOUT_S` 300 s each; part 3: the port probe 10 s, staging and start 180 s, the
+supervised wait 420 s, the alive hold 10 s, the stall hold 3 s, the stop about 90 s), plus a margin of about 20 %.
+With every step before it at its own bound (`sim_setup` 1200 s, the port test's call 60 s, `warmup` 900 s,
+`ready.json` 300 s), the step's time-out, its TERM wait (6 polls of 20 s) and the pre-stop phase (300 s) end within
+5280 s, before the cap's 5316 s of both hosts (EUR 3.50 at 1.887 + 0.483 EUR/h). `tests/test_p10_1_bounds.py` checks
+both from the scripts' defaults.
+
 Each run of `p10-2` (`world_run` in the script): the chase recorder (runs only), the world side spawns and writes
 `ready.json`, the S-CORE side starts with the calibration file, the offer checks and the window open (runs only: the
 unit, `am start -S`, the IVI clock, the capture), the go file, `run_end.json`, the S-CORE side stops while the world
@@ -161,7 +189,8 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   and status. A fetched folder whose `session_id` is not this session's fails the session.
 
 Exit codes: 0 done; 2 refused before any start; 3 no capacity or preempted; 4 SSH or upload failed; 5 a step failed;
-6 start refused; 9 dry run refused; 10 cost cap; 11 a VM left running (the guest host with its guests, or a VM not
+6 start refused; 9 dry run refused; 10 cost cap; 12 a p10-1 check FAILed (every step ran, the world was released and
+both hosts fetched; `p10_1.fail` names the checks); 11 a VM left running (the guest host with its guests, or a VM not
 `TERMINATED` after its stop, called again every minute of the 5-minute poll), in place of every other code;
 129/130/143 signals. `session.json` keeps the code 11 replaced (`exit_code_without_left_running`), every started VM's
 status after the session (`vm_status_after`) and the VMs left running (`left_running`); the session's last line names

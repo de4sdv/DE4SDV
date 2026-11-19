@@ -431,7 +431,7 @@ def test_a_broken_stdout_neither_ends_the_session_nor_empties_its_log(tmp_path: 
 
 def test_a_vm_that_does_not_stop_is_stopped_again_and_overrides_every_exit_code(tmp_path: Path) -> None:
     # R4: a failed step (exit 5) with a VM still running after its stop exits 11, names the VM last, and records it
-    r = run(tmp_path, "p10-1", FAKE_FAIL_STEP="p10_1", FAKE_NO_STOP=L4, DA_T_STOP_TRIES="7",
+    r = run(tmp_path, "p10-1", FAKE_STEP_RC="p10_1:2", FAKE_NO_STOP=L4, DA_T_STOP_TRIES="7",
             DA_T_STOP_AGAIN_EVERY="3")
     assert r.rc == 11, r.log
     assert len(r.stops(L4)) == 3                             # the first stop, then again at polls 3 and 6

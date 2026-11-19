@@ -33,6 +33,14 @@ mkdir -p "$OUT"
 LOG=$OUT/stop_score_side.log
 exec > >(tee -a "$LOG") 2>&1
 RC=0
+# one stop of a stage at a time: the p10-1 check's cut handler and the session's exit trap may both stop the same
+# stage. The second waits (bounded) for the first, then finds nothing running and collects what is there
+LOCK=${DA_STAGE%/}.stop.lock
+if exec 9>> "$LOCK" 2>/dev/null; then
+  flock -w $(( DA_STOP_TIMEOUT_S + 60 )) 9 || ss_log "stop_score_side: $LOCK still held after $(( DA_STOP_TIMEOUT_S + 60 )) s: going on"
+else
+  ss_log "stop_score_side: no lock file $LOCK: going on without it"
+fi
 
 LM_PID=$(ss_state LM_PID)
 if [ -z "$LM_PID" ]; then

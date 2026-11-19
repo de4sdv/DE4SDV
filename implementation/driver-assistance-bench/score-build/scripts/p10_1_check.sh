@@ -39,8 +39,16 @@
 #
 # Settings: DA_CAMERA_CALIBRATION_DIR (unset), DA_P10_1_CARLA_HOST (none), GATEWAYD_RX_REGEX (unset), DA_P10_1_C5_WAIT_S
 # (5, whole seconds: C5's bound for the 3 receive lines), DA_P10_1_LATE_WAIT_S (3), DA_P10_1_CUDA_RUNS
-# (20), DA_P10_1_ALIVE_HOLD_S (10), DA_P10_1_STALL_HOLD_S (3), DA_P10_1_SUPERVISED_WAIT_S (420), and those of
-# ../../score-path/scripts/lib_score_side.sh.
+# (20), DA_P10_1_ALIVE_HOLD_S (10), DA_P10_1_STALL_HOLD_S (3), DA_P10_1_SUPERVISED_WAIT_S (420),
+# DA_P10_1_ORT_TIMEOUT_S (300: each ort_cuda_check run), DA_P10_1_PROBE_TIMEOUT_S (60: the late subscriber's probe),
+# DA_P10_1_CUT_STOP_S (100: the cut's stop), and those of ../../score-path/scripts/lib_score_side.sh.
+#
+# A cut (TERM, INT or HUP: the session's step TERM, its time-out, the cap) never leaves the Launch Manager this check
+# started: it runs with setsid, so the step's group signal does not reach it. The handler stops it with
+# stop_score_side.sh into the open part's folder (path/ or full/, else cut_stop/), bounded by DA_P10_1_CUT_STOP_S and in
+# a session of its own (a second TERM to the step cannot cut the collection), writes p10_1_verdicts.txt and .json with
+# the verdicts judged so far and "NOT RUN <check>: cut by <signal> ..." for the rest (the json's "cut" names the
+# signal, the part and the stop's exit status), and exits 128 + the signal's number.
 set -uo pipefail
 HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 BENCH=$(cd -- "$HERE/../.." && pwd)
@@ -58,6 +66,9 @@ OUT=${1:?usage: p10_1_check.sh <out>}
 : "${DA_P10_1_SUPERVISED_WAIT_S:=420}"
 : "${DA_P10_1_SKIP_PORT_CHECK:=0}"
 : "${DA_P10_1_C5_WAIT_S:=5}"
+: "${DA_P10_1_ORT_TIMEOUT_S:=300}"
+: "${DA_P10_1_PROBE_TIMEOUT_S:=60}"
+: "${DA_P10_1_CUT_STOP_S:=100}"
 mkdir -p "$OUT"
 exec > >(tee -a "$OUT/p10_1_check.log") 2>&1
 VERDICTS=$OUT/p10_1_verdicts.txt
@@ -70,6 +81,51 @@ verdict() {   # verdict PASS|FAIL|NOT_RUN <check> <detail>
 REC_LOG=$DA_STAGE/run/score/identityRecorder.jsonl
 LM_LOG=$DA_STAGE/state/launch_manager.log
 json_num() { sed -n "s/.*\"$2\":\([0-9.e+-]*\).*/\1/p" <<< "$1" | head -1; }
+CHECKS="C1_launch_manager_config_and_start_order C2_alive_notifications C3_stalled_candidate_fallback
+  C4_asil_b_command_path C5_gatewayd_receives_from_asil_b_process C6_cuda_pass_time
+  C7_candidate_record_late_subscriber C8_candidate_on_a_replayed_clip"
+write_json() {   # write_json [<signal> <part> <stop rc>]: p10_1_verdicts.json from the .txt (and the cut, if any)
+  "$DA_PYTHON" - "$VERDICTS" "$OUT/p10_1_verdicts.json" "$@" << 'EOF'
+import json, re, sys
+rows = []
+for line in open(sys.argv[1], encoding="utf-8"):
+    m = re.match(r"(PASS|FAIL|NOT RUN) (\S+): (.*)", line.rstrip("\n"))
+    if m:
+        rows.append({"verdict": m.group(1), "check": m.group(2), "detail": m.group(3)})
+doc = {"checks": rows}
+if len(sys.argv) > 3:
+    doc["cut"] = {"signal": sys.argv[3], "part": sys.argv[4], "stop_rc": sys.argv[5]}
+json.dump(doc, open(sys.argv[2], "w", encoding="utf-8"), indent=1)
+EOF
+}
+
+# the cut (see the header): the open start stopped and collected, the verdicts so far kept, the rest NOT RUN
+PART="setup" PART_OUT=""
+on_cut() {
+  local sig=$1 num=$2 src stop_rc=none c
+  trap '' TERM INT HUP PIPE
+  # the tee of this script's output had the step's group signal too: the log file directly from here on
+  exec >> "$OUT/p10_1_check.log" 2>&1
+  ss_log "CUT by $sig during part $PART"
+  src=$PART_OUT
+  [ -z "$src" ] && ss_lm_running > /dev/null && src=$OUT/cut_stop
+  if [ -n "$src" ]; then
+    ss_log "the cut's stop of the S-CORE side into $src (at most $DA_P10_1_CUT_STOP_S s)"
+    setsid -w timeout --foreground "$DA_P10_1_CUT_STOP_S" bash "$SP/stop_score_side.sh" "$src" < /dev/null
+    stop_rc=$?
+    ss_log "the cut's stop: rc $stop_rc"
+  fi
+  for c in $CHECKS; do
+    grep -q "^[A-Z ]* ${c}: " "$VERDICTS" 2>/dev/null ||
+      verdict NOT_RUN "$c" "cut by $sig during part $PART before this check's verdict"
+  done
+  write_json "$sig" "$PART" "$stop_rc"
+  ss_log "P10-1: cut by $sig during part $PART"
+  exit $(( 128 + num ))
+}
+trap 'on_cut TERM 15' TERM
+trap 'on_cut INT 2' INT
+trap 'on_cut HUP 1' HUP
 
 # The recorder's report, in monotonic ns.
 reported_mono_ns() { json_num "$(ss_last_event "$REC_LOG" lifecycle)" t_mono_ns; }
@@ -100,13 +156,15 @@ ss_clock_record > "$OUT/clock_start.txt"
 
 # Part 1: the warning path alone (the path-only configuration): the late subscriber and gatewayd.
 ss_log "part 1: the warning path"
+PART="1 (the warning path)" PART_OUT=$OUT/path
 if bash "$SP/start_score_side.sh" "$OUT/path" none; then
   path_order=$(order_check path)
   # C7: subscribe after the record was published
   probe=$DA_STAGE/bin/candidate_record_probe
   if [ -x "$probe" ]; then
     first_pub=$(json_num "$(grep -F '"event":"publish"' "$REC_LOG" | head -1)" t_real_ns)
-    $DA_SUDO env MW_COM_CONFIG="$DA_STAGE/config/mw_com_config_candidate_record_probe.json" "$probe" \
+    timeout --foreground "$DA_P10_1_PROBE_TIMEOUT_S" $DA_SUDO env \
+      MW_COM_CONFIG="$DA_STAGE/config/mw_com_config_candidate_record_probe.json" "$probe" \
       --wait-s "$DA_P10_1_LATE_WAIT_S" --timeout-s 10 --out "$OUT/late_subscriber.json" > /dev/null
     rc=$?
     sub=$(json_num "$(cat "$OUT/late_subscriber.json" 2>/dev/null)" subscribed_real_ns)
@@ -152,6 +210,7 @@ if bash "$SP/start_score_side.sh" "$OUT/path" none; then
     fi
   fi
   bash "$SP/stop_score_side.sh" "$OUT/path"
+  PART_OUT=""
 else
   path_order="the path-only start failed (see $OUT/path)"
   verdict FAIL C7_candidate_record_late_subscriber "the warning path did not start"
@@ -160,6 +219,7 @@ fi
 
 # Part 2: the CUDA passes, outside the Launch Manager.
 ss_log "part 2: the networks on the CUDA provider"
+PART="2 (the CUDA passes)" PART_OUT=""
 ort=$DA_B2_BUNDLE/bin/ort_cuda_check
 weights=$DA_B2_BUNDLE/share/visionpilot/modules/models/weights
 if [ ! -x "$ort" ]; then
@@ -168,7 +228,7 @@ else
   : > "$OUT/cuda_runs.txt"
   ok=1
   for net in autodrive autosteer autospeed; do
-    if ! "$ort" "$weights/${net}_fp32.onnx" "$DA_P10_1_CUDA_RUNS" > "$OUT/ort_${net}.txt" 2>&1 ||
+    if ! timeout --foreground "$DA_P10_1_ORT_TIMEOUT_S" "$ort" "$weights/${net}_fp32.onnx" "$DA_P10_1_CUDA_RUNS" > "$OUT/ort_${net}.txt" 2>&1 ||
        ! grep -q "ORT_CUDA_CHECK PASS" "$OUT/ort_${net}.txt"; then
       ok=0
     fi
@@ -194,10 +254,11 @@ fi
 
 # Part 3: the full configuration and the candidate, only against a CARLA server that answers.
 ss_log "part 3: the full configuration"
+PART="3 (the full configuration)"
 carla=$DA_P10_1_CARLA_HOST
 have_world=0 no_world="no DA_P10_1_CARLA_HOST"
 if [ "$carla" != none ]; then
-  if [ "$DA_P10_1_SKIP_PORT_CHECK" = 1 ] || timeout 10 bash -c "</dev/tcp/$carla/2000" 2>/dev/null; then
+  if [ "$DA_P10_1_SKIP_PORT_CHECK" = 1 ] || timeout --foreground 10 bash -c "</dev/tcp/$carla/2000" 2>/dev/null; then
     have_world=1
   else
     no_world="CARLA port 2000 at $carla does not answer"
@@ -236,6 +297,7 @@ else
       > "$DA_CAMERA_CALIBRATION_DIR/SOURCE.txt"
     ss_log "no DA_CAMERA_CALIBRATION_DIR: upstream's calibration stands in for the full start (no judged run)"
   fi
+  PART_OUT=$OUT/full
   if ! bash "$SP/start_score_side.sh" "$OUT/full" "$carla"; then
     verdict FAIL C1_launch_manager_config_and_start_order "the full start failed (see $OUT/full); path part: ${path_order:-ok}"
     not_run_candidate
@@ -307,6 +369,7 @@ else
     fi
     bash "$SP/stop_score_side.sh" "$OUT/full"
   fi
+  PART_OUT=""
 fi
 
 verdict NOT_RUN C8_candidate_on_a_replayed_clip "the S-CORE interface module has no clip replayer (score-interface:" \
@@ -317,14 +380,7 @@ ss_clock_record > "$OUT/clock_end.txt"
 fails=$(grep -c '^FAIL ' "$VERDICTS" || true)
 passes=$(grep -c '^PASS ' "$VERDICTS" || true)
 notrun=$(grep -c '^NOT RUN ' "$VERDICTS" || true)
-"$DA_PYTHON" - "$VERDICTS" "$OUT/p10_1_verdicts.json" << 'EOF'
-import json, re, sys
-rows = []
-for line in open(sys.argv[1], encoding="utf-8"):
-    m = re.match(r"(PASS|FAIL|NOT RUN) (\S+): (.*)", line.rstrip("\n"))
-    if m:
-        rows.append({"verdict": m.group(1), "check": m.group(2), "detail": m.group(3)})
-json.dump({"checks": rows}, open(sys.argv[2], "w", encoding="utf-8"), indent=1)
-EOF
+PART="the summary"
+write_json
 ss_log "P10-1: $passes PASS, $fails FAIL, $notrun NOT RUN"
 [ "${fails:-0}" = 0 ]
