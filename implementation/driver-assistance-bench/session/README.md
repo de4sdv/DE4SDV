@@ -320,8 +320,11 @@ capacity rounds, a quota error, a failed step, the cost cap, SIGTERM, the guests
 host kept running when they do not stop, the guest host's safety net, IAP on and off, IPs read from gcloud, the
 calibration file on the S-CORE host before every start, the refusals (no owner OK, a running VM, another GPU VM, a
 missing or non-executable entry, no calibrate or prepare entry, the pin missing from `VP_CLONE`, an existing session
-folder, a real gcloud in a dry run, dry-run knobs in a real session), a foreign fetch, and that the dry run prints
-every call. `tests/test_remote_scripts.py` runs the guest-host scripts and the safety net against fake `cvd`,
+folder, a real gcloud in a dry run, dry-run knobs in a real session, a session id outside its alphabet, a
+`--remote-env` off the allow-list), a foreign fetch, and that the dry run prints every call. Since the second review
+also: a signal or the cap during a guest step (the step's TERM before the guests' stop), a guest host never reached
+over SSH, an SSH loss after a guest step, an S-CORE stop's exit 7 and 8, the go clock, the trap's bounded pre-stop
+phase and its 30 s status reads, the safety net's deadline, and the README's launch lines themselves. `tests/test_remote_scripts.py` runs the guest-host scripts and the safety net against fake `cvd`,
 `adb`, `pgrep`, `sudo` and `ip`. The stubs in `tests/stubs/` stand for the S-CORE side's entries (another lane's)
 and for `make-h` in dry runs; they never run on a host.
 

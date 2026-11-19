@@ -1182,3 +1182,73 @@ def test_the_readme_starts_sessions_only_from_a_clean_environment_in_a_unit_that
     text = (HERE.parent / "README.md").read_text()
     assert "never `kill -9` a session" in text.lower()
     assert "systemctl list-unit-files | grep -i -E 'cvd|cuttlefish'" in text     # S1's assumption, checked once
+
+
+# ------------------------------------------------- the review's surviving mutants Y12-Y16 (S12; Y02 above, with S1)
+
+
+def _hosts_env(*names: str) -> list[str]:
+    out = subprocess.run(["bash", "-c", '. "$1/hosts.env"; shift; for n; do printf "%s\\n" "${!n}"; done', "_",
+                          str(HERE.parent), *names], capture_output=True, text=True, check=True,
+                         env={"PATH": os.environ["PATH"]}).stdout
+    return out.splitlines()
+
+
+def test_the_safety_net_fires_at_the_cap_plus_the_pre_stop_bound_plus_its_margin(tmp_path: Path) -> None:
+    # Y12: a deadline far after the cap passed every test; it is (CAP_S + 300 s) / 60 + 10 min from the arming
+    r = run(tmp_path, "p10-1")
+    assert r.rc == 0, r.log
+    cap, eur_h = (float(x) for x in _hosts_env("CAP_EUR_P10_1", "SCORE_EUR_H"))
+    gmin = (int(cap / eur_h * 3600) + 300) // 60 + 10
+    (arm,) = [r.command(i) for i in r.ssh(L4, "safety_net.sh arm")]
+    assert re.search(rf"safety_net\.sh arm {gmin}$", arm), (arm, gmin)
+    assert f"power-off safety net in {gmin} min" in r.log
+
+
+def test_the_default_go_bound_is_380_s_and_leaves_room_for_the_go_call(tmp_path: Path) -> None:
+    # Y13: the tests always set DA_T_GO_LIMIT_S, so a default of 3800 s passed; 380 s + the go's SSH call (35 s at
+    # most) stay under the candidate's 420 s ready time-out
+    r = run(tmp_path, "p10-2", "--without-guest-host")
+    assert r.rc == 0, r.log
+    m = re.findall(r"go of \w+ \d+ s after the S-CORE side's start step began \(limit (\d+) s, the go's SSH call at "
+                   r"most (\d+) s\)", r.log)
+    assert m and all(int(a) == 380 and int(a) + int(b) < 420 for a, b in m), m
+
+
+def test_a_session_id_named_only_in_an_archived_session_json_is_refused(tmp_path: Path) -> None:
+    # Y14: only the folder-name form was tested
+    d = tmp_path / "ev" / "session7_p10-3_renamed"
+    d.mkdir(parents=True)
+    (d / "session.json").write_text(json.dumps({"session_id": "T", "kind": "p10-3"}, indent=1))
+    r = run(tmp_path, "p10-1")
+    assert r.rc == 2 and "is taken by" in r.stdout and str(d) in r.stdout and not r.calls
+
+
+def test_the_traps_fetch_packs_within_120_s_and_copies_within_300_s(tmp_path: Path) -> None:
+    # Y15: the trap's fetch with the defaults of the end-of-session fetch (600 s pack, 1200 s copy) passed every test
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="inject:30")
+    wait_for_call(tmp_path, lambda c: any("start inject" in a for a in c))
+    time.sleep(0.5)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    cmds = (r.incoming / "commands.log").read_text().splitlines()
+    packs = [c for c in cmds if "host_step.sh pack" in c]
+    copies = [c for c in cmds if " + scp " in c and c.split(" [timeout")[0].endswith("/")
+              and "out.tgz" in c]
+    assert len(packs) == 2 and all(c.endswith("[timeout 120 s]") for c in packs), packs
+    assert len(copies) == 2
+    for c in copies:
+        t = int(re.search(r"\[timeout (\d+) s\]$", c).group(1))
+        assert 200 <= t <= 300, c
+
+
+@pytest.mark.parametrize("status", ["STOPPING", "TERMINATED"])
+def test_a_guest_host_found_stopping_in_the_trap_is_stopped_without_a_count(tmp_path: Path, status: str) -> None:
+    # Y16: a guest host that is shutting down runs no guest: its stop goes out, with no SSH count it could not get
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_LOST_AFTER=f"{GH}:start capture_inject",
+            FAKE_LOST_STATUS=status)
+    assert r.rc == 3, r.log
+    assert f"guest host status {status}: no guest can run there" in r.log
+    assert r.stops(GH) and r.state[GH] == "TERMINATED" and not r.guest_stops()
+    assert_invariants(r)
