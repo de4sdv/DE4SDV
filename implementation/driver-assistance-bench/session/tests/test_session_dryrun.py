@@ -993,6 +993,8 @@ def test_a_step_past_its_time_out_is_signalled_on_its_host_before_the_guests_sto
     assert r.rc == 5, r.log
     sig = r.ssh(GH, "host_step.sh signal guest_up TERM")
     assert sig and sig[0] < r.guest_stops()[0]
+    # at the time-out itself, by rstep, not only later by the exit trap (which TERMs a step still running, S2)
+    assert len(sig) == 1 and sig[0] < r.ssh(GH, "host_step.sh tail guest_up")[0]
     assert "after the TERM: rc 143" in r.log and "step guest_up rc=124" in r.log
     assert_invariants(r)
 
