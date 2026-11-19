@@ -30,6 +30,7 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_FETCH_FAIL    a VM name whose out.tgz scp fails
   FAKE_TERM_TAIL     "step:line"  the last line of the step's tail once the step was signalled (its own FAIL line);
                      the tail then exits 1, as host_step.sh tail does for a step that wrote no .rc
+  FAKE_TAIL_ADD      "step:line"  a line of the step's tail before its end line (guest_up's CROSVM_BEFORE_LAUNCH, say)
   FAKE_RECEIPTS      the line count `offer_check.sh receipts` reports for a window's app record (default 2)
   FAKE_DESCRIBE_FLAKE   "vm:n"  once any stop call was made, the next n status reads of the VM fail (a transient
                         gcloud error: a token refresh, a network blip)
@@ -263,7 +264,8 @@ if words[:2] == ["compute", "ssh"]:
             term = kv("FAKE_TERM_TAIL").get(step) if key in st.get("signalled", {}) else None
             if term:   # killed by its TERM: no .rc file, so host_step.sh tail exits 1 after the log's lines
                 out(st.get("tails", {}).get(key, "") + term + "\n", 1)
-            out(st.get("tails", {}).get(key, "") + "=== %s end rc=%d (fake)\n" % (step, code))
+            add = kv("FAKE_TAIL_ADD").get(step)
+            out(st.get("tails", {}).get(key, "") + (add + "\n" if add else "") + "=== %s end rc=%d (fake)\n" % (step, code))
         if action == "signal":
             st.setdefault("signalled", {})[key] = c.split()[-1]
             out("signalled %s\n" % step)

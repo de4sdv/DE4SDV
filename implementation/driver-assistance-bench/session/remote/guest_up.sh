@@ -32,6 +32,14 @@ ID=$OUT/guest_identity.txt
 # so a TERM to the step reaches it (plain GNU timeout would move it into a group of its own, which outlives the step)
 adbt() { timeout --foreground "${ADB_TO_S:-30}" "$ADB" "$@"; }
 
+# S1 (session/README.md): the trap may stop a guest host that never answered SSH without a crosvm count, on the
+# assumption that no guest runs there before the session starts one. Counted here, before this launch, every session:
+# a number only when pgrep answered (rc 0: some, rc 1: none); an error is "unknown", never 0. The last line repeats it,
+# so the session reads it from the step's tail
+CB=$(pgrep -c -x crosvm 2>/dev/null); cbrc=$?
+[ "$cbrc" -le 1 ] && [[ "$CB" =~ ^[0-9]+$ ]] || CB=unknown
+echo "$CB" > "$OUT/crosvm_before_launch.txt"
+echo "crosvm processes before the launch: $CB"
 echo "launch: $LAUNCH"
 # GNU timeout (without --foreground) moves itself and the launch into a new process group, which a TERM to the step's
 # group does not reach: the step then read as ended at once while the launch still created guests, and the session
@@ -82,3 +90,4 @@ else
   echo "app $APP_PACKAGE not installed on the IVI guest (expected after a fresh create: the prepare step installs it)" | tee -a "$ID"
 fi
 echo "GUEST_UP_DONE"
+echo "CROSVM_BEFORE_LAUNCH $CB"

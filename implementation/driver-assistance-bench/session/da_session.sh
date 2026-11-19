@@ -83,7 +83,7 @@ esac
 # purpose with --remote-env NAME=VALUE (S4: an exported variable of the calling shell, another worker's UNIT_WAIT_S
 # say, never reaches a step). Each goes to every step on that host (`env NAME=value` before the command) and into
 # session.json, so a guessed pattern or a time-out is changed for the next session without a commit
-REMOTE_ENV_guest="UNIT_REGISTERED_RE UNIT_NEGATION_RE BROKER_ERROR_RE UNIT_WAIT_S B12_DIR VERIFY_WAIT_S ADB_TIMEOUT_S
+REMOTE_ENV_guest="UNIT_SOURCE UNIT_REGISTERED_RE UNIT_NEGATION_RE BROKER_ERROR_RE UNIT_WAIT_S B12_DIR VERIFY_WAIT_S ADB_TIMEOUT_S
                   UP_TIMEOUT_S CLOCK_READS CLOCK_MAX_OFFSET_S START_WAIT_S"
 REMOTE_ENV_score="DA_P10_1_CARLA_HOST GATEWAYD_RX_REGEX DA_P10_1_LATE_WAIT_S DA_P10_1_CUDA_RUNS DA_P10_1_ALIVE_HOLD_S
                   DA_P10_1_STALL_HOLD_S DA_P10_1_SUPERVISED_WAIT_S"
@@ -114,7 +114,7 @@ PRESTOP_S=300; TRAP_PACK_S=120; TRAP_SCP_S=300
 TRAP_GC_TO_S=30   # each gcloud status read in the trap: on a gcloud outage the stop loop must not sit for hours (S10)
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
-T_UNIT=300
+T_UNIT=360   # UNIT_WAIT_S (120) and its last poll, then on a fail the diagnostics (3 adb calls of 30 s at most)
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
        T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
@@ -579,7 +579,7 @@ write_record() {
   FETCH_OK="$FETCH_OK" FETCH_BAD="$nf" \
   ENDED_BY="$ENDED_BY" STOPS="$STOPS" TERMED_STEP="$TERMED_STEP" TERMED_NAME="$TERMED_NAME" \
   TERMED_AFTER="$TERMED_AFTER" TERMED_FAIL="$TERMED_FAIL" P10_3_PASSED="${P10_3_PASSED:-}" \
-  P10_3_REASON="${P10_3_REASON:-}" \
+  P10_3_REASON="${P10_3_REASON:-}" CROSVM_BEFORE="${CROSVM_BEFORE:-}" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
@@ -611,6 +611,7 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "step_ended_by_term": {"host": e["TERMED_STEP"], "step": e["TERMED_NAME"],
                                   "status_after_term": e["TERMED_AFTER"], "fail_line": e["TERMED_FAIL"] or None}
                                  if e["TERMED_STEP"] else None,
+           "crosvm_before_guest_up": int(e["CROSVM_BEFORE"]) if e["CROSVM_BEFORE"].isdigit() else None,
            "p10_3": {"passed": e["P10_3_PASSED"] == "1", "reason": e["P10_3_REASON"]}
                     if e["KIND"] == "p10-3" else None},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
@@ -861,6 +862,15 @@ SEQ=()
 
 guest_bring_up() {   # fresh guests, the app and its ACLs, the VXLAN at both ends
   rstep guest guest_up "$T_GUEST_UP" "$GENV" bash "$ENTRY_GUEST_UP" "$(od guest_up)"
+  # S1 (README): the trap's stop of a guest host that never answered SSH assumes that no guest runs there before the
+  # session starts one; guest_up counts crosvm before its launch, and its tail's last line carries the count
+  CROSVM_BEFORE=$(grep -o 'CROSVM_BEFORE_LAUNCH [0-9a-z]*' "$IN/guest.steps.out" | tail -1 | cut -d' ' -f2)
+  case "${CROSVM_BEFORE:-unknown}" in
+    0) log "crosvm processes on the guest host before guest_up: 0 (S1 held for this run: no guest ran before the session started one)" ;;
+    *[!0-9]*|"") CROSVM_BEFORE=unknown
+       log "crosvm processes on the guest host before guest_up: unknown (no count in guest_up's tail): S1 not checked this run" ;;
+    *) log "S1 VOID: $CROSVM_BEFORE crosvm process(es) on the guest host before guest_up: a guest ran before this session started one; tell the lead before the next session, and do not rely on the stop without a crosvm count" ;;
+  esac
   rstep guest guest_prepare "$T_GUEST_UP" "$GENV" bash "$ENTRY_GUEST_PREPARE" "$(od guest_prepare)"
   local gip sip; ipof guest gip; ipof score sip
   log "VXLAN between the guest host $gip and the S-CORE host $sip (both from gcloud)"
