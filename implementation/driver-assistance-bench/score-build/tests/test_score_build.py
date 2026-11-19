@@ -11,7 +11,7 @@ checked without it:
 - the workspace edits the build script makes find their anchors in the repository's FEO bench diff;
 - the bundle contract: every path that score-path/scripts/stage_score_side.py requires, or reads when present, is
   produced by the bundle step (read statically from both scripts), each binary copied from Bazel's output is a target
-  of the bazel stage in a staged package;
+  of the bazel stage in a staged package, and facts/*.diff is exactly the patch series;
 - the pinned GPU runtime covers every CUDA library that the pinned ONNX Runtime CUDA provider needs;
 - C++ files that name fixed-width integer types include <cstdint>.
 
@@ -494,7 +494,7 @@ def bundle_step_outputs(script: str) -> tuple[set[str], list[tuple[str, str]], s
         for m in re.finditer(r'--output "\$B/([^"]+)"', cmd):
             produced.add(m.group(1))
             pairs.append((m.group(1), "--output"))
-    if re.search(r'\(cd "\$B" && find \. -type f ! -name SHA256SUMS -print0 \| sort -z \| xargs -0 sha256sum '
+    if re.search(r'\(cd "\$B" && find \. -type f ! -path \./SHA256SUMS -print0 \| sort -z \| xargs -0 sha256sum '
                  r'> SHA256SUMS\)', bundle):
         produced.add("SHA256SUMS")
     return produced, pairs, whole_dirs
@@ -554,7 +554,7 @@ def _covers(produced: set[str], path: str) -> bool:
 
 def test_the_bundle_step_produces_every_path_the_staging_reads() -> None:
     """The bundle contract: every path that score-path/scripts/stage_score_side.py requires, or reads when present,
-    is produced by the bundle step of build_score_bench.sh, before the bundle's SHA256SUMS is taken."""
+    is produced by the bundle step of build_score_bench.sh, and lands in the bundle's SHA256SUMS."""
     script = (BUILD_DIR / "build_score_bench.sh").read_text()
     produced, pairs, _ = bundle_step_outputs(script)
     reads, prefixes = staging_reads()
@@ -577,7 +577,7 @@ def test_the_bundle_step_produces_every_path_the_staging_reads() -> None:
     assert not missing, missing
     # the sums are taken last, over every file: nothing is written into $B after them
     bundle = script[script.index("\nstep bundle\n"):]
-    sums = bundle.index('(cd "$B" && find . -type f ! -name SHA256SUMS')
+    sums = bundle.index('(cd "$B" && find . -type f ! -path ./SHA256SUMS')
     assert not re.search(r'"\$B/', bundle[sums:].split("tar -czf", 1)[0].split("\n", 1)[1])
     assert "SHA256SUMS" in produced
 
@@ -619,6 +619,18 @@ def test_the_bundle_binaries_are_built_targets_of_staged_packages() -> None:
             else:
                 assert label in ("@score_communication//score/mw/com",
                                  "@score_lifecycle//score/launch_manager:lifecycle_cc"), label
+
+
+def test_the_bundle_source_difference_is_exactly_the_patch_series() -> None:
+    """The identity recorder hashes every facts/*.diff that the staging copies and refuses one that facts/SHA256SUMS
+    does not list: facts/*.diff of the bundle is the patch series, the build's own diffs go elsewhere."""
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    _, pairs, _ = bundle_step_outputs(script)
+    diffs = [src for path, src in pairs if re.fullmatch(r"facts/[^/]*\.diff", path)]
+    assert diffs == ['$BENCH/score-interface/patches/*.diff']
+    listed = {line.split()[1] for line in (PATCHES / "SHA256SUMS").read_text().splitlines() if line.strip()}
+    assert listed == {p.name for p in PATCHES.glob("*.diff")}
+    assert ("facts/SHA256SUMS", "$BENCH/score-interface/patches/SHA256SUMS") in pairs
 
 
 def test_every_repository_source_of_the_bundle_exists() -> None:

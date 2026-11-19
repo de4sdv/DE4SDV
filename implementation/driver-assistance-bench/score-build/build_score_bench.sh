@@ -609,7 +609,12 @@ cp -a "$VP/VisionPilot/assets" "$B/share/visionpilot/assets"
 mkdir -p "$B/share/visionpilot/modules/models/weights"
 cp "$ROOT"/src/vp-pin/VisionPilot/modules/models/weights/*.onnx "$B/share/visionpilot/modules/models/weights/"
 cp "$BENCH"/score-interface/patches/*.diff "$BENCH/score-interface/patches/SHA256SUMS" "$B/facts/"
-cp "$ROOT"/facts/*.txt "$ROOT"/facts/*.diff "$B/facts/" 2>/dev/null || true
+# facts/*.diff is the source difference of the candidate, exactly the patch series of its SHA256SUMS: the identity
+# recorder hashes every facts/*.diff that the staging copies and refuses one that SHA256SUMS does not list. The build's
+# own diffs (the workspace's and the gateway's MODULE.bazel) go to facts/build/.
+mkdir -p "$B/facts/build"
+cp "$ROOT"/facts/*.txt "$B/facts/" 2>/dev/null || true
+cp "$ROOT"/facts/*.diff "$B/facts/build/" 2>/dev/null || true
 # the run-time packages of the S-CORE host (install_gpu_runtime.sh installs them): name=version where this host has
 # the package installed, the bare name where it has not (dpkg-query prints "name=" for a package it knows but has
 # not installed, and apt-get refuses an empty version)
@@ -656,7 +661,8 @@ grep -q -E '^1\.0-14ac3b1a5$' "$B/facts/vision_pilot.strings" || die "vision_pil
   > "$B/facts/ort_cuda_check_cpu.txt" 2>&1 || true
 cat "$B/facts/ort_cuda_check_cpu.txt"
 grep -q "ORT_CUDA_CHECK PASS" "$B/facts/ort_cuda_check_cpu.txt" || die "ort_cuda_check --cpu-only failed"
-(cd "$B" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
+# every file of the bundle but this list itself, facts/SHA256SUMS of the patch series included
+(cd "$B" && find . -type f ! -path ./SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
 tar -czf "$ROOT/da-b2-bundle.tgz" -C "$ROOT" bundle
 echo
 echo "=== BUILD OK $(date -u +%FT%TZ)"

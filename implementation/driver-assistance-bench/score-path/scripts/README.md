@@ -77,7 +77,7 @@ that file verbatim, so the record shows the mode.
   | `config/gateway/someip_gateway_config_warning.bin` | the gateway build | `stage_score_side.py` |
   | `config/visionpilot/vision_pilot.conf`, `H.yaml`, `homography_C_matrix.yaml` | upstream's `config/`; the C matrix by upstream's `scripts/find_homography_C_matrix.py`, as upstream's CMake build makes it | `stage_score_side.py`; the calibration only in mode path and p10-1 |
   | `share/visionpilot/modules/models/weights/*.onnx`, `share/visionpilot/assets/` | the S-CORE build | `stage_score_side.py` |
-  | `lib/*`, `facts/*.diff`, `facts/SHA256SUMS` | the S-CORE build | `stage_score_side.py` |
+  | `lib/*`, `facts/*.diff`, `facts/SHA256SUMS` | the S-CORE build; `facts/*.diff` is exactly the patch series that `facts/SHA256SUMS` lists (the build's own diffs are under `facts/build/`) | `stage_score_side.py`; the identity recorder refuses a `.diff` that `SHA256SUMS` does not list |
 
   `../../score-build/tests/test_score_build.py` (the bundle contract test) reads this script and the build script's
   bundle step and checks that the bundle step produces every path above.
