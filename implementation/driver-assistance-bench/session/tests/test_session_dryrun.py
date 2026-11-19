@@ -1213,6 +1213,8 @@ def test_the_default_go_bound_is_380_s_and_leaves_room_for_the_go_call(tmp_path:
     m = re.findall(r"go of \w+ \d+ s after the S-CORE side's start step began \(limit (\d+) s, the go's SSH call at "
                    r"most (\d+) s\)", r.log)
     assert m and all(int(a) == 380 and int(a) + int(b) < 420 for a, b in m), m
+    gos = [c for c in (r.incoming / "commands.log").read_text().splitlines() if re.search(r"touch \S+/go &&", c)]
+    assert len(gos) == 3 and all(c.endswith("[timeout 35 s]") for c in gos), gos
 
 
 def test_a_session_id_named_only_in_an_archived_session_json_is_refused(tmp_path: Path) -> None:
