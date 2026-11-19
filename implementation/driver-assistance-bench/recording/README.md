@@ -28,6 +28,19 @@ CSV (`video_index, carla_frame, sim_time_s, arrival_unix_s`). It lists the heroe
 test and attaches to the first new hero, so a hero that appears during the test encode is still taken. It exits 0
 only if it attached and wrote frames; the session's lap rule reads that.
 
+It judges whether the hero or its camera was deleted on the world's ticks only: `TickLiveness` reads each tick's
+snapshot (`world.on_tick`, `snapshot.find(id)`), and an actor counts as deleted only when a tick after its first
+appearance lacks it. Why: in a synchronous world that is not ticking, a client's actor list is the state of the last
+tick. In p10-2 session 20261119T174606Z, run 1, the world side waited 156 s for the go without ticking; the recorder
+spawned its camera (157) in that pause, did not find it in `get_actors()` and ended at once with 0 frames and
+"ego or camera deleted by another client". On the real CARLA 1.0 server a client that connects in such a pause lists
+no actor at all until the next tick (`outputs/inc-driving-002/phase10/chase-recorder-fix-20261119/FACTS.md`). The
+pause can last up to the session's go limit (380 s); nothing in the recorder times out in it, and `--max-s` (1800 s)
+outlasts it with the run. A failed poll of the world's settings (a time-out during a long tick) is a transient: only
+`--poll-errors-max` (6) failed polls in a row end the recording ("the simulator did not answer N polls in a row").
+Its summary adds `liveness`, `gone` (the actor and the tick that lacked it), `ticks_seen`, `camera_first_frame` and
+`poll_errors` to the earlier fields.
+
 Run by the session (`--out` only); by hand: `/opt/sim20g4/venv/bin/python chase_recorder.py --out <dir>`.
 
 ## The display capture
@@ -210,7 +223,14 @@ every offset used.
 
 - `tests/test_chase_recorder.py`: the spring-arm pitch rule against `math.atan2`; the encoder choice; a recording on
   a fake CARLA module (`tests/fake_carla/`) with the real ffmpeg: spawn pose and mount, frame count by ffprobe, the
-  frames CSV, the label of 20 fps, the fallback named; a simulator that answers late; one that never answers.
+  frames CSV, the label of 20 fps, the fallback named; a simulator that answers late; one that never answers. On the
+  world side's fake CARLA as a synchronous world that pauses (`tests/paused_world.py`: synchronous at 0.05 s, a
+  target and the hero spawned, 10 ticks, a pause without ticks, the run): the pause is no deletion (every run tick
+  recorded, the hero taken by its role); a camera or a hero deleted on a tick ends the recording at that tick; a
+  transient poll error does not end it, failed polls in a row do, and only in a row; the default cap outlasts the
+  go wait; `TickLiveness` on stub snapshots.
+- `tests/test_fake_world_last_tick.py`: the world side's fake with `actor_list_at_last_tick`: an actor spawned after
+  the last tick is listed (by any client, the spawning one included) only after the next tick.
 - `tests/test_display_capture.py`: against a fake adb whose guest clock runs 0.25 s ahead: the bracket in one guest
   shell, segments ended by the time limit and by the stop (SIGINT), a stop that comes just after a segment's time
   limit (at the poll that finds it ended, and during its pull), the stills per display, the sha256 of every file, the

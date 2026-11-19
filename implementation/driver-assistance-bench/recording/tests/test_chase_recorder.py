@@ -163,6 +163,17 @@ def test_a_simulator_that_stops_answering_ends_the_recording(tmp_path: Path) -> 
     assert st["ran_s"] < 15
 
 
+def test_only_failed_polls_in_a_row_end_the_recording(tmp_path: Path) -> None:
+    # three error windows of 1.9 s (1 or 2 polls at the 1 s poll interval each), 1.2 s apart (an answered poll
+    # between them): at least 3 failed polls, never 3 in a row
+    p, st, w = run_paused(tmp_path, "--pause-s", "11", "--run-ticks", "20",
+                          "--settings-errors", "2.0:3.9,5.1:7.0,8.2:10.1",
+                          rec=("--poll-errors-max", "3"))
+    assert st["poll_errors"] == w["settings_errors"] >= 3
+    assert st["end"] == "world left synchronous mode (end of run)", p.stdout + p.stderr
+    assert st["frames"] == 20 and p.returncode == 0
+
+
 def test_the_default_cap_outlasts_the_session_go_wait() -> None:
     # the session's go limit (GO_LIMIT_S, 380 s) plus p10-2's 90 s run, with margin: the recorder starts before the
     # world side and must still be recording at the run's end

@@ -7,7 +7,7 @@ for the go WITHOUT ticking, then ticks --run-ticks times (one per 0.05 s of wall
 The fake's world is the real server's: an actor list is the state of the last tick (actor_list_at_last_tick).
 
 Usage: paused_world.py <world-side fake dir> <recorder> [--pause-s S] [--setup-ticks N] [--run-ticks N]
-       [--hero-after-s S] [--delete camera@K|hero@K] [--settings-errors FROM_S:TO_S] [--] <recorder args...>
+       [--hero-after-s S] [--delete camera@K|hero@K] [--settings-errors FROM_S:TO_S[,...]] [--] <recorder args...>
 Prints one line "WORLD {json}" (the world's facts) and exits with the recorder's status.
 """
 from __future__ import annotations
@@ -29,7 +29,7 @@ def main() -> int:
     ap.add_argument("--run-ticks", type=int, default=40)
     ap.add_argument("--hero-after-s", type=float, default=1.0)
     ap.add_argument("--delete", default="")
-    ap.add_argument("--settings-errors", default="", help="get_settings raises between these world times (s)")
+    ap.add_argument("--settings-errors", default="", help="get_settings raises between these world times (s): FROM:TO[,FROM:TO...]")
     argv = sys.argv[1:]
     cut = argv.index("--") if "--" in argv else len(argv)
     a = ap.parse_args(argv[:cut])
@@ -44,11 +44,11 @@ def main() -> int:
     t0 = time.time()
 
     if a.settings_errors:
-        lo, hi = (float(x) for x in a.settings_errors.split(":"))
+        windows = [tuple(float(x) for x in w.split(":")) for w in a.settings_errors.split(",")]
         real = carla.World.get_settings
 
         def flaky(self):
-            if self._client.name == "recorder" and lo <= time.time() - t0 < hi:
+            if self._client.name == "recorder" and any(lo <= time.time() - t0 < hi for lo, hi in windows):
                 facts["settings_errors"] = facts.get("settings_errors", 0) + 1
                 raise RuntimeError("time-out of 10000ms while waiting for the simulator")
             return real(self)

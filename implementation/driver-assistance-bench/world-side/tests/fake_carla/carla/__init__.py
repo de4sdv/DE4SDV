@@ -17,7 +17,10 @@ tell which client applied a control: the world side, or a stand-in for the actua
   since (by any client, the caller's own camera included) appears only after the next tick. The real CARLA 1.0
   server did this in session 20261119T174606Z: the chase recorder's own camera (157) was missing from its actor list
   while the world side waited for the go without ticking. Each tick's ``WorldSnapshot`` holds that tick's actors
-  (``find``, ``has_actor``, ``len``, iteration). Off by default, so the world side's own tests keep the live list;
+  (``find``, ``has_actor``, ``len``, iteration). A client that connected after the last tick lists no actor at all
+  until the next one: on the real server (G4, 2026-11-19) a second client connecting in such a pause listed 0 actors
+  and a snapshot of frame 0 for 85 s, then 98 actors at the first tick after the go. Off by default, so the world
+  side's own tests keep the live list;
 - ``_SHARED_SERVER``: when a test sets it, ``Client(host, port)`` without ``_server`` joins that server, so a
   program that creates its own client (the chase recorder) shares the world with the test's world side.
 
@@ -666,6 +669,7 @@ class _Server:
         self.named_textures: list = []
         self.actor_list_at_last_tick = os.environ.get("FAKE_CARLA_LAST_TICK_ACTORS") == "1"
         self.tick_actor_ids: tuple = ()      # the actors of the last tick (none before the first)
+        self.ticks = 0                       # ticks since the server started (frame also moves on load_world)
         self.tick_callback_ids: dict = {}
 
     def _textured_boards(self) -> list:
@@ -735,6 +739,7 @@ class _Server:
             self.step_vehicle(state, dt)
         self._collisions(vehicles)
         self._sensors()
+        self.ticks += 1
         self.tick_actor_ids = tuple(self.actors)
         snapshot = WorldSnapshot(self.frame, self.elapsed, self.tick_actor_ids)
         for callback in list(self.tick_callbacks):
@@ -807,10 +812,14 @@ class World:
 
     def _listed_ids(self) -> tuple:
         if self._server.actor_list_at_last_tick:
+            if self._client._connect_ticks == self._server.ticks:
+                return ()                    # this client has received no tick yet
             return tuple(i for i in self._server.tick_actor_ids if i in self._server.actors)
         return tuple(self._server.actors)
 
     def get_snapshot(self) -> WorldSnapshot:
+        if self._server.actor_list_at_last_tick and self._client._connect_ticks == self._server.ticks:
+            return WorldSnapshot(0, 0.0, ())
         return WorldSnapshot(self._server.frame, self._server.elapsed, self._listed_ids())
 
     def get_actors(self, actor_ids=None) -> ActorList:
@@ -896,6 +905,7 @@ class Client:
                  name: str = "world_side"):
         self.host, self.port = host, int(port)
         self._server = _server or _SHARED_SERVER or _Server("Carla/Maps/Town10HD_Opt")
+        self._connect_ticks = self._server.ticks
         self.name = name
         self.timeout = 5.0
         self.load_calls: list[str] = []

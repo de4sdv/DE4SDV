@@ -34,9 +34,12 @@ ws.tick()
 r.update(other_after=other.get_actors().find(hero.id) is not None, tick_saw=list(seen),
          snap_after=other.get_snapshot().has_actor(hero.id))
 carla._SHARED_SERVER = srv
-r["shared"] = carla.Client("h", 2000).get_world().get_actors().find(hero.id) is not None
+r["shared"] = carla.Client("h", 2000)._server is srv
+late = carla.Client("h", 2000, _server=srv, name="late").get_world()   # connects after the last tick
+r["late_before"] = [len(late.get_actors()), late.get_snapshot().frame]
 hero.destroy(); ws.tick()
 r["after_destroy"] = [other.get_actors().find(hero.id) is not None, seen[-1]]
+r["late_after"] = [len(late.get_actors()), late.get_snapshot().frame == srv.frame]
 print(json.dumps(r))
 """
 
@@ -52,7 +55,14 @@ def probe(last_tick: str) -> dict:
 def test_an_actor_spawned_after_the_last_tick_is_listed_only_after_the_next() -> None:
     r = probe("1")
     assert r == {"own_before": False, "other_before": False, "snap_before": False, "other_after": True,
-                 "tick_saw": [True], "snap_after": True, "shared": True, "after_destroy": [False, False]}
+                 "tick_saw": [True], "snap_after": True, "shared": True, "after_destroy": [False, False],
+                 "late_before": [0, 0], "late_after": [0, True]}
+
+
+def test_a_client_that_connects_in_the_pause_lists_nothing_until_the_next_tick() -> None:
+    # the real server (G4, 2026-11-19): 0 actors and a snapshot of frame 0 until the first tick after the go
+    r = probe("1")
+    assert r["late_before"] == [0, 0] and r["shared"] is True
 
 
 def test_without_the_switch_the_list_stays_live() -> None:
