@@ -26,6 +26,15 @@ still ticks, the release file, the world side and the recorder end, the capture 
 
 The order of `p10-3` is the one the guest host's operator gave on 2026-11-18 (`guest-prep-20261118`): the VXLAN up,
 the offer, the multicast route, then the broker's unit registration, then the IVI clock just before the window.
+The unit check reads the SDV Core guest's log only from a mark taken just before the S-CORE side starts, so a broker
+error from before the offer neither fails it nor does a registration from an earlier boot pass it. After the VXLAN
+both guests' neighbour caches are flushed (they learn the S-CORE host's MAC for 192.168.98.1 at once). After each
+window the session counts the lines of the app's own record in the capture (`app_record_receipts` in
+`session.json`) and says `NO RECEIPT IN THE APP'S RECORD OF WINDOW <w>` when there are none: the unit check's log
+pattern is still the bench's guess, and only the app's record shows that a request arrived. What the operator
+confirms on the first `p10-3`: the broker's exact line for the unit in `unit_inject/core_logcat.txt`, that no line
+since the mark names 4df1 as an error, `someipd`'s `REMOTE SUBSCRIBE ... [4df1.0001.0001] ... accepted` on the S-CORE
+host, and the app's record and logcat lines in `capture_inject/`; then pin both patterns in the script.
 
 Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
 
@@ -131,7 +140,7 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_GUEST_UP` | guest | `<out>` | this lane: `remote/guest_up.sh` | both guests created fresh (`launch_two_vms.sh down`, `up`) and booted; `getenforce` recorded, `setenforce 0` on the IVI only with `IVI_PERMISSIVE=1` |
 | `ENTRY_GUEST_PREPARE` | guest | `<out>` | this lane: `remote/guest_prepare.sh` | the guest build script's `install` (ACLs, APK, IVI reboot) and `verify`, unchanged, as its second caller: one `B12_DIR` per session (`$AB/b12-session-<id>`), no `LOGS`, `IDENT` or `WORK`; required, since fresh guests start empty |
 | `ENTRY_GUEST_APP_RESTART` | guest | `<out> <window>` | this lane: `remote/app_restart.sh` | `am start -S -W -n $APP_COMPONENT`, the APK's sha256 and both guests' `getenforce`, before each window |
-| `ENTRY_GUEST_OFFER_CHECK` | guest | `route\|unit <out>` | this lane: `remote/offer_check.sh` | the SD multicast route to `cvd-ebr`; the broker's registration of the unit (a guessed log pattern, see the script) |
+| `ENTRY_GUEST_OFFER_CHECK` | guest | `route\|mark\|neigh <out>`, `unit <out> <mark>`, `receipts <capture>` | this lane: `remote/offer_check.sh` | the SD multicast route to `cvd-ebr`; the SDV Core guest's clock before each S-CORE side start (`mark`); the broker's registration of the unit in the log since that mark, negations refused (a guessed log pattern, see the script; changed per session through `UNIT_REGISTERED_RE`, `UNIT_NEGATION_RE`); both guests' neighbour caches flushed after the VXLAN (`neigh`); the lines of the app's record after each window (`receipts`) |
 | `ENTRY_GUEST_CLOCK` | guest | `set <out>` | this lane: `remote/ivi_clock.sh` | IVI clock set from the guest host's, offset and bound recorded |
 | `ENTRY_GUEST_CAPTURE` | guest | `start\|stop <out>` | this lane: `../recording/display_capture.sh` | the display capture |
 | `ENTRY_VXLAN` | guest, S-CORE | `guest-host\|host-half add <peer ip>` | this lane: `remote/cross_vm_guest_bridge.sh` | the VXLAN segment, the S-CORE host at 192.168.98.1 (INC-DRIVING-001's script, unchanged) |

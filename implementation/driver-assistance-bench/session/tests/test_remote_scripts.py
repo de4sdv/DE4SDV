@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -32,12 +33,16 @@ FAKES = {
     "adb": '#!/bin/bash\necho "adb $*" >> "$FAKE/calls.log"\n[ "$1" = -s ] && shift 2\nc="$*"\n'
            'case "$c" in\n'
            '  "shell getprop sys.boot_completed") echo 1 ;;\n'
-           '  "shell getenforce") echo Enforcing ;;\n'
+           '  "shell getenforce") cat "$FAKE/mode" 2>/dev/null || echo Enforcing ;;\n'
            '  "shell pm path "*) [ -e "$FAKE/no_app" ] || echo "package:/vendor/priv-app/App/App.apk" ;;\n'
            '  "shell sha256sum "*) echo "abc123  $3" ;;\n'
            '  "shell am start"*) echo "Starting: Intent { cmp=$6 }"; echo "Status: ok" ;;\n'
            '  "shell pidof "*) [ -e "$FAKE/no_pid" ] || echo 4242 ;;\n'
            '  "logcat -d") cat "$FAKE/logcat" 2>/dev/null ;;\n'
+           '  "logcat -d -T "*) cat "$FAKE/logcat_since_mark" 2>/dev/null ;;\n'
+           '  "shell date +%s.%N") LC_ALL=C awk -v o="$(cat "$FAKE/guest_off" 2>/dev/null || echo 0)" -v t="$(date +%s.%N)" '
+           '\'BEGIN { printf "%.6f\\n", t + o }\' ;;\n'
+           '  "shell toybox date -s "*) [ -e "$FAKE/clock_settable" ] && echo 0 > "$FAKE/guest_off" ;;\n'
            'esac\nexit 0\n',
 }
 
@@ -322,3 +327,60 @@ def test_guest_up_creates_fresh_guests_and_sets_permissive_only_when_marked(tmp_
     assert setenforce == (["adb -s 0.0.0.0:6522 shell setenforce 0"] if permissive == "1" else [])
     ident = (tmp_path / "o" / "guest_identity.txt").read_text()
     assert ident.count("getenforce ") == 2
+
+
+@pytest.mark.parametrize("line", [
+    "I SomeIpBroker: unit {unit} unregistered",
+    "W SomeIpBroker: unit {unit} not registered: no provider of 0x4df1 yet",
+    "W SomeIpBroker: failed to register unit {unit}",
+])
+def test_the_unit_check_refuses_a_negated_registration(tmp_path: Path, fake, line: str) -> None:
+    # R7: a line naming the unit and "regist" that says the opposite is no registration
+    d, env = fake
+    unit, _ = _ids()
+    (d / "logcat").write_text("11-19 08:00:00.000 1 2 " + line.format(unit=unit) + "\n")
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_WAIT_S="0"))
+    assert p.returncode == 1 and "no registration" in p.stdout, p.stdout
+
+
+def test_the_unit_check_reads_only_the_log_since_the_mark(tmp_path: Path, fake) -> None:
+    # R7: a broker error that names the service from before the S-CORE side's start (the offer) is no failure of
+    # the check after it; the mark is the SDV Core guest's clock read before the start
+    d, env = fake
+    unit, service = _ids()
+    reg = f"11-19 08:00:01.000 1 2 I SomeIpBroker: registered unit {unit}\n"
+    (d / "logcat").write_text(f"11-19 07:59:00.000 1 2 E someip_broker_agent: service {service[2:]} not available\n"
+                              + reg)
+    (d / "logcat_since_mark").write_text(reg)
+    (d / "guest_off").write_text("0\n")
+    mark = tmp_path / "mark"
+    m = sh(str(REMOTE / "offer_check.sh"), "mark", str(mark), env=env)
+    assert m.returncode == 0 and m.stdout.startswith("LOGCAT_MARK "), m.stdout
+    since = (mark / "logcat_since.txt").read_text().strip()
+    assert re.fullmatch(r"\d+\.\d{3}", since)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark), env=dict(env, UNIT_WAIT_S="0"))
+    assert p.returncode == 0, p.stdout
+    assert f"adb -s 0.0.0.0:6521 logcat -d -T {since}" in calls(d)
+    whole = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o2"), env=dict(env, UNIT_WAIT_S="0"))
+    assert whole.returncode == 1 and "broker errors" in whole.stdout     # the same log read since the boot
+
+
+def test_the_receipts_of_a_window_are_counted(tmp_path: Path, fake) -> None:
+    d, env = fake
+    cap = tmp_path / "cap"
+    cap.mkdir()
+    p = sh(str(REMOTE / "offer_check.sh"), "receipts", str(cap), env=env)
+    assert p.returncode == 0 and p.stdout.strip() == "RECEIPTS 0"
+    (cap / "app_record_warning.jsonl").write_text('{"a": 1}\n{"a": 2}\n')
+    p = sh(str(REMOTE / "offer_check.sh"), "receipts", str(cap), env=env)
+    assert p.stdout.strip() == "RECEIPTS 2"
+
+
+def test_the_neighbour_caches_of_both_guests_are_flushed(tmp_path: Path, fake) -> None:
+    # R18: the S-CORE host takes 192.168.98.1 over the VXLAN with another MAC
+    d, env = fake
+    p = sh(str(REMOTE / "offer_check.sh"), "neigh", str(tmp_path / "o"), env=env)
+    assert p.returncode == 0, p.stdout + p.stderr
+    flush = [c for c in calls(d) if "ip neigh flush" in c]
+    assert flush == ["adb -s 0.0.0.0:6521 shell ip neigh flush dev eth1",
+                     "adb -s 0.0.0.0:6522 shell ip neigh flush dev eth1"]

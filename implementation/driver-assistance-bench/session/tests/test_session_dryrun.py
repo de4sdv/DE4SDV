@@ -493,19 +493,20 @@ def test_the_dry_run_prints_every_command(tmp_path: Path) -> None:
 # taken from the script.
 
 P10_1_SEQ = ["score:p10_1"]
-GUEST_UP_SEQ = ["guest:guest_up", "guest:guest_prepare", "guest:vxlan_guest", "score:vxlan_score"]
+GUEST_UP_SEQ = ["guest:guest_up", "guest:guest_prepare", "guest:vxlan_guest", "score:vxlan_score", "guest:neigh_flush"]
 P10_3_SEQ = GUEST_UP_SEQ + [
-    "score:score_start", "guest:mcast_route", "guest:unit_inject", "guest:app_restart_inject",
+    "guest:logmark_inject", "score:score_start", "guest:mcast_route", "guest:unit_inject", "guest:app_restart_inject",
     "guest:ivi_clock_inject", "guest:capture_inject&", "score:inject", "guest:capture_stop_inject",
-    "guest:wait-capture_inject", "score:score_stop"]
+    "guest:wait-capture_inject", "guest:receipts_inject", "score:score_stop"]
 
 
 def _p10_2_run(n: int, first: bool, guest: bool = True) -> list[str]:
     w = f"run{n}"
     window = ((["guest:mcast_route"] if first else []) + [f"guest:unit_{w}", f"guest:app_restart_{w}",
               f"guest:ivi_clock_{w}", f"guest:capture_{w}&"]) if guest else []
-    close = [f"guest:capture_stop_{w}", f"guest:wait-capture_{w}"] if guest else []
-    return [f"sim:rec_{w}&", f"sim:world_{w}&", "sim:file-ready.json", f"score:score_start_{w}", *window,
+    close = [f"guest:capture_stop_{w}", f"guest:wait-capture_{w}", f"guest:receipts_{w}"] if guest else []
+    mark = [f"guest:logmark_{w}"] if guest else []
+    return [f"sim:rec_{w}&", f"sim:world_{w}&", "sim:file-ready.json", *mark, f"score:score_start_{w}", *window,
             "sim:touch-go", "sim:file-run_end.json", f"score:score_stop_{w}", "sim:touch-release",
             f"sim:wait-world_{w}", f"sim:wait-rec_{w}", *close]
 
@@ -684,3 +685,22 @@ def test_without_per_session_settings_the_commands_are_unchanged(tmp_path: Path)
     assert r.command(r.ssh(L4, "run p10_1")[0]).endswith("host_step.sh run p10_1 -- bash extra/p10_1_check.sh "
                                                         "$HOME/da-kit/T/out/p10_1")
     assert json.loads((r.incoming / "session.json").read_text())["remote_env"] == {}
+
+
+def test_the_window_counts_the_app_records_receipts_and_says_so_loudly_when_none(tmp_path: Path) -> None:
+    # R7: a window whose app record holds no receipt did not carry, whatever the unit check said
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host")
+    assert r.rc == 0, r.log
+    assert "window inject: 2 line(s) in the app's record" in r.log
+    assert json.loads((r.incoming / "session.json").read_text())["app_record_receipts"] == {"inject": 2}
+    r0 = run(tmp_path / "b", "p10-3", "--owner-ok-guest-host", FAKE_RECEIPTS="0")
+    assert "NO RECEIPT IN THE APP'S RECORD OF WINDOW inject" in r0.log
+    assert json.loads((r0.incoming / "session.json").read_text())["app_record_receipts"] == {"inject": 0}
+
+
+def test_the_unit_check_reads_the_log_since_the_mark_before_the_score_start(tmp_path: Path) -> None:
+    # R7: the mark is the SDV Core guest's clock just before the S-CORE side starts; the unit check names it
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host")
+    mark, start, unit = r.ssh(GH, "run logmark_inject"), r.ssh(L4, "run score_start"), r.ssh(GH, "run unit_inject")
+    assert mark[0] < start[0] < unit[0]
+    assert r.command(unit[0]).endswith("unit $HOME/da-kit/T/out/unit_inject $HOME/da-kit/T/out/logmark_inject")

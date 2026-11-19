@@ -240,7 +240,7 @@ write_record() {
   KIND="$KIND" SID="$SID" RC="$1" CAP="$CAP" IN="$IN" STARTED="${STARTED[*]}" STEP_FAIL="$STEP_FAIL" \
   KIT_SHA="${KIT_SHA:-}" BENCH_COMMIT="${BENCH_COMMIT:-}" WT_CHANGES="${WT_CHANGES:-}" DRY="$DRY" \
   IAP="$SIM_SSH_IAP" PERM="$IVI_PERMISSIVE" IPS="${IPS:-}" CAMCAL="${CAMCAL_SHA:-}" VM_AFTER="${VM_AFTER:-}" \
-  LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" \
+  LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" RECEIPTS="${RECEIPTS:-}" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${!n}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
@@ -260,7 +260,9 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "conditional_on_permissive_ivi": e["PERM"] == "1",
            "vm_status_after": dict(x.split("=", 1) for x in e["VM_AFTER"].split() if "=" in x),
            "left_running": e["LEFT"].split(), "exit_code_without_left_running": int(e["RC_STEPS"]),
-           "remote_env": renv},
+           "remote_env": renv,
+           "app_record_receipts": {w: (int(n) if n.isdigit() else None)
+                                   for w, n in (x.split("=", 1) for x in e["RECEIPTS"].split() if "=" in x)}},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
 }
@@ -550,6 +552,9 @@ guest_bring_up() {   # fresh guests, the app and its ACLs, the VXLAN at both end
   log "VXLAN between the guest host $gip and the S-CORE host $sip (both from gcloud)"
   rstep guest vxlan_guest "$T_STEP" sudo bash "$ENTRY_VXLAN" guest-host add "$sip"
   rstep score vxlan_score "$T_STEP" sudo bash "$ENTRY_VXLAN" host-half add "$gip"
+  # 192.168.98.1 moved from cvd-ebr to the S-CORE host's VXLAN end, with another MAC: both guests learn it now, not
+  # when their old entry expires (split-bench recipe, step 4; R18)
+  rstep guest neigh_flush "$T_STEP" bash "$ENTRY_GUEST_OFFER_CHECK" neigh "$(od neigh_flush)"
 }
 MCAST_DONE=0
 offer_checks() {   # after an S-CORE side start (someipd offers 0x4df1 at 192.168.98.1:30511): route, then the unit
@@ -557,7 +562,10 @@ offer_checks() {   # after an S-CORE side start (someipd offers 0x4df1 at 192.16
   if [ "$MCAST_DONE" = 0 ]; then
     rstep guest mcast_route "$T_STEP" bash "$ENTRY_GUEST_OFFER_CHECK" route "$(od mcast_route)"; MCAST_DONE=1
   fi
-  rstep guest "unit_$w" "$T_UNIT" bash "$ENTRY_GUEST_OFFER_CHECK" unit "$(od "unit_$w")"
+  rstep guest "unit_$w" "$T_UNIT" bash "$ENTRY_GUEST_OFFER_CHECK" unit "$(od "unit_$w")" "$(od "logmark_$w")"
+}
+logmark() {   # the SDV Core guest's clock just before an S-CORE side start: the unit check reads only the log since (R7)
+  rstep guest "logmark_$1" "$T_STEP" bash "$ENTRY_GUEST_OFFER_CHECK" mark "$(od "logmark_$1")"
 }
 window_open() {   # the app restarted, then the IVI clock set just before the window (R9), then the capture
   local w=$1
@@ -569,6 +577,15 @@ window_close() {
   local w=$1
   rstep guest "capture_stop_$w" "$T_CAPTURE_END" bash "$ENTRY_GUEST_CAPTURE" stop "$(od "capture_$w")"
   rwait guest "capture_$w" "$T_CAPTURE_END" || { fetch_all; fail 5 "the display capture of $w did not end well"; }
+  # the app's own record of the window: no receipt means the path did not carry, whatever the steps said (R7)
+  rstep guest "receipts_$w" "$T_STEP" bash "$ENTRY_GUEST_OFFER_CHECK" receipts "$(od "capture_$w")"
+  local n; n=$(grep -o 'RECEIPTS [0-9]*' "$IN/guest.steps.out" | tail -1 | cut -d' ' -f2)
+  RECEIPTS="${RECEIPTS:-} $w=${n:-unknown}"
+  if [ "${n:-0}" = 0 ]; then
+    log "NO RECEIPT IN THE APP'S RECORD OF WINDOW $w (${n:-no count}): the warning path did not carry; see guest/out/capture_$w/"
+  else
+    log "window $w: $n line(s) in the app's record"
+  fi
 }
 world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1>: one run with its own S-CORE side
   local w=$1 sc=$2 se=$3 rec=$4 o; o=$(od "world_$w")
@@ -576,6 +593,7 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1>: one run
   rstart sim "world_$w" "$SENV" bash "$ENTRY_SIM_RUN" "$o" "$sc" "$se"
   rwaitfile sim "world_$w" "$o/simulator/ready.json" "$T_READY" || { fetch_all; fail 5 "the world side of $w is not ready"; }
   # the S-CORE side after ready.json (the hero stands), with the camera calibration file of this session
+  [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ] && logmark "$w"
   rstep score "score_start_$w" "$T_SCORE_START" env "DA_CAMERA_CALIBRATION_DIR=$CAMCAL_DIR" bash "$ENTRY_SCORE_START" \
     "$(od "score_$w")" "$CARLA_HOST"
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then offer_checks "$w"; window_open "$w"; fi
@@ -627,6 +645,7 @@ case "$KIND" in
     # the guest-prep-20261118 operator's order: VXLAN, the offer, the multicast route, the broker's unit, then the
     # IVI clock just before the window
     guest_bring_up
+    logmark inject
     rstep score score_start "$T_SCORE_START" bash "$ENTRY_SCORE_START" "$(od score)" none
     offer_checks inject
     window_open inject

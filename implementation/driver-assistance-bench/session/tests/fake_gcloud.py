@@ -16,6 +16,7 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_FOREIGN_FETCH    1: a fetched tarball carries another session's id
   FAKE_NO_STOP       a VM name that stays RUNNING after a stop
   FAKE_SLOW_GUEST_STOP  seconds: the guests' stop (guest_stop.sh, not the safety net's arming) takes that long
+  FAKE_RECEIPTS      the line count `offer_check.sh receipts` reports for a window's app record (default 2)
   FAKE_DESCRIBE_FLAKE   "vm:n"  once any stop call was made, the next n status reads of the VM fail (a transient
                         gcloud error: a token refresh, a network blip)
 """
@@ -203,6 +204,8 @@ if words[:2] == ["compute", "ssh"]:
         action, step = m.group(1), m.group(2)
         fail = os.environ.get("FAKE_FAIL_STEP") == step
         if action == "run":
+            if " receipts " in c:
+                sys.stdout.write("RECEIPTS %s\n" % os.environ.get("FAKE_RECEIPTS", "2"))
             hang = kv("FAKE_HANG_STEP").get(step)
             if hang:
                 save()
