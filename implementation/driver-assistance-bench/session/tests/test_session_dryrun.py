@@ -1040,6 +1040,15 @@ def test_a_go_later_than_the_bound_after_the_score_start_is_refused(tmp_path: Pa
     assert_invariants(r)
 
 
+def test_the_go_clock_starts_before_the_score_start_step(tmp_path: Path) -> None:
+    # S5: the clock started only once the session had seen the start step end (poll latency, the tail call), while
+    # the candidate's 420 s ready time-out runs from its process start inside that step
+    r = run(tmp_path, "p10-2", "--without-guest-host", FAKE_HANG_STEP="score_start_run1:4", DA_T_GO_LIMIT_S="3")
+    assert r.rc == 5, r.log
+    assert "INVALID RUN run1" in r.log and not r.ssh(G4, "world_run1/go") and r.ssh(G4, "world_calib_steer/go")
+    assert_invariants(r)
+
+
 def test_a_session_id_of_an_archived_session_is_refused(tmp_path: Path) -> None:
     # R20: after the rule-15 rename incoming_T -> session1_..._T the id was free again
     (tmp_path / "ev" / "session1_p10-1_archived_T").mkdir(parents=True)

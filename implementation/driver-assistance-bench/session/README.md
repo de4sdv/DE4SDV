@@ -125,7 +125,9 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   `--kit-from-worktree`), and checks that every entry point the kind needs is in it and executable. Each host's
   upload is checked by its sha256.
 - In each run of `p10-2` the go file must follow the S-CORE side's start within `GO_LIMIT_S` (380 s, under the
-  candidate's 420 s ready time-out); a later go is refused: the run is marked invalid in the log, the world side is
+  candidate's 420 s ready time-out). The clock starts before the start step's own SSH call, since the candidate's
+  time-out runs from its process start inside that step; the 40 s left are for the go's own SSH call (IAP to the G4,
+  at most `GO_SSH_S`, 35 s). A later go is refused: the run is marked invalid in the log, the world side is
   sent TERM, the S-CORE side is stopped and collected, and the session ends (exit 5). Every adb call of the guest
   entries has a time-out (`ADB_TO_S`, 30 s).
 - `--cap-eur` must be a positive number (exit 2 otherwise). A session id is used once: the session refuses an id

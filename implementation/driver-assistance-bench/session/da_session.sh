@@ -103,7 +103,9 @@ done
 
 # waits, seconds; a dry run may shorten them through DA_T_<NAME>, a real session refuses those knobs
 PREEMPT_CHECK_S=30; ROUND_PAUSE_S=45; START_DEADLINE_S=1800; RUNNING_WAIT_S=120; SSH_TRIES=20; SSH_PAUSE_S=10
-POLL_S=20; STEP_TERM_POLLS=6; GO_LIMIT_S=380; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
+# GO_LIMIT_S: the go must follow the S-CORE side's start within the candidate's 420 s ready time-out; the clock starts
+# before the start step's own SSH call, and 40 s are kept for the go's SSH call (IAP to the G4, GO_SSH_S at most)
+POLL_S=20; STEP_TERM_POLLS=6; GO_LIMIT_S=380; GO_SSH_S=35; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
 GUEST_NOSSH_S=180
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
@@ -111,7 +113,7 @@ T_UNIT=300
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
        T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
-       GUEST_NOSSH_S)
+       GUEST_NOSSH_S GO_SSH_S)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -724,9 +726,9 @@ rwaitfile() {   # rwait_file <role> <step> <remote file> <timeout_s>: the file o
     nap "$POLL_S"
   done
 }
-rtouch() {   # rtouch <role> <remote file>: a handshake file of the world side
+rtouch() {   # rtouch <role> <remote file> [<timeout_s>]: a handshake file of the world side
   log "touch ${2##*/} on $(var "$1" VM): $2"; SEQ+=("$1:touch-${2##*/}")
-  rout ssh_l "$1" 60 "touch $2 && echo touched"; [[ "$ROUT" == *touched* ]]
+  rout ssh_l "$1" "${3:-60}" "touch $2 && echo touched"; [[ "$ROUT" == *touched* ]]
 }
 fetch() {   # fetch <role>: the host's output folder into incoming_<id>/<role>/, checked against this session's id
   local r=$1 sha got
@@ -826,9 +828,12 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another
   # the S-CORE side after ready.json (the hero stands), with the camera calibration file of this session
   [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ] && logmark "$w"
   SCORE_RUN=$w
+  # the go clock starts before the start step: the candidate's ready time-out runs from its process start inside
+  # that step, which this host sees end only a poll later (S5); so the bound errs early, never late
+  local t_up; t_up=$(date +%s)
   rstep score "score_start_$w" "$T_SCORE_START" env "DA_CAMERA_CALIBRATION_DIR=$CAMCAL_DIR" bash "$ENTRY_SCORE_START" \
     "$(od "score_$w")" "$CARLA_HOST"
-  SCORE_UP=$(od "score_$w"); local t_up; t_up=$(date +%s)
+  SCORE_UP=$(od "score_$w")
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then offer_checks "$w"; window_open "$w"; fi
   # the candidate gives up on the world after its 420 s ready time-out: a later go reads as a supervision failure
   # (rule 31), so the run is refused, the world side ended and the S-CORE side stopped (R14)
@@ -838,8 +843,9 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another
     rsignal sim "world_$w" TERM
     STEP_FAIL="world_$w"; abort 5 "the run $w is invalid: no go within $GO_LIMIT_S s of the S-CORE side's start"
   fi
-  log "go of $w $since s after the S-CORE side's start (limit $GO_LIMIT_S s)"
-  rtouch sim "$o/go" || { STEP_FAIL="world_$w"; abort 5 "no go file for $w"; }
+  log "go of $w $since s after the S-CORE side's start step began (limit $GO_LIMIT_S s, the go's SSH call at most $GO_SSH_S s)"
+  rtouch sim "$o/go" "$GO_SSH_S" || { STEP_FAIL="world_$w"; abort 5 "no go file for $w"; }
+  log "go of $w done $(( $(date +%s) - t_up )) s after the S-CORE side's start step began (the candidate waits 420 s)"
   rwaitfile sim "world_$w" "$o/simulator/run_end.json" "$T_RUN" || { abort 5 "the run $w did not end"; }
   # the S-CORE side stops while the world still ticks (launch-manager/README.md), then the world is released
   rstep score "score_stop_$w" "$T_SCORE_START" bash "$ENTRY_SCORE_STOP" "$(od "score_$w")"; SCORE_UP=""
