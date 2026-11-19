@@ -97,6 +97,26 @@ after a stop signal. After a stall of the loop it gives one notification and the
 unsupervised and records `supervision` with `state` `off`. The values, the run targets and the reaction are in
 [`../launch-manager/README.md`](../launch-manager/README.md).
 
+## The wait for the ego vehicle
+
+`config/adapter.json` sets `hero_wait_s` to 400 s. The adapter connects, then looks for the vehicle with role
+name `hero` every 200 ms until that time has passed (`simulator_client_carla.cpp`, `Connect`), and reports
+running only after it found it. The world side holds its first tick until the session's go file, and a client
+that connects meanwhile sees no actor until the next tick, so the adapter cannot find the vehicle before the go.
+
+- The session's go comes at most 380 s (`GO_LIMIT_S` of `session/da_session.sh`) after the S-CORE start step
+  began, its SSH call at most 35 s later. The adapter starts inside that step, after the staging and the identity
+  record (66 s after the step began in the first recorded p10-2, 20261119T174606Z).
+- The Launch Manager gives the adapter 420 s to report running (`ready_timeout_ms` 420000 in
+  `../launch-manager/config/launch_manager_config.json`).
+- 400 s is the go limit plus 20 s, and leaves 20 s for the connect and the report before the ready time-out.
+
+Why: in run 1 of that session the go came 81 s after the adapter's start. The old wait of 20 s had given up
+(`simulator client: no vehicle with role_name hero`), and the Launch Manager switched to its fallback run
+target. The built-in default of `adapter_config.h` stays 20 s. The S-CORE host takes `adapter.json` from the
+session's kit (`../score-path/scripts/stage_score_side.py`), never from the bundle, so the value needs no
+rebuild. `../score-path/tests/test_score_side_scripts.py` pins it against the go limit and the ready time-out.
+
 ## mw::com values pending the B6 manifests
 
 ICD.md fixes the service id 7411, the specifier `de4sdv/driver_assistance/driving_command` and the event name.

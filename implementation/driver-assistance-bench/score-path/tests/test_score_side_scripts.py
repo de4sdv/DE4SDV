@@ -543,3 +543,31 @@ def test_every_mw_com_manifest_of_the_bench_has_its_own_application_id() -> None
         assert data["defaults"]["deployment_config"]["sandbox"]["uid"] == 0, config
         for name, component in data["components"].items():
             assert "sandbox" not in component.get("deployment_config", {}), (config, name)
+
+
+# --- F1 of the first recorded p10-2 (20261119T174606Z): the adapter's wait for the hero ---------------------------
+
+
+ADAPTER_JSON = BENCH / "actuation-adapter" / "config" / "adapter.json"
+SESSION_SH = BENCH / "session" / "da_session.sh"
+
+
+def test_the_adapter_waits_for_the_hero_across_the_sessions_go_limit_and_reports_before_its_ready_timeout() -> None:
+    """The world holds its first tick until the go, so the adapter sees no hero before it. The session's go comes at
+    most GO_LIMIT_S (380 s) after the S-CORE start step began, its SSH call at most GO_SSH_S (35 s) later; the
+    adapter's process starts inside that step (in calib_steer of 20261119T174606Z 66 s after it began). The adapter
+    reports running only after it found the hero, within its ready_timeout_ms of 420 s
+    (launch-manager/config/launch_manager_config.json). In run 1 of that session the go came 81 s after the adapter's
+    start and its 20 s wait had given up. The figures are pinned as numbers: hero_wait_s at least the go limit plus
+    20 s, and at least 20 s under the ready time-out for the connect and the report."""
+    session = SESSION_SH.read_text()
+    go_limit = int(re.search(r"\bGO_LIMIT_S=(\d+)\b", session).group(1))
+    go_ssh = int(re.search(r"\bGO_SSH_S=(\d+)\b", session).group(1))
+    assert (go_limit, go_ssh) == (380, 35)
+    components = json.loads(LAUNCH.read_text())["components"]
+    ready_ms = {name: components[name]["deployment_config"]["ready_timeout_ms"]
+                for name in ("actuation_adapter", "vision_pilot")}
+    assert ready_ms["actuation_adapter"] == ready_ms["vision_pilot"] == 420000
+    hero_wait_s = json.loads(ADAPTER_JSON.read_text())["hero_wait_s"]
+    assert go_limit + 20 <= hero_wait_s <= ready_ms["actuation_adapter"] / 1000 - 20, hero_wait_s
+    assert hero_wait_s == 400.0

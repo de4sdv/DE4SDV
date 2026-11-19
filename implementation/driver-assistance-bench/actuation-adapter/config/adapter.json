@@ -3,5 +3,5 @@
   "carla_port": 2000,
   "client_timeout_s": 30.0,
   "hero_role_name": "hero",
-  "hero_wait_s": 20.0
+  "hero_wait_s": 400.0
 }
