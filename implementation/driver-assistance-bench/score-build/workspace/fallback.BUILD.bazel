@@ -1,6 +1,7 @@
 # DE4SDV driver-assistance bench (INC-DRIVING-002): the fallback route of risk R3, package
 # //de4sdv_da_bench/score-build/fallback of the S-CORE workspace (staged by fallback_cmake_build.sh).
-# One static archive of the S-CORE interface module's two binding units with mw::com, built by Bazel with the S-CORE
+# One static archive of the S-CORE interface module's three binding units with mw::com, the CARLA 1.0 client and
+# S-CORE Lifecycle v0.10.0, built by Bazel with the S-CORE
 # toolchain; upstream's CMake build links it as DE4SDV_SCORE_BINDINGS (0002's module CMakeLists.txt). The facade is
 # seams.hpp: plain C++ types only. The CARLA archives are precompiled; the archive does not hold them, its linkdeps
 # output names them and the script appends the bundle's archives in their link order.
@@ -12,6 +13,7 @@ cc_static_library(
     name = "de4sdv_score_bindings",
     deps = [
         "//visionpilot:de4sdv_score_carla_client",
+        "//visionpilot:de4sdv_score_lifecycle_bindings",
         "//visionpilot:de4sdv_score_lola_bindings",
     ],
 )

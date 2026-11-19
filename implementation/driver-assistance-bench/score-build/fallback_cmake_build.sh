@@ -3,8 +3,8 @@
 #
 # Use it only if the Bazel build of //visionpilot:VisionPilot (stage "bazel" of build_score_bench.sh) fails and cannot
 # be fixed in time. It is the two-step route of INC-MW-011 (score-reference-interop-bench/README.md, "Build route"):
-#   1. Bazel builds, with the S-CORE gcc 12.2.0, one static archive of the S-CORE interface module's two binding units
-#      (lola_bindings.cpp with mw::com 0.6.0, carla_client.cpp as C++20) behind seams.hpp, which uses plain C++ types;
+#   1. Bazel builds, with the S-CORE gcc 12.2.0, one static archive of the S-CORE interface module's three binding units
+#      (lola_bindings.cpp with mw::com 0.6.0, carla_client.cpp as C++20, lifecycle_bindings.cpp with Lifecycle 0.10.0) behind seams.hpp, which uses plain C++ types;
 #   2. upstream's own CMake build compiles VisionPilot with Ubuntu 22.04's g++ 12 and links that archive as
 #      DE4SDV_SCORE_BINDINGS (0002's module CMakeLists.txt), with the CARLA 1.0 archives and the ONNX Runtime GPU
 #      package of the main build, and OpenCV, Ipopt, CppAD and GStreamer from Ubuntu, as upstream's Dockerfile does.
@@ -13,8 +13,8 @@
 # Prerequisite: build_score_bench.sh ran through its stage "thirdparty" with the same --root (its sources, S-CORE
 # workspace, toolchain, CARLA bundle, Rerun SDK and ONNX Runtime are reused).
 # Usage: implementation/driver-assistance-bench/score-build/fallback_cmake_build.sh [--root DIR] [--jobs N]
-# Output: <root>/fallback/build/VisionPilot, copied over <root>/bundle/bin/VisionPilot when the bundle exists (the
-# Bazel-built binary is kept as VisionPilot.bazel if there was one).
+# Output: <root>/fallback/build/VisionPilot, copied over <root>/bundle/bin/vision_pilot (the Launch Manager's binary
+# name) when the bundle exists (the Bazel-built binary is kept as vision_pilot.bazel if there was one).
 set -Eeuo pipefail
 
 HERE=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -115,8 +115,8 @@ readelf -d "$V" | grep -E "NEEDED|RUNPATH" || true
 strings "$V" > "$F/VisionPilot.strings"
 grep -q -E '^1\.0-14ac3b1a5$' "$F/VisionPilot.strings" || die "the binary does not hold the CARLA client version string"
 if [ -d "$ROOT/bundle/bin" ]; then
-  if [ -f "$ROOT/bundle/bin/VisionPilot" ]; then mv "$ROOT/bundle/bin/VisionPilot" "$ROOT/bundle/bin/VisionPilot.bazel"; fi
-  cp "$V" "$ROOT/bundle/bin/VisionPilot"
+  if [ -f "$ROOT/bundle/bin/vision_pilot" ]; then mv "$ROOT/bundle/bin/vision_pilot" "$ROOT/bundle/bin/vision_pilot.bazel"; fi
+  cp "$V" "$ROOT/bundle/bin/vision_pilot"
   (cd "$ROOT/bundle" && find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
 fi
 echo "=== FALLBACK OK: $V sha256 $(sha256sum "$V" | cut -c1-64)"

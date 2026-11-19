@@ -49,7 +49,9 @@ git apply "$PATCHES/0002-de4sdv-score-interface.diff" || fail "0002 apply"
 echo "0002 applied; against 0001:"
 git add -N VisionPilot/modules/de4sdv/score_interface
 git diff --stat | tail -1
-git diff | cmp -s - "$PATCHES/0002-de4sdv-score-interface.diff" || fail "git diff does not re-create 0002"
+# the abbreviation pinned to the patch's 8 hex digits: git's automatic length follows the clone's object count, and a
+# depth-1 clone (build_score_bench.sh) writes 7-digit index lines
+git -c core.abbrev=8 diff | cmp -s - "$PATCHES/0002-de4sdv-score-interface.diff" || fail "git diff does not re-create 0002"
 echo "git diff against 0001 re-creates 0002 byte for byte"
 
 OPENCV_INCLUDE=${OPENCV_INCLUDE:-/usr/include/opencv4}

@@ -129,7 +129,8 @@ done
 # ---------------------------------------------------------------------------------------------------------------------
 step packages
 if [ -n "$BUNDLE" ] && [ -s "$BUNDLE/facts/apt-runtime-packages.txt" ]; then
-  PKGS=$(tr '\n' ' ' < "$BUNDLE/facts/apt-runtime-packages.txt")
+  # an entry "name=" (no version: a bundle whose build host had not installed the package) is installed by name
+  PKGS=$(sed 's/=$//' "$BUNDLE/facts/apt-runtime-packages.txt" | tr '\n' ' ')
 else
   PKGS="$APT_RUNTIME $APT_PINNED"
 fi

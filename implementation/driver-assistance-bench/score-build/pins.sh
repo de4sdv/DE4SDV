@@ -54,9 +54,10 @@ GATEWAY_PRE_SERIALIZED_DATA_SHA256=1ec7b4c961044559195e50a2c364b47792c444ea6e497
 # --- Ubuntu 22.04 packages (apt verifies them against the signed archive; versions as of 2026-11-18) ----------------
 # Planning's solver: Ipopt and CppAD, as upstream's docker/Dockerfile installs them (coinor-libipopt-dev, libcppad-dev)
 APT_PINNED="coinor-libipopt-dev=3.11.9-2.2build5 libcppad-dev=2021.00.00.8-1"
-# Build tools and the GStreamer development files for OpenCV's videoio (versions recorded in the bundle)
-APT_BUILD="build-essential g++ git curl unzip xz-utils file binutils ninja-build pkg-config python3
- libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev nlohmann-json3-dev"
+# Build tools, the GStreamer development files for OpenCV's videoio, and python3-opencv with python3-numpy for upstream's
+# find_homography_C_matrix.py (versions recorded in the bundle)
+APT_BUILD="build-essential g++ git curl unzip xz-utils file binutils ninja-build pkg-config python3 python3-opencv
+ python3-numpy libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-bad1.0-dev nlohmann-json3-dev"
 # What the S-CORE host needs at run time beside the bundle (installed by install_gpu_runtime.sh)
 APT_RUNTIME="libgstreamer1.0-0 libgstreamer-plugins-base1.0-0 libgstreamer-plugins-bad1.0-0 gstreamer1.0-plugins-base
  gstreamer1.0-plugins-good gstreamer1.0-plugins-bad gstreamer1.0-tools"

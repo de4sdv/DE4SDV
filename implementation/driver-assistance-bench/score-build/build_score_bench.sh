@@ -7,6 +7,8 @@
 #   implementation/driver-assistance-bench/score-build/build_score_bench.sh [--root DIR] [--jobs N]
 #     --root DIR  work and output directory (default /opt/da-b2); the bundle is DIR/bundle, logs are DIR/logs/
 #     --jobs N    parallel compile jobs for CMake and Bazel (default: nproc)
+#     --min-free-gb N  free disk (GiB) the preflight asks for under DIR (default 70, the estimate for a cold build);
+#                 a rerun with finished stages, or a run watched by a disk guard, may ask for less
 #
 # Idempotent: each stage leaves DIR/.done-<stage> and is skipped on a rerun; delete the mark to redo a stage. The
 # downloads are kept in DIR/dl and checked against pins.sh on every run. Every step is logged; the script stops at the
@@ -26,10 +28,12 @@ source "$HERE/pins.sh"
 
 ROOT=/opt/da-b2
 JOBS=$(nproc)
+MIN_FREE_GB=70
 while [ $# -gt 0 ]; do
   case "$1" in
     --root) ROOT=${2:?--root needs a directory}; shift 2 ;;
     --jobs) JOBS=${2:?--jobs needs a number}; shift 2 ;;
+    --min-free-gb) MIN_FREE_GB=${2:?--min-free-gb needs a number}; shift 2 ;;
     -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
     *) echo "unknown argument $1" >&2; exit 2 ;;
   esac
@@ -45,7 +49,7 @@ exec > >(tee -a "$LOG") 2>&1
 STAGE=init
 die() { echo "BUILD FAILED in stage $STAGE: $*"; echo "log: $LOG"; exit 1; }
 trap 'rc=$?; echo "BUILD FAILED in stage $STAGE: command \"$BASH_COMMAND\" exited $rc (line $LINENO)"; echo "log: $LOG"; exit $rc' ERR
-step() { STAGE=$1; echo; echo "=== stage $1 $(date -u +%FT%TZ)"; }
+step() { STAGE=$1; echo; echo "=== stage $1 $(date -u +%FT%TZ) free $(df -B1 --output=avail "$ROOT" | tail -1 | tr -dc 0-9) B"; }
 is_done() { [ -f "$ROOT/.done-$1" ]; }
 mark_done() { touch "$ROOT/.done-$1"; echo "=== stage $1 done $(date -u +%FT%TZ)"; }
 
@@ -83,6 +87,13 @@ git_at() {
 bazel_feo() { "$ROOT/tools/bazel-$BAZEL_FEO_VERSION" "$@"; }
 bazel_gw() { "$ROOT/tools/bazel-$BAZEL_GATEWAY_VERSION" "$@"; }
 export PATH=$ROOT/tools/cmake/bin:$PATH
+# Ubuntu 22.04's GStreamer .pc files pull in libunwind's -I/usr/include/x86_64-linux-gnu (Requires.private), the
+# multiarch directory of the host glibc's bits/ headers; in a compile with the S-CORE sysroot they clash with the
+# sysroot's glibc ("'__fpclassify' has not been declared"). GStreamer and GLib need no header from there, so
+# pkg-config treats it as a system directory and leaves it out, for OpenCV's configure and the thirdparty stage.
+# CMake's FindPkgConfig sets PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1, which would bring both directories back (and
+# /usr/include itself): OpenCV's configure gets the wrapper $ROOT/tools/pkg-config-score, which unsets it.
+export PKG_CONFIG_SYSTEM_INCLUDE_PATH=/usr/include:/usr/include/x86_64-linux-gnu
 
 WS=$ROOT/ws                 # the S-CORE workspace (FEO 313b3d84 + the bench's packages)
 GW=$ROOT/src/gateway        # the SOME/IP gateway workspace (inc_someip_gateway d9eac670)
@@ -99,11 +110,12 @@ step preflight
 . /etc/os-release
 [ "${VERSION_ID:-}" = "22.04" ] || die "this host runs ${PRETTY_NAME:-unknown}; build on Ubuntu 22.04, the S-CORE host's release, because the binary links Ubuntu 22.04 libraries (GStreamer, Ipopt, CppAD)"
 free_gb=$(df -BG --output=avail "$ROOT" | tail -1 | tr -dc 0-9)
-[ "$free_gb" -ge 70 ] || die "only ${free_gb} GB free under $ROOT; the build needs about 70 GB"
+[ "$free_gb" -ge "$MIN_FREE_GB" ] || die "only ${free_gb} GB free under $ROOT; the build asks for $MIN_FREE_GB GB (--min-free-gb; a cold build needs about 70 GB)"
 echo "host $(hostname) $(nproc) vCPU $(free -g | awk '/Mem:/{print $2}') GB RAM, ${free_gb} GB free, ${PRETTY_NAME}"
 (cd "$BENCH/score-interface/patches" && sha256sum -c SHA256SUMS) || die "the patch series differs from its SHA256SUMS"
 for f in "$BENCH/actuation-adapter/BUILD.bazel" "$BENCH/interfaces/include/de4sdv/driver_assistance/payloads.h" \
-         "$BENCH/score-path/config/gateway_overlay.BUILD.bazel" \
+         "$BENCH/score-path/config/gateway_overlay.BUILD.bazel" "$BENCH/launch-manager/config/launch_manager_config.json" \
+         "$BENCH/score-path/config/launch_manager_config_path_only.json" \
          "$REPO/implementation/closed-loop-driving-bench/agent/workspace/feo-313b3d84-bench.diff"; do
   [ -f "$f" ] || die "missing $f; run from a full checkout of the repository"
 done
@@ -179,6 +191,9 @@ text = text.replace(old, new)
 text, n = re.subn(r'\n# WP2a \(slice 10b\).*?\n\)\n', '\n', text, flags=re.S)
 assert n == 1, "the bench diff's @python312 entry was not found once"
 assert 'new_local_repository = use_repo_rule(' in text
+# S-CORE Lifecycle v0.10.0, the version of the Launch Manager configuration and the lifecycle clients (B6)
+life = 'bazel_dep(name = "score_lifecycle")\nsingle_version_override(\n    module_name = "score_lifecycle",\n    version = "0.10.0",\n)'
+assert text.count(life) == 1 and text.count('module_name = "score_lifecycle"') == 1, "score_lifecycle is not 0.10.0 once"
 text += '\n' + open(fragment).read().replace('@ROOT@', root)
 open(path, 'w').write(text)
 print("MODULE.bazel: @libcarla -> the CARLA 1.0 bundle, @python312 dropped, @da_b2_thirdparty added")
@@ -319,12 +334,26 @@ if ! is_done opencv; then
   fetch opencv-4.6.0.tar.gz "$OPENCV_URL" "$OPENCV_SHA256"
   rm -rf "$ROOT/src/opencv-4.6.0" "$ROOT/src/opencv-build"
   tar -xzf "$ROOT/dl/opencv-4.6.0.tar.gz" -C "$ROOT/src"
+  cat > "$ROOT/tools/pkg-config-score" <<'EOF'
+#!/bin/sh
+# pkg-config for CMake configures with the S-CORE sysroot (build_score_bench.sh): no host system include directory
+unset PKG_CONFIG_ALLOW_SYSTEM_CFLAGS
+export PKG_CONFIG_SYSTEM_INCLUDE_PATH=/usr/include:/usr/include/x86_64-linux-gnu
+exec /usr/bin/pkg-config "$@"
+EOF
+  chmod 0755 "$ROOT/tools/pkg-config-score"
+  PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 "$ROOT/tools/pkg-config-score" --cflags-only-I gstreamer-app-1.0 gstreamer-video-1.0 \
+    | tr ' ' '\n' > "$ROOT/facts/pkg-config-score-gstreamer.txt"
+  if grep -qxE -- '-I/usr/include(/x86_64-linux-gnu)?' "$ROOT/facts/pkg-config-score-gstreamer.txt"; then
+    die "pkg-config-score still returns a host system include directory"
+  fi
   # Static, with the S-CORE gcc; the image codecs from OpenCV's own sources; videoio with the GStreamer back end
   # (the visualization recorder's nvh264enc pipeline), found through pkg-config on the host (C libraries); highgui
   # without a GUI back end (visualization_on = false on the bench).
   cmake -S "$ROOT/src/opencv-4.6.0" -B "$ROOT/src/opencv-build" -G Ninja -DCMAKE_TOOLCHAIN_FILE="$ROOT/score-gcc.cmake" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$TP/opencv" -DCMAKE_INSTALL_LIBDIR=lib \
     -DCMAKE_FIND_ROOT_PATH_MODE_LIBRARY=BOTH -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH \
+    -DPKG_CONFIG_EXECUTABLE="$ROOT/tools/pkg-config-score" \
     -DBUILD_LIST=core,imgproc,imgcodecs,videoio,highgui -DBUILD_SHARED_LIBS=OFF \
     -DWITH_GSTREAMER=ON -DWITH_FFMPEG=OFF -DWITH_V4L=OFF -DWITH_1394=OFF -DWITH_GTK=OFF -DWITH_QT=OFF -DWITH_VTK=OFF \
     -DWITH_OPENGL=OFF -DWITH_IPP=OFF -DWITH_ITT=OFF -DWITH_OPENCL=OFF -DWITH_CUDA=OFF -DWITH_EIGEN=OFF -DWITH_LAPACK=OFF \
@@ -333,9 +362,15 @@ if ! is_done opencv; then
     -DBUILD_JPEG=ON -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_opencv_apps=OFF -DBUILD_JAVA=OFF \
     -DBUILD_opencv_python3=OFF -DCV_TRACE=OFF > "$ROOT/logs/opencv-cmake.log" 2>&1 \
     || { tail -30 "$ROOT/logs/opencv-cmake.log"; die "OpenCV configure failed"; }
-  grep -E "^\s+GStreamer:" "$ROOT/logs/opencv-cmake.log" || true
-  grep -qE "^\s+GStreamer:\s+YES" "$ROOT/logs/opencv-cmake.log" \
+  # CMake prefixes its status lines with "--": the summary line reads "--     GStreamer:   YES (1.20.3)"
+  grep -E "^--\s+GStreamer:" "$ROOT/logs/opencv-cmake.log" || true
+  grep -qE "^--\s+GStreamer:\s+YES" "$ROOT/logs/opencv-cmake.log" \
     || die "OpenCV found no GStreamer (see $ROOT/logs/opencv-cmake.log); the recorder's nvh264enc path needs it"
+  grep -E "^GSTREAMER_[a-z]+_INCLUDE_DIRS:" "$ROOT/src/opencv-build/CMakeCache.txt" | tr ';=' '\n\n' \
+    > "$ROOT/facts/opencv-gstreamer-include-dirs.txt"
+  if grep -qxE '/usr/include(/x86_64-linux-gnu)?' "$ROOT/facts/opencv-gstreamer-include-dirs.txt"; then
+    die "OpenCV's GStreamer include directories hold a host system directory (CMakeCache.txt)"
+  fi
   ninja -C "$ROOT/src/opencv-build" -j "$JOBS" install > "$ROOT/logs/opencv-build.log" 2>&1 \
     || { grep -m10 -E " error|FAILED" "$ROOT/logs/opencv-build.log"; die "OpenCV build failed"; }
   mark_done opencv
@@ -401,7 +436,9 @@ if ! is_done thirdparty; then
   gst_includes=""
   # shellcheck disable=SC2086
   for d in $(pkg-config --cflags-only-I $GST_MODULES | tr ' ' '\n' | sed -n 's/^-I//p' | sort -u); do
-    [ "$d" != /usr/include ] || die "pkg-config returned /usr/include as a GStreamer include directory"
+    case "$d" in
+      /usr/include|/usr/include/x86_64-linux-gnu) die "pkg-config returned $d as a GStreamer include directory" ;;
+    esac
     name=$(echo "${d#/}" | tr '/' '_')
     cp -a "$d" "$TP/hostinc/gstreamer/$name"
     gst_includes="$gst_includes\"hostinc/gstreamer/$name\", "
@@ -471,27 +508,41 @@ echo "$GATEWAY_PRE_SERIALIZED_DATA_SHA256  $H" | sha256sum -c --quiet - || die "
 # ---------------------------------------------------------------------------------------------------------------------
 step bazel
 cd "$WS"
-# stage the bench's packages: //visionpilot, //de4sdv_da_bench/{interfaces,actuation-adapter,score-build/workspace}
+# stage the bench's packages: //visionpilot, //de4sdv_da_bench/{interfaces,actuation-adapter,launch-manager,
+# score-build/workspace}
 rm -rf "$WS/visionpilot" "$OVERLAY"
-mkdir -p "$WS/visionpilot" "$OVERLAY/interfaces" "$OVERLAY/actuation-adapter" "$OVERLAY/score-build/workspace/gateway_include/score/serializer"
+mkdir -p "$WS/visionpilot" "$OVERLAY/interfaces" "$OVERLAY/actuation-adapter" "$OVERLAY/launch-manager" \
+  "$OVERLAY/score-build/workspace/gateway_include/score/serializer"
 (cd "$VP/VisionPilot" && tar --exclude='*.onnx' --exclude='*.pt' --exclude='*.pth' --exclude='*.mp4' -cf - .) | tar -xf - -C "$WS/visionpilot"
 cp "$HERE/workspace/visionpilot.BUILD.bazel" "$WS/visionpilot/BUILD.bazel"
 cp -a "$BENCH/interfaces/include" "$OVERLAY/interfaces/"
 cp "$HERE/workspace/interfaces.BUILD.bazel" "$OVERLAY/interfaces/BUILD.bazel"
 (cd "$BENCH/actuation-adapter" && tar --exclude='.build' --exclude='__pycache__' -cf - .) | tar -xf - -C "$OVERLAY/actuation-adapter"
+cp "$BENCH/launch-manager/config/launch_manager_config.json" "$BENCH/score-path/config/launch_manager_config_path_only.json" \
+  "$OVERLAY/launch-manager/"
+cp "$HERE/workspace/launch_manager.BUILD.bazel" "$OVERLAY/launch-manager/BUILD.bazel"
 cp "$HERE/workspace/BUILD.bazel" "$HERE/workspace/ort_cuda_check.cpp" "$OVERLAY/score-build/workspace/"
 cp "$CB/libcarla10.BUILD" "$ROOT/thirdparty.BUILD" "$OVERLAY/score-build/workspace/"
 cp "$H" "$OVERLAY/score-build/workspace/gateway_include/score/serializer/"
+# the identity recorder (lane B4) joins TARGETS and the bundle once its package exists
 TARGETS=(//visionpilot:VisionPilot //de4sdv_da_bench/actuation-adapter:actuation_adapter
-         //de4sdv_da_bench/score-build/workspace:ort_cuda_check)
+         //de4sdv_da_bench/score-build/workspace:ort_cuda_check
+         @score_lifecycle//score/launch_manager:launch_manager //de4sdv_da_bench/launch-manager:de4sdv_lm_config
+         //de4sdv_da_bench/launch-manager:de4sdv_lm_config_path_only)
 start=$(date +%s)
 if ! bazel_feo build --config=x86_64-linux -c opt --jobs="$JOBS" --features=-treat_warnings_as_errors "${TARGETS[@]}" \
     > "$ROOT/logs/score-bazel.log" 2>&1; then
   grep -E "^ERROR|error:|undefined reference" "$ROOT/logs/score-bazel.log" | sed -n 1,30p
-  die "Bazel build of VisionPilot, the actuation adapter or ort_cuda_check failed"
+  die "Bazel build of VisionPilot, the actuation adapter, ort_cuda_check, the Launch Manager or its configuration failed"
 fi
 tail -n 8 "$ROOT/logs/score-bazel.log"
 echo "bazel build: $(( $(date +%s) - start )) s"
+bazel_feo mod explain score_lifecycle score_communication score_baselibs > "$ROOT/facts/score-mod-explain.txt" 2>&1 || true
+life_versions=$(grep -o -E 'score_lifecycle@[^ ,)]*' "$ROOT/facts/score-mod-explain.txt" | sort -u | tr '\n' ' ' || true)
+echo "score_lifecycle as resolved: ${life_versions:-not shown by bazel mod explain}"
+for v in $life_versions; do
+  [ "$v" = "score_lifecycle@0.10.0" ] || die "Bazel resolved $v, not score_lifecycle@0.10.0 (facts/score-mod-explain.txt)"
+done
 bazel_feo aquery --config=x86_64-linux -c opt 'mnemonic("CppCompile", //visionpilot:de4sdv_score_carla_client)' 2>/dev/null \
   | grep -o -E "x86_64-unknown-linux-gnu-g\+\+|-std=[a-z+0-9]*" | sort | uniq -c > "$ROOT/facts/carla_unit_std.txt" || true
 cat "$ROOT/facts/carla_unit_std.txt"
@@ -499,10 +550,34 @@ cat "$ROOT/facts/carla_unit_std.txt"
 # ---------------------------------------------------------------------------------------------------------------------
 step bundle
 B=$ROOT/bundle
-rm -rf "$B" && mkdir -p "$B/bin" "$B/lib" "$B/config/visionpilot" "$B/config/gateway" "$B/share/visionpilot" "$B/facts"
-SB=$(bazel_feo info --config=x86_64-linux -c opt bazel-bin)
-cp -L "$SB/visionpilot/VisionPilot" "$SB/de4sdv_da_bench/actuation-adapter/actuation_adapter" \
+rm -rf "$B" && mkdir -p "$B/bin" "$B/lib" "$B/config/visionpilot" "$B/config/gateway" "$B/config/launch_manager" \
+  "$B/config/actuation_adapter" "$B/share/visionpilot" "$B/facts"
+# The output directory of the build above from cquery: `bazel info --config=x86_64-linux` stops with "Repository
+# '@@score_bazel_platforms' is not defined" (the config's --platforms label), while cquery resolves it as the build did.
+VPO=$(bazel_feo cquery --config=x86_64-linux -c opt --output=files //visionpilot:VisionPilot 2>/dev/null | tail -n 1)
+[ "${VPO%/visionpilot/VisionPilot}" != "$VPO" ] || die "cquery gave no output file of //visionpilot:VisionPilot ($VPO)"
+SB=$(bazel_feo info execution_root)/${VPO%/visionpilot/VisionPilot}
+[ -f "$SB/visionpilot/VisionPilot" ] || die "no VisionPilot binary under $SB"
+echo "S-CORE bazel-bin: $SB"
+# bin/ holds the binary names of the Launch Manager configuration (binary_name): vision_pilot, actuation_adapter,
+# gatewayd, someipd; identity_recorder joins with lane B4. launch_manager is the daemon, ort_cuda_check the GPU check.
+cp -L "$SB/visionpilot/VisionPilot" "$B/bin/vision_pilot"
+cp -L "$SB/de4sdv_da_bench/actuation-adapter/actuation_adapter" \
       "$SB/de4sdv_da_bench/score-build/workspace/ort_cuda_check" "$B/bin/"
+LMD=$(find -L "$SB/external" -path '*score_lifecycle*/score/launch_manager/src/daemon/launch_manager' -type f -print -quit)
+[ -n "$LMD" ] || die "no launch_manager daemon under $SB/external"
+cp -L "$LMD" "$B/bin/launch_manager"
+# each .bin beside the JSON it was converted from: score-path/scripts/stage_score_side.py stages a .bin only when
+# that JSON is the bench's file of the mode (full; path: the warning path only, P10-3 and p10-1's late subscriber)
+for c in launch_manager_config launch_manager_config_path_only; do
+  LMC=$(find -L "$SB/de4sdv_da_bench/launch-manager" -name "$c.bin" -type f -print -quit)
+  [ -n "$LMC" ] || die "no $c.bin under $SB/de4sdv_da_bench/launch-manager"
+  cp -L "$LMC" "$B/config/launch_manager/"
+done
+cp "$BENCH/launch-manager/config/launch_manager_config.json" "$BENCH/score-path/config/launch_manager_config_path_only.json" \
+  "$B/config/launch_manager/"
+cp "$BENCH/actuation-adapter/mw_com_config_actuation_adapter.json" "$BENCH/actuation-adapter/config/adapter.json" \
+   "$B/config/actuation_adapter/"
 cp -L "$GB/score/gatewayd/gatewayd" "$GB/score/someipd/someipd" "$B/bin/"
 cp -L "$TP/onnxruntime/lib/libonnxruntime.so.1" "$TP/onnxruntime/lib/libonnxruntime_providers_cuda.so" \
       "$TP/onnxruntime/lib/libonnxruntime_providers_shared.so" "$B/lib/"
@@ -515,15 +590,24 @@ VL=$(dirname "$VS")
 cp -L "$VL"/libvsomeip3*.so.3 "$B/lib/"
 cp -L "$GB/de4sdv_driver_assistance/someip_gateway_config_warning.bin" "$BENCH"/score-path/config/*.json "$B/config/gateway/"
 cp -a "$VP/VisionPilot/config/." "$B/config/visionpilot/"
+# homography_C_matrix.yaml, which the candidate also reads (image_preprocessor.cpp:7), is no file at the pin: upstream's
+# CMake build derives it from config/H.yaml with scripts/find_homography_C_matrix.py (CMakeLists.txt:49-53), which
+# reads ../config/H.yaml from its working directory. Mode path and p10-1 stage it (score-path/scripts/README.md).
+(cd "$VP/VisionPilot/scripts" && /usr/bin/python3 find_homography_C_matrix.py \
+   --output "$B/config/visionpilot/homography_C_matrix.yaml") > "$ROOT/logs/homography_C_matrix.log" 2>&1 \
+  || die "find_homography_C_matrix.py failed (logs/homography_C_matrix.log; it needs python3-opencv and python3-numpy)"
 cp -a "$VP/VisionPilot/assets" "$B/share/visionpilot/assets"
 mkdir -p "$B/share/visionpilot/modules/models/weights"
 cp "$ROOT"/src/vp-pin/VisionPilot/modules/models/weights/*.onnx "$B/share/visionpilot/modules/models/weights/"
 cp "$BENCH"/score-interface/patches/*.diff "$BENCH/score-interface/patches/SHA256SUMS" "$B/facts/"
 cp "$ROOT"/facts/*.txt "$ROOT"/facts/*.diff "$B/facts/" 2>/dev/null || true
-# the run-time packages of the S-CORE host, with this host's versions (install_gpu_runtime.sh installs them)
-# shellcheck disable=SC2086
-dpkg-query -W -f='${Package}=${Version}\n' $APT_RUNTIME coinor-libipopt1v5 coinor-libipopt-dev libcppad-dev \
-  > "$B/facts/apt-runtime-packages.txt" 2>/dev/null || true
+# the run-time packages of the S-CORE host (install_gpu_runtime.sh installs them): name=version where this host has
+# the package installed, the bare name where it has not (dpkg-query prints "name=" for a package it knows but has
+# not installed, and apt-get refuses an empty version)
+for p in $APT_RUNTIME coinor-libipopt1v5 coinor-libipopt-dev libcppad-dev; do
+  v=$(dpkg-query -W -f='${db:Status-Abbrev}|${Version}' "$p" 2>/dev/null || true)
+  case "$v" in ii*) echo "$p=${v#*|}" ;; *) echo "$p" ;; esac
+done > "$B/facts/apt-runtime-packages.txt"
 {
   echo "VisionPilot $VP_COMMIT with $(cat "$BENCH/score-interface/patches/SHA256SUMS" | tr '\n' ' ')"
   echo "FEO $FEO_COMMIT; gateway $GATEWAY_COMMIT; CARLA $CARLA_COMMIT; ONNX Runtime $ORT_VERSION (nuget sha256 $ORT_SHA256)"
@@ -536,18 +620,28 @@ dpkg-query -W -f='${Package}=${Version}\n' $APT_RUNTIME coinor-libipopt1v5 coino
     readelf -d "$f" | grep -E "NEEDED|RUNPATH|RPATH" || true
     echo "max GLIBC $(objdump -T "$f" | grep -o 'GLIBC_[0-9.]*' | sort -V -u | tail -1)"
   done
-  echo "== VisionPilot symbols"
-  V=$B/bin/VisionPilot
+  echo "== vision_pilot symbols"
+  V=$B/bin/vision_pilot
   echo "carla::client $(nm -C "$V" | grep -c 'carla::client::')"
   echo "score::mw::com $(nm -C "$V" | grep -c 'score::mw::com')"
+  echo "score::mw::lifecycle $(nm -C "$V" | grep -c 'score::mw::lifecycle')"
   echo "cv:: $(nm -C "$V" | grep -c ' cv::')"; echo "rerun:: $(nm -C "$V" | grep -c 'rerun::')"
   echo "CARLA version strings: $(strings "$V" | grep -E '^1\.0(-[0-9a-f]{9})?(-dirty)?$' | sort -u | tr '\n' ' ')"
+  echo "== actuation_adapter symbols"
+  echo "score::mw::lifecycle $(nm -C "$B/bin/actuation_adapter" | grep -c 'score::mw::lifecycle')"
   echo "== ldd with the bundle's lib/"
   for f in "$B"/bin/*; do echo "-- $(basename "$f")"; LD_LIBRARY_PATH=$B/lib ldd "$f" || true; done
 } > "$B/facts/binary_checks.txt" 2>&1
-if LD_LIBRARY_PATH=$B/lib ldd "$B/bin/VisionPilot" | grep "not found"; then die "VisionPilot has unresolved libraries"; fi
-strings "$B/bin/VisionPilot" > "$B/facts/VisionPilot.strings"
-grep -q -E '^1\.0-14ac3b1a5$' "$B/facts/VisionPilot.strings" || die "VisionPilot does not hold the CARLA client version string 1.0-14ac3b1a5"
+if LD_LIBRARY_PATH=$B/lib ldd "$B/bin/vision_pilot" | grep "not found"; then die "vision_pilot has unresolved libraries"; fi
+# both supervised processes hold the Lifecycle v0.10.0 client (report_running and the Alive API)
+for f in vision_pilot actuation_adapter; do
+  nm -C "$B/bin/$f" > "$ROOT/facts/$f.nm"
+  for sym in score_mw_lifecycle_report_running 'score::mw::lifecycle::Alive::ReportAlive'; do
+    grep -q -F "$sym" "$ROOT/facts/$f.nm" || die "$f does not hold the Lifecycle client symbol $sym"
+  done
+done
+strings "$B/bin/vision_pilot" > "$B/facts/vision_pilot.strings"
+grep -q -E '^1\.0-14ac3b1a5$' "$B/facts/vision_pilot.strings" || die "vision_pilot does not hold the CARLA client version string 1.0-14ac3b1a5"
 # the ORT check on this host: the CUDA provider is in the build; loading it needs the GPU host (install_gpu_runtime.sh)
 "$B/bin/ort_cuda_check" --cpu-only "$B/share/visionpilot/modules/models/weights/autosteer_fp32.onnx" 3 \
   > "$B/facts/ort_cuda_check_cpu.txt" 2>&1 || true
@@ -557,6 +651,7 @@ grep -q "ORT_CUDA_CHECK PASS" "$B/facts/ort_cuda_check_cpu.txt" || die "ort_cuda
 tar -czf "$ROOT/da-b2-bundle.tgz" -C "$ROOT" bundle
 echo
 echo "=== BUILD OK $(date -u +%FT%TZ)"
+echo "free under $ROOT: $(df -B1 --output=avail "$ROOT" | tail -1 | tr -dc 0-9) B"
 echo "bundle: $B ($(du -sh "$B" | cut -f1)); archive $ROOT/da-b2-bundle.tgz sha256 $(sha256sum "$ROOT/da-b2-bundle.tgz" | cut -c1-64)"
 echo "binaries and libraries (sha256):"
 (cd "$B" && sha256sum bin/* lib/*)
