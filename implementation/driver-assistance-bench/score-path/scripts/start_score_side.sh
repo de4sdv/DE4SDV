@@ -145,5 +145,5 @@ RECORD_SHA256=$(echo "$record" | sed -n 's/.*"sha256":"\([0-9a-f]\{64\}\)".*/\1/
 $DA_SUDO cp "$OUT/score_side_state.env" "$SCORE_SIDE_STATE"
 ss_log "S-CORE side up (mode $MODE): $(grep '^PID_' "$OUT/score_side_state.env" | tr '\n' ' ')"
 ss_log "candidate record sha256 $RECORD_SHA256"
-[ "$MODE" = full ] && ss_log "the candidate reports running after its first pass: start the world pacer within 420 s"
+[ "$MODE" = full ] && ss_log "the candidate reports running after its first pass with a result: start the world pacer within 420 s"
 exit 0

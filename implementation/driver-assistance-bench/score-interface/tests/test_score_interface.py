@@ -10,8 +10,9 @@
 - src/lifecycle_bindings.cpp: a syntax check against declarations of the Lifecycle v0.10.0 API
   (launch-manager/tests/lifecycle_mock), which are no S-CORE header either.
 - the patch series: the new files of 0002 equal module/, the shas equal patches/SHA256SUMS, 0001 is the VIS8 patch
-  with the sim_time_s column of frames.csv (brief item B3) and its upstream hunks unchanged, and every line 0002 adds
-  to upstream C++ outside the enum sits under ENABLE_SCORE_INTERFACE.
+  with the sim_time_s column of frames.csv (brief item B3) and its upstream hunks unchanged, every line 0002 adds
+  to upstream C++ outside the enum sits under ENABLE_SCORE_INTERFACE, and the alive call sits in the pass with a result
+  (C-1).
 - the sim_time_s column: a functional run of the patched recorder with a stand-in ffmpeg, when a VisionPilot clone
   (VISIONPILOT_CLONE), ONNX Runtime and Eigen headers (ORT_INCLUDE, EIGEN_INCLUDE) and pkg-config's opencv4 are there.
 """
@@ -259,6 +260,75 @@ def test_0002_hands_the_pass_capture_time_to_the_recorder() -> None:
     context = files["VisionPilot/app/vision_pilot.cpp"]
     handoff = next(i for i, line in enumerate(context) if "DE4SDV VIS8: the one hand-off" in line)
     assert next(i for i, line in enumerate(context) if call in line) < handoff
+
+
+CYCLE_CALL = "if (score_interface) score_interface->CycleCompleted();"
+PUBLISH_CALL = "if (score_interface) score_interface->warning_request_publisher().Publish(plan);"
+RESULT_BLOCK = "if (const auto r = pipeline.process(warped, resized))"
+
+
+def _hunks(lines: list[str]) -> list[list[str]]:
+    hunks: list[list[str]] = []
+    for line in lines:
+        if line.startswith("@@ "):
+            hunks.append([])
+        elif hunks:
+            hunks[-1].append(line)
+    return hunks
+
+
+def test_0002_reports_running_only_in_a_pass_with_a_result() -> None:
+    """C-1 (p10-1 run 20261119T134840Z): upstream's pipeline returns no result for the first frame (a two-frame
+    buffer, VisionPilot/modules/models/src/inference.cpp:152-159 at the pin), so a call at the end of the loop body
+    reported running after a pass that ran no network and put the cold first inference under the alive supervision.
+    The one CycleCompleted() call sits inside the result block, after the warning hand-off."""
+    vp = _patch_files((PATCHES / "0002-de4sdv-score-interface.diff").read_text())["VisionPilot/app/vision_pilot.cpp"]
+    added = [line for line in vp if line.startswith("+") and CYCLE_CALL in line]
+    assert len(added) == 1, added
+    # the result block's indentation (12 spaces), not the loop body's (8)
+    assert added[0][1:] == " " * 12 + CYCLE_CALL
+    hunk = next(h for h in _hunks(vp) if any(CYCLE_CALL in line for line in h))
+    texts = [line[1:] for line in hunk]
+    call = next(i for i, t in enumerate(texts) if CYCLE_CALL in t)
+    publish = next(i for i, t in enumerate(texts) if PUBLISH_CALL in t)
+    assert publish < call
+    # nothing between the hand-off and the call leaves the result block
+    assert not any(t.startswith("        }") for t in texts[publish:call]), texts[publish:call]
+    # the end of the loop body, after the recorder's loop stamps, gets no call
+    assert not any("loop_stamps.push(" in t for t in texts[:call])
+
+
+def _block(text: str, head: str) -> str:
+    """The text between the braces of the block that opens after `head` (no braces in its strings or comments)."""
+    start = text.index("{", text.index(head))
+    depth = 0
+    for i in range(start, len(text)):
+        depth += {"{": 1, "}": -1}.get(text[i], 0)
+        if depth == 0:
+            return text[start:i + 1]
+    raise AssertionError(f"the block after {head!r} does not close")
+
+
+def test_patched_loop_reports_running_only_inside_the_result_block(tmp_path: Path) -> None:
+    """C-1 on upstream's file at the pin with 0001 and 0002 applied: the call lies in the block that runs only when
+    pipeline.process() returned a result, after the warning hand-off, and nowhere else."""
+    clone = _pin_tree()
+    if clone is None:
+        pytest.skip(f"VISIONPILOT_CLONE is not set to a clone holding {PIN}")
+    tree = tmp_path / "vp"
+    target = tree / "VisionPilot" / "app" / "vision_pilot.cpp"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(subprocess.run(["git", "-C", str(clone), "show", f"{PIN}:VisionPilot/app/vision_pilot.cpp"],
+                                      check=True, capture_output=True).stdout)
+    subprocess.run(["git", "-C", str(tree), "init", "-q"], check=True)
+    for patch in ("0001-de4sdv-visualization-recorder.diff", "0002-de4sdv-score-interface.diff"):
+        subprocess.run(["git", "-C", str(tree), "apply", "--include=VisionPilot/app/vision_pilot.cpp",
+                        str(PATCHES / patch)], check=True)
+    text = target.read_text()
+    assert text.count(CYCLE_CALL) == 1
+    block = _block(text, RESULT_BLOCK)
+    assert CYCLE_CALL in block
+    assert block.index(PUBLISH_CALL) < block.index(CYCLE_CALL)
 
 
 def test_visualization_recorder_writes_the_sim_time_column(tmp_path: Path) -> None:

@@ -177,7 +177,7 @@ line per check, `PASS`, `FAIL` or `NOT RUN` with its detail, into `<out>/p10_1_v
 | C7 | the candidate record reaches a subscriber that subscribes after the first publication (`candidate_record_probe`), with the file's digest | the bundle's probe |
 | C8 | the candidate on a replayed clip: always NOT RUN, since the S-CORE interface module has no clip replayer and the brief's B0 clip replayer is not in the bench | — |
 
-C2 to C4 need the candidate's first completed pass, so a CARLA 1.0 server with a world that ticks at
+C2 to C4 need the candidate's first pass with a result, so a CARLA 1.0 server with a world that ticks at
 `DA_P10_1_CARLA_HOST`. The caller starts the world side's pacer: a `p10-1` session (`../session/README.md`) starts the
 simulator host and runs the check between the world's go and its release. Without it they are NOT RUN. C1's full configuration
 needs that server too: the real `vision_pilot` and `actuation_adapter` exit at once on a refused CARLA connection, and

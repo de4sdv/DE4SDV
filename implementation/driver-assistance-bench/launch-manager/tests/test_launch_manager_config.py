@@ -155,7 +155,7 @@ def test_the_values_equal_the_readme_and_follow_from_the_cycle() -> None:
 
 
 def test_the_ready_timeouts_cover_the_start() -> None:
-    """The candidate reports running after its first completed pass: its ready timeout covers the attach to the
+    """The candidate reports running after its first pass with a result: its ready timeout covers the attach to the
     hero (carla.attach_timeout_s, 300 s by default in seams.hpp), the network sessions and the first inference; the
     run target's transition covers the longest ready timeout."""
     config = load()

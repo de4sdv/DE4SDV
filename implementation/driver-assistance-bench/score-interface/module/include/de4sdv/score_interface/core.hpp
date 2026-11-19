@@ -153,10 +153,13 @@ class WarningRequestWriter {
 };
 
 // The alive supervision of the candidate's process (the supervision decision of 2026-11-18). The loop calls
-// CycleCompleted() once at the end of each pass that handled a frame. The first such pass reports the process running
-// before its alive notification, so the Launch Manager starts supervising after the network sessions, the first
-// frame and the first inference, which its ready timeout covers instead. Every pass gives one alive notification.
-// Once a stop is requested, no notification follows. A null client: no supervision, nothing is reported.
+// CycleCompleted() once in each pass with a result (a plan), after the warning hand-off. The first such pass reports
+// the process running before its alive notification, so the Launch Manager starts supervising after the network
+// sessions, the first frames and the first inference, which its ready timeout covers instead. Upstream's pipeline
+// gives no result for the first frame (inference.cpp:152-159 at the pin, a two-frame buffer), so the first inference
+// runs in the second pass, before the first call. Every such pass gives one alive notification; a pass without a
+// result gives none. Once a stop is requested, no notification follows. A null client: no supervision, nothing is
+// reported.
 class CycleSupervision {
  public:
   CycleSupervision(LifecycleClient* client, LineLog log);

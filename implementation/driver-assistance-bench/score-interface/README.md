@@ -41,7 +41,7 @@ The mapping ids are those of the phase 8 realization,
 | `vision_pilot.cpp`, after `:174` | the warning hand-off: one event per plan | MAP-DRIVING-DA-PLANNED-WARNINGS, MAP-DRIVING-DA-WARNING-REQUEST |
 | `vision_pilot.cpp`, the loop head | leaves the loop on SIGTERM, so that `Rerun::shutdown()` (`:189`) and the recorder's stop run | none (supervision) |
 | `vision_pilot.cpp`, after `:174`, in the same block | the pass's capture simulation time to the visualization recorder, for its `frames.csv` (brief item B3) | MAP-DRIVING-DA-CAMERA-IMAGE |
-| `vision_pilot.cpp`, the end of a pass, after the recorder's loop stamps | `CycleCompleted()`: one alive notification to the Launch Manager per pass that handled a frame | none (the supervision decision of 2026-11-18) |
+| `vision_pilot.cpp`, after `:174`, in the same block, after the warning hand-off | `CycleCompleted()`: one alive notification to the Launch Manager per pass with a result | none (the supervision decision of 2026-11-18) |
 
 The new files map to the model's parts as follows:
 
@@ -78,13 +78,19 @@ open for the Launch Manager lane.
 The supervision decision of 2026-11-18 has S-CORE Lifecycle's Launch Manager supervise the candidate's process by
 its alive notifications. `CycleSupervision` (in `core.hpp`) does the module's part:
 
-- the loop calls `CycleCompleted()` at the end of each pass that handled a frame, after the recorder's loop stamps;
-  each call gives one alive notification (`Alive::ReportAlive`);
+- the loop calls `CycleCompleted()` in each pass with a result (a plan), inside the block of
+  `if (const auto r = pipeline.process(...))`, after the warning hand-off; each call gives one alive notification
+  (`Alive::ReportAlive`). A pass without a result gives none;
 - the first such pass first reports the process running (`score_mw_lifecycle_report_running`). The Launch Manager
-  starts supervising only then, so the network sessions, the first frame and the first inference fall under its
-  ready timeout, not under the alive supervision;
+  starts supervising only then, so the network sessions, the first frames and the first inference fall under its
+  ready timeout, not under the alive supervision. Upstream's pipeline gives no result for the first frame
+  (`VisionPilot/modules/models/src/inference.cpp:152-159` at the pin, a two-frame buffer), so the first inference
+  runs in the second pass, before the first call. Why: with the call at the end of every pass that handled a frame,
+  p10-1 run 20261119T134840Z reported running after the 6 ms first pass, and the cold first inference (724 ms on
+  the L4) tripped the supervision;
 - once SIGTERM has arrived, no notification follows;
-- the event log gets `supervision.start` at the first pass, `supervision.stop` with the count at the end, and
+- the event log gets `supervision.start` at the first pass with a result, `supervision.stop` with the count at the
+  end, and
   `supervision.off` with the reason when the process runs unsupervised (no `LCM_ALIVE_INTERFACE_PATH`, that is, the
   Launch Manager did not start it as a supervised component). The summary holds `alive_reported`.
 

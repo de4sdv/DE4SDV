@@ -46,7 +46,7 @@ SIGKILL 10 s later.
 | `identity_recorder` | `Reporting` | nothing: first | it calls `report_running`, once the record is written and offered |
 | `someipd` | `Native` | nothing | its process runs |
 | `gatewayd` | `Native` | `someipd` | its process runs |
-| `vision_pilot` | `Reporting_And_Supervised` | `identity_recorder`, `gatewayd` | its first completed pass (the module calls `report_running` then) |
+| `vision_pilot` | `Reporting_And_Supervised` | `identity_recorder`, `gatewayd` | its first pass with a result (the module calls `report_running` then) |
 | `actuation_adapter` | `Reporting_And_Supervised` | `identity_recorder` | it has subscribed to the driving command |
 
 | Run target | Components |
@@ -88,22 +88,21 @@ v0.10.0):
 
 - a single slow pass of up to 0.4 s, six times VIS8's p99, never trips the supervision, whatever its phase;
 - no notification for 0.6 s always trips it; the Launch Manager reacts within about one more window;
-- a pass that handles no frame gives no notification, so when the images stop, for whatever reason, the supervision
-  trips.
+- a pass without a result (one that handles no frame, or upstream's first) gives no notification, so when the images
+  stop, for whatever reason, the supervision trips.
 
-The supervision starts only when the process reports running. The candidate reports running after its first
-completed pass, meant to put its start (the attach to the hero, the network sessions, the first frame and the first
-inference) under its ready timeout of 420 s, not under the supervision. The adapter reports running once it
-has subscribed.
+The supervision starts only when the process reports running. The candidate reports running after its first pass
+with a result, so its start (the attach to the hero, the network sessions, the first frames and the first inference)
+falls under its ready timeout of 420 s, not under the supervision. Upstream's pipeline returns no result for the first
+frame (`VisionPilot/modules/models/src/inference.cpp:152-159` at 014e0e7a: a two-frame buffer), so the first inference
+runs in the second pass, before the first report. Why: in p10-1 run 20261119T134840Z the module still reported after
+the first pass that handled a frame, a 6 ms pass without a network, and the cold first inference (about 0.72 s on the
+L4's CUDA provider) fell into the supervision and tripped it. The adapter reports running once it has subscribed.
 
-Open (run 20261119T134840Z): the first pass runs no network. Upstream's pipeline returns no result for the first frame
-(`VisionPilot/modules/models/src/inference.cpp:152-159` at 014e0e7a: a two-frame buffer), so the module reports
-running after a 6 ms pass, and the first inference (723 ms on the L4's CUDA provider) falls into the supervision and
-trips it. Fixing it needs a bundle rebuild (`score-interface` patch 0002); until then p10-1's C2 and C4 cannot pass.
 
 ## What the evidence record must say (contract for B9)
 
-- The module's event log has `supervision.start` (first completed pass), `supervision.stop` with `alive_reported`,
+- The module's event log has `supervision.start` (first pass with a result), `supervision.stop` with `alive_reported`,
   or `supervision.off` with the reason; the summary line has `alive_reported`.
 - The adapter's log has `supervision` records with `state` `start`, `stop`, `off` or `error`.
 - The record of a supervision failure comes from the Launch Manager's own log (its `Alive Supervision (...)

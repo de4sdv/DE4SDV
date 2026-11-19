@@ -3,7 +3,7 @@
 // The module as the loop sees it: the S-CORE branch beside vision_pilot.cpp:59-79 calls Start() when
 // source.mode = score, takes camera() and vehicle() as its two interfaces, installs the SIGTERM handler, the
 // loop hands each plan to warning_request_publisher() after the write at vision_pilot.cpp:174, and it calls
-// CycleCompleted() at the end of each pass that handled a frame (the Launch Manager's alive supervision).
+// CycleCompleted() in each pass with a result, after that hand-off (the Launch Manager's alive supervision).
 //
 // Ownership: the object owns the simulator client, the mw::com ports and every module; camera() and vehicle() share
 // two of them. Destroy it after the loop: it stops the client first, then prints and logs the run's counters.
@@ -45,8 +45,8 @@ class ScoreInterface {
   std::shared_ptr<ScoreCameraInterface> camera() const { return camera_; }
   std::shared_ptr<ScoreVehicleInterface> vehicle() const { return vehicle_; }
   ScoreWarningRequestPublisher& warning_request_publisher() { return *publisher_; }
-  // The end of a pass of the loop that handled a frame: one alive notification (CycleSupervision), none once SIGTERM
-  // has arrived.
+  // A pass of the loop with a result, after its warning hand-off: one alive notification (CycleSupervision), none
+  // once SIGTERM has arrived.
   void CycleCompleted();
   // The capture simulation time of the frame of this pass (MAP-DRIVING-DA-CAMERA-IMAGE), NaN before the first: the
   // loop hands it to the visualization recorder, whose frames.csv then aligns by simulation time (brief item B3).

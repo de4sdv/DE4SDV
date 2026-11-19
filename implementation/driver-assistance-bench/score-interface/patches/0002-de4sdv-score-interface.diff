@@ -42,7 +42,7 @@ index 7be62763..faad4514 100644
      PRIVATE
      config           # VisionPilotConfig, load_vision_pilot_config
 diff --git a/VisionPilot/app/vision_pilot.cpp b/VisionPilot/app/vision_pilot.cpp
-index f72d19a6..722e98e2 100644
+index f72d19a6..0c0dbebd 100644
 --- a/VisionPilot/app/vision_pilot.cpp
 +++ b/VisionPilot/app/vision_pilot.cpp
 @@ -18,6 +18,10 @@
@@ -95,7 +95,7 @@ index f72d19a6..722e98e2 100644
          frame = camera_interface->get_latest_frame();
          if (frame.empty())
          {
-@@ -190,6 +212,14 @@ int main(int argc, char** argv)
+@@ -190,6 +212,18 @@ int main(int argc, char** argv)
  
              vehicle_interface->write(plan.steering.empty() ? 0.0 : plan.steering[1], plan.acceleration);
              t_write = de4sdv::now_ns();  // DE4SDV VIS8
@@ -106,21 +106,14 @@ index f72d19a6..722e98e2 100644
 +            // DE4SDV S-CORE interface: the pass's capture simulation time for the visualization's frames.csv (B3)
 +            if (score_interface && visualization_recorder)
 +                visualization_recorder->set_pass_sim_time(score_interface->pass_capture_time_s());
++            // DE4SDV S-CORE interface: a pass with a result, one alive notification to the Launch Manager; the first
++            // reports the process running. The first frame gives no result (inference.cpp:152-159, a two-frame
++            // buffer), so the first inference falls under the ready timeout, not under the alive supervision.
++            if (score_interface) score_interface->CycleCompleted();
 +#endif
  
              // DE4SDV VIS8: the one hand-off (copies, swaps into a single-slot mailbox, returns).
              if (visualization_recorder)
-@@ -209,6 +239,10 @@ int main(int argc, char** argv)
-                 logging::Rerun::log_frame(r->frame_id, frame, warped, resized, *r, plan, ego_v, viz);
-         }
-         loop_stamps.push(stamp_frame_id, t_arrive, t_write, t_handoff, de4sdv::now_ns());  // DE4SDV VIS8
-+#if ENABLE_SCORE_INTERFACE
-+        // DE4SDV S-CORE interface: the pass is complete, one alive notification to the Launch Manager
-+        if (score_interface) score_interface->CycleCompleted();
-+#endif
-     }
- 
-     if (cfg.rrd_on) logging::Rerun::shutdown();  // flush & close .rrd
 diff --git a/VisionPilot/modules/config/include/config/vision_pilot_config.hpp b/VisionPilot/modules/config/include/config/vision_pilot_config.hpp
 index 7ea81cf0..1d1b0c2c 100644
 --- a/VisionPilot/modules/config/include/config/vision_pilot_config.hpp
@@ -212,10 +205,10 @@ index 00000000..e9797f9c
 +target_compile_features(de4sdv_score_interface PUBLIC cxx_std_17)
 diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/core.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/core.hpp
 new file mode 100644
-index 00000000..10fc0ddd
+index 00000000..593a8c8e
 --- /dev/null
 +++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/core.hpp
-@@ -0,0 +1,183 @@
+@@ -0,0 +1,186 @@
 +// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
 +//
 +// The module's logic, free of upstream types, OpenCV, mw::com and CARLA. The adapters on upstream's seams
@@ -371,10 +364,13 @@ index 00000000..10fc0ddd
 +};
 +
 +// The alive supervision of the candidate's process (the supervision decision of 2026-11-18). The loop calls
-+// CycleCompleted() once at the end of each pass that handled a frame. The first such pass reports the process running
-+// before its alive notification, so the Launch Manager starts supervising after the network sessions, the first
-+// frame and the first inference, which its ready timeout covers instead. Every pass gives one alive notification.
-+// Once a stop is requested, no notification follows. A null client: no supervision, nothing is reported.
++// CycleCompleted() once in each pass with a result (a plan), after the warning hand-off. The first such pass reports
++// the process running before its alive notification, so the Launch Manager starts supervising after the network
++// sessions, the first frames and the first inference, which its ready timeout covers instead. Upstream's pipeline
++// gives no result for the first frame (inference.cpp:152-159 at the pin, a two-frame buffer), so the first inference
++// runs in the second pass, before the first call. Every such pass gives one alive notification; a pass without a
++// result gives none. Once a stop is requested, no notification follows. A null client: no supervision, nothing is
++// reported.
 +class CycleSupervision {
 + public:
 +  CycleSupervision(LifecycleClient* client, LineLog log);
@@ -458,7 +454,7 @@ index 00000000..9afdd787
 +}  // namespace de4sdv::score_interface
 diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_interface.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_interface.hpp
 new file mode 100644
-index 00000000..4bf1a0e3
+index 00000000..424e7663
 --- /dev/null
 +++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/score_interface.hpp
 @@ -0,0 +1,80 @@
@@ -467,7 +463,7 @@ index 00000000..4bf1a0e3
 +// The module as the loop sees it: the S-CORE branch beside vision_pilot.cpp:59-79 calls Start() when
 +// source.mode = score, takes camera() and vehicle() as its two interfaces, installs the SIGTERM handler, the
 +// loop hands each plan to warning_request_publisher() after the write at vision_pilot.cpp:174, and it calls
-+// CycleCompleted() at the end of each pass that handled a frame (the Launch Manager's alive supervision).
++// CycleCompleted() in each pass with a result, after that hand-off (the Launch Manager's alive supervision).
 +//
 +// Ownership: the object owns the simulator client, the mw::com ports and every module; camera() and vehicle() share
 +// two of them. Destroy it after the loop: it stops the client first, then prints and logs the run's counters.
@@ -509,8 +505,8 @@ index 00000000..4bf1a0e3
 +  std::shared_ptr<ScoreCameraInterface> camera() const { return camera_; }
 +  std::shared_ptr<ScoreVehicleInterface> vehicle() const { return vehicle_; }
 +  ScoreWarningRequestPublisher& warning_request_publisher() { return *publisher_; }
-+  // The end of a pass of the loop that handled a frame: one alive notification (CycleSupervision), none once SIGTERM
-+  // has arrived.
++  // A pass of the loop with a result, after its warning hand-off: one alive notification (CycleSupervision), none
++  // once SIGTERM has arrived.
 +  void CycleCompleted();
 +  // The capture simulation time of the frame of this pass (MAP-DRIVING-DA-CAMERA-IMAGE), NaN before the first: the
 +  // loop hands it to the visualization recorder, whose frames.csv then aligns by simulation time (brief item B3).
