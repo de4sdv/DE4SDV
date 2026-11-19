@@ -65,10 +65,12 @@ What the capture does around the recording of the cluster display:
 
 - **The end of a segment.** The alive poll asks the guest `kill -0 <pid> && echo alive || echo ended <guest clock>`
   and reads adb's whole answer. A segment ends only on the guest's own `ended`. An empty or other answer (adb's
-  `error: closed`, a time-out) is polled again; after `ALIVE_UNKNOWN_S` (15 s) without an answer the capture ends
-  with `end: error`. It then sends the recording SIGINT, polls up to 5 more times, pulls the file only if the guest
+  `error: closed`, a time-out) is polled again; once `ALIVE_UNKNOWN_S` (15 s) have passed since the start of the first
+  poll that got no answer, the capture ends with `end: error` (at the end of the poll that passes the bound, so at
+  most `ALIVE_UNKNOWN_S` plus one `POLL_TIMEOUT_S`). It then sends the recording SIGINT, polls up to 5 more times, pulls the file only if the guest
   reports it ended (`no-answer` segment), and otherwise keeps it on the guest unpulled. The app's records and
-  `capture.json` are still written.
+  `capture.json` are still written, and the capture exits 1. The session records the error, reads the window's
+  receipts and goes on (session/README.md, "The display capture of a window").
 - **A recording that ends early.** When the guest sees a recording end more than `EARLY_S` (2 s) before its time
   limit, with no stop asked (a full `/data`, a display gone, an encoder failure), the segment is labeled
   `ended-early`. The second early end ends the capture with `end: error` instead of relaunching.
@@ -82,13 +84,23 @@ What the capture does around the recording of the cluster display:
   pulls keep up with the segments (170 MB in 170 s, about 1 MB/s), more when they are slower. `df -k /data` is read
   at the start and again in every launch's own guest shell, after the second clock read (no time added to the
   bracket). The capture warns when less than two segments' bound is free, and keeps each reading
-  (`guest_data_free_kb`, at the start and per segment). The IVI guest's `/data` size is not in the guest-build
+  (`guest_data_free_kb`, at the start and per segment). At the start it also compares the free space with what
+  `--max-s` can need (`guest_space` in `capture.json`): up to `ceil(max_s / SEGMENT_S)` segments of at most
+  `BIT_RATE / 8 * SEGMENT_S` bytes. With the pulls during the recording, the guest holds the segment that records and
+  at most `MAX_PULLS` in pull while the pulls keep up (3 segments, about 500 MB); if none were pulled it would hold
+  all of them (at the session's p10-2 `--max-s` of 2995 s, 18 segments, about 3 GB). The capture warns when the free
+  space fits fewer than all (`fits <n> of the <m> segments`): the capture then relies on the pulls during the
+  recording. The IVI guest's `/data` size is not in the guest-build
   records.
 - **Every adb call is bounded** with `timeout --foreground`: the alive poll by `POLL_TIMEOUT_S` (5 s), each segment
   pull by `PULL_TIMEOUT_S` (600 s), every other call by `ADB_TIMEOUT_S` (10 s), and the clock measurement by
   `CLOCK_TIMEOUT_S` (30 s). After the last recording ended, the app's records are pulled first, before the end
   stills, the audio dump, the logcat and the clock.
 - `capture.json` and `capture.done` are written, and the guest's folder removed, only after every pull ended.
+  `capture.done` comes after `capture.json`; when `capture.json` cannot be written, the capture ends with
+  `end: error` and `capture.done` says so.
+- **The clock reads of a launch** carry marks (`b=`, `pid=`, `a=`) and are taken only as numbers, so a stray line in
+  the guest shell's answer (a linker warning) shifts nothing; a read that is not a number is null in the JSON.
 
 How to read the numbers: `capture.json` has one `boundaries` entry per boundary, on the guest clock:
 
@@ -116,21 +128,47 @@ the pulls (a pull that ended, or a local `.part` file that grew), plus the bytes
 waited for up to the hard cap, `--wait-cap-s` (95 s from the stop). When the cap is reached, the stop exits 1 and
 names the guest files still to pull. Those files stay on the guest until they are pulled.
 
-The cap fits the session's step bound. The session gives the stop `T_CAPTURE_END` (180 s), counted from before
-rstep's start SSH call:
+The cap fits the session's step bound. The session gives the stop `T_CAPTURE_END` (240 s), counted from before
+rstep's start SSH call, and passes the cap left after the SSH calls and the poll:
 
 ```text
-start SSH call (its time-out)            60 s
-stop's cap                               95 s
-stop's own last poll and exit             2 s
-one status poll of rstep (POLL_S)        20 s
-total                                   177 s  <= 180 s
+T_CAPTURE_END                                                240 s
+- rstep's start SSH call (its time-out)                       60 s
+- the stop's own last poll and exit                            2 s
+- one status poll's SSH call that read "running" (time-out)   60 s
+- POLL_S                                                      20 s
+= --wait-cap-s                                                98 s
 ```
+
+The session also passes `--max-s` from the longest window that ends well (2995 s for p10-2, 1460 s for p10-3;
+session/README.md). The default of 95 s and 900 s hold only for a capture run by hand.
 
 What the cap allows a 900 s capture: at a stop, the stopped segment (up to 170 MB at 8 Mbit/s) is still to pull,
 and the segment before it too when the stop comes within one pull's time of a boundary. The tail's other calls take
 a few seconds. So the stop ends within its cap when the sustained pull rate is above about 2 MB/s (one full segment
 pending) or about 4 MB/s (two). Below that, the session's window close fails.
+
+### Recovering a segment kept on the guest
+
+A segment whose pull failed or was cut, or a `no-answer` segment, stays on the IVI guest. `capture.json`
+(`pull_failures`, `guest_dir_kept`) and `capture.done` name it, as `/data/local/tmp/da_capture/seg_<k>.mp4`. Its
+expected size is `guest_bytes` in `pulls.jsonl` (null for a `no-answer` segment: then compare with `stat` on the guest
+before the pull). A part pulled so far is `seg_<k>.mp4.partial` beside it. Both files are in the capture folder on
+the guest host, `~/da-kit/<session id>/out/capture_<w>/`, and in the session's evidence when the fetch ran after
+the capture's end.
+
+Deadline: the file lives only on the guests' `/data`, until the next session's `guest_up.sh` re-creates the guests
+(`launch_two_vms.sh down` removes the groups and their `/data`): the next p10-2 or p10-3 on that guest host. Recover
+it before that session:
+
+1. Start the guest host (`de4sdv-aaos-build`), with the owner's OK.
+2. Resume the IVI group (its name is in `cvd fleet`), with the settings of
+   `implementation/score-broker-path-bench/scripts/bench_env.sh`: `cvd --group_name=<group> start --daemon
+   --resume=true`. Never run `launch_two_vms.sh` or `guest_up.sh` before the pull: they re-create the guests.
+3. Pull it: `adb -s 0.0.0.0:6522 pull /data/local/tmp/da_capture/seg_<k>.mp4 seg_<k>.mp4` (`IVI_ADB`).
+4. Check its size against `guest_bytes` and record its sha256 (`sha256sum seg_<k>.mp4`) beside the session's
+   evidence, with the date and the session id.
+5. Stop the guests (`cvd stop`, no crosvm left), then the host.
 
 What only a real multi-segment run on the IVI guest can show (p10-2's first run): the adb round trip and the
 encoder start, so the real `unrecorded_max_s`; whether the background pull costs the recording frames (compare the

@@ -100,6 +100,63 @@ record's lines, since the record is appended and every app start writes lifecycl
 (`app_record_receipts` in `session.json`). It says `NO RECEIPT IN THE APP'S RECORD OF WINDOW <w>` when there are none:
 only the app's record shows that a request arrived. The same count serves `p10-3` and each recorded `p10-2` run.
 
+### The display capture of a window
+
+A window's capture runs from `window_open` (after the app restart and the IVI clock) to `window_close`. The session
+keeps the open window, and when it ends inside one (an abort: no `run_end.json`, a failed S-CORE stop, the world
+side or the recorder; a signal; the cost cap), it first runs `display_capture.sh stop` for that window, then the
+S-CORE side's stop, then the fetches, and only then stops the guests. So the recording gets its SIGINT and its pull,
+and the app's records and `capture.json` are written before the guest host is packed. That stop is bounded by
+`T_CAPTURE_END`, and in the exit trap by what the pre-stop phase leaves. Its step is `capture_down<n>_<w>`
+(`guest.steps.out`).
+
+A capture that ends with `end: error` (no answer from the guest for `ALIVE_UNKNOWN_S`, or two early ends) has
+written `capture.done`, its app records and `capture.json`, and exits 1. The session logs `DISPLAY CAPTURE ERROR IN
+WINDOW <w>`, still reads the window's receipts, and goes on to the next run. Any other bad end of the capture
+(no `capture.done`, another code) still ends the session with exit 5.
+
+`session.json` keeps each window's capture in `display_capture`: `end` (from `capture.done`), `capture_rc`,
+`closed_by` (`window close`, or `session end` for the stop above) and `guest_files_kept`. For `p10-2`, `p10_2`
+says whether the display recording is complete: `display_recording_complete` is true only when every recorded run's
+capture ended `stop` at its window's close with rc 0 and nothing kept on the guest; otherwise `reason` names each
+window and what was wrong. With `--without-guest-host` it is null (no display capture). Exit 0 alone never means the
+recording is complete.
+
+The session passes the capture two caps derived from its own bounds (`display capture caps:` in `session.log`).
+`--wait-cap-s`, the stop's cap, fits `capture_stop`'s bound:
+
+```text
+T_CAPTURE_END                                                240 s
+- rstep's start SSH call (its time-out)                       60 s
+- the stop's own last poll and exit                            2 s
+- one status poll's SSH call that read "running" (time-out)   60 s
+- POLL_S                                                      20 s
+= --wait-cap-s                                                98 s
+```
+
+`--max-s` is the longest window that ends well, every step inside it at its bound: an rstep counts its start SSH call
+(60 s), its bound, POLL_S, one poll (60 s) and its tail call (60 s); an rwait or rwaitfile its bound, POLL_S and one
+poll; a touch its SSH bound. A step past its bound aborts the session, and the stop above then ends the capture.
+
+```text
+the go file (GO_SSH_S)                                        35 s
+run_end.json (T_RUN 900 + 20 + 60)                           980 s
+score_stop_<w> (60 + T_SCORE_START 900 + 20 + 60 + 60)      1100 s
+the release file (its SSH bound)                              60 s
+the world side's end (T_RELEASE 400 + 20 + 60)               480 s
+the recorder's end (T_REC_END 200 + 20 + 60)                 280 s
+capture_stop_<w>'s start SSH call                             60 s
+= --max-s of a p10-2 window                                 2995 s
+
+inject (60 + T_INJECT 1200 + 20 + 60 + 60)                  1400 s
+capture_stop_inject's start SSH call                          60 s
+= --max-s of the p10-3 window                               1460 s
+```
+
+A typical p10-2 window lasts 70 to 230 s, so the capture reaches its `--max-s` only when steps run near their bounds.
+At 2995 s the capture records up to 18 segments of 170 s; the guest space this needs is in recording/README.md
+("The guest's space").
+
 ### The unit gate of `p10-3` (and of each recorded `p10-2` run)
 
 What it waits for (`remote/offer_check.sh unit`, `UNIT_SOURCE=app`, the default): the IVI app's own line
@@ -418,7 +475,7 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_GUEST_APP_RESTART` | guest | `<out> <window>` | this lane: `remote/app_restart.sh` | `am start -S -W -n $APP_COMPONENT`, the APK's sha256 and both guests' `getenforce`, before each window; exit 1 when a guest's mode is not the session's mark, or when the new process logs no `link=SUBSCRIBED` as its last link line since the IVI mark within `APP_SUBSCRIBE_WAIT_S` |
 | `ENTRY_GUEST_OFFER_CHECK` | guest | `route\|mark\|neigh <out>`, `unit <out> <mark>`, `receipts <capture> <restart record>` | this lane: `remote/offer_check.sh` | the SD multicast route to `cvd-ebr`; both guests' clocks before each S-CORE side start, each its own (`mark`); the IVI app's last link line in the IVI log since its mark `link=SUBSCRIBED`, `link=UNAVAILABLE` counted, never decisive, no broker error for 4df1 in the core log since its mark, the context lines kept and `diag/` on a fail (`unit`; `UNIT_SOURCE=core`: the earlier core-log pattern, `UNIT_REGISTERED_RE`, `UNIT_NEGATION_RE`); both guests' neighbour caches flushed after the VXLAN (`neigh`); the receipt events of the app's record since the window's app start, after each window (`receipts`) |
 | `ENTRY_GUEST_CLOCK` | guest | `set <out>` | this lane: `remote/ivi_clock.sh` | IVI clock set from the guest host's, offset and bound recorded; exit 1 when the offset left is above `CLOCK_MAX_OFFSET_S` (0.1 s) |
-| `ENTRY_GUEST_CAPTURE` | guest | `start\|stop <out>` | this lane: `../recording/display_capture.sh` | the display capture |
+| `ENTRY_GUEST_CAPTURE` | guest | `start <out> --max-s <s>`, `stop <out> --wait-cap-s <s>` | this lane: `../recording/display_capture.sh` | the display capture |
 | `ENTRY_VXLAN` | guest, S-CORE | `guest-host\|host-half add <peer ip>` | this lane: `remote/cross_vm_guest_bridge.sh` | the VXLAN segment, the S-CORE host at 192.168.98.1 (INC-DRIVING-001's script, unchanged) |
 
 Per-session settings of the remote entries: gcloud ssh does not carry the lead host's environment, so the session

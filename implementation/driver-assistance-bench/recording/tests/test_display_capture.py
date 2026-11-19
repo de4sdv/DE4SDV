@@ -761,13 +761,110 @@ def test_each_launch_reads_the_guests_free_space(tmp_path: Path, env: dict[str, 
 
 
 def test_the_stop_bound_fits_the_sessions_step_bound() -> None:
-    """X10: the session's window close gives the stop T_CAPTURE_END (180 s), counted from before rstep's start SSH
-    call (at most 60 s, its time-out); rstep reads the end at a status poll, which runs every POLL_S (20 s). The
-    stop's own cap, plus 2 s for its own last poll and exit, must fit what is left."""
+    """X10, Q3: the session passes the stop its cap (--wait-cap-s) derived from T_CAPTURE_END, counted from before
+    rstep's start SSH call: that call (60 s, its time-out), the stop's own last poll and exit (2 s), then one status
+    poll whose SSH call (60 s, rpoll's time-out) may have read \"running\" just before the stop ended, and POLL_S.
+    The README's sum is that sum, and the cap is no shorter than the capture's own default."""
     import re
     sess = (BENCH / "session" / "da_session.sh").read_text()
-    assert re.search(r"\bT_CAPTURE_END=180\b", sess) and re.search(r"\bPOLL_S=20\b", sess)
-    assert 'routall ssh_l "$r" 60 "$HS start' in sess
+    t = int(re.search(r"\bT_CAPTURE_END=(\d+)\b", sess).group(1))
+    poll = int(re.search(r"\bPOLL_S=(\d+)\b", sess).group(1))
+    assert 'routall ssh_l "$r" 60 "$HS start' in sess and 'rout ssh_l "$1" "${3:-60}"' in sess
+    assert "CAP_WAIT_S=$(( T_CAPTURE_END - 60 - 2 - 60 - CAP_P ))" in sess
+    assert '--wait-cap-s "$CAP_WAIT_S"' in sess
+    cap = t - 60 - 2 - 60 - poll
     m = re.search(r"WAIT_CAP_S=\$\{WAIT_CAP_S:-(\d+)\}", CAPTURE.read_text())
-    assert m, "no default stop cap"
-    assert 60 + int(m.group(1)) + 2 + 20 <= 180, int(m.group(1))
+    assert m and cap >= int(m.group(1)), (cap, m and m.group(1))
+    readme = (BENCH / "recording" / "README.md").read_text()
+    assert re.search(r"T_CAPTURE_END +(\d+) s", readme).group(1) == str(t)
+    assert re.search(r"= --wait-cap-s +(\d+) s", readme).group(1) == str(cap)
+
+
+@pytest.mark.parametrize("stray", ["WARNING: linker: unused DT entry", "b=not a clock"], ids=["warning", "bad-mark"])
+def test_a_stray_line_in_the_launch_answer_neither_breaks_capture_json_nor_reads_as_a_clean_end(
+        tmp_path: Path, env: dict[str, str], stray: str) -> None:
+    """Q5: the clock reads of a launch are taken by their marks, not by line number, and checked as numbers; one
+    stray line before the answer (a linker warning on the guest's stdout, or one that carries a mark) leaves
+    capture.json valid. A mark whose value is not a number gives null, never a broken JSON line."""
+    out, fake, p, stop, _ = two_segments(tmp_path, env, FAKE_LAUNCH_STRAY=stray)
+    log, _ = p.communicate(timeout=60)
+    assert stop.returncode == 0 and p.returncode == 0, log
+    cap = json.loads((out / "capture.json").read_text())
+    for s in cap["segments"]:
+        assert isinstance(s["guest_after_s"], float), s
+        if stray.startswith("b="):
+            assert s["guest_before_s"] is None, s
+            continue
+        assert isinstance(s["guest_before_s"], float), s
+        assert s["guest_before_s"] <= s["guest_after_s"] <= s["guest_end_s"], s
+    assert [s.get("guest_data_free_kb") for s in cap["segments"]] == [4000000, 4000000]
+    assert (out / "capture.done").read_text().startswith("capture ended (stop)")
+
+
+def test_capture_done_says_error_when_capture_json_could_not_be_written(tmp_path: Path, env: dict[str, str]) -> None:
+    """Q5: capture.done is written only after capture.json; when the step that writes capture.json fails, the
+    capture ends as an error and capture.done says so, never \"capture ended (stop)\"."""
+    import sys
+    stub = tmp_path / "pybin"
+    stub.mkdir()
+    (stub / "python3").write_text(
+        "#!/bin/bash\n# fails the step that writes capture.json, runs every other Python (the fake adb) as it is\n"
+        "if [ \"$1\" = - ]; then f=$(mktemp); cat > \"$f\"\n"
+        "  if grep -q '\"capture.json\"' \"$f\"; then rm -f \"$f\"; exit 3; fi\n"
+        "  shift; exec %s \"$f\" \"$@\"\nfi\nexec %s \"$@\"\n" % (sys.executable, sys.executable))
+    (stub / "python3").chmod(0o755)
+    env = dict(env, PATH="%s:%s" % (stub, env["PATH"]))
+    out, fake, p, stop, _ = two_segments(tmp_path, env)
+    log, _ = p.communicate(timeout=60)
+    assert not (out / "capture.json").exists()
+    assert p.returncode == 1, log
+    done = (out / "capture.done").read_text()
+    assert done.startswith("capture ended (error)") and "capture.json" in done, done
+
+
+def test_alive_unknown_counts_from_the_start_of_the_first_unanswered_poll(tmp_path: Path,
+                                                                          env: dict[str, str]) -> None:
+    """Q7: every poll hangs to its POLL_TIMEOUT_S (2 s) once the hang file exists. The no-answer end comes
+    ALIVE_UNKNOWN_S (3 s) after the first unanswered poll began, at the end of the poll that passes it (about 4 s),
+    not ALIVE_UNKNOWN_S after that poll's end (about 6 s)."""
+    hang = tmp_path / "hang"
+    out = tmp_path / "cap"
+    fake = Path(env["FAKE_ADB_DIR"])
+    env = dict(env, SEGMENT_S="60", POLL_TIMEOUT_S="2", ALIVE_UNKNOWN_S="3", FAKE_HANG="kill -0:%s" % hang)
+    p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "60"], env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        wait_until("first recording", lambda: len(recordings(fake)) >= 1, p)
+        hang.touch()
+        t_hang = time.time()
+        wait_until("the SIGINT of the no-answer end",
+                   lambda: any(any("kill -INT 4000" in a for a in c) for c in calls(fake)), p, timeout_s=30)
+    finally:
+        (out.mkdir(exist_ok=True), (out / "STOP").touch())
+    log, _ = p.communicate(timeout=90)
+    first = min(t for t, c in stamped(fake) if t >= t_hang and any("kill -0 4000" in a for a in c))
+    sigint = min(t for t, c in stamped(fake) if any("kill -INT 4000" in a for a in c))
+    assert sigint - first < 5.5, (sigint - first, log)
+    assert json.loads((out / "capture.json").read_text())["end"] == "error"
+
+
+def test_the_guest_space_is_checked_for_every_segment_of_max_s(tmp_path: Path, env: dict[str, str]) -> None:
+    """Q4: the session passes --max-s from the window's worst case. At its start the capture compares /data's free
+    space with that many segments and with what the pulls during the recording leave there (the recording and
+    MAX_PULLS pulls), warns when it fits fewer than all, and records the figures in capture.json."""
+    seg_kb = 8000000 // 8 * 170 // 1024
+    env = dict(env, FAKE_DF_AVAIL_KB=str(5 * seg_kb))   # more than 3 in flight, fewer than ceil(2995/170) = 18
+    out = tmp_path / "cap"
+    fake = Path(env["FAKE_ADB_DIR"])
+    p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "2995"], env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        wait_until("first recording", lambda: len(recordings(fake)) >= 1, p)
+    finally:
+        (out / "STOP").touch()
+    log, _ = p.communicate(timeout=60)
+    assert p.returncode == 0, log
+    space = json.loads((out / "capture.json").read_text())["guest_space"]
+    assert space == {"free_kb": 5 * seg_kb, "segment_kb_max": seg_kb, "segments_max": 18,
+                     "in_flight_kb": 3 * seg_kb, "all_segments_kb": 18 * seg_kb, "segments_that_fit": 5}, space
+    assert "fits 5 of the 18 segments" in log, log

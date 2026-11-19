@@ -9,10 +9,9 @@
 #                                                     (default 60) for the capture's tail, from the stop or from the
 #                                                     last progress of the pulls (a pull that ended, or a local .part
 #                                                     file that grew), plus the bytes still to pull at PULL_BPS; never
-#                                                     more than --wait-cap-s (default 95) from the stop. 95 s fit the
-#                                                     session's T_CAPTURE_END of 180 s: rstep's start SSH call (60 s at
-#                                                     most) + 95 + 2 (the stop's own last poll and exit) + one status
-#                                                     poll (POLL_S, 20 s) = 177 s
+#                                                     more than --wait-cap-s (default 95) from the stop. The session
+#                                                     passes --max-s and --wait-cap-s from its own bounds
+#                                                     (recording/README.md, "The stop")
 #
 # What one capture keeps in <out_dir> (the raw files are never changed afterwards):
 #   seg_<k>.mp4             adb screenrecord of the display, in segments of at most SEGMENT_S (screenrecord's limit
@@ -78,6 +77,7 @@ GDIR=/data/local/tmp/da_capture
 a() { timeout --foreground "$ADB_TIMEOUT_S" "$ADB" -s "$IVI_ADB" "$@"; }
 ab() { local t=$1; shift; timeout --foreground "$t" "$ADB" -s "$IVI_ADB" "$@"; }
 now() { date +%s.%N; }
+num() { [[ "$1" =~ ^[0-9]+(\.[0-9]+)?$ ]] && echo "$1"; }   # a number, or nothing (null in the JSON)
 
 if [ "$ACTION" = stop ]; then
   [ -d "$OUT" ] || { echo "no capture in $OUT"; exit 1; }
@@ -123,9 +123,21 @@ a shell "mkdir -p $GDIR" > /dev/null
 # pulls are slower than the segments): /data is read again at every launch (guest_data_free_kb per segment)
 GUEST_KB=$(a shell "df -k /data" 2>/dev/null | tr -d '\r' | awk 'NR == 2 { print $4 }'); case "$GUEST_KB" in ''|*[!0-9]*) GUEST_KB="" ;; esac
 NEED_KB=$(( 2 * (BIT_RATE / 8) * SEGMENT_S / 1024 ))
+# --max-s gives up to SEGS_MAX segments. With the pulls during the recording the guest holds the one that records and
+# at most MAX_PULLS in pull while the pulls keep up (IN_FLIGHT_KB); all of them if none were pulled (ALL_KB) (Q4)
+SEG_KB=$(( (BIT_RATE / 8) * SEGMENT_S / 1024 )); SEGS_MAX=$(( (MAX_S + SEGMENT_S - 1) / SEGMENT_S ))
+IN_FLIGHT_KB=$(( (1 + MAX_PULLS) * SEG_KB )); ALL_KB=$(( SEGS_MAX * SEG_KB )); FIT=""
+echo "guest space: --max-s $MAX_S gives up to $SEGS_MAX segment(s) of at most $SEG_KB KiB; with the pulls during the recording the guest holds at most $((1 + MAX_PULLS)) ($IN_FLIGHT_KB KiB) while they keep up, all $SEGS_MAX ($ALL_KB KiB) if none is pulled"
 if [ -z "$GUEST_KB" ]; then echo "WARNING: the guest's free space on /data is unknown (df -k /data)"
-elif [ "$GUEST_KB" -lt "$NEED_KB" ]; then
-  echo "WARNING: the guest's /data has $GUEST_KB KiB free, less than two segments ($NEED_KB KiB): a recording may be cut short"
+else
+  FIT=$(( GUEST_KB / SEG_KB ))
+  if [ "$GUEST_KB" -lt "$NEED_KB" ]; then
+    echo "WARNING: the guest's /data has $GUEST_KB KiB free, less than two segments ($NEED_KB KiB): a recording may be cut short"
+  elif [ "$GUEST_KB" -lt "$IN_FLIGHT_KB" ]; then
+    echo "WARNING: the guest's /data has $GUEST_KB KiB free, less than the recording and $MAX_PULLS pulls in flight ($IN_FLIGHT_KB KiB)"
+  elif [ "$GUEST_KB" -lt "$ALL_KB" ]; then
+    echo "WARNING: the guest's /data has $GUEST_KB KiB free: it fits $FIT of the $SEGS_MAX segments of --max-s $MAX_S, so the capture relies on the pulls during the recording"
+  fi
 fi
 
 pending() { echo "$2" > "$OUT/seg_$1.pending.tmp" && mv -f "$OUT/seg_$1.pending.tmp" "$OUT/seg_$1.pending"; }
@@ -169,10 +181,13 @@ launch() {   # launch <k>: sets gb, pid, ga, hb, ha, lim, NEAR, kb; 1 if no reco
   hb=$(now)
   # one guest shell: clock, the background recording, clock (its output goes to /dev/null, so the call returns at
   # once), then /data's free space (after the bracket: no time added to it)
-  r=$(a shell "date +%s.%N; screenrecord --time-limit $lim --bit-rate $BIT_RATE --display-id $DID $GDIR/seg_$k.mp4 > /dev/null 2>&1 & echo pid=\$!; date +%s.%N; df -k /data 2>/dev/null" | tr -d '\r')
+  # each read carries its mark, and only a number is taken: a stray line in the answer (a linker warning) shifts
+  # nothing (Q5)
+  r=$(a shell "echo b=\$(date +%s.%N); screenrecord --time-limit $lim --bit-rate $BIT_RATE --display-id $DID $GDIR/seg_$k.mp4 > /dev/null 2>&1 & echo pid=\$!; echo a=\$(date +%s.%N); df -k /data 2>/dev/null" | tr -d '\r')
   ha=$(now)
-  gb=$(echo "$r" | sed -n 1p); pid=$(echo "$r" | sed -n 's/^pid=//p'); ga=$(echo "$r" | sed -n 3p)
-  kb=$(echo "$r" | awk 'NR == 5 { print $4 }'); case "$kb" in ''|*[!0-9]*) kb="" ;; esac
+  gb=$(num "$(echo "$r" | sed -n 's/^b=//p' | head -1)"); ga=$(num "$(echo "$r" | sed -n 's/^a=//p' | head -1)")
+  pid=$(echo "$r" | sed -n 's/^pid=\([0-9][0-9]*\)$/\1/p' | head -1)
+  kb=$(echo "$r" | awk '$NF == "/data" { print $4 }' | head -1); case "$kb" in ''|*[!0-9]*) kb="" ;; esac
   [ -n "$kb" ] && [ "$kb" -lt "$NEED_KB" ] && \
     echo "WARNING: at segment $k the guest's /data has $kb KiB free, less than two segments ($NEED_KB KiB)"
   NEAR=$(awk -v h="$hb" -v l="$lim" -v n="$NEAR_END_S" 'BEGIN { printf "%.3f", h + l - n }')
@@ -196,11 +211,11 @@ if launch "$K"; then
     # compared, so neither a reader that stops at its match (SIGPIPE under pipefail) nor a failed adb call reads a
     # live recording as ended. No answer for ALIVE_UNKNOWN_S: the capture ends (error), below
     while :; do
-      poll
+      tp=$(now); poll   # a no-answer counts from the start of the first poll that got none (Q7)
       case "$v" in
         alive) unk="" ;;
         "ended "*) te=${v#ended }; case "$te" in ''|*[!0-9.]*) te="" ;; esac; break ;;
-        *) [ -n "$unk" ] || unk=$(now)
+        *) [ -n "$unk" ] || unk=$tp
            awk -v s="$unk" -v n="$(now)" -v b="$ALIVE_UNKNOWN_S" 'BEGIN { exit !(n - s >= b) }' && { seg_end=no-answer; break; } ;;
       esac
       if [ -e "$OUT/STOP" ] && [ "$seg_end" != stop ]; then
@@ -232,9 +247,9 @@ if launch "$K"; then
       # the next segment's first guest clock read comes after this one was seen ended: it is this one's end read
       if launch "$K"; then ge=$gb; else next=0; END=error; K=$((K - 1)); fi
     fi
-    [ -n "$ge" ] || ge=$(a shell date +%s.%N | tr -d '\r')
+    [ -n "$ge" ] || ge=$(num "$(a shell date +%s.%N | tr -d '\r')")
     printf '{"segment": %d, "file": "seg_%d.mp4", "display_id": "%s", "guest_before_s": %s, "guest_after_s": %s, "host_before_s": %s, "host_after_s": %s, "guest_end_s": %s, "guest_seen_ended_s": %s, "guest_data_free_kb": %s, "end": "%s"}\n' \
-      "$pk" "$pk" "$DID" "$pgb" "$pga" "$phb" "$pha" "${ge:-null}" "${te:-null}" "${pkb:-null}" "$pend_k" >> "$OUT/segments.jsonl"
+      "$pk" "$pk" "$DID" "${pgb:-null}" "${pga:-null}" "$phb" "$pha" "${ge:-null}" "${te:-null}" "${pkb:-null}" "$pend_k" >> "$OUT/segments.jsonl"
     if [ "$pend_k" = no-answer ] && [ -z "$te" ]; then
       unpulled "$pk" "no answer from the guest: the recording may still run"
     else
@@ -262,7 +277,10 @@ timeout --foreground "$CLOCK_TIMEOUT_S" bash "$CLOCK" measure "$OUT" capture_end
 drain
 KEPT=$(grep -h '"pulled": false' "$OUT/pulls.jsonl" 2>/dev/null | sed -n 's/.*"guest_path": "\([^"]*\)".*/\1/p' | tr '\n' ' ')
 if [ -z "$KEPT" ]; then a shell "rm -rf $GDIR" > /dev/null 2>&1; else echo "WARNING: kept on the guest: $KEPT"; fi
-OUT="$OUT" END="$END" IDS="$IDS" DID="$DID" GDIR="$GDIR" KEPT="$KEPT" GUEST_KB="$GUEST_KB" python3 - <<'PY'
+# capture.done only after capture.json; a capture.json that could not be written ends the capture as an error (Q5)
+JSON_FAIL=""
+if ! OUT="$OUT" END="$END" IDS="$IDS" DID="$DID" GDIR="$GDIR" KEPT="$KEPT" GUEST_KB="$GUEST_KB" SEG_KB="$SEG_KB" \
+  SEGS_MAX="$SEGS_MAX" IN_FLIGHT_KB="$IN_FLIGHT_KB" ALL_KB="$ALL_KB" FIT="$FIT" python3 - <<'PY'
 import hashlib, json, os
 o = os.environ["OUT"]
 def lines(name):
@@ -289,7 +307,8 @@ bounds = []
 for a, b in zip(segs, segs[1:]):
     bounds.append({
         "after_segment": a["segment"], "before_segment": b["segment"],
-        "unrecorded_min_s": None if a["guest_end_s"] is None else b["guest_before_s"] - a["guest_end_s"],
+        "unrecorded_min_s": None if a["guest_end_s"] is None or b["guest_before_s"] is None
+                            else b["guest_before_s"] - a["guest_end_s"],
         "unrecorded_max_s": None,
         "unrecorded_max_where": "compose_side_by_side.py, manifest.json display.boundaries: (guest_end_s of the "
                                 "later segment - its frame span) - (guest_before_s of the earlier one + its frame "
@@ -300,13 +319,22 @@ json.dump({"display_ids": os.environ["IDS"].split(), "recorded_display_id": os.e
            "pull_failures": [{"segment": p["segment"], "guest_path": p["guest_path"]} for p in pulls if not p["pulled"]],
            "guest_dir_kept": os.environ["GDIR"] if kept else None,
            "guest_data_free_kb": int(os.environ["GUEST_KB"]) if os.environ["GUEST_KB"] else None,
+           "guest_space": {"free_kb": int(os.environ["GUEST_KB"]) if os.environ["GUEST_KB"] else None,
+                           "segment_kb_max": int(os.environ["SEG_KB"]), "segments_max": int(os.environ["SEGS_MAX"]),
+                           "in_flight_kb": int(os.environ["IN_FLIGHT_KB"]),
+                           "all_segments_kb": int(os.environ["ALL_KB"]),
+                           "segments_that_fit": int(os.environ["FIT"]) if os.environ["FIT"] else None},
            "clock": clock, "sha256": sha,
            "not_filled_here": {"fields": ["boundaries[].unrecorded_max_s", "frame times"],
                                "where": "compose_side_by_side.py on the composing host reads the segments' packet "
                                         "times (no decode, under a time bound) and writes them to its "
                                         "manifest.json (display.segments, display.boundaries)"},
            "sound": "no audio capture; the sound start comes from the app's own record, if present"},
-          open(os.path.join(o, "capture.json"), "w"), indent=1)
+          open(os.path.join(o, "capture.json.tmp"), "w"), indent=1)
+os.replace(os.path.join(o, "capture.json.tmp"), os.path.join(o, "capture.json"))
 PY
-echo "capture ended ($END), $K segment(s)${KEPT:+; pull failed, kept on the guest: ${KEPT% }}" | tee "$OUT/capture.done"
+then
+  END=error; JSON_FAIL="; capture.json not written (its writer failed)"; rm -f "$OUT/capture.json.tmp"
+fi
+echo "capture ended ($END), $K segment(s)${KEPT:+; pull failed, kept on the guest: ${KEPT% }}$JSON_FAIL" | tee "$OUT/capture.done"
 [ "$END" != error ]

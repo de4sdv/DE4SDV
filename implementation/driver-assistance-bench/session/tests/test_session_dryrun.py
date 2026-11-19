@@ -1552,3 +1552,135 @@ def test_the_readme_says_exit_0_of_p10_3_alone_is_not_a_pass() -> None:
     # T4
     block = " ".join(_readme_block("p10-3"))
     assert "exit 0 alone is not a pass" in block and "p10_3.passed" in block
+
+
+# ------------------------------------------------- the display capture of a window the session leaves (Q1-Q4)
+# The fake models the guest host's captures (FAKE_CAPTURE_END in fake_gcloud.py): a pack while a capture records
+# holds only its seg_1.pending and a growing seg_1.mp4.part; after its stop, capture.json, capture.done, the app
+# record and the segment.
+
+
+def _guest_files(r: Run) -> set[str]:
+    with tarfile.open(r.incoming / "guest" / "out.tgz") as t:
+        return set(t.getnames())
+
+
+def _capture_stops(r: Run, w: str) -> list[int]:
+    return r.index(lambda c: c[2:4] == ["compute", "ssh"] and c[4] == GH and any(
+        "display_capture.sh stop $HOME/da-kit/T/out/capture_%s " % w in a + " " for a in c))
+
+
+def _assert_capture_stopped_before_the_fetch(r: Run, w: str) -> None:
+    stops, pack = _capture_stops(r, w), r.ssh(GH, "host_step.sh pack")
+    assert stops and pack and stops[0] < pack[0] < r.guest_stops()[0], (stops, pack, r.log)
+    got = _guest_files(r)
+    cap = "out/capture_%s/" % w
+    assert {cap + "capture.json", cap + "app_record_warning.jsonl"} <= got, sorted(got)
+    assert got & {cap + "seg_1.mp4", cap + "seg_1.mp4.part", cap + "seg_1.mp4.partial"}, sorted(got)
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["display_capture"][w]["closed_by"] == "session end", rec["display_capture"]
+    assert rec["p10_2"]["display_recording_complete"] is False and w in rec["p10_2"]["reason"], rec["p10_2"]
+
+
+def test_q1_a_run_end_that_never_comes_still_stops_the_open_capture_before_the_guest_fetch(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_NO_FILE="world_run1/simulator/run_end", DA_T_T_RUN="1")
+    assert r.rc == 5 and "the run run1 did not end" in r.log, r.log
+    _assert_capture_stopped_before_the_fetch(r, "run1")
+    assert "the display capture of window run1 is still open" in r.log, r.log
+    assert_invariants(r)
+
+
+def test_q1_a_term_inside_a_window_stops_its_capture_before_the_guest_fetch(tmp_path: Path) -> None:
+    p = popen(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_NO_FILE="world_run1/simulator/run_end")
+    wait_for_call(tmp_path, lambda c: any("start capture_run1 " in a for a in c), timeout=120)
+    time.sleep(0.5)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    _assert_capture_stopped_before_the_fetch(r, "run1")
+    assert_invariants(r)
+
+
+def test_q1_the_cost_cap_inside_a_window_stops_its_capture_before_the_guest_fetch(tmp_path: Path) -> None:
+    p = popen(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_NO_FILE="world_run1/simulator/run_end")
+    wait_for_call(tmp_path, lambda c: any("start capture_run1 " in a for a in c), timeout=120)
+    time.sleep(0.5)
+    # the cap, reached now: a start line that costs more than the cap at once (the watchdog sums starts.tsv)
+    with open(tmp_path / "ev" / "incoming_T" / "starts.tsv", "a") as f:
+        f.write("captest 0 1000000000\n")
+    r = finish(tmp_path, p)
+    assert r.rc == 10 and "COST CAP reached" in r.log, r.log
+    _assert_capture_stopped_before_the_fetch(r, "run1")
+    assert_invariants(r)
+
+
+def test_q2_a_capture_error_is_recorded_and_skips_neither_the_receipts_nor_the_next_run(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_CAPTURE_END="capture_run1:error",
+            FAKE_STEP_RC="capture_run1:1")
+    assert r.rc == 0, r.log
+    assert r.sequence() == p10_2_seq(), r.sequence()
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["display_capture"]["run1"] == {"end": "error", "capture_rc": 1, "closed_by": "window close",
+                                              "guest_files_kept": False}, rec["display_capture"]
+    assert rec["display_capture"]["run2"]["end"] == "stop" and rec["display_capture"]["run2"]["capture_rc"] == 0
+    assert rec["app_record_receipts"] == {"run1": 2, "run2": 2}, rec["app_record_receipts"]
+    assert rec["p10_2"]["display_recording_complete"] is False, rec["p10_2"]
+    assert "run1" in rec["p10_2"]["reason"] and "error" in rec["p10_2"]["reason"], rec["p10_2"]
+    assert "DISPLAY CAPTURE ERROR IN WINDOW run1" in r.log and "p10-2 display recording NOT complete" in r.log
+
+
+def test_q2_a_good_p10_2_reports_the_recording_complete_and_without_guest_host_none(tmp_path: Path) -> None:
+    r = run(tmp_path / "a", "p10-2", "--owner-ok-guest-host")
+    assert r.rc == 0, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert set(rec["display_capture"]) == {"run1", "run2"}
+    assert all(v == {"end": "stop", "capture_rc": 0, "closed_by": "window close", "guest_files_kept": False}
+               for v in rec["display_capture"].values()), rec["display_capture"]
+    assert rec["p10_2"]["display_recording_complete"] is True, rec["p10_2"]
+    r2 = run(tmp_path / "b", "p10-2", "--without-guest-host")
+    rec2 = json.loads((r2.incoming / "session.json").read_text())
+    assert rec2["display_capture"] == {} and rec2["p10_2"]["display_recording_complete"] is None, rec2["p10_2"]
+    assert "--without-guest-host" in rec2["p10_2"]["reason"]
+
+
+def _session_defaults() -> dict[str, int]:
+    text = SESSION.read_text()
+    return {k: int(re.search(r"\b%s=(\d+)\b" % k, text).group(1))
+            for k in ("T_CAPTURE_END", "POLL_S", "GO_SSH_S", "T_RUN", "T_SCORE_START", "T_RELEASE", "T_REC_END",
+                      "T_INJECT")}
+
+
+def _cap_sums(d: dict[str, int]) -> dict[str, int]:
+    """The test's own sums (Q3, Q4). The stop's cap: T_CAPTURE_END less rstep's start SSH call (60 s), the stop's own
+    last poll and exit (2 s), one status poll's SSH call (60 s) and POLL_S. A window's worst case, every step inside
+    it ending well at its bound: each rwait/rwaitfile its bound + POLL_S + one poll's SSH call; each rstep its start
+    SSH call + its bound + POLL_S + one poll + its tail call; each touch its SSH bound; then capture_stop's start."""
+    p, poll = d["POLL_S"], 60
+    step = lambda t: 60 + t + p + poll + 60   # noqa: E731
+    wait = lambda t: t + p + poll             # noqa: E731
+    return {"wait_cap": d["T_CAPTURE_END"] - 60 - 2 - poll - p,
+            "p10-2": d["GO_SSH_S"] + wait(d["T_RUN"]) + step(d["T_SCORE_START"]) + 60 + wait(d["T_RELEASE"])
+            + wait(d["T_REC_END"]) + 60,
+            "p10-3": step(d["T_INJECT"]) + 60}
+
+
+@pytest.mark.parametrize("kind", ["p10-2", "p10-3"])
+def test_q3_q4_the_capture_gets_its_caps_from_the_sessions_bounds(tmp_path: Path, kind: str) -> None:
+    r = run(tmp_path, kind, "--owner-ok-guest-host")
+    assert r.rc == 0, r.log
+    d = dict(_session_defaults(), POLL_S=1)   # the dry run's POLL_S 0.1, counted as a whole second
+    want = _cap_sums(d)
+    w = "run1" if kind == "p10-2" else "inject"
+    start = r.command(r.ssh(GH, "start capture_%s " % w)[0])
+    stop = r.command(r.ssh(GH, "start capture_stop_%s " % w)[0])
+    assert start.endswith("display_capture.sh start $HOME/da-kit/T/out/capture_%s --max-s %d" % (w, want[kind])), start
+    assert stop.endswith("display_capture.sh stop $HOME/da-kit/T/out/capture_%s --wait-cap-s %d"
+                         % (w, want["wait_cap"])), stop
+
+
+def test_q3_q4_the_readme_shows_both_sums_at_the_sessions_defaults() -> None:
+    want = _cap_sums(_session_defaults())
+    readme = (HERE.parent / "README.md").read_text()
+    assert re.search(r"= --wait-cap-s +(\d+) s", readme).group(1) == str(want["wait_cap"])
+    assert re.search(r"= --max-s of a p10-2 window +(\d+) s", readme).group(1) == str(want["p10-2"])
+    assert re.search(r"= --max-s of the p10-3 window +(\d+) s", readme).group(1) == str(want["p10-3"])

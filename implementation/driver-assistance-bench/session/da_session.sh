@@ -115,7 +115,7 @@ GUEST_NOSSH_S=180
 PRESTOP_S=300; TRAP_PACK_S=120; TRAP_SCP_S=300
 TRAP_GC_TO_S=30   # each gcloud status read in the trap: on a gcloud outage the stop loop must not sit for hours (S10)
 T_P10_1=2400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
-T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
+T_CAPTURE_END=240; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 # the bounds of the steps whose waits are per-session settings follow them (W4, W2 of the re-check at 437a833b):
 # unit_<w>: UNIT_WAIT_S, its last poll (2 adb reads of 30 s and POLL_S 5), then on a fail the diagnostics (4 adb calls
 # of 30 s): UNIT_WAIT_S + 185, kept as UNIT_WAIT_S + 240. app_restart_<w>: START_WAIT_S + APP_SUBSCRIBE_WAIT_S + 10 adb
@@ -145,6 +145,19 @@ else
   [ -n "${DA_MAKE_H:-}" ] && { echo "refused: DA_MAKE_H is a dry-run knob"; exit 2; }
   MAKE_H=""
 fi
+# the display capture's caps follow this session's bounds (Q3, Q4; README "The display capture's caps"). POLL_S counts
+# as whole seconds (a dry run's 0.1 as 1)
+CAP_P=$(awk -v x="$POLL_S" 'BEGIN { c = int(x); if (c < x) c++; print c }')
+# --wait-cap-s: the stop's cap inside capture_stop's T_CAPTURE_END, counted from before rstep's start SSH call (60 s):
+# the stop's own last poll and exit (2 s), then one status poll that read "running" just before its end (its SSH
+# call, 60 s) and POLL_S
+CAP_WAIT_S=$(( T_CAPTURE_END - 60 - 2 - 60 - CAP_P )); [ "$CAP_WAIT_S" -ge 1 ] || CAP_WAIT_S=1
+# --max-s: the longest window that ends well, every step inside it at its bound: an rstep its start SSH call + its
+# bound + POLL_S + one poll + its tail call, an rwait or rwaitfile its bound + POLL_S + one poll, a touch its SSH
+# bound; then capture_stop's start SSH call. Past it the capture would end on its own (max-s) before the window
+if [ "$KIND" = p10-3 ]; then CAP_MAX_S=$(( (60 + T_INJECT + CAP_P + 120) + 60 ))
+else CAP_MAX_S=$(( GO_SSH_S + (T_RUN + CAP_P + 60) + (60 + T_SCORE_START + CAP_P + 120) + 60 + (T_RELEASE + CAP_P + 60)
+                   + (T_REC_END + CAP_P + 60) + 60 )); fi
 
 SID=${SID:-$(date -u +%Y%m%dT%H%M%SZ)}
 # the id goes unquoted into remote paths and commands (~/da-kit/<id>, mkdir, tar -C, the safety net's unit): letters,
@@ -175,6 +188,9 @@ SCORE_RUN=""; STOPS=""; STOP_KILLED_LAST=""   # the run of the S-CORE side up; e
 TERMED_STEP=""; TERMED_NAME=""; TERMED_AFTER=""; TERMED_FAIL=""   # the step the trap's TERM cut (step_down)
 CUR_STEP=""; GUEST_STEP_RUNNING=""; FETCHING=""; PRE_END=""   # "<role> <step>" of the step rstep waits for; a guest step alive after its TERM
 WORLD_UP=""; STEP_RC=""; P10_1_RC=""; ALLOW_RC=""   # the detached world sides not seen ending (world_down); rstep's last rc
+# the window whose display capture is open (from window_open's capture start to window_close's end of it), the tries
+# of its stop at the session's end, and each capture's end: <w>:<end>:<rc>:<closed by>:<guest files kept 0|1> (Q1, Q2)
+CAP_OPEN=""; CAP_TRY=0; CAPTURES=""
 
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
 say() { printf '%s\n' "$*" >&3 2>/dev/null || true; }   # a dry run's command line on stdout
@@ -395,11 +411,32 @@ world_down() {   # a detached world side not seen ending (a trap or abort path):
   done
   WORLD_UP=""
 }
-abort() {   # a failure after the starts: the S-CORE side's stop, the world side's end, the fetch, the exit (3 when a
-  # host was lost)
+capture_end() {   # capture_end <w> <closed by> <the capture's rc> <file with the stop's answer>: session.json's entry
+  local e=unknown k=0 l
+  l=$(grep -o 'capture ended ([a-z-]*).*' "$4" 2>/dev/null | tail -1)
+  [[ "$l" =~ ^capture\ ended\ \(([a-z-]+)\) ]] && e=${BASH_REMATCH[1]}
+  [[ "$l" == *"kept on the guest"* ]] && k=1
+  CAPTURES="$CAPTURES $1:$e:${3:-}:${2// /_}:$k"
+}
+capture_down() {   # a window still open when the session ends (an abort, a signal, the cap): its capture's stop before
+  # any fetch of the guest host, so the recording gets its SIGINT and its pull, and the app's records and capture.json
+  # are written (Q1). Bounded by T_CAPTURE_END, in the trap by what the pre-stop phase leaves
+  [ -n "$CAP_OPEN" ] || return 0
+  local w=$CAP_OPEN b rc crc="" f=$IN/.capdown
+  case " ${LOST:-} " in *" guest "*) CAP_OPEN=""; capture_end "$w" "session end" "" /dev/null; return 0 ;; esac
+  b=$(bnd "$T_CAPTURE_END"); CAP_TRY=$((CAP_TRY + 1))
+  log "the display capture of window $w is still open: its stop (the recording's SIGINT and pull, the app's records, capture.json) before the guest host's fetch, $b s at most"
+  run_fg ssh_l guest "$b" "$HS run capture_down${CAP_TRY}_$w -- bash $ENTRY_GUEST_CAPTURE stop $(od "capture_$w") --wait-cap-s $(( b > 23 ? b - 22 : 1 ))" > "$f" 2>&1; rc=$?
+  cat "$f" >> "$IN/guest.steps.out"; CAP_OPEN=""
+  rpoll guest "$HS status capture_$w" "$(bnd 60)"; case "$ROUT" in "rc "*) crc=${ROUT#rc } ;; esac
+  log "step capture_down${CAP_TRY}_$w rc=$rc: $(grep -o 'capture ended ([a-z-]*).*' "$f" | tail -1); capture_$w ${ROUT:-unknown}"
+  capture_end "$w" "session end" "$crc" "$f"; rm -f "$f"
+}
+abort() {   # a failure after the starts: the open window's capture stop, the S-CORE side's stop, the world side's end,
+  # the fetch, the exit (3 when a host was lost)
   local code=$1; shift
   [ -n "${LOST:-}" ] && code=3
-  score_down; world_down; fetch_all; fail "$code" "$*"
+  capture_down; score_down; world_down; fetch_all; fail "$code" "$*"
 }
 fetch_all() { local r ok=0; for r in "${STARTED[@]}"; do fetch "$r" || ok=1; done; return $ok; }
 ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never configured: D5 may move the hosts)
@@ -442,6 +479,8 @@ cleanup() {
   # the step still running on its host (a signal or the cap during it): TERM to it there, and its end awaited, before
   # the S-CORE side's stop and any stop; a guest launch never races the guests' stop (S2)
   step_down
+  # a window still open: its capture's stop before any fetch of the guest host (Q1)
+  pre_left && capture_down
   # the S-CORE side's stop, its only collector, while the world may still tick (R8); then the fetch of every host
   # whose evidence was not fetched yet (a signal, the cap), before its stop (R13); all within the phase's bound
   if pre_left; then T_SCORE_DOWN=$(bnd 120) score_down
@@ -547,6 +586,7 @@ cleanup() {
   done
   [ "$KIND" = p10-1 ] && [ -n "$UPLOADED" ] && p10_1_report
   [ "$KIND" = p10-3 ] && p10_3_report
+  [ "$KIND" = p10-2 ] && p10_2_report
   write_record "$rc"
   log "SESSION_END $SID rc=$rc"
   [ -n "$LEFT_RUNNING" ] && log "VMS LEFT RUNNING, THEY BILL: STOP THEM BY HAND NOW:$LEFT_RUNNING (exit 11 in place of $RC_STEPS)"
@@ -570,6 +610,29 @@ p10_3_report() {   # p10-3 is passed only when its steps ended with 0 and every 
   else
     P10_3_PASSED=0; P10_3_REASON=$(printf '%s; ' "${why[@]}"); P10_3_REASON=${P10_3_REASON%; }
     log "p10-3 NOT passed: $P10_3_REASON"
+  fi
+}
+p10_2_report() {   # p10-2's display recording is complete only when every recorded window's capture ended by its stop
+  # at the window's close with rc 0 and nothing kept on the guest (Q2). One line in session.log, and session.json p10_2
+  local n w x e rc by k why=()
+  if [[ " ${ROLES[*]} " != *" guest "* ]]; then
+    P10_2_COMPLETE=none; P10_2_REASON="no display capture: --without-guest-host"; log "p10-2: $P10_2_REASON"; return 0
+  fi
+  for n in $(seq 1 "$P10_2_RUNS"); do
+    w=run$n; x=$(tr ' ' '\n' <<< "$CAPTURES" | grep "^$w:" | tail -1)
+    [ -n "$x" ] || { why+=("window $w: no end of its capture recorded (the session ended before it)"); continue; }
+    IFS=: read -r _ e rc by k <<< "$x"
+    [ "$e" = stop ] || why+=("window $w: capture ended ($e)")
+    [ "$rc" = 0 ] || why+=("window $w: capture rc ${rc:-unknown}")
+    [ "$by" = window_close ] || why+=("window $w: capture stopped at the ${by//_/ }")
+    [ "$k" = 0 ] || why+=("window $w: guest files kept unpulled")
+  done
+  if [ ${#why[@]} = 0 ]; then
+    P10_2_COMPLETE=1; P10_2_REASON="every window's capture ended by its stop at the window's close, rc 0, nothing kept on the guest"
+    log "p10-2 display recording complete: $P10_2_REASON"
+  else
+    P10_2_COMPLETE=0; P10_2_REASON=$(printf '%s; ' "${why[@]}"); P10_2_REASON=${P10_2_REASON%; }
+    log "p10-2 display recording NOT complete: $P10_2_REASON"
   fi
 }
 p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE host alone (without a CARLA server C1's
@@ -620,7 +683,8 @@ write_record() {
   FETCH_OK="$FETCH_OK" FETCH_BAD="$nf" \
   ENDED_BY="$ENDED_BY" STOPS="$STOPS" TERMED_STEP="$TERMED_STEP" TERMED_NAME="$TERMED_NAME" \
   TERMED_AFTER="$TERMED_AFTER" TERMED_FAIL="$TERMED_FAIL" P10_3_PASSED="${P10_3_PASSED:-}" \
-  P10_3_REASON="${P10_3_REASON:-}" CROSVM_BEFORE="${CROSVM_BEFORE:-}" \
+  P10_3_REASON="${P10_3_REASON:-}" CROSVM_BEFORE="${CROSVM_BEFORE:-}" CAPTURES="$CAPTURES" \
+  P10_2_COMPLETE="${P10_2_COMPLETE:-}" P10_2_REASON="${P10_2_REASON:-}" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
@@ -654,7 +718,13 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
                                  if e["TERMED_STEP"] else None,
            "crosvm_before_guest_up": int(e["CROSVM_BEFORE"]) if e["CROSVM_BEFORE"].isdigit() else None,
            "p10_3": {"passed": e["P10_3_PASSED"] == "1", "reason": e["P10_3_REASON"]}
-                    if e["KIND"] == "p10-3" else None},
+                    if e["KIND"] == "p10-3" else None,
+           "display_capture": {w: {"end": None if end == "unknown" else end,
+                                   "capture_rc": int(rc) if rc.isdigit() else None,
+                                   "closed_by": by.replace("_", " "), "guest_files_kept": k == "1"}
+                               for w, end, rc, by, k in (x.split(":", 4) for x in e["CAPTURES"].split())},
+           "p10_2": {"display_recording_complete": {"1": True, "0": False}.get(e["P10_2_COMPLETE"]),
+                     "reason": e["P10_2_REASON"]} if e["KIND"] == "p10-2" else None},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
 }
@@ -685,6 +755,8 @@ renv() { local n="RENV_$1"; printf '%s' "${!n}"; }
 [ -n "$REMOTE_ENV_SET" ] && log "per-session settings for the remote entries:$REMOTE_ENV_SET (values in session.json)"
 [[ " ${ROLES[*]} " == *" guest "* ]] && log "step bounds: unit $T_UNIT s (UNIT_WAIT_S + 240), app_restart $T_APP_RESTART s (START_WAIT_S +" \
   "APP_SUBSCRIBE_WAIT_S + 300)"
+[[ " ${ROLES[*]} " == *" guest "* ]] && log "display capture caps: --max-s $CAP_MAX_S (the longest $KIND window that ends" \
+  "well), --wait-cap-s $CAP_WAIT_S (the stop's cap within T_CAPTURE_END $T_CAPTURE_END s)"
 
 # ───────────── 1. preflight: nothing below starts a VM unless every check holds ─────────────
 fail() {
@@ -938,12 +1010,27 @@ window_open() {   # the app restarted, then the IVI clock set just before the wi
   local w=$1
   rstep guest "app_restart_$w" "$T_APP_RESTART" "$GENV" bash "$ENTRY_GUEST_APP_RESTART" "$(od app_restart)" "$w"
   rstep guest "ivi_clock_$w" "$T_STEP" bash "$ENTRY_GUEST_CLOCK" set "$(od "ivi_clock_$w")"
-  rstart guest "capture_$w" "$GENV" bash "$ENTRY_GUEST_CAPTURE" start "$(od "capture_$w")"
+  # open from before its start call: an answer lost on the way may still have started it (Q1)
+  CAP_OPEN=$w
+  rstart guest "capture_$w" "$GENV" bash "$ENTRY_GUEST_CAPTURE" start "$(od "capture_$w")" --max-s "$CAP_MAX_S"
 }
 window_close() {
-  local w=$1
-  rstep guest "capture_stop_$w" "$T_CAPTURE_END" bash "$ENTRY_GUEST_CAPTURE" stop "$(od "capture_$w")"
-  rwait guest "capture_$w" "$T_CAPTURE_END" || { abort 5 "the display capture of $w did not end well"; }
+  local w=$1 crc=0 f=$IN/.capstop
+  rstep guest "capture_stop_$w" "$T_CAPTURE_END" bash "$ENTRY_GUEST_CAPTURE" stop "$(od "capture_$w")" \
+    --wait-cap-s "$CAP_WAIT_S"
+  printf '%s\n' "$ROUT" > "$f"   # the stop's tail: capture.done's line
+  if ! rwait guest "capture_$w" "$T_CAPTURE_END"; then
+    # END=error (no answer from the guest, or two early ends): capture.done, the app's records and capture.json are
+    # written and the capture exits 1. The error is recorded, the receipts are read and the session goes on (Q2)
+    if [ "$ROUT" = "rc 1" ] && grep -q '^capture ended (error)' "$f"; then
+      crc=1
+      log "DISPLAY CAPTURE ERROR IN WINDOW $w: $(grep '^capture ended (error)' "$f" | tail -1); its app records and" \
+        "capture.json were written, so the receipts are read and the session goes on (session.json display_capture)"
+    else
+      rm -f "$f"; abort 5 "the display capture of $w did not end well"
+    fi
+  fi
+  CAP_OPEN=""; capture_end "$w" "window close" "$crc" "$f"; rm -f "$f"
   # the app's own record of the window: no receipt means the path did not carry, whatever the steps said (R7). Only
   # the receipt events after the window's app start count (the start of the pid app_restart.sh read), never the
   # record's lines: it is appended, and every start writes lifecycle, link and status lines (W1)

@@ -38,6 +38,12 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
                         gcloud error: a token refresh, a network blip)
   FAKE_PORT_CLOSED   "port,..."  the p10-1 port test (`for p in <ports>; do ... </dev/tcp/<host>/$p ...`, not a step)
                      finds these CARLA ports closed; every other port it names answers. "*": the call prints nothing
+  FAKE_CAPTURE_END   "capture_<w>:end,..."  how that display capture ends once its stop is asked (default stop;
+                     error: as display_capture.sh END=error, capture.done says so). The guest host's captures are modeled: `display_capture.sh
+                     start <out>/capture_<w>` records until a `display_capture.sh stop` of the same folder. A pack of
+                     the guest host then holds, per capture, while it records only seg_1.pending and a growing
+                     seg_1.mp4.part; once stopped capture.json, capture.done, app_record_warning.jsonl and seg_1.mp4.
+                     The stop's answer (its run output or its tail) is capture.done's line
 """
 import fcntl
 import hashlib
@@ -260,6 +266,19 @@ if words[:2] == ["compute", "ssh"]:
     if "sha256sum H.yaml" in c:
         files = st.get("files", {}).get(n, {})
         out("".join("%s  %s\n" % (files[b], b) for b in ("H.yaml", "homography_C_matrix.yaml") if b in files))
+    cm = re.search(r"display_capture\.sh (start|stop) \S*/out/(capture_[A-Za-z0-9_]+)", c)
+    done_line = ""
+    if cm and n == "de4sdv-aaos-build":
+        caps = st.setdefault("captures", {})
+        if cm.group(1) == "start":
+            caps[cm.group(2)] = "recording"
+        else:
+            if caps.get(cm.group(2)) == "recording":
+                caps[cm.group(2)] = kv("FAKE_CAPTURE_END").get(cm.group(2), "stop")
+            if cm.group(2) in caps:
+                done_line = "capture ended (%s), 1 segment(s)\n" % caps[cm.group(2)]
+            else:
+                done_line = "no capture in %s\n" % cm.group(2)
     if m:
         action, step = m.group(1), m.group(2)
         fail = os.environ.get("FAKE_FAIL_STEP") == step
@@ -274,12 +293,14 @@ if words[:2] == ["compute", "ssh"]:
                 time.sleep(float(hang))
                 fcntl.flock(lockf, fcntl.LOCK_EX)
                 st = json.load(open(SF))
-            out("=== %s end rc=%d (fake)\n" % (step, 1 if fail else 0), 1 if fail else 0)
+            out(done_line + "=== %s end rc=%d (fake)\n" % (step, 1 if fail else 0), 1 if fail else 0)
         key = "%s:%s" % (n, step)
         if action == "start":
             st.setdefault("started", {})[key] = time.time()
             if " receipts " in c:
                 st.setdefault("tails", {})[key] = receipts_out(c)
+            if done_line:
+                st.setdefault("tails", {})[key] = done_line
             out("started %s pid 4242\n" % step)
         if action == "status":
             # a detached step runs for its FAKE_HANG_STEP seconds from its start (or ends at once), then reports
@@ -306,6 +327,15 @@ if words[:2] == ["compute", "ssh"]:
             buf = io.BytesIO()
             with tarfile.open(fileobj=buf, mode="w:gz") as t:
                 files = [("out/session_id", (sid + "\n").encode()), ("out/FAKE.txt", b"fake\n")]
+                for cap, state in (st.get("captures", {}) if n == "de4sdv-aaos-build" else {}).items():
+                    if state == "recording":
+                        files += [("out/%s/seg_1.pending" % cap, b"170000000\n"),
+                                  ("out/%s/seg_1.mp4.part" % cap, b"part of a segment still recording\n")]
+                    else:
+                        files += [("out/%s/capture.json" % cap, json.dumps({"end": state}).encode()),
+                                  ("out/%s/capture.done" % cap, b"capture ended (%s), 1 segment(s)\n" % state.encode()),
+                                  ("out/%s/app_record_warning.jsonl" % cap, b'{"event":"receipt"}\n'),
+                                  ("out/%s/seg_1.mp4" % cap, b"a whole segment\n")]
                 for spec in filter(None, os.environ.get("FAKE_PACK_ADD", "").split(",")):
                     arc, local = spec.split("=", 1)
                     files.append((arc, open(local, "rb").read()))

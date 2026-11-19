@@ -28,6 +28,8 @@ Knobs that let a test order the events itself, with no reliance on the host's sp
   FAKE_HANG           "<text>:<path>": once <path> exists, a call whose words contain <text> hangs (120 s), as a
                       shell on a device that went offline
   FAKE_PULL_GROW      "<n>:<s>": the pull of seg_<n>.mp4 writes its file in 10 parts over <s> seconds
+  FAKE_LAUNCH_STRAY   a line the guest shell writes before its answer to every launch (a linker warning, say)
+A launch whose clock reads are marked (`echo b=$(date ...)`, `echo a=$(date ...)`) is answered with the same marks.
 FAKE_HOLD_PULL takes "*" for <n>: every segment's pull is held. A poll whose command carries `|| echo ended` is
 answered `ended <guest clock>` for a recording that ended.
 """
@@ -110,7 +112,10 @@ if argv[:1] == ["shell"]:
         before = guest_now()
         st["recs"][str(pid)] = {"start": time.time(), "limit": lim, "path": path, "ended": False,
                                 "n": pid - 3999}
-        out = "%.9f\r\npid=%d\r\n%.9f\r\n" % (before, pid, guest_now())
+        stray = os.environ.get("FAKE_LAUNCH_STRAY")
+        out = (stray + "\r\n" if stray else "") + \
+            (("b=%.9f\r\npid=%d\r\na=%.9f\r\n" if "echo b=" in c else "%.9f\r\npid=%d\r\n%.9f\r\n")
+             % (before, pid, guest_now()))
         if re.search(r"\bdf -k /data\b", c):
             out += "Filesystem     1K-blocks    Used Available Use%% Mounted on\r\n/dev/block/dm-9 8000000 100 %s 1%% /data\r\n" \
                 % os.environ.get("FAKE_DF_AVAIL_KB", "4000000")
