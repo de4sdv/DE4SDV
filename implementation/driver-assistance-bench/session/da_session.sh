@@ -436,7 +436,7 @@ cleanup() {
         local ssh_ok=1 t_end
         if [ "$GUEST_STEP_SENT" = 0 ]; then
           # no guest step went out, so no guest can run there unless its image starts Cuttlefish at boot, which it
-          # does not (assumption, checked once by the operator: README, the P10-3 block). Without SSH the host
+          # does not (assumption, checked once by the operator: README, the p10-3 block). Without SSH the host
           # would stay up, unarmed and billing (S1): SSH is tried for a bounded time, then the host is stopped
           ssh_ok=0; t_end=$(( $(date +%s) + GUEST_NOSSH_S ))
           while :; do

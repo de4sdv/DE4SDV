@@ -74,7 +74,7 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   sent the guest host no step at all (no `guest_up`, so no guest was launched) and the host does not answer SSH in
   the trap, the trap tries SSH for up to `GUEST_NOSSH_S` (180 s) more, then stops the host without a `crosvm` count
   and says `GUEST HOST STOPPED WITHOUT A CROSVM COUNT`. This rests on one assumption: **nothing on the guest host's
-  image starts Cuttlefish at boot**. The operator checks it once (the P10-3 block below). Once a guest step was sent,
+  image starts Cuttlefish at boot**. The operator checks it once (the `p10-3` block below). Once a guest step was sent,
   an unknown count keeps the host running, as above.
 - A failure after the S-CORE side started (a failed step, a wait that timed out, a signal, the cap) first runs the
   S-CORE side's stop (`ENTRY_SCORE_STOP`, step `score_stop_on_failure`), its only collector, then fetches. A signal or
@@ -173,7 +173,7 @@ Once, before the first real session, read-only: the real gcloud works from a cle
 env -i HOME="$HOME" PATH=/usr/bin:/bin ~/google-cloud-sdk/bin/gcloud --configuration=de4sdv-gcp config list
 ```
 
-### P10-1 (the S-CORE host only)
+### `p10-1` (the S-CORE host only)
 
 ```bash
 # one detached worktree at the integration commit under test (C: its full SHA)
@@ -197,7 +197,7 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
 #   exit_code (11 = a VM is left running: stop it by hand at once), p10_1.line, p10_1.passed
 ```
 
-### P10-3 (the S-CORE host and the protected guest host, Enforcing)
+### `p10-3` (the S-CORE host and the protected guest host, Enforcing)
 
 ```bash
 cd /home/mrk/de4sdv-worktrees/p10-$C     # the same pinned worktree as for P10-1
@@ -218,7 +218,7 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
 # after it: exit_code 11 or "GUEST HOST LEFT RUNNING" in session.log = the guest host bills; follow the log's line
 ```
 
-Once, at the first P10-3, while the guest host runs (after `session.log` shows its `kit ok` line), the operator checks
+Once, at the first `p10-3`, while the guest host runs (after `session.log` shows its `kit ok` line), the operator checks
 the assumption behind the stop of a guest host that got no guest step and never answered SSH (S1): nothing on the
 guest host's image starts Cuttlefish at boot. On the guest host:
 
@@ -228,7 +228,7 @@ systemctl list-unit-files | grep -i -E 'cvd|cuttlefish'   # expected: no output,
 
 An enabled unit there voids the assumption: tell the lead before the next session, and do not rely on that stop.
 
-### P10-2 (all three hosts)
+### `p10-2` (all three hosts)
 
 ```bash
 cd /home/mrk/de4sdv-worktrees/p10-$C
