@@ -202,3 +202,100 @@ def test_composition_of_one_segment_makes_no_gap_free_claim(run_dir: Path) -> No
     d = json.loads((out / "manifest.json").read_text())["display"]
     assert d["gap_free"] is None and "static display" in d["gap_free_rule"]
     assert not [h for h in d["held_spans"] if h["kind"] == "segment boundary"]
+
+
+def two_segment_capture(cap: Path, seg2_after_s: float = 1.0, pulled1: bool = True) -> tuple[float, float]:
+    """seg_1 and seg_2, 10 frames at 10 fps each; seg_2's t0 lies seg2_after_s after seg_1's last frame."""
+    flat_video(cap / "seg_1.mp4", [display_level(j) for j in range(10)], 108, 60, 10)   # 0.0 .. 0.9 s
+    flat_video(cap / "seg_2.mp4", [display_level(10 + j) for j in range(10)], 108, 60, 10)
+    if not pulled1:
+        (cap / "seg_1.mp4").unlink()
+    g1 = T0 + DISP0 + OFFSET
+    g2 = g1 + 0.9 + seg2_after_s
+    (cap / "capture.json").write_text(json.dumps({
+        "segments": [{"segment": 1, "file": "seg_1.mp4", "guest_before_s": g1 - 0.02, "guest_after_s": g1,
+                      "guest_end_s": g1 + 1.0, "pulled": pulled1},
+                     {"segment": 2, "file": "seg_2.mp4", "guest_before_s": g2 - 0.02, "guest_after_s": g2,
+                      "guest_end_s": g2 + 1.0, "pulled": True}],
+        "boundaries": [{"after_segment": 1, "before_segment": 2, "unrecorded_min_s": 0.0,
+                        "unrecorded_max_s": None}],
+        "clock": [{"label": "capture_start", "offset_s": OFFSET, "bound_s": 0.004}]}))
+    return g1, g2
+
+
+def compose(run_dir: Path, cap: Path, duration_s: str = "1.6", start: float = T0 + START):
+    out = run_dir / "video"
+    r = subprocess.run([sys.executable, str(COMPOSE), "--chase", str(run_dir / "chase_view.mp4"),
+                        "--display-capture", str(cap), "--out", str(out), "--lossless", "--duration-s", duration_s,
+                        "--start-unix", repr(start)], capture_output=True, text=True, timeout=600)
+    return r, out
+
+
+def packet_pts_here(path: Path) -> list[float]:
+    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time",
+                        "-of", "csv=p=0", str(path)], capture_output=True, text=True, check=True)
+    return sorted(float(x.split(",")[0]) for x in r.stdout.split() if x.strip() and x.strip() != "N/A")
+
+
+def test_composition_bounds_each_boundary_from_packet_times(run_dir: Path) -> None:
+    """X2/X4: the capture leaves each boundary's upper bound to the composer, which computes it from the segments'
+    packet times (no decode) and the capture's guest clock reads: (guest_end_s of the later segment - its span) -
+    (guest_before_s of the earlier one + its span). The held span quotes that bound."""
+    cap = run_dir / "cap"
+    g1, g2 = two_segment_capture(cap)
+    r, out = compose(run_dir, cap)
+    assert r.returncode == 0, r.stdout + r.stderr
+    d = json.loads((out / "manifest.json").read_text())["display"]
+    bs = d.get("boundaries")
+    assert bs, "the composer computes no boundary bound"
+    (b,) = bs
+    p1, p2 = packet_pts_here(cap / "seg_1.mp4"), packet_pts_here(cap / "seg_2.mp4")
+    want = ((g2 + 1.0) - (p2[-1] - p2[0])) - ((g1 - 0.02) + (p1[-1] - p1[0]))
+    assert b["unrecorded_max_s"] == pytest.approx(want, abs=1e-6)
+    assert "packet" in b["unrecorded_max_rule"]
+    (h,) = [h for h in d["held_spans"] if h["kind"] == "segment boundary"]
+    assert h["capture_unrecorded_max_s"] == pytest.approx(want, abs=1e-6)
+
+
+def test_the_packet_probe_has_a_time_bound(tmp_path: Path, monkeypatch) -> None:
+    """X2: the composer's packet probe gives up after its bound and says so; it never waits on a hung ffprobe."""
+    import compose_side_by_side as cs
+    assert hasattr(cs, "packet_pts"), "the composer has no bounded packet probe"
+    d = tmp_path / "bin"
+    d.mkdir()
+    (d / "ffprobe").write_text("#!/bin/sh\nsleep 30\n")
+    (d / "ffprobe").chmod(0o755)
+    monkeypatch.setenv("PATH", "%s:%s" % (d, __import__("os").environ["PATH"]))
+    import time
+    t0 = time.monotonic()
+    pts, why = cs.packet_pts(str(tmp_path / "x.mp4"), timeout_s=1)
+    assert pts is None and "1 s" in why
+    assert time.monotonic() - t0 < 10
+
+
+def test_a_boundary_whose_frame_times_overlap_is_still_listed(run_dir: Path) -> None:
+    """X8: segment 2 is placed before segment 1's last frame (held time <= 0). The boundary lies inside the output,
+    so it is listed and the output is not called gap-free."""
+    cap = run_dir / "cap"
+    two_segment_capture(cap, seg2_after_s=-0.3)
+    r, out = compose(run_dir, cap)
+    assert r.returncode == 0, r.stdout + r.stderr
+    d = json.loads((out / "manifest.json").read_text())["display"]
+    bs = [h for h in d["held_spans"] if h["kind"] == "segment boundary"]
+    assert bs and bs[0]["held_s"] <= 0, d["held_spans"]
+    assert d["gap_free"] is False
+
+
+def test_composition_skips_a_segment_not_pulled_and_lists_its_span(run_dir: Path) -> None:
+    """X9: segment 1's pull failed (no file). The composer composes segment 2 and lists segment 1's span, on the IVI
+    clock from its launch to its end read, as not recorded here (kind "segment not pulled")."""
+    cap = run_dir / "cap"
+    g1, g2 = two_segment_capture(cap, pulled1=False)
+    r, out = compose(run_dir, cap, duration_s="1.0", start=g2 - OFFSET)
+    assert r.returncode == 0, r.stdout + r.stderr
+    d = json.loads((out / "manifest.json").read_text())["display"]
+    (h,) = [h for h in d["held_spans"] if h["kind"] == "segment not pulled"]
+    assert h["segment"] == 1
+    assert (h["from_ivi_s"], h["to_ivi_s"]) == (pytest.approx(g1 - 0.02), pytest.approx(g1 + 1.0))
+    assert [s["file"] for s in d["segments"]] == ["seg_2.mp4"]
+    assert d["gap_free"] is False

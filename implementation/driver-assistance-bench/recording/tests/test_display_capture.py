@@ -142,7 +142,7 @@ def test_a_stop_after_a_segments_time_limit_starts_no_new_segment(tmp_path: Path
     (limits / "limit_1").touch()
     fake = Path(env["FAKE_ADB_DIR"])
     held = {"poll": lambda c: any("kill -0 4000" in a for a in c),
-            "pull": lambda c: "pull" in c and c[-1].endswith("/seg_1.mp4")}[window]
+            "pull": lambda c: "pull" in c and c[-2].endswith("/seg_1.mp4")}[window]   # the guest file
     env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits))
     env["FAKE_HOLD_" + window.upper()] = "1:%s" % (out / "STOP")   # the held call answers once the stop came
     p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "30"], env=env,
@@ -454,6 +454,8 @@ def test_the_stop_wait_has_a_hard_cap(tmp_path: Path, env: dict[str, str]) -> No
                                                 FAKE_HOLD_PULL="2:%s" % release)
         assert stop.returncode == 1, stop.stdout
         assert "did not end within" in stop.stdout and took < 15, (took, stop.stdout)
+        # X3: the give-up names the guest paths still to pull, which stay on the guest
+        assert "/data/local/tmp/da_capture/seg_2.mp4" in stop.stdout, stop.stdout
     finally:
         release.touch()
     log, _ = p.communicate(timeout=60)
@@ -484,38 +486,288 @@ def test_the_end_of_a_segment_is_found_by_a_fast_poll(tmp_path: Path, env: dict[
     assert p.returncode == 0, log
 
 
-def ffprobe_pts(path: Path) -> list[float]:
-    r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
-                        "frame=best_effort_timestamp_time", "-of", "csv=p=0", str(path)],
-                       capture_output=True, text=True, check=True)
-    return [float(x.split(",")[0]) for x in r.stdout.split() if x.strip() and x.strip() != "N/A"]
-
-
-def test_the_gap_at_each_boundary_is_written(tmp_path: Path, env: dict[str, str]) -> None:
-    """capture.json bounds the unrecorded span between segment 1's last frame and segment 2's first frame, on the
-    guest clock: from below by the guest clock reads alone, from above with the files' frame times (ffprobe)."""
-    if shutil.which("ffprobe") is None:
-        pytest.skip("ffprobe is not installed")
-    # segment 2 too runs longer than the fake's 0.9 s file before the stop, as a real recording does
-    out, fake, p, stop, _ = two_segments(tmp_path, env, before_stop=lambda *_: time.sleep(1.1))
+def test_the_capture_leaves_the_frame_times_to_the_composer(tmp_path: Path, env: dict[str, str]) -> None:
+    """X2/X4: the capture probes no frame times (they scale with the recording's length) and says so: the frame
+    fields and each boundary's upper bound are null, and the record names where they are computed."""
+    out, fake, p, stop, _ = two_segments(tmp_path, env)
     log, _ = p.communicate(timeout=60)
     assert stop.returncode == 0 and p.returncode == 0, log
     cap = json.loads((out / "capture.json").read_text())
     s1, s2 = cap["segments"]
-    d = []
-    for s in (s1, s2):
-        pts = ffprobe_pts(out / s["file"])
-        assert s["frames"] == len(pts)
-        assert s["first_pts_s"] == pytest.approx(pts[0], abs=1e-6)
-        assert s["last_pts_s"] == pytest.approx(pts[-1], abs=1e-6)
-        d.append(pts[-1] - pts[0])
     (b,) = cap["boundaries"]
     assert (b["after_segment"], b["before_segment"]) == (1, 2)
-    # the last frame of 1 is at or after its launch plus its span; the first frame of 2 at or after its launch and at
-    # or before the read after its end minus its span
+    # from below by the guest clock reads alone, here
     assert b["unrecorded_min_s"] == pytest.approx(s2["guest_before_s"] - s1["guest_end_s"], abs=1e-6)
-    assert b["unrecorded_max_s"] == pytest.approx((s2["guest_end_s"] - d[1]) - (s1["guest_before_s"] + d[0]),
-                                                  abs=1e-6)
     assert b["unrecorded_min_s"] >= 0
-    assert b["unrecorded_min_s"] <= b["unrecorded_max_s"]
-    assert "upper bound" in b["unrecorded_max_rule"]
+    assert b["unrecorded_max_s"] is None
+    assert "compose_side_by_side.py" in b["unrecorded_max_where"]
+    assert cap["not_filled_here"]["fields"] == ["boundaries[].unrecorded_max_s", "frame times"]
+    assert "compose_side_by_side.py" in cap["not_filled_here"]["where"]
+    assert "packet" in cap["not_filled_here"]["where"]
+
+
+def fake_ffprobe(tmp_path: Path, sleep_s: float) -> tuple[Path, Path]:
+    """An ffprobe on PATH that takes sleep_s per call (a frame probe of a long recording) and logs each call."""
+    d = tmp_path / "slowbin"
+    d.mkdir()
+    log = tmp_path / "ffprobe.calls"
+    (d / "ffprobe").write_text("#!/bin/sh\necho \"$*\" >> %s\nsleep %s\n" % (log, sleep_s))
+    (d / "ffprobe").chmod(0o755)
+    return d, log
+
+
+def test_the_stop_is_not_delayed_by_a_frame_probe(tmp_path: Path, env: dict[str, str]) -> None:
+    """X2 BLOCKER: an ffprobe on the guest host that takes 30 s per segment (as a decode of every frame of a long
+    recording does) costs the stop nothing: nothing in the stop path probes the files."""
+    d, log = fake_ffprobe(tmp_path, 30)
+    env = dict(env, PATH="%s:%s" % (d, env["PATH"]))
+    out, fake, p, stop, took = two_segments(tmp_path, env, stop_args=("--wait-s", "5"))
+    log_out, _ = p.communicate(timeout=120)
+    assert stop.returncode == 0, (took, stop.stdout, log_out)
+    assert not log.exists(), "the capture ran ffprobe: " + log.read_text()
+    assert took < 15, took
+
+
+def test_no_frame_probe_in_the_capture() -> None:
+    """X2: a static check beside the slow-probe test: the capture script never names ffprobe outside comments."""
+    code = [line.split("#", 1)[0] for line in CAPTURE.read_text().splitlines() if not line.lstrip().startswith("#")]
+    assert not [c for c in code if "ffprobe" in c]
+
+
+def test_a_failed_alive_poll_does_not_end_a_live_recording(tmp_path: Path, env: dict[str, str]) -> None:
+    """X1 BLOCKER (R1): the 3rd poll of the live recording 1 gets no answer (adb's "error: closed", rc 1). The
+    segment ends only on the guest's own "ended": no second recording starts beside it, its file is neither pulled
+    nor removed while it records, and the next polls find it alive again."""
+    out = tmp_path / "cap"
+    limits = tmp_path / "limits"
+    limits.mkdir()
+    fake = Path(env["FAKE_ADB_DIR"])
+    env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits), FAKE_POLL_FAIL="1:3-3")
+    p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "60"], env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    polls = lambda: [c for c in calls(fake) if any("kill -0 4000" in a for a in c)]
+    try:
+        wait_until("first recording", lambda: len(recordings(fake)) >= 1, p)
+        wait_until("six polls of the live recording (or a second recording)",
+                   lambda: len(polls()) >= 6 or len(recordings(fake)) >= 2, p)
+        assert len(recordings(fake)) == 1, "a second recording started beside the live first one"
+        assert not any("pull" in c and c[-2].endswith("/seg_1.mp4") for c in calls(fake)), \
+            "the live recording's file was pulled"
+        assert not any(any("rm -f /data/local/tmp/da_capture/seg_1" in a for a in c) for c in calls(fake)), \
+            "the live recording's guest file was removed"
+        (limits / "limit_1").touch()
+        wait_until("second recording", lambda: len(recordings(fake)) >= 2, p)
+    finally:
+        (out / "STOP").touch()
+    log, _ = p.communicate(timeout=60)
+    assert p.returncode == 0, log
+    cap = json.loads((out / "capture.json").read_text())
+    assert [s["end"] for s in cap["segments"]] == ["time-limit", "stop"]
+    assert [s["pulled"] for s in cap["segments"]] == [True, True]
+
+
+def test_polls_without_an_answer_end_the_capture_as_an_error_that_still_stops_cleanly(tmp_path: Path,
+                                                                                       env: dict[str, str]) -> None:
+    """X1: from its 3rd poll on, recording 1 gets no answer. After ALIVE_UNKNOWN_S (here 1 s) of no answer the
+    capture ends with END=error: no relaunch, the live recording is sent SIGINT, the app's record is pulled, and
+    capture.json and capture.done say error. The segment's file is not pulled (its state is unknown) and is kept on
+    the guest."""
+    record = tmp_path / "warning.jsonl"
+    record.write_text('{"event": "receipt"}\n')
+    out = tmp_path / "cap"
+    limits = tmp_path / "limits"
+    limits.mkdir()
+    fake = Path(env["FAKE_ADB_DIR"])
+    env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits), FAKE_POLL_FAIL="1:3", ALIVE_UNKNOWN_S="1",
+               FAKE_APP_RECORD=str(record), APP_RECORD_PATHS="/data/user/@user@/x/files/warning.jsonl")
+    p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "60"], env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        wait_until("the capture's end", lambda: (out / "capture.done").exists() or len(recordings(fake)) >= 2, p,
+                   timeout_s=30)
+    except AssertionError:
+        pass
+    finally:
+        (out / "STOP").touch()
+    try:
+        log, _ = p.communicate(timeout=60)
+    except subprocess.TimeoutExpired:
+        p.kill()
+        raise
+    assert len(recordings(fake)) == 1, "a second recording started beside the live first one"
+    assert p.returncode == 1, log
+    cap = json.loads((out / "capture.json").read_text())
+    assert cap["end"] == "error"
+    (s1,) = cap["segments"]
+    assert s1["end"] == "no-answer" and s1["pulled"] is False
+    assert cap["pull_failures"] == [{"segment": 1, "guest_path": "/data/local/tmp/da_capture/seg_1.mp4"}]
+    assert any(any("kill -INT 4000" in a for a in c) for c in calls(fake))
+    assert not any(any("rm -f /data/local/tmp/da_capture/seg_1" in a or "rm -rf /data/local/tmp/da_capture" in a
+                       for a in c) for c in calls(fake))
+    assert (out / "app_record_warning.jsonl").read_text() == record.read_text()
+    assert (out / "capture.done").read_text().startswith("capture ended (error)")
+
+
+def test_every_adb_call_of_the_capture_has_a_time_bound() -> None:
+    """X5: every adb invocation in display_capture.sh (through a(), ab() or "$ADB" itself) and the clock script it
+    runs are under `timeout --foreground`, so a call that hangs cannot hold the loop, the tail or the end."""
+    import re
+    lines = CAPTURE.read_text().splitlines()
+    code = [(n, line.split(" #", 1)[0]) for n, line in enumerate(lines, 1) if not line.lstrip().startswith("#")]
+    direct = [(n, c) for n, c in code if '"$ADB"' in c or "$ADB " in c]
+    assert direct, "no adb invocation found"
+    for n, c in direct:
+        assert re.search(r'timeout --foreground "?\$\{?\w+\}?"? +"\$ADB"', c), "%d: adb without a bound: %s" % (n, c)
+    for n, c in code:
+        if '"$CLOCK"' in c:
+            assert re.search(r'timeout --foreground "?\$\{?\w+\}?"? +bash "\$CLOCK"', c), \
+                "%d: the clock script without a bound: %s" % (n, c)
+
+
+def test_a_hung_adb_call_in_the_tail_costs_neither_the_app_records_nor_the_stop(tmp_path: Path,
+                                                                                  env: dict[str, str]) -> None:
+    """X5: after the stop, the guest's audio dump and its end stills hang (an adb shell on a device gone offline).
+    Each call is cut at ADB_TIMEOUT_S, the app's record is pulled first, and the stop returns 0."""
+    record = tmp_path / "warning.jsonl"
+    record.write_text('{"event": "receipt"}\n')
+    stop_file = tmp_path / "cap" / "STOP"
+    env = dict(env, ADB_TIMEOUT_S="2", FAKE_HANG="dumpsys media.audio_flinger:%s" % stop_file,
+               FAKE_APP_RECORD=str(record), APP_RECORD_PATHS="/data/user/@user@/x/files/warning.jsonl")
+    out, fake, p, stop, took = two_segments(tmp_path, env, stop_args=("--wait-s", "20"))
+    log, _ = p.communicate(timeout=120)
+    assert stop.returncode == 0, (took, stop.stdout, log)
+    assert (out / "app_record_warning.jsonl").read_text() == record.read_text()
+    t_rec = [t for t, c in stamped(fake) if "pull" in c and any("warning.jsonl" in a for a in c)]
+    t_hang = [t for t, c in stamped(fake) if "dumpsys media.audio_flinger" in " ".join(c)]
+    assert len(t_hang) >= 2, t_hang   # the start's, then the tail's
+    assert t_rec and t_rec[0] < t_hang[1], "the app's record was not pulled before the tail's other calls"
+
+
+def test_the_stop_waits_while_the_pull_makes_progress(tmp_path: Path, env: dict[str, str]) -> None:
+    """X3 (R2): the last segment's pull takes 8 s (it grows in 10 parts), with a tail of 3 s and PULL_BPS far above
+    the real rate. The stop counts the local file's growth as progress and waits to the end, within its cap. The pull
+    writes `.part` and renames it only once complete: the final name never holds a part of the file."""
+    env = dict(env, PULL_BPS="1000000000")
+    full = Path(env["FAKE_SEG_MP4"]).stat().st_size
+    seen_final_early = []
+
+    def watch(out, fake, p):
+        import threading
+
+        def run():
+            until = time.monotonic() + 30
+            while time.monotonic() < until and not (out / "capture.done").exists():
+                try:
+                    n = (out / "seg_2.mp4").stat().st_size
+                except FileNotFoundError:
+                    n = None
+                if n is not None and n < full:   # a part of the file under its final name
+                    seen_final_early.append(n)
+                time.sleep(0.01)
+        threading.Thread(target=run, daemon=True).start()
+
+    out, fake, p, stop, took = two_segments(tmp_path, env, stop_args=("--wait-s", "3", "--wait-cap-s", "60"),
+                                            before_stop=watch, FAKE_PULL_GROW="2:8")
+    log, _ = p.communicate(timeout=60)
+    assert stop.returncode == 0, (took, stop.stdout, log)
+    assert took > 7, took
+    assert not seen_final_early, "a part of seg_2.mp4 was under its final name while it was pulled"
+    pulls = [c for c in calls(fake) if "pull" in c and c[-2].endswith(".mp4")]
+    assert pulls and all(c[-1].endswith(".mp4.part") for c in pulls), pulls
+    cap = json.loads((out / "capture.json").read_text())
+    assert [s["pulled"] for s in cap["segments"]] == [True, True]
+    assert not list(out.glob("*.part"))
+
+
+def test_a_cut_pull_never_leaves_a_part_under_the_final_name(tmp_path: Path, env: dict[str, str]) -> None:
+    """X3: the pull of seg_1 fails after writing half of the file: no seg_1.mp4 exists, the part is kept aside."""
+    out, fake, p, stop, _ = two_segments(tmp_path, env, FAKE_PULL_FAIL="1")
+    log, _ = p.communicate(timeout=60)
+    assert stop.returncode == 0, stop.stdout + log
+    assert not (out / "seg_1.mp4").exists()
+    assert not (out / "seg_1.mp4.part").exists()
+    assert (out / "seg_1.mp4.partial").exists()
+
+
+def test_a_recording_that_ends_early_is_labeled_and_a_second_one_ends_the_capture(tmp_path: Path,
+                                                                                   env: dict[str, str]) -> None:
+    """X6 (R3): from the 2nd recording on, every recording dies at once (a full /data, a display gone). Each is
+    labeled ended-early (its guest-clock duration well short of its 3 s limit, no stop asked), and after the 2nd
+    early end the capture ends with END=error: no relaunch loop."""
+    out = tmp_path / "cap"
+    limits = tmp_path / "limits"
+    limits.mkdir()
+    fake = Path(env["FAKE_ADB_DIR"])
+    env = dict(env, SEGMENT_S="3", FAKE_LIMIT_DIR=str(limits), FAKE_DEAD_FROM="2")
+    p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "60"], env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        wait_until("first recording", lambda: len(recordings(fake)) >= 1, p)
+        time.sleep(1.5)   # recording 1 runs longer than its limit minus EARLY_S: it is not early
+        (limits / "limit_1").touch()
+        until = time.monotonic() + 10
+        while p.poll() is None and time.monotonic() < until and len(recordings(fake)) < 6:
+            time.sleep(0.05)
+    finally:
+        (out / "STOP").touch()
+    log, _ = p.communicate(timeout=60)
+    assert len(recordings(fake)) == 3, (len(recordings(fake)), log)
+    cap = json.loads((out / "capture.json").read_text())
+    assert [s["end"] for s in cap["segments"]] == ["time-limit", "ended-early", "ended-early"]
+    assert cap["end"] == "error"
+    assert p.returncode == 1, log
+
+
+def test_at_most_two_pulls_are_in_flight(tmp_path: Path, env: dict[str, str]) -> None:
+    """X6/X7: every pull is held. Segments 1, 2 and 3 reach their limit and segment 4 records: only two pulls run,
+    the third waits for a free place, and after the release every segment is pulled."""
+    out = tmp_path / "cap"
+    limits = tmp_path / "limits"
+    limits.mkdir()
+    release = tmp_path / "release"
+    fake = Path(env["FAKE_ADB_DIR"])
+    env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits), FAKE_HOLD_PULL="*:%s" % release)
+    p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "60"], env=env,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    seg_pulls = lambda: [c for c in calls(fake) if "pull" in c and c[-2].endswith(".mp4")]
+    try:
+        for k in (1, 2, 3):
+            wait_until("recording %d" % k, lambda: len(recordings(fake)) >= k, p)
+            (limits / ("limit_%d" % k)).touch()
+        wait_until("recording 4", lambda: len(recordings(fake)) >= 4, p)
+        wait_until("three polls of recording 4",
+                   lambda: len([c for c in calls(fake) if any("kill -0 4003" in a for a in c)]) >= 3, p)
+        assert len(seg_pulls()) == 2, seg_pulls()
+    finally:
+        release.touch()
+        (out / "STOP").touch()
+    log, _ = p.communicate(timeout=60)
+    assert p.returncode == 0, log
+    cap = json.loads((out / "capture.json").read_text())
+    assert [s["pulled"] for s in cap["segments"]] == [True, True, True, True]
+
+
+def test_each_launch_reads_the_guests_free_space(tmp_path: Path, env: dict[str, str]) -> None:
+    """X7: /data's free space is read at every launch, in the launch's own guest shell after its second clock read
+    (no round trip added to the boundary), and kept per segment."""
+    out, fake, p, stop, _ = two_segments(tmp_path, env, FAKE_DF_AVAIL_KB="1234567")
+    log, _ = p.communicate(timeout=60)
+    assert stop.returncode == 0 and p.returncode == 0, log
+    cap = json.loads((out / "capture.json").read_text())
+    assert [s.get("guest_data_free_kb") for s in cap["segments"]] == [1234567, 1234567]
+    for c in recordings(fake):
+        shell = " ".join(c)
+        assert shell.rindex("date +%s.%N") < shell.index("df -k /data")
+
+
+def test_the_stop_bound_fits_the_sessions_step_bound() -> None:
+    """X10: the session's window close gives the stop T_CAPTURE_END (180 s), counted from before rstep's start SSH
+    call (at most 60 s, its time-out); rstep reads the end at a status poll, which runs every POLL_S (20 s). The
+    stop's own cap, plus 2 s for its own last poll and exit, must fit what is left."""
+    import re
+    sess = (BENCH / "session" / "da_session.sh").read_text()
+    assert re.search(r"\bT_CAPTURE_END=180\b", sess) and re.search(r"\bPOLL_S=20\b", sess)
+    assert 'routall ssh_l "$r" 60 "$HS start' in sess
+    m = re.search(r"WAIT_CAP_S=\$\{WAIT_CAP_S:-(\d+)\}", CAPTURE.read_text())
+    assert m, "no default stop cap"
+    assert 60 + int(m.group(1)) + 2 + 20 <= 180, int(m.group(1))
