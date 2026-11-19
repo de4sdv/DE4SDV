@@ -419,8 +419,15 @@ tell the lead before the next session and do not rely on the stop without a coun
 
 ### `p10-2` (all three hosts)
 
+A `p10-2` session runs with `--permissive-ivi` from its start (the lead's decision of 2026-11-19, as for `p10-3`):
+its unit gate and `app_restart` wait for the IVI app's own `phase=link link=SUBSCRIBED` line, and the app's Gateway
+lookup fails under Enforcing on these images (SELinux, above). Every result of the session is conditional on a
+permissive IVI: `session.json` says so (`conditional_on_permissive_ivi`, also in its `p10_2` report), and so must
+every write-up of it.
+
 ```bash
 C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
+# --permissive-ivi: every result of the session is conditional on a permissive IVI (the lead's decision of 2026-11-19)
 cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1
 S=implementation/driver-assistance-bench/session
 # the dry run needs the VisionPilot clone at the pin (VP_CLONE, default ~/de4sdv-upstream/vision_pilot); make-h is
@@ -428,13 +435,13 @@ S=implementation/driver-assistance-bench/session
 D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
 env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
   DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" \
-  bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+  bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --permissive-ivi --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
 SID=$(date -u +%Y%m%dT%H%M%SZ)
 systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
   -p StandardOutput=append:$HOME/p10-2-$SID.out -p StandardError=append:$HOME/p10-2-$SID.out \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
-  /bin/bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --session-id "$SID"
+  /bin/bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --permissive-ivi --session-id "$SID"
 # end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (never kill -9)
 ```
 

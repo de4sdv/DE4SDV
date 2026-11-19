@@ -635,7 +635,9 @@ p10_3_report() {   # p10-3 is passed only when its steps ended with 0 and every 
 }
 p10_2_report() {   # p10-2's display recording is complete only when every recorded window's capture ended by its stop
   # at the window's close with rc 0 and nothing kept on the guest (Q2). One line in session.log, and session.json p10_2
-  local n w x e rc by k why=()
+  local n w x e rc by k why=() PERM_NOTE=""
+  # R2 of the closure check of 7befc3c1: a --permissive-ivi session's report says so, as session.json does
+  [ "$IVI_PERMISSIVE" = 1 ] && PERM_NOTE=" (conditional on a permissive IVI)"
   if [[ " ${ROLES[*]} " != *" guest "* ]]; then
     P10_2_COMPLETE=none; P10_2_REASON="no display capture: --without-guest-host"; log "p10-2: $P10_2_REASON"; return 0
   fi
@@ -650,10 +652,10 @@ p10_2_report() {   # p10-2's display recording is complete only when every recor
   done
   if [ ${#why[@]} = 0 ]; then
     P10_2_COMPLETE=1; P10_2_REASON="every window's capture ended by its stop at the window's close, rc 0, nothing kept on the guest"
-    log "p10-2 display recording complete: $P10_2_REASON"
+    log "p10-2 display recording complete: $P10_2_REASON$PERM_NOTE"
   else
     P10_2_COMPLETE=0; P10_2_REASON=$(printf '%s; ' "${why[@]}"); P10_2_REASON=${P10_2_REASON%; }
-    log "p10-2 display recording NOT complete: $P10_2_REASON"
+    log "p10-2 display recording NOT complete: $P10_2_REASON$PERM_NOTE"
   fi
 }
 p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE host alone (without a CARLA server C1's
@@ -745,7 +747,8 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
                                    "closed_by": by.replace("_", " "), "guest_files_kept": k == "1"}
                                for w, end, rc, by, k in (x.split(":", 4) for x in e["CAPTURES"].split())},
            "p10_2": {"display_recording_complete": {"1": True, "0": False}.get(e["P10_2_COMPLETE"]),
-                     "reason": e["P10_2_REASON"]} if e["KIND"] == "p10-2" else None},
+                     "reason": e["P10_2_REASON"], "conditional_on_permissive_ivi": e["PERM"] == "1"}
+                    if e["KIND"] == "p10-2" else None},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
 }

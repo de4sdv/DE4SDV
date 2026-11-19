@@ -1532,6 +1532,35 @@ def test_the_readme_p10_3_block_runs_permissive_from_its_start() -> None:
     assert "conditional on a permissive IVI" in text and "getenforce" in text
 
 
+def test_the_readme_p10_2_block_runs_permissive_from_its_start() -> None:
+    # R2 of the closure check of 7befc3c1, the lead's decision of 2026-11-19: p10-2 runs the IVI guest permissive,
+    # as p10-3 does. Its unit gate and app_restart wait for the IVI app's own SUBSCRIBED line, and the app's Gateway
+    # lookup fails under Enforcing on these images (B12), so an Enforcing p10-2 ends at unit_run1
+    lines = [c for c in _readme_block("p10-2") if "da_session.sh" in c and not c.startswith("#")]
+    assert len(lines) == 2 and sum("--dry-run" in c for c in lines) == 1, lines
+    assert all("--kind p10-2 --owner-ok-guest-host --permissive-ivi" in c for c in lines), lines
+    block = " ".join(_readme_block("p10-2"))
+    assert "conditional on a permissive IVI" in block, block
+
+
+def test_p10_2_with_permissive_ivi_marks_the_session_and_its_report(tmp_path: Path) -> None:
+    # R2: the README's p10-2 line as written; every result is conditional on a permissive IVI, in session.json and in
+    # its p10_2 report
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", "--permissive-ivi")
+    assert r.rc == 0, r.log
+    assert r.sequence() == p10_2_seq(), r.sequence()
+    for step in ("start guest_up", "start guest_prepare"):
+        assert "IVI_PERMISSIVE=1" in r.command(r.ssh(GH, step)[0])
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["conditional_on_permissive_ivi"] is True
+    assert rec["p10_2"]["conditional_on_permissive_ivi"] is True, rec["p10_2"]
+    assert "conditional on a permissive IVI" in r.log
+    assert re.search(r"p10-2 display recording complete: .*\(conditional on a permissive IVI\)", r.log), r.log
+    r2 = run(tmp_path / "b", "p10-2", "--owner-ok-guest-host")
+    rec2 = json.loads((r2.incoming / "session.json").read_text())
+    assert rec2["conditional_on_permissive_ivi"] is False and rec2["p10_2"]["conditional_on_permissive_ivi"] is False
+
+
 def test_the_readme_ends_a_session_early_with_the_spelling_systemd_249_knows() -> None:
     # T3: the lead host's systemd 249 refuses --kill-whom ("unrecognized option"); --kill-who works there
     text = (HERE.parent / "README.md").read_text()
