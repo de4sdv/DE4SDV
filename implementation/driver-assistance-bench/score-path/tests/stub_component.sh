@@ -8,7 +8,9 @@
 #     settings once LCM_ALIVE_INTERFACE_PATH is set, and visionpilot.rrd into its working directory at the stop;
 #   - as actuation_adapter it writes a supervision start and an accepted in.driving_command into
 #     <run>/score/actuationAdapter.jsonl;
-#   - as gatewayd it prints DA_STUB_GATEWAYD_LINE once a second, when that is set.
+#   - as gatewayd it prints DA_STUB_GATEWAYD_LINE once a second, when that is set; with DA_STUB_GATEWAYD_PER_SEND
+#     ("<delay s>,<delay s>,..." per send, "-" never) instead once per send the test publisher recorded in
+#     DA_TEST_SINK_FILE, each that many seconds after this stub saw the send (a late or a lost receive line).
 name=$(basename "$0")
 run=""
 for ((i = 1; i <= $#; i++)); do
@@ -46,11 +48,24 @@ if [ "$name" = actuation_adapter ] && [ -n "${LCM_ALIVE_INTERFACE_PATH:-}" ]; th
     echo '{"t_mono_ns":2,"event":"in.driving_command","data":{"seq":1,"verdict":"accepted"}}'; } \
     >> "$run/score/actuationAdapter.jsonl"
 fi
-n=0
+n=0 seen=0 due=()
 while :; do
   sleep 0.1
   n=$((n + 1))
-  if [ "$name" = gatewayd ] && [ -n "${DA_STUB_GATEWAYD_LINE:-}" ] && [ $((n % 10)) = 0 ]; then
-    echo "$DA_STUB_GATEWAYD_LINE"
+  [ "$name" = gatewayd ] && [ -n "${DA_STUB_GATEWAYD_LINE:-}" ] || continue
+  if [ -z "${DA_STUB_GATEWAYD_PER_SEND:-}" ]; then
+    [ $((n % 10)) = 0 ] && echo "$DA_STUB_GATEWAYD_LINE"
+    continue
   fi
+  sends=$(wc -w < "${DA_TEST_SINK_FILE:-/nonexistent}" 2>/dev/null) || sends=0
+  now=$(date +%s.%N)
+  while [ "$seen" -lt "${sends:-0}" ]; do
+    seen=$((seen + 1))
+    d=$(cut -d, -f"$seen" <<< "$DA_STUB_GATEWAYD_PER_SEND")
+    if [ "$d" = - ]; then due[$seen]=never; else due[$seen]=$(awk -v a="$now" -v b="${d:-0}" 'BEGIN { printf "%.3f", a + b }'); fi
+  done
+  for k in "${!due[@]}"; do
+    [ "${due[$k]}" = never ] || [ "${due[$k]}" = done ] && continue
+    if awk -v a="$now" -v b="${due[$k]}" 'BEGIN { exit !(a >= b) }'; then echo "$DA_STUB_GATEWAYD_LINE"; due[$k]=done; fi
+  done
 done

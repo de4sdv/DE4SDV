@@ -172,7 +172,7 @@ line per check, `PASS`, `FAIL` or `NOT RUN` with its detail, into `<out>/p10_1_v
 | C2 | `LCM_ALIVE_INTERFACE_PATH` is set in the candidate's and the adapter's environment; both log the start of their supervision; no expiry in `DA_P10_1_ALIVE_HOLD_S` | a ticking world |
 | C3 | a SIGSTOPped candidate leads to the expiry and `fallback_run_target` in the Launch Manager's log; the candidate and the adapter are gone; the recorder, `someipd` and `gatewayd` run on with the same pids | a ticking world |
 | C4 | mw::com takes the ASIL B command path: the candidate sent driving commands and the adapter accepted one | a ticking world |
-| C5 | `gatewayd` (QM) receives from a process of global ASIL B: three sends of the test publisher, matched by `GATEWAYD_RX_REGEX` in the Launch Manager's log | a receive line of `gatewayd`, which as built prints none per sample (else NOT RUN; `p10-3` judges the receipt on the guest) |
+| C5 | `gatewayd` (QM) receives from a process of global ASIL B: three sends of the test publisher, matched by `GATEWAYD_RX_REGEX` in the Launch Manager's log, polled for up to `DA_P10_1_C5_WAIT_S` (5 s) | a receive line of `gatewayd`, which as built prints none per sample (else NOT RUN; `p10-3` judges the receipt on the guest) |
 | C6 | no pass after the first of the three networks on the CUDA provider takes longer than 0.4 s (`ort_cuda_check`, `DA_P10_1_CUDA_RUNS` runs each) | the bundle's `ort_cuda_check` |
 | C7 | the candidate record reaches a subscriber that subscribes after the first publication (`candidate_record_probe`), with the file's digest | the bundle's probe |
 | C8 | the candidate on a replayed clip: always NOT RUN, since the S-CORE interface module has no clip replayer and the brief's B0 clip replayer is not in the bench | — |

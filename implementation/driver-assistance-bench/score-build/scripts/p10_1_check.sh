@@ -37,7 +37,8 @@
 # so without such a server the full configuration is never started: C1 is NOT RUN, with the reason and its path
 # part's result (FAIL when the path part failed), and C2 to C4 are NOT RUN. C5 to C7 need no simulator.
 #
-# Settings: DA_CAMERA_CALIBRATION_DIR (unset), DA_P10_1_CARLA_HOST (none), GATEWAYD_RX_REGEX (unset), DA_P10_1_LATE_WAIT_S (3), DA_P10_1_CUDA_RUNS
+# Settings: DA_CAMERA_CALIBRATION_DIR (unset), DA_P10_1_CARLA_HOST (none), GATEWAYD_RX_REGEX (unset), DA_P10_1_C5_WAIT_S
+# (5, whole seconds: C5's bound for the 3 receive lines), DA_P10_1_LATE_WAIT_S (3), DA_P10_1_CUDA_RUNS
 # (20), DA_P10_1_ALIVE_HOLD_S (10), DA_P10_1_STALL_HOLD_S (3), DA_P10_1_SUPERVISED_WAIT_S (420), and those of
 # ../../score-path/scripts/lib_score_side.sh.
 set -uo pipefail
@@ -56,6 +57,7 @@ OUT=${1:?usage: p10_1_check.sh <out>}
 : "${DA_P10_1_STALL_HOLD_S:=3}"
 : "${DA_P10_1_SUPERVISED_WAIT_S:=420}"
 : "${DA_P10_1_SKIP_PORT_CHECK:=0}"
+: "${DA_P10_1_C5_WAIT_S:=5}"
 mkdir -p "$OUT"
 exec > >(tee -a "$OUT/p10_1_check.log") 2>&1
 VERDICTS=$OUT/p10_1_verdicts.txt
@@ -125,7 +127,6 @@ if bash "$SP/start_score_side.sh" "$OUT/path" none; then
   DA_INJECT_SEQUENCE=$OUT/p10_1_sequence.txt bash "$BENCH/ivi-warning/scripts/inject_warning_requests.sh" \
     "$OUT/inject"
   irc=$?
-  sleep 1
   if [ "$irc" != 0 ]; then
     verdict FAIL C5_gatewayd_receives_from_asil_b_process "the test publisher exited $irc (see $OUT/inject)"
   elif [ -z "$GATEWAYD_RX_REGEX" ]; then
@@ -133,11 +134,21 @@ if bash "$SP/start_score_side.sh" "$OUT/path" none; then
       "sample (its output as built: session 5), so no GATEWAYD_RX_REGEX can count the receipts here; p10-3 judges" \
       "the receipt on the guest"
   else
-    hits=$(tail -n +"$((lines_before + 1))" "$LM_LOG" | grep -c -E "$GATEWAYD_RX_REGEX" || true)
-    if [ "$hits" -ge 3 ]; then
+    # a bounded poll for the 3 receive lines, never a fixed wait: under load the third came after a fixed 1 s
+    # (f67241db, bench_unit) and C5 FAILed falsely
+    ss_log "C5: up to ${DA_P10_1_C5_WAIT_S} s for 3 lines matching '$GATEWAYD_RX_REGEX' in the Launch Manager's log"
+    c5_end=$(( $(date +%s%N) + ${DA_P10_1_C5_WAIT_S%.*} * 1000000000 ))
+    while :; do
+      hits=$(tail -n +"$((lines_before + 1))" "$LM_LOG" | grep -c -E "$GATEWAYD_RX_REGEX" || true)
+      [ "${hits:-0}" -ge 3 ] && break
+      [ "$(date +%s%N)" -ge "$c5_end" ] && break
+      sleep 0.2
+    done
+    if [ "${hits:-0}" -ge 3 ]; then
       verdict PASS C5_gatewayd_receives_from_asil_b_process "$hits lines match '$GATEWAYD_RX_REGEX' for 3 sends"
     else
-      verdict FAIL C5_gatewayd_receives_from_asil_b_process "$hits lines match '$GATEWAYD_RX_REGEX' for 3 sends"
+      verdict FAIL C5_gatewayd_receives_from_asil_b_process "${hits:-0} lines match '$GATEWAYD_RX_REGEX' for 3 sends" \
+        "within ${DA_P10_1_C5_WAIT_S} s"
     fi
   fi
   bash "$SP/stop_score_side.sh" "$OUT/path"

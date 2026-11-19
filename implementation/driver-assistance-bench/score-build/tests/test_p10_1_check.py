@@ -75,7 +75,8 @@ def setup(tmp_path: Path, binaries: dict):
     s["env"].update({"DA_P10_1_LATE_WAIT_S": "0.5", "DA_P10_1_CUDA_RUNS": "5", "DA_P10_1_ALIVE_HOLD_S": "1",
                      "DA_P10_1_STALL_HOLD_S": "2", "DA_P10_1_SUPERVISED_WAIT_S": "10", "DA_INJECT_LEAD_IN_S": "0.2",
                      "DA_INJECT_TAIL_S": "0.1", "DA_TEST_SINK_FILE": str(tmp_path / "sent.hex")})
-    for key in ("DA_P10_1_CARLA_HOST", "GATEWAYD_RX_REGEX", "DA_STUB_GATEWAYD_LINE", "FAKE_ORT_MS",
+    for key in ("DA_P10_1_CARLA_HOST", "GATEWAYD_RX_REGEX", "DA_STUB_GATEWAYD_LINE", "DA_STUB_GATEWAYD_PER_SEND",
+                "DA_P10_1_C5_WAIT_S", "FAKE_ORT_MS",
                 "DA_CAMERA_CALIBRATION_DIR"):
         s["env"].pop(key, None)
     yield s
@@ -176,6 +177,26 @@ def test_a_slow_cuda_pass_fails(setup: dict, tmp_path: Path) -> None:
     assert v["C6"][0] == "PASS"  # the first pass may be slow
     rc, v, _ = run_check(setup, tmp_path / "out2", FAKE_ORT_MS="150,140")
     assert rc == 1 and v["C6"][0] == "FAIL" and "worst of 4 later passes 420.0 ms" in v["C6"][1]
+
+
+def test_c5_waits_within_its_bound_for_a_late_third_receive_line(setup: dict, tmp_path: Path) -> None:
+    # under load the third receive line came later than the old fixed 1 s wait, and C5 FAILed falsely (f67241db,
+    # bench_unit); the stub gatewayd prints one line per send, the third 2.5 s after it
+    rc, v, stdout = run_check(setup, tmp_path / "out", GATEWAYD_RX_REGEX="fake gatewayd forwarded",
+                              DA_STUB_GATEWAYD_LINE="fake gatewayd forwarded 0x4df1",
+                              DA_STUB_GATEWAYD_PER_SEND="0,0,2.5")
+    assert v["C5"][0] == "PASS", v["C5"]
+    assert "3 lines match 'fake gatewayd forwarded' for 3 sends" in v["C5"][1]
+    assert "C5: up to 5 s for 3 lines matching" in stdout       # the bound is logged
+
+
+def test_c5_fails_after_its_bound_when_the_third_receive_line_never_comes(setup: dict, tmp_path: Path) -> None:
+    rc, v, stdout = run_check(setup, tmp_path / "out", GATEWAYD_RX_REGEX="fake gatewayd forwarded",
+                              DA_STUB_GATEWAYD_LINE="fake gatewayd forwarded 0x4df1",
+                              DA_STUB_GATEWAYD_PER_SEND="0,0,-")
+    assert rc == 1 and v["C5"][0] == "FAIL", v["C5"]
+    assert "2 lines match 'fake gatewayd forwarded' for 3 sends within 5 s" in v["C5"][1]
+    assert "C5: up to 5 s for 3 lines matching" in stdout
 
 
 def test_a_silent_gatewayd_fails(setup: dict, tmp_path: Path) -> None:
