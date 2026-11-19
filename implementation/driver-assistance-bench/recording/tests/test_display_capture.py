@@ -129,19 +129,24 @@ def test_capture_brackets_each_recording_with_the_guest_clock(tmp_path: Path, en
     assert "no audio capture" in cap["sound"]
 
 
-def test_a_stop_during_a_segments_pull_starts_no_new_segment(tmp_path: Path, env: dict[str, str]) -> None:
-    """The stop comes after a segment ended by its time limit, while its file is pulled (the race window of the
-    flaky run on x86): no new segment starts, and the last segment says truly how it ended."""
+@pytest.mark.parametrize("window", ["poll", "pull"])
+def test_a_stop_after_a_segments_time_limit_starts_no_new_segment(tmp_path: Path, env: dict[str, str],
+                                                                   window: str) -> None:
+    """The stop comes just after a segment reached its time limit: at the poll that finds it ended (before its end
+    marker) or while its file is pulled (after it). Those are the windows of the flaky run on x86. No new segment
+    starts, and the last segment says truly how it ended."""
     out = tmp_path / "cap"
     limits = tmp_path / "limits"
     limits.mkdir()
     (limits / "limit_1").touch()
     fake = Path(env["FAKE_ADB_DIR"])
-    env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits), FAKE_HOLD_PULL="1:%s" % (out / "STOP"))
+    held = {"poll": lambda c: any("kill -0 4000" in a for a in c),
+            "pull": lambda c: "pull" in c and c[-1].endswith("/seg_1.mp4")}[window]
+    env = dict(env, SEGMENT_S="1", FAKE_LIMIT_DIR=str(limits))
+    env["FAKE_HOLD_" + window.upper()] = "1:%s" % (out / "STOP")   # the held call answers once the stop came
     p = subprocess.Popen(["bash", str(CAPTURE), "start", str(out), "--max-s", "30"], env=env,
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    wait_until("pull of the first segment",
-               lambda: any("pull" in c and c[-1].endswith("/seg_1.mp4") for c in calls(fake)), p)
+    wait_until("the held call", lambda: any(held(c) for c in calls(fake)), p)
     stop = subprocess.run(["bash", str(CAPTURE), "stop", str(out), "--wait-s", "30"], env=env, capture_output=True,
                           text=True, timeout=60)
     log, _ = p.communicate(timeout=60)

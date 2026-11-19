@@ -11,6 +11,8 @@ Knobs that let a test order the events itself, with no reliance on the host's sp
                       exists, not after --time-limit seconds of this host's clock
   FAKE_HOLD_PULL      "<n>:<path>": the pull of seg_<n>.mp4 returns only once <path> exists (at most 60 s), as a
                       long pull of a large segment during which a stop request comes
+  FAKE_HOLD_POLL      "<n>:<path>": a poll (kill -0) of the n-th recording answers only once <path> exists (at most
+                      60 s), as a stop request that comes just when the recording reaches its time limit
   FAKE_CALL_DELAY_S   every call takes this much longer (a loaded host)
 """
 import fcntl
@@ -27,11 +29,19 @@ argv = sys.argv[1:]
 with open(os.path.join(D, "calls.log"), "a") as f:
     f.write(json.dumps([round(time.time(), 4)] + argv) + "\n")
 time.sleep(float(os.environ.get("FAKE_CALL_DELAY_S", "0")))
-HOLD = os.environ.get("FAKE_HOLD_PULL", "")
-if HOLD and "pull" in argv and any(a.endswith("/seg_%s.mp4" % HOLD.split(":", 1)[0]) for a in argv):
-    until = time.time() + 60
-    while not os.path.exists(HOLD.split(":", 1)[1]) and time.time() < until:
-        time.sleep(0.01)
+
+
+def hold(knob, matches):
+    """Wait, before the call is answered, until the knob's file exists (at most 60 s)."""
+    v = os.environ.get(knob, "")
+    if v and matches(v.split(":", 1)[0]):
+        until = time.time() + 60
+        while not os.path.exists(v.split(":", 1)[1]) and time.time() < until:
+            time.sleep(0.01)
+
+
+hold("FAKE_HOLD_PULL", lambda n: "pull" in argv and any(a.endswith("/seg_%s.mp4" % n) for a in argv))
+hold("FAKE_HOLD_POLL", lambda n: any(re.search(r"kill -0 %d\b" % (3999 + int(n)), a) for a in argv))
 lockf = open(SF + ".lock", "a")
 fcntl.flock(lockf, fcntl.LOCK_EX)
 st = json.load(open(SF)) if os.path.exists(SF) else {"offset": float(os.environ.get("FAKE_GUEST_OFFSET", "0.25")),
