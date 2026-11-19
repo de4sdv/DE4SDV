@@ -31,6 +31,7 @@ TESTS = ROOT / "app" / "tests" / "org" / "de4sdv" / "collisionwarning"
 JVM = HERE / "jvm"
 MODEL_CLASSES = [
     "PresentationTimeline.java",
+    "RecordWriter.java",
     "ScreenText.java",
     "WarningRecord.java",
     "WarningRequestReducer.java",
@@ -100,8 +101,8 @@ def test_the_jvm_tests_run_and_pass(tmp_path):
     print(ran.stdout)
     assert ran.returncode == 0, ran.stdout + ran.stderr
     assert f"RESULT run={expected} failed=0" in ran.stdout
-    # 9 reducer + 6 record + 7 timeline + 5 tone and screen text: a deleted test fails here.
-    assert expected == 27
+    # 9 reducer + 6 record + 3 record writer + 7 timeline + 5 tone and screen text: a deleted test fails here.
+    assert expected == 30
 
 
 @needs_jdk
@@ -119,3 +120,56 @@ def test_the_stand_ins_are_not_part_of_the_app():
     assert not list((ROOT / "app").rglob("stubs"))
     staging = (ROOT / "scripts" / "stage_ivi_warning_app.sh").read_text(encoding="utf-8")
     assert "tests/jvm" not in staging
+
+
+@needs_jdk
+def test_the_activity_shows_before_the_sound_fetches_no_last_message_and_appends_its_record(tmp_path):
+    """MainActivity against the recording stand-ins (tests/jvm/harness/ActivityHarness.java).
+
+    Pins the two behaviors of 7201198a and the record of R11/R13:
+    * the subscription asks for no last-message fetch (fetchLastMessageOnSubscribe=false): after the
+      restart before a window, a retained true of an earlier run must not start a warning;
+    * on a first true the screen change is posted to the FRONT of the UI queue BEFORE play() starts the
+      sound; on the false that follows the clear is posted to the front and no sound starts;
+    * the record file is appended to (an earlier run's line stays) and each start writes a lifecycle
+      line with its pid; the lines are written by the record writer, so they are all there after
+      onDestroy.
+    """
+    classes = tmp_path / "classes"
+    files = tmp_path / "files"
+    files.mkdir()
+    (files / "warning.jsonl").write_text('{"event":"earlier_run"}\n')
+    sources = [*sorted((JVM / "stubs").rglob("*.java")), *(SRC / n for n in MODEL_CLASSES + ANDROID_CLASSES),
+               JVM / "harness" / "org" / "de4sdv" / "collisionwarning" / "ActivityHarness.java"]
+    compiled = _javac(classes, sources)
+    assert compiled.returncode == 0, compiled.stdout + compiled.stderr
+    ran = subprocess.run(
+        [str(JDK / "java"), f"-Dde4sdv.test.files={files}", "-cp", str(classes), "org.de4sdv.collisionwarning.ActivityHarness"],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert ran.returncode == 0, ran.stdout + ran.stderr
+    out = dict(line.split(" ", 1) for line in ran.stdout.splitlines() if " " in line)
+    assert out["SUBSCRIBE"] == "gateway:subscribe unit=de4sdv-driving-warning-request fetchLastMessageOnSubscribe=false"
+    assert out["START"] == "[main:front, sound:play]", "the screen first, at the front of the queue, then the sound"
+    assert out["CLEAR"] == "[main:front]"
+    assert "DONE" in ran.stdout
+    lines = (files / "warning.jsonl").read_text().splitlines()
+    assert lines[0] == '{"event":"earlier_run"}', "the record is appended to, never truncated"
+    starts = [l for l in lines if '"event":"lifecycle"' in l and '"phase":"start"' in l]
+    assert len(starts) == 1 and '"pid":4242' in starts[0]
+    receipts = [l for l in lines if '"event":"receipt"' in l]
+    assert [('"verdict":"START"' in r, '"verdict":"CLEAR"' in r) for r in receipts] == [(True, False), (False, True)]
+    assert any('"phase":"stop"' in l for l in lines)
+
+
+def test_the_manifest_absorbs_the_configuration_changes_of_an_aaos_display():
+    manifest = (ROOT / "app" / "AndroidManifest.xml").read_text(encoding="utf-8")
+    changes = re.search(r'android:configChanges="([^"]+)"', manifest).group(1).split("|")
+    for change in ("orientation", "screenSize", "smallestScreenSize", "screenLayout", "keyboardHidden", "uiMode", "density"):
+        assert change in changes, change
+
+
+def test_a_sound_timestamp_older_than_the_requests_play_is_ignored():
+    sound = (SRC / "WarningSound.java").read_text(encoding="utf-8")
+    assert "stamp.framePosition > 0 && stamp.nanoTime >= tPlay" in sound
+    assert sound.index("final long tPlay = System.nanoTime();") < sound.index("track.play();")

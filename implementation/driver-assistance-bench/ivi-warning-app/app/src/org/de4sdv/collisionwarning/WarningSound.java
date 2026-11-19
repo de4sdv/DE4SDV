@@ -10,7 +10,8 @@
 // What is logged per request, each once (PresentationTimeline):
 //   sound_play_called  the IVI monotonic time just before AudioTrack.play();
 //   sound_head_moved   the first poll (every POLL_MS) that sees the playback head past frame 0;
-//   sound_timestamp    the first AudioTrack.getTimestamp() past frame 0: presented_mono_ns is the
+//   sound_timestamp    the first AudioTrack.getTimestamp() past frame 0 whose time is not before this
+//                      request's play() (a stamp of the previous request is ignored): presented_mono_ns is the
 //                      IVI monotonic time at which frame frame_position was presented, and
 //                      start_estimate_mono_ns that time minus frame_position at SAMPLE_RATE.
 // Whether getTimestamp() answers for a static track on the Cuttlefish IVI, and how close any of
@@ -107,8 +108,8 @@ final class WarningSound {
             return;
         }
         playing = request;
+        final long tPlay = System.nanoTime();
         try {
-            final long tPlay = System.nanoTime();
             track.play();
             if (timeline.mark(PresentationTimeline.Mark.SOUND_PLAY, request)) {
                 listener.onSoundMark(PresentationTimeline.Mark.SOUND_PLAY, request, tPlay);
@@ -140,7 +141,9 @@ final class WarningSound {
                                     "head_position", track.getPlaybackHeadPosition());
                         }
                     }
-                    if (!timestamp && track.getTimestamp(stamp) && stamp.framePosition > 0) {
+                    // After pause() and reloadStaticData() the platform can still answer with the
+                    // previous request's stamp: only a stamp at or after this request's play() counts.
+                    if (!timestamp && track.getTimestamp(stamp) && stamp.framePosition > 0 && stamp.nanoTime >= tPlay) {
                         timestamp = true;
                         final long startEstimate = stamp.nanoTime
                                 - stamp.framePosition * 1_000_000_000L / WarningTone.SAMPLE_RATE;

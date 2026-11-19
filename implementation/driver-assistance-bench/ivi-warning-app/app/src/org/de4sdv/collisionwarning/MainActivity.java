@@ -14,7 +14,9 @@
 // the screen change is posted to the front of the UI queue.
 //
 // Records: one JSONL line per event in files/warning.jsonl and the same line in logcat under
-// DE4SDV_COLLISION_WARNING (WarningRecord). The events:
+// DE4SDV_COLLISION_WARNING (WarningRecord). The file is appended to, never truncated, and written by
+// RecordWriter's own thread: no file I/O on the UI thread or in front of play(). Each start of the
+// activity writes a lifecycle start line with the process id. The events:
 //   lifecycle            start, configuration, link changes, stop
 //   receipt              every message read: seq, requested, issue_time_sim_ms, verdict, request
 //   display_drawn        the first onDraw with the warning of a request
@@ -28,15 +30,12 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Process;
 import android.util.Log;
 import android.view.WindowManager;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.nio.charset.StandardCharsets;
 
 public final class MainActivity extends Activity
         implements WarningRequestSubscriber.Sink, WarningView.DrawListener, WarningSound.Listener {
@@ -58,7 +57,7 @@ public final class MainActivity extends Activity
     private WarningView view;
     private WarningSound sound;
     private WarningRequestSubscriber subscriber;
-    private BufferedWriter record;
+    private volatile RecordWriter record;
 
     private final Runnable statusTick = new Runnable() {
         @Override
@@ -82,13 +81,13 @@ public final class MainActivity extends Activity
 
         try {
             final File file = new File(getFilesDir(), WarningRecord.FILE);
-            record = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(file, false), StandardCharsets.UTF_8));
-            Log.i(TAG, "record file " + file.getAbsolutePath());
+            record = new RecordWriter(file, (what, error) -> Log.e(TAG, "record " + what + " failed", error));
+            Log.i(TAG, "record file " + file.getAbsolutePath() + " (appended)");
         } catch (IOException error) {
             Log.e(TAG, "cannot open the record file", error);
         }
 
-        record("lifecycle", "phase", "start",
+        record("lifecycle", "phase", "start", "pid", Process.myPid(),
                 "subject", WarningRequestSubscriber.SUBJECT_PACKAGE + "." + WarningRequestSubscriber.SUBJECT_BUNDLE,
                 "message", WarningRequestSubscriber.MESSAGE_NAME,
                 "publisher", WarningRequestSubscriber.PUBLISHER_PACKAGE + "." + WarningRequestSubscriber.PUBLISHER_BUNDLE,
@@ -222,30 +221,20 @@ public final class MainActivity extends Activity
         recordAt(System.nanoTime(), realNowNs(), event, keyValues);
     }
 
-    private synchronized void recordAt(long monoNs, long realNs, String event, Object... keyValues) {
+    // Any thread: the line is formatted here and handed to the writer thread.
+    private void recordAt(long monoNs, long realNs, String event, Object... keyValues) {
         Log.i(TAG, WarningRecord.logcat(monoNs, realNs, event, keyValues));
-        if (record == null) {
-            return;
-        }
-        try {
-            record.write(WarningRecord.json(monoNs, realNs, event, keyValues));
-            record.write('\n');
-            record.flush();
-        } catch (IOException error) {
-            Log.e(TAG, "record write failed", error);
+        final RecordWriter writer = record;
+        if (writer != null) {
+            writer.write(WarningRecord.json(monoNs, realNs, event, keyValues));
         }
     }
 
-    private synchronized void closeRecord() {
-        if (record == null) {
-            return;
-        }
-        try {
-            record.close();
-        } catch (IOException error) {
-            Log.w(TAG, "record close failed", error);
-        } finally {
-            record = null;
+    private void closeRecord() {
+        final RecordWriter writer = record;
+        record = null;
+        if (writer != null) {
+            writer.close();
         }
     }
 }

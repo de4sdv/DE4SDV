@@ -85,16 +85,19 @@ def test_guest_groups_are_removed_only_when_asked_and_stopped_at_the_end():
     assert len(down) == 1
     assert code.rfind("fresh)", 0, down[0]) > code.rfind("case \"$GUESTS\" in", 0, down[0]) > 0
     assert re.search(r'"\$c" --group_name="\$g" stop', code)
-    assert "( stop_guests ) || exit 1" in code and "trap on_exit EXIT" in code
+    assert "run_step stop_guests || exit 1" in code and "trap on_exit EXIT" in code
     assert "in_user_unit && die" in code
 
 
 def test_the_selinux_mode_changes_only_when_asked():
     code = _code(TEXT)
-    assert code.count("setenforce") == 1
-    index = code.index("setenforce")
+    commands = re.sub(r'"[^"\n]*"', '""', code)  # messages may name it; one command may run it
+    assert commands.count("setenforce") == 1
+    index = code.index("shell setenforce 0")
     assert 'if [ "$IVI_PERMISSIVE" = 1 ]; then' in code[max(0, index - 200):index]
-    assert "setenforce" not in _code(APP_TEXT)
+    assert "setenforce" not in re.sub(r'"[^"\n]*"', '""', _code(APP_TEXT))
+    # R9: a permissive run must read back Permissive, or the step dies
+    assert '[ "$(adb_t -s "$IVI_ADB" shell getenforce | tr -d \'\\r\')" = Permissive ] || die' in code
 
 
 # ------------------------------------------------------------------ stand-in tree
@@ -149,6 +152,17 @@ class Tree:
             for image in IMAGES:
                 (out / image).write_text(image)
         self.calls.write_text("")
+        # B12's image records for the stand-in images (the committed ones name the real images).
+        self.records = tmp / "records"
+        self.records.mkdir()
+        self.ivi_record = self.records / "sdv_ivi_cf.sha256"
+        self.core_record = self.records / "sdv_core_cf.sha256"
+        self.write_records()
+
+    def write_records(self) -> None:
+        for out, record in ((self.ivi_out, self.ivi_record), (self.core_out, self.core_record)):
+            record.write_text(subprocess.run(["sha256sum", *IMAGES], cwd=out, capture_output=True, text=True,
+                                             check=True).stdout)
 
     def env(self) -> dict:
         env = {k: v for k, v in os.environ.items() if not k.startswith(("RECORDED_", "VARIANT", "IVI_VARIANT"))}
@@ -158,6 +172,8 @@ class Tree:
             FAKE_APK=str(self.ivi_out / "vendor" / "priv-app" / "De4sdvCollisionWarningPresentation"
                          / "De4sdvCollisionWarningPresentation.apk"),
             DE4SDV_ROOT=str(self.tmp / "none"),
+            IVI_IMAGE_RECORD=str(self.ivi_record), CORE_IMAGE_RECORD=str(self.core_record),
+            B12_CGROUP_FILE=str(self.tmp / "no-cgroup"),
         )
         return env
 
@@ -288,3 +304,9 @@ def test_ivi_builds_the_app_module_only_and_leaves_the_images(tmp_path):
     assert (staged / "app" / "src" / "google" / "sdv" / "gateway" / "client" / "SdvGatewayClient.java").is_file()
     assert not list(staged.rglob("stubs"))
     assert "images unchanged by the module build" in ran.stdout
+
+
+def test_the_tree_jvm_run_names_every_test_class_of_the_app():
+    tests = sorted(p.stem for p in (DA / "ivi-warning-app" / "app" / "tests" / "org" / "de4sdv" / "collisionwarning").glob("*Test.java"))
+    named = sorted(set(re.findall(r"org\.de4sdv\.collisionwarning\.(\w+Test)\b", TEXT)))
+    assert named == tests

@@ -4,8 +4,9 @@
 # On top of the kept AOSP tree of 2026-11-17 (its guests archived in
 # phase10/aaos-build/archive-records/), never a rebuild from scratch:
 #
-#   preflight  read-only: the tree, both products' recorded variants, the kept images, the disk,
-#              this branch's files, the bench's launch script, no build running
+#   preflight  read-only: the tree, both products' recorded variants, the kept images against B12's
+#              own image records (image-records/; never the kit's stale state/images-*.sha256), the
+#              disk, this branch's files, the bench's launch script, no build running
 #   core       the SDV Core side of B11 (../ivi-warning/): detect it, and only when it is missing
 #              stage it with the bench's staging tool (validate: stage + the catalog build G1b) and
 #              rebuild the core image with a plain incremental m (sdv_core_cf-cp2a-eng)
@@ -16,7 +17,9 @@
 #   verify     start the app; the app is installed, initComms through the gateway succeeded,
 #              the SDV Core VM carries 0x4df1 beside 0x4dee and 0x4df0
 #   stop       cvd stop both groups (disks kept), no crosvm left: before any host stop
-#   all        every step in this order; on a failure after boot the guests are stopped
+#   all        every step in this order; on a failure or a signal (HUP, INT, TERM) once boot has
+#              begun, the guests are stopped. Run it detached with b12_launch.sh (setsid nohup), never
+#              under systemd-run and never in an SSH foreground that a dropped connection ends.
 #
 # Rules it keeps (phase10/aaos-build BUILD-PLAN, the variant trap):
 #   * a product is built only with its recorded variant (core eng, IVI userdebug); another variant
@@ -24,7 +27,12 @@
 #   * no installclean, no clean, no deletion of the AOSP tree, its out/ directory or the archive;
 #     the only directory it replaces is the app's own staging directory in samples/;
 #   * no VM start or stop, no gcloud, no push, no commit. It changes the SELinux mode only when
-#     IVI_PERMISSIVE=1 is set, and records the mode either way.
+#     IVI_PERMISSIVE=1 is set, and records the mode either way. Under the default (Enforcing) a
+#     failed Gateway lookup stops the run and prints the rerun command with IVI_PERMISSIVE=1 (the
+#     owner allowed that fallback on 2026-11-18; its results are conditional on a permissive IVI);
+#   * its own files go to $AB/b12-<date>/{logs,identity,work}, never into the kit's identity/ or logs/;
+#     a B12_DIR, LOGS, IDENT or WORK inside them is refused (exit 2);
+#   * every adb call is bounded (ADB_TIMEOUT_S), so a wedged adb fails the step instead of hanging.
 #
 # Idempotent: every step detects what is already there. The SDV Core detection, exactly:
 #   tree  = the stack config the bench's render makes from ../ivi-warning/interop/vsomeip_config.json
@@ -39,10 +47,16 @@ HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 DA_ROOT="$(cd -- "$HERE/.." && pwd)"
 
 : "${AB:=$HOME/aaos-build}"
-: "${LOGS:=$AB/logs}"
-: "${IDENT:=$AB/identity}"
-: "${STATE:=$AB/state}"
-: "${WORK:=$AB/b12}"
+# B12's own directory: never the 2026-11-17 kit's identity/ or logs/ (b12_launch.sh sets one per run).
+: "${B12_DIR:=$AB/b12-$(date -u +%Y%m%d)}"
+: "${LOGS:=$B12_DIR/logs}"
+: "${IDENT:=$B12_DIR/identity}"
+: "${WORK:=$B12_DIR/work}"
+# B12's own image records (image-records/README is in ../README.md): the IVI images as they are since
+# the first boot of 2026-11-17 rewrote super.img in place (91a4d73f...), and the 27 core images of the
+# 2026-11-18 B11 build. The kit's state/images-*.sha256 are stale and are never read.
+: "${IVI_IMAGE_RECORD:=$HERE/image-records/sdv_ivi_cf.sha256}"
+: "${CORE_IMAGE_RECORD:=$HERE/image-records/sdv_core_cf.sha256}"
 : "${AOSP_TOP:=$HOME/aosp}"
 : "${DE4SDV_ROOT:=$HOME/de4sdv-e8fa324a}"   # the bench scripts of the 2026-11-17 rebuild (launch_two_vms.sh)
 : "${CORE_PRODUCT:=sdv_core_cf}"
@@ -56,6 +70,9 @@ DA_ROOT="$(cd -- "$HERE/.." && pwd)"
 : "${GUESTS:=}"                          # fresh | reuse, when guest groups already exist (see boot)
 : "${IVI_PERMISSIVE:=0}"
 : "${KEEP_GUESTS_ON_FAILURE:=0}"
+: "${ADB_TIMEOUT_S:=120}"                # one adb call; a wedged adb is a failure, not a hang
+: "${CVD_STOP_TIMEOUT_S:=300}"
+: "${VERIFY_WAIT_S:=60}"                 # how long verify waits for the app's initComms line
 export AOSP_TOP
 export PATH="$HOME/bin:$PATH"
 AOSP_HOST_OUT="$AOSP_TOP/out/host/linux-x86"
@@ -80,7 +97,26 @@ BROKER_ACL="$SAMPLES/some_ip/config/broker_apex/someip_acl.textproto"
 SUMMARY="$IDENT/b12-summary.txt"
 BOOTED_MARK="$WORK/guests-booted-by-this-run"
 
-mkdir -p "$LOGS" "$IDENT" "$STATE" "$WORK"
+# Never into the 2026-11-17 kit's own folders: refuse B12_DIR, LOGS, IDENT or WORK at or under
+# $AB/logs or $AB/identity (exit 2, before anything is created).
+inside_kit_dirs() { # <path> -> 0 when it is $AB/logs, $AB/identity or below one of them
+  local path kit
+  path="$(realpath -m -- "$1")"
+  for kit in "$AB/logs" "$AB/identity"; do
+    kit="$(realpath -m -- "$kit")"
+    case "$path/" in "$kit/"*) return 0 ;; esac
+  done
+  return 1
+}
+for _var in B12_DIR LOGS IDENT WORK; do
+  if inside_kit_dirs "${!_var}"; then
+    printf '%s [b12] ERROR: %s=%s is inside the 2026-11-17 kit'"'"'s logs/ or identity/ under %s; B12 writes only below its own B12_DIR (default %s)\n' \
+      "$(date -u +%FT%T.%3NZ)" "$_var" "${!_var}" "$AB" "$AB/b12-<date>"
+    exit 2
+  fi
+done
+unset _var
+mkdir -p "$LOGS" "$IDENT" "$WORK"
 
 ts() { date -u +%FT%T.%3NZ; }
 log() { printf '%s [b12] %s\n' "$(ts)" "$*"; }
@@ -88,6 +124,7 @@ die() { log "ERROR: $*"; exit 1; }
 run() { log "+ $*"; local rc=0; "$@" || rc=$?; log "  rc=$rc"; return "$rc"; }
 note() { printf '%s %s\n' "$(ts)" "$*" >> "$SUMMARY"; log "$*"; }
 step_log() { exec > >(tee -a "$LOGS/b12-$1.log") 2>&1; log "=== step $1 (pid $$, host $(hostname), branch files $DA_ROOT)"; }
+adb_t() { timeout "$ADB_TIMEOUT_S" "$ADB" "$@"; }
 ids() { python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(eval(sys.argv[2], {}, {'d': d}))" "$IDS" "$1"; }
 
 UNIT="$(ids "d['icd']['data_tunnel']['service_unit']")"
@@ -139,7 +176,7 @@ image_stat() { # <product out>: name size mtime per image, the cheap identity of
 }
 
 crosvm_count() { pgrep -c -x crosvm 2>/dev/null || true; }
-in_user_unit() { grep -qE 'user@[0-9]+\.service/.*\.service' /proc/self/cgroup 2>/dev/null; }
+in_user_unit() { grep -qE 'user@[0-9]+\.service/.*\.service' "${B12_CGROUP_FILE:-/proc/self/cgroup}" 2>/dev/null; }
 
 cvd_bin() {
   if [ -n "$CVD" ]; then printf '%s' "$CVD"
@@ -158,12 +195,18 @@ for g in fleet.get("groups", []):
     for i in g.get("instances", []):
         if str(i.get("instance_name")) == sys.argv[1]:
             print(g.get("group_name", "")); raise SystemExit(0)
-' "$1"
+' "$1" || true
 }
 
 booted() { # <serial>
-  "$ADB" connect "$1" >/dev/null 2>&1 || true
-  [ "$("$ADB" -s "$1" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]
+  adb_t connect "$1" >/dev/null 2>&1 || true
+  [ "$(adb_t -s "$1" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = 1 ]
+}
+
+# The images of <product out> against a B12 image record (names relative to the product directory).
+check_image_record() { # <product out> <record> -> 0 when every listed image matches
+  [ -s "$2" ] || { log "no B12 image record at $2"; return 1; }
+  ( cd "$1" && sha256sum --quiet --strict -c "$2" )
 }
 
 wait_booted() { # <serial> <seconds>
@@ -219,11 +262,14 @@ preflight() {
     images_present "$AOSP_TOP/out/target/product/${p%%:*}" || die "${p%%:*}: kept images missing (restore from the archive, do not rebuild)"
     note "${p%%:*}: last built ${p##*:}, images present"
   done
-  # The recipe's digests of the archived IVI images, when they are there: the module build must start from them.
-  if [ -f "$STATE/images-$IVI_PRODUCT.sha256" ]; then
-    sha256sum --quiet -c "$STATE/images-$IVI_PRODUCT.sha256" || die "the IVI images differ from the recipe's recorded digests"
-    note "$IVI_PRODUCT images equal the recorded digests ($STATE/images-$IVI_PRODUCT.sha256)"
-  fi
+  # B12's own image records, never the kit's state/images-*.sha256 (stale since the first boot of
+  # 2026-11-17 rewrote the IVI super.img in place, and since the core build of 2026-11-18).
+  check_image_record "$IVI_OUT" "$IVI_IMAGE_RECORD" \
+    || die "the IVI images differ from the B12 record $IVI_IMAGE_RECORD (or it is missing): stop, do not build"
+  note "$IVI_PRODUCT images equal the B12 record ($(wc -l < "$IVI_IMAGE_RECORD") images, $IVI_IMAGE_RECORD)"
+  check_image_record "$CORE_OUT" "$CORE_IMAGE_RECORD" \
+    || die "the core images differ from the B12 record $CORE_IMAGE_RECORD (or it is missing): stop, do not build"
+  note "$CORE_PRODUCT images equal the B12 record ($(wc -l < "$CORE_IMAGE_RECORD") images, $CORE_IMAGE_RECORD)"
   local free; free="$(df -B1G --output=avail / | tail -1 | tr -d ' ')"
   [ "$free" -ge "$BUILD_MIN_FREE_GB" ] || die "disk free ${free} G < ${BUILD_MIN_FREE_GB} G"
   note "disk free ${free} G"
@@ -237,6 +283,7 @@ core() {
   step_log core
   if core_image_has_b11; then
     note "core: tree and image already carry B11 ($WARNING_SERVICE, unit $UNIT): nothing to build"
+    core_image_identity
     return 0
   fi
   [ "$(crosvm_count)" = 0 ] || die "guests are running; stop them (cvd stop) before the core image is rebuilt under them"
@@ -255,9 +302,22 @@ core() {
     || die "core image build failed (log $LOGS/b12-core.m.log; the failing step follows the first FAILED: in out/siso_output)"
   images_present "$CORE_OUT" || die "core images missing after the build"
   core_image_has_b11 || die "core built, but the image detection fails"
+  note "core: rebuilt"
+  core_image_identity
+  note "core: the B12 core record no longer applies to the rebuilt images; the next preflight needs CORE_IMAGE_RECORD=$IDENT/b12-core-images.sha256"
+}
+
+# The core images this run boots, in the identity, and whether they are the recorded ones.
+core_image_identity() {
   image_stat "$CORE_OUT" > "$IDENT/b12-core-images.stat"
-  sha256sum "$CORE_OUT/super.img" "$CORE_OUT/vbmeta.img" > "$IDENT/b12-core-images.sha256"
-  note "core: rebuilt; images in $IDENT/b12-core-images.sha256"
+  ( cd "$CORE_OUT" && sha256sum $(awk '{print $2}' "$CORE_IMAGE_RECORD" 2>/dev/null || echo super.img vbmeta.img) ) \
+    > "$IDENT/b12-core-images.sha256" || die "cannot hash the core images"
+  note "core: super.img $(awk '$2 ~ /super.img$/ {print $1}' "$IDENT/b12-core-images.sha256"), vbmeta.img $(awk '$2 ~ /vbmeta.img$/ {print $1}' "$IDENT/b12-core-images.sha256") ($IDENT/b12-core-images.sha256)"
+  if check_image_record "$CORE_OUT" "$CORE_IMAGE_RECORD" >/dev/null 2>&1; then
+    note "core: the images equal the B12 record (the operator's B11 build of 2026-11-18, $CORE_IMAGE_RECORD)"
+  else
+    note "core: the images differ from the B12 record $CORE_IMAGE_RECORD"
+  fi
 }
 
 ivi() {
@@ -269,13 +329,15 @@ ivi() {
     bash "$APP_STAGE" build || die "app build failed (log $WORK/app/warning-app-build.log)"
   image_stat "$IVI_OUT" > "$WORK/ivi-images.after"
   cmp -s "$WORK/ivi-images.before" "$WORK/ivi-images.after" || die "the IVI images changed during the module build (installclean?)"
-  note "ivi: images unchanged by the module build"
+  check_image_record "$IVI_OUT" "$IVI_IMAGE_RECORD" || die "the IVI images no longer equal the B12 record after the module build"
+  note "ivi: images unchanged by the module build (stat and the B12 record)"
   local jar java="$AOSP_TOP/prebuilts/jdk/jdk21/linux-x86/bin/java"
   jar="$(find "$AOSP_TOP/out/soong/.intermediates/system/software_defined_vehicle/samples/de4sdv_collision_warning/app/De4sdvCollisionWarningPresentationTests" \
     -name 'De4sdvCollisionWarningPresentationTests.jar' -path '*combined*' 2>/dev/null | head -1 || true)"
   if [ -n "$jar" ] && [ -x "$java" ]; then
     run "$java" -cp "$jar" org.junit.runner.JUnitCore \
       org.de4sdv.collisionwarning.WarningRequestReducerTest org.de4sdv.collisionwarning.WarningRecordTest \
+      org.de4sdv.collisionwarning.RecordWriterTest \
       org.de4sdv.collisionwarning.PresentationTimelineTest org.de4sdv.collisionwarning.WarningToneAndScreenTextTest \
       > "$IDENT/b12-app-jvm-tests.txt" 2>&1 || die "the app's JVM tests failed in the tree ($IDENT/b12-app-jvm-tests.txt)"
     note "ivi: JVM tests in the tree: $(grep -E '^OK|^Tests run' "$IDENT/b12-app-jvm-tests.txt" | tail -1)"
@@ -314,72 +376,154 @@ install_app() {
   step_log install
   booted "$IVI_ADB" || die "the IVI VM is not booted"
   run env AOSP_TOP="$AOSP_TOP" ADB="$ADB" IVI_ADB="$IVI_ADB" RECORDED_IVI_VARIANT="$RECORDED_IVI_VARIANT" \
-    RUN_DIR="$WORK/app" bash "$APP_STAGE" install || die "app install failed"
-  cp -f "$WORK/app/ivi-warning-app-identity.txt" "$IDENT/" 2>/dev/null || true
-  note "install: $(grep -E '^apk_guest_sha256' "$WORK/app/ivi-warning-app-identity.txt" 2>/dev/null)"
+    ADB_TIMEOUT_S="$ADB_TIMEOUT_S" RUN_DIR="$WORK/app" bash "$APP_STAGE" install || die "app install failed"
+  local identity="$WORK/app/ivi-warning-app-identity.txt" host_sha guest_sha
+  [ -s "$identity" ] || die "the app install wrote no identity ($identity)"
+  cp -f "$identity" "$IDENT/" || die "cannot copy the app identity into $IDENT"
+  host_sha="$(sed -n 's/^apk_host_sha256: \([0-9a-f]\{64\}\) .*/\1/p' "$identity")"
+  guest_sha="$(sed -n 's/^apk_guest_sha256: \([0-9a-f]\{64\}\)$/\1/p' "$identity")"
+  [ -n "$host_sha" ] && [ "$guest_sha" = "$host_sha" ] \
+    || die "the APK on the IVI VM (${guest_sha:-none}) is not the one built (${host_sha:-none})"
+  note "install: apk sha256 $host_sha on the host and on the IVI VM"
+  { grep -E '^object_policy_' "$identity" || true; } | while IFS= read -r line; do note "install: $line"; done
 }
 
 verify() {
   step_log verify
   booted "$CORE_ADB" || die "the SDV Core VM is not booted"
   booted "$IVI_ADB" || die "the IVI VM is not booted"
-  "$ADB" -s "$CORE_ADB" root >/dev/null 2>&1 || true
-  "$ADB" -s "$IVI_ADB" root >/dev/null 2>&1 || true
-  sleep 3
-  "$ADB" connect "$CORE_ADB" >/dev/null 2>&1 || true
-  "$ADB" connect "$IVI_ADB" >/dev/null 2>&1 || true
+  adb_t -s "$CORE_ADB" root >/dev/null 2>&1 || true
+  adb_t -s "$IVI_ADB" root >/dev/null 2>&1 || true
+  sleep "${ROOT_SETTLE_S:-3}"
+  adb_t connect "$CORE_ADB" >/dev/null 2>&1 || true
+  adb_t connect "$IVI_ADB" >/dev/null 2>&1 || true
   local svc n
   for svc in 4dee 4df0 "${WARNING_SERVICE#0x}"; do
-    n="$("$ADB" -s "$CORE_ADB" shell "grep -c $svc /vendor/etc/someip/vsomeip_config.json" 2>/dev/null | tr -d '\r')"
+    n="$(adb_t -s "$CORE_ADB" shell "grep -c $svc /vendor/etc/someip/vsomeip_config.json" 2>/dev/null | tr -d '\r')" || true
     [ "${n:-0}" -ge 1 ] 2>/dev/null || die "the SDV Core VM's stack config lacks 0x$svc"
   done
   note "verify: the SDV Core VM's stack config carries 0x4dee, 0x4df0, $WARNING_SERVICE"
+  # The broker APEX must name the unit too (the operator's boot check, boot_check.sh).
+  n="$(adb_t -s "$CORE_ADB" shell "grep -c $UNIT /apex/com.android.sdv.someip/etc/vsidl_provider/someip-config.binpb" 2>/dev/null | tr -d '\r')" || true
+  [ "${n:-0}" -ge 1 ] 2>/dev/null || die "the SDV Core VM's broker APEX (someip-config.binpb) does not name $UNIT"
+  note "verify: the broker APEX's someip-config.binpb names $UNIT"
   if [ "$IVI_PERMISSIVE" = 1 ]; then
-    "$ADB" -s "$IVI_ADB" shell setenforce 0
-    note "verify: IVI_PERMISSIVE=1: the IVI VM was set permissive (a condition of every result on this boot)"
+    adb_t -s "$IVI_ADB" shell setenforce 0 || die "setenforce 0 on the IVI VM failed"
+    [ "$(adb_t -s "$IVI_ADB" shell getenforce | tr -d '\r')" = Permissive ] || die "IVI_PERMISSIVE=1, but the IVI VM's getenforce does not read Permissive"
+    note "verify: IVI_PERMISSIVE=1: the IVI VM was set permissive (the owner's fallback of 2026-11-18): every result of this run is conditional on a permissive IVI"
   fi
-  note "verify: SELinux core $("$ADB" -s "$CORE_ADB" shell getenforce | tr -d '\r'), IVI $("$ADB" -s "$IVI_ADB" shell getenforce | tr -d '\r')"
-  run env ADB="$ADB" IVI_ADB="$IVI_ADB" RUN_DIR="$WORK/app" bash "$APP_STAGE" start
-  run env ADB="$ADB" IVI_ADB="$IVI_ADB" RUN_DIR="$WORK/app" bash "$APP_STAGE" verify \
-    || die "the app is not up on the gateway (see the lines above; IVI_PERMISSIVE=1 is the earlier increments' bench condition)"
-  "$ADB" -s "$IVI_ADB" logcat -d -s DE4SDV_COLLISION_WARNING 2>/dev/null | tr -d '\r' > "$IDENT/b12-app-logcat.txt" || true
-  note "verify: app up; its lines in $IDENT/b12-app-logcat.txt"
+  local core_mode ivi_mode
+  core_mode="$(adb_t -s "$CORE_ADB" shell getenforce | tr -d '\r')" || true
+  ivi_mode="$(adb_t -s "$IVI_ADB" shell getenforce | tr -d '\r')" || true
+  note "verify: SELinux core ${core_mode:-unknown}, IVI ${ivi_mode:-unknown} (getenforce at run time)"
+  run env ADB="$ADB" IVI_ADB="$IVI_ADB" ADB_TIMEOUT_S="$ADB_TIMEOUT_S" RUN_DIR="$WORK/app" bash "$APP_STAGE" start || true
+  local rc=0
+  env ADB="$ADB" IVI_ADB="$IVI_ADB" ADB_TIMEOUT_S="$ADB_TIMEOUT_S" VERIFY_WAIT_S="$VERIFY_WAIT_S" RUN_DIR="$WORK/app" \
+    bash "$APP_STAGE" verify > "$WORK/app-verify.out" 2>&1 || rc=$?
+  cat "$WORK/app-verify.out"
+  adb_t -s "$IVI_ADB" logcat -d -s DE4SDV_COLLISION_WARNING 2>/dev/null | tr -d '\r' > "$IDENT/b12-app-logcat.txt" || true
+  if [ "$rc" != 0 ]; then
+    if [ "$ivi_mode" = Enforcing ] && grep -q 'initComms did not succeed' "$WORK/app-verify.out"; then
+      note "verify: the app's Gateway lookup (initComms) failed with the IVI VM Enforcing; B12 never sets permissive on its own"
+      note "verify: the owner allowed a permissive IVI as the fallback (2026-11-18); every result of that rerun is conditional on a permissive IVI"
+      note "verify: the rerun command: $(rerun_cmd)"
+      die "the Gateway lookup failed under SELinux Enforcing on the IVI VM; rerun with IVI_PERMISSIVE=1 (the command above)"
+    fi
+    die "the app is not up on the gateway (see the lines above; SELinux IVI ${ivi_mode:-unknown})"
+  fi
+  note "verify: app up (SELinux IVI ${ivi_mode:-unknown}); its lines in $IDENT/b12-app-logcat.txt"
+}
+
+# The command that reruns with a permissive IVI: the caller's own (B12_RERUN_CMD; b12_launch.sh
+# passes one), else `all` again for an `all` run, else `verify` again on the same guests.
+B12_MODE=step
+rerun_cmd() {
+  if [ -n "${B12_RERUN_CMD:-}" ]; then printf '%s' "$B12_RERUN_CMD"
+  elif [ "$B12_MODE" = all ]; then
+    printf 'cd %q && IVI_PERMISSIVE=1 GUESTS=fresh B12_DIR=%q ./build_guests_incremental.sh all' "$HERE" "$B12_DIR-permissive"
+  else
+    printf 'cd %q && IVI_PERMISSIVE=1 B12_DIR=%q ./build_guests_incremental.sh verify' "$HERE" "$B12_DIR"
+  fi
 }
 
 stop_guests() {
   step_log stop
   local inst g c; c="$(cvd_bin)"
+  [ -n "$c" ] || die "no cvd binary: cannot stop the guests; do not stop the host"
   for inst in 2 3; do
     g="$(group_for_instance "$inst")"
-    if [ -n "$g" ]; then run "$c" --group_name="$g" stop || log "WARNING: cvd stop $g returned non-zero"
+    if [ -n "$g" ]; then run timeout "$CVD_STOP_TIMEOUT_S" "$c" --group_name="$g" stop || log "WARNING: cvd stop $g returned non-zero"
     else log "instance $inst: no group"; fi
   done
-  sleep 5
-  "$c" fleet 2>&1 | grep -E '"(group_name|instance_name|status)"' || true
+  sleep "${STOP_SETTLE_S:-5}"
+  timeout 60 "$c" fleet 2>&1 | grep -E '"(group_name|instance_name|status)"' || true
   [ "$(crosvm_count)" = 0 ] || die "crosvm processes left after cvd stop: do not stop the host"
   note "stop: both groups stopped, no crosvm left (disks and provisioning kept)"
 }
 
+# ------------------------------------------------------------------ all, and its failure path
+
+STEP_PID=
+# Each step runs as a child that the shell waits for with the wait builtin, so a signal is handled
+# at once (a foreground child would defer the trap until the step ends).
+run_step() { # <function>
+  ( "$1" ) &
+  STEP_PID=$!
+  local rc=0
+  wait "$STEP_PID" || rc=$?
+  STEP_PID=
+  return "$rc"
+}
+
+kill_tree() { # <pid> <signal>: the pid and every descendant, children first
+  local child
+  for child in $(pgrep -P "$1" 2>/dev/null); do kill_tree "$child" "$2"; done
+  kill -"$2" "$1" 2>/dev/null || true
+}
+
+on_signal() { # <exit code> <name>
+  trap '' HUP INT TERM
+  log "signal $2: ending the run"
+  if [ -n "$STEP_PID" ]; then
+    kill_tree "$STEP_PID" TERM
+    wait "$STEP_PID" 2>/dev/null || true
+    STEP_PID=
+  fi
+  exit "$1"
+}
+
+# Reached on every exit of all except its success (all clears the trap): stop the guests once boot
+# has begun, whatever the exit status.
 on_exit() {
   local rc=$?
-  if [ "$rc" != 0 ] && [ -f "$BOOTED_MARK" ] && [ "$KEEP_GUESTS_ON_FAILURE" != 1 ]; then
-    log "failure after boot (rc $rc): stopping the guests so the host can be stopped safely"
-    ( stop_guests ) || true
+  trap - EXIT
+  trap '' HUP INT TERM
+  [ "$rc" != 0 ] || rc=1
+  if [ -f "$BOOTED_MARK" ] && [ "$KEEP_GUESTS_ON_FAILURE" != 1 ]; then
+    log "the run ends without passing (rc $rc) after boot began: stopping the guests so the host can be stopped safely"
+    ( stop_guests ) || log "ERROR: the guest stop failed: do not stop the host before the guests are stopped"
+  elif [ -f "$BOOTED_MARK" ]; then
+    log "KEEP_GUESTS_ON_FAILURE=1: the guests stay up for a diagnosis; stop them (./build_guests_incremental.sh stop) before the host"
   fi
+  log "B12 FAILED (rc $rc; $SUMMARY)"
   exit "$rc"
 }
 
 all() {
+  B12_MODE=all
   rm -f -- "$BOOTED_MARK"
+  trap 'on_signal 129 HUP' HUP
+  trap 'on_signal 130 INT' INT
+  trap 'on_signal 143 TERM' TERM
   trap on_exit EXIT
-  ( preflight ) || exit 1
-  ( core ) || exit 1
-  ( ivi ) || exit 1
-  ( boot ) || exit 1
-  ( install_app ) || exit 1
-  ( verify ) || exit 1
-  ( stop_guests ) || exit 1
-  trap - EXIT
+  run_step preflight || exit 1
+  run_step core || exit 1
+  run_step ivi || exit 1
+  run_step boot || exit 1
+  run_step install_app || exit 1
+  run_step verify || exit 1
+  run_step stop_guests || exit 1
+  trap - EXIT HUP INT TERM
   log "B12 PASSED ($SUMMARY)"
 }
 

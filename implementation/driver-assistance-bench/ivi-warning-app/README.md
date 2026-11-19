@@ -42,7 +42,11 @@ is not the AEBS visualization of the INC-AEBS-010 increment and sends nothing to
 
 One JSONL line per event in `files/warning.jsonl` of the app, and the same line in logcat under
 `DE4SDV_COLLISION_WARNING`. Every line has `t_mono_ns` (the IVI VM's `CLOCK_MONOTONIC`) and
-`t_real_ns` (the IVI VM's real time, millisecond granularity).
+`t_real_ns` (the IVI VM's real time, millisecond granularity). The file is appended to, never
+truncated: each start of the activity adds a `lifecycle` `start` line with its `pid`, so a
+recreated activity or a restart cannot cut an earlier window's lines. The lines are written by one
+writer thread (`RecordWriter`): the times are taken before the hand-over, and no file write sits on
+the UI thread or in front of `play()`.
 
 | Event | When | Use in the phase 10 probe |
 |---|---|---|
@@ -51,12 +55,19 @@ One JSONL line per event in `files/warning.jsonl` of the app, and the same line 
 | `display_committed` | the frame-commit callback of that frame (submitted to the swap chain) | `since_receipt_ns` is the app's own display figure |
 | `sound_play_called` | just before `AudioTrack.play()` | |
 | `sound_head_moved` | the first 2 ms poll with the playback head past frame 0 | |
-| `sound_timestamp` | the first `AudioTrack.getTimestamp()` past frame 0: `presented_mono_ns`, `start_estimate_mono_ns` | the app's own sound figure, if the platform answers |
+| `sound_timestamp` | the first `AudioTrack.getTimestamp()` past frame 0 and not before this request's `play()`: `presented_mono_ns`, `start_estimate_mono_ns` | the app's own sound figure, if the platform answers |
 | `display_cleared`, `sound_stopped` | the request ended | |
 | `lifecycle`, `status`, `error`, `drop`, `sound_*` | start, link, configuration, counts every 5 s, failures | |
 
 Differences on one clock (`since_receipt_ns`) are safe to quote. The app computes no cross-host
 latency. The guest clock free-runs, so the session sets it immediately before each window.
+
+Two bounds of the receipt time go with the path-share evidence (R9, the publisher's send against
+`receipt`): `t_real_ns` has a resolution of 1 ms (it is `currentTimeMillis`, so it reads up to
+1 ms early), and a read can trail the message's arrival by up to the poll period of 10 ms
+(`POLL_PERIOD_MS`) when the gateway's notification does not wake the subscriber first. The path
+share measured to `receipt` is therefore an upper bound by up to about 10 ms, and its `t_real_ns`
+carries the 1 ms resolution on top of the clock bound.
 
 ## Build and install
 
@@ -66,9 +77,17 @@ of [`../ivi-warning/contract/`](../ivi-warning/contract/) and the tree's Gateway
 to `samples/de4sdv_collision_warning/`, then builds the modules `De4sdvCollisionWarningPresentation`
 and `De4sdvCollisionWarningPresentationTests` with the IVI product's recorded variant
 (`sdv_ivi_cf-cp2a-userdebug`) only. Another variant makes the build system delete the IVI images.
-`install` pushes the subject grant, the broker object policy (merged into the guest's file
-when another subscriber already owns it) and the APK into `/vendor/priv-app`, then reboots the IVI
-VM. [`../guest-build/`](../guest-build/) runs these steps on the guest host.
+`install` pushes the subject grant, the broker object policy and the APK into `/vendor/priv-app`,
+then reboots the IVI VM. Every push is checked: its exit status and the guest copy's sha256 against
+the host file; after the reboot the guest APK's sha256 must equal the built APK's. The broker object
+policy follows the lead's decision 3 for B10 and B12: the script asks the guest whether the file exists
+(`present` or `absent`; any other answer, or a read that fails or is incomplete, stops the
+install), keeps the guest's original as `object-policy.guest.<sha256>.textproto` in the run
+directory without ever overwriting it, appends our blocks only when neither our ACL name nor our
+`include` line is in the file (both there: left as it is; one of them: refused), reads the file back
+after the push, and logs `object_policy_sha256_before`, `object_policy_sha256_after` and every
+appended line, the same lines going into the identity file. Every adb call is bounded by
+`ADB_TIMEOUT_S` (120 s). [`../guest-build/`](../guest-build/) runs these steps on the guest host.
 
 Restart the app before each window (`start`, `am start -S`): issue times restart with every run,
 and the reducer refuses times that are not newer.
@@ -78,13 +97,21 @@ and the reducer refuses times that are not newer.
 `tests/` runs in the `driver-assistance-bench (INC-DRIVING-002)` suite of
 `tools/run_bench_unit_tests.py`:
 
-- `test_app_jvm.py`: the 27 JVM tests of `app/tests/` (edge, repeat, clear, stale, malformed,
-  record format, one mark per request, tone, screen text) with the host's JDK and a stand-in for
+- `test_app_jvm.py`: the 30 JVM tests of `app/tests/` (edge, repeat, clear, stale, malformed,
+  record format and writer, one mark per request, tone, screen text) with the host's JDK and a stand-in for
   JUnit, and a compile of every app source against compile-only stand-ins of the Android, Gateway
   client and protobuf APIs (`tests/jvm/stubs/`). Without a JDK (`DE4SDV_JDK`, `JAVA_HOME` or
   `javac` on `PATH`) these skip.
+- `test_app_jvm.py` also runs `MainActivity` against recording stand-ins
+  (`tests/jvm/harness/ActivityHarness.java`): the subscription asks for no last-message fetch, a
+  first `true` posts the screen change to the front of the UI queue before `play()`, a `false`
+  clears it without a sound, and the record is appended to with a `start` line carrying the pid.
 - `test_app_build_files.py`: the manifest package, the modules and their split, the proto module,
   and the ids in the code against `service_ids.json` and the ACLs.
+- `test_stage_install.py`: `install` and `stage` against a fake adb (`tests/fakes/adb`): failed and
+  corrupt pushes, the APK sha256 check, the object-policy merge (install, merge, idempotent second
+  run, kept original, logged digests and blocks, a failed read, an unclear answer, a partial merge),
+  a wedged adb, and the Gateway client source gate.
 
 ## Deviations and choices
 
