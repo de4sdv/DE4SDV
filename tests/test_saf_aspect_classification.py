@@ -169,7 +169,7 @@ def _allowed_aspects_for_file(path: Path) -> set[str]:
     # unrelated aspects while allowing the documented mixed-use cases.
     if "simulation_deployment" in name:
         allowed.update({"Taxonomy & Structure", "Interaction & Collaboration", "Traceability & Mapping"})
-    if "physical_software_realization" in name:
+    if any(token in name for token in ("physical_software_realization", "physical_ee_realization")):
         allowed.update({"Interaction & Collaboration", "Traceability & Mapping"})
 
     return allowed
@@ -188,6 +188,16 @@ def _aspect_exempt_viewpoints(path: Path) -> set[str]:
     if any(token in name for token in ("physical", "structure", "stack", "deployment")):
         exempt.add("PhysicalInterfaceDefinitionViewpoint")
     return exempt
+
+
+def test_both_kinds_of_phase_8_realization_admit_the_same_viewpoints() -> None:
+    """Phase 8 has a software and an E/E realization; a file of either kind admits the same viewpoint aspects and
+    exemptions, so a view that passes in one kind of file passes in the other."""
+    software = Path("x_physical_software_realization.sysml")
+    ee = Path("x_physical_ee_realization.sysml")
+    assert _allowed_aspects_for_file(ee) == _allowed_aspects_for_file(software)
+    assert _aspect_exempt_viewpoints(ee) == _aspect_exempt_viewpoints(software)
+    assert EXPECTED_ASPECTS["PhysicalLogicalMappingViewpoint"] in _allowed_aspects_for_file(ee)
 
 
 def test_viewpoint_usages_match_file_domain_aspect() -> None:

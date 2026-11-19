@@ -109,8 +109,9 @@ Comments and double-quoted literals are not declaration names.
 ### Established domain/technology acronyms (keep)
 
 These are natural engineering terms and must not be expanded for style:
-AEBS, ADAS, SDV, AAOS, ROS 2 (identifier syntax: `ROS2`), AUTOSAR, ECU, VSS,
-FMI, FMU, SSP, HIL, SIL, MIL, V&V (prose), UNECE.
+AEBS, ADAS, SDV, AAOS, ROS 2 (identifier syntax: `ROS2`), AUTOSAR, ECU,
+E/E (identifier syntax: `EE`), VSS, FMI, FMU, SSP, HIL, SIL, MIL, V&V (prose),
+UNECE.
 
 ### Project-local shorthand (avoid in canonical semantic names)
 
@@ -436,6 +437,7 @@ middleware spelling):
 | Functional architecture | `aebs_functional_architecture.sysml` | `DE4SDV_AEBSFunctionalArchitecture` |
 | Logical architecture | `aebs_logical_architecture.sysml` | `DE4SDV_AEBSLogicalArchitecture` |
 | Physical/software realization | `aebs_physical_software_realization.sysml` | `DE4SDV_AEBSPhysicalSoftwareRealization` |
+| E/E realization | `*_physical_ee_realization.sysml` | `DE4SDV_*PhysicalEERealization` |
 | Variability/configuration | `aebs_variability_configuration.sysml` | `DE4SDV_AEBSVariabilityConfiguration` |
 | Verification evidence | `*_verification*.sysml` / `*_evidence.sysml` — one convention, stable semantic modules allowed | — |
 
@@ -449,6 +451,10 @@ Notes:
   needs from requirements is a model-architecture change, not a rename; it is
   recorded as a recommendation in the migration manifest, not silently done
   here.
+- Phase 8 has two kinds of realization package, the software realization (the
+  physical/software realization row) and the E/E realization; the increment
+  workflow (`methodologies/sysmod-sysmlv2/increment-workflow.md`, "Workflow
+  phases") states what each holds.
 - Do not force every verification concern into one huge file, and do not
   create parallel "increment-numbered" architecture models next to canonical
   concern models.
