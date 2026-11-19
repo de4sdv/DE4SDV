@@ -1048,7 +1048,7 @@ window_close() {
     # END=error (no answer from the guest, or two early ends): capture.done, the app's records and capture.json are
     # written and the capture exits 1. The error is recorded, the receipts are read and the session goes on (Q2)
     if [ "$ROUT" = "rc 1" ] && grep -q '^capture ended (error)' "$f"; then
-      crc=1
+      crc=1; STEP_FAIL=""   # rwait named the capture: a recorded error of the window, not a failed step (R7)
       log "DISPLAY CAPTURE ERROR IN WINDOW $w: $(grep '^capture ended (error)' "$f" | tail -1); its app records and" \
         "capture.json were written, so the receipts are read and the session goes on (session.json display_capture)"
     else

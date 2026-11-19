@@ -1651,6 +1651,9 @@ def test_q2_a_capture_error_is_recorded_and_skips_neither_the_receipts_nor_the_n
     assert r.rc == 0, r.log
     assert r.sequence() == p10_2_seq(), r.sequence()
     rec = json.loads((r.incoming / "session.json").read_text())
+    # R7 of the closure check of 7befc3c1: the recorded capture error is the window's result, not a failed step of a
+    # session that went on and ended 0 (session.json named capture_run1 as failed_step)
+    assert rec["exit_code"] == 0 and rec["failed_step"] is None, (rec["exit_code"], rec["failed_step"])
     assert rec["display_capture"]["run1"] == {"end": "error", "capture_rc": 1, "closed_by": "window close",
                                               "guest_files_kept": False}, rec["display_capture"]
     assert rec["display_capture"]["run2"]["end"] == "stop" and rec["display_capture"]["run2"]["capture_rc"] == 0
