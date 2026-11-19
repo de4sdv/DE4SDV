@@ -434,15 +434,40 @@ def test_the_phase_8_home_in_the_kernel_is_the_steps_own_doc() -> None:
         assert _owned_docs(moved, STEP_8) == [], feature
 
 
-def _rule_5_homes() -> tuple[str, str]:
-    """Rule 5 in the method document and in the doc of SpecifyRequirements, flattened."""
+STEP_5 = "action def SpecifyRequirements :> IncrementStep"
+
+
+def _rule_5_homes(kernel: str | None = None) -> tuple[str, str]:
+    """Rule 5 in the method document and in the doc that SpecifyRequirements owns itself, flattened (``kernel``: the
+    kernel file's text, read from disk when not given)."""
     document = WORKFLOW_DOC.read_text(encoding="utf-8")
     start = document.index("5. **Requirement.**")
     section = document[start:document.index("6. **Verification.**", start)]
+    kernel = WORKFLOW_FILE.read_text(encoding="utf-8") if kernel is None else kernel
+    docs = _owned_docs(kernel, STEP_5)
+    return _flat(section), _flat(re.sub(r"^\s*\*", " ", " ".join(docs), flags=re.MULTILINE))
+
+
+def _moved_onto(kernel: str, header: str, parameter: str) -> str:
+    """The kernel text with the doc the step opened by ``header`` owns moved, unchanged, onto one of its parameters."""
+    head = kernel.index(header)
+    start = kernel.index("    doc /* ", head)
+    end = kernel.index("*/", start) + 2
+    doc = kernel[start:end]
+    kernel = kernel[:start] + kernel[end + 1:]
+    at = kernel.index(parameter, head)
+    return kernel[:at] + parameter[:-1] + " {\n  " + doc + "\n    }" + kernel[at + len(parameter):]
+
+
+def test_the_rule_5_home_in_the_kernel_is_the_steps_own_doc() -> None:
+    """The phase contract serves the doc SpecifyRequirements owns; moved unchanged onto one of the step's parameters,
+    the rule is no longer in the step's home."""
     kernel = WORKFLOW_FILE.read_text(encoding="utf-8")
-    head = kernel.index("action def SpecifyRequirements :> IncrementStep")
-    comment = kernel[kernel.index("doc /*", head):kernel.index("*/", head)]
-    return _flat(section), _flat(re.sub(r"^\s*\*", " ", comment, flags=re.MULTILINE))
+    assert not [phrase for phrase in RULE_5_SHARED if phrase not in _rule_5_homes(kernel)[1]]
+    for parameter in ("    in requirement needs[0..*] : StakeholderNeedCandidate;",
+                      "    out requirement requirements[1..*] : RequirementCandidate;"):
+        home = _rule_5_homes(_moved_onto(kernel, STEP_5, parameter))[1]
+        assert not [phrase for phrase in RULE_5_SHARED if phrase in home], parameter
 
 
 def _dated_note(record: str) -> str:
