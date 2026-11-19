@@ -107,8 +107,11 @@ def test_capture_brackets_each_recording_with_the_guest_clock(tmp_path: Path, en
     assert len(rec) == len(segs)
     for c in rec:
         shell = " ".join(c)
-        # both clock reads and the backgrounded recording run in one guest shell, in this order
-        assert shell.index("date +%s.%N;") < shell.index("screenrecord") < shell.rindex("date +%s.%N")
+        # both clock reads and the backgrounded recording run in one guest shell, in this order; each read carries
+        # its mark (Q5): b= before the recording, a= after it
+        assert shell.count("echo b=$(date +%s.%N);") == 1 and shell.count("echo a=$(date +%s.%N);") == 1, shell
+        assert shell.index("echo b=$(date +%s.%N);") < shell.index("screenrecord") \
+            < shell.index("echo a=$(date +%s.%N);"), shell
         assert "> /dev/null 2>&1 &" in shell
         assert "--display-id 4619827259835644672" in shell
     assert any(any("kill -INT" in a for a in c) for c in adb)
