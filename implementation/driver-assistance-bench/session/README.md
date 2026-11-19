@@ -56,9 +56,14 @@ What it waits for (`remote/offer_check.sh unit`, `UNIT_SOURCE=app`, the default)
 its continuous discovery listener (`addListenerForServiceUnitChangeByName`) has seen the broker's unit
 `de4sdv-driving-warning-request` and its subscription succeeded. The app subscribes to that one unit only. It waits
 up to `UNIT_WAIT_S` (120 s), polling every 5 s, and logs the bound, the source and both marks in its first line.
-The first decisive link line since the IVI mark decides, whatever the poll that reads it: `link=SUBSCRIBED` passes
-(`UNIT_SUBSCRIBED <unit> source=app`), `link=UNAVAILABLE` fails at once with the app's detail; `link=WAITING` keeps
-waiting. A broker error line in the core log since the core mark that names 4df1 or the unit still fails the gate
+A `link=SUBSCRIBED` line since the IVI mark passes, whatever the poll that reads it
+(`UNIT_SUBSCRIBED <unit> source=app`). `link=UNAVAILABLE` never decides: the app logs it for every failed
+`initComms`, subscribe or read and retries after 5 s (`RETRY_DELAY_MS` in `WarningRequestSubscriber.java`), so the gate
+counts those lines, names the last one's detail, and keeps waiting for `link=SUBSCRIBED` up to its bound; `link=WAITING`
+keeps waiting too. Until 2026-11-19 the gate failed at once on the first `UNAVAILABLE`; that was changed before the
+`p10-3` rerun, because a first subscribe that the app retries would then fail a paid run. The one `UNAVAILABLE` the app
+does not retry, a naming problem in its own configuration, also fails only at the bound. A broker error line in the core
+log since the core mark that names 4df1 or the unit still fails the gate
 (`BROKER_ERROR_RE`). `UNIT_SOURCE=core` (only through `--remote-env UNIT_SOURCE=core`) keeps the earlier gate: a core
 log line naming the unit and matching `UNIT_REGISTERED_RE`, negations refused.
 

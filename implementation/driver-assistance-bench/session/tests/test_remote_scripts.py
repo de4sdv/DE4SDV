@@ -731,18 +731,32 @@ def test_the_unit_gate_fails_without_a_subscribed_line_and_saves_every_diagnosti
     assert "REGISTER EVENT(1221)" in ctx and "link=WAITING" in ctx
 
 
-def test_the_unit_gate_fails_at_once_on_an_unavailable_link_with_its_detail(tmp_path: Path, fake) -> None:
+def test_an_unavailable_link_the_app_retries_does_not_fail_the_gate(tmp_path: Path, fake) -> None:
+    # The app logs UNAVAILABLE for every failed initComms, subscribe or read and retries after RETRY_DELAY_MS (5 s)
+    # (WarningRequestSubscriber.java connect/subscribe/drain), so an UNAVAILABLE line never decides: a SUBSCRIBED
+    # after it passes, and the gate names the UNAVAILABLE lines it saw since the mark
     d, env = fake
     mark = _app_mark(tmp_path, d, env)
     (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
-    # UNAVAILABLE first, a SUBSCRIBED after it: the first decisive line since the mark decides, whatever the poll
-    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING + LINK_UNAVAILABLE + LINK_SUBSCRIBED.replace(":17", ":19"))
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING + LINK_UNAVAILABLE + LINK_SUBSCRIBED.replace(":17", ":22"))
     (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
-    t0 = time.monotonic()
     p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
            env=dict(env, UNIT_WAIT_S="60", POLL_S="0.2"))
-    assert p.returncode == 1 and "UNAVAILABLE" in p.stdout and "statusCode 5 NOT_FOUND" in p.stdout, p.stdout
-    assert time.monotonic() - t0 < 20
+    assert p.returncode == 0 and "UNIT_SUBSCRIBED" in p.stdout, p.stdout
+    assert "UNAVAILABLE 1 time(s)" in p.stdout and "statusCode 5 NOT_FOUND" in p.stdout, p.stdout
+    assert not (tmp_path / "o" / "diag").exists()
+
+
+def test_unavailable_links_alone_fail_only_at_the_bound_with_the_last_detail(tmp_path: Path, fake) -> None:
+    d, env = fake
+    mark = _app_mark(tmp_path, d, env)
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING + LINK_UNAVAILABLE)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
+           env=dict(env, UNIT_WAIT_S="2", POLL_S="0.2"))
+    assert p.returncode == 1 and "within 2 s" in p.stdout, p.stdout
+    assert "UNAVAILABLE lines since the mark: 1" in p.stdout and "statusCode 5 NOT_FOUND" in p.stdout, p.stdout
     _diag_present(tmp_path / "o")
 
 

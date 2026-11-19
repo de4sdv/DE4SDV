@@ -10,9 +10,11 @@
 #   offer_check.sh unit <out_dir> [<mark_dir>]
 #                                    waits up to UNIT_WAIT_S for the unit's readiness, from UNIT_SOURCE:
 #                                    app (default): the IVI app's own link line, `DE4SDV_COLLISION_WARNING: ...
-#                                      phase=link link=SUBSCRIBED`, in the IVI log since the IVI mark. The first
-#                                      decisive link line since the mark decides: SUBSCRIBED passes, UNAVAILABLE fails
-#                                      at once with its detail; WAITING waits.
+#                                      phase=link link=SUBSCRIBED`, in the IVI log since the IVI mark. A SUBSCRIBED
+#                                      line since the mark passes. UNAVAILABLE never decides: the app logs it for
+#                                      every failed initComms, subscribe or read and retries after 5 s, so the gate
+#                                      counts those lines, names the last one's detail, and waits for SUBSCRIBED up
+#                                      to its bound; WAITING waits.
 #                                    core: a core logcat line naming the unit, matching UNIT_REGISTERED_RE and not
 #                                      UNIT_NEGATION_RE (the bench's guess before the first p10-3; that session's core
 #                                      log has no line naming the unit at all, so this source cannot pass there).
@@ -105,8 +107,9 @@ print(d["icd"]["data_tunnel"]["service_unit"], d["icd"]["someip_warning_request"
     APP_TAG="DE4SDV_COLLISION_WARNING:"; LINK_RE=" phase=link link=(SUBSCRIBED|UNAVAILABLE|WAITING)( |$)"
     if [ "$SRC" = app ]; then
       echo "unit $UNIT service $SERVICE; source app: waiting up to ${UNIT_WAIT_S:-120} s for the IVI app's" \
-        "'phase=link link=SUBSCRIBED' line ($IVI_ADB, the IVI log since ${ISINCE:-boot}, the IVI's clock); fails at" \
-        "once on link=UNAVAILABLE; broker errors in the core log ($CORE_ADB) since ${SINCE:-boot}"
+        "'phase=link link=SUBSCRIBED' line ($IVI_ADB, the IVI log since ${ISINCE:-boot}, the IVI's clock); its" \
+        "link=UNAVAILABLE lines are counted, never decisive (the app retries them every 5 s); broker errors in the" \
+        "core log ($CORE_ADB) since ${SINCE:-boot}"
     else
       echo "unit $UNIT service $SERVICE; source core: waiting up to ${UNIT_WAIT_S:-120} s for a line naming the unit" \
         "matching /$RE/ and not /$NEG/; the log since ${SINCE:-boot}"
@@ -160,13 +163,17 @@ print(d["icd"]["data_tunnel"]["service_unit"], d["icd"]["someip_warning_request"
         echo "FAIL broker errors for the service:"; head -5 "$OUT/broker_errors.txt"; diagnose; exit 1
       fi
       if [ "$SRC" = app ]; then
-        # the first decisive line since the mark, whatever the poll that reads it: SUBSCRIBED or UNAVAILABLE
-        first=$(grep -E " link=(SUBSCRIBED|UNAVAILABLE)( |$)" "$OUT/app_link_lines.txt" | head -1)
-        case "$first" in
-          *" link=SUBSCRIBED"*) echo "$first"; echo "UNIT_SUBSCRIBED $UNIT source=app"; exit 0 ;;
-          *" link=UNAVAILABLE"*) echo "$first"
-            fail_unit "the IVI app's link to $UNIT is UNAVAILABLE: ${first#* detail=}" ;;
-        esac
+        # SUBSCRIBED anywhere since the mark passes, whatever the poll that reads it. UNAVAILABLE never decides: the
+        # app logs it for every failed initComms, subscribe or read and retries after RETRY_DELAY_MS (5 s)
+        sub=$(grep -E " link=SUBSCRIBED( |$)" "$OUT/app_link_lines.txt" | head -1)
+        nun=$(grep -c -E " link=UNAVAILABLE( |$)" "$OUT/app_link_lines.txt")
+        lun=$(grep -E " link=UNAVAILABLE( |$)" "$OUT/app_link_lines.txt" | tail -1); lun=${lun#* detail=}
+        if [ -n "$sub" ]; then
+          if [ "${nun:-0}" -gt 0 ]; then
+            echo "the IVI app's link was UNAVAILABLE $nun time(s) since the mark (the app retries every 5 s); the last: $lun"
+          fi
+          echo "$sub"; echo "UNIT_SUBSCRIBED $UNIT source=app"; exit 0
+        fi
       elif [ -s "$OUT/unit_lines.txt" ]; then
         head -3 "$OUT/unit_lines.txt"; echo "UNIT_REGISTERED $UNIT source=core"; exit 0
       fi
@@ -174,7 +181,7 @@ print(d["icd"]["data_tunnel"]["service_unit"], d["icd"]["someip_warning_request"
         if [ "$SRC" = app ]; then
           last=$(tail -1 "$OUT/app_link_lines.txt"); last=${last#* link=}
           fail_unit "no 'phase=link link=SUBSCRIBED' line of the IVI app for $UNIT within ${UNIT_WAIT_S:-120} s" \
-            "(last link line: ${last:-none since the mark})"
+            "(last link line: ${last:-none since the mark}; UNAVAILABLE lines since the mark: ${nun:-0}${lun:+; the last: $lun})"
         fi
         fail_unit "no registration of $UNIT within ${UNIT_WAIT_S:-120} s (source core)"
       fi
