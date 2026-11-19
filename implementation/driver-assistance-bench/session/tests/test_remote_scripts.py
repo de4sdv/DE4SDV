@@ -30,10 +30,10 @@ FAKES = {
            '> "$FAKE/crosvm"; } ;; esac\n',
     "ip": '#!/bin/bash\necho "ip $*" >> "$FAKE/calls.log"\n'
           'case "$*" in "route get"*) echo "multicast 224.0.0.251 dev ${FAKE_ROUTE_DEV:-cvd-ebr} table local";; esac\n',
-    "adb": '#!/bin/bash\necho "adb $*" >> "$FAKE/calls.log"\n[ "$1" = -s ] && shift 2\nc="$*"\n'
+    "adb": '#!/bin/bash\necho "adb $*" >> "$FAKE/calls.log"\nserial=""\n[ "$1" = -s ] && { serial=$2; shift 2; }\nc="$*"\n'
            'case "$c" in\n'
            '  "shell getprop sys.boot_completed") echo 1 ;;\n'
-           '  "shell getenforce") cat "$FAKE/mode" 2>/dev/null || echo Enforcing ;;\n'
+           '  "shell getenforce") cat "$FAKE/mode_$serial" 2>/dev/null || echo Enforcing ;;\n'
            '  "shell pm path "*) [ -e "$FAKE/no_app" ] || echo "package:/vendor/priv-app/App/App.apk" ;;\n'
            '  "shell sha256sum "*) echo "abc123  $3" ;;\n'
            '  "shell am start"*) echo "Starting: Intent { cmp=$6 }"; echo "Status: ok" ;;\n'
@@ -384,3 +384,67 @@ def test_the_neighbour_caches_of_both_guests_are_flushed(tmp_path: Path, fake) -
     flush = [c for c in calls(d) if "ip neigh flush" in c]
     assert flush == ["adb -s 0.0.0.0:6521 shell ip neigh flush dev eth1",
                      "adb -s 0.0.0.0:6522 shell ip neigh flush dev eth1"]
+
+
+# ------------------------------------------------------------------- the session's SELinux mark (R16)
+
+
+@pytest.mark.parametrize("ivi, permissive, rc", [
+    ("Enforcing", "0", 0), ("Permissive", "0", 1), ("Enforcing", "1", 1), ("Permissive", "1", 0)])
+def test_app_restart_fails_when_the_ivi_mode_is_not_the_sessions_mark(tmp_path: Path, fake, ivi: str,
+                                                                      permissive: str, rc: int) -> None:
+    # owner decision (b) of 2026-11-18: Enforcing unless the session is marked --permissive-ivi, then Permissive
+    d, env = fake
+    (d / "mode_0.0.0.0:6522").write_text(ivi + "\n")
+    p = sh(str(REMOTE / "app_restart.sh"), str(tmp_path / "o"), "w1", env=dict(env, IVI_PERMISSIVE=permissive, **APP))
+    assert p.returncode == rc, p.stdout + p.stderr
+    starts = [c for c in calls(d) if " am start" in c]
+    assert len(starts) == (1 if rc == 0 else 0)                # never a window on a guest off the mark
+    if rc:
+        assert "FAIL SELinux on the ivi guest" in p.stdout
+
+
+def test_app_restart_fails_on_a_permissive_sdv_core_guest(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "mode_0.0.0.0:6521").write_text("Permissive\n")
+    p = sh(str(REMOTE / "app_restart.sh"), str(tmp_path / "o"), "w1", env=dict(env, IVI_PERMISSIVE="1", **APP))
+    assert p.returncode == 1 and "FAIL SELinux on the core guest" in p.stdout
+
+
+# ------------------------------------------------------------------------------------ ivi_clock.sh (R17)
+
+
+def _clock_lines(out: Path) -> list[dict]:
+    return [json.loads(line) for line in (out / "clock.jsonl").read_text().splitlines()]
+
+
+def test_ivi_clock_set_brings_the_offset_within_its_limit_and_writes_json_in_any_locale(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "guest_off").write_text("5\n")
+    (d / "clock_settable").touch()
+    out = tmp_path / "clk"
+    p = sh(str(REMOTE / "ivi_clock.sh"), "set", str(out), env=dict(env, CLOCK_READS="3", LC_ALL="de_DE.UTF-8"))
+    assert p.returncode == 0, p.stdout + p.stderr
+    lines = _clock_lines(out)                                # json.loads fails on "5,016991"
+    assert lines[0]["label"] == "before_set" and abs(lines[0]["offset_s"] - 5) < 1
+    assert abs(lines[-1]["offset_s"]) <= 0.1 and lines[-1]["bound_s"] >= 0
+
+
+def test_ivi_clock_set_fails_when_the_set_has_no_effect(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "guest_off").write_text("5\n")                     # the guest ignores date -s
+    out = tmp_path / "clk"
+    p = sh(str(REMOTE / "ivi_clock.sh"), "set", str(out), env=dict(env, CLOCK_READS="3"))
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert "FAIL the IVI clock is" in p.stderr
+    assert abs(_clock_lines(out)[-1]["offset_s"] - 5) < 1
+
+
+def test_ivi_clock_measure_only_records(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "guest_off").write_text("2\n")
+    out = tmp_path / "clk"
+    p = sh(str(REMOTE / "ivi_clock.sh"), "measure", str(out), "end", env=dict(env, CLOCK_READS="2"))
+    assert p.returncode == 0
+    (line,) = _clock_lines(out)
+    assert line["label"] == "end" and line["reads"] == 2 and not any("date -s" in c for c in calls(d))

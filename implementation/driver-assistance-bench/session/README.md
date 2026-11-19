@@ -75,6 +75,12 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   session runs Enforcing first; only if the Gateway lookup fails (the prepare step's `verify` reports no
   `initComms`) does the lead run the session again with `--permissive-ivi`. That sets the IVI guest permissive
   (never the SDV Core guest), and `session.json` marks every result of the session `conditional_on_permissive_ivi`.
+  Each window checks the mark before the app's restart (`remote/app_restart.sh`): the SDV Core guest must read
+  Enforcing, the IVI guest Enforcing, or Permissive in a `--permissive-ivi` session; any other reading fails the
+  step before the window. The README's fallback stays a new session: `verify` alone could be re-run permissive on
+  the same guests (the guest build script's rerun), but that would make the whole session conditional after the fact.
+- The IVI clock is set just before each window and must then be within `CLOCK_MAX_OFFSET_S` (0.1 s) of the guest
+  host's; a set without effect fails the step (`remote/ivi_clock.sh`, which writes its JSON under `LC_ALL=C`).
 - Before any VM starts, the session builds the kit (the bench folder at `HEAD`, or as on disk with
   `--kit-from-worktree`), and checks that every entry point the kind needs is in it and executable. Each host's
   upload is checked by its sha256.
@@ -146,9 +152,9 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_SIM_RECORD` | simulator | `--out <dir>` | this lane: `../recording/chase_recorder.py` | started before the warm-up and before the run, ends on its own |
 | `ENTRY_GUEST_UP` | guest | `<out>` | this lane: `remote/guest_up.sh` | both guests created fresh (`launch_two_vms.sh down`, `up`) and booted; `getenforce` recorded, `setenforce 0` on the IVI only with `IVI_PERMISSIVE=1` |
 | `ENTRY_GUEST_PREPARE` | guest | `<out>` | this lane: `remote/guest_prepare.sh` | the guest build script's `install` (ACLs, APK, IVI reboot) and `verify`, unchanged, as its second caller: one `B12_DIR` per session (`$AB/b12-session-<id>`), no `LOGS`, `IDENT` or `WORK`; required, since fresh guests start empty |
-| `ENTRY_GUEST_APP_RESTART` | guest | `<out> <window>` | this lane: `remote/app_restart.sh` | `am start -S -W -n $APP_COMPONENT`, the APK's sha256 and both guests' `getenforce`, before each window |
+| `ENTRY_GUEST_APP_RESTART` | guest | `<out> <window>` | this lane: `remote/app_restart.sh` | `am start -S -W -n $APP_COMPONENT`, the APK's sha256 and both guests' `getenforce`, before each window; exit 1 when a guest's mode is not the session's mark |
 | `ENTRY_GUEST_OFFER_CHECK` | guest | `route\|mark\|neigh <out>`, `unit <out> <mark>`, `receipts <capture>` | this lane: `remote/offer_check.sh` | the SD multicast route to `cvd-ebr`; the SDV Core guest's clock before each S-CORE side start (`mark`); the broker's registration of the unit in the log since that mark, negations refused (a guessed log pattern, see the script; changed per session through `UNIT_REGISTERED_RE`, `UNIT_NEGATION_RE`); both guests' neighbour caches flushed after the VXLAN (`neigh`); the lines of the app's record after each window (`receipts`) |
-| `ENTRY_GUEST_CLOCK` | guest | `set <out>` | this lane: `remote/ivi_clock.sh` | IVI clock set from the guest host's, offset and bound recorded |
+| `ENTRY_GUEST_CLOCK` | guest | `set <out>` | this lane: `remote/ivi_clock.sh` | IVI clock set from the guest host's, offset and bound recorded; exit 1 when the offset left is above `CLOCK_MAX_OFFSET_S` (0.1 s) |
 | `ENTRY_GUEST_CAPTURE` | guest | `start\|stop <out>` | this lane: `../recording/display_capture.sh` | the display capture |
 | `ENTRY_VXLAN` | guest, S-CORE | `guest-host\|host-half add <peer ip>` | this lane: `remote/cross_vm_guest_bridge.sh` | the VXLAN segment, the S-CORE host at 192.168.98.1 (INC-DRIVING-001's script, unchanged) |
 
