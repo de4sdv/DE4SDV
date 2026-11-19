@@ -70,7 +70,12 @@ if "vm" not in st:
 
 
 def save():
-    json.dump(st, open(SF, "w"))
+    # atomic: the session's trap may TERM a fake call mid-write (kill_tree); a truncated state.json then failed the
+    # next call and the test's own read (a fixture flake the second review saw, and the S9 cap test hit)
+    tmp = "%s.%d.tmp" % (SF, os.getpid())
+    with open(tmp, "w") as f:
+        json.dump(st, f)
+    os.replace(tmp, SF)
 
 
 def opt(name):
