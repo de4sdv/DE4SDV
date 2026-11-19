@@ -33,7 +33,9 @@ measure() {   # measure <label>: prints one JSON line and appends it to clock.js
   echo "$line" | tee -a "$OUT/clock.jsonl"
 }
 offset_of() { sed -E 's/.*"offset_s": (-?[0-9.]+).*/\1/'; }
-adbt() { timeout "${ADB_TO_S:-30}" "$ADB" "$@"; }
+# --foreground: the bounded call stays in the step's process group, so a TERM to the step reaches it (plain timeout
+# would move it into a group of its own, which outlives the step)
+adbt() { timeout --foreground "${ADB_TO_S:-30}" "$ADB" "$@"; }
 
 case "$ACTION" in
   set)

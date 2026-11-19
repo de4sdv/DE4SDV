@@ -17,10 +17,12 @@ ADB=${ADB:-${ANDROID_HOST_OUT:-$AOSP_TOP/out/host/linux-x86}/bin/adb}
 IVI_ADB=${IVI_ADB:-0.0.0.0:6522}; CORE_ADB=${CORE_ADB:-0.0.0.0:6521}
 APP_PACKAGE=${APP_PACKAGE:?APP_PACKAGE}; APP_COMPONENT=${APP_COMPONENT:?APP_COMPONENT}
 REC=$OUT/app_restart_$LABEL.txt
-a() { timeout "${ADB_TO_S:-30}" "$ADB" -s "$IVI_ADB" "$@"; }
+# --foreground: the bounded call stays in the step's process group, so a TERM to the step reaches it (plain timeout
+# would move it into a group of its own, which outlives the step)
+a() { timeout --foreground "${ADB_TO_S:-30}" "$ADB" -s "$IVI_ADB" "$@"; }
 {
   echo "window $LABEL $(date -u +%FT%T.%3NZ)"
-  echo "getenforce core $(timeout "${ADB_TO_S:-30}" "$ADB" -s "$CORE_ADB" shell getenforce 2>/dev/null | tr -d '\r')"
+  echo "getenforce core $(timeout --foreground "${ADB_TO_S:-30}" "$ADB" -s "$CORE_ADB" shell getenforce 2>/dev/null | tr -d '\r')"
   echo "getenforce ivi $(a shell getenforce 2>/dev/null | tr -d '\r')"
   APK=$(a shell pm path "$APP_PACKAGE" 2>/dev/null | tr -d '\r' | sed -n 's/^package://p' | head -1)
   echo "apk ${APK:-none} sha256 $([ -n "$APK" ] && a shell sha256sum "$APK" 2>/dev/null | tr -d '\r' | cut -d' ' -f1)"

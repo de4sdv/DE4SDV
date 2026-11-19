@@ -115,15 +115,16 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   with `--tunnel-through-iap`; `SIM_SSH_IAP=0` is the direct path. The S-CORE host keeps 10.164.0.5: GCP does not
   change a VM's primary internal address in place, so since 2026-11-18 the CARLA rule admits 10.164.0.5/32 instead
   of the reserved 10.164.0.20. The CARLA port check from the S-CORE host stays in every `p10-2`.
-- SELinux: the guests run as they boot (Enforcing), and `getenforce` of both guests is recorded at the bring-up and
-  at every window (`app_restart_<window>.txt`). The owner allowed a permissive fallback on 2026-11-18: a `p10-3`
-  session runs Enforcing first; only if the Gateway lookup fails (the prepare step's `verify` reports no
-  `initComms`) does the lead run the session again with `--permissive-ivi`. That sets the IVI guest permissive
-  (never the SDV Core guest), and `session.json` marks every result of the session `conditional_on_permissive_ivi`.
-  Each window checks the mark before the app's restart (`remote/app_restart.sh`): the SDV Core guest must read
-  Enforcing, the IVI guest Enforcing, or Permissive in a `--permissive-ivi` session; any other reading fails the
-  step before the window. The README's fallback stays a new session: `verify` alone could be re-run permissive on
-  the same guests (the guest build script's rerun), but that would make the whole session conditional after the fact.
+- SELinux: the SDV Core guest runs as it boots (Enforcing). A `p10-3` session runs with `--permissive-ivi` from its
+  start (the lead's decision of 2026-11-19): B12's Enforcing run on the same images failed the IVI app's Gateway
+  lookup (`ISdvGateway/default not declared`), so an Enforcing `p10-3` would only cost a session. The option sets the
+  IVI guest permissive (never the SDV Core guest), every result of the session is conditional on a permissive IVI,
+  and `session.json` says so (`conditional_on_permissive_ivi`). `getenforce` of both guests is recorded per run: at
+  the bring-up (`guest_identity.txt`) and at every window (`app_restart_<window>.txt`). Each window checks the mark
+  before the app's restart (`remote/app_restart.sh`): the SDV Core guest must read Enforcing, the IVI guest
+  Permissive in a `--permissive-ivi` session (Enforcing without the option); any other reading fails the step before
+  the window. A session without `--permissive-ivi` (both guests Enforcing) stays the default only for a later
+  re-test on new images.
 - The IVI clock is set just before each window and must then be within `CLOCK_MAX_OFFSET_S` (0.1 s) of the guest
   host's; a set without effect fails the step (`remote/ivi_clock.sh`, which writes its JSON under `LC_ALL=C`).
 - Before any VM starts, the session builds the kit (the bench folder at `HEAD`, or as on disk with
@@ -192,30 +193,34 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
   /bin/bash $S/da_session.sh --kind p10-1 --session-id "$SID"
 # follow:  tail -f ~/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID/session.log
-# end it early, if ever: systemctl --user kill --kill-whom=main -s TERM da-session-$SID
+# end it early, if ever: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (never kill -9)
 # done when: systemctl --user is-active da-session-$SID prints "inactive"; then read session.json:
 #   exit_code (11 = a VM is left running: stop it by hand at once), p10_1.line, p10_1.passed
 ```
 
-### `p10-3` (the S-CORE host and the protected guest host, Enforcing)
+### `p10-3` (the S-CORE host and the protected guest host, IVI permissive)
 
 ```bash
-cd /home/mrk/de4sdv-worktrees/p10-$C     # the same pinned worktree as for P10-1
+C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the same integration commit as for p10-1
+cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1   # the same pinned worktree as for p10-1
 S=implementation/driver-assistance-bench/session
 D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
 env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
-  bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+  bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --permissive-ivi --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
 SID=$(date -u +%Y%m%dT%H%M%SZ)
 systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
   -p StandardOutput=append:$HOME/p10-3-$SID.out -p StandardError=append:$HOME/p10-3-$SID.out \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
-  /bin/bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --session-id "$SID"
+  /bin/bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --permissive-ivi --session-id "$SID"
+# every result is conditional on the permissive IVI (the lead's decision of 2026-11-19); getenforce is recorded per run
 # a per-session setting only on purpose, as an option, e.g. after the kind:
 #   --remote-env 'UNIT_REGISTERED_RE=<the broker line>' --remote-env UNIT_WAIT_S=300
-# only if guest_prepare reports no initComms: a NEW session, same block, with --permissive-ivi added
-# end it early: systemctl --user kill --kill-whom=main -s TERM da-session-$SID   (the trap TERMs the running step first)
+# end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (or systemctl --user stop; never kill -9;
+#   the trap TERMs the running step first and waits for its end, a guest launch included, before any stop)
 # after it: exit_code 11 or "GUEST HOST LEFT RUNNING" in session.log = the guest host bills; follow the log's line
+# exit 0 alone is not a pass (it means the steps ran): read p10_3.passed and p10_3.reason in session.json
+#   (app_record_receipts.inject > 0), conditional_on_permissive_ivi (true), and step_ended_by_term after an early end
 ```
 
 Once, at the first `p10-3`, while the guest host runs (after `session.log` shows its `kit ok` line), the operator checks
@@ -231,7 +236,8 @@ An enabled unit there voids the assumption: tell the lead before the next sessio
 ### `p10-2` (all three hosts)
 
 ```bash
-cd /home/mrk/de4sdv-worktrees/p10-$C
+C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
+cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1
 S=implementation/driver-assistance-bench/session
 # the dry run needs the VisionPilot clone at the pin (VP_CLONE, default ~/de4sdv-upstream/vision_pilot); make-h is
 # the tests' stand-in there (the fake's capture files are no images); the session itself checks CV_PY's OpenCV
@@ -245,7 +251,7 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   -p StandardOutput=append:$HOME/p10-2-$SID.out -p StandardError=append:$HOME/p10-2-$SID.out \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
   /bin/bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --session-id "$SID"
-# end it early: systemctl --user kill --kill-whom=main -s TERM da-session-$SID
+# end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (never kill -9)
 ```
 
 Then compose the video from the fetched files (see `../recording/README.md`).

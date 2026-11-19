@@ -160,6 +160,7 @@ MAIN_PID=$$; WD_PID=""; CHILD=""; STARTED=(); STEP_FAIL=""; FINAL_RC=""; ENDED_B
 FETCHED=""; FETCH_OK=""; FETCH_BAD=""
 GUEST_STEP_SENT=0   # 1 from the first step sent to the guest host on: from then on guests may run there (S1)
 SCORE_RUN=""; STOPS=""; STOP_KILLED_LAST=""   # the run of the S-CORE side up; each of its stops: run:step:rc (S7)
+TERMED_STEP=""; TERMED_NAME=""; TERMED_AFTER=""; TERMED_FAIL=""   # the step the trap's TERM cut (step_down)
 CUR_STEP=""; GUEST_STEP_RUNNING=""; FETCHING=""; PRE_END=""   # "<role> <step>" of the step rstep waits for; a guest step alive after its TERM
 
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
@@ -233,7 +234,17 @@ step_down() {   # in the trap: the step rstep waited for, if any: TERM on its ho
     sleep "$POLL_S"
   done
   log "step $s after the TERM: ${ROUT:-unknown}"
+  local after=${ROUT:-unknown} fl=""
   case "$ROUT" in "rc "*|absent) ;; *) [ "$prc" != 3 ] && [ "$r" = guest ] && GUEST_STEP_RUNNING=$s ;; esac
+  # the step's own last FAIL line (guest_up: "FAIL launch ended by TERM ..."): session.json names the step this TERM
+  # cut, and how it ended, so a cut launch is never only an exit code 143 (T1)
+  # whatever its exit status: `host_step.sh tail` exits 1 for a step killed before it wrote its .rc, the TERM's case
+  if [ "$prc" != 3 ]; then
+    rout ssh_l "$r" "$(bnd 60)" "$HS tail $s"
+    printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"; fl=$(grep '^FAIL ' <<< "$ROUT" | tail -1)
+  fi
+  log "step $s ended by the session's TERM: ${fl:-no FAIL line in its tail} (status after the TERM: $after)"
+  TERMED_STEP="$r"; TERMED_NAME="$s"; TERMED_AFTER="$after"; TERMED_FAIL="$fl"
 }
 
 # the remote-step helpers, defined before the exit trap can run: a trap during the starts or the SSH and upload
@@ -500,10 +511,29 @@ cleanup() {
       --format='value(name,zone.basename(),status)' 2>/dev/null | sed "s/^/VM after session [$p]: /" >> "$LOG"
   done
   [ "$KIND" = p10-1 ] && [ -n "$UPLOADED" ] && p10_1_report
+  [ "$KIND" = p10-3 ] && p10_3_report
   write_record "$rc"
   log "SESSION_END $SID rc=$rc"
   [ -n "$LEFT_RUNNING" ] && log "VMS LEFT RUNNING, THEY BILL: STOP THEM BY HAND NOW:$LEFT_RUNNING (exit 11 in place of $RC_STEPS)"
   exit "$rc"
+}
+p10_3_report() {   # p10-3 is passed only when its steps ended with 0 and every window's app record holds a receipt;
+  # exit 0 alone means its steps ran (T4). One line in session.log, and session.json's p10_3 (passed, reason)
+  local x w n bad="" good="" why=()
+  for x in ${RECEIPTS:-}; do
+    w=${x%%=*}; n=${x#*=}
+    case "$n" in ""|*[!0-9]*|0) bad="$bad $w" ;; *) good="$good $w($n)" ;; esac
+  done
+  [ "${RC_STEPS:-1}" = 0 ] || why+=("the steps did not end with 0 (exit ${RC_STEPS:-unknown})")
+  [ -n "$bad$good" ] || why+=("no window's app record was read")
+  for w in $bad; do why+=("no receipt in the app's record of window $w"); done
+  if [ ${#why[@]} = 0 ]; then
+    P10_3_PASSED=1; P10_3_REASON="the steps ended with 0 and every window's app record holds receipts:$good"
+    log "p10-3 passed: $P10_3_REASON"
+  else
+    P10_3_PASSED=0; P10_3_REASON=$(printf '%s; ' "${why[@]}"); P10_3_REASON=${P10_3_REASON%; }
+    log "p10-3 NOT passed: $P10_3_REASON"
+  fi
 }
 p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE host alone: which of the 8 did not run
   # or failed, from the fetched p10_1_verdicts.json, in one line of session.log and in session.json (p10_1)
@@ -547,7 +577,9 @@ write_record() {
   IAP="$SIM_SSH_IAP" PERM="$IVI_PERMISSIVE" IPS="${IPS:-}" CAMCAL="${CAMCAL_SHA:-}" VM_AFTER="${VM_AFTER:-}" \
   LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" RECEIPTS="${RECEIPTS:-}" \
   FETCH_OK="$FETCH_OK" FETCH_BAD="$nf" \
-  ENDED_BY="$ENDED_BY" STOPS="$STOPS" \
+  ENDED_BY="$ENDED_BY" STOPS="$STOPS" TERMED_STEP="$TERMED_STEP" TERMED_NAME="$TERMED_NAME" \
+  TERMED_AFTER="$TERMED_AFTER" TERMED_FAIL="$TERMED_FAIL" P10_3_PASSED="${P10_3_PASSED:-}" \
+  P10_3_REASON="${P10_3_REASON:-}" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
@@ -575,7 +607,12 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
                            for run, step, rc in (x.split(":", 2) for x in e["STOPS"].split())},
            "p10_1": json.load(open(p10_1)) if os.path.exists(p10_1) else None,
            "app_record_receipts": {w: (int(n) if n.isdigit() else None)
-                                   for w, n in (x.split("=", 1) for x in e["RECEIPTS"].split() if "=" in x)}},
+                                   for w, n in (x.split("=", 1) for x in e["RECEIPTS"].split() if "=" in x)},
+           "step_ended_by_term": {"host": e["TERMED_STEP"], "step": e["TERMED_NAME"],
+                                  "status_after_term": e["TERMED_AFTER"], "fail_line": e["TERMED_FAIL"] or None}
+                                 if e["TERMED_STEP"] else None,
+           "p10_3": {"passed": e["P10_3_PASSED"] == "1", "reason": e["P10_3_REASON"]}
+                    if e["KIND"] == "p10-3" else None},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
 }
