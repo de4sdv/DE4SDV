@@ -278,6 +278,7 @@ step_down() {   # in the trap: the step rstep waited for, if any: TERM on its ho
   log "step $s still runs on $(var "$r" VM): TERM to it there, then its end (up to $STEP_TERM_POLLS polls), before any stop"
   rsignal "$r" "$s" TERM "$(bnd 60)"
   for i in $(seq 1 "$STEP_TERM_POLLS"); do
+    pre_left || { log "the pre-stop phase's bound reached while step $s still reads ${ROUT:-unknown}"; break; }
     rpoll "$r" "$HS status $s" "$(bnd 60)"; prc=$?
     [ "$prc" = 3 ] && break   # the host is gone (preempted): nothing runs there
     case "$ROUT" in "rc "*|absent) break ;; esac
@@ -290,7 +291,7 @@ step_down() {   # in the trap: the step rstep waited for, if any: TERM on its ho
   # the step's own last FAIL line (guest_up: "FAIL launch ended by TERM ..."): session.json names the step this TERM
   # cut, and how it ended, so a cut launch is never only an exit code 143 (T1)
   # whatever its exit status: `host_step.sh tail` exits 1 for a step killed before it wrote its .rc, the TERM's case
-  if [ "$prc" != 3 ]; then
+  if [ "$prc" != 3 ] && pre_left; then   # within the slot (R5)
     rout ssh_l "$r" "$(bnd 60)" "$HS tail $s"
     printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"; fl=$(grep '^FAIL ' <<< "$ROUT" | tail -1)
   fi
@@ -310,7 +311,8 @@ rpoll() {   # rpoll <role> <remote command> [<timeout_s>]: one short poll, its l
   # gone (R12)
   local st
   if rout ssh_l "$1" "${3:-60}" "$2"; then ROUT=$(tail -1 <<< "$ROUT"); return 0; fi
-  ROUT=""; st=$(GC_TO=$(bnd "${GC_TO:-120}") vmst "$1")   # in the pre-stop phase within the slot (R5)
+  ROUT=""; pre_left || return 1   # in the pre-stop phase only within the slot (R5)
+  st=$(GC_TO=$(bnd "${GC_TO:-120}") vmst "$1")
   case "$st" in TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED) host_lost "$1" "$st"; return 3 ;; esac
   return 1
 }
@@ -424,6 +426,7 @@ world_down() {   # a detached world side not seen ending (a trap or abort path):
     log "the world side $s still runs on $(var sim VM): its release file, then a TERM to it, before the fetch"
     rout ssh_l sim "$(bnd 60)" "touch $(od "$s")/release; $HS signal $s TERM"
     for i in 1 2 3; do
+      pre_left || break   # within the slot (R5)
       rpoll sim "$HS status $s" "$(bnd 60)"; [ $? = 3 ] && break
       case "$ROUT" in "rc "*|absent) break ;; esac
       pre_left || break
@@ -449,8 +452,8 @@ capture_down() {   # a window still open when the session ends (an abort, a sign
   b=$(bnd "$T_CAPTURE_END"); CAP_TRY=$((CAP_TRY + 1))
   log "the display capture of window $w is still open: its stop (the recording's SIGINT and pull, the app's records, capture.json) before the guest host's fetch, $b s at most"
   run_fg ssh_l guest "$b" "$HS run capture_down${CAP_TRY}_$w -- bash $ENTRY_GUEST_CAPTURE stop $(od "capture_$w") --wait-cap-s $(( b > 23 ? b - 22 : 1 ))" > "$f" 2>&1; rc=$?
-  cat "$f" >> "$IN/guest.steps.out"; CAP_OPEN=""
-  rpoll guest "$HS status capture_$w" "$(bnd 60)"; case "$ROUT" in "rc "*) crc=${ROUT#rc } ;; esac
+  cat "$f" >> "$IN/guest.steps.out"; CAP_OPEN=""; ROUT=""
+  pre_left && rpoll guest "$HS status capture_$w" "$(bnd 60)"; case "$ROUT" in "rc "*) crc=${ROUT#rc } ;; esac
   log "step capture_down${CAP_TRY}_$w rc=$rc: $(grep -o 'capture ended ([a-z-]*).*' "$f" | tail -1); capture_$w ${ROUT:-unknown}"
   capture_end "$w" "session end" "$crc" "$f"; rm -f "$f"
 }
