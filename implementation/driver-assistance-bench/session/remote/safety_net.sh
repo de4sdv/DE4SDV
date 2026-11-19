@@ -15,7 +15,10 @@ set -uo pipefail
 HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 KIT=$(cd -- "$HERE/../../.." && pwd)
 ACTION=${1:?arm|fire}; shift
-crosvm() { local n; n=$(pgrep -c -x crosvm 2>/dev/null); echo "${n:-0}"; }
+# the crosvm count: a number only when pgrep answered (rc 0: some, rc 1: none); a pgrep that errors (rc 2 or 3, no
+# output) is "unknown", never 0, so the power-off never follows a failed count (S11)
+crosvm() { local n rc; n=$(pgrep -c -x crosvm 2>/dev/null); rc=$?
+  if [ "$rc" -le 1 ] && [[ "$n" =~ ^[0-9]+$ ]]; then echo "$n"; else echo unknown; fi; }
 case "$ACTION" in
   arm)
     MIN=${1:?minutes}; STOP=${2:-}
@@ -38,7 +41,11 @@ case "$ACTION" in
     echo "$(date -u +%FT%TZ) safety net fired: the guests' stop first: $STOP"
     bash -c "$STOP"; echo "$(date -u +%FT%TZ) stop rc=$?"
     N=$(crosvm)
-    if [ "$N" != 0 ]; then
+    if [ "$N" = unknown ]; then
+      echo "$(date -u +%FT%TZ) crosvm count unknown (pgrep failed): NOT powering off; count and stop them by hand"
+      exit 1
+    fi
+    if [ "$N" != 0 ]; then   # the power-off only on a read 0
       echo "$(date -u +%FT%TZ) $N crosvm process(es) left: NOT powering off (guests running); stop them by hand"
       exit 1
     fi

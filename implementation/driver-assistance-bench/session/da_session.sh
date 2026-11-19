@@ -10,12 +10,15 @@
 #   --owner-ok-guest-host  required for p10-3 and p10-2: the owner's OK to start de4sdv-aaos-build this session
 #   --without-guest-host   p10-2 on the simulator host and the S-CORE host only (no display capture)
 #   --cap-eur <EUR>        cost cap of this session (default per kind in hosts.env)
-#   --session-id <id>      default: UTC time stamp
+#   --session-id <id>      default: UTC time stamp; letters, digits, '.', '_', '-', first a letter or digit
 #   --evidence-root <dir>  default: ~/.hermes/outputs/inc-driving-002/phase10/sessions
 #   --bench-tree <dir>     the repository whose bench folder is uploaded (default: this script's repository)
 #   --kit-from-worktree    upload the bench folder as it is on disk (default: as committed at HEAD)
 #   --kit-extra <dir>      also upload <dir> as <bench>/extra/ (stub entries in the dry-run tests)
 #   --carla-host <ip>      CARLA's address for the S-CORE side (default: the simulator host's internal IP, from gcloud)
+#   --remote-env NAME=VALUE  a per-session setting of a remote entry (repeatable): NAME must be on the allow-list
+#                          (REMOTE_ENV_guest, REMOTE_ENV_score below); it goes to every step on that name's host and
+#                          into session.json. Never taken from this shell's environment
 #   --permissive-ivi       the IVI guest is set permissive (setenforce 0); every result of the session is then
 #                          conditional on a permissive IVI, and session.json says so. Default: the guests as they
 #                          boot (Enforcing); their mode is recorded at every window either way
@@ -42,9 +45,10 @@ BENCH_REL=implementation/driver-assistance-bench
 . "$HERE/hosts.env"
 # shellcheck source=entrypoints.env
 . "$HERE/entrypoints.env"
+unset GC_TO   # a gcloud call's time-out is the session's own (gc: 120 s, the trap: 30 s), never the caller's (S10)
 
 KIND=""; DRY=0; CAP=""; OWNER_OK_GUEST=0; WITHOUT_GUEST=0; SID=""; KIT_FROM=head; KIT_EXTRA=""; CARLA_HOST=""
-IVI_PERMISSIVE=0
+IVI_PERMISSIVE=0; RENV_ARGS=()
 EVID=${DA_EVIDENCE_ROOT:-$HOME/.hermes/outputs/inc-driving-002/phase10/sessions}
 BENCH_TREE=$(cd -- "$HERE/../../.." && pwd)
 while [ $# -gt 0 ]; do
@@ -61,7 +65,8 @@ while [ $# -gt 0 ]; do
     --kit-extra) KIT_EXTRA=$(cd -- "${2:?}" && pwd); shift 2 ;;
     --carla-host) CARLA_HOST=${2:?}; shift 2 ;;
     --permissive-ivi) IVI_PERMISSIVE=1; shift ;;
-    -h|--help) sed -n '2,36p' "$0"; exit 0 ;;
+    --remote-env) RENV_ARGS+=("${2:?}"); shift 2 ;;
+    -h|--help) sed -n '2,39p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -74,19 +79,46 @@ case "$KIND" in
   *) echo "--kind p10-1|p10-3|p10-2 is required" >&2; exit 2 ;;
 esac
 
+# per-session settings of the remote entries (R6): only the names on its host's list below, and only when given on
+# purpose with --remote-env NAME=VALUE (S4: an exported variable of the calling shell, another worker's UNIT_WAIT_S
+# say, never reaches a step). Each goes to every step on that host (`env NAME=value` before the command) and into
+# session.json, so a guessed pattern or a time-out is changed for the next session without a commit
+REMOTE_ENV_guest="UNIT_REGISTERED_RE UNIT_NEGATION_RE BROKER_ERROR_RE UNIT_WAIT_S B12_DIR VERIFY_WAIT_S ADB_TIMEOUT_S
+                  UP_TIMEOUT_S CLOCK_READS CLOCK_MAX_OFFSET_S START_WAIT_S"
+REMOTE_ENV_score="DA_P10_1_CARLA_HOST GATEWAYD_RX_REGEX DA_P10_1_LATE_WAIT_S DA_P10_1_CUDA_RUNS DA_P10_1_ALIVE_HOLD_S
+                  DA_P10_1_STALL_HOLD_S DA_P10_1_SUPERVISED_WAIT_S"
+REMOTE_ENV_sim=""
+declare -A RVAL=()
+for _x in "${RENV_ARGS[@]}"; do
+  [[ "$_x" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || { echo "refused: --remote-env takes NAME=VALUE, not '$_x'"; exit 2; }
+  _n=${_x%%=*}
+  [[ " $(echo $REMOTE_ENV_guest $REMOTE_ENV_score $REMOTE_ENV_sim) " == *" $_n "* ]] \
+    || { echo "refused: --remote-env $_n is not on the allow-list: $(echo $REMOTE_ENV_guest $REMOTE_ENV_score $REMOTE_ENV_sim)"; exit 2; }
+  [ -n "${RVAL[$_n]+x}" ] && { echo "refused: --remote-env $_n given twice"; exit 2; }
+  RVAL[$_n]=${_x#*=}
+done
+
 # the cap: a positive number of EUR (R21)
 [[ "$CAP" =~ ^[0-9]+(\.[0-9]+)?$ ]] && awk -v c="$CAP" 'BEGIN { exit !(c > 0) }' \
   || { echo "refused: --cap-eur must be a positive number of EUR, not '$CAP'"; exit 2; }
 
 # waits, seconds; a dry run may shorten them through DA_T_<NAME>, a real session refuses those knobs
 PREEMPT_CHECK_S=30; ROUND_PAUSE_S=45; START_DEADLINE_S=1800; RUNNING_WAIT_S=120; SSH_TRIES=20; SSH_PAUSE_S=10
-POLL_S=20; STEP_TERM_POLLS=6; GO_LIMIT_S=380; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
+# GO_LIMIT_S: the go must follow the S-CORE side's start within the candidate's 420 s ready time-out; the clock starts
+# before the start step's own SSH call, and 40 s are kept for the go's SSH call (IAP to the G4, GO_SSH_S at most)
+POLL_S=20; STEP_TERM_POLLS=6; GO_LIMIT_S=380; GO_SSH_S=35; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
+GUEST_NOSSH_S=180
+# the exit trap's pre-stop phase (the running step's end, the S-CORE side's stop, the fetches) is bounded as a whole
+# (S9); within it each fetch at most TRAP_PACK_S to pack and TRAP_SCP_S to copy
+PRESTOP_S=300; TRAP_PACK_S=120; TRAP_SCP_S=300
+TRAP_GC_TO_S=30   # each gcloud status read in the trap: on a gcloud outage the stop loop must not sit for hours (S10)
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 T_UNIT=300
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
-       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S)
+       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
+       GUEST_NOSSH_S GO_SSH_S PRESTOP_S)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -103,6 +135,9 @@ else
 fi
 
 SID=${SID:-$(date -u +%Y%m%dT%H%M%SZ)}
+# the id goes unquoted into remote paths and commands (~/da-kit/<id>, mkdir, tar -C, the safety net's unit): letters,
+# digits, '.', '_' and '-' only, never first a '.' or a '-' (S6)
+[[ "$SID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "refused: session id '$SID' (allowed: ^[A-Za-z0-9][A-Za-z0-9._-]*\$)"; exit 2; }
 IN=$EVID/incoming_$SID
 [ -e "$IN" ] && { echo "refused: $IN exists (one folder per session)"; exit 2; }
 # an archived session keeps its id in its folder's name (rule 15: incoming_<id> renamed to session<N>_..._<id>) or
@@ -123,6 +158,9 @@ exec 3>&1   # a dry run prints every command here, outside the command substitut
 trap '' PIPE
 MAIN_PID=$$; WD_PID=""; CHILD=""; STARTED=(); STEP_FAIL=""; FINAL_RC=""; ENDED_BY=""; UPLOADED=""; SCORE_UP=""
 FETCHED=""; FETCH_OK=""; FETCH_BAD=""
+GUEST_STEP_SENT=0   # 1 from the first step sent to the guest host on: from then on guests may run there (S1)
+SCORE_RUN=""; STOPS=""; STOP_KILLED_LAST=""   # the run of the S-CORE side up; each of its stops: run:step:rc (S7)
+CUR_STEP=""; GUEST_STEP_RUNNING=""; FETCHING=""; PRE_END=""   # "<role> <step>" of the step rstep waits for; a guest step alive after its TERM
 
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
 say() { printf '%s\n' "$*" >&3 2>/dev/null || true; }   # a dry run's command line on stdout
@@ -133,7 +171,7 @@ var() { local n="${1^^}_$2"; echo "${!n}"; }   # var <role> VM|PROJECT|ZONE|EUR_
 gc() {   # gc <role> <gcloud args...>: every call is printed (dry run) and kept in commands.log
   local role=$1; shift
   local p; p=$(var "$role" PROJECT)
-  echo "$(date -u +%FT%T.%3NZ) + gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p $*" >> "$CMDS"
+  echo "$(date -u +%FT%T.%3NZ) + gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p $* [timeout ${GC_TO:-120} s]" >> "$CMDS"
   [ "$DRY" = 1 ] && say "+ gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p $*"
   timeout "${GC_TO:-120}" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" "$@"
 }
@@ -147,12 +185,12 @@ ssh_r() {   # ssh_r <role> <timeout_s> <remote command>
     "$(var "$role" VM)" --zone "$(var "$role" ZONE)" $(iap "$role") --command "$cmd" < /dev/null
 }
 ssh_l() {   # logged ssh: the command goes to commands.log (and to stderr in a dry run)
-  echo "$(date -u +%FT%T.%3NZ) + ssh $1: $3" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ ssh $1: $3"
+  echo "$(date -u +%FT%T.%3NZ) + ssh $1: $3 [timeout $2 s]" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ ssh $1: $3"
   ssh_r "$@"
 }
 scp_r() {   # scp_r <role> <timeout_s> <src...> <dst>
   local role=$1 to=$2; shift 2
-  echo "$(date -u +%FT%T.%3NZ) + scp $role: $*" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ scp $role: $*"
+  echo "$(date -u +%FT%T.%3NZ) + scp $role: $* [timeout $to s]" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ scp $role: $*"
   # shellcheck disable=SC2046
   timeout "$to" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$(var "$role" PROJECT)" compute scp \
     --zone "$(var "$role" ZONE)" $(iap "$role") "$@" < /dev/null
@@ -171,12 +209,164 @@ routall() { local f="$IN/.rout"; run_fg "$@" > "$f" 2>&1; local rc=$?; ROUT=$(ca
 cost_now() { awk -v now="$(date +%s.%N)" '{ s += (now - $2) * $3 / 3600 } END { printf "%.3f", s + 0 }' "$STARTS"; }
 ge() { awk -v a="$1" -v b="$2" 'BEGIN { exit !(a >= b) }'; }
 q() { printf ' %q' "$@"; }   # words quoted for the remote shell
+# in the trap's pre-stop phase (PRE_END set): a time-out cut to the time left of the phase, at least 1 s
+bnd() { [ -n "$PRE_END" ] || { echo "$1"; return; }; local l=$(( PRE_END - $(date +%s) )); [ "$l" -lt 1 ] && l=1
+  [ "$l" -lt "$1" ] && echo "$l" || echo "$1"; }
+pre_left() { [ -z "$PRE_END" ] || [ "$(date +%s)" -lt "$PRE_END" ]; }
 GSTOP=${GUEST_STOP_CMD//\$DA_SESSION_ID/$SID}
+# defined before the exit trap can run: a trap's fetch before the steps (the cap or a signal during the SSH and
+# upload section) expanded an unset HS under set -u, and that fetch ended silently
+HS="bash \$HOME/da-kit/$SID/bench/session/remote/host_step.sh"
+od() { echo "\$HOME/da-kit/$SID/out/$1"; }   # a step's output folder on the remote host
 crosvm_left() { run_fg ssh_l guest 60 "pgrep -c -x crosvm || true" 2>/dev/null | tail -1 | tr -dc 0-9; }
+step_down() {   # in the trap: the step rstep waited for, if any: TERM on its host, its end awaited (bounded) (S2)
+  [ -n "$CUR_STEP" ] || return 0
+  local r=${CUR_STEP%% *} s=${CUR_STEP#* } i prc=0; CUR_STEP=""
+  case " ${LOST:-} " in *" $r "*) return 0 ;; esac
+  log "step $s still runs on $(var "$r" VM): TERM to it there, then its end (up to $STEP_TERM_POLLS polls), before any stop"
+  rsignal "$r" "$s" TERM
+  for i in $(seq 1 "$STEP_TERM_POLLS"); do
+    rpoll "$r" "$HS status $s" "$(bnd 60)"; prc=$?
+    [ "$prc" = 3 ] && break   # the host is gone (preempted): nothing runs there
+    case "$ROUT" in "rc "*|absent) break ;; esac
+    pre_left || { log "the pre-stop phase's bound reached while step $s still reads ${ROUT:-unknown}"; break; }
+    sleep "$POLL_S"
+  done
+  log "step $s after the TERM: ${ROUT:-unknown}"
+  case "$ROUT" in "rc "*|absent) ;; *) [ "$prc" != 3 ] && [ "$r" = guest ] && GUEST_STEP_RUNNING=$s ;; esac
+}
+
+# the remote-step helpers, defined before the exit trap can run: a trap during the starts or the SSH and upload
+# section (a signal, the cap) called score_down and fetch before their definitions ("command not found"), and an
+# uploaded host was stopped unfetched
+host_lost() {   # host_lost <role> <status>: a host gone mid-session (preempted): no fetch, no more polls (R12)
+  log "$(var "$1" VM) is $2 during the session (preempted or stopped): its files stay on its disk"
+  LOST="${LOST:-} $1"; FETCHED="$FETCHED $1"; FETCH_BAD="$FETCH_BAD $1"; ENDED_BY="host lost: $1 ($2)"
+  [ "$1" = score ] && SCORE_UP=""
+}
+rpoll() {   # rpoll <role> <remote command> [<timeout_s>]: one short poll, its last line in ROUT; 3 when the host is
+  # gone (R12)
+  local st
+  if rout ssh_l "$1" "${3:-60}" "$2"; then ROUT=$(tail -1 <<< "$ROUT"); return 0; fi
+  ROUT=""; st=$(vmst "$1")
+  case "$st" in TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED) host_lost "$1" "$st"; return 3 ;; esac
+  return 1
+}
+rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on its host and polled; a failure ends
+  # the session. No SSH call lasts longer than a poll, so a dropped connection or this host's time-out never leaves
+  # a step running on unseen: at the time-out the step is signalled on its host and its end awaited (R10)
+  local r=$1 s=$2 to=$3; shift 3
+  log "step $s on $(var "$r" VM): $*"; SEQ+=("$r:$s")
+  local end=$(( $(date +%s) + to )) rc="" absent=0 i
+  [ "$r" = guest ] && GUEST_STEP_SENT=1
+  CUR_STEP="$r $s"   # from before its start call: an answer lost on the way may still have started it
+  routall ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
+  while :; do   # a start whose answer was lost may still have started: the status decides
+    rpoll "$r" "$HS status $s"
+    [ $? = 3 ] && { STEP_FAIL=$s; abort 3 "step $s: $(var "$r" VM) is gone"; }
+    case "$ROUT" in
+      "rc "*) rc=${ROUT#rc }; CUR_STEP=""; break ;;
+      absent) absent=$((absent + 1)); [ "$absent" -ge 3 ] && { rc=255; CUR_STEP=""; log "step $s never started"; break; } ;;
+    esac
+    if [ "$(date +%s)" -ge "$end" ]; then
+      log "step $s still ${ROUT:-unknown} after $to s: TERM to the step on its host, then its end"
+      rsignal "$r" "$s" TERM
+      for i in $(seq 1 "$STEP_TERM_POLLS"); do
+        rpoll "$r" "$HS status $s"; case "$ROUT" in "rc "*) CUR_STEP=""; break ;; esac; nap "$POLL_S"
+      done
+      # a step still alive stays in CUR_STEP: the trap sends it TERM again and waits once more before any stop
+      log "step $s after the TERM: ${ROUT:-unknown}"; rc=124; break
+    fi
+    nap "$POLL_S"
+  done
+  rout ssh_l "$r" 60 "$HS tail $s"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
+  log "step $s rc=$rc"
+  # every stop of the S-CORE side has run its collection, whatever its code; each is recorded per run (S7)
+  case "$s" in score_stop*) SCORE_UP=""; STOPS="$STOPS ${SCORE_RUN:-none}:$s:$rc" ;; esac
+  if [ "$rc" = 7 ] && [[ "$s" == score_stop* ]]; then
+    # stop_score_side.sh exit 7: stopped and collected, something had to be killed. Not a failure; recorded
+    # (session.json score_stops, stop_killed). Exit 8, collection failed, stays a failure (the lead's decision)
+    log "step $s rc=7: the S-CORE side of ${SCORE_RUN:-none} stopped and its records collected, but something had to be killed (stop_killed, recorded; not a failure)"
+    STOP_KILLED_LAST=$s; return 0
+  fi
+  if [ "$rc" != 0 ]; then
+    STEP_FAIL=$s; abort 5 "step $s failed (rc $rc)"
+  fi
+}
+rstart() { local r=$1 s=$2; shift 2; log "start $s on $(var "$r" VM): $*"; SEQ+=("$r:$s&")
+  [ "$r" = guest ] && GUEST_STEP_SENT=1
+  run_fg ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*" >> "$IN/$r.steps.out" 2>&1 || { STEP_FAIL=$s; abort 5 "start of $s failed"; }; }
+rsignal() { run_fg ssh_l "$1" 60 "$HS signal $2 ${3:-INT}" >> "$IN/$1.steps.out" 2>&1; }
+rwait() {   # rwait <role> <step> <timeout_s>: waits for a detached step's status
+  local r=$1 s=$2 end st; end=$(( $(date +%s) + $3 )); SEQ+=("$r:wait-$s")
+  while :; do
+    rpoll "$r" "$HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
+    case "$st" in "rc "*) log "step $s ${st}"; [ "$st" = "rc 0" ] && return 0; STEP_FAIL=$s; return 1 ;; esac
+    [ "$(date +%s)" -ge "$end" ] && { log "step $s still ${st:-unknown} after $3 s"; STEP_FAIL=$s; return 1; }
+    nap "$POLL_S"
+  done
+}
+rwaitfile() {   # rwait_file <role> <step> <remote file> <timeout_s>: the file of a running detached step
+  local r=$1 s=$2 f=$3 end st; end=$(( $(date +%s) + $4 )); SEQ+=("$r:file-${f##*/}")
+  while :; do
+    rpoll "$r" "test -e $f && echo present || $HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
+    case "$st" in
+      present) log "step $s: ${f##*/} present"; return 0 ;;
+      "rc "*) log "step $s ended ($st) before ${f##*/}"; STEP_FAIL=$s; return 1 ;;
+    esac
+    [ "$(date +%s)" -ge "$end" ] && { log "step $s: no ${f##*/} after $4 s"; STEP_FAIL=$s; return 1; }
+    nap "$POLL_S"
+  done
+}
+rtouch() {   # rtouch <role> <remote file> [<timeout_s>]: a handshake file of the world side
+  log "touch ${2##*/} on $(var "$1" VM): $2"; SEQ+=("$1:touch-${2##*/}")
+  rout ssh_l "$1" "${3:-60}" "touch $2 && echo touched"; [[ "$ROUT" == *touched* ]]
+}
+fetch() {   # fetch <role>: the host's output folder into incoming_<id>/<role>/, checked against this session's id
+  local r=$1 sha got
+  case " $FETCHED " in *" $r "*) return 0 ;; esac
+  FETCHED="$FETCHED $r"; FETCHING=$r   # a fetch a signal interrupts is recorded as not fetched
+  fetch_one "$r" && { FETCHING=""; FETCH_OK="$FETCH_OK $r"; return 0; }
+  FETCHING=""; FETCH_BAD="$FETCH_BAD $r"; return 1
+}
+fetch_one() {
+  local r=$1 sha got
+  rout ssh_l "$r" "$(bnd "${FETCH_PACK_TO:-600}")" "$HS pack"; sha=$(tail -1 <<< "$ROUT")
+  mkdir -p "$IN/$r"
+  routall scp_r "$r" "$(bnd "${FETCH_SCP_TO:-1200}")" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"
+  printf '%s\n' "$ROUT" | one >> "$LOG"
+  got=$(sha256sum "$IN/$r/out.tgz" 2>/dev/null | cut -d' ' -f1)
+  [ -n "$got" ] && [ "$got" = "$sha" ] || { log "fetch from $(var "$r" VM) failed or changed (remote '$sha', local '$got')"; return 1; }
+  tar -xzf "$IN/$r/out.tgz" -C "$IN/$r" || return 1
+  [ "$(cat "$IN/$r/out/session_id" 2>/dev/null)" = "$SID" ] || { log "fetched files of $(var "$r" VM) are not this session's"; return 1; }
+  log "fetched $(var "$r" VM): out.tgz $got"
+  return 0
+}
+score_down() {   # the S-CORE side, if this session started it and has not stopped it: its stop is its only collector (R8)
+  [ -n "$SCORE_UP" ] || return 0
+  local o=$SCORE_UP rc; SCORE_UP=""
+  log "the S-CORE side is up ($o): its stop, which collects its records, before the fetch"
+  run_fg ssh_l score "${T_SCORE_DOWN:-$T_SCORE_START}" "$HS run score_stop_on_failure -- $(renv score)bash $ENTRY_SCORE_STOP $o" \
+    >> "$IN/score.steps.out" 2>&1; rc=$?
+  log "step score_stop_on_failure rc=$rc$([ "$rc" = 7 ] && echo ": stopped and collected, something had to be killed (stop_killed, recorded)")"
+  STOPS="$STOPS ${SCORE_RUN:-none}:score_stop_on_failure:$rc"
+}
+abort() {   # a failure after the starts: the S-CORE side's stop, the fetch, the exit (3 when a host was lost)
+  local code=$1; shift
+  [ -n "${LOST:-}" ] && code=3
+  score_down; fetch_all; fail "$code" "$*"
+}
+fetch_all() { local r ok=0; for r in "${STARTED[@]}"; do fetch "$r" || ok=1; done; return $ok; }
+ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never configured: D5 may move the hosts)
+  local ip; ip=$(vmip "$1"); [ -n "$ip" ] || abort 5 "no internal IP of $(var "$1" VM) from gcloud"
+  IPS="${IPS:-} $1=$ip"; printf -v "$2" '%s' "$ip"
+}
+
 
 # ───────────── exit trap: stop what this session started ─────────────
 cleanup() {
   local rc=$? r st i
+  local GC_TO=$TRAP_GC_TO_S   # every gcloud call of the trap without its own time-out: the status reads (S10)
   # no signal ends the trap before its stops (R1): a second Ctrl-C, HUP or TERM, or the watchdog's TERM, is ignored
   # here, and the trap runs on to the guests' stop, their host's stop and session.json
   trap '' INT TERM HUP
@@ -187,22 +377,48 @@ cleanup() {
   [ -n "$CHILD" ] && kill_tree "$CHILD"   # an interrupted SSH step: its local client and timeout too
   [ -f "$IN/.cap_reached" ] && ENDED_BY=cap
   [ -n "$ENDED_BY" ] || ENDED_BY="exit $rc"
-  # the S-CORE side's stop, its only collector, while the world may still tick (R8); then, bounded, the fetch of
-  # every host whose evidence was not fetched yet (a signal, the cap), before any stop (R13)
-  T_SCORE_DOWN=120 score_down
+  # a fetch the signal interrupted is not tried again (the session ends at once, R19); it is recorded as not fetched
+  if [ -n "$FETCHING" ]; then log "the fetch from $(var "$FETCHING" VM) was interrupted: not fetched"; FETCH_BAD="$FETCH_BAD $FETCHING"; FETCHING=""; fi
+  local gpu=() guest=0 early=""
+  for r in "${STARTED[@]}"; do if [ "$r" = guest ]; then guest=1; else gpu+=("$r"); fi; done
+  # the pre-stop phase, bounded as a whole (S9): after the cap every VM bills on while it runs, and the safety nets
+  # fire at the cap plus this bound plus their margin. First the GPU hosts with nothing left to collect or fetch
+  # (no kit there, or already fetched, no S-CORE side up, no step running) stop at once
+  PRE_END=$(( $(date +%s) + PRESTOP_S ))
+  log "pre-stop phase, $PRESTOP_S s at most: the running step's end, the S-CORE side's stop, the fetches"
+  for r in "${gpu[@]}"; do
+    case " $UPLOADED " in *" $r "*) case " $FETCHED " in *" $r "*) ;; *) continue ;; esac ;; esac
+    [ "$r" = score ] && [ -n "$SCORE_UP" ] && continue
+    [ "${CUR_STEP%% *}" = "$r" ] && continue
+    log "stopping $(var "$r" VM) ($r) first: nothing left to collect or fetch there"
+    GC_TO=300 gc "$r" compute instances stop "$(var "$r" VM)" --zone "$(var "$r" ZONE)" --async --quiet 2>&1 | one >> "$LOG"
+    early="$early $r"
+  done
+  # the step still running on its host (a signal or the cap during it): TERM to it there, and its end awaited, before
+  # the S-CORE side's stop and any stop; a guest launch never races the guests' stop (S2)
+  step_down
+  # the S-CORE side's stop, its only collector, while the world may still tick (R8); then the fetch of every host
+  # whose evidence was not fetched yet (a signal, the cap), before its stop (R13); all within the phase's bound
+  if pre_left; then T_SCORE_DOWN=$(bnd 120) score_down
+  elif [ -n "$SCORE_UP" ]; then log "the pre-stop phase's bound reached: no stop of the S-CORE side by the session (its records stay incomplete on its disk)"; fi
   for r in $UPLOADED; do
     case " $FETCHED " in *" $r "*) continue ;; esac
-    log "fetching $(var "$r" VM) before its stop (bounded)"
-    FETCH_PACK_TO=120 FETCH_SCP_TO=300 fetch "$r"
+    if ! pre_left; then
+      log "the pre-stop phase's bound reached: $(var "$r" VM) not fetched (its files stay on its disk)"
+      FETCHED="$FETCHED $r"; FETCH_BAD="$FETCH_BAD $r"; continue
+    fi
+    log "fetching $(var "$r" VM) before its stop (pack at most $TRAP_PACK_S s, copy at most $TRAP_SCP_S s, within the pre-stop phase)"
+    FETCH_PACK_TO=$TRAP_PACK_S FETCH_SCP_TO=$TRAP_SCP_S fetch "$r"
   done
-  local gpu=() guest=0
-  for r in "${STARTED[@]}"; do if [ "$r" = guest ]; then guest=1; else gpu+=("$r"); fi; done
-  # the GPU hosts first (they cost most), without waiting
+  PRE_END=""
+  # the other GPU hosts (they cost most), without waiting
   for r in "${gpu[@]}"; do
+    case " $early " in *" $r "*) continue ;; esac
     log "stopping $(var "$r" VM) ($r)"
     GC_TO=300 gc "$r" compute instances stop "$(var "$r" VM)" --zone "$(var "$r" ZONE)" --async --quiet 2>&1 | one >> "$LOG"
   done
   if [ "$guest" = 1 ]; then
+    [ -n "$GUEST_STEP_RUNNING" ] && log "step $GUEST_STEP_RUNNING may still run on $(var guest VM) after its TERM: the guests' stop, and the host is kept whatever the count"
     # a failed status read is read again; only a stopped host counts as "no guests" (R2)
     for i in $(seq 1 "$STATUS_TRIES"); do
       st=$(vmst guest); [ "$st" != UNKNOWN ] && break
@@ -217,7 +433,23 @@ cleanup() {
         # check that no crosvm is left; never a stop of the host with guests running, and never one without this
         # session's crosvm count of 0 (lead answer B13.3; the guest-prep-20261118 operator's route)
         [ "$st" = RUNNING ] || log "guest host status $st: the guests' stop all the same, and the host only after a crosvm count of 0"
-        for try in 1 2; do
+        local ssh_ok=1 t_end
+        if [ "$GUEST_STEP_SENT" = 0 ]; then
+          # no guest step went out, so no guest can run there unless its image starts Cuttlefish at boot, which it
+          # does not (assumption, checked once by the operator: README, the p10-3 block). Without SSH the host
+          # would stay up, unarmed and billing (S1): SSH is tried for a bounded time, then the host is stopped
+          ssh_ok=0; t_end=$(( $(date +%s) + GUEST_NOSSH_S ))
+          while :; do
+            run_fg ssh_l guest 45 true > /dev/null 2>&1 && { ssh_ok=1; break; }
+            [ "$(date +%s)" -ge "$t_end" ] && break
+            sleep "$SSH_PAUSE_S"
+          done
+          if [ "$ssh_ok" = 0 ]; then
+            log "GUEST HOST STOPPED WITHOUT A CROSVM COUNT: $(var guest VM) never answered SSH within $GUEST_NOSSH_S s in the trap and got no guest step from this session, so no guest can run there (assumption: nothing on its image starts Cuttlefish at boot)"
+            left=0
+          fi
+        fi
+        [ "$ssh_ok" = 1 ] && for try in 1 2; do
           log "stopping the guests before their host (try $try): $GSTOP"
           out=$(ssh_l guest 300 "$GSTOP" 2>&1); echo "$out" | sanitize >> "$IN/guest_stop.out"
           left=$(crosvm_left)
@@ -225,11 +457,15 @@ cleanup() {
           [ "$left" = 0 ] && break
         done ;;
     esac
-    if [ "$left" = 0 ]; then
+    if [ "$left" = 0 ] && [ -z "$GUEST_STEP_RUNNING" ]; then
       log "stopping $(var guest VM) (guest)"
       GC_TO=300 gc guest compute instances stop "$(var guest VM)" --zone "$(var guest ZONE)" --async --quiet 2>&1 | one >> "$LOG"
     else
-      log "GUEST HOST LEFT RUNNING: the guests did not stop (crosvm '${left:-unknown}'). Stop them by hand (cvd stop, no crosvm left), then the host"
+      if [ -n "$GUEST_STEP_RUNNING" ]; then
+        log "GUEST HOST LEFT RUNNING: step $GUEST_STEP_RUNNING did not end after its TERM (crosvm '${left:-unknown}'). End it, stop the guests by hand (cvd stop, no crosvm left), then the host"
+      else
+        log "GUEST HOST LEFT RUNNING: the guests did not stop (crosvm '${left:-unknown}'). Stop them by hand (cvd stop, no crosvm left), then the host"
+      fi
       GUEST_LEFT=1
     fi
   fi
@@ -260,7 +496,7 @@ cleanup() {
   for p in $(for r in sim score guest; do var "$r" PROJECT; done | sort -u); do
     echo "$(date -u +%FT%T.%3NZ) + gcloud --project=$p compute instances list" >> "$CMDS"
     [ "$DRY" = 1 ] && say "+ gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p compute instances list"
-    "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" compute instances list \
+    timeout "$TRAP_GC_TO_S" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" compute instances list \
       --format='value(name,zone.basename(),status)' 2>/dev/null | sed "s/^/VM after session [$p]: /" >> "$LOG"
   done
   [ "$KIND" = p10-1 ] && [ -n "$UPLOADED" ] && p10_1_report
@@ -303,13 +539,16 @@ PY
   log "$line"
 }
 write_record() {
+  # the hosts not fetched, computed before the assignments below: one of them, STARTED="${STARTED[*]}", turns the
+  # array into one word for the rest of that command, and the loop then read "sim score" as one host
+  local nf r; nf="$FETCH_BAD $(for r in "${STARTED[@]}"; do case " $FETCHED " in *" $r "*) ;; *) echo "$r" ;; esac; done)"
   KIND="$KIND" SID="$SID" RC="$1" CAP="$CAP" IN="$IN" STARTED="${STARTED[*]}" STEP_FAIL="$STEP_FAIL" \
   KIT_SHA="${KIT_SHA:-}" BENCH_COMMIT="${BENCH_COMMIT:-}" WT_CHANGES="${WT_CHANGES:-}" DRY="$DRY" \
   IAP="$SIM_SSH_IAP" PERM="$IVI_PERMISSIVE" IPS="${IPS:-}" CAMCAL="${CAMCAL_SHA:-}" VM_AFTER="${VM_AFTER:-}" \
   LEFT="${LEFT_RUNNING:-}" RC_STEPS="${RC_STEPS:-$1}" RECEIPTS="${RECEIPTS:-}" \
-  FETCH_OK="$FETCH_OK" FETCH_BAD="$FETCH_BAD $(for r in "${STARTED[@]}"; do case " $FETCHED " in *" $r "*) ;; *) echo "$r" ;; esac; done)" \
-  ENDED_BY="$ENDED_BY" \
-  RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${!n}"; done)" python3 - <<'PY'
+  FETCH_OK="$FETCH_OK" FETCH_BAD="$nf" \
+  ENDED_BY="$ENDED_BY" STOPS="$STOPS" \
+  RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os
 e = os.environ
 p10_1 = os.path.join(e["IN"], "p10_1_summary.json")
@@ -331,6 +570,9 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "left_running": e["LEFT"].split(), "exit_code_without_left_running": int(e["RC_STEPS"]),
            "remote_env": renv, "fetched": e["FETCH_OK"].split(), "not_fetched": e["FETCH_BAD"].split(),
            "ended_by": e["ENDED_BY"] or None,
+           "score_stops": {run: {"step": step, "rc": int(rc) if rc.lstrip("-").isdigit() else None,
+                                 "stop_killed": rc == "7"}
+                           for run, step, rc in (x.split(":", 2) for x in e["STOPS"].split())},
            "p10_1": json.load(open(p10_1)) if os.path.exists(p10_1) else None,
            "app_record_receipts": {w: (int(n) if n.isdigit() else None)
                                    for w, n in (x.split("=", 1) for x in e["RECEIPTS"].split() if "=" in x)}},
@@ -350,20 +592,13 @@ trap 'on_signal HUP 129' HUP
 log "SESSION_START $SID kind=$KIND hosts=${ROLES[*]} cap=$CAP EUR dry_run=$DRY sim_ssh_iap=$SIM_SSH_IAP permissive_ivi=$IVI_PERMISSIVE"
 [ "$IVI_PERMISSIVE" = 1 ] && log "every result of this session is conditional on a permissive IVI (--permissive-ivi)"
 
-# per-session settings of the remote entries (R6): a name on its host's list below that is set in this host's
-# environment goes to every step on that host (`env NAME=value` before the command) and into session.json, so a
-# guessed pattern or a time-out is changed for the next session without a commit
-REMOTE_ENV_guest="UNIT_REGISTERED_RE UNIT_NEGATION_RE BROKER_ERROR_RE UNIT_WAIT_S B12_DIR VERIFY_WAIT_S ADB_TIMEOUT_S
-                  UP_TIMEOUT_S CLOCK_READS CLOCK_MAX_OFFSET_S START_WAIT_S"
-REMOTE_ENV_score="DA_P10_1_CARLA_HOST GATEWAYD_RX_REGEX DA_P10_1_LATE_WAIT_S DA_P10_1_CUDA_RUNS DA_P10_1_ALIVE_HOLD_S
-                  DA_P10_1_STALL_HOLD_S DA_P10_1_SUPERVISED_WAIT_S"
-REMOTE_ENV_sim=""
+# the --remote-env settings, per host, in the order of its list
 REMOTE_ENV_SET=""
 for _r in guest score sim; do
   _l="REMOTE_ENV_$_r"; _a=()
   for _n in ${!_l}; do
-    [ -n "${!_n+x}" ] || continue
-    _a+=("$_n=${!_n}"); REMOTE_ENV_SET="$REMOTE_ENV_SET $_r:$_n"
+    [ -n "${RVAL[$_n]+x}" ] || continue
+    _a+=("$_n=${RVAL[$_n]}"); REMOTE_ENV_SET="$REMOTE_ENV_SET $_r:$_n"
   done
   if [ ${#_a[@]} -gt 0 ]; then printf -v "RENV_$_r" '%s ' "env$(q "${_a[@]}")"; else printf -v "RENV_$_r" '%s' ""; fi
 done
@@ -556,7 +791,9 @@ upload() {
   [ "$got" = "$KIT_SHA" ] || { log "kit on $(var "$r" VM): sha256 '$got', expected $KIT_SHA"; return 1; }
   # safety net: the VM powers itself off a little after the cap, should this host lose the session
   # (the guest host: the guests' stop first, and no power-off while a crosvm is left; safety_net.sh)
-  gmin=$(( CAP_S / 60 + SAFETY_MARGIN_MIN ))
+  # the cap, plus the trap's pre-stop phase bound (the S-CORE host's power-off never cuts its own fetch, S9), plus the
+  # margin for the trap's stops
+  gmin=$(( (CAP_S + PRESTOP_S) / 60 + SAFETY_MARGIN_MIN ))
   local net="bash ~/da-kit/$SID/bench/session/remote/safety_net.sh arm $gmin"
   [ "$r" = guest ] && net="$net$(q "$GSTOP")"
   # no host runs on without its safety net: an arming that is not confirmed ends the session (R15)
@@ -578,118 +815,6 @@ for r in "${ROLES[@]}"; do
 done
 
 # ───────────── 4. the steps of the session kind ─────────────
-HS="bash \$HOME/da-kit/$SID/bench/session/remote/host_step.sh"
-od() { echo "\$HOME/da-kit/$SID/out/$1"; }   # a step's output folder on the remote host
-host_lost() {   # host_lost <role> <status>: a host gone mid-session (preempted): no fetch, no more polls (R12)
-  log "$(var "$1" VM) is $2 during the session (preempted or stopped): its files stay on its disk"
-  LOST="${LOST:-} $1"; FETCHED="$FETCHED $1"; FETCH_BAD="$FETCH_BAD $1"; ENDED_BY="host lost: $1 ($2)"
-  [ "$1" = score ] && SCORE_UP=""
-}
-rpoll() {   # rpoll <role> <remote command>: one short poll, its last line in ROUT; 3 when the host is gone (R12)
-  local st
-  if rout ssh_l "$1" 60 "$2"; then ROUT=$(tail -1 <<< "$ROUT"); return 0; fi
-  ROUT=""; st=$(vmst "$1")
-  case "$st" in TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED) host_lost "$1" "$st"; return 3 ;; esac
-  return 1
-}
-rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on its host and polled; a failure ends
-  # the session. No SSH call lasts longer than a poll, so a dropped connection or this host's time-out never leaves
-  # a step running on unseen: at the time-out the step is signalled on its host and its end awaited (R10)
-  local r=$1 s=$2 to=$3; shift 3
-  log "step $s on $(var "$r" VM): $*"; SEQ+=("$r:$s")
-  local end=$(( $(date +%s) + to )) rc="" absent=0 i
-  routall ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
-  while :; do   # a start whose answer was lost may still have started: the status decides
-    rpoll "$r" "$HS status $s"
-    [ $? = 3 ] && { STEP_FAIL=$s; abort 3 "step $s: $(var "$r" VM) is gone"; }
-    case "$ROUT" in
-      "rc "*) rc=${ROUT#rc }; break ;;
-      absent) absent=$((absent + 1)); [ "$absent" -ge 3 ] && { rc=255; log "step $s never started"; break; } ;;
-    esac
-    if [ "$(date +%s)" -ge "$end" ]; then
-      log "step $s still ${ROUT:-unknown} after $to s: TERM to the step on its host, then its end"
-      rsignal "$r" "$s" TERM
-      for i in $(seq 1 "$STEP_TERM_POLLS"); do
-        rpoll "$r" "$HS status $s"; case "$ROUT" in "rc "*) break ;; esac; nap "$POLL_S"
-      done
-      log "step $s after the TERM: ${ROUT:-unknown}"; rc=124; break
-    fi
-    nap "$POLL_S"
-  done
-  rout ssh_l "$r" 60 "$HS tail $s"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
-  log "step $s rc=$rc"
-  if [ "$rc" != 0 ]; then
-    case "$s" in score_stop*) SCORE_UP="" ;; esac   # a failed stop of the S-CORE side has run its collection
-    STEP_FAIL=$s; abort 5 "step $s failed (rc $rc)"
-  fi
-}
-rstart() { local r=$1 s=$2; shift 2; log "start $s on $(var "$r" VM): $*"; SEQ+=("$r:$s&")
-  run_fg ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*" >> "$IN/$r.steps.out" 2>&1 || { STEP_FAIL=$s; abort 5 "start of $s failed"; }; }
-rsignal() { run_fg ssh_l "$1" 60 "$HS signal $2 ${3:-INT}" >> "$IN/$1.steps.out" 2>&1; }
-rwait() {   # rwait <role> <step> <timeout_s>: waits for a detached step's status
-  local r=$1 s=$2 end st; end=$(( $(date +%s) + $3 )); SEQ+=("$r:wait-$s")
-  while :; do
-    rpoll "$r" "$HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
-    case "$st" in "rc "*) log "step $s ${st}"; [ "$st" = "rc 0" ] && return 0; STEP_FAIL=$s; return 1 ;; esac
-    [ "$(date +%s)" -ge "$end" ] && { log "step $s still ${st:-unknown} after $3 s"; STEP_FAIL=$s; return 1; }
-    nap "$POLL_S"
-  done
-}
-rwaitfile() {   # rwait_file <role> <step> <remote file> <timeout_s>: the file of a running detached step
-  local r=$1 s=$2 f=$3 end st; end=$(( $(date +%s) + $4 )); SEQ+=("$r:file-${f##*/}")
-  while :; do
-    rpoll "$r" "test -e $f && echo present || $HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
-    case "$st" in
-      present) log "step $s: ${f##*/} present"; return 0 ;;
-      "rc "*) log "step $s ended ($st) before ${f##*/}"; STEP_FAIL=$s; return 1 ;;
-    esac
-    [ "$(date +%s)" -ge "$end" ] && { log "step $s: no ${f##*/} after $4 s"; STEP_FAIL=$s; return 1; }
-    nap "$POLL_S"
-  done
-}
-rtouch() {   # rtouch <role> <remote file>: a handshake file of the world side
-  log "touch ${2##*/} on $(var "$1" VM): $2"; SEQ+=("$1:touch-${2##*/}")
-  rout ssh_l "$1" 60 "touch $2 && echo touched"; [[ "$ROUT" == *touched* ]]
-}
-fetch() {   # fetch <role>: the host's output folder into incoming_<id>/<role>/, checked against this session's id
-  local r=$1 sha got
-  case " $FETCHED " in *" $r "*) return 0 ;; esac
-  FETCHED="$FETCHED $r"
-  fetch_one "$r" && { FETCH_OK="$FETCH_OK $r"; return 0; }
-  FETCH_BAD="$FETCH_BAD $r"; return 1
-}
-fetch_one() {
-  local r=$1 sha got
-  rout ssh_l "$r" "${FETCH_PACK_TO:-600}" "$HS pack"; sha=$(tail -1 <<< "$ROUT")
-  mkdir -p "$IN/$r"
-  routall scp_r "$r" "${FETCH_SCP_TO:-1200}" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"
-  printf '%s\n' "$ROUT" | one >> "$LOG"
-  got=$(sha256sum "$IN/$r/out.tgz" 2>/dev/null | cut -d' ' -f1)
-  [ -n "$got" ] && [ "$got" = "$sha" ] || { log "fetch from $(var "$r" VM) failed or changed (remote '$sha', local '$got')"; return 1; }
-  tar -xzf "$IN/$r/out.tgz" -C "$IN/$r" || return 1
-  [ "$(cat "$IN/$r/out/session_id" 2>/dev/null)" = "$SID" ] || { log "fetched files of $(var "$r" VM) are not this session's"; return 1; }
-  log "fetched $(var "$r" VM): out.tgz $got"
-  return 0
-}
-score_down() {   # the S-CORE side, if this session started it and has not stopped it: its stop is its only collector (R8)
-  [ -n "$SCORE_UP" ] || return 0
-  local o=$SCORE_UP rc; SCORE_UP=""
-  log "the S-CORE side is up ($o): its stop, which collects its records, before the fetch"
-  run_fg ssh_l score "${T_SCORE_DOWN:-$T_SCORE_START}" "$HS run score_stop_on_failure -- $(renv score)bash $ENTRY_SCORE_STOP $o" \
-    >> "$IN/score.steps.out" 2>&1; rc=$?
-  log "step score_stop_on_failure rc=$rc"
-}
-abort() {   # a failure after the starts: the S-CORE side's stop, the fetch, the exit (3 when a host was lost)
-  local code=$1; shift
-  [ -n "${LOST:-}" ] && code=3
-  score_down; fetch_all; fail "$code" "$*"
-}
-fetch_all() { local r ok=0; for r in "${STARTED[@]}"; do fetch "$r" || ok=1; done; return $ok; }
-ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never configured: D5 may move the hosts)
-  local ip; ip=$(vmip "$1"); [ -n "$ip" ] || abort 5 "no internal IP of $(var "$1" VM) from gcloud"
-  IPS="${IPS:-} $1=$ip"; printf -v "$2" '%s' "$ip"
-}
-
 # the environment the remote entries get from this session's configuration (entrypoints.env)
 GENV="env$(q "APP_PACKAGE=$APP_PACKAGE" "APP_COMPONENT=$APP_COMPONENT" "APP_RECORD_PATHS=$APP_RECORD_PATHS" "IVI_PERMISSIVE=$IVI_PERMISSIVE")"
 SENV="env$(q "SIM_PY=$SIM_PY")"
@@ -739,16 +864,21 @@ window_close() {
     log "window $w: $n line(s) in the app's record"
   fi
 }
-world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1>: one run with its own S-CORE side
-  local w=$1 sc=$2 se=$3 rec=$4 o; o=$(od "world_$w")
+world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another run follows 0|1>: one run with its own
+  # S-CORE side
+  local w=$1 sc=$2 se=$3 rec=$4 more=${5:-0} o; o=$(od "world_$w")
   [ "$rec" = 1 ] && rstart sim "rec_$w" "$SIM_PY" "$ENTRY_SIM_RECORD" --out "$(od "rec_$w")"
   rstart sim "world_$w" "$SENV" bash "$ENTRY_SIM_RUN" "$o" "$sc" "$se"
   rwaitfile sim "world_$w" "$o/simulator/ready.json" "$T_READY" || { abort 5 "the world side of $w is not ready"; }
   # the S-CORE side after ready.json (the hero stands), with the camera calibration file of this session
   [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ] && logmark "$w"
+  SCORE_RUN=$w
+  # the go clock starts before the start step: the candidate's ready time-out runs from its process start inside
+  # that step, which this host sees end only a poll later (S5); so the bound errs early, never late
+  local t_up; t_up=$(date +%s)
   rstep score "score_start_$w" "$T_SCORE_START" env "DA_CAMERA_CALIBRATION_DIR=$CAMCAL_DIR" bash "$ENTRY_SCORE_START" \
     "$(od "score_$w")" "$CARLA_HOST"
-  SCORE_UP=$(od "score_$w"); local t_up; t_up=$(date +%s)
+  SCORE_UP=$(od "score_$w")
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then offer_checks "$w"; window_open "$w"; fi
   # the candidate gives up on the world after its 420 s ready time-out: a later go reads as a supervision failure
   # (rule 31), so the run is refused, the world side ended and the S-CORE side stopped (R14)
@@ -758,8 +888,9 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1>: one run
     rsignal sim "world_$w" TERM
     STEP_FAIL="world_$w"; abort 5 "the run $w is invalid: no go within $GO_LIMIT_S s of the S-CORE side's start"
   fi
-  log "go of $w $since s after the S-CORE side's start (limit $GO_LIMIT_S s)"
-  rtouch sim "$o/go" || { STEP_FAIL="world_$w"; abort 5 "no go file for $w"; }
+  log "go of $w $since s after the S-CORE side's start step began (limit $GO_LIMIT_S s, the go's SSH call at most $GO_SSH_S s)"
+  rtouch sim "$o/go" "$GO_SSH_S" || { STEP_FAIL="world_$w"; abort 5 "no go file for $w"; }
+  log "go of $w done $(( $(date +%s) - t_up )) s after the S-CORE side's start step began (the candidate waits 420 s)"
   rwaitfile sim "world_$w" "$o/simulator/run_end.json" "$T_RUN" || { abort 5 "the run $w did not end"; }
   # the S-CORE side stops while the world still ticks (launch-manager/README.md), then the world is released
   rstep score "score_stop_$w" "$T_SCORE_START" bash "$ENTRY_SCORE_STOP" "$(od "score_$w")"; SCORE_UP=""
@@ -767,6 +898,12 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1>: one run
   rwait sim "world_$w" "$T_RELEASE" || { abort 5 "the world side of $w did not end well"; }
   if [ "$rec" = 1 ]; then rwait sim "rec_$w" "$T_REC_END" || { abort 5 "the recorder of $w did not end well"; }; fi
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then window_close "$w"; fi
+  # a stop that had to kill, with another run to come: this run is complete and recorded, but the next one would
+  # start from a suspect state while every VM bills; the session ends here (the lead's decision, S7)
+  if [ "$STOP_KILLED_LAST" = "score_stop_$w" ] && [ "$more" = 1 ]; then
+    STEP_FAIL="score_stop_$w"; ENDED_BY="score_stop_$w had to kill (rc 7) and another run would follow"
+    abort 5 "the S-CORE stop of $w had to kill (rc 7): no further run from a suspect state"
+  fi
 }
 make_h() {   # on this host: the capture from the simulator host, make-h, both files onto the S-CORE host
   local d=$IN/camcal src="da-kit/$SID/out/calibrate/camcal/simulator" vm f rc loc got
@@ -810,6 +947,7 @@ case "$KIND" in
     # IVI clock just before the window
     guest_bring_up
     logmark inject
+    SCORE_RUN=inject
     rstep score score_start "$T_SCORE_START" bash "$ENTRY_SCORE_START" "$(od score)" none
     SCORE_UP=$(od score)
     offer_checks inject
@@ -834,8 +972,10 @@ case "$KIND" in
     # S-CORE side copies into the candidate's working directory before its identity record
     rstep sim calibrate "$T_CALIBRATE" "$SENV" bash "$ENTRY_SIM_CALIBRATE" "$(od calibrate)"
     make_h
-    [ "$P10_2_CALIB_STEER" = 1 ] && world_run calib_steer ASM-DRIVING-006 "$P10_2_SETTING" 0
-    for n in $(seq 1 "$P10_2_RUNS"); do world_run "run$n" "$P10_2_SCENARIO" "$P10_2_SETTING" 1; done
+    [ "$P10_2_CALIB_STEER" = 1 ] && world_run calib_steer ASM-DRIVING-006 "$P10_2_SETTING" 0 "$([ "$P10_2_RUNS" -ge 1 ] && echo 1 || echo 0)"
+    for n in $(seq 1 "$P10_2_RUNS"); do
+      world_run "run$n" "$P10_2_SCENARIO" "$P10_2_SETTING" 1 "$([ "$n" -lt "$P10_2_RUNS" ] && echo 1 || echo 0)"
+    done
     ;;
 esac
 log "SEQUENCE ${SEQ[*]}"

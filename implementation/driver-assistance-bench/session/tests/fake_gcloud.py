@@ -8,9 +8,13 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_PREEMPT       "vm:n"  the n-th status read after the VM came up returns TERMINATED (once)
   FAKE_GPU_RUNNING   "project:name"  another GPU VM running in that project
   FAKE_FAIL_STEP     a step name whose `host_step.sh run|status` fails
+  FAKE_STEP_RC       "step:rc,..."  the exit status a detached step reports (status, tail) in place of 0
   FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering; a detached
                      step (`start`) reads "running" for that long after its start
   FAKE_SSH_DOWN      a VM name that never answers SSH
+  FAKE_STEP_IGNORES_TERM  a step name that keeps reading "running" after its signal (its FAKE_HANG_STEP time)
+  FAKE_SSH_DOWN_AFTER  "vm:text"  the VM stops answering SSH right after the first ssh call (to any VM) whose
+                     command has text (an SSH loss mid-session; the VM keeps running)
   FAKE_GUEST_STOP_FAIL  1: a crosvm process stays after every guests' stop; once: after the first stop only
   FAKE_IP            "vm:ip,..."  internal IPs other than the defaults (the session must read them from gcloud)
   FAKE_NO_FILE       a substring: `test -e <path>` of a matching path never finds it (the step keeps "running")
@@ -18,6 +22,7 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_NO_STOP       a VM name that stays RUNNING after a stop
   FAKE_SLOW_GUEST_STOP  seconds: the guests' stop (guest_stop.sh, not the safety net's arming) takes that long
   FAKE_LOST_AFTER    "vm:text"  the VM is reclaimed (TERMINATED) right after the first ssh whose command has text
+  FAKE_LOST_STATUS   the status FAKE_LOST_AFTER leaves (default TERMINATED; STOPPING, say)
   FAKE_PACK_ADD      "arcname=local file,..."  more files in every packed out.tgz (a fetched verdicts file, say)
   FAKE_KIT_EXISTS    a VM name that already holds ~/da-kit/<session id>
   FAKE_ARM_FAIL      a VM name whose safety net's arming fails
@@ -65,7 +70,12 @@ if "vm" not in st:
 
 
 def save():
-    json.dump(st, open(SF, "w"))
+    # atomic: the session's trap may TERM a fake call mid-write (kill_tree); a truncated state.json then failed the
+    # next call and the test's own read (a fixture flake the second review saw, and the S9 cap test hit)
+    tmp = "%s.%d.tmp" % (SF, os.getpid())
+    with open(tmp, "w") as f:
+        json.dump(st, f)
+    os.replace(tmp, SF)
 
 
 def opt(name):
@@ -168,11 +178,14 @@ if words[:2] == ["compute", "instances"] and len(words) > 2 and words[2] in ("de
 if words[:2] == ["compute", "ssh"]:
     n = words[2]
     c = opt("--command") or ""
-    if st["vm"].get(n) != "RUNNING" or os.environ.get("FAKE_SSH_DOWN") == n:
+    if st["vm"].get(n) != "RUNNING" or os.environ.get("FAKE_SSH_DOWN") == n or n in st.get("ssh_down", []):
         err("ssh: connect to host 192.0.2.10 port 22: Connection refused\n", 255)
+    for vm, text in kv("FAKE_SSH_DOWN_AFTER").items():
+        if text in c and vm not in st.setdefault("ssh_down", []):
+            st["ssh_down"].append(vm)
     lost = kv("FAKE_LOST_AFTER")
     if n in lost and lost[n] in c:
-        st["vm"][n] = "TERMINATED"   # reclaimed right after this call (which still answers)
+        st["vm"][n] = os.environ.get("FAKE_LOST_STATUS", "TERMINATED")   # reclaimed after this call (it answers)
     if c == "true":
         out("")
     m = re.search(r"host_step\.sh (run|start|status|tail|signal|pack)\s*(\S*)", c)
@@ -217,6 +230,7 @@ if words[:2] == ["compute", "ssh"]:
     if m:
         action, step = m.group(1), m.group(2)
         fail = os.environ.get("FAKE_FAIL_STEP") == step
+        code = int(kv("FAKE_STEP_RC").get(step, 1 if fail else 0))
         if action == "run":
             if " receipts " in c:
                 sys.stdout.write("RECEIPTS %s\n" % os.environ.get("FAKE_RECEIPTS", "2"))
@@ -236,15 +250,15 @@ if words[:2] == ["compute", "ssh"]:
             out("started %s pid 4242\n" % step)
         if action == "status":
             # a detached step runs for its FAKE_HANG_STEP seconds from its start (or ends at once), then reports
-            if key in st.get("signalled", {}):
+            if key in st.get("signalled", {}) and os.environ.get("FAKE_STEP_IGNORES_TERM") != step:
                 out("rc 143\n")
             t0 = st.get("started", {}).get(key)
             hang = kv("FAKE_HANG_STEP").get(step)
             if t0 is not None and hang and time.time() - t0 < float(hang):
                 out("running\n")
-            out("rc %d\n" % (1 if fail else 0))
+            out("rc %d\n" % code)
         if action == "tail":
-            out(st.get("tails", {}).get(key, "") + "=== %s end rc=%d (fake)\n" % (step, 1 if fail else 0))
+            out(st.get("tails", {}).get(key, "") + "=== %s end rc=%d (fake)\n" % (step, code))
         if action == "signal":
             st.setdefault("signalled", {})[key] = c.split()[-1]
             out("signalled %s\n" % step)

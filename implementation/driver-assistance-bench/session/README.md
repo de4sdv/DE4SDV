@@ -70,23 +70,41 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   it before the guest host's stop and `session.json`. A failed status read of the guest host is read again; only a
   stopped host (`TERMINATED`, `STOPPING`, `SUSPENDED`) counts as "no guests". Any other status, one still unknown
   included, gets the guests' stop, and the host stops only after the session's own `crosvm` count read 0.
+- One exception, so that a guest host this session could never reach does not bill on unarmed (S1): when the session
+  sent the guest host no step at all (no `guest_up`, so no guest was launched) and the host does not answer SSH in
+  the trap, the trap tries SSH for up to `GUEST_NOSSH_S` (180 s) more, then stops the host without a `crosvm` count
+  and says `GUEST HOST STOPPED WITHOUT A CROSVM COUNT`. This rests on one assumption: **nothing on the guest host's
+  image starts Cuttlefish at boot**. The operator checks it once (the `p10-3` block below). Once a guest step was sent,
+  an unknown count keeps the host running, as above.
 - A failure after the S-CORE side started (a failed step, a wait that timed out, a signal, the cap) first runs the
   S-CORE side's stop (`ENTRY_SCORE_STOP`, step `score_stop_on_failure`), its only collector, then fetches. A signal or
-  the cap fetches every host whose files were not fetched yet, bounded (120 s pack, 300 s copy), before its stop.
+  the cap fetches every host whose files were not fetched yet (120 s pack, 300 s copy at most), before its stop.
+  The trap's whole pre-stop phase (the running step's end, the S-CORE side's stop, the fetches) is bounded at
+  `PRESTOP_S` (300 s): a host it cannot fetch within it is stopped unfetched (`not_fetched`; its files stay on its
+  disk). A GPU host with nothing left to collect or fetch (no kit on it, or already fetched) stops first, at the
+  start of the trap. A fetch the signal interrupted is not tried again and is named in `not_fetched`.
+  An S-CORE side's stop that exits 7 (`stop_score_side.sh`: stopped and collected, something had to be killed) is
+  no failure: `session.log` says so, and `session.json` records every stop per run (`score_stops`: `step`, `rc`,
+  `stop_killed`). In `p10-2` such a stop with another run to come ends the session after that run (exit 5): the
+  next run would start from a suspect state while every VM bills. Exit 8 (collection failed) fails the session.
   `session.json` says what ended the session (`ended_by`: `steps`, `step <name>`, `signal <SIG>`, `cap`, `fetch`, or
   the exit and its message) and which hosts were fetched (`fetched`, `not_fetched`).
 - Every step runs detached on its host (`remote/host_step.sh start`) and is polled with SSH calls of at most 60 s
-  (`status`, then `tail` for its last lines): a dropped connection costs one poll, not the step. At a step's time-out
-  the session sends the step TERM on its host and waits (6 polls) for its end before it fails, so the trap's
-  guests' stop never races a guest launch that still runs. Only the S-CORE side's stop after a failure
-  (`score_stop_on_failure`) runs in the foreground of one call (bounded at 120 s in the trap).
+  (`status`, then `tail` for its last lines): a dropped connection costs one poll, not the step. A step reads
+  `running` while any process of its process group lives, its leader gone or not. At a step's time-out the session
+  sends the step TERM on its host and waits (6 polls) for its end before it fails; a signal or the cap during a
+  step does the same in the exit trap, before the S-CORE side's stop and before any stop. So the trap's guests' stop
+  never races a guest launch that still runs; a guest step still alive after its TERM keeps the guest host running
+  (`GUEST HOST LEFT RUNNING`, exit 11) whatever the `crosvm` count. Only the S-CORE side's stop after a failure
+  (`score_stop_on_failure`) runs in the foreground of one call (bounded in the trap).
 - A poll that fails reads the host's status: a host found stopped (a Spot preemption) ends the session at once with
   exit 3; it is not fetched (`not_fetched`, `ended_by` `host lost: <role>`), and the other hosts are collected and
   fetched as after any failure.
 - Every remote call whose output the session reads writes it to a file first, never through a pipe or a command
   substitution: a signal or the cap ends the session at once, not after a fetch's 20-minute copy.
 - A watchdog writes `cost.log` every 30 s (an upper bound: from each start call, at the hourly prices in
-  `hosts.env`) and ends the session at the cap. Each VM also gets a power-off at the cap plus 10 min, should the
+  `hosts.env`) and ends the session at the cap. Each VM also gets a power-off at the cap plus the trap's pre-stop bound
+  (5 min) plus 10 min, counted from its arming, should the
   lead host lose the session (`remote/safety_net.sh`): on the GPU hosts a transient system timer that runs
   `systemctl poweroff` (not `shutdown -h +N`, whose last 5 minutes lock out a login); on the guest host a timer that
   runs `GUEST_STOP_CMD` first and powers off only when no `crosvm` is left (lead answer B13.3). The arming lists its
@@ -112,7 +130,9 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   `--kit-from-worktree`), and checks that every entry point the kind needs is in it and executable. Each host's
   upload is checked by its sha256.
 - In each run of `p10-2` the go file must follow the S-CORE side's start within `GO_LIMIT_S` (380 s, under the
-  candidate's 420 s ready time-out); a later go is refused: the run is marked invalid in the log, the world side is
+  candidate's 420 s ready time-out). The clock starts before the start step's own SSH call, since the candidate's
+  time-out runs from its process start inside that step; the 40 s left are for the go's own SSH call (IAP to the G4,
+  at most `GO_SSH_S`, 35 s). A later go is refused: the run is marked invalid in the log, the world side is
   sent TERM, the S-CORE side is stopped and collected, and the session ends (exit 5). Every adb call of the guest
   entries has a time-out (`ADB_TO_S`, 30 s).
 - `--cap-eur` must be a positive number (exit 2 otherwise). A session id is used once: the session refuses an id
@@ -131,24 +151,101 @@ them.
 
 ## Command lines for the lead
 
-Run from the integrated bench tree (the other lanes' entries merged in), on the lead host. A dry run first, then the
-session. Run a session detached from the terminal, its output into a file (`nohup ... > file 2>&1 &`, or
-`systemd-run --user`), never behind a pipe whose reader can go away; end a background session with SIGTERM (bash
-ignores SIGINT in a background job of a non-interactive shell):
+Rules behind every block, from the second review of the session runner (S3, S4):
+
+- Run from a detached worktree pinned to the integration commit under test: the kit is `git archive HEAD` of it.
+- Start every session, the dry runs too, from a clean environment (`env -i`). An exported `UNIT_WAIT_S`, `B12_DIR`,
+  `ADB`, `ENTRY_*`, `GUEST_STOP_CMD` or `DA_T_*` of the shell never reaches the session; a per-session setting of a
+  remote entry goes only through `--remote-env NAME=VALUE`.
+- Run the session in a user unit that never SIGKILLs its exit trap: `KillMode=mixed`, `TimeoutStopSec=infinity`,
+  `SendSIGHUP=no`. The trap needs far longer than systemd's default 90 s stop time-out: the running step's TERM
+  and its end, the S-CORE side's stop and the fetch (bounded together at 5 min), the guests' stop (up to 2 x 5 min),
+  then the stop polls (5 min per VM). Not `nohup ... &` (the lead's terminal tool refuses it, and a tool-tracked
+  background job dies with the agent), not a plain `systemd-run --user`, not `timeout -k`.
+- End a session early only with SIGTERM to its main process. **Never `kill -9` a session**, and never use a launcher
+  that SIGKILLs at a stop time-out: a SIGKILL skips the trap, leaves the VMs running and writes no `session.json`.
+- Linger is on for the lead's user (`loginctl show-user mrk -p Linger` gives `Linger=yes`), so the unit outlives the
+  lead's login.
+
+Once, before the first real session, read-only: the real gcloud works from a clean environment.
 
 ```bash
-cd <integrated worktree>
-S=implementation/driver-assistance-bench/session
-mkdir -p ~/.hermes/cache/scratch/b13-dry && export FAKE_DIR=~/.hermes/cache/scratch/b13-dry DA_GCLOUD=$PWD/$S/tests/fake_gcloud.py
-bash $S/da_session.sh --kind p10-1 --dry-run --evidence-root ~/.hermes/cache/scratch/b13-dry/ev   # checks the kit
-# p10-2 also needs, before any start: VP_CLONE (a VisionPilot clone holding the pin) and CV_PY with OpenCV
-unset FAKE_DIR DA_GCLOUD
+env -i HOME="$HOME" PATH=/usr/bin:/bin ~/google-cloud-sdk/bin/gcloud --configuration=de4sdv-gcp config list
+```
 
-nohup bash $S/da_session.sh --kind p10-1 >> ~/p10-1.out 2>&1 &                       # the S-CORE build check, 2026-11-19
-nohup bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host >> ~/p10-3.out 2>&1 &  # the warning on the guests, Enforcing
-# only if that session's guest_prepare reports no initComms (the Gateway lookup): again, marked conditional
-nohup bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --permissive-ivi >> ~/p10-3.out 2>&1 &
-nohup bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host >> ~/p10-2.out 2>&1 &  # the first closed loop, 2026-11-20
+### `p10-1` (the S-CORE host only)
+
+```bash
+# one detached worktree at the integration commit under test (C: its full SHA)
+git -C /home/mrk/de4sdv-worktrees/da-integration worktree add --detach /home/mrk/de4sdv-worktrees/p10-$C $C
+cd /home/mrk/de4sdv-worktrees/p10-$C
+S=implementation/driver-assistance-bench/session
+# a dry run first, with the tests' fake gcloud (the fake's state in its own folder)
+D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
+env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
+  bash $S/da_session.sh --kind p10-1 --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"   # expect 0
+# the session: a user unit that never SIGKILLs the trap, a clean environment, its own output file
+SID=$(date -u +%Y%m%dT%H%M%SZ)
+systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
+  -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
+  -p StandardOutput=append:$HOME/p10-1-$SID.out -p StandardError=append:$HOME/p10-1-$SID.out \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /bin/bash $S/da_session.sh --kind p10-1 --session-id "$SID"
+# follow:  tail -f ~/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID/session.log
+# end it early, if ever: systemctl --user kill --kill-whom=main -s TERM da-session-$SID
+# done when: systemctl --user is-active da-session-$SID prints "inactive"; then read session.json:
+#   exit_code (11 = a VM is left running: stop it by hand at once), p10_1.line, p10_1.passed
+```
+
+### `p10-3` (the S-CORE host and the protected guest host, Enforcing)
+
+```bash
+cd /home/mrk/de4sdv-worktrees/p10-$C     # the same pinned worktree as for P10-1
+S=implementation/driver-assistance-bench/session
+D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
+env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
+  bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+SID=$(date -u +%Y%m%dT%H%M%SZ)
+systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
+  -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
+  -p StandardOutput=append:$HOME/p10-3-$SID.out -p StandardError=append:$HOME/p10-3-$SID.out \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /bin/bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --session-id "$SID"
+# a per-session setting only on purpose, as an option, e.g. after the kind:
+#   --remote-env 'UNIT_REGISTERED_RE=<the broker line>' --remote-env UNIT_WAIT_S=300
+# only if guest_prepare reports no initComms: a NEW session, same block, with --permissive-ivi added
+# end it early: systemctl --user kill --kill-whom=main -s TERM da-session-$SID   (the trap TERMs the running step first)
+# after it: exit_code 11 or "GUEST HOST LEFT RUNNING" in session.log = the guest host bills; follow the log's line
+```
+
+Once, at the first `p10-3`, while the guest host runs (after `session.log` shows its `kit ok` line), the operator checks
+the assumption behind the stop of a guest host that got no guest step and never answered SSH (S1): nothing on the
+guest host's image starts Cuttlefish at boot. On the guest host:
+
+```bash
+systemctl list-unit-files | grep -i -E 'cvd|cuttlefish'   # expected: no output, or only units "disabled"
+```
+
+An enabled unit there voids the assumption: tell the lead before the next session, and do not rely on that stop.
+
+### `p10-2` (all three hosts)
+
+```bash
+cd /home/mrk/de4sdv-worktrees/p10-$C
+S=implementation/driver-assistance-bench/session
+# the dry run needs the VisionPilot clone at the pin (VP_CLONE, default ~/de4sdv-upstream/vision_pilot); make-h is
+# the tests' stand-in there (the fake's capture files are no images); the session itself checks CV_PY's OpenCV
+D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
+env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
+  DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" \
+  bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+SID=$(date -u +%Y%m%dT%H%M%SZ)
+systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
+  -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
+  -p StandardOutput=append:$HOME/p10-2-$SID.out -p StandardError=append:$HOME/p10-2-$SID.out \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /bin/bash $S/da_session.sh --kind p10-2 --owner-ok-guest-host --session-id "$SID"
+# end it early: systemctl --user kill --kill-whom=main -s TERM da-session-$SID
 ```
 
 Then compose the video from the fetched files (see `../recording/README.md`).
@@ -193,14 +290,19 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_VXLAN` | guest, S-CORE | `guest-host\|host-half add <peer ip>` | this lane: `remote/cross_vm_guest_bridge.sh` | the VXLAN segment, the S-CORE host at 192.168.98.1 (INC-DRIVING-001's script, unchanged) |
 
 Per-session settings of the remote entries: gcloud ssh does not carry the lead host's environment, so the session
-passes a fixed list of names, each set in its own environment, to every step on that name's host as `env
-NAME=value` before the command, logs the names and records the values in `session.json` (`remote_env`). The lists
+passes the settings given with `--remote-env NAME=VALUE` (repeatable) to every step on that name's host as `env
+NAME=value` before the command, logs the names and records the values in `session.json` (`remote_env`). A name off
+the allow-list, a malformed or a repeated option is refused (exit 2) before anything starts. A variable merely
+exported in the calling shell never reaches a step: the lead's shared terminal has exported other workers'
+`UNIT_WAIT_S` and `ADB` before, and `UNIT_WAIT_S=0` would fail a paid `p10-3`'s unit check at once. The allow-lists
 (`REMOTE_ENV_guest`, `REMOTE_ENV_score` in `da_session.sh`): on the guest host `UNIT_REGISTERED_RE`,
 `UNIT_NEGATION_RE`, `BROKER_ERROR_RE`, `UNIT_WAIT_S` (`remote/offer_check.sh`), `B12_DIR`, `VERIFY_WAIT_S`,
 `ADB_TIMEOUT_S`, `UP_TIMEOUT_S` (the guest build script), `CLOCK_READS`, `CLOCK_MAX_OFFSET_S` (`remote/ivi_clock.sh`),
 `START_WAIT_S` (`remote/app_restart.sh`); on the S-CORE host `DA_P10_1_CARLA_HOST`, `GATEWAYD_RX_REGEX` and the
 `DA_P10_1_*` waits of `p10_1_check.sh`. A changed guess of the first `p10-3` (the broker's line, say) is then a setting
-of the next session, not a commit.
+of the next session, not a commit. The `hosts.env` and `entrypoints.env` names (`ENTRY_*`, `GUEST_STOP_CMD`, the VMs,
+the caps) can still be overridden from the environment, for the dry runs: start every real session from `env -i`, as
+the blocks below do.
 
 `GUEST_STOP_CMD` (default `remote/guest_stop.sh` in the kit) stops the guests; the session then counts `crosvm` on the
 guest host itself and never stops the host while one is left.
@@ -218,8 +320,11 @@ capacity rounds, a quota error, a failed step, the cost cap, SIGTERM, the guests
 host kept running when they do not stop, the guest host's safety net, IAP on and off, IPs read from gcloud, the
 calibration file on the S-CORE host before every start, the refusals (no owner OK, a running VM, another GPU VM, a
 missing or non-executable entry, no calibrate or prepare entry, the pin missing from `VP_CLONE`, an existing session
-folder, a real gcloud in a dry run, dry-run knobs in a real session), a foreign fetch, and that the dry run prints
-every call. `tests/test_remote_scripts.py` runs the guest-host scripts and the safety net against fake `cvd`,
+folder, a real gcloud in a dry run, dry-run knobs in a real session, a session id outside its alphabet, a
+`--remote-env` off the allow-list), a foreign fetch, and that the dry run prints every call. Since the second review
+also: a signal or the cap during a guest step (the step's TERM before the guests' stop), a guest host never reached
+over SSH, an SSH loss after a guest step, an S-CORE stop's exit 7 and 8, the go clock, the trap's bounded pre-stop
+phase and its 30 s status reads, the safety net's deadline, and the README's launch lines themselves. `tests/test_remote_scripts.py` runs the guest-host scripts and the safety net against fake `cvd`,
 `adb`, `pgrep`, `sudo` and `ip`. The stubs in `tests/stubs/` stand for the S-CORE side's entries (another lane's)
 and for `make-h` in dry runs; they never run on a host.
 

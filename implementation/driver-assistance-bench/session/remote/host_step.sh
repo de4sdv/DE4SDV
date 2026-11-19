@@ -3,7 +3,8 @@
 #
 #   host_step.sh run    <step> -- <command...>   run in the foreground; exits with the command's status
 #   host_step.sh start  <step> -- <command...>   run detached (setsid nohup); returns at once
-#   host_step.sh status <step>                   prints "rc <N>", "running" or "absent"
+#   host_step.sh status <step>                   prints "rc <N>", "running" (while any process of the step's
+#                                                process group lives, its leader gone or not) or "absent"
 #   host_step.sh signal <step> [INT|TERM]        signals the detached step's process group
 #   host_step.sh tail   <step>                   the last 20 lines of the step's log
 #   host_step.sh pack                            tars the host's output folder to <kit>/out.tgz, prints its sha256
@@ -49,7 +50,10 @@ case "$ACTION" in
   status)
     STEP=${1:?step name}
     if [ -s "$DA_OUT/$STEP.rc" ]; then echo "rc $(cat "$DA_OUT/$STEP.rc")"
-    elif [ -s "$DA_OUT/$STEP.pid" ] && kill -0 "$(cat "$DA_OUT/$STEP.pid")" 2>/dev/null; then echo running
+    # the step's own process group (setsid above): after a TERM its leader is gone at once, while its command may
+    # still clean up, or a launch still create guests; the step runs until the last process of the group ends (S2)
+    elif [ -s "$DA_OUT/$STEP.pid" ] && { P=$(cat "$DA_OUT/$STEP.pid"); kill -0 -- "-$P" 2>/dev/null || kill -0 "$P" 2>/dev/null; }; then
+      echo running
     elif [ -s "$DA_OUT/$STEP.pid" ]; then echo "rc 255"   # ended without writing its status (killed)
     else echo absent; fi
     ;;

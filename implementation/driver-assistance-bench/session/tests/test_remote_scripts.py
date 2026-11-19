@@ -26,8 +26,8 @@ FAKES = {
     "systemctl": '#!/bin/bash\necho "systemctl $*" >> "$FAKE/calls.log"\n'
                  'last="${@: -1}"; [ "$1" = list-timers ] && [ ! -e "$FAKE/no_timer" ] && '
                  'echo "Thu 2026-11-19 12:00:00 UTC 4h left - - $last ${last%.timer}.service"\nexit 0\n',
-    "pgrep": '#!/bin/bash\necho "pgrep $*" >> "$FAKE/calls.log"\nn=$(cat "$FAKE/crosvm" 2>/dev/null || echo 0)\n'
-             'echo "$n"; [ "$n" != 0 ]\n',
+    "pgrep": '#!/bin/bash\necho "pgrep $*" >> "$FAKE/calls.log"\n[ -e "$FAKE/pgrep_error" ] && exit 2\n'
+             'n=$(cat "$FAKE/crosvm" 2>/dev/null || echo 0)\necho "$n"; [ "$n" != 0 ]\n',
     "cvd": '#!/bin/bash\necho "cvd $*" >> "$FAKE/calls.log"\n'
            'if [ "$1" = fleet ]; then echo \'{"groups": [{"group_name": "cvd_1"}, {"group_name": "cvd_2"}]}\'; exit 0; fi\n'
            'case "$*" in *stop*) [ -e "$FAKE/stubborn" ] || { n=$(cat "$FAKE/crosvm"); echo $((n > 0 ? n - 1 : 0)) '
@@ -97,6 +97,16 @@ def test_guest_stop_fails_when_a_crosvm_is_left(fake) -> None:
     assert len([c for c in calls(d) if c.startswith("cvd --group_name")]) == 4      # two tries
 
 
+def test_guest_stop_fails_when_the_crosvm_count_fails(fake) -> None:
+    # S11: a pgrep that errors (rc 2, no output) is no count of 0
+    d, env = fake
+    (d / "crosvm").write_text("0\n")
+    (d / "pgrep_error").touch()
+    p = sh(str(REMOTE / "guest_stop.sh"), env=env)
+    assert p.returncode == 1, p.stdout + p.stderr
+    assert p.stdout.strip().splitlines()[-1] == "crosvm_processes_after_stop: unknown"
+
+
 # --------------------------------------------------------------------------------------- safety_net.sh
 
 
@@ -126,6 +136,18 @@ def test_safety_net_never_powers_off_with_guests_running(tmp_path: Path, fake) -
     assert p.returncode == 1
     assert "guests stop" in calls(d) and not any("shutdown" in c for c in calls(d))
     assert "NOT powering off" in (net.parents[3] / "safety_net.log").read_text()
+
+
+def test_safety_net_never_powers_off_when_the_crosvm_count_fails(tmp_path: Path, fake) -> None:
+    # S11: a pgrep that errors (rc 2, no output) counted as "no crosvm left", and the fire powered off
+    d, env = fake
+    net = _kit(tmp_path)
+    (d / "pgrep_error").touch()
+    p = sh(str(net), "fire", f'echo "guests stop" >> "{d}/calls.log"; echo 0 > "{d}/crosvm"', env=env)
+    assert p.returncode == 1
+    assert "guests stop" in calls(d) and not any("shutdown" in c or "poweroff" in c for c in calls(d))
+    log = (net.parents[3] / "safety_net.log").read_text()
+    assert "crosvm count unknown" in log and "NOT powering off" in log
 
 
 def test_safety_net_arm_on_the_guest_host_is_a_timer_that_fires_the_stop(tmp_path: Path, fake) -> None:
@@ -350,6 +372,9 @@ def test_guest_up_creates_fresh_guests_and_sets_permissive_only_when_marked(tmp_
     "I SomeIpBroker: unit {unit} unregistered",
     "W SomeIpBroker: unit {unit} not registered: no provider of 0x4df1 yet",
     "W SomeIpBroker: failed to register unit {unit}",
+    "W SomeIpBroker: registration of unit {unit} failed",
+    "W SomeIpBroker: unit {unit} registration timed out",
+    "W SomeIpBroker: could not register unit {unit}",
 ])
 def test_the_unit_check_refuses_a_negated_registration(tmp_path: Path, fake, line: str) -> None:
     # R7: a line naming the unit and "regist" that says the opposite is no registration
@@ -357,6 +382,30 @@ def test_the_unit_check_refuses_a_negated_registration(tmp_path: Path, fake, lin
     unit, _ = _ids()
     (d / "logcat").write_text("11-19 08:00:00.000 1 2 " + line.format(unit=unit) + "\n")
     p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_WAIT_S="0"))
+    assert p.returncode == 1 and "no registration" in p.stdout, p.stdout
+
+
+@pytest.mark.parametrize("line", [
+    "I SomeIpBroker: registered unit {unit} (subscription timeout 5000 ms)",
+    "I SomeIpBroker: registered unit {unit}, errors=0",
+    "I SomeIpBroker: unit {unit} registered; no failover configured",
+])
+def test_the_unit_check_passes_a_registration_line_that_merely_names_a_failure_word(tmp_path: Path, fake,
+                                                                                    line: str) -> None:
+    # S8: the negation matched "timeout", "error", "fail" anywhere in the line; a false fail costs a paid P10-3
+    d, env = fake
+    unit, _ = _ids()
+    (d / "logcat").write_text("11-19 08:00:00.000 1 2 " + line.format(unit=unit) + "\n")
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_WAIT_S="0"))
+    assert p.returncode == 0 and f"UNIT_REGISTERED {unit}" in p.stdout, p.stdout
+
+
+def test_the_unit_check_negation_is_a_per_session_setting(tmp_path: Path, fake) -> None:
+    d, env = fake
+    unit, _ = _ids()
+    (d / "logcat").write_text(f"11-19 08:00:00.000 1 2 I SomeIpBroker: registered unit {unit} (degraded)\n")
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"),
+           env=dict(env, UNIT_WAIT_S="0", UNIT_NEGATION_RE="degraded"))
     assert p.returncode == 1 and "no registration" in p.stdout, p.stdout
 
 
@@ -491,3 +540,27 @@ def test_host_step_detached_step_reports_its_status_tail_and_answers_a_signal(tm
     while not sh(str(hs), "status", "slow", env=env).stdout.startswith("rc ") and time.monotonic() < deadline:
         time.sleep(0.1)
     assert sh(str(hs), "status", "slow", env=env).stdout.strip() in ("rc 143", "rc 255")
+
+
+def test_host_step_status_reads_running_while_any_process_of_the_step_lives(tmp_path: Path, fake) -> None:
+    # S2: after a TERM the step's leader is gone at once, while its command still cleans up; "rc 255" then let the
+    # trap stop the guests and their host under a launch that still ran
+    d, env = fake
+    kit = tmp_path / "home" / "da-kit" / "S1"
+    (kit / "bench" / "session" / "remote").mkdir(parents=True)
+    (kit / "session_id").write_text("S1\n")
+    hs = kit / "bench" / "session" / "remote" / "host_step.sh"
+    hs.write_bytes((REMOTE / "host_step.sh").read_bytes())
+    child = tmp_path / "child.sh"
+    child.write_text("trap 'sleep 3; echo child cleanup done; exit 0' TERM\nsleep 30 & wait\n")
+    assert sh(str(hs), "start", "gstep", "--", "bash", str(child), env=env).returncode == 0
+    time.sleep(0.5)
+    assert sh(str(hs), "status", "gstep", env=env).stdout.strip() == "running"
+    assert "signalled gstep (TERM)" in sh(str(hs), "signal", "gstep", "TERM", env=env).stdout
+    time.sleep(0.5)
+    assert sh(str(hs), "status", "gstep", env=env).stdout.strip() == "running"   # the cleanup still runs
+    deadline = time.monotonic() + 15
+    while sh(str(hs), "status", "gstep", env=env).stdout.strip() == "running" and time.monotonic() < deadline:
+        time.sleep(0.2)
+    assert sh(str(hs), "status", "gstep", env=env).stdout.strip().startswith("rc ")
+    assert "child cleanup done" in (kit / "out" / "gstep.log").read_text()

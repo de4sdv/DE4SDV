@@ -7,7 +7,7 @@
 # It depends on nothing of the guest build kit's records: the kit's smoke_boot.sh checks the images against
 # records that are stale since 2026-11-17 and refuses (guest-prep-20261118 report, "tomorrow" item 1). The route
 # is the one that report's operator used: cvd stop per group, then no crosvm may be left. The last line is always
-#   crosvm_processes_after_stop: <N>
+#   crosvm_processes_after_stop: <N>     (<N> is "unknown" when pgrep fails; the exit is then 1)
 # env: AOSP_TOP (~/aosp), CVD (default: $AOSP_TOP/out/host/linux-x86/bin/cvd, else cvd on PATH),
 #      STOP_SETTLE_S (5), STOP_TRIES (2).
 set -uo pipefail
@@ -17,7 +17,9 @@ if [ -z "$CVD" ]; then
   if [ -x "$AOSP_TOP/out/host/linux-x86/bin/cvd" ]; then CVD=$AOSP_TOP/out/host/linux-x86/bin/cvd
   else CVD=$(command -v cvd || true); fi
 fi
-crosvm() { local n; n=$(pgrep -c -x crosvm 2>/dev/null); echo "${n:-0}"; }
+# a number only when pgrep answered (rc 0 or 1); a pgrep that errors is "unknown", never 0 (S11)
+crosvm() { local n rc; n=$(pgrep -c -x crosvm 2>/dev/null); rc=$?
+  if [ "$rc" -le 1 ] && [[ "$n" =~ ^[0-9]+$ ]]; then echo "$n"; else echo unknown; fi; }
 groups() {
   [ -n "$CVD" ] || return 0
   "$CVD" fleet 2>/dev/null | python3 -c '

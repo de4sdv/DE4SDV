@@ -443,6 +443,32 @@ def test_guests_that_do_not_stop_keep_their_host_running(tmp_path: Path) -> None
     assert r.stops(L4) and r.state[L4] == "TERMINATED"
 
 
+def test_a_guest_host_that_never_answered_ssh_and_got_no_guest_step_is_stopped(tmp_path: Path) -> None:
+    # S1: started by this session, never reached over SSH, so never sent a guest step: no guest can run there (the
+    # image starts no Cuttlefish at boot). It was left running, unarmed, billing; now it stops after a bounded wait
+    t0 = time.monotonic()
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_SSH_DOWN=GH, DA_T_GUEST_NOSSH_S="1")
+    assert r.rc == 4, r.log
+    assert r.stops(GH) and r.state[GH] == "TERMINATED"
+    assert "never answered SSH" in r.log and "nothing on its image starts Cuttlefish at boot" in r.log
+    assert "GUEST HOST LEFT RUNNING" not in r.log and not r.guest_stops()
+    assert time.monotonic() - t0 < 60
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["left_running"] == [] and rec["vm_status_after"]["guest"] == "TERMINATED"
+    assert_invariants(r)
+
+
+def test_an_ssh_loss_after_a_guest_step_keeps_the_guest_host_running(tmp_path: Path) -> None:
+    # R2, S12 (Y02): once a guest step went out, guests may run; an unknown crosvm count (no SSH in the trap) never
+    # stops their host
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_FAIL_STEP="inject",
+            FAKE_SSH_DOWN_AFTER=f"{GH}:score_stop_on_failure", DA_T_GUEST_NOSSH_S="1")
+    assert r.rc == 11, r.log
+    assert r.guest_stops() and not r.stops(GH) and r.state[GH] == "RUNNING"
+    assert "crosvm processes left on de4sdv-aaos-build: unknown" in r.log and "GUEST HOST LEFT RUNNING" in r.log
+    assert r.stops(L4) and r.state[L4] == "TERMINATED"
+
+
 def test_a_second_guest_stop_that_works_lets_the_host_stop(tmp_path: Path) -> None:
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_GUEST_STOP_FAIL="once")
     assert r.rc == 0, r.log
@@ -664,8 +690,8 @@ def test_the_app_entries_match_the_app_manifest_and_its_record() -> None:
 
 def test_per_session_settings_reach_the_steps_of_their_host_only(tmp_path: Path) -> None:
     # R6: a guessed pattern or time-out of a remote entry changes for a session without a commit
-    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", UNIT_REGISTERED_RE="unit .* registered", UNIT_WAIT_S="600",
-            GATEWAYD_RX_REGEX="rx [0-9]+", NOT_ON_THE_LIST="x")
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", "--remote-env", "UNIT_REGISTERED_RE=unit .* registered",
+            "--remote-env", "UNIT_WAIT_S=600", "--remote-env", "GATEWAYD_RX_REGEX=rx [0-9]+", NOT_ON_THE_LIST="x")
     assert r.rc == 0, r.log
     unit = r.command(r.ssh(GH, "start unit_inject")[0])
     assert "env UNIT_REGISTERED_RE=unit\\ .\\*\\ registered UNIT_WAIT_S=600 bash" in unit
@@ -677,6 +703,26 @@ def test_per_session_settings_reach_the_steps_of_their_host_only(tmp_path: Path)
     rec = json.loads((r.incoming / "session.json").read_text())
     assert rec["remote_env"] == {"guest": {"UNIT_REGISTERED_RE": "unit .* registered", "UNIT_WAIT_S": "600"},
                                  "score": {"GATEWAYD_RX_REGEX": "rx [0-9]+"}}
+
+
+def test_an_exported_setting_never_reaches_a_remote_step(tmp_path: Path) -> None:
+    # S4: another worker's UNIT_WAIT_S=0 exported in the shell made a paid P10-3's unit check fail at once; only the
+    # --remote-env option sets a remote entry's setting
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", UNIT_WAIT_S="0", START_WAIT_S="1", B12_DIR="/lead/path",
+            GATEWAYD_RX_REGEX="x")
+    assert r.rc == 0, r.log
+    for name in ("UNIT_WAIT_S", "START_WAIT_S", "B12_DIR", "GATEWAYD_RX_REGEX"):
+        assert not any(name in a for c in r.calls for a in c), name
+    assert "per-session settings" not in r.log
+    assert json.loads((r.incoming / "session.json").read_text())["remote_env"] == {}
+
+
+@pytest.mark.parametrize("opts", [("--remote-env", "NOT_ON_THE_LIST=x"), ("--remote-env", "UNIT_WAIT_S"),
+                                  ("--remote-env", "UNIT_WAIT_S=1", "--remote-env", "UNIT_WAIT_S=2"),
+                                  ("--remote-env", "GUEST_STOP_CMD=true")])
+def test_a_remote_setting_off_the_allow_list_or_malformed_is_refused(tmp_path: Path, opts: tuple) -> None:
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", *opts)
+    assert r.rc == 2 and "--remote-env" in r.stdout and not r.calls, r.stdout
 
 
 def test_without_per_session_settings_the_commands_are_unchanged(tmp_path: Path) -> None:
@@ -746,6 +792,52 @@ def test_a_signal_stops_the_score_side_and_fetches_every_host_before_its_stop(tm
     assert_invariants(r)
 
 
+# ------------------------------------------------------------- the S-CORE side's stop that had to kill (S7)
+
+
+def test_a_final_score_stop_that_had_to_kill_is_recorded_and_does_not_fail_the_session(tmp_path: Path) -> None:
+    # S7: stop_score_side.sh exit 7 = stopped and collected, something had to be killed: the evidence is complete
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_STEP_RC="score_stop:7")
+    assert r.rc == 0, r.log
+    assert "step score_stop rc=7" in r.log and "had to be killed" in r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["score_stops"] == {"inject": {"step": "score_stop", "rc": 7, "stop_killed": True}}
+    assert rec["failed_step"] is None and rec["fetched"] == ["score", "guest"]
+    assert_invariants(r)
+
+
+def test_p10_2_final_score_stop_that_had_to_kill_is_recorded_and_the_session_passes(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-2", "--without-guest-host", FAKE_STEP_RC="score_stop_run2:7")
+    assert r.rc == 0, r.log
+    stops = json.loads((r.incoming / "session.json").read_text())["score_stops"]
+    assert stops["run2"] == {"step": "score_stop_run2", "rc": 7, "stop_killed": True}
+    assert stops["run1"]["stop_killed"] is False and stops["calib_steer"]["rc"] == 0
+    assert r.sequence() == p10_2_seq(guest=False)
+
+
+@pytest.mark.parametrize("step, nxt", [("score_stop_calib_steer", "world_run1"), ("score_stop_run1", "world_run2")])
+def test_p10_2_a_score_stop_that_had_to_kill_before_another_run_ends_the_session(tmp_path: Path, step: str,
+                                                                               nxt: str) -> None:
+    # S7, the lead's decision: the next run would start from a suspect state while three VMs bill
+    r = run(tmp_path, "p10-2", "--without-guest-host", FAKE_STEP_RC=f"{step}:7")
+    assert r.rc == 5, r.log
+    assert not r.ssh(G4, f"start {nxt}")
+    w = step[len("score_stop_"):]
+    assert r.ssh(G4, f"world_{w}/release") and r.ssh(G4, f"status world_{w}")    # the run itself completed
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["score_stops"][w] == {"step": step, "rc": 7, "stop_killed": True}
+    assert rec["failed_step"] == step and "had to kill" in rec["ended_by"]
+    assert not r.ssh(L4, "score_stop_on_failure")
+    assert_invariants(r)
+
+
+def test_a_score_stop_whose_collection_failed_still_fails_the_session(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_STEP_RC="score_stop:8")
+    assert r.rc == 5, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["failed_step"] == "score_stop" and rec["score_stops"]["inject"]["stop_killed"] is False
+
+
 def test_a_failed_fetch_is_named_in_the_record(tmp_path: Path) -> None:
     # R13: exit 5 with failed_step null said nothing about which host's files are missing
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_FETCH_FAIL=GH)
@@ -761,6 +853,68 @@ def test_the_cap_names_itself_as_the_end(tmp_path: Path) -> None:
     assert rec["ended_by"] == "cap" and rec["fetched"] == ["score"]
 
 
+def _call_times(tmp: Path, pred) -> list[float]:
+    return [json.loads(line)[0] for line in (tmp / "fake" / "calls.log").read_text().splitlines()
+            if pred(json.loads(line)[1:])]
+
+
+def test_a_signal_before_the_steps_still_fetches_an_uploaded_host(tmp_path: Path) -> None:
+    # the trap's fetch and the S-CORE side's stop were defined only after the SSH and upload section: a signal or the
+    # cap there gave "fetch: command not found", and the uploaded host stopped unfetched
+    p = popen(tmp_path, "p10-2", "--without-guest-host", FAKE_SSH_DOWN=L4, DA_T_SSH_TRIES="2000")
+    wait_for_call(tmp_path, lambda c: c[2:4] == ["compute", "ssh"] and c[4] == L4)
+    time.sleep(0.3)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    assert "command not found" not in r.stdout, r.stdout
+    assert r.ssh(G4, "host_step.sh pack") and r.ssh(G4, "host_step.sh pack")[0] < r.stops(G4)[0]
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["fetched"] == ["sim"] and rec["not_fetched"] == ["score"]
+    assert_invariants(r)
+
+
+def test_the_pre_stop_phase_of_the_trap_is_bounded_as_a_whole(tmp_path: Path) -> None:
+    # S9: after the cap or a signal the trap fetched every host before any stop, each with its own bound (120 s
+    # pack, 300 s copy): up to 23 min past the cap with every VM billing. The whole phase now has one bound
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="inject:60", FAKE_SLOW_FETCH="6",
+              DA_T_PRESTOP_S="3")
+    wait_for_call(tmp_path, lambda c: any("start inject" in a for a in c))
+    time.sleep(0.5)
+    t0 = time.time()
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    first_stop = min(_call_times(tmp_path, lambda c: c[2:5] == ["compute", "instances", "stop"]))
+    assert first_stop - t0 < 9, first_stop - t0
+    assert "pre-stop phase" in r.log
+    assert_invariants(r)
+
+
+def test_on_the_cap_a_host_with_nothing_to_fetch_stops_first(tmp_path: Path) -> None:
+    # S9: the S-CORE host never answered SSH (no kit, nothing to collect or fetch): it stops before the simulator
+    # host's fetch, not after it
+    r = run(tmp_path, "p10-2", "--without-guest-host", "--cap-eur", "0.01", FAKE_SSH_DOWN=L4, SCORE_EUR_H="3.6",
+            DA_T_SSH_TRIES="2000")
+    assert r.rc == 10, r.log
+    assert "COST CAP reached" in r.log
+    assert r.stops(L4)[0] < r.ssh(G4, "host_step.sh pack")[0] < r.stops(G4)[0]
+    assert_invariants(r)
+
+
+def test_the_traps_status_reads_wait_30_s_at_most_and_ignore_an_exported_gc_to(tmp_path: Path) -> None:
+    # S10: each status read in the trap's stop loop waited up to 120 s on a hanging gcloud (30 reads per VM, every
+    # signal ignored); and GC_TO came from the caller's shell
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", GC_TO="2")
+    assert r.rc == 0, r.log
+    cmds = (r.incoming / "commands.log").read_text().splitlines()
+    first_stop = next(i for i, c in enumerate(cmds) if " compute instances stop " in c)
+    before = [c for c in cmds[:first_stop] if " compute instances describe " in c]
+    after = [c for c in cmds[first_stop:] if " compute instances describe " in c]
+    assert before and all(c.endswith("[timeout 120 s]") for c in before), before[:2]
+    assert after and all(c.endswith("[timeout 30 s]") for c in after), after[:2]
+
+
 def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> None:
     # R19: a fetch scp inside a pipeline made the trap (and the cap) wait for the whole scp
     p = popen(tmp_path, "p10-1", FAKE_SLOW_FETCH="15")
@@ -771,6 +925,8 @@ def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> Non
     r = finish(tmp_path, p)
     assert r.rc == 143, r.log
     assert time.monotonic() - t0 < 8, "the trap waited for the fetch"
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["fetched"] == [] and rec["not_fetched"] == ["score"]     # the interrupted fetch is named
     assert_invariants(r)
 
 
@@ -837,8 +993,45 @@ def test_a_step_past_its_time_out_is_signalled_on_its_host_before_the_guests_sto
     assert r.rc == 5, r.log
     sig = r.ssh(GH, "host_step.sh signal guest_up TERM")
     assert sig and sig[0] < r.guest_stops()[0]
+    # at the time-out itself, by rstep, not only later by the exit trap (which TERMs a step still running, S2)
+    assert len(sig) == 1 and sig[0] < r.ssh(GH, "host_step.sh tail guest_up")[0]
     assert "after the TERM: rc 143" in r.log and "step guest_up rc=124" in r.log
     assert_invariants(r)
+
+
+@pytest.mark.parametrize("step, more", [("guest_up", ()), ("guest_prepare", ())])
+def test_a_signal_during_a_guest_step_signals_the_step_before_the_guests_stop(tmp_path: Path, step: str,
+                                                                              more: tuple) -> None:
+    # S2: a Ctrl-C, a kill or the cap during the guests' launch: the trap TERMs the running step on its host and
+    # waits for its end before the S-CORE side's stop, the fetch and any guests' stop
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", *more, FAKE_HANG_STEP=f"{step}:60")
+    wait_for_call(tmp_path, lambda c: any(f"host_step.sh status {step}" in a for a in c))
+    time.sleep(0.3)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    sig = r.ssh(GH, f"host_step.sh signal {step} TERM")
+    assert sig, r.log
+    after = [i for i in r.ssh(GH, f"host_step.sh status {step}") if i > sig[0]]
+    assert after and after[0] < r.guest_stops()[0] < r.stops(GH)[0]
+    assert sig[0] < r.ssh(GH, "host_step.sh pack")[0]
+    assert f"step {step} after the TERM: rc 143" in r.log
+    assert_invariants(r)
+
+
+def test_a_guest_step_alive_after_its_term_keeps_the_guest_host_running(tmp_path: Path) -> None:
+    # S2: a launch that outlives its TERM may still create guests: a crosvm count of 0 then proves nothing
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="guest_up:60",
+              FAKE_STEP_IGNORES_TERM="guest_up", DA_T_STEP_TERM_POLLS="2")
+    wait_for_call(tmp_path, lambda c: any("host_step.sh status guest_up" in a for a in c))
+    time.sleep(0.3)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 11, r.log
+    assert r.ssh(GH, "host_step.sh signal guest_up TERM") and r.guest_stops()
+    assert not r.stops(GH) and r.state[GH] == "RUNNING"
+    assert "step guest_up did not end after its TERM" in r.log
+    assert r.stops(L4) and r.state[L4] == "TERMINATED"
 
 
 def test_a_host_lost_mid_run_ends_the_session_at_once_and_is_not_fetched(tmp_path: Path) -> None:
@@ -913,11 +1106,31 @@ def test_a_go_later_than_the_bound_after_the_score_start_is_refused(tmp_path: Pa
     assert_invariants(r)
 
 
+def test_the_go_clock_starts_before_the_score_start_step(tmp_path: Path) -> None:
+    # S5: the clock started only once the session had seen the start step end (poll latency, the tail call), while
+    # the candidate's 420 s ready time-out runs from its process start inside that step
+    r = run(tmp_path, "p10-2", "--without-guest-host", FAKE_HANG_STEP="score_start_run1:4", DA_T_GO_LIMIT_S="3")
+    assert r.rc == 5, r.log
+    assert "INVALID RUN run1" in r.log and not r.ssh(G4, "world_run1/go") and r.ssh(G4, "world_calib_steer/go")
+    assert_invariants(r)
+
+
 def test_a_session_id_of_an_archived_session_is_refused(tmp_path: Path) -> None:
     # R20: after the rule-15 rename incoming_T -> session1_..._T the id was free again
     (tmp_path / "ev" / "session1_p10-1_archived_T").mkdir(parents=True)
     r = run(tmp_path, "p10-1")
     assert r.rc == 2 and "is taken by" in r.stdout and not r.calls
+
+
+@pytest.mark.parametrize("sid", ["x;touch PWN", "*", "T*", "../escape", ".hidden", "-T", "a b", "T$(id)"])
+def test_a_session_id_outside_its_alphabet_is_refused(tmp_path: Path, sid: str) -> None:
+    # S6: the id goes unquoted into remote commands (~/da-kit/<id>, mkdir, tar -C, the safety net's unit)
+    args = [a if a != "T" else sid for a in args_for(tmp_path, "p10-1")]
+    p = subprocess.run(args, env=env_for(tmp_path), capture_output=True, text=True, timeout=60)
+    assert p.returncode == 2 and "refused: session id" in p.stdout, p.stdout + p.stderr
+    assert not (tmp_path / "fake" / "calls.log").exists()
+    assert not (tmp_path / "ev").exists() or not any((tmp_path / "ev").iterdir())
+    assert not (tmp_path / "escape").exists() and not (tmp_path / "incoming_..").exists()
 
 
 def test_a_session_id_with_a_kit_on_the_host_is_refused(tmp_path: Path) -> None:
@@ -932,3 +1145,114 @@ def test_the_cap_must_be_a_positive_number(tmp_path: Path, cap: str) -> None:
     # R21: "6EUR" wrote no session.json and made the watchdog compare strings
     r = run(tmp_path, "p10-1", "--cap-eur", cap)
     assert r.rc == 2 and "--cap-eur must be a positive number" in r.stdout and not r.calls
+
+
+# ------------------------------------------------------------------------- the README's command lines (S3)
+
+
+def _readme_commands() -> list[str]:
+    """The command lines of the README's bash blocks, continuations joined, comments dropped."""
+    text = (HERE.parent / "README.md").read_text()
+    lines = []
+    for block in re.findall(r"```bash\n(.*?)```", text, re.S):
+        for line in block.replace("\\\n", " ").splitlines():
+            code = line.strip()
+            if code and not code.startswith("#"):
+                lines.append(re.sub(r"\s+", " ", code))
+    return lines
+
+
+def test_the_readme_starts_sessions_only_from_a_clean_environment_in_a_unit_that_never_sigkills_the_trap() -> None:
+    # S3: `nohup ... &` is refused by the lead's terminal tool, and systemd-run's defaults SIGKILL the exit trap 90 s
+    # after a stop: no VM stopped, no session.json. S4: a session starts from env -i
+    cmds = _readme_commands()
+    sessions = [c for c in cmds if "da_session.sh" in c and "--dry-run" not in c]
+    dry = [c for c in cmds if "da_session.sh" in c and "--dry-run" in c]
+    assert {k for k in ("p10-1", "p10-3", "p10-2") if any(f"--kind {k}" in c for c in sessions)} == \
+        {"p10-1", "p10-3", "p10-2"}
+    assert {k for k in ("p10-1", "p10-3", "p10-2") if any(f"--kind {k}" in c for c in dry)} == \
+        {"p10-1", "p10-3", "p10-2"}
+    for c in sessions:
+        assert c.startswith("systemd-run --user "), c
+        for prop in ("-p KillMode=mixed", "-p TimeoutStopSec=infinity", "-p SendSIGHUP=no"):
+            assert prop in c, (prop, c)
+        assert "/usr/bin/env -i " in c and c.index("/usr/bin/env -i ") < c.index("da_session.sh"), c
+    for c in dry:
+        assert c.startswith("env -i "), c
+    for c in cmds:
+        assert "nohup" not in c and not c.endswith("&") and "kill -9" not in c and "-s KILL" not in c, c
+    text = (HERE.parent / "README.md").read_text()
+    assert "never `kill -9` a session" in text.lower()
+    assert "systemctl list-unit-files | grep -i -E 'cvd|cuttlefish'" in text     # S1's assumption, checked once
+
+
+# ------------------------------------------------- the review's surviving mutants Y12-Y16 (S12; Y02 above, with S1)
+
+
+def _hosts_env(*names: str) -> list[str]:
+    out = subprocess.run(["bash", "-c", '. "$1/hosts.env"; shift; for n; do printf "%s\\n" "${!n}"; done', "_",
+                          str(HERE.parent), *names], capture_output=True, text=True, check=True,
+                         env={"PATH": os.environ["PATH"]}).stdout
+    return out.splitlines()
+
+
+def test_the_safety_net_fires_at_the_cap_plus_the_pre_stop_bound_plus_its_margin(tmp_path: Path) -> None:
+    # Y12: a deadline far after the cap passed every test; it is (CAP_S + 300 s) / 60 + 10 min from the arming
+    r = run(tmp_path, "p10-1")
+    assert r.rc == 0, r.log
+    cap, eur_h = (float(x) for x in _hosts_env("CAP_EUR_P10_1", "SCORE_EUR_H"))
+    gmin = (int(cap / eur_h * 3600) + 300) // 60 + 10
+    (arm,) = [r.command(i) for i in r.ssh(L4, "safety_net.sh arm")]
+    assert re.search(rf"safety_net\.sh arm {gmin}$", arm), (arm, gmin)
+    assert f"power-off safety net in {gmin} min" in r.log
+
+
+def test_the_default_go_bound_is_380_s_and_leaves_room_for_the_go_call(tmp_path: Path) -> None:
+    # Y13: the tests always set DA_T_GO_LIMIT_S, so a default of 3800 s passed; 380 s + the go's SSH call (35 s at
+    # most) stay under the candidate's 420 s ready time-out
+    r = run(tmp_path, "p10-2", "--without-guest-host")
+    assert r.rc == 0, r.log
+    m = re.findall(r"go of \w+ \d+ s after the S-CORE side's start step began \(limit (\d+) s, the go's SSH call at "
+                   r"most (\d+) s\)", r.log)
+    assert m and all(int(a) == 380 and int(a) + int(b) < 420 for a, b in m), m
+    gos = [c for c in (r.incoming / "commands.log").read_text().splitlines() if re.search(r"touch \S+/go &&", c)]
+    assert len(gos) == 3 and all(c.endswith("[timeout 35 s]") for c in gos), gos
+
+
+def test_a_session_id_named_only_in_an_archived_session_json_is_refused(tmp_path: Path) -> None:
+    # Y14: only the folder-name form was tested
+    d = tmp_path / "ev" / "session7_p10-3_renamed"
+    d.mkdir(parents=True)
+    (d / "session.json").write_text(json.dumps({"session_id": "T", "kind": "p10-3"}, indent=1))
+    r = run(tmp_path, "p10-1")
+    assert r.rc == 2 and "is taken by" in r.stdout and str(d) in r.stdout and not r.calls
+
+
+def test_the_traps_fetch_packs_within_120_s_and_copies_within_300_s(tmp_path: Path) -> None:
+    # Y15: the trap's fetch with the defaults of the end-of-session fetch (600 s pack, 1200 s copy) passed every test
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="inject:30")
+    wait_for_call(tmp_path, lambda c: any("start inject" in a for a in c))
+    time.sleep(0.5)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    cmds = (r.incoming / "commands.log").read_text().splitlines()
+    packs = [c for c in cmds if "host_step.sh pack" in c]
+    copies = [c for c in cmds if " + scp " in c and c.split(" [timeout")[0].endswith("/")
+              and "out.tgz" in c]
+    assert len(packs) == 2 and all(c.endswith("[timeout 120 s]") for c in packs), packs
+    assert len(copies) == 2
+    for c in copies:
+        t = int(re.search(r"\[timeout (\d+) s\]$", c).group(1))
+        assert 200 <= t <= 300, c
+
+
+@pytest.mark.parametrize("status", ["STOPPING", "TERMINATED"])
+def test_a_guest_host_found_stopping_in_the_trap_is_stopped_without_a_count(tmp_path: Path, status: str) -> None:
+    # Y16: a guest host that is shutting down runs no guest: its stop goes out, with no SSH count it could not get
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_LOST_AFTER=f"{GH}:start capture_inject",
+            FAKE_LOST_STATUS=status)
+    assert r.rc == 3, r.log
+    assert f"guest host status {status}: no guest can run there" in r.log
+    assert r.stops(GH) and r.state[GH] == "TERMINATED" and not r.guest_stops()
+    assert_invariants(r)
