@@ -17,7 +17,8 @@
 #    never takes the bundle's upstream files; mode path falls back to them. Which one was staged, with the sha256 of
 #    both files, goes to <out>/camera_calibration.json; the identity record hashes the staged files.
 # 2. Starts the Launch Manager as root, detached, in $DA_STAGE (LM_BIN, default $DA_STAGE/bin/launch_manager, with
-#    LM_ARGS). It reads the serialized configuration staged at $DA_STAGE/etc/launch_manager_config.bin.
+#    LM_ARGS). It reads the serialized configuration staged at $DA_STAGE/etc/launch_manager_config.bin, and mw::com in
+#    it reads the daemon's own configuration staged at $DA_STAGE/etc/mw_com_config.json (without it the daemon aborts).
 # 3. Waits (DA_START_TIMEOUT_S, default 120) until the Launch Manager runs, the identity recorder has written and
 #    offered the record and reported running, someipd and gatewayd run, and in mode full the processes of
 #    vision_pilot and actuation_adapter exist. It does NOT wait for the candidate to report running or for a camera

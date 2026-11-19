@@ -168,6 +168,54 @@ def test_staging_takes_a_serialized_configuration_only_beside_the_benchs_json(be
     assert missing.returncode == 3 and "the JSON beside it is missing" in missing.stderr
 
 
+LM_MW_COM = BENCH / "launch-manager" / "config" / "mw_com_config_launch_manager.json"
+
+
+@pytest.mark.parametrize("mode,carla", [("full", "10.164.0.2"), ("path", "none")])
+def test_staging_puts_the_launch_managers_mw_com_configuration_where_the_daemon_reads_it(
+        bench: dict, mode: str, carla: str) -> None:
+    """The daemon's LmControl skeleton makes mw::com read ./etc/mw_com_config.json in its working directory, the
+    stage (launch-manager/tests/test_launch_manager_mw_com_config.py); session 4's daemon aborted without it."""
+    ok = stage(bench, "--calibration-dir", str(bench["calibration"]), "--require-serialized", mode=mode, carla=carla)
+    assert ok.returncode == 0, ok.stderr
+    staged = bench["stage"] / "etc" / "mw_com_config.json"
+    assert staged.read_bytes() == LM_MW_COM.read_bytes()
+    summary = json.loads((bench["stage"] / "state" / "staging.json").read_text())
+    record = summary["launch_manager_mw_com_config"]
+    bundle_file = bench["bundle"] / "config" / "launch_manager" / "mw_com_config_launch_manager.json"
+    assert record == {"bundle_path": str(bundle_file), "sha256": hashlib.sha256(LM_MW_COM.read_bytes()).hexdigest(),
+                      "bench_file": "launch-manager/config/mw_com_config_launch_manager.json",
+                      "staged_path": str(staged)}
+    assert summary["files"][str(staged)] == record["sha256"]
+
+
+@pytest.mark.parametrize("mode,carla", [("full", "10.164.0.2"), ("path", "none")])
+def test_staging_takes_the_launch_managers_mw_com_configuration_only_when_it_is_the_benchs(
+        bench: dict, mode: str, carla: str) -> None:
+    bundle_file = bench["bundle"] / "config" / "launch_manager" / "mw_com_config_launch_manager.json"
+    # another file than the bench's (here: another applicationID): the daemon would run what the bench does not name
+    bundle_file.write_text(bundle_file.read_text().replace("3417", "3410"))
+    other = stage(bench, "--calibration-dir", str(bench["calibration"]), mode=mode, carla=carla)
+    assert other.returncode == 3 and "mw_com_config_launch_manager.json" in other.stderr
+    assert "differs from the bench's" in other.stderr
+    bundle_file.unlink()
+    missing = stage(bench, "--calibration-dir", str(bench["calibration"]), "--require-serialized", mode=mode,
+                    carla=carla)
+    assert missing.returncode == 3 and "mw::com configuration" in missing.stderr
+
+
+def test_a_start_without_the_launch_managers_mw_com_configuration_fails_as_on_the_l4(bench: dict,
+                                                                                     tmp_path: Path) -> None:
+    """Session 4's rehearsal on the real L4: no etc/mw_com_config.json, the daemon aborts at once. The start must
+    refuse before it starts a daemon that cannot run."""
+    (bench["bundle"] / "config" / "launch_manager" / "mw_com_config_launch_manager.json").unlink()
+    out = tmp_path / "out"
+    started = run(START, str(out), "none", env=bench["env"])
+    assert started.returncode == 3, started.stdout
+    assert "mw::com configuration" in started.stdout + started.stderr
+    assert fake_bundle.staged_processes(bench["stage"]) == []
+
+
 def test_staging_refuses_what_it_lacks(bench: dict) -> None:
     calibration = bench["calibration"]
     assert stage(bench, "--calibration-dir", str(calibration)).returncode == 0
@@ -214,6 +262,10 @@ def test_full_start_then_stop(bench: dict, tmp_path: Path) -> None:
     assert lm_log.index("started someipd") < lm_log.index("started gatewayd")
     stub_log = (root / "run/score/stubs/vision_pilot.log").read_text()
     assert f"cwd {root}/vision_pilot" in stub_log and "LCM_ALIVE_INTERFACE_PATH=/fake/alive/vision_pilot" in stub_log
+    # the daemon's environment: the configured one only, no HOME; LibCarla's cache dir instead (as on the L4)
+    for name in ("vision_pilot", "actuation_adapter"):
+        line = (root / f"run/score/stubs/{name}.log").read_text().splitlines()[0]
+        assert f"HOME= CARLA_CACHE_DIR={root}/run/carla_cache" in line, line
     # a second start is refused while this one runs
     again = run(START, str(tmp_path / "again"), "10.164.0.2", env=bench["env"])
     assert again.returncode == 4
@@ -465,8 +517,9 @@ def test_the_start_does_not_wait_for_a_camera_image(bench: dict, tmp_path: Path)
 
 def test_every_mw_com_manifest_of_the_bench_has_its_own_application_id() -> None:
     """Every process of the S-CORE host runs with uid 0 (the Launch Manager configuration's defaults), so mw::com
-    (LoLa) tells them apart by applicationID alone. The test publisher (3415) and the record probe (3416) are this
-    lane's proposals; no other manifest of the bench, staged or not, may take an id twice."""
+    (LoLa) tells them apart by applicationID alone. The test publisher (3415), the record probe (3416) and the Launch
+    Manager itself (3417) are this lane's proposals; no other manifest of the bench, staged or not, may take an id
+    twice."""
     ids: dict[int, list[str]] = {}
     for path in sorted(BENCH.rglob("*.json")):
         if "tests" in path.relative_to(BENCH).parts:
@@ -483,7 +536,8 @@ def test_every_mw_com_manifest_of_the_bench_has_its_own_application_id() -> None
                    3413: ["actuation-adapter/mw_com_config_actuation_adapter.json"],
                    3414: ["identity-recorder/mw_com_config_identity_recorder.json"],
                    3415: ["ivi-warning/injector/mw_com_config_warning_injector.json"],
-                   3416: ["identity-recorder/mw_com_config_candidate_record_probe.json"]}
+                   3416: ["identity-recorder/mw_com_config_candidate_record_probe.json"],
+                   3417: ["launch-manager/config/mw_com_config_launch_manager.json"]}
     for config in (LAUNCH, PATH_ONLY):
         data = json.loads(config.read_text())
         assert data["defaults"]["deployment_config"]["sandbox"]["uid"] == 0, config

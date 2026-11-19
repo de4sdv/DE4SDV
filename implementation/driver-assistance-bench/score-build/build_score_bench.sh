@@ -116,6 +116,7 @@ echo "host $(hostname) $(nproc) vCPU $(free -g | awk '/Mem:/{print $2}') GB RAM,
 for f in "$BENCH/actuation-adapter/BUILD.bazel" "$BENCH/interfaces/include/de4sdv/driver_assistance/payloads.h" \
          "$BENCH/score-path/config/gateway_overlay.BUILD.bazel" "$BENCH/launch-manager/config/launch_manager_config.json" \
          "$BENCH/score-path/config/launch_manager_config_path_only.json" \
+         "$BENCH/launch-manager/config/mw_com_config_launch_manager.json" \
          "$REPO/implementation/closed-loop-driving-bench/agent/workspace/feo-313b3d84-bench.diff"; do
   [ -f "$f" ] || die "missing $f; run from a full checkout of the repository"
 done
@@ -585,6 +586,9 @@ for c in launch_manager_config launch_manager_config_path_only; do
 done
 cp "$BENCH/launch-manager/config/launch_manager_config.json" "$BENCH/score-path/config/launch_manager_config_path_only.json" \
   "$B/config/launch_manager/"
+# the daemon's own mw::com configuration (its LmControl service, application id 3417): the staging puts it at
+# etc/mw_com_config.json of the stage, mw::com's default path in the daemon's working directory, in both modes
+cp "$BENCH/launch-manager/config/mw_com_config_launch_manager.json" "$B/config/launch_manager/"
 cp "$BENCH/actuation-adapter/mw_com_config_actuation_adapter.json" "$BENCH/actuation-adapter/config/adapter.json" \
    "$B/config/actuation_adapter/"
 cp -L "$GB/score/gatewayd/gatewayd" "$GB/score/someipd/someipd" "$B/bin/"

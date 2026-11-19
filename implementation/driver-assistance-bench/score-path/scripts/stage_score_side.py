@@ -12,7 +12,11 @@ paths of launch-manager/config/launch_manager_config.json:
                 CARLA host, and de4sdv_score_interface.conf with mw_com.config naming mw_com_config_vision_pilot.json
   etc/          launch_manager_config.bin: the serialized Launch Manager configuration of the mode, from the
                 bundle's config/launch_manager/ (the daemon's default path, etc/launch_manager_config.bin
-                relative to its working directory, Lifecycle v0.10.0 score/launch_manager/src/daemon/src/run.cpp)
+                relative to its working directory, Lifecycle v0.10.0 score/launch_manager/src/daemon/src/run.cpp);
+                mw_com_config.json: the daemon's own mw::com configuration, in both modes, from the bundle's
+                config/launch_manager/mw_com_config_launch_manager.json when it is byte for byte the bench's
+                launch-manager/config/ file (mw::com's default path ./etc/mw_com_config.json; the daemon offers its
+                LmControl service through it and aborts without the file)
   vision_pilot/ the candidate's working directory: config/vision_pilot.conf, config/H.yaml,
                 config/homography_C_matrix.yaml, modules/models/weights/*.onnx, assets/
   facts/        the source difference (the bundle's patches and SHA256SUMS) and upstream_revision.txt, which the
@@ -36,8 +40,9 @@ Manager configuration, config/launch_manager/ with each configuration's .bin (Li
 launch_manager_config rule) beside the JSON it was converted from, config/gateway/, config/visionpilot/,
 share/visionpilot/, lib/ and facts/. The .bin of the mode is staged only when the JSON beside it in the bundle is
 byte for byte the bench's file of the mode, the file staged as config/launch_manager_config.json and hashed into the
-identity record: otherwise the daemon would run a configuration the record does not name. With
---require-serialized (start_score_side.sh), a missing .bin or JSON refuses too.
+identity record: otherwise the daemon would run a configuration the record does not name. The daemon's mw::com
+configuration is staged the same way: only when the bundle's copy is byte for byte the bench's file. With
+--require-serialized (start_score_side.sh), a missing .bin, JSON or mw::com configuration refuses too.
 
 It prints a JSON summary (the files staged and their sha256) and writes it to <stage>/state/staging.json.
 Exit status: 0 staged; 2 usage; 3 a required input is missing.
@@ -87,6 +92,12 @@ LAUNCH_CONFIGS = {"full": "launch-manager/config/launch_manager_config.json",
 # The bundle's config/launch_manager/: the .bin of each mode, converted from the JSON of the same stem beside it.
 BUNDLE_LAUNCH_DIR = Path("config") / "launch_manager"
 SERIALIZED = {"full": "launch_manager_config.bin", "path": "launch_manager_config_path_only.bin"}
+# The daemon's own mw::com configuration (the LmControl service it offers, application id 3417), in both modes. The
+# daemon gives mw::com no path, so mw::com reads ./etc/mw_com_config.json in the daemon's working directory, the stage
+# (Lifecycle v0.10.0 score/launch_manager/src/daemon/src/run.cpp:179-189 and control/control_provider.hpp:32-35;
+# communication v0.6.0 score/mw/com/runtime_configuration.cpp:31). The bundle carries the bench's file beside the .bin.
+LM_MW_COM_CONFIG = "launch-manager/config/mw_com_config_launch_manager.json"
+LM_MW_COM_STAGED = "etc/mw_com_config.json"
 
 
 class Missing(Exception):
@@ -178,6 +189,25 @@ def stage_serialized(args: argparse.Namespace, root: Path, put) -> dict | None:
             "built_from_sha256": sha256(built_from), "bench_json": LAUNCH_CONFIGS[args.mode]}
 
 
+def stage_lm_mw_com(args: argparse.Namespace, root: Path, put) -> dict | None:
+    """Stages the bundle's mw::com configuration of the daemon as etc/mw_com_config.json, when it is byte for byte
+    the bench's file. Without it the daemon aborts at its start (session 4's rehearsal on the L4)."""
+    bench_file = args.bench / LM_MW_COM_CONFIG
+    carried = args.bundle / BUNDLE_LAUNCH_DIR / Path(LM_MW_COM_CONFIG).name
+    if not carried.is_file():
+        if args.require_serialized:
+            raise Missing(f"the Launch Manager's mw::com configuration: {carried} is missing; the daemon aborts "
+                          "without it: rebuild the bundle from this checkout")
+        return None
+    if sha256(carried) != sha256(need(bench_file, "the Launch Manager's mw::com configuration")):
+        raise Missing(f"the Launch Manager's mw::com configuration: {carried} differs from the bench's "
+                      f"{LM_MW_COM_CONFIG}: rebuild the bundle from this checkout")
+    staged = root / LM_MW_COM_STAGED
+    put(carried, staged)
+    return {"bundle_path": str(carried), "sha256": sha256(staged), "bench_file": LM_MW_COM_CONFIG,
+            "staged_path": str(staged)}
+
+
 def stage(args: argparse.Namespace) -> dict:
     bundle, root, bench = args.bundle, args.stage, args.bench
     if root.name != "de4sdv-da-bench" and not args.allow_any_stage:
@@ -233,6 +263,7 @@ def stage(args: argparse.Namespace) -> dict:
     (root / "config" / "de4sdv_score_interface.conf").write_text(interface)
     staged[str(root / "config" / "de4sdv_score_interface.conf")] = sha256(root / "config" / "de4sdv_score_interface.conf")
     serialized_record = stage_serialized(args, root, put)
+    lm_mw_com_record = stage_lm_mw_com(args, root, put)
 
     # the candidate's working directory
     upstream_conf = need(bundle / "config" / "visionpilot" / "vision_pilot.conf", "upstream vision_pilot.conf")
@@ -267,6 +298,7 @@ def stage(args: argparse.Namespace) -> dict:
     summary = {"stage": str(root), "mode": args.mode, "carla_host": args.carla_host, "bundle": str(bundle),
                "camera_calibration": calibration_record, "upstream_revision": revision,
                "serialized_launch_config": serialized_record,
+               "launch_manager_mw_com_config": lm_mw_com_record,
                "files": dict(sorted(staged.items()))}
     (root / "state" / "staging.json").write_text(json.dumps(summary, indent=1) + "\n")
     return summary

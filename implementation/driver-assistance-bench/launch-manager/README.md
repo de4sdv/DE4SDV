@@ -106,6 +106,17 @@ has subscribed.
 - Stage the files under `/tmp/de4sdv-da-bench` (`bin/`, `lib/`, `config/`, `vision_pilot/` as the candidate's working
   directory with `H.yaml` and `config/vision_pilot.conf`, `run/` as the run directory), and the interface settings
   `config/de4sdv_score_interface.conf` with `mw_com.config` naming `mw_com_config_vision_pilot.json`.
+- Stage `etc/launch_manager_config.bin` and the daemon's own mw::com configuration
+  `config/mw_com_config_launch_manager.json` as `etc/mw_com_config.json`, and run the daemon in the stage. The daemon
+  offers its LmControl service (`LaunchManager/StateManager/Instance`) through mw::com, which reads
+  `./etc/mw_com_config.json`; without it the daemon aborts at its start. The file holds that one instance, as
+  upstream's example does, with the application id 3417 (`tests/test_launch_manager_mw_com_config.py` gives the
+  reasons at the pins).
+- Expect each process to get exactly the environment its component configures: Lifecycle v0.10.0 passes nothing of
+  its own environment (no `HOME`), only `LCM_ALIVE_INTERFACE_PATH` for a supervised component. `vision_pilot` and
+  `actuation_adapter` link LibCarla's client, whose static initializer reads `CARLA_CACHE_DIR`, else `HOME` without a
+  check, and both died of SIGSEGV before `main` on the L4 in session 5. So both components set `CARLA_CACHE_DIR` to
+  `/tmp/de4sdv-da-bench/run/carla_cache`. `tests/test_launch_manager_environment.py` gives the reasons at the pins.
 - Start the world's pacer before the candidate's ready timeout ends.
 - Stop the Launch Manager (SIGTERM: it switches to `Off` and ends the supervision first) before the world stops
   ticking. Otherwise the end of every run reads as a supervision failure.
