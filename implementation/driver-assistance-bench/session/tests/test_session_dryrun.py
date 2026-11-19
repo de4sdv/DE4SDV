@@ -854,6 +854,17 @@ def test_the_unit_and_app_restart_bounds_follow_their_waits(tmp_path: Path) -> N
     assert r.rc == 2 and "UNIT_WAIT_S" in r.stdout and not r.starts(GH), r.stdout
 
 
+def test_the_app_restart_step_is_bounded_by_t_app_restart(tmp_path: Path) -> None:
+    # m35 of the lane's harness: the step's bound is T_APP_RESTART, not T_STEP (300 s here): a step that hangs 30 s
+    # past a T_APP_RESTART of 2 s is signalled at its time-out
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="app_restart_inject:30", DA_T_T_APP_RESTART="2")
+    assert r.rc == 5, r.log
+    sig = r.ssh(GH, "host_step.sh signal app_restart_inject TERM")
+    assert sig and sig[0] < r.ssh(GH, "host_step.sh tail app_restart_inject")[0], r.log
+    assert "step app_restart_inject rc=124" in r.log, r.log
+    assert not r.ssh(GH, "start ivi_clock_inject")
+
+
 def test_the_app_subscribe_wait_is_a_per_session_setting(tmp_path: Path) -> None:
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host", "--remote-env", "APP_SUBSCRIBE_WAIT_S=45")
     assert r.rc == 0, r.log

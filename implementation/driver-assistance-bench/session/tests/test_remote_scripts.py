@@ -357,6 +357,21 @@ def test_app_restart_waits_for_the_new_processes_subscribed_line_since_its_mark(
     assert "link=SUBSCRIBED detail=instance1" in rec and "APP_SUBSCRIBED 4242" in rec
 
 
+def test_app_restart_never_takes_the_old_processes_subscribed_line_after_the_mark(tmp_path: Path, fake) -> None:
+    # m30 of the lane's harness: the killed process can log SUBSCRIBED after the IVI mark, before am start -S ends it;
+    # only the new pid's line passes, so with none from it the step waits its whole bound and fails
+    d, env = fake
+    p, dt = _restart(tmp_path, d, env, OLD_SUBSCRIBED, wait="1")
+    assert p.returncode == 1 and dt >= 1, p.stdout
+    fail = [x for x in p.stdout.splitlines() if x.startswith("FAIL")]
+    assert fail and "pid 4242" in fail[0] and "none since the mark" in fail[0], p.stdout
+    assert "APP_SUBSCRIBED" not in p.stdout
+    # the new pid's SUBSCRIBED after the old one's passes
+    p2, _ = _restart(tmp_path / "b", d, env, OLD_SUBSCRIBED + NEW_SUBSCRIBED)
+    assert p2.returncode == 0 and "APP_SUBSCRIBED 4242" in p2.stdout, p2.stdout
+    assert NEW_SUBSCRIBED.strip() in p2.stdout
+
+
 def test_app_restart_fails_when_the_new_process_never_subscribes(tmp_path: Path, fake) -> None:
     d, env = fake
     p, dt = _restart(tmp_path, d, env, OLD_SUBSCRIBED + NEW_WAITING, wait="1")
