@@ -65,7 +65,13 @@ CAMERA_ROLE = "front"           # the camera interface's carla.camera_role (scor
 TARGET_ROLE = "sc012_target"
 CALIBRATION_ROLE = "de4sdv_calibration"   # calib-decel and camera-capture: no candidate client attaches
 TARGET_BLUEPRINT = "vehicle.tesla.model3"   # DA-P8's target (da8_target.py:23); a bench choice
-DEFAULT_MAP = "Town04"          # brief R7: a long straight highway; in CARLA's AdditionalMaps pack
+# Brief R7: a long straight highway. The real server (1.0-14ac3b1a5, 2026-11-19, p10-1-world-maps-20261119/FACTS.md)
+# loads a map only by the exact name get_available_maps() gives, and the highways come with CARLA's AdditionalMaps
+# pack (Town04_Opt, Town06_Opt). Under the survey's rule Town04_Opt's longest straight is 235 m, short of the 320 m
+# of SC-DRIVING-012@60 and calib-decel's 300 m; Town06_Opt's reach 400 m and more.
+DEFAULT_MAP = "Town06_Opt"
+MAPS_FIX = ("the highways come with CARLA's AdditionalMaps pack: install it once on the simulator host "
+            "(world-side/README.md, \"The maps pack\")")
 STALL_S = 0.2                   # a tick started more than 0.2 s after the one before is a stall
 LATE_TOLERANCE_S = 0.001
 CONTACT_HOLD_S = 3.0            # proposal: ticks kept after the first contact with the target
@@ -232,8 +238,12 @@ class WorldSide:
             try:
                 self.world = self.client.load_world(self.args.map)
             except Exception as exc:  # noqa: BLE001
-                raise BenchError(f"cannot load map {self.args.map!r} (Town04 is in CARLA's AdditionalMaps "
-                                 f"pack): {exc}") from exc
+                try:
+                    have = ", ".join(sorted(last_path_element(m) for m in self.client.get_available_maps()))
+                except Exception as exc2:  # noqa: BLE001
+                    have = f"unknown ({exc2})"
+                raise BenchError(f"cannot load map {self.args.map!r}: {exc}; the server's maps: {have}; "
+                                 f"{MAPS_FIX}") from exc
         self.map = self.world.get_map()
         versions = {"client": self.client.get_client_version(), "server": self.client.get_server_version()}
         self.versions = versions

@@ -3,13 +3,21 @@
 # SIM20-G4 left on the G4's disk, started as in SIM20-G4's g4_vm.sh (off-screen, no sound, RPC port 2000, a systemd
 # unit), plus the checks a recorded run needs first: free disk (brief R6) and NVENC at the recording size.
 #
-#   sim_setup.sh <out_dir>     exit 0 when the server answers; its versions and map in <out_dir>/server_probe.txt
+#   sim_setup.sh <out_dir>     exit 0 when the server answers and has every map the world side needs; its versions,
+#                              map and maps in <out_dir>/server_probe.txt
 #
+# The maps: the world side of p10-1 and p10-2 loads WORLD_MAP (world-side/scripts/common.sh, Town06_Opt), which comes
+# with CARLA's AdditionalMaps pack. A server without it fails here with a named reason, not at the warm-up. This
+# script does not install the pack: that is a one-time host setup (world-side/README.md, "The maps pack").
 # The world side (another lane's entry) sets synchronous mode and the fixed step of 0.05 s; this script does not.
 set -uo pipefail
 OUT=${1:?out dir}; mkdir -p "$OUT"
 S=${SIM_ROOT:-/opt/sim20g4}; PY=${SIM_PY:-$S/venv/bin/python}; UNIT=${SIM_UNIT:-da-carla}
 MIN_FREE_GB=${MIN_FREE_GB:-8}; SIM_WAIT_S=${SIM_WAIT_S:-120}
+BENCH=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)
+# the world side's own map setting, read in a child shell (common.sh also sets PY)
+read -r -a MAPS <<< "$(bash -c '. "$1" && echo "$WORLD_MAP"' _ "$BENCH/world-side/scripts/common.sh")"
+[ "${#MAPS[@]}" -gt 0 ] || { echo "FAIL no map from $BENCH/world-side/scripts/common.sh"; exit 1; }
 CR=$(cat "$S/carla_root" 2>/dev/null)
 [ -x "$CR/CarlaUnreal.sh" ] || { echo "FAIL no CARLA package under $S (carla_root '$CR')"; exit 1; }
 cp "$S/pkg.ok" "$OUT/package.ok" 2>/dev/null && echo "package: $(cat "$OUT/package.ok")"
@@ -34,7 +42,7 @@ grep -q ":2000 " <(ss -ltn) || { echo "FAIL server port 2000"; exit 1; }
 # the server listens before its world is loaded: ask for the world until SIM_WAIT_S (INC-DRIVING-001's hero check)
 # --foreground: the bounded call stays in the step's process group, so a TERM to the step reaches it (plain timeout
 # would move it into a group of its own, which outlives the step)
-timeout --foreground $((SIM_WAIT_S + 60)) "$PY" -u - "$SIM_WAIT_S" > "$OUT/server_probe.txt" 2>&1 <<'PY'
+timeout --foreground $((SIM_WAIT_S + 60)) "$PY" -u - "$SIM_WAIT_S" "${MAPS[@]}" > "$OUT/server_probe.txt" 2>&1 <<'PY'
 import sys, time
 import carla
 wait_s = float(sys.argv[1]); t0 = time.monotonic()
@@ -50,6 +58,15 @@ print("the simulator answered after %.1f s" % (time.monotonic() - t0))
 print("server_version", c.get_server_version()); print("client_version", c.get_client_version())
 s = w.get_settings()
 print("map", w.get_map().name, "sync", s.synchronous_mode, "fixed_delta_seconds", s.fixed_delta_seconds)
+# load_world takes only a name of this list (the real server answers "Map 'Town04' not found" otherwise)
+have = sorted(str(m).rstrip("/").split("/")[-1] for m in c.get_available_maps())
+print("available_maps", " ".join(have))
+missing = [m for m in sys.argv[2:] if m not in have]
+if missing:
+    print("FAIL map(s) not on the server: %s (the server's maps: %s): install CARLA's AdditionalMaps pack once on "
+          "this host (world-side/README.md, \"The maps pack\")" % (", ".join(missing), ", ".join(have)))
+    sys.exit(3)
+print("maps the world side needs, all on the server:", ", ".join(sys.argv[2:]))
 PY
 RC=$?
 cat "$OUT/server_probe.txt"

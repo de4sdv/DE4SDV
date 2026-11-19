@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import fnmatch
 import math
+import os
 
 __version__ = "1.0-fake"
 
@@ -229,6 +230,14 @@ class VehiclePhysicsControl:
         self.center_of_mass = center_of_mass if center_of_mass is not None else Vector3D(0.0, 0.0, 0.0)
 
 
+# get_available_maps() of the real server, 1.0-14ac3b1a5 on the G4 (p10-1-world-maps-20261119/FACTS.md): bare names.
+# The base package alone (the paid p10-1 of 20261119T123937Z): four maps.
+BASE_PACKAGE_MAPS = ("EmptyMap", "Town10HD_Opt", "Town12", "Town15")
+# With CARLA's AdditionalMaps pack installed (CarlaUnreal/Packs/AdditionalMaps): sixteen.
+WITH_ADDITIONAL_MAPS = ("Eixample", "EmptyMap", "Mine_01", "Town01_Opt", "Town02_Opt", "Town03_Opt", "Town04_Opt",
+                        "Town05_Opt", "Town06_Opt", "Town07_Opt", "Town10HD_Opt", "Town11", "Town12", "Town13",
+                        "Town15", "Town_C")
+
 VEHICLE_SHAPES = {                      # extent (half sizes, m), wheelbase (m)
     "vehicle.lincoln.mkz": ((2.45, 1.05, 0.75), 2.85),
     "vehicle.tesla.model3": ((2.40, 1.05, 0.75), 2.87),
@@ -287,7 +296,7 @@ class Map:
     something to reject.
     """
 
-    def __init__(self, name: str = "Carla/Maps/Town04", length: float = 1000.0):
+    def __init__(self, name: str = "Carla/Maps/Town06_Opt", length: float = 1000.0):
         self.name = name
         self.length = float(length)
         self.road_id = 35
@@ -539,6 +548,9 @@ class _Server:
 
     def __init__(self, map_name: str):
         self.map = Map(map_name)
+        # FAKE_CARLA_MAPS (comma-separated) replaces the list, e.g. with BASE_PACKAGE_MAPS for a host without the pack
+        env_maps = os.environ.get("FAKE_CARLA_MAPS")
+        self.available_maps = list(env_maps.split(",") if env_maps is not None else WITH_ADDITIONAL_MAPS)
         self.settings = WorldSettings()
         self.frame = 0
         self.elapsed = 0.0
@@ -764,10 +776,14 @@ class Client:
         return World(self)
 
     def get_available_maps(self):
-        return ["/Game/Carla/Maps/Town10HD_Opt", "/Game/Carla/Maps/Town04"]
+        return list(self._server.available_maps)
 
     def load_world(self, map_name: str, reset_settings: bool = True) -> World:
+        # The real server (1.0-14ac3b1a5 on the G4, 2026-11-19) loads a name of get_available_maps() and nothing
+        # else: load_world('Town04') -> RuntimeError "Map 'Town04' not found" with Town04_Opt installed
         self.load_calls.append(map_name)
+        if map_name not in self._server.available_maps:
+            raise RuntimeError(f"Map '{map_name}' not found")
         short = map_name.split("/")[-1]
         self._server.map = Map(f"Carla/Maps/{short}")
         self._server.actors.clear()
