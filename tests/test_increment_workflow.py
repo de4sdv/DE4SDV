@@ -342,6 +342,49 @@ def _flat(text: str) -> str:
     return " ".join(text.split())
 
 
+#: The phase 8 rule as both homes state it: the method document's paragraph and the doc of DefinePhysicalRealization,
+#: which the phase contract serves as the step's documentation (owner decision of 2026-11-19).
+PHASE_8_SHARED = (
+    "Phase 8 has two kinds of realization package.",
+    "The software realization, a package whose name ends in PhysicalSoftwareRealization, holds the software, the "
+    "platforms it runs on (operating systems, hypervisors, virtual machines, bench hosts) and its deployment.",
+    "The E/E realization, a package whose name ends in PhysicalEERealization, holds the vehicle's "
+    "electrical/electronic topology: ECUs and controllers as network nodes, buses and links, the frames on them, "
+    "connectors and I/O.",
+    "The physical/software realization is phase 8 with both kinds.",
+    "An ECU or controller that software runs on is declared in the E/E realization, and the software realization "
+    "imports it to deploy software on it.",
+    "The checks of phase 8 read both kinds alike: they find physical elements by their type in the packages the "
+    "charter names, not by how a package's name ends.",
+    "Phase 8 packages merged before this rule keep their content.",
+    "An increment with no E/E topology has only a software realization.",
+    "No kind exists for mechanical elements until an increment has them inside its boundary",
+)
+#: The method document no longer says what the kernel means: the kernel states the rule itself.
+PHASE_8_RETIRED = ("Wherever this document or the kernel speaks",)
+
+
+def _phase_8_homes() -> tuple[str, str]:
+    """The phase 8 paragraph of the method document (code marks dropped) and the doc of DefinePhysicalRealization,
+    flattened."""
+    document = WORKFLOW_DOC.read_text(encoding="utf-8")
+    start = document.index("Phase 8 has two kinds of realization package.")
+    paragraph = document[start:document.index("\n\n", start)]
+    kernel = WORKFLOW_FILE.read_text(encoding="utf-8")
+    head = kernel.index("action def DefinePhysicalRealization :> IncrementStep")
+    comment = kernel[kernel.index("doc /*", head):kernel.index("*/", head)]
+    return _flat(paragraph.replace("`", "")), _flat(re.sub(r"^\s*\*", " ", comment, flags=re.MULTILINE))
+
+
+def test_phase_8_states_its_two_kinds_of_realization_in_both_homes() -> None:
+    homes = _phase_8_homes()
+    for home in homes:
+        assert not [sentence for sentence in PHASE_8_SHARED if sentence not in home]
+    for text in (*homes, _flat(WORKFLOW_DOC.read_text(encoding="utf-8"))):
+        assert not [phrase for phrase in PHASE_8_RETIRED if phrase in text]
+    assert "The kernel's DefinePhysicalRealization states the same rule." in homes[0]
+
+
 def _rule_5_homes() -> tuple[str, str]:
     """Rule 5 in the method document and in the doc of SpecifyRequirements, flattened."""
     document = WORKFLOW_DOC.read_text(encoding="utf-8")
