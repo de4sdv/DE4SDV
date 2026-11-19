@@ -124,7 +124,7 @@ class Run:
 
 
 # the per-session settings of the remote entries (da_session.sh REMOTE_ENV_*): a test sets them only on purpose
-REMOTE_ENV = ("UNIT_REGISTERED_RE", "UNIT_NEGATION_RE", "BROKER_ERROR_RE", "UNIT_WAIT_S", "B12_DIR", "VERIFY_WAIT_S",
+REMOTE_ENV = ("UNIT_SOURCE", "UNIT_REGISTERED_RE", "UNIT_NEGATION_RE", "BROKER_ERROR_RE", "UNIT_WAIT_S", "B12_DIR", "VERIFY_WAIT_S",
               "ADB_TIMEOUT_S", "UP_TIMEOUT_S", "CLOCK_READS", "CLOCK_MAX_OFFSET_S", "START_WAIT_S", "DA_P10_1_CARLA_HOST",
               "GATEWAYD_RX_REGEX", "DA_P10_1_LATE_WAIT_S", "DA_P10_1_CUDA_RUNS", "DA_P10_1_ALIVE_HOLD_S",
               "DA_P10_1_STALL_HOLD_S", "DA_P10_1_SUPERVISED_WAIT_S")
@@ -703,6 +703,33 @@ def test_per_session_settings_reach_the_steps_of_their_host_only(tmp_path: Path)
     rec = json.loads((r.incoming / "session.json").read_text())
     assert rec["remote_env"] == {"guest": {"UNIT_REGISTERED_RE": "unit .* registered", "UNIT_WAIT_S": "600"},
                                  "score": {"GATEWAYD_RX_REGEX": "rx [0-9]+"}}
+
+
+def test_the_unit_gates_source_is_a_per_session_setting_of_the_guest_host(tmp_path: Path) -> None:
+    # the default source is the IVI app's own link line; UNIT_SOURCE=core keeps the core-log check, on purpose only
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", "--remote-env", "UNIT_SOURCE=core", UNIT_SOURCE="app")
+    assert r.rc == 0, r.log
+    assert "env UNIT_SOURCE=core bash" in r.command(r.ssh(GH, "start unit_inject")[0])
+    assert json.loads((r.incoming / "session.json").read_text())["remote_env"] == {"guest": {"UNIT_SOURCE": "core"}}
+    plain = run(tmp_path / "b", "p10-3", "--owner-ok-guest-host", UNIT_SOURCE="core")   # exported: never reaches
+    assert plain.rc == 0 and not any("UNIT_SOURCE" in a for c in plain.calls for a in c)
+
+
+@pytest.mark.parametrize("tail, logged, recorded", [
+    ("guest_up:CROSVM_BEFORE_LAUNCH 0", "crosvm processes on the guest host before guest_up: 0 (S1 held", 0),
+    ("guest_up:CROSVM_BEFORE_LAUNCH 2", "S1 VOID: 2 crosvm process(es) on the guest host before guest_up", 2),
+    ("guest_up:CROSVM_BEFORE_LAUNCH unknown", "crosvm processes on the guest host before guest_up: unknown", None),
+    ("", "crosvm processes on the guest host before guest_up: unknown", None),
+])
+def test_the_session_logs_the_crosvm_count_before_guest_up(tmp_path: Path, tail: str, logged: str,
+                                                           recorded) -> None:
+    # S1's real assumption, checked every run: no guest runs on the guest host before the session starts one
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_TAIL_ADD=tail)
+    assert r.rc == 0, r.log
+    assert logged in r.log, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["crosvm_before_guest_up"] == recorded
+    assert r.sequence() == P10_3_SEQ
 
 
 def test_an_exported_setting_never_reaches_a_remote_step(tmp_path: Path) -> None:

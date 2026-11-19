@@ -15,7 +15,7 @@ order, and stops everything it started on every exit.
 | Kind | Hosts, in start order | Steps after the starts |
 |---|---|---|
 | `p10-1` | S-CORE host | the S-CORE build check (`ENTRY_SCORE_P10_1`) |
-| `p10-3` | S-CORE host, guest host | guests created fresh, the app and its ACLs installed and verified, VXLAN both ends, S-CORE side up (someipd offers 0x4df1 at 192.168.98.1:30511), the SD multicast route, the broker's unit registration, the app restarted, IVI clock set, display capture on, injected warning requests, capture off, S-CORE side down |
+| `p10-3` | S-CORE host, guest host | guests created fresh, the app and its ACLs installed and verified, VXLAN both ends, S-CORE side up (someipd offers 0x4df1 at 192.168.98.1:30511), the SD multicast route, the IVI app's subscription to the unit (its own `link=SUBSCRIBED` line), the app restarted, IVI clock set, display capture on, injected warning requests, capture off, S-CORE side down |
 | `p10-2` | simulator host, S-CORE host, guest host | CARLA server, CARLA reachable from the S-CORE host, the guests as in `p10-3`, warm-up with the chase recorder (no candidate), ASM-DRIVING-005 and the camera capture (no candidate), the calibration file made on the lead host and put on the S-CORE host, then the ASM-DRIVING-006 run and two runs of SC-DRIVING-012 at 20 km/h, each with its own S-CORE side start and stop, recorder and display window (below) |
 
 A `p10-1` session judges only the checks of `p10_1_check.sh` that need the S-CORE host alone. C2 to C4 (the alive
@@ -40,16 +40,66 @@ still ticks, the release file, the world side and the recorder end, the capture 
 `SEQUENCE` line lists every step in order; `tests/test_session_dryrun.py` pins it for each kind.
 
 The order of `p10-3` is the one the guest host's operator gave on 2026-11-18 (`guest-prep-20261118`): the VXLAN up,
-the offer, the multicast route, then the broker's unit registration, then the IVI clock just before the window.
-The unit check reads the SDV Core guest's log only from a mark taken just before the S-CORE side starts, so a broker
-error from before the offer neither fails it nor does a registration from an earlier boot pass it. After the VXLAN
-both guests' neighbour caches are flushed (they learn the S-CORE host's MAC for 192.168.98.1 at once). After each
-window the session counts the lines of the app's own record in the capture (`app_record_receipts` in
-`session.json`) and says `NO RECEIPT IN THE APP'S RECORD OF WINDOW <w>` when there are none: the unit check's log
-pattern is still the bench's guess, and only the app's record shows that a request arrived. What the operator
-confirms on the first `p10-3`: the broker's exact line for the unit in `unit_inject/core_logcat.txt`, that no line
-since the mark names 4df1 as an error, `someipd`'s `REMOTE SUBSCRIBE ... [4df1.0001.0001] ... accepted` on the S-CORE
-host, and the app's record and logcat lines in `capture_inject/`; then pin both patterns in the script.
+the offer, the multicast route, then the unit gate, then the IVI clock just before the window. Before the S-CORE
+side starts, the session marks both guests' clocks (`logmark_<w>`), each on its own clock: the SDV Core guest's into
+`logcat_since.txt`, the IVI guest's into `ivi_logcat_since.txt`. The unit gate (`unit_<w>`) then reads each guest's
+log only since its own mark, so neither a broker error from before the offer fails it nor a line from an earlier
+boot or run passes it. After the VXLAN both guests' neighbour caches are flushed (they learn the S-CORE host's MAC
+for 192.168.98.1 at once). After each window the session counts the lines of the app's own record in the capture
+(`app_record_receipts` in `session.json`) and says `NO RECEIPT IN THE APP'S RECORD OF WINDOW <w>` when there are
+none: only the app's record shows that a request arrived.
+
+### The unit gate of `p10-3` (and of each recorded `p10-2` run)
+
+What it waits for (`remote/offer_check.sh unit`, `UNIT_SOURCE=app`, the default): the IVI app's own line
+`DE4SDV_COLLISION_WARNING: event=lifecycle ... phase=link link=SUBSCRIBED detail="<vm>"`, which the app writes once
+its continuous discovery listener (`addListenerForServiceUnitChangeByName`) has seen the broker's unit
+`de4sdv-driving-warning-request` and its subscription succeeded. The app subscribes to that one unit only. It waits
+up to `UNIT_WAIT_S` (120 s), polling every 5 s, and logs the bound, the source and both marks in its first line.
+A `link=SUBSCRIBED` line since the IVI mark passes, whatever the poll that reads it
+(`UNIT_SUBSCRIBED <unit> source=app`). `link=UNAVAILABLE` never decides: the app logs it for every failed
+`initComms`, subscribe or read and retries after 5 s (`RETRY_DELAY_MS` in `WarningRequestSubscriber.java`), so the gate
+counts those lines, names the last one's detail, and keeps waiting for `link=SUBSCRIBED` up to its bound; `link=WAITING`
+keeps waiting too. Until 2026-11-19 the gate failed at once on the first `UNAVAILABLE`; that was changed before the
+`p10-3` rerun, because a first subscribe that the app retries would then fail a paid run. The one `UNAVAILABLE` the app
+does not retry, a naming problem in its own configuration, also fails only at the bound. A broker error line in the core
+log since the core mark that names 4df1 or the unit still fails the gate
+(`BROKER_ERROR_RE`). `UNIT_SOURCE=core` (only through `--remote-env UNIT_SOURCE=core`) keeps the earlier gate: a core
+log line naming the unit and matching `UNIT_REGISTERED_RE`, negations refused.
+
+Why the app's line (T6 of the `p10-3` record of 2026-11-19, session `20261119T094924Z`): the SDV Core guest's broker
+logs no line naming the unit at its default log level. The core log since the mark held 867 lines and none named
+`de4sdv-driving-warning-request`, so the earlier gate could not pass whatever its pattern. The S-CORE-to-core leg
+did work in that log: the core's `sdv_someip_stack_agent` logged `create_remote_client: 192.168.98.1:30511 reliable`,
+`REGISTER EVENT(1221): [4df1.0001.8001:is_provider=false]` and `SUBSCRIBE(1221): [4df1.0001.0001:8001:1]`, and the
+S-CORE host's someipd logged `REMOTE SUBSCRIBE(0000): [4df1.0001.0001] from 192.168.98.3:4190 reliable was
+accepted.` The core-to-IVI leg was never read: the IVI app's last line, before the S-CORE side was up, was
+`link=WAITING`. The app's own link line is the readiness signal of that leg.
+
+How to read the gate's files (`guest/out/unit_<w>/` in the session's evidence folder, fetched with the guest host):
+
+- `unit_context.txt`, kept on a pass and on a fail: the core's `REGISTER EVENT` and `SUBSCRIBE` lines for 4df1 (the
+  S-CORE-to-core leg) and the app's link lines (the core-to-IVI leg). Both legs belong in the run's record.
+- `core_logcat.txt`, `ivi_logcat.txt`, `app_link_lines.txt`, `broker_errors.txt`: the last poll's reads since the
+  marks; `logcat_since.txt` and `ivi_logcat_since.txt` name the marks.
+- `diag/`, written on any fail before the step exits, and listed with line counts in the step's `DIAGNOSTICS` line:
+  `ivi_collision_warning_since_boot.txt` (every app line since the IVI booted, so a `link=UNAVAILABLE` or a restart
+  before the mark shows too), `ivi_sdv_service_manager_broker_mesh.txt` (the IVI's `SdvServiceManager`,
+  `SomeIpBroker` and mesh lines), `core_sdv_service_manager_since_mark.txt`, `core_someip_service.txt` (the core's
+  someip lines naming 4df1), and `net_core.txt`, `net_ivi.txt` (`ip -br addr`, `ip route`, `ip rule` and the
+  addresses in each network namespace, the `sd_mesh_ns` mesh address included). `ivi_logcat_since_boot.txt` is the
+  whole IVI buffer they come from.
+
+Reading a fail: no `REGISTER EVENT`/`SUBSCRIBE` for 4df1 in `unit_context.txt` means the offer did not reach the
+core (the multicast route, the VXLAN, someipd); those lines present with the app still `WAITING` means the unit did
+not reach the IVI (the mesh between the guests, the broker's registration, the app's discovery); `UNAVAILABLE` names
+the app's own failing call. The core's `SdvServiceManagerServer` logged a reconnect loop to `instance3`
+(192.168.99.5:2000, `Unable to connect to mesh`) about every 9 s in that session. Our two guests are dev-mesh
+instance1 (the SDV Core guest, `androidboot.virt.address=3`) and instance2 (the IVI guest, `sdv_ivi_instance2`,
+`androidboot.virt.address=4`, its `sd_mesh` address 192.168.99.4 in the bench's guest inventory); no third guest
+runs, so the `instance3` loop alone says nothing about the IVI. Whether the core's mesh link to instance2 was up is
+not in that log (no line names instance2 after the mark); the IVI's mesh lines and both guests' namespace addresses
+in `diag/` answer it at the next fail.
 
 Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
 
@@ -74,8 +124,10 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   sent the guest host no step at all (no `guest_up`, so no guest was launched) and the host does not answer SSH in
   the trap, the trap tries SSH for up to `GUEST_NOSSH_S` (180 s) more, then stops the host without a `crosvm` count
   and says `GUEST HOST STOPPED WITHOUT A CROSVM COUNT`. This rests on one assumption: **nothing on the guest host's
-  image starts Cuttlefish at boot**. The operator checks it once (the `p10-3` block below). Once a guest step was sent,
-  an unknown count keeps the host running, as above.
+  image starts Cuttlefish at boot**, so no guest runs before the session starts one. Every session checks that
+  assumption: `guest_up` counts `crosvm` before its launch, and the session logs `crosvm processes on the guest host
+  before guest_up: <n>` (`crosvm_before_guest_up` in `session.json`; `S1 VOID: ...` when a guest was found running,
+  `unknown` when the count failed). Once a guest step was sent, an unknown count keeps the host running, as above.
 - A failure after the S-CORE side started (a failed step, a wait that timed out, a signal, the cap) first runs the
   S-CORE side's stop (`ENTRY_SCORE_STOP`, step `score_stop_on_failure`), its only collector, then fetches. A signal or
   the cap fetches every host whose files were not fetched yet (120 s pack, 300 s copy at most), before its stop.
@@ -215,7 +267,7 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   /bin/bash $S/da_session.sh --kind p10-3 --owner-ok-guest-host --permissive-ivi --session-id "$SID"
 # every result is conditional on the permissive IVI (the lead's decision of 2026-11-19); getenforce is recorded per run
 # a per-session setting only on purpose, as an option, e.g. after the kind:
-#   --remote-env 'UNIT_REGISTERED_RE=<the broker line>' --remote-env UNIT_WAIT_S=300
+#   --remote-env UNIT_WAIT_S=300   (the unit gate's bound; --remote-env UNIT_SOURCE=core: the earlier core-log gate)
 # end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (or systemctl --user stop; never kill -9;
 #   the trap TERMs the running step first and waits for its end, a guest launch included, before any stop)
 # after it: exit_code 11 or "GUEST HOST LEFT RUNNING" in session.log = the guest host bills; follow the log's line
@@ -223,15 +275,32 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
 #   (app_record_receipts.inject > 0), conditional_on_permissive_ivi (true), and step_ended_by_term after an early end
 ```
 
-Once, at the first `p10-3`, while the guest host runs (after `session.log` shows its `kit ok` line), the operator checks
+Once, at the first `p10-3`, while the guest host runs (after `session.log` shows its `kit ok` line), the operator checked
 the assumption behind the stop of a guest host that got no guest step and never answered SSH (S1): nothing on the
 guest host's image starts Cuttlefish at boot. On the guest host:
 
 ```bash
-systemctl list-unit-files | grep -i -E 'cvd|cuttlefish'   # expected: no output, or only units "disabled"
+systemctl list-unit-files | grep -i -E 'cvd|cuttlefish'
 ```
 
-An enabled unit there voids the assumption: tell the lead before the next session, and do not rely on that stop.
+The answer of session `20261119T094924Z` (2026-11-19):
+
+```text
+cuttlefish-host-resources.service      generated       -
+cuttlefish-operator.service            generated       -
+```
+
+`generated` units are made at boot by systemd's SysV generator from the packages' `/etc/init.d` scripts. Upstream
+at the host's packages' tag (android-cuttlefish `v1.51.0`: `base/debian/cuttlefish-base.cuttlefish-host-resources.init`,
+`frontend/debian/cuttlefish-user.cuttlefish-operator.init`), `cuttlefish-host-resources` enables IP forwarding and
+creates the bridges `cvd-ebr` and `cvd-wbr`, the tap devices and their `dnsmasq`, and `cuttlefish-operator` starts
+the WebRTC signalling server (`/usr/lib/cuttlefish-common/bin/operator`). Neither script calls `cvd`, `launch_cvd`,
+`run_cvd` or `crosvm`: they prepare host networking and the operator for a guest, and start none. So the answer
+does not void S1, but it is read from the upstream sources, not from the copies installed on the guest host, and a
+unit list cannot show every way a guest could start. That is why every session now counts `crosvm` before
+`guest_up` (above): a guest running before the session started one shows as `S1 VOID` in `session.log`, and then
+tell the lead before the next session and do not rely on the stop without a count. An `enabled` unit that runs
+`cvd` voids the assumption the same way.
 
 ### `p10-2` (all three hosts)
 
@@ -290,7 +359,7 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_GUEST_UP` | guest | `<out>` | this lane: `remote/guest_up.sh` | both guests created fresh (`launch_two_vms.sh down`, `up`) and booted; `getenforce` recorded, `setenforce 0` on the IVI only with `IVI_PERMISSIVE=1` |
 | `ENTRY_GUEST_PREPARE` | guest | `<out>` | this lane: `remote/guest_prepare.sh` | the guest build script's `install` (ACLs, APK, IVI reboot) and `verify`, unchanged, as its second caller: one `B12_DIR` per session (`$AB/b12-session-<id>`), no `LOGS`, `IDENT` or `WORK`; required, since fresh guests start empty |
 | `ENTRY_GUEST_APP_RESTART` | guest | `<out> <window>` | this lane: `remote/app_restart.sh` | `am start -S -W -n $APP_COMPONENT`, the APK's sha256 and both guests' `getenforce`, before each window; exit 1 when a guest's mode is not the session's mark |
-| `ENTRY_GUEST_OFFER_CHECK` | guest | `route\|mark\|neigh <out>`, `unit <out> <mark>`, `receipts <capture>` | this lane: `remote/offer_check.sh` | the SD multicast route to `cvd-ebr`; the SDV Core guest's clock before each S-CORE side start (`mark`); the broker's registration of the unit in the log since that mark, negations refused (a guessed log pattern, see the script; changed per session through `UNIT_REGISTERED_RE`, `UNIT_NEGATION_RE`); both guests' neighbour caches flushed after the VXLAN (`neigh`); the lines of the app's record after each window (`receipts`) |
+| `ENTRY_GUEST_OFFER_CHECK` | guest | `route\|mark\|neigh <out>`, `unit <out> <mark>`, `receipts <capture>` | this lane: `remote/offer_check.sh` | the SD multicast route to `cvd-ebr`; both guests' clocks before each S-CORE side start, each its own (`mark`); the IVI app's `link=SUBSCRIBED` line in the IVI log since its mark, `link=UNAVAILABLE` a fail, no broker error for 4df1 in the core log since its mark, the context lines kept and `diag/` on a fail (`unit`; `UNIT_SOURCE=core`: the earlier core-log pattern, `UNIT_REGISTERED_RE`, `UNIT_NEGATION_RE`); both guests' neighbour caches flushed after the VXLAN (`neigh`); the lines of the app's record after each window (`receipts`) |
 | `ENTRY_GUEST_CLOCK` | guest | `set <out>` | this lane: `remote/ivi_clock.sh` | IVI clock set from the guest host's, offset and bound recorded; exit 1 when the offset left is above `CLOCK_MAX_OFFSET_S` (0.1 s) |
 | `ENTRY_GUEST_CAPTURE` | guest | `start\|stop <out>` | this lane: `../recording/display_capture.sh` | the display capture |
 | `ENTRY_VXLAN` | guest, S-CORE | `guest-host\|host-half add <peer ip>` | this lane: `remote/cross_vm_guest_bridge.sh` | the VXLAN segment, the S-CORE host at 192.168.98.1 (INC-DRIVING-001's script, unchanged) |
@@ -301,7 +370,7 @@ NAME=value` before the command, logs the names and records the values in `sessio
 the allow-list, a malformed or a repeated option is refused (exit 2) before anything starts. A variable merely
 exported in the calling shell never reaches a step: the lead's shared terminal has exported other workers'
 `UNIT_WAIT_S` and `ADB` before, and `UNIT_WAIT_S=0` would fail a paid `p10-3`'s unit check at once. The allow-lists
-(`REMOTE_ENV_guest`, `REMOTE_ENV_score` in `da_session.sh`): on the guest host `UNIT_REGISTERED_RE`,
+(`REMOTE_ENV_guest`, `REMOTE_ENV_score` in `da_session.sh`): on the guest host `UNIT_SOURCE`, `UNIT_REGISTERED_RE`,
 `UNIT_NEGATION_RE`, `BROKER_ERROR_RE`, `UNIT_WAIT_S` (`remote/offer_check.sh`), `B12_DIR`, `VERIFY_WAIT_S`,
 `ADB_TIMEOUT_S`, `UP_TIMEOUT_S` (the guest build script), `CLOCK_READS`, `CLOCK_MAX_OFFSET_S` (`remote/ivi_clock.sh`),
 `START_WAIT_S` (`remote/app_restart.sh`); on the S-CORE host `DA_P10_1_CARLA_HOST`, `GATEWAYD_RX_REGEX` and the

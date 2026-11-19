@@ -12,6 +12,7 @@ import json
 import os
 import re
 import subprocess
+import tarfile
 import time
 from pathlib import Path
 
@@ -34,17 +35,25 @@ FAKES = {
            '> "$FAKE/crosvm"; } ;; esac\n',
     "ip": '#!/bin/bash\necho "ip $*" >> "$FAKE/calls.log"\n'
           'case "$*" in "route get"*) echo "multicast 224.0.0.251 dev ${FAKE_ROUTE_DEV:-cvd-ebr} table local";; esac\n',
+    # logcat per guest: $FAKE/logcat_<serial> (whole buffer) and logcat_since_mark_<serial> (-T), else the shared
+    # logcat / logcat_since_mark; $FAKE/late_<serial> is added to a read once that guest's reads exceed
+    # late_after_<serial> (a line that arrives late); guest_off_<serial> is that guest's clock offset
     "adb": '#!/bin/bash\necho "adb $*" >> "$FAKE/calls.log"\nserial=""\n[ "$1" = -s ] && { serial=$2; shift 2; }\nc="$*"\n'
+           'late() { local k="$FAKE/reads_$serial" n; n=$(( $(cat "$k" 2>/dev/null || echo 0) + 1 )); echo "$n" > "$k"\n'
+           '  [ -e "$FAKE/late_$serial" ] && [ "$n" -gt "$(cat "$FAKE/late_after_$serial" 2>/dev/null || echo 0)" ] '
+           '&& cat "$FAKE/late_$serial"; return 0; }\n'
+           'pick() { [ -e "$FAKE/$1_$serial" ] && cat "$FAKE/$1_$serial" || cat "$FAKE/$1" 2>/dev/null; return 0; }\n'
            'case "$c" in\n'
+           '  "shell ip "*) echo "fake-net $serial: ${c#shell }" ;;\n'
            '  "shell getprop sys.boot_completed") echo 1 ;;\n'
            '  "shell getenforce") cat "$FAKE/mode_$serial" 2>/dev/null || echo Enforcing ;;\n'
            '  "shell pm path "*) [ -e "$FAKE/no_app" ] || echo "package:/vendor/priv-app/App/App.apk" ;;\n'
            '  "shell sha256sum "*) echo "abc123  $3" ;;\n'
            '  "shell am start"*) echo "Starting: Intent { cmp=$6 }"; echo "Status: ok" ;;\n'
            '  "shell pidof "*) [ -e "$FAKE/no_pid" ] || echo 4242 ;;\n'
-           '  "logcat -d") cat "$FAKE/logcat" 2>/dev/null ;;\n'
-           '  "logcat -d -T "*) cat "$FAKE/logcat_since_mark" 2>/dev/null ;;\n'
-           '  "shell date +%s.%N") LC_ALL=C awk -v o="$(cat "$FAKE/guest_off" 2>/dev/null || echo 0)" -v t="$(date +%s.%N)" '
+           '  "logcat -d") pick logcat; late ;;\n'
+           '  "logcat -d -T "*) pick logcat_since_mark; late ;;\n'
+           '  "shell date +%s.%N") [ -e "$FAKE/no_clock_$serial" ] || LC_ALL=C awk -v o="$(pick guest_off | head -1)" -v t="$(date +%s.%N)" '
            '\'BEGIN { printf "%.6f\\n", t + o }\' ;;\n'
            '  "shell toybox date -s "*) [ -e "$FAKE/clock_settable" ] && echo 0 > "$FAKE/guest_off" ;;\n'
            'esac\nexit 0\n',
@@ -324,7 +333,7 @@ def test_the_unit_check_passes_on_a_registration_line(tmp_path: Path, fake) -> N
     d, env = fake
     unit, _ = _ids()
     (d / "logcat").write_text(f"11-19 08:00:00.000 1 2 I SomeIpBroker: registered unit {unit}\n")
-    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_WAIT_S="0"))
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="0"))
     assert p.returncode == 0, p.stdout
     assert f"UNIT_REGISTERED {unit}" in p.stdout
     assert unit in (tmp_path / "o" / "unit_lines.txt").read_text()
@@ -335,10 +344,10 @@ def test_the_unit_check_fails_on_a_broker_error_for_the_service_or_no_registrati
     unit, service = _ids()
     (d / "logcat").write_text(f"11-19 08:00:00.000 1 2 E someip_broker_agent: no mapping for service "
                               f"{service[2:]}\n11-19 08:00:01.000 1 2 I SomeIpBroker: registered unit {unit}\n")
-    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_WAIT_S="0"))
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="0"))
     assert p.returncode == 1 and "broker errors" in p.stdout
     (d / "logcat").write_text("11-19 08:00:00.000 1 2 I SomeIpBroker: started\n")
-    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o2"), env=dict(env, UNIT_WAIT_S="0"))
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o2"), env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="0"))
     assert p.returncode == 1 and "no registration" in p.stdout
 
 
@@ -366,6 +375,24 @@ def test_guest_up_creates_fresh_guests_and_sets_permissive_only_when_marked(tmp_
     assert setenforce == (["adb -s 0.0.0.0:6522 shell setenforce 0"] if permissive == "1" else [])
     ident = (tmp_path / "o" / "guest_identity.txt").read_text()
     assert ident.count("getenforce ") == 2
+
+
+@pytest.mark.parametrize("crosvm, pgrep_error, expected", [("0", False, "0"), ("3", False, "3"), ("0", True, "unknown")])
+def test_guest_up_counts_crosvm_before_its_launch(tmp_path: Path, fake, crosvm: str, pgrep_error: bool,
+                                                  expected: str) -> None:
+    # S1 rests on "no guest runs before the session starts one": every session's guest_up counts first, and its last
+    # line repeats the count, so the session's step tail carries it; a pgrep error is "unknown", never 0
+    d, env = fake
+    (d / "crosvm").write_text(crosvm + "\n")
+    if pgrep_error:
+        (d / "pgrep_error").touch()
+    env = dict(env, DE4SDV_ROOT=str(_launch(tmp_path)), BOOT_WAIT_S="5")
+    p = sh(str(REMOTE / "guest_up.sh"), str(tmp_path / "o"), env=env)
+    assert p.returncode == 0, p.stdout + p.stderr
+    log = calls(d)
+    assert log.index("pgrep -c -x crosvm") < log.index("launch down")
+    assert p.stdout.strip().splitlines()[-1] == f"CROSVM_BEFORE_LAUNCH {expected}"
+    assert (tmp_path / "o" / "crosvm_before_launch.txt").read_text().strip() == expected
 
 
 def _guest_up_kit(tmp_path: Path) -> tuple[Path, Path]:
@@ -538,7 +565,7 @@ def test_the_unit_check_refuses_a_negated_registration(tmp_path: Path, fake, lin
     d, env = fake
     unit, _ = _ids()
     (d / "logcat").write_text("11-19 08:00:00.000 1 2 " + line.format(unit=unit) + "\n")
-    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_WAIT_S="0"))
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="0"))
     assert p.returncode == 1 and "no registration" in p.stdout, p.stdout
 
 
@@ -553,7 +580,7 @@ def test_the_unit_check_passes_a_registration_line_that_merely_names_a_failure_w
     d, env = fake
     unit, _ = _ids()
     (d / "logcat").write_text("11-19 08:00:00.000 1 2 " + line.format(unit=unit) + "\n")
-    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_WAIT_S="0"))
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="0"))
     assert p.returncode == 0 and f"UNIT_REGISTERED {unit}" in p.stdout, p.stdout
 
 
@@ -562,7 +589,7 @@ def test_the_unit_check_negation_is_a_per_session_setting(tmp_path: Path, fake) 
     unit, _ = _ids()
     (d / "logcat").write_text(f"11-19 08:00:00.000 1 2 I SomeIpBroker: registered unit {unit} (degraded)\n")
     p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"),
-           env=dict(env, UNIT_WAIT_S="0", UNIT_NEGATION_RE="degraded"))
+           env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="0", UNIT_NEGATION_RE="degraded"))
     assert p.returncode == 1 and "no registration" in p.stdout, p.stdout
 
 
@@ -581,11 +608,241 @@ def test_the_unit_check_reads_only_the_log_since_the_mark(tmp_path: Path, fake) 
     assert m.returncode == 0 and m.stdout.startswith("LOGCAT_MARK "), m.stdout
     since = (mark / "logcat_since.txt").read_text().strip()
     assert re.fullmatch(r"\d+\.\d{3}", since)
-    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark), env=dict(env, UNIT_WAIT_S="0"))
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark), env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="0"))
     assert p.returncode == 0, p.stdout
     assert f"adb -s 0.0.0.0:6521 logcat -d -T {since}" in calls(d)
-    whole = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o2"), env=dict(env, UNIT_WAIT_S="0"))
+    whole = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o2"), env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="0"))
     assert whole.returncode == 1 and "broker errors" in whole.stdout     # the same log read since the boot
+
+
+# The app's gate (UNIT_SOURCE=app, the default): session p10-3 20261119T094924Z showed that the SDV Core broker logs no
+# line naming the unit at its default level, so a core-side registration line can never pass; the IVI app's own link
+# line is the readiness signal of the core-to-IVI leg. The line formats below are the real ones of that session.
+CORE_IVI, CORE_SER = "0.0.0.0:6522", "0.0.0.0:6521"
+APP_T = "11-19 09:57:{s:02d}.000  3205  3235 I DE4SDV_COLLISION_WARNING: event=lifecycle t_mono_ns=1 t_real_ns=2 "
+LINK_WAITING = APP_T.format(s=10) + 'phase=link link=WAITING detail="discovery started; waiting for the broker\'s unit x"\n'
+LINK_SUBSCRIBED = APP_T.format(s=17) + 'phase=link link=SUBSCRIBED detail="instance1"\n'
+LINK_UNAVAILABLE = APP_T.format(s=17) + ('phase=link link=UNAVAILABLE detail="subscribe instance1:de4sdv-driving-warning-'
+                                         'request: SdvGatewayRuntimeException statusCode 5 NOT_FOUND"\n')
+CORE_LINES = (
+    "11-19 09:57:08.288   601   682 I SdvServiceManagerServer: main::mesh::async_client: Connecting to "
+    "192.168.99.5:2000 using unsecure channel\n"
+    "11-19 09:57:16.849   542   569 I sdv_someip_stack_agent: endpoint_manager_impl::create_remote_client: "
+    "192.168.98.1:30511 reliable: 1 using local port: 0\n"
+    "11-19 09:57:16.853   542   666 I sdv_someip_stack_agent: REGISTER EVENT(1221): [4df1.0001.8001:is_provider=false]\n"
+    "11-19 09:57:16.853   542   666 I sdv_someip_stack_agent: SUBSCRIBE(1221): [4df1.0001.0001:8001:1]\n"
+    "11-19 09:57:17.000   542   666 I sdv_someip_stack_agent: SUBSCRIBE(1222): [1234.0001.0001:8001:1]\n")
+IVI_SDV = ("11-19 09:56:00.000   600   601 I SdvServiceManager: main::mesh::manager: connected to instance1\n"
+           "11-19 09:56:00.100   700   701 I SomeIpBroker: started\n")
+# a mesh line under neither tag: the diagnostics keep it by its own word, not as a SdvServiceManager line
+IVI_MESH_ONLY = "11-19 09:56:00.200   710   711 W sdv_sd_agent: sd_mesh peer instance3 unreachable\n"
+# the app's line from before the offer (the real session's last IVI line): only in the IVI buffer since boot, never
+# in the log since the mark; a fail at run 2 is diagnosed from these lines
+PRE_OFFER_WAITING = ("11-19 09:56:10.887  3205  3235 I DE4SDV_COLLISION_WARNING: event=lifecycle t_mono_ns=34209898502 "
+                     "t_real_ns=1795082170887000000 phase=link link=WAITING detail=\"discovery started; waiting for the "
+                     "broker's unit de4sdv-driving-warning-request\"\n")
+IVI_BOOT = PRE_OFFER_WAITING + IVI_SDV + IVI_MESH_ONLY + LINK_WAITING
+DIAG_FILES = ("ivi_collision_warning_since_boot.txt", "ivi_sdv_service_manager_broker_mesh.txt",
+              "core_sdv_service_manager_since_mark.txt", "core_someip_service.txt", "net_core.txt", "net_ivi.txt")
+
+
+def _app_mark(tmp_path: Path, d: Path, env: dict) -> Path:
+    (d / f"guest_off_{CORE_SER}").write_text("0\n")
+    (d / f"guest_off_{CORE_IVI}").write_text("1000\n")   # the IVI's own clock, 1000 s off the core's
+    mark = tmp_path / "mark"
+    m = sh(str(REMOTE / "offer_check.sh"), "mark", str(mark), env=env)
+    assert m.returncode == 0, m.stdout + m.stderr
+    return mark
+
+
+def _diag_present(out: Path) -> None:
+    diag = out / "diag"
+    for f in DIAG_FILES:
+        assert (diag / f).exists(), f
+    app = (diag / "ivi_collision_warning_since_boot.txt").read_text()
+    assert PRE_OFFER_WAITING in app and LINK_WAITING in app     # every app line since boot, the pre-offer one too
+    sdv = (diag / "ivi_sdv_service_manager_broker_mesh.txt").read_text()
+    assert "I SdvServiceManager: main::mesh::manager" in sdv and "I SomeIpBroker: started" in sdv
+    assert IVI_MESH_ONLY in sdv                                  # a mesh line under another tag
+    assert "SdvServiceManagerServer" in (diag / "core_sdv_service_manager_since_mark.txt").read_text()
+    someip = (diag / "core_someip_service.txt").read_text()
+    assert "4df1.0001.8001" in someip and "1234.0001" not in someip
+    for f, ser in (("net_core.txt", CORE_SER), ("net_ivi.txt", CORE_IVI)):
+        net = (diag / f).read_text()
+        assert f"fake-net {ser}: ip -br addr" in net and "ip route" in net, net
+
+
+def test_the_mark_takes_the_ivi_clock_too(tmp_path: Path, fake) -> None:
+    d, env = fake
+    mark = _app_mark(tmp_path, d, env)
+    core = float((mark / "logcat_since.txt").read_text())
+    ivi = float((mark / "ivi_logcat_since.txt").read_text())
+    assert 990 < ivi - core < 1010    # each guest's own clock
+
+
+def test_the_mark_fails_without_the_ivi_clock_unless_the_source_is_the_core(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / f"no_clock_{CORE_IVI}").touch()
+    p = sh(str(REMOTE / "offer_check.sh"), "mark", str(tmp_path / "m"), env=env)
+    assert p.returncode == 1 and "no clock read of the IVI guest" in p.stdout, p.stdout
+    p = sh(str(REMOTE / "offer_check.sh"), "mark", str(tmp_path / "m2"), env=dict(env, UNIT_SOURCE="core"))
+    assert p.returncode == 0 and (tmp_path / "m2" / "logcat_since.txt").exists(), p.stdout
+
+
+def test_the_unit_gate_waits_for_the_apps_subscribed_line_since_the_ivi_mark(tmp_path: Path, fake) -> None:
+    d, env = fake
+    mark = _app_mark(tmp_path, d, env)
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
+    (d / f"late_{CORE_IVI}").write_text(LINK_SUBSCRIBED)   # SUBSCRIBED only from the 4th read of the IVI log on
+    (d / f"late_after_{CORE_IVI}").write_text("3\n")
+    t0 = time.monotonic()
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
+           env=dict(env, UNIT_WAIT_S="30", POLL_S="0.3"))
+    assert p.returncode == 0, p.stdout
+    assert time.monotonic() - t0 >= 0.6                     # it waited for the late line
+    unit, _ = _ids()
+    assert f"UNIT_SUBSCRIBED {unit} source=app" in p.stdout
+    assert "source app" in p.stdout and "up to 30 s" in p.stdout     # the bound and the source are logged
+    ivi_since = (mark / "ivi_logcat_since.txt").read_text().strip()
+    assert f"adb -s {CORE_IVI} logcat -d -T {ivi_since}" in calls(d)
+    out = tmp_path / "o"
+    assert "link=SUBSCRIBED" in (out / "app_link_lines.txt").read_text()
+    ctx = (out / "unit_context.txt").read_text()            # both legs, kept on a pass too
+    assert "REGISTER EVENT(1221): [4df1.0001.8001" in ctx and "SUBSCRIBE(1221): [4df1.0001.0001" in ctx
+    assert "link=SUBSCRIBED" in ctx and "1234.0001" not in ctx
+    assert not (out / "diag").exists()
+
+
+def test_the_unit_gate_fails_without_a_subscribed_line_and_saves_every_diagnostic(tmp_path: Path, fake) -> None:
+    d, env = fake
+    mark = _app_mark(tmp_path, d, env)
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
+           env=dict(env, UNIT_WAIT_S="1", POLL_S="0.2"))
+    assert p.returncode == 1 and "FAIL" in p.stdout and "link=SUBSCRIBED" in p.stdout, p.stdout
+    assert "last link line: WAITING" in p.stdout
+    _diag_present(tmp_path / "o")
+    assert "DIAGNOSTICS" in p.stdout
+    ctx = (tmp_path / "o" / "unit_context.txt").read_text()
+    assert "REGISTER EVENT(1221)" in ctx and "link=WAITING" in ctx
+
+
+def test_an_unavailable_link_the_app_retries_does_not_fail_the_gate(tmp_path: Path, fake) -> None:
+    # The app logs UNAVAILABLE for every failed initComms, subscribe or read and retries after RETRY_DELAY_MS (5 s)
+    # (WarningRequestSubscriber.java connect/subscribe/drain), so an UNAVAILABLE line never decides: a SUBSCRIBED
+    # after it passes, and the gate names the UNAVAILABLE lines it saw since the mark
+    d, env = fake
+    mark = _app_mark(tmp_path, d, env)
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING + LINK_UNAVAILABLE + LINK_SUBSCRIBED.replace(":17", ":22"))
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
+           env=dict(env, UNIT_WAIT_S="60", POLL_S="0.2"))
+    assert p.returncode == 0 and "UNIT_SUBSCRIBED" in p.stdout, p.stdout
+    assert "UNAVAILABLE 1 time(s)" in p.stdout and "statusCode 5 NOT_FOUND" in p.stdout, p.stdout
+    assert not (tmp_path / "o" / "diag").exists()
+
+
+def test_unavailable_links_alone_fail_only_at_the_bound_with_the_last_detail(tmp_path: Path, fake) -> None:
+    d, env = fake
+    mark = _app_mark(tmp_path, d, env)
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING + LINK_UNAVAILABLE)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
+           env=dict(env, UNIT_WAIT_S="2", POLL_S="0.2"))
+    assert p.returncode == 1 and "within 2 s" in p.stdout, p.stdout
+    assert "UNAVAILABLE lines since the mark: 1" in p.stdout and "statusCode 5 NOT_FOUND" in p.stdout, p.stdout
+    _diag_present(tmp_path / "o")
+
+
+def test_the_unit_gate_keeps_the_core_broker_error_check(tmp_path: Path, fake) -> None:
+    d, env = fake
+    mark = _app_mark(tmp_path, d, env)
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES + "11-19 09:57:18.000 1 2 E someip_broker_agent: no "
+                                                     "mapping for service 4df1\n")
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_SUBSCRIBED)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark), env=dict(env, UNIT_WAIT_S="0"))
+    assert p.returncode == 1 and "broker errors" in p.stdout, p.stdout
+    _diag_present(tmp_path / "o")
+
+
+def test_the_core_source_ignores_the_apps_line_and_saves_diagnostics_on_its_fail(tmp_path: Path, fake) -> None:
+    d, env = fake
+    mark = _app_mark(tmp_path, d, env)
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_SUBSCRIBED)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
+           env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="0"))
+    assert p.returncode == 1 and "no registration" in p.stdout and "source core" in p.stdout, p.stdout
+    _diag_present(tmp_path / "o")
+    bad = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o2"), str(mark),
+             env=dict(env, UNIT_SOURCE="broker", UNIT_WAIT_S="0"))
+    assert bad.returncode == 2 and "UNIT_SOURCE" in bad.stdout + bad.stderr
+
+
+def test_the_core_source_decides_from_the_core_log_and_never_reads_the_ivi(tmp_path: Path, fake) -> None:
+    # UNIT_SOURCE=core keeps the earlier gate whole: a registration line in the core's log passes it, the IVI app's
+    # lines are never read (not even an UNAVAILABLE one), and no app_link_lines.txt is made
+    d, env = fake
+    unit, _ = _ids()
+    mark = _app_mark(tmp_path, d, env)
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES + f"11-19 09:57:18.000 1 2 I SomeIpBroker: registered "
+                                                     f"unit {unit}\n")
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_UNAVAILABLE)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT + LINK_UNAVAILABLE)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
+           env=dict(env, UNIT_SOURCE="core", UNIT_WAIT_S="5", POLL_S="0.2"))
+    assert p.returncode == 0 and f"UNIT_REGISTERED {unit} source=core" in p.stdout, p.stdout
+    assert "UNAVAILABLE" not in p.stdout
+    assert [c for c in calls(d) if c.startswith(f"adb -s {CORE_SER} logcat")], calls(d)
+    assert not [c for c in calls(d) if c.startswith(f"adb -s {CORE_IVI} logcat")], calls(d)
+    assert not (tmp_path / "o" / "app_link_lines.txt").exists()
+    assert unit in (tmp_path / "o" / "unit_lines.txt").read_text()
+
+
+def test_a_missing_ivi_mark_fails_the_app_gate(tmp_path: Path, fake) -> None:
+    d, env = fake
+    mark = tmp_path / "mark"
+    mark.mkdir()
+    (mark / "logcat_since.txt").write_text("1795082222.858\n")    # an old mark: the core's clock only
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark), env=dict(env, UNIT_WAIT_S="0"))
+    assert p.returncode == 1 and "no IVI logcat mark" in p.stdout, p.stdout
+
+
+def test_the_diagnostics_of_a_failed_unit_gate_come_back_with_the_sessions_fetch(tmp_path: Path, fake) -> None:
+    # the session fetches the host's out/ folder as host_step.sh pack tars it: the gate's files must sit under it
+    d, env = fake
+    kit = tmp_path / "home" / "da-kit" / "S1"
+    rem = kit / "bench" / "session" / "remote"
+    rem.mkdir(parents=True)
+    (kit / "bench" / "interfaces").mkdir()
+    (kit / "bench" / "interfaces" / "service_ids.json").write_bytes(
+        (HERE.parent.parent / "interfaces" / "service_ids.json").read_bytes())
+    (kit / "session_id").write_text("S1\n")
+    for name in ("host_step.sh", "offer_check.sh"):
+        (rem / name).write_bytes((REMOTE / name).read_bytes())
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_WAITING)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
+    hs, oc, out = str(rem / "host_step.sh"), "session/remote/offer_check.sh", kit / "out"
+    assert sh(hs, "run", "logmark_inject", "--", "bash", oc, "mark", str(out / "logmark_inject"), env=env).returncode == 0
+    r = sh(hs, "run", "unit_inject", "--", "bash", oc, "unit", str(out / "unit_inject"), str(out / "logmark_inject"),
+           env=dict(env, UNIT_WAIT_S="0"))
+    assert r.returncode == 1
+    p = sh(hs, "pack", env=env)
+    assert p.returncode == 0, p.stderr
+    with tarfile.open(kit / "out.tgz") as t:
+        names = set(t.getnames())
+    for f in DIAG_FILES:
+        assert f"out/unit_inject/diag/{f}" in names, f
+    assert "out/unit_inject/unit_context.txt" in names and "out/logmark_inject/ivi_logcat_since.txt" in names
 
 
 def test_the_receipts_of_a_window_are_counted(tmp_path: Path, fake) -> None:
