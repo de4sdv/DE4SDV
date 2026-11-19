@@ -395,6 +395,20 @@ def test_the_bundle_carries_both_serialized_configurations_beside_their_json() -
     assert (BENCH / "score-path" / "config" / "launch_manager_config_path_only.json").is_file()
 
 
+def test_the_bundle_carries_the_launch_managers_mw_com_configuration_beside_its_configurations() -> None:
+    """The daemon needs its own mw::com configuration at etc/mw_com_config.json of its working directory
+    (launch-manager/tests/test_launch_manager_mw_com_config.py); the bundle carries the bench's file in
+    config/launch_manager/, and stage_score_side.py stages it from there in both modes, checked against the bench."""
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    bundle = script[script.index("\nstep bundle\n"):]
+    assert 'cp "$BENCH/launch-manager/config/mw_com_config_launch_manager.json" "$B/config/launch_manager/"' in bundle
+    produced, _, _ = bundle_step_outputs(script)
+    assert "config/launch_manager/mw_com_config_launch_manager.json" in produced
+    reads, _ = staging_reads()
+    assert "config/launch_manager/mw_com_config_launch_manager.json" in reads
+    assert (BENCH / "launch-manager" / "config" / "mw_com_config_launch_manager.json").is_file()
+
+
 def test_the_bundle_carries_upstreams_derived_c_matrix() -> None:
     """upstream's CMake build derives config/homography_C_matrix.yaml from H.yaml (find_homography_C_matrix.py, which
     reads ../config/H.yaml); the bundle makes it the same way, since mode path stages the bundle's calibration."""
@@ -528,6 +542,8 @@ def staging_reads() -> tuple[dict[str, bool], list[str]]:
     for serialized in consts["SERIALIZED"].values():
         reads[f"{launch_dir}/{serialized}"] = False
         reads[f"{launch_dir}/{serialized[:-len('.bin')]}.json"] = False
+    # the daemon's own mw::com configuration, beside them (required with --require-serialized, like the .bin)
+    reads[f"{launch_dir}/{Path(consts['LM_MW_COM_CONFIG']).name}"] = False
     for name in consts["CALIBRATION_FILES"]:
         reads[f"config/visionpilot/{name}"] = False  # the fallback of mode path; p10-1 copies them too
     reads.update({

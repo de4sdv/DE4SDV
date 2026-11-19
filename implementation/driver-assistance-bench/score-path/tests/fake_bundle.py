@@ -77,6 +77,8 @@ def make_bundle(root: Path, record_driver: Path, extra_bins: dict[str, str] | No
     (launch / "launch_manager_config_path_only.bin").write_bytes(b"synthetic flatbuffer path")
     shutil.copy(BENCH / "launch-manager" / "config" / "launch_manager_config.json", launch)
     shutil.copy(BENCH / "score-path" / "config" / "launch_manager_config_path_only.json", launch)
+    # the daemon's own mw::com configuration, beside them (the bundle step copies the bench's file)
+    shutil.copy(BENCH / "launch-manager" / "config" / "mw_com_config_launch_manager.json", launch)
     ldconf = root / "ld.so.conf.d"
     gpu = root / "gpu" / "lib"
     ldconf.mkdir(exist_ok=True)

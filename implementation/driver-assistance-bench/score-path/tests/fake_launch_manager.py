@@ -3,9 +3,12 @@
 only: it is not Lifecycle and proves nothing about it.
 
 It reads config/launch_manager_config.json in its working directory (the stage; the real daemon reads the
-serialized etc/launch_manager_config.bin, which it checks only for presence), starts the components of the
-initial run target in dependency order with the merged settings (bin_dir/binary_name, process_arguments,
-environmental_variables, working_dir), waits for a component of type Reporting until its run log reports running
+serialized etc/launch_manager_config.bin, which it checks only for presence). Like the real daemon, it aborts when
+etc/mw_com_config.json is missing or no JSON, and exits 1 when that file does not hold the instance
+LaunchManager/StateManager/Instance (launch-manager/tests/test_launch_manager_mw_com_config.py). It starts the
+components of the initial run target in dependency order with the merged settings (bin_dir/binary_name,
+process_arguments, environmental_variables, working_dir), waits for a component of type Reporting until its run log
+reports running
 (the identity recorder's lifecycle record) and for the others until their process runs, logs each step, and on
 SIGTERM stops the components in reverse order with SIGTERM and exits 0.
 
@@ -94,6 +97,17 @@ def main() -> int:
     if not (STAGE / "etc" / "launch_manager_config.bin").is_file():
         log("no etc/launch_manager_config.bin")
         return 2
+    # Like the daemon at v0.10.0: its LmControl skeleton makes mw::com read ./etc/mw_com_config.json, which must
+    # parse (else mw::com aborts) and resolve the skeleton's instance (else the daemon exits 1).
+    try:
+        com = json.loads((STAGE / "etc" / "mw_com_config.json").read_text())
+    except (OSError, ValueError):
+        log("lola log fatal: Parsing config file ./etc/mw_com_config.json failed. Terminating.")
+        os.abort()
+    if [i.get("instanceSpecifier") for i in com.get("serviceInstances", [])].count(
+            "LaunchManager/StateManager/Instance") != 1:
+        log("Failed to set up LmControl service provider")
+        return 1
     exit_after = float(os.environ.get("FAKE_LM_EXIT_AFTER_S", "0") or 0)
     began = time.monotonic()
     initial = CONFIG["initial_run_target"]
