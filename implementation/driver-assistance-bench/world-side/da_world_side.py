@@ -940,6 +940,18 @@ def cmd_camera_capture(ws: WorldSide) -> dict:
     st = scenarios.setting(ws.args.setting)
     ws.connect()
     ws.apply_settings()
+    # R1 of the closure check of 7befc3c1: the boards came out washed out under the map's overcast default sky; the
+    # capture sets its own weather preset (recorded), so the frame does not depend on the session before it
+    weather = ws.args.weather
+    if weather != "keep":
+        preset = getattr(ws.carla.WeatherParameters, weather, None)
+        if preset is None:
+            raise BenchError(f"camera-capture: no weather preset {weather!r} in carla.WeatherParameters")
+        ws.world.set_weather(preset)
+    params = [p.strip() for p in ws.args.texture_params.split(",") if p.strip()]
+    for name in params:
+        if getattr(ws.carla.MaterialParameter, name, None) is None:
+            raise BenchError(f"camera-capture: no material parameter {name!r} in carla.MaterialParameter")
     start = ws.start_waypoint(60.0)
     ws.spawn_hero(start, 0.0, ws.args.role)
     ws.spawn_front_camera()
@@ -971,7 +983,8 @@ def cmd_camera_capture(ws: WorldSide) -> dict:
                                        ws.carla.Rotation(pitch=0.0, yaw=hero_t.rotation.yaw, roll=0.0))
         board = ws.world.spawn_actor(blueprint, transform)
         board.set_simulate_physics(False)
-        board.apply_texture(ws.carla.MaterialParameter.Diffuse, texture)
+        for name in params:
+            board.apply_texture(getattr(ws.carla.MaterialParameter, name), texture)
         ws._spawned.append(board)
         boards.append({"label": label, "upstreamXY": [bx, by], "actor_id": board.id,
                        "world": {"x": wx, "y": wy, "z": ground_z + ws.args.board_lift_m}})
@@ -983,8 +996,9 @@ def cmd_camera_capture(ws: WorldSide) -> dict:
     if not images:
         raise BenchError("the front camera delivered no image")
     image = images[-1]
+    raw = bytes(image.raw_data)
     out_png = ws.sim_dir / "calibration_frame.png"
-    out_png.write_bytes(camcal.bgra_to_png(bytes(image.raw_data), image.width, image.height))
+    out_png.write_bytes(camcal.bgra_to_png(raw, image.width, image.height))
     capture = {
         "kind": "camera-capture", "setting": st.setting_id, "map": ws.map.name, "start": ws.start_info,
         "vehicle": ws.hero.type_id, "frontCamera": ws.camera_info, "frontBumperXM": bumper_x,
@@ -992,12 +1006,25 @@ def cmd_camera_capture(ws: WorldSide) -> dict:
         "heroRollDeg": float(hero_t.rotation.roll), "boardLiftM": float(ws.args.board_lift_m),
         "heroWorld": _pose(hero_t), "cameraWorld": _pose(ws.camera.get_transform()),
         "boards": boards, "meshPath": ws.args.mesh_path, "boardScale": ws.args.board_scale,
+        "boardSizeM": float(ws.args.board_scale) * float(ws.args.mesh_size_m), "textureParams": params,
+        "weather": weather,
         "checkerboard": {"path": str(png), "sha256": sha256_file(png), "width": width, "height": height},
         "frame": {"path": out_png.name, "sha256": sha256_file(out_png), "carlaFrame": image.frame,
                   "width": image.width, "height": image.height},
         "upstreamArgs": {label: b["upstreamXY"] for label, b in zip(layout, boards)},
     }
+    # the frame judged here, at capture time, with a named reason (R1): a washed-out frame used to fail only at the
+    # session's make_h on the lead host, about 25 min of all three hosts later
+    if ws.args.precheck == "off":
+        capture["precheck"] = {"passed": None, "reason": "--precheck off"}
+    else:
+        capture["precheck"] = camcal.precheck(capture, raw, image.width, image.height,
+                                              min_spread=int(ws.args.precheck_min_spread))
     (ws.sim_dir / "camera_capture.json").write_text(json.dumps(capture, indent=1))
+    if capture["precheck"]["passed"] is False:
+        ws.event("end", reason="pre-check failed", frame=image.frame, precheck=capture["precheck"]["reason"])
+        raise BenchError("camera-capture pre-check failed: " + capture["precheck"]["reason"]
+                         + " (camera_capture.json precheck; the frame is kept)")
     ws.event("end", reason="frame captured", frame=image.frame)
     return capture
 
@@ -1031,6 +1058,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--checkerboard", default=None, help="camera-capture: upstream's checkerboard-bw-4x4.png")
     p.add_argument("--mesh-path", default=camcal.DEFAULT_MESH_PATH)
     p.add_argument("--board-scale", type=float, default=camcal.DEFAULT_BOARD_SCALE)
+    p.add_argument("--mesh-size-m", type=float, default=camcal.DEFAULT_MESH_SIZE_M,
+                   help="camera-capture: the mesh's side at scale 1 (the board's side is scale x this)")
+    p.add_argument("--texture-params", default=camcal.DEFAULT_TEXTURE_PARAMS,
+                   help="camera-capture: carla.MaterialParameter names the checkerboard is applied as, comma-separated")
+    p.add_argument("--weather", default=camcal.DEFAULT_WEATHER,
+                   help="camera-capture: a carla.WeatherParameters preset, or 'keep'")
+    p.add_argument("--precheck", choices=["on", "off"], default="on",
+                   help="camera-capture: judge the frame (board contrast; OpenCV's board count where OpenCV is there)")
+    p.add_argument("--precheck-min-spread", type=int, default=camcal.PRECHECK_MIN_SPREAD)
     p.add_argument("--board-lift-m", type=float, default=0.01)
     p.add_argument("--near-m", type=float, default=camcal.DEFAULT_NEAR_M)
     p.add_argument("--far-m", type=float, default=camcal.DEFAULT_FAR_M)

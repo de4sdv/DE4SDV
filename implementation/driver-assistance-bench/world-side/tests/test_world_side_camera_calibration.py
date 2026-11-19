@@ -204,3 +204,139 @@ def test_upstream_script_on_a_synthetic_frame_agrees_with_the_settings(tmp_path)
         assert entry["sha256"] == cc.sha256(Path(entry["path"]).read_bytes())
     assert rec["upstreamScripts"][cc.UPSTREAM_CALC]["pin"] == cc.VP_PIN
     assert rec["runnerShims"] == cc.RUNNER_SHIMS
+
+
+# ------------------------------------------------------------------ the capture's pre-check (R1 of the closure
+# check of 7befc3c1: the real Town06_Opt frame's boards came out washed out, and make-h found 0 checkerboards)
+
+DATA = HERE / "data"
+
+
+def _bgra_from_grey_png(path: Path, factor: int) -> tuple[int, int, bytes]:
+    """A grey fixture PNG, scaled up by <factor> (nearest), as CARLA's BGRA raw data."""
+    w, h, px = cc.read_png_rgba(path.read_bytes())
+    out = bytearray()
+    for y in range(h):
+        row = bytearray()
+        for x in range(w):
+            g = px[y][x][0]
+            row += bytes([g, g, g, 255]) * factor
+        out += bytes(row) * factor
+    return w * factor, h * factor, bytes(out)
+
+
+def test_r1_the_precheck_fails_the_real_washed_out_town06_frame_with_a_named_reason():
+    # the real frame of the world-maps rehearsal (sha256 30bbf9de..., camera-capture of 0a1d83c3 on the G4), stored
+    # as a 4x downscaled grey PNG (74 KB), and its camera_capture.json
+    cap = json.loads((DATA / "town06_washed_out_capture.json").read_text())
+    assert cap["frame"]["sha256"].startswith("30bbf9de")
+    cap["boardSizeM"] = cap["boardScale"] * cc.DEFAULT_MESH_SIZE_M
+    w, h, raw = _bgra_from_grey_png(DATA / "town06_washed_out_frame_x4.png", 4)
+    assert (w, h) == (1920, 1280)
+    rec = cc.precheck(cap, raw, w, h, use_opencv=False)
+    assert rec["passed"] is False, rec
+    for label in ("tl", "tr", "bl", "br"):
+        st = rec["boards"][label]
+        # the closure check measured p5-p95 about 130-159 on the boards: never a black and white checker
+        assert 120 <= st["p5"] <= st["p95"] <= 165 and st["spread"] < cc.PRECHECK_MIN_SPREAD, (label, st)
+        assert f"board {label} washed out" in rec["reason"]
+
+
+def _checker_frame(cap: dict, w: int, h: int, black: int, white: int) -> bytes:
+    """A frame whose boards are drawn from the capture's own geometry: a 4x4 checker of <black> and <white>."""
+    raw = bytearray(bytes([150, 150, 150, 255]) * (w * h))
+    camera = cc.camera_in_ground_frame(cap)
+    to_ground = cc.image_to_ground(camera, float(cap.get("boardLiftM", 0.0)))
+    size = cap["boardSizeM"]
+    for label, (bx, by) in cap["upstreamArgs"].items():
+        quad = [cc.apply_h(cc.ground_to_image(camera, 0.0), bx + dx, by + dy)
+                for dx in (-size / 2, size / 2) for dy in (-size / 2, size / 2)]
+        u0, u1 = int(min(q[0] for q in quad)), int(max(q[0] for q in quad)) + 1
+        v0, v1 = int(min(q[1] for q in quad)), int(max(q[1] for q in quad)) + 1
+        for v in range(max(0, v0), min(h, v1)):
+            for u in range(max(0, u0), min(w, u1)):
+                X, Y = cc.apply_h(to_ground, u, v)
+                lx, ly = (X - bx) / size + 0.5, (Y - by) / size + 0.5
+                if 0 <= lx < 1 and 0 <= ly < 1:
+                    g = black if (int(lx * 4) + int(ly * 4)) % 2 else white
+                    i = 4 * (v * w + u)
+                    raw[i:i + 3] = bytes([g, g, g])
+    return bytes(raw)
+
+
+def _rig_capture() -> dict:
+    layout = cc.board_layout(cc.DEFAULT_NEAR_M, cc.DEFAULT_FAR_M, cc.DEFAULT_HALF_SPACING_M)
+    return {"frontCamera": {"image_size_x": "1920", "image_size_y": "1280", "fov": "50.0",
+                            "pose": {"x": 1.544, "y": 0.0243, "z": 2.116, "roll": -0.10, "pitch": -0.11,
+                                     "yaw": -0.23}},
+            "frontBumperXM": 2.45, "groundZ": 0.0, "heroZ": 0.0, "boardLiftM": 0.0,
+            "heroWorld": {"x": 0.0, "y": 0.0, "z": 0.0, "pitch": 0.0, "yaw": 0.0, "roll": 0.0},
+            "cameraWorld": {"x": 1.544, "y": 0.0243, "z": 2.116, "pitch": -0.11, "yaw": -0.23, "roll": -0.10},
+            "boardSizeM": cc.DEFAULT_BOARD_SCALE, "upstreamArgs": {k: list(v) for k, v in layout.items()}}
+
+
+def test_r1_the_precheck_passes_full_contrast_boards_and_fails_the_same_boards_washed_out():
+    cap = _rig_capture()
+    good = cc.precheck(cap, _checker_frame(cap, 1920, 1280, 20, 235), 1920, 1280, use_opencv=False)
+    assert good["passed"] is True and good["reason"] == "every board at full contrast", good
+    assert all(b["spread"] >= 200 for b in good["boards"].values()), good["boards"]
+    # the real frame's levels: 135 and 151
+    bad = cc.precheck(cap, _checker_frame(cap, 1920, 1280, 135, 151), 1920, 1280, use_opencv=False)
+    assert bad["passed"] is False and bad["reason"].count("washed out") == 4, bad["reason"]
+    # one board alone washed out is enough to fail, and is named
+    raw = bytearray(_checker_frame(cap, 1920, 1280, 20, 235))
+    u0, v0, u1, v1 = good["boards"]["tr"]["box"]
+    for v in range(v0, v1 + 1):
+        raw[4 * (v * 1920 + u0):4 * (v * 1920 + u1 + 1)] = bytes([140, 140, 140, 255]) * (u1 - u0 + 1)
+    one = cc.precheck(cap, bytes(raw), 1920, 1280, use_opencv=False)
+    assert one["passed"] is False and one["reason"].startswith("board tr washed out"), one["reason"]
+
+
+def test_r1_camera_capture_fails_at_capture_time_when_the_texture_does_not_take(tmp_path, server, factory, clock,
+                                                                              monkeypatch):
+    # the real server's answer to the engine plane: the texture parameter does not take, the board renders grey
+    monkeypatch.setenv("FAKE_TEXTURE_TAKES", "NoSuchParameter")
+    board = tmp_path / "board.png"
+    board.write_bytes(_png(8, 8, [[(0, 0, 0, 255) if (x // 2 + y // 2) % 2 else (255, 255, 255, 255)
+                                   for x in range(8)] for y in range(8)]))
+    rc, _ = run_main(["camera-capture", "--run-dir", str(tmp_path / "c"), "--checkerboard", str(board)],
+                     factory, clock)
+    assert rc == 2
+    cap = json.loads((tmp_path / "c" / "simulator" / "camera_capture.json").read_text())
+    assert cap["precheck"]["passed"] is False and "washed out" in cap["precheck"]["reason"], cap["precheck"]
+    assert (tmp_path / "c" / "simulator" / "calibration_frame.png").is_file()   # kept for the diagnosis
+    side = (tmp_path / "c" / "simulator" / "worldSide.jsonl").read_text()
+    assert '"pre-check failed"' in side, side[-2000:]
+
+
+def test_r1_camera_capture_sets_its_weather_and_records_weather_parameters_and_precheck(tmp_path, server, factory,
+                                                                                       clock):
+    board = tmp_path / "board.png"
+    board.write_bytes(_png(8, 8, [[(0, 0, 0, 255) if (x // 2 + y // 2) % 2 else (255, 255, 255, 255)
+                                   for x in range(8)] for y in range(8)]))
+    rc, _ = run_main(["camera-capture", "--run-dir", str(tmp_path / "c"), "--checkerboard", str(board),
+                      "--texture-params", "Diffuse,Emissive"], factory, clock)
+    assert rc == 0
+    cap = json.loads((tmp_path / "c" / "simulator" / "camera_capture.json").read_text())
+    assert ("weather", "ClearNoon") in server.log and cap["weather"] == "ClearNoon"
+    assert cap["textureParams"] == ["Diffuse", "Emissive"] and cap["boardSizeM"] == 2.5
+    assert cap["precheck"]["passed"] is True, cap["precheck"]
+    rc, out = run_main(["camera-capture", "--run-dir", str(tmp_path / "d"), "--checkerboard", str(board),
+                        "--texture-params", "NoSuch"], factory, clock)
+    assert rc == 2
+
+
+@pytest.mark.skipif(not _cv_python_ok(), reason="needs a Python with OpenCV")
+def test_r1_upstreams_loop_in_the_precheck_finds_no_board_on_the_real_frame_and_four_on_a_good_one(tmp_path):
+    # opencv_boards() is upstream's own detection loop; run under a Python with OpenCV, as the session's make-h
+    code = (
+        "import json, sys; sys.path[:0] = [sys.argv[1], sys.argv[2]]\n"
+        "import camera_calibration as cc, test_world_side_camera_calibration as t\n"
+        "w, h, raw = t._bgra_from_grey_png(t.DATA / 'town06_washed_out_frame_x4.png', 4)\n"
+        "cap = t._rig_capture()\n"
+        "print(json.dumps([cc.opencv_boards(raw, w, h)['found'],"
+        " cc.opencv_boards(t._checker_frame(cap, 1920, 1280, 20, 235), 1920, 1280)['found']]))\n")
+    done = subprocess.run([CV_PYTHON, "-c", code, str(HERE.parent), str(HERE)], capture_output=True, text=True,
+                          env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+    assert done.returncode == 0, done.stderr[-2000:]
+    assert json.loads(done.stdout.strip().splitlines()[-1]) == [0, 4]

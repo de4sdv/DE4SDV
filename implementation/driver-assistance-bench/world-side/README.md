@@ -134,12 +134,23 @@ upstream's script, hashed and named in every verdict. The procedure:
    OpenLane `H.yaml` puts the same ground points 21 % to 52 % too far, from 10 to 120 m. That figure is computed,
    not measured.
 
-**Open: the flat mesh.** The default mesh is the engine's 1 m plane, `/Engine/BasicShapes/Plane.Plane`. Two
-things are unverified:
+**Open: the flat mesh.** The default mesh is the engine's 1 m plane, `/Engine/BasicShapes/Plane.Plane`. The
+package cooks it, but its material does not take the texture: the game mode sets only texture parameters named
+`BaseColor`, `Difuse` (and `Difuse 2` to `4`), `Normal`, `Emissive` or `ORMH` (`CarlaGameModeBase.cpp:505-548` at
+`14ac3b1a50`), and the engine plane's material has none of them. On the real server (Town06_Opt) the boards render
+as flat grey: grey p5-p95 about 130-159 under the map's default sky (the world-maps rehearsal's frame), and 76-86
+under `ClearNoon`, with `Diffuse` alone and with `Diffuse,Emissive` alike (rehearsal of lane/da-p10-2-ready).
+Upstream's script then finds 0 checkerboards. A flat mesh whose material takes the texture is not found yet.
 
-- whether the package cooks that mesh;
-- whether its material takes the texture. The game mode sets only the texture parameters `BaseColor` and `Difuse`
-  (`CarlaGameModeBase.cpp:505-533`).
+**The capture's pre-check.** `camera-capture` sets its own weather (`--weather`, default `ClearNoon`), applies the
+texture as each `--texture-params` name (default `Diffuse`), and then judges its own frame before it exits 0:
+every board's central region (60 % of its side, projected with the capture's own camera pose) must span at least
+`--precheck-min-spread` grey levels (p95 - p5, default 100, a proposal), and where the Python has OpenCV, upstream's
+own detection loop must find all four boards. A frame that fails exits 2 with a named reason ("board tl washed out:
+grey p5-p95 76-82 ..."), keeps the frame, and writes the verdict into `camera_capture.json` (`precheck`). So a
+washed-out frame ends a session at its `calibrate` step instead of at `make_h` on the lead host. Tests: a 4x
+downscaled grey copy of the real frame (`tests/data/town06_washed_out_frame_x4.png`, 74 KB) fails, a full-contrast
+render of the same geometry passes.
 
 If the frame shows no boards, the procedure stops there and reports. It does not fall back to the computed H.
 

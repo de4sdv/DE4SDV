@@ -43,6 +43,9 @@ UPSTREAM_BOARD = "Calibration/checkerboard-bw-4x4.png"
 # mode sets the texture parameters "BaseColor" and "Difuse", CarlaGameModeBase.cpp:505-533), is unverified.
 DEFAULT_MESH_PATH = "/Engine/BasicShapes/Plane.Plane"
 DEFAULT_BOARD_SCALE = 2.5        # a 2.5 m board, 0.625 m squares (proposal)
+DEFAULT_MESH_SIZE_M = 1.0        # the side of the mesh at scale 1 (the engine's plane: 100 uu)
+DEFAULT_WEATHER = "ClearNoon"    # carla.WeatherParameters preset for the capture (R1: an overcast default sky)
+DEFAULT_TEXTURE_PARAMS = "Diffuse"   # carla.MaterialParameter names the board's texture is applied as
 DEFAULT_NEAR_M = 8.0             # board centers ahead of the bumper (proposal)
 DEFAULT_FAR_M = 13.0
 DEFAULT_HALF_SPACING_M = 1.6     # board centers left and right of the vehicle's center line (proposal)
@@ -189,6 +192,108 @@ def board_layout(near_m: float, far_m: float, half_spacing_m: float) -> dict[str
 def predicted_pixels(camera: dict, layout: dict, plane_z: float = 0.0) -> dict:
     h = ground_to_image(camera, plane_z)
     return {k: [round(c, 2) for c in apply_h(h, x, y)] for k, (x, y) in layout.items()}
+
+
+# ------------------------------------------------------------------ the capture's pre-check (R1)
+# R1 of the closure check of 7befc3c1: on the real Town06_Opt frame the boards came out washed out (grey p5-p95
+# about 130-159, std 4-10) and upstream's script found 0 checkerboards, so a p10-2 session ended at make_h after
+# about 25 min of all three hosts. camera-capture now judges its own frame before it reports success.
+PRECHECK_MIN_SPREAD = 100        # PROPOSAL: grey p95 - p5 inside every board's central region (0-255)
+PRECHECK_INNER = 0.6             # the central share of each board side that is sampled (avoids its edges)
+PRECHECK_SAMPLES = 4000          # about this many pixels per board
+
+
+def board_quads(capture: dict) -> dict[str, list[tuple[float, float]]]:
+    """Each board's central region (PRECHECK_INNER of its side) as an image quad, from the capture's own camera
+    pose and board centers: corners in the order (-,-), (+,-), (+,+), (-,+) of (X, Y) about the center."""
+    camera = camera_in_ground_frame(capture)
+    h = ground_to_image(camera, float(capture.get("boardLiftM", 0.0)))
+    half = 0.5 * PRECHECK_INNER * float(capture["boardSizeM"])
+    out = {}
+    for label, (bx, by) in capture["upstreamArgs"].items():
+        out[label] = [apply_h(h, bx + dx, by + dy) for dx, dy in ((-half, -half), (half, -half), (half, half),
+                                                                 (-half, half))]
+    return out
+
+
+def _inside(quad, u: float, v: float) -> bool:
+    sign = 0
+    for k in range(4):
+        (x1, y1), (x2, y2) = quad[k], quad[(k + 1) % 4]
+        c = (x2 - x1) * (v - y1) - (y2 - y1) * (u - x1)
+        if c != 0:
+            if sign == 0:
+                sign = 1 if c > 0 else -1
+            elif (c > 0) != (sign > 0):
+                return False
+    return True
+
+
+def grey_at(raw: bytes, width: int, u: int, v: int) -> int:
+    i = 4 * (v * width + u)     # BGRA, as CARLA's Image.raw_data
+    return (299 * raw[i + 2] + 587 * raw[i + 1] + 114 * raw[i]) // 1000
+
+
+def quad_contrast(raw: bytes, width: int, height: int, quad) -> dict:
+    """Grey statistics of the pixels inside one quad (sampled on a grid of about PRECHECK_SAMPLES points)."""
+    us, vs = [q[0] for q in quad], [q[1] for q in quad]
+    u0, u1 = max(0, int(math.floor(min(us)))), min(width - 1, int(math.ceil(max(us))))
+    v0, v1 = max(0, int(math.floor(min(vs)))), min(height - 1, int(math.ceil(max(vs))))
+    if u1 <= u0 or v1 <= v0:
+        return {"n": 0, "reason": "outside the image"}
+    step = max(1, int(math.sqrt((u1 - u0) * (v1 - v0) / PRECHECK_SAMPLES)))
+    vals = sorted(grey_at(raw, width, u, v) for v in range(v0, v1 + 1, step) for u in range(u0, u1 + 1, step)
+                  if _inside(quad, u, v))
+    n = len(vals)
+    if n < 20:
+        return {"n": n, "reason": "too few pixels"}
+    mean = sum(vals) / n
+    p5, p95 = vals[n // 20], vals[min(n - 1, (19 * n) // 20)]
+    return {"n": n, "p5": p5, "p95": p95, "spread": p95 - p5, "mean": round(mean, 1),
+            "std": round(math.sqrt(sum((x - mean) ** 2 for x in vals) / n), 1),
+            "box": [u0, v0, u1, v1]}
+
+
+def opencv_boards(raw: bytes, width: int, height: int) -> dict:
+    """Upstream's own detection loop (calc_front_camera_homography.py:72-103 at the pin: findChessboardCorners
+    (3, 3) with adaptive threshold and normalization, each found center masked by a white disc of max(w, h) / 20),
+    when this Python has OpenCV and numpy; otherwise {"available": False}."""
+    try:
+        import cv2  # noqa: WPS433  (optional: the simulator host's venv has no OpenCV)
+        import numpy as np  # noqa: WPS433
+    except ImportError:
+        return {"available": False}
+    img = np.frombuffer(raw, np.uint8).reshape(height, width, 4)
+    gray = cv2.cvtColor(np.ascontiguousarray(img[:, :, :3]), cv2.COLOR_BGR2GRAY)
+    found, centers = 0, []
+    for _ in range(4):
+        ok, corners = cv2.findChessboardCorners(gray, (3, 3), cv2.CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_NORMALIZE_IMAGE)
+        if not ok:
+            break
+        c = corners.reshape(-1, 2)[4]
+        centers.append([round(float(c[0]), 2), round(float(c[1]), 2)])
+        cv2.circle(gray, (int(c[0]), int(c[1])), max(gray.shape) // 20, 255, -1)
+        found += 1
+    return {"available": True, "version": cv2.__version__, "found": found, "centers": centers}
+
+
+def precheck(capture: dict, raw: bytes, width: int, height: int, min_spread: int = PRECHECK_MIN_SPREAD,
+             use_opencv: bool = True) -> dict:
+    """camera-capture's own judgment of its frame: every board's central region must span at least min_spread grey
+    levels (a black and white checker), and where OpenCV is there, upstream's loop must find all four boards."""
+    boards = {label: quad_contrast(raw, width, height, q) for label, q in board_quads(capture).items()}
+    why = []
+    for label, st in boards.items():
+        if "spread" not in st:
+            why.append(f"board {label}: {st.get('reason')}")
+        elif st["spread"] < min_spread:
+            why.append(f"board {label} washed out: grey p5-p95 {st['p5']}-{st['p95']} (spread {st['spread']} < "
+                       f"{min_spread}), std {st['std']}")
+    cv = opencv_boards(raw, width, height) if use_opencv else {"available": False, "skipped": True}
+    if cv.get("available") and cv["found"] < 4:
+        why.append(f"OpenCV {cv['version']}: upstream's loop found {cv['found']} of 4 checkerboards")
+    return {"passed": not why, "reason": "; ".join(why) or "every board at full contrast",
+            "minSpread": min_spread, "inner": PRECHECK_INNER, "boards": boards, "opencv": cv}
 
 
 def cross_check(h_upstream: Matrix, h_settings: Matrix, xs=None, ys=(-1.75, 0.0, 1.75)) -> dict:

@@ -520,17 +520,89 @@ class ActorList(list):
         return None
 
 
+class WeatherParameters:
+    def __init__(self, name: str = "Default"):
+        self.name = name
+
+
+for _preset in ("Default", "ClearNoon", "CloudyNoon", "WetNoon", "ClearSunset", "HardRainNoon"):
+    setattr(WeatherParameters, _preset, WeatherParameters(_preset))
+
+
+def _cam_axes(pitch, yaw, roll):
+    """CARLA's forward, right and up vectors of a rotation (as tests/synthetic_render.py)."""
+    p, y, r = (math.radians(v) for v in (pitch, yaw, roll))
+    fwd = (math.cos(p) * math.cos(y), math.cos(p) * math.sin(y), math.sin(p))
+    right = (math.cos(y) * math.sin(p) * math.sin(r) - math.sin(y) * math.cos(r),
+             math.sin(y) * math.sin(p) * math.sin(r) + math.cos(y) * math.cos(r), -math.cos(p) * math.sin(r))
+    up = (-math.cos(y) * math.sin(p) * math.cos(r) - math.sin(y) * math.sin(r),
+          -math.sin(y) * math.sin(p) * math.cos(r) + math.cos(y) * math.sin(r), math.cos(p) * math.cos(r))
+    return fwd, right, up
+
+
 class Image:
-    def __init__(self, frame: int, timestamp: float, width: int, height: int, transform: Transform):
+    """A grey frame; flat boards (static.prop.mesh of side 1 m x scale, lying flat) whose texture took
+    (FAKE_TEXTURE_TAKES, default every parameter) are drawn by ray casting, nothing else is rendered."""
+
+    def __init__(self, frame: int, timestamp: float, width: int, height: int, transform: Transform,
+                 fov: float = 50.0, boards: list | None = None):
         self.frame, self.timestamp = int(frame), float(timestamp)
         self.width, self.height = int(width), int(height)
-        self.fov = 50.0
+        self.fov = float(fov)
         self.transform = transform
+        self._boards = boards or []
+        self._raw: bytes | None = None
 
     @property
     def raw_data(self) -> bytes:
-        """BGRA, a flat grey; rendering is not modeled."""
-        return bytes([90, 90, 90, 255]) * (self.width * self.height)
+        if self._raw is None:
+            self._raw = self._render()
+        return self._raw
+
+    def _render(self) -> bytes:
+        w, h = self.width, self.height
+        out = bytearray(bytes([90, 90, 90, 255]) * (w * h))
+        if not self._boards:
+            return bytes(out)
+        f = w / (2.0 * math.tan(math.radians(self.fov) / 2.0))
+        t = self.transform
+        fwd, right, up = _cam_axes(t.rotation.pitch, t.rotation.yaw, t.rotation.roll)
+        o = (t.location.x, t.location.y, t.location.z)
+        for bt, side, tex in self._boards:
+            half = side / 2.0
+            c, sn = math.cos(math.radians(bt.rotation.yaw)), math.sin(math.radians(bt.rotation.yaw))
+            corners = [(bt.location.x + dx * c - dy * sn, bt.location.y + dx * sn + dy * c, bt.location.z)
+                       for dx in (-half, half) for dy in (-half, half)]
+            pix = []
+            for p in corners:
+                d = [p[k] - o[k] for k in range(3)]
+                x = sum(d[k] * fwd[k] for k in range(3))
+                if x <= 0.1:
+                    continue
+                pix.append((w / 2.0 + f * sum(d[k] * right[k] for k in range(3)) / x,
+                            h / 2.0 - f * sum(d[k] * up[k] for k in range(3)) / x))
+            if len(pix) < 4:
+                continue
+            u0, u1 = max(0, int(min(q[0] for q in pix))), min(w - 1, int(max(q[0] for q in pix)) + 1)
+            v0, v1 = max(0, int(min(q[1] for q in pix))), min(h - 1, int(max(q[1] for q in pix)) + 1)
+            for v in range(v0, v1 + 1):
+                b = -(v + 0.5 - h / 2.0) / f
+                for u in range(u0, u1 + 1):
+                    a = (u + 0.5 - w / 2.0) / f
+                    dz = fwd[2] + a * right[2] + b * up[2]
+                    if dz >= -1e-9:
+                        continue
+                    s = (bt.location.z - o[2]) / dz
+                    gx = o[0] + s * (fwd[0] + a * right[0] + b * up[0]) - bt.location.x
+                    gy = o[1] + s * (fwd[1] + a * right[1] + b * up[1]) - bt.location.y
+                    lx, ly = gx * c + gy * sn, -gx * sn + gy * c
+                    if abs(lx) >= half or abs(ly) >= half:
+                        continue
+                    col = tex.get(min(tex.width - 1, int((ly + half) / side * tex.width)),
+                                  min(tex.height - 1, int((lx + half) / side * tex.height)))
+                    i = 4 * (v * w + u)
+                    out[i:i + 4] = bytes([col.b, col.g, col.r, 255])
+        return bytes(out)
 
 
 class CollisionEvent:
@@ -566,6 +638,20 @@ class _Server:
         self.pre_tick_hooks: list = []       # called with (server) before the physics step
         self.object_names = ["Road_Road_Town04_1", "Road_Marking_Town04_1"]
         self.named_textures: list = []
+
+    def _textured_boards(self) -> list:
+        """The flat boards the camera can see: static.prop.mesh actors with a texture applied as a parameter that
+        takes on this server (FAKE_TEXTURE_TAKES, comma-separated MaterialParameter names; default all)."""
+        takes = os.environ.get("FAKE_TEXTURE_TAKES")
+        ok = None if takes is None else {t.strip() for t in takes.split(",") if t.strip()}
+        out = []
+        for st in self.actors.values():
+            if st.type_id != "static.prop.mesh" or not st.alive:
+                continue
+            tex = [t for p, t in st.textures if ok is None or p in ok]
+            if tex:
+                out.append((st.transform, float(st.attributes.get("scale") or 1.0), tex[-1]))
+        return out
 
     def world_transform(self, state: _ActorState) -> Transform:
         if state.parent_id is None:
@@ -653,7 +739,8 @@ class _Server:
                 continue
             state.next_sensor_time = self.elapsed + tick
             image = Image(self.frame, self.elapsed, int(state.attributes["image_size_x"]),
-                          int(state.attributes["image_size_y"]), self.world_transform(state))
+                          int(state.attributes["image_size_y"]), self.world_transform(state),
+                          float(state.attributes.get("fov") or 50.0), self._textured_boards())
             for cb in list(state.listeners):
                 cb(image)
 
@@ -735,6 +822,13 @@ class World:
             return self.spawn_actor(blueprint, transform, attach_to, attachment_type)
         except RuntimeError:
             return None
+
+    def set_weather(self, weather) -> None:
+        self._server.weather = weather
+        self._server.log.append(("weather", getattr(weather, "name", str(weather))))
+
+    def get_weather(self):
+        return getattr(self._server, "weather", WeatherParameters.Default)
 
     def get_names_of_all_objects(self):
         return list(self._server.object_names)

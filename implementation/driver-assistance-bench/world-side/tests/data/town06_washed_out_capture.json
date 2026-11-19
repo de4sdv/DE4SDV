@@ -1,0 +1,141 @@
+{
+ "kind": "camera-capture",
+ "setting": "SC-DRIVING-012@20",
+ "map": "Carla/Maps/Town06_Opt",
+ "start": {
+  "road": 40,
+  "lane": -7,
+  "s": 0.0,
+  "rule": "--start",
+  "straightM": 60.0,
+  "laneWidthM": 3.5,
+  "sameDirectionLanes": 5,
+  "neededM": 60.0
+ },
+ "vehicle": "vehicle.lincoln.mkz",
+ "frontCamera": {
+  "actor_id": 610,
+  "role": "front",
+  "image_size_x": "1920",
+  "image_size_y": "1280",
+  "fov": "50.0",
+  "sensor_tick": "0.1",
+  "pose": {
+   "x": 1.544,
+   "y": 0.0243,
+   "z": 2.116,
+   "roll": -0.1,
+   "pitch": -0.11,
+   "yaw": -0.23
+  }
+ },
+ "frontBumperXM": 2.439769563730806,
+ "groundZ": 0.0,
+ "heroZ": -0.01739802397787571,
+ "heroPitchDeg": -0.4449022114276886,
+ "heroRollDeg": -0.02424275502562523,
+ "boardLiftM": 0.01,
+ "heroWorld": {
+  "x": 128.51278686523438,
+  "y": 251.56959533691406,
+  "z": -0.01739802397787571,
+  "pitch": -0.4449022114276886,
+  "yaw": 0.019833587110042572,
+  "roll": -0.02424275502562523
+ },
+ "cameraWorld": {
+  "x": 130.06790161132812,
+  "y": 251.59376525878906,
+  "z": 2.1141417026519775,
+  "pitch": -0.37444251775741577,
+  "yaw": -0.21027837693691254,
+  "roll": -0.11548365652561188
+ },
+ "boards": [
+  {
+   "label": "tl",
+   "upstreamXY": [
+    13.0,
+    1.6
+   ],
+   "actor_id": 611,
+   "world": {
+    "x": 143.9531093621341,
+    "y": 249.97494008487953,
+    "z": 0.01
+   }
+  },
+  {
+   "label": "tr",
+   "upstreamXY": [
+    13.0,
+    -1.6
+   ],
+   "actor_id": 612,
+   "world": {
+    "x": 143.95200164568402,
+    "y": 253.1749398931552,
+    "z": 0.01
+   }
+  },
+  {
+   "label": "bl",
+   "upstreamXY": [
+    8.0,
+    1.6
+   ],
+   "actor_id": 613,
+   "world": {
+    "x": 138.95310966170337,
+    "y": 249.97320927792634,
+    "z": 0.01
+   }
+  },
+  {
+   "label": "br",
+   "upstreamXY": [
+    8.0,
+    -1.6
+   ],
+   "actor_id": 614,
+   "world": {
+    "x": 138.9520019452533,
+    "y": 253.173209086202,
+    "z": 0.01
+   }
+  }
+ ],
+ "meshPath": "/Engine/BasicShapes/Plane.Plane",
+ "boardScale": 2.5,
+ "checkerboard": {
+  "path": "/home/mrk/checkerboard-bw-4x4.png",
+  "sha256": "d7a30249862727b172e337715a9844e3841cd7999248250bbce59df9c6d016cd",
+  "width": 600,
+  "height": 600
+ },
+ "frame": {
+  "path": "calibration_frame.png",
+  "sha256": "30bbf9de6d148659681d671b572cd2adfcecb9c948477797765ef546d86a3d6f",
+  "carlaFrame": 1301220,
+  "width": 1920,
+  "height": 1280
+ },
+ "upstreamArgs": {
+  "tl": [
+   13.0,
+   1.6
+  ],
+  "tr": [
+   13.0,
+   -1.6
+  ],
+  "bl": [
+   8.0,
+   1.6
+  ],
+  "br": [
+   8.0,
+   -1.6
+  ]
+ }
+}
