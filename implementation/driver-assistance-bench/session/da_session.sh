@@ -4,7 +4,8 @@
 #
 #   da_session.sh --kind p10-1|p10-3|p10-2 [options]
 #
-#   --kind p10-1           the S-CORE host only: the S-CORE build check (P10-1)
+#   --kind p10-1           the simulator host and the S-CORE host: the S-CORE build check (P10-1) while a CARLA world
+#                          ticks (the world side's handshake: go before the check, release after it)
 #   --kind p10-3           the guest host and the S-CORE host as the S-CORE side: the warning on the guests (P10-3)
 #   --kind p10-2           all three: the first closed loop, recorded (P10-2)
 #   --owner-ok-guest-host  required for p10-3 and p10-2: the owner's OK to start de4sdv-aaos-build this session
@@ -72,7 +73,7 @@ while [ $# -gt 0 ]; do
 done
 
 case "$KIND" in
-  p10-1) ROLES=(score); CAP=${CAP:-$CAP_EUR_P10_1} ;;
+  p10-1) ROLES=(sim score); CAP=${CAP:-$CAP_EUR_P10_1} ;;
   p10-3) ROLES=(score guest); CAP=${CAP:-$CAP_EUR_P10_3} ;;
   p10-2) if [ "$WITHOUT_GUEST" = 1 ]; then ROLES=(sim score); else ROLES=(sim score guest); fi
          CAP=${CAP:-$CAP_EUR_P10_2} ;;
@@ -85,7 +86,8 @@ esac
 # session.json, so a guessed pattern or a time-out is changed for the next session without a commit
 REMOTE_ENV_guest="UNIT_REGISTERED_RE UNIT_NEGATION_RE BROKER_ERROR_RE UNIT_WAIT_S B12_DIR VERIFY_WAIT_S ADB_TIMEOUT_S
                   UP_TIMEOUT_S CLOCK_READS CLOCK_MAX_OFFSET_S START_WAIT_S"
-REMOTE_ENV_score="DA_P10_1_CARLA_HOST GATEWAYD_RX_REGEX DA_P10_1_LATE_WAIT_S DA_P10_1_CUDA_RUNS DA_P10_1_ALIVE_HOLD_S
+# (DA_P10_1_CARLA_HOST is not on it: p10-1 sets it from its own simulator host, the address read from gcloud)
+REMOTE_ENV_score="GATEWAYD_RX_REGEX DA_P10_1_LATE_WAIT_S DA_P10_1_CUDA_RUNS DA_P10_1_ALIVE_HOLD_S
                   DA_P10_1_STALL_HOLD_S DA_P10_1_SUPERVISED_WAIT_S"
 REMOTE_ENV_sim=""
 declare -A RVAL=()
@@ -115,6 +117,7 @@ TRAP_GC_TO_S=30   # each gcloud status read in the trap: on a gcloud outage the 
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 T_UNIT=300
+CARLA_PORTS="2000 2001 2002"   # p10-1's port test: CARLA's ports that carla-net admits from the S-CORE host
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
        T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
@@ -535,8 +538,9 @@ p10_3_report() {   # p10-3 is passed only when its steps ended with 0 and every 
     log "p10-3 NOT passed: $P10_3_REASON"
   fi
 }
-p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE host alone: which of the 8 did not run
-  # or failed, from the fetched p10_1_verdicts.json, in one line of session.log and in session.json (p10_1)
+p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE host alone (without a CARLA server C1's
+  # full start and C2-C4 are NOT RUN, C5 without a receive line of gatewayd, C8 without a replayer): which of the 8 did
+  # not run or failed, from the fetched p10_1_verdicts.json, in one line of session.log and in session.json (p10_1)
   local f=$IN/score/out/p10_1/p10_1_verdicts.json line
   line=$(python3 - "$f" "$IN/p10_1_summary.json" <<'PY'
 import json, sys
@@ -694,7 +698,7 @@ NEED=(session/remote/host_step.sh session/remote/safety_net.sh)
 GUEST_NEED=("$ENTRY_GUEST_UP" "$ENTRY_GUEST_PREPARE" "$ENTRY_GUEST_APP_RESTART" "$ENTRY_GUEST_OFFER_CHECK"
             "$ENTRY_GUEST_CLOCK" "$ENTRY_GUEST_CAPTURE" "$ENTRY_VXLAN" session/remote/guest_stop.sh)
 case "$KIND" in
-  p10-1) NEED+=("$ENTRY_SCORE_P10_1") ;;
+  p10-1) NEED+=("$ENTRY_SIM_SETUP" "$ENTRY_SIM_WARMUP" "$ENTRY_SIM_RUN" "$ENTRY_SCORE_P10_1" world-side/da_world_side.py) ;;
   p10-3) NEED+=("${GUEST_NEED[@]}" "$ENTRY_SCORE_START" "$ENTRY_SCORE_INJECT" "$ENTRY_SCORE_STOP") ;;
   p10-2) NEED+=("$ENTRY_SIM_SETUP" "$ENTRY_SIM_WARMUP" "$ENTRY_SIM_CALIBRATE" "$ENTRY_SIM_RUN" "$ENTRY_SIM_RECORD"
                 "$ENTRY_SCORE_START" "$ENTRY_SCORE_STOP" world-side/da_world_side.py world-side/camera_calibration.py)
@@ -942,6 +946,21 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another
     abort 5 "the S-CORE stop of $w had to kill (rc 7): no further run from a suspect state"
   fi
 }
+port_test() {   # p10-1: CARLA's ports on the simulator host, from the S-CORE host, before any Launch Manager start
+  # there: one bounded TCP connect per port (5 s each, the SSH call 60 s at most), the result in one line of session.log
+  local p line="" ok=1; SEQ+=("score:port_test")
+  log "port test on $(var score VM): a TCP connect to $CARLA_HOST, ports $CARLA_PORTS, 5 s each"
+  rout ssh_l score 60 "for p in $CARLA_PORTS; do if timeout 5 bash -c \"</dev/tcp/$CARLA_HOST/\$p\" 2>/dev/null; then echo \"tcp \$p open\"; else echo \"tcp \$p closed\"; fi; done"
+  for p in $CARLA_PORTS; do
+    if grep -q -x "tcp $p open" <<< "$ROUT"; then line="$line, tcp $p open"
+    elif grep -q -x "tcp $p closed" <<< "$ROUT"; then ok=0; line="$line, tcp $p closed"
+    else ok=0; line="$line, tcp $p no answer"; fi
+  done
+  line="from $(var score VM) to the simulator host $CARLA_HOST: ${line#, }"
+  if [ "$ok" = 1 ]; then log "PORT TEST $line"; return 0; fi
+  log "PORT TEST FAILED $line: the session ends before any Launch Manager start"
+  STEP_FAIL=port_test; abort 5 "the port test failed: no Launch Manager start"
+}
 make_h() {   # on this host: the capture from the simulator host, make-h, both files onto the S-CORE host
   local d=$IN/camcal src="da-kit/$SID/out/calibrate/camcal/simulator" vm f rc loc got
   vm=$(var sim VM); mkdir -p "$d/capture"; SEQ+=("lead:make_h")
@@ -977,7 +996,26 @@ make_h() {   # on this host: the capture from the simulator host, make-h, both f
 
 case "$KIND" in
   p10-1)
-    rstep score p10_1 "$T_P10_1" bash "$ENTRY_SCORE_P10_1" "$(od p10_1)"
+    # the check runs while a CARLA world ticks, so C1-C4 run (lead decision of 2026-11-19, part 2): the world side's
+    # handshake of a p10-2 run, with the go before the check (the world ticks through its three parts) and the
+    # release only after it ended (the check stops its own Launch Manager starts while the world still ticks). No
+    # recorder and no calibration: p10-1 judges no driving and no geometry (the check names upstream's stand-in)
+    rstep sim sim_setup "$T_SIM_SETUP" bash "$ENTRY_SIM_SETUP" "$(od sim_setup)"
+    [ -n "$CARLA_HOST" ] || ipof sim CARLA_HOST
+    log "CARLA host for the S-CORE side: $CARLA_HOST"
+    port_test
+    # the session's road in world_start.json, which run_scenario.sh needs: the warm-up entry's survey, then its pass
+    rstep sim warmup "$T_WARMUP" "$SENV" bash "$ENTRY_SIM_WARMUP" "$(od warmup)"
+    o=$(od world_p10_1)
+    # after run_end.json the world ticks on until the release file or RELEASE_WAIT_S: longer than the check may run
+    rstart sim world_p10_1 "env$(q "SIM_PY=$SIM_PY" "RELEASE_WAIT_S=$(( T_P10_1 + T_STEP ))")" bash "$ENTRY_SIM_RUN" \
+      "$o" "$P10_1_SCENARIO" "$P10_1_SETTING"
+    rwaitfile sim world_p10_1 "$o/simulator/ready.json" "$T_READY" || { abort 5 "the world side of p10-1 is not ready"; }
+    rtouch sim "$o/go" || { STEP_FAIL=world_p10_1; abort 5 "no go file for p10-1"; }
+    rstep score p10_1 "$T_P10_1" env "DA_P10_1_CARLA_HOST=$CARLA_HOST" bash "$ENTRY_SCORE_P10_1" "$(od p10_1)"
+    rwaitfile sim world_p10_1 "$o/simulator/run_end.json" "$T_RUN" || { abort 5 "the world side of p10-1 did not end its run"; }
+    rtouch sim "$o/release" || log "WARNING no release file for p10-1: the world side ends at its own hold limit"
+    rwait sim world_p10_1 "$T_RELEASE" || { abort 5 "the world side of p10-1 did not end well"; }
     ;;
   p10-3)
     # the guest-prep-20261118 operator's order: VXLAN, the offer, the multicast route, the broker's unit, then the
