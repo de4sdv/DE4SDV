@@ -258,9 +258,13 @@ q() { printf ' %q' "$@"; }   # words quoted for the remote shell
 bnd() { [ -n "$PRE_END" ] || { echo "$1"; return; }; local l=$(( PRE_END - $(date +%s) )); [ "$l" -lt 1 ] && l=1
   [ "$l" -lt "$1" ] && echo "$l" || echo "$1"; }
 pre_left() { [ -z "$PRE_END" ] || [ "$(date +%s)" -lt "$PRE_END" ]; }
-# slot <s>: the next step of the pre-stop phase gets <s> seconds, never past the phase's end (P1): a step that runs
-# to its bound leaves every later step its own
-slot() { local e=$(( $(date +%s) + $1 )); [ "$e" -gt "$PHASE_END" ] && e=$PHASE_END; PRE_END=$e; }
+# slot <s>: the next step of the pre-stop phase gets <s> seconds, never past the phase's end (P1), and never into the
+# time the later slots reserve (PRE_REST, the sum of their bounds, in the phase's own scale when PRESTOP_S is set):
+# an earlier step's overrun shortens the next earlier step, never a fetch (R5 of the closure check of 7befc3c1: the
+# overruns came out of the guest host's fetch, the last one)
+slot() { local e=$(( $(date +%s) + $1 )) r; PRE_REST=$(( ${PRE_REST:-0} - $1 )); [ "$PRE_REST" -lt 0 ] && PRE_REST=0
+  r=$(( ${PRE_SUM:-0} > 0 ? PRE_REST * PRESTOP_S / PRE_SUM : 0 ))
+  [ "$e" -gt $(( PHASE_END - r )) ] && e=$(( PHASE_END - r )); [ "$e" -gt "$PHASE_END" ] && e=$PHASE_END; PRE_END=$e; }
 GSTOP=${GUEST_STOP_CMD//\$DA_SESSION_ID/$SID}
 # defined before the exit trap can run: a trap's fetch before the steps (the cap or a signal during the SSH and
 # upload section) expanded an unset HS under set -u, and that fetch ended silently
@@ -272,13 +276,13 @@ step_down() {   # in the trap: the step rstep waited for, if any: TERM on its ho
   local r=${CUR_STEP%% *} s=${CUR_STEP#* } i prc=0; CUR_STEP=""
   case " ${LOST:-} " in *" $r "*) return 0 ;; esac
   log "step $s still runs on $(var "$r" VM): TERM to it there, then its end (up to $STEP_TERM_POLLS polls), before any stop"
-  rsignal "$r" "$s" TERM
+  rsignal "$r" "$s" TERM "$(bnd 60)"
   for i in $(seq 1 "$STEP_TERM_POLLS"); do
     rpoll "$r" "$HS status $s" "$(bnd 60)"; prc=$?
     [ "$prc" = 3 ] && break   # the host is gone (preempted): nothing runs there
     case "$ROUT" in "rc "*|absent) break ;; esac
     pre_left || { log "the pre-stop phase's bound reached while step $s still reads ${ROUT:-unknown}"; break; }
-    sleep "$POLL_S"
+    nap "$(bnd "$POLL_S")"   # within the slot (R5)
   done
   log "step $s after the TERM: ${ROUT:-unknown}"
   local after=${ROUT:-unknown} fl=""
@@ -306,7 +310,7 @@ rpoll() {   # rpoll <role> <remote command> [<timeout_s>]: one short poll, its l
   # gone (R12)
   local st
   if rout ssh_l "$1" "${3:-60}" "$2"; then ROUT=$(tail -1 <<< "$ROUT"); return 0; fi
-  ROUT=""; st=$(vmst "$1")
+  ROUT=""; st=$(GC_TO=$(bnd "${GC_TO:-120}") vmst "$1")   # in the pre-stop phase within the slot (R5)
   case "$st" in TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED) host_lost "$1" "$st"; return 3 ;; esac
   return 1
 }
@@ -356,7 +360,7 @@ rstart() { local r=$1 s=$2; shift 2; log "start $s on $(var "$r" VM): $*"; SEQ+=
   [ "$r" = guest ] && GUEST_STEP_SENT=1
   case "$r:$s" in sim:world_*) WORLD_UP="$WORLD_UP $s" ;; esac   # from before its start call, as CUR_STEP
   run_fg ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*" >> "$IN/$r.steps.out" 2>&1 || { STEP_FAIL=$s; abort 5 "start of $s failed"; }; }
-rsignal() { run_fg ssh_l "$1" 60 "$HS signal $2 ${3:-INT}" >> "$IN/$1.steps.out" 2>&1; }
+rsignal() { run_fg ssh_l "$1" "${4:-60}" "$HS signal $2 ${3:-INT}" >> "$IN/$1.steps.out" 2>&1; }
 rwait() {   # rwait <role> <step> <timeout_s>: waits for a detached step's status
   local r=$1 s=$2 end st; end=$(( $(date +%s) + $3 )); SEQ+=("$r:wait-$s")
   while :; do
@@ -423,7 +427,7 @@ world_down() {   # a detached world side not seen ending (a trap or abort path):
       rpoll sim "$HS status $s" "$(bnd 60)"; [ $? = 3 ] && break
       case "$ROUT" in "rc "*|absent) break ;; esac
       pre_left || break
-      nap "$POLL_S"
+      nap "$(bnd "$POLL_S")"   # within the slot (R5)
     done
     log "world side $s after its release and TERM: ${ROUT:-unknown}"
   done
@@ -493,19 +497,19 @@ cleanup() {
     GC_TO=300 gc "$r" compute instances stop "$(var "$r" VM)" --zone "$(var "$r" ZONE)" --async --quiet 2>&1 | one >> "$LOG"
     early="$early $r"
   done
-  PHASE_END=$(( $(date +%s) + PRESTOP_S )); PRE_END=$PHASE_END
+  PHASE_END=$(( $(date +%s) + PRESTOP_S )); PRE_END=$PHASE_END; PRE_REST=$PRE_SUM
   # the step still running on its host (a signal or the cap during it): TERM to it there, and its end awaited, before
   # the S-CORE side's stop and any stop; a guest launch never races the guests' stop (S2). Each step below runs in its
   # own slot (P1)
   slot "$PRE_STEP_S"; step_down
   # a window still open: its capture's stop before any fetch of the guest host (Q1)
-  slot "$PRE_CAP_S"; pre_left && capture_down
+  [[ " ${ROLES[*]} " == *" guest "* ]] && { slot "$PRE_CAP_S"; pre_left && capture_down; }
   # the S-CORE side's stop, its only collector, while the world may still tick (R8); then the fetch of every host
   # whose evidence was not fetched yet (a signal, the cap), before its stop (R13); all within the phase's bound
   slot "$PRE_SCORE_S"
   if pre_left; then T_SCORE_DOWN=$(bnd "$TRAP_SCORE_S") score_down
   elif [ -n "$SCORE_UP" ]; then log "the pre-stop phase's bound reached: no stop of the S-CORE side by the session (its records stay incomplete on its disk)"; fi
-  slot "$PRE_WORLD_S"; pre_left && world_down
+  [[ " ${ROLES[*]} " == *" sim "* ]] && { slot "$PRE_WORLD_S"; pre_left && world_down; }
   for r in $UPLOADED; do
     case " $FETCHED " in *" $r "*) continue ;; esac
     slot "$PRE_FETCH_S"

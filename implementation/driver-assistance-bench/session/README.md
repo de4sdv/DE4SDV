@@ -449,8 +449,11 @@ Then compose the video from the fetched files (see `../recording/README.md`).
 
 ### The exit trap's pre-stop budget
 
-On a signal or the cost cap, the exit trap runs these steps before any VM stops, each in a slot of its own bound, so a
-step that runs to its bound never takes another step's time. The pre-stop phase (`PRESTOP_S`) is the sum of the
+On a signal or the cost cap, the exit trap runs these steps before any VM stops, each in a slot of its own bound. A
+slot never reaches into the time the later slots reserve (the sum of their bounds), and every call inside a slot (the
+status reads after a failed poll and the sleeps between polls too) is cut to what the slot has left, so a step that
+runs to its bound never takes a fetch's time: an earlier step's overrun of a second or two shortens the next earlier
+step, never a fetch. The pre-stop phase (`PRESTOP_S`) is the sum of the
 slots of the kind's hosts (`pre-stop budget:` in `session.log`):
 
 - the running step's end: its TERM's call (60 s), `STEP_TERM_POLLS` waits of `POLL_S` (6 of 20 s), the last poll
