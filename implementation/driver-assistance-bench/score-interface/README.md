@@ -15,7 +15,8 @@ S-CORE. It ships as a patch series against the pin, so upstream's code is not co
 |---|---|
 | `patches/0001-de4sdv-visualization-recorder.diff` | the VIS8 visualization recorder (the probe's patch, sha256 `29a1f5d0…`) with the `sim_time_s` column of `frames.csv` (brief item B3); its upstream hunks are the probe's, unchanged |
 | `patches/0002-de4sdv-score-interface.diff` | the S-CORE interface; it applies on top of 0001 |
-| `patches/SHA256SUMS` | the sha256 of both patches |
+| `patches/0003-de4sdv-headless-display.diff` | `LocalDisplay` closes windows only when it opened one (C-2, below); it applies on top of 0002 |
+| `patches/SHA256SUMS` | the sha256 of the three patches |
 | `module/` | the new files of 0002, as they land in `VisionPilot/modules/de4sdv/score_interface/`. A test checks that they equal the patch |
 | `check_patch.sh` | applies the series to a fresh `git clone --shared` at the pin |
 | `tests/` | unit tests with fakes for mw::com and the CARLA client, and a pytest wrapper |
@@ -100,8 +101,19 @@ Lifecycle v0.10.0. The supervision values, the run targets and the reaction are 
 libraries are not developed or qualified to ASIL B.
 
 The module, the visualization recorder and these hunks make up the source difference against the pin. The candidate
-record of REQ-DRIVING-044 carries that difference (MAP-DRIVING-DA-CANDIDATE-RECORD). It is the diff of both patches,
-0001 and 0002, never empty.
+record of REQ-DRIVING-044 carries that difference (MAP-DRIVING-DA-CANDIDATE-RECORD). It is the diff of the three
+patches, 0001, 0002 and 0003, never empty.
+
+## A display without a window (patch 0003, C-2)
+
+Upstream's `LocalDisplay` opens its window only when `show_window_` is set
+(`VisionPilot/modules/visualization/src/local_display.cpp:13` at the pin), but calls `cv::destroyAllWindows()` in its
+destructor (`:18`) and in `stop()` (`:106`) without that check. The bundle's OpenCV 4.6.0 has no GUI backend, and
+there `cvDestroyAllWindows` throws (`modules/highgui/src/window.cpp:1258-1262`). The bench stages
+`visualization_on = false`, so every end of the candidate's loop (a SIGTERM from the Launch Manager included) ended in
+an abort (exit 134) before `~ScoreInterface` ran, and the run record lost `supervision.stop` and the module's counters
+(p10-1 run 20261119T134840Z). 0003 guards both calls with `show_window_`; nothing else changes. It is an upstream bug
+candidate; the issue draft is not posted.
 
 ## What is not compiled yet
 

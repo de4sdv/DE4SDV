@@ -161,13 +161,14 @@ w=$ROOT/src/vp-pin/VisionPilot/modules/models/weights/autosteer_fp32.onnx
 # ---------------------------------------------------------------------------------------------------------------------
 step visionpilot
 if ! is_done visionpilot; then
-  # the series' own check: a fresh clone at the pin, 0001 then 0002, and 0002 re-created byte for byte
+  # the series' own check: a fresh clone at the pin, 0001, 0002 and 0003 in order, 0002 and 0003 re-created byte for byte
   "$BENCH/score-interface/check_patch.sh" "$ROOT/src/vp-pin" "$ROOT/src/check_patch" || die "check_patch.sh failed"
   rm -rf "$VP"
   git clone -q --shared "$ROOT/src/vp-pin" "$VP"
   git -C "$VP" checkout -q "$VP_COMMIT"
   git -C "$VP" apply --index "$BENCH/score-interface/patches/0001-de4sdv-visualization-recorder.diff"
   git -C "$VP" apply --index "$BENCH/score-interface/patches/0002-de4sdv-score-interface.diff"
+  git -C "$VP" apply --index "$BENCH/score-interface/patches/0003-de4sdv-headless-display.diff"
   git -C "$VP" diff --cached --stat "$VP_COMMIT" | tail -1
   mark_done visionpilot
 fi

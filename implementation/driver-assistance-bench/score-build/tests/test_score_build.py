@@ -649,6 +649,24 @@ def test_the_bundle_source_difference_is_exactly_the_patch_series() -> None:
     assert ("facts/SHA256SUMS", "$BENCH/score-interface/patches/SHA256SUMS") in pairs
 
 
+SERIES = ["0001-de4sdv-visualization-recorder.diff", "0002-de4sdv-score-interface.diff",
+          "0003-de4sdv-headless-display.diff"]
+
+
+def test_the_build_and_the_check_apply_the_whole_series_in_order() -> None:
+    """The visionpilot stage and check_patch.sh apply 0001, 0002 and 0003 (C-2) in that order, and the check
+    re-creates 0002 and 0003 byte for byte, each against the tree before it."""
+    assert sorted(p.name for p in PATCHES.glob("*.diff")) == SERIES
+    build = (HERE.parent / "build_score_bench.sh").read_text()
+    applied = re.findall(r'git -C "\$VP" apply --index "\$BENCH/score-interface/patches/([^"]+)"', build)
+    assert applied == SERIES
+    check = (BENCH / "score-interface" / "check_patch.sh").read_text()
+    real = re.findall(r'^git apply (?:--index )?"\$PATCHES/([^"]+)" \|\| fail', check, flags=re.M)
+    assert real == SERIES
+    recreated = re.findall(r'git -c core\.abbrev=8 diff \| cmp -s - "\$PATCHES/([^"]+)"', check)
+    assert recreated == SERIES[1:]
+
+
 def test_every_repository_source_of_the_bundle_exists() -> None:
     """The bundle step's sources from this checkout (and from the pin, with the clone) exist."""
     import glob

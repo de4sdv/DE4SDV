@@ -80,8 +80,8 @@ when present comes from the `bundle` stage; `tests/test_score_build.py` checks t
 scripts.
 
 The `visionpilot` stage first runs `score-interface/check_patch.sh`. It then copies `VisionPilot/` of the pin with
-patches 0001 and 0002 into the package `//visionpilot`, with the overlay as its `BUILD.bazel`. No upstream file
-changes beyond the two patches. The overlay mirrors upstream's CMake targets. Bazel needs two changes:
+patches 0001, 0002 and 0003 into the package `//visionpilot`, with the overlay as its `BUILD.bazel`. No upstream
+file changes beyond the three patches. The overlay mirrors upstream's CMake targets. Bazel needs two changes:
 
 - The module headers form one header library, because upstream's headers include each other across modules in a cycle.
 - Every library is `alwayslink`, because the static libraries reference each other in a cycle.

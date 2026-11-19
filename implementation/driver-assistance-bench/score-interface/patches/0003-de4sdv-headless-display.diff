@@ -1,0 +1,22 @@
+diff --git a/VisionPilot/modules/visualization/src/local_display.cpp b/VisionPilot/modules/visualization/src/local_display.cpp
+index c1e4843c..75550bfb 100644
+--- a/VisionPilot/modules/visualization/src/local_display.cpp
++++ b/VisionPilot/modules/visualization/src/local_display.cpp
+@@ -15,7 +15,7 @@ namespace visualization
+ 
+     LocalDisplay::~LocalDisplay()
+     {
+-        cv::destroyAllWindows();
++        if (show_window_) cv::destroyAllWindows();  // DE4SDV: no window without it; headless OpenCV throws
+     }
+ 
+     void LocalDisplay::set_aux_frame(const cv::Mat& aux)
+@@ -103,7 +103,7 @@ namespace visualization
+ 
+     bool LocalDisplay::stop()
+     {
+-        cv::destroyAllWindows();
++        if (show_window_) cv::destroyAllWindows();  // DE4SDV: no window without it; headless OpenCV throws
+         aux_window_ready_ = false;
+         layout_done_ = false;
+         return true;

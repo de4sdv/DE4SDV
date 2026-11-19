@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # Checks the patch series of the DE4SDV S-CORE interface for VisionPilot at the pin:
-#   1. both patch files against patches/SHA256SUMS;
+#   1. the three patch files against patches/SHA256SUMS;
 #   2. a fresh `git clone --shared` of a local VisionPilot clone, checked out at the pin and clean;
 #   3. 0001 (the VIS8 visualization recorder) with `git apply --check`, then for real; then 0002 the same way;
-#   4. `git diff` of the result against 0001 re-creates 0002 byte for byte;
+#   4. `git diff` of the result against 0001 re-creates 0002 byte for byte; then 0003 (LocalDisplay without a window,
+#      C-2) is checked and applied on top of 0002 the same way, and `git diff` against 0002 re-creates it;
 #   5. optional, when OpenCV 4, ONNX Runtime and Eigen headers are given: g++ -fsyntax-only of the patched
 #      vision_pilot.cpp and vision_pilot_config.cpp with and without ENABLE_SCORE_INTERFACE, and the preprocessed
 #      vision_pilot.cpp without it compared between "0001" and "0001 + 0002".
@@ -53,6 +54,13 @@ git diff --stat | tail -1
 # depth-1 clone (build_score_bench.sh) writes 7-digit index lines
 git -c core.abbrev=8 diff | cmp -s - "$PATCHES/0002-de4sdv-score-interface.diff" || fail "git diff does not re-create 0002"
 echo "git diff against 0001 re-creates 0002 byte for byte"
+# 0002's result becomes the index, the base of 0003 (no commit: a blob-less clone cannot write the tree)
+git add -u VisionPilot && git add VisionPilot/modules/de4sdv/score_interface || fail "staging 0002's result"
+git apply --check "$PATCHES/0003-de4sdv-headless-display.diff" || fail "0003 --check on top of 0002"
+echo "0003 git apply --check on top of 0002: ok"
+git apply "$PATCHES/0003-de4sdv-headless-display.diff" || fail "0003 apply"
+git -c core.abbrev=8 diff | cmp -s - "$PATCHES/0003-de4sdv-headless-display.diff" || fail "git diff does not re-create 0003"
+echo "git diff against 0002 re-creates 0003 byte for byte"
 
 OPENCV_INCLUDE=${OPENCV_INCLUDE:-/usr/include/opencv4}
 if [ -n "${ORT_INCLUDE:-}" ] && [ -n "${EIGEN_INCLUDE:-}" ] && [ -f "$OPENCV_INCLUDE/opencv2/core/mat.hpp" ]; then

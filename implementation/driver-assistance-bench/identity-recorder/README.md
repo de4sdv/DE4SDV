@@ -38,7 +38,7 @@ the Launch Manager starts first (MAP-DRIVING-DA-CANDIDATE-RECORD in
    - the ldconfig conf `/etc/ld.so.conf.d/de4sdv-cuda-*.conf` of `../score-build/install_gpu_runtime.sh`, and every
      shared library in each directory it lists (CUDA and cuDNN). These are the lead's answers of 2026-11-18;
    - the source difference: every `*.diff` in `<stage>/facts/`, checked against its `SHA256SUMS`. Today these are
-     patches 0001 and 0002 of `../score-interface/`;
+     patches 0001, 0002 and 0003 of `../score-interface/`;
    - the upstream revision from `<stage>/facts/upstream_revision.txt`.
 2. It writes `<run>/score/candidate_record.json` through a temporary file, `fsync` and `rename`
    (`candidate_record.h`, the record writer).

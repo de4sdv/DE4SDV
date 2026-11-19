@@ -11,8 +11,8 @@
   (launch-manager/tests/lifecycle_mock), which are no S-CORE header either.
 - the patch series: the new files of 0002 equal module/, the shas equal patches/SHA256SUMS, 0001 is the VIS8 patch
   with the sim_time_s column of frames.csv (brief item B3) and its upstream hunks unchanged, every line 0002 adds
-  to upstream C++ outside the enum sits under ENABLE_SCORE_INTERFACE, and the alive call sits in the pass with a result
-  (C-1).
+  to upstream C++ outside the enum sits under ENABLE_SCORE_INTERFACE, the alive call sits in the pass with a result
+  (C-1), and 0003 guards LocalDisplay's cv::destroyAllWindows() with show_window_ (C-2).
 - the sim_time_s column: a functional run of the patched recorder with a stand-in ffmpeg, when a VisionPilot clone
   (VISIONPILOT_CLONE), ONNX Runtime and Eigen headers (ORT_INCLUDE, EIGEN_INCLUDE) and pkg-config's opencv4 are there.
 """
@@ -216,7 +216,8 @@ def test_patch_shas() -> None:
     for line in (PATCHES / "SHA256SUMS").read_text().splitlines():
         digest, name = line.split()
         sums[name] = digest
-    assert set(sums) == {"0001-de4sdv-visualization-recorder.diff", "0002-de4sdv-score-interface.diff"}
+    assert set(sums) == {"0001-de4sdv-visualization-recorder.diff", "0002-de4sdv-score-interface.diff",
+                         "0003-de4sdv-headless-display.diff"}
     for name, digest in sums.items():
         assert hashlib.sha256((PATCHES / name).read_bytes()).hexdigest() == digest, name
     # 0001 is no longer the VIS8 patch byte for byte: B3 added the sim_time_s column (test below)
@@ -329,6 +330,52 @@ def test_patched_loop_reports_running_only_inside_the_result_block(tmp_path: Pat
     block = _block(text, RESULT_BLOCK)
     assert CYCLE_CALL in block
     assert block.index(PUBLISH_CALL) < block.index(CYCLE_CALL)
+
+
+DESTROY = "cv::destroyAllWindows();"
+GUARDED_DESTROY = "if (show_window_) cv::destroyAllWindows();"
+LOCAL_DISPLAY = "VisionPilot/modules/visualization/src/local_display.cpp"
+
+
+def test_0003_guards_both_destroy_all_windows_calls_with_show_window() -> None:
+    """C-2: upstream's LocalDisplay calls cv::destroyAllWindows() unconditionally in its destructor and in stop()
+    (local_display.cpp:18 and :106 at the pin), though it opens a window only when show_window_ (:13). OpenCV 4.6.0
+    built without a GUI backend throws there (window.cpp:1258-1262), so the headless candidate aborted at its exit and
+    lost its supervision.stop record and counters. 0003 changes exactly these two lines."""
+    files = _patch_files((PATCHES / "0003-de4sdv-headless-display.diff").read_text())
+    assert list(files) == [LOCAL_DISPLAY]
+    lines = files[LOCAL_DISPLAY]
+    removed = [line[1:] for line in lines if line.startswith("-") and not line.startswith("---")]
+    added = [line[1:] for line in lines if line.startswith("+") and not line.startswith("+++")]
+    assert [r.strip() for r in removed] == [DESTROY, DESTROY]
+    assert len(added) == 2
+    for old, new in zip(removed, added):
+        assert new.startswith(old[: len(old) - len(old.lstrip())] + GUARDED_DESTROY), new  # same indentation
+    hunks = _hunks(lines)
+    assert len(hunks) == 2
+    assert any("LocalDisplay::~LocalDisplay()" in line for line in hunks[0])
+    assert any("bool LocalDisplay::stop()" in line for line in hunks[1])
+
+
+def test_patched_local_display_destroys_windows_only_with_show_window(tmp_path: Path) -> None:
+    """C-2 on upstream's file at the pin with the whole series applied in order: every cv::destroyAllWindows() of
+    LocalDisplay is guarded by show_window_, in the destructor and in stop()."""
+    clone = _pin_tree()
+    if clone is None:
+        pytest.skip(f"VISIONPILOT_CLONE is not set to a clone holding {PIN}")
+    tree = tmp_path / "vp"
+    target = tree / LOCAL_DISPLAY
+    target.parent.mkdir(parents=True)
+    target.write_bytes(subprocess.run(["git", "-C", str(clone), "show", f"{PIN}:{LOCAL_DISPLAY}"],
+                                      check=True, capture_output=True).stdout)
+    subprocess.run(["git", "-C", str(tree), "init", "-q"], check=True)
+    for patch in sorted(PATCHES.glob("*.diff")):
+        subprocess.run(["git", "-C", str(tree), "apply", f"--include={LOCAL_DISPLAY}", str(patch)], check=True)
+    text = target.read_text()
+    calls = [line.strip() for line in text.splitlines() if DESTROY in line]
+    assert len(calls) == 2 and all(c.startswith(GUARDED_DESTROY) for c in calls), calls
+    assert GUARDED_DESTROY in _block(text, "LocalDisplay::~LocalDisplay()")
+    assert GUARDED_DESTROY in _block(text, "bool LocalDisplay::stop()")
 
 
 def test_visualization_recorder_writes_the_sim_time_column(tmp_path: Path) -> None:
