@@ -32,7 +32,9 @@ sudo systemd-run --uid="$(id -u)" --gid="$(id -g)" --unit="$UNIT" --setenv=HOME=
 for _ in $(seq 1 120); do grep -q ":2000 " <(ss -ltn) && break; sleep 2; done
 grep -q ":2000 " <(ss -ltn) || { echo "FAIL server port 2000"; exit 1; }
 # the server listens before its world is loaded: ask for the world until SIM_WAIT_S (INC-DRIVING-001's hero check)
-timeout $((SIM_WAIT_S + 60)) "$PY" -u - "$SIM_WAIT_S" > "$OUT/server_probe.txt" 2>&1 <<'PY'
+# --foreground: the bounded call stays in the step's process group, so a TERM to the step reaches it (plain timeout
+# would move it into a group of its own, which outlives the step)
+timeout --foreground $((SIM_WAIT_S + 60)) "$PY" -u - "$SIM_WAIT_S" > "$OUT/server_probe.txt" 2>&1 <<'PY'
 import sys, time
 import carla
 wait_s = float(sys.argv[1]); t0 = time.monotonic()

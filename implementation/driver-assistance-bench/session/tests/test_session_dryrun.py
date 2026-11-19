@@ -1019,6 +1019,25 @@ def test_a_signal_during_a_guest_step_signals_the_step_before_the_guests_stop(tm
     assert_invariants(r)
 
 
+def test_the_record_names_the_guest_launch_the_traps_term_cut(tmp_path: Path) -> None:
+    # T1: a TERM during guest_up ends the launch (guest_up.sh awaits it and prints its own FAIL line); session.json
+    # said only exit_code 143, so nothing named the launch that was cut
+    fail = "FAIL launch ended by TERM (the launch's rc 143; its end awaited before this step ended; see launch.log)"
+    p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="guest_up:60", FAKE_TERM_TAIL=f"guest_up:{fail}")
+    wait_for_call(tmp_path, lambda c: any("host_step.sh status guest_up" in a for a in c))
+    time.sleep(0.3)
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    tail = r.ssh(GH, "host_step.sh tail guest_up")
+    assert tail and r.ssh(GH, "host_step.sh signal guest_up TERM")[0] < tail[0] < r.guest_stops()[0]
+    assert f"step guest_up ended by the session's TERM: {fail}" in r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["step_ended_by_term"] == {"host": "guest", "step": "guest_up", "status_after_term": "rc 143",
+                                         "fail_line": fail}
+    assert_invariants(r)
+
+
 def test_a_guest_step_alive_after_its_term_keeps_the_guest_host_running(tmp_path: Path) -> None:
     # S2: a launch that outlives its TERM may still create guests: a crosvm count of 0 then proves nothing
     p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="guest_up:60",

@@ -368,6 +368,163 @@ def test_guest_up_creates_fresh_guests_and_sets_permissive_only_when_marked(tmp_
     assert ident.count("getenforce ") == 2
 
 
+def _guest_up_kit(tmp_path: Path) -> tuple[Path, Path]:
+    """A kit with the real host_step.sh and the real guest_up.sh, as the session uploads them."""
+    kit = tmp_path / "home" / "da-kit" / "S1"
+    rem = kit / "bench" / "session" / "remote"
+    rem.mkdir(parents=True)
+    (kit / "session_id").write_text("S1\n")
+    for name in ("host_step.sh", "guest_up.sh"):
+        (rem / name).write_bytes((REMOTE / name).read_bytes())
+    return kit, rem / "host_step.sh"
+
+
+def _wait_text(path: Path, text: str, timeout: float = 15) -> None:
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        if path.exists() and text in path.read_text():
+            return
+        time.sleep(0.05)
+    raise AssertionError(f"{text!r} not in {path}")
+
+
+def _end_leftovers(d: Path) -> None:
+    """Ends what a failing run left behind in other process groups (pids the fakes wrote), never by name."""
+    for f in ("launch_pid", "adb_hang_pids"):
+        for w in ((d / f).read_text().split() if (d / f).exists() else []):
+            pid = int(w)
+            try:
+                g = os.getpgid(pid)
+                if g != os.getpgid(0):
+                    os.killpg(g, 9)
+                else:
+                    os.kill(pid, 9)
+            except ProcessLookupError:
+                pass
+
+
+def _alive(pid: int) -> bool:
+    try:
+        st = Path(f"/proc/{pid}/stat").read_text()
+    except OSError:
+        return False
+    return st.rsplit(")", 1)[1].split()[0] != "Z"
+
+
+def test_a_termed_guest_up_reads_running_until_its_launch_has_cleaned_up(tmp_path: Path, fake) -> None:
+    # T1: GNU timeout puts the launch in its own process group, so a TERM to the step's group ended only guest_up.sh;
+    # the status read "rc 255" at once and the session stopped the guest host under a launch still creating guests
+    d, env = fake
+    launch = tmp_path / "launch.sh"
+    launch.write_text('trap \'echo "launch got TERM" >> "$FAKE/launch_marks"; sleep 4; '
+                      'echo "launch cleanup done" >> "$FAKE/launch_marks"; exit 143\' TERM\n'
+                      'echo $$ > "$FAKE/launch_pid"; echo started >> "$FAKE/launch_marks"\nsleep 60 & wait\n')
+    env = dict(env, GUEST_LAUNCH_CMD=f"bash {launch}")
+    kit, hs = _guest_up_kit(tmp_path)
+    st = lambda: sh(str(hs), "status", "guest_up", env=env).stdout.strip()   # noqa: E731
+    assert sh(str(hs), "start", "guest_up", "--", "bash", "session/remote/guest_up.sh", str(kit / "out" / "gu"),
+              env=env).returncode == 0
+    marks = d / "launch_marks"
+    try:
+        _wait_text(marks, "started")
+        assert "signalled guest_up (TERM)" in sh(str(hs), "signal", "guest_up", "TERM", env=env).stdout
+        time.sleep(1)
+        assert st() == "running"   # the launch still cleans up: the step has not ended
+        deadline = time.monotonic() + 20
+        while st() == "running" and time.monotonic() < deadline:
+            time.sleep(0.1)
+        assert "launch cleanup done" in marks.read_text()   # the step ended only after the launch had ended
+        end = st()
+        assert end.startswith("rc ") and end != "rc 0", end
+        assert "FAIL launch ended by TERM" in (kit / "out" / "guest_up.log").read_text()
+    finally:
+        _end_leftovers(d)
+
+
+def _hanging_adb(d: Path) -> Path:
+    """adb whose `connect` hangs (a wedged vsock proxy); every other call goes to the fake adb."""
+    a = d / "bin" / "adb_hang"
+    a.write_text('#!/bin/bash\nif [ "$1" = connect ]; then echo $$ >> "$FAKE/adb_hang_pids"; exec sleep 60; fi\n'
+                 f'exec {d / "bin" / "adb"} "$@"\n')
+    a.chmod(0o755)
+    return a
+
+
+def test_guest_up_bounds_each_adb_call_of_its_boot_wait(tmp_path: Path, fake) -> None:
+    # T7: a hung `adb connect` held guest_up until the session's step time-out (2400 s)
+    d, env = fake
+    env = dict(env, DE4SDV_ROOT=str(_launch(tmp_path)), ADB=str(_hanging_adb(d)), ADB_TO_S="1", BOOT_WAIT_S="5")
+    p = subprocess.Popen(["bash", str(REMOTE / "guest_up.sh"), str(tmp_path / "o")], env=env, text=True,
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+    try:
+        out, _ = p.communicate(timeout=30)
+        ended = True
+    except subprocess.TimeoutExpired:
+        ended, out = False, ""
+    finally:
+        try:
+            os.killpg(p.pid, 9)
+        except ProcessLookupError:
+            pass
+        p.communicate()
+        _end_leftovers(d)
+    assert ended, "guest_up waited on a hung adb call"
+    assert p.returncode == 0 and "GUEST_UP_DONE" in out, out
+
+
+def test_a_termed_guest_up_leaves_no_bounded_adb_call_behind(tmp_path: Path, fake) -> None:
+    # T7 without T1 again: a bound under GNU timeout in its own process group outlives a TERM to the step's group
+    d, env = fake
+    env = dict(env, GUEST_LAUNCH_CMD="true", ADB=str(_hanging_adb(d)), ADB_TO_S="30")
+    kit, hs = _guest_up_kit(tmp_path)
+    assert sh(str(hs), "start", "guest_up", "--", "bash", "session/remote/guest_up.sh", str(kit / "out" / "gu"),
+              env=env).returncode == 0
+    _wait_text(d / "adb_hang_pids", "\n")
+    pid = int((d / "adb_hang_pids").read_text().split()[0])
+    sh(str(hs), "signal", "guest_up", "TERM", env=env)
+    deadline = time.monotonic() + 10
+    while sh(str(hs), "status", "guest_up", env=env).stdout.strip() == "running" and time.monotonic() < deadline:
+        time.sleep(0.1)
+    assert sh(str(hs), "status", "guest_up", env=env).stdout.strip().startswith("rc ")
+    deadline = time.monotonic() + 2
+    while _alive(pid) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    alive = _alive(pid)
+    _end_leftovers(d)
+    assert not alive, "an adb call outlived the step it belongs to"
+
+
+def _timeout_calls(path: Path) -> list[str]:
+    out = []
+    for line in path.read_text().splitlines():
+        code = line.split("#", 1)[0] if not line.lstrip().startswith("#") else ""
+        if re.search(r"(^|[\s;({|&])timeout\s", code):
+            out.append(code.strip())
+    return out
+
+
+def test_every_bound_in_a_session_step_stays_where_a_term_to_the_step_reaches_it() -> None:
+    # T1/T7: GNU timeout without --foreground moves its command into a new process group; a TERM to the step's group
+    # then ends the step while the command runs on. Each bound is --foreground (short calls: the TERM reaches them),
+    # or guest_up's launch, run in the background and waited for with the TERM forwarded to it
+    bench = REMOTE.parent.parent
+    files = sorted(REMOTE.glob("*.sh"))
+    seen = {}
+    for f in files:
+        for c in _timeout_calls(f):
+            seen[(f.name, c)] = c
+    # the guest build script's own adb bound, which the prepare step's install and verify use
+    build = bench / "guest-build" / "build_guests_incremental.sh"
+    (adb_t,) = [c for c in _timeout_calls(build) if c.startswith("adb_t()")]
+    seen[("build_guests_incremental.sh", adb_t)] = adb_t
+    assert seen
+    bad = [k for k, c in seen.items() if "timeout --foreground " not in c
+           and not (k[0] == "guest_up.sh" and c.endswith("& LP=$!"))]
+    assert not bad, bad
+    launch = [c for (n, c) in seen if n == "guest_up.sh" and c.endswith("& LP=$!")]
+    assert len(launch) == 1 and "bash -c \"$LAUNCH\"" in launch[0]
+
+
 @pytest.mark.parametrize("line", [
     "I SomeIpBroker: unit {unit} unregistered",
     "W SomeIpBroker: unit {unit} not registered: no provider of 0x4df1 yet",

@@ -32,7 +32,9 @@ IDS=$HERE/../../interfaces/service_ids.json
 : "${AOSP_TOP:=$HOME/aosp}"
 ADB=${ADB:-${ANDROID_HOST_OUT:-$AOSP_TOP/out/host/linux-x86}/bin/adb}
 CORE_ADB=${CORE_ADB:-0.0.0.0:6521}; IVI_ADB=${IVI_ADB:-0.0.0.0:6522}
-adbt() { timeout "${ADB_TO_S:-30}" "$ADB" "$@"; }
+# --foreground: the bounded call stays in the step's process group, so a TERM to the step reaches it (plain timeout
+# would move it into a group of its own, which outlives the step)
+adbt() { timeout --foreground "${ADB_TO_S:-30}" "$ADB" "$@"; }
 case "$ACTION" in
   route)
     BR=${BR:-cvd-ebr}

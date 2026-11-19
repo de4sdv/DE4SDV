@@ -28,6 +28,7 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_ARM_FAIL      a VM name whose safety net's arming fails
   FAKE_SLOW_FETCH    seconds: the scp of a host's out.tgz takes that long
   FAKE_FETCH_FAIL    a VM name whose out.tgz scp fails
+  FAKE_TERM_TAIL     "step:line"  a line the step's tail shows once the step was signalled (its own FAIL line)
   FAKE_RECEIPTS      the line count `offer_check.sh receipts` reports for a window's app record (default 2)
   FAKE_DESCRIBE_FLAKE   "vm:n"  once any stop call was made, the next n status reads of the VM fail (a transient
                         gcloud error: a token refresh, a network blip)
@@ -258,7 +259,9 @@ if words[:2] == ["compute", "ssh"]:
                 out("running\n")
             out("rc %d\n" % code)
         if action == "tail":
-            out(st.get("tails", {}).get(key, "") + "=== %s end rc=%d (fake)\n" % (step, code))
+            term = kv("FAKE_TERM_TAIL").get(step) if key in st.get("signalled", {}) else None
+            out(st.get("tails", {}).get(key, "") + (term + "\n" if term else "")
+                + "=== %s end rc=%d (fake)\n" % (step, code))
         if action == "signal":
             st.setdefault("signalled", {})[key] = c.split()[-1]
             out("signalled %s\n" % step)

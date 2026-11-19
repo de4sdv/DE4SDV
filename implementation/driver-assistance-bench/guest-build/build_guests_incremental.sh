@@ -124,7 +124,9 @@ die() { log "ERROR: $*"; exit 1; }
 run() { log "+ $*"; local rc=0; "$@" || rc=$?; log "  rc=$rc"; return "$rc"; }
 note() { printf '%s %s\n' "$(ts)" "$*" >> "$SUMMARY"; log "$*"; }
 step_log() { exec > >(tee -a "$LOGS/b12-$1.log") 2>&1; log "=== step $1 (pid $$, host $(hostname), branch files $DA_ROOT)"; }
-adb_t() { timeout "$ADB_TIMEOUT_S" "$ADB" "$@"; }
+# --foreground: the bounded call stays in the step's process group, so a TERM to the step reaches it (plain timeout
+# would move it into a group of its own, which outlives the step)
+adb_t() { timeout --foreground "$ADB_TIMEOUT_S" "$ADB" "$@"; }
 ids() { python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(eval(sys.argv[2], {}, {'d': d}))" "$IDS" "$1"; }
 
 UNIT="$(ids "d['icd']['data_tunnel']['service_unit']")"
