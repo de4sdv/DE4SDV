@@ -7,7 +7,10 @@
 #   - as vision_pilot it writes supervision.start and two out.driving_command lines into log.path of its interface
 #     settings once LCM_ALIVE_INTERFACE_PATH is set, and visionpilot.rrd into its working directory at the stop;
 #   - as actuation_adapter it writes a supervision start and an accepted in.driving_command into
-#     <run>/score/actuationAdapter.jsonl;
+#     <run>/score/actuationAdapter.jsonl, and at SIGTERM the supervision stop and stop records the real adapter writes
+#     (alive_ticker.cpp, actuation_adapter_main.cpp);
+#   - as vision_pilot with DA_STUB_VP_EXIT_AFTER_S=<s> it exits with status 134 after s seconds (the real candidate's
+#     abort in run 20261119T134840Z);
 #   - as gatewayd it prints DA_STUB_GATEWAYD_LINE once a second, when that is set; with DA_STUB_GATEWAYD_PER_SEND
 #     ("<delay s>,<delay s>,..." per send, "-" never) instead once per send the test publisher recorded in
 #     DA_TEST_SINK_FILE, each that many seconds after this stub saw the send (a late or a lost receive line).
@@ -32,6 +35,10 @@ esac
 stop() {
   echo "stop $name" >> "$log"
   [ "$name" = vision_pilot ] && echo "synthetic rrd" > visionpilot.rrd
+  if [ "$name" = actuation_adapter ] && [ -n "${LCM_ALIVE_INTERFACE_PATH:-}" ]; then
+    { echo '{"t_mono_ns":3,"event":"supervision","data":{"state":"stop","alive_reported":1}}'
+      echo '{"t_mono_ns":4,"event":"stop","data":{"applied":0,"dropped":0}}'; } >> "$run/score/actuationAdapter.jsonl"
+  fi
   exit 0
 }
 trap stop TERM INT
@@ -52,6 +59,10 @@ n=0 seen=0 due=()
 while :; do
   sleep 0.1
   n=$((n + 1))
+  if [ "$name" = vision_pilot ] && [ -n "${DA_STUB_VP_EXIT_AFTER_S:-}" ] &&
+     awk -v n="$n" -v s="$DA_STUB_VP_EXIT_AFTER_S" 'BEGIN { exit !(n / 10 >= s) }'; then
+    echo "exit $name 134 (DA_STUB_VP_EXIT_AFTER_S)" >> "$log"; exit 134
+  fi
   [ "$name" = gatewayd ] && [ -n "${DA_STUB_GATEWAYD_LINE:-}" ] || continue
   if [ -z "${DA_STUB_GATEWAYD_PER_SEND:-}" ]; then
     [ $((n % 10)) = 0 ] && echo "$DA_STUB_GATEWAYD_LINE"
