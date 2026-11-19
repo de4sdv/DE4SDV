@@ -293,6 +293,7 @@ APP = {"APP_PACKAGE": "org.de4sdv.collisionwarning", "APP_COMPONENT": "org.de4sd
 
 def test_app_restart_records_selinux_and_restarts_with_am_start_s(tmp_path: Path, fake) -> None:
     d, env = fake
+    (d / "logcat_since_mark_0.0.0.0:6522").write_text(NEW_SUBSCRIBED)
     p = sh(str(REMOTE / "app_restart.sh"), str(tmp_path / "o"), "run1", env=dict(env, **APP))
     assert p.returncode == 0, p.stdout + p.stderr
     rec = (tmp_path / "o" / "app_restart_run1.txt").read_text()
@@ -310,6 +311,87 @@ def test_app_restart_fails_without_the_app_or_its_process(tmp_path: Path, fake, 
     p = sh(str(REMOTE / "app_restart.sh"), str(tmp_path / "o"), "w", env=dict(env, **APP))
     assert p.returncode == 1
     assert len([c for c in calls(d) if " am start" in c]) == starts
+
+
+# The restarted app subscribes again (W2 of the re-check at 437a833b): am start -S kills the process that subscribed
+# before the unit gate, so app_restart.sh waits for the new process's own link line, in the IVI log since an IVI-clock
+# mark taken right before am start. The lines are in the real threadtime format; the fake's pidof answers 4242.
+APP_NEW = "11-19 10:00:{s:02d}.000  4242  4260 I DE4SDV_COLLISION_WARNING: event=lifecycle t_mono_ns=1 t_real_ns=2 "
+NEW_SUBSCRIBED = APP_NEW.format(s=1) + "phase=link link=SUBSCRIBED detail=instance1\n"
+NEW_WAITING = APP_NEW.format(s=0) + 'phase=link link=WAITING detail="discovery started; waiting for the broker\'s unit x"\n'
+NEW_UNAVAILABLE = APP_NEW.format(s=0) + ('phase=link link=UNAVAILABLE detail="subscribe instance1:de4sdv-driving-warning-'
+                                         'request: SdvGatewayRuntimeException statusCode 5 NOT_FOUND"\n')
+NEW_DROPPED = APP_NEW.format(s=3) + 'phase=link link=WAITING detail="publication destroyed"\n'
+# the process the gate saw subscribe, killed by am start -S: its SUBSCRIBED line is no sign of the new process
+OLD_SUBSCRIBED = ("11-19 09:59:59.000  3205  3235 I DE4SDV_COLLISION_WARNING: event=lifecycle t_mono_ns=1 t_real_ns=2 "
+                  "phase=link link=SUBSCRIBED detail=instance1\n")
+
+
+def _restart(tmp_path: Path, d: Path, env: dict, since: str, late: str | None = None, late_after: int = 2,
+             wait: str = "30") -> tuple[subprocess.CompletedProcess, float]:
+    (d / "logcat_since_mark_0.0.0.0:6522").write_text(since)
+    if late is not None:
+        (d / "late_0.0.0.0:6522").write_text(late)
+        (d / "late_after_0.0.0.0:6522").write_text(f"{late_after}\n")
+    t0 = time.monotonic()
+    p = sh(str(REMOTE / "app_restart.sh"), str(tmp_path / "o"), "w1",
+           env=dict(env, APP_SUBSCRIBE_WAIT_S=wait, POLL_S="0.2", **APP))
+    return p, time.monotonic() - t0
+
+
+def test_app_restart_waits_for_the_new_processes_subscribed_line_since_its_mark(tmp_path: Path, fake) -> None:
+    d, env = fake
+    (d / "guest_off_0.0.0.0:6522").write_text("1000\n")   # the IVI's own clock
+    p, dt = _restart(tmp_path, d, env, OLD_SUBSCRIBED + NEW_WAITING, late=NEW_SUBSCRIBED)
+    assert p.returncode == 0, p.stdout + p.stderr
+    assert dt >= 0.3                                     # it waited for the late line
+    assert "APP_SUBSCRIBED 4242" in p.stdout and p.stdout.strip().splitlines()[-1] == "APP_RESTARTED w1"
+    rec = (tmp_path / "o" / "app_restart_w1.txt").read_text()
+    mark = re.search(r"^ivi mark (\S+)$", rec, re.M).group(1)
+    assert float(mark) - time.time() > 900                # read on the IVI's clock
+    c = calls(d)
+    i_mark = c.index("adb -s 0.0.0.0:6522 shell date +%s.%N")
+    i_start = next(i for i, x in enumerate(c) if " am start" in x)
+    assert i_mark < i_start                               # the mark right before am start
+    assert f"adb -s 0.0.0.0:6522 logcat -d -T {mark}" in c[i_start:]
+    assert "link=SUBSCRIBED detail=instance1" in rec and "APP_SUBSCRIBED 4242" in rec
+
+
+def test_app_restart_fails_when_the_new_process_never_subscribes(tmp_path: Path, fake) -> None:
+    d, env = fake
+    p, dt = _restart(tmp_path, d, env, OLD_SUBSCRIBED + NEW_WAITING, wait="1")
+    assert p.returncode == 1, p.stdout
+    fail = [x for x in p.stdout.splitlines() if x.startswith("FAIL")]
+    assert fail and "4242" in fail[0] and "within 1 s" in fail[0], p.stdout
+    assert dt >= 1
+    assert "link=WAITING" in p.stdout                     # the new process's link lines since the mark
+    assert "APP_RESTARTED" not in p.stdout
+    assert "FAIL" in (tmp_path / "o" / "app_restart_w1.txt").read_text()
+
+
+def test_app_restart_counts_unavailable_lines_and_never_decides_on_them(tmp_path: Path, fake) -> None:
+    d, env = fake
+    p, _ = _restart(tmp_path, d, env, NEW_UNAVAILABLE, late=NEW_SUBSCRIBED)
+    assert p.returncode == 0 and "APP_SUBSCRIBED 4242" in p.stdout, p.stdout
+    assert "UNAVAILABLE 1 time(s)" in p.stdout and "statusCode 5 NOT_FOUND" in p.stdout, p.stdout
+
+
+def test_app_restart_fails_on_unavailable_lines_only_at_its_bound(tmp_path: Path, fake) -> None:
+    d, env = fake
+    p, dt = _restart(tmp_path, d, env, NEW_UNAVAILABLE, wait="1")
+    assert p.returncode == 1 and dt >= 1, p.stdout
+    fail = [x for x in p.stdout.splitlines() if x.startswith("FAIL")]
+    assert fail and "UNAVAILABLE lines since the mark: 1" in fail[0] and "statusCode 5" in fail[0], p.stdout
+
+
+def test_app_restart_needs_the_last_link_line_to_be_subscribed(tmp_path: Path, fake) -> None:
+    # W5: a SUBSCRIBED followed by WAITING ("publication destroyed") is a dropped link: wait on, fail at the bound
+    d, env = fake
+    p, dt = _restart(tmp_path, d, env, NEW_SUBSCRIBED + NEW_DROPPED, wait="1")
+    assert p.returncode == 1 and dt >= 1, p.stdout
+    p2, _ = _restart(tmp_path / "b", d, env, NEW_SUBSCRIBED + NEW_DROPPED,
+                     late=APP_NEW.format(s=9) + "phase=link link=SUBSCRIBED detail=instance1\n")
+    assert p2.returncode == 0 and "APP_SUBSCRIBED 4242" in p2.stdout, p2.stdout
 
 
 # -------------------------------------------------------------------------------------- offer_check.sh
@@ -641,7 +723,11 @@ IVI_MESH_ONLY = "11-19 09:56:00.200   710   711 W sdv_sd_agent: sd_mesh peer ins
 PRE_OFFER_WAITING = ("11-19 09:56:10.887  3205  3235 I DE4SDV_COLLISION_WARNING: event=lifecycle t_mono_ns=34209898502 "
                      "t_real_ns=1795082170887000000 phase=link link=WAITING detail=\"discovery started; waiting for the "
                      "broker's unit de4sdv-driving-warning-request\"\n")
-IVI_BOOT = PRE_OFFER_WAITING + IVI_SDV + IVI_MESH_ONLY + LINK_WAITING
+# the app's start line names the broker (publisher=...SomeIpBroker): a line of the app, never of the mesh file (W6)
+APP_START_LOGCAT = ("11-19 09:56:10.640  3205  3205 I DE4SDV_COLLISION_WARNING: event=lifecycle t_mono_ns=1 t_real_ns=2 "
+                    "phase=start pid=3205 publisher=com.android.sdv.someip.SomeIpBroker unit=de4sdv-driving-warning-"
+                    "request\n")
+IVI_BOOT = APP_START_LOGCAT + PRE_OFFER_WAITING + IVI_SDV + IVI_MESH_ONLY + LINK_WAITING
 DIAG_FILES = ("ivi_collision_warning_since_boot.txt", "ivi_sdv_service_manager_broker_mesh.txt",
               "core_sdv_service_manager_since_mark.txt", "core_someip_service.txt", "net_core.txt", "net_ivi.txt")
 
@@ -664,6 +750,7 @@ def _diag_present(out: Path) -> None:
     sdv = (diag / "ivi_sdv_service_manager_broker_mesh.txt").read_text()
     assert "I SdvServiceManager: main::mesh::manager" in sdv and "I SomeIpBroker: started" in sdv
     assert IVI_MESH_ONLY in sdv                                  # a mesh line under another tag
+    assert "DE4SDV_COLLISION_WARNING" not in sdv                  # never the app's own lines (W6)
     assert "SdvServiceManagerServer" in (diag / "core_sdv_service_manager_since_mark.txt").read_text()
     someip = (diag / "core_someip_service.txt").read_text()
     assert "4df1.0001.8001" in someip and "1234.0001" not in someip
@@ -760,6 +847,41 @@ def test_unavailable_links_alone_fail_only_at_the_bound_with_the_last_detail(tmp
     _diag_present(tmp_path / "o")
 
 
+def test_the_unit_gate_names_the_last_link_line_before_the_mark_at_its_bound(tmp_path: Path, fake) -> None:
+    # W3: a naming problem is logged once, at the app's start, before the mark (WarningRequestSubscriber.java)
+    d, env = fake
+    mark = _app_mark(tmp_path, d, env)
+    naming = ("11-19 09:56:10.900  3205  3235 I DE4SDV_COLLISION_WARNING: event=lifecycle t_mono_ns=1 t_real_ns=2 "
+              'phase=link link=UNAVAILABLE detail="naming: bundle x does not match [A-Z][A-Za-z0-9]*"\n')
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text("")
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT.replace(LINK_WAITING, "") + naming)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
+           env=dict(env, UNIT_WAIT_S="0", POLL_S="0.2"))
+    assert p.returncode == 1, p.stdout
+    fail = [x for x in p.stdout.splitlines() if x.startswith("FAIL")]
+    assert fail and "none since the mark" in fail[0], p.stdout
+    assert "last link line before the mark:" in fail[0] and "naming: bundle x" in fail[0], fail
+
+
+def test_the_unit_gate_decides_on_the_last_link_line_since_the_mark(tmp_path: Path, fake) -> None:
+    # W5: SUBSCRIBED, then WAITING "publication destroyed": the link dropped, so the gate waits on
+    d, env = fake
+    mark = _app_mark(tmp_path, d, env)
+    dropped = APP_T.format(s=20) + 'phase=link link=WAITING detail="publication destroyed"\n'
+    (d / f"logcat_since_mark_{CORE_SER}").write_text(CORE_LINES)
+    (d / f"logcat_since_mark_{CORE_IVI}").write_text(LINK_SUBSCRIBED + dropped)
+    (d / f"logcat_{CORE_IVI}").write_text(IVI_BOOT)
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), str(mark),
+           env=dict(env, UNIT_WAIT_S="1", POLL_S="0.2"))
+    assert p.returncode == 1 and "last link line: WAITING" in p.stdout, p.stdout
+    (d / f"late_{CORE_IVI}").write_text(APP_T.format(s=25) + 'phase=link link=SUBSCRIBED detail="instance1"\n')
+    (d / f"late_after_{CORE_IVI}").write_text("0\n")
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o2"), str(mark),
+           env=dict(env, UNIT_WAIT_S="30", POLL_S="0.2"))
+    assert p.returncode == 0 and "UNIT_SUBSCRIBED" in p.stdout, p.stdout
+
+
 def test_the_unit_gate_keeps_the_core_broker_error_check(tmp_path: Path, fake) -> None:
     d, env = fake
     mark = _app_mark(tmp_path, d, env)
@@ -845,15 +967,94 @@ def test_the_diagnostics_of_a_failed_unit_gate_come_back_with_the_sessions_fetch
     assert "out/unit_inject/unit_context.txt" in names and "out/logmark_inject/ivi_logcat_since.txt" in names
 
 
+# The app's record files/warning.jsonl is appended (RecordWriter.java) and every app start writes lifecycle, link and
+# status lines, so a line count is never 0 (W1 of the re-check at 437a833b). A receipt is a line whose event is
+# "receipt" (MainActivity.onRequest -> recordAt(.., "receipt", ..)); the lines below are in the app's own format
+# (WarningRecord.json: "event", "t_mono_ns", "t_real_ns" first, then the pairs in order, no spaces).
+
+
+def _jl(event: str, **kv) -> str:
+    return json.dumps({"event": event, "t_mono_ns": 1, "t_real_ns": 2, **kv}, separators=(",", ":")) + "\n"
+
+
+def _start(pid: int) -> str:
+    return _jl("lifecycle", phase="start", pid=pid, subject="org.de4sdv.collisionwarning.CollisionWarningPresentation",
+               message="de4sdv.driving.v1.WarningRequest", publisher="com.android.sdv.someip.SomeIpBroker",
+               unit="de4sdv-driving-warning-request", translation="REFLECTION at the SDV Core SOME/IP broker",
+               poll_ms=50)
+
+
+def _receipt(seq: int) -> str:
+    return _jl("receipt", seq=seq, requested=seq % 2 == 1, issue_time_sim_ms=1000 * seq, verdict="ACCEPTED",
+               request=seq, reason="")
+
+
+def _status(n: int) -> str:   # a status line names the receipts too: "receipts":n is no receipt event
+    return _jl("status", link="SUBSCRIBED", receipts=n, requests=n, refused=0)
+
+
+def _app_start_lines(pid: int, link: str = "SUBSCRIBED") -> str:
+    return (_start(pid) + _jl("sound_prepared", stream="alarm") + _jl("lifecycle", phase="config", key="k", value="v")
+            + _jl("lifecycle", phase="link", link=link, detail="instance1") + _status(0))
+
+
+# guest_prepare's verify start (3205), then the window's restart (4242, the fake's pidof): no request ever arrived
+LIFECYCLE_ONLY = (_app_start_lines(3205, "WAITING") + _status(0)
+                  + _jl("lifecycle", phase="stop", receipts=0, requests=0, refused=0) + _app_start_lines(4242))
+EARLIER_ONLY = (_app_start_lines(3205) + _receipt(1) + _receipt(2) + _receipt(3) + _status(3)
+                + _jl("lifecycle", phase="stop", receipts=3, requests=3, refused=0) + _app_start_lines(4242))
+AFTER_THE_START = (EARLIER_ONLY + _receipt(1) + _jl("display_shown", request=1, since_receipt_ns=5) + _receipt(2)
+                   + _jl("display_cleared", request=2) + _status(2))
+
+
+def _count(tmp_path: Path, env: dict, record: str | None, pid: str | None, name: str) -> subprocess.CompletedProcess:
+    cap = tmp_path / name
+    cap.mkdir()
+    if record is not None:
+        (cap / "app_record_warning.jsonl").write_text(record)
+    args = [str(REMOTE / "offer_check.sh"), "receipts", str(cap)]
+    if pid is not None:
+        (tmp_path / f"{name}_restart.txt").write_text(f"window inject x\npid {pid} 2026-11-19T10:00:00.000Z\n")
+        args.append(str(tmp_path / f"{name}_restart.txt"))
+    return sh(*args, env=env)
+
+
+def _last(p: subprocess.CompletedProcess) -> str:
+    assert p.returncode == 0, p.stdout + p.stderr
+    return p.stdout.strip().splitlines()[-1]
+
+
 def test_the_receipts_of_a_window_are_counted(tmp_path: Path, fake) -> None:
     d, env = fake
-    cap = tmp_path / "cap"
+    assert _last(_count(tmp_path, env, None, None, "empty")) == "RECEIPTS 0"
+    assert _last(_count(tmp_path, env, AFTER_THE_START, None, "plain")) == "RECEIPTS 2"
+    assert _last(_count(tmp_path, env, AFTER_THE_START, "4242", "pid")) == "RECEIPTS 2"
+
+
+@pytest.mark.parametrize("pid", [None, "4242"])
+def test_a_record_of_lifecycle_lines_only_counts_no_receipt(tmp_path: Path, fake, pid) -> None:
+    d, env = fake
+    assert len(LIFECYCLE_ONLY.splitlines()) > 9
+    assert _last(_count(tmp_path, env, LIFECYCLE_ONLY, pid, "c")) == "RECEIPTS 0"
+
+
+@pytest.mark.parametrize("pid", [None, "4242"])
+def test_receipts_from_an_earlier_app_start_are_not_counted(tmp_path: Path, fake, pid) -> None:
+    d, env = fake
+    assert _last(_count(tmp_path, env, EARLIER_ONLY, pid, "c")) == "RECEIPTS 0"
+
+
+def test_the_receipts_need_the_windows_own_app_start(tmp_path: Path, fake) -> None:
+    # with the window's restart record, the receipts are those after the start line of the pid app_restart.sh read:
+    # a record whose last start is another process's (a stale file, a pull from another user) counts none
+    d, env = fake
+    p = _count(tmp_path, env, AFTER_THE_START, "5555", "other")
+    assert _last(p) == "RECEIPTS 0" and "5555" in p.stdout, p.stdout
+    cap = tmp_path / "norec"
     cap.mkdir()
-    p = sh(str(REMOTE / "offer_check.sh"), "receipts", str(cap), env=env)
-    assert p.returncode == 0 and p.stdout.strip() == "RECEIPTS 0"
-    (cap / "app_record_warning.jsonl").write_text('{"a": 1}\n{"a": 2}\n')
-    p = sh(str(REMOTE / "offer_check.sh"), "receipts", str(cap), env=env)
-    assert p.stdout.strip() == "RECEIPTS 2"
+    (cap / "app_record_warning.jsonl").write_text(AFTER_THE_START)
+    p = sh(str(REMOTE / "offer_check.sh"), "receipts", str(cap), str(tmp_path / "missing.txt"), env=env)
+    assert _last(p) == "RECEIPTS 0", p.stdout
 
 
 def test_the_neighbour_caches_of_both_guests_are_flushed(tmp_path: Path, fake) -> None:
@@ -876,6 +1077,7 @@ def test_app_restart_fails_when_the_ivi_mode_is_not_the_sessions_mark(tmp_path: 
     # owner decision (b) of 2026-11-18: Enforcing unless the session is marked --permissive-ivi, then Permissive
     d, env = fake
     (d / "mode_0.0.0.0:6522").write_text(ivi + "\n")
+    (d / "logcat_since_mark_0.0.0.0:6522").write_text(NEW_SUBSCRIBED)   # the restarted app subscribes (W2)
     p = sh(str(REMOTE / "app_restart.sh"), str(tmp_path / "o"), "w1", env=dict(env, IVI_PERMISSIVE=permissive, **APP))
     assert p.returncode == rc, p.stdout + p.stderr
     starts = [c for c in calls(d) if " am start" in c]

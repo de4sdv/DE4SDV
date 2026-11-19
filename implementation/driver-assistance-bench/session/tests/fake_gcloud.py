@@ -31,7 +31,9 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_TERM_TAIL     "step:line"  the last line of the step's tail once the step was signalled (its own FAIL line);
                      the tail then exits 1, as host_step.sh tail does for a step that wrote no .rc
   FAKE_TAIL_ADD      "step:line"  a line of the step's tail before its end line (guest_up's CROSVM_BEFORE_LAUNCH, say)
-  FAKE_RECEIPTS      the line count `offer_check.sh receipts` reports for a window's app record (default 2)
+  FAKE_RECEIPTS      the count `offer_check.sh receipts` reports for a window's app record (default 2)
+  FAKE_APP_RECORD    a file in the app's record format: `receipts` then runs the real offer_check.sh receipts on a
+                     capture holding it as app_record_warning.jsonl, with a restart record of pid FAKE_APP_PID (4242)
   FAKE_DESCRIBE_FLAKE   "vm:n"  once any stop call was made, the next n status reads of the VM fail (a transient
                         gcloud error: a token refresh, a network blip)
 """
@@ -51,6 +53,26 @@ SF = os.path.join(D, "state.json")
 argv = sys.argv[1:]
 with open(os.path.join(D, "calls.log"), "a") as f:
     f.write(json.dumps([round(time.time(), 3)] + argv) + "\n")
+
+def receipts_out(c):
+    """The answer of a window's `offer_check.sh receipts <capture> [<restart record>]` step."""
+    rec = os.environ.get("FAKE_APP_RECORD")
+    if not rec:
+        return "RECEIPTS %s\n" % os.environ.get("FAKE_RECEIPTS", "2")
+    import subprocess
+    import tempfile
+    t = tempfile.mkdtemp(dir=D)
+    cap = os.path.join(t, "cap")
+    os.mkdir(cap)
+    shutil.copy(rec, os.path.join(cap, "app_record_warning.jsonl"))
+    args = ["bash", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "remote", "offer_check.sh"),
+            "receipts", cap]
+    if "app_restart_" in c:   # the session names the window's restart record: the fake writes one at its pid
+        with open(os.path.join(t, "restart.txt"), "w") as f:
+            f.write("pid %s 2026-11-19T10:00:00.000Z\n" % os.environ.get("FAKE_APP_PID", "4242"))
+        args.append(os.path.join(t, "restart.txt"))
+    return subprocess.run(args, capture_output=True, text=True).stdout
+
 
 VMS = {  # name: (project, accelerator, internal IP)
     "de4sdv-probe-g4-carla": ("de4sdv-carla-d19a", "nvidia-rtx-pro-6000", "10.10.0.2"),   # carla-net (D5)
@@ -236,7 +258,7 @@ if words[:2] == ["compute", "ssh"]:
         code = int(kv("FAKE_STEP_RC").get(step, 1 if fail else 0))
         if action == "run":
             if " receipts " in c:
-                sys.stdout.write("RECEIPTS %s\n" % os.environ.get("FAKE_RECEIPTS", "2"))
+                sys.stdout.write(receipts_out(c))
             hang = kv("FAKE_HANG_STEP").get(step)
             if hang:
                 save()
@@ -249,7 +271,7 @@ if words[:2] == ["compute", "ssh"]:
         if action == "start":
             st.setdefault("started", {})[key] = time.time()
             if " receipts " in c:
-                st.setdefault("tails", {})[key] = "RECEIPTS %s\n" % os.environ.get("FAKE_RECEIPTS", "2")
+                st.setdefault("tails", {})[key] = receipts_out(c)
             out("started %s pid 4242\n" % step)
         if action == "status":
             # a detached step runs for its FAKE_HANG_STEP seconds from its start (or ends at once), then reports

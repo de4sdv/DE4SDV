@@ -4,13 +4,23 @@
 # earlier run can be on the display. Also records, for this window, the app's APK and both guests' SELinux mode
 # (guest-prep-20261118 report, item 5: getenforce on every run).
 #
-#   app_restart.sh <out_dir> <label>     exit 0 when the app's process runs again; <out_dir>/app_restart_<label>.txt
+#   app_restart.sh <out_dir> <label>     exit 0 when the app's process runs again and has subscribed again;
+#                                        <out_dir>/app_restart_<label>.txt
 #
+# am start -S kills the process the unit gate saw subscribe, so the new process must subscribe again before the
+# window's requests (W2 of the re-check at 437a833b). An IVI-clock mark (`date +%s.%N` on the IVI) is taken right before
+# am start; after the pid check the script waits up to APP_SUBSCRIBE_WAIT_S for the new pid's own
+# `DE4SDV_COLLISION_WARNING: ... phase=link link=SUBSCRIBED` line in the IVI log since that mark (`logcat -d -T`). It
+# decides on the new pid's last link line: SUBSCRIBED passes; a later WAITING or UNAVAILABLE means the link dropped, so
+# it waits on. UNAVAILABLE lines are counted and named, never decisive (the app retries every 5 s). At the bound: FAIL,
+# with the new pid's link lines since the mark. Prints APP_SUBSCRIBED <pid> on a pass.
 # Fails, before the restart, when a guest's SELinux mode is not the session's mark: the SDV Core guest Enforcing, the
 # IVI guest Enforcing, or Permissive with IVI_PERMISSIVE=1 (the session's --permissive-ivi).
 # env: ADB, IVI_ADB (0.0.0.0:6522), CORE_ADB (0.0.0.0:6521), APP_PACKAGE, APP_COMPONENT (both from the session's
-#      entrypoints.env, read from the app's manifest), IVI_PERMISSIVE (0), START_WAIT_S (5), ADB_TO_S (30).
+#      entrypoints.env, read from the app's manifest), IVI_PERMISSIVE (0), START_WAIT_S (5), ADB_TO_S (30),
+#      APP_SUBSCRIBE_WAIT_S (30), POLL_S (1). The session's step bound follows them (da_session.sh T_APP_RESTART).
 set -uo pipefail
+export LC_ALL=C
 OUT=${1:?out dir}; LABEL=${2:?label}; mkdir -p "$OUT"
 : "${AOSP_TOP:=$HOME/aosp}"
 ADB=${ADB:-${ANDROID_HOST_OUT:-$AOSP_TOP/out/host/linux-x86}/bin/adb}
@@ -39,6 +49,10 @@ for g in "core Enforcing" "ivi $WANT_IVI"; do
 done
 echo "selinux core Enforcing, ivi $WANT_IVI: as this session's mark" | tee -a "$REC"
 a shell "svc power stayon true; input keyevent KEYCODE_WAKEUP" > /dev/null 2>&1
+# the IVI's own clock right before am start: the new process's link lines are read since it
+MARK=$(a shell date +%s.%N 2>/dev/null | tr -d '\r')
+[[ "$MARK" =~ ^[0-9]+(\.[0-9]+)?$ ]] || { echo "FAIL no clock read of the IVI guest ('$MARK')" | tee -a "$REC"; exit 1; }
+MARK=$(printf '%.3f' "$MARK"); echo "ivi mark $MARK" | tee -a "$REC"
 START=$(a shell am start -S -W -n "$APP_COMPONENT" 2>&1 | tr -d '\r')
 echo "$START" | sed 's/^/am: /' | tee -a "$REC"
 echo "$START" | grep -q -E '^Error|Exception' && { echo "FAIL am start" | tee -a "$REC"; exit 1; }
@@ -46,4 +60,33 @@ sleep "${START_WAIT_S:-5}"
 PID=$(a shell pidof "$APP_PACKAGE" 2>/dev/null | tr -d '\r')
 echo "pid ${PID:-none} $(date -u +%FT%T.%3NZ)" | tee -a "$REC"
 [ -n "$PID" ] || { echo "FAIL the app's process is not running" | tee -a "$REC"; exit 1; }
+PID=${PID%% *}
+WAIT=${APP_SUBSCRIBE_WAIT_S:-30}
+echo "waiting up to $WAIT s for pid $PID's 'phase=link link=SUBSCRIBED' line (the IVI log since $MARK, the IVI's clock)" \
+  | tee -a "$REC"
+LINKS=$OUT/app_restart_${LABEL}_links.txt
+end=$(( $(date +%s) + WAIT ))
+while :; do
+  # threadtime: <date> <time> <pid> <tid> <level> <tag>: <message>; only the new process's link lines
+  a logcat -d -T "$MARK" 2>/dev/null | tr -d '\r' | grep -F "DE4SDV_COLLISION_WARNING:" \
+    | awk -v p="$PID" '$3 == p' | grep -E " phase=link link=(SUBSCRIBED|UNAVAILABLE|WAITING)( |$)" > "$LINKS"
+  last=$(tail -1 "$LINKS")
+  nun=$(grep -c -E " link=UNAVAILABLE( |$)" "$LINKS")
+  lun=$(grep -E " link=UNAVAILABLE( |$)" "$LINKS" | tail -1); lun=${lun#* detail=}
+  if [[ "$last" =~ \ link=SUBSCRIBED(\ |$) ]]; then
+    [ "${nun:-0}" -gt 0 ] && echo "pid $PID's link was UNAVAILABLE $nun time(s) since the mark (the app retries every" \
+      "5 s); the last: $lun" | tee -a "$REC"
+    echo "$last" | tee -a "$REC"
+    echo "APP_SUBSCRIBED $PID" | tee -a "$REC"
+    break
+  fi
+  if [ "$(date +%s)" -gt "$end" ]; then   # -gt: at least the whole bound, whatever the second it started in
+    lastl=${last#* link=}; [ -n "$last" ] || lastl="none since the mark"
+    { echo "FAIL no 'phase=link link=SUBSCRIBED' line of the restarted app (pid $PID) within $WAIT s since the mark" \
+        "(last link line: $lastl; UNAVAILABLE lines since the mark: ${nun:-0}${lun:+; the last: $lun})"
+      echo "# pid $PID's link lines since the mark:"; cat "$LINKS"; } | tee -a "$REC"
+    exit 1
+  fi
+  sleep "${POLL_S:-1}"
+done
 echo "APP_RESTARTED $LABEL"
