@@ -17,8 +17,9 @@
 #                                    counts the lines of the app's records in a window's capture; prints
 #                                    "RECEIPTS <n>" and exits 0 either way (the session says it loudly when 0)
 # The unit, the service id and the broker's tag come from the bench's interfaces/service_ids.json. The texts of the
-# broker's lines are not known from a run yet: UNIT_REGISTERED_RE (default "regist"), UNIT_NEGATION_RE (default
-# "unregist|deregist|not regist|fail|error|refus|denied|reject|timed out|timeout") and BROKER_ERROR_RE (default
+# broker's lines are not known from a run yet: UNIT_REGISTERED_RE (default "regist"), UNIT_NEGATION_RE (default: a
+# negation tied to the verb, NEG_DEFAULT below: "unregistered", "failed to register", "registration ... failed")
+# and BROKER_ERROR_RE (default
 # " E someip_broker_agent| E SomeIpBroker") are the bench's guess, and the matched lines are kept as evidence. The
 # session passes changed values per session (session/README.md, per-session settings).
 # env: ADB, CORE_ADB (0.0.0.0:6521), IVI_ADB (0.0.0.0:6522), BR (cvd-ebr), GUEST_IF (eth1), UNIT_WAIT_S (120),
@@ -68,7 +69,12 @@ case "$ACTION" in
 print(d["icd"]["data_tunnel"]["service_unit"], d["icd"]["someip_warning_request"]["service_id"])' "$IDS") \
       || { echo "FAIL cannot read $IDS"; exit 1; }
     SVC=${SERVICE#0x}; RE=${UNIT_REGISTERED_RE:-regist}
-    NEG=${UNIT_NEGATION_RE:-unregist|deregist|not regist|fail|error|refus|denied|reject|timed out|timeout}
+    # the negation is tied to the verb (S8): "unregistered", "failed to register", "registration ... failed"; a word
+    # like "timeout" or "errors=0" elsewhere in a registration line is no negation (a false fail costs a paid P10-3).
+    # Still a guess of the broker's lines: changed per session through --remote-env UNIT_NEGATION_RE=...
+    NEG_DEFAULT="(un|de|not |non-?)regist|(fail(s|ed)?|unable|cannot|can't|could not|couldn't) (to )?regist"
+    NEG_DEFAULT="$NEG_DEFAULT|regist[a-z]*( [^ ]+){0,3} (failed|refused|denied|rejected|timed out)"
+    NEG=${UNIT_NEGATION_RE:-$NEG_DEFAULT}
     ERR_RE=${BROKER_ERROR_RE:- E someip_broker_agent| E SomeIpBroker}
     echo "unit $UNIT service $SERVICE; waiting up to ${UNIT_WAIT_S:-120} s for a line naming the unit matching /$RE/" \
       "and not /$NEG/; the log since ${SINCE:-boot}"

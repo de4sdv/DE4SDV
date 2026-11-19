@@ -372,6 +372,9 @@ def test_guest_up_creates_fresh_guests_and_sets_permissive_only_when_marked(tmp_
     "I SomeIpBroker: unit {unit} unregistered",
     "W SomeIpBroker: unit {unit} not registered: no provider of 0x4df1 yet",
     "W SomeIpBroker: failed to register unit {unit}",
+    "W SomeIpBroker: registration of unit {unit} failed",
+    "W SomeIpBroker: unit {unit} registration timed out",
+    "W SomeIpBroker: could not register unit {unit}",
 ])
 def test_the_unit_check_refuses_a_negated_registration(tmp_path: Path, fake, line: str) -> None:
     # R7: a line naming the unit and "regist" that says the opposite is no registration
@@ -379,6 +382,30 @@ def test_the_unit_check_refuses_a_negated_registration(tmp_path: Path, fake, lin
     unit, _ = _ids()
     (d / "logcat").write_text("11-19 08:00:00.000 1 2 " + line.format(unit=unit) + "\n")
     p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_WAIT_S="0"))
+    assert p.returncode == 1 and "no registration" in p.stdout, p.stdout
+
+
+@pytest.mark.parametrize("line", [
+    "I SomeIpBroker: registered unit {unit} (subscription timeout 5000 ms)",
+    "I SomeIpBroker: registered unit {unit}, errors=0",
+    "I SomeIpBroker: unit {unit} registered; no failover configured",
+])
+def test_the_unit_check_passes_a_registration_line_that_merely_names_a_failure_word(tmp_path: Path, fake,
+                                                                                    line: str) -> None:
+    # S8: the negation matched "timeout", "error", "fail" anywhere in the line; a false fail costs a paid P10-3
+    d, env = fake
+    unit, _ = _ids()
+    (d / "logcat").write_text("11-19 08:00:00.000 1 2 " + line.format(unit=unit) + "\n")
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"), env=dict(env, UNIT_WAIT_S="0"))
+    assert p.returncode == 0 and f"UNIT_REGISTERED {unit}" in p.stdout, p.stdout
+
+
+def test_the_unit_check_negation_is_a_per_session_setting(tmp_path: Path, fake) -> None:
+    d, env = fake
+    unit, _ = _ids()
+    (d / "logcat").write_text(f"11-19 08:00:00.000 1 2 I SomeIpBroker: registered unit {unit} (degraded)\n")
+    p = sh(str(REMOTE / "offer_check.sh"), "unit", str(tmp_path / "o"),
+           env=dict(env, UNIT_WAIT_S="0", UNIT_NEGATION_RE="degraded"))
     assert p.returncode == 1 and "no registration" in p.stdout, p.stdout
 
 
