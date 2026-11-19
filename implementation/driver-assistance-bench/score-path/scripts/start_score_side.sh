@@ -25,6 +25,10 @@
 #    image: the world holds its first tick until the session's go file, which the session writes after this start
 #    returns, within the candidate's ready timeout of 420 s (launch-manager/README.md "What the session must do").
 # 4. Writes the state ($DA_STAGE/state/score_side.env, a copy in <out>) for stop_score_side.sh and the other entries.
+# 5. Records what the candidate and the adapter read: the staged vision_pilot.conf (speed_limit from DA_SPEED_LIMIT,
+#    the session's value of the run's setting, else upstream's) as <out>/vision_pilot.conf, and score_config.json with
+#    its values, hero_wait_s and the conf's sha256 beside the identity record's (score_config_record.py), printed as one
+#    SCORE_CONFIG line for the session.
 #
 # Exit status: 0 up; 2 usage; 3 staging failed; 4 already running; 5 the Launch Manager ended; 6 not up in time
 # (then stop_score_side.sh collects what there is).
@@ -145,5 +149,10 @@ RECORD_SHA256=$(echo "$record" | sed -n 's/.*"sha256":"\([0-9a-f]\{64\}\)".*/\1/
 $DA_SUDO cp "$OUT/score_side_state.env" "$SCORE_SIDE_STATE"
 ss_log "S-CORE side up (mode $MODE): $(grep '^PID_' "$OUT/score_side_state.env" | tr '\n' ' ')"
 ss_log "candidate record sha256 $RECORD_SHA256"
+# what the candidate and the adapter read, beside the identity record's hash of the conf: the staged conf itself and
+# score_config.json in <out>, one SCORE_CONFIG line for the session (session.json score_runs.<run>.staged)
+cp "$DA_STAGE/vision_pilot/config/vision_pilot.conf" "$OUT/vision_pilot.conf"
+"$DA_PYTHON" "$HERE/score_config_record.py" "$DA_STAGE" "$OUT/score_config.json" "${DA_SPEED_LIMIT:-}" \
+  || ss_log "score_config_record failed: no SCORE_CONFIG line"
 [ "$MODE" = full ] && ss_log "the candidate reports running after its first pass with a result: start the world pacer within 420 s"
 exit 0

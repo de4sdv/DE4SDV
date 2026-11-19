@@ -571,3 +571,47 @@ def test_the_adapter_waits_for_the_hero_across_the_sessions_go_limit_and_reports
     hero_wait_s = json.loads(ADAPTER_JSON.read_text())["hero_wait_s"]
     assert go_limit + 20 <= hero_wait_s <= ready_ms["actuation_adapter"] / 1000 - 20, hero_wait_s
     assert hero_wait_s == 400.0
+
+
+# --- F2 of the first recorded p10-2: speed_limit per run, recorded --------------------------------------------------
+
+
+def test_the_start_stages_the_runs_speed_limit_and_records_what_the_candidate_reads(bench: dict, tmp_path: Path) -> None:
+    """The model asks that speed_limit be set per scenario by System 2 (PSR, VisionPilotSCOREApplication); the session
+    gives each run's value as DA_SPEED_LIMIT. The start records the staged conf's values, the adapter's hero wait and
+    the conf's sha256 beside the one the identity record hashed, in <out>/score_config.json and one SCORE_CONFIG line
+    of its log; <out>/vision_pilot.conf is the staged file itself, so the fetched files carry the value."""
+    out = tmp_path / "out"
+    started = run(START, str(out), "10.164.0.2", env={**bench["env"], "DA_SPEED_LIMIT": "5.833"})
+    try:
+        assert started.returncode == 0, started.stdout + started.stderr
+        staged = bench["stage"] / "vision_pilot" / "config" / "vision_pilot.conf"
+        assert (out / "vision_pilot.conf").read_bytes() == staged.read_bytes()
+        digest = hashlib.sha256(staged.read_bytes()).hexdigest()
+        record = json.loads((bench["stage"] / "run" / "score" / "candidate_record.json").read_text())
+        recorded = [f["sha256"] for f in record["configuration_files"] if f["path"] == str(staged)]
+        assert recorded == [digest]
+        cfg = json.loads((out / "score_config.json").read_text())
+        assert cfg["vision_pilot_conf"] == {"source.mode": "score", "engine.provider": "cuda", "model.precision": "fp32",
+                                            "visualization_on": "false", "rrd_on": "true", "speed_limit": "5.833"}
+        assert cfg["speed_limit_requested"] == "5.833" and cfg["hero_wait_s"] == 400.0
+        assert cfg["vision_pilot_conf_sha256"] == digest and cfg["identity_record_conf_sha256"] == digest
+        assert cfg["identity_record_carries_the_staged_conf"] is True
+        line = [x for x in started.stdout.splitlines() if "SCORE_CONFIG " in x][-1]
+        words = dict(w.split("=", 1) for w in line.split("SCORE_CONFIG ", 1)[1].split())
+        assert words["speed_limit"] == "5.833" and words["hero_wait_s"] == "400.0" and words["rrd_on"] == "true"
+        assert words["conf_recorded"] == "1" and words["conf_sha256"] == digest and "," not in line
+    finally:
+        run(STOP, str(out), env=bench["env"])
+
+
+def test_a_start_without_a_speed_limit_says_upstreams_value_stays(bench: dict, tmp_path: Path) -> None:
+    out = tmp_path / "out"
+    started = run(START, str(out), "10.164.0.2", env=bench["env"])
+    try:
+        assert started.returncode == 0, started.stdout + started.stderr
+        cfg = json.loads((out / "score_config.json").read_text())
+        assert cfg["speed_limit_requested"] is None and cfg["vision_pilot_conf"]["speed_limit"] == "33.3"
+        assert "SCORE_CONFIG speed_limit=33.3 speed_limit_requested=none" in started.stdout
+    finally:
+        run(STOP, str(out), env=bench["env"])

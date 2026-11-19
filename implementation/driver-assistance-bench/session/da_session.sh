@@ -742,6 +742,19 @@ try:
     precheck = json.loads(e["CAMCAL_PRECHECK"]) if e["CAMCAL_PRECHECK"] else None
 except ValueError:
     precheck = None
+score_runs = {}
+try:
+    for line in open(os.path.join(e["IN"], "score_runs.tsv"), encoding="utf-8"):
+        run, key, value = (line.rstrip("\n").split("\t", 2) + ["", ""])[:3]
+        score_runs.setdefault(run, {})[key] = value
+except OSError:
+    pass
+for run, d in score_runs.items():
+    for key in ("speed_limit_mps", "run_cap_s"):
+        if key in d:
+            d[key] = float(d[key])
+    if "staged" in d:   # the start's SCORE_CONFIG words; None: the start printed none
+        d["staged"] = dict(w.split("=", 1) for w in d["staged"].split() if "=" in w) or None
 renv = {}
 for line in e["RENV"].splitlines():
     role, name, value = (line.split("\t", 2) + ["", ""])[:3]
@@ -766,6 +779,7 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
                                  "stop_killed": rc == "7"}
                            for run, step, rc in (x.split(":", 2) for x in e["STOPS"].split())},
            "p10_1": json.load(open(p10_1)) if os.path.exists(p10_1) else None,
+           "score_runs": score_runs if e["KIND"] == "p10-2" else None,
            "app_record_receipts": {w: (int(n) if n.isdigit() else None)
                                    for w, n in (x.split("=", 1) for x in e["RECEIPTS"].split() if "=" in x)},
            "step_ended_by_term": {"host": e["TERMED_STEP"], "step": e["TERMED_NAME"],
@@ -898,6 +912,23 @@ for r in "${ROLES[@]}"; do
     --format='value(name,guestAccelerators[0].acceleratorType.basename())' 2>/dev/null | awk -F'\t' -v me="$(var "$r" VM)" '$2 != "" && $1 != me {print $1}')
   [ -z "$OTHER" ] || fail 2 "refused: GPU VM(s) running in $(var "$r" PROJECT): $OTHER (one GPU per project)"
 done
+# each run's setting and speed_limit (F2), from world-side/scenarios.py through run_setting.py, before any VM starts;
+# score_runs.tsv holds what session.json's score_runs says per run: <run> <key> <value>
+declare -A RUN_SET=() RUN_SPEED=() RUN_CAP=()
+srun() { printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$IN/score_runs.tsv"; }
+plan_run() {   # plan_run <label> <scenario> <setting>
+  local line id sp cap lo hi
+  line=$(python3 "$HERE/run_setting.py" "$2" "$3" 2>&1) || fail 2 "refused: no setting for $1 ($2 $3): $line"
+  read -r id sp cap lo hi <<< "$line"
+  RUN_SET[$1]=$id; RUN_SPEED[$1]=$sp; RUN_CAP[$1]=$cap
+  srun "$1" setting "$id"; srun "$1" speed_limit_mps "$sp"; srun "$1" run_cap_s "$cap"
+  srun "$1" speed_limit_source "world-side/scenarios.py $id: the middle of its tolerance $lo to $hi km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)"
+  log "run $1: setting $id, the candidate's speed_limit $sp m/s (the middle of $lo to $hi km/h), run cap $cap s"
+}
+if [ "$KIND" = p10-2 ]; then
+  [ "$P10_2_CALIB_STEER" = 1 ] && plan_run calib_steer ASM-DRIVING-006 "$P10_2_SETTING"
+  for _n in $(seq 1 "$P10_2_RUNS"); do plan_run "run$_n" "$P10_2_SCENARIO" "$P10_2_SETTING"; done
+fi
 EUR_H=0; for r in "${ROLES[@]}"; do EUR_H=$(awk -v a="$EUR_H" -v b="$(var "$r" EUR_H)" 'BEGIN{print a+b}'); done
 CAP_S=$(awk -v c="$CAP" -v h="$EUR_H" 'BEGIN{printf "%d", c / h * 3600}')
 log "preflight ok: hosts ${ROLES[*]} at $EUR_H EUR/h together; the cap of $CAP EUR is $CAP_S s of all of them"
@@ -1103,6 +1134,23 @@ window_close() {
     log "window $w: $n receipt event(s) in the app's record since the window's app start"
   fi
 }
+score_config_check() {   # score_config_check <label> <the start's SCORE_CONFIG line>: the staged conf carries the
+  # run's speed_limit and the identity record hashes that conf, before the go; recorded either way
+  local w=$1 cfg=${2#SCORE_CONFIG } x sp="" recd=""
+  if [ -z "$2" ]; then
+    srun "$w" staged ""
+    [ "$DRY" = 1 ] || { STEP_FAIL="score_start_$w"; abort 5 "no SCORE_CONFIG line from the S-CORE start of $w: its speed_limit is not shown staged"; }
+    log "speed_limit ${RUN_SPEED[$w]} m/s for $w requested; the start printed no SCORE_CONFIG line (the dry run's stub)"
+    return 0
+  fi
+  srun "$w" staged "$cfg"
+  for x in $cfg; do case "$x" in speed_limit=*) sp=${x#*=} ;; conf_recorded=*) recd=${x#*=} ;; esac; done
+  if [ "$sp" != "${RUN_SPEED[$w]}" ] || [ "$recd" != 1 ]; then
+    STEP_FAIL="score_start_$w"
+    abort 5 "the staged vision_pilot.conf of $w does not carry the run's speed limit ${RUN_SPEED[$w]} m/s, or the identity record does not hash it: $cfg"
+  fi
+  log "speed_limit ${RUN_SPEED[$w]} m/s for $w staged, and the identity record hashes that vision_pilot.conf: $cfg"
+}
 world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another run follows 0|1>: one run with its own
   # S-CORE side
   local w=$1 sc=$2 se=$3 rec=$4 more=${5:-0} o; o=$(od "world_$w")
@@ -1115,9 +1163,13 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another
   # the go clock starts before the start step: the candidate's ready time-out runs from its process start inside
   # that step, which this host sees end only a poll later (S5); so the bound errs early, never late
   local t_up; t_up=$(date +%s)
-  rstep score "score_start_$w" "$T_SCORE_START" env "DA_CAMERA_CALIBRATION_DIR=$CAMCAL_DIR" bash "$ENTRY_SCORE_START" \
-    "$(od "score_$w")" "$CARLA_HOST"
+  # speed_limit from the run's setting (F2 of 20261119T174606Z: the model has System 2 set it per scenario, PSR
+  # VisionPilotSCOREApplication; the bench left upstream's 33.3 m/s and the car reached 108.9 km/h)
+  rstep score "score_start_$w" "$T_SCORE_START" env "DA_CAMERA_CALIBRATION_DIR=$CAMCAL_DIR" \
+    "DA_SPEED_LIMIT=${RUN_SPEED[$w]}" bash "$ENTRY_SCORE_START" "$(od "score_$w")" "$CARLA_HOST"
+  local cfg; cfg=$(grep -o 'SCORE_CONFIG .*' <<< "$ROUT" | tail -1)
   SCORE_UP=$(od "score_$w")
+  score_config_check "$w" "$cfg"
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then offer_checks "$w"; window_open "$w"; fi
   # the candidate gives up on the world after its 420 s ready time-out: a later go reads as a supervision failure
   # (rule 31), so the run is refused, the world side ended and the S-CORE side stopped (R14)

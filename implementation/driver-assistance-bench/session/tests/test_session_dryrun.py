@@ -1878,3 +1878,44 @@ def test_p1_with_the_capture_and_score_stops_at_their_bounds_the_guest_host_is_s
     assert rec["display_capture"]["run1"]["closed_by"] == "session end", rec["display_capture"]
     assert "pre-stop phase's bound reached" not in r.log, r.log
     assert_invariants(r)
+
+
+# ------------------------------------------------------- F2 of the first recorded p10-2: speed_limit per run
+# The model (PSR VisionPilotSCOREApplication) asks that speed_limit be set per scenario by System 2. The setting
+# SC-DRIVING-012@20 has the tolerance 20 to 22 km/h (world-side/scenarios.py, the model's settings); its middle,
+# 21 km/h, is 5.833 m/s. calib_steer (ASM-DRIVING-006 on that setting's road and vehicle) takes the same value.
+SPEED_20 = 5.833
+
+
+def test_p10_2_sets_each_runs_speed_limit_from_its_setting_and_records_it(tmp_path: Path) -> None:
+    staged = ("SCORE_CONFIG speed_limit=5.833 speed_limit_requested=5.833 hero_wait_s=400.0 source.mode=score "
+              "engine.provider=cuda model.precision=fp32 visualization_on=false rrd_on=true conf_sha256=" + "a" * 64
+              + " conf_recorded=1")
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_TAIL_ADD=f"score_start_run1:{staged}")
+    assert r.rc == 0, r.log
+    starts = r.ssh(L4, "start score_start_")
+    assert len(starts) == 3
+    for i in starts:
+        assert f"DA_SPEED_LIMIT={SPEED_20}" in r.command(i).split(), r.command(i)
+    rec = json.loads((r.incoming / "session.json").read_text())
+    runs = rec["score_runs"]
+    assert set(runs) == {"calib_steer", "run1", "run2"}, runs
+    for w in runs:
+        assert runs[w]["setting"] == "SC-DRIVING-012@20" and runs[w]["speed_limit_mps"] == SPEED_20, runs[w]
+        assert "20" in runs[w]["speed_limit_source"] and "22" in runs[w]["speed_limit_source"], runs[w]
+    assert runs["run1"]["staged"]["speed_limit"] == "5.833" and runs["run1"]["staged"]["hero_wait_s"] == "400.0"
+    assert runs["run1"]["staged"]["conf_recorded"] == "1"
+    # the stub start printed no SCORE_CONFIG line for the other runs: recorded as unknown, never guessed
+    assert runs["run2"]["staged"] is None and runs["calib_steer"]["staged"] is None
+    assert "speed_limit 5.833 m/s for run1" in r.log
+
+
+def test_p10_2_a_staged_conf_without_the_runs_speed_limit_ends_the_session_before_the_go(tmp_path: Path) -> None:
+    staged = "SCORE_CONFIG speed_limit=33.3 speed_limit_requested=5.833 hero_wait_s=400.0 conf_recorded=1"
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_TAIL_ADD=f"score_start_calib_steer:{staged}")
+    assert r.rc == 5, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["failed_step"] == "score_start_calib_steer", rec["failed_step"]
+    assert "does not carry the run's speed limit" in r.log
+    assert not r.ssh(G4, "world_calib_steer/go")
+    assert_invariants(r)

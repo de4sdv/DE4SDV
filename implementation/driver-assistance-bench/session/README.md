@@ -84,6 +84,23 @@ unit, `am start -S`, the IVI clock, the capture), the go file, `run_end.json`, t
 still ticks, the release file, the world side and the recorder end, the capture ends. The session log's last
 `SEQUENCE` line lists every step in order; `tests/test_session_dryrun.py` pins it for each kind.
 
+### What each `p10-2` run records
+
+Each run's facts go to `session.json` `score_runs.<run>` (`calib_steer`, `run1`, `run2`):
+
+- **The candidate's `speed_limit`.** The model has System 2 set it per scenario (PSR
+  `VisionPilotSCOREApplication`). Before any VM starts, `run_setting.py` takes each run's setting from
+  `../world-side/scenarios.py`: `SC-DRIVING-012@20` (calib_steer runs on that setting's road and vehicle), with the
+  tolerance 20 to 22 km/h. The value is that file's proposal, the middle of the tolerance: 21 km/h, 5.833 m/s
+  (`Setting.speed_limit_mps`, also in the world side's setting record). The session gives it to the S-CORE start as
+  `DA_SPEED_LIMIT`. Why: the first recorded `p10-2` (20261119T174606Z) left upstream's 33.3 m/s, and in calib_steer
+  the car reached 108.9 km/h.
+- **What was staged.** The start prints one `SCORE_CONFIG` line: the staged `vision_pilot.conf` values, `hero_wait_s`
+  of `adapter.json`, the conf's sha256 and whether the identity record hashes that same file. The session records
+  it in `staged`, and ends the session before the go (exit 5, `failed_step` `score_start_<run>`) when the value is
+  not the run's or the identity record does not hash the staged conf. The fetched `score_<run>/vision_pilot.conf`
+  and `score_<run>/score_config.json` carry the same.
+
 The order of `p10-3` is the one the guest host's operator gave on 2026-11-18 (`guest-prep-20261118`): the VXLAN up,
 the offer, the multicast route, then the unit gate, then the IVI clock just before the window. Before the S-CORE
 side starts, the session marks both guests' clocks (`logmark_<w>`), each on its own clock: the SDV Core guest's into
@@ -531,7 +548,7 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | Variable | Host | Arguments | Owner | Contract |
 |---|---|---|---|---|
 | `ENTRY_SCORE_P10_1` | S-CORE | `<out>`; env `DA_P10_1_CARLA_HOST` (`p10-1`: the simulator host's address, set by the session) | S-CORE build lane | the build check, the clip replay, the late subscriber; its verdicts in `<out>`; started after the world's go, so its full start finds a ticking world |
-| `ENTRY_SCORE_START` | S-CORE | `<out> <carla_host or none>`; env `DA_CAMERA_CALIBRATION_DIR` (`p10-2`) | Launch Manager lane | starts the Launch Manager with its processes (identity recorder first); copies `H.yaml` and `homography_C_matrix.yaml` from `DA_CAMERA_CALIBRATION_DIR` into the candidate's working directory before the identity record; returns 0 when they run, without waiting for a camera image (the world holds its first tick until the session's go file); called once per run, each with its own `<out>`; someipd offers 0x4df1 |
+| `ENTRY_SCORE_START` | S-CORE | `<out> <carla_host or none>`; env `DA_CAMERA_CALIBRATION_DIR` and `DA_SPEED_LIMIT` (`p10-2`) | Launch Manager lane | starts the Launch Manager with its processes (identity recorder first); copies `H.yaml` and `homography_C_matrix.yaml` from `DA_CAMERA_CALIBRATION_DIR` into the candidate's working directory before the identity record; stages `speed_limit` from `DA_SPEED_LIMIT` and prints one `SCORE_CONFIG` line once up; returns 0 when they run, without waiting for a camera image (the world holds its first tick until the session's go file); called once per run, each with its own `<out>`; someipd offers 0x4df1 |
 | `ENTRY_SCORE_INJECT` | S-CORE | `<out>` | warning-app lane | `p10-3`: publishes test warning requests on the candidate's mw::com event; returns when done |
 | `ENTRY_SCORE_STOP` | S-CORE | `<out>` (the start's) | Launch Manager lane | ends the processes (SIGTERM, so the candidate's `.rrd` and the visualization file are finished) and collects their files; the world still ticks meanwhile |
 | `ENTRY_SIM_SETUP` | simulator | `<out>` | this lane: `remote/sim_setup.sh` | CARLA server up on port 2000, NVENC test, free disk; the world side's map (`WORLD_MAP` of `world-side/scripts/common.sh`) in the server's `get_available_maps()`, or it fails naming the AdditionalMaps pack (`world-side/README.md`, "The maps pack") |
