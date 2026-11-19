@@ -115,6 +115,7 @@ echo "host $(hostname) $(nproc) vCPU $(free -g | awk '/Mem:/{print $2}') GB RAM,
 (cd "$BENCH/score-interface/patches" && sha256sum -c SHA256SUMS) || die "the patch series differs from its SHA256SUMS"
 for f in "$BENCH/actuation-adapter/BUILD.bazel" "$BENCH/interfaces/include/de4sdv/driver_assistance/payloads.h" \
          "$BENCH/score-path/config/gateway_overlay.BUILD.bazel" "$BENCH/launch-manager/config/launch_manager_config.json" \
+         "$BENCH/score-path/config/launch_manager_config_path_only.json" \
          "$REPO/implementation/closed-loop-driving-bench/agent/workspace/feo-313b3d84-bench.diff"; do
   [ -f "$f" ] || die "missing $f; run from a full checkout of the repository"
 done
@@ -517,7 +518,8 @@ cp "$HERE/workspace/visionpilot.BUILD.bazel" "$WS/visionpilot/BUILD.bazel"
 cp -a "$BENCH/interfaces/include" "$OVERLAY/interfaces/"
 cp "$HERE/workspace/interfaces.BUILD.bazel" "$OVERLAY/interfaces/BUILD.bazel"
 (cd "$BENCH/actuation-adapter" && tar --exclude='.build' --exclude='__pycache__' -cf - .) | tar -xf - -C "$OVERLAY/actuation-adapter"
-cp "$BENCH/launch-manager/config/launch_manager_config.json" "$OVERLAY/launch-manager/"
+cp "$BENCH/launch-manager/config/launch_manager_config.json" "$BENCH/score-path/config/launch_manager_config_path_only.json" \
+  "$OVERLAY/launch-manager/"
 cp "$HERE/workspace/launch_manager.BUILD.bazel" "$OVERLAY/launch-manager/BUILD.bazel"
 cp "$HERE/workspace/BUILD.bazel" "$HERE/workspace/ort_cuda_check.cpp" "$OVERLAY/score-build/workspace/"
 cp "$CB/libcarla10.BUILD" "$ROOT/thirdparty.BUILD" "$OVERLAY/score-build/workspace/"
@@ -525,7 +527,8 @@ cp "$H" "$OVERLAY/score-build/workspace/gateway_include/score/serializer/"
 # the identity recorder (lane B4) joins TARGETS and the bundle once its package exists
 TARGETS=(//visionpilot:VisionPilot //de4sdv_da_bench/actuation-adapter:actuation_adapter
          //de4sdv_da_bench/score-build/workspace:ort_cuda_check
-         @score_lifecycle//score/launch_manager:launch_manager //de4sdv_da_bench/launch-manager:de4sdv_lm_config)
+         @score_lifecycle//score/launch_manager:launch_manager //de4sdv_da_bench/launch-manager:de4sdv_lm_config
+         //de4sdv_da_bench/launch-manager:de4sdv_lm_config_path_only)
 start=$(date +%s)
 if ! bazel_feo build --config=x86_64-linux -c opt --jobs="$JOBS" --features=-treat_warnings_as_errors "${TARGETS[@]}" \
     > "$ROOT/logs/score-bazel.log" 2>&1; then
@@ -564,10 +567,15 @@ cp -L "$SB/de4sdv_da_bench/actuation-adapter/actuation_adapter" \
 LMD=$(find -L "$SB/external" -path '*score_lifecycle*/score/launch_manager/src/daemon/launch_manager' -type f -print -quit)
 [ -n "$LMD" ] || die "no launch_manager daemon under $SB/external"
 cp -L "$LMD" "$B/bin/launch_manager"
-LMC=$(find -L "$SB/de4sdv_da_bench/launch-manager" -name 'launch_manager_config.bin' -type f -print -quit)
-[ -n "$LMC" ] || die "no launch_manager_config.bin under $SB/de4sdv_da_bench/launch-manager"
-cp -L "$LMC" "$B/config/launch_manager/"
-cp "$BENCH/launch-manager/config/launch_manager_config.json" "$B/config/launch_manager/"
+# each .bin beside the JSON it was converted from: score-path/scripts/stage_score_side.py stages a .bin only when
+# that JSON is the bench's file of the mode (full; path: the warning path only, P10-3 and p10-1's late subscriber)
+for c in launch_manager_config launch_manager_config_path_only; do
+  LMC=$(find -L "$SB/de4sdv_da_bench/launch-manager" -name "$c.bin" -type f -print -quit)
+  [ -n "$LMC" ] || die "no $c.bin under $SB/de4sdv_da_bench/launch-manager"
+  cp -L "$LMC" "$B/config/launch_manager/"
+done
+cp "$BENCH/launch-manager/config/launch_manager_config.json" "$BENCH/score-path/config/launch_manager_config_path_only.json" \
+  "$B/config/launch_manager/"
 cp "$BENCH/actuation-adapter/mw_com_config_actuation_adapter.json" "$BENCH/actuation-adapter/config/adapter.json" \
    "$B/config/actuation_adapter/"
 cp -L "$GB/score/gatewayd/gatewayd" "$GB/score/someipd/someipd" "$B/bin/"
@@ -582,6 +590,12 @@ VL=$(dirname "$VS")
 cp -L "$VL"/libvsomeip3*.so.3 "$B/lib/"
 cp -L "$GB/de4sdv_driver_assistance/someip_gateway_config_warning.bin" "$BENCH"/score-path/config/*.json "$B/config/gateway/"
 cp -a "$VP/VisionPilot/config/." "$B/config/visionpilot/"
+# homography_C_matrix.yaml, which the candidate also reads (image_preprocessor.cpp:7), is no file at the pin: upstream's
+# CMake build derives it from config/H.yaml with scripts/find_homography_C_matrix.py (CMakeLists.txt:49-53), which
+# reads ../config/H.yaml from its working directory. Mode path and p10-1 stage it (score-path/scripts/README.md).
+(cd "$VP/VisionPilot/scripts" && /usr/bin/python3 find_homography_C_matrix.py \
+   --output "$B/config/visionpilot/homography_C_matrix.yaml") > "$ROOT/logs/homography_C_matrix.log" 2>&1 \
+  || die "find_homography_C_matrix.py failed (logs/homography_C_matrix.log; it needs python3-opencv and python3-numpy)"
 cp -a "$VP/VisionPilot/assets" "$B/share/visionpilot/assets"
 mkdir -p "$B/share/visionpilot/modules/models/weights"
 cp "$ROOT"/src/vp-pin/VisionPilot/modules/models/weights/*.onnx "$B/share/visionpilot/modules/models/weights/"

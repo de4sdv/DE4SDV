@@ -366,7 +366,40 @@ def test_labels_the_bench_packages_need_are_provided() -> None:
     lm_build = (BUILD_DIR / "workspace" / "launch_manager.BUILD.bazel").read_text()
     assert 'load("@score_lifecycle//:defs.bzl", "launch_manager_config")' in lm_build
     assert 'name = "de4sdv_lm_config"' in lm_build and 'config = "launch_manager_config.json"' in lm_build
-    assert 'cp "$BENCH/launch-manager/config/launch_manager_config.json" "$OVERLAY/launch-manager/"' in script
+    assert ('cp "$BENCH/launch-manager/config/launch_manager_config.json" '
+            '"$BENCH/score-path/config/launch_manager_config_path_only.json" \\\n  "$OVERLAY/launch-manager/"') in script
+
+
+def test_the_bundle_carries_both_serialized_configurations_beside_their_json() -> None:
+    """The path-only configuration (mode path: P10-3 and p10-1's late subscriber) is converted by the same Lifecycle
+    v0.10.0 rule as the full one, in its own flatbuffer_out_dir (the rule declares that directory in the package),
+    and each .bin lands in config/launch_manager/ beside the JSON it was converted from, which
+    score-path/scripts/stage_score_side.py checks against the bench's file of the mode."""
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    lm_build = (BUILD_DIR / "workspace" / "launch_manager.BUILD.bazel").read_text()
+    targets = re.findall(r'launch_manager_config\(\s*name = "([^"]+)",\s*config = "([^"]+)",'
+                         r'(?:\s*flatbuffer_out_dir = "([^"]+)",)?\s*\)', lm_build)
+    assert [(n, c) for n, c, _ in targets] == [("de4sdv_lm_config", "launch_manager_config.json"),
+                                               ("de4sdv_lm_config_path_only", "launch_manager_config_path_only.json")]
+    assert len({d or "flatbuffer_out" for _, _, d in targets}) == 2
+    for name, _, _ in targets:
+        assert f"//de4sdv_da_bench/launch-manager:{name}" in script
+    bundle = script[script.index("step bundle"):]
+    assert "for c in launch_manager_config launch_manager_config_path_only; do" in bundle
+    assert ('cp "$BENCH/launch-manager/config/launch_manager_config.json" '
+            '"$BENCH/score-path/config/launch_manager_config_path_only.json" \\\n  "$B/config/launch_manager/"') in bundle
+    assert (BENCH / "score-path" / "config" / "launch_manager_config_path_only.json").is_file()
+
+
+def test_the_bundle_carries_upstreams_derived_c_matrix() -> None:
+    """upstream's CMake build derives config/homography_C_matrix.yaml from H.yaml (find_homography_C_matrix.py, which
+    reads ../config/H.yaml); the bundle makes it the same way, since mode path stages the bundle's calibration."""
+    script = (BUILD_DIR / "build_score_bench.sh").read_text()
+    bundle = script[script.index("step bundle"):]
+    assert ('(cd "$VP/VisionPilot/scripts" && /usr/bin/python3 find_homography_C_matrix.py \\\n'
+            '   --output "$B/config/visionpilot/homography_C_matrix.yaml")') in bundle
+    pins = (BUILD_DIR / "pins.sh").read_text()
+    assert "python3-opencv" in pins and "python3-numpy" in pins
 
 
 def added_lines_of_bench_diff() -> str:

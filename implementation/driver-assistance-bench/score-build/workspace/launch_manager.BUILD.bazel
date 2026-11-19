@@ -1,6 +1,6 @@
 # DE4SDV driver-assistance bench (INC-DRIVING-002): BUILD.bazel of the package //de4sdv_da_bench/launch-manager in
-# the S-CORE workspace. build_score_bench.sh stages the bench's launch-manager/config/launch_manager_config.json there
-# with this file.
+# the S-CORE workspace. build_score_bench.sh stages the bench's launch-manager/config/launch_manager_config.json and
+# score-path/config/launch_manager_config_path_only.json there with this file.
 #
 # launch_manager_config is S-CORE Lifecycle v0.10.0's own rule (@score_lifecycle//:defs.bzl): it validates the JSON
 # against the Launch Manager schema of that version, maps it (scripts/config_mapping/lifecycle_config.py) and
@@ -11,4 +11,13 @@ load("@score_lifecycle//:defs.bzl", "launch_manager_config")
 launch_manager_config(
     name = "de4sdv_lm_config",
     config = "launch_manager_config.json",
+)
+
+# The path-only configuration of mode path (P10-3, p10-1's late subscriber), derived from the full one by
+# score-path/scripts/derive_path_only_config.py and staged here from score-path/config/. The same rule; its own
+# flatbuffer_out_dir, because the rule declares that directory in the package and two targets cannot share it.
+launch_manager_config(
+    name = "de4sdv_lm_config_path_only",
+    config = "launch_manager_config_path_only.json",
+    flatbuffer_out_dir = "flatbuffer_out_path_only",
 )
