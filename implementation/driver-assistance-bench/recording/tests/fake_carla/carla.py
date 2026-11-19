@@ -3,6 +3,8 @@
 Knobs (environment): FAKE_CARLA_LOAD_S (get_world raises CARLA's time-out error until then), FAKE_HERO_AFTER_S (a new
 hero appears that long after the world first answered), FAKE_CARLA_FRAMES (images the camera delivers, one per 0.05 s of simulation time, then the world
 leaves synchronous mode), FAKE_CARLA_SPAWN_LOG (a JSON file the camera's spawn is written to).
+Each image is one tick: the world's on_tick callbacks get a snapshot of the hero and the camera first. A synchronous
+world that pauses between ticks is modelled by the world side's fake (paused_world.py).
 """
 import json
 import os
@@ -10,7 +12,7 @@ import threading
 import time
 
 _T0 = time.time()
-_STATE = {"sync": True, "hero": None, "cam": None, "world_t": None}
+_STATE = {"sync": True, "hero": None, "cam": None, "world_t": None, "on_tick": {}}
 
 
 class AttachmentType:
@@ -51,6 +53,15 @@ class _Actors(list):
         return None
 
 
+class _Snapshot:
+    def __init__(self, frame):
+        self.frame = frame
+        self._ids = [x.id for x in (_STATE["hero"], _STATE["cam"]) if x is not None]
+
+    def find(self, actor_id):
+        return object() if actor_id in self._ids else None
+
+
 class _Image:
     def __init__(self, frame, w, h):
         self.frame, self.width, self.height = frame, w, h
@@ -73,6 +84,8 @@ class _Camera:
             for i in range(n):
                 if self._stop:
                     return
+                for tick_cb in list(_STATE["on_tick"].values()):
+                    tick_cb(_Snapshot(1000 + i))
                 cb(_Image(1000 + i, w, h))
                 time.sleep(0.05)   # the world side ticks at 0.05 s of wall time
             _STATE["sync"] = False   # the world side ends the run
@@ -113,6 +126,14 @@ class _World:
 
     def get_settings(self):
         return _Settings()
+
+    def on_tick(self, cb):
+        n = len(_STATE["on_tick"]) + 1
+        _STATE["on_tick"][n] = cb
+        return n
+
+    def remove_on_tick(self, n):
+        _STATE["on_tick"].pop(n, None)
 
     def get_blueprint_library(self):
         class _Lib:
