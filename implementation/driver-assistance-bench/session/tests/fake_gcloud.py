@@ -8,7 +8,8 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_PREEMPT       "vm:n"  the n-th status read after the VM came up returns TERMINATED (once)
   FAKE_GPU_RUNNING   "project:name"  another GPU VM running in that project
   FAKE_FAIL_STEP     a step name whose `host_step.sh run|status` fails
-  FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering
+  FAKE_HANG_STEP     "step:seconds"  `host_step.sh run <step>` sleeps that long before answering; a detached
+                     step (`start`) reads "running" for that long after its start
   FAKE_SSH_DOWN      a VM name that never answers SSH
   FAKE_GUEST_STOP_FAIL  1: a crosvm process stays after every guests' stop; once: after the first stop only
   FAKE_IP            "vm:ip,..."  internal IPs other than the defaults (the session must read them from gcloud)
@@ -16,6 +17,7 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_FOREIGN_FETCH    1: a fetched tarball carries another session's id
   FAKE_NO_STOP       a VM name that stays RUNNING after a stop
   FAKE_SLOW_GUEST_STOP  seconds: the guests' stop (guest_stop.sh, not the safety net's arming) takes that long
+  FAKE_LOST_AFTER    "vm:text"  the VM is reclaimed (TERMINATED) right after the first ssh whose command has text
   FAKE_ARM_FAIL      a VM name whose safety net's arming fails
   FAKE_SLOW_FETCH    seconds: the scp of a host's out.tgz takes that long
   FAKE_FETCH_FAIL    a VM name whose out.tgz scp fails
@@ -166,9 +168,12 @@ if words[:2] == ["compute", "ssh"]:
     c = opt("--command") or ""
     if st["vm"].get(n) != "RUNNING" or os.environ.get("FAKE_SSH_DOWN") == n:
         err("ssh: connect to host 192.0.2.10 port 22: Connection refused\n", 255)
+    lost = kv("FAKE_LOST_AFTER")
+    if n in lost and lost[n] in c:
+        st["vm"][n] = "TERMINATED"   # reclaimed right after this call (which still answers)
     if c == "true":
         out("")
-    m = re.search(r"host_step\.sh (run|start|status|signal|pack)\s*(\S*)", c)
+    m = re.search(r"host_step\.sh (run|start|status|tail|signal|pack)\s*(\S*)", c)
     if "sha256sum /tmp/da-kit-" in c:
         out("%s  /tmp/da-kit.tgz\n" % st["kit_sha"].get(n, "none"))
     if "shutdown -h" in c:
@@ -219,11 +224,25 @@ if words[:2] == ["compute", "ssh"]:
                 fcntl.flock(lockf, fcntl.LOCK_EX)
                 st = json.load(open(SF))
             out("=== %s end rc=%d (fake)\n" % (step, 1 if fail else 0), 1 if fail else 0)
+        key = "%s:%s" % (n, step)
         if action == "start":
+            st.setdefault("started", {})[key] = time.time()
+            if " receipts " in c:
+                st.setdefault("tails", {})[key] = "RECEIPTS %s\n" % os.environ.get("FAKE_RECEIPTS", "2")
             out("started %s pid 4242\n" % step)
         if action == "status":
+            # a detached step runs for its FAKE_HANG_STEP seconds from its start (or ends at once), then reports
+            if key in st.get("signalled", {}):
+                out("rc 143\n")
+            t0 = st.get("started", {}).get(key)
+            hang = kv("FAKE_HANG_STEP").get(step)
+            if t0 is not None and hang and time.time() - t0 < float(hang):
+                out("running\n")
             out("rc %d\n" % (1 if fail else 0))
+        if action == "tail":
+            out(st.get("tails", {}).get(key, "") + "=== %s end rc=%d (fake)\n" % (step, 1 if fail else 0))
         if action == "signal":
+            st.setdefault("signalled", {})[key] = c.split()[-1]
             out("signalled %s\n" % step)
         if action == "pack":
             sid = re.search(r"da-kit/([^/]+)/", c).group(1)

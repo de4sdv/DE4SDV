@@ -60,6 +60,14 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   the cap fetches every host whose files were not fetched yet, bounded (120 s pack, 300 s copy), before its stop.
   `session.json` says what ended the session (`ended_by`: `steps`, `step <name>`, `signal <SIG>`, `cap`, `fetch`, or
   the exit and its message) and which hosts were fetched (`fetched`, `not_fetched`).
+- Every step runs detached on its host (`remote/host_step.sh start`) and is polled with SSH calls of at most 60 s
+  (`status`, then `tail` for its last lines): a dropped connection costs one poll, not the step. At a step's time-out
+  the session sends the step TERM on its host and waits (6 polls) for its end before it fails, so the trap's
+  guests' stop never races a guest launch that still runs. Only the S-CORE side's stop after a failure
+  (`score_stop_on_failure`) runs in the foreground of one call (bounded at 120 s in the trap).
+- A poll that fails reads the host's status: a host found stopped (a Spot preemption) ends the session at once with
+  exit 3; it is not fetched (`not_fetched`, `ended_by` `host lost: <role>`), and the other hosts are collected and
+  fetched as after any failure.
 - Every remote call whose output the session reads writes it to a file first, never through a pipe or a command
   substitution: a signal or the cap ends the session at once, not after a fetch's 20-minute copy.
 - A watchdog writes `cost.log` every 30 s (an upper bound: from each start call, at the hourly prices in
@@ -139,7 +147,7 @@ upload about 2 min per host, the guests' bring-up 10-15 min, the fetch and the s
 ## Entry-point contracts
 
 Each entry is a path relative to the bench folder (`entrypoints.env`, overridable from the environment). The session
-runs it on its host through `remote/host_step.sh`, with the bench folder as the working directory and `DA_OUT`,
+runs it on its host detached through `remote/host_step.sh start`, with the bench folder as the working directory and `DA_OUT`,
 `DA_SESSION_ID` and `DA_BENCH` set. The first argument is the step's output folder; everything the entry writes there
 is fetched. Exit 0 means the step succeeded; any other status ends the session (the VMs stop).
 

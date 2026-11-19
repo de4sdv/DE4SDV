@@ -12,6 +12,7 @@ import json
 import os
 import re
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -464,3 +465,29 @@ def test_ivi_clock_measure_only_records(tmp_path: Path, fake) -> None:
     assert p.returncode == 0
     (line,) = _clock_lines(out)
     assert line["label"] == "end" and line["reads"] == 2 and not any("date -s" in c for c in calls(d))
+
+
+# ------------------------------------------------------------------------------------------ host_step.sh
+
+
+def test_host_step_detached_step_reports_its_status_tail_and_answers_a_signal(tmp_path: Path, fake) -> None:
+    # R10: the session starts every step detached, polls its status and reads its tail; at a time-out it signals it
+    d, env = fake
+    kit = tmp_path / "home" / "da-kit" / "S1"
+    (kit / "bench" / "session" / "remote").mkdir(parents=True)
+    (kit / "session_id").write_text("S1\n")
+    hs = kit / "bench" / "session" / "remote" / "host_step.sh"
+    hs.write_bytes((REMOTE / "host_step.sh").read_bytes())
+    assert sh(str(hs), "start", "quick", "--", "bash", "-c", "echo hello", env=env).returncode == 0
+    deadline = time.monotonic() + 10
+    while sh(str(hs), "status", "quick", env=env).stdout.strip() != "rc 0" and time.monotonic() < deadline:
+        time.sleep(0.1)
+    tail = sh(str(hs), "tail", "quick", env=env).stdout
+    assert "hello" in tail and tail.strip().endswith("=== quick end rc=0")
+    assert sh(str(hs), "start", "slow", "--", "sleep", "30", env=env).returncode == 0
+    assert sh(str(hs), "status", "slow", env=env).stdout.strip() == "running"
+    assert "signalled slow (TERM)" in sh(str(hs), "signal", "slow", "TERM", env=env).stdout
+    deadline = time.monotonic() + 10
+    while not sh(str(hs), "status", "slow", env=env).stdout.startswith("rc ") and time.monotonic() < deadline:
+        time.sleep(0.1)
+    assert sh(str(hs), "status", "slow", env=env).stdout.strip() in ("rc 143", "rc 255")

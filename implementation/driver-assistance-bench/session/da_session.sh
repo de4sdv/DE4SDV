@@ -76,13 +76,13 @@ esac
 
 # waits, seconds; a dry run may shorten them through DA_T_<NAME>, a real session refuses those knobs
 PREEMPT_CHECK_S=30; ROUND_PAUSE_S=45; START_DEADLINE_S=1800; RUNNING_WAIT_S=120; SSH_TRIES=20; SSH_PAUSE_S=10
-POLL_S=20; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
+POLL_S=20; STEP_TERM_POLLS=6; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 T_UNIT=300
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
-       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY)
+       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -530,10 +530,43 @@ done
 # ───────────── 4. the steps of the session kind ─────────────
 HS="bash \$HOME/da-kit/$SID/bench/session/remote/host_step.sh"
 od() { echo "\$HOME/da-kit/$SID/out/$1"; }   # a step's output folder on the remote host
-rstep() {   # rstep <role> <step> <timeout_s> <command...>: foreground step; a failure ends the session
+host_lost() {   # host_lost <role> <status>: a host gone mid-session (preempted): no fetch, no more polls (R12)
+  log "$(var "$1" VM) is $2 during the session (preempted or stopped): its files stay on its disk"
+  LOST="${LOST:-} $1"; FETCHED="$FETCHED $1"; FETCH_BAD="$FETCH_BAD $1"; ENDED_BY="host lost: $1 ($2)"
+  [ "$1" = score ] && SCORE_UP=""
+}
+rpoll() {   # rpoll <role> <remote command>: one short poll, its last line in ROUT; 3 when the host is gone (R12)
+  local st
+  if rout ssh_l "$1" 60 "$2"; then ROUT=$(tail -1 <<< "$ROUT"); return 0; fi
+  ROUT=""; st=$(vmst "$1")
+  case "$st" in TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED) host_lost "$1" "$st"; return 3 ;; esac
+  return 1
+}
+rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on its host and polled; a failure ends
+  # the session. No SSH call lasts longer than a poll, so a dropped connection or this host's time-out never leaves
+  # a step running on unseen: at the time-out the step is signalled on its host and its end awaited (R10)
   local r=$1 s=$2 to=$3; shift 3
   log "step $s on $(var "$r" VM): $*"; SEQ+=("$r:$s")
-  run_fg ssh_l "$r" "$to" "$HS run $s -- $(renv "$r")$*" >> "$IN/$r.steps.out" 2>&1; local rc=$?
+  local end=$(( $(date +%s) + to )) rc="" absent=0 i
+  routall ssh_l "$r" 60 "$HS start $s -- $(renv "$r")$*"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
+  while :; do   # a start whose answer was lost may still have started: the status decides
+    rpoll "$r" "$HS status $s"
+    [ $? = 3 ] && { STEP_FAIL=$s; abort 3 "step $s: $(var "$r" VM) is gone"; }
+    case "$ROUT" in
+      "rc "*) rc=${ROUT#rc }; break ;;
+      absent) absent=$((absent + 1)); [ "$absent" -ge 3 ] && { rc=255; log "step $s never started"; break; } ;;
+    esac
+    if [ "$(date +%s)" -ge "$end" ]; then
+      log "step $s still ${ROUT:-unknown} after $to s: TERM to the step on its host, then its end"
+      rsignal "$r" "$s" TERM
+      for i in $(seq 1 "$STEP_TERM_POLLS"); do
+        rpoll "$r" "$HS status $s"; case "$ROUT" in "rc "*) break ;; esac; nap "$POLL_S"
+      done
+      log "step $s after the TERM: ${ROUT:-unknown}"; rc=124; break
+    fi
+    nap "$POLL_S"
+  done
+  rout ssh_l "$r" 60 "$HS tail $s"; printf '%s\n' "$ROUT" >> "$IN/$r.steps.out"
   log "step $s rc=$rc"
   if [ "$rc" != 0 ]; then
     case "$s" in score_stop*) SCORE_UP="" ;; esac   # a failed stop of the S-CORE side has run its collection
@@ -546,7 +579,7 @@ rsignal() { run_fg ssh_l "$1" 60 "$HS signal $2 ${3:-INT}" >> "$IN/$1.steps.out"
 rwait() {   # rwait <role> <step> <timeout_s>: waits for a detached step's status
   local r=$1 s=$2 end st; end=$(( $(date +%s) + $3 )); SEQ+=("$r:wait-$s")
   while :; do
-    rout ssh_l "$r" 60 "$HS status $s"; st=$(tail -1 <<< "$ROUT")
+    rpoll "$r" "$HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
     case "$st" in "rc "*) log "step $s ${st}"; [ "$st" = "rc 0" ] && return 0; STEP_FAIL=$s; return 1 ;; esac
     [ "$(date +%s)" -ge "$end" ] && { log "step $s still ${st:-unknown} after $3 s"; STEP_FAIL=$s; return 1; }
     nap "$POLL_S"
@@ -555,7 +588,7 @@ rwait() {   # rwait <role> <step> <timeout_s>: waits for a detached step's statu
 rwaitfile() {   # rwait_file <role> <step> <remote file> <timeout_s>: the file of a running detached step
   local r=$1 s=$2 f=$3 end st; end=$(( $(date +%s) + $4 )); SEQ+=("$r:file-${f##*/}")
   while :; do
-    rout ssh_l "$r" 60 "test -e $f && echo present || $HS status $s"; st=$(tail -1 <<< "$ROUT")
+    rpoll "$r" "test -e $f && echo present || $HS status $s"; [ $? = 3 ] && { STEP_FAIL=$s; return 1; }; st=$ROUT
     case "$st" in
       present) log "step $s: ${f##*/} present"; return 0 ;;
       "rc "*) log "step $s ended ($st) before ${f##*/}"; STEP_FAIL=$s; return 1 ;;
@@ -596,7 +629,11 @@ score_down() {   # the S-CORE side, if this session started it and has not stopp
     >> "$IN/score.steps.out" 2>&1; rc=$?
   log "step score_stop_on_failure rc=$rc"
 }
-abort() { local code=$1; shift; score_down; fetch_all; fail "$code" "$*"; }   # a failure after the starts
+abort() {   # a failure after the starts: the S-CORE side's stop, the fetch, the exit (3 when a host was lost)
+  local code=$1; shift
+  [ -n "${LOST:-}" ] && code=3
+  score_down; fetch_all; fail "$code" "$*"
+}
 fetch_all() { local r ok=0; for r in "${STARTED[@]}"; do fetch "$r" || ok=1; done; return $ok; }
 ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never configured: D5 may move the hosts)
   local ip; ip=$(vmip "$1"); [ -n "$ip" ] || abort 5 "no internal IP of $(var "$1" VM) from gcloud"

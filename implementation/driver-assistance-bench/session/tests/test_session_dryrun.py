@@ -197,7 +197,7 @@ def test_p10_1_touches_only_the_score_host(tmp_path: Path) -> None:
     assert r.rc == 0, r.stdout + r.log
     assert len(r.starts(L4)) == 1 and not r.starts(G4) and not r.starts(GH)
     assert not r.stops(G4) and not r.stops(GH)
-    step = r.ssh(L4, "host_step.sh run p10_1")
+    step = r.ssh(L4, "host_step.sh start p10_1")
     assert step and r.starts(L4)[0] < step[0] < r.stops(L4)[0]
     assert_invariants(r)
     rec = json.loads((r.incoming / "session.json").read_text())
@@ -212,8 +212,8 @@ def test_p10_3_starts_score_then_guest_and_stops_guests_before_their_host(tmp_pa
     cvd = r.guest_stops()
     assert cvd and cvd[0] < r.stops(GH)[0]
     # the window: clock set, capture started, injection on the S-CORE host, capture stopped
-    order = [r.ssh(GH, "run ivi_clock")[0], r.ssh(GH, "start capture")[0], r.ssh(L4, "run inject")[0],
-             r.ssh(GH, "run capture_stop")[0]]
+    order = [r.ssh(GH, "start ivi_clock")[0], r.ssh(GH, "start capture")[0], r.ssh(L4, "start inject")[0],
+             r.ssh(GH, "start capture_stop")[0]]
     assert order == sorted(order)
     assert_invariants(r)
 
@@ -229,9 +229,9 @@ def test_p10_2_starts_g4_first_and_checks_it_still_runs_before_the_l4(tmp_path: 
     assert "still RUNNING after 0.3 s" in r.log
     # the recorded run: recorder started before the scenario run, capture stopped after it
     rec, scen, cap_stop = r.ssh(G4, "start rec_run1")[0], r.ssh(G4, "start world_run1")[0], \
-        r.ssh(GH, "run capture_stop_run1")[0]
+        r.ssh(GH, "start capture_stop_run1")[0]
     assert rec < scen < cap_stop
-    assert r.ssh(G4, "start rec_warmup")[0] < r.ssh(G4, "run warmup")[0] < rec
+    assert r.ssh(G4, "start rec_warmup")[0] < r.ssh(G4, "start warmup")[0] < rec
     assert r.guest_stops()[0] < r.stops(GH)[0]
     assert_invariants(r)
 
@@ -291,7 +291,7 @@ def test_sigterm_mid_session_stops_the_started_vms(tmp_path: Path) -> None:
                          stderr=subprocess.STDOUT, text=True)
     calls = tmp_path / "fake" / "calls.log"
     deadline = time.monotonic() + 30
-    while time.monotonic() < deadline and not (calls.exists() and "run inject" in calls.read_text()):
+    while time.monotonic() < deadline and not (calls.exists() and "start inject" in calls.read_text()):
         time.sleep(0.1)
     time.sleep(0.5)
     p.send_signal(signal.SIGTERM)
@@ -313,7 +313,7 @@ def test_a_second_signal_during_the_exit_trap_does_not_end_it(tmp_path: Path, si
     # R1: a terminal's Ctrl-C (or a hangup) goes to the whole process group; a second one while the trap stops the
     # guests must not end the trap before the guest host's stop, SESSION_END and session.json
     p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="inject:30", FAKE_SLOW_GUEST_STOP="3")
-    wait_for_call(tmp_path, lambda c: any("run inject" in a for a in c))
+    wait_for_call(tmp_path, lambda c: any("start inject" in a for a in c))
     time.sleep(0.5)
     os.killpg(p.pid, sig)
     wait_for_call(tmp_path, _is_guest_stop)
@@ -380,7 +380,7 @@ def test_the_cost_watchdog_ends_with_a_session_killed_without_its_trap(tmp_path:
     # later signal a PID number that may belong to another process
     p = popen(tmp_path, "p10-1", FAKE_HANG_STEP="p10_1:20")
     try:
-        wait_for_call(tmp_path, lambda c: any("run p10_1" in a for a in c))
+        wait_for_call(tmp_path, lambda c: any("start p10_1" in a for a in c))
         inc = next((tmp_path / "ev").glob("incoming_*"))
         time.sleep(0.5)
         p.kill()
@@ -537,13 +537,13 @@ def test_p10_2_puts_the_calibration_file_on_the_score_host_before_every_score_st
     assert r.rc == 0, r.log
     up = r.index(lambda c: c[2:4] == ["compute", "scp"] and any(a.endswith("camera_calibration/") for a in c))
     assert up and all(any(a.endswith(n) for a in r.calls[up[0]]) for n in ("H.yaml", "homography_C_matrix.yaml"))
-    starts = r.ssh(L4, "score_start_")
+    starts = r.ssh(L4, "start score_start_")
     assert len(starts) == 3 and up[0] < starts[0]
     assert all("DA_CAMERA_CALIBRATION_DIR=" in r.command(i) for i in starts)
     # the capture came from the simulator host's calibrate step, before make-h
     fetch = r.index(lambda c: c[2:4] == ["compute", "scp"] and any("calibrate/camcal/simulator/camera_capture.json"
                                                                    in a for a in c))
-    assert fetch and r.ssh(G4, "run calibrate")[0] < fetch[0] < up[0]
+    assert fetch and r.ssh(G4, "start calibrate")[0] < fetch[0] < up[0]
     rec = json.loads((r.incoming / "session.json").read_text())
     h = (r.incoming / "camcal" / "h" / "H.yaml").read_bytes()
     assert rec["camera_calibration_sha256"]["H.yaml"] == hashlib.sha256(h).hexdigest()
@@ -580,7 +580,7 @@ def test_a_world_side_that_never_gets_ready_ends_the_session_before_the_score_st
     r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_NO_FILE="ready.json", DA_T_T_READY="1")
     assert r.rc == 5, r.log
     assert "the world side of calib_steer is not ready" in r.log
-    assert not r.ssh(L4, "score_start_")
+    assert not r.ssh(L4, "start score_start_")
     assert_invariants(r)
 
 
@@ -601,10 +601,10 @@ def test_every_internal_ip_comes_from_gcloud(tmp_path: Path) -> None:
     ips = {G4: "10.10.0.7", L4: "10.164.0.20", GH: "10.164.0.33"}   # made-up addresses only the fake gcloud knows
     r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_IP=",".join(f"{k}:{v}" for k, v in ips.items()))
     assert r.rc == 0, r.log
-    assert "/dev/tcp/10.10.0.7/2000" in r.command(r.ssh(L4, "run carla_reach")[0])
-    assert r.command(r.ssh(GH, "run vxlan_guest")[0]).endswith("add 10.164.0.20")
-    assert r.command(r.ssh(L4, "run vxlan_score")[0]).endswith("add 10.164.0.33")
-    assert all(r.command(i).split()[-1] == "10.10.0.7" for i in r.ssh(L4, "score_start_"))
+    assert "/dev/tcp/10.10.0.7/2000" in r.command(r.ssh(L4, "start carla_reach")[0])
+    assert r.command(r.ssh(GH, "start vxlan_guest")[0]).endswith("add 10.164.0.20")
+    assert r.command(r.ssh(L4, "start vxlan_score")[0]).endswith("add 10.164.0.33")
+    assert all(r.command(i).split()[-1] == "10.10.0.7" for i in r.ssh(L4, "start score_start_"))
     rec = json.loads((r.incoming / "session.json").read_text())
     assert rec["internal_ips_from_gcloud"] == {"sim": "10.10.0.7", "guest": "10.164.0.33", "score": "10.164.0.20"}
 
@@ -632,11 +632,11 @@ def test_the_guest_host_safety_net_stops_the_guests_first(tmp_path: Path) -> Non
 
 def test_permissive_ivi_is_opt_in_and_marks_the_session(tmp_path: Path) -> None:
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host")
-    assert "IVI_PERMISSIVE=0" in r.command(r.ssh(GH, "run guest_up")[0])
+    assert "IVI_PERMISSIVE=0" in r.command(r.ssh(GH, "start guest_up")[0])
     assert json.loads((r.incoming / "session.json").read_text())["conditional_on_permissive_ivi"] is False
     r2 = run(tmp_path / "b", "p10-3", "--owner-ok-guest-host", "--permissive-ivi")
     assert r2.rc == 0, r2.log
-    for step in ("run guest_up", "run guest_prepare"):
+    for step in ("start guest_up", "start guest_prepare"):
         assert "IVI_PERMISSIVE=1" in r2.command(r2.ssh(GH, step)[0])
     assert json.loads((r2.incoming / "session.json").read_text())["conditional_on_permissive_ivi"] is True
     assert "conditional on a permissive IVI" in r2.log
@@ -667,11 +667,11 @@ def test_per_session_settings_reach_the_steps_of_their_host_only(tmp_path: Path)
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host", UNIT_REGISTERED_RE="unit .* registered", UNIT_WAIT_S="600",
             GATEWAYD_RX_REGEX="rx [0-9]+", NOT_ON_THE_LIST="x")
     assert r.rc == 0, r.log
-    unit = r.command(r.ssh(GH, "run unit_inject")[0])
+    unit = r.command(r.ssh(GH, "start unit_inject")[0])
     assert "env UNIT_REGISTERED_RE=unit\\ .\\*\\ registered UNIT_WAIT_S=600 bash" in unit
-    for i in r.ssh(GH, "host_step.sh run") + r.ssh(GH, "host_step.sh start"):
+    for i in r.ssh(GH, "host_step.sh start"):
         assert "UNIT_WAIT_S=600" in r.command(i) and "GATEWAYD_RX_REGEX" not in r.command(i)
-    for i in r.ssh(L4, "host_step.sh run"):
+    for i in r.ssh(L4, "host_step.sh start"):
         assert "GATEWAYD_RX_REGEX=" in r.command(i) and "UNIT_WAIT_S" not in r.command(i)
     assert not any("NOT_ON_THE_LIST" in a for c in r.calls for a in c)
     rec = json.loads((r.incoming / "session.json").read_text())
@@ -682,7 +682,7 @@ def test_per_session_settings_reach_the_steps_of_their_host_only(tmp_path: Path)
 def test_without_per_session_settings_the_commands_are_unchanged(tmp_path: Path) -> None:
     r = run(tmp_path, "p10-1")
     assert r.rc == 0, r.log
-    assert r.command(r.ssh(L4, "run p10_1")[0]).endswith("host_step.sh run p10_1 -- bash extra/p10_1_check.sh "
+    assert r.command(r.ssh(L4, "start p10_1")[0]).endswith("host_step.sh start p10_1 -- bash extra/p10_1_check.sh "
                                                         "$HOME/da-kit/T/out/p10_1")
     assert json.loads((r.incoming / "session.json").read_text())["remote_env"] == {}
 
@@ -701,7 +701,7 @@ def test_the_window_counts_the_app_records_receipts_and_says_so_loudly_when_none
 def test_the_unit_check_reads_the_log_since_the_mark_before_the_score_start(tmp_path: Path) -> None:
     # R7: the mark is the SDV Core guest's clock just before the S-CORE side starts; the unit check names it
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host")
-    mark, start, unit = r.ssh(GH, "run logmark_inject"), r.ssh(L4, "run score_start"), r.ssh(GH, "run unit_inject")
+    mark, start, unit = r.ssh(GH, "start logmark_inject"), r.ssh(L4, "start score_start"), r.ssh(GH, "start unit_inject")
     assert mark[0] < start[0] < unit[0]
     assert r.command(unit[0]).endswith("unit $HOME/da-kit/T/out/unit_inject $HOME/da-kit/T/out/logmark_inject")
 
@@ -715,7 +715,7 @@ def test_a_failure_after_the_score_start_stops_the_score_side_before_the_fetch(t
     assert r.rc == 5, r.log
     stop = r.ssh(L4, "run score_stop_on_failure")
     assert len(stop) == 1 and r.command(stop[0]).endswith("stop_score_side.sh $HOME/da-kit/T/out/score")
-    assert r.ssh(L4, "run score_start")[0] < stop[0] < r.ssh(L4, "host_step.sh pack")[0] < r.stops(L4)[0]
+    assert r.ssh(L4, "start score_start")[0] < stop[0] < r.ssh(L4, "host_step.sh pack")[0] < r.stops(L4)[0]
     rec = json.loads((r.incoming / "session.json").read_text())
     assert rec["ended_by"] == "step unit_inject" and rec["fetched"] == ["score", "guest"] and rec["not_fetched"] == []
     assert_invariants(r)
@@ -725,14 +725,14 @@ def test_a_failure_before_the_score_start_or_after_its_stop_does_not_stop_it_aga
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_FAIL_STEP="guest_prepare")
     assert r.rc == 5 and not r.ssh(L4, "score_stop"), r.log
     r2 = run(tmp_path / "b", "p10-2", "--owner-ok-guest-host", FAKE_FAIL_STEP="world_calib_steer")
-    assert r2.rc == 5 and r2.ssh(L4, "run score_stop_calib_steer") and not r2.ssh(L4, "score_stop_on_failure")
+    assert r2.rc == 5 and r2.ssh(L4, "start score_stop_calib_steer") and not r2.ssh(L4, "score_stop_on_failure")
 
 
 def test_a_signal_stops_the_score_side_and_fetches_every_host_before_its_stop(tmp_path: Path) -> None:
     # R8, R13: a signal mid-window (the inject step) still collects the S-CORE side and fetches both hosts (bounded),
     # and session.json says what ended the session and what was fetched
     p = popen(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="inject:30")
-    wait_for_call(tmp_path, lambda c: any("run inject" in a for a in c))
+    wait_for_call(tmp_path, lambda c: any("start inject" in a for a in c))
     time.sleep(0.5)
     os.killpg(p.pid, signal.SIGTERM)
     r = finish(tmp_path, p)
@@ -782,7 +782,7 @@ def test_a_safety_net_that_does_not_arm_ends_the_session(tmp_path: Path, vm: str
     # R15: no host runs on without its backstop for the lead host's loss
     r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_ARM_FAIL=vm)
     assert r.rc == 4, r.log
-    assert "is not armed" in r.log and not r.ssh(GH, "run guest_up")
+    assert "is not armed" in r.log and not r.ssh(GH, "start guest_up")
     assert_invariants(r)
 
 
@@ -815,3 +815,42 @@ def test_a_host_reclaimed_while_waiting_for_ssh_ends_the_session_as_preempted(tm
     assert r.rc == 3, r.log
     assert "while waiting for SSH (reclaimed)" in r.log
     assert len(r.ssh(L4, "true")) == 1
+
+
+# ------------------------------------------------------------------ detached steps and lost hosts (R10, R12)
+
+
+def test_every_step_is_detached_and_polled_with_short_ssh_calls(tmp_path: Path) -> None:
+    # R10: no step runs in the foreground of one long SSH call that a dropped connection would end unseen
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host")
+    assert r.rc == 0, r.log
+    assert not r.index(lambda c: c[2:4] == ["compute", "ssh"] and any("host_step.sh run " in a for a in c))
+    for step in ("guest_up", "guest_prepare", "calibrate", "warmup", "sim_setup", "score_start_run1"):
+        vm = {"guest_up": GH, "guest_prepare": GH, "score_start_run1": L4}.get(step, G4)
+        start, status = r.ssh(vm, f"host_step.sh start {step} "), r.ssh(vm, f"host_step.sh status {step}")
+        assert start and status and start[0] < status[0], step
+
+
+def test_a_step_past_its_time_out_is_signalled_on_its_host_before_the_guests_stop(tmp_path: Path) -> None:
+    # R10: the step still runs on its host when this host gives up; the guests' stop must not race a launch
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_HANG_STEP="guest_up:30", DA_T_T_GUEST_UP="1")
+    assert r.rc == 5, r.log
+    sig = r.ssh(GH, "host_step.sh signal guest_up TERM")
+    assert sig and sig[0] < r.guest_stops()[0]
+    assert "after the TERM: rc 143" in r.log and "step guest_up rc=124" in r.log
+    assert_invariants(r)
+
+
+def test_a_host_lost_mid_run_ends_the_session_at_once_and_is_not_fetched(tmp_path: Path) -> None:
+    # R12: polls of a reclaimed G4 ran until T_RUN, then its fetch tried 600 + 1200 s
+    t0 = time.monotonic()
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_LOST_AFTER=f"{G4}:world_calib_steer/go",
+            DA_T_T_RUN="60")
+    assert r.rc == 3, r.log
+    assert time.monotonic() - t0 < 40
+    go = r.ssh(G4, "world_calib_steer/go")[0]
+    assert not [i for i in r.ssh(G4, "host_step.sh pack") if i > go]
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["ended_by"].startswith("host lost: sim") and "sim" in rec["not_fetched"]
+    assert r.ssh(L4, "run score_stop_on_failure")             # the S-CORE side still collected
+    assert_invariants(r)
