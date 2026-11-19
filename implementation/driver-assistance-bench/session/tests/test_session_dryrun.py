@@ -902,6 +902,19 @@ def test_on_the_cap_a_host_with_nothing_to_fetch_stops_first(tmp_path: Path) -> 
     assert_invariants(r)
 
 
+def test_the_traps_status_reads_wait_30_s_at_most_and_ignore_an_exported_gc_to(tmp_path: Path) -> None:
+    # S10: each status read in the trap's stop loop waited up to 120 s on a hanging gcloud (30 reads per VM, every
+    # signal ignored); and GC_TO came from the caller's shell
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", GC_TO="2")
+    assert r.rc == 0, r.log
+    cmds = (r.incoming / "commands.log").read_text().splitlines()
+    first_stop = next(i for i, c in enumerate(cmds) if " compute instances stop " in c)
+    before = [c for c in cmds[:first_stop] if " compute instances describe " in c]
+    after = [c for c in cmds[first_stop:] if " compute instances describe " in c]
+    assert before and all(c.endswith("[timeout 120 s]") for c in before), before[:2]
+    assert after and all(c.endswith("[timeout 30 s]") for c in after), after[:2]
+
+
 def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> None:
     # R19: a fetch scp inside a pipeline made the trap (and the cap) wait for the whole scp
     p = popen(tmp_path, "p10-1", FAKE_SLOW_FETCH="15")

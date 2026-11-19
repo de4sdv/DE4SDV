@@ -45,6 +45,7 @@ BENCH_REL=implementation/driver-assistance-bench
 . "$HERE/hosts.env"
 # shellcheck source=entrypoints.env
 . "$HERE/entrypoints.env"
+unset GC_TO   # a gcloud call's time-out is the session's own (gc: 120 s, the trap: 30 s), never the caller's (S10)
 
 KIND=""; DRY=0; CAP=""; OWNER_OK_GUEST=0; WITHOUT_GUEST=0; SID=""; KIT_FROM=head; KIT_EXTRA=""; CARLA_HOST=""
 IVI_PERMISSIVE=0; RENV_ARGS=()
@@ -110,6 +111,7 @@ GUEST_NOSSH_S=180
 # the exit trap's pre-stop phase (the running step's end, the S-CORE side's stop, the fetches) is bounded as a whole
 # (S9); within it each fetch at most TRAP_PACK_S to pack and TRAP_SCP_S to copy
 PRESTOP_S=300; TRAP_PACK_S=120; TRAP_SCP_S=300
+TRAP_GC_TO_S=30   # each gcloud status read in the trap: on a gcloud outage the stop loop must not sit for hours (S10)
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 T_UNIT=300
@@ -364,6 +366,7 @@ ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never con
 # ───────────── exit trap: stop what this session started ─────────────
 cleanup() {
   local rc=$? r st i
+  local GC_TO=$TRAP_GC_TO_S   # every gcloud call of the trap without its own time-out: the status reads (S10)
   # no signal ends the trap before its stops (R1): a second Ctrl-C, HUP or TERM, or the watchdog's TERM, is ignored
   # here, and the trap runs on to the guests' stop, their host's stop and session.json
   trap '' INT TERM HUP
@@ -493,7 +496,7 @@ cleanup() {
   for p in $(for r in sim score guest; do var "$r" PROJECT; done | sort -u); do
     echo "$(date -u +%FT%T.%3NZ) + gcloud --project=$p compute instances list" >> "$CMDS"
     [ "$DRY" = 1 ] && say "+ gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p compute instances list"
-    "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" compute instances list \
+    timeout "$TRAP_GC_TO_S" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" compute instances list \
       --format='value(name,zone.basename(),status)' 2>/dev/null | sed "s/^/VM after session [$p]: /" >> "$LOG"
   done
   [ "$KIND" = p10-1 ] && [ -n "$UPLOADED" ] && p10_1_report
