@@ -10,8 +10,8 @@ import re
 import time
 from pathlib import Path
 
-from test_session_dryrun import (G4, HERE, L4, assert_invariants, finish, popen, run,  # noqa: F401
-                                 wait_for_call)
+from test_session_dryrun import (G4, HERE, L4, _vp_env, assert_invariants, finish, popen, run,  # noqa: F401
+                                 vp_clone, wait_for_call)   # _vp_env, vp_clone: the stand-in VisionPilot clone (p10-2)
 
 README = HERE.parent / "README.md"
 NORMAL_SEQUENCE = ["sim:sim_setup", "score:port_test", "sim:warmup", "sim:world_p10_1&", "sim:file-ready.json",
