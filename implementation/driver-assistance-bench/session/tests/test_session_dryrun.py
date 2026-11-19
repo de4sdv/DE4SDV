@@ -898,3 +898,37 @@ def test_a_p10_1_session_with_every_check_passed_or_no_verdicts(tmp_path: Path) 
     assert "P10-1: 8 of 8 checks NOT RUN" in r2.log and "P10-1 NOT passed" in r2.log
     r3 = run(tmp_path / "c", "p10-3", "--owner-ok-guest-host")
     assert json.loads((r3.incoming / "session.json").read_text())["p10_1"] is None
+
+
+# ----------------------------------------------------------------------- the go bound, ids, the cap (R14, R20, R21)
+
+
+def test_a_go_later_than_the_bound_after_the_score_start_is_refused(tmp_path: Path) -> None:
+    # R14: the candidate's 420 s ready time-out; the steps between the S-CORE start and the go had no bound
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_HANG_STEP="unit_run1:3", DA_T_GO_LIMIT_S="1")
+    assert r.rc == 5, r.log
+    assert "INVALID RUN run1" in r.log and not r.ssh(G4, "world_run1/go")
+    assert r.ssh(G4, "host_step.sh signal world_run1 TERM") and r.ssh(L4, "run score_stop_on_failure")
+    assert "go of calib_steer" in r.log                      # the bound held for the run before
+    assert_invariants(r)
+
+
+def test_a_session_id_of_an_archived_session_is_refused(tmp_path: Path) -> None:
+    # R20: after the rule-15 rename incoming_T -> session1_..._T the id was free again
+    (tmp_path / "ev" / "session1_p10-1_archived_T").mkdir(parents=True)
+    r = run(tmp_path, "p10-1")
+    assert r.rc == 2 and "is taken by" in r.stdout and not r.calls
+
+
+def test_a_session_id_with_a_kit_on_the_host_is_refused(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1", FAKE_KIT_EXISTS=L4)
+    assert r.rc == 4 and "exists on de4sdv-probe-da8-carla" in r.log
+    assert not r.ssh(L4, "host_step.sh start")
+    assert_invariants(r)
+
+
+@pytest.mark.parametrize("cap", ["6EUR", "0", "-1", "1e3"])
+def test_the_cap_must_be_a_positive_number(tmp_path: Path, cap: str) -> None:
+    # R21: "6EUR" wrote no session.json and made the watchdog compare strings
+    r = run(tmp_path, "p10-1", "--cap-eur", cap)
+    assert r.rc == 2 and "--cap-eur must be a positive number" in r.stdout and not r.calls

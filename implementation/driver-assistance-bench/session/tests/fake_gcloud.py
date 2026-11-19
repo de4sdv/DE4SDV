@@ -19,6 +19,7 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_SLOW_GUEST_STOP  seconds: the guests' stop (guest_stop.sh, not the safety net's arming) takes that long
   FAKE_LOST_AFTER    "vm:text"  the VM is reclaimed (TERMINATED) right after the first ssh whose command has text
   FAKE_PACK_ADD      "arcname=local file,..."  more files in every packed out.tgz (a fetched verdicts file, say)
+  FAKE_KIT_EXISTS    a VM name that already holds ~/da-kit/<session id>
   FAKE_ARM_FAIL      a VM name whose safety net's arming fails
   FAKE_SLOW_FETCH    seconds: the scp of a host's out.tgz takes that long
   FAKE_FETCH_FAIL    a VM name whose out.tgz scp fails
@@ -175,6 +176,8 @@ if words[:2] == ["compute", "ssh"]:
     if c == "true":
         out("")
     m = re.search(r"host_step\.sh (run|start|status|tail|signal|pack)\s*(\S*)", c)
+    if "sha256sum /tmp/da-kit-" in c and os.environ.get("FAKE_KIT_EXISTS") == n:
+        out("KIT_EXISTS\n", 3)
     if "sha256sum /tmp/da-kit-" in c:
         out("%s  /tmp/da-kit.tgz\n" % st["kit_sha"].get(n, "none"))
     if "shutdown -h" in c:

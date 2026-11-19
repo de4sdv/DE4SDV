@@ -105,6 +105,13 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
 - Before any VM starts, the session builds the kit (the bench folder at `HEAD`, or as on disk with
   `--kit-from-worktree`), and checks that every entry point the kind needs is in it and executable. Each host's
   upload is checked by its sha256.
+- In each run of `p10-2` the go file must follow the S-CORE side's start within `GO_LIMIT_S` (380 s, under the
+  candidate's 420 s ready time-out); a later go is refused: the run is marked invalid in the log, the world side is
+  sent TERM, the S-CORE side is stopped and collected, and the session ends (exit 5). Every adb call of the guest
+  entries has a time-out (`ADB_TO_S`, 30 s).
+- `--cap-eur` must be a positive number (exit 2 otherwise). A session id is used once: the session refuses an id
+  that names any folder under the evidence root (`incoming_<id>`, or an archived `..._<id>` after rule 15's rename)
+  or any `session.json` there, and a host that already holds `~/da-kit/<id>` (exit 4, before any step).
 - The evidence goes into a new `incoming_<session id>/` (refused if it exists): `session.log`, `commands.log` (every
   gcloud, ssh and scp call), `cost.log`, `session.json`, `kit.tgz`, and per host `<role>/out/` with each step's log
   and status. A fetched folder whose `session_id` is not this session's fails the session.

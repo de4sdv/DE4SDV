@@ -74,15 +74,19 @@ case "$KIND" in
   *) echo "--kind p10-1|p10-3|p10-2 is required" >&2; exit 2 ;;
 esac
 
+# the cap: a positive number of EUR (R21)
+[[ "$CAP" =~ ^[0-9]+(\.[0-9]+)?$ ]] && awk -v c="$CAP" 'BEGIN { exit !(c > 0) }' \
+  || { echo "refused: --cap-eur must be a positive number of EUR, not '$CAP'"; exit 2; }
+
 # waits, seconds; a dry run may shorten them through DA_T_<NAME>, a real session refuses those knobs
 PREEMPT_CHECK_S=30; ROUND_PAUSE_S=45; START_DEADLINE_S=1800; RUNNING_WAIT_S=120; SSH_TRIES=20; SSH_PAUSE_S=10
-POLL_S=20; STEP_TERM_POLLS=6; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
+POLL_S=20; STEP_TERM_POLLS=6; GO_LIMIT_S=380; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
 T_P10_1=5400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
 T_CAPTURE_END=180; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 T_UNIT=300
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
-       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS)
+       T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -101,6 +105,15 @@ fi
 SID=${SID:-$(date -u +%Y%m%dT%H%M%SZ)}
 IN=$EVID/incoming_$SID
 [ -e "$IN" ] && { echo "refused: $IN exists (one folder per session)"; exit 2; }
+# an archived session keeps its id in its folder's name (rule 15: incoming_<id> renamed to session<N>_..._<id>) or
+# in its session.json: its id is never reused, or its remote ~/da-kit/<id> would pass this session's fetch (R20)
+for _d in "$EVID"/*; do
+  [ -d "$_d" ] || continue
+  case "${_d##*/}" in
+    "$SID"|*_"$SID") echo "refused: session id $SID is taken by $_d"; exit 2 ;;
+  esac
+  grep -q -F "\"session_id\": \"$SID\"" "$_d/session.json" 2>/dev/null && { echo "refused: session id $SID is taken by $_d"; exit 2; }
+done
 mkdir -p "$IN" || exit 2
 LOG=$IN/session.log; CMDS=$IN/commands.log; COST=$IN/cost.log; STARTS=$IN/starts.tsv
 : > "$STARTS"
@@ -537,7 +550,8 @@ upload() {
   routall scp_r "$r" 300 "$KIT" "$(var "$r" VM):/tmp/da-kit-$SID.tgz"; local rc=$?
   printf '%s\n' "$ROUT" | one >> "$LOG"
   [ "$rc" = 0 ] || return 1
-  rout ssh_l "$r" 120 "set -e; mkdir -p ~/da-kit/$SID; tar -xzf /tmp/da-kit-$SID.tgz -C ~/da-kit/$SID; echo $SID > ~/da-kit/$SID/session_id; sha256sum /tmp/da-kit-$SID.tgz"
+  rout ssh_l "$r" 120 "if [ -e ~/da-kit/$SID ]; then echo KIT_EXISTS; exit 3; fi; set -e; mkdir -p ~/da-kit/$SID; tar -xzf /tmp/da-kit-$SID.tgz -C ~/da-kit/$SID; echo $SID > ~/da-kit/$SID/session_id; sha256sum /tmp/da-kit-$SID.tgz"
+  grep -q -x KIT_EXISTS <<< "$ROUT" && { log "refused: ~/da-kit/$SID exists on $(var "$r" VM) (a session id is used once)"; return 1; }
   got=$(awk 'NF==2 {print $1}' <<< "$ROUT" | tail -1)
   [ "$got" = "$KIT_SHA" ] || { log "kit on $(var "$r" VM): sha256 '$got', expected $KIT_SHA"; return 1; }
   # safety net: the VM powers itself off a little after the cap, should this host lose the session
@@ -734,8 +748,17 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1>: one run
   [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ] && logmark "$w"
   rstep score "score_start_$w" "$T_SCORE_START" env "DA_CAMERA_CALIBRATION_DIR=$CAMCAL_DIR" bash "$ENTRY_SCORE_START" \
     "$(od "score_$w")" "$CARLA_HOST"
-  SCORE_UP=$(od "score_$w")
+  SCORE_UP=$(od "score_$w"); local t_up; t_up=$(date +%s)
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then offer_checks "$w"; window_open "$w"; fi
+  # the candidate gives up on the world after its 420 s ready time-out: a later go reads as a supervision failure
+  # (rule 31), so the run is refused, the world side ended and the S-CORE side stopped (R14)
+  local since=$(( $(date +%s) - t_up ))
+  if [ "$since" -gt "$GO_LIMIT_S" ]; then
+    log "INVALID RUN $w: the go would come $since s after the S-CORE side's start (limit $GO_LIMIT_S s, the candidate's ready time-out 420 s)"
+    rsignal sim "world_$w" TERM
+    STEP_FAIL="world_$w"; abort 5 "the run $w is invalid: no go within $GO_LIMIT_S s of the S-CORE side's start"
+  fi
+  log "go of $w $since s after the S-CORE side's start (limit $GO_LIMIT_S s)"
   rtouch sim "$o/go" || { STEP_FAIL="world_$w"; abort 5 "no go file for $w"; }
   rwaitfile sim "world_$w" "$o/simulator/run_end.json" "$T_RUN" || { abort 5 "the run $w did not end"; }
   # the S-CORE side stops while the world still ticks (launch-manager/README.md), then the world is released
