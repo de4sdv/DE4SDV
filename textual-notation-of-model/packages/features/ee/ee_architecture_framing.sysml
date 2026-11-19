@@ -379,7 +379,8 @@ package DE4SDV_EEArchitectureFraming {
     );
     attribute :>> expectedArtifacts = (
       "DE4SDV_EEArchitectureFraming",
-      "DE4SDV_EEArchitectureOperationalContext"
+      "DE4SDV_EEArchitectureOperationalContext",
+      "DE4SDV_EEArchitectureCapabilityClassification"
     );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",

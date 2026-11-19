@@ -113,7 +113,8 @@ def test_the_increment_has_exactly_one_operational_context_named_in_the_charter(
     assert contexts == [CONTEXT]
     charter = braced_body(framing, "part eeArchitectureCharter : IncrementCharter")
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [FRAMING_PACKAGE, PACKAGE]
+    # the framing test pins the whole list; later phases append their packages after this one
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1))[:2] == [FRAMING_PACKAGE, PACKAGE]
 
 
 def test_the_system_of_interest_is_the_charter_network_as_a_black_box():
@@ -388,7 +389,8 @@ def test_phase_two_makes_no_timing_safety_or_approval_claim():
 
 def test_the_guide_has_a_phase_two_section():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context, proposal.**" in _flat(guide)
+    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and Phase 3 capability "
+            "classification, proposal.**") in _flat(guide)
     assert guide.index("## Concerns (Phase 1)") < guide.index("## Operational context and story (Phase 2)") \
         < guide.index("## What the framing already records as open")
     flat = _guide_section()
@@ -419,12 +421,13 @@ def test_the_guide_has_a_phase_two_section():
 def test_the_guide_names_the_next_obligation_after_phase_two():
     flat = _flat(GUIDE.read_text(encoding="utf-8").split("## Next obligation and execution limits", 1)[1]
                  .split("\n## ", 1)[0])
-    for phrase in ("The next model obligation is **Phase 3**, the capability classification: the feature-model "
-                   "delta of this increment, which review judges.",
-                   "With an empty delta the one blocking check of Phase 3 has nothing to evaluate, so the Method "
-                   "Check names its next obligation in Phase 4 and lists Phase 3 as vacuous, with a prompt for "
-                   "review.",
+    # phase 3 records no feature-model delta, so the next obligation after phase 2 is phase 4
+    for phrase in ("Phase 3, the capability classification, records no feature-model delta, and review judges it: "
+                   "its one blocking check has nothing to evaluate, so the Method Check lists Phase 3 as vacuous, "
+                   "with a prompt for review.",
+                   "The next model obligation is **Phase 4**, the needs.",
                    "Phase 4 onward and the testbed with its readiness probe wait for that baseline and for a "
                    "further decision of the owner."):
         assert phrase in flat, phrase
     assert "The next model obligation is **Phase 2**" not in flat
+    assert "The next model obligation is **Phase 3**" not in flat

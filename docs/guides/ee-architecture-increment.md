@@ -12,9 +12,9 @@ asks whether the path of a driving command keeps, across that network, the
 properties that the model asks of the command paths of earlier increments. It
 judges two routes: through a zone controller, and over a direct link.
 
-**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context,
-proposal.** No implementation, run, result, product-line admission or
-compliance is claimed.
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and
+Phase 3 capability classification, proposal.** No implementation, run, result,
+product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
@@ -181,6 +181,43 @@ The context view frames `eeArchitectureContextConcern`. The story view frames
 `eeArchitectureStoryConcern` and the Phase 1 concern
 `eeVehicleCommandConcern`, which the story answers.
 
+## Capability classification (Phase 3)
+
+The increment adds no characteristic that distinguishes member products. Its
+[capability classification](../../textual-notation-of-model/packages/features/ee/ee_architecture_capability_classification.sysml)
+records no feature candidate and no deferred scope. Core elements are common
+by default and get no record.
+
+- **The topology:** one topology for one configuration; a second topology and
+  any E/E variability are out of scope, and no member of the product line
+  holds a vehicle network.
+- **The two routes:** a design alternative inside that topology; the increment
+  judges both, and its lifecycle decision names the route of the reference
+  vehicle network. No member differs by its route.
+- **The driving command and its source:** the command is that of the
+  driver-assistance increment, and what gives it is that increment's to
+  classify; Eclipse S-CORE is a feature of the feature model. The command
+  source, the S-CORE path and the vehicle get no feature from this increment.
+- **Faults, verdicts and the medium of the direct link:** requirements and
+  evidence of Phases 5 and 10 and a choice of Phases 6 to 8, none of them a
+  feature. **The vehicle-target compute family:** the deferred vehicle runtime
+  variability of the governed scope; the increment selects no compute target.
+- **Scope decisions** (`gapEENetworkInProductLine`): whether the governed
+  scope takes the reference vehicle network as common content, what that means
+  for the AEBS emergency path and the brake hand-off, and whether later
+  topologies enter the scope as deferred variability, are open for the
+  lifecycle decision. This increment admits nothing.
+- **The platform stack and the network boundary**
+  (`gapEEStackAndNetworkBoundary`): they get no feature from this increment.
+  How the network side of the central computer relates to the SoC and the
+  hardware layer of the platform stack is open for Phases 6 to 8, and whether
+  Phase 8 allocates a node of the network to the vehicle-target family is open
+  for Phase 8.
+
+The one blocking check of Phase 3 evaluates the characteristics recorded, and
+this phase records none, so the Method Check reports Phase 3 as having nothing
+to evaluate. Review judges the classification.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -284,15 +321,15 @@ containment criteria and any freedom-from-interference claim stay open.
 ## Next obligation and execution limits
 
 Use the Method Check of the reviewed pull request to select the next
-obligation, not the phase number alone. The next model obligation is **Phase
-3**, the capability classification: the feature-model delta of this increment,
-which review judges. With an empty delta the one blocking check of Phase 3 has
-nothing to evaluate, so the Method Check names its next obligation in Phase 4
-and lists Phase 3 as vacuous, with a prompt for review. The owner decided on
-2026-11-18 to carry out Phases 1 to 3 of this increment before the baseline of
-the driver-assistance increment, whose driving command it carries. Phase 4
-onward and the testbed with its readiness probe wait for that baseline and for
-a further decision of the owner.
+obligation, not the phase number alone. Phase 3, the capability
+classification, records no feature-model delta, and review judges it: its one
+blocking check has nothing to evaluate, so the Method Check lists Phase 3 as
+vacuous, with a prompt for review. The owner decided on 2026-11-18 to carry
+out Phases 1 to 3 of this increment before the baseline of the
+driver-assistance increment, whose driving command it carries. The next model
+obligation is **Phase 4**, the needs. Phase 4 onward and the testbed with its
+readiness probe wait for that baseline and for a further decision of the
+owner.
 
 The testbed is chosen after a readiness probe. Before a paid cloud run,
 refresh the regional price, the capacity and the available credit, obtain the

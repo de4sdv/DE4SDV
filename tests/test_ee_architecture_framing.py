@@ -343,7 +343,8 @@ def test_increment_declares_the_phase_zero_shape():
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
     assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
-        PACKAGE, "DE4SDV_EEArchitectureOperationalContext"], "the charter names only the packages that hold content"
+        PACKAGE, "DE4SDV_EEArchitectureOperationalContext", "DE4SDV_EEArchitectureCapabilityClassification"], \
+        "the charter names only the packages that hold content"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
         "owner confirmation of the engineering question and the scope",
@@ -779,7 +780,8 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context, proposal.**" in _flat(guide)
+    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and Phase 3 "
+            "capability classification, proposal.**") in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part eeArchitectureQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -822,8 +824,9 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "verdicts.",
                    "A fail is a result to record.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The next model obligation is **Phase 3**, the capability classification: the feature-model "
-                   "delta of this increment, which review judges.",
+                   "Phase 3, the capability classification, records no feature-model delta, and review judges it: "
+                   "its one blocking check has nothing to evaluate",
+                   "The next model obligation is **Phase 4**, the needs.",
                    "The owner decided on 2026-11-18 to carry out Phases 1 to 3 of this increment before the "
                    "baseline of the driver-assistance increment, whose driving command it carries.",
                    "Phase 4 onward and the testbed with its readiness probe wait for that baseline and for a "
@@ -867,6 +870,25 @@ def test_the_guide_lists_each_gap_as_an_open_point_in_the_models_own_words():
             f"{name}: the open point is not a passage of the gap's own text"
 
 
+#: the upstream record's intro and its last two sections, flat and whole: no later phase adds a reading there
+UPSTREAM_INTRO = (
+    "# E/E architecture: upstream provenance These are the public sources that the framing of the E/E architecture "
+    "increment, INC-EE-001, read for its gap on the zone controller route. They are not an adopted dependency set "
+    "or an execution manifest. No upstream implementation is vendored. For this increment DE4SDV has built and run "
+    "nothing."
+)
+UPSTREAM_COMMAND_SOURCE = (
+    "The source of the driving command on the central computer is the one of the earlier increments: the driving "
+    "command that the driver-assistance increment gives over the Eclipse S-CORE path. Its upstream sources and the "
+    "revisions read are in the [driving upstream record](../driving/upstream.md). This increment reads no further "
+    "upstream code for it."
+)
+UPSTREAM_CONTACT = (
+    "DE4SDV has contacted no author of these sources and no upstream project about this increment. No "
+    "endorsement, review or rights clearance by them is asserted."
+)
+
+
 def test_the_upstream_record_holds_the_sources_of_the_route_gap():
     record = UPSTREAM_RECORD.read_text(encoding="utf-8")
     assert record.startswith("# E/E architecture: upstream provenance\n")
@@ -877,6 +899,7 @@ def test_the_upstream_record_holds_the_sources_of_the_route_gap():
                    "No upstream implementation is vendored.",
                    "For this increment DE4SDV has built and run nothing."):
         assert phrase in intro, phrase
+    assert intro == UPSTREAM_INTRO, "the intro is pinned whole"
     route = _record_section(record, "Zone controller route")
     links = re.findall(r"\]\((https://[^)\s]+)\)", route)
     assert links == [
@@ -930,9 +953,11 @@ def test_the_upstream_record_holds_the_sources_of_the_route_gap():
     source = _record_section(record, "Command source")
     assert "(../driving/upstream.md)" in source
     assert "This increment reads no further upstream code for it." in _flat(source)
+    assert _flat(source) == UPSTREAM_COMMAND_SOURCE, "the command source section is pinned whole"
     contact = _flat(_record_section(record, "Upstream contact"))
     assert contact.startswith("DE4SDV has contacted no author of these sources and no upstream project about this "
                               "increment.")
+    assert contact == UPSTREAM_CONTACT, "the upstream contact section is pinned whole"
     exchange = re.compile(r"(?i)\bDE4SDV (?:has )?(?:confirmed|agreed|asked|told|informed|reported|"
                           r"discussed|opened|sent)\b")
     assert not exchange.findall(_flat(record)), exchange.findall(_flat(record))
