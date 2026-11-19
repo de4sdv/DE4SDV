@@ -146,10 +146,11 @@ done
 T_UNIT=$(( ${RVAL[UNIT_WAIT_S]:-120} + 240 ))
 T_APP_RESTART=$(( ${RVAL[START_WAIT_S]:-5} + ${RVAL[APP_SUBSCRIBE_WAIT_S]:-30} + 300 ))
 # the S-CORE host's disk check before p10-2's first run (F3 of 20261119T174606Z): the candidate's Rerun record grows at
-# the measured rate (calib_steer: 4,729,613,610 B in about 42 s of candidate running, about 113 MB/s) and stays on the
-# host; a run's planned running is its setting's run cap plus RRD_HOLD_S of hold until its S-CORE stop (the poll of
-# run_end.json and the stop's start call); the need is the rate times those seconds, plus 10 % and 5 GB
-RRD_RATE_BPS=113000000; RRD_HOLD_S=60; RRD_MARGIN_B=5000000000
+# most at the measured rate (calib_steer: 4,729,613,610 B in 542 passes, 8,726,224 B a pass, at most 10 passes a second
+# at the front camera's sensor_tick 0.1 s, rounded up to 88 MB/s) and stays on the host; a run's planned running is
+# its setting's run cap plus RRD_HOLD_S of hold until its S-CORE stop (the poll of run_end.json and the stop's start
+# call); the need is the rate times those seconds, plus 10 % and 5 GB
+RRD_RATE_BPS=88000000; RRD_HOLD_S=60; RRD_MARGIN_B=5000000000
 CARLA_PORTS="2000 2001 2002"   # p10-1's port test: CARLA's ports that carla-net admits from the S-CORE host
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP

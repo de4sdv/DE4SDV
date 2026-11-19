@@ -6,8 +6,9 @@
 #
 # The candidate writes its Rerun record (rrd_on = true, the model's: the evaluators' record of the warnings) into its
 # working directory in the stage, and stop_score_side.sh keeps it on this host: a hard link in <out> where the stage
-# and <out> share a filesystem, a copy otherwise. The session computes the need from the measured rate (calib_steer of
-# 20261119T174606Z: 4,729,613,610 B in about 42 s of candidate running, about 113 MB/s) times the planned running
+# and <out> share a filesystem, a copy otherwise. The session computes the need from the highest record rate
+# (calib_steer of 20261119T174606Z: 4,729,613,610 B in 542 passes, at most 10 passes a second, rounded up to
+# 88 MB/s) times the planned running
 # seconds: <need_bytes> for every run of the session (held in <out>'s filesystem), <need_stage_bytes> for the longest
 # run (held in the stage's filesystem until the next start). On one filesystem the need is <need_bytes>; on two, each
 # filesystem's own. Nothing is deleted to make room.

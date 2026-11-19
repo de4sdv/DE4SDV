@@ -111,11 +111,13 @@ Each run's facts go to `session.json` `score_runs.<run>` (`calib_steer`, `run1`,
     names each record kept on the S-CORE host. Nothing on any host is deleted.
 - **The disk check.** The first step of a `p10-2` is `score:disk_check` (`ENTRY_SCORE_DISK`), before the simulator
   host's setup and any run, so a short disk costs the least.
-  - The budget is the measured rate, 113 MB per second of candidate running (4.73 GB in about 42 s), times each
-    run's planned running, plus 10 % and 5 GB. A run's planned running is its setting's run cap (90 s) plus 60 s of
-    hold until its S-CORE stop.
-  - For the three runs that is 450 s: 60,935,000,000 B where the stage and `<out>` share a filesystem. Otherwise
-    the longest run's 23,645,000,000 B are also needed on the stage's filesystem.
+  - The budget is the candidate's highest record rate times each run's planned running, plus 10 % and 5 GB. The rate:
+    calib_steer's record of 20261119T174606Z held 4,729,613,610 B for 542 passes, 8,726,224 B a pass, and the
+    candidate makes at most 10 passes a second (the front camera's sensor_tick 0.1 s), so 88 MB per second of
+    candidate running, rounded up. A run's planned running is its setting's run cap (90 s) plus 60 s of hold until its
+    S-CORE stop.
+  - For the three runs that is 450 s: 48,560,000,000 B where the stage and `<out>` share a filesystem. Otherwise
+    the longest run's 19,520,000,000 B are also needed on the stage's filesystem.
   - A short disk ends the session there: exit 5, `failed_step` `disk_check`, "DISK SPACE SHORT" in `session.log`.
     `session.json` `score_disk_check` holds the rate, the planned seconds, the need and the host's answer.
 - **The chase view.** A chase recorder that ends with its own exit status, 0 or not, is a result of its run's
