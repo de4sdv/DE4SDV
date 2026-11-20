@@ -1927,10 +1927,12 @@ def test_p10_2_a_staged_conf_without_the_runs_speed_limit_ends_the_session_befor
 # ------------------------------------------- F3 of the first recorded p10-2: the Rerun records stay on the host
 # The rate: calib_steer's visionpilot.rrd, 4,729,613,610 B in 542 passes (score_interface.jsonl), so 8,726,224 B a
 # pass, at most 10 passes a second (the front camera's sensor_tick 0.1 s), rounded up to 88 MB per second of
-# candidate running. A run's planned running: its setting's run cap (scenarios.py: 90 s) plus 60 s of hold until its
-# S-CORE stop. The budget: the rate times the running seconds, plus 10 % and 5 GB.
+# candidate running. A run's planned running: its setting's run cap (scenarios.py: 60 s for SC-DRIVING-012@20 since the
+# S1 build of 2026-11-20 cut the SC-DRIVING-012 caps from 90 s) plus 60 s of hold until its S-CORE stop. The budget:
+# the rate times the running seconds, plus 10 % and 5 GB.
 RRD_RATE = 88_000_000
-RUN_RUNNING_S = 90 + 60
+RUN_CAP_012_20_S = 60
+RUN_RUNNING_S = RUN_CAP_012_20_S + 60
 
 
 def _budget(seconds: int) -> int:
@@ -1938,6 +1940,9 @@ def _budget(seconds: int) -> int:
 
 
 def test_p10_2_checks_the_score_hosts_disk_for_every_runs_rerun_record_first(tmp_path: Path) -> None:
+    out = subprocess.run(["python3", str(HERE.parent / "run_setting.py"), "SC-DRIVING-012", "20kmh"],
+                         capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0 and float(out.stdout.split()[2]) == RUN_CAP_012_20_S, out.stdout + out.stderr
     r = run(tmp_path, "p10-2", "--owner-ok-guest-host",
             FAKE_TAIL_ADD="disk_check:DISK_CHECK ok need_bytes=1 avail_bytes=2 same_filesystem=1")
     assert r.rc == 0, r.log

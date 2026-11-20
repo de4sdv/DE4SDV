@@ -25,6 +25,10 @@ import scenarios  # noqa: E402
 def setting_id(scenario: str, setting: str) -> str:
     if "@" in setting:
         return setting
+    # The stop run is no run of a setting (needs_requirements.sysml:205-211): the world side holds it as the
+    # setting STOP_RUN itself, never as <scenario>@stop.
+    if setting == scenarios.STOP_RUN:
+        return scenarios.STOP_RUN
     for unit in ("kmh", "km/h"):
         if setting.endswith(unit):
             setting = setting[: -len(unit)]
