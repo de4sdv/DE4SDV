@@ -111,8 +111,10 @@ def test_the_default_bundle_contract_is_unchanged() -> None:
     through series.sh, behind the candidate guard). The stages' facts directory is $FACTS, which is $ROOT/facts for
     the pin (test_the_default_layout_is_the_pins)."""
     head = BUILD.read_text().replace('"$FACTS"/', '"$ROOT"/facts/').replace('"$FACTS/', '"$ROOT/facts/')
-    # the one addition since: the stop run's control client and its mw::com configuration (C4 of the S1 build)
+    # the additions since: the stop run's control client and its mw::com configuration (C4 of the S1 build), and the
+    # visualization recorder's encode check (lane V-a of the S1 integration; never staged)
     added = {"bin/lm_control_client": "$SB/de4sdv_da_bench/launch-manager/lm_control_client",
+             "bin/visualization_recorder_check": "$SB/de4sdv_da_bench/score-build/workspace/visualization_recorder_check",
              "config/launch_manager/mw_com_config_lm_control_client.json":
                  "$BENCH/launch-manager/config/mw_com_config_lm_control_client.json"}
     produced, pairs, whole = bundle_step_outputs(head)

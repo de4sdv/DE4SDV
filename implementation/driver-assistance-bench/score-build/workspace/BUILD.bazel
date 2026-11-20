@@ -28,3 +28,21 @@ cc_binary(
     ],
     deps = ["@da_b2_thirdparty//:onnxruntime"],
 )
+
+# The visualization recorder's check: score-interface/tests/visualization_recorder_sim_time_test.cpp (the functional
+# test of patch 0001's sim_time_s column), copied here by build_score_bench.sh as visualization_recorder_check.cpp and
+# built against the candidate's own recorder, with VisionPilot's OpenCV (static, GStreamer back end), GStreamer
+# libraries, toolchain and link options. On the S-CORE host it shows whether the recorder's nvh264enc pipeline opens
+# and encodes under the Launch Manager's exact environment of vision_pilot (score-build/README.md). The staging never
+# stages it.
+cc_binary(
+    name = "visualization_recorder_check",
+    srcs = ["visualization_recorder_check.cpp"],
+    linkopts = [
+        "-Wl,--allow-shlib-undefined",
+        "-Wl,-rpath,$$ORIGIN/../lib",
+        "-lpthread",
+        "-ldl",
+    ],
+    deps = ["//visionpilot:de4sdv_visualization_recorder"],
+)

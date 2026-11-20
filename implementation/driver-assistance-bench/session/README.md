@@ -121,6 +121,21 @@ Each run's facts go to `session.json` `score_runs.<run>` (`calib_steer`, `run1`,
   - `host_step.sh pack` leaves every `*.rrd` out and lists each with its size in `out/pack_excluded.tsv`.
   - `session.json` has `score_runs.<run>.candidate_rrd` and `not_fetched_from_hosts`, and the `p10-2` report line
     names each record kept on the S-CORE host. No Rerun record is deleted on any host.
+- **The candidate's visualization recording.** The owner decided on 2026-11-17 to keep the DE4SDV visualization
+  recorder (patch 0001) in every run and to state its delay. The Launch Manager configuration sets
+  `DE4SDV_VISUALIZATION_RECORD` for `vision_pilot` (`launch-manager/README.md`), so every run of mode full records the
+  candidate's visualization (nvh264enc, 4000 kbit/s: about 0.5 MB/s) with its sidecars `.frames.csv` (one row per
+  frame, `sim_time_s` last) and `.summary.txt`:
+  - `stop_score_side.sh` moves the three into `score_<run>/score_side/visualization/` (a rename: nothing in the stop
+    copies the video), takes the video's sha256 and writes `score_<run>/visualization_recording.json` (`path`,
+    `sha256`, `bytes`, `frames`, `reason`) and a side file `visualization.mkv.sha256`.
+  - `host_step.sh pack` leaves the video out and lists it with its size and sha256 in `out/pack_excluded.tsv`; the
+    sidecars stay in the pack.
+  - `session.json` has `score_runs.<run>.visualization_recording` (the field `case-evaluators/evidence_record.py`
+    reads for the bench recording) and the video in `not_fetched_from_hosts.score`; `session.log` names each record and
+    the hand fetch after the session, `fetch_chase.sh --role score` ("The chase videos" below).
+  - A run whose stop wrote no record, or whose video is missing or empty, gets the field with `sha256` null and a
+    named `reason`; that is never a failed step, as the chase recorder's own end is not.
 - **The disk check.** The first step of a `p10-2` is `score:disk_check` (`ENTRY_SCORE_DISK`), before the simulator
   host's setup and any run, so a short disk costs the least.
   - The budget is the candidate's highest record rate times each run's planned running, plus 10 % and 5 GB. The rate:
@@ -181,8 +196,8 @@ only the app's record shows that a request arrived. The same count serves `p10-3
   `--rehearsal --runs <tsv>` and is no evidence ("`s1` rehearsal" below); `--runs` without `--rehearsal` is refused.
   `tests/test_session_s1.py` pins the list against the model's seven settings and the `SEQUENCE` of a dry run.
 - **The disk check before each S-CORE start** (C2), calib_steer's included, in place of `p10-2`'s upfront check over
-  every run (which for S1 would need about 180 GB): one run's Rerun record, 88 MB/s times its run cap plus 60 s, plus
-  10 % and 5 GB (19,520,000,000 B for a 90 s cap). A short disk ends the session cleanly before that run: its stops and
+  every run (which for S1 would need about 180 GB): one run's Rerun record and visualization recording, 88 MB/s and
+  0.5 MB/s times its run cap plus 60 s, plus 10 % and 5 GB (19,602,500,000 B for a 90 s cap). A short disk ends the session cleanly before that run: its stops and
   fetches as on any failure, exit 5, `failed_step` `disk_check_<run>`, `ended_by` `disk short before run <run>: runs
   owed ...`, and `session.json` `s1.runs_owed` lists that run and every later one; no record is cut.
 - **Per run** `session.json` `score_runs.<run>` adds to `p10-2`'s: `run_id`, `runIdentity` (`<run id>/<r1|r2|further>`:
@@ -223,6 +238,9 @@ only the app's record shows that a request arrived. The same count serves `p10-3
   - `execution_environment.sdv_core_image` and `.ivi_image`: from `guest_up`'s `GUEST_IMAGE` lines
     (`guest_images.txt`), read from each booted guest: product, build id, fingerprint and vbmeta digest. Without the
     guest host both are absent.
+- **The visualization videos stay on the S-CORE host** in the same way (above, "The candidate's visualization
+  recording"), each with its sha256 in that host's `out/pack_excluded.tsv`; `session.log` names their hand fetch,
+  `fetch_chase.sh --role score`.
 - **The report** of `p10-2` holds per run of the list: the chase recorder's end, the adapter's attach, the display
   recording (`session.json` `s1`, with the camera calibration source and `conditional_on_permissive_ivi`).
 
@@ -247,6 +265,13 @@ fetches every video the session's `sim/out/pack_excluded.tsv` lists:
 For S1's 2.2 GB: about 37-43 min of ranges at 1.03 MB/s plus about 4 min of start and stop, EUR 1.3-1.5 at 1.887
 EUR/h. Run it as the `s1` block below shows, in a user unit that never SIGKILLs its trap.
 
+`fetch_chase.sh --role score <incoming dir>` fetches the candidate's visualization videos the same way from the S-CORE
+host alone (every `out/score_<run>/score_side/visualization/visualization.mkv` that `score/out/pack_excluded.tsv`
+lists), by the same rules: `TERMINATED` first, ranges, each sha256 against the list, the stop in its trap, a refused
+start retried every 180 s. It reaches the S-CORE host as the session does (no IAP flag) and keeps its records in
+`score/fetch_visualization/` (`fetch_visualization.log`, `ranges.tsv`, `fetch_visualization.json`). For S1, at about
+0.5 MB/s of running (about 15 runs of 1.5-2.5 min of candidate running each): about 1 GB, about 20 min of ranges.
+
 ### The candidate: `--candidate pin|pr427`
 
 The VisionPilot candidate (decision D4). `pin` (the default) is the S-CORE build's bundle `/opt/da-b2/bundle` and
@@ -255,7 +280,9 @@ the session gives every S-CORE step `DA_B2_BUNDLE=/opt/da-b2-pr427/bundle` throu
 allow-list, set only by `--candidate`: `--remote-env DA_B2_BUNDLE=...` is refused). Each S-CORE start's `SCORE_CONFIG`
 line names the staged facts' diffs (`facts_diffs`, the source difference the identity recorder hashes); the session
 ends the run before its go (exit 5, `failed_step` `score_start_<run>`) when `pr427`'s do not list patch 0004 or `pin`'s
-do. `session.json` `candidate` records the name and the bundle.
+do, and when they lack any patch of the kit's series for the candidate (`score-interface/series.sh list`: `pin`
+0001-0003 and 0005, `pr427` 0001-0005), so a bundle built from an older series never runs as this kit's candidate.
+`session.json` `candidate` records the name and the bundle.
 
 ### The display capture of a window
 
@@ -705,6 +732,13 @@ systemd-run --user --unit=da-chase-$SID --collect --working-directory="$PWD" \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
   /bin/bash $S/fetch_chase.sh "$HOME/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID"
 # then read sim/fetch_chase/fetch_chase.json: result ok, vm_status_after TERMINATED
+# then the candidate's visualization videos, the S-CORE host alone, once da-chase-$SID is inactive:
+systemd-run --user --unit=da-vis-$SID --collect --working-directory="$PWD" \
+  -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
+  -p StandardOutput=append:$HOME/s1-vis-$SID.out -p StandardError=append:$HOME/s1-vis-$SID.out \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /bin/bash $S/fetch_chase.sh --role score "$HOME/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID"
+# then read score/fetch_visualization/fetch_visualization.json: result ok, vm_status_after TERMINATED
 ```
 
 ### `s1` rehearsal (a short run list, not evidence)
@@ -863,6 +897,9 @@ active, and stop it in their EXIT trap, so they run one after the other, never t
   brings the pack, `out.tgz`, without which no run of the session is judged.
 - `fetch_chase.sh` after every `p10-2` and `s1` session whose `sim/out/pack_excluded.tsv` lists chase videos: it
   brings the videos the pack leaves out.
+- `fetch_chase.sh --role score` after every `p10-2` and `s1` session whose `score/out/pack_excluded.tsv` lists
+  visualization videos: the S-CORE host alone, by the same rules (from the bench folder:
+  `bash session/fetch_chase.sh --role score <incoming dir>`; the `s1` block above runs it in a unit of its own).
 - Both owed: `fetch_owed.sh` first. The videos' list, `pack_excluded.tsv`, is inside the owed pack, so `fetch_chase.sh`
   has nothing to read before it; `session.log` then names both commands in that order ("the simulator host's pack is
   owed ... first ... fetch_owed.sh ..., then ... fetch_chase.sh").
@@ -877,6 +914,7 @@ Expected lengths are PLAN's for each probe; prices from `hosts.env` (Spot, europ
 | `p10-3` | L4 0.483 + guest host 0.271 | about 3 h | about EUR 2.26 | EUR 3.50 (4.6 h) |
 | `p10-2` | G4 1.887 + L4 0.483 + guest host 0.271 | about 1.5 h | about EUR 3.96 | EUR 6.00 (2.3 h) |
 | `s1` | G4 1.887 + L4 0.483 + guest host 0.271 | about 2.0 h: 22 min to the first run, 14 runs of 5.5-6 min (about 82 min), the stop run about 6.5 min, the fetch and the stops about 6 min | about EUR 5.30 (+0.65 with an on-demand L4) | EUR 8.00 (3.0 h) |
+| `fetch_chase.sh --role score` after `s1` | L4 0.483 | about 20 min of ranges for about 1 GB of visualization videos, plus about 4 min of start and stop | about EUR 0.20 | none: bounded as the chase fetch |
 | `fetch_chase.sh` after `s1` | G4 1.887 | 37-43 min of ranges for about 2.2 GB at 1.03 MB/s, plus about 4 min of start and stop | EUR 1.3-1.5 | none: bounded by 120 s plus the bytes at 0.5 MB/s, its safety net 15 min after that |
 
 The `s1` figures are those of the S1 build plan (section 4), from the times of 20261120T092051Z (attempt 3: 22 min from the
@@ -907,7 +945,7 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_SCORE_P10_1` | S-CORE | `<out>`; env `DA_P10_1_CARLA_HOST` (`p10-1`: the simulator host's address, set by the session) | S-CORE build lane | the build check, the clip replay, the late subscriber; its verdicts in `<out>`; started after the world's go, so its full start finds a ticking world |
 | `ENTRY_SCORE_START` | S-CORE | `<out> <carla_host or none>`; env `DA_CAMERA_CALIBRATION_DIR` and `DA_SPEED_LIMIT` (`p10-2`, `s1`); `DA_B2_BUNDLE` (every S-CORE entry, `--candidate pr427`) | Launch Manager lane | starts the Launch Manager with its processes (identity recorder first); copies `H.yaml` and `homography_C_matrix.yaml` from `DA_CAMERA_CALIBRATION_DIR` into the candidate's working directory before the identity record; stages `speed_limit` from `DA_SPEED_LIMIT` and prints one `SCORE_CONFIG` line once up, then one `SCORE_PLATFORM` and one `SCORE_GPU` line (`score_platform_record.py`: the bundle's own facts and `nvidia-smi`, each a JSON object, a value it cannot read `{"absent": <reason>}`); returns 0 when they run, without waiting for a camera image (the world holds its first tick until the session's go file); called once per run, each with its own `<out>`; someipd offers 0x4df1 |
 | `ENTRY_SCORE_INJECT` | S-CORE | `<out>` | warning-app lane | `p10-3`: publishes test warning requests on the candidate's mw::com event; returns when done |
-| `ENTRY_SCORE_STOP` | S-CORE | `<out>` (the start's) | Launch Manager lane | ends the processes (SIGTERM, so the candidate's `.rrd` and the visualization file are finished) and collects their files; the world still ticks meanwhile |
+| `ENTRY_SCORE_STOP` | S-CORE | `<out>` (the start's) | Launch Manager lane | ends the processes (SIGTERM, so the candidate's `.rrd` and the visualization file are finished) and collects their files; in mode full it moves the visualization recording into `<out>/score_side/visualization/` and writes `<out>/visualization_recording.json`; the world still ticks meanwhile |
 | `ENTRY_SIM_SETUP` | simulator | `<out>` | this lane: `remote/sim_setup.sh` | CARLA server up on port 2000, NVENC test, free disk; the world side's map (`WORLD_MAP` of `world-side/scripts/common.sh`) in the server's `get_available_maps()`, or it fails naming the AdditionalMaps pack (`world-side/README.md`, "The maps pack") |
 | `ENTRY_SIM_WARMUP` | simulator | `<out>`; env `DA_ACKERMANN_GAINS` (`default` or `v1`, the session's `--ackermann-gains`) | `../world-side/scripts/warmup.sh` | the survey, the session's road in `world_start.json`, the warm-up pass with every camera (hero role `hero`, moved by pose) |
 | `ENTRY_SIM_CALIBRATE` | simulator | `<out> <checkerboard or settings>` (the session's `--camcal`); env `DA_ACKERMANN_GAINS` | `../world-side/scripts/calibrate.sh` | ASM-DRIVING-005 and the camera capture, role `de4sdv_calibration`, no candidate; required for `p10-2` |

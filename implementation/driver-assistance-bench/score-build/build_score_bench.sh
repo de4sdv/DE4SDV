@@ -568,10 +568,12 @@ for pkg in identity-recorder ivi-warning/injector; do
   (cd "$BENCH/$pkg" && tar --exclude='tests' --exclude='__pycache__' -cf - .) | tar -xf - -C "$OVERLAY/$pkg"
 done
 cp "$HERE/workspace/BUILD.bazel" "$HERE/workspace/ort_cuda_check.cpp" "$OVERLAY/score-build/workspace/"
+cp "$BENCH/score-interface/tests/visualization_recorder_sim_time_test.cpp" "$OVERLAY/score-build/workspace/visualization_recorder_check.cpp"
 cp "$CB/libcarla10.BUILD" "$ROOT/thirdparty.BUILD" "$OVERLAY/score-build/workspace/"
 cp "$H" "$OVERLAY/score-build/workspace/gateway_include/score/serializer/"
 TARGETS=(//visionpilot:VisionPilot //de4sdv_da_bench/actuation-adapter:actuation_adapter
          //de4sdv_da_bench/score-build/workspace:ort_cuda_check
+         //de4sdv_da_bench/score-build/workspace:visualization_recorder_check
          @score_lifecycle//score/launch_manager:launch_manager //de4sdv_da_bench/launch-manager:de4sdv_lm_config
          //de4sdv_da_bench/launch-manager:de4sdv_lm_config_path_only //de4sdv_da_bench/launch-manager:lm_control_client
          //de4sdv_da_bench/identity-recorder:identity_recorder //de4sdv_da_bench/identity-recorder:candidate_record_probe
@@ -608,8 +610,10 @@ SB=$(bazel_feo info execution_root)/${VPO%/visionpilot/VisionPilot}
 echo "S-CORE bazel-bin: $SB"
 # bin/ holds the binary names of the Launch Manager configuration (binary_name): vision_pilot, actuation_adapter,
 # gatewayd, someipd, identity_recorder. launch_manager is the daemon, ort_cuda_check the GPU check, candidate_record_probe
-# p10-1's late subscriber and warning_injector P10-3's test publisher.
+# p10-1's late subscriber and warning_injector P10-3's test publisher. visualization_recorder_check is the recorder's
+# encode check under the Launch Manager's environment (workspace/BUILD.bazel); the staging does not stage it.
 cp -L "$SB/visionpilot/VisionPilot" "$B/bin/vision_pilot"
+cp -L "$SB/de4sdv_da_bench/score-build/workspace/visualization_recorder_check" "$B/bin/"
 cp -L "$SB/de4sdv_da_bench/actuation-adapter/actuation_adapter" \
       "$SB/de4sdv_da_bench/score-build/workspace/ort_cuda_check" "$B/bin/"
 cp -L "$SB/de4sdv_da_bench/identity-recorder/identity_recorder" "$SB/de4sdv_da_bench/identity-recorder/candidate_record_probe" \

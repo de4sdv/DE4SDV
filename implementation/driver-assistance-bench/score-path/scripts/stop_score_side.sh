@@ -18,6 +18,14 @@
 #    killed process records nothing itself. SHA256SUMS over everything collected. The candidate's Rerun record
 #    (.rrd) is collected as a hard link where the stage and <out> share a filesystem (else a copy); its path, size and
 #    sha256 go to <out>/candidate_rrd.json. It stays on this host: host_step.sh pack leaves every .rrd out.
+#    In mode full, the candidate's visualization recording (patch 0001; the video DE4SDV_VISUALIZATION_RECORD of the
+#    staged launch configuration names, and its sidecars <video>.frames.csv and <video>.summary.txt) is moved, before
+#    the run directory is collected, into <out>/score_side/visualization/: a rename where the stage and <out> share a
+#    filesystem, so nothing here copies the video. Its path, sha256 (the one SHA256SUMS holds), size and frames (the
+#    rows of frames.csv) go to <out>/visualization_recording.json, and "<sha256> <bytes> <mtime s>" to <video>.sha256,
+#    which host_step.sh pack reads to list the video in pack_excluded.tsv while it leaves the video on this host. A
+#    missing or empty video is recorded there with its reason and changes neither the exit status nor the collection:
+#    the recorder is an observer of the run (the owner's decision of 2026-11-17 keeps it in every run).
 #
 # 4. Only after a complete collection, marks the stage collected ($DA_STAGE/state/collected): start_score_side.sh
 #    clears a stage only with that mark.
@@ -45,6 +53,7 @@ else
 fi
 
 LM_PID=$(ss_state LM_PID)
+MODE=$(ss_state MODE)
 if [ -z "$LM_PID" ]; then
   ss_log "stop_score_side: no state in $SCORE_SIDE_STATE: nothing was started"
 else
@@ -88,6 +97,22 @@ collect() {   # collect <source> <name in C>
   $DA_SUDO cp -a "$1" "$C/$2" || return 1
 }
 ok=0; RRD_HOW=""
+# the candidate's visualization recording (mode full): moved with its sidecars before run/ is collected, so the video
+# is neither copied nor collected twice; a failed move leaves it in run/, collected there, and its record says so
+VIS=""; VIS_NOTE=""
+if [ "$MODE" = full ]; then
+  VIS=$("$DA_PYTHON" -c 'import json, sys
+c = json.load(open(sys.argv[1]))
+print(c["components"]["vision_pilot"]["deployment_config"]["environmental_variables"].get("DE4SDV_VISUALIZATION_RECORD", ""))' \
+    "$DA_STAGE/config/launch_manager_config.json" 2>/dev/null)
+  if [ -n "$VIS" ] && [ -e "$VIS" ]; then
+    mkdir -p "$C/visualization"
+    for f in "$VIS" "$VIS.frames.csv" "$VIS.summary.txt"; do
+      [ -e "$f" ] || continue
+      $DA_SUDO mv "$f" "$C/visualization/" || VIS_NOTE="not moved: $f stayed in the stage and was collected under run/"
+    done
+  fi
+fi
 collect "$DA_STAGE/state" state || ok=1
 collect "$DA_STAGE/run" run || ok=1
 collect "$DA_STAGE/config" config || ok=1
@@ -130,6 +155,39 @@ for x in $RRD_HOW; do
   ss_log "CANDIDATE_RRD path=$f bytes=$size sha256=${sum:-none} collected_as=$how (kept on this host; the pack leaves it out)"
 done
 printf '%s\n]\n' "$RRD_JSON" > "$OUT/candidate_rrd.json"
+# the visualization recording kept on this host (mode full): <out>/visualization_recording.json, one
+# VISUALIZATION_RECORDING line, and <video>.sha256 for the pack
+if [ "$MODE" = full ]; then
+  V=$C/visualization/$(basename -- "${VIS:-visualization.mkv}"); vsum=""; vbytes=""; vframes=""; vreason=""
+  if [ -z "$VIS" ]; then
+    vreason="no visualization recording: the staged launch configuration sets no DE4SDV_VISUALIZATION_RECORD for vision_pilot"
+  elif [ -n "$VIS_NOTE" ]; then
+    vreason="no visualization recording kept: $VIS_NOTE"
+  elif [ ! -f "$V" ]; then
+    vreason="no visualization recording: the candidate's process left no $VIS (its recorder did not start, or the process did not run)"
+  else
+    vbytes=$(stat -c %s "$V")
+    [ -f "$V.frames.csv" ] && vframes=$(( $(wc -l < "$V.frames.csv") - 1 ))
+    if [ "$vbytes" = 0 ]; then
+      vreason="empty visualization recording: $VIS has 0 bytes ($(head -n 1 "$V.summary.txt" 2>/dev/null || echo 'no summary'))"
+    else
+      vsum=$(awk -v want="./visualization/$(basename -- "$V")" '{ p = $0; sub(/^[0-9a-f]+  /, "", p); if (p == want) print $1 }' "$C/SHA256SUMS" 2>/dev/null)
+      [ -n "$vsum" ] || vsum=$(sha256sum "$V" | cut -d' ' -f1)
+      printf '%s %s %s\n' "$vsum" "$vbytes" "$(stat -c %Y "$V")" > "$V.sha256"
+    fi
+  fi
+  "$DA_PYTHON" - "$OUT/visualization_recording.json" "$([ -f "$V" ] && echo "$V")" "$vsum" "$vbytes" "$vframes" "$vreason" <<'PY'
+import json, sys
+out, path, sha, size, frames, reason = sys.argv[1:]
+json.dump({"path": path or None, "sha256": sha or None, "bytes": int(size) if size else None,
+           "frames": int(frames) if frames else None, "reason": reason or None}, open(out, "w"), indent=1)
+PY
+  if [ -n "$vsum" ]; then
+    ss_log "VISUALIZATION_RECORDING path=$V bytes=$vbytes frames=${vframes:-unknown} sha256=$vsum (kept on this host; the pack leaves it out)"
+  else
+    ss_log "VISUALIZATION_RECORDING none: $vreason"
+  fi
+fi
 [ "$ok" = 0 ] || { ss_log "COLLECTION INCOMPLETE"; [ "$RC" = 0 ] && RC=8; }
 # the mark that lets the next start clear the stage: only after a complete collection
 if [ "$ok" = 0 ] && [ -d "$DA_STAGE/state" ]; then

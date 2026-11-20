@@ -41,6 +41,8 @@ LABELS = ["012_20_r1", "012_20_r2", "stop"]
 STOP_LINE = '{"runTarget":"path_stopped","stopInstantRealNs":1795000012000000000,"stopInstantMonoNs":4321000000,"rc":0}'
 RATE, HOLD, MARGIN = 88000000, 60, 5000000000
 CAP_012_20_S = 60   # SC-DRIVING-012@20's run cap (scenarios.py:135); test_run_setting_caps.py holds it
+# the visualization recording (the owner's decision of 2026-11-17: the recorder in every run): 4000 kbit/s, 0.5 MB/s
+VIS_RATE = 500000
 
 
 def s1_env(tmp: Path, runs: str = TEST_RUNS, **extra: str) -> dict[str, str]:
@@ -173,7 +175,7 @@ def test_s1_refuses_a_bad_run_list_before_any_start(tmp_path: Path, runs: str, n
 
 
 def _need(cap_s: float) -> int:
-    return RATE * (int(cap_s) + HOLD) * 11 // 10 + MARGIN
+    return (RATE + VIS_RATE) * (int(cap_s) + HOLD) * 11 // 10 + MARGIN
 
 
 def test_s1_checks_the_disk_before_each_score_start_with_one_runs_need(tmp_path: Path) -> None:

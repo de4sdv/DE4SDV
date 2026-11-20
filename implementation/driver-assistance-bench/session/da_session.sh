@@ -205,6 +205,9 @@ T_APP_RESTART=$(( ${RVAL[START_WAIT_S]:-5} + ${RVAL[APP_SUBSCRIBE_WAIT_S]:-30} +
 # its setting's run cap plus RRD_HOLD_S of hold until its S-CORE stop (the poll of run_end.json and the stop's start
 # call); the need is the rate times those seconds, plus 10 % and 5 GB
 RRD_RATE_BPS=88000000; RRD_HOLD_S=60; RRD_MARGIN_B=5000000000
+# the candidate's visualization recording (the owner's decision of 2026-11-17: the recorder in every run of mode full)
+# stays on the S-CORE host beside it: the recorder's 4000 kbit/s, 0.5 MB/s. s1's per-run disk check counts both
+VIS_RATE_BPS=500000
 # the evidence fetch of a host reached through IAP (F7 of 20261120T092051Z; README "The evidence fetch"): the whole
 # fetch is bounded by FETCH_BASE_S plus the pack's size at FETCH_PLAN_BPS (8 IAP tunnels read the G4's 305,986,299 B pack
 # at about 1.03 MB/s), never above the pre-stop phase's fetch budget of a host (PRE_FETCH_S); each try of a range by
@@ -959,6 +962,31 @@ print("; ".join(parts) or "none recorded")
 PY
 )
   log "$KIND candidate Rerun records (rrd_on = true), kept on the S-CORE host, not fetched: $rrd"
+  # the candidate's visualization recordings (the owner's decision of 2026-11-17: the recorder in every run of mode
+  # full): each run's stop record, from the host; the videos stay there (out of its pack, each with its sha256 in
+  # pack_excluded.tsv) and are fetched after the session by fetch_chase.sh --role score, the S-CORE host alone
+  local vis; vis=$(python3 - "$IN/score/out" <<'PY'
+import json, os, sys
+parts = []
+for name in sorted(os.listdir(sys.argv[1])) if os.path.isdir(sys.argv[1]) else []:
+    try:
+        r = json.load(open(os.path.join(sys.argv[1], name, "visualization_recording.json"), encoding="utf-8"))
+    except (OSError, ValueError):
+        continue
+    run = name[len("score_"):] if name.startswith("score_") else name
+    if isinstance(r, dict) and r.get("sha256"):
+        parts.append("%s %s frames, %s B, sha256 %s (%s)" % (run, r.get("frames"), r.get("bytes"), r["sha256"], r.get("path")))
+    elif isinstance(r, dict):
+        parts.append("%s none (%s)" % (run, r.get("reason")))
+print("; ".join(parts) or "none recorded")
+PY
+)
+  log "$KIND candidate visualization recordings, kept on the S-CORE host, not fetched: $vis"
+  local nvis; nvis=$(awk -F'\t' '$1 ~ /^out\/score_[^\/]*\/score_side\/visualization\/visualization\.mkv$/ && NF >= 3' "$IN/score/out/pack_excluded.tsv" 2>/dev/null | wc -l)
+  [ "$nvis" -gt 0 ] && log "$KIND visualization videos left on the S-CORE host: $nvis, each with its size and sha256 in score/out/pack_excluded.tsv; fetch them after the session with the S-CORE host alone: bash $HERE/fetch_chase.sh --role score $IN"
+  if awk -F'\t' '$1 == "score" { f = 1 } END { exit !f }' "$IN/fetch_owed.tsv" 2>/dev/null; then
+    log "$KIND visualization videos: the S-CORE host's pack is owed, and its pack_excluded.tsv lists them; after the session, first bash $HERE/fetch_owed.sh $IN (README \"A fetch owed\"), then bash $HERE/fetch_chase.sh --role score $IN"
+  fi
   # C3: the chase videos stay on the simulator host (out of its pack, each with its sha256 in pack_excluded.tsv): they
   # are fetched after the session by session/fetch_chase.sh, the simulator host alone
   local nv; nv=$(awk -F'\t' '$1 ~ /^out\/rec_[^\/]*\/chase_view\.mp4$/ && NF >= 3' "$IN/sim/out/pack_excluded.tsv" 2>/dev/null | wc -l)
@@ -1147,6 +1175,19 @@ try:
     evidence = session_fields(e["IN"], score_runs, e["KIND"], "guest" in e["ROLES_PLANNED"].split())
 except Exception as exc:   # noqa: BLE001 (session.json must be written whatever this read finds)
     evidence = {"evidence_fields_error": repr(exc)}
+    # the candidate's visualization recording (the owner's decision of 2026-11-17), kept on the S-CORE host: the stop's
+    # record (path, sha256, bytes, frames, reason), read by case-evaluators/evidence_record.py; none fetched: a reason
+    vkeys = ("path", "sha256", "bytes", "frames", "reason")
+    try:
+        v = json.load(open(os.path.join(e["IN"], "score", "out", "score_" + run, "visualization_recording.json")))
+        d["visualization_recording"] = {k: v.get(k) for k in vkeys} if isinstance(v, dict) else None
+    except (OSError, ValueError):
+        d["visualization_recording"] = None
+    if d["visualization_recording"] is None:
+        d["visualization_recording"] = dict.fromkeys(vkeys)
+        d["visualization_recording"]["reason"] = (
+            "no visualization_recording.json of this run in the fetched S-CORE output (score/out/score_%s/): the run's "
+            "S-CORE stop did not run or wrote none, or the S-CORE host was not fetched" % run)
 excluded = {}
 for role in e["ROLES_ALL"].split():
     try:
@@ -1499,9 +1540,9 @@ if [ "$KIND" = s1 ]; then
   # C2: the disk check before each S-CORE start needs one run's Rerun record (the plan's per-run bound), not every run's
   # at once: a short disk then ends the session before that run, the rest owed, and no record is cut
   for _w in calib_steer "${S1_LABELS[@]}"; do
-    _p=$(( ${RUN_CAP[$_w]%.*} + RRD_HOLD_S )); RUN_NEED[$_w]=$(( RRD_RATE_BPS * _p * 11 / 10 + RRD_MARGIN_B ))
+    _p=$(( ${RUN_CAP[$_w]%.*} + RRD_HOLD_S )); RUN_NEED[$_w]=$(( (RRD_RATE_BPS + VIS_RATE_BPS) * _p * 11 / 10 + RRD_MARGIN_B ))
   done
-  log "disk need of each s1 run, checked before its S-CORE start: $RRD_RATE_BPS B/s x (its run cap + $RRD_HOLD_S s), plus 10 % and $RRD_MARGIN_B B: $(for _w in calib_steer "${S1_LABELS[@]}"; do printf '%s %s B, ' "$_w" "${RUN_NEED[$_w]}"; done | sed 's/, $//')"
+  log "disk need of each s1 run, checked before its S-CORE start: the Rerun record's $RRD_RATE_BPS B/s and the visualization recording's $VIS_RATE_BPS B/s x (its run cap + $RRD_HOLD_S s), plus 10 % and $RRD_MARGIN_B B: $(for _w in calib_steer "${S1_LABELS[@]}"; do printf '%s %s B, ' "$_w" "${RUN_NEED[$_w]}"; done | sed 's/, $//')"
   # C5: the digest of each run's scenario definition (simulatedConfiguration), from the kit's own files
   python3 "$HERE/scenario_digest.py" "$KIT" "$IN/scenario_digests.json" $(for _w in calib_steer "${S1_LABELS[@]}"; do echo "${RUN_SET[$_w]}"; done | sort -u) \
     > "$IN/.digest" 2>&1 || fail 2 "refused: no scenario digest from the kit: $(tail -1 "$IN/.digest")"
@@ -1779,6 +1820,16 @@ score_config_check() {   # score_config_check <label> <the start's SCORE_CONFIG 
   esac
   if [ "$CANDIDATE" = pin ] && [[ "+$facts+" == *"+0004-"* ]]; then
     STEP_FAIL="score_start_$w"; abort 5 "the staged facts of $w list patch 0004, but --candidate pin: facts_diffs $facts"
+  fi
+  # every patch of the kit's series for the candidate (score-interface/series.sh: pin 0001-0003 and 0005, pr427
+  # 0001-0005) is in the staged facts, so a bundle built from an older series never reads as this kit's candidate
+  local want p missing=""
+  want=$(DA_CANDIDATE="$CANDIDATE" bash "$HERE/../score-interface/series.sh" list 2>&1) \
+    || { STEP_FAIL="score_start_$w"; abort 5 "no series of --candidate $CANDIDATE from the kit: $want"; }
+  for p in $want; do p=${p##*/}; [[ "+$facts+" == *"+$p+"* ]] || missing="$missing $p"; done
+  if [ -n "$missing" ]; then
+    STEP_FAIL="score_start_$w"
+    abort 5 "the staged facts of $w lack patches of the kit's series for --candidate $CANDIDATE:$missing (facts_diffs ${facts:-none})"
   fi
   log "speed_limit ${RUN_SPEED[$w]} m/s for $w staged, and the identity record hashes that vision_pilot.conf: $cfg"
 }
