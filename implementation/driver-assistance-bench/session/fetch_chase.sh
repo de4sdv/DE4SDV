@@ -5,7 +5,15 @@
 # past any fetch bound through IAP inside the paid session. Adapted from the proven after-the-fact fetch of p10-2
 # attempt 3 (sessions/incoming_20261120T092051Z/sim-lead-fetch/fetch_g4_ranges.sh, 306 MB at about 1.03 MB/s).
 #
-#   fetch_chase.sh [--dry-run] <incoming dir>     the session's folder, holding sim/out/pack_excluded.tsv
+#   fetch_chase.sh [--dry-run] [--role sim|score] <incoming dir>     the session's folder, holding
+#                                                <role>/out/pack_excluded.tsv
+#
+# --role score (default sim) fetches the candidate's visualization recordings from the S-CORE host instead, by the same
+# rules: each run's out/score_<run>/score_side/visualization/visualization.mkv, which the S-CORE stop moved there and
+# the pack left on the host with its sha256 (the owner's decision of 2026-11-17 keeps the DE4SDV visualization recorder
+# in every run; about 0.5 MB/s of running). The S-CORE host is reached as the session reaches it (no IAP flag). Records:
+# <incoming>/score/fetch_visualization/ (fetch_visualization.log, ranges.tsv, fetch_visualization.json); the videos go
+# to <incoming>/score/out/score_<run>/score_side/visualization/visualization.mkv.
 #
 # It refuses unless the simulator host reads TERMINATED and no da-session-* user unit is active (never a host a
 # session holds). Then, in rounds: start the host and read RUNNING back, SSH through IAP, arm the host's power-off
@@ -29,17 +37,24 @@ trap '' PIPE       # a gone stdout reader never ends the fetch or its trap; ever
 HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=hosts.env
 . "$HERE/hosts.env"
-DRY=0; ONCE=0
+DRY=0; ONCE=0; ROLE=sim
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY=1; shift ;;
     --once) ONCE=1; shift ;;
-    -h|--help) sed -n '2,27p' "$0"; exit 0 ;;
+    --role) ROLE=${2:-}; shift 2 || { echo "--role needs sim or score" >&2; exit 2; } ;;
+    -h|--help) sed -n '2,36p' "$0"; exit 0 ;;
     -*) echo "unknown argument: $1" >&2; exit 2 ;;
     *) break ;;
   esac
 done
-IN_ARG=${1:?usage: fetch_chase.sh [--dry-run] <incoming dir>}
+IN_ARG=${1:?usage: fetch_chase.sh [--dry-run] [--role sim|score] <incoming dir>}
+case "$ROLE" in
+  sim) WHAT="chase videos"; REC=fetch_chase; ROW_RE='^out/rec_[A-Za-z0-9._-]+/chase_view\.mp4$' ;;
+  score) WHAT="visualization videos"; REC=fetch_visualization
+         ROW_RE='^out/score_[A-Za-z0-9._-]+/score_side/visualization/visualization\.mkv$' ;;
+  *) echo "refused: --role must be sim or score, not '$ROLE'"; exit 2 ;;
+esac
 IN=$(cd -- "$IN_ARG" 2>/dev/null && pwd) || { echo "refused: no folder $IN_ARG"; exit 2; }
 
 RETRY_S=180; RETRY_N=20; SSH_TRIES=30; SSH_PAUSE_S=10; RUNNING_WAIT_S=120; STOP_TRIES=30; STOP_POLL_S=10
@@ -65,7 +80,7 @@ done
 if [ "$ONCE" = 0 ]; then
   # a signal to this process (systemctl stop of its unit sends TERM to the main process only) goes on to the round,
   # whose EXIT trap stops the host; no round starts after it, and this process ends with the round's code
-  args=(); [ "$DRY" = 1 ] && args+=(--dry-run); child=""; sig=""
+  args=(--role "$ROLE"); [ "$DRY" = 1 ] && args+=(--dry-run); child=""; sig=""
   trap 'sig=1; [ -n "$child" ] && kill -TERM "$child" 2>/dev/null' TERM INT HUP
   for t in $(seq 1 "$RETRY_N"); do
     echo "round $t of $RETRY_N $(date -u +%FT%TZ)"
@@ -76,40 +91,42 @@ if [ "$ONCE" = 0 ]; then
     [ "$rc" = 4 ] || exit "$rc"
     [ "$t" -lt "$RETRY_N" ] && { sleep "$RETRY_S" & wait $!; [ -n "$sig" ] && exit 143; }
   done
-  echo "no capacity for $SIM_VM in $RETRY_N rounds: the videos stay on its disk"; exit 4
+  [ "$ROLE" = sim ] && V=$SIM_VM || V=$SCORE_VM
+  echo "no capacity for $V in $RETRY_N rounds: the videos stay on its disk"; exit 4
 fi
 
-VM=$SIM_VM; Z=$SIM_ZONE; PROJ=$SIM_PROJECT
-OUT=$IN/sim/fetch_chase; mkdir -p "$OUT"; LOG=$OUT/fetch_chase.log
+if [ "$ROLE" = sim ]; then VM=$SIM_VM; Z=$SIM_ZONE; PROJ=$SIM_PROJECT; EUR_H=$SIM_EUR_H
+else VM=$SCORE_VM; Z=$SCORE_ZONE; PROJ=$SCORE_PROJECT; EUR_H=$SCORE_EUR_H; fi
+OUT=$IN/$ROLE/$REC; mkdir -p "$OUT"; LOG=$OUT/$REC.log
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
 gc() { timeout "${GC_TO:-120}" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$PROJ" "$@"; }
-iap() { [ "$SIM_SSH_IAP" = 1 ] && echo --tunnel-through-iap; }
+iap() { [ "$ROLE" = sim ] && [ "$SIM_SSH_IAP" = 1 ] && echo --tunnel-through-iap; }   # the S-CORE host: as the session
 # shellcheck disable=SC2046  # iap prints one word or nothing
 ssh_c() { local to=$1; shift; timeout "$to" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$PROJ" \
   compute ssh "$VM" --zone "$Z" $(iap) "$@" < /dev/null; }
 vmst() { gc compute instances describe "$VM" --zone "$Z" --format='value(status)' 2>/dev/null || echo UNKNOWN; }
 
-SID=$(head -1 "$IN/sim/out/session_id" 2>/dev/null)
-[[ "$SID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { log "refused: no session id in $IN/sim/out/session_id"; exit 2; }
-TSV=$IN/sim/out/pack_excluded.tsv
-[ -s "$TSV" ] || { log "refused: no $TSV (the session's simulator host was not fetched, or packed before C3)"; exit 2; }
+SID=$(head -1 "$IN/$ROLE/out/session_id" 2>/dev/null)
+[[ "$SID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { log "refused: no session id in $IN/$ROLE/out/session_id"; exit 2; }
+TSV=$IN/$ROLE/out/pack_excluded.tsv
+[ -s "$TSV" ] || { log "refused: no $TSV (the session's $ROLE host was not fetched, or packed before its videos were left out)"; exit 2; }
 # the videos: <path> <bytes> <sha256> rows of the recorder's videos; *.rrd rows (no sha256) are not this script's
 PATHS=(); declare -A WANT_B=() WANT_SHA=()
 while IFS=$'\t' read -r p b h; do
-  [[ "$p" =~ ^out/rec_[A-Za-z0-9._-]+/chase_view\.mp4$ ]] || continue
+  [[ "$p" =~ $ROW_RE ]] || continue
   [[ "$b" =~ ^[0-9]+$ ]] && [[ "$h" =~ ^[0-9a-f]{64}$ ]] || { log "refused: a malformed row in $TSV: $p $b $h"; exit 2; }
   PATHS+=("$p"); WANT_B[$p]=$b; WANT_SHA[$p]=$h
 done < "$TSV"
 TODO=(); TOTAL=0
 for p in "${PATHS[@]}"; do
-  if [ -f "$IN/sim/$p" ] && [ "$(sha256sum "$IN/sim/$p" | cut -d' ' -f1)" = "${WANT_SHA[$p]}" ]; then
+  if [ -f "$IN/$ROLE/$p" ] && [ "$(sha256sum "$IN/$ROLE/$p" | cut -d' ' -f1)" = "${WANT_SHA[$p]}" ]; then
     log "already fetched whole: $p"; continue
   fi
   TODO+=("$p"); TOTAL=$(( TOTAL + WANT_B[$p] ))
 done
-log "session $SID: ${#PATHS[@]} chase videos listed, ${#TODO[@]} to fetch ($TOTAL B) from $VM"
+log "session $SID: ${#PATHS[@]} $WHAT listed, ${#TODO[@]} to fetch ($TOTAL B) from $VM"
 if [ ${#TODO[@]} = 0 ]; then
-  python3 - "$OUT/fetch_chase.json" "$SID" <<'PY'
+  python3 - "$OUT/$REC.json" "$SID" <<'PY'
 import json, sys
 json.dump({"session_id": sys.argv[2], "result": "ok", "files": [], "note": "nothing left to fetch"}, open(sys.argv[1], "w"), indent=1)
 PY
@@ -128,7 +145,7 @@ try_s() { echo $(( FETCH_TRY_BASE_S + (2 * FETCH_RANGE_MIB * 1048576 * FETCH_PAR
 T_START=""; T_STOP=""; ST_AFTER=""; RESULT=fail; RC=1
 RES_TSV=$OUT/.results.tsv; : > "$RES_TSV"
 record() {
-  python3 - "$OUT/fetch_chase.json" "$SID" "$VM" "$T_START" "$T_STOP" "$ST_AFTER" "$SIM_EUR_H" "$RESULT" "$BOUND" \
+  python3 - "$OUT/$REC.json" "$SID" "$VM" "$T_START" "$T_STOP" "$ST_AFTER" "$EUR_H" "$RESULT" "$BOUND" \
     "$RES_TSV" "$FETCH_PARALLEL" "$FETCH_RANGE_MIB" <<'PY'
 import json, os, sys
 out, sid, vm, t0, t1, st, eur, result, bound, res, par, mib = sys.argv[1:]
@@ -227,7 +244,7 @@ fetch_one() {   # fetch_one <path>: its ranges, joined, its sha256 against the l
   done
   wait; PIDS=""
   for (( i = 0; i < n; i++ )); do [ -f "$dir/$(printf 'p%06d' "$i")" ] || { r="failed: $(head -1 "$dir/failed" 2>/dev/null || echo "range $i not read")"; break; }; done
-  dest=$IN/sim/$p; mkdir -p "$(dirname "$dest")"
+  dest=$IN/$ROLE/$p; mkdir -p "$(dirname "$dest")"
   if [ -z "$r" ]; then
     cat "$dir"/p* > "$dest.part"; got=$(sha256sum "$dest.part" | cut -d' ' -f1)
     if [ "$got" = "${WANT_SHA[$p]}" ]; then mv "$dest.part" "$dest"; r=ok
@@ -241,6 +258,6 @@ fetch_one() {   # fetch_one <path>: its ranges, joined, its sha256 against the l
 }
 bad=0
 for p in "${TODO[@]}"; do fetch_one "$p" || bad=1; done
-if [ "$bad" = 0 ]; then RESULT=ok; RC=0; log "every chase video fetched, sha256 equal"
-else RESULT="failed"; RC=5; log "FETCH INCOMPLETE: see $OUT/fetch_chase.json; the videos stay on $VM under ~/da-kit/$SID/out"; fi
+if [ "$bad" = 0 ]; then RESULT=ok; RC=0; log "every one of the $WHAT fetched, sha256 equal"
+else RESULT="failed"; RC=5; log "FETCH INCOMPLETE: see $OUT/$REC.json; the videos stay on $VM under ~/da-kit/$SID/out"; fi
 exit "$RC"

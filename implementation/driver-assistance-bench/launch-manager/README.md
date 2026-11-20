@@ -58,8 +58,11 @@ SIGKILL 10 s later.
 The start order is the model's: the identity recorder first, so the candidate record exists before the candidate's
 process starts; then the candidate's process and the actuation adapter. The adapter does not wait for the candidate:
 it finds the command service itself, so it subscribes before the first command, which comes only after the
-candidate's network sessions and first inference. someipd and gatewayd start before the candidate's process, so the
-warning path is up before the first warning request.
+candidate's network sessions and first inference. The candidate's process depends on the identity recorder only, so it
+can start before someipd and gatewayd (since a9384a0c: an edge to gatewayd would keep the warning path running in
+`path_stopped`, below). The warning path is still up before the first warning request: the start
+(`score-path/scripts/start_score_side.sh`) returns only once someipd and gatewayd run, the session writes the go only
+after it, and the candidate's first warning request needs an image, which comes only after the go.
 
 A component that is in both run targets keeps running across the switch (Lifecycle v0.10.0 does not restart an
 active component: `score/launch_manager/src/daemon/src/process_group_manager/details/process_info_node.cpp:517-534`).
@@ -152,6 +155,16 @@ L4's CUDA provider) fell into the supervision and tripped it. The adapter report
   `actuation_adapter` link LibCarla's client, whose static initializer reads `CARLA_CACHE_DIR`, else `HOME` without a
   check, and both died of SIGSEGV before `main` on the L4 in session 5. So both components set `CARLA_CACHE_DIR` to
   `/tmp/de4sdv-da-bench/run/carla_cache`. `tests/test_launch_manager_environment.py` gives the reasons at the pins.
+- Expect the candidate's visualization recording in every run of mode full (the owner's decision of 2026-11-17: keep
+  the DE4SDV visualization recorder in every run and state its delay). `vision_pilot` sets
+  `DE4SDV_VISUALIZATION_RECORD` = `/tmp/de4sdv-da-bench/run/visualization.mkv` (patch 0001: unset or empty means off;
+  nvh264enc at 4000 kbit/s by default), and `GST_REGISTRY` = `/tmp/de4sdv-da-bench/gst/registry.x86_64.bin`: without
+  `HOME`, GStreamer's plugin registry would go to the passwd home of uid 0, outside the stage, and be read again by
+  later runs. `gst/` lies outside every folder the stop collects. The stop moves the video and its sidecars
+  (`.frames.csv`, `.summary.txt`) into the run's out folder and records the video's sha256; the pack leaves the video
+  on the host (`score-path/scripts/stop_score_side.sh`, `session/README.md`). The path-only configuration keeps these
+  settings verbatim, and no run target of p10-1 or p10-3 starts `vision_pilot`, so the recorder never runs there.
+  `tests/test_visualization_recorder_env.py`.
 - Start the world's pacer before the candidate's ready timeout ends.
 - Stop the Launch Manager (SIGTERM: it switches to `Off` and ends the supervision first) before the world stops
   ticking. Otherwise the end of every run reads as a supervision failure.

@@ -9,6 +9,10 @@
 #   - as actuation_adapter it writes a supervision start and an accepted in.driving_command into
 #     <run>/score/actuationAdapter.jsonl, and at SIGTERM the supervision stop and stop records the real adapter writes
 #     (alive_ticker.cpp, actuation_adapter_main.cpp);
+#   - as vision_pilot with DA_STUB_VP_VISUALIZATION=<n> and DE4SDV_VISUALIZATION_RECORD set (the recorder of patch
+#     0001), at the stop it writes the video (<n> blocks of bytes; 0: an empty file), <video>.frames.csv with <n> rows
+#     and <video>.summary.txt, as the recorder does when it closes, and the video's inode into
+#     <run>/score/stubs/vision_pilot.vis_inode;
 #   - as vision_pilot with DA_STUB_VP_EXIT_AFTER_S=<s> it exits with status 134 after s seconds (the real candidate's
 #     abort in run 20261119T134840Z);
 #   - as gatewayd it prints DA_STUB_GATEWAYD_LINE once a second, when that is set; with DA_STUB_GATEWAYD_PER_SEND
@@ -22,7 +26,7 @@ done
 [ -n "$run" ] || run=$(cd "$(dirname "$0")/.." && pwd)/run
 mkdir -p "$run/score/stubs"
 log=$run/score/stubs/$name.log
-echo "start $name pid $$ cwd $PWD args $* MW_COM_CONFIG=${MW_COM_CONFIG:-} LCM_ALIVE_INTERFACE_PATH=${LCM_ALIVE_INTERFACE_PATH:-} HOME=${HOME:-} CARLA_CACHE_DIR=${CARLA_CACHE_DIR:-}" >> "$log"
+echo "start $name pid $$ cwd $PWD args $* MW_COM_CONFIG=${MW_COM_CONFIG:-} LCM_ALIVE_INTERFACE_PATH=${LCM_ALIVE_INTERFACE_PATH:-} HOME=${HOME:-} CARLA_CACHE_DIR=${CARLA_CACHE_DIR:-} DE4SDV_VISUALIZATION_RECORD=${DE4SDV_VISUALIZATION_RECORD:-} GST_REGISTRY=${GST_REGISTRY:-}" >> "$log"
 # vision_pilot and actuation_adapter link LibCarla's client, whose static initializer takes getenv("HOME") unchecked
 # when CARLA_CACHE_DIR is unset (CARLA 14ac3b1a50 LibCarla/source/carla/client/FileTransfer.cpp:17-31): without both
 # the real binaries die of SIGSEGV before main, as on the L4 in session 5
@@ -35,6 +39,15 @@ esac
 stop() {
   echo "stop $name" >> "$log"
   [ "$name" = vision_pilot ] && echo "synthetic rrd" > visionpilot.rrd
+  if [ "$name" = vision_pilot ] && [ -n "${DA_STUB_VP_VISUALIZATION:-}" ] && [ -n "${DE4SDV_VISUALIZATION_RECORD:-}" ]; then
+    v=$DE4SDV_VISUALIZATION_RECORD
+    : > "$v"; echo "video_index,frame_id,t_arrive_ns,t_submit_ns,t_worker_start_ns,t_drawn_ns,t_encoded_ns,sim_time_s" > "$v.frames.csv"
+    for ((k = 0; k < DA_STUB_VP_VISUALIZATION; k++)); do
+      head -c 4096 /dev/urandom >> "$v"; echo "$k,$((k + 1)),1,2,3,4,5,$((100 + k)).05" >> "$v.frames.csv"
+    done
+    echo "submitted=$DA_STUB_VP_VISUALIZATION dropped=0 written=$DA_STUB_VP_VISUALIZATION failed=0 encoder=gst encoder_open=1" > "$v.summary.txt"
+    stat -c %i "$v" > "$run/score/stubs/vision_pilot.vis_inode"
+  fi
   if [ "$name" = actuation_adapter ] && [ -n "${LCM_ALIVE_INTERFACE_PATH:-}" ]; then
     { echo '{"t_mono_ns":3,"event":"supervision","data":{"state":"stop","alive_reported":1}}'
       echo '{"t_mono_ns":4,"event":"stop","data":{"applied":0,"dropped":0}}'; } >> "$run/score/actuationAdapter.jsonl"

@@ -1893,7 +1893,8 @@ SPEED_20 = 5.833
 def test_p10_2_sets_each_runs_speed_limit_from_its_setting_and_records_it(tmp_path: Path) -> None:
     staged = ("SCORE_CONFIG speed_limit=5.833 speed_limit_requested=5.833 hero_wait_s=400.0 source.mode=score "
               "engine.provider=cuda model.precision=fp32 visualization_on=false rrd_on=true conf_sha256=" + "a" * 64
-              + " conf_recorded=1")
+              + " conf_recorded=1 facts_diffs=0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff"
+              "+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff")
     r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_TAIL_ADD=f"score_start_run1:{staged}")
     assert r.rc == 0, r.log
     starts = r.ssh(L4, "start score_start_")
