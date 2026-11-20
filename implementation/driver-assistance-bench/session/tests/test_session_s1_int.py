@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from test_session_dryrun import G4, L4, run, vp_clone, _vp_env  # noqa: F401
+from test_session_dryrun import G4, L4, RANGED, assert_invariants, run, vp_clone, _vp_env  # noqa: F401
 from test_session_s1 import LABELS, record, s1_run, s1_seq
 
 SESSION_DIR = Path(__file__).resolve().parents[1]
@@ -75,3 +75,27 @@ def test_the_stop_runs_path_stop_step_passes_its_out_folder(tmp_path: Path) -> N
     assert r.command(ps).endswith("bash extra/path_stop.sh $HOME/da-kit/T/out/path_stop_stop"), r.command(ps)
     rec = record(r)
     assert rec["s1"]["stop_instant"]["runTarget"] == "path_stopped"
+
+
+# ───────────── b: C-fix's fetch owed and C-s1's chase fetch in one s1 ─────────────
+
+
+def test_s1_an_owed_simulator_pack_names_fetch_owed_before_fetch_chase(tmp_path: Path) -> None:
+    # the budget scaled to 2 + 3 = 5 s: the 3.5 MiB pack needs 64 s at 1 MB/s, so C-fix's R2 leaves it on the host. The
+    # chase videos' list (pack_excluded.tsv, C-s1's C3) is inside that pack: the hand fetch of the pack comes first
+    r = s1_run(tmp_path, "--without-guest-host", DA_T_TRAP_PACK_S="2", DA_T_TRAP_SCP_S="3", **RANGED)
+    rec = record(r)
+    assert r.rc == 5 and rec["ended_by"] == "fetch", r.log
+    assert [x for x in rec["not_fetched"] if x.startswith("sim: ~/da-kit/T/out.tgz sha256 ") and "(fetch owed)" in x]
+    lines = [ln for ln in r.log.splitlines() if "fetch_owed.sh" in ln and "fetch_chase.sh" in ln]
+    assert len(lines) == 1, r.log
+    assert lines[0].index("fetch_owed.sh") < lines[0].index("fetch_chase.sh"), lines[0]
+    assert f"incoming_T" in lines[0]
+    assert_invariants(r)
+
+
+def test_s1_a_fetched_simulator_pack_names_only_fetch_chase(tmp_path: Path) -> None:
+    r = s1_run(tmp_path, "--without-guest-host")
+    assert r.rc == 0, r.log
+    assert not [ln for ln in r.log.splitlines() if "fetch_owed.sh" in ln], r.log
+

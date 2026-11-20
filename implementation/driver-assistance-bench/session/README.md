@@ -778,7 +778,8 @@ which prints the pack's sha256 and its size in bytes (`<sha256> <bytes>`). The s
   after the pack, and `session.log` says so). `session.log` gives the bound before the first range (`fetch of <vm>
   by ranges: out.tgz <bytes> B ..., bound <s> s (...)`). Past the bound no new try starts and the fetch fails.
 - **A pack over the budget is a fetch owed.** A pack that needs more than 420 s at that rate (above about 360 MB; S1's
-  15 chase videos, about 2.2 GB, need 2260 s) is not read at all: the session says so in `session.log` (`... needs
+  15 chase videos, about 2.2 GB, would need 2260 s, which is why the pack leaves them out: an `s1` pack is about 50 MB)
+  is not read at all: the session says so in `session.log` (`... needs
   <s> s ..., more than the bound 420 s ...: not read by the session`), leaves the pack on the host as
   `~/da-kit/<id>/out.tgz`, and ends exit 5 with `ended_by` `fetch` once every host was fetched. `not_fetched` names
   it as "`sim: ~/da-kit/<id>/out.tgz sha256 <sha256> <bytes> B (fetch owed)`", and `fetch.sim` holds the
@@ -825,6 +826,19 @@ bash /home/mrk/de4sdv-worktrees/p10-$C/implementation/driver-assistance-bench/se
 Cost: the G4 at 1.887 EUR/h, about 1.03 MB/s through 8 tunnels: about 37 min for S1's 2.2 GB (35 min of ranges plus
 the start and the stop), about EUR 1.3; a pack of two runs (306 MB) about 9 min, about EUR 0.3. This is the model of
 `sessions/incoming_20261120T092051Z/sim-lead-fetch/fetch_g4_ranges.sh`, which read attempt 3's pack the same way.
+
+### Which hand fetch when: `fetch_owed.sh` and `fetch_chase.sh`
+
+Both take the simulator host alone after the session, refuse while it is not `TERMINATED` or a `da-session-*` unit is
+active, and stop it in their EXIT trap, so they run one after the other, never together:
+
+- `fetch_owed.sh` only when `session.json` `not_fetched` names the simulator host's pack as a fetch owed (above): it
+  brings the pack, `out.tgz`, without which no run of the session is judged.
+- `fetch_chase.sh` after every `p10-2` and `s1` session whose `sim/out/pack_excluded.tsv` lists chase videos: it
+  brings the videos the pack leaves out.
+- Both owed: `fetch_owed.sh` first. The videos' list, `pack_excluded.tsv`, is inside the owed pack, so `fetch_chase.sh`
+  has nothing to read before it; `session.log` then names both commands in that order ("the simulator host's pack is
+  owed ... first ... fetch_owed.sh ..., then ... fetch_chase.sh").
 
 ## Durations and costs
 

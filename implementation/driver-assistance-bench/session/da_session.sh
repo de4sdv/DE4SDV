@@ -963,6 +963,11 @@ PY
   # are fetched after the session by session/fetch_chase.sh, the simulator host alone
   local nv; nv=$(awk -F'\t' '$1 ~ /^out\/rec_[^\/]*\/chase_view\.mp4$/ && NF >= 3' "$IN/sim/out/pack_excluded.tsv" 2>/dev/null | wc -l)
   [ "$nv" -gt 0 ] && log "$KIND chase videos left on the simulator host: $nv, each with its size and sha256 in sim/out/pack_excluded.tsv; fetch them after the session with the simulator host alone: bash $HERE/fetch_chase.sh $IN"
+  # the simulator host's pack owed (R2 of C-fix): the videos' list, pack_excluded.tsv, is inside that pack, so the hand
+  # fetch of the pack comes first, then the videos; both take the simulator host alone, one after the other
+  if awk -F'\t' '$1 == "sim" { f = 1 } END { exit !f }' "$IN/fetch_owed.tsv" 2>/dev/null; then
+    log "$KIND chase videos: the simulator host's pack is owed, and its pack_excluded.tsv lists them; after the session, first bash $HERE/fetch_owed.sh $IN (README \"A fetch owed\"), then bash $HERE/fetch_chase.sh $IN"
+  fi
   # each run's chase recorder: rc 0 or not, with the summary's end from the fetched files (F4). rc 0 says only that the
   # recorder attached, wrote a frame and ffmpeg ended 0, not that the view has no gap (T6): session.json chase_view
   # carries written, gaps and ticks_seen beside it
