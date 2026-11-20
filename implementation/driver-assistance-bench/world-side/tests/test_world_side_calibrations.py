@@ -179,6 +179,17 @@ def test_the_judgement_starts_at_the_setting_speed_not_at_two_metres_a_second():
     assert res["turn"] == "left" and res["shown"] is True
 
 
+def test_the_offset_trend_starts_at_the_settled_tick_not_at_the_record_start():
+    # the vehicle sways right while it accelerates (0.9 m); the trend is read from the first tick at 20 km/h
+    ticks = _return_ticks(_smooth_return)
+    for t in ticks:
+        if t["scenarioTimeS"] < 5.6 - 1e-9:
+            t["ego"]["lane"]["offsetM"] = 0.9
+    res = calibration.analyse_steering(ticks, 0.5, settled_mps=SETTLED_20)
+    assert res["settledAtS"] == pytest.approx(5.6)
+    assert res["offsetTrend"]["startM"] == pytest.approx(0.5, abs=1e-6)
+
+
 def test_a_turn_after_the_lane_centre_is_not_the_response_to_the_start_offset():
     # the vehicle drifts across the centre with no turn (a constant small heading), then turns right from the
     # left: that right turn answers its new offset, not the start right of centre; the judgement stops at the

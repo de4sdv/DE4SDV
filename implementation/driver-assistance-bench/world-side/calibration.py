@@ -209,7 +209,7 @@ def analyse_steering(ticks: list[dict], start_offset_m: float, *, settled_mps: f
                       "commands": last["commands"],
                       "reason": "the candidate's last command: the world holds the last applied control after it"}
         rows = kept
-        if not last["commands"] or not rows:
+        if not rows:                         # an empty command record keeps no tick
             out.update(shown=None, missed="no command in the record: nothing the candidate commanded to judge")
             return out
     out["judgedToS"] = rows[-1][0] if rows else None
