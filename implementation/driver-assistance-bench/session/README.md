@@ -78,11 +78,17 @@ With every step before it at its own bound (`sim_setup` 1200 s, the port test's 
 run into the cap; the exit trap then holds each at its bound within p10-1's pre-stop budget of 1560 s ("The exit
 trap's pre-stop budget"). `tests/test_p10_1_bounds.py` checks both from the scripts' defaults.
 
-Each run of `p10-2` (`world_run` in the script): the chase recorder (runs only), the world side spawns and writes
+Each run of `p10-2` (`world_run` in the script): the chase recorder (runs only) and its `listening` file, the world
+side spawns and writes
 `ready.json`, the S-CORE side starts with the calibration file, the offer checks and the window open (runs only: the
 unit, `am start -S`, the IVI clock, the capture), the go file, `run_end.json`, the S-CORE side stops while the world
 still ticks, the release file, the world side and the recorder end, the capture ends. The session log's last
 `SEQUENCE` line lists every step in order; `tests/test_session_dryrun.py` pins it for each kind.
+The recorder writes `rec_<run>/listening` once it has taken its list of the heroes already there
+(`../recording/chase_recorder.py`), and the session starts `world_<run>` only after that file, polled every 2 s for
+`T_REC_LISTEN` (150 s) at most, so the run's hero is never in the list (T2 of the closure check of 8fae4100: about
+4 s apart). Past the bound, or after the recorder's own end, the run goes on with a `WARNING` line in `session.log`.
+The wait is no step of `SEQUENCE`.
 
 ### What each `p10-2` run records
 
@@ -296,7 +302,8 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   `unknown` when the count failed). Once a guest step was sent, an unknown count keeps the host running, as above.
 - A failure after the S-CORE side started (a failed step, a wait that timed out, a signal, the cap) first runs the
   S-CORE side's stop (`ENTRY_SCORE_STOP`, step `score_stop_on_failure`), its only collector, then fetches. A signal or
-  the cap fetches every host whose files were not fetched yet (120 s pack, 300 s copy at most), before its stop.
+  the cap fetches every host whose files were not fetched yet (120 s pack; then 300 s copy by scp at most, or the
+  ranges of a host reached through IAP within the slot's time left of 420 s), before its stop.
   The trap's whole pre-stop phase (the running step's end, the open window's capture stop, the S-CORE side's stop,
   the world side's end, the fetches) is bounded at `PRESTOP_S`, the kind's pre-stop budget (below): a host it cannot
   fetch within it is stopped unfetched (`not_fetched`; its files stay on its disk). A GPU host with nothing left to collect or fetch (no kit on it, or already fetched) stops first, at the
@@ -325,8 +332,13 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   each VM only once it passed its preemption check, and only until the trap begins its own stops (the trap's first
   act is to write `.trap_stopping`). A VM that reads anything but `RUNNING` ends the session by TERM ("HOST LOST ...
   in the host watch" in `session.log`). The trap then gives that host no SSH, no stop step and no fetch, still ends
-  the running step, stops the S-CORE side, ends the world side and fetches every other host, stops every VM, and
-  exits 3 with `ended_by` `host lost: <role> (<status>)`.
+  the running step, stops the S-CORE side, ends the world side and fetches every other host not fetched yet (a
+  healthy host whose fetch that TERM cut is fetched again in its slot, before its stop: "the fetch from <vm> was cut
+  by the host watch's TERM for the loss of <role>"), stops every VM, and exits 3 with `ended_by` `host lost: <role>
+  (<status>)`, or the loss the session had named already. The watch skips a role the session has already named lost
+  (`host_lost` writes `.lost_known` first), so it never ends the session again for a loss being handled (R1 of the
+  closure check of 1bfbd6b4: in attempt 3's order, every run done and the G4's fetch under way when the L4 was
+  preempted, its TERM cut the G4's fetch for good).
 - Every path of the stop that SSHes to a role host (the S-CORE stop on failure `score_down`, the fetch's pack and
   copy, the running step's TERM `step_down`, the world side's release, the capture's stop) reads the VM's state when
   its SSH fails (rc 255; the copy on any failure). A VM that is not `RUNNING` is a lost host as above, never "fetch
@@ -336,11 +348,14 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   44 s after the host's own power-off), so a step that failed in between still reads as the end.
 - `session.json` `hosts_lost.<role>` holds `status`, `detected_at`, `detected_by` (`host watch`, a poll, or the SSH
   that failed) and `preempted_at`: the newest `compute.instances.preempted` operation of that VM since the session's
-  start (`gcloud compute operations list`, in UTC), null when GCP lists none. The session's filter, run once by hand
+  start (`gcloud compute operations list`, in UTC), null when GCP lists none or when a signal cut that read: the row
+  is written before the read and its `preempted_at` filled in after it. The session's filter, run once by hand
 against the main project on 2026-11-20, listed the S-CORE host's preemption of 20261119T203947Z as
 `2026-11-19T13:01:03.560-08:00` (21:01:03.560Z). `not_fetched` names a lost host as
   "`<role>`: records on its disk under ~/da-kit/`<id>`/out (fetch owed)", and the kind's report line names the loss:
-  fetch those records by hand before any run whose records they hold is judged.
+  fetch those records by hand before any run whose records they hold is judged; after a signal or the cap,
+  `exit_code` and `ended_by` stay the signal's or the cap's; a host found lost in the trap is in `hosts_lost` and
+  `not_fetched`: read those two first.
 - Every remote call whose output the session reads writes it to a file first, never through a pipe or a command
   substitution: a signal or the cap ends the session at once, not after a fetch's 20-minute copy.
 - A watchdog writes `cost.log` every 30 s (an upper bound: from each start call, at the hourly prices in
@@ -611,9 +626,17 @@ which prints the pack's sha256 and its size in bytes (`<sha256> <bytes>`). The s
     `want`, `result` (`ok`, `short`, `rc 124` for a try cut at its bound, `size <n>`).
 - **The whole fetch is bounded by the pack's size:** `FETCH_BASE_S` (60 s) plus the size at 1 MB/s (`FETCH_PLAN_BPS`,
   about the lead's 1.03 MB/s), never above the pre-stop phase's fetch budget of a host (`TRAP_PACK_S` +
-  `TRAP_SCP_S`: 420 s; in the exit trap `TRAP_SCP_S` and the slot's time left). `session.log` gives the bound before
-  the first range (`fetch of <vm> by ranges: out.tgz <bytes> B ..., bound <s> s (...)`), and says so when the pack
-  needs more than the budget at that rate (above about 360 MB). Past the bound no new try starts and the fetch fails.
+  `TRAP_SCP_S`: 420 s, the slot of each fetch in the exit trap; there the bound is also cut to the slot's time left
+  after the pack, and `session.log` says so). `session.log` gives the bound before the first range (`fetch of <vm>
+  by ranges: out.tgz <bytes> B ..., bound <s> s (...)`). Past the bound no new try starts and the fetch fails.
+- **A pack over the budget is a fetch owed.** A pack that needs more than 420 s at that rate (above about 360 MB; S1's
+  15 chase videos, about 2.2 GB, need 2260 s) is not read at all: the session says so in `session.log` (`... needs
+  <s> s ..., more than the bound 420 s ...: not read by the session`), leaves the pack on the host as
+  `~/da-kit/<id>/out.tgz`, and ends exit 5 with `ended_by` `fetch` once every host was fetched. `not_fetched` names
+  it as "`sim: ~/da-kit/<id>/out.tgz sha256 <sha256> <bytes> B (fetch owed)`", and `fetch.sim` holds the
+  `sha256`, `bytes` and `result` `skipped: ...`. A ranged fetch that fails on a `RUNNING` host keeps its whole
+  ranges in `sim/.ranges` (beside the file `pack`: the pack's sha256, bytes and range MiB) and is named the same
+  way, with "`; <k> of <n> ranges whole in sim/.ranges`". Then follow "A fetch owed" below.
 - **A host reached by direct SSH** (the S-CORE host, the guest host) keeps its single `gcloud compute scp`, bounded at
   1200 s (300 s in the exit trap).
 - Every failure path reads the VM's state (`lost_check`): a pack whose SSH failed or that printed no sha256 and size,
@@ -621,10 +644,39 @@ which prints the pack's sha256 and its size in bytes (`<sha256> <bytes>`). The s
   (`host_lost`, exit 3, `hosts_lost.<role>.detected_by` `ranges: fetch`), never a failed fetch; on a `RUNNING` host
   the fetch fails (`fetch from <vm> failed: <the range and its last result>`, exit 5, `ended_by` `fetch`).
 - A signal or the cap during the ranges ends every tunnel (the fetch's own TERM handler) and the fetch is not tried
-  again, as for the scp.
+  again, as for the scp. The one exception is the host watch's TERM for another host's loss: the fetch it cut is
+  taken up again in the trap, in its slot (see "The host watch" above).
 - `session.json` `fetch.<role>` records each host's last fetch: `method` (`ranges` or `scp`), `bytes`, `sha256` (the
   host's), `bound_s`, `result` (`ok`, `host lost`, `failed: ...`, `failed or changed ...`) and, for ranges, `ranges`,
   `tries`, `seconds`, `parallel`, `range_mib` and `ranges_file`.
+
+### A fetch owed
+
+A pack the session did not bring home (`not_fetched` "`sim: ~/da-kit/<id>/out.tgz sha256 ... (fetch owed...)`", or a
+fetch a signal cut) stays on the simulator host's disk. Fetch it by hand after the session, before any run whose
+records it holds is judged, with the G4 alone:
+
+1. Wait until the session's unit is inactive (`systemctl --user is-active da-session-<id>`).
+2. Run `fetch_owed.sh` on the lead host. It refuses unless the G4 reads `TERMINATED` and no `da-session-*` unit is
+   loaded; it starts the G4 (on `ZONE_RESOURCE_POOL_EXHAUSTED` or a stockout it tries again every 3 min, for 1 h at
+   most), reads the pack as ranges over `FETCH_PARALLEL` IAP tunnels with `dd` (nothing is written on the host), 3
+   tries a range, each size-checked, keeps the whole ranges the session left in `sim/.ranges` when their `pack` file
+   names the same sha256, joins the ranges in order, compares the sha256 with `fetch.sim.sha256` of `session.json`,
+   unpacks into `sim/` and checks the session id. Its EXIT trap stops the G4 and reads `TERMINATED` back
+   ("after: TERMINATED" on its last line). A fetch a signal cut has no sha256 in `session.json`: read it on the
+   host first and pass `FETCH_OWED_SHA` and `FETCH_OWED_BYTES`.
+3. Read `sim/fetch_owed.json` (`result` `ok`, the ranges kept and read, the seconds) and `sim/fetch_owed_ranges.tsv`.
+
+```bash
+SID=THE_SESSION_ID                       # replace: the session whose pack is owed
+C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: that session's commit (its detached worktree, as above)
+bash /home/mrk/de4sdv-worktrees/p10-$C/implementation/driver-assistance-bench/session/fetch_owed.sh \
+  ~/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID
+```
+
+Cost: the G4 at 1.887 EUR/h, about 1.03 MB/s through 8 tunnels: about 37 min for S1's 2.2 GB (35 min of ranges plus
+the start and the stop), about EUR 1.3; a pack of two runs (306 MB) about 9 min, about EUR 0.3. This is the model of
+`sessions/incoming_20261120T092051Z/sim-lead-fetch/fetch_g4_ranges.sh`, which read attempt 3's pack the same way.
 
 ## Durations and costs
 
@@ -637,7 +689,13 @@ Expected lengths are PLAN's for each probe; prices from `hosts.env` (Spot, europ
 | `p10-2` | G4 1.887 + L4 0.483 + guest host 0.271 | about 1.5 h | about EUR 3.96 | EUR 6.00 (2.3 h) |
 
 Fixed overheads in every session: each start 1-3 min (more in rounds when Spot capacity is short), SSH and kit
-upload about 2 min per host, the guests' bring-up 10-15 min, the fetch and the stops 2-5 min.
+upload about 2 min per host, the guests' bring-up 10-15 min, the fetch 5-7 min and the stops 1-2 min. The fetch: the
+simulator host's pack by ranges at about 1 MB/s (two runs' chase videos, 306 MB, took about 5 min; at most 420 s,
+the bound), then the S-CORE host and the guest host by scp (seconds to a few minutes each; at most 1200 s each).
+Attempt 3 at the old head fetched for 21.5 min (09:58:29Z to 10:20:03Z). The fetch runs inside the cap: the cost
+watchdog counts every host from its start call to now (`cost_now`), and the preflight line of `session.log` says so
+("the cap of <EUR> is <s> s of all of them, the fetch at the end included"). A cap reached during the fetch cuts it,
+and the trap does not try it again, so a kind's cap must hold its runs plus that fetch; S1's cap must too.
 
 ## Entry-point contracts
 

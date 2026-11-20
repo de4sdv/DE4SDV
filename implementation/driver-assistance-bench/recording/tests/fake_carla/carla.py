@@ -2,7 +2,8 @@
 
 Knobs (environment): FAKE_CARLA_LOAD_S (get_world raises CARLA's time-out error until then), FAKE_HERO_AFTER_S (a new
 hero appears that long after the world first answered), FAKE_CARLA_FRAMES (images the camera delivers, one per 0.05 s of simulation time, then the world
-leaves synchronous mode), FAKE_CARLA_SPAWN_LOG (a JSON file the camera's spawn is written to).
+leaves synchronous mode), FAKE_CARLA_SPAWN_LOG (a JSON file the camera's spawn is written to), FAKE_CARLA_FIRST_LIST_S
+(the first get_actors call takes that long before it reads the actors).
 Each image is one tick: the world's on_tick callbacks get a snapshot of the hero and the camera first. A synchronous
 world that pauses between ticks is modelled by the world side's fake (paused_world.py).
 """
@@ -115,6 +116,10 @@ class _Settings:
 
 class _World:
     def get_actors(self):
+        slow = float(os.environ.get("FAKE_CARLA_FIRST_LIST_S", "0") or 0)
+        if slow and not _STATE.get("listed"):   # a slow first actor list (the recorder's list of heroes already there)
+            _STATE["listed"] = True
+            time.sleep(slow)
         acts = _Actors()
         if time.time() - _STATE["world_t"] >= float(os.environ.get("FAKE_HERO_AFTER_S", "0.5")):
             if _STATE["hero"] is None:

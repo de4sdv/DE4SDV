@@ -2294,7 +2294,12 @@ def test_f7_a_range_that_fails_three_tries_on_a_running_host_fails_the_fetch(tmp
     r = run(tmp_path, "p10-1", FAKE_RANGE_SHORT="1:9", **RANGED)
     assert r.rc == 5, r.log
     rec = json.loads((r.incoming / "session.json").read_text())
-    assert rec["ended_by"] == "fetch" and rec["not_fetched"] == ["sim"] and rec["hosts_lost"] == {}, rec
+    # since the closure check of 1bfbd6b4 (R2) a failed ranged fetch names its pack as a fetch owed, with the whole
+    # ranges it kept (test_session_closure_r.py)
+    assert rec["ended_by"] == "fetch" and rec["hosts_lost"] == {}, rec
+    (nf,) = rec["not_fetched"]
+    assert nf.startswith("sim: ~/da-kit/T/out.tgz sha256 ") and nf.endswith("(fetch owed; 3 of 4 ranges whole in "
+                                                                          "sim/.ranges)"), nf
     assert len([i for i in _dd(r) if DD.match(r.command(i)).group(1) == "1"]) == 3
     assert f"fetch from {G4} failed" in r.log and "range 1" in r.log, r.log
     assert rec["fetch"]["sim"]["result"].startswith("failed"), rec["fetch"]
@@ -2363,7 +2368,10 @@ def test_f7_the_fetch_bound_never_exceeds_the_pre_stop_fetch_budget_and_ends_a_s
     lines = [x for x in r.log.splitlines() if f"fetch of {G4} by ranges" in x]
     assert len(lines) == 1 and "bound 5 s" in lines[0], lines
     rec = json.loads((r.incoming / "session.json").read_text())
-    assert rec["ended_by"] == "fetch" and rec["not_fetched"] == ["sim"] and rec["fetch"]["sim"]["bound_s"] == 5
+    # since the closure check of 1bfbd6b4 (R2) a pack over the budget is not read at all and is named as a fetch owed
+    assert rec["ended_by"] == "fetch" and rec["fetch"]["sim"]["bound_s"] == 5 and not _dd(r), rec
+    (nf,) = rec["not_fetched"]
+    assert nf.startswith("sim: ~/da-kit/T/out.tgz sha256 ") and nf.endswith(" B (fetch owed)"), nf
     assert took < 60, took
     assert_invariants(r)
 
@@ -2392,7 +2400,7 @@ def test_f7_a_signal_during_a_ranged_fetch_ends_the_session_at_once(tmp_path: Pa
     # no range read after the trap, and no tunnel outlives it: past the reads' 8 s nothing arrived in a range's file
     time.sleep(max(0.0, t_dd + 9.5 - time.monotonic()))
     assert len(Run(tmp_path).calls) == len(r.calls) and len(_dd(r)) == n_before
-    parts = list((r.incoming / "sim" / ".ranges").glob("p*"))
+    parts = list((r.incoming / "sim" / ".ranges").glob("p[0-9]*"))   # beside the file "pack" (R2 of 1bfbd6b4)
     assert sum(f.stat().st_size for f in parts) == 0, [(f.name, f.stat().st_size) for f in parts]
     assert (r.incoming / "sim" / "fetch_ranges.tsv").read_text().count("\n") == 1   # its header only
     rec = json.loads((r.incoming / "session.json").read_text())

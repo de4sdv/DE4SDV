@@ -17,6 +17,8 @@ The camera stands for no sensor of the vehicle (the simulator server's doc in th
 attaches to the first hero (role --role-name) that appears after it starts and ends when the world leaves synchronous
 mode, when the hero or the camera is deleted, when the simulator does not answer --poll-errors-max polls in a row, or
 at --max-s. Exit status 0 only if it attached and wrote frames (the lap rule needs a recorder that wrote frames).
+Once it has taken its list of the heroes already there, it writes <out>/listening ({"pre_existing_heroes", "unix_s"}):
+the session starts a run's world side only after that file, so the run's hero is never in the list.
 
 Deletion is judged on the world's ticks only (TickLiveness, from each tick's snapshot), never from get_actors() between
 ticks: in a synchronous world that is not ticking (the world side waits for the session's go, up to 380 s), a client's
@@ -99,6 +101,14 @@ class TickLiveness:
                 self.gone = {"actor": actor_id, "frame": snapshot.frame}
 
 
+def write_listening(out: str, pre: list) -> None:
+    """<out>/listening, written whole (a rename): the heroes already there when the recorder took its list."""
+    tmp = os.path.join(out, ".listening.tmp")
+    with open(tmp, "w") as f:
+        json.dump({"pre_existing_heroes": pre, "unix_s": time.time()}, f)
+    os.replace(tmp, os.path.join(out, "listening"))
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--out", required=True)
@@ -162,6 +172,9 @@ def main() -> int:
 
     pre = sorted(x.id for x in heroes())
     st["pre_existing_heroes"] = pre
+    # the session starts the run's world only after this file: a hero it spawns from then on is new here (R7 of the
+    # closure check of 1bfbd6b4, T2 of 8fae4100: the world side's start and this list were about 4 s apart)
+    write_listening(a.out, pre)
     # the encoder after the list of heroes (a hero spawned during the test encode is new) and before the wait, so
     # that the camera attaches as soon as the hero appears
     enc, why = choose_encoder(a.encoder, lambda: nvenc_works(a.width, a.height, a.fps, a.bitrate,
