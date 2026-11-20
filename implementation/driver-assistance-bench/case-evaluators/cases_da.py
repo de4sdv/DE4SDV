@@ -58,10 +58,35 @@ def entry(run: Run, outcome: str, measured: dict | None = None, missing: list | 
             "measured": measured or {}, "missing": missing or [], "notes": notes or []}
 
 
+class DroppedImage(MissingEvidence):
+    """A dropped image inside the judged window (the dropped-image rule)."""
+
+
+_IGNORE_DROPS = [False]
+
+
+def _reading_without_drop_rule(fn, run: Run, *args) -> dict:
+    """What the criterion reads on the run when the dropped-image rule is set aside: a measured value for the
+    diagnosis of a run that the rule leaves inconclusive, never its outcome."""
+    _IGNORE_DROPS[0] = True
+    try:
+        e = fn(run, *args)
+        return {"outcome": e["outcome"], "measured": e["measured"], "missing": e["missing"], "notes": e["notes"]}
+    except MissingEvidence as exc:
+        return {"outcome": INCONCLUSIVE, "measured": {}, "missing": [str(exc)], "notes": []}
+    except EvidenceError as exc:
+        return {"outcome": ERROR, "measured": {}, "missing": [str(exc)], "notes": []}
+    finally:
+        _IGNORE_DROPS[0] = False
+
+
 def guarded(fn, run: Run, *args) -> dict:
     """One run through a per-run evaluator: missing evidence and unreadable records become its outcome."""
     try:
         return fn(run, *args)
+    except DroppedImage as exc:
+        return entry(run, INCONCLUSIVE, missing=[str(exc)],
+                     measured={"withoutDropRule": _reading_without_drop_rule(fn, run, *args)})
     except MissingEvidence as exc:
         return entry(run, INCONCLUSIVE, missing=[str(exc)])
     except EvidenceError as exc:
@@ -69,10 +94,12 @@ def guarded(fn, run: Run, *args) -> dict:
 
 
 def no_drop_in(run: Run, w0: float, w1: float) -> None:
+    if _IGNORE_DROPS[0]:
+        return
     drops = run.drops_in(w0, w1)
     if drops:
         shown = ", ".join(f"{d['sim_s']:.3f}" for d in drops[:5]) + (" ..." if len(drops) > 5 else "")
-        raise MissingEvidence(f"{run.label('score')}: {len(drops)} drop.camera_image at sim {shown} s inside the "
+        raise DroppedImage(f"{run.label('score')}: {len(drops)} drop.camera_image at sim {shown} s inside the "
                               f"judged window {w0:.3f}-{w1:.3f} s ({DROP_RULE})")
 
 
