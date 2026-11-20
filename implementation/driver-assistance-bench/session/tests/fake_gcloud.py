@@ -30,7 +30,17 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_PACK_ADD      "arcname=local file,..."  more files in every packed out.tgz (a fetched verdicts file, say)
   FAKE_KIT_EXISTS    a VM name that already holds ~/da-kit/<session id>
   FAKE_ARM_FAIL      a VM name whose safety net's arming fails
-  FAKE_SLOW_FETCH    seconds, or "vm:seconds": the scp of a host's out.tgz (of that VM only) takes that long
+  FAKE_SLOW_FETCH    seconds, or "vm:seconds": the scp of a host's out.tgz (of that VM only) takes that long, and so
+                     does each range read of it (`dd` below)
+  FAKE_PACK_PAD      bytes: every packed out.tgz also holds out/pad.bin of that many incompressible bytes (a pack of
+                     several ranges)
+  FAKE_PACK_FAIL     a VM name whose `host_step.sh pack` prints nothing and exits 1 (an IAP error, not an SSH 255)
+  FAKE_RANGE_SHORT   "skip:n,...": the first n reads of the range at that skip (MiB) send half its bytes and exit 255
+                     (a tunnel dropped mid-range)
+  FAKE_RANGE_HANG    "skip:n:seconds,...": the first n reads of the range at that skip hang that long, then answer
+  The ranged fetch of a host reached through IAP: `compute ssh <vm> --ssh-flag=-T --command "dd if=$HOME/da-kit/<id>/
+  out.tgz bs=1M skip=<k> count=<c> status=none"` streams those bytes of the host's last packed out.tgz to stdout, as
+  dd does (refused without --ssh-flag=-T: a pty would mangle the bytes). The pack prints "<sha256> <bytes>"
   FAKE_FETCH_FAIL    a VM name whose out.tgz scp fails
   FAKE_TERM_TAIL     "step:line"  the last line of the step's tail once the step was signalled (its own FAIL line);
                      the tail then exits 1, as host_step.sh tail does for a step that wrote no .rc
@@ -301,6 +311,42 @@ if words[:2] == ["compute", "ssh"]:
                 done_line = "capture ended (%s), 1 segment(s)\n" % caps[cm.group(2)]
             else:
                 done_line = "no capture in %s\n" % cm.group(2)
+    dm = re.fullmatch(r"dd if=\$HOME/da-kit/([^/ ]+)/out\.tgz bs=1M skip=(\d+) count=(\d+) status=none", c)
+    if dm:
+        if "--ssh-flag=-T" not in argv:
+            err("fake gcloud: a byte stream read without --ssh-flag=-T (a pty would change the bytes)\n", 2)
+        skip, count = int(dm.group(2)), int(dm.group(3))
+        tries = st.setdefault("range_reads", {})
+        key = "%s:%d" % (n, skip)
+        tries[key] = tries.get(key, 0) + 1
+        hang = None
+        for spec in filter(None, os.environ.get("FAKE_RANGE_HANG", "").split(",")):
+            k, times, secs = spec.split(":")
+            if int(k) == skip and tries[key] <= int(times):
+                hang = float(secs)
+        slow = os.environ.get("FAKE_SLOW_FETCH")
+        if slow and ":" in slow:
+            slow = slow.split(":", 1)[1] if slow.split(":", 1)[0] == n else None
+        wait = (hang or 0) + (float(slow) if slow else 0)
+        if wait:
+            save()
+            fcntl.flock(lockf, fcntl.LOCK_UN)
+            time.sleep(wait)
+            fcntl.flock(lockf, fcntl.LOCK_EX)
+            st = json.load(open(SF))
+        p = os.path.join(D, "%s_out.tgz" % n)
+        if not os.path.exists(p):
+            err("dd: failed to open: No such file or directory\n", 1)
+        data = open(p, "rb").read()[skip * 1048576:(skip + count) * 1048576]
+        short = dict((int(k), int(v)) for k, v in (x.split(":") for x in
+                                                   filter(None, os.environ.get("FAKE_RANGE_SHORT", "").split(","))))
+        rc = 0
+        if skip in short and tries[key] <= short[skip]:
+            data, rc = data[:len(data) // 2], 255
+        save()
+        sys.stdout.buffer.write(data)
+        sys.stdout.flush()
+        sys.exit(rc)
     if m:
         action, step = m.group(1), m.group(2)
         fail = os.environ.get("FAKE_FAIL_STEP") == step
@@ -343,6 +389,9 @@ if words[:2] == ["compute", "ssh"]:
             st.setdefault("signalled", {})[key] = c.split()[-1]
             out("signalled %s\n" % step)
         if action == "pack":
+            if os.environ.get("FAKE_PACK_FAIL") == n:
+                err("ERROR: (gcloud.compute.start-iap-tunnel) Error while connecting [4003: 'failed to connect to "
+                    "backend'].\n", 1)
             sid = re.search(r"da-kit/([^/]+)/", c).group(1)
             if os.environ.get("FAKE_FOREIGN_FETCH") == "1":
                 sid = "19700101T000000Z"
@@ -358,6 +407,10 @@ if words[:2] == ["compute", "ssh"]:
                                   ("out/%s/capture.done" % cap, b"capture ended (%s), 1 segment(s)\n" % state.encode()),
                                   ("out/%s/app_record_warning.jsonl" % cap, b'{"event":"receipt"}\n'),
                                   ("out/%s/seg_1.mp4" % cap, b"a whole segment\n")]
+                pad = int(os.environ.get("FAKE_PACK_PAD", "0") or 0)
+                if pad:
+                    import random
+                    files.append(("out/pad.bin", random.Random(7).randbytes(pad)))
                 for spec in filter(None, os.environ.get("FAKE_PACK_ADD", "").split(",")):
                     arc, local = spec.split("=", 1)
                     files.append((arc, open(local, "rb").read()))
@@ -367,7 +420,7 @@ if words[:2] == ["compute", "ssh"]:
                     t.addfile(ti, io.BytesIO(data))
             p = os.path.join(D, "%s_out.tgz" % n)
             open(p, "wb").write(buf.getvalue())
-            out(hashlib.sha256(buf.getvalue()).hexdigest() + "\n")
+            out("%s %d\n" % (hashlib.sha256(buf.getvalue()).hexdigest(), len(buf.getvalue())))
     out("")
 
 if words[:2] == ["compute", "scp"]:

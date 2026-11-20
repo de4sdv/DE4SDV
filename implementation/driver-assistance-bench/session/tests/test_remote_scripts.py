@@ -1223,3 +1223,24 @@ def test_the_pack_leaves_every_rerun_record_on_the_host_and_lists_it(tmp_path: P
     assert "out/score_run1/score_side/vision_pilot/frames.csv" in names and "out/score_run1/candidate_rrd.json" in names
     assert listed.splitlines() == ["out/score_run1/score_side/vision_pilot/visionpilot.rrd\t4096"], listed
     assert (vp / "visionpilot.rrd").stat().st_size == 4096   # still on the host's disk
+
+
+# ------------------------------------------------- F7 of 20261120T092051Z: the pack reports its size and sha256
+
+
+def test_f7_the_pack_prints_the_sha256_and_the_size_of_out_tgz(tmp_path: Path) -> None:
+    """The session fetches a host reached through IAP as ranges of the pack: it needs the pack's size beside its
+    sha256, both from the host (last line: "<sha256> <bytes>")."""
+    import hashlib
+    kit = tmp_path / "home" / "da-kit" / "S1"
+    rem = kit / "bench" / "session" / "remote"
+    rem.mkdir(parents=True)
+    (rem / "host_step.sh").write_bytes((REMOTE / "host_step.sh").read_bytes())
+    (kit / "session_id").write_text("S1\n")
+    (kit / "out").mkdir()
+    (kit / "out" / "x.bin").write_bytes(os.urandom(300000))
+    p = subprocess.run(["bash", str(rem / "host_step.sh"), "pack"], capture_output=True, text=True,
+                       env={**os.environ, "HOME": str(tmp_path / "home")})
+    assert p.returncode == 0, p.stderr
+    data = (kit / "out.tgz").read_bytes()
+    assert p.stdout.splitlines()[-1] == "%s %d" % (hashlib.sha256(data).hexdigest(), len(data)), p.stdout

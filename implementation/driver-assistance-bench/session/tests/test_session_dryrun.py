@@ -1132,7 +1132,8 @@ def test_the_traps_status_reads_wait_30_s_at_most_and_ignore_an_exported_gc_to(t
 def test_a_signal_during_a_fetch_ends_the_session_at_once(tmp_path: Path) -> None:
     # R19: a fetch scp inside a pipeline made the trap (and the cap) wait for the whole scp
     # p10-1 fetches the simulator host first: its copy is the slow one, the S-CORE host's is fetched in the trap
-    p = popen(tmp_path, "p10-1", FAKE_SLOW_FETCH=f"{G4}:15")
+    # (the simulator host by direct SSH here: its single scp; the ranged fetch through IAP has its own test, F7)
+    p = popen(tmp_path, "p10-1", FAKE_SLOW_FETCH=f"{G4}:15", SIM_SSH_IAP="0")
     wait_for_call(tmp_path, lambda c: c[2:4] == ["compute", "scp"] and any(a.endswith("/out.tgz") for a in c))
     time.sleep(0.5)
     t0 = time.monotonic()
@@ -2199,3 +2200,215 @@ def test_t6_t8_chase_view_says_what_its_rc_means_and_the_speed_limit_is_a_propos
     assert "p10-2 chase recorder ended rc 0 in every run: run1, run2" in r.log and "chase view complete" not in r.log
     for d in rec["score_runs"].values():
         assert d["speed_limit_source"].startswith("bench proposal: world-side/scenarios.py "), d
+
+
+# ------------------------------------------- F7 of 20261120T092051Z: the simulator host's fetch through IAP, by ranges
+# The G4's out.tgz held two chase videos (305,986,299 B). One `gcloud compute scp --tunnel-through-iap` ran at about
+# 150-175 KB/s, was cut at its 1200 s bound at about 208 MB, and the session ended exit 5 by \"fetch\". The lead then
+# read the same file as 37 ranges of 8 MiB with `dd` over 8 parallel IAP tunnels in 4 min 57 s (about 1.03 MB/s).
+MIB = 1048576
+# a pack of several 1 MiB ranges: 3.5 MiB of incompressible bytes, so the last range is short
+RANGED = {"FETCH_RANGE_MIB": "1", "FAKE_PACK_PAD": str(3 * MIB + MIB // 2)}
+DD = re.compile(r"^dd if=\$HOME/da-kit/T/out\.tgz bs=1M skip=(\d+) count=(\d+) status=none$")
+
+
+def _dd(r: Run, vm: str = G4) -> list[int]:
+    return [i for i in r.ssh(vm, "dd if=") if DD.match(r.command(i))]
+
+
+def _ranges_tsv(r: Run, role: str = "sim") -> list[dict]:
+    rows = (r.incoming / role / "fetch_ranges.tsv").read_text().splitlines()
+    head = rows[0].split("\t")
+    return [dict(zip(head, x.split("\t"))) for x in rows[1:]]
+
+
+def test_f7_an_iap_host_is_fetched_as_ranges_over_parallel_tunnels_and_joined(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1", **RANGED)
+    assert r.rc == 0, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["fetched"] == ["sim", "score"], rec["fetched"]
+    size = (tmp_path / "fake" / f"{G4}_out.tgz").stat().st_size
+    n = -(-size // MIB)
+    assert n >= 4 and size % MIB, size
+    reads = _dd(r)
+    assert sorted(int(DD.match(r.command(i)).group(1)) for i in reads) == list(range(n))
+    assert all(DD.match(r.command(i)).group(2) == "1" for i in reads)
+    for i in reads:   # through IAP, without a pty, and nothing written on the host
+        assert "--tunnel-through-iap" in r.calls[i] and "--ssh-flag=-T" in r.calls[i], r.calls[i]
+    # the simulator host gets no scp of out.tgz; the S-CORE host (direct SSH) keeps its single scp
+    assert not r.index(lambda c: c[2:4] == ["compute", "scp"] and any(a.startswith(G4 + ":") and a.endswith("/out.tgz")
+                                                                       for a in c))
+    assert len(r.index(lambda c: c[2:4] == ["compute", "scp"] and any(a.startswith(L4 + ":") and
+                                                                       a.endswith("/out.tgz") for a in c))) == 1
+    assert not _dd(r, L4)
+    got = (r.incoming / "sim" / "out.tgz").read_bytes()
+    assert got == (tmp_path / "fake" / f"{G4}_out.tgz").read_bytes()
+    assert (r.incoming / "sim" / "out" / "pad.bin").stat().st_size == 3 * MIB + MIB // 2
+    rows = _ranges_tsv(r)
+    assert sorted(int(x["range"]) for x in rows) == list(range(n)) and {x["result"] for x in rows} == {"ok"}
+    last = next(x for x in rows if int(x["range"]) == n - 1)
+    assert int(last["bytes"]) == int(last["want"]) == size - (n - 1) * MIB   # the short last range, size-checked
+    assert all(float(x["end_s"]) >= float(x["start_s"]) > 0 for x in rows)
+    f = rec["fetch"]
+    assert f["sim"]["method"] == "ranges" and f["sim"]["bytes"] == size and f["sim"]["ranges"] == n, f
+    assert f["sim"]["parallel"] == 8 and f["sim"]["range_mib"] == 1 and f["sim"]["result"] == "ok", f
+    assert f["sim"]["sha256"] == hashlib.sha256(got).hexdigest() and f["sim"]["tries"] == n, f
+    assert f["score"]["method"] == "scp" and f["score"]["result"] == "ok", f
+    assert f"fetched {G4}: out.tgz {f['sim']['sha256']}" in r.log
+    printed = [line for line in r.stdout.splitlines() if line.startswith(("+ gcloud", "+ ssh", "+ scp"))]
+    assert len(printed) == len(r.calls)   # the dry run prints every range read too
+
+
+def test_f7_the_ranges_run_over_at_most_fetch_parallel_tunnels_at_once(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1", FETCH_PARALLEL="2", FAKE_SLOW_FETCH=f"{G4}:0.6", **RANGED)
+    assert r.rc == 0, r.log
+    rows = _ranges_tsv(r)
+    spans = [(float(x["start_s"]), float(x["end_s"])) for x in rows]
+    most = max(sum(1 for s, e in spans if s <= t < e) for t, _ in spans)
+    assert most == 2, spans
+
+
+def test_f7_a_short_range_is_read_again_and_a_hung_try_is_cut_at_its_bound(tmp_path: Path) -> None:
+    # range 2 comes back half (the tunnel dropped, rc 255) once; range 1 hangs 40 s on its first try. Each try is
+    # bounded (here 2 s: the try's base of 1 s plus 2 x the range at its tunnel's share of the planning rate)
+    t0 = time.monotonic()
+    r = run(tmp_path, "p10-1", FAKE_RANGE_SHORT="2:1", FAKE_RANGE_HANG="1:1:40", DA_T_FETCH_TRY_BASE_S="1",
+            DA_T_FETCH_PLAN_BPS="100000000", **RANGED)
+    assert r.rc == 0, r.log
+    assert time.monotonic() - t0 < 35
+    rows = _ranges_tsv(r)
+    two = sorted((x for x in rows if x["range"] == "2"), key=lambda x: int(x["try"]))
+    assert [x["result"] for x in two] == ["short", "ok"] and int(two[0]["bytes"]) == MIB // 2, two
+    one = sorted((x for x in rows if x["range"] == "1"), key=lambda x: int(x["try"]))
+    assert [x["result"] for x in one] == ["rc 124", "ok"], one
+    assert float(one[0]["end_s"]) - float(one[0]["start_s"]) < 10, one
+    tos = [int(re.search(r"\[timeout (\d+) s\]$", c).group(1))
+           for c in (r.incoming / "commands.log").read_text().splitlines() if " dd if=" in c]
+    assert tos and max(tos) == 2, tos
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["fetch"]["sim"]["result"] == "ok" and rec["fetch"]["sim"]["tries"] == len(rows), rec["fetch"]
+    assert (r.incoming / "sim" / "out.tgz").read_bytes() == (tmp_path / "fake" / f"{G4}_out.tgz").read_bytes()
+
+
+def test_f7_a_range_that_fails_three_tries_on_a_running_host_fails_the_fetch(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1", FAKE_RANGE_SHORT="1:9", **RANGED)
+    assert r.rc == 5, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["ended_by"] == "fetch" and rec["not_fetched"] == ["sim"] and rec["hosts_lost"] == {}, rec
+    assert len([i for i in _dd(r) if DD.match(r.command(i)).group(1) == "1"]) == 3
+    assert f"fetch from {G4} failed" in r.log and "range 1" in r.log, r.log
+    assert rec["fetch"]["sim"]["result"].startswith("failed"), rec["fetch"]
+    # the VM's state was read after the failure (lost_check): RUNNING, so a failed fetch, not a lost host
+    first_bad = [i for i in _dd(r) if DD.match(r.command(i)).group(1) == "1"][0]
+    assert r.index(lambda c: c[2:5] == ["compute", "instances", "describe"] and c[5] == G4
+                   and "--format=value(status)" in c and c is not None)[-1] > first_bad
+    assert not (r.incoming / "sim" / "out.tgz").exists()
+    assert_invariants(r)
+
+
+def test_f7_a_range_that_fails_on_a_host_no_longer_running_is_a_lost_host(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1", FAKE_LOST_AFTER=f"{G4}:dd if=", FETCH_PARALLEL="1", DA_T_HOST_WATCH_S="600", **RANGED)
+    assert r.rc == 3, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["ended_by"] == "host lost: sim (TERMINATED)" and rec["failed_step"] is None, rec["ended_by"]
+    _lost_ok(rec, "sim", "TERMINATED", "ranges: fetch")
+    assert "failed or changed" not in r.log and f"fetch from {G4} failed" not in r.log, r.log
+    assert rec["fetched"] == ["score"], rec["fetched"]
+    # range 0 came whole, range 1 failed its 3 tries; no later range is read (the fetch cannot be whole)
+    assert len(_dd(r)) == 4, [r.command(i) for i in _dd(r)]
+    assert rec["fetch"]["sim"]["result"] == "host lost", rec["fetch"]
+    assert_invariants(r)
+
+
+@pytest.mark.parametrize("lost", [False, True])
+def test_f7_a_pack_that_gives_no_size_reads_the_hosts_state(tmp_path: Path, lost: bool) -> None:
+    # an IAP error ends the pack's call with rc 1, not 255: the VM's state decides all the same
+    extra = {"FAKE_LOST_AFTER": f"{G4}:host_step.sh pack", "DA_T_HOST_WATCH_S": "600"} if lost else {}
+    r = run(tmp_path, "p10-1", FAKE_PACK_FAIL=G4, **extra, **RANGED)
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert not _dd(r)
+    if lost:
+        assert r.rc == 3 and rec["ended_by"] == "host lost: sim (TERMINATED)", r.log
+        _lost_ok(rec, "sim", "TERMINATED", "ssh: fetch (pack)")
+        assert f"fetch from {G4} failed" not in r.log
+    else:
+        assert r.rc == 5 and rec["ended_by"] == "fetch" and rec["hosts_lost"] == {}, r.log
+        assert f"fetch from {G4} failed: its pack gave no sha256 and size" in r.log
+    assert rec["not_fetched"][0].startswith("sim") and rec["fetched"] == ["score"], rec
+    assert_invariants(r)
+
+
+def test_f7_the_fetch_bound_follows_the_packs_size_and_is_logged_before_the_fetch(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1", **RANGED)
+    assert r.rc == 0, r.log
+    size = (tmp_path / "fake" / f"{G4}_out.tgz").stat().st_size
+    # 60 s plus the pack at 1 MB/s (F7: 8 tunnels gave 1.03 MB/s), never above the pre-stop phase's fetch budget of a
+    # host (120 s pack + 300 s copy)
+    want = min(60 + -(-size // 1000000), 420)
+    lines = [x for x in r.log.splitlines() if f"fetch of {G4} by ranges" in x]
+    assert len(lines) == 1 and f"bound {want} s" in lines[0] and f"{size} B" in lines[0], lines
+    assert json.loads((r.incoming / "session.json").read_text())["fetch"]["sim"]["bound_s"] == want
+    import calendar
+    t_log = calendar.timegm(time.strptime(lines[0].split()[0], "%Y-%m-%dT%H:%M:%SZ"))
+    first_dd = min(_call_times(tmp_path, lambda c: c[2:4] == ["compute", "ssh"] and any(DD.match(a) for a in c)))
+    assert t_log <= first_dd + 1
+
+
+def test_f7_the_fetch_bound_never_exceeds_the_pre_stop_fetch_budget_and_ends_a_slow_fetch(tmp_path: Path) -> None:
+    # the pre-stop phase's fetch budget of a host here 2 + 3 = 5 s; every range read takes 30 s
+    t0 = time.monotonic()
+    r = run(tmp_path, "p10-1", FAKE_SLOW_FETCH=f"{G4}:30", DA_T_TRAP_PACK_S="2", DA_T_TRAP_SCP_S="3", **RANGED)
+    took = time.monotonic() - t0
+    assert r.rc == 5, r.log
+    lines = [x for x in r.log.splitlines() if f"fetch of {G4} by ranges" in x]
+    assert len(lines) == 1 and "bound 5 s" in lines[0], lines
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["ended_by"] == "fetch" and rec["not_fetched"] == ["sim"] and rec["fetch"]["sim"]["bound_s"] == 5
+    assert took < 60, took
+    assert_invariants(r)
+
+
+def test_f7_a_direct_ssh_simulator_host_keeps_the_single_scp(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1", SIM_SSH_IAP="0", **RANGED)
+    assert r.rc == 0, r.log
+    assert not _dd(r)
+    assert len(r.index(lambda c: c[2:4] == ["compute", "scp"] and any(a.startswith(G4 + ":") and
+                                                                       a.endswith("/out.tgz") for a in c))) == 1
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["fetch"]["sim"]["method"] == "scp" and rec["fetch"]["sim"]["result"] == "ok", rec["fetch"]
+
+
+def test_f7_a_signal_during_a_ranged_fetch_ends_the_session_at_once(tmp_path: Path) -> None:
+    p = popen(tmp_path, "p10-1", FAKE_SLOW_FETCH=f"{G4}:8", **RANGED)
+    wait_for_call(tmp_path, lambda c: c[2:4] == ["compute", "ssh"] and any(DD.match(a) for a in c))
+    t_dd = time.monotonic()
+    time.sleep(0.5)
+    t0 = time.monotonic()
+    os.killpg(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p)
+    assert r.rc == 143, r.log
+    assert time.monotonic() - t0 < 8, "the trap waited for the fetch"
+    n_before = len(_dd(r))
+    # no range read after the trap, and no tunnel outlives it: past the reads' 8 s nothing arrived in a range's file
+    time.sleep(max(0.0, t_dd + 9.5 - time.monotonic()))
+    assert len(Run(tmp_path).calls) == len(r.calls) and len(_dd(r)) == n_before
+    parts = list((r.incoming / "sim" / ".ranges").glob("p*"))
+    assert sum(f.stat().st_size for f in parts) == 0, [(f.name, f.stat().st_size) for f in parts]
+    assert (r.incoming / "sim" / "fetch_ranges.tsv").read_text().count("\n") == 1   # its header only
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["fetched"] == ["score"] and rec["not_fetched"] == ["sim"]
+    assert_invariants(r)
+
+
+@pytest.mark.parametrize("bad", [("FETCH_PARALLEL", "0"), ("FETCH_RANGE_MIB", "x")])
+def test_f7_fetch_settings_must_be_positive_whole_numbers(tmp_path: Path, bad: tuple) -> None:
+    r = run(tmp_path, "p10-1", **{bad[0]: bad[1]})
+    assert r.rc == 2 and bad[0] in r.stdout and not r.starts(G4), r.stdout
+
+
+def test_f7_the_readme_describes_the_ranged_fetch() -> None:
+    text = (HERE.parent / "README.md").read_text()
+    sec = text.split("### The evidence fetch", 1)[1].split("\n## ", 1)[0].split("\n### ", 1)[0]
+    for word in ("FETCH_PARALLEL", "FETCH_RANGE_MIB", "fetch_ranges.tsv", "--ssh-flag=-T", "dd", "lost_check",
+                 "`fetch`", "1 MB/s", "420 s", "3 tries"):
+        assert word in sec, word
