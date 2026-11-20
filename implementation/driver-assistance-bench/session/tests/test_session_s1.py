@@ -451,7 +451,8 @@ def test_host_step_hash_writes_a_videos_sha256_beside_it(tmp_path: Path) -> None
     assert p.returncode == 0, p.stderr
     side = (v.parent / "chase_view.mp4.sha256").read_text().split()
     assert side == [hashlib.sha256(data).hexdigest(), "5000", str(int(v.stat().st_mtime))], side
-    for rel in ("../session_id", "out/../session_id"):   # only a path under out/, and no way out of it
+    # only a path under out/ (a kit file beside it, without '..', is refused too), and no way out of it
+    for rel in ("session_id", "../session_id", "out/../session_id"):
         bad = subprocess.run(["bash", hs, "hash", rel], capture_output=True, text=True, env=env)
         assert bad.returncode == 2 and not (kit / "session_id.sha256").exists(), rel
 
