@@ -81,6 +81,9 @@ def test_r1_ra3_the_watch_skips_a_loss_main_already_named_and_the_abort_fetch_ru
     assert r.rc == 3, r.log
     assert rec["ended_by"] == "host lost: score (TERMINATED)" and rec["failed_step"] == "p10_1", rec
     assert rec["hosts_lost"]["score"]["detected_by"] == "a poll on its host", rec["hosts_lost"]
+    # the row's preempted_at is filled in after GCP's operations read (R4: the row is written before it)
+    assert re.match(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z$", rec["hosts_lost"]["score"]["preempted_at"] or ""), \
+        rec["hosts_lost"]
     assert rec["fetched"] == ["sim"] and rec["fetch"]["sim"]["result"] == "ok", rec
     # the watch did read during the fetch, after the loss, and skipped the known loss
     lost_at = r.ssh(L4, "start p10_1")[0]
@@ -192,6 +195,16 @@ def test_r2_the_hand_fetch_reads_only_the_ranges_the_session_did_not_keep(tmp_pa
     assert (r.incoming / "sim" / "out.tgz").read_bytes() == (tmp_path / "fake" / f"{G4}_out.tgz").read_bytes()
 
 
+def test_r2_the_hand_fetch_fails_on_a_sha256_other_than_the_sessions(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-1", DA_T_TRAP_PACK_S="2", DA_T_TRAP_SCP_S="3", **RANGED)
+    assert r.rc == 5, r.log
+    sha, _ = _pack(tmp_path)
+    p = _fetch_owed(tmp_path, r, FETCH_OWED_SHA="0" * 64)
+    assert p.returncode == 5 and "SHA MISMATCH" in p.stdout and "after: TERMINATED" in p.stdout, p.stdout + p.stderr
+    assert json.loads((r.incoming / "sim" / "fetch_owed.json").read_text())["result"] == f"sha256 {sha}"
+    assert not (r.incoming / "sim" / "out").exists()
+
+
 @pytest.mark.parametrize("why", ["running", "unit"])
 def test_r2_the_hand_fetch_refuses_a_running_simulator_host_or_an_active_session(tmp_path: Path, why: str) -> None:
     r = run(tmp_path, "p10-1", DA_T_TRAP_PACK_S="2", DA_T_TRAP_SCP_S="3", **RANGED)
@@ -236,6 +249,23 @@ def test_r3_rb_the_traps_ranged_fetch_is_bounded_by_its_slot_and_says_so(tmp_pat
     rec = _rec(r)
     assert rec["fetch"]["sim"]["bound_s"] == b0 and rec["fetch"]["sim"]["result"] == "ok", rec["fetch"]
     assert "sim" in rec["fetched"]
+    assert_invariants(r)
+
+
+def test_r3_the_traps_ranged_bound_is_cut_to_the_slots_time_left_after_the_pack(tmp_path: Path) -> None:
+    # the fetch budget of a host scaled to 30 + 45 = 75 s; the 3.5 MiB pack needs 64 s; its pack call takes 20 s in the
+    # trap, so 55 s of the slot are left: the bound is that, not 64 s and not TRAP_SCP_S (45 s)
+    p = popen(tmp_path, "p10-1", DA_GCLOUD=FLIP, SLOW_PACK=f"{G4}:20", DA_T_TRAP_PACK_S="30", DA_T_TRAP_SCP_S="45",
+              FAKE_HANG_STEP="p10_1:60", **RANGED)
+    wait_for_call(tmp_path, lambda c: c[2:4] == ["compute", "ssh"] and any("status p10_1" in a for a in c))
+    os.kill(p.pid, signal.SIGTERM)
+    r = finish(tmp_path, p, timeout=150)
+    assert r.rc == 143, r.log
+    (line,) = [x for x in r.log.splitlines() if f"fetch of {G4} by ranges" in x]
+    bound = int(re.search(r"; bound (\d+) s", line).group(1))
+    assert 50 <= bound <= 55, line
+    assert "plus the pack at 1000000 B/s: 64 s" in line and "cut to its slot's time left in the exit trap" in line
+    assert _rec(r)["fetch"]["sim"]["result"] == "ok"
     assert_invariants(r)
 
 
@@ -397,3 +427,12 @@ def test_r7_the_wait_for_listening_is_bounded_and_the_run_goes_on(tmp_path: Path
     assert "WARNING no listening file of the chase recorder of run1 after 2 s" in r.log, r.log
     world = r.ssh(G4, "host_step.sh start world_run1 ")[0]
     assert r.ssh(G4, "rec_run1/listening")[-1] < world
+
+
+def test_r7_a_recorder_that_ended_before_listening_lets_the_run_go_on_at_once(tmp_path: Path) -> None:
+    t0 = time.monotonic()
+    r = run(tmp_path, "p10-2", "--without-guest-host", DA_GCLOUD=FLIP, NO_LISTEN="rec_run1/listening")
+    assert r.rc == 0, r.log
+    assert time.monotonic() - t0 < 100   # never the 150 s bound
+    assert "WARNING the chase recorder of run1 ended (rc 1) before its listening file" in r.log, r.log
+    assert "the chase recorder of run2 listens" in r.log

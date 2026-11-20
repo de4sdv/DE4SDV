@@ -9,7 +9,11 @@
 #              whatever its state: a watch that has not read the loss yet, so that main names it first
 #   LIST_RUNNING_UNTIL  "<file>|<text>": LIST_RUNNING holds only until <file> holds <text> (session.log's "HOST LOST:
 #              <vm>" line, say: from then on the watch reads the loss main named)
+#   SLOW_PACK  "vm:seconds": that VM's `host_step.sh pack` call sleeps that long before the fake answers it
+#   NO_LISTEN  a text: an ssh `test -e <path> && echo present || ...` whose path holds it answers "rc 1" (a chase
+#              recorder that ended before its listening file); such a call is not in calls.log
 here=$(cd "$(dirname "$0")" && pwd)
+if [ -n "${NO_LISTEN:-}" ] && [[ "$*" == *"compute ssh"*"test -e "*"$NO_LISTEN"* ]]; then echo "rc 1"; exit 0; fi
 if [ -n "${FLIP_VM:-}" ] && { { [ -n "${FLIP_ON:-}" ] && [[ "$*" == *"$FLIP_ON"* ]]; } || [ -e "$FAKE_DIR/flip" ]; } \
    && mkdir "$FAKE_DIR/flipped" 2>/dev/null; then
   python3 - <<'PY'
@@ -24,6 +28,7 @@ open(os.path.join(D, "flipped", "at"), "w").write("%.3f %s\n" % (time.time(), vm
 PY
 fi
 [ -n "${SLOW_OPS:-}" ] && [[ "$*" == *"operations list"* ]] && sleep "$SLOW_OPS"
+[ -n "${SLOW_PACK:-}" ] && [[ "$*" == *"compute ssh ${SLOW_PACK%%:*} "*"host_step.sh pack"* ]] && sleep "${SLOW_PACK#*:}"
 if [ -n "${LIST_RUNNING:-}" ] && [[ "$*" == *"instances list"* ]] && [[ "$*" == *"--format=value(name,status)"* ]] \
    && ! { [ -n "${LIST_RUNNING_UNTIL:-}" ] && grep -q -F -- "${LIST_RUNNING_UNTIL#*|}" "${LIST_RUNNING_UNTIL%%|*}" 2>/dev/null; }; then
   out=$("$here/fake_gcloud.py" "$@"); rc=$?
