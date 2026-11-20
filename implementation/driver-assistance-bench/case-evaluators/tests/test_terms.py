@@ -9,7 +9,7 @@ import pytest
 
 import make_da_synthetic_run as syn
 import terms
-from conftest import MODEL
+from case_evaluators_testkit import MODEL
 
 NR = MODEL / "driver_assistance_needs_requirements.sysml"
 

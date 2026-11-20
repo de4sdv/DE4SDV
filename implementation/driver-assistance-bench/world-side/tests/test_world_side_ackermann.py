@@ -14,7 +14,7 @@ import json
 import pytest
 
 import carla  # the fake
-from conftest import AdapterStandIn, run_main
+from world_side_testkit import AdapterStandIn, run_main
 
 import da_world_side as ws_mod
 

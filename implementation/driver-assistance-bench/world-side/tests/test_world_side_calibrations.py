@@ -9,7 +9,7 @@ import math
 import pytest
 
 import calibration
-from conftest import AdapterStandIn, run_main
+from world_side_testkit import AdapterStandIn, run_main
 
 
 def _brake_profile(v0, d, jerk=10.0, dt=0.05, scale=1.0):

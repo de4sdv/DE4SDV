@@ -10,7 +10,7 @@ import sys
 import cases_da
 import evaluate_da_campaign as edc
 import make_da_synthetic_run as syn
-from conftest import HERE, MODEL
+from case_evaluators_testkit import HERE, MODEL
 
 NR = MODEL / "driver_assistance_needs_requirements.sysml"
 VE = MODEL / "driver_assistance_verification_evidence.sysml"

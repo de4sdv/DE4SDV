@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 import camera_calibration as cc
-from conftest import run_main
+from world_side_testkit import run_main
 
 HERE = Path(__file__).resolve().parent
 VP_CLONE = Path(os.environ.get("VISIONPILOT_CLONE", Path.home() / "de4sdv-upstream" / "vision_pilot"))
