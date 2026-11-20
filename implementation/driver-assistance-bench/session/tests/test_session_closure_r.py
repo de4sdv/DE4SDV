@@ -230,6 +230,20 @@ def test_r2_the_hand_fetch_fails_on_a_sha256_other_than_the_sessions(tmp_path: P
     assert not (r.incoming / "sim" / "out").exists()
 
 
+def test_r2_the_hand_fetch_reads_a_short_range_again_and_joins_the_whole_pack(tmp_path: Path) -> None:
+    # range 2 comes back half (a tunnel dropped, rc 255) on its first try: the size check rejects it, the second try
+    # reads it whole, and the joined file has the session's sha256
+    r = run(tmp_path, "p10-1", DA_T_TRAP_PACK_S="2", DA_T_TRAP_SCP_S="3", **RANGED)
+    assert r.rc == 5, r.log
+    sha, _ = _pack(tmp_path)
+    p = _fetch_owed(tmp_path, r, FAKE_RANGE_SHORT="2:1")
+    assert p.returncode == 0 and "SHA OK" in p.stdout, p.stdout + p.stderr
+    rows = [x.split("\t") for x in (r.incoming / "sim" / "fetch_owed_ranges.tsv").read_text().splitlines()[1:]]
+    two = sorted((x for x in rows if x[0] == "2"), key=lambda x: int(x[1]))
+    assert [x[6] for x in two] == ["short", "ok"] and int(two[0][4]) == MIB // 2, two
+    assert hashlib.sha256((r.incoming / "sim" / "out.tgz").read_bytes()).hexdigest() == sha
+
+
 @pytest.mark.parametrize("why", ["running", "unit"])
 def test_r2_the_hand_fetch_refuses_a_running_simulator_host_or_an_active_session(tmp_path: Path, why: str) -> None:
     r = run(tmp_path, "p10-1", DA_T_TRAP_PACK_S="2", DA_T_TRAP_SCP_S="3", **RANGED)
@@ -423,6 +437,35 @@ def test_r7_a_hero_already_there_is_in_the_listening_list(tmp_path: Path) -> Non
     # the hero is there before the recorder lists: it is in the list (written after the list was taken)
     p, out = _recorder(tmp_path / "a", "--max-s", "3", FAKE_HERO_AFTER_S="0")
     assert json.loads((out / "listening").read_text())["pre_existing_heroes"] == [77], p.stdout + p.stderr
+
+
+def test_r7_listening_appears_only_once_the_list_holds_the_late_hero_and_the_wait_pends_until_then(
+        tmp_path: Path) -> None:
+    # the first actor list takes 2 s and the hero appears during it (FAKE_HERO_AFTER_S 1): the session's poll, the
+    # same `test -e <out>/listening && echo present || ...`, must read "running" until the file holds that hero
+    out = tmp_path / "rec"
+    e = {k: v for k, v in os.environ.items() if not k.startswith("PYTHON")}
+    e.update(PYTHONPATH=str(BENCH / "recording" / "tests" / "fake_carla"), FAKE_CARLA_FRAMES="5",
+             FAKE_HERO_AFTER_S="1", FAKE_CARLA_FIRST_LIST_S="2")
+    t0 = time.monotonic()
+    p = subprocess.Popen([sys.executable, "-B", str(BENCH / "recording" / "chase_recorder.py"), "--out", str(out),
+                          "--width", "64", "--height", "36", "--encoder", "libx264", "--max-s", "5"], env=e,
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    seen = []
+    try:
+        while p.poll() is None and time.monotonic() - t0 < 30:
+            a = subprocess.run(["bash", "-c", 'test -e "$1" && echo present || echo running', "_",
+                                str(out / "listening")], capture_output=True, text=True).stdout.strip()
+            seen.append((time.monotonic() - t0, a, (out / "listening").read_text() if a == "present" else None))
+            if a == "present":
+                break
+            time.sleep(0.02)
+    finally:
+        p.wait(timeout=60)
+    first = next((x for x in seen if x[1] == "present"), None)
+    assert first is not None, seen[-3:]
+    assert json.loads(first[2])["pre_existing_heroes"] == [77], first
+    assert first[0] >= 1.5 and [x for x in seen if x[1] == "running" and x[0] >= 1.2], (first, seen[:3])
 
 
 def test_r7_no_listening_file_without_a_simulator(tmp_path: Path) -> None:
