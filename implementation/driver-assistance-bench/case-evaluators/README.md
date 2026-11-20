@@ -16,6 +16,7 @@ Status: draft, not yet validated against a full S1 session. No outcome here is a
 | `runio_da.py` | Finds every run of a session tree by file name and reads its records |
 | `cases_da.py` | The per-run evaluators of each case and the campaign rule |
 | `evaluate_da_campaign.py` | The command line: one session in, one verdicts file out |
+| `evidence_record.py` | The evidence record of each run (RetainedAssistanceRunEvidence), every attribute or the reason it is empty |
 | `da_criteria_record.json` | The criteria record: each success criterion quoted from the model, the thresholds, the readings |
 | `make_da_synthetic_run.py` | Synthetic sessions in the real line format, for the tests |
 
@@ -38,6 +39,8 @@ Each case in `verdicts.json` names its `criteriaRecordIdentity` (the SHA-256 of 
   aside, for diagnosis only.
 - VC-DRIVING-044 needs the desk reproduction by another engineer (`reproduction_044.json`, plan lane F2); without it
   the case is inconclusive.
+- A case that reads a run whose evidence record is partial gives inconclusive, never pass; a fail stays a fail.
+- A session whose session.json says `rehearsal` true is not judged: the command writes the reason and exits 3.
 
 ## Tests
 

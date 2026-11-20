@@ -269,18 +269,36 @@ def _setting_terms(run: Run) -> terms.SettingTerms:
     return st
 
 
+# The speeds and the times to collision that the source's guidance names for SC-DRIVING-014 and -015 and that the record
+# holds (driver_assistance_verification_evidence.sysml:474-476), under the keys of world-side/sites.py GUIDANCE_014 and
+# GUIDANCE_015 (b9938fe9): setting_record.json["site"] = SiteSpec.as_record() (lead contract 1 of 2026-11-20)
+GUIDANCE_KEYS = {
+    "SC-DRIVING-014": ("approachKmh", "atCurveEntryMinKmh", "ttcAtTurnInMaxS", "inCurveMinKmh", "ttcAtOverlapZeroMaxS"),
+    "SC-DRIVING-015": ("bothKmh", "targetTurnKmh", "egoAtTurnBeginMinKmh", "ttcAtTurnBeginMaxS", "egoAfterMinKmh",
+                       "ttcAtOverlapZeroMaxS"),
+}
+
+
+def site_guidance(run: Run, scenario: str) -> dict:
+    site = run.setting_record().get("site")
+    guidance = site.get("guidance") if isinstance(site, dict) else None
+    guidance = guidance if isinstance(guidance, dict) else {}
+    absent = [k for k in GUIDANCE_KEYS[scenario] if guidance.get(k) is None]
+    if absent:
+        raise MissingEvidence(f"{run.label('setting_record')} site.guidance {', '.join(absent)}: the speeds and times "
+                              f"to collision of the source's guidance for {scenario} that the record holds "
+                              "(driver_assistance_verification_evidence.sysml:474-476; SiteSpec.as_record(), "
+                              "world-side/sites.py)")
+    return guidance
+
+
 def starts_at_imminence(run: Run, starts: list[dict]) -> dict:
     """040 and 041: each start falls on a tick with a vehicle ahead in the lane to which a collision is imminent."""
     st = _setting_terms(run)
     whole_run(run)
     measured: dict = {"starts": len(starts), "startsAtImminent": 0, "firstStartNotImminent": None}
-    if st.scenario in ("SC-DRIVING-014", "SC-DRIVING-015"):
-        guidance = run.setting_record().get("guidance")
-        if not isinstance(guidance, dict) or not guidance:
-            raise MissingEvidence(f"{run.label('setting_record')} guidance: the speeds and times to collision of "
-                                  f"the source's guidance for {st.scenario} that the record holds "
-                                  "(driver_assistance_verification_evidence.sysml:474-476; lane A4)")
-        measured["guidance"] = guidance
+    if st.scenario in GUIDANCE_KEYS:
+        measured["guidance"] = site_guidance(run, st.scenario)
     ticks = run.ticks()
     bad = []
     for s in starts:
@@ -359,7 +377,7 @@ def run_038(run: Run) -> dict:
 def _stop_context(sess: Session, vc: str):
     run = sess.stop_run
     if run is None:
-        raise MissingEvidence("the stop run: no run (shared contract 4, run id stop; the further run of "
+        raise MissingEvidence("the stop run: no run (run id stop, setting stop: lead contract 2; the further run of "
                               "SC-DRIVING-012 in which the S-CORE path is stopped)")
     rec = run.stop_record(sess.session)
     mono, real, rc = rec.get("stopInstantMonoNs"), rec.get("stopInstantRealNs"), rec.get("rc")

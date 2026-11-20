@@ -18,7 +18,11 @@
   "EVALUATOR READING: the last driving command at a tick is the newest with issueTime_sim_s <= simTimeS",
   "EVALUATOR READING: 042 counts the warning starts up to the end of the functional part",
   "EVALUATOR READING: a fail on any run read gives fail, before error, blocked and inconclusive",
-  "036 and 037 are conditional on ASM-DRIVING-005, the calibration of the simulated deceleration (driver_assistance_verification_evidence.sysml:299-300; plan D-S1-2)"
+  "036 and 037 are conditional on ASM-DRIVING-005, the calibration of the simulated deceleration (driver_assistance_verification_evidence.sysml:299-300; plan D-S1-2); they report the requested and the read-back Ackermann gains, 'unrecorded' when the session holds none",
+  "042: a warning start at least 1.0 s of simulation time before the first emergency braking start, when the run has one; a warning still on at the braking is not asked",
+  "040 and 041 read the guidance of SC-DRIVING-014 and -015 from setting_record.json site.guidance (SiteSpec.as_record()); each speed and time to collision of the guidance must hold a value",
+  "a case that reads a run whose evidence record (RetainedAssistanceRunEvidence) is partial gives inconclusive, never pass (driver_assistance_verification_evidence.sysml:211-212)",
+  "a rehearsal session (session.json rehearsal true) is not judged"
  ],
  "cases": {
   "VC-DRIVING-036": {
@@ -26,7 +30,7 @@
    "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:278",
    "successCriteria": "Met when every setting of SC-DRIVING-012 and SC-DRIVING-013 is judged, and in each judged run the last driving command of the driver-assistance system holds a deceleration of at least 5.0 m/s² at each instant of the functional part at which the needed deceleration to the target is at least 5.0 m/s².",
    "runsRead": "the two runs of each judged setting (SC-DRIVING-012@20/@42/@60, SC-DRIVING-013@30/@60)",
-   "judgedWindow": "EVALUATOR READING: from 2.0 s before the functional part to its end",
+   "judgedWindow": "the case's own window, lead decision of 2026-11-20: from 2.0 s before the functional part to its end (driver_assistance_verification_evidence.sysml:23-27, :203-207 fix the whole run only for a criterion over every run)",
    "thresholds": {
     "neededDecelMps2AtLeast": 5.0,
     "commandAccelerationAtMost": -5.0
@@ -37,7 +41,7 @@
    "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:288",
    "successCriteria": "Met when every setting of SC-DRIVING-012 and SC-DRIVING-013 is judged, and the relative impact speed of each judged run is at most the maximum relative impact speed for its relative approach speed.",
    "runsRead": "the two runs of each judged setting (SC-DRIVING-012@20/@42/@60, SC-DRIVING-013@30/@60)",
-   "judgedWindow": "EVALUATOR READING: from 2.0 s before the functional part to its end",
+   "judgedWindow": "the case's own window, lead decision of 2026-11-20: from 2.0 s before the functional part to its end (driver_assistance_verification_evidence.sysml:23-27, :203-207 fix the whole run only for a criterion over every run)",
    "thresholds": {
     "maxRelativeImpactKmh": [
      [
@@ -113,7 +117,7 @@
    "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:338",
    "successCriteria": "Met when every setting of SC-DRIVING-012 and SC-DRIVING-013 is judged, and in each judged run in which the collision with the target becomes imminent the driver-assistance system gives a warning request at its boundary, at least 1.0 s of simulation time before the start of the first emergency braking of the run when the run has one.",
    "runsRead": "the two runs of each judged setting (SC-DRIVING-012@20/@42/@60, SC-DRIVING-013@30/@60)",
-   "judgedWindow": "EVALUATOR READING: from 2.0 s before the functional part to its end",
+   "judgedWindow": "the case's own window, lead decision of 2026-11-20: from 2.0 s before the functional part to its end (driver_assistance_verification_evidence.sysml:23-27, :203-207 fix the whole run only for a criterion over every run)",
    "thresholds": {
     "warningLeadSAtLeast": 1.0,
     "emergencyBrakingMps2": 5.0,

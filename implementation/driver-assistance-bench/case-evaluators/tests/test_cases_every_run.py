@@ -28,69 +28,71 @@ def test_040_041_pass_on_the_synthetic_s1(tmp_path):
         assert out[vc]["outcome"] == PASS, (vc, out[vc]["missing"])
         assert len(out[vc]["measured"]["runs"]) == 14
         assert "stop" not in [r["run"] for r in out[vc]["measured"]["runs"]]
-    e = run_entry(out["VC-DRIVING-040"], "012at20r1")
+    e = run_entry(out["VC-DRIVING-040"], "012_20_r1")
     assert e["measured"]["starts"] == 1 and e["measured"]["startsAtImminent"] == 1
-    assert run_entry(out["VC-DRIVING-040"], "014at30r1")["measured"]["guidance"]["ttcAtTurnInS"] == 1.5
+    # the guidance of the site record (lead contract 1: setting_record.json["site"] = SiteSpec.as_record())
+    assert run_entry(out["VC-DRIVING-040"], "014_30_r1")["measured"]["guidance"]["ttcAtTurnInMaxS"] == 1.6
+    assert run_entry(out["VC-DRIVING-040"], "015_40_r1")["measured"]["guidance"]["ttcAtTurnBeginMaxS"] == 4.7
 
 
 def test_040_fail_on_a_warning_start_before_imminence(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"012at20r1": dict(false_warning_at_s=1.0)}))
+    out = judge(tmp_path, syn.s1_specs(**{"012_20_r1": dict(false_warning_at_s=1.0)}))
     res = out["VC-DRIVING-040"]
     assert res["outcome"] == FAIL
-    e = run_entry(res, "012at20r1")
+    e = run_entry(res, "012_20_r1")
     assert e["outcome"] == FAIL and e["measured"]["firstStartNotImminent"]["scenarioTimeS"] < 1.1
 
 
 def test_040_041_fail_on_starts_at_a_vehicle_outside_the_lane(tmp_path):
     # SC-DRIVING-014: the stationary vehicle stands outside the lane; a start there fails even when the gap and
     # closing speed would make it imminent (VC-040 doc; needs_requirements.sysml:183 "in its lane").
-    out = judge(tmp_path, syn.s1_specs(**{"014at30r2": dict(brake_window_s=None, warn_at_needed=1.0,
+    out = judge(tmp_path, syn.s1_specs(**{"014_30_r2": dict(brake_window_s=None, warn_at_needed=1.0,
                                                              eb_at_needed=4.0)}))
     for vc in ("VC-DRIVING-040", "VC-DRIVING-041"):
         assert out[vc]["outcome"] == FAIL, vc
-        assert run_entry(out[vc], "014at30r2")["outcome"] == FAIL
+        assert run_entry(out[vc], "014_30_r2")["outcome"] == FAIL
 
 
 def test_040_inconclusive_without_vehicles_ahead(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"013at30r2": dict(vehicles_ahead=False)}))
+    out = judge(tmp_path, syn.s1_specs(**{"013_30_r2": dict(vehicles_ahead=False)}))
     res = out["VC-DRIVING-040"]
     assert res["outcome"] == INC
-    assert any("vehiclesAhead" in m and "shared contract 1" in m for m in run_entry(res, "013at30r2")["missing"])
+    assert any("vehiclesAhead" in m and "shared contract 1" in m for m in run_entry(res, "013_30_r2")["missing"])
 
 
 def test_040_without_any_start_needs_no_vehicles_ahead(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"015at40r1": dict(vehicles_ahead=False)}))
-    assert run_entry(out["VC-DRIVING-040"], "015at40r1")["outcome"] == PASS
+    out = judge(tmp_path, syn.s1_specs(**{"015_40_r1": dict(vehicles_ahead=False)}))
+    assert run_entry(out["VC-DRIVING-040"], "015_40_r1")["outcome"] == PASS
 
 
 def test_040_041_inconclusive_with_a_drop_anywhere_in_the_run(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"015at40r2": dict(drops_at_s=[0.1])}))
+    out = judge(tmp_path, syn.s1_specs(**{"015_40_r2": dict(drops_at_s=[0.1])}))
     for vc in ("VC-DRIVING-040", "VC-DRIVING-041", "VC-DRIVING-038", "VC-DRIVING-044"):
-        e = run_entry(out[vc], "015at40r2")
+        e = run_entry(out[vc], "015_40_r2")
         assert e["outcome"] == INC, vc
         assert any("drop.camera_image" in m and "judged window" in m for m in e["missing"]), vc
         assert out[vc]["outcome"] == INC
 
 
 def test_040_inconclusive_without_the_guidance_of_014(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"014at30r1": dict(guidance=None)}))
+    out = judge(tmp_path, syn.s1_specs(**{"014_30_r1": dict(guidance=None)}))
     res = out["VC-DRIVING-040"]
     assert res["outcome"] == INC
-    assert any("guidance" in m for m in run_entry(res, "014at30r1")["missing"])
+    assert any("guidance" in m for m in run_entry(res, "014_30_r1")["missing"])
     assert out["VC-DRIVING-041"]["outcome"] == INC
 
 
 def test_040_inconclusive_when_a_run_is_missing(tmp_path):
-    out = judge(tmp_path, [s for s in syn.s1_specs() if s.run_id != "015at40r2"])
+    out = judge(tmp_path, [s for s in syn.s1_specs() if s.run_id != "015_40_r2"])
     assert out["VC-DRIVING-040"]["outcome"] == INC
     assert any("SC-DRIVING-015@40" in m and "1 run" in m for m in out["VC-DRIVING-040"]["missing"])
 
 
 def test_041_fail_on_an_emergency_braking_start_before_imminence(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"013at30r1": dict(false_eb_at_s=1.0)}))
+    out = judge(tmp_path, syn.s1_specs(**{"013_30_r1": dict(false_eb_at_s=1.0)}))
     res = out["VC-DRIVING-041"]
     assert res["outcome"] == FAIL
-    e = run_entry(res, "013at30r1")
+    e = run_entry(res, "013_30_r1")
     assert e["measured"]["starts"] == 2 and e["measured"]["startsAtImminent"] == 1
 
 
@@ -109,26 +111,26 @@ def test_038_043_pass_with_their_stop_clauses(tmp_path):
     assert len(r38["measured"]["runs"]) == 14 and len(r43["measured"]["runs"]) == 10
     assert r38["measured"]["stopClause"]["outcome"] == PASS
     assert r43["measured"]["stopClause"]["outcome"] == PASS
-    assert run_entry(r38, "012at20r1")["measured"]["matched"] > 0
-    assert run_entry(r43, "012at20r1")["measured"]["receipts"] > 0
+    assert run_entry(r38, "012_20_r1")["measured"]["matched"] > 0
+    assert run_entry(r43, "012_20_r1")["measured"]["receipts"] > 0
 
 
 def test_038_fail_on_an_actuation_without_its_command(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"012at42r1": dict(unmatched_ackermann=True)}))
-    e = run_entry(out["VC-DRIVING-038"], "012at42r1")
+    out = judge(tmp_path, syn.s1_specs(**{"012_42_r1": dict(unmatched_ackermann=True)}))
+    e = run_entry(out["VC-DRIVING-038"], "012_42_r1")
     assert out["VC-DRIVING-038"]["outcome"] == FAIL and e["outcome"] == FAIL
     assert e["measured"]["unmatched"][0]["seq"] == 99999
 
 
 def test_038_fail_on_a_check_value_that_differs_from_the_crc(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"013at60r1": dict(bad_crc_at_adapter=True)}))
+    out = judge(tmp_path, syn.s1_specs(**{"013_60_r1": dict(bad_crc_at_adapter=True)}))
     assert out["VC-DRIVING-038"]["outcome"] == FAIL
-    assert run_entry(out["VC-DRIVING-038"], "013at60r1")["measured"]["unmatched"][0]["seq"] == 3
+    assert run_entry(out["VC-DRIVING-038"], "013_60_r1")["measured"]["unmatched"][0]["seq"] == 3
 
 
 def test_038_fail_on_an_actuation_from_another_control_source(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"013at30r2": dict(foreign_control_source=True)}))
-    e = run_entry(out["VC-DRIVING-038"], "013at30r2")
+    out = judge(tmp_path, syn.s1_specs(**{"013_30_r2": dict(foreign_control_source=True)}))
+    e = run_entry(out["VC-DRIVING-038"], "013_30_r2")
     assert out["VC-DRIVING-038"]["outcome"] == FAIL and e["outcome"] == FAIL
     assert e["measured"]["unmatched"] == [{"seq": 3, "frame": e["measured"]["unmatched"][0]["frame"],
                                            "controlSource": "replay",
@@ -137,9 +139,9 @@ def test_038_fail_on_an_actuation_from_another_control_source(tmp_path):
 
 
 def test_038_fail_on_a_world_side_control_call(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"015at40r1": dict(world_side_control_calls=1)}))
+    out = judge(tmp_path, syn.s1_specs(**{"015_40_r1": dict(world_side_control_calls=1)}))
     assert out["VC-DRIVING-038"]["outcome"] == FAIL
-    assert run_entry(out["VC-DRIVING-038"], "015at40r1")["measured"]["worldSideControlCallsMax"] == 1
+    assert run_entry(out["VC-DRIVING-038"], "015_40_r1")["measured"]["worldSideControlCallsMax"] == 1
 
 
 def test_038_fail_on_control_applied_after_the_stop(tmp_path):
@@ -165,9 +167,9 @@ def test_038_fail_on_an_actuation_after_the_stop_that_changes_nothing(tmp_path):
 
 
 def test_038_inconclusive_without_the_worlds_statement(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"012at60r2": dict(control_of_the_hero=False)}))
+    out = judge(tmp_path, syn.s1_specs(**{"012_60_r2": dict(control_of_the_hero=False)}))
     assert out["VC-DRIVING-038"]["outcome"] == INC
-    assert any("controlOfTheHero" in m for m in run_entry(out["VC-DRIVING-038"], "012at60r2")["missing"])
+    assert any("controlOfTheHero" in m for m in run_entry(out["VC-DRIVING-038"], "012_60_r2")["missing"])
 
 
 def test_038_043_inconclusive_without_the_stop_run(tmp_path):
@@ -178,35 +180,55 @@ def test_038_043_inconclusive_without_the_stop_run(tmp_path):
 
 
 def test_038_043_inconclusive_without_the_stop_record(tmp_path):
+    # lead contract 3: the stop instant is session.json s1.stop_instant, as da_session.sh writes it
     root = syn.write_session(tmp_path / "session", syn.s1_specs())
     sj = json.loads((root / "session.json").read_text())
-    del sj["score_runs"]["stop"]["pathStop"]
+    del sj["s1"]["stop_instant"], sj["s1"]["path_stop"]
     (root / "session.json").write_text(json.dumps(sj))
     out = cases_da.evaluate(runio_da.discover(root), {"VC-DRIVING-044": DESK})
     for vc in ("VC-DRIVING-038", "VC-DRIVING-043"):
         assert out[vc]["outcome"] == INC
-        assert any("runTarget path_stopped" in m for m in out[vc]["measured"]["stopClause"]["missing"])
+        assert any("session.json s1.stop_instant" in m for m in out[vc]["measured"]["stopClause"]["missing"])
 
 
 def test_038_blocked_when_the_path_stop_failed(tmp_path):
+    # da_session.sh (a0bd4bd7, path_stop): a line with rc not 0 leaves s1.stop_instant null and keeps the line in
+    # s1.path_stop.line; the bench could not stop the path
     root = syn.write_session(tmp_path / "session", syn.s1_specs())
     sj = json.loads((root / "session.json").read_text())
-    sj["score_runs"]["stop"]["pathStop"]["rc"] = 3
+    good = sj["s1"]["stop_instant"]
+    sj["s1"]["stop_instant"] = None
+    sj["s1"]["path_stop"]["stop_instant"] = None
+    sj["s1"]["path_stop"]["line"] = json.dumps(dict(good, rc=3), separators=(",", ":"))
     (root / "session.json").write_text(json.dumps(sj))
     out = cases_da.evaluate(runio_da.discover(root), {"VC-DRIVING-044": DESK})
     assert out["VC-DRIVING-038"]["measured"]["stopClause"]["outcome"] == BLOCKED
     assert out["VC-DRIVING-038"]["outcome"] == BLOCKED and out["VC-DRIVING-038"]["verdict"] == "inconclusive"
+    assert any("rc 3" in m for m in out["VC-DRIVING-038"]["measured"]["stopClause"]["missing"])
+
+
+def test_a_path_stopped_object_outside_s1_is_not_the_stop_instant(tmp_path):
+    # only s1.stop_instant (or the line in s1.path_stop) is the stop record; another object holding runTarget
+    # path_stopped elsewhere in session.json is not read
+    root = syn.write_session(tmp_path / "session", syn.s1_specs())
+    sj = json.loads((root / "session.json").read_text())
+    good = sj["s1"]["stop_instant"]
+    del sj["s1"]["stop_instant"], sj["s1"]["path_stop"]
+    sj["score_runs"]["stop"]["pathStop"] = good
+    (root / "session.json").write_text(json.dumps(sj))
+    out = cases_da.evaluate(runio_da.discover(root), {"VC-DRIVING-044": DESK})
+    assert out["VC-DRIVING-038"]["measured"]["stopClause"]["outcome"] == INC
 
 
 def test_043_fail_on_a_receipt_with_no_request(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"013at30r2": dict(forged_receipt=True)}))
+    out = judge(tmp_path, syn.s1_specs(**{"013_30_r2": dict(forged_receipt=True)}))
     res = out["VC-DRIVING-043"]
     assert res["outcome"] == FAIL
-    assert run_entry(res, "013at30r2")["measured"]["unmatched"]
+    assert run_entry(res, "013_30_r2")["measured"]["unmatched"]
 
 
 def test_043_reads_no_run_of_014_or_015(tmp_path):
-    out = judge(tmp_path, syn.s1_specs(**{"014at30r1": dict(forged_receipt=True)}))
+    out = judge(tmp_path, syn.s1_specs(**{"014_30_r1": dict(forged_receipt=True)}))
     assert out["VC-DRIVING-043"]["outcome"] == PASS
 
 
@@ -236,10 +258,10 @@ def test_043_sim_time_check_alone_without_the_clock(tmp_path):
 
 def test_043_inconclusive_without_the_app_record(tmp_path):
     root = syn.write_session(tmp_path / "session", syn.s1_specs())
-    (root / "guest" / "out" / "capture_012at42r2" / "app_record_warning.jsonl").unlink()
+    (root / "guest" / "out" / "capture_012_42_r2" / "app_record_warning.jsonl").unlink()
     out = cases_da.evaluate(runio_da.discover(root), {"VC-DRIVING-044": DESK})
     assert out["VC-DRIVING-043"]["outcome"] == INC
-    assert any("app_record_warning.jsonl" in m for m in run_entry(out["VC-DRIVING-043"], "012at42r2")["missing"])
+    assert any("app_record_warning.jsonl" in m for m in run_entry(out["VC-DRIVING-043"], "012_42_r2")["missing"])
 
 
 def test_038_043_inconclusive_with_a_drop_in_the_stop_run(tmp_path):
@@ -255,7 +277,7 @@ def test_044_pass_with_the_desk_reproduction(tmp_path):
     res = out["VC-DRIVING-044"]
     assert res["outcome"] == PASS, res["missing"]
     assert len(res["measured"]["runs"]) == 14
-    assert run_entry(res, "012at20r1")["measured"]["recordBeforeFirstCommandNs"] > 0
+    assert run_entry(res, "012_20_r1")["measured"]["recordBeforeFirstCommandNs"] > 0
 
 
 def test_044_inconclusive_without_the_desk_reproduction(tmp_path):
@@ -265,13 +287,13 @@ def test_044_inconclusive_without_the_desk_reproduction(tmp_path):
 
 
 def test_044_fail_when_the_record_comes_after_the_first_command(tmp_path):
-    res = judge(tmp_path, syn.s1_specs(**{"013at60r2": dict(record_after_first_command=True)}))["VC-DRIVING-044"]
+    res = judge(tmp_path, syn.s1_specs(**{"013_60_r2": dict(record_after_first_command=True)}))["VC-DRIVING-044"]
     assert res["outcome"] == FAIL
-    assert run_entry(res, "013at60r2")["measured"]["recordBeforeFirstCommandNs"] < 0
+    assert run_entry(res, "013_60_r2")["measured"]["recordBeforeFirstCommandNs"] < 0
 
 
 def test_044_fail_on_an_empty_difference(tmp_path):
-    res = judge(tmp_path, syn.s1_specs(**{"012at42r2": dict(diff_bytes=0)}))["VC-DRIVING-044"]
+    res = judge(tmp_path, syn.s1_specs(**{"012_42_r2": dict(diff_bytes=0)}))["VC-DRIVING-044"]
     assert res["outcome"] == FAIL
 
 

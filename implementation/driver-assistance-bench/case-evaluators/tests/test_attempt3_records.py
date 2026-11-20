@@ -52,3 +52,29 @@ def test_every_run_cases_inconclusive_by_the_start_up_drops(doc):
             assert e["outcome"] == "inconclusiveMissingEvidence"
             assert "drop.camera_image" in e["missing"][0] and "judged window" in e["missing"][0]
             assert e["measured"]["withoutDropRule"]["outcome"] == "passBoundedVerification", (vc, e["run"])
+
+
+# attempt 3 is a p10-2 session of 2026-11-20: session.json has no s1 run identities or scenario digests (C5), and no
+# producer writes the fields OBSERVABLES.md proposes for lane D, nor the candidate's visualization recording
+ATTEMPT3_EMPTY = ["configurationIdentity", "receiptSha256", "visualizationRecorderDelay", "scoreLifecycleVersion",
+                  "scoreCommunicationVersion", "scoreSOMEIPGatewayCommit", "runIdentity", "simulatedConfiguration",
+                  "executionEnvironmentIdentity", "benchRecordingArtifact", "independentEngineerIdentity"]
+
+
+def test_evidence_records_name_every_missing_attribute(doc):
+    recs = doc["evidenceRecords"]
+    assert sorted(recs) == ["run1", "run2"]
+    for rid, rec in recs.items():
+        assert rec["outcome"] == "inconclusiveMissingEvidence"
+        assert rec["emptyAttributes"] == ATTEMPT3_EMPTY, (rid, rec["emptyAttributes"])
+        assert [m.split(":")[0] for m in rec["missing"]] == ATTEMPT3_EMPTY
+        a = rec["attributes"]
+        assert a["upstreamRevision"] == "014e0e7a56ee8e597c2cab8175233f74edd9b856"
+        assert a["contractIdentity"].startswith("de4sdv.driving.v1.CollisionWarningRequest")
+        assert a["simulatorBuild"].startswith("1.0-14ac3b1a5")
+        assert a["modelRevision"] == "39a964a2276a9fd80963dd540649f8dd9d7440a7"
+
+
+def test_036_037_report_the_gains_unrecorded(doc):
+    for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
+        assert doc["cases"][vc]["measured"]["ackermannGains"] == {"requested": "unrecorded", "readBack": "unrecorded"}

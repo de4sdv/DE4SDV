@@ -6,6 +6,11 @@ driver_assistance_verification_evidence.sysml:195-198, :237-238).
 
 The desk record of VC-DRIVING-044 (plan lane F2) is read from --desk-044, else from reproduction_044.json at the
 session root. `--write-criteria` regenerates da_criteria_record.json from the model and cases_da.THRESHOLDS.
+
+A session whose session.json says `rehearsal` true is never judged (lead contract 4 of 2026-11-20): the output names
+the reason and holds no case, and the exit status is 3. Each run's evidence record (RetainedAssistanceRunEvidence,
+evidence_record.py) goes into the output; a case that reads a run whose record is partial gives
+inconclusiveMissingEvidence, never pass (driver_assistance_verification_evidence.sysml:211-212).
 """
 
 from __future__ import annotations
@@ -21,6 +26,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
 import cases_da  # noqa: E402
+import evidence_record  # noqa: E402
 import runio_da  # noqa: E402
 
 CRITERIA_FILE = HERE / "da_criteria_record.json"
@@ -41,7 +47,9 @@ RUNS_READ = {
     "VC-DRIVING-044": "the fourteen runs of the seven settings, and the desk reproduction (plan lane F2)",
 }
 JUDGED_WINDOW = {
-    **{vc: "EVALUATOR READING: from 2.0 s before the functional part to its end"
+    **{vc: "the case's own window, lead decision of 2026-11-20: from 2.0 s before the functional part to its end "
+           "(driver_assistance_verification_evidence.sysml:23-27, :203-207 fix the whole run only for a criterion "
+           "over every run)"
        for vc in ("VC-DRIVING-036", "VC-DRIVING-037", "VC-DRIVING-042")},
     **{vc: "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:206-207)"
        for vc in ("VC-DRIVING-038", "VC-DRIVING-040", "VC-DRIVING-041", "VC-DRIVING-043", "VC-DRIVING-044")},
@@ -55,7 +63,15 @@ READINGS = [
     "EVALUATOR READING: 042 counts the warning starts up to the end of the functional part",
     "EVALUATOR READING: a fail on any run read gives fail, before error, blocked and inconclusive",
     "036 and 037 are conditional on ASM-DRIVING-005, the calibration of the simulated deceleration "
-    "(driver_assistance_verification_evidence.sysml:299-300; plan D-S1-2)",
+    "(driver_assistance_verification_evidence.sysml:299-300; plan D-S1-2); they report the requested and the read-back "
+    "Ackermann gains, 'unrecorded' when the session holds none",
+    "042: a warning start at least 1.0 s of simulation time before the first emergency braking start, when the run "
+    "has one; a warning still on at the braking is not asked",
+    "040 and 041 read the guidance of SC-DRIVING-014 and -015 from setting_record.json site.guidance "
+    "(SiteSpec.as_record()); each speed and time to collision of the guidance must hold a value",
+    "a case that reads a run whose evidence record (RetainedAssistanceRunEvidence) is partial gives inconclusive, never "
+    "pass (driver_assistance_verification_evidence.sysml:211-212)",
+    "a rehearsal session (session.json rehearsal true) is not judged",
 ]
 
 
@@ -105,8 +121,57 @@ def calibration_decel(root: Path) -> dict | None:
     return None
 
 
+GAIN_KEY = re.compile(r"ackermann.*gain|gain.*ackermann", re.I)
+
+
+def _gain_fields(obj, path: str = "") -> list:
+    """Every (dotted key, value) whose key names Ackermann gains, at any depth (the field names are not fixed yet:
+    lead contract 5 of 2026-11-20)."""
+    out = []
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            key = f"{path}.{k}" if path else str(k)
+            if GAIN_KEY.search(str(k)):
+                out.append((key, v))
+            else:
+                out += _gain_fields(v, key)
+    elif isinstance(obj, list):
+        for i, v in enumerate(obj):
+            out += _gain_fields(v, f"{path}[{i}]")
+    return out
+
+
+def ackermann_gains(root: Path, session: dict) -> dict:
+    """The requested gains (session.json) and the gains read back on the simulator host (each run's
+    setting_record.json, the calibration records), as found; "unrecorded" when none is found (lead contract 5)."""
+    requested = [{"file": "session.json", "key": k, "value": v} for k, v in _gain_fields(session)]
+    read_back = []
+    files = sorted(set(Path(root).rglob("setting_record.json")) | set(Path(root).rglob("calibration_*.json")))
+    for p in files:
+        try:
+            rec = json.loads(p.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue
+        read_back += [{"file": str(p.relative_to(root)), "key": k, "value": v} for k, v in _gain_fields(rec)]
+    return {"requested": requested or "unrecorded", "readBack": read_back or "unrecorded"}
+
+
+def refusal(session: dict) -> str | None:
+    """Why a session is not judged, or None: a rehearsal (lead contract 4 of 2026-11-20)."""
+    value = session.get("rehearsal") if isinstance(session, dict) else None
+    if value is None or value is False:
+        return None
+    return (f"session.json rehearsal is {json.dumps(value)}: a rehearsal session is never judged (lead contract 4 "
+            "of 2026-11-20)")
+
+
 def run(root: Path, desk_path: Path | None) -> dict:
     root = Path(root)
+    sj = root / "session.json"
+    why = refusal(runio_da.read_json(sj)) if sj.is_file() else None
+    if why is not None:
+        return {"schema": OUTPUT_SCHEMA, "session": str(root),
+                "sessionId": runio_da.read_json(sj).get("session_id"), "refused": why, "cases": {}}
     sess = runio_da.discover(root)
     desk = None
     path = desk_path or (root / "reproduction_044.json")
@@ -116,11 +181,40 @@ def run(root: Path, desk_path: Path | None) -> dict:
     rev, blobs = evaluator_revision()
     cases = cases_da.evaluate(sess, desk)
     calib = calibration_decel(root)
+    gains = ackermann_gains(root, sess.session)
     for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
         cases[vc]["measured"]["calibrationDecel"] = calib
+        cases[vc]["measured"]["ackermannGains"] = gains
         cases[vc]["notes"].append("conditional on ASM-DRIVING-005: the calibration of the simulated deceleration "
                                   "comes before the first judged run (driver_assistance_verification_evidence"
                                   ".sysml:299-300); calibrationDecel holds the session's calib-decel summary")
+        cases[vc]["notes"].append("the Ackermann gains of CARLA's controller (ASM-DRIVING-005, D-S1-2): requested "
+                                  + ("unrecorded" if gains["requested"] == "unrecorded" else "as in ackermannGains")
+                                  + ", read back "
+                                  + ("unrecorded" if gains["readBack"] == "unrecorded" else "as in ackermannGains"))
+    # the evidence record of each run (lane D), and the rule of :211-212 on every case that reads a run
+    outcomes: dict = {}
+    for vc, res in cases.items():
+        for e in res["measured"].get("runs", []):
+            outcomes.setdefault(e["run"], {})[vc] = e["outcome"]
+        sc = res["measured"].get("stopClause")
+        if isinstance(sc, dict) and sc.get("run"):
+            outcomes.setdefault(sc["run"], {})[f"{vc} stop clause"] = sc["outcome"]
+    records = evidence_record.build_all(sess, criteria=crit, revision=rev,
+                                        desk=(desk or {}).get("VC-DRIVING-044"), outcomes=outcomes)
+    for vc, res in cases.items():
+        read = [e["run"] for e in res["measured"].get("runs", [])]
+        sc = res["measured"].get("stopClause")
+        read += [sc["run"]] if isinstance(sc, dict) and sc.get("run") else []
+        partial = [r for r in read if r in records and records[r]["outcome"] != evidence_record.COMPLETE]
+        for r in partial:
+            res["missing"].append(f"the evidence record of run {r} (RetainedAssistanceRunEvidence) is partial, "
+                                  f"empty: {', '.join(records[r]['emptyAttributes'])} (driver_assistance_verification"
+                                  "_evidence.sysml:211-212: a missing or partial record gives inconclusive, never "
+                                  "pass)")
+        if partial and res["outcome"] == cases_da.PASS:
+            res["outcome"] = cases_da.INCONCLUSIVE
+            res["verdict"] = cases_da.verdict(cases_da.INCONCLUSIVE)
     for res in cases.values():
         res["criteriaRecordIdentity"] = crit
         res["evaluatorRevision"] = rev
@@ -132,7 +226,7 @@ def run(root: Path, desk_path: Path | None) -> dict:
                      "runIdentity": r.session_entry.get("runIdentity")})
     return {"schema": OUTPUT_SCHEMA, "session": str(root), "sessionId": sess.session.get("session_id"),
             "criteriaRecordIdentity": crit, "evaluatorRevision": rev, "evaluatorBlobs": blobs, "runs": runs,
-            "problems": sess.problems, "cases": cases}
+            "problems": sess.problems, "cases": cases, "evidenceRecords": records}
 
 
 def main(argv=None) -> int:
@@ -151,6 +245,9 @@ def main(argv=None) -> int:
         ap.error("--session and --out are needed")
     doc = run(a.session, a.desk_044)
     a.out.write_text(json.dumps(doc, indent=1) + "\n")
+    if doc.get("refused"):
+        print(f"refused: {doc['refused']}")
+        return 3
     for vc, res in doc["cases"].items():
         print(f"{vc} {res['outcome']} {res['verdict']}")
     return 0

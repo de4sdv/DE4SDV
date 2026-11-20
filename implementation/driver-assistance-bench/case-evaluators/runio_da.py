@@ -6,9 +6,11 @@ app_record_warning.jsonl`, `ivi_clock_<run>/clock.jsonl`, and `session.json` at 
 host folder holds them (attempt 3: `sim-lead-fetch/x/out`, `score/fetch-20261120b/x/out`, `guest/out`). Two copies
 of one file with different bytes make that file unreadable (errorEvidence); a missing file is missing evidence.
 
-A run is a run of a setting when its setting record says `kind` `run`; the stop run when its kind is `stop`, its id
-is `stop`, or its session entry's `runIdentity` names the stop. The two runs of a setting are taken in the order of
-their first world tick (sim time is monotonic over a session); `runIdentity` is reported, not needed.
+A run is a run of a setting when its setting record says `kind` `run`. The stop run is run `stop`, or any run of
+setting `stop` (lead contract 2 of 2026-11-20: world-side/scenarios.py STOP_RUN at db6bf573; its setting record says
+kind `run`). The two runs of a setting are taken in the order of their first world tick (sim time is monotonic over a
+session); `runIdentity` is reported, not needed. The stop instant is session.json `s1.stop_instant`, else the line in
+`s1.path_stop` (lead contract 3: session/da_session.sh path_stop at a0bd4bd7).
 """
 
 from __future__ import annotations
@@ -35,6 +37,9 @@ PATTERNS = {
     "adapter": ("score_", "score_side/run/score/actuationAdapter.jsonl"),
     "identity": ("score_", "score_side/run/score/identityRecorder.jsonl"),
     "candidate_record": ("score_", "score_side/run/score/candidate_record.json"),
+    "candidate_rrd": ("score_", "candidate_rrd.json"),
+    "staging": ("score_", "staging.json"),
+    "chase_view": ("rec_", "chase_view.mp4"),
     "receipts": ("capture_", "app_record_warning.jsonl"),
     "clock": ("ivi_clock_", "clock.jsonl"),
 }
@@ -45,6 +50,9 @@ PRODUCER = {
     "adapter": "the actuation adapter (B/actuation-adapter)",
     "identity": "the identity recorder (B/identity-recorder)",
     "candidate_record": "the identity recorder (B/identity-recorder)",
+    "candidate_rrd": "the S-CORE stop's record of the candidate's Rerun record (score-path stop_score_side.sh)",
+    "staging": "the S-CORE start's staging record (score-path start_score_side.sh)",
+    "chase_view": "the chase recorder on the simulator host (l4_recorder_v3.py)",
     "receipts": "the IVI warning app (B/ivi-warning-app)",
     "clock": "the session's ivi_clock step",
 }
@@ -81,21 +89,29 @@ def read_json(path: Path):
         raise EvidenceError(f"{path} is not JSON ({exc.msg})") from None
 
 
-def find_stop_record(obj) -> dict | None:
-    """The first object holding runTarget path_stopped in a JSON value (shared contract 3)."""
-    if isinstance(obj, dict):
-        if obj.get("runTarget") == "path_stopped":
-            return obj
-        for v in obj.values():
-            hit = find_stop_record(v)
-            if hit is not None:
-                return hit
-    elif isinstance(obj, list):
-        for v in obj:
-            hit = find_stop_record(v)
-            if hit is not None:
-                return hit
-    return None
+STOP = "stop"   # world-side/scenarios.py STOP_RUN (db6bf573): the stop run's run id and setting (lead contract 2)
+
+
+def session_stop_record(session: dict, run_id: str) -> dict:
+    """The stop instant as session/da_session.sh (a0bd4bd7, path_stop) writes it into session.json (lead contract 3):
+    `s1.stop_instant`, the one JSON line of path_stop.sh when it was good (runTarget path_stopped, both instants, rc
+    0); otherwise the line kept in `s1.path_stop.line`, whose rc says why the bench could not stop the path."""
+    s1 = session.get("s1") if isinstance(session, dict) else None
+    s1 = s1 if isinstance(s1, dict) else {}
+    rec = s1.get("stop_instant")
+    if isinstance(rec, dict) and rec.get("runTarget") == "path_stopped":
+        return rec
+    ps = s1.get("path_stop")
+    if isinstance(ps, dict) and ps.get("label") in (None, run_id) and isinstance(ps.get("line"), str):
+        try:
+            line = json.loads(ps["line"])
+        except json.JSONDecodeError:
+            raise EvidenceError(f"session.json s1.path_stop.line of run {run_id} is not JSON: {ps['line']!r}") from None
+        if isinstance(line, dict) and line.get("runTarget") == "path_stopped":
+            return line
+    raise MissingEvidence(f"the stop record of run {run_id}: session.json s1.stop_instant is {rec!r} and s1.path_stop "
+                          "holds no line with runTarget path_stopped (lead contract 3: session/da_session.sh path_stop "
+                          "and score-path/scripts/path_stop.sh)")
 
 
 @dataclass
@@ -142,7 +158,7 @@ class Run:
     # ---------------------------------------------------------------- W
     def ticks(self) -> list[dict]:
         if "ticks" not in self._cache:
-            ticks = []
+            ticks, reals = [], []
             for line in self._jsonl("world"):
                 if line.get("event") != "tick":
                     continue
@@ -150,10 +166,13 @@ class Run:
                 if not isinstance(d, dict) or not isinstance(d.get("simTimeS"), (int, float)):
                     raise EvidenceError(f"{self.label('world')}: a tick line without data.simTimeS")
                 ticks.append(d)
+                reals.append((d["simTimeS"], line.get("t_real_ns")))
             if not ticks:
                 raise MissingEvidence(f"{self.label('world')}: no tick line ({PRODUCER['world']})")
             ticks.sort(key=lambda d: d["simTimeS"])
+            reals.sort(key=lambda x: x[0])
             self._cache["ticks"] = ticks
+            self._cache["tick_real_ns"] = (reals[0][1], reals[-1][1])
         return self._cache["ticks"]
 
     def frame_index(self) -> dict:
@@ -172,6 +191,20 @@ class Run:
         times = [x["simTimeS"] for x in self.ticks()]
         i = bisect.bisect_right(times, t + 1e-9) - 1
         return i if i >= 0 else None
+
+    def tick_real_span(self) -> tuple:
+        """t_real_ns of the first and the last tick line (the simulator host's real clock), None where absent."""
+        self.ticks()
+        return self._cache["tick_real_ns"]
+
+    def file(self, key: str) -> Path:
+        return self._path(key)
+
+    def json_file(self, key: str):
+        return self._json(key)
+
+    def jsonl_file(self, key: str) -> list[dict]:
+        return self._jsonl(key)
 
     def run_span(self) -> tuple[float, float]:
         ticks = self.ticks()
@@ -236,24 +269,7 @@ class Run:
         return lines[-1]
 
     def stop_record(self, session: dict) -> dict:
-        rec = find_stop_record(self.session_entry) or find_stop_record(session)
-        if rec is None:
-            for p in sorted(self.root.rglob(f"path_stop_{self.run_id}*")):
-                if not p.is_file():
-                    continue
-                for line in p.read_text(errors="replace").splitlines():
-                    line = line.strip()
-                    if line.startswith("{") and "runTarget" in line:
-                        try:
-                            cand = json.loads(line)
-                        except json.JSONDecodeError:
-                            continue
-                        if isinstance(cand, dict) and cand.get("runTarget") == "path_stopped":
-                            rec = cand
-        if rec is None:
-            raise MissingEvidence(f"the stop record of run {self.run_id}: no object with runTarget path_stopped in "
-                                  f"session.json or path_stop_{self.run_id}.* (shared contract 3, lane C4)")
-        return rec
+        return session_stop_record(session, self.run_id)
 
 
 @dataclass
@@ -318,9 +334,8 @@ def discover(root) -> Session:
             problems.append(f"run {rid}: setting_record.json says {sid}, session.json says {entry_sid}")
             run.conflicts["setting_record"] = f"setting {sid} against session.json {entry_sid}"
         sid = sid or entry_sid
-        ident = str(entry.get("runIdentity") or "")
-        is_stop = kind == "stop" or rid == "stop" or "stop" in ident.lower()
-        if kind not in (None, "run", "stop") and not is_stop:
+        is_stop = rid == STOP or sid == STOP
+        if kind not in (None, "run") and not is_stop:
             continue                                   # a calibration or another kind of world run
         run.setting_id, run.kind = sid, ("stop" if is_stop else "run")
         if is_stop:
