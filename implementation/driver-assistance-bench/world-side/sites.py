@@ -57,6 +57,10 @@ BEND_YAW_MAX_DEG = 20.0            # BENCH READING: heading within this of the e
 # BENCH READING: no lane-centre radius at or under the model's 25 m on the approach (it holds no second tight curve)
 BEND_RADIUS_MIN_M = CURVE_RADIUS_MAX_M
 APPROACH_RULES = ("straight", "gentle-bend")
+# Lane rules of the curve site, chosen only by name (resolve(..., lane_rule="outermost")), never as a fallback:
+# "outermost" keeps the candidates in the outermost driving lane of their direction (the SC-014 site decision of
+# 2026-11-20, a bench choice; scenarios.SITE_RULE_014 names it with its reason)
+LANE_RULES = ("outermost",)
 STRAIGHT_KAPPA_MAX = 1.0 / 500.0   # BENCH READING: a curve starts where the lane-centre radius drops below 500 m
 SAMPLE_M = 0.5                     # sampling of lane centres
 STRAIGHT_TURN_MAX_DEG = 15.0       # BENCH READING: a junction connector turning less than this goes straight
@@ -72,6 +76,10 @@ SURFACE_TYPES = ("driving", "shoulder", "border", "parking", "biking", "stop", "
 # SC-015's target script (S1 plan A5): 1.5 m/s2 to 40 km/h, holds at least 4 s, brakes to 10 km/h, then turns
 TARGET_015 = {"aheadM": 30.0, "accelMps2": 1.5, "holdKmh": 40.0, "holdMinS": 4.0, "brakeMps2": 2.0,
               "turnKmh": 10.0, "afterTurnM": 40.0}
+# The props' extents on the real server (the G4 read of 2026-11-20, data/town06_opt_g4_read.json
+# prop_bounding_boxes): the pipes' spacing where the caller gives no extents of its own (the world side)
+PROP_EXTENTS_G4 = {"static.prop.streetbarrier": {"extent": [0.5980620980262756, 0.21414536237716675, 0.534582257270813]},
+                   "static.prop.chainbarrier": {"extent": [0.7474053502082825, 0.4056827127933502, 0.3460488021373749]}}
 EGO_HALF = (2.446, 0.918)          # vehicle.lincoln.mkz bounding box, the G4 read of 2026-11-20 (mapread.json)
 TARGET_HALF = (2.347, 1.044)       # vehicle.tesla.model3, the same read
 
@@ -855,21 +863,33 @@ def _resample(points, step):
     return out
 
 
-def build_curve_site(xodr, map_name, props_available, prop_extents, rule="straight"):
+def build_curve_site(xodr, map_name, props_available, prop_extents, rule="straight", approach_min_m=None,
+                     lane_rule=None, reason=None, extents_source=None):
+    if lane_rule is not None and lane_rule not in LANE_RULES:
+        raise SiteError(f"unknown lane rule {lane_rule!r}; known: {list(LANE_RULES)}")
+    min_m = APPROACH_014_M if approach_min_m is None else float(approach_min_m)
+    named = f"rule {rule!r}" + (f", lane {lane_rule!r}" if lane_rule else "")
     every = find_curve_candidates(xodr, rule)
-    cands = [c for c in every if c["approachM"] >= APPROACH_014_M]
+    pool = [c for c in every if c["outermostLane"]] if lane_rule == "outermost" else every
+    cands = [c for c in pool if c["approachM"] >= min_m]
     if not cands:
-        best = sorted(every, key=_curve_rank)[:3]
+        best = sorted(pool, key=_curve_rank)[:3]
         raise SiteError(f"no non-junction curve with a lane-centre radius of at most {CURVE_RADIUS_MAX_M} m over "
-                        f"{CURVE_TURN_MIN_DEG} deg and {APPROACH_014_M} m of approach (rule {rule!r}) on {map_name}; "
-                        "best: " + "; ".join(f"road {c['road']} lane {c['lane']} approach {c['approachM']} m"
-                                             for c in best))
+                        f"{CURVE_TURN_MIN_DEG} deg and {min_m} m of approach ({named}) on {map_name}"
+                        + (f", under the minimum approach of {min_m} m" if approach_min_m is not None else "")
+                        + "; best: " + "; ".join(f"road {c['road']} lane {c['lane']} approach {c['approachM']} m"
+                                                 for c in best))
     cands.sort(key=_curve_rank)
     c = cands[0]
     pts, e, j = c["pts"], c["entryIndex"], c["tightTo"]
     entry = pts[e]
-    # the hero's start on the approach
-    back = START_BACK_014_M if c["approachM"] >= START_BACK_014_M else APPROACH_014_M
+    # the hero's start on the approach; under a named minimum, at the approach's far end (the most time at speed)
+    if c["approachM"] >= START_BACK_014_M:
+        back = START_BACK_014_M
+    elif approach_min_m is not None:
+        back = c["approachM"] - 0.01
+    else:
+        back = APPROACH_014_M
     sp, spiece, back = _start_on_chain(c["chain"], back, xodr, c["approachM"])
     if sp is None:
         raise SiteError("no start on a road (outside junctions) within the approach")
@@ -965,7 +985,7 @@ def build_curve_site(xodr, map_name, props_available, prop_extents, rule="straig
                 "tangent; the run's own ticks give the measured values"}}
     alt = [{k: a[k] for k in ("road", "lane", "turnDeg", "laneCentreRadiusM", "roadEdgeRadiusM", "approachM")}
            for a in cands[1:8]]
-    readings = {"curveTurnMinDeg": CURVE_TURN_MIN_DEG, "approachMinM": APPROACH_014_M, "approachRule": rule,
+    readings = {"curveTurnMinDeg": CURVE_TURN_MIN_DEG, "approachMinM": min_m, "approachRule": rule,
                 "approachStraight": f"heading within {APPROACH_YAW_MAX_DEG} deg of the entry's and within "
                                     f"{APPROACH_LATERAL_MAX_M} m of its tangent",
                 "approachGentleBend": f"heading within {BEND_YAW_MAX_DEG} deg of the entry's and no lane-centre "
@@ -973,7 +993,11 @@ def build_curve_site(xodr, map_name, props_available, prop_extents, rule="straig
                 "curveStartsBelowRadiusM": 1.0 / STRAIGHT_KAPPA_MAX,
                 "radiusOfTheModel": "the lane-centre radius in the hero's lane (D-S1-4); the road edge is recorded",
                 "propChoice": f"the first static.prop.* containing one of {list(PROP_PATTERNS)}",
-                "targetClearanceM": TARGET_CLEARANCE_M}
+                "targetClearanceM": TARGET_CLEARANCE_M,
+                "propExtentsSource": extents_source or "the caller's prop_extents"}
+    if lane_rule is not None or approach_min_m is not None:
+        readings["siteSelection"] = {"approachRule": rule, "lane": lane_rule, "approachMinM": min_m, "reason": reason,
+                                     "chosen": {"road": c["road"], "lane": c["lane"], "approachM": c["approachM"]}}
     return SiteSpec("sc014-curve", map_name, xodr.sha256, start, carla_pose(sp[0], sp[1], sp[2], sp[3]), ego_path,
                     {"blueprint": "vehicle.tesla.model3", "motion": "stationary", "tangentDistanceM": d,
                      **carla_pose(cx, cy, hh, z)},
@@ -1174,13 +1198,19 @@ _CACHE: dict = {}
 
 
 def resolve(world_map, site_id: str, setting=None, *, props_available=None, prop_extents=None,
-            approach_rule: str = "straight") -> SiteSpec:
+            approach_rule: str = "straight", approach_min_m: float | None = None, lane_rule: str | None = None,
+            rule_reason: str | None = None) -> SiteSpec:
     """The site ``site_id`` on ``world_map`` (a ``carla.Map``: its ``name`` and ``to_opendrive()``).
 
     ``props_available``: the server's ``static.prop.*`` blueprint ids (``blueprint_library.filter('static.prop.*')``);
     SC-014 refuses a prop the server does not list. ``prop_extents``: {prop id: {"extent": [x, y, z]}} from the map
-    read, for the pipes' spacing. ``setting`` (``scenarios.Setting``) is checked against the site when it names one.
+    read, for the pipes' spacing; None: the G4 read's (PROP_EXTENTS_G4). ``setting`` (``scenarios.Setting``) is
+    checked against the site when it names one. SC-014 only: ``approach_min_m`` (default APPROACH_014_M) and
+    ``lane_rule`` (LANE_RULES) select the curve by name, and ``rule_reason`` is recorded with them
+    (``readings["siteSelection"]``).
     """
+    if approach_rule is None:
+        raise SiteError("no approach rule named: the setting names one (scenarios.Setting.site_approach_rule)")
     if site_id not in SITE_IDS:
         raise SiteError(f"unknown site {site_id!r}; known: {list(SITE_IDS)}")
     want = getattr(setting, "site", site_id) if setting is not None else site_id
@@ -1188,13 +1218,18 @@ def resolve(world_map, site_id: str, setting=None, *, props_available=None, prop
         raise SiteError(f"setting {getattr(setting, 'setting_id', setting)} names site {want!r}, not {site_id!r}")
     text = world_map.to_opendrive()
     key = (hashlib.sha256(text.encode("utf-8")).hexdigest(), site_id,
-           tuple(sorted(props_available)) if props_available is not None else None, approach_rule)
+           tuple(sorted(props_available)) if props_available is not None else None, approach_rule, approach_min_m,
+           lane_rule, rule_reason, prop_extents is None)
     if key in _CACHE:
         return _CACHE[key]
     xodr = Xodr(text)
     name = str(world_map.name).rstrip("/").split("/")[-1]
     if site_id == "sc014-curve":
-        spec = build_curve_site(xodr, name, props_available, prop_extents or {}, approach_rule)
+        source = "the caller's prop_extents"
+        if prop_extents is None:
+            prop_extents, source = PROP_EXTENTS_G4, "the G4 read of 2026-11-20 (sites.PROP_EXTENTS_G4)"
+        spec = build_curve_site(xodr, name, props_available, prop_extents, approach_rule, approach_min_m, lane_rule,
+                                rule_reason, source)
     else:
         spec = build_turnoff_site(xodr, name)
     _CACHE[key] = spec

@@ -109,6 +109,8 @@ def decel_record(passes: list[dict], context: dict) -> dict:
     return {
         "recordVersion": RECORD_VERSION, "assumption": "ASM-DRIVING-005", "kind": "calibration",
         "notARunOfASetting": True, "context": context, "passes": passes,
+        # the hero's Ackermann gains (DA_ACKERMANN_GAINS): requested, applied and read back per pass's hero
+        "ackermannGains": context.get("ackermannGains"),
         "proposal": {"accelerateMps2": ACCELERATE_MPS2, "holdS": HOLD_S, "stopWindowMps": STOP_WINDOW_MPS,
                      "followTolerance": FOLLOW_TOLERANCE,
                      "fitWindow": "from the braking onset plus the ramp at the jerk plus 0.2 s, to the speed "
@@ -271,7 +273,8 @@ def analyse_steering(ticks: list[dict], start_offset_m: float, *, settled_mps: f
 def steering_record(analysis: dict, setting_record: dict) -> dict:
     return {"recordVersion": RECORD_VERSION, "assumption": "ASM-DRIVING-006", "kind": "calibration",
             "notARunOfASetting": True, "controlOfTheHero": "the candidate through the actuation adapter",
-            "setting": setting_record, "analysis": analysis}
+            "setting": setting_record, "ackermannGains": setting_record.get("ackermannGains"),
+            "analysis": analysis}
 
 
 # --------------------------------------------------------------- re-judging a fetched record

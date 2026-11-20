@@ -68,6 +68,12 @@ class Setting:
     # Model: True for a setting with a judged-run term (SC-DRIVING-012, -013), False for a setting without one
     # (SC-DRIVING-014, -015), None for the stop run, which is no run of a setting.
     judgeable: bool | None = True
+    # Bench choice: how the site is selected on the map (sites.resolve's approach_rule, approach_min_m and
+    # lane_rule), named here and never taken as a fallback; the reason goes into the site record.
+    site_approach_rule: str | None = None
+    site_approach_min_m: float | None = None
+    site_lane: str | None = None
+    site_reason: str | None = None
 
     def in_tolerance(self, speed_mps: float) -> bool:
         kmh = speed_mps * 3.6
@@ -87,7 +93,8 @@ class Setting:
         record = asdict(self)
         record["model"] = ["setting_id", "scenario", "approach_kmh", "low_kmh", "high_kmh", "target_speed_kmh",
                            "target_low_kmh", "target_high_kmh", "judgeable"]
-        record["proposal"] = ["target_ahead_m", "run_cap_s", "speed_limit_mps", "site"]
+        record["proposal"] = ["target_ahead_m", "run_cap_s", "speed_limit_mps", "site", "site_approach_rule",
+                              "site_approach_min_m", "site_lane", "site_reason"]
         return record
 
 
@@ -99,11 +106,25 @@ def _speed_limit(low_kmh: float, high_kmh: float) -> float:
 
 def _setting(setting_id: str, approach: float, low: float, high: float, target: tuple[float, float, float],
              ahead: float | None, cap: float, *, site: str | None = None, judgeable: bool | None = True,
-             scenario: str | None = None) -> Setting:
+             scenario: str | None = None, site_rule: tuple | None = None) -> Setting:
+    rule = site_rule or (None, None, None, None)
     return Setting(setting_id, scenario or setting_id.split("@")[0], approach, low, high, target[0], ahead, cap,
-                   _speed_limit(low, high), target[1], target[2], site, judgeable)
+                   _speed_limit(low, high), target[1], target[2], site, judgeable, *rule)
 
 
+# BENCH CHOICE, the SC-014 site decision of 2026-11-20 (rule 44 of the bench's practice: named here, never a
+# fallback): (approach rule, minimum approach in m, lane rule, reason) of sites.resolve. The model fixes neither the
+# lane nor the approach (needs_requirements.sysml:192-193, operational_context.sysml:280-284).
+SITE_RULE_014 = ("gentle-bend", 90.0, "outermost",
+                 "the SC-014 site decision of 2026-11-20, a bench choice: the outermost driving lane, because the "
+                 "regulation's guidance has the vehicle drive 'outer lane than the centre of the road' (R152:1744-1756, "
+                 "phase 5 INPUTS-BRIEF.md:281-294); the named gentle-bend approach reading, because no tight curve of "
+                 "Town06_Opt has a straight approach of the plan's 120 m; at least 90 m of approach, because in "
+                 "attempt 3 the candidate reached 20.9 km/h within 15 m of its first move and 29 km/h needs about "
+                 "35 m, which leaves about 7 s at speed before the curve. The middle lane (267 m of approach) is the "
+                 "alternative, not the source's lane")
+# SC-015: the straight approach rule of the site search, named all the same
+SITE_RULE_015 = ("straight", None, None, "the site search's straight approach rule (sites.APPROACH_015_M)")
 STATIONARY = (0.0, 0.0, 0.0)
 TARGET_013 = (20.0, 18.0, 20.0)            # "behind a target at 20 km/h (18 to 20 km/h)"
 TARGET_015 = (40.0, 40.0, 40.0)            # "behind the vehicle ahead at the same speed" (40 km/h); no band
@@ -116,9 +137,10 @@ SETTINGS: dict[str, Setting] = {s.setting_id: s for s in (
     _setting("SC-DRIVING-012@60", 60.0, 58.0, 60.0, STATIONARY, 280.0, 60.0),
     _setting("SC-DRIVING-013@30", 30.0, 30.0, 32.0, TARGET_013, 40.0, 60.0),
     _setting("SC-DRIVING-013@60", 60.0, 58.0, 60.0, TARGET_013, 115.0, 60.0),
-    _setting("SC-DRIVING-014@30", 30.0, 28.0, 30.0, STATIONARY, None, 60.0, site="sc014-curve", judgeable=False),
+    _setting("SC-DRIVING-014@30", 30.0, 28.0, 30.0, STATIONARY, None, 60.0, site="sc014-curve", judgeable=False,
+             site_rule=SITE_RULE_014),
     _setting("SC-DRIVING-015@40", 40.0, 38.0, 40.0, TARGET_015, 30.0, 75.0, site="sc015-turnoff",
-             judgeable=False),
+             judgeable=False, site_rule=SITE_RULE_015),
     _setting(STOP_RUN, 20.0, 20.0, 22.0, STATIONARY, 150.0, 22.0, judgeable=None, scenario="SC-DRIVING-012"),
 )}
 

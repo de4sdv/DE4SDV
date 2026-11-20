@@ -16,6 +16,7 @@ import carla  # the fake
 from conftest import AdapterStandIn, run_main
 
 import da_world_side as ws_mod
+import sites
 
 TICK_M = 20.0 / 3.6 * 0.05            # 0.2778 m: 20 km/h for one step of 0.05 s
 TARGET_MPS = 20.0 / 3.6               # 5.556 m/s
@@ -182,17 +183,13 @@ def test_vehicles_ahead_holds_the_contract_fields_for_every_vehicle_up_to_300_m(
         assert far["inLane"] is True and 0.0 < far["gapM"] <= 300.0
 
 
-class _SiteSpec:
-    """The fields this world side reads from ``sites.resolve`` (lane A2's SiteSpec)."""
-
-    def __init__(self, start_transform, target_spawn, target_path=(), target_speed_mps=None, props=(),
-                 record=None):
-        self.start_transform = start_transform
-        self.target_spawn = target_spawn
-        self.target_path = list(target_path)
-        self.target_speed_mps = target_speed_mps
-        self.props = list(props)
-        self.record = record or {}
+def _site_spec(site_id, start, target, target_path=(), target_script=()):
+    """Lane A2's own ``sites.SiteSpec`` (the integration's stub mirrors the producer's layout): CARLA poses as
+    dicts; ``target_path`` poses with ``s``; ``target_script`` phases as ``sites.TargetMotion`` reads them."""
+    return sites.SiteSpec(site_id, "Town06_Opt", "0" * 64, f"35:-1:{start['x']}", start, [start],
+                          {"blueprint": "vehicle.tesla.model3",
+                           "motion": "script" if target_script else "stationary", **target},
+                          target_path=list(target_path), target_script=list(target_script))
 
 
 @pytest.fixture
@@ -200,16 +197,16 @@ def stub_sites(monkeypatch):
     calls: list = []
     specs: dict = {}
 
-    def resolve(world_map, site_id, setting):
+    def resolve(world_map, site_id, setting=None, **kw):
         calls.append((site_id, setting.setting_id))
         return specs[site_id](world_map)
-    module = types.SimpleNamespace(resolve=resolve)
+    module = types.SimpleNamespace(resolve=resolve, SiteError=sites.SiteError)
     monkeypatch.setattr(ws_mod, "sites", module)
     return calls, specs
 
 
 def _pose(x, y, yaw=0.0):
-    return carla.Transform(carla.Location(x, y, 0.0), carla.Rotation(yaw=yaw))
+    return {"x": x, "y": y, "z": 0.0, "yaw": yaw}
 
 
 def test_the_014_target_beyond_the_curve_is_never_in_the_lane(tmp_path, server, factory, clock, stub_sites):
@@ -218,7 +215,7 @@ def test_the_014_target_beyond_the_curve_is_never_in_the_lane(tmp_path, server, 
     # the target stands 12 m beyond the end, on the lane centre's extension.
     server.map.length = 200.0
     calls, specs = stub_sites
-    specs["sc014-curve"] = lambda m: _SiteSpec(_pose(20.0, 0.0), _pose(212.0 + 2.4, 0.0))
+    specs["sc014-curve"] = lambda m: _site_spec("sc014-curve", _pose(20.0, 0.0), _pose(212.0 + 2.4, 0.0))
     AdapterStandIn(server, target_kmh=29.0)
     rc, _lines, sim = _run(tmp_path, factory, clock, "SC-DRIVING-014@30", "--run-s", "15")
     assert rc == 0, _lines
@@ -235,12 +232,18 @@ def test_the_014_target_beyond_the_curve_is_never_in_the_lane(tmp_path, server, 
     assert summary["entry"]["judgedRun"] is False and "no judged-run term" in summary["entry"]["notJudged"]
 
 
-def _turn_off_path(x_turn=150.0, radius=11.0, step=0.5):
-    """Straight along lane -1 (y 0) to x_turn, then a right quarter circle of the radius (CARLA: right is +y)."""
-    path = [_pose(x, 0.0) for x in [i * step for i in range(int(x_turn / step) + 1)]]
+def _turn_off_path(x_turn=150.0, radius=11.0, step=0.5, x_from=50.0):
+    """Straight along lane -1 (y 0) from x_from to x_turn, then a right quarter circle of the radius (CARLA: right
+    is +y); each pose with its arc length ``s`` from x_from."""
+    path = [_pose(x, 0.0) for x in [x_from + i * step for i in range(int((x_turn - x_from) / step) + 1)]]
     for k in range(1, 46):
         phi = math.radians(2.0 * k)
         path.append(_pose(x_turn + radius * math.sin(phi), radius * (1.0 - math.cos(phi)), math.degrees(phi)))
+    s = 0.0
+    for i, p in enumerate(path):
+        if i:
+            s += math.hypot(p["x"] - path[i - 1]["x"], p["y"] - path[i - 1]["y"])
+        p["s"] = s
     return path
 
 
@@ -249,12 +252,10 @@ def test_the_015_target_is_in_the_lane_until_its_turn(tmp_path, server, factory,
     # the vehicle goes straight on. Here: 40 km/h for 4 s, then 10 km/h, a right turn of 11 m radius at x 150.
     calls, specs = stub_sites
     path = _turn_off_path()
-
-    def profile(t):
-        return 40.0 / 3.6 if t < 4.0 else 10.0 / 3.6
-    specs["sc015-turnoff"] = lambda m: _SiteSpec(_pose(20.0, 0.0), _pose(50.0, 0.0),
-                                                 [p for p in path if p.location.x >= 50.0 or p.location.y > 0],
-                                                 target_speed_mps=profile)
+    script = [{"phase": "hold", "fromS": 0.0, "fromMps": 40.0 / 3.6, "accelMps2": 0.0, "durationS": 4.0},
+              {"phase": "turn", "fromS": 4.0 * 40.0 / 3.6, "fromMps": 10.0 / 3.6, "accelMps2": 0.0,
+               "durationS": 1000.0, "connector": "x"}]
+    specs["sc015-turnoff"] = lambda m: _site_spec("sc015-turnoff", _pose(20.0, 0.0), _pose(50.0, 0.0), path, script)
     adapter = AdapterStandIn(server, target_kmh=41.0)
 
     def follow(srv):                    # closes at 41 km/h, then 25 m behind holds the vehicle ahead's 10 km/h

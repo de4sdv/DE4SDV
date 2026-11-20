@@ -34,6 +34,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import signal
 import sys
 import threading
@@ -102,12 +103,38 @@ VEHICLES_AHEAD_M = 300.0
 VEHICLES_AHEAD_FIELDS = ("actorId", "role", "gapM", "closingMps", "ttcS", "neededDecelMps2", "inLane",
                          "overlapRatio")
 LANE_ROUTE_STEP_M = 5.0         # inLane: the ego's lane followed ahead in steps of this, straight on at a fork
+# Lead contract of 2026-11-20: the hero's Ackermann controller gains, chosen by DA_ACKERMANN_GAINS (unset: default;
+# any other value than these is refused). default: CARLA's own, nothing applied (the owner's D-S1-2 is open). v1: lane
+# A2's ASM-DRIVING-005 probe variant v1 (phase10/s1-map/asm005_probe_table.json): speed_kp 0.3 and accel_kp 0.1, the
+# other four at CARLA's defaults as the probe applied them.
+ACKERMANN_GAINS_ENV = "DA_ACKERMANN_GAINS"
+ACKERMANN_FIELDS = ("speed_kp", "speed_ki", "speed_kd", "accel_kp", "accel_ki", "accel_kd")
+ACKERMANN_GAINS: dict[str, dict | None] = {
+    "default": None,
+    "v1": {"speed_kp": 0.3, "speed_ki": 0.0, "speed_kd": 0.25, "accel_kp": 0.1, "accel_ki": 0.0, "accel_kd": 0.01},
+}
+ACKERMANN_GAINS_SOURCE = ("lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json "
+                          "(variant v1); default: CARLA's own gains, nothing applied")
+ACKERMANN_READBACK_TOL = 1e-6
+PROP_LIFT_M = 0.0               # a site's props spawn this far above their pose (physics off)
 MOTION_CONSTANT = "enable_constant_velocity"
 MOTION_KINEMATIC = "kinematic set_transform"
 
 
 class BenchError(Exception):
     """A failure the bench reports and stops on."""
+
+
+def ackermann_gains_request(environ) -> str:
+    """The gains named by DA_ACKERMANN_GAINS: unset means default; any value other than default or v1 (an empty
+    one included) is refused with a named reason."""
+    if ACKERMANN_GAINS_ENV not in environ:
+        return "default"
+    value = environ[ACKERMANN_GAINS_ENV]
+    if value not in ACKERMANN_GAINS:
+        raise BenchError(f"{ACKERMANN_GAINS_ENV}={value!r} is refused: the known values are default or v1 "
+                         "(unset means default)")
+    return value
 
 
 def num(value: Any) -> float | None:
@@ -209,40 +236,19 @@ class LanePath:
         return min(nxt, key=lambda w: abs(wrap_deg(w.transform.rotation.yaw - yaw0))).transform
 
 
-class PolylinePath:
-    """A site's target path (lane A2's SiteSpec.target_path): poses joined by straight pieces, by arc length."""
-
-    def __init__(self, carla_module, transforms):
-        self.carla = carla_module
-        self.points = [(float(t.location.x), float(t.location.y), float(t.location.z), float(t.rotation.yaw))
-                       for t in transforms]
-        self.s = [0.0]
-        for a, b in zip(self.points, self.points[1:]):
-            self.s.append(self.s[-1] + math.hypot(b[0] - a[0], b[1] - a[1]))
-
-    def pose_at(self, distance_m: float):
-        if not self.points or distance_m > self.s[-1] + 1e-9:
-            return None
-        i = max(0, min(len(self.points) - 2, next((k for k in range(1, len(self.s)) if self.s[k] >= distance_m),
-                                                   len(self.s) - 1) - 1)) if len(self.points) > 1 else 0
-        a = self.points[i]
-        b = self.points[min(i + 1, len(self.points) - 1)]
-        span = self.s[min(i + 1, len(self.s) - 1)] - self.s[i]
-        f = 0.0 if span <= 0.0 else max(0.0, min(1.0, (distance_m - self.s[i]) / span))
-        yaw = a[3] + f * wrap_deg(b[3] - a[3])
-        return self.carla.Transform(self.carla.Location(a[0] + f * (b[0] - a[0]), a[1] + f * (b[1] - a[1]),
-                                                        a[2] + f * (b[2] - a[2])),
-                                    self.carla.Rotation(pitch=0.0, yaw=yaw, roll=0.0))
-
-
 class TargetMotion:
     """Moves the target from the run's first tick on (A3 of the S1 plan). On a lane at a constant speed, CARLA's
-    ``enable_constant_velocity`` where the server's API has it; otherwise, and on every site path, the world side
+    ``enable_constant_velocity`` where the server's API has it; otherwise, and on a site's script, the world side
     poses the target each tick (``set_transform``, physics off) where a vehicle at the speed would be after that
     tick. A posed actor has no velocity in CARLA, so the record then takes the target's velocity from here."""
 
-    def __init__(self, ws: "WorldSide", path, speed_mps: Callable[[float], float], constant: bool):
+    def __init__(self, ws: "WorldSide", path, speed_mps: Callable[[float], float] | None, constant: bool,
+                 script=None):
+        """``script``: a site's own motion (lane A2's ``SiteSpec.target_motion()``, ``at(t)`` -> pose, speed and
+        phase at the script's time t); it then sets both the pose and the speed of every tick."""
         self.ws, self.path, self.speed_at = ws, path, speed_mps
+        self.script = script
+        self.phase: str | None = None
         self.target = ws.target
         self.method = MOTION_CONSTANT if constant and hasattr(self.target, "enable_constant_velocity") \
             else MOTION_KINEMATIC
@@ -268,6 +274,17 @@ class TargetMotion:
         if not self.started or self.method == MOTION_CONSTANT:
             return
         t = self.steps * STEP_S
+        if self.script is not None:
+            m = self.script.at(t + STEP_S)
+            carla = self.ws.carla
+            self.pose = carla.Transform(carla.Location(m["x"], m["y"], m["z"]),
+                                        carla.Rotation(pitch=0.0, yaw=m["yaw"], roll=0.0))
+            self.target.set_transform(self.pose)
+            self.distance, self.speed, self.phase = float(m["s"]), float(m["speedMps"]), m["phase"]
+            if m["phase"] == "stopped" and self.path_ended_at_s is None:
+                self.path_ended_at_s = round(t, 6)
+            self.steps += 1
+            return
         speed = float(self.speed_at(t))
         pose = self.path.pose_at(self.distance + speed * STEP_S)
         if pose is None:                       # the path's end: the target stands at its last pose
@@ -290,7 +307,7 @@ class TargetMotion:
         return self.ws.carla.Vector3D(self.speed * math.cos(yaw), self.speed * math.sin(yaw), 0.0)
 
     def record(self) -> dict:
-        return {"motion": self.method, "pathEndedAtS": self.path_ended_at_s,
+        return {"motion": self.method, "pathEndedAtS": self.path_ended_at_s, "script": self.script is not None,
                 "speedSource": "CARLA's velocity of the actor" if self.method == MOTION_CONSTANT
                 else "the world side's posed motion (a posed actor has no velocity in CARLA)"}
 
@@ -340,6 +357,9 @@ class WorldSide:
         self.tick_times_path = self.sim_dir / "tick_times.csv"
         self._tick_times = None
         self.world_ticks = 0
+        self.ackermann_requested = getattr(args, "ackermann_gains", None) or "default"
+        self.ackermann_spawns: list[dict] = []
+        self._ackermann_pending: list = []
 
     # ------------------------------------------------------------- logging
     def event(self, name: str, **data) -> None:
@@ -514,10 +534,47 @@ class WorldSide:
         except Exception as exc:  # noqa: BLE001
             raise BenchError(f"cannot spawn the hero: {exc}") from exc
         self._spawned.append(self.hero)
+        self.apply_ackermann_gains(self.hero)
         self.event("hero", actor_id=self.hero.id, type_id=self.hero.type_id, role=role, lateral_m=lateral_m,
                    spawn={"x": transform.location.x, "y": transform.location.y, "z": transform.location.z,
                           "yaw": transform.rotation.yaw})
         return self.hero
+
+    def apply_ackermann_gains(self, hero) -> None:
+        """The requested gains, applied to the hero right after its spawn (nothing for default); read back after
+        the settle ticks (``check_ackermann_gains``)."""
+        values = ACKERMANN_GAINS[self.ackermann_requested]
+        if values is not None:
+            hero.apply_ackermann_controller_settings(self.carla.AckermannControllerSettings(**values))
+        entry = {"actorId": hero.id, "applied": None if values is None else dict(values), "readBack": None,
+                 "readBackEqual": None}
+        self.ackermann_spawns.append(entry)
+        self._ackermann_pending.append((hero, entry))
+
+    def check_ackermann_gains(self) -> None:
+        """Reads the gains back from every hero spawned since the last check; a read-back that differs from the
+        applied values is a bench error (the run would brake by other gains than it records)."""
+        pending, self._ackermann_pending = self._ackermann_pending, []
+        for hero, entry in pending:
+            try:
+                st = hero.get_ackermann_controller_settings()
+                back = {k: round(float(getattr(st, k)), 6) for k in ACKERMANN_FIELDS}
+            except Exception as exc:  # noqa: BLE001
+                back = {"error": f"{type(exc).__name__}: {exc}"}
+            entry["readBack"] = back
+            if entry["applied"] is not None:
+                equal = "error" not in back and all(abs(back[k] - entry["applied"][k]) <= ACKERMANN_READBACK_TOL
+                                                    for k in ACKERMANN_FIELDS)
+                entry["readBackEqual"] = equal
+                if not equal:
+                    raise BenchError(f"Ackermann gains {self.ackermann_requested}: the hero {hero.id} read back {back}, "
+                                     f"not the applied {entry['applied']}")
+            self.event("ackermann_gains", requested=self.ackermann_requested, **entry)
+
+    def ackermann_record(self) -> dict:
+        return {"env": ACKERMANN_GAINS_ENV, "requested": self.ackermann_requested,
+                "values": ACKERMANN_GAINS[self.ackermann_requested], "source": ACKERMANN_GAINS_SOURCE,
+                "fields": list(ACKERMANN_FIELDS), "spawns": [dict(e) for e in self.ackermann_spawns]}
 
     def spawn_front_camera(self):
         carla = self.carla
@@ -579,54 +636,73 @@ class WorldSide:
         return self.target
 
     def build_site(self, st: scenarios.Setting, role: str, with_target: bool):
-        """A setting on a site (lead contract 2): ``sites.resolve(world_map, site_id, setting)`` gives the start
-        transform, the target's spawn, path and speed, and the props. Fields read: ``start_transform``,
-        ``target_spawn``, ``target_path`` (poses; empty: the target stands), ``target_speed_mps`` (m/s, a number or
-        a function of the run's time; None: the target stands), ``props`` ((blueprint id, transform) pairs) and,
-        optional, ``record`` (a dict for the setting record)."""
+        """A setting on a site (lead contract of 2026-11-20): lane A2's ``sites.resolve(world_map, site, setting,
+        props_available=<the server's static.prop.* list>, approach_rule=<the setting's>, ...)`` gives the
+        ``SiteSpec``: the hero's start (``start``, road:lane:s, at ``start_pose``), the props (``props``: blueprint
+        and pose each), the target (``target``: blueprint, motion and pose; ``target_path`` and ``target_script``
+        for a moving one) and ``as_record()`` for the setting record. A site the map refuses is a bench error that
+        names the reason; no other site is tried."""
         if sites is None:
             raise BenchError(f"{st.setting_id} needs the site {st.site!r}, and world-side/sites.py (lane A2) is not "
                              "there")
-        spec = sites.resolve(self.map, st.site, st)
-        self.site = spec
-        start = spec.start_transform
-        wp = self.map.get_waypoint(start.location, project_to_road=True)
-        self.start_info = {"site": st.site, "rule": "sites.resolve", "x": float(start.location.x),
-                           "y": float(start.location.y), "yawDeg": float(start.rotation.yaw),
-                           "road": None if wp is None else wp.road_id, "lane": None if wp is None else wp.lane_id,
-                           "s": None if wp is None else round(wp.s, 3),
-                           "laneWidthM": None if wp is None else round(wp.lane_width, 3),
-                           "siteRecord": dict(getattr(spec, "record", None) or {})}
-        self.spawn_hero(None, 0.0, role, transform=start)
         library = self.world.get_blueprint_library()
+        available = [b.id for b in library.filter("static.prop.*")]
+        try:
+            spec = sites.resolve(self.map, st.site, st, props_available=available,
+                                 approach_rule=st.site_approach_rule, approach_min_m=st.site_approach_min_m,
+                                 lane_rule=st.site_lane, rule_reason=st.site_reason)
+        except sites.SiteError as exc:
+            raise BenchError(f"site {st.site}: {exc}") from exc
+        self.site = spec
+        carla = self.carla
+        sp = spec.start_pose
+        start = carla.Transform(carla.Location(sp["x"], sp["y"], sp["z"]),
+                                carla.Rotation(pitch=0.0, yaw=sp["yaw"], roll=0.0))
+        road, lane, s = spec.start.split(":")
+        check = None
+        wp = self.map.get_waypoint_xodr(int(road), int(lane), float(s))
+        if wp is not None:            # the server's own waypoint at the site's start, against the site's pose
+            check = round(math.hypot(wp.transform.location.x - sp["x"], wp.transform.location.y - sp["y"]), 4)
+        self.start_info = {"site": st.site, "rule": "sites.resolve", "start": spec.start, "x": float(sp["x"]),
+                           "y": float(sp["y"]), "yawDeg": float(sp["yaw"]), "road": int(road), "lane": int(lane),
+                           "s": float(s), "serverWaypointDistanceM": check,
+                           "givenStartNotUsed": getattr(self.args, "start", None)}
+        self.spawn_hero(None, 0.0, role, transform=start)
         placed = []
-        for blueprint_id, transform in list(getattr(spec, "props", None) or []):
+        for i, prop in enumerate(spec.props):
             try:
-                blueprint = library.find(blueprint_id)
+                blueprint = library.find(prop["blueprint"])
             except IndexError as exc:
-                raise BenchError(f"site {st.site}: no prop {blueprint_id!r} in the blueprint library") from exc
-            prop = self.world.spawn_actor(blueprint, transform)
-            prop.set_simulate_physics(False)
-            self._spawned.append(prop)
-            placed.append({"blueprint": blueprint_id, "actor_id": prop.id, "x": float(transform.location.x),
-                           "y": float(transform.location.y)})
+                raise BenchError(f"site {st.site}: no prop {prop['blueprint']!r} in the blueprint library") from exc
+            transform = carla.Transform(carla.Location(prop["x"], prop["y"], prop["z"] + PROP_LIFT_M),
+                                        carla.Rotation(pitch=0.0, yaw=prop["yaw"], roll=0.0))
+            try:
+                actor = self.world.spawn_actor(blueprint, transform)
+            except Exception as exc:  # noqa: BLE001
+                raise BenchError(f"site {st.site}: prop {i} ({prop['blueprint']}) at ({prop['x']:.2f}, "
+                                 f"{prop['y']:.2f}) did not spawn: {exc}") from exc
+            actor.set_simulate_physics(False)
+            self._spawned.append(actor)
+            placed.append({"blueprint": prop["blueprint"], "actor_id": actor.id, "x": float(prop["x"]),
+                           "y": float(prop["y"]), "yaw": float(prop["yaw"])})
         self.start_info["props"] = placed
+        self.start_info["propLiftM"] = PROP_LIFT_M
         if not with_target:
             return
-        spawn = spec.target_spawn
+        tw = spec.target
+        spawn = carla.Transform(carla.Location(tw["x"], tw["y"], tw["z"]),
+                                carla.Rotation(pitch=0.0, yaw=tw["yaw"], roll=0.0))
         self._spawn_target_actor(self._lifted(spawn))
         twp = self.map.get_waypoint(spawn.location, project_to_road=False)
         self.target_info = {"actor_id": self.target.id, "type_id": self.target.type_id, "role": TARGET_ROLE,
-                            "aheadM": None, "site": st.site, "x": float(spawn.location.x),
-                            "y": float(spawn.location.y), "onLane": None if twp is None else [twp.road_id,
-                                                                                             twp.lane_id],
+                            "aheadM": tw.get("aheadM"), "site": st.site, "x": float(tw["x"]), "y": float(tw["y"]),
+                            "yawDeg": float(tw["yaw"]),
+                            "onLane": None if twp is None else [twp.road_id, twp.lane_id],
                             "speedKmh": 0.0, "hold": "hand brake"}
-        speed = getattr(spec, "target_speed_mps", None)
-        path = list(getattr(spec, "target_path", None) or [])
-        if speed is not None and path:
-            speed_fn = speed if callable(speed) else (lambda _t, v=float(speed): v)
-            self.target_motion = TargetMotion(self, PolylinePath(self.carla, path), speed_fn, constant=False)
-            self.target_info.update(speedKmh=round(float(speed_fn(0.0)) * 3.6, 3),
+        if tw.get("motion") == "script":
+            motion = spec.target_motion()
+            self.target_motion = TargetMotion(self, None, None, constant=False, script=motion)
+            self.target_info.update(speedKmh=round(float(motion.at(0.0)["speedMps"]) * 3.6, 3),
                                     hold="until the run's first tick", **self.target_motion.record())
         self.event("target", **self.target_info)
 
@@ -673,6 +749,7 @@ class WorldSide:
         for _ in range(ticks):
             self.tick()
         self.event("settled", ticks=ticks, frame=self.world.get_snapshot().frame)
+        self.check_ackermann_gains()
 
     def paced_tick(self) -> tuple[int, float, float]:
         start, lateness = self.pacer.wait_turn()
@@ -816,6 +893,8 @@ class WorldSide:
             offset = (-math.sin(tyaw)) * (-rel_x) + math.cos(tyaw) * (-rel_y)
             record["target"] = {"x": num(tt.location.x), "y": num(tt.location.y),
                                 "yawDegCarla": num(tt.rotation.yaw), "speedMps": num(math.hypot(tv.x, tv.y))}
+            if self.target_motion is not None and self.target_motion.script is not None:
+                record["target"]["motionPhase"] = self.target_motion.phase
             record["relative"] = {
                 "gapM": num(gap), "closingMps": num(closing), "centerLineOffsetM": num(offset),
                 "headingDiffDeg": num(wrap_deg(ht.rotation.yaw - tt.rotation.yaw)),
@@ -897,7 +976,8 @@ def _scenario_setup(ws: WorldSide, *, lateral_m: float, with_target: bool, role:
     ws.apply_settings()
     if st.site is not None:
         ws.build_site(st, role, with_target)
-        start = ws.map.get_waypoint(ws.site.start_transform.location, project_to_road=True)
+        sp = ws.site.start_pose
+        start = ws.map.get_waypoint(ws.carla.Location(sp["x"], sp["y"], sp["z"]), project_to_road=True)
         ws.spawn_front_camera()
         ws.spawn_hero_sensors()
         ws.settle()
@@ -999,6 +1079,9 @@ def setting_record(ws: WorldSide, st: scenarios.Setting, kind: str, ahead_m: flo
         "controlOfTheHero": "the actuation adapter only; this process applies no control to the hero, no "
                             "autopilot and no Traffic Manager (PSR DriverAssistanceSimulationServer)",
         "candidateSpeedLimitMps": st.speed_limit_mps,
+        # lead contract of 2026-11-20: the site record of lane A2 (SiteSpec.as_record()), guidance included
+        "site": ws.site.as_record() if ws.site is not None else None,
+        "ackermannGains": ws.ackermann_record(),
     }
 
 
@@ -1184,7 +1267,8 @@ def cmd_calib_decel(ws: WorldSide) -> dict:
         "vehicle": ws.vehicle_blueprint().id, "simulator": ws.versions, "stepS": STEP_S,
         "rule": "speed = max(0, v + 2 * acceleration), acceleration unchanged, jerk 10.0, steer 0, "
                 "steer_speed 0 (MAP-DRIVING-DA-COMMAND); one command per 0.1 s",
-        "accelerateMps2": calibration.ACCELERATE_MPS2, "holdS": calibration.HOLD_S})
+        "accelerateMps2": calibration.ACCELERATE_MPS2, "holdS": calibration.HOLD_S,
+        "ackermannGains": ws.ackermann_record()})
     (ws.sim_dir / "calibration_decel.json").write_text(json.dumps(record, indent=1))
     ws.event("end", reason="calibration done", passes=len(passes))
     return record
@@ -1384,7 +1468,9 @@ def plan(args: argparse.Namespace) -> dict:
             "frontCamera": {**FRONT_CAMERA, "sensor_tick": FRONT_SENSOR_TICK_S, "role": CAMERA_ROLE},
             "heroRole": HERO_ROLE, "vehicleCandidates": list(VEHICLE_CANDIDATES), "target": TARGET_BLUEPRINT,
             "start": args.start or ("site " + st.site if st.site else "survey"), "runCapS": args.run_s or st.run_cap_s,
-            "targetAheadM": args.target_ahead_m or st.target_ahead_m, "site": st.site}
+            "targetAheadM": args.target_ahead_m or st.target_ahead_m, "site": st.site,
+            "ackermannGains": {"requested": args.ackermann_gains,
+                               "values": ACKERMANN_GAINS[args.ackermann_gains]}}
 
 
 COMMANDS = {"survey": cmd_survey, "warmup": cmd_warmup, "run": cmd_run,
@@ -1402,6 +1488,11 @@ def main(argv: Iterable[str] | None = None, *, client_factory=None, clock=time.m
         args.lateral_offset_m = calibration.STEER_OFFSET_M
     if args.command == "camera-capture" and not args.checkerboard:
         out(json.dumps({"event": "error", "reason": "camera-capture needs --checkerboard"}))
+        return 2
+    try:
+        args.ackermann_gains = ackermann_gains_request(os.environ)
+    except BenchError as exc:
+        out(json.dumps({"event": "error", "reason": str(exc)}))
         return 2
     if args.dry_run:
         out(json.dumps(plan(args), indent=1))

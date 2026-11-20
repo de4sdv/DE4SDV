@@ -118,6 +118,18 @@ class VehicleAckermannControl:
         self.speed, self.acceleration, self.jerk = float(speed), float(acceleration), float(jerk)
 
 
+class AckermannControllerSettings:
+    """CARLA 1.0's ``carla.AckermannControllerSettings``. The defaults are what the real server read back on a fresh
+    vehicle.lincoln.mkz (the G4 read of 2026-11-20, s1-map/FACTS.md)."""
+
+    FIELDS = ("speed_kp", "speed_ki", "speed_kd", "accel_kp", "accel_ki", "accel_kd")
+    DEFAULTS = (0.15, 0.0, 0.25, 0.01, 0.0, 0.01)
+
+    def __init__(self, speed_kp=0.15, speed_ki=0.0, speed_kd=0.25, accel_kp=0.01, accel_ki=0.0, accel_kd=0.01):
+        self.speed_kp, self.speed_ki, self.speed_kd = float(speed_kp), float(speed_ki), float(speed_kd)
+        self.accel_kp, self.accel_ki, self.accel_kd = float(accel_kp), float(accel_ki), float(accel_kd)
+
+
 class Color:
     def __init__(self, r=0, g=0, b=0, a=255):
         self.r, self.g, self.b, self.a = int(r), int(g), int(b), int(a)
@@ -424,6 +436,7 @@ class _ActorState:
         self.yaw_rate_deg = 0.0
         self.accel = 0.0
         self.ackermann = None
+        self.ackermann_settings = AckermannControllerSettings()
         self.constant_velocity = None
         self.control = VehicleControl()
         self.simulate_physics = True
@@ -495,6 +508,16 @@ class Actor:
     def apply_ackermann_control(self, control) -> None:
         self._log("apply_ackermann_control", (control.steer, control.speed, control.acceleration, control.jerk))
         self._state.ackermann = control
+
+    def apply_ackermann_controller_settings(self, settings) -> None:
+        self._log("apply_ackermann_controller_settings",
+                  tuple(getattr(settings, k) for k in AckermannControllerSettings.FIELDS))
+        self._state.ackermann_settings = AckermannControllerSettings(
+            **{k: getattr(settings, k) for k in AckermannControllerSettings.FIELDS})
+
+    def get_ackermann_controller_settings(self):
+        st = self._state.ackermann_settings
+        return AckermannControllerSettings(**{k: getattr(st, k) for k in AckermannControllerSettings.FIELDS})
 
     def apply_control(self, control) -> None:
         self._log("apply_control", (control.throttle, control.steer, control.brake, control.hand_brake))
