@@ -288,14 +288,15 @@ def _t_step() -> int:
 
 def test_s1_the_windows_capture_cap_covers_the_stop_runs_path_stop(tmp_path: Path) -> None:
     # Q3/Q4 for s1: --max-s is the longest window that ends well; the stop run's window also holds the wait to the
-    # path stop (12 s) and its step (start call 60 + T_STEP + POLL_S + poll 60 + tail 60)
+    # path stop (12 s) and its step (start call 60 + T_STEP + POLL_S + poll 60 + tail 60), and every s1 window the
+    # chase video's hash at its recorder's end (its SSH bound, 120 s)
     r = s1_run(tmp_path, "--owner-ok-guest-host", "--camcal", "settings", runs="stop\tfurther\n")
     assert r.rc == 0, r.log
     d = dict(_session_defaults(), POLL_S=1)
-    want = _cap_sums(d)["p10-2"] + 12 + 60 + _t_step() + 1 + 60 + 60
+    want = _cap_sums(d)["p10-2"] + 12 + 60 + _t_step() + 1 + 60 + 60 + 120
     start = r.command(r.ssh(GH, "start capture_stop ")[0])
     assert start.endswith("capture_stop --max-s %d" % want), start
-    full = _cap_sums(_session_defaults())["p10-2"] + 12 + 60 + _t_step() + 20 + 60 + 60
+    full = _cap_sums(_session_defaults())["p10-2"] + 12 + 60 + _t_step() + 20 + 60 + 60 + 120
     readme = (SESSION_DIR / "README.md").read_text()
     assert re.search(r"= --max-s of an s1 window +(\d+) s", readme).group(1) == str(full)
 
@@ -427,6 +428,68 @@ def test_session_json_names_each_chase_video_left_on_the_host_with_its_sha256(tm
     assert "fetch_chase.sh" in r.log
 
 
+def _kit_with_videos(tmp: Path) -> Path:
+    kit = tmp / "home" / "da-kit" / "S1"
+    rem = kit / "bench" / "session" / "remote"
+    rem.mkdir(parents=True)
+    (rem / "host_step.sh").write_bytes((SESSION_DIR / "remote" / "host_step.sh").read_bytes())
+    (kit / "session_id").write_text("S1\n")
+    return kit
+
+
+def test_host_step_hash_writes_a_videos_sha256_beside_it(tmp_path: Path) -> None:
+    # bash-session-runner-hardening: nothing in a stop path may scale with the recording's length. Each chase video is
+    # hashed once when its recorder ended (`host_step.sh hash`), outside the pack
+    kit = _kit_with_videos(tmp_path)
+    v = kit / "out" / "rec_012_20_r1" / "chase_view.mp4"
+    v.parent.mkdir(parents=True)
+    data = os.urandom(5000)
+    v.write_bytes(data)
+    env = {**os.environ, "HOME": str(tmp_path / "home")}
+    hs = str(kit / "bench" / "session" / "remote" / "host_step.sh")
+    p = subprocess.run(["bash", hs, "hash", "out/rec_012_20_r1/chase_view.mp4"], capture_output=True, text=True, env=env)
+    assert p.returncode == 0, p.stderr
+    side = (v.parent / "chase_view.mp4.sha256").read_text().split()
+    assert side == [hashlib.sha256(data).hexdigest(), "5000", str(int(v.stat().st_mtime))], side
+    for rel in ("../session_id", "out/../session_id"):   # only a path under out/, and no way out of it
+        bad = subprocess.run(["bash", hs, "hash", rel], capture_output=True, text=True, env=env)
+        assert bad.returncode == 2 and not (kit / "session_id.sha256").exists(), rel
+
+
+def test_the_pack_takes_a_videos_sha256_from_its_side_file_when_size_and_time_match(tmp_path: Path) -> None:
+    kit = _kit_with_videos(tmp_path)
+    fresh = kit / "out" / "rec_a" / "chase_view.mp4"
+    stale = kit / "out" / "rec_b" / "chase_view.mp4"
+    for v in (fresh, stale):
+        v.parent.mkdir(parents=True)
+        v.write_bytes(os.urandom(4000))
+    marker = "f" * 64   # not the video's sha256: the pack must take it from the side file, not hash the video again
+    (fresh.parent / "chase_view.mp4.sha256").write_text("%s 4000 %d\n" % (marker, int(fresh.stat().st_mtime)))
+    (stale.parent / "chase_view.mp4.sha256").write_text("%s 3999 %d\n" % (marker, int(stale.stat().st_mtime)))
+    p = subprocess.run(["bash", str(kit / "bench" / "session" / "remote" / "host_step.sh"), "pack"], capture_output=True,
+                       text=True, env={**os.environ, "HOME": str(tmp_path / "home")})
+    assert p.returncode == 0, p.stderr
+    rows = dict((r.split("\t")[0], r.split("\t")[2]) for r in (kit / "out" / "pack_excluded.tsv").read_text().splitlines()
+                if r.count("\t") == 2)
+    assert rows["out/rec_a/chase_view.mp4"] == marker
+    assert rows["out/rec_b/chase_view.mp4"] == hashlib.sha256(stale.read_bytes()).hexdigest()
+    with tarfile.open(kit / "out.tgz") as t:
+        assert "out/rec_a/chase_view.mp4.sha256" in t.getnames()
+
+
+def test_s1_hashes_each_chase_video_when_its_recorder_ended_outside_the_sequence(tmp_path: Path) -> None:
+    r = s1_run(tmp_path, "--without-guest-host", "--camcal", "settings")
+    assert r.rc == 0, r.log
+    assert r.sequence() == s1_seq(guest=False)   # not a step: the SEQUENCE stays the plan's
+    for k, w in enumerate(LABELS):
+        (h,) = r.ssh(G4, f"host_step.sh hash out/rec_{w}/chase_view.mp4")
+        waits = r.ssh(G4, f"host_step.sh status rec_{w}")
+        assert waits and waits[-1] < h, w   # after the recorder's end
+        if k + 1 < len(LABELS):
+            assert h < r.ssh(L4, f"start disk_check_{LABELS[k + 1]} ")[0], w   # before the next run
+    assert not r.ssh(G4, "host_step.sh hash out/rec_calib_steer") and not r.ssh(G4, "hash out/rec_warmup")
+
+
 # ───────────── C6: fetch_chase.sh, the simulator host alone after the session ─────────────
 
 
@@ -521,6 +584,53 @@ def test_fetch_chase_a_sha256_mismatch_fails_keeps_no_file_and_stops_the_host(tm
     assert [c for c in _calls(tmp_path) if c[2:5] == ["compute", "instances", "stop"]]
     rec = json.loads((inc / "sim" / "fetch_chase" / "fetch_chase.json").read_text())
     assert {f["path"]: f["result"] for f in rec["files"]}[bad].startswith("sha256 mismatch")
+
+
+@pytest.mark.parametrize("to", ["group", "main"])
+def test_fetch_chase_a_term_during_the_ranges_ends_every_tunnel_and_stops_the_host(tmp_path: Path, to: str) -> None:
+    # bash-session-runner-hardening, parallel workers: each range's worker traps TERM and HUP, so a TERM to the whole
+    # process group leaves no tunnel (timeout and gcloud sit in timeout's own process group) running to its bound;
+    # "main": systemctl stop of the README's unit (KillMode=mixed) sends TERM to the main process only
+    import signal
+    import time
+    vids = {"out/rec_t/chase_view.mp4": os.urandom(3 * 1048576)}
+    inc = _incoming(tmp_path, vids, sid="S1TERMX")
+    (tmp_path / "fake").mkdir(exist_ok=True)
+    fb = tmp_path / "fakebin"
+    fb.mkdir(exist_ok=True)
+    (fb / "systemctl").write_text("#!/bin/bash\nexit 0\n")
+    (fb / "systemctl").chmod(0o755)
+    env = {k: v for k, v in os.environ.items() if not k.startswith(("FAKE_", "DA_"))}
+    env.update(FAKE_DIR=str(tmp_path / "fake"), DA_GCLOUD=str(FAKE), FAKE_REMOTE_FILES=str(tmp_path / "remote"),
+               PATH=f"{fb}:{env['PATH']}", DA_T_SSH_PAUSE_S="0.1", DA_T_STOP_POLL_S="0.1", DA_T_RUNNING_WAIT_S="1",
+               FETCH_RANGE_MIB="1", FETCH_PARALLEL="3", FAKE_SLOW_FETCH=f"{G4}:20")
+    p = subprocess.Popen(["bash", str(FETCH_CHASE), "--dry-run", str(inc)], env=env, stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT, text=True, start_new_session=True)
+
+    def tunnels() -> list[str]:
+        ps = subprocess.run(["ps", "-eo", "args"], capture_output=True, text=True).stdout.splitlines()
+        # the fake gcloud of each tunnel, not its timeout
+        return [x for x in ps if "--command dd if=$HOME/da-kit/S1TERMX/out/rec_t/" in x and "fake_gcloud" in x
+                and not x.startswith("timeout")]
+    try:
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < 60 and len(tunnels()) < 3:
+            time.sleep(0.1)
+        assert len(tunnels()) >= 3, tunnels()   # the three ranges' tunnels are reading
+        time.sleep(0.5)
+        if to == "group":
+            os.killpg(p.pid, signal.SIGTERM)
+        else:
+            os.kill(p.pid, signal.SIGTERM)
+        out, _ = p.communicate(timeout=60)
+    finally:
+        if p.poll() is None:
+            os.killpg(p.pid, signal.SIGKILL)
+    time.sleep(1)
+    assert not tunnels(), tunnels()
+    assert p.returncode == 143, out
+    assert _vm_status(tmp_path) == "TERMINATED"
+    assert not (inc / "sim" / "out" / "rec_t" / "chase_view.mp4").exists()
 
 
 def test_fetch_chase_retries_a_capacity_refusal_every_round(tmp_path: Path) -> None:

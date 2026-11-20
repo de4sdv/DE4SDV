@@ -61,7 +61,8 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_PATH_STOP_LINE  the JSON line a detached step whose command runs path_stop.sh prints in its tail (s1's stop
                      run; shared contract 3); default a good path_stopped line, "none": no line
   FAKE_REMOTE_FILES  a folder: `dd if=$HOME/da-kit/<id>/<path> bs=1M skip=<k> count=<c> status=none` of any <path> but
-                     out.tgz streams those bytes of <folder>/<path> (fetch_chase.sh's ranges of a chase video)
+                     out.tgz streams those bytes of <folder>/<path> (fetch_chase.sh's ranges of a chase video);
+                     FAKE_SLOW_FETCH slows each such read as it does a range of out.tgz
 """
 import fcntl
 import hashlib
@@ -323,6 +324,15 @@ if words[:2] == ["compute", "ssh"]:
         if not os.path.isfile(p):
             err("dd: failed to open: No such file or directory\n", 1)
         skip, count = int(fm.group(3)), int(fm.group(4))
+        slow = os.environ.get("FAKE_SLOW_FETCH")   # "vm:seconds" (or seconds): each such range read takes that long
+        if slow and ":" in slow:
+            slow = slow.split(":", 1)[1] if slow.split(":", 1)[0] == n else None
+        if slow:
+            save()
+            fcntl.flock(lockf, fcntl.LOCK_UN)
+            time.sleep(float(slow))
+            fcntl.flock(lockf, fcntl.LOCK_EX)
+            st = json.load(open(SF))
         data = open(p, "rb").read()[skip * 1048576:(skip + count) * 1048576]
         save()
         sys.stdout.buffer.write(data)
