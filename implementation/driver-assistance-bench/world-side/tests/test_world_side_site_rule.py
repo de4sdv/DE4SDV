@@ -88,6 +88,7 @@ def test_the_rule_gives_road_10_lane_minus_5_with_at_least_90_m_of_approach(spec
     assert g["approachGentleBendM"] == pytest.approx(97.04, abs=0.05)        # FACTS.md: 97.0 m
     # the hero starts on the approach, on a road, at least the minimum before the curve
     assert MIN_APPROACH_M <= g["startBackM"] <= g["approachM"] + 1e-6
+    assert g["startBackM"] == pytest.approx(g["approachM"], abs=0.6)   # at the approach's far end: most time at speed
     assert spec.start.split(":")[:2] == ["54", "6"]           # the approach's far end, on road 54 (not a junction)
 
 
@@ -116,6 +117,8 @@ def test_the_target_box_is_clear_of_every_road_surface_with_its_clearance_measur
 def test_no_prop_stands_on_a_driving_lane(spec014):
     spec, x = spec014
     assert spec.props and {p["blueprint"] for p in spec.props} <= set(READ["static_prop"])
+    # 44 streetbarriers of the read's 1.196 m length with 0.2 m gaps, from 10 m before the curve to its end
+    assert len(spec.props) == 44
     ext = READ["prop_bounding_boxes"]["static.prop.streetbarrier"]["extent"]
     on_driving = []
     for i, p in enumerate(spec.props):
