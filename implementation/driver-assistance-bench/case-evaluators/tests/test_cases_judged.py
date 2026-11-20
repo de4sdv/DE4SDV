@@ -66,6 +66,7 @@ def test_036_inconclusive_when_a_run_is_not_judged(tmp_path):
     assert res["outcome"] == INC
     e = run_entry(res, "012at42r2")
     assert e["outcome"] == INC and any("center line" in m for m in e["missing"])
+    assert any(m.startswith("setting SC-DRIVING-012@42 not judged: run 012at42r2") for m in res["missing"])
 
 
 def test_036_037_042_inconclusive_with_a_dropped_image_in_the_judged_window(tmp_path):
@@ -131,11 +132,12 @@ def test_042_fail_without_a_warning(tmp_path):
 
 
 def test_042_fail_when_the_warning_leads_the_braking_by_less_than_1_s(tmp_path):
-    specs = syn.s1_specs(**{"012at20r2": dict(warn_at_needed=3.2)})
+    # REQ-DRIVING-042 (:338): at least 1.0 s; a lead between 0.5 and 1.0 s fails
+    specs = syn.s1_specs(**{"012at20r2": dict(warn_at_needed=2.0)})
     res = judge(tmp_path, specs)["VC-DRIVING-042"]
     assert res["outcome"] == FAIL
     m = run_entry(res, "012at20r2")["measured"]
-    assert 0.0 < m["leadS"] < 1.0
+    assert 0.5 < m["leadS"] < 1.0
 
 
 def test_042_inconclusive_when_a_run_is_missing(tmp_path):

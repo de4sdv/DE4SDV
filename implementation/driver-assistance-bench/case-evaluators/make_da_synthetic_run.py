@@ -69,6 +69,7 @@ class RunSpec:
     control_of_the_hero: bool = True        # setting_record.json controlOfTheHero
     world_side_control_calls: int = 0
     unmatched_ackermann: bool = False       # an out.ackermann_control with no command of its seq in S
+    foreign_control_source: bool = False    # the actuation of command seq 3 names another control source
     bad_crc_at_adapter: bool = False        # the adapter's checkValue of one command differs from S's crc
     record_after_first_command: bool = False
     record_accepted: bool = True
@@ -77,6 +78,8 @@ class RunSpec:
     stop_after_s: float | None = None       # stop run: the path stop at this scenario time
     commands_after_stop: bool = False       # stop run: the adapter applies a control after the stop
     receipt_after_stop: bool = False        # stop run: a receipt after the stop
+    late_receipt_after_stop: bool = False   # stop run: a request issued before the stop, read 0.5 s after it
+    world_control_change_after_stop: bool = False  # stop run: the world's control changes with no adapter output
     no_score: bool = False
     no_world: bool = False
     broken_world_line: bool = False
@@ -151,6 +154,8 @@ def simulate(spec: RunSpec) -> dict:
             commands.append({"seq": seq, "k": k, "acceleration": new_cmd})
             warnings.append({"k": k, "requested": warning_on})
         cmd_hist.append(current_cmd)
+        if spec.world_control_change_after_stop and stop_k is not None and k > stop_k + 10:
+            tick["control"] = dict(tick["control"], throttle=0.3)
         ticks.append(tick)
         # Advance the world by one tick.
         if not contact_done:
@@ -255,7 +260,9 @@ def write_run(root: Path, spec: RunSpec) -> dict:
                                   "component": "actuationAdapter", "event": "out.ackermann_control", "seq": a_seq,
                                   "data": {"frame": nxt["frame"], "t_sim_s": nxt["simTimeS"], "seq": c["seq"],
                                            "steer": 0, "acceleration": c["acceleration"],
-                                           "controlSource": "actuationAdapter"}}))
+                                           "controlSource": "replay" if (spec.foreign_control_source
+                                                                         and c["seq"] == 3)
+                                           else "actuationAdapter"}}))
         if spec.unmatched_ackermann:
             a_seq += 1
             k = sim["commands"][len(sim["commands"]) // 2]["k"]
@@ -289,6 +296,13 @@ def write_run(root: Path, spec: RunSpec) -> dict:
                               "seq": rseq, "requested": int(w["requested"]),
                               "issue_time_sim_ms": int(round(tk["simTimeS"] * 1000.0)),
                               "verdict": "ACCEPTED", "request": int(w["requested"]), "reason": ""}))
+    if spec.late_receipt_after_stop and stop_real is not None:
+        before = [c for c in sim["commands"] if mono(c["k"], 31.0) <= stop_mono]
+        k = before[-1]["k"]
+        r_lines.append(_line({"event": "receipt", "t_mono_ns": 998, "t_real_ns": stop_real + 500_000_000,
+                              "seq": rseq + 1, "requested": 0,
+                              "issue_time_sim_ms": int(round(by_k[k]["simTimeS"] * 1000.0)),
+                              "verdict": "STALE", "request": 0, "reason": ""}))
     if spec.forged_receipt:
         k = sim["commands"][len(sim["commands"]) // 2]["k"]
         r_lines.append(_line({"event": "receipt", "t_mono_ns": 999, "t_real_ns": real(k, 61.0), "seq": rseq + 1,

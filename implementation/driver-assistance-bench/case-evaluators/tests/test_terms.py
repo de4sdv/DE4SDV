@@ -125,6 +125,21 @@ def test_functional_part_of_a_moving_target_ends_at_its_speed():
     assert ticks[fp["endIndex"] - 1]["relative"]["closingMps"] > 0.0
 
 
+def test_moving_target_end_needs_closing_at_most_0_not_0_05():
+    # plan A2: a moving target's speed is reached at closing <= 0; 0.03 m/s still closes on it
+    st = terms.SETTINGS["SC-DRIVING-013@30"]
+    v_e, v_t = 31.0 / 3.6, 19.0 / 3.6
+    closings = [v_e - v_t] * 120 + [0.03, -0.2]
+    ticks, gap = [], 60.0
+    for i, c in enumerate(closings):
+        ticks.append({"frame": i, "simTimeS": i * 0.05, "ego": {"speedMps": v_t + c if i >= 120 else v_e},
+                      "relative": {"gapM": gap, "closingMps": c, "centerLineOffsetM": 0.0, "headingDiffDeg": 0.0},
+                      "targetContact": False})
+        gap -= max(c, 0.0) * 0.05
+    fp = terms.functional_part(ticks, st)
+    assert fp["met"] and fp["endIndex"] == 121
+
+
 def test_functional_part_ends_at_contact():
     ticks = _ticks(syn.RunSpec("r", "SC-DRIVING-012@20", warn_at_needed=None, eb_at_needed=None))
     fp = terms.functional_part(ticks, terms.SETTINGS["SC-DRIVING-012@20"])

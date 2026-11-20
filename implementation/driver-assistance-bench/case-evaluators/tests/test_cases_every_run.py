@@ -126,6 +126,16 @@ def test_038_fail_on_a_check_value_that_differs_from_the_crc(tmp_path):
     assert run_entry(out["VC-DRIVING-038"], "013at60r1")["measured"]["unmatched"][0]["seq"] == 3
 
 
+def test_038_fail_on_an_actuation_from_another_control_source(tmp_path):
+    out = judge(tmp_path, syn.s1_specs(**{"013at30r2": dict(foreign_control_source=True)}))
+    e = run_entry(out["VC-DRIVING-038"], "013at30r2")
+    assert out["VC-DRIVING-038"]["outcome"] == FAIL and e["outcome"] == FAIL
+    assert e["measured"]["unmatched"] == [{"seq": 3, "frame": e["measured"]["unmatched"][0]["frame"],
+                                           "controlSource": "replay",
+                                           "adapterCheckValue": e["measured"]["unmatched"][0]["scoreCrc"],
+                                           "scoreCrc": e["measured"]["unmatched"][0]["adapterCheckValue"]}]
+
+
 def test_038_fail_on_a_world_side_control_call(tmp_path):
     out = judge(tmp_path, syn.s1_specs(**{"015at40r1": dict(world_side_control_calls=1)}))
     assert out["VC-DRIVING-038"]["outcome"] == FAIL
@@ -138,6 +148,20 @@ def test_038_fail_on_control_applied_after_the_stop(tmp_path):
     assert res["outcome"] == FAIL
     assert res["measured"]["stopClause"]["outcome"] == FAIL
     assert res["measured"]["stopClause"]["measured"]["controlsAfterStop"] > 0
+
+
+def test_038_fail_on_a_world_control_change_after_the_stop(tmp_path):
+    out = judge(tmp_path, syn.s1_specs(stop=dict(world_control_change_after_stop=True)))
+    sc = out["VC-DRIVING-038"]["measured"]["stopClause"]
+    assert sc["outcome"] == FAIL and out["VC-DRIVING-038"]["outcome"] == FAIL
+    assert sc["measured"]["controlsAfterStop"] == 0 and sc["measured"]["controlChangesAfterStop"] > 0
+
+
+def test_038_fail_on_an_actuation_after_the_stop_that_changes_nothing(tmp_path):
+    out = judge(tmp_path, syn.s1_specs(stop=dict(commands_after_stop=True)))
+    sc = out["VC-DRIVING-038"]["measured"]["stopClause"]
+    assert sc["outcome"] == FAIL
+    assert sc["measured"]["controlsAfterStop"] > 0 and sc["measured"]["controlChangesAfterStop"] == 0
 
 
 def test_038_inconclusive_without_the_worlds_statement(tmp_path):
@@ -191,6 +215,23 @@ def test_043_fail_on_a_receipt_after_the_stop(tmp_path):
     res = out["VC-DRIVING-043"]
     assert res["outcome"] == FAIL and res["measured"]["stopClause"]["outcome"] == FAIL
     assert res["measured"]["stopClause"]["measured"]["receiptsAfterStop"] > 0
+
+
+def test_043_fail_on_a_receipt_read_after_the_stop(tmp_path):
+    out = judge(tmp_path, syn.s1_specs(stop=dict(late_receipt_after_stop=True)))
+    sc = out["VC-DRIVING-043"]["measured"]["stopClause"]
+    assert sc["outcome"] == FAIL
+    assert sc["measured"]["receiptsReadAfterStop"] == 1 and sc["measured"]["receiptsIssuedAfterStop"] == 0
+
+
+def test_043_sim_time_check_alone_without_the_clock(tmp_path):
+    root = syn.write_session(tmp_path / "session", syn.s1_specs(stop=dict(receipt_after_stop=True)))
+    (root / "guest" / "out" / "ivi_clock_stop" / "clock.jsonl").unlink()
+    out = cases_da.evaluate(runio_da.discover(root), {"VC-DRIVING-044": DESK})
+    sc = out["VC-DRIVING-043"]["measured"]["stopClause"]
+    assert sc["outcome"] == FAIL and sc["measured"]["receiptsReadAfterStop"] == 0
+    assert sc["measured"]["receiptsIssuedAfterStop"] > 0
+    assert any("no IVI clock mark" in n for n in sc["measured"]["notes"])
 
 
 def test_043_inconclusive_without_the_app_record(tmp_path):

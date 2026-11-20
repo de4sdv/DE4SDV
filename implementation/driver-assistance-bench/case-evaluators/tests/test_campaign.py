@@ -75,7 +75,11 @@ def test_criteria_record_identity_is_the_sha256_of_its_bytes():
 
 def test_evaluator_revision_from_git_blobs(tmp_path):
     rev, blobs = edc.evaluator_revision()
+    # rule 30: the blobs of the folder's own .py and .json files
     assert rev.startswith("blobs:") and set(blobs) == set(edc.EVALUATOR_FILES)
+    assert {"cases_da.py", "terms.py", "runio_da.py", "evaluate_da_campaign.py",
+            "da_criteria_record.json"} <= set(blobs)
+    assert set(blobs) == {p.name for p in HERE.parent.iterdir() if p.suffix in (".py", ".json")}
     git = shutil.which("git")
     if git:
         for name, blob in blobs.items():
@@ -111,6 +115,19 @@ def test_cli_writes_every_case_with_the_criteria_and_the_revision(tmp_path):
     assert len(doc["runs"]) == 15 and doc["runs"][-1]["kind"] == "stop"
     assert [r["repetition"] for r in doc["runs"][:2]] == [1, 2]
     assert "VC-DRIVING-036 passBoundedVerification" in p.stdout
+
+
+def test_036_037_name_the_deceleration_calibration(tmp_path):
+    root = syn.write_session(tmp_path / "session", syn.s1_specs())
+    cal = root / "sim" / "x" / "out" / "calibrate" / "calib_decel" / "simulator"
+    cal.mkdir(parents=True)
+    (cal / "calibration_decel.json").write_text(json.dumps({"summary": {"allFollowWithinProposal": False,
+                                                                        "worstRatio": 0.4}}))
+    doc = edc.run(root, None)
+    for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
+        assert doc["cases"][vc]["measured"]["calibrationDecel"]["worstRatio"] == 0.4
+        assert any("ASM-DRIVING-005" in n for n in doc["cases"][vc]["notes"])
+    assert "calibrationDecel" not in doc["cases"]["VC-DRIVING-042"]["measured"]
 
 
 def test_cli_without_desk_record_leaves_044_inconclusive(tmp_path):

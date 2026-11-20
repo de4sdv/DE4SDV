@@ -25,8 +25,9 @@ import runio_da  # noqa: E402
 
 CRITERIA_FILE = HERE / "da_criteria_record.json"
 CRITERIA_SCHEMA = "de4sdv.driving.da-criteria-record.v1"
-# The files whose bytes give evaluatorRevision (rule 30: the revision from file blobs, not from a commit).
-EVALUATOR_FILES = ("cases_da.py", "terms.py", "runio_da.py", "evaluate_da_campaign.py", "da_criteria_record.json")
+# evaluatorRevision: the blobs of this folder's own .py and .json files (rule 30: not a commit, not the folder's
+# subtree hash, which a changed document would move).
+EVALUATOR_FILES = tuple(sorted(p.name for p in HERE.iterdir() if p.is_file() and p.suffix in (".py", ".json")))
 OUTPUT_SCHEMA = "de4sdv.driving.da-campaign-verdicts.v1"
 
 RUNS_READ = {
@@ -53,6 +54,8 @@ READINGS = [
     "EVALUATOR READING: the last driving command at a tick is the newest with issueTime_sim_s <= simTimeS",
     "EVALUATOR READING: 042 counts the warning starts up to the end of the functional part",
     "EVALUATOR READING: a fail on any run read gives fail, before error, blocked and inconclusive",
+    "036 and 037 are conditional on ASM-DRIVING-005, the calibration of the simulated deceleration "
+    "(driver_assistance_verification_evidence.sysml:299-300; plan D-S1-2)",
 ]
 
 
@@ -62,7 +65,8 @@ def git_blob(data: bytes) -> str:
 
 def evaluator_revision(root: Path | None = None) -> tuple[str, dict]:
     root = Path(root) if root is not None else HERE
-    blobs = {name: git_blob((root / name).read_bytes()) for name in EVALUATOR_FILES}
+    names = sorted(p.name for p in root.iterdir() if p.is_file() and p.suffix in (".py", ".json"))
+    blobs = {name: git_blob((root / name).read_bytes()) for name in names}
     digest = hashlib.sha256("".join(f"{blobs[n]} {n}\n" for n in sorted(blobs)).encode()).hexdigest()
     return f"blobs:{digest}", blobs
 
@@ -87,6 +91,20 @@ def build_criteria_record(repo: Path) -> dict:
             "droppedImageRule": cases_da.DROP_RULE, "readings": READINGS, "cases": cases}
 
 
+def calibration_decel(root: Path) -> dict | None:
+    """The session's calib-decel summary (calibrate/calib_decel/simulator/calibration_decel.json), or None."""
+    for p in sorted(Path(root).rglob("calibration_decel.json")):
+        try:
+            rec = json.loads(p.read_text())
+        except json.JSONDecodeError:
+            return {"file": str(p.relative_to(root)), "error": "not JSON"}
+        s = rec.get("summary") if isinstance(rec, dict) else None
+        s = s if isinstance(s, dict) else {}
+        return {"file": str(p.relative_to(root)), "allFollowWithinProposal": s.get("allFollowWithinProposal"),
+                "worstRatio": s.get("worstRatio")}
+    return None
+
+
 def run(root: Path, desk_path: Path | None) -> dict:
     root = Path(root)
     sess = runio_da.discover(root)
@@ -97,6 +115,12 @@ def run(root: Path, desk_path: Path | None) -> dict:
     crit = criteria_record_identity()
     rev, blobs = evaluator_revision()
     cases = cases_da.evaluate(sess, desk)
+    calib = calibration_decel(root)
+    for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
+        cases[vc]["measured"]["calibrationDecel"] = calib
+        cases[vc]["notes"].append("conditional on ASM-DRIVING-005: the calibration of the simulated deceleration "
+                                  "comes before the first judged run (driver_assistance_verification_evidence"
+                                  ".sysml:299-300); calibrationDecel holds the session's calib-decel summary")
     for res in cases.values():
         res["criteriaRecordIdentity"] = crit
         res["evaluatorRevision"] = rev

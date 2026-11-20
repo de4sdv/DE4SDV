@@ -26,7 +26,7 @@ and its verdict by `MapAssistanceEvidenceOutcomeToVerdict` (`:140-148`):
 Campaign rule (`evaluate_da_campaign.py`): a fail on any run read gives fail; otherwise an error gives error;
 otherwise a blocked run gives blocked; otherwise any missing evidence gives inconclusive; otherwise pass. An
 observed failure is evidence on its own: a setting with one judged run that fails gives fail even when its other run
-is not judged. A setting that is not judged never gives pass (VC-036 doc `:333-335`).
+is not judged. A setting that is not judged never gives pass (VC-DRIVING-036 doc `:333-335`).
 
 ## Records
 
@@ -61,7 +61,7 @@ session root by its name pattern; two different copies of one file are an `error
 
 W-set: `setting.setting_id` (the run's setting), `kind` (`run`; the stop run may say `stop`), `controlOfTheHero`
 (the world's statement that no autopilot and no Traffic Manager controls the hero, `da_world_side.py:725-726`; 038),
-`guidance` (014 and 015 only: the guidance speeds and times to collision that VC-040 and VC-041 ask the record to hold,
+`guidance` (014 and 015 only: the guidance speeds and times to collision that VC-DRIVING-040 and VC-DRIVING-041 ask the record to hold,
 `M/driver_assistance_verification_evidence.sysml:474-476`, lane A4; the field name is this contract's proposal).
 
 ### S: the candidate's boundary (`kind` of each line)
