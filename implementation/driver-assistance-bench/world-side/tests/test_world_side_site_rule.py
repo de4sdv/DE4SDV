@@ -206,3 +206,15 @@ def test_an_unknown_lane_rule_is_refused():
     st = scenarios.setting("SC-DRIVING-014@30")
     with pytest.raises(sites.SiteError, match="unknown lane rule 'innermost'"):
         resolve_as_the_world_side(world.get_map(), st, props(world), lane_rule="innermost")
+
+
+def test_a_minimum_the_outermost_lane_cannot_meet_is_refused_never_answered_by_an_inner_lane():
+    # on the real map read, road 10's lane -4 has 267.16 m of gentle-bend approach and lane -5 (the outermost) 97.04 m:
+    # at 98 m the named lane rule refuses the site; it never falls back to lane -4
+    world = real_world()
+    st = scenarios.setting("SC-DRIVING-014@30")
+    with pytest.raises(sites.SiteError) as err:
+        resolve_as_the_world_side(world.get_map(), st, props(world), approach_min_m=98.0)
+    text = str(err.value)
+    assert "lane 'outermost'" in text and "under the minimum approach of 98.0 m" in text
+    assert "road 10 lane -5 approach 97.04 m" in text and "lane -4" not in text
