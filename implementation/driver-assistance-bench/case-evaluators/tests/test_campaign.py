@@ -126,7 +126,8 @@ def test_036_037_name_the_deceleration_calibration(tmp_path):
     doc = edc.run(root, None)
     for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
         assert doc["cases"][vc]["measured"]["calibrationDecel"]["worstRatio"] == 0.4
-        assert any("ASM-DRIVING-005" in n for n in doc["cases"][vc]["notes"])
+        # the condition itself, not only a note that names the assumption (the gains note names it too)
+        assert any(n.startswith("conditional on ASM-DRIVING-005") for n in doc["cases"][vc]["notes"])
     assert "calibrationDecel" not in doc["cases"]["VC-DRIVING-042"]["measured"]
 
 
