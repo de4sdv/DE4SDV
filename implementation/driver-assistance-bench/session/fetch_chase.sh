@@ -24,6 +24,8 @@
 # 6 start refused (quota or error) or the safety net not armed; 9 dry run refused; 11 the host not TERMINATED after.
 set -uo pipefail
 export LC_ALL=C
+unset PYTHONPATH   # gcloud's own Python, never another runtime's site-packages (rule 39)
+trap '' PIPE       # a gone stdout reader never ends the fetch or its trap; every line goes to the log file first
 HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=hosts.env
 . "$HERE/hosts.env"
@@ -61,19 +63,25 @@ done
 
 # the rounds: each a fresh process (--once) with its own EXIT trap; only a capacity refusal (4) is tried again
 if [ "$ONCE" = 0 ]; then
-  args=(); [ "$DRY" = 1 ] && args+=(--dry-run)
+  # a signal to this process (systemctl stop of its unit sends TERM to the main process only) goes on to the round,
+  # whose EXIT trap stops the host; no round starts after it, and this process ends with the round's code
+  args=(); [ "$DRY" = 1 ] && args+=(--dry-run); child=""; sig=""
+  trap 'sig=1; [ -n "$child" ] && kill -TERM "$child" 2>/dev/null' TERM INT HUP
   for t in $(seq 1 "$RETRY_N"); do
     echo "round $t of $RETRY_N $(date -u +%FT%TZ)"
-    bash "$0" "${args[@]}" --once "$IN"; rc=$?
+    bash "$0" "${args[@]}" --once "$IN" & child=$!
+    while :; do wait "$child"; rc=$?; kill -0 "$child" 2>/dev/null || break; done
+    child=""
+    [ -n "$sig" ] && exit "$rc"
     [ "$rc" = 4 ] || exit "$rc"
-    [ "$t" -lt "$RETRY_N" ] && sleep "$RETRY_S"
+    [ "$t" -lt "$RETRY_N" ] && { sleep "$RETRY_S" & wait $!; [ -n "$sig" ] && exit 143; }
   done
   echo "no capacity for $SIM_VM in $RETRY_N rounds: the videos stay on its disk"; exit 4
 fi
 
 VM=$SIM_VM; Z=$SIM_ZONE; PROJ=$SIM_PROJECT
 OUT=$IN/sim/fetch_chase; mkdir -p "$OUT"; LOG=$OUT/fetch_chase.log
-log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l"; }
+log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
 gc() { timeout "${GC_TO:-120}" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$PROJ" "$@"; }
 iap() { [ "$SIM_SSH_IAP" = 1 ] && echo --tunnel-through-iap; }
 # shellcheck disable=SC2046  # iap prints one word or nothing
@@ -111,7 +119,7 @@ fi
 # never a host a session holds: TERMINATED, and no session unit active
 ST=$(vmst); log "before: $VM $ST"
 [ "$ST" = TERMINATED ] || { log "refused: $VM is $ST, expected TERMINATED (a session or another fetch may hold it)"; exit 2; }
-UNITS=$(systemctl --user list-units 'da-session-*' --state=active --no-legend 2>&1) \
+UNITS=$(timeout --foreground 30 systemctl --user list-units 'da-session-*' --state=active --no-legend 2>&1) \
   || { log "refused: cannot read the da-session units: $UNITS"; exit 2; }
 [ -z "$UNITS" ] || { log "refused: a da-session unit is active: $(head -1 <<< "$UNITS")"; exit 2; }
 
@@ -160,7 +168,7 @@ stop_vm() {
   if [ "$ST_AFTER" != TERMINATED ]; then log "STOP NOT CONFIRMED for $VM: stop it by hand now"; exit 11; fi
   exit "$RC"
 }
-on_sig() { RC=$1; exit "$1"; }
+on_sig() { trap '' INT TERM HUP; RC=$1; exit "$1"; }   # a second signal (the group's and the main process's) never cuts the trap
 trap stop_vm EXIT
 trap 'on_sig 143' TERM; trap 'on_sig 130' INT; trap 'on_sig 129' HUP
 
@@ -213,7 +221,9 @@ fetch_one() {   # fetch_one <path>: its ranges, joined, its sha256 against the l
   for (( i = 0; i < n; i++ )); do
     while [ "$running" -ge "$FETCH_PARALLEL" ]; do wait -n; running=$(( running - 1 )); done
     [ -e "$dir/failed" ] && break
-    range_get "$p" "$i" "$size" "$dir" & PIDS="$PIDS $!"; running=$(( running + 1 ))
+    # the worker outlives a TERM or HUP to the whole group until its tunnel ended, so the trap's kill_tree still finds
+    # that tunnel's timeout and gcloud (in timeout's own process group) instead of leaving them to their bound
+    ( trap 'exit 143' TERM HUP; range_get "$p" "$i" "$size" "$dir" ) & PIDS="$PIDS $!"; running=$(( running + 1 ))
   done
   wait; PIDS=""
   for (( i = 0; i < n; i++ )); do [ -f "$dir/$(printf 'p%06d' "$i")" ] || { r="failed: $(head -1 "$dir/failed" 2>/dev/null || echo "range $i not read")"; break; }; done

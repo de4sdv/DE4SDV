@@ -218,9 +218,10 @@ CAP_WAIT_S=$(( T_CAPTURE_END - 60 - 2 - 60 - CAP_P )); [ "$CAP_WAIT_S" -ge 1 ] |
 if [ "$KIND" = p10-3 ]; then CAP_MAX_S=$(( (60 + T_INJECT + CAP_P + 120) + 60 ))
 else CAP_MAX_S=$(( GO_SSH_S + (T_RUN + CAP_P + 60) + (60 + T_SCORE_START + CAP_P + 120) + 60 + (T_RELEASE + CAP_P + 60)
                    + (T_REC_END + CAP_P + 60) + 60 )); fi
-# s1: the stop run's window also holds the wait to the path stop and its step (start call + bound + POLL_S + poll + tail)
+# s1: the stop run's window also holds the wait to the path stop and its step (start call + bound + POLL_S + poll + tail),
+# and every s1 window the chase video's hash at its recorder's end (its SSH call, 120 s)
 if [ "$KIND" = s1 ]; then
-  CAP_MAX_S=$(( CAP_MAX_S + $(awk -v x="$PATH_STOP_AFTER_S" 'BEGIN { c = int(x); if (c < x) c++; print c }') + (60 + T_STEP + CAP_P + 120) ))
+  CAP_MAX_S=$(( CAP_MAX_S + $(awk -v x="$PATH_STOP_AFTER_S" 'BEGIN { c = int(x); if (c < x) c++; print c }') + (60 + T_STEP + CAP_P + 120) + 120 ))
 fi
 # the exit trap's pre-stop budget (P1; README "The exit trap's pre-stop budget"): every step the trap runs before a VM
 # stops gets a slot of its own bound, and the phase is the sum of the slots of this kind's hosts, so no step can use
@@ -1731,6 +1732,12 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another
       log "CHASE VIEW NOT COMPLETE IN RUN $w: the recorder ended rc ${BASH_REMATCH[1]} (its summary's end goes to session.json chase_view); the window's capture stop, its receipts and the next run go on"
     else
       abort 5 "the recorder of $w did not end well (${ROUT:-no answer})"
+    fi
+    # s1 (C3): the video stays on the simulator host; its sha256 is taken now, once, beside it, so the pack in the stop
+    # path never hashes the session's videos (not a step: a failure here only leaves the hash to the pack)
+    if [ "$KIND" = s1 ]; then
+      rout ssh_l sim 120 "$HS hash out/rec_$w/chase_view.mp4"
+      log "chase video of $w on $(var sim VM): ${ROUT:-no answer} (sha256 bytes mtime; the pack lists it, fetch_chase.sh fetches it)"
     fi
   fi
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then window_close "$w"; fi

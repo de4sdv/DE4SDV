@@ -187,7 +187,11 @@ only the app's record shows that a request arrived. The same count serves `p10-3
   `failed_step` `path_stop_stop`). The world side ends the run 10 s of simulation time after the stop.
 - **The chase videos stay on the simulator host** (C3): `host_step.sh pack` leaves every `out/rec_*/chase_view.mp4` out
   of the pack and lists each in `out/pack_excluded.tsv` with its size and sha256 (about 144 MB a run, 2.2 GB for S1:
-  far past the fetch's bound through IAP). `session.json` `not_fetched_from_hosts.sim` and `s1.chase_videos_on_the_
+  far past the fetch's bound through IAP). Nothing in the stop path scales with the videos: right after each
+  recorder's end the session has the host hash its video once (`host_step.sh hash`, a side file
+  `chase_view.mp4.sha256` with the sha256, size and mtime; one SSH call of 120 s at most, not a step of the
+  `SEQUENCE`), and the pack takes the sha256 from that file when the size and mtime still match; it hashes only a video
+  without one (a run the session's end cut). `session.json` `not_fetched_from_hosts.sim` and `s1.chase_videos_on_the_
   simulator_host` name them, and `session.log` gives the command that fetches them after the session: `fetch_chase.sh`
   ("The chase videos" below). The recorder's `summary.json` is in the pack as before.
 - **The report** of `p10-2` holds per run of the list: the chase recorder's end, the adapter's attach, the display
@@ -206,6 +210,8 @@ fetches every video the session's `sim/out/pack_excluded.tsv` lists:
   sha256 equals the list's (exit 5 otherwise; nothing kept under the name); a video already fetched whole is skipped;
 - the whole fetch is bounded by 120 s plus the bytes at 0.5 MB/s (half the measured 1.03 MB/s);
 - a start refused for capacity costs nothing: rounds every 180 s, up to 20 (an hour), then exit 4;
+- a TERM to its main process (`systemctl stop` of its unit) goes on to the round, whose trap ends every tunnel (each
+  range's worker outlives a TERM until its tunnel is killed) and stops the host; no round starts after it;
 - its records are in `sim/fetch_chase/`: `fetch_chase.log`, `ranges.tsv` and `fetch_chase.json` (each video's result,
   the host's start and stop, its status after and the cost at its hourly price).
 
@@ -277,7 +283,8 @@ capture_stop_inject's start SSH call                          60 s
 an s1 window: a p10-2 window                                2995 s
 + the stop run's wait to the path stop (PATH_STOP_AFTER_S)     12 s
 + path_stop_<w> (60 + T_STEP 300 + 20 + 60 + 60)              500 s
-= --max-s of an s1 window                                   3507 s
++ the chase video's hash at its recorder's end (SSH bound)     120 s
+= --max-s of an s1 window                                   3627 s
 ```
 
 A typical p10-2 window lasts 70 to 230 s, so the capture reaches its `--max-s` only when steps run near their bounds.
