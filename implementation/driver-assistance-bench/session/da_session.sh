@@ -33,6 +33,13 @@
 #                          settings writes H.yaml from the simulated camera's settings and pose (make-h --source
 #                          settings), keeps the frame as evidence with its pre-check recorded only, and runs no
 #                          cross-check. Taken only from this flag, never as a fallback; session.json records it
+#   --ackermann-gains default|v1  the world side's Ackermann controller gains (default: default): env
+#                          DA_ACKERMANN_GAINS on every simulator-host world and calibration step (warmup, calibrate,
+#                          world_<run>); session.json records it, top level and per run (lead decision 2026-11-20)
+#   --rehearsal            s1 only, with --runs: a rehearsal on a shorter run list; not evidence. session.json says
+#                          rehearsal true and names the list (runList: path, sha256); cap EUR 2.00 unless --cap-eur
+#   --runs <tsv>           s1's run list for a rehearsal (the format of session/s1_runs.tsv); refused without
+#                          --rehearsal: a real s1 runs the committed list
 #   --dry-run              use the fake gcloud in $DA_GCLOUD; print every command; shorter waits (DA_T_* knobs)
 #
 # Every internal IP comes from gcloud at run time; none is configured. SIM_SSH_IAP=1 (hosts.env) sends every ssh and
@@ -62,6 +69,7 @@ unset GC_TO   # a gcloud call's time-out is the session's own (gc: 120 s, the tr
 
 KIND=""; DRY=0; CAP=""; OWNER_OK_GUEST=0; WITHOUT_GUEST=0; SID=""; KIT_FROM=head; KIT_EXTRA=""; CARLA_HOST=""
 IVI_PERMISSIVE=0; RENV_ARGS=(); CAMCAL_SOURCE=checkerboard; CAMCAL_GIVEN=0; CANDIDATE=pin
+ACK_GAINS=default; REHEARSAL=0; RUNS_ARG=""; RUNS_GIVEN=0
 EVID=${DA_EVIDENCE_ROOT:-$HOME/.hermes/outputs/inc-driving-002/phase10/sessions}
 BENCH_TREE=$(cd -- "$HERE/../../.." && pwd)
 while [ $# -gt 0 ]; do
@@ -81,7 +89,11 @@ while [ $# -gt 0 ]; do
     --remote-env) RENV_ARGS+=("${2:?}"); shift 2 ;;
     --camcal) CAMCAL_SOURCE=${2:?}; CAMCAL_GIVEN=1; shift 2 ;;
     --candidate) CANDIDATE=${2:?}; shift 2 ;;
-    -h|--help) sed -n '2,49p' "$0"; exit 0 ;;
+    --ackermann-gains) [ $# -ge 2 ] || { echo "refused: --ackermann-gains needs a value (default or v1)"; exit 2; }
+                       ACK_GAINS=$2; shift 2 ;;
+    --rehearsal) REHEARSAL=1; shift ;;
+    --runs) RUNS_ARG=${2:?}; RUNS_GIVEN=1; shift 2 ;;
+    -h|--help) sed -n '2,56p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -92,7 +104,8 @@ case "$KIND" in
   p10-2) if [ "$WITHOUT_GUEST" = 1 ]; then ROLES=(sim score); else ROLES=(sim score guest); fi
          CAP=${CAP:-$CAP_EUR_P10_2} ;;
   s1) if [ "$WITHOUT_GUEST" = 1 ]; then ROLES=(sim score); else ROLES=(sim score guest); fi
-      CAP=${CAP:-$CAP_EUR_S1} ;;
+      # a rehearsal (--rehearsal --runs): its own default cap
+      if [ "$REHEARSAL" = 1 ]; then CAP=${CAP:-$CAP_EUR_S1_REHEARSAL}; else CAP=${CAP:-$CAP_EUR_S1}; fi ;;
   *) echo "--kind p10-1|p10-3|p10-2|s1 is required" >&2; exit 2 ;;
 esac
 # the VisionPilot candidate (D4): its bundle on the S-CORE host. pin is the S-CORE build's default bundle
@@ -115,6 +128,22 @@ else
   CAMCAL_REASON="upstream's procedure (Calibration/calc_front_camera_homography.py at the VisionPilot pin) on the captured frame"
 fi
 CAMCAL_XCHECK=""; CAMCAL_PRECHECK=""
+# the world side's Ackermann controller gains (lead decision 2026-11-20; the contract with lane I-W): only these names,
+# given to the world side as env DA_ACKERMANN_GAINS on every simulator-host world and calibration step
+case "$ACK_GAINS" in
+  default|v1) ;;
+  *) echo "refused: --ackermann-gains takes default or v1, not '$ACK_GAINS'"; exit 2 ;;
+esac
+# a rehearsal (lead decision 2026-11-20): an s1 on a run list of its own, which is then no evidence. A run list that is
+# not the committed one is refused without --rehearsal, as the dry-run knob DA_S1_RUNS is in a real session
+if [ "$REHEARSAL" = 1 ] || [ "$RUNS_GIVEN" = 1 ]; then
+  [ "$KIND" = s1 ] || { echo "refused: --rehearsal and --runs are for --kind s1 only"; exit 2; }
+  [ "$REHEARSAL" = 1 ] || { echo "refused: --runs needs --rehearsal (a real s1 runs the committed session/s1_runs.tsv)"; exit 2; }
+  [ "$RUNS_GIVEN" = 1 ] || { echo "refused: --rehearsal needs --runs <tsv>"; exit 2; }
+  [ -n "${DA_S1_RUNS:-}" ] && { echo "refused: DA_S1_RUNS and --runs both name a run list"; exit 2; }
+  [ -f "$RUNS_ARG" ] && [ -r "$RUNS_ARG" ] || { echo "refused: no run list $RUNS_ARG"; exit 2; }
+  RUNS_ARG=$(readlink -f -- "$RUNS_ARG"); RUNS_ARG_SHA=$(sha256sum < "$RUNS_ARG" | cut -d' ' -f1)
+fi
 
 # per-session settings of the remote entries (R6): only the names on its host's list below, and only when given on
 # purpose with --remote-env NAME=VALUE (S4: an exported variable of the calling shell, another worker's UNIT_WAIT_S
@@ -202,12 +231,14 @@ if [ "$DRY" = 1 ]; then
   for v in "${KNOBS[@]}"; do o="DA_T_$v"; [ -n "${!o:-}" ] && printf -v "$v" '%s' "${!o}"; done
   MAKE_H=${DA_MAKE_H:-}   # a stand-in for camera_calibration.py make-h (the fake capture files are no images)
   S1_RUNS_GIVEN=${DA_S1_RUNS:-}   # a run list of the dry runs' own (the world side's settings of the real list)
+  [ "$REHEARSAL" = 1 ] && S1_RUNS_GIVEN=$RUNS_ARG
 else
   GCLOUD=$HOME/google-cloud-sdk/bin/gcloud
   for v in "${KNOBS[@]}"; do o="DA_T_$v"; [ -n "${!o:-}" ] && { echo "refused: $o is a dry-run knob"; exit 2; }; done
   [ -n "${DA_MAKE_H:-}" ] && { echo "refused: DA_MAKE_H is a dry-run knob"; exit 2; }
   [ -n "${DA_S1_RUNS:-}" ] && { echo "refused: DA_S1_RUNS is a dry-run knob (s1 runs the committed session/s1_runs.tsv)"; exit 2; }
   MAKE_H=""; S1_RUNS_GIVEN=""
+  [ "$REHEARSAL" = 1 ] && S1_RUNS_GIVEN=$RUNS_ARG   # a rehearsal's own list (--rehearsal --runs, checked above)
 fi
 # the display capture's caps follow this session's bounds (Q3, Q4; README "The display capture's caps"). POLL_S counts
 # as whole seconds (a dry run's 0.1 as 1)
@@ -1055,6 +1086,7 @@ write_record() {
   LOST="${LOST:-}" OWED_TEXT="$(owed)" FETCH_PARALLEL="$FETCH_PARALLEL" FETCH_RANGE_MIB="$FETCH_RANGE_MIB" \
   CANDIDATE="$CANDIDATE" CANDIDATE_BUNDLE="$CANDIDATE_BUNDLE" S1_DONE_LIST="$S1_DONE" \
   S1_RUNS_SRC="$S1_RUNS_SRC" S1_RUNS_SHA="$S1_RUNS_SHA" S1_ROWS="$s1rows" \
+  ACK_GAINS="$ACK_GAINS" REHEARSAL="$REHEARSAL" RUNS_ARG="$RUNS_ARG" RUNS_ARG_SHA="${RUNS_ARG_SHA:-}" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os, sys
 e = os.environ
@@ -1197,6 +1229,9 @@ for line in e["RENV"].splitlines():
 json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]), "dry_run": e["DRY"] == "1",
            "cap_eur": float(e["CAP"]), "started": e["STARTED"].split(),
            "candidate": {"name": e["CANDIDATE"], "bundle": e["CANDIDATE_BUNDLE"]},
+           "ackermann_gains": e["ACK_GAINS"],
+           "rehearsal": e["REHEARSAL"] == "1",
+           "runList": {"path": e["RUNS_ARG"], "sha256": e["RUNS_ARG_SHA"]} if e["REHEARSAL"] == "1" else None,
            "start_calls_unix_s": {r: float(t) for r, t, _ in starts}, "eur_per_hour": {r: float(p) for r, _, p in starts},
            "failed_step": e["STEP_FAIL"] or None, "kit_sha256": e["KIT_SHA"] or None,
            "bench_commit": e["BENCH_COMMIT"] or None, "worktree_changes": e["WT_CHANGES"] or None,
@@ -1369,6 +1404,7 @@ if [ "$KIND" = s1 ]; then
   [ ${#S1_LABELS[@]} -gt 0 ] || fail 2 "refused: the run list ($S1_RUNS_SRC) holds no run"
   [ "$_seen_stop" = 1 ] && NEED+=("$ENTRY_SCORE_PATH_STOP")
   log "s1 run list $S1_RUNS_SRC (sha256 $S1_RUNS_SHA): ${#S1_LABELS[@]} runs: ${S1_LABELS[*]}"
+  [ "$REHEARSAL" = 1 ] && log "rehearsal: not evidence (--rehearsal: the run list $RUNS_ARG, sha256 $RUNS_ARG_SHA; cap EUR $CAP)"
 fi
 MISSING=$(python3 - "$KIT" "${NEED[@]}" <<'PY'
 import sys, tarfile
@@ -1406,6 +1442,7 @@ plan_run() {   # plan_run <label> <scenario> <setting>
   local plan=$(( ${cap%.*} + RRD_HOLD_S ))
   PLAN_TOTAL_S=$(( PLAN_TOTAL_S + plan )); [ "$plan" -gt "$PLAN_MAX_S" ] && PLAN_MAX_S=$plan
   srun "$1" setting "$id"; srun "$1" speed_limit_mps "$sp"; srun "$1" run_cap_s "$cap"; srun "$1" planned_running_s "$plan"
+  srun "$1" ackermann_gains "$ACK_GAINS"
   srun "$1" speed_limit_source "bench proposal: world-side/scenarios.py $id: the middle of its tolerance $lo to $hi km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)"
   log "run $1: setting $id, the candidate's speed_limit $sp m/s (the middle of $lo to $hi km/h), run cap $cap s"
 }
@@ -1607,7 +1644,7 @@ done
 # ───────────── 4. the steps of the session kind ─────────────
 # the environment the remote entries get from this session's configuration (entrypoints.env)
 GENV="env$(q "APP_PACKAGE=$APP_PACKAGE" "APP_COMPONENT=$APP_COMPONENT" "APP_RECORD_PATHS=$APP_RECORD_PATHS" "IVI_PERMISSIVE=$IVI_PERMISSIVE")"
-SENV="env$(q "SIM_PY=$SIM_PY")"
+SENV="env$(q "SIM_PY=$SIM_PY" "DA_ACKERMANN_GAINS=$ACK_GAINS")"   # every world and calibration step (--ackermann-gains)
 CAMCAL_DIR="\$HOME/da-kit/$SID/camera_calibration"   # on the S-CORE host
 HAS_GUEST=0; [[ " ${ROLES[*]} " == *" guest "* ]] && HAS_GUEST=1
 SEQ=()
@@ -1918,7 +1955,7 @@ case "$KIND" in
     rstep sim warmup "$T_WARMUP" "$SENV" bash "$ENTRY_SIM_WARMUP" "$(od warmup)"
     o=$(od world_p10_1)
     # after run_end.json the world ticks on until the release file or RELEASE_WAIT_S: longer than the check may run
-    rstart sim world_p10_1 "env$(q "SIM_PY=$SIM_PY" "RELEASE_WAIT_S=$(( T_P10_1 + T_STEP ))")" bash "$ENTRY_SIM_RUN" \
+    rstart sim world_p10_1 "env$(q "SIM_PY=$SIM_PY" "DA_ACKERMANN_GAINS=$ACK_GAINS" "RELEASE_WAIT_S=$(( T_P10_1 + T_STEP ))")" bash "$ENTRY_SIM_RUN" \
       "$o" "$P10_1_SCENARIO" "$P10_1_SETTING"
     rwaitfile sim world_p10_1 "$o/simulator/ready.json" "$T_READY" || { abort 5 "the world side of p10-1 is not ready"; }
     rtouch sim "$o/go" || { STEP_FAIL=world_p10_1; abort 5 "no go file for p10-1"; }

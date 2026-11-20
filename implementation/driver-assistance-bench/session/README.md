@@ -173,8 +173,9 @@ only the app's record shows that a request arrived. The same count serves `p10-3
   stopped (no setting; it runs the world of `S1_STOP_SCENARIO` `S1_STOP_SETTING`, `entrypoints.env`). A run's label
   names its steps: `SC-DRIVING-012@20 r1` is `012_20_r1`, the stop run `stop`. Any other line, a run named twice or a
   run after `stop` is refused before any VM starts (exit 2), and so is a setting `run_setting.py` does not know. A dry
-  run may name its own list (`DA_S1_RUNS`); a real session refuses that knob. `tests/test_session_s1.py` pins the
-  list against the model's seven settings and the `SEQUENCE` of a dry run.
+  run may name its own list (`DA_S1_RUNS`); a real session refuses that knob. A rehearsal names its own list with
+  `--rehearsal --runs <tsv>` and is no evidence ("`s1` rehearsal" below); `--runs` without `--rehearsal` is refused.
+  `tests/test_session_s1.py` pins the list against the model's seven settings and the `SEQUENCE` of a dry run.
 - **The disk check before each S-CORE start** (C2), calib_steer's included, in place of `p10-2`'s upfront check over
   every run (which for S1 would need about 180 GB): one run's Rerun record, 88 MB/s times its run cap plus 60 s, plus
   10 % and 5 GB (19,520,000,000 B for a 90 s cap). A short disk ends the session cleanly before that run: its stops and
@@ -679,6 +680,40 @@ systemd-run --user --unit=da-chase-$SID --collect --working-directory="$PWD" \
 # then read sim/fetch_chase/fetch_chase.json: result ok, vm_status_after TERMINATED
 ```
 
+### `s1` rehearsal (a short run list, not evidence)
+
+A rehearsal runs `s1` as above on a run list of its own, `--rehearsal --runs <tsv>` in the format of `s1_runs.tsv`
+(the lead's decision of 2026-11-20). The block below runs one run and the stop run on the simulator host and the S-CORE
+host only. A rehearsal is no evidence: `session.log` says `rehearsal: not evidence`, and `session.json` holds
+`rehearsal: true` and `runList` (`path`, `sha256` of the file). Its cap is EUR 2.00 (`CAP_EUR_S1_REHEARSAL`, about
+50 min of both hosts) unless `--cap-eur` is given. `--runs` without `--rehearsal` is refused before any VM starts
+(exit 2), as `DA_S1_RUNS` is in a real session. The SEQUENCE is that of `s1` for the listed runs
+(`tests/test_session_s1_int.py` pins the one below).
+
+`--ackermann-gains default|v1` (the lead's decision of 2026-11-20, every kind with a simulator host) gives the world
+side's Ackermann controller gains to every world and calibration step (`warmup`, `calibrate`, `world_<run>`) as env
+`DA_ACKERMANN_GAINS`; `session.json` records it at the top level and in `score_runs.<run>`. The default is `default`;
+any other value is refused (exit 2). Add it to both lines when the lead names `v1`.
+
+```bash
+C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
+cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1
+S=implementation/driver-assistance-bench/session
+# the rehearsal's run list, one run a line (TAB between the two words): SC-DRIVING-012@20 r1, then stop further
+R=$HOME/.hermes/outputs/inc-driving-002/phase10/s1-rehearsal/runs.tsv
+D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
+env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
+  DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" \
+  bash $S/da_session.sh --kind s1 --without-guest-host --camcal settings --rehearsal --runs "$R" --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+SID=$(date -u +%Y%m%dT%H%M%SZ)
+systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
+  -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
+  -p StandardOutput=append:$HOME/s1-rehearsal-$SID.out -p StandardError=append:$HOME/s1-rehearsal-$SID.out \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /bin/bash $S/da_session.sh --kind s1 --without-guest-host --camcal settings --rehearsal --runs "$R" --session-id "$SID"
+# end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (never kill -9)
+```
+
 ### The exit trap's pre-stop budget
 
 On a signal or the cost cap, the exit trap runs these steps before any VM stops, each in a slot of its own bound. The pre-stop phase (`PRESTOP_S`) is the sum of the
@@ -833,9 +868,9 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | `ENTRY_SCORE_INJECT` | S-CORE | `<out>` | warning-app lane | `p10-3`: publishes test warning requests on the candidate's mw::com event; returns when done |
 | `ENTRY_SCORE_STOP` | S-CORE | `<out>` (the start's) | Launch Manager lane | ends the processes (SIGTERM, so the candidate's `.rrd` and the visualization file are finished) and collects their files; the world still ticks meanwhile |
 | `ENTRY_SIM_SETUP` | simulator | `<out>` | this lane: `remote/sim_setup.sh` | CARLA server up on port 2000, NVENC test, free disk; the world side's map (`WORLD_MAP` of `world-side/scripts/common.sh`) in the server's `get_available_maps()`, or it fails naming the AdditionalMaps pack (`world-side/README.md`, "The maps pack") |
-| `ENTRY_SIM_WARMUP` | simulator | `<out>` | `../world-side/scripts/warmup.sh` | the survey, the session's road in `world_start.json`, the warm-up pass with every camera (hero role `hero`, moved by pose) |
-| `ENTRY_SIM_CALIBRATE` | simulator | `<out> <checkerboard or settings>` (the session's `--camcal`) | `../world-side/scripts/calibrate.sh` | ASM-DRIVING-005 and the camera capture, role `de4sdv_calibration`, no candidate; required for `p10-2` |
-| `ENTRY_SIM_RUN` | simulator | `<out> <scenario> <setting>` | `../world-side/scripts/run_scenario.sh` | one run (`SC-DRIVING-012 20kmh`, or `ASM-DRIVING-006 20kmh`; `s1`: `<scenario> <setting id>` of each run of `s1_runs.tsv`, the stop run `S1_STOP_SCENARIO S1_STOP_SETTING`), detached, with the go/release handshake (`../world-side/README.md`); its records in `<out>/simulator/`; in `p10-1` the world of `P10_1_SCENARIO` `P10_1_SETTING` with `RELEASE_WAIT_S` above the check's bound |
+| `ENTRY_SIM_WARMUP` | simulator | `<out>`; env `DA_ACKERMANN_GAINS` (`default` or `v1`, the session's `--ackermann-gains`) | `../world-side/scripts/warmup.sh` | the survey, the session's road in `world_start.json`, the warm-up pass with every camera (hero role `hero`, moved by pose) |
+| `ENTRY_SIM_CALIBRATE` | simulator | `<out> <checkerboard or settings>` (the session's `--camcal`); env `DA_ACKERMANN_GAINS` | `../world-side/scripts/calibrate.sh` | ASM-DRIVING-005 and the camera capture, role `de4sdv_calibration`, no candidate; required for `p10-2` |
+| `ENTRY_SIM_RUN` | simulator | `<out> <scenario> <setting>`; env `DA_ACKERMANN_GAINS` | `../world-side/scripts/run_scenario.sh` | one run (`SC-DRIVING-012 20kmh`, or `ASM-DRIVING-006 20kmh`; `s1`: `<scenario> <setting id>` of each run of `s1_runs.tsv`, the stop run `S1_STOP_SCENARIO S1_STOP_SETTING`), detached, with the go/release handshake (`../world-side/README.md`); its records in `<out>/simulator/`; in `p10-1` the world of `P10_1_SCENARIO` `P10_1_SETTING` with `RELEASE_WAIT_S` above the check's bound |
 | `ENTRY_SCORE_PATH_STOP` | S-CORE | `<out>` (the step's own folder, `path_stop_<run>`) | score-side lane: `../score-path/scripts/path_stop.sh` | `s1`'s stop run, at the go + 12 s: activates the Launch Manager's run target `path_stopped` and prints one JSON line `{"runTarget":"path_stopped","stopInstantRealNs":<int>,"stopInstantMonoNs":<int>,"rc":<int>}` (shared contract 3); exit 0 and `rc` 0 when the target is active |
 | `ENTRY_SCORE_DISK` | S-CORE | `<out> <need_bytes> <need_stage_bytes>` | this lane: `../score-path/scripts/disk_check.sh` | `p10-2`'s first step, and `s1`'s before each S-CORE start (`disk_check_<run>`, one run's need in both arguments): exit 0 when `<out>`'s filesystem has `<need_bytes>` free (and the stage's `<need_stage_bytes>` when it is another filesystem), 9 ("DISK SPACE SHORT") otherwise; one `DISK_CHECK` line and `<out>/disk_check.json`; deletes nothing |
 | `ENTRY_SIM_RECORD` | simulator | `--out <dir>` | this lane: `../recording/chase_recorder.py` | started before the warm-up and before the run, ends on its own; writes `<dir>/listening` once it took its list of the heroes already there, and the session waits for it (bounded) before the warm-up and before each recorded run's world |
