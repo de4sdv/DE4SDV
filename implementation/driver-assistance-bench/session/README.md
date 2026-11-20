@@ -159,7 +159,7 @@ only the app's record shows that a request arrived. The same count serves `p10-3
 
 ### What an `s1` session runs and records
 
-`s1` runs the judged runs of S1 (`S1-BUILD-PLAN.md` section 4) in one session, in the order of `p10-2`:
+`s1` runs the judged runs of S1 (the S1 build plan, section 4) in one session, in the order of `p10-2`:
 
 - **The run list** is the committed `s1_runs.tsv`, read from the kit, one run a line: `<run id> TAB <run>`. Its rows are
   the shared contract of the S1 build: SC-DRIVING-012 at 20, 42 and 60 km/h, SC-DRIVING-013 at 30 and 60, SC-DRIVING-014
@@ -744,7 +744,7 @@ Expected lengths are PLAN's for each probe; prices from `hosts.env` (Spot, europ
 | `s1` | G4 1.887 + L4 0.483 + guest host 0.271 | about 2.0 h: 22 min to the first run, 14 runs of 5.5-6 min (about 82 min), the stop run about 6.5 min, the fetch and the stops about 6 min | about EUR 5.30 (+0.65 with an on-demand L4) | EUR 8.00 (3.0 h) |
 | `fetch_chase.sh` after `s1` | G4 1.887 | 37-43 min of ranges for about 2.2 GB at 1.03 MB/s, plus about 4 min of start and stop | EUR 1.3-1.5 | none: bounded by 120 s plus the bytes at 0.5 MB/s, its safety net 15 min after that |
 
-The `s1` figures are `S1-BUILD-PLAN.md` section 4's, from the times of 20261120T092051Z (attempt 3: 22 min from the
+The `s1` figures are those of the S1 build plan (section 4), from the times of 20261120T092051Z (attempt 3: 22 min from the
 wrapper to the first world run, with 5 min of capacity rounds and 5.3 min of calibrate; a 30 s drive one cycle of
 5.4-5.6 min); a run of S1 drives 25-60 s.
 
