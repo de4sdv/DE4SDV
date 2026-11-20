@@ -156,6 +156,28 @@ def ackermann_gains(root: Path, session: dict) -> dict:
     return {"requested": requested or "unrecorded", "readBack": read_back or "unrecorded"}
 
 
+def _gains_text(found) -> str:
+    if found == "unrecorded":
+        return "unrecorded"
+    return "; ".join(f"{g['file']} {g['key']} = {json.dumps(g['value'])}" for g in found)
+
+
+def condition_note(calib: dict | None, gains: dict) -> str:
+    """The condition of every verdict of 036 and 037 while ASM-DRIVING-005 is unproven, with what the session holds
+    about it: the calib-decel summary and the Ackermann gains (lead contract 5), on pass and on fail alike."""
+    if calib is None:
+        summary = "calib-decel summary unrecorded (no calibration_decel.json in the session)"
+    elif "error" in calib:
+        summary = f"calib-decel summary unreadable ({calib['file']}: {calib['error']})"
+    else:
+        summary = (f"calib-decel summary ({calib['file']}): worstRatio {json.dumps(calib.get('worstRatio'))}, "
+                   f"allFollowWithinProposal {json.dumps(calib.get('allFollowWithinProposal'))}")
+    return ("conditional on ASM-DRIVING-005: the calibration of the simulated deceleration comes before the first "
+            "judged run (driver_assistance_verification_evidence.sysml:299-300); " + summary
+            + f"; Ackermann gains: requested {_gains_text(gains['requested'])}, read back "
+            + f"{_gains_text(gains['readBack'])}")
+
+
 def refusal(session: dict) -> str | None:
     """Why a session is not judged, or None: a rehearsal (lead contract 4 of 2026-11-20)."""
     value = session.get("rehearsal") if isinstance(session, dict) else None
@@ -185,13 +207,7 @@ def run(root: Path, desk_path: Path | None) -> dict:
     for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
         cases[vc]["measured"]["calibrationDecel"] = calib
         cases[vc]["measured"]["ackermannGains"] = gains
-        cases[vc]["notes"].append("conditional on ASM-DRIVING-005: the calibration of the simulated deceleration "
-                                  "comes before the first judged run (driver_assistance_verification_evidence"
-                                  ".sysml:299-300); calibrationDecel holds the session's calib-decel summary")
-        cases[vc]["notes"].append("the Ackermann gains of CARLA's controller (ASM-DRIVING-005, D-S1-2): requested "
-                                  + ("unrecorded" if gains["requested"] == "unrecorded" else "as in ackermannGains")
-                                  + ", read back "
-                                  + ("unrecorded" if gains["readBack"] == "unrecorded" else "as in ackermannGains"))
+        cases[vc]["notes"].append(condition_note(calib, gains))
     # the evidence record of each run (lane D), and the rule of :211-212 on every case that reads a run
     outcomes: dict = {}
     for vc, res in cases.items():

@@ -135,3 +135,48 @@ def test_cli_without_desk_record_leaves_044_inconclusive(tmp_path):
     root = syn.write_session(tmp_path / "session", syn.s1_specs())
     doc = edc.run(root, None)
     assert doc["cases"]["VC-DRIVING-044"]["outcome"] == "inconclusiveMissingEvidence"
+
+
+def _calib(root, worst, follow):
+    cal = root / "sim" / "x" / "out" / "calibrate" / "calib_decel" / "simulator"
+    cal.mkdir(parents=True)
+    (cal / "calibration_decel.json").write_text(json.dumps({"summary": {"allFollowWithinProposal": follow,
+                                                                        "worstRatio": worst}}))
+
+
+def _condition_notes(doc, vc):
+    return [n for n in doc["cases"][vc]["notes"] if n.startswith("conditional on ASM-DRIVING-005")]
+
+
+def test_036_037_condition_note_carries_the_calibration_and_the_gains_on_pass_and_on_fail(tmp_path):
+    # While ASM-DRIVING-005 is unproven, a verdict of 036/037 is conditional on it
+    # (driver_assistance_verification_evidence.sysml:299-300): the note states the condition with the session's
+    # calib-decel summary and the Ackermann gains, whatever the outcome.
+    passing = syn.write_session(tmp_path / "pass", syn.s1_specs())
+    (passing / "reproduction_044.json").write_text(json.dumps(
+        {"engineer": "second engineer", "valuesMatch": True, "recordSha256": ["5ff680b0" * 8]}))
+    _calib(passing, 0.4038, False)
+    failing = syn.write_session(tmp_path / "fail", syn.s1_specs(**{"012_20_r1": dict(warn_at_needed=None,
+                                                                                    eb_at_needed=None)}),
+                                session_extra={"ackermann_gains": "v1"})
+    _calib(failing, 0.99, True)
+    for root, outcome, worst, follow, requested in (
+            (passing, "passBoundedVerification", "0.4038", "false", "unrecorded"),
+            (failing, "failObservedBehavior", "0.99", "true", "session.json ackermann_gains = \"v1\"")):
+        doc = edc.run(root, None)
+        for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
+            assert doc["cases"][vc]["outcome"] == outcome, (vc, doc["cases"][vc]["missing"])
+            notes = _condition_notes(doc, vc)
+            assert len(notes) == 1, (vc, doc["cases"][vc]["notes"])
+            note = notes[0]
+            assert f"worstRatio {worst}" in note and f"allFollowWithinProposal {follow}" in note, note
+            assert f"Ackermann gains: requested {requested}, read back unrecorded" in note, note
+        assert _condition_notes(doc, "VC-DRIVING-042") == []
+
+
+def test_036_037_condition_note_without_a_calibration_record(tmp_path):
+    doc = edc.run(syn.write_session(tmp_path / "session", syn.s1_specs()), None)
+    for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
+        note = _condition_notes(doc, vc)[0]
+        assert "calib-decel summary unrecorded" in note, note
+        assert "Ackermann gains: requested unrecorded, read back unrecorded" in note, note
