@@ -1,13 +1,18 @@
-"""The settings of SC-DRIVING-012 and the entry-condition checks of a run, from the world record.
+"""The settings of SC-DRIVING-012 to -015, the stop run, and the entry-condition checks of a run, from the world
+record.
 
 Pure Python, no simulator: the world side calls it at the end of a run, and the case evaluators can call it on
 an archived ``world.jsonl``.
 
 Model sources (on main 23f13bd7, ``textual-notation-of-model/packages/features/driving/``):
 
-- ``driver_assistance_needs_requirements.sysml``, ``termsOfTheDriverAssistanceRequirements``: the settings
-  (SC-DRIVING-012 at 20 km/h, 20 to 22 km/h; at 42 km/h, 40 to 42 km/h; at 60 km/h, 58 to 60 km/h), the
-  functional part, the judged run, the time to collision and the needed deceleration;
+- ``driver_assistance_needs_requirements.sysml``, ``termsOfTheDriverAssistanceRequirements`` (:188-195): the
+  settings (SC-DRIVING-012 at 20 km/h, 20 to 22 km/h; at 42 km/h, 40 to 42 km/h; at 60 km/h, 58 to 60 km/h;
+  SC-DRIVING-013 at 30 km/h, 30 to 32 km/h, and at 60 km/h, 58 to 60 km/h, behind a target at 20 km/h, 18 to
+  20 km/h; SC-DRIVING-014 at 30 km/h, 28 to 30 km/h, toward a curve of at most 25 m radius; SC-DRIVING-015 at
+  40 km/h, 38 to 40 km/h, behind the vehicle ahead at the same speed), the functional part and the judged run
+  (:196-211, for SC-DRIVING-012 and -013 only), the stop run (:205-211: no run of a setting), the time to
+  collision and the needed deceleration;
 - the same file, ``vehicleTargetCriteriaFixedInPhase5``: the approach speeds are System 2's obligation, the
   candidate's own driving holds them, and a run that misses them is not judged.
 
@@ -28,6 +33,17 @@ STRAIGHT_BEFORE_S = 2.0           # judged run: for at least 2 s before the func
 STRAIGHT_HEADING_MAX_DEG = 2.0
 # BENCH READING: "comes to the speed of the target"; a stationary target, so the vehicle at rest.
 AT_REST_MPS = 0.05
+# BENCH READING: "comes to the speed of the target" behind a moving target (SC-DRIVING-013): the closing speed at
+# or below this, after the vehicle had closed on the target (a positive closing speed before).
+AT_TARGET_SPEED_CLOSING_MPS = 0.0
+# PROPOSAL: the vehicle's acceleration assumed to size the road behind a moving target (road_needed_m); lower
+# than the calibration's 2.0 m/s2, so that a slow candidate meets the target on the road all the same.
+ROAD_SIZING_ACCEL_MPS2 = 1.0
+ROAD_MARGIN_M = 40.0
+# The further run of SC-DRIVING-012 with the S-CORE path stopped (needs_requirements.sysml:205-211, the stop-run
+# decision of 2026-11-18): no run of a setting; its id is the run id of s1_runs.tsv.
+STOP_RUN = "stop"
+JUDGED_SCENARIOS = ("SC-DRIVING-012", "SC-DRIVING-013")
 
 
 @dataclass(frozen=True)
@@ -41,18 +57,44 @@ class Setting:
     high_kmh: float
     target_speed_kmh: float
     # Proposals of this bench, not model values; each run's setting record states them.
-    target_ahead_m: float
+    target_ahead_m: float | None          # None: the site places the target (sites.resolve)
     run_cap_s: float
     speed_limit_mps: float
+    # Model: the target's own band (SC-DRIVING-013: 18 to 20 km/h); the target's speed where the model gives none.
+    target_low_kmh: float = 0.0
+    target_high_kmh: float = 0.0
+    # Proposal: the site of the setting (lead contract 2); None on the straight road of the survey.
+    site: str | None = None
+    # Model: True for a setting with a judged-run term (SC-DRIVING-012, -013), False for a setting without one
+    # (SC-DRIVING-014, -015), None for the stop run, which is no run of a setting.
+    judgeable: bool | None = True
+    # Bench choice: how the site is selected on the map (sites.resolve's approach_rule, approach_min_m and
+    # lane_rule), named here and never taken as a fallback; the reason goes into the site record.
+    site_approach_rule: str | None = None
+    site_approach_min_m: float | None = None
+    site_lane: str | None = None
+    site_reason: str | None = None
 
     def in_tolerance(self, speed_mps: float) -> bool:
         kmh = speed_mps * 3.6
         return self.low_kmh - 1e-9 <= kmh <= self.high_kmh + 1e-9
 
+    @property
+    def moving_target(self) -> bool:
+        return self.target_speed_kmh > 0.0
+
+    @property
+    def ends_at_target_speed(self) -> bool:
+        """The functional part ends when the vehicle comes to the target's speed: a judged scenario behind a
+        moving target (SC-DRIVING-013). SC-DRIVING-015 follows its vehicle ahead at its speed from the start."""
+        return self.moving_target and self.scenario in JUDGED_SCENARIOS
+
     def as_record(self) -> dict:
         record = asdict(self)
-        record["model"] = ["setting_id", "scenario", "approach_kmh", "low_kmh", "high_kmh", "target_speed_kmh"]
-        record["proposal"] = ["target_ahead_m", "run_cap_s", "speed_limit_mps"]
+        record["model"] = ["setting_id", "scenario", "approach_kmh", "low_kmh", "high_kmh", "target_speed_kmh",
+                           "target_low_kmh", "target_high_kmh", "judgeable"]
+        record["proposal"] = ["target_ahead_m", "run_cap_s", "speed_limit_mps", "site", "site_approach_rule",
+                              "site_approach_min_m", "site_lane", "site_reason"]
         return record
 
 
@@ -62,14 +104,45 @@ def _speed_limit(low_kmh: float, high_kmh: float) -> float:
     return round((low_kmh + high_kmh) / 2.0 * KMH, 3)
 
 
-SETTINGS: dict[str, Setting] = {
-    "SC-DRIVING-012@20": Setting("SC-DRIVING-012@20", "SC-DRIVING-012", 20.0, 20.0, 22.0, 0.0,
-                                 150.0, 90.0, _speed_limit(20.0, 22.0)),
-    "SC-DRIVING-012@42": Setting("SC-DRIVING-012@42", "SC-DRIVING-012", 42.0, 40.0, 42.0, 0.0,
-                                 220.0, 90.0, _speed_limit(40.0, 42.0)),
-    "SC-DRIVING-012@60": Setting("SC-DRIVING-012@60", "SC-DRIVING-012", 60.0, 58.0, 60.0, 0.0,
-                                 280.0, 90.0, _speed_limit(58.0, 60.0)),
-}
+def _setting(setting_id: str, approach: float, low: float, high: float, target: tuple[float, float, float],
+             ahead: float | None, cap: float, *, site: str | None = None, judgeable: bool | None = True,
+             scenario: str | None = None, site_rule: tuple | None = None) -> Setting:
+    rule = site_rule or (None, None, None, None)
+    return Setting(setting_id, scenario or setting_id.split("@")[0], approach, low, high, target[0], ahead, cap,
+                   _speed_limit(low, high), target[1], target[2], site, judgeable, *rule)
+
+
+# BENCH CHOICE, the SC-014 site decision of 2026-11-20 (rule 44 of the bench's practice: named here, never a
+# fallback): (approach rule, minimum approach in m, lane rule, reason) of sites.resolve. The model fixes neither the
+# lane nor the approach (needs_requirements.sysml:192-193, operational_context.sysml:280-284).
+SITE_RULE_014 = ("gentle-bend", 90.0, "outermost",
+                 "the SC-014 site decision of 2026-11-20, a bench choice: the outermost driving lane, because the "
+                 "regulation's guidance has the vehicle drive 'outer lane than the centre of the road' (R152:1744-1756, "
+                 "phase 5 INPUTS-BRIEF.md:281-294); the named gentle-bend approach reading, because no tight curve of "
+                 "Town06_Opt has a straight approach of the plan's 120 m; at least 90 m of approach, because in "
+                 "attempt 3 the candidate reached 20.9 km/h within 15 m of its first move and 29 km/h needs about "
+                 "35 m, which leaves about 7 s at speed before the curve. The middle lane (267 m of approach) is the "
+                 "alternative, not the source's lane")
+# SC-015: the straight approach rule of the site search, named all the same
+SITE_RULE_015 = ("straight", None, None, "the site search's straight approach rule (sites.APPROACH_015_M)")
+STATIONARY = (0.0, 0.0, 0.0)
+TARGET_013 = (20.0, 18.0, 20.0)            # "behind a target at 20 km/h (18 to 20 km/h)"
+TARGET_015 = (40.0, 40.0, 40.0)            # "behind the vehicle ahead at the same speed" (40 km/h); no band
+# PROPOSALS (S1 plan section 3, 2026-11-20): run caps 60 s (75 s for SC-DRIVING-015); the SC-DRIVING-013 targets
+# 40 m (@30) and 115 m (@60) ahead; SC-DRIVING-015's vehicle ahead 30 m; SC-DRIVING-014's target where its site
+# places it; the stop run as SC-DRIVING-012@20, its path stopped at go + 12 s and its end 10 s of sim time after.
+SETTINGS: dict[str, Setting] = {s.setting_id: s for s in (
+    _setting("SC-DRIVING-012@20", 20.0, 20.0, 22.0, STATIONARY, 150.0, 60.0),
+    _setting("SC-DRIVING-012@42", 42.0, 40.0, 42.0, STATIONARY, 220.0, 60.0),
+    _setting("SC-DRIVING-012@60", 60.0, 58.0, 60.0, STATIONARY, 280.0, 60.0),
+    _setting("SC-DRIVING-013@30", 30.0, 30.0, 32.0, TARGET_013, 40.0, 60.0),
+    _setting("SC-DRIVING-013@60", 60.0, 58.0, 60.0, TARGET_013, 115.0, 60.0),
+    _setting("SC-DRIVING-014@30", 30.0, 28.0, 30.0, STATIONARY, None, 60.0, site="sc014-curve", judgeable=False,
+             site_rule=SITE_RULE_014),
+    _setting("SC-DRIVING-015@40", 40.0, 38.0, 40.0, TARGET_015, 30.0, 75.0, site="sc015-turnoff",
+             judgeable=False, site_rule=SITE_RULE_015),
+    _setting(STOP_RUN, 20.0, 20.0, 22.0, STATIONARY, 150.0, 22.0, judgeable=None, scenario="SC-DRIVING-012"),
+)}
 
 
 def setting(setting_id: str) -> Setting:
@@ -77,6 +150,23 @@ def setting(setting_id: str) -> Setting:
         return SETTINGS[setting_id]
     except KeyError:
         raise KeyError(f"unknown setting {setting_id!r}; known: {sorted(SETTINGS)}") from None
+
+
+def road_needed_m(st: Setting, ahead_m: float) -> float:
+    """The straight road a setting of the survey's road needs: to the target plus a margin; behind a moving
+    target, to where the vehicle reaches it (PROPOSAL: the vehicle at ROAD_SIZING_ACCEL_MPS2 up to its approach
+    speed, then at it; the target at its speed from the start; center distances, so a little long)."""
+    if not st.moving_target:
+        return ahead_m + ROAD_MARGIN_M
+    v, vt, a = st.approach_kmh * KMH, st.target_speed_kmh * KMH, ROAD_SIZING_ACCEL_MPS2
+    t1 = v / a
+    # met while accelerating: a t^2 / 2 = ahead + vt t
+    t_meet = (vt + math.sqrt(vt * vt + 2.0 * a * ahead_m)) / a
+    if t_meet <= t1:
+        return 0.5 * a * t_meet * t_meet + ROAD_MARGIN_M
+    d1 = 0.5 * a * t1 * t1
+    gap = ahead_m + vt * t1 - d1
+    return d1 + v * gap / (v - vt) + ROAD_MARGIN_M
 
 
 # ------------------------------------------------------------------ the terms, per tick
@@ -131,20 +221,37 @@ def evaluate_entry(ticks: list[dict], st: Setting) -> dict:
     rows = [_tick_values(t) for t in ticks]
     rows = [r for r in rows if r["t"] is not None]
     out: dict = {"setting": st.setting_id, "ticks": len(rows), "bench_readings": {
-        "straight_heading_max_deg": STRAIGHT_HEADING_MAX_DEG, "at_rest_mps": AT_REST_MPS}}
+        "straight_heading_max_deg": STRAIGHT_HEADING_MAX_DEG, "at_rest_mps": AT_REST_MPS,
+        "at_target_speed_closing_mps": AT_TARGET_SPEED_CLOSING_MPS}}
+    if st.judgeable is not True:
+        why = ("the stop run is no run of a setting and no judged run (needs_requirements.sysml:205-211)"
+               if st.judgeable is None else
+               f"{st.scenario} has no judged-run term (needs_requirements.sysml:196-211): the run is recorded")
+        out.update(functionalPart={"met": False, "missed": why}, straightBefore={"met": False, "missed": why},
+                   judgedRun=False, notJudged=why)
+        return out
     if not rows:
         out.update(functionalPart={"met": False, "missed": "no world ticks"},
                    straightBefore={"met": False, "missed": "no world ticks"}, judgedRun=False)
         return out
 
-    # End of the approach: the first contact with the target, or the vehicle at rest after it moved.
+    # End of the approach: the first contact with the target, or the vehicle at the target's speed: at rest after
+    # it moved (a stationary target), or, behind a moving target, the closing speed down to the bench reading
+    # after the vehicle had closed on it.
     end_index = len(rows) - 1
     end_reason = "run ended"
-    moved = False
+    moved = closed = False
     for i, r in enumerate(rows):
         if r["contact"]:
             end_index, end_reason = i, "contact with the target"
             break
+        if st.ends_at_target_speed:
+            if r["closing"] is not None and r["closing"] > AT_TARGET_SPEED_CLOSING_MPS:
+                closed = True
+            elif closed and r["closing"] is not None:
+                end_index, end_reason = i, "at the speed of the target"
+                break
+            continue
         if r["speed"] is not None and r["speed"] > 1.0:
             moved = True
         if moved and r["speed"] is not None and r["speed"] <= AT_REST_MPS:

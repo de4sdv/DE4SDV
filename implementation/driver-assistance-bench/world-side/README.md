@@ -69,10 +69,16 @@ It does not:
 | Front camera 1920 x 1280, fov 50, one image per 0.1 s, upstream's pose | `FRONT_CAMERA`, `FRONT_SENSOR_TICK_S` | model (PSR), pose from upstream's files |
 | Hero `vehicle.lincoln.mkz` | `VEHICLE_CANDIDATES` | brief B7 (the model says only "another vehicle") |
 | Roles `hero` and `front` | `HERO_ROLE`, `CAMERA_ROLE` | bench contract with the adapter and the camera interface |
-| SC-DRIVING-012 at 20 (20-22), 42 (40-42), 60 (58-60) km/h | `scenarios.SETTINGS` | model (NR); the test reads the model file |
+| The seven settings: SC-DRIVING-012 at 20 (20-22), 42 (40-42), 60 (58-60) km/h; SC-DRIVING-013 at 30 (30-32) and 60 (58-60) km/h behind a target at 20 (18-20) km/h; SC-DRIVING-014 at 30 (28-30) km/h; SC-DRIVING-015 at 40 (38-40) km/h behind its vehicle ahead at the same speed | `scenarios.SETTINGS` | model (NR :188-195); the test reads the model file |
+| Judged-run terms for SC-DRIVING-012 and -013 only; the stop run (`stop`) is no run of a setting | `Setting.judgeable`, `evaluate_entry` | model (NR :196-211) |
 | Functional part, TTC 4 s, 0.2 m for 2 s | `scenarios.evaluate_entry` | model (NR) |
+| "Comes to the speed of the target": at rest (stationary target); closing speed <= 0 after it was > 0 (SC-DRIVING-013) | `AT_REST_MPS`, `AT_TARGET_SPEED_CLOSING_MPS` | bench reading |
 | "Travels straight": heading within 2 deg of the target's | `STRAIGHT_HEADING_MAX_DEG` | proposal |
-| Target 150 / 220 / 280 m ahead, run cap 90 s | `Setting` | proposal |
+| Targets 150 / 220 / 280 m (012), 40 / 115 m (013), 30 m (015) ahead; 014's where its site puts it; run caps 60 s (015: 75 s; stop run: 22 s, the path stopped at go + 12 s) | `Setting` | proposal (S1 plan section 3) |
+| Sites `sc014-curve`, `sc015-turnoff` (built by `sites.resolve`, lane A2) | `Setting.site` | lead contract 2 |
+| Road behind a moving target: to where the vehicle, at 1.0 m/s2 to its approach speed, reaches it, plus 40 m | `scenarios.road_needed_m` | proposal |
+| The SC-DRIVING-013 target at 20 km/h from the run's first tick: `enable_constant_velocity` where the API has it, else posed by `set_transform` each tick (physics off; its speed then recorded from the world side's motion) | `TargetMotion` | proposal (S1 plan A3) |
+| `vehiclesAhead`: every vehicle up to 300 m ahead (gap, closing, TTC, needed deceleration, `inLane` by the map lane on the ego's lane ahead, `overlapRatio` across the ego's heading) | `WorldSide.vehicles_ahead` | lead contract 1; `inLane` and `overlapRatio` are bench readings |
 | `speed_limit` at the middle of the tolerance (5.833 m/s at 20 km/h) | `Setting.speed_limit_mps` | proposal |
 | Map Town06_Opt (AdditionalMaps pack), a straight with two lanes in one direction | `DEFAULT_MAP`, `survey` | brief R7, proposal; the map by the real server's survey ("The maps pack") |
 | Calibration tolerances, windows, the 0.5 m offset | `calibration.py` | proposal |
@@ -100,10 +106,18 @@ It does not:
 **ASM-DRIVING-006** (`calib-steer`):
 
 - The hero starts 0.5 m right of its lane center, with no target, and the candidate drives through the adapter.
-- The record (`calibration_steering.json`) gives:
-  - the yaw rate, the least-squares slope of CARLA's yaw over the 3 s after the hero first reaches 2 m/s. CARLA's
-    yaw is clockwise seen from above, so a left turn is a falling yaw;
-  - the offset at the start and at the end;
+- The record (`calibration_steering.json`) gives (the judgement fix of the attempt-3 diagnosis, 2026-11-20):
+  - the judgement from the first tick at the setting's speed (`settledAtS`: the band's low end, 20 km/h), not
+    while the hero still accelerates;
+  - the yaw rate, the least-squares slope of CARLA's yaw over the first window of 3 s, sliding from that tick to
+    the first tick at or across the lane centre, whose slope reaches 0.1 deg/s; the steepest window beside it.
+    CARLA's yaw is clockwise seen from above, so a left turn is a falling yaw;
+  - the offset trend from that tick: its start, the minimum |offset| and when, the first tick at or across the
+    lane centre, and the end;
+  - the cut at the candidate's last command (`cut`): no tick after it is judged, since the world holds the last
+    applied control. The world side has no command record during the run, so its own record is marked
+    `provisional`; the fetched record is judged with the S-CORE side's `out.driving_command` records by
+    `calibration.py steer --world <world.jsonl> --score <score_interface.jsonl> --setting-low-kmh 20 --out <f>`;
   - the mean applied steer;
   - `shown`, true when the turn is left.
 
@@ -247,6 +261,87 @@ mv "$STAGE/AdditionalMaps" "$PACKS/AdditionalMaps" && rmdir "$STAGE"
 On 2026-11-19 this took 42 s on the G4 (`maps_install.log` in the facts folder). Then start CARLA again
 (`sim_setup.sh`) and look for `Town06_Opt` in `server_probe.txt`'s `available_maps` line.
 
+## The scenario sites (`sites.py`)
+
+SC-DRIVING-014 needs a tight curve and SC-DRIVING-015 a turn-off junction; neither is a straight road, so the
+survey cannot find them. `sites.resolve(world_map, site_id, setting)` reads the map's own OpenDRIVE
+(`world_map.to_opendrive()`) and returns a `SiteSpec`: the hero's start as `road:lane:s` (what `--start` takes), the
+target (its pose, and for SC-DRIVING-015 its path and speed script, `SiteSpec.target_motion().at(t)`), the props,
+the geometry read off the map, the checks that refuse a bad site, and the regulation's guidance values for
+`setting_record.json` (`SiteSpec.as_record()`). Every bench reading and proposal is a named constant in `sites.py`
+and is listed in the record.
+
+- `sc014-curve`: a non-junction curve whose lane-centre radius in the hero's lane is at most 25 m over at least
+  90 deg, at least 120 m of approach, guard pipes (the server's `static.prop.streetbarrier`: the server lists no
+  guard pipe) on the outer shoulder from 10 m before the curve to its end, and a stationary
+  `vehicle.tesla.model3` on the tangent extension of the lane centre at the curve entry, its body 0.5 m clear of
+  every road surface and of the pipes. A curve whose outer road edge is also within 25 m ranks first. The target's
+  body is checked as its bounding box (`target_box_check`): a box that touches or overlaps any road surface, or
+  comes within 0.5 m of one, is refused with the surface named; the record keeps the measured clearance
+  (`checks.targetClearanceFromRoadSurfaceM`; 0.586 m from road 10's outer shoulder on the real map).
+- `sc015-turnoff`: a junction lane with a straight and a right-turn connector and at least 200 m of straight
+  approach; the target starts 30 m ahead of the hero, accelerates at 1.5 m/s2 to 40 km/h, holds at least 4 s,
+  brakes at 2.0 m/s2 to 10 km/h at the junction and turns right at 10 km/h; the hero's lane goes straight on.
+
+The approach rule is `straight` by default (heading within 2 deg of the entry's, within 0.5 m of its tangent). On
+the real Town06_Opt (the G4 read of 2026-11-20) no tight curve has 120 m of straight approach: road 10 is preceded by
+a 16 deg bend of radius 27 m about 17 m before its entry, so `sc014-curve` refuses there and names the curves it
+found. `approach_rule="gentle-bend"` (heading within 20 deg, no lane-centre radius at or under 25 m) is a second
+reading, chosen only by name and recorded in the site record; it gives road 10's middle lane (lane-centre radius
+13.0 to 13.4 m, outer road edge 19.8 m, 267 m of approach). The outermost lane has 97 m under that reading.
+
+### The SC-DRIVING-014 site rule (a bench choice of 2026-11-20)
+
+The model fixes neither the lane nor the approach: "toward a curve of at most 25 m radius"
+(`driver_assistance_needs_requirements.sysml:192-193`), the guard pipes on the outer side and the target just outside
+them on the extension of the lane centre (`driver_assistance_operational_context.sysml:280-284`). The SC-DRIVING-014 site
+decision of 2026-11-20 selects, by name in the setting (`scenarios.SITE_RULE_014`), never as a fallback:
+
+- the outermost driving lane (`lane_rule="outermost"`), since the regulation's guidance has the vehicle drive
+  "outer lane than the centre of the road" (R152:1744-1756);
+- the gentle-bend approach reading, since no tight curve of Town06_Opt has the plan's 120 m of straight approach;
+- at least 90 m of approach (`approach_min_m=90`): in attempt 3 the candidate reached 20.9 km/h within 15 m of its
+  first move, and 29 km/h needs about 35 m. A shorter approach is refused with the rule and the best candidates named.
+
+The middle lane (267 m of approach) is the alternative; it is not the source's lane. The record keeps the reading, the
+lane, the minimum, the reason and the chosen curve in `site.benchReadings.siteSelection`. On the real map read:
+
+| Item | Value |
+|---|---|
+| Curve | road 10, lane -5 (outermost of three), 206 deg left |
+| Radius | 16.47 to 16.93 m at the lane centre, 19.82 m at the outer road edge |
+| Approach | 97.04 m (gentle-bend; 17.16 m straight); the hero starts one sample inside its far end, `54:6:62.063`, 96.55 m before the entry |
+| Guard pipes | 44 `static.prop.streetbarrier` at radius 19.25 m on the outer shoulder, none on a driving lane |
+| Target | 15.5 m along the tangent from the entry `10:-5:11.941`; its box 0.586 m from road 10's outer shoulder (lane -7), 2.80 m from the hero's path |
+| Turn-in | gap 10.71 m: TTC 1.29 s at 30 km/h (guidance at most 1.6 s), 1.75 s at 22 km/h |
+
+### How the world side builds a site
+
+For a setting with a site, `da_world_side.py` calls `sites.resolve(map, site, setting,
+props_available=<the server's static.prop.* list>, approach_rule=..., approach_min_m=..., lane_rule=...,
+rule_reason=...)` with the setting's own rule. It spawns the hero at `start_pose` (`start` in the record, beside the
+distance to the server's own waypoint at that `road:lane:s`), every prop at its pose with physics off, and the target
+at its pose. The session's road (`--start`) is not used for a site setting; the record names it as not used. A site
+the map refuses ends the run as a bench error that names the reason. `setting_record.json["site"]` is
+`SiteSpec.as_record()`, guidance included. SC-DRIVING-015's target follows its script along its path on every tick
+by `set_transform`, with physics off: the pose after each tick is `SiteSpec.target_motion().at(t + 0.05 s)`, and
+each world tick carries the script's phase (`target.motionPhase`). SC-DRIVING-013's target keeps
+`enable_constant_velocity`. The props spacing uses the server's own streetbarrier extent (the G4 read,
+`sites.PROP_EXTENTS_G4`).
+
+The world-only rehearsal on the G4 of 2026-11-20 (F3, `phase10/s1-int/I-W/f3/FACTS.md`) showed on the real server:
+a start at a road's own length (`54:6:62.56`) has no waypoint of `get_waypoint_xodr`, so the start lies one sample
+inside its road; the hero's collision sensor reports contact both with a target posed by `set_transform` and with one
+under `enable_constant_velocity`, and either pushes a hero held on its hand brake aside (about 20 m in the probe); a
+spawned streetbarrier's bounding box is 0.607 x 0.186 x 0.535 m (half sizes), the read's 0.598 x 0.214 m spaces the
+pipes. The fake replays the first and the last.
+
+The tests replay the real read (`tests/data/town06_opt_g4_read.json`, `tests/data/town06_opt_g4.xodr.xz`: the map's
+OpenDRIVE of sha256 a90b6131..., part of CARLA's map content): the fake's `Map.to_opendrive()` gives those bytes
+for Town06_Opt and refuses for a map without a read, and its blueprint library lists the server's 83
+`static.prop.*` names, so an unknown prop is refused. The lane centres of `sites.Xodr` equal the server's own
+waypoints (`tests/data/town06_opt_g4_waypoints_sites.json`) within 1 cm (0.8 mm at most over 12,956 of the 12,958; two name a lane the section does not hold).
+
 ## Commands on the simulator host (the first closed loop)
 
 Python: the G4's CARLA 1.0 venv (the package's cp310 wheel). `$WS` is this folder, `$R` the session's run root. The
@@ -289,7 +384,10 @@ A bench session (`../session/`) runs these on the simulator host, with the bench
 |---|---|---|---|
 | `warmup.sh <out>` | `ENTRY_SIM_WARMUP` | `survey` with SC-DRIVING-012@60 (the longest need), the first candidate as the session's road in `world_start.json`, then `warmup` with SC-DRIVING-012@20 | 0; 2 a bench error; 3 no road |
 | `calibrate.sh <out> [checkerboard\|settings]` | `ENTRY_SIM_CALIBRATE` | `calib-decel` (20, 42, 60 km/h; 1 to 5 m/s²), then `camera-capture` with the checkerboard the session took from the pin; both with role `de4sdv_calibration`, before any S-CORE side start. The second argument is the session's `--camcal`: `checkerboard` (default) enforces the capture's pre-check (`--precheck on`), `settings` records it only (`--precheck record`) | 0; the world side's status; 2 an unknown source |
-| `run_scenario.sh <out> <scenario> <setting>` | `ENTRY_SIM_RUN` | `run` (SC-DRIVING-012) or `calib-steer` (ASM-DRIVING-006), at the session's road, with the handshake below | 0; 2 a bench error; 64 bad arguments |
+| `run_scenario.sh <out> <scenario> <setting>` | `ENTRY_SIM_RUN` | `run` (SC-DRIVING-012 to -015: `SC-DRIVING-012 20kmh`, or a setting id of `s1_runs.tsv` such as `SC-DRIVING-013 SC-DRIVING-013@30`; the stop run as `SC-DRIVING-012 stop`) or `calib-steer` (ASM-DRIVING-006), at the session's road or the setting's site, with the handshake below | 0; 2 a bench error; 64 bad arguments |
+
+Every entry passes `DA_ACKERMANN_GAINS` through to `da_world_side.py` and prints its value (or "unset (default)")
+before each world-side command.
 
 `camera_calibration.py make-h` needs OpenCV, which the simulator host's venv does not carry, so the session runs it
 on the lead host on the fetched capture. It puts `H.yaml` and `homography_C_matrix.yaml` on the S-CORE host and
@@ -307,6 +405,21 @@ The handshake of a run (`--go-file`, `--release-file`):
 
 So the Launch Manager stops while the world still ticks (`../launch-manager/README.md`), and the candidate's ready
 timeout (420 s) covers the time from its start to the go file.
+
+## The Ackermann gains (`DA_ACKERMANN_GAINS`)
+
+The hero's Ackermann controller follows a commanded deceleration only partly with CARLA's own gains (the
+ASM-DRIVING-005 probe of 2026-11-20, `phase10/s1-map/FACTS.md`). `DA_ACKERMANN_GAINS` chooses the gains:
+
+- unset or `default`: CARLA's own (speed_kp 0.15, speed_ki 0, speed_kd 0.25, accel_kp 0.01, accel_ki 0, accel_kd 0.01
+  on `vehicle.lincoln.mkz`); nothing is applied. This stays the default until the owner decides D-S1-2;
+- `v1`: the probe's variant v1 (`asm005_probe_table.json`): speed_kp 0.3 and accel_kp 0.1, the other four as above.
+
+Any other value, an empty one included, is refused before the world is touched (exit 2, the reason named). The world
+side applies the gains through `AckermannControllerSettings` to every hero right after its spawn, reads them back after
+the settle ticks, and ends with a bench error when the read-back differs. `setting_record.json`,
+`calibration_decel.json` and `calibration_steering.json` carry `ackermannGains`: the requested name, the values, and
+per spawned hero what was applied and read back.
 
 ## What each run also records
 

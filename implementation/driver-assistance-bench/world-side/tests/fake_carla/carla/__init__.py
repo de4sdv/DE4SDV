@@ -9,6 +9,8 @@ tell which client applied a control: the world side, or a stand-in for the actua
 - ``apply_ackermann_control`` (steer rad positive right, speed, acceleration, jerk, steer_speed) moving a
   vehicle by a kinematic bicycle: the speed moves toward the commanded speed at ``|acceleration|`` per
   second, and the yaw rate is ``v * tan(steer) / wheelbase`` (CARLA yaw is clockwise seen from above);
+- ``enable_constant_velocity`` (a velocity in the actor's local frame, m/s, as CARLA's Actor.cpp): the actor then
+  moves at that velocity every tick, along its heading, until ``disable_constant_velocity``;
 - a collision event when two vehicle bounding boxes overlap along a straight road;
 - a map of straight lanes along +x (two driving lanes in one direction), with waypoints, ``next`` and a
   junction zone, and textures applied to actors (recorded, not rendered);
@@ -21,6 +23,10 @@ tell which client applied a control: the world side, or a stand-in for the actua
   until the next one: on the real server (G4, 2026-11-19) a second client connecting in such a pause listed 0 actors
   and a snapshot of frame 0 for 85 s, then 98 actors at the first tick after the go. Off by default, so the world
   side's own tests keep the live list;
+- the map read of the real server (lane A2, G4, 2026-11-20; ``tests/data/town06_opt_g4_read.json``): the 83
+  ``static.prop.*`` blueprints the server lists (a name it does not list is refused, as ``find`` refuses any unknown
+  blueprint), and Town06_Opt's own OpenDRIVE (``Map.to_opendrive()``, ``tests/data/town06_opt_g4.xodr.xz``, the bytes
+  of sha256 a90b6131...); a map without a replayed read refuses ``to_opendrive()`` rather than invent one;
 - ``_SHARED_SERVER``: when a test sets it, ``Client(host, port)`` without ``_server`` joins that server, so a
   program that creates its own client (the chase recorder) shares the world with the test's world side.
 
@@ -31,8 +37,11 @@ The API names follow the Python bindings of CARLA at 14ac3b1a502da45a44506cb2ed8
 from __future__ import annotations
 
 import fnmatch
+import json
+import lzma
 import math
 import os
+from pathlib import Path
 
 __version__ = "1.0-fake"
 
@@ -107,6 +116,18 @@ class VehicleAckermannControl:
     def __init__(self, steer=0.0, steer_speed=0.0, speed=0.0, acceleration=0.0, jerk=0.0):
         self.steer, self.steer_speed = float(steer), float(steer_speed)
         self.speed, self.acceleration, self.jerk = float(speed), float(acceleration), float(jerk)
+
+
+class AckermannControllerSettings:
+    """CARLA 1.0's ``carla.AckermannControllerSettings``. The defaults are what the real server read back on a fresh
+    vehicle.lincoln.mkz (the G4 read of 2026-11-20, s1-map/FACTS.md)."""
+
+    FIELDS = ("speed_kp", "speed_ki", "speed_kd", "accel_kp", "accel_ki", "accel_kd")
+    DEFAULTS = (0.15, 0.0, 0.25, 0.01, 0.0, 0.01)
+
+    def __init__(self, speed_kp=0.15, speed_ki=0.0, speed_kd=0.25, accel_kp=0.01, accel_ki=0.0, accel_kd=0.01):
+        self.speed_kp, self.speed_ki, self.speed_kd = float(speed_kp), float(speed_ki), float(speed_kd)
+        self.accel_kp, self.accel_ki, self.accel_kd = float(accel_kp), float(accel_ki), float(accel_kd)
 
 
 class Color:
@@ -267,6 +288,18 @@ WITH_ADDITIONAL_MAPS = ("Eixample", "EmptyMap", "Mine_01", "Town01_Opt", "Town02
                         "Town05_Opt", "Town06_Opt", "Town07_Opt", "Town10HD_Opt", "Town11", "Town12", "Town13",
                         "Town15", "Town_C")
 
+_DATA = Path(__file__).resolve().parents[2] / "data"
+# The map read of the real server (lane A2, 2026-11-20): what the fake replays
+REAL_READ = json.loads((_DATA / "town06_opt_g4_read.json").read_text(encoding="utf-8"))
+REAL_STATIC_PROPS = tuple(REAL_READ["static_prop"])
+REPLAY_XODR = {"Town06_Opt": _DATA / REAL_READ["xodr_file"]}
+
+# A spawned prop's bounding box on the real server (F3 of lane I-W, G4, 2026-11-20, contact_probe.py): extent, location
+PROP_BOUNDING_BOXES = {
+    "static.prop.streetbarrier": ((0.6073904633522034, 0.18604671955108643, 0.534582257270813),
+                                  (0.0, 0.0, 0.5347943902015686)),
+}
+
 VEHICLE_SHAPES = {                      # extent (half sizes, m), wheelbase (m)
     "vehicle.lincoln.mkz": ((2.45, 1.05, 0.75), 2.85),
     "vehicle.tesla.model3": ((2.40, 1.05, 0.75), 2.87),
@@ -278,6 +311,7 @@ def default_blueprints() -> list[Blueprint]:
     out += [Blueprint("sensor.camera.rgb"), Blueprint("sensor.other.collision"),
             Blueprint("sensor.other.lane_invasion"),
             Blueprint("static.prop.mesh", {"mesh_path": "", "mass": "", "scale": "1.0"})]
+    out += [Blueprint(name, {"size": "", "mesh_path": ""}) for name in REAL_STATIC_PROPS if name != "static.prop.mesh"]
     return out
 
 
@@ -349,6 +383,16 @@ class Map:
     def get_spawn_points(self):
         return [Waypoint(self, -1, s).transform for s in (10.0, 50.0)]
 
+    def to_opendrive(self) -> str:
+        """The map's OpenDRIVE text, replayed from the real server's read; the waypoints of this fake stay its own
+        straight lanes."""
+        short = self.name.rstrip("/").split("/")[-1]
+        path = REPLAY_XODR.get(short)
+        if path is None:
+            raise RuntimeError(f"fake carla: no OpenDRIVE read of {short} to replay")
+        with lzma.open(path, "rt", encoding="utf-8") as f:
+            return f.read()
+
     def generate_waypoints(self, distance: float):
         out, s = [], 0.0
         while s <= self.length:
@@ -357,12 +401,15 @@ class Map:
         return out
 
     def get_waypoint_xodr(self, road_id: int, lane_id: int, s: float):
-        if road_id != self.road_id or lane_id not in self.lanes or not 0 <= s <= self.length:
+        # the real server gives no waypoint at a road's own length (F3, G4, 2026-11-20: 54:6:62.56, road 54's length)
+        if road_id != self.road_id or lane_id not in self.lanes or not 0 <= s < self.length:
             return None
         return Waypoint(self, lane_id, s)
 
     def get_waypoint(self, location, project_to_road: bool = True, lane_type=LaneType.Driving):
         if location.x <= self.bend_from:
+            if not project_to_road and not 0.0 <= location.x <= self.length:
+                return None                 # beyond the road's ends: on no lane
             s = max(0.0, min(self.length, location.x))
             lane = -1 if location.y < self.lane_width / 2.0 else -2
             if not project_to_road and (location.y < -self.lane_width / 2 or
@@ -396,6 +443,8 @@ class _ActorState:
         self.yaw_rate_deg = 0.0
         self.accel = 0.0
         self.ackermann = None
+        self.ackermann_settings = AckermannControllerSettings()
+        self.constant_velocity = None
         self.control = VehicleControl()
         self.simulate_physics = True
         self.listeners: list = []
@@ -407,7 +456,8 @@ class _ActorState:
             self.bounding_box = BoundingBox(Location(0.0, 0.0, ez), Vector3D(ex, ey, ez))
         else:
             self.wheelbase = 0.0
-            self.bounding_box = BoundingBox(Location(), Vector3D(0.05, 0.05, 0.05))
+            ext, loc = PROP_BOUNDING_BOXES.get(self.type_id, ((0.05, 0.05, 0.05), (0.0, 0.0, 0.0)))
+            self.bounding_box = BoundingBox(Location(*loc), Vector3D(*ext))
         self.next_sensor_time: float | None = None
         self.attachment_type = AttachmentType.Rigid
 
@@ -467,6 +517,16 @@ class Actor:
         self._log("apply_ackermann_control", (control.steer, control.speed, control.acceleration, control.jerk))
         self._state.ackermann = control
 
+    def apply_ackermann_controller_settings(self, settings) -> None:
+        self._log("apply_ackermann_controller_settings",
+                  tuple(getattr(settings, k) for k in AckermannControllerSettings.FIELDS))
+        self._state.ackermann_settings = AckermannControllerSettings(
+            **{k: getattr(settings, k) for k in AckermannControllerSettings.FIELDS})
+
+    def get_ackermann_controller_settings(self):
+        st = self._state.ackermann_settings
+        return AckermannControllerSettings(**{k: getattr(st, k) for k in AckermannControllerSettings.FIELDS})
+
     def apply_control(self, control) -> None:
         self._log("apply_control", (control.throttle, control.steer, control.brake, control.hand_brake))
         self._state.control = control
@@ -480,6 +540,11 @@ class Actor:
 
     def enable_constant_velocity(self, velocity) -> None:
         self._log("enable_constant_velocity", (velocity.x, velocity.y))
+        self._state.constant_velocity = Vector3D(velocity.x, velocity.y, velocity.z)
+
+    def disable_constant_velocity(self) -> None:
+        self._log("disable_constant_velocity", None)
+        self._state.constant_velocity = None
 
     def set_simulate_physics(self, enabled: bool = True) -> None:
         self._state.simulate_physics = bool(enabled)
@@ -703,6 +768,15 @@ class _Server:
         return Transform(Location(wx, wy, wz), rot)
 
     def step_vehicle(self, state: _ActorState, dt: float) -> None:
+        if state.constant_velocity is not None and state.simulate_physics:
+            old = state.speed
+            state.speed = state.constant_velocity.x
+            state.accel = (state.speed - old) / dt if old else 0.0
+            state.yaw_rate_deg = 0.0
+            yaw = math.radians(state.transform.rotation.yaw)
+            state.transform.location.x += state.speed * math.cos(yaw) * dt
+            state.transform.location.y += state.speed * math.sin(yaw) * dt
+            return
         control = state.ackermann
         if control is None or not state.simulate_physics:
             state.accel = 0.0

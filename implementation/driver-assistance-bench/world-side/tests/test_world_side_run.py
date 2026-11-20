@@ -102,7 +102,9 @@ def test_setting_record_states_the_model_values_and_the_proposals(tmp_path, serv
     st = rec["setting"]
     assert (st["approach_kmh"], st["low_kmh"], st["high_kmh"]) == (20.0, 20.0, 22.0)
     assert set(st["model"]) >= {"approach_kmh", "low_kmh", "high_kmh"}
-    assert set(st["proposal"]) == {"target_ahead_m", "run_cap_s", "speed_limit_mps"}
+    assert set(st["proposal"]) == {"target_ahead_m", "run_cap_s", "speed_limit_mps", "site", "site_approach_rule",
+                                   "site_approach_min_m", "site_lane", "site_reason"}
+    assert st["site"] is None and rec["site"] is None
     assert rec["simulator"]["stepS"] == 0.05 and rec["simulator"]["synchronous"] is True
     assert rec["hero"]["type_id"] == "vehicle.lincoln.mkz" and rec["hero"]["role"] == "hero"
     cam = rec["frontCamera"]

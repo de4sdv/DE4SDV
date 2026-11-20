@@ -98,3 +98,23 @@ def test_waypoints_follow_the_straight_lane_and_the_bend(server):
     m.bend_from = 200.0
     after = m.get_waypoint_xodr(m.road_id, -1, 200.0 + math.pi / 2 * m.bend_radius)
     assert math.isclose(after.transform.rotation.yaw, -90.0, abs_tol=1e-9)    # a left bend
+
+
+# ---------------------------------------------------------------- server facts of F3 (lane I-W, G4, 2026-11-20)
+
+
+def test_no_waypoint_at_a_roads_own_length(server):
+    # F3: get_waypoint_xodr(54, 6, 62.56), road 54's length, gave None on the real server
+    m = server.map
+    assert m.get_waypoint_xodr(m.road_id, -1, m.length) is None
+    assert m.get_waypoint_xodr(m.road_id, -1, m.length - 0.5) is not None
+    assert m.get_waypoint_xodr(m.road_id, -1, 0.0) is not None
+
+
+def test_the_streetbarriers_bounding_box_is_the_servers(server):
+    # F3: a spawned static.prop.streetbarrier's bounding box on the real server (contact_probe.py)
+    world = carla.Client("h", 2000, _server=server).get_world()
+    prop = world.spawn_actor(world.get_blueprint_library().find("static.prop.streetbarrier"), carla.Transform())
+    bb = prop.bounding_box
+    assert (round(bb.extent.x, 4), round(bb.extent.y, 4), round(bb.extent.z, 4)) == (0.6074, 0.186, 0.5346)
+    assert round(bb.location.z, 4) == 0.5348

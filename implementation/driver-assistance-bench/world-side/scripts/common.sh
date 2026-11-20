@@ -7,7 +7,8 @@
 #
 # env: SIM_PY (the CARLA 1.0 venv's Python; default python3), WORLD_MAP (Town06_Opt: from CARLA's AdditionalMaps
 #      pack, by the exact name the server lists; world-side/README.md "The maps pack"), CARLA_PORT (2000),
-#      WORLD_STATE (see above), WORLD_START.
+#      WORLD_STATE (see above), WORLD_START, DA_ACKERMANN_GAINS (the hero's Ackermann gains: default or v1, unset
+#      means default; passed through to da_world_side.py, which refuses any other value; the session sets it).
 WS_SCRIPTS=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 WS=$(cd -- "$WS_SCRIPTS/.." && pwd)
 BENCH=$(cd -- "$WS/.." && pwd)
@@ -30,13 +31,15 @@ ws_read_start() {   # ws_read_start <out>: prints road:lane:s, or fails
 
 ws_side() {   # ws_side <subcommand> <args...>: da_world_side.py on the local CARLA server
   local cmd=("$PY" "$WS/da_world_side.py" "$1" --map "$WORLD_MAP" --port "$CARLA_PORT" "${@:2}")
+  if [ -n "${DA_ACKERMANN_GAINS+set}" ]; then echo "DA_ACKERMANN_GAINS=$DA_ACKERMANN_GAINS"
+  else echo "DA_ACKERMANN_GAINS unset (default)"; fi
   echo "+ ${cmd[*]}"
   "${cmd[@]}"
 }
 
 ws_setting() {   # ws_setting <scenario> <setting>: SC-DRIVING-012 + 20kmh|20|SC-DRIVING-012@20 -> SC-DRIVING-012@20
   local sc=$1 se=$2
-  case "$se" in *@*) echo "$se"; return 0 ;; esac
+  case "$se" in *@*|stop) echo "$se"; return 0 ;; esac   # a setting id, or the stop run's (scenarios.STOP_RUN)
   se=${se%kmh}; se=${se%km/h}
   case "$sc" in SC-DRIVING-*) ;; *) sc=SC-DRIVING-012 ;; esac   # the calibration runs use that road and vehicle
   echo "$sc@$se"
