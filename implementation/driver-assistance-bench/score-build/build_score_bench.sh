@@ -12,9 +12,10 @@
 #     --print-layout  print the candidate's directories (VisionPilot tree, stage mark, facts, logs, bundle, archive)
 #                 and exit before anything is created
 #   DA_CANDIDATE=pin|pr427 (environment, default pin) selects the VisionPilot candidate (score-interface/series.sh):
-#     pin    the pin with 0001-0003; everything as above
-#     pr427  the pin with 0001-0003 and 0004, DE4SDV's port of upstream PR #427's two fixes (decision D4). The shared
-#            stages and the Bazel workspace DIR/ws (its output base) are reused; the patched tree is DIR/src/vp-pr427
+#     pin    the pin with the series of score-interface/patches/ (0001-0003, 0005); everything as above
+#     pr427  the pin with that series and 0004 (applied before 0005), DE4SDV's port of upstream PR #427's two fixes
+#            (decision D4). The shared stages and the Bazel workspace DIR/ws (its output base) are reused; the
+#            patched tree is DIR/src/vp-pr427
 #            (mark .done-visionpilot-pr427), and facts, logs, the bundle and its archive go to the candidate's own root
 #            DIR-pr427 (bundle DIR-pr427/bundle, archive DIR-pr427/da-b2-pr427-bundle.tgz), so the pin's bundle under
 #            DIR is never written and the variant's can never be taken for it; its facts/ list 0004.
@@ -45,7 +46,7 @@ while [ $# -gt 0 ]; do
     --root) ROOT=${2:?--root needs a directory}; shift 2 ;;
     --jobs) JOBS=${2:?--jobs needs a number}; shift 2 ;;
     --min-free-gb) MIN_FREE_GB=${2:?--min-free-gb needs a number}; shift 2 ;;
-    -h|--help) sed -n '2,29p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,30p' "$0"; exit 0 ;;
     *) echo "unknown argument $1" >&2; exit 2 ;;
   esac
 done
@@ -196,16 +197,13 @@ w=$ROOT/src/vp-pin/VisionPilot/modules/models/weights/autosteer_fp32.onnx
 # ---------------------------------------------------------------------------------------------------------------------
 step visionpilot
 if ! is_done "$VP_MARK"; then
-  # the series' own check: a fresh clone at the pin, 0001, 0002 and 0003 in order, 0002 and 0003 re-created byte for byte
-  # (and the candidate's 0004 on top, its body re-created, with DA_CANDIDATE=pr427)
+  # the series' own check: a fresh clone at the pin, the candidate's series in order (0001, 0002, 0003, the
+  # candidate's 0004 with DA_CANDIDATE=pr427, 0005), each later patch re-created from its base
   "$BENCH/score-interface/check_patch.sh" "$ROOT/src/vp-pin" "$CHECK_DIR" || die "check_patch.sh failed"
   rm -rf "$VP"
   git clone -q --shared "$ROOT/src/vp-pin" "$VP"
   git -C "$VP" checkout -q "$VP_COMMIT"
-  git -C "$VP" apply --index "$BENCH/score-interface/patches/0001-de4sdv-visualization-recorder.diff"
-  git -C "$VP" apply --index "$BENCH/score-interface/patches/0002-de4sdv-score-interface.diff"
-  git -C "$VP" apply --index "$BENCH/score-interface/patches/0003-de4sdv-headless-display.diff"
-  [ "$DA_CANDIDATE" = pin ] || for p in $("$BENCH/score-interface/series.sh" extra); do
+  for p in $("$BENCH/score-interface/series.sh" list); do
     git -C "$VP" apply --index "$p"; echo "applied $(basename "$p")"
   done
   git -C "$VP" diff --cached --stat "$VP_COMMIT" | tail -1
@@ -564,6 +562,8 @@ cp "$HERE/workspace/interfaces.BUILD.bazel" "$OVERLAY/interfaces/BUILD.bazel"
 cp "$BENCH/launch-manager/config/launch_manager_config.json" "$BENCH/score-path/config/launch_manager_config_path_only.json" \
   "$OVERLAY/launch-manager/"
 cp "$HERE/workspace/launch_manager.BUILD.bazel" "$OVERLAY/launch-manager/BUILD.bazel"
+cp "$BENCH"/launch-manager/control/lm_control_client.h "$BENCH"/launch-manager/control/lm_control_client.cpp \
+  "$BENCH"/launch-manager/control/lm_control_client_main.cpp "$OVERLAY/launch-manager/"
 for pkg in identity-recorder ivi-warning/injector; do
   (cd "$BENCH/$pkg" && tar --exclude='tests' --exclude='__pycache__' -cf - .) | tar -xf - -C "$OVERLAY/$pkg"
 done
@@ -573,14 +573,14 @@ cp "$H" "$OVERLAY/score-build/workspace/gateway_include/score/serializer/"
 TARGETS=(//visionpilot:VisionPilot //de4sdv_da_bench/actuation-adapter:actuation_adapter
          //de4sdv_da_bench/score-build/workspace:ort_cuda_check
          @score_lifecycle//score/launch_manager:launch_manager //de4sdv_da_bench/launch-manager:de4sdv_lm_config
-         //de4sdv_da_bench/launch-manager:de4sdv_lm_config_path_only
+         //de4sdv_da_bench/launch-manager:de4sdv_lm_config_path_only //de4sdv_da_bench/launch-manager:lm_control_client
          //de4sdv_da_bench/identity-recorder:identity_recorder //de4sdv_da_bench/identity-recorder:candidate_record_probe
          //de4sdv_da_bench/ivi-warning/injector:warning_injector)
 start=$(date +%s)
 if ! bazel_feo build --config=x86_64-linux -c opt --jobs="$JOBS" --features=-treat_warnings_as_errors "${TARGETS[@]}" \
     > "$LOGS/score-bazel.log" 2>&1; then
   grep -E "^ERROR|error:|undefined reference" "$LOGS/score-bazel.log" | sed -n 1,30p
-  die "Bazel build of VisionPilot, the actuation adapter, ort_cuda_check, the Launch Manager, its configurations, the identity recorder, its probe or the test publisher failed"
+  die "Bazel build of VisionPilot, the actuation adapter, ort_cuda_check, the Launch Manager, its configurations, its control client, the identity recorder, its probe or the test publisher failed"
 fi
 tail -n 8 "$LOGS/score-bazel.log"
 echo "bazel build: $(( $(date +%s) - start )) s"
@@ -629,6 +629,10 @@ cp "$BENCH/launch-manager/config/launch_manager_config.json" "$BENCH/score-path/
 # the daemon's own mw::com configuration (its LmControl service, application id 3417): the staging puts it at
 # etc/mw_com_config.json of the stage, mw::com's default path in the daemon's working directory, in both modes
 cp "$BENCH/launch-manager/config/mw_com_config_launch_manager.json" "$B/config/launch_manager/"
+# the stop run's control client and its mw::com configuration (the proxy side of LmControl, application id 3418):
+# score-path/scripts/path_stop.sh runs them from the staged bundle
+cp -L "$SB/de4sdv_da_bench/launch-manager/lm_control_client" "$B/bin/"
+cp "$BENCH/launch-manager/config/mw_com_config_lm_control_client.json" "$B/config/launch_manager/"
 cp "$BENCH/actuation-adapter/mw_com_config_actuation_adapter.json" "$BENCH/actuation-adapter/config/adapter.json" \
    "$B/config/actuation_adapter/"
 cp -L "$GB/score/gatewayd/gatewayd" "$GB/score/someipd/someipd" "$B/bin/"
@@ -653,7 +657,7 @@ cp -a "$VP/VisionPilot/assets" "$B/share/visionpilot/assets"
 mkdir -p "$B/share/visionpilot/modules/models/weights"
 cp "$ROOT"/src/vp-pin/VisionPilot/modules/models/weights/*.onnx "$B/share/visionpilot/modules/models/weights/"
 cp "$BENCH"/score-interface/patches/*.diff "$BENCH/score-interface/patches/SHA256SUMS" "$B/facts/"
-# a candidate's series adds its patch beside the three and lists it in facts/SHA256SUMS
+# a candidate's series adds its patch beside those of patches/ and lists it in facts/SHA256SUMS
 [ "$DA_CANDIDATE" = pin ] || "$BENCH/score-interface/series.sh" facts "$B/facts"
 # facts/*.diff is the source difference of the candidate, exactly the patch series of its SHA256SUMS: the identity
 # recorder hashes every facts/*.diff that the staging copies and refuses one that SHA256SUMS does not list. The build's
@@ -670,7 +674,7 @@ for p in $APT_RUNTIME coinor-libipopt1v5 coinor-libipopt-dev libcppad-dev; do
 done > "$B/facts/apt-runtime-packages.txt"
 {
   echo "VisionPilot $VP_COMMIT with $(cat "$B/facts/SHA256SUMS" | tr '\n' ' ')"
-  [ "$DA_CANDIDATE" = pin ] || echo "candidate $DA_CANDIDATE: 0001-0003 and $(cd "$B/facts" && ls 0004-*.diff)"
+  [ "$DA_CANDIDATE" = pin ] || echo "candidate $DA_CANDIDATE: the pin's series and $(cd "$B/facts" && ls 0004-*.diff)"
   echo "FEO $FEO_COMMIT; gateway $GATEWAY_COMMIT; CARLA $CARLA_COMMIT; ONNX Runtime $ORT_VERSION (nuget sha256 $ORT_SHA256)"
   echo "repository $(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)"
 } > "$B/facts/sources.txt"

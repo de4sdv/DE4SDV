@@ -537,7 +537,8 @@ def test_every_mw_com_manifest_of_the_bench_has_its_own_application_id() -> None
                    3414: ["identity-recorder/mw_com_config_identity_recorder.json"],
                    3415: ["ivi-warning/injector/mw_com_config_warning_injector.json"],
                    3416: ["identity-recorder/mw_com_config_candidate_record_probe.json"],
-                   3417: ["launch-manager/config/mw_com_config_launch_manager.json"]}
+                   3417: ["launch-manager/config/mw_com_config_launch_manager.json"],
+                   3418: ["launch-manager/config/mw_com_config_lm_control_client.json"]}
     for config in (LAUNCH, PATH_ONLY):
         data = json.loads(config.read_text())
         assert data["defaults"]["deployment_config"]["sandbox"]["uid"] == 0, config

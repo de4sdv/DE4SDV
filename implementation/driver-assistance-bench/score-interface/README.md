@@ -16,11 +16,12 @@ S-CORE. It ships as a patch series against the pin, so upstream's code is not co
 | `patches/0001-de4sdv-visualization-recorder.diff` | the VIS8 visualization recorder (the probe's patch, sha256 `29a1f5d0…`) with the `sim_time_s` column of `frames.csv` (brief item B3); its upstream hunks are the probe's, unchanged |
 | `patches/0002-de4sdv-score-interface.diff` | the S-CORE interface; it applies on top of 0001 |
 | `patches/0003-de4sdv-headless-display.diff` | `LocalDisplay` closes windows only when it opened one (C-2, below); it applies on top of 0002 |
-| `patches/SHA256SUMS` | the sha256 of the three patches |
-| `module/` | the new files of 0002, as they land in `VisionPilot/modules/de4sdv/score_interface/`. A test checks that they equal the patch |
+| `patches/0005-de4sdv-warm-start.diff` | the warm start (D-S1-1, below): one warm inference on a dummy image before the module starts; it applies on top of 0003, and with the same hunks on top of the candidate's 0004 |
+| `patches/SHA256SUMS` | the sha256 of the patches of `patches/` |
+| `module/` | the new files of 0002 and 0005, as they land in `VisionPilot/modules/de4sdv/score_interface/`. A test checks that they equal the patches |
 | `check_patch.sh` | applies the series to a fresh `git clone --shared` at the pin |
 | `candidates/pr427/0004-de4sdv-port-of-upstream-pr427.diff`, `candidates/pr427/SHA256SUMS` | optional: DE4SDV's port of the two fixes of upstream draft PR #427 (the closing-speed sign and `fusion.ad_only_needs_as_track`), the second candidate of decision D4. Its header names the upstream commits and the lines taken at `a38f227c` and at the pin; it applies on top of 0003 |
-| `series.sh` | the series of the candidate `DA_CANDIDATE` (`pin`, the default: 0001-0003; `pr427`: 0001-0004): `list`, `extra`, `check`, and `facts <dir>`, the bundle's source difference with a `SHA256SUMS` that lists every diff |
+| `series.sh` | the series of the candidate `DA_CANDIDATE` (`pin`, the default: 0001-0003 and 0005; `pr427`: 0001-0005), in file-name order: `list`, `extra`, `check`, and `facts <dir>`, the bundle's source difference with a `SHA256SUMS` that lists every diff |
 | `tests/` | unit tests with fakes for mw::com and the CARLA client, and a pytest wrapper |
 
 The module is chosen by `source.mode = score` in `vision_pilot.conf` (or `3`, like upstream's numeric aliases), and
@@ -116,6 +117,31 @@ there `cvDestroyAllWindows` throws (`modules/highgui/src/window.cpp:1258-1262`).
 an abort (exit 134) before `~ScoreInterface` ran, and the run record lost `supervision.stop` and the module's counters
 (p10-1 run 20261119T134840Z). 0003 guards both calls with `show_window_`; nothing else changes. It is an upstream bug
 candidate; the issue draft is not posted.
+
+## The warm start (patch 0005, D-S1-1)
+
+The model judges no run whose window holds a dropped image, and for an every-run criterion the window is the whole
+run. Attempt 3 (SID 20261120T092051Z) dropped 15 and 14 images (`drop.camera_image` in `score_interface.jsonl`), 12
+and 11 of them in the first 1.34 s after the go. The module's attach waits for the world's first tick, the go
+(`src/carla_client.cpp:47-75`; a client sees no actor while the world holds), and in 0002's order the candidate built
+its pipeline (three CUDA sessions, about 0.55 s) only after the attach, then ran its cold first inference (726 and
+742 ms) in the second pass. Images come every 0.1 s from the go, so 5-6 were dropped in each of the two stretches.
+
+0005 builds the pipeline and runs it on a black image of the networks' size until a pass gives a result (the
+networks ran once), resets it (`InferencePipeline::reset()`: the two-frame buffer, the counters and both fusions), and
+only then starts the module (`WarmStart()` in `module/include/de4sdv/score_interface/warm_start.hpp`). The S-CORE
+branch beside upstream's sources no longer starts the module. So:
+
+- the first image of the run still gives no result, and nothing of the dummy image reaches a plan;
+- the candidate reports running at its first pass with a result, as before (C-1), now about 0.1 s after the go;
+- the warm start's passes, result and duration go to the candidate's output (`[DE4SDV] warm start before the
+  attach: ...`, the Launch Manager's log).
+
+`tests/warm_start_test.cpp` runs the start and the loop on a virtual clock with a first inference of 724 ms: 0002's
+order drops 11 of 100 images, the warm start none. 0005's lines in `vision_pilot.cpp` all lie under
+`ENABLE_SCORE_INTERFACE`. It applies last in both series: `series.sh list` sorts by file name, so the candidate's
+0004 still applies on 0003 as it was made, and 0005's hunks, which lie before 0004's in `vision_pilot.cpp`, apply on
+either (`check_patch.sh` re-creates 0005's body on top of 0004 except its `index` lines).
 
 ## What is not compiled yet
 

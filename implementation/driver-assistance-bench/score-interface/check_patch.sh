@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Checks the patch series of the DE4SDV S-CORE interface for VisionPilot at the pin:
-#   1. the three patch files against patches/SHA256SUMS;
+#   1. the patch files against patches/SHA256SUMS (and the candidate's against its own);
 #   2. a fresh `git clone --shared` of a local VisionPilot clone, checked out at the pin and clean;
 #   3. 0001 (the VIS8 visualization recorder) with `git apply --check`, then for real; then 0002 the same way;
 #   4. `git diff` of the result against 0001 re-creates 0002 byte for byte; then 0003 (LocalDisplay without a window,
 #      C-2) is checked and applied on top of 0002 the same way, and `git diff` against 0002 re-creates it;
-#   4b. with DA_CANDIDATE=pr427 (score-interface/series.sh): the series' extra patch 0004 (DE4SDV's port of upstream
-#      PR #427's two fixes) is checked and applied on top of 0003 the same way, and `git diff` against 0003 re-creates
-#      its body (the file from its first "diff --git" line; the lines before are its header) byte for byte;
+#   4b. every later patch of the series (score-interface/series.sh list, in file-name order) is checked and applied on
+#      top of the one before the same way, and `git diff` against that one re-creates its body (the file from its
+#      first "diff --git" line; the lines before are a header) byte for byte: 0005 (the warm start of D-S1-1) on top of
+#      0003 for pin; with DA_CANDIDATE=pr427, 0004 (DE4SDV's port of upstream PR #427's two fixes) on top of 0003 and
+#      0005 on top of 0004, so 0005's one body applies to both series;
 #   5. optional, when OpenCV 4, ONNX Runtime and Eigen headers are given: g++ -fsyntax-only of the patched
 #      vision_pilot.cpp and vision_pilot_config.cpp with and without ENABLE_SCORE_INTERFACE, and the preprocessed
 #      vision_pilot.cpp without it compared between "0001" and "0001 + 0002".
@@ -16,7 +18,7 @@
 #   <visionpilot-clone>  a local clone that holds the pin (a blob-less partial clone is fine; the network weights are
 #                        left out of the checkout)
 #   ORT_INCLUDE, EIGEN_INCLUDE, OPENCV_INCLUDE  optional include directories for step 5
-#   DA_CANDIDATE         pin (default: 0001-0003) or pr427 (0001-0003 and 0004)
+#   DA_CANDIDATE         pin (default: 0001-0003, 0005) or pr427 (0001-0005)
 # From a blob-less source clone, git may print "invalid object ... .onnx" during the checkout: those are the weights
 # the sparse checkout leaves out; the clean-tree check below still holds.
 # Exit status 0 when steps 1-4 pass (and step 5, if it ran).
@@ -69,16 +71,32 @@ git -c core.abbrev=8 diff | cmp -s - "$PATCHES/0003-de4sdv-headless-display.diff
 echo "git diff against 0002 re-creates 0003 byte for byte"
 # the tree before the candidate's patch, for step 5's comparison of 0001 against 0001 + 0002 (+ 0003)
 if [ "${#EXTRA[@]}" -gt 0 ]; then mkdir -p "$SCRATCH/tree0003" && cp -r VisionPilot "$SCRATCH/tree0003/"; fi
-for extra in "${EXTRA[@]}"; do
-  n=$(basename "$extra" | cut -c1-4)
-  # 0003's result becomes the index, the base of the candidate's patch
-  git add -u VisionPilot || fail "staging 0003's result"
-  git apply --check "$extra" || fail "$n --check on top of 0003"
-  echo "$n git apply --check on top of 0003: ok"
-  git apply "$extra" || fail "$n apply"
-  git -c core.abbrev=8 diff | cmp -s - <(sed -n '/^diff --git /,$p' "$extra") \
-    || fail "git diff does not re-create $n's body"
-  echo "git diff against 0003 re-creates $n's body byte for byte"
+mapfile -t SERIES < <("$HERE/series.sh" list) || fail "series.sh list"
+[ "$(for p in "${SERIES[@]:0:3}"; do basename "$p"; done | tr '\n' ' ')" = \
+  "0001-de4sdv-visualization-recorder.diff 0002-de4sdv-score-interface.diff 0003-de4sdv-headless-display.diff " ] \
+  || fail "the series does not begin with 0001, 0002 and 0003"
+prev=0003
+for later in "${SERIES[@]:3}"; do
+  n=$(basename "$later" | cut -c1-4)
+  # the result so far becomes the index, the base of the next patch
+  git add -u VisionPilot || fail "staging $prev's result"
+  git apply --check "$later" || fail "$n --check on top of $prev"
+  echo "$n git apply --check on top of $prev: ok"
+  git apply "$later" || fail "$n apply"
+  mapfile -t created < <(git ls-files --others --exclude-standard VisionPilot)
+  [ "${#created[@]}" -eq 0 ] || git add -N "${created[@]}" || fail "$n: git add -N"
+  git -c core.abbrev=8 diff > "$SCRATCH/diff-$n"
+  if cmp -s "$SCRATCH/diff-$n" <(sed -n '/^diff --git /,$p' "$later"); then
+    echo "git diff against $prev re-creates $n's body byte for byte"
+  elif [ "${#EXTRA[@]}" -gt 0 ] && [ "$(dirname "$later")" = "$PATCHES" ] &&
+       cmp -s <(grep -v '^index ' "$SCRATCH/diff-$n") <(sed -n '/^diff --git /,$p' "$later" | grep -v '^index '); then
+    # a patch of patches/ on top of the candidate's: the same hunks; only its index lines differ, which name the
+    # blobs of the pin's series that it was made on
+    echo "git diff against $prev re-creates $n's body byte for byte but its index lines (made on the pin's series)"
+  else
+    fail "git diff does not re-create $n's body"
+  fi
+  prev=$n
 done
 
 OPENCV_INCLUDE=${OPENCV_INCLUDE:-/usr/include/opencv4}

@@ -616,6 +616,8 @@ def test_the_bundle_binaries_are_built_targets_of_staged_packages() -> None:
         build = BENCH / pkg / "BUILD.bazel"
         if pkg == "score-build/workspace":
             build = BUILD_DIR / "workspace" / "BUILD.bazel"
+        if pkg == "launch-manager":  # staged from score-build/workspace/ with the configurations
+            build = BUILD_DIR / "workspace" / "launch_manager.BUILD.bazel"
         assert re.search(r'cc_binary\(\s*name = "%s"' % re.escape(name), build.read_text()), (pkg, name)
     commands = _shell_commands(bazel)
     for pkg in ("identity-recorder", "ivi-warning/injector"):
@@ -650,21 +652,30 @@ def test_the_bundle_source_difference_is_exactly_the_patch_series() -> None:
 
 
 SERIES = ["0001-de4sdv-visualization-recorder.diff", "0002-de4sdv-score-interface.diff",
-          "0003-de4sdv-headless-display.diff"]
+          "0003-de4sdv-headless-display.diff", "0005-de4sdv-warm-start.diff"]
+SERIES_LOOP = 'for p in $("$BENCH/score-interface/series.sh" list); do'
 
 
 def test_the_build_and_the_check_apply_the_whole_series_in_order() -> None:
-    """The visionpilot stage and check_patch.sh apply 0001, 0002 and 0003 (C-2) in that order, and the check
-    re-creates 0002 and 0003 byte for byte, each against the tree before it."""
+    """The visionpilot stage applies series.sh's list in its order (the pin: 0001, 0002, 0003 and 0005, the warm start
+    of D-S1-1); check_patch.sh applies 0001, 0002 and 0003 (C-2) and re-creates 0002 and 0003 byte for byte, then
+    every later patch of that list on top of the one before, each re-created."""
     assert sorted(p.name for p in PATCHES.glob("*.diff")) == SERIES
     build = (HERE.parent / "build_score_bench.sh").read_text()
-    applied = re.findall(r'git -C "\$VP" apply --index "\$BENCH/score-interface/patches/([^"]+)"', build)
-    assert applied == SERIES
+    stage = build.split("\nstep visionpilot\n", 1)[1].split("\nstep workspace\n", 1)[0]
+    assert re.findall(r'git -C "\$VP" apply --index "([^"]+)"', stage) == ["$p"]
+    assert [line.strip() for line in stage.splitlines() if "series.sh" in line] == [SERIES_LOOP]
+    listed = subprocess.run(["bash", str(BENCH / "score-interface" / "series.sh"), "list"], check=True,
+                            capture_output=True, text=True,
+                            env={k: v for k, v in os.environ.items() if k != "DA_CANDIDATE"}).stdout.split()
+    assert [Path(p).name for p in listed] == SERIES
     check = (BENCH / "score-interface" / "check_patch.sh").read_text()
     real = re.findall(r'^git apply (?:--index )?"\$PATCHES/([^"]+)" \|\| fail', check, flags=re.M)
-    assert real == SERIES
+    assert real == SERIES[:3]
     recreated = re.findall(r'git -c core\.abbrev=8 diff \| cmp -s - "\$PATCHES/([^"]+)"', check)
-    assert recreated == SERIES[1:]
+    assert recreated == SERIES[1:3]
+    assert 'mapfile -t SERIES < <("$HERE/series.sh" list)' in check
+    assert 'for later in "${SERIES[@]:3}"; do' in check
 
 
 def test_every_repository_source_of_the_bundle_exists() -> None:

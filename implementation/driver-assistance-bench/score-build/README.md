@@ -57,9 +57,9 @@ the runtime only, not the S-CORE binary.
 
 ### The second candidate (decision D4)
 
-`DA_CANDIDATE=pr427` builds the pin with 0001-0003 and the optional
+`DA_CANDIDATE=pr427` builds the pin with the series of `score-interface/patches/` and the optional
 `score-interface/candidates/pr427/0004-de4sdv-port-of-upstream-pr427.diff`, DE4SDV's port of upstream PR #427's two
-fixes. `DA_CANDIDATE=pin`, the default, builds exactly what the script built before; the default never reads 0004.
+fixes, in file-name order (0004 before 0005, the warm start). `DA_CANDIDATE=pin`, the default, never reads 0004.
 
 ```bash
 DA_CANDIDATE=pr427 implementation/driver-assistance-bench/score-build/build_score_bench.sh --root /opt/da-b2 --jobs 8
@@ -90,16 +90,16 @@ the CARLA client; OpenCV, Arrow, VisionPilot and the gateway come on top. It dow
 | `rerun` | Rerun C++ SDK 0.34.1 and its Arrow 18, static | run e |
 | `thirdparty` | ONNX Runtime 1.26.0 GPU (shared), Eigen 5.0.0, the CppAD and Ipopt headers, CARLA's Boost headers, nlohmann json, GStreamer include directories | new |
 | `gateway` | inc_someip_gateway `d9eac670`: gatewayd, someipd, the null serializer and the warning's config binary (`score-path/config/`), at communication 0.6.0, baselibs 0.2.17 and lifecycle 0.10.0 | probe P5, brief R4 |
-| `bazel` | `//visionpilot:VisionPilot`, `//de4sdv_da_bench/actuation-adapter:actuation_adapter`, `//de4sdv_da_bench/score-build/workspace:ort_cuda_check`, the Launch Manager daemon `@score_lifecycle//score/launch_manager:launch_manager`, `//de4sdv_da_bench/launch-manager:de4sdv_lm_config` and `:de4sdv_lm_config_path_only` (Lifecycle's own schema check, mapping and flatbuffer of `launch-manager/config/launch_manager_config.json` and of `score-path/config/launch_manager_config_path_only.json`), the identity recorder and its late subscriber `//de4sdv_da_bench/identity-recorder:identity_recorder` and `:candidate_record_probe`, and p10-3's test publisher `//de4sdv_da_bench/ivi-warning/injector:warning_injector` | new |
-| `bundle` | `bin/` with the Launch Manager's binary names (`vision_pilot`, `actuation_adapter`, `gatewayd`, `someipd`, `identity_recorder`) plus `launch_manager`, `ort_cuda_check`, `candidate_record_probe` and `warning_injector`; `lib/`; `config/` (`launch_manager/` with both flatbuffers beside their JSON and the Launch Manager's own mw::com configuration `mw_com_config_launch_manager.json`, `gateway/`, `actuation_adapter/`, `visionpilot/` with upstream's files and the derived `homography_C_matrix.yaml`); the networks, the icons; `facts/` with the patch series and its `SHA256SUMS` as the candidate's source difference (the build's own diffs under `facts/build/`, since the identity recorder refuses a `.diff` that `SHA256SUMS` does not list); binary checks, the Lifecycle client symbols in both supervised binaries; `ort_cuda_check --cpu-only`; `SHA256SUMS` of every other file | new |
+| `bazel` | `//visionpilot:VisionPilot`, `//de4sdv_da_bench/actuation-adapter:actuation_adapter`, `//de4sdv_da_bench/score-build/workspace:ort_cuda_check`, the Launch Manager daemon `@score_lifecycle//score/launch_manager:launch_manager`, `//de4sdv_da_bench/launch-manager:de4sdv_lm_config` and `:de4sdv_lm_config_path_only` (Lifecycle's own schema check, mapping and flatbuffer of `launch-manager/config/launch_manager_config.json` and of `score-path/config/launch_manager_config_path_only.json`), the identity recorder and its late subscriber `//de4sdv_da_bench/identity-recorder:identity_recorder` and `:candidate_record_probe`, p10-3's test publisher `//de4sdv_da_bench/ivi-warning/injector:warning_injector`, and the stop run's control client `//de4sdv_da_bench/launch-manager:lm_control_client` (`launch-manager/control/`) | new |
+| `bundle` | `bin/` with the Launch Manager's binary names (`vision_pilot`, `actuation_adapter`, `gatewayd`, `someipd`, `identity_recorder`) plus `launch_manager`, `ort_cuda_check`, `candidate_record_probe`, `warning_injector` and `lm_control_client`; `lib/`; `config/` (`launch_manager/` with both flatbuffers beside their JSON, the Launch Manager's own mw::com configuration `mw_com_config_launch_manager.json` and its control client's `mw_com_config_lm_control_client.json`, `gateway/`, `actuation_adapter/`, `visionpilot/` with upstream's files and the derived `homography_C_matrix.yaml`); the networks, the icons; `facts/` with the patch series and its `SHA256SUMS` as the candidate's source difference (the build's own diffs under `facts/build/`, since the identity recorder refuses a `.diff` that `SHA256SUMS` does not list); binary checks, the Lifecycle client symbols in both supervised binaries; `ort_cuda_check --cpu-only`; `SHA256SUMS` of every other file | new |
 
 The bundle is the input of `../score-path/scripts/stage_score_side.py`. Every path that the staging requires or reads
 when present comes from the `bundle` stage; `tests/test_score_build.py` checks that contract statically, from both
 scripts.
 
 The `visionpilot` stage first runs `score-interface/check_patch.sh`. It then copies `VisionPilot/` of the pin with
-patches 0001, 0002 and 0003 into the package `//visionpilot`, with the overlay as its `BUILD.bazel`. No upstream
-file changes beyond the three patches. The overlay mirrors upstream's CMake targets. Bazel needs two changes:
+the candidate's series (`score-interface/series.sh list`: 0001, 0002, 0003 and 0005) into the package `//visionpilot`,
+with the overlay as its `BUILD.bazel`. No upstream file changes beyond the series. The overlay mirrors upstream's CMake targets. Bazel needs two changes:
 
 - The module headers form one header library, because upstream's headers include each other across modules in a cycle.
 - Every library is `alwayslink`, because the static libraries reference each other in a cycle.
