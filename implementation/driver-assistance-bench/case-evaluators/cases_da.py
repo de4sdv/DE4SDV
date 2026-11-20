@@ -202,12 +202,312 @@ def run_042(run: Run) -> dict:
     return entry(run, PASS if ok else FAIL, measured)
 
 
+# ------------------------------------------------------------------ every-run cases
+def every_run_campaign(vc: str, sess: Session, per_run, settings: tuple, thresholds: dict,
+                       stop_clause=None, extra=None) -> dict:
+    """038, 040, 041, 043, 044: every run of the named settings (two each) meets the criterion; a missing run or a
+    run with a dropped image gives inconclusive, never pass. The stop clause of 038 and 043 reads the stop run."""
+    by = sess.by_setting()
+    runs, missing = [], []
+    for sid in settings:
+        have = by.get(sid, [])
+        if len(have) != 2:
+            missing.append(f"setting {sid}: {len(have)} run{'' if len(have) == 1 else 's'} of 2")
+        entries = [guarded(per_run, r) for r in have]
+        runs += entries
+        for e in entries:
+            if e["outcome"] not in (PASS, FAIL):
+                missing.append(f"run {e['run']} ({sid}): " + "; ".join(e["missing"]))
+    outcomes = [e["outcome"] for e in runs]
+    measured: dict = {}
+    if stop_clause is not None:
+        sc = stop_clause(sess)
+        measured["stopClause"] = sc
+        outcomes.append(sc["outcome"])
+        missing += [f"stop clause: {m}" for m in sc["missing"]]
+    notes: list = []
+    if extra is not None:
+        ex = extra(sess, runs)
+        measured.update(ex.get("measured", {}))
+        outcomes += ex.get("outcomes", [])
+        missing += ex.get("missing", [])
+        notes += ex.get("notes", [])
+    return result(vc, combine(outcomes, missing), runs, missing, thresholds, notes=notes, measured=measured)
+
+
+def _setting_terms(run: Run) -> terms.SettingTerms:
+    st = terms.SETTINGS.get(run.setting_id)
+    if st is None:
+        raise MissingEvidence(f"run {run.run_id}: unknown setting {run.setting_id!r}")
+    return st
+
+
+def starts_at_imminence(run: Run, starts: list[dict]) -> dict:
+    """040 and 041: each start falls on a tick with a vehicle ahead in the lane to which a collision is imminent."""
+    st = _setting_terms(run)
+    whole_run(run)
+    measured: dict = {"starts": len(starts), "startsAtImminent": 0, "firstStartNotImminent": None}
+    if st.scenario in ("SC-DRIVING-014", "SC-DRIVING-015"):
+        guidance = run.setting_record().get("guidance")
+        if not isinstance(guidance, dict) or not guidance:
+            raise MissingEvidence(f"{run.label('setting_record')} guidance: the speeds and times to collision of "
+                                  f"the source's guidance for {st.scenario} that the record holds "
+                                  "(driver_assistance_verification_evidence.sysml:474-476; lane A4)")
+        measured["guidance"] = guidance
+    ticks = run.ticks()
+    bad = []
+    for s in starts:
+        i = run.tick_of(s, "issueTime_sim_s")
+        if i is None:
+            raise MissingEvidence(f"{run.label('world')}: no tick at or before the start at sim "
+                                  f"{s['issueTime_sim_s']:.3f} s")
+        tick = ticks[i]
+        va = tick.get("vehiclesAhead")
+        if va is None:
+            raise MissingEvidence(f"{run.label('world')} tick frame {tick.get('frame')} data.vehiclesAhead "
+                                  "(shared contract 1, lane A6)")
+        if not isinstance(va, list) or not all(isinstance(v, dict) for v in va):
+            raise EvidenceError(f"{run.label('world')} tick frame {tick.get('frame')}: vehiclesAhead is not a "
+                                "list of objects")
+        hits = [v for v in va if v.get("inLane") is True and terms.is_imminent(v.get("gapM"), v.get("closingMps"))]
+        if hits:
+            measured["startsAtImminent"] += 1
+        else:
+            bad.append({"frame": tick.get("frame"), "simTimeS": tick["simTimeS"],
+                        "scenarioTimeS": tick.get("scenarioTimeS"),
+                        "vehiclesAhead": [{k: v.get(k) for k in ("actorId", "role", "gapM", "closingMps", "inLane")}
+                                          for v in va]})
+    measured["firstStartNotImminent"] = bad[0] if bad else None
+    return entry(run, FAIL if bad else PASS, measured)
+
+
+def run_040(run: Run) -> dict:
+    return starts_at_imminence(run, terms.warning_starts(run.warnings()))
+
+
+def run_041(run: Run) -> dict:
+    return starts_at_imminence(run, terms.emergency_braking_starts(run.commands()))
+
+
+def _crc(value) -> int | None:
+    try:
+        return int(str(value), 16)
+    except ValueError:
+        return None
+
+
+def run_038(run: Run) -> dict:
+    whole_run(run)
+    statement = run.setting_record().get("controlOfTheHero")
+    if not isinstance(statement, str) or not statement:
+        raise MissingEvidence(f"{run.label('setting_record')} controlOfTheHero: the world's statement that no "
+                              "autopilot and no Traffic Manager controls the vehicle (da_world_side.py:725-726)")
+    ticks = run.ticks()
+    if any(not isinstance(t.get("worldSideControlCalls"), int) for t in ticks):
+        raise MissingEvidence(f"{run.label('world')}: a tick without worldSideControlCalls")
+    wsc = max(t["worldSideControlCalls"] for t in ticks)
+    s_crc = {c["seq"]: _crc(c.get("crc")) for c in run.commands()}
+    a_in: dict = {}
+    for line in run.adapter("in.driving_command"):
+        d = line.get("data") or {}
+        if d.get("crc_ok") is True and isinstance(d.get("seq"), int):
+            a_in[d["seq"]] = d.get("checkValue")
+    outs = run.adapter("out.ackermann_control")
+    if not outs:
+        raise MissingEvidence(f"{run.label('adapter')}: no out.ackermann_control")
+    unmatched = []
+    for line in outs:
+        d = line.get("data") or {}
+        seq = d.get("seq")
+        ok = d.get("controlSource") == "actuationAdapter" and seq in a_in and seq in s_crc \
+            and s_crc[seq] is not None and s_crc[seq] == a_in[seq]
+        if not ok:
+            unmatched.append({"seq": seq, "frame": d.get("frame"), "controlSource": d.get("controlSource"),
+                              "adapterCheckValue": a_in.get(seq), "scoreCrc": s_crc.get(seq)})
+    measured = {"actuations": len(outs), "matched": len(outs) - len(unmatched), "unmatched": unmatched[:10],
+                "worldSideControlCallsMax": wsc, "controlOfTheHero": statement}
+    return entry(run, FAIL if unmatched or wsc > 0 else PASS, measured)
+
+
+def _stop_context(sess: Session, vc: str):
+    run = sess.stop_run
+    if run is None:
+        raise MissingEvidence("the stop run: no run (shared contract 4, run id stop; the further run of "
+                              "SC-DRIVING-012 in which the S-CORE path is stopped)")
+    rec = run.stop_record(sess.session)
+    mono, real, rc = rec.get("stopInstantMonoNs"), rec.get("stopInstantRealNs"), rec.get("rc")
+    if not isinstance(rc, int) or not isinstance(mono, int) or not isinstance(real, int):
+        raise EvidenceError(f"the stop record of run {run.run_id}: rc, stopInstantMonoNs and stopInstantRealNs "
+                            f"must be integers: {rec}")
+    return run, rec
+
+
+def _stop_entry(sess: Session, vc: str, fn) -> dict:
+    run = sess.stop_run
+    try:
+        run, rec = _stop_context(sess, vc)
+        if rec["rc"] != 0:
+            return {"run": run.run_id, "outcome": BLOCKED, "measured": {"stopRecord": rec},
+                    "missing": [f"path_stop of run {run.run_id} returned rc {rec['rc']}: the bench could not stop "
+                                "the path"], "notes": []}
+        whole_run(run)
+        outcome, measured = fn(run, rec)
+        measured["stopRecord"] = rec
+        return {"run": run.run_id, "outcome": outcome, "measured": measured, "missing": [], "notes": []}
+    except MissingEvidence as exc:
+        return {"run": getattr(run, "run_id", None), "outcome": INCONCLUSIVE, "measured": {}, "missing": [str(exc)],
+                "notes": []}
+    except EvidenceError as exc:
+        return {"run": getattr(run, "run_id", None), "outcome": ERROR, "measured": {}, "missing": [str(exc)],
+                "notes": []}
+
+
+def stop_038(sess: Session) -> dict:
+    def fn(run: Run, rec: dict):
+        stop = rec["stopInstantMonoNs"]
+        outs = run.adapter("out.ackermann_control")
+        after = [o for o in outs if isinstance(o.get("t_mono_ns"), int) and o["t_mono_ns"] > stop]
+        before = [(o.get("data") or {}).get("frame") for o in outs
+                  if isinstance(o.get("t_mono_ns"), int) and o["t_mono_ns"] <= stop]
+        before = [f for f in before if isinstance(f, int)]
+        last = max(before) if before else None
+        ticks = [t for t in run.ticks() if last is None or (isinstance(t.get("frame"), int) and t["frame"] > last)]
+        if not ticks:
+            raise MissingEvidence(f"{run.label('world')}: no tick after the last control applied before the stop")
+        if any(not isinstance(t.get("control"), dict) for t in ticks):
+            raise MissingEvidence(f"{run.label('world')}: a tick after the stop without control")
+        changes = sum(1 for t in ticks if t["control"] != ticks[0]["control"])
+        measured = {"controlsAfterStop": len(after), "controlChangesAfterStop": changes,
+                    "lastControlFrameBeforeStop": last, "ticksAfterStop": len(ticks)}
+        return (FAIL if after or changes else PASS), measured
+    return _stop_entry(sess, "VC-DRIVING-038", fn)
+
+
+def _receipt_bytes(r: dict) -> str | None:
+    req, ms = r.get("requested"), r.get("issue_time_sim_ms")
+    if not isinstance(req, int) or isinstance(req, bool) or not isinstance(ms, int) or req not in (0, 1) \
+            or not 0 <= ms < 2 ** 32:
+        return None
+    return f"{req:08x}{ms:08x}"
+
+
+def run_receipts(run: Run) -> list[dict]:
+    """The receipts of one run: issue time in the run's sim span, or IVI real time (less the clock offset) in the
+    run's wall span on the S-CORE host (its S start line to its last line)."""
+    w0, w1 = run.run_span()
+    reals = [x.get("real_ns") for x in run.score("start") + run.commands() if isinstance(x.get("real_ns"), int)]
+    try:
+        offset_ns = int(float(run.clock().get("offset_s", 0.0)) * 1e9)
+    except MissingEvidence:
+        offset_ns = 0
+    lo, hi = (min(reals), max(reals)) if reals else (None, None)
+    out = []
+    for r in run.receipts():
+        ms = r.get("issue_time_sim_ms")
+        in_sim = isinstance(ms, int) and w0 * 1000.0 - 1.0 <= ms <= w1 * 1000.0 + 1.0
+        t = r.get("t_real_ns")
+        in_wall = lo is not None and isinstance(t, int) and lo <= t - offset_ns <= hi
+        if in_sim or in_wall:
+            out.append(r)
+    return out
+
+
+def run_043(run: Run) -> dict:
+    whole_run(run)
+    sent = {w.get("bytes") for w in run.warnings() if w.get("sent") is True}
+    receipts = run_receipts(run)
+    unmatched = [r for r in receipts if _receipt_bytes(r) not in sent]
+    measured = {"receipts": len(receipts), "matched": len(receipts) - len(unmatched),
+                "unmatched": [{k: r.get(k) for k in ("seq", "requested", "issue_time_sim_ms", "t_real_ns")}
+                              for r in unmatched[:10]]}
+    notes = [] if receipts else ["no receipt in the run: nothing reached the AAOS SDV"]
+    return entry(run, FAIL if unmatched else PASS, measured, notes=notes)
+
+
+def stop_043(sess: Session) -> dict:
+    def fn(run: Run, rec: dict):
+        images = [i for i in run.score("in.camera_image")
+                  if isinstance(i.get("mono_ns"), int) and i["mono_ns"] <= rec["stopInstantMonoNs"]
+                  and isinstance(i.get("sim_s"), (int, float))]
+        if not images:
+            raise MissingEvidence(f"{run.label('score')}: no in.camera_image before the stop instant")
+        stop_sim = max(i["sim_s"] for i in images)
+        receipts = run.receipts()
+        after_sim = [r for r in receipts if isinstance(r.get("issue_time_sim_ms"), int)
+                     and r["issue_time_sim_ms"] > stop_sim * 1000.0 + 1.0]
+        notes, after_wall = [], []
+        try:
+            clk = run.clock()
+            offset_ns, bound_ns = int(float(clk["offset_s"]) * 1e9), int(float(clk["bound_s"]) * 1e9)
+            after_wall = [r for r in receipts if isinstance(r.get("t_real_ns"), int)
+                          and r["t_real_ns"] - offset_ns > rec["stopInstantRealNs"] + bound_ns]
+        except (MissingEvidence, KeyError, TypeError, ValueError):
+            notes.append("no IVI clock mark: only the sim-time check ran")
+        measured = {"stopSimS": stop_sim, "receiptsAfterStop": len({id(r) for r in after_sim + after_wall}),
+                    "receiptsIssuedAfterStop": len(after_sim), "receiptsReadAfterStop": len(after_wall),
+                    "notes": notes}
+        return (FAIL if after_sim or after_wall else PASS), measured
+    return _stop_entry(sess, "VC-DRIVING-043", fn)
+
+
+def run_044(run: Run) -> dict:
+    whole_run(run)
+    cmds = run.commands()
+    if not cmds:
+        raise MissingEvidence(f"{run.label('score')}: no out.driving_command")
+    firsts = [c for c in cmds if isinstance(c.get("mono_ns"), int)]
+    if not firsts:
+        raise MissingEvidence(f"{run.label('score')}: no out.driving_command with mono_ns")
+    first = min(firsts, key=lambda c: c["mono_ns"])
+    records = [r for r in run.score("in.candidate_record") if r.get("accepted") is True]
+    measured: dict = {"firstCommandSeq": first["seq"], "recordBeforeFirstCommandNs": None, "recordSha256": None,
+                      "diffBytes": None}
+    if not records or not isinstance(records[0].get("mono_ns"), int):
+        return entry(run, FAIL, measured, notes=["no accepted in.candidate_record with mono_ns in the run"])
+    rec = min(records, key=lambda r: r["mono_ns"])
+    measured.update(recordBeforeFirstCommandNs=first["mono_ns"] - rec["mono_ns"], recordSha256=rec.get("recordSha256"),
+                    upstreamRevision=rec.get("upstreamRevision"), diffBytes=rec.get("diffBytes"))
+    if not isinstance(rec.get("diffBytes"), int):
+        raise MissingEvidence(f"{run.label('score')}: in.candidate_record without diffBytes")
+    bad = measured["recordBeforeFirstCommandNs"] <= 0 or rec["diffBytes"] <= 0
+    return entry(run, FAIL if bad else PASS, measured)
+
+
+def desk_044(sess: Session, runs: list, desk: dict | None) -> dict:
+    """The clauses that no run shows: another engineer re-derives the values (plan lane F2)."""
+    d = (desk or {}).get("VC-DRIVING-044")
+    if not isinstance(d, dict):
+        return {"missing": ["reproduction_044.json: the desk reproduction by another engineer who checks out the "
+                            "named revision, applies the recorded difference and hashes the named files "
+                            "(needs_requirements.sysml:358; plan lane F2)"]}
+    out: dict = {"measured": {"desk": d}, "outcomes": [], "missing": []}
+    if not isinstance(d.get("engineer"), str) or not d["engineer"]:
+        out["missing"].append("reproduction_044.json: no engineer")
+    if d.get("valuesMatch") is False:
+        out["outcomes"].append(FAIL)
+    elif d.get("valuesMatch") is not True:
+        out["missing"].append("reproduction_044.json: valuesMatch is not true or false")
+    shas = set(d.get("recordSha256") or [])
+    for e in runs:
+        sha = (e.get("measured") or {}).get("recordSha256")
+        if sha and sha not in shas:
+            out["missing"].append(f"run {e['run']}: record {sha} not reproduced in reproduction_044.json")
+    return out
+
+
 THRESHOLDS = {
     "VC-DRIVING-036": {"neededDecelMps2AtLeast": 5.0, "commandAccelerationAtMost": -5.0},
     "VC-DRIVING-037": {"maxRelativeImpactKmh": [list(x) for x in terms.IMPACT_LIMITS_KMH],
                        "imminent": {"ttcSAtMost": 4.0, "neededDecelMps2AtLeast": 1.0}},
     "VC-DRIVING-042": {"warningLeadSAtLeast": 1.0, "emergencyBrakingMps2": 5.0,
                        "imminent": {"ttcSAtMost": 4.0, "neededDecelMps2AtLeast": 1.0}},
+    "VC-DRIVING-038": {"worldSideControlCalls": 0, "controlSource": "actuationAdapter",
+                       "match": "seq and crc of S out.driving_command = seq and checkValue of A in.driving_command"},
+    "VC-DRIVING-040": {"imminent": {"ttcSAtMost": 4.0, "neededDecelMps2AtLeast": 1.0, "inLane": True}},
+    "VC-DRIVING-041": {"imminent": {"ttcSAtMost": 4.0, "neededDecelMps2AtLeast": 1.0, "inLane": True},
+                       "emergencyBrakingMps2": 5.0},
+    "VC-DRIVING-043": {"match": "receipt requested and issue_time_sim_ms = S out.warning_request bytes"},
+    "VC-DRIVING-044": {"recordBeforeFirstCommand": True, "diffBytesAbove": 0},
 }
 
 CASES = {
@@ -217,6 +517,17 @@ CASES = {
                                                                  THRESHOLDS["VC-DRIVING-037"]),
     "VC-DRIVING-042": lambda sess, desk: judged_settings_campaign("VC-DRIVING-042", sess, run_042,
                                                                  THRESHOLDS["VC-DRIVING-042"]),
+    "VC-DRIVING-038": lambda sess, desk: every_run_campaign("VC-DRIVING-038", sess, run_038, terms.ALL_SETTINGS,
+                                                           THRESHOLDS["VC-DRIVING-038"], stop_clause=stop_038),
+    "VC-DRIVING-040": lambda sess, desk: every_run_campaign("VC-DRIVING-040", sess, run_040, terms.ALL_SETTINGS,
+                                                           THRESHOLDS["VC-DRIVING-040"]),
+    "VC-DRIVING-041": lambda sess, desk: every_run_campaign("VC-DRIVING-041", sess, run_041, terms.ALL_SETTINGS,
+                                                           THRESHOLDS["VC-DRIVING-041"]),
+    "VC-DRIVING-043": lambda sess, desk: every_run_campaign("VC-DRIVING-043", sess, run_043, terms.JUDGED_SETTINGS,
+                                                           THRESHOLDS["VC-DRIVING-043"], stop_clause=stop_043),
+    "VC-DRIVING-044": lambda sess, desk: every_run_campaign("VC-DRIVING-044", sess, run_044, terms.ALL_SETTINGS,
+                                                           THRESHOLDS["VC-DRIVING-044"],
+                                                           extra=lambda s, runs: desk_044(s, runs, desk)),
 }
 
 
