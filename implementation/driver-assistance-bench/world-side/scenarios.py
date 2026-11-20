@@ -130,7 +130,17 @@ TARGET_013 = (20.0, 18.0, 20.0)            # "behind a target at 20 km/h (18 to 
 TARGET_015 = (40.0, 40.0, 40.0)            # "behind the vehicle ahead at the same speed" (40 km/h); no band
 # PROPOSALS (S1 plan section 3, 2026-11-20): run caps 60 s (75 s for SC-DRIVING-015); the SC-DRIVING-013 targets
 # 40 m (@30) and 115 m (@60) ahead; SC-DRIVING-015's vehicle ahead 30 m; SC-DRIVING-014's target where its site
-# places it; the stop run as SC-DRIVING-012@20, its path stopped at go + 12 s and its end 10 s of sim time after.
+# places it; the stop run as SC-DRIVING-012@20, its path stopped at go + 12 s and at least 10 s of sim time after.
+# BENCH CHOICE, the stop run's length (J7 of the closure check of 44a4be29; the model leaves it free:
+# needs_requirements.sysml:205-211 and :298, verification_evidence.sysml:395-411 and :683-706): VC-DRIVING-038 reads the
+# ticks after the stop, so the cap, counted from the go, covers the stop instant at its bound and 10 s after it.
+# The bound: the path stop at the go + 12 s (da_session.sh PATH_STOP_AFTER_S), the step's start call and path_stop.sh
+# about 2 s, the LmControl client's connect at most 5 s and drain 0.2 s, the stopped components' shutdown_timeout_ms
+# 3000: 22.2 s. Cap 42 s: 22.2 + 10 + a margin of 9.8 s. After the stop the simulator keeps the last control, so the
+# target stands as far as SC-DRIVING-012@60's (280 m: the session's survey road holds it): at 22 km/h held from the go
+# the hero covers 256.7 m in 42 s, short of the contact at about 275 m.
+STOP_RUN_CAP_S = 42.0
+STOP_TARGET_AHEAD_M = 280.0
 SETTINGS: dict[str, Setting] = {s.setting_id: s for s in (
     _setting("SC-DRIVING-012@20", 20.0, 20.0, 22.0, STATIONARY, 150.0, 60.0),
     _setting("SC-DRIVING-012@42", 42.0, 40.0, 42.0, STATIONARY, 220.0, 60.0),
@@ -141,7 +151,8 @@ SETTINGS: dict[str, Setting] = {s.setting_id: s for s in (
              site_rule=SITE_RULE_014),
     _setting("SC-DRIVING-015@40", 40.0, 38.0, 40.0, TARGET_015, 30.0, 75.0, site="sc015-turnoff",
              judgeable=False, site_rule=SITE_RULE_015),
-    _setting(STOP_RUN, 20.0, 20.0, 22.0, STATIONARY, 150.0, 22.0, judgeable=None, scenario="SC-DRIVING-012"),
+    _setting(STOP_RUN, 20.0, 20.0, 22.0, STATIONARY, STOP_TARGET_AHEAD_M, STOP_RUN_CAP_S, judgeable=None,
+             scenario="SC-DRIVING-012"),
 )}
 
 

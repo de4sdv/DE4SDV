@@ -191,7 +191,9 @@ only the app's record shows that a request arrived. The same count serves `p10-3
   `score-path/scripts/path_stop.sh`, no arguments). Its one JSON line (`runTarget` `path_stopped`, `stopInstantRealNs`,
   `stopInstantMonoNs`, `rc` 0) is the stop instant: `session.json` `s1.stop_instant`, and `s1.path_stop` with the go's
   and the call's times. A step that fails or a line that is missing or says anything else ends the session (exit 5,
-  `failed_step` `path_stop_stop`). The world side ends the run 10 s of simulation time after the stop.
+  `failed_step` `path_stop_stop`). The world side ends the stop run at its cap, 42 s of simulation time after the go
+  (`world-side/scenarios.py` `STOP_RUN_CAP_S`): the stop instant's bound is about 22.2 s after the go (12 s, the step and
+  the client's connect, drain and the stopped components' shutdown), so at least 10 s of run ticks follow it.
 - **The chase videos stay on the simulator host** (C3): `host_step.sh pack` leaves every `out/rec_*/chase_view.mp4` out
   of the pack and lists each in `out/pack_excluded.tsv` with its size and sha256 (about 144 MB a run, 2.2 GB for S1:
   far past the fetch's bound through IAP). Nothing in the stop path scales with the videos: right after each
@@ -854,7 +856,7 @@ Expected lengths are PLAN's for each probe; prices from `hosts.env` (Spot, europ
 | `p10-1` | G4 1.887 + L4 0.483 | about 45 min (an estimate from the steps, not yet measured: the starts, both uploads, the CARLA start, the warm-up, the check about 10 min, the fetch and the stops) | about EUR 1.80 | EUR 3.50 (1.5 h), approved by the owner on 2026-11-19 |
 | `p10-3` | L4 0.483 + guest host 0.271 | about 3 h | about EUR 2.26 | EUR 3.50 (4.6 h) |
 | `p10-2` | G4 1.887 + L4 0.483 + guest host 0.271 | about 1.5 h | about EUR 3.96 | EUR 6.00 (2.3 h) |
-| `s1` | G4 1.887 + L4 0.483 + guest host 0.271 | about 2.0 h: 22 min to the first run, 14 runs of 5.5-6 min (about 82 min), the stop run about 6.5 min, the fetch and the stops about 6 min | about EUR 5.30 (+0.65 with an on-demand L4) | EUR 8.00 (3.0 h) |
+| `s1` | G4 1.887 + L4 0.483 + guest host 0.271 | about 2.0 h: 22 min to the first run, 14 runs of 5.5-6 min (about 82 min), the stop run about 7 min (its cap 42 s), the fetch and the stops about 6 min | about EUR 5.30 (+0.65 with an on-demand L4) | EUR 8.00 (3.0 h) |
 | `fetch_chase.sh` after `s1` | G4 1.887 | 37-43 min of ranges for about 2.2 GB at 1.03 MB/s, plus about 4 min of start and stop | EUR 1.3-1.5 | none: bounded by 120 s plus the bytes at 0.5 MB/s, its safety net 15 min after that |
 
 The `s1` figures are those of the S1 build plan (section 4), from the times of 20261120T092051Z (attempt 3: 22 min from the
