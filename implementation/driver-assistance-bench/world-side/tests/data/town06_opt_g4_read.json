@@ -1,0 +1,277 @@
+{
+ "api": {
+  "AckermannControllerSettings": true,
+  "Actor.enable_constant_velocity": true,
+  "Map.to_opendrive": true,
+  "Vehicle.apply_ackermann_controller_settings": true,
+  "Vehicle.disable_constant_velocity": true,
+  "Vehicle.enable_constant_velocity": true,
+  "Vehicle.get_ackermann_controller_settings": true,
+  "Waypoint.junction_id": true
+ },
+ "load_world_s": 4.86,
+ "map_name": "Carla/Maps/Town06_Opt",
+ "package_xodr": {
+  "path": "CarlaUnreal/Packs/AdditionalMaps/Content/Maps/OpenDrive/Town06_Opt.xodr",
+  "sha256": "a90b613175fa837fdc128ddfaf5ddad25797b128fdbd8cd945974bc21a60496e"
+ },
+ "prop_bounding_boxes": {
+  "static.prop.barrel": {
+   "extent": [
+    0.3251359164714813,
+    0.051590170711278915,
+    0.40337297320365906
+   ],
+   "loc": [
+    0.011971864849328995,
+    1.9132906814434136e-08,
+    0.40337297320365906
+   ]
+  },
+  "static.prop.chainbarrier": {
+   "extent": [
+    0.7474053502082825,
+    0.4056827127933502,
+    0.3460488021373749
+   ],
+   "loc": [
+    0.7201070189476013,
+    4.1721108345882385e-08,
+    0.3460488021373749
+   ]
+  },
+  "static.prop.chainbarrierend": {
+   "extent": [
+    0.17012542486190796,
+    0.024784531444311142,
+    0.3460488021373749
+   ],
+   "loc": [
+    -3.8146982461739753e-08,
+    3.814696469817136e-08,
+    0.3460488021373749
+   ]
+  },
+  "static.prop.constructioncone": {
+   "extent": [
+    0.33477336168289185,
+    0.04875987768173218,
+    0.3558987081050873
+   ],
+   "loc": [
+    0.003247766522690654,
+    -0.004632405936717987,
+    0.3514261841773987
+   ]
+  },
+  "static.prop.streetbarrier": {
+   "extent": [
+    0.5980620980262756,
+    0.21414536237716675,
+    0.534582257270813
+   ],
+   "loc": [
+    0.0,
+    0.0,
+    0.5347943902015686
+   ]
+  },
+  "static.prop.trafficcone01": {
+   "extent": [
+    0.6683931946754456,
+    0.09737429767847061,
+    0.6168091297149658
+   ],
+   "loc": [
+    0.0,
+    0.0,
+    0.6168091297149658
+   ]
+  },
+  "static.prop.trafficcone02": {
+   "extent": [
+    0.3005460202693939,
+    0.021975895389914513,
+    0.5914603471755981
+   ],
+   "loc": [
+    0.0,
+    0.0,
+    0.5914603471755981
+   ]
+  },
+  "static.prop.trafficwarning": {
+   "extent": [
+    1.8093326091766357,
+    0.44121769070625305,
+    1.784761667251587
+   ],
+   "loc": [
+    0.0,
+    0.0,
+    1.784761667251587
+   ]
+  },
+  "static.prop.warningaccident": {
+   "extent": [
+    0.8384348750114441,
+    0.03283841162919998,
+    0.9301009774208069
+   ],
+   "loc": [
+    -3.2699062207930396e-11,
+    0.006587295327335596,
+    0.929376482963562
+   ]
+  },
+  "static.prop.warningconstruction": {
+   "extent": [
+    0.8384348750114441,
+    0.03283841162919998,
+    0.9301009774208069
+   ],
+   "loc": [
+    -3.2699062207930396e-11,
+    0.006587295327335596,
+    0.929376482963562
+   ]
+  }
+ },
+ "server_version": "1.0-14ac3b1a5",
+ "source": "lane A2 map read on the G4, 2026-11-20 (inc-driving-002/phase10/s1-map/g4/fetched/out/mapread.json)",
+ "spawn_points": 436,
+ "static_prop": [
+  "static.prop.advertisement",
+  "static.prop.atm",
+  "static.prop.barbeque",
+  "static.prop.barrel",
+  "static.prop.bench01",
+  "static.prop.bench02",
+  "static.prop.bikehelmet",
+  "static.prop.briefcase",
+  "static.prop.brokentile01",
+  "static.prop.brokentile02",
+  "static.prop.brokentile03",
+  "static.prop.brokentile04",
+  "static.prop.busstop",
+  "static.prop.calibrator",
+  "static.prop.chainbarrier",
+  "static.prop.chainbarrierend",
+  "static.prop.colacan",
+  "static.prop.constructioncone",
+  "static.prop.container",
+  "static.prop.creasedbox01",
+  "static.prop.dirtdebris01",
+  "static.prop.dirtdebris02",
+  "static.prop.dirtdebris03",
+  "static.prop.doghouse",
+  "static.prop.dumpster",
+  "static.prop.dumpster02",
+  "static.prop.fountain",
+  "static.prop.garbage01",
+  "static.prop.garbage02",
+  "static.prop.garbage03",
+  "static.prop.garbage04",
+  "static.prop.garbage05",
+  "static.prop.garbage06",
+  "static.prop.gnome",
+  "static.prop.guitarcase",
+  "static.prop.haybale",
+  "static.prop.kiosk_01",
+  "static.prop.mailbox",
+  "static.prop.maptable",
+  "static.prop.mesh",
+  "static.prop.mobile",
+  "static.prop.motorhelmet",
+  "static.prop.pergola",
+  "static.prop.plantpot01",
+  "static.prop.plantpot02",
+  "static.prop.plantpot03",
+  "static.prop.plantpot04",
+  "static.prop.plantpot05",
+  "static.prop.plantpot06",
+  "static.prop.plantpot07",
+  "static.prop.plasticbag",
+  "static.prop.plasticchair",
+  "static.prop.plastictable",
+  "static.prop.platformgarbage01",
+  "static.prop.purse",
+  "static.prop.recyclecardboard",
+  "static.prop.recycleglass",
+  "static.prop.recycleorganic",
+  "static.prop.recycleplastic",
+  "static.prop.shoppingbag",
+  "static.prop.shoppingcart",
+  "static.prop.shoppingtrolley",
+  "static.prop.streetbarrier",
+  "static.prop.streetfountain",
+  "static.prop.streetsign",
+  "static.prop.streetsign01",
+  "static.prop.streetsign04",
+  "static.prop.swing",
+  "static.prop.swingcouch",
+  "static.prop.trafficcone01",
+  "static.prop.trafficcone02",
+  "static.prop.trafficwarning",
+  "static.prop.trampoline",
+  "static.prop.trashbag",
+  "static.prop.trashcan01",
+  "static.prop.trashcan02",
+  "static.prop.trashcan03",
+  "static.prop.trashcan04",
+  "static.prop.trashcan05",
+  "static.prop.travelcase",
+  "static.prop.vendingmachine",
+  "static.prop.warningaccident",
+  "static.prop.warningconstruction"
+ ],
+ "to_opendrive": {
+  "bytes": 3004885,
+  "chars": 3004885,
+  "file": "Town06_Opt.xodr",
+  "sha256": "a90b613175fa837fdc128ddfaf5ddad25797b128fdbd8cd945974bc21a60496e"
+ },
+ "vehicles": {
+  "vehicle.lincoln.mkz": {
+   "ackermannControllerSettings": {
+    "accel_kd": 0.009999999776482582,
+    "accel_ki": 0.0,
+    "accel_kp": 0.009999999776482582,
+    "speed_kd": 0.25,
+    "speed_ki": 0.0,
+    "speed_kp": 0.15000000596046448
+   },
+   "extent": [
+    2.4459850788116455,
+    0.9178230166435242,
+    0.7620594501495361
+   ],
+   "loc": [
+    -0.0062155150808393955,
+    1.1411704321442765e-15,
+    0.7632452249526978
+   ]
+  },
+  "vehicle.tesla.model3": {
+   "constantVelocity": {
+    "commandedMps": 5.556,
+    "meanMps": 5.55,
+    "movedM": 11.1,
+    "stepS": 0.05,
+    "ticks": 40,
+    "velocityMps": 5.553
+   },
+   "extent": [
+    2.3469998836517334,
+    1.0440000295639038,
+    0.7214999794960022
+   ],
+   "loc": [
+    -0.06849999725818634,
+    0.0,
+    0.7214999794960022
+   ]
+  }
+ },
+ "xodr_file": "town06_opt_g4.xodr.xz"
+}

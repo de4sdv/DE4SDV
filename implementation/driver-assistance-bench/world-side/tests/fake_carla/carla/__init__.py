@@ -21,6 +21,10 @@ tell which client applied a control: the world side, or a stand-in for the actua
   until the next one: on the real server (G4, 2026-11-19) a second client connecting in such a pause listed 0 actors
   and a snapshot of frame 0 for 85 s, then 98 actors at the first tick after the go. Off by default, so the world
   side's own tests keep the live list;
+- the map read of the real server (lane A2, G4, 2026-11-20; ``tests/data/town06_opt_g4_read.json``): the 83
+  ``static.prop.*`` blueprints the server lists (a name it does not list is refused, as ``find`` refuses any unknown
+  blueprint), and Town06_Opt's own OpenDRIVE (``Map.to_opendrive()``, ``tests/data/town06_opt_g4.xodr.xz``, the bytes
+  of sha256 a90b6131...); a map without a replayed read refuses ``to_opendrive()`` rather than invent one;
 - ``_SHARED_SERVER``: when a test sets it, ``Client(host, port)`` without ``_server`` joins that server, so a
   program that creates its own client (the chase recorder) shares the world with the test's world side.
 
@@ -31,8 +35,11 @@ The API names follow the Python bindings of CARLA at 14ac3b1a502da45a44506cb2ed8
 from __future__ import annotations
 
 import fnmatch
+import json
+import lzma
 import math
 import os
+from pathlib import Path
 
 __version__ = "1.0-fake"
 
@@ -267,6 +274,12 @@ WITH_ADDITIONAL_MAPS = ("Eixample", "EmptyMap", "Mine_01", "Town01_Opt", "Town02
                         "Town05_Opt", "Town06_Opt", "Town07_Opt", "Town10HD_Opt", "Town11", "Town12", "Town13",
                         "Town15", "Town_C")
 
+_DATA = Path(__file__).resolve().parents[2] / "data"
+# The map read of the real server (lane A2, 2026-11-20): what the fake replays
+REAL_READ = json.loads((_DATA / "town06_opt_g4_read.json").read_text(encoding="utf-8"))
+REAL_STATIC_PROPS = tuple(REAL_READ["static_prop"])
+REPLAY_XODR = {"Town06_Opt": _DATA / REAL_READ["xodr_file"]}
+
 VEHICLE_SHAPES = {                      # extent (half sizes, m), wheelbase (m)
     "vehicle.lincoln.mkz": ((2.45, 1.05, 0.75), 2.85),
     "vehicle.tesla.model3": ((2.40, 1.05, 0.75), 2.87),
@@ -278,6 +291,7 @@ def default_blueprints() -> list[Blueprint]:
     out += [Blueprint("sensor.camera.rgb"), Blueprint("sensor.other.collision"),
             Blueprint("sensor.other.lane_invasion"),
             Blueprint("static.prop.mesh", {"mesh_path": "", "mass": "", "scale": "1.0"})]
+    out += [Blueprint(name, {"size": "", "mesh_path": ""}) for name in REAL_STATIC_PROPS if name != "static.prop.mesh"]
     return out
 
 
@@ -348,6 +362,16 @@ class Map:
 
     def get_spawn_points(self):
         return [Waypoint(self, -1, s).transform for s in (10.0, 50.0)]
+
+    def to_opendrive(self) -> str:
+        """The map's OpenDRIVE text, replayed from the real server's read; the waypoints of this fake stay its own
+        straight lanes."""
+        short = self.name.rstrip("/").split("/")[-1]
+        path = REPLAY_XODR.get(short)
+        if path is None:
+            raise RuntimeError(f"fake carla: no OpenDRIVE read of {short} to replay")
+        with lzma.open(path, "rt", encoding="utf-8") as f:
+            return f.read()
 
     def generate_waypoints(self, distance: float):
         out, s = [], 0.0
