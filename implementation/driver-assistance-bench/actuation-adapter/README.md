@@ -109,7 +109,10 @@ that connects meanwhile sees no actor until the next tick, so the adapter cannot
   record (66 s after the step began in the first recorded p10-2, 20261119T174606Z).
 - The Launch Manager gives the adapter 420 s to report running (`ready_timeout_ms` 420000 in
   `../launch-manager/config/launch_manager_config.json`).
-- 400 s is the go limit plus 20 s, and leaves 20 s for the connect and the report before the ready time-out.
+- 400 s is the go limit plus 20 s, and leaves 20 s for the connect and the report before the ready time-out. The go
+  file can come up to the go limit plus its SSH call, 415 s after the start step began, so the wait covers that worst
+  case only while the adapter starts at least 16 s into the step. Measured: 66 s (calib_steer) and 59 s (run 1) in
+  20261119T174606Z.
 
 Why: in run 1 of that session the go came 81 s after the adapter's start. The old wait of 20 s had given up
 (`simulator client: no vehicle with role_name hero`), and the Launch Manager switched to its fallback run

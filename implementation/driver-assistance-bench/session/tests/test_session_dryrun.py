@@ -1281,7 +1281,7 @@ def test_a_host_lost_mid_run_ends_the_session_at_once_and_is_not_fetched(tmp_pat
     go = r.ssh(G4, "world_calib_steer/go")[0]
     assert not [i for i in r.ssh(G4, "host_step.sh pack") if i > go]
     rec = json.loads((r.incoming / "session.json").read_text())
-    assert rec["ended_by"].startswith("host lost: sim") and "sim" in rec["not_fetched"]
+    assert rec["ended_by"].startswith("host lost: sim") and f"sim: {OWED}" in rec["not_fetched"]
     assert r.ssh(L4, "run score_stop_on_failure")             # the S-CORE side still collected
     assert_invariants(r)
 
@@ -1999,21 +1999,24 @@ def test_f4_a_chase_recorder_that_ends_rc_1_is_recorded_and_the_session_goes_on(
     assert r.sequence() == p10_2_seq(), r.sequence()
     rec = json.loads((r.incoming / "session.json").read_text())
     assert rec["exit_code"] == 0 and rec["failed_step"] is None, (rec["exit_code"], rec["failed_step"])
-    assert rec["chase_view"] == {"run1": {"complete": False, "rc": 1, "end": REC_END},
-                                 "run2": {"complete": True, "rc": 0, "end": None}}, rec["chase_view"]
+    none = {"written": None, "gaps": None, "ticks_seen": None}
+    assert rec["chase_view"] == {"run1": {"complete": False, "rc": 1, "end": REC_END, **none, "written": 0},
+                                 "run2": {"complete": True, "rc": 0, "end": None, **none}}, rec["chase_view"]
     assert rec["app_record_receipts"] == {"run1": 2, "run2": 2}, rec["app_record_receipts"]
     assert rec["p10_2"]["chase_view_complete"] is False, rec["p10_2"]
     assert "CHASE VIEW NOT COMPLETE IN RUN run1: the recorder ended rc 1" in r.log
-    assert f"p10-2 chase view NOT complete: run1 (recorder rc 1: {REC_END})" in r.log
+    assert f"p10-2 chase recorder NOT rc 0 in every run: run1 (recorder rc 1: {REC_END})" in r.log
 
 
 def test_f4_a_good_p10_2_reports_every_chase_view_complete(tmp_path: Path) -> None:
     r = run(tmp_path, "p10-2", "--without-guest-host")
     assert r.rc == 0, r.log
     rec = json.loads((r.incoming / "session.json").read_text())
-    assert rec["chase_view"] == {"run1": {"complete": True, "rc": 0, "end": None},
-                                 "run2": {"complete": True, "rc": 0, "end": None}}, rec["chase_view"]
-    assert rec["p10_2"]["chase_view_complete"] is True and "p10-2 chase view complete: run1, run2" in r.log
+    none = {"end": None, "written": None, "gaps": None, "ticks_seen": None}
+    assert rec["chase_view"] == {"run1": {"complete": True, "rc": 0, **none},
+                                 "run2": {"complete": True, "rc": 0, **none}}, rec["chase_view"]
+    assert rec["p10_2"]["chase_view_complete"] is True
+    assert "p10-2 chase recorder ended rc 0 in every run: run1, run2" in r.log
 
 
 def test_f4_a_chase_recorder_still_running_after_its_bound_still_ends_the_session(tmp_path: Path) -> None:
@@ -2022,3 +2025,177 @@ def test_f4_a_chase_recorder_still_running_after_its_bound_still_ends_the_sessio
     assert r.rc == 5, r.log
     rec = json.loads((r.incoming / "session.json").read_text())
     assert rec["failed_step"] == "rec_run1" and not r.ssh(G4, "start world_run2")
+
+
+# ------------------------------------------- R12b: a role VM lost while none of its steps is polled (p10-2 attempt 2)
+# In 20261119T203947Z the S-CORE host was preempted at 21:00:19Z while the session ran guest steps. Nothing polled it:
+# a guest step failed 87 s later on the missing offer (exit 5, ended_by "step app_restart_run1"), the S-CORE stop and
+# the fetch SSHed to the stopped VM (rc 255, "fetch ... failed or changed (remote '', local '')"), and the loss was
+# never named. A host watch now reads the started VMs' states; an SSH failure in the stop path reads the VM's state.
+FIX_AT = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d{3})?Z$")
+OWED = "records on its disk under ~/da-kit/T/out (fetch owed)"
+
+
+def _watch_lists(r: Run) -> list[int]:
+    """The host watch's reads: `compute instances list` without the preflight's RUNNING filter, before the trap."""
+    end = r.index(lambda c: c[2:5] == ["compute", "instances", "stop"])
+    first_stop = end[0] if end else len(r.calls)
+    return [i for i in r.index(lambda c: c[2:5] == ["compute", "instances", "list"]
+                               and not any(a.startswith("--filter") for a in c)) if i < first_stop]
+
+
+def _lost_ok(rec: dict, role: str, status: str, by: str) -> None:
+    lost = rec["hosts_lost"][role]
+    assert lost["status"] == status and by in lost["detected_by"], lost
+    assert FIX_AT.match(lost["detected_at"]) and FIX_AT.match(lost["preempted_at"] or ""), lost
+    assert f"{role}: {OWED}" in rec["not_fetched"], rec["not_fetched"]
+
+
+def test_r12b_a_host_lost_while_none_of_its_steps_is_polled_ends_the_session_within_the_host_watch(
+        tmp_path: Path) -> None:
+    t0 = time.monotonic()
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_LOST_AFTER=f"{L4}:tail score_start_run1",
+            FAKE_HANG_STEP="unit_run1:40", DA_T_HOST_WATCH_S="0.5")
+    took = time.monotonic() - t0
+    assert r.rc == 3, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["ended_by"] == "host lost: score (TERMINATED)", rec["ended_by"]
+    assert took < 30, took                            # the guest step's 40 s were not waited for
+    _lost_ok(rec, "score", "TERMINATED", "host watch")
+    lost = r.ssh(L4, "tail score_start_run1")[0]
+    assert not [i for i in r.ssh(L4, "") if i > lost], "an SSH to the lost host"   # no stop step, no fetch
+    assert set(rec["fetched"]) == {"sim", "guest"}, rec["fetched"]
+    ops = r.index(lambda c: c[2:5] == ["compute", "operations", "list"])
+    assert ops and any(f"targetLink~instances/{L4}$" in a and "operationType=compute.instances.preempted" in a
+                       for a in r.calls[ops[0]]), [r.calls[i] for i in ops]
+    assert "HOST LOST: de4sdv-probe-da8-carla (score) reads TERMINATED in the host watch" in r.log
+    assert "p10-2 host lost: score (TERMINATED" in r.log and OWED in r.log
+    assert_invariants(r)
+
+
+def test_r12b_the_host_watch_reads_only_vms_this_session_started_once_up(tmp_path: Path) -> None:
+    # p10-1 never starts the guest host, which reads TERMINATED in the S-CORE host's project; the L4 reads TERMINATED
+    # between its start rounds: neither is a lost host
+    r = run(tmp_path, "p10-1", FAKE_START=f"{L4}:STOCKOUT|STOCKOUT|OK", DA_T_ROUND_PAUSE_S="0.6",
+            DA_T_HOST_WATCH_S="0.1", FAKE_HANG_STEP="p10_1:2")
+    assert r.rc == 0, r.log
+    assert len(_watch_lists(r)) >= 4, "no host watch"
+    assert "HOST LOST" not in r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["hosts_lost"] == {} and rec["ended_by"] == "steps"
+    cmds = (r.incoming / "commands.log").read_text()
+    assert re.search(r"compute instances list --format=\S+ \[host watch\] \[timeout \d+ s\]", cmds), cmds[-2000:]
+
+
+def test_r12b_the_host_watch_ends_where_the_trap_begins_its_stops(tmp_path: Path) -> None:
+    # the trap fetches and stops the S-CORE host, then tries the guest host's SSH for GUEST_NOSSH_S: the S-CORE host
+    # reads TERMINATED by the trap's own stop meanwhile, which is no loss
+    r = run(tmp_path, "p10-3", "--owner-ok-guest-host", FAKE_SSH_DOWN=GH, DA_T_GUEST_NOSSH_S="3",
+            DA_T_HOST_WATCH_S="0.1")
+    assert r.rc == 4, r.log
+    assert r.stops(L4) and "GUEST HOST STOPPED WITHOUT A CROSVM COUNT" in r.log
+    assert "HOST LOST" not in r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["hosts_lost"] == {} and not rec["ended_by"].startswith("host lost"), rec["ended_by"]
+
+
+def test_r12b_a_step_that_fails_after_the_score_host_was_lost_names_the_loss_and_skips_its_ssh(
+        tmp_path: Path) -> None:
+    # the 20261119T203947Z order: the L4 lost after score_start_run1, the guest step fails on the missing offer before
+    # the host watch reads it; the S-CORE stop's SSH fails (rc 255) and reads the VM's state
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_LOST_AFTER=f"{L4}:tail score_start_run1",
+            FAKE_FAIL_STEP="app_restart_run1", DA_T_HOST_WATCH_S="600")
+    assert r.rc == 3, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["failed_step"] == "app_restart_run1", rec["failed_step"]
+    assert rec["ended_by"] == "host lost: score (TERMINATED)", rec["ended_by"]
+    _lost_ok(rec, "score", "TERMINATED", "score_stop_on_failure")
+    assert not r.ssh(L4, "host_step.sh pack") and "failed or changed (remote ''" not in r.log
+    assert set(rec["fetched"]) == {"sim", "guest"}, rec["fetched"]
+    assert "step app_restart_run1 failed after the loss of score" in r.log
+    assert_invariants(r)
+
+
+def test_r12b_a_step_that_fails_before_the_loss_stays_the_end(tmp_path: Path) -> None:
+    # guard of the order: the loss came after the failure (the S-CORE stop's own SSH answered, the host went after
+    # it), so ended_by stays the step and exit 5; the loss is recorded all the same
+    r = run(tmp_path, "p10-2", "--owner-ok-guest-host", FAKE_LOST_AFTER=f"{L4}:run score_stop_on_failure",
+            FAKE_FAIL_STEP="app_restart_run1", DA_T_HOST_WATCH_S="600")
+    assert r.rc == 5, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["failed_step"] == "app_restart_run1" and rec["ended_by"] == "step app_restart_run1", rec["ended_by"]
+    _lost_ok(rec, "score", "TERMINATED", "fetch")
+    # the pack's SSH found the loss: no copy from the lost host follows, and no failed fetch is reported
+    assert not r.index(lambda c: c[2:4] == ["compute", "scp"] and f"{L4}:da-kit/T/out.tgz" in c)
+    assert "failed or changed (remote ''" not in r.log
+    assert_invariants(r)
+
+
+@pytest.mark.parametrize("after, by", [("tail score_stop_run2", "ssh: fetch (pack)"),
+                                       ("host_step.sh pack", "scp: fetch")])
+def test_r12b_a_host_lost_before_the_final_fetch_is_named_not_a_failed_fetch(tmp_path: Path, after: str,
+                                                                              by: str) -> None:
+    # lost before the pack's SSH, or between the pack and the copy: each failed call reads the VM's state
+    r = run(tmp_path, "p10-2", "--without-guest-host", FAKE_LOST_AFTER=f"{L4}:{after}", DA_T_HOST_WATCH_S="600")
+    assert r.rc == 3, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["ended_by"] == "host lost: score (TERMINATED)" and rec["failed_step"] is None, rec["ended_by"]
+    _lost_ok(rec, "score", "TERMINATED", by)
+    assert rec["hosts_lost"]["score"]["detected_by"] == by
+    assert "failed or changed (remote ''" not in r.log and rec["fetched"] == ["sim"], rec["fetched"]
+    assert_invariants(r)
+
+
+# ------------------------------------------- T4, T6, T8 of the closure check of 8fae4100
+ADAPTER_CONFIG = ('{"t_mono_ns":872376290692,"t_real_ns":1795121733966229000,"host":"score","component":'
+                  '"actuationAdapter","event":"config","seq":2,"data":{"carla_host":"10.10.0.2","carla_port":2000,'
+                  '"client_timeout_s":30,"hero_role_name":"hero","clientVersion":"1.0-14ac3b1a5","serverVersion":'
+                  '"1.0-14ac3b1a5","heroActorId":148,"heroTypeId":"vehicle.lincoln.mkz"}}\n')
+ADAPTER_ERROR = ('{"t_mono_ns":1036865930466,"t_real_ns":1795111480448812235,"host":"score","component":'
+                 '"actuationAdapter","event":"start","seq":1,"data":{"pid":9613,"config":'
+                 '"/tmp/de4sdv-da-bench/config/adapter.json","mw_com_config":'
+                 '"/tmp/de4sdv-da-bench/config/mw_com_config_actuation_adapter.json","run_dir":'
+                 '"/tmp/de4sdv-da-bench/run"}}\n'
+                 '{"t_mono_ns":1056885197482,"t_real_ns":1795111500468079203,"host":"score","component":'
+                 '"actuationAdapter","event":"error","seq":2,"data":{"what":"simulator client","message":'
+                 '"no vehicle with role_name hero"}}\n')
+
+
+def test_t4_each_runs_adapter_attach_is_recorded_and_a_run_without_one_is_named(tmp_path: Path) -> None:
+    # the lines are the adapter's own records of 20261119T203947Z (calib_steer) and 20261119T174606Z (run1)
+    ok, bad = tmp_path / "ok.jsonl", tmp_path / "bad.jsonl"
+    ok.write_text(ADAPTER_CONFIG)
+    bad.write_text(ADAPTER_ERROR)
+    a = "score_side/run/score/actuationAdapter.jsonl"
+    r = run(tmp_path, "p10-2", "--without-guest-host",
+            FAKE_PACK_ADD=f"out/score_calib_steer/{a}={ok},out/score_run1/{a}={bad}")
+    assert r.rc == 0, r.log
+    runs = json.loads((r.incoming / "session.json").read_text())["score_runs"]
+    assert runs["calib_steer"]["adapter"] == {"heroActorId": 148, "error": None}, runs["calib_steer"]
+    assert runs["run1"]["adapter"] == {"heroActorId": None,
+                                       "error": "simulator client: no vehicle with role_name hero"}, runs["run1"]
+    assert runs["run2"]["adapter"] == "no adapter record fetched", runs["run2"]
+    assert ("p10-2 adapter NO ATTACH in run1 (simulator client: no vehicle with role_name hero), run2 (no adapter "
+            "record fetched); attached in calib_steer (hero 148)") in r.log
+
+
+def test_t4_a_score_host_not_fetched_reads_not_fetched_for_each_runs_adapter(tmp_path: Path) -> None:
+    r = run(tmp_path, "p10-2", "--without-guest-host", FAKE_FETCH_FAIL=L4)
+    assert r.rc == 5, r.log
+    runs = json.loads((r.incoming / "session.json").read_text())["score_runs"]
+    assert {w: d["adapter"] for w, d in runs.items()} == {w: "not fetched" for w in ("calib_steer", "run1", "run2")}
+
+
+def test_t6_t8_chase_view_says_what_its_rc_means_and_the_speed_limit_is_a_proposal(tmp_path: Path) -> None:
+    summary = tmp_path / "summary.json"
+    summary.write_text(json.dumps({"ego_id": 152, "written": 591, "gaps": [[10, 12]], "ticks_seen": 1803,
+                                   "end": "hero deleted", "ffmpeg_rc": 0}))
+    r = run(tmp_path, "p10-2", "--without-guest-host", FAKE_PACK_ADD=f"out/rec_run1/summary.json={summary}")
+    assert r.rc == 0, r.log
+    rec = json.loads((r.incoming / "session.json").read_text())
+    assert rec["chase_view"]["run1"] == {"complete": True, "rc": 0, "end": "hero deleted", "written": 591,
+                                         "gaps": [[10, 12]], "ticks_seen": 1803}, rec["chase_view"]
+    assert rec["chase_view"]["run2"]["written"] is None
+    assert "p10-2 chase recorder ended rc 0 in every run: run1, run2" in r.log and "chase view complete" not in r.log
+    for d in rec["score_runs"].values():
+        assert d["speed_limit_source"].startswith("bench proposal: world-side/scenarios.py "), d

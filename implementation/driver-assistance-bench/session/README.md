@@ -93,8 +93,9 @@ Each run's facts go to `session.json` `score_runs.<run>` (`calib_steer`, `run1`,
   `../world-side/scenarios.py`: `SC-DRIVING-012@20` (calib_steer runs on that setting's road and vehicle), with the
   tolerance 20 to 22 km/h. The value is that file's proposal, the middle of the tolerance: 21 km/h, 5.833 m/s
   (`Setting.speed_limit_mps`, also in the world side's setting record). The session gives it to the S-CORE start as
-  `DA_SPEED_LIMIT`. Why: the first recorded `p10-2` (20261119T174606Z) left upstream's 33.3 m/s, and in calib_steer
-  the car reached 108.9 km/h.
+  `DA_SPEED_LIMIT`. `speed_limit_source` begins with "bench proposal:": the model sets no value
+  (`scenarios.py` marks it PROPOSAL). Why: the first recorded `p10-2` (20261119T174606Z) left upstream's 33.3 m/s,
+  and in calib_steer the car reached 108.9 km/h.
 - **What was staged.** The start prints one `SCORE_CONFIG` line: the staged `vision_pilot.conf` values, `hero_wait_s`
   of `adapter.json`, the conf's sha256 and whether the identity record hashes that same file. The session records
   it in `staged`, and ends the session before the go (exit 5, `failed_step` `score_start_<run>`) when the value is
@@ -108,7 +109,7 @@ Each run's facts go to `session.json` `score_runs.<run>` (`calib_steer`, `run1`,
     holds it once, and writes its path, size and sha256, computed on the host, to `score_<run>/candidate_rrd.json`.
   - `host_step.sh pack` leaves every `*.rrd` out and lists each with its size in `out/pack_excluded.tsv`.
   - `session.json` has `score_runs.<run>.candidate_rrd` and `not_fetched_from_hosts`, and the `p10-2` report line
-    names each record kept on the S-CORE host. Nothing on any host is deleted.
+    names each record kept on the S-CORE host. No Rerun record is deleted on any host.
 - **The disk check.** The first step of a `p10-2` is `score:disk_check` (`ENTRY_SCORE_DISK`), before the simulator
   host's setup and any run, so a short disk costs the least.
   - The budget is the candidate's highest record rate times each run's planned running, plus 10 % and 5 GB. The rate:
@@ -120,10 +121,19 @@ Each run's facts go to `session.json` `score_runs.<run>` (`calib_steer`, `run1`,
     the longest run's 19,520,000,000 B are also needed on the stage's filesystem.
   - A short disk ends the session there: exit 5, `failed_step` `disk_check`, "DISK SPACE SHORT" in `session.log`.
     `session.json` `score_disk_check` holds the rate, the planned seconds, the need and the host's answer.
+- **The actuation adapter's attach.** `score_runs.<run>.adapter` holds what the adapter's own record
+  (`score_<run>/score_side/run/score/actuationAdapter.jsonl` in the fetched S-CORE output) says: `heroActorId` from
+  its `config` event and the text of its first `error` event (`simulator client: no vehicle with role_name hero`),
+  or "not fetched" when the S-CORE host was not fetched, or "no adapter record fetched". The `p10-2` report line
+  names every run with no attach: such a run sent no command to the car, whatever the session's exit code. Why: in
+  20261119T174606Z the adapter of run 1 gave up, the Launch Manager switched to its fallback, and the session ended
+  rc 0 with nothing in `session.json` saying so (T4 of the closure check of 8fae4100).
 - **The chase view.** A chase recorder that ends with its own exit status, 0 or not, is a result of its run's
-  window, never a failed step. `session.json` `chase_view.<run>` holds `complete` (rc 0), `rc` and the end its
-  `summary.json` names, read from the fetched files. The `p10-2` report line says "chase view complete" or "chase
-  view NOT complete" with each run's rc and end, and `p10_2.chase_view_complete` says the same. The session goes on
+  window, never a failed step. `session.json` `chase_view.<run>` holds `complete` (the recorder's rc 0 only), `rc`,
+  and from its `summary.json` in the fetched files the `end`, `written`, `gaps` and `ticks_seen`. rc 0 says that the
+  recorder attached, wrote at least one frame and ffmpeg ended 0, not that the view has no gap: read `written` and
+  `gaps`. The `p10-2` report line says "chase recorder ended rc 0 in every run" or "chase recorder NOT rc 0 in every
+  run" with each run's rc and end, and `p10_2.chase_view_complete` says the same. The session goes on
   with the window's capture stop, its receipts and the next run. Only a recorder still running at `T_REC_END`
   (it would attach to the next run's hero) or a lost host ends the session. Why: in 20261119T174606Z the run's
   recorder ended rc 1 ("ego or camera deleted by another client", no frame), and the session skipped
@@ -306,8 +316,31 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   (`GUEST HOST LEFT RUNNING`, exit 11) whatever the `crosvm` count. Only the S-CORE side's stop after a failure
   (`score_stop_on_failure`) runs in the foreground of one call (bounded in the trap).
 - A poll that fails reads the host's status: a host found stopped (a Spot preemption) ends the session at once with
-  exit 3; it is not fetched (`not_fetched`, `ended_by` `host lost: <role>`), and the other hosts are collected and
-  fetched as after any failure.
+  exit 3; it is not fetched (`not_fetched`, `ended_by` `host lost: <role> (<status>)`), and the other hosts are
+  collected and fetched as after any failure.
+- **The host watch.** A host can be lost while none of its steps is polled (20261119T203947Z: the S-CORE host was
+  preempted while the session ran guest steps; a guest step failed 87 s later on the missing offer, the S-CORE stop
+  and the fetch SSHed to the stopped VM, and nothing named the loss). Every `HOST_WATCH_S` (30 s) a loop beside the
+  cost watchdog reads the states of the VMs this session started, one `instances list` per project bounded at 25 s,
+  each VM only once it passed its preemption check, and only until the trap begins its own stops (the trap's first
+  act is to write `.trap_stopping`). A VM that reads anything but `RUNNING` ends the session by TERM ("HOST LOST ...
+  in the host watch" in `session.log`). The trap then gives that host no SSH, no stop step and no fetch, still ends
+  the running step, stops the S-CORE side, ends the world side and fetches every other host, stops every VM, and
+  exits 3 with `ended_by` `host lost: <role> (<status>)`.
+- Every path of the stop that SSHes to a role host (the S-CORE stop on failure `score_down`, the fetch's pack and
+  copy, the running step's TERM `step_down`, the world side's release, the capture's stop) reads the VM's state when
+  its SSH fails (rc 255; the copy on any failure). A VM that is not `RUNNING` is a lost host as above, never "fetch
+  ... failed or changed (remote '', local '')". A step that failed while a host was already gone stays
+  `failed_step`; `ended_by` names the host loss, with exit 3, when GCP's preemption operation is older than the
+  step's failure, and the failed step (exit 5) otherwise. The operation's time errs late (in 20261119T203947Z it came
+  44 s after the host's own power-off), so a step that failed in between still reads as the end.
+- `session.json` `hosts_lost.<role>` holds `status`, `detected_at`, `detected_by` (`host watch`, a poll, or the SSH
+  that failed) and `preempted_at`: the newest `compute.instances.preempted` operation of that VM since the session's
+  start (`gcloud compute operations list`, in UTC), null when GCP lists none. The session's filter, run once by hand
+against the main project on 2026-11-20, listed the S-CORE host's preemption of 20261119T203947Z as
+`2026-11-19T13:01:03.560-08:00` (21:01:03.560Z). `not_fetched` names a lost host as
+  "`<role>`: records on its disk under ~/da-kit/`<id>`/out (fetch owed)", and the kind's report line names the loss:
+  fetch those records by hand before any run whose records they hold is judged.
 - Every remote call whose output the session reads writes it to a file first, never through a pipe or a command
   substitution: a signal or the cap ends the session at once, not after a fetch's 20-minute copy.
 - A watchdog writes `cost.log` every 30 s (an upper bound: from each start call, at the hourly prices in
@@ -352,7 +385,8 @@ Rules the script enforces (from the brief and the INC-DRIVING-001 bench):
   gcloud, ssh and scp call), `cost.log`, `session.json`, `kit.tgz`, and per host `<role>/out/` with each step's log
   and status. A fetched folder whose `session_id` is not this session's fails the session.
 
-Exit codes: 0 done; 2 refused before any start; 3 no capacity or preempted; 4 SSH or upload failed; 5 a step failed;
+Exit codes: 0 done; 2 refused before any start; 3 no capacity, or a host lost (preempted) before any step failed
+(`hosts_lost`); 4 SSH or upload failed; 5 a step failed;
 6 start refused; 9 dry run refused; 10 cost cap; 12 a p10-1 check FAILed (every step ran, the world was released and
 both hosts fetched; `p10_1.fail` names the checks); 11 a VM left running (the guest host with its guests, or a VM not
 `TERMINATED` after its stop, called again every minute of the 5-minute poll), in place of every other code;
@@ -634,7 +668,12 @@ over SSH, an SSH loss after a guest step, an S-CORE stop's exit 7 and 8, the go 
 phase and its 30 s status reads, the safety net's deadline, and the README's launch lines themselves. Since the
 owner's approval of p10-1 with the simulator host: its sequence, the port test (each port logged, a closed port ends
 the session before any Launch Manager start), the check's `DA_P10_1_CARLA_HOST` from gcloud only, the world's hold
-above the check's bound, and the cap of EUR 3.50. `tests/test_remote_scripts.py` runs the guest-host scripts and the safety net against fake `cvd`,
+above the check's bound, and the cap of EUR 3.50. Since p10-2 attempt 2 (20261119T203947Z): a host lost while none
+of its steps is polled (the host watch ends the session within its interval, the lost host gets no SSH), the watch
+reading only the VMs this session started and only until the trap's own stops, a step failed after or before a loss,
+a host lost before or during the final fetch, GCP's preemption time (`compute operations list`, which the fake answers
+in the zone's offset), and each run's adapter attach (`adapter_attach.py`, fed with the adapter's real record lines).
+`tests/test_remote_scripts.py` runs the guest-host scripts and the safety net against fake `cvd`,
 `adb`, `pgrep`, `sudo` and `ip`. The stubs in `tests/stubs/` stand for the S-CORE side's entries (another lane's)
 and for `make-h` in dry runs; they never run on a host.
 

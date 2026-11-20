@@ -23,6 +23,10 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_SLOW_GUEST_STOP  seconds: the guests' stop (guest_stop.sh, not the safety net's arming) takes that long
   FAKE_LOST_AFTER    "vm:text"  the VM is reclaimed (TERMINATED) right after the first ssh whose command has text
   FAKE_LOST_STATUS   the status FAKE_LOST_AFTER leaves (default TERMINATED; STOPPING, say)
+  FAKE_LOST_NO_OP    1: FAKE_LOST_AFTER leaves no compute.instances.preempted operation (a stop, not a preemption).
+                     Otherwise the loss is one: `compute operations list --filter="operationType=compute.instances.
+                     preempted AND targetLink~instances/<vm>$ AND insertTime>=<iso>"` prints its insertTime as GCP
+                     does, in the zone's local offset (-08:00), when it is not older than <iso>
   FAKE_PACK_ADD      "arcname=local file,..."  more files in every packed out.tgz (a fetched verdicts file, say)
   FAKE_KIT_EXISTS    a VM name that already holds ~/da-kit/<session id>
   FAKE_ARM_FAIL      a VM name whose safety net's arming fails
@@ -164,6 +168,21 @@ if words[:3] == ["compute", "instances", "list"]:
         rows.append("%s\tnvidia-l4" % g[project] if running_only else "%s\teurope-west4-a\tRUNNING" % g[project])
     out("".join(r + "\n" for r in rows))
 
+if words[:3] == ["compute", "operations", "list"]:
+    # the preemption's own record (R12b): only with the filter the session must give, else nothing
+    import datetime
+    f = opt("--filter") or ""
+    mv = re.search(r"targetLink~instances/([A-Za-z0-9-]+)\$", f)
+    mt = re.search(r"insertTime>=(\S+)", f)
+    t = st.get("preempted_at", {}).get(mv.group(1)) if mv else None
+    if "operationType=compute.instances.preempted" not in f or not mt or t is None:
+        out("")
+    since = datetime.datetime.strptime(mt.group(1), "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    if t < since.timestamp():
+        out("")
+    tz = datetime.timezone(datetime.timedelta(hours=-8))
+    out(datetime.datetime.fromtimestamp(t, tz).isoformat(timespec="milliseconds") + "\n")
+
 if words[:3] == ["compute", "instances", "describe"]:
     n = words[3]
     if n not in st["vm"]:
@@ -217,8 +236,11 @@ if words[:2] == ["compute", "ssh"]:
         if text in c and vm not in st.setdefault("ssh_down", []):
             st["ssh_down"].append(vm)
     lost = kv("FAKE_LOST_AFTER")
-    if n in lost and lost[n] in c:
+    if n in lost and lost[n] in c and n not in st.setdefault("lost", []):
         st["vm"][n] = os.environ.get("FAKE_LOST_STATUS", "TERMINATED")   # reclaimed after this call (it answers)
+        st["lost"].append(n)
+        if os.environ.get("FAKE_LOST_NO_OP") != "1":
+            st.setdefault("preempted_at", {})[n] = time.time()
     if c == "true":
         out("")
     m = re.search(r"host_step\.sh (run|start|status|tail|signal|pack)\s*(\S*)", c)

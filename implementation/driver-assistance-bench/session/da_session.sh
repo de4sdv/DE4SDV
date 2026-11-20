@@ -36,10 +36,12 @@
 # Start order: the G4 first, still RUNNING 30 s later, then the L4, then the guest host (rounds with short pauses
 # while capacity is short). One GPU per project: a session refuses to start while another GPU VM runs in a project
 # it starts a GPU VM in. The EXIT trap stops every VM this session started, on every exit, signals included: the
-# guests first with cvd stop, then their host. A watchdog ends the session when the cost reaches the cap. Disks are
-# never deleted; nothing is created or deleted.
+# guests first with cvd stop, then their host. A watchdog ends the session when the cost reaches the cap, and a host
+# watch ends it when a VM it started reads anything but RUNNING (a Spot preemption: no SSH, no stop step and no fetch
+# on that host; session.json hosts_lost). Disks are never deleted; nothing is created or deleted.
 #
-# Exit codes: 0 done; 2 refused before any VM start; 3 no capacity or preempted; 4 SSH or upload failed; 5 a step
+# Exit codes: 0 done; 2 refused before any VM start; 3 no capacity, or a host lost (preempted) before any step failed;
+# 4 SSH or upload failed; 5 a step
 # failed; 6 start refused (quota or error); 9 dry run refused; 10 cost cap reached; 11 a VM left running (the guest
 # host with its guests, or a stop not confirmed), in place of every other code (session.json keeps the code it
 # replaced, the VMs' status after the session and the VMs left running); 129/130/143 signals.
@@ -126,7 +128,7 @@ done
 PREEMPT_CHECK_S=30; ROUND_PAUSE_S=45; START_DEADLINE_S=1800; RUNNING_WAIT_S=120; SSH_TRIES=20; SSH_PAUSE_S=10
 # GO_LIMIT_S: the go must follow the S-CORE side's start within the candidate's 420 s ready time-out; the clock starts
 # before the start step's own SSH call, and 40 s are kept for the go's SSH call (IAP to the G4, GO_SSH_S at most)
-POLL_S=20; STEP_TERM_POLLS=6; GO_LIMIT_S=380; GO_SSH_S=35; WATCH_S=30; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
+POLL_S=20; STEP_TERM_POLLS=6; GO_LIMIT_S=380; GO_SSH_S=35; WATCH_S=30; HOST_WATCH_S=30; HOST_WATCH_TO_S=25; STOP_TRIES=30; STOP_POLL_S=10; SAFETY_MARGIN_MIN=10; STATUS_TRIES=5; STOP_AGAIN_EVERY=6
 GUEST_NOSSH_S=180
 # the exit trap's pre-stop phase is bounded as a whole (S9), and each step in it has its own slot (P1, below): each
 # fetch at most TRAP_PACK_S to pack and TRAP_SCP_S to copy, the S-CORE side's stop TRAP_SCORE_S. PRESTOP_S is derived
@@ -155,7 +157,7 @@ CARLA_PORTS="2000 2001 2002"   # p10-1's port test: CARLA's ports that carla-net
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
        T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT T_APP_RESTART STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
-       GUEST_NOSSH_S GO_SSH_S PRESTOP_S TRAP_PACK_S TRAP_SCP_S TRAP_SCORE_S)
+       GUEST_NOSSH_S GO_SSH_S PRESTOP_S TRAP_PACK_S TRAP_SCP_S TRAP_SCORE_S HOST_WATCH_S)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -199,6 +201,7 @@ PRE_PARTS="$PRE_PARTS, fetch $(( ${#ROLES[@]} * PRE_FETCH_S ))"
 [ -n "$PRESTOP_S" ] || PRESTOP_S=$PRE_SUM
 
 SID=${SID:-$(date -u +%Y%m%dT%H%M%SZ)}
+T0_ISO=$(date -u +%FT%TZ)   # the session's start: a preemption operation older than it is not this session's
 # the id goes unquoted into remote paths and commands (~/da-kit/<id>, mkdir, tar -C, the safety net's unit): letters,
 # digits, '.', '_' and '-' only, never first a '.' or a '-' (S6)
 [[ "$SID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]] || { echo "refused: session id '$SID' (allowed: ^[A-Za-z0-9][A-Za-z0-9._-]*\$)"; exit 2; }
@@ -220,7 +223,7 @@ exec 3>&1   # a dry run prints every command here, outside the command substitut
 # a broken stdout (the reader of `... | tee` gone with its terminal) must neither end the session nor lose a line of
 # session.log (R3): SIGPIPE is ignored, every line goes to the file first, and a failed write to stdout is dropped
 trap '' PIPE
-MAIN_PID=$$; WD_PID=""; CHILD=""; STARTED=(); STEP_FAIL=""; FINAL_RC=""; ENDED_BY=""; UPLOADED=""; SCORE_UP=""
+MAIN_PID=$$; WD_PID=""; HW_PID=""; CHILD=""; STARTED=(); STEP_FAIL=""; FINAL_RC=""; ENDED_BY=""; UPLOADED=""; SCORE_UP=""
 FETCHED=""; FETCH_OK=""; FETCH_BAD=""
 GUEST_STEP_SENT=0   # 1 from the first step sent to the guest host on: from then on guests may run there (S1)
 SCORE_RUN=""; STOPS=""; STOP_KILLED_LAST=""   # the run of the S-CORE side up; each of its stops: run:step:rc (S7)
@@ -297,7 +300,7 @@ step_down() {   # in the trap: the step rstep waited for, if any: TERM on its ho
   local r=${CUR_STEP%% *} s=${CUR_STEP#* } i prc=0; CUR_STEP=""
   case " ${LOST:-} " in *" $r "*) return 0 ;; esac
   log "step $s still runs on $(var "$r" VM): TERM to it there, then its end (up to $STEP_TERM_POLLS polls), before any stop"
-  rsignal "$r" "$s" TERM
+  rsignal "$r" "$s" TERM   # a failed TERM call: the status poll below reads the VM's state (rpoll, lost_check)
   for i in $(seq 1 "$STEP_TERM_POLLS"); do
     rpoll "$r" "$HS status $s" "$(bnd 60)"; prc=$?
     [ "$prc" = 3 ] && break   # the host is gone (preempted): nothing runs there
@@ -322,17 +325,41 @@ step_down() {   # in the trap: the step rstep waited for, if any: TERM on its ho
 # the remote-step helpers, defined before the exit trap can run: a trap during the starts or the SSH and upload
 # section (a signal, the cap) called score_down and fetch before their definitions ("command not found"), and an
 # uploaded host was stopped unfetched
-host_lost() {   # host_lost <role> <status>: a host gone mid-session (preempted): no fetch, no more polls (R12)
-  log "$(var "$1" VM) is $2 during the session (preempted or stopped): its files stay on its disk"
-  LOST="${LOST:-} $1"; FETCHED="$FETCHED $1"; FETCH_BAD="$FETCH_BAD $1"; ENDED_BY="host lost: $1 ($2)"
+preempted_at() {   # preempted_at <role>: PRE_AT, the UTC time of the VM's newest compute.instances.preempted operation
+  # since the session's start (GCP's own record of a Spot preemption), or empty
+  local t
+  GC_TO=$(bnd 60) rout gc "$1" compute operations list --zones="$(var "$1" ZONE)" \
+    --filter="operationType=compute.instances.preempted AND targetLink~instances/$(var "$1" VM)\$ AND insertTime>=$T0_ISO" \
+    --format='value(insertTime)' --sort-by=insertTime
+  t=$(tail -1 <<< "$ROUT"); PRE_AT=""
+  [ -n "$t" ] && PRE_AT=$(date -u -d "$t" +%FT%T.%3NZ 2>/dev/null)
+  return 0
+}
+host_lost() {   # host_lost <role> <status> [<detected by>] [<detected at>]: a host gone mid-session (preempted): no SSH,
+  # no stop step and no fetch on it, no more polls (R12, R12b). ended_by names it unless something ended the session
+  # before (a failed step: abort decides by the time of the loss)
+  case " ${LOST:-} " in *" $1 "*) return 0 ;; esac
+  local by=${3:-a poll of its step} at=${4:-$(date -u +%FT%TZ)}
+  log "HOST LOST: $(var "$1" VM) ($1) is $2 during the session (preempted or stopped), detected by $by at $at: no SSH, no stop step and no fetch on it; its $(owed)"
+  LOST="${LOST:-} $1"; FETCHED="$FETCHED $1"; FETCH_BAD="$FETCH_BAD $1"
+  [ -n "$ENDED_BY" ] || ENDED_BY="host lost: $1 ($2)"
   [ "$1" = score ] && SCORE_UP=""
+  preempted_at "$1"
+  log "$(var "$1" VM): preempted at ${PRE_AT:-unknown (no compute.instances.preempted operation since $T0_ISO)}"
+  printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$at" "$by" "$PRE_AT" >> "$IN/hosts_lost.tsv"
+}
+owed() { echo "records on its disk under ~/da-kit/$SID/out (fetch owed)"; }
+lost_check() {   # lost_check <role> <detected by>: after a failed SSH or scp, the VM's state; 0 (and host_lost) when it
+  # is gone, so the caller never reads the failure as a failed step or fetch (R12b)
+  local st; st=$(vmst "$1")
+  case "$st" in TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED) host_lost "$1" "$st" "$2"; return 0 ;; esac
+  return 1
 }
 rpoll() {   # rpoll <role> <remote command> [<timeout_s>]: one short poll, its last line in ROUT; 3 when the host is
   # gone (R12)
-  local st
   if rout ssh_l "$1" "${3:-60}" "$2"; then ROUT=$(tail -1 <<< "$ROUT"); return 0; fi
-  ROUT=""; st=$(vmst "$1")
-  case "$st" in TERMINATED|STOPPING|STOPPED|SUSPENDING|SUSPENDED) host_lost "$1" "$st"; return 3 ;; esac
+  ROUT=""
+  lost_check "$1" "a poll on its host" && return 3
   return 1
 }
 rstep() {   # rstep <role> <step> <timeout_s> <command...>: a step, detached on its host and polled; a failure ends
@@ -412,14 +439,18 @@ fetch() {   # fetch <role>: the host's output folder into incoming_<id>/<role>/,
   case " $FETCHED " in *" $r "*) return 0 ;; esac
   FETCHED="$FETCHED $r"; FETCHING=$r   # a fetch a signal interrupts is recorded as not fetched
   fetch_one "$r" && { FETCHING=""; FETCH_OK="$FETCH_OK $r"; return 0; }
-  FETCHING=""; FETCH_BAD="$FETCH_BAD $r"; return 1
+  FETCHING=""; case " ${LOST:-} " in *" $r "*) return 1 ;; esac   # host_lost named it already
+  FETCH_BAD="$FETCH_BAD $r"; return 1
 }
 fetch_one() {
-  local r=$1 sha got
-  rout ssh_l "$r" "$(bnd "${FETCH_PACK_TO:-600}")" "$HS pack"; sha=$(tail -1 <<< "$ROUT")
+  local r=$1 sha got rc
+  rout ssh_l "$r" "$(bnd "${FETCH_PACK_TO:-600}")" "$HS pack"; rc=$?; sha=$(tail -1 <<< "$ROUT")
+  # an SSH failure reads the VM's state: a host gone is host_lost, never a failed fetch (R12b)
+  [ "$rc" = 255 ] && lost_check "$r" "ssh: fetch (pack)" && return 1
   mkdir -p "$IN/$r"
-  routall scp_r "$r" "$(bnd "${FETCH_SCP_TO:-1200}")" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"
+  routall scp_r "$r" "$(bnd "${FETCH_SCP_TO:-1200}")" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"; rc=$?
   printf '%s\n' "$ROUT" | one >> "$LOG"
+  [ "$rc" != 0 ] && lost_check "$r" "scp: fetch" && return 1
   got=$(sha256sum "$IN/$r/out.tgz" 2>/dev/null | cut -d' ' -f1)
   [ -n "$got" ] && [ "$got" = "$sha" ] || { log "fetch from $(var "$r" VM) failed or changed (remote '$sha', local '$got')"; return 1; }
   tar -xzf "$IN/$r/out.tgz" -C "$IN/$r" || return 1
@@ -434,6 +465,7 @@ score_down() {   # the S-CORE side, if this session started it and has not stopp
   run_fg ssh_l score "${T_SCORE_DOWN:-$T_SCORE_START}" "$HS run score_stop_on_failure -- $(renv score)bash $ENTRY_SCORE_STOP $o" \
     >> "$IN/score.steps.out" 2>&1; rc=$?
   log "step score_stop_on_failure rc=$rc$([ "$rc" = 7 ] && echo ": stopped and collected, something had to be killed (stop_killed, recorded)")"
+  [ "$rc" = 255 ] && lost_check score "ssh: score_stop_on_failure" && log "the S-CORE side of $o was not stopped by the session: its host is gone"
   STOPS="$STOPS ${SCORE_RUN:-none}:score_stop_on_failure:$rc"
 }
 world_ended() { local s; WORLD_UP=$(for s in $WORLD_UP; do [ "$s" = "$1" ] || printf ' %s' "$s"; done); }
@@ -478,9 +510,24 @@ capture_down() {   # a window still open when the session ends (an abort, a sign
 abort() {   # a failure after the starts: a step still alive after rstep's own TERM (its TERM again and its end, R8 of
   # the closure check of 7befc3c1: the fetch came before the trap's step_down), the open window's capture stop, the
   # S-CORE side's stop, the world side's end, the fetch, the exit (3 when a host was lost)
-  local code=$1; shift
-  [ -n "${LOST:-}" ] && code=3
-  step_down; capture_down; score_down; world_down; fetch_all; fail "$code" "$*"
+  local code=$1 lost0=${LOST:-} eb0=$ENDED_BY t_fail r; t_fail=$(date +%s%3N); shift
+  [ -n "$lost0" ] && code=3
+  step_down; capture_down; score_down; world_down; fetch_all
+  # a host found lost on the way (an SSH of the stop path failed, R12b): the step's failure is recorded as after the
+  # loss when GCP's preemption came first (failed_step stays; ended_by names the loss, exit 3), else as before it
+  if [ -z "$lost0" ] && [ -n "${LOST:-}" ] && [ -n "$STEP_FAIL" ]; then
+    ENDED_BY=$eb0
+    for r in $LOST; do
+      local pre; pre=$(awk -F'\t' -v r="$r" '$1 == r {print $5}' "$IN/hosts_lost.tsv" | tail -1)
+      if [ -n "$pre" ] && [ "$(date -u -d "$pre" +%s%3N 2>/dev/null || echo 0)" -le "$t_fail" ]; then
+        ENDED_BY="host lost: $r ($(awk -F'\t' -v r="$r" '$1 == r {print $2}' "$IN/hosts_lost.tsv" | tail -1))"; code=3
+        log "step $STEP_FAIL failed after the loss of $r (preempted at $pre): the session ends as the host lost"
+        break
+      fi
+    done
+    [[ "$ENDED_BY" == "host lost: "* ]] || log "step $STEP_FAIL failed before the loss of a host was known to have come (hosts lost:$LOST): the session ends as the failed step"
+  fi
+  fail "$code" "$*"
 }
 fetch_all() { local r ok=0; for r in "${STARTED[@]}"; do fetch "$r" || ok=1; done; return $ok; }
 ipof() {   # ipof <role> <var>: the internal IP, read from gcloud now (never configured: D5 may move the hosts)
@@ -497,10 +544,17 @@ cleanup() {
   # here, and the trap runs on to the guests' stop, their host's stop and session.json
   trap '' INT TERM HUP
   trap - EXIT
+  # first: the host watch reads no VM from here on, so the trap's own stops are never a lost host (R12b)
+  : > "$IN/.trap_stopping"
   [ -n "$FINAL_RC" ] && rc=$FINAL_RC
   [ -f "$IN/.cap_reached" ] && rc=10
   [ -n "$WD_PID" ] && { pkill -P "$WD_PID" 2>/dev/null; kill "$WD_PID" 2>/dev/null; }
   [ -n "$CHILD" ] && kill_tree "$CHILD"   # an interrupted SSH step: its local client and timeout too
+  # the host watch's TERM (on_signal: exit 3): the host it read lost gets no SSH, no stop step and no fetch
+  if [ -f "$IN/.host_lost" ]; then
+    local hr hst hat; read -r hr hst hat < "$IN/.host_lost"
+    host_lost "$hr" "$hst" "host watch" "$hat"
+  fi
   [ -f "$IN/.cap_reached" ] && ENDED_BY=cap
   [ -n "$ENDED_BY" ] || ENDED_BY="exit $rc"
   # a fetch the signal interrupted is not tried again (the session ends at once, R19); it is recorded as not fetched
@@ -631,6 +685,9 @@ cleanup() {
     timeout "$TRAP_GC_TO_S" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" compute instances list \
       --format='value(name,zone.basename(),status)' 2>/dev/null | sed "s/^/VM after session [$p]: /" >> "$LOG"
   done
+  [ -n "$HW_PID" ] && { pkill -P "$HW_PID" 2>/dev/null; kill "$HW_PID" 2>/dev/null; }
+  rm -f "$IN"/.hw_* "$IN/.host_lost.tmp"
+  lost_report
   [ "$KIND" = p10-1 ] && [ -n "$UPLOADED" ] && p10_1_report
   [ "$KIND" = p10-3 ] && p10_3_report
   [ "$KIND" = p10-2 ] && p10_2_report
@@ -638,6 +695,13 @@ cleanup() {
   log "SESSION_END $SID rc=$rc"
   [ -n "$LEFT_RUNNING" ] && log "VMS LEFT RUNNING, THEY BILL: STOP THEM BY HAND NOW:$LEFT_RUNNING (exit 11 in place of $RC_STEPS)"
   exit "$rc"
+}
+lost_report() {   # one line per host lost (R12b): its status, when and how it was found, GCP's preemption, the records
+  local r st at by pre
+  [ -s "$IN/hosts_lost.tsv" ] || return 0
+  while IFS=$'\t' read -r r st at by pre; do
+    log "$KIND host lost: $r ($st, detected at $at by $by, preempted at ${pre:-unknown}): $(var "$r" VM) was not fetched; its $(owed)"
+  done < "$IN/hosts_lost.tsv"
 }
 p10_3_report() {   # p10-3 is passed only when its steps ended with 0 and every window's app record holds a receipt
   # event since the window's app start (window_close);
@@ -681,7 +745,9 @@ print("; ".join(parts) or "none recorded")
 PY
 )
   log "p10-2 candidate Rerun records (rrd_on = true), kept on the S-CORE host, not fetched: $rrd"
-  # each run's chase view: complete only when its recorder ended rc 0; the summary's end from the fetched files (F4)
+  # each run's chase recorder: rc 0 or not, with the summary's end from the fetched files (F4). rc 0 says only that the
+  # recorder attached, wrote a frame and ffmpeg ended 0, not that the view has no gap (T6): session.json chase_view
+  # carries written, gaps and ticks_seen beside it
   local cgood=() cbad=() crc cend
   for n in $(seq 1 "$P10_2_RUNS"); do
     w=run$n; x=$(tr ' ' '\n' <<< "$CHASE" | grep "^$w:" | tail -1)
@@ -696,10 +762,31 @@ except (OSError, ValueError, AttributeError):
     cbad+=("$w (recorder rc $crc: ${cend:-no summary fetched})")
   done
   if [ ${#cbad[@]} = 0 ]; then
-    CHASE_COMPLETE=1; log "p10-2 chase view complete: $(printf '%s, ' "${cgood[@]}" | sed 's/, $//')"
+    CHASE_COMPLETE=1; log "p10-2 chase recorder ended rc 0 in every run: $(printf '%s, ' "${cgood[@]}" | sed 's/, $//') (rc 0 only: written, gaps and ticks_seen per run in session.json chase_view)"
   else
-    CHASE_COMPLETE=0; log "p10-2 chase view NOT complete: $(printf '%s; ' "${cbad[@]}" | sed 's/; $//')"
+    CHASE_COMPLETE=0; log "p10-2 chase recorder NOT rc 0 in every run: $(printf '%s; ' "${cbad[@]}" | sed 's/; $//')"
   fi
+  # each run's actuation adapter (T4): its config event's heroActorId, or its error, from the fetched S-CORE output; a
+  # run whose adapter never attached sent no command to the car, whatever its exit code
+  local ad; ad=$(HERE="$HERE" python3 - "$IN/score/out" "$([[ " $FETCH_OK " == *" score "* ]] && echo 1 || echo 0)" \
+    $(cut -f1 "$IN/score_runs.tsv" 2>/dev/null | awk '!s[$0]++') <<'PY'
+import json, os, sys
+sys.path.insert(0, os.environ["HERE"])
+from adapter_attach import attach
+ok, bad = [], []
+for run in sys.argv[3:]:
+    a = attach(sys.argv[1], run, sys.argv[2] == "1")
+    if isinstance(a, dict) and a["heroActorId"] is not None:
+        ok.append("%s (hero %s)" % (run, a["heroActorId"]))
+    else:
+        bad.append("%s (%s)" % (run, (a["error"] or "no config or error event in its record") if isinstance(a, dict) else a))
+if bad:
+    print("p10-2 adapter NO ATTACH in " + ", ".join(bad) + ("; attached in " + ", ".join(ok) if ok else ""))
+else:
+    print("p10-2 adapter attached in every run: " + ", ".join(ok))
+PY
+)
+  log "$ad"
   if [[ " ${ROLES[*]} " != *" guest "* ]]; then
     P10_2_COMPLETE=none; P10_2_REASON="no display capture: --without-guest-host"; log "p10-2: $P10_2_REASON"; return 0
   fi
@@ -773,10 +860,13 @@ write_record() {
   CAMCAL_SOURCE="$CAMCAL_SOURCE" CAMCAL_REASON="$CAMCAL_REASON" CAMCAL_XCHECK="$CAMCAL_XCHECK" \
   CAMCAL_PRECHECK="$CAMCAL_PRECHECK" DISK_RC="${DISK_RC:-}" DISK_LINE="${DISK_LINE:-}" NEED_DISK="${NEED_DISK:-}" \
   NEED_DISK_STAGE="${NEED_DISK_STAGE:-}" RRD_RATE_BPS="$RRD_RATE_BPS" ROLES_ALL="${STARTED[*]}" \
-  CHASE="$CHASE" CHASE_COMPLETE="${CHASE_COMPLETE:-}" \
+  CHASE="$CHASE" CHASE_COMPLETE="${CHASE_COMPLETE:-}" HERE="$HERE" SCORE_FETCHED="$([[ " $FETCH_OK " == *" score "* ]] && echo 1)" \
+  LOST="${LOST:-}" OWED_TEXT="$(owed)" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
-import json, os
+import json, os, sys
 e = os.environ
+sys.path.insert(0, e["HERE"])
+from adapter_attach import attach
 p10_1 = os.path.join(e["IN"], "p10_1_summary.json")
 ips = dict(x.split("=", 1) for x in e["IPS"].split() if "=" in x)
 starts = [l.split() for l in open(os.path.join(e["IN"], "starts.tsv")) if l.strip()]
@@ -801,6 +891,8 @@ for run, d in score_runs.items():
         d["staged"] = dict(w.split("=", 1) for w in d["staged"].split() if "=" in w) or None
     if "planned_running_s" in d:
         d["planned_running_s"] = int(d["planned_running_s"])
+    # the run's actuation adapter: its heroActorId or its error, from the fetched S-CORE output (T4)
+    d["adapter"] = attach(os.path.join(e["IN"], "score", "out"), run, e["SCORE_FETCHED"] == "1")
     try:   # the stop's record of the candidate's Rerun record, kept on the S-CORE host (computed there)
         d["candidate_rrd"] = json.load(open(os.path.join(e["IN"], "score", "out", "score_" + run, "candidate_rrd.json")))
     except (OSError, ValueError):
@@ -816,10 +908,27 @@ chase = {}
 for x in e["CHASE"].split():
     run, rc = x.split(":", 1)
     try:
-        end = json.load(open(os.path.join(e["IN"], "sim", "out", "rec_" + run, "summary.json"))).get("end")
-    except (OSError, ValueError, AttributeError):
-        end = None
-    chase[run] = {"complete": rc == "0", "rc": int(rc) if rc.isdigit() else None, "end": end}
+        summ = json.load(open(os.path.join(e["IN"], "sim", "out", "rec_" + run, "summary.json")))
+        summ = summ if isinstance(summ, dict) else {}
+    except (OSError, ValueError):
+        summ = {}
+    # "complete" is the recorder's rc 0 only (T6): its written frames, gaps and ticks seen stand beside it
+    chase[run] = {"complete": rc == "0", "rc": int(rc) if rc.isdigit() else None, "end": summ.get("end"),
+                  "written": summ.get("written"), "gaps": summ.get("gaps"), "ticks_seen": summ.get("ticks_seen")}
+hosts_lost = {}
+try:
+    for line in open(os.path.join(e["IN"], "hosts_lost.tsv"), encoding="utf-8"):
+        role, status, at, by, pre = (line.rstrip("\n").split("\t") + [""] * 5)[:5]
+        hosts_lost.setdefault(role, {"status": status, "detected_at": at, "detected_by": by,
+                                     "preempted_at": pre or None})
+except OSError:
+    pass
+lost = e["LOST"].split()
+not_fetched = []
+for r in e["FETCH_BAD"].split():   # a host lost names where its records wait (R12b)
+    x = "%s: %s" % (r, e["OWED_TEXT"]) if r in lost else r
+    if x not in not_fetched:
+        not_fetched.append(x)
 disk = None
 if e["KIND"] == "p10-2" and e["NEED_DISK"]:
     words = e["DISK_LINE"].split()[1:]
@@ -846,7 +955,8 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "conditional_on_permissive_ivi": e["PERM"] == "1",
            "vm_status_after": dict(x.split("=", 1) for x in e["VM_AFTER"].split() if "=" in x),
            "left_running": e["LEFT"].split(), "exit_code_without_left_running": int(e["RC_STEPS"]),
-           "remote_env": renv, "fetched": e["FETCH_OK"].split(), "not_fetched": e["FETCH_BAD"].split(),
+           "remote_env": renv, "fetched": e["FETCH_OK"].split(), "not_fetched": not_fetched,
+           "hosts_lost": hosts_lost,
            "ended_by": e["ENDED_BY"] or None,
            "score_stops": {run: {"step": step, "rc": int(rc) if rc.lstrip("-").isdigit() else None,
                                  "stop_killed": rc == "7"}
@@ -877,6 +987,8 @@ PY
 }
 on_signal() {
   trap '' INT TERM HUP; log "signal $1"; FINAL_RC=$2; ENDED_BY="signal $1"
+  # the host watch's TERM: a VM this session started read lost (R12b); the trap names it (host_lost) and exits 3
+  [ "$1" = TERM ] && [ -f "$IN/.host_lost" ] && { FINAL_RC=3; ENDED_BY=""; }
   [ -f "$IN/.cap_reached" ] && { FINAL_RC=10; ENDED_BY=cap; }
   exit "$FINAL_RC"
 }
@@ -1001,7 +1113,7 @@ plan_run() {   # plan_run <label> <scenario> <setting>
   local plan=$(( ${cap%.*} + RRD_HOLD_S ))
   PLAN_TOTAL_S=$(( PLAN_TOTAL_S + plan )); [ "$plan" -gt "$PLAN_MAX_S" ] && PLAN_MAX_S=$plan
   srun "$1" setting "$id"; srun "$1" speed_limit_mps "$sp"; srun "$1" run_cap_s "$cap"; srun "$1" planned_running_s "$plan"
-  srun "$1" speed_limit_source "world-side/scenarios.py $id: the middle of its tolerance $lo to $hi km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)"
+  srun "$1" speed_limit_source "bench proposal: world-side/scenarios.py $id: the middle of its tolerance $lo to $hi km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)"
   log "run $1: setting $id, the candidate's speed_limit $sp m/s (the middle of $lo to $hi km/h), run cap $cap s"
 }
 if [ "$KIND" = p10-2 ]; then
@@ -1048,6 +1160,37 @@ start_watchdog() {
   WD_PID=$!; disown "$WD_PID"
   log "cost watchdog pid $WD_PID (ends with the session)"
 }
+start_hostwatch() {
+  # R12b: a role VM lost while none of its steps is polled (20261119T203947Z: the S-CORE host was preempted while the
+  # session ran guest steps, and nothing read it for 5 minutes). Every HOST_WATCH_S: one bounded `instances list` per
+  # project of the VMs this session started and saw RUNNING after their preemption check (.watch_roles), and only
+  # before the trap begins its own stops (.trap_stopping, the trap's first write). A VM that reads anything but
+  # RUNNING ends the session by TERM, with .host_lost naming it; the trap then calls host_lost for it. Guarded as the
+  # cost watchdog: it ends with the session and never signals a PID that is no longer the session's
+  ( trap - EXIT TERM INT HUP
+    while sleep "$HOST_WATCH_S"; do
+      main_alive || exit 0
+      [ -e "$IN/.trap_stopping" ] && exit 0
+      roles=$(cat "$IN/.watch_roles" 2>/dev/null); [ -n "$roles" ] || continue
+      for p in $(for r in $roles; do var "$r" PROJECT; done | sort -u); do
+        echo "$(date -u +%FT%T.%3NZ) + gcloud --configuration=$GCLOUD_CONFIGURATION --project=$p compute instances list --format=value(name,status) [host watch] [timeout $HOST_WATCH_TO_S s]" >> "$CMDS"
+        timeout "$HOST_WATCH_TO_S" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$p" compute instances list \
+          --format='value(name,status)' > "$IN/.hw_$p" 2>/dev/null < /dev/null || continue
+        for r in $roles; do
+          [ "$(var "$r" PROJECT)" = "$p" ] || continue
+          st=$(awk -v vm="$(var "$r" VM)" '$1 == vm { print $NF }' "$IN/.hw_$p")
+          [ -n "$st" ] && [ "$st" != RUNNING ] || continue   # no row (a failed read) is no answer, never a loss
+          [ -e "$IN/.trap_stopping" ] && exit 0
+          main_alive || exit 0
+          printf '%s %s %s\n' "$r" "$st" "$(date -u +%FT%TZ)" > "$IN/.host_lost.tmp" && mv "$IN/.host_lost.tmp" "$IN/.host_lost"
+          echo "$(date -u +%FT%TZ) HOST LOST: $(var "$r" VM) ($r) reads $st in the host watch while none of its steps may be polled: ending the session (exit 3)" >> "$LOG"
+          kill -TERM "$MAIN_PID"; exit 0
+        done
+      done
+    done ) 2> /dev/null &
+  HW_PID=$!; disown "$HW_PID"
+  log "host watch pid $HW_PID: every $HOST_WATCH_S s the state of each VM this session started (ends with the session)"
+}
 start_vm() {   # start_vm <role>: returns 0 when RUNNING, and still RUNNING after the preemption check
   local r=$1 vm zone deadline n=0 out rc st c i
   vm=$(var "$r" VM); zone=$(var "$r" ZONE); deadline=$(( $(date +%s) + START_DEADLINE_S ))
@@ -1055,6 +1198,7 @@ start_vm() {   # start_vm <role>: returns 0 when RUNNING, and still RUNNING afte
     n=$((n + 1))
     register_start "$r"
     [ -z "$WD_PID" ] && start_watchdog
+    [ -z "$HW_PID" ] && start_hostwatch
     out=$(GC_TO=300 gc "$r" compute instances start "$vm" --zone "$zone" 2>&1); rc=$?   # never interrupted (SKB 13)
     st=$(vmst "$r")
     if [ "$st" != RUNNING ] && [ "$st" != TERMINATED ] && [ "$st" != UNKNOWN ]; then
@@ -1077,6 +1221,7 @@ start_vm() {   # start_vm <role>: returns 0 when RUNNING, and still RUNNING afte
         nap "$ROUND_PAUSE_S"; continue
       fi
       log "$vm still RUNNING after $PREEMPT_CHECK_S s"
+      echo "$r" >> "$IN/.watch_roles"   # from here on the host watch reads it (R12b)
       return 0
     fi
     c=$(classify "$out")
@@ -1445,7 +1590,7 @@ case "$KIND" in
     ;;
 esac
 log "SEQUENCE ${SEQ[*]}"
-fetch_all || { ENDED_BY=fetch; fail 5 "evidence fetch incomplete"; }
+fetch_all || { [ -n "${LOST:-}" ] && fail 3 "evidence fetch incomplete: a host was lost"; ENDED_BY=fetch; fail 5 "evidence fetch incomplete"; }
 ENDED_BY=steps
 log "session steps done; the files are in $IN"
 if [ "$P10_1_RC" = 1 ]; then ENDED_BY="steps; the p10_1 check FAILed"; FINAL_RC=12; exit 12; fi
