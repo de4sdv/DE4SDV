@@ -16,7 +16,7 @@ import evaluate_da_campaign as edc
 import evidence_record as er
 import make_da_synthetic_run as syn
 import runio_da
-from conftest import HERE, MODEL
+from case_evaluators_testkit import HERE, MODEL
 
 INC = "inconclusiveMissingEvidence"
 DESK = {"engineer": "second engineer", "valuesMatch": True, "recordSha256": ["5ff680b0" * 8]}

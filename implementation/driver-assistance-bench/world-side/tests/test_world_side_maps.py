@@ -19,7 +19,7 @@ from pathlib import Path
 import carla  # the fake
 import da_world_side as ws
 import scenarios
-from conftest import run_main
+from world_side_testkit import run_main
 
 HERE = Path(__file__).resolve().parent
 WS = HERE.parent

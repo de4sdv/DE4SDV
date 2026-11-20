@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import AdapterStandIn, run_main
+from world_side_testkit import AdapterStandIn, run_main
 
 import carla  # the fake
 import camera_calibration as camcal

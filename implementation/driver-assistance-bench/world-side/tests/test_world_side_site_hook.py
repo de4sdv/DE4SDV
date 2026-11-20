@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 import carla  # the fake
-from conftest import run_main
+from world_side_testkit import run_main
 
 import da_world_side as ws_mod
 import scenarios

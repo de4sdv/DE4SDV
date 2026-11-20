@@ -21,7 +21,7 @@ import cases_da
 import evaluate_da_campaign as edc
 import make_da_synthetic_run as syn
 import runio_da
-from conftest import HERE
+from case_evaluators_testkit import HERE
 
 PASS, FAIL, INC = "passBoundedVerification", "failObservedBehavior", "inconclusiveMissingEvidence"
 DESK = {"engineer": "second engineer", "valuesMatch": True, "recordSha256": ["5ff680b0" * 8]}
