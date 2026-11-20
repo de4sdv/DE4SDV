@@ -2,14 +2,19 @@
 # INC-DRIVING-002 bench session orchestrator (brief row B13). Runs on the lead host (the Jetson) and drives up to three
 # hosts in two GCP projects: the simulator host (G4, Spot), the S-CORE host (L4) and the protected guest host.
 #
-#   da_session.sh --kind p10-1|p10-3|p10-2 [options]
+#   da_session.sh --kind p10-1|p10-3|p10-2|s1 [options]
 #
 #   --kind p10-1           the simulator host and the S-CORE host: the S-CORE build check (P10-1) while a CARLA world
 #                          ticks (the world side's handshake: go before the check, release after it)
 #   --kind p10-3           the guest host and the S-CORE host as the S-CORE side: the warning on the guests (P10-3)
 #   --kind p10-2           all three: the first closed loop, recorded (P10-2)
-#   --owner-ok-guest-host  required for p10-3 and p10-2: the owner's OK to start de4sdv-aaos-build this session
-#   --without-guest-host   p10-2 on the simulator host and the S-CORE host only (no display capture)
+#   --kind s1              all three: the judged runs of S1, the run list of s1_runs.tsv (each run with its own disk
+#                          check before its S-CORE start; the stop run's path stop at go + PATH_STOP_AFTER_S)
+#   --owner-ok-guest-host  required for p10-3, p10-2 and s1: the owner's OK to start de4sdv-aaos-build this session
+#   --without-guest-host   p10-2 or s1 on the simulator host and the S-CORE host only (no display capture)
+#   --candidate pin|pr427  the VisionPilot candidate (default pin, the bundle /opt/da-b2/bundle); pr427 sets
+#                          DA_B2_BUNDLE=/opt/da-b2-pr427/bundle on every S-CORE step, and each S-CORE start's staged
+#                          facts must list patch 0004 (pin: must not). session.json candidate records both
 #   --cap-eur <EUR>        cost cap of this session (default per kind in hosts.env)
 #   --session-id <id>      default: UTC time stamp; letters, digits, '.', '_', '-', first a letter or digit
 #   --evidence-root <dir>  default: ~/.hermes/outputs/inc-driving-002/phase10/sessions
@@ -23,7 +28,7 @@
 #   --permissive-ivi       the IVI guest is set permissive (setenforce 0); every result of the session is then
 #                          conditional on a permissive IVI, and session.json says so. Default: the guests as they
 #                          boot (Enforcing); their mode is recorded at every window either way
-#   --camcal checkerboard|settings  p10-2's camera calibration source (default checkerboard): checkerboard runs
+#   --camcal checkerboard|settings  p10-2's and s1's camera calibration source (default checkerboard): checkerboard runs
 #                          upstream's procedure on the captured frame and ends the session on a failing frame;
 #                          settings writes H.yaml from the simulated camera's settings and pose (make-h --source
 #                          settings), keeps the frame as evidence with its pre-check recorded only, and runs no
@@ -56,7 +61,7 @@ BENCH_REL=implementation/driver-assistance-bench
 unset GC_TO   # a gcloud call's time-out is the session's own (gc: 120 s, the trap: 30 s), never the caller's (S10)
 
 KIND=""; DRY=0; CAP=""; OWNER_OK_GUEST=0; WITHOUT_GUEST=0; SID=""; KIT_FROM=head; KIT_EXTRA=""; CARLA_HOST=""
-IVI_PERMISSIVE=0; RENV_ARGS=(); CAMCAL_SOURCE=checkerboard; CAMCAL_GIVEN=0
+IVI_PERMISSIVE=0; RENV_ARGS=(); CAMCAL_SOURCE=checkerboard; CAMCAL_GIVEN=0; CANDIDATE=pin
 EVID=${DA_EVIDENCE_ROOT:-$HOME/.hermes/outputs/inc-driving-002/phase10/sessions}
 BENCH_TREE=$(cd -- "$HERE/../../.." && pwd)
 while [ $# -gt 0 ]; do
@@ -75,7 +80,8 @@ while [ $# -gt 0 ]; do
     --permissive-ivi) IVI_PERMISSIVE=1; shift ;;
     --remote-env) RENV_ARGS+=("${2:?}"); shift 2 ;;
     --camcal) CAMCAL_SOURCE=${2:?}; CAMCAL_GIVEN=1; shift 2 ;;
-    -h|--help) sed -n '2,44p' "$0"; exit 0 ;;
+    --candidate) CANDIDATE=${2:?}; shift 2 ;;
+    -h|--help) sed -n '2,49p' "$0"; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -85,14 +91,24 @@ case "$KIND" in
   p10-3) ROLES=(score guest); CAP=${CAP:-$CAP_EUR_P10_3} ;;
   p10-2) if [ "$WITHOUT_GUEST" = 1 ]; then ROLES=(sim score); else ROLES=(sim score guest); fi
          CAP=${CAP:-$CAP_EUR_P10_2} ;;
-  *) echo "--kind p10-1|p10-3|p10-2 is required" >&2; exit 2 ;;
+  s1) if [ "$WITHOUT_GUEST" = 1 ]; then ROLES=(sim score); else ROLES=(sim score guest); fi
+      CAP=${CAP:-$CAP_EUR_S1} ;;
+  *) echo "--kind p10-1|p10-3|p10-2|s1 is required" >&2; exit 2 ;;
+esac
+# the VisionPilot candidate (D4): its bundle on the S-CORE host. pin is the S-CORE build's default bundle
+# (lib_score_side.sh) and changes no command; pr427 is the variant build of score-build/build_score_bench.sh
+# (DA_CANDIDATE=pr427: <root>-pr427), given to every S-CORE step as DA_B2_BUNDLE through the remote settings
+case "$CANDIDATE" in
+  pin) CANDIDATE_BUNDLE=/opt/da-b2/bundle ;;
+  pr427) CANDIDATE_BUNDLE=/opt/da-b2-pr427/bundle ;;
+  *) echo "refused: --candidate takes pin or pr427, not '$CANDIDATE'"; exit 2 ;;
 esac
 # the camera calibration's source: only from --camcal (the lead's decision of 2026-11-19 for p10-2), never a fallback
 case "$CAMCAL_SOURCE" in
   checkerboard|settings) ;;
   *) echo "refused: --camcal takes checkerboard or settings, not '$CAMCAL_SOURCE'"; exit 2 ;;
 esac
-[ "$CAMCAL_GIVEN" = 1 ] && [ "$KIND" != p10-2 ] && { echo "refused: --camcal is for p10-2 only (no other kind makes a calibration file)"; exit 2; }
+[ "$CAMCAL_GIVEN" = 1 ] && [ "$KIND" != p10-2 ] && [ "$KIND" != s1 ] && { echo "refused: --camcal is for p10-2 only (and s1: no other kind makes a calibration file)"; exit 2; }
 if [ "$CAMCAL_SOURCE" = settings ]; then
   CAMCAL_REASON="the lead's decision of 2026-11-19 (owner informed): CARLA 1.0's apply_texture sets only material parameters named BaseColor, Difuse, Normal, Emissive or ORMH (CarlaGameModeBase.cpp:505-548 at 14ac3b1a50) and the engine plane's material has none of them, so the boards render flat grey and upstream's script finds 0 boards; H.yaml comes from the simulated camera's settings and pose"
 else
@@ -108,7 +124,8 @@ REMOTE_ENV_guest="UNIT_SOURCE UNIT_REGISTERED_RE UNIT_NEGATION_RE BROKER_ERROR_R
                   UP_TIMEOUT_S CLOCK_READS CLOCK_MAX_OFFSET_S START_WAIT_S APP_SUBSCRIBE_WAIT_S"
 # (DA_P10_1_CARLA_HOST is not on it: p10-1 sets it from its own simulator host, the address read from gcloud)
 REMOTE_ENV_score="GATEWAYD_RX_REGEX DA_P10_1_LATE_WAIT_S DA_P10_1_CUDA_RUNS DA_P10_1_ALIVE_HOLD_S
-                  DA_P10_1_STALL_HOLD_S DA_P10_1_SUPERVISED_WAIT_S"
+                  DA_P10_1_STALL_HOLD_S DA_P10_1_SUPERVISED_WAIT_S DA_B2_BUNDLE"
+# (DA_B2_BUNDLE is on it so that it reaches every S-CORE step and session.json remote_env, but only --candidate sets it)
 REMOTE_ENV_sim=""
 declare -A RVAL=()
 for _x in "${RENV_ARGS[@]}"; do
@@ -117,8 +134,10 @@ for _x in "${RENV_ARGS[@]}"; do
   [[ " $(echo $REMOTE_ENV_guest $REMOTE_ENV_score $REMOTE_ENV_sim) " == *" $_n "* ]] \
     || { echo "refused: --remote-env $_n is not on the allow-list: $(echo $REMOTE_ENV_guest $REMOTE_ENV_score $REMOTE_ENV_sim)"; exit 2; }
   [ -n "${RVAL[$_n]+x}" ] && { echo "refused: --remote-env $_n given twice"; exit 2; }
+  [ "$_n" = DA_B2_BUNDLE ] && { echo "refused: --remote-env DA_B2_BUNDLE: the bundle is set by --candidate only (pin or pr427)"; exit 2; }
   RVAL[$_n]=${_x#*=}
 done
+[ "$CANDIDATE" = pr427 ] && RVAL[DA_B2_BUNDLE]=$CANDIDATE_BUNDLE
 
 # the ranged fetch's settings (hosts.env, F7): whole numbers >= 1
 for _n in FETCH_PARALLEL FETCH_RANGE_MIB; do
@@ -166,12 +185,14 @@ FETCH_BASE_S=60; FETCH_PLAN_BPS=1000000; FETCH_TRY_BASE_S=30; FETCH_TRIES=3
 # and session.json not_fetched names it, with its sha256 and size, as a fetch owed (fetch_owed.sh, README "A fetch
 # owed"). A host reached by direct SSH is copied by one scp of at most FETCH_SCP_S
 FETCH_SCP_S=1200
+# s1's stop run (shared contract 3): its path stop (ENTRY_SCORE_PATH_STOP) at the go plus this many seconds
+PATH_STOP_AFTER_S=12
 CARLA_PORTS="2000 2001 2002"   # p10-1's port test: CARLA's ports that carla-net admits from the S-CORE host
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_REC_LISTEN T_STEP
        T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT T_APP_RESTART STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
        GUEST_NOSSH_S GO_SSH_S PRESTOP_S TRAP_PACK_S TRAP_SCP_S TRAP_SCORE_S HOST_WATCH_S FETCH_BASE_S FETCH_PLAN_BPS
-       FETCH_TRY_BASE_S)
+       FETCH_TRY_BASE_S PATH_STOP_AFTER_S)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -180,11 +201,13 @@ if [ "$DRY" = 1 ]; then
   esac
   for v in "${KNOBS[@]}"; do o="DA_T_$v"; [ -n "${!o:-}" ] && printf -v "$v" '%s' "${!o}"; done
   MAKE_H=${DA_MAKE_H:-}   # a stand-in for camera_calibration.py make-h (the fake capture files are no images)
+  S1_RUNS_GIVEN=${DA_S1_RUNS:-}   # a run list of the dry runs' own (the world side's settings of the real list)
 else
   GCLOUD=$HOME/google-cloud-sdk/bin/gcloud
   for v in "${KNOBS[@]}"; do o="DA_T_$v"; [ -n "${!o:-}" ] && { echo "refused: $o is a dry-run knob"; exit 2; }; done
   [ -n "${DA_MAKE_H:-}" ] && { echo "refused: DA_MAKE_H is a dry-run knob"; exit 2; }
-  MAKE_H=""
+  [ -n "${DA_S1_RUNS:-}" ] && { echo "refused: DA_S1_RUNS is a dry-run knob (s1 runs the committed session/s1_runs.tsv)"; exit 2; }
+  MAKE_H=""; S1_RUNS_GIVEN=""
 fi
 # the display capture's caps follow this session's bounds (Q3, Q4; README "The display capture's caps"). POLL_S counts
 # as whole seconds (a dry run's 0.1 as 1)
@@ -199,6 +222,11 @@ CAP_WAIT_S=$(( T_CAPTURE_END - 60 - 2 - 60 - CAP_P )); [ "$CAP_WAIT_S" -ge 1 ] |
 if [ "$KIND" = p10-3 ]; then CAP_MAX_S=$(( (60 + T_INJECT + CAP_P + 120) + 60 ))
 else CAP_MAX_S=$(( GO_SSH_S + (T_RUN + CAP_P + 60) + (60 + T_SCORE_START + CAP_P + 120) + 60 + (T_RELEASE + CAP_P + 60)
                    + (T_REC_END + CAP_P + 60) + 60 )); fi
+# s1: the stop run's window also holds the wait to the path stop and its step (start call + bound + POLL_S + poll + tail),
+# and every s1 window the chase video's hash at its recorder's end (its SSH call, 120 s)
+if [ "$KIND" = s1 ]; then
+  CAP_MAX_S=$(( CAP_MAX_S + $(awk -v x="$PATH_STOP_AFTER_S" 'BEGIN { c = int(x); if (c < x) c++; print c }') + (60 + T_STEP + CAP_P + 120) + 120 ))
+fi
 # the exit trap's pre-stop budget (P1; README "The exit trap's pre-stop budget"): every step the trap runs before a VM
 # stops gets a slot of its own bound, and the phase is the sum of the slots of this kind's hosts, so no step can use
 # another's time: the running step's end (step: its TERM's call 60 s, STEP_TERM_POLLS waits of POLL_S, the last poll
@@ -248,6 +276,8 @@ WORLD_UP=""; STEP_RC=""; P10_1_RC=""; ALLOW_RC=""   # the detached world sides n
 # of its stop at the session's end, and each capture's end: <w>:<end>:<rc>:<closed by>:<guest files kept 0|1> (Q1, Q2)
 CAP_OPEN=""; CAP_TRY=0; CAPTURES=""
 CHASE=""   # each recorded run's chase recorder end: <run>:<rc> (F4)
+# s1's run list (labels in order; each label's run id, run, scenario and setting), the runs done, the list's source
+S1_LABELS=(); declare -A S1_RID=() S1_REP=() S1_SC=() S1_SE=(); S1_RUNS_SHA=""; S1_RUNS_SRC=""; S1_DONE=""
 
 log() { local l; l="$(date -u +%FT%TZ) $*"; printf '%s\n' "$l" >> "$LOG"; printf '%s\n' "$l" 2>/dev/null || true; }
 say() { printf '%s\n' "$*" >&3 2>/dev/null || true; }   # a dry run's command line on stdout
@@ -842,7 +872,7 @@ cleanup() {
   lost_report
   [ "$KIND" = p10-1 ] && [ -n "$UPLOADED" ] && p10_1_report
   [ "$KIND" = p10-3 ] && p10_3_report
-  [ "$KIND" = p10-2 ] && p10_2_report
+  { [ "$KIND" = p10-2 ] || [ "$KIND" = s1 ]; } && p10_2_report
   write_record "$rc"
   log "SESSION_END $SID rc=$rc"
   [ -n "$LEFT_RUNNING" ] && log "VMS LEFT RUNNING, THEY BILL: STOP THEM BY HAND NOW:$LEFT_RUNNING (exit 11 in place of $RC_STEPS)"
@@ -877,10 +907,12 @@ p10_3_report() {   # p10-3 is passed only when its steps ended with 0 and every 
 }
 p10_2_report() {   # p10-2's display recording is complete only when every recorded window's capture ended by its stop
   # at the window's close with rc 0 and nothing kept on the guest (Q2). One line in session.log, and session.json p10_2
-  local n w x e rc by k why=() PERM_NOTE=""
+  # (s1: the same over the run list's windows, session.json s1)
+  local n w x e rc by k why=() PERM_NOTE="" wins
+  if [ "$KIND" = s1 ]; then wins="${S1_LABELS[*]}"; else wins=$(for n in $(seq 1 "$P10_2_RUNS"); do printf 'run%s ' "$n"; done); fi
   # R2 of the closure check of 7befc3c1: a --permissive-ivi session's report says so, as session.json does
   [ "$IVI_PERMISSIVE" = 1 ] && PERM_NOTE=" (conditional on a permissive IVI)"
-  log "p10-2 camera calibration source: $CAMCAL_SOURCE ($CAMCAL_REASON); cross-check: ${CAMCAL_XCHECK:-not reached (no make_h)}"
+  log "$KIND camera calibration source: $CAMCAL_SOURCE ($CAMCAL_REASON); cross-check: ${CAMCAL_XCHECK:-not reached (no make_h)}"
   # the candidate's Rerun records (rrd_on = true) stay on the S-CORE host: each one's size and sha256, from the host
   local rrd; rrd=$(python3 - "$IN/score/out" <<'PY'
 import json, os, sys
@@ -896,13 +928,17 @@ for name in sorted(os.listdir(sys.argv[1])) if os.path.isdir(sys.argv[1]) else [
 print("; ".join(parts) or "none recorded")
 PY
 )
-  log "p10-2 candidate Rerun records (rrd_on = true), kept on the S-CORE host, not fetched: $rrd"
+  log "$KIND candidate Rerun records (rrd_on = true), kept on the S-CORE host, not fetched: $rrd"
+  # C3: the chase videos stay on the simulator host (out of its pack, each with its sha256 in pack_excluded.tsv): they
+  # are fetched after the session by session/fetch_chase.sh, the simulator host alone
+  local nv; nv=$(awk -F'\t' '$1 ~ /^out\/rec_[^\/]*\/chase_view\.mp4$/ && NF >= 3' "$IN/sim/out/pack_excluded.tsv" 2>/dev/null | wc -l)
+  [ "$nv" -gt 0 ] && log "$KIND chase videos left on the simulator host: $nv, each with its size and sha256 in sim/out/pack_excluded.tsv; fetch them after the session with the simulator host alone: bash $HERE/fetch_chase.sh $IN"
   # each run's chase recorder: rc 0 or not, with the summary's end from the fetched files (F4). rc 0 says only that the
   # recorder attached, wrote a frame and ffmpeg ended 0, not that the view has no gap (T6): session.json chase_view
   # carries written, gaps and ticks_seen beside it
   local cgood=() cbad=() crc cend
-  for n in $(seq 1 "$P10_2_RUNS"); do
-    w=run$n; x=$(tr ' ' '\n' <<< "$CHASE" | grep "^$w:" | tail -1)
+  for w in $wins; do
+    x=$(tr ' ' '\n' <<< "$CHASE" | grep "^$w:" | tail -1)
     [ -n "$x" ] || { cbad+=("$w (no end of its recorder recorded: the session ended before it)"); continue; }
     crc=${x#*:}
     if [ "$crc" = 0 ]; then cgood+=("$w"); continue; fi
@@ -914,13 +950,13 @@ except (OSError, ValueError, AttributeError):
     cbad+=("$w (recorder rc $crc: ${cend:-no summary fetched})")
   done
   if [ ${#cbad[@]} = 0 ]; then
-    CHASE_COMPLETE=1; log "p10-2 chase recorder ended rc 0 in every run: $(printf '%s, ' "${cgood[@]}" | sed 's/, $//') (rc 0 only: written, gaps and ticks_seen per run in session.json chase_view)"
+    CHASE_COMPLETE=1; log "$KIND chase recorder ended rc 0 in every run: $(printf '%s, ' "${cgood[@]}" | sed 's/, $//') (rc 0 only: written, gaps and ticks_seen per run in session.json chase_view)"
   else
-    CHASE_COMPLETE=0; log "p10-2 chase recorder NOT rc 0 in every run: $(printf '%s; ' "${cbad[@]}" | sed 's/; $//')"
+    CHASE_COMPLETE=0; log "$KIND chase recorder NOT rc 0 in every run: $(printf '%s; ' "${cbad[@]}" | sed 's/; $//')"
   fi
   # each run's actuation adapter (T4): its config event's heroActorId, or its error, from the fetched S-CORE output; a
   # run whose adapter never attached sent no command to the car, whatever its exit code
-  local ad; ad=$(HERE="$HERE" python3 - "$IN/score/out" "$([[ " $FETCH_OK " == *" score "* ]] && echo 1 || echo 0)" \
+  local ad; ad=$(HERE="$HERE" KIND="$KIND" python3 - "$IN/score/out" "$([[ " $FETCH_OK " == *" score "* ]] && echo 1 || echo 0)" \
     $(cut -f1 "$IN/score_runs.tsv" 2>/dev/null | awk '!s[$0]++') <<'PY'
 import json, os, sys
 sys.path.insert(0, os.environ["HERE"])
@@ -932,18 +968,19 @@ for run in sys.argv[3:]:
         ok.append("%s (hero %s)" % (run, a["heroActorId"]))
     else:
         bad.append("%s (%s)" % (run, (a["error"] or "no config or error event in its record") if isinstance(a, dict) else a))
+kind = os.environ["KIND"]
 if bad:
-    print("p10-2 adapter NO ATTACH in " + ", ".join(bad) + ("; attached in " + ", ".join(ok) if ok else ""))
+    print(kind + " adapter NO ATTACH in " + ", ".join(bad) + ("; attached in " + ", ".join(ok) if ok else ""))
 else:
-    print("p10-2 adapter attached in every run: " + ", ".join(ok))
+    print(kind + " adapter attached in every run: " + ", ".join(ok))
 PY
 )
   log "$ad"
   if [[ " ${ROLES[*]} " != *" guest "* ]]; then
-    P10_2_COMPLETE=none; P10_2_REASON="no display capture: --without-guest-host"; log "p10-2: $P10_2_REASON"; return 0
+    P10_2_COMPLETE=none; P10_2_REASON="no display capture: --without-guest-host"; log "$KIND: $P10_2_REASON"; return 0
   fi
-  for n in $(seq 1 "$P10_2_RUNS"); do
-    w=run$n; x=$(tr ' ' '\n' <<< "$CAPTURES" | grep "^$w:" | tail -1)
+  for w in $wins; do
+    x=$(tr ' ' '\n' <<< "$CAPTURES" | grep "^$w:" | tail -1)
     [ -n "$x" ] || { why+=("window $w: no end of its capture recorded (the session ended before it)"); continue; }
     IFS=: read -r _ e rc by k <<< "$x"
     [ "$e" = stop ] || why+=("window $w: capture ended ($e)")
@@ -953,10 +990,10 @@ PY
   done
   if [ ${#why[@]} = 0 ]; then
     P10_2_COMPLETE=1; P10_2_REASON="every window's capture ended by its stop at the window's close, rc 0, nothing kept on the guest"
-    log "p10-2 display recording complete: $P10_2_REASON$PERM_NOTE"
+    log "$KIND display recording complete: $P10_2_REASON$PERM_NOTE"
   else
     P10_2_COMPLETE=0; P10_2_REASON=$(printf '%s; ' "${why[@]}"); P10_2_REASON=${P10_2_REASON%; }
-    log "p10-2 display recording NOT complete: $P10_2_REASON$PERM_NOTE"
+    log "$KIND display recording NOT complete: $P10_2_REASON$PERM_NOTE"
   fi
 }
 p10_1_report() {   # a p10-1 session judges only the checks that need the S-CORE host alone (without a CARLA server C1's
@@ -1000,6 +1037,8 @@ write_record() {
   # the hosts not fetched, computed before the assignments below: one of them, STARTED="${STARTED[*]}", turns the
   # array into one word for the rest of that command, and the loop then read "sim score" as one host
   local nf r; nf="$FETCH_BAD $(for r in "${STARTED[@]}"; do case " $FETCHED " in *" $r "*) ;; *) echo "$r" ;; esac; done)"
+  # s1's run list, one row a run: computed here, never as a prefix assignment below (an array named there turns into one word)
+  local s1rows x; s1rows=$(for x in "${S1_LABELS[@]}"; do printf '%s\t%s\t%s\t%s\t%s\n' "$x" "${S1_RID[$x]}" "${S1_REP[$x]}" "${S1_SC[$x]}" "${S1_SE[$x]}"; done)
   KIND="$KIND" SID="$SID" RC="$1" CAP="$CAP" IN="$IN" STARTED="${STARTED[*]}" STEP_FAIL="$STEP_FAIL" \
   KIT_SHA="${KIT_SHA:-}" BENCH_COMMIT="${BENCH_COMMIT:-}" WT_CHANGES="${WT_CHANGES:-}" DRY="$DRY" \
   IAP="$SIM_SSH_IAP" PERM="$IVI_PERMISSIVE" IPS="${IPS:-}" CAMCAL="${CAMCAL_SHA:-}" VM_AFTER="${VM_AFTER:-}" \
@@ -1014,6 +1053,8 @@ write_record() {
   NEED_DISK_STAGE="${NEED_DISK_STAGE:-}" RRD_RATE_BPS="$RRD_RATE_BPS" ROLES_ALL="${STARTED[*]}" \
   CHASE="$CHASE" CHASE_COMPLETE="${CHASE_COMPLETE:-}" HERE="$HERE" SCORE_FETCHED="$([[ " $FETCH_OK " == *" score "* ]] && echo 1)" \
   LOST="${LOST:-}" OWED_TEXT="$(owed)" FETCH_PARALLEL="$FETCH_PARALLEL" FETCH_RANGE_MIB="$FETCH_RANGE_MIB" \
+  CANDIDATE="$CANDIDATE" CANDIDATE_BUNDLE="$CANDIDATE_BUNDLE" S1_DONE_LIST="$S1_DONE" \
+  S1_RUNS_SRC="$S1_RUNS_SRC" S1_RUNS_SHA="$S1_RUNS_SHA" S1_ROWS="$s1rows" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os, sys
 e = os.environ
@@ -1023,7 +1064,7 @@ p10_1 = os.path.join(e["IN"], "p10_1_summary.json")
 ips = dict(x.split("=", 1) for x in e["IPS"].split() if "=" in x)
 starts = [l.split() for l in open(os.path.join(e["IN"], "starts.tsv")) if l.strip()]
 camcal = {"camera_calibration_source": e["CAMCAL_SOURCE"], "camera_calibration_source_reason": e["CAMCAL_REASON"],
-          "camera_calibration_cross_check": e["CAMCAL_XCHECK"] or None} if e["KIND"] == "p10-2" else {}
+          "camera_calibration_cross_check": e["CAMCAL_XCHECK"] or None} if e["KIND"] in ("p10-2", "s1") else {}
 try:
     precheck = json.loads(e["CAMCAL_PRECHECK"]) if e["CAMCAL_PRECHECK"] else None
 except ValueError:
@@ -1043,6 +1084,19 @@ for run, d in score_runs.items():
         d["staged"] = dict(w.split("=", 1) for w in d["staged"].split() if "=" in w) or None
     if "planned_running_s" in d:
         d["planned_running_s"] = int(d["planned_running_s"])
+    if "disk_need_bytes" in d:   # s1: the disk check before this run's S-CORE start (C2)
+        words = d.pop("disk_line", "").split()[1:]
+        d["disk_check"] = {"need_bytes": int(d.pop("disk_need_bytes")),
+                           "rc": int(d["disk_rc"]) if d.get("disk_rc", "").isdigit() else None,
+                           "result": dict(w.split("=", 1) for w in words if "=" in w) or None}
+        d.pop("disk_rc", None)
+    if "simulatedConfiguration" in d:   # s1: the digest of the run's scenario definition (C5), with what it covers
+        try:
+            dig = json.load(open(os.path.join(e["IN"], "scenario_digests.json"))).get(d.get("setting"), {})
+        except (OSError, ValueError):
+            dig = {}
+        d["simulatedConfiguration"] = {"sha256": d["simulatedConfiguration"], "files": dig.get("files"),
+                                       "rule": dig.get("rule")}
     # the run's actuation adapter: its heroActorId or its error, from the fetched S-CORE output (T4)
     d["adapter"] = attach(os.path.join(e["IN"], "score", "out"), run, e["SCORE_FETCHED"] == "1")
     try:   # the stop's record of the candidate's Rerun record, kept on the S-CORE host (computed there)
@@ -1055,7 +1109,9 @@ for role in e["ROLES_ALL"].split():
         rows = [l.rstrip("\n").split("\t") for l in open(os.path.join(e["IN"], role, "out", "pack_excluded.tsv"))]
     except OSError:
         continue
-    excluded[role] = [{"path": r[0], "bytes": int(r[1]) if r[1:] and r[1].isdigit() else None} for r in rows if r[0]]
+    # a chase video's row also carries its sha256 (C3; fetch_chase.sh fetches it after the session)
+    excluded[role] = [dict({"path": r[0], "bytes": int(r[1]) if r[1:] and r[1].isdigit() else None},
+                           **({"sha256": r[2]} if len(r) > 2 and r[2] else {})) for r in rows if r[0]]
 chase = {}
 for x in e["CHASE"].split():
     run, rc = x.split(":", 1)
@@ -1117,12 +1173,30 @@ try:
         fetch[role] = d
 except OSError:
     pass
+s1 = None
+if e["KIND"] == "s1":
+    rows = [l.split("\t") for l in e["S1_ROWS"].splitlines() if l]
+    runs = [{"label": w, "run_id": rid, "runIdentity": "%s/%s" % (rid, rep), "scenario": sc, "setting": se}
+            for w, rid, rep, sc, se in rows]
+    done = e["S1_DONE_LIST"].split()
+    try:
+        ps = json.load(open(os.path.join(e["IN"], "path_stop.json")))
+    except (OSError, ValueError):
+        ps = None
+    s1 = {"runs_file": e["S1_RUNS_SRC"], "runs_file_sha256": e["S1_RUNS_SHA"], "runs": runs, "runs_done": done,
+          "runs_owed": [r for r in runs if r["label"] not in done],
+          "stop_instant": ps.get("stop_instant") if ps else None, "path_stop": ps,
+          "display_recording_complete": {"1": True, "0": False}.get(e["P10_2_COMPLETE"]),
+          "reason": e["P10_2_REASON"], "conditional_on_permissive_ivi": e["PERM"] == "1",
+          "chase_view_complete": {"1": True, "0": False}.get(e["CHASE_COMPLETE"]),
+          "chase_videos_on_the_simulator_host": [x for x in excluded.get("sim", []) if "sha256" in x], **camcal}
 renv = {}
 for line in e["RENV"].splitlines():
     role, name, value = (line.split("\t", 2) + ["", ""])[:3]
     renv.setdefault(role, {})[name] = value
 json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]), "dry_run": e["DRY"] == "1",
            "cap_eur": float(e["CAP"]), "started": e["STARTED"].split(),
+           "candidate": {"name": e["CANDIDATE"], "bundle": e["CANDIDATE_BUNDLE"]},
            "start_calls_unix_s": {r: float(t) for r, t, _ in starts}, "eur_per_hour": {r: float(p) for r, _, p in starts},
            "failed_step": e["STEP_FAIL"] or None, "kit_sha256": e["KIT_SHA"] or None,
            "bench_commit": e["BENCH_COMMIT"] or None, "worktree_changes": e["WT_CHANGES"] or None,
@@ -1142,7 +1216,7 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
                                  "stop_killed": rc == "7"}
                            for run, step, rc in (x.split(":", 2) for x in e["STOPS"].split())},
            "p10_1": json.load(open(p10_1)) if os.path.exists(p10_1) else None,
-           "score_runs": score_runs if e["KIND"] == "p10-2" else None,
+           "score_runs": score_runs if e["KIND"] in ("p10-2", "s1") else None,
            "score_disk_check": disk,
            "chase_view": chase,
            "not_fetched_from_hosts": excluded,
@@ -1161,7 +1235,8 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "p10_2": {"display_recording_complete": {"1": True, "0": False}.get(e["P10_2_COMPLETE"]),
                      "reason": e["P10_2_REASON"], "conditional_on_permissive_ivi": e["PERM"] == "1",
                      "chase_view_complete": {"1": True, "0": False}.get(e["CHASE_COMPLETE"]), **camcal}
-                    if e["KIND"] == "p10-2" else None},
+                    if e["KIND"] == "p10-2" else None,
+           "s1": s1},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
 }
@@ -1183,7 +1258,8 @@ trap 'on_signal HUP 129' HUP
 
 log "SESSION_START $SID kind=$KIND hosts=${ROLES[*]} cap=$CAP EUR dry_run=$DRY sim_ssh_iap=$SIM_SSH_IAP permissive_ivi=$IVI_PERMISSIVE"
 [ "$IVI_PERMISSIVE" = 1 ] && log "every result of this session is conditional on a permissive IVI (--permissive-ivi)"
-[ "$KIND" = p10-2 ] && log "camera calibration source: $CAMCAL_SOURCE (--camcal): $CAMCAL_REASON"
+{ [ "$KIND" = p10-2 ] || [ "$KIND" = s1 ]; } && log "camera calibration source: $CAMCAL_SOURCE (--camcal): $CAMCAL_REASON"
+log "candidate: $CANDIDATE (bundle $CANDIDATE_BUNDLE$([ "$CANDIDATE" = pin ] && echo ', the S-CORE build default: no DA_B2_BUNDLE set'))"
 
 # the --remote-env settings, per host, in the order of its list
 REMOTE_ENV_SET=""
@@ -1230,9 +1306,9 @@ else
 fi
 WT_CHANGES=$(git -C "$BENCH_TREE" status --porcelain -- "$BENCH_REL" 2>/dev/null | wc -l)
 [ -n "$KIT_EXTRA" ] && cp -a "$KIT_EXTRA" "$STAGE/bench/extra"
-if [ "$KIND" = p10-2 ]; then
+if [ "$KIND" = p10-2 ] || [ "$KIND" = s1 ]; then
   # the camera calibration: upstream's files at the pin, and a Python with OpenCV for make-h on this host
-  [ -n "$ENTRY_SIM_CALIBRATE" ] || fail 2 "refused: p10-2 needs ENTRY_SIM_CALIBRATE (the candidate reads the H.yaml it leads to)"
+  [ -n "$ENTRY_SIM_CALIBRATE" ] || fail 2 "refused: $KIND needs ENTRY_SIM_CALIBRATE (the candidate reads the H.yaml it leads to)"
   for f in Calibration/checkerboard-bw-4x4.png Calibration/calc_front_camera_homography.py \
            VisionPilot/scripts/find_homography_C_matrix.py; do
     git -C "$VP_CLONE" cat-file -e "$VP_PIN:$f" 2>/dev/null || fail 2 "refused: $f is not at $VP_PIN in VP_CLONE=$VP_CLONE"
@@ -1260,7 +1336,40 @@ case "$KIND" in
   p10-2) NEED+=("$ENTRY_SIM_SETUP" "$ENTRY_SIM_WARMUP" "$ENTRY_SIM_CALIBRATE" "$ENTRY_SIM_RUN" "$ENTRY_SIM_RECORD"
                 "$ENTRY_SCORE_START" "$ENTRY_SCORE_STOP" "$ENTRY_SCORE_DISK" world-side/da_world_side.py world-side/camera_calibration.py)
          [ "$WITHOUT_GUEST" = 1 ] || NEED+=("${GUEST_NEED[@]}") ;;
+  s1) NEED+=("$ENTRY_SIM_SETUP" "$ENTRY_SIM_WARMUP" "$ENTRY_SIM_CALIBRATE" "$ENTRY_SIM_RUN" "$ENTRY_SIM_RECORD"
+             "$ENTRY_SCORE_START" "$ENTRY_SCORE_STOP" "$ENTRY_SCORE_DISK" world-side/da_world_side.py world-side/camera_calibration.py)
+      [ "$WITHOUT_GUEST" = 1 ] || NEED+=("${GUEST_NEED[@]}") ;;
 esac
+# s1's run list (C1; shared contract 4): the committed session/s1_runs.tsv as shipped in the kit (a dry run may name
+# its own with DA_S1_RUNS). One run a line, <run id> TAB <run>: a setting id of world-side/scenarios.py with r1 or r2,
+# or `stop` with `further` (the further run in which the S-CORE path is stopped, last). Each run's label names its
+# steps: SC-DRIVING-012@20 r1 is 012_20_r1, the stop run is stop
+if [ "$KIND" = s1 ]; then
+  if [ -n "$S1_RUNS_GIVEN" ]; then
+    S1_RUNS_SRC=$S1_RUNS_GIVEN; S1_RUNS_TEXT=$(cat "$S1_RUNS_GIVEN" 2>/dev/null) || fail 2 "refused: no run list $S1_RUNS_GIVEN"
+  else
+    S1_RUNS_SRC="kit:bench/session/s1_runs.tsv"
+    S1_RUNS_TEXT=$(tar -xzOf "$KIT" bench/session/s1_runs.tsv 2>/dev/null) || fail 2 "refused: the kit holds no session/s1_runs.tsv"
+  fi
+  S1_RUNS_SHA=$(printf '%s\n' "$S1_RUNS_TEXT" | sha256sum | cut -d' ' -f1)
+  _seen_stop=0
+  while IFS=$'\t' read -r _rid _rep _rest; do
+    [ -z "$_rid" ] || [[ "$_rid" == \#* ]] && continue
+    [ "$_seen_stop" = 1 ] && fail 2 "refused: the stop run must be the last of the run list ($S1_RUNS_SRC): $_rid $_rep follows it"
+    if [ "$_rid" = stop ] && [ "$_rep" = further ] && [ -z "$_rest" ]; then
+      _w=stop; _seen_stop=1; S1_SC[$_w]=$S1_STOP_SCENARIO; S1_SE[$_w]=$S1_STOP_SETTING
+    elif [[ "$_rep" =~ ^r[12]$ ]] && [ -z "$_rest" ] && [[ "$_rid" =~ ^SC-DRIVING-(01[2-5])@([0-9]+)$ ]]; then   # the id's match last: BASH_REMATCH
+      _w="${BASH_REMATCH[1]}_${BASH_REMATCH[2]}_$_rep"; S1_SC[$_w]=${_rid%@*}; S1_SE[$_w]=$_rid
+    else
+      fail 2 "refused: a line of the run list ($S1_RUNS_SRC) is neither <SC-DRIVING-012..015@speed> TAB r1|r2 nor stop TAB further: '$_rid' '$_rep' '$_rest'"
+    fi
+    [ -n "${S1_RID[$_w]+x}" ] && fail 2 "refused: the run list ($S1_RUNS_SRC) names $_rid $_rep twice"
+    S1_LABELS+=("$_w"); S1_RID[$_w]=$_rid; S1_REP[$_w]=$_rep
+  done <<< "$S1_RUNS_TEXT"
+  [ ${#S1_LABELS[@]} -gt 0 ] || fail 2 "refused: the run list ($S1_RUNS_SRC) holds no run"
+  [ "$_seen_stop" = 1 ] && NEED+=("$ENTRY_SCORE_PATH_STOP")
+  log "s1 run list $S1_RUNS_SRC (sha256 $S1_RUNS_SHA): ${#S1_LABELS[@]} runs: ${S1_LABELS[*]}"
+fi
 MISSING=$(python3 - "$KIT" "${NEED[@]}" <<'PY'
 import sys, tarfile
 members = {m.name: m for m in tarfile.open(sys.argv[1]).getmembers()}
@@ -1287,7 +1396,7 @@ for r in "${ROLES[@]}"; do
 done
 # each run's setting and speed_limit (F2), from world-side/scenarios.py through run_setting.py, before any VM starts;
 # score_runs.tsv holds what session.json's score_runs says per run: <run> <key> <value>
-declare -A RUN_SET=() RUN_SPEED=() RUN_CAP=(); PLAN_TOTAL_S=0; PLAN_MAX_S=0; DISK_RC=""; DISK_LINE=""
+declare -A RUN_SET=() RUN_SPEED=() RUN_CAP=() RUN_NEED=(); PLAN_TOTAL_S=0; PLAN_MAX_S=0; DISK_RC=""; DISK_LINE=""
 srun() { printf '%s\t%s\t%s\n' "$1" "$2" "$3" >> "$IN/score_runs.tsv"; }
 plan_run() {   # plan_run <label> <scenario> <setting>
   local line id sp cap lo hi
@@ -1306,6 +1415,31 @@ if [ "$KIND" = p10-2 ]; then
   NEED_DISK=$(( RRD_RATE_BPS * PLAN_TOTAL_S * 11 / 10 + RRD_MARGIN_B ))
   NEED_DISK_STAGE=$(( RRD_RATE_BPS * PLAN_MAX_S * 11 / 10 + RRD_MARGIN_B ))
   log "disk budget of the S-CORE host for the candidate's Rerun records: $RRD_RATE_BPS B/s x $PLAN_TOTAL_S s of planned running, plus 10 % and $RRD_MARGIN_B B: $NEED_DISK B ($NEED_DISK_STAGE B for the longest run in the stage)"
+fi
+if [ "$KIND" = s1 ]; then
+  # calib_steer (ASM-DRIVING-006 on S1_CALIB_STEER_SETTING's road), then every run of the list; each run's record:
+  # its run id, its runIdentity (the first or the second run of its setting, or the further run) and its scenario
+  plan_run calib_steer ASM-DRIVING-006 "$S1_CALIB_STEER_SETTING"
+  srun calib_steer runIdentity "calib_steer (ASM-DRIVING-006, no run of a setting)"
+  for _w in "${S1_LABELS[@]}"; do
+    plan_run "$_w" "${S1_SC[$_w]}" "${S1_SE[$_w]}"
+    srun "$_w" run_id "${S1_RID[$_w]}"; srun "$_w" runIdentity "${S1_RID[$_w]}/${S1_REP[$_w]}"; srun "$_w" scenario "${S1_SC[$_w]}"
+  done
+  # C2: the disk check before each S-CORE start needs one run's Rerun record (the plan's per-run bound), not every run's
+  # at once: a short disk then ends the session before that run, the rest owed, and no record is cut
+  for _w in calib_steer "${S1_LABELS[@]}"; do
+    _p=$(( ${RUN_CAP[$_w]%.*} + RRD_HOLD_S )); RUN_NEED[$_w]=$(( RRD_RATE_BPS * _p * 11 / 10 + RRD_MARGIN_B ))
+  done
+  log "disk need of each s1 run, checked before its S-CORE start: $RRD_RATE_BPS B/s x (its run cap + $RRD_HOLD_S s), plus 10 % and $RRD_MARGIN_B B: $(for _w in calib_steer "${S1_LABELS[@]}"; do printf '%s %s B, ' "$_w" "${RUN_NEED[$_w]}"; done | sed 's/, $//')"
+  # C5: the digest of each run's scenario definition (simulatedConfiguration), from the kit's own files
+  python3 "$HERE/scenario_digest.py" "$KIT" "$IN/scenario_digests.json" $(for _w in calib_steer "${S1_LABELS[@]}"; do echo "${RUN_SET[$_w]}"; done | sort -u) \
+    > "$IN/.digest" 2>&1 || fail 2 "refused: no scenario digest from the kit: $(tail -1 "$IN/.digest")"
+  for _w in calib_steer "${S1_LABELS[@]}"; do
+    _d=$(awk -v s="${RUN_SET[$_w]}" '$1 == s {print $2}' "$IN/.digest")
+    [ -n "$_d" ] || fail 2 "refused: no scenario digest for ${RUN_SET[$_w]}"
+    srun "$_w" simulatedConfiguration "$_d"
+  done
+  log "scenario digests (simulatedConfiguration) from the kit: $(tr '\n' ' ' < "$IN/.digest")"; rm -f "$IN/.digest"
 fi
 EUR_H=0; for r in "${ROLES[@]}"; do EUR_H=$(awk -v a="$EUR_H" -v b="$(var "$r" EUR_H)" 'BEGIN{print a+b}'); done
 CAP_S=$(awk -v c="$CAP" -v h="$EUR_H" 'BEGIN{printf "%d", c / h * 3600}')
@@ -1558,10 +1692,20 @@ score_config_check() {   # score_config_check <label> <the start's SCORE_CONFIG 
     return 0
   fi
   srun "$w" staged "$cfg"
-  for x in $cfg; do case "$x" in speed_limit=*) sp=${x#*=} ;; conf_recorded=*) recd=${x#*=} ;; esac; done
+  local facts=""
+  for x in $cfg; do case "$x" in speed_limit=*) sp=${x#*=} ;; conf_recorded=*) recd=${x#*=} ;; facts_diffs=*) facts=${x#*=} ;; esac; done
   if [ "$sp" != "${RUN_SPEED[$w]}" ] || [ "$recd" != 1 ]; then
     STEP_FAIL="score_start_$w"
     abort 5 "the staged vision_pilot.conf of $w does not carry the run's speed limit ${RUN_SPEED[$w]} m/s, or the identity record does not hash it: $cfg"
+  fi
+  # the candidate (D4): the staged facts (the source difference the identity recorder hashes) list patch 0004 for
+  # pr427, and never for pin, so a run never reads as the other candidate's
+  case "$CANDIDATE:+$facts+" in
+    pr427:*"+0004-"*|pin:*) ;;
+    *) STEP_FAIL="score_start_$w"; abort 5 "the staged facts of $w do not list patch 0004, but --candidate pr427: facts_diffs ${facts:-none}" ;;
+  esac
+  if [ "$CANDIDATE" = pin ] && [[ "+$facts+" == *"+0004-"* ]]; then
+    STEP_FAIL="score_start_$w"; abort 5 "the staged facts of $w list patch 0004, but --candidate pin: facts_diffs $facts"
   fi
   log "speed_limit ${RUN_SPEED[$w]} m/s for $w staged, and the identity record hashes that vision_pilot.conf: $cfg"
 }
@@ -1574,9 +1718,52 @@ disk_check() {   # p10-2's first step: room on the S-CORE host for every run's R
   fi
   log "disk check on $(var score VM): ${DISK_LINE:-no DISK_CHECK line} (need $NEED_DISK B)"
 }
-world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another run follows 0|1>: one run with its own
-  # S-CORE side
-  local w=$1 sc=$2 se=$3 rec=$4 more=${5:-0} o; o=$(od "world_$w")
+run_disk_check() {   # run_disk_check <label>: s1's disk check before the run's S-CORE start (C2): room for this run's
+  # Rerun record. Short (exit 9): the session ends here, before the run, cleanly (the stops, the fetch), exit 5, with
+  # this run and every later one owed (session.json s1.runs_owed)
+  local w=$1 line
+  ALLOW_RC=9 rstep score "disk_check_$w" "$T_STEP" bash "$ENTRY_SCORE_DISK" "$(od "disk_check_$w")" "${RUN_NEED[$w]}" "${RUN_NEED[$w]}"
+  line=$(grep -o 'DISK_CHECK .*' <<< "$ROUT" | tail -1)
+  srun "$w" disk_need_bytes "${RUN_NEED[$w]}"; srun "$w" disk_rc "$STEP_RC"; srun "$w" disk_line "$line"
+  if [ "$STEP_RC" = 9 ]; then
+    local owed=() x on=0
+    for x in calib_steer "${S1_LABELS[@]}"; do [ "$x" = "$w" ] && on=1; [ "$on" = 1 ] && owed+=("$x"); done
+    STEP_FAIL="disk_check_$w"; ENDED_BY="disk short before run $w: runs owed ${owed[*]}"
+    abort 5 "DISK SPACE SHORT on $(var score VM) before run $w: its Rerun record needs ${RUN_NEED[$w]} B; the session ends before it, the runs ${owed[*]} owed: ${line:-no DISK_CHECK line}"
+  fi
+  log "disk check on $(var score VM) before $w: ${line:-no DISK_CHECK line} (need ${RUN_NEED[$w]} B)"
+}
+path_stop() {   # path_stop <label> <the go's time, Unix s>: the stop run's path stop (shared contract 3) at the go plus
+  # PATH_STOP_AFTER_S: the Launch Manager's run target path_stopped, and its one JSON line, the stop instant
+  local w=$1 t_go=$2 wait_s line ok
+  wait_s=$(awk -v g="$t_go" -v a="$PATH_STOP_AFTER_S" -v n="$(date +%s.%N)" 'BEGIN { x = g + a - n; printf "%.3f", (x > 0 ? x : 0) }')
+  log "stop run $w: the S-CORE path stops at the go + $PATH_STOP_AFTER_S s, in $wait_s s"
+  nap "$wait_s"
+  local t_call; t_call=$(date +%s.%N)
+  rstep score "path_stop_$w" "$T_STEP" bash "$ENTRY_SCORE_PATH_STOP"
+  line=$(grep -o '{"runTarget".*}' <<< "$ROUT" | tail -1)
+  ok=$(python3 - "$line" "$IN/path_stop.json" "$w" "$t_go" "$t_call" "$PATH_STOP_AFTER_S" <<'PY'
+import json, sys
+line, out, w, t_go, t_call, after = sys.argv[1:]
+try:
+    d = json.loads(line)
+except ValueError:
+    d = None
+good = (isinstance(d, dict) and d.get("runTarget") == "path_stopped" and d.get("rc") == 0
+        and all(isinstance(d.get(k), int) and not isinstance(d.get(k), bool) for k in ("stopInstantRealNs", "stopInstantMonoNs")))
+json.dump({"label": w, "go_unix_s": float(t_go), "call_unix_s": float(t_call), "after_go_s": float(after),
+           "line": line or None, "stop_instant": d if good else None}, open(out, "w"), indent=1)
+print("good" if good else "bad")
+PY
+)
+  if [ "$ok" != good ]; then
+    STEP_FAIL="path_stop_$w"; abort 5 "the path stop of $w gave no stop instant (runTarget path_stopped, the two instants, rc 0): ${line:-no JSON line}"
+  fi
+  log "STOP INSTANT of $w: $line"
+}
+world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another run follows 0|1> [<path stop 0|1>]: one
+  # run with its own S-CORE side
+  local w=$1 sc=$2 se=$3 rec=$4 more=${5:-0} pstop=${6:-0} o; o=$(od "world_$w")
   [ "$rec" = 1 ] && { rstart sim "rec_$w" "$SIM_PY" "$ENTRY_SIM_RECORD" --out "$(od "rec_$w")"; rlisten "$w"; }
   rstart sim "world_$w" "$SENV" bash "$ENTRY_SIM_RUN" "$o" "$sc" "$se"
   rwaitfile sim "world_$w" "$o/simulator/ready.json" "$T_READY" || { abort 5 "the world side of $w is not ready"; }
@@ -1604,7 +1791,9 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another
   fi
   log "go of $w $since s after the S-CORE side's start step began (limit $GO_LIMIT_S s, the go's SSH call at most $GO_SSH_S s)"
   rtouch sim "$o/go" "$GO_SSH_S" || { STEP_FAIL="world_$w"; abort 5 "no go file for $w"; }
+  local t_go; t_go=$(date +%s.%N)
   log "go of $w done $(( $(date +%s) - t_up )) s after the S-CORE side's start step began (the candidate waits 420 s)"
+  [ "$pstop" = 1 ] && path_stop "$w" "$t_go"
   rwaitfile sim "world_$w" "$o/simulator/run_end.json" "$T_RUN" || { abort 5 "the run $w did not end"; }
   # the S-CORE side stops while the world still ticks (launch-manager/README.md), then the world is released
   rstep score "score_stop_$w" "$T_SCORE_START" bash "$ENTRY_SCORE_STOP" "$(od "score_$w")"; SCORE_UP=""
@@ -1621,6 +1810,12 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another
       log "CHASE VIEW NOT COMPLETE IN RUN $w: the recorder ended rc ${BASH_REMATCH[1]} (its summary's end goes to session.json chase_view); the window's capture stop, its receipts and the next run go on"
     else
       abort 5 "the recorder of $w did not end well (${ROUT:-no answer})"
+    fi
+    # s1 (C3): the video stays on the simulator host; its sha256 is taken now, once, beside it, so the pack in the stop
+    # path never hashes the session's videos (not a step: a failure here only leaves the hash to the pack)
+    if [ "$KIND" = s1 ]; then
+      rout ssh_l sim 120 "$HS hash out/rec_$w/chase_view.mp4"
+      log "chase video of $w on $(var sim VM): ${ROUT:-no answer} (sha256 bytes mtime; the pack lists it, fetch_chase.sh fetches it)"
     fi
   fi
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then window_close "$w"; fi
@@ -1773,6 +1968,28 @@ case "$KIND" in
     [ "$P10_2_CALIB_STEER" = 1 ] && world_run calib_steer ASM-DRIVING-006 "$P10_2_SETTING" 0 "$([ "$P10_2_RUNS" -ge 1 ] && echo 1 || echo 0)"
     for n in $(seq 1 "$P10_2_RUNS"); do
       world_run "run$n" "$P10_2_SCENARIO" "$P10_2_SETTING" 1 "$([ "$n" -lt "$P10_2_RUNS" ] && echo 1 || echo 0)"
+    done
+    ;;
+  s1)
+    # the p10-2 order (plan section 4) without its upfront disk check: each S-CORE start has its own, before the run
+    rstep sim sim_setup "$T_SIM_SETUP" bash "$ENTRY_SIM_SETUP" "$(od sim_setup)"
+    [ -n "$CARLA_HOST" ] || ipof sim CARLA_HOST
+    log "CARLA host for the S-CORE side: $CARLA_HOST"
+    rstep score carla_reach 60 timeout 10 bash -c "\"</dev/tcp/$CARLA_HOST/2000\""
+    [ "$HAS_GUEST" = 1 ] && guest_bring_up
+    rstart sim rec_warmup "$SIM_PY" "$ENTRY_SIM_RECORD" --out "$(od rec_warmup)"
+    rstep sim warmup "$T_WARMUP" "$SENV" bash "$ENTRY_SIM_WARMUP" "$(od warmup)"
+    rwait sim rec_warmup "$T_REC_END" || { abort 5 "the warm-up's recorder did not end well: no recorded run"; }
+    rstep sim calibrate "$T_CALIBRATE" "$SENV" bash "$ENTRY_SIM_CALIBRATE" "$(od calibrate)" "$CAMCAL_SOURCE"
+    make_h
+    run_disk_check calib_steer
+    world_run calib_steer ASM-DRIVING-006 "$S1_CALIB_STEER_SETTING" 0 1
+    for _i in "${!S1_LABELS[@]}"; do
+      _w=${S1_LABELS[$_i]}
+      run_disk_check "$_w"
+      world_run "$_w" "${S1_SC[$_w]}" "${S1_SE[$_w]}" 1 "$([ $(( _i + 1 )) -lt ${#S1_LABELS[@]} ] && echo 1 || echo 0)" \
+        "$([ "${S1_RID[$_w]}" = stop ] && echo 1 || echo 0)"
+      S1_DONE="$S1_DONE $_w"
     done
     ;;
 esac

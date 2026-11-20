@@ -9,7 +9,11 @@
 #   host_step.sh tail   <step>                   the last 20 lines of the step's log
 #   host_step.sh pack                            tars the host's output folder to <kit>/out.tgz, prints its sha256
 #                                                and its size in bytes ("<sha256> <bytes>", the last line); every
-#                                                *.rrd stays out of it, listed in out/pack_excluded.tsv
+#                                                *.rrd and every chase video (out/rec_*/chase_view.mp4) stays out
+#                                                of it, listed in out/pack_excluded.tsv (a video with its sha256:
+#                                                from its side file when that names its size and mtime)
+#   host_step.sh hash   <path under out/>         writes <path>.sha256: "<sha256> <bytes> <mtime s>" (a chase video,
+#                                                hashed once when its recorder ended, so the pack never hashes it)
 #
 # Layout (made by the orchestrator's upload): ~/da-kit/<session id>/{session_id, bench/, out/}. This script lives in
 # bench/session/remote/. Each step writes out/<step>.log and, when it ends, out/<step>.rc. The command runs with
@@ -23,7 +27,7 @@ DA_SESSION_ID=$(cat "$KIT/session_id" 2>/dev/null || echo unknown)
 export DA_BENCH DA_OUT DA_SESSION_ID
 mkdir -p "$DA_OUT"
 
-ACTION=${1:?run|start|status|tail|signal|pack}; shift
+ACTION=${1:?run|start|status|tail|signal|pack|hash}; shift
 case "$ACTION" in
   run|start)
     STEP=${1:?step name}; shift
@@ -74,11 +78,32 @@ case "$ACTION" in
     cp "$KIT/session_id" "$DA_OUT/session_id"
     # the candidate's Rerun records stay on this host (4.7 GB for 42 s of calib_steer in 20261119T174606Z): each is
     # listed with its size in out/pack_excluded.tsv and left out of the pack; nothing is deleted
-    (cd "$KIT" && find out -type f -name '*.rrd' -printf '%p\t%s\n' | sort) > "$DA_OUT/pack_excluded.tsv"
-    tar -czf "$KIT/out.tgz" --exclude='*.rrd' -C "$KIT" out
+    # the chase videos too (C3 of the S1 build: about 144 MB a run, 2.2 GB for S1, past any fetch bound through IAP):
+    # each is listed with its size and sha256 and fetched after the session by session/fetch_chase.sh
+    # a video's sha256 comes from its side file (host_step.sh hash, at its recorder's end) when that names the file's
+    # size and mtime: nothing in the stop path scales with the recordings (bash-session-runner-hardening); only a
+    # video without a matching side file (a run the session's end cut) is hashed here
+    (cd "$KIT" && { find out -type f -name '*.rrd' -printf '%p\t%s\n' | sort
+      find out -type f -path 'out/rec_*/chase_view.mp4' | sort | while IFS= read -r f; do
+        s_sha=""; s_size=""; s_mtime=""
+        [ -f "$f.sha256" ] && read -r s_sha s_size s_mtime _ < "$f.sha256"
+        size=$(stat -c %s "$f"); mtime=$(stat -c %Y "$f")
+        if [[ "${s_sha:-}" =~ ^[0-9a-f]{64}$ ]] && [ "${s_size:-}" = "$size" ] && [ "${s_mtime:-}" = "$mtime" ]; then sha=$s_sha
+        else sha=$(sha256sum "$f" | cut -d' ' -f1); fi
+        printf '%s\t%s\t%s\n' "$f" "$size" "$sha"; done; }) > "$DA_OUT/pack_excluded.tsv"
+    tar -czf "$KIT/out.tgz" --exclude='*.rrd' --exclude='out/rec_*/chase_view.mp4' -C "$KIT" out
     # the size beside the sha256 (F7): the session reads a host reached through IAP as ranges of this file and bounds
     # the whole fetch by its size
     printf '%s %s\n' "$(sha256sum "$KIT/out.tgz" | cut -d' ' -f1)" "$(stat -c %s "$KIT/out.tgz")"
     ;;
-  *) echo "usage: host_step.sh run|start|status|tail|signal|pack ..." >&2; exit 2 ;;
+  hash)
+    REL=${1:?path under out/}
+    case "$REL" in out/*) ;; *) echo "host_step: hash takes a path under out/, not $REL" >&2; exit 2 ;; esac
+    case "/$REL/" in */../*) echo "host_step: hash takes no '..': $REL" >&2; exit 2 ;; esac
+    F=$KIT/$REL
+    [ -f "$F" ] || { echo "host_step: no file $REL"; exit 1; }
+    printf '%s %s %s\n' "$(sha256sum "$F" | cut -d' ' -f1)" "$(stat -c %s "$F")" "$(stat -c %Y "$F")" > "$F.sha256.tmp" \
+      && mv "$F.sha256.tmp" "$F.sha256" && cat "$F.sha256"
+    ;;
+  *) echo "usage: host_step.sh run|start|status|tail|signal|pack|hash ..." >&2; exit 2 ;;
 esac

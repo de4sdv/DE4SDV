@@ -58,6 +58,11 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
                      the guest host then holds, per capture, while it records only seg_1.pending and a growing
                      seg_1.mp4.part; once stopped capture.json, capture.done, app_record_warning.jsonl and seg_1.mp4.
                      The stop's answer (its run output or its tail) is capture.done's line
+  FAKE_PATH_STOP_LINE  the JSON line a detached step whose command runs path_stop.sh prints in its tail (s1's stop
+                     run; shared contract 3); default a good path_stopped line, "none": no line
+  FAKE_REMOTE_FILES  a folder: `dd if=$HOME/da-kit/<id>/<path> bs=1M skip=<k> count=<c> status=none` of any <path> but
+                     out.tgz streams those bytes of <folder>/<path> (fetch_chase.sh's ranges of a chase video);
+                     FAKE_SLOW_FETCH slows each such read as it does a range of out.tgz
 """
 import fcntl
 import hashlib
@@ -311,6 +316,28 @@ if words[:2] == ["compute", "ssh"]:
                 done_line = "capture ended (%s), 1 segment(s)\n" % caps[cm.group(2)]
             else:
                 done_line = "no capture in %s\n" % cm.group(2)
+    fm = re.fullmatch(r"dd if=\$HOME/da-kit/([^/ ]+)/(\S+) bs=1M skip=(\d+) count=(\d+) status=none", c)
+    if fm and fm.group(2) != "out.tgz" and os.environ.get("FAKE_REMOTE_FILES"):
+        if "--ssh-flag=-T" not in argv:
+            err("fake gcloud: a byte stream read without --ssh-flag=-T (a pty would change the bytes)\n", 2)
+        p = os.path.join(os.environ["FAKE_REMOTE_FILES"], fm.group(2))
+        if not os.path.isfile(p):
+            err("dd: failed to open: No such file or directory\n", 1)
+        skip, count = int(fm.group(3)), int(fm.group(4))
+        slow = os.environ.get("FAKE_SLOW_FETCH")   # "vm:seconds" (or seconds): each such range read takes that long
+        if slow and ":" in slow:
+            slow = slow.split(":", 1)[1] if slow.split(":", 1)[0] == n else None
+        if slow:
+            save()
+            fcntl.flock(lockf, fcntl.LOCK_UN)
+            time.sleep(float(slow))
+            fcntl.flock(lockf, fcntl.LOCK_EX)
+            st = json.load(open(SF))
+        data = open(p, "rb").read()[skip * 1048576:(skip + count) * 1048576]
+        save()
+        sys.stdout.buffer.write(data)
+        sys.stdout.flush()
+        sys.exit(0)
     dm = re.fullmatch(r"dd if=\$HOME/da-kit/([^/ ]+)/out\.tgz bs=1M skip=(\d+) count=(\d+) status=none", c)
     if dm:
         if "--ssh-flag=-T" not in argv:
@@ -369,6 +396,10 @@ if words[:2] == ["compute", "ssh"]:
                 st.setdefault("tails", {})[key] = receipts_out(c)
             if done_line:
                 st.setdefault("tails", {})[key] = done_line
+            if "path_stop.sh" in c:
+                line = os.environ.get("FAKE_PATH_STOP_LINE", '{"runTarget":"path_stopped","stopInstantRealNs":'
+                                      '1795000012000000000,"stopInstantMonoNs":4321000000,"rc":0}')
+                st.setdefault("tails", {})[key] = "" if line == "none" else line + "\n"
             out("started %s pid 4242\n" % step)
         if action == "status":
             # a detached step runs for its FAKE_HANG_STEP seconds from its start (or ends at once), then reports

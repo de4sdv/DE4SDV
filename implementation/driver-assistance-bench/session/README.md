@@ -17,6 +17,7 @@ order, and stops everything it started on every exit.
 | `p10-1` | simulator host, S-CORE host | CARLA server, the port test (CARLA's tcp 2000-2002 from the S-CORE host), the session's road (the warm-up entry's survey and pass, no recorder), the world spawned (`ready.json`), the go, the S-CORE build check (`ENTRY_SCORE_P10_1`) with `DA_P10_1_CARLA_HOST` set to the simulator host, `run_end.json`, the release, the world side's end |
 | `p10-3` | S-CORE host, guest host | guests created fresh, the app and its ACLs installed and verified, VXLAN both ends, S-CORE side up (someipd offers 0x4df1 at 192.168.98.1:30511), the SD multicast route, the IVI app's subscription to the unit (its own `link=SUBSCRIBED` line), the app restarted, IVI clock set, display capture on, injected warning requests, capture off, S-CORE side down |
 | `p10-2` | simulator host, S-CORE host, guest host | CARLA server, CARLA reachable from the S-CORE host, the guests as in `p10-3`, warm-up with the chase recorder (no candidate), ASM-DRIVING-005 and the camera capture (no candidate), the calibration file made on the lead host and put on the S-CORE host, then the ASM-DRIVING-006 run and two runs of SC-DRIVING-012 at 20 km/h, each with its own S-CORE side start and stop, recorder and display window (below) |
+| `s1` | simulator host, S-CORE host, guest host | as `p10-2` up to the calibration file, without the upfront disk check; then the ASM-DRIVING-006 run and every run of `s1_runs.tsv` (each setting twice, then the stop run), each with its own disk check before its S-CORE start, recorder and display window; the stop run's S-CORE path stops at the go + 12 s (below) |
 
 C1's full configuration needs a CARLA 1.0 server: the real `vision_pilot` and `actuation_adapter` exit at once on a
 refused CARLA connection (S-CORE build session 5 on the L4, 2026-11-19). Without `DA_P10_1_CARLA_HOST`, or when its
@@ -162,6 +163,77 @@ record's lines, since the record is appended and every app start writes lifecycl
 (`app_record_receipts` in `session.json`). It says `NO RECEIPT IN THE APP'S RECORD OF WINDOW <w>` when there are none:
 only the app's record shows that a request arrived. The same count serves `p10-3` and each recorded `p10-2` run.
 
+### What an `s1` session runs and records
+
+`s1` runs the judged runs of S1 (the S1 build plan, section 4) in one session, in the order of `p10-2`:
+
+- **The run list** is the committed `s1_runs.tsv`, read from the kit, one run a line: `<run id> TAB <run>`. Its rows are
+  the shared contract of the S1 build: SC-DRIVING-012 at 20, 42 and 60 km/h, SC-DRIVING-013 at 30 and 60, SC-DRIVING-014
+  at 30 and SC-DRIVING-015 at 40, each `r1` and `r2`, then `stop further`, the further run in which the S-CORE path is
+  stopped (no setting; it runs the world of `S1_STOP_SCENARIO` `S1_STOP_SETTING`, `entrypoints.env`). A run's label
+  names its steps: `SC-DRIVING-012@20 r1` is `012_20_r1`, the stop run `stop`. Any other line, a run named twice or a
+  run after `stop` is refused before any VM starts (exit 2), and so is a setting `run_setting.py` does not know. A dry
+  run may name its own list (`DA_S1_RUNS`); a real session refuses that knob. `tests/test_session_s1.py` pins the
+  list against the model's seven settings and the `SEQUENCE` of a dry run.
+- **The disk check before each S-CORE start** (C2), calib_steer's included, in place of `p10-2`'s upfront check over
+  every run (which for S1 would need about 180 GB): one run's Rerun record, 88 MB/s times its run cap plus 60 s, plus
+  10 % and 5 GB (19,520,000,000 B for a 90 s cap). A short disk ends the session cleanly before that run: its stops and
+  fetches as on any failure, exit 5, `failed_step` `disk_check_<run>`, `ended_by` `disk short before run <run>: runs
+  owed ...`, and `session.json` `s1.runs_owed` lists that run and every later one; no record is cut.
+- **Per run** `session.json` `score_runs.<run>` adds to `p10-2`'s: `run_id`, `runIdentity` (`<run id>/<r1|r2|further>`:
+  the first or the second run of its setting, or the further run), `scenario`, `setting`, `disk_check` (need, rc, the
+  host's answer) and `simulatedConfiguration`: the sha256 of the run's scenario definition (`scenario_digest.py`, from
+  the kit: the setting's record of `world-side/scenarios.py` and the sha256 of `scenarios.py`, `da_world_side.py`,
+  `sites.py` where the kit has it and `scripts/common.sh`), with the files it covers.
+- **The stop run** (REQ-DRIVING-038 and -043 stop clauses): after its go the session waits `PATH_STOP_AFTER_S` (12 s,
+  from the go file's touch) and runs `path_stop_stop` (`ENTRY_SCORE_PATH_STOP`, the score-side lane's
+  `score-path/scripts/path_stop.sh`, no arguments). Its one JSON line (`runTarget` `path_stopped`, `stopInstantRealNs`,
+  `stopInstantMonoNs`, `rc` 0) is the stop instant: `session.json` `s1.stop_instant`, and `s1.path_stop` with the go's
+  and the call's times. A step that fails or a line that is missing or says anything else ends the session (exit 5,
+  `failed_step` `path_stop_stop`). The world side ends the run 10 s of simulation time after the stop.
+- **The chase videos stay on the simulator host** (C3): `host_step.sh pack` leaves every `out/rec_*/chase_view.mp4` out
+  of the pack and lists each in `out/pack_excluded.tsv` with its size and sha256 (about 144 MB a run, 2.2 GB for S1:
+  far past the fetch's bound through IAP). Nothing in the stop path scales with the videos: right after each
+  recorder's end the session has the host hash its video once (`host_step.sh hash`, a side file
+  `chase_view.mp4.sha256` with the sha256, size and mtime; one SSH call of 120 s at most, not a step of the
+  `SEQUENCE`), and the pack takes the sha256 from that file when the size and mtime still match; it hashes only a video
+  without one (a run the session's end cut). `session.json` `not_fetched_from_hosts.sim` and `s1.chase_videos_on_the_
+  simulator_host` name them, and `session.log` gives the command that fetches them after the session: `fetch_chase.sh`
+  ("The chase videos" below). The recorder's `summary.json` is in the pack as before.
+- **The report** of `p10-2` holds per run of the list: the chase recorder's end, the adapter's attach, the display
+  recording (`session.json` `s1`, with the camera calibration source and `conditional_on_permissive_ivi`).
+
+### The chase videos: `fetch_chase.sh`, the simulator host alone after the session
+
+`fetch_chase.sh <incoming dir>` (C6; adapted from the proven `sim-lead-fetch/fetch_g4_ranges.sh` of 20261120T092051Z)
+fetches every video the session's `sim/out/pack_excluded.tsv` lists:
+
+- it refuses unless the simulator host reads `TERMINATED` and no `da-session-*` user unit is active (exit 2);
+- it starts the host, reads `RUNNING` back, waits for SSH through IAP and arms the host's power-off safety net (the
+  fetch's bound plus 15 min); its EXIT trap stops the host and reads `TERMINATED` back (exit 11 otherwise);
+- each video is read as ranges (`dd` on the host, `FETCH_RANGE_MIB` MiB over `FETCH_PARALLEL` IAP tunnels, 3 tries a
+  range, each size-checked), joined, and kept under its name (`sim/out/rec_<run>/chase_view.mp4`) only when its
+  sha256 equals the list's (exit 5 otherwise; nothing kept under the name); a video already fetched whole is skipped;
+- the whole fetch is bounded by 120 s plus the bytes at 0.5 MB/s (half the measured 1.03 MB/s);
+- a start refused for capacity costs nothing: rounds every 180 s, up to 20 (an hour), then exit 4;
+- a TERM to its main process (`systemctl stop` of its unit) goes on to the round, whose trap ends every tunnel (each
+  range's worker outlives a TERM until its tunnel is killed) and stops the host; no round starts after it;
+- its records are in `sim/fetch_chase/`: `fetch_chase.log`, `ranges.tsv` and `fetch_chase.json` (each video's result,
+  the host's start and stop, its status after and the cost at its hourly price).
+
+For S1's 2.2 GB: about 37-43 min of ranges at 1.03 MB/s plus about 4 min of start and stop, EUR 1.3-1.5 at 1.887
+EUR/h. Run it as the `s1` block below shows, in a user unit that never SIGKILLs its trap.
+
+### The candidate: `--candidate pin|pr427`
+
+The VisionPilot candidate (decision D4). `pin` (the default) is the S-CORE build's bundle `/opt/da-b2/bundle` and
+changes no command. `pr427` is the variant build (`DA_CANDIDATE=pr427`, `score-build/build_score_bench.sh`):
+the session gives every S-CORE step `DA_B2_BUNDLE=/opt/da-b2-pr427/bundle` through the remote settings (on the
+allow-list, set only by `--candidate`: `--remote-env DA_B2_BUNDLE=...` is refused). Each S-CORE start's `SCORE_CONFIG`
+line names the staged facts' diffs (`facts_diffs`, the source difference the identity recorder hashes); the session
+ends the run before its go (exit 5, `failed_step` `score_start_<run>`) when `pr427`'s do not list patch 0004 or `pin`'s
+do. `session.json` `candidate` records the name and the bundle.
+
 ### The display capture of a window
 
 A window's capture runs from `window_open` (after the app restart and the IVI clock) to `window_close`. The session
@@ -213,6 +285,12 @@ capture_stop_<w>'s start SSH call                             60 s
 inject (60 + T_INJECT 1200 + 20 + 60 + 60)                  1400 s
 capture_stop_inject's start SSH call                          60 s
 = --max-s of the p10-3 window                               1460 s
+
+an s1 window: a p10-2 window                                2995 s
++ the stop run's wait to the path stop (PATH_STOP_AFTER_S)     12 s
++ path_stop_<w> (60 + T_STEP 300 + 20 + 60 + 60)              500 s
++ the chase video's hash at its recorder's end (SSH bound)     120 s
+= --max-s of an s1 window                                   3627 s
 ```
 
 A typical p10-2 window lasts 70 to 230 s, so the capture reaches its `--max-s` only when steps run near their bounds.
@@ -568,6 +646,39 @@ systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
 
 Then compose the video from the fetched files (see `../recording/README.md`).
 
+### `s1` (all three hosts, the judged runs)
+
+An `s1` session runs as `p10-2` does, with `--permissive-ivi` and `--camcal settings` (the same decisions of
+2026-11-19), and `--candidate pin` unless the lead names `pr427`. Its run list is the committed `s1_runs.tsv`; its
+cap is EUR 8.00 (`CAP_EUR_S1`). After it, the chase videos are fetched with the simulator host alone.
+
+```bash
+C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
+# --permissive-ivi, --camcal settings: as for p10-2 (the lead's decisions of 2026-11-19); every result is conditional
+# on a permissive IVI. --candidate pin is the default; --candidate pr427 runs the second candidate's bundle
+cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1
+S=implementation/driver-assistance-bench/session
+D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
+env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
+  DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" \
+  bash $S/da_session.sh --kind s1 --owner-ok-guest-host --permissive-ivi --camcal settings --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+SID=$(date -u +%Y%m%dT%H%M%SZ)
+systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
+  -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
+  -p StandardOutput=append:$HOME/s1-$SID.out -p StandardError=append:$HOME/s1-$SID.out \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /bin/bash $S/da_session.sh --kind s1 --owner-ok-guest-host --permissive-ivi --camcal settings --session-id "$SID"
+# end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (never kill -9)
+# after it, once session.json is written and da-session-$SID is inactive: the chase videos, the simulator host alone
+# (it refuses unless that host reads TERMINATED; its own unit, so its trap that stops the host is never SIGKILLed)
+systemd-run --user --unit=da-chase-$SID --collect --working-directory="$PWD" \
+  -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
+  -p StandardOutput=append:$HOME/s1-chase-$SID.out -p StandardError=append:$HOME/s1-chase-$SID.out \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /bin/bash $S/fetch_chase.sh "$HOME/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_$SID"
+# then read sim/fetch_chase/fetch_chase.json: result ok, vm_status_after TERMINATED
+```
+
 ### The exit trap's pre-stop budget
 
 On a signal or the cost cap, the exit trap runs these steps before any VM stops, each in a slot of its own bound. The pre-stop phase (`PRESTOP_S`) is the sum of the
@@ -586,6 +697,8 @@ slots of the kind's hosts (`pre-stop budget:` in `session.log`):
 | p10-3 | 1560 s | 300 + 300 + 120 + 0 + 2 x 420 |
 | p10-2 with the guest host | 2280 s | 300 + 300 + 120 + 300 + 3 x 420 |
 | p10-2 --without-guest-host | 1560 s | 300 + 0 + 120 + 300 + 2 x 420 |
+| s1 with the guest host | 2280 s | 300 + 300 + 120 + 300 + 3 x 420 |
+| s1 --without-guest-host | 1560 s | 300 + 0 + 120 + 300 + 2 x 420 |
 
 `tests/test_session_dryrun.py` checks these sums against the script's defaults and pins a dry run in which the
 capture's stop and the S-CORE side's stop both run to their bounds and the guest host is still fetched before the
@@ -687,15 +800,24 @@ Expected lengths are PLAN's for each probe; prices from `hosts.env` (Spot, europ
 | `p10-1` | G4 1.887 + L4 0.483 | about 45 min (an estimate from the steps, not yet measured: the starts, both uploads, the CARLA start, the warm-up, the check about 10 min, the fetch and the stops) | about EUR 1.80 | EUR 3.50 (1.5 h), approved by the owner on 2026-11-19 |
 | `p10-3` | L4 0.483 + guest host 0.271 | about 3 h | about EUR 2.26 | EUR 3.50 (4.6 h) |
 | `p10-2` | G4 1.887 + L4 0.483 + guest host 0.271 | about 1.5 h | about EUR 3.96 | EUR 6.00 (2.3 h) |
+| `s1` | G4 1.887 + L4 0.483 + guest host 0.271 | about 2.0 h: 22 min to the first run, 14 runs of 5.5-6 min (about 82 min), the stop run about 6.5 min, the fetch and the stops about 6 min | about EUR 5.30 (+0.65 with an on-demand L4) | EUR 8.00 (3.0 h) |
+| `fetch_chase.sh` after `s1` | G4 1.887 | 37-43 min of ranges for about 2.2 GB at 1.03 MB/s, plus about 4 min of start and stop | EUR 1.3-1.5 | none: bounded by 120 s plus the bytes at 0.5 MB/s, its safety net 15 min after that |
+
+The `s1` figures are those of the S1 build plan (section 4), from the times of 20261120T092051Z (attempt 3: 22 min from the
+wrapper to the first world run, with 5 min of capacity rounds and 5.3 min of calibrate; a 30 s drive one cycle of
+5.4-5.6 min); a run of S1 drives 25-60 s.
 
 Fixed overheads in every session: each start 1-3 min (more in rounds when Spot capacity is short), SSH and kit
 upload about 2 min per host, the guests' bring-up 10-15 min, the fetch 5-7 min and the stops 1-2 min. The fetch: the
-simulator host's pack by ranges at about 1 MB/s (two runs' chase videos, 306 MB, took about 5 min; at most 420 s,
-the bound), then the S-CORE host and the guest host by scp (seconds to a few minutes each; at most 1200 s each).
-Attempt 3 at the old head fetched for 21.5 min (09:58:29Z to 10:20:03Z). The fetch runs inside the cap: the cost
-watchdog counts every host from its start call to now (`cost_now`), and the preflight line of `session.log` says so
-("the cap of <EUR> is <s> s of all of them, the fetch at the end included"). A cap reached during the fetch cuts it,
-and the trap does not try it again, so a kind's cap must hold its runs plus that fetch; S1's cap must too.
+simulator host's pack by ranges through IAP at about 1 MB/s (two runs' chase videos, 306 MB, took about 5 min; at most
+420 s, the bound). The pack now leaves every chase video out (`pack_excluded.tsv`, fetched after the session by
+`fetch_chase.sh`), so an `s1` pack holds no chase video and takes about a minute. Then the S-CORE host and the guest
+host by scp (seconds to a few minutes each; at most 1200 s each). Attempt 3 at the old head fetched for 21.5 min
+(09:58:29Z to 10:20:03Z). The fetch runs inside the cap: the cost watchdog counts every host from its start call to
+now (`cost_now`), and the preflight line of `session.log` says so ("the cap of <EUR> is <s> s of all of them, the fetch
+at the end included"). A cap reached during the fetch cuts it, and the trap does not try it again, so a kind's cap
+must hold its runs plus that fetch; the cap of each kind covers it, the `s1` cap's 6 min for the fetch and the stops
+included.
 
 ## Entry-point contracts
 
@@ -707,14 +829,15 @@ is fetched. Exit 0 means the step succeeded; any other status ends the session (
 | Variable | Host | Arguments | Owner | Contract |
 |---|---|---|---|---|
 | `ENTRY_SCORE_P10_1` | S-CORE | `<out>`; env `DA_P10_1_CARLA_HOST` (`p10-1`: the simulator host's address, set by the session) | S-CORE build lane | the build check, the clip replay, the late subscriber; its verdicts in `<out>`; started after the world's go, so its full start finds a ticking world |
-| `ENTRY_SCORE_START` | S-CORE | `<out> <carla_host or none>`; env `DA_CAMERA_CALIBRATION_DIR` and `DA_SPEED_LIMIT` (`p10-2`) | Launch Manager lane | starts the Launch Manager with its processes (identity recorder first); copies `H.yaml` and `homography_C_matrix.yaml` from `DA_CAMERA_CALIBRATION_DIR` into the candidate's working directory before the identity record; stages `speed_limit` from `DA_SPEED_LIMIT` and prints one `SCORE_CONFIG` line once up; returns 0 when they run, without waiting for a camera image (the world holds its first tick until the session's go file); called once per run, each with its own `<out>`; someipd offers 0x4df1 |
+| `ENTRY_SCORE_START` | S-CORE | `<out> <carla_host or none>`; env `DA_CAMERA_CALIBRATION_DIR` and `DA_SPEED_LIMIT` (`p10-2`, `s1`); `DA_B2_BUNDLE` (every S-CORE entry, `--candidate pr427`) | Launch Manager lane | starts the Launch Manager with its processes (identity recorder first); copies `H.yaml` and `homography_C_matrix.yaml` from `DA_CAMERA_CALIBRATION_DIR` into the candidate's working directory before the identity record; stages `speed_limit` from `DA_SPEED_LIMIT` and prints one `SCORE_CONFIG` line once up; returns 0 when they run, without waiting for a camera image (the world holds its first tick until the session's go file); called once per run, each with its own `<out>`; someipd offers 0x4df1 |
 | `ENTRY_SCORE_INJECT` | S-CORE | `<out>` | warning-app lane | `p10-3`: publishes test warning requests on the candidate's mw::com event; returns when done |
 | `ENTRY_SCORE_STOP` | S-CORE | `<out>` (the start's) | Launch Manager lane | ends the processes (SIGTERM, so the candidate's `.rrd` and the visualization file are finished) and collects their files; the world still ticks meanwhile |
 | `ENTRY_SIM_SETUP` | simulator | `<out>` | this lane: `remote/sim_setup.sh` | CARLA server up on port 2000, NVENC test, free disk; the world side's map (`WORLD_MAP` of `world-side/scripts/common.sh`) in the server's `get_available_maps()`, or it fails naming the AdditionalMaps pack (`world-side/README.md`, "The maps pack") |
 | `ENTRY_SIM_WARMUP` | simulator | `<out>` | `../world-side/scripts/warmup.sh` | the survey, the session's road in `world_start.json`, the warm-up pass with every camera (hero role `hero`, moved by pose) |
 | `ENTRY_SIM_CALIBRATE` | simulator | `<out> <checkerboard or settings>` (the session's `--camcal`) | `../world-side/scripts/calibrate.sh` | ASM-DRIVING-005 and the camera capture, role `de4sdv_calibration`, no candidate; required for `p10-2` |
-| `ENTRY_SIM_RUN` | simulator | `<out> <scenario> <setting>` | `../world-side/scripts/run_scenario.sh` | one run (`SC-DRIVING-012 20kmh`, or `ASM-DRIVING-006 20kmh`), detached, with the go/release handshake (`../world-side/README.md`); its records in `<out>/simulator/`; in `p10-1` the world of `P10_1_SCENARIO` `P10_1_SETTING` with `RELEASE_WAIT_S` above the check's bound |
-| `ENTRY_SCORE_DISK` | S-CORE | `<out> <need_bytes> <need_stage_bytes>` | this lane: `../score-path/scripts/disk_check.sh` | `p10-2`'s first step: exit 0 when `<out>`'s filesystem has `<need_bytes>` free (and the stage's `<need_stage_bytes>` when it is another filesystem), 9 ("DISK SPACE SHORT") otherwise; one `DISK_CHECK` line and `<out>/disk_check.json`; deletes nothing |
+| `ENTRY_SIM_RUN` | simulator | `<out> <scenario> <setting>` | `../world-side/scripts/run_scenario.sh` | one run (`SC-DRIVING-012 20kmh`, or `ASM-DRIVING-006 20kmh`; `s1`: `<scenario> <setting id>` of each run of `s1_runs.tsv`, the stop run `S1_STOP_SCENARIO S1_STOP_SETTING`), detached, with the go/release handshake (`../world-side/README.md`); its records in `<out>/simulator/`; in `p10-1` the world of `P10_1_SCENARIO` `P10_1_SETTING` with `RELEASE_WAIT_S` above the check's bound |
+| `ENTRY_SCORE_PATH_STOP` | S-CORE | none | score-side lane: `../score-path/scripts/path_stop.sh` | `s1`'s stop run, at the go + 12 s: activates the Launch Manager's run target `path_stopped` and prints one JSON line `{"runTarget":"path_stopped","stopInstantRealNs":<int>,"stopInstantMonoNs":<int>,"rc":<int>}` (shared contract 3); exit 0 and `rc` 0 when the target is active |
+| `ENTRY_SCORE_DISK` | S-CORE | `<out> <need_bytes> <need_stage_bytes>` | this lane: `../score-path/scripts/disk_check.sh` | `p10-2`'s first step, and `s1`'s before each S-CORE start (`disk_check_<run>`, one run's need in both arguments): exit 0 when `<out>`'s filesystem has `<need_bytes>` free (and the stage's `<need_stage_bytes>` when it is another filesystem), 9 ("DISK SPACE SHORT") otherwise; one `DISK_CHECK` line and `<out>/disk_check.json`; deletes nothing |
 | `ENTRY_SIM_RECORD` | simulator | `--out <dir>` | this lane: `../recording/chase_recorder.py` | started before the warm-up and before the run, ends on its own |
 | `ENTRY_GUEST_UP` | guest | `<out>` | this lane: `remote/guest_up.sh` | both guests created fresh (`launch_two_vms.sh down`, `up`) and booted; `getenforce` recorded, `setenforce 0` on the IVI only with `IVI_PERMISSIVE=1` |
 | `ENTRY_GUEST_PREPARE` | guest | `<out>` | this lane: `remote/guest_prepare.sh` | the guest build script's `install` (ACLs, APK, IVI reboot) and `verify`, unchanged, as its second caller: one `B12_DIR` per session (`$AB/b12-session-<id>`), no `LOGS`, `IDENT` or `WORK`; required, since fresh guests start empty |
@@ -737,7 +860,7 @@ exported in the calling shell never reaches a step: the lead's shared terminal h
 `APP_SUBSCRIBE_WAIT_S` must be whole seconds, and the step bounds follow them (logged as `step bounds:`): the unit
 gate's `UNIT_WAIT_S + 240` s, the app restart's `START_WAIT_S + APP_SUBSCRIBE_WAIT_S + 300` s; on the S-CORE host
 `GATEWAYD_RX_REGEX` and the `DA_P10_1_*` waits of `p10_1_check.sh` (not `DA_P10_1_CARLA_HOST`, which `p10-1` sets
-from its own simulator host). A changed guess of the first `p10-3` (the broker's line, say) is then a setting
+from its own simulator host), and `DA_B2_BUNDLE`, which only `--candidate pr427` sets (refused as a `--remote-env`). A changed guess of the first `p10-3` (the broker's line, say) is then a setting
 of the next session, not a commit. The `hosts.env` and `entrypoints.env` names (`ENTRY_*`, `GUEST_STOP_CMD`, the VMs,
 the caps) can still be overridden from the environment, for the dry runs: start every real session from `env -i`, as
 the blocks below do.
@@ -770,6 +893,11 @@ of its steps is polled (the host watch ends the session within its interval, the
 reading only the VMs this session started and only until the trap's own stops, a step failed after or before a loss,
 a host lost before or during the final fetch, GCP's preemption time (`compute operations list`, which the fake answers
 in the zone's offset), and each run's adapter attach (`adapter_attach.py`, fed with the adapter's real record lines).
+`tests/test_session_s1.py` covers the kind `s1` (the run list against the model's seven settings, its `SEQUENCE`, the
+disk check before each S-CORE start and a short disk before run k, each run's record and scenario digest, the stop
+run's path stop and its JSON line, the candidate option and its staged facts, the pack without chase videos) and
+`fetch_chase.sh` against the fake gcloud (a host not `TERMINATED` or a session unit refused, the ranges and the
+sha256, a mismatch, the capacity rounds).
 `tests/test_remote_scripts.py` runs the guest-host scripts and the safety net against fake `cvd`,
 `adb`, `pgrep`, `sudo` and `ip`. The stubs in `tests/stubs/` stand for the S-CORE side's entries (another lane's)
 and for `make-h` in dry runs; they never run on a host.

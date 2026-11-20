@@ -5,8 +5,9 @@
 
 From the stage: the values of vision_pilot.conf that the model sets for the S-CORE path (PSR
 VisionPilotSCOREApplication: source.mode, engine.provider, model.precision, visualization_on, rrd_on, and speed_limit
-per scenario by System 2), hero_wait_s of the staged adapter.json, the staged conf's sha256, and the sha256 that the
-identity record (run/score/candidate_record.json) gives the same file. It writes them to <out.json> and prints one
+per scenario by System 2), hero_wait_s of the staged adapter.json, the staged conf's sha256, the sha256 that the
+identity record (run/score/candidate_record.json) gives the same file, and the staged facts' diffs (facts_diffs, joined
+by '+': the candidate's patches). It writes them to <out.json> and prints one
 line, `SCORE_CONFIG key=value ...` (no commas, no spaces in a value), which the session reads from the step's tail
 into session.json (score_runs.<run>.staged).
 
@@ -56,13 +57,18 @@ def main(argv: list[str]) -> int:
     except (OSError, ValueError, AttributeError):
         pass
     hero_wait_s = json.loads(adapter.read_text(encoding="utf-8")).get("hero_wait_s")
+    # the staged source difference (the bundle's facts/*.diff, which the identity recorder hashes): the session checks
+    # that it names the candidate it asked for (patch 0004 for pr427, none for pin)
+    facts = sorted(p.name for p in (stage / "facts").glob("*.diff"))
     doc = {"vision_pilot_conf": {k: values.get(k) for k in KEYS}, "speed_limit_requested": requested,
            "hero_wait_s": hero_wait_s, "vision_pilot_conf_path": str(conf), "vision_pilot_conf_sha256": digest,
-           "identity_record_conf_sha256": recorded, "identity_record_carries_the_staged_conf": recorded == digest}
+           "identity_record_conf_sha256": recorded, "identity_record_carries_the_staged_conf": recorded == digest,
+           "facts_diffs": facts}
     out.write_text(json.dumps(doc, indent=1) + "\n")
     words = [f"speed_limit={values.get('speed_limit')}", f"speed_limit_requested={requested or 'none'}",
              f"hero_wait_s={hero_wait_s}"] + [f"{k}={values.get(k)}" for k in KEYS[:-1]] + \
-        [f"conf_sha256={digest}", f"conf_recorded={1 if recorded == digest else 0}"]
+        [f"conf_sha256={digest}", f"conf_recorded={1 if recorded == digest else 0}",
+         "facts_diffs=" + ("+".join(facts) or "none")]
     print("SCORE_CONFIG " + " ".join(w.replace(" ", "_").replace(",", "_") for w in words))
     return 0
 
