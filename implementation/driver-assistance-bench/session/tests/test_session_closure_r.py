@@ -73,8 +73,10 @@ def test_r1_ra_a_healthy_hosts_fetch_cut_by_the_watchs_term_for_another_host_is_
 def test_r1_ra3_the_watch_skips_a_loss_main_already_named_and_the_abort_fetch_runs_whole(tmp_path: Path) -> None:
     # RA3: main's own poll names the S-CORE host lost and fetches the G4 in abort; the watch reads the same loss
     # during that fetch, and must neither TERM main nor name it again
-    r = run(tmp_path, "p10-1", FAKE_LOST_AFTER=f"{L4}:start p10_1", FAKE_SLOW_FETCH=f"{G4}:8",
-            DA_T_HOST_WATCH_S="3", **RANGED)
+    # the watch reads the L4 RUNNING until main's own HOST LOST line, then its loss (no race of who reads it first)
+    r = run(tmp_path, "p10-1", DA_GCLOUD=FLIP, LIST_RUNNING=L4,
+            LIST_RUNNING_UNTIL=f"{tmp_path}/ev/incoming_T/session.log|HOST LOST: {L4}",
+            FAKE_LOST_AFTER=f"{L4}:start p10_1", FAKE_SLOW_FETCH=f"{G4}:8", DA_T_HOST_WATCH_S="3", **RANGED)
     rec = _rec(r)
     assert r.rc == 3, r.log
     assert rec["ended_by"] == "host lost: score (TERMINATED)" and rec["failed_step"] == "p10_1", rec
@@ -251,7 +253,8 @@ def test_r3_the_main_paths_ranged_bound_keeps_its_label(tmp_path: Path) -> None:
 def test_r4_a_watch_term_for_a_second_host_keeps_the_first_loss_and_its_row(tmp_path: Path) -> None:
     # main names the S-CORE host lost; during that loss's operations read (slowed) the G4 is lost too, and the watch
     # TERMs main for it. ended_by stays the first loss, and the first loss's row is in hosts_lost
-    r = run(tmp_path, "p10-1", DA_GCLOUD=FLIP, FLIP_VM=G4, FLIP_ON="operations list", SLOW_OPS="3",
+    # the watch never reads the L4's loss (main names it), only the G4's
+    r = run(tmp_path, "p10-1", DA_GCLOUD=FLIP, FLIP_VM=G4, FLIP_ON="operations list", SLOW_OPS="3", LIST_RUNNING=L4,
             FAKE_LOST_AFTER=f"{L4}:start p10_1", DA_T_HOST_WATCH_S="0.5", **RANGED)
     rec = _rec(r)
     assert r.rc == 3, r.log

@@ -140,7 +140,7 @@ GUEST_NOSSH_S=180
 PRESTOP_S=""; TRAP_PACK_S=120; TRAP_SCP_S=300; TRAP_SCORE_S=120
 TRAP_GC_TO_S=30   # each gcloud status read in the trap: on a gcloud outage the stop loop must not sit for hours (S10)
 T_P10_1=2400; T_GUEST_UP=2400; T_SCORE_START=900; T_SIM_SETUP=1200; T_WARMUP=900; T_RUN=900; T_INJECT=1200
-T_CAPTURE_END=240; T_REC_END=200; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
+T_CAPTURE_END=240; T_REC_END=200; T_REC_LISTEN=150; T_STEP=300; T_CALIBRATE=1800; T_MAKE_H=600; T_READY=300; T_RELEASE=400
 # the bounds of the steps whose waits are per-session settings follow them (W4, W2 of the re-check at 437a833b):
 # unit_<w>: UNIT_WAIT_S, its last poll (2 adb reads of 30 s and POLL_S 5), then on a fail the diagnostics (4 adb calls
 # of 30 s): UNIT_WAIT_S + 185, kept as UNIT_WAIT_S + 240. app_restart_<w>: START_WAIT_S + APP_SUBSCRIBE_WAIT_S + 10 adb
@@ -162,9 +162,13 @@ RRD_RATE_BPS=88000000; RRD_HOLD_S=60; RRD_MARGIN_B=5000000000
 # at about 1.03 MB/s), never above the pre-stop phase's fetch budget of a host (PRE_FETCH_S); each try of a range by
 # FETCH_TRY_BASE_S plus twice the range at its tunnel's share of FETCH_PLAN_BPS (8 MiB: 165 s; F7's slowest range 87 s)
 FETCH_BASE_S=60; FETCH_PLAN_BPS=1000000; FETCH_TRY_BASE_S=30; FETCH_TRIES=3
+# a pack that needs more than that budget is not read at all (R2 of the closure check of 1bfbd6b4): it stays on the host,
+# and session.json not_fetched names it, with its sha256 and size, as a fetch owed (fetch_owed.sh, README "A fetch
+# owed"). A host reached by direct SSH is copied by one scp of at most FETCH_SCP_S
+FETCH_SCP_S=1200
 CARLA_PORTS="2000 2001 2002"   # p10-1's port test: CARLA's ports that carla-net admits from the S-CORE host
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
-       STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
+       STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_REC_LISTEN T_STEP
        T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT T_APP_RESTART STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
        GUEST_NOSSH_S GO_SSH_S PRESTOP_S TRAP_PACK_S TRAP_SCP_S TRAP_SCORE_S HOST_WATCH_S FETCH_BASE_S FETCH_PLAN_BPS
        FETCH_TRY_BASE_S)
@@ -350,13 +354,21 @@ host_lost() {   # host_lost <role> <status> [<detected by>] [<detected at>]: a h
   # before (a failed step: abort decides by the time of the loss)
   case " ${LOST:-} " in *" $1 "*) return 0 ;; esac
   local by=${3:-a poll of its step} at=${4:-$(date -u +%FT%TZ)}
+  # first: the host watch skips a role named here, so it never TERMs the session for a loss already being handled
+  # (R1, R4 of the closure check of 1bfbd6b4: its TERM cut the fetch of a healthy host and the operations read below)
+  echo "$1" >> "$IN/.lost_known"
   log "HOST LOST: $(var "$1" VM) ($1) is $2 during the session (preempted or stopped), detected by $by at $at: no SSH, no stop step and no fetch on it; its $(owed)"
   LOST="${LOST:-} $1"; FETCHED="$FETCHED $1"; FETCH_BAD="$FETCH_BAD $1"
   [ -n "$ENDED_BY" ] || ENDED_BY="host lost: $1 ($2)"
   [ "$1" = score ] && SCORE_UP=""
+  # the row before GCP's operations read, which a TERM may cut (R4): its preempted_at is filled in after the read
+  printf '%s\t%s\t%s\t%s\t\n' "$1" "$2" "$at" "$by" >> "$IN/hosts_lost.tsv"
   preempted_at "$1"
   log "$(var "$1" VM): preempted at ${PRE_AT:-unknown (no compute.instances.preempted operation since $T0_ISO)}"
-  printf '%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$at" "$by" "$PRE_AT" >> "$IN/hosts_lost.tsv"
+  if [ -n "$PRE_AT" ]; then
+    awk -F'\t' -v OFS='\t' -v r="$1" -v p="$PRE_AT" '$1 == r && $5 == "" { $5 = p } { print }' "$IN/hosts_lost.tsv" \
+      > "$IN/.hosts_lost.tmp" && mv "$IN/.hosts_lost.tmp" "$IN/hosts_lost.tsv"
+  fi
 }
 owed() { echo "records on its disk under ~/da-kit/$SID/out (fetch owed)"; }
 lost_check() {   # lost_check <role> <detected by>: after a failed SSH or scp, the VM's state; 0 (and host_lost) when it
@@ -440,6 +452,23 @@ rwaitfile() {   # rwait_file <role> <step> <remote file> <timeout_s>: the file o
     nap "$POLL_S"
   done
 }
+rlisten() {   # rlisten <run>: the chase recorder's listening file, which it writes once it took its list of the heroes
+  # already there, before world_<run> spawns the run's hero (R7 of the closure check of 1bfbd6b4, T2 of 8fae4100: the
+  # margin was about 4 s). Bounded by T_REC_LISTEN, polled every 2 s at most; past it, or after the recorder's end,
+  # the run goes on as before (its recorder's end is recorded as the run's chase view). Not a step of SEQUENCE
+  local w=$1 f end p=$POLL_S; f="$(od "rec_$w")/listening"; end=$(( $(date +%s) + T_REC_LISTEN ))
+  ge "$p" 2 && p=2
+  while :; do
+    rpoll sim "test -e $f && echo present || $HS status rec_$w"
+    [ $? = 3 ] && { STEP_FAIL="rec_$w"; abort 5 "the chase recorder of $w: $(var sim VM) is gone"; }
+    case "$ROUT" in
+      present) log "the chase recorder of $w listens (its list of the heroes already there taken): world_$w starts"; return 0 ;;
+      "rc "*) log "WARNING the chase recorder of $w ended ($ROUT) before its listening file: world_$w starts all the same"; return 0 ;;
+    esac
+    [ "$(date +%s)" -ge "$end" ] && { log "WARNING no listening file of the chase recorder of $w after $T_REC_LISTEN s: world_$w starts all the same (the recorder may take the run's hero for one already there)"; return 0; }
+    nap "$p"
+  done
+}
 rtouch() {   # rtouch <role> <remote file> [<timeout_s>]: a handshake file of the world side
   log "touch ${2##*/} on $(var "$1" VM): $2"; SEQ+=("$1:touch-${2##*/}")
   rout ssh_l "$1" "${3:-60}" "touch $2 && echo touched"; [[ "$ROUT" == *touched* ]]
@@ -452,11 +481,14 @@ fetch() {   # fetch <role>: the host's output folder into incoming_<id>/<role>/,
   FETCHING=""; case " ${LOST:-} " in *" $r "*) return 1 ;; esac   # host_lost named it already
   FETCH_BAD="$FETCH_BAD $r"; return 1
 }
+owe() {   # owe <role> <sha256> <bytes> <whole ranges kept> <ranges>: a pack left on its host, owed (R2): not_fetched
+  printf '%s\t%s\t%s\t%s\t%s\n' "$@" >> "$IN/fetch_owed.tsv"
+}
 fetch_rec() {   # fetch_rec <role> <method> <bytes> <sha256> <bound_s> <ranges> <tries> <seconds> <result>: session.json fetch
   printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$@" >> "$IN/fetch.tsv"
 }
 fetch_one() {
-  local r=$1 sha got rc line size="" how=scp bound b0 cap n="" tries="" secs="" t0 tsv
+  local r=$1 sha got rc line size="" how=scp bound b0 cap lbl n="" tries="" secs="" t0 tsv rows0
   rout ssh_l "$r" "$(bnd "${FETCH_PACK_TO:-600}")" "$HS pack"; rc=$?; line=$(tail -1 <<< "$ROUT")
   sha=${line%% *}; [[ "$line" == *" "* ]] && size=${line##* }   # the pack's last line: "<sha256> <bytes>" (F7)
   [ -n "$(iap "$r")" ] && how=ranges
@@ -473,25 +505,38 @@ fetch_one() {
     fi
     n=$(( (size + FETCH_RANGE_MIB * 1048576 - 1) / (FETCH_RANGE_MIB * 1048576) ))
     b0=$(( FETCH_BASE_S + (size + FETCH_PLAN_BPS - 1) / FETCH_PLAN_BPS ))
-    cap=${FETCH_SCP_TO:-$PRE_FETCH_S}; [ "$cap" -gt "$PRE_FETCH_S" ] && cap=$PRE_FETCH_S
-    bound=$b0; [ "$bound" -gt "$cap" ] && bound=$cap; bound=$(bnd "$bound")
-    log "fetch of $(var "$r" VM) by ranges: out.tgz $size B (sha256 $sha), $n ranges of $FETCH_RANGE_MIB MiB over $FETCH_PARALLEL IAP tunnels, $FETCH_TRIES tries a range of $(try_s) s at most; bound $bound s ($FETCH_BASE_S s plus the pack at $FETCH_PLAN_BPS B/s: $b0 s; the pre-stop phase's fetch budget of a host: $cap s)"
-    [ "$b0" -gt "$cap" ] && log "the pack of $(var "$r" VM) needs $b0 s at $FETCH_PLAN_BPS B/s, more than the fetch budget of $cap s: its fetch may end at the bound"
-    tsv=$IN/$r/fetch_ranges.tsv; printf 'range\ttry\tstart_s\tend_s\tbytes\twant\tresult\n' > "$tsv"
-    t0=$(date +%s)
-    run_fg fetch_ranges "$r" "$size" "$bound" "$IN/$r/.ranges" > "$IN/.franges" 2>&1; rc=$?
-    ROUT=$(cat "$IN/.franges" 2>/dev/null); rm -f "$IN/.franges"
-    tries=$(( $(wc -l < "$tsv") - 1 )); secs=$(( $(date +%s) - t0 ))
-    if [ "$rc" != 0 ]; then
-      rm -rf "$IN/$r/.ranges"
-      lost_check "$r" "ranges: fetch" && { fetch_rec "$r" ranges "$size" "$sha" "$bound" "$n" "$tries" "$secs" "host lost"; return 1; }
-      log "fetch from $(var "$r" VM) failed: $(tail -1 <<< "$ROUT") ($tries tries in $secs s; fetch_ranges.tsv)"
-      fetch_rec "$r" ranges "$size" "$sha" "$bound" "$n" "$tries" "$secs" "failed: $(tail -1 <<< "$ROUT")"; return 1
+    # the pre-stop phase's fetch budget of a host, the slot of each fetch in the exit trap; there bnd cuts the bound to
+    # the slot's time left after the pack, never to TRAP_SCP_S (R3 of the closure check of 1bfbd6b4)
+    cap=$PRE_FETCH_S; lbl="the pre-stop phase's fetch budget of a host: $cap s"
+    [ -n "$PRE_END" ] && lbl="$lbl, cut to its slot's time left in the exit trap"
+    if [ "$b0" -gt "$cap" ]; then
+      # R2: a pack over the budget is not read at all (S1's 2.2 GB would need 2260 s of 420); it stays on the host and
+      # is named, with its sha256 and size, as a fetch owed
+      log "fetch of $(var "$r" VM) by ranges: out.tgz $size B (sha256 $sha) needs $b0 s ($FETCH_BASE_S s plus the pack at $FETCH_PLAN_BPS B/s), more than the bound $cap s ($lbl): not read by the session; the pack stays on the host as ~/da-kit/$SID/out.tgz (fetch owed: see the README, \"A fetch owed\")"
+      fetch_rec "$r" ranges "$size" "$sha" "$cap" "$n" 0 0 "skipped: needs $b0 s, more than the fetch budget of $cap s (fetch owed)"
+      owe "$r" "$sha" "$size" 0 "$n"; return 1
     fi
-    cat "$IN/$r/.ranges"/p* > "$IN/$r/out.tgz"; rm -rf "$IN/$r/.ranges"
+    bound=$(bnd "$b0")
+    log "fetch of $(var "$r" VM) by ranges: out.tgz $size B (sha256 $sha), $n ranges of $FETCH_RANGE_MIB MiB over $FETCH_PARALLEL IAP tunnels, $FETCH_TRIES tries a range of $(try_s) s at most; bound $bound s ($FETCH_BASE_S s plus the pack at $FETCH_PLAN_BPS B/s: $b0 s; $lbl)"
+    # the tries of a fetch the host watch's TERM cut stay in the file, before the rows of this fetch (R1)
+    tsv=$IN/$r/fetch_ranges.tsv; [ -s "$tsv" ] || printf 'range\ttry\tstart_s\tend_s\tbytes\twant\tresult\n' > "$tsv"
+    rows0=$(wc -l < "$tsv"); t0=$(date +%s)
+    run_fg fetch_ranges "$r" "$size" "$bound" "$IN/$r/.ranges" "$sha" > "$IN/.franges" 2>&1; rc=$?
+    ROUT=$(cat "$IN/.franges" 2>/dev/null); rm -f "$IN/.franges"
+    tries=$(( $(wc -l < "$tsv") - rows0 )); secs=$(( $(date +%s) - t0 ))
+    if [ "$rc" != 0 ]; then
+      # the whole ranges stay in <role>/.ranges beside its pack file (sha256, bytes, range MiB), so that the hand
+      # fetch of the owed pack reads only the others (R2)
+      lost_check "$r" "ranges: fetch" && { fetch_rec "$r" ranges "$size" "$sha" "$bound" "$n" "$tries" "$secs" "host lost"; return 1; }
+      log "fetch from $(var "$r" VM) failed: $(tail -1 <<< "$ROUT") ($tries tries in $secs s; fetch_ranges.tsv; the whole ranges kept in $r/.ranges; fetch owed: see the README, \"A fetch owed\")"
+      fetch_rec "$r" ranges "$size" "$sha" "$bound" "$n" "$tries" "$secs" "failed: $(tail -1 <<< "$ROUT")"
+      owe "$r" "$sha" "$size" "$(find "$IN/$r/.ranges" -maxdepth 1 -name 'p[0-9][0-9][0-9][0-9][0-9][0-9]' | wc -l)" "$n"
+      return 1
+    fi
+    cat "$IN/$r/.ranges"/p[0-9][0-9][0-9][0-9][0-9][0-9] > "$IN/$r/out.tgz"; rm -rf "$IN/$r/.ranges"
     log "ranges of $(var "$r" VM): $n ranges joined in order, $tries tries, $secs s"
   else
-    bound=$(bnd "${FETCH_SCP_TO:-1200}")
+    bound=$(bnd "${FETCH_SCP_TO:-$FETCH_SCP_S}")
     routall scp_r "$r" "$bound" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"; rc=$?
     printf '%s\n' "$ROUT" | one >> "$LOG"
     [ "$rc" != 0 ] && lost_check "$r" "scp: fetch" && { fetch_rec "$r" scp "$size" "$sha" "$bound" "" "" "" "host lost"; return 1; }
@@ -507,13 +552,15 @@ fetch_one() {
   return 0
 }
 try_s() { echo $(( FETCH_TRY_BASE_S + (2 * FETCH_RANGE_MIB * 1048576 * FETCH_PARALLEL + FETCH_PLAN_BPS - 1) / FETCH_PLAN_BPS )); }
-fetch_ranges() {   # fetch_ranges <role> <bytes> <bound_s> <dir>: in run_fg's subshell (F7). The ranges of the host's
-  # out.tgz, FETCH_PARALLEL at once, into <dir>/p<index>; 0 when every range came whole within the bound. Its own TERM
-  # (a signal, the cap) ends every range's tunnel first: kill_tree reaches timeout and gcloud there
-  local r=$1 size=$2 bound=$3 dir=$4 n i end running=0 pids=()
+fetch_ranges() {   # fetch_ranges <role> <bytes> <bound_s> <dir> <sha256>: in run_fg's subshell (F7). The ranges of the
+  # host's out.tgz, FETCH_PARALLEL at once, into <dir>/p<index>; 0 when every range came whole within the bound. Its own
+  # TERM (a signal, the cap) ends every range's tunnel first: kill_tree reaches timeout and gcloud there. <dir>/pack
+  # names the pack the ranges are of: "<sha256> <bytes> <range MiB>" (the hand fetch of an owed pack reads it, R2)
+  local r=$1 size=$2 bound=$3 dir=$4 sha=$5 n i end running=0 pids=()
   n=$(( (size + FETCH_RANGE_MIB * 1048576 - 1) / (FETCH_RANGE_MIB * 1048576) )); end=$(( $(date +%s) + bound ))
   trap 'for p in "${pids[@]}"; do kill_tree "$p"; done; exit 143' TERM HUP INT
   rm -rf "$dir"; mkdir -p "$dir" || { echo "no folder $dir"; return 1; }
+  echo "$sha $size $FETCH_RANGE_MIB" > "$dir/pack"
   for (( i = 0; i < n; i++ )); do
     while [ "$running" -ge "$FETCH_PARALLEL" ]; do wait -n; running=$(( running - 1 )); done
     [ -e "$dir/failed" ] && break   # a range failed its tries: the fetch cannot be whole
@@ -647,7 +694,13 @@ cleanup() {
   [ -n "$CHILD" ] && kill_tree "$CHILD"   # an interrupted SSH step: its local client and timeout too
   # the host watch's TERM (on_signal: exit 3): the host it read lost gets no SSH, no stop step and no fetch
   if [ -f "$IN/.host_lost" ]; then
-    local hr hst hat; read -r hr hst hat < "$IN/.host_lost"
+    local hr hst hat x; read -r hr hst hat < "$IN/.host_lost"
+    # a healthy host's fetch that this TERM cut (R1 of the closure check of 1bfbd6b4: attempt 3's G4 fetch, cut by the
+    # L4's loss): out of FETCHED, so that the fetch loop below fetches it again in its slot, before its stop
+    if [ -n "$FETCHING" ] && [ "$FETCHING" != "$hr" ]; then
+      log "the fetch from $(var "$FETCHING" VM) was cut by the host watch's TERM for the loss of $hr: it is fetched again in its slot of the pre-stop phase"
+      FETCHED=$(for x in $FETCHED; do [ "$x" = "$FETCHING" ] || printf ' %s' "$x"; done); FETCHING=""
+    fi
     host_lost "$hr" "$hst" "host watch" "$hat"
   fi
   [ -f "$IN/.cap_reached" ] && ENDED_BY=cap
@@ -688,7 +741,11 @@ cleanup() {
       log "the pre-stop phase's bound reached: $(var "$r" VM) not fetched (its files stay on its disk)"
       FETCHED="$FETCHED $r"; FETCH_BAD="$FETCH_BAD $r"; continue
     fi
-    log "fetching $(var "$r" VM) before its stop (pack at most $TRAP_PACK_S s, copy at most $TRAP_SCP_S s, within the pre-stop phase)"
+    if [ -n "$(iap "$r")" ]; then
+      log "fetching $(var "$r" VM) before its stop (pack at most $TRAP_PACK_S s, then its ranges within the slot's time left, within the pre-stop phase)"
+    else
+      log "fetching $(var "$r" VM) before its stop (pack at most $TRAP_PACK_S s, copy at most $TRAP_SCP_S s, within the pre-stop phase)"
+    fi
     FETCH_PACK_TO=$TRAP_PACK_S FETCH_SCP_TO=$TRAP_SCP_S fetch "$r"
   done
   PRE_END=""; PHASE_END=""
@@ -1019,9 +1076,23 @@ try:
 except OSError:
     pass
 lost = e["LOST"].split()
+owed = {}   # a pack left on its host, over the fetch budget or after a failed ranged fetch (R2): its last row
+try:
+    for line in open(os.path.join(e["IN"], "fetch_owed.tsv"), encoding="utf-8"):
+        role, sha, size, kept, n = (line.rstrip("\n").split("\t") + [""] * 5)[:5]
+        owed[role] = (sha, size, kept, n)
+except OSError:
+    pass
 not_fetched = []
-for r in e["FETCH_BAD"].split():   # a host lost names where its records wait (R12b)
-    x = "%s: %s" % (r, e["OWED_TEXT"]) if r in lost else r
+for r in e["FETCH_BAD"].split():   # a host lost names where its records wait (R12b), an owed pack its sha256 (R2)
+    if r in lost:
+        x = "%s: %s" % (r, e["OWED_TEXT"])
+    elif r in owed:
+        sha, size, kept, n = owed[r]
+        x = "%s: ~/da-kit/%s/out.tgz sha256 %s %s B (fetch owed%s)" % (
+            r, e["SID"], sha, size, "; %s of %s ranges whole in %s/.ranges" % (kept, n, r) if kept not in ("", "0") else "")
+    else:
+        x = r
     if x not in not_fetched:
         not_fetched.append(x)
 disk = None
@@ -1095,9 +1166,13 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
 PY
 }
 on_signal() {
+  local eb0=$ENDED_BY
   trap '' INT TERM HUP; log "signal $1"; FINAL_RC=$2; ENDED_BY="signal $1"
-  # the host watch's TERM: a VM this session started read lost (R12b); the trap names it (host_lost) and exits 3
-  [ "$1" = TERM ] && [ -f "$IN/.host_lost" ] && { FINAL_RC=3; ENDED_BY=""; }
+  # the host watch's TERM: a VM this session started read lost (R12b); the trap names it (host_lost) and exits 3. A loss
+  # the session had named already stays ended_by (R4 of the closure check of 1bfbd6b4)
+  if [ "$1" = TERM ] && [ -f "$IN/.host_lost" ]; then
+    FINAL_RC=3; ENDED_BY=""; [[ "$eb0" == "host lost: "* ]] && ENDED_BY=$eb0
+  fi
   [ -f "$IN/.cap_reached" ] && { FINAL_RC=10; ENDED_BY=cap; }
   exit "$FINAL_RC"
 }
@@ -1234,7 +1309,8 @@ if [ "$KIND" = p10-2 ]; then
 fi
 EUR_H=0; for r in "${ROLES[@]}"; do EUR_H=$(awk -v a="$EUR_H" -v b="$(var "$r" EUR_H)" 'BEGIN{print a+b}'); done
 CAP_S=$(awk -v c="$CAP" -v h="$EUR_H" 'BEGIN{printf "%d", c / h * 3600}')
-log "preflight ok: hosts ${ROLES[*]} at $EUR_H EUR/h together; the cap of $CAP EUR is $CAP_S s of all of them"
+# the fetch at the end runs inside the cap (R6 of the closure check of 1bfbd6b4): the cap must hold the runs and it
+log "preflight ok: hosts ${ROLES[*]} at $EUR_H EUR/h together; the cap of $CAP EUR is $CAP_S s of all of them, the fetch at the end included (a host by ranges up to $PRE_FETCH_S s, a host by scp up to $FETCH_SCP_S s)"
 
 # ───────────── 2. starts, in order, with rounds ─────────────
 classify() {
@@ -1290,6 +1366,8 @@ start_hostwatch() {
           st=$(awk -v vm="$(var "$r" VM)" '$1 == vm { print $NF }' "$IN/.hw_$p")
           [ -n "$st" ] && [ "$st" != RUNNING ] || continue   # no row (a failed read) is no answer, never a loss
           [ -e "$IN/.trap_stopping" ] && exit 0
+          # a role the session named lost itself (host_lost writes .lost_known first): no TERM for it (R1, R4)
+          grep -q -x -F "$r" "$IN/.lost_known" 2>/dev/null && continue
           main_alive || exit 0
           printf '%s %s %s\n' "$r" "$st" "$(date -u +%FT%TZ)" > "$IN/.host_lost.tmp" && mv "$IN/.host_lost.tmp" "$IN/.host_lost"
           echo "$(date -u +%FT%TZ) HOST LOST: $(var "$r" VM) ($r) reads $st in the host watch while none of its steps may be polled: ending the session (exit 3)" >> "$LOG"
@@ -1499,7 +1577,7 @@ disk_check() {   # p10-2's first step: room on the S-CORE host for every run's R
 world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another run follows 0|1>: one run with its own
   # S-CORE side
   local w=$1 sc=$2 se=$3 rec=$4 more=${5:-0} o; o=$(od "world_$w")
-  [ "$rec" = 1 ] && rstart sim "rec_$w" "$SIM_PY" "$ENTRY_SIM_RECORD" --out "$(od "rec_$w")"
+  [ "$rec" = 1 ] && { rstart sim "rec_$w" "$SIM_PY" "$ENTRY_SIM_RECORD" --out "$(od "rec_$w")"; rlisten "$w"; }
   rstart sim "world_$w" "$SENV" bash "$ENTRY_SIM_RUN" "$o" "$sc" "$se"
   rwaitfile sim "world_$w" "$o/simulator/ready.json" "$T_READY" || { abort 5 "the world side of $w is not ready"; }
   # the S-CORE side after ready.json (the hero stands), with the camera calibration file of this session
