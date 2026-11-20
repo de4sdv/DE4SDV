@@ -167,3 +167,15 @@ def test_042_fails_without_a_warning_and_without_emergency_braking(tmp_path):
     e = _042(tmp_path, eb_at_needed=None)
     assert e["measured"]["imminent"] is True and e["measured"]["warningStarts"] == 0
     assert e["outcome"] == FAIL
+
+
+def test_a_path_stop_line_of_another_run_is_not_the_stop_record(tmp_path):
+    # s1.path_stop names the run whose path it stopped (label); a line of another label is not this run's record
+    root = syn.write_session(tmp_path / "session", syn.s1_specs())
+    sj = json.loads((root / "session.json").read_text())
+    good = sj["s1"]["stop_instant"]
+    sj["s1"]["stop_instant"] = None
+    sj["s1"]["path_stop"].update(label="012_20_r1", stop_instant=None, line=json.dumps(dict(good, rc=3)))
+    (root / "session.json").write_text(json.dumps(sj))
+    out = cases_da.evaluate(runio_da.discover(root), {"VC-DRIVING-044": DESK})
+    assert out["VC-DRIVING-038"]["measured"]["stopClause"]["outcome"] == INC

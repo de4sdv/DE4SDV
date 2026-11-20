@@ -214,3 +214,31 @@ def test_cli_writes_the_records(tmp_path):
     doc = json.loads(out.read_text())
     assert doc["records"][RUN]["emptyAttributes"] == ["configurationIdentity", "independentEngineerIdentity"]
     assert f"{RUN} {INC} configurationIdentity independentEngineerIdentity" in p.stdout
+
+
+def test_a_partial_record_of_the_stop_run_alone_leaves_only_its_clauses_inconclusive(tmp_path):
+    root = session(tmp_path)
+    (root / "reproduction_044.json").write_text(json.dumps(DESK))
+    _session_del("score_runs.stop.runIdentity")(root)
+    doc = edc.run(root, None)
+    assert doc["evidenceRecords"]["stop"]["emptyAttributes"] == ["runIdentity"]
+    for vc in ("VC-DRIVING-038", "VC-DRIVING-043"):
+        assert doc["cases"][vc]["outcome"] == INC, vc
+    assert doc["cases"]["VC-DRIVING-040"]["outcome"] == "passBoundedVerification"
+
+
+def test_candidate_build_from_the_staging_record_without_session_candidate(tmp_path):
+    # attempt 3's session.json has candidate null; the S-CORE start's staging.json names the bundle
+    root = session(tmp_path)
+    _session_del("candidate")(root)
+    rec = records(root)[RUN]
+    assert rec["outcome"] == er.COMPLETE
+    assert "/opt/da-b2/bundle" in rec["attributes"]["candidateBuild"]
+
+
+def test_the_candidates_data_log_is_part_of_the_raw_artifacts(tmp_path):
+    root = session(tmp_path)
+    _run_file("score_{run}/candidate_rrd.json", lambda p: p.unlink())(root)
+    rec = records(root)[RUN]
+    assert rec["emptyAttributes"] == ["rawObservationArtifact"]
+    assert any("candidate's data log" in m for m in rec["missing"])
