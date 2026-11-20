@@ -653,6 +653,11 @@ An `s1` session runs as `p10-2` does, with `--permissive-ivi` and `--camcal sett
 2026-11-19), and `--candidate pin` unless the lead names `pr427`. Its run list is the committed `s1_runs.tsv`; its
 cap is EUR 8.00 (`CAP_EUR_S1`). After it, the chase videos are fetched with the simulator host alone.
 
+A run whose go would come more than `GO_LIMIT_S` (380 s) after its S-CORE start ends the whole session. The
+session logs `INVALID RUN <run>` and exits 5 with `failed_step` `world_<run>`; the runs not yet done need a new
+session. The step bounds between the S-CORE start and the go add up to far more than 380 s, while attempt 3 of
+p10-2 needed 155-160 s, so the limit, not the bounds, decides (closure review of 44a4be29, J6).
+
 ```bash
 C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
 # --permissive-ivi, --camcal settings: as for p10-2 (the lead's decisions of 2026-11-19); every result is conditional
@@ -699,8 +704,8 @@ any other value is refused (exit 2). Add it to both lines when the lead names `v
 C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
 cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1
 S=implementation/driver-assistance-bench/session
-# the rehearsal's run list, one run a line (TAB between the two words): SC-DRIVING-012@20 r1, then stop further
-R=$HOME/.hermes/outputs/inc-driving-002/phase10/s1-rehearsal/runs.tsv
+# the rehearsal's run list, committed beside s1_runs.tsv: SC-DRIVING-012@20 r1, then stop further
+R="$PWD/$S/s1_rehearsal_runs.tsv"
 D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
 env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
   DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" \
