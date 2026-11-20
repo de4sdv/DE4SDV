@@ -55,6 +55,24 @@ It ends with `GPU RUNTIME OK`. It needs about 3 GB of downloads and 8 GB of disk
 `nvh264enc`. Without `--bundle`, the script fetches the pinned ONNX Runtime and builds the check with g++. That checks
 the runtime only, not the S-CORE binary.
 
+### The second candidate (decision D4)
+
+`DA_CANDIDATE=pr427` builds the pin with 0001-0003 and the optional
+`score-interface/candidates/pr427/0004-de4sdv-port-of-upstream-pr427.diff`, DE4SDV's port of upstream PR #427's two
+fixes. `DA_CANDIDATE=pin`, the default, builds exactly what the script built before; the default never reads 0004.
+
+```bash
+DA_CANDIDATE=pr427 implementation/driver-assistance-bench/score-build/build_score_bench.sh --root /opt/da-b2 --jobs 8
+```
+
+The variant reuses the finished stages and the Bazel workspace `/opt/da-b2/ws` with its output base, so only the
+changed VisionPilot units compile. It patches its own tree `/opt/da-b2/src/vp-pr427` (mark
+`.done-visionpilot-pr427`), restages `ws/visionpilot` from it (the `bazel` stage always restages), and writes facts,
+logs, the bundle and the archive under its own root: `/opt/da-b2-pr427/bundle` and
+`/opt/da-b2-pr427/da-b2-pr427-bundle.tgz`. It never writes `/opt/da-b2/bundle` or `/opt/da-b2/da-b2-bundle.tgz`. Its
+`facts/` holds 0001-0004 with a `SHA256SUMS` that lists all four, so the staging and the identity recorder record the
+variant as a source difference of its own. `--print-layout` prints each directory and exits.
+
 The build needs Ubuntu 22.04, the S-CORE host's release, because the binary links Ubuntu 22.04's GStreamer, Ipopt and
 CppAD. The script refuses another release. If the CPU VM runs another release, run the build on the L4 host itself.
 

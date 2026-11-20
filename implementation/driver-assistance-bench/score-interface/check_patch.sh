@@ -5,6 +5,9 @@
 #   3. 0001 (the VIS8 visualization recorder) with `git apply --check`, then for real; then 0002 the same way;
 #   4. `git diff` of the result against 0001 re-creates 0002 byte for byte; then 0003 (LocalDisplay without a window,
 #      C-2) is checked and applied on top of 0002 the same way, and `git diff` against 0002 re-creates it;
+#   4b. with DA_CANDIDATE=pr427 (score-interface/series.sh): the series' extra patch 0004 (DE4SDV's port of upstream
+#      PR #427's two fixes) is checked and applied on top of 0003 the same way, and `git diff` against 0003 re-creates
+#      its body (the file from its first "diff --git" line; the lines before are its header) byte for byte;
 #   5. optional, when OpenCV 4, ONNX Runtime and Eigen headers are given: g++ -fsyntax-only of the patched
 #      vision_pilot.cpp and vision_pilot_config.cpp with and without ENABLE_SCORE_INTERFACE, and the preprocessed
 #      vision_pilot.cpp without it compared between "0001" and "0001 + 0002".
@@ -13,6 +16,7 @@
 #   <visionpilot-clone>  a local clone that holds the pin (a blob-less partial clone is fine; the network weights are
 #                        left out of the checkout)
 #   ORT_INCLUDE, EIGEN_INCLUDE, OPENCV_INCLUDE  optional include directories for step 5
+#   DA_CANDIDATE         pin (default: 0001-0003) or pr427 (0001-0003 and 0004)
 # From a blob-less source clone, git may print "invalid object ... .onnx" during the checkout: those are the weights
 # the sparse checkout leaves out; the clean-tree check below still holds.
 # Exit status 0 when steps 1-4 pass (and step 5, if it ran).
@@ -28,6 +32,8 @@ fail() { echo "FAIL $*"; exit 1; }
 
 echo "=== check_patch $(date -u +%FT%TZ)"
 (cd "$PATCHES" && sha256sum -c SHA256SUMS) || fail "patch sha256 differs from SHA256SUMS"
+mapfile -t EXTRA < <("$HERE/series.sh" extra) || fail "series.sh extra"
+if [ "${#EXTRA[@]}" -gt 0 ]; then "$HERE/series.sh" check || fail "the candidate's patch sha256 differs"; fi
 
 rm -rf "$SCRATCH" && mkdir -p "$SCRATCH" || fail "scratch $SCRATCH"
 git clone -q --shared --no-checkout "$SOURCE" "$SCRATCH/vp" || fail "git clone --shared $SOURCE"
@@ -61,6 +67,19 @@ echo "0003 git apply --check on top of 0002: ok"
 git apply "$PATCHES/0003-de4sdv-headless-display.diff" || fail "0003 apply"
 git -c core.abbrev=8 diff | cmp -s - "$PATCHES/0003-de4sdv-headless-display.diff" || fail "git diff does not re-create 0003"
 echo "git diff against 0002 re-creates 0003 byte for byte"
+# the tree before the candidate's patch, for step 5's comparison of 0001 against 0001 + 0002 (+ 0003)
+if [ "${#EXTRA[@]}" -gt 0 ]; then mkdir -p "$SCRATCH/tree0003" && cp -r VisionPilot "$SCRATCH/tree0003/"; fi
+for extra in "${EXTRA[@]}"; do
+  n=$(basename "$extra" | cut -c1-4)
+  # 0003's result becomes the index, the base of the candidate's patch
+  git add -u VisionPilot || fail "staging 0003's result"
+  git apply --check "$extra" || fail "$n --check on top of 0003"
+  echo "$n git apply --check on top of 0003: ok"
+  git apply "$extra" || fail "$n apply"
+  git -c core.abbrev=8 diff | cmp -s - <(sed -n '/^diff --git /,$p' "$extra") \
+    || fail "git diff does not re-create $n's body"
+  echo "git diff against 0003 re-creates $n's body byte for byte"
+done
 
 OPENCV_INCLUDE=${OPENCV_INCLUDE:-/usr/include/opencv4}
 if [ -n "${ORT_INCLUDE:-}" ] && [ -n "${EIGEN_INCLUDE:-}" ] && [ -f "$OPENCV_INCLUDE/opencv2/core/mat.hpp" ]; then
@@ -81,7 +100,11 @@ if [ -n "${ORT_INCLUDE:-}" ] && [ -n "${EIGEN_INCLUDE:-}" ] && [ -f "$OPENCV_INC
   mapfile -t INC1 < <(includes "$SCRATCH/tree0001")
   g++ -std=c++17 -E -P "${INC1[@]}" "$SCRATCH/tree0001/VisionPilot/app/vision_pilot.cpp" > "$SCRATCH/pp0001.ii" \
     || fail "preprocess 0001"
-  g++ -std=c++17 -E -P "${INC[@]}" VisionPilot/app/vision_pilot.cpp > "$SCRATCH/pp0002.ii" || fail "preprocess 0002"
+  PP_TREE=$SCRATCH/vp
+  if [ -d "$SCRATCH/tree0003" ]; then PP_TREE=$SCRATCH/tree0003; fi
+  mapfile -t INCP < <(includes "$PP_TREE")
+  g++ -std=c++17 -E -P "${INCP[@]}" "$PP_TREE/VisionPilot/app/vision_pilot.cpp" > "$SCRATCH/pp0002.ii" \
+    || fail "preprocess 0002"
   diff "$SCRATCH/pp0001.ii" "$SCRATCH/pp0002.ii" > "$SCRATCH/pp.diff"
   echo "preprocessed vision_pilot.cpp without ENABLE_SCORE_INTERFACE, 0001 against 0001 + 0002:"
   cat "$SCRATCH/pp.diff"

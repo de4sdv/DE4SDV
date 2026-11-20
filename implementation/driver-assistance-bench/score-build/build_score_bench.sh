@@ -9,6 +9,15 @@
 #     --jobs N    parallel compile jobs for CMake and Bazel (default: nproc)
 #     --min-free-gb N  free disk (GiB) the preflight asks for under DIR (default 70, the estimate for a cold build);
 #                 a rerun with finished stages, or a run watched by a disk guard, may ask for less
+#     --print-layout  print the candidate's directories (VisionPilot tree, stage mark, facts, logs, bundle, archive)
+#                 and exit before anything is created
+#   DA_CANDIDATE=pin|pr427 (environment, default pin) selects the VisionPilot candidate (score-interface/series.sh):
+#     pin    the pin with 0001-0003; everything as above
+#     pr427  the pin with 0001-0003 and 0004, DE4SDV's port of upstream PR #427's two fixes (decision D4). The shared
+#            stages and the Bazel workspace DIR/ws (its output base) are reused; the patched tree is DIR/src/vp-pr427
+#            (mark .done-visionpilot-pr427), and facts, logs, the bundle and its archive go to the candidate's own root
+#            DIR-pr427 (bundle DIR-pr427/bundle, archive DIR-pr427/da-b2-pr427-bundle.tgz), so the pin's bundle under
+#            DIR is never written and the variant's can never be taken for it; its facts/ list 0004.
 #
 # Idempotent: each stage leaves DIR/.done-<stage> and is skipped on a rerun; delete the mark to redo a stage. The
 # downloads are kept in DIR/dl and checked against pins.sh on every run. Every step is logged; the script stops at the
@@ -29,21 +38,45 @@ source "$HERE/pins.sh"
 ROOT=/opt/da-b2
 JOBS=$(nproc)
 MIN_FREE_GB=70
+PRINT_LAYOUT=0
 while [ $# -gt 0 ]; do
   case "$1" in
+    --print-layout) PRINT_LAYOUT=1; shift ;;
     --root) ROOT=${2:?--root needs a directory}; shift 2 ;;
     --jobs) JOBS=${2:?--jobs needs a number}; shift 2 ;;
     --min-free-gb) MIN_FREE_GB=${2:?--min-free-gb needs a number}; shift 2 ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,29p' "$0"; exit 0 ;;
     *) echo "unknown argument $1" >&2; exit 2 ;;
   esac
 done
-
-if [ ! -d "$ROOT" ] || [ ! -w "$ROOT" ]; then
-  sudo mkdir -p "$ROOT" && sudo chown "$(id -u):$(id -g)" "$ROOT"
+ROOT=${ROOT%/}
+export DA_CANDIDATE=${DA_CANDIDATE:-pin}
+case "$DA_CANDIDATE" in
+  pin) BROOT=$ROOT; ARCHIVE=da-b2-bundle.tgz; VP_MARK=visionpilot; VP_DIR=$ROOT/src/vp; CHECK_DIR=$ROOT/src/check_patch ;;
+  pr427) BROOT=$ROOT-$DA_CANDIDATE; ARCHIVE=da-b2-$DA_CANDIDATE-bundle.tgz; VP_MARK=visionpilot-$DA_CANDIDATE
+         VP_DIR=$ROOT/src/vp-$DA_CANDIDATE; CHECK_DIR=$ROOT/src/check_patch-$DA_CANDIDATE ;;
+  *) echo "unknown candidate DA_CANDIDATE=$DA_CANDIDATE (pin or pr427)" >&2; exit 2 ;;
+esac
+FACTS=$BROOT/facts
+LOGS=$BROOT/logs
+if [ "$PRINT_LAYOUT" = 1 ]; then
+  echo "candidate=$DA_CANDIDATE root=$ROOT vp=$VP_DIR mark=$VP_MARK facts=$FACTS logs=$LOGS bundle=$BROOT/bundle" \
+       "archive=$BROOT/$ARCHIVE"
+  exit 0
 fi
-mkdir -p "$ROOT/logs" "$ROOT/dl" "$ROOT/src" "$ROOT/tools" "$ROOT/thirdparty" "$ROOT/facts"
-LOG=$ROOT/logs/build-$(date -u +%Y%m%dT%H%M%SZ).log
+
+for d in "$ROOT" "$BROOT"; do
+  if [ ! -d "$d" ] || [ ! -w "$d" ]; then
+    sudo mkdir -p "$d" && sudo chown "$(id -u):$(id -g)" "$d"
+  fi
+done
+mkdir -p "$ROOT/logs" "$ROOT/dl" "$ROOT/src" "$ROOT/tools" "$ROOT/thirdparty" "$ROOT/facts" "$LOGS" "$FACTS"
+# a candidate starts from the facts of the shared stages (toolchain path, workspace and gateway diffs) and writes its
+# own from then on
+if [ "$FACTS" != "$ROOT/facts" ] && [ ! -f "$FACTS/toolchain_path" ] && [ -f "$ROOT/facts/toolchain_path" ]; then
+  cp -a "$ROOT/facts/." "$FACTS/"
+fi
+LOG=$LOGS/build-$(date -u +%Y%m%dT%H%M%SZ).log
 exec > >(tee -a "$LOG") 2>&1
 
 STAGE=init
@@ -97,12 +130,13 @@ export PKG_CONFIG_SYSTEM_INCLUDE_PATH=/usr/include:/usr/include/x86_64-linux-gnu
 
 WS=$ROOT/ws                 # the S-CORE workspace (FEO 313b3d84 + the bench's packages)
 GW=$ROOT/src/gateway        # the SOME/IP gateway workspace (inc_someip_gateway d9eac670)
-VP=$ROOT/src/vp             # VisionPilot at the pin, patched
+VP=$VP_DIR                  # VisionPilot at the pin, patched (the candidate's series)
 CB=$ROOT/carla              # the CARLA 1.0 client build
 TP=$ROOT/thirdparty         # @da_b2_thirdparty
 OVERLAY=$WS/de4sdv_da_bench
 
 echo "build_score_bench.sh root=$ROOT jobs=$JOBS repo=$REPO commit=$(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)"
+[ "$DA_CANDIDATE" = pin ] || echo "candidate $DA_CANDIDATE: tree $VP, bundle $BROOT/bundle, archive $BROOT/$ARCHIVE"
 
 # ---------------------------------------------------------------------------------------------------------------------
 step preflight
@@ -113,6 +147,7 @@ free_gb=$(df -BG --output=avail "$ROOT" | tail -1 | tr -dc 0-9)
 [ "$free_gb" -ge "$MIN_FREE_GB" ] || die "only ${free_gb} GB free under $ROOT; the build asks for $MIN_FREE_GB GB (--min-free-gb; a cold build needs about 70 GB)"
 echo "host $(hostname) $(nproc) vCPU $(free -g | awk '/Mem:/{print $2}') GB RAM, ${free_gb} GB free, ${PRETTY_NAME}"
 (cd "$BENCH/score-interface/patches" && sha256sum -c SHA256SUMS) || die "the patch series differs from its SHA256SUMS"
+[ "$DA_CANDIDATE" = pin ] || "$BENCH/score-interface/series.sh" check || die "the candidate's patch differs from its SHA256SUMS"
 for f in "$BENCH/actuation-adapter/BUILD.bazel" "$BENCH/interfaces/include/de4sdv/driver_assistance/payloads.h" \
          "$BENCH/score-path/config/gateway_overlay.BUILD.bazel" "$BENCH/launch-manager/config/launch_manager_config.json" \
          "$BENCH/score-path/config/launch_manager_config_path_only.json" \
@@ -131,8 +166,8 @@ if ! is_done apt; then
 fi
 # shellcheck disable=SC2086
 dpkg-query -W -f='${Package}=${Version}\n' $(for p in $APT_BUILD $APT_RUNTIME; do echo "${p%%=*}"; done) \
-  coinor-libipopt-dev libcppad-dev 2>/dev/null | sort -u > "$ROOT/facts/apt-build-packages.txt" || true
-cat "$ROOT/facts/apt-build-packages.txt"
+  coinor-libipopt-dev libcppad-dev 2>/dev/null | sort -u > "$FACTS/apt-build-packages.txt" || true
+cat "$FACTS/apt-build-packages.txt"
 
 # ---------------------------------------------------------------------------------------------------------------------
 step tools
@@ -160,17 +195,21 @@ w=$ROOT/src/vp-pin/VisionPilot/modules/models/weights/autosteer_fp32.onnx
 
 # ---------------------------------------------------------------------------------------------------------------------
 step visionpilot
-if ! is_done visionpilot; then
+if ! is_done "$VP_MARK"; then
   # the series' own check: a fresh clone at the pin, 0001, 0002 and 0003 in order, 0002 and 0003 re-created byte for byte
-  "$BENCH/score-interface/check_patch.sh" "$ROOT/src/vp-pin" "$ROOT/src/check_patch" || die "check_patch.sh failed"
+  # (and the candidate's 0004 on top, its body re-created, with DA_CANDIDATE=pr427)
+  "$BENCH/score-interface/check_patch.sh" "$ROOT/src/vp-pin" "$CHECK_DIR" || die "check_patch.sh failed"
   rm -rf "$VP"
   git clone -q --shared "$ROOT/src/vp-pin" "$VP"
   git -C "$VP" checkout -q "$VP_COMMIT"
   git -C "$VP" apply --index "$BENCH/score-interface/patches/0001-de4sdv-visualization-recorder.diff"
   git -C "$VP" apply --index "$BENCH/score-interface/patches/0002-de4sdv-score-interface.diff"
   git -C "$VP" apply --index "$BENCH/score-interface/patches/0003-de4sdv-headless-display.diff"
+  [ "$DA_CANDIDATE" = pin ] || for p in $("$BENCH/score-interface/series.sh" extra); do
+    git -C "$VP" apply --index "$p"; echo "applied $(basename "$p")"
+  done
   git -C "$VP" diff --cached --stat "$VP_COMMIT" | tail -1
-  mark_done visionpilot
+  mark_done "$VP_MARK"
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -200,22 +239,22 @@ text += '\n' + open(fragment).read().replace('@ROOT@', root)
 open(path, 'w').write(text)
 print("MODULE.bazel: @libcarla -> the CARLA 1.0 bundle, @python312 dropped, @da_b2_thirdparty added")
 PY
-  git -C "$WS" diff > "$ROOT/facts/workspace.diff"
+  git -C "$WS" diff > "$FACTS/workspace.diff"
   mark_done workspace
 fi
 cd "$WS"
 echo "S-CORE workspace: FEO $(git -C "$WS" rev-parse --short HEAD), Bazel $BAZEL_FEO_VERSION, --config=x86_64-linux"
-if [ ! -f "$ROOT/facts/toolchain_path" ]; then
-  if ! bazel_feo build --config=x86_64-linux --jobs="$JOBS" @score_communication//score/mw/com > "$ROOT/logs/mwcom-bazel.log" 2>&1; then
-    grep -E "^ERROR|error:" "$ROOT/logs/mwcom-bazel.log" | sed -n 1,20p; die "bazel build of mw::com failed"
+if [ ! -f "$FACTS/toolchain_path" ]; then
+  if ! bazel_feo build --config=x86_64-linux --jobs="$JOBS" @score_communication//score/mw/com > "$LOGS/mwcom-bazel.log" 2>&1; then
+    grep -E "^ERROR|error:" "$LOGS/mwcom-bazel.log" | sed -n 1,20p; die "bazel build of mw::com failed"
   fi
-  tail -n 3 "$ROOT/logs/mwcom-bazel.log"
+  tail -n 3 "$LOGS/mwcom-bazel.log"
   OB=$(bazel_feo info output_base)
   TC=$(find "$OB/external" -maxdepth 1 -name '*score_gcc_x86_64_toolchain_pkg' -print -quit)
   [ -n "$TC" ] || die "the S-CORE gcc toolchain package was not found under $OB/external"
-  echo "$TC" > "$ROOT/facts/toolchain_path"
+  echo "$TC" > "$FACTS/toolchain_path"
 fi
-TC=$(cat "$ROOT/facts/toolchain_path")
+TC=$(cat "$FACTS/toolchain_path")
 SR=$TC/x86_64-unknown-linux-gnu/sysroot
 CC=$TC/bin/x86_64-unknown-linux-gnu-gcc
 CXX=$TC/bin/x86_64-unknown-linux-gnu-g++
@@ -345,8 +384,8 @@ exec /usr/bin/pkg-config "$@"
 EOF
   chmod 0755 "$ROOT/tools/pkg-config-score"
   PKG_CONFIG_ALLOW_SYSTEM_CFLAGS=1 "$ROOT/tools/pkg-config-score" --cflags-only-I gstreamer-app-1.0 gstreamer-video-1.0 \
-    | tr ' ' '\n' > "$ROOT/facts/pkg-config-score-gstreamer.txt"
-  if grep -qxE -- '-I/usr/include(/x86_64-linux-gnu)?' "$ROOT/facts/pkg-config-score-gstreamer.txt"; then
+    | tr ' ' '\n' > "$FACTS/pkg-config-score-gstreamer.txt"
+  if grep -qxE -- '-I/usr/include(/x86_64-linux-gnu)?' "$FACTS/pkg-config-score-gstreamer.txt"; then
     die "pkg-config-score still returns a host system include directory"
   fi
   # Static, with the S-CORE gcc; the image codecs from OpenCV's own sources; videoio with the GStreamer back end
@@ -362,19 +401,19 @@ EOF
     -DWITH_OPENMP=OFF -DWITH_PROTOBUF=OFF -DWITH_TIFF=OFF -DWITH_WEBP=OFF -DWITH_OPENEXR=OFF -DWITH_JASPER=OFF \
     -DWITH_OPENJPEG=OFF -DWITH_GDAL=OFF -DWITH_GPHOTO2=OFF -DWITH_IMGCODEC_HDR=ON -DBUILD_ZLIB=ON -DBUILD_PNG=ON \
     -DBUILD_JPEG=ON -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_opencv_apps=OFF -DBUILD_JAVA=OFF \
-    -DBUILD_opencv_python3=OFF -DCV_TRACE=OFF > "$ROOT/logs/opencv-cmake.log" 2>&1 \
-    || { tail -30 "$ROOT/logs/opencv-cmake.log"; die "OpenCV configure failed"; }
+    -DBUILD_opencv_python3=OFF -DCV_TRACE=OFF > "$LOGS/opencv-cmake.log" 2>&1 \
+    || { tail -30 "$LOGS/opencv-cmake.log"; die "OpenCV configure failed"; }
   # CMake prefixes its status lines with "--": the summary line reads "--     GStreamer:   YES (1.20.3)"
-  grep -E "^--\s+GStreamer:" "$ROOT/logs/opencv-cmake.log" || true
-  grep -qE "^--\s+GStreamer:\s+YES" "$ROOT/logs/opencv-cmake.log" \
-    || die "OpenCV found no GStreamer (see $ROOT/logs/opencv-cmake.log); the recorder's nvh264enc path needs it"
+  grep -E "^--\s+GStreamer:" "$LOGS/opencv-cmake.log" || true
+  grep -qE "^--\s+GStreamer:\s+YES" "$LOGS/opencv-cmake.log" \
+    || die "OpenCV found no GStreamer (see $LOGS/opencv-cmake.log); the recorder's nvh264enc path needs it"
   grep -E "^GSTREAMER_[a-z]+_INCLUDE_DIRS:" "$ROOT/src/opencv-build/CMakeCache.txt" | tr ';=' '\n\n' \
-    > "$ROOT/facts/opencv-gstreamer-include-dirs.txt"
-  if grep -qxE '/usr/include(/x86_64-linux-gnu)?' "$ROOT/facts/opencv-gstreamer-include-dirs.txt"; then
+    > "$FACTS/opencv-gstreamer-include-dirs.txt"
+  if grep -qxE '/usr/include(/x86_64-linux-gnu)?' "$FACTS/opencv-gstreamer-include-dirs.txt"; then
     die "OpenCV's GStreamer include directories hold a host system directory (CMakeCache.txt)"
   fi
-  ninja -C "$ROOT/src/opencv-build" -j "$JOBS" install > "$ROOT/logs/opencv-build.log" 2>&1 \
-    || { grep -m10 -E " error|FAILED" "$ROOT/logs/opencv-build.log"; die "OpenCV build failed"; }
+  ninja -C "$ROOT/src/opencv-build" -j "$JOBS" install > "$LOGS/opencv-build.log" 2>&1 \
+    || { grep -m10 -E " error|FAILED" "$LOGS/opencv-build.log"; die "OpenCV build failed"; }
   mark_done opencv
 fi
 find "$TP/opencv" -name "*.a" | sort
@@ -388,9 +427,9 @@ if ! is_done rerun; then
   # Rerun's CMake downloads and builds Arrow C++ 18.0.0 (URL and MD5 fixed in the pinned SDK archive).
   cmake -S "$ROOT/src/rerun_cpp_sdk" -B "$ROOT/src/rerun-build" -G Ninja -DCMAKE_TOOLCHAIN_FILE="$ROOT/score-gcc.cmake" \
     -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$TP/rerun" -DCMAKE_INSTALL_LIBDIR=lib \
-    > "$ROOT/logs/rerun-cmake.log" 2>&1 || { tail -30 "$ROOT/logs/rerun-cmake.log"; die "Rerun configure failed"; }
-  ninja -C "$ROOT/src/rerun-build" -j "$JOBS" install > "$ROOT/logs/rerun-build.log" 2>&1 \
-    || { grep -m10 -iE "error|failed" "$ROOT/logs/rerun-build.log"; die "Rerun build failed"; }
+    > "$LOGS/rerun-cmake.log" 2>&1 || { tail -30 "$LOGS/rerun-cmake.log"; die "Rerun configure failed"; }
+  ninja -C "$ROOT/src/rerun-build" -j "$JOBS" install > "$LOGS/rerun-build.log" 2>&1 \
+    || { grep -m10 -iE "error|failed" "$LOGS/rerun-build.log"; die "Rerun build failed"; }
   mark_done rerun
 fi
 find "$TP/rerun" -name "*.a" | sort
@@ -490,16 +529,16 @@ for old, new in edits:
 open(path, 'w').write(text)
 print("gateway MODULE.bazel: communication 0.6.0, baselibs 0.2.17, lifecycle 0.10.0")
 PY
-  git diff MODULE.bazel > "$ROOT/facts/gateway-MODULE.bazel.diff"
+  git diff MODULE.bazel > "$FACTS/gateway-MODULE.bazel.diff"
   rm -rf de4sdv_driver_assistance && mkdir de4sdv_driver_assistance
   cp "$BENCH"/score-path/config/*.json de4sdv_driver_assistance/
   cp "$BENCH/score-path/config/gateway_overlay.BUILD.bazel" de4sdv_driver_assistance/BUILD.bazel
   if ! bazel_gw build -c opt --jobs="$JOBS" //score/gatewayd //score/someipd //score/serializer:null_serializer \
-      //de4sdv_driver_assistance:someip_gateway_config_warning > "$ROOT/logs/gateway-bazel.log" 2>&1; then
-    grep -E "^ERROR|error:" "$ROOT/logs/gateway-bazel.log" | sed -n 1,20p; die "gateway build failed"
+      //de4sdv_driver_assistance:someip_gateway_config_warning > "$LOGS/gateway-bazel.log" 2>&1; then
+    grep -E "^ERROR|error:" "$LOGS/gateway-bazel.log" | sed -n 1,20p; die "gateway build failed"
   fi
-  tail -n 3 "$ROOT/logs/gateway-bazel.log"
-  bazel_gw mod explain score_communication score_baselibs > "$ROOT/facts/gateway-mod-explain.txt" 2>&1 || true
+  tail -n 3 "$LOGS/gateway-bazel.log"
+  bazel_gw mod explain score_communication score_baselibs > "$FACTS/gateway-mod-explain.txt" 2>&1 || true
   mark_done gateway
 fi
 cd "$GW"
@@ -539,25 +578,25 @@ TARGETS=(//visionpilot:VisionPilot //de4sdv_da_bench/actuation-adapter:actuation
          //de4sdv_da_bench/ivi-warning/injector:warning_injector)
 start=$(date +%s)
 if ! bazel_feo build --config=x86_64-linux -c opt --jobs="$JOBS" --features=-treat_warnings_as_errors "${TARGETS[@]}" \
-    > "$ROOT/logs/score-bazel.log" 2>&1; then
-  grep -E "^ERROR|error:|undefined reference" "$ROOT/logs/score-bazel.log" | sed -n 1,30p
+    > "$LOGS/score-bazel.log" 2>&1; then
+  grep -E "^ERROR|error:|undefined reference" "$LOGS/score-bazel.log" | sed -n 1,30p
   die "Bazel build of VisionPilot, the actuation adapter, ort_cuda_check, the Launch Manager, its configurations, the identity recorder, its probe or the test publisher failed"
 fi
-tail -n 8 "$ROOT/logs/score-bazel.log"
+tail -n 8 "$LOGS/score-bazel.log"
 echo "bazel build: $(( $(date +%s) - start )) s"
-bazel_feo mod explain score_lifecycle score_communication score_baselibs > "$ROOT/facts/score-mod-explain.txt" 2>&1 || true
-life_versions=$(grep -o -E 'score_lifecycle@[^ ,)]*' "$ROOT/facts/score-mod-explain.txt" | sort -u | tr '\n' ' ' || true)
+bazel_feo mod explain score_lifecycle score_communication score_baselibs > "$FACTS/score-mod-explain.txt" 2>&1 || true
+life_versions=$(grep -o -E 'score_lifecycle@[^ ,)]*' "$FACTS/score-mod-explain.txt" | sort -u | tr '\n' ' ' || true)
 echo "score_lifecycle as resolved: ${life_versions:-not shown by bazel mod explain}"
 for v in $life_versions; do
   [ "$v" = "score_lifecycle@0.10.0" ] || die "Bazel resolved $v, not score_lifecycle@0.10.0 (facts/score-mod-explain.txt)"
 done
 bazel_feo aquery --config=x86_64-linux -c opt 'mnemonic("CppCompile", //visionpilot:de4sdv_score_carla_client)' 2>/dev/null \
-  | grep -o -E "x86_64-unknown-linux-gnu-g\+\+|-std=[a-z+0-9]*" | sort | uniq -c > "$ROOT/facts/carla_unit_std.txt" || true
-cat "$ROOT/facts/carla_unit_std.txt"
+  | grep -o -E "x86_64-unknown-linux-gnu-g\+\+|-std=[a-z+0-9]*" | sort | uniq -c > "$FACTS/carla_unit_std.txt" || true
+cat "$FACTS/carla_unit_std.txt"
 
 # ---------------------------------------------------------------------------------------------------------------------
 step bundle
-B=$ROOT/bundle
+B=$BROOT/bundle
 rm -rf "$B" && mkdir -p "$B/bin" "$B/lib" "$B/config/visionpilot" "$B/config/gateway" "$B/config/launch_manager" \
   "$B/config/actuation_adapter" "$B/share/visionpilot" "$B/facts"
 # The output directory of the build above from cquery: `bazel info --config=x86_64-linux` stops with "Repository
@@ -608,18 +647,20 @@ cp -a "$VP/VisionPilot/config/." "$B/config/visionpilot/"
 # CMake build derives it from config/H.yaml with scripts/find_homography_C_matrix.py (CMakeLists.txt:49-53), which
 # reads ../config/H.yaml from its working directory. Mode path and p10-1 stage it (score-path/scripts/README.md).
 (cd "$VP/VisionPilot/scripts" && /usr/bin/python3 find_homography_C_matrix.py \
-   --output "$B/config/visionpilot/homography_C_matrix.yaml") > "$ROOT/logs/homography_C_matrix.log" 2>&1 \
+   --output "$B/config/visionpilot/homography_C_matrix.yaml") > "$LOGS/homography_C_matrix.log" 2>&1 \
   || die "find_homography_C_matrix.py failed (logs/homography_C_matrix.log; it needs python3-opencv and python3-numpy)"
 cp -a "$VP/VisionPilot/assets" "$B/share/visionpilot/assets"
 mkdir -p "$B/share/visionpilot/modules/models/weights"
 cp "$ROOT"/src/vp-pin/VisionPilot/modules/models/weights/*.onnx "$B/share/visionpilot/modules/models/weights/"
 cp "$BENCH"/score-interface/patches/*.diff "$BENCH/score-interface/patches/SHA256SUMS" "$B/facts/"
+# a candidate's series adds its patch beside the three and lists it in facts/SHA256SUMS
+[ "$DA_CANDIDATE" = pin ] || "$BENCH/score-interface/series.sh" facts "$B/facts"
 # facts/*.diff is the source difference of the candidate, exactly the patch series of its SHA256SUMS: the identity
 # recorder hashes every facts/*.diff that the staging copies and refuses one that SHA256SUMS does not list. The build's
 # own diffs (the workspace's and the gateway's MODULE.bazel) go to facts/build/.
 mkdir -p "$B/facts/build"
-cp "$ROOT"/facts/*.txt "$B/facts/" 2>/dev/null || true
-cp "$ROOT"/facts/*.diff "$B/facts/build/" 2>/dev/null || true
+cp "$FACTS"/*.txt "$B/facts/" 2>/dev/null || true
+cp "$FACTS"/*.diff "$B/facts/build/" 2>/dev/null || true
 # the run-time packages of the S-CORE host (install_gpu_runtime.sh installs them): name=version where this host has
 # the package installed, the bare name where it has not (dpkg-query prints "name=" for a package it knows but has
 # not installed, and apt-get refuses an empty version)
@@ -628,7 +669,8 @@ for p in $APT_RUNTIME coinor-libipopt1v5 coinor-libipopt-dev libcppad-dev; do
   case "$v" in ii*) echo "$p=${v#*|}" ;; *) echo "$p" ;; esac
 done > "$B/facts/apt-runtime-packages.txt"
 {
-  echo "VisionPilot $VP_COMMIT with $(cat "$BENCH/score-interface/patches/SHA256SUMS" | tr '\n' ' ')"
+  echo "VisionPilot $VP_COMMIT with $(cat "$B/facts/SHA256SUMS" | tr '\n' ' ')"
+  [ "$DA_CANDIDATE" = pin ] || echo "candidate $DA_CANDIDATE: 0001-0003 and $(cd "$B/facts" && ls 0004-*.diff)"
   echo "FEO $FEO_COMMIT; gateway $GATEWAY_COMMIT; CARLA $CARLA_COMMIT; ONNX Runtime $ORT_VERSION (nuget sha256 $ORT_SHA256)"
   echo "repository $(git -C "$REPO" rev-parse HEAD 2>/dev/null || echo unknown)"
 } > "$B/facts/sources.txt"
@@ -654,9 +696,9 @@ done > "$B/facts/apt-runtime-packages.txt"
 if LD_LIBRARY_PATH=$B/lib ldd "$B/bin/vision_pilot" | grep "not found"; then die "vision_pilot has unresolved libraries"; fi
 # both supervised processes hold the Lifecycle v0.10.0 client (report_running and the Alive API)
 for f in vision_pilot actuation_adapter; do
-  nm -C "$B/bin/$f" > "$ROOT/facts/$f.nm"
+  nm -C "$B/bin/$f" > "$FACTS/$f.nm"
   for sym in score_mw_lifecycle_report_running 'score::mw::lifecycle::Alive::ReportAlive'; do
-    grep -q -F "$sym" "$ROOT/facts/$f.nm" || die "$f does not hold the Lifecycle client symbol $sym"
+    grep -q -F "$sym" "$FACTS/$f.nm" || die "$f does not hold the Lifecycle client symbol $sym"
   done
 done
 strings "$B/bin/vision_pilot" > "$B/facts/vision_pilot.strings"
@@ -668,11 +710,11 @@ cat "$B/facts/ort_cuda_check_cpu.txt"
 grep -q "ORT_CUDA_CHECK PASS" "$B/facts/ort_cuda_check_cpu.txt" || die "ort_cuda_check --cpu-only failed"
 # every file of the bundle but this list itself, facts/SHA256SUMS of the patch series included
 (cd "$B" && find . -type f ! -path ./SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS)
-tar -czf "$ROOT/da-b2-bundle.tgz" -C "$ROOT" bundle
+tar -czf "$BROOT/$ARCHIVE" -C "$BROOT" bundle
 echo
 echo "=== BUILD OK $(date -u +%FT%TZ)"
 echo "free under $ROOT: $(df -B1 --output=avail "$ROOT" | tail -1 | tr -dc 0-9) B"
-echo "bundle: $B ($(du -sh "$B" | cut -f1)); archive $ROOT/da-b2-bundle.tgz sha256 $(sha256sum "$ROOT/da-b2-bundle.tgz" | cut -c1-64)"
+echo "bundle: $B ($(du -sh "$B" | cut -f1)); archive $BROOT/$ARCHIVE sha256 $(sha256sum "$BROOT/$ARCHIVE" | cut -c1-64)"
 echo "binaries and libraries (sha256):"
 (cd "$B" && sha256sum bin/* lib/*)
 echo "log: $LOG"

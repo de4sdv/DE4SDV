@@ -19,6 +19,8 @@ S-CORE. It ships as a patch series against the pin, so upstream's code is not co
 | `patches/SHA256SUMS` | the sha256 of the three patches |
 | `module/` | the new files of 0002, as they land in `VisionPilot/modules/de4sdv/score_interface/`. A test checks that they equal the patch |
 | `check_patch.sh` | applies the series to a fresh `git clone --shared` at the pin |
+| `candidates/pr427/0004-de4sdv-port-of-upstream-pr427.diff`, `candidates/pr427/SHA256SUMS` | optional: DE4SDV's port of the two fixes of upstream draft PR #427 (the closing-speed sign and `fusion.ad_only_needs_as_track`), the second candidate of decision D4. Its header names the upstream commits and the lines taken at `a38f227c` and at the pin; it applies on top of 0003 |
+| `series.sh` | the series of the candidate `DA_CANDIDATE` (`pin`, the default: 0001-0003; `pr427`: 0001-0004): `list`, `extra`, `check`, and `facts <dir>`, the bundle's source difference with a `SHA256SUMS` that lists every diff |
 | `tests/` | unit tests with fakes for mw::com and the CARLA client, and a pytest wrapper |
 
 The module is chosen by `source.mode = score` in `vision_pilot.conf` (or `3`, like upstream's numeric aliases), and
