@@ -251,7 +251,9 @@ def test_s1_the_stop_run_stops_the_path_at_go_plus_its_delay_and_records_the_ins
     r = s1_run(tmp_path, "--without-guest-host", "--camcal", "settings", DA_T_PATH_STOP_AFTER_S="1.5")
     assert r.rc == 0, r.log
     (ps,) = r.ssh(L4, "start path_stop_")
-    assert "start path_stop_stop -- " in r.command(ps) and r.command(ps).endswith("bash extra/path_stop.sh")
+    # path_stop.sh <out> (score-side lane): the step passes its own out folder (lane I-S, test_session_s1_int.py)
+    assert "start path_stop_stop -- " in r.command(ps) and \
+        r.command(ps).endswith("bash extra/path_stop.sh $HOME/da-kit/T/out/path_stop_stop")
     gos = r.ssh(G4, "/out/world_stop/go")
     ends = r.ssh(G4, "world_stop/simulator/run_end.json")
     assert gos and ends and gos[-1] < ps < ends[0]
@@ -340,8 +342,22 @@ def test_candidate_refusals_before_any_start(tmp_path: Path, more: tuple, needle
     assert not r.starts(G4) and not r.starts(L4)
 
 
-FACTS_PIN = "0001-de4sdv-score-interface.diff+0002-x.diff+0003-y.diff"
-FACTS_PR427 = FACTS_PIN + "+0004-de4sdv-port-of-upstream-pr427.diff"
+# the staged facts of the bundles built at a9384a0c (score-side lane, score-interface/series.sh): pin 0001-0003 and 0005
+# (the warm start), pr427 0001-0005; score_config_record.py lists them in name order
+FACTS_PIN = ("0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff"
+             "+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff")
+FACTS_PR427 = ("0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff"
+               "+0003-de4sdv-headless-display.diff+0004-de4sdv-port-of-upstream-pr427.diff"
+               "+0005-de4sdv-warm-start.diff")
+
+
+def test_the_facts_fixtures_are_the_series_of_each_candidate() -> None:
+    # the fixtures above follow score-interface/series.sh at the head, not an older series (I-S check f)
+    out = {c: subprocess.run(["bash", str(BENCH / "score-interface" / "series.sh"), "list"], capture_output=True,
+                             text=True, check=True, env={**os.environ, "DA_CANDIDATE": c}).stdout.split()
+           for c in ("pin", "pr427")}
+    assert sorted(Path(p).name for p in out["pin"]) == FACTS_PIN.split("+"), out
+    assert sorted(Path(p).name for p in out["pr427"]) == FACTS_PR427.split("+"), out
 
 
 def _staged(facts: str) -> str:

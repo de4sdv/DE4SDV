@@ -93,8 +93,10 @@ fi
 BEFORE=$(pids $GONE $KEPT)
 log "before: $BEFORE"
 log "running $CLIENT --run-target $RUN_TARGET --mw-com-config $CONFIG"
+# timeout --foreground: the call stays in the step's process group, so the session's TERM of the step reaches it (V4;
+# session/tests/test_p10_1_bounds.py); sudo passes a TERM or the KILL on to the client
 # shellcheck disable=SC2086
-(cd "$OUT" && timeout -k 5 $((DA_PATH_STOP_SETTLE_S + 20)) $DA_SUDO env "LD_LIBRARY_PATH=$DA_STAGE/lib" "$CLIENT" \
+(cd "$OUT" && timeout --foreground -k 5 $((DA_PATH_STOP_SETTLE_S + 20)) $DA_SUDO env "LD_LIBRARY_PATH=$DA_STAGE/lib" "$CLIENT" \
    --run-target "$RUN_TARGET" --mw-com-config "$CONFIG" --settle-timeout-ms $((DA_PATH_STOP_SETTLE_S * 1000)) \
    > "$OUT/lm_control_client.out" 2> "$OUT/lm_control_client.err")
 CRC=$?

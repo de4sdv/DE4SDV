@@ -14,6 +14,9 @@ SIGTERM stops the components in reverse order with SIGTERM and exits 0. Each com
 environment, as from the daemon (nothing inherited), plus the test knobs DA_TEST_*, DA_STUB_* and FAKE_*.
 
 Knobs: FAKE_LM_IGNORE_TERM=1 ignores SIGTERM; FAKE_LM_EXIT_AFTER_S=<s> ends with status 3 after s seconds;
+FAKE_LM_LATE=<name>:<s> starts that component last, s seconds after the others are ready (the real daemon starts the
+nodes of a run target by their depends_on graph, and the candidate's process no longer depends on gatewayd: so
+gatewayd or someipd may come up after the candidate);
 FAKE_LM_SUPERVISE=1 emulates the alive supervision of the supervised components as the real daemon at Lifecycle v0.10.0
 (2afae116) reacts on the L4 (p10-1 run 20261119T134840Z): a component whose process is SIGSTOPped for more than 0.6 s
 gets the two warnings "Alive Supervision ( <name> ) switched to FAILED , ..." and "... switched to EXPIRED , ..."
@@ -128,7 +131,16 @@ def main() -> int:
     initial = CONFIG["initial_run_target"]
     log(f"run target {initial}: {order(initial)}")
     procs: dict[str, subprocess.Popen] = {}
-    for name in order(initial):
+    late_name, _, late_s = os.environ.get("FAKE_LM_LATE", "").partition(":")
+    names = order(initial)
+    if late_name in names:
+        names = [n for n in names if n != late_name] + [late_name]
+    for name in names:
+        if name == late_name:
+            log(f"{name} late by {late_s} s")
+            until = time.monotonic() + float(late_s or 0)
+            while time.monotonic() < until and not STOP:
+                time.sleep(0.05)
         s = merged(name)
         # Like the daemon: exactly the configured environment (Lifecycle v0.10.0 process_launcher.cpp:395), nothing
         # inherited (no HOME, no PATH), plus the test knobs of the stubs and the recorder's driver

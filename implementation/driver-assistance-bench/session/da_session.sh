@@ -1740,7 +1740,8 @@ path_stop() {   # path_stop <label> <the go's time, Unix s>: the stop run's path
   log "stop run $w: the S-CORE path stops at the go + $PATH_STOP_AFTER_S s, in $wait_s s"
   nap "$wait_s"
   local t_call; t_call=$(date +%s.%N)
-  rstep score "path_stop_$w" "$T_STEP" bash "$ENTRY_SCORE_PATH_STOP"
+  # path_stop.sh <out> (score-path/scripts/path_stop.sh): its log and path_stop.json go to the step's own out folder
+  rstep score "path_stop_$w" "$T_STEP" bash "$ENTRY_SCORE_PATH_STOP" "$(od "path_stop_$w")"
   line=$(grep -o '{"runTarget".*}' <<< "$ROUT" | tail -1)
   ok=$(python3 - "$line" "$IN/path_stop.json" "$w" "$t_go" "$t_call" "$PATH_STOP_AFTER_S" <<'PY'
 import json, sys
@@ -1957,7 +1958,7 @@ case "$KIND" in
     [ "$HAS_GUEST" = 1 ] && guest_bring_up
     # the lap rule: the warm-up runs with every camera, the recording view included, and its recorder must write;
     # no candidate runs yet (world-side/README.md: the S-CORE side starts only for the runs)
-    rstart sim rec_warmup "$SIM_PY" "$ENTRY_SIM_RECORD" --out "$(od rec_warmup)"
+    rstart sim rec_warmup "$SIM_PY" "$ENTRY_SIM_RECORD" --out "$(od rec_warmup)"; rlisten warmup
     rstep sim warmup "$T_WARMUP" "$SENV" bash "$ENTRY_SIM_WARMUP" "$(od warmup)"
     rwait sim rec_warmup "$T_REC_END" || { abort 5 "the warm-up's recorder did not end well: no recorded run"; }
     # ASM-DRIVING-005 and the camera capture, without candidate or adapter; then the calibration file, which the
@@ -1977,7 +1978,7 @@ case "$KIND" in
     log "CARLA host for the S-CORE side: $CARLA_HOST"
     rstep score carla_reach 60 timeout 10 bash -c "\"</dev/tcp/$CARLA_HOST/2000\""
     [ "$HAS_GUEST" = 1 ] && guest_bring_up
-    rstart sim rec_warmup "$SIM_PY" "$ENTRY_SIM_RECORD" --out "$(od rec_warmup)"
+    rstart sim rec_warmup "$SIM_PY" "$ENTRY_SIM_RECORD" --out "$(od rec_warmup)"; rlisten warmup
     rstep sim warmup "$T_WARMUP" "$SENV" bash "$ENTRY_SIM_WARMUP" "$(od warmup)"
     rwait sim rec_warmup "$T_REC_END" || { abort 5 "the warm-up's recorder did not end well: no recorded run"; }
     rstep sim calibrate "$T_CALIBRATE" "$SENV" bash "$ENTRY_SIM_CALIBRATE" "$(od calibrate)" "$CAMCAL_SOURCE"
