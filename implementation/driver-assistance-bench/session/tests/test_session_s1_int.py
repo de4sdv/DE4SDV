@@ -98,4 +98,3 @@ def test_s1_a_fetched_simulator_pack_names_only_fetch_chase(tmp_path: Path) -> N
     r = s1_run(tmp_path, "--without-guest-host")
     assert r.rc == 0, r.log
     assert not [ln for ln in r.log.splitlines() if "fetch_owed.sh" in ln], r.log
-
