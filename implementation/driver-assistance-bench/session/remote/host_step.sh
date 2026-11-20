@@ -9,7 +9,8 @@
 #   host_step.sh tail   <step>                   the last 20 lines of the step's log
 #   host_step.sh pack                            tars the host's output folder to <kit>/out.tgz, prints its sha256
 #                                                and its size in bytes ("<sha256> <bytes>", the last line); every
-#                                                *.rrd stays out of it, listed in out/pack_excluded.tsv
+#                                                *.rrd and every chase video (out/rec_*/chase_view.mp4) stays out
+#                                                of it, listed in out/pack_excluded.tsv (a video with its sha256)
 #
 # Layout (made by the orchestrator's upload): ~/da-kit/<session id>/{session_id, bench/, out/}. This script lives in
 # bench/session/remote/. Each step writes out/<step>.log and, when it ends, out/<step>.rc. The command runs with
@@ -74,8 +75,12 @@ case "$ACTION" in
     cp "$KIT/session_id" "$DA_OUT/session_id"
     # the candidate's Rerun records stay on this host (4.7 GB for 42 s of calib_steer in 20261119T174606Z): each is
     # listed with its size in out/pack_excluded.tsv and left out of the pack; nothing is deleted
-    (cd "$KIT" && find out -type f -name '*.rrd' -printf '%p\t%s\n' | sort) > "$DA_OUT/pack_excluded.tsv"
-    tar -czf "$KIT/out.tgz" --exclude='*.rrd' -C "$KIT" out
+    # the chase videos too (C3 of the S1 build: about 144 MB a run, 2.2 GB for S1, past any fetch bound through IAP):
+    # each is listed with its size and sha256 and fetched after the session by session/fetch_chase.sh
+    (cd "$KIT" && { find out -type f -name '*.rrd' -printf '%p\t%s\n' | sort
+      find out -type f -path 'out/rec_*/chase_view.mp4' | sort | while IFS= read -r f; do
+        printf '%s\t%s\t%s\n' "$f" "$(stat -c %s "$f")" "$(sha256sum "$f" | cut -d' ' -f1)"; done; }) > "$DA_OUT/pack_excluded.tsv"
+    tar -czf "$KIT/out.tgz" --exclude='*.rrd' --exclude='out/rec_*/chase_view.mp4' -C "$KIT" out
     # the size beside the sha256 (F7): the session reads a host reached through IAP as ranges of this file and bounds
     # the whole fetch by its size
     printf '%s %s\n' "$(sha256sum "$KIT/out.tgz" | cut -d' ' -f1)" "$(stat -c %s "$KIT/out.tgz")"
