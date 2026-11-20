@@ -201,7 +201,11 @@ def test_the_campaign_passes_with_complete_records(tmp_path):
     rec = doc["evidenceRecords"][RUN]["attributes"]
     assert rec["criteriaRecordIdentity"] == doc["criteriaRecordIdentity"]
     assert rec["evaluatorRevision"] == doc["evaluatorRevision"]
-    assert "VC-DRIVING-036" in rec["claimBoundary"]
+    # the run's own outcomes, not only the fixed text of what the record does not prove (which names 036 too)
+    assert "VC-DRIVING-036 passBoundedVerification" in rec["claimBoundary"]
+    assert "VC-DRIVING-038 stop clause" not in rec["claimBoundary"]
+    assert "VC-DRIVING-038 stop clause passBoundedVerification" in doc["evidenceRecords"]["stop"]["attributes"][
+        "claimBoundary"]
 
 
 def test_cli_writes_the_records(tmp_path):
@@ -242,3 +246,17 @@ def test_the_candidates_data_log_is_part_of_the_raw_artifacts(tmp_path):
     rec = records(root)[RUN]
     assert rec["emptyAttributes"] == ["rawObservationArtifact"]
     assert any("candidate's data log" in m for m in rec["missing"])
+
+
+def _strip_last_real(p):
+    lines = [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+    ticks = [x for x in lines if x.get("event") == "tick"]
+    ticks[-1].pop("t_real_ns")
+    p.write_text("\n".join(json.dumps(x) for x in lines) + "\n")
+
+
+def test_wall_clock_span_empty_when_only_the_last_tick_has_no_real_time(tmp_path):
+    root = session(tmp_path)
+    _run_file("world_{run}/simulator/world.jsonl", _strip_last_real)(root)
+    rec = records(root)[RUN]
+    assert rec["emptyAttributes"] == ["wallClockSpan"], rec["missing"]
