@@ -357,9 +357,15 @@ def test_0003_guards_both_destroy_all_windows_calls_with_show_window() -> None:
     assert any("bool LocalDisplay::stop()" in line for line in hunks[1])
 
 
+def _series() -> list[Path]:
+    """The candidate's series in apply order (score-interface/series.sh; DA_CANDIDATE, default pin: 0001-0003)."""
+    out = subprocess.run(["bash", str(ROOT / "series.sh"), "list"], check=True, capture_output=True, text=True)
+    return [Path(line) for line in out.stdout.split()]
+
+
 def test_patched_local_display_destroys_windows_only_with_show_window(tmp_path: Path) -> None:
-    """C-2 on upstream's file at the pin with the whole series applied in order: every cv::destroyAllWindows() of
-    LocalDisplay is guarded by show_window_, in the destructor and in stop()."""
+    """C-2 on upstream's file at the pin with the whole series of the candidate (DA_CANDIDATE) applied in order:
+    every cv::destroyAllWindows() of LocalDisplay is guarded by show_window_, in the destructor and in stop()."""
     clone = _pin_tree()
     if clone is None:
         pytest.skip(f"VISIONPILOT_CLONE is not set to a clone holding {PIN}")
@@ -369,13 +375,68 @@ def test_patched_local_display_destroys_windows_only_with_show_window(tmp_path: 
     target.write_bytes(subprocess.run(["git", "-C", str(clone), "show", f"{PIN}:{LOCAL_DISPLAY}"],
                                       check=True, capture_output=True).stdout)
     subprocess.run(["git", "-C", str(tree), "init", "-q"], check=True)
-    for patch in sorted(PATCHES.glob("*.diff")):
+    for patch in _series():
         subprocess.run(["git", "-C", str(tree), "apply", f"--include={LOCAL_DISPLAY}", str(patch)], check=True)
     text = target.read_text()
     calls = [line.strip() for line in text.splitlines() if DESTROY in line]
     assert len(calls) == 2 and all(c.startswith(GUARDED_DESTROY) for c in calls), calls
     assert GUARDED_DESTROY in _block(text, "LocalDisplay::~LocalDisplay()")
     assert GUARDED_DESTROY in _block(text, "bool LocalDisplay::stop()")
+
+
+PR427_LINES = {  # the lines 0004 ports from upstream PR #427 (a38f227c), as they land in the patched tree
+    "VisionPilot/app/vision_pilot.cpp":
+        "const double cipo_v = has_cipo ? ego_v + r->cipo.velocity_ms : cfg.speed_limit;",
+    "VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp":
+        "double delta_v = ego_v - cipo_v; // cipo_v is the lead's speed",
+    "VisionPilot/modules/safety_guardian/fusion/src/longitudinal_fusion.cpp":
+        "const bool ad_only_allowed = !cfg_.ad_only_needs_as_track || as_track_;",
+    "VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp":
+        "bool  ad_only_needs_as_track = true;",
+    "VisionPilot/modules/config/src/vision_pilot_config.cpp":
+        'optional(kv, "fusion.ad_only_needs_as_track", "true"), "fusion.ad_only_needs_as_track");',
+}
+
+
+def test_the_candidates_whole_series_applies_at_the_pin(tmp_path: Path) -> None:
+    """Every file the candidate's series (DA_CANDIDATE) touches, taken from the pin, with every patch applied whole
+    and in order with git apply. The pin's series leaves the PR #427 lines out; the pr427 series has each of them,
+    and its longitudinal_planning.cpp is upstream's file at a38f227c byte for byte when the clone holds that commit."""
+    clone = _pin_tree()
+    if clone is None:
+        pytest.skip(f"VISIONPILOT_CLONE is not set to a clone holding {PIN}")
+    series = _series()
+    names = [p.name for p in series]
+    candidate = os.environ.get("DA_CANDIDATE", "pin")
+    assert names[:3] == ["0001-de4sdv-visualization-recorder.diff", "0002-de4sdv-score-interface.diff",
+                         "0003-de4sdv-headless-display.diff"]
+    assert names[3:] == ({"pin": [], "pr427": ["0004-de4sdv-port-of-upstream-pr427.diff"]}[candidate])
+    tree = tmp_path / "vp"
+    tree.mkdir()
+    subprocess.run(["git", "-C", str(tree), "init", "-q"], check=True)
+    touched = sorted({line.split(" b/", 1)[1] for p in series for line in p.read_text().splitlines()
+                      if line.startswith("diff --git ")} | set(PR427_LINES))
+    for path in touched:
+        shown = subprocess.run(["git", "-C", str(clone), "show", f"{PIN}:{path}"], capture_output=True)
+        if shown.returncode == 0:
+            (tree / path).parent.mkdir(parents=True, exist_ok=True)
+            (tree / path).write_bytes(shown.stdout)
+    for patch in series:
+        applied = subprocess.run(["git", "-C", str(tree), "apply", "--check", str(patch)], capture_output=True,
+                                 text=True)
+        assert applied.returncode == 0, (patch.name, applied.stderr)
+        subprocess.run(["git", "-C", str(tree), "apply", str(patch)], check=True)
+    for path, line in PR427_LINES.items():
+        present = line in (tree / path).read_text()
+        assert present == (candidate == "pr427"), (candidate, path)
+    if candidate == "pr427":
+        planner = "VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp"
+        upstream = subprocess.run(["git", "-C", str(clone), "rev-parse", "--verify", "-q", f"a38f227c:{planner}"],
+                                  capture_output=True, text=True)
+        if upstream.returncode == 0:
+            ours = subprocess.run(["git", "hash-object", str(tree / planner)], check=True, capture_output=True,
+                                  text=True)
+            assert ours.stdout.strip() == upstream.stdout.strip()
 
 
 def test_visualization_recorder_writes_the_sim_time_column(tmp_path: Path) -> None:
