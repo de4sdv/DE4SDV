@@ -5,6 +5,10 @@
 #
 #   guest_up.sh <out_dir>      exit 0 when both guests have booted; <out_dir>/guest_identity.txt
 #
+# Once both have booted it prints one GUEST_IMAGE line per guest (sdv_core, then ivi), read from the booted guest:
+# serial, product, build_id, fingerprint and vbmeta_digest (`unread` for a property with no answer). The session
+# reads them from the step's tail into session.json execution_environment.sdv_core_image and .ivi_image.
+#
 # The guests are created fresh: launch_two_vms.sh down, then up. `up` alone skips the creation when stopped groups
 # exist and then waits for adb without end, and a create is needed after any image change anyway (guest-prep-20261118
 # report, steps 2 and 4). Fresh groups are stock guests with an empty /data: the session's prepare step
@@ -68,6 +72,7 @@ wait_boot() {
   done
   return 1
 }
+IMAGES=()
 for s in "$CORE_ADB" "$IVI_ADB"; do
   wait_boot "$s" || { echo "FAIL $s did not boot"; exit 1; }
   adbt -s "$s" root > /dev/null 2>&1; sleep 2; adbt connect "$s" > /dev/null 2>&1; wait_boot "$s"
@@ -82,6 +87,17 @@ for s in "$CORE_ADB" "$IVI_ADB"; do
     echo "instance $(adbt -s "$s" shell getprop ro.boot.sdv.instance_name | tr -d '\r')"
     echo "getenforce $(adbt -s "$s" shell getenforce | tr -d '\r')"
   } | tee -a "$ID"
+  # the image this guest booted, from the guest itself, for the evidence record's executionEnvironmentIdentity:
+  # its product, build id, build fingerprint and the vbmeta digest of the images it verified at boot; printed with
+  # the step's last lines below (the session reads the tail); a property with no answer is `unread`, never empty
+  role=ivi; [ "$s" = "$CORE_ADB" ] && role=sdv_core
+  line="GUEST_IMAGE $role serial=$s"
+  for kp in product=ro.product.name build_id=ro.build.id fingerprint=ro.build.fingerprint \
+            vbmeta_digest=ro.boot.vbmeta.digest; do
+    v=$(adbt -s "$s" shell getprop "${kp#*=}" 2>/dev/null | tr -d '\r' | head -1 | tr -s ' \t' '__')
+    line="$line ${kp%%=*}=${v:-unread}"
+  done
+  IMAGES+=("$line")
 done
 APK=$(adbt -s "$IVI_ADB" shell pm path "$APP_PACKAGE" 2>/dev/null | tr -d '\r' | sed -n 's/^package://p' | head -1)
 if [ -n "$APK" ]; then
@@ -89,5 +105,6 @@ if [ -n "$APK" ]; then
 else
   echo "app $APP_PACKAGE not installed on the IVI guest (expected after a fresh create: the prepare step installs it)" | tee -a "$ID"
 fi
+for line in "${IMAGES[@]}"; do echo "$line" | tee -a "$ID"; done
 echo "GUEST_UP_DONE"
 echo "CROSVM_BEFORE_LAUNCH $CB"

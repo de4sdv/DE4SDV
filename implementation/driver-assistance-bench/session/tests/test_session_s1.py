@@ -361,8 +361,10 @@ def test_the_facts_fixtures_are_the_series_of_each_candidate() -> None:
 
 
 def _staged(facts: str) -> str:
-    return ("SCORE_CONFIG speed_limit=5.833 speed_limit_requested=5.833 hero_wait_s=400.0 rrd_on=true "
-            "conf_recorded=1 facts_diffs=%s" % facts)
+    # score_config_record.py's whole line (J4: the session also gates the values the model fixes)
+    return ("SCORE_CONFIG speed_limit=5.833 speed_limit_requested=5.833 hero_wait_s=400.0 source.mode=score "
+            "engine.provider=cuda model.precision=fp32 visualization_on=false rrd_on=true conf_sha256=" + "a" * 64 +
+            " conf_recorded=1 facts_diffs=%s" % facts)
 
 
 @pytest.mark.parametrize("candidate, facts, rc", [("pr427", FACTS_PR427, 0), ("pr427", FACTS_PIN, 5),

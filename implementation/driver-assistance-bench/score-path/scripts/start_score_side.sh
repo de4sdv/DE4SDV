@@ -28,7 +28,9 @@
 # 5. Records what the candidate and the adapter read: the staged vision_pilot.conf (speed_limit from DA_SPEED_LIMIT,
 #    the session's value of the run's setting, else upstream's) as <out>/vision_pilot.conf, and score_config.json with
 #    its values, hero_wait_s and the conf's sha256 beside the identity record's (score_config_record.py), printed as one
-#    SCORE_CONFIG line for the session.
+#    SCORE_CONFIG line for the session. Then score_platform_record.py records the platform the bundle's own facts
+#    name (score_lifecycle, score_communication, the SOME/IP gateway's commit) and this host's GPU (nvidia-smi) as
+#    <out>/score_platform.json, printed as one SCORE_PLATFORM and one SCORE_GPU line for the session.
 #
 # Exit status: 0 up; 2 usage; 3 staging failed; 4 already running; 5 the Launch Manager ended; 6 not up in time
 # (then stop_score_side.sh collects what there is).
@@ -154,5 +156,9 @@ ss_log "candidate record sha256 $RECORD_SHA256"
 cp "$DA_STAGE/vision_pilot/config/vision_pilot.conf" "$OUT/vision_pilot.conf"
 "$DA_PYTHON" "$HERE/score_config_record.py" "$DA_STAGE" "$OUT/score_config.json" "${DA_SPEED_LIMIT:-}" \
   || ss_log "score_config_record failed: no SCORE_CONFIG line"
+# the platform the start runs and the GPU it runs on, from the bundle's own facts and nvidia-smi on this host: one
+# SCORE_PLATFORM and one SCORE_GPU line for the session (session.json score_runs.<run>.score_platform, .score_gpu)
+"$DA_PYTHON" "$HERE/score_platform_record.py" "$DA_B2_BUNDLE" "$OUT/score_platform.json" \
+  || ss_log "score_platform_record failed: no SCORE_PLATFORM or SCORE_GPU line"
 [ "$MODE" = full ] && ss_log "the candidate reports running after its first pass with a result: start the world pacer within 420 s"
 exit 0
