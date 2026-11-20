@@ -883,11 +883,13 @@ def build_curve_site(xodr, map_name, props_available, prop_extents, rule="straig
     c = cands[0]
     pts, e, j = c["pts"], c["entryIndex"], c["tightTo"]
     entry = pts[e]
-    # the hero's start on the approach; under a named minimum, at the approach's far end (the most time at speed)
+    # the hero's start on the approach; under a named minimum, one sample inside the approach's far end (the most
+    # time at speed, and inside its road: on the real server, a start at a road's end, 54:6:62.56, had no waypoint
+    # of get_waypoint_xodr and its pose projected onto the junction's connector; F3 of 2026-11-20)
     if c["approachM"] >= START_BACK_014_M:
         back = START_BACK_014_M
     elif approach_min_m is not None:
-        back = c["approachM"] - 0.01
+        back = c["approachM"] - SAMPLE_M
     else:
         back = APPROACH_014_M
     sp, spiece, back = _start_on_chain(c["chain"], back, xodr, c["approachM"])

@@ -92,6 +92,15 @@ def test_the_rule_gives_road_10_lane_minus_5_with_at_least_90_m_of_approach(spec
     assert spec.start.split(":")[:2] == ["54", "6"]           # the approach's far end, on road 54 (not a junction)
 
 
+def test_the_start_lies_inside_its_road_where_the_server_has_a_waypoint(spec014):
+    # F3 on the real server (2026-11-20): at 54:6:62.56, road 54's own length, get_waypoint_xodr gave no waypoint and
+    # the hero's pose projected onto junction 582's connector 596; the start must lie strictly inside its road
+    spec, x = spec014
+    road, _lane, s = spec.start.split(":")
+    assert 0.0 < float(s) < x.roads[road].length
+    assert x.roads[road].junction == "-1"
+
+
 def test_the_curve_is_within_25_m_at_the_lane_centre_and_at_the_road_edge_and_turns_90_deg(spec014):
     spec, _x = spec014
     g = spec.geometry

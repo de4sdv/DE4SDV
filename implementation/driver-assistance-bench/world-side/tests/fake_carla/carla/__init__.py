@@ -294,6 +294,12 @@ REAL_READ = json.loads((_DATA / "town06_opt_g4_read.json").read_text(encoding="u
 REAL_STATIC_PROPS = tuple(REAL_READ["static_prop"])
 REPLAY_XODR = {"Town06_Opt": _DATA / REAL_READ["xodr_file"]}
 
+# A spawned prop's bounding box on the real server (F3 of lane I-W, G4, 2026-11-20, contact_probe.py): extent, location
+PROP_BOUNDING_BOXES = {
+    "static.prop.streetbarrier": ((0.6073904633522034, 0.18604671955108643, 0.534582257270813),
+                                  (0.0, 0.0, 0.5347943902015686)),
+}
+
 VEHICLE_SHAPES = {                      # extent (half sizes, m), wheelbase (m)
     "vehicle.lincoln.mkz": ((2.45, 1.05, 0.75), 2.85),
     "vehicle.tesla.model3": ((2.40, 1.05, 0.75), 2.87),
@@ -395,7 +401,8 @@ class Map:
         return out
 
     def get_waypoint_xodr(self, road_id: int, lane_id: int, s: float):
-        if road_id != self.road_id or lane_id not in self.lanes or not 0 <= s <= self.length:
+        # the real server gives no waypoint at a road's own length (F3, G4, 2026-11-20: 54:6:62.56, road 54's length)
+        if road_id != self.road_id or lane_id not in self.lanes or not 0 <= s < self.length:
             return None
         return Waypoint(self, lane_id, s)
 
@@ -449,7 +456,8 @@ class _ActorState:
             self.bounding_box = BoundingBox(Location(0.0, 0.0, ez), Vector3D(ex, ey, ez))
         else:
             self.wheelbase = 0.0
-            self.bounding_box = BoundingBox(Location(), Vector3D(0.05, 0.05, 0.05))
+            ext, loc = PROP_BOUNDING_BOXES.get(self.type_id, ((0.05, 0.05, 0.05), (0.0, 0.0, 0.0)))
+            self.bounding_box = BoundingBox(Location(*loc), Vector3D(*ext))
         self.next_sensor_time: float | None = None
         self.attachment_type = AttachmentType.Rigid
 

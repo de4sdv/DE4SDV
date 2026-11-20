@@ -310,7 +310,7 @@ lane, the minimum, the reason and the chosen curve in `site.benchReadings.siteSe
 |---|---|
 | Curve | road 10, lane -5 (outermost of three), 206 deg left |
 | Radius | 16.47 to 16.93 m at the lane centre, 19.82 m at the outer road edge |
-| Approach | 97.04 m (gentle-bend; 17.16 m straight); the hero starts at its far end, `54:6:62.56` |
+| Approach | 97.04 m (gentle-bend; 17.16 m straight); the hero starts one sample inside its far end, `54:6:62.063`, 96.55 m before the entry |
 | Guard pipes | 44 `static.prop.streetbarrier` at radius 19.25 m on the outer shoulder, none on a driving lane |
 | Target | 15.5 m along the tangent from the entry `10:-5:11.941`; its box 0.586 m from road 10's outer shoulder (lane -7), 2.80 m from the hero's path |
 | Turn-in | gap 10.71 m: TTC 1.29 s at 30 km/h (guidance at most 1.6 s), 1.75 s at 22 km/h |
@@ -328,6 +328,13 @@ by `set_transform`, with physics off: the pose after each tick is `SiteSpec.targ
 each world tick carries the script's phase (`target.motionPhase`). SC-DRIVING-013's target keeps
 `enable_constant_velocity`. The props spacing uses the server's own streetbarrier extent (the G4 read,
 `sites.PROP_EXTENTS_G4`).
+
+The world-only rehearsal on the G4 of 2026-11-20 (F3, `phase10/s1-int/I-W/f3/FACTS.md`) showed on the real server:
+a start at a road's own length (`54:6:62.56`) has no waypoint of `get_waypoint_xodr`, so the start lies one sample
+inside its road; the hero's collision sensor reports contact both with a target posed by `set_transform` and with one
+under `enable_constant_velocity`, and either pushes a hero held on its hand brake aside (about 20 m in the probe); a
+spawned streetbarrier's bounding box is 0.607 x 0.186 x 0.535 m (half sizes), the read's 0.598 x 0.214 m spaces the
+pipes. The fake replays the first and the last.
 
 The tests replay the real read (`tests/data/town06_opt_g4_read.json`, `tests/data/town06_opt_g4.xodr.xz`: the map's
 OpenDRIVE of sha256 a90b6131..., part of CARLA's map content): the fake's `Map.to_opendrive()` gives those bytes
