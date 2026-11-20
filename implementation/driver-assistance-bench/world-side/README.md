@@ -261,6 +261,41 @@ mv "$STAGE/AdditionalMaps" "$PACKS/AdditionalMaps" && rmdir "$STAGE"
 On 2026-11-19 this took 42 s on the G4 (`maps_install.log` in the facts folder). Then start CARLA again
 (`sim_setup.sh`) and look for `Town06_Opt` in `server_probe.txt`'s `available_maps` line.
 
+## The scenario sites (`sites.py`)
+
+SC-DRIVING-014 needs a tight curve and SC-DRIVING-015 a turn-off junction; neither is a straight road, so the
+survey cannot find them. `sites.resolve(world_map, site_id, setting)` reads the map's own OpenDRIVE
+(`world_map.to_opendrive()`) and returns a `SiteSpec`: the hero's start as `road:lane:s` (what `--start` takes), the
+target (its pose, and for SC-DRIVING-015 its path and speed script, `SiteSpec.target_motion().at(t)`), the props,
+the geometry read off the map, the checks that refuse a bad site, and the regulation's guidance values for
+`setting_record.json` (`SiteSpec.as_record()`). Every bench reading and proposal is a named constant in `sites.py`
+and is listed in the record.
+
+- `sc014-curve`: a non-junction curve whose lane-centre radius in the hero's lane is at most 25 m over at least
+  90 deg, at least 120 m of approach, guard pipes (the server's `static.prop.streetbarrier`: the server lists no
+  guard pipe) on the outer shoulder from 10 m before the curve to its end, and a stationary
+  `vehicle.tesla.model3` on the tangent extension of the lane centre at the curve entry, its body 0.5 m clear of
+  every road surface and of the pipes. A curve whose outer road edge is also within 25 m ranks first. The target's
+  body is checked as its bounding box (`target_box_check`): a box that touches or overlaps any road surface, or
+  comes within 0.5 m of one, is refused with the surface named; the record keeps the measured clearance
+  (`checks.targetClearanceFromRoadSurfaceM`; 0.586 m from road 10's outer shoulder on the real map).
+- `sc015-turnoff`: a junction lane with a straight and a right-turn connector and at least 200 m of straight
+  approach; the target starts 30 m ahead of the hero, accelerates at 1.5 m/s2 to 40 km/h, holds at least 4 s,
+  brakes at 2.0 m/s2 to 10 km/h at the junction and turns right at 10 km/h; the hero's lane goes straight on.
+
+The approach rule is `straight` by default (heading within 2 deg of the entry's, within 0.5 m of its tangent). On
+the real Town06_Opt (the G4 read of 2026-11-20) no tight curve has 120 m of straight approach: road 10 is preceded by
+a 16 deg bend of radius 27 m about 17 m before its entry, so `sc014-curve` refuses there and names the curves it
+found. `approach_rule="gentle-bend"` (heading within 20 deg, no lane-centre radius at or under 25 m) is a second
+reading, chosen only by name and recorded in the site record; it gives road 10's middle lane (lane-centre radius
+13.0 to 13.4 m, outer road edge 19.8 m, 267 m of approach). The outermost lane has 97 m under that reading.
+
+The tests replay the real read (`tests/data/town06_opt_g4_read.json`, `tests/data/town06_opt_g4.xodr.xz`: the map's
+OpenDRIVE of sha256 a90b6131..., part of CARLA's map content): the fake's `Map.to_opendrive()` gives those bytes
+for Town06_Opt and refuses for a map without a read, and its blueprint library lists the server's 83
+`static.prop.*` names, so an unknown prop is refused. The lane centres of `sites.Xodr` equal the server's own
+waypoints (`tests/data/town06_opt_g4_waypoints_sites.json`) within 1 cm (0.8 mm at most over 12,956 of the 12,958; two name a lane the section does not hold).
+
 ## Commands on the simulator host (the first closed loop)
 
 Python: the G4's CARLA 1.0 venv (the package's cp310 wheel). `$WS` is this folder, `$R` the session's run root. The
