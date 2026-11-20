@@ -30,6 +30,23 @@ rrd_on  = false
 rrd_log = visionpilot.rrd
 """
 
+# The two facts files the S-CORE start's platform record reads (score_platform_record.py), in the lines the S-CORE
+# build wrote on 2026-11-20 (build_score_bench.sh: `bazel mod explain` into score-mod-explain.txt, and sources.txt).
+# Bazel's tree lines end with a space; it is written as an escape here so that no source line ends in one.
+FACTS_SCORE_MOD_EXPLAIN = "<root> (score_feo@0.0.0)\n" + "".join("\u251c\u2500\u2500\u2500" + m + " \n" for m in (
+    "aspect_rules_lint@2.5.0", "platforms@1.1.0", "score_communication@0.6.0", "score_lifecycle@0.10.0")) + \
+    "\u2514\u2500\u2500\u2500score_tooling@3.0.1 \n\n"
+FACTS_SOURCES = (
+    "VisionPilot 014e0e7a56ee8e597c2cab8175233f74edd9b856 with cee80df29819b292b67ab11990509243155d950939fff128c03762f29b"
+    "aac0e0  0001-de4sdv-visualization-recorder.diff \n"
+    "FEO 313b3d849c17881d3a11b6bf62aa2afab6565ef0; gateway d9eac670b7534352749da3d30f52aebf5129f168; CARLA "
+    "14ac3b1a502da45a44506cb2ed82ab800f1baf4c; ONNX Runtime 1.26.0 (nuget sha256 "
+    "cf7943f58b9360fe1448c4baf40ac12ce4175978ecd3fe6f21a4c00976f63a59)\n"
+    "repository unknown\n")
+# nvidia-smi's answer on the L4 to the record's query (name,driver_version; the build's checks/gpu.txt of 2026-11-20
+# also lists memory.total: "NVIDIA L4, 580.178.04, 23034 MiB")
+SMI_L4_ANSWER = "NVIDIA L4, 580.178.04"
+
 
 def build_record_driver(out_dir: Path) -> Path:
     compiler = shutil.which("g++")
@@ -71,6 +88,12 @@ def make_bundle(root: Path, record_driver: Path, extra_bins: dict[str, str] | No
     patches = BENCH / "score-interface" / "patches"
     for p in sorted(patches.glob("*.diff")) + [patches / "SHA256SUMS"]:
         shutil.copy(p, bundle / "facts" / p.name)
+    (bundle / "facts" / "score-mod-explain.txt").write_text(FACTS_SCORE_MOD_EXPLAIN)
+    (bundle / "facts" / "sources.txt").write_text(FACTS_SOURCES)
+    # the S-CORE host's nvidia-smi, as the L4 answers the platform record's query (never this host's own)
+    smi = root / "nvidia-smi"
+    smi.write_text("#!/bin/bash\necho '%s'\n" % SMI_L4_ANSWER)
+    smi.chmod(0o755)
     # config/launch_manager/: each .bin beside the JSON it was converted from (build_score_bench.sh's bundle step)
     launch = bundle / "config" / "launch_manager"
     (launch / "launch_manager_config.bin").write_bytes(b"synthetic flatbuffer full")
@@ -94,7 +117,8 @@ def make_bundle(root: Path, record_driver: Path, extra_bins: dict[str, str] | No
     stage = root / "de4sdv-da-bench"
     env = {**os.environ, "DA_STAGE": str(stage), "DA_B2_BUNDLE": str(bundle), "DA_SUDO": "", "DA_TEST_SERVE": "1",
            "DA_TEST_LDCONFIG_DIR": str(ldconf), "DA_TEST_SYSTEM_ROOT": str(root / "nosystem"),
-           "DA_START_TIMEOUT_S": "30", "DA_STOP_TIMEOUT_S": "15", "DA_CAMERA_CALIBRATION_DIR": str(calibration)}
+           "DA_START_TIMEOUT_S": "30", "DA_STOP_TIMEOUT_S": "15", "DA_CAMERA_CALIBRATION_DIR": str(calibration),
+           "DA_NVIDIA_SMI": str(smi)}
     for key in ("FAKE_LM_IGNORE_TERM", "FAKE_LM_EXIT_AFTER_S", "FAKE_LM_SUPERVISE",
                 "DA_SPEED_LIMIT"):
         env.pop(key, None)

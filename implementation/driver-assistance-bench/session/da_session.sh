@@ -1091,6 +1091,7 @@ write_record() {
   CANDIDATE="$CANDIDATE" CANDIDATE_BUNDLE="$CANDIDATE_BUNDLE" S1_DONE_LIST="$S1_DONE" \
   S1_RUNS_SRC="$S1_RUNS_SRC" S1_RUNS_SHA="$S1_RUNS_SHA" S1_ROWS="$s1rows" \
   ACK_GAINS="$ACK_GAINS" REHEARSAL="$REHEARSAL" RUNS_ARG="$RUNS_ARG" RUNS_ARG_SHA="${RUNS_ARG_SHA:-}" \
+  ROLES_PLANNED="${ROLES[*]}" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os, sys
 e = os.environ
@@ -1139,6 +1140,13 @@ for run, d in score_runs.items():
         d["candidate_rrd"] = json.load(open(os.path.join(e["IN"], "score", "out", "score_" + run, "candidate_rrd.json")))
     except (OSError, ValueError):
         d["candidate_rrd"] = None
+# the evidence record's fields no other step writes (evidence_fields.py): the configuration, the recorder's delay, the
+# S-CORE platform and GPU of every start (parsed in each run's entry here), the guest images; never fatal to the record
+try:
+    from evidence_fields import session_fields
+    evidence = session_fields(e["IN"], score_runs, e["KIND"], "guest" in e["ROLES_PLANNED"].split())
+except Exception as exc:   # noqa: BLE001 (session.json must be written whatever this read finds)
+    evidence = {"evidence_fields_error": repr(exc)}
 excluded = {}
 for role in e["ROLES_ALL"].split():
     try:
@@ -1275,7 +1283,7 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
                      "reason": e["P10_2_REASON"], "conditional_on_permissive_ivi": e["PERM"] == "1",
                      "chase_view_complete": {"1": True, "0": False}.get(e["CHASE_COMPLETE"]), **camcal}
                     if e["KIND"] == "p10-2" else None,
-           "s1": s1},
+           "s1": s1, **evidence},
           open(os.path.join(e["IN"], "session.json"), "w"), indent=1)
 PY
 }
@@ -1325,6 +1333,27 @@ fail() {
   [ -n "$ENDED_BY" ] || ENDED_BY="exit $FINAL_RC: $*"
   log "$*"; exit "$FINAL_RC"
 }
+# ─── the evidence record's fields no other step writes (session/evidence_fields.py; lane V-b of the S1 integration):
+# a value the session cannot read is written absent with its reason, and the session goes on. Not steps of SEQUENCE
+evidence_config() {   # the configured product, its receipt and the model's recorder delay, from the committed files at
+  # the session's own commit (session.json configuration_identity, configuration_receipt_sha256, the delay's sentence)
+  local line
+  line=$(python3 "$HERE/evidence_fields.py" config "$BENCH_TREE" "$BENCH_COMMIT" "$IN/evidence_config.json" 2>&1 | tail -1)
+  log "evidence record: ${line:-no answer from evidence_fields.py}"
+}
+score_facts() {   # score_facts <label>: the S-CORE start's SCORE_PLATFORM and SCORE_GPU lines (its step's tail in ROUT)
+  # into score_runs.<label>; session.json takes the session's score_platform and score_gpu from every start's
+  local w=$1 p g
+  p=$(grep -o 'SCORE_PLATFORM {.*}' <<< "$ROUT" | tail -1); g=$(grep -o 'SCORE_GPU {.*}' <<< "$ROUT" | tail -1)
+  [ -n "$p" ] && srun "$w" score_platform "${p#SCORE_PLATFORM }"
+  [ -n "$g" ] && srun "$w" score_gpu "${g#SCORE_GPU }"
+  log "S-CORE platform of $w: $(python3 "$HERE/evidence_fields.py" line "${p#SCORE_PLATFORM }" "${g#SCORE_GPU }" 2>&1 | tail -1)"
+}
+guest_images() {   # guest_up's GUEST_IMAGE lines (the booted guests' images) into guest_images.txt: session.json
+  # execution_environment.sdv_core_image and .ivi_image
+  grep -o 'GUEST_IMAGE .*' "$IN/guest.steps.out" > "$IN/guest_images.txt" 2>/dev/null
+  log "guest images: $(tr '\n' ';' < "$IN/guest_images.txt" | sed 's/;$//')"
+}
 for r in "${ROLES[@]}"; do
   [ "$r" = guest ] && [ "$OWNER_OK_GUEST" != 1 ] && \
     fail 2 "refused: the protected guest host $(var guest VM) starts only with the owner's OK (--owner-ok-guest-host)"
@@ -1366,6 +1395,7 @@ fi
 tar -czf "$KIT" -C "$STAGE" bench && rm -rf "$STAGE"
 KIT_SHA=$(sha256sum "$KIT" | cut -d' ' -f1)
 log "kit $KIT_SHA from $BENCH_TREE ($KIT_FROM, commit $BENCH_COMMIT, worktree changes in the bench folder: $WT_CHANGES)"
+evidence_config
 NEED=(session/remote/host_step.sh session/remote/safety_net.sh)
 GUEST_NEED=("$ENTRY_GUEST_UP" "$ENTRY_GUEST_PREPARE" "$ENTRY_GUEST_APP_RESTART" "$ENTRY_GUEST_OFFER_CHECK"
             "$ENTRY_GUEST_CLOCK" "$ENTRY_GUEST_CAPTURE" "$ENTRY_VXLAN" session/remote/guest_stop.sh)
@@ -1664,6 +1694,7 @@ guest_bring_up() {   # fresh guests, the app and its ACLs, the VXLAN at both end
        log "crosvm processes on the guest host before guest_up: unknown (no count in guest_up's tail): S1 not checked this run" ;;
     *) log "S1 VOID: $CROSVM_BEFORE crosvm process(es) on the guest host before guest_up: a guest ran before this session started one; tell the lead before the next session, and do not rely on the stop without a crosvm count" ;;
   esac
+  guest_images
   rstep guest guest_prepare "$T_GUEST_UP" "$GENV" bash "$ENTRY_GUEST_PREPARE" "$(od guest_prepare)"
   local gip sip; ipof guest gip; ipof score sip
   log "VXLAN between the guest host $gip and the S-CORE host $sip (both from gcloud)"
@@ -1821,6 +1852,7 @@ world_run() {   # world_run <label> <scenario> <setting> <recorded 0|1> <another
     "DA_SPEED_LIMIT=${RUN_SPEED[$w]}" bash "$ENTRY_SCORE_START" "$(od "score_$w")" "$CARLA_HOST"
   local cfg; cfg=$(grep -o 'SCORE_CONFIG .*' <<< "$ROUT" | tail -1)
   SCORE_UP=$(od "score_$w")
+  score_facts "$w"
   score_config_check "$w" "$cfg"
   if [ "$HAS_GUEST" = 1 ] && [ "$rec" = 1 ]; then offer_checks "$w"; window_open "$w"; fi
   # the candidate gives up on the world after its 420 s ready time-out: a later go reads as a supervision failure

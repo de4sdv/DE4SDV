@@ -63,6 +63,10 @@ $FAKE_DIR/calls.log as one JSON list of its arguments. Scenario knobs (environme
   FAKE_REMOTE_FILES  a folder: `dd if=$HOME/da-kit/<id>/<path> bs=1M skip=<k> count=<c> status=none` of any <path> but
                      out.tgz streams those bytes of <folder>/<path> (fetch_chase.sh's ranges of a chase video);
                      FAKE_SLOW_FETCH slows each such read as it does a range of out.tgz
+  FAKE_SCORE_GPU     the answer of the S-CORE host's nvidia-smi to the platform record's query (default the L4's,
+                     "NVIDIA L4, 580.178.04"; "none": no nvidia-smi). Every S-CORE start's tail holds the SCORE_PLATFORM
+                     and SCORE_GPU lines that the real score_platform_record.py prints for it
+  FAKE_GUEST_IMAGES  none: guest_up's tail holds no GUEST_IMAGE line (default: one per guest, guest_up.sh's format)
 """
 import fcntl
 import hashlib
@@ -99,6 +103,44 @@ def receipts_out(c):
             f.write("pid %s 2026-11-19T10:00:00.000Z\n" % os.environ.get("FAKE_APP_PID", "4242"))
         args.append(os.path.join(t, "restart.txt"))
     return subprocess.run(args, capture_output=True, text=True).stdout
+
+
+def score_platform_tail():
+    """The S-CORE start's SCORE_PLATFORM and SCORE_GPU lines, made by the real producer (score-path/scripts/
+    score_platform_record.py) from a bundle whose facts hold the S-CORE build's real lines (score-path/tests/
+    fake_bundle.py) and an nvidia-smi that answers FAKE_SCORE_GPU (default the L4's answer; "none": not found)."""
+    bench = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")
+    sys.path.insert(0, os.path.join(bench, "score-path", "scripts"))
+    sys.path.insert(0, os.path.join(bench, "score-path", "tests"))
+    import fake_bundle
+    import score_platform_record as spr
+    facts = os.path.join(D, "bundle", "facts")
+    os.makedirs(facts, exist_ok=True)
+    for name, text in (("score-mod-explain.txt", fake_bundle.FACTS_SCORE_MOD_EXPLAIN),
+                       ("sources.txt", fake_bundle.FACTS_SOURCES)):
+        with open(os.path.join(facts, name), "w") as f:
+            f.write(text)
+    answer = os.environ.get("FAKE_SCORE_GPU", fake_bundle.SMI_L4_ANSWER)
+    smi = os.path.join(D, "nvidia-smi")
+    if answer == "none":
+        smi = os.path.join(D, "no", "nvidia-smi")
+    else:
+        with open(smi, "w") as f:
+            f.write("#!/bin/bash\necho '%s'\n" % answer)
+        os.chmod(smi, 0o755)
+    from pathlib import Path
+    return "".join(x + "\n" for x in spr.lines(spr.platform_facts(Path(facts)), spr.gpu_facts(smi)))
+
+
+def guest_images_tail():
+    """guest_up.sh's GUEST_IMAGE lines (its format: role, then serial, product, build_id, fingerprint, vbmeta_digest);
+    FAKE_GUEST_IMAGES=none: none printed."""
+    if os.environ.get("FAKE_GUEST_IMAGES") == "none":
+        return ""
+    rows = (("sdv_core", "0.0.0.0:6521", "sdv_core_cf", "1f"), ("ivi", "0.0.0.0:6522", "sdv_ivi_cf", "2e"))
+    return "".join("GUEST_IMAGE %s serial=%s product=%s build_id=BP4A.251205.006 fingerprint=generic/%s/vsoc_x86_64:17/"
+                   "BP4A.251205.006/eng.fake.20261117:eng/test-keys vbmeta_digest=%s\n" % (r, s, p, p, h * 32)
+                   for r, s, p, h in rows)
 
 
 VMS = {  # name: (project, accelerator, internal IP)
@@ -392,6 +434,10 @@ if words[:2] == ["compute", "ssh"]:
         key = "%s:%s" % (n, step)
         if action == "start":
             st.setdefault("started", {})[key] = time.time()
+            if "start_score_side.sh" in c:   # the S-CORE start's two evidence lines, by the real producer
+                st.setdefault("tails", {})[key] = score_platform_tail()
+            if "guest_up.sh" in c:           # guest_up's GUEST_IMAGE lines, in guest_up.sh's format
+                st.setdefault("tails", {})[key] = guest_images_tail()
             if " receipts " in c:
                 st.setdefault("tails", {})[key] = receipts_out(c)
             if done_line:
