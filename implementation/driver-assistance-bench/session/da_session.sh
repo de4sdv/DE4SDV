@@ -1770,6 +1770,7 @@ score_config_check() {   # score_config_check <label> <the start's SCORE_CONFIG 
     STEP_FAIL="score_start_$w"
     abort 5 "the staged vision_pilot.conf of $w does not carry the run's speed limit ${RUN_SPEED[$w]} m/s, or the identity record does not hash it: $cfg"
   fi
+  score_conf_fixed_check "$w" "$cfg"
   # the candidate (D4): the staged facts (the source difference the identity recorder hashes) list patch 0004 for
   # pr427, and never for pin, so a run never reads as the other candidate's
   case "$CANDIDATE:+$facts+" in
@@ -1780,6 +1781,23 @@ score_config_check() {   # score_config_check <label> <the start's SCORE_CONFIG 
     STEP_FAIL="score_start_$w"; abort 5 "the staged facts of $w list patch 0004, but --candidate pin: facts_diffs $facts"
   fi
   log "speed_limit ${RUN_SPEED[$w]} m/s for $w staged, and the identity record hashes that vision_pilot.conf: $cfg"
+}
+# the values of vision_pilot.conf the model fixes for the candidate (J4 of the closure review of 44a4be29): engine
+# .provider, model.precision, visualization_on and rrd_on from the configuration sentence of VisionPilotSCOREApplication
+# (driver_assistance_physical_software_realization.sysml:541-544), source.mode the value the kit stages for the bench
+# (score-path/scripts/stage_score_side.py:67; score-interface/README.md:27: the S-CORE module is chosen by it)
+CONF_FIXED="source.mode=score engine.provider=cuda model.precision=fp32 visualization_on=false rrd_on=true"
+score_conf_fixed_check() {   # score_conf_fixed_check <label> <the SCORE_CONFIG words>: refused as a wrong speed_limit is
+  local w=$1 cfg=$2 kv k want got x bad=""
+  for kv in $CONF_FIXED; do
+    k=${kv%%=*}; want=${kv#*=}; got=none
+    for x in $cfg; do [ "${x%%=*}" = "$k" ] && got=${x#*=}; done
+    [ "$got" = "$want" ] || bad="$bad; $k $got, the model fixes $want"
+  done
+  if [ -n "$bad" ]; then
+    STEP_FAIL="score_start_$w"
+    abort 5 "the staged vision_pilot.conf of $w does not carry the values the model fixes: ${bad#; } ($cfg)"
+  fi
 }
 disk_check() {   # p10-2's first step: room on the S-CORE host for every run's Rerun record, which stays there (F3)
   ALLOW_RC=9 rstep score disk_check "$T_STEP" bash "$ENTRY_SCORE_DISK" "$(od disk_check)" "$NEED_DISK" "$NEED_DISK_STAGE"

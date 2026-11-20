@@ -106,8 +106,12 @@ Each run's facts go to `session.json` `score_runs.<run>` (`calib_steer`, `run1`,
 - **What was staged.** The start prints one `SCORE_CONFIG` line: the staged `vision_pilot.conf` values, `hero_wait_s`
   of `adapter.json`, the conf's sha256 and whether the identity record hashes that same file. The session records
   it in `staged`, and ends the session before the go (exit 5, `failed_step` `score_start_<run>`) when the value is
-  not the run's or the identity record does not hash the staged conf. The fetched `score_<run>/vision_pilot.conf`
-  and `score_<run>/score_config.json` carry the same.
+  not the run's or the identity record does not hash the staged conf. It ends it the same way when any value the
+  model fixes is another or missing (`score_conf_fixed_check`, J4 of the closure review of 44a4be29): `engine.provider`
+  `cuda`, `model.precision` `fp32`, `visualization_on` `false` and `rrd_on` `true` (the configuration sentence of
+  VisionPilotSCOREApplication, `driver_assistance_physical_software_realization.sysml:541-544`), and `source.mode`
+  `score`, the value the kit stages (`score-path/scripts/stage_score_side.py:67`). The fetched
+  `score_<run>/vision_pilot.conf` and `score_<run>/score_config.json` carry the same.
 - **The candidate's Rerun record.** `rrd_on = true` is the model's (PSR: the evaluators' record of the warnings),
   so it stays on. calib_steer's `visionpilot.rrd` of 20261119T174606Z was 4,729,613,610 B, and the S-CORE host's
   `out.tgz` took from 18:13 to about 18:32 to copy. So the record stays on the S-CORE host as the evaluators'
