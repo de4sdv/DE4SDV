@@ -101,8 +101,7 @@
                     }
                 },
                 "depends_on": [
-                    "identity_recorder",
-                    "gatewayd"
+                    "identity_recorder"
                 ]
             },
             "deployment_config": {
@@ -158,6 +157,19 @@
                 "gatewayd"
             ],
             "transition_timeout_ms": 480000,
+            "recovery_action": {
+                "switch_run_target": {
+                    "run_target": "fallback_run_target"
+                }
+            }
+        },
+        "path_stopped": {
+            "description": "The stop run of REQ-DRIVING-038 and -043 (S1-BUILD-PLAN.md section 4): the S-CORE path of the candidate stopped while the candidate keeps running. Only the identity recorder and the candidate's process stay; the actuation adapter, gatewayd and someipd end, so no driving command reaches the vehicle and no warning request leaves the host. score-path/scripts/path_stop.sh activates it through LmControl.",
+            "depends_on": [
+                "identity_recorder",
+                "vision_pilot"
+            ],
+            "transition_timeout_ms": 30000,
             "recovery_action": {
                 "switch_run_target": {
                     "run_target": "fallback_run_target"

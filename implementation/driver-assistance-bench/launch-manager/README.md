@@ -46,13 +46,14 @@ SIGKILL 10 s later.
 | `identity_recorder` | `Reporting` | nothing: first | it calls `report_running`, once the record is written and offered |
 | `someipd` | `Native` | nothing | its process runs |
 | `gatewayd` | `Native` | `someipd` | its process runs |
-| `vision_pilot` | `Reporting_And_Supervised` | `identity_recorder`, `gatewayd` | its first pass with a result (the module calls `report_running` then) |
+| `vision_pilot` | `Reporting_And_Supervised` | `identity_recorder` | its first pass with a result (the module calls `report_running` then) |
 | `actuation_adapter` | `Reporting_And_Supervised` | `identity_recorder` | it has subscribed to the driving command |
 
 | Run target | Components |
 |---|---|
 | `supervised_path` (initial) | all five |
 | `fallback_run_target` (the recovery target) | `identity_recorder`, `someipd`, `gatewayd` |
+| `path_stopped` (the stop run's target) | `identity_recorder`, `vision_pilot` |
 
 The start order is the model's: the identity recorder first, so the candidate record exists before the candidate's
 process starts; then the candidate's process and the actuation adapter. The adapter does not wait for the candidate:
@@ -67,6 +68,29 @@ Every component runs as root (`sandbox.uid` 0), as Lifecycle's own integration t
 the Launch Manager itself must run as root. Because all the processes share one uid, each mw::com manifest of the
 host sets its own `applicationID`: gatewayd 3410, someipd 3411, the candidate 3412, the adapter 3413, the identity
 recorder 3414 (that last one is an assumption for its manifest). A uid per component is open.
+
+## The stop run's target `path_stopped`
+
+The stop run of REQ-DRIVING-038 and -043 (the S1 build plan, section 4) stops the S-CORE path while the candidate
+keeps running: after the stop no driving command may reach the vehicle and no warning request may reach the IVI.
+`path_stopped` holds the identity recorder and the candidate's process; switching to it ends the actuation adapter,
+gatewayd and someipd (SIGTERM, then SIGKILL after their `shutdown_timeout_ms`), and keeps the candidate, which is not
+restarted and stays supervised.
+
+- Lifecycle v0.10.0 runs, for a run target, every node reachable from it through `depends_on`, component
+  dependencies included (`process_group_manager/details/transition.hpp:397-445`, `graph.cpp:57-63` at 2afae116). So
+  the candidate's process depends on the recorder only: an edge to gatewayd would keep the warning path running in
+  `path_stopped`. The warning path is still up before the first warning request: the start returns only once
+  someipd and gatewayd run, the session writes the go only after it, and the first request needs an image after the
+  go.
+- The switch comes through the daemon's LmControl service. Lifecycle ships the client library
+  (`//score/launch_manager:control_cc`) but no command-line client, so `control/` holds a small one,
+  `lm_control_client`, built into the bundle. It asks with force (the daemon refuses a queued request,
+  `control_provider.hpp:131-138`), waits for the activation result of a state manager request naming the target, and
+  prints one JSON line. Its mw::com configuration, `config/mw_com_config_lm_control_client.json`, is the proxy side
+  of the daemon's instance (`StateManager/LaunchManager/Instance`, application id 3418).
+- `../score-path/scripts/path_stop.sh` runs it on the S-CORE host at go + 12 s and prints the stop record of the
+  shared contract.
 
 ## The alive supervision values
 

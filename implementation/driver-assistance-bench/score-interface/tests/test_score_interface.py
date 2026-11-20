@@ -202,9 +202,18 @@ def _new_file_text(lines: list[str]) -> str:
     return "\n".join(added) + "\n"
 
 
+MODULE_PATCHES = ("0002-de4sdv-score-interface.diff", "0005-de4sdv-warm-start.diff")
+
+
 def test_patch_new_files_equal_module_tree() -> None:
-    files = _patch_files((PATCHES / "0002-de4sdv-score-interface.diff").read_text())
-    new = {p[len(PATCH_MODULE_PREFIX):]: lines for p, lines in files.items() if p.startswith(PATCH_MODULE_PREFIX)}
+    """module/ is the module's new files: those of 0002 and warm_start.hpp of 0005, each byte for byte."""
+    new: dict[str, list[str]] = {}
+    for patch in MODULE_PATCHES:
+        files = _patch_files((PATCHES / patch).read_text())
+        for p, lines in files.items():
+            if p.startswith(PATCH_MODULE_PREFIX) and "new file mode" in lines[0]:
+                assert p[len(PATCH_MODULE_PREFIX):] not in new, p
+                new[p[len(PATCH_MODULE_PREFIX):]] = lines
     tree = {p.relative_to(MODULE).as_posix() for p in MODULE.rglob("*") if p.is_file()}
     assert set(new) == tree
     for relative, lines in new.items():
@@ -217,7 +226,7 @@ def test_patch_shas() -> None:
         digest, name = line.split()
         sums[name] = digest
     assert set(sums) == {"0001-de4sdv-visualization-recorder.diff", "0002-de4sdv-score-interface.diff",
-                         "0003-de4sdv-headless-display.diff"}
+                         "0003-de4sdv-headless-display.diff", "0005-de4sdv-warm-start.diff"}
     for name, digest in sums.items():
         assert hashlib.sha256((PATCHES / name).read_bytes()).hexdigest() == digest, name
     # 0001 is no longer the VIS8 patch byte for byte: B3 added the sim_time_s column (test below)
@@ -410,7 +419,8 @@ def test_the_candidates_whole_series_applies_at_the_pin(tmp_path: Path) -> None:
     candidate = os.environ.get("DA_CANDIDATE", "pin")
     assert names[:3] == ["0001-de4sdv-visualization-recorder.diff", "0002-de4sdv-score-interface.diff",
                          "0003-de4sdv-headless-display.diff"]
-    assert names[3:] == ({"pin": [], "pr427": ["0004-de4sdv-port-of-upstream-pr427.diff"]}[candidate])
+    assert names[3:] == ({"pin": ["0005-de4sdv-warm-start.diff"],
+                          "pr427": ["0004-de4sdv-port-of-upstream-pr427.diff", "0005-de4sdv-warm-start.diff"]}[candidate])
     tree = tmp_path / "vp"
     tree.mkdir()
     subprocess.run(["git", "-C", str(tree), "init", "-q"], check=True)
@@ -526,3 +536,104 @@ def test_upstream_cpp_additions_are_guarded() -> None:
         "enum class SourceMode { Ros2 = 0, V4l2 = 1, Video = 2, Score = 3 /* DE4SDV S-CORE interface */ };",
         'case SourceMode::Score: return "score";  // DE4SDV S-CORE interface',
     ]
+
+
+# ── the warm start (0005, D-S1-1 of the S1 build plan) ──────────────────────────────────────────────────────────
+
+WARM = "0005-de4sdv-warm-start.diff"
+VISION_PILOT = "VisionPilot/app/vision_pilot.cpp"
+START_CALL = "de4sdv::score_interface::ScoreInterface::Start()"
+
+
+def test_warm_start(tmp_path: Path) -> None:
+    """warm_start_test.cpp: on a virtual clock, a fake first inference of 724 ms gives no dropped image after the go
+    when the module starts after the warm start; 0002's order drops images (attempt 3: 12 and 11 in the first 1.3 s)."""
+    binary = tmp_path / "warm_start_test"
+    subprocess.run([_compiler(), *FLAGS, f"-I{MODULE / 'include'}", f"-I{INTERFACES}", f"-I{HERE}",
+                    str(HERE / "warm_start_test.cpp"), str(MODULE / "src" / "core.cpp"), "-o", str(binary)], check=True)
+    result = subprocess.run([str(binary)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "warm_start_test: all passed" in result.stdout
+    assert "warm start: 0 of 100 images dropped" in result.stdout
+
+
+def test_0005_touches_the_loop_and_adds_the_warm_start_header_only() -> None:
+    """0005 changes vision_pilot.cpp and adds warm_start.hpp, nothing else, and the lines it removes are exactly
+    0002's start of the module in the S-CORE branch (the guard of every added line: the test below, on the patched
+    file, and check_patch.sh's preprocessed comparison)."""
+    files = _patch_files((PATCHES / WARM).read_text())
+    assert sorted(files) == [VISION_PILOT, PATCH_MODULE_PREFIX + "include/de4sdv/score_interface/warm_start.hpp"]
+    lines = files[VISION_PILOT]
+    removed = [line[1:].strip() for line in lines if line.startswith("-") and not line.startswith("---")]
+    assert removed == [
+        "score_interface = de4sdv::score_interface::ScoreInterface::Start();",
+        "if (!score_interface || !de4sdv::score_interface::InstallStopHandler()) return 1;",
+        "camera_interface = score_interface->camera();",
+        "vehicle_interface = score_interface->vehicle();",
+    ]
+
+
+def _guarded_lines(text: str) -> set[int]:
+    """The 0-based numbers of the lines inside #if ENABLE_SCORE_INTERFACE ... #endif (nested #if counted)."""
+    guarded: set[int] = set()
+    stack: list[bool] = []
+    for i, line in enumerate(text.splitlines()):
+        t = line.strip()
+        if t.startswith("#if"):
+            stack.append(t == "#if ENABLE_SCORE_INTERFACE")
+            continue
+        if t.startswith("#endif"):
+            stack.pop()
+            continue
+        if any(stack):
+            guarded.add(i)
+    return guarded
+
+
+def _patched_vision_pilot(tmp_path: Path) -> str:
+    clone = _pin_tree()
+    if clone is None:
+        pytest.skip(f"VISIONPILOT_CLONE is not set to a clone holding {PIN}")
+    tree = tmp_path / "vp"
+    target = tree / VISION_PILOT
+    target.parent.mkdir(parents=True)
+    target.write_bytes(subprocess.run(["git", "-C", str(clone), "show", f"{PIN}:{VISION_PILOT}"],
+                                      check=True, capture_output=True).stdout)
+    subprocess.run(["git", "-C", str(tree), "init", "-q"], check=True)
+    for patch in _series():
+        subprocess.run(["git", "-C", str(tree), "apply", f"--include={VISION_PILOT}", str(patch)], check=True)
+    return target.read_text()
+
+
+def test_patched_loop_starts_the_module_after_the_warm_inference(tmp_path: Path) -> None:
+    """On upstream's vision_pilot.cpp at the pin with the candidate's whole series (DA_CANDIDATE): the module starts
+    once, inside WarmStart, after the pipeline is built and before the frame source is checked; the warm start runs the
+    pipeline on the dummy image and resets it; the loop's first image still goes through the reset pipeline."""
+    text = _patched_vision_pilot(tmp_path)
+    assert text.count(START_CALL) == 1
+    pipeline = text.index("vm::InferencePipeline pipeline(engine, cfg.inference);")
+    warm = text.index("score_interface = de4sdv::score_interface::WarmStart(")
+    start = text.index(START_CALL)
+    opened = text.index("if (!camera_interface || !camera_interface->is_device_open())")
+    loop = text.index("while (true)")
+    assert pipeline < warm < start < opened < loop
+    call = text[warm:text.index("&warm);", warm)]
+    assert "pipeline.process(warm_image, warm_image).has_value()" in call
+    assert "pipeline.reset()" in call
+    # the interfaces come from the started module, after it
+    assert start < text.index("camera_interface = score_interface->camera();") < opened
+    assert start < text.index("vehicle_interface = score_interface->vehicle();") < opened
+    # the S-CORE branch beside upstream's sources starts nothing any more
+    branch = _block(text, "if (cfg.source.mode == SourceMode::Score)")
+    assert "Start(" not in branch and "camera_interface" not in branch
+    # the warm block is chosen by the source mode, and every line 0005 adds lies under ENABLE_SCORE_INTERFACE
+    guard = text.rindex("#if ENABLE_SCORE_INTERFACE", 0, warm)
+    assert "#endif" not in text[guard:warm]
+    assert "if (cfg.source.mode == SourceMode::Score)" in text[guard:warm]
+    guarded = _guarded_lines(text)
+    numbered = text.splitlines()
+    added = {line[1:].strip() for line in _patch_files((PATCHES / WARM).read_text())[VISION_PILOT]
+             if line.startswith("+") and not line.startswith("+++")}
+    for wanted in added - {"", "{", "}", "#if ENABLE_SCORE_INTERFACE", "#endif"}:
+        where = [i for i, line in enumerate(numbered) if line.strip() == wanted]
+        assert where and all(i in guarded for i in where), wanted

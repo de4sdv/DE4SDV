@@ -160,7 +160,7 @@ def test_the_record_on_disk_matches_hashlib(tmp_path: Path, driver: Path) -> Non
     vp = next(c for c in record["launch_settings"]["components"] if c["component"] == "vision_pilot")
     assert vp["working_dir"] == str(paths["stage"] / "vision_pilot")
     assert vp["application_type"] == "Reporting_And_Supervised"
-    assert vp["depends_on"] == ["identity_recorder", "gatewayd"]
+    assert vp["depends_on"] == ["identity_recorder"]  # the stop run's target holds it without the warning path
     rec = next(c for c in record["launch_settings"]["components"] if c["component"] == "identity_recorder")
     assert rec["application_type"] == "Reporting"
     assert listed >= 20

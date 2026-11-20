@@ -6,6 +6,8 @@
 # against the Launch Manager schema of that version, maps it (scripts/config_mapping/lifecycle_config.py) and
 # serializes it to the flatbuffer the Launch Manager daemon reads. This is lifecycle's own checker on the x86 route
 # (brief item B6); the daemon itself is @score_lifecycle//score/launch_manager:launch_manager.
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
 load("@score_lifecycle//:defs.bzl", "launch_manager_config")
 
 launch_manager_config(
@@ -20,4 +22,26 @@ launch_manager_config(
     name = "de4sdv_lm_config_path_only",
     config = "launch_manager_config_path_only.json",
     flatbuffer_out_dir = "flatbuffer_out_path_only",
+)
+
+# The stop run's control client (launch-manager/control/, staged here with the configurations): it switches the
+# Launch Manager to the run target path_stopped through LmControl, Lifecycle v0.10.0's own client library
+# (control_cc, src/lm_control/), over mw::com. score-path/scripts/path_stop.sh runs it.
+
+cc_library(
+    name = "lm_control_client_core",
+    srcs = ["lm_control_client.cpp"],
+    hdrs = ["lm_control_client.h"],
+    includes = ["."],
+)
+
+cc_binary(
+    name = "lm_control_client",
+    srcs = ["lm_control_client_main.cpp"],
+    linkopts = ["-lpthread"],
+    deps = [
+        ":lm_control_client_core",
+        "@score_communication//score/mw/com",
+        "@score_lifecycle//score/launch_manager:control_cc",
+    ],
 )

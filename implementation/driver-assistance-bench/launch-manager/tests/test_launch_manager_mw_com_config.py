@@ -39,6 +39,7 @@ HERE = Path(__file__).resolve().parent
 LM = HERE.parent
 BENCH = LM.parent
 CONFIG = LM / "config" / "mw_com_config_launch_manager.json"
+CLIENT_CONFIG = LM / "config" / "mw_com_config_lm_control_client.json"
 SPECIFIER = "LaunchManager/StateManager/Instance"
 SERVICE_TYPE = "/score/mw/lifecycle/LmControlService"
 APPLICATION_ID = 3417
@@ -78,7 +79,8 @@ def test_the_launch_manager_has_its_own_application_id_and_is_qm() -> None:
 def test_no_other_service_of_the_bench_takes_the_service_id() -> None:
     ours = load()["serviceTypes"][0]["bindings"][0]["serviceId"]
     for path in sorted(BENCH.rglob("*.json")):
-        if path == CONFIG or "tests" in path.relative_to(BENCH).parts:
+        # the stop run's control client deploys the same service on its proxy side (test_lm_control_client.py)
+        if path in (CONFIG, CLIENT_CONFIG) or "tests" in path.relative_to(BENCH).parts:
             continue
         try:
             data = json.loads(path.read_text(encoding="utf-8"))

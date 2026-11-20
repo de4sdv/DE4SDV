@@ -8,7 +8,10 @@ What is pinned:
   adapter, recovery to a target without both, nothing else supervised;
 - the alive supervision values: equal to the README's table and derived from the 0.1 s cycle by the README's rules;
 - the start order of the phase 8 model's Launch Manager: the identity recorder first, then the candidate's process
-  and the actuation adapter; someipd before gatewayd before the candidate's process;
+  and the actuation adapter; someipd before gatewayd; the candidate's process depends on the recorder only, so the
+  stop run's target can hold it without the warning path;
+- the stop run's target path_stopped (S1-BUILD-PLAN.md section 4): what Lifecycle v0.10.0 runs for it is the
+  identity recorder and the candidate's process, nothing else;
 - the alive supervision's behavior for these values, by a re-implementation in Python of the evaluation of
   Alive.cpp at v0.10.0 (score/launch_manager/src/daemon/src/alive_monitor/details/supervision/Alive.cpp:202-255,
   362-436, 544-552): a single slow cycle up to 0.4 s never trips it, a gap of 0.6 s always does. This is this test's
@@ -179,7 +182,13 @@ def test_start_order_of_the_phase_8_launch_manager() -> None:
     assert deps("identity_recorder") == set()  # first
     assert "identity_recorder" in deps("vision_pilot")
     assert "identity_recorder" in deps("actuation_adapter")
-    assert {"someipd", "gatewayd"} <= deps("vision_pilot")  # the warning path is up before the first warning
+    # The candidate's process depends on the recorder only. Lifecycle v0.10.0 runs, for a run target, every node
+    # reachable from it through depends_on, component dependencies included (process_group_manager/details/
+    # transition.hpp:397-414 and :416-445, graph.cpp:57-63 at 2afae116), so an edge to gatewayd would keep the warning
+    # path running in the stop run's target. The warning path is still up before the first warning request: the
+    # start (score-path/scripts/start_score_side.sh) returns only once someipd and gatewayd run, the session writes the
+    # go only after it, and the candidate's first warning request needs an image, which comes only after the go.
+    assert deps("vision_pilot") == {"identity_recorder"}
     assert deps("gatewayd") == {"someipd"}
     # the adapter does not wait for the candidate: it finds the command service itself, and so it subscribes
     # before the candidate's first command, which needs the network sessions and the first inference
@@ -189,6 +198,35 @@ def test_start_order_of_the_phase_8_launch_manager() -> None:
     assert app_type(config, "identity_recorder") == "Reporting"
     for name in config["components"]:
         assert name not in deps(name), f"cycle at {name}"
+
+
+# ── the stop run's target ────────────────────────────────────────────────────────────────────────────────────
+
+STOP_TARGET = "path_stopped"
+
+
+def test_the_stop_target_runs_the_recorder_and_the_candidate_only() -> None:
+    """REQ-DRIVING-038 and -043 stop clauses (S1-BUILD-PLAN.md section 4, 'Stop run'): after the stop no driving
+    command reaches the vehicle and no warning request leaves the host, while the candidate keeps running. The set is
+    the closure Lifecycle v0.10.0 activates (component dependencies included), not only the listed names."""
+    config = load()
+    target = config["run_targets"][STOP_TARGET]
+    assert sorted(target["depends_on"]) == ["identity_recorder", "vision_pilot"]
+    assert closure(config, target["depends_on"]) == {"identity_recorder", "vision_pilot"}
+    for gone in ("actuation_adapter", "gatewayd", "someipd"):
+        assert gone not in closure(config, target["depends_on"]), gone
+    assert target["recovery_action"] == {"switch_run_target": {"run_target": "fallback_run_target"}}
+    # the stops of the three components fit in the transition (each SIGTERM, then SIGKILL after its timeout)
+    stops = sum(deployment(config, n, "shutdown_timeout_ms") for n in ("actuation_adapter", "gatewayd", "someipd"))
+    assert target["transition_timeout_ms"] > stops
+
+
+def test_the_stop_target_changes_neither_the_start_nor_the_recovery() -> None:
+    config = load()
+    assert config["initial_run_target"] == "supervised_path"
+    assert closure(config, config["run_targets"]["supervised_path"]["depends_on"]) == set(config["components"])
+    assert closure(config, config["fallback_run_target"]["depends_on"]) == {"identity_recorder", "someipd", "gatewayd"}
+    assert sorted(config["run_targets"]) == ["path_stopped", "supervised_path"]
 
 
 # ── files the configuration names ───────────────────────────────────────────────────────────────────────────────
@@ -321,3 +359,4 @@ def test_the_lifecycle_v0_10_0_converter_accepts_the_file(tmp_path: Path) -> Non
     assert "Schema Validation successful" in result.stdout
     generated = json.loads((tmp_path / "launch_manager_config_gen.json").read_text(encoding="utf-8"))
     assert {c["name"] for c in generated["components"]} == set(load()["components"])
+    assert {t["name"] for t in generated["run_targets"]} == set(load()["run_targets"])
