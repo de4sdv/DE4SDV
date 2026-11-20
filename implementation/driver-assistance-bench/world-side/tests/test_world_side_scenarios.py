@@ -72,10 +72,12 @@ def test_the_stop_run_is_no_run_of_a_setting_and_drives_sc012_at_20():
     st = scenarios.setting(scenarios.STOP_RUN)
     assert st.judgeable is None and st.scenario == "SC-DRIVING-012"
     at20 = scenarios.setting("SC-DRIVING-012@20")
-    assert (st.approach_kmh, st.low_kmh, st.high_kmh, st.target_ahead_m) == (
-        at20.approach_kmh, at20.low_kmh, at20.high_kmh, at20.target_ahead_m)
-    # PROPOSAL (S1 plan section 3): the path stops at go + 12 s and the run ends 10 s of sim time after it
-    assert st.run_cap_s == 22.0
+    assert (st.approach_kmh, st.low_kmh, st.high_kmh) == (at20.approach_kmh, at20.low_kmh, at20.high_kmh)
+    # the path stops at go + 12 s; the cap, 42 s from the go, leaves 10 s of sim time after the stop's bound (22.2 s)
+    # plus a margin, and the target stands as far as SC-DRIVING-012@60's, out of the hero's reach within the cap (J7
+    # of the closure check of 44a4be29; test_world_side_stop_run_window.py)
+    assert st.run_cap_s == 42.0
+    assert st.target_ahead_m == scenarios.setting("SC-DRIVING-012@60").target_ahead_m == 280.0
     entry = scenarios.evaluate_entry(_approach(), st)
     assert entry["judgedRun"] is False and "no run of a setting" in entry["notJudged"]
 

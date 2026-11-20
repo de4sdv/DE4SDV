@@ -85,6 +85,9 @@ STALL_S = 0.2                   # a tick started more than 0.2 s after the one b
 LATE_TOLERANCE_S = 0.001
 CONTACT_HOLD_S = 3.0            # proposal: ticks kept after the first contact with the target
 REST_HOLD_S = 3.0               # proposal: ticks kept once the hero is at rest after it moved
+# a site's start (road:lane:s) needs the server's own waypoint there, at most this far from the site's start pose (J5 of
+# the closure check of 44a4be29; F3 measured 0.0005 m and 0.0003 m at the committed sites' starts on the real server)
+SITE_START_WAYPOINT_MAX_M = 0.5
 SETTLE_TICKS = 10               # setup ticks after spawning, before the run's first tick
 STRAIGHT_STEP_M = 5.0
 STRAIGHT_YAW_MAX_DEG = 0.5      # survey: heading change over the stretch
@@ -659,10 +662,16 @@ class WorldSide:
         start = carla.Transform(carla.Location(sp["x"], sp["y"], sp["z"]),
                                 carla.Rotation(pitch=0.0, yaw=sp["yaw"], roll=0.0))
         road, lane, s = spec.start.split(":")
-        check = None
+        # the server's own waypoint at the site's start, against the site's pose (J5 of the closure check of 44a4be29):
+        # none, or one more than SITE_START_WAYPOINT_MAX_M away, refuses the site before anything spawns
         wp = self.map.get_waypoint_xodr(int(road), int(lane), float(s))
-        if wp is not None:            # the server's own waypoint at the site's start, against the site's pose
-            check = round(math.hypot(wp.transform.location.x - sp["x"], wp.transform.location.y - sp["y"]), 4)
+        if wp is None:
+            raise BenchError(f"site {st.site}: the server has no waypoint at the site's start {spec.start} "
+                             "(get_waypoint_xodr): the start must lie inside a road")
+        check = round(math.hypot(wp.transform.location.x - sp["x"], wp.transform.location.y - sp["y"]), 4)
+        if check > SITE_START_WAYPOINT_MAX_M:
+            raise BenchError(f"site {st.site}: the server's waypoint at the site's start {spec.start} lies {check} m "
+                             f"from the site's start pose, more than {SITE_START_WAYPOINT_MAX_M} m")
         self.start_info = {"site": st.site, "rule": "sites.resolve", "start": spec.start, "x": float(sp["x"]),
                            "y": float(sp["y"]), "yawDeg": float(sp["yaw"]), "road": int(road), "lane": int(lane),
                            "s": float(s), "serverWaypointDistanceM": check,

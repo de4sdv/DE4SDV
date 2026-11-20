@@ -74,7 +74,8 @@ It does not:
 | Functional part, TTC 4 s, 0.2 m for 2 s | `scenarios.evaluate_entry` | model (NR) |
 | "Comes to the speed of the target": at rest (stationary target); closing speed <= 0 after it was > 0 (SC-DRIVING-013) | `AT_REST_MPS`, `AT_TARGET_SPEED_CLOSING_MPS` | bench reading |
 | "Travels straight": heading within 2 deg of the target's | `STRAIGHT_HEADING_MAX_DEG` | proposal |
-| Targets 150 / 220 / 280 m (012), 40 / 115 m (013), 30 m (015) ahead; 014's where its site puts it; run caps 60 s (015: 75 s; stop run: 22 s, the path stopped at go + 12 s) | `Setting` | proposal (S1 plan section 3) |
+| Targets 150 / 220 / 280 m (012), 40 / 115 m (013), 30 m (015) ahead; 014's where its site puts it; run caps 60 s (015: 75 s) | `Setting` | proposal (S1 plan section 3) |
+| The stop run: SC-DRIVING-012 at 20 (20-22) km/h, its path stopped at go + 12 s; cap 42 s from the go (the stop's bound 22.2 s, then 10 s of sim time, then a margin of 9.8 s); target 280 m ahead, out of the hero's reach within the cap at 22 km/h | `STOP_RUN_CAP_S`, `STOP_TARGET_AHEAD_M` | bench choice (J7 of the closure check of 44a4be29; the model leaves the stop run's length free) |
 | Sites `sc014-curve`, `sc015-turnoff` (built by `sites.resolve`, lane A2) | `Setting.site` | lead contract 2 |
 | Road behind a moving target: to where the vehicle, at 1.0 m/s2 to its approach speed, reaches it, plus 40 m | `scenarios.road_needed_m` | proposal |
 | The SC-DRIVING-013 target at 20 km/h from the run's first tick: `enable_constant_velocity` where the API has it, else posed by `set_transform` each tick (physics off; its speed then recorded from the world side's motion) | `TargetMotion` | proposal (S1 plan A3) |
@@ -322,7 +323,9 @@ props_available=<the server's static.prop.* list>, approach_rule=..., approach_m
 rule_reason=...)` with the setting's own rule. It spawns the hero at `start_pose` (`start` in the record, beside the
 distance to the server's own waypoint at that `road:lane:s`), every prop at its pose with physics off, and the target
 at its pose. The session's road (`--start`) is not used for a site setting; the record names it as not used. A site
-the map refuses ends the run as a bench error that names the reason. `setting_record.json["site"]` is
+the map refuses ends the run as a bench error that names the reason. So does a start where the server has no waypoint
+of `get_waypoint_xodr`, or one whose waypoint lies more than 0.5 m from `start_pose` (`SITE_START_WAYPOINT_MAX_M`),
+before anything spawns. `setting_record.json["site"]` is
 `SiteSpec.as_record()`, guidance included. SC-DRIVING-015's target follows its script along its path on every tick
 by `set_transform`, with physics off: the pose after each tick is `SiteSpec.target_motion().at(t + 0.05 s)`, and
 each world tick carries the script's phase (`target.motionPhase`). SC-DRIVING-013's target keeps
@@ -334,7 +337,10 @@ a start at a road's own length (`54:6:62.56`) has no waypoint of `get_waypoint_x
 inside its road; the hero's collision sensor reports contact both with a target posed by `set_transform` and with one
 under `enable_constant_velocity`, and either pushes a hero held on its hand brake aside (about 20 m in the probe); a
 spawned streetbarrier's bounding box is 0.607 x 0.186 x 0.535 m (half sizes), the read's 0.598 x 0.214 m spaces the
-pipes. The fake replays the first and the last.
+pipes. The fake replays the first and the last. Its `get_waypoint_xodr` answers on the site roads from the server's own
+waypoints (`tests/data/town06_opt_g4_waypoints_sites.json`, interpolated between the two around `s`), so a test reads
+the server's start, not the site code's: 0.0009 m from F3's pose at `54:6:62.063` and 0.0003 m at `17:-4:54.312`, where
+F3 measured 0.0005 m and 0.0003 m on the real server.
 
 The tests replay the real read (`tests/data/town06_opt_g4_read.json`, `tests/data/town06_opt_g4.xodr.xz`: the map's
 OpenDRIVE of sha256 a90b6131..., part of CARLA's map content): the fake's `Map.to_opendrive()` gives those bytes

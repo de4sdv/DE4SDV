@@ -27,6 +27,10 @@ tell which client applied a control: the world side, or a stand-in for the actua
   ``static.prop.*`` blueprints the server lists (a name it does not list is refused, as ``find`` refuses any unknown
   blueprint), and Town06_Opt's own OpenDRIVE (``Map.to_opendrive()``, ``tests/data/town06_opt_g4.xodr.xz``, the bytes
   of sha256 a90b6131...); a map without a replayed read refuses ``to_opendrive()`` rather than invent one;
+- ``Map.get_waypoint_xodr`` on Town06_Opt's site roads (any road but the fake's own): the real server's own waypoints
+  (``carla.Map.generate_waypoints(2.0)`` on the G4, ``tests/data/town06_opt_g4_waypoints_sites.json``), interpolated
+  between the two around s; None outside [0, the road's length in the replayed OpenDRIVE) and on a lane the read does
+  not hold there, as on the real server (F3 of lane I-W, 2026-11-20);
 - ``_SHARED_SERVER``: when a test sets it, ``Client(host, port)`` without ``_server`` joins that server, so a
   program that creates its own client (the chase recorder) shares the world with the test's world side.
 
@@ -36,11 +40,13 @@ The API names follow the Python bindings of CARLA at 14ac3b1a502da45a44506cb2ed8
 
 from __future__ import annotations
 
+import bisect
 import fnmatch
 import json
 import lzma
 import math
 import os
+import re
 from pathlib import Path
 
 __version__ = "1.0-fake"
@@ -293,6 +299,11 @@ _DATA = Path(__file__).resolve().parents[2] / "data"
 REAL_READ = json.loads((_DATA / "town06_opt_g4_read.json").read_text(encoding="utf-8"))
 REAL_STATIC_PROPS = tuple(REAL_READ["static_prop"])
 REPLAY_XODR = {"Town06_Opt": _DATA / REAL_READ["xodr_file"]}
+# The real server's own waypoints on the site roads (carla.Map.generate_waypoints(2.0) on the G4, 2026-11-20; lane A2's
+# read): get_waypoint_xodr on those roads answers from them (J5 of the closure check of 44a4be29), so a site's start is
+# checked against the server's waypoints, never against the site code's own geometry
+REPLAY_WAYPOINTS = {"Town06_Opt": _DATA / "town06_opt_g4_waypoints_sites.json"}
+REPLAY_WAYPOINT_STEP_M = 2.0
 
 # A spawned prop's bounding box on the real server (F3 of lane I-W, G4, 2026-11-20, contact_probe.py): extent, location
 PROP_BOUNDING_BOXES = {
@@ -352,6 +363,22 @@ class Waypoint:
         return Waypoint(self._map, lane, self.s) if lane in self._map.lanes else None
 
 
+class ReplayedWaypoint:
+    """A waypoint of a site road of the replayed read (Map._replayed_waypoint): only the members the world side reads at
+    a site's start; no next, previous or neighbour lanes."""
+
+    def __init__(self, road_id, lane_id, s, x, y, z, yaw, is_junction, lane_width):
+        self.road_id, self.lane_id, self.s, self.section_id = road_id, lane_id, s, 0
+        self.lane_width, self.lane_type, self.is_junction = lane_width, LaneType.Driving, is_junction
+        self.id = hash((road_id, lane_id, round(s, 3)))
+        self._pose = (x, y, z, yaw)
+
+    @property
+    def transform(self) -> Transform:
+        x, y, z, yaw = self._pose
+        return Transform(Location(x, y, z), Rotation(0.0, yaw, 0.0))
+
+
 class Map:
     """Straight lanes along +x; lane -1 centered at y = 0, lane -2 at y = +lane_width (CARLA's y is right).
 
@@ -369,6 +396,7 @@ class Map:
         self.junction_from, self.junction_to = 1e9, 1e9
         self.bend_from = 1e9
         self.bend_radius = 200.0
+        self._replay = None
 
     def pose_at(self, lane_id: int, s: float) -> tuple[float, float, float]:
         offset = (-1 - lane_id) * self.lane_width
@@ -402,9 +430,54 @@ class Map:
 
     def get_waypoint_xodr(self, road_id: int, lane_id: int, s: float):
         # the real server gives no waypoint at a road's own length (F3, G4, 2026-11-20: 54:6:62.56, road 54's length)
-        if road_id != self.road_id or lane_id not in self.lanes or not 0 <= s < self.length:
+        if road_id != self.road_id:
+            return self._replayed_waypoint(int(road_id), int(lane_id), float(s))
+        if lane_id not in self.lanes or not 0 <= s < self.length:
             return None
         return Waypoint(self, lane_id, s)
+
+    def _replayed(self):
+        """The real server's waypoints of the site roads by (road, lane), sorted by s, and those roads' lengths from the
+        replayed OpenDRIVE; None for a map without a replayed read."""
+        if self._replay is None:
+            short = self.name.rstrip("/").split("/")[-1]
+            path = REPLAY_WAYPOINTS.get(short)
+            if path is None or short not in REPLAY_XODR:
+                return None
+            samples: dict = {}
+            for row in json.loads(path.read_text(encoding="utf-8"))["rows"]:
+                road, _section, lane, s, x, y, z, yaw, junction, _jid, width, _kind = row
+                rows = samples.setdefault((int(road), int(lane)), {})
+                rows.setdefault(float(s), (float(s), float(x), float(y), float(z), float(yaw), bool(junction),
+                                           float(width)))
+            lengths = {}
+            for tag in re.findall(r"<road\b[^>]*>", self.to_opendrive()):
+                rid, length = re.search(r'\bid="([^"]+)"', tag), re.search(r'\blength="([^"]+)"', tag)
+                if rid and length and rid.group(1).lstrip("-").isdigit():
+                    lengths[int(rid.group(1))] = float(length.group(1))
+            self._replay = ({k: sorted(v.values()) for k, v in samples.items()}, lengths)
+        return self._replay
+
+    def _replayed_waypoint(self, road_id: int, lane_id: int, s: float):
+        """A site road's waypoint, interpolated between the two real waypoints around s (one sample's step at most
+        from either); None outside [0, the road's length), as on the real server, and where the read holds no such
+        lane within a step."""
+        replay = self._replayed()
+        if replay is None:
+            return None
+        samples, lengths = replay
+        rows, length = samples.get((road_id, lane_id)), lengths.get(road_id)
+        if not rows or len(rows) < 2 or length is None or not 0.0 <= s < length:
+            return None
+        i = min(max(bisect.bisect_right([r[0] for r in rows], s) - 1, 0), len(rows) - 2)
+        a, b = rows[i], rows[i + 1]
+        step = REPLAY_WAYPOINT_STEP_M + 1e-6
+        if b[0] - a[0] > step or s - b[0] > step or a[0] - s > step:
+            return None
+        f = (s - a[0]) / (b[0] - a[0])
+        dyaw = (b[4] - a[4] + 180.0) % 360.0 - 180.0
+        return ReplayedWaypoint(road_id, lane_id, s, a[1] + f * (b[1] - a[1]), a[2] + f * (b[2] - a[2]),
+                                a[3] + f * (b[3] - a[3]), a[4] + f * dyaw, a[5], a[6])
 
     def get_waypoint(self, location, project_to_road: bool = True, lane_type=LaneType.Driving):
         if location.x <= self.bend_from:
