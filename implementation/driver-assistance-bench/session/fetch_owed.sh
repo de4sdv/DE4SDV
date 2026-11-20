@@ -51,7 +51,8 @@ units=$(systemctl --user list-units 'da-session-*' --no-legend 2>/dev/null) \
   || { echo "refused: the user units cannot be listed (systemctl --user)"; exit 2; }
 [ -z "$units" ] || { echo "refused: a da-session unit is loaded: $units"; exit 2; }
 
-stop_vm() {
+stop_vm() {   # the EXIT trap: no second signal cuts the stop
+  trap '' INT TERM HUP
   g compute instances stop "$SIM_VM" --zone "$SIM_ZONE" --quiet > /dev/null 2>&1
   echo "after: $(status) $(date -u +%FT%TZ)"
 }
@@ -75,7 +76,7 @@ done
 
 N=$(( (SIZE + MIB * 1048576 - 1) / (MIB * 1048576) ))
 TSV=$IN/sim/fetch_owed_ranges.tsv; [ -s "$TSV" ] || printf 'range\ttry\tstart_s\tend_s\tbytes\twant\tresult\n' > "$TSV"
-range() {   # range <index>: FETCH_OWED_TRY_S per try, 3 tries, size-checked
+range() {   # range <index>: FETCH_OWED_TRY_S per try, 3 tries, size-checked; in its own subshell (below)
   local i=$1 f want t s e got
   f=$D/$(printf 'p%06d' "$i"); want=$(( SIZE - i * MIB * 1048576 )); [ "$want" -gt $(( MIB * 1048576 )) ] && want=$(( MIB * 1048576 ))
   for t in 1 2 3; do
@@ -91,17 +92,25 @@ range() {   # range <index>: FETCH_OWED_TRY_S per try, 3 tries, size-checked
   done
   rm -f "$f.part"; echo "range $i failed after 3 tries"; return 1
 }
-export -f range; export GC GCLOUD_CONFIGURATION SIM_PROJECT SIM_VM SIM_ZONE SID SIZE MIB D TSV TRY_S
+kill_tree() { local c; for c in $(pgrep -P "$1" 2>/dev/null); do kill_tree "$c"; done; kill "$1" 2>/dev/null; }
 todo=(); kept=0
 for (( i = 0; i < N; i++ )); do
   if [ -f "$D/$(printf 'p%06d' "$i")" ]; then kept=$(( kept + 1 )); else todo+=("$i"); fi
 done
 t0=$(date +%s)
 echo "ranges: $N of $MIB MiB, $kept kept from the session, ${#todo[@]} to read, $FETCH_PARALLEL in parallel, start $(date -u +%FT%TZ)"
+# FETCH_PARALLEL workers at once, each in a subshell that a TERM ends; a signal to this script ends every worker's
+# tree first (its timeout and gcloud sit in timeout's own process group, which a group signal does not reach), then
+# the EXIT trap stops the host
+pids=(); running=0
+trap 'for p in "${pids[@]}"; do kill_tree "$p"; done; echo "signal: the ranges ended"; exit 143' TERM INT HUP
+for i in "${todo[@]}"; do
+  while [ "$running" -ge "$FETCH_PARALLEL" ]; do wait -n; running=$(( running - 1 )); done
+  ( trap 'exit 143' TERM HUP; range "$i" ) & pids+=("$!"); running=$(( running + 1 ))
+done
+wait
+trap - TERM INT HUP
 rc=0
-if [ ${#todo[@]} -gt 0 ]; then
-  printf '%s\n' "${todo[@]}" | xargs -P "$FETCH_PARALLEL" -I{} bash -c 'range {}' || rc=4
-fi
 secs=$(( $(date +%s) - t0 ))
 result=ok
 for (( i = 0; i < N; i++ )); do [ -f "$D/$(printf 'p%06d' "$i")" ] || { result="range $i missing"; rc=4; }; done

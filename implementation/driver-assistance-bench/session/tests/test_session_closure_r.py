@@ -150,13 +150,38 @@ def _fake_systemctl(tmp: Path, units: str = "") -> Path:
     return b
 
 
-def _fetch_owed(tmp: Path, r: Run, units: str = "", **extra: str) -> subprocess.CompletedProcess:
+def _fetch_owed_env(tmp: Path, units: str = "", **extra: str) -> dict[str, str]:
     b = _fake_systemctl(tmp)
     env = {k: v for k, v in os.environ.items() if not k.startswith(("PYTHON", "FAKE_"))}
     env.update(FAKE_DIR=str(tmp / "fake"), FETCH_OWED_GCLOUD=str(HERE / "fake_gcloud.py"), FETCH_OWED_PAUSE_S="0.1",
                FETCH_OWED_SSH_PAUSE_S="0.1", FETCH_RANGE_MIB="1", FAKE_UNITS=units, PATH=f"{b}:{env['PATH']}", **extra)
-    return subprocess.run(["bash", str(FETCH_OWED), str(r.incoming)], env=env, capture_output=True, text=True,
-                          timeout=120)
+    return env
+
+
+def _fetch_owed(tmp: Path, r: Run, units: str = "", **extra: str) -> subprocess.CompletedProcess:
+    return subprocess.run(["bash", str(FETCH_OWED), str(r.incoming)], env=_fetch_owed_env(tmp, units, **extra),
+                          capture_output=True, text=True, timeout=120)
+
+
+def test_r2_a_signal_during_the_hand_fetch_ends_every_tunnel_and_stops_the_host(tmp_path: Path) -> None:
+    # the workers' timeout and gcloud sit in timeout's own process group: the script's own TERM handler ends them
+    # (the parallel-workers rule of bash-session-runner-hardening), and its EXIT trap stops the G4
+    r = run(tmp_path, "p10-1", DA_T_TRAP_PACK_S="2", DA_T_TRAP_SCP_S="3", **RANGED)
+    assert r.rc == 5, r.log
+    p = subprocess.Popen(["bash", str(FETCH_OWED), str(r.incoming)], env=_fetch_owed_env(tmp_path, FAKE_SLOW_FETCH=f"{G4}:8"),
+                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+    wait_for_call(tmp_path, lambda c: c[2:4] == ["compute", "ssh"] and any(DD.match(a) for a in c))
+    t_dd = time.monotonic()
+    time.sleep(0.5)
+    t0 = time.monotonic()
+    os.killpg(p.pid, signal.SIGTERM)
+    out, _ = p.communicate(timeout=60)
+    assert p.returncode == 143 and time.monotonic() - t0 < 6, (p.returncode, out)
+    assert "after: TERMINATED" in out, out
+    time.sleep(max(0.0, t_dd + 9.5 - time.monotonic()))   # past the reads' 8 s: nothing arrived in a part file
+    parts = list((r.incoming / "sim" / ".ranges").glob("p[0-9]*"))
+    assert parts and sum(f.stat().st_size for f in parts) == 0, [(f.name, f.stat().st_size) for f in parts]
+    assert Run(tmp_path).state[G4] == "TERMINATED"
 
 
 def test_r2_the_hand_fetch_reads_an_owed_pack_on_a_started_simulator_host_and_stops_it(tmp_path: Path) -> None:
