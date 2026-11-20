@@ -9,6 +9,8 @@ tell which client applied a control: the world side, or a stand-in for the actua
 - ``apply_ackermann_control`` (steer rad positive right, speed, acceleration, jerk, steer_speed) moving a
   vehicle by a kinematic bicycle: the speed moves toward the commanded speed at ``|acceleration|`` per
   second, and the yaw rate is ``v * tan(steer) / wheelbase`` (CARLA yaw is clockwise seen from above);
+- ``enable_constant_velocity`` (a velocity in the actor's local frame, m/s, as CARLA's Actor.cpp): the actor then
+  moves at that velocity every tick, along its heading, until ``disable_constant_velocity``;
 - a collision event when two vehicle bounding boxes overlap along a straight road;
 - a map of straight lanes along +x (two driving lanes in one direction), with waypoints, ``next`` and a
   junction zone, and textures applied to actors (recorded, not rendered);
@@ -363,6 +365,8 @@ class Map:
 
     def get_waypoint(self, location, project_to_road: bool = True, lane_type=LaneType.Driving):
         if location.x <= self.bend_from:
+            if not project_to_road and not 0.0 <= location.x <= self.length:
+                return None                 # beyond the road's ends: on no lane
             s = max(0.0, min(self.length, location.x))
             lane = -1 if location.y < self.lane_width / 2.0 else -2
             if not project_to_road and (location.y < -self.lane_width / 2 or
@@ -396,6 +400,7 @@ class _ActorState:
         self.yaw_rate_deg = 0.0
         self.accel = 0.0
         self.ackermann = None
+        self.constant_velocity = None
         self.control = VehicleControl()
         self.simulate_physics = True
         self.listeners: list = []
@@ -480,6 +485,11 @@ class Actor:
 
     def enable_constant_velocity(self, velocity) -> None:
         self._log("enable_constant_velocity", (velocity.x, velocity.y))
+        self._state.constant_velocity = Vector3D(velocity.x, velocity.y, velocity.z)
+
+    def disable_constant_velocity(self) -> None:
+        self._log("disable_constant_velocity", None)
+        self._state.constant_velocity = None
 
     def set_simulate_physics(self, enabled: bool = True) -> None:
         self._state.simulate_physics = bool(enabled)
@@ -703,6 +713,15 @@ class _Server:
         return Transform(Location(wx, wy, wz), rot)
 
     def step_vehicle(self, state: _ActorState, dt: float) -> None:
+        if state.constant_velocity is not None and state.simulate_physics:
+            old = state.speed
+            state.speed = state.constant_velocity.x
+            state.accel = (state.speed - old) / dt if old else 0.0
+            state.yaw_rate_deg = 0.0
+            yaw = math.radians(state.transform.rotation.yaw)
+            state.transform.location.x += state.speed * math.cos(yaw) * dt
+            state.transform.location.y += state.speed * math.sin(yaw) * dt
+            return
         control = state.ackermann
         if control is None or not state.simulate_physics:
             state.accel = 0.0
