@@ -231,15 +231,14 @@ if [ "$DRY" = 1 ]; then
   for v in "${KNOBS[@]}"; do o="DA_T_$v"; [ -n "${!o:-}" ] && printf -v "$v" '%s' "${!o}"; done
   MAKE_H=${DA_MAKE_H:-}   # a stand-in for camera_calibration.py make-h (the fake capture files are no images)
   S1_RUNS_GIVEN=${DA_S1_RUNS:-}   # a run list of the dry runs' own (the world side's settings of the real list)
-  [ "$REHEARSAL" = 1 ] && S1_RUNS_GIVEN=$RUNS_ARG
 else
   GCLOUD=$HOME/google-cloud-sdk/bin/gcloud
   for v in "${KNOBS[@]}"; do o="DA_T_$v"; [ -n "${!o:-}" ] && { echo "refused: $o is a dry-run knob"; exit 2; }; done
   [ -n "${DA_MAKE_H:-}" ] && { echo "refused: DA_MAKE_H is a dry-run knob"; exit 2; }
   [ -n "${DA_S1_RUNS:-}" ] && { echo "refused: DA_S1_RUNS is a dry-run knob (s1 runs the committed session/s1_runs.tsv)"; exit 2; }
   MAKE_H=""; S1_RUNS_GIVEN=""
-  [ "$REHEARSAL" = 1 ] && S1_RUNS_GIVEN=$RUNS_ARG   # a rehearsal's own list (--rehearsal --runs, checked above)
 fi
+[ "$REHEARSAL" = 1 ] && S1_RUNS_GIVEN=$RUNS_ARG   # a rehearsal's own list, real or dry (--rehearsal --runs, checked above)
 # the display capture's caps follow this session's bounds (Q3, Q4; README "The display capture's caps"). POLL_S counts
 # as whole seconds (a dry run's 0.1 as 1)
 CAP_P=$(awk -v x="$POLL_S" 'BEGIN { c = int(x); if (c < x) c++; print c }')

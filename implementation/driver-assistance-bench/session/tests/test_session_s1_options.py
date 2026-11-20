@@ -70,6 +70,7 @@ def test_any_other_ackermann_gains_is_refused_before_any_vm(tmp_path: Path, valu
     assert r.rc == 2, r.stdout + r.log
     assert f"refused: --ackermann-gains takes default or v1, not '{value}'" in r.stdout, r.stdout
     assert not r.index(lambda c: c[2:5] == ["compute", "instances", "start"])
+    assert r.incoming is None
 
 
 # ───────────── i: the rehearsal ─────────────
@@ -99,7 +100,9 @@ def _rehearsal(tmp: Path, *more: str, runs: str = REHEARSAL_RUNS, list_knob: boo
         del env["DA_S1_RUNS"]
     lst = tmp / "rehearsal_runs.tsv"
     lst.write_text(runs)
-    args = [a.replace("@LIST@", str(lst)) for a in more]
+    (tmp / "sub").mkdir(exist_ok=True)
+    # the list named through a '..' step: session.json names it by its resolved path
+    args = [a.replace("@LIST@", str(tmp / "sub" / ".." / lst.name)) for a in more]
     return run(tmp, "s1", "--kit-extra", str(tmp / "stubs"), *args, timeout=240, **env), lst
 
 
@@ -108,6 +111,7 @@ def test_a_run_list_without_rehearsal_is_refused_before_any_vm(tmp_path: Path) -
     assert r.rc == 2, r.stdout + r.log
     assert "refused: --runs needs --rehearsal (a real s1 runs the committed session/s1_runs.tsv)" in r.stdout, r.stdout
     assert not r.index(lambda c: c[2:5] == ["compute", "instances", "start"])
+    assert r.incoming is None   # refused with the options, before the session's folder or its kit
 
 
 @pytest.mark.parametrize("more, why", [
@@ -117,8 +121,9 @@ def test_a_run_list_without_rehearsal_is_refused_before_any_vm(tmp_path: Path) -
 def test_a_rehearsal_needs_a_readable_run_list(tmp_path: Path, more: list[str], why: str) -> None:
     r, _ = _rehearsal(tmp_path, "--without-guest-host", *more)
     assert r.rc == 2, r.stdout + r.log
-    assert why in r.stdout + r.log, r.stdout + r.log
+    assert why in r.stdout, r.stdout + r.log
     assert not r.index(lambda c: c[2:5] == ["compute", "instances", "start"])
+    assert r.incoming is None   # refused with the options, before the session's folder or its kit
 
 
 def test_a_rehearsal_is_for_s1_only_and_never_beside_the_dry_run_list(tmp_path: Path) -> None:
