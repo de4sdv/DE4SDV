@@ -587,6 +587,45 @@ past their slot's end. With every call hanging to its bound, the closure check's
 fetch by about a quarter (110 s of 420 at full scale); with healthy SSH the overrun is only the last sleep (about
 22 s). The phase still ends at its bound, and a host whose slot is gone is recorded as not fetched.
 
+### The evidence fetch
+
+At the end of a session (and in the exit trap) each host packs its `~/da-kit/<id>/out` with `host_step.sh pack`,
+which prints the pack's sha256 and its size in bytes (`<sha256> <bytes>`). The session then copies `out.tgz` into
+`incoming_<id>/<role>/`, compares the sha256 with the host's and unpacks it.
+
+- **A host reached through IAP** (the simulator host, `SIM_SSH_IAP=1`) is read as ranges. In session
+  20261120T092051Z the simulator host's pack held two chase videos (305,986,299 B); its single `gcloud compute scp
+  --tunnel-through-iap` ran at about 150-175 KB/s, was cut at its 1200 s bound at about 208 MB, and the session ended
+  exit 5 by `fetch`. The lead then read the same file as 37 ranges of 8 MiB over 8 parallel IAP tunnels in 4 min 57 s
+  (about 1.03 MB/s), sha256 equal. The session now does the same:
+  - the pack is cut into ranges of `FETCH_RANGE_MIB` MiB (default 8), read `FETCH_PARALLEL` at a time (default 8;
+    both in `hosts.env`, whole numbers of at least 1, recorded in `session.json`);
+  - each range is one `gcloud compute ssh --tunnel-through-iap --ssh-flag=-T --command "dd if=$HOME/da-kit/<id>/out.tgz
+    bs=1M skip=<k> count=<n> status=none"`: `dd` writes to the tunnel, nothing is written on the host, and `-T` keeps a
+    pty from changing the bytes;
+  - each range gets up to 3 tries, each bounded by `FETCH_TRY_BASE_S` (30 s) plus twice the range at its tunnel's
+    share of the planning rate (8 MiB over 8 tunnels: 165 s; the slowest range of the lead's fetch took 87 s), and each
+    try is size-checked against the range's own length (the last range is short);
+  - the ranges are joined in order, and the joined file's sha256 must equal the host's;
+  - every try is a row of `<role>/fetch_ranges.tsv`: `range`, `try`, `start_s`, `end_s` (Unix seconds), `bytes`,
+    `want`, `result` (`ok`, `short`, `rc 124` for a try cut at its bound, `size <n>`).
+- **The whole fetch is bounded by the pack's size:** `FETCH_BASE_S` (60 s) plus the size at 1 MB/s (`FETCH_PLAN_BPS`,
+  about the lead's 1.03 MB/s), never above the pre-stop phase's fetch budget of a host (`TRAP_PACK_S` +
+  `TRAP_SCP_S`: 420 s; in the exit trap `TRAP_SCP_S` and the slot's time left). `session.log` gives the bound before
+  the first range (`fetch of <vm> by ranges: out.tgz <bytes> B ..., bound <s> s (...)`), and says so when the pack
+  needs more than the budget at that rate (above about 360 MB). Past the bound no new try starts and the fetch fails.
+- **A host reached by direct SSH** (the S-CORE host, the guest host) keeps its single `gcloud compute scp`, bounded at
+  1200 s (300 s in the exit trap).
+- Every failure path reads the VM's state (`lost_check`): a pack whose SSH failed or that printed no sha256 and size,
+  a range that failed its 3 tries or a fetch past its bound. A host that is not `RUNNING` then is a lost host
+  (`host_lost`, exit 3, `hosts_lost.<role>.detected_by` `ranges: fetch`), never a failed fetch; on a `RUNNING` host
+  the fetch fails (`fetch from <vm> failed: <the range and its last result>`, exit 5, `ended_by` `fetch`).
+- A signal or the cap during the ranges ends every tunnel (the fetch's own TERM handler) and the fetch is not tried
+  again, as for the scp.
+- `session.json` `fetch.<role>` records each host's last fetch: `method` (`ranges` or `scp`), `bytes`, `sha256` (the
+  host's), `bound_s`, `result` (`ok`, `host lost`, `failed: ...`, `failed or changed ...`) and, for ranges, `ranges`,
+  `tries`, `seconds`, `parallel`, `range_mib` and `ranges_file`.
+
 ## Durations and costs
 
 Expected lengths are PLAN's for each probe; prices from `hosts.env` (Spot, europe-west4, disks not counted).

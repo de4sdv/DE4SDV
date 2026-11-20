@@ -120,6 +120,10 @@ for _x in "${RENV_ARGS[@]}"; do
   RVAL[$_n]=${_x#*=}
 done
 
+# the ranged fetch's settings (hosts.env, F7): whole numbers >= 1
+for _n in FETCH_PARALLEL FETCH_RANGE_MIB; do
+  [[ "${!_n}" =~ ^[1-9][0-9]*$ ]] || { echo "refused: $_n must be a whole number >= 1, not '${!_n}'"; exit 2; }
+done
 # the cap: a positive number of EUR (R21)
 [[ "$CAP" =~ ^[0-9]+(\.[0-9]+)?$ ]] && awk -v c="$CAP" 'BEGIN { exit !(c > 0) }' \
   || { echo "refused: --cap-eur must be a positive number of EUR, not '$CAP'"; exit 2; }
@@ -153,11 +157,17 @@ T_APP_RESTART=$(( ${RVAL[START_WAIT_S]:-5} + ${RVAL[APP_SUBSCRIBE_WAIT_S]:-30} +
 # its setting's run cap plus RRD_HOLD_S of hold until its S-CORE stop (the poll of run_end.json and the stop's start
 # call); the need is the rate times those seconds, plus 10 % and 5 GB
 RRD_RATE_BPS=88000000; RRD_HOLD_S=60; RRD_MARGIN_B=5000000000
+# the evidence fetch of a host reached through IAP (F7 of 20261120T092051Z; README "The evidence fetch"): the whole
+# fetch is bounded by FETCH_BASE_S plus the pack's size at FETCH_PLAN_BPS (8 IAP tunnels read the G4's 305,986,299 B pack
+# at about 1.03 MB/s), never above the pre-stop phase's fetch budget of a host (PRE_FETCH_S); each try of a range by
+# FETCH_TRY_BASE_S plus twice the range at its tunnel's share of FETCH_PLAN_BPS (8 MiB: 165 s; F7's slowest range 87 s)
+FETCH_BASE_S=60; FETCH_PLAN_BPS=1000000; FETCH_TRY_BASE_S=30; FETCH_TRIES=3
 CARLA_PORTS="2000 2001 2002"   # p10-1's port test: CARLA's ports that carla-net admits from the S-CORE host
 KNOBS=(PREEMPT_CHECK_S ROUND_PAUSE_S START_DEADLINE_S RUNNING_WAIT_S SSH_TRIES SSH_PAUSE_S POLL_S WATCH_S STOP_TRIES
        STOP_POLL_S T_P10_1 T_GUEST_UP T_SCORE_START T_SIM_SETUP T_WARMUP T_RUN T_INJECT T_CAPTURE_END T_REC_END T_STEP
        T_CALIBRATE T_MAKE_H T_READY T_RELEASE T_UNIT T_APP_RESTART STATUS_TRIES STOP_AGAIN_EVERY STEP_TERM_POLLS GO_LIMIT_S
-       GUEST_NOSSH_S GO_SSH_S PRESTOP_S TRAP_PACK_S TRAP_SCP_S TRAP_SCORE_S HOST_WATCH_S)
+       GUEST_NOSSH_S GO_SSH_S PRESTOP_S TRAP_PACK_S TRAP_SCP_S TRAP_SCORE_S HOST_WATCH_S FETCH_BASE_S FETCH_PLAN_BPS
+       FETCH_TRY_BASE_S)
 if [ "$DRY" = 1 ]; then
   GCLOUD=${DA_GCLOUD:-}
   [ -n "$GCLOUD" ] && [ -x "$GCLOUD" ] || { echo "dry run refused: DA_GCLOUD must name the fake gcloud"; exit 9; }
@@ -442,21 +452,106 @@ fetch() {   # fetch <role>: the host's output folder into incoming_<id>/<role>/,
   FETCHING=""; case " ${LOST:-} " in *" $r "*) return 1 ;; esac   # host_lost named it already
   FETCH_BAD="$FETCH_BAD $r"; return 1
 }
+fetch_rec() {   # fetch_rec <role> <method> <bytes> <sha256> <bound_s> <ranges> <tries> <seconds> <result>: session.json fetch
+  printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$@" >> "$IN/fetch.tsv"
+}
 fetch_one() {
-  local r=$1 sha got rc
-  rout ssh_l "$r" "$(bnd "${FETCH_PACK_TO:-600}")" "$HS pack"; rc=$?; sha=$(tail -1 <<< "$ROUT")
+  local r=$1 sha got rc line size="" how=scp bound b0 cap n="" tries="" secs="" t0 tsv
+  rout ssh_l "$r" "$(bnd "${FETCH_PACK_TO:-600}")" "$HS pack"; rc=$?; line=$(tail -1 <<< "$ROUT")
+  sha=${line%% *}; [[ "$line" == *" "* ]] && size=${line##* }   # the pack's last line: "<sha256> <bytes>" (F7)
+  [ -n "$(iap "$r")" ] && how=ranges
   # an SSH failure reads the VM's state: a host gone is host_lost, never a failed fetch (R12b)
-  [ "$rc" = 255 ] && lost_check "$r" "ssh: fetch (pack)" && return 1
+  [ "$rc" = 255 ] && lost_check "$r" "ssh: fetch (pack)" && { fetch_rec "$r" "$how" "$size" "" "" "" "" "" "host lost"; return 1; }
   mkdir -p "$IN/$r"
-  routall scp_r "$r" "$(bnd "${FETCH_SCP_TO:-1200}")" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"; rc=$?
-  printf '%s\n' "$ROUT" | one >> "$LOG"
-  [ "$rc" != 0 ] && lost_check "$r" "scp: fetch" && return 1
+  if [ "$how" = ranges ]; then
+    # a host reached through IAP (F7): one IAP scp ran at about 150-175 KB/s and was cut at its bound; the pack is read
+    # as ranges over FETCH_PARALLEL tunnels instead, each range by dd on the host (nothing written there)
+    if ! [[ "$sha" =~ ^[0-9a-f]{64}$ ]] || ! [[ "$size" =~ ^[0-9]+$ ]]; then
+      lost_check "$r" "ssh: fetch (pack)" && { fetch_rec "$r" ranges "" "" "" "" "" "" "host lost"; return 1; }
+      log "fetch from $(var "$r" VM) failed: its pack gave no sha256 and size (rc $rc): '$line'"
+      fetch_rec "$r" ranges "" "" "" "" "" "" "failed: no sha256 and size from the pack"; return 1
+    fi
+    n=$(( (size + FETCH_RANGE_MIB * 1048576 - 1) / (FETCH_RANGE_MIB * 1048576) ))
+    b0=$(( FETCH_BASE_S + (size + FETCH_PLAN_BPS - 1) / FETCH_PLAN_BPS ))
+    cap=${FETCH_SCP_TO:-$PRE_FETCH_S}; [ "$cap" -gt "$PRE_FETCH_S" ] && cap=$PRE_FETCH_S
+    bound=$b0; [ "$bound" -gt "$cap" ] && bound=$cap; bound=$(bnd "$bound")
+    log "fetch of $(var "$r" VM) by ranges: out.tgz $size B (sha256 $sha), $n ranges of $FETCH_RANGE_MIB MiB over $FETCH_PARALLEL IAP tunnels, $FETCH_TRIES tries a range of $(try_s) s at most; bound $bound s ($FETCH_BASE_S s plus the pack at $FETCH_PLAN_BPS B/s: $b0 s; the pre-stop phase's fetch budget of a host: $cap s)"
+    [ "$b0" -gt "$cap" ] && log "the pack of $(var "$r" VM) needs $b0 s at $FETCH_PLAN_BPS B/s, more than the fetch budget of $cap s: its fetch may end at the bound"
+    tsv=$IN/$r/fetch_ranges.tsv; printf 'range\ttry\tstart_s\tend_s\tbytes\twant\tresult\n' > "$tsv"
+    t0=$(date +%s)
+    run_fg fetch_ranges "$r" "$size" "$bound" "$IN/$r/.ranges" > "$IN/.franges" 2>&1; rc=$?
+    ROUT=$(cat "$IN/.franges" 2>/dev/null); rm -f "$IN/.franges"
+    tries=$(( $(wc -l < "$tsv") - 1 )); secs=$(( $(date +%s) - t0 ))
+    if [ "$rc" != 0 ]; then
+      rm -rf "$IN/$r/.ranges"
+      lost_check "$r" "ranges: fetch" && { fetch_rec "$r" ranges "$size" "$sha" "$bound" "$n" "$tries" "$secs" "host lost"; return 1; }
+      log "fetch from $(var "$r" VM) failed: $(tail -1 <<< "$ROUT") ($tries tries in $secs s; fetch_ranges.tsv)"
+      fetch_rec "$r" ranges "$size" "$sha" "$bound" "$n" "$tries" "$secs" "failed: $(tail -1 <<< "$ROUT")"; return 1
+    fi
+    cat "$IN/$r/.ranges"/p* > "$IN/$r/out.tgz"; rm -rf "$IN/$r/.ranges"
+    log "ranges of $(var "$r" VM): $n ranges joined in order, $tries tries, $secs s"
+  else
+    bound=$(bnd "${FETCH_SCP_TO:-1200}")
+    routall scp_r "$r" "$bound" "$(var "$r" VM):da-kit/$SID/out.tgz" "$IN/$r/"; rc=$?
+    printf '%s\n' "$ROUT" | one >> "$LOG"
+    [ "$rc" != 0 ] && lost_check "$r" "scp: fetch" && { fetch_rec "$r" scp "$size" "$sha" "$bound" "" "" "" "host lost"; return 1; }
+  fi
   got=$(sha256sum "$IN/$r/out.tgz" 2>/dev/null | cut -d' ' -f1)
-  [ -n "$got" ] && [ "$got" = "$sha" ] || { log "fetch from $(var "$r" VM) failed or changed (remote '$sha', local '$got')"; return 1; }
-  tar -xzf "$IN/$r/out.tgz" -C "$IN/$r" || return 1
-  [ "$(cat "$IN/$r/out/session_id" 2>/dev/null)" = "$SID" ] || { log "fetched files of $(var "$r" VM) are not this session's"; return 1; }
+  [ -n "$got" ] && [ "$got" = "$sha" ] || { log "fetch from $(var "$r" VM) failed or changed (remote '$sha', local '$got')"
+    fetch_rec "$r" "$how" "$size" "$sha" "$bound" "$n" "$tries" "$secs" "failed or changed (local '$got')"; return 1; }
+  tar -xzf "$IN/$r/out.tgz" -C "$IN/$r" || { fetch_rec "$r" "$how" "$size" "$sha" "$bound" "$n" "$tries" "$secs" "failed: tar"; return 1; }
+  [ "$(cat "$IN/$r/out/session_id" 2>/dev/null)" = "$SID" ] || { log "fetched files of $(var "$r" VM) are not this session's"
+    fetch_rec "$r" "$how" "$size" "$sha" "$bound" "$n" "$tries" "$secs" "failed: not this session's files"; return 1; }
   log "fetched $(var "$r" VM): out.tgz $got"
+  fetch_rec "$r" "$how" "$size" "$sha" "$bound" "$n" "$tries" "$secs" ok
   return 0
+}
+try_s() { echo $(( FETCH_TRY_BASE_S + (2 * FETCH_RANGE_MIB * 1048576 * FETCH_PARALLEL + FETCH_PLAN_BPS - 1) / FETCH_PLAN_BPS )); }
+fetch_ranges() {   # fetch_ranges <role> <bytes> <bound_s> <dir>: in run_fg's subshell (F7). The ranges of the host's
+  # out.tgz, FETCH_PARALLEL at once, into <dir>/p<index>; 0 when every range came whole within the bound. Its own TERM
+  # (a signal, the cap) ends every range's tunnel first: kill_tree reaches timeout and gcloud there
+  local r=$1 size=$2 bound=$3 dir=$4 n i end running=0 pids=()
+  n=$(( (size + FETCH_RANGE_MIB * 1048576 - 1) / (FETCH_RANGE_MIB * 1048576) )); end=$(( $(date +%s) + bound ))
+  trap 'for p in "${pids[@]}"; do kill_tree "$p"; done; exit 143' TERM HUP INT
+  rm -rf "$dir"; mkdir -p "$dir" || { echo "no folder $dir"; return 1; }
+  for (( i = 0; i < n; i++ )); do
+    while [ "$running" -ge "$FETCH_PARALLEL" ]; do wait -n; running=$(( running - 1 )); done
+    [ -e "$dir/failed" ] && break   # a range failed its tries: the fetch cannot be whole
+    [ "$(date +%s)" -lt "$end" ] || break
+    ( trap 'exit 143' TERM HUP; range_get "$r" "$i" "$size" "$end" "$dir" ) & pids+=("$!"); running=$(( running + 1 ))
+  done
+  wait
+  for (( i = 0; i < n; i++ )); do
+    [ -f "$dir/$(printf 'p%06d' "$i")" ] && continue
+    if [ -e "$dir/failed" ]; then echo "$(head -1 "$dir/failed")"
+    else echo "range $i not read: the fetch's bound of $bound s reached"; fi
+    return 1
+  done
+  echo "$n ranges whole"
+}
+range_get() {   # range_get <role> <index> <bytes> <end>: one range by dd over an IAP tunnel, FETCH_TRIES tries, each
+  # bounded (try_s, cut to the fetch's end) and size-checked; one row per try in fetch_ranges.tsv
+  local r=$1 i=$2 size=$3 end=$4 dir=$5 rb want t to s e got rc res cmd f
+  rb=$(( FETCH_RANGE_MIB * 1048576 )); want=$(( size - i * rb )); [ "$want" -gt "$rb" ] && want=$rb
+  f=$dir/$(printf 'p%06d' "$i")
+  cmd="dd if=\$HOME/da-kit/$SID/out.tgz bs=1M skip=$(( i * FETCH_RANGE_MIB )) count=$FETCH_RANGE_MIB status=none"
+  for (( t = 1; t <= FETCH_TRIES; t++ )); do
+    to=$(( end - $(date +%s) )); [ "$to" -gt "$(try_s)" ] && to=$(try_s)
+    [ "$to" -ge 1 ] || { res="the fetch's bound reached"; break; }
+    echo "$(date -u +%FT%T.%3NZ) + ssh $r: $cmd [timeout $to s]" >> "$CMDS"; [ "$DRY" = 1 ] && say "+ ssh $r: $cmd"
+    s=$(date +%s.%N)
+    # shellcheck disable=SC2046  # iap prints one word
+    timeout "$to" "$GCLOUD" --configuration="$GCLOUD_CONFIGURATION" --project="$(var "$r" PROJECT)" compute ssh \
+      "$(var "$r" VM)" --zone "$(var "$r" ZONE)" $(iap "$r") --ssh-flag=-T --command "$cmd" < /dev/null > "$f.part" 2>> "$dir/stderr.txt"
+    rc=$?; e=$(date +%s.%N); got=$(stat -c %s "$f.part" 2>/dev/null || echo 0)
+    if [ "$got" = "$want" ]; then res=ok; elif [ "$rc" = 124 ]; then res="rc 124"
+    elif [ "$got" -lt "$want" ]; then res=short; else res="size $got"; fi
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$i" "$t" "$s" "$e" "$got" "$want" "$res" >> "$IN/$r/fetch_ranges.tsv"
+    [ "$res" = ok ] && { mv "$f.part" "$f"; return 0; }
+  done
+  rm -f "$f.part"
+  echo "range $i ($want B at $(( i * FETCH_RANGE_MIB )) MiB) failed after $(( t - 1 )) tries: $res" >> "$dir/failed"
+  return 1
 }
 score_down() {   # the S-CORE side, if this session started it and has not stopped it: its stop is its only collector (R8)
   [ -n "$SCORE_UP" ] || return 0
@@ -861,7 +956,7 @@ write_record() {
   CAMCAL_PRECHECK="$CAMCAL_PRECHECK" DISK_RC="${DISK_RC:-}" DISK_LINE="${DISK_LINE:-}" NEED_DISK="${NEED_DISK:-}" \
   NEED_DISK_STAGE="${NEED_DISK_STAGE:-}" RRD_RATE_BPS="$RRD_RATE_BPS" ROLES_ALL="${STARTED[*]}" \
   CHASE="$CHASE" CHASE_COMPLETE="${CHASE_COMPLETE:-}" HERE="$HERE" SCORE_FETCHED="$([[ " $FETCH_OK " == *" score "* ]] && echo 1)" \
-  LOST="${LOST:-}" OWED_TEXT="$(owed)" \
+  LOST="${LOST:-}" OWED_TEXT="$(owed)" FETCH_PARALLEL="$FETCH_PARALLEL" FETCH_RANGE_MIB="$FETCH_RANGE_MIB" \
   RENV="$(for x in $REMOTE_ENV_SET; do n=${x#*:}; printf '%s\t%s\t%s\n' "${x%%:*}" "$n" "${RVAL[$n]}"; done)" python3 - <<'PY'
 import json, os, sys
 e = os.environ
@@ -937,6 +1032,20 @@ if e["KIND"] == "p10-2" and e["NEED_DISK"]:
             "need_bytes": int(e["NEED_DISK"]), "need_stage_bytes": int(e["NEED_DISK_STAGE"]),
             "rc": int(e["DISK_RC"]) if e["DISK_RC"].isdigit() else None,
             "result": dict(w.split("=", 1) for w in words if "=" in w) or None}
+def num(x):
+    return int(x) if x.isdigit() else None
+fetch = {}   # each host's last fetch (F7): ranges through IAP, scp otherwise
+try:
+    for line in open(os.path.join(e["IN"], "fetch.tsv"), encoding="utf-8"):
+        role, method, size, sha, bound, n, tries, secs, result = (line.rstrip("\n").split("\t") + [""] * 9)[:9]
+        d = {"method": method, "bytes": num(size), "sha256": sha or None, "bound_s": num(bound), "result": result}
+        if method == "ranges":
+            d.update({"ranges": num(n), "tries": num(tries), "seconds": num(secs),
+                      "parallel": int(e["FETCH_PARALLEL"]), "range_mib": int(e["FETCH_RANGE_MIB"]),
+                      "ranges_file": role + "/fetch_ranges.tsv"})
+        fetch[role] = d
+except OSError:
+    pass
 renv = {}
 for line in e["RENV"].splitlines():
     role, name, value = (line.split("\t", 2) + ["", ""])[:3]
@@ -955,7 +1064,7 @@ json.dump({"session_id": e["SID"], "kind": e["KIND"], "exit_code": int(e["RC"]),
            "conditional_on_permissive_ivi": e["PERM"] == "1",
            "vm_status_after": dict(x.split("=", 1) for x in e["VM_AFTER"].split() if "=" in x),
            "left_running": e["LEFT"].split(), "exit_code_without_left_running": int(e["RC_STEPS"]),
-           "remote_env": renv, "fetched": e["FETCH_OK"].split(), "not_fetched": not_fetched,
+           "remote_env": renv, "fetched": e["FETCH_OK"].split(), "not_fetched": not_fetched, "fetch": fetch,
            "hosts_lost": hosts_lost,
            "ended_by": e["ENDED_BY"] or None,
            "score_stops": {run: {"step": step, "rc": int(rc) if rc.lstrip("-").isdigit() else None,
