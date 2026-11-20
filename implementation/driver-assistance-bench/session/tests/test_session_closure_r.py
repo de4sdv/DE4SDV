@@ -11,6 +11,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -426,6 +427,8 @@ def _recorder(tmp: Path, *extra: str, **env: str) -> tuple[subprocess.CompletedP
 
 def test_r7_the_recorder_writes_listening_with_the_hero_list_it_took(tmp_path: Path) -> None:
     # the hero appears 2 s after the world answers: the list the recorder took is empty, and it attaches to the hero
+    if shutil.which("ffmpeg") is None:   # the recorder opens ffmpeg (chase_recorder.py:194); gcc13's image has none
+        pytest.skip("ffmpeg is not installed")
     p, out = _recorder(tmp_path, "--max-s", "30", FAKE_HERO_AFTER_S="2")
     assert p.returncode == 0, p.stdout + p.stderr
     lis = json.loads((out / "listening").read_text())

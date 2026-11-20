@@ -40,6 +40,7 @@ TEST_RUNS = "# run_id\trun\nSC-DRIVING-012@20\tr1\nSC-DRIVING-012@20\tr2\nstop\t
 LABELS = ["012_20_r1", "012_20_r2", "stop"]
 STOP_LINE = '{"runTarget":"path_stopped","stopInstantRealNs":1795000012000000000,"stopInstantMonoNs":4321000000,"rc":0}'
 RATE, HOLD, MARGIN = 88000000, 60, 5000000000
+CAP_012_20_S = 60   # SC-DRIVING-012@20's run cap (scenarios.py:135); test_run_setting_caps.py holds it
 
 
 def s1_env(tmp: Path, runs: str = TEST_RUNS, **extra: str) -> dict[str, str]:
@@ -179,7 +180,9 @@ def test_s1_checks_the_disk_before_each_score_start_with_one_runs_need(tmp_path:
     r = s1_run(tmp_path, "--without-guest-host", "--camcal", "settings")
     assert r.rc == 0, r.log
     assert not r.ssh(L4, "start disk_check ")   # no upfront check over every run
-    need = _need(90)   # SC-DRIVING-012@20: run cap 90 s (scenarios.py)
+    # SC-DRIVING-012@20's run cap: scenarios.py:135, printed by run_setting.py SC-DRIVING-012 20kmh (60 s)
+    assert CAP_012_20_S == 60, CAP_012_20_S
+    need = _need(CAP_012_20_S)
     for w in ["calib_steer"] + LABELS:
         (d,) = r.ssh(L4, f"start disk_check_{w} ")
         (s,) = r.ssh(L4, f"start score_start_{w} ")

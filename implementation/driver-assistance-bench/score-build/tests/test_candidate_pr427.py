@@ -30,6 +30,9 @@ CANDIDATE = BENCH / "score-interface" / "candidates" / "pr427"
 P0004 = "0004-de4sdv-port-of-upstream-pr427.diff"
 BASE = "1bfbd6b4"  # the commit this lane started from: the default's contract there is the reference
 
+# the base commit's build script comes from the repository's history; the gcc13 gate's image has no git
+needs_git = pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+
 
 def run(args: list[str], candidate: str | None = None, **kw) -> subprocess.CompletedProcess:
     env = {k: v for k, v in os.environ.items() if not k.startswith("PYTHON") and k != "DA_CANDIDATE"}
@@ -102,6 +105,7 @@ def base_build_script() -> str:
                            "score-build/build_score_bench.sh"], check=True, capture_output=True, text=True).stdout
 
 
+@needs_git
 def test_the_default_bundle_contract_is_unchanged() -> None:
     """Every path the bundle step writes, and where it comes from, is the base commit's (the variant's extra facts go
     through series.sh, behind the candidate guard). The stages' facts directory is $FACTS, which is $ROOT/facts for
@@ -122,6 +126,7 @@ def test_the_default_bundle_contract_is_unchanged() -> None:
     assert extra == ['[ "$DA_CANDIDATE" = pin ] || "$BENCH/score-interface/series.sh" facts "$B/facts"']
 
 
+@needs_git
 def test_the_build_applies_the_candidates_list_in_order() -> None:
     """The base commit applied 0001-0003 by name and the candidate's extras after them; the head applies series.sh's
     list, which for the pin is those three and 0005, and for pr427 puts 0004 before 0005."""
