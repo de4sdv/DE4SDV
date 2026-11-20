@@ -69,10 +69,16 @@ It does not:
 | Front camera 1920 x 1280, fov 50, one image per 0.1 s, upstream's pose | `FRONT_CAMERA`, `FRONT_SENSOR_TICK_S` | model (PSR), pose from upstream's files |
 | Hero `vehicle.lincoln.mkz` | `VEHICLE_CANDIDATES` | brief B7 (the model says only "another vehicle") |
 | Roles `hero` and `front` | `HERO_ROLE`, `CAMERA_ROLE` | bench contract with the adapter and the camera interface |
-| SC-DRIVING-012 at 20 (20-22), 42 (40-42), 60 (58-60) km/h | `scenarios.SETTINGS` | model (NR); the test reads the model file |
+| The seven settings: SC-DRIVING-012 at 20 (20-22), 42 (40-42), 60 (58-60) km/h; SC-DRIVING-013 at 30 (30-32) and 60 (58-60) km/h behind a target at 20 (18-20) km/h; SC-DRIVING-014 at 30 (28-30) km/h; SC-DRIVING-015 at 40 (38-40) km/h behind its vehicle ahead at the same speed | `scenarios.SETTINGS` | model (NR :188-195); the test reads the model file |
+| Judged-run terms for SC-DRIVING-012 and -013 only; the stop run (`stop`) is no run of a setting | `Setting.judgeable`, `evaluate_entry` | model (NR :196-211) |
 | Functional part, TTC 4 s, 0.2 m for 2 s | `scenarios.evaluate_entry` | model (NR) |
+| "Comes to the speed of the target": at rest (stationary target); closing speed <= 0 after it was > 0 (SC-DRIVING-013) | `AT_REST_MPS`, `AT_TARGET_SPEED_CLOSING_MPS` | bench reading |
 | "Travels straight": heading within 2 deg of the target's | `STRAIGHT_HEADING_MAX_DEG` | proposal |
-| Target 150 / 220 / 280 m ahead, run cap 90 s | `Setting` | proposal |
+| Targets 150 / 220 / 280 m (012), 40 / 115 m (013), 30 m (015) ahead; 014's where its site puts it; run caps 60 s (015: 75 s; stop run: 22 s, the path stopped at go + 12 s) | `Setting` | proposal (S1 plan section 3) |
+| Sites `sc014-curve`, `sc015-turnoff` (built by `sites.resolve`, lane A2) | `Setting.site` | lead contract 2 |
+| Road behind a moving target: to where the vehicle, at 1.0 m/s2 to its approach speed, reaches it, plus 40 m | `scenarios.road_needed_m` | proposal |
+| The SC-DRIVING-013 target at 20 km/h from the run's first tick: `enable_constant_velocity` where the API has it, else posed by `set_transform` each tick (physics off; its speed then recorded from the world side's motion) | `TargetMotion` | proposal (S1 plan A3) |
+| `vehiclesAhead`: every vehicle up to 300 m ahead (gap, closing, TTC, needed deceleration, `inLane` by the map lane on the ego's lane ahead, `overlapRatio` across the ego's heading) | `WorldSide.vehicles_ahead` | lead contract 1; `inLane` and `overlapRatio` are bench readings |
 | `speed_limit` at the middle of the tolerance (5.833 m/s at 20 km/h) | `Setting.speed_limit_mps` | proposal |
 | Map Town06_Opt (AdditionalMaps pack), a straight with two lanes in one direction | `DEFAULT_MAP`, `survey` | brief R7, proposal; the map by the real server's survey ("The maps pack") |
 | Calibration tolerances, windows, the 0.5 m offset | `calibration.py` | proposal |
@@ -100,10 +106,18 @@ It does not:
 **ASM-DRIVING-006** (`calib-steer`):
 
 - The hero starts 0.5 m right of its lane center, with no target, and the candidate drives through the adapter.
-- The record (`calibration_steering.json`) gives:
-  - the yaw rate, the least-squares slope of CARLA's yaw over the 3 s after the hero first reaches 2 m/s. CARLA's
-    yaw is clockwise seen from above, so a left turn is a falling yaw;
-  - the offset at the start and at the end;
+- The record (`calibration_steering.json`) gives (the judgement fix of the attempt-3 diagnosis, 2026-11-20):
+  - the judgement from the first tick at the setting's speed (`settledAtS`: the band's low end, 20 km/h), not
+    while the hero still accelerates;
+  - the yaw rate, the least-squares slope of CARLA's yaw over the first window of 3 s, sliding from that tick to
+    the first tick at or across the lane centre, whose slope reaches 0.1 deg/s; the steepest window beside it.
+    CARLA's yaw is clockwise seen from above, so a left turn is a falling yaw;
+  - the offset trend from that tick: its start, the minimum |offset| and when, the first tick at or across the
+    lane centre, and the end;
+  - the cut at the candidate's last command (`cut`): no tick after it is judged, since the world holds the last
+    applied control. The world side has no command record during the run, so its own record is marked
+    `provisional`; the fetched record is judged with the S-CORE side's `out.driving_command` records by
+    `calibration.py steer --world <world.jsonl> --score <score_interface.jsonl> --setting-low-kmh 20 --out <f>`;
   - the mean applied steer;
   - `shown`, true when the turn is left.
 

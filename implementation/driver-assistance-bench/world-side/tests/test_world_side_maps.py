@@ -64,6 +64,8 @@ def test_the_default_map_holds_every_settings_road_on_the_real_server():
     real = json.loads((HERE / "data" / "real_server_straights.json").read_text())["longestStraightM"]
     longest = real.get(ws.DEFAULT_MAP, 0.0)
     for st in scenarios.SETTINGS.values():
+        if st.site is not None:            # a site setting's road is the site's (sites.resolve, lane A2)
+            continue
         need = ws.needed_road_m(st, st.target_ahead_m)
         assert need <= longest, f"{ws.DEFAULT_MAP}: {st.setting_id} needs {need} m, the server has {longest} m"
     assert ws.build_parser().parse_args(["calib-decel", "--run-dir", "x"]).road_m <= longest
