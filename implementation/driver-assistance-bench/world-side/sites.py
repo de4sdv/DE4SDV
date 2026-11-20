@@ -567,6 +567,40 @@ def _start_on_chain(chain, distance, xodr=None, limit=None):
     return None, None, got
 
 
+def target_box_check(xodr, cx, cy, h, half=TARGET_HALF, clearance=TARGET_CLEARANCE_M, cap=5.0, step=0.1):
+    """The stationary target's body (its bounding box, not only its centre; OpenDRIVE frame, heading h) against
+    every road surface of the map: ``clearanceM`` is the largest margin by which the box can grow on every side and
+    still touch no surface lane (0.0 when the box itself touches or overlaps one; ``cap`` when nothing is that
+    near; resolution 0.01 m). ``ok`` needs a clearance of at least ``clearance``; ``reason`` names the surface the
+    box touches or comes within ``clearance`` of."""
+    def hits(m):
+        found = set()
+        for x, y in _box_samples(cx, cy, h, half[0] + m, half[1] + m, step):
+            found.update(xodr.locate(x, y))
+        return sorted(found)
+
+    on = hits(0.0)
+    if on:
+        return {"ok": False, "clearanceM": 0.0, "surfaces": [list(o) for o in on],
+                "reason": "the target's box touches or overlaps " + ", ".join(
+                    f"road {r} lane {l} ({t})" for r, l, t in on)}
+    lo, hi = 0.0, cap
+    if hits(cap):
+        while hi - lo > 0.01:
+            mid = 0.5 * (lo + hi)
+            if hits(mid):
+                hi = mid
+            else:
+                lo = mid
+    near = hits(hi) if hi < cap else []
+    out = {"ok": lo >= clearance - 1e-9, "clearanceM": round(lo, 3), "surfaces": [list(o) for o in near]}
+    if not out["ok"]:
+        out["reason"] = (f"the target's box is {lo:.3f} m from " + ", ".join(f"road {r} lane {l} ({t})"
+                                                                               for r, l, t in near)
+                         + f", under the clearance of {clearance} m")
+    return out
+
+
 # ====================================================================== the site record
 
 
@@ -868,7 +902,7 @@ def build_curve_site(xodr, map_name, props_available, prop_extents, rule="straig
         boxes.append(_box(p[0], p[1], p[2], half_l, half_w))
     # the stationary target on the tangent extension of the lane centre at the entry, outside the road and pipes
     hx, hy, hh = entry[0], entry[1], entry[2]
-    target = None
+    target, first_refusal = None, None
     for k in range(int(5.0 / TARGET_STEP_M), int(80.0 / TARGET_STEP_M)):
         d = k * TARGET_STEP_M
         cx, cy = hx + d * math.cos(hh), hy + d * math.sin(hh)
@@ -877,12 +911,20 @@ def build_curve_site(xodr, map_name, props_available, prop_extents, rule="straig
             continue
         if any(xodr.locate(x, y) for x, y in _box_samples(cx, cy, hh, TARGET_HALF[0] + TARGET_CLEARANCE_M,
                                                           TARGET_HALF[1] + TARGET_CLEARANCE_M)):
+            if first_refusal is None:
+                first_refusal = (d, target_box_check(xodr, cx, cy, hh))
             continue
         target = (d, cx, cy)
         break
     if target is None:
-        raise SiteError("no place for the stationary target on the tangent extension within 80 m of the curve entry")
+        d0, chk = first_refusal or (None, {"reason": "the pipes fill the tangent extension"})
+        raise SiteError("no place for the stationary target on the tangent extension within 80 m of the curve "
+                        f"entry, clear of every road surface by {TARGET_CLEARANCE_M} m (first try at {d0} m: "
+                        f"{chk.get('reason')})")
     d, cx, cy = target
+    box_check = target_box_check(xodr, cx, cy, hh)
+    if not box_check["ok"]:
+        raise SiteError("SC-014 target refused: " + box_check["reason"])
     z = entry[3]
     tbox = _box(cx, cy, hh, TARGET_HALF[0], TARGET_HALF[1])
     # checks: the pipes keep off every driving lane; the target is off the hero's path through the curve
@@ -893,7 +935,9 @@ def build_curve_site(xodr, map_name, props_available, prop_extents, rule="straig
     min_clear = min(_min_dist_box(p, tbox) for p in curve_pts) - EGO_HALF[1]
     gap = d - TARGET_HALF[0] - EGO_HALF[0]
     checks = {
-        "targetOffEveryRoadSurface": True,
+        "targetOffEveryRoadSurface": box_check["clearanceM"] > 0.0,
+        "targetClearanceFromRoadSurfaceM": box_check["clearanceM"],
+        "targetNearestSurface": box_check["surfaces"],
         "targetClearOfPipes": True,
         "pipesOffDrivingLanes": not pipe_on_driving,
         "pipesOnDrivingLanes": pipe_on_driving,

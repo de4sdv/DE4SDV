@@ -134,7 +134,9 @@ def test_the_curve_site_on_a_synthetic_loop():
     assert t["motion"] == "stationary" and t["yaw"] == pytest.approx(0.0, abs=1e-6)
     assert t["y"] == pytest.approx(8.75, abs=1e-6) and t["x"] > 200.0
     # its body, with the clearance, beyond the road edge: the inner rear corner, from the arc's centre (200, 14)
-    hl, hw = sites.TARGET_HALF[0] + sites.TARGET_CLEARANCE_M, sites.TARGET_HALF[1] + sites.TARGET_CLEARANCE_M
+    clearance = 0.5                                                  # the bench's proposal, pinned here
+    assert sites.TARGET_CLEARANCE_M == clearance
+    hl, hw = sites.TARGET_HALF[0] + clearance, sites.TARGET_HALF[1] + clearance
 
     def inner_corner(x):
         return math.hypot(x - hl - 200.0, -t["y"] + hw - 14.0)
@@ -146,6 +148,61 @@ def test_the_curve_site_on_a_synthetic_loop():
     # the pipes on the shoulder, between 24.5 and 25.5 m from the centre
     for p in spec.props:
         assert 24.5 <= math.hypot(p["x"] - 200.0, -p["y"] - 14.0) <= 25.5 or p["x"] < 200.0
+
+
+def _fake_map_of(text, tmp_path, monkeypatch):
+    """The fake server on a map whose OpenDRIVE read is ``text`` (replayed as the fake replays the G4 read)."""
+    path = tmp_path / "synthetic.xodr.xz"
+    with lzma.open(path, "wt", encoding="utf-8") as f:
+        f.write(text)
+    monkeypatch.setitem(carla.REPLAY_XODR, "Town06_Opt", path)
+    _client, world = real_map()
+    return world
+
+
+def _second_road_on_the_tangent(text):
+    """Adds road 2: a 100 m straight with one 6 m driving lane centred on the tangent extension of the loop's
+    outermost lane (OpenDRIVE y -8.75), from x 205 on: every place on that tangent overlaps it."""
+    road2 = ('<road id="2" length="100" junction="-1"><planView><geometry s="0" x="205" y="-5.75" hdg="0" '
+             'length="100"><line/></geometry></planView><lanes><laneSection s="0"><center><lane id="0" '
+             'type="none"/></center><right><lane id="-1" type="driving"><width sOffset="0" a="6.0" b="0" c="0" '
+             'd="0"/></lane></right></laneSection></lanes></road>')
+    return text.replace("</OpenDRIVE>", road2 + "</OpenDRIVE>")
+
+
+def test_a_target_whose_body_would_overlap_a_road_is_refused_with_the_surface_named(tmp_path, monkeypatch):
+    world = _fake_map_of(_second_road_on_the_tangent(_loop_xodr(radius=14.0)), tmp_path, monkeypatch)
+    with pytest.raises(sites.SiteError) as err:
+        sites.resolve(world.get_map(), "sc014-curve", props_available=props(world), prop_extents=prop_extents())
+    text = str(err.value)
+    assert "no place for the stationary target on the tangent extension" in text
+    assert "clear of every road surface by 0.5 m" in text
+    assert "the target's box touches or overlaps road 2 lane -1 (driving)" in text
+
+
+def test_the_target_box_check_reads_the_box_not_the_centre(tmp_path, monkeypatch):
+    world = _fake_map_of(_loop_xodr(radius=14.0), tmp_path, monkeypatch)
+    xodr = sites.Xodr(world.get_map().to_opendrive())
+    hw = sites.TARGET_HALF[1]
+    edge = -(3 * 3.5 + 1.0)                     # the road edge beside the straight, OpenDRIVE y -11.5
+    # in the outermost lane at the curve entry
+    lane = sites.target_box_check(xodr, 200.0, -8.75, 0.0)
+    assert lane["ok"] is False and lane["clearanceM"] == 0.0
+    assert "touches or overlaps road 1 lane -3 (driving)" in lane["reason"]
+    # the centre 0.6 m outside the road edge, the box 0.44 m over it: refused for the box
+    over = sites.target_box_check(xodr, 100.0, edge - 0.6, 0.0)
+    assert over["ok"] is False and over["clearanceM"] == 0.0
+    assert "touches or overlaps road 1 lane -4 (shoulder)" in over["reason"]
+    # the boundary: the box's face on the edge
+    touch = sites.target_box_check(xodr, 100.0, edge - hw, 0.0)
+    assert touch["ok"] is False and touch["clearanceM"] == 0.0
+    assert "touches or overlaps road 1 lane -4 (shoulder)" in touch["reason"]
+    # just inside and just outside the clearance of 0.5 m
+    near = sites.target_box_check(xodr, 100.0, edge - hw - 0.49, 0.0)
+    assert near["ok"] is False and near["clearanceM"] == pytest.approx(0.49, abs=0.011)
+    assert "from road 1 lane -4 (shoulder), under the clearance of 0.5 m" in near["reason"]
+    clear = sites.target_box_check(xodr, 100.0, edge - hw - 0.52, 0.0)
+    assert clear["ok"] is True and clear["clearanceM"] == pytest.approx(0.52, abs=0.011)
 
 
 def test_the_straight_rule_refuses_the_real_map_and_names_the_curve():
@@ -175,6 +232,9 @@ def test_the_curve_site_on_the_real_map_under_the_named_gentle_bend_rule():
     yaw = math.radians(e["yaw"])
     assert abs(-math.sin(yaw) * (t["x"] - e["x"]) + math.cos(yaw) * (t["y"] - e["y"])) < 1e-3
     assert spec.checks["targetNeverInPath"] and spec.checks["targetClearanceFromHeroPathM"] > 0.5
+    # the target's box clear of the outer road edge (road 10's outer shoulder) by the 0.5 m of the proposal
+    assert spec.checks["targetClearanceFromRoadSurfaceM"] >= 0.5
+    assert spec.checks["targetNearestSurface"] == [["10", -7, "shoulder"]]
     assert all(p["blueprint"] in READ["static_prop"] for p in spec.props)
     assert spec.checks["pipesOffDrivingLanes"] and spec.checks["pipesOnDrivingLanes"] == []
 

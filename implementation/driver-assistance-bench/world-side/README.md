@@ -261,7 +261,10 @@ and is listed in the record.
   90 deg, at least 120 m of approach, guard pipes (the server's `static.prop.streetbarrier`: the server lists no
   guard pipe) on the outer shoulder from 10 m before the curve to its end, and a stationary
   `vehicle.tesla.model3` on the tangent extension of the lane centre at the curve entry, its body 0.5 m clear of
-  every road surface and of the pipes. A curve whose outer road edge is also within 25 m ranks first.
+  every road surface and of the pipes. A curve whose outer road edge is also within 25 m ranks first. The target's
+  body is checked as its bounding box (`target_box_check`): a box that touches or overlaps any road surface, or
+  comes within 0.5 m of one, is refused with the surface named; the record keeps the measured clearance
+  (`checks.targetClearanceFromRoadSurfaceM`; 0.586 m from road 10's outer shoulder on the real map).
 - `sc015-turnoff`: a junction lane with a straight and a right-turn connector and at least 200 m of straight
   approach; the target starts 30 m ahead of the hero, accelerates at 1.5 m/s2 to 40 km/h, holds at least 4 s,
   brakes at 2.0 m/s2 to 10 km/h at the junction and turns right at 10 km/h; the hero's lane goes straight on.
@@ -277,7 +280,7 @@ The tests replay the real read (`tests/data/town06_opt_g4_read.json`, `tests/dat
 OpenDRIVE of sha256 a90b6131..., part of CARLA's map content): the fake's `Map.to_opendrive()` gives those bytes
 for Town06_Opt and refuses for a map without a read, and its blueprint library lists the server's 83
 `static.prop.*` names, so an unknown prop is refused. The lane centres of `sites.Xodr` equal the server's own
-waypoints (`tests/data/town06_opt_g4_waypoints_sites.json`) within 1 cm (0.8 mm at most over all 12,958).
+waypoints (`tests/data/town06_opt_g4_waypoints_sites.json`) within 1 cm (0.8 mm at most over 12,956 of the 12,958; two name a lane the section does not hold).
 
 ## Commands on the simulator host (the first closed loop)
 
