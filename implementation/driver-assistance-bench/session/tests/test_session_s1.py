@@ -181,7 +181,7 @@ def test_s1_checks_the_disk_before_each_score_start_with_one_runs_need(tmp_path:
     r = s1_run(tmp_path, "--without-guest-host", "--camcal", "settings")
     assert r.rc == 0, r.log
     assert not r.ssh(L4, "start disk_check ")   # no upfront check over every run
-    need = _need(90)   # SC-DRIVING-012@20: run cap 90 s (scenarios.py)
+    need = _need(60)   # SC-DRIVING-012@20: run cap 60 s (scenarios.py since the S1 build cut the 012 caps from 90 s)
     for w in ["calib_steer"] + LABELS:
         (d,) = r.ssh(L4, f"start disk_check_{w} ")
         (s,) = r.ssh(L4, f"start score_start_{w} ")
