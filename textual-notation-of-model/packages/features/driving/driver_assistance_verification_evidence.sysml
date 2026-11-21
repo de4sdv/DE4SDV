@@ -958,7 +958,7 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * not done; the owner approves any text first (the upstream contact
      * decision of 2026-11-18).
      *
-     * Open for the next session, a bench item that S1 shows (B-1, the bench
+     * Open for the next session, a bench item that S1 shows (B1, the bench
      * finding of 2026-11-21): the second runs of SC-DRIVING-013,
      * SC-DRIVING-013@30/r2 and SC-DRIVING-013@60/r2, ended after 62 ticks at
      * the speed of the target, with the vehicle at 1.3 km/h and the target at

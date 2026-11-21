@@ -229,12 +229,12 @@ def test_the_commanded_deceleration_of_each_run_and_no_run_of_sc_driving_012_bey
 
 
 def test_the_readme_records_the_open_bench_item_b_1():
-    """B-1, the bench finding of 2026-11-21: an open bench item for the next session, stated as observed; the bench
+    """B1, the bench finding of 2026-11-21: an open bench item for the next session, stated as observed; the bench
     is not changed for S1, since that would void the condition of record."""
     counts = _json("drop_counts.json")
     assert {counts[run]["runEnd"]["ticks"] for run in ("013_30_r2", "013_60_r2")} == {62}
     readme = _readme()
-    for phrase in ("## Open bench item B-1",
+    for phrase in ("## Open bench item B1",
                    "The second runs of SC-DRIVING-013, `013_30_r2` and `013_60_r2`, ended after 62 ticks at the "
                    "speed of the target, with the vehicle at 1.3 km/h and the target at 20 km/h.",
                    "At the first tick of each the target was at rest (8e-08 and 8.5e-05 m/s); in the first runs it "

@@ -153,7 +153,7 @@ vehicle achieves a commanded deceleration, so it does not bear on the fails of
 VC-DRIVING-036 and VC-DRIVING-037, which rest on the commanded values (the
 deceleration calibration decision of 2026-11-21).
 
-## Open bench item B-1
+## Open bench item B1
 
 The second runs of SC-DRIVING-013, `013_30_r2` and `013_60_r2`, ended after
 62 ticks at the speed of the target, with the vehicle at 1.3 km/h and the
