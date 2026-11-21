@@ -58,7 +58,7 @@ voids the condition.
 | `analysis_039.generator.json` | Its reduction to the keys the generator reads |
 | `reproduction_044.json` | The desk reproduction of the candidate identity of REQ-DRIVING-044 |
 | `session.json`, `scenario_digests.json` | The session's own record and the digests of the scenario definitions |
-| `drop_counts.json` | The dropped and the received camera images of each run, from its score-interface record |
+| `drop_counts.json` | Where the camera images of each run drop, from its score-interface record, with the run's end and the drops the evaluators count over the whole run |
 | `SHA256SUMS` | The SHA-256 of every file of the fetched session tree, by relative path |
 | `external-media.json` | The recordings and archives of the tree, with identity and retention |
 
@@ -114,6 +114,24 @@ window is the whole run. The drop rule stands (the drop-rule decision of
 2026-11-21). `verdicts.json` also holds readings with the drop rule set aside
 (`measured.withoutDropRule`): they are diagnosis only, never a verdict, and no
 table here or in the model quotes them as one.
+
+## The dropped images
+
+`drop_counts.json` places the `drop.camera_image` events of each run's
+score-interface record by their simulation time (the correction of 2026-11-21:
+the distribution, never a rate). Each judged run drops 23 or 24 images in the
+first 5 s after its first image, 2 to 6 in the last 0.6 s of its image stream,
+which goes on after the run's last world tick until the S-CORE side stops, and
+0 to 3 isolated images in between. The file gives each run's end from
+`run_end.json` and the ticks that `tick_times.csv` records after it.
+
+The case evaluators at `508649ba` judge a criterion over every run in the
+window from the run's first to its last world tick (`world.jsonl`) and count
+each `drop.camera_image` whose simulation time lies in it (`Run.drops_in` in
+`runio_da.py`, `whole_run` in `cases_da.py`): 23 to 25 in each judged run,
+the start-up drops and the isolated drops inside the run, and none of the end
+of the image stream; 32 in the run that stops the path. The records show
+no cause of the drops.
 
 ## Where the rest is retained
 

@@ -12,6 +12,7 @@ does not list passes. Those are for the review of the text.
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
@@ -892,8 +893,9 @@ FILLS = (
     "0.2 m. Of SC-DRIVING-013, the first run at 30 km/h is judged and meets the three criteria, since the candidate "
     "settled at the target's speed and no collision became imminent; the second run at 30 km/h and both runs at 60 "
     "km/h have no functional part and are not judged. VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041, VC-DRIVING-043 "
-    "and VC-DRIVING-044 inconclusive: every run drops about one camera image in 20, and by the rule of phase 8 no run "
-    "whose judged window holds a dropped image is judged; for these cases the window is the whole run. Read with "
+    "and VC-DRIVING-044 inconclusive: every run drops 23 or 24 camera images in the first 5 s after its first image, "
+    "and by the rule of phase 8 no run whose judged window holds a dropped image is judged; for these cases the "
+    "window is the whole run. Read with "
     "that rule set aside, for diagnosis only and as no verdict, VC-DRIVING-038 and VC-DRIVING-044 meet their "
     "criteria in all 14 runs, and VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-043 in the runs of SC-DRIVING-012 and "
     "SC-DRIVING-013. VC-DRIVING-039 a pass, by a desk analysis of the realization in an independent agent session, "
@@ -905,11 +907,13 @@ FILLS = (
     "cases that read them, judge over the whole run and are inconclusive by the rule on dropped images",
     # 4 the additions
     "by the decision of 2026-11-21, a warning and an emergency braking for a stationary vehicle ahead in its lane, "
-    "and a camera path on the S-CORE host that keeps every image, so that the criteria over every run can be judged",
+    "and a camera path that keeps every image from a run's first image on, so that the criteria over every run can be "
+    "judged",
     # 5 what GAP-DRIVING-014 holds after the second slice of phase 10
-    "the readiness items that S1 leaves open: the candidate's cycle on the GPU of the S-CORE host, which drops about "
-    "one camera image in 20, what S1 does not show of the start of the sound on the IVI guest, and the showing of the "
-    "results to the VisionPilot maintainers",
+    "the readiness items that S1 leaves open: the candidate's cycle on the GPU of the S-CORE host, on which every run "
+    "drops 23 or 24 camera images in the first 5 s after its first image and up to 2 more inside the run, with no "
+    "cause shown, what S1 does not show of the start of the sound on the IVI guest, and the showing of the results to "
+    "the VisionPilot maintainers",
     # 6 gapNoSeparateEmergencyFunction
     "VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012 the "
     "candidate commanded no braking before the contact with the stationary target, and VC-DRIVING-041 inconclusive "
@@ -1217,3 +1221,33 @@ def test_the_baseline_states_one_verdict_for_each_case():
         cases = [case for case, value in VERDICTS.items() if value == verdict]
         listed = ", ".join(cases[:-1]) + (" and " if len(cases) > 1 else "") + cases[-1]
         assert f"{listed} {word}" in verdicts, (verdict, listed)
+
+
+#: the drop counts of the evidence directory, which the baseline's figures of the dropped images restate
+DROP_COUNTS = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z" / "drop_counts.json"
+#: the fourteen judged runs of S1, by their label in the drop counts
+JUDGED_RUN_LABELS = ("012_20_r1", "012_20_r2", "012_42_r1", "012_42_r2", "012_60_r1", "012_60_r2", "013_30_r1",
+                     "013_30_r2", "013_60_r1", "013_60_r2", "014_30_r1", "014_30_r2", "015_40_r1", "015_40_r2")
+
+
+def test_the_baseline_states_where_the_images_drop_and_no_rate():
+    """The correction of 2026-11-21: the baseline, the gaps and the guide state where the images drop, as
+    drop_counts.json places them, never a rate, and claim no cause; the addition keeps every image from a run's first
+    image on."""
+    assert DROP_COUNTS.is_file(), "the evidence directory has no drop_counts.json"
+    counts = json.loads(DROP_COUNTS.read_text(encoding="utf-8"))
+    judged = [counts[label] for label in JUDGED_RUN_LABELS]
+    start = " or ".join(str(n) for n in sorted({c["droppedInFirst5s"] for c in judged}))
+    inside = max(len(c["wholeRunWindow"]["isolatedDropsS"]) for c in judged)
+    assert f"every run drops {start} camera images in the first 5 s after its first image" in FILLS[2]
+    assert f"every run drops {start} camera images in the first 5 s after its first image and up to {inside} more " \
+           "inside the run, with no cause shown" in FILLS[5]
+    assert "a camera path that keeps every image from a run's first image on" in FILLS[4]
+    texts = {"framing": _flat(re.sub(r"(?m)^\s*\*\s?", "", _raw())), "guide": _flat(GUIDE.read_text(encoding="utf-8"))}
+    for where, text in texts.items():
+        for retired in ("in 20", "one camera image in", "1 image in", "keeps every image, so that"):
+            assert retired not in text, (where, retired)
+    guide = texts["guide"]
+    assert (f"Every run drops {start} camera images in the first 5 s after its first image, and for the five "
+            "inconclusive cases the judged window is the whole run.") in guide
+

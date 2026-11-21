@@ -79,32 +79,94 @@ def test_the_reduced_analysis_keeps_the_six_attributes_the_outcome_and_a_reason_
     assert "analystIdentity" not in tool.reduce_analysis(missing), "a missing attribute stays missing"
 
 
+def _world(tree: Path, run: str, run_ticks: list[float], settle: int = 10, hold: int = 20,
+           reason: str = "contact with the target") -> None:
+    """The world side's files of one run, in the forms it writes them: world.jsonl with its tick lines among other
+    lines, run_end.json, and tick_times.csv with every tick of the process (the settle ticks before the run, the run's
+    ticks and the ticks it keeps making after the run's end)."""
+    sim = tree / "sim" / "out" / f"world_{run}" / "simulator"
+    sim.mkdir(parents=True)
+    lines = [json.dumps({"event": "start", "data": {}})]
+    lines += [json.dumps({"event": "tick", "t_real_ns": n, "data": {"simTimeS": t, "frame": n}})
+              for n, t in enumerate(run_ticks)]
+    lines.append(json.dumps({"event": "end", "data": {"reason": reason}}))
+    (sim / "world.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    (sim / "run_end.json").write_text(json.dumps({"endReason": reason, "ticks": len(run_ticks)}), encoding="utf-8")
+    step = 0.05
+    rows = [run_ticks[0] - step * (settle - k) for k in range(settle)] + run_ticks
+    rows += [run_ticks[-1] + step * (k + 1) for k in range(hold)]
+    (sim / "tick_times.csv").write_text("sim_time_s,unix_s\n" + "".join(f"{t:.6f},{1000 + t:.6f}\n" for t in rows),
+                                        encoding="utf-8")
+
+
+#: the images of the synthetic run 012_20_r1: every 0.1 s from 10.0 s to 19.9 s, and the drops among them: four in
+#: the first 5 s after the first image, one isolated inside the run, one isolated after the run's last tick and
+#: three in the last second of the image stream, which goes on after the run's end
+IMAGES = [round(10.0 + 0.1 * k, 6) for k in range(100)]
+DROPS = [10.0, 10.1, 10.2, 13.0, 16.0, 18.5, 19.6, 19.7, 19.8]
+RUN_TICKS = [round(9.9 + 0.05 * k, 6) for k in range(143)]          # 9.9 s to 17.0 s
+
+
 def _session_tree(root: Path) -> Path:
     tree = root / "incoming_X"
-    for run, kinds in {"012_20_r1": ["start", "in.candidate_record"] + ["in.camera_image"] * 20
-                       + ["drop.camera_image"] * 3 + ["pass.camera_image"] * 17 + ["out.driving_command"] * 17
-                       + ["pass.camera_image"] * 60 + ["drop.camera_image"],
-                       "stop": ["start"] + ["in.camera_image"] * 5 + ["drop.camera_image"] * 2}.items():
+    events = {"012_20_r1": [{"kind": "start"}, {"kind": "in.candidate_record"}]
+              + [{"kind": "in.camera_image", "sim_s": t} for t in IMAGES]
+              + [{"kind": "drop.camera_image", "sim_s": t} for t in DROPS]
+              + [{"kind": "pass.camera_image", "sim_s": t} for t in IMAGES if t not in DROPS]
+              + [{"kind": "out.driving_command", "issueTime_sim_s": t} for t in IMAGES[:17]],
+              "stop": [{"kind": "start"}] + [{"kind": "in.camera_image", "sim_s": 30.0 + 0.1 * k} for k in range(5)]
+              + [{"kind": "drop.camera_image", "sim_s": t} for t in (30.0, 30.3)]}
+    for run, lines in events.items():
         path = tree / "score" / "out" / f"score_{run}" / "score_side" / "run" / "score" / "score_interface.jsonl"
         path.parent.mkdir(parents=True)
-        lines = [json.dumps({"kind": kind, "sim_s": 10.0 + 0.1 * n}) for n, kind in enumerate(kinds)]
-        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        path.write_text("\n".join(json.dumps(e) for e in lines) + "\n", encoding="utf-8")
+    _world(tree, "012_20_r1", RUN_TICKS)
+    _world(tree, "stop", [round(29.9 + 0.05 * k, 6) for k in range(41)], reason="run cap")
     (tree / "session.json").write_text(json.dumps({"session_id": "X"}), encoding="utf-8")
     (tree / "scenario_digests.json").write_text("{}", encoding="utf-8")
-    (tree / "sim" / "out").mkdir(parents=True)
     (tree / "sim" / "out" / "chase_view.mp4").write_bytes(b"\x00video")
     return tree
 
 
-def test_the_drop_counts_count_the_dropped_and_the_received_images_of_each_run(tmp_path):
-    """Each run's dropped images, those of them within 5 s of simulation time after its first image, and its
-    received images; the other kinds of the record are not counted."""
+def test_the_drop_counts_state_where_in_each_run_the_images_drop(tmp_path):
+    """Each run's dropped images by where they fall: within 5 s of simulation time after its first image, within the
+    last second of its image stream, and isolated in between (seconds after the first image); its received images;
+    the run's end (run_end.json, and the ticks of tick_times.csv after it); and the drops that the evaluators count
+    in a criterion over every run, those whose simulation time lies from the run's first to its last world tick
+    (world.jsonl). The other kinds of the record are not counted (the correction of 2026-11-21: the distribution,
+    never a rate)."""
     tool = _tool()
     counts = tool.drop_counts(_session_tree(tmp_path))
-    assert counts == {"012_20_r1": {"dropped": 4, "droppedInFirst5s": 3, "received": 20,
-                                    "file": "score/out/score_012_20_r1/score_side/run/score/score_interface.jsonl"},
-                      "stop": {"dropped": 2, "droppedInFirst5s": 2, "received": 5,
-                               "file": "score/out/score_stop/score_side/run/score/score_interface.jsonl"}}
+    assert sorted(counts) == ["012_20_r1", "stop"]
+    assert counts["012_20_r1"] == {
+        "file": "score/out/score_012_20_r1/score_side/run/score/score_interface.jsonl",
+        "received": 100, "dropped": 9, "firstImageSimS": 10.0, "lastImageSimS": 19.9,
+        "droppedInFirst5s": 4, "droppedAtStreamEnd": 3, "streamEndDropsWithinS": 0.3, "isolatedDropsS": [6.0, 8.5],
+        "runEnd": {"file": "sim/out/world_012_20_r1/simulator/run_end.json", "endReason": "contact with the target",
+                   "ticks": 143, "tickTimesFile": "sim/out/world_012_20_r1/simulator/tick_times.csv",
+                   "ticksAfterRunEnd": 20},
+        "wholeRunWindow": {"file": "sim/out/world_012_20_r1/simulator/world.jsonl", "firstTickSimS": 9.9,
+                           "lastTickSimS": 17.0, "dropped": 5, "isolatedDropsS": [6.0]},
+    }
+    stop = counts["stop"]
+    assert (stop["dropped"], stop["droppedInFirst5s"], stop["droppedAtStreamEnd"], stop["isolatedDropsS"]) \
+        == (2, 2, 0, []), "a drop within 5 s of the first image is a start-up drop, even near the stream's end"
+    assert stop["streamEndDropsWithinS"] is None
+    assert stop["wholeRunWindow"]["dropped"] == 2 and stop["runEnd"]["endReason"] == "run cap"
+
+
+def test_the_drop_counts_refuse_a_run_whose_world_record_disagrees_with_its_end(tmp_path):
+    """run_end.json's tick count is the number of world ticks; a run without its world files, or whose counts
+    disagree, is refused by name, never counted with a guessed window."""
+    tool = _tool()
+    tree = _session_tree(tmp_path)
+    end = tree / "sim" / "out" / "world_012_20_r1" / "simulator" / "run_end.json"
+    end.write_text(json.dumps({"endReason": "contact with the target", "ticks": 142}), encoding="utf-8")
+    with pytest.raises(ValueError, match="run_end.json"):
+        tool.drop_counts(tree)
+    end.unlink()
+    with pytest.raises(ValueError, match="run_end.json"):
+        tool.drop_counts(tree)
 
 
 def test_the_checksums_cover_every_file_of_the_tree_by_its_relative_path(tmp_path):
@@ -185,7 +247,7 @@ def test_the_refresh_writes_every_derived_file_of_the_evidence_directory(tmp_pat
     assert json.loads((evidence / "analysis_039.generator.json").read_text()) == tool.reduce_analysis(_analysis())
     assert (evidence / "verdicts.json").read_bytes() == (eval_dir / "verdicts.json").read_bytes()
     assert "| VC-DRIVING-036 | REQ-DRIVING-036 |" in (evidence / "README.md").read_text()
-    assert json.loads((evidence / "drop_counts.json").read_text())["stop"]["dropped"] == 2
+    assert json.loads((evidence / "drop_counts.json").read_text()) == tool.drop_counts(tree)
     # a second run changes nothing
     before = {p.name: p.read_bytes() for p in evidence.iterdir()}
     assert tool.main(["--eval-dir", str(eval_dir), "--analysis-039", str(analysis), "--reproduction-044",

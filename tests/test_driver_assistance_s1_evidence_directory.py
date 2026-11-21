@@ -95,12 +95,35 @@ def test_the_checksums_cover_the_session_tree_by_relative_path_and_bind_the_copi
     assert {".mp4", ".png", ".tgz"} <= kinds
 
 
-def test_the_drop_counts_name_each_run_of_s1():
+def test_the_drop_counts_name_each_run_of_s1_and_where_its_images_drop():
+    """Each run's drops by where they fall (the correction of 2026-11-21: the distribution, never a rate): 23 or 24
+    in the first 5 s after the first image of each judged run, a few in the last second of its image stream, which
+    goes on after the run's last world tick, and the isolated ones in between; and the drops that the evaluators
+    count over every run, from the run's first to its last world tick."""
     counts = _json("drop_counts.json")
     assert sorted(counts) == sorted(RUNS)
     for run, count in counts.items():
         assert count["file"] == f"score/out/score_{run}/score_side/run/score/score_interface.jsonl"
+        world = f"sim/out/world_{run}/simulator/"
+        assert count["runEnd"]["file"] == world + "run_end.json"
+        assert count["runEnd"]["tickTimesFile"] == world + "tick_times.csv"
+        assert count["wholeRunWindow"]["file"] == world + "world.jsonl"
+        assert count["dropped"] == (count["droppedInFirst5s"] + count["droppedAtStreamEnd"]
+                                    + len(count["isolatedDropsS"])), run
         assert 0 < count["droppedInFirst5s"] <= count["dropped"] < count["received"], run
+        window = count["wholeRunWindow"]
+        assert set(window["isolatedDropsS"]) <= set(count["isolatedDropsS"]), run
+        assert window["firstTickSimS"] < count["firstImageSimS"] < window["lastTickSimS"], run
+    for run in RUNS[:14]:
+        count = counts[run]
+        assert count["droppedInFirst5s"] in (23, 24), run
+        assert count["lastImageSimS"] > count["wholeRunWindow"]["lastTickSimS"], \
+            f"{run}: the image stream goes on after the run's last world tick"
+        assert count["runEnd"]["ticksAfterRunEnd"] > 0, run
+        # the evaluators count the start-up drops and the isolated drops inside the run, and no drop of the end
+        assert count["wholeRunWindow"]["dropped"] == count["droppedInFirst5s"] + len(
+            count["wholeRunWindow"]["isolatedDropsS"]), run
+        assert 2 <= count["droppedAtStreamEnd"] <= 6 and count["streamEndDropsWithinS"] <= 0.6, run
 
 
 def test_the_readme_table_is_generated_from_the_verdicts():
@@ -137,3 +160,32 @@ def test_the_readme_states_the_condition_of_record_retention_and_no_publication(
                    "No case reads a recording.", "No publication cut exists.",
                    "A maintainer archive is not public evidence."):
         assert phrase in disposition, phrase
+
+
+def test_the_readme_states_where_the_images_drop_as_the_evaluators_count_them():
+    """The correction of 2026-11-21: the README states the distribution of the drops from drop_counts.json, never a
+    rate and no cause, and which of them the evaluators count in a criterion over every run."""
+    counts = _json("drop_counts.json")
+    judged = [counts[run] for run in RUNS[:14]]
+    start = " or ".join(str(n) for n in sorted({c["droppedInFirst5s"] for c in judged}))
+
+    def span(values):
+        return f"{min(values)} to {max(values)}"
+
+    readme = _readme()
+    for phrase in ("## The dropped images",
+                   "the correction of 2026-11-21: the distribution, never a rate",
+                   f"Each judged run drops {start} images in the first 5 s after its first image, "
+                   f"{span([c['droppedAtStreamEnd'] for c in judged])} in the last "
+                   f"{max(c['streamEndDropsWithinS'] for c in judged):g} s of its image stream, which goes on after the "
+                   "run's last world tick until the S-CORE side stops, and "
+                   f"{span([len(c['isolatedDropsS']) for c in judged])} isolated images in between.",
+                   "The case evaluators at `508649ba` judge a criterion over every run in the window from the run's "
+                   "first to its last world tick (`world.jsonl`) and count each `drop.camera_image` whose simulation "
+                   "time lies in it (`Run.drops_in` in `runio_da.py`, `whole_run` in `cases_da.py`): "
+                   f"{span([c['wholeRunWindow']['dropped'] for c in judged])} in each judged run, the start-up drops "
+                   "and the isolated drops inside the run, and none of the end of the image stream; "
+                   f"{counts['stop']['wholeRunWindow']['dropped']} in the run that stops the path.",
+                   "The records show no cause of the drops."):
+        assert phrase in readme, phrase
+    assert not re.search(r"\b(?:1|one) (?:camera )?image in 20\b", readme)

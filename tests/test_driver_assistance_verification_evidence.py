@@ -267,6 +267,62 @@ OUTCOMES = ["passBoundedVerification", "passBoundedValidation", "failObservedBeh
 _NOT_CODE = re.compile(r"/\*.*?\*/|//[^\n]*|\"(?:[^\"\\]|\\.)*\"", re.S)
 
 
+def _seconds(values) -> str:
+    """36.8 and 41.9 s; 36.4, 51.4 and 76.5 s"""
+    text = [f"{v:.1f}" for v in values]
+    return (", ".join(text[:-1]) + " and " + text[-1] if len(text) > 1 else text[0]) + " s"
+
+
+def _span(values) -> str:
+    low, high = min(values), max(values)
+    return f"{low}" if low == high else f"{low} to {high}"
+
+
+def _either(values) -> str:
+    found = sorted(set(values))
+    return " or ".join(str(v) for v in found)
+
+
+def guide_drop_phrase(counts: dict) -> str:
+    """The guide's words for where the images drop, each figure read from drop_counts.json."""
+    judged = [counts[label] for label in RUN_LABELS]
+    return (f"answered no, every run of S1 drops camera images: {_either(c['droppedInFirst5s'] for c in judged)} in "
+            f"the first 5 s after its first image, {_span([c['droppedAtStreamEnd'] for c in judged])} in the last "
+            f"{max(c['streamEndDropsWithinS'] for c in judged):g} s of its image stream, after the run's end, and "
+            f"{_span([len(c['isolatedDropsS']) for c in judged])} isolated ones in between, with no cause shown;")
+
+
+def drop_sentences(counts: dict) -> list[str]:
+    """The sentences of GAP-DRIVING-014 on the dropped camera images, each figure read from drop_counts.json."""
+    judged = [counts[label] for label in RUN_LABELS]
+    isolated = [f"{RUN_LABELS[label]} at {_seconds(counts[label]['isolatedDropsS'])}" for label in RUN_LABELS
+                if counts[label]["isolatedDropsS"]]
+    without = [RUN_LABELS[label] for label in RUN_LABELS if not counts[label]["isolatedDropsS"]]
+    stop, calib = counts["stop"], counts["calib_steer"]
+    inside = "; ".join(f"{RUN_LABELS[label]} {counts[label]['wholeRunWindow']['dropped']}" for label in RUN_LABELS)
+    return [
+        "answered no: the score-interface record of each run of S1 holds dropped camera images, which "
+        "drop_counts.json of the evidence directory places by their simulation time.",
+        f"Each judged run drops {_either(c['droppedInFirst5s'] for c in judged)} images in the first 5 s after its "
+        f"first image; {_span([c['droppedAtStreamEnd'] for c in judged])} in the last "
+        f"{max(c['streamEndDropsWithinS'] for c in judged):g} s of its image stream, which goes on after the run's "
+        "last world tick until the S-CORE side stops; and "
+        f"{_span([len(c['isolatedDropsS']) for c in judged])} isolated images in between: "
+        + ", ".join(isolated) + " after the first image, and none in " + ", ".join(without[:-1]) + " or "
+        + without[-1] + ".",
+        f"The run that stops the path drops {stop['droppedInFirst5s']} in its first 5 s and "
+        f"{stop['droppedAtStreamEnd']} in the last {stop['streamEndDropsWithinS']:g} s of its image stream, which "
+        f"ends at the stop, and the steering calibration run {calib['droppedInFirst5s']} in its first 5 s, "
+        f"{calib['droppedAtStreamEnd']} at the end of its image stream and {len(calib['isolatedDropsS'])} isolated.",
+        "The records show no cause of the drops.",
+        "The evaluators judge a criterion over every run in the window from the run's first to its last world tick "
+        "and count each drop.camera_image whose simulation time lies in it: "
+        f"{_span([c['wholeRunWindow']['dropped'] for c in judged])} in each judged run ({inside}), the start-up drops "
+        "and the isolated drops inside the run and none of the end of the image stream, and "
+        f"{stop['wholeRunWindow']['dropped']} in the run that stops the path;",
+    ]
+
+
 def _code(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
     return _NOT_CODE.sub(lambda match: '""' if match.group().startswith('"') else " ", text)
@@ -727,19 +783,13 @@ def test_the_environment_gap_records_what_s1_shows_of_the_readiness_items_and_st
         positions.append(doc.index(model))
     assert positions == sorted(positions), "the items in their order"
     assert f"S1 answers them so (the environment decision of 2026-11-21, continuing {DECISIONS}):" in doc
-    # the dropped images of each run, as drop_counts.json counts them in the run's score-interface record
-    counts = _evidence("drop_counts.json")
-    judged = [counts[label] for label in RUN_LABELS]
-    per_run = "; ".join(f"{RUN_LABELS[label]} {counts[label]['dropped']} of {counts[label]['received']}"
-                        for label in RUN_LABELS)
-    low, high = min(c["dropped"] for c in judged), max(c["dropped"] for c in judged)
-    early = sorted({c["droppedInFirst5s"] for c in judged})
-    assert (f"the score-interface record of each run of S1 holds dropped camera images, {low} to {high} in each "
-            f"judged run ({per_run}), {counts['stop']['dropped']} of {counts['stop']['received']} in the run that "
-            f"stops the path and {counts['calib_steer']['dropped']} of {counts['calib_steer']['received']} in the "
-            "steering calibration run;") in doc
-    assert (f"in each judged run {' or '.join(str(n) for n in early)} of them fall within 5 s of simulation time "
-            "after its first image and the rest spread over the run") in doc
+    # where the images of each run drop, as drop_counts.json counts them in the run's score-interface record: the
+    # distribution, never a rate, and no cause (the correction of 2026-11-21)
+    for sentence in drop_sentences(_evidence("drop_counts.json")):
+        assert doc.count(sentence) == 1, sentence
+    for retired in ("of them fall within 5 s of simulation time after its first image and the rest spread over",
+                    " of 599;", "in 20", "26 to 30 in each judged run"):
+        assert retired not in doc, retired
     assert SOUND_CAPTURE in doc
     assert ("The gap stays a record of the environment; its disposition is phase 11's. Deferred to phase 11.") in doc
     for retired in ("until the probes run (", "Deferred to that slice.", "which it has not done yet",
@@ -993,6 +1043,9 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
     gap_bullet = section.split("**The test environment**", 1)[1].split("- **", 1)[0]
     for _, phrase in GAP_ITEMS:
         assert phrase in gap_bullet, phrase
+    # where the images drop, from drop_counts.json, never a rate and no cause (the correction of 2026-11-21)
+    assert guide_drop_phrase(_evidence("drop_counts.json")) in gap_bullet
+    assert "most of them in its first 5 s" not in gap_bullet
     # the second slice: the evidence of record, with no value of a verdict written by hand
     assert "This first slice is model only" not in section and "every requirement keeps `NotStarted`" not in section
     evidence = " ".join(raw_section.split("### Phase 10 evidence", 1)[1].split())

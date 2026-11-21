@@ -965,12 +965,14 @@ shape.
   subscriber: shown; the candidate on CARLA 1.0: shown; the typed message of the
   warning request on the guests: shown; the calibration runs of ASM-DRIVING-005
   and ASM-DRIVING-006 came before the first judged run; the S-CORE build's cycle
-  on the host's own GPU: answered no, every run of S1 drops camera images, most
-  of them in its first 5 s; the capture of the start of the sound on the IVI
-  guest: open, the guest records hold no start of the sound; showing the draft
-  and the results to the VisionPilot maintainers: open, not done, and the owner
-  approves any text first. The gap stays a record; Phase 11 decides its
-  disposition. Each probe runs only on the owner's word.
+  on the host's own GPU: answered no, every run of S1 drops camera images: 23 or
+  24 in the first 5 s after its first image, 2 to 6 in the last 0.6 s of its
+  image stream, after the run's end, and 0 to 3 isolated ones in between, with
+  no cause shown; the capture of the start of the sound on the IVI guest: open,
+  the guest records hold no start of the sound; showing the draft and the
+  results to the VisionPilot maintainers: open, not done, and the owner approves
+  any text first. The gap stays a record; Phase 11 decides its disposition. Each
+  probe runs only on the owner's word.
 - **No validation case.** The validation of the needs stays planned in
   Phase 4 (SC-DRIVING-016 to SC-DRIVING-019).
 
@@ -1048,21 +1050,20 @@ framing view shows the decision beside the framing decision it answers.
 - **Evidence and verdicts.** By the decision of 2026-11-21, the judged session
   S1, session 20261121T014447Z at bench commit 508649ba, run on 2026-11-21 on
   the three hosts with 14 judged runs and the run that stops the path, and its
-  records, on the condition that the bench files that ran are byte-identical
-  to those that the second slice of phase 10 merges, the check that the
-  evidence README of that slice states. One verdict for each case, in the
-  table below; each verdict is of the pinned candidate on this bench, in
-  simulation. The runs of SC-DRIVING-014 and SC-DRIVING-015 lie outside the
-  candidate's declared operating conditions and are reported apart: no run of
-  either gives a verdict, since VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041
-  and VC-DRIVING-044, the cases that read them, judge over the whole run and
-  are inconclusive by the rule on dropped images. A fail is a recorded result,
-  and no scenario, criterion or setting is changed for it. The additions named
-  from the requirements that fail and from the gaps: by the decision of
-  2026-11-21, a warning and an emergency braking for a stationary vehicle
-  ahead in its lane, and a camera path on the S-CORE host that keeps every
-  image, so that the criteria over every run can be judged; the increment
-  builds none of them.
+  records, on the condition that the bench files that ran are byte-identical to
+  those that the second slice of phase 10 merges, the check that the evidence
+  README of that slice states. One verdict for each case, in the table below;
+  each verdict is of the pinned candidate on this bench, in simulation. The runs
+  of SC-DRIVING-014 and SC-DRIVING-015 lie outside the candidate's declared
+  operating conditions and are reported apart: no run of either gives a verdict,
+  since VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-044, the
+  cases that read them, judge over the whole run and are inconclusive by the
+  rule on dropped images. A fail is a recorded result, and no scenario,
+  criterion or setting is changed for it. The additions named from the
+  requirements that fail and from the gaps: by the decision of 2026-11-21, a
+  warning and an emergency braking for a stationary vehicle ahead in its lane,
+  and a camera path that keeps every image from a run's first image on, so that
+  the criteria over every run can be judged; the increment builds none of them.
 - **Known limits: accepted, still open.** `gapCandidateBehaviorUnverified`: S1
   gives the first closed-loop results of record of the candidate on the DE4SDV
   bench, and every verdict is of the build with the DE4SDV S-CORE interface
@@ -1073,19 +1074,20 @@ framing view shows the decision beside the framing decision it answers.
   criteria of Phase 5 into the obligations of the product line.
   `gapNoSeparateEmergencyFunction`: whether the candidate's braking, which
   leaves in its one driving command, can stand for the common capability, for
-  the member decision. `gapWarningOutput` and `gapScoreIntegration`: the
-  take-up upstream of the warning hand-off and of the S-CORE interface module.
+  the member decision. `gapWarningOutput` and `gapScoreIntegration`: the take-up
+  upstream of the warning hand-off and of the S-CORE interface module.
   `gapCameraImageAndGeometry`: S1 does not show whether the detection of the
   target at the distances that the criteria need, or the calibration of the
   simulated camera, explains the fails. `gapCandidateAdmission`: the member
-  decision that amends ADR 0014. `gapUpstreamContactAndRights`: at the
-  baseline the maintainers have not seen the results or the draft; no
-  endorsement, no rights clearance. `gapDriverHmiInProductLine`: the display
-  in the governed scope and the acoustic warning. GAP-DRIVING-014: the
-  readiness items that S1 leaves open: the candidate's cycle on the GPU of the
-  S-CORE host, which drops about one camera image in 20, what S1 does not show
-  of the start of the sound on the IVI guest, and the showing of the results
-  to the VisionPilot maintainers.
+  decision that amends ADR 0014. `gapUpstreamContactAndRights`: at the baseline
+  the maintainers have not seen the results or the draft; no endorsement, no
+  rights clearance. `gapDriverHmiInProductLine`: the display in the governed
+  scope and the acoustic warning. GAP-DRIVING-014: the readiness items that S1
+  leaves open: the candidate's cycle on the GPU of the S-CORE host, on which
+  every run drops 23 or 24 camera images in the first 5 s after its first image
+  and up to 2 more inside the run, with no cause shown, what S1 does not show of
+  the start of the sound on the IVI guest, and the showing of the results to the
+  VisionPilot maintainers.
 - **Withdrawn.** None.
 
 | Case | Verdict | What S1 shows |
@@ -1100,15 +1102,16 @@ framing view shows the decision beside the framing decision it answers.
 | VC-DRIVING-043 | inconclusive | No run is judged by the rule on dropped images. |
 | VC-DRIVING-044 | inconclusive | No run is judged by the rule on dropped images. |
 
-Of SC-DRIVING-012 the second run at 20 km/h is not judged (its center line
-0.245 m from the target's, the limit is 0.2 m). Of SC-DRIVING-013 the first run
-at 30 km/h is judged and meets the criteria of VC-DRIVING-036, VC-DRIVING-037
-and VC-DRIVING-042; the other three runs have no functional part and are not
-judged. Every run drops about one camera image in 20, and for the five
-inconclusive cases the judged window is the whole run. Read with that rule set
-aside, for diagnosis only and as no verdict, VC-DRIVING-038 and VC-DRIVING-044
-meet their criteria in all 14 runs, and VC-DRIVING-040, VC-DRIVING-041 and
-VC-DRIVING-043 in the runs of SC-DRIVING-012 and SC-DRIVING-013.
+Of SC-DRIVING-012 the second run at 20 km/h is not judged (its center line 0.245
+m from the target's, the limit is 0.2 m). Of SC-DRIVING-013 the first run at 30
+km/h is judged and meets the criteria of VC-DRIVING-036, VC-DRIVING-037 and
+VC-DRIVING-042; the other three runs have no functional part and are not judged.
+Every run drops 23 or 24 camera images in the first 5 s after its first image,
+and for the five inconclusive cases the judged window is the whole run. Read
+with that rule set aside, for diagnosis only and as no verdict, VC-DRIVING-038
+and VC-DRIVING-044 meet their criteria in all 14 runs, and VC-DRIVING-040,
+VC-DRIVING-041 and VC-DRIVING-043 in the runs of SC-DRIVING-012 and
+SC-DRIVING-013.
 
 No safety, on-road, compliance, type-approval, certification or membership
 claim follows from the baseline. A criterion met in simulation holds for the

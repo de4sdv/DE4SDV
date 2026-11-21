@@ -917,17 +917,32 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * calib_steer); what they show is in the values of VC-DRIVING-036 and
      * VC-DRIVING-037; whether the S-CORE host's own GPU keeps the candidate's
      * cycle with the S-CORE build: answered no: the score-interface record of
-     * each run of S1 holds dropped camera images, 26 to 30 in each judged run
-     * (SC-DRIVING-012@20/r1 30 of 599; SC-DRIVING-012@20/r2 27 of 589;
-     * SC-DRIVING-012@42/r1 29 of 341; SC-DRIVING-012@42/r2 27 of 583;
-     * SC-DRIVING-012@60/r1 26 of 336; SC-DRIVING-012@60/r2 28 of 343;
-     * SC-DRIVING-013@30/r1 27 of 597; SC-DRIVING-013@30/r2 28 of 82;
-     * SC-DRIVING-013@60/r1 28 of 329; SC-DRIVING-013@60/r2 26 of 84;
-     * SC-DRIVING-014@30/r1 27 of 314; SC-DRIVING-014@30/r2 28 of 786;
-     * SC-DRIVING-015@40/r1 30 of 788; SC-DRIVING-015@40/r2 28 of 788), 32 of
-     * 161 in the run that stops the path and 43 of 868 in the steering
-     * calibration run; in each judged run 23 or 24 of them fall within 5 s of
-     * simulation time after its first image and the rest spread over the run;
+     * each run of S1 holds dropped camera images, which drop_counts.json of the
+     * evidence directory places by their simulation time. Each judged run drops
+     * 23 or 24 images in the first 5 s after its first image; 2 to 6 in the
+     * last 0.6 s of its image stream, which goes on after the run's last world
+     * tick until the S-CORE side stops; and 0 to 3 isolated images in between:
+     * SC-DRIVING-012@20/r1 at 36.8 and 41.9 s, SC-DRIVING-012@42/r2 at 26.4 s,
+     * SC-DRIVING-012@60/r2 at 15.7 and 32.0 s, SC-DRIVING-013@30/r1 at 31.6 s,
+     * SC-DRIVING-014@30/r1 at 21.5 s, SC-DRIVING-014@30/r2 at 26.4 and 61.5 s,
+     * SC-DRIVING-015@40/r1 at 36.4, 51.4 and 76.5 s, SC-DRIVING-015@40/r2 at
+     * 41.4 and 76.5 s after the first image, and none in SC-DRIVING-012@20/r2,
+     * SC-DRIVING-012@42/r1, SC-DRIVING-012@60/r1, SC-DRIVING-013@30/r2,
+     * SC-DRIVING-013@60/r1 or SC-DRIVING-013@60/r2. The run that stops the path
+     * drops 24 in its first 5 s and 8 in the last 0.8 s of its image stream,
+     * which ends at the stop, and the steering calibration run 34 in its first
+     * 5 s, 3 at the end of its image stream and 6 isolated. The records show no
+     * cause of the drops. The evaluators judge a criterion over every run in
+     * the window from the run's first to its last world tick and count each
+     * drop.camera_image whose simulation time lies in it: 23 to 25 in each
+     * judged run (SC-DRIVING-012@20/r1 24; SC-DRIVING-012@20/r2 24;
+     * SC-DRIVING-012@42/r1 23; SC-DRIVING-012@42/r2 24; SC-DRIVING-012@60/r1
+     * 23; SC-DRIVING-012@60/r2 24; SC-DRIVING-013@30/r1 25;
+     * SC-DRIVING-013@30/r2 24; SC-DRIVING-013@60/r1 24; SC-DRIVING-013@60/r2
+     * 24; SC-DRIVING-014@30/r1 25; SC-DRIVING-014@30/r2 24;
+     * SC-DRIVING-015@40/r1 25; SC-DRIVING-015@40/r2 24), the start-up drops and
+     * the isolated drops inside the run and none of the end of the image
+     * stream, and 32 in the run that stops the path;
      *
      * the capture of the start of the sound on the IVI guest: open. The guest
      * records of S1 hold no start of the sound: in every run the warning
