@@ -1,6 +1,20 @@
 # Driver-assistance bench (INC-DRIVING-002)
 
-Status: under construction, not yet validated. Nothing in this folder has run on the bench yet.
+Status: under construction, not yet validated. Four sessions have run on the bench (`session/README.md`), each at the
+bench commit named:
+
+- p10-3 run 2 (SID 20261119T130414Z, 2026-11-19, `410293bb`): 21 of 21 test requests received on the IVI guest,
+  conditional on a permissive IVI.
+- p10-1 try 4 (SID 20261119T160111Z, 2026-11-19, `eae0a6ef`): C1 to C4, C6 and C7 met; C5 and C8 not run by design.
+- p10-2 attempt 3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`): both SC-DRIVING-012@20 runs judged; a fail of the
+  pinned candidate.
+- The judged session S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`): the 14 runs of SC-DRIVING-012 to -015 and the
+  stop run, exit 0. VC-DRIVING-036, -037 and -042 fail. VC-DRIVING-039 passes by a desk analysis of the realization.
+  VC-DRIVING-038, -040, -041, -043 and -044 are inconclusive: each run drops 23-24 camera images in its first 5 s and
+  0-2 isolated images later, although the warm start of D-S1-1 ran (2 passes, about 0.68 s).
+
+A fail is a fail of the pinned candidate on this bench in simulation. No outcome is a compliance claim. The evidence
+records and the case statuses come in the phase 10 evidence pull request.
 
 INC-DRIVING-002 judges VisionPilot at `014e0e7a56ee8e597c2cab8175233f74edd9b856` on the Eclipse S-CORE path. The
 bench has three hosts:
@@ -30,3 +44,4 @@ phase 10 verification cases. The guide is `docs/guides/driver-assistance-increme
 | `world-side/` | The simulator host's world side on CARLA 1.0: SC-DRIVING-012 with its entry-condition checks and setting records, the ASM-DRIVING-005/006 calibrations, the camera calibration file and the session entries (`scripts/`) |
 | `session/` | The bench session orchestrator: starts the simulator, S-CORE and guest hosts in order, runs each host's steps, stops everything it started, against a cost cap |
 | `recording/` | The chase-view recorder, the IVI display capture with its clock, and the side-by-side composition of the two captures |
+| `case-evaluators/` | The evaluators of the S1 verification cases: they read one fetched S1 session and give VC-DRIVING-036 to -038 and -040 to -044 their outcomes and each run its evidence record; the contract of the records they read (`OBSERVABLES.md`) |

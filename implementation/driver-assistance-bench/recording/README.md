@@ -1,6 +1,10 @@
 # Bench recording (INC-DRIVING-002)
 
-Status: draft, not yet validated. Only the local tests below have run; nothing here has recorded a bench run.
+Status: draft, not yet validated. Beyond the local tests below, the display capture recorded the window of p10-3 run 2
+(SID 20261119T130414Z, 2026-11-19, `410293bb`), and the chase-view recorder and the display capture recorded every run
+of p10-2 attempt 3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`) and of S1 (SID 20261121T014447Z, 2026-11-21,
+`508649ba`). The display capture's results are conditional on a permissive IVI. The composition ran on two S1 runs,
+`012_42_r1` and `013_30_r1`.
 
 ## The problem
 
@@ -183,7 +187,8 @@ it before that session:
    evidence, with the date and the session id.
 5. Stop the guests (`cvd stop`, no crosvm left), then the host.
 
-What only a real multi-segment run on the IVI guest can show (p10-2's first run): the adb round trip and the
+What only a real multi-segment run on the IVI guest can show (no window so far: each window of p10-3 run 2, p10-2
+attempt 3 and S1 recorded one segment): the adb round trip and the
 encoder start, so the real `unrecorded_max_s`; whether the background pull costs the recording frames (compare the
 within-segment holds the composer lists with the pull times in `pulls.jsonl`); the real pull rate; and `/data`'s
 free space. p10-3's single short window shows none of these: it has no boundary.

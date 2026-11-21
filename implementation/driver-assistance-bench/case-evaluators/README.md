@@ -5,7 +5,13 @@ The evaluators judge the records of one S1 session against the success criteria 
 fetched session tree as it is; they do not run the bench. REQ-DRIVING-039 is an analysis of the realization and has
 no evaluator here.
 
-Status: draft, not yet validated against a full S1 session. No outcome here is an approval or a compliance claim.
+Status: draft, not yet validated. The evaluators at `44fe1608` judged S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`)
+on 2026-11-21, with the VC-DRIVING-044 desk record: VC-DRIVING-036, -037 and -042 fail; VC-DRIVING-038, -040, -041, -043
+and -044 are inconclusive, because each run's judged window holds dropped camera images. Four of the 14 runs are not
+judged runs by their entry conditions (`012_20_r2`, `013_30_r2`, `013_60_r1`, `013_60_r2`). VC-DRIVING-039 passes by a
+desk analysis, outside these evaluators. A fail is a fail of the pinned candidate on this bench in simulation. No
+outcome here is an approval or a compliance claim. The evidence records and the case statuses come in the phase 10
+evidence pull request.
 
 ## Files
 

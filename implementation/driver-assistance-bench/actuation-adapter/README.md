@@ -1,7 +1,10 @@
 # Actuation adapter (INC-DRIVING-002)
 
-Status: draft, not yet validated. The host's unit tests pass; nothing here has run against CARLA or
-S-CORE.
+Status: draft, not yet validated. The host's unit tests pass. The adapter has run on the S-CORE host against CARLA 1.0:
+in p10-1 try 4 (SID 20261119T160111Z, 2026-11-19, `eae0a6ef`) it accepted 108 of the candidate's 109 driving commands
+(C4), and the Launch Manager ended it with the stalled candidate (C3); in p10-2 attempt 3 (SID 20261120T092051Z,
+2026-11-20, `39a964a2`) and in S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`) it applied the candidate's commands in
+every run.
 
 ## The problem
 

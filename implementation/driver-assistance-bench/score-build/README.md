@@ -1,19 +1,24 @@
 # S-CORE build of VisionPilot (build item B2)
 
-Status: draft, not yet validated. The scripts have not run on any VM yet. Only the local checks in `tests/` have run.
+Status: draft, not yet validated. Beyond the local checks in `tests/`, `build_score_bench.sh` and
+`install_gpu_runtime.sh` ran on the S-CORE host (L4): `=== BUILD OK` and `GPU RUNTIME OK` first on 2026-11-18 at
+`6ed06a13`, and on 2026-11-19 at `eae0a6ef` for the bundle of p10-1 try 4. The p10-1 check ran in p10-1 try 4 (SID
+20261119T160111Z, 2026-11-19, `eae0a6ef`): C1 to C4, C6 and C7 met; C5 and C8 not run by design.
+`fallback_cmake_build.sh` has not run.
 
 ## The problem
 
 INC-DRIVING-002 runs VisionPilot at `014e0e7a56ee8e597c2cab8175233f74edd9b856` as one Eclipse S-CORE application on
 the S-CORE host. That process links mw::com, the CARLA 1.0 C++ client, ONNX Runtime with its CUDA provider, OpenCV
-and the Rerun SDK (PSR `VisionPilotSCOREApplication`). Two gaps stand before the first closed loop:
+and the Rerun SDK (PSR `VisionPilotSCOREApplication`). Two gaps stood before the first closed loop, and the build
+runs above closed both:
 
-- No probe has built VisionPilot itself under S-CORE. The readiness probe of 2026-11-15 (its runs e and h) linked only a probe
+- No probe had built VisionPilot itself under S-CORE. The readiness probe of 2026-11-15 (its runs e and h) linked only a probe
   binary with those libraries. The VIS8 probe used upstream's Docker and CMake build.
 - The supervision decision of 2026-11-18 keeps VisionPilot a native process under the Launch Manager, not a
-  container. Every GPU run so far took its CUDA runtime from upstream's container image. The S-CORE host has none.
+  container. Every GPU run until then took its CUDA runtime from upstream's container image. The S-CORE host had none.
 
-This folder holds the build and the GPU runtime for the S-CORE host. The first probe on the S-CORE host and the first closed-loop probe need both.
+This folder holds the build and the GPU runtime for the S-CORE host. The first probe on the S-CORE host and the first closed-loop probe needed both.
 
 ## What is here
 

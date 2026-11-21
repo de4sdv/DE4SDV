@@ -1,6 +1,9 @@
 # Test publisher of the warning request (p10-3)
 
-Status: draft, not yet validated. Only the host's tests in `tests/` have run.
+Status: draft, not yet validated. Beyond the host's tests in `tests/`, the publisher ran on the S-CORE host in p10-3 run
+2 (SID 20261119T130414Z, 2026-11-19, `410293bb`): the IVI guest received 21 of its 21 test requests (conditional on a
+permissive IVI). In p10-1 try 4 (SID 20261119T160111Z, 2026-11-19, `eae0a6ef`) it gave C5's three sends; C5 is not run
+by design.
 
 ## The problem
 

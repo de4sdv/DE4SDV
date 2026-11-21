@@ -1,6 +1,11 @@
 # DE4SDV S-CORE interface for VisionPilot
 
-Status: draft, not yet validated. Nothing here has run on the bench. The S-CORE build has not compiled any of it yet.
+Status: draft, not yet validated. The S-CORE build (`../score-build/`) has compiled and linked this module into
+VisionPilot on the S-CORE host since 2026-11-18, and the candidate has run on the bench with it. In p10-1 try 4 (SID
+20261119T160111Z, 2026-11-19, `eae0a6ef`) it sent 109 driving commands (C4), and its first pass took 1749.2 ms (C6). In
+p10-2 attempt 3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`) and S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`) it
+drove every run. In S1 the warm start of patch 0005 ran in every run (2 passes, about 0.68 s), and each run still
+dropped 23-24 camera images in its first 5 s and 0-2 isolated images later.
 
 ## The problem
 
@@ -143,15 +148,15 @@ order drops 11 of 100 images, the warm start none. 0005's lines in `vision_pilot
 0004 still applies on 0003 as it was made, and 0005's hunks, which lie before 0004's in `vision_pilot.cpp`, apply on
 either (`check_patch.sh` re-creates 0005's body on top of 0004 except its `index` lines).
 
-## What is not compiled yet
+## What the local checks do not compile
 
 - `module/src/lola_bindings.cpp` holds the mw::com skeletons and the proxy. It needs the S-CORE Communication headers.
   Here it only passes a syntax check against the closed-loop driving bench's local mock, which is not S-CORE.
 - `module/src/carla_client.cpp` is the one C++20 unit; it needs the CARLA 1.0 client. Nothing here compiles it.
 - `module/src/lifecycle_bindings.cpp` needs S-CORE Lifecycle. Here it only passes a syntax check against
   declarations of the Lifecycle v0.10.0 API in `../launch-manager/tests/lifecycle_mock/`, which are not S-CORE code.
-- The patched VisionPilot as a whole has not been built or linked. The three binding units are left to the S-CORE Bazel
-  build, item B2 of the implementation brief.
+- The local checks do not build or link the patched VisionPilot as a whole. The S-CORE Bazel build, item B2 of the
+  implementation brief, builds it with the three binding units (status above).
 
 `check_patch.sh` can run a syntax check of the patched `vision_pilot.cpp` and `vision_pilot_config.cpp`, with the
 macro and without it. That check needs OpenCV, ONNX Runtime and Eigen headers.

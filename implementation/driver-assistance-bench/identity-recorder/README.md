@@ -1,7 +1,11 @@
 # Identity recorder (build item B4)
 
-Status: draft, not yet validated. Nothing here has run on the S-CORE host. Only the host's tests in `tests/` have
-run.
+Status: draft, not yet validated. Beyond the host's tests in `tests/`, the recorder has run on the S-CORE host. In p10-1
+try 4 (SID 20261119T160111Z, 2026-11-19, `eae0a6ef`) it reported running before `vision_pilot` and `actuation_adapter`
+started (C1), and the late subscriber got its record 3632 ms after the first publication (C7). In S1 (SID
+20261121T014447Z, 2026-11-21, `508649ba`) it wrote a candidate record in each of the 16 runs (the steering calibration,
+the 14 runs and the stop run). VC-DRIVING-044, which reads the record, is inconclusive in S1: every run dropped camera
+images.
 
 ## The problem
 

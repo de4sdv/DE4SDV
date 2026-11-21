@@ -1,6 +1,11 @@
 # Driver-assistance bench: interface control (INC-DRIVING-002)
 
-Status: draft, not yet validated. No message below has run on the bench yet.
+Status: draft, not yet validated. The three messages below have run on the bench: the warning request from the test
+publisher to the IVI app in p10-3 run 2 (SID 20261119T130414Z, 2026-11-19, `410293bb`), 21 of 21 received (conditional
+on a permissive IVI); the driving command and the candidate record in p10-1 try 4 (SID 20261119T160111Z, 2026-11-19,
+`eae0a6ef`), where C4 counted 109 commands sent and 108 accepted and C7's late subscriber got the record; and all three
+in p10-2 attempt 3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`) and S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`),
+with the candidate as the publisher of the warning request and the driving command.
 
 The SysML model is the authority. These are the signal mappings of
 `textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml`
