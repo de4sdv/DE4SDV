@@ -151,15 +151,17 @@ def test_p1_the_bench_readme_scopes_the_drops_to_the_runs_they_hold_for() -> Non
     assert f"(SID 20261121T014447Z, 2026-11-21, `508649ba`): {FOURTEEN_RUNS} and the stop run, exit 0." in text
     assert ("VC-DRIVING-038, -040, -041, -043 and -044 are inconclusive, although the warm start of D-S1-1 ran in all "
             f"16 runs, the steering calibration run among them ({WARM_START}): each of the 14 runs drops 23 or 24 "
-            "camera images in its first 5 s and 0 to 2 isolated images later. The stop run " + STOP_RUN_DROPS) in text
+            "camera images in its first 5 s and 0 to 2 isolated images later, up to the run's end (its last tick). "
+            "The stop run " + STOP_RUN_DROPS) in text
 
 
 def test_p1_the_interface_readme_states_the_calibration_and_the_stop_run_apart() -> None:
     text = _flat(INTERFACE_README)
     assert "each run still dropped" not in text
     assert (f"In S1 the warm start of patch 0005 ran in all 16 runs ({WARM_START}). Each of {FOURTEEN_RUNS} still "
-            "drops 23 or 24 camera images in its first 5 s and 0 to 2 isolated images later. The steering "
-            "calibration run drops 34 in its first 5 s and 4 later. The stop run " + STOP_RUN_DROPS) in text
+            "drops 23 or 24 camera images in its first 5 s and 0 to 2 isolated images later, up to the run's end "
+            "(its last tick). The steering calibration run drops 34 in its first 5 s and 4 later, up to its end. "
+            "The stop run " + STOP_RUN_DROPS) in text
 
 
 def test_p5_every_bench_markdown_file_gives_the_warm_start_s1_logged() -> None:
