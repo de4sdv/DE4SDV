@@ -632,7 +632,8 @@ def test_fetch_chase_a_term_during_the_ranges_ends_every_tunnel_and_stops_the_ho
                          stderr=subprocess.STDOUT, text=True, start_new_session=True)
 
     def tunnels() -> list[str]:
-        ps = subprocess.run(["ps", "-eo", "args"], capture_output=True, text=True).stdout.splitlines()
+        # -ww: whole lines, whatever $COLUMNS this process inherits (score-path/tests/test_process_listing_width.py)
+        ps = subprocess.run(["ps", "-ww", "-eo", "args"], capture_output=True, text=True).stdout.splitlines()
         # the fake gcloud of each tunnel, not its timeout
         return [x for x in ps if "--command dd if=$HOME/da-kit/S1TERMX/out/rec_t/" in x and "fake_gcloud" in x
                 and not x.startswith("timeout")]
