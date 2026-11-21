@@ -580,6 +580,12 @@ Rules behind every block, from the second review of the session runner (S3, S4):
   that SIGKILLs at a stop time-out: a SIGKILL skips the trap, leaves the VMs running and writes no `session.json`.
 - Linger is on for the lead's user (`loginctl show-user mrk -p Linger` gives `Linger=yes`), so the unit outlives the
   lead's login.
+- Launch from a host whose `date` is GNU coreutils (the lead host's is 8.32). The session prints milliseconds with
+  `date +%3N`: in commands.log, in `preempted_at`, and in the two times it compares to tell whether a step failed
+  before or after a host was lost. uutils coreutils' `date` 0.10.0 prints `%3N` without the fraction's leading
+  zeros (.094 s as ".940"), and so does CI's ubuntu-26.04 image. There such a time reads up to just under a second
+  late, and a failure and a loss in the same second can read in the wrong order. The next bench change takes these
+  times without `%3N`.
 
 Once, before the first real session, read-only: the real gcloud works from a clean environment.
 
