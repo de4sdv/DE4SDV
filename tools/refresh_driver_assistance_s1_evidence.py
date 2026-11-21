@@ -18,7 +18,8 @@ desk record or the fetched session tree, and then the model text that the eviden
 - ``ackermann_gains.json``, the Ackermann gains that VC-DRIVING-036 and VC-DRIVING-037 record, which the
   generator names by identity instead of copying them into the model;
 - ``commanded_deceleration.json``, the strongest deceleration among the driving commands that the actuation adapter
-  of each run accepted;
+  of each run accepted, and for each run of SC-DRIVING-012 the speed that those commands, fully achieved, would have
+  taken off before the contact with the target, at most, with the method stated in the file;
 - ``SHA256SUMS``, the SHA-256 of every file of the session tree, by its path relative to the tree, and
   ``external-media.json``, the recordings and archives of the tree with their identity and retention;
 - the verdict table of ``README.md``, between its two markers;
@@ -34,6 +35,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import math
 import re
 import shutil
 import subprocess
@@ -168,9 +170,63 @@ def drop_counts(tree: Path) -> dict:
     return counts
 
 
+#: how commanded_deceleration.json bounds, for each run of SC-DRIVING-012, what the commanded decelerations could
+#: have taken off the speed before the contact
+CONTACT_METHOD = (
+    "strongestDecelerationMps2 is the strongest deceleration among the driving commands that the actuation adapter "
+    "accepted (in.driving_command with verdict accepted in actuationAdapter.jsonl), in m/s², rounded to three "
+    "decimals. For each run of SC-DRIVING-012, beforeContact: the contact is the first tick of the run's world.jsonl "
+    "whose collisions is not empty or whose targetContact is true (contactFrame, contactSimS); "
+    "speedOnTickBeforeContactKmh is ego.speedMps on the tick before it, in km/h. Each accepted command is held until "
+    "the next accepted command, from its issueTime_sim_s on, and the last one before the contact until the contact; "
+    "speedReductionIfAchievedKmh integrates the decelerations of these commands (their negative accelerations only) "
+    "up to the contact, as if the vehicle had fully achieved them, in km/h, rounded to four decimals, and "
+    "speedReductionBoundKmh is that integral rounded up to one decimal, so that it stays a bound on what the "
+    "commanded decelerations could have taken off the speed before the contact. "
+    "lastNegativeCommandBeforeContactS is the time from the issueTime_sim_s of the last accepted command before the "
+    "contact that holds a deceleration to the contact, in seconds of simulation time (null when no such command "
+    "comes before the contact).")
+#: the runs whose commanded decelerations are bounded up to the contact with the stationary target
+CONTACT_RUNS = "012_"
+
+
+def _contact(tree: Path, run: str, commands: list[tuple[float, float]]) -> dict:
+    """The bound of one run of SC-DRIVING-012, from its world.jsonl and its accepted commands (issue time,
+    acceleration), as CONTACT_METHOD states it; refused when the run has no world record or no contact."""
+    path = Path(tree) / WORLD_DIR.format(run=run) / "world.jsonl"
+    if not path.is_file():
+        raise ValueError(f"run {run}: no {path.relative_to(tree).as_posix()} to find the contact in")
+    ticks = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            event = json.loads(line)
+            if event.get("event") == "tick":
+                ticks.append(event["data"])
+    ticks.sort(key=lambda data: float(data["simTimeS"]))
+    k = next((i for i, data in enumerate(ticks) if data.get("collisions") or data.get("targetContact")), None)
+    if k is None or k == 0:
+        raise ValueError(f"run {run}: no contact after the first tick of {path.relative_to(tree).as_posix()}")
+    contact = float(ticks[k]["simTimeS"])
+    before = sorted((t, a) for t, a in commands if t < contact)
+    reduction = 0.0
+    for i, (t, a) in enumerate(before):
+        until = before[i + 1][0] if i + 1 < len(before) else contact
+        if a < 0:
+            reduction += -a * (until - t)
+    negative = [t for t, a in before if a < 0]
+    kmh = reduction * 3.6
+    return {"worldFile": path.relative_to(tree).as_posix(), "contactFrame": ticks[k].get("frame"),
+            "contactSimS": round(contact, 3),
+            "speedOnTickBeforeContactKmh": round(float(ticks[k - 1]["ego"]["speedMps"]) * 3.6, 3),
+            "lastNegativeCommandBeforeContactS": round(contact - negative[-1], 3) if negative else None,
+            "speedReductionIfAchievedKmh": round(kmh, 4),
+            "speedReductionBoundKmh": math.ceil(round(kmh, 9) * 10) / 10}
+
+
 def commanded_deceleration(tree: Path) -> dict:
-    """Run label -> the driving commands that the actuation adapter accepted (in.driving_command with verdict
-    accepted) and the strongest deceleration among them, m/s² (None when no accepted command decelerates)."""
+    """The method (CONTACT_METHOD) and, by run label, the driving commands that the actuation adapter accepted
+    (in.driving_command with verdict accepted), the strongest deceleration among them, m/s² (None when no accepted
+    command decelerates), and for a run of SC-DRIVING-012 its bound up to the contact (beforeContact)."""
     found = {}
     for path in sorted(Path(tree).glob(ACTUATION_ADAPTER.format(run="*"))):
         run = path.relative_to(tree).parts[2][len("score_"):]
@@ -181,11 +237,13 @@ def commanded_deceleration(tree: Path) -> dict:
             event = json.loads(line)
             data = event.get("data") or {}
             if event.get("event") == "in.driving_command" and data.get("verdict") == "accepted":
-                accepted.append(float(data["acceleration"]))
-        decelerations = [-a for a in accepted if a < 0]
+                accepted.append((float(data["issueTime_sim_s"]), float(data["acceleration"])))
+        decelerations = [-a for _, a in accepted if a < 0]
         found[run] = {"file": path.relative_to(tree).as_posix(), "acceptedCommands": len(accepted),
                       "strongestDecelerationMps2": round(max(decelerations), 3) if decelerations else None}
-    return found
+        if run.startswith(CONTACT_RUNS):
+            found[run]["beforeContact"] = _contact(tree, run, accepted)
+    return {"method": CONTACT_METHOD, "runs": found}
 
 
 def _generator():
@@ -327,6 +385,11 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as exc:
         print(f"refused: drop_counts.json: {exc}", file=sys.stderr)
         return 3
+    try:
+        decelerations = commanded_deceleration(args.session_tree)
+    except ValueError as exc:
+        print(f"refused: commanded_deceleration.json: {exc}", file=sys.stderr)
+        return 3
     for name, source in sources.items():
         _write(out / name, source.read_bytes())
     full = json.loads(args.analysis_039.read_text(encoding="utf-8"))
@@ -335,7 +398,7 @@ def main(argv: list[str] | None = None) -> int:
            (json.dumps(reduced, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     _write(out / "drop_counts.json", (json.dumps(drops, indent=2) + "\n").encode("utf-8"))
     _write(out / "commanded_deceleration.json",
-           (json.dumps(commanded_deceleration(args.session_tree), indent=2) + "\n").encode("utf-8"))
+           (json.dumps(decelerations, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     _write(out / "SHA256SUMS", sha256sums(args.session_tree).encode("utf-8"))
     _write(out / "external-media.json",
            (json.dumps(media_manifest(args.session_tree), indent=2) + "\n").encode("utf-8"))

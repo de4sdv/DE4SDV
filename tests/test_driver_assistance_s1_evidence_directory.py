@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import math
 import re
 from pathlib import Path
 
@@ -208,24 +209,89 @@ def warm_start_sentence(counts: dict) -> str:
             "dropped images.")
 
 
-def test_the_commanded_deceleration_of_each_run_and_no_run_of_sc_driving_012_beyond_0_53():
-    """The correction of 2026-11-21: in no run of SC-DRIVING-012 did the candidate command a deceleration beyond
-    0.53 m/s² (the strongest accepted driving command of each run), and the README says so in those words."""
+#: the settings of SC-DRIVING-012, both runs of each, in the order of RUNS[:6]
+SETTINGS_012 = (20, 42, 60)
+
+
+def _pairs(values: list, unit: str) -> list[str]:
+    """Each setting's two values, as the README states them: '<a> and <b> <unit> at <kmh> km/h'."""
+    return [f"{a} and {b} {unit} at {kmh} km/h" for (a, b), kmh in zip(zip(values[0::2], values[1::2]), SETTINGS_012)]
+
+
+def _ceil1(value: float) -> float:
+    """A bound rounded up to one decimal, so that it stays a bound."""
+    return math.ceil(round(value, 9) * 10) / 10
+
+
+def test_the_commanded_deceleration_of_each_run_and_no_run_of_sc_driving_012_stronger_than_0_533():
+    """The correction of 2026-11-21, corrected again: the strongest accepted driving command of a run of
+    SC-DRIVING-012 is 0.533 m/s² (0.5329731 m/s² in 012_20_r2, which is beyond 0.53), so no text bounds it by 0.53;
+    the README states 0.533 and the strongest of each run to two decimals."""
     found = _json("commanded_deceleration.json")
-    assert sorted(found) == sorted(RUNS)
-    for run, entry in found.items():
+    assert isinstance(found.get("method"), str) and found["method"].strip(), "the file states its method"
+    runs = found["runs"]
+    assert sorted(runs) == sorted(RUNS)
+    for run, entry in runs.items():
         assert entry["file"] == f"score/out/score_{run}/score_side/run/score/actuationAdapter.jsonl"
         assert entry["acceptedCommands"] > 0, run
-    strongest = {run: found[run]["strongestDecelerationMps2"] for run in RUNS[:6]}
-    assert all(isinstance(v, float) and 0 < v <= 0.53 + 5e-3 for v in strongest.values()), strongest
-    assert f"{max(strongest.values()):.2f}" == "0.53"
+    strongest = [runs[run]["strongestDecelerationMps2"] for run in RUNS[:6]]
+    assert all(isinstance(v, float) and 0 < v <= 0.533 for v in strongest), strongest
+    assert f"{max(strongest):.3f}" == "0.533" and runs["012_20_r2"]["strongestDecelerationMps2"] == 0.533
     readme = _readme()
-    assert ("In no run of SC-DRIVING-012 did the candidate command a deceleration beyond 0.53 m/s²: the strongest "
-            "driving command that the actuation adapter accepted holds "
-            + "; ".join(f"{a:.2f} and {b:.2f} m/s² at {kmh} km/h" for (a, b), kmh in zip(
-                zip(list(strongest.values())[0::2], list(strongest.values())[1::2]), (20, 42, 60)))
+    assert ("In no run of SC-DRIVING-012 did the candidate command a deceleration stronger than 0.533 m/s²: the "
+            "strongest driving command that the actuation adapter accepted holds "
+            + "; ".join(_pairs([f"{v:.2f}" for v in strongest], "m/s²"))
             + " (rounded to two decimals; `commanded_deceleration.json` holds three).") in readme
-    assert "no braking" not in readme
+    assert "beyond 0.53" not in readme and "no braking" not in readme
+
+
+def test_the_commanded_decelerations_of_each_run_of_sc_driving_012_would_take_at_most_2_4_kmh_off_its_speed():
+    """The deceleration calibration decision of 2026-11-21, as corrected: REQ-DRIVING-037 judges the impact speed, so
+    the fails do not rest on the commanded values alone. The commanded decelerations of each run of SC-DRIVING-012,
+    fully achieved, would have lowered its speed before the contact by at most 2.4 km/h (2.326 km/h in 012_20_r2),
+    so the condition on ASM-DRIVING-005 does not bear on these fails. The speed on the tick before the contact is the
+    impact speed and the contact frame that VC-DRIVING-037 measured, a reading of the same records by the case
+    evaluators."""
+    found = _json("commanded_deceleration.json")
+    assert "runs" in found, "commanded_deceleration.json states its runs beside its method"
+    contacts = [found["runs"][run].get("beforeContact") for run in RUNS[:6]]
+    assert all(isinstance(c, dict) for c in contacts), "each run of SC-DRIVING-012 states its bound"
+    assert not any("beforeContact" in found["runs"][run] for run in RUNS[6:])
+    measured = {e["run"]: e.get("measured") or {} for e in _json("verdicts.json")["cases"]["VC-DRIVING-037"][
+        "measured"]["runs"]}
+    limits = {20: 0.0, 42: 0.0, 60: 35.0}     # REQ-DRIVING-037's maximum relative impact speed at each setting
+    for run, contact in zip(RUNS[:6], contacts):
+        setting = int(run.split("_")[1])
+        assert contact["worldFile"] == f"sim/out/world_{run}/simulator/world.jsonl"
+        if "impactKmh" in measured.get(run, {}):
+            assert contact["contactFrame"] == measured[run]["contactFrame"], run
+            assert contact["speedOnTickBeforeContactKmh"] == round(measured[run]["impactKmh"], 3), run
+            assert measured[run]["limitKmh"] == limits[setting], run
+        assert 0 < contact["lastNegativeCommandBeforeContactS"] <= 1.0, run
+        assert contact["speedReductionBoundKmh"] == _ceil1(contact["speedReductionIfAchievedKmh"]), run
+        assert contact["speedOnTickBeforeContactKmh"] - contact["speedReductionBoundKmh"] > limits[setting], \
+            f"{run}: the commands fully achieved would still leave the contact above the limit"
+    bounds = [c["speedReductionBoundKmh"] for c in contacts]
+    assert max(bounds) == 2.4 and max(c["speedReductionIfAchievedKmh"] for c in contacts) > 2.3, \
+        "2.326 km/h is beyond 2.3, so the bound is 2.4"
+    readme = _readme()
+    speeds = [f"{c['speedOnTickBeforeContactKmh']:.1f}" for c in contacts]
+    last = [f"{c['lastNegativeCommandBeforeContactS']:.1f}" for c in contacts]
+    by = [f"{b:.1f} and {d:.1f} km/h from {x} and {y} km/h" for (b, d), (x, y) in zip(
+        zip(bounds[0::2], bounds[1::2]), zip(speeds[0::2], speeds[1::2]))]
+    for phrase in (
+            f"The last command that holds a deceleration came {last[0]} and {last[1]} s before the contact at 20 km/h; "
+            f"{last[2]} and {last[3]} s at 42 km/h; {last[4]} and {last[5]} s at 60 km/h.",
+            f"The commanded decelerations of each run, fully achieved, would have lowered its speed before the "
+            f"contact by at most {max(bounds):.1f} km/h: by at most "
+            + "; ".join(f"{t} at {kmh} km/h" for t, kmh in zip(by, SETTINGS_012))
+            + " (rounded up to one decimal; `commanded_deceleration.json` states the method).",
+            "The condition on ASM-DRIVING-005 concerns how the simulated vehicle achieves a commanded deceleration: "
+            "it bears on a pass of VC-DRIVING-036 and VC-DRIVING-037 and does not bear on these fails, since no "
+            "calibration of the achieved deceleration turns them into passes (the deceleration calibration decision "
+            "of 2026-11-21)."):
+        assert phrase in readme, phrase
+    assert "which rest on the commanded values" not in readme
 
 
 def test_the_readme_records_the_open_bench_item_b_1():

@@ -1,82 +1,139 @@
 {
-  "012_20_r1": {
-    "file": "score/out/score_012_20_r1/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 559,
-    "strongestDecelerationMps2": 0.459
-  },
-  "012_20_r2": {
-    "file": "score/out/score_012_20_r2/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 554,
-    "strongestDecelerationMps2": 0.533
-  },
-  "012_42_r1": {
-    "file": "score/out/score_012_42_r1/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 306,
-    "strongestDecelerationMps2": 0.183
-  },
-  "012_42_r2": {
-    "file": "score/out/score_012_42_r2/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 548,
-    "strongestDecelerationMps2": 0.179
-  },
-  "012_60_r1": {
-    "file": "score/out/score_012_60_r1/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 307,
-    "strongestDecelerationMps2": 0.23
-  },
-  "012_60_r2": {
-    "file": "score/out/score_012_60_r2/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 310,
-    "strongestDecelerationMps2": 0.178
-  },
-  "013_30_r1": {
-    "file": "score/out/score_013_30_r1/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 562,
-    "strongestDecelerationMps2": 0.792
-  },
-  "013_30_r2": {
-    "file": "score/out/score_013_30_r2/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 51,
-    "strongestDecelerationMps2": null
-  },
-  "013_60_r1": {
-    "file": "score/out/score_013_60_r1/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 294,
-    "strongestDecelerationMps2": 0.156
-  },
-  "013_60_r2": {
-    "file": "score/out/score_013_60_r2/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 54,
-    "strongestDecelerationMps2": null
-  },
-  "014_30_r1": {
-    "file": "score/out/score_014_30_r1/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 281,
-    "strongestDecelerationMps2": 2.772
-  },
-  "014_30_r2": {
-    "file": "score/out/score_014_30_r2/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 748,
-    "strongestDecelerationMps2": 2.623
-  },
-  "015_40_r1": {
-    "file": "score/out/score_015_40_r1/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 749,
-    "strongestDecelerationMps2": 0.054
-  },
-  "015_40_r2": {
-    "file": "score/out/score_015_40_r2/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 748,
-    "strongestDecelerationMps2": 0.078
-  },
-  "calib_steer": {
-    "file": "score/out/score_calib_steer/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 816,
-    "strongestDecelerationMps2": 0.215
-  },
-  "stop": {
-    "file": "score/out/score_stop/score_side/run/score/actuationAdapter.jsonl",
-    "acceptedCommands": 124,
-    "strongestDecelerationMps2": null
+  "method": "strongestDecelerationMps2 is the strongest deceleration among the driving commands that the actuation adapter accepted (in.driving_command with verdict accepted in actuationAdapter.jsonl), in m/s², rounded to three decimals. For each run of SC-DRIVING-012, beforeContact: the contact is the first tick of the run's world.jsonl whose collisions is not empty or whose targetContact is true (contactFrame, contactSimS); speedOnTickBeforeContactKmh is ego.speedMps on the tick before it, in km/h. Each accepted command is held until the next accepted command, from its issueTime_sim_s on, and the last one before the contact until the contact; speedReductionIfAchievedKmh integrates the decelerations of these commands (their negative accelerations only) up to the contact, as if the vehicle had fully achieved them, in km/h, rounded to four decimals, and speedReductionBoundKmh is that integral rounded up to one decimal, so that it stays a bound on what the commanded decelerations could have taken off the speed before the contact. lastNegativeCommandBeforeContactS is the time from the issueTime_sim_s of the last accepted command before the contact that holds a deceleration to the contact, in seconds of simulation time (null when no such command comes before the contact).",
+  "runs": {
+    "012_20_r1": {
+      "file": "score/out/score_012_20_r1/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 559,
+      "strongestDecelerationMps2": 0.459,
+      "beforeContact": {
+        "worldFile": "sim/out/world_012_20_r1/simulator/world.jsonl",
+        "contactFrame": 2943650,
+        "contactSimS": 565.299,
+        "speedOnTickBeforeContactKmh": 19.747,
+        "lastNegativeCommandBeforeContactS": 0.7,
+        "speedReductionIfAchievedKmh": 2.0315,
+        "speedReductionBoundKmh": 2.1
+      }
+    },
+    "012_20_r2": {
+      "file": "score/out/score_012_20_r2/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 554,
+      "strongestDecelerationMps2": 0.533,
+      "beforeContact": {
+        "worldFile": "sim/out/world_012_20_r2/simulator/world.jsonl",
+        "contactFrame": 3703436,
+        "contactSimS": 761.083,
+        "speedOnTickBeforeContactKmh": 19.205,
+        "lastNegativeCommandBeforeContactS": 0.6,
+        "speedReductionIfAchievedKmh": 2.3258,
+        "speedReductionBoundKmh": 2.4
+      }
+    },
+    "012_42_r1": {
+      "file": "score/out/score_012_42_r1/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 306,
+      "strongestDecelerationMps2": 0.183,
+      "beforeContact": {
+        "worldFile": "sim/out/world_012_42_r1/simulator/world.jsonl",
+        "contactFrame": 4252749,
+        "contactSimS": 919.588,
+        "speedOnTickBeforeContactKmh": 40.633,
+        "lastNegativeCommandBeforeContactS": 0.3,
+        "speedReductionIfAchievedKmh": 0.38,
+        "speedReductionBoundKmh": 0.4
+      }
+    },
+    "012_42_r2": {
+      "file": "score/out/score_012_42_r2/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 548,
+      "strongestDecelerationMps2": 0.179,
+      "beforeContact": {
+        "worldFile": "sim/out/world_012_42_r2/simulator/world.jsonl",
+        "contactFrame": 5008587,
+        "contactSimS": 1085.74,
+        "speedOnTickBeforeContactKmh": 40.615,
+        "lastNegativeCommandBeforeContactS": 0.3,
+        "speedReductionIfAchievedKmh": 0.4014,
+        "speedReductionBoundKmh": 0.5
+      }
+    },
+    "012_60_r1": {
+      "file": "score/out/score_012_60_r1/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 307,
+      "strongestDecelerationMps2": 0.23,
+      "beforeContact": {
+        "worldFile": "sim/out/world_012_60_r1/simulator/world.jsonl",
+        "contactFrame": 5655301,
+        "contactSimS": 1254.559,
+        "speedOnTickBeforeContactKmh": 58.553,
+        "lastNegativeCommandBeforeContactS": 0.2,
+        "speedReductionIfAchievedKmh": 0.2812,
+        "speedReductionBoundKmh": 0.3
+      }
+    },
+    "012_60_r2": {
+      "file": "score/out/score_012_60_r2/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 310,
+      "strongestDecelerationMps2": 0.178,
+      "beforeContact": {
+        "worldFile": "sim/out/world_012_60_r2/simulator/world.jsonl",
+        "contactFrame": 6271213,
+        "contactSimS": 1397.69,
+        "speedOnTickBeforeContactKmh": 58.572,
+        "lastNegativeCommandBeforeContactS": 0.3,
+        "speedReductionIfAchievedKmh": 0.2001,
+        "speedReductionBoundKmh": 0.3
+      }
+    },
+    "013_30_r1": {
+      "file": "score/out/score_013_30_r1/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 562,
+      "strongestDecelerationMps2": 0.792
+    },
+    "013_30_r2": {
+      "file": "score/out/score_013_30_r2/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 51,
+      "strongestDecelerationMps2": null
+    },
+    "013_60_r1": {
+      "file": "score/out/score_013_60_r1/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 294,
+      "strongestDecelerationMps2": 0.156
+    },
+    "013_60_r2": {
+      "file": "score/out/score_013_60_r2/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 54,
+      "strongestDecelerationMps2": null
+    },
+    "014_30_r1": {
+      "file": "score/out/score_014_30_r1/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 281,
+      "strongestDecelerationMps2": 2.772
+    },
+    "014_30_r2": {
+      "file": "score/out/score_014_30_r2/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 748,
+      "strongestDecelerationMps2": 2.623
+    },
+    "015_40_r1": {
+      "file": "score/out/score_015_40_r1/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 749,
+      "strongestDecelerationMps2": 0.054
+    },
+    "015_40_r2": {
+      "file": "score/out/score_015_40_r2/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 748,
+      "strongestDecelerationMps2": 0.078
+    },
+    "calib_steer": {
+      "file": "score/out/score_calib_steer/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 816,
+      "strongestDecelerationMps2": 0.215
+    },
+    "stop": {
+      "file": "score/out/score_stop/score_side/run/score/actuationAdapter.jsonl",
+      "acceptedCommands": 124,
+      "strongestDecelerationMps2": null
+    }
   }
 }

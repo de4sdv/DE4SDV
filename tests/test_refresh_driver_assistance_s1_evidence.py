@@ -80,15 +80,26 @@ def test_the_reduced_analysis_keeps_the_six_attributes_the_outcome_and_a_reason_
     assert "analystIdentity" not in tool.reduce_analysis(missing), "a missing attribute stays missing"
 
 
+def _tick(n: int, t: float, contact: int | None) -> dict:
+    """One tick's data as the world side writes it: the ego vehicle's speed and achieved acceleration, the collisions
+    and the target contact. The synthetic contact begins at tick ``contact`` with targetContact alone, and the
+    collision follows at the next tick; the ego vehicle runs at 5.5 m/s, 5.0 m/s on the tick before the contact and
+    2.0 m/s from the contact on, and achieves -0.05 m/s² throughout."""
+    speed = 5.5 if contact is None or n < contact - 1 else 5.0 if n == contact - 1 else 2.0
+    return {"simTimeS": t, "frame": n, "ego": {"speedMps": speed, "longAccelMps2": -0.05},
+            "collisions": [{"type": "collision"}] if contact is not None and n > contact else [],
+            "targetContact": contact is not None and n >= contact}
+
+
 def _world(tree: Path, run: str, run_ticks: list[float], settle: int = 10, hold: int = 20,
-           reason: str = "contact with the target") -> None:
+           reason: str = "contact with the target", contact: int | None = None) -> None:
     """The world side's files of one run, in the forms it writes them: world.jsonl with its tick lines among other
     lines, run_end.json, and tick_times.csv with every tick of the process (the settle ticks before the run, the run's
     ticks and the ticks it keeps making after the run's end)."""
     sim = tree / "sim" / "out" / f"world_{run}" / "simulator"
     sim.mkdir(parents=True)
     lines = [json.dumps({"event": "start", "data": {}})]
-    lines += [json.dumps({"event": "tick", "t_real_ns": n, "data": {"simTimeS": t, "frame": n}})
+    lines += [json.dumps({"event": "tick", "t_real_ns": n, "data": _tick(n, t, contact)})
               for n, t in enumerate(run_ticks)]
     lines.append(json.dumps({"event": "end", "data": {"reason": reason}}))
     (sim / "world.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -106,6 +117,13 @@ def _world(tree: Path, run: str, run_ticks: list[float], settle: int = 10, hold:
 IMAGES = [round(10.0 + 0.1 * k, 6) for k in range(100)]
 DROPS = [10.0, 10.1, 10.2, 13.0, 14.9, 16.0, 18.5, 19.6, 19.7, 19.8]
 RUN_TICKS = [round(9.9 + 0.05 * k, 6) for k in range(143)]          # 9.9 s to 17.0 s
+#: the tick of the synthetic run 012_20_r1 at which the contact begins: 16.0 s
+CONTACT = 122
+#: the driving commands that the actuation adapter of 012_20_r1 receives: issue time, verdict, acceleration. Each
+#: accepted command holds until the next accepted one; the rejected one does not interrupt -0.4129, and the last one
+#: comes after the contact at 16.0 s
+COMMANDS = [(10.0, "accepted", 1.5), (12.0, "accepted", -0.4129), (12.5, "rejected", -3.0), (13.0, "accepted", -0.2),
+            (15.0, "accepted", 0.5), (15.5, "accepted", -0.1), (16.5, "accepted", -0.3)]
 
 
 def _session_tree(root: Path) -> Path:
@@ -121,20 +139,19 @@ def _session_tree(root: Path) -> Path:
         path = tree / "score" / "out" / f"score_{run}" / "score_side" / "run" / "score" / "score_interface.jsonl"
         path.parent.mkdir(parents=True)
         path.write_text("\n".join(json.dumps(e) for e in lines) + "\n", encoding="utf-8")
-    _world(tree, "012_20_r1", RUN_TICKS)
+    _world(tree, "012_20_r1", RUN_TICKS, contact=CONTACT)
     state = tree / "score" / "out" / "score_012_20_r1" / "score_side" / "state"
     state.mkdir(parents=True)
     (state / "launch_manager.log").write_text(
         "[INFO]  starting\n[INFO]  [DE4SDV] warm start before the attach: 2 passes, result yes, 686.2 ms\n"
         "[INFO]  attached\n", encoding="utf-8")
     _world(tree, "stop", [round(29.9 + 0.05 * k, 6) for k in range(41)], reason="run cap")
-    for run, commands in {"012_20_r1": [("accepted", 1.5), ("accepted", -0.4129), ("rejected", -3.0),
-                                         ("accepted", -0.2)],
-                          "stop": [("accepted", 0.5), ("accepted", 0.00003)]}.items():
+    for run, commands in {"012_20_r1": COMMANDS,
+                          "stop": [(30.0, "accepted", 0.5), (30.1, "accepted", 0.00003)]}.items():
         adapter = tree / "score" / "out" / f"score_{run}" / "score_side" / "run" / "score" / "actuationAdapter.jsonl"
         lines = [{"event": "start", "data": {}}, {"event": "out.ackermann_control", "data": {"acceleration": -9.0}}]
-        lines += [{"event": "in.driving_command", "data": {"verdict": verdict, "acceleration": a}}
-                  for verdict, a in commands]
+        lines += [{"event": "in.driving_command", "data": {"issueTime_sim_s": t, "verdict": verdict, "acceleration": a}}
+                  for t, verdict, a in commands]
         adapter.write_text("\n".join(json.dumps(e) for e in lines) + "\n", encoding="utf-8")
     (tree / "session.json").write_text(json.dumps({"session_id": "X"}), encoding="utf-8")
     (tree / "scenario_digests.json").write_text("{}", encoding="utf-8")
@@ -192,11 +209,58 @@ def test_the_commanded_deceleration_is_the_strongest_that_the_adapter_accepted_i
     the adapter's own control are no commanded deceleration, and a run with none says so."""
     tool = _tool()
     found = tool.commanded_deceleration(_session_tree(tmp_path))
-    assert found == {
-        "012_20_r1": {"file": "score/out/score_012_20_r1/score_side/run/score/actuationAdapter.jsonl",
-                      "acceptedCommands": 3, "strongestDecelerationMps2": 0.413},
-        "stop": {"file": "score/out/score_stop/score_side/run/score/actuationAdapter.jsonl", "acceptedCommands": 2,
-                 "strongestDecelerationMps2": None}}
+    assert "runs" in found, "the runs of the file stand apart from its method"
+    runs = found["runs"]
+    assert sorted(runs) == ["012_20_r1", "stop"]
+    assert {key: runs["012_20_r1"][key] for key in ("file", "acceptedCommands", "strongestDecelerationMps2")} == {
+        "file": "score/out/score_012_20_r1/score_side/run/score/actuationAdapter.jsonl", "acceptedCommands": 6,
+        "strongestDecelerationMps2": 0.413}
+    assert runs["stop"] == {"file": "score/out/score_stop/score_side/run/score/actuationAdapter.jsonl",
+                            "acceptedCommands": 2, "strongestDecelerationMps2": None}, \
+        "a run of no setting of SC-DRIVING-012 has no contact to bound"
+
+
+def test_the_commanded_deceleration_bounds_the_speed_that_it_takes_off_before_the_contact(tmp_path):
+    """The deceleration calibration decision of 2026-11-21, as corrected: for each run of SC-DRIVING-012, the
+    accepted driving commands, each held from its issueTime_sim_s until the next accepted one, up to the contact (the
+    first world tick with a collision or targetContact), integrated over their decelerations as if the vehicle had
+    fully achieved them: the speed they would have taken off before the contact, at most. The figures of the
+    synthetic run: 0.4129 m/s² for 1.0 s, 0.2 m/s² for 2.0 s and 0.1 m/s² for 0.5 s, 0.8629 m/s or 3.1064 km/h,
+    3.2 km/h rounded up to one decimal; the rejected command, the achieved acceleration of the world record (0.05
+    m/s² throughout) and the command after the contact take nothing off; the last command with a deceleration before
+    the contact comes 0.5 s before it; the speed on the tick before the contact is 5.0 m/s, 18.0 km/h."""
+    tool = _tool()
+    found = tool.commanded_deceleration(_session_tree(tmp_path))
+    assert "runs" in found and "method" in found, "the file states its method beside the runs"
+    contact = found["runs"]["012_20_r1"].get("beforeContact")
+    assert contact is not None, "a run of SC-DRIVING-012 states what its commands take off before the contact"
+    assert contact == {"worldFile": "sim/out/world_012_20_r1/simulator/world.jsonl", "contactFrame": 122,
+                       "contactSimS": 16.0, "speedOnTickBeforeContactKmh": 18.0,
+                       "lastNegativeCommandBeforeContactS": 0.5, "speedReductionIfAchievedKmh": 3.1064,
+                       "speedReductionBoundKmh": 3.2}
+    method = " ".join(found["method"].split())
+    for phrase in ("SC-DRIVING-012", "first tick", "collisions", "targetContact", "in.driving_command",
+                   "accepted", "issueTime_sim_s", "held until the next", "fully achieved", "rounded up to one decimal",
+                   "speedOnTickBeforeContactKmh", "lastNegativeCommandBeforeContactS"):
+        assert phrase in method, phrase
+
+
+def test_the_commanded_deceleration_refuses_a_run_of_sc_driving_012_without_a_contact(tmp_path):
+    """A run of SC-DRIVING-012 whose world record holds no contact, or no world record, is refused by name: its bound
+    is never taken up to a guessed contact."""
+    tool = _tool()
+    tree = _session_tree(tmp_path)
+    world = tree / "sim" / "out" / "world_012_20_r1" / "simulator" / "world.jsonl"
+    lines = [json.loads(line) for line in world.read_text(encoding="utf-8").splitlines() if line.strip()]
+    for line in lines:
+        if line["event"] == "tick":
+            line["data"].update(collisions=[], targetContact=False)
+    world.write_text("\n".join(json.dumps(line) for line in lines) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="012_20_r1.*contact"):
+        tool.commanded_deceleration(tree)
+    world.unlink()
+    with pytest.raises(ValueError, match="012_20_r1.*world.jsonl"):
+        tool.commanded_deceleration(tree)
 
 
 def test_the_checksums_cover_every_file_of_the_tree_by_its_relative_path(tmp_path):

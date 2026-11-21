@@ -244,8 +244,9 @@ DECISIONS_1121 = (
     "decision of 2026-11-21.",
     "On 2026-11-21 it was recorded that the condition on ASM-DRIVING-005, the calibration of the simulated "
     "deceleration, bears on a pass of VC-DRIVING-036 and VC-DRIVING-037 and not on their fail in S1, in which no run "
-    "of SC-DRIVING-012 holds a commanded deceleration beyond 0.53 m/s²: the deceleration calibration decision of "
-    "2026-11-21.",
+    "of SC-DRIVING-012 holds a commanded deceleration stronger than 0.533 m/s² and the commanded decelerations of "
+    "each run, fully achieved, would have lowered its speed before the contact by at most 2.4 km/h: the deceleration "
+    "calibration decision of 2026-11-21.",
     "On 2026-11-21 the verification status of each requirement was set from S1, as the requirements package "
     "records (the status decision of 2026-11-21).",
 )
@@ -261,20 +262,42 @@ SECOND_SLICE = (
 ASM005_IN_CASE = (
     "The condition on ASM-DRIVING-005, the calibration of the simulated deceleration, that the claimBoundary of "
     "each run record states bears on a pass of this case and not on its fail in S1: it concerns how the simulated "
-    "vehicle achieves a commanded deceleration, and the fails rest on the commanded values. In S1 no driving command "
-    "that the actuation adapter accepted in a run of SC-DRIVING-012 holds a deceleration beyond 0.53 m/s²: the "
-    "strongest is {decelerations} (rounded to two decimals; commanded_deceleration.json of the evidence directory), "
-    "so the condition does not bear on the outcome of this case in S1 (the deceleration calibration decision of "
+    "vehicle achieves a commanded deceleration. In S1 no driving command that the actuation adapter accepted in a "
+    "run of SC-DRIVING-012 holds a deceleration stronger than 0.533 m/s²: the strongest is {decelerations} (rounded "
+    "to two decimals), and the last command that holds a deceleration came before the contact by {last}. The "
+    "commanded decelerations of "
+    "each run, fully achieved, would have lowered its speed before the contact by at most {bound} km/h: {bounds} "
+    "(rounded up to one decimal; commanded_deceleration.json of the evidence directory states the method). So no "
+    "calibration of the achieved deceleration turns the fail of this case in S1 into a pass, and the condition on "
+    "ASM-DRIVING-005, which bears on a pass, does not bear on this fail (the deceleration calibration decision of "
     "2026-11-21).")
 
 
+def _by_setting(values: list[str], unit: str, extra: list[str] | None = None) -> str:
+    """Both runs of each setting of SC-DRIVING-012 together: '<a> and <b> <unit>[ <extra>] in the two runs at 20
+    km/h, ..., and ... at 60 km/h'."""
+    pairs = [f"{a} and {b} {unit}" for a, b in zip(values[0::2], values[1::2])]
+    if extra is not None:
+        pairs = [f"{pair} from {a} and {b} km/h" for pair, a, b in zip(pairs, extra[0::2], extra[1::2])]
+    parts = [pair + where for pair, where in zip(pairs, (" in the two runs at 20 km/h", " at 42 km/h", " at 60 km/h"))]
+    return ", ".join(parts[:-1]) + ", and " + parts[-1]
+
+
 def asm005_in_case(found: dict) -> str:
-    """ASM005_IN_CASE with the strongest commanded deceleration of each run of SC-DRIVING-012 from
-    commanded_deceleration.json, both runs of a setting together."""
-    values = [found[label]["strongestDecelerationMps2"] for label in list(RUN_LABELS)[:6]]
-    parts = [f"{a:.2f} and {b:.2f} m/s² {where}" for (a, b), where in zip(
-        zip(values[0::2], values[1::2]), ("in the two runs at 20 km/h", "at 42 km/h", "at 60 km/h"))]
-    return ASM005_IN_CASE.format(decelerations=", ".join(parts[:-1]) + ", and " + parts[-1])
+    """ASM005_IN_CASE from commanded_deceleration.json: the strongest commanded deceleration of each run of
+    SC-DRIVING-012, the time before the contact of its last command that holds a deceleration, and the bound on the
+    speed that its commanded decelerations, fully achieved, would have taken off before the contact."""
+    assert "runs" in found, "commanded_deceleration.json states its runs beside its method"
+    runs = [found["runs"][label] for label in list(RUN_LABELS)[:6]]
+    assert all("beforeContact" in run for run in runs), "each run of SC-DRIVING-012 states its bound"
+    contacts = [run["beforeContact"] for run in runs]
+    bounds = [c["speedReductionBoundKmh"] for c in contacts]
+    return ASM005_IN_CASE.format(
+        decelerations=_by_setting([f"{r['strongestDecelerationMps2']:.2f}" for r in runs], "m/s²"),
+        last=_by_setting([f"{c['lastNegativeCommandBeforeContactS']:.1f}" for c in contacts], "s"),
+        bound=f"{max(bounds):.1f}",
+        bounds=_by_setting([f"{b:.1f}" for b in bounds], "km/h",
+                           [f"{c['speedOnTickBeforeContactKmh']:.1f}" for c in contacts]))
 
 
 #: the bounds of the analysis of REQ-DRIVING-039, in the case's doc
@@ -565,6 +588,8 @@ def test_the_records_are_one_per_run_of_s1_and_one_of_the_analysis_with_consecut
 def test_the_slice_header_records_the_second_slice_and_the_decisions_of_2026_11_21() -> None:
     header = _flat(SLICE.read_text(encoding="utf-8").split("*/", 1)[0])
     assert SECOND_SLICE in header
+    for decision in DECISIONS_1121:
+        assert decision in header, decision
     positions = [header.index(decision) for decision in DECISIONS_1121]
     assert positions == sorted(positions), "the decisions of the day in their order"
     assert header.index(STOP_RUN_DECISION) < positions[0], "after the decisions of 2026-11-18"
@@ -583,9 +608,13 @@ def test_the_cases_of_036_037_and_039_state_what_their_outcomes_rest_on() -> Non
     texts = {path.name: _flat(re.sub(r"(?m)^\s*\*\s?", "", path.read_text(encoding="utf-8")))
              for path in DRIVING.glob("driver_assistance_*.sysml")}
     texts["guide"] = _flat(GUIDE.read_text(encoding="utf-8"))
+    texts["README"] = _flat((ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z"
+                             / "README.md").read_text(encoding="utf-8"))
     for where, text in texts.items():
         for retired in ("commands no braking", "commanded no braking", "no braking was commanded", "commanded none",
-                        "holds a deceleration of 1.0 m/s² or more"):
+                        "holds a deceleration of 1.0 m/s² or more",
+                        # 0.5329731 m/s² in 012_20_r2 is beyond 0.53; REQ-DRIVING-037 judges the impact speed
+                        "beyond 0.53 m/s²", "rest on the commanded values"):
             assert retired not in text, (where, retired)
     assert ANALYSIS_BOUNDS in _flat(usages[39][2])
     for number in (38, 40, 41, 42, 43, 44):
@@ -1128,8 +1157,10 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
         assert outcome not in evidence, f"the guide copies no outcome of a verdict: {outcome}"
     assert ("**The deceleration calibration.** The condition on ASM-DRIVING-005 bears on a pass of VC-DRIVING-036 "
             "and VC-DRIVING-037, not on their fail in S1: it concerns how the simulated vehicle achieves a commanded "
-            "deceleration, and the fails rest on the commanded values; no run of SC-DRIVING-012 holds a commanded "
-            "deceleration beyond 0.53 m/s² (the deceleration calibration decision of 2026-11-21).") in evidence
+            "deceleration. No run of SC-DRIVING-012 holds a commanded deceleration stronger than 0.533 m/s², and the "
+            "commanded decelerations of each run, fully achieved, would have lowered its speed before the contact by "
+            "at most 2.4 km/h, so the condition does not bear on these fails (the deceleration calibration decision "
+            "of 2026-11-21).") in evidence
     criteria = _criteria()
     rows = re.findall(r"^\| (VC-DRIVING-\d{3}) \| (REQ-DRIVING-\d{3}), ([^|]+) \| ([^|]+) \| (\w+) \|$", raw_section,
                       re.M)

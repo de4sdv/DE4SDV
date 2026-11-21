@@ -60,7 +60,7 @@ voids the condition.
 | `reproduction_044.json` | The desk reproduction of the candidate identity of REQ-DRIVING-044 |
 | `session.json`, `scenario_digests.json` | The session's own record and the digests of the scenario definitions |
 | `drop_counts.json` | Where the camera images of each run drop, from its score-interface record, with the run's end and the drops the evaluators count over the whole run |
-| `commanded_deceleration.json` | The strongest deceleration among the driving commands that the actuation adapter of each run accepted |
+| `commanded_deceleration.json` | The strongest deceleration among the driving commands that the actuation adapter of each run accepted, and for each run of SC-DRIVING-012 the speed that they, fully achieved, would have taken off before the contact, with the method |
 | `SHA256SUMS` | The SHA-256 of every file of the fetched session tree, by relative path |
 | `external-media.json` | The recordings and archives of the tree, with identity and retention |
 
@@ -146,14 +146,25 @@ The records show no cause of the drops.
 
 ## The commanded deceleration
 
-In no run of SC-DRIVING-012 did the candidate command a deceleration beyond
-0.53 m/s²: the strongest driving command that the actuation adapter accepted
-holds 0.46 and 0.53 m/s² at 20 km/h; 0.18 and 0.18 m/s² at 42 km/h; 0.23 and
-0.18 m/s² at 60 km/h (rounded to two decimals; `commanded_deceleration.json`
-holds three). The condition on ASM-DRIVING-005 concerns how the simulated
-vehicle achieves a commanded deceleration, so it does not bear on the fails of
-VC-DRIVING-036 and VC-DRIVING-037, which rest on the commanded values (the
-deceleration calibration decision of 2026-11-21).
+In no run of SC-DRIVING-012 did the candidate command a deceleration stronger
+than 0.533 m/s²: the strongest driving command that the actuation adapter
+accepted holds 0.46 and 0.53 m/s² at 20 km/h; 0.18 and 0.18 m/s² at 42 km/h;
+0.23 and 0.18 m/s² at 60 km/h (rounded to two decimals;
+`commanded_deceleration.json` holds three). The last command that holds a
+deceleration came 0.7 and 0.6 s before the contact at 20 km/h; 0.3 and 0.3 s at
+42 km/h; 0.2 and 0.3 s at 60 km/h.
+
+The commanded decelerations of each run, fully achieved, would have lowered its
+speed before the contact by at most 2.4 km/h: by at most 2.1 and 2.4 km/h from
+19.7 and 19.2 km/h at 20 km/h; 0.4 and 0.5 km/h from 40.6 and 40.6 km/h at 42
+km/h; 0.3 and 0.3 km/h from 58.6 and 58.6 km/h at 60 km/h (rounded up to one
+decimal; `commanded_deceleration.json` states the method). Each accepted command
+is held until the next, up to the first world tick with a collision or a target
+contact, and the speed is that of the tick before it. The condition on
+ASM-DRIVING-005 concerns how the simulated vehicle achieves a commanded
+deceleration: it bears on a pass of VC-DRIVING-036 and VC-DRIVING-037 and does
+not bear on these fails, since no calibration of the achieved deceleration turns
+them into passes (the deceleration calibration decision of 2026-11-21).
 
 ## Open bench item B1
 
