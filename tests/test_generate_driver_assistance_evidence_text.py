@@ -766,4 +766,3 @@ def test_the_command_line_reads_the_gains_file_beside_the_verdicts(tmp_path):
     assert done.returncode == 0, done.stdout + done.stderr
     flat = " ".join(re.sub(r"(?m)^\s*\*\s?", "", model.read_text(encoding="utf-8")).split())
     assert "ackermannGains v1 (ackermann_gains.json of the evidence directory, sha256 " in flat
-

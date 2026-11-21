@@ -260,4 +260,3 @@ def test_the_gains_file_holds_the_gains_of_the_verdicts_and_the_slice_names_it_b
                 f"{hashlib.sha256(data).hexdigest()})")
     assert slice_text.count(identity) == 2, "the docs of VC-DRIVING-036 and VC-DRIVING-037"
     assert '"speed_kp"' not in slice_text and "readBackEqual" not in slice_text
-

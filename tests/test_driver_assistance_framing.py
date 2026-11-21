@@ -1255,4 +1255,3 @@ def test_the_baseline_states_where_the_images_drop_and_no_rate():
     # the guide's verdict table states the commanded deceleration, never "no braking" (the correction of 2026-11-21)
     assert ("| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no "
             "deceleration beyond 0.53 m/s²; the contact comes at the approach speed") in GUIDE.read_text(encoding="utf-8")
-

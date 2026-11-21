@@ -309,4 +309,3 @@ def test_the_refresh_writes_the_gains_file_that_the_generator_names(tmp_path):
     verdicts["cases"]["VC-DRIVING-037"]["measured"]["ackermannGains"] = {"requested": [], "readBack": []}
     with pytest.raises(ValueError, match="ackermannGains"):
         tool.gains_file(verdicts)
-
