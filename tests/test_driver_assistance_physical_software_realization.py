@@ -321,10 +321,26 @@ COUNTING_DECISION = (
     "The vehicle interface keeps its count, one more than that of the command before it, and the limit of 0.1 s of "
     "simulation time stays (DrivingCommandActuationAdapter): the adapter counting decision of 2026-11-18.",
 )
-#: What the receiving rule costs, in the adapter's doc, the comment the analysis reads and the guide.
-COUNTING_COST = ("A late command or a repetition costs that one command; a loss or a corruption costs the lost or "
-                 "corrupted command and the next one, which reveals the gap; none of them makes later valid commands "
-                 "fail.")
+#: What the receiving rule costs, in the adapter's doc, the comment the analysis reads and the guide: bounded to the
+#: corruptions that the check value detects (the check-value bound decision of 2026-11-21, finding F2 of the
+#: analysis of REQ-DRIVING-039)
+COUNTING_COST = ("A late command or a repetition costs that one command; a loss or a corruption that the check value "
+                 "detects costs the lost or corrupted command and the next one, which reveals the gap; none of them "
+                 "makes later valid commands fail.")
+#: What a corruption that the check value misses does, beside the cost, in the same three places.
+MISSED_CORRUPTION = ("A corruption that the check value misses is none of them: the command counts as valid and, if its "
+                     "sequence count is higher, that count becomes the reference count, so that the later valid "
+                     "commands up to it are rejected as repetitions (the check-value bound decision of 2026-11-21).")
+#: The check-value bound decision of 2026-11-21, as the package head records it after the upstream contact decision.
+CHECK_VALUE_DECISION = (
+    "On 2026-11-21 the statement of what a rejected command costs was bounded to the corruptions that the check value "
+    "detects.",
+    "The analysis of REQ-DRIVING-039 found that a corruption that the check value misses counts as valid and, with a "
+    "higher sequence count, becomes the reference count, so that later valid commands are rejected as repetitions; "
+    "the bench code states that limit, and the realization did not.",
+    "The rule of the adapter is unchanged (DrivingCommandActuationAdapter): the check-value bound decision of "
+    "2026-11-21.",
+)
 #: What the adapter does with a command that comes before it has a world time to compare the issue time with.
 NO_WORLD_TIME = ("A command that arrives before the adapter has a world snapshot, or whose issue time is not a finite "
                  "number, counts as older than the limit and is rejected as a delay.")
@@ -334,7 +350,9 @@ RETIRED_COUNTING_STATEMENTS = ("the last accepted command (a loss or a repetitio
                                # the cost and the decision's scope before review R4 and R8 of the 10a review
                                "costs the missing command", "which reveals it;",
                                "so that one lost, corrupted or late command does not make",
-                               "among the commands of the run whose check value holds")
+                               "among the commands of the run whose check value holds",
+                               # the unbounded cost before the check-value bound decision of 2026-11-21
+                               "a loss or a corruption costs the lost or corrupted command")
 #: The owner's decision of 2026-11-15, as the package head records it.
 OWNER_DECISION = (
     "On 2026-11-15 the owner chose that the candidate's process becomes an Eclipse S-CORE application through a DE4SDV "
@@ -565,6 +583,7 @@ COMMENT_STATEMENTS = {
         "It counts from the last received command whose check value holds (the adapter counting decision of "
         "2026-11-18; DrivingCommandActuationAdapter states the rule):",
         COUNTING_COST.replace("A late", "a late"),
+        MISSED_CORRUPTION,
         "it makes no freedom-from-interference claim"),
 }
 #: The actuation adapter: the rejection, nothing applied in its place, no stop response, and why (decision D7b).
@@ -587,6 +606,7 @@ ADAPTER_STATEMENTS = (
     "than the newest world time by more than 0.1 s of simulation time, when it is rejected (a delay); in both cases "
     "its count becomes the reference count.",
     COUNTING_COST,
+    MISSED_CORRUPTION,
     "Rejecting what it detects is the share of the product that holds the path (REQ-MW-006).",
     "It applies nothing in place of a rejected command: the simulator keeps the last valid control.",
     "The issue time and the newest world time are simulation times of world snapshots, on one clock.",
@@ -1350,6 +1370,29 @@ def test_the_package_head_records_the_upstream_contact_decision_after_the_counti
     assert head.count("the upstream contact decision of 2026-11-18") == 1
 
 
+def test_the_package_head_records_the_check_value_bound_decision_after_those_of_2026_11_18():
+    head = _head()
+    for statement in CHECK_VALUE_DECISION:
+        assert head.count(statement) == 1, statement
+    assert head.index(CONTACT_DECISION[-1]) < head.index(CHECK_VALUE_DECISION[0]) < head.index(
+        "Carried over from the dated decisions of INC-DRIVING-001"), "this phase's decisions in the order of their days"
+
+
+def test_the_cost_of_a_rejection_is_bounded_to_the_corruptions_the_check_value_detects():
+    """The check-value bound decision of 2026-11-21: the sentence that no rejection makes later valid commands fail
+    holds for the corruptions that the check value detects; the adapter's doc, the comment that the analysis of
+    REQ-DRIVING-039 reads and the guide say what a corruption that the check value misses does, right after it."""
+    model = _flat(_raw())
+    guide = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    adapter = _doc(f"part def {ADAPTER}")
+    assert model.count(COUNTING_COST) == 1 and model.count(COUNTING_COST.replace("A late", "a late")) == 1
+    assert model.count(MISSED_CORRUPTION) == 2 and guide.count(MISSED_CORRUPTION) == 1
+    assert adapter.index(COUNTING_COST) < adapter.index(MISSED_CORRUPTION), "the bound follows the cost"
+    assert guide.index(COUNTING_COST) < guide.index(MISSED_CORRUPTION)
+    for text in (model, guide):
+        assert "a loss or a corruption costs the lost or corrupted command" not in text
+
+
 def test_the_adapter_counts_from_the_last_received_command_whose_check_value_holds():
     """The adapter counting decision of 2026-11-18: one lost or late command, or one whose corruption the check
     value detects, no longer makes every later command fail its sequence count; the sender's count and the 0.1 s
@@ -1661,18 +1704,14 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
                    "world time by more than 0.1 s of simulation time, when it is rejected as a delay; either way "
                    "counting continues from it.",
                    COUNTING_COST,
+                   MISSED_CORRUPTION,
                    "tests/test_driver_assistance_physical_software_realization.py"):
         assert phrase in section, phrase
     assert "- - " not in section, "each software element is one bullet"
     assert "VisionPilot/" not in section and ".cpp" not in section, "the guide carries no upstream paths"
     assert "like the VSS steering angle" not in section and "changes its sign" not in section, "review R1"
-    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "
-            "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
-            "architecture, Phase 8 physical and software realization, Phase 9 variability and configuration and the "
-            "first slice of Phase 10 verification and evidence, proposal.**") in flat
-    assert ("The next model obligation is **Phase 10**: verification and evidence, which judges the configured "
-            "product DRIVING-CONFIG-002 in closed loop; its second slice follows the readiness probes and adds the "
-            "bench, the runs, the retained records and the statuses.") in flat
+    assert "**Status: baselined (Phase 11).**" in flat
+    assert "The increment ended at its baseline decision." in flat
     assert "its first gate is `verificationCaseVerifiesRequirement`" not in flat, "phase 10's first slice landed"
     assert "The next model obligation is **Phase 9**" not in flat
     assert "The next model obligation is **Phase 8**" not in flat

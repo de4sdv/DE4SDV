@@ -45,7 +45,7 @@ def test_040_fail_on_a_warning_start_before_imminence(tmp_path):
 
 def test_040_041_fail_on_starts_at_a_vehicle_outside_the_lane(tmp_path):
     # SC-DRIVING-014: the stationary vehicle stands outside the lane; a start there fails even when the gap and
-    # closing speed would make it imminent (VC-040 doc; needs_requirements.sysml:183 "in its lane").
+    # closing speed would make it imminent (VC-040 doc; needs_requirements.sysml:191 "in its lane").
     out = judge(tmp_path, syn.s1_specs(**{"014_30_r2": dict(brake_window_s=None, warn_at_needed=1.0,
                                                              eb_at_needed=4.0)}))
     for vc in ("VC-DRIVING-040", "VC-DRIVING-041"):
@@ -161,7 +161,7 @@ def _stop_ticks(tmp_path):
 def test_038_stop_clause_passes_while_the_simulator_regulates_under_a_held_target(tmp_path):
     # Closure review of 44a4be29..86cadee0, R1: a tick's control is hero.get_control(), the output of CARLA's
     # Ackermann controller, which changes under a held target with no command. The model's stop clause is "no driving
-    # command reaches the actuation after the stop" (driver_assistance_needs_requirements.sysml:298); a changed
+    # command reaches the actuation after the stop" (driver_assistance_needs_requirements.sysml:306); a changed
     # control is a note, never the fail.
     out = judge(tmp_path)
     controls = [t["control"]["throttle"] for t in _stop_ticks(tmp_path)]

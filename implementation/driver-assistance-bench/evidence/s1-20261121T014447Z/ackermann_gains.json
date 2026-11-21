@@ -1,0 +1,1591 @@
+{
+  "requested": [
+    {
+      "file": "session.json",
+      "key": "ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.calib_steer.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.012_20_r1.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.012_20_r2.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.012_42_r1.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.012_42_r2.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.012_60_r1.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.012_60_r2.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.013_30_r1.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.013_30_r2.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.013_60_r1.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.013_60_r2.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.014_30_r1.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.014_30_r2.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.015_40_r1.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.015_40_r2.ackermann_gains",
+      "value": "v1"
+    },
+    {
+      "file": "session.json",
+      "key": "score_runs.stop.ackermann_gains",
+      "value": "v1"
+    }
+  ],
+  "readBack": [
+    {
+      "file": "sim/out/calibrate/calib_decel/simulator/calibration_decel.json",
+      "key": "context.ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 127,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 128,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 129,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 130,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 131,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 132,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 133,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 134,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 135,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 136,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 137,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 138,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 139,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 140,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 141,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/calibrate/calib_decel/simulator/calibration_decel.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 127,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 128,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 129,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 130,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 131,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 132,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 133,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 134,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 135,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 136,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 137,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 138,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 139,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 140,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          },
+          {
+            "actorId": 141,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_012_20_r1/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 152,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_012_20_r2/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 158,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_012_42_r1/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 164,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_012_42_r2/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 170,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_012_60_r1/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 176,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_012_60_r2/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 182,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_013_30_r1/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 188,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_013_30_r2/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 194,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_013_60_r1/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 200,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_013_60_r2/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 206,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_014_30_r1/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 212,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_014_30_r2/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 262,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_015_40_r1/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 312,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_015_40_r2/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 318,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_calib_steer/simulator/calibration_steering.json",
+      "key": "setting.ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 148,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_calib_steer/simulator/calibration_steering.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 148,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_calib_steer/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 148,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    },
+    {
+      "file": "sim/out/world_stop/simulator/setting_record.json",
+      "key": "ackermannGains",
+      "value": {
+        "env": "DA_ACKERMANN_GAINS",
+        "requested": "v1",
+        "values": {
+          "speed_kp": 0.3,
+          "speed_ki": 0.0,
+          "speed_kd": 0.25,
+          "accel_kp": 0.1,
+          "accel_ki": 0.0,
+          "accel_kd": 0.01
+        },
+        "source": "lane A2's ASM-DRIVING-005 probe of 2026-11-20, phase10/s1-map/asm005_probe_table.json (variant v1); default: CARLA's own gains, nothing applied",
+        "fields": [
+          "speed_kp",
+          "speed_ki",
+          "speed_kd",
+          "accel_kp",
+          "accel_ki",
+          "accel_kd"
+        ],
+        "spawns": [
+          {
+            "actorId": 324,
+            "applied": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBack": {
+              "speed_kp": 0.3,
+              "speed_ki": 0.0,
+              "speed_kd": 0.25,
+              "accel_kp": 0.1,
+              "accel_ki": 0.0,
+              "accel_kd": 0.01
+            },
+            "readBackEqual": true
+          }
+        ]
+      }
+    }
+  ]
+}

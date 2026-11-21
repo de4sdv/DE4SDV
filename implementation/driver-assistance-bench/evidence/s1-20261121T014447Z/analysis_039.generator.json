@@ -1,0 +1,9 @@
+{
+  "configurationIdentity": "DRIVING-CONFIG-002",
+  "receiptSha256": "848262167497d033b87d4ae90c6f54d3b0edd4c851f80480cd07d8cd860a34a1",
+  "modelRevision": "29750f4662035f16259b87303b504d344445bc1e",
+  "analyzedRealization": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml at 29750f4662035f16259b87303b504d344445bc1e: item def DrivingCommandEventPayload (lines 232-248), the mapping record MAP-DRIVING-DA-COMMAND drivingCommandMappingRecord (lines 1065-1084) and the comment reqDetectableDrivingCommandRejection (lines 1273-1289); read with them, because the comment and the mapping refer to them: part def DrivingCommandActuationAdapter (lines 603-652) and the vehicle interface doc of the candidate's process (lines 470-485)",
+  "analystIdentity": "an independent Claude Code session dispatched by the lead on 2026-11-21, with no access to the lead's reasoning",
+  "claimBoundary": "The analysis makes no freedom-from-interference claim. It reads the phase 8 realization at the named model revision and no run: it shows the part of the driving command that the model names for each of a loss, a delay, a repetition and a corruption on the Eclipse S-CORE path, and the rule by which the actuation adapter detects each; it shows no built program detecting anything. The detection it shows is bounded: a loss is detected only when a later command arrives; a delay only beyond 0.1 s of simulation time against the adapter's newest world time; a corruption only as far as the CRC-32 detects it, for which the model states no residual rate. The detection and the rejection sit in the actuation adapter, a context realization outside the candidate; the candidate's share is the form of the command.",
+  "outcome": "passBoundedVerification"
+}

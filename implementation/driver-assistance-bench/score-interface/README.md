@@ -6,10 +6,10 @@ VisionPilot on the S-CORE host since 2026-11-18, and the candidate has run on th
 p10-2 attempt 3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`) and S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`) it
 drove every run. In S1 the warm start of patch 0005 ran in all 16 runs (2 passes, 678.3 to 706.8 ms). Each of the 14
 runs of SC-DRIVING-012 to SC-DRIVING-015 (6 of them judged runs; SC-DRIVING-014 and SC-DRIVING-015 have no judged-run
-term) still drops 23 or 24 camera images in its first 5 s and 0 to 2 isolated images later. The steering calibration run
-drops 34 in its first 5 s and 4 later. The stop run drops 24 in its first 5 s and then 8 in a row right after the stop
-instant (sim 2870.36 to 2871.06 s): the interface keeps receiving images and drops them, because the candidate that
-takes them is stopped.
+term) still drops 23 or 24 camera images in its first 5 s and 0 to 2 isolated images later, up to the run's end (its
+last tick). The steering calibration run drops 34 in its first 5 s and 4 later, up to its end. The stop run drops 24 in
+its first 5 s and then 8 in a row right after the stop instant (sim 2870.36 to 2871.06 s): the interface keeps receiving
+images and drops them, because the candidate that takes them is stopped.
 
 ## The problem
 

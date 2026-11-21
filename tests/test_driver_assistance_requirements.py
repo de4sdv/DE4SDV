@@ -32,6 +32,7 @@ The tests read the model text; they do not parse SysML. They state their own con
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -392,7 +393,66 @@ def test_each_requirement_has_its_subject_one_statement_and_its_attributes():
             assert _attribute(body, attribute), (name, attribute)
         assert _attribute(body, "verificationMethod") == method, name
         assert _attribute(body, "successCriteria").startswith("Met when"), name
-        assert "attribute :>> verificationStatus = VVStatus::NotStarted;" in body, name
+        # the status decision of 2026-11-21: the status records the process of the verification, never its verdict
+        assert f"attribute :>> verificationStatus = VVStatus::{STATUSES[_short]};" in body, name
+        assert len(re.findall(r"\bverificationStatus\b", code)) == 1, name
+
+
+#: the evidence directory of the judged session S1, whose verdict files the statuses follow
+EVIDENCE = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z"
+#: the phase 10 slice, whose MapAssistanceEvidenceOutcomeToVerdict maps the outcome of the desk analysis
+VERIFICATION = DRIVING / "driver_assistance_verification_evidence.sysml"
+#: the status rule of the status decision of 2026-11-21: a case that reached a pass or a fail completed its
+#: verification; an inconclusive case could not complete it
+STATUS_RULE = {"pass": "Completed", "fail": "Completed", "inconclusive": "CompletedUnsuccessful"}
+
+
+def _verdict_039(outcome: str) -> str:
+    """The verdict of VC-DRIVING-039 from the outcome literal of its desk analysis, as the phase 10 slice's
+    MapAssistanceEvidenceOutcomeToVerdict maps it (review Z2 of 2026-11-21)."""
+    calc = " ".join(VERIFICATION.read_text(encoding="utf-8").split(
+        "calc def MapAssistanceEvidenceOutcomeToVerdict", 1)[1].split("}", 1)[0].split())
+    mapped = dict(re.findall(r"outcome == AssistanceEvidenceOutcome::(\w+)\? VerdictKind::(\w+)", calc))
+    other = re.search(r"else VerdictKind::(\w+);", calc)
+    assert mapped and other, "the slice's calc def has no readable map"
+    return mapped.get(outcome, other.group(1))
+
+
+def _statuses() -> dict[str, str]:
+    """The verification status of each requirement after S1, derived by the status rule from the verdict of its case:
+    verdicts.json for the eight evaluated cases, and for VC-DRIVING-039 the outcome of analysis_039.generator.json
+    as MapAssistanceEvidenceOutcomeToVerdict maps it (review Q7 and Z2)."""
+    verdicts = {vc: case["verdict"] for vc, case in json.loads(
+        (EVIDENCE / "verdicts.json").read_text(encoding="utf-8"))["cases"].items()}
+    outcome = json.loads((EVIDENCE / "analysis_039.generator.json").read_text(encoding="utf-8"))["outcome"]
+    verdicts["VC-DRIVING-039"] = _verdict_039(outcome)
+    unruled = sorted(set(verdicts.values()) - set(STATUS_RULE))
+    assert not unruled, f"the status rule of 2026-11-21 gives no status for the verdicts {unruled}"
+    return {"REQ-" + vc[3:]: STATUS_RULE[verdict] for vc, verdict in sorted(verdicts.items())}
+
+
+def _listed(items: list[str]) -> str:
+    return ", ".join(items[:-1]) + " and " + items[-1] if len(items) > 1 else items[0]
+
+
+#: the verification status of each requirement after the judged session S1 of phase 10 (the status decision of
+#: 2026-11-21): Completed where the case reached its outcome, CompletedUnsuccessful where it could not be completed
+STATUSES = _statuses()
+STATUS_DECISION = (
+    "On 2026-11-21 the verification status of each requirement was set from the judged session S1 of phase 10. It "
+    "records the process of the verification, never its verdict: VVStatus::Completed for "
+    f"{_listed([r for r, v in STATUSES.items() if v == 'Completed'])}, and VVStatus::CompletedUnsuccessful for "
+    f"{_listed([r for r, v in STATUSES.items() if v == 'CompletedUnsuccessful'])}. The outcome and the verdict of each "
+    "case are in its doc in phase 10: the status decision of 2026-11-21.")
+
+
+def test_the_package_head_records_the_status_decision_after_the_stop_run_decision():
+    raw = MODEL.read_text(encoding="utf-8")
+    head = " ".join(re.sub(r"^\s*\*\s?", "", raw.split("*/", 1)[0], flags=re.M).split())
+    assert head.count(STATUS_DECISION) == 1
+    assert head.index("the stop-run decision of 2026-11-18") < head.index(STATUS_DECISION)
+    assert sorted(STATUSES) == [f"REQ-DRIVING-0{n}" for n in range(36, 45)]
+    assert "VVStatus::NotStarted" not in raw, "no requirement of the increment keeps NotStarted"
 
 
 def test_each_statement_holds_one_obligation_in_the_positive_form():
@@ -638,7 +698,7 @@ def test_the_guide_states_phase_5_and_the_next_obligation():
     assert not CLAUSE_NUMBER.findall(raw_section), CLAUSE_NUMBER.findall(raw_section)
     assert "VisionPilot/" not in raw_section, "the guide carries no upstream paths"
     flat = " ".join(guide.split())  # Markdown: a line may open with bold text
-    assert "The next model obligation is **Phase 10**: verification and evidence" in flat
+    assert "The increment ended at its baseline decision." in flat
     assert "`verificationCaseVerifiesRequirement` and `requirementVerifiedByVerificationCase` read" in flat
     section = " ".join(raw_section.split())
     for fact in GUIDE_FACTS:
@@ -683,3 +743,14 @@ def test_the_upstream_record_gives_each_cited_file_with_its_path():
     flat = " ".join(record.split())
     for fact in RECORD_FACTS:
         assert fact in flat, fact
+
+
+def test_the_status_of_req_driving_039_follows_the_slices_map_and_the_status_rule() -> None:
+    """Review Z2 of 2026-11-21: the status of REQ-DRIVING-039 follows from the outcome of its desk analysis through
+    MapAssistanceEvidenceOutcomeToVerdict of the phase 10 slice and the status rule, so a fail would complete the
+    verification as a pass does, and only an outcome that maps to inconclusive leaves it CompletedUnsuccessful."""
+    assert STATUS_RULE[_verdict_039("passBoundedVerification")] == "Completed"
+    assert STATUS_RULE[_verdict_039("failObservedBehavior")] == "Completed"
+    assert STATUS_RULE[_verdict_039("inconclusiveMissingEvidence")] == "CompletedUnsuccessful"
+    assert STATUS_RULE[_verdict_039("blockedTargetRuntime")] == "CompletedUnsuccessful"
+    assert _verdict_039("errorEvidence") == "error"
