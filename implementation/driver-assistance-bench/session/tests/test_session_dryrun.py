@@ -91,13 +91,19 @@ def _vp_env(vp_clone, monkeypatch) -> None:
     set_vp_env(vp_clone, monkeypatch)
 
 
+def fake_call_records(path: Path) -> list[list]:
+    """The fake's call records (its time, then its arguments) whose lines are written whole. While the session
+    runs a fake may be appending its line, so a reader can see it half written: it is read on a later look."""
+    return [json.loads(line) for line in path.read_text().split("\n")[:-1]]
+
+
 class Run:
     def __init__(self, tmp: Path, proc: subprocess.CompletedProcess | None = None, rc: int | None = None,
                  stdout: str = ""):
         self.tmp = tmp
         self.rc = proc.returncode if proc is not None else rc
         self.stdout = proc.stdout if proc is not None else stdout
-        self.calls = [json.loads(line)[1:] for line in (tmp / "fake" / "calls.log").read_text().splitlines()] \
+        self.calls = [c[1:] for c in fake_call_records(tmp / "fake" / "calls.log")] \
             if (tmp / "fake" / "calls.log").exists() else []
         incoming = list((tmp / "ev").glob("incoming_*"))
         self.incoming = incoming[0] if incoming else None
@@ -177,10 +183,29 @@ def wait_for_call(tmp: Path, pred, timeout: float = 60) -> None:
     calls = tmp / "fake" / "calls.log"
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if calls.exists() and any(pred(json.loads(line)[1:]) for line in calls.read_text().splitlines()):
+        if calls.exists() and any(pred(c[1:]) for c in fake_call_records(calls)):
             return
         time.sleep(0.05)
     raise AssertionError("call not seen")
+
+
+def test_a_fake_call_still_being_written_is_read_later_never_as_an_error(tmp_path: Path) -> None:
+    # the fake appends one JSON line per call while the session runs, so a reader can see the last line half written
+    # (a JSONDecodeError in wait_for_call ended a p10-2 test on CI): that line is not yet a call, and once whole it is
+    import threading
+    d = tmp_path / "fake"
+    d.mkdir()
+    whole = json.dumps([1.0, "compute", "ssh", G4, "--command=true"]) + "\n"
+    go = json.dumps([2.0, "compute", "ssh", G4, "--command=touch out/world_run1/go"]) + "\n"
+    (d / "calls.log").write_text(whole + go[:30])
+    with pytest.raises(AssertionError, match="call not seen"):
+        wait_for_call(tmp_path, lambda c: any("world_run1/go" in a for a in c), timeout=0.3)
+    done = threading.Timer(0.3, lambda: (d / "calls.log").write_text(whole + go))
+    done.start()
+    try:
+        wait_for_call(tmp_path, lambda c: any("world_run1/go" in a for a in c), timeout=10)
+    finally:
+        done.cancel()
 
 
 def finish(tmp: Path, p: subprocess.Popen, timeout: float = 90) -> Run:
@@ -1077,8 +1102,7 @@ def test_the_cap_names_itself_as_the_end(tmp_path: Path) -> None:
 
 
 def _call_times(tmp: Path, pred) -> list[float]:
-    return [json.loads(line)[0] for line in (tmp / "fake" / "calls.log").read_text().splitlines()
-            if pred(json.loads(line)[1:])]
+    return [c[0] for c in fake_call_records(tmp / "fake" / "calls.log") if pred(c[1:])]
 
 
 def test_a_signal_before_the_steps_still_fetches_an_uploaded_host(tmp_path: Path) -> None:
