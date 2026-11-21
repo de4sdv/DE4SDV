@@ -42,7 +42,7 @@ package DE4SDV_EEArchitectureNeedsRequirements {
     subject vehicleNetwork :> DE4SDV_EEArchitectureFraming::eeVehicleNetworkSystem;
     stakeholder occupant : VehicleOccupant;
     stakeholder roadUser : RoadUser;
-    require constraint statement { language "English" /* Vehicle occupants and road users need the vehicle network to carry the driving command that the central computer gives to the actuation ECU on either route of the command, so that the actuation ECU applies that command to the vehicle. */ }
+    require constraint statement { language "English" /* Vehicle occupants and road users need the vehicle network to carry the driving command that the central computer gives to the actuation ECU on each route of the command, so that the actuation ECU applies that command to the vehicle. */ }
     attribute :>> source = "INC-EE-001 eeVehicleCommandConcern, eeCommandRouteExchangeConcern, eeTopologyStructureConcern, scope items eeCommandFlowInScope, eeCommandRouteInScope and eeTopologyInScope, assumptions asmEECommandFromDrivingBaseline and asmEEScoreCommandSource, gaps gapEEZoneRouteInVehicles and gapEEStackAndNetworkBoundary, scenarios SC-EE-001 and SC-EE-002";
     attribute :>> rationale = "The vehicle can act on the driving command only if the command reaches the actuation ECU, and the increment takes neither route as given (gapEEZoneRouteInVehicles), so the need holds on each. The form of the command is the one that the driver-assistance increment fixes at its baseline; that baseline states no cadence of the command as such. The need states what the occupants and road users expect, not how well the network meets it, and carries no safety claim and no timing claim. Phase 5 derives its limits. Phase 5 also derives from this need the requirements on the elements that exchange the command on each route and on the topology that holds both routes: its source names their concerns, and SC-EE-005 asks their questions.";
   }
@@ -60,9 +60,9 @@ package DE4SDV_EEArchitectureNeedsRequirements {
     subject vehicleNetwork :> DE4SDV_EEArchitectureFraming::eeVehicleNetworkSystem;
     stakeholder occupant : VehicleOccupant;
     stakeholder roadUser : RoadUser;
-    require constraint statement { language "English" /* Vehicle occupants and road users need the vehicle network to apply to the vehicle no driving command that a fault of the network has made invalid on its way, on either route of the command. */ }
+    require constraint statement { language "English" /* Vehicle occupants and road users need the vehicle network to apply to the vehicle no driving command that a fault of the network has made invalid on its way, on each route of the command. */ }
     attribute :>> source = "INC-EE-001 eeVehicleCommandConcern, eeNetworkFaultResponseConcern, eeCommandItemConcern, scope items eeNetworkFaultsInScope and eeCommandFlowInScope, assumption asmEECommandFromDrivingBaseline, gap gapEEActuationEnd, scenarios SC-EE-003 and SC-EE-004";
-    attribute :>> rationale = "A command that is lost, delayed, repeated or corrupted on its way no longer stands for what the central computer gave, so the vehicle is not to act on it. When a link of the route goes down, the last command to arrive ages, and a lost command is a fault of the network. The driver-assistance increment places at the actuation the share of applying no command that the actuation rejects: its actuation end, DrivingCommandActuationAdapter, rejects a command whose fault the form of REQ-DRIVING-039 lets it detect, and has no stop response. That actuation detects only the corruptions that the form of the command lets it detect (the check-value bound decision of 2026-11-21 of that increment), so this need states the expectation and Phase 5 states the requirement within that bound. Which element detects a fault, rejects a command and gives a response is open (gapEEActuationEnd). The need carries no safety claim and no claim of freedom from interference. Phase 5 derives the detection and the rejection with their limits, and the share of the network in the response when no valid command reaches the actuation ECU, after REQ-DRIVING-028 of INC-DRIVING-001. A time limit counts on the clock of the virtual vehicle. Phase 5 also derives from this need the requirements on the exchange items that carry the command and on the sequence from each fault to its response: its source names their concerns, and SC-EE-006 asks their questions.";
+    attribute :>> rationale = "A command that is lost, delayed, repeated or corrupted on its way no longer stands for what the central computer gave, so the vehicle is not to act on it. When a link of the route goes down, the last command to arrive ages, and a lost command is a fault of the network. The driver-assistance increment places at its actuation end, DrivingCommandActuationAdapter, the share of REQ-MW-006 that is not applying a rejected command: the adapter rejects each command in which the form that REQ-DRIVING-039 requires lets it detect a loss, a delay, a repetition or a corruption, and has no stop response. A corruption that the adapter does not detect counts there as a valid command and can make it reject later valid commands as repetitions (the check-value bound decision of 2026-11-21 of that increment), so this need states the expectation and Phase 5 states the requirement within that bound. Which element detects a fault, rejects a command and gives a response is open (gapEEActuationEnd). The need carries no safety claim and no claim of freedom from interference. Phase 5 derives the detection and the rejection with their limits, and the share of the network in the response when no valid command reaches the actuation ECU, after REQ-DRIVING-028 of INC-DRIVING-001. A time limit counts on the clock of the virtual vehicle. Phase 5 also derives from this need the requirements on the exchange items that carry the command and on the sequence from each fault to its response: its source names their concerns, and SC-EE-006 asks their questions.";
   }
 
   requirement <'NEED-EE-003'> needRunsIdentifyRouteAndNetwork : StakeholderNeedCandidate {
@@ -83,11 +83,17 @@ package DE4SDV_EEArchitectureNeedsRequirements {
      * can systems engineers and verification engineers confirm whether the
      * command that the actuation ECU applies on each route is the command
      * that the central computer gave? Can system architects and systems
-     * engineers tell which elements of the vehicle network exchange the
-     * command on each route, and by which boundary interface it enters the
-     * network from the Eclipse S-CORE path? And can system architects and
-     * product-line engineers tell which elements make up the one topology
-     * that holds both routes, and in which role each is used?
+     * engineers tell, on each route, which elements of the vehicle network
+     * exchange the command on its way from the network side of the central
+     * computer to the actuation ECU, through the Ethernet backbone and a zone
+     * controller or over the direct link, and by which boundary interface it
+     * enters the network from the Eclipse S-CORE path? And can system
+     * architects and product-line engineers tell which elements make up the
+     * one topology that holds both routes, in which role each is used and
+     * what its relation to the platform stack and to the vehicle network
+     * boundary of the AAOS SDV middleware is (gapEEStackAndNetworkBoundary),
+     * and judge from that whether the product line admits this topology as
+     * its reference vehicle network?
      */
   }
   connection commandOnEachRouteValidationPlanning : ValidationPlanningAssociation
@@ -108,12 +114,15 @@ package DE4SDV_EEArchitectureNeedsRequirements {
      * on its way, or kept applying a command after a link of its route went
      * down, and whether a response followed when no valid command reached it,
      * and which? Can safety experts and systems engineers follow, for each
-     * fault, the sequence from the fault to its detection at the actuation
-     * and to the response that follows there? And can systems engineers and
-     * safety experts tell which exchange item carries the command on each
-     * part of its way, and whether each keeps the parts by which the
-     * actuation detects such a fault, including where a zone controller
-     * repacks it from Ethernet to CAN?
+     * fault of the vehicle network on the route of the command, the sequence
+     * from the fault to its detection at the actuation and to the response
+     * that follows there, independent of the elements that realize it? And
+     * can systems engineers and safety experts tell which exchange item
+     * carries the command on each part of its way, on the Ethernet backbone,
+     * through a zone controller and on CAN, and whether each keeps the parts
+     * of the command by which the actuation detects its loss, delay,
+     * repetition or corruption, including where a zone controller repacks it
+     * from Ethernet to CAN?
      */
   }
   connection networkFaultValidationPlanning : ValidationPlanningAssociation

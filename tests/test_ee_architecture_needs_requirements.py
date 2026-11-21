@@ -58,24 +58,31 @@ SCENARIOS = {
 REVIEWED_CONCERNS = {
     "eeCommandRouteExchangeConcern": (
         "needDrivingCommandReachesActuationOnEachRoute",
-        "Can system architects and systems engineers tell",
-        "which elements of the vehicle network exchange the command on each route, and by which boundary "
-        "interface it enters the network from the Eclipse S-CORE path?"),
+        "Can system architects and systems engineers tell,",
+        "on each route, which elements of the vehicle network exchange the command on its way from the "
+        "network side of the central computer to the actuation ECU, through the Ethernet backbone and a "
+        "zone controller or over the direct link, and by which boundary interface it enters the network "
+        "from the Eclipse S-CORE path?"),
     "eeTopologyStructureConcern": (
         "needDrivingCommandReachesActuationOnEachRoute",
         "And can system architects and product-line engineers tell",
-        "which elements make up the one topology that holds both routes, and in which role each is used?"),
+        "which elements make up the one topology that holds both routes, in which role each is used and "
+        "what its relation to the platform stack and to the vehicle network boundary of the AAOS SDV "
+        "middleware is (gapEEStackAndNetworkBoundary), and judge from that whether the product line "
+        "admits this topology as its reference vehicle network?"),
     "eeNetworkFaultResponseConcern": (
         "needNoInvalidCommandApplied",
         "Can safety experts and systems engineers follow,",
-        "for each fault, the sequence from the fault to its detection at the actuation and to the response "
-        "that follows there?"),
+        "for each fault of the vehicle network on the route of the command, the sequence from the fault "
+        "to its detection at the actuation and to the response that follows there, independent of the "
+        "elements that realize it?"),
     "eeCommandItemConcern": (
         "needNoInvalidCommandApplied",
         "And can systems engineers and safety experts tell",
-        "which exchange item carries the command on each part of its way, and whether each keeps the parts by "
-        "which the actuation detects such a fault, including where a zone controller repacks it from Ethernet "
-        "to CAN?"),
+        "which exchange item carries the command on each part of its way, on the Ethernet backbone, "
+        "through a zone controller and on CAN, and whether each keeps the parts of the command by which "
+        "the actuation detects its loss, delay, repetition or corruption, including where a zone "
+        "controller repacks it from Ethernet to CAN?"),
 }
 #: a stakeholder definition -> how a review question or the guide names its members
 ROLE_WORDS = {
@@ -113,12 +120,14 @@ ALLOWED_DIGITS = re.compile(r"\b(?:[Pp]hases? \d+(?: to \d+)?|System 2|[A-Z]+-[A
 #: a number in words with a unit: a limit in disguise
 NUMBER_WORDS = re.compile(r"(?i)\b(?:one|two|three|four|five|six|seven|eight|nine|ten|twenty|thirty|half)\s+(?:a\s+)?"
                           r"(?:seconds?|milliseconds?|metres?|meters?|kilometres?|kilometers?|km/h)\b")
-#: a count of the routes in a statement: the statement says "either route", the scenarios name them
+#: a count of the routes in a statement: the statement says "each route", the scenarios name them
 ROUTE_COUNT = re.compile(r"(?i)\b(?:two|both)\b")
 #: a clause or section number of an external source: the repository names its source records only
 CLAUSE_NUMBER = re.compile(r"(?i)\b(?:annex|paragraph|clause|appendix|section)\s+\d|§\s*\d|\b\d+(?:\.\d+){2,}\b")
 #: a positive safety claim; "no safety claim" is the non-claim
 SAFETY_CLAIM = re.compile(r"(?i)(?<!no )\bsaf(?:e|ety|ely)\b")
+#: a positive timing claim; "no timing claim" is the non-claim
+TIMING_CLAIM = re.compile(r"(?i)(?<!no )\b(?:timing|latency|jitter|in time|real[- ]time|deadline)\b")
 #: the fields of the command are INC-DRIVING-002's, stated in phase 5 and phase 8: a need names none
 COMMAND_FIELD = re.compile(r"(?i)\b(?:sequence counts?|check values?|issue times?|frames?|CRC\w*|payload\w*)\b")
 #: sensor data, the AEBS command and the brake hand-off are outside the increment
@@ -130,6 +139,53 @@ HEADER_NON_CLAIM = ("No safety, timing, on-road or production-readiness claim is
                     "claimed.")
 #: the count sentence of the header
 HEADER_COUNT = "Four concerns are reviewer questions: a need's source names them and its review checks them."
+#: the header paragraph that gives the reason of each reviewer question, pinned whole
+HEADER_REASONS = (
+    "Each of these four concerns asks to see the answer that the view of a later phase gives, and the "
+    "vehicle network gives its roles nothing that they use in their own work: eeTopologyStructureConcern, "
+    "held by system architects and product-line engineers, and eeCommandRouteExchangeConcern, held by "
+    "system architects and systems engineers, ask about the elements that carry the command, and "
+    "NEED-EE-001 names them; eeCommandItemConcern, held by systems engineers and safety experts, and "
+    "eeNetworkFaultResponseConcern, held by safety experts and systems engineers, ask about the items and "
+    "the sequence of a fault, and NEED-EE-002 names them. The stakeholder needs of the driver-assistance "
+    "increment, INC-DRIVING-002, keep such concerns as reviewer questions in the same way.")
+#: need -> the guide's Phase 4 bullet, pinned whole (whitespace flattened)
+GUIDE_BULLETS = {
+    "NEED-EE-001": (
+        "the network carries the driving command of the central computer to the actuation ECU on each "
+        "route of the command. Vehicle occupants and road users. Reviewed by `SC-EE-005` on `SC-EE-001` "
+        "and `SC-EE-002`."),
+    "NEED-EE-002": (
+        "the network applies to the vehicle no driving command that a fault of the network made invalid "
+        "on its way. Vehicle occupants and road users. Reviewed by `SC-EE-006` on `SC-EE-003` and "
+        "`SC-EE-004`, which also asks whether a response followed when no valid command reached the "
+        "actuation ECU, and which."),
+    "NEED-EE-003": (
+        "each run identifies the route that carried the command and the topology and the revision of the "
+        "network that ran. Verification engineers and product-line engineers, who use the run identity in "
+        "their own work. Reviewed by `SC-EE-007` on all four scenarios."),
+}
+#: the paragraphs of the guide's Phase 4 section besides its bullets, in order, pinned whole
+GUIDE_PARAGRAPHS = (
+    "The [stakeholder needs](../../textual-notation-of-model/packages/features/ee/"
+    "ee_architecture_needs_requirements.sysml) say what the parties of the Phase 1 concerns expect of the "
+    "vehicle network. Each need is held by the parties it serves and leads its source with the concern it "
+    "comes from. Each has one planned stakeholder review on the Phase 2 scenarios it covers, carried out "
+    "by the roles that check the answer.",
+    "Four concerns get no need of their own: the topology, the elements that exchange the command on each "
+    "route, the exchange items that carry it, and the sequence from a fault to its response. Their roles "
+    "check the answer rather than use it, as in the stakeholder needs of the driver-assistance increment, "
+    "so each is a question for a planned review: `NEED-EE-001` names the first two in its source and "
+    "`SC-EE-005` asks them, and `NEED-EE-002` names the other two and `SC-EE-006` asks them. No need "
+    "states a number: Phase 5 derives the requirements, their limits and the share of the network in the "
+    "response when no valid command arrives, after REQ-DRIVING-028 of INC-DRIVING-001. The form of the "
+    "command comes from the baseline of the driver-assistance increment, which states no cadence of the "
+    "command as such; a comment about `NEED-EE-001` keeps that input contract for Phase 5.",
+    "`tests/test_ee_architecture_needs_requirements.py` pins the needs, their holders and sources, the "
+    "planned reviews and their scenarios, and the wording a need may not use. The Phase 4 gates check "
+    "that each need has a statement, a stakeholder, a source, a rationale and a planned review. Review "
+    "judges whether the needs are the right ones.",
+)
 #: need -> how the guide's bullet names its holders
 GUIDE_HOLDERS = {
     "NEED-EE-001": "Vehicle occupants and road users.",
@@ -143,12 +199,12 @@ GUIDE_HOLDERS = {
 STATEMENTS = {
     "needDrivingCommandReachesActuationOnEachRoute": (
         "Vehicle occupants and road users need the vehicle network to carry the driving command "
-        "that the central computer gives to the actuation ECU on either route of the command, so "
+        "that the central computer gives to the actuation ECU on each route of the command, so "
         "that the actuation ECU applies that command to the vehicle."),
     "needNoInvalidCommandApplied": (
         "Vehicle occupants and road users need the vehicle network to apply to the vehicle no "
-        "driving command that a fault of the network has made invalid on its way, on either route "
-        "of the command."),
+        "driving command that a fault of the network has made invalid on its way, on each route of "
+        "the command."),
     "needRunsIdentifyRouteAndNetwork": (
         "Verification engineers and product-line engineers need each run of the vehicle network to "
         "identify the route that carried the driving command and the topology and the revision of "
@@ -185,12 +241,14 @@ RATIONALES = {
         "A command that is lost, delayed, repeated or corrupted on its way no longer stands for what "
         "the central computer gave, so the vehicle is not to act on it. When a link of the route "
         "goes down, the last command to arrive ages, and a lost command is a fault of the network. "
-        "The driver-assistance increment places at the actuation the share of applying no command "
-        "that the actuation rejects: its actuation end, DrivingCommandActuationAdapter, rejects a "
-        "command whose fault the form of REQ-DRIVING-039 lets it detect, and has no stop response. "
-        "That actuation detects only the corruptions that the form of the command lets it detect "
-        "(the check-value bound decision of 2026-11-21 of that increment), so this need states the "
-        "expectation and Phase 5 states the requirement within that bound. Which element detects a "
+        "The driver-assistance increment places at its actuation end, DrivingCommandActuationAdapter, "
+        "the share of REQ-MW-006 that is not applying a rejected command: the adapter rejects each "
+        "command in which the form that REQ-DRIVING-039 requires lets it detect a loss, a delay, a "
+        "repetition or a corruption, and has no stop response. A corruption that the adapter does "
+        "not detect counts there as a valid command and can make it reject later valid commands as "
+        "repetitions (the check-value bound decision of 2026-11-21 of that increment), so this need "
+        "states the expectation and Phase 5 states the requirement within that bound. Which element "
+        "detects a "
         "fault, rejects a command and gives a response is open (gapEEActuationEnd). The need "
         "carries no safety claim and no claim of freedom from interference. Phase 5 derives the "
         "detection and the rejection with their limits, and the share of the network in the "
@@ -213,22 +271,30 @@ PLAN_DOCS = {
         "For NEED-EE-001, a planned stakeholder review. While the route through a zone controller "
         "and the direct link run (SC-EE-001 and SC-EE-002), can systems engineers and verification "
         "engineers confirm whether the command that the actuation ECU applies on each route is the "
-        "command that the central computer gave? Can system architects and systems engineers tell "
-        "which elements of the vehicle network exchange the command on each route, and by which "
-        "boundary interface it enters the network from the Eclipse S-CORE path? And can system "
-        "architects and product-line engineers tell which elements make up the one topology that "
-        "holds both routes, and in which role each is used?"),
+        "command that the central computer gave? Can system architects and systems engineers tell, "
+        "on each route, which elements of the vehicle network exchange the command on its way from "
+        "the network side of the central computer to the actuation ECU, through the Ethernet "
+        "backbone and a zone controller or over the direct link, and by which boundary interface it "
+        "enters the network from the Eclipse S-CORE path? And can system architects and "
+        "product-line engineers tell which elements make up the one topology that holds both "
+        "routes, in which role each is used and what its relation to the platform stack and to the "
+        "vehicle network boundary of the AAOS SDV middleware is (gapEEStackAndNetworkBoundary), and "
+        "judge from that whether the product line admits this topology as its reference vehicle "
+        "network?"),
     "SC-EE-006": (
         "For NEED-EE-002, a planned stakeholder review. While a command fault on the route and a "
         "link that goes down run (SC-EE-003 and SC-EE-004), can verification engineers and safety "
         "experts confirm whether the actuation ECU applied any command that was lost, delayed, "
         "repeated or corrupted on its way, or kept applying a command after a link of its route went "
         "down, and whether a response followed when no valid command reached it, and which? Can "
-        "safety experts and systems engineers follow, for each fault, the sequence from the fault to "
-        "its detection at the actuation and to the response that follows there? And can systems "
-        "engineers and safety experts tell which exchange item carries the command on each part of "
-        "its way, and whether each keeps the parts by which the actuation detects such a fault, "
-        "including where a zone controller repacks it from Ethernet to CAN?"),
+        "safety experts and systems engineers follow, for each fault of the vehicle network on the "
+        "route of the command, the sequence from the fault to its detection at the actuation and to "
+        "the response that follows there, independent of the elements that realize it? And can "
+        "systems engineers and safety experts tell which exchange item carries the command on each "
+        "part of its way, on the Ethernet backbone, through a zone controller and on CAN, and "
+        "whether each keeps the parts of the command by which the actuation detects its loss, "
+        "delay, repetition or corruption, including where a zone controller repacks it from "
+        "Ethernet to CAN?"),
     "SC-EE-007": (
         "For NEED-EE-003, a planned stakeholder review. While the route through a zone controller, "
         "the direct link, a command fault on the route and a link that goes down run (SC-EE-001 to "
@@ -316,11 +382,10 @@ def test_the_package_declares_exactly_the_needs_of_phase_4_with_unique_short_nam
 
 
 def test_each_need_has_a_statement_its_holders_a_source_a_rationale_and_the_system_of_interest():
-    # The ElaborateNeeds gates: needHasStatement, needHasStakeholder, needHasSource, needHasRationale, and the
-    # advisory needSubjectIsSystemOfInterest (the charter's systemOfInterest, never the increment).
+    # The ElaborateNeeds gates: needHasStatement, needHasStakeholder, needHasSource and needHasRationale; the
+    # subject has its own test.
     for name, (_short, roles, concern) in NEEDS.items():
         body = _need(name)
-        assert re.search(rf"\bsubject\s+\w+\s*:>\s*{re.escape(SYSTEM_OF_INTEREST)}\s*;", body), name
         assert set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", strip_comments(body))) == roles, name
         source = _attribute(body, "source")
         assert source.startswith(f"{INCREMENT} {concern},"), (name, source)
@@ -329,11 +394,27 @@ def test_each_need_has_a_statement_its_holders_a_source_a_rationale_and_the_syst
         assert _attribute(body, "rationale") == RATIONALES[name], (name, "rationale")
 
 
+def test_the_subject_of_each_need_is_the_system_of_interest():
+    # The advisory needSubjectIsSystemOfInterest: the charter's systemOfInterest, never the increment.
+    for name in NEEDS:
+        subjects = re.findall(r"\bsubject\s+\w+\s*:>\s*([\w:]+)\s*;", strip_comments(_need(name)))
+        assert subjects == [SYSTEM_OF_INTEREST], (name, subjects)
+
+
+def _declared_holders(name: str) -> set[str]:
+    return set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", strip_comments(_need(name))))
+
+
 def test_each_need_is_held_by_holders_of_its_first_source_concern():
+    # The rule reads the model: each declared holder holds the need's first source concern in the framing.
     for name, (_short, roles, concern) in NEEDS.items():
         first = re.findall(r"\b(\w+Concern)\b", _attribute(_need(name), "source"))[0]
         assert first == concern, (name, first)
-        assert roles <= _framing_holders(concern), (name, roles - _framing_holders(concern))
+        declared = _declared_holders(name)
+        assert declared, (name, "a need has its holders")
+        holders = _framing_holders(first)
+        assert declared <= holders, (name, sorted(declared - holders), "a holder holds the first source concern")
+        assert declared == roles, (name, sorted(declared ^ roles))
 
 
 def test_every_non_boundary_concern_of_phase_1_is_named_in_a_source():
@@ -364,6 +445,8 @@ def test_a_reviewer_question_concern_is_named_by_a_need_and_checked_by_its_revie
     assert HEADER_COUNT in header, "the header counts the reviewer questions"
     for concern in REVIEWED_CONCERNS:
         assert concern in header, (concern, "the header gives the reason of each reviewer question")
+    paragraphs = [_flat(part) for part in re.split(r"\n\s*\*\s*\n", _raw().split("\npackage ", 1)[0])]
+    assert HEADER_REASONS in paragraphs, "the header paragraph of the reasons, pinned whole"
 
 
 def test_each_need_has_one_planned_review_on_a_phase_2_use_case():
@@ -417,6 +500,7 @@ def test_no_need_uses_excluded_wording_or_an_anti_cheating_clause():
         assert not EXCLUDED.findall(text), (name, EXCLUDED.findall(text))
         assert not ANTI_CHEATING.findall(text), (name, ANTI_CHEATING.findall(text))
         assert not SAFETY_CLAIM.findall(text), (name, SAFETY_CLAIM.findall(text))
+        assert not TIMING_CLAIM.findall(text), (name, TIMING_CLAIM.findall(text))
         assert not OUTSIDE.findall(text), (name, OUTSIDE.findall(text))
     raw = _raw()
     assert not CLAUSE_NUMBER.findall(raw), CLAUSE_NUMBER.findall(raw)
@@ -448,6 +532,10 @@ def test_the_stop_response_stays_on_the_review_and_comes_from_the_closed_loop_in
     assert "and has no stop response" in rationale, "the driver-assistance adapter gives no stop response"
     assert "the check-value bound decision of 2026-11-21 of that increment" in rationale
     assert "DrivingCommandActuationAdapter" in rationale and "REQ-DRIVING-039" in rationale
+    assert "the share of REQ-MW-006 that is not applying a rejected command" in rationale
+    assert "the form that REQ-DRIVING-039 requires" in rationale, "REQ-DRIVING-039 is the form"
+    assert "counts there as a valid command and can make it reject later valid commands as repetitions" in \
+        rationale, "the check-value bound states its consequence"
     assert "and whether a response followed when no valid command reached it, and which?" in \
         _plan_doc("SC-EE-006")
 
@@ -516,6 +604,10 @@ def test_the_guide_has_a_phase_4_section_and_names_phase_5_next():
     bullets = {match[1]: " ".join(match[2].split())
                for match in re.finditer(r"(?ms)^- `(NEED-EE-\d{3})`:(.*?)(?=^- `|^\s*$)", raw_section)}
     assert sorted(bullets) == sorted(short for short, _roles, _concern in NEEDS.values())
+    assert bullets == GUIDE_BULLETS, "the guide's Phase 4 bullets, pinned whole"
+    paragraphs = [" ".join(part.split()) for part in re.split(r"\n\s*\n", raw_section.strip())
+                  if not part.lstrip().startswith("- ")]
+    assert tuple(paragraphs) == GUIDE_PARAGRAPHS, "the guide's Phase 4 paragraphs, pinned whole"
     for _name, (short, roles, _concern) in NEEDS.items():
         assert GUIDE_HOLDERS[short] in bullets[short], (short, "the guide names the holders")
         named = {words for words in ALL_ROLE_WORDS if words in bullets[short].lower()}
@@ -529,6 +621,11 @@ def test_the_guide_has_a_phase_4_section_and_names_phase_5_next():
         "owner." in flat
     assert "Phase 5 waits" not in flat and "Phase 5 and the testbed" not in flat, "no hold of Phase 5 is written"
     assert "Phase 3 capability classification and Phase 4 stakeholder needs, proposal." in flat
+
+
+def test_the_guide_ends_with_exactly_one_newline():
+    guide = GUIDE.read_text(encoding="utf-8")
+    assert guide.endswith("\n") and not guide.endswith("\n\n"), "the guide ends with exactly one newline"
 
 
 def test_the_header_states_its_non_claims():

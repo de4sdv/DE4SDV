@@ -231,7 +231,7 @@ concern it comes from. Each has one planned stakeholder review on the Phase 2
 scenarios it covers, carried out by the roles that check the answer.
 
 - `NEED-EE-001`: the network carries the driving command of the central
-  computer to the actuation ECU on either route of the command. Vehicle
+  computer to the actuation ECU on each route of the command. Vehicle
   occupants and road users. Reviewed by `SC-EE-005` on `SC-EE-001` and
   `SC-EE-002`.
 - `NEED-EE-002`: the network applies to the vehicle no driving command that a
