@@ -101,10 +101,10 @@ def _world(tree: Path, run: str, run_ticks: list[float], settle: int = 10, hold:
 
 
 #: the images of the synthetic run 012_20_r1: every 0.1 s from 10.0 s to 19.9 s, and the drops among them: five in
-#: the first 5 s after the first image (one of them 4.5 s after it), one isolated inside the run, one isolated after the run's last tick and
+#: the first 5 s after the first image (one of them 4.9 s after it), one isolated inside the run, one isolated after the run's last tick and
 #: three in the last second of the image stream, which goes on after the run's end
 IMAGES = [round(10.0 + 0.1 * k, 6) for k in range(100)]
-DROPS = [10.0, 10.1, 10.2, 13.0, 14.5, 16.0, 18.5, 19.6, 19.7, 19.8]
+DROPS = [10.0, 10.1, 10.2, 13.0, 14.9, 16.0, 18.5, 19.6, 19.7, 19.8]
 RUN_TICKS = [round(9.9 + 0.05 * k, 6) for k in range(143)]          # 9.9 s to 17.0 s
 
 
