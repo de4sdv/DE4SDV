@@ -153,13 +153,16 @@ def test_the_feature_is_bound_once_and_corresponds_to_the_deferred_driving_stack
 
 
 def test_the_feature_model_comments_count_the_rules_and_the_display_configurations() -> None:
-    """The counts that INC-DRIVING-001 left stale, restated with VisionPilot."""
+    """The counts that INC-DRIVING-001 left stale, restated with VisionPilot. Since the scope revision of ADR 0023
+    and ADR 0026 the display comment no longer counts the configurations that select the display: every member
+    selects it."""
     docs = _docs(FEATURE_MODEL)
     assert ("The ten rules and the exclusions of Openpilot, Apollo, AutoE2E and VisionPilot cover all twenty "
             "application-middleware pairs, each exactly once.") in docs
     assert "the eight rules" not in docs and "twelve application-middleware pairs" not in docs
+    assert "Every member configuration selects it" in docs
     assert ("the configurations that select it, the Eclipse S-CORE configurations of INC-MW-011, INC-DRIVING-001 "
-            "and INC-DRIVING-002, are not admitted") in docs
+            "and INC-DRIVING-002, are not admitted") not in docs
     assert "only the Eclipse S-CORE configuration selects it" not in docs
 
 

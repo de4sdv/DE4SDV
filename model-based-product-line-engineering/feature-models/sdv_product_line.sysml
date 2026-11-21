@@ -31,7 +31,9 @@
  * the guest side of the platform (the guestOperatingSystem and
  * guestMiddleware groups), the optional HMI display capability, and the
  * requires constraints C007 to C011, with the IDs of the next free
- * constraint numbers.
+ * constraint numbers. The scope revision of ADR 0023 and ADR 0026 (owner
+ * decisions of 2026-11-13) made the HMI display common content of every
+ * member and removed C010.
  */
 
 package DE4SDV_SDVProductLineFeatureModel {
@@ -249,12 +251,7 @@ package DE4SDV_SDVProductLineFeatureModel {
             #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-AEBS-BICYCLE-DETECTION'> bicycleDetection[0..1] default null;
             #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-ADAPTIVE-CRUISE-CONTROL'> adaptiveCruiseControl[0..1] default null;
             #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-LANE-KEEP-ASSIST'> laneKeepAssist[0..1] default null;
-            #feature #UnassignedBindingTime occurrence <'F-CAPABILITY-HMI-DISPLAY'> hmiDisplay[0..1] default null {
-                assert constraint <'C010'> hmiDisplayRequiresGuestAndroidSDV :> requiresFeatures {
-                    doc /* The HMI display is on the AAOS SDV guest. */
-                    in occurrence constrainedFeatures = new FeatureOperand(that, platformStack::guestAndroidSDV);
-                }
-            }
+            #feature occurrence <'F-CAPABILITY-HMI-DISPLAY'> hmiDisplay[0..1] default null;
         }
     }
 
@@ -420,14 +417,19 @@ package DE4SDV_SDVProductLineFeatureModel {
      *     group feature (vehicleApplication, perceptionSensors) classifies
      *     its variation point: it is a note and never blocks.
      *   - The selections realize exactly one admitted alternative and select
-     *     every derived realization of it.
+     *     every derived realization of it. A choice that corresponds to two
+     *     alternatives is read by intersection (ADR 0023, decision 4): the
+     *     selections realize the one alternative that all their choices with
+     *     an alternative correspondence have in common.
      *   - Every common asset that features represent is represented by all
      *     of them. A choice is exempt only where the realized alternative
      *     selects another member of its group. No member needs that
-     *     exemption: both run Autoware on Linux on the main side. Common
-     *     content without a feature (decision 2) is part of every member.
-     * So the two governed members of ADR 0014, standalone and
-     * AAOS-integrated, are admitted, and the reference examples are not.
+     *     exemption: all three run Autoware on Linux on the main side and
+     *     select the HMI display. Common content without a feature
+     *     (decision 2) is part of every member.
+     * So the three governed members, standalone and AAOS-integrated
+     * (ADR 0014) and S-CORE-integrated (ADR 0023), are admitted, and the
+     * reference examples are not.
      */
     dependency vehicleApplicationCorrespondsToDrivingStackVariability
         from SDVProductLineFeatureTree::platformStack::vehicleApplication
@@ -448,9 +450,9 @@ package DE4SDV_SDVProductLineFeatureModel {
         from SDVProductLineFeatureTree::platformStack::apollo
         to DE4SDV_AEBSProductLineScope::ReferenceOnlyAlternativeSet::apollo;
 
-    dependency eclipseSCORECorrespondsToReferenceOnlyEclipseSCORE
+    dependency eclipseSCORECorrespondsToSCOREIntegrated
         from SDVProductLineFeatureTree::platformStack::eclipseSCORE
-        to DE4SDV_AEBSProductLineScope::ReferenceOnlyAlternativeSet::eclipseSCORE;
+        to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::scoreIntegrated;
     dependency androidSDVCorrespondsToAAOSIntegrated
         from SDVProductLineFeatureTree::platformStack::androidSDV
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
@@ -463,11 +465,15 @@ package DE4SDV_SDVProductLineFeatureModel {
 
     /*
      * Linux corresponds to the common Linux/ROS 2 Autoware runtime only:
-     * both governed members run Autoware on Linux on the main side, so Linux
-     * is no derived realization of either alternative. The guest side
-     * carries the split execution-domain topology of the AAOS-integrated
-     * alternative: guestAndroid and guestAndroidSDV correspond to it, and
-     * noGuestOperatingSystem and noGuestMiddleware to standalone.
+     * every governed member runs Autoware on Linux on the main side, so
+     * Linux is no derived realization of an alternative. KVM and the guest
+     * side carry the split execution-domain topology that both integrated
+     * alternatives share (ADR 0023, decision 3): kvm, guestAndroid and
+     * guestAndroidSDV correspond to AAOS Integrated and to S-CORE
+     * Integrated, one dependency per alternative, and noHypervisor,
+     * noGuestOperatingSystem and noGuestMiddleware to standalone. The
+     * middleware tells the integrated alternatives apart: androidSDV
+     * corresponds to AAOS Integrated, eclipseSCORE to S-CORE Integrated.
      */
     dependency linuxCorrespondsToCommonAutowareRuntime
         from SDVProductLineFeatureTree::platformStack::linux
@@ -485,6 +491,9 @@ package DE4SDV_SDVProductLineFeatureModel {
     dependency kvmCorrespondsToAAOSIntegrated
         from SDVProductLineFeatureTree::platformStack::kvm
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
+    dependency kvmCorrespondsToSCOREIntegrated
+        from SDVProductLineFeatureTree::platformStack::kvm
+        to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::scoreIntegrated;
     dependency noHypervisorCorrespondsToStandalone
         from SDVProductLineFeatureTree::platformStack::noHypervisor
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::standalone;
@@ -492,12 +501,18 @@ package DE4SDV_SDVProductLineFeatureModel {
     dependency guestAndroidCorrespondsToAAOSIntegrated
         from SDVProductLineFeatureTree::platformStack::guestAndroid
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
+    dependency guestAndroidCorrespondsToSCOREIntegrated
+        from SDVProductLineFeatureTree::platformStack::guestAndroid
+        to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::scoreIntegrated;
     dependency noGuestOperatingSystemCorrespondsToStandalone
         from SDVProductLineFeatureTree::platformStack::noGuestOperatingSystem
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::standalone;
     dependency guestAndroidSDVCorrespondsToAAOSIntegrated
         from SDVProductLineFeatureTree::platformStack::guestAndroidSDV
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
+    dependency guestAndroidSDVCorrespondsToSCOREIntegrated
+        from SDVProductLineFeatureTree::platformStack::guestAndroidSDV
+        to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::scoreIntegrated;
     dependency noGuestMiddlewareCorrespondsToStandalone
         from SDVProductLineFeatureTree::platformStack::noGuestMiddleware
         to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::standalone;
@@ -521,6 +536,9 @@ package DE4SDV_SDVProductLineFeatureModel {
     dependency bicycleDetectionCorrespondsToExpandedAEBSCapabilityVariability
         from SDVProductLineFeatureTree::capabilities::bicycleDetection
         to DE4SDV_AEBSProductLineScope::DeferredVariabilitySet::expandedAEBSCapabilityVariability;
+    dependency hmiDisplayCorrespondsToCommonDriverHMIDisplay
+        from SDVProductLineFeatureTree::capabilities::hmiDisplay
+        to DE4SDV_AEBSProductLineScope::InitialCommonCoreEngineeringContent::driverHMIDisplay;
 
     comment about SDVProductLineFeatureTree::capabilities::adaptiveCruiseControl,
                   SDVProductLineFeatureTree::capabilities::laneKeepAssist
@@ -537,15 +555,23 @@ package DE4SDV_SDVProductLineFeatureModel {
          * as not in the governed scope. */
 
     comment about SDVProductLineFeatureTree::capabilities::hmiDisplay
-        /* The HMI display distinguishes no governed member yet: the
-         * configurations that select it, the Eclipse S-CORE configurations of
-         * INC-MW-011, INC-DRIVING-001 and INC-DRIVING-002, are not admitted.
-         * It has no governed-scope element, so admission reports it as not in
-         * the governed scope.
+        /* The HMI display is common content of every member since ADR 0026
+         * (2026-11-13). Every member configuration selects it, and it
+         * corresponds to the common content driverHMIDisplay, so a
+         * configuration without it is not admitted. It stays an optional
+         * feature so that configurations which are not members can leave it
+         * out (decision 6), and it binds during Development (decision 4).
+         * Its place derives from the integration mode: the AAOS SDV guest of
+         * an integrated member, and a Linux-side display on the standalone
+         * member, which does not exist yet.
          * No shared asset implements the display yet, so no feature binding
          * resolves it: like the sensing and the other capability selections,
          * each projection lists it among the selections that SysML does not
-         * resolve. */
+         * resolve.
+         * Removed rule C010: the display required the AAOS SDV guest
+         * (guestAndroidSDV). ADR 0026 removed it (decision 3), because the
+         * standalone member has its display on the Linux side and no guest;
+         * its ID is not re-used. */
 
     /*
      * Dropped rules. Their rationale stays here; C002's allowed list stays

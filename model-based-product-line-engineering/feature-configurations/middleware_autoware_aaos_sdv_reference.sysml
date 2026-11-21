@@ -18,8 +18,8 @@ package DE4SDV_MiddlewareAutowareAAOSSDVReferenceConfiguration {
              * SoC, with LiDAR and camera perception. Autoware runs on its ROS
              * 2/Linux application runtime on the main side, which is also the
              * KVM host. The AAOS SDV middleware runs in the AAOS SDV guest under
-             * KVM, the SDV Core platform domain with no HMI display (owner
-             * decisions D3 of 2026-10-21 and D2 V3 of 2026-10-22).
+             * KVM, which holds the HMI display, common content of every member
+             * (ADR 0026).
              * Cross-domain transport remains unresolved. This configuration
              * and its projection do not prove provider, generated binding,
              * discovery, transport, adapter deployment, ROS 2 publication,
@@ -32,7 +32,14 @@ package DE4SDV_MiddlewareAutowareAAOSSDVReferenceConfiguration {
              * side. E-MW-011 to E-MW-014, BL-MW-010-P12 and CLM-MW-010-01 were
              * retained against that pre-correction content, at the INC-MW-010
              * baseline revision b8170f6953567b07164b8c02be05be137f8047f0. Their
-             * records are not edited. */
+             * records are not edited.
+             *
+             * On 2026-11-13 the HMI display became common content of every
+             * member (ADR 0026), and this configuration selects it. Until then
+             * its guest was the SDV Core platform domain without a display
+             * (owner decisions D3 of 2026-10-21 and D2 V3 of 2026-10-22). The
+             * INC-MW-010 records stay retained against the earlier content and
+             * are not edited. */
         @ProductModelProjectionName {
             partDefinitionName = "MiddlewareAutowareAAOSSDVReference";
         }
@@ -61,7 +68,7 @@ package DE4SDV_MiddlewareAutowareAAOSSDVReferenceConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
-            #feature occurrence :>> hmiDisplay[0];
+            #feature occurrence :>> hmiDisplay[1];
         }
     }
 }

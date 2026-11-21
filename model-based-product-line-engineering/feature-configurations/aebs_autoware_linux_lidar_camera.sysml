@@ -16,7 +16,9 @@ package DE4SDV_AEBSAutowareLinuxLidarCameraConfiguration {
              * Autoware on Linux, single-domain (no middleware, no hypervisor,
              * no guest side).
              * LiDAR + camera perception, IMU + wheel odometry common.
-             * Vehicle-target AEBS only (no pedestrian/bicycle detection). */
+             * Vehicle-target AEBS only (no pedestrian/bicycle detection).
+             * The HMI display, common content of every member (ADR 0026), on
+             * the Linux side: that display does not exist yet. */
         @ProductModelProjectionName {
             partDefinitionName = "AEBSAutowareLinuxLidarCamera";
         }
@@ -45,7 +47,7 @@ package DE4SDV_AEBSAutowareLinuxLidarCameraConfiguration {
             #feature occurrence :>> bicycleDetection[0];
             #feature occurrence :>> adaptiveCruiseControl[0];
             #feature occurrence :>> laneKeepAssist[0];
-            #feature occurrence :>> hmiDisplay[0];
+            #feature occurrence :>> hmiDisplay[1];
         }
     }
 }
