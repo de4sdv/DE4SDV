@@ -19,7 +19,7 @@ VCS = ("VC-DRIVING-036", "VC-DRIVING-037", "VC-DRIVING-038", "VC-DRIVING-040", "
 
 
 def test_the_six_outcome_literals_and_their_verdicts():
-    # driver_assistance_verification_evidence.sysml:132-137 and :140-148
+    # driver_assistance_verification_evidence.sysml:156-161 and :164-172
     text = VE.read_text()
     block = text[text.index("enum def AssistanceEvidenceOutcome"):text.index("calc def MapAssistanceEvidence")]
     literals = re.findall(r"^\s+(\w+);", block, re.M)
@@ -155,7 +155,7 @@ def _condition_notes(doc, vc):
 
 def test_036_037_condition_note_carries_the_calibration_and_the_gains_on_pass_and_on_fail(tmp_path):
     # While ASM-DRIVING-005 is unproven, a verdict of 036/037 is conditional on it
-    # (driver_assistance_verification_evidence.sysml:299-300): the note states the condition with the session's
+    # (driver_assistance_verification_evidence.sysml:916-917): the note states the condition with the session's
     # calib-decel summary and the Ackermann gains, whatever the outcome.
     passing = syn.write_session(tmp_path / "pass", syn.s1_specs())
     (passing / "reproduction_044.json").write_text(json.dumps(

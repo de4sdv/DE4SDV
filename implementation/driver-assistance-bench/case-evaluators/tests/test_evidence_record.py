@@ -1,8 +1,8 @@
 """Lane D: the evidence record of each run, RetainedAssistanceRunEvidence
-(textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml:150-243).
+(textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml:174-268).
 
 Every attribute is filled from the fetched session tree; an empty attribute gives inconclusiveMissingEvidence and the
-record names it ("A missing or partial record gives inconclusive, never pass", :211-212).
+record names it ("A missing or partial record gives inconclusive, never pass", :235-236).
 """
 
 import json
@@ -200,7 +200,7 @@ def test_the_campaign_turns_a_pass_inconclusive_on_a_partial_record(tmp_path):
         assert any(n.startswith("observed passBoundedVerification") for n in res["notes"]), (vc, res["notes"])
 
 
-# The lead's reading of 2026-11-21 (driver_assistance_verification_evidence.sysml:126-127 and :211-212): a run whose
+# The lead's reading of 2026-11-21 (driver_assistance_verification_evidence.sysml:150-151 and :235-236): a run whose
 # evidence record is partial gives inconclusive for that run, never pass and never fail. A case's fail stands only
 # when at least one run that shows the fail has a complete record.
 FAIL = "failObservedBehavior"
@@ -331,7 +331,7 @@ def test_the_claim_boundary_follows_the_repository_wording():
 
 # ------------------------------------------------------------------ R4: each run's own platform, GPU and delay first
 # Closure review of 44a4be29..86cadee0, R4: session/evidence_fields.py makes a session-level value absent when any
-# started run lacks its line (_agree). The model's record is per run (:150-153), so a run's record reads the run's own
+# started run lacks its line (_agree). The model's record is per run (:174-177), so a run's record reads the run's own
 # score_runs.<run>.score_platform and .score_gpu first and the session's value only as the fallback. The session-level
 # fields below are the producer's own (evidence_fields.session_fields), with S1's evidence_config.json model_delay
 # and guest_images.txt lines (20261121T014447Z).

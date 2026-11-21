@@ -1,0 +1,588 @@
+{
+  "012_20_r1": {
+    "file": "score/out/score_012_20_r1/score_side/run/score/score_interface.jsonl",
+    "received": 599,
+    "dropped": 30,
+    "firstImageSimS": 535.399,
+    "lastImageSimS": 595.199,
+    "droppedInFirst5s": 24,
+    "droppedAtStreamEnd": 4,
+    "streamEndDropsWithinS": 0.4,
+    "isolatedDropsS": [
+      36.8,
+      41.9
+    ],
+    "runEnd": {
+      "file": "sim/out/world_012_20_r1/simulator/run_end.json",
+      "endReason": "contact with the target",
+      "ticks": 663,
+      "tickTimesFile": "sim/out/world_012_20_r1/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 1266,
+      "egoSpeedAtLastTickKmh": 0.369,
+      "targetSpeedAtLastTickKmh": 0.349
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_012_20_r1/simulator/world.jsonl",
+      "firstTickSimS": 535.249,
+      "lastTickSimS": 568.349,
+      "dropped": 24,
+      "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_012_20_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 686.2
+    }
+  },
+  "012_20_r2": {
+    "file": "score/out/score_012_20_r2/score_side/run/score/score_interface.jsonl",
+    "received": 589,
+    "dropped": 27,
+    "firstImageSimS": 731.183,
+    "lastImageSimS": 789.983,
+    "droppedInFirst5s": 24,
+    "droppedAtStreamEnd": 3,
+    "streamEndDropsWithinS": 0.3,
+    "isolatedDropsS": [],
+    "runEnd": {
+      "file": "sim/out/world_012_20_r2/simulator/run_end.json",
+      "endReason": "contact with the target",
+      "ticks": 660,
+      "tickTimesFile": "sim/out/world_012_20_r2/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 1250,
+      "egoSpeedAtLastTickKmh": 0.371,
+      "targetSpeedAtLastTickKmh": 0.349
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_012_20_r2/simulator/world.jsonl",
+      "firstTickSimS": 731.133,
+      "lastTickSimS": 764.083,
+      "dropped": 24,
+      "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_012_20_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 698.3
+    }
+  },
+  "012_42_r1": {
+    "file": "score/out/score_012_42_r1/score_side/run/score/score_interface.jsonl",
+    "received": 341,
+    "dropped": 29,
+    "firstImageSimS": 893.888,
+    "lastImageSimS": 927.888,
+    "droppedInFirst5s": 23,
+    "droppedAtStreamEnd": 6,
+    "streamEndDropsWithinS": 0.6,
+    "isolatedDropsS": [],
+    "runEnd": {
+      "file": "sim/out/world_012_42_r1/simulator/run_end.json",
+      "endReason": "contact with the target",
+      "ticks": 580,
+      "tickTimesFile": "sim/out/world_012_42_r1/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 809,
+      "egoSpeedAtLastTickKmh": 0.34,
+      "targetSpeedAtLastTickKmh": 0.396
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_012_42_r1/simulator/world.jsonl",
+      "firstTickSimS": 893.638,
+      "lastTickSimS": 922.588,
+      "dropped": 23,
+      "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_012_42_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 689.0
+    }
+  },
+  "012_42_r2": {
+    "file": "score/out/score_012_42_r2/score_side/run/score/score_interface.jsonl",
+    "received": 583,
+    "dropped": 27,
+    "firstImageSimS": 1060.04,
+    "lastImageSimS": 1118.24,
+    "droppedInFirst5s": 23,
+    "droppedAtStreamEnd": 3,
+    "streamEndDropsWithinS": 0.3,
+    "isolatedDropsS": [
+      26.4
+    ],
+    "runEnd": {
+      "file": "sim/out/world_012_42_r2/simulator/run_end.json",
+      "endReason": "contact with the target",
+      "ticks": 578,
+      "tickTimesFile": "sim/out/world_012_42_r2/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 1329,
+      "egoSpeedAtLastTickKmh": 0.369,
+      "targetSpeedAtLastTickKmh": 0.349
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_012_42_r2/simulator/world.jsonl",
+      "firstTickSimS": 1059.89,
+      "lastTickSimS": 1088.74,
+      "dropped": 24,
+      "isolatedDropsS": [
+        26.4
+      ]
+    },
+    "warmStart": {
+      "file": "score/out/score_012_42_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 682.9
+    }
+  },
+  "012_60_r1": {
+    "file": "score/out/score_012_60_r1/score_side/run/score/score_interface.jsonl",
+    "received": 336,
+    "dropped": 26,
+    "firstImageSimS": 1229.059,
+    "lastImageSimS": 1262.559,
+    "droppedInFirst5s": 23,
+    "droppedAtStreamEnd": 3,
+    "streamEndDropsWithinS": 0.3,
+    "isolatedDropsS": [],
+    "runEnd": {
+      "file": "sim/out/world_012_60_r1/simulator/run_end.json",
+      "endReason": "contact with the target",
+      "ticks": 574,
+      "tickTimesFile": "sim/out/world_012_60_r1/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 803,
+      "egoSpeedAtLastTickKmh": 0.318,
+      "targetSpeedAtLastTickKmh": 0.395
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_012_60_r1/simulator/world.jsonl",
+      "firstTickSimS": 1228.909,
+      "lastTickSimS": 1257.559,
+      "dropped": 23,
+      "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_012_60_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 682.4
+    }
+  },
+  "012_60_r2": {
+    "file": "score/out/score_012_60_r2/score_side/run/score/score_interface.jsonl",
+    "received": 343,
+    "dropped": 28,
+    "firstImageSimS": 1372.19,
+    "lastImageSimS": 1406.39,
+    "droppedInFirst5s": 23,
+    "droppedAtStreamEnd": 3,
+    "streamEndDropsWithinS": 0.3,
+    "isolatedDropsS": [
+      15.7,
+      32.0
+    ],
+    "runEnd": {
+      "file": "sim/out/world_012_60_r2/simulator/run_end.json",
+      "endReason": "contact with the target",
+      "ticks": 574,
+      "tickTimesFile": "sim/out/world_012_60_r2/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 814,
+      "egoSpeedAtLastTickKmh": 0.35,
+      "targetSpeedAtLastTickKmh": 0.348
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_012_60_r2/simulator/world.jsonl",
+      "firstTickSimS": 1372.04,
+      "lastTickSimS": 1400.69,
+      "dropped": 24,
+      "isolatedDropsS": [
+        15.7
+      ]
+    },
+    "warmStart": {
+      "file": "score/out/score_012_60_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 692.0
+    }
+  },
+  "013_30_r1": {
+    "file": "score/out/score_013_30_r1/score_side/run/score/score_interface.jsonl",
+    "received": 597,
+    "dropped": 27,
+    "firstImageSimS": 1513.439,
+    "lastImageSimS": 1573.039,
+    "droppedInFirst5s": 24,
+    "droppedAtStreamEnd": 2,
+    "streamEndDropsWithinS": 0.2,
+    "isolatedDropsS": [
+      31.6
+    ],
+    "runEnd": {
+      "file": "sim/out/world_013_30_r1/simulator/run_end.json",
+      "endReason": "at the speed of the target",
+      "ticks": 668,
+      "tickTimesFile": "sim/out/world_013_30_r1/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 1717,
+      "egoSpeedAtLastTickKmh": 17.608,
+      "targetSpeedAtLastTickKmh": 19.989
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_013_30_r1/simulator/world.jsonl",
+      "firstTickSimS": 1513.289,
+      "lastTickSimS": 1546.639,
+      "dropped": 25,
+      "isolatedDropsS": [
+        31.6
+      ]
+    },
+    "warmStart": {
+      "file": "score/out/score_013_30_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 682.0
+    }
+  },
+  "013_30_r2": {
+    "file": "score/out/score_013_30_r2/score_side/run/score/score_interface.jsonl",
+    "received": 82,
+    "dropped": 28,
+    "firstImageSimS": 1702.149,
+    "lastImageSimS": 1710.249,
+    "droppedInFirst5s": 24,
+    "droppedAtStreamEnd": 4,
+    "streamEndDropsWithinS": 0.4,
+    "isolatedDropsS": [],
+    "runEnd": {
+      "file": "sim/out/world_013_30_r2/simulator/run_end.json",
+      "endReason": "at the speed of the target",
+      "ticks": 62,
+      "tickTimesFile": "sim/out/world_013_30_r2/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 756,
+      "egoSpeedAtLastTickKmh": 1.289,
+      "targetSpeedAtLastTickKmh": 19.989
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_013_30_r2/simulator/world.jsonl",
+      "firstTickSimS": 1701.999,
+      "lastTickSimS": 1705.049,
+      "dropped": 24,
+      "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_013_30_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 706.8
+    }
+  },
+  "013_60_r1": {
+    "file": "score/out/score_013_60_r1/score_side/run/score/score_interface.jsonl",
+    "received": 329,
+    "dropped": 28,
+    "firstImageSimS": 1817.995,
+    "lastImageSimS": 1850.795,
+    "droppedInFirst5s": 24,
+    "droppedAtStreamEnd": 4,
+    "streamEndDropsWithinS": 0.4,
+    "isolatedDropsS": [],
+    "runEnd": {
+      "file": "sim/out/world_013_60_r1/simulator/run_end.json",
+      "endReason": "contact with the target",
+      "ticks": 534,
+      "tickTimesFile": "sim/out/world_013_60_r1/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 804,
+      "egoSpeedAtLastTickKmh": 21.381,
+      "targetSpeedAtLastTickKmh": 21.316
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_013_60_r1/simulator/world.jsonl",
+      "firstTickSimS": 1817.945,
+      "lastTickSimS": 1844.595,
+      "dropped": 24,
+      "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_013_60_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 697.6
+    }
+  },
+  "013_60_r2": {
+    "file": "score/out/score_013_60_r2/score_side/run/score/score_interface.jsonl",
+    "received": 84,
+    "dropped": 26,
+    "firstImageSimS": 1967.867,
+    "lastImageSimS": 1976.167,
+    "droppedInFirst5s": 24,
+    "droppedAtStreamEnd": 2,
+    "streamEndDropsWithinS": 0.2,
+    "isolatedDropsS": [],
+    "runEnd": {
+      "file": "sim/out/world_013_60_r2/simulator/run_end.json",
+      "endReason": "at the speed of the target",
+      "ticks": 62,
+      "tickTimesFile": "sim/out/world_013_60_r2/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 784,
+      "egoSpeedAtLastTickKmh": 1.293,
+      "targetSpeedAtLastTickKmh": 19.989
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_013_60_r2/simulator/world.jsonl",
+      "firstTickSimS": 1967.717,
+      "lastTickSimS": 1970.767,
+      "dropped": 24,
+      "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_013_60_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 686.5
+    }
+  },
+  "014_30_r1": {
+    "file": "score/out/score_014_30_r1/score_side/run/score/score_interface.jsonl",
+    "received": 314,
+    "dropped": 27,
+    "firstImageSimS": 2093.841,
+    "lastImageSimS": 2125.141,
+    "droppedInFirst5s": 24,
+    "droppedAtStreamEnd": 2,
+    "streamEndDropsWithinS": 0.2,
+    "isolatedDropsS": [
+      21.5
+    ],
+    "runEnd": {
+      "file": "sim/out/world_014_30_r1/simulator/run_end.json",
+      "endReason": "at rest",
+      "ticks": 493,
+      "tickTimesFile": "sim/out/world_014_30_r1/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 774,
+      "egoSpeedAtLastTickKmh": 0.12,
+      "targetSpeedAtLastTickKmh": 0.0
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_014_30_r1/simulator/world.jsonl",
+      "firstTickSimS": 2093.691,
+      "lastTickSimS": 2118.291,
+      "dropped": 25,
+      "isolatedDropsS": [
+        21.5
+      ]
+    },
+    "warmStart": {
+      "file": "score/out/score_014_30_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 689.1
+    }
+  },
+  "014_30_r2": {
+    "file": "score/out/score_014_30_r2/score_side/run/score/score_interface.jsonl",
+    "received": 786,
+    "dropped": 28,
+    "firstImageSimS": 2231.571,
+    "lastImageSimS": 2310.071,
+    "droppedInFirst5s": 23,
+    "droppedAtStreamEnd": 3,
+    "streamEndDropsWithinS": 0.3,
+    "isolatedDropsS": [
+      26.4,
+      61.5
+    ],
+    "runEnd": {
+      "file": "sim/out/world_014_30_r2/simulator/run_end.json",
+      "endReason": "run cap",
+      "ticks": 1201,
+      "tickTimesFile": "sim/out/world_014_30_r2/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 1453,
+      "egoSpeedAtLastTickKmh": 7.114,
+      "targetSpeedAtLastTickKmh": 0.0
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_014_30_r2/simulator/world.jsonl",
+      "firstTickSimS": 2231.321,
+      "lastTickSimS": 2291.321,
+      "dropped": 24,
+      "isolatedDropsS": [
+        26.4
+      ]
+    },
+    "warmStart": {
+      "file": "score/out/score_014_30_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 688.7
+    }
+  },
+  "015_40_r1": {
+    "file": "score/out/score_015_40_r1/score_side/run/score/score_interface.jsonl",
+    "received": 788,
+    "dropped": 30,
+    "firstImageSimS": 2437.842,
+    "lastImageSimS": 2516.542,
+    "droppedInFirst5s": 23,
+    "droppedAtStreamEnd": 4,
+    "streamEndDropsWithinS": 0.4,
+    "isolatedDropsS": [
+      36.4,
+      51.4,
+      76.5
+    ],
+    "runEnd": {
+      "file": "sim/out/world_015_40_r1/simulator/run_end.json",
+      "endReason": "run cap",
+      "ticks": 1501,
+      "tickTimesFile": "sim/out/world_015_40_r1/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 1167,
+      "egoSpeedAtLastTickKmh": 38.999,
+      "targetSpeedAtLastTickKmh": 10.0
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_015_40_r1/simulator/world.jsonl",
+      "firstTickSimS": 2437.692,
+      "lastTickSimS": 2512.692,
+      "dropped": 25,
+      "isolatedDropsS": [
+        36.4,
+        51.4
+      ]
+    },
+    "warmStart": {
+      "file": "score/out/score_015_40_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 678.3
+    }
+  },
+  "015_40_r2": {
+    "file": "score/out/score_015_40_r2/score_side/run/score/score_interface.jsonl",
+    "received": 788,
+    "dropped": 28,
+    "firstImageSimS": 2645.837,
+    "lastImageSimS": 2724.537,
+    "droppedInFirst5s": 23,
+    "droppedAtStreamEnd": 3,
+    "streamEndDropsWithinS": 0.3,
+    "isolatedDropsS": [
+      41.4,
+      76.5
+    ],
+    "runEnd": {
+      "file": "sim/out/world_015_40_r2/simulator/run_end.json",
+      "endReason": "run cap",
+      "ticks": 1501,
+      "tickTimesFile": "sim/out/world_015_40_r2/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 1182,
+      "egoSpeedAtLastTickKmh": 38.999,
+      "targetSpeedAtLastTickKmh": 10.0
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_015_40_r2/simulator/world.jsonl",
+      "firstTickSimS": 2645.687,
+      "lastTickSimS": 2720.687,
+      "dropped": 24,
+      "isolatedDropsS": [
+        41.4
+      ]
+    },
+    "warmStart": {
+      "file": "score/out/score_015_40_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 688.2
+    }
+  },
+  "calib_steer": {
+    "file": "score/out/score_calib_steer/score_side/run/score/score_interface.jsonl",
+    "received": 868,
+    "dropped": 43,
+    "firstImageSimS": 344.696,
+    "lastImageSimS": 431.396,
+    "droppedInFirst5s": 34,
+    "droppedAtStreamEnd": 3,
+    "streamEndDropsWithinS": 0.3,
+    "isolatedDropsS": [
+      42.2,
+      47.2,
+      57.2,
+      57.4,
+      67.3,
+      77.3
+    ],
+    "runEnd": {
+      "file": "sim/out/world_calib_steer/simulator/run_end.json",
+      "endReason": "run cap",
+      "ticks": 1201,
+      "tickTimesFile": "sim/out/world_calib_steer/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 1891,
+      "egoSpeedAtLastTickKmh": 20.999,
+      "targetSpeedAtLastTickKmh": null
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_calib_steer/simulator/world.jsonl",
+      "firstTickSimS": 344.646,
+      "lastTickSimS": 404.646,
+      "dropped": 38,
+      "isolatedDropsS": [
+        42.2,
+        47.2,
+        57.2,
+        57.4
+      ]
+    },
+    "warmStart": {
+      "file": "score/out/score_calib_steer/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 694.0
+    }
+  },
+  "stop": {
+    "file": "score/out/score_stop/score_side/run/score/score_interface.jsonl",
+    "received": 161,
+    "dropped": 32,
+    "firstImageSimS": 2855.16,
+    "lastImageSimS": 2871.16,
+    "droppedInFirst5s": 24,
+    "droppedAtStreamEnd": 8,
+    "streamEndDropsWithinS": 0.8,
+    "isolatedDropsS": [],
+    "runEnd": {
+      "file": "sim/out/world_stop/simulator/run_end.json",
+      "endReason": "run cap",
+      "ticks": 841,
+      "tickTimesFile": "sim/out/world_stop/simulator/tick_times.csv",
+      "ticksAfterRunEnd": 825,
+      "egoSpeedAtLastTickKmh": 20.999,
+      "targetSpeedAtLastTickKmh": 0.0
+    },
+    "wholeRunWindow": {
+      "file": "sim/out/world_stop/simulator/world.jsonl",
+      "firstTickSimS": 2855.01,
+      "lastTickSimS": 2897.01,
+      "dropped": 32,
+      "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_stop/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 692.7
+    },
+    "stopInstant": {
+      "file": "score/out/path_stop_stop/path_stop.json",
+      "stopInstantMonoNs": 5751472311230,
+      "simS": 2870.36,
+      "lastCommandIssueSimS": 2870.26,
+      "imageStreamAfterStopS": 0.8,
+      "droppedAfterStop": 8,
+      "ticksAfterStopS": 26.65
+    }
+  }
+}

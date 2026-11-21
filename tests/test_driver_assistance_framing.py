@@ -1,9 +1,9 @@
 """Content pins for the framing of the driver-assistance increment, not semantic validation.
 
-The framing of INC-DRIVING-002 holds Phase 0 and the Phase 1 concerns. These tests hold its
-structure to the method's Phase 0 and Phase 1 shapes, pin each decided statement by its own
-phrase, and hold the guide and the VisionPilot section of the folder's upstream record to the
-model. They read the model text; they do not parse SysML.
+The framing of INC-DRIVING-002 holds Phase 0, the Phase 1 concerns and the baseline decision of
+Phase 11. These tests hold its structure to the method's Phase 0, Phase 1 and Phase 11 shapes,
+pin each decided statement by its own phrase, and hold the guide and the VisionPilot section of the
+folder's upstream record to the model. They read the model text; they do not parse SysML.
 
 What they do not hold: a sentence that no pin names can change inside a doc of the model
 or inside that section, and a report of a run in words that the scan for past behavior
@@ -12,6 +12,8 @@ does not list passes. Those are for the review of the text.
 
 from __future__ import annotations
 
+import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -320,7 +322,7 @@ def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
                    "The increment judges the candidate's warning request and braking for a vehicle target, and the "
                    "collision warning that the AAOS SDV then gives the driver on its display and as a sound.",
                    "It does not change the Autoware-based AEBS.",
-                   "This package holds Phase 0 and the Phase 1 concerns."):
+                   "This package holds Phase 0, the Phase 1 concerns and the baseline decision of Phase 11."):
         assert phrase in increment, phrase
     problem = _doc("requirement driverAssistanceProblem : ProblemStatement")
     for phrase in ("The product line holds AEBS for a vehicle target as common content",
@@ -427,7 +429,8 @@ def test_assumptions_are_premises_and_gaps_are_open_points():
             assert phrase in _doc(f"part {name} : IncrementAssumption"), (name, phrase)
     for name, phrase in GAPS.items():
         assert phrase in _doc(f"part {name} : IncrementGap"), name
-    assert "disposition" not in code, "a gap has no disposition before the baseline decision of phase 11"
+    assert len(re.findall(r"\battribute\s*:>>\s*disposition\b", code)) == len(GAPS) + 1, \
+        "each gap and the baseline decision state one disposition, the one the baseline decision of phase 11 gives"
     # the two premises that a readiness probe discharges say so
     for name in ("asmSimulatorPathUsable", "asmProcessorInferenceSufficient"):
         assert "readiness probe" in _doc(f"part {name} : IncrementAssumption"), name
@@ -562,7 +565,8 @@ def test_the_framing_claims_no_verification_no_admission_and_no_compliance():
     assert "ProductLineMemberProduct" not in raw, "the candidate is not typed as a member product"
     assert not re.search(r"(?i)\b(?:compliant|complies|certified|homologated|type-approved)\b", raw)
     header = raw.split("package", 1)[0]
-    for phrase in ("Phase 0 framing and the Phase 1 concerns only", "no implementation", "no runtime result",
+    for phrase in ("Phase 0 framing, the Phase 1 concerns and the baseline decision of Phase 11",
+                   "no implementation", "no runtime result",
                    "no product-line",
                    "no compliance"):
         assert phrase in _flat(header.replace("*", "")), phrase
@@ -628,10 +632,7 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "
-            "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
-            "architecture, Phase 8 physical and software realization, Phase 9 variability and configuration and the "
-            "first slice of Phase 10 verification and evidence, proposal.**") in _flat(guide)
+    assert "**Status: baselined (Phase 11).**" in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part driverAssistanceQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -650,12 +651,12 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "../../methodologies/sysmod-sysmlv2/pilots/aebs-regulatory-source.yaml"):
         assert f"]({target})" in guide, target
     flat = _flat(guide)
-    for phrase in ("No implementation, run, result, product-line admission or compliance is claimed.",
+    for phrase in ("No product-line admission, safety, compliance or type-approval claim follows;",
                    "The additions are named from the requirements that fail and from the gaps of this increment; "
                    "the increment builds none of them.",
                    "It is no statement about compliance or type approval.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The next model obligation is **Phase 10**: verification and evidence",
+                   "The increment ended at its baseline decision.",
                    "the clauses for a vehicle target are not yet anchored there."):
         assert phrase in flat, phrase
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
@@ -845,3 +846,578 @@ def test_each_phase_one_concern_is_answered_by_a_view_of_its_phase_in_its_saf_do
             if kind in domains:
                 assert domains[viewpoint] == domains[kind], \
                     f"{name}: {kind} is in the {domains[kind]} domain, {viewpoint} in {domains[viewpoint]}"
+
+
+# -- phase 11: the baseline decision ------------------------------------------------------------------------------
+
+BASELINE = "part driverAssistanceBaselineDecision : IncrementBaselineDecision"
+#: the slice files of this increment; the driving folder holds INC-DRIVING-001's files too
+SLICES = sorted(DRIVING.glob("driver_assistance_*.sysml"))
+#: The disposition the baseline decision gives each gap record of the increment: the ten framing gaps by name, the
+#: gap of phase 10 by short name. An accepted gap stays open as a known limit; a deferred one moves to a later
+#: increment. gapCandidateBehaviorUnverified stays accepted because the judged session S1 is evidence of record;
+#: gapCameraImageAndGeometry is deferred because S1 does not show what explains the fails; GAP-DRIVING-014 stays
+#: deferred with the text that the second slice of phase 10 gives it (the decisions of 2026-11-21).
+GAP_DISPOSITIONS = {
+    "gapVehicleTargetCriteria": "deferred",
+    "gapNoSeparateEmergencyFunction": "deferred",
+    "gapWarningOutput": "deferred",
+    "gapCandidateBehaviorUnverified": "accepted",
+    "gapScoreIntegration": "deferred",
+    "gapCameraImageAndGeometry": "deferred",
+    "gapDeclaredOperatingConditions": "accepted",
+    "gapCandidateAdmission": "deferred",
+    "gapUpstreamContactAndRights": "deferred",
+    "gapDriverHmiInProductLine": "deferred",
+    "GAP-DRIVING-014": "deferred",
+}
+#: The evidence directory of the judged session S1. The verdicts, the statuses and the figures of the baseline and of
+#: the gaps are written by hand; these tests derive each of them from its file here, so that a refresh that changes
+#: a verdict file fails the hand texts that restate it (review Q3 and Q7 of 2026-11-21).
+EVIDENCE = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z"
+VERIFICATION = DRIVING / "driver_assistance_verification_evidence.sysml"
+
+
+def _evidence(name: str) -> dict:
+    return json.loads((EVIDENCE / name).read_text(encoding="utf-8"))
+
+
+def _case_verdicts() -> dict[str, str]:
+    """The verdict of each case of S1: the eight evaluated cases from verdicts.json, and VC-DRIVING-039 from the
+    outcome of the desk analysis (analysis_039.generator.json), mapped as MapAssistanceEvidenceOutcomeToVerdict of
+    the phase 10 slice maps it."""
+    found = {vc: case["verdict"] for vc, case in _evidence("verdicts.json")["cases"].items()}
+    calc = " ".join(VERIFICATION.read_text(encoding="utf-8").split("calc def MapAssistanceEvidenceOutcomeToVerdict",
+                                                                    1)[1].split("}", 1)[0].split())
+    mapped = dict(re.findall(r"outcome == AssistanceEvidenceOutcome::(\w+)\? VerdictKind::(\w+)", calc))
+    other = re.search(r"else VerdictKind::(\w+);", calc)
+    assert mapped and other, "the slice's calc def has no readable map"
+    found["VC-DRIVING-039"] = mapped.get(_evidence("analysis_039.generator.json")["outcome"], other.group(1))
+    assert sorted(found) == [f"VC-DRIVING-0{n}" for n in range(36, 45)], sorted(found)
+    return {vc: found[vc] for vc in sorted(found)}
+
+
+def _case_runs(vc: str) -> list[dict]:
+    return _evidence("verdicts.json")["cases"][vc]["measured"]["runs"]
+
+
+#: the judged runs of S1: those to which VC-DRIVING-036 gives a pass or a fail; the runs of SC-DRIVING-014 and
+#: SC-DRIVING-015 have no judged-run term, and VC-DRIVING-036 does not read them
+JUDGED = [e["run"] for e in _case_runs("VC-DRIVING-036") if e["outcome"] != "inconclusiveMissingEvidence"]
+JUDGED_012 = [run for run in JUDGED if run.startswith("012_")]
+#: the impact speed that VC-DRIVING-037 measured in each judged run of SC-DRIVING-012, km/h to one decimal
+IMPACTS = [f"{e['measured']['impactKmh']:.1f}" for e in _case_runs("VC-DRIVING-037") if e["run"] in JUDGED_012]
+IMPACT_LIST = ", ".join(IMPACTS[:-1]) + " and " + IMPACTS[-1]
+#: why 012_20_r2 is not judged, as VC-DRIVING-036 records it
+CENTER_LINE = re.search(r"center line ([0-9.]+) m from the target's \(limit ([0-9.]+) m\)", " ".join(
+    " ".join(e["missing"]) for e in _case_runs("VC-DRIVING-036") if e["run"] == "012_20_r2")).groups()
+#: the end of the judged run of SC-DRIVING-013 and of the second runs, and the stop instant of the stop run, as the
+#: refresh writes them into drop_counts.json from the session tree
+_COUNTS = _evidence("drop_counts.json")
+RUN_END_013 = _COUNTS["013_30_r1"]["runEnd"]
+B1_TICKS = sorted({_COUNTS[run]["runEnd"]["ticks"] for run in ("013_30_r2", "013_60_r2")})
+STOP_WINDOW = _COUNTS["stop"]["wholeRunWindow"]
+STOP_INSTANT = _COUNTS["stop"].get("stopInstant") or {}
+
+
+def _kmh(value) -> str:
+    return f"{value:.1f}" if isinstance(value, (int, float)) else str(value)
+
+
+def _s(value, digits: int) -> str:
+    return f"{value:.{digits}f}" if isinstance(value, (int, float)) else str(value)
+
+
+#: the words of the judged runs in the texts (review Q8 of 2026-11-21): of the 14 runs, those that VC-DRIVING-036
+#: judges, and the runs of SC-DRIVING-014 and SC-DRIVING-015, which have no judged-run term
+JUDGED_RUNS_PHRASE = (f"the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 ({len(JUDGED)} of them judged runs; "
+                      "SC-DRIVING-014 and SC-DRIVING-015 have no judged-run term)")
+#: the stop clause of VC-DRIVING-038, from the stop run's whole-run window and its stop instant (review Q1)
+STOP_CLAUSE = (f"{STOP_WINDOW['dropped']} dropped camera images fall inside its judged window, from "
+               f"{STOP_WINDOW['firstTickSimS']:.3f} s to {STOP_WINDOW['lastTickSimS']:.3f} s of simulation time, and "
+               f"the stop came at about {_s(STOP_INSTANT.get('simS'), 2)} s, so "
+               f"{_s(STOP_INSTANT.get('ticksAfterStopS'), 2)} s of ticks follow it")
+#: Every place of the draft that waits for the verdicts of the judged session S1 or for phase 10b. Finishing the
+#: baseline replaced each one in the model and the guide; none remains.
+PLACEHOLDERS = ()
+#: The texts that replaced the 13 places of the draft, in the draft's order: the framing decision's answer, the
+#: evidence, the verdicts, the verdicts that read the runs outside the declared conditions, the additions,
+#: GAP-DRIVING-014, and one place in each of seven framing gaps (S1, the decisions of 2026-11-21).
+FILLS = (
+    # 0 the framing decision's answer
+    "as a candidate that needs the additions named below before it can be the AEBS of a member product, by the "
+    "decision of 2026-11-21",
+    # 1 the evidence
+    "by the decision of 2026-11-21, the judged session S1, session 20261121T014447Z at bench commit 508649ba, run on "
+    f"2026-11-21 on the three hosts with {JUDGED_RUNS_PHRASE} and the run that stops the path, and its records, on the "
+    "condition that the bench files that ran are byte-identical to those that the second slice of phase 10 merges, "
+    "the check that the evidence README of that slice states",
+    # 2 the verdicts
+    "VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 a fail of the pinned candidate on this bench in simulation: in "
+    "each of the five judged runs of SC-DRIVING-012 the candidate started no warning request and commanded no "
+    f"deceleration stronger than 0.46 m/s², and the contact with the stationary target came at {IMPACT_LIST} km/h, "
+    "the impact speeds that VC-DRIVING-037 measured; the second run at 20 km/h is not judged, its center line "
+    f"{CENTER_LINE[0]} m from the target's against a limit of {CENTER_LINE[1]} m. Of SC-DRIVING-013, the first run "
+    "at 30 km/h is judged and meets the three criteria, since no collision became imminent and the candidate slowed "
+    "below the target's speed: at the run's last tick the vehicle drove at "
+    f"{_kmh(RUN_END_013.get('egoSpeedAtLastTickKmh'))} km/h and the target at "
+    f"{_kmh(RUN_END_013.get('targetSpeedAtLastTickKmh'))} km/h; the second run at 30 km/h and both runs at 60 "
+    "km/h have no functional part and are not judged. VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041, VC-DRIVING-043 "
+    "and VC-DRIVING-044 inconclusive: each of the 14 runs and the run that stops the path drops 23 or 24 camera "
+    "images in the first 5 s after its first image, "
+    "and by the rule of phase 8 no run whose judged window holds a dropped image is judged; for these cases the "
+    "window is the whole run. Read with "
+    "that rule set aside, for diagnosis only and as no verdict, VC-DRIVING-038 and VC-DRIVING-044 meet their "
+    "criteria in all 14 runs, and VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-043 in the runs of SC-DRIVING-012 and "
+    "SC-DRIVING-013. VC-DRIVING-039 a pass, by a desk analysis of the realization in an independent agent session, "
+    "within its bounds: a loss of a driving command shows only when a later command arrives, a delay of up to 0.1 s "
+    "of simulation time goes unseen, and the second slice of phase 10 corrects the realization's sentence about later "
+    "valid commands to what the check value catches",
+    # 3 the verdicts that read the runs of SC-DRIVING-014 and SC-DRIVING-015
+    "no run of either gives a verdict, since VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-044, the "
+    "cases that read them, judge over the whole run and are inconclusive by the rule on dropped images",
+    # 4 the additions
+    "by the decision of 2026-11-21, a warning and an emergency braking for a stationary vehicle ahead in its lane, "
+    "a camera path that keeps every image from a run's first image on, so that the criteria over every run can be "
+    "judged, except those of VC-DRIVING-040 and VC-DRIVING-041 on the runs of SC-DRIVING-014 and SC-DRIVING-015, "
+    "which also need the fix of the case evaluators that GAP-DRIVING-014 names as B3, and for the stop clauses of "
+    "VC-DRIVING-038 and VC-DRIVING-043 a judged window that ends at the stop "
+    "instant or a camera input that stops with the candidate, since after the stop the interface drops the images "
+    "that the candidate no longer takes",
+    # 5 what GAP-DRIVING-014 holds after the second slice of phase 10
+    "the readiness items that S1 leaves open: the candidate's cycle on the GPU of the S-CORE host, on which each of "
+    "the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops 23 or 24 camera images in the first 5 s after its first "
+    "image and up to 2 more inside the run, with no "
+    "cause shown, what S1 does not show of the start of the sound on the IVI guest, the showing of the results to the "
+    "VisionPilot maintainers, the bench item B1 for the next session, the end of the second runs of "
+    f"SC-DRIVING-013 after {' or '.join(str(t) for t in B1_TICKS)} ticks at the speed of the target, and the bench "
+    "item B3, the case evaluators' reading of the guidance of SC-DRIVING-014 and SC-DRIVING-015 one level above "
+    "where the setting record holds it",
+    # 6 gapNoSeparateEmergencyFunction
+    "VC-DRIVING-036 and VC-DRIVING-037 a fail, since in the five judged runs of SC-DRIVING-012 the candidate "
+    "commanded no deceleration stronger than 0.46 m/s² before the contact with the stationary target, VC-DRIVING-042 "
+    "a fail, since in the same runs the candidate started no warning request, and VC-DRIVING-041 inconclusive by the "
+    "rule on dropped images",
+    # 7 gapWarningOutput
+    "VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012 the candidate started no warning request, "
+    "and VC-DRIVING-040 and VC-DRIVING-043 inconclusive by the rule on dropped images",
+    # 8 gapCandidateBehaviorUnverified
+    "the judged session S1 of 2026-11-21 gives the first closed-loop results of record of the candidate on the "
+    "DE4SDV bench",
+    # 9 gapScoreIntegration
+    "VC-DRIVING-038 and VC-DRIVING-043, each inconclusive by the rule on dropped images. The stop clause of "
+    f"VC-DRIVING-038 is inconclusive by the same rule: {STOP_CLAUSE}",
+    # 10 gapCameraImageAndGeometry
+    "S1 does not show whether the detection of the target at the distances that the criteria need, or the "
+    "calibration, explains the fails of VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042",
+    # 11 gapDeclaredOperatingConditions
+    "no run of SC-DRIVING-014 or SC-DRIVING-015 gives a verdict, since the cases that read them judge over the whole "
+    "run and are inconclusive by the rule on dropped images",
+    # 12 gapUpstreamContactAndRights
+    "at the baseline the maintainers have not seen the results or the draft, and nothing is posted to them before "
+    "the owner approves its exact text",
+)
+#: The verdict of each case in the judged session S1, as the baseline and the guide's table state it: derived from
+#: the verdict files of the evidence directory, never typed here (review Q7 of 2026-11-21)
+VERDICTS = _case_verdicts()
+#: What the baseline decision states, in its order: what it accepts, the evidence and the verdicts, the gaps under
+#: their dispositions, and the claims it does not make.
+BASELINE_STATEMENTS = (
+    "BL-DRIVING-002-P11.",
+    "The baseline of INC-DRIVING-002 accepts the driver-assistance integration as built: the model of phases 0 to 10 "
+    "and the bench that implements it.",
+    "VisionPilot at 014e0e7a, built with the DE4SDV S-CORE interface and the visualization recorder, runs as an "
+    "Eclipse S-CORE application that the Launch Manager starts and supervises; the bench carries its driving command "
+    "to the simulated vehicle in CARLA 1.0 through the actuation adapter, and its warning request to the AAOS SDV "
+    "guests, on the Eclipse S-CORE path.",
+    f"This answers the framing decision (driverAssistanceDecision): the candidate goes forward {FILLS[0]}.",
+    f"The evidence it accepts: {FILLS[1]}.",
+    f"The verdicts, one for each case: {FILLS[2]}.",
+    "The runs of SC-DRIVING-014 and SC-DRIVING-015 lie outside the candidate's declared operating conditions and are "
+    f"reported apart: {FILLS[3]}.",
+    "A fail is a recorded result: no scenario, criterion or setting is changed for it (counterClaimNoTuningToPass).",
+    "The additions named from the requirements that fail and from the gaps of this increment: "
+    f"{FILLS[4]}; the increment builds none of them.",
+    "Accepted as known limits, still open in this baseline: the verdicts of a build with changes that upstream has "
+    "not merged (gapCandidateBehaviorUnverified), and the runs outside the declared operating conditions "
+    "(gapDeclaredOperatingConditions).",
+    "Deferred to a later increment: the product line's criteria for a vehicle target (gapVehicleTargetCriteria), the "
+    "member decision on the braking that leaves in the one driving command (gapNoSeparateEmergencyFunction), the "
+    "upstream take-up of the warning hand-off (gapWarningOutput) and of the S-CORE interface module "
+    "(gapScoreIntegration), whether the rendered camera images or the calibration of the simulated camera explain "
+    "the fails (gapCameraImageAndGeometry), the member decision that amends ADR 0014 (gapCandidateAdmission), the upstream contact "
+    "and the rights clearance (gapUpstreamContactAndRights), the display in the governed scope and the acoustic "
+    f"warning (gapDriverHmiInProductLine), and {FILLS[5]} (GAP-DRIVING-014).",
+    "No gap is withdrawn.",
+    "No safety, on-road, compliance, type-approval, certification, homologation or membership claim follows from "
+    "this baseline, and nothing about UNECE R152: a criterion met in simulation holds for the simulated "
+    "configuration only (asmSimulatedConfigurationStandsIn).",
+    "The bench is engineering equipment, and its camera images, vehicle dynamics and targets are simulated.",
+)
+#: What each framing gap says at the baseline: what the increment answered and what stays open.
+FRAMING_GAP_BASELINE_STATEMENTS = {
+    "gapVehicleTargetCriteria": (
+        "At the baseline decision: phase 5 derived the criteria for a vehicle target with their provenance and the "
+        "owner of each (vehicleTargetCriteriaFixedInPhase5), and the cases of phase 10 read them.",
+        "The AEBS model still records its criteria for a vehicle target as undefined, and no verdict covers what a "
+        "simulation cannot show of a criterion.",
+        "Deferred to a later increment: taking the criteria into the obligations of the product line.",
+    ),
+    "gapNoSeparateEmergencyFunction": (
+        "At the baseline decision: the realization answers the gap for this candidate "
+        "(phase8EmergencyFunctionAnswered): the warning and the emergency braking come from the one planned "
+        "acceleration and leave in the one driving command, and the candidate realizes no independent protected "
+        "emergency command path (counterClaimNoIndependentEmergencyPath).",
+        f"The cases that judge that braking: {FILLS[6]}.",
+        "Deferred to a later increment: whether the candidate's braking can stand for the common capability is for "
+        "the member decision.",
+    ),
+    "gapWarningOutput": (
+        "At the baseline decision: the warning request leaves the candidate through the hand-off that phase 8 "
+        "placed (phase8WarningOutputPlaced), a change that upstream has not merged.",
+        f"The cases that judge the warning request: {FILLS[7]}.",
+        "The inspected revision has no warning output of its own; whether upstream takes the hand-off is open until "
+        "its maintainers have seen the draft (gapUpstreamContactAndRights).",
+        "Deferred to a later increment.",
+    ),
+    "gapCandidateBehaviorUnverified": (
+        f"At the baseline decision: {FILLS[8]}.",
+        "Every verdict is of the build 014e0e7a with the DE4SDV S-CORE interface and the visualization recorder, "
+        "changes that upstream has not merged (phase8CandidateBuildCarriesTheSCOREInterface, "
+        "phase8VisualizationRecorderPlaced, counterClaimBuildWithUnmergedChanges); the inspected revision without "
+        "them has run on no DE4SDV bench.",
+        "Accepted as a known limit; the gap stays open.",
+    ),
+    "gapScoreIntegration": (
+        "At the baseline decision: the candidate's process is an Eclipse S-CORE application through the DE4SDV "
+        "S-CORE interface module, which the Launch Manager starts and supervises (phase8ScoreIntegrationPlaced), and "
+        "its driving command and its warning request enter the S-CORE path at the boundary of the process.",
+        "The readiness items that phase 8 left open went on as GAP-DRIVING-014.",
+        f"The cases that judge the path: {FILLS[9]}.",
+        "The module is a change that upstream has not merged, and the inspected revision has no S-CORE binding of "
+        "its own.",
+        "Deferred to a later increment: its take-up upstream.",
+    ),
+    "gapCameraImageAndGeometry": (
+        "At the baseline decision: the cases read the candidate on rendered camera images, with the calibration of "
+        "the simulated camera.",
+        f"A fail that a mismatch of the image or of the calibration may explain stays a fail: {FILLS[10]}.",
+        "A verdict holds for the rendered images only (counterClaimRenderedCameraImages).",
+        "Deferred to a later increment: which of the two explains the fails, if either.",
+    ),
+    "gapDeclaredOperatingConditions": (
+        "At the baseline decision: the runs of SC-DRIVING-014 and SC-DRIVING-015, outside the declared conditions, "
+        "are reported apart from the runs of SC-DRIVING-012 and SC-DRIVING-013 "
+        "(counterClaimOutsideDeclaredConditions).",
+        f"Reported apart: {FILLS[11]}.",
+        "Accepted as a known limit; the gap stays open.",
+    ),
+    "gapCandidateAdmission": (
+        "At the baseline decision: phase 3 classified the candidate and named the scope decisions "
+        "(memberDecisionScopeInputs), and phase 9 gave DRIVING-CONFIG-002, a valid configuration that no member "
+        "decision has taken in.",
+        "This baseline admits no member product (counterClaimNoMemberProduct), and the member decision that amends "
+        "ADR 0014 has not been made.",
+        "Deferred to a later increment.",
+    ),
+    "gapUpstreamContactAndRights": (
+        "At the baseline decision: by the upstream contact decision of 2026-11-18 the VisionPilot maintainers are "
+        "shown the draft of the warning output and the interface seam, with the results, after the scenarios of "
+        f"phase 10 have run in CARLA: {FILLS[12]}.",
+        "No endorsement and no rights clearance exists, and the terms of the network weights and of their data are "
+        "not read (counterClaimNoUpstreamEndorsementOrRights).",
+        "Deferred to a later increment.",
+    ),
+    "gapDriverHmiInProductLine": (
+        "At the baseline decision: phase 3 classified the display and the sound (driverHmiClassification).",
+        "The governed scope takes in the display as common content with the scope pull request of ADR 0026, outside "
+        "this increment, and whether the acoustic warning becomes common content of the driver warning is for the "
+        "member decision.",
+        "Deferred to a later increment.",
+    ),
+}
+
+
+def _flat_body(raw: str, declaration: str) -> str:
+    return " ".join(re.sub(r"(?m)^\s*\*\s?", "", braced_body(raw, declaration)).split())
+
+
+def _in_order(statements, text: str, what: str) -> None:
+    position = -1
+    for statement in statements:
+        assert statement in text, (what, statement)
+        assert text.index(statement) > position, (what, "out of order", statement)
+        position = text.index(statement)
+
+
+def _gap_records() -> dict[str, str]:
+    """Every IncrementGap part of the increment's packages, by short name or else by name, with its body."""
+    records = {}
+    for path in SLICES:
+        code = strip_comments(path.read_text(encoding="utf-8"))
+        for short, name in re.findall(r"\bpart\s+(?:<'([^']+)'>\s+)?(\w+)\s*:\s*IncrementGap\s*\{", code):
+            declaration = f"part <'{short}'> {name} : IncrementGap" if short else f"part {name} : IncrementGap"
+            assert (short or name) not in records, short or name
+            records[short or name] = braced_body(code, declaration)
+    return records
+
+
+def test_the_increment_has_one_baseline_decision_beside_its_framing_decision():
+    codes = {path.name: strip_comments(path.read_text(encoding="utf-8")) for path in SLICES}
+    assert len(codes) == 9, "the nine packages of the charter"
+    declared = [(name, found) for name, code in codes.items()
+                for found in re.findall(r"\bpart\s+(?:<'[^']*'>\s*)?(\w+)\s*:\s*(?:\w+::)?IncrementBaselineDecision\b",
+                                        code)]
+    assert declared == [(MODEL.name, "driverAssistanceBaselineDecision")], "exactly one, in the framing package"
+    code = codes[MODEL.name]
+    body = braced_body(code, BASELINE)
+    assert re.findall(r"\battribute\s*:>>\s*disposition\s*=\s*LifecycleDisposition::(\w+)\s*;", body) == ["accepted"]
+    assert "private import DE4SDV_MethodContext::*;" in code
+    assert not re.search(r"\bpart def \w*(?:Baseline|Lifecycle)Decision\b", code), "the type comes from the kernel"
+    # the framing decision of phase 0 names the decision the increment supports; it is no baseline decision
+    assert "disposition" not in braced_body(code, "part driverAssistanceDecision : IncrementLifecycleDecision")
+    exposed = re.findall(r"\bexpose\s+(\w+)\s*;", braced_body(code, "view driverAssistanceFramingView"))
+    assert exposed.index("driverAssistanceBaselineDecision") == exposed.index("driverAssistanceDecision") + 1, \
+        "the framing view shows the baseline decision beside the framing decision"
+
+
+def test_the_baseline_decision_states_what_it_accepts_and_what_it_does_not():
+    raw = _raw()
+    assert BASELINE in strip_comments(raw), "the increment has no baseline decision"
+    doc = _flat_body(raw, BASELINE)
+    assert doc.startswith("doc /* BL-DRIVING-002-P11. The baseline of INC-DRIVING-002 accepts"), doc[:80]
+    _in_order(BASELINE_STATEMENTS, doc, "baseline")
+    for claim in ("is verified", "are verified", "is proven", "meets REQ-", "certified", "evidence of record exists",
+                  "compliant", "type-approved"):
+        assert claim not in doc, claim
+
+
+def test_every_gap_of_the_increment_states_the_disposition_the_baseline_gives_it():
+    stated = {key: re.findall(r"\battribute\s*:>>\s*disposition\s*=\s*LifecycleDisposition::(\w+)\s*;", body)
+              for key, body in _gap_records().items()}
+    assert stated == {key: [disposition] for key, disposition in GAP_DISPOSITIONS.items()}
+
+
+def test_the_baseline_decision_names_every_gap_under_its_disposition():
+    raw = _raw()
+    assert BASELINE in strip_comments(raw), "the increment has no baseline decision"
+    doc = _flat_body(raw, BASELINE)
+    heads = {"accepted": "Accepted as known limits, still open in this baseline:",
+             "deferred": "Deferred to a later increment:"}
+    lists = {}
+    for disposition, head in heads.items():
+        found = [statement for statement in BASELINE_STATEMENTS if statement.startswith(head)]
+        assert len(found) == 1 and doc.count(head) == 1 and found[0] in doc, head
+        lists[disposition] = found[0]
+    assert set(GAP_DISPOSITIONS.values()) == set(heads) and "No gap is withdrawn." in BASELINE_STATEMENTS
+    for key, disposition in GAP_DISPOSITIONS.items():
+        named = [where for where, statement in lists.items() if re.search(rf"\b{re.escape(key)}\b", statement)]
+        assert named == [disposition], (key, disposition, named)
+
+
+def test_each_framing_gap_says_what_the_increment_answered_and_what_stays_open():
+    raw = _raw()
+    closing = {"accepted": "Accepted as a known limit; the gap stays open.", "deferred": "Deferred"}
+    assert set(FRAMING_GAP_BASELINE_STATEMENTS) == {key for key in GAP_DISPOSITIONS if not key.startswith("GAP-")}
+    for name, statements in FRAMING_GAP_BASELINE_STATEMENTS.items():
+        doc = _flat_body(raw, f"part {name} : IncrementGap")
+        assert statements[0].startswith("At the baseline decision: "), name
+        assert statements[-1].startswith(closing[GAP_DISPOSITIONS[name]]), (name, statements[-1])
+        _in_order(statements, doc, name)
+        assert doc.count("At the baseline decision: ") == 1, name
+        assert doc.index(statements[0]) > 150, f"{name}: the framing text stays first"
+        # the framing text before the baseline paragraph is the one that the open points of the guide quote
+        assert GAPS[name] in doc[:doc.index(statements[0])], name
+
+
+def test_the_guide_describes_the_baseline_and_what_it_defers():
+    guide = GUIDE.read_text(encoding="utf-8")
+    assert "## Baseline (Phase 11)" in guide, "the guide has no baseline section"
+    assert guide.index("## Verification and evidence (Phase 10)") < guide.index("## Baseline (Phase 11)") \
+        < guide.index("## What the framing already records as open") \
+        < guide.index("## Next obligation and execution limits")
+    section = _flat(guide.split("## Baseline (Phase 11)")[1].split("\n## ")[0])
+    for text in ("`driverAssistanceBaselineDecision` (BL-DRIVING-002-P11)",
+                 f"each of the {len(GAP_DISPOSITIONS)} gap records",
+                 "**Accepted: the integration as built.**", "**Evidence and verdicts.**",
+                 f"**Evidence and verdicts.** {FILLS[1][0].upper()}{FILLS[1][1:]}.",
+                 f"The framing decision asked how the candidate goes forward; the baseline answers: {FILLS[0]}.",
+                 f"The additions named from the requirements that fail and from the gaps: {FILLS[4]}; the increment "
+                 "builds none of them.", f"GAP-DRIVING-014: {FILLS[5]}.", "**Withdrawn.** None."):
+        assert text in section, text
+    # one row for each case, with the verdict of the baseline
+    raw_section = guide.split("## Baseline (Phase 11)")[1].split("\n## ")[0]
+    rows = dict(re.findall(r"(?m)^\| (VC-DRIVING-\d{3}) \| (\w+) \|", raw_section))
+    assert rows == VERDICTS, rows
+
+    def named(bullet: str) -> set[str]:
+        return set(re.findall(r"\bGAP-DRIVING-\d{3}\b", bullet)) | set(re.findall(r"`(gap\w+)`", bullet))
+
+    bullets = dict(re.findall(r"- \*\*([^*]+)\*\* (.*?)(?= - \*\*|$)", section))
+    for title, disposition in (("Known limits: accepted, still open.", "accepted"),
+                               ("Deferred to a later increment.", "deferred")):
+        expected = {key for key, value in GAP_DISPOSITIONS.items() if value == disposition}
+        assert named(bullets[title]) == expected, title
+    flat = _flat(guide)
+    assert "**Status: baselined (Phase 11).**" in flat
+    tally = {verdict: list(VERDICTS.values()).count(verdict) for verdict in ("fail", "inconclusive", "pass")}
+    words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine"}
+    assert ("The baseline accepts the model of phases 0 to 10 and the bench as built, and as evidence the judged "
+            f"session S1 of 2026-11-21 at bench commit 508649ba: {words[tally['fail']]} cases are a fail, "
+            f"{words[tally['inconclusive']]} are inconclusive and {words[tally['pass']]} is a pass.") in flat
+    assert "first slice of Phase 10 verification and evidence, proposal" not in flat
+    assert "The increment ended at its baseline decision." in flat and "The next model obligation is" not in flat
+
+
+def test_no_place_of_the_baseline_waits_for_the_judged_session():
+    """The draft of phase 11 waited for the verdicts of S1 and for phase 10b in marked texts. Finishing the baseline
+    replaced them all, in the model and the guide, and emptied PLACEHOLDERS."""
+    marked = re.compile(r"<(?:S1|10b): [^>]*>")
+    found = []
+    for path in SLICES:
+        found += marked.findall(_flat(re.sub(r"(?m)^\s*\*\s?", "", path.read_text(encoding="utf-8"))))
+    in_guide = marked.findall(_flat(GUIDE.read_text(encoding="utf-8")))
+    assert PLACEHOLDERS == () and len(FILLS) == 13
+    assert found == [], found
+    assert in_guide == [], in_guide
+
+
+def test_the_baseline_states_one_verdict_for_each_case():
+    doc = _flat_body(_raw(), BASELINE)
+    verdicts = doc.split("The verdicts, one for each case: ", 1)[1].split(" The runs of SC-DRIVING-014", 1)[0]
+    words = {"fail": "a fail", "inconclusive": "inconclusive", "pass": "a pass"}
+    for case, verdict in VERDICTS.items():
+        assert case in verdicts, case
+    for verdict, word in words.items():
+        cases = [case for case, value in VERDICTS.items() if value == verdict]
+        listed = ", ".join(cases[:-1]) + (" and " if len(cases) > 1 else "") + cases[-1]
+        assert f"{listed} {word}" in verdicts, (verdict, listed)
+
+
+#: the drop counts of the evidence directory, which the baseline's figures of the dropped images restate
+DROP_COUNTS = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z" / "drop_counts.json"
+#: the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 in S1, by their label in the drop counts
+JUDGED_RUN_LABELS = ("012_20_r1", "012_20_r2", "012_42_r1", "012_42_r2", "012_60_r1", "012_60_r2", "013_30_r1",
+                     "013_30_r2", "013_60_r1", "013_60_r2", "014_30_r1", "014_30_r2", "015_40_r1", "015_40_r2")
+
+
+def test_the_baseline_states_where_the_images_drop_and_no_rate():
+    """The correction of 2026-11-21: the baseline, the gaps and the guide state where the images drop, as
+    drop_counts.json places them, never a rate, and claim no cause; the addition keeps every image from a run's first
+    image on."""
+    assert DROP_COUNTS.is_file(), "the evidence directory has no drop_counts.json"
+    counts = json.loads(DROP_COUNTS.read_text(encoding="utf-8"))
+    judged = [counts[label] for label in JUDGED_RUN_LABELS]
+    start = " or ".join(str(n) for n in sorted({c["droppedInFirst5s"] for c in judged}))
+    inside = max(len(c["wholeRunWindow"]["isolatedDropsS"]) for c in judged)
+    # the five inconclusive cases read the 14 runs and the run that stops the path; the steering calibration run
+    # (34 in its first 5 s) is read by none of them, so no sentence says "every run" (review P1 of 2026-11-21)
+    read = " or ".join(str(n) for n in sorted({c["droppedInFirst5s"] for c in judged + [counts["stop"]]}))
+    assert counts["calib_steer"]["droppedInFirst5s"] not in {c["droppedInFirst5s"] for c in judged}
+    assert (f"each of the 14 runs and the run that stops the path drops {read} camera images in the first 5 s after "
+            "its first image") in FILLS[2]
+    gpu = (f"on which each of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops {start} camera images in the "
+           f"first 5 s after its first image and up to {inside} more inside the run, with no cause shown")
+    assert gpu in FILLS[5]
+    # the stop clauses: after the stop the interface drops the images that the candidate no longer takes, so
+    # a camera path that keeps every image does not make them judgeable (review P3 of 2026-11-21)
+    assert counts["stop"]["stopInstant"]["droppedAfterStop"] > 0 and counts["stop"]["lastImageSimS"] < counts[
+        "stop"]["wholeRunWindow"]["lastTickSimS"], \
+        "after the stop instant the interface drops images, and the image stream ends before the last world tick"
+    stop_clauses = ("for the stop clauses of VC-DRIVING-038 and VC-DRIVING-043 a judged window that ends at the stop "
+                    "instant or a camera input that stops with the candidate, since after the stop the interface "
+                    "drops the images that the candidate no longer takes")
+    assert "a camera path that keeps every image from a run's first image on" in FILLS[4]
+    assert stop_clauses in FILLS[4]
+    texts = {"framing": _flat(re.sub(r"(?m)^\s*\*\s?", "", _raw())), "guide": _flat(GUIDE.read_text(encoding="utf-8"))}
+    for where, text in texts.items():
+        for retired in ("in 20", "one camera image in", "1 image in", "keeps every image, so that",
+                        "every run drops", "Every run drops"):
+            assert retired not in text, (where, retired)
+    guide = texts["guide"]
+    assert (f"Each of the 14 runs and the run that stops the path drops {read} camera images in the first 5 s after "
+            "its first image, and for the five inconclusive cases the judged window is the whole run.") in guide
+    assert gpu in guide
+    assert stop_clauses in guide
+    # the guide's verdict table states the commanded deceleration, never "no braking" (the correction of 2026-11-21);
+    # over the five judged runs the bound is 0.46 m/s² (test_the_five_judged_runs_of_sc_driving_012_...)
+    assert ("| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no "
+            "deceleration stronger than 0.46 m/s²; the contact comes at ") in GUIDE.read_text(encoding="utf-8")
+
+
+#: the rows of the guide's verdict table that state figures, each figure from the evidence directory: the impact
+#: speeds that VC-DRIVING-037 measured (review Q9) and the stop clause from the stop instant of path_stop.json
+#: (review Q1 of 2026-11-21)
+GUIDE_ROWS = (
+    "| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no deceleration "
+    f"stronger than 0.46 m/s²; the contact comes at {IMPACT_LIST} km/h. |",
+    f"| VC-DRIVING-037 | fail | The same runs: the impact speeds are {IMPACT_LIST} km/h. |",
+    "| VC-DRIVING-038 | inconclusive | No run is judged by the rule on dropped images. Its stop clause is "
+    f"inconclusive by the same rule: {STOP_CLAUSE.replace(' camera images', ' images').replace(' of simulation time', '')}. |",
+)
+#: readings that the records do not bear out (review Q1, Q2, Q8, Q9 and Q10 of 2026-11-21)
+RETIRED_READINGS = ("meet their entry conditions", "the stop came at about 2871", "at the approach speed (",
+                    "the contact comes at the approach speed", "the speed at the contact is the approach speed",
+                    "settled at the target's speed", "every run of S1 drops", "which ends at the stop,",
+                    "so that the criteria over every run can be judged, and")
+
+
+def test_the_figures_of_the_baseline_come_from_the_evidence_directory():
+    """Review Q1, Q5, Q8, Q9 and Q10 of 2026-11-21: the stop came at the stop instant of path_stop.json, not at the
+    last dropped image; six runs are judged; the contact speeds are stated, not called the approach speed; the
+    judged run of SC-DRIVING-013 ends slower than the target; and VC-DRIVING-042 fails for its own reason."""
+    assert "simS" in STOP_INSTANT, "drop_counts.json states no stop instant of the run that stops the path"
+    assert STOP_INSTANT["file"] == "score/out/path_stop_stop/path_stop.json"
+    assert STOP_INSTANT["simS"] < _COUNTS["stop"]["lastImageSimS"] - 0.5, "the stop comes before the last image"
+    # the drops "in the last 0.8 s of its image stream, which goes on about 0.8 s after the stop instant" are the drops
+    # after the stop instant, and the stop instant follows the candidate's last driving command (review Z3)
+    assert STOP_INSTANT["droppedAfterStop"] == _COUNTS["stop"]["droppedAtStreamEnd"], STOP_INSTANT
+    assert abs(STOP_INSTANT["imageStreamAfterStopS"] - _COUNTS["stop"]["streamEndDropsWithinS"]) <= 0.05, STOP_INSTANT
+    assert STOP_INSTANT["lastCommandIssueSimS"] < STOP_INSTANT["simS"], STOP_INSTANT
+    assert JUDGED == ["012_20_r1", "012_42_r1", "012_42_r2", "012_60_r1", "012_60_r2", "013_30_r1"], JUDGED
+    assert not any(e["run"].startswith(("014_", "015_")) for e in _case_runs("VC-DRIVING-036")), \
+        "the runs of SC-DRIVING-014 and SC-DRIVING-015 have no judged-run term"
+    assert len(JUDGED_012) == 5 and len(IMPACTS) == 5
+    approach = {e["run"]: e["measured"]["approachKmh"] for e in _case_runs("VC-DRIVING-037") if e["run"] in JUDGED_012}
+    assert min(approach.values()) < 21.0 and float(IMPACTS[0]) < 20.0, \
+        "19.7 km/h lies below the band of 20 to 22 km/h: no text calls the contact speeds the approach speed"
+    assert "egoSpeedAtLastTickKmh" in RUN_END_013, "drop_counts.json states no speed at the run's last tick"
+    assert RUN_END_013["egoSpeedAtLastTickKmh"] < RUN_END_013["targetSpeedAtLastTickKmh"] - 1.0, RUN_END_013
+    # the bound of the five judged runs and the bound of the desk analysis, each from its file
+    strongest = max(_evidence("commanded_deceleration.json")["runs"][run]["strongestDecelerationMps2"]
+                    for run in JUDGED_012)
+    assert math.ceil(round(strongest, 9) * 100) / 100 == 0.46, strongest
+    assert "no deceleration stronger than 0.46 m/s²" in FILLS[2] and "0.46 m/s²" in FILLS[6]
+    assert "0.1 s of simulation time" in _evidence("analysis_039.generator.json")["claimBoundary"]
+    assert "a delay of up to 0.1 s of simulation time goes unseen" in FILLS[2]
+    starts = {e["run"]: e["measured"].get("warningStarts") for e in _case_runs("VC-DRIVING-042")
+              if e["run"] in JUDGED_012}
+    assert starts == {run: 0 for run in JUDGED_012}, "VC-DRIVING-042 fails since no judged run starts a warning"
+    framing = _flat(re.sub(r"(?m)^\s*\*\s?", "", _raw()))
+    guide = _flat(GUIDE.read_text(encoding="utf-8"))
+    for row in GUIDE_ROWS:
+        assert row in GUIDE.read_text(encoding="utf-8"), row
+    # no sentence gives VC-DRIVING-042 the deceleration bound as its reason (review Q5)
+    for text in (framing, guide):
+        assert "VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 a fail, since" not in text
+    readme = _flat((EVIDENCE / "README.md").read_text(encoding="utf-8"))
+    for where, text in (("framing", framing), ("guide", guide), ("README", readme)):
+        for retired in RETIRED_READINGS:
+            assert retired not in text, (where, retired)
+
+
+def test_no_text_counts_the_14_runs_as_judged_runs():
+    """The wording rule of 2026-11-21, as review Q8 corrected it: of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015
+    six are judged runs, and SC-DRIVING-014 and SC-DRIVING-015 have no judged-run term, so no text calls the 14 judged
+    runs and none says that 10 of them meet their entry conditions."""
+    readme = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z" / "README.md"
+    texts = {path.name: _flat(re.sub(r"(?m)^\s*\*\s?", "", path.read_text(encoding="utf-8"))) for path in SLICES}
+    texts["guide"] = _flat(GUIDE.read_text(encoding="utf-8"))
+    texts["README"] = _flat(readme.read_text(encoding="utf-8"))
+    for where, text in texts.items():
+        for retired in ("14 judged runs", "fourteen judged runs", "Each judged run drops", "in each judged run (",
+                        "(10 of them meet their entry conditions)", "meet their entry conditions"):
+            assert retired not in text, (where, retired)
+    assert JUDGED_RUNS_PHRASE in texts[MODEL.name]
+    assert texts["guide"].count(JUDGED_RUNS_PHRASE) == 2, "the evidence of phase 10 and the baseline"
+    assert JUDGED_RUNS_PHRASE.split("the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 ")[1] in texts["README"]

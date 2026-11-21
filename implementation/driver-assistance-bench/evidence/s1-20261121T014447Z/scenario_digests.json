@@ -1,0 +1,402 @@
+{
+ "SC-DRIVING-012@20": {
+  "files": {
+   "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+   "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+   "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+   "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+  },
+  "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)",
+  "setting_record": {
+   "approach_kmh": 20.0,
+   "high_kmh": 22.0,
+   "judgeable": true,
+   "low_kmh": 20.0,
+   "model": [
+    "setting_id",
+    "scenario",
+    "approach_kmh",
+    "low_kmh",
+    "high_kmh",
+    "target_speed_kmh",
+    "target_low_kmh",
+    "target_high_kmh",
+    "judgeable"
+   ],
+   "proposal": [
+    "target_ahead_m",
+    "run_cap_s",
+    "speed_limit_mps",
+    "site",
+    "site_approach_rule",
+    "site_approach_min_m",
+    "site_lane",
+    "site_reason"
+   ],
+   "run_cap_s": 60.0,
+   "scenario": "SC-DRIVING-012",
+   "setting_id": "SC-DRIVING-012@20",
+   "site": null,
+   "site_approach_min_m": null,
+   "site_approach_rule": null,
+   "site_lane": null,
+   "site_reason": null,
+   "speed_limit_mps": 5.833,
+   "target_ahead_m": 150.0,
+   "target_high_kmh": 0.0,
+   "target_low_kmh": 0.0,
+   "target_speed_kmh": 0.0
+  },
+  "sha256": "4eae5e47e739017d76b28cef5ca330f60d99f0fd2eb54f30af44758d2255c115"
+ },
+ "SC-DRIVING-012@42": {
+  "files": {
+   "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+   "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+   "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+   "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+  },
+  "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)",
+  "setting_record": {
+   "approach_kmh": 42.0,
+   "high_kmh": 42.0,
+   "judgeable": true,
+   "low_kmh": 40.0,
+   "model": [
+    "setting_id",
+    "scenario",
+    "approach_kmh",
+    "low_kmh",
+    "high_kmh",
+    "target_speed_kmh",
+    "target_low_kmh",
+    "target_high_kmh",
+    "judgeable"
+   ],
+   "proposal": [
+    "target_ahead_m",
+    "run_cap_s",
+    "speed_limit_mps",
+    "site",
+    "site_approach_rule",
+    "site_approach_min_m",
+    "site_lane",
+    "site_reason"
+   ],
+   "run_cap_s": 60.0,
+   "scenario": "SC-DRIVING-012",
+   "setting_id": "SC-DRIVING-012@42",
+   "site": null,
+   "site_approach_min_m": null,
+   "site_approach_rule": null,
+   "site_lane": null,
+   "site_reason": null,
+   "speed_limit_mps": 11.389,
+   "target_ahead_m": 220.0,
+   "target_high_kmh": 0.0,
+   "target_low_kmh": 0.0,
+   "target_speed_kmh": 0.0
+  },
+  "sha256": "4d8bfd7071bae2ebdbbb0ec897d200bc8a0e9ec3cfa4d5eb0ceef000c859a844"
+ },
+ "SC-DRIVING-012@60": {
+  "files": {
+   "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+   "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+   "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+   "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+  },
+  "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)",
+  "setting_record": {
+   "approach_kmh": 60.0,
+   "high_kmh": 60.0,
+   "judgeable": true,
+   "low_kmh": 58.0,
+   "model": [
+    "setting_id",
+    "scenario",
+    "approach_kmh",
+    "low_kmh",
+    "high_kmh",
+    "target_speed_kmh",
+    "target_low_kmh",
+    "target_high_kmh",
+    "judgeable"
+   ],
+   "proposal": [
+    "target_ahead_m",
+    "run_cap_s",
+    "speed_limit_mps",
+    "site",
+    "site_approach_rule",
+    "site_approach_min_m",
+    "site_lane",
+    "site_reason"
+   ],
+   "run_cap_s": 60.0,
+   "scenario": "SC-DRIVING-012",
+   "setting_id": "SC-DRIVING-012@60",
+   "site": null,
+   "site_approach_min_m": null,
+   "site_approach_rule": null,
+   "site_lane": null,
+   "site_reason": null,
+   "speed_limit_mps": 16.389,
+   "target_ahead_m": 280.0,
+   "target_high_kmh": 0.0,
+   "target_low_kmh": 0.0,
+   "target_speed_kmh": 0.0
+  },
+  "sha256": "a56b3c6b075fcc12305add006fe1c082fd9f2e2d894401563e63e62dd40f8e4a"
+ },
+ "SC-DRIVING-013@30": {
+  "files": {
+   "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+   "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+   "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+   "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+  },
+  "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)",
+  "setting_record": {
+   "approach_kmh": 30.0,
+   "high_kmh": 32.0,
+   "judgeable": true,
+   "low_kmh": 30.0,
+   "model": [
+    "setting_id",
+    "scenario",
+    "approach_kmh",
+    "low_kmh",
+    "high_kmh",
+    "target_speed_kmh",
+    "target_low_kmh",
+    "target_high_kmh",
+    "judgeable"
+   ],
+   "proposal": [
+    "target_ahead_m",
+    "run_cap_s",
+    "speed_limit_mps",
+    "site",
+    "site_approach_rule",
+    "site_approach_min_m",
+    "site_lane",
+    "site_reason"
+   ],
+   "run_cap_s": 60.0,
+   "scenario": "SC-DRIVING-013",
+   "setting_id": "SC-DRIVING-013@30",
+   "site": null,
+   "site_approach_min_m": null,
+   "site_approach_rule": null,
+   "site_lane": null,
+   "site_reason": null,
+   "speed_limit_mps": 8.611,
+   "target_ahead_m": 40.0,
+   "target_high_kmh": 20.0,
+   "target_low_kmh": 18.0,
+   "target_speed_kmh": 20.0
+  },
+  "sha256": "f948d31af4137c050559d7823bdb39a7c4db7d785e83ad280a51fc2b72614471"
+ },
+ "SC-DRIVING-013@60": {
+  "files": {
+   "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+   "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+   "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+   "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+  },
+  "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)",
+  "setting_record": {
+   "approach_kmh": 60.0,
+   "high_kmh": 60.0,
+   "judgeable": true,
+   "low_kmh": 58.0,
+   "model": [
+    "setting_id",
+    "scenario",
+    "approach_kmh",
+    "low_kmh",
+    "high_kmh",
+    "target_speed_kmh",
+    "target_low_kmh",
+    "target_high_kmh",
+    "judgeable"
+   ],
+   "proposal": [
+    "target_ahead_m",
+    "run_cap_s",
+    "speed_limit_mps",
+    "site",
+    "site_approach_rule",
+    "site_approach_min_m",
+    "site_lane",
+    "site_reason"
+   ],
+   "run_cap_s": 60.0,
+   "scenario": "SC-DRIVING-013",
+   "setting_id": "SC-DRIVING-013@60",
+   "site": null,
+   "site_approach_min_m": null,
+   "site_approach_rule": null,
+   "site_lane": null,
+   "site_reason": null,
+   "speed_limit_mps": 16.389,
+   "target_ahead_m": 115.0,
+   "target_high_kmh": 20.0,
+   "target_low_kmh": 18.0,
+   "target_speed_kmh": 20.0
+  },
+  "sha256": "f7efdd24c2f39a9943b8770c59a0691802a68b93befda18fb2aa5658879870dd"
+ },
+ "SC-DRIVING-014@30": {
+  "files": {
+   "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+   "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+   "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+   "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+  },
+  "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)",
+  "setting_record": {
+   "approach_kmh": 30.0,
+   "high_kmh": 30.0,
+   "judgeable": false,
+   "low_kmh": 28.0,
+   "model": [
+    "setting_id",
+    "scenario",
+    "approach_kmh",
+    "low_kmh",
+    "high_kmh",
+    "target_speed_kmh",
+    "target_low_kmh",
+    "target_high_kmh",
+    "judgeable"
+   ],
+   "proposal": [
+    "target_ahead_m",
+    "run_cap_s",
+    "speed_limit_mps",
+    "site",
+    "site_approach_rule",
+    "site_approach_min_m",
+    "site_lane",
+    "site_reason"
+   ],
+   "run_cap_s": 60.0,
+   "scenario": "SC-DRIVING-014",
+   "setting_id": "SC-DRIVING-014@30",
+   "site": "sc014-curve",
+   "site_approach_min_m": 90.0,
+   "site_approach_rule": "gentle-bend",
+   "site_lane": "outermost",
+   "site_reason": "the SC-014 site decision of 2026-11-20, a bench choice: the outermost driving lane, because the regulation's guidance has the vehicle drive 'outer lane than the centre of the road' (R152:1744-1756, phase 5 INPUTS-BRIEF.md:281-294); the named gentle-bend approach reading, because no tight curve of Town06_Opt has a straight approach of the plan's 120 m; at least 90 m of approach, because in attempt 3 the candidate reached 20.9 km/h within 15 m of its first move and 29 km/h needs about 35 m, which leaves about 7 s at speed before the curve. The middle lane (267 m of approach) is the alternative, not the source's lane",
+   "speed_limit_mps": 8.056,
+   "target_ahead_m": null,
+   "target_high_kmh": 0.0,
+   "target_low_kmh": 0.0,
+   "target_speed_kmh": 0.0
+  },
+  "sha256": "df3fdd9e07a8c1dae7e7acc3b6442ac2794a0eeda93866f6c0de9d28d0df59cd"
+ },
+ "SC-DRIVING-015@40": {
+  "files": {
+   "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+   "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+   "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+   "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+  },
+  "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)",
+  "setting_record": {
+   "approach_kmh": 40.0,
+   "high_kmh": 40.0,
+   "judgeable": false,
+   "low_kmh": 38.0,
+   "model": [
+    "setting_id",
+    "scenario",
+    "approach_kmh",
+    "low_kmh",
+    "high_kmh",
+    "target_speed_kmh",
+    "target_low_kmh",
+    "target_high_kmh",
+    "judgeable"
+   ],
+   "proposal": [
+    "target_ahead_m",
+    "run_cap_s",
+    "speed_limit_mps",
+    "site",
+    "site_approach_rule",
+    "site_approach_min_m",
+    "site_lane",
+    "site_reason"
+   ],
+   "run_cap_s": 75.0,
+   "scenario": "SC-DRIVING-015",
+   "setting_id": "SC-DRIVING-015@40",
+   "site": "sc015-turnoff",
+   "site_approach_min_m": null,
+   "site_approach_rule": "straight",
+   "site_lane": null,
+   "site_reason": "the site search's straight approach rule (sites.APPROACH_015_M)",
+   "speed_limit_mps": 10.833,
+   "target_ahead_m": 30.0,
+   "target_high_kmh": 40.0,
+   "target_low_kmh": 40.0,
+   "target_speed_kmh": 40.0
+  },
+  "sha256": "e0bdbd61343b7611ab4cdc9c374896a6b1e8ac0d3aec48974b20eadba96b216d"
+ },
+ "stop": {
+  "files": {
+   "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+   "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+   "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+   "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+  },
+  "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)",
+  "setting_record": {
+   "approach_kmh": 20.0,
+   "high_kmh": 22.0,
+   "judgeable": null,
+   "low_kmh": 20.0,
+   "model": [
+    "setting_id",
+    "scenario",
+    "approach_kmh",
+    "low_kmh",
+    "high_kmh",
+    "target_speed_kmh",
+    "target_low_kmh",
+    "target_high_kmh",
+    "judgeable"
+   ],
+   "proposal": [
+    "target_ahead_m",
+    "run_cap_s",
+    "speed_limit_mps",
+    "site",
+    "site_approach_rule",
+    "site_approach_min_m",
+    "site_lane",
+    "site_reason"
+   ],
+   "run_cap_s": 42.0,
+   "scenario": "SC-DRIVING-012",
+   "setting_id": "stop",
+   "site": null,
+   "site_approach_min_m": null,
+   "site_approach_rule": null,
+   "site_lane": null,
+   "site_reason": null,
+   "speed_limit_mps": 5.833,
+   "target_ahead_m": 280.0,
+   "target_high_kmh": 0.0,
+   "target_low_kmh": 0.0,
+   "target_speed_kmh": 0.0
+  },
+  "sha256": "6844e065726c1749518f22c388c84713d917e53faaf74dd19cf5d54bfa5f3f35"
+ }
+}

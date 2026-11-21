@@ -31,6 +31,14 @@
  * REQ-DRIVING-038 and REQ-DRIVING-043 read it: the stop-run decision of
  * 2026-11-18.
  *
+ * On 2026-11-21 the verification status of each requirement was set from the
+ * judged session S1 of phase 10. It records the process of the verification,
+ * never its verdict: VVStatus::Completed for REQ-DRIVING-036, REQ-DRIVING-037,
+ * REQ-DRIVING-039 and REQ-DRIVING-042, and VVStatus::CompletedUnsuccessful for
+ * REQ-DRIVING-038, REQ-DRIVING-040, REQ-DRIVING-041, REQ-DRIVING-043 and
+ * REQ-DRIVING-044. The outcome and the verdict of each case are in its doc in
+ * phase 10: the status decision of 2026-11-21.
+ *
  * No safety, on-road or production-readiness claim is made, and no member
  * product is claimed.
  */
@@ -276,7 +284,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> rationale = "Derived from the emergency braking of the car to car scenario of the source regulation (SRC-UNECE-R152), which asks for a braking demand of at least 5.0 m/s² once the system has detected the possibility of an imminent collision, and from REQ-AEBS-003. The requirement states that condition in the world of the vehicle, by the needed deceleration, rather than as a detection by the system: once avoiding a vehicle ahead needs 5.0 m/s², a smaller command no longer avoids it. Up to a closing speed of 144 km/h a needed deceleration of 5.0 m/s² comes with a time to collision of at most 4.0 s, so that the collision is then imminent and REQ-DRIVING-041 lets the braking start; the settings close at 60 km/h at most. The obligation is the candidate's: the demand is in its command. At 014e0e7a the candidate writes the acceleration that its speed planner returns to the vehicle in each cycle that has an inference result (longitudinal_planning.cpp:36; vision_pilot.cpp:138, 157, 174), so it already decelerates while it flags a warning; its own emergency band starts below -5.0 m/s² (planning.cpp:118). A simulation cannot show the service brakes and the anti-lock function of a real vehicle, which turn the demand into a deceleration.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when every setting of SC-DRIVING-012 and SC-DRIVING-013 is judged, and in each judged run the last driving command of the driver-assistance system holds a deceleration of at least 5.0 m/s² at each instant of the functional part at which the needed deceleration to the target is at least 5.0 m/s².";
-    attribute :>> verificationStatus = VVStatus::NotStarted;
+    attribute :>> verificationStatus = VVStatus::Completed;
   }
 
   requirement <'REQ-DRIVING-037'> reqImpactSpeedWithinLimit : RequirementCandidate {
@@ -286,7 +294,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> rationale = "This is a performance requirement on the outcome of the braking. Derived from the speed reduction by braking demand of the car to car scenario of the source regulation (SRC-UNECE-R152), with the test speeds of its warning and activation tests with a stationary and a moving vehicle target, and from REQ-AEBS-003. The limits and the test speeds are those of a car in running order, because the simulated vehicle carries no load. The relative approach speed is taken when the collision becomes imminent; at a constant approach speed it is the speed of the setting less that of the target, which gives a limit of 0 km/h in each setting except SC-DRIVING-012 at 60 km/h, where it is 35 km/h. The source sets the limits for unobstructed targets on a flat and dry road, with the centre lines at most 0.2 m apart, in daylight and on a straight road; the settings and the judged runs keep those conditions. The obligation is the candidate's, with the simulated vehicle and its brakes standing in for a real one (asmSimulatedConfigurationStandsIn); the settings are System 2's. A simulation cannot show the target that the source prescribes, a series production car or a soft target, nor the measured road surface, the illumination and the test masses.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when every setting of SC-DRIVING-012 and SC-DRIVING-013 is judged, and the relative impact speed of each judged run is at most the maximum relative impact speed for its relative approach speed.";
-    attribute :>> verificationStatus = VVStatus::NotStarted;
+    attribute :>> verificationStatus = VVStatus::Completed;
   }
 
   requirement <'REQ-DRIVING-038'> reqDrivingCommandOverSCORE : RequirementCandidate {
@@ -296,7 +304,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> rationale = "This is a design constraint: the increment judges the candidate on the S-CORE path of the product line. A path around it, such as a direct connection from the candidate to the simulator, would let the vehicle brake while S-CORE carries nothing. At 014e0e7a only the ROS 2 build of the application reads a live speed and commands a vehicle. That build connects to topics (vision_pilot.cpp:59-64) and publishes the steering and the acceleration (vehicle_ros2_interface.cpp:25-26); the build without ROS 2 takes its vehicle interface by the key source.mode (vision_pilot.cpp:65-78): its CAN interface reads a speed of zero and writes nothing (can_interface.cpp:4-12), and its file interface reads recorded speeds and writes nothing (file_interface.cpp:37-61). The application has no binding to S-CORE (gapScoreIntegration). Phases 6 to 8 decide how the command enters the S-CORE path. The no-autopilot, replay or overlay condition of the planned reviews is a criterion of this requirement.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when, in every run of SC-DRIVING-012 to SC-DRIVING-015, every driving command that reaches the actuation is matched in the communication records of the Eclipse S-CORE path to a driving command of the driver-assistance system; when the autopilot and the traffic manager of the simulator have no control of the vehicle at any time of the run and no recorded, replayed, scripted or overlaid control reaches its actuation; and when, in one further run of SC-DRIVING-012 in which the Eclipse S-CORE path of the driver-assistance system is stopped, no driving command reaches the actuation after the stop.";
-    attribute :>> verificationStatus = VVStatus::NotStarted;
+    attribute :>> verificationStatus = VVStatus::CompletedUnsuccessful;
   }
 
   requirement <'REQ-DRIVING-039'> reqDetectableDrivingCommand : RequirementCandidate {
@@ -306,7 +314,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> rationale = "This is a design constraint on the form of the driving command. The product line holds the independence of the protected emergency command path as common content: REQ-MW-006 obliges its products to prevent a failure of the middleware integration path from causing an uncontrolled emergency intervention command, whatever its realization. The candidate cannot keep a path outside itself from failing. Its share is a command whose loss, delay, repetition or corruption the actuation can detect; rejecting what the actuation detects is the share of the product that holds the path, under REQ-MW-006, and phases 6 to 8 allocate both. At 014e0e7a the candidate's braking leaves in its one driving command (vision_pilot.cpp:157, 174), which REQ-DRIVING-038 sends over the Eclipse S-CORE path (gapNoSeparateEmergencyFunction). The analysis rests on the realization that phase 8 records and makes no freedom-from-interference claim.";
     attribute :>> verificationMethod = "analyze";
     attribute :>> successCriteria = "Met when the analysis of the realization that phase 8 records shows, for a loss, a delay, a repetition and a corruption of a driving command on the Eclipse S-CORE path, the part of the command by which the actuation detects it.";
-    attribute :>> verificationStatus = VVStatus::NotStarted;
+    attribute :>> verificationStatus = VVStatus::Completed;
   }
 
   requirement <'REQ-DRIVING-040'> reqWithholdWarningRequest : FunctionalRequirementCandidate {
@@ -316,7 +324,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> rationale = "Derived from the false reaction avoidance of the source regulation (SRC-UNECE-R152), which asks the system to minimise collision warnings where no collision is imminent and lists false-reaction scenarios for an assessment, and from REQ-AEBS-008. Phase 5 confirms the two scenarios that phase 2 proposed from that list, the curved road with guard pipes and a stationary object (SC-DRIVING-014) and the turn of a vehicle ahead (SC-DRIVING-015). At the speeds and the times to collision that the source names for them no collision is imminent, so any warning there is a false reaction. The source gives those values as guidance, not as a test: the settings take their approach speeds, and System 2 records the rest in each run. The requirement binds the start of each warning request in every run, in SC-DRIVING-012 and SC-DRIVING-013 too before the collision becomes imminent. It binds the start rather than the whole request, because braking can end the imminence while the warning goes on, which the source allows. The obligation is the candidate's; the settings are System 2's. A simulation cannot show the variety of real roads that the assessment of the source covers.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when, in every run of SC-DRIVING-012 to SC-DRIVING-015, a collision with a vehicle ahead is imminent at the start of each warning request of the driver-assistance system.";
-    attribute :>> verificationStatus = VVStatus::NotStarted;
+    attribute :>> verificationStatus = VVStatus::CompletedUnsuccessful;
   }
 
   requirement <'REQ-DRIVING-041'> reqWithholdEmergencyBraking : FunctionalRequirementCandidate {
@@ -326,7 +334,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> rationale = "Derived from the false reaction avoidance of the source regulation (SRC-UNECE-R152), which asks the system to avoid emergency braking where no collision is imminent, and from REQ-AEBS-012. The candidate's speed planner still slows the vehicle for the curve and for the vehicle ahead (longitudinal_planning.cpp:13-14, 34); only a command for 5.0 m/s² or more is an emergency braking. The requirement binds the start of each emergency braking in every run, in SC-DRIVING-012 and SC-DRIVING-013 too before the collision becomes imminent. It binds the start rather than the whole braking, because a braking harder than the needed deceleration lowers it below 1.0 m/s² before the vehicle stops, which ends the imminence. The obligation is the candidate's; the settings are System 2's. A simulation cannot show the variety of real roads that the assessment of the source covers.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when, in every run of SC-DRIVING-012 to SC-DRIVING-015, a collision with a vehicle ahead is imminent at the start of each emergency braking of the driver-assistance system.";
-    attribute :>> verificationStatus = VVStatus::NotStarted;
+    attribute :>> verificationStatus = VVStatus::CompletedUnsuccessful;
   }
 
   requirement <'REQ-DRIVING-042'> reqWarningRequestBeforeEmergencyBraking : FunctionalRequirementCandidate {
@@ -336,7 +344,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> rationale = "Derived from the collision warning of the car to car scenario of the source regulation (SRC-UNECE-R152), which asks for the warning to the driver at the latest 0.8 s before the start of the emergency braking, and from REQ-AEBS-002. The source asks for the warning where the relative speed is above the speed up to which the vehicle can avoid the collision; NEED-DRIVING-010 asks for the request whenever a collision with a vehicle ahead in its lane is imminent, and the requirement follows the need. The obligation is the candidate's for the request and for its lead of 1.0 s. Of the 1.0 s, 0.2 s is allotted from the warning request to the start of each mode of the warning, on the display and as a sound. That share is the obligation of the Eclipse S-CORE path and the AAOS SDV, which phases 6 to 8 allocate: each mode is due within 0.2 s of wall-clock time after the request, and so at least 0.8 s before the start of the emergency braking while the simulation runs no faster than wall-clock time, which is the obligation of System 2. The source lets the warning come as late as the start of the emergency braking when the collision cannot be anticipated in time; in each setting at a constant approach speed the collision becomes imminent at least 1.11 s before a needed deceleration of 5.0 m/s², so the exception is not taken. At 014e0e7a the application has no warning output at its boundary, and its forward-collision warning and its emergency braking are two ranges of one planned acceleration (planning.cpp:113-121; gapWarningOutput). A simulation cannot show whether a driver perceives the warning.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when every setting of SC-DRIVING-012 and SC-DRIVING-013 is judged, and in each judged run in which the collision with the target becomes imminent the driver-assistance system gives a warning request at its boundary, at least 1.0 s of simulation time before the start of the first emergency braking of the run when the run has one.";
-    attribute :>> verificationStatus = VVStatus::NotStarted;
+    attribute :>> verificationStatus = VVStatus::Completed;
   }
 
   requirement <'REQ-DRIVING-043'> reqWarningRequestOverSCORE : RequirementCandidate {
@@ -346,7 +354,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> rationale = "This is a design constraint: the warning reaches the driver through the S-CORE path of the product line to the AAOS SDV. At 014e0e7a the application's warnings go only to its own visualization and data log, each when it is switched on (vision_pilot.cpp:177-185), and its vehicle interface carries no warning (gapWarningOutput). A data log can give the evaluators a record of the warnings; it is not a warning request. Phases 6 to 8 decide how the request leaves the candidate.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when, in every run of SC-DRIVING-012 and SC-DRIVING-013, every warning request that reaches the AAOS SDV is matched in the communication records of the Eclipse S-CORE path to a warning request of the driver-assistance system, and when, in one further run of SC-DRIVING-012 in which the Eclipse S-CORE path of the driver-assistance system is stopped, no warning request reaches the AAOS SDV after the stop.";
-    attribute :>> verificationStatus = VVStatus::NotStarted;
+    attribute :>> verificationStatus = VVStatus::CompletedUnsuccessful;
   }
 
   requirement <'REQ-DRIVING-044'> reqRecordCandidateIdentity : FunctionalRequirementCandidate {
@@ -356,7 +364,7 @@ package DE4SDV_DriverAssistanceNeedsRequirements {
     attribute :>> rationale = "Another engineer can rerun a run only from what it names, and a build with a change that upstream has not merged is a different candidate: the recorded difference tells them apart. Source, network files and configuration are pinned separately, because none of them fixes the others; the configuration is pinned by the SHA-256 of each of its files and by the settings of its launch, so that another engineer can check each. The configuration includes the run-time settings: at 014e0e7a, in a build without ROS 2, the key source.mode chooses where the camera image and the speed come from (vision_pilot.cpp:65-78), and the key speed_limit sets the highest speed that the candidate's planner drives toward (vision_pilot.conf:20). Like the run identity of the closed-loop driving increment (REQ-DRIVING-033), the record is a behaviour of the candidate in each run, which phase 6 allocates to a function. The scenario and the simulated configuration belong to System 2 and are pinned there.";
     attribute :>> verificationMethod = "test";
     attribute :>> successCriteria = "Met when every run of SC-DRIVING-012 to SC-DRIVING-015 has the record before its first driving command; when another engineer who checks out the named revision, applies the recorded difference and hashes the named network files and configuration files obtains the recorded values; and when a build with one change that upstream has not merged records a non-empty difference.";
-    attribute :>> verificationStatus = VVStatus::NotStarted;
+    attribute :>> verificationStatus = VVStatus::CompletedUnsuccessful;
   }
 
   /* Rule 5 of the increment workflow, in its dependency form, declared with

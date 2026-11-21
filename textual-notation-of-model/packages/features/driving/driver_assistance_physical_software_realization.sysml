@@ -88,6 +88,15 @@
  * draft of the warning output and the interface seam, with the results; nothing
  * is posted without the owner: the upstream contact decision of 2026-11-18.
  *
+ * On 2026-11-21 the statement of what a rejected command costs was bounded to
+ * the corruptions that the check value detects. The analysis of REQ-DRIVING-039
+ * found that a corruption that the check value misses counts as valid and, with
+ * a higher sequence count, becomes the reference count, so that later valid
+ * commands are rejected as repetitions; the bench code states that limit, and
+ * the realization did not. The rule of the adapter is unchanged
+ * (DrivingCommandActuationAdapter): the check-value bound decision of
+ * 2026-11-21.
+ *
  * Carried over from the dated decisions of INC-DRIVING-001
  * (closed_loop_driving_physical_software_realization.sysml):
  *
@@ -602,20 +611,20 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
 
   part def DrivingCommandActuationAdapter {
     doc /*
-     * The actuation end of the S-CORE path on the bench, a context
-     * realization: an S-CORE application of its own, in C++, DE4SDV code,
-     * with a client of the simulator over the bench network. It carries no
-     * logical element; it is a share of the S-CORE path, which is outside the
-     * candidate. It subscribes to the driving command event and checks each
-     * command against a reference count: the highest sequence count among the
-     * commands received earlier in the run whose check value holds, which is
-     * the count of the last such command that was not rejected as a repetition
-     * (the adapter counting decision of 2026-11-18). The reference count is 0
-     * at the start of each run, and the vehicle interface counts from 1 in each
-     * run, so the first command is one more. The adapter checks the check value
-     * first, then the sequence count, then the issue time. A command whose
-     * check value fails is rejected (a corruption) and leaves the reference
-     * count unchanged. A command whose sequence count is not greater than the
+     * The actuation end of the S-CORE path on the bench, a context realization:
+     * an S-CORE application of its own, in C++, DE4SDV code, with a client of
+     * the simulator over the bench network. It carries no logical element; it
+     * is a share of the S-CORE path, which is outside the candidate. It
+     * subscribes to the driving command event and checks each command against a
+     * reference count: the highest sequence count among the commands received
+     * earlier in the run whose check value holds, which is the count of the
+     * last such command that was not rejected as a repetition (the adapter
+     * counting decision of 2026-11-18). The reference count is 0 at the start
+     * of each run, and the vehicle interface counts from 1 in each run, so the
+     * first command is one more. The adapter checks the check value first, then
+     * the sequence count, then the issue time. A command whose check value
+     * fails is rejected (a corruption) and leaves the reference count
+     * unchanged. A command whose sequence count is not greater than the
      * reference count is rejected (a repetition) and leaves the reference count
      * unchanged. A command whose sequence count is more than one greater than
      * the reference count is rejected (a loss is detected), and its count
@@ -626,24 +635,28 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
      * A command that arrives before the adapter has a world snapshot, or whose
      * issue time is not a finite number, counts as older than the limit and is
      * rejected as a delay. A late command or a repetition costs that one
-     * command; a loss or a corruption costs the lost or corrupted command and
-     * the next one, which reveals the gap; none of them makes later valid
-     * commands fail. Rejecting what it
-     * detects is the share of the product that holds the path (REQ-MW-006). The
-     * issue time and the newest world time are simulation times of world
-     * snapshots, on one clock. It applies nothing in place of a rejected
-     * command: the simulator keeps the last valid control. It has no stop
-     * response of its own. REQ-DRIVING-038's success criterion runs
-     * SC-DRIVING-012 with the S-CORE path stopped and requires that no driving
-     * command reaches the actuation after the stop; a stop or a neutral control
-     * applied by the adapter would blur that run, no requirement of this
-     * increment asks for a stop response, and the share of REQ-MW-006 placed
-     * here is not applying the rejected command. An accepted command becomes
-     * the simulator's Ackermann control by the rule of MAP-DRIVING-DA-COMMAND.
-     * Its simulator client takes the simulation time and the speed of the ego
-     * vehicle from the newest world snapshot: the delay check needs the time,
-     * the speed rule of MAP-DRIVING-DA-COMMAND the speed. The autopilot of the
-     * ego vehicle stays off.
+     * command; a loss or a corruption that the check value detects costs the
+     * lost or corrupted command and the next one, which reveals the gap; none
+     * of them makes later valid commands fail. A corruption that the check
+     * value misses is none of them: the command counts as valid and, if its
+     * sequence count is higher, that count becomes the reference count, so that
+     * the later valid commands up to it are rejected as repetitions (the
+     * check-value bound decision of 2026-11-21). Rejecting what it detects is
+     * the share of the product that holds the path (REQ-MW-006). The issue time
+     * and the newest world time are simulation times of world snapshots, on one
+     * clock. It applies nothing in place of a rejected command: the simulator
+     * keeps the last valid control. It has no stop response of its own.
+     * REQ-DRIVING-038's success criterion runs SC-DRIVING-012 with the S-CORE
+     * path stopped and requires that no driving command reaches the actuation
+     * after the stop; a stop or a neutral control applied by the adapter would
+     * blur that run, no requirement of this increment asks for a stop response,
+     * and the share of REQ-MW-006 placed here is not applying the rejected
+     * command. An accepted command becomes the simulator's Ackermann control by
+     * the rule of MAP-DRIVING-DA-COMMAND. Its simulator client takes the
+     * simulation time and the speed of the ego vehicle from the newest world
+     * snapshot: the delay check needs the time, the speed rule of
+     * MAP-DRIVING-DA-COMMAND the speed. The autopilot of the ego vehicle stays
+     * off.
      */
     port drivingCommandIn : DrivingCommandEventIn;
     port simulationClockIn : SimulationClockIn;
@@ -1272,20 +1285,24 @@ package DE4SDV_DriverAssistancePhysicalSoftwareRealization {
 
   comment reqDetectableDrivingCommandRejection about reqDetectableDrivingCommand, DrivingCommandActuationAdapter
     /*
-     * Where the parts of REQ-DRIVING-039 sit, and where the rejection sits:
-     * the vehicle interface of the candidate's process adds to each command
-     * its issue time, a sequence count from 1 in each run and a CRC-32 check
-     * value (MAP-DRIVING-DA-COMMAND). The actuation adapter, a context
-     * realization of the S-CORE path, detects a loss or a repetition by the
-     * sequence count, a corruption by the check value and a delay by the issue
-     * time against the newest world time, rejects the command and applies
-     * nothing in its place. It counts from the last received command whose
-     * check value holds (the adapter counting decision of 2026-11-18;
-     * DrivingCommandActuationAdapter states the rule): a late command or a
-     * repetition costs that one command; a loss or a corruption costs the
-     * lost or corrupted command and the next one, which reveals the gap; none
-     * of them makes later valid commands fail. The analysis of REQ-DRIVING-039
-     * reads this record; it makes no freedom-from-interference claim.
+     * Where the parts of REQ-DRIVING-039 sit, and where the rejection sits: the
+     * vehicle interface of the candidate's process adds to each command its
+     * issue time, a sequence count from 1 in each run and a CRC-32 check value
+     * (MAP-DRIVING-DA-COMMAND). The actuation adapter, a context realization of
+     * the S-CORE path, detects a loss or a repetition by the sequence count, a
+     * corruption by the check value and a delay by the issue time against the
+     * newest world time, rejects the command and applies nothing in its place.
+     * It counts from the last received command whose check value holds (the
+     * adapter counting decision of 2026-11-18; DrivingCommandActuationAdapter
+     * states the rule): a late command or a repetition costs that one command;
+     * a loss or a corruption that the check value detects costs the lost or
+     * corrupted command and the next one, which reveals the gap; none of them
+     * makes later valid commands fail. A corruption that the check value misses
+     * is none of them: the command counts as valid and, if its sequence count
+     * is higher, that count becomes the reference count, so that the later
+     * valid commands up to it are rejected as repetitions (the check-value
+     * bound decision of 2026-11-21). The analysis of REQ-DRIVING-039 reads this
+     * record; it makes no freedom-from-interference claim.
      */
 
   /* ───────────── The assumption of the realization ───────────── */

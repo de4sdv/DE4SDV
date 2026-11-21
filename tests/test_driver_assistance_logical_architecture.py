@@ -454,13 +454,8 @@ def test_the_guide_describes_phase_7_and_hands_its_exchanges_to_phase_8():
                    "Phase 7 shows no timing:",
                    "No state output crosses the boundary:"):
         assert phrase in section, phrase
-    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "
-            "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
-            "architecture, Phase 8 physical and software realization, Phase 9 variability and configuration and the "
-            "first slice of Phase 10 verification and evidence, proposal.**") in flat
-    assert ("The next model obligation is **Phase 10**: verification and evidence, which judges the configured "
-            "product DRIVING-CONFIG-002 in closed loop; its second slice follows the readiness probes and adds the "
-            "bench, the runs, the retained records and the statuses.") in flat
+    assert "**Status: baselined (Phase 11).**" in flat
+    assert "The increment ended at its baseline decision." in flat
     assert "its first gate is `verificationCaseVerifiesRequirement`" not in flat, "phase 10's first slice landed"
     assert "The next model obligation is **Phase 9**" not in flat
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
