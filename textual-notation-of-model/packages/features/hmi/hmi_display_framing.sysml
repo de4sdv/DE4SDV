@@ -400,7 +400,10 @@ package DE4SDV_HmiDisplayFraming {
       MethodPhase::phase10_vvEvidence,
       MethodPhase::phase11_baseline
     );
-    attribute :>> expectedArtifacts = ("DE4SDV_HmiDisplayFraming");
+    attribute :>> expectedArtifacts = (
+      "DE4SDV_HmiDisplayFraming",
+      "DE4SDV_HmiDisplayOperationalContext"
+    );
     attribute :>> expectedReviewEvidence = (
       "owner confirmation of the engineering question and the scope",
       "independent review of the System 1 and System 2 boundary and the nonclaims",
@@ -435,8 +438,8 @@ package DE4SDV_HmiDisplayFraming {
    * answer. Each is typed by the SAF concern that asks its question, the
    * product-line question by the method's classification concern, and names
    * the view of a later phase that answers it; that is the viewpoint
-   * selection of this phase. The framing viewpoint frames all of them until
-   * then. */
+   * selection of this phase. The framing viewpoint frames all of them, and a
+   * view of a later phase that answers a concern frames it as well. */
   concern hmiDriverSupervisionConcern : OperationalCapabilityConcern {
     doc /*
      * hmiSceneInScope, hmiSpeedInScope, hmiCollisionWarningInScope and
