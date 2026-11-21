@@ -973,8 +973,10 @@ shape.
   the capture of the start of the sound on the IVI guest: open, the guest
   records hold no start of the sound; showing the draft and the results to the
   VisionPilot maintainers: open, not done, and the owner approves any text
-  first. The gap stays a record; Phase 11 decides its disposition. Each probe
-  runs only on the owner's word.
+  first; the end of the second runs of SC-DRIVING-013 after 62 ticks at the
+  speed of the target (B-1): open, a bench item for the next session. The gap
+  stays a record; Phase 11 decides its disposition. Each probe runs only on the
+  owner's word.
 - **No validation case.** The validation of the needs stays planned in
   Phase 4 (SC-DRIVING-016 to SC-DRIVING-019).
 
@@ -1090,8 +1092,10 @@ framing view shows the decision beside the framing decision it answers.
   leaves open: the candidate's cycle on the GPU of the S-CORE host, on which
   every run drops 23 or 24 camera images in the first 5 s after its first image
   and up to 2 more inside the run, with no cause shown, what S1 does not show of
-  the start of the sound on the IVI guest, and the showing of the results to the
-  VisionPilot maintainers.
+  the start of the sound on the IVI guest, the showing of the results to the
+  VisionPilot maintainers, and the bench item B-1 for the next session, the end
+  of the second runs of SC-DRIVING-013 after 62 ticks at the speed of the
+  target.
 - **Withdrawn.** None.
 
 | Case | Verdict | What S1 shows |

@@ -225,3 +225,22 @@ def test_the_commanded_deceleration_of_each_run_and_no_run_of_sc_driving_012_bey
             + " (rounded to two decimals; `commanded_deceleration.json` holds three).") in readme
     assert "no braking" not in readme
 
+
+def test_the_readme_records_the_open_bench_item_b_1():
+    """B-1, the bench finding of 2026-11-21: an open bench item for the next session, stated as observed; the bench
+    is not changed for S1, since that would void the condition of record."""
+    counts = _json("drop_counts.json")
+    assert {counts[run]["runEnd"]["ticks"] for run in ("013_30_r2", "013_60_r2")} == {62}
+    readme = _readme()
+    for phrase in ("## Open bench item B-1",
+                   "The second runs of SC-DRIVING-013, `013_30_r2` and `013_60_r2`, ended after 62 ticks at the "
+                   "speed of the target, with the vehicle at 1.3 km/h and the target at 20 km/h.",
+                   "At the first tick of each the target was at rest (8e-08 and 8.5e-05 m/s); in the first runs it "
+                   "already moved at 5.2 m/s.",
+                   "`_run_loop` in `world-side/da_world_side.py` at `508649ba`",
+                   "`013_60_r1` ended in contact with the target but has no functional part: no tick in the band "
+                   "with a time to collision of at least 4 s. So SC-DRIVING-013 has one judged run, `013_30_r1`.",
+                   "It is not fixed for S1: a fix would change a file that ran in S1 and void the condition of "
+                   "record. It is open for the next session (GAP-DRIVING-014)."):
+        assert phrase in readme, phrase
+

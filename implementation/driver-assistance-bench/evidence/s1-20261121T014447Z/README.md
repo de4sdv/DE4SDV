@@ -151,6 +151,26 @@ vehicle achieves a commanded deceleration, so it does not bear on the fails of
 VC-DRIVING-036 and VC-DRIVING-037, which rest on the commanded values (the
 deceleration calibration decision of 2026-11-21).
 
+## Open bench item B-1
+
+The second runs of SC-DRIVING-013, `013_30_r2` and `013_60_r2`, ended after
+62 ticks at the speed of the target, with the vehicle at 1.3 km/h and the
+target at 20 km/h. At the first tick of each the target was at rest (8e-08 and
+8.5e-05 m/s); in the first runs it already moved at 5.2 m/s. The end check of
+the world side (`_run_loop` in `world-side/da_world_side.py` at `508649ba`)
+counts the vehicle as closing on the target while the closing speed is above
+0.0 m/s, and ends the run 3.0 s after the first later tick at which it is not:
+at the first tick of the second runs the vehicle closed at 0.0023 m/s on the
+target at rest, at the second the target moved at 5.26 m/s, so each run ended
+3.05 s after its first tick. Why the target was at rest at the first tick of
+the second runs only, the records do not show. `013_60_r1` ended in contact
+with the target but has no functional part: no tick in the band with a time
+to collision of at least 4 s. So SC-DRIVING-013 has one judged run,
+`013_30_r1`.
+
+It is not fixed for S1: a fix would change a file that ran in S1 and void the
+condition of record. It is open for the next session (GAP-DRIVING-014).
+
 ## Where the rest is retained
 
 - **The fetched session tree** (about 2 GB, every file listed in

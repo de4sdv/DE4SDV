@@ -751,7 +751,9 @@ package DE4SDV_DriverAssistanceFraming {
      * the S-CORE host, on which every run drops 23 or 24 camera images in the
      * first 5 s after its first image and up to 2 more inside the run, with no
      * cause shown, what S1 does not show of the start of the sound on the IVI
-     * guest, and the showing of the results to the VisionPilot maintainers
+     * guest, the showing of the results to the VisionPilot maintainers, and the
+     * bench item B-1 for the next session, the end of the second runs of
+     * SC-DRIVING-013 after 62 ticks at the speed of the target
      * (GAP-DRIVING-014).
      *
      * No gap is withdrawn.

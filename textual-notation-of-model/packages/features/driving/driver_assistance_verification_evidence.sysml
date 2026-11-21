@@ -958,6 +958,25 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * not done; the owner approves any text first (the upstream contact
      * decision of 2026-11-18).
      *
+     * Open for the next session, a bench item that S1 shows (B-1, the bench
+     * finding of 2026-11-21): the second runs of SC-DRIVING-013,
+     * SC-DRIVING-013@30/r2 and SC-DRIVING-013@60/r2, ended after 62 ticks at
+     * the speed of the target, with the vehicle at 1.3 km/h and the target at
+     * 20 km/h. At the first tick of each the target was at rest (8e-08 and
+     * 8.5e-05 m/s); in the first runs it already moved at 5.2 m/s. The end
+     * check of the world side at 508649ba (_run_loop in
+     * world-side/da_world_side.py) counts the vehicle as closing on the target
+     * while the closing speed is above 0.0 m/s, and ends the run 3.0 s after
+     * the first later tick at which it is not: at the first tick of the second
+     * runs the vehicle closed at 0.0023 m/s on the target at rest, at the
+     * second the target moved at 5.26 m/s, so each run ended 3.05 s after its
+     * first tick. Why the target was at rest at the first tick of the second
+     * runs only, the records do not show. SC-DRIVING-013@60/r1 ended in contact
+     * with the target but has no functional part: no tick in the band with a
+     * time to collision of at least 4 s. So SC-DRIVING-013 has one judged run,
+     * SC-DRIVING-013@30/r1. The bench is not changed for S1: a change would
+     * alter a file that ran in S1 and void the condition of record.
+     *
      * The gap stays a record of the environment; its disposition is phase 11's.
      * Deferred to phase 11.
      */

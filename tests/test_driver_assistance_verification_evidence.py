@@ -215,6 +215,25 @@ RUN_LABELS = {"012_20_r1": "SC-DRIVING-012@20/r1", "012_20_r2": "SC-DRIVING-012@
 #: the record usages the generator writes, in their order: one per run of S1, then the analysis
 RECORD_USAGES = [f"{setting}{place}RunEvidence" for setting in SETTINGS for place in ("First", "Second")] + [
     "pathStoppedRunEvidence", "commandFormAnalysisEvidence"]
+#: B-1, the bench finding of 2026-11-21, as GAP-DRIVING-014 records it: an open bench item for the next session;
+#: the world side's code at 508649ba (world-side/da_world_side.py, _run_loop) shows the end check, and the speeds are
+#: those of the runs' world.jsonl
+B1_STATEMENTS = (
+    "Open for the next session, a bench item that S1 shows (B-1, the bench finding of 2026-11-21): the second runs "
+    "of SC-DRIVING-013, SC-DRIVING-013@30/r2 and SC-DRIVING-013@60/r2, ended after {ticks} ticks at the speed of the "
+    "target, with the vehicle at 1.3 km/h and the target at 20 km/h.",
+    "At the first tick of each the target was at rest (8e-08 and 8.5e-05 m/s); in the first runs it already moved "
+    "at 5.2 m/s.",
+    "The end check of the world side at 508649ba (_run_loop in world-side/da_world_side.py) counts the vehicle as "
+    "closing on the target while the closing speed is above 0.0 m/s, and ends the run 3.0 s after the first later "
+    "tick at which it is not: at the first tick of the second runs the vehicle closed at 0.0023 m/s on the target "
+    "at rest, at the second the target moved at 5.26 m/s, so each run ended 3.05 s after its first tick.",
+    "Why the target was at rest at the first tick of the second runs only, the records do not show.",
+    "SC-DRIVING-013@60/r1 ended in contact with the target but has no functional part: no tick in the band with a "
+    "time to collision of at least 4 s.",
+    "So SC-DRIVING-013 has one judged run, SC-DRIVING-013@30/r1.",
+    "The bench is not changed for S1: a change would alter a file that ran in S1 and void the condition of record.",
+)
 #: the decisions of 2026-11-21 that the slice header records, in day order after those of 2026-11-18
 DECISIONS_1121 = (
     "On 2026-11-21 the judged session S1 was taken as the evidence of record, on the condition that the bench files "
@@ -823,6 +842,16 @@ def test_the_environment_gap_records_what_s1_shows_of_the_readiness_items_and_st
                     " of 599;", "in 20", "26 to 30 in each judged run"):
         assert retired not in doc, retired
     assert SOUND_CAPTURE in doc
+    counts = _evidence("drop_counts.json")
+    ticks = {counts[label]["runEnd"]["ticks"] for label in ("013_30_r2", "013_60_r2")}
+    assert ticks == {62} and {counts[label]["runEnd"]["endReason"] for label in ("013_30_r2", "013_60_r2")} == {
+        "at the speed of the target"}
+    b1 = [statement.format(ticks=62) for statement in B1_STATEMENTS]
+    for statement in b1:
+        assert doc.count(statement) == 1, statement
+    assert [doc.index(s) for s in b1] == sorted(doc.index(s) for s in b1), "B-1 in its order"
+    assert doc.index(b1[0]) > doc.index(SOUND_CAPTURE) and doc.index(b1[-1]) < doc.index(
+        "The gap stays a record of the environment"), "B-1 after the readiness items, before the disposition"
     assert ("The gap stays a record of the environment; its disposition is phase 11's. Deferred to phase 11.") in doc
     for retired in ("until the probes run (", "Deferred to that slice.", "which it has not done yet",
                     "nothing of phase 10 is built before the probes are read", "which is unmeasured"):
@@ -1077,6 +1106,8 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
         assert phrase in gap_bullet, phrase
     # where the images drop, from drop_counts.json, never a rate and no cause (the correction of 2026-11-21)
     assert guide_drop_phrase(_evidence("drop_counts.json")) in gap_bullet
+    assert ("the end of the second runs of SC-DRIVING-013 after 62 ticks at the speed of the target (B-1): open, a "
+            "bench item for the next session") in gap_bullet
     assert "most of them in its first 5 s" not in gap_bullet
     # the second slice: the evidence of record, with no value of a verdict written by hand
     assert "This first slice is model only" not in section and "every requirement keeps `NotStarted`" not in section
