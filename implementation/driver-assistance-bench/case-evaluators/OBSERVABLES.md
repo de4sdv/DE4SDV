@@ -219,15 +219,15 @@ PROPOSAL marks a field that no producer writes yet: its name is this contract's 
 | `networkFileSha256`, `configurationFileSha256` | I `candidate_record.json` `network_files[]`, `configuration_files[]` (`role`, `path`, `sha256`) |
 | `launchSettings` | I `candidate_record.json` `launch_settings`: its SHA-256 as canonical JSON (verbatim in that record) |
 | `candidateBuild` | session.json `candidate.bundle` (else `score_<run>/staging.json` `bundle`), with the upstream revision and the patch names |
-| `visualizationRecorderDelay` | session.json `visualization_recorder_delay` (PROPOSAL) |
-| `scoreLifecycleVersion`, `scoreCommunicationVersion`, `scoreSOMEIPGatewayCommit` | session.json `score_platform.lifecycle_version`, `.communication_version`, `.someip_gateway_commit` (PROPOSAL) |
+| `visualizationRecorderDelay` | the run's own: session.json `score_runs.<run>.visualization_recorder_delay` when a run states it; else the model's sentence (`evidence_config.json` `model_delay`) when every GPU in `score_runs.<run>.score_gpu` is the model's; else, the run's GPU unread, session.json `visualization_recorder_delay` (`session/evidence_fields.py`) |
+| `scoreLifecycleVersion`, `scoreCommunicationVersion`, `scoreSOMEIPGatewayCommit` | session.json `score_runs.<run>.score_platform.lifecycle_version`, `.communication_version`, `.someip_gateway_commit` (the run's own start), else the session's `score_platform.*` (`session/evidence_fields.py`, absent when any started run lacks its line) |
 | `simulatorBuild` | W-set `simulator.versions.server` |
 | `scenario` | W-set `setting.scenario`, else session.json `score_runs.<run>.scenario` |
 | `setting` | the run's setting; empty for the stop run |
 | `runIdentity`, `simulatedConfiguration` | session.json `score_runs.<run>.runIdentity`, `.simulatedConfiguration.sha256` (s1) |
 | `simulationClockSpan` | W `data.simTimeS` of the first and the last tick |
 | `wallClockSpan` | W `t_real_ns` of the first and the last tick line (the simulator host's real clock) |
-| `executionEnvironmentIdentity` | session.json `internal_ips_from_gcloud.sim`, `.score`, `.guest`, and `execution_environment.score_gpu`, `.sdv_core_image`, `.ivi_image` (PROPOSAL) |
+| `executionEnvironmentIdentity` | session.json `internal_ips_from_gcloud.sim`, `.score`, `.guest`, the run's own `score_runs.<run>.score_gpu` (else `execution_environment.score_gpu`), and `execution_environment.sdv_core_image`, `.ivi_image` (`session/evidence_fields.py`) |
 | `contractIdentity` | R `lifecycle` `message`, `unit`, `translation` |
 | `criteriaRecordIdentity`, `evaluatorRevision` | the campaign's own (`evaluate_da_campaign.py`) |
 | `rawObservationArtifact` | the SHA-256 of `candidate_record.json`, `identityRecorder.jsonl`, `score_interface.jsonl`, `actuationAdapter.jsonl` (with S: the communication records of the S-CORE path, EVALUATOR READING), `world.jsonl`, `app_record_warning.jsonl`, and the `.rrd` named in `score_<run>/candidate_rrd.json` |

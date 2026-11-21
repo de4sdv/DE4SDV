@@ -327,3 +327,83 @@ def test_the_claim_boundary_follows_the_repository_wording():
     assert "behavior outside the settings" in er.NOT_PROVED
     assert "UN R152" not in er.NOT_PROVED.replace("UNECE R152", "")
     assert "approval under UNECE R152" in er.NOT_PROVED
+
+
+# ------------------------------------------------------------------ R4: each run's own platform, GPU and delay first
+# Closure review of 44a4be29..86cadee0, R4: session/evidence_fields.py makes a session-level value absent when any
+# started run lacks its line (_agree). The model's record is per run (:150-153), so a run's record reads the run's own
+# score_runs.<run>.score_platform and .score_gpu first and the session's value only as the fallback. The session-level
+# fields below are the producer's own (evidence_fields.session_fields), with S1's evidence_config.json model_delay
+# and guest_images.txt lines (20261121T014447Z).
+MODEL_DELAY = {"text": "the readiness probe of the recorder on 2026-11-17 measured 2.0 ms more at the median and 5.8 "
+                       "ms more at the 99th percentile from an image to its command, on an S-CORE host with an NVIDIA L4",
+               "host_gpu": "NVIDIA L4",
+               "source": "textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence"
+                         ".sysml:170-176 at 508649bae2543c181d3edbe3f63eeeaa3b836d28 (RetainedAssistanceRunEvidence)"}
+GUEST_IMAGES = (
+    "GUEST_IMAGE sdv_core serial=0.0.0.0:6521 product=sdv_core_cf build_id=CP2A.260605.016 "
+    "fingerprint=google/sdv_core_cf/sdv_core_cf:17/CP2A.260605.016/eng.mrk:eng/test-keys vbmeta_digest=df609afc\n"
+    "GUEST_IMAGE ivi serial=0.0.0.0:6522 product=sdv_ivi_cf build_id=CP2A.260605.016 "
+    "fingerprint=google/sdv_ivi_cf/sdv_ivi_cf:17/CP2A.260605.016/eng.mrk:userdebug/test-keys vbmeta_digest=d668fcbb\n")
+PLATFORM = {"lifecycle_version": "score_lifecycle@0.10.0", "communication_version": "score_communication@0.6.0",
+            "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168", "facts": "/opt/da-b2/bundle/facts"}
+LACKING = "013_30_r2"
+PER_RUN = ["visualizationRecorderDelay", "scoreLifecycleVersion", "scoreCommunicationVersion",
+           "scoreSOMEIPGatewayCommit", "executionEnvironmentIdentity"]
+
+
+def _evidence_fields():
+    import importlib.util
+    path = HERE.parents[1] / "session" / "evidence_fields.py"
+    spec = importlib.util.spec_from_file_location("evidence_fields_of_the_session", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _producer_session(tmp_path, gpu_of=None):
+    root = session(tmp_path)
+    (root / "evidence_config.json").write_text(json.dumps({
+        "configuration_identity": "DRIVING-CONFIG-002", "configuration_receipt_sha256": "0c0ffee0" * 8,
+        "configuration_receipt": {}, "model_delay": MODEL_DELAY}))
+    (root / "guest_images.txt").write_text(GUEST_IMAGES)
+    d = json.loads((root / "session.json").read_text())
+    for k in syn.SESSION_PROPOSALS:
+        d.pop(k, None)
+    for run, e in d["score_runs"].items():
+        e["staged"] = {"source.mode": "score"}
+        if run != LACKING:    # the start's one-line JSON, as score_runs.tsv carries it
+            gpu = (gpu_of or {}).get(run, "NVIDIA L4")
+            e["score_platform"] = json.dumps(PLATFORM)
+            e["score_gpu"] = json.dumps({"gpus": [{"name": gpu, "driver_version": "580.178.04"}],
+                                         "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"})
+    d.update(_evidence_fields().session_fields(str(root), d["score_runs"], "s1", True))
+    (root / "session.json").write_text(json.dumps(d))
+    return root, d
+
+
+def test_each_run_reads_its_own_platform_gpu_and_delay_when_one_start_lacks_its_lines(tmp_path):
+    root, d = _producer_session(tmp_path)
+    # the producer's session-level values are absent: one started run printed no SCORE_PLATFORM or SCORE_GPU line
+    assert "absent" in d["score_platform"]["lifecycle_version"], d["score_platform"]
+    assert "absent" in d["execution_environment"]["score_gpu"] and "absent" in d["visualization_recorder_delay"]
+    recs = records(root)
+    for rid, rec in recs.items():
+        if rid == LACKING:
+            continue
+        assert rec["outcome"] == er.COMPLETE, (rid, rec["missing"])
+        a = rec["attributes"]
+        assert a["scoreLifecycleVersion"] == "score_lifecycle@0.10.0"
+        assert a["scoreCommunicationVersion"] == "score_communication@0.6.0"
+        assert a["scoreSOMEIPGatewayCommit"] == "d9eac670b7534352749da3d30f52aebf5129f168"
+        assert "with NVIDIA L4, driver 580.178.04;" in a["executionEnvironmentIdentity"], a
+        assert a["visualizationRecorderDelay"] == f"{MODEL_DELAY['text']} ({MODEL_DELAY['source']})"
+    assert recs[LACKING]["emptyAttributes"] == PER_RUN, recs[LACKING]["missing"]
+
+
+def test_a_run_on_another_gpu_does_not_take_the_models_delay(tmp_path):
+    root, _ = _producer_session(tmp_path, gpu_of={RUN: "NVIDIA T4"})
+    rec = records(root)[RUN]
+    assert rec["emptyAttributes"] == ["visualizationRecorderDelay"], rec["missing"]
+    assert any("NVIDIA T4" in m and "states the delay it measures" in m for m in rec["missing"]), rec["missing"]
+    assert "with NVIDIA T4, driver 580.178.04;" in rec["attributes"]["executionEnvironmentIdentity"]
