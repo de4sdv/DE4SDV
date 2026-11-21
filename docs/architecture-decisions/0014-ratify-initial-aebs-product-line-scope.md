@@ -21,6 +21,24 @@ Accepted
 > on a new pin still hold, and this scope stays the admission authority. ADR
 > 0022 lists each clause it supersedes, amends or retains. The decision text
 > below is unchanged.
+>
+> Note (2026-11-13): amended by
+> [ADR 0023](0023-admit-score-integrated-aebs-reference-member.md) and
+> [ADR 0026](0026-hmi-display-in-every-member-product.md), which the scope
+> model holds. The governed portfolio has a third planned member, the
+> S-CORE-Integrated Autoware AEBS Reference Member, and Vehicle Platform
+> Integration Mode a third alternative, S-CORE Integrated, bound during
+> Development. The S-CORE two-domain topology is a further derived
+> realization, `kvm`, `guestAndroid` and `guestAndroidSDV` correspond to both
+> integrated alternatives, and Eclipse S-CORE is no longer reference-only. An
+> HMI display is a sixth common content of every member. Its place derives
+> from the integration mode: in the AAOS SDV guest of the integrated members,
+> and a Linux-side display, which does not exist yet, in the standalone
+> member. "Common" means common within the three governed planned members.
+> Vehicle Platform Integration Mode stays the only admitted product
+> variability, and this scope stays the admission authority. ADR 0023 and ADR
+> 0026 list each clause they supersede, amend or retain. The decision text
+> below is unchanged.
 
 ## Context
 

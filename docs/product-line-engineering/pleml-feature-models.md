@@ -173,19 +173,19 @@ configuration is admitted when all of these hold:
 - Every common asset that features represent is represented by all of them.
   A choice is exempt only where the realized alternative selects another
   member of its group. Since INC-MW-011 phase 9 no member needs that
-  exemption: both run Autoware on Linux on the main side, and the guest
-  choices carry the split topology of the AAOS-integrated alternative.
+  exemption: all three run Autoware on Linux on the main side, and the guest
+  choices correspond to both integrated alternatives (ADR 0023). Every
+  member selects the HMI display, common content of every member (ADR 0026).
   Common content without a feature is part of every member.
 
-So the two governed members of ADR 0014 are admitted: the standalone member
-(`aebs_autoware_linux_lidar_camera`) and the AAOS-integrated member
-(`middleware_autoware_aaos_sdv_reference`). The other SDV configurations are
-not admitted: the Eclipse S-CORE reference configuration
-(`middleware_autoware_score_reference`), Apollo on QNX, and the driving
-configurations of INC-DRIVING-001 (`closed_loop_driving_autoe2e_score_reference`)
-and INC-DRIVING-002 (`driver_assistance_visionpilot_score_reference`), whose
-applications correspond to the deferred driving-stack variability. Neither is
-any
+So the three governed members of ADR 0014 and ADR 0023 are admitted: the
+standalone member (`aebs_autoware_linux_lidar_camera`), the AAOS-integrated
+member (`middleware_autoware_aaos_sdv_reference`) and the S-CORE-integrated
+member (`middleware_autoware_score_reference`). The other SDV configurations
+are not admitted: Apollo on QNX, and the driving configurations of
+INC-DRIVING-001 (`closed_loop_driving_autoe2e_score_reference`) and
+INC-DRIVING-002 (`driver_assistance_visionpilot_score_reference`), whose
+applications correspond to the deferred driving-stack variability. Nor is any
 configuration of the two execution-environment families: the engineering
 family is the excluded System 2 concern, and the vehicle-target family is
 the deferred vehicle runtime variability. A test computes these verdicts from

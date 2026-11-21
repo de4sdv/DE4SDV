@@ -14,7 +14,7 @@ privileged validation path.
 | `middleware_autoware_aaos_sdv_reference.sysml` | `middlewareAutowareAAOSSDVReference` (`sdv_product_line.receipt.json`) | AAOS-integrated middleware reference member platform projection |
 | `closed_loop_driving_autoe2e_score_reference.sysml` | `closedLoopDrivingAutoE2ESCOREReference` (`sdv_product_line.receipt.json`) | Closed-loop driving reference configuration of INC-DRIVING-001: AutoE2E on S-CORE on Linux on the main side, the KVM host, with an AAOS SDV guest; valid, not admitted |
 | `driver_assistance_visionpilot_score_reference.sysml` | `driverAssistanceVisionPilotSCOREReference` (`sdv_product_line.receipt.json`) | Driver-assistance reference configuration of INC-DRIVING-002: VisionPilot on S-CORE on Linux on the main side, the KVM host, with an AAOS SDV guest; valid, not admitted |
-| `middleware_autoware_score_reference.sysml` | `middlewareAutowareSCOREReference` (`sdv_product_line.receipt.json`) | Eclipse S-CORE reference configuration platform projection (INC-MW-011; not admitted) |
+| `middleware_autoware_score_reference.sysml` | `middlewareAutowareSCOREReference` (`sdv_product_line.receipt.json`) | S-CORE-integrated AEBS reference member platform projection (INC-MW-011) |
 | `apollo_qnx_qvm.sysml` | `apolloQNXQVMVariant` (`sdv_product_line.receipt.json`) | SDV platform projection |
 | `inc_aebs_009a_jetson_execution_environment.sysml` | `incAEBS009AJetsonExecutionEnvironment` (`engineering_execution_environments.receipt.json`) | Inspected exact maintained System 2 environment projection; historical run has coarser identity |
 | `apple_silicon_macos_candidate.sysml` | `appleSiliconMacOSCandidate` (`engineering_execution_environments.receipt.json`) | Planned System 2 candidate projection |
@@ -64,11 +64,11 @@ part has one owner. A configured product carries a configuration identity,
 for example `MW-CONFIG-001` or `MW-CONFIG-002`, and verification evidence
 binds that identity. `MW-CONFIG-002` also records the SHA-256 of its
 receipt. A **configured member** is the configured product of an admitted
-member. The examples are the configured member
+member. The examples are the configured members
 [`MW-CONFIG-001`](../../textual-notation-of-model/packages/features/middleware/middleware_variability_configuration.sysml)
-of INC-MW-009 and the configured product
+of INC-MW-009 and
 [`MW-CONFIG-002`](../../textual-notation-of-model/packages/features/middleware/middleware_score_variability_configuration.sysml)
-of INC-MW-011.
+of INC-MW-011, a member since the scope revision of ADR 0023.
 
 `MW-CONFIG-002`, `DRIVING-CONFIG-001` and `DRIVING-CONFIG-002` bind the
 SHA-256 of the receipt as `receiptSha256`. A receipt re-cut keeps their
