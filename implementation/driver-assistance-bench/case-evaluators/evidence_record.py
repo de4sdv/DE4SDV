@@ -322,10 +322,15 @@ def r_bench_recording(c: _Ctx) -> str:
     vr = c.entry("visualization_recording")
     if isinstance(vr, dict) and _nonempty_str(vr.get("sha256")):
         rows.append(f"the candidate's visualization recording {vr.get('path')} sha256:{vr['sha256']}")
+    elif isinstance(vr, dict):
+        # the cause is the entry's own reason (da_session.sh write_record copies it from the S-CORE stop's record)
+        why = vr.get("reason")
+        why = f"its reason: {why}" if _nonempty_str(why) else "the entry gives no reason"
+        absent.append(f"the candidate's visualization recording that the recorder draws: no session.json score_runs."
+                      f"{c.run.run_id}.visualization_recording.sha256 ({why})")
     else:
         absent.append(f"the candidate's visualization recording that the recorder draws: session.json score_runs."
-                      f"{c.run.run_id}.visualization_recording.sha256 ({PROPOSAL}; the Launch Manager configuration "
-                      "does not set DE4SDV_VISUALIZATION_RECORD yet, score-interface/README.md)")
+                      f"{c.run.run_id} has no visualization_recording entry (da_session.sh write_record)")
     if absent:
         raise MissingEvidence("; ".join(absent))
     return "; ".join(rows)

@@ -231,7 +231,7 @@ PROPOSAL marks a field that no producer writes yet: its name is this contract's 
 | `contractIdentity` | R `lifecycle` `message`, `unit`, `translation` |
 | `criteriaRecordIdentity`, `evaluatorRevision` | the campaign's own (`evaluate_da_campaign.py`) |
 | `rawObservationArtifact` | the SHA-256 of `candidate_record.json`, `identityRecorder.jsonl`, `score_interface.jsonl`, `actuationAdapter.jsonl` (with S: the communication records of the S-CORE path, EVALUATOR READING), `world.jsonl`, `app_record_warning.jsonl`, and the `.rrd` named in `score_<run>/candidate_rrd.json` |
-| `benchRecordingArtifact` | `rec_<run>/chase_view.mp4` (its SHA-256) and the candidate's visualization recording, session.json `score_runs.<run>.visualization_recording.sha256` (PROPOSAL; the Launch Manager configuration does not set `DE4SDV_VISUALIZATION_RECORD` yet) |
+| `benchRecordingArtifact` | `rec_<run>/chase_view.mp4` (its SHA-256) and the candidate's visualization recording, session.json `score_runs.<run>.visualization_recording.sha256` (`da_session.sh` write_record, from the S-CORE stop's `visualization_recording.json`); without a sha256 the record quotes the entry's own `reason` |
 | `independentEngineerIdentity` | `reproduction_044.json` `engineer` (plan lane F2) |
 | `claimBoundary` | written by the record: the run's case outcomes, and what the record does not prove |
 

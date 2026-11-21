@@ -159,6 +159,21 @@ def test_the_visualization_recording_is_part_of_the_bench_recording(tmp_path):
     assert any("visualization" in m for m in rec["missing"])
 
 
+def test_a_missing_visualization_recording_quotes_the_entrys_own_reason(tmp_path):
+    # closure review of 44a4be29..86cadee0, R6: the cause is the entry's reason, as da_session.sh write_record
+    # writes it, not a Launch Manager configuration that since V-a sets DE4SDV_VISUALIZATION_RECORD
+    root = session(tmp_path)
+    reason = (f"no visualization_recording.json of this run in the fetched S-CORE output (score/out/score_{RUN}/): "
+              "the run's S-CORE stop did not run or wrote none, or the S-CORE host was not fetched")
+    _json_edit(root / "session.json", lambda d: d["score_runs"][RUN].__setitem__(
+        "visualization_recording", {"path": None, "sha256": None, "bytes": None, "frames": None, "reason": reason}))
+    rec = records(root)[RUN]
+    assert rec["emptyAttributes"] == ["benchRecordingArtifact"], rec["missing"]
+    text = next(m for m in rec["missing"] if m.startswith("benchRecordingArtifact:"))
+    assert reason in text, text
+    assert "Launch Manager" not in text, text
+
+
 def test_scenario_falls_back_to_the_session_entry(tmp_path):
     root = session(tmp_path)
     _run_file("world_{run}/simulator/setting_record.json",
