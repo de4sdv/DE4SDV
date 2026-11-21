@@ -448,6 +448,13 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
                      "EVID-AEBS-S2-001 to EVID-AEBS-S2-006, which bind AEBS-CONFIG-010-001.",
                      "baseline revision b8170f6953567b07164b8c02be05be137f8047f0. No record is edited.",
                      "the binding makes the guest middleware of this member a headless SDV Core boundary",
+                     # ADR 0026: the member now selects the HMI display; INC-HMI-001 records the gap
+                     # (owner decision of 2026-11-21)
+                     "Until the scope revision of ADR 0026 that matched MW-CONFIG-001: it selected no HMI display, "
+                     "and its runtime evidence names the headless sdv_core_cf image (E-MW-011, E-MW-013).",
+                     "Since that revision MW-CONFIG-001 selects the HMI display, which it holds in its AAOS SDV "
+                     "guest, while this guest middleware models no display (gapHmiAAOSIntegratedGuestDisplay of "
+                     "INC-HMI-001).",
                      "It also composes a second AAOS SDV guest: the display-capable sdv_ivi_cf guest of its System 2 "
                      "instrument (iviGuest : SdvIviCfGuestTarget). Its evidence ran that image.",
                      "the binding now contradicts that statement.",
@@ -456,6 +463,7 @@ class TestMWVariabilityConfiguration(unittest.TestCase):
             with self.subTest(text=text):
                 self.assertIn(text, usage)
         self.assertNotIn("Open item", usage)
+        self.assertNotIn("That is right for MW-CONFIG-001: it selects no HMI display", usage)
 
     def test_pilot_is_framing_metadata_not_a_second_configuration_model(self):
         data = yaml.safe_load(PILOT.read_text())

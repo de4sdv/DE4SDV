@@ -724,6 +724,8 @@ def test_the_guide_names_the_next_obligation_after_phase_two():
     for phrase in ("The next model obligation is **Phase 3**, the capability classification, which review judges:",
                    "With no characteristic recorded, the one blocking check of Phase 3 has nothing to evaluate, so "
                    "the Method Check lists Phase 3 as vacuous and names its next obligation in Phase 4.",
-                   "Phase 3 and later phases wait for the revision of the governed scope"):
+                   "Phase 3 and later phases waited for the revision of the governed scope, which the model now "
+                   "holds"):
         assert phrase in flat, phrase
     assert "The next model obligation is **Phase 2**" not in flat
+    assert "Phase 3 and later phases wait for the revision" not in flat, "the scope revision ended the wait"

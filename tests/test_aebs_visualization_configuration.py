@@ -134,6 +134,24 @@ def test_product_selections_inherited_unchanged() -> None:
     assert "selections:" not in _read(TEST_ARTICLE)
 
 
+def test_note_records_the_display_of_adr_0026() -> None:
+    """ADR 0026: MW-CONFIG-001 selects the HMI display since the scope
+    revision; the System 2 classification of the visualization stays."""
+    flat = " ".join(_read(CONFIG_SYSML).replace("*", " ").split())
+    for phrase in (
+        "Until the scope revision of ADR 0026, MW-CONFIG-001 selected no"
+        " HMI display.",
+        "Since that revision it selects the HMI display, common content of"
+        " every member, which it holds in its AAOS SDV guest, and its"
+        " configured member still models a headless guest"
+        " (gapHmiAAOSIntegratedGuestDisplay of INC-HMI-001).",
+        "ADR 0026 does not change the System 2 classification of the"
+        " visualization of this slice.",
+    ):
+        assert phrase in flat, phrase
+    assert "and MW-CONFIG-001 selects no HMI display" not in flat
+
+
 def test_claim_boundary_is_configuration_only() -> None:
     yaml_data = yaml.safe_load(_read(PILOT))
     boundary = yaml_data["claim_boundary"]
