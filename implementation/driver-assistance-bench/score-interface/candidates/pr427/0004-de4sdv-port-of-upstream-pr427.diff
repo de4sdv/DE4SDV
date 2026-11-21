@@ -1,0 +1,171 @@
+DE4SDV patch 0004 (optional, candidate "pr427"): DE4SDV's port of two fixes of upstream draft PR #427 onto the pin.
+
+This is DE4SDV's port, not upstream's commit. It is applied only when the S-CORE build is asked for the variant
+(DA_CANDIDATE=pr427, score-interface/series.sh), on top of 0001-0003 at the pin
+014e0e7a56ee8e597c2cab8175233f74edd9b856. The default build (DA_CANDIDATE=pin) never reads it.
+
+Source: autowarefoundation/vision_pilot PR #427 ("fix(planning): brake correctly for slower leads and ignore
+guardrail phantoms"), a draft, head a38f227c475046e0119f30b05dac923a5043c8ee (125 commits ahead of and 74 behind the
+pin). Only the hunks below are taken, with upstream's comments; nothing else of the PR (radar association, the fusion
+rewrite, visualization, other configuration keys) is ported.
+
+1. Closing-speed sign, upstream commit f06f84eb ("fix(planning): IDM closing speed is ego speed minus lead speed"):
+   - VisionPilot/app/vision_pilot.cpp:177-179 at a38f227c (cipo_v = has_cipo ? ego_v + r->cipo.velocity_ms : ...,
+     with its two comment lines) replaces vision_pilot.cpp:151 at the pin (cipo_v = has_cipo ? r->cipo.velocity_ms
+     : ...); in the patched tree after 0001-0003 that line is 190.
+   - VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp:17 at a38f227c
+     (delta_v = ego_v - cipo_v; // cipo_v is the lead's speed) replaces longitudinal_planning.cpp:17 at the pin
+     (delta_v = cipo_v), under the comment at :16. The patched file is upstream's blob 3172cbe4 at a38f227c.
+
+2. AD-only CIPO frames may continue a track but not start one, upstream commit a38f227c ("fix(fusion): AD-only CIPO
+   may continue an AS-started track, not start one"), behind the configuration key fusion.ad_only_needs_as_track
+   (default true; false restores the pin's behaviour):
+   - longitudinal_fusion.hpp:95-100 at a38f227c (the Config member ad_only_needs_as_track with its comment) after
+     reset_gate_m (longitudinal_fusion.hpp:52 at the pin), and :185 (the member as_track_) after initialised_ (:90 at
+     the pin).
+   - longitudinal_fusion.cpp:33 at a38f227c (reset() clears as_track_) after the pin's :33.
+   - longitudinal_fusion.cpp:146-155 at a38f227c (as_track_, ad_only_allowed, ad_only_hit, the confirmation and the
+     debug line) at the pin's AutoDrive confirmation, longitudinal_fusion.cpp:59-60. Adapted to the pin: the pin's
+     camera-only fusion has no radar branch and names AutoSpeed's selected CIPO cipo_raw (upstream as_h), and the pin
+     confirms AutoDrive only at flag_prob >= CIPO_PROB_MIN, so that gate is kept in the confirmation; upstream's
+     "as_cipo_box ||" AutoSpeed vouching for AutoDrive below that flag (f5f626a8) is not ported.
+   - as_cipo_box, the definition of "AutoSpeed vehicle box" that ad_only_hit reads, is taken from
+     longitudinal_fusion.cpp:72-77 at a38f227c (introduced by f5f626a8), without its radar comment.
+   - vision_pilot_config.cpp:125-126 at a38f227c (parse fusion.ad_only_needs_as_track, default "true") after the pin's
+     :124. Upstream writes cfg.inference.long_fusion.ad_only_needs_as_track; the pin's models::Config has no
+     long_fusion member, so the port carries the value as models::Config::fusion_ad_only_needs_as_track
+     (inference.hpp:25 at the pin) into the fusion's Config where inference.cpp:107 builds it, the way the pin carries
+     fusion.debug. Upstream's vision_pilot.conf at a38f227c names no such key: the default lives in the parse call and
+     the Config member, as upstream has it.
+
+Why (INC-DRIVING-002 decision D4, the second candidate): the p10-2 attempt-3 diagnosis replayed the pin's planner on
+the logged inputs; the closing speed entered the IDM with the wrong sign, and AD-only CIPOs from the guardrail in
+curves commanded hard braking. Recreate this file's body with the steps in score-interface/check_patch.sh.
+
+diff --git a/VisionPilot/app/vision_pilot.cpp b/VisionPilot/app/vision_pilot.cpp
+index 0c0dbebd..917f019b 100644
+--- a/VisionPilot/app/vision_pilot.cpp
++++ b/VisionPilot/app/vision_pilot.cpp
+@@ -187,7 +187,9 @@ int main(int argc, char** argv)
+             // closer than D_MAX. cipo_raw_found alone must not gate the planner.
+             static constexpr double D_MAX = 150.0;
+             const bool has_cipo = r->cipo.valid && r->cipo.distance_m < D_MAX;
+-            const double cipo_v = has_cipo ? r->cipo.velocity_ms : cfg.speed_limit;
++            // The planner takes the lead's speed; fusion reports it relative
++            // to ego (negative = approaching).
++            const double cipo_v = has_cipo ? ego_v + r->cipo.velocity_ms : cfg.speed_limit;
+             const double cipo_dist = r->cipo.distance_m;
+ 
+             const double raw_cte = r->lateral.path_valid
+diff --git a/VisionPilot/modules/config/src/vision_pilot_config.cpp b/VisionPilot/modules/config/src/vision_pilot_config.cpp
+index 0b56a067..b4135fc4 100644
+--- a/VisionPilot/modules/config/src/vision_pilot_config.cpp
++++ b/VisionPilot/modules/config/src/vision_pilot_config.cpp
+@@ -126,6 +126,8 @@ Config load_vision_pilot_config()
+ 
+     cfg.inference.precision    = optional(kv, "model.precision",    "fp32");
+     cfg.inference.fusion_debug = parse_bool(optional(kv, "fusion.debug", "false"), "fusion.debug");
++    cfg.inference.fusion_ad_only_needs_as_track = parse_bool(
++        optional(kv, "fusion.ad_only_needs_as_track", "true"), "fusion.ad_only_needs_as_track");
+     cfg.inference.cte_bias_m   = static_cast<float>(
+         parse_double(optional(kv, "fusion.cte_bias_m", "0.0"), "fusion.cte_bias_m"));
+ 
+diff --git a/VisionPilot/modules/models/include/models/inference.hpp b/VisionPilot/modules/models/include/models/inference.hpp
+index a905abfc..0299e149 100644
+--- a/VisionPilot/modules/models/include/models/inference.hpp
++++ b/VisionPilot/modules/models/include/models/inference.hpp
+@@ -23,6 +23,7 @@ namespace visionpilot::models
+     {
+         std::string precision = "fp32";
+         bool fusion_debug = false;
++        bool fusion_ad_only_needs_as_track = true;
+         float cte_bias_m = 0.0f; // camera mounting offset [m] — subtracted from raw CTE before filter
+     };
+ 
+diff --git a/VisionPilot/modules/models/src/inference.cpp b/VisionPilot/modules/models/src/inference.cpp
+index 176e3726..5579b534 100644
+--- a/VisionPilot/modules/models/src/inference.cpp
++++ b/VisionPilot/modules/models/src/inference.cpp
+@@ -105,6 +105,7 @@ namespace visionpilot::models
+     {
+         fusion::LongitudinalFusion::Config lc;
+         lc.debug = cfg.fusion_debug;
++        lc.ad_only_needs_as_track = cfg.fusion_ad_only_needs_as_track;
+         long_fusion_ = fusion::LongitudinalFusion{lc};
+ 
+         fusion::LateralFusion::Config latc;
+diff --git a/VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp b/VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp
+index cf7675ab..35386216 100644
+--- a/VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp
++++ b/VisionPilot/modules/safety_guardian/fusion/include/fusion/longitudinal_fusion.hpp
+@@ -50,6 +50,12 @@ public:
+         // Reinitialise filter when a measurement jumps this far from the
+         // particle cloud (genuine cut-in / cut-out only).
+         float reset_gate_m          = 25.f;
++        // Camera-only path: an AutoDrive-only CIPO (flag >= 0.40, no AutoSpeed
++        // vehicle box) may continue a track that an in-path AutoSpeed vehicle
++        // started (close range, where the box is lost), but may not start one.
++        // On the CARLA rig AD-only CIPOs with no vehicle present came from the
++        // guardrail ahead on curves and commanded up to -7.5 m/s^2.
++        bool  ad_only_needs_as_track = true;
+         bool  debug                = false;
+     };
+ 
+@@ -88,6 +94,7 @@ private:
+     Config cfg_;
+     std::vector<Particle> particles_;
+     bool   initialised_ = false;
++    bool   as_track_    = false;  // current track was started by an in-path AS vehicle
+     std::mt19937 rng_;
+     // DO NOT MODIFY! VisionPilot model-view homography (1024x512 pixel -> world). Zenseact Open Dataset
+     cv::Mat H_ = (cv::Mat_<double>(3, 3) <<
+diff --git a/VisionPilot/modules/safety_guardian/fusion/src/longitudinal_fusion.cpp b/VisionPilot/modules/safety_guardian/fusion/src/longitudinal_fusion.cpp
+index f220f7d0..c09e9e58 100644
+--- a/VisionPilot/modules/safety_guardian/fusion/src/longitudinal_fusion.cpp
++++ b/VisionPilot/modules/safety_guardian/fusion/src/longitudinal_fusion.cpp
+@@ -31,6 +31,7 @@ void LongitudinalFusion::reset()
+ {
+     particles_.clear();
+     initialised_ = false;
++    as_track_    = false;
+ }
+ 
+ CIPOFusionEstimate LongitudinalFusion::update(
+@@ -56,8 +57,23 @@ CIPOFusionEstimate LongitudinalFusion::update(
+     static constexpr float D_MAX         = 150.f;
+     static constexpr float CIPO_PROB_MIN = 0.40f;  // below this → AD doesn't confirm CIPO
+ 
++    const bool as_cipo_box =
++        autospeed.valid &&
++        std::any_of(autospeed.detections.begin(), autospeed.detections.end(),
++                    [](const models::Detection& d) {
++                        return d.class_id == 1 || d.class_id == 2;
++                    });
++    if (cipo_raw.valid) as_track_ = true;
++    const bool ad_only_allowed = !cfg_.ad_only_needs_as_track || as_track_;
++    const bool ad_only_hit = autodrive.valid && !as_cipo_box &&
++                             autodrive.flag_prob >= CIPO_PROB_MIN;
+     const bool ad_cipo_confirmed = autodrive.valid &&
+-                                   autodrive.flag_prob >= CIPO_PROB_MIN;
++                                   autodrive.flag_prob >= CIPO_PROB_MIN &&
++                                   (as_cipo_box || (ad_only_hit && ad_only_allowed));
++    if (ad_only_hit && !ad_only_allowed && cfg_.debug)
++        VP_INFO("[Fusion] AD-only CIPO ignored, no AS track (AD=%.1f m p=%.0f%%)",
++                cfg_.d_max_m * (1.f - autodrive.dist_normalized),
++                autodrive.flag_prob * 100.f);
+     const bool autospeed_cipo_confirmed = cipo_raw.valid;
+ 
+     // If neither network confirms a CIPO target, report max distance and
+diff --git a/VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp b/VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp
+index 014c242a..3172cbe4 100644
+--- a/VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp
++++ b/VisionPilot/modules/safety_guardian/planning/src/longitudinal_planning.cpp
+@@ -14,7 +14,7 @@ double LongitudinalPlanner::compute_acceleration(double kappa, double ego_v, boo
+     double speed_limit = std::min(config_.speed_limit, curv_v_max);
+ 
+     // Closing speed — negative when ego is slower than lead (gap opening)
+-    double delta_v = cipo_v; // cipo_v relative CIPO vehicle speed
++    double delta_v = ego_v - cipo_v; // cipo_v is the lead's speed
+ 
+     // Wrap the dynamic term in max(0, …).
+     // Without this, when v < lead_v, delta_v < 0 making dynamic_term

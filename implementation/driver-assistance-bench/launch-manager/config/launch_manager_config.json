@@ -1,0 +1,197 @@
+{
+    "schema_version": 2,
+    "defaults": {
+        "deployment_config": {
+            "bin_dir": "/tmp/de4sdv-da-bench/bin",
+            "working_dir": "/tmp/de4sdv-da-bench",
+            "ready_timeout_ms": 10000,
+            "shutdown_timeout_ms": 3000,
+            "recovery_action": {
+                "switch_run_target": {
+                    "run_target": "fallback_run_target"
+                }
+            },
+            "environmental_variables": {
+                "LD_LIBRARY_PATH": "/tmp/de4sdv-da-bench/lib"
+            },
+            "sandbox": {
+                "uid": 0,
+                "gid": 0,
+                "supplementary_group_ids": [],
+                "scheduling_policy": "SCHED_OTHER",
+                "scheduling_priority": 0
+            }
+        },
+        "component_properties": {
+            "application_profile": {
+                "application_type": "Native",
+                "is_self_terminating": false
+            },
+            "ready_condition": {
+                "process_state": "Running"
+            }
+        },
+        "run_target": {
+            "transition_timeout_ms": 10000
+        }
+    },
+    "components": {
+        "identity_recorder": {
+            "description": "The candidate identity recording application (CandidateIdentityRecordingApplication, MAP-DRIVING-DA-CANDIDATE-RECORD). Reporting: it reports running once the record is written and offered, so the candidate's process starts after the record exists.",
+            "component_properties": {
+                "binary_name": "identity_recorder",
+                "application_profile": {
+                    "application_type": "Reporting"
+                },
+                "process_arguments": [
+                    "--run-dir",
+                    "/tmp/de4sdv-da-bench/run"
+                ]
+            },
+            "deployment_config": {
+                "ready_timeout_ms": 60000,
+                "environmental_variables": {
+                    "LD_LIBRARY_PATH": "/tmp/de4sdv-da-bench/lib",
+                    "MW_COM_CONFIG": "/tmp/de4sdv-da-bench/config/mw_com_config_identity_recorder.json"
+                }
+            }
+        },
+        "someipd": {
+            "description": "someipd of the S-CORE SOME/IP gateway at d9eac670: offers the warning request on SOME/IP to SDV Core (MAP-DRIVING-DA-WARNING-REQUEST). Not DE4SDV code.",
+            "component_properties": {
+                "binary_name": "someipd",
+                "process_arguments": [
+                    "-s",
+                    "/tmp/de4sdv-da-bench/config/mw_com_config_someipd_warning.json"
+                ]
+            },
+            "deployment_config": {
+                "environmental_variables": {
+                    "LD_LIBRARY_PATH": "/tmp/de4sdv-da-bench/lib",
+                    "VSOMEIP_CONFIGURATION": "/tmp/de4sdv-da-bench/config/vsomeip_someipd_warning.json"
+                }
+            }
+        },
+        "gatewayd": {
+            "description": "gatewayd of the S-CORE SOME/IP gateway at d9eac670: subscribes to the warning request on mw::com and hands it to someipd. Not DE4SDV code.",
+            "component_properties": {
+                "binary_name": "gatewayd",
+                "depends_on": [
+                    "someipd"
+                ],
+                "process_arguments": [
+                    "-c",
+                    "/tmp/de4sdv-da-bench/config/someip_gateway_config_warning.bin",
+                    "-s",
+                    "/tmp/de4sdv-da-bench/config/mw_com_config_gatewayd_warning.json"
+                ]
+            }
+        },
+        "vision_pilot": {
+            "description": "The candidate's process (VisionPilotSCOREApplication): VisionPilot at 014e0e7a with the DE4SDV S-CORE interface module. Supervised: one alive notification per completed pass of its loop; it reports running after its first completed pass.",
+            "component_properties": {
+                "binary_name": "vision_pilot",
+                "application_profile": {
+                    "application_type": "Reporting_And_Supervised",
+                    "alive_supervision": {
+                        "reporting_cycle_ms": 200,
+                        "failed_cycles_tolerance": 1,
+                        "min_indications": 1,
+                        "max_indications": 6
+                    }
+                },
+                "depends_on": [
+                    "identity_recorder"
+                ]
+            },
+            "deployment_config": {
+                "working_dir": "/tmp/de4sdv-da-bench/vision_pilot",
+                "ready_timeout_ms": 420000,
+                "shutdown_timeout_ms": 10000,
+                "environmental_variables": {
+                    "LD_LIBRARY_PATH": "/tmp/de4sdv-da-bench/lib",
+                    "DE4SDV_SCORE_INTERFACE_CONFIG": "/tmp/de4sdv-da-bench/config/de4sdv_score_interface.conf",
+                    "CARLA_CACHE_DIR": "/tmp/de4sdv-da-bench/run/carla_cache",
+                    "DE4SDV_VISUALIZATION_RECORD": "/tmp/de4sdv-da-bench/run/visualization.mkv",
+                    "GST_REGISTRY": "/tmp/de4sdv-da-bench/gst/registry.x86_64.bin"
+                }
+            }
+        },
+        "actuation_adapter": {
+            "description": "The actuation adapter (DrivingCommandActuationAdapter, MAP-DRIVING-DA-COMMAND). Supervised: one alive notification per 0.1 s of its receive loop; it reports running once subscribed to the driving command.",
+            "component_properties": {
+                "binary_name": "actuation_adapter",
+                "application_profile": {
+                    "application_type": "Reporting_And_Supervised",
+                    "alive_supervision": {
+                        "reporting_cycle_ms": 200,
+                        "failed_cycles_tolerance": 1,
+                        "min_indications": 1,
+                        "max_indications": 6
+                    }
+                },
+                "depends_on": [
+                    "identity_recorder"
+                ],
+                "process_arguments": [
+                    "--run-dir",
+                    "/tmp/de4sdv-da-bench/run",
+                    "--config",
+                    "/tmp/de4sdv-da-bench/config/adapter.json"
+                ]
+            },
+            "deployment_config": {
+                "ready_timeout_ms": 420000,
+                "environmental_variables": {
+                    "LD_LIBRARY_PATH": "/tmp/de4sdv-da-bench/lib",
+                    "MW_COM_CONFIG": "/tmp/de4sdv-da-bench/config/mw_com_config_actuation_adapter.json",
+                    "CARLA_CACHE_DIR": "/tmp/de4sdv-da-bench/run/carla_cache"
+                }
+            }
+        }
+    },
+    "run_targets": {
+        "supervised_path": {
+            "description": "The S-CORE path of the candidate under the Launch Manager's alive supervision: the identity recorder first, then someipd and gatewayd, then the candidate's process and the actuation adapter.",
+            "depends_on": [
+                "identity_recorder",
+                "someipd",
+                "gatewayd",
+                "vision_pilot",
+                "actuation_adapter"
+            ],
+            "transition_timeout_ms": 480000,
+            "recovery_action": {
+                "switch_run_target": {
+                    "run_target": "fallback_run_target"
+                }
+            }
+        },
+        "path_stopped": {
+            "description": "The stop run of REQ-DRIVING-038 and -043 (S1-BUILD-PLAN.md section 4): the S-CORE path of the candidate stopped while the candidate keeps running. Only the identity recorder and the candidate's process stay; the actuation adapter, gatewayd and someipd end, so no driving command reaches the vehicle and no warning request leaves the host. score-path/scripts/path_stop.sh activates it through LmControl.",
+            "depends_on": [
+                "identity_recorder",
+                "vision_pilot"
+            ],
+            "transition_timeout_ms": 30000,
+            "recovery_action": {
+                "switch_run_target": {
+                    "run_target": "fallback_run_target"
+                }
+            }
+        }
+    },
+    "initial_run_target": "supervised_path",
+    "fallback_run_target": {
+        "description": "The recovery target of the supervision decision of 2026-11-18: everything but the candidate's process and the actuation adapter, so no further driving command reaches the vehicle; the simulator keeps its last control.",
+        "depends_on": [
+            "identity_recorder",
+            "someipd",
+            "gatewayd"
+        ],
+        "transition_timeout_ms": 10000
+    },
+    "alive_supervision": {
+        "evaluation_cycle_ms": 100
+    }
+}

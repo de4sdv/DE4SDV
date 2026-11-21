@@ -1,0 +1,29 @@
+{
+    "service_types": [
+        {
+            "service_type_name": "de4sdv_driver_assistance_warning_request",
+            "service_id": 19953,
+            "service_version_major": 1,
+            "service_version_minor": 0,
+            "events": [
+                {
+                    "event_name": "warning_request",
+                    "event_id": 32769,
+                    "serialization_config_type": "NullSerializerConfig",
+                    "serialization_config": {
+                        "max_message_size": 2048
+                    },
+                    "eventgroup_ids": [
+                        1
+                    ]
+                }
+            ],
+            "local_service_instances": [
+                {
+                    "instance_specifier": "de4sdv/driver_assistance/warning_request",
+                    "instance_id": 1
+                }
+            ]
+        }
+    ]
+}

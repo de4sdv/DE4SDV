@@ -1,0 +1,17 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): the SOME/IP gateway configuration binary of
+# the warning request. Copy this file as BUILD.bazel, with the JSON files of this folder, into a
+# package //de4sdv_driver_assistance of the gateway workspace (inc_someip_gateway at d9eac670), the
+# way the INC-DRIVING-001 kit's overlay //de4sdv_driving built someip_gateway_config_driving.bin.
+# Files only; nothing upstream is edited. Not built yet.
+#   bazel build //de4sdv_driver_assistance:someip_gateway_config_warning
+load("//bazel/tools:someip_config.bzl", "generate_someip_config_bin")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(glob(["*.json"]))
+
+generate_someip_config_bin(
+    name = "someip_gateway_config_warning",
+    json = "someip_gateway_config_warning.json",
+    output = "someip_gateway_config_warning.bin",
+)

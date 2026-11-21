@@ -1,0 +1,16 @@
+# DE4SDV INC-DRIVING-002, the driver-assistance bench: the warning request on the guests.
+# Draft, bench-only, not yet validated.
+#
+# The authorization grant of the IVI warning presentation's subject: it may subscribe to the
+# typed topic that the SDV Core SOME/IP broker publishes. Installed at
+#   /product/etc/sdv_authz_acls/org.de4sdv.collisionwarning/CollisionWarningPresentation.textproto
+# so the subject is encoded by the path. The app (CollisionWarningPresentationApplication, built
+# outside this folder) must claim the same package and bundle when it initializes the Gateway
+# client; both names are a proposal of this folder (../interfaces/service_ids.json, lane_choices).
+#
+# The SD agent on the IVI VM reads the ACLs only at its start and exits when a second file names
+# one subject: install exactly this one file for the subject, then reboot the IVI VM.
+subscriber {
+  message: "de4sdv.driving.v1.CollisionWarningRequest"
+  topic: "de4sdv-driving-warning-request"
+}

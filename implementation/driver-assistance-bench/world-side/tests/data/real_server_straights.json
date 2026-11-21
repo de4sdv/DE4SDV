@@ -1,0 +1,12 @@
+{
+ "source": "survey_diag.py on the real server 1.0-14ac3b1a5 (de4sdv-probe-g4-carla, 2026-11-19, inc-driving-002/phase10/p10-1-world-maps-20261119/FACTS.md): every 5 m driving waypoint with at least two same-direction lanes, the straight run ahead under the world side's rule (5 m steps, yaw <= 0.5 deg, lateral <= 0.3 m, a junction ends it), searched up to 400 m",
+ "searchedUpToM": 400.0,
+ "longestStraightM": {
+  "Town04_Opt": 235.0,
+  "Town06_Opt": 400.0
+ },
+ "startsReaching320M": {
+  "Town04_Opt": 0,
+  "Town06_Opt": 155
+ }
+}

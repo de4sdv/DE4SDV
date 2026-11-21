@@ -42,11 +42,26 @@ OWN_OWNERS = frozenset({"de4sdv"})
 # Repositories that tracked files name and UPSTREAM.md leaves out on purpose.
 # Key: lower-case owner/repository. Value: why it has no entry.
 OMISSIONS: dict[str, str] = {
+    "bazelbuild/bazel": (
+        "build tool; the S-CORE build of the driver-assistance bench downloads it by version"
+    ),
     "bazelbuild/bazelisk": (
         "build tool; the runner script of the S-CORE reference bench downloads it by version and digest"
     ),
+    "kitware/cmake": (
+        "build tool; the VisionPilot build of the driver-assistance bench pins its release"
+    ),
     "mholt/caddy-ratelimit": (
         "module of the web-server image for the public API; deployment/caddy/Dockerfile pins its revision"
+    ),
+    "microsoft/onnxruntime": (
+        "inference runtime that VisionPilot links; the driver-assistance bench's build pins its release"
+    ),
+    "opencv/opencv": (
+        "image library that VisionPilot links; the driver-assistance bench's build pins its release"
+    ),
+    "rerun-io/rerun": (
+        "recording SDK that VisionPilot links; the driver-assistance bench's build pins its release"
     ),
 }
 

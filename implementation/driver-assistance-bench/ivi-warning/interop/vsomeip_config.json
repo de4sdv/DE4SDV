@@ -1,0 +1,174 @@
+{
+  "_comment": [
+    "DE4SDV INC-DRIVING-002, the driver-assistance bench. DRAFT, bench-only, not yet validated.",
+    "The stack configuration of the SDV Core VM (/vendor/etc/someip/vsomeip_config.json), with the",
+    "warning request's service added beside the two services the image already consumes. It offers",
+    "no SOME/IP service: the SDV Core VM consumes service 0x4df1 (instance 0x0001, eventgroup 0x0001,",
+    "event 0x8001, reliable TCP 30511) that someipd on the S-CORE host offers (interfaces/ICD.md).",
+    "Each event's payload is the 8-byte struct of the ICD (big-endian, no length field); the broker",
+    "translates it in REFLECTION mode into de4sdv.driving.v1.CollisionWarningRequest.",
+    "__SCORE_SOMEIP_PEER__ is the S-CORE host's address on the VXLAN segment, 192.168.98.1 in the",
+    "model; scripts/stage_sdv_core_interop.sh renders it from SCORE_SOMEIP_PEER, as the closed-loop",
+    "driving bench's staging renders its 0x4df0 entry.",
+    "0x4dee (reliable 30509) and 0x4df0 (reliable 30510) are the closed-loop driving bench's entries,",
+    "copied unchanged from implementation/closed-loop-driving-bench/ivi-observer/interop/",
+    "vsomeip_config.json: this file replaces the staged one, so dropping either would silently",
+    "unconfigure it. The render refuses a result without both, and refuses to change either entry",
+    "of the tree's current file. 0x4df1 is marked secure and accepted only from the peer, as 0x4df0",
+    "is. The SD group stays 224.0.0.0, the S-CORE side's."
+  ],
+  "unicast": "192.168.98.3",
+  "logging": {
+    "level": "info",
+    "console": "true",
+    "dlt": "false"
+  },
+  "applications": [
+    {
+      "name": "SampleStack",
+      "id": "0x1221"
+    }
+  ],
+  "services": [
+    {
+      "service": "0x4dee",
+      "instance": "0x0001",
+      "unicast": "192.168.98.1",
+      "reliable": {
+        "port": "30509",
+        "enable-magic-cookies": "false"
+      },
+      "events": [
+        {
+          "event": "0x8001",
+          "is_field": "false",
+          "is_reliable": "true"
+        }
+      ],
+      "eventgroups": [
+        {
+          "eventgroup": "0x0001",
+          "events": [
+            "0x8001"
+          ]
+        }
+      ]
+    },
+    {
+      "service": "0x4df0",
+      "instance": "0x0001",
+      "unicast": "__SCORE_SOMEIP_PEER__",
+      "reliable": {
+        "port": "30510",
+        "enable-magic-cookies": "false"
+      },
+      "events": [
+        {
+          "event": "0x8001",
+          "is_field": "false",
+          "is_reliable": "true"
+        },
+        {
+          "event": "0x8002",
+          "is_field": "false",
+          "is_reliable": "true"
+        },
+        {
+          "event": "0x8003",
+          "is_field": "false",
+          "is_reliable": "true"
+        }
+      ],
+      "eventgroups": [
+        {
+          "eventgroup": "0x0001",
+          "events": [
+            "0x8001",
+            "0x8002",
+            "0x8003"
+          ]
+        }
+      ]
+    },
+    {
+      "service": "0x4df1",
+      "instance": "0x0001",
+      "unicast": "__SCORE_SOMEIP_PEER__",
+      "reliable": {
+        "port": "30511",
+        "enable-magic-cookies": "false"
+      },
+      "events": [
+        {
+          "event": "0x8001",
+          "is_field": "false",
+          "is_reliable": "true"
+        }
+      ],
+      "eventgroups": [
+        {
+          "eventgroup": "0x0001",
+          "events": [
+            "0x8001"
+          ]
+        }
+      ]
+    }
+  ],
+  "secure-services": [
+    {
+      "service": "0x4dee",
+      "instance": "0x0001"
+    },
+    {
+      "service": "0x4df0",
+      "instance": "0x0001"
+    },
+    {
+      "service": "0x4df1",
+      "instance": "0x0001"
+    }
+  ],
+  "acceptances": [
+    {
+      "address": "192.168.98.1",
+      "reliable": [
+        {
+          "first": "30509",
+          "last": "30509",
+          "type": "secure"
+        }
+      ]
+    },
+    {
+      "address": "__SCORE_SOMEIP_PEER__",
+      "reliable": [
+        {
+          "first": "30510",
+          "last": "30510",
+          "type": "secure"
+        }
+      ]
+    },
+    {
+      "address": "__SCORE_SOMEIP_PEER__",
+      "reliable": [
+        {
+          "first": "30511",
+          "last": "30511",
+          "type": "secure"
+        }
+      ]
+    }
+  ],
+  "routing": "SampleStack",
+  "service-discovery": {
+    "enable": "true",
+    "multicast": "224.0.0.0",
+    "port": "30490",
+    "protocol": "udp",
+    "ttl": 3,
+    "cyclic_offer_delay": "2000",
+    "request_response_delay": "1500"
+  }
+}

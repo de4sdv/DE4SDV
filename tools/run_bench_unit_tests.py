@@ -83,6 +83,27 @@ SUITES: list[dict[str, object]] = [
         "tests": ["implementation/score-broker-path-bench/tests"],
         "pythonpath": [],
     },
+    {
+        "name": "driver-assistance-bench (INC-DRIVING-002)",
+        "tests": [
+            "implementation/driver-assistance-bench/interfaces/tests",
+            "implementation/driver-assistance-bench/score-interface/tests",
+            "implementation/driver-assistance-bench/ivi-warning/tests",
+            "implementation/driver-assistance-bench/actuation-adapter/tests",
+            "implementation/driver-assistance-bench/launch-manager/tests",
+            "implementation/driver-assistance-bench/score-build/tests",
+            "implementation/driver-assistance-bench/world-side/tests",
+            "implementation/driver-assistance-bench/ivi-warning-app/tests",
+            "implementation/driver-assistance-bench/guest-build/tests",
+            "implementation/driver-assistance-bench/session/tests",
+            "implementation/driver-assistance-bench/recording/tests",
+            "implementation/driver-assistance-bench/identity-recorder/tests",
+            "implementation/driver-assistance-bench/ivi-warning/injector/tests",
+            "implementation/driver-assistance-bench/score-path/tests",
+            "implementation/driver-assistance-bench/case-evaluators/tests",
+        ],
+        "pythonpath": [],
+    },
 ]
 
 

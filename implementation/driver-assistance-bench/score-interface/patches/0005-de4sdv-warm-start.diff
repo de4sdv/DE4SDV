@@ -1,0 +1,107 @@
+diff --git a/VisionPilot/app/vision_pilot.cpp b/VisionPilot/app/vision_pilot.cpp
+index 0c0dbebd..5a8fa4b4 100644
+--- a/VisionPilot/app/vision_pilot.cpp
++++ b/VisionPilot/app/vision_pilot.cpp
+@@ -21,6 +21,7 @@
+ #if ENABLE_SCORE_INTERFACE
+ #include <de4sdv/score_interface/score_interface.hpp>  // DE4SDV S-CORE interface
+ #include <de4sdv/score_interface/stop_signal.hpp>      // DE4SDV S-CORE interface
++#include <de4sdv/score_interface/warm_start.hpp>       // DE4SDV S-CORE interface: warm start (0005)
+ #endif
+ 
+ #include <camera_interface/v4l2_camera_interface.hpp>
+@@ -77,10 +78,7 @@ int main(int argc, char** argv)
+     // DE4SDV S-CORE interface: MAP-DRIVING-DA-CAMERA-IMAGE, -VEHICLE-SPEED, -COMMAND, -CANDIDATE-RECORD
+     if (cfg.source.mode == SourceMode::Score)
+     {
+-        score_interface = de4sdv::score_interface::ScoreInterface::Start();
+-        if (!score_interface || !de4sdv::score_interface::InstallStopHandler()) return 1;
+-        camera_interface = score_interface->camera();
+-        vehicle_interface = score_interface->vehicle();
++        // DE4SDV warm start (0005): the module starts after the pipeline below, built and warmed before the attach
+     }
+     else
+ #endif
+@@ -119,6 +117,27 @@ int main(int argc, char** argv)
+     vm::InferencePipeline pipeline(engine, cfg.inference);
+     Planner planner(cfg.speed_limit, cfg.L);
+     if (cfg.rrd_on) logging::Rerun::init(cfg.rrd_log);
++#if ENABLE_SCORE_INTERFACE
++    // DE4SDV S-CORE interface, warm start (0005, D-S1-1): the module's attach waits for the world's first tick (the
++    // go), and from then on an image comes every 0.1 s. So the pipeline is built and runs its networks once on a dummy
++    // image before the module starts, then goes back to its fresh state: the first image of the run still gives no
++    // result, nothing of the dummy reaches a plan, and the candidate reports running at its first pass with a result.
++    if (cfg.source.mode == SourceMode::Score)
++    {
++        const cv::Size warm_size(vm::AutoDrive::NET_W, vm::AutoDrive::NET_H);
++        const cv::Mat warm_image(warm_size, CV_8UC3, cv::Scalar::all(0));
++        pipeline.set_H_resized(load_matrix("H.yaml", "H"), warm_size);
++        de4sdv::score_interface::WarmStartRecord warm;
++        score_interface = de4sdv::score_interface::WarmStart(
++            [&] { return pipeline.process(warm_image, warm_image).has_value(); }, [&] { pipeline.reset(); },
++            [] { return de4sdv::score_interface::ScoreInterface::Start(); }, &warm);
++        VP_INFO("[DE4SDV] warm start before the attach: %d passes, result %s, %.1f ms", warm.passes,
++                warm.result ? "yes" : "no", static_cast<double>(warm.end_mono_ns - warm.begin_mono_ns) / 1e6);
++        if (!score_interface || !de4sdv::score_interface::InstallStopHandler()) return 1;
++        camera_interface = score_interface->camera();
++        vehicle_interface = score_interface->vehicle();
++    }
++#endif
+ 
+     // ── Initialize camera interface ───────────────────────────────────────────
+ 
+diff --git a/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/warm_start.hpp b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/warm_start.hpp
+new file mode 100644
+index 00000000..266990fe
+--- /dev/null
++++ b/VisionPilot/modules/de4sdv/score_interface/include/de4sdv/score_interface/warm_start.hpp
+@@ -0,0 +1,49 @@
++// DE4SDV S-CORE interface for VisionPilot (INC-DRIVING-002, not part of upstream VisionPilot).
++//
++// The warm start of the candidate under S-CORE (patch 0005, decision D-S1-1 of the S1 build plan). The module's
++// attach waits for the world's first tick, the go, and from then on the world sends an image every 0.1 s. In
++// attempt 3 (SID 20261120T092051Z) the pipeline's construction (about 0.55 s) and the cold first inference (724 ms
++// on the L4) both ran after the attach, so 11 to 12 images per run were dropped in the first 1.3 s after the go.
++// WarmStart() runs the pipeline on a dummy image until one pass gives a result (the networks ran once), puts the
++// pipeline back to its fresh state, and only then starts the module. So the first image of the run still gives no
++// result (upstream's two-frame buffer), nothing of the dummy reaches a plan, and the candidate reports running at its
++// first pass with a result, as before (CycleSupervision in core.hpp).
++#pragma once
++
++#include <cstdint>
++
++#include "de4sdv/score_interface/core.hpp"
++
++namespace de4sdv::score_interface {
++
++// What the warm start did, for the candidate's log line.
++struct WarmStartRecord {
++  int passes = 0;                  // passes of the pipeline on the dummy image
++  bool result = false;             // one of them gave a result: the networks ran once
++  std::int64_t begin_mono_ns = 0;  // before the first pass
++  std::int64_t end_mono_ns = 0;    // after the reset, before the start
++};
++
++// Upstream's pipeline gives its first result at the second pass (inference.cpp:152-159 at the pin); one more pass is
++// the margin. A pipeline that gives none by then starts cold, as without the warm start.
++inline constexpr int kWarmStartMaxPasses = 3;
++
++// pass():  one pass of the pipeline on the dummy image; true when it gave a result.
++// reset(): the pipeline back to its fresh state (InferencePipeline::reset()).
++// start(): the module's start; its attach waits for the go. Called once, after the reset, whatever the passes gave.
++// Returns what start() returns; *record (when given) gets the passes and the times.
++template <typename Pass, typename Reset, typename Start>
++auto WarmStart(Pass&& pass, Reset&& reset, Start&& start, WarmStartRecord* record) -> decltype(start()) {
++  WarmStartRecord r;
++  r.begin_mono_ns = MonotonicNs();
++  while (!r.result && r.passes < kWarmStartMaxPasses) {
++    ++r.passes;
++    r.result = pass();
++  }
++  reset();
++  r.end_mono_ns = MonotonicNs();
++  if (record != nullptr) *record = r;
++  return start();
++}
++
++}  // namespace de4sdv::score_interface

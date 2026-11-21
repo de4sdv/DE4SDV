@@ -1,0 +1,48 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): the S-CORE workspace's own package
+# //de4sdv_da_bench/score-build/workspace. build_score_bench.sh stages this folder there.
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(glob(["*.BUILD"]))
+
+# The SOME/IP gateway's sample type (inc_someip_gateway d9eac670, score/serializer/pre_serialized_data.h). gatewayd
+# copies data[0..size) of this struct (score-path/config/README.md). build_score_bench.sh copies the header from the
+# gateway checkout into gateway_include/ and checks its sha256 (pins.sh).
+cc_library(
+    name = "gateway_pre_serialized_data",
+    hdrs = ["gateway_include/score/serializer/pre_serialized_data.h"],
+    includes = ["gateway_include"],
+)
+
+# The ONNX Runtime CUDA check: the same S-CORE toolchain, the same libonnxruntime.so.1 and the same runpath as
+# VisionPilot, so that on the S-CORE host it shows whether the CUDA provider loads in such a process.
+cc_binary(
+    name = "ort_cuda_check",
+    srcs = ["ort_cuda_check.cpp"],
+    linkopts = [
+        "-Wl,-rpath,$$ORIGIN/../lib",
+        "-lpthread",
+        "-ldl",
+    ],
+    deps = ["@da_b2_thirdparty//:onnxruntime"],
+)
+
+# The visualization recorder's check: score-interface/tests/visualization_recorder_sim_time_test.cpp (the functional
+# test of patch 0001's sim_time_s column), copied here by build_score_bench.sh as visualization_recorder_check.cpp and
+# built against the candidate's own recorder, with VisionPilot's OpenCV (static, GStreamer back end), GStreamer
+# libraries, toolchain and link options. On the S-CORE host it shows whether the recorder's nvh264enc pipeline opens
+# and encodes under the Launch Manager's exact environment of vision_pilot (score-build/README.md). The staging never
+# stages it.
+cc_binary(
+    name = "visualization_recorder_check",
+    srcs = ["visualization_recorder_check.cpp"],
+    linkopts = [
+        "-Wl,--allow-shlib-undefined",
+        "-Wl,-rpath,$$ORIGIN/../lib",
+        "-lpthread",
+        "-ldl",
+    ],
+    deps = ["//visionpilot:de4sdv_visualization_recorder"],
+)
