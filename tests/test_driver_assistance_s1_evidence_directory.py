@@ -124,6 +124,11 @@ def test_the_drop_counts_name_each_run_of_s1_and_where_its_images_drop():
         assert count["wholeRunWindow"]["dropped"] == count["droppedInFirst5s"] + len(
             count["wholeRunWindow"]["isolatedDropsS"]), run
         assert 2 <= count["droppedAtStreamEnd"] <= 6 and count["streamEndDropsWithinS"] <= 0.6, run
+    for run, count in counts.items():
+        # the warm start of D-S1-1 ran before the attach in every run, as its Launch Manager log records
+        warm = count["warmStart"]
+        assert warm["file"] == f"score/out/score_{run}/score_side/state/launch_manager.log", run
+        assert (warm["passes"], warm["result"]) == (2, "yes") and warm["ms"] > 0, run
 
 
 def test_the_readme_table_is_generated_from_the_verdicts():
@@ -186,6 +191,17 @@ def test_the_readme_states_where_the_images_drop_as_the_evaluators_count_them():
                    f"{span([c['wholeRunWindow']['dropped'] for c in judged])} in each judged run, the start-up drops "
                    "and the isolated drops inside the run, and none of the end of the image stream; "
                    f"{counts['stop']['wholeRunWindow']['dropped']} in the run that stops the path.",
+                   warm_start_sentence(counts),
                    "The records show no cause of the drops."):
         assert phrase in readme, phrase
     assert not re.search(r"\b(?:1|one) (?:camera )?image in 20\b", readme)
+
+
+def warm_start_sentence(counts: dict) -> str:
+    """The warm start of D-S1-1 in every run, as each run's Launch Manager log records it (drop_counts.json)."""
+    ms = [c["warmStart"]["ms"] for c in counts.values()]
+    return (f"The warm start of D-S1-1 (patch 0005 of the bench) ran before the attach in every run: the Launch "
+            f"Manager log of each run records 2 passes with the result yes, in {min(ms):.1f} to {max(ms):.1f} ms "
+            "(`score_side/state/launch_manager.log`). It did not keep the first 5 s after the first image free of "
+            "dropped images.")
+

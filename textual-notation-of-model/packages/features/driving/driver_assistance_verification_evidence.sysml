@@ -931,10 +931,14 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * SC-DRIVING-013@60/r1 or SC-DRIVING-013@60/r2. The run that stops the path
      * drops 24 in its first 5 s and 8 in the last 0.8 s of its image stream,
      * which ends at the stop, and the steering calibration run 34 in its first
-     * 5 s, 3 at the end of its image stream and 6 isolated. The records show no
-     * cause of the drops. The evaluators judge a criterion over every run in
-     * the window from the run's first to its last world tick and count each
-     * drop.camera_image whose simulation time lies in it: 23 to 25 in each
+     * 5 s, 3 at the end of its image stream and 6 isolated. The warm start of
+     * D-S1-1 (patch 0005 of the bench) ran before the attach in every run: the
+     * Launch Manager log of each run records 2 passes with the result yes, in
+     * 678.3 to 706.8 ms (score_side/state/launch_manager.log); it did not keep
+     * the first 5 s after the first image free of dropped images. The records
+     * show no cause of the drops. The evaluators judge a criterion over every
+     * run in the window from the run's first to its last world tick and count
+     * each drop.camera_image whose simulation time lies in it: 23 to 25 in each
      * judged run (SC-DRIVING-012@20/r1 24; SC-DRIVING-012@20/r2 24;
      * SC-DRIVING-012@42/r1 23; SC-DRIVING-012@42/r2 24; SC-DRIVING-012@60/r1
      * 23; SC-DRIVING-012@60/r2 24; SC-DRIVING-013@30/r1 25;

@@ -13,7 +13,8 @@ desk record or the fetched session tree, and then the model text that the eviden
 - ``session.json`` and ``scenario_digests.json``, copied from the session tree;
 - ``drop_counts.json``, where the camera images of each run drop, from the run's score-interface record and the
   world side's files of the run: in the first 5 s after its first image, at the end of its image stream and in
-  between, the run's end, and the drops of its whole-run window;
+  between, the run's end, the drops of its whole-run window, and the warm start that the run's Launch Manager
+  log records;
 - ``SHA256SUMS``, the SHA-256 of every file of the session tree, by its path relative to the tree, and
   ``external-media.json``, the recordings and archives of the tree with their identity and retention;
 - the verdict table of ``README.md``, between its two markers;
@@ -28,6 +29,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -50,6 +52,9 @@ VERDICTS = {"passBoundedVerification": "pass", "passBoundedValidation": "pass", 
             "errorEvidence": "error"}
 SCORE_INTERFACE = "score/out/score_{run}/score_side/run/score/score_interface.jsonl"
 WORLD_DIR = "sim/out/world_{run}/simulator"
+LAUNCH_MANAGER_LOG = "score/out/score_{run}/score_side/state/launch_manager.log"
+#: the line of the warm start of D-S1-1 (patch 0005 of the bench) in a run's Launch Manager log
+WARM_START = re.compile(r"\[DE4SDV\] warm start before the attach: (\d+) passes, result (\w+), ([0-9.]+) ms")
 #: the start-up drops: within this many seconds of simulation time after a run's first image
 START_S = 5.0
 #: the drops at the end of a run's image stream: within this many seconds before its last image
@@ -100,6 +105,20 @@ def _world_span(tree: Path, run: str) -> dict:
             "window": (ticks[0], ticks[-1]), "worldFile": world_path.relative_to(tree).as_posix()}
 
 
+def warm_start(tree: Path, run: str) -> dict | None:
+    """The warm start of D-S1-1 as the run's Launch Manager log records it, or None when the log records none."""
+    path = Path(tree) / LAUNCH_MANAGER_LOG.format(run=run)
+    if not path.is_file():
+        return None
+    found = WARM_START.findall(path.read_text(encoding="utf-8", errors="replace"))
+    if not found:
+        return None
+    if len(found) != 1:
+        raise ValueError(f"run {run}: {len(found)} warm-start lines in {path.relative_to(tree).as_posix()}")
+    passes, result, ms = found[0]
+    return {"file": path.relative_to(tree).as_posix(), "passes": int(passes), "result": result, "ms": float(ms)}
+
+
 def drop_counts(tree: Path) -> dict:
     """Run label -> where its camera images drop, in its score-interface record: within 5 s of simulation time after
     its first received image, within the last second of its image stream, and isolated in between (seconds after the
@@ -138,6 +157,7 @@ def drop_counts(tree: Path) -> dict:
             "wholeRunWindow": {"file": span["worldFile"], "firstTickSimS": round(w0, 3), "lastTickSimS": round(w1, 3),
                                "dropped": len(inside),
                                "isolatedDropsS": [round(t - first, 3) for t in isolated if t in inside]},
+            "warmStart": warm_start(tree, run),
         }
     return counts
 

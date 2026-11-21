@@ -289,7 +289,11 @@ def guide_drop_phrase(counts: dict) -> str:
     return (f"answered no, every run of S1 drops camera images: {_either(c['droppedInFirst5s'] for c in judged)} in "
             f"the first 5 s after its first image, {_span([c['droppedAtStreamEnd'] for c in judged])} in the last "
             f"{max(c['streamEndDropsWithinS'] for c in judged):g} s of its image stream, after the run's end, and "
-            f"{_span([len(c['isolatedDropsS']) for c in judged])} isolated ones in between, with no cause shown;")
+            f"{_span([len(c['isolatedDropsS']) for c in judged])} isolated ones in between, with no cause shown; the "
+            "warm start of D-S1-1 ran before the attach in every run, in "
+            f"{min(c['warmStart']['ms'] for c in counts.values()):.1f} to "
+            f"{max(c['warmStart']['ms'] for c in counts.values()):.1f} ms, and did not keep the first 5 s free of "
+            "dropped images;")
 
 
 def drop_sentences(counts: dict) -> list[str]:
@@ -314,6 +318,11 @@ def drop_sentences(counts: dict) -> list[str]:
         f"{stop['droppedAtStreamEnd']} in the last {stop['streamEndDropsWithinS']:g} s of its image stream, which "
         f"ends at the stop, and the steering calibration run {calib['droppedInFirst5s']} in its first 5 s, "
         f"{calib['droppedAtStreamEnd']} at the end of its image stream and {len(calib['isolatedDropsS'])} isolated.",
+        "The warm start of D-S1-1 (patch 0005 of the bench) ran before the attach in every run: the Launch Manager "
+        "log of each run records 2 passes with the result yes, in "
+        f"{min(c['warmStart']['ms'] for c in counts.values()):.1f} to "
+        f"{max(c['warmStart']['ms'] for c in counts.values()):.1f} ms (score_side/state/launch_manager.log); it "
+        "did not keep the first 5 s after the first image free of dropped images.",
         "The records show no cause of the drops.",
         "The evaluators judge a criterion over every run in the window from the run's first to its last world tick "
         "and count each drop.camera_image whose simulation time lies in it: "

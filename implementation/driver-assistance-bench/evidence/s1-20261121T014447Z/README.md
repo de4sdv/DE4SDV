@@ -125,13 +125,19 @@ which goes on after the run's last world tick until the S-CORE side stops, and
 0 to 3 isolated images in between. The file gives each run's end from
 `run_end.json` and the ticks that `tick_times.csv` records after it.
 
+The warm start of D-S1-1 (patch 0005 of the bench) ran before the attach in
+every run: the Launch Manager log of each run records 2 passes with the result
+yes, in 678.3 to 706.8 ms (`score_side/state/launch_manager.log`). It did not
+keep the first 5 s after the first image free of dropped images.
+`drop_counts.json` gives each run's value.
+
 The case evaluators at `508649ba` judge a criterion over every run in the
 window from the run's first to its last world tick (`world.jsonl`) and count
 each `drop.camera_image` whose simulation time lies in it (`Run.drops_in` in
 `runio_da.py`, `whole_run` in `cases_da.py`): 23 to 25 in each judged run,
 the start-up drops and the isolated drops inside the run, and none of the end
-of the image stream; 32 in the run that stops the path. The records show
-no cause of the drops.
+of the image stream; 32 in the run that stops the path. The records show no
+cause of the drops.
 
 ## Where the rest is retained
 

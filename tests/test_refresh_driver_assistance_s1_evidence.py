@@ -121,6 +121,11 @@ def _session_tree(root: Path) -> Path:
         path.parent.mkdir(parents=True)
         path.write_text("\n".join(json.dumps(e) for e in lines) + "\n", encoding="utf-8")
     _world(tree, "012_20_r1", RUN_TICKS)
+    state = tree / "score" / "out" / "score_012_20_r1" / "score_side" / "state"
+    state.mkdir(parents=True)
+    (state / "launch_manager.log").write_text(
+        "[INFO]  starting\n[INFO]  [DE4SDV] warm start before the attach: 2 passes, result yes, 686.2 ms\n"
+        "[INFO]  attached\n", encoding="utf-8")
     _world(tree, "stop", [round(29.9 + 0.05 * k, 6) for k in range(41)], reason="run cap")
     (tree / "session.json").write_text(json.dumps({"session_id": "X"}), encoding="utf-8")
     (tree / "scenario_digests.json").write_text("{}", encoding="utf-8")
@@ -147,11 +152,14 @@ def test_the_drop_counts_state_where_in_each_run_the_images_drop(tmp_path):
                    "ticksAfterRunEnd": 20},
         "wholeRunWindow": {"file": "sim/out/world_012_20_r1/simulator/world.jsonl", "firstTickSimS": 9.9,
                            "lastTickSimS": 17.0, "dropped": 5, "isolatedDropsS": [6.0]},
+        "warmStart": {"file": "score/out/score_012_20_r1/score_side/state/launch_manager.log", "passes": 2,
+                      "result": "yes", "ms": 686.2},
     }
     stop = counts["stop"]
     assert (stop["dropped"], stop["droppedInFirst5s"], stop["droppedAtStreamEnd"], stop["isolatedDropsS"]) \
         == (2, 2, 0, []), "a drop within 5 s of the first image is a start-up drop, even near the stream's end"
     assert stop["streamEndDropsWithinS"] is None
+    assert stop["warmStart"] is None, "a run whose Launch Manager log records no warm start says so"
     assert stop["wholeRunWindow"]["dropped"] == 2 and stop["runEnd"]["endReason"] == "run cap"
 
 

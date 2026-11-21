@@ -25,6 +25,12 @@
       "lastTickSimS": 568.349,
       "dropped": 24,
       "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_012_20_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 686.2
     }
   },
   "012_20_r2": {
@@ -50,6 +56,12 @@
       "lastTickSimS": 764.083,
       "dropped": 24,
       "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_012_20_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 698.3
     }
   },
   "012_42_r1": {
@@ -75,6 +87,12 @@
       "lastTickSimS": 922.588,
       "dropped": 23,
       "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_012_42_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 689.0
     }
   },
   "012_42_r2": {
@@ -104,6 +122,12 @@
       "isolatedDropsS": [
         26.4
       ]
+    },
+    "warmStart": {
+      "file": "score/out/score_012_42_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 682.9
     }
   },
   "012_60_r1": {
@@ -129,6 +153,12 @@
       "lastTickSimS": 1257.559,
       "dropped": 23,
       "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_012_60_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 682.4
     }
   },
   "012_60_r2": {
@@ -159,6 +189,12 @@
       "isolatedDropsS": [
         15.7
       ]
+    },
+    "warmStart": {
+      "file": "score/out/score_012_60_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 692.0
     }
   },
   "013_30_r1": {
@@ -188,6 +224,12 @@
       "isolatedDropsS": [
         31.6
       ]
+    },
+    "warmStart": {
+      "file": "score/out/score_013_30_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 682.0
     }
   },
   "013_30_r2": {
@@ -213,6 +255,12 @@
       "lastTickSimS": 1705.049,
       "dropped": 24,
       "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_013_30_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 706.8
     }
   },
   "013_60_r1": {
@@ -238,6 +286,12 @@
       "lastTickSimS": 1844.595,
       "dropped": 24,
       "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_013_60_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 697.6
     }
   },
   "013_60_r2": {
@@ -263,6 +317,12 @@
       "lastTickSimS": 1970.767,
       "dropped": 24,
       "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_013_60_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 686.5
     }
   },
   "014_30_r1": {
@@ -292,6 +352,12 @@
       "isolatedDropsS": [
         21.5
       ]
+    },
+    "warmStart": {
+      "file": "score/out/score_014_30_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 689.1
     }
   },
   "014_30_r2": {
@@ -322,6 +388,12 @@
       "isolatedDropsS": [
         26.4
       ]
+    },
+    "warmStart": {
+      "file": "score/out/score_014_30_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 688.7
     }
   },
   "015_40_r1": {
@@ -354,6 +426,12 @@
         36.4,
         51.4
       ]
+    },
+    "warmStart": {
+      "file": "score/out/score_015_40_r1/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 678.3
     }
   },
   "015_40_r2": {
@@ -384,6 +462,12 @@
       "isolatedDropsS": [
         41.4
       ]
+    },
+    "warmStart": {
+      "file": "score/out/score_015_40_r2/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 688.2
     }
   },
   "calib_steer": {
@@ -421,6 +505,12 @@
         57.2,
         57.4
       ]
+    },
+    "warmStart": {
+      "file": "score/out/score_calib_steer/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 694.0
     }
   },
   "stop": {
@@ -446,6 +536,12 @@
       "lastTickSimS": 2897.01,
       "dropped": 32,
       "isolatedDropsS": []
+    },
+    "warmStart": {
+      "file": "score/out/score_stop/score_side/state/launch_manager.log",
+      "passes": 2,
+      "result": "yes",
+      "ms": 692.7
     }
   }
 }

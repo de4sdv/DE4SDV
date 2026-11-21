@@ -968,11 +968,13 @@ shape.
   on the host's own GPU: answered no, every run of S1 drops camera images: 23 or
   24 in the first 5 s after its first image, 2 to 6 in the last 0.6 s of its
   image stream, after the run's end, and 0 to 3 isolated ones in between, with
-  no cause shown; the capture of the start of the sound on the IVI guest: open,
-  the guest records hold no start of the sound; showing the draft and the
-  results to the VisionPilot maintainers: open, not done, and the owner approves
-  any text first. The gap stays a record; Phase 11 decides its disposition. Each
-  probe runs only on the owner's word.
+  no cause shown; the warm start of D-S1-1 ran before the attach in every run,
+  in 678.3 to 706.8 ms, and did not keep the first 5 s free of dropped images;
+  the capture of the start of the sound on the IVI guest: open, the guest
+  records hold no start of the sound; showing the draft and the results to the
+  VisionPilot maintainers: open, not done, and the owner approves any text
+  first. The gap stays a record; Phase 11 decides its disposition. Each probe
+  runs only on the owner's word.
 - **No validation case.** The validation of the needs stays planned in
   Phase 4 (SC-DRIVING-016 to SC-DRIVING-019).
 
