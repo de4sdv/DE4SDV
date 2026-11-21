@@ -375,8 +375,8 @@ def test_increment_declares_the_phase_zero_shape():
         "phase10_vvEvidence", "phase11_baseline",
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [PACKAGE], \
-        "the charter names only the package that holds content today"
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
+        PACKAGE, "DE4SDV_HmiDisplayOperationalContext"], "the charter names only the packages that hold content"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
         "owner confirmation of the engineering question and the scope",
@@ -703,7 +703,7 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing and Phase 1 concerns, proposal.**" in guide
+    assert "**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context, proposal.**" in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part hmiDisplayQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -730,8 +730,7 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "A fail is a result to record.",
                    "Starting this increment launches no compute and authorizes no spend.",
                    "open gaps and Phase 1 concerns.",
-                   "The next model obligation is **Phase 2**, the operational context: exactly one context holding "
-                   "the HMI display, with a story whose use cases bind it and the context actors.",
+                   "The next model obligation is **Phase 3**, the capability classification, which review judges:",
                    "On 2026-11-21 the owner decided that the increment goes on without waiting for Phase 10 of the "
                    "driver-assistance increment.",
                    "Phase 3 and later phases wait for the revision of the governed scope, which waits for the "
@@ -1032,7 +1031,8 @@ def test_the_guide_lists_the_phase_one_concerns_with_their_holders():
     assert not re.search(r"(?i)\bcrash\w*\b|\bmust\b", flat)
     for phrase in ("held by the parties whose interest it states.",
                    "The driver, a vehicle occupant, holds the operational concern beside the engineering roles.",
-                   "The framing viewpoint frames all nine until those views exist.",
+                   "The framing viewpoint frames all nine, and a view of a later phase that answers a concern "
+                   "frames it as well.",
                    "They do not judge whether the stakeholder, risk and viewpoint coverage is adequate; review does."):
         assert phrase in flat, phrase
 
