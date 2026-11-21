@@ -42,7 +42,8 @@ WARM_START = "2 passes, 678.3 to 706.8 ms"
 STOP_RUN_DROPS = ("drops 24 in its first 5 s and then 8 in a row right after the stop instant (sim 2870.36 to "
                   "2871.06 s): the interface keeps receiving images and drops them, because the candidate that takes "
                   "them is stopped.")
-FOURTEEN_RUNS = "the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 (10 of them meet their entry conditions)"
+FOURTEEN_RUNS = ("the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 (6 of them judged runs; SC-DRIVING-014 and "
+                 "SC-DRIVING-015 have no judged-run term)")
 # P2: (SID, the bullet's opening, its exit code and step) of each session.json under phase10/sessions
 STANDING = [
     ("20261119T130414Z", "p10-3 run 2", "exit 0;"),
@@ -174,3 +175,18 @@ def test_p5_every_bench_markdown_file_gives_the_warm_start_s1_logged() -> None:
         if WARM_START in text:
             carriers.append(path.relative_to(BENCH).as_posix())
     assert carriers == ["README.md", "score-interface/README.md"], carriers
+
+
+def test_c1_no_readme_counts_ten_runs_that_meet_their_entry_conditions() -> None:
+    """Review of 45c430ac, C1 and C2: S1's entry checks give 6 judged runs. Four runs of SC-DRIVING-012 and
+    SC-DRIVING-013 miss their entry conditions, and the runs of SC-DRIVING-014 and SC-DRIVING-015 record that their
+    scenario has no judged-run term (each run's entry_checks.json, notJudged), so no README counts 10."""
+    bench = Path(__file__).resolve().parents[2]
+    markdown = sorted(bench.rglob("*.md"))
+    assert len(markdown) >= 15, len(markdown)
+    for path in markdown:
+        assert "10 of them meet their entry conditions" not in _flat(path), path
+    evaluators = _flat(bench / "case-evaluators" / "README.md")
+    assert ("Of the 14 runs, 6 are judged runs: four runs of SC-DRIVING-012 and SC-DRIVING-013 miss their entry "
+            "conditions (`012_20_r2`, `013_30_r2`, `013_60_r1`, `013_60_r2`), and SC-DRIVING-014 and SC-DRIVING-015 "
+            "have no judged-run term.") in evaluators
