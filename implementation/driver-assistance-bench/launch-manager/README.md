@@ -1,6 +1,9 @@
 # Launch Manager of the S-CORE host (INC-DRIVING-002)
 
-Status: draft, not yet validated. Nothing here has run on the S-CORE host yet.
+Status: draft, not yet validated. The configuration ran on the S-CORE host in p10-1 try 4 (SID 20261119T160111Z,
+2026-11-19, `eae0a6ef`): C1 (the start order, both configurations), C2 (the alive notifications), C3 (the stalled
+candidate's fallback, within 10.9 s) and C4 met. It ran every run of p10-2 attempt 3 (SID 20261120T092051Z, 2026-11-20,
+`39a964a2`) and of S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`), there with `path_stopped` for the stop run.
 
 ## The problem
 

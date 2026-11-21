@@ -1,7 +1,8 @@
 # Incremental guest build (INC-DRIVING-002, B12)
 
-Status: draft, not yet validated. The script has run only against a synthetic tree on the
-development host.
+Status: draft, not yet validated. Beyond a synthetic tree on the development host, the script ran on the guest host on
+2026-11-19 at `d7e4dd10`: the run with an enforcing IVI failed, and the rerun with `IVI_PERMISSIVE=1` ended
+`B12 RESULT: PASSED`, so its result is conditional on a permissive IVI.
 
 ## The problem
 

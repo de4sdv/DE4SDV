@@ -1,6 +1,15 @@
 # Bench sessions (INC-DRIVING-002)
 
-Status: draft, not yet validated. Only the dry runs below have run; no session has started a VM.
+Status: draft, not yet validated. Beyond the dry runs below, these sessions have run on the cloud hosts:
+
+- p10-3 run 2 (SID 20261119T130414Z, 2026-11-19, `410293bb`): exit 0; 21 of 21 test requests received on the IVI guest.
+- p10-1 try 4 (SID 20261119T160111Z, 2026-11-19, `eae0a6ef`): exit 0; C1 to C4, C6 and C7 met, C5 and C8 not run by
+  design.
+- p10-2 attempt 3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`): exit 5 on the simulator host's fetch, which the lead
+  completed afterwards ("The evidence fetch", below); both SC-DRIVING-012@20 runs judged, a fail of the pinned
+  candidate.
+- The judged session S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`): exit 0; the 14 runs of SC-DRIVING-012 to -015
+  and the stop run. Its verdicts are in the bench README.
 
 ## The problem
 
@@ -923,7 +932,7 @@ Expected lengths are PLAN's for each probe; prices from `hosts.env` (Spot, europ
 
 | Kind | Hosts and EUR/h | Expected | Expected cost | Default cap (time at the cap) |
 |---|---|---|---|---|
-| `p10-1` | G4 1.887 + L4 0.483 | about 45 min (an estimate from the steps, not yet measured: the starts, both uploads, the CARLA start, the warm-up, the check about 10 min, the fetch and the stops) | about EUR 1.80 | EUR 3.50 (1.5 h), approved by the owner on 2026-11-19 |
+| `p10-1` | G4 1.887 + L4 0.483 | about 45 min (an estimate from the steps: the starts, both uploads, the CARLA start, the warm-up, the check about 10 min, the fetch and the stops); try 4 (SID 20261119T160111Z) took about 23 min and at most EUR 0.89 | about EUR 1.80 | EUR 3.50 (1.5 h), approved by the owner on 2026-11-19 |
 | `p10-3` | L4 0.483 + guest host 0.271 | about 3 h | about EUR 2.26 | EUR 3.50 (4.6 h) |
 | `p10-2` | G4 1.887 + L4 0.483 + guest host 0.271 | about 1.5 h | about EUR 3.96 | EUR 6.00 (2.3 h) |
 | `s1` | G4 1.887 + L4 0.806 (on-demand, D-S1-3) + guest host 0.271 | about 2.0 h: 22 min to the first run, 14 runs of 5.5-6 min (about 82 min), the stop run about 7 min (its cap 42 s), the fetch and the stops about 6 min | about EUR 5.90 (about EUR 5.30 with the L4 on Spot) | EUR 8.00 (2.7 h) |

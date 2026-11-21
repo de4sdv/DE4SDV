@@ -1,6 +1,9 @@
 # IVI warning presentation (INC-DRIVING-002, B10)
 
-Status: draft, not yet validated. Nothing in this folder has run on a guest yet.
+Status: draft, not yet validated. The app has run on the IVI guest, each time conditional on a permissive IVI. In p10-3
+run 2 (SID 20261119T130414Z, 2026-11-19, `410293bb`) its record holds the receipt of 21 of 21 test requests. In p10-2
+attempt 3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`) and S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`) its
+record holds receipt events in every window.
 
 ## The problem
 

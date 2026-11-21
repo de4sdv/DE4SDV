@@ -1,6 +1,11 @@
 # World side and the calibrations (INC-DRIVING-002)
 
-Status: draft, not yet validated. The unit tests pass on a fake CARLA; nothing here has run against CARLA 1.0.
+Status: draft, not yet validated. The unit tests pass on a fake CARLA. The world side has run against CARLA 1.0 on the
+simulator host: the maps probe of 2026-11-19 ("The maps pack", below); the warm-up in p10-1 try 4 (SID 20261119T160111Z,
+2026-11-19, `eae0a6ef`); `calib-decel`, `camera-capture`, `calib-steer` and both SC-DRIVING-012@20 runs in p10-2 attempt
+3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`); and the same calibrations, the 14 runs of SC-DRIVING-012 to -015 and
+the stop run in S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`). Both sessions took the camera calibration from the
+settings; its cross-check did not run, because no board rendered.
 
 ## The problem
 

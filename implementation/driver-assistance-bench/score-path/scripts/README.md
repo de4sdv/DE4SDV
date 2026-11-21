@@ -1,7 +1,9 @@
 # The S-CORE host's session entries
 
-Status: draft, not yet validated. Only the dry runs in `../tests/` have run, with a fake Launch Manager and stub
-components.
+Status: draft, not yet validated. Beyond the dry runs in `../tests/` (a fake Launch Manager and stub components), the
+entries have run on the S-CORE host in p10-3 run 2, p10-1 try 4, p10-2 attempt 3 and S1. In S1 (SID 20261121T014447Z,
+2026-11-21, `508649ba`) each of its 16 runs had a start and a stop, the stop run also `path_stop.sh`, and every step
+ended with 0.
 
 ## The problem
 

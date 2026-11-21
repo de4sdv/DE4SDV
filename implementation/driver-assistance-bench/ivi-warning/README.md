@@ -1,6 +1,9 @@
 # Warning request on the guests (INC-DRIVING-002)
 
-Status: draft, not yet validated. Nothing in this folder has run on a guest or on the bench yet.
+Status: draft, not yet validated. The warning request has run on the guests, each time conditional on a permissive IVI:
+in p10-3 run 2 (SID 20261119T130414Z, 2026-11-19, `410293bb`) the IVI app received 21 of 21 test requests from the
+S-CORE host; in p10-2 attempt 3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`) and S1 (SID 20261121T014447Z, 2026-11-21,
+`508649ba`) it received the candidate's requests in every window.
 
 ## The problem
 

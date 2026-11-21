@@ -1,6 +1,9 @@
 # S-CORE path config of the warning request (INC-DRIVING-002)
 
-Status: draft, not yet validated. None of these files has run on the S-CORE host yet.
+Status: draft, not yet validated. These files have run on the S-CORE host with gatewayd and someipd. In p10-3 run 2 (SID
+20261119T130414Z, 2026-11-19, `410293bb`) the IVI guest received 21 of 21 test requests through them (conditional on a
+permissive IVI). In p10-2 attempt 3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`) and S1 (SID 20261121T014447Z,
+2026-11-21, `508649ba`) they carried the candidate's warning requests in every run.
 
 ## The problem
 
