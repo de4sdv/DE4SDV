@@ -701,7 +701,8 @@ Then compose the video from the fetched files (see `../recording/README.md`).
 ### `s1` (all three hosts, the judged runs)
 
 An `s1` session runs as `p10-2` does, with `--permissive-ivi` and `--camcal settings` (the same decisions of
-2026-11-19), and `--candidate pin` unless the lead names `pr427`. Its run list is the committed `s1_runs.tsv`; its
+2026-11-19), with `--ackermann-gains v1` (the owner's decision D-S1-2 of 2026-11-21: the v1 gains for the judged
+runs), and `--candidate pin` unless the lead names `pr427`. Its run list is the committed `s1_runs.tsv`; its
 cap is EUR 8.00 (`CAP_EUR_S1`). After it, the chase videos are fetched with the simulator host alone.
 
 A run whose go would come more than `GO_LIMIT_S` (380 s) after its S-CORE start ends the whole session. The
@@ -713,18 +714,19 @@ p10-2 needed 155-160 s, so the limit, not the bounds, decides (closure review of
 C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
 # --permissive-ivi, --camcal settings: as for p10-2 (the lead's decisions of 2026-11-19); every result is conditional
 # on a permissive IVI. --candidate pin is the default; --candidate pr427 runs the second candidate's bundle
+# --ackermann-gains v1: the owner's decision D-S1-2 of 2026-11-21 (the v1 gains for the judged runs)
 cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1
 S=implementation/driver-assistance-bench/session
 D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
 env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
   DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" \
-  bash $S/da_session.sh --kind s1 --owner-ok-guest-host --permissive-ivi --camcal settings --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+  bash $S/da_session.sh --kind s1 --owner-ok-guest-host --permissive-ivi --camcal settings --ackermann-gains v1 --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
 SID=$(date -u +%Y%m%dT%H%M%SZ)
 systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
   -p StandardOutput=append:$HOME/s1-$SID.out -p StandardError=append:$HOME/s1-$SID.out \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
-  /bin/bash $S/da_session.sh --kind s1 --owner-ok-guest-host --permissive-ivi --camcal settings --session-id "$SID"
+  /bin/bash $S/da_session.sh --kind s1 --owner-ok-guest-host --permissive-ivi --camcal settings --ackermann-gains v1 --session-id "$SID"
 # end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (never kill -9)
 # after it, once session.json is written and da-session-$SID is inactive: the chase videos, the simulator host alone
 # (it refuses unless that host reads TERMINATED; its own unit, so its trap that stops the host is never SIGKILLed)
@@ -749,14 +751,16 @@ A rehearsal runs `s1` as above on a run list of its own, `--rehearsal --runs <ts
 (the lead's decision of 2026-11-20). The block below runs one run and the stop run on the simulator host and the S-CORE
 host only. A rehearsal is no evidence: `session.log` says `rehearsal: not evidence`, and `session.json` holds
 `rehearsal: true` and `runList` (`path`, `sha256` of the file). Its cap is EUR 2.00 (`CAP_EUR_S1_REHEARSAL`, about
-50 min of both hosts) unless `--cap-eur` is given. `--runs` without `--rehearsal` is refused before any VM starts
-(exit 2), as `DA_S1_RUNS` is in a real session. The SEQUENCE is that of `s1` for the listed runs
+50 min of both hosts) unless `--cap-eur` is given; the block below gives EUR 2.50, the cap the rehearsal's decision
+names (closure review of 44a4be29, J3), about 63 min of both hosts. `--runs` without `--rehearsal` is refused before
+any VM starts (exit 2), as `DA_S1_RUNS` is in a real session. The SEQUENCE is that of `s1` for the listed runs
 (`tests/test_session_s1_int.py` pins the one below).
 
 `--ackermann-gains default|v1` (the lead's decision of 2026-11-20, every kind with a simulator host) gives the world
 side's Ackermann controller gains to every world and calibration step (`warmup`, `calibrate`, `world_<run>`) as env
 `DA_ACKERMANN_GAINS`; `session.json` records it at the top level and in `score_runs.<run>`. The default is `default`;
-any other value is refused (exit 2). Add it to both lines when the lead names `v1`.
+any other value is refused (exit 2). The owner chose `v1` for the judged runs (D-S1-2, 2026-11-21), so every `s1`
+line here gives it, the rehearsal's too: the rehearsal runs as S1 does (`tests/test_s1_readme_lines.py`).
 
 ```bash
 C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under test
@@ -767,13 +771,13 @@ R="$PWD/$S/s1_rehearsal_runs.tsv"
 D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
 env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
   DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" \
-  bash $S/da_session.sh --kind s1 --without-guest-host --camcal settings --rehearsal --runs "$R" --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
+  bash $S/da_session.sh --kind s1 --without-guest-host --camcal settings --ackermann-gains v1 --cap-eur 2.50 --rehearsal --runs "$R" --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
 SID=$(date -u +%Y%m%dT%H%M%SZ)
 systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
   -p StandardOutput=append:$HOME/s1-rehearsal-$SID.out -p StandardError=append:$HOME/s1-rehearsal-$SID.out \
   /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
-  /bin/bash $S/da_session.sh --kind s1 --without-guest-host --camcal settings --rehearsal --runs "$R" --session-id "$SID"
+  /bin/bash $S/da_session.sh --kind s1 --without-guest-host --camcal settings --ackermann-gains v1 --cap-eur 2.50 --rehearsal --runs "$R" --session-id "$SID"
 # end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (never kill -9)
 ```
 
