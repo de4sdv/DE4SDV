@@ -28,10 +28,51 @@ CHECK = BENCH / "score-interface" / "check_patch.sh"
 BUILD = BUILD_DIR / "build_score_bench.sh"
 CANDIDATE = BENCH / "score-interface" / "candidates" / "pr427"
 P0004 = "0004-de4sdv-port-of-upstream-pr427.diff"
-BASE = "1bfbd6b4"  # the commit this lane started from: the default's contract there is the reference
-
-# the base commit's build script comes from the repository's history; the gcc13 gate's image has no git
-needs_git = pytest.mark.skipif(shutil.which("git") is None, reason="git is not installed")
+# The reference is the default's contract at 1bfbd6b4, the commit this lane started from. #549's squash (3f9f4f30)
+# keeps none of that branch's commits, so CI cannot read that commit, and its contract is recorded here: what
+# bundle_step_outputs() and the patch lines of applied() give for its build_score_bench.sh (blob
+# 143ccd53ecf8e387ecfef0cf4297a4494dbb22b9, which refs/pull/549/head still reaches).
+BASE_PAIRS = [
+    ("bin/vision_pilot", "$SB/visionpilot/VisionPilot"),
+    ("bin/actuation_adapter", "$SB/de4sdv_da_bench/actuation-adapter/actuation_adapter"),
+    ("bin/ort_cuda_check", "$SB/de4sdv_da_bench/score-build/workspace/ort_cuda_check"),
+    ("bin/identity_recorder", "$SB/de4sdv_da_bench/identity-recorder/identity_recorder"),
+    ("bin/candidate_record_probe", "$SB/de4sdv_da_bench/identity-recorder/candidate_record_probe"),
+    ("bin/warning_injector", "$SB/de4sdv_da_bench/ivi-warning/injector/warning_injector"),
+    ("bin/launch_manager", "$LMD"),
+    ("config/launch_manager/launch_manager_config.bin", "launch_manager_config.bin"),
+    ("config/launch_manager/launch_manager_config_path_only.bin", "launch_manager_config_path_only.bin"),
+    ("config/launch_manager/launch_manager_config.json", "$BENCH/launch-manager/config/launch_manager_config.json"),
+    ("config/launch_manager/launch_manager_config_path_only.json",
+     "$BENCH/score-path/config/launch_manager_config_path_only.json"),
+    ("config/launch_manager/mw_com_config_launch_manager.json",
+     "$BENCH/launch-manager/config/mw_com_config_launch_manager.json"),
+    ("config/actuation_adapter/mw_com_config_actuation_adapter.json",
+     "$BENCH/actuation-adapter/mw_com_config_actuation_adapter.json"),
+    ("config/actuation_adapter/adapter.json", "$BENCH/actuation-adapter/config/adapter.json"),
+    ("bin/gatewayd", "$GB/score/gatewayd/gatewayd"),
+    ("bin/someipd", "$GB/score/someipd/someipd"),
+    ("lib/libonnxruntime.so.1", "$TP/onnxruntime/lib/libonnxruntime.so.1"),
+    ("lib/libonnxruntime_providers_cuda.so", "$TP/onnxruntime/lib/libonnxruntime_providers_cuda.so"),
+    ("lib/libonnxruntime_providers_shared.so", "$TP/onnxruntime/lib/libonnxruntime_providers_shared.so"),
+    ("lib/score_com_serializer.so", "score_com_serializer.so"),
+    ("lib/libvsomeip3*.so.3", "$VL/libvsomeip3*.so.3"),
+    ("config/gateway/someip_gateway_config_warning.bin",
+     "$GB/de4sdv_driver_assistance/someip_gateway_config_warning.bin"),
+    ("config/gateway/*.json", "$BENCH/score-path/config/*.json"),
+    ("config/visionpilot/<from:$VP/VisionPilot/config>", "$VP/VisionPilot/config/."),
+    ("config/visionpilot/homography_C_matrix.yaml", "--output"),
+    ("share/visionpilot/assets", "$VP/VisionPilot/assets"),
+    ("share/visionpilot/modules/models/weights/*.onnx", "$ROOT/src/vp-pin/VisionPilot/modules/models/weights/*.onnx"),
+    ("facts/*.diff", "$BENCH/score-interface/patches/*.diff"),
+    ("facts/SHA256SUMS", "$BENCH/score-interface/patches/SHA256SUMS"),
+    ("facts/*.txt", "$ROOT/facts/*.txt"),
+    ("facts/build/*.diff", "$ROOT/facts/*.diff"),
+]
+BASE_PRODUCED = {path for path, _ in BASE_PAIRS} | {"SHA256SUMS"}
+BASE_WHOLE = {"share/visionpilot/assets"}
+BASE_APPLIED = ["0001-de4sdv-visualization-recorder.diff", "0002-de4sdv-score-interface.diff",
+                "0003-de4sdv-headless-display.diff"]
 
 
 def run(args: list[str], candidate: str | None = None, **kw) -> subprocess.CompletedProcess:
@@ -100,12 +141,6 @@ def test_the_variants_facts_list_0004(tmp_path: Path) -> None:
     assert {line.split()[1] for line in lines} == {n for n in got if n.endswith(".diff")}
 
 
-def base_build_script() -> str:
-    return subprocess.run(["git", "-C", str(BENCH), "show", f"{BASE}:implementation/driver-assistance-bench/"
-                           "score-build/build_score_bench.sh"], check=True, capture_output=True, text=True).stdout
-
-
-@needs_git
 def test_the_default_bundle_contract_is_unchanged() -> None:
     """Every path the bundle step writes, and where it comes from, is the base commit's (the variant's extra facts go
     through series.sh, behind the candidate guard). The stages' facts directory is $FACTS, which is $ROOT/facts for
@@ -118,7 +153,7 @@ def test_the_default_bundle_contract_is_unchanged() -> None:
              "config/launch_manager/mw_com_config_lm_control_client.json":
                  "$BENCH/launch-manager/config/mw_com_config_lm_control_client.json"}
     produced, pairs, whole = bundle_step_outputs(head)
-    base_produced, base_pairs, base_whole = bundle_step_outputs(base_build_script())
+    base_produced, base_pairs, base_whole = BASE_PRODUCED, BASE_PAIRS, BASE_WHOLE
     assert produced == base_produced | set(added)
     assert [p for p in pairs if p[0] not in added] == base_pairs
     assert sorted(p for p in pairs if p[0] in added) == sorted(added.items())
@@ -128,13 +163,12 @@ def test_the_default_bundle_contract_is_unchanged() -> None:
     assert extra == ['[ "$DA_CANDIDATE" = pin ] || "$BENCH/score-interface/series.sh" facts "$B/facts"']
 
 
-@needs_git
 def test_the_build_applies_the_candidates_list_in_order() -> None:
     """The base commit applied 0001-0003 by name and the candidate's extras after them; the head applies series.sh's
     list, which for the pin is those three and 0005, and for pr427 puts 0004 before 0005."""
     def applied(text: str) -> list[str]:
         return re.findall(r'git -C "\$VP" apply --index "\$BENCH/score-interface/patches/([^"]+)"', text)
-    assert applied(base_build_script()) == SERIES[:3]
+    assert BASE_APPLIED == SERIES[:3]
     assert applied(BUILD.read_text()) == []
     stage = BUILD.read_text().split("\nstep visionpilot\n", 1)[1].split("\nstep workspace\n", 1)[0]
     extra = [line.strip() for line in stage.splitlines() if "series.sh" in line]
