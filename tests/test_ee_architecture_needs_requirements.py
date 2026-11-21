@@ -248,8 +248,7 @@ RATIONALES = {
         "not detect counts there as a valid command and can make it reject later valid commands as "
         "repetitions (the check-value bound decision of 2026-11-21 of that increment), so this need "
         "states the expectation and Phase 5 states the requirement within that bound. Which element "
-        "detects a "
-        "fault, rejects a command and gives a response is open (gapEEActuationEnd). The need "
+        "detects a fault, rejects a command and gives a response is open (gapEEActuationEnd). The need "
         "carries no safety claim and no claim of freedom from interference. Phase 5 derives the "
         "detection and the rejection with their limits, and the share of the network in the "
         "response when no valid command reaches the actuation ECU, after REQ-DRIVING-028 of "
@@ -381,7 +380,7 @@ def test_the_package_declares_exactly_the_needs_of_phase_4_with_unique_short_nam
     assert not others, f"the needs of the increment are declared only here: {others}"
 
 
-def test_each_need_has_a_statement_its_holders_a_source_a_rationale_and_the_system_of_interest():
+def test_each_need_has_a_statement_its_holders_a_source_and_a_rationale():
     # The ElaborateNeeds gates: needHasStatement, needHasStakeholder, needHasSource and needHasRationale; the
     # subject has its own test.
     for name, (_short, roles, concern) in NEEDS.items():
