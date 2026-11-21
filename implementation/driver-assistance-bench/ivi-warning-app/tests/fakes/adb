@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""A stand-in adb for the stand-in tests of stage_ivi_warning_app.sh and build_guests_incremental.sh.
+
+No device: the guest's file system is the directory FAKE_GUEST (one per serial port when
+FAKE_GUEST_<port> is set), every call is appended to FAKE_CALLS. Faults are injected by environment:
+  FAKE_FAIL_PUSH=<glob>      a push whose destination matches fails (rc 1, adb's message)
+  FAKE_CORRUPT_PUSH=<glob>   a push whose destination matches "succeeds" but writes other bytes
+  FAKE_FAIL_CAT=1            exec-out cat fails (device offline)
+  FAKE_TEST_ANSWER=<text>    the answer of the existence probe (default: the truth)
+  FAKE_HANG=<word>           the call whose first word (or shell command word) matches sleeps 600 s
+  FAKE_LOGCAT=<file>         what logcat -d prints
+  FAKE_ENFORCE=<mode>        getenforce before any setenforce (default Enforcing)
+  FAKE_NO_UNIT_IN_APEX=1     the core's broker APEX config does not name the unit
+  FAKE_REBOOT_WRITES=<p>=<t> a reboot leaves the text <t> at the guest path <p> (an overlay lost)
+"""
+import fnmatch
+import os
+import re
+import shutil
+import subprocess
+import sys
+import time
+
+args = sys.argv[1:]
+serial = ""
+if args[:1] == ["-s"]:
+    serial, args = args[1], args[2:]
+with open(os.environ.get("FAKE_CALLS", os.devnull), "a", encoding="utf-8") as calls:
+    calls.write(" ".join([serial] + args) + "\n")
+port = serial.rsplit(":", 1)[-1]
+guest = os.environ.get("FAKE_GUEST_" + port) or os.environ.get("FAKE_GUEST", "/nonexistent")
+hang = os.environ.get("FAKE_HANG", "")
+
+
+def g(path: str) -> str:
+    return guest + path
+
+
+def maybe_hang(word: str) -> None:
+    if hang and word == hang:
+        time.sleep(600)
+
+
+if not args:
+    sys.exit(1)
+cmd = args[0]
+maybe_hang(cmd)
+if cmd == "reboot" and os.environ.get("FAKE_REBOOT_WRITES"):
+    path, text = os.environ["FAKE_REBOOT_WRITES"].split("=", 1)
+    os.makedirs(os.path.dirname(g(path)), exist_ok=True)
+    with open(g(path), "w", encoding="utf-8") as f:
+        f.write(text + "\n")
+    sys.exit(0)
+if cmd in ("root", "connect", "wait-for-device", "wait-for-disconnect", "reboot", "uninstall", "disconnect"):
+    sys.exit(0)
+if cmd == "remount":
+    print("remount succeeded")
+    sys.exit(0)
+if cmd == "push":
+    src, dst = args[1], args[2]
+    if fnmatch.fnmatch(dst, os.environ.get("FAKE_FAIL_PUSH", "\0")):
+        print(f"adb: error: failed to copy '{src}' to '{dst}': No space left on device", file=sys.stderr)
+        sys.exit(1)
+    os.makedirs(os.path.dirname(g(dst)), exist_ok=True)
+    if fnmatch.fnmatch(dst, os.environ.get("FAKE_CORRUPT_PUSH", "\0")):
+        with open(g(dst), "wb") as f:
+            f.write(b"truncated")
+    else:
+        shutil.copyfile(src, g(dst))
+    print(f"{src}: 1 file pushed, 0 skipped.")
+    sys.exit(0)
+if cmd == "logcat":
+    path = os.environ.get("FAKE_LOGCAT", "")
+    if path and os.path.exists(path):
+        sys.stdout.write(open(path, encoding="utf-8").read())
+    sys.exit(0)
+if cmd == "exec-out":
+    if os.environ.get("FAKE_FAIL_CAT") == "1":
+        print("error: device offline", file=sys.stderr)
+        sys.exit(1)
+    m = re.match(r"cat '([^']*)'", args[1])
+    if m and os.path.isfile(g(m.group(1))):
+        sys.stdout.write(open(g(m.group(1)), encoding="utf-8").read())
+        sys.exit(0)
+    sys.exit(1)
+if cmd == "shell":
+    line = " ".join(args[1:])
+    word = line.split()[0] if line.split() else ""
+    maybe_hang(word)
+    m = re.match(r"test -f '([^']*)' && echo present \|\| echo absent$", line)
+    if m:
+        answer = os.environ.get("FAKE_TEST_ANSWER")
+        print(answer if answer is not None else ("present" if os.path.isfile(g(m.group(1))) else "absent"))
+        sys.exit(0)
+    if line == "getprop sys.boot_completed":
+        print("1")
+        sys.exit(0)
+    if line.startswith("getprop"):
+        print("fake/" + line.split()[-1])
+        sys.exit(0)
+    if line == "getenforce":
+        mode_file = g("/.enforce")
+        print(open(mode_file).read().strip() if os.path.exists(mode_file) else os.environ.get("FAKE_ENFORCE", "Enforcing"))
+        sys.exit(0)
+    if line == "setenforce 0":
+        os.makedirs(guest, exist_ok=True)
+        open(g("/.enforce"), "w").write("Permissive\n")
+        sys.exit(0)
+    if line.startswith("sha256sum "):
+        path = line.split(None, 1)[1].strip("'\"")
+        if not os.path.isfile(g(path)):
+            print(f"sha256sum: {path}: No such file or directory")
+            sys.exit(1)
+        out = subprocess.run(["sha256sum", g(path)], capture_output=True, text=True).stdout
+        print(out.split()[0] + "  " + path)
+        sys.exit(0)
+    if line.startswith("pm path "):
+        apk = "/vendor/priv-app/De4sdvCollisionWarningPresentation/De4sdvCollisionWarningPresentation.apk"
+        if os.path.isfile(g(apk)):
+            print("package:" + apk)
+        sys.exit(0)
+    if line.startswith("mkdir -p "):
+        for path in re.findall(r"'([^']*)'", line):
+            os.makedirs(g(path), exist_ok=True)
+        sys.exit(0)
+    if line.startswith("grep -c "):
+        pattern, path = line.split()[2], line.split()[3]
+        if "someip-config.binpb" in path and os.environ.get("FAKE_NO_UNIT_IN_APEX") == "1":
+            print("0")
+            sys.exit(1)
+        print("1")
+        sys.exit(0)
+    if line.startswith("pidof"):
+        print("4242")
+        sys.exit(0)
+    sys.exit(0)
+sys.exit(0)

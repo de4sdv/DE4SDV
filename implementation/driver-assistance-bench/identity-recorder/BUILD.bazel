@@ -1,0 +1,86 @@
+# DE4SDV driver-assistance bench (INC-DRIVING-002): the identity recorder (build item B4) and its late subscriber.
+#
+# For the S-CORE workspace of build item B2 (score-build/), which stages this folder as the package
+# //de4sdv_da_bench/identity-recorder. The labels it needs:
+#   - S-CORE Communication v0.6.0     @score_communication//score/mw/com
+#   - S-CORE Lifecycle v0.10.0        @score_lifecycle//score/launch_manager:lifecycle_cc (report_running)
+#   - the bench's interface headers   //de4sdv_da_bench/interfaces:driver_assistance (payloads.h)
+#   - the adapter's JSON reader and run log  //de4sdv_da_bench/actuation-adapter:adapter_config
+# Nothing here has been built with Bazel; the host's g++ builds the pure parts (tests/).
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:cc_library.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "mw_com_config_identity_recorder.json",
+    "mw_com_config_candidate_record_probe.json",
+])
+
+# The record: SHA-256, the file system, the inputs, the record and its writer, the late subscriber's check (C++17).
+cc_library(
+    name = "candidate_record",
+    srcs = [
+        "candidate_record.cpp",
+        "file_system.cpp",
+        "record_inputs.cpp",
+        "record_probe.cpp",
+        "sha256.cpp",
+    ],
+    hdrs = [
+        "candidate_record.h",
+        "file_system.h",
+        "record_inputs.h",
+        "record_probe.h",
+        "sha256.h",
+    ],
+    includes = ["."],
+    deps = [
+        "//de4sdv_da_bench/actuation-adapter:adapter_config",
+        "//de4sdv_da_bench/interfaces:driver_assistance",
+    ],
+)
+
+# The shell: hash, write, offer, send, report running, re-send every 1 s (C++17).
+cc_library(
+    name = "recorder_shell",
+    srcs = ["recorder_shell.cpp"],
+    hdrs = ["recorder_shell.h"],
+    includes = ["."],
+    deps = [":candidate_record"],
+)
+
+cc_library(
+    name = "lifecycle_reporter_score",
+    srcs = ["lifecycle_reporter_score.cpp"],
+    includes = ["."],
+    deps = [
+        ":recorder_shell",
+        "@score_lifecycle//score/launch_manager:lifecycle_cc",
+    ],
+)
+
+cc_binary(
+    name = "identity_recorder",
+    srcs = ["identity_recorder_main.cpp"],
+    linkopts = ["-lpthread"],
+    deps = [
+        ":candidate_record",
+        ":lifecycle_reporter_score",
+        ":recorder_shell",
+        "//de4sdv_da_bench/interfaces:driver_assistance",
+        "@score_communication//score/mw/com",
+    ],
+)
+
+# The late subscriber of P10-1 (score-build/scripts/p10_1_check.sh).
+cc_binary(
+    name = "candidate_record_probe",
+    srcs = ["candidate_record_probe_main.cpp"],
+    linkopts = ["-lpthread"],
+    deps = [
+        ":candidate_record",
+        "//de4sdv_da_bench/interfaces:driver_assistance",
+        "@score_communication//score/mw/com",
+    ],
+)

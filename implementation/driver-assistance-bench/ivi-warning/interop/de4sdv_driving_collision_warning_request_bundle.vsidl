@@ -1,0 +1,20 @@
+# DE4SDV INC-DRIVING-002, the driver-assistance bench: the warning request on the guests.
+# Draft, bench-only, not yet validated.
+#
+# The SOME/IP broker's declaration of the type it publishes. The SDV Core build does not read this
+# file: scripts/stage_sdv_core_interop.sh inserts the same publisher entry into the platform's own
+# broker catalog (samples/some_ip/catalog/agent/broker.vsidl), after its first
+# `publisher { message: ... }` entry, as the closed-loop driving bench's staging does for its
+# operational state. This file is the readable source of that entry.
+#
+# Fully qualified, because the message lives in another package than the broker.
+
+package: "com.android.sdv.someip"
+
+service_bundle {
+  name: "SomeIpBroker"
+
+  publisher {
+    message: "de4sdv.driving.v1.CollisionWarningRequest"
+  }
+}

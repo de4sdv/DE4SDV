@@ -1,0 +1,7 @@
+{
+  "carla_host": "127.0.0.1",
+  "carla_port": 2000,
+  "client_timeout_s": 30.0,
+  "hero_role_name": "hero",
+  "hero_wait_s": 400.0
+}

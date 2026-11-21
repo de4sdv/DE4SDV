@@ -1,0 +1,71 @@
+{
+    "serviceTypes": [
+        {
+            "serviceTypeName": "/score/mw/lifecycle/LmControlService",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "bindings": [
+                {
+                    "binding": "SHM",
+                    "serviceId": 7101,
+                    "events": [
+                        {
+                            "eventName": "ActivationResult",
+                            "eventId": 1
+                        }
+                    ],
+                    "methods": [
+                        {
+                            "methodName": "ActivateRunTarget",
+                            "methodId": 2
+                        },
+                        {
+                            "methodName": "GetActiveRunTarget",
+                            "methodId": 3
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "serviceInstances": [
+        {
+            "instanceSpecifier": "LaunchManager/StateManager/Instance",
+            "serviceTypeName": "/score/mw/lifecycle/LmControlService",
+            "version": {
+                "major": 1,
+                "minor": 0
+            },
+            "instances": [
+                {
+                    "instanceId": 1,
+                    "asil-level": "QM",
+                    "binding": "SHM",
+                    "events": [
+                        {
+                            "eventName": "ActivationResult",
+                            "numberOfSampleSlots": 8,
+                            "maxSubscribers": 1
+                        }
+                    ],
+                    "methods": [
+                        {
+                            "methodName": "ActivateRunTarget",
+                            "queueSize": 1
+                        },
+                        {
+                            "methodName": "GetActiveRunTarget",
+                            "queueSize": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "global": {
+        "asil-level": "QM",
+        "applicationID": 3417
+    }
+}

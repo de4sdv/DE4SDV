@@ -1,0 +1,62 @@
+# DE4SDV INC-DRIVING-002, the driver-assistance bench: the warning request on the guests.
+# Draft, bench-only, not yet validated. GENERATED FILE: do not edit; regenerate with
+#   python3 scripts/gen_someip_vsidl.py
+# from ../interfaces/service_ids.json and interop/someip_type_definition.textproto.
+# tests/test_warning_contract.py fails when this file is stale.
+#
+# Maps the SOME/IP service of the warning request (service 0x4df1, instance 0x0001,
+# eventgroup 0x0001, event 0x8001; reliable TCP 30511 is the stack's vsomeip_config.json,
+# not this file) onto the typed message de4sdv.driving.v1.CollisionWarningRequest, published by the SDV Core
+# SOME/IP broker as the service unit de4sdv-driving-warning-request (MAP-DRIVING-DA-WARNING-REQUEST: "serialization to
+# the new message at the SOME/IP interop of SDV Core").
+#
+# Translation: message_translation_mode REFLECTION. The broker reads the payload by the
+# type_definition below (big-endian, no struct length field) and fills the protobuf fields BY
+# NAME; a field_name the message does not have fails the event's metadata at broker start.
+#
+# sdv_unit_type: package_name is the PROTOBUF package of the message and type_name its bare name,
+# the key of the runtime VSIDL config; service_bundle_name is kept as the closed-loop driving
+# bench's mapping has it. One event, one instance_impl, one service unit: the publication is
+# SINGLE_PUB. No sdv_topic_parameterization: the catalog is compiled for target API pdk29.
+
+package: "com.android.sdv.someip"
+
+some_ip_mapping {
+  someip_service_mapping {
+    someip_service_id: 0x4df1
+    version_major: 0x1
+    version_minor: 0x0
+    instance {
+      instance_id: 0x0001
+      # The service unit the broker registers (the ACLs' topic name).
+      sdv_service_unit_parameterization {key: 0 value: "de4sdv-driving-warning-request"}
+    }
+    instance_impl {
+      offered_event {
+        # the warning request
+        group_id: 0x0001
+        event_id: 0x8001
+        simple_event {
+          sdv_unit_type {
+            package_name: "de4sdv.driving.v1"
+            service_bundle_name: "SomeIpBroker"
+            type_name: "CollisionWarningRequest"
+          }
+          service_unit: 0
+          message_translation_mode: REFLECTION
+          type_definition {
+            length_field_size: ZERO
+            field {
+              field_name: "requested"
+              field_type { someip_primitive: UINT32 }
+            }
+            field {
+              field_name: "issue_time_sim_ms"
+              field_type { someip_primitive: UINT32 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

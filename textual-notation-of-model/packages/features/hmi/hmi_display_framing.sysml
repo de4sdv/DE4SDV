@@ -1,5 +1,5 @@
 /*
- * DE4SDV HMI display: Phase 0 framing only.
+ * DE4SDV HMI display: Phase 0 framing and the Phase 1 concerns only.
  * One increment spans framing, realization and closed-loop verification.
  * The framing asserts no implementation, no runtime result, no product-line
  * admission and no compliance.
@@ -10,6 +10,7 @@ package DE4SDV_HmiDisplayFraming {
   private import DE4SDV_MethodProcess::*;
   private import DE4SDV_MethodViewpoints::*;
   private import DE4SDV_Stakeholders::*;
+  private import SAF_Viewpoints::*;
   private import Views::*;
 
   part def HmiDisplayIncrement :> EngineeringIncrement;
@@ -24,8 +25,14 @@ package DE4SDV_HmiDisplayFraming {
      * warning and the warning's sound to the high availability renderer (HAR)
      * of AAOS SDV, in an SDV Media VM, and the scene to an app in the IVI VM.
      * The increment does not change what the candidate application perceives,
-     * plans, requests or commands. All phases retain this identity. This
-     * package holds only Phase 0.
+     * plans, requests or commands. The owner decided on 2026-11-21 that the
+     * increment goes on without waiting for Phase 10 of the driver-assistance
+     * increment. Phase 3 and later phases wait for the revision of the
+     * governed scope (gapHmiDisplayInProductLine), which waits for the
+     * baseline of the driver-assistance increment, so that it does not move
+     * the product-line receipt to which the configuration of that increment is
+     * bound. All phases retain this identity. This package holds Phase 0 and
+     * the Phase 1 concerns.
      */
   }
 
@@ -423,9 +430,189 @@ package DE4SDV_HmiDisplayFraming {
      */
   }
 
+  /* Phase 1: one concern per question of the in-scope items, held by the
+   * parties whose interest it states, not only by the roles that check the
+   * answer. Each is typed by the SAF concern that asks its question, the
+   * product-line question by the method's classification concern, and names
+   * the view of a later phase that answers it; that is the viewpoint
+   * selection of this phase. The framing viewpoint frames all of them until
+   * then. */
+  concern hmiDriverSupervisionConcern : OperationalCapabilityConcern {
+    doc /*
+     * hmiSceneInScope, hmiSpeedInScope, hmiCollisionWarningInScope and
+     * hmiAndroidOutageInScope, operational part. The driver, a vehicle
+     * occupant, needs to see on the HMI display what the driving application
+     * perceives, its lane, the path it fits to that lane and the objects it
+     * detects, beside the vehicle speed, to get a warning of an imminent
+     * collision on the display and as a sound, and to see the speed and the
+     * warning, or the fact that the warning is unavailable, also while Android
+     * in the IVI VM hangs, boots or restarts. It states what the driver
+     * expects to see, not how a driver reads it: no human-factors, safety or
+     * on-road claim follows from it. Answered by the operational story of
+     * phase 2.
+     */
+    subject;
+    stakeholder occupant : VehicleOccupant;
+  }
+
+  concern hmiDisplayInputsConcern : SystemContextExchangeConcern {
+    doc /*
+     * hmiSceneInScope, hmiSpeedInScope and hmiCollisionWarningInScope.
+     * Systems engineers and safety experts need to see which items cross into
+     * the HMI display from outside its boundary: the lane of the candidate
+     * application, the path it fits to that lane, the objects it detects with
+     * their level relative to its path, the closest object in its path with
+     * the distance and the speed that its fusion gives, the vehicle speed that
+     * the candidate is given, and the candidate's warning request. Each item
+     * reaches the display as its source gives it. The display takes no object
+     * that the candidate does not give: neither the simulator's own record of
+     * the scene nor an estimate of its own (hmiSimulatorTruthOutOfScope), so
+     * it shows what the candidate perceives, right or wrong. Whether the scene
+     * can leave the candidate's process is open (gapHmiSceneOutput), and what
+     * the scene carries bounds what the display can show of it
+     * (gapHmiSceneContent). Answered by the system process of phase 6.
+     */
+    subject;
+    stakeholder systemsEngineer : SystemsEngineer;
+    stakeholder safetyExpert : SafetyExpert;
+  }
+
+  concern hmiContentVarianceConcern : ProductLineCapabilityClassificationConcern {
+    doc /*
+     * hmiSceneInScope, hmiSpeedInScope and hmiCollisionWarningInScope,
+     * product-line part. Product-line engineers need to see which content of
+     * the HMI display is common to the member products and which derives from
+     * a member's driving application. The scene is what one driving
+     * application perceives, and the scenes of the other driving applications
+     * of the product line are out of scope
+     * (hmiOtherDrivingApplicationsOutOfScope). The classification is made
+     * against the governed scope as its revision leaves it
+     * (gapHmiDisplayInProductLine). Answered by the product-line
+     * classification view of phase 3.
+     */
+    subject;
+    stakeholder productLineEngineer : ProductLineEngineer;
+  }
+
+  concern hmiWarningSequenceConcern : SystemProcessConcern {
+    doc /*
+     * hmiCollisionWarningInScope. Safety experts and systems engineers need to
+     * see the sequence from the candidate's warning request to the collision
+     * warning on the display and to its sound, and the time of each step
+     * within the time that the driver-assistance increment allots from the
+     * request to each mode, independent of the elements that realize it. The
+     * warning request is taken as the driver-assistance increment defines it,
+     * and how that time divides on a path to the SDV Media VM is open
+     * (gapHmiWarningPresentation). Answered by the system process of phase 6.
+     */
+    subject;
+    stakeholder safetyExpert : SafetyExpert;
+    stakeholder systemsEngineer : SystemsEngineer;
+  }
+
+  concern hmiContentCurrencyConcern : SystemStateConcern {
+    doc /*
+     * hmiStaleContentInScope. Safety experts and verification engineers need
+     * to see the states that each element of the HMI display can be in,
+     * current, late or missing, and what the display shows in each, so that no
+     * element is shown as current when it is not: late data is never shown as
+     * live. The warning can also be unavailable, and whether the display
+     * learns that from the age of its inputs or from a signal of its own is
+     * open (gapHmiWarningAvailability). From which age an element counts as
+     * late is for phase 5 to state. Answered by the system state of phase 6.
+     */
+    subject;
+    stakeholder safetyExpert : SafetyExpert;
+    stakeholder verificationEngineer : VerificationEngineer;
+  }
+
+  concern hmiAndroidOutageConcern : SystemProcessConcern {
+    doc /*
+     * hmiAndroidOutageInScope. Safety experts and systems engineers need to
+     * see the sequence from each outage of the drawing of the scene and of the
+     * environment that hosts it, the drawing hanging or ending and its host
+     * hanging, booting or restarting, to its detection and to what the display
+     * shows then: the speed and the warning, or the fact that the warning is
+     * unavailable, independent of the elements that realize it. Phase 6 treats
+     * each outage as an event of an element inside the boundary of the HMI
+     * display. It rests on the product line's need that the availability of
+     * the AEBS be apparent when its inputs or its functions are not healthy
+     * (N-AEBS-008) and on the status indication of REQ-AEBS-013. No safety
+     * argument follows from it. Answered by the system process of phase 6.
+     */
+    subject;
+    stakeholder safetyExpert : SafetyExpert;
+    stakeholder systemsEngineer : SystemsEngineer;
+  }
+
+  concern hmiRendererAllocationConcern : PhysicalFunctionalMappingConcern {
+    doc /*
+     * hmiRendererSplitInScope, drawing part. Product-line engineers and safety
+     * experts need to see which renderer realizes the drawing of each element
+     * of the HMI display: the high availability renderer in an SDV Media VM
+     * the speed, the collision warning and its sound, and an app in the IVI VM
+     * the scene, as the owner decided on 2026-11-17. The split rests on what
+     * the driver sees while Android in the IVI VM hangs, boots or restarts
+     * (N-AEBS-008, REQ-AEBS-013), not on an end of the app that draws the
+     * scene. The renderer's vehicle data holds no collision warning
+     * (gapHmiRendererCollisionWarning), and drawing an element with it is no
+     * safety approval of that element. The lifecycle decision is whether the
+     * renderer or an app in the IVI VM draws the common content where a member
+     * has an AAOS SDV guest. Answered by the physical-logical mapping of phase
+     * 8.
+     */
+    subject;
+    stakeholder productLineEngineer : ProductLineEngineer;
+    stakeholder safetyExpert : SafetyExpert;
+  }
+
+  concern hmiRendererPathConcern : PhysicalInternalExchangeConcern {
+    doc /*
+     * hmiRendererSplitInScope, paths part. System architects and systems
+     * engineers need to see which elements exchange each input of the HMI
+     * display on its way from the SDV Core VM to the high availability
+     * renderer in the SDV Media VM and to the app in the IVI VM that draws the
+     * scene, the exchange by which that app tells the renderer that Android is
+     * alive, and the boundary interface by which each input enters the
+     * display. A renderer in an SDV Media VM adds a third VM to the guest
+     * (gapHmiMemberGuestLayout), and the renderer's path from the SDV Core VM
+     * is not observed (gapHmiRendererIntegration). Answered by the view of the
+     * claimed path of phase 8.
+     */
+    subject;
+    stakeholder systemArchitect : SystemArchitect;
+    stakeholder systemsEngineer : SystemsEngineer;
+  }
+
+  concern hmiDisplayVerdictConcern : ArgumentationAssuranceConcern {
+    doc /*
+     * hmiVerdictEvidenceInScope. Product-line engineers and verification
+     * engineers need the lifecycle decision to rest on a pass or a fail for
+     * each requirement and scenario, each bound to the candidate revision, the
+     * display build and the configuration that ran, holding what the display
+     * shows against what the candidate gives and when. A recording of a
+     * display that looks right is no verdict, a verdict holds for the
+     * simulated configuration only (asmHmiSimulationStandsIn), and a fail
+     * stays a recorded result. Answered by the argumentation assurance view of
+     * phase 10.
+     */
+    subject;
+    stakeholder productLineEngineer : ProductLineEngineer;
+    stakeholder verificationEngineer : VerificationEngineer;
+  }
+
   view hmiDisplayFramingView {
     viewpoint hmiDisplayFramingViewpoint : IncrementFramingViewpoint {
       frame hmiDisplayBoundary;
+      frame hmiDriverSupervisionConcern;
+      frame hmiDisplayInputsConcern;
+      frame hmiContentVarianceConcern;
+      frame hmiWarningSequenceConcern;
+      frame hmiContentCurrencyConcern;
+      frame hmiAndroidOutageConcern;
+      frame hmiRendererAllocationConcern;
+      frame hmiRendererPathConcern;
+      frame hmiDisplayVerdictConcern;
     }
     expose HmiDisplayIncrement;
     expose hmiDisplayIncrement;
@@ -435,6 +622,15 @@ package DE4SDV_HmiDisplayFraming {
     expose hmiDisplaySystem;
     expose hmiDisplayScope;
     expose hmiDisplayBoundary;
+    expose hmiDriverSupervisionConcern;
+    expose hmiDisplayInputsConcern;
+    expose hmiContentVarianceConcern;
+    expose hmiWarningSequenceConcern;
+    expose hmiContentCurrencyConcern;
+    expose hmiAndroidOutageConcern;
+    expose hmiRendererAllocationConcern;
+    expose hmiRendererPathConcern;
+    expose hmiDisplayVerdictConcern;
     expose hmiSceneInScope;
     expose hmiSpeedInScope;
     expose hmiCollisionWarningInScope;

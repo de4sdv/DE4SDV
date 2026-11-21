@@ -1,0 +1,83 @@
+// DE4SDV INC-DRIVING-002, the driver-assistance bench: the IVI warning presentation
+// (CollisionWarningPresentationApplication of driver_assistance_physical_software_realization.sysml).
+// Draft, bench-only, not yet validated.
+//
+// The module shapes are those of the INC-DRIVING-001 observer on this tree
+// (closed-loop-driving-bench/ivi-observer/app/Android.bp), which come from the INC-AEBS-010 app:
+//
+//  * a VENDOR privileged app, platform-signed, sdk_version "module_current". The Gateway Java
+//    client's SDK library is the vendor java_sdk_library libsdvgatewayclient-java-sdk of the APEX
+//    com.android.sdv.gateway.client; the app names it in uses_libs and in the manifest's
+//    <uses-library>. The APK lands in vendor/priv-app.
+//  * the Gateway client's Java sources (google.sdv.gateway.client.*) compiled INTO the app; the
+//    staging script copies them from the tree's sdv_gateway/libsdvgatewayclient_java/src (not part
+//    of this repository). Their dependencies are the static libs below, the observer's list.
+//  * the Android-free classes in a java_library, because a java_test cannot see the classes of an
+//    android_app; the app links that library and excludes the same files from its own srcs.
+//  * the typed message from ../contract (de4sdv_collision_warning_request_proto_java).
+//
+// No soong_namespace block (an empty one silently hid every app module on this tree).
+//
+// Build (IVI product, its recorded variant only):  m De4sdvCollisionWarningPresentation De4sdvCollisionWarningPresentationTests
+package {
+    default_applicable_licenses: ["Android-Apache-2.0"],
+}
+
+java_library {
+    name: "de4sdv_collision_warning_model",
+    srcs: [
+        "src/org/de4sdv/collisionwarning/PresentationTimeline.java",
+        "src/org/de4sdv/collisionwarning/RecordWriter.java",
+        "src/org/de4sdv/collisionwarning/ScreenText.java",
+        "src/org/de4sdv/collisionwarning/WarningRecord.java",
+        "src/org/de4sdv/collisionwarning/WarningRequestReducer.java",
+        "src/org/de4sdv/collisionwarning/WarningTone.java",
+    ],
+    sdk_version: "system_current",
+    owner: "de4sdv",
+}
+
+android_app {
+    name: "De4sdvCollisionWarningPresentation",
+    manifest: "AndroidManifest.xml",
+    srcs: ["src/**/*.java"],
+    exclude_srcs: [
+        "src/org/de4sdv/collisionwarning/PresentationTimeline.java",
+        "src/org/de4sdv/collisionwarning/RecordWriter.java",
+        "src/org/de4sdv/collisionwarning/ScreenText.java",
+        "src/org/de4sdv/collisionwarning/WarningRecord.java",
+        "src/org/de4sdv/collisionwarning/WarningRequestReducer.java",
+        "src/org/de4sdv/collisionwarning/WarningTone.java",
+    ],
+    vendor: true,
+    uses_libs: ["libsdvgatewayclient-java-sdk"],
+    static_libs: [
+        "de4sdv_collision_warning_model",
+        "de4sdv_collision_warning_request_proto_java",
+        "grpc-java-core-android",
+        "grpc-java-okhttp-client-lite",
+        "libprotobuf-java-lite",
+        "guava",
+        "androidx.annotation_annotation",
+    ],
+    sdk_version: "module_current",
+    certificate: "platform",
+    privileged: true,
+    owner: "de4sdv",
+    optimize: {
+        enabled: false,
+    },
+}
+
+// JVM tests of the edge logic, the record format and writer, the timeline, the tone and the screen text.
+// `m` builds them but does not run them; the guest-build script runs them with the tree's JDK.
+java_test {
+    name: "De4sdvCollisionWarningPresentationTests",
+    srcs: ["tests/org/de4sdv/collisionwarning/*.java"],
+    static_libs: [
+        "de4sdv_collision_warning_model",
+        "junit",
+    ],
+    sdk_version: "system_current",
+    owner: "de4sdv",
+}

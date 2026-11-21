@@ -1,0 +1,18 @@
+# The run list of session kind s1 (da_session.sh --kind s1), shared contract 4 of the S1 build (S1-BUILD-PLAN.md):
+# SC-DRIVING-012 ascending, then 013, 014 and 015, each setting twice (r1, r2), then the further run in which the
+# S-CORE path is stopped (stop, last). One run a line: <run id> TAB <run>. The session refuses any other line.
+SC-DRIVING-012@20	r1
+SC-DRIVING-012@20	r2
+SC-DRIVING-012@42	r1
+SC-DRIVING-012@42	r2
+SC-DRIVING-012@60	r1
+SC-DRIVING-012@60	r2
+SC-DRIVING-013@30	r1
+SC-DRIVING-013@30	r2
+SC-DRIVING-013@60	r1
+SC-DRIVING-013@60	r2
+SC-DRIVING-014@30	r1
+SC-DRIVING-014@30	r2
+SC-DRIVING-015@40	r1
+SC-DRIVING-015@40	r2
+stop	further
