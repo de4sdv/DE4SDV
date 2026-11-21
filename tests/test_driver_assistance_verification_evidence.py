@@ -1027,4 +1027,4 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
     check = " ".join(guide.split("## Check the framing change", 1)[1].split())
     assert "tests/test_driver_assistance_verification_evidence.py" in check
     flat = " ".join(guide.split())
-    assert "The next model obligation is **Phase 10**" in flat and "its second slice follows the readiness probes" in flat
+    assert "The increment ended at its baseline decision." in flat and "The next model obligation is" not in flat
