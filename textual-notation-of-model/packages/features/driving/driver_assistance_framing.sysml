@@ -311,10 +311,12 @@ package DE4SDV_DriverAssistanceFraming {
      * emergency braking come from the one planned acceleration and leave in the
      * one driving command, and the candidate realizes no independent protected
      * emergency command path (counterClaimNoIndependentEmergencyPath). The
-     * cases that judge that braking: <S1: the verdicts of VC-DRIVING-036,
-     * VC-DRIVING-037, VC-DRIVING-041 and VC-DRIVING-042>. Deferred to a later
-     * increment: whether the candidate's braking can stand for the common
-     * capability is for the member decision.
+     * cases that judge that braking: VC-DRIVING-036, VC-DRIVING-037 and
+     * VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012
+     * the candidate commanded no braking before the contact with the stationary
+     * target, and VC-DRIVING-041 inconclusive by the rule on dropped images.
+     * Deferred to a later increment: whether the candidate's braking can stand
+     * for the common capability is for the member decision.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -332,11 +334,12 @@ package DE4SDV_DriverAssistanceFraming {
      * At the baseline decision: the warning request leaves the candidate
      * through the hand-off that phase 8 placed (phase8WarningOutputPlaced), a
      * change that upstream has not merged. The cases that judge the warning
-     * request: <S1: the verdicts of VC-DRIVING-040, VC-DRIVING-042 and
-     * VC-DRIVING-043>. The inspected revision has no warning output of its own;
-     * whether upstream takes the hand-off is open until its maintainers have
-     * seen the draft (gapUpstreamContactAndRights). Deferred to a later
-     * increment.
+     * request: VC-DRIVING-042 a fail, since in the five judged runs of
+     * SC-DRIVING-012 the candidate started no warning request, and
+     * VC-DRIVING-040 and VC-DRIVING-043 inconclusive by the rule on dropped
+     * images. The inspected revision has no warning output of its own; whether
+     * upstream takes the hand-off is open until its maintainers have seen the
+     * draft (gapUpstreamContactAndRights). Deferred to a later increment.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -347,11 +350,11 @@ package DE4SDV_DriverAssistanceFraming {
      * build that carries a change which upstream has not merged is a different
      * candidate, and its verdicts are reported apart.
      *
-     * At the baseline decision: <S1: the judged session S1 of 2026-11-21 gives
-     * the first closed-loop results of record of the candidate on the DE4SDV
-     * bench, or none>. Every verdict is of the build 014e0e7a with the DE4SDV
-     * S-CORE interface and the visualization recorder, changes that upstream
-     * has not merged (phase8CandidateBuildCarriesTheSCOREInterface,
+     * At the baseline decision: the judged session S1 of 2026-11-21 gives the
+     * first closed-loop results of record of the candidate on the DE4SDV bench.
+     * Every verdict is of the build 014e0e7a with the DE4SDV S-CORE interface
+     * and the visualization recorder, changes that upstream has not merged
+     * (phase8CandidateBuildCarriesTheSCOREInterface,
      * phase8VisualizationRecorderPlaced, counterClaimBuildWithUnmergedChanges);
      * the inspected revision without them has run on no DE4SDV bench. Accepted
      * as a known limit; the gap stays open.
@@ -371,11 +374,14 @@ package DE4SDV_DriverAssistanceFraming {
      * Manager starts and supervises (phase8ScoreIntegrationPlaced), and its
      * driving command and its warning request enter the S-CORE path at the
      * boundary of the process. The readiness items that phase 8 left open went
-     * on as GAP-DRIVING-014. The cases that judge the path: <S1: the verdicts
-     * of VC-DRIVING-038 and VC-DRIVING-043, the stop run included>. The module
-     * is a change that upstream has not merged, and the inspected revision has
-     * no S-CORE binding of its own. Deferred to a later increment: its take-up
-     * upstream.
+     * on as GAP-DRIVING-014. The cases that judge the path: VC-DRIVING-038 and
+     * VC-DRIVING-043, each inconclusive by the rule on dropped images. The stop
+     * clause of VC-DRIVING-038 is inconclusive by the same rule: 32 dropped
+     * camera images fall inside its judged window, from 2855.010 s to 2897.010
+     * s of simulation time, and the stop came at about 2871.06 s, so about 26 s
+     * of ticks follow it. The module is a change that upstream has not merged,
+     * and the inspected revision has no S-CORE binding of its own. Deferred to
+     * a later increment: its take-up upstream.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -390,13 +396,14 @@ package DE4SDV_DriverAssistanceFraming {
      *
      * At the baseline decision: the cases read the candidate on rendered camera
      * images, with the calibration of the simulated camera. A fail that a
-     * mismatch of the image or of the calibration may explain stays a fail:
-     * <S1: the fails, if any, that a mismatch of the image or of the
-     * calibration may explain>. A verdict holds for the rendered images only
-     * (counterClaimRenderedCameraImages). Accepted as a known limit; the gap
-     * stays open.
+     * mismatch of the image or of the calibration may explain stays a fail: S1
+     * does not show whether the detection of the target at the distances that
+     * the criteria need, or the calibration, explains the fails of
+     * VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042. A verdict holds for
+     * the rendered images only (counterClaimRenderedCameraImages). Deferred to
+     * a later increment: which of the two explains the fails, if either.
      */
-    attribute :>> disposition = LifecycleDisposition::accepted;
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   part gapDeclaredOperatingConditions : IncrementGap {
     doc /*
@@ -418,9 +425,10 @@ package DE4SDV_DriverAssistanceFraming {
      * At the baseline decision: the runs of SC-DRIVING-014 and SC-DRIVING-015,
      * outside the declared conditions, are reported apart from the runs of
      * SC-DRIVING-012 and SC-DRIVING-013
-     * (counterClaimOutsideDeclaredConditions). Reported apart: <S1: the
-     * verdicts that read the runs of SC-DRIVING-014 and SC-DRIVING-015>.
-     * Accepted as a known limit; the gap stays open.
+     * (counterClaimOutsideDeclaredConditions). Reported apart: no run of
+     * SC-DRIVING-014 or SC-DRIVING-015 gives a verdict, since the cases that
+     * read them judge over the whole run and are inconclusive by the rule on
+     * dropped images. Accepted as a known limit; the gap stays open.
      */
     attribute :>> disposition = LifecycleDisposition::accepted;
   }
@@ -458,9 +466,10 @@ package DE4SDV_DriverAssistanceFraming {
      * At the baseline decision: by the upstream contact decision of 2026-11-18
      * the VisionPilot maintainers are shown the draft of the warning output and
      * the interface seam, with the results, after the scenarios of phase 10
-     * have run in CARLA: <S1: whether the maintainers have been shown the draft
-     * by the baseline>. No endorsement and no rights clearance exists, and the
-     * terms of the network weights and of their data are not read
+     * have run in CARLA: at the baseline the maintainers have not seen the
+     * results or the draft, and nothing is posted to them before the owner
+     * approves its exact text. No endorsement and no rights clearance exists,
+     * and the terms of the network weights and of their data are not read
      * (counterClaimNoUpstreamEndorsementOrRights). Deferred to a later
      * increment.
      */
@@ -672,39 +681,74 @@ package DE4SDV_DriverAssistanceFraming {
      * the bench carries its driving command to the simulated vehicle in CARLA
      * 1.0 through the actuation adapter, and its warning request to the AAOS
      * SDV guests, on the Eclipse S-CORE path. This answers the framing decision
-     * (driverAssistanceDecision): the candidate goes forward <S1: as a
-     * member-product candidate whose own warning and braking stand for the
-     * common capability, as a candidate that needs the additions named below,
-     * or not at all>.
+     * (driverAssistanceDecision): the candidate goes forward as a candidate
+     * that needs the additions named below before it can be the AEBS of a
+     * member product, by the decision of 2026-11-21.
      *
-     * The evidence it accepts: <S1: evidence of record or none: the judged
-     * session S1 at bench commit 508649ba, whose bench directory is the tree of
-     * the merged bench, and its records>. The verdicts, one for each case: <S1:
-     * VC-DRIVING-036 to VC-DRIVING-044, each pass, fail, inconclusive or error,
-     * with the runs it reads>. The runs of SC-DRIVING-014 and SC-DRIVING-015
-     * lie outside the candidate's declared operating conditions and are
-     * reported apart: <S1: the verdicts that read those runs>. A fail is a
-     * recorded result: no scenario, criterion or setting is changed for it
+     * The evidence it accepts: by the decision of 2026-11-21, the judged
+     * session S1, session 20261121T014447Z at bench commit 508649ba, run on
+     * 2026-11-21 on the three hosts with 14 judged runs and the run that stops
+     * the path, and its records, on the condition that the bench files that ran
+     * are byte-identical to those that the second slice of phase 10 merges, the
+     * check that the evidence README of that slice states.
+     *
+     * The verdicts, one for each case: VC-DRIVING-036, VC-DRIVING-037 and
+     * VC-DRIVING-042 a fail of the pinned candidate on this bench in
+     * simulation: in each of the five judged runs of SC-DRIVING-012 the
+     * candidate started no warning request and commanded no braking, and the
+     * contact with the stationary target came at the approach speed (19.7,
+     * 40.6, 40.6, 58.6 and 58.6 km/h); the second run at 20 km/h is not judged,
+     * its center line 0.245 m from the target's against a limit of 0.2 m. Of
+     * SC-DRIVING-013, the first run at 30 km/h is judged and meets the three
+     * criteria, since the candidate settled at the target's speed and no
+     * collision became imminent; the second run at 30 km/h and both runs at 60
+     * km/h have no functional part and are not judged. VC-DRIVING-038,
+     * VC-DRIVING-040, VC-DRIVING-041, VC-DRIVING-043 and VC-DRIVING-044
+     * inconclusive: every run drops about one camera image in 20, and by the
+     * rule of phase 8 no run whose judged window holds a dropped image is
+     * judged; for these cases the window is the whole run. Read with that rule
+     * set aside, for diagnosis only and as no verdict, VC-DRIVING-038 and
+     * VC-DRIVING-044 meet their criteria in all 14 runs, and VC-DRIVING-040,
+     * VC-DRIVING-041 and VC-DRIVING-043 in the runs of SC-DRIVING-012 and
+     * SC-DRIVING-013. VC-DRIVING-039 a pass, by a desk analysis of the
+     * realization in an independent agent session, within its bounds: a loss of
+     * a driving command shows only when a later command arrives, a delay of up
+     * to 0.1 s of simulation time goes unseen, and the second slice of phase 10
+     * corrects the realization's sentence about later valid commands to what
+     * the check value catches.
+     *
+     * The runs of SC-DRIVING-014 and SC-DRIVING-015 lie outside the candidate's
+     * declared operating conditions and are reported apart: no run of either
+     * gives a verdict, since VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041 and
+     * VC-DRIVING-044, the cases that read them, judge over the whole run and
+     * are inconclusive by the rule on dropped images. A fail is a recorded
+     * result: no scenario, criterion or setting is changed for it
      * (counterClaimNoTuningToPass). The additions named from the requirements
-     * that fail and from the gaps of this increment: <S1: the additions, or
-     * none>; the increment builds none of them.
+     * that fail and from the gaps of this increment: by the decision of
+     * 2026-11-21, a warning and an emergency braking for a stationary vehicle
+     * ahead in its lane, and a camera path on the S-CORE host that keeps every
+     * image, so that the criteria over every run can be judged; the increment
+     * builds none of them.
      *
      * Accepted as known limits, still open in this baseline: the verdicts of a
      * build with changes that upstream has not merged
-     * (gapCandidateBehaviorUnverified), the rendered camera images and the
-     * calibration of the simulated camera (gapCameraImageAndGeometry), and the
-     * runs outside the declared operating conditions
-     * (gapDeclaredOperatingConditions).
+     * (gapCandidateBehaviorUnverified), and the runs outside the declared
+     * operating conditions (gapDeclaredOperatingConditions).
      *
      * Deferred to a later increment: the product line's criteria for a vehicle
      * target (gapVehicleTargetCriteria), the member decision on the braking
      * that leaves in the one driving command (gapNoSeparateEmergencyFunction),
      * the upstream take-up of the warning hand-off (gapWarningOutput) and of
-     * the S-CORE interface module (gapScoreIntegration), the member decision
-     * that amends ADR 0014 (gapCandidateAdmission), the upstream contact and
-     * the rights clearance (gapUpstreamContactAndRights), the display in the
-     * governed scope and the acoustic warning (gapDriverHmiInProductLine), and
-     * <10b: what GAP-DRIVING-014 holds after phase 10b> (GAP-DRIVING-014).
+     * the S-CORE interface module (gapScoreIntegration), whether the rendered
+     * camera images or the calibration of the simulated camera explain the
+     * fails (gapCameraImageAndGeometry), the member decision that amends ADR
+     * 0014 (gapCandidateAdmission), the upstream contact and the rights
+     * clearance (gapUpstreamContactAndRights), the display in the governed
+     * scope and the acoustic warning (gapDriverHmiInProductLine), and the
+     * readiness items that S1 leaves open: the candidate's cycle on the GPU of
+     * the S-CORE host, which drops about one camera image in 20, what S1 does
+     * not show of the start of the sound on the IVI guest, and the showing of
+     * the results to the VisionPilot maintainers (GAP-DRIVING-014).
      *
      * No gap is withdrawn.
      *
