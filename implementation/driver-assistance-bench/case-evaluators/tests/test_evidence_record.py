@@ -260,3 +260,12 @@ def test_wall_clock_span_empty_when_only_the_last_tick_has_no_real_time(tmp_path
     _run_file("world_{run}/simulator/world.jsonl", _strip_last_real)(root)
     rec = records(root)[RUN]
     assert rec["emptyAttributes"] == ["wallClockSpan"], rec["missing"]
+
+
+def test_the_claim_boundary_follows_the_repository_wording():
+    """The claim boundary goes into the model verbatim (the 10b text generator copies recorded values), so it is
+    written as the model is: American spelling, and the regulation named as the framing names it."""
+    assert "behaviour" not in er.NOT_PROVED
+    assert "behavior outside the settings" in er.NOT_PROVED
+    assert "UN R152" not in er.NOT_PROVED.replace("UNECE R152", "")
+    assert "approval under UNECE R152" in er.NOT_PROVED
