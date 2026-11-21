@@ -882,7 +882,8 @@ FILLS = (
     "decision of 2026-11-21",
     # 1 the evidence
     "by the decision of 2026-11-21, the judged session S1, session 20261121T014447Z at bench commit 508649ba, run on "
-    "2026-11-21 on the three hosts with 14 judged runs and the run that stops the path, and its records, on the "
+    "2026-11-21 on the three hosts with the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 (10 of them meet their entry "
+    "conditions) and the run that stops the path, and its records, on the "
     "condition that the bench files that ran are byte-identical to those that the second slice of phase 10 merges, "
     "the check that the evidence README of that slice states",
     # 2 the verdicts
@@ -1227,7 +1228,7 @@ def test_the_baseline_states_one_verdict_for_each_case():
 
 #: the drop counts of the evidence directory, which the baseline's figures of the dropped images restate
 DROP_COUNTS = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z" / "drop_counts.json"
-#: the fourteen judged runs of S1, by their label in the drop counts
+#: the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 in S1, by their label in the drop counts
 JUDGED_RUN_LABELS = ("012_20_r1", "012_20_r2", "012_42_r1", "012_42_r2", "012_60_r1", "012_60_r2", "013_30_r1",
                      "013_30_r2", "013_60_r1", "013_60_r2", "014_30_r1", "014_30_r2", "015_40_r1", "015_40_r2")
 
@@ -1255,3 +1256,17 @@ def test_the_baseline_states_where_the_images_drop_and_no_rate():
     # the guide's verdict table states the commanded deceleration, never "no braking" (the correction of 2026-11-21)
     assert ("| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no "
             "deceleration beyond 0.53 m/s²; the contact comes at the approach speed") in GUIDE.read_text(encoding="utf-8")
+
+
+def test_no_text_counts_the_14_runs_as_judged_runs():
+    """The wording rule of 2026-11-21: of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 only 10 meet their entry
+    conditions, so no text calls the 14 judged runs."""
+    readme = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z" / "README.md"
+    texts = {path.name: _flat(re.sub(r"(?m)^\s*\*\s?", "", path.read_text(encoding="utf-8"))) for path in SLICES}
+    texts["guide"] = _flat(GUIDE.read_text(encoding="utf-8"))
+    texts["README"] = _flat(readme.read_text(encoding="utf-8"))
+    for where, text in texts.items():
+        for retired in ("14 judged runs", "fourteen judged runs", "Each judged run drops", "in each judged run ("):
+            assert retired not in text, (where, retired)
+    assert "the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 (10 of them meet their entry conditions)" in texts["guide"]
+    assert "(10 of them meet their entry conditions)" in texts["README"]

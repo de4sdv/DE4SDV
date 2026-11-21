@@ -340,7 +340,7 @@ def drop_sentences(counts: dict) -> list[str]:
     return [
         "answered no: the score-interface record of each run of S1 holds dropped camera images, which "
         "drop_counts.json of the evidence directory places by their simulation time.",
-        f"Each judged run drops {_either(c['droppedInFirst5s'] for c in judged)} images in the first 5 s after its "
+        f"Each of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops {_either(c['droppedInFirst5s'] for c in judged)} images in the first 5 s after its "
         f"first image; {_span([c['droppedAtStreamEnd'] for c in judged])} in the last "
         f"{max(c['streamEndDropsWithinS'] for c in judged):g} s of its image stream, which goes on after the run's "
         "last world tick until the S-CORE side stops; and "
@@ -359,7 +359,7 @@ def drop_sentences(counts: dict) -> list[str]:
         "The records show no cause of the drops.",
         "The evaluators judge a criterion over every run in the window from the run's first to its last world tick "
         "and count each drop.camera_image whose simulation time lies in it: "
-        f"{_span([c['wholeRunWindow']['dropped'] for c in judged])} in each judged run ({inside}), the start-up drops "
+        f"{_span([c['wholeRunWindow']['dropped'] for c in judged])} in each of the 14 runs ({inside}), the start-up drops "
         "and the isolated drops inside the run and none of the end of the image stream, and "
         f"{stop['wholeRunWindow']['dropped']} in the run that stops the path;",
     ]

@@ -990,12 +990,12 @@ lists the views.
 
 ### Phase 10 evidence
 
-The evidence of record is the judged session S1, session 20261121T014447Z of
-the bench at commit 508649ba, with all three hosts: the fourteen judged runs,
-the run that stops the path and the calibration runs before the first judged
-run. Its small records and the identities of everything it leaves outside Git
-are in the
-[S1 evidence directory](../../implementation/driver-assistance-bench/evidence/s1-20261121T014447Z/README.md),
+The evidence of record is the judged session S1, session 20261121T014447Z of the
+bench at commit 508649ba, with all three hosts: the 14 runs of SC-DRIVING-012 to
+SC-DRIVING-015 (10 of them meet their entry conditions), the run that stops the
+path and the calibration runs before the first judged run. Its small records and
+the identities of everything it leaves outside Git are in the [S1 evidence
+directory](../../implementation/driver-assistance-bench/evidence/s1-20261121T014447Z/README.md),
 whose README carries the table of the verdicts, generated from the verdict
 files. A verdict of S1 is a verdict of the pinned candidate on this bench in
 simulation, and no statement about compliance or on-road behavior.
@@ -1055,7 +1055,8 @@ framing view shows the decision beside the framing decision it answers.
   2026-11-21.
 - **Evidence and verdicts.** By the decision of 2026-11-21, the judged session
   S1, session 20261121T014447Z at bench commit 508649ba, run on 2026-11-21 on
-  the three hosts with 14 judged runs and the run that stops the path, and its
+  the three hosts with the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 (10 of
+  them meet their entry conditions) and the run that stops the path, and its
   records, on the condition that the bench files that ran are byte-identical to
   those that the second slice of phase 10 merges, the check that the evidence
   README of that slice states. One verdict for each case, in the table below;

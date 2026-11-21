@@ -22,7 +22,7 @@ SESSION = "20261121T014447Z"
 FILES = ["README.md", "SHA256SUMS", "VIDEO-EVIDENCE-DISPOSITION.md", "ackermann_gains.json",
          "analysis_039.generator.json", "analysis_039.json", "commanded_deceleration.json", "drop_counts.json", "external-media.json", "records.json", "reproduction_044.json",
          "scenario_digests.json", "session.json", "verdicts.json"]
-#: the runs of S1 whose score-interface record the drop counts read: the fourteen judged runs, the run that stops
+#: the runs of S1 whose score-interface record the drop counts read: the 14 runs of SC-DRIVING-012 to SC-DRIVING-015, the run that stops
 #: the path and the steering calibration run
 RUNS = ["012_20_r1", "012_20_r2", "012_42_r1", "012_42_r2", "012_60_r1", "012_60_r2", "013_30_r1", "013_30_r2",
         "013_60_r1", "013_60_r2", "014_30_r1", "014_30_r2", "015_40_r1", "015_40_r2", "calib_steer", "stop"]
@@ -97,7 +97,7 @@ def test_the_checksums_cover_the_session_tree_by_relative_path_and_bind_the_copi
 
 def test_the_drop_counts_name_each_run_of_s1_and_where_its_images_drop():
     """Each run's drops by where they fall (the correction of 2026-11-21: the distribution, never a rate): 23 or 24
-    in the first 5 s after the first image of each judged run, a few in the last second of its image stream, which
+    in the first 5 s after the first image of each of the 14 runs, a few in the last second of its image stream, which
     goes on after the run's last world tick, and the isolated ones in between; and the drops that the evaluators
     count over every run, from the run's first to its last world tick."""
     counts = _json("drop_counts.json")
@@ -180,7 +180,7 @@ def test_the_readme_states_where_the_images_drop_as_the_evaluators_count_them():
     readme = _readme()
     for phrase in ("## The dropped images",
                    "the correction of 2026-11-21: the distribution, never a rate",
-                   f"Each judged run drops {start} images in the first 5 s after its first image, "
+                   f"Each of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops {start} images in the first 5 s after its first image, "
                    f"{span([c['droppedAtStreamEnd'] for c in judged])} in the last "
                    f"{max(c['streamEndDropsWithinS'] for c in judged):g} s of its image stream, which goes on after the "
                    "run's last world tick until the S-CORE side stops, and "
@@ -188,7 +188,7 @@ def test_the_readme_states_where_the_images_drop_as_the_evaluators_count_them():
                    "The case evaluators at `508649ba` judge a criterion over every run in the window from the run's "
                    "first to its last world tick (`world.jsonl`) and count each `drop.camera_image` whose simulation "
                    "time lies in it (`Run.drops_in` in `runio_da.py`, `whole_run` in `cases_da.py`): "
-                   f"{span([c['wholeRunWindow']['dropped'] for c in judged])} in each judged run, the start-up drops "
+                   f"{span([c['wholeRunWindow']['dropped'] for c in judged])} in each of the 14 runs, the start-up drops "
                    "and the isolated drops inside the run, and none of the end of the image stream; "
                    f"{counts['stop']['wholeRunWindow']['dropped']} in the run that stops the path.",
                    "The final verdicts come from the case evaluators at `44fe1608` (the evaluatorRevision of "

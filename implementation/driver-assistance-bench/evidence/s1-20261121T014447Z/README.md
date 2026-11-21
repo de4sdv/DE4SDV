@@ -21,8 +21,9 @@ approves any text before they are.
   Eclipse S-CORE Launch Manager, and the guest host with the SDV Core and the
   IVI guests. `session.json` records the hosts, the bench commit, the
   Ackermann gains (`v1`) and the exit code (0).
-- The fourteen judged runs of the seven settings, the run that stops the
-  S-CORE path, and the calibration runs before the first judged run.
+- The 14 runs of the seven settings of SC-DRIVING-012 to SC-DRIVING-015 (10 of
+  them meet their entry conditions), the run that stops the S-CORE path, and the
+  calibration runs before the first judged run.
 - Bench commit `508649ba` of pull request #549 (the branch
   `impl/da-bench`). The case evaluators ran after the session on the fetched
   records; `verdicts.json` names their revision.
@@ -120,11 +121,12 @@ table here or in the model quotes them as one.
 
 `drop_counts.json` places the `drop.camera_image` events of each run's
 score-interface record by their simulation time (the correction of 2026-11-21:
-the distribution, never a rate). Each judged run drops 23 or 24 images in the
-first 5 s after its first image, 2 to 6 in the last 0.6 s of its image stream,
-which goes on after the run's last world tick until the S-CORE side stops, and
-0 to 3 isolated images in between. The file gives each run's end from
-`run_end.json` and the ticks that `tick_times.csv` records after it.
+the distribution, never a rate). Each of the 14 runs of SC-DRIVING-012 to
+SC-DRIVING-015 drops 23 or 24 images in the first 5 s after its first image, 2
+to 6 in the last 0.6 s of its image stream, which goes on after the run's last
+world tick until the S-CORE side stops, and 0 to 3 isolated images in between.
+The file gives each run's end from `run_end.json` and the ticks that
+`tick_times.csv` records after it.
 
 The warm start of D-S1-1 (patch 0005 of the bench) ran before the attach in
 every run: the Launch Manager log of each run records 2 passes with the result
@@ -132,15 +134,15 @@ yes, in 678.3 to 706.8 ms (`score_side/state/launch_manager.log`). It did not
 keep the first 5 s after the first image free of dropped images.
 `drop_counts.json` gives each run's value.
 
-The case evaluators at `508649ba` judge a criterion over every run in the
-window from the run's first to its last world tick (`world.jsonl`) and count
-each `drop.camera_image` whose simulation time lies in it (`Run.drops_in` in
-`runio_da.py`, `whole_run` in `cases_da.py`): 23 to 25 in each judged run,
-the start-up drops and the isolated drops inside the run, and none of the end
-of the image stream; 32 in the run that stops the path. The final verdicts
-come from the case evaluators at `44fe1608` (the evaluatorRevision of
-`verdicts.json`), whose `Run.drops_in` and `whole_run` are those of
-`508649ba`. The records show no cause of the drops.
+The case evaluators at `508649ba` judge a criterion over every run in the window
+from the run's first to its last world tick (`world.jsonl`) and count each
+`drop.camera_image` whose simulation time lies in it (`Run.drops_in` in
+`runio_da.py`, `whole_run` in `cases_da.py`): 23 to 25 in each of the 14 runs,
+the start-up drops and the isolated drops inside the run, and none of the end of
+the image stream; 32 in the run that stops the path. The final verdicts come
+from the case evaluators at `44fe1608` (the evaluatorRevision of
+`verdicts.json`), whose `Run.drops_in` and `whole_run` are those of `508649ba`.
+The records show no cause of the drops.
 
 ## The commanded deceleration
 

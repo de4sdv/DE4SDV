@@ -688,10 +688,11 @@ package DE4SDV_DriverAssistanceFraming {
      *
      * The evidence it accepts: by the decision of 2026-11-21, the judged
      * session S1, session 20261121T014447Z at bench commit 508649ba, run on
-     * 2026-11-21 on the three hosts with 14 judged runs and the run that stops
-     * the path, and its records, on the condition that the bench files that ran
-     * are byte-identical to those that the second slice of phase 10 merges, the
-     * check that the evidence README of that slice states.
+     * 2026-11-21 on the three hosts with the 14 runs of SC-DRIVING-012 to
+     * SC-DRIVING-015 (10 of them meet their entry conditions) and the run that
+     * stops the path, and its records, on the condition that the bench files
+     * that ran are byte-identical to those that the second slice of phase 10
+     * merges, the check that the evidence README of that slice states.
      *
      * The verdicts, one for each case: VC-DRIVING-036, VC-DRIVING-037 and
      * VC-DRIVING-042 a fail of the pinned candidate on this bench in
