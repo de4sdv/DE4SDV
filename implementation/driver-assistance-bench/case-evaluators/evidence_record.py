@@ -1,10 +1,10 @@
 """Lane D: the evidence record of each run of an S1 session, RetainedAssistanceRunEvidence
-(textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml:150-243).
+(textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml:174-268).
 
 Every attribute of the item is filled from the fetched session tree, each from the one record named in
 OBSERVABLES.md ("Lane D: the evidence record"). An attribute that no record fills stays empty and is named in
 `missing` with the file and the field it was read from: "A missing or partial record gives inconclusive, never
-pass" (:211-212). `setting` is the one attribute that may be empty: it is left empty for the further run (:182-183,
+pass" (:235-236). `setting` is the one attribute that may be empty: it is left empty for the further run (:206-207,
 `AssistanceSettingIdentity[0..1]`).
 
     python3 evidence_record.py --session <incoming session root> --out records.json [--desk-044 file]
@@ -171,7 +171,7 @@ def r_candidate_build(c: _Ctx) -> str:
     return f"{name or 'vision_pilot'}{what}; bundle {bundle} ({source})"
 
 
-# The record is per run (:150-153): each run's own fields first, as session/evidence_fields.py parses them into
+# The record is per run (:174-177): each run's own fields first, as session/evidence_fields.py parses them into
 # score_runs.<run> (score_platform, score_gpu); the session-level value, which that file leaves absent when any
 # started run lacks its line or differs, only as the fallback (closure review of 44a4be29..86cadee0, R4).
 EVIDENCE_FIELDS = "session/evidence_fields.py: absent when a started run lacks its line or the runs differ"
@@ -271,7 +271,7 @@ def r_scenario(c: _Ctx) -> str:
 
 def r_setting(c: _Ctx):
     if c.run.kind == "stop" or c.run.setting_id == STOP:
-        return None                       # left empty for the further run (:182-183)
+        return None                       # left empty for the further run (:206-207)
     if not _nonempty_str(c.run.setting_id):
         raise MissingEvidence(f"run {c.run.run_id}: no setting in setting_record.json or session.json")
     return c.run.setting_id
@@ -347,7 +347,7 @@ def r_revision(c: _Ctx) -> str:
     return c.revision
 
 
-RAW = (   # the retained records the item's doc lists (:199-204), each as the file that holds it
+RAW = (   # the retained records the item's doc lists (:223-228), each as the file that holds it
     ("candidate identity record", "candidate_record"),
     ("identity recorder log", "identity"),
     ("driving commands, warning requests and dropped images at the boundary", "score"),

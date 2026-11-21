@@ -3,7 +3,7 @@
 The evaluators of VC-DRIVING-036 to -038 and -040 to -044 read the records of one S1 session. This file is the
 contract between the evaluators and the producers. It names every record, field and clock that a case reads, the
 terms that the cases compute from them, and the text that a case writes when a field is missing. VC-DRIVING-039 is an
-analysis of the realization and reads no run (`driver_assistance_verification_evidence.sysml:434-465`); it has no
+analysis of the realization and reads no run (`driver_assistance_verification_evidence.sysml:1128-1159`); it has no
 evaluator here.
 
 Paths: `M/` = `textual-notation-of-model/packages/features/driving/`, `B/` =
@@ -22,13 +22,13 @@ the increment, entry of 2026-11-20 about 16:40 CET), read at the named commits:
 
 ## Outcomes
 
-Each case gives one of the six literals of `AssistanceEvidenceOutcome` (`M/driver_assistance_verification_evidence.sysml:120-138`),
-and its verdict by `MapAssistanceEvidenceOutcomeToVerdict` (`:140-148`):
+Each case gives one of the six literals of `AssistanceEvidenceOutcome` (`M/driver_assistance_verification_evidence.sysml:144-162`),
+and its verdict by `MapAssistanceEvidenceOutcomeToVerdict` (`:164-172`):
 
 | Outcome | Verdict | When |
 |---|---|---|
 | `passBoundedVerification` | pass | the criterion met on every run it reads, every setting it needs judged |
-| `passBoundedValidation` | pass | never: no case of this slice validates (`:129-130`) |
+| `passBoundedValidation` | pass | never: no case of this slice validates (`:153-154`) |
 | `failObservedBehavior` | fail | a judged run, or a run the criterion reads, shows the criterion not met |
 | `inconclusiveMissingEvidence` | inconclusive | a missing run, record or field; a setting not judged; a dropped image in the judged window |
 | `blockedTargetRuntime` | inconclusive | the bench could not perform the run (the stop run's `path_stop` with `rc` not 0) |
@@ -37,7 +37,7 @@ and its verdict by `MapAssistanceEvidenceOutcomeToVerdict` (`:140-148`):
 Campaign rule (`evaluate_da_campaign.py`): a fail on any run read gives fail; otherwise an error gives error;
 otherwise a blocked run gives blocked; otherwise any missing evidence gives inconclusive; otherwise pass. An
 observed failure is evidence on its own: a setting with one judged run that fails gives fail even when its other run
-is not judged. A setting that is not judged never gives pass (VC-DRIVING-036 doc `:333-335`).
+is not judged. A setting that is not judged never gives pass (VC-DRIVING-036 doc `:1027-1029`).
 
 ## Records
 
@@ -75,7 +75,7 @@ W-set: `setting.setting_id` (the run's setting; `stop` for the stop run), `setti
 every run of `run_scenario.sh`, the stop run included), `controlOfTheHero` (the world's statement that no autopilot
 and no Traffic Manager controls the hero; 038), `simulator.versions.server` (lane D), and `site` (014 and 015 only:
 `SiteSpec.as_record()`, contract 1). 040 and 041 read `site.guidance`, the speeds and times to collision that the
-record must hold for 014 and 015 (`M/driver_assistance_verification_evidence.sysml:474-476`), by the keys of
+record must hold for 014 and 015 (`M/driver_assistance_verification_evidence.sysml:1168-1170`), by the keys of
 `sites.py`:
 
 | Scenario | Keys of `site.guidance` that must hold a value |
@@ -152,59 +152,59 @@ Every number below is a model number, except those marked EVALUATOR READING.
 
 | Term | Rule | Source |
 |---|---|---|
-| Setting | the seven settings, their bands and target bands | `M/driver_assistance_needs_requirements.sysml:188-195`; identities `M/driver_assistance_verification_evidence.sysml:95-118` |
-| Time to collision | `gapM / closingMps`, no value while `closingMps <= 0` | `:212-215` |
-| Needed deceleration | `closingMps^2 / (2 gapM)`, no value while not closing | `:216-220` |
-| Imminent | a vehicle ahead in the lane with TTC <= 4.0 s and needed >= 1.0 m/s2 | `:221-225`, `:183` (vehicle ahead: in its lane) |
-| Functional part | from the latest tick in the band with TTC >= 4 s, to the end: the first `targetContact`, or the vehicle at the target's speed (stationary target: `closingMps <= 0.05`, `B/world-side/scenarios.py:33-34`; moving target: `closingMps <= 0`, plan A2). EVALUATOR READING: the end search starts at the first tick in the band that closes on the target | `:196-200` |
-| Judged run | 2 s before the functional part with `|centerLineOffsetM| <= 0.2` and `|headingDiffDeg| <= 2.0` (BENCH READING, `scenarios.py:29-31`) on every tick | `:201-211` |
-| Warning start | an `out.warning_request` with `requested` true whose predecessor is false, or the first one when it is true; at `issueTime_sim_s` | `:232-234` |
-| Emergency braking start | an `out.driving_command` (in `seq` order) with `acceleration <= -5.0` whose predecessor is `> -5.0`, or the first one when it is `<= -5.0` | `:235-242` |
-| Relative approach speed | `closingMps` at the first imminent tick of the functional part | `:259-260` |
-| Relative impact speed | `closingMps` at the last tick before the first `targetContact`; 0 when no contact. EVALUATOR READING: the contact tick's own closing is the rebound (attempt 3 run1: -1.284 m/s at frame 2962397, 5.259 m/s one tick before) | `:261-262` |
-| Maximum relative impact speed | approach <= 42 km/h: 0; <= 45: 15; <= 50: 25; <= 55: 30; <= 60: 35 km/h; above 60 km/h no limit (inconclusive) | `:263-267` |
+| Setting | the seven settings, their bands and target bands | `M/driver_assistance_needs_requirements.sysml:196-203`; identities `M/driver_assistance_verification_evidence.sysml:119-142` |
+| Time to collision | `gapM / closingMps`, no value while `closingMps <= 0` | `:220-223` |
+| Needed deceleration | `closingMps^2 / (2 gapM)`, no value while not closing | `:224-228` |
+| Imminent | a vehicle ahead in the lane with TTC <= 4.0 s and needed >= 1.0 m/s2 | `:229-233`, `:191` (vehicle ahead: in its lane) |
+| Functional part | from the latest tick in the band with TTC >= 4 s, to the end: the first `targetContact`, or the vehicle at the target's speed (stationary target: `closingMps <= 0.05`, `B/world-side/scenarios.py:33-34`; moving target: `closingMps <= 0`, plan A2). EVALUATOR READING: the end search starts at the first tick in the band that closes on the target | `:204-208` |
+| Judged run | 2 s before the functional part with `|centerLineOffsetM| <= 0.2` and `|headingDiffDeg| <= 2.0` (BENCH READING, `scenarios.py:29-31`) on every tick | `:209-219` |
+| Warning start | an `out.warning_request` with `requested` true whose predecessor is false, or the first one when it is true; at `issueTime_sim_s` | `:240-242` |
+| Emergency braking start | an `out.driving_command` (in `seq` order) with `acceleration <= -5.0` whose predecessor is `> -5.0`, or the first one when it is `<= -5.0` | `:243-250` |
+| Relative approach speed | `closingMps` at the first imminent tick of the functional part | `:267-268` |
+| Relative impact speed | `closingMps` at the last tick before the first `targetContact`; 0 when no contact. EVALUATOR READING: the contact tick's own closing is the rebound (attempt 3 run1: -1.284 m/s at frame 2962397, 5.259 m/s one tick before) | `:269-270` |
+| Maximum relative impact speed | approach <= 42 km/h: 0; <= 45: 15; <= 50: 25; <= 55: 30; <= 60: 35 km/h; above 60 km/h no limit (inconclusive) | `:271-275` |
 | Instant join | the last driving command at a tick is the newest `out.driving_command` with `issueTime_sim_s <= simTimeS` | plan section 2, 036 |
 | Tick of an S record | the W tick of the same `frame`; without `frame`, the last tick with `simTimeS <= issueTime_sim_s` | |
 
 ## Judged window and the dropped-image rule
 
 A run is not judged for a criterion when its judged window holds a `drop.camera_image` whose `sim_s` lies in it
-(`M/driver_assistance_verification_evidence.sysml:23-27` and `:203-207`;
+(`M/driver_assistance_verification_evidence.sysml:30-34` and `:227-231`;
 `M/driver_assistance_physical_software_realization.sysml:1193-1194`). The case gives `inconclusiveMissingEvidence`
 for that run and names the drops. The model fixes the window as the whole run only for a criterion over every run
-(`:23-27`, `:206-207`); for 036, 037 and 042 the window is the case's own, by the lead decision of 2026-11-20.
+(`:30-34`, `:230-231`); for 036, 037 and 042 the window is the case's own, by the lead decision of 2026-11-20.
 
 | Cases | Judged window |
 |---|---|
 | 036, 037, 042 | lead decision of 2026-11-20 (lane B's reading): from 2.0 s before the functional part (the straight-before span of the judged run) to its end |
-| 038, 040, 041, 043, 044 | the whole run: from the first to the last W tick (`:206-207`: "for a criterion over every run, the judged window is the whole run") |
+| 038, 040, 041, 043, 044 | the whole run: from the first to the last W tick (`:230-231`: "for a criterion over every run, the judged window is the whole run") |
 
 ## Cases
 
 | VC (REQ) | Runs read | Rule | Success clause |
 |---|---|---|---|
-| 036 | judged runs of 012@20/42/60, 013@30/60 | at each functional-part tick with needed >= 5.0, the last command has `acceleration <= -5.0`; a tick with no command before it is a miss | `M/driver_assistance_needs_requirements.sysml:278` |
-| 037 | as 036 | impact (km/h) <= the limit at the approach speed; never imminent and no contact is met | `:288` |
-| 038 | the 14 runs, and the stop run's stop clause | every A `out.ackermann_control` has an A `in.driving_command` of its `seq` with `crc_ok` and an S `out.driving_command` of that `seq` whose `crc` equals `checkValue`; `controlSource` is `actuationAdapter`; `worldSideControlCalls` 0 on every tick; W-set `controlOfTheHero` present. Stop clause (no driving command reaches the actuation after the stop): no `out.ackermann_control` with `t_mono_ns` after `stopInstantMonoNs`, and no rise of `worldSideControlCalls` on the ticks from the frame after the last control applied before the stop; the changes of W `control` on those ticks are reported as `controlChangesAfterStop`, a note | `:298` |
-| 040 | the 14 runs | every warning start falls on a tick with an imminent vehicle ahead in the lane (`vehiclesAhead`); 014/015 runs hold `guidance` | `:318` |
-| 041 | the 14 runs | as 040, for every emergency braking start | `:328` |
-| 042 | as 036 | a judged run with an imminent tick in its functional part has a warning start at or before the functional part's end; when the run has an emergency braking start, a warning start at least 1.0 s of sim time before the first one (a lead of 0.99 s fails, 1.0 s passes); a run with no emergency braking needs the warning start only. A warning still on at the braking is not asked | `:338` |
-| 043 | the 10 runs of 012/013, and the stop run's stop clause | every R receipt of the run equals an S `out.warning_request` with `sent` true, byte for byte (`requested`, `issue_time_sim_ms` encoded as S `bytes`). Stop clause: no receipt whose `issue_time_sim_ms` is after the newest image the candidate took before the stop, and none whose IVI `t_real_ns`, less the clock offset, is later than `stopInstantRealNs` by more than the clock bound | `:348` |
-| 044 | the 14 runs | the S `in.candidate_record` with `accepted` comes (S-CORE mono) before the first `out.driving_command`; its `diffBytes` > 0 (a build with changes upstream has not merged records a non-empty difference). The reproduction by another engineer is a desk step (plan lane F2): without a desk record `reproduction_044.json` the case gives inconclusive | `:358` |
+| 036 | judged runs of 012@20/42/60, 013@30/60 | at each functional-part tick with needed >= 5.0, the last command has `acceleration <= -5.0`; a tick with no command before it is a miss | `M/driver_assistance_needs_requirements.sysml:286` |
+| 037 | as 036 | impact (km/h) <= the limit at the approach speed; never imminent and no contact is met | `:296` |
+| 038 | the 14 runs, and the stop run's stop clause | every A `out.ackermann_control` has an A `in.driving_command` of its `seq` with `crc_ok` and an S `out.driving_command` of that `seq` whose `crc` equals `checkValue`; `controlSource` is `actuationAdapter`; `worldSideControlCalls` 0 on every tick; W-set `controlOfTheHero` present. Stop clause (no driving command reaches the actuation after the stop): no `out.ackermann_control` with `t_mono_ns` after `stopInstantMonoNs`, and no rise of `worldSideControlCalls` on the ticks from the frame after the last control applied before the stop; the changes of W `control` on those ticks are reported as `controlChangesAfterStop`, a note | `:306` |
+| 040 | the 14 runs | every warning start falls on a tick with an imminent vehicle ahead in the lane (`vehiclesAhead`); 014/015 runs hold `guidance` | `:326` |
+| 041 | the 14 runs | as 040, for every emergency braking start | `:336` |
+| 042 | as 036 | a judged run with an imminent tick in its functional part has a warning start at or before the functional part's end; when the run has an emergency braking start, a warning start at least 1.0 s of sim time before the first one (a lead of 0.99 s fails, 1.0 s passes); a run with no emergency braking needs the warning start only. A warning still on at the braking is not asked | `:346` |
+| 043 | the 10 runs of 012/013, and the stop run's stop clause | every R receipt of the run equals an S `out.warning_request` with `sent` true, byte for byte (`requested`, `issue_time_sim_ms` encoded as S `bytes`). Stop clause: no receipt whose `issue_time_sim_ms` is after the newest image the candidate took before the stop, and none whose IVI `t_real_ns`, less the clock offset, is later than `stopInstantRealNs` by more than the clock bound | `:356` |
+| 044 | the 14 runs | the S `in.candidate_record` with `accepted` comes (S-CORE mono) before the first `out.driving_command`; its `diffBytes` > 0 (a build with changes upstream has not merged records a non-empty difference). The reproduction by another engineer is a desk step (plan lane F2): without a desk record `reproduction_044.json` the case gives inconclusive | `:366` |
 
 ## Lane D: the evidence record (RetainedAssistanceRunEvidence)
 
 `evidence_record.py` fills each attribute of `RetainedAssistanceRunEvidence`
-(`M/driver_assistance_verification_evidence.sysml:150-243`) for every run, the stop run included, from one record.
+(`M/driver_assistance_verification_evidence.sysml:174-268`) for every run, the stop run included, from one record.
 An attribute that its record does not fill stays empty, and the record names it with the file and the field
 (`<attribute>: <text>`); the record's outcome is then `inconclusiveMissingEvidence`, otherwise `complete`. The
 campaign puts each run's record into its output (`evidenceRecords`). A run whose record is partial gives
 `inconclusiveMissingEvidence` for that run, never pass and never fail ("A missing or partial record gives
-inconclusive, never pass", `:211-212`; "missing or partial evidence gives inconclusiveMissingEvidence", `:126-127`;
+inconclusive, never pass", `:235-236`; "missing or partial evidence gives inconclusiveMissingEvidence", `:150-151`;
 the lead's reading of 2026-11-21). The case is combined again from the runs' outcomes so read: a fail stands only
 when a run that shows it has a complete record, and a pass with any partial record read becomes inconclusive. The
 outcomes of the clauses that no run shows (044's desk reproduction, `measured.outcomesWithoutRun`) are kept. A note
-names the outcome observed before the rule. `setting` is left empty for the stop run (`:182-183`).
+names the outcome observed before the rule. `setting` is left empty for the stop run (`:206-207`).
 
 PROPOSAL marks a field that no producer writes yet: its name is this contract's proposal to lanes I-S and I-W.
 

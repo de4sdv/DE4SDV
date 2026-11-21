@@ -9,7 +9,7 @@
   "blockedTargetRuntime",
   "errorEvidence"
  ],
- "droppedImageRule": "MAP-DRIVING-DA-CAMERA-IMAGE; driver_assistance_verification_evidence.sysml:204-207",
+ "droppedImageRule": "MAP-DRIVING-DA-CAMERA-IMAGE; driver_assistance_verification_evidence.sysml:228-231",
  "readings": [
   "BENCH READING: travels straight = heading within 2.0 deg of the target's (B/world-side/scenarios.py:29-31)",
   "BENCH READING: a stationary target's speed reached at closing <= 0.05 m/s (B/world-side/scenarios.py:33-34)",
@@ -19,19 +19,19 @@
   "EVALUATOR READING: 042 counts the warning starts up to the end of the functional part",
   "EVALUATOR READING: 038's stop clause: a driving command reaches the actuation after the stop as an out.ackermann_control of the actuation adapter after stopInstantMonoNs or a rise of worldSideControlCalls; the changes of the world's control (hero.get_control(), the simulator's Ackermann controller output) are a note",
   "EVALUATOR READING: a fail on any run read gives fail, before error, blocked and inconclusive",
-  "036 and 037 are conditional on ASM-DRIVING-005, the calibration of the simulated deceleration (driver_assistance_verification_evidence.sysml:299-300; plan D-S1-2); they report the requested and the read-back Ackermann gains, 'unrecorded' when the session holds none",
+  "036 and 037 are conditional on ASM-DRIVING-005, the calibration of the simulated deceleration (driver_assistance_verification_evidence.sysml:916-917; plan D-S1-2); they report the requested and the read-back Ackermann gains, 'unrecorded' when the session holds none",
   "042: a warning start at least 1.0 s of simulation time before the first emergency braking start, when the run has one; a warning still on at the braking is not asked",
   "040 and 041 read the guidance of SC-DRIVING-014 and -015 from setting_record.json site.guidance (SiteSpec.as_record()); each speed and time to collision of the guidance must hold a value",
-  "a run whose evidence record (RetainedAssistanceRunEvidence) is partial gives inconclusive for that run, never pass and never fail (driver_assistance_verification_evidence.sysml:126-127, :211-212; the lead's reading of 2026-11-21): a case's fail stands only when a run that shows it has a complete record, a pass with any partial record read becomes inconclusive, and a note names the outcome observed before the rule",
+  "a run whose evidence record (RetainedAssistanceRunEvidence) is partial gives inconclusive for that run, never pass and never fail (driver_assistance_verification_evidence.sysml:150-151, :235-236; the lead's reading of 2026-11-21): a case's fail stands only when a run that shows it has a complete record, a pass with any partial record read becomes inconclusive, and a note names the outcome observed before the rule",
   "a rehearsal session (session.json rehearsal true) is not judged"
  ],
  "cases": {
   "VC-DRIVING-036": {
    "requirement": "REQ-DRIVING-036",
-   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:278",
+   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:286",
    "successCriteria": "Met when every setting of SC-DRIVING-012 and SC-DRIVING-013 is judged, and in each judged run the last driving command of the driver-assistance system holds a deceleration of at least 5.0 m/s² at each instant of the functional part at which the needed deceleration to the target is at least 5.0 m/s².",
    "runsRead": "the two runs of each judged setting (SC-DRIVING-012@20/@42/@60, SC-DRIVING-013@30/@60)",
-   "judgedWindow": "the case's own window, lead decision of 2026-11-20: from 2.0 s before the functional part to its end (driver_assistance_verification_evidence.sysml:23-27, :203-207 fix the whole run only for a criterion over every run)",
+   "judgedWindow": "the case's own window, lead decision of 2026-11-20: from 2.0 s before the functional part to its end (driver_assistance_verification_evidence.sysml:30-34, :227-231 fix the whole run only for a criterion over every run)",
    "thresholds": {
     "neededDecelMps2AtLeast": 5.0,
     "commandAccelerationAtMost": -5.0
@@ -39,10 +39,10 @@
   },
   "VC-DRIVING-037": {
    "requirement": "REQ-DRIVING-037",
-   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:288",
+   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:296",
    "successCriteria": "Met when every setting of SC-DRIVING-012 and SC-DRIVING-013 is judged, and the relative impact speed of each judged run is at most the maximum relative impact speed for its relative approach speed.",
    "runsRead": "the two runs of each judged setting (SC-DRIVING-012@20/@42/@60, SC-DRIVING-013@30/@60)",
-   "judgedWindow": "the case's own window, lead decision of 2026-11-20: from 2.0 s before the functional part to its end (driver_assistance_verification_evidence.sysml:23-27, :203-207 fix the whole run only for a criterion over every run)",
+   "judgedWindow": "the case's own window, lead decision of 2026-11-20: from 2.0 s before the functional part to its end (driver_assistance_verification_evidence.sysml:30-34, :227-231 fix the whole run only for a criterion over every run)",
    "thresholds": {
     "maxRelativeImpactKmh": [
      [
@@ -74,10 +74,10 @@
   },
   "VC-DRIVING-038": {
    "requirement": "REQ-DRIVING-038",
-   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:298",
+   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:306",
    "successCriteria": "Met when, in every run of SC-DRIVING-012 to SC-DRIVING-015, every driving command that reaches the actuation is matched in the communication records of the Eclipse S-CORE path to a driving command of the driver-assistance system; when the autopilot and the traffic manager of the simulator have no control of the vehicle at any time of the run and no recorded, replayed, scripted or overlaid control reaches its actuation; and when, in one further run of SC-DRIVING-012 in which the Eclipse S-CORE path of the driver-assistance system is stopped, no driving command reaches the actuation after the stop.",
    "runsRead": "the fourteen runs of the seven settings, and the stop run for the stop clause",
-   "judgedWindow": "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:206-207)",
+   "judgedWindow": "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:230-231)",
    "thresholds": {
     "worldSideControlCalls": 0,
     "controlSource": "actuationAdapter",
@@ -86,10 +86,10 @@
   },
   "VC-DRIVING-040": {
    "requirement": "REQ-DRIVING-040",
-   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:318",
+   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:326",
    "successCriteria": "Met when, in every run of SC-DRIVING-012 to SC-DRIVING-015, a collision with a vehicle ahead is imminent at the start of each warning request of the driver-assistance system.",
    "runsRead": "the fourteen runs of the seven settings",
-   "judgedWindow": "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:206-207)",
+   "judgedWindow": "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:230-231)",
    "thresholds": {
     "imminent": {
      "ttcSAtMost": 4.0,
@@ -100,10 +100,10 @@
   },
   "VC-DRIVING-041": {
    "requirement": "REQ-DRIVING-041",
-   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:328",
+   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:336",
    "successCriteria": "Met when, in every run of SC-DRIVING-012 to SC-DRIVING-015, a collision with a vehicle ahead is imminent at the start of each emergency braking of the driver-assistance system.",
    "runsRead": "the fourteen runs of the seven settings",
-   "judgedWindow": "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:206-207)",
+   "judgedWindow": "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:230-231)",
    "thresholds": {
     "imminent": {
      "ttcSAtMost": 4.0,
@@ -115,10 +115,10 @@
   },
   "VC-DRIVING-042": {
    "requirement": "REQ-DRIVING-042",
-   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:338",
+   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:346",
    "successCriteria": "Met when every setting of SC-DRIVING-012 and SC-DRIVING-013 is judged, and in each judged run in which the collision with the target becomes imminent the driver-assistance system gives a warning request at its boundary, at least 1.0 s of simulation time before the start of the first emergency braking of the run when the run has one.",
    "runsRead": "the two runs of each judged setting (SC-DRIVING-012@20/@42/@60, SC-DRIVING-013@30/@60)",
-   "judgedWindow": "the case's own window, lead decision of 2026-11-20: from 2.0 s before the functional part to its end (driver_assistance_verification_evidence.sysml:23-27, :203-207 fix the whole run only for a criterion over every run)",
+   "judgedWindow": "the case's own window, lead decision of 2026-11-20: from 2.0 s before the functional part to its end (driver_assistance_verification_evidence.sysml:30-34, :227-231 fix the whole run only for a criterion over every run)",
    "thresholds": {
     "warningLeadSAtLeast": 1.0,
     "emergencyBrakingMps2": 5.0,
@@ -130,20 +130,20 @@
   },
   "VC-DRIVING-043": {
    "requirement": "REQ-DRIVING-043",
-   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:348",
+   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:356",
    "successCriteria": "Met when, in every run of SC-DRIVING-012 and SC-DRIVING-013, every warning request that reaches the AAOS SDV is matched in the communication records of the Eclipse S-CORE path to a warning request of the driver-assistance system, and when, in one further run of SC-DRIVING-012 in which the Eclipse S-CORE path of the driver-assistance system is stopped, no warning request reaches the AAOS SDV after the stop.",
    "runsRead": "the ten runs of SC-DRIVING-012 and -013, and the stop run for the stop clause",
-   "judgedWindow": "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:206-207)",
+   "judgedWindow": "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:230-231)",
    "thresholds": {
     "match": "receipt requested and issue_time_sim_ms = S out.warning_request bytes"
    }
   },
   "VC-DRIVING-044": {
    "requirement": "REQ-DRIVING-044",
-   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:358",
+   "successClause": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:366",
    "successCriteria": "Met when every run of SC-DRIVING-012 to SC-DRIVING-015 has the record before its first driving command; when another engineer who checks out the named revision, applies the recorded difference and hashes the named network files and configuration files obtains the recorded values; and when a build with one change that upstream has not merged records a non-empty difference.",
    "runsRead": "the fourteen runs of the seven settings, and the desk reproduction (plan lane F2)",
-   "judgedWindow": "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:206-207)",
+   "judgedWindow": "the whole run, first to last world tick (driver_assistance_verification_evidence.sysml:230-231)",
    "thresholds": {
     "recordBeforeFirstCommand": true,
     "diffBytesAbove": 0

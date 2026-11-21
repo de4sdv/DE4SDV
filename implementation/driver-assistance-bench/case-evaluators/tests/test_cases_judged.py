@@ -108,7 +108,7 @@ def test_037_fail_on_contact_at_20(tmp_path):
 
 
 def test_037_pass_on_contact_at_60_within_its_limit(tmp_path):
-    # 60 km/h approach: limit 35 km/h (:263-267). A late braking that touches at about 20 km/h is within it.
+    # 60 km/h approach: limit 35 km/h (:271-275). A late braking that touches at about 20 km/h is within it.
     specs = syn.s1_specs(**{"012_60_r1": dict(eb_at_needed=6.5, eb_accel=-6.0, lag_ticks=6)})
     res = judge(tmp_path, specs)["VC-DRIVING-037"]
     m = run_entry(res, "012_60_r1")["measured"]
@@ -132,7 +132,7 @@ def test_042_fail_without_a_warning(tmp_path):
 
 
 def test_042_fail_when_the_warning_leads_the_braking_by_less_than_1_s(tmp_path):
-    # REQ-DRIVING-042 (:338): at least 1.0 s; a lead between 0.5 and 1.0 s fails
+    # REQ-DRIVING-042 (:346): at least 1.0 s; a lead between 0.5 and 1.0 s fails
     specs = syn.s1_specs(**{"012_20_r2": dict(warn_at_needed=2.0)})
     res = judge(tmp_path, specs)["VC-DRIVING-042"]
     assert res["outcome"] == FAIL
