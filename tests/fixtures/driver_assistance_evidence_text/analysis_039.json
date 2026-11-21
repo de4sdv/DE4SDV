@@ -1,0 +1,9 @@
+{
+ "configurationIdentity": "DRIVING-CONFIG-002",
+ "receiptSha256": "0c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00c0ffee0",
+ "modelRevision": "39a964a239a964a239a964a239a964a239a964a2",
+ "analyzedRealization": "DrivingCommandEventPayload, MAP-DRIVING-DA-COMMAND and reqDetectableDrivingCommandRejection at the model revision",
+ "analystIdentity": "synthetic analyst",
+ "claimBoundary": "Names the part of the command by which the actuation detects a loss, a delay, a repetition and a corruption; makes no freedom-from-interference claim.",
+ "outcome": "passBoundedVerification"
+}
