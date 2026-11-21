@@ -126,6 +126,9 @@ def make_bundle(root: Path, record_driver: Path, extra_bins: dict[str, str] | No
 
 
 def staged_processes(stage: Path) -> list[str]:
-    """Command lines of every process that runs a file of the stage's bin/."""
-    out = subprocess.run(["ps", "-eo", "stat=,args="], capture_output=True, text=True).stdout
+    """Command lines of every process that runs a file of the stage's bin/.
+
+    -ww: whole lines, whatever $COLUMNS this process inherits (test_process_listing_width.py).
+    """
+    out = subprocess.run(["ps", "-ww", "-eo", "stat=,args="], capture_output=True, text=True).stdout
     return [line for line in out.splitlines() if f"{stage}/bin/" in line and not line.lstrip().startswith("Z")]
