@@ -20,7 +20,7 @@ EVIDENCE = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s
 TOOL = ROOT / "tools" / "refresh_driver_assistance_s1_evidence.py"
 SESSION = "20261121T014447Z"
 FILES = ["README.md", "SHA256SUMS", "VIDEO-EVIDENCE-DISPOSITION.md", "analysis_039.generator.json",
-         "analysis_039.json", "drop_counts.json", "external-media.json", "records.json", "reproduction_044.json",
+         "analysis_039.json", "commanded_deceleration.json", "drop_counts.json", "external-media.json", "records.json", "reproduction_044.json",
          "scenario_digests.json", "session.json", "verdicts.json"]
 #: the runs of S1 whose score-interface record the drop counts read: the fourteen judged runs, the run that stops
 #: the path and the steering calibration run
@@ -204,4 +204,24 @@ def warm_start_sentence(counts: dict) -> str:
             f"Manager log of each run records 2 passes with the result yes, in {min(ms):.1f} to {max(ms):.1f} ms "
             "(`score_side/state/launch_manager.log`). It did not keep the first 5 s after the first image free of "
             "dropped images.")
+
+
+def test_the_commanded_deceleration_of_each_run_and_no_run_of_sc_driving_012_beyond_0_53():
+    """The correction of 2026-11-21: in no run of SC-DRIVING-012 did the candidate command a deceleration beyond
+    0.53 m/s² (the strongest accepted driving command of each run), and the README says so in those words."""
+    found = _json("commanded_deceleration.json")
+    assert sorted(found) == sorted(RUNS)
+    for run, entry in found.items():
+        assert entry["file"] == f"score/out/score_{run}/score_side/run/score/actuationAdapter.jsonl"
+        assert entry["acceptedCommands"] > 0, run
+    strongest = {run: found[run]["strongestDecelerationMps2"] for run in RUNS[:6]}
+    assert all(isinstance(v, float) and 0 < v <= 0.53 + 5e-3 for v in strongest.values()), strongest
+    assert f"{max(strongest.values()):.2f}" == "0.53"
+    readme = _readme()
+    assert ("In no run of SC-DRIVING-012 did the candidate command a deceleration beyond 0.53 m/s²: the strongest "
+            "driving command that the actuation adapter accepted holds "
+            + "; ".join(f"{a:.2f} and {b:.2f} m/s² at {kmh} km/h" for (a, b), kmh in zip(
+                zip(list(strongest.values())[0::2], list(strongest.values())[1::2]), (20, 42, 60)))
+            + " (rounded to two decimals; `commanded_deceleration.json` holds three).") in readme
+    assert "no braking" not in readme
 

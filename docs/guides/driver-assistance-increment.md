@@ -1014,10 +1014,12 @@ simulation, and no statement about compliance or on-road behavior.
   holds a dropped camera image is judged, and for the cases over every run that
   window is the whole run. The evaluators' readings with the rule set aside are
   diagnosis only, never a verdict (the drop-rule decision of 2026-11-21).
-- **The deceleration calibration.** The condition on ASM-DRIVING-005 bears on
-  a pass of VC-DRIVING-036 and VC-DRIVING-037, not on a fail in runs in which
-  the candidate commands no braking, and in S1 it commanded none (the
-  deceleration calibration decision of 2026-11-21).
+- **The deceleration calibration.** The condition on ASM-DRIVING-005 bears on a
+  pass of VC-DRIVING-036 and VC-DRIVING-037, not on their fail in S1: it
+  concerns how the simulated vehicle achieves a commanded deceleration, and the
+  fails rest on the commanded values; no run of SC-DRIVING-012 holds a commanded
+  deceleration beyond 0.53 m/s² (the deceleration calibration decision of
+  2026-11-21).
 - **The statuses.** The verification status records the process of the
   verification, never its verdict: `VVStatus::Completed` for REQ-DRIVING-036,
   REQ-DRIVING-037, REQ-DRIVING-039 and REQ-DRIVING-042, and
@@ -1094,7 +1096,7 @@ framing view shows the decision beside the framing decision it answers.
 
 | Case | Verdict | What S1 shows |
 | --- | --- | --- |
-| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no braking; the contact comes at the approach speed (19.7, 40.6, 40.6, 58.6 and 58.6 km/h). |
+| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no deceleration beyond 0.53 m/s²; the contact comes at the approach speed (19.7, 40.6, 40.6, 58.6 and 58.6 km/h). |
 | VC-DRIVING-037 | fail | The same runs: the speed at the contact is the approach speed. |
 | VC-DRIVING-038 | inconclusive | No run is judged by the rule on dropped images. Its stop clause is inconclusive by the same rule: 32 dropped images fall inside its judged window, from 2855.010 s to 2897.010 s, and the stop came at about 2871.06 s, so about 26 s of ticks follow it. |
 | VC-DRIVING-039 | pass | A desk analysis of the realization: a loss shows only when a later command arrives, and a delay of up to 0.1 s of simulation time goes unseen. |

@@ -59,6 +59,7 @@ voids the condition.
 | `reproduction_044.json` | The desk reproduction of the candidate identity of REQ-DRIVING-044 |
 | `session.json`, `scenario_digests.json` | The session's own record and the digests of the scenario definitions |
 | `drop_counts.json` | Where the camera images of each run drop, from its score-interface record, with the run's end and the drops the evaluators count over the whole run |
+| `commanded_deceleration.json` | The strongest deceleration among the driving commands that the actuation adapter of each run accepted |
 | `SHA256SUMS` | The SHA-256 of every file of the fetched session tree, by relative path |
 | `external-media.json` | The recordings and archives of the tree, with identity and retention |
 
@@ -138,6 +139,17 @@ each `drop.camera_image` whose simulation time lies in it (`Run.drops_in` in
 the start-up drops and the isolated drops inside the run, and none of the end
 of the image stream; 32 in the run that stops the path. The records show no
 cause of the drops.
+
+## The commanded deceleration
+
+In no run of SC-DRIVING-012 did the candidate command a deceleration beyond
+0.53 m/s²: the strongest driving command that the actuation adapter accepted
+holds 0.46 and 0.53 m/s² at 20 km/h; 0.18 and 0.18 m/s² at 42 km/h; 0.23 and
+0.18 m/s² at 60 km/h (rounded to two decimals; `commanded_deceleration.json`
+holds three). The condition on ASM-DRIVING-005 concerns how the simulated
+vehicle achieves a commanded deceleration, so it does not bear on the fails of
+VC-DRIVING-036 and VC-DRIVING-037, which rest on the commanded values (the
+deceleration calibration decision of 2026-11-21).
 
 ## Where the rest is retained
 

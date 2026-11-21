@@ -313,10 +313,11 @@ package DE4SDV_DriverAssistanceFraming {
      * emergency command path (counterClaimNoIndependentEmergencyPath). The
      * cases that judge that braking: VC-DRIVING-036, VC-DRIVING-037 and
      * VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012
-     * the candidate commanded no braking before the contact with the stationary
-     * target, and VC-DRIVING-041 inconclusive by the rule on dropped images.
-     * Deferred to a later increment: whether the candidate's braking can stand
-     * for the common capability is for the member decision.
+     * the candidate commanded no deceleration beyond 0.53 m/s² before the
+     * contact with the stationary target, and VC-DRIVING-041 inconclusive by
+     * the rule on dropped images. Deferred to a later increment: whether the
+     * candidate's braking can stand for the common capability is for the member
+     * decision.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -695,27 +696,28 @@ package DE4SDV_DriverAssistanceFraming {
      * The verdicts, one for each case: VC-DRIVING-036, VC-DRIVING-037 and
      * VC-DRIVING-042 a fail of the pinned candidate on this bench in
      * simulation: in each of the five judged runs of SC-DRIVING-012 the
-     * candidate started no warning request and commanded no braking, and the
-     * contact with the stationary target came at the approach speed (19.7,
-     * 40.6, 40.6, 58.6 and 58.6 km/h); the second run at 20 km/h is not judged,
-     * its center line 0.245 m from the target's against a limit of 0.2 m. Of
-     * SC-DRIVING-013, the first run at 30 km/h is judged and meets the three
-     * criteria, since the candidate settled at the target's speed and no
-     * collision became imminent; the second run at 30 km/h and both runs at 60
-     * km/h have no functional part and are not judged. VC-DRIVING-038,
-     * VC-DRIVING-040, VC-DRIVING-041, VC-DRIVING-043 and VC-DRIVING-044
-     * inconclusive: every run drops 23 or 24 camera images in the first 5 s
-     * after its first image, and by the rule of phase 8 no run whose judged
-     * window holds a dropped image is judged; for these cases the window is the
-     * whole run. Read with that rule set aside, for diagnosis only and as no
-     * verdict, VC-DRIVING-038 and VC-DRIVING-044 meet their criteria in all 14
-     * runs, and VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-043 in the runs
-     * of SC-DRIVING-012 and SC-DRIVING-013. VC-DRIVING-039 a pass, by a desk
-     * analysis of the realization in an independent agent session, within its
-     * bounds: a loss of a driving command shows only when a later command
-     * arrives, a delay of up to 0.1 s of simulation time goes unseen, and the
-     * second slice of phase 10 corrects the realization's sentence about later
-     * valid commands to what the check value catches.
+     * candidate started no warning request and commanded no deceleration beyond
+     * 0.53 m/s², and the contact with the stationary target came at the
+     * approach speed (19.7, 40.6, 40.6, 58.6 and 58.6 km/h); the second run at
+     * 20 km/h is not judged, its center line 0.245 m from the target's against
+     * a limit of 0.2 m. Of SC-DRIVING-013, the first run at 30 km/h is judged
+     * and meets the three criteria, since the candidate settled at the target's
+     * speed and no collision became imminent; the second run at 30 km/h and
+     * both runs at 60 km/h have no functional part and are not judged.
+     * VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041, VC-DRIVING-043 and
+     * VC-DRIVING-044 inconclusive: every run drops 23 or 24 camera images in
+     * the first 5 s after its first image, and by the rule of phase 8 no run
+     * whose judged window holds a dropped image is judged; for these cases the
+     * window is the whole run. Read with that rule set aside, for diagnosis
+     * only and as no verdict, VC-DRIVING-038 and VC-DRIVING-044 meet their
+     * criteria in all 14 runs, and VC-DRIVING-040, VC-DRIVING-041 and
+     * VC-DRIVING-043 in the runs of SC-DRIVING-012 and SC-DRIVING-013.
+     * VC-DRIVING-039 a pass, by a desk analysis of the realization in an
+     * independent agent session, within its bounds: a loss of a driving command
+     * shows only when a later command arrives, a delay of up to 0.1 s of
+     * simulation time goes unseen, and the second slice of phase 10 corrects
+     * the realization's sentence about later valid commands to what the check
+     * value catches.
      *
      * The runs of SC-DRIVING-014 and SC-DRIVING-015 lie outside the candidate's
      * declared operating conditions and are reported apart: no run of either

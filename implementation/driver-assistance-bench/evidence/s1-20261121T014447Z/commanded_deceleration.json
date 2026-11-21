@@ -1,0 +1,82 @@
+{
+  "012_20_r1": {
+    "file": "score/out/score_012_20_r1/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 559,
+    "strongestDecelerationMps2": 0.459
+  },
+  "012_20_r2": {
+    "file": "score/out/score_012_20_r2/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 554,
+    "strongestDecelerationMps2": 0.533
+  },
+  "012_42_r1": {
+    "file": "score/out/score_012_42_r1/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 306,
+    "strongestDecelerationMps2": 0.183
+  },
+  "012_42_r2": {
+    "file": "score/out/score_012_42_r2/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 548,
+    "strongestDecelerationMps2": 0.179
+  },
+  "012_60_r1": {
+    "file": "score/out/score_012_60_r1/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 307,
+    "strongestDecelerationMps2": 0.23
+  },
+  "012_60_r2": {
+    "file": "score/out/score_012_60_r2/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 310,
+    "strongestDecelerationMps2": 0.178
+  },
+  "013_30_r1": {
+    "file": "score/out/score_013_30_r1/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 562,
+    "strongestDecelerationMps2": 0.792
+  },
+  "013_30_r2": {
+    "file": "score/out/score_013_30_r2/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 51,
+    "strongestDecelerationMps2": null
+  },
+  "013_60_r1": {
+    "file": "score/out/score_013_60_r1/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 294,
+    "strongestDecelerationMps2": 0.156
+  },
+  "013_60_r2": {
+    "file": "score/out/score_013_60_r2/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 54,
+    "strongestDecelerationMps2": null
+  },
+  "014_30_r1": {
+    "file": "score/out/score_014_30_r1/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 281,
+    "strongestDecelerationMps2": 2.772
+  },
+  "014_30_r2": {
+    "file": "score/out/score_014_30_r2/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 748,
+    "strongestDecelerationMps2": 2.623
+  },
+  "015_40_r1": {
+    "file": "score/out/score_015_40_r1/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 749,
+    "strongestDecelerationMps2": 0.054
+  },
+  "015_40_r2": {
+    "file": "score/out/score_015_40_r2/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 748,
+    "strongestDecelerationMps2": 0.078
+  },
+  "calib_steer": {
+    "file": "score/out/score_calib_steer/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 816,
+    "strongestDecelerationMps2": 0.215
+  },
+  "stop": {
+    "file": "score/out/score_stop/score_side/run/score/actuationAdapter.jsonl",
+    "acceptedCommands": 124,
+    "strongestDecelerationMps2": null
+  }
+}

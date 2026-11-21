@@ -888,7 +888,7 @@ FILLS = (
     # 2 the verdicts
     "VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 a fail of the pinned candidate on this bench in simulation: in "
     "each of the five judged runs of SC-DRIVING-012 the candidate started no warning request and commanded no "
-    "braking, and the contact with the stationary target came at the approach speed (19.7, 40.6, 40.6, 58.6 and 58.6 "
+    "deceleration beyond 0.53 m/s², and the contact with the stationary target came at the approach speed (19.7, 40.6, 40.6, 58.6 and 58.6 "
     "km/h); the second run at 20 km/h is not judged, its center line 0.245 m from the target's against a limit of "
     "0.2 m. Of SC-DRIVING-013, the first run at 30 km/h is judged and meets the three criteria, since the candidate "
     "settled at the target's speed and no collision became imminent; the second run at 30 km/h and both runs at 60 "
@@ -916,7 +916,8 @@ FILLS = (
     "the VisionPilot maintainers",
     # 6 gapNoSeparateEmergencyFunction
     "VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012 the "
-    "candidate commanded no braking before the contact with the stationary target, and VC-DRIVING-041 inconclusive "
+    "candidate commanded no deceleration beyond 0.53 m/s² before the contact with the stationary target, and "
+    "VC-DRIVING-041 inconclusive "
     "by the rule on dropped images",
     # 7 gapWarningOutput
     "VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012 the candidate started no warning request, "
@@ -1250,4 +1251,7 @@ def test_the_baseline_states_where_the_images_drop_and_no_rate():
     guide = texts["guide"]
     assert (f"Every run drops {start} camera images in the first 5 s after its first image, and for the five "
             "inconclusive cases the judged window is the whole run.") in guide
+    # the guide's verdict table states the commanded deceleration, never "no braking" (the correction of 2026-11-21)
+    assert ("| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no "
+            "deceleration beyond 0.53 m/s²; the contact comes at the approach speed") in GUIDE.read_text(encoding="utf-8")
 

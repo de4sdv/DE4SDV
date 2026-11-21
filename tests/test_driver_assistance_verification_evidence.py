@@ -224,8 +224,9 @@ DECISIONS_1121 = (
     "and a reading that the evaluators give with the rule set aside is diagnosis, never a verdict: the drop-rule "
     "decision of 2026-11-21.",
     "On 2026-11-21 it was recorded that the condition on ASM-DRIVING-005, the calibration of the simulated "
-    "deceleration, bears on a pass of VC-DRIVING-036 and VC-DRIVING-037 and not on a fail in runs in which the "
-    "candidate commands no braking: the deceleration calibration decision of 2026-11-21.",
+    "deceleration, bears on a pass of VC-DRIVING-036 and VC-DRIVING-037 and not on their fail in S1, in which no run "
+    "of SC-DRIVING-012 holds a commanded deceleration beyond 0.53 m/s²: the deceleration calibration decision of "
+    "2026-11-21.",
     "On 2026-11-21 the verification status of each requirement was set from S1, as the requirements package "
     "records (the status decision of 2026-11-21).",
 )
@@ -240,10 +241,23 @@ SECOND_SLICE = (
 #: what the cases of 036 and 037 state of ASM-DRIVING-005 in S1 (the deceleration calibration decision)
 ASM005_IN_CASE = (
     "The condition on ASM-DRIVING-005, the calibration of the simulated deceleration, that the claimBoundary of "
-    "each run record states bears on a pass of this case and not on a fail in a run in which the candidate commands "
-    "no braking: in S1 no driving command of a run of SC-DRIVING-012 or SC-DRIVING-013 holds a deceleration of 1.0 "
-    "m/s² or more, so the condition does not bear on the outcome of this case in S1 (the deceleration calibration "
-    "decision of 2026-11-21).")
+    "each run record states bears on a pass of this case and not on its fail in S1: it concerns how the simulated "
+    "vehicle achieves a commanded deceleration, and the fails rest on the commanded values. In S1 no driving command "
+    "that the actuation adapter accepted in a run of SC-DRIVING-012 holds a deceleration beyond 0.53 m/s²: the "
+    "strongest is {decelerations} (rounded to two decimals; commanded_deceleration.json of the evidence directory), "
+    "so the condition does not bear on the outcome of this case in S1 (the deceleration calibration decision of "
+    "2026-11-21).")
+
+
+def asm005_in_case(found: dict) -> str:
+    """ASM005_IN_CASE with the strongest commanded deceleration of each run of SC-DRIVING-012 from
+    commanded_deceleration.json, both runs of a setting together."""
+    values = [found[label]["strongestDecelerationMps2"] for label in list(RUN_LABELS)[:6]]
+    parts = [f"{a:.2f} and {b:.2f} m/s² {where}" for (a, b), where in zip(
+        zip(values[0::2], values[1::2]), ("in the two runs at 20 km/h", "at 42 km/h", "at 60 km/h"))]
+    return ASM005_IN_CASE.format(decelerations=", ".join(parts[:-1]) + ", and " + parts[-1])
+
+
 #: the bounds of the analysis of REQ-DRIVING-039, in the case's doc
 ANALYSIS_BOUNDS = (
     "The analysis is bounded, as the claimBoundary of its record states: the actuation recognizes a loss only when "
@@ -542,8 +556,17 @@ def test_the_slice_header_records_the_second_slice_and_the_decisions_of_2026_11_
 
 def test_the_cases_of_036_037_and_039_state_what_their_outcomes_rest_on() -> None:
     usages = _usages()
+    expected = asm005_in_case(_evidence("commanded_deceleration.json"))
     for number in (36, 37):
-        assert ASM005_IN_CASE in _flat(usages[number][2]), number
+        assert expected in _flat(usages[number][2]), number
+    # the precise fact replaces every "no braking" (the correction of 2026-11-21)
+    texts = {path.name: _flat(re.sub(r"(?m)^\s*\*\s?", "", path.read_text(encoding="utf-8")))
+             for path in DRIVING.glob("driver_assistance_*.sysml")}
+    texts["guide"] = _flat(GUIDE.read_text(encoding="utf-8"))
+    for where, text in texts.items():
+        for retired in ("commands no braking", "commanded no braking", "no braking was commanded", "commanded none",
+                        "holds a deceleration of 1.0 m/s² or more"):
+            assert retired not in text, (where, retired)
     assert ANALYSIS_BOUNDS in _flat(usages[39][2])
     for number in (38, 40, 41, 42, 43, 44):
         assert "ASM-DRIVING-005, the calibration" not in _flat(usages[number][2]).split("Values of the case")[0], number
@@ -1071,6 +1094,10 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
         assert text in evidence, text
     for outcome in OUTCOMES:
         assert outcome not in evidence, f"the guide copies no outcome of a verdict: {outcome}"
+    assert ("**The deceleration calibration.** The condition on ASM-DRIVING-005 bears on a pass of VC-DRIVING-036 "
+            "and VC-DRIVING-037, not on their fail in S1: it concerns how the simulated vehicle achieves a commanded "
+            "deceleration, and the fails rest on the commanded values; no run of SC-DRIVING-012 holds a commanded "
+            "deceleration beyond 0.53 m/s² (the deceleration calibration decision of 2026-11-21).") in evidence
     criteria = _criteria()
     rows = re.findall(r"^\| (VC-DRIVING-\d{3}) \| (REQ-DRIVING-\d{3}), ([^|]+) \| ([^|]+) \| (\w+) \|$", raw_section,
                       re.M)

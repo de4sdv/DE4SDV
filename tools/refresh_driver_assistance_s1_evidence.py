@@ -15,6 +15,8 @@ desk record or the fetched session tree, and then the model text that the eviden
   world side's files of the run: in the first 5 s after its first image, at the end of its image stream and in
   between, the run's end, the drops of its whole-run window, and the warm start that the run's Launch Manager
   log records;
+- ``commanded_deceleration.json``, the strongest deceleration among the driving commands that the actuation adapter
+  of each run accepted;
 - ``SHA256SUMS``, the SHA-256 of every file of the session tree, by its path relative to the tree, and
   ``external-media.json``, the recordings and archives of the tree with their identity and retention;
 - the verdict table of ``README.md``, between its two markers;
@@ -52,6 +54,7 @@ VERDICTS = {"passBoundedVerification": "pass", "passBoundedValidation": "pass", 
             "errorEvidence": "error"}
 SCORE_INTERFACE = "score/out/score_{run}/score_side/run/score/score_interface.jsonl"
 WORLD_DIR = "sim/out/world_{run}/simulator"
+ACTUATION_ADAPTER = "score/out/score_{run}/score_side/run/score/actuationAdapter.jsonl"
 LAUNCH_MANAGER_LOG = "score/out/score_{run}/score_side/state/launch_manager.log"
 #: the line of the warm start of D-S1-1 (patch 0005 of the bench) in a run's Launch Manager log
 WARM_START = re.compile(r"\[DE4SDV\] warm start before the attach: (\d+) passes, result (\w+), ([0-9.]+) ms")
@@ -160,6 +163,26 @@ def drop_counts(tree: Path) -> dict:
             "warmStart": warm_start(tree, run),
         }
     return counts
+
+
+def commanded_deceleration(tree: Path) -> dict:
+    """Run label -> the driving commands that the actuation adapter accepted (in.driving_command with verdict
+    accepted) and the strongest deceleration among them, m/s² (None when no accepted command decelerates)."""
+    found = {}
+    for path in sorted(Path(tree).glob(ACTUATION_ADAPTER.format(run="*"))):
+        run = path.relative_to(tree).parts[2][len("score_"):]
+        accepted = []
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            event = json.loads(line)
+            data = event.get("data") or {}
+            if event.get("event") == "in.driving_command" and data.get("verdict") == "accepted":
+                accepted.append(float(data["acceleration"]))
+        decelerations = [-a for a in accepted if a < 0]
+        found[run] = {"file": path.relative_to(tree).as_posix(), "acceptedCommands": len(accepted),
+                      "strongestDecelerationMps2": round(max(decelerations), 3) if decelerations else None}
+    return found
 
 
 def sha256sums(tree: Path) -> str:
@@ -285,6 +308,8 @@ def main(argv: list[str] | None = None) -> int:
     _write(out / "analysis_039.generator.json",
            (json.dumps(reduced, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     _write(out / "drop_counts.json", (json.dumps(drops, indent=2) + "\n").encode("utf-8"))
+    _write(out / "commanded_deceleration.json",
+           (json.dumps(commanded_deceleration(args.session_tree), indent=2) + "\n").encode("utf-8"))
     _write(out / "SHA256SUMS", sha256sums(args.session_tree).encode("utf-8"))
     _write(out / "external-media.json",
            (json.dumps(media_manifest(args.session_tree), indent=2) + "\n").encode("utf-8"))

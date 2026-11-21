@@ -49,11 +49,11 @@
  * the rule set aside is diagnosis, never a verdict: the drop-rule decision of
  * 2026-11-21. On 2026-11-21 it was recorded that the condition on
  * ASM-DRIVING-005, the calibration of the simulated deceleration, bears on a
- * pass of VC-DRIVING-036 and VC-DRIVING-037 and not on a fail in runs in which
- * the candidate commands no braking: the deceleration calibration decision of
- * 2026-11-21. On 2026-11-21 the verification status of each requirement was set
- * from S1, as the requirements package records (the status decision of
- * 2026-11-21).
+ * pass of VC-DRIVING-036 and VC-DRIVING-037 and not on their fail in S1, in
+ * which no run of SC-DRIVING-012 holds a commanded deceleration beyond 0.53
+ * m/s²: the deceleration calibration decision of 2026-11-21. On 2026-11-21 the
+ * verification status of each requirement was set from S1, as the requirements
+ * package records (the status decision of 2026-11-21).
  *
  * The outcome vocabulary and the verdict map are this increment's own, with the
  * six literals of INC-DRIVING-001's. The evidence record is one record per run,
@@ -1706,11 +1706,15 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      *
      * The condition on ASM-DRIVING-005, the calibration of the simulated
      * deceleration, that the claimBoundary of each run record states bears on a
-     * pass of this case and not on a fail in a run in which the candidate
-     * commands no braking: in S1 no driving command of a run of SC-DRIVING-012
-     * or SC-DRIVING-013 holds a deceleration of 1.0 m/s² or more, so the
-     * condition does not bear on the outcome of this case in S1 (the
-     * deceleration calibration decision of 2026-11-21).
+     * pass of this case and not on its fail in S1: it concerns how the
+     * simulated vehicle achieves a commanded deceleration, and the fails rest
+     * on the commanded values. In S1 no driving command that the actuation
+     * adapter accepted in a run of SC-DRIVING-012 holds a deceleration beyond
+     * 0.53 m/s²: the strongest is 0.46 and 0.53 m/s² in the two runs at 20
+     * km/h, 0.18 and 0.18 m/s² at 42 km/h, and 0.23 and 0.18 m/s² at 60 km/h
+     * (rounded to two decimals; commanded_deceleration.json of the evidence
+     * directory), so the condition does not bear on the outcome of this case in
+     * S1 (the deceleration calibration decision of 2026-11-21).
      *
      * Scenarios: SC-DRIVING-012 (AssistanceScenarioIdentity::stationaryTarget)
      * and SC-DRIVING-013 (AssistanceScenarioIdentity::slowerTarget). Settings:
@@ -2119,11 +2123,15 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      *
      * The condition on ASM-DRIVING-005, the calibration of the simulated
      * deceleration, that the claimBoundary of each run record states bears on a
-     * pass of this case and not on a fail in a run in which the candidate
-     * commands no braking: in S1 no driving command of a run of SC-DRIVING-012
-     * or SC-DRIVING-013 holds a deceleration of 1.0 m/s² or more, so the
-     * condition does not bear on the outcome of this case in S1 (the
-     * deceleration calibration decision of 2026-11-21).
+     * pass of this case and not on its fail in S1: it concerns how the
+     * simulated vehicle achieves a commanded deceleration, and the fails rest
+     * on the commanded values. In S1 no driving command that the actuation
+     * adapter accepted in a run of SC-DRIVING-012 holds a deceleration beyond
+     * 0.53 m/s²: the strongest is 0.46 and 0.53 m/s² in the two runs at 20
+     * km/h, 0.18 and 0.18 m/s² at 42 km/h, and 0.23 and 0.18 m/s² at 60 km/h
+     * (rounded to two decimals; commanded_deceleration.json of the evidence
+     * directory), so the condition does not bear on the outcome of this case in
+     * S1 (the deceleration calibration decision of 2026-11-21).
      *
      * Scenarios: SC-DRIVING-012 (AssistanceScenarioIdentity::stationaryTarget)
      * and SC-DRIVING-013 (AssistanceScenarioIdentity::slowerTarget). Settings:

@@ -127,6 +127,14 @@ def _session_tree(root: Path) -> Path:
         "[INFO]  starting\n[INFO]  [DE4SDV] warm start before the attach: 2 passes, result yes, 686.2 ms\n"
         "[INFO]  attached\n", encoding="utf-8")
     _world(tree, "stop", [round(29.9 + 0.05 * k, 6) for k in range(41)], reason="run cap")
+    for run, commands in {"012_20_r1": [("accepted", 1.5), ("accepted", -0.4129), ("rejected", -3.0),
+                                         ("accepted", -0.2)],
+                          "stop": [("accepted", 0.5), ("accepted", 0.00003)]}.items():
+        adapter = tree / "score" / "out" / f"score_{run}" / "score_side" / "run" / "score" / "actuationAdapter.jsonl"
+        lines = [{"event": "start", "data": {}}, {"event": "out.ackermann_control", "data": {"acceleration": -9.0}}]
+        lines += [{"event": "in.driving_command", "data": {"verdict": verdict, "acceleration": a}}
+                  for verdict, a in commands]
+        adapter.write_text("\n".join(json.dumps(e) for e in lines) + "\n", encoding="utf-8")
     (tree / "session.json").write_text(json.dumps({"session_id": "X"}), encoding="utf-8")
     (tree / "scenario_digests.json").write_text("{}", encoding="utf-8")
     (tree / "sim" / "out" / "chase_view.mp4").write_bytes(b"\x00video")
@@ -175,6 +183,19 @@ def test_the_drop_counts_refuse_a_run_whose_world_record_disagrees_with_its_end(
     end.unlink()
     with pytest.raises(ValueError, match="run_end.json"):
         tool.drop_counts(tree)
+
+
+def test_the_commanded_deceleration_is_the_strongest_that_the_adapter_accepted_in_each_run(tmp_path):
+    """The correction of 2026-11-21: the strongest commanded deceleration of each run, from the driving commands that
+    the actuation adapter accepted (in.driving_command, data.acceleration, verdict accepted); a rejected command and
+    the adapter's own control are no commanded deceleration, and a run with none says so."""
+    tool = _tool()
+    found = tool.commanded_deceleration(_session_tree(tmp_path))
+    assert found == {
+        "012_20_r1": {"file": "score/out/score_012_20_r1/score_side/run/score/actuationAdapter.jsonl",
+                      "acceptedCommands": 3, "strongestDecelerationMps2": 0.413},
+        "stop": {"file": "score/out/score_stop/score_side/run/score/actuationAdapter.jsonl", "acceptedCommands": 2,
+                 "strongestDecelerationMps2": None}}
 
 
 def test_the_checksums_cover_every_file_of_the_tree_by_its_relative_path(tmp_path):
@@ -248,7 +269,7 @@ def test_the_refresh_writes_every_derived_file_of_the_evidence_directory(tmp_pat
     assert rc == 0
     names = sorted(p.name for p in evidence.iterdir())
     assert names == ["README.md", "SHA256SUMS", "analysis_039.generator.json", "analysis_039.json",
-                     "drop_counts.json", "external-media.json", "records.json", "reproduction_044.json",
+                     "commanded_deceleration.json", "drop_counts.json", "external-media.json", "records.json", "reproduction_044.json",
                      "scenario_digests.json", "session.json", "verdicts.json"]
     assert json.loads((evidence / "external-media.json").read_text()) == tool.media_manifest(tree)
     assert (evidence / "analysis_039.json").read_bytes() == analysis.read_bytes(), "the full desk record, verbatim"
@@ -256,6 +277,7 @@ def test_the_refresh_writes_every_derived_file_of_the_evidence_directory(tmp_pat
     assert (evidence / "verdicts.json").read_bytes() == (eval_dir / "verdicts.json").read_bytes()
     assert "| VC-DRIVING-036 | REQ-DRIVING-036 |" in (evidence / "README.md").read_text()
     assert json.loads((evidence / "drop_counts.json").read_text()) == tool.drop_counts(tree)
+    assert json.loads((evidence / "commanded_deceleration.json").read_text()) == tool.commanded_deceleration(tree)
     # a second run changes nothing
     before = {p.name: p.read_bytes() for p in evidence.iterdir()}
     assert tool.main(["--eval-dir", str(eval_dir), "--analysis-039", str(analysis), "--reproduction-044",
