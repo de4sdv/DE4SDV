@@ -100,11 +100,11 @@ def _world(tree: Path, run: str, run_ticks: list[float], settle: int = 10, hold:
                                         encoding="utf-8")
 
 
-#: the images of the synthetic run 012_20_r1: every 0.1 s from 10.0 s to 19.9 s, and the drops among them: four in
-#: the first 5 s after the first image, one isolated inside the run, one isolated after the run's last tick and
+#: the images of the synthetic run 012_20_r1: every 0.1 s from 10.0 s to 19.9 s, and the drops among them: five in
+#: the first 5 s after the first image (one of them 4.5 s after it), one isolated inside the run, one isolated after the run's last tick and
 #: three in the last second of the image stream, which goes on after the run's end
 IMAGES = [round(10.0 + 0.1 * k, 6) for k in range(100)]
-DROPS = [10.0, 10.1, 10.2, 13.0, 16.0, 18.5, 19.6, 19.7, 19.8]
+DROPS = [10.0, 10.1, 10.2, 13.0, 14.5, 16.0, 18.5, 19.6, 19.7, 19.8]
 RUN_TICKS = [round(9.9 + 0.05 * k, 6) for k in range(143)]          # 9.9 s to 17.0 s
 
 
@@ -154,13 +154,13 @@ def test_the_drop_counts_state_where_in_each_run_the_images_drop(tmp_path):
     assert sorted(counts) == ["012_20_r1", "stop"]
     assert counts["012_20_r1"] == {
         "file": "score/out/score_012_20_r1/score_side/run/score/score_interface.jsonl",
-        "received": 100, "dropped": 9, "firstImageSimS": 10.0, "lastImageSimS": 19.9,
-        "droppedInFirst5s": 4, "droppedAtStreamEnd": 3, "streamEndDropsWithinS": 0.3, "isolatedDropsS": [6.0, 8.5],
+        "received": 100, "dropped": 10, "firstImageSimS": 10.0, "lastImageSimS": 19.9,
+        "droppedInFirst5s": 5, "droppedAtStreamEnd": 3, "streamEndDropsWithinS": 0.3, "isolatedDropsS": [6.0, 8.5],
         "runEnd": {"file": "sim/out/world_012_20_r1/simulator/run_end.json", "endReason": "contact with the target",
                    "ticks": 143, "tickTimesFile": "sim/out/world_012_20_r1/simulator/tick_times.csv",
                    "ticksAfterRunEnd": 20},
         "wholeRunWindow": {"file": "sim/out/world_012_20_r1/simulator/world.jsonl", "firstTickSimS": 9.9,
-                           "lastTickSimS": 17.0, "dropped": 5, "isolatedDropsS": [6.0]},
+                           "lastTickSimS": 17.0, "dropped": 6, "isolatedDropsS": [6.0]},
         "warmStart": {"file": "score/out/score_012_20_r1/score_side/state/launch_manager.log", "passes": 2,
                       "result": "yes", "ms": 686.2},
     }
