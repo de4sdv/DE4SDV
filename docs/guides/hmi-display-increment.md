@@ -11,14 +11,17 @@ the owner decided on 2026-11-17 to use it for the speed and the warning. This
 increment asks whether the HMI display of the VisionPilot configuration can do
 both, and holds what it shows against what the application gives.
 
-**Status: Phase 0 framing and Phase 1 concerns, proposal.** No implementation,
-run, result, product-line admission or compliance is claimed.
+**Status: Phase 0 framing, Phase 1 concerns and Phase 2 operational context,
+proposal.** No implementation, run, result, product-line admission or
+compliance is claimed.
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/hmi/hmi_display_framing.sysml):
   `INC-HMI-001`, its engineering question, charter, scope, assumptions,
   open gaps and Phase 1 concerns.
+- [SysML operational context](../../textual-notation-of-model/packages/features/hmi/hmi_display_operational_context.sysml):
+  the Phase 2 context of the HMI display and its story of six scenarios.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/hmi/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/hmi/upstream.md)
@@ -83,8 +86,8 @@ items, held by the parties whose interest it states. The driver, a vehicle
 occupant, holds the operational concern beside the engineering roles. Each
 concern is typed by the SAF concern that asks its question, the product-line
 question by the method's classification concern, and its text names the view
-of a later phase that answers it. The framing viewpoint frames all nine until
-those views exist.
+of a later phase that answers it. The framing viewpoint frames all nine, and a
+view of a later phase that answers a concern frames it as well.
 
 - **What the driver sees:** `hmiDriverSupervisionConcern`. What the driving
   application perceives, its lane, the path it fits to that lane and the
@@ -146,6 +149,57 @@ those views exist.
 The Phase 1 gates check that each concern has native stakeholders and a frame,
 and that one concern is not the boundary concern. They do not judge whether
 the stakeholder, risk and viewpoint coverage is adequate; review does.
+
+## Operational context and story (Phase 2)
+
+Phase 2 draws the boundary that Phase 0 states and does not move it. One
+operational context holds the HMI display as a black box: what it shows and
+where, the app in the IVI VM that draws the scene, the high availability
+renderer in an SDV Media VM, and the paths from the SDV Core VM to both. Around
+it: the candidate application of the driver-assistance increment, which gives
+its scene and its warning request; the Eclipse S-CORE path, which carries the
+warning request; the vehicle, which gives its speed; and the driver, who only
+receives. Nothing flows back to the candidate. The road, the vehicle targets
+and the simulator reach the display only as the candidate perceives them, so
+the context draws no part for them. The AAOS SDV guest lies across the
+boundary, so the context draws no part for it either, and an outage of Android
+in the IVI VM is an event inside the black box. CARLA, the cloud hosts, the
+scenario runner, the means that make Android in the IVI VM hang, end and
+restart, the record of what the candidate gives, the captures, the evaluators
+and the recordings stay in `hmiDisplayVerificationEnvironment`.
+
+The context reuses the elements of the driver-assistance increment by
+reference: it types its parts and items with `DriverAssistanceSystem`,
+`SCORECommandAndWarningPath`, `VehicleSpeed`, `WarningRequest` and
+`CollisionWarning`, each imported singly, and declares only the scene
+(`PerceivedScene`) and what the display shows (`HmiDisplayContent`). Phase 2
+places the source of the vehicle speed at the vehicle; which element of
+System 1 carries it to the SDV Core VM, and on which path the scene leaves the
+candidate's process (`gapHmiSceneOutput`), stay open.
+
+The story holds six scenarios. Two are the scenarios of the driver-assistance
+increment as the driver sees them on the display, each tied to them by a
+dependency and none restating them: `SC-HMI-001` the warning scenarios
+`SC-DRIVING-012` and `SC-DRIVING-013`, with the scene, the speed and the
+collision warning on the display and as a sound, and `SC-HMI-002` the
+no-reaction scenarios `SC-DRIVING-014` and `SC-DRIVING-015`, with the scene and
+the speed and no warning. Four add an outage in the IVI VM to them:
+`SC-HMI-003` the app that draws the scene ends or hangs, `SC-HMI-004` Android
+in the IVI VM boots, `SC-HMI-005` it hangs with its last frame on the display,
+and `SC-HMI-006` it restarts. In each the driver sees the speed and the
+warning, or the fact that the warning is unavailable, and the display shows no
+element as current when it is not. The display shows what the candidate
+perceives, never the simulator's record of the scene. The story states the aim
+of the engineering question; whether the display achieves it is the verdict of
+Phase 10. The criteria, the age from which an element counts as late and how
+the time that the driver-assistance increment allots from the warning request
+to each mode divides (`gapHmiWarningPresentation`) are fixed with the
+requirements in Phase 5. No human-factors, timing, safety or compliance claim
+is made.
+
+The context view frames `hmiDisplayContextConcern`. The story view frames
+`hmiDisplayStoryConcern` and the Phase 1 concern `hmiDriverSupervisionConcern`,
+which the story answers.
 
 ## What the framing already records as open
 
@@ -226,10 +280,12 @@ ASIL certification, and this increment certifies nothing.
 
 Use the Method Check of the reviewed pull request to select the next
 obligation, not the phase number alone. The next model obligation is **Phase
-2**, the operational context: exactly one context holding the HMI display,
-with a story whose use cases bind it and the context actors. Phase 2 draws the
-boundary that Phase 0 states. On 2026-11-21 the owner decided that the
-increment goes on without waiting for Phase 10 of the driver-assistance
+3**, the capability classification, which review judges: which content of the
+display is common to the member products and which derives from a member's
+driving application. With no characteristic recorded, the one blocking check of
+Phase 3 has nothing to evaluate, so the Method Check lists Phase 3 as vacuous
+and names its next obligation in Phase 4. On 2026-11-21 the owner decided that
+the increment goes on without waiting for Phase 10 of the driver-assistance
 increment. Phase 3 and later phases wait for the revision of the governed
 scope, which waits for the baseline of the driver-assistance increment, so
 that it does not move the product-line receipt to which the configuration of
