@@ -706,19 +706,19 @@ package DE4SDV_DriverAssistanceFraming {
      * target's speed and no collision became imminent; the second run at 30
      * km/h and both runs at 60 km/h have no functional part and are not judged.
      * VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041, VC-DRIVING-043 and
-     * VC-DRIVING-044 inconclusive: every run drops 23 or 24 camera images in
-     * the first 5 s after its first image, and by the rule of phase 8 no run
-     * whose judged window holds a dropped image is judged; for these cases the
-     * window is the whole run. Read with that rule set aside, for diagnosis
-     * only and as no verdict, VC-DRIVING-038 and VC-DRIVING-044 meet their
-     * criteria in all 14 runs, and VC-DRIVING-040, VC-DRIVING-041 and
-     * VC-DRIVING-043 in the runs of SC-DRIVING-012 and SC-DRIVING-013.
-     * VC-DRIVING-039 a pass, by a desk analysis of the realization in an
-     * independent agent session, within its bounds: a loss of a driving command
-     * shows only when a later command arrives, a delay of up to 0.1 s of
-     * simulation time goes unseen, and the second slice of phase 10 corrects
-     * the realization's sentence about later valid commands to what the check
-     * value catches.
+     * VC-DRIVING-044 inconclusive: each of the 14 runs and the run that stops
+     * the path drops 23 or 24 camera images in the first 5 s after its first
+     * image, and by the rule of phase 8 no run whose judged window holds a
+     * dropped image is judged; for these cases the window is the whole run.
+     * Read with that rule set aside, for diagnosis only and as no verdict,
+     * VC-DRIVING-038 and VC-DRIVING-044 meet their criteria in all 14 runs, and
+     * VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-043 in the runs of
+     * SC-DRIVING-012 and SC-DRIVING-013. VC-DRIVING-039 a pass, by a desk
+     * analysis of the realization in an independent agent session, within its
+     * bounds: a loss of a driving command shows only when a later command
+     * arrives, a delay of up to 0.1 s of simulation time goes unseen, and the
+     * second slice of phase 10 corrects the realization's sentence about later
+     * valid commands to what the check value catches.
      *
      * The runs of SC-DRIVING-014 and SC-DRIVING-015 lie outside the candidate's
      * declared operating conditions and are reported apart: no run of either
@@ -729,9 +729,12 @@ package DE4SDV_DriverAssistanceFraming {
      * (counterClaimNoTuningToPass). The additions named from the requirements
      * that fail and from the gaps of this increment: by the decision of
      * 2026-11-21, a warning and an emergency braking for a stationary vehicle
-     * ahead in its lane, and a camera path that keeps every image from a run's
-     * first image on, so that the criteria over every run can be judged; the
-     * increment builds none of them.
+     * ahead in its lane, a camera path that keeps every image from a run's
+     * first image on, so that the criteria over every run can be judged, and
+     * for the stop clauses of VC-DRIVING-038 and VC-DRIVING-043 a judged window
+     * that ends at the stop instant or a camera input that stops with the
+     * candidate, since after the stop the interface drops the images that the
+     * candidate no longer takes; the increment builds none of them.
      *
      * Accepted as known limits, still open in this baseline: the verdicts of a
      * build with changes that upstream has not merged
@@ -749,13 +752,13 @@ package DE4SDV_DriverAssistanceFraming {
      * clearance (gapUpstreamContactAndRights), the display in the governed
      * scope and the acoustic warning (gapDriverHmiInProductLine), and the
      * readiness items that S1 leaves open: the candidate's cycle on the GPU of
-     * the S-CORE host, on which every run drops 23 or 24 camera images in the
-     * first 5 s after its first image and up to 2 more inside the run, with no
-     * cause shown, what S1 does not show of the start of the sound on the IVI
-     * guest, the showing of the results to the VisionPilot maintainers, and the
-     * bench item B1 for the next session, the end of the second runs of
-     * SC-DRIVING-013 after 62 ticks at the speed of the target
-     * (GAP-DRIVING-014).
+     * the S-CORE host, on which each of the 14 runs of SC-DRIVING-012 to
+     * SC-DRIVING-015 drops 23 or 24 camera images in the first 5 s after its
+     * first image and up to 2 more inside the run, with no cause shown, what S1
+     * does not show of the start of the sound on the IVI guest, the showing of
+     * the results to the VisionPilot maintainers, and the bench item B1 for the
+     * next session, the end of the second runs of SC-DRIVING-013 after 62 ticks
+     * at the speed of the target (GAP-DRIVING-014).
      *
      * No gap is withdrawn.
      *

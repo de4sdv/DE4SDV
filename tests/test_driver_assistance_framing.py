@@ -895,7 +895,8 @@ FILLS = (
     "0.2 m. Of SC-DRIVING-013, the first run at 30 km/h is judged and meets the three criteria, since the candidate "
     "settled at the target's speed and no collision became imminent; the second run at 30 km/h and both runs at 60 "
     "km/h have no functional part and are not judged. VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041, VC-DRIVING-043 "
-    "and VC-DRIVING-044 inconclusive: every run drops 23 or 24 camera images in the first 5 s after its first image, "
+    "and VC-DRIVING-044 inconclusive: each of the 14 runs and the run that stops the path drops 23 or 24 camera "
+    "images in the first 5 s after its first image, "
     "and by the rule of phase 8 no run whose judged window holds a dropped image is judged; for these cases the "
     "window is the whole run. Read with "
     "that rule set aside, for diagnosis only and as no verdict, VC-DRIVING-038 and VC-DRIVING-044 meet their "
@@ -909,11 +910,14 @@ FILLS = (
     "cases that read them, judge over the whole run and are inconclusive by the rule on dropped images",
     # 4 the additions
     "by the decision of 2026-11-21, a warning and an emergency braking for a stationary vehicle ahead in its lane, "
-    "and a camera path that keeps every image from a run's first image on, so that the criteria over every run can be "
-    "judged",
+    "a camera path that keeps every image from a run's first image on, so that the criteria over every run can be "
+    "judged, and for the stop clauses of VC-DRIVING-038 and VC-DRIVING-043 a judged window that ends at the stop "
+    "instant or a camera input that stops with the candidate, since after the stop the interface drops the images "
+    "that the candidate no longer takes",
     # 5 what GAP-DRIVING-014 holds after the second slice of phase 10
-    "the readiness items that S1 leaves open: the candidate's cycle on the GPU of the S-CORE host, on which every run "
-    "drops 23 or 24 camera images in the first 5 s after its first image and up to 2 more inside the run, with no "
+    "the readiness items that S1 leaves open: the candidate's cycle on the GPU of the S-CORE host, on which each of "
+    "the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops 23 or 24 camera images in the first 5 s after its first "
+    "image and up to 2 more inside the run, with no "
     "cause shown, what S1 does not show of the start of the sound on the IVI guest, the showing of the results to the "
     "VisionPilot maintainers, and the bench item B1 for the next session, the end of the second runs of "
     "SC-DRIVING-013 after 62 ticks at the speed of the target",
@@ -1242,17 +1246,34 @@ def test_the_baseline_states_where_the_images_drop_and_no_rate():
     judged = [counts[label] for label in JUDGED_RUN_LABELS]
     start = " or ".join(str(n) for n in sorted({c["droppedInFirst5s"] for c in judged}))
     inside = max(len(c["wholeRunWindow"]["isolatedDropsS"]) for c in judged)
-    assert f"every run drops {start} camera images in the first 5 s after its first image" in FILLS[2]
-    assert f"every run drops {start} camera images in the first 5 s after its first image and up to {inside} more " \
-           "inside the run, with no cause shown" in FILLS[5]
+    # the five inconclusive cases read the 14 runs and the run that stops the path; the steering calibration run
+    # (34 in its first 5 s) is read by none of them, so no sentence says "every run" (review P1 of 2026-11-21)
+    read = " or ".join(str(n) for n in sorted({c["droppedInFirst5s"] for c in judged + [counts["stop"]]}))
+    assert counts["calib_steer"]["droppedInFirst5s"] not in {c["droppedInFirst5s"] for c in judged}
+    assert (f"each of the 14 runs and the run that stops the path drops {read} camera images in the first 5 s after "
+            "its first image") in FILLS[2]
+    gpu = (f"on which each of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops {start} camera images in the "
+           f"first 5 s after its first image and up to {inside} more inside the run, with no cause shown")
+    assert gpu in FILLS[5]
+    # the stop clauses: after the stop the interface drops the images that the candidate no longer takes, so
+    # a camera path that keeps every image does not make them judgeable (review P3 of 2026-11-21)
+    assert counts["stop"]["droppedAtStreamEnd"] > 0 and counts["stop"]["lastImageSimS"] < counts["stop"][
+        "wholeRunWindow"]["lastTickSimS"], "the stop run's image stream ends, with drops, before its last world tick"
+    stop_clauses = ("for the stop clauses of VC-DRIVING-038 and VC-DRIVING-043 a judged window that ends at the stop "
+                    "instant or a camera input that stops with the candidate, since after the stop the interface "
+                    "drops the images that the candidate no longer takes")
     assert "a camera path that keeps every image from a run's first image on" in FILLS[4]
+    assert stop_clauses in FILLS[4]
     texts = {"framing": _flat(re.sub(r"(?m)^\s*\*\s?", "", _raw())), "guide": _flat(GUIDE.read_text(encoding="utf-8"))}
     for where, text in texts.items():
-        for retired in ("in 20", "one camera image in", "1 image in", "keeps every image, so that"):
+        for retired in ("in 20", "one camera image in", "1 image in", "keeps every image, so that",
+                        "every run drops", "Every run drops"):
             assert retired not in text, (where, retired)
     guide = texts["guide"]
-    assert (f"Every run drops {start} camera images in the first 5 s after its first image, and for the five "
-            "inconclusive cases the judged window is the whole run.") in guide
+    assert (f"Each of the 14 runs and the run that stops the path drops {read} camera images in the first 5 s after "
+            "its first image, and for the five inconclusive cases the judged window is the whole run.") in guide
+    assert gpu in guide
+    assert stop_clauses in guide
     # the guide's verdict table states the commanded deceleration, never "no braking" (the correction of 2026-11-21);
     # over the five judged runs the bound is 0.46 m/s² (test_the_five_judged_runs_of_sc_driving_012_...)
     assert ("| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no "

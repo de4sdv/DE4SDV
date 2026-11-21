@@ -1069,9 +1069,13 @@ framing view shows the decision beside the framing decision it answers.
   rule on dropped images. A fail is a recorded result, and no scenario,
   criterion or setting is changed for it. The additions named from the
   requirements that fail and from the gaps: by the decision of 2026-11-21, a
-  warning and an emergency braking for a stationary vehicle ahead in its lane,
-  and a camera path that keeps every image from a run's first image on, so that
-  the criteria over every run can be judged; the increment builds none of them.
+  warning and an emergency braking for a stationary vehicle ahead in its lane, a
+  camera path that keeps every image from a run's first image on, so that the
+  criteria over every run can be judged, and for the stop clauses of
+  VC-DRIVING-038 and VC-DRIVING-043 a judged window that ends at the stop
+  instant or a camera input that stops with the candidate, since after the stop
+  the interface drops the images that the candidate no longer takes; the
+  increment builds none of them.
 - **Known limits: accepted, still open.** `gapCandidateBehaviorUnverified`: S1
   gives the first closed-loop results of record of the candidate on the DE4SDV
   bench, and every verdict is of the build with the DE4SDV S-CORE interface
@@ -1092,12 +1096,12 @@ framing view shows the decision beside the framing decision it answers.
   rights clearance. `gapDriverHmiInProductLine`: the display in the governed
   scope and the acoustic warning. GAP-DRIVING-014: the readiness items that S1
   leaves open: the candidate's cycle on the GPU of the S-CORE host, on which
-  every run drops 23 or 24 camera images in the first 5 s after its first image
-  and up to 2 more inside the run, with no cause shown, what S1 does not show of
-  the start of the sound on the IVI guest, the showing of the results to the
-  VisionPilot maintainers, and the bench item B1 for the next session, the end
-  of the second runs of SC-DRIVING-013 after 62 ticks at the speed of the
-  target.
+  each of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops 23 or 24 camera
+  images in the first 5 s after its first image and up to 2 more inside the run,
+  with no cause shown, what S1 does not show of the start of the sound on the
+  IVI guest, the showing of the results to the VisionPilot maintainers, and the
+  bench item B1 for the next session, the end of the second runs of
+  SC-DRIVING-013 after 62 ticks at the speed of the target.
 - **Withdrawn.** None.
 
 | Case | Verdict | What S1 shows |
@@ -1116,12 +1120,12 @@ Of SC-DRIVING-012 the second run at 20 km/h is not judged (its center line 0.245
 m from the target's, the limit is 0.2 m). Of SC-DRIVING-013 the first run at 30
 km/h is judged and meets the criteria of VC-DRIVING-036, VC-DRIVING-037 and
 VC-DRIVING-042; the other three runs have no functional part and are not judged.
-Every run drops 23 or 24 camera images in the first 5 s after its first image,
-and for the five inconclusive cases the judged window is the whole run. Read
-with that rule set aside, for diagnosis only and as no verdict, VC-DRIVING-038
-and VC-DRIVING-044 meet their criteria in all 14 runs, and VC-DRIVING-040,
-VC-DRIVING-041 and VC-DRIVING-043 in the runs of SC-DRIVING-012 and
-SC-DRIVING-013.
+Each of the 14 runs and the run that stops the path drops 23 or 24 camera images
+in the first 5 s after its first image, and for the five inconclusive cases the
+judged window is the whole run. Read with that rule set aside, for diagnosis
+only and as no verdict, VC-DRIVING-038 and VC-DRIVING-044 meet their criteria in
+all 14 runs, and VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-043 in the runs
+of SC-DRIVING-012 and SC-DRIVING-013.
 
 No safety, on-road, compliance, type-approval, certification or membership
 claim follows from the baseline. A criterion met in simulation holds for the
