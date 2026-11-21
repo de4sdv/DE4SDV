@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1192" height="654" viewBox="0 0 1192 654" role="img" aria-labelledby="title description">
+  <title id="title">table-eeArchitectureNeedsView</title>
+  <desc id="description">table-eeArchitectureNeedsView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="1192" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-eeArchitectureNeedsView</text>
+  <rect x="0" y="54" width="112" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">ID</tspan>
+  </text>
+  <rect x="112" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">Need</tspan>
+  </text>
+  <rect x="472" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">Statement</tspan>
+  </text>
+  <rect x="832" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">Source</tspan>
+  </text>
+  <rect x="0" y="94" width="112" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-EE-001</tspan>
+  </text>
+  <rect x="112" y="94" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">needDrivingCommandReachesActuationOnEachRoute</tspan>
+  </text>
+  <rect x="472" y="94" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">Vehicle occupants and road users need the</tspan>
+    <tspan x="484" dy="20">vehicle network to carry the driving</tspan>
+    <tspan x="484" dy="20">command that the central computer gives to</tspan>
+    <tspan x="484" dy="20">the actuation ECU on each route of the</tspan>
+    <tspan x="484" dy="20">command, so that the actuation ECU applies</tspan>
+    <tspan x="484" dy="20">that command to the vehicle.</tspan>
+  </text>
+  <rect x="832" y="94" width="360" height="240" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">INC-EE-001 eeVehicleCommandConcern,</tspan>
+    <tspan x="844" dy="20">eeCommandRouteExchangeConcern,</tspan>
+    <tspan x="844" dy="20">eeTopologyStructureConcern, scope items</tspan>
+    <tspan x="844" dy="20">eeCommandFlowInScope,</tspan>
+    <tspan x="844" dy="20">eeCommandRouteInScope and</tspan>
+    <tspan x="844" dy="20">eeTopologyInScope, assumptions</tspan>
+    <tspan x="844" dy="20">asmEECommandFromDrivingBaseline and</tspan>
+    <tspan x="844" dy="20">asmEEScoreCommandSource, gaps</tspan>
+    <tspan x="844" dy="20">gapEEZoneRouteInVehicles and</tspan>
+    <tspan x="844" dy="20">gapEEStackAndNetworkBoundary, scenarios</tspan>
+    <tspan x="844" dy="20">SC-EE-001 and SC-EE-002</tspan>
+  </text>
+  <rect x="0" y="334" width="112" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-EE-002</tspan>
+  </text>
+  <rect x="112" y="334" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">needNoInvalidCommandApplied</tspan>
+  </text>
+  <rect x="472" y="334" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">Vehicle occupants and road users need the</tspan>
+    <tspan x="484" dy="20">vehicle network to apply to the vehicle no</tspan>
+    <tspan x="484" dy="20">driving command that a fault of the</tspan>
+    <tspan x="484" dy="20">network has made invalid on its way, on</tspan>
+    <tspan x="484" dy="20">each route of the command.</tspan>
+  </text>
+  <rect x="832" y="334" width="360" height="180" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="358" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">INC-EE-001 eeVehicleCommandConcern,</tspan>
+    <tspan x="844" dy="20">eeNetworkFaultResponseConcern,</tspan>
+    <tspan x="844" dy="20">eeCommandItemConcern, scope items</tspan>
+    <tspan x="844" dy="20">eeNetworkFaultsInScope and</tspan>
+    <tspan x="844" dy="20">eeCommandFlowInScope, assumption</tspan>
+    <tspan x="844" dy="20">asmEECommandFromDrivingBaseline, gap</tspan>
+    <tspan x="844" dy="20">gapEEActuationEnd, scenarios SC-EE-003 and</tspan>
+    <tspan x="844" dy="20">SC-EE-004</tspan>
+  </text>
+  <rect x="0" y="514" width="112" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">NEED-EE-003</tspan>
+  </text>
+  <rect x="112" y="514" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="124" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="124" dy="0">needRunsIdentifyRouteAndNetwork</tspan>
+  </text>
+  <rect x="472" y="514" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="484" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="484" dy="0">Verification engineers and product-line</tspan>
+    <tspan x="484" dy="20">engineers need each run of the vehicle</tspan>
+    <tspan x="484" dy="20">network to identify the route that carried</tspan>
+    <tspan x="484" dy="20">the driving command and the topology and</tspan>
+    <tspan x="484" dy="20">the revision of the network that ran, so</tspan>
+    <tspan x="484" dy="20">that each verdict is bound to what ran.</tspan>
+  </text>
+  <rect x="832" y="514" width="360" height="140" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="844" y="538" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="844" dy="0">INC-EE-001 eeRouteVerdictConcern, scope</tspan>
+    <tspan x="844" dy="20">item eeVerdictEvidenceInScope, assumption</tspan>
+    <tspan x="844" dy="20">asmEESoftwareTestbedStandsIn, gap</tspan>
+    <tspan x="844" dy="20">gapEERecordedCommandStream, scenarios SC-</tspan>
+    <tspan x="844" dy="20">EE-001 to SC-EE-004</tspan>
+  </text>
+</svg>

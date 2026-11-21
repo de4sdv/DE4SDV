@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="1454" viewBox="0 0 640 1454" role="img" aria-labelledby="title description">
+  <title id="title">table-eeArchitectureNeedValidationView</title>
+  <desc id="description">table-eeArchitectureNeedValidationView. Generated from SysIDE grid CSV.</desc>
+  <!-- Generated from SysIDE grid CSV; SysML remains authoritative. -->
+  <rect width="100%" height="100%" fill="#ffffff"/>
+  <rect x="0" y="0" width="640" height="54" fill="#172033"/>
+  <text x="12" y="34" font-family="Inter, Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff">table-eeArchitectureNeedValidationView</text>
+  <rect x="0" y="54" width="280" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">Plan</tspan>
+  </text>
+  <rect x="280" y="54" width="360" height="40" fill="#e8eef8" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="78" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">Review</tspan>
+  </text>
+  <rect x="0" y="94" width="280" height="580" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">commandOnEachRouteValidationPlan</tspan>
+  </text>
+  <rect x="280" y="94" width="360" height="580" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="118" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">For NEED-EE-001, a planned stakeholder</tspan>
+    <tspan x="292" dy="20">review. While the route through a zone</tspan>
+    <tspan x="292" dy="20">controller and the direct link run (SC-</tspan>
+    <tspan x="292" dy="20">EE-001 and SC-EE-002), can systems</tspan>
+    <tspan x="292" dy="20">engineers and verification engineers</tspan>
+    <tspan x="292" dy="20">confirm whether the command that the</tspan>
+    <tspan x="292" dy="20">actuation ECU applies on each route is the</tspan>
+    <tspan x="292" dy="20">command that the central computer gave?</tspan>
+    <tspan x="292" dy="20">Can system architects and systems</tspan>
+    <tspan x="292" dy="20">engineers tell, on each route, which</tspan>
+    <tspan x="292" dy="20">elements of the vehicle network exchange</tspan>
+    <tspan x="292" dy="20">the command on its way from the network</tspan>
+    <tspan x="292" dy="20">side of the central computer to the</tspan>
+    <tspan x="292" dy="20">actuation ECU, through the Ethernet</tspan>
+    <tspan x="292" dy="20">backbone and a zone controller or over the</tspan>
+    <tspan x="292" dy="20">direct link, and by which boundary</tspan>
+    <tspan x="292" dy="20">interface it enters the network from the</tspan>
+    <tspan x="292" dy="20">Eclipse S-CORE path? And can system</tspan>
+    <tspan x="292" dy="20">architects and product-line engineers tell</tspan>
+    <tspan x="292" dy="20">which elements make up the one topology</tspan>
+    <tspan x="292" dy="20">that holds both routes, in which role each</tspan>
+    <tspan x="292" dy="20">is used and what its relation to the</tspan>
+    <tspan x="292" dy="20">platform stack and to the vehicle network</tspan>
+    <tspan x="292" dy="20">boundary of the AAOS SDV middleware is</tspan>
+    <tspan x="292" dy="20">(gapEEStackAndNetworkBoundary), and judge</tspan>
+    <tspan x="292" dy="20">from that whether the product line admits</tspan>
+    <tspan x="292" dy="20">this topology as its reference vehicle</tspan>
+    <tspan x="292" dy="20">network?</tspan>
+  </text>
+  <rect x="0" y="674" width="280" height="560" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">networkFaultValidationPlan</tspan>
+  </text>
+  <rect x="280" y="674" width="360" height="560" fill="#f6f8fb" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="698" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">For NEED-EE-002, a planned stakeholder</tspan>
+    <tspan x="292" dy="20">review. While a command fault on the route</tspan>
+    <tspan x="292" dy="20">and a link that goes down run (SC-EE-003</tspan>
+    <tspan x="292" dy="20">and SC-EE-004), can verification engineers</tspan>
+    <tspan x="292" dy="20">and safety experts confirm whether the</tspan>
+    <tspan x="292" dy="20">actuation ECU applied any command that was</tspan>
+    <tspan x="292" dy="20">lost, delayed, repeated or corrupted on</tspan>
+    <tspan x="292" dy="20">its way, or kept applying a command after</tspan>
+    <tspan x="292" dy="20">a link of its route went down, and whether</tspan>
+    <tspan x="292" dy="20">a response followed when no valid command</tspan>
+    <tspan x="292" dy="20">reached it, and which? Can safety experts</tspan>
+    <tspan x="292" dy="20">and systems engineers follow, for each</tspan>
+    <tspan x="292" dy="20">fault of the vehicle network on the route</tspan>
+    <tspan x="292" dy="20">of the command, the sequence from the</tspan>
+    <tspan x="292" dy="20">fault to its detection at the actuation</tspan>
+    <tspan x="292" dy="20">and to the response that follows there,</tspan>
+    <tspan x="292" dy="20">independent of the elements that realize</tspan>
+    <tspan x="292" dy="20">it? And can systems engineers and safety</tspan>
+    <tspan x="292" dy="20">experts tell which exchange item carries</tspan>
+    <tspan x="292" dy="20">the command on each part of its way, on</tspan>
+    <tspan x="292" dy="20">the Ethernet backbone, through a zone</tspan>
+    <tspan x="292" dy="20">controller and on CAN, and whether each</tspan>
+    <tspan x="292" dy="20">keeps the parts of the command by which</tspan>
+    <tspan x="292" dy="20">the actuation detects its loss, delay,</tspan>
+    <tspan x="292" dy="20">repetition or corruption, including where</tspan>
+    <tspan x="292" dy="20">a zone controller repacks it from Ethernet</tspan>
+    <tspan x="292" dy="20">to CAN?</tspan>
+  </text>
+  <rect x="0" y="1234" width="280" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="12" y="1258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700" fill="#172033" text-anchor="start">
+    <tspan x="12" dy="0">runIdentityValidationPlan</tspan>
+  </text>
+  <rect x="280" y="1234" width="360" height="220" fill="#ffffff" stroke="#9aa7b8" stroke-width="1"/>
+  <text x="292" y="1258" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="400" fill="#172033" text-anchor="start">
+    <tspan x="292" dy="0">For NEED-EE-003, a planned stakeholder</tspan>
+    <tspan x="292" dy="20">review. While the route through a zone</tspan>
+    <tspan x="292" dy="20">controller, the direct link, a command</tspan>
+    <tspan x="292" dy="20">fault on the route and a link that goes</tspan>
+    <tspan x="292" dy="20">down run (SC-EE-001 to SC-EE-004), can</tspan>
+    <tspan x="292" dy="20">verification engineers and product-line</tspan>
+    <tspan x="292" dy="20">engineers tell from each run which route</tspan>
+    <tspan x="292" dy="20">carried the command and which topology and</tspan>
+    <tspan x="292" dy="20">revision of the vehicle network ran, and</tspan>
+    <tspan x="292" dy="20">whether each verdict is bound to them?</tspan>
+  </text>
+</svg>
