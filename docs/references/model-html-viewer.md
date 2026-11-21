@@ -105,14 +105,14 @@ refreshing the browser is the complete workflow.
 The published viewer shows committed content only (never a local working
 tree). The recommended setup: GitHub Pages + the included deploy workflow
 (`.github/workflows/deploy-viewer.yml`) behind a custom domain such as
-`viewer.de4sdv.org`. On every push to `main` (plus weekly and manual
-runs) the workflow checks out all branches and PR heads, generates the
-site with `--public --refs auto` — root labeled with the plain branch
-name, one sub-site per branch and open PR, PR labels from `gh` — runs the
-repository gates, and deploys. Collaborators open the URL and pick any
-revision from the header picker; everything is prebuilt, so no server is
-involved. Domain setup: `CNAME viewer → de4sdv.github.io` in the DNS
-zone, then set the custom domain in the Pages settings.
+`viewer.de4sdv.org`. On every push to `main` (plus manual runs) the
+workflow generates the site of the pushed branch with
+`--public --no-prs`, runs the repository gates, and deploys. It builds no
+other revision: Pages refuses a site whose uncompressed artifact is over
+10 GiB, and one sub-site per branch and open PR passed that limit.
+Everything is prebuilt, so no server is involved; other revisions open in
+the local server. Domain setup: `CNAME viewer → de4sdv.github.io` in the
+DNS zone, then set the custom domain in the Pages settings.
 
 ## Implementation
 

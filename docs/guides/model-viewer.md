@@ -166,10 +166,11 @@ filters.
 ### Revision picker (branches and pull requests)
 
 Every page header has a **Revision** picker. It lists the working tree, `main`,
-and any branches or open pull requests that were built. In server mode,
-unbuilt revisions are built on demand when you select them (a progress overlay
-shows while building). The picker is disabled (with the reason shown) for
-revisions that were not built; published sites list all open PR heads.
+and any branches or open pull requests that were built. In server mode, unbuilt
+revisions are built on demand when you select them (a progress overlay shows
+while building). The picker is disabled (with the reason shown) for revisions
+that were not built. The published mirror is built from `main` alone, so its
+picker lists `main` only.
 
 ### Fullscreen diagrams
 

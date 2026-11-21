@@ -12,14 +12,17 @@ asks whether the path of a driving command keeps, across that network, the
 properties that the model asks of the command paths of earlier increments. It
 judges two routes: through a zone controller, and over a direct link.
 
-**Status: Phase 0 framing proposal.** No implementation, run, result,
+**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and
+Phase 3 capability classification, proposal.** No implementation, run, result,
 product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/ee/ee_architecture_framing.sysml):
-  `INC-EE-001`, its engineering question, charter, scope, assumptions and
-  open gaps.
+  `INC-EE-001`, its engineering question, charter, scope, assumptions,
+  open gaps and Phase 1 concerns.
+- [SysML operational context](../../textual-notation-of-model/packages/features/ee/ee_architecture_operational_context.sysml):
+  the Phase 2 context of the vehicle network and its story of four scenarios.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/ee/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/ee/upstream.md):
@@ -90,6 +93,130 @@ most ten requirements. Phase 5 derives those requirements from the needs of
 Phase 4 and from REQ-DRIVING-028, REQ-DRIVING-039 and REQ-MW-006. A time limit
 of a requirement counts on the clock of the virtual vehicle, and a verdict on
 it is no timing claim for a vehicle network.
+
+## Concerns (Phase 1)
+
+A verdict is only useful if it answers the questions of the people who rely on
+it. Phase 1 names those questions: one concern per question of the in-scope
+items, held by the parties whose interest it states. The vehicle occupants and
+the road users hold their own concern beside the engineering roles. Each
+concern is typed by the SAF concern that asks its question, and its text names
+the view of a later phase that answers it. The framing viewpoint frames all
+six, and a view of a later phase that answers a concern frames it as well.
+
+- **The driving command, operational part:** `eeVehicleCommandConcern`. The
+  vehicle acts on the driving command that its central computer gives,
+  whichever route the command takes, and on no command that a fault of the
+  network has made invalid. No safety, timing or performance claim for a
+  vehicle network follows from it. Operational capability; vehicle occupants
+  and road users. Answered by the operational story of Phase 2.
+- **The topology:** `eeTopologyStructureConcern`. Which elements make up the
+  one topology, and the role of each: the network side of the central
+  computer, the backbone, the two zone controllers as gateways to CAN, the CAN
+  bus of each zone, the direct link and the actuation ECU. The lifecycle
+  decision is whether the product line admits this topology as its reference
+  vehicle network. Physical structure; system architects and product-line
+  engineers. Answered by the physical structure definition of Phase 8.
+- **The command on the network:** `eeCommandItemConcern`. Which exchange item
+  carries the command on the backbone, through a zone controller and on CAN,
+  and whether each keeps the parts of the command by which the actuation
+  detects its loss, delay, repetition or corruption. The form of the command
+  is the one that the driver-assistance increment fixes at its baseline.
+  Physical-logical item mapping; systems engineers and safety experts.
+  Answered by the view of the claimed path in Phase 8.
+- **The two routes:** `eeCommandRouteExchangeConcern`. Which elements exchange
+  the command on each route, through a zone controller or over the direct
+  link, and the boundary interface by which it enters the network from the
+  Eclipse S-CORE path. Neither route is taken as given. Physical internal
+  exchange; system architects and systems engineers. Answered by the view of
+  the claimed path in Phase 8.
+- **Faults of the network:** `eeNetworkFaultResponseConcern`. The sequence
+  from each fault on the route, a link that goes down or a command lost,
+  delayed, repeated or corrupted, to its detection at the actuation and the
+  response there, independent of the elements that realize it. System process;
+  safety experts and systems engineers. Answered by the system process of
+  Phase 6.
+- **Verdicts:** `eeRouteVerdictConcern`. A pass or a fail for each requirement
+  on each route, bound to the route, the topology, the configuration and the
+  revision that ran. A verdict holds for the software testbed only and is no
+  timing claim for a vehicle network. Argumentation assurance; product-line
+  engineers and verification engineers. Answered in Phase 10.
+
+The Phase 1 gates check that each concern has native stakeholders and a frame,
+and that one concern is not the boundary concern. They do not judge whether
+the stakeholder, risk and viewpoint coverage is adequate; review does.
+
+## Operational context and story (Phase 2)
+
+Phase 2 draws the boundary that Phase 0 states and does not move it. One
+operational context holds the vehicle network as a black box. Inside the
+vehicle network: the network side of the central computer, the Ethernet
+backbone, the two zone controllers, a CAN bus in each zone, the direct link
+and the actuation ECU. Around it: the source of the driving command
+(`DrivingCommandSource`), the Eclipse S-CORE path and the vehicle, which takes
+the applied command and sends nothing back. The command crosses the boundary
+once in, from the S-CORE path, and once out, to the vehicle. The central
+computer lies across the boundary, so the context draws no part for it. The
+testbed, the replay, the fault injection, the vehicle model, the records and
+the evaluators stay in `eeVerificationEnvironment`.
+
+It imports two names of the operational context of the driver-assistance
+increment, `DrivingCommand` and `SCORECommandAndWarningPath`: names, not the
+form of the command. The form and the cadence of the command are those that
+the driver-assistance increment fixes at its baseline
+(`asmEECommandFromDrivingBaseline`).
+
+The story holds four scenarios. `SC-EE-001` carries the command through a zone
+controller, `SC-EE-002` over the direct link, `SC-EE-003` covers a command
+that is lost, delayed, repeated or corrupted on either route, and `SC-EE-004`
+a link of the route that goes down, after which the vehicle gets the stop
+response. The stop response comes from the engineering question and
+REQ-DRIVING-028 of the closed-loop driving increment, not from the
+driver-assistance increment, whose adapter has no stop response
+(`gapEEActuationEnd`). The criteria and their limits are fixed with the
+requirements in Phase 5, and the verdict for each route comes from Phase 10.
+No timing, safety or compliance claim for a vehicle network is made.
+
+The context view frames `eeArchitectureContextConcern`. The story view frames
+`eeArchitectureStoryConcern` and the Phase 1 concern
+`eeVehicleCommandConcern`, which the story answers.
+
+## Capability classification (Phase 3)
+
+The increment adds no characteristic that distinguishes member products. Its
+[capability classification](../../textual-notation-of-model/packages/features/ee/ee_architecture_capability_classification.sysml)
+records no feature candidate and no deferred scope. Core elements are common
+by default and get no record.
+
+- **The topology:** one topology for one configuration; a second topology and
+  any E/E variability are out of scope, and no member of the product line
+  holds a vehicle network.
+- **The two routes:** a design alternative inside that topology; the increment
+  judges both, and its lifecycle decision names the route of the reference
+  vehicle network. No member differs by its route.
+- **The driving command and its source:** the command is that of the
+  driver-assistance increment, and what gives it is that increment's to
+  classify; Eclipse S-CORE is a feature of the feature model. The command
+  source, the S-CORE path and the vehicle get no feature from this increment.
+- **Faults, verdicts and the medium of the direct link:** requirements and
+  evidence of Phases 5 and 10 and a choice of Phases 6 to 8, none of them a
+  feature. **The vehicle-target compute family:** the deferred vehicle runtime
+  variability of the governed scope; the increment selects no compute target.
+- **Scope decisions** (`gapEENetworkInProductLine`): whether the governed
+  scope takes the reference vehicle network as common content, what that means
+  for the AEBS emergency path and the brake hand-off, and whether later
+  topologies enter the scope as deferred variability, are open for the
+  lifecycle decision. This increment admits nothing.
+- **The platform stack and the network boundary**
+  (`gapEEStackAndNetworkBoundary`): they get no feature from this increment.
+  How the network side of the central computer relates to the SoC and the
+  hardware layer of the platform stack is open for Phases 6 to 8, and whether
+  Phase 8 allocates a node of the network to the vehicle-target family is open
+  for Phase 8.
+
+The one blocking check of Phase 3 evaluates the characteristics recorded, and
+this phase records none, so the Method Check reports Phase 3 as having nothing
+to evaluate. Review judges the classification.
 
 ## What the framing already records as open
 
@@ -194,12 +321,15 @@ containment criteria and any freedom-from-interference claim stay open.
 ## Next obligation and execution limits
 
 Use the Method Check of the reviewed pull request to select the next
-obligation, not the phase number alone. The framing's boundary concern does
-not open Phase 1. The next model obligation is **Phase 1 concern framing**: at
-least one concern of the engineering scope, held by the parties whose interest
-it states. The later phases of this increment depend on the baseline of the
-driver-assistance increment, whose driving command it carries, and start on a
-further decision of the owner.
+obligation, not the phase number alone. Phase 3, the capability
+classification, records no feature-model delta, and review judges it: its one
+blocking check has nothing to evaluate, so the Method Check lists Phase 3 as
+vacuous, with a prompt for review. The owner decided on 2026-11-18 to carry
+out Phases 1 to 3 of this increment before the baseline of the
+driver-assistance increment, whose driving command it carries. The next model
+obligation is **Phase 4**, the needs. Phase 4 onward and the testbed with its
+readiness probe wait for that baseline and for a further decision of the
+owner.
 
 The testbed is chosen after a readiness probe. Before a paid cloud run,
 refresh the regional price, the capacity and the available credit, obtain the

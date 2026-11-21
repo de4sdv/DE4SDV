@@ -962,6 +962,92 @@ def test_mixed_derived_realizations_are_not_admitted():
     assert result["reasons"] == ["realizes more than one admitted alternative: aaosIntegrated, standalone"]
 
 
+def shared_realization_admissions(family: str | None = None) -> dict[str, dict]:
+    """Admission of a synthetic line where one hypervisor choice realizes two admitted alternatives.
+
+    ``kvm`` corresponds to ``aaosIntegrated`` and ``scoreIntegrated``; each
+    middleware choice narrows to one alternative, and ``sharedMiddleware``
+    represents a common element and narrows nothing. ``family`` names an
+    alternative that the feature family as a whole corresponds to.
+    """
+    graph = PlemlGraph()
+    tree = graph.tree_definition("IntegrationTree")
+    platform = graph.feature(tree, "platform", (1, 1))
+    members = {"middleware": ("scoreMiddleware", "aaosMiddleware", "noMiddleware", "sharedMiddleware"),
+               "hypervisor": ("kvm", "noHypervisor")}
+    f = {}
+    for group, choices in members.items():
+        f[group] = graph.feature(platform, group, (1, 1))
+        for choice in choices:
+            f[choice] = graph.feature(platform, choice, (0, 1), subsets=f[group])
+    model = graph.feature_model("IntegrationFeatureModel", tree_definition=tree)
+    scope = graph.governed_scope({"alternatives": ("standalone", "aaosIntegrated", "scoreIntegrated"),
+                                  "common_core": ("middlewareBaseline",), "reference_only": (), "deferred": (),
+                                  "excluded_system2": (), "derived_realization": ()})
+    for feature, governed in (("kvm", "aaosIntegrated"), ("kvm", "scoreIntegrated"),
+                              ("scoreMiddleware", "scoreIntegrated"), ("aaosMiddleware", "aaosIntegrated"),
+                              ("noMiddleware", "standalone"), ("noHypervisor", "standalone"),
+                              ("sharedMiddleware", "middlewareBaseline")):
+        graph.correspondence(f[feature], scope[governed])
+    if family is not None:
+        graph.correspondence(tree, scope[family])
+    for name, middleware in (("score", "scoreMiddleware"), ("aaos", "aaosMiddleware"),
+                             ("sharedOnly", "sharedMiddleware"), ("sharedAndStandalone", "noMiddleware")):
+        stack = graph.setting(graph.configuration(model, name, tree), platform, (1, 1))
+        for group, choice in (("middleware", middleware), ("hypervisor", "kvm")):
+            graph.reference_value(graph.setting(stack, f[group], (1, 1)), [graph.setting(stack, f[choice], (1, 1))])
+    (evaluated,) = graph.evaluate()["feature_models"]
+    assert [item["valid"] for item in evaluated["configurations"]] == [True] * 4
+    return {item["configuration"]: item["admission"] for item in evaluated["configurations"]}
+
+
+def test_a_shared_realization_narrowed_to_one_alternative_is_admitted_as_that_alternative():
+    """ADR 0023 decision 4: a configuration realizes the one alternative that all its selected choices with
+    an alternative correspondence have in common, so the middleware choice narrows the shared ``kvm``."""
+    score = shared_realization_admissions()["score"]
+    assert (score["admitted"], score["alternative"], score["reasons"]) == (True, "scoreIntegrated", [])
+    # The record keeps the per-alternative paths of every alternative correspondence.
+    assert score["alternatives_realized"] == {"aaosIntegrated": ["platform.kvm"],
+                                              "scoreIntegrated": ["platform.scoreMiddleware", "platform.kvm"]}
+
+
+def test_a_shared_realization_narrowed_by_the_aaos_middleware_is_admitted_as_aaos_integrated():
+    """The same shared ``kvm`` with the middleware choice of the other alternative realizes that one."""
+    aaos = shared_realization_admissions()["aaos"]
+    assert (aaos["admitted"], aaos["alternative"], aaos["reasons"]) == (True, "aaosIntegrated", [])
+
+
+def test_a_shared_realization_alone_realizes_more_than_one_admitted_alternative():
+    """An intersection of two alternatives admits nothing (ADR 0023 decision 4)."""
+    shared = shared_realization_admissions()["sharedOnly"]
+    assert (shared["admitted"], shared["alternative"]) == (False, None)
+    assert shared["reasons"] == ["realizes more than one admitted alternative: aaosIntegrated, scoreIntegrated"]
+
+
+def test_a_shared_realization_with_a_standalone_choice_is_not_admitted():
+    """An empty intersection admits nothing and keeps the reason text of the union rule."""
+    mixed = shared_realization_admissions()["sharedAndStandalone"]
+    assert (mixed["admitted"], mixed["alternative"]) == (False, None)
+    assert mixed["reasons"] == [
+        "realizes more than one admitted alternative: aaosIntegrated, scoreIntegrated, standalone",
+        "does not represent the common content: middlewareBaseline (missing platform.sharedMiddleware)"]
+
+
+def test_a_family_correspondence_takes_part_in_the_intersection():
+    """A feature family that corresponds to an alternative as a whole contributes its set too: it narrows the
+    shared ``kvm`` to its alternative, and against a middleware choice of the other alternative it leaves the
+    intersection empty."""
+    narrowed = shared_realization_admissions(family="scoreIntegrated")
+    assert (narrowed["score"]["admitted"], narrowed["score"]["alternative"]) == (True, "scoreIntegrated")
+    assert (narrowed["sharedOnly"]["admitted"], narrowed["sharedOnly"]["alternative"]) == (False, "scoreIntegrated")
+    assert narrowed["sharedOnly"]["reasons"] == [
+        "misses derived realizations of scoreIntegrated: platform.middleware = platform.scoreMiddleware"]
+    assert (narrowed["aaos"]["admitted"], narrowed["aaos"]["alternative"]) == (False, None)
+    assert narrowed["aaos"]["reasons"] == [
+        "realizes more than one admitted alternative: aaosIntegrated, scoreIntegrated",
+        "does not represent the common content: middlewareBaseline (missing platform.sharedMiddleware)"]
+
+
 def test_a_selected_feature_without_correspondence_is_not_in_the_governed_scope():
     line = PlatformLine(governed=True)
     line.configure("cruise", "autoware", "noMiddleware", "linux", "noHypervisor",

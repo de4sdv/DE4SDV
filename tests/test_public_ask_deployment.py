@@ -310,6 +310,25 @@ def test_pages_workflow_remains_a_native_engineering_mirror():
     assert "viewer.de4sdv.org" not in workflow
 
 
+def test_pages_mirror_builds_the_pushed_branch_only():
+    """Pages refuses a site whose uncompressed artifact is over 10 GiB.
+
+    One sub-site per branch and pull request head took the mirror past that
+    limit on 2026-11-18. The mirror builds the pushed branch alone: no other
+    revision, no pull request labels, no fetch of other heads.
+    """
+    workflow = Path(".github/workflows/deploy-viewer.yml").read_text(
+        encoding="utf-8"
+    )
+    _, run = workflow.split("python -m tools.sysml_html_viewer.generate", 1)
+    generate = run.split("\n\n", 1)[0]
+    assert "--public" in generate, generate
+    assert "--no-prs" in generate, generate
+    assert "--refs" not in generate, generate
+    assert "refs/pull/" not in workflow
+    assert "refs/heads/*" not in workflow
+
+
 def test_public_ask_monitor_is_non_paid_and_schedule_safe():
     workflow = Path(
         ".github/workflows/monitor-public-ask-viewer.yml"

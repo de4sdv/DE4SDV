@@ -1,10 +1,10 @@
 """Content pins for the framing of the E/E architecture increment, not semantic validation.
 
-The framing of INC-EE-001 is Phase 0 only. These tests hold its structure to the method's Phase 0
-shape, pin each decided statement by its own phrase, hold the requirements and the records that the
-framing names to their text in the model, and hold the guide, the folder's upstream record and the
-rows that name the increment elsewhere to the model. They read the model text; they do not parse
-SysML.
+The framing of INC-EE-001 holds Phase 0 and the Phase 1 concerns. These tests hold its structure to
+the method's Phase 0 and Phase 1 shapes, pin each decided statement by its own phrase, hold the
+requirements and the records that the framing names to their text in the model, and hold the guide,
+the folder's upstream record and the rows that name the increment elsewhere to the model. They read
+the model text; they do not parse SysML.
 
 What they do not hold: a sentence that no pin names can change inside a doc of the model or inside
 the record, and a report of a run in words that the scan for past behavior does not list passes.
@@ -18,6 +18,8 @@ import sys
 from pathlib import Path
 
 from sysml_shapes import braced_body, strip_comments
+from test_saf_domains import SAF_FILE, _domains
+from test_views_per_phase import _canonical_list
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -153,6 +155,111 @@ PAST_BEHAVIOR = re.compile(r"(?i)\b(?:braked|stopped|rejected|detected|routed|fo
 #: an affirmative claim of approval or admission
 APPROVAL = re.compile(r"(?i)\b(?:compliant|complies|certified|homologated|type-approved|admitted)\b")
 #: glossary row -> the sentence that bounds it
+#: Phase 1: concern -> (its SAF concern definition, the in-scope items its doc names first, its native stakeholders
+#: in order, the sentences that state its question, and the views that answer it as (phase, viewpoint definition)
+#: pairs, read from the doc's answer). One concern per question; a concern is held by the parties whose interest it
+#: states, not only by the roles that check it.
+PHASE1_CONCERNS = {
+    "eeVehicleCommandConcern": (
+        "OperationalCapabilityConcern", ("eeCommandFlowInScope", "eeNetworkFaultsInScope"),
+        [("occupant", "VehicleOccupant"), ("roadUser", "RoadUser")],
+        ("Vehicle occupants and road users need the vehicle to act on the driving command that its central computer "
+         "gives across the vehicle network, whichever route the command takes, and to act on no command that a fault "
+         "of the network has made invalid on its way.",
+         "It states what they expect, not how well the network meets it: no safety, timing or performance claim for "
+         "a vehicle network follows from it."),
+        ((2, "OperationalStoryViewpoint"),)),
+    "eeTopologyStructureConcern": (
+        "PhysicalStructureConcern", ("eeTopologyInScope",),
+        [("systemArchitect", "SystemArchitect"), ("productLineEngineer", "ProductLineEngineer")],
+        ("System architects and product-line engineers need to see which elements make up the one topology of the "
+         "vehicle network and in which role each is used: the network side of the central computer, the Ethernet "
+         "backbone, the two zone controllers as gateways between the backbone and CAN, the CAN bus of each zone, the "
+         "direct link that passes no zone controller, and the actuation ECU on CAN.",
+         "The lifecycle decision is whether the product line admits this topology as its reference vehicle "
+         "network.",
+         "How it relates to the platform stack and to the vehicle network boundary of the AAOS SDV middleware is open "
+         "for phases 2 and 3 (gapEEStackAndNetworkBoundary)."),
+        ((8, "PhysicalStructureDefinitionViewpoint"),)),
+    "eeCommandItemConcern": (
+        "PhysicalLogicalItemMappingConcern", ("eeCommandFlowInScope",),
+        [("systemsEngineer", "SystemsEngineer"), ("safetyExpert", "SafetyExpert")],
+        ("Systems engineers and safety experts need to see which exchange item of the vehicle network carries the "
+         "driving command on each part of its way, on the Ethernet backbone, through a zone controller and on CAN, "
+         "and whether each keeps the parts of the command by which the actuation detects its loss, delay, "
+         "repetition or corruption, including where a zone controller repacks it from Ethernet to CAN "
+         "(gapEEActuationEnd).",
+         "The form and the cadence of the command are those that the driver-assistance increment fixes at its "
+         "baseline (asmEECommandFromDrivingBaseline)."),
+        ((8, "PhysicalInternalExchangeViewpoint"),)),
+    "eeCommandRouteExchangeConcern": (
+        "PhysicalInternalExchangeConcern", ("eeCommandRouteInScope",),
+        [("systemArchitect", "SystemArchitect"), ("systemsEngineer", "SystemsEngineer")],
+        ("System architects and systems engineers need to see, on each of the two routes, which elements of the "
+         "vehicle network exchange the driving command on its way from the network side of the central computer to "
+         "the actuation ECU, through the Ethernet backbone and a zone controller or over the direct link, and the "
+         "boundary interface by which the command enters the network from the Eclipse S-CORE path "
+         "(asmEEScoreCommandSource).",
+         "This increment takes neither route as given (gapEEZoneRouteInVehicles), and phases 6 to 8 decide the "
+         "medium of the direct link."),
+        ((8, "PhysicalInternalExchangeViewpoint"),)),
+    "eeNetworkFaultResponseConcern": (
+        "SystemProcessConcern", ("eeNetworkFaultsInScope",),
+        [("safetyExpert", "SafetyExpert"), ("systemsEngineer", "SystemsEngineer")],
+        ("Safety experts and systems engineers need to see the sequence from each fault of the vehicle network on the "
+         "route of the command, a link of that route that goes down and a command that is lost, delayed, repeated or "
+         "corrupted, to its detection at the actuation and to the response that follows there, independent of the "
+         "elements that realize it.",
+         "A time limit on a response counts on the clock of the virtual vehicle.",
+         "No safety argument follows from it."),
+        ((6, "SystemProcessViewpoint"),)),
+    "eeRouteVerdictConcern": (
+        "ArgumentationAssuranceConcern", ("eeVerdictEvidenceInScope",),
+        [("productLineEngineer", "ProductLineEngineer"), ("verificationEngineer", "VerificationEngineer")],
+        ("Product-line engineers and verification engineers need the lifecycle decision to rest on a pass or a fail "
+         "for each requirement of the increment on each route, each bound to the route, the topology, the "
+         "configuration and the revision that ran, from the replay of a recorded command stream whose binding to the "
+         "revision that made it is open (gapEERecordedCommandStream).",
+         "A verdict holds for the software testbed only (asmEESoftwareTestbedStandsIn) and is no timing claim for a "
+         "vehicle network, and a fail stays a recorded result."),
+        ((10, "ArgumentationAssuranceViewpoint"),)),
+}
+#: Phase 1 concern -> (the label of its bullet in the guide, the nonclaim or boundary sentences the bullet keeps).
+#: The bullet's SAF definition and holders are read from the model's concern, not from this table.
+GUIDE_CONCERNS = {
+    "eeVehicleCommandConcern": ("The driving command, operational part",
+                                ("No safety, timing or performance claim for a vehicle network follows from it.",)),
+    "eeTopologyStructureConcern": ("The topology",
+                                   ("The lifecycle decision is whether the product line admits this topology as "
+                                    "its reference vehicle network.",)),
+    "eeCommandItemConcern": ("The command on the network",
+                             ("whether each keeps the parts of the command by which the actuation detects its "
+                              "loss, delay, repetition or corruption.",
+                              "The form of the command is the one that the driver-assistance increment fixes at "
+                              "its baseline.")),
+    "eeCommandRouteExchangeConcern": ("The two routes", ("Neither route is taken as given.",)),
+    "eeNetworkFaultResponseConcern": ("Faults of the network", ()),
+    "eeRouteVerdictConcern": ("Verdicts",
+                              ("A verdict holds for the software testbed only and is no timing claim for a "
+                               "vehicle network.",)),
+}
+#: the words by which a concern's doc names a view that answers it -> the viewpoint definition of that view
+VIEW_PHRASES = {
+    "operational story": "OperationalStoryViewpoint",
+    "system process": "SystemProcessViewpoint",
+    "physical structure definition": "PhysicalStructureDefinitionViewpoint",
+    "view of the claimed path": "PhysicalInternalExchangeViewpoint",
+    "argumentation assurance view": "ArgumentationAssuranceViewpoint",
+}
+#: a sentence of a concern's doc that says by which views the concern is answered
+ANSWER_SENTENCE = re.compile(r"[^.]*\banswered\b[^.]*\.", re.I)
+#: the owner's decision of 2026-11-18 on the phases before the baseline of INC-DRIVING-002, in the model's words
+PHASES_BEFORE_BASELINE = (
+    "The owner decided on 2026-11-17 to start this increment and to frame it now, and on 2026-11-18 to carry out "
+    "Phases 1 to 3 of this increment before the baseline of the driver-assistance increment, INC-DRIVING-002, whose "
+    "driving command it carries.",
+    "Phase 4 onward and the testbed with its readiness probe wait for that baseline and for a further decision of "
+    "the owner.")
 GLOSSARY_ROWS = {
     "E/E architecture |": "The product line has no reference E/E architecture;",
     "Central computer |": "reaches sensors and actuators through the vehicle network.",
@@ -235,8 +342,9 @@ def test_increment_declares_the_phase_zero_shape():
         "phase10_vvEvidence", "phase11_baseline",
     ]
     artifacts = re.search(r"expectedArtifacts\s*=\s*\((.*?)\);", charter, re.S)
-    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [PACKAGE], \
-        "the charter names only the package that holds content today"
+    assert artifacts and re.findall(r'"([^"]+)"', artifacts.group(1)) == [
+        PACKAGE, "DE4SDV_EEArchitectureOperationalContext", "DE4SDV_EEArchitectureCapabilityClassification"], \
+        "the charter names only the packages that hold content"
     evidence = re.search(r"expectedReviewEvidence\s*=\s*\((.*?)\);", charter, re.S)
     assert evidence and re.findall(r'"([^"]+)"', evidence.group(1)) == [
         "owner confirmation of the engineering question and the scope",
@@ -250,15 +358,15 @@ def test_increment_declares_the_phase_zero_shape():
 
 def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
     increment = _doc(f"part <'{IDENTITY}'> eeArchitectureIncrement : EEArchitectureIncrement")
-    for phrase in ("Owner-requested increment on the electrical/electronic (E/E) architecture of the product line: "
-                   "the vehicle network between the central computer and the actuators.",
-                   "The owner decided on 2026-11-17 to start this increment and to frame it now.",
-                   "Its later phases depend on the baseline of the driver-assistance increment, INC-DRIVING-002, "
-                   "whose driving command it carries, and start on a further decision of the owner.",
+    for phrase in ("Owner-requested increment on a first part of the electrical/electronic (E/E) architecture of the "
+                   "product line: the vehicle network between the central computer and an actuation ECU on CAN.",
+                   *PHASES_BEFORE_BASELINE,
                    "This framing changes neither the platform stack, the governed product-line scope nor another "
                    "increment.",
-                   "This package holds only Phase 0."):
+                   "This package holds Phase 0 and the Phase 1 concerns."):
         assert phrase in increment, phrase
+    assert "Its later phases depend on" not in increment, \
+        "the decision of 2026-11-18 narrows what waits for the baseline"
     problem = _doc("requirement eeArchitectureProblem : ProblemStatement")
     for phrase in ("The model describes one SoC as the compute of a member product and names the vehicle network "
                    "only as a boundary.",
@@ -573,11 +681,15 @@ def test_the_framing_view_frames_the_boundary_and_exposes_every_usage():
     assert lines[0] == "subject increment : EEArchitectureIncrement;"
     assert re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", boundary) == ["SystemsEngineer", "VerificationEngineer"]
     assert dict(re.findall(r"\bconcern\s+(\w+)\s*:\s*(\w+)\s*\{", code)) == {
-        "eeArchitectureBoundary": "IncrementBoundaryConcern"}, "Phase 0 frames the boundary concern only"
+        "eeArchitectureBoundary": "IncrementBoundaryConcern",
+        **{name: spec[0] for name, spec in PHASE1_CONCERNS.items()}}, \
+        "the boundary concern of Phase 0 and the concerns of Phase 1, no other"
 
     view = braced_body(code, "view eeArchitectureFramingView")
     viewpoint = braced_body(view, "viewpoint eeArchitectureFramingViewpoint : IncrementFramingViewpoint")
-    assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == ["eeArchitectureBoundary"]
+    frames = re.findall(r"\bframe\s+(\w+)\s*;", viewpoint)
+    assert frames[0] == "eeArchitectureBoundary" and sorted(frames[1:]) == sorted(PHASE1_CONCERNS) \
+        and len(frames) == len(set(frames)), "the one framing viewpoint frames every concern of the increment once"
     assert "render asTreeDiagram;" in view
     exposed = re.findall(r"\bexpose\s+(\w+)\s*;", view)
     assert len(exposed) == len(set(exposed)), "an element is exposed once"
@@ -587,6 +699,7 @@ def test_the_framing_view_frames_the_boundary_and_exposes_every_usage():
     assert len(usages) >= 30, "the population of the exposure check must not be vacuous"
     assert {"InScopeItem", "OutOfScopeItem", "IncrementAssumption", "IncrementGap", "IncrementCharter",
             "IncrementScope", "ProblemStatement", "IncrementBoundaryConcern"} <= kinds
+    assert set(PHASE1_CONCERNS) <= set(exposed), "the framing view shows every Phase 1 concern"
     assert set(exposed) == usages | {"EEArchitectureIncrement"}, \
         f"not exposed: {sorted(usages - set(exposed))}; exposed and not declared: {sorted(set(exposed) - usages)}"
 
@@ -600,8 +713,8 @@ def test_the_framing_claims_no_verification_no_admission_and_no_compliance():
     # raw source: a claim hidden in a comment is still a claim a reader sees
     assert not APPROVAL.search(raw)
     header = raw.split("package", 1)[0]
-    for phrase in ("Phase 0 framing only", "no implementation", "no runtime result", "no product-line",
-                   "no compliance"):
+    for phrase in ("Phase 0 framing and the Phase 1 concerns only", "no implementation", "no runtime result",
+                   "no product-line", "no compliance"):
         assert phrase in _flat(header.replace("*", "")), phrase
     for word in ("compliance", "type approval", "certification", "safety argument", "freedom from interference"):
         assert word in OUT_OF_SCOPE["eeSafetyClaimOutOfScope"], word
@@ -626,6 +739,9 @@ def test_no_text_of_the_framing_reports_a_run_an_approval_or_an_admission():
     assert "(../guides/ee-architecture-increment.md)" in texts["glossary row E/E architecture |"]
     assert "In a zonal E/E architecture the vehicle network joins" in texts["glossary row E/E architecture |"], \
         "the row describes a zonal architecture as one kind, not as every E/E architecture"
+    assert ("the computers, ECUs, sensors and actuators of a vehicle, the networks that join them and the power "
+            "distribution that supplies them") in texts["glossary row E/E architecture |"], \
+        "the row names the sensors, actuators and power distribution of an E/E architecture"
     assert "(../../textual-notation-of-model/packages/features/ee/upstream.md#zone-controller-route)" in \
         texts["glossary row Zone controller |"]
 
@@ -641,7 +757,8 @@ def test_the_identity_is_declared_once_and_its_subject_is_registered():
     assert IDENTITY.split("-")[1] in check_naming.REGISTERED_SUBJECTS
     naming_row = _row(NAMING, "`EE` |")
     for phrase in ("| E/E architecture |",
-                   "The vehicle network between the central computer and the actuators",
+                   "The computers, ECUs, sensors and actuators of a vehicle, the networks that join them and the "
+                   "power distribution that supplies them;",
                    "Registration allocates identities, not product-line admission or production readiness."):
         assert phrase in naming_row, phrase
     assert check_naming.check_identifier_tokens_in_text(_raw(), display_path=MODEL.name, suffix=".sysml") == []
@@ -667,7 +784,8 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing proposal.**" in guide
+    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context and Phase 3 "
+            "capability classification, proposal.**") in _flat(guide)
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part eeArchitectureQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -699,6 +817,9 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
         "driving command keeps, across that network, the properties that the model asks of the command paths of "
         "earlier increments. It judges two routes: through a zone controller, and over a direct link."), \
         "the guide's opening says what the model's problem statement and question say, and no more"
+    assert "The framing's boundary concern does not open Phase 1." not in _flat(guide) and \
+        "**Phase 1 concern framing**" not in guide and "The later phases of this increment depend on" not in \
+        _flat(guide), "Phase 1 is framed: the guide names the next obligation and what waits for the baseline"
     assert not re.search(r"(?i)\balready requires\b|\bunder the platform stack\b", guide), \
         "the guide claims neither that the model asks these properties of this path nor a new layering"
     flat = _flat(guide)
@@ -707,9 +828,14 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "verdicts.",
                    "A fail is a result to record.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The framing's boundary concern does not open Phase 1.",
-                   "The later phases of this increment depend on the baseline of the driver-assistance increment, "
-                   "whose driving command it carries, and start on a further decision of the owner.",
+                   "Phase 3, the capability classification, records no feature-model delta, and review judges it: "
+                   "its one blocking check has nothing to evaluate",
+                   "The next model obligation is **Phase 4**, the needs.",
+                   "The owner decided on 2026-11-18 to carry out Phases 1 to 3 of this increment before the "
+                   "baseline of the driver-assistance increment, whose driving command it carries.",
+                   "Phase 4 onward and the testbed with its readiness probe wait for that baseline and for a "
+                   "further decision of the owner.",
+                   "open gaps and Phase 1 concerns.",
                    "None of them asks these properties of a vehicle network; Phase 5 of this increment derives its "
                    "own requirements from them."):
         assert phrase in flat, phrase
@@ -748,6 +874,25 @@ def test_the_guide_lists_each_gap_as_an_open_point_in_the_models_own_words():
             f"{name}: the open point is not a passage of the gap's own text"
 
 
+#: the upstream record's intro and its last two sections, flat and whole: no later phase adds a reading there
+UPSTREAM_INTRO = (
+    "# E/E architecture: upstream provenance These are the public sources that the framing of the E/E architecture "
+    "increment, INC-EE-001, read for its gap on the zone controller route. They are not an adopted dependency set "
+    "or an execution manifest. No upstream implementation is vendored. For this increment DE4SDV has built and run "
+    "nothing."
+)
+UPSTREAM_COMMAND_SOURCE = (
+    "The source of the driving command on the central computer is the one of the earlier increments: the driving "
+    "command that the driver-assistance increment gives over the Eclipse S-CORE path. Its upstream sources and the "
+    "revisions read are in the [driving upstream record](../driving/upstream.md). This increment reads no further "
+    "upstream code for it."
+)
+UPSTREAM_CONTACT = (
+    "DE4SDV has contacted no author of these sources and no upstream project about this increment. No "
+    "endorsement, review or rights clearance by them is asserted."
+)
+
+
 def test_the_upstream_record_holds_the_sources_of_the_route_gap():
     record = UPSTREAM_RECORD.read_text(encoding="utf-8")
     assert record.startswith("# E/E architecture: upstream provenance\n")
@@ -758,6 +903,7 @@ def test_the_upstream_record_holds_the_sources_of_the_route_gap():
                    "No upstream implementation is vendored.",
                    "For this increment DE4SDV has built and run nothing."):
         assert phrase in intro, phrase
+    assert intro == UPSTREAM_INTRO, "the intro is pinned whole"
     route = _record_section(record, "Zone controller route")
     links = re.findall(r"\]\((https://[^)\s]+)\)", route)
     assert links == [
@@ -811,9 +957,163 @@ def test_the_upstream_record_holds_the_sources_of_the_route_gap():
     source = _record_section(record, "Command source")
     assert "(../driving/upstream.md)" in source
     assert "This increment reads no further upstream code for it." in _flat(source)
+    assert _flat(source) == UPSTREAM_COMMAND_SOURCE, "the command source section is pinned whole"
     contact = _flat(_record_section(record, "Upstream contact"))
     assert contact.startswith("DE4SDV has contacted no author of these sources and no upstream project about this "
                               "increment.")
+    assert contact == UPSTREAM_CONTACT, "the upstream contact section is pinned whole"
     exchange = re.compile(r"(?i)\bDE4SDV (?:has )?(?:confirmed|agreed|asked|told|informed|reported|"
                           r"discussed|opened|sent)\b")
     assert not exchange.findall(_flat(record)), exchange.findall(_flat(record))
+
+
+def _answers(doc: str) -> set[tuple[int, str]]:
+    """The (phase, viewpoint definition) pairs that the answer sentences of a concern's doc name."""
+    phrases = "|".join(re.escape(phrase) for phrase in VIEW_PHRASES)
+    found = set()
+    for sentence in ANSWER_SENTENCE.findall(doc):
+        pairs = re.findall(rf"\b({phrases}) (?:of|in) phase (\d+)\b", sentence)
+        assert pairs, f"an answer that names no view of the method: {sentence.strip()}"
+        found.update((int(phase), VIEW_PHRASES[phrase]) for phrase, phase in pairs)
+    return found
+
+
+def _concern_doc(name: str, kind: str) -> str:
+    return _doc(f"concern {name} : {kind}")
+
+
+def test_phase_one_frames_one_concern_for_each_question_of_the_scope():
+    code = _code()
+    assert "private import SAF_Viewpoints::*;" in code, "the SAF concern definitions come from the catalogue"
+    assert not re.search(r"\b(?:concern|viewpoint) def\b", code), \
+        "concern types come from the catalogue, never the slice"
+    assert re.findall(r"\bpart def (\w+)", code) == ["EEArchitectureIncrement", "EEVehicleNetworkSystem"], \
+        "stakeholder roles come from the kernel, never the slice"
+    catalogue = SAF_FILE.read_text(encoding="utf-8")
+    answered = set()
+    for name, (kind, items, holders, sentences, answer) in PHASE1_CONCERNS.items():
+        assert len(re.findall(rf"\bconcern def {kind}\b", catalogue)) == 1, \
+            f"{name}: {kind} is an SAF concern definition"
+        body = braced_body(code, f"concern {name} : {kind}")
+        parameters = [line.strip() for line in body.splitlines() if line.strip() and line.strip() != "doc"]
+        assert parameters[0] == "subject;", f"{name}: the subject is the first parameter"
+        assert re.findall(r"\bstakeholder\s+(\w+)\s*:\s*(\w+)\s*;", body) == holders, name
+        doc = _concern_doc(name, kind)
+        lead = ", ".join(items[:-1]) + (" and " if len(items) > 1 else "") + items[-1]
+        lead += ", operational part." if kind == "OperationalCapabilityConcern" else "."
+        assert doc.startswith(lead), f"{name}: the doc opens with the in-scope items it answers: {doc[:80]}"
+        for sentence in sentences:
+            assert sentence in doc, (name, sentence)
+        rest = ANSWER_SENTENCE.sub("", doc[len(lead):])
+        assert rest.split() == " ".join(sentences).split(), \
+            f"{name}: the doc holds only its pinned sentences and its answer"
+        assert doc.index(sentences[0]) == len(lead) + 1, f"{name}: the holders' need follows the in-scope items"
+        assert _answers(doc) == set(answer), (name, sorted(_answers(doc)))
+        answered.update(items)
+    in_scope = _declared("InScopeItem")
+    assert answered == in_scope, f"in-scope items without a concern: {sorted(in_scope - answered)}"
+    # incrementHasNonBoundaryConcern: an SAF definition specializes its domain root, not the boundary concern
+    outside = [name for name, (kind, *_rest) in PHASE1_CONCERNS.items()
+               if re.search(rf"\bconcern def {kind} :> \w+DomainConcern\s*\{{", catalogue)]
+    assert outside == list(PHASE1_CONCERNS), "each Phase 1 concern lies outside the boundary-concern lineage"
+
+
+def test_every_stakeholder_of_the_problem_holds_a_phase_one_concern_and_the_beneficiaries_hold_their_own():
+    # The concerns' holders are the parties whose interest each states: the five roles of the problem statement and
+    # the people the vehicle carries and meets. The occupant and the road user hold the operational concern alone.
+    code = _code()
+    problem = braced_body(code, "requirement eeArchitectureProblem : ProblemStatement")
+    roles = set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", problem))
+    # the holders as the model declares them, not as this file lists them
+    declared = {name: set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;",
+                                     braced_body(code, f"concern {name} : {kind}")))
+                for name, (kind, *_rest) in PHASE1_CONCERNS.items()}
+    held = set().union(*declared.values())
+    assert roles <= held, f"problem stakeholders that hold no Phase 1 concern: {sorted(roles - held)}"
+    assert held - roles == {"VehicleOccupant", "RoadUser"}, sorted(held - roles)
+    beneficiaries = [name for name, holders in declared.items() if {"VehicleOccupant", "RoadUser"} & holders]
+    assert beneficiaries == ["eeVehicleCommandConcern"]
+    assert declared["eeVehicleCommandConcern"] == {"VehicleOccupant", "RoadUser"}, \
+        "the occupants and the road users hold the operational concern alone"
+    assert PHASE1_CONCERNS["eeVehicleCommandConcern"][0] == "OperationalCapabilityConcern"
+    operational = _concern_doc("eeVehicleCommandConcern", "OperationalCapabilityConcern")
+    assert "Reviewers need" not in operational and "engineers" not in operational
+    # within the charter: what the occupants and road users expect, with no claim the scope leaves out
+    assert not re.search(r"(?i)\b(?:latency|jitter|safe|safely|safer|compliance|reliab\w*|performs?)\b", operational)
+
+
+def test_the_phase_one_concerns_claim_no_result_and_name_no_unread_record():
+    names = set(re.findall(r"\bpart\s+(?:<'[^']*'>\s*)?(\w+)\s*:\s*(?:IncrementGap|IncrementAssumption|InScopeItem)\b",
+                           _code()))
+    for name, (kind, *_rest) in PHASE1_CONCERNS.items():
+        doc = _concern_doc(name, kind)
+        named = set(re.findall(r"\b((?:gap|asm)[A-Z]\w+|\w+InScope)\b", doc))
+        assert named <= names, f"{name} names a record the framing does not declare: {sorted(named - names)}"
+        assert not PAST_BEHAVIOR.findall(doc) and not APPROVAL.findall(doc), name
+        assert not re.search(r"\b\d+(?:\.\d+)?\s*(?:s|ms|m|km/h|m/s)\b", doc), f"{name}: a criterion value is phase 5's"
+        assert not re.search(r"(?i)\b(?:latency|jitter|freedom from interference)\b", doc), \
+            f"{name}: the timing of the network and a safety argument are out of scope"
+        assert not re.search(r"(?i)\b(?:issue time|sequence count|check value)s?\b", doc), \
+            "the form of the command is INC-DRIVING-002's until its baseline"
+
+
+def _words(name: str) -> str:
+    """The words of a CamelCase name, in lower case."""
+    return " ".join(re.findall(r"[A-Z][a-z]*", name)).lower()
+
+
+def _definition_and_holders(name: str) -> str:
+    """'Definition; holders.' of a Phase 1 concern, read from its typing and its stakeholder lines in the model.
+
+    Hyphens are spaces here: the guide may write a compound such as product-line with a hyphen.
+    """
+    code = _code()
+    kind = re.search(rf"\bconcern {name}\s*:\s*(\w+)\s*\{{", code).group(1)
+    roles = re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", braced_body(code, f"concern {name} : {kind}"))
+    definition = _words(kind.removesuffix("Concern")).capitalize()
+    return f"{definition}; " + " and ".join(_words(role) + "s" for role in roles) + "."
+
+
+def test_the_guide_lists_the_phase_one_concerns_with_their_holders():
+    guide = GUIDE.read_text(encoding="utf-8")
+    assert guide.index("## What the increment judges") < guide.index("## Concerns (Phase 1)") \
+        < guide.index("## What the framing already records as open")
+    section = guide.split("## Concerns (Phase 1)", 1)[1].split("\n## ", 1)[0]
+    bullets = re.findall(r"(?ms)^- \*\*([^*]+):\*\* `(\w+)`\.\s+(.*?)(?=^- \*\*|\n\n)", section)
+    assert len(re.findall(r"(?m)^- ", section)) == len(bullets), "every bullet has a label and names its concern"
+    model_order = re.findall(r"\bconcern\s+(\w+)\s*:", _code())
+    assert model_order[0] == "eeArchitectureBoundary" and sorted(model_order[1:]) == sorted(PHASE1_CONCERNS)
+    assert [name for _label, name, _body in bullets] == model_order[1:], \
+        "one bullet for each Phase 1 concern, in the model's order"
+    for label, name, body in bullets:
+        expected_label, kept = GUIDE_CONCERNS[name]
+        assert label == expected_label, (name, label)
+        kind_and_holders = _definition_and_holders(name)
+        assert kind_and_holders in _flat(body).replace("-", " "), (name, kind_and_holders)
+        for sentence in kept:
+            assert sentence in _flat(body), (name, sentence)
+        phases = sorted({phase for phase, _viewpoint in PHASE1_CONCERNS[name][4]})
+        assert re.search(rf"\bAnswered (?:by|in) [^.]*\bPhase {phases[0]}\b", _flat(body)), \
+            f"{name}: the bullet names the phase that answers the concern"
+    flat = _flat(section)
+    assert not re.search(r"(?i)\b(?:issue time|sequence count|check value)s?\b", flat), \
+        "the guide's Phase 1 list names no field of the command: its form is INC-DRIVING-002's until its baseline"
+    for phrase in ("held by the parties whose interest it states.",
+                   "The vehicle occupants and the road users hold their own concern beside the engineering roles.",
+                   "The framing viewpoint frames all six, and a view of a later phase that answers a concern frames "
+                   "it as well.",
+                   "They do not judge whether the stakeholder, risk and viewpoint coverage is adequate; review does."):
+        assert phrase in flat, phrase
+
+
+def test_each_phase_one_concern_is_answered_by_a_view_of_its_phase_in_its_saf_domain():
+    # The views that answer a concern are views the method lists for their phase, in the SAF domain of the
+    # concern's definition: rule 15's domain advisory reads that property once the views exist.
+    listed = _canonical_list()
+    domains = _domains(SAF_FILE.read_text(encoding="utf-8"))
+    for name, (kind, _items, _holders, _sentences, answers) in PHASE1_CONCERNS.items():
+        assert answers, f"{name} names no view that answers it"
+        for phase, viewpoint in answers:
+            assert viewpoint in listed[phase], f"{name}: {viewpoint} is not a view the method lists for phase {phase}"
+            assert domains[viewpoint] == domains[kind], \
+                f"{name}: {kind} is in the {domains[kind]} domain, {viewpoint} in {domains[viewpoint]}"

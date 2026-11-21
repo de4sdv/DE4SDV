@@ -109,8 +109,9 @@ Comments and double-quoted literals are not declaration names.
 ### Established domain/technology acronyms (keep)
 
 These are natural engineering terms and must not be expanded for style:
-AEBS, ADAS, SDV, AAOS, ROS 2 (identifier syntax: `ROS2`), AUTOSAR, ECU, VSS,
-FMI, FMU, SSP, HIL, SIL, MIL, V&V (prose), UNECE.
+AEBS, ADAS, SDV, AAOS, ROS 2 (identifier syntax: `ROS2`), AUTOSAR, ECU,
+E/E (identifier syntax: `EE`), VSS, FMI, FMU, SSP, HIL, SIL, MIL, V&V (prose),
+UNECE.
 
 ### Project-local shorthand (avoid in canonical semantic names)
 
@@ -360,7 +361,7 @@ Unregistered prefixes or subjects fail `scripts/check_naming.py`.
 | `DRIVING` | Automated-driving planning and control | Candidate driving capabilities; distinct from AEBS and middleware integration. Registration allocates identities, not product-line admission or production readiness. |
 | `HMI` | HMI display | What the HMI display shows the driver and how it is drawn; distinct from AEBS, driving and middleware integration. Registration allocates identities, not product-line admission or production readiness. |
 | `MW` | Middleware | Registered compact trace namespace: `MW = Middleware` inside identifiers (`INC-MW-010`, `REQ-MW-*`, `AC-MW-010-02`, `MW-CONFIG-001`). Canonical semantic names never use it: filenames use `middleware_*`, SysML packages use `Middleware` (batch 1 migrated these). New trace-ID families SHOULD pick a readable subject code; `MW` is retained because existing AC/VC/EVID/E/GAP/BL/CLM/AGT/CCM/REQ/N families for the middleware subject are stable, provenance-bearing identities. |
-| `EE` | E/E architecture | The vehicle network between the central computer and the actuators: zone controllers, the Ethernet backbone and CAN; distinct from AEBS, driving and middleware integration. Registration allocates identities, not product-line admission or production readiness. |
+| `EE` | E/E architecture | The computers, ECUs, sensors and actuators of a vehicle, the networks that join them and the power distribution that supplies them; distinct from AEBS, driving and middleware integration. Registration allocates identities, not product-line admission or production readiness. |
 | `UNECE` | UNECE regulation anchor | Subject of the `SRC-UNECE-R152` form (`TYPE=SRC`, `SUBJECT=UNECE`, remainder `R152` is the free-form rest segment, not a subject) |
 | `EXAMPLE` | Method tests (reserved) | Reserved for method tests and throwaway increments (for example `INC-EXAMPLE-001`), so they never edit this registry; real engineering content never uses it. |
 
@@ -436,6 +437,7 @@ middleware spelling):
 | Functional architecture | `aebs_functional_architecture.sysml` | `DE4SDV_AEBSFunctionalArchitecture` |
 | Logical architecture | `aebs_logical_architecture.sysml` | `DE4SDV_AEBSLogicalArchitecture` |
 | Physical/software realization | `aebs_physical_software_realization.sysml` | `DE4SDV_AEBSPhysicalSoftwareRealization` |
+| E/E realization | `*_physical_ee_realization.sysml` | `DE4SDV_*PhysicalEERealization` |
 | Variability/configuration | `aebs_variability_configuration.sysml` | `DE4SDV_AEBSVariabilityConfiguration` |
 | Verification evidence | `*_verification*.sysml` / `*_evidence.sysml` — one convention, stable semantic modules allowed | — |
 
@@ -449,6 +451,10 @@ Notes:
   needs from requirements is a model-architecture change, not a rename; it is
   recorded as a recommendation in the migration manifest, not silently done
   here.
+- Phase 8 has two kinds of realization package, the software realization (the
+  physical/software realization row) and the E/E realization; the increment
+  workflow (`methodologies/sysmod-sysmlv2/increment-workflow.md`, "Workflow
+  phases") states what each holds.
 - Do not force every verification concern into one huge file, and do not
   create parallel "increment-numbered" architecture models next to canonical
   concern models.

@@ -342,15 +342,132 @@ def _flat(text: str) -> str:
     return " ".join(text.split())
 
 
-def _rule_5_homes() -> tuple[str, str]:
-    """Rule 5 in the method document and in the doc of SpecifyRequirements, flattened."""
+#: The phase 8 rule as both homes state it: the method document's paragraph and the doc of DefinePhysicalRealization,
+#: which the phase contract serves as the step's documentation (owner decision of 2026-11-19).
+PHASE_8_SHARED = (
+    "Phase 8 has two kinds of realization package.",
+    "The software realization, a package whose name ends in PhysicalSoftwareRealization, holds the software, the "
+    "platforms it runs on (operating systems, hypervisors, virtual machines, bench hosts) and its deployment.",
+    "The E/E realization, a package whose name ends in PhysicalEERealization, holds the vehicle's "
+    "electrical/electronic topology: ECUs and controllers as network nodes, buses and links, the frames on them, "
+    "connectors and I/O.",
+    "The physical/software realization is phase 8 with both kinds.",
+    "An ECU or controller that software runs on is declared in the E/E realization; the software realization "
+    "imports it and does not declare it again. An import lets the software realization refer to the ECU. It does not "
+    "assign software to the ECU, and the method defines no relation for that yet.",
+    "The checks of phase 8 read both kinds alike: they find physical elements by their type, in the packages the "
+    "charter names and among the targets of the increment's own allocations, not by how a package's name ends. They "
+    "do not check which kind holds an element, where an ECU is declared, or what a package imports.",
+    "Phase 8 packages merged before this rule keep their names and their content.",
+    "An increment with no E/E topology has only a software realization.",
+    "No kind exists for mechanical elements until an increment has them inside its boundary",
+)
+#: Phrases neither home states again: the method document no longer says what the kernel means, an import assigns no
+#: software to an ECU, and the scope of the checks and what merged packages keep are stated in full.
+PHASE_8_RETIRED = (
+    "Wherever this document or the kernel speaks",
+    "imports it to deploy software on it",
+    "by their type in the packages the charter names, not by",
+    "rule keep their content",
+)
+
+
+STEP_8 = "action def DefinePhysicalRealization :> IncrementStep"
+
+
+def _owned_docs(text: str, header: str) -> list[str]:
+    """The doc comments the declaration opened by ``header`` owns itself, on the first level of its body, as the phase
+    contract reads them (the Documentation the step definition owns), not the docs of its features or checks."""
+    index = text.index("{", text.index(header)) + 1
+    depth, statement, docs = 1, "", []
+    while depth:
+        if text.startswith("/*", index):
+            end = text.index("*/", index)
+            if depth == 1 and re.match(r"(?:(?:private|protected|public)\s+)?doc\b", statement.strip()):
+                docs.append(text[index + 2:end])
+            index, statement = end + 2, ""
+        elif text.startswith("//", index):
+            index = text.index("\n", index)
+        elif text[index] in "\"'":
+            index = text.index(text[index], index + 1) + 1
+        else:
+            character = text[index]
+            if character in "{};":
+                depth += {"{": 1, "}": -1}.get(character, 0)
+                statement = ""
+            else:
+                statement += character
+            index += 1
+    return docs
+
+
+def _phase_8_homes() -> tuple[str, str]:
+    """The phase 8 paragraph of the method document (code marks dropped) and the doc that DefinePhysicalRealization
+    owns itself, flattened."""
+    document = WORKFLOW_DOC.read_text(encoding="utf-8")
+    start = document.index("Phase 8 has two kinds of realization package.")
+    paragraph = document[start:document.index("\n\n", start)]
+    docs = _owned_docs(WORKFLOW_FILE.read_text(encoding="utf-8"), STEP_8)
+    return _flat(paragraph.replace("`", "")), _flat(re.sub(r"^\s*\*", " ", " ".join(docs), flags=re.MULTILINE))
+
+
+def test_phase_8_states_its_two_kinds_of_realization_in_both_homes() -> None:
+    homes = _phase_8_homes()
+    for home in homes:
+        assert not [sentence for sentence in PHASE_8_SHARED if sentence not in home]
+    for text in (*homes, _flat(WORKFLOW_DOC.read_text(encoding="utf-8"))):
+        assert not [phrase for phrase in PHASE_8_RETIRED if phrase in text]
+    assert "The kernel's DefinePhysicalRealization states the same rule." in homes[0]
+
+
+def test_the_phase_8_home_in_the_kernel_is_the_steps_own_doc() -> None:
+    """The phase contract serves the doc the step owns; a doc moved onto one of its features is not the step's."""
+    own = (f"{STEP_8} {{\n    doc /* The rule. */\n"
+           "    in part logicalElements[1..*] : LogicalAllocationElement { doc /* A feature's doc. */ }\n"
+           "    metadata allocated : MethodCheck about logicalElements {\n      doc /* A check's doc. */\n"
+           "      :>> check = \"allocatedTo\";\n    }\n  }\n")
+    assert _owned_docs(own, STEP_8) == [" The rule. "]
+    for feature in ("in part logicalElements[1..*] : LogicalAllocationElement",
+                    "out part physicalElements[1..*] : PhysicalAllocationElement"):
+        moved = f"{STEP_8} {{\n    attribute :>> phase = MethodPhase::phase8_physicalRealization;\n" \
+                f"    {feature} {{ doc /* The rule. */ }}\n  }}\n"
+        assert _owned_docs(moved, STEP_8) == [], feature
+
+
+STEP_5 = "action def SpecifyRequirements :> IncrementStep"
+
+
+def _rule_5_homes(kernel: str | None = None) -> tuple[str, str]:
+    """Rule 5 in the method document and in the doc that SpecifyRequirements owns itself, flattened (``kernel``: the
+    kernel file's text, read from disk when not given)."""
     document = WORKFLOW_DOC.read_text(encoding="utf-8")
     start = document.index("5. **Requirement.**")
     section = document[start:document.index("6. **Verification.**", start)]
+    kernel = WORKFLOW_FILE.read_text(encoding="utf-8") if kernel is None else kernel
+    docs = _owned_docs(kernel, STEP_5)
+    return _flat(section), _flat(re.sub(r"^\s*\*", " ", " ".join(docs), flags=re.MULTILINE))
+
+
+def _moved_onto(kernel: str, header: str, parameter: str) -> str:
+    """The kernel text with the doc the step opened by ``header`` owns moved, unchanged, onto one of its parameters."""
+    head = kernel.index(header)
+    start = kernel.index("    doc /* ", head)
+    end = kernel.index("*/", start) + 2
+    doc = kernel[start:end]
+    kernel = kernel[:start] + kernel[end + 1:]
+    at = kernel.index(parameter, head)
+    return kernel[:at] + parameter[:-1] + " {\n  " + doc + "\n    }" + kernel[at + len(parameter):]
+
+
+def test_the_rule_5_home_in_the_kernel_is_the_steps_own_doc() -> None:
+    """The phase contract serves the doc SpecifyRequirements owns; moved unchanged onto one of the step's parameters,
+    the rule is no longer in the step's home."""
     kernel = WORKFLOW_FILE.read_text(encoding="utf-8")
-    head = kernel.index("action def SpecifyRequirements :> IncrementStep")
-    comment = kernel[kernel.index("doc /*", head):kernel.index("*/", head)]
-    return _flat(section), _flat(re.sub(r"^\s*\*", " ", comment, flags=re.MULTILINE))
+    assert not [phrase for phrase in RULE_5_SHARED if phrase not in _rule_5_homes(kernel)[1]]
+    for parameter in ("    in requirement needs[0..*] : StakeholderNeedCandidate;",
+                      "    out requirement requirements[1..*] : RequirementCandidate;"):
+        home = _rule_5_homes(_moved_onto(kernel, STEP_5, parameter))[1]
+        assert not [phrase for phrase in RULE_5_SHARED if phrase in home], parameter
 
 
 def _dated_note(record: str) -> str:

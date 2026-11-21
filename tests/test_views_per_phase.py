@@ -60,6 +60,7 @@ PACKAGE_PHASES = {
     "FunctionalArchitecture": (6,),
     "LogicalArchitecture": (7,),
     "PhysicalSoftwareRealization": (8,),
+    "PhysicalEERealization": (8,),
     "VariabilityConfiguration": (9,),
     "VerificationEvidence": (10,),
 }
@@ -187,6 +188,40 @@ def test_phase_6_names_the_five_views_and_phase_11_none():
     assert CANONICAL[11] == set()
     assert "SystemContextDefinitionViewpoint" not in set().union(*CANONICAL.values()), \
         "the context is defined once, in phase 2, by the operational context view"
+
+
+def test_phase_8_has_a_software_and_an_ee_realization():
+    """Phase 8 has two kinds of realization package, and no third: no kind for mechanical elements until an increment
+    has them inside its boundary (owner decision of 2026-11-19)."""
+    assert {suffix for suffix, phases in PACKAGE_PHASES.items() if 8 in phases} == {
+        "PhysicalSoftwareRealization", "PhysicalEERealization"}
+    assert _phases_of("DE4SDV_EEArchitecturePhysicalEERealization") == (8,)
+    assert _phases_of("DE4SDV_AEBSPhysicalSoftwareRealization") == (8,)
+
+
+def test_the_workflow_and_the_naming_conventions_state_both_realizations():
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    assert " ".join(workflow.split()).count("Phase 8 has two kinds of realization package.") == 1
+    phases = workflow.split("## Workflow phases\n", 1)[1].split(SECTION, 1)[0]
+    flat = " ".join(phases.split())
+    for sentence in (
+        "Phase 8 has two kinds of realization package.",
+        "In SAF, the physical structure of a system breaks down into hardware, software and mechanical elements within "
+        "one physical domain; the two kinds divide phase 8's content within that domain, and both use the phase 8 "
+        "views of the list below.",
+        "No kind exists for mechanical elements until an increment has them inside its boundary (owner decision of "
+        "2026-11-19).",
+    ):
+        assert sentence in flat, sentence
+    naming = (ROOT / "docs" / "naming" / "naming-conventions.md").read_text(encoding="utf-8")
+    vocabulary = " ".join(naming.split("\n## 9. ", 1)[1].split("\n## 10. ", 1)[0].split())
+    assert "| E/E realization | `*_physical_ee_realization.sysml` | `DE4SDV_*PhysicalEERealization` |" in vocabulary
+    assert ("Phase 8 has two kinds of realization package, the software realization (the physical/software "
+            "realization row) and the E/E realization; the increment workflow "
+            "(`methodologies/sysmod-sysmlv2/increment-workflow.md`, \"Workflow phases\") states what each "
+            "holds.") in vocabulary
+    acronyms = " ".join(naming.split("\n## 3. Abbreviation policy\n", 1)[1].split("\n### Project-local", 1)[0].split())
+    assert "E/E (identifier syntax: `EE`)" in acronyms
 
 
 def test_every_live_view_has_a_viewpoint():

@@ -169,19 +169,21 @@ tree. The recommended setup is GitHub Pages + a deploy workflow, behind a
 custom domain:
 
 1. **Deploy workflow** (`.github/workflows/deploy-viewer.yml`, included):
-   on every push to `main`, weekly, and manually (`workflow_dispatch`), it
-   checks out all branches and PR heads, runs the generator with
-   `--public --refs auto` (root site labeled with the plain branch name,
-   one sub-site per branch/PR head, PR labels from `gh`), runs the
-   repository gates, and deploys to Pages.
+   on every push to `main` and manually (`workflow_dispatch`), it runs the
+   generator with `--public --no-prs` (the pushed branch alone, labeled
+   with its plain name), runs the repository gates, and deploys to Pages.
+   It builds no other revision: Pages refuses a site whose uncompressed
+   artifact is over 10 GiB, and one sub-site per branch and pull request
+   head passed that limit.
 2. **Domain** (optional but recommended): add a `CNAME` in the DNS zone
    (e.g. `viewer` → `de4sdv.github.io`), then set the custom domain in the
    repository's Pages settings. Cloudflare DNS works fine (DNS-only, or
    proxy with SSL mode Full).
 3. **What collaborators get**: the full viewer — tree, diagrams, hover
-   tooltips, source go-to-definition — plus a Revision picker listing
-   every branch and every open PR, all prebuilt and instantly clickable.
-   No server, no clone needed.
+   tooltips, source go-to-definition — for the published branch,
+   prebuilt and instantly clickable. No server, no clone needed. Other
+   branches and pull requests open in the local server (below) or in a
+   build with `--refs`.
 
 Local use is unchanged: `python -m tools.sysml_html_viewer.serve` keeps
 the on-demand experience including your uncommitted working tree — the
