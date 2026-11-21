@@ -342,3 +342,57 @@ def test_the_gains_file_holds_the_gains_of_the_verdicts_and_the_slice_names_it_b
                 f"{hashlib.sha256(data).hexdigest()})")
     assert slice_text.count(identity) == 2, "the docs of VC-DRIVING-036 and VC-DRIVING-037"
     assert '"speed_kp"' not in slice_text and "readBackEqual" not in slice_text
+
+
+#: the media of S1 that two fetches brought from their hosts (review Q11 of 2026-11-21): the fetch records in the
+#: session tree, by the path that SHA256SUMS gives them, and the file name of each recording in external-media.json
+FETCHES = {"chase_view.mp4": ("sim/fetch_chase/fetch_chase.json", "simulator host"),
+           "visualization.mkv": ("score/fetch_visualization/fetch_visualization.json", "S-CORE host")}
+
+
+def test_the_media_disposition_states_that_every_recording_is_fetched():
+    """Review Q11 of 2026-11-21: all 16 visualization recordings and all 16 chase views of S1 are fetched, each with
+    the SHA-256 its host gave; the disposition no longer waits for a fetch."""
+    media = [a["path"] for a in _json("external-media.json")["artifacts"]]
+    listed = (EVIDENCE / "SHA256SUMS").read_text(encoding="utf-8")
+    disposition = " ".join((EVIDENCE / "VIDEO-EVIDENCE-DISPOSITION.md").read_text(encoding="utf-8").split())
+    for name, (record, host) in FETCHES.items():
+        count = sum(1 for path in media if path.endswith("/" + name))
+        assert count == 16, (name, count)
+        assert f"  {record}\n" in listed, f"the session tree holds the fetch record {record}"
+        assert (f"maintainer archive; all {count} are fetched, each with the SHA-256 that the {host} gave "
+                f"(`{record}`)") in disposition, name
+    assert ("Every chase view and every visualization recording of the session tree is fetched, 16 of each "
+            "(`external-media.json` lists them), and the `benchRecordingArtifact` of each run record names its chase "
+            "view and its visualization recording by SHA-256.") in disposition
+    records = _json("records.json")["records"]
+    for name, record in records.items():
+        artifact = record["attributes"]["benchRecordingArtifact"] if "attributes" in record else \
+            record["benchRecordingArtifact"]
+        assert "chase view " in artifact and "visualization recording " in artifact, name
+    for retired in ("whose fetch from the S-CORE host has completed", "may be partial",
+                    "Until the candidate's visualization recordings are fetched"):
+        assert retired not in disposition, retired
+
+
+def test_the_readme_records_the_open_bench_item_b_3():
+    """B3, the evaluator finding of 2026-11-21 (review Q4): the case evaluators read the guidance of SC-DRIVING-014 and
+    SC-DRIVING-015 one level too high, so VC-DRIVING-040 and VC-DRIVING-041 cannot judge those runs even with the drop
+    rule set aside; the verdicts do not change, and the fix is the evaluators', open."""
+    readme = _readme()
+    for phrase in ("## Open bench item B3",
+                   "The case evaluators at `44fe1608` (`site_guidance` in `case-evaluators/cases_da.py`) look for the "
+                   "speeds and times to collision of the source's guidance for SC-DRIVING-014 and SC-DRIVING-015, "
+                   "`approachKmh` and `bothKmh` among them, under `site.guidance` of each run's "
+                   "`setting_record.json`; the world side writes them one level lower, under "
+                   "`site.guidance.regulation` (`SiteSpec.as_record()` in `world-side/sites.py`).",
+                   "So VC-DRIVING-040 and VC-DRIVING-041 find them absent in each of the four runs of SC-DRIVING-014 "
+                   "and SC-DRIVING-015 (`measured.withoutDropRule` of these runs in `verdicts.json`) and read the runs "
+                   "as inconclusive even with the rule on dropped images set aside.",
+                   "The verdicts of S1 do not change: by that rule the runs are inconclusive already.",
+                   "The fix belongs to the case evaluators, which judge the fetched records after the session: it "
+                   "changes no file that ran on a host and does not void the condition of record. It is not made for "
+                   "S1; it is open for the next reading of the records (GAP-DRIVING-014)."):
+        assert phrase in readme, phrase
+    assert readme.index("## Open bench item B1") < readme.index("## Open bench item B3") < readme.index(
+        "## Where the rest is retained")

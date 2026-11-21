@@ -13,6 +13,7 @@ does not list passes. Those are for the review of the text.
 from __future__ import annotations
 
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -870,6 +871,72 @@ GAP_DISPOSITIONS = {
     "gapDriverHmiInProductLine": "deferred",
     "GAP-DRIVING-014": "deferred",
 }
+#: The evidence directory of the judged session S1. The verdicts, the statuses and the figures of the baseline and of
+#: the gaps are written by hand; these tests derive each of them from its file here, so that a refresh that changes
+#: a verdict file fails the hand texts that restate it (review Q3 and Q7 of 2026-11-21).
+EVIDENCE = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z"
+VERIFICATION = DRIVING / "driver_assistance_verification_evidence.sysml"
+
+
+def _evidence(name: str) -> dict:
+    return json.loads((EVIDENCE / name).read_text(encoding="utf-8"))
+
+
+def _case_verdicts() -> dict[str, str]:
+    """The verdict of each case of S1: the eight evaluated cases from verdicts.json, and VC-DRIVING-039 from the
+    outcome of the desk analysis (analysis_039.generator.json), mapped as MapAssistanceEvidenceOutcomeToVerdict of
+    the phase 10 slice maps it."""
+    found = {vc: case["verdict"] for vc, case in _evidence("verdicts.json")["cases"].items()}
+    calc = " ".join(VERIFICATION.read_text(encoding="utf-8").split("calc def MapAssistanceEvidenceOutcomeToVerdict",
+                                                                    1)[1].split("}", 1)[0].split())
+    mapped = dict(re.findall(r"outcome == AssistanceEvidenceOutcome::(\w+)\? VerdictKind::(\w+)", calc))
+    other = re.search(r"else VerdictKind::(\w+);", calc)
+    assert mapped and other, "the slice's calc def has no readable map"
+    found["VC-DRIVING-039"] = mapped.get(_evidence("analysis_039.generator.json")["outcome"], other.group(1))
+    assert sorted(found) == [f"VC-DRIVING-0{n}" for n in range(36, 45)], sorted(found)
+    return {vc: found[vc] for vc in sorted(found)}
+
+
+def _case_runs(vc: str) -> list[dict]:
+    return _evidence("verdicts.json")["cases"][vc]["measured"]["runs"]
+
+
+#: the judged runs of S1: those to which VC-DRIVING-036 gives a pass or a fail; the runs of SC-DRIVING-014 and
+#: SC-DRIVING-015 have no judged-run term, and VC-DRIVING-036 does not read them
+JUDGED = [e["run"] for e in _case_runs("VC-DRIVING-036") if e["outcome"] != "inconclusiveMissingEvidence"]
+JUDGED_012 = [run for run in JUDGED if run.startswith("012_")]
+#: the impact speed that VC-DRIVING-037 measured in each judged run of SC-DRIVING-012, km/h to one decimal
+IMPACTS = [f"{e['measured']['impactKmh']:.1f}" for e in _case_runs("VC-DRIVING-037") if e["run"] in JUDGED_012]
+IMPACT_LIST = ", ".join(IMPACTS[:-1]) + " and " + IMPACTS[-1]
+#: why 012_20_r2 is not judged, as VC-DRIVING-036 records it
+CENTER_LINE = re.search(r"center line ([0-9.]+) m from the target's \(limit ([0-9.]+) m\)", " ".join(
+    " ".join(e["missing"]) for e in _case_runs("VC-DRIVING-036") if e["run"] == "012_20_r2")).groups()
+#: the end of the judged run of SC-DRIVING-013 and of the second runs, and the stop instant of the stop run, as the
+#: refresh writes them into drop_counts.json from the session tree
+_COUNTS = _evidence("drop_counts.json")
+RUN_END_013 = _COUNTS["013_30_r1"]["runEnd"]
+B1_TICKS = sorted({_COUNTS[run]["runEnd"]["ticks"] for run in ("013_30_r2", "013_60_r2")})
+STOP_WINDOW = _COUNTS["stop"]["wholeRunWindow"]
+STOP_INSTANT = _COUNTS["stop"].get("stopInstant") or {}
+
+
+def _kmh(value) -> str:
+    return f"{value:.1f}" if isinstance(value, (int, float)) else str(value)
+
+
+def _s(value, digits: int) -> str:
+    return f"{value:.{digits}f}" if isinstance(value, (int, float)) else str(value)
+
+
+#: the words of the judged runs in the texts (review Q8 of 2026-11-21): of the 14 runs, those that VC-DRIVING-036
+#: judges, and the runs of SC-DRIVING-014 and SC-DRIVING-015, which have no judged-run term
+JUDGED_RUNS_PHRASE = (f"the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 ({len(JUDGED)} of them judged runs; "
+                      "SC-DRIVING-014 and SC-DRIVING-015 have no judged-run term)")
+#: the stop clause of VC-DRIVING-038, from the stop run's whole-run window and its stop instant (review Q1)
+STOP_CLAUSE = (f"{STOP_WINDOW['dropped']} dropped camera images fall inside its judged window, from "
+               f"{STOP_WINDOW['firstTickSimS']:.3f} s to {STOP_WINDOW['lastTickSimS']:.3f} s of simulation time, and "
+               f"the stop came at about {_s(STOP_INSTANT.get('simS'), 2)} s, so "
+               f"{_s(STOP_INSTANT.get('ticksAfterStopS'), 2)} s of ticks follow it")
 #: Every place of the draft that waits for the verdicts of the judged session S1 or for phase 10b. Finishing the
 #: baseline replaced each one in the model and the guide; none remains.
 PLACEHOLDERS = ()
@@ -882,18 +949,19 @@ FILLS = (
     "decision of 2026-11-21",
     # 1 the evidence
     "by the decision of 2026-11-21, the judged session S1, session 20261121T014447Z at bench commit 508649ba, run on "
-    "2026-11-21 on the three hosts with the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 (10 of them meet their entry "
-    "conditions) and the run that stops the path, and its records, on the "
+    f"2026-11-21 on the three hosts with {JUDGED_RUNS_PHRASE} and the run that stops the path, and its records, on the "
     "condition that the bench files that ran are byte-identical to those that the second slice of phase 10 merges, "
     "the check that the evidence README of that slice states",
     # 2 the verdicts
     "VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 a fail of the pinned candidate on this bench in simulation: in "
     "each of the five judged runs of SC-DRIVING-012 the candidate started no warning request and commanded no "
-    "deceleration stronger than 0.46 m/s², and the contact with the stationary target came at the approach speed "
-    "(19.7, 40.6, 40.6, 58.6 and 58.6 "
-    "km/h); the second run at 20 km/h is not judged, its center line 0.245 m from the target's against a limit of "
-    "0.2 m. Of SC-DRIVING-013, the first run at 30 km/h is judged and meets the three criteria, since the candidate "
-    "settled at the target's speed and no collision became imminent; the second run at 30 km/h and both runs at 60 "
+    f"deceleration stronger than 0.46 m/s², and the contact with the stationary target came at {IMPACT_LIST} km/h, "
+    "the impact speeds that VC-DRIVING-037 measured; the second run at 20 km/h is not judged, its center line "
+    f"{CENTER_LINE[0]} m from the target's against a limit of {CENTER_LINE[1]} m. Of SC-DRIVING-013, the first run "
+    "at 30 km/h is judged and meets the three criteria, since no collision became imminent and the candidate slowed "
+    "below the target's speed: at the run's last tick the vehicle drove at "
+    f"{_kmh(RUN_END_013.get('egoSpeedAtLastTickKmh'))} km/h and the target at "
+    f"{_kmh(RUN_END_013.get('targetSpeedAtLastTickKmh'))} km/h; the second run at 30 km/h and both runs at 60 "
     "km/h have no functional part and are not judged. VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041, VC-DRIVING-043 "
     "and VC-DRIVING-044 inconclusive: each of the 14 runs and the run that stops the path drops 23 or 24 camera "
     "images in the first 5 s after its first image, "
@@ -911,7 +979,9 @@ FILLS = (
     # 4 the additions
     "by the decision of 2026-11-21, a warning and an emergency braking for a stationary vehicle ahead in its lane, "
     "a camera path that keeps every image from a run's first image on, so that the criteria over every run can be "
-    "judged, and for the stop clauses of VC-DRIVING-038 and VC-DRIVING-043 a judged window that ends at the stop "
+    "judged, except those of VC-DRIVING-040 and VC-DRIVING-041 on the runs of SC-DRIVING-014 and SC-DRIVING-015, "
+    "which also need the fix of the case evaluators that GAP-DRIVING-014 names as B3, and for the stop clauses of "
+    "VC-DRIVING-038 and VC-DRIVING-043 a judged window that ends at the stop "
     "instant or a camera input that stops with the candidate, since after the stop the interface drops the images "
     "that the candidate no longer takes",
     # 5 what GAP-DRIVING-014 holds after the second slice of phase 10
@@ -919,12 +989,15 @@ FILLS = (
     "the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops 23 or 24 camera images in the first 5 s after its first "
     "image and up to 2 more inside the run, with no "
     "cause shown, what S1 does not show of the start of the sound on the IVI guest, the showing of the results to the "
-    "VisionPilot maintainers, and the bench item B1 for the next session, the end of the second runs of "
-    "SC-DRIVING-013 after 62 ticks at the speed of the target",
+    "VisionPilot maintainers, the bench item B1 for the next session, the end of the second runs of "
+    f"SC-DRIVING-013 after {' or '.join(str(t) for t in B1_TICKS)} ticks at the speed of the target, and the bench "
+    "item B3, the case evaluators' reading of the guidance of SC-DRIVING-014 and SC-DRIVING-015 one level above "
+    "where the setting record holds it",
     # 6 gapNoSeparateEmergencyFunction
-    "VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012 the "
-    "candidate commanded no deceleration stronger than 0.46 m/s² before the contact with the stationary target, "
-    "and VC-DRIVING-041 inconclusive by the rule on dropped images",
+    "VC-DRIVING-036 and VC-DRIVING-037 a fail, since in the five judged runs of SC-DRIVING-012 the candidate "
+    "commanded no deceleration stronger than 0.46 m/s² before the contact with the stationary target, VC-DRIVING-042 "
+    "a fail, since in the same runs the candidate started no warning request, and VC-DRIVING-041 inconclusive by the "
+    "rule on dropped images",
     # 7 gapWarningOutput
     "VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012 the candidate started no warning request, "
     "and VC-DRIVING-040 and VC-DRIVING-043 inconclusive by the rule on dropped images",
@@ -933,9 +1006,7 @@ FILLS = (
     "DE4SDV bench",
     # 9 gapScoreIntegration
     "VC-DRIVING-038 and VC-DRIVING-043, each inconclusive by the rule on dropped images. The stop clause of "
-    "VC-DRIVING-038 is inconclusive by the same rule: 32 dropped camera images fall inside its judged window, from "
-    "2855.010 s to 2897.010 s of simulation time, and the stop came at about 2871.06 s, so about 26 s of ticks follow "
-    "it",
+    f"VC-DRIVING-038 is inconclusive by the same rule: {STOP_CLAUSE}",
     # 10 gapCameraImageAndGeometry
     "S1 does not show whether the detection of the target at the distances that the criteria need, or the "
     "calibration, explains the fails of VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042",
@@ -946,18 +1017,9 @@ FILLS = (
     "at the baseline the maintainers have not seen the results or the draft, and nothing is posted to them before "
     "the owner approves its exact text",
 )
-#: The verdict of each case in the judged session S1, as the baseline and the guide's table state it.
-VERDICTS = {
-    "VC-DRIVING-036": "fail",
-    "VC-DRIVING-037": "fail",
-    "VC-DRIVING-038": "inconclusive",
-    "VC-DRIVING-039": "pass",
-    "VC-DRIVING-040": "inconclusive",
-    "VC-DRIVING-041": "inconclusive",
-    "VC-DRIVING-042": "fail",
-    "VC-DRIVING-043": "inconclusive",
-    "VC-DRIVING-044": "inconclusive",
-}
+#: The verdict of each case in the judged session S1, as the baseline and the guide's table state it: derived from
+#: the verdict files of the evidence directory, never typed here (review Q7 of 2026-11-21)
+VERDICTS = _case_verdicts()
 #: What the baseline decision states, in its order: what it accepts, the evidence and the verdicts, the gaps under
 #: their dispositions, and the claims it does not make.
 BASELINE_STATEMENTS = (
@@ -1198,9 +1260,11 @@ def test_the_guide_describes_the_baseline_and_what_it_defers():
         assert named(bullets[title]) == expected, title
     flat = _flat(guide)
     assert "**Status: baselined (Phase 11).**" in flat
+    tally = {verdict: list(VERDICTS.values()).count(verdict) for verdict in ("fail", "inconclusive", "pass")}
+    words = {1: "one", 2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight", 9: "nine"}
     assert ("The baseline accepts the model of phases 0 to 10 and the bench as built, and as evidence the judged "
-            "session S1 of 2026-11-21 at bench commit 508649ba: three cases are a fail, five are inconclusive and one "
-            "is a pass.") in flat
+            f"session S1 of 2026-11-21 at bench commit 508649ba: {words[tally['fail']]} cases are a fail, "
+            f"{words[tally['inconclusive']]} are inconclusive and {words[tally['pass']]} is a pass.") in flat
     assert "first slice of Phase 10 verification and evidence, proposal" not in flat
     assert "The increment ended at its baseline decision." in flat and "The next model obligation is" not in flat
 
@@ -1277,19 +1341,77 @@ def test_the_baseline_states_where_the_images_drop_and_no_rate():
     # the guide's verdict table states the commanded deceleration, never "no braking" (the correction of 2026-11-21);
     # over the five judged runs the bound is 0.46 m/s² (test_the_five_judged_runs_of_sc_driving_012_...)
     assert ("| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no "
-            "deceleration stronger than 0.46 m/s²; the contact comes at the approach speed") in GUIDE.read_text(
-        encoding="utf-8")
+            "deceleration stronger than 0.46 m/s²; the contact comes at ") in GUIDE.read_text(encoding="utf-8")
+
+
+#: the rows of the guide's verdict table that state figures, each figure from the evidence directory: the impact
+#: speeds that VC-DRIVING-037 measured (review Q9) and the stop clause from the stop instant of path_stop.json
+#: (review Q1 of 2026-11-21)
+GUIDE_ROWS = (
+    "| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no deceleration "
+    f"stronger than 0.46 m/s²; the contact comes at {IMPACT_LIST} km/h. |",
+    f"| VC-DRIVING-037 | fail | The same runs: the impact speeds are {IMPACT_LIST} km/h. |",
+    "| VC-DRIVING-038 | inconclusive | No run is judged by the rule on dropped images. Its stop clause is "
+    f"inconclusive by the same rule: {STOP_CLAUSE.replace(' camera images', ' images').replace(' of simulation time', '')}. |",
+)
+#: readings that the records do not bear out (review Q1, Q2, Q8, Q9 and Q10 of 2026-11-21)
+RETIRED_READINGS = ("meet their entry conditions", "the stop came at about 2871", "at the approach speed (",
+                    "the contact comes at the approach speed", "the speed at the contact is the approach speed",
+                    "settled at the target's speed", "every run of S1 drops", "which ends at the stop,",
+                    "so that the criteria over every run can be judged, and")
+
+
+def test_the_figures_of_the_baseline_come_from_the_evidence_directory():
+    """Review Q1, Q5, Q8, Q9 and Q10 of 2026-11-21: the stop came at the stop instant of path_stop.json, not at the
+    last dropped image; six runs are judged; the contact speeds are stated, not called the approach speed; the
+    judged run of SC-DRIVING-013 ends slower than the target; and VC-DRIVING-042 fails for its own reason."""
+    assert "simS" in STOP_INSTANT, "drop_counts.json states no stop instant of the run that stops the path"
+    assert STOP_INSTANT["file"] == "score/out/path_stop_stop/path_stop.json"
+    assert STOP_INSTANT["simS"] < _COUNTS["stop"]["lastImageSimS"] - 0.5, "the stop comes before the last image"
+    assert JUDGED == ["012_20_r1", "012_42_r1", "012_42_r2", "012_60_r1", "012_60_r2", "013_30_r1"], JUDGED
+    assert not any(e["run"].startswith(("014_", "015_")) for e in _case_runs("VC-DRIVING-036")), \
+        "the runs of SC-DRIVING-014 and SC-DRIVING-015 have no judged-run term"
+    assert len(JUDGED_012) == 5 and len(IMPACTS) == 5
+    approach = {e["run"]: e["measured"]["approachKmh"] for e in _case_runs("VC-DRIVING-037") if e["run"] in JUDGED_012}
+    assert min(approach.values()) < 21.0 and float(IMPACTS[0]) < 20.0, \
+        "19.7 km/h lies below the band of 20 to 22 km/h: no text calls the contact speeds the approach speed"
+    assert "egoSpeedAtLastTickKmh" in RUN_END_013, "drop_counts.json states no speed at the run's last tick"
+    assert RUN_END_013["egoSpeedAtLastTickKmh"] < RUN_END_013["targetSpeedAtLastTickKmh"] - 1.0, RUN_END_013
+    # the bound of the five judged runs and the bound of the desk analysis, each from its file
+    strongest = max(_evidence("commanded_deceleration.json")["runs"][run]["strongestDecelerationMps2"]
+                    for run in JUDGED_012)
+    assert math.ceil(round(strongest, 9) * 100) / 100 == 0.46, strongest
+    assert "no deceleration stronger than 0.46 m/s²" in FILLS[2] and "0.46 m/s²" in FILLS[6]
+    assert "0.1 s of simulation time" in _evidence("analysis_039.generator.json")["claimBoundary"]
+    assert "a delay of up to 0.1 s of simulation time goes unseen" in FILLS[2]
+    starts = {e["run"]: e["measured"].get("warningStarts") for e in _case_runs("VC-DRIVING-042")
+              if e["run"] in JUDGED_012}
+    assert starts == {run: 0 for run in JUDGED_012}, "VC-DRIVING-042 fails since no judged run starts a warning"
+    framing = _flat(re.sub(r"(?m)^\s*\*\s?", "", _raw()))
+    guide = _flat(GUIDE.read_text(encoding="utf-8"))
+    for row in GUIDE_ROWS:
+        assert row in GUIDE.read_text(encoding="utf-8"), row
+    # no sentence gives VC-DRIVING-042 the deceleration bound as its reason (review Q5)
+    for text in (framing, guide):
+        assert "VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 a fail, since" not in text
+    readme = _flat((EVIDENCE / "README.md").read_text(encoding="utf-8"))
+    for where, text in (("framing", framing), ("guide", guide), ("README", readme)):
+        for retired in RETIRED_READINGS:
+            assert retired not in text, (where, retired)
 
 
 def test_no_text_counts_the_14_runs_as_judged_runs():
-    """The wording rule of 2026-11-21: of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 only 10 meet their entry
-    conditions, so no text calls the 14 judged runs."""
+    """The wording rule of 2026-11-21, as review Q8 corrected it: of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015
+    six are judged runs, and SC-DRIVING-014 and SC-DRIVING-015 have no judged-run term, so no text calls the 14 judged
+    runs and none says that 10 of them meet their entry conditions."""
     readme = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z" / "README.md"
     texts = {path.name: _flat(re.sub(r"(?m)^\s*\*\s?", "", path.read_text(encoding="utf-8"))) for path in SLICES}
     texts["guide"] = _flat(GUIDE.read_text(encoding="utf-8"))
     texts["README"] = _flat(readme.read_text(encoding="utf-8"))
     for where, text in texts.items():
-        for retired in ("14 judged runs", "fourteen judged runs", "Each judged run drops", "in each judged run ("):
+        for retired in ("14 judged runs", "fourteen judged runs", "Each judged run drops", "in each judged run (",
+                        "(10 of them meet their entry conditions)", "meet their entry conditions"):
             assert retired not in text, (where, retired)
-    assert "the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 (10 of them meet their entry conditions)" in texts["guide"]
-    assert "(10 of them meet their entry conditions)" in texts["README"]
+    assert JUDGED_RUNS_PHRASE in texts[MODEL.name]
+    assert texts["guide"].count(JUDGED_RUNS_PHRASE) == 2, "the evidence of phase 10 and the baseline"
+    assert JUDGED_RUNS_PHRASE.split("the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 ")[1] in texts["README"]

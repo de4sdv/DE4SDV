@@ -311,11 +311,12 @@ package DE4SDV_DriverAssistanceFraming {
      * emergency braking come from the one planned acceleration and leave in the
      * one driving command, and the candidate realizes no independent protected
      * emergency command path (counterClaimNoIndependentEmergencyPath). The
-     * cases that judge that braking: VC-DRIVING-036, VC-DRIVING-037 and
-     * VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012
-     * the candidate commanded no deceleration stronger than 0.46 m/s² before
-     * the contact with the stationary target, and VC-DRIVING-041 inconclusive
-     * by the rule on dropped images. Deferred to a later increment: whether the
+     * cases that judge that braking: VC-DRIVING-036 and VC-DRIVING-037 a fail,
+     * since in the five judged runs of SC-DRIVING-012 the candidate commanded
+     * no deceleration stronger than 0.46 m/s² before the contact with the
+     * stationary target, VC-DRIVING-042 a fail, since in the same runs the
+     * candidate started no warning request, and VC-DRIVING-041 inconclusive by
+     * the rule on dropped images. Deferred to a later increment: whether the
      * candidate's braking can stand for the common capability is for the member
      * decision.
      */
@@ -379,10 +380,10 @@ package DE4SDV_DriverAssistanceFraming {
      * VC-DRIVING-043, each inconclusive by the rule on dropped images. The stop
      * clause of VC-DRIVING-038 is inconclusive by the same rule: 32 dropped
      * camera images fall inside its judged window, from 2855.010 s to 2897.010
-     * s of simulation time, and the stop came at about 2871.06 s, so about 26 s
-     * of ticks follow it. The module is a change that upstream has not merged,
-     * and the inspected revision has no S-CORE binding of its own. Deferred to
-     * a later increment: its take-up upstream.
+     * s of simulation time, and the stop came at about 2870.36 s, so 26.65 s of
+     * ticks follow it. The module is a change that upstream has not merged, and
+     * the inspected revision has no S-CORE binding of its own. Deferred to a
+     * later increment: its take-up upstream.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }
@@ -689,22 +690,25 @@ package DE4SDV_DriverAssistanceFraming {
      * The evidence it accepts: by the decision of 2026-11-21, the judged
      * session S1, session 20261121T014447Z at bench commit 508649ba, run on
      * 2026-11-21 on the three hosts with the 14 runs of SC-DRIVING-012 to
-     * SC-DRIVING-015 (10 of them meet their entry conditions) and the run that
-     * stops the path, and its records, on the condition that the bench files
-     * that ran are byte-identical to those that the second slice of phase 10
-     * merges, the check that the evidence README of that slice states.
+     * SC-DRIVING-015 (6 of them judged runs; SC-DRIVING-014 and SC-DRIVING-015
+     * have no judged-run term) and the run that stops the path, and its
+     * records, on the condition that the bench files that ran are
+     * byte-identical to those that the second slice of phase 10 merges, the
+     * check that the evidence README of that slice states.
      *
      * The verdicts, one for each case: VC-DRIVING-036, VC-DRIVING-037 and
      * VC-DRIVING-042 a fail of the pinned candidate on this bench in
      * simulation: in each of the five judged runs of SC-DRIVING-012 the
      * candidate started no warning request and commanded no deceleration
      * stronger than 0.46 m/s², and the contact with the stationary target came
-     * at the approach speed (19.7, 40.6, 40.6, 58.6 and 58.6 km/h); the second
-     * run at 20 km/h is not judged, its center line 0.245 m from the target's
-     * against a limit of 0.2 m. Of SC-DRIVING-013, the first run at 30 km/h is
-     * judged and meets the three criteria, since the candidate settled at the
-     * target's speed and no collision became imminent; the second run at 30
-     * km/h and both runs at 60 km/h have no functional part and are not judged.
+     * at 19.7, 40.6, 40.6, 58.6 and 58.6 km/h, the impact speeds that
+     * VC-DRIVING-037 measured; the second run at 20 km/h is not judged, its
+     * center line 0.245 m from the target's against a limit of 0.2 m. Of
+     * SC-DRIVING-013, the first run at 30 km/h is judged and meets the three
+     * criteria, since no collision became imminent and the candidate slowed
+     * below the target's speed: at the run's last tick the vehicle drove at
+     * 17.6 km/h and the target at 20.0 km/h; the second run at 30 km/h and both
+     * runs at 60 km/h have no functional part and are not judged.
      * VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041, VC-DRIVING-043 and
      * VC-DRIVING-044 inconclusive: each of the 14 runs and the run that stops
      * the path drops 23 or 24 camera images in the first 5 s after its first
@@ -730,11 +734,14 @@ package DE4SDV_DriverAssistanceFraming {
      * that fail and from the gaps of this increment: by the decision of
      * 2026-11-21, a warning and an emergency braking for a stationary vehicle
      * ahead in its lane, a camera path that keeps every image from a run's
-     * first image on, so that the criteria over every run can be judged, and
-     * for the stop clauses of VC-DRIVING-038 and VC-DRIVING-043 a judged window
-     * that ends at the stop instant or a camera input that stops with the
-     * candidate, since after the stop the interface drops the images that the
-     * candidate no longer takes; the increment builds none of them.
+     * first image on, so that the criteria over every run can be judged, except
+     * those of VC-DRIVING-040 and VC-DRIVING-041 on the runs of SC-DRIVING-014
+     * and SC-DRIVING-015, which also need the fix of the case evaluators that
+     * GAP-DRIVING-014 names as B3, and for the stop clauses of VC-DRIVING-038
+     * and VC-DRIVING-043 a judged window that ends at the stop instant or a
+     * camera input that stops with the candidate, since after the stop the
+     * interface drops the images that the candidate no longer takes; the
+     * increment builds none of them.
      *
      * Accepted as known limits, still open in this baseline: the verdicts of a
      * build with changes that upstream has not merged
@@ -756,9 +763,11 @@ package DE4SDV_DriverAssistanceFraming {
      * SC-DRIVING-015 drops 23 or 24 camera images in the first 5 s after its
      * first image and up to 2 more inside the run, with no cause shown, what S1
      * does not show of the start of the sound on the IVI guest, the showing of
-     * the results to the VisionPilot maintainers, and the bench item B1 for the
+     * the results to the VisionPilot maintainers, the bench item B1 for the
      * next session, the end of the second runs of SC-DRIVING-013 after 62 ticks
-     * at the speed of the target (GAP-DRIVING-014).
+     * at the speed of the target, and the bench item B3, the case evaluators'
+     * reading of the guidance of SC-DRIVING-014 and SC-DRIVING-015 one level
+     * above where the setting record holds it (GAP-DRIVING-014).
      *
      * No gap is withdrawn.
      *

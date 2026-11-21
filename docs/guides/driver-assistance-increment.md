@@ -965,18 +965,25 @@ shape.
   subscriber: shown; the candidate on CARLA 1.0: shown; the typed message of the
   warning request on the guests: shown; the calibration runs of ASM-DRIVING-005
   and ASM-DRIVING-006 came before the first judged run; the S-CORE build's cycle
-  on the host's own GPU: answered no, every run of S1 drops camera images: 23 or
-  24 in the first 5 s after its first image, 2 to 6 in the last 0.6 s of its
-  image stream, after the run's end, and 0 to 3 isolated ones in between, with
-  no cause shown; the warm start of D-S1-1 ran before the attach in every run,
-  in 678.3 to 706.8 ms, and did not keep the first 5 s free of dropped images;
-  the capture of the start of the sound on the IVI guest: open, the guest
-  records hold no start of the sound; showing the draft and the results to the
-  VisionPilot maintainers: open, not done, and the owner approves any text
-  first; the end of the second runs of SC-DRIVING-013 after 62 ticks at the
-  speed of the target (B1): open, a bench item for the next session. The gap
-  stays a record; Phase 11 decides its disposition. Each probe runs only on the
-  owner's word.
+  on the host's own GPU: answered no, each of the 14 runs of SC-DRIVING-012 to
+  SC-DRIVING-015 drops camera images: 23 or 24 in the first 5 s after its first
+  image, 2 to 6 in the last 0.6 s of its image stream, after the run's end, and
+  0 to 3 isolated ones in between; the run that stops the path drops 24 in its
+  first 5 s and 8 in the last 0.8 s of its image stream, which goes on about 0.8
+  s after the stop instant, until the S-CORE side stops, and the steering
+  calibration run 34 in its first 5 s, 3 at the end of its image stream and 6
+  isolated; no cause is shown; the warm start of D-S1-1 ran before the attach in
+  every run, in 678.3 to 706.8 ms, and did not keep the first 5 s free of
+  dropped images; the capture of the start of the sound on the IVI guest: open,
+  the guest records hold no start of the sound; showing the draft and the
+  results to the VisionPilot maintainers: open, not done, and the owner approves
+  any text first; the end of the second runs of SC-DRIVING-013 after 62 ticks at
+  the speed of the target (B1): open, a bench item for the next session; the
+  case evaluators' reading of the guidance of SC-DRIVING-014 and SC-DRIVING-015
+  one level above where the setting record holds it (B3): open, an evaluator
+  item, to be fixed test-first in the case evaluators and judged again on the
+  fetched records. The gap stays a record; the baseline of Phase 11 defers it to
+  a later increment. Each probe runs only on the owner's word.
 - **No validation case.** The validation of the needs stays planned in
   Phase 4 (SC-DRIVING-016 to SC-DRIVING-019).
 
@@ -992,22 +999,26 @@ lists the views.
 
 The evidence of record is the judged session S1, session 20261121T014447Z of the
 bench at commit 508649ba, with all three hosts: the 14 runs of SC-DRIVING-012 to
-SC-DRIVING-015 (10 of them meet their entry conditions), the run that stops the
-path and the calibration runs before the first judged run. Its small records and
-the identities of everything it leaves outside Git are in the [S1 evidence
+SC-DRIVING-015 (6 of them judged runs; SC-DRIVING-014 and SC-DRIVING-015 have no
+judged-run term), the run that stops the path and the calibration runs before
+the first judged run. Its small records and the identities of everything it
+leaves outside Git are in the [S1 evidence
 directory](../../implementation/driver-assistance-bench/evidence/s1-20261121T014447Z/README.md),
 whose README carries the table of the verdicts, generated from the verdict
 files. A verdict of S1 is a verdict of the pinned candidate on this bench in
 simulation, and no statement about compliance or on-road behavior.
 
 - **Generated, not written.** The fifteen run records, the record of the
-  analysis of REQ-DRIVING-039 and the status that opens the doc of each case
-  are written by `tools/generate_driver_assistance_evidence_text.py` from the
-  files of the evidence directory, and
+  analysis of REQ-DRIVING-039 and the status that opens the doc of each case are
+  written by `tools/generate_driver_assistance_evidence_text.py` from the files
+  of the evidence directory, and
   `tools/refresh_driver_assistance_s1_evidence.py` refreshes the directory and
-  the model in one command when the evaluators or the desk records change. No
-  outcome, value or evaluator revision is copied by hand into the model or this
-  guide; read them in the case docs and the evidence README.
+  the model in one command when the evaluators or the desk records change. The
+  verdict table of the baseline, the verdicts and figures of the baseline
+  decision and of the gap records, and the `verificationStatus` of the nine
+  requirements are written by hand; tests derive each verdict and status from
+  `verdicts.json` and `analysis_039.generator.json`, and pin each figure that
+  comes from a file of the evidence directory to that file.
 - **Of record, on one condition.** S1 is the evidence of record if the bench
   files that ran on a host are byte-identical to those that the pull request of
   the bench merges; the evidence README gives the check (the evidence-of-record
@@ -1036,8 +1047,8 @@ simulation, and no statement about compliance or on-road behavior.
   says what a corruption that the check value misses does (the check-value bound
   decision of 2026-11-21).
 - **The test environment** after S1 is GAP-DRIVING-014 as the environment
-  decision of 2026-11-21 records it; it stays a record, and Phase 11 decides its
-  disposition.
+  decision of 2026-11-21 records it; it stays a record, and the baseline of
+  Phase 11 defers it to a later increment.
 
 ## Baseline (Phase 11)
 
@@ -1056,22 +1067,25 @@ framing view shows the decision beside the framing decision it answers.
   2026-11-21.
 - **Evidence and verdicts.** By the decision of 2026-11-21, the judged session
   S1, session 20261121T014447Z at bench commit 508649ba, run on 2026-11-21 on
-  the three hosts with the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 (10 of
-  them meet their entry conditions) and the run that stops the path, and its
-  records, on the condition that the bench files that ran are byte-identical to
-  those that the second slice of phase 10 merges, the check that the evidence
-  README of that slice states. One verdict for each case, in the table below;
-  each verdict is of the pinned candidate on this bench, in simulation. The runs
-  of SC-DRIVING-014 and SC-DRIVING-015 lie outside the candidate's declared
-  operating conditions and are reported apart: no run of either gives a verdict,
-  since VC-DRIVING-038, VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-044, the
-  cases that read them, judge over the whole run and are inconclusive by the
-  rule on dropped images. A fail is a recorded result, and no scenario,
-  criterion or setting is changed for it. The additions named from the
-  requirements that fail and from the gaps: by the decision of 2026-11-21, a
-  warning and an emergency braking for a stationary vehicle ahead in its lane, a
-  camera path that keeps every image from a run's first image on, so that the
-  criteria over every run can be judged, and for the stop clauses of
+  the three hosts with the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 (6 of
+  them judged runs; SC-DRIVING-014 and SC-DRIVING-015 have no judged-run term)
+  and the run that stops the path, and its records, on the condition that the
+  bench files that ran are byte-identical to those that the second slice of
+  phase 10 merges, the check that the evidence README of that slice states. One
+  verdict for each case, in the table below; each verdict is of the pinned
+  candidate on this bench, in simulation. The runs of SC-DRIVING-014 and
+  SC-DRIVING-015 lie outside the candidate's declared operating conditions and
+  are reported apart: no run of either gives a verdict, since VC-DRIVING-038,
+  VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-044, the cases that read them,
+  judge over the whole run and are inconclusive by the rule on dropped images. A
+  fail is a recorded result, and no scenario, criterion or setting is changed
+  for it. The additions named from the requirements that fail and from the gaps:
+  by the decision of 2026-11-21, a warning and an emergency braking for a
+  stationary vehicle ahead in its lane, a camera path that keeps every image
+  from a run's first image on, so that the criteria over every run can be
+  judged, except those of VC-DRIVING-040 and VC-DRIVING-041 on the runs of
+  SC-DRIVING-014 and SC-DRIVING-015, which also need the fix of the case
+  evaluators that GAP-DRIVING-014 names as B3, and for the stop clauses of
   VC-DRIVING-038 and VC-DRIVING-043 a judged window that ends at the stop
   instant or a camera input that stops with the candidate, since after the stop
   the interface drops the images that the candidate no longer takes; the
@@ -1099,16 +1113,18 @@ framing view shows the decision beside the framing decision it answers.
   each of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops 23 or 24 camera
   images in the first 5 s after its first image and up to 2 more inside the run,
   with no cause shown, what S1 does not show of the start of the sound on the
-  IVI guest, the showing of the results to the VisionPilot maintainers, and the
+  IVI guest, the showing of the results to the VisionPilot maintainers, the
   bench item B1 for the next session, the end of the second runs of
-  SC-DRIVING-013 after 62 ticks at the speed of the target.
+  SC-DRIVING-013 after 62 ticks at the speed of the target, and the bench item
+  B3, the case evaluators' reading of the guidance of SC-DRIVING-014 and
+  SC-DRIVING-015 one level above where the setting record holds it.
 - **Withdrawn.** None.
 
 | Case | Verdict | What S1 shows |
 | --- | --- | --- |
-| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no deceleration stronger than 0.46 m/s²; the contact comes at the approach speed (19.7, 40.6, 40.6, 58.6 and 58.6 km/h). |
-| VC-DRIVING-037 | fail | The same runs: the speed at the contact is the approach speed. |
-| VC-DRIVING-038 | inconclusive | No run is judged by the rule on dropped images. Its stop clause is inconclusive by the same rule: 32 dropped images fall inside its judged window, from 2855.010 s to 2897.010 s, and the stop came at about 2871.06 s, so about 26 s of ticks follow it. |
+| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no deceleration stronger than 0.46 m/s²; the contact comes at 19.7, 40.6, 40.6, 58.6 and 58.6 km/h. |
+| VC-DRIVING-037 | fail | The same runs: the impact speeds are 19.7, 40.6, 40.6, 58.6 and 58.6 km/h. |
+| VC-DRIVING-038 | inconclusive | No run is judged by the rule on dropped images. Its stop clause is inconclusive by the same rule: 32 dropped images fall inside its judged window, from 2855.010 s to 2897.010 s, and the stop came at about 2870.36 s, so 26.65 s of ticks follow it. |
 | VC-DRIVING-039 | pass | A desk analysis of the realization: a loss shows only when a later command arrives, and a delay of up to 0.1 s of simulation time goes unseen. |
 | VC-DRIVING-040 | inconclusive | No run is judged by the rule on dropped images. |
 | VC-DRIVING-041 | inconclusive | No run is judged by the rule on dropped images. |

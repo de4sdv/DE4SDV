@@ -234,6 +234,26 @@ B1_STATEMENTS = (
     "So SC-DRIVING-013 has one judged run, SC-DRIVING-013@30/r1.",
     "The bench is not changed for S1: a change would alter a file that ran in S1 and void the condition of record.",
 )
+#: B3, the evaluator finding of 2026-11-21 (review Q4), as GAP-DRIVING-014 records it: the case evaluators at
+#: 44fe1608 (site_guidance in case-evaluators/cases_da.py) read the guidance of SC-DRIVING-014 and SC-DRIVING-015 one
+#: level above where SiteSpec.as_record() in world-side/sites.py writes it; reproduced on the four records of S1
+B3_STATEMENTS = (
+    "Open as well, a bench item that S1 shows (B3, the evaluator finding of 2026-11-21): the case evaluators at "
+    "44fe1608 (site_guidance in case-evaluators/cases_da.py) look for the speeds and times to collision of the "
+    "source's guidance for SC-DRIVING-014 and SC-DRIVING-015, approachKmh and bothKmh among them, under site.guidance "
+    "of each run's setting_record.json, and the world side writes them one level lower, under "
+    "site.guidance.regulation (SiteSpec.as_record() in world-side/sites.py).",
+    "So VC-DRIVING-040 and VC-DRIVING-041 find them absent in each of the four runs of SC-DRIVING-014 and "
+    "SC-DRIVING-015 and read these runs as inconclusive even with the rule on dropped images set aside.",
+    "The verdicts of S1 do not change: by that rule the runs are inconclusive already.",
+    "The fix belongs to the case evaluators, which judge the fetched records after the session; it changes no file "
+    "that ran on a host, and it is not made for S1.",
+)
+#: GAP-DRIVING-014 states the disposition that the baseline of phase 11 gives it (review Q6 of 2026-11-21)
+GAP_DISPOSITION = (
+    "At the baseline decision: the gap stays a record of the environment, and the baseline defers the readiness "
+    "items that S1 leaves open, B1 and B3 among them, to a later increment (driverAssistanceBaselineDecision). "
+    "Deferred to a later increment.")
 #: the decisions of 2026-11-21 that the slice header records, in day order after those of 2026-11-18
 DECISIONS_1121 = (
     "On 2026-11-21 the judged session S1 was taken as the evidence of record, on the condition that the bench files "
@@ -339,13 +359,28 @@ def _either(values) -> str:
     return " or ".join(str(v) for v in found)
 
 
+def _after_stop(stop: dict) -> str:
+    """How long the stop run's image stream goes on after the stop instant of path_stop.json (review Q1)."""
+    after = (stop.get("stopInstant") or {}).get("imageStreamAfterStopS")
+    return f"{after:g}" if isinstance(after, (int, float)) else str(after)
+
+
 def guide_drop_phrase(counts: dict) -> str:
-    """The guide's words for where the images drop, each figure read from drop_counts.json."""
+    """The guide's words for where the images drop, each figure read from drop_counts.json: the figures of the 14
+    runs of SC-DRIVING-012 to SC-DRIVING-015, and those of the stop run and of the steering calibration run apart
+    (review Q2 of 2026-11-21)."""
     judged = [counts[label] for label in RUN_LABELS]
-    return (f"answered no, every run of S1 drops camera images: {_either(c['droppedInFirst5s'] for c in judged)} in "
+    stop, calib = counts["stop"], counts["calib_steer"]
+    return (f"answered no, each of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops camera images: "
+            f"{_either(c['droppedInFirst5s'] for c in judged)} in "
             f"the first 5 s after its first image, {_span([c['droppedAtStreamEnd'] for c in judged])} in the last "
             f"{max(c['streamEndDropsWithinS'] for c in judged):g} s of its image stream, after the run's end, and "
-            f"{_span([len(c['isolatedDropsS']) for c in judged])} isolated ones in between, with no cause shown; the "
+            f"{_span([len(c['isolatedDropsS']) for c in judged])} isolated ones in between; the run that stops the "
+            f"path drops {stop['droppedInFirst5s']} in its first 5 s and {stop['droppedAtStreamEnd']} in the last "
+            f"{stop['streamEndDropsWithinS']:g} s of its image stream, which goes on about {_after_stop(stop)} s after "
+            "the stop instant, until the S-CORE side stops, and the steering calibration run "
+            f"{calib['droppedInFirst5s']} in its first 5 s, {calib['droppedAtStreamEnd']} at the end of its image "
+            f"stream and {len(calib['isolatedDropsS'])} isolated; no cause is shown; the "
             "warm start of D-S1-1 ran before the attach in every run, in "
             f"{min(c['warmStart']['ms'] for c in counts.values()):.1f} to "
             f"{max(c['warmStart']['ms'] for c in counts.values()):.1f} ms, and did not keep the first 5 s free of "
@@ -372,7 +407,8 @@ def drop_sentences(counts: dict) -> list[str]:
         + without[-1] + ".",
         f"The run that stops the path drops {stop['droppedInFirst5s']} in its first 5 s and "
         f"{stop['droppedAtStreamEnd']} in the last {stop['streamEndDropsWithinS']:g} s of its image stream, which "
-        f"ends at the stop, and the steering calibration run {calib['droppedInFirst5s']} in its first 5 s, "
+        f"goes on about {_after_stop(stop)} s after the stop instant, until the S-CORE side stops, and the steering "
+        f"calibration run {calib['droppedInFirst5s']} in its first 5 s, "
         f"{calib['droppedAtStreamEnd']} at the end of its image stream and {len(calib['isolatedDropsS'])} isolated.",
         "The warm start of D-S1-1 (patch 0005 of the bench) ran before the attach in every run: the Launch Manager "
         "log of each run records 2 passes with the result yes, in "
@@ -495,6 +531,18 @@ def test_the_case_ids_continue_the_series_and_are_unique_in_the_model() -> None:
     assert not elsewhere, "a case id belongs to the verification-evidence slice and nowhere else"
     earlier = [int(i[-3:]) for i in ids if i.startswith("VC-DRIVING-") and i not in own]
     assert earlier and max(earlier) + 1 == NUMBERS[0], "the numbers continue the VC-DRIVING series"
+
+
+def _requirements_with(status: str) -> str:
+    """The requirements whose verification status the status rule gives from their cases' verdicts (pass or fail:
+    Completed; inconclusive: CompletedUnsuccessful), listed in the guide's words (review Q7 of 2026-11-21)."""
+    verdicts = {vc: case["verdict"] for vc, case in _evidence("verdicts.json")["cases"].items()}
+    outcome = _evidence("analysis_039.generator.json")["outcome"]
+    verdicts["VC-DRIVING-039"] = "pass" if outcome in ("passBoundedVerification", "passBoundedValidation") else \
+        "inconclusive"
+    rule = {"pass": "Completed", "fail": "Completed", "inconclusive": "CompletedUnsuccessful"}
+    found = ["REQ-" + vc[3:] for vc, verdict in sorted(verdicts.items()) if rule[verdict] == status]
+    return ", ".join(found[:-1]) + " and " + found[-1] if len(found) > 1 else found[0]
 
 
 def _evidence(name: str) -> dict:
@@ -851,7 +899,8 @@ def test_the_environment_gap_records_what_s1_shows_of_the_readiness_items_and_st
     """The environment decision of 2026-11-21: S1 shows the readiness items it shows, each with the session record
     that shows it; it answers whether the S-CORE host's own GPU keeps the candidate's cycle with no, with the dropped
     images of each run counted from its score-interface record (drop_counts.json); the capture of the start of the
-    sound and the showing to the VisionPilot maintainers stay open; the gap stays a record, deferred to phase 11."""
+    sound and the showing to the VisionPilot maintainers stay open; B1 and B3 are open bench items; the gap stays a
+    record and states the disposition of the baseline, deferred to a later increment (review Q6 of 2026-11-21)."""
     raw = SLICE.read_text(encoding="utf-8")
     gap = _body(raw, rf"\bpart <'{GAP}'> {GAP_NAME} : IncrementGap \{{")
     assert "attribute :>> disposition = LifecycleDisposition::deferred;" in gap
@@ -881,8 +930,25 @@ def test_the_environment_gap_records_what_s1_shows_of_the_readiness_items_and_st
         assert doc.count(statement) == 1, statement
     assert [doc.index(s) for s in b1] == sorted(doc.index(s) for s in b1), "B1 in its order"
     assert doc.index(b1[0]) > doc.index(SOUND_CAPTURE) and doc.index(b1[-1]) < doc.index(
-        "The gap stays a record of the environment"), "B1 after the readiness items, before the disposition"
-    assert ("The gap stays a record of the environment; its disposition is phase 11's. Deferred to phase 11.") in doc
+        "the gap stays a record of the environment"), "B1 after the readiness items, before the disposition"
+    for statement in B3_STATEMENTS:
+        assert doc.count(statement) == 1, statement
+    assert [doc.index(s) for s in B3_STATEMENTS] == sorted(doc.index(s) for s in B3_STATEMENTS), "B3 in its order"
+    assert doc.index(B3_STATEMENTS[0]) > doc.index(b1[-1]), "B3 after B1"
+    assert doc.count(GAP_DISPOSITION) == 1, "the gap states the disposition of the baseline"
+    assert doc.split(GAP_DISPOSITION, 1)[1].split()[0] in ("*/", "/"), "the gap's doc ends with its disposition"
+    # B3 as the verdict files show it: with the drop rule set aside, VC-DRIVING-040 and VC-DRIVING-041 find the
+    # guidance absent under site.guidance in each run of SC-DRIVING-014 and SC-DRIVING-015
+    for vc in ("VC-DRIVING-040", "VC-DRIVING-041"):
+        apart = [e for e in _evidence("verdicts.json")["cases"][vc]["measured"]["runs"]
+                 if e["run"].startswith(("014_", "015_"))]
+        assert len(apart) == 4, (vc, len(apart))
+        for e in apart:
+            without = e["measured"]["withoutDropRule"]
+            assert without["outcome"] == "inconclusiveMissingEvidence", (vc, e["run"])
+            assert any("setting_record.json site.guidance " in m for m in without["missing"]), (vc, e["run"])
+    for retired in ("its disposition is phase 11's", "Deferred to phase 11.", "which ends at the stop,"):
+        assert retired not in doc, retired
     for retired in ("until the probes run (", "Deferred to that slice.", "which it has not done yet",
                     "nothing of phase 10 is built before the probes are read", "which is unmeasured"):
         assert retired not in doc, retired
@@ -1138,6 +1204,13 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
     assert guide_drop_phrase(_evidence("drop_counts.json")) in gap_bullet
     assert ("the end of the second runs of SC-DRIVING-013 after 62 ticks at the speed of the target (B1): open, a "
             "bench item for the next session") in gap_bullet
+    assert ("the case evaluators' reading of the guidance of SC-DRIVING-014 and SC-DRIVING-015 one level above where "
+            "the setting record holds it (B3): open, an evaluator item, to be fixed test-first in the case "
+            "evaluators and judged again on the fetched records") in gap_bullet
+    # GAP-DRIVING-014 states the disposition of the baseline, in the guide as in the model (review Q6)
+    assert "Phase 11 decides its disposition" not in section
+    assert section.count("the baseline of Phase 11 defers it to a later increment") == 2, \
+        "the gap's bullet and the evidence's bullet"
     assert "most of them in its first 5 s" not in gap_bullet
     # the second slice: the evidence of record, with no value of a verdict written by hand
     assert "This first slice is model only" not in section and "every requirement keeps `NotStarted`" not in section
@@ -1147,14 +1220,22 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
                  "the evidence-of-record decision of 2026-11-21", "the drop-rule decision of 2026-11-21",
                  "the deceleration calibration decision of 2026-11-21", "the status decision of 2026-11-21",
                  "the check-value bound decision of 2026-11-21", "the environment decision of 2026-11-21",
-                 "`VVStatus::Completed` for REQ-DRIVING-036, REQ-DRIVING-037, REQ-DRIVING-039 and REQ-DRIVING-042",
-                 "`VVStatus::CompletedUnsuccessful` for REQ-DRIVING-038, REQ-DRIVING-040, REQ-DRIVING-041, "
-                 "REQ-DRIVING-043 and REQ-DRIVING-044",
+                 f"`VVStatus::Completed` for {_requirements_with('Completed')}",
+                 f"`VVStatus::CompletedUnsuccessful` for {_requirements_with('CompletedUnsuccessful')}",
+                 # review Q3 of 2026-11-21: what is generated and what is written by hand and pinned by tests
+                 "The fifteen run records, the record of the analysis of REQ-DRIVING-039 and the status that opens "
+                 "the doc of each case are written by `tools/generate_driver_assistance_evidence_text.py` from the "
+                 "files of the evidence directory",
+                 "The verdict table of the baseline, the verdicts and figures of the baseline decision and of the gap "
+                 "records, and the `verificationStatus` of the nine requirements are written by hand; tests derive "
+                 "each verdict and status from `verdicts.json` and `analysis_039.generator.json`, and pin each figure "
+                 "that comes from a file of the evidence directory to that file.",
                  "`tools/refresh_driver_assistance_s1_evidence.py`",
                  "A verdict of S1 is a verdict of the pinned candidate on this bench in simulation"):
         assert text in evidence, text
     for outcome in OUTCOMES:
         assert outcome not in evidence, f"the guide copies no outcome of a verdict: {outcome}"
+    assert "No outcome, value or evaluator revision is copied by hand" not in evidence, "review Q3: not true"
     assert ("**The deceleration calibration.** The condition on ASM-DRIVING-005 bears on a pass of VC-DRIVING-036 "
             "and VC-DRIVING-037, not on their fail in S1: it concerns how the simulated vehicle achieves a commanded "
             "deceleration. No run of SC-DRIVING-012 holds a commanded deceleration stronger than 0.533 m/s², and the "

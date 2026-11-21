@@ -17,7 +17,9 @@
       "endReason": "contact with the target",
       "ticks": 663,
       "tickTimesFile": "sim/out/world_012_20_r1/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 1266
+      "ticksAfterRunEnd": 1266,
+      "egoSpeedAtLastTickKmh": 0.369,
+      "targetSpeedAtLastTickKmh": 0.349
     },
     "wholeRunWindow": {
       "file": "sim/out/world_012_20_r1/simulator/world.jsonl",
@@ -48,7 +50,9 @@
       "endReason": "contact with the target",
       "ticks": 660,
       "tickTimesFile": "sim/out/world_012_20_r2/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 1250
+      "ticksAfterRunEnd": 1250,
+      "egoSpeedAtLastTickKmh": 0.371,
+      "targetSpeedAtLastTickKmh": 0.349
     },
     "wholeRunWindow": {
       "file": "sim/out/world_012_20_r2/simulator/world.jsonl",
@@ -79,7 +83,9 @@
       "endReason": "contact with the target",
       "ticks": 580,
       "tickTimesFile": "sim/out/world_012_42_r1/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 809
+      "ticksAfterRunEnd": 809,
+      "egoSpeedAtLastTickKmh": 0.34,
+      "targetSpeedAtLastTickKmh": 0.396
     },
     "wholeRunWindow": {
       "file": "sim/out/world_012_42_r1/simulator/world.jsonl",
@@ -112,7 +118,9 @@
       "endReason": "contact with the target",
       "ticks": 578,
       "tickTimesFile": "sim/out/world_012_42_r2/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 1329
+      "ticksAfterRunEnd": 1329,
+      "egoSpeedAtLastTickKmh": 0.369,
+      "targetSpeedAtLastTickKmh": 0.349
     },
     "wholeRunWindow": {
       "file": "sim/out/world_012_42_r2/simulator/world.jsonl",
@@ -145,7 +153,9 @@
       "endReason": "contact with the target",
       "ticks": 574,
       "tickTimesFile": "sim/out/world_012_60_r1/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 803
+      "ticksAfterRunEnd": 803,
+      "egoSpeedAtLastTickKmh": 0.318,
+      "targetSpeedAtLastTickKmh": 0.395
     },
     "wholeRunWindow": {
       "file": "sim/out/world_012_60_r1/simulator/world.jsonl",
@@ -179,7 +189,9 @@
       "endReason": "contact with the target",
       "ticks": 574,
       "tickTimesFile": "sim/out/world_012_60_r2/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 814
+      "ticksAfterRunEnd": 814,
+      "egoSpeedAtLastTickKmh": 0.35,
+      "targetSpeedAtLastTickKmh": 0.348
     },
     "wholeRunWindow": {
       "file": "sim/out/world_012_60_r2/simulator/world.jsonl",
@@ -214,7 +226,9 @@
       "endReason": "at the speed of the target",
       "ticks": 668,
       "tickTimesFile": "sim/out/world_013_30_r1/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 1717
+      "ticksAfterRunEnd": 1717,
+      "egoSpeedAtLastTickKmh": 17.608,
+      "targetSpeedAtLastTickKmh": 19.989
     },
     "wholeRunWindow": {
       "file": "sim/out/world_013_30_r1/simulator/world.jsonl",
@@ -247,7 +261,9 @@
       "endReason": "at the speed of the target",
       "ticks": 62,
       "tickTimesFile": "sim/out/world_013_30_r2/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 756
+      "ticksAfterRunEnd": 756,
+      "egoSpeedAtLastTickKmh": 1.289,
+      "targetSpeedAtLastTickKmh": 19.989
     },
     "wholeRunWindow": {
       "file": "sim/out/world_013_30_r2/simulator/world.jsonl",
@@ -278,7 +294,9 @@
       "endReason": "contact with the target",
       "ticks": 534,
       "tickTimesFile": "sim/out/world_013_60_r1/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 804
+      "ticksAfterRunEnd": 804,
+      "egoSpeedAtLastTickKmh": 21.381,
+      "targetSpeedAtLastTickKmh": 21.316
     },
     "wholeRunWindow": {
       "file": "sim/out/world_013_60_r1/simulator/world.jsonl",
@@ -309,7 +327,9 @@
       "endReason": "at the speed of the target",
       "ticks": 62,
       "tickTimesFile": "sim/out/world_013_60_r2/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 784
+      "ticksAfterRunEnd": 784,
+      "egoSpeedAtLastTickKmh": 1.293,
+      "targetSpeedAtLastTickKmh": 19.989
     },
     "wholeRunWindow": {
       "file": "sim/out/world_013_60_r2/simulator/world.jsonl",
@@ -342,7 +362,9 @@
       "endReason": "at rest",
       "ticks": 493,
       "tickTimesFile": "sim/out/world_014_30_r1/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 774
+      "ticksAfterRunEnd": 774,
+      "egoSpeedAtLastTickKmh": 0.12,
+      "targetSpeedAtLastTickKmh": 0.0
     },
     "wholeRunWindow": {
       "file": "sim/out/world_014_30_r1/simulator/world.jsonl",
@@ -378,7 +400,9 @@
       "endReason": "run cap",
       "ticks": 1201,
       "tickTimesFile": "sim/out/world_014_30_r2/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 1453
+      "ticksAfterRunEnd": 1453,
+      "egoSpeedAtLastTickKmh": 7.114,
+      "targetSpeedAtLastTickKmh": 0.0
     },
     "wholeRunWindow": {
       "file": "sim/out/world_014_30_r2/simulator/world.jsonl",
@@ -415,7 +439,9 @@
       "endReason": "run cap",
       "ticks": 1501,
       "tickTimesFile": "sim/out/world_015_40_r1/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 1167
+      "ticksAfterRunEnd": 1167,
+      "egoSpeedAtLastTickKmh": 38.999,
+      "targetSpeedAtLastTickKmh": 10.0
     },
     "wholeRunWindow": {
       "file": "sim/out/world_015_40_r1/simulator/world.jsonl",
@@ -452,7 +478,9 @@
       "endReason": "run cap",
       "ticks": 1501,
       "tickTimesFile": "sim/out/world_015_40_r2/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 1182
+      "ticksAfterRunEnd": 1182,
+      "egoSpeedAtLastTickKmh": 38.999,
+      "targetSpeedAtLastTickKmh": 10.0
     },
     "wholeRunWindow": {
       "file": "sim/out/world_015_40_r2/simulator/world.jsonl",
@@ -492,7 +520,9 @@
       "endReason": "run cap",
       "ticks": 1201,
       "tickTimesFile": "sim/out/world_calib_steer/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 1891
+      "ticksAfterRunEnd": 1891,
+      "egoSpeedAtLastTickKmh": 20.999,
+      "targetSpeedAtLastTickKmh": null
     },
     "wholeRunWindow": {
       "file": "sim/out/world_calib_steer/simulator/world.jsonl",
@@ -528,7 +558,9 @@
       "endReason": "run cap",
       "ticks": 841,
       "tickTimesFile": "sim/out/world_stop/simulator/tick_times.csv",
-      "ticksAfterRunEnd": 825
+      "ticksAfterRunEnd": 825,
+      "egoSpeedAtLastTickKmh": 20.999,
+      "targetSpeedAtLastTickKmh": 0.0
     },
     "wholeRunWindow": {
       "file": "sim/out/world_stop/simulator/world.jsonl",
@@ -542,6 +574,15 @@
       "passes": 2,
       "result": "yes",
       "ms": 692.7
+    },
+    "stopInstant": {
+      "file": "score/out/path_stop_stop/path_stop.json",
+      "stopInstantMonoNs": 5751472311230,
+      "simS": 2870.36,
+      "lastCommandIssueSimS": 2870.26,
+      "imageStreamAfterStopS": 0.8,
+      "droppedAfterStop": 8,
+      "ticksAfterStopS": 26.65
     }
   }
 }

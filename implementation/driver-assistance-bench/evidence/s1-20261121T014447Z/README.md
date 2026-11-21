@@ -21,9 +21,10 @@ approves any text before they are.
   Eclipse S-CORE Launch Manager, and the guest host with the SDV Core and the
   IVI guests. `session.json` records the hosts, the bench commit, the
   Ackermann gains (`v1`) and the exit code (0).
-- The 14 runs of the seven settings of SC-DRIVING-012 to SC-DRIVING-015 (10 of
-  them meet their entry conditions), the run that stops the S-CORE path, and the
-  calibration runs before the first judged run.
+- The 14 runs of the seven settings of SC-DRIVING-012 to SC-DRIVING-015 (6 of
+  them judged runs; SC-DRIVING-014 and SC-DRIVING-015 have no judged-run term),
+  the run that stops the S-CORE path, and the calibration runs before the first
+  judged run.
 - Bench commit `508649ba` of pull request #549 (the branch
   `impl/da-bench`). The case evaluators ran after the session on the fetched
   records; `verdicts.json` names their revision.
@@ -185,6 +186,25 @@ to collision of at least 4 s. So SC-DRIVING-013 has one judged run,
 
 It is not fixed for S1: a fix would change a file that ran in S1 and void the
 condition of record. It is open for the next session (GAP-DRIVING-014).
+
+## Open bench item B3
+
+The case evaluators at `44fe1608` (`site_guidance` in
+`case-evaluators/cases_da.py`) look for the speeds and times to collision of the
+source's guidance for SC-DRIVING-014 and SC-DRIVING-015, `approachKmh` and
+`bothKmh` among them, under `site.guidance` of each run's `setting_record.json`;
+the world side writes them one level lower, under `site.guidance.regulation`
+(`SiteSpec.as_record()` in `world-side/sites.py`). So VC-DRIVING-040 and
+VC-DRIVING-041 find them absent in each of the four runs of SC-DRIVING-014 and
+SC-DRIVING-015 (`measured.withoutDropRule` of these runs in `verdicts.json`) and
+read the runs as inconclusive even with the rule on dropped images set aside.
+The verdicts of S1 do not change: by that rule the runs are inconclusive
+already.
+
+The fix belongs to the case evaluators, which judge the fetched records after
+the session: it changes no file that ran on a host and does not void the
+condition of record. It is not made for S1; it is open for the next reading of
+the records (GAP-DRIVING-014).
 
 ## Where the rest is retained
 

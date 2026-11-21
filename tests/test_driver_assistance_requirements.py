@@ -32,6 +32,7 @@ The tests read the model text; they do not parse SysML. They state their own con
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -397,15 +398,37 @@ def test_each_requirement_has_its_subject_one_statement_and_its_attributes():
         assert len(re.findall(r"\bverificationStatus\b", code)) == 1, name
 
 
+#: the evidence directory of the judged session S1, whose verdict files the statuses follow
+EVIDENCE = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z"
+#: the status rule of the status decision of 2026-11-21: a case that reached a pass or a fail completed its
+#: verification; an inconclusive case could not complete it
+STATUS_RULE = {"pass": "Completed", "fail": "Completed", "inconclusive": "CompletedUnsuccessful"}
+
+
+def _statuses() -> dict[str, str]:
+    """The verification status of each requirement after S1, derived by the status rule from the verdict of its case:
+    verdicts.json for the eight evaluated cases, analysis_039.generator.json for VC-DRIVING-039, whose two pass
+    literals map to pass (MapAssistanceEvidenceOutcomeToVerdict) and every other literal not (review Q7)."""
+    verdicts = {vc: case["verdict"] for vc, case in json.loads(
+        (EVIDENCE / "verdicts.json").read_text(encoding="utf-8"))["cases"].items()}
+    outcome = json.loads((EVIDENCE / "analysis_039.generator.json").read_text(encoding="utf-8"))["outcome"]
+    verdicts["VC-DRIVING-039"] = ("pass" if outcome in ("passBoundedVerification", "passBoundedValidation")
+                                  else "inconclusive" if outcome != "errorEvidence" else "error")
+    return {"REQ-" + vc[3:]: STATUS_RULE[verdict] for vc, verdict in sorted(verdicts.items())}
+
+
+def _listed(items: list[str]) -> str:
+    return ", ".join(items[:-1]) + " and " + items[-1] if len(items) > 1 else items[0]
+
+
 #: the verification status of each requirement after the judged session S1 of phase 10 (the status decision of
 #: 2026-11-21): Completed where the case reached its outcome, CompletedUnsuccessful where it could not be completed
-STATUSES = {**{f"REQ-DRIVING-0{n}": "Completed" for n in (36, 37, 39, 42)},
-            **{f"REQ-DRIVING-0{n}": "CompletedUnsuccessful" for n in (38, 40, 41, 43, 44)}}
+STATUSES = _statuses()
 STATUS_DECISION = (
     "On 2026-11-21 the verification status of each requirement was set from the judged session S1 of phase 10. It "
-    "records the process of the verification, never its verdict: VVStatus::Completed for REQ-DRIVING-036, "
-    "REQ-DRIVING-037, REQ-DRIVING-039 and REQ-DRIVING-042, and VVStatus::CompletedUnsuccessful for REQ-DRIVING-038, "
-    "REQ-DRIVING-040, REQ-DRIVING-041, REQ-DRIVING-043 and REQ-DRIVING-044. The outcome and the verdict of each "
+    "records the process of the verification, never its verdict: VVStatus::Completed for "
+    f"{_listed([r for r, v in STATUSES.items() if v == 'Completed'])}, and VVStatus::CompletedUnsuccessful for "
+    f"{_listed([r for r, v in STATUSES.items() if v == 'CompletedUnsuccessful'])}. The outcome and the verdict of each "
     "case are in its doc in phase 10: the status decision of 2026-11-21.")
 
 

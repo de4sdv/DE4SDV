@@ -13,8 +13,8 @@ desk record or the fetched session tree, and then the model text that the eviden
 - ``session.json`` and ``scenario_digests.json``, copied from the session tree;
 - ``drop_counts.json``, where the camera images of each run drop, from the run's score-interface record and the
   world side's files of the run: in the first 5 s after its first image, at the end of its image stream and in
-  between, the run's end, the drops of its whole-run window, and the warm start that the run's Launch Manager
-  log records;
+  between, the run's end with the speeds at its last tick, the drops of its whole-run window, the warm start that
+  the run's Launch Manager log records, and for the run that stops the path its stop instant (``path_stop.json``);
 - ``ackermann_gains.json``, the Ackermann gains that VC-DRIVING-036 and VC-DRIVING-037 record, which the
   generator names by identity instead of copying them into the model;
 - ``commanded_deceleration.json``, the strongest deceleration among the driving commands that the actuation adapter
@@ -61,6 +61,10 @@ SCORE_INTERFACE = "score/out/score_{run}/score_side/run/score/score_interface.js
 WORLD_DIR = "sim/out/world_{run}/simulator"
 ACTUATION_ADAPTER = "score/out/score_{run}/score_side/run/score/actuationAdapter.jsonl"
 LAUNCH_MANAGER_LOG = "score/out/score_{run}/score_side/state/launch_manager.log"
+#: the stop instant of a run that stops the path, which the S-CORE host writes on its own monotonic clock
+PATH_STOP = "score/out/path_stop_{run}/path_stop.json"
+#: the label of the run that stops the path
+STOP_RUN = "stop"
 #: the line of the warm start of D-S1-1 (patch 0005 of the bench) in a run's Launch Manager log
 WARM_START = re.compile(r"\[DE4SDV\] warm start before the attach: (\d+) passes, result (\w+), ([0-9.]+) ms")
 #: the start-up drops: within this many seconds of simulation time after a run's first image
@@ -83,19 +87,21 @@ def reduce_analysis(full: dict) -> dict:
 def _world_span(tree: Path, run: str) -> dict:
     """The run's end and its whole-run window from the world side's files: run_end.json (the end reason and the
     number of run ticks), world.jsonl (the run's ticks, the window that a criterion over every run judges, first to
-    last tick) and tick_times.csv (every tick of the process: the ticks it makes after the run's end)."""
+    last tick, and the vehicle's and the target's speed at the last tick, km/h, None where the tick has no target)
+    and tick_times.csv (every tick of the process: the ticks it makes after the run's end)."""
     sim = Path(tree) / WORLD_DIR.format(run=run)
     end_path, world_path, times_path = sim / "run_end.json", sim / "world.jsonl", sim / "tick_times.csv"
     if not end_path.is_file():
         raise ValueError(f"run {run}: no {end_path.relative_to(tree).as_posix()} (the run's end, run_end.json)")
     end = json.loads(end_path.read_text(encoding="utf-8"))
-    ticks = []
+    ticks, data = [], []
     if world_path.is_file():
         for line in world_path.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 event = json.loads(line)
                 if event.get("event") == "tick":
                     ticks.append(float(event["data"]["simTimeS"]))
+                    data.append(event["data"])
     ticks.sort()
     if not ticks or end.get("ticks") != len(ticks):
         raise ValueError(f"run {run}: run_end.json gives {end.get('ticks')!r} ticks and world.jsonl {len(ticks)}")
@@ -107,9 +113,13 @@ def _world_span(tree: Path, run: str) -> dict:
     if len(last) != 1:
         raise ValueError(f"run {run}: the run's last tick {ticks[-1]} is not one row of tick_times.csv beside "
                          "run_end.json")
+    final = max(data, key=lambda d: float(d["simTimeS"]))
+    target = (final.get("target") or {}).get("speedMps")
     return {"runEnd": {"file": end_path.relative_to(tree).as_posix(), "endReason": end.get("endReason"),
                        "ticks": end.get("ticks"), "tickTimesFile": times_path.relative_to(tree).as_posix(),
-                       "ticksAfterRunEnd": len(rows) - 1 - last[0]},
+                       "ticksAfterRunEnd": len(rows) - 1 - last[0],
+                       "egoSpeedAtLastTickKmh": round(float(final["ego"]["speedMps"]) * 3.6, 3),
+                       "targetSpeedAtLastTickKmh": round(float(target) * 3.6, 3) if target is not None else None},
             "window": (ticks[0], ticks[-1]), "worldFile": world_path.relative_to(tree).as_posix()}
 
 
@@ -127,6 +137,36 @@ def warm_start(tree: Path, run: str) -> dict | None:
     return {"file": path.relative_to(tree).as_posix(), "passes": int(passes), "result": result, "ms": float(ms)}
 
 
+def stop_instant(tree: Path, run: str, events: list[dict], last_image: float, last_tick: float) -> dict | None:
+    """The stop instant of a run that stops the path, from its path_stop.json, which the S-CORE host writes on its own
+    monotonic clock (stopInstantMonoNs), mapped onto the run's score-interface record, which the same host writes on
+    the same clock (mono_ns): the stop came at the simulation time of the newest record at or before the stop
+    instant (simS); lastCommandIssueSimS is the issue time of the last driving command before it; the image stream
+    goes on imageStreamAfterStopS after it, with droppedAfterStop drops; and ticksAfterStopS of the whole-run window
+    follow it. None for a run without a path_stop.json; refused for the run that stops the path without one."""
+    path = Path(tree) / PATH_STOP.format(run=run)
+    if not path.is_file():
+        if run == STOP_RUN:
+            raise ValueError(f"run {run}: no {PATH_STOP.format(run=run)} (the stop instant of the run that stops "
+                             "the path)")
+        return None
+    mono = int(json.loads(path.read_text(encoding="utf-8"))["stopInstantMonoNs"])
+    before = [e for e in events if "sim_s" in e and "mono_ns" in e and int(e["mono_ns"]) <= mono]
+    commands = [e for e in events if e.get("kind") == "out.driving_command" and "mono_ns" in e
+                and int(e["mono_ns"]) <= mono]
+    if not before:
+        raise ValueError(f"run {run}: no record of its score-interface record at or before the stop instant of "
+                         f"{PATH_STOP.format(run=run)}")
+    sim = float(max(before, key=lambda e: int(e["mono_ns"]))["sim_s"])
+    command = max(commands, key=lambda e: int(e["mono_ns"])) if commands else None
+    return {"file": PATH_STOP.format(run=run), "stopInstantMonoNs": mono, "simS": round(sim, 3),
+            "lastCommandIssueSimS": round(float(command["issueTime_sim_s"]), 3) if command else None,
+            "imageStreamAfterStopS": round(last_image - sim, 3),
+            "droppedAfterStop": sum(1 for e in events if e.get("kind") == "drop.camera_image" and "mono_ns" in e
+                                    and int(e["mono_ns"]) > mono),
+            "ticksAfterStopS": round(last_tick - sim, 3)}
+
+
 def drop_counts(tree: Path) -> dict:
     """Run label -> where its camera images drop, in its score-interface record: within 5 s of simulation time after
     its first received image, within the last second of its image stream, and isolated in between (seconds after the
@@ -136,11 +176,12 @@ def drop_counts(tree: Path) -> dict:
     counts = {}
     for path in sorted(Path(tree).glob(SCORE_INTERFACE.format(run="*"))):
         run = path.relative_to(tree).parts[2][len("score_"):]
-        drops, received = [], []
+        drops, received, events = [], [], []
         for line in path.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
             event = json.loads(line)
+            events.append(event)
             if event.get("kind") == "drop.camera_image":
                 drops.append(float(event["sim_s"]))
             elif event.get("kind") == "in.camera_image":
@@ -167,6 +208,9 @@ def drop_counts(tree: Path) -> dict:
                                "isolatedDropsS": [round(t - first, 3) for t in isolated if t in inside]},
             "warmStart": warm_start(tree, run),
         }
+        stop = stop_instant(tree, run, events, last, w1)
+        if stop is not None:
+            counts[run]["stopInstant"] = stop
     return counts
 
 

@@ -932,11 +932,12 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * first image, and none in SC-DRIVING-012@20/r2, SC-DRIVING-012@42/r1,
      * SC-DRIVING-012@60/r1, SC-DRIVING-013@30/r2, SC-DRIVING-013@60/r1 or
      * SC-DRIVING-013@60/r2. The run that stops the path drops 24 in its first 5
-     * s and 8 in the last 0.8 s of its image stream, which ends at the stop,
-     * and the steering calibration run 34 in its first 5 s, 3 at the end of its
-     * image stream and 6 isolated. The warm start of D-S1-1 (patch 0005 of the
-     * bench) ran before the attach in every run: the Launch Manager log of each
-     * run records 2 passes with the result yes, in 678.3 to 706.8 ms
+     * s and 8 in the last 0.8 s of its image stream, which goes on about 0.8 s
+     * after the stop instant, until the S-CORE side stops, and the steering
+     * calibration run 34 in its first 5 s, 3 at the end of its image stream and
+     * 6 isolated. The warm start of D-S1-1 (patch 0005 of the bench) ran before
+     * the attach in every run: the Launch Manager log of each run records 2
+     * passes with the result yes, in 678.3 to 706.8 ms
      * (score_side/state/launch_manager.log); it did not keep the first 5 s
      * after the first image free of dropped images. The records show no cause
      * of the drops. The evaluators judge a criterion over every run in the
@@ -980,8 +981,25 @@ package DE4SDV_DriverAssistanceVerificationEvidence {
      * SC-DRIVING-013@30/r1. The bench is not changed for S1: a change would
      * alter a file that ran in S1 and void the condition of record.
      *
-     * The gap stays a record of the environment; its disposition is phase 11's.
-     * Deferred to phase 11.
+     * Open as well, a bench item that S1 shows (B3, the evaluator finding of
+     * 2026-11-21): the case evaluators at 44fe1608 (site_guidance in
+     * case-evaluators/cases_da.py) look for the speeds and times to collision
+     * of the source's guidance for SC-DRIVING-014 and SC-DRIVING-015,
+     * approachKmh and bothKmh among them, under site.guidance of each run's
+     * setting_record.json, and the world side writes them one level lower,
+     * under site.guidance.regulation (SiteSpec.as_record() in
+     * world-side/sites.py). So VC-DRIVING-040 and VC-DRIVING-041 find them
+     * absent in each of the four runs of SC-DRIVING-014 and SC-DRIVING-015 and
+     * read these runs as inconclusive even with the rule on dropped images set
+     * aside. The verdicts of S1 do not change: by that rule the runs are
+     * inconclusive already. The fix belongs to the case evaluators, which judge
+     * the fetched records after the session; it changes no file that ran on a
+     * host, and it is not made for S1.
+     *
+     * At the baseline decision: the gap stays a record of the environment, and
+     * the baseline defers the readiness items that S1 leaves open, B1 and B3
+     * among them, to a later increment (driverAssistanceBaselineDecision).
+     * Deferred to a later increment.
      */
     attribute :>> disposition = LifecycleDisposition::deferred;
   }

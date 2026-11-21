@@ -80,26 +80,30 @@ def test_the_reduced_analysis_keeps_the_six_attributes_the_outcome_and_a_reason_
     assert "analystIdentity" not in tool.reduce_analysis(missing), "a missing attribute stays missing"
 
 
-def _tick(n: int, t: float, contact: int | None) -> dict:
-    """One tick's data as the world side writes it: the ego vehicle's speed and achieved acceleration, the collisions
-    and the target contact. The synthetic contact begins at tick ``contact`` with targetContact alone, and the
-    collision follows at the next tick; the ego vehicle runs at 5.5 m/s, 5.0 m/s on the tick before the contact and
-    2.0 m/s from the contact on, and achieves -0.05 m/s² throughout."""
+def _tick(n: int, t: float, contact: int | None, target: bool = True) -> dict:
+    """One tick's data as the world side writes it: the ego vehicle's speed and achieved acceleration, the target's
+    speed, the collisions and the target contact. The synthetic contact begins at tick ``contact`` with targetContact
+    alone, and the collision follows at the next tick; the ego vehicle runs at 5.5 m/s, 5.0 m/s on the tick before the
+    contact and 2.0 m/s from the contact on, and achieves -0.05 m/s² throughout; the target runs at 4.0 m/s. A run
+    without a target (``target`` false) has no target key, as the stop run's world record."""
     speed = 5.5 if contact is None or n < contact - 1 else 5.0 if n == contact - 1 else 2.0
-    return {"simTimeS": t, "frame": n, "ego": {"speedMps": speed, "longAccelMps2": -0.05},
+    data = {"simTimeS": t, "frame": n, "ego": {"speedMps": speed, "longAccelMps2": -0.05},
             "collisions": [{"type": "collision"}] if contact is not None and n > contact else [],
             "targetContact": contact is not None and n >= contact}
+    if target:
+        data["target"] = {"speedMps": 4.0}
+    return data
 
 
 def _world(tree: Path, run: str, run_ticks: list[float], settle: int = 10, hold: int = 20,
-           reason: str = "contact with the target", contact: int | None = None) -> None:
+           reason: str = "contact with the target", contact: int | None = None, target: bool = True) -> None:
     """The world side's files of one run, in the forms it writes them: world.jsonl with its tick lines among other
     lines, run_end.json, and tick_times.csv with every tick of the process (the settle ticks before the run, the run's
     ticks and the ticks it keeps making after the run's end)."""
     sim = tree / "sim" / "out" / f"world_{run}" / "simulator"
     sim.mkdir(parents=True)
     lines = [json.dumps({"event": "start", "data": {}})]
-    lines += [json.dumps({"event": "tick", "t_real_ns": n, "data": _tick(n, t, contact)})
+    lines += [json.dumps({"event": "tick", "t_real_ns": n, "data": _tick(n, t, contact, target)})
               for n, t in enumerate(run_ticks)]
     lines.append(json.dumps({"event": "end", "data": {"reason": reason}}))
     (sim / "world.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -119,6 +123,21 @@ DROPS = [10.0, 10.1, 10.2, 13.0, 14.9, 16.0, 18.5, 19.6, 19.7, 19.8]
 RUN_TICKS = [round(9.9 + 0.05 * k, 6) for k in range(143)]          # 9.9 s to 17.0 s
 #: the tick of the synthetic run 012_20_r1 at which the contact begins: 16.0 s
 CONTACT = 122
+#: the stop run's score-interface record, each record with the S-CORE host's monotonic clock (mono_ns) as the interface
+#: writes it: images every 0.1 s from 30.0 s to 30.4 s, each followed by a speed reading and a driving command, and two
+#: drops; the stop instant of path_stop.json lies 50 ms after the image of 30.2 s and its command, so the newest
+#: record before it is of 30.2 s, and the images of 30.3 and 30.4 s (one of them dropped) come after it
+STOP_IMAGE_MONO = [10_000_000_000 + 100_000_000 * k for k in range(5)]
+STOP_INSTANT_MONO = STOP_IMAGE_MONO[2] + 50_000_000
+STOP_EVENTS = ([{"kind": "start", "mono_ns": 9_000_000_000}]
+               + [e for k, m in enumerate(STOP_IMAGE_MONO) for e in (
+                   {"kind": "in.camera_image", "sim_s": round(30.0 + 0.1 * k, 6), "mono_ns": m},
+                   {"kind": "in.vehicle_speed", "sim_s": round(30.0 + 0.1 * k, 6), "mono_ns": m + 2_000_000},
+                   {"kind": "out.driving_command", "issueTime_sim_s": round(30.0 + 0.1 * k, 6), "mono_ns": m + 5_000_000})
+                   if k <= 2 or e["kind"] == "in.camera_image"]
+               + [{"kind": "drop.camera_image", "sim_s": 30.0, "mono_ns": STOP_IMAGE_MONO[1] + 1_000},
+                  {"kind": "drop.camera_image", "sim_s": 30.3, "mono_ns": STOP_IMAGE_MONO[4] + 1_000},
+                  {"kind": "supervision.stop", "mono_ns": STOP_IMAGE_MONO[4] + 60_000_000}])
 #: the driving commands that the actuation adapter of 012_20_r1 receives: issue time, verdict, acceleration. Each
 #: accepted command holds until the next accepted one; the rejected one does not interrupt -0.4129, and the last one
 #: comes after the contact at 16.0 s
@@ -133,8 +152,7 @@ def _session_tree(root: Path) -> Path:
               + [{"kind": "drop.camera_image", "sim_s": t} for t in DROPS]
               + [{"kind": "pass.camera_image", "sim_s": t} for t in IMAGES if t not in DROPS]
               + [{"kind": "out.driving_command", "issueTime_sim_s": t} for t in IMAGES[:17]],
-              "stop": [{"kind": "start"}] + [{"kind": "in.camera_image", "sim_s": 30.0 + 0.1 * k} for k in range(5)]
-              + [{"kind": "drop.camera_image", "sim_s": t} for t in (30.0, 30.3)]}
+              "stop": STOP_EVENTS}
     for run, lines in events.items():
         path = tree / "score" / "out" / f"score_{run}" / "score_side" / "run" / "score" / "score_interface.jsonl"
         path.parent.mkdir(parents=True)
@@ -145,7 +163,11 @@ def _session_tree(root: Path) -> Path:
     (state / "launch_manager.log").write_text(
         "[INFO]  starting\n[INFO]  [DE4SDV] warm start before the attach: 2 passes, result yes, 686.2 ms\n"
         "[INFO]  attached\n", encoding="utf-8")
-    _world(tree, "stop", [round(29.9 + 0.05 * k, 6) for k in range(41)], reason="run cap")
+    _world(tree, "stop", [round(29.9 + 0.05 * k, 6) for k in range(41)], reason="run cap", target=False)
+    stop_record = tree / "score" / "out" / "path_stop_stop" / "path_stop.json"
+    stop_record.parent.mkdir(parents=True)
+    stop_record.write_text(json.dumps({"runTarget": "path_stopped", "stopInstantRealNs": 1_700_000_000_000_000_000,
+                                       "stopInstantMonoNs": STOP_INSTANT_MONO, "rc": 0}), encoding="utf-8")
     for run, commands in {"012_20_r1": COMMANDS,
                           "stop": [(30.0, "accepted", 0.5), (30.1, "accepted", 0.00003)]}.items():
         adapter = tree / "score" / "out" / f"score_{run}" / "score_side" / "run" / "score" / "actuationAdapter.jsonl"
@@ -175,7 +197,7 @@ def test_the_drop_counts_state_where_in_each_run_the_images_drop(tmp_path):
         "droppedInFirst5s": 5, "droppedAtStreamEnd": 3, "streamEndDropsWithinS": 0.3, "isolatedDropsS": [6.0, 8.5],
         "runEnd": {"file": "sim/out/world_012_20_r1/simulator/run_end.json", "endReason": "contact with the target",
                    "ticks": 143, "tickTimesFile": "sim/out/world_012_20_r1/simulator/tick_times.csv",
-                   "ticksAfterRunEnd": 20},
+                   "ticksAfterRunEnd": 20, "egoSpeedAtLastTickKmh": 7.2, "targetSpeedAtLastTickKmh": 14.4},
         "wholeRunWindow": {"file": "sim/out/world_012_20_r1/simulator/world.jsonl", "firstTickSimS": 9.9,
                            "lastTickSimS": 17.0, "dropped": 6, "isolatedDropsS": [6.0]},
         "warmStart": {"file": "score/out/score_012_20_r1/score_side/state/launch_manager.log", "passes": 2,
@@ -187,6 +209,28 @@ def test_the_drop_counts_state_where_in_each_run_the_images_drop(tmp_path):
     assert stop["streamEndDropsWithinS"] is None
     assert stop["warmStart"] is None, "a run whose Launch Manager log records no warm start says so"
     assert stop["wholeRunWindow"]["dropped"] == 2 and stop["runEnd"]["endReason"] == "run cap"
+    assert stop["runEnd"]["targetSpeedAtLastTickKmh"] is None, "a world record without a target says so"
+    assert "stopInstant" not in counts["012_20_r1"], "only the run that stops the path has a stop instant"
+
+
+def test_the_drop_counts_place_the_stop_instant_of_the_run_that_stops_the_path(tmp_path):
+    """Review Q1 of 2026-11-21: the stop instant is that of path_stop.json, which the S-CORE host writes on its own
+    monotonic clock, never the time of the last dropped image. The refresh maps it onto the run's score-interface
+    record, which the same host writes on the same clock: the stop came at the simulation time of the newest record
+    at or before the stop instant; the record gives the last driving command before it, how long the image stream
+    goes on after it, the drops after it, and the world ticks that follow it in the whole-run window."""
+    tool = _tool()
+    tree = _session_tree(tmp_path)
+    counts = tool.drop_counts(tree)
+    stop = counts["stop"]
+    assert "stopInstant" in stop, "the run that stops the path states its stop instant"
+    assert stop["stopInstant"] == {
+        "file": "score/out/path_stop_stop/path_stop.json", "stopInstantMonoNs": STOP_INSTANT_MONO,
+        "simS": 30.2, "lastCommandIssueSimS": 30.2, "imageStreamAfterStopS": 0.2, "droppedAfterStop": 1,
+        "ticksAfterStopS": 1.7}
+    (tree / "score" / "out" / "path_stop_stop" / "path_stop.json").unlink()
+    with pytest.raises(ValueError, match="path_stop.json"):
+        tool.drop_counts(tree)
 
 
 def test_the_drop_counts_refuse_a_run_whose_world_record_disagrees_with_its_end(tmp_path):
