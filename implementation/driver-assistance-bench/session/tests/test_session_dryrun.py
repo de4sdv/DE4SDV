@@ -72,14 +72,23 @@ def vp_clone(tmp_path_factory) -> tuple[Path, str]:
     return d, "5" * 40, bin_dir
 
 
+def set_vp_env(vp_clone, mp) -> None:
+    """The session's VisionPilot inputs from the stand-in clone and its fake git: no test needs a clone on the host.
+
+    The autouse fixture below calls this for every test. A module-scoped fixture that runs the session starts before
+    any function-scoped fixture, so it calls this itself inside pytest.MonkeyPatch.context() (test_evidence_fields.py).
+    """
+    d, pin, bin_dir = vp_clone
+    mp.setenv("VP_CLONE", str(d))
+    mp.setenv("VP_PIN", pin)
+    mp.setenv("FAKE_VP_DIR", str(d))
+    mp.setenv("FAKE_VP_PIN", pin)
+    mp.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
+
+
 @pytest.fixture(autouse=True)
 def _vp_env(vp_clone, monkeypatch) -> None:
-    d, pin, bin_dir = vp_clone
-    monkeypatch.setenv("VP_CLONE", str(d))
-    monkeypatch.setenv("VP_PIN", pin)
-    monkeypatch.setenv("FAKE_VP_DIR", str(d))
-    monkeypatch.setenv("FAKE_VP_PIN", pin)
-    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
+    set_vp_env(vp_clone, monkeypatch)
 
 
 class Run:
