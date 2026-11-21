@@ -1,0 +1,98 @@
+{
+  "012_20_r1": {
+    "dropped": 30,
+    "droppedInFirst5s": 24,
+    "received": 599,
+    "file": "score/out/score_012_20_r1/score_side/run/score/score_interface.jsonl"
+  },
+  "012_20_r2": {
+    "dropped": 27,
+    "droppedInFirst5s": 24,
+    "received": 589,
+    "file": "score/out/score_012_20_r2/score_side/run/score/score_interface.jsonl"
+  },
+  "012_42_r1": {
+    "dropped": 29,
+    "droppedInFirst5s": 23,
+    "received": 341,
+    "file": "score/out/score_012_42_r1/score_side/run/score/score_interface.jsonl"
+  },
+  "012_42_r2": {
+    "dropped": 27,
+    "droppedInFirst5s": 23,
+    "received": 583,
+    "file": "score/out/score_012_42_r2/score_side/run/score/score_interface.jsonl"
+  },
+  "012_60_r1": {
+    "dropped": 26,
+    "droppedInFirst5s": 23,
+    "received": 336,
+    "file": "score/out/score_012_60_r1/score_side/run/score/score_interface.jsonl"
+  },
+  "012_60_r2": {
+    "dropped": 28,
+    "droppedInFirst5s": 23,
+    "received": 343,
+    "file": "score/out/score_012_60_r2/score_side/run/score/score_interface.jsonl"
+  },
+  "013_30_r1": {
+    "dropped": 27,
+    "droppedInFirst5s": 24,
+    "received": 597,
+    "file": "score/out/score_013_30_r1/score_side/run/score/score_interface.jsonl"
+  },
+  "013_30_r2": {
+    "dropped": 28,
+    "droppedInFirst5s": 24,
+    "received": 82,
+    "file": "score/out/score_013_30_r2/score_side/run/score/score_interface.jsonl"
+  },
+  "013_60_r1": {
+    "dropped": 28,
+    "droppedInFirst5s": 24,
+    "received": 329,
+    "file": "score/out/score_013_60_r1/score_side/run/score/score_interface.jsonl"
+  },
+  "013_60_r2": {
+    "dropped": 26,
+    "droppedInFirst5s": 24,
+    "received": 84,
+    "file": "score/out/score_013_60_r2/score_side/run/score/score_interface.jsonl"
+  },
+  "014_30_r1": {
+    "dropped": 27,
+    "droppedInFirst5s": 24,
+    "received": 314,
+    "file": "score/out/score_014_30_r1/score_side/run/score/score_interface.jsonl"
+  },
+  "014_30_r2": {
+    "dropped": 28,
+    "droppedInFirst5s": 23,
+    "received": 786,
+    "file": "score/out/score_014_30_r2/score_side/run/score/score_interface.jsonl"
+  },
+  "015_40_r1": {
+    "dropped": 30,
+    "droppedInFirst5s": 23,
+    "received": 788,
+    "file": "score/out/score_015_40_r1/score_side/run/score/score_interface.jsonl"
+  },
+  "015_40_r2": {
+    "dropped": 28,
+    "droppedInFirst5s": 23,
+    "received": 788,
+    "file": "score/out/score_015_40_r2/score_side/run/score/score_interface.jsonl"
+  },
+  "calib_steer": {
+    "dropped": 43,
+    "droppedInFirst5s": 34,
+    "received": 868,
+    "file": "score/out/score_calib_steer/score_side/run/score/score_interface.jsonl"
+  },
+  "stop": {
+    "dropped": 32,
+    "droppedInFirst5s": 24,
+    "received": 161,
+    "file": "score/out/score_stop/score_side/run/score/score_interface.jsonl"
+  }
+}

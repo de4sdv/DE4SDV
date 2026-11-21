@@ -392,7 +392,30 @@ def test_each_requirement_has_its_subject_one_statement_and_its_attributes():
             assert _attribute(body, attribute), (name, attribute)
         assert _attribute(body, "verificationMethod") == method, name
         assert _attribute(body, "successCriteria").startswith("Met when"), name
-        assert "attribute :>> verificationStatus = VVStatus::NotStarted;" in body, name
+        # the status decision of 2026-11-21: the status records the process of the verification, never its verdict
+        assert f"attribute :>> verificationStatus = VVStatus::{STATUSES[_short]};" in body, name
+        assert len(re.findall(r"\bverificationStatus\b", code)) == 1, name
+
+
+#: the verification status of each requirement after the judged session S1 of phase 10 (the status decision of
+#: 2026-11-21): Completed where the case reached its outcome, CompletedUnsuccessful where it could not be completed
+STATUSES = {**{f"REQ-DRIVING-0{n}": "Completed" for n in (36, 37, 39, 42)},
+            **{f"REQ-DRIVING-0{n}": "CompletedUnsuccessful" for n in (38, 40, 41, 43, 44)}}
+STATUS_DECISION = (
+    "On 2026-11-21 the verification status of each requirement was set from the judged session S1 of phase 10. It "
+    "records the process of the verification, never its verdict: VVStatus::Completed for REQ-DRIVING-036, "
+    "REQ-DRIVING-037, REQ-DRIVING-039 and REQ-DRIVING-042, and VVStatus::CompletedUnsuccessful for REQ-DRIVING-038, "
+    "REQ-DRIVING-040, REQ-DRIVING-041, REQ-DRIVING-043 and REQ-DRIVING-044. The outcome and the verdict of each "
+    "case are in its doc in phase 10: the status decision of 2026-11-21.")
+
+
+def test_the_package_head_records_the_status_decision_after_the_stop_run_decision():
+    raw = MODEL.read_text(encoding="utf-8")
+    head = " ".join(re.sub(r"^\s*\*\s?", "", raw.split("*/", 1)[0], flags=re.M).split())
+    assert head.count(STATUS_DECISION) == 1
+    assert head.index("the stop-run decision of 2026-11-18") < head.index(STATUS_DECISION)
+    assert sorted(STATUSES) == [f"REQ-DRIVING-0{n}" for n in range(36, 45)]
+    assert "VVStatus::NotStarted" not in raw, "no requirement of the increment keeps NotStarted"
 
 
 def test_each_statement_holds_one_obligation_in_the_positive_form():

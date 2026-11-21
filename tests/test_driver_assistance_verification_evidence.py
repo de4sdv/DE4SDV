@@ -1,16 +1,22 @@
-"""INC-DRIVING-002 phase 10, first slice: the verification cases of the driver-assistance requirements.
+"""INC-DRIVING-002 phase 10: the verification cases of the driver-assistance requirements and the evidence of record.
 
 Lexical pins on ``driver_assistance_verification_evidence.sysml``: one case per requirement, each bound to the
-realization of the driver-assistance system in DRIVING-CONFIG-002, not started, each naming the scenarios, settings
-and runs its requirement's criteria read; the run-level evidence record and the record of the one analysis; the
-environment gap that continues the readiness items of phase 8; the claims, arguments and counter-claims the
-assurance view links; and the evidence decisions of 2026-11-18 by their exact phrases. The invariants of every
-verification model are in ``test_verification_model_invariants.py``; the licensed Syside run validates the model.
+realization of the driver-assistance system in DRIVING-CONFIG-002, each naming the scenarios, settings and runs its
+requirement's criteria read; the run-level evidence record and the record of the one analysis; the claims,
+arguments and counter-claims the assurance view links; and the evidence decisions of 2026-11-18 by their exact
+phrases (the first slice). The second slice: the evidence records of the judged session S1 and the status of each
+case, which must be exactly what ``tools/generate_driver_assistance_evidence_text.py`` writes from the files of the
+evidence directory, so that no value that comes from a verdict is written by hand; the decisions of 2026-11-21; and
+the environment gap as S1 leaves it. The invariants of every verification model are in
+``test_verification_model_invariants.py``; the licensed Syside run validates the model.
 """
 
 from __future__ import annotations
 
+import importlib.util
+import json
 import re
+import sys
 from pathlib import Path
 
 from sysml_shapes import charter_package_files, strip_comments
@@ -26,6 +32,9 @@ DRIVING_001_FRAMING = DRIVING / "closed_loop_driving_framing.sysml"
 GUIDE = ROOT / "docs" / "guides" / "driver-assistance-increment.md"
 WORKFLOW = ROOT / "methodologies" / "sysmod-sysmlv2" / "increment-workflow.md"
 MODEL_ROOTS = [ROOT / "textual-notation-of-model", ROOT / "model-based-product-line-engineering"]
+EVIDENCE = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z"
+GENERATOR = ROOT / "tools" / "generate_driver_assistance_evidence_text.py"
+SESSION = "20261121T014447Z"
 
 PACKAGE = "DE4SDV_DriverAssistanceVerificationEvidence"
 BENCH_DEF = "DriverAssistanceVerificationBench"
@@ -157,28 +166,99 @@ RUN_ATTRIBUTES = [
     "simulatorBuild", "scenario", "setting", "runIdentity", "simulatedConfiguration", "simulationClockSpan",
     "wallClockSpan", "executionEnvironmentIdentity", "contractIdentity", "criteriaRecordIdentity", "evaluatorRevision",
     "rawObservationArtifact", "benchRecordingArtifact", "independentEngineerIdentity", "claimBoundary"]
-#: the readiness items of GAP-DRIVING-014: (its phrase in the model, its phrase in the guide)
+#: GAP-DRIVING-014 as the judged session S1 leaves it (the environment decision of 2026-11-21): each readiness item
+#: of phase 8, (its phrase in the model, its phrase in the guide); the model names the session record that shows it
 GAP_ITEMS = [
-    ("the link of the S-CORE process with the build of ONNX Runtime for CUDA",
-     "the link with the build of ONNX Runtime for CUDA in the S-CORE process"),
-    ("whether that process may hold a second C++ standard library",
-     "a second C++ standard library in that process"),
-    ("that the candidate record reaches the vehicle interface, which subscribes after the record was published",
-     "the candidate record reaching a late subscriber"),
-    ("the candidate driving on CARLA 1.0, which it has not done yet", "the candidate on CARLA 1.0"),
-    ("whether the S-CORE host's own GPU keeps the candidate's cycle with the S-CORE build",
-     "the S-CORE build's cycle on the host's own GPU"),
-    ("the capture of the start of the sound on the IVI guest, which is unmeasured",
-     "the capture of the sound on the IVI guest"),
-    ("the typed message of the warning request on the guests, open until phase 10",
-     "the typed message of the warning request on the guests, open until Phase 10"),
-    ("The draft of the warning output and the interface seam is shown to the VisionPilot maintainers after the "
-     "scenarios of phase 10 have run in CARLA, with the results (the upstream contact decision of 2026-11-18).",
-     "The draft of the warning output and the interface seam is shown to the VisionPilot maintainers after the "
-     "scenarios of Phase 10 have run in CARLA, with the results (the upstream contact decision of 2026-11-18)."),
-    ("The calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged run.",
-     "the calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 come before the first judged run"),
+    ("the link of the S-CORE process with the build of ONNX Runtime for CUDA: shown, the candidate's process runs "
+     "its networks with ONNX Runtime for CUDA under the Launch Manager in every run of S1 (the Launch Manager log of "
+     "each run, score_side/state/launch_manager.log)",
+     "the link with the build of ONNX Runtime for CUDA in the S-CORE process: shown"),
+    ("whether that process may hold a second C++ standard library: settled by the build that ran, whose files each "
+     "run's score_side/state/staging.json lists",
+     "a second C++ standard library in that process: settled by the build that ran"),
+    ("that the candidate record reaches the vehicle interface, which subscribes after the record was published: "
+     "shown, the score-interface record of each run holds the candidate record's arrival (in.candidate_record in "
+     "score_side/run/score/score_interface.jsonl)",
+     "the candidate record reaching a late subscriber: shown"),
+    ("the candidate driving on CARLA 1.0: shown, it drove every run of S1 there (simulatorBuild of each run "
+     "record)", "the candidate on CARLA 1.0: shown"),
+    ("the typed message of the warning request on the guests: shown, the message type that contractIdentity of "
+     "each run record names reached the warning presentation on the IVI guest in every run "
+     "(guest/out/capture_<run>/app_record_warning.jsonl)",
+     "the typed message of the warning request on the guests: shown"),
+    ("the calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 came before the first judged run "
+     "(sim/out/calibrate/calib_decel and the steering calibration run calib_steer); what they show is in the "
+     "values of VC-DRIVING-036 and VC-DRIVING-037",
+     "the calibration runs of ASM-DRIVING-005 and ASM-DRIVING-006 came before the first judged run"),
+    ("whether the S-CORE host's own GPU keeps the candidate's cycle with the S-CORE build: answered no",
+     "the S-CORE build's cycle on the host's own GPU: answered no"),
+    ("the capture of the start of the sound on the IVI guest: open",
+     "the capture of the start of the sound on the IVI guest: open"),
+    ("the showing of the draft of the warning output and the interface seam, with the results, to the VisionPilot "
+     "maintainers: open, not done; the owner approves any text first (the upstream contact decision of "
+     "2026-11-18)",
+     "showing the draft and the results to the VisionPilot maintainers: open, not done"),
 ]
+#: the sentence of GAP-DRIVING-014 on the sound, from the guest records of S1
+SOUND_CAPTURE = ("The guest records of S1 hold no start of the sound: in every run the warning presentation received "
+                 "the warning requests with none requesting a warning, so it prepared its sound and never started "
+                 "it; the audio state that each capture records at its start and at its end is no capture of a "
+                 "start.")
+#: the runs of S1 by their label in the drop counts and by their run identity in the model
+RUN_LABELS = {"012_20_r1": "SC-DRIVING-012@20/r1", "012_20_r2": "SC-DRIVING-012@20/r2",
+              "012_42_r1": "SC-DRIVING-012@42/r1", "012_42_r2": "SC-DRIVING-012@42/r2",
+              "012_60_r1": "SC-DRIVING-012@60/r1", "012_60_r2": "SC-DRIVING-012@60/r2",
+              "013_30_r1": "SC-DRIVING-013@30/r1", "013_30_r2": "SC-DRIVING-013@30/r2",
+              "013_60_r1": "SC-DRIVING-013@60/r1", "013_60_r2": "SC-DRIVING-013@60/r2",
+              "014_30_r1": "SC-DRIVING-014@30/r1", "014_30_r2": "SC-DRIVING-014@30/r2",
+              "015_40_r1": "SC-DRIVING-015@40/r1", "015_40_r2": "SC-DRIVING-015@40/r2"}
+#: the record usages the generator writes, in their order: one per run of S1, then the analysis
+RECORD_USAGES = [f"{setting}{place}RunEvidence" for setting in SETTINGS for place in ("First", "Second")] + [
+    "pathStoppedRunEvidence", "commandFormAnalysisEvidence"]
+#: the decisions of 2026-11-21 that the slice header records, in day order after those of 2026-11-18
+DECISIONS_1121 = (
+    "On 2026-11-21 the judged session S1 was taken as the evidence of record, on the condition that the bench files "
+    "that ran on a host are byte-identical to those that the pull request of the bench merges; the README of the "
+    "evidence directory states the check: the evidence-of-record decision of 2026-11-21.",
+    "On 2026-11-21 the drop rule of phase 8 was kept: no run whose judged window holds a dropped image is judged, "
+    "and a reading that the evaluators give with the rule set aside is diagnosis, never a verdict: the drop-rule "
+    "decision of 2026-11-21.",
+    "On 2026-11-21 it was recorded that the condition on ASM-DRIVING-005, the calibration of the simulated "
+    "deceleration, bears on a pass of VC-DRIVING-036 and VC-DRIVING-037 and not on a fail in runs in which the "
+    "candidate commands no braking: the deceleration calibration decision of 2026-11-21.",
+    "On 2026-11-21 the verification status of each requirement was set from S1, as the requirements package "
+    "records (the status decision of 2026-11-21).",
+)
+#: the second slice, as the slice header states it
+SECOND_SLICE = (
+    "The second slice records the evidence of the judged session S1, session 20261121T014447Z of the bench at "
+    "commit 508649ba: one evidence record per run of S1 and the record of the analysis of REQ-DRIVING-039, written "
+    "with the status of each case by tools/generate_driver_assistance_evidence_text.py from the records that "
+    "implementation/driver-assistance-bench/evidence/s1-20261121T014447Z retains; "
+    "tools/refresh_driver_assistance_s1_evidence.py regenerates them in one command, and no value that comes from "
+    "a verdict is written by hand.")
+#: what the cases of 036 and 037 state of ASM-DRIVING-005 in S1 (the deceleration calibration decision)
+ASM005_IN_CASE = (
+    "The condition on ASM-DRIVING-005, the calibration of the simulated deceleration, that the claimBoundary of "
+    "each run record states bears on a pass of this case and not on a fail in a run in which the candidate commands "
+    "no braking: in S1 no driving command of a run of SC-DRIVING-012 or SC-DRIVING-013 holds a deceleration of 1.0 "
+    "m/s² or more, so the condition does not bear on the outcome of this case in S1 (the deceleration calibration "
+    "decision of 2026-11-21).")
+#: the bounds of the analysis of REQ-DRIVING-039, in the case's doc
+ANALYSIS_BOUNDS = (
+    "The analysis is bounded, as the claimBoundary of its record states: the actuation recognizes a loss only when "
+    "a later command arrives; it does not recognize a delay of up to 0.1 s of simulation time against its newest "
+    "world time; and it recognizes a corruption only as far as the check value does: a corruption that the check "
+    "value misses counts as valid and, with a higher sequence count, becomes the reference count, so that later "
+    "valid commands are rejected as repetitions, which the realization states since the check-value bound decision "
+    "of 2026-11-21.")
+#: the end of each claim's doc: the verdicts of S1 are the cases', read against the claim as written
+CLAIM_STATE = ("Whether the judged session S1 supports the claim follows from the verdicts of the cases its argument "
+               "cites, which their docs state; the claim stands as it was written before any run.")
+BENCH_COUNTER_CLAIM = (
+    "No verdict holds beyond the bench of the judged session S1: a verdict holds for the session, the bench commit "
+    "and the candidate build that its records name, and the readiness items that S1 does not show stay open "
+    "(GAP-DRIVING-014).")
 ANALYSIS_ATTRIBUTES = ["configurationIdentity", "receiptSha256", "modelRevision", "analyzedRealization",
                        "analystIdentity", "claimBoundary"]
 OUTCOMES = ["passBoundedVerification", "passBoundedValidation", "failObservedBehavior",
@@ -296,33 +376,112 @@ def test_the_case_ids_continue_the_series_and_are_unique_in_the_model() -> None:
     assert earlier and max(earlier) + 1 == NUMBERS[0], "the numbers continue the VC-DRIVING series"
 
 
-def test_no_case_has_started_and_each_states_its_scenarios_settings_runs_and_bench() -> None:
-    """Each usage doc opens with Not started and names the scenarios by SC identity and enum literal, the
-    settings, the runs and the bench that its requirement's criteria read; every requirement keeps NotStarted."""
+def _evidence(name: str) -> dict:
+    path = EVIDENCE / name
+    assert path.is_file(), f"the evidence directory has no {name}"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _generator():
+    spec = importlib.util.spec_from_file_location("generate_da_evidence_text", GENERATOR)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_each_case_states_its_status_from_the_verdict_files_and_its_scenarios_settings_runs_and_bench() -> None:
+    """Each usage doc opens with the status that the generator writes from the verdict files: the outcome and the
+    verdict of the case in S1, read from verdicts.json (VC-DRIVING-039 from the desk analysis), never written by
+    hand; then, as the first slice stated them, the scenarios by SC identity and enum literal, the settings, the runs
+    and the bench that its requirement's criteria read."""
+    verdicts = _evidence("verdicts.json")
+    analysis = _evidence("analysis_039.generator.json")
     for number, (usage, _, body) in _usages().items():
         doc = _flat(body)
         settings, count, stop, method = CASE_RUNS[number]
-        assert "doc /* Not started. Scenarios: " in doc, usage
+        assert "Not started." not in doc, usage
+        if number == 39:
+            outcome = analysis["outcome"]
+            verdict = {"passBoundedVerification": "pass", "failObservedBehavior": "fail"}.get(outcome, "inconclusive")
+            assert doc.startswith(f"{{ doc /* Outcome: {outcome}; verdict: {verdict}. From the desk analysis, record "
+                                  "commandFormAnalysisEvidence"), usage
+        else:
+            case = verdicts["cases"][f"VC-DRIVING-0{number}"]
+            assert doc.startswith(f"{{ doc /* Outcome: {case['outcome']}; verdict: {case['verdict']}. Judged from "
+                                  f"the S1 session {SESSION} by the case evaluators, with criteriaRecordIdentity "
+                                  f"{case['criteriaRecordIdentity']} and evaluatorRevision "
+                                  f"{case['evaluatorRevision']}."), usage
+        assert doc.count("Scenarios: ") == 1, usage
         scenarios = sorted({SETTINGS[s] for s in settings})
-        assert sorted(re.findall(r"AssistanceScenarioIdentity::(\w+)", doc)) == scenarios, usage
+        tail = doc.split("Scenarios: ", 1)[1]
+        assert sorted(set(re.findall(r"AssistanceScenarioIdentity::(\w+)", tail))) == scenarios, usage
         for scenario in scenarios:
-            assert f"{SC_IDS[scenario]} (AssistanceScenarioIdentity::{scenario})" in doc, (usage, scenario)
-        named = re.search(r"Settings: (.*?)\. Runs:", doc)
+            assert f"{SC_IDS[scenario]} (AssistanceScenarioIdentity::{scenario})" in tail, (usage, scenario)
+        named = re.search(r"Settings: (.*?)\. Runs:", tail)
         assert (re.findall(r"\b(\w+At\d\d)\b", named[1]) if named else []) == settings, usage
         if count:
-            assert f"Runs: the two runs of each setting, {count}" in doc, usage
-        assert (STOP_RUN in doc) is stop, usage
-        assert (STOP_CLAUSE_ONLY in doc) is stop, usage
+            assert f"Runs: the two runs of each setting, {count}" in tail, usage
+        assert (STOP_RUN in tail) is stop, usage
+        assert (STOP_CLAUSE_ONLY in tail) is stop, usage
         assert "which is a run of SC-DRIVING-012 too" not in doc and "settle whether it is a judged run" not in doc
-        assert (STOP_RUN_CARRIERS in doc) is (number in (38, 43)), usage
-        assert (APART in doc) is ("curveAt30" in settings), usage
+        assert (STOP_RUN_CARRIERS in tail) is (number in (38, 43)), usage
+        assert (APART in tail) is ("curveAt30" in settings), usage
         kinds = "(test, analyze)" if method == "test" else "analyze"
         assert f"@VerificationMethod{{ kind = {kinds}; }}" in body, usage
         assert "subject verifiedBench :> driverAssistanceVerificationBench;" in body, usage
     assert "Scenarios: none; the case reads the realization of phase 8 and no run." in _flat(_usages()[39][2])
-    raw = REQUIREMENTS.read_text(encoding="utf-8")
-    assert raw.count("verificationStatus = VVStatus::NotStarted") == len(NUMBERS)
     assert "VVStatus::" not in SLICE.read_text(encoding="utf-8"), "this slice sets no status"
+
+
+def test_the_model_text_is_what_the_generator_writes_from_the_evidence_directory() -> None:
+    """The evidence records and the case statuses are generated, never edited: running the generator on the
+    committed verdicts.json, records.json and analysis_039.generator.json changes nothing in the slice."""
+    generator = _generator()
+    text = SLICE.read_text(encoding="utf-8")
+    result = generator.generate(text, _evidence("verdicts.json"), _evidence("records.json"),
+                                _evidence("analysis_039.generator.json"), repo=ROOT, model_path=SLICE)
+    assert result.text == text, ("the slice differs from what the generator writes from the evidence directory: "
+                                 "run tools/refresh_driver_assistance_s1_evidence.py")
+
+
+def test_the_records_are_one_per_run_of_s1_and_one_of_the_analysis_with_consecutive_identities() -> None:
+    raw = SLICE.read_text(encoding="utf-8")
+    found = re.findall(rf"(?m)^  item (\w+) : ({RUN_RECORD}|{ANALYSIS_RECORD}) \{{", raw)
+    assert [name for name, _ in found] == RECORD_USAGES
+    assert [kind for _, kind in found] == [RUN_RECORD] * 15 + [ANALYSIS_RECORD]
+    prefix = "EVID-" + "DRIVING-"
+    identities = []
+    for name in RECORD_USAGES:
+        body = _flat(_body(raw, rf"(?m)^  item {name} : \w+ \{{"))
+        match = re.match(rf"\{{ doc /\* ({prefix}\d{{3}})\. ", body)
+        assert match, name
+        identities.append(match[1])
+    assert identities == [f"{prefix}{n:03d}" for n in range(1, len(RECORD_USAGES) + 1)], \
+        "the sequence starts with this slice and is consecutive"
+    stop = _body(_code(SLICE), r"(?m)^  item pathStoppedRunEvidence : \w+ \{")
+    assert re.search(r"attribute :>> setting;", stop), "the further run is no run of a setting"
+
+
+def test_the_slice_header_records_the_second_slice_and_the_decisions_of_2026_11_21() -> None:
+    header = _flat(SLICE.read_text(encoding="utf-8").split("*/", 1)[0])
+    assert SECOND_SLICE in header
+    positions = [header.index(decision) for decision in DECISIONS_1121]
+    assert positions == sorted(positions), "the decisions of the day in their order"
+    assert header.index(STOP_RUN_DECISION) < positions[0], "after the decisions of 2026-11-18"
+    assert "No case has started" not in header and "keeps the verification status NotStarted" not in header
+    assert ("A verdict of S1 is a verdict of the pinned candidate on this bench in simulation; this slice makes no "
+            "acceptance, safety, compliance or certification claim, and no claim about UNECE R152.") in header
+    assert "until the probes run" not in header
+
+
+def test_the_cases_of_036_037_and_039_state_what_their_outcomes_rest_on() -> None:
+    usages = _usages()
+    for number in (36, 37):
+        assert ASM005_IN_CASE in _flat(usages[number][2]), number
+    assert ANALYSIS_BOUNDS in _flat(usages[39][2])
+    for number in (38, 40, 41, 42, 43, 44):
+        assert "ASM-DRIVING-005, the calibration" not in _flat(usages[number][2]).split("Values of the case")[0], number
 
 
 def test_each_case_collects_by_its_requirements_method_and_analyzes_against_the_requirement() -> None:
@@ -515,7 +674,8 @@ def test_the_run_record_binds_the_identities_the_decision_names() -> None:
                    "the evaluators that gave it (gapVehicleTargetCriteria).",
                    "phase 10 judges no run whose judged window holds a dropped image (MAP-DRIVING-DA-CAMERA-IMAGE); "
                    "for a criterion over every run, the judged window is the whole run.",
-                   "A missing or partial record gives inconclusive, never pass. No record exists yet."):
+                   "A missing or partial record gives inconclusive, never pass. The records of the judged session S1 "
+                   "follow this definition, one per run."):
         assert phrase in docs, phrase
     physical = _docs(PHYSICAL)
     for source in ("with a new message type for the warning request, open until phase 10", "one NVIDIA L4", "0.05 s"):
@@ -523,6 +683,9 @@ def test_the_run_record_binds_the_identities_the_decision_names() -> None:
     analysis = _body(code, rf"\bitem def {ANALYSIS_RECORD} \{{")
     assert re.findall(r"\battribute (\w+) : ", analysis) == ANALYSIS_ATTRIBUTES
     assert "The evidence record of the analysis of REQ-DRIVING-039, which reads the realization and no run." in docs
+    assert "No record exists yet." not in docs
+    assert ("A missing or partial record gives inconclusive, never pass. The record of the analysis in the judged "
+            "session S1 follows this definition, commandFormAnalysisEvidence.") in docs
     for name in ("DrivingCommandEventPayload", "MAP-DRIVING-DA-COMMAND", "reqDetectableDrivingCommandRejection"):
         assert name in _flat(_body(SLICE.read_text(encoding="utf-8"), rf"\bitem def {ANALYSIS_RECORD} \{{")), name
         assert name in PHYSICAL.read_text(encoding="utf-8"), name
@@ -547,21 +710,41 @@ def test_the_bench_refers_to_the_realization_in_driving_config_002() -> None:
     assert "The bench is not a product selection." in _docs(SLICE)
 
 
-def test_the_environment_gap_is_deferred_and_continues_the_readiness_items_of_phase_8() -> None:
-    """The evidence decisions of 2026-11-18 (the test environment): it stays a gap that continues the phase 8
-    readiness items until the probes run, the two items of the warning request among them; the record already holds
-    the environment's and the contract's identity, which the next slice fills."""
+def test_the_environment_gap_records_what_s1_shows_of_the_readiness_items_and_stays_deferred() -> None:
+    """The environment decision of 2026-11-21: S1 shows the readiness items it shows, each with the session record
+    that shows it; it answers whether the S-CORE host's own GPU keeps the candidate's cycle with no, with the dropped
+    images of each run counted from its score-interface record (drop_counts.json); the capture of the start of the
+    sound and the showing to the VisionPilot maintainers stay open; the gap stays a record, deferred to phase 11."""
     raw = SLICE.read_text(encoding="utf-8")
     gap = _body(raw, rf"\bpart <'{GAP}'> {GAP_NAME} : IncrementGap \{{")
     assert "attribute :>> disposition = LifecycleDisposition::deferred;" in gap
     doc = _flat(gap)
-    for phrase in ([f"continue here until the probes run ({DECISIONS})"] + [model for model, _ in GAP_ITEMS]
-                   + ["nothing of phase 10 is built before the probes are read",
-                      "The evidence record already holds executionEnvironmentIdentity and contractIdentity; the next "
-                      "slice fills them, plans the runs and closes this gap.",
-                      "Deferred to that slice."]):
-        assert phrase in doc, phrase
-    assert "adds the environment's identity" not in doc
+    assert doc.startswith("{ doc /* Recorded: the System 2 test environment ran the cases in the judged session "
+                          "S1, and what of its readiness S1 does not show stays open."), doc[:120]
+    positions = []
+    for model, _ in GAP_ITEMS:
+        assert doc.count(model) == 1, model
+        positions.append(doc.index(model))
+    assert positions == sorted(positions), "the items in their order"
+    assert f"S1 answers them so (the environment decision of 2026-11-21, continuing {DECISIONS}):" in doc
+    # the dropped images of each run, as drop_counts.json counts them in the run's score-interface record
+    counts = _evidence("drop_counts.json")
+    judged = [counts[label] for label in RUN_LABELS]
+    per_run = "; ".join(f"{RUN_LABELS[label]} {counts[label]['dropped']} of {counts[label]['received']}"
+                        for label in RUN_LABELS)
+    low, high = min(c["dropped"] for c in judged), max(c["dropped"] for c in judged)
+    early = sorted({c["droppedInFirst5s"] for c in judged})
+    assert (f"the score-interface record of each run of S1 holds dropped camera images, {low} to {high} in each "
+            f"judged run ({per_run}), {counts['stop']['dropped']} of {counts['stop']['received']} in the run that "
+            f"stops the path and {counts['calib_steer']['dropped']} of {counts['calib_steer']['received']} in the "
+            "steering calibration run;") in doc
+    assert (f"in each judged run {' or '.join(str(n) for n in early)} of them fall within 5 s of simulation time "
+            "after its first image and the rest spread over the run") in doc
+    assert SOUND_CAPTURE in doc
+    assert ("The gap stays a record of the environment; its disposition is phase 11's. Deferred to phase 11.") in doc
+    for retired in ("until the probes run (", "Deferred to that slice.", "which it has not done yet",
+                    "nothing of phase 10 is built before the probes are read", "which is unmeasured"):
+        assert retired not in doc, retired
     physical = _docs(PHYSICAL)
     for source in ("Open before phase 10: the link with the build of ONNX Runtime for CUDA",
                    "The candidate itself has not yet driven on CARLA 1.0",
@@ -598,7 +781,8 @@ def test_each_claim_answers_one_phase_1_concern_and_its_argument_cites_the_right
         claim = _flat(_body(raw, rf"\brequirement {stem}Claim : DriverAssistanceClaim \{{"))
         assert f"doc /* Answers {concern}. " in claim, stem
         head, tail = claim.split(f"subject claimSubject : {BENCH_DEF}; require constraint {{", 1)
-        assert head.rstrip(" /").endswith("A claim to be proven: no case has started."), stem
+        assert head.rstrip(" /").endswith(CLAIM_STATE), stem
+        assert "no case has started" not in claim, stem
         assert tail.startswith(" doc /* The claim requires "), stem
         assert "; it excludes " in tail, stem
         cites = re.search(rf"dependency {stem}ArgumentCitesCases\s+from {stem}Argument\s+to ([^;]+);", code)
@@ -668,24 +852,35 @@ def test_each_counter_claim_restates_a_non_claim_of_the_framing_and_is_tied_to_i
             "until a case passes: a fail stays a recorded result (candidateTuningOutOfScope).") in docs
     assert ("their results for that increment's application are no evidence for this candidate, and each case reads "
             "only the records of its own runs (asmBenchReuse).") in docs
+    assert BENCH_COUNTER_CLAIM in docs
+    assert "No case has started and no evidence record exists" not in docs
     framing = _docs(FRAMING)
     assert "tuning the candidate or a scenario until a case passes" in framing
     assert "Their results for the first application are not evidence for this one." in framing
 
 
-def test_the_slice_makes_no_result_compliance_or_regulation_claim() -> None:
-    """Every case is Not started: no text reports behavior in a run or an approval, and every sentence that names
-    UNECE R152 states what is not claimed."""
+def test_the_slice_makes_no_compliance_or_regulation_claim_and_reports_runs_only_in_records() -> None:
+    """The text written by hand reports no behavior of a run in a past form: what a run shows is in the generated
+    records and statuses, whose values are recorded strings and evaluator texts. No text claims an approval, and
+    every sentence that names UNECE R152 outside a recorded value states what is not claimed."""
     raw = SLICE.read_text(encoding="utf-8")
-    assert not re.search(r"(?i)\b(?:braked|warned|collided|avoided|detected|passed|failed)\b", raw)
+    generator = _generator()
+    hand = generator.remove_generated(raw)
+    for vc in [f"VC-DRIVING-0{n}" for n in NUMBERS]:
+        block = _body(hand, rf"verification <'{vc}'> \w+ : \w+ \{{")
+        status = re.search(r"doc /\*\s*\*\s*(Outcome: .*?)\n\s*\*\n", block, re.S)
+        assert status, vc
+        hand = hand.replace(status[1], "", 1)
+    hand = re.sub(r'"(?:[^"\\]|\\.)*"', '""', hand)
+    assert not re.search(r"(?i)\b(?:braked|warned|collided|avoided|detected|passed|failed)\b", hand)
     assert not re.search(r"(?i)\b(?:compliant|complies|certified|homologated|type-approved|admitted)\b", raw)
-    sentences = [s for s in re.split(r"(?<=\.)\s+", _docs(SLICE)) if "R152" in s]
+    sentences = [s for s in re.split(r"(?<=\.)\s+", _flat(hand)) if "R152" in s]
     assert len(sentences) >= 3
     for sentence in sentences:
         assert re.search(r"\b(?:no|none|excludes)\b", sentence), sentence
     assert not re.search(r"(?i)\bthe owner (?:said|wrote|asked|told)\b|[\u201c\u201d]", raw), \
         "the decisions are stated neutrally and dated, never quoted"
-    assert raw.count(DECISIONS) >= 3
+    assert _flat(raw).count(DECISIONS) >= 3
 
 
 def test_the_assurance_view_frames_the_phase_1_assurance_concern_and_links_everything() -> None:
@@ -698,17 +893,20 @@ def test_the_assurance_view_frames_the_phase_1_assurance_concern_and_links_every
     usages = [u for _, (u, _, _) in sorted(_usages().items())]
     expected = ([f"{s}Claim" for s in CLAIMS] + [f"{s}Argument" for s in CLAIMS]
                 + [f"counterClaim{s}" for s in COUNTER_CLAIMS] + usages
-                + [RUN_RECORD, ANALYSIS_RECORD, BENCH_DEF, GAP_NAME]
+                + [RUN_RECORD, ANALYSIS_RECORD] + RECORD_USAGES + [BENCH_DEF, GAP_NAME]
                 + [target for targets, home in COUNTER_CLAIMS.values() if home is not SLICE for target in targets]
                 + [f"claimSupportedBy{s[0].upper() + s[1:]}Argument" for s in CLAIMS]
                 + [f"{s}ArgumentCitesCases" for s in CLAIMS]
                 + [f"counterClaim{s}BoundTo{suffix}" for s in COUNTER_CLAIMS for suffix in TIE_SUFFIXES.get(s, [""])])
     assert exposed == expected
-    assert len(exposed) == 70, "the count of exposed elements"
+    assert len(exposed) == 86, "the count of exposed elements"
     view_doc = _flat(_body(SLICE.read_text(encoding="utf-8"), r"\bview driverAssistanceAssuranceView \{"))
     assert (f"the {NUMBER_WORDS[len(CLAIMS)].lower()} claims" in view_doc
             and f"the {NUMBER_WORDS[len(COUNTER_CLAIMS)].lower()} counter-claims" in view_doc)
     assert "render asTreeDiagram;" in view and "attribute maxCompartmentEntries = 0;" in view
+    assert "before any run" not in view_doc
+    assert ("the evidence record of a run and the record of the analysis, the sixteen records of the judged session "
+            "S1") in view_doc
     assert len(re.findall(r"\bview \w+", code)) == 1, "one view in the phase"
     concern = _body(code, r"\bconcern driverAssistanceArgumentationAssuranceConcern : ArgumentationAssuranceConcern \{")
     assert re.findall(r"\bstakeholder \w+ : (\w+);", concern) == [
@@ -757,7 +955,7 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
     raw_section = guide.split("## Verification and evidence (Phase 10)", 1)[1].split("\n## ", 1)[0]
     section = " ".join(raw_section.split())
     for text in ("VC-DRIVING-036", "VC-DRIVING-044", "DRIVING-CONFIG-002", "**One case per requirement.**",
-                 "`NotStarted`", "2026-11-18", GAP, "the stop run", "simulation-clock and wall-clock spans",
+                 "2026-11-18", GAP, "the stop run", "simulation-clock and wall-clock spans",
                  f"{NUMBER_WORDS[len(COUNTER_CLAIMS)]} counter-claims", f"{NUMBER_WORDS[len(CLAIMS)]} claims",
                  "Argumentation Assurance", "**No validation case.**",
                  "`candidateVerdictConcern`", "`vehicleTargetCriteriaConcern` has no claim",
@@ -791,10 +989,26 @@ def test_the_guide_describes_the_first_phase_10_slice() -> None:
     runs = NUMBER_WORDS[2 * len(SETTINGS)]
     assert (f"**The runs.** {NUMBER_WORDS[len(SETTINGS)]} settings, each run twice, both runs counting: "
             f"{', '.join(parts[:-1])} and {parts[-1]}, {runs} runs.") in section
-    # each readiness item of GAP-DRIVING-014, in the guide's words
+    # each readiness item of GAP-DRIVING-014 as S1 leaves it, in the guide's words
     gap_bullet = section.split("**The test environment**", 1)[1].split("- **", 1)[0]
     for _, phrase in GAP_ITEMS:
         assert phrase in gap_bullet, phrase
+    # the second slice: the evidence of record, with no value of a verdict written by hand
+    assert "This first slice is model only" not in section and "every requirement keeps `NotStarted`" not in section
+    evidence = " ".join(raw_section.split("### Phase 10 evidence", 1)[1].split())
+    for text in ("The evidence of record is the judged session S1, session 20261121T014447Z",
+                 "(../../implementation/driver-assistance-bench/evidence/s1-20261121T014447Z/README.md)",
+                 "the evidence-of-record decision of 2026-11-21", "the drop-rule decision of 2026-11-21",
+                 "the deceleration calibration decision of 2026-11-21", "the status decision of 2026-11-21",
+                 "the check-value bound decision of 2026-11-21", "the environment decision of 2026-11-21",
+                 "`VVStatus::Completed` for REQ-DRIVING-036, REQ-DRIVING-037, REQ-DRIVING-039 and REQ-DRIVING-042",
+                 "`VVStatus::CompletedUnsuccessful` for REQ-DRIVING-038, REQ-DRIVING-040, REQ-DRIVING-041, "
+                 "REQ-DRIVING-043 and REQ-DRIVING-044",
+                 "`tools/refresh_driver_assistance_s1_evidence.py`",
+                 "A verdict of S1 is a verdict of the pinned candidate on this bench in simulation"):
+        assert text in evidence, text
+    for outcome in OUTCOMES:
+        assert outcome not in evidence, f"the guide copies no outcome of a verdict: {outcome}"
     criteria = _criteria()
     rows = re.findall(r"^\| (VC-DRIVING-\d{3}) \| (REQ-DRIVING-\d{3}), ([^|]+) \| ([^|]+) \| (\w+) \|$", raw_section,
                       re.M)

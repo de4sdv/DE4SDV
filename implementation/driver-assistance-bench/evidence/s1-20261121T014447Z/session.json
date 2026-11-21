@@ -1,0 +1,2286 @@
+{
+ "session_id": "20261121T014447Z",
+ "kind": "s1",
+ "exit_code": 0,
+ "dry_run": false,
+ "cap_eur": 8.0,
+ "started": [
+  "sim",
+  "score",
+  "guest"
+ ],
+ "candidate": {
+  "name": "pin",
+  "bundle": "/opt/da-b2/bundle"
+ },
+ "ackermann_gains": "v1",
+ "rehearsal": false,
+ "runList": null,
+ "start_calls_unix_s": {
+  "sim": 1795225501.1478393,
+  "score": 1795225548.4277673,
+  "guest": 1795225593.8152425
+ },
+ "eur_per_hour": {
+  "sim": 1.887,
+  "score": 0.806,
+  "guest": 0.2713
+ },
+ "failed_step": null,
+ "kit_sha256": "2255a344d9a46dfac60edf7e766167025c056e66217ffc366b6acd8d19219acc",
+ "bench_commit": "508649bae2543c181d3edbe3f63eeeaa3b836d28",
+ "worktree_changes": "0",
+ "sim_ssh_iap": true,
+ "internal_ips_from_gcloud": {
+  "sim": "10.10.0.2",
+  "guest": "10.164.0.6",
+  "score": "10.164.0.5"
+ },
+ "camera_calibration_sha256": {
+  "H.yaml": "89e291df9711abf801b56a1b489b629b7c3ae8fed6b6f8e0e9208869633d4fe2",
+  "homography_C_matrix.yaml": "fedabc3403d6cdc1644e1073b02ca69b6b8ed591953e3801268db6cf9ebfc149"
+ },
+ "camera_calibration_source": "settings",
+ "camera_calibration_source_reason": "the lead's decision of 2026-11-19 (owner informed): CARLA 1.0's apply_texture sets only material parameters named BaseColor, Difuse, Normal, Emissive or ORMH (CarlaGameModeBase.cpp:505-548 at 14ac3b1a50) and the engine plane's material has none of them, so the boards render flat grey and upstream's script finds 0 boards; H.yaml comes from the simulated camera's settings and pose",
+ "camera_calibration_cross_check": "not run: no board rendered",
+ "camera_capture_precheck": {
+  "passed": false,
+  "reason": "board tl washed out: grey p5-p95 79-84 (spread 5 < 100), std 1.7; board tr washed out: grey p5-p95 79-85 (spread 6 < 100), std 1.7; board bl washed out: grey p5-p95 82-89 (spread 7 < 100), std 1.9; board br washed out: grey p5-p95 82-89 (spread 7 < 100), std 1.9",
+  "minSpread": 100,
+  "inner": 0.6,
+  "boards": {
+   "tl": {
+    "n": 7451,
+    "p5": 79,
+    "p95": 84,
+    "spread": 5,
+    "mean": 81.7,
+    "std": 1.7,
+    "box": [
+     595,
+     920,
+     845,
+     956
+    ]
+   },
+   "tr": {
+    "n": 7527,
+    "p5": 79,
+    "p95": 85,
+    "spread": 6,
+    "mean": 81.9,
+    "std": 1.7,
+    "box": [
+     1083,
+     922,
+     1332,
+     957
+    ]
+   },
+   "bl": {
+    "n": 7172,
+    "p5": 82,
+    "p95": 89,
+    "spread": 7,
+    "mean": 85.7,
+    "std": 1.9,
+    "box": [
+     367,
+     1073,
+     781,
+     1158
+    ]
+   },
+   "br": {
+    "n": 7233,
+    "p5": 82,
+    "p95": 89,
+    "spread": 7,
+    "mean": 85.6,
+    "std": 1.9,
+    "box": [
+     1143,
+     1075,
+     1556,
+     1160
+    ]
+   }
+  },
+  "opencv": {
+   "available": false
+  },
+  "enforced": false
+ },
+ "conditional_on_permissive_ivi": true,
+ "vm_status_after": {
+  "sim": "TERMINATED",
+  "score": "TERMINATED",
+  "guest": "TERMINATED"
+ },
+ "left_running": [],
+ "exit_code_without_left_running": 0,
+ "remote_env": {},
+ "fetched": [
+  "sim",
+  "score",
+  "guest"
+ ],
+ "not_fetched": [],
+ "fetch": {
+  "sim": {
+   "method": "ranges",
+   "bytes": 10590466,
+   "sha256": "94d6fa784de589be3dceb07172e8faea3953f2e18c6dca63aca8156f8016397d",
+   "bound_s": 71,
+   "result": "ok",
+   "ranges": 2,
+   "tries": 2,
+   "seconds": 6,
+   "parallel": 8,
+   "range_mib": 8,
+   "ranges_file": "sim/fetch_ranges.tsv"
+  },
+  "score": {
+   "method": "scp",
+   "bytes": 4118681,
+   "sha256": "c71d1c244722a89b27308963d72ddfc87913edbaac3321dcaf391a3b1e64c887",
+   "bound_s": 1200,
+   "result": "ok"
+  },
+  "guest": {
+   "method": "scp",
+   "bytes": 4575430,
+   "sha256": "2e2251ae5c8635b61f10b18e8874e2255a37e10fc788bf8642c28cdad5fb1b62",
+   "bound_s": 1200,
+   "result": "ok"
+  }
+ },
+ "hosts_lost": {},
+ "ended_by": "steps",
+ "score_stops": {
+  "calib_steer": {
+   "step": "score_stop_calib_steer",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "012_20_r1": {
+   "step": "score_stop_012_20_r1",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "012_20_r2": {
+   "step": "score_stop_012_20_r2",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "012_42_r1": {
+   "step": "score_stop_012_42_r1",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "012_42_r2": {
+   "step": "score_stop_012_42_r2",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "012_60_r1": {
+   "step": "score_stop_012_60_r1",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "012_60_r2": {
+   "step": "score_stop_012_60_r2",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "013_30_r1": {
+   "step": "score_stop_013_30_r1",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "013_30_r2": {
+   "step": "score_stop_013_30_r2",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "013_60_r1": {
+   "step": "score_stop_013_60_r1",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "013_60_r2": {
+   "step": "score_stop_013_60_r2",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "014_30_r1": {
+   "step": "score_stop_014_30_r1",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "014_30_r2": {
+   "step": "score_stop_014_30_r2",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "015_40_r1": {
+   "step": "score_stop_015_40_r1",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "015_40_r2": {
+   "step": "score_stop_015_40_r2",
+   "rc": 0,
+   "stop_killed": false
+  },
+  "stop": {
+   "step": "score_stop_stop",
+   "rc": 0,
+   "stop_killed": false
+  }
+ },
+ "p10_1": null,
+ "score_runs": {
+  "calib_steer": {
+   "setting": "SC-DRIVING-012@20",
+   "speed_limit_mps": 5.833,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-012@20: the middle of its tolerance 20 to 22 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "runIdentity": "calib_steer (ASM-DRIVING-006, no run of a setting)",
+   "simulatedConfiguration": {
+    "sha256": "4eae5e47e739017d76b28cef5ca330f60d99f0fd2eb54f30af44758d2255c115",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "5.833",
+    "speed_limit_requested": "5.833",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "ae60bd5692ddc954901224b50e1293921ab0d847d18db3d64d0875c1ef3243fb",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "198284070912",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "198284070912",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 148,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_calib_steer/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 6592284462,
+     "sha256": "a8b519220b6ee0a608ede6a0a47c61718e5ada77d74000e31f64d964f97da773",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_calib_steer/score_side/visualization/visualization.mkv",
+    "sha256": "ff6414b9d3edce3c03e0e37971d4ffdcfd436a032aca77a4a46600bd366309a6",
+    "bytes": 42910886,
+    "frames": 823,
+    "reason": null
+   }
+  },
+  "012_20_r1": {
+   "setting": "SC-DRIVING-012@20",
+   "speed_limit_mps": 5.833,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-012@20: the middle of its tolerance 20 to 22 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-012@20",
+   "runIdentity": "SC-DRIVING-012@20/r1",
+   "scenario": "SC-DRIVING-012",
+   "simulatedConfiguration": {
+    "sha256": "4eae5e47e739017d76b28cef5ca330f60d99f0fd2eb54f30af44758d2255c115",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "5.833",
+    "speed_limit_requested": "5.833",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "ae60bd5692ddc954901224b50e1293921ab0d847d18db3d64d0875c1ef3243fb",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "191046651904",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "191046651904",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 152,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_20_r1/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 4563526376,
+     "sha256": "ef178196554ee7bfc6ec7689f820a45555c211bf0e9f01d209747671fdba0a80",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_20_r1/score_side/visualization/visualization.mkv",
+    "sha256": "1b7fae34f2531f3ec0c86e2ad4f9c507de34e9bd07a2f9cd554f805e6aa1a0ed",
+    "bytes": 28904422,
+    "frames": 567,
+    "reason": null
+   }
+  },
+  "012_20_r2": {
+   "setting": "SC-DRIVING-012@20",
+   "speed_limit_mps": 5.833,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-012@20: the middle of its tolerance 20 to 22 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-012@20",
+   "runIdentity": "SC-DRIVING-012@20/r2",
+   "scenario": "SC-DRIVING-012",
+   "simulatedConfiguration": {
+    "sha256": "4eae5e47e739017d76b28cef5ca330f60d99f0fd2eb54f30af44758d2255c115",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "5.833",
+    "speed_limit_requested": "5.833",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "ae60bd5692ddc954901224b50e1293921ab0d847d18db3d64d0875c1ef3243fb",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "186452717568",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "186452717568",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 158,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_20_r2/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 4499595610,
+     "sha256": "35bf976234c933ce467e07f969c9cf00a289ef4f1f0d4ba553ac8902c5b294f2",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_20_r2/score_side/visualization/visualization.mkv",
+    "sha256": "abc6ea2f536029c83392f6c89c59e5a021a37c905fe3f66526cdcb87c37d7cd0",
+    "bytes": 28601339,
+    "frames": 560,
+    "reason": null
+   }
+  },
+  "012_42_r1": {
+   "setting": "SC-DRIVING-012@42",
+   "speed_limit_mps": 11.389,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-012@42: the middle of its tolerance 40 to 42 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-012@42",
+   "runIdentity": "SC-DRIVING-012@42/r1",
+   "scenario": "SC-DRIVING-012",
+   "simulatedConfiguration": {
+    "sha256": "4d8bfd7071bae2ebdbbb0ec897d200bc8a0e9ec3cfa4d5eb0ceef000c859a844",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "11.389",
+    "speed_limit_requested": "11.389",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "38d9d3c964856301854d19563ff44483a4d5633adf247a5e40f25ee6fc0434a4",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "181922553856",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "181922553856",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 164,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_42_r1/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 2458049416,
+     "sha256": "46c5291ed2e181413726b18ab92b612994e615b514497093a1aae93a20c888f6",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_42_r1/score_side/visualization/visualization.mkv",
+    "sha256": "b1f55a871daafa1af5b560b9d057a464409ba9f8ac1a0fe274878706f2dedcde",
+    "bytes": 15690509,
+    "frames": 310,
+    "reason": null
+   }
+  },
+  "012_42_r2": {
+   "setting": "SC-DRIVING-012@42",
+   "speed_limit_mps": 11.389,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-012@42: the middle of its tolerance 40 to 42 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-012@42",
+   "runIdentity": "SC-DRIVING-012@42/r2",
+   "scenario": "SC-DRIVING-012",
+   "simulatedConfiguration": {
+    "sha256": "4d8bfd7071bae2ebdbbb0ec897d200bc8a0e9ec3cfa4d5eb0ceef000c859a844",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "11.389",
+    "speed_limit_requested": "11.389",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "38d9d3c964856301854d19563ff44483a4d5633adf247a5e40f25ee6fc0434a4",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "179447996416",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "179447996416",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 170,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_42_r2/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 4459841786,
+     "sha256": "62fbc50be65a829f5841b2b9b520bf2b98feae529ebac71892b00aaf0b41573f",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_42_r2/score_side/visualization/visualization.mkv",
+    "sha256": "27016132003d5b60cbb3c0261e25dee7280bd24a22a8c970faf18cdc218adc9c",
+    "bytes": 28112364,
+    "frames": 554,
+    "reason": null
+   }
+  },
+  "012_60_r1": {
+   "setting": "SC-DRIVING-012@60",
+   "speed_limit_mps": 16.389,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-012@60: the middle of its tolerance 58 to 60 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-012@60",
+   "runIdentity": "SC-DRIVING-012@60/r1",
+   "scenario": "SC-DRIVING-012",
+   "simulatedConfiguration": {
+    "sha256": "a56b3c6b075fcc12305add006fe1c082fd9f2e2d894401563e63e62dd40f8e4a",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "16.389",
+    "speed_limit_requested": "16.389",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "78a27811c978c63dbf5d361b2f02e6942e2dcc43509abb27843695d0ffe5254a",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "174957465600",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "174957465600",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 176,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_60_r1/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 2441439355,
+     "sha256": "93361caef15923c3ff2180e7d27c1e6357900f8a2a15a999a019e8214f77d4d9",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_60_r1/score_side/visualization/visualization.mkv",
+    "sha256": "0e1966237c9473baab00b83912b477d92beb8de977cf1ff07259e99b17ecfce3",
+    "bytes": 15721713,
+    "frames": 308,
+    "reason": null
+   }
+  },
+  "012_60_r2": {
+   "setting": "SC-DRIVING-012@60",
+   "speed_limit_mps": 16.389,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-012@60: the middle of its tolerance 58 to 60 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-012@60",
+   "runIdentity": "SC-DRIVING-012@60/r2",
+   "scenario": "SC-DRIVING-012",
+   "simulatedConfiguration": {
+    "sha256": "a56b3c6b075fcc12305add006fe1c082fd9f2e2d894401563e63e62dd40f8e4a",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "16.389",
+    "speed_limit_requested": "16.389",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "78a27811c978c63dbf5d361b2f02e6942e2dcc43509abb27843695d0ffe5254a",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "172499488768",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "172499488768",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 182,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_60_r2/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 2488106257,
+     "sha256": "a8252b32d3f4719f1ec95bf33e4a9331ecae16e8c1d7ecf136ae683d8abbe811",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_012_60_r2/score_side/visualization/visualization.mkv",
+    "sha256": "a81382446a20c5516c1bac8555ce4cf478b480a3baece00325a891b05d21d287",
+    "bytes": 15896756,
+    "frames": 313,
+    "reason": null
+   }
+  },
+  "013_30_r1": {
+   "setting": "SC-DRIVING-013@30",
+   "speed_limit_mps": 8.611,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-013@30: the middle of its tolerance 30 to 32 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-013@30",
+   "runIdentity": "SC-DRIVING-013@30/r1",
+   "scenario": "SC-DRIVING-013",
+   "simulatedConfiguration": {
+    "sha256": "f948d31af4137c050559d7823bdb39a7c4db7d785e83ad280a51fc2b72614471",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "8.611",
+    "speed_limit_requested": "8.611",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "7a8ae3e2ca51888130b362d4ac8625afafe86a72af413351c062f3ac5aa63f7a",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "169994043392",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "169994043392",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 188,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_013_30_r1/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 4567473680,
+     "sha256": "48b19f0f805bf58a42ca6f0422f23f73cc1fefd5ae36ad7ae4ccf9dee9fc1a4a",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_013_30_r1/score_side/visualization/visualization.mkv",
+    "sha256": "0600635ccc7cf8c98c22e286c3a15015a404affb9cd6043dfea14a4278e2bc47",
+    "bytes": 29685019,
+    "frames": 568,
+    "reason": null
+   }
+  },
+  "013_30_r2": {
+   "setting": "SC-DRIVING-013@30",
+   "speed_limit_mps": 8.611,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-013@30: the middle of its tolerance 30 to 32 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-013@30",
+   "runIdentity": "SC-DRIVING-013@30/r2",
+   "scenario": "SC-DRIVING-013",
+   "simulatedConfiguration": {
+    "sha256": "f948d31af4137c050559d7823bdb39a7c4db7d785e83ad280a51fc2b72614471",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "8.611",
+    "speed_limit_requested": "8.611",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "7a8ae3e2ca51888130b362d4ac8625afafe86a72af413351c062f3ac5aa63f7a",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "165394210816",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "165394210816",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 194,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_013_30_r2/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 412870057,
+     "sha256": "af7d5a67476547f0b08bea2673efa313858daf4ad8e4eb7d52d6058cd716c425",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_013_30_r2/score_side/visualization/visualization.mkv",
+    "sha256": "2c82cde010377eb3f95670d6c5adc1829441c2e037d28580b62567ef823f5467",
+    "bytes": 3002839,
+    "frames": 52,
+    "reason": null
+   }
+  },
+  "013_60_r1": {
+   "setting": "SC-DRIVING-013@60",
+   "speed_limit_mps": 16.389,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-013@60: the middle of its tolerance 58 to 60 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-013@60",
+   "runIdentity": "SC-DRIVING-013@60/r1",
+   "scenario": "SC-DRIVING-013",
+   "simulatedConfiguration": {
+    "sha256": "f7efdd24c2f39a9943b8770c59a0691802a68b93befda18fb2aa5658879870dd",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "16.389",
+    "speed_limit_requested": "16.389",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "78a27811c978c63dbf5d361b2f02e6942e2dcc43509abb27843695d0ffe5254a",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "164978806784",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "164978806784",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 200,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_013_60_r1/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 2371662894,
+     "sha256": "828a9ccc738147d4025a397a9451e94aa65371a599bfca65b6f2944491e1c347",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_013_60_r1/score_side/visualization/visualization.mkv",
+    "sha256": "e8e77327d865f5bc514d7b505dc215181ed8c89e9978114846ff026109d50efc",
+    "bytes": 15758087,
+    "frames": 299,
+    "reason": null
+   }
+  },
+  "013_60_r2": {
+   "setting": "SC-DRIVING-013@60",
+   "speed_limit_mps": 16.389,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-013@60: the middle of its tolerance 58 to 60 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-013@60",
+   "runIdentity": "SC-DRIVING-013@60/r2",
+   "scenario": "SC-DRIVING-013",
+   "simulatedConfiguration": {
+    "sha256": "f7efdd24c2f39a9943b8770c59a0691802a68b93befda18fb2aa5658879870dd",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "16.389",
+    "speed_limit_requested": "16.389",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "78a27811c978c63dbf5d361b2f02e6942e2dcc43509abb27843695d0ffe5254a",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "162589413376",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "162589413376",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 206,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_013_60_r2/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 445442804,
+     "sha256": "44e4b79911cd49af0f37316af28e40bc4ef53bf75cfc806f2786fbb025a8f7f5",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_013_60_r2/score_side/visualization/visualization.mkv",
+    "sha256": "ee8830845f100aa7fa566dae1c25e965491abb42bc346aacd92c04c0ff48d819",
+    "bytes": 3200571,
+    "frames": 56,
+    "reason": null
+   }
+  },
+  "014_30_r1": {
+   "setting": "SC-DRIVING-014@30",
+   "speed_limit_mps": 8.056,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-014@30: the middle of its tolerance 28 to 30 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-014@30",
+   "runIdentity": "SC-DRIVING-014@30/r1",
+   "scenario": "SC-DRIVING-014",
+   "simulatedConfiguration": {
+    "sha256": "df3fdd9e07a8c1dae7e7acc3b6442ac2794a0eeda93866f6c0de9d28d0df59cd",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "8.056",
+    "speed_limit_requested": "8.056",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "61c8615866031519c3443ba8906094bd323b22494cd6d7831a9623ca96373c85",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "162140569600",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "162140569600",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 212,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_014_30_r1/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 2618394762,
+     "sha256": "3f2d7556aa403dfb4249171243452e9e5ef079487c52d6764c625bbb3f16edab",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_014_30_r1/score_side/visualization/visualization.mkv",
+    "sha256": "e70868af3d49a9522378ec7f5881ee1619ed0c7612c4ee4bd15782e66ad5cf18",
+    "bytes": 14254331,
+    "frames": 285,
+    "reason": null
+   }
+  },
+  "014_30_r2": {
+   "setting": "SC-DRIVING-014@30",
+   "speed_limit_mps": 8.056,
+   "run_cap_s": 60.0,
+   "planned_running_s": 120,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-014@30: the middle of its tolerance 28 to 30 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-014@30",
+   "runIdentity": "SC-DRIVING-014@30/r2",
+   "scenario": "SC-DRIVING-014",
+   "simulatedConfiguration": {
+    "sha256": "df3fdd9e07a8c1dae7e7acc3b6442ac2794a0eeda93866f6c0de9d28d0df59cd",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "8.056",
+    "speed_limit_requested": "8.056",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "61c8615866031519c3443ba8906094bd323b22494cd6d7831a9623ca96373c85",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 16682000000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "16682000000",
+     "avail_bytes": "159506051072",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "16682000000",
+     "stage_avail_bytes": "159506051072",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 262,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_014_30_r2/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 6864208419,
+     "sha256": "f0615eec8531a8a2c7395636fa93d6976642a82c65e79f055653383242f24d84",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_014_30_r2/score_side/visualization/visualization.mkv",
+    "sha256": "99ac5ac4840e8f6abd0b9ac65be96c52bd04da332d8e597ef1dc20cc03c0c844",
+    "bytes": 39793056,
+    "frames": 756,
+    "reason": null
+   }
+  },
+  "015_40_r1": {
+   "setting": "SC-DRIVING-015@40",
+   "speed_limit_mps": 10.833,
+   "run_cap_s": 75.0,
+   "planned_running_s": 135,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-015@40: the middle of its tolerance 38 to 40 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-015@40",
+   "runIdentity": "SC-DRIVING-015@40/r1",
+   "scenario": "SC-DRIVING-015",
+   "simulatedConfiguration": {
+    "sha256": "e0bdbd61343b7611ab4cdc9c374896a6b1e8ac0d3aec48974b20eadba96b216d",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "10.833",
+    "speed_limit_requested": "10.833",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "794fb49e1842a1b2f4e1686da012e48247e72bca1756bc1c76f19be5d97f4d21",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 18142250000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "18142250000",
+     "avail_bytes": "152598433792",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "18142250000",
+     "stage_avail_bytes": "152598433792",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 312,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_015_40_r1/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 5803876707,
+     "sha256": "4726a6f5043cbf5527e7eb6361f8f2cfe6306e10015e45f00fc457b7d4869a3f",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_015_40_r1/score_side/visualization/visualization.mkv",
+    "sha256": "74a2a47c51c0c9cc76e0a51c6a967c1e4ceba734c7fadd99181e0aee48185c19",
+    "bytes": 39482927,
+    "frames": 756,
+    "reason": null
+   }
+  },
+  "015_40_r2": {
+   "setting": "SC-DRIVING-015@40",
+   "speed_limit_mps": 10.833,
+   "run_cap_s": 75.0,
+   "planned_running_s": 135,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py SC-DRIVING-015@40: the middle of its tolerance 38 to 40 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "SC-DRIVING-015@40",
+   "runIdentity": "SC-DRIVING-015@40/r2",
+   "scenario": "SC-DRIVING-015",
+   "simulatedConfiguration": {
+    "sha256": "e0bdbd61343b7611ab4cdc9c374896a6b1e8ac0d3aec48974b20eadba96b216d",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "10.833",
+    "speed_limit_requested": "10.833",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "794fb49e1842a1b2f4e1686da012e48247e72bca1756bc1c76f19be5d97f4d21",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 18142250000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "18142250000",
+     "avail_bytes": "146752516096",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "18142250000",
+     "stage_avail_bytes": "146752516096",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 318,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_015_40_r2/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 5769461070,
+     "sha256": "59c1592c32790855da2adbf24fcd4010523a56832bfcd84d924124e66e9becb7",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_015_40_r2/score_side/visualization/visualization.mkv",
+    "sha256": "e3c1d298c837325d253ac98d05d1e6acfc4a46ebd3e8b0ab8c70c6ca8490fcc3",
+    "bytes": 39538713,
+    "frames": 758,
+    "reason": null
+   }
+  },
+  "stop": {
+   "setting": "stop",
+   "speed_limit_mps": 5.833,
+   "run_cap_s": 42.0,
+   "planned_running_s": 102,
+   "ackermann_gains": "v1",
+   "speed_limit_source": "bench proposal: world-side/scenarios.py stop: the middle of its tolerance 20 to 22 km/h, in m/s (System 2 sets speed_limit per scenario, PSR VisionPilotSCOREApplication)",
+   "run_id": "stop",
+   "runIdentity": "stop/further",
+   "scenario": "SC-DRIVING-012",
+   "simulatedConfiguration": {
+    "sha256": "6844e065726c1749518f22c388c84713d917e53faaf74dd19cf5d54bfa5f3f35",
+    "files": {
+     "world-side/da_world_side.py": "936e590f68b3b07a6bedad7832dd0c202e73f3ea9f4157524b43c1611ae3d2ac",
+     "world-side/scenarios.py": "eb36d5bcd3916f869b0346412da75263e09574701f95df56aabecbda15d3e511",
+     "world-side/scripts/common.sh": "4b714495b09708492f34b44e00dfe3ae52f07479f55aa9e78c64a029ee612d03",
+     "world-side/sites.py": "164cc0a1526d74740174004bde6b45aa58eaa31c2b76ed340371bad293788a85"
+    },
+    "rule": "sha256 of the canonical JSON of {setting: the setting's record, files: {path: sha256}} (session/scenario_digest.py)"
+   },
+   "score_platform": {
+    "lifecycle_version": "score_lifecycle@0.10.0",
+    "communication_version": "score_communication@0.6.0",
+    "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+    "facts": "/opt/da-b2/bundle/facts"
+   },
+   "score_gpu": {
+    "gpus": [
+     {
+      "name": "NVIDIA L4",
+      "driver_version": "580.178.04"
+     }
+    ],
+    "query": "nvidia-smi --query-gpu=name,driver_version --format=csv,noheader"
+   },
+   "staged": {
+    "speed_limit": "5.833",
+    "speed_limit_requested": "5.833",
+    "hero_wait_s": "400.0",
+    "source.mode": "score",
+    "engine.provider": "cuda",
+    "model.precision": "fp32",
+    "visualization_on": "false",
+    "rrd_on": "true",
+    "conf_sha256": "ae60bd5692ddc954901224b50e1293921ab0d847d18db3d64d0875c1ef3243fb",
+    "conf_recorded": "1",
+    "facts_diffs": "0001-de4sdv-visualization-recorder.diff+0002-de4sdv-score-interface.diff+0003-de4sdv-headless-display.diff+0005-de4sdv-warm-start.diff"
+   },
+   "disk_check": {
+    "need_bytes": 14929700000,
+    "rc": 0,
+    "result": {
+     "need_bytes": "14929700000",
+     "avail_bytes": "140940988416",
+     "same_filesystem": "1",
+     "out_mount": "/",
+     "need_stage_bytes": "14929700000",
+     "stage_avail_bytes": "140940988416",
+     "stage_mount": "/"
+    }
+   },
+   "adapter": {
+    "heroActorId": 324,
+    "error": null
+   },
+   "candidate_rrd": [
+    {
+     "path": "/home/mrk/da-kit/20261121T014447Z/out/score_stop/score_side/vision_pilot/visionpilot.rrd",
+     "bytes": 1011065173,
+     "sha256": "93f9bc26bf97dfe02ae771d72919fc24bff42173cd6a46a2ddde2ebc0c85f662",
+     "stage_path": "/tmp/de4sdv-da-bench/vision_pilot/visionpilot.rrd",
+     "collected_as": "hard link"
+    }
+   ],
+   "visualization_recording": {
+    "path": "/home/mrk/da-kit/20261121T014447Z/out/score_stop/score_side/visualization/visualization.mkv",
+    "sha256": "4c21a3959db7e588d8b21d33f6aef025c4217686207bb49f7aee7f2ce11653e3",
+    "bytes": 6856782,
+    "frames": 127,
+    "reason": null
+   }
+  }
+ },
+ "score_disk_check": null,
+ "chase_view": {
+  "012_20_r1": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 1934,
+   "gaps": [],
+   "ticks_seen": 1936
+  },
+  "012_20_r2": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 1941,
+   "gaps": [],
+   "ticks_seen": 1943
+  },
+  "012_42_r1": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 1395,
+   "gaps": [],
+   "ticks_seen": 1397
+  },
+  "012_42_r2": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 1913,
+   "gaps": [],
+   "ticks_seen": 1915
+  },
+  "012_60_r1": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 1412,
+   "gaps": [],
+   "ticks_seen": 1414
+  },
+  "012_60_r2": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 1394,
+   "gaps": [],
+   "ticks_seen": 1396
+  },
+  "013_30_r1": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 2403,
+   "gaps": [],
+   "ticks_seen": 2405
+  },
+  "013_30_r2": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 821,
+   "gaps": [],
+   "ticks_seen": 823
+  },
+  "013_60_r1": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 1355,
+   "gaps": [],
+   "ticks_seen": 1357
+  },
+  "013_60_r2": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 887,
+   "gaps": [],
+   "ticks_seen": 889
+  },
+  "014_30_r1": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 1313,
+   "gaps": [],
+   "ticks_seen": 1315
+  },
+  "014_30_r2": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 2654,
+   "gaps": [],
+   "ticks_seen": 2656
+  },
+  "015_40_r1": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 2676,
+   "gaps": [],
+   "ticks_seen": 2678
+  },
+  "015_40_r2": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 2735,
+   "gaps": [],
+   "ticks_seen": 2737
+  },
+  "stop": {
+   "complete": true,
+   "rc": 0,
+   "end": "ego or camera deleted by another client",
+   "written": 1683,
+   "gaps": [],
+   "ticks_seen": 1685
+  }
+ },
+ "not_fetched_from_hosts": {
+  "sim": [
+   {
+    "path": "out/rec_012_20_r1/chase_view.mp4",
+    "bytes": 143819664,
+    "sha256": "33400ad03aa9931143956aaa3b29571581dd640e203c2a6fa9325abc6ea0647d"
+   },
+   {
+    "path": "out/rec_012_20_r2/chase_view.mp4",
+    "bytes": 144232378,
+    "sha256": "2a1bf2d27daf34853feaae99d4631576c611cc2104eebb71214b7ad0edee4929"
+   },
+   {
+    "path": "out/rec_012_42_r1/chase_view.mp4",
+    "bytes": 102284123,
+    "sha256": "ef985a14d89c8d0533aaa972238dd29d62f293b439b21e017db3551defa85202"
+   },
+   {
+    "path": "out/rec_012_42_r2/chase_view.mp4",
+    "bytes": 141630914,
+    "sha256": "e423f8dbdf0bbd13767970b4617385ab74746fdcc12ee86647efb7c07708f567"
+   },
+   {
+    "path": "out/rec_012_60_r1/chase_view.mp4",
+    "bytes": 103636707,
+    "sha256": "efe4ccbccc8d65fcd9a14f2ec4bf80acdad9626aa3676ce92a67c94561da1d67"
+   },
+   {
+    "path": "out/rec_012_60_r2/chase_view.mp4",
+    "bytes": 102161396,
+    "sha256": "98ab9d734d19a6348bdf59a4f637e19a79498f6068c619bd61b72bb8c322b195"
+   },
+   {
+    "path": "out/rec_013_30_r1/chase_view.mp4",
+    "bytes": 176456845,
+    "sha256": "104aeece5400f669c77052c85c79af2732b9673f8d35ac046c355e91f7b36959"
+   },
+   {
+    "path": "out/rec_013_30_r2/chase_view.mp4",
+    "bytes": 64068838,
+    "sha256": "b9ca1fb30409be9bf80ccc159090472aea6684f459344c3ee80183510e2479e1"
+   },
+   {
+    "path": "out/rec_013_60_r1/chase_view.mp4",
+    "bytes": 108472067,
+    "sha256": "af991d2b33b40dd1e03425aa0d8927aa6b17b9bba1fe3f0b70c76961179f6a4c"
+   },
+   {
+    "path": "out/rec_013_60_r2/chase_view.mp4",
+    "bytes": 68102672,
+    "sha256": "6f4bb91e179b6fcd4aad8606cb23a62d811b1119f692381532a723d889d626c7"
+   },
+   {
+    "path": "out/rec_014_30_r1/chase_view.mp4",
+    "bytes": 96750772,
+    "sha256": "2417cb7a6860b4000fe523e089c212c504f08207f23228673ea3d2292388149b"
+   },
+   {
+    "path": "out/rec_014_30_r2/chase_view.mp4",
+    "bytes": 196270575,
+    "sha256": "837761c8e4dcb5193c2605716175263a1315fe0dee6db077a75a5d526e1d4b2a"
+   },
+   {
+    "path": "out/rec_015_40_r1/chase_view.mp4",
+    "bytes": 209339079,
+    "sha256": "e4fc5c96517b2bbd80e894af2b87bc64a92b7796a46905214f7046edb4953e78"
+   },
+   {
+    "path": "out/rec_015_40_r2/chase_view.mp4",
+    "bytes": 195658658,
+    "sha256": "b5685516f36136475089c6cba8812499f2b49d141178ef51deee2be9902ac113"
+   },
+   {
+    "path": "out/rec_stop/chase_view.mp4",
+    "bytes": 128288580,
+    "sha256": "0df8fd50ba2cba5194879a48f4e0d578cf55b7d4ac78b3b9c46e415b2b53173b"
+   },
+   {
+    "path": "out/rec_warmup/chase_view.mp4",
+    "bytes": 12190189,
+    "sha256": "4ceab3e74148aee845de2285c1dc097b12c059c77f8ea6ab756f2c8b743bf257"
+   }
+  ],
+  "score": [
+   {
+    "path": "out/score_012_20_r1/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 4563526376
+   },
+   {
+    "path": "out/score_012_20_r2/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 4499595610
+   },
+   {
+    "path": "out/score_012_42_r1/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 2458049416
+   },
+   {
+    "path": "out/score_012_42_r2/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 4459841786
+   },
+   {
+    "path": "out/score_012_60_r1/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 2441439355
+   },
+   {
+    "path": "out/score_012_60_r2/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 2488106257
+   },
+   {
+    "path": "out/score_013_30_r1/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 4567473680
+   },
+   {
+    "path": "out/score_013_30_r2/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 412870057
+   },
+   {
+    "path": "out/score_013_60_r1/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 2371662894
+   },
+   {
+    "path": "out/score_013_60_r2/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 445442804
+   },
+   {
+    "path": "out/score_014_30_r1/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 2618394762
+   },
+   {
+    "path": "out/score_014_30_r2/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 6864208419
+   },
+   {
+    "path": "out/score_015_40_r1/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 5803876707
+   },
+   {
+    "path": "out/score_015_40_r2/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 5769461070
+   },
+   {
+    "path": "out/score_calib_steer/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 6592284462
+   },
+   {
+    "path": "out/score_stop/score_side/vision_pilot/visionpilot.rrd",
+    "bytes": 1011065173
+   },
+   {
+    "path": "out/score_012_20_r1/score_side/visualization/visualization.mkv",
+    "bytes": 28904422,
+    "sha256": "1b7fae34f2531f3ec0c86e2ad4f9c507de34e9bd07a2f9cd554f805e6aa1a0ed"
+   },
+   {
+    "path": "out/score_012_20_r2/score_side/visualization/visualization.mkv",
+    "bytes": 28601339,
+    "sha256": "abc6ea2f536029c83392f6c89c59e5a021a37c905fe3f66526cdcb87c37d7cd0"
+   },
+   {
+    "path": "out/score_012_42_r1/score_side/visualization/visualization.mkv",
+    "bytes": 15690509,
+    "sha256": "b1f55a871daafa1af5b560b9d057a464409ba9f8ac1a0fe274878706f2dedcde"
+   },
+   {
+    "path": "out/score_012_42_r2/score_side/visualization/visualization.mkv",
+    "bytes": 28112364,
+    "sha256": "27016132003d5b60cbb3c0261e25dee7280bd24a22a8c970faf18cdc218adc9c"
+   },
+   {
+    "path": "out/score_012_60_r1/score_side/visualization/visualization.mkv",
+    "bytes": 15721713,
+    "sha256": "0e1966237c9473baab00b83912b477d92beb8de977cf1ff07259e99b17ecfce3"
+   },
+   {
+    "path": "out/score_012_60_r2/score_side/visualization/visualization.mkv",
+    "bytes": 15896756,
+    "sha256": "a81382446a20c5516c1bac8555ce4cf478b480a3baece00325a891b05d21d287"
+   },
+   {
+    "path": "out/score_013_30_r1/score_side/visualization/visualization.mkv",
+    "bytes": 29685019,
+    "sha256": "0600635ccc7cf8c98c22e286c3a15015a404affb9cd6043dfea14a4278e2bc47"
+   },
+   {
+    "path": "out/score_013_30_r2/score_side/visualization/visualization.mkv",
+    "bytes": 3002839,
+    "sha256": "2c82cde010377eb3f95670d6c5adc1829441c2e037d28580b62567ef823f5467"
+   },
+   {
+    "path": "out/score_013_60_r1/score_side/visualization/visualization.mkv",
+    "bytes": 15758087,
+    "sha256": "e8e77327d865f5bc514d7b505dc215181ed8c89e9978114846ff026109d50efc"
+   },
+   {
+    "path": "out/score_013_60_r2/score_side/visualization/visualization.mkv",
+    "bytes": 3200571,
+    "sha256": "ee8830845f100aa7fa566dae1c25e965491abb42bc346aacd92c04c0ff48d819"
+   },
+   {
+    "path": "out/score_014_30_r1/score_side/visualization/visualization.mkv",
+    "bytes": 14254331,
+    "sha256": "e70868af3d49a9522378ec7f5881ee1619ed0c7612c4ee4bd15782e66ad5cf18"
+   },
+   {
+    "path": "out/score_014_30_r2/score_side/visualization/visualization.mkv",
+    "bytes": 39793056,
+    "sha256": "99ac5ac4840e8f6abd0b9ac65be96c52bd04da332d8e597ef1dc20cc03c0c844"
+   },
+   {
+    "path": "out/score_015_40_r1/score_side/visualization/visualization.mkv",
+    "bytes": 39482927,
+    "sha256": "74a2a47c51c0c9cc76e0a51c6a967c1e4ceba734c7fadd99181e0aee48185c19"
+   },
+   {
+    "path": "out/score_015_40_r2/score_side/visualization/visualization.mkv",
+    "bytes": 39538713,
+    "sha256": "e3c1d298c837325d253ac98d05d1e6acfc4a46ebd3e8b0ab8c70c6ca8490fcc3"
+   },
+   {
+    "path": "out/score_calib_steer/score_side/visualization/visualization.mkv",
+    "bytes": 42910886,
+    "sha256": "ff6414b9d3edce3c03e0e37971d4ffdcfd436a032aca77a4a46600bd366309a6"
+   },
+   {
+    "path": "out/score_stop/score_side/visualization/visualization.mkv",
+    "bytes": 6856782,
+    "sha256": "4c21a3959db7e588d8b21d33f6aef025c4217686207bb49f7aee7f2ce11653e3"
+   }
+  ],
+  "guest": []
+ },
+ "app_record_receipts": {
+  "012_20_r1": 566,
+  "012_20_r2": 560,
+  "012_42_r1": 309,
+  "012_42_r2": 554,
+  "012_60_r1": 308,
+  "012_60_r2": 313,
+  "013_30_r1": 568,
+  "013_30_r2": 52,
+  "013_60_r1": 299,
+  "013_60_r2": 56,
+  "014_30_r1": 285,
+  "014_30_r2": 755,
+  "015_40_r1": 756,
+  "015_40_r2": 758,
+  "stop": 125
+ },
+ "step_ended_by_term": null,
+ "crosvm_before_guest_up": 0,
+ "p10_3": null,
+ "display_capture": {
+  "012_20_r1": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "012_20_r2": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "012_42_r1": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "012_42_r2": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "012_60_r1": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "012_60_r2": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "013_30_r1": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "013_30_r2": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "013_60_r1": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "013_60_r2": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "014_30_r1": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "014_30_r2": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "015_40_r1": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "015_40_r2": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  },
+  "stop": {
+   "end": "stop",
+   "capture_rc": 0,
+   "closed_by": "window close",
+   "guest_files_kept": false
+  }
+ },
+ "p10_2": null,
+ "s1": {
+  "runs_file": "kit:bench/session/s1_runs.tsv",
+  "runs_file_sha256": "0d57341263ac5910573a0ed439f1c0630504b07208d16f4095fe641ef4baffaa",
+  "runs": [
+   {
+    "label": "012_20_r1",
+    "run_id": "SC-DRIVING-012@20",
+    "runIdentity": "SC-DRIVING-012@20/r1",
+    "scenario": "SC-DRIVING-012",
+    "setting": "SC-DRIVING-012@20"
+   },
+   {
+    "label": "012_20_r2",
+    "run_id": "SC-DRIVING-012@20",
+    "runIdentity": "SC-DRIVING-012@20/r2",
+    "scenario": "SC-DRIVING-012",
+    "setting": "SC-DRIVING-012@20"
+   },
+   {
+    "label": "012_42_r1",
+    "run_id": "SC-DRIVING-012@42",
+    "runIdentity": "SC-DRIVING-012@42/r1",
+    "scenario": "SC-DRIVING-012",
+    "setting": "SC-DRIVING-012@42"
+   },
+   {
+    "label": "012_42_r2",
+    "run_id": "SC-DRIVING-012@42",
+    "runIdentity": "SC-DRIVING-012@42/r2",
+    "scenario": "SC-DRIVING-012",
+    "setting": "SC-DRIVING-012@42"
+   },
+   {
+    "label": "012_60_r1",
+    "run_id": "SC-DRIVING-012@60",
+    "runIdentity": "SC-DRIVING-012@60/r1",
+    "scenario": "SC-DRIVING-012",
+    "setting": "SC-DRIVING-012@60"
+   },
+   {
+    "label": "012_60_r2",
+    "run_id": "SC-DRIVING-012@60",
+    "runIdentity": "SC-DRIVING-012@60/r2",
+    "scenario": "SC-DRIVING-012",
+    "setting": "SC-DRIVING-012@60"
+   },
+   {
+    "label": "013_30_r1",
+    "run_id": "SC-DRIVING-013@30",
+    "runIdentity": "SC-DRIVING-013@30/r1",
+    "scenario": "SC-DRIVING-013",
+    "setting": "SC-DRIVING-013@30"
+   },
+   {
+    "label": "013_30_r2",
+    "run_id": "SC-DRIVING-013@30",
+    "runIdentity": "SC-DRIVING-013@30/r2",
+    "scenario": "SC-DRIVING-013",
+    "setting": "SC-DRIVING-013@30"
+   },
+   {
+    "label": "013_60_r1",
+    "run_id": "SC-DRIVING-013@60",
+    "runIdentity": "SC-DRIVING-013@60/r1",
+    "scenario": "SC-DRIVING-013",
+    "setting": "SC-DRIVING-013@60"
+   },
+   {
+    "label": "013_60_r2",
+    "run_id": "SC-DRIVING-013@60",
+    "runIdentity": "SC-DRIVING-013@60/r2",
+    "scenario": "SC-DRIVING-013",
+    "setting": "SC-DRIVING-013@60"
+   },
+   {
+    "label": "014_30_r1",
+    "run_id": "SC-DRIVING-014@30",
+    "runIdentity": "SC-DRIVING-014@30/r1",
+    "scenario": "SC-DRIVING-014",
+    "setting": "SC-DRIVING-014@30"
+   },
+   {
+    "label": "014_30_r2",
+    "run_id": "SC-DRIVING-014@30",
+    "runIdentity": "SC-DRIVING-014@30/r2",
+    "scenario": "SC-DRIVING-014",
+    "setting": "SC-DRIVING-014@30"
+   },
+   {
+    "label": "015_40_r1",
+    "run_id": "SC-DRIVING-015@40",
+    "runIdentity": "SC-DRIVING-015@40/r1",
+    "scenario": "SC-DRIVING-015",
+    "setting": "SC-DRIVING-015@40"
+   },
+   {
+    "label": "015_40_r2",
+    "run_id": "SC-DRIVING-015@40",
+    "runIdentity": "SC-DRIVING-015@40/r2",
+    "scenario": "SC-DRIVING-015",
+    "setting": "SC-DRIVING-015@40"
+   },
+   {
+    "label": "stop",
+    "run_id": "stop",
+    "runIdentity": "stop/further",
+    "scenario": "SC-DRIVING-012",
+    "setting": "stop"
+   }
+  ],
+  "runs_done": [
+   "012_20_r1",
+   "012_20_r2",
+   "012_42_r1",
+   "012_42_r2",
+   "012_60_r1",
+   "012_60_r2",
+   "013_30_r1",
+   "013_30_r2",
+   "013_60_r1",
+   "013_60_r2",
+   "014_30_r1",
+   "014_30_r2",
+   "015_40_r1",
+   "015_40_r2",
+   "stop"
+  ],
+  "runs_owed": [],
+  "stop_instant": {
+   "runTarget": "path_stopped",
+   "stopInstantRealNs": 1795231317859237667,
+   "stopInstantMonoNs": 5751472311230,
+   "rc": 0
+  },
+  "path_stop": {
+   "label": "stop",
+   "go_unix_s": 1795231302.61947,
+   "call_unix_s": 1795231314.6281781,
+   "after_go_s": 12.0,
+   "line": "{\"runTarget\":\"path_stopped\",\"stopInstantRealNs\":1795231317859237667,\"stopInstantMonoNs\":5751472311230,\"rc\":0}",
+   "stop_instant": {
+    "runTarget": "path_stopped",
+    "stopInstantRealNs": 1795231317859237667,
+    "stopInstantMonoNs": 5751472311230,
+    "rc": 0
+   }
+  },
+  "display_recording_complete": true,
+  "reason": "every window's capture ended by its stop at the window's close, rc 0, nothing kept on the guest",
+  "conditional_on_permissive_ivi": true,
+  "chase_view_complete": true,
+  "chase_videos_on_the_simulator_host": [
+   {
+    "path": "out/rec_012_20_r1/chase_view.mp4",
+    "bytes": 143819664,
+    "sha256": "33400ad03aa9931143956aaa3b29571581dd640e203c2a6fa9325abc6ea0647d"
+   },
+   {
+    "path": "out/rec_012_20_r2/chase_view.mp4",
+    "bytes": 144232378,
+    "sha256": "2a1bf2d27daf34853feaae99d4631576c611cc2104eebb71214b7ad0edee4929"
+   },
+   {
+    "path": "out/rec_012_42_r1/chase_view.mp4",
+    "bytes": 102284123,
+    "sha256": "ef985a14d89c8d0533aaa972238dd29d62f293b439b21e017db3551defa85202"
+   },
+   {
+    "path": "out/rec_012_42_r2/chase_view.mp4",
+    "bytes": 141630914,
+    "sha256": "e423f8dbdf0bbd13767970b4617385ab74746fdcc12ee86647efb7c07708f567"
+   },
+   {
+    "path": "out/rec_012_60_r1/chase_view.mp4",
+    "bytes": 103636707,
+    "sha256": "efe4ccbccc8d65fcd9a14f2ec4bf80acdad9626aa3676ce92a67c94561da1d67"
+   },
+   {
+    "path": "out/rec_012_60_r2/chase_view.mp4",
+    "bytes": 102161396,
+    "sha256": "98ab9d734d19a6348bdf59a4f637e19a79498f6068c619bd61b72bb8c322b195"
+   },
+   {
+    "path": "out/rec_013_30_r1/chase_view.mp4",
+    "bytes": 176456845,
+    "sha256": "104aeece5400f669c77052c85c79af2732b9673f8d35ac046c355e91f7b36959"
+   },
+   {
+    "path": "out/rec_013_30_r2/chase_view.mp4",
+    "bytes": 64068838,
+    "sha256": "b9ca1fb30409be9bf80ccc159090472aea6684f459344c3ee80183510e2479e1"
+   },
+   {
+    "path": "out/rec_013_60_r1/chase_view.mp4",
+    "bytes": 108472067,
+    "sha256": "af991d2b33b40dd1e03425aa0d8927aa6b17b9bba1fe3f0b70c76961179f6a4c"
+   },
+   {
+    "path": "out/rec_013_60_r2/chase_view.mp4",
+    "bytes": 68102672,
+    "sha256": "6f4bb91e179b6fcd4aad8606cb23a62d811b1119f692381532a723d889d626c7"
+   },
+   {
+    "path": "out/rec_014_30_r1/chase_view.mp4",
+    "bytes": 96750772,
+    "sha256": "2417cb7a6860b4000fe523e089c212c504f08207f23228673ea3d2292388149b"
+   },
+   {
+    "path": "out/rec_014_30_r2/chase_view.mp4",
+    "bytes": 196270575,
+    "sha256": "837761c8e4dcb5193c2605716175263a1315fe0dee6db077a75a5d526e1d4b2a"
+   },
+   {
+    "path": "out/rec_015_40_r1/chase_view.mp4",
+    "bytes": 209339079,
+    "sha256": "e4fc5c96517b2bbd80e894af2b87bc64a92b7796a46905214f7046edb4953e78"
+   },
+   {
+    "path": "out/rec_015_40_r2/chase_view.mp4",
+    "bytes": 195658658,
+    "sha256": "b5685516f36136475089c6cba8812499f2b49d141178ef51deee2be9902ac113"
+   },
+   {
+    "path": "out/rec_stop/chase_view.mp4",
+    "bytes": 128288580,
+    "sha256": "0df8fd50ba2cba5194879a48f4e0d578cf55b7d4ac78b3b9c46e415b2b53173b"
+   },
+   {
+    "path": "out/rec_warmup/chase_view.mp4",
+    "bytes": 12190189,
+    "sha256": "4ceab3e74148aee845de2285c1dc097b12c059c77f8ea6ab756f2c8b743bf257"
+   }
+  ],
+  "camera_calibration_source": "settings",
+  "camera_calibration_source_reason": "the lead's decision of 2026-11-19 (owner informed): CARLA 1.0's apply_texture sets only material parameters named BaseColor, Difuse, Normal, Emissive or ORMH (CarlaGameModeBase.cpp:505-548 at 14ac3b1a50) and the engine plane's material has none of them, so the boards render flat grey and upstream's script finds 0 boards; H.yaml comes from the simulated camera's settings and pose",
+  "camera_calibration_cross_check": "not run: no board rendered"
+ },
+ "score_platform": {
+  "lifecycle_version": "score_lifecycle@0.10.0",
+  "communication_version": "score_communication@0.6.0",
+  "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168",
+  "facts": "/opt/da-b2/bundle/facts",
+  "source": "the SCORE_PLATFORM line of every S-CORE start: calib_steer, 012_20_r1, 012_20_r2, 012_42_r1, 012_42_r2, 012_60_r1, 012_60_r2, 013_30_r1, 013_30_r2, 013_60_r1, 013_60_r2, 014_30_r1, 014_30_r2, 015_40_r1, 015_40_r2, stop"
+ },
+ "execution_environment": {
+  "score_gpu": "NVIDIA L4, driver 580.178.04",
+  "sdv_core_image": "sdv_core_cf, build CP2A.260605.016, fingerprint google/sdv_core_cf/sdv_core_cf:17/CP2A.260605.016/eng.mrk:eng/test-keys, vbmeta digest df609afcf639bb3f47d97edf05c5c16c8c92c57c463aff2d5eeadd71cb954299",
+  "ivi_image": "sdv_ivi_cf, build CP2A.260605.016, fingerprint google/sdv_ivi_cf/sdv_ivi_cf:17/CP2A.260605.016/eng.mrk:userdebug/test-keys, vbmeta digest d668fcbb41024f3a946e97bd5c05a92d328cc1a11c9ebe408f4d32d938abeef8"
+ },
+ "configuration_identity": "DRIVING-CONFIG-002",
+ "configuration_receipt_sha256": "848262167497d033b87d4ae90c6f54d3b0edd4c851f80480cd07d8cd860a34a1",
+ "configuration_receipt": {
+  "commit": "508649bae2543c181d3edbe3f63eeeaa3b836d28",
+  "sources": {
+   "configuration_identity": "textual-notation-of-model/packages/features/driving/driver_assistance_variability_configuration.sysml:107 at 508649bae2543c181d3edbe3f63eeeaa3b836d28",
+   "evidence_binding": "textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml:153 at 508649bae2543c181d3edbe3f63eeeaa3b836d28",
+   "model_bound_sha256": "textual-notation-of-model/packages/features/driving/driver_assistance_variability_configuration.sysml:138 at 508649bae2543c181d3edbe3f63eeeaa3b836d28",
+   "path": "textual-notation-of-model/packages/features/driving/driver_assistance_variability_configuration.sysml:114 at 508649bae2543c181d3edbe3f63eeeaa3b836d28"
+  },
+  "model_bound_sha256": "848262167497d033b87d4ae90c6f54d3b0edd4c851f80480cd07d8cd860a34a1",
+  "path": "model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json",
+  "equal_to_model": true
+ },
+ "visualization_recorder_delay": "the readiness probe of the recorder on 2026-11-17 measured 2.0 ms more at the median and 5.8 ms more at the 99th percentile from an image to its command, on an S-CORE host with an NVIDIA L4 (textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml:170-176 at 508649bae2543c181d3edbe3f63eeeaa3b836d28 (RetainedAssistanceRunEvidence))"
+}

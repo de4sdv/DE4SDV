@@ -1,0 +1,1075 @@
+{
+ "engineer": "an independent Claude Code session dispatched by the lead on 2026-11-21, with no access to the lead's notes",
+ "recordSha256": [
+  "e63c5338e0b1af6ce5a34ec407c1cde1c0c6b1e81b8638d21eb8e93deb0c9f18",
+  "288255171a366205384eea98e0adb9cbc76a270eaa53d1139e385e0884445b8b",
+  "9dafbb466bd5c8eb277cde46ba9f4057d0777072035488f6624003e20ea9b3de",
+  "b5ca27fc175622ca85413169654e4c29274d2294c3af3cdff18453ea635e17f3",
+  "87b506d65fc0d9cc5a038c7bc8515fdde62aa0bc999fd8291701ce9e640e2112",
+  "87c2e173b12d58da3ea280188f99c0f4787079c62d544fe1979da551a52dda76",
+  "aa41f16dea8874c9dc7a690f3976e81a071b9a8720a0bccd43d617deda8bc433",
+  "009ccfbcbf35a1b6ddc710754a7378a7c36cb5e1e960462368e71e0fe262445b",
+  "5ecd2778f1ff87a1cdd16059fbf3d9ab3ec3443b828229b24c3fc880304714e4",
+  "335fdf3944cff78101ad5bce957139b5af7a945905c9c68a53ffb3900b44102b",
+  "3d85ec65f38ff2c8c61f15434883129edc51509578ed74f1510c35f86041095e",
+  "091e3e0b496dbff9b07deb8fbad5844fe26f55a008e69061d4bf9430f3c76367",
+  "21b98369586ff3dd81ffaf6748f3e8a603dbb4b05eef1ddeec969ca04c2087a3",
+  "fe1c62ee8a1fdb1f1c891ba7d992e0c43d057c12303983e8ae8f315f331a4b6a",
+  "7e37b53e8105e852128233401407cca723b40df8962087d2e805d41c7623412a"
+ ],
+ "upstreamRevisionCheckedOut": "014e0e7a56ee8e597c2cab8175233f74edd9b856",
+ "upstreamRepository": "https://github.com/autowarefoundation/vision_pilot",
+ "benchCommit": "508649bae2543c181d3edbe3f63eeeaa3b836d28",
+ "sessionBenchCommit": "508649bae2543c181d3edbe3f63eeeaa3b836d28",
+ "sessionId": "20261121T014447Z",
+ "judgedRecords": 15,
+ "runs": [
+  {
+   "run": "012_20_r1",
+   "setting": "SC-DRIVING-012@20",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_012_20_r1/score_side/run/score/candidate_record.json",
+   "recordSha256": "e63c5338e0b1af6ce5a34ec407c1cde1c0c6b1e81b8638d21eb8e93deb0c9f18",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "e63c5338e0b1af6ce5a34ec407c1cde1c0c6b1e81b8638d21eb8e93deb0c9f18"
+   ],
+   "identityRecorderSha256": [
+    "e63c5338e0b1af6ce5a34ec407c1cde1c0c6b1e81b8638d21eb8e93deb0c9f18"
+   ],
+   "speedLimitDerived": "5.833",
+   "speedLimitStagedPerSession": "5.833",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "012_20_r2",
+   "setting": "SC-DRIVING-012@20",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_012_20_r2/score_side/run/score/candidate_record.json",
+   "recordSha256": "288255171a366205384eea98e0adb9cbc76a270eaa53d1139e385e0884445b8b",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "288255171a366205384eea98e0adb9cbc76a270eaa53d1139e385e0884445b8b"
+   ],
+   "identityRecorderSha256": [
+    "288255171a366205384eea98e0adb9cbc76a270eaa53d1139e385e0884445b8b"
+   ],
+   "speedLimitDerived": "5.833",
+   "speedLimitStagedPerSession": "5.833",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "012_42_r1",
+   "setting": "SC-DRIVING-012@42",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_012_42_r1/score_side/run/score/candidate_record.json",
+   "recordSha256": "9dafbb466bd5c8eb277cde46ba9f4057d0777072035488f6624003e20ea9b3de",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "9dafbb466bd5c8eb277cde46ba9f4057d0777072035488f6624003e20ea9b3de"
+   ],
+   "identityRecorderSha256": [
+    "9dafbb466bd5c8eb277cde46ba9f4057d0777072035488f6624003e20ea9b3de"
+   ],
+   "speedLimitDerived": "11.389",
+   "speedLimitStagedPerSession": "11.389",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "012_42_r2",
+   "setting": "SC-DRIVING-012@42",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_012_42_r2/score_side/run/score/candidate_record.json",
+   "recordSha256": "b5ca27fc175622ca85413169654e4c29274d2294c3af3cdff18453ea635e17f3",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "b5ca27fc175622ca85413169654e4c29274d2294c3af3cdff18453ea635e17f3"
+   ],
+   "identityRecorderSha256": [
+    "b5ca27fc175622ca85413169654e4c29274d2294c3af3cdff18453ea635e17f3"
+   ],
+   "speedLimitDerived": "11.389",
+   "speedLimitStagedPerSession": "11.389",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "012_60_r1",
+   "setting": "SC-DRIVING-012@60",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_012_60_r1/score_side/run/score/candidate_record.json",
+   "recordSha256": "87b506d65fc0d9cc5a038c7bc8515fdde62aa0bc999fd8291701ce9e640e2112",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "87b506d65fc0d9cc5a038c7bc8515fdde62aa0bc999fd8291701ce9e640e2112"
+   ],
+   "identityRecorderSha256": [
+    "87b506d65fc0d9cc5a038c7bc8515fdde62aa0bc999fd8291701ce9e640e2112"
+   ],
+   "speedLimitDerived": "16.389",
+   "speedLimitStagedPerSession": "16.389",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "012_60_r2",
+   "setting": "SC-DRIVING-012@60",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_012_60_r2/score_side/run/score/candidate_record.json",
+   "recordSha256": "87c2e173b12d58da3ea280188f99c0f4787079c62d544fe1979da551a52dda76",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "87c2e173b12d58da3ea280188f99c0f4787079c62d544fe1979da551a52dda76"
+   ],
+   "identityRecorderSha256": [
+    "87c2e173b12d58da3ea280188f99c0f4787079c62d544fe1979da551a52dda76"
+   ],
+   "speedLimitDerived": "16.389",
+   "speedLimitStagedPerSession": "16.389",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "013_30_r1",
+   "setting": "SC-DRIVING-013@30",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_013_30_r1/score_side/run/score/candidate_record.json",
+   "recordSha256": "aa41f16dea8874c9dc7a690f3976e81a071b9a8720a0bccd43d617deda8bc433",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "aa41f16dea8874c9dc7a690f3976e81a071b9a8720a0bccd43d617deda8bc433"
+   ],
+   "identityRecorderSha256": [
+    "aa41f16dea8874c9dc7a690f3976e81a071b9a8720a0bccd43d617deda8bc433"
+   ],
+   "speedLimitDerived": "8.611",
+   "speedLimitStagedPerSession": "8.611",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "013_30_r2",
+   "setting": "SC-DRIVING-013@30",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_013_30_r2/score_side/run/score/candidate_record.json",
+   "recordSha256": "009ccfbcbf35a1b6ddc710754a7378a7c36cb5e1e960462368e71e0fe262445b",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "009ccfbcbf35a1b6ddc710754a7378a7c36cb5e1e960462368e71e0fe262445b"
+   ],
+   "identityRecorderSha256": [
+    "009ccfbcbf35a1b6ddc710754a7378a7c36cb5e1e960462368e71e0fe262445b"
+   ],
+   "speedLimitDerived": "8.611",
+   "speedLimitStagedPerSession": "8.611",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "013_60_r1",
+   "setting": "SC-DRIVING-013@60",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_013_60_r1/score_side/run/score/candidate_record.json",
+   "recordSha256": "5ecd2778f1ff87a1cdd16059fbf3d9ab3ec3443b828229b24c3fc880304714e4",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "5ecd2778f1ff87a1cdd16059fbf3d9ab3ec3443b828229b24c3fc880304714e4"
+   ],
+   "identityRecorderSha256": [
+    "5ecd2778f1ff87a1cdd16059fbf3d9ab3ec3443b828229b24c3fc880304714e4"
+   ],
+   "speedLimitDerived": "16.389",
+   "speedLimitStagedPerSession": "16.389",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "013_60_r2",
+   "setting": "SC-DRIVING-013@60",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_013_60_r2/score_side/run/score/candidate_record.json",
+   "recordSha256": "335fdf3944cff78101ad5bce957139b5af7a945905c9c68a53ffb3900b44102b",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "335fdf3944cff78101ad5bce957139b5af7a945905c9c68a53ffb3900b44102b"
+   ],
+   "identityRecorderSha256": [
+    "335fdf3944cff78101ad5bce957139b5af7a945905c9c68a53ffb3900b44102b"
+   ],
+   "speedLimitDerived": "16.389",
+   "speedLimitStagedPerSession": "16.389",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "014_30_r1",
+   "setting": "SC-DRIVING-014@30",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_014_30_r1/score_side/run/score/candidate_record.json",
+   "recordSha256": "3d85ec65f38ff2c8c61f15434883129edc51509578ed74f1510c35f86041095e",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "3d85ec65f38ff2c8c61f15434883129edc51509578ed74f1510c35f86041095e"
+   ],
+   "identityRecorderSha256": [
+    "3d85ec65f38ff2c8c61f15434883129edc51509578ed74f1510c35f86041095e"
+   ],
+   "speedLimitDerived": "8.056",
+   "speedLimitStagedPerSession": "8.056",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "014_30_r2",
+   "setting": "SC-DRIVING-014@30",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_014_30_r2/score_side/run/score/candidate_record.json",
+   "recordSha256": "091e3e0b496dbff9b07deb8fbad5844fe26f55a008e69061d4bf9430f3c76367",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "091e3e0b496dbff9b07deb8fbad5844fe26f55a008e69061d4bf9430f3c76367"
+   ],
+   "identityRecorderSha256": [
+    "091e3e0b496dbff9b07deb8fbad5844fe26f55a008e69061d4bf9430f3c76367"
+   ],
+   "speedLimitDerived": "8.056",
+   "speedLimitStagedPerSession": "8.056",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "015_40_r1",
+   "setting": "SC-DRIVING-015@40",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_015_40_r1/score_side/run/score/candidate_record.json",
+   "recordSha256": "21b98369586ff3dd81ffaf6748f3e8a603dbb4b05eef1ddeec969ca04c2087a3",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "21b98369586ff3dd81ffaf6748f3e8a603dbb4b05eef1ddeec969ca04c2087a3"
+   ],
+   "identityRecorderSha256": [
+    "21b98369586ff3dd81ffaf6748f3e8a603dbb4b05eef1ddeec969ca04c2087a3"
+   ],
+   "speedLimitDerived": "10.833",
+   "speedLimitStagedPerSession": "10.833",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "015_40_r2",
+   "setting": "SC-DRIVING-015@40",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_015_40_r2/score_side/run/score/candidate_record.json",
+   "recordSha256": "fe1c62ee8a1fdb1f1c891ba7d992e0c43d057c12303983e8ae8f315f331a4b6a",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "fe1c62ee8a1fdb1f1c891ba7d992e0c43d057c12303983e8ae8f315f331a4b6a"
+   ],
+   "identityRecorderSha256": [
+    "fe1c62ee8a1fdb1f1c891ba7d992e0c43d057c12303983e8ae8f315f331a4b6a"
+   ],
+   "speedLimitDerived": "10.833",
+   "speedLimitStagedPerSession": "10.833",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  },
+  {
+   "run": "stop",
+   "setting": "stop",
+   "record": "/home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/score/out/score_stop/score_side/run/score/candidate_record.json",
+   "recordSha256": "7e37b53e8105e852128233401407cca723b40df8962087d2e805d41c7623412a",
+   "recordBytes": 157983,
+   "inCandidateRecordSha256": [
+    "7e37b53e8105e852128233401407cca723b40df8962087d2e805d41c7623412a"
+   ],
+   "identityRecorderSha256": [
+    "7e37b53e8105e852128233401407cca723b40df8962087d2e805d41c7623412a"
+   ],
+   "speedLimitDerived": "5.833",
+   "speedLimitStagedPerSession": "5.833",
+   "carlaHost": "10.10.0.2",
+   "differenceTextsMatch": true,
+   "differenceApplies": true,
+   "differenceIs": [
+    "score-interface/patches/0001-de4sdv-visualization-recorder.diff",
+    "score-interface/patches/0002-de4sdv-score-interface.diff",
+    "score-interface/patches/0003-de4sdv-headless-display.diff",
+    "score-interface/patches/0005-de4sdv-warm-start.diff"
+   ],
+   "launchConfigTextEqualsBench": true,
+   "named": 18,
+   "derived": 18,
+   "matched": 18,
+   "mismatched": [],
+   "notReproduced": []
+  }
+ ],
+ "files": [
+  {
+   "list": "network_files",
+   "role": "network autodrive",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/modules/models/weights/autodrive_fp32.onnx",
+   "recordedSha256": "196a82289ba7d96f574cc4dfa8815dadb9f104397c7c2bec7c98333e5ee8762d",
+   "recordedBytes": 43015192,
+   "obtainedSha256": "196a82289ba7d96f574cc4dfa8815dadb9f104397c7c2bec7c98333e5ee8762d",
+   "obtainedBytes": 43015192,
+   "match": true,
+   "derivation": "VisionPilot/modules/models/weights/autodrive_fp32.onnx of the patched tree: the git blob 42eb563842b1fcaba6e47575eaf0eea173b8dbe9 of upstream at the revision (fetched by git clone of https://github.com/autowarefoundation/vision_pilot); unchanged by the difference: True",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "network_files",
+   "role": "network autospeed",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/modules/models/weights/autospeed_fp32.onnx",
+   "recordedSha256": "adff7dd9fa9c2d306d9228a87edcf2ae256edbdc9e4b9541fd471880aa5c1451",
+   "recordedBytes": 38015647,
+   "obtainedSha256": "adff7dd9fa9c2d306d9228a87edcf2ae256edbdc9e4b9541fd471880aa5c1451",
+   "obtainedBytes": 38015647,
+   "match": true,
+   "derivation": "VisionPilot/modules/models/weights/autospeed_fp32.onnx of the patched tree: the git blob ec029b128a29789be0a9fb8e53fa6a969b2828a8 of upstream at the revision (fetched by git clone of https://github.com/autowarefoundation/vision_pilot); unchanged by the difference: True",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "network_files",
+   "role": "network autosteer",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/modules/models/weights/autosteer_fp32.onnx",
+   "recordedSha256": "770d26f431467bbcc7fe3e794411cac36d8dfbd1658e4eb4a37d48342db7cbf6",
+   "recordedBytes": 33266514,
+   "obtainedSha256": "770d26f431467bbcc7fe3e794411cac36d8dfbd1658e4eb4a37d48342db7cbf6",
+   "obtainedBytes": 33266514,
+   "match": true,
+   "derivation": "VisionPilot/modules/models/weights/autosteer_fp32.onnx of the patched tree: the git blob 77dccaa7b46ab76c6f658e6b9c563865bd37bc68 of upstream at the revision (fetched by git clone of https://github.com/autowarefoundation/vision_pilot); unchanged by the difference: True",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "ldconfig conf of the GPU runtime",
+   "path": "/etc/ld.so.conf.d/de4sdv-cuda-12.8.1.conf",
+   "recordedSha256": "aaccd9d47011ead5d6c995724d56d4618040d4f526e14a0b5a964bc3cf17bef2",
+   "recordedBytes": 55,
+   "obtainedSha256": "aaccd9d47011ead5d6c995724d56d4618040d4f526e14a0b5a964bc3cf17bef2",
+   "obtainedBytes": 55,
+   "match": true,
+   "derivation": "install_gpu_runtime.sh: echo \"$CUDA_DIR/lib\" | tee $LDCONF with the default prefix and pins.sh CUDA_VERSION/CUDNN_VERSION",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "process argument of actuation_adapter",
+   "path": "/tmp/de4sdv-da-bench/config/adapter.json",
+   "recordedSha256": "924b98c0a2a86138e6eacdf7440c65223034da4056783c361ae3d41cd0a7426b",
+   "recordedBytes": 134,
+   "obtainedSha256": "924b98c0a2a86138e6eacdf7440c65223034da4056783c361ae3d41cd0a7426b",
+   "obtainedBytes": 134,
+   "match": true,
+   "derivation": "the bench's actuation-adapter/config/adapter.json with carla_host = 10.10.0.2",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "DE4SDV interface configuration",
+   "path": "/tmp/de4sdv-da-bench/config/de4sdv_score_interface.conf",
+   "recordedSha256": "d5e9e84b05621971cf3761172f159cd1d8f3191441b1ea8f1fe2c7cf897e4778",
+   "recordedBytes": 306,
+   "obtainedSha256": "d5e9e84b05621971cf3761172f159cd1d8f3191441b1ea8f1fe2c7cf897e4778",
+   "obtainedBytes": 306,
+   "match": true,
+   "derivation": "the interface template of stage_score_side.py with carla.host = 10.10.0.2",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "Launch Manager configuration",
+   "path": "/tmp/de4sdv-da-bench/config/launch_manager_config.json",
+   "recordedSha256": "58398ffbf4ab10f03d1d2dc44b88bbeb5324f14372ef4c3a86fe8b798dafd783",
+   "recordedBytes": 8707,
+   "obtainedSha256": "58398ffbf4ab10f03d1d2dc44b88bbeb5324f14372ef4c3a86fe8b798dafd783",
+   "obtainedBytes": 8707,
+   "match": true,
+   "derivation": "the bench's launch-manager/config/launch_manager_config.json at its commit, verbatim (stage_score_side.py copies it)",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "MW_COM_CONFIG of actuation_adapter",
+   "path": "/tmp/de4sdv-da-bench/config/mw_com_config_actuation_adapter.json",
+   "recordedSha256": "fcd8bf4156619bd287f7cb1226484d719d263052e70499f23b424ae8bb4bcbfa",
+   "recordedBytes": 1422,
+   "obtainedSha256": "fcd8bf4156619bd287f7cb1226484d719d263052e70499f23b424ae8bb4bcbfa",
+   "obtainedBytes": 1422,
+   "match": true,
+   "derivation": "the bench's actuation-adapter/mw_com_config_actuation_adapter.json at its commit, verbatim (stage_score_side.py copies it)",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "process argument of gatewayd",
+   "path": "/tmp/de4sdv-da-bench/config/mw_com_config_gatewayd_warning.json",
+   "recordedSha256": "5d0b481d730fde31f19e0279ff2a07b6dad68f138988531da2d1a8a9921e0957",
+   "recordedBytes": 2587,
+   "obtainedSha256": "5d0b481d730fde31f19e0279ff2a07b6dad68f138988531da2d1a8a9921e0957",
+   "obtainedBytes": 2587,
+   "match": true,
+   "derivation": "the bench's score-path/config/mw_com_config_gatewayd_warning.json at its commit, verbatim (stage_score_side.py copies it)",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "MW_COM_CONFIG of identity_recorder",
+   "path": "/tmp/de4sdv-da-bench/config/mw_com_config_identity_recorder.json",
+   "recordedSha256": "eee5c172eb48319f2a438e45a5194af26c2ec92a33ea22cc79b4c36242230e2e",
+   "recordedBytes": 1400,
+   "obtainedSha256": "eee5c172eb48319f2a438e45a5194af26c2ec92a33ea22cc79b4c36242230e2e",
+   "obtainedBytes": 1400,
+   "match": true,
+   "derivation": "the bench's identity-recorder/mw_com_config_identity_recorder.json at its commit, verbatim (stage_score_side.py copies it)",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "process argument of someipd",
+   "path": "/tmp/de4sdv-da-bench/config/mw_com_config_someipd_warning.json",
+   "recordedSha256": "6ba889890d6817a6bcdb45ca4276cc003ec1d00887cc439a31553853a4d2d2cb",
+   "recordedBytes": 1307,
+   "obtainedSha256": "6ba889890d6817a6bcdb45ca4276cc003ec1d00887cc439a31553853a4d2d2cb",
+   "obtainedBytes": 1307,
+   "match": true,
+   "derivation": "the bench's score-path/config/mw_com_config_someipd_warning.json at its commit, verbatim (stage_score_side.py copies it)",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "mw::com manifest of vision_pilot",
+   "path": "/tmp/de4sdv-da-bench/config/mw_com_config_vision_pilot.json",
+   "recordedSha256": "b2d589ddbcdce96161cde055f9ceb7f5925b3346ae62b3ae621f583fdb5a94e8",
+   "recordedBytes": 3986,
+   "obtainedSha256": "b2d589ddbcdce96161cde055f9ceb7f5925b3346ae62b3ae621f583fdb5a94e8",
+   "obtainedBytes": 3986,
+   "match": true,
+   "derivation": "the bench's score-path/config/mw_com_config_vision_pilot.json at its commit, verbatim (stage_score_side.py copies it)",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "process argument of gatewayd",
+   "path": "/tmp/de4sdv-da-bench/config/someip_gateway_config_warning.bin",
+   "recordedSha256": "7c0282216f6a66ca0eb623cb4b620e883abb16108ed187b14f1b86495f063f85",
+   "recordedBytes": 272,
+   "obtainedSha256": "7c0282216f6a66ca0eb623cb4b620e883abb16108ed187b14f1b86495f063f85",
+   "obtainedBytes": 272,
+   "match": true,
+   "derivation": "the gateway's generate_someip_config_bin rule by hand (d9eac670 bazel/tools/someip_config.bzl): flatc --binary mw_someip_config.fbs score-path/config/someip_gateway_config_warning.json (flatc version 25.12.19, built from source)",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "VSOMEIP_CONFIGURATION of someipd",
+   "path": "/tmp/de4sdv-da-bench/config/vsomeip_someipd_warning.json",
+   "recordedSha256": "03e0292f639abd9d78025561303156058b0fe7461f6d18262c001e396ea29adc",
+   "recordedBytes": 1311,
+   "obtainedSha256": "03e0292f639abd9d78025561303156058b0fe7461f6d18262c001e396ea29adc",
+   "obtainedBytes": 1311,
+   "match": true,
+   "derivation": "the bench's score-path/config/vsomeip_someipd_warning.json at its commit, verbatim (stage_score_side.py copies it)",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "Launch Manager configuration (serialized)",
+   "path": "/tmp/de4sdv-da-bench/etc/launch_manager_config.bin",
+   "recordedSha256": "94de34c8fa0ae6ddb9367860721361eaecc22d3d9f5f2b7388de2e3a3d4b42e0",
+   "recordedBytes": 5696,
+   "obtainedSha256": "94de34c8fa0ae6ddb9367860721361eaecc22d3d9f5f2b7388de2e3a3d4b42e0",
+   "obtainedBytes": 5696,
+   "match": true,
+   "derivation": "Lifecycle v0.10.0 launch_manager_config rule by hand: lifecycle_config.py on the bench's launch-manager/config/launch_manager_config.json, then flatc --binary --strict-json lm_flatcfg.fbs (flatc version 25.12.19, built from source)",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "H.yaml",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/config/H.yaml",
+   "recordedSha256": "89e291df9711abf801b56a1b489b629b7c3ae8fed6b6f8e0e9208869633d4fe2",
+   "recordedBytes": 287,
+   "obtainedSha256": "89e291df9711abf801b56a1b489b629b7c3ae8fed6b6f8e0e9208869633d4fe2",
+   "obtainedBytes": 287,
+   "match": true,
+   "derivation": "H.yaml of bench world-side/camera_calibration.py make-h --source settings on /home/mrk/.hermes/outputs/inc-driving-002/phase10/sessions/incoming_20261121T014447Z/camcal/capture/camera_capture.json (rc 0); independent pinhole/DLT cross-check (h_crosscheck.py): max relative ground error 4.0e-15, max relative matrix difference 3.1e-13",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "homography_C_matrix.yaml",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/config/homography_C_matrix.yaml",
+   "recordedSha256": "fedabc3403d6cdc1644e1073b02ca69b6b8ed591953e3801268db6cf9ebfc149",
+   "recordedBytes": 201,
+   "obtainedSha256": "fedabc3403d6cdc1644e1073b02ca69b6b8ed591953e3801268db6cf9ebfc149",
+   "obtainedBytes": 201,
+   "match": true,
+   "derivation": "upstream VisionPilot/scripts/find_homography_C_matrix.py (patched tree) on the re-derived H.yaml; equal to the bench make-h's own run: True",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "012_42_r1",
+    "012_42_r2",
+    "012_60_r1",
+    "012_60_r2",
+    "013_30_r1",
+    "013_30_r2",
+    "013_60_r1",
+    "013_60_r2",
+    "014_30_r1",
+    "014_30_r2",
+    "015_40_r1",
+    "015_40_r2",
+    "stop"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "vision_pilot.conf",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/config/vision_pilot.conf",
+   "recordedSha256": "38d9d3c964856301854d19563ff44483a4d5633adf247a5e40f25ee6fc0434a4",
+   "recordedBytes": 1865,
+   "obtainedSha256": "38d9d3c964856301854d19563ff44483a4d5633adf247a5e40f25ee6fc0434a4",
+   "obtainedBytes": 1865,
+   "match": true,
+   "derivation": "VisionPilot/config/vision_pilot.conf of the patched tree, with the bench's CONF_OVERRIDES and speed_limit = 11.389 by stage_score_side.override_conf",
+   "runs": [
+    "012_42_r1",
+    "012_42_r2"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "vision_pilot.conf",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/config/vision_pilot.conf",
+   "recordedSha256": "61c8615866031519c3443ba8906094bd323b22494cd6d7831a9623ca96373c85",
+   "recordedBytes": 1864,
+   "obtainedSha256": "61c8615866031519c3443ba8906094bd323b22494cd6d7831a9623ca96373c85",
+   "obtainedBytes": 1864,
+   "match": true,
+   "derivation": "VisionPilot/config/vision_pilot.conf of the patched tree, with the bench's CONF_OVERRIDES and speed_limit = 8.056 by stage_score_side.override_conf",
+   "runs": [
+    "014_30_r1",
+    "014_30_r2"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "vision_pilot.conf",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/config/vision_pilot.conf",
+   "recordedSha256": "78a27811c978c63dbf5d361b2f02e6942e2dcc43509abb27843695d0ffe5254a",
+   "recordedBytes": 1865,
+   "obtainedSha256": "78a27811c978c63dbf5d361b2f02e6942e2dcc43509abb27843695d0ffe5254a",
+   "obtainedBytes": 1865,
+   "match": true,
+   "derivation": "VisionPilot/config/vision_pilot.conf of the patched tree, with the bench's CONF_OVERRIDES and speed_limit = 16.389 by stage_score_side.override_conf",
+   "runs": [
+    "012_60_r1",
+    "012_60_r2",
+    "013_60_r1",
+    "013_60_r2"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "vision_pilot.conf",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/config/vision_pilot.conf",
+   "recordedSha256": "794fb49e1842a1b2f4e1686da012e48247e72bca1756bc1c76f19be5d97f4d21",
+   "recordedBytes": 1865,
+   "obtainedSha256": "794fb49e1842a1b2f4e1686da012e48247e72bca1756bc1c76f19be5d97f4d21",
+   "obtainedBytes": 1865,
+   "match": true,
+   "derivation": "VisionPilot/config/vision_pilot.conf of the patched tree, with the bench's CONF_OVERRIDES and speed_limit = 10.833 by stage_score_side.override_conf",
+   "runs": [
+    "015_40_r1",
+    "015_40_r2"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "vision_pilot.conf",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/config/vision_pilot.conf",
+   "recordedSha256": "7a8ae3e2ca51888130b362d4ac8625afafe86a72af413351c062f3ac5aa63f7a",
+   "recordedBytes": 1864,
+   "obtainedSha256": "7a8ae3e2ca51888130b362d4ac8625afafe86a72af413351c062f3ac5aa63f7a",
+   "obtainedBytes": 1864,
+   "match": true,
+   "derivation": "VisionPilot/config/vision_pilot.conf of the patched tree, with the bench's CONF_OVERRIDES and speed_limit = 8.611 by stage_score_side.override_conf",
+   "runs": [
+    "013_30_r1",
+    "013_30_r2"
+   ]
+  },
+  {
+   "list": "configuration_files",
+   "role": "vision_pilot.conf",
+   "path": "/tmp/de4sdv-da-bench/vision_pilot/config/vision_pilot.conf",
+   "recordedSha256": "ae60bd5692ddc954901224b50e1293921ab0d847d18db3d64d0875c1ef3243fb",
+   "recordedBytes": 1864,
+   "obtainedSha256": "ae60bd5692ddc954901224b50e1293921ab0d847d18db3d64d0875c1ef3243fb",
+   "obtainedBytes": 1864,
+   "match": true,
+   "derivation": "VisionPilot/config/vision_pilot.conf of the patched tree, with the bench's CONF_OVERRIDES and speed_limit = 5.833 by stage_score_side.override_conf",
+   "runs": [
+    "012_20_r1",
+    "012_20_r2",
+    "stop"
+   ]
+  }
+ ],
+ "notJudgedRecordsAlsoReproduced": [
+  {
+   "run": "calib_steer",
+   "recordSha256": "6ce735194666781befa1cfcb6629d34420d2ad4f51af45764be9a8a798443726",
+   "matched": 18,
+   "named": 18,
+   "mismatched": []
+  }
+ ],
+ "problems": [],
+ "inputsFromSessionRecords": {
+  "cameraCapture": "camcal/capture/camera_capture.json (the simulator's world poses of camera and hero; H.yaml is a function of it by the bench's settings source)",
+  "carlaHost": "CARLA_HOST of each run's score_side_state.env",
+  "setting": "session.json score_runs[run].setting; speed_limit then from the bench's run_setting.py"
+ },
+ "judgments": [
+  "The configuration that is not upstream's (manifests, Launch Manager JSON, adapter, interface conf, ldconfig conf) is re-derived from the bench commit the session names (session.json bench_commit), read with git archive, never from the fetched staged copies.",
+  "The two flatbuffers are re-derived with flatc 25.12.19 built here from the v25.12.19 tag (the gateway pins 25.12.19, the S-CORE workspace 25.12.19.bcr.1, a BCR packaging of that tag), Lifecycle v0.10.0's lifecycle_config.py and lm_flatcfg.fbs, and the gateway d9eac670's mw_someip_config.fbs.",
+  "The networks are upstream git blobs at the revision; the difference leaves them unchanged.",
+  "H.yaml comes from the bench's camera_calibration.py make-h --source settings (the session's calibration source); an own pinhole/DLT computation agrees to 1e-13.",
+  "recordSha256 is SHA-256 of the record file's bytes (recorder_shell.cpp: record_sha256_ = Sha256Hex(bytes) of the bytes written); each equals the accepted in.candidate_record event's.",
+  "calib_steer is no judged run: reproduced too, listed apart, not in recordSha256."
+ ],
+ "notReproduced": [],
+ "tools": "reproduce_044.py, run_all.py, h_crosscheck.py, make_desk.py (copies beside this file)",
+ "valuesMatch": true
+}

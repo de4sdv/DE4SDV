@@ -628,13 +628,16 @@ def test_the_patched_package_parses_structurally(tmp_path):
 
 
 def test_the_record_usage_names_are_declared_nowhere_else_in_the_model():
+    """Only the generator declares the record usages; the slice may refer to them, as its assurance view does."""
     names = set(run_names(session()[0]).values()) | {"commandFormAnalysisEvidence"}
     for root in ("textual-notation-of-model", "model-based-product-line-engineering"):
         for path in (REPO / root).rglob("*.sysml"):
             code = _without_generated(path.read_text(encoding="utf-8")) if path == MODEL else path.read_text(
                 encoding="utf-8")
             for name in names:
-                assert not re.search(rf"\b{name}\b", _strip_comments(code)), (path, name)
+                # a declaration of the name, not a reference to the record (the assurance view exposes them)
+                assert not re.search(rf"\b(?:item|part|attribute|ref|occurrence|action|port)\s+{name}\b",
+                                     _strip_comments(code)), (path, name)
 
 
 # ---------------------------------------------------------------- refusals

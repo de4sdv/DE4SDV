@@ -1,0 +1,265 @@
+{
+  "configurationIdentity": "DRIVING-CONFIG-002",
+  "receiptSha256": "848262167497d033b87d4ae90c6f54d3b0edd4c851f80480cd07d8cd860a34a1",
+  "modelRevision": "29750f4662035f16259b87303b504d344445bc1e",
+  "analyzedRealization": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml at 29750f4662035f16259b87303b504d344445bc1e: item def DrivingCommandEventPayload (lines 232-248), the mapping record MAP-DRIVING-DA-COMMAND drivingCommandMappingRecord (lines 1065-1084) and the comment reqDetectableDrivingCommandRejection (lines 1273-1289); read with them, because the comment and the mapping refer to them: part def DrivingCommandActuationAdapter (lines 603-652) and the vehicle interface doc of the candidate's process (lines 470-485)",
+  "analystIdentity": "an independent Claude Code session dispatched by the lead on 2026-11-21, with no access to the lead's reasoning",
+  "claimBoundary": "The analysis makes no freedom-from-interference claim. It reads the phase 8 realization at the named model revision and no run: it shows the part of the driving command that the model names for each of a loss, a delay, a repetition and a corruption on the Eclipse S-CORE path, and the rule by which the actuation adapter detects each; it shows no built program detecting anything. The detection it shows is bounded: a loss is detected only when a later command arrives; a delay only beyond 0.1 s of simulation time against the adapter's newest world time; a corruption only as far as the CRC-32 detects it, for which the model states no residual rate. The detection and the rejection sit in the actuation adapter, a context realization outside the candidate; the candidate's share is the form of the command.",
+  "outcome": "passBoundedVerification",
+  "verdict": "pass",
+  "verdict_rule": {
+    "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml:143 @ 29750f466203",
+    "quote": "if outcome == AssistanceEvidenceOutcome::passBoundedVerification? VerdictKind::pass"
+  },
+  "case": "VC-DRIVING-039 detectableDrivingCommandVerification : DetectableDrivingCommandVerification",
+  "requirement": {
+    "id": "REQ-DRIVING-039",
+    "statement": {
+      "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:304 @ 29750f466203",
+      "quote": "The driver-assistance system shall give each driving command in a form that lets the actuation detect its loss, delay, repetition or corruption on the Eclipse S-CORE path."
+    },
+    "verificationMethod": {
+      "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:307 @ 29750f466203",
+      "quote": "verificationMethod = \"analyze\""
+    },
+    "successCriteria": {
+      "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:308 @ 29750f466203",
+      "quote": "Met when the analysis of the realization that phase 8 records shows, for a loss, a delay, a repetition and a corruption of a driving command on the Eclipse S-CORE path, the part of the command by which the actuation detects it."
+    }
+  },
+  "processData_rule": {
+    "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml:438-445 @ 29750f466203",
+    "quote": "processData names, for a loss, a delay, a repetition and a corruption of a driving command on the Eclipse S-CORE path, the part of the command by which the actuation detects it. A part named for each of the four gives passBoundedVerification; a failure with no such part gives failObservedBehavior. The case reads no run and makes no freedom-from-interference claim."
+  },
+  "criterion_items": [
+    {
+      "item": "for a loss of a driving command on the Eclipse S-CORE path, the part of the command by which the actuation detects it",
+      "part_named": "sequenceCount",
+      "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:238-241 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:1278-1282 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:620-621 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:1077 @ 29750f466203",
+      "quote": "issue time, the sequence count and the check value are the parts by which the actuation detects a loss, a delay, a repetition or a corruption on the path (REQ-DRIVING-039): protocol fields, no vehicle signal (MAP-DRIVING-DA-COMMAND). | detects a loss or a repetition by the sequence count, a corruption by the check value and a delay by the issue time against the newest world time, rejects the command and applies nothing in its place. | A command whose sequence count is more than one greater than the reference count is rejected (a loss is detected) | issueTime in simulation seconds; sequenceCount an unsigned 32-bit count from 1 in each run; checkValue the CRC-32 over the other fields",
+      "met": true,
+      "bound": "detected by the next received command whose count reveals the gap; a loss after which no command arrives is not detected (no stop response, no watchdog: PSR:634-636)"
+    },
+    {
+      "item": "for a delay of a driving command on the Eclipse S-CORE path, the part of the command by which the actuation detects it",
+      "part_named": "issueTime",
+      "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:238-241 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:1278-1282 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:622-625 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:626-628 @ 29750f466203",
+      "quote": "issue time, the sequence count and the check value are the parts by which the actuation detects a loss, a delay, a repetition or a corruption on the path (REQ-DRIVING-039): protocol fields, no vehicle signal (MAP-DRIVING-DA-COMMAND). | detects a loss or a repetition by the sequence count, a corruption by the check value and a delay by the issue time against the newest world time, rejects the command and applies nothing in its place. | A command whose sequence count is one more than the reference count is accepted unless its issue time is older than the newest world time by more than 0.1 s of simulation time, when it is rejected (a delay) | A command that arrives before the adapter has a world snapshot, or whose issue time is not a finite number, counts as older than the limit and is rejected as a delay.",
+      "met": true,
+      "bound": "detected only beyond 0.1 s of simulation time against the adapter's newest world time"
+    },
+    {
+      "item": "for a repetition of a driving command on the Eclipse S-CORE path, the part of the command by which the actuation detects it",
+      "part_named": "sequenceCount",
+      "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:238-241 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:1278-1282 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:618-619 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:610-613 @ 29750f466203",
+      "quote": "issue time, the sequence count and the check value are the parts by which the actuation detects a loss, a delay, a repetition or a corruption on the path (REQ-DRIVING-039): protocol fields, no vehicle signal (MAP-DRIVING-DA-COMMAND). | detects a loss or a repetition by the sequence count, a corruption by the check value and a delay by the issue time against the newest world time, rejects the command and applies nothing in its place. | A command whose sequence count is not greater than the reference count is rejected (a repetition) | the highest sequence count among the commands received earlier in the run whose check value holds",
+      "met": true,
+      "bound": "a count not greater than the reference count, so a reordered older command also counts as a repetition"
+    },
+    {
+      "item": "for a corruption of a driving command on the Eclipse S-CORE path, the part of the command by which the actuation detects it",
+      "part_named": "checkValue",
+      "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:238-241 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:1278-1282 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:616-617 @ 29750f466203; textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:1077 @ 29750f466203",
+      "quote": "issue time, the sequence count and the check value are the parts by which the actuation detects a loss, a delay, a repetition or a corruption on the path (REQ-DRIVING-039): protocol fields, no vehicle signal (MAP-DRIVING-DA-COMMAND). | detects a loss or a repetition by the sequence count, a corruption by the check value and a delay by the issue time against the newest world time, rejects the command and applies nothing in its place. | A command whose check value fails is rejected (a corruption) | issueTime in simulation seconds; sequenceCount an unsigned 32-bit count from 1 in each run; checkValue the CRC-32 over the other fields",
+      "met": true,
+      "bound": "as far as a CRC-32 over the other fields detects it; the model states no residual rate and no protection against deliberate alteration"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "kind": "bound of the realization",
+      "verdict_effect": "none (the criterion asks for the part, which is named)",
+      "text": "A loss is detected by the sequence count of the next command that arrives. A loss after which no command arrives (a trailing loss, a stopped path) is detected by no part of any command: the adapter has no stop response and no watchdog, and the realization names no time-out on the absence of commands.",
+      "evidence": [
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:629-631 @ 29750f466203",
+          "quote": "a loss or a corruption costs the lost or corrupted command and the next one, which reveals the gap; none of them makes later valid commands fail."
+        },
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:634-636 @ 29750f466203",
+          "quote": "It applies nothing in place of a rejected command: the simulator keeps the last valid control. It has no stop response of its own."
+        }
+      ]
+    },
+    {
+      "id": "F2",
+      "kind": "statement scope in the realization",
+      "verdict_effect": "none",
+      "text": "The reference count is the highest count among commands whose check value holds. A corruption that the CRC-32 misses and that raises the count would become the reference, and later valid commands would be rejected as repetitions. The realization says 'none of them makes later valid commands fail' (PSR:629-631, 1286-1287) without limiting it to detected corruptions; the bench code states the limit (actuation_core.h:44-47), the model does not. Return to the realization's owner as a wording finding.",
+      "evidence": [
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:610-613 @ 29750f466203",
+          "quote": "the highest sequence count among the commands received earlier in the run whose check value holds"
+        },
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:629-631 @ 29750f466203",
+          "quote": "a loss or a corruption costs the lost or corrupted command and the next one, which reveals the gap; none of them makes later valid commands fail."
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/actuation-adapter/actuation_core.h:44-47 @ a9577eb55b0b",
+          "quote": "A corruption that the check value misses is not one of them: with a higher count it would become the reference, and later valid commands would be repetitions."
+        }
+      ]
+    },
+    {
+      "id": "F3",
+      "kind": "bound of the realization",
+      "verdict_effect": "none",
+      "text": "A delay of up to 0.1 s of simulation time (two steps of 0.05 s) is not detected, and the delay is measured against the adapter's newest world snapshot; I found no bound in the realization on how old that snapshot may be when the command arrives.",
+      "evidence": [
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:622-625 @ 29750f466203",
+          "quote": "A command whose sequence count is one more than the reference count is accepted unless its issue time is older than the newest world time by more than 0.1 s of simulation time, when it is rejected (a delay)"
+        },
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:44-47 @ 29750f466203",
+          "quote": "On 2026-11-17 the owner chose a fixed step of 0.05 s for the bench's simulator"
+        }
+      ]
+    },
+    {
+      "id": "F4",
+      "kind": "record status",
+      "verdict_effect": "none",
+      "text": "This record is a desk record written outside the repository. The model still says the case is not started and REQ-DRIVING-039 keeps VVStatus::NotStarted until a pull request records the evidence.",
+      "evidence": [
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml:711-713 @ 29750f466203",
+          "quote": "Not started. Scenarios: none; the case reads the realization of phase 8 and no run. Bench: the model revision that the record names, read by an analyst; no host."
+        },
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml:309 @ 29750f466203",
+          "quote": "verificationStatus = VVStatus::NotStarted"
+        }
+      ]
+    },
+    {
+      "id": "F5",
+      "kind": "identity check",
+      "verdict_effect": "none",
+      "text": "The SHA-256 of model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json at 29750f4662035f16259b87303b504d344445bc1e recomputed by this analysis equals the digest DRIVING-CONFIG-002 binds.",
+      "evidence": [
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_variability_configuration.sysml:138 @ 29750f466203",
+          "quote": "attribute receiptSha256 : ScalarValues::String = \"848262167497d033b87d4ae90c6f54d3b0edd4c851f80480cd07d8cd860a34a1\";"
+        },
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_variability_configuration.sysml:113-114 @ 29750f466203",
+          "quote": "receiptSha256 is the SHA-256 of model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json,"
+        }
+      ]
+    },
+    {
+      "id": "D1",
+      "kind": "implementation drift check",
+      "verdict_effect": "none (the criterion is about the realization)",
+      "text": "The adapter core checks the check value, then 'not greater than the reference' (repetition), then sets the reference to the count, then 'more than one greater' (loss), then the delay, as PSR:615-625 states. No drift in order or reasons.",
+      "evidence": [
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/actuation-adapter/actuation_core.cpp:64 @ a9577eb55b0b",
+          "quote": "decision.crcOk = DrivingCommandCheckValue(command) == command.checkValue;"
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/actuation-adapter/actuation_core.cpp:75 @ a9577eb55b0b",
+          "quote": "if (sequence <= reference) {"
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/actuation-adapter/actuation_core.cpp:80 @ a9577eb55b0b",
+          "quote": "reference_ = command.sequenceCount;"
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/actuation-adapter/actuation_core.cpp:81 @ a9577eb55b0b",
+          "quote": "if (sequence > reference + 1u) {"
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/actuation-adapter/actuation_core.cpp:83 @ a9577eb55b0b",
+          "quote": "} else if (!has_world_ || IssueTimeTooOld(command.issueTime, world_.simTimeS)) {"
+        }
+      ]
+    },
+    {
+      "id": "D2",
+      "kind": "implementation refinement",
+      "verdict_effect": "none",
+      "text": "The delay test compares the two times rounded to whole milliseconds, and also rejects a non-finite world time. The model states 'more than 0.1 s' without rounding. On the bench's 0.05 s grid the two agree; off the grid, an age in (100, 100.5) ms would pass in code and fail by the literal rule. A refinement not recorded in the model.",
+      "evidence": [
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/actuation-adapter/actuation_core.cpp:48-50 @ a9577eb55b0b",
+          "quote": "if (!std::isfinite(issueTimeS) || !std::isfinite(newestWorldTimeS)) return true; const double ageMs = std::round(newestWorldTimeS * 1000.0) - std::round(issueTimeS * 1000.0); return ageMs > kMaxCommandAgeMs;"
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/actuation-adapter/actuation_core.h:72 @ a9577eb55b0b",
+          "quote": "inline constexpr double kMaxCommandAgeMs = 100.0;"
+        },
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:1079 @ 29750f466203",
+          "quote": "it rejects a command whose check value fails, whose sequence count is not one more than the reference count, or whose issue time is older than the newest world time by more than 0.1 s of simulation time, and applies nothing in its place"
+        }
+      ]
+    },
+    {
+      "id": "D3",
+      "kind": "implementation proposal outside the model",
+      "verdict_effect": "none",
+      "text": "The CRC variant (IEEE 802.3 / zlib) and the byte layout over which it is computed are bench proposals, not model content; the model fixes only 'the CRC-32 over the other fields'. The code covers all four other fields, consistent with the model.",
+      "evidence": [
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/interfaces/include/de4sdv/driver_assistance/payloads.h:20-21 @ a9577eb55b0b",
+          "quote": "CRC-32 as in IEEE 802.3 and zlib's crc32: reflected polynomial 0xEDB88320, initial value 0xFFFFFFFF, final XOR 0xFFFFFFFF"
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/interfaces/include/de4sdv/driver_assistance/payloads.h:64-66 @ a9577eb55b0b",
+          "quote": "The check value covers the little-endian bytes of acceleration, steeringAngle, issueTime and sequenceCount, in this order (20 bytes), whatever the byte order of the host."
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/interfaces/ICD.md:8 @ a9577eb55b0b",
+          "quote": "Proposals are fixed for implementation, but none is model content until the phase 10b pull"
+        },
+        {
+          "evidence_file_line": "textual-notation-of-model/packages/features/driving/driver_assistance_physical_software_realization.sysml:1077 @ 29750f466203",
+          "quote": "issueTime in simulation seconds; sequenceCount an unsigned 32-bit count from 1 in each run; checkValue the CRC-32 over the other fields"
+        }
+      ]
+    },
+    {
+      "id": "D4",
+      "kind": "implementation drift check",
+      "verdict_effect": "none",
+      "text": "The vehicle interface sets the issue time to the capture time of the pass, takes the next count and computes the check value last, as PSR:475-481 states; a failed send consumes its count, so the adapter sees it as a loss. The shell applies nothing in place of a rejected command and the core has no watchdog, as PSR:634-636 states.",
+      "evidence": [
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/score-interface/module/src/core.cpp:82-84 @ a9577eb55b0b",
+          "quote": "p.issueTime = issue_time_s; p.sequenceCount = sequence_count; p.checkValue = da::DrivingCommandCheckValue(p);"
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/score-interface/module/src/core.cpp:131-132 @ a9577eb55b0b",
+          "quote": "MakeDrivingCommand(steering_rad, acceleration, clock_->capture_time_s, ++last_sequence_);"
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/score-interface/module/include/de4sdv/score_interface/core.hpp:116 @ a9577eb55b0b",
+          "quote": "std::uint64_t send_failed = 0;               // the sequence count was used: the adapter sees a loss"
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/actuation-adapter/adapter_shell.cpp:54-58 @ a9577eb55b0b",
+          "quote": "if (!decision.accepted) { // Nothing in its place: the simulator keeps the last valid control. ... return;"
+        },
+        {
+          "evidence_file_line": "implementation/driver-assistance-bench/actuation-adapter/actuation_core.h:61-62 @ a9577eb55b0b",
+          "quote": "No PI loop, no watchdog and no stop response"
+        }
+      ]
+    },
+    {
+      "id": "D5",
+      "kind": "provenance of the drift check",
+      "verdict_effect": "none",
+      "text": "The bench implementation was read on lane/da-s1-final at a9577eb55b0bfbdcb2c9d98c31b22f660cba2337; implementation/driver-assistance-bench/ is not on origin/main. The driving model files are identical on that branch and on origin/main (git diff --quiet).",
+      "evidence": []
+    }
+  ],
+  "implementation_read": {
+    "ref": "lane/da-s1-final",
+    "commit": "a9577eb55b0bfbdcb2c9d98c31b22f660cba2337"
+  }
+}
