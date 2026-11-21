@@ -174,8 +174,8 @@ void TestRenderOvertakenByALaterTakeKeepsItsEvent() {
   CHECK(p.Stats().discarded == 1);
 }
 
-// The step's use of a prefetched render (agent_ffi.cpp): every pose field, the route identity and the
-// render's own success decide.
+// The step's use of a prefetched render (TakeNavPrefetch, navigation_input.cpp): every pose field, the
+// route identity and the render's own success decide.
 void TestDecideUse() {
   const Pose base = PoseOf(9);
   const std::string route = "route /r.json sha256 ab";

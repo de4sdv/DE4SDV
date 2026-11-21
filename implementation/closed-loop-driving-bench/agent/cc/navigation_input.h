@@ -2,7 +2,8 @@
 // The route provider's newest announcement (ICD section 9, RouteListener) names the route file and
 // its SHA-256; the rasterizer (navigation_raster, upstream's renderer) draws map_context and
 // route_mask at the step's REF pose; the route observation goes to the input judgement
-// (REQ-DRIVING-025) and both rasters to the checkpoint.
+// (REQ-DRIVING-025) and both rasters to the checkpoint. The step's take of the nav prefetch's
+// render (TakeNavPrefetch, ICD A31) is here as well, so that its test runs the real renderer.
 #pragma once
 
 #include <cstdint>
@@ -12,6 +13,7 @@
 
 #include "agent_logic.h"
 #include "frame_store.h"
+#include "nav_prefetch.h"
 #include "navigation_raster.h"
 #include "route_listener.h"
 
@@ -85,5 +87,48 @@ class NavigationInput {
   std::vector<std::uint8_t> route_u8_;
   std::vector<float> route_mask_f32_;
 };
+
+// What the nav prefetch's thread hands the step: the step's rasters in buffers of their own, the
+// pose they were drawn at, and the "route" record's data when that render changed the route.
+struct NavPrefetchResult {
+  NavigationInput::Step step;
+  std::vector<float> map_context, route_mask;
+  Pose pose{};
+  bool ok = false;
+  std::string error;
+  std::string route_event;   // nav_prefetch.h carries it to the next take when the result is never used
+};
+
+// The prefetch thread's render of one request (the agent's NavPrefetch render function): `frame`'s
+// rasters at `pose` into r's own buffers, and the "route" record's data, with that frame, when the
+// render changed the route.
+void RenderNavPrefetch(NavigationInput* nav, const double origin_ue[3], std::uint64_t frame, const Pose& pose,
+                       NavPrefetchResult* r);
+
+// The step's take of its frame's prefetched render (ICD A31), C2's navPrefetch.outcome.
+enum class NavPrefetchOutcome { kHit, kNotSubmitted, kTimedOut, kRouteChanged, kPoseChanged, kRenderFailed };
+const char* NavPrefetchOutcomeName(NavPrefetchOutcome outcome);   // "hit", "not_submitted", ...
+
+struct NavPrefetchTake {
+  NavPrefetchOutcome outcome = NavPrefetchOutcome::kNotSubmitted;
+  double take_ms = 0.0;   // C2 navPrefetch.take_ms
+  // The "route" records' data the step logs now, in this order: the route changes of renders never
+  // used (oldest first), then this frame's render's own change when the step does not use it.
+  std::vector<std::string> route_events;
+  // A use (kHit) only: the step's navigation fields (the route observation read at the take; its
+  // route_event the step logs once, with its frame) and the rasters the checkpoint gets. Null
+  // otherwise: the step renders on the chain.
+  NavigationInput::Step step;
+  const std::vector<float>* map_context = nullptr;
+  const std::vector<float>* route_mask = nullptr;
+};
+
+// Takes `frame`'s prefetched render, waiting at most max_wait_ns for one in flight, and decides
+// whether the step at `step_pose` uses it: only if a render on the chain would draw the same
+// (DecideUse, against the newest announcement read now). On a use the rasters are swapped into
+// *hit_map and *hit_route, which the caller keeps until its next use, and the take points at them.
+NavPrefetchTake TakeNavPrefetch(NavPrefetch<NavPrefetchResult>* prefetch, const NavigationInput& nav,
+                                std::uint64_t frame, const Pose& step_pose, std::int64_t max_wait_ns,
+                                std::vector<float>* hit_map, std::vector<float>* hit_route);
 
 }  // namespace de4sdv::driving::agent

@@ -148,4 +148,65 @@ bool NavigationInput::RenderLocked(const Pose& vehicle_pose_ue, const double ori
   return true;
 }
 
+void RenderNavPrefetch(NavigationInput* nav, const double origin_ue[3], std::uint64_t frame, const Pose& pose,
+                       NavPrefetchResult* r) {
+  r->pose = pose;
+  r->ok = nav->RenderInto(pose, origin_ue, &r->step, &r->map_context, &r->route_mask, &r->error);
+  if (r->ok && !r->step.route_event.empty()) {
+    r->route_event = "{\"frame\":" + std::to_string(frame) + ",\"event\":" + r->step.route_event + "}";
+  }
+}
+
+const char* NavPrefetchOutcomeName(NavPrefetchOutcome outcome) {
+  switch (outcome) {
+    case NavPrefetchOutcome::kHit: return "hit";
+    case NavPrefetchOutcome::kNotSubmitted: return "not_submitted";
+    case NavPrefetchOutcome::kTimedOut: return "timed_out";
+    case NavPrefetchOutcome::kRouteChanged: return "route_changed";
+    case NavPrefetchOutcome::kPoseChanged: return "pose_changed";
+    case NavPrefetchOutcome::kRenderFailed: return "render_failed";
+  }
+  return "unknown";
+}
+
+NavPrefetchTake TakeNavPrefetch(NavPrefetch<NavPrefetchResult>* prefetch, const NavigationInput& nav,
+                                std::uint64_t frame, const Pose& step_pose, std::int64_t max_wait_ns,
+                                std::vector<float>* hit_map, std::vector<float>* hit_route) {
+  NavPrefetchTake take;
+  NavPrefetchResult pf;
+  // The route changes of renders never used come first, oldest first (nav_prefetch.h carries them).
+  const TakeOutcome o = prefetch->Take(frame, max_wait_ns, &pf, &take.route_events, &take.take_ms);
+  if (o == TakeOutcome::kTimedOut) {
+    take.outcome = NavPrefetchOutcome::kTimedOut;
+    return take;
+  }
+  if (o == TakeOutcome::kNotSubmitted) {
+    take.outcome = NavPrefetchOutcome::kNotSubmitted;
+    return take;
+  }
+  // Used only if it is what a render here would draw: the same pose and the same route. The newest
+  // announcement is read once, now, for the decision and for a use's route observation.
+  const RouteState now = nav.NewestRoute();
+  const UseDecision use =
+      DecideUse(pf.ok, pf.pose, step_pose, pf.step.route_identity, NavigationInput::RouteIdentity(now));
+  if (use != UseDecision::kUse) {
+    if (use == UseDecision::kRenderFailed) take.outcome = NavPrefetchOutcome::kRenderFailed;
+    if (use == UseDecision::kPoseChanged) take.outcome = NavPrefetchOutcome::kPoseChanged;
+    if (use == UseDecision::kRouteChanged) take.outcome = NavPrefetchOutcome::kRouteChanged;
+    // The step renders on the chain; the route change this render raised is logged now, with its frame.
+    if (!pf.route_event.empty()) take.route_events.push_back(pf.route_event);
+    return take;
+  }
+  // The announcement, corridor count and issue time as a render here reads them.
+  NavigationInput::ObserveAnnouncement(now, &pf.step.route);
+  take.outcome = NavPrefetchOutcome::kHit;
+  take.step = std::move(pf.step);   // its route_event: the step logs it once, with its frame
+  // This frame's rasters into the caller's buffers; pf takes the previous use's, freed here.
+  hit_map->swap(pf.map_context);
+  hit_route->swap(pf.route_mask);
+  take.map_context = hit_map;
+  take.route_mask = hit_route;
+  return take;
+}
+
 }  // namespace de4sdv::driving::agent
