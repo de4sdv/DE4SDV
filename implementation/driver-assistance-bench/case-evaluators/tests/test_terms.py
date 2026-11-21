@@ -15,7 +15,7 @@ NR = MODEL / "driver_assistance_needs_requirements.sysml"
 
 
 def test_seven_settings_with_the_model_bands():
-    # driver_assistance_needs_requirements.sysml:188-195
+    # driver_assistance_needs_requirements.sysml:196-203
     want = {
         "SC-DRIVING-012@20": ("SC-DRIVING-012", "stationaryAt20", 20.0, 22.0, True),
         "SC-DRIVING-012@42": ("SC-DRIVING-012", "stationaryAt42", 40.0, 42.0, True),
@@ -51,7 +51,7 @@ def test_time_to_collision_and_needed_deceleration():
 
 
 def test_imminent_needs_ttc_at_most_4_and_needed_at_least_1():
-    # :221-225: TTC at most 4.0 s and needed deceleration at least 1.0 m/s2
+    # :229-233: TTC at most 4.0 s and needed deceleration at least 1.0 m/s2
     assert terms.is_imminent(8.0, 4.0)            # TTC 2.0, needed 1.0
     assert not terms.is_imminent(8.2, 4.0)        # needed 0.976
     assert not terms.is_imminent(20.0, 5.0)       # TTC 4.0 but needed 0.625
@@ -65,7 +65,7 @@ def test_imminent_boundaries_exact():
 
 
 def test_maximum_relative_impact_speed_table():
-    # :263-267: 0 up to 42, 15 at 45, 25 at 50, 30 at 55, 35 at 60; between two, the higher one's
+    # :271-275: 0 up to 42, 15 at 45, 25 at 50, 30 at 55, 35 at 60; between two, the higher one's
     assert terms.max_relative_impact_kmh(20.0) == 0.0
     assert terms.max_relative_impact_kmh(42.0) == 0.0
     assert terms.max_relative_impact_kmh(42.01) == 15.0

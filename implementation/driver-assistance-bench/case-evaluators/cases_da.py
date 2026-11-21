@@ -4,8 +4,8 @@ Pattern: the INC-DRIVING-001 frame (`implementation/closed-loop-driving-bench/ca
 a `Result` per case, `ok`/`bad`/`inconclusive`, a registry of `@case` evaluators). Each case judges every run it
 reads (a run entry with its own outcome, measured values and missing-evidence texts), then combines the runs by the
 campaign rule (OBSERVABLES.md, "Outcomes"). The outcome literals are the six of `AssistanceEvidenceOutcome`
-(`driver_assistance_verification_evidence.sysml:120-138`), the verdict that of `MapAssistanceEvidenceOutcomeToVerdict`
-(`:140-148`).
+(`driver_assistance_verification_evidence.sysml:144-162`), the verdict that of `MapAssistanceEvidenceOutcomeToVerdict`
+(`:164-172`).
 """
 
 from __future__ import annotations
@@ -26,16 +26,16 @@ VERDICT = {PASS: "pass", PASS_VALIDATION: "pass", FAIL: "fail", ERROR: "error"} 
 
 NR = "textual-notation-of-model/packages/features/driving/driver_assistance_needs_requirements.sysml"
 REQUIREMENT = {
-    "VC-DRIVING-036": ("REQ-DRIVING-036", f"{NR}:278"),
-    "VC-DRIVING-037": ("REQ-DRIVING-037", f"{NR}:288"),
-    "VC-DRIVING-038": ("REQ-DRIVING-038", f"{NR}:298"),
-    "VC-DRIVING-040": ("REQ-DRIVING-040", f"{NR}:318"),
-    "VC-DRIVING-041": ("REQ-DRIVING-041", f"{NR}:328"),
-    "VC-DRIVING-042": ("REQ-DRIVING-042", f"{NR}:338"),
-    "VC-DRIVING-043": ("REQ-DRIVING-043", f"{NR}:348"),
-    "VC-DRIVING-044": ("REQ-DRIVING-044", f"{NR}:358"),
+    "VC-DRIVING-036": ("REQ-DRIVING-036", f"{NR}:286"),
+    "VC-DRIVING-037": ("REQ-DRIVING-037", f"{NR}:296"),
+    "VC-DRIVING-038": ("REQ-DRIVING-038", f"{NR}:306"),
+    "VC-DRIVING-040": ("REQ-DRIVING-040", f"{NR}:326"),
+    "VC-DRIVING-041": ("REQ-DRIVING-041", f"{NR}:336"),
+    "VC-DRIVING-042": ("REQ-DRIVING-042", f"{NR}:346"),
+    "VC-DRIVING-043": ("REQ-DRIVING-043", f"{NR}:356"),
+    "VC-DRIVING-044": ("REQ-DRIVING-044", f"{NR}:366"),
 }
-DROP_RULE = "MAP-DRIVING-DA-CAMERA-IMAGE; driver_assistance_verification_evidence.sysml:204-207"
+DROP_RULE = "MAP-DRIVING-DA-CAMERA-IMAGE; driver_assistance_verification_evidence.sysml:228-231"
 
 
 def verdict(outcome: str) -> str:
@@ -273,8 +273,8 @@ def _setting_terms(run: Run) -> terms.SettingTerms:
 
 
 # The speeds and the times to collision that the source's guidance names for SC-DRIVING-014 and -015 and that the record
-# holds (driver_assistance_verification_evidence.sysml:474-476), under the keys of world-side/sites.py GUIDANCE_014 and
-# GUIDANCE_015 (b9938fe9): setting_record.json["site"] = SiteSpec.as_record() (lead contract 1 of 2026-11-20)
+# holds (driver_assistance_verification_evidence.sysml:1168-1170), under the keys of world-side/sites.py GUIDANCE_014
+# and GUIDANCE_015 (b9938fe9): setting_record.json["site"] = SiteSpec.as_record() (lead contract 1 of 2026-11-20)
 GUIDANCE_KEYS = {
     "SC-DRIVING-014": ("approachKmh", "atCurveEntryMinKmh", "ttcAtTurnInMaxS", "inCurveMinKmh", "ttcAtOverlapZeroMaxS"),
     "SC-DRIVING-015": ("bothKmh", "targetTurnKmh", "egoAtTurnBeginMinKmh", "ttcAtTurnBeginMaxS", "egoAfterMinKmh",
@@ -290,7 +290,7 @@ def site_guidance(run: Run, scenario: str) -> dict:
     if absent:
         raise MissingEvidence(f"{run.label('setting_record')} site.guidance {', '.join(absent)}: the speeds and times "
                               f"to collision of the source's guidance for {scenario} that the record holds "
-                              "(driver_assistance_verification_evidence.sysml:474-476; SiteSpec.as_record(), "
+                              "(driver_assistance_verification_evidence.sysml:1168-1170; SiteSpec.as_record(), "
                               "world-side/sites.py)")
     return guidance
 
@@ -422,8 +422,8 @@ CONTROL_CHANGE_NOTE = (
 def stop_038(sess: Session) -> dict:
     """The stop clause of REQ-DRIVING-038: "in one further run of SC-DRIVING-012 in which the Eclipse S-CORE path of
     the driver-assistance system is stopped, no driving command reaches the actuation after the stop"
-    (driver_assistance_needs_requirements.sysml:298; processData of VC-DRIVING-038,
-    driver_assistance_verification_evidence.sysml:406-407). A driving command reaches the actuation of the vehicle
+    (driver_assistance_needs_requirements.sysml:306; processData of VC-DRIVING-038,
+    driver_assistance_verification_evidence.sysml:1100-1101). A driving command reaches the actuation of the vehicle
     by the actuation adapter (A out.ackermann_control) or by a control call of the world side (W
     worldSideControlCalls); either after the stop gives fail."""
     def fn(run: Run, rec: dict):
@@ -551,7 +551,7 @@ def desk_044(sess: Session, runs: list, desk: dict | None) -> dict:
     if not isinstance(d, dict):
         return {"missing": ["reproduction_044.json: the desk reproduction by another engineer who checks out the "
                             "named revision, applies the recorded difference and hashes the named files "
-                            "(needs_requirements.sysml:358; plan lane F2)"]}
+                            "(needs_requirements.sysml:366; plan lane F2)"]}
     out: dict = {"measured": {"desk": d}, "outcomes": [], "missing": []}
     if not isinstance(d.get("engineer"), str) or not d["engineer"]:
         out["missing"].append("reproduction_044.json: no engineer")

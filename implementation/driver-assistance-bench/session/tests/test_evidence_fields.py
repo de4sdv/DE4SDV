@@ -2,12 +2,12 @@
 integration): session.json configuration_identity, configuration_receipt_sha256, visualization_recorder_delay,
 score_platform.{lifecycle_version, communication_version, someip_gateway_commit} and
 execution_environment.{score_gpu, sdv_core_image, ivi_image}, the names case-evaluators/evidence_record.py reads
-(RetainedAssistanceRunEvidence, driver_assistance_verification_evidence.sysml:150-242).
+(RetainedAssistanceRunEvidence, driver_assistance_verification_evidence.sysml:174-267).
 
 - The configured product and its receipt come from the committed model at the session's own commit
   (driver_assistance_variability_configuration.sysml: the part DRIVING-CONFIG-002 and the receipt its doc names;
   driver_assistance_verification_evidence.sysml: "It binds DRIVING-CONFIG-002 as its configurationIdentity").
-- The recorder's delay is the model's own sentence, verbatim with its source (verification_evidence.sysml:170-176),
+- The recorder's delay is the model's own sentence, verbatim with its source (verification_evidence.sysml:194-200),
   and only for an S-CORE host with the GPU the sentence names.
 - The platform pins and the GPU come from each S-CORE start's SCORE_PLATFORM and SCORE_GPU lines, the guest images
   from guest_up's GUEST_IMAGE lines.
@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -39,9 +40,10 @@ import evidence_fields as ef  # noqa: E402
 CONFIG_SYSML = "textual-notation-of-model/packages/features/driving/driver_assistance_variability_configuration.sysml"
 EVIDENCE_SYSML = "textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml"
 RECEIPT = "model-based-product-line-engineering/feature-models/receipts/sdv_product_line.receipt.json"
-# the model's sentence of the recorder's delay (verification_evidence.sysml:170-176), as the requirement states it
+# the model's sentence of the recorder's delay (verification_evidence.sysml:194-200), as the requirement states it
 DELAY = ("the readiness probe of the recorder on 2026-11-17 measured 2.0 ms more at the median and 5.8 ms more at "
          "the 99th percentile from an image to its command, on an S-CORE host with an NVIDIA L4")
+DELAY_OPENING = "visualizationRecorderDelay is the delay of the recorder"   # the sentence that holds DELAY
 PLATFORM = {"lifecycle_version": "score_lifecycle@0.10.0", "communication_version": "score_communication@0.6.0",
             "someip_gateway_commit": "d9eac670b7534352749da3d30f52aebf5129f168"}
 COMMIT = "c" * 40
@@ -62,6 +64,24 @@ def _text(path: str) -> str:
     return (REPO / path).read_text(encoding="utf-8")
 
 
+def _sentence_lines(text: str, opening: str) -> tuple[int, int]:
+    """The first and last line (1-based) of the model's one sentence that begins with `opening`, found in the
+    model's text: the doc's words without the ` * ` prefixes, to the sentence's full stop. The pins below follow the
+    model so, and the next edit of the model moves them with the sentence."""
+    lines = text.splitlines()
+    flat, starts = "", []
+    for ln in lines:
+        starts.append(len(flat))
+        flat += re.sub(r"^\s*(/\*+|\*/|\*)\s?", "", ln).strip() + " "
+    assert flat.count(opening) == 1, f"the model holds {flat.count(opening)} sentences that begin {opening!r}"
+    a = flat.index(opening)
+    b = re.compile(r"\.\s").search(flat, a).start()
+
+    def line(pos: int) -> int:
+        return max(i for i, s in enumerate(starts) if s <= pos) + 1
+    return line(a), line(b)
+
+
 # ------------------------------------------------------------------------------- the configured product, receipt
 
 
@@ -80,7 +100,8 @@ def test_the_receipt_sha256_is_that_of_the_committed_receipt_the_configuration_n
     # each value names its source, file and line, at the commit
     assert f"{CONFIG_SYSML}:107" in rec["sources"]["configuration_identity"]
     assert f"{CONFIG_SYSML}:138" in rec["sources"]["model_bound_sha256"]
-    assert f"{EVIDENCE_SYSML}:153" in rec["sources"]["evidence_binding"]
+    binds, _ = _sentence_lines(_text(EVIDENCE_SYSML), "It binds DRIVING-CONFIG-002 as its configurationIdentity")
+    assert rec["sources"]["evidence_binding"] == f"{EVIDENCE_SYSML}:{binds} at {COMMIT}"
 
 
 def test_a_receipt_other_than_the_models_bound_one_is_recorded_as_it_is_with_the_difference_named() -> None:
@@ -121,7 +142,8 @@ def test_the_recorder_delay_is_the_models_sentence_verbatim_with_its_source() ->
     d = ef.model_delay(disk_reader(), COMMIT)
     assert d["text"] == DELAY
     assert d["host_gpu"] == "NVIDIA L4"
-    assert d["source"] == f"{EVIDENCE_SYSML}:170-176 at {COMMIT} (RetainedAssistanceRunEvidence)"
+    first, last = _sentence_lines(_text(EVIDENCE_SYSML), DELAY_OPENING)
+    assert d["source"] == f"{EVIDENCE_SYSML}:{first}-{last} at {COMMIT} (RetainedAssistanceRunEvidence)"
 
 
 def test_the_delay_holds_only_for_the_gpu_the_model_names() -> None:
@@ -291,10 +313,12 @@ def test_an_s1_session_records_each_starts_platform_and_gpu(s1_default) -> None:
         assert rec["score_runs"][w]["score_gpu"]["gpus"] == [{"name": "NVIDIA L4", "driver_version": "580.178.04"}]
     assert {k: rec["score_platform"][k] for k in PLATFORM} == PLATFORM
     assert rec["execution_environment"]["score_gpu"] == "NVIDIA L4, driver 580.178.04"
-    if _committed(EVIDENCE_SYSML) is None:   # a tree without git (the GCC 13 gate image): absent with the reason
+    committed = _committed(EVIDENCE_SYSML)
+    if committed is None:   # a tree without git (the GCC 13 gate image): absent with the reason
         assert "commit" in rec["visualization_recorder_delay"]["absent"], rec["visualization_recorder_delay"]
-    else:
-        assert rec["visualization_recorder_delay"].startswith(DELAY + " (" + EVIDENCE_SYSML + ":170-176 at ")
+    else:   # the session read the model at its commit: the sentence's lines there
+        first, last = _sentence_lines(committed.decode("utf-8"), DELAY_OPENING)
+        assert rec["visualization_recorder_delay"].startswith(f"{DELAY} ({EVIDENCE_SYSML}:{first}-{last} at ")
     assert "S-CORE platform of 012_20_r1: score_lifecycle@0.10.0, score_communication@0.6.0, gateway d9eac670" in r.log
 
 

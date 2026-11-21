@@ -143,7 +143,7 @@ def _042(tmp_path, **kw):
 
 
 def test_042_fails_at_a_lead_of_0_99_s(tmp_path):
-    # REQ-DRIVING-042 (needs_requirements.sysml:338): "at least 1.0 s of simulation time before"
+    # REQ-DRIVING-042 (needs_requirements.sysml:346): "at least 1.0 s of simulation time before"
     e = _042(tmp_path, warn_lead_s=0.99)
     assert e["measured"]["leadS"] == pytest.approx(0.99, abs=1e-9)
     assert e["outcome"] == FAIL

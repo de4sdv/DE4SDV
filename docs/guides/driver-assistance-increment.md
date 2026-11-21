@@ -8,24 +8,23 @@ increment asks that of a camera-only driver-assistance application,
 [VisionPilot](https://github.com/autowarefoundation/vision_pilot) of the
 Autoware Foundation.
 
-**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 classification, Phase 4 stakeholder needs, Phase 5 requirements,
-Phase 6 functional architecture, Phase 7 logical architecture, Phase 8
-physical and software realization, Phase 9 variability and configuration and
-the first slice of Phase 10 verification and evidence, proposal.** No
-implementation, run, result, product-line admission or compliance is claimed.
+**Status: baselined (Phase 11).** The baseline accepts the model of phases 0
+to 10 and the bench as built, and as evidence the judged session S1 of
+2026-11-21 at bench commit 508649ba: three cases are a fail, five are
+inconclusive and one is a pass. No product-line admission, safety, compliance
+or type-approval claim follows; see [Baseline (Phase 11)](#baseline-phase-11).
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/driving/driver_assistance_framing.sysml):
   `INC-DRIVING-002`, its engineering question, charter, scope, assumptions,
-  open gaps and Phase 1 concerns.
+  open gaps, Phase 1 concerns and the baseline decision of Phase 11.
 - [SysML variability and configuration](../../textual-notation-of-model/packages/features/driving/driver_assistance_variability_configuration.sysml):
   the Phase 9 configured product DRIVING-CONFIG-002, bound to the receipt of
   its feature configuration.
 - [SysML verification and evidence](../../textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml):
-  the Phase 10 cases, the evidence record of a run and the claims, none
-  started.
+  the Phase 10 cases, the evidence record of a run and the claims, and the
+  evidence of record of the judged session S1 with the status of each case.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/driving/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/driving/upstream.md#visionpilot)
@@ -766,8 +765,12 @@ rejected, and counting resumes from it. A command whose count is one greater is
 accepted unless its issue time is older than the newest world time by more than
 0.1 s of simulation time, when it is rejected as a delay; either way counting
 continues from it. A late command or a repetition costs that one command; a loss
-or a corruption costs the lost or corrupted command and the next one, which
-reveals the gap; none of them makes later valid commands fail.
+or a corruption that the check value detects costs the lost or corrupted command
+and the next one, which reveals the gap; none of them makes later valid commands
+fail. A corruption that the check value misses is none of them: the command
+counts as valid and, if its sequence count is higher, that count becomes the
+reference count, so that the later valid commands up to it are rejected as
+repetitions (the check-value bound decision of 2026-11-21).
 
 The adapter drives the simulated vehicle by CARLA's Ackermann control, as
 upstream's own simulator path does, and gives the simulator the candidate's
@@ -881,10 +884,11 @@ lists the views.
 ## Verification and evidence (Phase 10)
 
 [`driver_assistance_verification_evidence.sysml`](../../textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml)
-states how each requirement will be judged before any run, so that each
-verdict is read against a case written first. This first slice is model only:
-no case has started, no evidence record exists, and every requirement keeps
-`NotStarted`. The evidence decisions of 2026-11-18 fix its shape.
+states how each requirement will be judged before any run, so that each verdict
+is read against a case written first. The first slice held the cases only. The
+second records the evidence of the judged session S1 ([Phase 10
+evidence](#phase-10-evidence)). The evidence decisions of 2026-11-18 fix its
+shape.
 
 - **One case per requirement.** VC-DRIVING-036 to VC-DRIVING-044 verify
   REQ-DRIVING-036 to REQ-DRIVING-044. Each binds the subject of its
@@ -953,17 +957,33 @@ no case has started, no evidence record exists, and every requirement keeps
   case passes, no evidence from the reused bench's earlier results, and the open
   test environment. The claims, arguments and counter-claims specialize the
   kernel's assurance kinds; nothing is satisfied.
-- **The test environment** stays open as GAP-DRIVING-014, which continues the
-  readiness items of Phase 8 until the probes run: the link with the build of
-  ONNX Runtime for CUDA in the S-CORE process, a second C++ standard library in
-  that process, the candidate record reaching a late subscriber, the candidate
-  on CARLA 1.0, the S-CORE build's cycle on the host's own GPU, the capture of
-  the sound on the IVI guest, the typed message of the warning request on the
-  guests, open until Phase 10; and the calibration runs of ASM-DRIVING-005 and
-  ASM-DRIVING-006 come before the first judged run. The draft of the warning
-  output and the interface seam is shown to the VisionPilot maintainers after
-  the scenarios of Phase 10 have run in CARLA, with the results (the upstream
-  contact decision of 2026-11-18). Each probe runs only on the owner's word.
+- **The test environment** is GAP-DRIVING-014, which continued the readiness
+  items of Phase 8 until the probes ran; S1 leaves them so (the environment
+  decision of 2026-11-21): the link with the build of ONNX Runtime for CUDA in
+  the S-CORE process: shown; a second C++ standard library in that process:
+  settled by the build that ran; the candidate record reaching a late
+  subscriber: shown; the candidate on CARLA 1.0: shown; the typed message of the
+  warning request on the guests: shown; the calibration runs of ASM-DRIVING-005
+  and ASM-DRIVING-006 came before the first judged run; the S-CORE build's cycle
+  on the host's own GPU: answered no, each of the 14 runs of SC-DRIVING-012 to
+  SC-DRIVING-015 drops camera images: 23 or 24 in the first 5 s after its first
+  image, 2 to 6 in the last 0.6 s of its image stream, after the run's end, and
+  0 to 3 isolated ones in between; the run that stops the path drops 24 in its
+  first 5 s and 8 in the last 0.8 s of its image stream, which goes on about 0.8
+  s after the stop instant, until the S-CORE side stops, and the steering
+  calibration run 34 in its first 5 s, 3 at the end of its image stream and 6
+  isolated; no cause is shown; the warm start of D-S1-1 ran before the attach in
+  every run, in 678.3 to 706.8 ms, and did not keep the first 5 s free of
+  dropped images; the capture of the start of the sound on the IVI guest: open,
+  the guest records hold no start of the sound; showing the draft and the
+  results to the VisionPilot maintainers: open, not done, and the owner approves
+  any text first; the end of the second runs of SC-DRIVING-013 after 62 ticks at
+  the speed of the target (B1): open, a bench item for the next session; the
+  case evaluators' reading of the guidance of SC-DRIVING-014 and SC-DRIVING-015
+  one level above where the setting record holds it (B3): open, an evaluator
+  item, to be fixed test-first in the case evaluators and judged again on the
+  fetched records. The gap stays a record; the baseline of Phase 11 defers it to
+  a later increment. Each probe runs only on the owner's word.
 - **No validation case.** The validation of the needs stays planned in
   Phase 4 (SC-DRIVING-016 to SC-DRIVING-019).
 
@@ -974,6 +994,158 @@ gaps. It frames `candidateVerdictConcern` beside the phase's own concern. Its
 diagram comes from the licensed Syside run;
 [`VIEWS.md`](../../textual-notation-of-model/packages/features/driving/VIEWS.md)
 lists the views.
+
+### Phase 10 evidence
+
+The evidence of record is the judged session S1, session 20261121T014447Z of the
+bench at commit 508649ba, with all three hosts: the 14 runs of SC-DRIVING-012 to
+SC-DRIVING-015 (6 of them judged runs; SC-DRIVING-014 and SC-DRIVING-015 have no
+judged-run term), the run that stops the path and the calibration runs before
+the first judged run. Its small records and the identities of everything it
+leaves outside Git are in the [S1 evidence
+directory](../../implementation/driver-assistance-bench/evidence/s1-20261121T014447Z/README.md),
+whose README carries the table of the verdicts, generated from the verdict
+files. A verdict of S1 is a verdict of the pinned candidate on this bench in
+simulation, and no statement about compliance or on-road behavior.
+
+- **Generated, not written.** The fifteen run records, the record of the
+  analysis of REQ-DRIVING-039 and the status that opens the doc of each case are
+  written by `tools/generate_driver_assistance_evidence_text.py` from the files
+  of the evidence directory, and
+  `tools/refresh_driver_assistance_s1_evidence.py` refreshes the directory and
+  the model in one command when the evaluators or the desk records change. The
+  verdict table of the baseline, the verdicts and figures of the baseline
+  decision and of the gap records, and the `verificationStatus` of the nine
+  requirements are written by hand; tests derive each verdict and status from
+  `verdicts.json` and `analysis_039.generator.json`, and pin each figure that
+  comes from a file of the evidence directory to that file.
+- **Of record, on one condition.** S1 is the evidence of record if the bench
+  files that ran on a host are byte-identical to those that the pull request of
+  the bench merges; the evidence README gives the check (the evidence-of-record
+  decision of 2026-11-21).
+- **The drop rule stands.** By the rule of Phase 8, no run whose judged window
+  holds a dropped camera image is judged, and for the cases over every run that
+  window is the whole run. The evaluators' readings with the rule set aside are
+  diagnosis only, never a verdict (the drop-rule decision of 2026-11-21).
+- **The deceleration calibration.** The condition on ASM-DRIVING-005 bears on a
+  pass of VC-DRIVING-036 and VC-DRIVING-037, not on their fail in S1: it
+  concerns how the simulated vehicle achieves a commanded deceleration. No run
+  of SC-DRIVING-012 holds a commanded deceleration stronger than 0.533 m/s², and
+  the commanded decelerations of each run, fully achieved, would have lowered
+  its speed before the contact by at most 2.4 km/h, so the condition does not
+  bear on these fails (the deceleration calibration decision of 2026-11-21).
+- **The statuses.** The verification status records the process of the
+  verification, never its verdict: `VVStatus::Completed` for REQ-DRIVING-036,
+  REQ-DRIVING-037, REQ-DRIVING-039 and REQ-DRIVING-042, and
+  `VVStatus::CompletedUnsuccessful` for REQ-DRIVING-038, REQ-DRIVING-040,
+  REQ-DRIVING-041, REQ-DRIVING-043 and REQ-DRIVING-044 (the status decision of
+  2026-11-21).
+- **The analysis of REQ-DRIVING-039** is an independent desk record, bounded as
+  its record states: a loss is recognized only when a later command arrives, a
+  delay of up to 0.1 s of simulation time goes unrecognized, and a corruption is
+  recognized only as far as the check value does. The Phase 8 realization now
+  says what a corruption that the check value misses does (the check-value bound
+  decision of 2026-11-21).
+- **The test environment** after S1 is GAP-DRIVING-014 as the environment
+  decision of 2026-11-21 records it; it stays a record, and the baseline of
+  Phase 11 defers it to a later increment.
+
+## Baseline (Phase 11)
+
+`driver_assistance_framing.sysml` holds the baseline decision of the
+increment, `driverAssistanceBaselineDecision` (BL-DRIVING-002-P11), and each
+of the 11 gap records states the disposition the baseline gives it. The
+framing view shows the decision beside the framing decision it answers.
+
+- **Accepted: the integration as built.** The model of phases 0 to 10 and the
+  bench under `implementation/driver-assistance-bench/`. VisionPilot at
+  014e0e7a, built with the DE4SDV S-CORE interface and the visualization
+  recorder, runs as an Eclipse S-CORE application that the Launch Manager
+  starts and supervises. The framing decision asked how the candidate goes
+  forward; the baseline answers: as a candidate that needs the additions named
+  below before it can be the AEBS of a member product, by the decision of
+  2026-11-21.
+- **Evidence and verdicts.** By the decision of 2026-11-21, the judged session
+  S1, session 20261121T014447Z at bench commit 508649ba, run on 2026-11-21 on
+  the three hosts with the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 (6 of
+  them judged runs; SC-DRIVING-014 and SC-DRIVING-015 have no judged-run term)
+  and the run that stops the path, and its records, on the condition that the
+  bench files that ran are byte-identical to those that the second slice of
+  phase 10 merges, the check that the evidence README of that slice states. One
+  verdict for each case, in the table below; each verdict is of the pinned
+  candidate on this bench, in simulation. The runs of SC-DRIVING-014 and
+  SC-DRIVING-015 lie outside the candidate's declared operating conditions and
+  are reported apart: no run of either gives a verdict, since VC-DRIVING-038,
+  VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-044, the cases that read them,
+  judge over the whole run and are inconclusive by the rule on dropped images. A
+  fail is a recorded result, and no scenario, criterion or setting is changed
+  for it. The additions named from the requirements that fail and from the gaps:
+  by the decision of 2026-11-21, a warning and an emergency braking for a
+  stationary vehicle ahead in its lane, a camera path that keeps every image
+  from a run's first image on, so that the criteria over every run can be
+  judged, except those of VC-DRIVING-040 and VC-DRIVING-041 on the runs of
+  SC-DRIVING-014 and SC-DRIVING-015, which also need the fix of the case
+  evaluators that GAP-DRIVING-014 names as B3, and for the stop clauses of
+  VC-DRIVING-038 and VC-DRIVING-043 a judged window that ends at the stop
+  instant or a camera input that stops with the candidate, since after the stop
+  the interface drops the images that the candidate no longer takes; the
+  increment builds none of them.
+- **Known limits: accepted, still open.** `gapCandidateBehaviorUnverified`: S1
+  gives the first closed-loop results of record of the candidate on the DE4SDV
+  bench, and every verdict is of the build with the DE4SDV S-CORE interface
+  and the visualization recorder, changes that upstream has not merged.
+  `gapDeclaredOperatingConditions`: the runs outside the declared conditions
+  are reported apart, and none of them gives a verdict.
+- **Deferred to a later increment.** `gapVehicleTargetCriteria`: taking the
+  criteria of Phase 5 into the obligations of the product line.
+  `gapNoSeparateEmergencyFunction`: whether the candidate's braking, which
+  leaves in its one driving command, can stand for the common capability, for
+  the member decision. `gapWarningOutput` and `gapScoreIntegration`: the take-up
+  upstream of the warning hand-off and of the S-CORE interface module.
+  `gapCameraImageAndGeometry`: S1 does not show whether the detection of the
+  target at the distances that the criteria need, or the calibration of the
+  simulated camera, explains the fails. `gapCandidateAdmission`: the member
+  decision that amends ADR 0014. `gapUpstreamContactAndRights`: at the baseline
+  the maintainers have not seen the results or the draft; no endorsement, no
+  rights clearance. `gapDriverHmiInProductLine`: the display in the governed
+  scope and the acoustic warning. GAP-DRIVING-014: the readiness items that S1
+  leaves open: the candidate's cycle on the GPU of the S-CORE host, on which
+  each of the 14 runs of SC-DRIVING-012 to SC-DRIVING-015 drops 23 or 24 camera
+  images in the first 5 s after its first image and up to 2 more inside the run,
+  with no cause shown, what S1 does not show of the start of the sound on the
+  IVI guest, the showing of the results to the VisionPilot maintainers, the
+  bench item B1 for the next session, the end of the second runs of
+  SC-DRIVING-013 after 62 ticks at the speed of the target, and the bench item
+  B3, the case evaluators' reading of the guidance of SC-DRIVING-014 and
+  SC-DRIVING-015 one level above where the setting record holds it.
+- **Withdrawn.** None.
+
+| Case | Verdict | What S1 shows |
+| --- | --- | --- |
+| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no deceleration stronger than 0.46 m/s²; the contact comes at 19.7, 40.6, 40.6, 58.6 and 58.6 km/h. |
+| VC-DRIVING-037 | fail | The same runs: the impact speeds are 19.7, 40.6, 40.6, 58.6 and 58.6 km/h. |
+| VC-DRIVING-038 | inconclusive | No run is judged by the rule on dropped images. Its stop clause is inconclusive by the same rule: 32 dropped images fall inside its judged window, from 2855.010 s to 2897.010 s, and the stop came at about 2870.36 s, so 26.65 s of ticks follow it. |
+| VC-DRIVING-039 | pass | A desk analysis of the realization: a loss shows only when a later command arrives, and a delay of up to 0.1 s of simulation time goes unseen. |
+| VC-DRIVING-040 | inconclusive | No run is judged by the rule on dropped images. |
+| VC-DRIVING-041 | inconclusive | No run is judged by the rule on dropped images. |
+| VC-DRIVING-042 | fail | In the five judged runs of SC-DRIVING-012 the candidate starts no warning request. |
+| VC-DRIVING-043 | inconclusive | No run is judged by the rule on dropped images. |
+| VC-DRIVING-044 | inconclusive | No run is judged by the rule on dropped images. |
+
+Of SC-DRIVING-012 the second run at 20 km/h is not judged (its center line 0.245
+m from the target's, the limit is 0.2 m). Of SC-DRIVING-013 the first run at 30
+km/h is judged and meets the criteria of VC-DRIVING-036, VC-DRIVING-037 and
+VC-DRIVING-042; the other three runs have no functional part and are not judged.
+Each of the 14 runs and the run that stops the path drops 23 or 24 camera images
+in the first 5 s after its first image, and for the five inconclusive cases the
+judged window is the whole run. Read with that rule set aside, for diagnosis
+only and as no verdict, VC-DRIVING-038 and VC-DRIVING-044 meet their criteria in
+all 14 runs, and VC-DRIVING-040, VC-DRIVING-041 and VC-DRIVING-043 in the runs
+of SC-DRIVING-012 and SC-DRIVING-013.
+
+No safety, on-road, compliance, type-approval, certification or membership
+claim follows from the baseline. A criterion met in simulation holds for the
+simulated configuration only.
 
 ## What the framing already records as open
 
@@ -1058,16 +1230,15 @@ type approval.
 
 ## Next obligation and execution limits
 
-Use the Method Check of the reviewed pull request to select the next
-obligation, not the phase number alone. The next model obligation is
-**Phase 10**: verification and evidence, which judges the configured product
-DRIVING-CONFIG-002 in closed loop; its second slice follows the readiness
-probes and adds the bench, the runs, the retained records and the statuses.
-The first slice holds the cases that `verificationCaseVerifiesRequirement`
-and `requirementVerifiedByVerificationCase` read;
-`verificationCaseHasEvidenceRecordOrStatus` stays advisory until runs exist.
-Do not jump from the cases to implementation before the probes, and claim no
-runtime gate.
+The increment ended at its baseline decision. Use the Method Check of the
+reviewed pull request to see the state of the model-content gates; it is not
+proof that earlier engineering work is complete. Phase 10 holds the cases that
+`verificationCaseVerifiesRequirement` and
+`requirementVerifiedByVerificationCase` read. A later increment takes up what
+the baseline deferred: the member decision that amends ADR 0014, the take-up
+upstream of the warning hand-off and of the S-CORE interface module, the
+clearances and the product line's criteria for a vehicle target. Claim no
+runtime gate from the baseline.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh
@@ -1090,6 +1261,9 @@ tests/test_driver_assistance_logical_architecture.py
 tests/test_driver_assistance_physical_software_realization.py
 tests/test_driver_assistance_variability_configuration.py
 tests/test_driver_assistance_verification_evidence.py
+tests/test_driver_assistance_s1_evidence_directory.py
+tests/test_refresh_driver_assistance_s1_evidence.py
+tests/test_generate_driver_assistance_evidence_text.py
 tests/test_ple_authority_model.py tests/test_ple_authority_receipts.py
 tests/test_trace_allocation_completeness.py -q`. These are
 repository and lexical checks, not SysML semantic validation and not runtime
