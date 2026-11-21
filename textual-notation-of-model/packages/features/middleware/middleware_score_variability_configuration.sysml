@@ -13,15 +13,15 @@
  * selections. No element of this package restates them. Its docs name some
  * of them, and a guard test keeps those names equal to the receipt.
  *
- * The configuration is valid and not admitted. The receipt gives three
- * reasons. First, Eclipse S-CORE is reference-only. Second, the HMI display
- * has no element in the governed scope. Third, the guest side realizes the
- * AAOS-integrated alternative without its middleware androidSDV. So the
- * configured product specializes no member-product type. The member
- * decision is phase-12 work, after the runnable proof of phase 10 (owner
- * decision of 2026-10-21). This slice is configuration evidence only: it
- * proves no runtime behavior, satisfies no requirement and makes no safety,
- * cybersecurity or compliance claim.
+ * The governed scope admits the configuration since the scope revision of
+ * ADR 0023 and ADR 0026: it realizes the alternative S-CORE Integrated, and
+ * its configured product specializes the member definition
+ * SCOREIntegratedAutowareAEBSReferenceMember. The owner accepted the member
+ * on 2026-11-13 (ADR 0023), before the runnable proof of phase 10. That
+ * proof stays an obligation of phase 10: it is evidence about the member,
+ * not a condition of its membership. This slice is configuration evidence
+ * only: it proves no runtime behavior, satisfies no requirement and makes no
+ * safety, cybersecurity or compliance claim.
  */
 
 package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
@@ -31,7 +31,8 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
   private import DE4SDV_ProductLine::ProductLineConfiguredProduct;
   private import Views::*;
 
-  part def MiddlewareAutowareSCOREConfiguredProduct :> ProductLineConfiguredProduct {
+  part def MiddlewareAutowareSCOREConfiguredProduct
+      :> DE4SDV_AEBSProductLineScope::SCOREIntegratedAutowareAEBSReferenceMember, ProductLineConfiguredProduct {
     doc /*
      * The configured product of the Eclipse S-CORE reference configuration.
      * It holds the generated platform-stack projection and the realization of
@@ -67,12 +68,12 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
      * resolves the hmiDisplay selection. The projection lists it among the
      * selections that SysML does not resolve.
      *
-     * The definition specializes no member-product type, because the
-     * configuration is not admitted. If the owner admits the member in phase
-     * 12, it specializes the new member definition. The AAOS-integrated
-     * configured member specializes its member definition in the same way.
-     * This definition specializes the kernel's ProductLineConfiguredProduct,
-     * the configured product of phase 9 (owner decision of 2026-10-29).
+     * The definition specializes the member definition
+     * SCOREIntegratedAutowareAEBSReferenceMember of the governed scope (ADR
+     * 0023, decision 8), as the AAOS-integrated configured member specializes
+     * its member definition. It also specializes the kernel's
+     * ProductLineConfiguredProduct, the configured product of phase 9 (owner
+     * decision of 2026-10-29).
      */
     part platformStack : MiddlewareAutowareSCOREReference;
     part integrationLayer : SCOREMiddlewareIntegrationLayerRealization;
@@ -136,29 +137,34 @@ package DE4SDV_MiddlewareSCOREVariabilityConfiguration {
    * model have a main side and a guest side on one SoC. The owner decided
    * this on 2026-10-21 and 2026-10-22. The groups guestOperatingSystem and
    * guestMiddleware bind the variations guestOSPlatform and guestMiddleware,
-   * and the requires constraints C007 to C010 constrain the guest side. C001
+   * and the requires constraints C007 to C009 constrain the guest side (C010
+   * did too, until the scope revision of ADR 0026 removed it). C001
    * reads the main side only. MW-CONFIG-002 expresses the two-domain
    * product. Its main side is Linux with Eclipse S-CORE, and it is also the
    * KVM host. Its guest side is Android with the AAOS SDV middleware.
    * The AAOS-integrated member MW-CONFIG-001 has the same guest side. The
    * VM layout of the guest side is realization content of phase 8, and it
    * differs: one VM in MW-CONFIG-001, two in MW-CONFIG-002 (ADR 0025). The
-   * admission of the S-CORE product is not part of this gap. It stays a
-   * phase-12 decision.
+   * admission of the S-CORE product is not part of this gap. The scope
+   * revision of ADR 0023 made it.
    */
 
   comment hmiGuestCandidateCounterpartAtBaseline
     about DE4SDV_MiddlewareSCOREFeatureClassification::hmiGuestExecutionDomain,
-      DE4SDV_MiddlewareSCOREFeatureClassification::hmiGuestCandidateCounterpartOfAAOSIntegratedMode
+      DE4SDV_MiddlewareSCOREFeatureClassification::hmiGuestCandidateCounterpartOfAAOSIntegratedMode,
+      DE4SDV_MiddlewareSCOREFeatureClassification::hmiGuestCandidateCounterpartOfSCOREIntegratedMode
   /*
-   * CLS-MW-004 after phase 9. The feature model carries the characteristic
-   * with the guest side and the optional HMI display: MW-CONFIG-002 selects
-   * guestAndroid, guestAndroidSDV and hmiDisplay. The AAOS-integrated member
-   * selects the same guest side. So, of this characteristic, only hmiDisplay
-   * distinguishes the S-CORE product from it. In phase 9 the counterpart
-   * dependency stays on the AAOS-integrated mode. If the owner admits the
-   * member, the baseline decision re-points it to the new S-CORE Integrated alternative
-   * of the integration mode (owner decision of 2026-10-21).
+   * CLS-MW-004 after the scope revision of ADR 0023 and ADR 0026. The
+   * feature model carries the characteristic with the guest side:
+   * MW-CONFIG-002 and the AAOS-integrated member both select kvm,
+   * guestAndroid and guestAndroidSDV, which correspond to both integrated
+   * alternatives. The HMI display is common content of every member (ADR
+   * 0026), so it tells no member apart. eclipseSCORE, not hmiDisplay, tells
+   * the S-CORE member apart from the AAOS-integrated member. The owner
+   * decided on 2026-11-21 that the counterpart of CLS-MW-004 is both
+   * integrated alternatives, AAOS Integrated and S-CORE Integrated. This
+   * replaces the decision of 2026-10-21, made before ADR 0026, to re-point
+   * it to S-CORE Integrated alone.
    */
 
   concern scoreMiddlewareProductLineConfigurationConcern : ProductLineConfigurationConcern {

@@ -156,12 +156,18 @@ package DE4SDV_AEBSVisualizationVariabilityConfiguration {
     /* Note added by INC-MW-011 phase 9 (owner decision D5 of 2026-10-21): the
      * feature configuration MW-CONFIG-001 gained the guest side, and its
      * projection was regenerated. The test article now inherits an AAOS SDV
-     * guest under KVM, and MW-CONFIG-001 selects no HMI display. The evidence
-     * of this test article ran the display-capable sdv_ivi_cf guest. So the
-     * statements of this slice that the configuration and the projection are
-     * reused unchanged, and that the inherited selections are unchanged, no
-     * longer hold. How to resolve the difference is a later owner decision.
-     * This note changes no selection, no configuration and no evidence. */
+     * guest under KVM. Until the scope revision of ADR 0026, MW-CONFIG-001
+     * selected no HMI display. Since that revision it selects the HMI display,
+     * common content of every member, which it holds in its AAOS SDV guest,
+     * and its configured member still models a headless guest
+     * (gapHmiAAOSIntegratedGuestDisplay of INC-HMI-001). The evidence of this
+     * test article ran the display-capable sdv_ivi_cf guest. So the statements
+     * of this slice that the configuration and the projection are reused
+     * unchanged, and that the inherited selections are unchanged, no longer
+     * hold. How to resolve the difference is a later owner decision. ADR 0026
+     * does not change the System 2 classification of the visualization of
+     * this slice. This note changes no selection, no configuration and no
+     * evidence. */
 
   concern visualizationProductLineConfigurationConcern : ProductLineConfigurationConcern {
     doc /*

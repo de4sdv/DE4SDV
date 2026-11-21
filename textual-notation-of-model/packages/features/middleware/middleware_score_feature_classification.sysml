@@ -23,14 +23,19 @@ package DE4SDV_MiddlewareSCOREFeatureClassification {
   part hmiGuestExecutionDomain : ProductLineFeatureCandidate {
     doc /*
      * CLS-MW-004: an AAOS SDV HMI guest next to the Linux host distinguishes the
-     * two-domain member from the standalone member. Acceptance waits for the scope
-     * ADR and phase 9; the AAOS-integrated mode is only a candidate counterpart, and
-     * the ADR decides. Structural consequence: per-domain platform selection.
+     * two integrated members from the standalone member. Its counterpart is both
+     * integrated alternatives, AAOS Integrated and S-CORE Integrated (owner
+     * decision of 2026-11-21). Since ADR 0026 both integrated members hold the HMI
+     * display in their AAOS SDV guest. Structural consequence: per-domain platform
+     * selection.
      */
   }
   dependency hmiGuestCandidateCounterpartOfAAOSIntegratedMode
     from hmiGuestExecutionDomain
     to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::aaosIntegrated;
+  dependency hmiGuestCandidateCounterpartOfSCOREIntegratedMode
+    from hmiGuestExecutionDomain
+    to DE4SDV_AEBSProductLineScope::vehiclePlatformIntegrationMode::scoreIntegrated;
 
   /* Phase 3 revalidation of the INC-MW-003 baseline. */
   dependency safetyPathDecisionBoundedByEmergencyPathAssumption
