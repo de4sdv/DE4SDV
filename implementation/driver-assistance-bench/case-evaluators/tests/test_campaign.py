@@ -10,7 +10,7 @@ import sys
 import cases_da
 import evaluate_da_campaign as edc
 import make_da_synthetic_run as syn
-from case_evaluators_testkit import HERE, MODEL
+from case_evaluators_testkit import HERE, MODEL, REPO
 
 NR = MODEL / "driver_assistance_needs_requirements.sysml"
 VE = MODEL / "driver_assistance_verification_evidence.sysml"
@@ -66,6 +66,11 @@ def test_criteria_record_quotes_the_model_and_the_evaluators_thresholds():
         assert c["successClause"] == clause and clause.endswith(f":{line}")
         assert c["successCriteria"] == text
         assert c["thresholds"] == json.loads(json.dumps(cases_da.THRESHOLDS[vc]))
+
+
+def test_criteria_record_is_the_one_build_criteria_record_writes():
+    # the readings too, not only the thresholds: regenerate with --write-criteria after a change of either
+    assert json.loads(edc.CRITERIA_FILE.read_text()) == json.loads(json.dumps(edc.build_criteria_record(REPO)))
 
 
 def test_criteria_record_identity_is_the_sha256_of_its_bytes():
@@ -159,6 +164,8 @@ def test_036_037_condition_note_carries_the_calibration_and_the_gains_on_pass_an
     failing = syn.write_session(tmp_path / "fail", syn.s1_specs(**{"012_20_r1": dict(warn_at_needed=None,
                                                                                     eb_at_needed=None)}),
                                 session_extra={"ackermann_gains": "v1"})
+    # complete records: a fail on partial records gives inconclusive (the lead's reading of 2026-11-21)
+    (failing / "reproduction_044.json").write_text((passing / "reproduction_044.json").read_text())
     _calib(failing, 0.99, True)
     for root, outcome, worst, follow, requested in (
             (passing, "passBoundedVerification", "0.4038", "false", "unrecorded"),

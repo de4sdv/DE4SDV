@@ -22,7 +22,7 @@
   "036 and 037 are conditional on ASM-DRIVING-005, the calibration of the simulated deceleration (driver_assistance_verification_evidence.sysml:299-300; plan D-S1-2); they report the requested and the read-back Ackermann gains, 'unrecorded' when the session holds none",
   "042: a warning start at least 1.0 s of simulation time before the first emergency braking start, when the run has one; a warning still on at the braking is not asked",
   "040 and 041 read the guidance of SC-DRIVING-014 and -015 from setting_record.json site.guidance (SiteSpec.as_record()); each speed and time to collision of the guidance must hold a value",
-  "a case that reads a run whose evidence record (RetainedAssistanceRunEvidence) is partial gives inconclusive, never pass (driver_assistance_verification_evidence.sysml:211-212)",
+  "a run whose evidence record (RetainedAssistanceRunEvidence) is partial gives inconclusive for that run, never pass and never fail (driver_assistance_verification_evidence.sysml:126-127, :211-212; the lead's reading of 2026-11-21): a case's fail stands only when a run that shows it has a complete record, a pass with any partial record read becomes inconclusive, and a note names the outcome observed before the rule",
   "a rehearsal session (session.json rehearsal true) is not judged"
  ],
  "cases": {

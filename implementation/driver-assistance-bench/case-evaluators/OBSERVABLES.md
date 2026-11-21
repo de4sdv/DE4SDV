@@ -198,9 +198,13 @@ for that run and names the drops. The model fixes the window as the whole run on
 (`M/driver_assistance_verification_evidence.sysml:150-243`) for every run, the stop run included, from one record.
 An attribute that its record does not fill stays empty, and the record names it with the file and the field
 (`<attribute>: <text>`); the record's outcome is then `inconclusiveMissingEvidence`, otherwise `complete`. The
-campaign puts each run's record into its output (`evidenceRecords`) and turns a case that would pass into
-`inconclusiveMissingEvidence` when a run it reads has a partial record ("A missing or partial record gives
-inconclusive, never pass", `:211-212`); a fail stays a fail. `setting` is left empty for the stop run (`:182-183`).
+campaign puts each run's record into its output (`evidenceRecords`). A run whose record is partial gives
+`inconclusiveMissingEvidence` for that run, never pass and never fail ("A missing or partial record gives
+inconclusive, never pass", `:211-212`; "missing or partial evidence gives inconclusiveMissingEvidence", `:126-127`;
+the lead's reading of 2026-11-21). The case is combined again from the runs' outcomes so read: a fail stands only
+when a run that shows it has a complete record, and a pass with any partial record read becomes inconclusive. The
+outcomes of the clauses that no run shows (044's desk reproduction, `measured.outcomesWithoutRun`) are kept. A note
+names the outcome observed before the rule. `setting` is left empty for the stop run (`:182-183`).
 
 PROPOSAL marks a field that no producer writes yet: its name is this contract's proposal to lanes I-S and I-W.
 

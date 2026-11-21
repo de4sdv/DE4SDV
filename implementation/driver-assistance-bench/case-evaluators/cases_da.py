@@ -256,6 +256,9 @@ def every_run_campaign(vc: str, sess: Session, per_run, settings: tuple, thresho
     if extra is not None:
         ex = extra(sess, runs)
         measured.update(ex.get("measured", {}))
+        # the outcomes of the clauses that no run shows (044's desk reproduction), kept for the campaign's rule on
+        # partial run records (evaluate_da_campaign.py)
+        measured["outcomesWithoutRun"] = list(ex.get("outcomes", []))
         outcomes += ex.get("outcomes", [])
         missing += ex.get("missing", [])
         notes += ex.get("notes", [])

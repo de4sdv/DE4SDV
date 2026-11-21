@@ -182,14 +182,57 @@ def test_the_campaign_turns_a_pass_inconclusive_on_a_partial_record(tmp_path):
     for vc, res in doc["cases"].items():
         assert res["outcome"] == INC, vc
         assert any("configurationIdentity" in m and "RetainedAssistanceRunEvidence" in m for m in res["missing"]), vc
+        assert any(n.startswith("observed passBoundedVerification") for n in res["notes"]), (vc, res["notes"])
 
 
-def test_the_campaign_keeps_a_fail_on_a_partial_record(tmp_path):
+# The lead's reading of 2026-11-21 (driver_assistance_verification_evidence.sysml:126-127 and :211-212): a run whose
+# evidence record is partial gives inconclusive for that run, never pass and never fail. A case's fail stands only
+# when at least one run that shows the fail has a complete record.
+FAIL = "failObservedBehavior"
+
+
+def test_a_fail_on_runs_whose_records_are_all_partial_gives_inconclusive(tmp_path):
     root = syn.write_session(tmp_path / "session", syn.s1_specs(**{RUN: dict(warn_at_needed=None)}))
     _session_del("configuration_identity")(root)
     doc = edc.run(root, None)
-    assert doc["cases"]["VC-DRIVING-042"]["outcome"] == "failObservedBehavior"
-    assert any("configurationIdentity" in m for m in doc["cases"]["VC-DRIVING-042"]["missing"])
+    res = doc["cases"]["VC-DRIVING-042"]
+    assert [e["outcome"] for e in res["measured"]["runs"] if e["run"] == RUN] == [FAIL], "the run must show the fail"
+    assert res["outcome"] == INC and res["verdict"] == "inconclusive", res["outcome"]
+    assert any("configurationIdentity" in m for m in res["missing"])
+    assert any(n.startswith(f"observed {FAIL}") and RUN in n for n in res["notes"]), res["notes"]
+
+
+def test_a_fail_whose_only_failing_run_has_a_partial_record_gives_inconclusive(tmp_path):
+    root = syn.write_session(tmp_path / "session", syn.s1_specs(**{RUN: dict(warn_at_needed=None)}))
+    (root / "reproduction_044.json").write_text(json.dumps(DESK))
+    _session_del(f"score_runs.{RUN}.runIdentity")(root)
+    doc = edc.run(root, None)
+    assert [r for r, rec in doc["evidenceRecords"].items() if rec["outcome"] != er.COMPLETE] == [RUN]
+    res = doc["cases"]["VC-DRIVING-042"]
+    assert res["outcome"] == INC, res["outcome"]
+    assert any(n.startswith(f"observed {FAIL}") for n in res["notes"]), res["notes"]
+
+
+def test_a_fail_stands_when_one_run_that_shows_it_has_a_complete_record(tmp_path):
+    root = syn.write_session(tmp_path / "session", syn.s1_specs(**{RUN: dict(warn_at_needed=None),
+                                                                   "012_20_r2": dict(warn_at_needed=None)}))
+    (root / "reproduction_044.json").write_text(json.dumps(DESK))
+    _session_del(f"score_runs.{RUN}.runIdentity")(root)
+    doc = edc.run(root, None)
+    assert doc["evidenceRecords"][RUN]["outcome"] == INC
+    assert doc["evidenceRecords"]["012_20_r2"]["outcome"] == er.COMPLETE
+    res = doc["cases"]["VC-DRIVING-042"]
+    assert res["outcome"] == FAIL and res["verdict"] == "fail"
+    assert not any(n.startswith("observed ") for n in res["notes"]), res["notes"]
+
+
+def test_a_fail_of_the_desk_reproduction_stands_on_partial_run_records(tmp_path):
+    # the desk reproduction of 044 is no run: a partial run record does not touch its fail
+    root = session(tmp_path)
+    _session_del("configuration_identity")(root)
+    (root / "reproduction_044.json").write_text(json.dumps(dict(DESK, valuesMatch=False)))
+    doc = edc.run(root, None)
+    assert doc["cases"]["VC-DRIVING-044"]["outcome"] == FAIL
 
 
 def test_the_campaign_passes_with_complete_records(tmp_path):
