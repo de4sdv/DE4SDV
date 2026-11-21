@@ -5,6 +5,9 @@
   `--ackermann-gains v1`; without it the session keeps CARLA's own gains (`default`).
 - Closure review of 44a4be29, J3: the rehearsal's decision names a cap of EUR 2.50 and the code's default
   (CAP_EUR_S1_REHEARSAL) is EUR 2.00, so both rehearsal lines give `--cap-eur 2.50`. The judged lines keep CAP_EUR_S1.
+- D-S1-3, the owner's decision of 2026-11-21: the judged runs use an on-demand L4. hosts.env's SCORE_EUR_H (0.483)
+  is the Spot rate, so the cost watchdog would count about EUR 0.32 an hour low (closure review J8); both judged
+  lines give `SCORE_EUR_H=0.806`, the on-demand rate, and the rehearsal (on Spot) gives none.
 """
 
 from __future__ import annotations
@@ -17,9 +20,10 @@ README = SESSION / "README.md"
 
 
 def _s1_lines() -> list[str]:
+    # each command whole: a line continued with a backslash is joined to the next, so `env -i ...` is part of it
     text = README.read_text(encoding="utf-8")
-    return [ln.strip() for b in re.findall(r"```bash\n(.*?)```", text, re.S) for ln in b.splitlines()
-            if "da_session.sh --kind s1 " in ln]
+    return [re.sub(r"\s+", " ", ln.strip()) for b in re.findall(r"```bash\n(.*?)```", text, re.S)
+            for ln in b.replace("\\\n", " ").splitlines() if "da_session.sh --kind s1 " in ln]
 
 
 def test_the_readme_has_the_dry_run_and_the_run_of_s1_and_of_its_rehearsal() -> None:
@@ -37,3 +41,11 @@ def test_the_rehearsal_lines_give_the_cap_their_decision_names_and_the_judged_li
     lines = _s1_lines()
     assert [ln for ln in lines if "--rehearsal" in ln and "--cap-eur 2.50" not in ln] == []
     assert [ln for ln in lines if "--rehearsal" not in ln and "--cap-eur" in ln] == []
+
+
+def test_the_judged_lines_give_the_on_demand_l4_rate_and_the_rehearsal_lines_none() -> None:
+    lines = _s1_lines()
+    judged = [ln for ln in lines if "--rehearsal" not in ln]
+    assert len(judged) == 2, judged
+    assert [ln for ln in judged if not re.search(r"env -i .*\bSCORE_EUR_H=0\.806 .*da_session\.sh", ln)] == []
+    assert [ln for ln in lines if "--rehearsal" in ln and "SCORE_EUR_H" in ln] == []
