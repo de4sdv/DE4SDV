@@ -206,7 +206,11 @@ python3 compose_side_by_side.py \
 How each side is placed (all on UTC; details in the script's header):
 
 - a chase frame at the real time of its tick: `--tick-times` from the world side when given, else its arrival at
-  the recorder; over a simulator stall the last frame is held;
+  the recorder; over a simulator stall the last frame is held. With `--tick-times` only the frames inside the span
+  of the tick times are placed: the recorder keeps receiving frames after the world side's last tick (S1: 6 on
+  `012_42_r1`, 18 on `013_30_r1`), at steps no tick has, so the frames before the first tick and after the last are
+  left out and listed in `manifest.json` (`chase.left_out_outside_tick_span`, their count and simulation times); a
+  frame inside the span without a tick is refused;
 - a display frame at t0 + pts on the IVI clock, t0 = the guest clock read just after the segment's launch plus
   `--display-t0-correction-s`, moved to the host's clock by the measured offset. Until that correction is read
   from the clock the app draws on the display (INC-DRIVING-001's `ivi_t0_frames.py` method), the display may lead

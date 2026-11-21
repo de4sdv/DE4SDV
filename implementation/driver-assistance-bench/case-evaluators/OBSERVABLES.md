@@ -68,8 +68,8 @@ session root by its name pattern; two different copies of one file are an `error
 | `relative.centerLineOffsetM`, `relative.headingDiffDeg` | 036, 037, 042 (judged run) | |
 | `targetContact` | 037 and the functional part | |
 | `vehiclesAhead[]` | 040, 041 | **shared contract 1 (lane A6)**: per vehicle up to 300 m ahead in the direction of travel `{actorId, role, gapM, closingMps, ttcS, neededDecelMps2, inLane, overlapRatio}`. The cases read `inLane`, `gapM`, `closingMps`, and recompute the time to collision and the needed deceleration |
-| `control` `{throttle, steer, brake, handBrake}` | 038 stop clause | the control the vehicle holds at the tick |
-| `worldSideControlCalls` | 038 | 0 on every tick |
+| `control` `{throttle, steer, brake, handBrake}` | 038 stop clause, a note only | `hero.get_control()`: the output of the simulator's Ackermann controller at the tick, which changes under a held target with no command; never the criterion |
+| `worldSideControlCalls` | 038 and its stop clause | the world side's control calls on the vehicle since the run began: 0 on every tick of the 14 runs; no rise after the stop in the stop run |
 
 W-set: `setting.setting_id` (the run's setting; `stop` for the stop run), `setting.scenario`, `kind` (`run` for
 every run of `run_scenario.sh`, the stop run included), `controlOfTheHero` (the world's statement that no autopilot
@@ -185,7 +185,7 @@ for that run and names the drops. The model fixes the window as the whole run on
 |---|---|---|---|
 | 036 | judged runs of 012@20/42/60, 013@30/60 | at each functional-part tick with needed >= 5.0, the last command has `acceleration <= -5.0`; a tick with no command before it is a miss | `M/driver_assistance_needs_requirements.sysml:278` |
 | 037 | as 036 | impact (km/h) <= the limit at the approach speed; never imminent and no contact is met | `:288` |
-| 038 | the 14 runs, and the stop run's stop clause | every A `out.ackermann_control` has an A `in.driving_command` of its `seq` with `crc_ok` and an S `out.driving_command` of that `seq` whose `crc` equals `checkValue`; `controlSource` is `actuationAdapter`; `worldSideControlCalls` 0 on every tick; W-set `controlOfTheHero` present. Stop clause: no `out.ackermann_control` with `t_mono_ns` after `stopInstantMonoNs`, and W `control` constant from the frame after the last control applied before the stop | `:298` |
+| 038 | the 14 runs, and the stop run's stop clause | every A `out.ackermann_control` has an A `in.driving_command` of its `seq` with `crc_ok` and an S `out.driving_command` of that `seq` whose `crc` equals `checkValue`; `controlSource` is `actuationAdapter`; `worldSideControlCalls` 0 on every tick; W-set `controlOfTheHero` present. Stop clause (no driving command reaches the actuation after the stop): no `out.ackermann_control` with `t_mono_ns` after `stopInstantMonoNs`, and no rise of `worldSideControlCalls` on the ticks from the frame after the last control applied before the stop; the changes of W `control` on those ticks are reported as `controlChangesAfterStop`, a note | `:298` |
 | 040 | the 14 runs | every warning start falls on a tick with an imminent vehicle ahead in the lane (`vehiclesAhead`); 014/015 runs hold `guidance` | `:318` |
 | 041 | the 14 runs | as 040, for every emergency braking start | `:328` |
 | 042 | as 036 | a judged run with an imminent tick in its functional part has a warning start at or before the functional part's end; when the run has an emergency braking start, a warning start at least 1.0 s of sim time before the first one (a lead of 0.99 s fails, 1.0 s passes); a run with no emergency braking needs the warning start only. A warning still on at the braking is not asked | `:338` |
@@ -198,9 +198,13 @@ for that run and names the drops. The model fixes the window as the whole run on
 (`M/driver_assistance_verification_evidence.sysml:150-243`) for every run, the stop run included, from one record.
 An attribute that its record does not fill stays empty, and the record names it with the file and the field
 (`<attribute>: <text>`); the record's outcome is then `inconclusiveMissingEvidence`, otherwise `complete`. The
-campaign puts each run's record into its output (`evidenceRecords`) and turns a case that would pass into
-`inconclusiveMissingEvidence` when a run it reads has a partial record ("A missing or partial record gives
-inconclusive, never pass", `:211-212`); a fail stays a fail. `setting` is left empty for the stop run (`:182-183`).
+campaign puts each run's record into its output (`evidenceRecords`). A run whose record is partial gives
+`inconclusiveMissingEvidence` for that run, never pass and never fail ("A missing or partial record gives
+inconclusive, never pass", `:211-212`; "missing or partial evidence gives inconclusiveMissingEvidence", `:126-127`;
+the lead's reading of 2026-11-21). The case is combined again from the runs' outcomes so read: a fail stands only
+when a run that shows it has a complete record, and a pass with any partial record read becomes inconclusive. The
+outcomes of the clauses that no run shows (044's desk reproduction, `measured.outcomesWithoutRun`) are kept. A note
+names the outcome observed before the rule. `setting` is left empty for the stop run (`:182-183`).
 
 PROPOSAL marks a field that no producer writes yet: its name is this contract's proposal to lanes I-S and I-W.
 
@@ -215,19 +219,19 @@ PROPOSAL marks a field that no producer writes yet: its name is this contract's 
 | `networkFileSha256`, `configurationFileSha256` | I `candidate_record.json` `network_files[]`, `configuration_files[]` (`role`, `path`, `sha256`) |
 | `launchSettings` | I `candidate_record.json` `launch_settings`: its SHA-256 as canonical JSON (verbatim in that record) |
 | `candidateBuild` | session.json `candidate.bundle` (else `score_<run>/staging.json` `bundle`), with the upstream revision and the patch names |
-| `visualizationRecorderDelay` | session.json `visualization_recorder_delay` (PROPOSAL) |
-| `scoreLifecycleVersion`, `scoreCommunicationVersion`, `scoreSOMEIPGatewayCommit` | session.json `score_platform.lifecycle_version`, `.communication_version`, `.someip_gateway_commit` (PROPOSAL) |
+| `visualizationRecorderDelay` | the run's own: session.json `score_runs.<run>.visualization_recorder_delay` when a run states it; else the model's sentence (`evidence_config.json` `model_delay`) when every GPU in `score_runs.<run>.score_gpu` is the model's; else, the run's GPU unread, session.json `visualization_recorder_delay` (`session/evidence_fields.py`) |
+| `scoreLifecycleVersion`, `scoreCommunicationVersion`, `scoreSOMEIPGatewayCommit` | session.json `score_runs.<run>.score_platform.lifecycle_version`, `.communication_version`, `.someip_gateway_commit` (the run's own start), else the session's `score_platform.*` (`session/evidence_fields.py`, absent when any started run lacks its line) |
 | `simulatorBuild` | W-set `simulator.versions.server` |
 | `scenario` | W-set `setting.scenario`, else session.json `score_runs.<run>.scenario` |
 | `setting` | the run's setting; empty for the stop run |
 | `runIdentity`, `simulatedConfiguration` | session.json `score_runs.<run>.runIdentity`, `.simulatedConfiguration.sha256` (s1) |
 | `simulationClockSpan` | W `data.simTimeS` of the first and the last tick |
 | `wallClockSpan` | W `t_real_ns` of the first and the last tick line (the simulator host's real clock) |
-| `executionEnvironmentIdentity` | session.json `internal_ips_from_gcloud.sim`, `.score`, `.guest`, and `execution_environment.score_gpu`, `.sdv_core_image`, `.ivi_image` (PROPOSAL) |
+| `executionEnvironmentIdentity` | session.json `internal_ips_from_gcloud.sim`, `.score`, `.guest`, the run's own `score_runs.<run>.score_gpu` (else `execution_environment.score_gpu`), and `execution_environment.sdv_core_image`, `.ivi_image` (`session/evidence_fields.py`) |
 | `contractIdentity` | R `lifecycle` `message`, `unit`, `translation` |
 | `criteriaRecordIdentity`, `evaluatorRevision` | the campaign's own (`evaluate_da_campaign.py`) |
 | `rawObservationArtifact` | the SHA-256 of `candidate_record.json`, `identityRecorder.jsonl`, `score_interface.jsonl`, `actuationAdapter.jsonl` (with S: the communication records of the S-CORE path, EVALUATOR READING), `world.jsonl`, `app_record_warning.jsonl`, and the `.rrd` named in `score_<run>/candidate_rrd.json` |
-| `benchRecordingArtifact` | `rec_<run>/chase_view.mp4` (its SHA-256) and the candidate's visualization recording, session.json `score_runs.<run>.visualization_recording.sha256` (PROPOSAL; the Launch Manager configuration does not set `DE4SDV_VISUALIZATION_RECORD` yet) |
+| `benchRecordingArtifact` | `rec_<run>/chase_view.mp4` (its SHA-256) and the candidate's visualization recording, session.json `score_runs.<run>.visualization_recording.sha256` (`da_session.sh` write_record, from the S-CORE stop's `visualization_recording.json`); without a sha256 the record quotes the entry's own `reason` |
 | `independentEngineerIdentity` | `reproduction_044.json` `engineer` (plan lane F2) |
 | `claimBoundary` | written by the record: the run's case outcomes, and what the record does not prove |
 

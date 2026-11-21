@@ -9,8 +9,9 @@ session root. `--write-criteria` regenerates da_criteria_record.json from the mo
 
 A session whose session.json says `rehearsal` true is never judged (lead contract 4 of 2026-11-20): the output names
 the reason and holds no case, and the exit status is 3. Each run's evidence record (RetainedAssistanceRunEvidence,
-evidence_record.py) goes into the output; a case that reads a run whose record is partial gives
-inconclusiveMissingEvidence, never pass (driver_assistance_verification_evidence.sysml:211-212).
+evidence_record.py) goes into the output; a run whose record is partial gives inconclusiveMissingEvidence for that
+run, never pass and never fail (driver_assistance_verification_evidence.sysml:126-127, :211-212; the lead's reading
+of 2026-11-21), so a case's fail stands only when a run that shows it has a complete record.
 """
 
 from __future__ import annotations
@@ -61,6 +62,9 @@ READINGS = [
     "EVALUATOR READING: the relative impact speed is the closing on the tick before the first targetContact",
     "EVALUATOR READING: the last driving command at a tick is the newest with issueTime_sim_s <= simTimeS",
     "EVALUATOR READING: 042 counts the warning starts up to the end of the functional part",
+    "EVALUATOR READING: 038's stop clause: a driving command reaches the actuation after the stop as an "
+    "out.ackermann_control of the actuation adapter after stopInstantMonoNs or a rise of worldSideControlCalls; the "
+    "changes of the world's control (hero.get_control(), the simulator's Ackermann controller output) are a note",
     "EVALUATOR READING: a fail on any run read gives fail, before error, blocked and inconclusive",
     "036 and 037 are conditional on ASM-DRIVING-005, the calibration of the simulated deceleration "
     "(driver_assistance_verification_evidence.sysml:299-300; plan D-S1-2); they report the requested and the read-back "
@@ -69,8 +73,10 @@ READINGS = [
     "has one; a warning still on at the braking is not asked",
     "040 and 041 read the guidance of SC-DRIVING-014 and -015 from setting_record.json site.guidance "
     "(SiteSpec.as_record()); each speed and time to collision of the guidance must hold a value",
-    "a case that reads a run whose evidence record (RetainedAssistanceRunEvidence) is partial gives inconclusive, never "
-    "pass (driver_assistance_verification_evidence.sysml:211-212)",
+    "a run whose evidence record (RetainedAssistanceRunEvidence) is partial gives inconclusive for that run, never pass "
+    "and never fail (driver_assistance_verification_evidence.sysml:126-127, :211-212; the lead's reading of "
+    "2026-11-21): a case's fail stands only when a run that shows it has a complete record, a pass with any partial "
+    "record read becomes inconclusive, and a note names the outcome observed before the rule",
     "a rehearsal session (session.json rehearsal true) is not judged",
 ]
 
@@ -187,6 +193,42 @@ def refusal(session: dict) -> str | None:
             "of 2026-11-20)")
 
 
+def partial_record_rule(res: dict, records: dict) -> None:
+    """The rule of :126-127 and :211-212 on one case, as the lead read it on 2026-11-21: a run whose evidence record is
+    partial gives inconclusive for that run, never pass and never fail. The case's outcome is combined again from the
+    runs' outcomes so read, the stop clause's and the outcomes of the clauses that no run shows (044's desk
+    reproduction, which no run record touches): a fail stands only when a run that shows it has a complete record, and
+    a pass with any partial record read becomes inconclusive. A note names the outcome observed before the rule."""
+    entries = list(res["measured"].get("runs", []))
+    sc = res["measured"].get("stopClause")
+    if isinstance(sc, dict) and sc.get("run"):
+        entries.append(sc)
+    partial = []
+    for e in entries:
+        r = e["run"]
+        if r in records and records[r]["outcome"] != evidence_record.COMPLETE and r not in partial:
+            partial.append(r)
+    for r in partial:
+        res["missing"].append(f"the evidence record of run {r} (RetainedAssistanceRunEvidence) is partial, "
+                              f"empty: {', '.join(records[r]['emptyAttributes'])} (driver_assistance_verification"
+                              "_evidence.sysml:211-212: a missing or partial record gives inconclusive, never "
+                              "pass)")
+    if not partial or res["outcome"] not in (cases_da.PASS, cases_da.FAIL):
+        return
+    read = [cases_da.INCONCLUSIVE if e["run"] in partial and e["outcome"] in (cases_da.PASS, cases_da.FAIL)
+            else e["outcome"] for e in entries]
+    observed = res["outcome"]
+    outcome = cases_da.combine(read + list(res["measured"].get("outcomesWithoutRun", [])), res["missing"])
+    if outcome == observed:
+        return
+    shown = [e["run"] for e in entries if e["outcome"] == observed and e["run"] in partial]
+    res["outcome"], res["verdict"] = outcome, cases_da.verdict(outcome)
+    res["notes"].append(f"observed {observed} before the rule on partial evidence records; {outcome} because "
+                        f"the evidence record of each run read that shows it is partial ({', '.join(shown)}): a "
+                        "missing or partial record gives inconclusive, never pass (driver_assistance_verification_"
+                        "evidence.sysml:126-127, :211-212; the lead's reading of 2026-11-21: never fail either)")
+
+
 def run(root: Path, desk_path: Path | None) -> dict:
     root = Path(root)
     sj = root / "session.json"
@@ -218,19 +260,8 @@ def run(root: Path, desk_path: Path | None) -> dict:
             outcomes.setdefault(sc["run"], {})[f"{vc} stop clause"] = sc["outcome"]
     records = evidence_record.build_all(sess, criteria=crit, revision=rev,
                                         desk=(desk or {}).get("VC-DRIVING-044"), outcomes=outcomes)
-    for vc, res in cases.items():
-        read = [e["run"] for e in res["measured"].get("runs", [])]
-        sc = res["measured"].get("stopClause")
-        read += [sc["run"]] if isinstance(sc, dict) and sc.get("run") else []
-        partial = [r for r in read if r in records and records[r]["outcome"] != evidence_record.COMPLETE]
-        for r in partial:
-            res["missing"].append(f"the evidence record of run {r} (RetainedAssistanceRunEvidence) is partial, "
-                                  f"empty: {', '.join(records[r]['emptyAttributes'])} (driver_assistance_verification"
-                                  "_evidence.sysml:211-212: a missing or partial record gives inconclusive, never "
-                                  "pass)")
-        if partial and res["outcome"] == cases_da.PASS:
-            res["outcome"] = cases_da.INCONCLUSIVE
-            res["verdict"] = cases_da.verdict(cases_da.INCONCLUSIVE)
+    for res in cases.values():
+        partial_record_rule(res, records)
     for res in cases.values():
         res["criteriaRecordIdentity"] = crit
         res["evaluatorRevision"] = rev

@@ -171,20 +171,81 @@ def r_candidate_build(c: _Ctx) -> str:
     return f"{name or 'vision_pilot'}{what}; bundle {bundle} ({source})"
 
 
+# The record is per run (:150-153): each run's own fields first, as session/evidence_fields.py parses them into
+# score_runs.<run> (score_platform, score_gpu); the session-level value, which that file leaves absent when any
+# started run lacks its line or differs, only as the fallback (closure review of 44a4be29..86cadee0, R4).
+EVIDENCE_FIELDS = "session/evidence_fields.py: absent when a started run lacks its line or the runs differ"
+
+
+def _run_json(c: _Ctx, key: str) -> dict | None:
+    v = c.entry(key)
+    if isinstance(v, str):
+        try:
+            v = json.loads(v)
+        except ValueError:
+            return None
+    return v if isinstance(v, dict) and "absent" not in v else None
+
+
+def _run_gpus(c: _Ctx) -> list | None:
+    g = _run_json(c, "score_gpu")
+    gpus = g.get("gpus") if g else None
+    if not isinstance(gpus, list) or not gpus or not all(isinstance(x, dict) for x in gpus):
+        return None
+    return gpus
+
+
+def _run_gpu_text(c: _Ctx) -> str | None:
+    gpus = _run_gpus(c)
+    return "; ".join(f"{x.get('name')}, driver {x.get('driver_version')}" for x in gpus) if gpus else None
+
+
+def _run_platform(c: _Ctx, key: str) -> str:
+    p = _run_json(c, "score_platform")
+    if p is not None and _nonempty_str(p.get(key)):
+        return p[key]
+    try:
+        return _session_field(c.sess, f"score_platform.{key}", EVIDENCE_FIELDS)
+    except MissingEvidence as exc:
+        raise MissingEvidence(f"session.json score_runs.{c.run.run_id}.score_platform.{key} is unread and {exc}") \
+            from None
+
+
 def r_recorder_delay(c: _Ctx) -> str:
-    return _session_field(c.sess, "visualization_recorder_delay")
+    """The run's own delay: a run that states its own; else the model's sentence (evidence_config.json model_delay,
+    as session/evidence_fields.py reads it) when every GPU of the run's S-CORE host is the model's; else, when the
+    run's GPU is unread, the session's value."""
+    own = c.entry("visualization_recorder_delay")
+    if _nonempty_str(own):
+        return str(own)
+    gpus = _run_gpus(c)
+    if gpus is not None:
+        try:
+            cfg = json.loads((Path(c.sess.root) / "evidence_config.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            cfg = None
+        model = cfg.get("model_delay") if isinstance(cfg, dict) else None
+        if isinstance(model, dict) and _nonempty_str(model.get("text")) and _nonempty_str(model.get("host_gpu")):
+            names = [x.get("name") for x in gpus]
+            if any(n != model["host_gpu"] for n in names):
+                raise MissingEvidence(
+                    f"the model's delay was measured on an S-CORE host with an {model['host_gpu']}; run "
+                    f"{c.run.run_id} ran on {_run_gpu_text(c)} (session.json score_runs.{c.run.run_id}.score_gpu): a "
+                    "run on another host states the delay it measures")
+            return f"{model['text']} ({model.get('source')})"
+    return _session_field(c.sess, "visualization_recorder_delay", EVIDENCE_FIELDS)
 
 
 def r_lifecycle(c: _Ctx) -> str:
-    return _session_field(c.sess, "score_platform.lifecycle_version")
+    return _run_platform(c, "lifecycle_version")
 
 
 def r_communication(c: _Ctx) -> str:
-    return _session_field(c.sess, "score_platform.communication_version")
+    return _run_platform(c, "communication_version")
 
 
 def r_gateway(c: _Ctx) -> str:
-    return _session_field(c.sess, "score_platform.someip_gateway_commit")
+    return _run_platform(c, "someip_gateway_commit")
 
 
 def r_simulator_build(c: _Ctx) -> str:
@@ -252,12 +313,16 @@ def r_environment(c: _Ctx) -> str:
     ips = c.sess.session.get("internal_ips_from_gcloud")
     ips = ips if isinstance(ips, dict) else {}
     ee = c.sess.session.get("execution_environment")
-    ee = ee if isinstance(ee, dict) else {}
+    ee = dict(ee) if isinstance(ee, dict) else {}
+    own_gpu = _run_gpu_text(c)            # the run's own GPU first, the session's as the fallback (R4)
+    if own_gpu is not None:
+        ee["score_gpu"] = own_gpu
     absent = [f"internal_ips_from_gcloud.{r}" for r in ("sim", "score", "guest") if not _nonempty_str(ips.get(r))]
-    absent += [f"execution_environment.{k} ({PROPOSAL})" for k in ("score_gpu", "sdv_core_image", "ivi_image")
-               if not _nonempty_str(ee.get(k))]
+    absent += [f"score_runs.{c.run.run_id}.score_gpu and execution_environment.score_gpu"] \
+        if not _nonempty_str(ee.get("score_gpu")) else []
+    absent += [f"execution_environment.{k}" for k in ("sdv_core_image", "ivi_image") if not _nonempty_str(ee.get(k))]
     if absent:
-        raise MissingEvidence("session.json " + ", ".join(absent))
+        raise MissingEvidence("session.json " + ", ".join(absent) + " (session/evidence_fields.py)")
     return (f"simulator host {ips['sim']}; S-CORE host {ips['score']} with {ee['score_gpu']}; guest host "
             f"{ips['guest']}: SDV Core image {ee['sdv_core_image']}, IVI image {ee['ivi_image']}")
 
@@ -322,10 +387,15 @@ def r_bench_recording(c: _Ctx) -> str:
     vr = c.entry("visualization_recording")
     if isinstance(vr, dict) and _nonempty_str(vr.get("sha256")):
         rows.append(f"the candidate's visualization recording {vr.get('path')} sha256:{vr['sha256']}")
+    elif isinstance(vr, dict):
+        # the cause is the entry's own reason (da_session.sh write_record copies it from the S-CORE stop's record)
+        why = vr.get("reason")
+        why = f"its reason: {why}" if _nonempty_str(why) else "the entry gives no reason"
+        absent.append(f"the candidate's visualization recording that the recorder draws: no session.json score_runs."
+                      f"{c.run.run_id}.visualization_recording.sha256 ({why})")
     else:
         absent.append(f"the candidate's visualization recording that the recorder draws: session.json score_runs."
-                      f"{c.run.run_id}.visualization_recording.sha256 ({PROPOSAL}; the Launch Manager configuration "
-                      "does not set DE4SDV_VISUALIZATION_RECORD yet, score-interface/README.md)")
+                      f"{c.run.run_id} has no visualization_recording entry (da_session.sh write_record)")
     if absent:
         raise MissingEvidence("; ".join(absent))
     return "; ".join(rows)

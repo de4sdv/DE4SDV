@@ -256,6 +256,9 @@ def every_run_campaign(vc: str, sess: Session, per_run, settings: tuple, thresho
     if extra is not None:
         ex = extra(sess, runs)
         measured.update(ex.get("measured", {}))
+        # the outcomes of the clauses that no run shows (044's desk reproduction), kept for the campaign's rule on
+        # partial run records (evaluate_da_campaign.py)
+        measured["outcomesWithoutRun"] = list(ex.get("outcomes", []))
         outcomes += ex.get("outcomes", [])
         missing += ex.get("missing", [])
         notes += ex.get("notes", [])
@@ -396,9 +399,10 @@ def _stop_entry(sess: Session, vc: str, fn) -> dict:
                     "missing": [f"path_stop of run {run.run_id} returned rc {rec['rc']}: the bench could not stop "
                                 "the path"], "notes": []}
         whole_run(run)
-        outcome, measured = fn(run, rec)
+        outcome, measured, *notes = fn(run, rec)
         measured["stopRecord"] = rec
-        return {"run": run.run_id, "outcome": outcome, "measured": measured, "missing": [], "notes": []}
+        return {"run": run.run_id, "outcome": outcome, "measured": measured, "missing": [],
+                "notes": notes[0] if notes else []}
     except MissingEvidence as exc:
         return {"run": getattr(run, "run_id", None), "outcome": INCONCLUSIVE, "measured": {}, "missing": [str(exc)],
                 "notes": []}
@@ -407,7 +411,21 @@ def _stop_entry(sess: Session, vc: str, fn) -> dict:
                 "notes": []}
 
 
+CONTROL_CHANGE_NOTE = (
+    "controlChangesAfterStop is a note, not the criterion: a tick's control is hero.get_control(), the throttle, steer "
+    "and brake that the simulator's Ackermann controller computes on every physics step, which changes under a held "
+    "target with no command (closure review of 44a4be29..86cadee0, R1). The clause judges what reaches the actuation: "
+    "the actuation adapter's out.ackermann_control after the stop instant and the world side's control calls on the "
+    "vehicle after the stop (worldSideControlCalls)")
+
+
 def stop_038(sess: Session) -> dict:
+    """The stop clause of REQ-DRIVING-038: "in one further run of SC-DRIVING-012 in which the Eclipse S-CORE path of
+    the driver-assistance system is stopped, no driving command reaches the actuation after the stop"
+    (driver_assistance_needs_requirements.sysml:298; processData of VC-DRIVING-038,
+    driver_assistance_verification_evidence.sysml:406-407). A driving command reaches the actuation of the vehicle
+    by the actuation adapter (A out.ackermann_control) or by a control call of the world side (W
+    worldSideControlCalls); either after the stop gives fail."""
     def fn(run: Run, rec: dict):
         stop = rec["stopInstantMonoNs"]
         outs = run.adapter("out.ackermann_control")
@@ -416,15 +434,24 @@ def stop_038(sess: Session) -> dict:
                   if isinstance(o.get("t_mono_ns"), int) and o["t_mono_ns"] <= stop]
         before = [f for f in before if isinstance(f, int)]
         last = max(before) if before else None
-        ticks = [t for t in run.ticks() if last is None or (isinstance(t.get("frame"), int) and t["frame"] > last)]
+        all_ticks = run.ticks()
+        ticks = [t for t in all_ticks if last is None or (isinstance(t.get("frame"), int) and t["frame"] > last)]
         if not ticks:
             raise MissingEvidence(f"{run.label('world')}: no tick after the last control applied before the stop")
-        if any(not isinstance(t.get("control"), dict) for t in ticks):
-            raise MissingEvidence(f"{run.label('world')}: a tick after the stop without control")
-        changes = sum(1 for t in ticks if t["control"] != ticks[0]["control"])
-        measured = {"controlsAfterStop": len(after), "controlChangesAfterStop": changes,
-                    "lastControlFrameBeforeStop": last, "ticksAfterStop": len(ticks)}
-        return (FAIL if after or changes else PASS), measured
+        if any(not isinstance(t.get("worldSideControlCalls"), int) for t in ticks):
+            raise MissingEvidence(f"{run.label('world')}: a tick after the stop without worldSideControlCalls")
+        # worldSideControlCalls counts the world side's calls since the run began (da_world_side.py:1302): the calls
+        # after the stop are its rise over the last tick up to the last control applied before the stop
+        upto = [t for t in all_ticks if last is not None and isinstance(t.get("frame"), int) and t["frame"] <= last
+                and isinstance(t.get("worldSideControlCalls"), int)]
+        base = upto[-1]["worldSideControlCalls"] if upto else 0
+        calls_after = max(0, max(t["worldSideControlCalls"] for t in ticks) - base)
+        controls = [t["control"] for t in ticks if isinstance(t.get("control"), dict)]
+        changes = sum(1 for c in controls if c != controls[0])
+        measured = {"controlsAfterStop": len(after), "worldSideControlCallsAfterStop": calls_after,
+                    "controlChangesAfterStop": changes, "lastControlFrameBeforeStop": last,
+                    "ticksAfterStop": len(ticks)}
+        return (FAIL if after or calls_after else PASS), measured, [CONTROL_CHANGE_NOTE]
     return _stop_entry(sess, "VC-DRIVING-038", fn)
 
 

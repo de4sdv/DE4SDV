@@ -37,9 +37,15 @@ Each case in `verdicts.json` names its `criteriaRecordIdentity` (the SHA-256 of 
 - A run whose judged window holds a `drop.camera_image` is inconclusive for that case. For 038, 040, 041, 043 and
   044 the window is the whole run. Such a run also reports `measured.withoutDropRule`, the reading with the rule set
   aside, for diagnosis only.
+- The stop clause of VC-DRIVING-038 judges what reaches the actuation after the stop: the actuation adapter's
+  `out.ackermann_control` and the world side's control calls. The control that the world records is the simulator's
+  Ackermann controller output, which changes under a held target; its changes are a note only.
 - VC-DRIVING-044 needs the desk reproduction by another engineer (`reproduction_044.json`, plan lane F2); without it
   the case is inconclusive.
-- A case that reads a run whose evidence record is partial gives inconclusive, never pass; a fail stays a fail.
+- A run whose evidence record is partial gives inconclusive for that run, never pass and never fail (the lead's
+  reading of 2026-11-21). A case's fail stands only when a run that shows it has a complete record; a pass with any
+  partial record read becomes inconclusive. A note names the outcome observed before the rule. The fail of 044's
+  desk reproduction is no run's and stands.
 - A session whose session.json says `rehearsal` true is not judged: the command writes the reason and exits 3.
 
 ## Tests

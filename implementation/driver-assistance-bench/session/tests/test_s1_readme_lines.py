@@ -8,6 +8,9 @@
 - D-S1-3, the owner's decision of 2026-11-21: the judged runs use an on-demand L4. hosts.env's SCORE_EUR_H (0.483)
   is the Spot rate, so the cost watchdog would count about EUR 0.32 an hour low (closure review J8); both judged
   lines give `SCORE_EUR_H=0.806`, the on-demand rate, and the rehearsal (on Spot) gives none.
+- Closure review of 44a4be29..86cadee0, R3: the visualization fetch after s1 (`da-vis`) runs the same on-demand L4,
+  and fetch_chase.sh --role score records SCORE_EUR_H in fetch_visualization.json, so its line gives
+  `SCORE_EUR_H=0.806` as well.
 """
 
 from __future__ import annotations
@@ -49,3 +52,12 @@ def test_the_judged_lines_give_the_on_demand_l4_rate_and_the_rehearsal_lines_non
     assert len(judged) == 2, judged
     assert [ln for ln in judged if not re.search(r"env -i .*\bSCORE_EUR_H=0\.806 .*da_session\.sh", ln)] == []
     assert [ln for ln in lines if "--rehearsal" in ln and "SCORE_EUR_H" in ln] == []
+
+
+def test_the_visualization_fetch_after_s1_gives_the_on_demand_l4_rate() -> None:
+    text = README.read_text(encoding="utf-8")
+    lines = [re.sub(r"\s+", " ", ln.strip()) for b in re.findall(r"```bash\n(.*?)```", text, re.S)
+             for ln in b.replace("\\\n", " ").splitlines() if "fetch_chase.sh --role score " in ln]
+    assert len(lines) == 1, lines
+    assert "--unit=da-vis-$SID" in lines[0], lines
+    assert re.search(r"env -i .*\bSCORE_EUR_H=0\.806 .*fetch_chase\.sh --role score", lines[0]), lines
