@@ -889,7 +889,7 @@ FILLS = (
     # 2 the verdicts
     "VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 a fail of the pinned candidate on this bench in simulation: in "
     "each of the five judged runs of SC-DRIVING-012 the candidate started no warning request and commanded no "
-    "deceleration stronger than 0.533 m/s², and the contact with the stationary target came at the approach speed "
+    "deceleration stronger than 0.46 m/s², and the contact with the stationary target came at the approach speed "
     "(19.7, 40.6, 40.6, 58.6 and 58.6 "
     "km/h); the second run at 20 km/h is not judged, its center line 0.245 m from the target's against a limit of "
     "0.2 m. Of SC-DRIVING-013, the first run at 30 km/h is judged and meets the three criteria, since the candidate "
@@ -919,7 +919,7 @@ FILLS = (
     "SC-DRIVING-013 after 62 ticks at the speed of the target",
     # 6 gapNoSeparateEmergencyFunction
     "VC-DRIVING-036, VC-DRIVING-037 and VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012 the "
-    "candidate commanded no deceleration stronger than 0.533 m/s² before the contact with the stationary target, "
+    "candidate commanded no deceleration stronger than 0.46 m/s² before the contact with the stationary target, "
     "and VC-DRIVING-041 inconclusive by the rule on dropped images",
     # 7 gapWarningOutput
     "VC-DRIVING-042 a fail, since in the five judged runs of SC-DRIVING-012 the candidate started no warning request, "
@@ -1253,9 +1253,10 @@ def test_the_baseline_states_where_the_images_drop_and_no_rate():
     guide = texts["guide"]
     assert (f"Every run drops {start} camera images in the first 5 s after its first image, and for the five "
             "inconclusive cases the judged window is the whole run.") in guide
-    # the guide's verdict table states the commanded deceleration, never "no braking" (the correction of 2026-11-21)
+    # the guide's verdict table states the commanded deceleration, never "no braking" (the correction of 2026-11-21);
+    # over the five judged runs the bound is 0.46 m/s² (test_the_five_judged_runs_of_sc_driving_012_...)
     assert ("| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no "
-            "deceleration stronger than 0.533 m/s²; the contact comes at the approach speed") in GUIDE.read_text(
+            "deceleration stronger than 0.46 m/s²; the contact comes at the approach speed") in GUIDE.read_text(
         encoding="utf-8")
 
 

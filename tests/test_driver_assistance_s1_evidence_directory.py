@@ -245,6 +245,22 @@ def test_the_commanded_deceleration_of_each_run_and_no_run_of_sc_driving_012_str
     assert "beyond 0.53" not in readme and "no braking" not in readme
 
 
+def test_the_five_judged_runs_of_sc_driving_012_command_no_deceleration_stronger_than_0_46():
+    """The texts that speak of the five judged runs of SC-DRIVING-012 bound their commanded deceleration by 0.46
+    m/s², not by 0.533: 0.533 m/s² comes from 012_20_r2, which is not judged. The judged runs are those that
+    VC-DRIVING-036 gives a verdict; their strongest accepted command is 0.459 m/s² to three decimals, so the exact
+    value is below 0.46, and 0.46 is the tightest bound to two decimals."""
+    measured = _json("verdicts.json")["cases"]["VC-DRIVING-036"]["measured"]["runs"]
+    judged = [e["run"] for e in measured
+              if e["setting"].startswith("SC-DRIVING-012@") and e["outcome"] != "inconclusiveMissingEvidence"]
+    assert judged == ["012_20_r1", "012_42_r1", "012_42_r2", "012_60_r1", "012_60_r2"], judged
+    runs = _json("commanded_deceleration.json")["runs"]
+    strongest = max(runs[run]["strongestDecelerationMps2"] for run in judged)
+    assert strongest + 0.0005 < 0.46, f"{strongest}: three decimals bound the exact value by half a unit"
+    assert strongest - 0.0005 > 0.45, f"{strongest}: 0.45 would not be a bound, so 0.46 is the tightest"
+    assert runs["012_20_r2"]["strongestDecelerationMps2"] > 0.46, "0.533 holds over all six runs only"
+
+
 def test_the_commanded_decelerations_of_each_run_of_sc_driving_012_would_take_at_most_2_4_kmh_off_its_speed():
     """The deceleration calibration decision of 2026-11-21, as corrected: REQ-DRIVING-037 judges the impact speed, so
     the fails do not rest on the commanded values alone. The commanded decelerations of each run of SC-DRIVING-012,

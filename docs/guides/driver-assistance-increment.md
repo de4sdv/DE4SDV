@@ -1102,7 +1102,7 @@ framing view shows the decision beside the framing decision it answers.
 
 | Case | Verdict | What S1 shows |
 | --- | --- | --- |
-| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no deceleration stronger than 0.533 m/s²; the contact comes at the approach speed (19.7, 40.6, 40.6, 58.6 and 58.6 km/h). |
+| VC-DRIVING-036 | fail | In the five judged runs of SC-DRIVING-012 the candidate commands no deceleration stronger than 0.46 m/s²; the contact comes at the approach speed (19.7, 40.6, 40.6, 58.6 and 58.6 km/h). |
 | VC-DRIVING-037 | fail | The same runs: the speed at the contact is the approach speed. |
 | VC-DRIVING-038 | inconclusive | No run is judged by the rule on dropped images. Its stop clause is inconclusive by the same rule: 32 dropped images fall inside its judged window, from 2855.010 s to 2897.010 s, and the stop came at about 2871.06 s, so about 26 s of ticks follow it. |
 | VC-DRIVING-039 | pass | A desk analysis of the realization: a loss shows only when a later command arrives, and a delay of up to 0.1 s of simulation time goes unseen. |
