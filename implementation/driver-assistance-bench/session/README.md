@@ -705,6 +705,11 @@ An `s1` session runs as `p10-2` does, with `--permissive-ivi` and `--camcal sett
 runs), and `--candidate pin` unless the lead names `pr427`. Its run list is the committed `s1_runs.tsv`; its
 cap is EUR 8.00 (`CAP_EUR_S1`). After it, the chase videos are fetched with the simulator host alone.
 
+The judged runs use an on-demand L4 (the owner's decision D-S1-3 of 2026-11-21): switch the S-CORE host's
+provisioning model to on-demand while it is TERMINATED, before the session. Both `s1` lines give `SCORE_EUR_H=0.806`,
+the on-demand rate of g2-standard-8 in europe-west4; hosts.env's 0.483 is the Spot rate, which would make the cost
+watchdog count about EUR 0.32 an hour low (closure review of 44a4be29, J8). The rehearsal runs on Spot and gives none.
+
 A run whose go would come more than `GO_LIMIT_S` (380 s) after its S-CORE start ends the whole session. The
 session logs `INVALID RUN <run>` and exits 5 with `failed_step` `world_<run>`; the runs not yet done need a new
 session. The step bounds between the S-CORE start and the go add up to far more than 380 s, while attempt 3 of
@@ -715,17 +720,18 @@ C=FULL_SHA_OF_THE_COMMIT_UNDER_TEST      # replace: the integration commit under
 # --permissive-ivi, --camcal settings: as for p10-2 (the lead's decisions of 2026-11-19); every result is conditional
 # on a permissive IVI. --candidate pin is the default; --candidate pr427 runs the second candidate's bundle
 # --ackermann-gains v1: the owner's decision D-S1-2 of 2026-11-21 (the v1 gains for the judged runs)
+# SCORE_EUR_H=0.806: the on-demand L4 of D-S1-3 (hosts.env's 0.483 is the Spot rate)
 cd /home/mrk/de4sdv-worktrees/p10-$C || exit 1
 S=implementation/driver-assistance-bench/session
 D=$HOME/.hermes/cache/scratch/b13-dry-$(date -u +%H%M%S); mkdir -p "$D"
 env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin FAKE_DIR="$D" DA_GCLOUD="$PWD/$S/tests/fake_gcloud.py" \
-  DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" \
+  DA_MAKE_H="$PWD/$S/tests/stubs/make_h.sh" SCORE_EUR_H=0.806 \
   bash $S/da_session.sh --kind s1 --owner-ok-guest-host --permissive-ivi --camcal settings --ackermann-gains v1 --dry-run --evidence-root "$D/ev"; echo "dry run rc=$?"
 SID=$(date -u +%Y%m%dT%H%M%SZ)
 systemd-run --user --unit=da-session-$SID --collect --working-directory="$PWD" \
   -p KillMode=mixed -p TimeoutStopSec=infinity -p SendSIGHUP=no \
   -p StandardOutput=append:$HOME/s1-$SID.out -p StandardError=append:$HOME/s1-$SID.out \
-  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin \
+  /usr/bin/env -i HOME="$HOME" USER="$USER" PATH=/usr/bin:/bin SCORE_EUR_H=0.806 \
   /bin/bash $S/da_session.sh --kind s1 --owner-ok-guest-host --permissive-ivi --camcal settings --ackermann-gains v1 --session-id "$SID"
 # end it early: systemctl --user kill --kill-who=main -s TERM da-session-$SID   (never kill -9)
 # after it, once session.json is written and da-session-$SID is inactive: the chase videos, the simulator host alone
@@ -919,8 +925,8 @@ Expected lengths are PLAN's for each probe; prices from `hosts.env` (Spot, europ
 | `p10-1` | G4 1.887 + L4 0.483 | about 45 min (an estimate from the steps, not yet measured: the starts, both uploads, the CARLA start, the warm-up, the check about 10 min, the fetch and the stops) | about EUR 1.80 | EUR 3.50 (1.5 h), approved by the owner on 2026-11-19 |
 | `p10-3` | L4 0.483 + guest host 0.271 | about 3 h | about EUR 2.26 | EUR 3.50 (4.6 h) |
 | `p10-2` | G4 1.887 + L4 0.483 + guest host 0.271 | about 1.5 h | about EUR 3.96 | EUR 6.00 (2.3 h) |
-| `s1` | G4 1.887 + L4 0.483 + guest host 0.271 | about 2.0 h: 22 min to the first run, 14 runs of 5.5-6 min (about 82 min), the stop run about 7 min (its cap 42 s), the fetch and the stops about 6 min | about EUR 5.30 (+0.65 with an on-demand L4) | EUR 8.00 (3.0 h) |
-| `fetch_chase.sh --role score` after `s1` | L4 0.483 | about 20 min of ranges for about 1 GB of visualization videos, plus about 4 min of start and stop | about EUR 0.20 | none: bounded as the chase fetch |
+| `s1` | G4 1.887 + L4 0.806 (on-demand, D-S1-3) + guest host 0.271 | about 2.0 h: 22 min to the first run, 14 runs of 5.5-6 min (about 82 min), the stop run about 7 min (its cap 42 s), the fetch and the stops about 6 min | about EUR 5.90 (about EUR 5.30 with the L4 on Spot) | EUR 8.00 (2.7 h) |
+| `fetch_chase.sh --role score` after `s1` | L4 0.806 (on-demand, as in the `s1` it follows) | about 20 min of ranges for about 1 GB of visualization videos, plus about 4 min of start and stop | about EUR 0.32 | none: bounded as the chase fetch |
 | `fetch_chase.sh` after `s1` | G4 1.887 | 37-43 min of ranges for about 2.2 GB at 1.03 MB/s, plus about 4 min of start and stop | EUR 1.3-1.5 | none: bounded by 120 s plus the bytes at 0.5 MB/s, its safety net 15 min after that |
 
 The `s1` figures are those of the S1 build plan (section 4), from the times of 20261120T092051Z (attempt 3: 22 min from the
