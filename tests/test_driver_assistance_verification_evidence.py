@@ -538,7 +538,8 @@ def test_the_model_text_is_what_the_generator_writes_from_the_evidence_directory
     generator = _generator()
     text = SLICE.read_text(encoding="utf-8")
     result = generator.generate(text, _evidence("verdicts.json"), _evidence("records.json"),
-                                _evidence("analysis_039.generator.json"), repo=ROOT, model_path=SLICE)
+                                _evidence("analysis_039.generator.json"), repo=ROOT, model_path=SLICE,
+                                evidence_dir=EVIDENCE)
     assert result.text == text, ("the slice differs from what the generator writes from the evidence directory: "
                                  "run tools/refresh_driver_assistance_s1_evidence.py")
 

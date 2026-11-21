@@ -13,6 +13,10 @@ session. ``analysis_039.json`` is the desk analysis of REQ-DRIVING-039: the six 
 of ``RetainedCommandFormAnalysis``, an ``outcome`` (a literal of
 ``AssistanceEvidenceOutcome``) and optionally a ``reason``.
 
+The Ackermann gains that VC-DRIVING-036 and VC-DRIVING-037 record are named by identity: their requested name,
+``ackermann_gains.json`` of the evidence directory (the directory of ``--verdicts``, which the refresh tool writes)
+and its SHA-256; the generator refuses when that file is missing or holds other bytes.
+
 The script patches
 ``textual-notation-of-model/packages/features/driving/driver_assistance_verification_evidence.sysml``
 in place and changes nothing else in the package:
@@ -42,6 +46,7 @@ file is not what the inputs give.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -509,7 +514,40 @@ def gains_text(found) -> str:
     return "; ".join(f"{g.get('file')} {g.get('key')} = {json.dumps(g.get('value'))}" for g in found)
 
 
-def case_values_text(measured: dict) -> str:
+#: the file of the evidence directory that holds the Ackermann gains the cases record (the correction of 2026-11-21)
+GAINS_FILE = "ackermann_gains.json"
+
+
+def gains_recorded(gains) -> bool:
+    """Whether a case's ackermannGains holds a record (a list of requested entries), not 'unrecorded'."""
+    return isinstance(gains, dict) and isinstance(gains.get("requested"), list)
+
+
+def gains_record(gains: dict) -> bytes:
+    """The bytes of ackermann_gains.json for a case's ackermannGains: the record the refresh writes and the case
+    docs name by its SHA-256."""
+    return (json.dumps(gains, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def gains_identity(gains: dict, evidence_dir: Path | None) -> str:
+    """The gains by identity: the requested names, the file of the evidence directory and its SHA-256; refused
+    when the file is missing or its bytes are not this record."""
+    names = sorted({str(e.get("value")) for e in gains["requested"] if isinstance(e, dict)})
+    if not names:
+        raise InputError("ackermannGains names no requested gains")
+    path = Path(evidence_dir) / GAINS_FILE if evidence_dir is not None else None
+    if path is None or not path.is_file():
+        raise InputError(f"no {GAINS_FILE} in the evidence directory ({evidence_dir}): run "
+                         "tools/refresh_driver_assistance_s1_evidence.py")
+    data = path.read_bytes()
+    if data != gains_record(gains):
+        raise InputError(f"{path}: {GAINS_FILE} is not the ackermannGains that the verdicts hold: run "
+                         "tools/refresh_driver_assistance_s1_evidence.py")
+    return (f"{' and '.join(names)} ({GAINS_FILE} of the evidence directory, sha256 "
+            f"{hashlib.sha256(data).hexdigest()})")
+
+
+def case_values_text(measured: dict, evidence_dir: Path | None = None) -> str:
     parts = []
     if "calibrationDecel" in measured:
         c = measured["calibrationDecel"]
@@ -522,8 +560,11 @@ def case_values_text(measured: dict) -> str:
                          f"allFollowWithinProposal {json.dumps(c.get('allFollowWithinProposal'))} ({c.get('file')})")
     if "ackermannGains" in measured:
         g = measured["ackermannGains"] or {}
-        parts.append(f"ackermannGains requested {gains_text(g.get('requested'))}, "
-                     f"readBack {gains_text(g.get('readBack'))}")
+        if gains_recorded(g):
+            parts.append(f"ackermannGains {gains_identity(g, evidence_dir)}")
+        else:
+            parts.append(f"ackermannGains requested {gains_text(g.get('requested'))}, "
+                         f"readBack {gains_text(g.get('readBack'))}")
     desk = measured.get("desk")
     if isinstance(desk, dict):
         parts.append("desk reproduction valuesMatch " + number(desk["valuesMatch"])
@@ -586,7 +627,8 @@ def analysis_usage(model: Model, analysis: dict, identity: str) -> list[str]:
     return lines + ["  }"]
 
 
-def case_status(model: Model, vc: str, case: dict, verdicts: dict, infos: dict, identities: dict) -> str:
+def case_status(model: Model, vc: str, case: dict, verdicts: dict, infos: dict, identities: dict,
+                evidence_dir: Path | None = None) -> str:
     measured = case.get("measured") or {}
     text = (f"{STATUS_START}{case['outcome']}; verdict: {case['verdict']}. Judged from the S1 session "
             f"{verdicts['sessionId']} by the case evaluators, with criteriaRecordIdentity "
@@ -605,7 +647,7 @@ def case_status(model: Model, vc: str, case: dict, verdicts: dict, infos: dict, 
     if isinstance(stop, dict) and stop.get("run"):
         text += f"; and, for the stop clause, {entry(stop)}"
     text += "."
-    values = case_values_text(measured)
+    values = case_values_text(measured, evidence_dir)
     if values:
         text += f" Values of the case: {values}."
     if case["verdict"] in ("inconclusive", "error"):
@@ -651,7 +693,7 @@ def patch_case_doc(text: str, vc: str, status: str) -> str:
 
 # ---------------------------------------------------------------- the whole
 def generate(model_text: str, verdicts: dict, records: dict, analysis: dict | None, repo: Path = REPO,
-             model_path: Path | None = None) -> Result:
+             model_path: Path | None = None, evidence_dir: Path | None = None) -> Result:
     model = read_model(model_text)
     infos = validate(model, verdicts, records, analysis)
     kept = existing_identities(model_text)
@@ -676,7 +718,7 @@ def generate(model_text: str, verdicts: dict, records: dict, analysis: dict | No
                 text = patch_case_doc(text, vc, analysis_status(model, analysis, identities[ANALYSIS_NAME]))
             continue
         text = patch_case_doc(text, vc, case_status(model, vc, verdicts["cases"][vc], verdicts, by_label,
-                                                    identities))
+                                                    identities, evidence_dir))
     if code_tokens(remove_generated(text)) != code_tokens(base):
         raise InputError("internal: the code outside the record usages changed")
     return Result(text, identities, report)
@@ -705,7 +747,8 @@ def main(argv=None) -> int:
     old = a.model.read_text(encoding="utf-8")
     try:
         result = generate(old, load(a.verdicts), load(a.records),
-                          load(a.analysis_039) if a.analysis_039 else None, repo=a.repo, model_path=a.model)
+                          load(a.analysis_039) if a.analysis_039 else None, repo=a.repo, model_path=a.model,
+                          evidence_dir=a.verdicts.parent)
     except InputError as exc:
         print(f"refused: {exc}", file=sys.stderr)
         return 3

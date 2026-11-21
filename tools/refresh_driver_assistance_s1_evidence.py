@@ -15,6 +15,8 @@ desk record or the fetched session tree, and then the model text that the eviden
   world side's files of the run: in the first 5 s after its first image, at the end of its image stream and in
   between, the run's end, the drops of its whole-run window, and the warm start that the run's Launch Manager
   log records;
+- ``ackermann_gains.json``, the Ackermann gains that VC-DRIVING-036 and VC-DRIVING-037 record, which the
+  generator names by identity instead of copying them into the model;
 - ``commanded_deceleration.json``, the strongest deceleration among the driving commands that the actuation adapter
   of each run accepted;
 - ``SHA256SUMS``, the SHA-256 of every file of the session tree, by its path relative to the tree, and
@@ -30,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import re
 import shutil
@@ -185,6 +188,29 @@ def commanded_deceleration(tree: Path) -> dict:
     return found
 
 
+def _generator():
+    """The evidence generator as a module, for the bytes of the gains file it names."""
+    spec = importlib.util.spec_from_file_location("generate_driver_assistance_evidence_text", GENERATOR)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault(spec.name, module)
+    spec.loader.exec_module(module)
+    return module
+
+
+def gains_file(verdicts: dict) -> bytes | None:
+    """The bytes of ackermann_gains.json: the Ackermann gains that the cases record, in the generator's form; None
+    when no case records gains; refused when two cases record different gains."""
+    generator = _generator()
+    found = {}
+    for vc, case in sorted(verdicts["cases"].items()):
+        gains = (case.get("measured") or {}).get("ackermannGains")
+        if generator.gains_recorded(gains):
+            found[vc] = generator.gains_record(gains)
+    if len(set(found.values())) > 1:
+        raise ValueError(f"the cases {', '.join(found)} record different ackermannGains")
+    return next(iter(found.values()), None)
+
+
 def sha256sums(tree: Path) -> str:
     """``sha256sum``'s format over every file of the tree, by relative path, sorted."""
     lines = []
@@ -314,6 +340,13 @@ def main(argv: list[str] | None = None) -> int:
     _write(out / "external-media.json",
            (json.dumps(media_manifest(args.session_tree), indent=2) + "\n").encode("utf-8"))
     verdicts = json.loads((out / "verdicts.json").read_text(encoding="utf-8"))
+    try:
+        gains = gains_file(verdicts)
+    except ValueError as exc:
+        print(f"refused: ackermann_gains.json: {exc}", file=sys.stderr)
+        return 3
+    if gains is not None:
+        _write(out / "ackermann_gains.json", gains)
     try:
         text = replace_marked(readme.read_text(encoding="utf-8"), verdict_table(verdicts, reduced))
     except ValueError as exc:

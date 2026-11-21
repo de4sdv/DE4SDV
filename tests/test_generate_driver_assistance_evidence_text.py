@@ -32,6 +32,7 @@ greps `tests/` for them.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import re
 import subprocess
@@ -704,3 +705,65 @@ def test_the_command_line_patches_the_file_and_check_reports_a_stale_file(tmp_pa
     refused = subprocess.run(cmd[:4] + [str(FIX / "rehearsal.verdicts.json")] + cmd[5:], capture_output=True,
                              text=True, cwd=REPO)
     assert refused.returncode == 3 and "rehearsal" in refused.stderr
+
+# ---------------------------------------------------------------- the Ackermann gains, by identity
+GAINS = {"requested": [{"file": "session.json", "key": "ackermann_gains", "value": "v1"},
+                       {"file": "session.json", "key": "score_runs.stop.ackermann_gains", "value": "v1"}],
+         "readBack": [{"file": "sim/out/world_stop/simulator/setting_record.json", "key": "ackermannGains",
+                       "value": {"requested": "v1", "values": {"speed_kp": 0.3, "accel_kp": 0.1},
+                                 "spawns": [{"actorId": 7, "readBackEqual": True}]}}]}
+
+
+def _with_gains(tmp_path: Path, write: bool = True) -> tuple[dict, dict, Path]:
+    verdicts, records = session()
+    for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
+        verdicts["cases"][vc]["measured"]["ackermannGains"] = json.loads(json.dumps(GAINS))
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    if write:
+        (evidence / "ackermann_gains.json").write_bytes(gen.gains_record(GAINS))
+    return verdicts, records, evidence
+
+
+def test_recorded_gains_are_named_by_identity_and_never_inlined(tmp_path):
+    """The correction of 2026-11-21: the case docs name the Ackermann gains by their name, the file of the evidence
+    directory that holds them and its SHA-256, instead of copying the gains record into the doc."""
+    verdicts, records, evidence = _with_gains(tmp_path)
+    text = gen.generate(base_text(), verdicts, records, None, repo=empty_repo(tmp_path), evidence_dir=evidence).text
+    digest = hashlib.sha256((evidence / "ackermann_gains.json").read_bytes()).hexdigest()
+    assert gen.gains_record(GAINS) == (json.dumps(GAINS, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+    for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
+        status = paragraphs(doc_of(case_block(text, vc)))[0]
+        assert (f"ackermannGains v1 (ackermann_gains.json of the evidence directory, sha256 {digest})") in status, vc
+        for inlined in ("speed_kp", "readBack", "setting_record.json", "actorId"):
+            assert inlined not in status, (vc, inlined)
+
+
+def test_gains_without_their_file_or_with_other_bytes_are_refused(tmp_path):
+    """The identity binds the bytes: no file, or a file whose bytes are not the gains the verdicts hold, is refused
+    by name, and nothing is generated."""
+    verdicts, records, evidence = _with_gains(tmp_path, write=False)
+    with pytest.raises(gen.InputError, match="ackermann_gains.json"):
+        gen.generate(base_text(), verdicts, records, None, repo=empty_repo(tmp_path), evidence_dir=evidence)
+    with pytest.raises(gen.InputError, match="ackermann_gains.json"):
+        gen.generate(base_text(), verdicts, records, None, repo=empty_repo(tmp_path), evidence_dir=None)
+    edited = json.loads(json.dumps(GAINS))
+    edited["readBack"][0]["value"]["values"]["speed_kp"] = 0.4
+    (evidence / "ackermann_gains.json").write_bytes(gen.gains_record(edited))
+    with pytest.raises(gen.InputError, match="ackermann_gains.json"):
+        gen.generate(base_text(), verdicts, records, None, repo=empty_repo(tmp_path), evidence_dir=evidence)
+
+
+def test_the_command_line_reads_the_gains_file_beside_the_verdicts(tmp_path):
+    verdicts, records, evidence = _with_gains(tmp_path)
+    v, r, model = evidence / "verdicts.json", evidence / "records.json", tmp_path / MODEL.name
+    v.write_text(json.dumps(verdicts))
+    r.write_text(json.dumps(records))
+    model.write_text(base_text(), encoding="utf-8")
+    cmd = [sys.executable, "-B", str(TOOL), "--verdicts", str(v), "--records", str(r), "--model", str(model),
+           "--repo", str(empty_repo(tmp_path))]
+    done = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO)
+    assert done.returncode == 0, done.stdout + done.stderr
+    flat = " ".join(re.sub(r"(?m)^\s*\*\s?", "", model.read_text(encoding="utf-8")).split())
+    assert "ackermannGains v1 (ackermann_gains.json of the evidence directory, sha256 " in flat
+

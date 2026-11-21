@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -284,3 +285,28 @@ def test_the_refresh_writes_every_derived_file_of_the_evidence_directory(tmp_pat
                       str(reproduction), "--session-tree", str(tree), "--evidence-dir", str(evidence),
                       "--no-generate"]) == 0
     assert {p.name: p.read_bytes() for p in evidence.iterdir()} == before
+
+
+def test_the_refresh_writes_the_gains_file_that_the_generator_names(tmp_path):
+    """The correction of 2026-11-21: the Ackermann gains of VC-DRIVING-036 and VC-DRIVING-037 go to
+    ackermann_gains.json of the evidence directory, in the generator's own bytes, so that the case docs name them by
+    identity; cases that disagree on the gains are refused."""
+    tool = _tool()
+    spec = importlib.util.spec_from_file_location("gen_s1", ROOT / "tools" / "generate_driver_assistance_evidence_text.py")
+    gen = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = gen     # the generator's dataclasses look their module up
+    spec.loader.exec_module(gen)
+    gains = {"requested": [{"file": "session.json", "key": "ackermann_gains", "value": "v1"}], "readBack": []}
+    verdicts = _verdicts()
+    for vc in ("VC-DRIVING-036", "VC-DRIVING-037"):
+        verdicts["cases"][vc]["measured"]["ackermannGains"] = gains
+    assert tool.gains_file(verdicts) == gen.gains_record(gains)
+    verdicts["cases"]["VC-DRIVING-037"]["measured"]["ackermannGains"] = {"requested": "unrecorded",
+                                                                         "readBack": "unrecorded"}
+    assert tool.gains_file(verdicts) == gen.gains_record(gains), "an unrecorded case holds no gains to compare"
+    assert tool.gains_file(_verdicts()) is None, "no case records gains: no file"
+    verdicts["cases"]["VC-DRIVING-037"]["measured"]["ackermannGains"] = {"requested": [], "readBack": []}
+    with pytest.raises(ValueError, match="ackermannGains"):
+        tool.gains_file(verdicts)
+

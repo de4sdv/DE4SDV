@@ -19,8 +19,8 @@ ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "implementation" / "driver-assistance-bench" / "evidence" / "s1-20261121T014447Z"
 TOOL = ROOT / "tools" / "refresh_driver_assistance_s1_evidence.py"
 SESSION = "20261121T014447Z"
-FILES = ["README.md", "SHA256SUMS", "VIDEO-EVIDENCE-DISPOSITION.md", "analysis_039.generator.json",
-         "analysis_039.json", "commanded_deceleration.json", "drop_counts.json", "external-media.json", "records.json", "reproduction_044.json",
+FILES = ["README.md", "SHA256SUMS", "VIDEO-EVIDENCE-DISPOSITION.md", "ackermann_gains.json",
+         "analysis_039.generator.json", "analysis_039.json", "commanded_deceleration.json", "drop_counts.json", "external-media.json", "records.json", "reproduction_044.json",
          "scenario_digests.json", "session.json", "verdicts.json"]
 #: the runs of S1 whose score-interface record the drop counts read: the fourteen judged runs, the run that stops
 #: the path and the steering calibration run
@@ -243,4 +243,19 @@ def test_the_readme_records_the_open_bench_item_b_1():
                    "It is not fixed for S1: a fix would change a file that ran in S1 and void the condition of "
                    "record. It is open for the next session (GAP-DRIVING-014)."):
         assert phrase in readme, phrase
+
+
+def test_the_gains_file_holds_the_gains_of_the_verdicts_and_the_slice_names_it_by_identity():
+    """The correction of 2026-11-21: ackermann_gains.json holds the Ackermann gains that the verdicts of
+    VC-DRIVING-036 and VC-DRIVING-037 record, in the bytes the refresh writes, and the slice names it by name, file
+    and SHA-256 instead of inlining the record."""
+    data = (EVIDENCE / "ackermann_gains.json").read_bytes()
+    assert data == _tool().gains_file(_json("verdicts.json"))
+    slice_text = " ".join(re.sub(r"(?m)^\s*\*\s?", "", (ROOT / "textual-notation-of-model" / "packages" / "features"
+                                                        / "driving" / "driver_assistance_verification_evidence.sysml")
+                                 .read_text(encoding="utf-8")).split())
+    identity = (f"ackermannGains v1 (ackermann_gains.json of the evidence directory, sha256 "
+                f"{hashlib.sha256(data).hexdigest()})")
+    assert slice_text.count(identity) == 2, "the docs of VC-DRIVING-036 and VC-DRIVING-037"
+    assert '"speed_kp"' not in slice_text and "readBackEqual" not in slice_text
 
