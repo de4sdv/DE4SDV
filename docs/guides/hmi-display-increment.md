@@ -11,14 +11,14 @@ the owner decided on 2026-11-17 to use it for the speed and the warning. This
 increment asks whether the HMI display of the VisionPilot configuration can do
 both, and holds what it shows against what the application gives.
 
-**Status: Phase 0 framing proposal.** No implementation, run, result,
-product-line admission or compliance is claimed.
+**Status: Phase 0 framing and Phase 1 concerns, proposal.** No implementation,
+run, result, product-line admission or compliance is claimed.
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/hmi/hmi_display_framing.sysml):
-  `INC-HMI-001`, its engineering question, charter, scope, assumptions and
-  open gaps.
+  `INC-HMI-001`, its engineering question, charter, scope, assumptions,
+  open gaps and Phase 1 concerns.
 - [Syside framing review view](../../textual-notation-of-model/packages/features/hmi/VIEWS.md):
   the generated model review artifact, not a runtime architecture claim.
 - [Upstream provenance](../../textual-notation-of-model/packages/features/hmi/upstream.md)
@@ -74,6 +74,78 @@ those requirements from the needs of Phase 4 and from the product line's
 requirements on the collision warning and on the indication of the AEBS status
 in the
 [AEBS requirements](../../textual-notation-of-model/packages/features/aebs/aebs_needs_requirements.sysml).
+
+## Concerns (Phase 1)
+
+A verdict is only useful if it answers the questions of the people who rely on
+it. Phase 1 names those questions: one concern per question of the in-scope
+items, held by the parties whose interest it states. The driver, a vehicle
+occupant, holds the operational concern beside the engineering roles. Each
+concern is typed by the SAF concern that asks its question, the product-line
+question by the method's classification concern, and its text names the view
+of a later phase that answers it. The framing viewpoint frames all nine until
+those views exist.
+
+- **What the driver sees:** `hmiDriverSupervisionConcern`. What the driving
+  application perceives, its lane, the path it fits to that lane and the
+  objects it detects, beside the speed; the collision warning on the display
+  and as a sound; and the speed and the warning, or the fact that the warning
+  is unavailable, also while Android in the IVI VM hangs, boots or restarts. No
+  human-factors, safety or on-road claim follows from it. Operational
+  capability; vehicle occupants. Answered by the operational story of Phase 2.
+- **What the display takes in:** `hmiDisplayInputsConcern`. The items that
+  cross into the display: the candidate's lane, its path, its detections with
+  their level relative to the path, the closest object with its fused distance
+  and speed, the vehicle speed, and the candidate's warning request, each as
+  its source gives it. The display takes no object that the candidate does not
+  give: neither the simulator's own record of the scene nor an estimate of its
+  own. System context exchange; systems engineers and safety experts. Answered
+  by the system process of Phase 6.
+- **Common or derived content:** `hmiContentVarianceConcern`. Which content of
+  the display is common to the member products and which derives from a
+  member's driving application. The scenes of the other driving applications
+  are out of scope. Product-line capability classification; product-line
+  engineers. Answered by the product-line classification view of Phase 3.
+- **The warning's sequence:** `hmiWarningSequenceConcern`. The sequence from
+  the warning request to the warning on the display and to its sound, and the
+  time of each step within the time that the driver-assistance increment
+  allots, independent of the elements that realize it. The warning request is
+  taken as the driver-assistance increment defines it. System process; safety
+  experts and systems engineers. Answered by the system process of Phase 6.
+- **Late and missing content:** `hmiContentCurrencyConcern`. The states of each
+  element, current, late or missing, and of the warning, unavailable, and what
+  the display shows in each. No element is shown as current when it is not:
+  late data is never shown as live. System state; safety experts and
+  verification engineers. Answered by the system state of Phase 6.
+- **Outages of the scene's drawing:** `hmiAndroidOutageConcern`. The sequence
+  from a hang or an end of the drawing of the scene, and from the environment
+  that hosts it hanging, booting or restarting, to its detection and to what
+  the display shows then: the speed and the warning, or the fact that the
+  warning is unavailable. Phase 6 treats each outage as an event of an element
+  inside the display's boundary. It rests on N-AEBS-008 and REQ-AEBS-013. No
+  safety argument follows from it. System process; safety experts and systems
+  engineers. Answered by the system process of Phase 6.
+- **Which renderer draws what:** `hmiRendererAllocationConcern`. The high
+  availability renderer draws the speed, the warning and its sound, and an app
+  in the IVI VM the scene. The split rests on what the driver sees while
+  Android in the IVI VM hangs, boots or restarts, not on an end of the app that
+  draws the scene. Drawing an element with the renderer is no safety approval
+  of that element. Physical functional mapping; product-line engineers and
+  safety experts. Answered by the physical-logical mapping of Phase 8.
+- **The paths to the renderers:** `hmiRendererPathConcern`. Which elements
+  exchange each input on its way from the SDV Core VM to the renderer in the
+  SDV Media VM and to the app in the IVI VM, and how that app tells the
+  renderer that Android is alive. Physical internal exchange; system architects
+  and systems engineers. Answered by the view of the claimed path in Phase 8.
+- **Verdicts:** `hmiDisplayVerdictConcern`. A pass or a fail for each
+  requirement and scenario, bound to the candidate revision, the display build
+  and the configuration that ran. A recording of a display that looks right is
+  no verdict. Argumentation assurance; product-line engineers and verification
+  engineers. Answered in Phase 10.
+
+The Phase 1 gates check that each concern has native stakeholders and a frame,
+and that one concern is not the boundary concern. They do not judge whether
+the stakeholder, risk and viewpoint coverage is adequate; review does.
 
 ## What the framing already records as open
 
@@ -153,13 +225,16 @@ ASIL certification, and this increment certifies nothing.
 ## Next obligation and execution limits
 
 Use the Method Check of the reviewed pull request to select the next
-obligation, not the phase number alone. The framing's boundary concern does
-not open Phase 1. The next model obligation is **Phase 1 concern framing**: at
-least one concern of the engineering scope, held by the parties whose interest
-it states. The owner decided on 2026-11-17 that Phase 1 starts after Phase 10 of
-the driver-assistance increment, and that the readiness probe of the high
-availability renderer runs when the build host is free, with its cost put to
-him first.
+obligation, not the phase number alone. The next model obligation is **Phase
+2**, the operational context: exactly one context holding the HMI display,
+with a story whose use cases bind it and the context actors. Phase 2 draws the
+boundary that Phase 0 states. On 2026-11-21 the owner decided that the
+increment goes on without waiting for Phase 10 of the driver-assistance
+increment. Phase 3 and later phases wait for the revision of the governed
+scope, which waits for the baseline of the driver-assistance increment, so
+that it does not move the product-line receipt to which the configuration of
+that increment is bound. On 2026-11-17 the owner decided that the readiness
+probe of the high availability renderer runs with its cost put to him first.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh

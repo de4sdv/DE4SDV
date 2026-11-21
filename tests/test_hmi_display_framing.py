@@ -1,9 +1,9 @@
 """Content pins for the framing of the HMI display increment, not semantic validation.
 
-The framing of INC-HMI-001 is Phase 0 only. These tests hold its structure to the method's
-Phase 0 shape, pin each decided statement by its own phrase, and hold the guide, the folder's
-upstream record and the rows that name the increment elsewhere to the model. They read the model
-text; they do not parse SysML.
+The framing of INC-HMI-001 holds Phase 0 and the Phase 1 concerns. These tests hold its structure
+to the method's Phase 0 and Phase 1 shapes, pin each decided statement by its own phrase, and hold
+the guide, the folder's upstream record and the rows that name the increment elsewhere to the model.
+They read the model text; they do not parse SysML.
 
 What they do not hold: a sentence that no pin names can change inside a doc of the model or
 inside the record, and a report of a run in words that the scan for past behavior does not list
@@ -17,6 +17,8 @@ import sys
 from pathlib import Path
 
 from sysml_shapes import braced_body, strip_comments
+from test_saf_domains import SAF_FILE, _domains
+from test_views_per_phase import _canonical_list
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -34,6 +36,8 @@ DRIVING_REALIZATION = FEATURES / "driving/driver_assistance_physical_software_re
 MIDDLEWARE_FRAMING = FEATURES / "middleware/middleware_score_framing.sysml"
 ADR_0025 = ROOT / "docs/architecture-decisions/0025-end-someip-in-an-sdv-core-vm.md"
 AEBS_REQUIREMENTS = FEATURES / "aebs/aebs_needs_requirements.sysml"
+DE4SDV_CATALOGUE = ROOT / \
+    "textual-notation-of-model/packages/methods/de4sdv/de4sdv_method_concerns_and_viewpoints.sysml"
 GUIDE = ROOT / "docs/guides/hmi-display-increment.md"
 INDEX = ROOT / "UPSTREAM.md"
 GLOSSARY = ROOT / "docs/terminology/glossary.md"
@@ -136,6 +140,157 @@ OPEN_POINTS = {
     "gapHmiDisplayInProductLine": "The HMI display's place in the product line",
     "gapHmiUpstreamContact": "No upstream contact",
 }
+#: Phase 1: concern -> (its concern definition, the in-scope items its doc names first, the part of them it asks
+#: about or None, its native stakeholders in order, the sentences that state its question, and the views that answer
+#: it as (phase, viewpoint definition) pairs, read from the doc's answer). One concern per question; a concern is held
+#: by the parties whose interest it states, not only by the roles that check it.
+PHASE1_CONCERNS = {
+    "hmiDriverSupervisionConcern": (
+        "OperationalCapabilityConcern",
+        ("hmiSceneInScope", "hmiSpeedInScope", "hmiCollisionWarningInScope", "hmiAndroidOutageInScope"), "operational",
+        [("occupant", "VehicleOccupant")],
+        ("The driver, a vehicle occupant, needs to see on the HMI display what the driving application perceives, its "
+         "lane, the path it fits to that lane and the objects it detects, beside the vehicle speed, to get a warning "
+         "of an imminent collision on the display and as a sound, and to see the speed and the warning, or the fact "
+         "that the warning is unavailable, also while Android in the IVI VM hangs, boots or restarts.",
+         "It states what the driver expects to see, not how a driver reads it: no human-factors, safety or on-road "
+         "claim follows from it."),
+        ((2, "OperationalStoryViewpoint"),)),
+    "hmiDisplayInputsConcern": (
+        "SystemContextExchangeConcern", ("hmiSceneInScope", "hmiSpeedInScope", "hmiCollisionWarningInScope"), None,
+        [("systemsEngineer", "SystemsEngineer"), ("safetyExpert", "SafetyExpert")],
+        ("Systems engineers and safety experts need to see which items cross into the HMI display from outside its "
+         "boundary: the lane of the candidate application, the path it fits to that lane, the objects it detects with "
+         "their level relative to its path, the closest object in its path with the distance and the speed that its "
+         "fusion gives, the vehicle speed that the candidate is given, and the candidate's warning request.",
+         "Each item reaches the display as its source gives it.",
+         "The display takes no object that the candidate does not give: neither the simulator's own record of the "
+         "scene nor an estimate of its own (hmiSimulatorTruthOutOfScope), so it shows what the candidate perceives, "
+         "right or wrong.",
+         "Whether the scene can leave the candidate's process is open (gapHmiSceneOutput), and what the scene carries "
+         "bounds what the display can show of it (gapHmiSceneContent)."),
+        ((6, "SystemProcessViewpoint"),)),
+    "hmiContentVarianceConcern": (
+        "ProductLineCapabilityClassificationConcern",
+        ("hmiSceneInScope", "hmiSpeedInScope", "hmiCollisionWarningInScope"), "product-line",
+        [("productLineEngineer", "ProductLineEngineer")],
+        ("Product-line engineers need to see which content of the HMI display is common to the member products and "
+         "which derives from a member's driving application.",
+         "The scene is what one driving application perceives, and the scenes of the other driving applications of "
+         "the product line are out of scope (hmiOtherDrivingApplicationsOutOfScope).",
+         "The classification is made against the governed scope as its revision leaves it "
+         "(gapHmiDisplayInProductLine)."),
+        ((3, "ProductLineClassificationViewpoint"),)),
+    "hmiWarningSequenceConcern": (
+        "SystemProcessConcern", ("hmiCollisionWarningInScope",), None,
+        [("safetyExpert", "SafetyExpert"), ("systemsEngineer", "SystemsEngineer")],
+        ("Safety experts and systems engineers need to see the sequence from the candidate's warning request to the "
+         "collision warning on the display and to its sound, and the time of each step within the time that the "
+         "driver-assistance increment allots from the request to each mode, independent of the elements that realize "
+         "it.",
+         "The warning request is taken as the driver-assistance increment defines it, and how that time divides on a "
+         "path to the SDV Media VM is open (gapHmiWarningPresentation)."),
+        ((6, "SystemProcessViewpoint"),)),
+    "hmiContentCurrencyConcern": (
+        "SystemStateConcern", ("hmiStaleContentInScope",), None,
+        [("safetyExpert", "SafetyExpert"), ("verificationEngineer", "VerificationEngineer")],
+        ("Safety experts and verification engineers need to see the states that each element of the HMI display can "
+         "be in, current, late or missing, and what the display shows in each, so that no element is shown as current "
+         "when it is not: late data is never shown as live.",
+         "The warning can also be unavailable, and whether the display learns that from the age of its inputs or from "
+         "a signal of its own is open (gapHmiWarningAvailability).",
+         "From which age an element counts as late is for phase 5 to state."),
+        ((6, "SystemStateViewpoint"),)),
+    "hmiAndroidOutageConcern": (
+        "SystemProcessConcern", ("hmiAndroidOutageInScope",), None,
+        [("safetyExpert", "SafetyExpert"), ("systemsEngineer", "SystemsEngineer")],
+        ("Safety experts and systems engineers need to see the sequence from each outage of the drawing of the scene "
+         "and of the environment that hosts it, the drawing hanging or ending and its host hanging, booting or "
+         "restarting, to its detection and to what the display shows then: the speed and the warning, or the fact that "
+         "the warning is unavailable, independent of the elements that realize it.",
+         "Phase 6 treats each outage as an event of an element inside the boundary of the HMI display.",
+         "It rests on the product line's need that the availability of the AEBS be apparent when its inputs or its "
+         "functions are not healthy (N-AEBS-008) and on the status indication of REQ-AEBS-013.",
+         "No safety argument follows from it."),
+        ((6, "SystemProcessViewpoint"),)),
+    "hmiRendererAllocationConcern": (
+        "PhysicalFunctionalMappingConcern", ("hmiRendererSplitInScope",), "drawing",
+        [("productLineEngineer", "ProductLineEngineer"), ("safetyExpert", "SafetyExpert")],
+        ("Product-line engineers and safety experts need to see which renderer realizes the drawing of each element of "
+         "the HMI display: the high availability renderer in an SDV Media VM the speed, the collision warning and its "
+         "sound, and an app in the IVI VM the scene, as the owner decided on 2026-11-17.",
+         "The split rests on what the driver sees while Android in the IVI VM hangs, boots or restarts (N-AEBS-008, "
+         "REQ-AEBS-013), not on an end of the app that draws the scene.",
+         "The renderer's vehicle data holds no collision warning (gapHmiRendererCollisionWarning), and drawing an "
+         "element with it is no safety approval of that element.",
+         "The lifecycle decision is whether the renderer or an app in the IVI VM draws the common content where a "
+         "member has an AAOS SDV guest."),
+        ((8, "PhysicalLogicalMappingViewpoint"),)),
+    "hmiRendererPathConcern": (
+        "PhysicalInternalExchangeConcern", ("hmiRendererSplitInScope",), "paths",
+        [("systemArchitect", "SystemArchitect"), ("systemsEngineer", "SystemsEngineer")],
+        ("System architects and systems engineers need to see which elements exchange each input of the HMI display on "
+         "its way from the SDV Core VM to the high availability renderer in the SDV Media VM and to the app in the IVI "
+         "VM that draws the scene, the exchange by which that app tells the renderer that Android is alive, and the "
+         "boundary interface by which each input enters the display.",
+         "A renderer in an SDV Media VM adds a third VM to the guest (gapHmiMemberGuestLayout), and the renderer's "
+         "path from the SDV Core VM is not observed (gapHmiRendererIntegration)."),
+        ((8, "PhysicalInternalExchangeViewpoint"),)),
+    "hmiDisplayVerdictConcern": (
+        "ArgumentationAssuranceConcern", ("hmiVerdictEvidenceInScope",), None,
+        [("productLineEngineer", "ProductLineEngineer"), ("verificationEngineer", "VerificationEngineer")],
+        ("Product-line engineers and verification engineers need the lifecycle decision to rest on a pass or a fail "
+         "for each requirement and scenario, each bound to the candidate revision, the display build and the "
+         "configuration that ran, holding what the display shows against what the candidate gives and when.",
+         "A recording of a display that looks right is no verdict, a verdict holds for the simulated configuration "
+         "only (asmHmiSimulationStandsIn), and a fail stays a recorded result."),
+        ((10, "ArgumentationAssuranceViewpoint"),)),
+}
+#: Phase 1 concern -> (the label of its bullet in the guide, the nonclaim or boundary sentences the bullet keeps).
+#: The bullet's concern definition and holders are read from the model's concern, not from this table.
+GUIDE_CONCERNS = {
+    "hmiDriverSupervisionConcern": ("What the driver sees",
+                                    ("No human-factors, safety or on-road claim follows from it.",)),
+    "hmiDisplayInputsConcern": ("What the display takes in",
+                                ("The display takes no object that the candidate does not give: neither the "
+                                 "simulator's own record of the scene nor an estimate of its own.",)),
+    "hmiContentVarianceConcern": ("Common or derived content",
+                                  ("The scenes of the other driving applications are out of scope.",)),
+    "hmiWarningSequenceConcern": ("The warning's sequence",
+                                  ("The warning request is taken as the driver-assistance increment defines it.",)),
+    "hmiContentCurrencyConcern": ("Late and missing content",
+                                  ("No element is shown as current when it is not: late data is never shown as "
+                                   "live.",)),
+    "hmiAndroidOutageConcern": ("Outages of the scene's drawing",
+                                ("Phase 6 treats each outage as an event of an element inside the display's "
+                                 "boundary.",
+                                 "It rests on N-AEBS-008 and REQ-AEBS-013.", "No safety argument follows from it.")),
+    "hmiRendererAllocationConcern": ("Which renderer draws what",
+                                     ("The split rests on what the driver sees while Android in the IVI VM hangs, "
+                                      "boots or restarts, not on an end of the app that draws the scene.",
+                                      "Drawing an element with the renderer is no safety approval of that element.")),
+    "hmiRendererPathConcern": ("The paths to the renderers", ()),
+    "hmiDisplayVerdictConcern": ("Verdicts", ("A recording of a display that looks right is no verdict.",)),
+}
+#: the words by which a concern's doc names a view that answers it -> the viewpoint definition of that view
+VIEW_PHRASES = {
+    "operational story": "OperationalStoryViewpoint",
+    "product-line classification view": "ProductLineClassificationViewpoint",
+    "system process": "SystemProcessViewpoint",
+    "system state": "SystemStateViewpoint",
+    "physical-logical mapping": "PhysicalLogicalMappingViewpoint",
+    "view of the claimed path": "PhysicalInternalExchangeViewpoint",
+    "argumentation assurance view": "ArgumentationAssuranceViewpoint",
+}
+#: a sentence of a concern's doc that says by which views the concern is answered
+ANSWER_SENTENCE = re.compile(r"[^.]*\banswered\b[^.]*\.", re.I)
+#: the owner's decision of 2026-11-21 on the timing of the increment and what still waits, in the model's words
+GO_ON_NOW = (
+    "The owner decided on 2026-11-21 that the increment goes on without waiting for Phase 10 of the "
+    "driver-assistance increment.",
+    "Phase 3 and later phases wait for the revision of the governed scope (gapHmiDisplayInProductLine), which waits "
+    "for the baseline of the driver-assistance increment, so that it does not move the product-line receipt to which "
+    "the configuration of that increment is bound.")
 #: a past form of what a system does in a run: a framing reports no run
 PAST_BEHAVIOR = re.compile(r"(?i)\b(?:braked|warned|stopped|collided|avoided|detected|passed|failed|displayed|"
                            r"rendered|showed|crashed|hung)\b")
@@ -243,8 +398,10 @@ def test_the_question_the_decision_and_the_boundary_say_what_was_agreed():
                    "VM.",
                    "The increment does not change what the candidate application perceives, plans, requests or "
                    "commands.",
-                   "This package holds only Phase 0."):
+                   *GO_ON_NOW,
+                   "This package holds Phase 0 and the Phase 1 concerns."):
         assert phrase in increment, phrase
+    assert "This package holds only Phase 0." not in increment
     problem = _doc("requirement hmiDisplayProblem : ProblemStatement")
     for phrase in ("The owner decided on 2026-11-13 that every member product has an HMI display, and left open what "
                    "it shows.",
@@ -454,11 +611,15 @@ def test_the_framing_view_frames_the_boundary_and_exposes_every_usage():
     assert lines[0] == "subject increment : HmiDisplayIncrement;"
     assert re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", boundary) == ["SystemsEngineer", "VerificationEngineer"]
     assert dict(re.findall(r"\bconcern\s+(\w+)\s*:\s*(\w+)\s*\{", code)) == {
-        "hmiDisplayBoundary": "IncrementBoundaryConcern"}, "Phase 0 frames the boundary concern only"
+        "hmiDisplayBoundary": "IncrementBoundaryConcern",
+        **{name: spec[0] for name, spec in PHASE1_CONCERNS.items()}}, \
+        "the boundary concern of Phase 0 and the concerns of Phase 1, no other"
 
     view = braced_body(code, "view hmiDisplayFramingView")
     viewpoint = braced_body(view, "viewpoint hmiDisplayFramingViewpoint : IncrementFramingViewpoint")
-    assert re.findall(r"\bframe\s+(\w+)\s*;", viewpoint) == ["hmiDisplayBoundary"]
+    frames = re.findall(r"\bframe\s+(\w+)\s*;", viewpoint)
+    assert frames == ["hmiDisplayBoundary", *PHASE1_CONCERNS], \
+        "the one framing viewpoint frames every concern of the increment once, in the model's order"
     assert "render asTreeDiagram;" in view
     exposed = re.findall(r"\bexpose\s+(\w+)\s*;", view)
     assert len(exposed) == len(set(exposed)), "an element is exposed once"
@@ -468,6 +629,7 @@ def test_the_framing_view_frames_the_boundary_and_exposes_every_usage():
     assert len(usages) >= 30, "the population of the exposure check must not be vacuous"
     assert {"InScopeItem", "OutOfScopeItem", "IncrementAssumption", "IncrementGap", "IncrementCharter",
             "IncrementScope", "ProblemStatement", "IncrementBoundaryConcern"} <= kinds
+    assert set(PHASE1_CONCERNS) <= set(exposed), "the framing view shows every Phase 1 concern"
     assert set(exposed) == usages | {"HmiDisplayIncrement"}, \
         f"not exposed: {sorted(usages - set(exposed))}; exposed and not declared: {sorted(set(exposed) - usages)}"
 
@@ -481,8 +643,8 @@ def test_the_framing_claims_no_verification_no_admission_and_no_compliance():
     # raw source: a claim hidden in a comment is still a claim a reader sees
     assert not APPROVAL.search(raw)
     header = raw.split("package", 1)[0]
-    for phrase in ("Phase 0 framing only", "no implementation", "no runtime result", "no product-line",
-                   "no compliance"):
+    for phrase in ("Phase 0 framing and the Phase 1 concerns only", "no implementation", "no runtime result",
+                   "no product-line", "no compliance"):
         assert phrase in _flat(header.replace("*", "")), phrase
     for word in ("compliance", "type approval", "certification", "production readiness", "safety approval"):
         assert word in OUT_OF_SCOPE["hmiOnRoadOperationOutOfScope"], word
@@ -541,7 +703,7 @@ def test_the_package_declares_no_name_that_another_model_package_declares():
 
 def test_the_guide_states_the_models_question_and_scope_and_no_more():
     guide = GUIDE.read_text(encoding="utf-8")
-    assert "**Status: Phase 0 framing proposal.**" in guide
+    assert "**Status: Phase 0 framing and Phase 1 concerns, proposal.**" in guide
     quoted = _flat(" ".join(line[1:].strip() for line in guide.splitlines() if line.startswith(">")))
     assert quoted == _doc("part hmiDisplayQuestion : IncrementEngineeringQuestion"), \
         "the guide quotes the model's engineering question word for word"
@@ -567,10 +729,20 @@ def test_the_guide_states_the_models_question_and_scope_and_no_more():
                    "verdicts.",
                    "A fail is a result to record.",
                    "Starting this increment launches no compute and authorizes no spend.",
-                   "The framing's boundary concern does not open Phase 1.",
-                   "The owner decided on 2026-11-17 that Phase 1 starts after Phase 10 of the driver-assistance "
-                   "increment,"):
+                   "open gaps and Phase 1 concerns.",
+                   "The next model obligation is **Phase 2**, the operational context: exactly one context holding "
+                   "the HMI display, with a story whose use cases bind it and the context actors.",
+                   "On 2026-11-21 the owner decided that the increment goes on without waiting for Phase 10 of the "
+                   "driver-assistance increment.",
+                   "Phase 3 and later phases wait for the revision of the governed scope, which waits for the "
+                   "baseline of the driver-assistance increment, so that it does not move the product-line receipt to "
+                   "which the configuration of that increment is bound.",
+                   "On 2026-11-17 the owner decided that the readiness probe of the high availability renderer runs "
+                   "with its cost put to him first."):
         assert phrase in flat, phrase
+    for stale in ("The framing's boundary concern does not open Phase 1.", "**Phase 1 concern framing**",
+                  "that Phase 1 starts after Phase 10 of the driver-assistance increment"):
+        assert stale not in flat, f"Phase 1 is framed and goes on now: {stale}"
     boundaries = _flat(guide.split("## Boundaries", 1)[1].split("\n## ", 1)[0])
     for phrase in ("The HMI display of the VisionPilot configuration is a proposed **System 1** subject",
                    "Two parts of **System 1** are outside its boundary, and neither is an enabler: the candidate "
@@ -649,3 +821,224 @@ def test_the_upstream_record_pins_what_the_framing_read():
     exchange = re.compile(r"(?i)\bDE4SDV (?:has )?(?:confirmed|agreed|asked|contacted|told|informed|reported|"
                           r"discussed|opened|sent)\b")
     assert not exchange.findall(_flat(record)), exchange.findall(_flat(record))
+
+
+def _answers(doc: str) -> set[tuple[int, str]]:
+    """The (phase, viewpoint definition) pairs that the answer sentences of a concern's doc name."""
+    phrases = "|".join(re.escape(phrase) for phrase in VIEW_PHRASES)
+    found = set()
+    for sentence in ANSWER_SENTENCE.findall(doc):
+        pairs = re.findall(rf"\b({phrases}) (?:of|in) phase (\d+)\b", sentence)
+        assert pairs, f"an answer that names no view of the method: {sentence.strip()}"
+        found.update((int(phase), VIEW_PHRASES[phrase]) for phrase, phase in pairs)
+    return found
+
+
+def _concern_doc(name: str, kind: str) -> str:
+    return _doc(f"concern {name} : {kind}")
+
+
+def _lead(items: tuple[str, ...], part: str | None) -> str:
+    """The in-scope items a concern's doc opens with, and the part of them it asks about."""
+    lead = ", ".join(items[:-1]) + (" and " if len(items) > 1 else "") + items[-1]
+    return lead + (f", {part} part." if part else ".")
+
+
+def test_phase_one_frames_one_concern_for_each_question_of_the_scope():
+    code = _code()
+    assert "private import SAF_Viewpoints::*;" in code, "the SAF concern definitions come from the catalogue"
+    assert not re.search(r"\b(?:concern|viewpoint) def\b", code), \
+        "concern types come from the catalogues, never the slice"
+    assert re.findall(r"\bpart def (\w+)", code) == ["HmiDisplayIncrement", "HmiDisplaySystem"], \
+        "stakeholder roles come from the kernel, never the slice"
+    saf = SAF_FILE.read_text(encoding="utf-8")
+    de4sdv = DE4SDV_CATALOGUE.read_text(encoding="utf-8")
+    answered = set()
+    for name, (kind, items, part, holders, sentences, answer) in PHASE1_CONCERNS.items():
+        # an SAF definition where one asks the question; the method's own definition only for the product line,
+        # which the SAF grid has no row for
+        in_saf = len(re.findall(rf"\bconcern def {kind} :> \w+DomainConcern\s*\{{", saf)) == 1
+        in_de4sdv = len(re.findall(rf"\bconcern def {kind}\s*\{{", de4sdv)) == 1
+        assert in_saf != in_de4sdv, f"{name}: {kind} is a concern definition of exactly one catalogue"
+        assert in_saf or kind == "ProductLineCapabilityClassificationConcern", \
+            f"{name}: only the product-line question takes the method's own definition"
+        body = braced_body(code, f"concern {name} : {kind}")
+        parameters = [line.strip() for line in body.splitlines() if line.strip() and line.strip() != "doc"]
+        assert parameters[0] == "subject;", f"{name}: the subject is the first parameter"
+        assert re.findall(r"\bstakeholder\s+(\w+)\s*:\s*(\w+)\s*;", body) == holders, name
+        doc = _concern_doc(name, kind)
+        lead = _lead(items, part)
+        assert doc.startswith(lead), f"{name}: the doc opens with the in-scope items it answers: {doc[:80]}"
+        for sentence in sentences:
+            assert sentence in doc, (name, sentence)
+        rest = ANSWER_SENTENCE.sub("", doc[len(lead):])
+        assert rest.split() == " ".join(sentences).split(), \
+            f"{name}: the doc holds only its pinned sentences and its answer"
+        assert doc.index(sentences[0]) == len(lead) + 1, f"{name}: the holders' need follows the in-scope items"
+        assert _answers(doc) == set(answer), (name, sorted(_answers(doc)))
+        answered.update(items)
+    in_scope = _declared("InScopeItem")
+    assert answered == in_scope, f"in-scope items without a concern: {sorted(in_scope - answered)}"
+    # incrementHasNonBoundaryConcern: no Phase 1 concern lies in the boundary-concern lineage
+    assert not {kind for kind, *_rest in PHASE1_CONCERNS.values()} & {"IncrementBoundaryConcern"}
+    assert "IncrementBoundaryConcern" not in braced_body(
+        de4sdv, "concern def ProductLineCapabilityClassificationConcern")
+
+
+def test_every_in_scope_item_has_a_concern_for_each_question_the_increment_asks_of_it():
+    # The split of the renderers asks two questions, answered from different evidence: which renderer draws what,
+    # and the paths that bring their inputs. The scene asks what the driver sees, what crosses into the display and
+    # whether it is common content.
+    asked: dict[str, list[str]] = {}
+    for name, (_kind, items, _part, *_rest) in PHASE1_CONCERNS.items():
+        for item in items:
+            asked.setdefault(item, []).append(name)
+    assert asked["hmiRendererSplitInScope"] == ["hmiRendererAllocationConcern", "hmiRendererPathConcern"]
+    assert asked["hmiSceneInScope"] == ["hmiDriverSupervisionConcern", "hmiDisplayInputsConcern",
+                                        "hmiContentVarianceConcern"]
+    parts = [(name, spec[2]) for name, spec in PHASE1_CONCERNS.items() if spec[2]]
+    assert parts == [("hmiDriverSupervisionConcern", "operational"), ("hmiContentVarianceConcern", "product-line"),
+                     ("hmiRendererAllocationConcern", "drawing"), ("hmiRendererPathConcern", "paths")]
+
+
+def test_every_stakeholder_of_the_problem_holds_a_phase_one_concern_and_the_driver_holds_their_own():
+    # The concerns' holders are the parties whose interest each states: the five roles of the problem statement and
+    # the system architects. The driver, a vehicle occupant, holds the operational concern alone.
+    code = _code()
+    problem = braced_body(code, "requirement hmiDisplayProblem : ProblemStatement")
+    roles = set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", problem))
+    # the holders as the model declares them, not as this file lists them
+    declared = {name: set(re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;",
+                                     braced_body(code, f"concern {name} : {kind}")))
+                for name, (kind, *_rest) in PHASE1_CONCERNS.items()}
+    held = set().union(*declared.values())
+    assert roles <= held, f"problem stakeholders that hold no Phase 1 concern: {sorted(roles - held)}"
+    assert held - roles == {"SystemArchitect"}, sorted(held - roles)
+    beneficiaries = [name for name, holders in declared.items() if "VehicleOccupant" in holders]
+    assert beneficiaries == ["hmiDriverSupervisionConcern"]
+    assert declared["hmiDriverSupervisionConcern"] == {"VehicleOccupant"}, "the driver holds the operational concern"
+    assert PHASE1_CONCERNS["hmiDriverSupervisionConcern"][0] == "OperationalCapabilityConcern"
+    operational = _concern_doc("hmiDriverSupervisionConcern", "OperationalCapabilityConcern")
+    assert "Reviewers need" not in operational and "engineers" not in operational
+    # within the charter: what the driver expects to see, with no claim the scope leaves out
+    assert not re.search(r"(?i)\b(?:glance|comprehension|distraction|safely|safer|compliance|reliab\w*|"
+                         r"performs?)\b", operational)
+    for item in PHASE1_CONCERNS["hmiDriverSupervisionConcern"][1]:
+        assert item in _declared("InScopeItem")
+
+
+def test_the_display_shows_perception_only_and_no_late_element_as_current():
+    # Two decided statements of the scope, each held by its own concern: the display shows no object that the
+    # candidate does not give, and it shows no late element as current. The inputs are the boundary's: the scene, the
+    # speed and the warning request, so the closed list leaves out no input and no open option of a signal of its own.
+    inputs = _concern_doc("hmiDisplayInputsConcern", "SystemContextExchangeConcern")
+    assert "the vehicle speed that the candidate is given, and the candidate's warning request." in inputs
+    assert "The display takes no object that the candidate does not give:" in inputs
+    assert "takes no other item" not in inputs, "the closed list is of objects, not of every input"
+    system = _prose(braced_body(_raw(), "part def HmiDisplaySystem"))
+    assert "the warning request that the candidate application gives" in system, "the boundary takes the request"
+    assert "neither the simulator's own record of the scene nor an estimate of its own" in inputs
+    assert "so it shows what the candidate perceives, right or wrong." in inputs
+    assert "(hmiSimulatorTruthOutOfScope)" in inputs and "hmiSimulatorTruthOutOfScope" in _declared("OutOfScopeItem")
+    currency = _concern_doc("hmiContentCurrencyConcern", "SystemStateConcern")
+    assert "so that no element is shown as current when it is not: late data is never shown as live." in currency
+    assert "current, late or missing" in currency
+
+
+def test_the_split_rests_on_android_and_on_the_aebs_status_need_not_on_an_end_of_the_scene_app():
+    allocation = _concern_doc("hmiRendererAllocationConcern", "PhysicalFunctionalMappingConcern")
+    assert ("The split rests on what the driver sees while Android in the IVI VM hangs, boots or restarts (N-AEBS-008, "
+            "REQ-AEBS-013), not on an end of the app that draws the scene.") in allocation
+    assert "no safety approval" in allocation
+    outage = _concern_doc("hmiAndroidOutageConcern", "SystemProcessConcern")
+    assert "(N-AEBS-008)" in outage and "REQ-AEBS-013" in outage
+    # a conceptual sequence: past its in-scope item the doc names no platform; the paths concern names them
+    trigger = outage.removeprefix("hmiAndroidOutageInScope.")
+    assert not re.search(r"\bAndroid\b|\bIVI VM\b|\bapp\b", trigger), trigger
+    assert "an event of an element inside the boundary of the HMI display" in trigger
+    assert "Android is alive" in _concern_doc("hmiRendererPathConcern", "PhysicalInternalExchangeConcern")
+    # the need and the requirement are those of the AEBS model, with the text the concerns rely on
+    aebs = AEBS_REQUIREMENTS.read_text(encoding="utf-8")
+    need = braced_body(aebs, "requirement needBoundedDegradationAndAvailability : ProductSafetyAvailabilityNeed")
+    assert "N-AEBS-008" in need and "AEBS availability is apparent when required inputs or AEBS functions are not " \
+        "healthy" in _flat(need)
+    requirement = braced_body(aebs, "requirement reqIndicateDegradedUnavailableStatus :")
+    assert "REQ-AEBS-013" in requirement and "shall provide the status indication" in _flat(requirement)
+    for name, (kind, *_rest) in PHASE1_CONCERNS.items():
+        assert not re.search(r"(?i)\bcrash\w*\b", _concern_doc(name, kind)), \
+            f"{name}: the split is no claim about a crash of the scene's app"
+
+
+def test_the_phase_one_concerns_claim_no_result_and_name_no_unread_record():
+    names = set(re.findall(r"\bpart\s+(?:<'[^']*'>\s*)?(\w+)\s*:\s*(?:IncrementGap|IncrementAssumption|InScopeItem|"
+                           r"OutOfScopeItem)\b", _code()))
+    for name, (kind, *_rest) in PHASE1_CONCERNS.items():
+        doc = _concern_doc(name, kind)
+        named = set(re.findall(r"\b((?:gap|asm)[A-Z]\w+|\w+InScope|\w+OutOfScope)\b", doc))
+        assert named <= names, f"{name} names a record the framing does not declare: {sorted(named - names)}"
+        assert not PAST_BEHAVIOR.findall(doc) and not APPROVAL.findall(doc), name
+        assert not re.search(r"\b\d+(?:\.\d+)?\s*(?:s|ms|m|km/h|m/s|Hz)\b", doc), \
+            f"{name}: a criterion value is phase 5's"
+        assert not re.search(r"\bmust\b", doc), f"{name}: a concern states a need, not an obligation"
+
+
+def _words(name: str) -> str:
+    """The words of a CamelCase name, in lower case."""
+    return " ".join(re.findall(r"[A-Z][a-z]*", name)).lower()
+
+
+def _definition_and_holders(name: str) -> str:
+    """'Definition; holders.' of a Phase 1 concern, read from its typing and its stakeholder lines in the model.
+
+    Hyphens are spaces here: the guide may write a compound such as product-line with a hyphen.
+    """
+    code = _code()
+    kind = re.search(rf"\bconcern {name}\s*:\s*(\w+)\s*\{{", code).group(1)
+    roles = re.findall(r"\bstakeholder\s+\w+\s*:\s*(\w+)\s*;", braced_body(code, f"concern {name} : {kind}"))
+    definition = _words(kind.removesuffix("Concern")).capitalize()
+    return f"{definition}; " + " and ".join(_words(role) + "s" for role in roles) + "."
+
+
+def test_the_guide_lists_the_phase_one_concerns_with_their_holders():
+    guide = GUIDE.read_text(encoding="utf-8")
+    assert guide.index("## What the increment judges") < guide.index("## Concerns (Phase 1)") \
+        < guide.index("## What the framing already records as open")
+    section = guide.split("## Concerns (Phase 1)", 1)[1].split("\n## ", 1)[0]
+    bullets = re.findall(r"(?ms)^- \*\*([^*]+):\*\* `(\w+)`\.\s+(.*?)(?=^- \*\*|\n\n)", section)
+    assert len(re.findall(r"(?m)^- ", section)) == len(bullets), "every bullet has a label and names its concern"
+    model_order = re.findall(r"\bconcern\s+(\w+)\s*:", _code())
+    assert model_order == ["hmiDisplayBoundary", *PHASE1_CONCERNS], "the model declares the concerns in this order"
+    assert [name for _label, name, _body in bullets] == model_order[1:], \
+        "one bullet for each Phase 1 concern, in the model's order"
+    for label, name, body in bullets:
+        expected_label, kept = GUIDE_CONCERNS[name]
+        assert label == expected_label, (name, label)
+        kind_and_holders = _definition_and_holders(name)
+        assert kind_and_holders in _flat(body).replace("-", " "), (name, kind_and_holders)
+        for sentence in kept:
+            assert sentence in _flat(body), (name, sentence)
+        phases = sorted({phase for phase, _viewpoint in PHASE1_CONCERNS[name][5]})
+        assert re.search(rf"\bAnswered (?:by|in) [^.]*\bPhase {phases[0]}\b", _flat(body)), \
+            f"{name}: the bullet names the phase that answers the concern"
+    flat = _flat(section)
+    assert not re.search(r"(?i)\bcrash\w*\b|\bmust\b", flat)
+    for phrase in ("held by the parties whose interest it states.",
+                   "The driver, a vehicle occupant, holds the operational concern beside the engineering roles.",
+                   "The framing viewpoint frames all nine until those views exist.",
+                   "They do not judge whether the stakeholder, risk and viewpoint coverage is adequate; review does."):
+        assert phrase in flat, phrase
+
+
+def test_each_phase_one_concern_is_answered_by_a_view_of_its_phase_in_its_domain():
+    # The views that answer a concern are views the method lists for their phase, in the SAF domain of the
+    # concern's definition: rule 15's domain advisory reads that property once the views exist. The product-line
+    # concern and its view are the method's own, outside the SAF grid.
+    listed = _canonical_list()
+    domains = _domains(SAF_FILE.read_text(encoding="utf-8"))
+    for name, (kind, _items, _part, _holders, _sentences, answers) in PHASE1_CONCERNS.items():
+        assert answers, f"{name} names no view that answers it"
+        for phase, viewpoint in answers:
+            assert viewpoint in listed[phase], f"{name}: {viewpoint} is not a view the method lists for phase {phase}"
+            assert domains.get(viewpoint) == domains.get(kind), \
+                f"{name}: {kind} is in the {domains.get(kind)} domain, {viewpoint} in {domains.get(viewpoint)}"
+            assert (domains.get(kind) is None) == (kind == "ProductLineCapabilityClassificationConcern"), name
