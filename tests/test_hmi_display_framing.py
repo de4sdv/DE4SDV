@@ -1017,9 +1017,17 @@ def test_the_guide_lists_the_phase_one_concerns_with_their_holders():
         assert kind_and_holders in _flat(body).replace("-", " "), (name, kind_and_holders)
         for sentence in kept:
             assert sentence in _flat(body), (name, sentence)
-        phases = sorted({phase for phase, _viewpoint in PHASE1_CONCERNS[name][5]})
-        assert re.search(rf"\bAnswered (?:by|in) [^.]*\bPhase {phases[0]}\b", _flat(body)), \
-            f"{name}: the bullet names the phase that answers the concern"
+        # the bullet names each view that answers the concern and its phase, as the model's doc does, and every
+        # answer sentence it holds has that form
+        answers = set()
+        for sentence in ANSWER_SENTENCE.findall(_flat(body)):
+            strict = re.fullmatch(r"\s*Answered by the ([^.]*?) (?:of|in) Phase (\d+)\.", sentence)
+            assert strict and strict.group(1) in VIEW_PHRASES, (name, sentence.strip())
+            answers.add((VIEW_PHRASES[strict.group(1)], int(strict.group(2))))
+        assert answers == {(viewpoint, phase) for phase, viewpoint in PHASE1_CONCERNS[name][5]}, (name, answers)
+    outage = _flat(next(body for _label, name, body in bullets if name == "hmiAndroidOutageConcern"))
+    assert not re.search(r"\bAndroid\b|\bIVI VM\b|\bapp\b", outage), \
+        "the outage bullet states its trigger without naming a platform, as the model's doc does"
     flat = _flat(section)
     assert not re.search(r"(?i)\bcrash\w*\b|\bmust\b", flat)
     for phrase in ("held by the parties whose interest it states.",

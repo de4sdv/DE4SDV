@@ -141,7 +141,7 @@ those views exist.
   requirement and scenario, bound to the candidate revision, the display build
   and the configuration that ran. A recording of a display that looks right is
   no verdict. Argumentation assurance; product-line engineers and verification
-  engineers. Answered in Phase 10.
+  engineers. Answered by the argumentation assurance view of Phase 10.
 
 The Phase 1 gates check that each concern has native stakeholders and a frame,
 and that one concern is not the boundary concern. They do not judge whether
