@@ -638,7 +638,7 @@ def test_the_guide_states_phase_5_and_the_next_obligation():
     assert not CLAUSE_NUMBER.findall(raw_section), CLAUSE_NUMBER.findall(raw_section)
     assert "VisionPilot/" not in raw_section, "the guide carries no upstream paths"
     flat = " ".join(guide.split())  # Markdown: a line may open with bold text
-    assert "The next model obligation is **Phase 10**: verification and evidence" in flat
+    assert "The increment ended at its baseline decision." in flat
     assert "`verificationCaseVerifiesRequirement` and `requirementVerifiedByVerificationCase` read" in flat
     section = " ".join(raw_section.split())
     for fact in GUIDE_FACTS:

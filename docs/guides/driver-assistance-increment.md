@@ -8,18 +8,18 @@ increment asks that of a camera-only driver-assistance application,
 [VisionPilot](https://github.com/autowarefoundation/vision_pilot) of the
 Autoware Foundation.
 
-**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context,
-Phase 3 classification, Phase 4 stakeholder needs, Phase 5 requirements,
-Phase 6 functional architecture, Phase 7 logical architecture, Phase 8
-physical and software realization, Phase 9 variability and configuration and
-the first slice of Phase 10 verification and evidence, proposal.** No
-implementation, run, result, product-line admission or compliance is claimed.
+**Status: baselined (Phase 11).** The baseline accepts the model of phases 0
+to 10 and the bench as built, and as evidence <S1: evidence of record or none:
+the judged session S1 at bench commit 508649ba, whose bench directory is the
+tree of the merged bench, and its records>. No product-line admission, safety,
+compliance or type-approval claim follows; see [Baseline (Phase
+11)](#baseline-phase-11).
 
 ## Authoritative frame
 
 - [SysML framing model](../../textual-notation-of-model/packages/features/driving/driver_assistance_framing.sysml):
   `INC-DRIVING-002`, its engineering question, charter, scope, assumptions,
-  open gaps and Phase 1 concerns.
+  open gaps, Phase 1 concerns and the baseline decision of Phase 11.
 - [SysML variability and configuration](../../textual-notation-of-model/packages/features/driving/driver_assistance_variability_configuration.sysml):
   the Phase 9 configured product DRIVING-CONFIG-002, bound to the receipt of
   its feature configuration.
@@ -975,6 +975,54 @@ diagram comes from the licensed Syside run;
 [`VIEWS.md`](../../textual-notation-of-model/packages/features/driving/VIEWS.md)
 lists the views.
 
+## Baseline (Phase 11)
+
+`driver_assistance_framing.sysml` holds the baseline decision of the
+increment, `driverAssistanceBaselineDecision` (BL-DRIVING-002-P11), and each
+of the 11 gap records states the disposition the baseline gives it. The
+framing view shows the decision beside the framing decision it answers.
+
+- **Accepted: the integration as built.** The model of phases 0 to 10 and the
+  bench under `implementation/driver-assistance-bench/`. VisionPilot at
+  014e0e7a, built with the DE4SDV S-CORE interface and the visualization
+  recorder, runs as an Eclipse S-CORE application that the Launch Manager
+  starts and supervises. The framing decision asked how the candidate goes
+  forward; the baseline answers: <S1: as a member-product candidate whose own
+  warning and braking stand for the common capability, as a candidate that
+  needs the additions named below, or not at all>.
+- **Evidence and verdicts.** <S1: evidence of record or none: the judged
+  session S1 at bench commit 508649ba, whose bench directory is the tree of
+  the merged bench, and its records>. One verdict for each case: <S1:
+  VC-DRIVING-036 to VC-DRIVING-044, each pass, fail, inconclusive or error,
+  with the runs it reads>. The runs of SC-DRIVING-014 and SC-DRIVING-015 lie
+  outside the candidate's declared operating conditions and are reported
+  apart. A fail is a recorded result, and no scenario, criterion or setting is
+  changed for it. The additions named from the requirements that fail and from
+  the gaps: <S1: the additions, or none>; the increment builds none of them.
+- **Known limits: accepted, still open.** `gapCandidateBehaviorUnverified`:
+  every verdict is of the build with the DE4SDV S-CORE interface and the
+  visualization recorder, changes that upstream has not merged.
+  `gapCameraImageAndGeometry`: a verdict holds for the rendered camera images
+  only, and a fail that the image or the calibration may explain stays a fail.
+  `gapDeclaredOperatingConditions`: the runs outside the declared conditions
+  are reported apart.
+- **Deferred to a later increment.** `gapVehicleTargetCriteria`: taking the
+  criteria of Phase 5 into the obligations of the product line.
+  `gapNoSeparateEmergencyFunction`: whether the candidate's braking, which
+  leaves in its one driving command, can stand for the common capability, for
+  the member decision. `gapWarningOutput` and `gapScoreIntegration`: the
+  take-up upstream of the warning hand-off and of the S-CORE interface module.
+  `gapCandidateAdmission`: the member decision that amends ADR 0014.
+  `gapUpstreamContactAndRights`: no endorsement, no rights clearance.
+  `gapDriverHmiInProductLine`: the display in the governed scope and the
+  acoustic warning. GAP-DRIVING-014: <10b: what GAP-DRIVING-014 holds after
+  phase 10b>.
+- **Withdrawn.** None.
+
+No safety, on-road, compliance, type-approval, certification or membership
+claim follows from the baseline. A criterion met in simulation holds for the
+simulated configuration only.
+
 ## What the framing already records as open
 
 Each point is a gap of the model, in the model's own words.
@@ -1058,16 +1106,15 @@ type approval.
 
 ## Next obligation and execution limits
 
-Use the Method Check of the reviewed pull request to select the next
-obligation, not the phase number alone. The next model obligation is
-**Phase 10**: verification and evidence, which judges the configured product
-DRIVING-CONFIG-002 in closed loop; its second slice follows the readiness
-probes and adds the bench, the runs, the retained records and the statuses.
-The first slice holds the cases that `verificationCaseVerifiesRequirement`
-and `requirementVerifiedByVerificationCase` read;
-`verificationCaseHasEvidenceRecordOrStatus` stays advisory until runs exist.
-Do not jump from the cases to implementation before the probes, and claim no
-runtime gate.
+The increment ended at its baseline decision. Use the Method Check of the
+reviewed pull request to see the state of the model-content gates; it is not
+proof that earlier engineering work is complete. Phase 10 holds the cases that
+`verificationCaseVerifiesRequirement` and
+`requirementVerifiedByVerificationCase` read. A later increment takes up what
+the baseline deferred: the member decision that amends ADR 0014, the take-up
+upstream of the warning hand-off and of the S-CORE interface module, the
+clearances and the product line's criteria for a vehicle target. Claim no
+runtime gate from the baseline.
 
 Involve the upstream maintainers before deep adoption, and show them a result
 about their project before it is published. Before a paid cloud run, refresh

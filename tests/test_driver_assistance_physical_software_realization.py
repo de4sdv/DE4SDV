@@ -1666,13 +1666,8 @@ def test_the_guide_describes_phase_8_and_names_the_next_work():
     assert "- - " not in section, "each software element is one bullet"
     assert "VisionPilot/" not in section and ".cpp" not in section, "the guide carries no upstream paths"
     assert "like the VSS steering angle" not in section and "changes its sign" not in section, "review R1"
-    assert ("**Status: Phase 0 framing, Phase 1 concerns, Phase 2 operational context, Phase 3 classification, "
-            "Phase 4 stakeholder needs, Phase 5 requirements, Phase 6 functional architecture, Phase 7 logical "
-            "architecture, Phase 8 physical and software realization, Phase 9 variability and configuration and the "
-            "first slice of Phase 10 verification and evidence, proposal.**") in flat
-    assert ("The next model obligation is **Phase 10**: verification and evidence, which judges the configured "
-            "product DRIVING-CONFIG-002 in closed loop; its second slice follows the readiness probes and adds the "
-            "bench, the runs, the retained records and the statuses.") in flat
+    assert "**Status: baselined (Phase 11).**" in flat
+    assert "The increment ended at its baseline decision." in flat
     assert "its first gate is `verificationCaseVerifiesRequirement`" not in flat, "phase 10's first slice landed"
     assert "The next model obligation is **Phase 9**" not in flat
     assert "The next model obligation is **Phase 8**" not in flat

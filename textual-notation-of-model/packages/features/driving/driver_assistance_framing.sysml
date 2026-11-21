@@ -1,10 +1,11 @@
 /*
- * DE4SDV camera-only driver assistance: Phase 0 framing and the Phase 1
- * concerns only, beside the link of rule 5 that phase 9 declares with the
- * system of interest.
+ * DE4SDV camera-only driver assistance: Phase 0 framing, the Phase 1 concerns
+ * and the baseline decision of Phase 11, beside the link of rule 5 that phase
+ * 9 declares with the system of interest.
  * One increment spans framing, realization and closed-loop verification.
  * The framing asserts no implementation, no runtime result, no product-line
- * admission and no compliance.
+ * admission and no compliance; the baseline decision states what the
+ * increment reached.
  */
 package DE4SDV_DriverAssistanceFraming {
   private import DE4SDV_MethodContext::*;
@@ -27,7 +28,8 @@ package DE4SDV_DriverAssistanceFraming {
      * braking for a vehicle target, and the collision warning that the AAOS
      * SDV then gives the driver on its display and as a sound. It does not
      * change the Autoware-based AEBS. All phases retain this identity. This
-     * package holds Phase 0 and the Phase 1 concerns.
+     * package holds Phase 0, the Phase 1 concerns and the baseline decision of
+     * Phase 11.
      */
   }
 
@@ -281,7 +283,16 @@ package DE4SDV_DriverAssistanceFraming {
      * scenarios for an assessment and gives their parameters as guidance, not
      * as a test. Phase 5 has to select the two and to state their criterion.
      * It also has to state whose obligation each criterion is.
+     *
+     * At the baseline decision: phase 5 derived the criteria for a vehicle
+     * target with their provenance and the owner of each
+     * (vehicleTargetCriteriaFixedInPhase5), and the cases of phase 10 read
+     * them. The AEBS model still records its criteria for a vehicle target as
+     * undefined, and no verdict covers what a simulation cannot show of a
+     * criterion. Deferred to a later increment: taking the criteria into the
+     * obligations of the product line.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   part gapNoSeparateEmergencyFunction : IncrementGap {
     doc /*
@@ -294,7 +305,18 @@ package DE4SDV_DriverAssistanceFraming {
      * the protected emergency command path as common content. How a candidate
      * whose braking leaves in its one driving command keeps that independence
      * is open as well.
+     *
+     * At the baseline decision: the realization answers the gap for this
+     * candidate (phase8EmergencyFunctionAnswered): the warning and the
+     * emergency braking come from the one planned acceleration and leave in the
+     * one driving command, and the candidate realizes no independent protected
+     * emergency command path (counterClaimNoIndependentEmergencyPath). The
+     * cases that judge that braking: <S1: the verdicts of VC-DRIVING-036,
+     * VC-DRIVING-037, VC-DRIVING-041 and VC-DRIVING-042>. Deferred to a later
+     * increment: whether the candidate's braking can stand for the common
+     * capability is for the member decision.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   part gapWarningOutput : IncrementGap {
     doc /*
@@ -306,7 +328,17 @@ package DE4SDV_DriverAssistanceFraming {
      * application does not have. Whether it can be added without a change to
      * the application's decision logic is open. The data log can give the
      * evaluators a record of the warnings, not the warning for the driver.
+     *
+     * At the baseline decision: the warning request leaves the candidate
+     * through the hand-off that phase 8 placed (phase8WarningOutputPlaced), a
+     * change that upstream has not merged. The cases that judge the warning
+     * request: <S1: the verdicts of VC-DRIVING-040, VC-DRIVING-042 and
+     * VC-DRIVING-043>. The inspected revision has no warning output of its own;
+     * whether upstream takes the hand-off is open until its maintainers have
+     * seen the draft (gapUpstreamContactAndRights). Deferred to a later
+     * increment.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   part gapCandidateBehaviorUnverified : IncrementGap {
     doc /*
@@ -314,7 +346,17 @@ package DE4SDV_DriverAssistanceFraming {
      * DE4SDV has run neither the inspected revision nor a change to it. A
      * build that carries a change which upstream has not merged is a different
      * candidate, and its verdicts are reported apart.
+     *
+     * At the baseline decision: <S1: the judged session S1 of 2026-11-21 gives
+     * the first closed-loop results of record of the candidate on the DE4SDV
+     * bench, or none>. Every verdict is of the build 014e0e7a with the DE4SDV
+     * S-CORE interface and the visualization recorder, changes that upstream
+     * has not merged (phase8CandidateBuildCarriesTheSCOREInterface,
+     * phase8VisualizationRecorderPlaced, counterClaimBuildWithUnmergedChanges);
+     * the inspected revision without them has run on no DE4SDV bench. Accepted
+     * as a known limit; the gap stays open.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
   part gapScoreIntegration : IncrementGap {
     doc /*
@@ -323,7 +365,19 @@ package DE4SDV_DriverAssistanceFraming {
      * supervision. How its driving command, its warning request and its state
      * enter the S-CORE path without a bypass is open. Phases 6 to 8 decide it
      * after a readiness probe.
+     *
+     * At the baseline decision: the candidate's process is an Eclipse S-CORE
+     * application through the DE4SDV S-CORE interface module, which the Launch
+     * Manager starts and supervises (phase8ScoreIntegrationPlaced), and its
+     * driving command and its warning request enter the S-CORE path at the
+     * boundary of the process. The readiness items that phase 8 left open went
+     * on as GAP-DRIVING-014. The cases that judge the path: <S1: the verdicts
+     * of VC-DRIVING-038 and VC-DRIVING-043, the stop run included>. The module
+     * is a change that upstream has not merged, and the inspected revision has
+     * no S-CORE binding of its own. Deferred to a later increment: its take-up
+     * upstream.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   part gapCameraImageAndGeometry : IncrementGap {
     doc /*
@@ -333,7 +387,16 @@ package DE4SDV_DriverAssistanceFraming {
      * target at the distances that the criteria need is not known. Its
      * distance estimate depends on a camera calibration that has to match the
      * simulated camera.
+     *
+     * At the baseline decision: the cases read the candidate on rendered camera
+     * images, with the calibration of the simulated camera. A fail that a
+     * mismatch of the image or of the calibration may explain stays a fail:
+     * <S1: the fails, if any, that a mismatch of the image or of the
+     * calibration may explain>. A verdict holds for the rendered images only
+     * (counterClaimRenderedCameraImages). Accepted as a known limit; the gap
+     * stays open.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
   part gapDeclaredOperatingConditions : IncrementGap {
     doc /*
@@ -351,7 +414,15 @@ package DE4SDV_DriverAssistanceFraming {
      * Both come from the regulation's false-reaction scenarios and stay in the
      * scope. Phase 10 reports the runs outside the declared conditions apart
      * from the runs inside them.
+     *
+     * At the baseline decision: the runs of SC-DRIVING-014 and SC-DRIVING-015,
+     * outside the declared conditions, are reported apart from the runs of
+     * SC-DRIVING-012 and SC-DRIVING-013
+     * (counterClaimOutsideDeclaredConditions). Reported apart: <S1: the
+     * verdicts that read the runs of SC-DRIVING-014 and SC-DRIVING-015>.
+     * Accepted as a known limit; the gap stays open.
      */
+    attribute :>> disposition = LifecycleDisposition::accepted;
   }
   part gapCandidateAdmission : IncrementGap {
     doc /*
@@ -365,7 +436,15 @@ package DE4SDV_DriverAssistanceFraming {
      * classifies the candidate and names the scope decisions that the owner
      * would have to take. Phase 9 establishes configuration applicability
      * before any member-product claim.
+     *
+     * At the baseline decision: phase 3 classified the candidate and named the
+     * scope decisions (memberDecisionScopeInputs), and phase 9 gave
+     * DRIVING-CONFIG-002, a valid configuration that no member decision has
+     * taken in. This baseline admits no member product
+     * (counterClaimNoMemberProduct), and the member decision that amends ADR
+     * 0014 has not been made. Deferred to a later increment.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
   part gapUpstreamContactAndRights : IncrementGap {
     doc /*
@@ -375,7 +454,17 @@ package DE4SDV_DriverAssistanceFraming {
      * the network weights or of the data they were trained on, and those
      * terms are not yet read. No upstream contact, endorsement or rights
      * clearance is asserted.
+     *
+     * At the baseline decision: by the upstream contact decision of 2026-11-18
+     * the VisionPilot maintainers are shown the draft of the warning output and
+     * the interface seam, with the results, after the scenarios of phase 10
+     * have run in CARLA: <S1: whether the maintainers have been shown the draft
+     * by the baseline>. No endorsement and no rights clearance exists, and the
+     * terms of the network weights and of their data are not read
+     * (counterClaimNoUpstreamEndorsementOrRights). Deferred to a later
+     * increment.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   part gapDriverHmiInProductLine : IncrementGap {
@@ -394,7 +483,14 @@ package DE4SDV_DriverAssistanceFraming {
      * content that gives the collision warning, so it is not that
      * visualization. Phase 3 classifies the candidate's display and sound
      * against the scope as it then stands.
+     *
+     * At the baseline decision: phase 3 classified the display and the sound
+     * (driverHmiClassification). The governed scope takes in the display as
+     * common content with the scope pull request of ADR 0026, outside this
+     * increment, and whether the acoustic warning becomes common content of the
+     * driver warning is for the member decision. Deferred to a later increment.
      */
+    attribute :>> disposition = LifecycleDisposition::deferred;
   }
 
   part driverAssistanceCharter : IncrementCharter {
@@ -566,6 +662,62 @@ package DE4SDV_DriverAssistanceFraming {
     stakeholder verificationEngineer : VerificationEngineer;
   }
 
+  part driverAssistanceBaselineDecision : IncrementBaselineDecision {
+    doc /*
+     * BL-DRIVING-002-P11. The baseline of INC-DRIVING-002 accepts the
+     * driver-assistance integration as built: the model of phases 0 to 10 and
+     * the bench that implements it. VisionPilot at 014e0e7a, built with the
+     * DE4SDV S-CORE interface and the visualization recorder, runs as an
+     * Eclipse S-CORE application that the Launch Manager starts and supervises;
+     * the bench carries its driving command to the simulated vehicle in CARLA
+     * 1.0 through the actuation adapter, and its warning request to the AAOS
+     * SDV guests, on the Eclipse S-CORE path. This answers the framing decision
+     * (driverAssistanceDecision): the candidate goes forward <S1: as a
+     * member-product candidate whose own warning and braking stand for the
+     * common capability, as a candidate that needs the additions named below,
+     * or not at all>.
+     *
+     * The evidence it accepts: <S1: evidence of record or none: the judged
+     * session S1 at bench commit 508649ba, whose bench directory is the tree of
+     * the merged bench, and its records>. The verdicts, one for each case: <S1:
+     * VC-DRIVING-036 to VC-DRIVING-044, each pass, fail, inconclusive or error,
+     * with the runs it reads>. The runs of SC-DRIVING-014 and SC-DRIVING-015
+     * lie outside the candidate's declared operating conditions and are
+     * reported apart: <S1: the verdicts that read those runs>. A fail is a
+     * recorded result: no scenario, criterion or setting is changed for it
+     * (counterClaimNoTuningToPass). The additions named from the requirements
+     * that fail and from the gaps of this increment: <S1: the additions, or
+     * none>; the increment builds none of them.
+     *
+     * Accepted as known limits, still open in this baseline: the verdicts of a
+     * build with changes that upstream has not merged
+     * (gapCandidateBehaviorUnverified), the rendered camera images and the
+     * calibration of the simulated camera (gapCameraImageAndGeometry), and the
+     * runs outside the declared operating conditions
+     * (gapDeclaredOperatingConditions).
+     *
+     * Deferred to a later increment: the product line's criteria for a vehicle
+     * target (gapVehicleTargetCriteria), the member decision on the braking
+     * that leaves in the one driving command (gapNoSeparateEmergencyFunction),
+     * the upstream take-up of the warning hand-off (gapWarningOutput) and of
+     * the S-CORE interface module (gapScoreIntegration), the member decision
+     * that amends ADR 0014 (gapCandidateAdmission), the upstream contact and
+     * the rights clearance (gapUpstreamContactAndRights), the display in the
+     * governed scope and the acoustic warning (gapDriverHmiInProductLine), and
+     * <10b: what GAP-DRIVING-014 holds after phase 10b> (GAP-DRIVING-014).
+     *
+     * No gap is withdrawn.
+     *
+     * No safety, on-road, compliance, type-approval, certification,
+     * homologation or membership claim follows from this baseline, and nothing
+     * about UNECE R152: a criterion met in simulation holds for the simulated
+     * configuration only (asmSimulatedConfigurationStandsIn). The bench is
+     * engineering equipment, and its camera images, vehicle dynamics and
+     * targets are simulated.
+     */
+    attribute :>> disposition = LifecycleDisposition::accepted;
+  }
+
   view driverAssistanceFramingView {
     viewpoint driverAssistanceFramingViewpoint : IncrementFramingViewpoint {
       frame driverAssistanceBoundary;
@@ -581,6 +733,7 @@ package DE4SDV_DriverAssistanceFraming {
     expose driverAssistanceProblem;
     expose driverAssistanceQuestion;
     expose driverAssistanceDecision;
+    expose driverAssistanceBaselineDecision;
     expose candidateDriverAssistanceSystem;
     expose driverAssistanceScope;
     expose driverAssistanceBoundary;
