@@ -1,17 +1,20 @@
 # Driver-assistance bench (INC-DRIVING-002)
 
-Status: under construction, not yet validated. Four sessions have run on the bench (`session/README.md`), each at the
-bench commit named:
+Status: under construction, not yet validated. Eleven sessions have started bench hosts; `session/README.md` lists them
+all. The results of these four stand, each at the bench commit named:
 
 - p10-3 run 2 (SID 20261119T130414Z, 2026-11-19, `410293bb`): 21 of 21 test requests received on the IVI guest,
   conditional on a permissive IVI.
 - p10-1 try 4 (SID 20261119T160111Z, 2026-11-19, `eae0a6ef`): C1 to C4, C6 and C7 met; C5 and C8 not run by design.
 - p10-2 attempt 3 (SID 20261120T092051Z, 2026-11-20, `39a964a2`): both SC-DRIVING-012@20 runs judged; a fail of the
   pinned candidate.
-- The judged session S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`): the 14 runs of SC-DRIVING-012 to -015 and the
-  stop run, exit 0. VC-DRIVING-036, -037 and -042 fail. VC-DRIVING-039 passes by a desk analysis of the realization.
-  VC-DRIVING-038, -040, -041, -043 and -044 are inconclusive: each run drops 23-24 camera images in its first 5 s and
-  0-2 isolated images later, although the warm start of D-S1-1 ran (2 passes, about 0.68 s).
+- The judged session S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`): the 14 runs of SC-DRIVING-012 to SC-DRIVING-015
+  (10 of them meet their entry conditions) and the stop run, exit 0. VC-DRIVING-036, -037 and -042 fail. VC-DRIVING-039
+  passes by a desk analysis of the realization. VC-DRIVING-038, -040, -041, -043 and -044 are inconclusive, although
+  the warm start of D-S1-1 ran in all 16 runs, the steering calibration run among them (2 passes, 678.3 to 706.8 ms):
+  each of the 14 runs drops 23 or 24 camera images in its first 5 s and 0 to 2 isolated images later. The stop run
+  drops 24 in its first 5 s and then 8 in a row right after the stop instant (sim 2870.36 to 2871.06 s): the interface
+  keeps receiving images and drops them, because the candidate that takes them is stopped.
 
 A fail is a fail of the pinned candidate on this bench in simulation. No outcome is a compliance claim. The evidence
 records and the case statuses come in the phase 10 evidence pull request.

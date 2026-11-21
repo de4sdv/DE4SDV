@@ -1,6 +1,7 @@
 # Bench sessions (INC-DRIVING-002)
 
-Status: draft, not yet validated. Beyond the dry runs below, these sessions have run on the cloud hosts:
+Status: draft, not yet validated. Beyond the dry runs below, eleven sessions have started bench hosts (each session's
+`session.json`). The results of these four stand:
 
 - p10-3 run 2 (SID 20261119T130414Z, 2026-11-19, `410293bb`): exit 0; 21 of 21 test requests received on the IVI guest.
 - p10-1 try 4 (SID 20261119T160111Z, 2026-11-19, `eae0a6ef`): exit 0; C1 to C4, C6 and C7 met, C5 and C8 not run by
@@ -10,6 +11,19 @@ Status: draft, not yet validated. Beyond the dry runs below, these sessions have
   candidate.
 - The judged session S1 (SID 20261121T014447Z, 2026-11-21, `508649ba`): exit 0; the 14 runs of SC-DRIVING-012 to -015
   and the stop run. Its verdicts are in the bench README.
+
+The seven others, each at the bench commit named:
+
+- p10-3 run 1 (SID 20261119T094924Z, 2026-11-19, `7b940dc8`): exit 5 at the step `unit_inject`.
+- p10-1 try 1 (SID 20261119T123015Z, 2026-11-19, `0a1d83c3`): exit 5 at the step `port_test`.
+- p10-1 try 2 (SID 20261119T123937Z, 2026-11-19, `0a1d83c3`): exit 5 at the step `warmup`.
+- p10-1 try 3 (SID 20261119T134840Z, 2026-11-19, `14b77ecb`): exit 12 after its steps: the p10_1 check FAILed (C2 to
+  C4 failed, C5 and C8 not run).
+- p10-2 attempt 1 (SID 20261119T174606Z, 2026-11-19, `414fff5f`): exit 5 at the step `rec_run1`.
+- p10-2 attempt 2 (SID 20261119T203947Z, 2026-11-19, `39a964a2`): exit 5 at the step `app_restart_run1`.
+- The `s1` rehearsal (SID 20261121T011350Z, 2026-11-21, `f03e3af9`): exit 6 at the S-CORE host's start: the simulator
+  host started, the S-CORE host did not (no capacity in 8 rounds, then a quota error on NVIDIA_L4_GPUS), and no step
+  ran.
 
 ## The problem
 
